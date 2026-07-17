@@ -1,0 +1,36 @@
+---
+description: Enforce GT Selection capstone scope, evidence, and requirement traceability
+alwaysApply: true
+---
+
+# GT Selection Project Guardrails
+
+Before substantive work, read and follow:
+
+1. `PROJECT_CHARTER.md`
+2. `docs/project-requirements.md`
+3. `docs/DEVELOPMENT_RUBRIC.md`
+4. `AGENTS.md`
+
+Use `docs/CONCEPT_OPTIONS.md`, `docs/CRITIC_REVIEW_CHECKLIST.md`, and
+`docs/METRICS_AND_GUARDRAILS_LIBRARY.md` as references only, not approved direction.
+
+For every plan or implementation:
+
+- Cite the R/H requirement IDs served.
+- Identify evidence-register IDs and open assumptions.
+- Define the smallest sufficient deliverable and acceptance evidence.
+- State what is explicitly out of scope.
+- Update traceability, evidence, decisions, or exceptions when affected.
+- Verify acceptance evidence before claiming completion.
+
+Stop and ask when:
+
+- work cannot map to a requirement;
+- a GT fact, threshold, authority, capacity, or data source is unknown and material;
+- a causal claim exceeds the identification design;
+- applicant rights conflict with research convenience;
+- a solution is being treated as a requirement; or
+- an unapproved scope exception is necessary.
+
+Never invent GT-specific facts, silently ratify a product concept, or let a lower-precedence plan override the charter or required requirements.
