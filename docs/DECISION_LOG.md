@@ -55,7 +55,7 @@ Each decision must include the requirements served, alternatives considered, evi
 ### D-005 — No product concept is currently ratified
 
 - **Date:** 2026-07-17
-- **Status:** Approved
+- **Status:** Superseded by D-008
 - **Decision:** Product discovery remains open until the team evaluates concepts against the development rubric.
 - **Requirements served:** R1–R10
 - **Alternatives considered:** Ratify the integrated pilot from the historical PRD sprint.
@@ -86,6 +86,22 @@ Each decision must include the requirements served, alternatives considered, evi
 - **Consequence:** The distilled references preserve useful options and test patterns without carrying forward a product decision.
 - **Owner:** Team lead
 - **Supersedes:** D-004
+
+### D-008 — Ratify Track B Talent Evidence Snapshot prototype
+
+- **Date:** 2026-07-17
+- **Status:** Approved
+- **Decision:** Preserve the authorized Track A CogAT admissions rule and add a profile-aware Track B invitation for promising below-cutoff CogAT applicants. Final Track B eligibility combines the CogAT gate with a 10–15 minute parent/guardian Talent Evidence Snapshot requiring no new child work.
+- **Requirements served:** R1, R5, R7–R10, H1, H2, H4, H7, H9, H10
+- **Evidence:** E-005 and E-006 support caution around a single hard screen while preserving capability; E-019 shows nominations provide limited complementary information; E-021 supports replacing unstructured recommendations with structured evidence while noting transfer limits; E-023 supports structured rules over freeform holistic judgment. None validates the Snapshot for live GT eligibility, so approval is restricted to the synthetic prototype.
+- **Evidence routes:** Primary route uses one or two existing artifacts per selected domain. Applicants without artifacts may use a bounded structured narrative fallback completed by a parent/guardian or other directly observing adult.
+- **Review:** Artifact route receives two independent reviews and a blind third review on disagreement. Narrative fallback receives three independent blind reviews from the start. Majority classification controls.
+- **Domain rule:** Any demonstrable talent domain may contribute when evidence also shows learning rate, transfer, abstraction, or comparable capacity relevant to thriving in GT. Domain prestige cannot affect the decision.
+- **Alternatives considered:** Keep the current parent essay; require new child performance tasks; restrict Track B to academic domains; make artifacts mandatory; use one reviewer; use automated scoring.
+- **Rationale:** The selected workflow reduces parent-prose bias, preserves access for applicants without recorded artifacts, retains asynchronous/domain-specific talent, and fits the no-additional-child-work and four-week constraints.
+- **Consequences:** The exact CogAT band, battery-profile rule, domain anchors, rubric thresholds, service catalog, and allocation/evaluation method remain configurable/open. Track B eligibility does not itself establish program effect or guarantee a seat.
+- **Owner:** Team lead
+- **Supersedes:** D-005
 
 ## Entry template
 

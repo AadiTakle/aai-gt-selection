@@ -2,7 +2,7 @@
 
 ## Status
 
-No product concept is currently ratified. These options preserve the useful design space from earlier exploration without selecting a winner.
+D-008 ratifies a synthetic prototype that preserves Track A and adds a profile-aware Track B Talent Evidence Snapshot. The options below preserve the earlier design space and remain references rather than alternative approvals.
 
 All concepts must be evaluated against `project-requirements.md` and `DEVELOPMENT_RUBRIC.md`.
 
