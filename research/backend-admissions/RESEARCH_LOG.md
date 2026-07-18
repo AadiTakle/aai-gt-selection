@@ -303,6 +303,22 @@
 - Identified statistical power and formal noninferiority—not causal framing—as
   the next major design flaw.
 
+### Iteration 20 — 2026-07-18
+
+- Specified cumulative pooling of randomized Track B cohorts with
+  cohort-specific ITTs, prespecified target-population weights, and
+  heterogeneity reporting.
+- Added registered group-sequential/confidence-sequence requirements for annual
+  updates.
+- Decomposed the public growth multiple into total observed, randomized
+  counterfactual, and GT-attributable components.
+- Kept adjusted score/SD ITT primary because growth-ratio denominators can be
+  small and norm-version dependent.
+- Added simulation scenarios for cumulative precision, repeated-testing error,
+  treatment/norm drift, and unstable multiplier denominators.
+- Identified estimand drift across program, policy, population, site, outcome,
+  and norm versions as the next major flaw.
+
 ## Implementation Transition
 
 The broad research clusters are covered. Next actions:

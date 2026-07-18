@@ -26,10 +26,11 @@ outcome follow-up, notices, acceptance tests, and claims register.
 
 **Owner/deadline:** Team lead, reviewed by evaluation owner; before coding.
 
-**Next flaw after ratification:** equivalence and benefit both require adequate
-precision. A nonsignificant Track A/Track B difference is not noninferiority,
-and a small Track B lottery may detect only effects far larger than the
-0.10–0.20 SD range supported by independent education evidence.
+**Next flaw after ratification:** pooling improves precision only when cohorts
+estimate a sufficiently stable target. If Timeback, staffing, eligibility,
+outcomes, or norms change, a single pooled number can become a precise average
+of different treatments. Version-specific effects and heterogeneity must remain
+visible.
 
 ## 2. Allocation and Aid
 

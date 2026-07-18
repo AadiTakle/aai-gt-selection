@@ -111,6 +111,58 @@ Combined interpretation:
 This does not establish \(\tau_A=\tau_B\); that requires a credible Track A
 counterfactual.
 
+## Multi-Cohort Pooling
+
+For every cohort:
+
+- preserve original randomization block and offer probability;
+- estimate cohort-specific Track B ITT;
+- use the same primary outcome/horizon or a prospectively validated crosswalk;
+- record policy, program, Timeback, MAP norm, staffing, and site versions;
+- follow all candidates by original assignment; and
+- report cohort-specific attrition and compliance.
+
+Primary pooled model:
+
+- cohort/block fixed effects;
+- baseline-adjusted endpoint;
+- cohort-specific treatment effects reported alongside the pooled effect;
+- prespecified target-population weights rather than accidental sample-size
+  weights; and
+- treatment-by-cohort/version heterogeneity test.
+
+If treatment or population versions differ materially, estimate version-specific
+effects and use a hierarchical/meta-analytic synthesis rather than asserting one
+timeless GT effect.
+
+For annual monitoring, use a preregistered group-sequential design, alpha
+spending, or confidence sequence. Do not repeatedly test an ordinary 0.05
+p-value after each cohort.
+
+## Growth-Multiple Decomposition
+
+Keep the fixed-horizon scale-score/SD ITT as primary.
+
+Secondary public translation:
+
+\[
+\frac{G_1}{G_{projected}}
+=
+\frac{G_0}{G_{projected}}
++
+\frac{G_1-G_0}{G_{projected}}
+\]
+
+Report:
+
+1. total observed growth multiple;
+2. randomized counterfactual growth multiple;
+3. incremental multiple attributable to the GT offer; and
+4. uncertainty for the score/SD effect and the secondary ratio.
+
+Use aggregate ratio-of-sums or a prespecified model, not an unweighted average
+of individual ratios. Freeze or crosswalk the norm/projection version.
+
 ## Multiple Pretests
 
 If available:

@@ -1,16 +1,16 @@
 # Graph Report - gt-selection-capstone  (2026-07-18)
 
 ## Corpus Check
-- 52 files · ~95,864 words
+- 52 files · ~96,970 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1030 nodes · 991 edges · 91 communities (81 shown, 10 thin omitted)
+- 1037 nodes · 998 edges · 91 communities (81 shown, 10 thin omitted)
 - Extraction: 98% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 12 edges (avg confidence: 0.89)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `58d63b9a`
+- Built from commit: `d2534d8e`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -110,11 +110,11 @@
 ## God Nodes (most connected - your core abstractions)
 1. `Separating Selection Effect from Program Effect` - 47 edges
 2. `Annotated Source Register` - 31 edges
-3. `Iteration Log` - 21 edges
+3. `Iteration Log` - 22 edges
 4. `Backend and Admissions Algorithm Designs` - 19 edges
-5. `Supabase/PostgreSQL Research Data Model` - 18 edges
-6. `Canonicalization, Hashing, and Replay Blueprint` - 18 edges
-7. `Morning Handoff` - 18 edges
+5. `Morning Handoff` - 19 edges
+6. `Supabase/PostgreSQL Research Data Model` - 18 edges
+7. `Canonicalization, Hashing, and Replay Blueprint` - 18 edges
 8. `Child Data Privacy, Retention, and Synthetic-Data Safety` - 17 edges
 9. `Minimum Synthetic MVP Data Contract` - 17 edges
 10. `Supabase Auth, RLS, and RPC Blueprint` - 17 edges
@@ -206,12 +206,12 @@ Cohesion: 0.67
 Nodes (3): Privacy Correction Appeal and Re-entry Stories, F10 Consent Privacy and Research Separation, F9 Explainable Decision and Remedy Lifecycle
 
 ### Community 26 - "Backend and Admissions Algorithm Designs"
-Cohesion: 0.10
-Nodes (20): A. Track A Audit, B. Track B Invitation, Backend and Admissions Algorithm Designs, C. Track B Snapshot Eligibility, D2. Joint Track B Effect and Service-Fit Decision, D. Future Randomized-Offer Evaluation, E. Future Regression-Discontinuity Evaluation, F. Candidate-Selection Modeling Rules (+12 more)
+Cohesion: 0.09
+Nodes (21): A. Track A Audit, B. Track B Invitation, Backend and Admissions Algorithm Designs, C. Track B Snapshot Eligibility, D2. Joint Track B Effect and Service-Fit Decision, D3. Cumulative Multi-Cohort Effect, D. Future Randomized-Offer Evaluation, E. Future Regression-Discontinuity Evaluation (+13 more)
 
 ### Community 27 - "Overnight Backend and Admissions Research Log"
-Cohesion: 0.08
-Nodes (25): Implementation Transition, Iteration 0 — 2026-07-18, Iteration 10 — 2026-07-18, Iteration 11 — 2026-07-18, Iteration 12 — 2026-07-18, Iteration 13 — 2026-07-18, Iteration 14 — 2026-07-18, Iteration 15 — 2026-07-18 (+17 more)
+Cohesion: 0.07
+Nodes (26): Implementation Transition, Iteration 0 — 2026-07-18, Iteration 10 — 2026-07-18, Iteration 11 — 2026-07-18, Iteration 12 — 2026-07-18, Iteration 13 — 2026-07-18, Iteration 14 — 2026-07-18, Iteration 15 — 2026-07-18 (+18 more)
 
 ### Community 28 - "Future Allocation, Aid, and Auditable Lottery Research"
 Cohesion: 0.11
@@ -227,7 +227,7 @@ Nodes (14): A complex assignment mechanism, A simple fixed block lottery, Abdulk
 
 ### Community 31 - "Outcome Modeling and Causal Falsification Plan"
 Cohesion: 0.08
-Nodes (23): Assessment event, Assignment, Backend Fields, BrainLift Two-Stage Evaluation, By Design, Causal DAG Minimum, Falsification Register, Governance (+15 more)
+Nodes (25): Assessment event, Assignment, Backend Fields, BrainLift Two-Stage Evaluation, By Design, Causal DAG Minimum, Falsification Register, Governance (+17 more)
 
 ### Community 32 - "Track A Read-Only Audit Plan"
 Cohesion: 0.10
@@ -266,8 +266,8 @@ Cohesion: 0.67
 Nodes (3): Additional Anchor Evidence Families, Empirical Welfare and Doubly Robust Policy Learning, Research Design Meets Market Design
 
 ### Community 41 - "Morning Handoff"
-Cohesion: 0.09
-Nodes (22): Accessibility Claim Boundary, Bottom-Line Claims, Canonical Contradictions to Resolve Separately, Contestability Boundary, Current Public-Fact Update, Day-0 Decisions, Executive Summary, Final Implementation Warning (+14 more)
+Cohesion: 0.08
+Nodes (23): Accessibility Claim Boundary, Bottom-Line Claims, Canonical Contradictions to Resolve Separately, Contestability Boundary, Current Public-Fact Update, Day-0 Decisions, Executive Summary, Final Implementation Warning (+15 more)
 
 ### Community 42 - "Adversarial Research Audit and Corrections"
 Cohesion: 0.17
@@ -462,8 +462,8 @@ Cohesion: 0.50
 Nodes (4): Concept A Selection-First, Concept B Evaluation-First, Concept C Integrated Selection and Evaluation, Weighted Concept Comparison Scorecard
 
 ### Community 90 - "Two-Stage BrainLift Evaluation Logic"
-Cohesion: 0.50
-Nodes (4): Next unresolved weakness — power and noninferiority, Stage 1 — Track B program effect, Stage 2 — Track B service fit, Two-Stage BrainLift Evaluation Logic
+Cohesion: 0.33
+Nodes (6): Decomposing the 2.6× claim, Multi-cohort cumulative estimation, Next unresolved weakness — power and noninferiority, Stage 1 — Track B program effect, Stage 2 — Track B service fit, Two-Stage BrainLift Evaluation Logic
 
 ## Ambiguous Edges - Review These
 - `Program Effect` → `Track A vs Track B Difference as Program Effect Claim`  [AMBIGUOUS]
@@ -476,7 +476,7 @@ Nodes (4): Next unresolved weakness — power and noninferiority, Stage 1 — Tr
   docs/GT_ADMISSIONS_APPLICATION_MVP_PRD.md · relation: conceptually_related_to
 
 ## Knowledge Gaps
-- **819 isolated node(s):** `Week`, `Task`, `tasks`, `weeks`, `views` (+814 more)
+- **826 isolated node(s):** `Week`, `Task`, `tasks`, `weeks`, `views` (+821 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **10 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -492,8 +492,8 @@ _Questions this graph is uniquely positioned to answer:_
 - **What is the exact relationship between `R10 Conclusion Boundaries` and `Track A vs Track B Difference as Program Effect Claim`?**
   _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._
 - **Why does `Annotated Source Register` connect `Reproducible Evaluator Exports` to `Accessibility, Translation, and Measurement Fairness`, `Tutoring, Adaptive Software, and Program Mechanisms`, `Child Data Privacy and Synthetic-Data Safety`, `Explanation and Contestability`, `Reviewer Reliability and Rubric Validation`, `Initial Anchor Sources`, `Growth Outcomes and Falsification`, `Recent 2024–2026 Evidence`, `Current GT, Timeback, Alpha, and TEFA Sources`, `Policy Learning and Heterogeneous Effects`, `Randomized Allocation and Aid`, `Power, Missingness, and Interference`, `Auditable Randomness and Allocation Security`, `Fairness and Contestability`, `Complex Regression Discontinuity`, `Advanced STEM Readiness`, `Backend, Audit, and Reproducibility`, `Fidelity and Economic Evaluation`, `Selective Labels and Missing Outcomes`, `Transportability and External Validity`, `Monitoring and Drift`, `Effect-Size and Meaningful-Effect Benchmarks`, `Uncertainty and Abstention`, `CATE Calibration and Policy Evaluation`, `Standard Setting and Decision Utility`, `Supabase Auth, RLS, and Local Testing`, `Annotated Source Register`?**
-  _High betweenness centrality (0.066) - this node is a cross-community bridge._
-- **Why does `Power, Missingness, and Interference` connect `Power, Missingness, and Interference` to `Reproducible Evaluator Exports`?**
+  _High betweenness centrality (0.067) - this node is a cross-community bridge._
+- **Why does `Tutoring, Adaptive Software, and Program Mechanisms` connect `Tutoring, Adaptive Software, and Program Mechanisms` to `Reproducible Evaluator Exports`?**
   _High betweenness centrality (0.009) - this node is a cross-community bridge._
 - **Why does `Child Data Privacy and Synthetic-Data Safety` connect `Child Data Privacy and Synthetic-Data Safety` to `Reproducible Evaluator Exports`?**
   _High betweenness centrality (0.009) - this node is a cross-community bridge._

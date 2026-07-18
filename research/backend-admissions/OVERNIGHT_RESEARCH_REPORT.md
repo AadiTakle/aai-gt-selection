@@ -272,6 +272,59 @@ The design may therefore require pooled cohorts, multiple years or campuses,
 one primary high-ceiling outcome, strong baseline adjustment, and unusually
 complete follow-up.
 
+### Multi-cohort cumulative estimation
+
+For cohort \(k\), estimate the blocked Track B initial-offer effect:
+
+\[
+\tau_{B,k}
+=
+E[Y\mid B,Z=1,k]-E[Y\mid B,Z=0,k]
+\]
+
+Combine cohorts using prespecified target-population weights:
+
+\[
+\tau_{pooled}=\sum_k w_k\tau_{B,k}
+\]
+
+With otherwise stable design and variance, standard errors shrink roughly with
+\(1/\sqrt{N}\). Under the current power illustration, pooling equal cohorts of
+40 would reduce the approximate detectable effect from 0.63 SD for one cohort
+to 0.32 for four, 0.21 for nine, and 0.16 for sixteen.
+
+Annual updates need a prespecified group-sequential procedure or confidence
+sequence, or must remain descriptive until one fixed confirmatory analysis.
+Repeated ordinary p-value testing inflates false positives.
+
+### Decomposing the 2.6× claim
+
+The public growth multiple combines counterfactual growth and GT-attributable
+growth:
+
+\[
+M_{total}=\frac{G_1}{G_{projected}}
+\]
+
+\[
+M_{counterfactual}=\frac{G_0}{G_{projected}}
+\]
+
+\[
+M_{program}=\frac{G_1-G_0}{G_{projected}}
+\]
+
+so:
+
+\[
+M_{total}=M_{counterfactual}+M_{program}
+\]
+
+Randomized Track B offers estimate \(G_1\) and \(G_0\). Report the
+baseline-adjusted score/SD difference and confidence interval as the primary
+causal result. Report the decomposed multiplier secondarily because projected
+growth denominators can be small, unstable, or norm-version dependent.
+
 ## Selective-Label Finding
 
 Admitted-only records create nonidentification, not ordinary missing data.

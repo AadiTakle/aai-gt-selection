@@ -267,6 +267,12 @@ Expected failure: natural growth and regression to the mean appear as program ef
 - S21: clustered outcomes with increasing ICC
 - S22: peer spillover contamination
 - S23: treatment-version differences across cohorts
+- S24: stable treatment, sequential cohort pooling
+- S25: unmodeled treatment/outcome-norm drift
+- S26: ordinary repeated p-value peeking versus group-sequential/confidence
+  sequence
+- S27: stable versus near-zero projected-growth denominator in 2.6×
+  decomposition
 
 ## Metrics
 
@@ -277,6 +283,11 @@ Expected failure: natural growth and regression to the mean appear as program ef
 - Reported standard error
 - 95% coverage
 - Type-I error and power
+- Cumulative confidence-interval width by cohort count
+- Sequential stopping error and coverage
+- Cohort/version heterogeneity
+- Bias of pooled versus version-specific estimates
+- Total, counterfactual, and attributable growth-multiple recovery
 - First-stage strength
 - RD local sample and diagnostics
 - Matching balance and overlap
@@ -300,6 +311,13 @@ Expected failure: natural growth and regression to the mean appear as program ef
   while the joint design distinguishes causal Track B benefit from service fit.
 - Small samples frequently fail to establish either Track B benefit or
   Track A/B noninferiority even when both are true.
+- Stable repeated cohorts narrow uncertainty approximately with
+  \(1/\sqrt{N}\), while unmodeled program/norm drift converges to a misleading
+  average.
+- Repeated ordinary significance testing inflates false positives; registered
+  sequential methods preserve their intended error guarantees.
+- Growth-multiple decomposition recovers the attributable component when the
+  projected denominator is stable and becomes volatile near zero.
 - Matching bias increases with hidden confounding despite observed balance.
 - Pre/post analysis reports apparent gains under zero treatment effect.
 - Weak compliance preserves diluted ITT but destabilizes IV.

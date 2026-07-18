@@ -55,6 +55,20 @@ Future research infrastructure should be designed but not built into the four-we
 9. Current fairness evidence is process evidence, not true error-rate evidence.
 10. Realistic broad-outcome program effects are nearer 0.10–0.20 SD than 0.40+ or 2.6× growth claims.
 
+## Multi-Cohort Evidence Strategy
+
+- Pool randomized Track B cohorts under prespecified target-population weights.
+- Report cohort/version-specific effects and heterogeneity alongside the pooled
+  ITT.
+- Use registered sequential inference rather than repeated ordinary p-values.
+- Keep adjusted score/SD ITT primary.
+- Decompose the public growth multiple into total observed, randomized
+  counterfactual, and GT-attributable components.
+
+The next major flaw is estimand drift: if Timeback, staffing, eligibility,
+outcome instruments, or norms change across years, more data can converge on a
+precise average of different programs rather than one exact GT effect.
+
 ## Five Highest-Confidence Papers
 
 1. **Bui, Craig, & Imberman (2014)**  

@@ -135,6 +135,44 @@ DO NOT:
   compare selected enrolled Track B students with all non-admitted applicants
 ```
 
+### D3. Cumulative Multi-Cohort Effect
+
+```text
+FOR each cohort:
+  verify registered protocol and outcome horizon
+  preserve randomization block and assignment probability
+  estimate Track B initial-offer ITT
+  estimate Track A/Track B service-fit difference
+  record program, policy, Timeback, outcome, norm, site, and staffing versions
+  report attrition and compliance by assignment
+
+POOL only under prespecified target-population weights.
+
+IF treatment/outcome/population versions are materially comparable:
+  estimate pooled blocked ITT
+  report cohort-specific effects and heterogeneity
+ELSE:
+  estimate version-specific effects
+  synthesize hierarchically/meta-analytically
+  prohibit one timeless "exact GT effect"
+
+FOR annual updates:
+  use registered group-sequential boundaries or confidence sequence
+  do not repeatedly apply ordinary p < .05
+
+DECOMPOSE public growth multiple:
+  total_multiple = offered_growth / projected_growth
+  counterfactual_multiple = nonoffered_growth / projected_growth
+  attributable_multiple =
+    (offered_growth - nonoffered_growth) / projected_growth
+
+PRIMARY CLAIM:
+  adjusted score/SD ITT with interval
+
+SECONDARY TRANSLATION:
+  total, counterfactual, and attributable growth multiples
+```
+
 ## E. Future Regression-Discontinuity Evaluation
 
 ```text

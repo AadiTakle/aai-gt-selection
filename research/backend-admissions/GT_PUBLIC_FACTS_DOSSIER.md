@@ -136,6 +136,16 @@ Limitations:
 - no untreated comparison;
 - no independent analysis.
 
+Future randomized Track B follow-up can decompose the public growth multiple:
+
+- total observed multiple: offered growth / projected growth;
+- counterfactual multiple: non-offered growth / projected growth; and
+- attributable multiple: (offered − non-offered growth) / projected growth.
+
+The adjusted score/SD difference remains the primary causal result because the
+ratio depends on the projection/norm version and can be unstable when projected
+growth is small.
+
 No public independent peer-reviewed or credible quasi-experimental Timeback/Alpha/GT impact study was found.
 
 ## Privacy and Data
