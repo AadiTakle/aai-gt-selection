@@ -648,13 +648,31 @@ GT/Alpha policies disclose extensive child activity, screen, audio/video, behavi
 
 The synthetic-only boundary remains necessary.
 
-## Deliverables Under Construction
+## Implementation Handoff
 
-- Source-graded paper deep dives
-- Causal design decision tree
-- Track A audit algorithm
-- Track B eligibility algorithm
-- Future randomized-offer and RD algorithms
-- Synthetic data and simulation specification
-- Power and sensitivity specifications in `SIMULATION_SPECIFICATION.md` and `OUTCOME_AND_FALSIFICATION_PLAN.md`
-- Advanced STEM-readiness outcome framework
+Build now:
+
+- local synthetic Supabase/PostgreSQL;
+- deterministic versioned Track A/Track B routing;
+- blind review and explicit pending states;
+- immutable decisions, reasons, audit, and replay;
+- RLS/prohibited-field/concurrency tests; and
+- fixed synthetic artifact references.
+
+Defer:
+
+- allocation, aid, lotteries, and offers;
+- causal/RD/ANCOVA/CATE infrastructure;
+- outcomes, evaluator exports, and differential privacy;
+- learned admissions models;
+- live uploads/data and production deployment.
+
+Before coding, resolve the PRD's program-effect claim, Track-A-first allocation,
+domain-field, appeal, pending-state, and finance contradictions.
+
+Implementation artifacts:
+
+- `BACKEND_IMPLEMENTATION_BACKLOG.md`
+- `MVP_DATA_CONTRACT.md`
+- `SYNTHETIC_FIXTURE_MATRIX.md`
+- `MVP_THREAT_MODEL.md`

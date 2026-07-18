@@ -163,13 +163,23 @@
 - Audited public GT/Alpha/Timeback privacy, monitoring, retention, vendor, consent, and public assurance gaps.
 - Added GT public facts dossier and current official/independent sources.
 
-## Next Research Clusters
+### Iteration 11 — 2026-07-18
 
-1. Randomized/lottery and regression-discontinuity identification in selective education.
-2. Gifted/high-achiever program-effect studies with positive and null findings.
-3. Treatment-effect heterogeneity and policy-learning methods.
-4. Transparent candidate-selection algorithms, calibration, uncertainty, and fairness.
-5. Multiple-criteria decision rules for Track B evidence.
-6. Power, attrition, noncompliance, interference, and sensitivity analysis.
-7. Operational definition and measurement limits of “MIT-ready by eighth grade.”
-8. Backend data model, audit/replay, and synthetic simulation requirements.
+- Distilled the research schema into a minimum synthetic MVP data contract.
+- Created a two-week backend implementation backlog with ownership and merge boundaries.
+- Created deterministic routing, review, pending, correction, replay, concurrency,
+  prohibited-field, accessibility, and RLS fixture matrices.
+- Added a bounded local Supabase/PostgreSQL threat model and minimum security gate.
+- Separated build-now admissions workflow from future allocation, evaluation, outcome,
+  finance, export, differential-privacy, and ML infrastructure.
+- Added a Day-0 contradiction gate before implementation.
+
+## Implementation Transition
+
+The broad research clusters are covered. Next actions:
+
+1. Resolve the seven Day-0 PRD/governance decisions.
+2. Freeze synthetic policy values and reason codes.
+3. Add implementation work items to traceability.
+4. Scaffold local Supabase and implement the minimum data contract.
+5. Turn the fixture matrix into executable tests.

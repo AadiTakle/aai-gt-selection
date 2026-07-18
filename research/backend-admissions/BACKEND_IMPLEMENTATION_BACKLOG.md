@@ -1,0 +1,236 @@
+# Two-Week Backend Implementation Backlog
+
+## Scope
+
+Build a local, synthetic-only Supabase/PostgreSQL backend for deterministic routing, blind review, pending states, immutable decisions, audit, replay, and RLS.
+
+Future causal, evaluator, allocation, aid, outcome, and ML infrastructure is excluded.
+
+## Day 0 — Resolve Contract Conflicts
+
+Before coding:
+
+1. Remove the false Track A/Track B program-effect claim.
+2. Quarantine Track-A-first aid/lottery as future research.
+3. Clarify `domain` versus `domain prestige`.
+4. Choose one pending/reviewer aggregation contract.
+5. Confirm appeal is outside MVP or specify it consistently.
+6. Omit finance persistence from the MVP.
+7. Mark all rules/thresholds as synthetic fixtures.
+
+## Week 1
+
+### Day 1 — Freeze Contracts
+
+**Owner:** Aadi  
+**Files:** proposed `src/contracts/workflow.ts`, `review.ts`, `decision.ts`, `reason-codes.ts`
+
+Define:
+
+- workflow states;
+- Track A/Track B response types;
+- review classifications;
+- pending reasons;
+- applicant-safe messages;
+- API request/response fixtures.
+
+Acceptance:
+
+- every state has allowed transitions;
+- every result includes policy version, reason codes, and next action;
+- no response implies admission, “not gifted,” or program effect.
+
+Blockers B-01–B-04 use explicit synthetic values.
+
+### Days 1–2 — Initialize Local Supabase
+
+**Owner:** Aadi  
+**Files:** `supabase/config.toml`, migrations, local seeds
+
+Create MVP schemas only:
+
+- `iam_private`
+- `privacy_private`
+- `admissions`
+- `policy`
+- `evidence`
+- `review`
+- `decision`
+- `audit`
+- `api`
+
+Acceptance:
+
+- clean local reset;
+- synthetic records only;
+- no production project/credentials.
+
+### Days 2–3 — Versioned Admissions and Policy
+
+Implement:
+
+- application/version;
+- assessment/version;
+- policy/version/bundle;
+- reason codes;
+- feature permissions.
+
+Acceptance:
+
+- submitted records immutable;
+- corrections create successors;
+- policies visibly `synthetic_fixture`, `validated=false`;
+- B-01/B-03/B-04 attached.
+
+### Days 3–4 — RLS and Field Firewall
+
+Roles:
+
+- family;
+- admissions operator;
+- reviewer;
+- review supervisor;
+- policy admin;
+- auditor;
+- privacy steward.
+
+Acceptance:
+
+- default-deny role/table matrix;
+- reviewer assigned-case access only;
+- prohibited-field mutations leave decisions unchanged;
+- service credentials server-only.
+
+### Days 4–5 — Deterministic Routing
+
+Implement:
+
+- Track A synthetic rule;
+- Track A invariance when Track B enabled;
+- Track B composite-band/battery-profile invitation;
+- missing/invalid/pending handling;
+- deterministic reasons.
+
+Acceptance:
+
+- boundary fixtures pass;
+- invitation never implies eligibility;
+- prohibited fields cannot affect routing.
+
+## Week 2
+
+### Days 6–7 — Independent Review
+
+Artifact:
+
+- two reviews;
+- third only on disagreement.
+
+Narrative:
+
+- three reviews from start.
+
+Acceptance:
+
+- prior ratings hidden until own submission locks;
+- exactly one third assignment under concurrency;
+- narrative cannot finalize with fewer than three.
+
+### Days 7–8 — Eligibility and Pending
+
+Implement:
+
+- `qualifies`;
+- `does_not_currently_qualify`;
+- explicit pending reason states;
+- majority aggregation;
+- no-majority handling.
+
+Acceptance:
+
+- Track B invitation and reviewer majority both required;
+- invalid/uninterpretable evidence never produces negative result;
+- pending has reason, owner, deadline, and route;
+- no timeout-to-rejection.
+
+### Day 8 — Immutable Decisions
+
+Store:
+
+- policy bundle;
+- exact input versions;
+- code version;
+- outcome;
+- ordered reasons;
+- result hash;
+- supersession.
+
+Acceptance:
+
+- no application-role update/delete;
+- identical replay;
+- corrections create successor run.
+
+### Days 9–10 — Fixtures and Test Suite
+
+Cover:
+
+- Track A boundaries;
+- Track B invitations;
+- artifact/narrative review patterns;
+- pending/corrections;
+- prohibited-field mutations;
+- consent/accessibility invariance;
+- replay;
+- concurrency;
+- RLS.
+
+Acceptance:
+
+- fresh reset and all tests pass;
+- one fixture per PRD backend acceptance check;
+- no fixture labeled real GT policy.
+
+### Day 10 — Frontend Handoff
+
+Provide Tiffany:
+
+- generated database types;
+- stable API examples;
+- reason-code/message catalog;
+- synthetic test-case manifest.
+
+Frontend uses API/RPCs only, not internal tables/server modules.
+
+## Ownership Boundaries
+
+Aadi:
+
+- `supabase/**`
+- `src/server/admissions/**`
+- `tests/backend/**`
+- backend contracts and reason codes
+- agreed admissions API subtree
+
+Tiffany:
+
+- applicant UI/pages/components;
+- accessibility/copy;
+- application-field contract;
+- presentation fixtures.
+
+Shared:
+
+- package/lockfile/root config: one editor per merge window;
+- contracts first, backend second, frontend third;
+- daily integration only.
+
+## Explicitly Deferred
+
+- Allocation/aid/lottery/waitlist
+- Causal/RD/ANCOVA/CATE
+- Evaluator exports/DP
+- Outcome/fidelity/cost tables
+- Live uploads/data
+- Production deployment
+- ML scoring

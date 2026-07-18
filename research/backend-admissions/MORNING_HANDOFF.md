@@ -63,28 +63,36 @@ Future research infrastructure should be designed but not built into the four-we
 
 These block live use and causal claims. They do not block synthetic backend work.
 
-## Four-Week Backend Priorities
+## Day-0 Decisions
+
+Before implementation:
+
+1. Remove the false Track A/Track B program-effect claim.
+2. Quarantine Track-A-first aid/lottery as future research.
+3. Clarify `domain` versus `domain prestige`.
+4. Freeze one pending/reviewer aggregation contract.
+5. Confirm appeals are outside MVP.
+6. Omit finance persistence.
+7. Label every policy value as synthetic/non-authoritative.
+
+## Two-Week Backend Build
 
 ### Week 1
 
-- Freeze schemas, state machine, API/interface contracts, reason codes, and fixtures.
-- Separate identity/privacy, admissions, review, decision, audit, and consent data.
-- Resolve whether finance fields are omitted or isolated synthetic fixtures.
+- Freeze contracts, states, reasons, and fixtures.
+- Initialize local Supabase.
+- Implement versioned applications, assessments, policies, and RLS.
+- Implement deterministic Track A/Track B routing.
 
 ### Week 2
 
-- Build local Supabase migrations and RLS.
-- Implement Track A routing, Track B invitation, reviewer assignment, majority/adjudication, and correction successors.
+- Implement blind artifact/narrative review and pending states.
+- Implement immutable decisions, correction successors, audit, and replay.
+- Execute routing, prohibited-field, concurrency, and RLS fixture matrix.
+- Hand stable API contracts and reasons to Tiffany.
 
-### Week 3
-
-- Add immutable decision runs, policy/input hashes, reason traces, append-only audit events, and replay.
-- Add Track A toggle and prohibited-field mutation tests.
-
-### Week 4
-
-- Run RLS denial, pending/no-majority, correction, concurrency, and replay tests.
-- Produce seeded end-to-end demo and critic-facing evidence.
+Weeks 3–4 are frontend integration, critic review, and demo hardening—not new
+research infrastructure.
 
 ## Research Not for MVP Implementation
 
@@ -145,3 +153,25 @@ These are future protocols and design constraints.
 - A model can learn who benefits from admitted-only data.
 - “MIT ready by eighth grade” is a validated outcome.
 - Any live lottery, threshold, MME, or fairness rule is currently authorized.
+
+## Current Public-Fact Update
+
+- Independent reporting places GT's CogAT threshold around the 90th percentile;
+  the exact official rule/form remains unverified.
+- Timeback is beta and version-sensitive.
+- The strongest public Alpha artifact recalculates to approximately 1.69× math
+  and 1.54× reading, not the 2.6× headline, and has no counterfactual.
+- TEFA's standard 2026–27 award is $10,474, with up to $30,000 under the
+  disability formula; GT participation and aid interaction remain unknown.
+- Public privacy materials disclose extensive child monitoring, while a
+  complete subprocessor list, retention schedule, public security audit, DPA,
+  SOC 2 report, and breach SLA were not found.
+
+## Implementation Artifacts
+
+- `BACKEND_IMPLEMENTATION_BACKLOG.md`
+- `MVP_DATA_CONTRACT.md`
+- `SYNTHETIC_FIXTURE_MATRIX.md`
+- `MVP_THREAT_MODEL.md`
+
+These are synthetic prototype specifications, not validation for live admissions.

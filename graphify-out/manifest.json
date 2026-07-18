@@ -105,13 +105,13 @@
     "semantic_hash": ""
   },
   "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md": {
-    "mtime": 1784370578.343548,
-    "ast_hash": "1b2cf57970d17ee67d76c52863d92307",
+    "mtime": 1784372447.852107,
+    "ast_hash": "8f76cdd534ab7eed4b38139b674770e1",
     "semantic_hash": ""
   },
   "research/backend-admissions/RESEARCH_LOG.md": {
-    "mtime": 1784370639.2273912,
-    "ast_hash": "54600ddc269d40bbe20ec758b7186110",
+    "mtime": 1784372458.7954016,
+    "ast_hash": "0a358bccb6100f40fd7e529d702ddfa9",
     "semantic_hash": ""
   },
   "research/backend-admissions/SIMULATION_SPECIFICATION.md": {
@@ -185,8 +185,8 @@
     "semantic_hash": ""
   },
   "research/backend-admissions/MORNING_HANDOFF.md": {
-    "mtime": 1784367062.8630188,
-    "ast_hash": "9cb7cba7a75bce839755e5c9ca1d5219",
+    "mtime": 1784372470.888995,
+    "ast_hash": "8f2c47e0493c2c784f7629ee129facd7",
     "semantic_hash": ""
   },
   "research/backend-admissions/RESEARCH_AUDIT_CORRECTIONS.md": {
@@ -197,6 +197,26 @@
   "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md": {
     "mtime": 1784370563.02916,
     "ast_hash": "dec7f9e10f89c15fb8b3dbbf82327e5b",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/BACKEND_IMPLEMENTATION_BACKLOG.md": {
+    "mtime": 1784372148.1933932,
+    "ast_hash": "b315e05cfb3ca4151d523b7b59e4d90b",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/MVP_DATA_CONTRACT.md": {
+    "mtime": 1784372226.471485,
+    "ast_hash": "843f512b127c857d6a7ce0fb24409aa1",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/MVP_THREAT_MODEL.md": {
+    "mtime": 1784372197.675478,
+    "ast_hash": "78fdc464ad6c8333265d8d233f75facc",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/SYNTHETIC_FIXTURE_MATRIX.md": {
+    "mtime": 1784372179.280373,
+    "ast_hash": "fc448e21156f630a74842f6100059ab5",
     "semantic_hash": ""
   }
 }

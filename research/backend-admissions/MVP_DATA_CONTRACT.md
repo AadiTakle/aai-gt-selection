@@ -1,0 +1,310 @@
+# Minimum Synthetic MVP Data Contract
+
+## Shared Types
+
+```text
+ApplicationState = draft | submitted | superseded
+AssessmentValidity = pending | valid | invalid
+PolicyState = draft | locked | retired
+SnapshotRoute = artifact | narrative
+ReviewState =
+  awaiting_assignments | in_review | awaiting_blind_third |
+  ready_for_decision | pending_correction | completed
+Classification = qualifies | does_not_currently_qualify | pending
+Pending =
+  pending_evidence_correction |
+  pending_additional_blind_review |
+  pending_no_majority |
+  pending_accessibility_route |
+  pending_policy_configuration
+DecisionKind = track_a_eligibility | track_b_invitation | track_b_eligibility
+```
+
+## Application
+
+```text
+application(
+  application_id,
+  synthetic_applicant_code,
+  cycle_code,
+  created_at
+)
+
+application_version(
+  application_version_id,
+  application_id,
+  version_no,
+  supersedes_id,
+  state,
+  age_at_cycle_start,
+  current_grade,
+  requested_grade,
+  requested_entry_year,
+  recorded_at,
+  submitted_at,
+  content_hash
+)
+```
+
+Submitted versions are immutable. Corrections create successors.
+
+## Assessment
+
+```text
+assessment(
+  assessment_id,
+  application_id,
+  instrument_code,
+  administration_date
+)
+
+assessment_version(
+  assessment_version_id,
+  assessment_id,
+  version_no,
+  supersedes_id,
+  source_kind,
+  composite_score,
+  verbal_score,
+  quantitative_score,
+  nonverbal_score,
+  score_scale_version,
+  norm_version,
+  validity,
+  recorded_at,
+  content_hash
+)
+```
+
+Only valid, explicitly decision-used versions enter routing.
+
+## Policy
+
+```text
+policy_document(policy_id, policy_key, kind)
+
+policy_version(
+  policy_version_id,
+  policy_id,
+  version_no,
+  state,
+  schema_version,
+  synthetic_only,
+  config,
+  canonical_bytes,
+  config_hash,
+  created_at,
+  locked_at,
+  locked_by
+)
+
+policy_bundle(
+  policy_bundle_id,
+  cycle_code,
+  track_a_version_id,
+  invitation_version_id,
+  rubric_version_id,
+  eligibility_version_id,
+  bundle_hash,
+  locked_at
+)
+```
+
+Config permits a typed rule AST only. No arbitrary SQL or prohibited fields.
+
+## Snapshot
+
+```text
+snapshot(
+  snapshot_id,
+  application_id,
+  route,
+  selected_domain_codes,
+  submitted_at
+)
+
+snapshot_item(
+  snapshot_item_id,
+  snapshot_id,
+  domain_code,
+  ordinal
+)
+
+snapshot_item_version(
+  snapshot_item_version_id,
+  snapshot_item_id,
+  version_no,
+  supersedes_id,
+  synthetic_fixture_ref,
+  artifact/context metadata,
+  observer/provenance metadata,
+  recorded_at,
+  content_hash
+)
+```
+
+- Artifact: one or two fixed fixtures.
+- Narrative: one fixed fixture with observer/provenance metadata.
+- No live media.
+- Domain selects anchors but cannot earn prestige points.
+
+## Review
+
+```text
+review_case(
+  review_case_id,
+  application_id,
+  snapshot_id,
+  rubric_version_id,
+  route,
+  state
+)
+
+review_assignment(
+  assignment_id,
+  review_case_id,
+  reviewer_id,
+  slot,
+  role,
+  state,
+  assigned_at
+)
+
+review_submission(
+  review_submission_id,
+  assignment_id,
+  classification,
+  submitted_at,
+  locked_at,
+  submission_hash
+)
+
+dimension_rating(
+  review_submission_id,
+  dimension_code,
+  anchor_code,
+  rating_code,
+  uninterpretable,
+  reason_code
+)
+```
+
+Constraints:
+
+- Unique reviewer and slot per case.
+- Artifact slots 1–2; slot 3 only after disagreement.
+- Narrative always slots 1–3.
+- Reviewer cannot read peer submissions before own lock.
+- Uninterpretable requires reason and cannot directly produce a negative result.
+
+## Decision
+
+```text
+decision_run(
+  decision_run_id,
+  application_id,
+  application_version_id,
+  kind,
+  policy_bundle_id,
+  prior_decision_run_id,
+  supersedes_run_id,
+  code_version,
+  engine_flags,
+  input_manifest,
+  canonical_input_bytes,
+  input_hash,
+  state,
+  started_at,
+  completed_at
+)
+
+decision_input_* references exact assessment, snapshot, review versions
+
+decision_result(
+  decision_run_id,
+  outcome,
+  decided_at,
+  result_hash
+)
+
+reason_code(
+  reason_code,
+  decision_kind,
+  applicant_message,
+  internal_description
+)
+
+decision_reason(decision_run_id, ordinal, reason_code)
+```
+
+Eligibility terminal outputs never include admitted, offered, waitlisted, or funded.
+
+## Correction
+
+```text
+correction_request(
+  correction_id,
+  application_id,
+  target_type,
+  target_id,
+  category,
+  request_text,
+  state,
+  submitted_at,
+  resolved_at,
+  resolved_by,
+  resolution_reason,
+  successor_type,
+  successor_id,
+  rerun_decision_run_id
+)
+```
+
+Applied correction requires a successor version and new decision run when decision-used input changes.
+
+## Audit
+
+```text
+audit_event(
+  event_id,
+  sequence,
+  aggregate_type,
+  aggregate_id,
+  event_type,
+  actor_id,
+  actor_role,
+  purpose,
+  occurred_at,
+  recorded_at,
+  payload,
+  previous_hash,
+  event_hash,
+  correlation_id
+)
+```
+
+No application role receives update/delete permission.
+
+## API Boundaries
+
+- Family: own draft/submission/status/correction
+- Admissions: synthetic assessment and routing
+- Reviewer: assigned evidence and own ratings
+- Supervisor: assigned third review
+- Policy admin: draft/lock synthetic policy
+- Decision service: run/replay
+- Auditor: read/replay only
+
+Forced RLS on exposed tables. No client service key.
+
+## Excluded
+
+- Finance/aid
+- Seat allocation/lottery/waitlist
+- Research consent
+- Identity/contact/accessibility records
+- Outcomes/evaluation
+- Evaluator exports
+- Live artifacts/child data
+- Production deployment
+- Causal claims
