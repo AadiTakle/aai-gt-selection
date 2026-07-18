@@ -8,6 +8,7 @@
     "pnpm": "10.x"
   },
   "scripts": {
+    "build": "pnpm -r --if-present run build",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint . && pnpm -r --if-present run lint",

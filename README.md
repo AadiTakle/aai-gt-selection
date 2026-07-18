@@ -56,6 +56,35 @@ pnpm test
 Database scripts are intentionally added only when Supabase is initialized in Phase B; the
 scaffold does not provide no-op commands that could be mistaken for successful database checks.
 
+## CI/CD
+
+`.github/workflows/ci.yml` runs the architecture-neutral monorepo checks for pull requests into
+`dev`, `staging`, or `main`, and for pushes to those branches. It uses path filters so
+documentation-only work does not start the application pipeline.
+
+Current CI:
+
+- frozen pnpm install with Node 24 and pnpm 10;
+- formatting;
+- lint;
+- TypeScript configuration/workspace typechecks;
+- workspace tests; and
+- workspace builds.
+
+After Phase B initializes the app and local database, CI expands with:
+
+- local Supabase start/reset/lint and pgTAP;
+- generated API-type drift checks;
+- Vitest coverage;
+- Playwright smoke testing;
+- elevated-key/client-bundle scanning; and
+- build artifacts for `staging` and `main`.
+
+The repository has no authorized production deployment target. Until that changes through a
+governance decision, CD means validated promotion through `feat/* -> dev -> staging -> main`;
+it does not deploy live infrastructure. Configure branch protection in GitHub so the CI check
+and review are required before each promotion.
+
 ## Canonical project guidance
 
 Read `AGENTS.md`, `PROJECT_CHARTER.md`, the project requirements, development rubric,
