@@ -43,6 +43,7 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild",
+      "sharp",
       "unrs-resolver"
     ]
   }

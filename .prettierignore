@@ -7,3 +7,4 @@ research/
 *.md
 pnpm-lock.yaml
 packages/db-types/src/database.generated.ts
+apps/web/next-env.d.ts
