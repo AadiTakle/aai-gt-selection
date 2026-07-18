@@ -676,3 +676,32 @@ Implementation artifacts:
 - `MVP_DATA_CONTRACT.md`
 - `SYNTHETIC_FIXTURE_MATRIX.md`
 - `MVP_THREAT_MODEL.md`
+
+## Accessibility and Measurement Fairness
+
+The MVP can verify:
+
+- access/accommodation/language metadata are excluded from decisions;
+- failed routes become protected pending states;
+- no configured route coefficient or numeric penalty exists; and
+- seeded software-invariance defects are detected.
+
+It cannot verify:
+
+- construct preservation of an accommodation;
+- equivalence of translated forms;
+- narrative/artifact route parity;
+- WCAG conformance before human/assistive-technology testing; or
+- fairness from nonsignificant subgroup differences.
+
+Translation requires cultural adaptation, cognitive pretesting, versioned route
+lineage, and local empirical validation. Differential boost is supporting
+evidence, not a validity test. DIF is not automatically bias, and no detected
+DIF does not prove fairness.
+
+Track B's intentionally multidimensional, rater-mediated rubric should not be
+forced into a single latent giftedness scale. Use matched synthetic cases for
+engineering checks and abstain from empirical claims when live samples are
+insufficient.
+
+See `ACCESSIBILITY_AND_MEASUREMENT_FAIRNESS.md`.

@@ -122,6 +122,9 @@ Mutate individually and jointly:
 - paid enrichment/material polish;
 - awards;
 - disability/accommodation;
+- home language/ELL status;
+- translation/interpreter route;
+- requested/offered/delivered access support;
 - referral/advocacy;
 - recommender availability;
 - demographics;
@@ -130,6 +133,24 @@ Mutate individually and jointly:
 Expected:
 
 - identical routing, eligibility, ordered reasons, and canonical decision-input hash.
+
+## Accessibility and Route Consistency
+
+| ID | Matched case | Expected |
+|---|---|---|
+| AC-01 | Access metadata absent/present | Exact decision invariance |
+| AC-02 | Support requested/delivered | Exact decision invariance |
+| AC-03 | Support denied or failed | `pending_accessibility_route` |
+| AC-04 | Source/qualified translation | Same expected construct ratings; empirical equivalence not claimed |
+| AC-05 | Direct/interpreter-supported | Same expected construct ratings; intervention logged privately |
+| AC-06 | Text/audio/screen-reader/scribe | No access metadata in decision manifest |
+| AC-07 | Low/high prose polish | Exact decision invariance |
+| AC-08 | Artifact/matched narrative | Compare route outcomes; do not require equivalence |
+| AC-09 | Ambiguous translation | Pending evidence correction |
+| AC-10 | Construct-changing modification | Route blocked pending validation |
+
+Different transformed evidence may have different content hashes. Exact hash
+invariance applies only when the mutated fields are excluded metadata.
 
 ## Replay and Concurrency
 
@@ -170,7 +191,7 @@ Test direct REST/RPC access, not only UI.
 2. Track A noninterference
 3. Prohibited-field noninterference
 4. Consent firewall
-5. Accommodation equivalence
+5. Accommodation-use noninterference
 6. Invitation does not imply eligibility
 7. Track B requires invitation and majority
 8. Third artifact review iff initial votes differ

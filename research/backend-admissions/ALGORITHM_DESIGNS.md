@@ -391,14 +391,14 @@ PROTECTED ATTRIBUTES:
 ## M. Pending/Abstention State Machine
 
 ```text
-IF evidence invalid, inaccessible, or materially incomplete:
+IF required accessibility/language route is unavailable, denied, or failed:
+  pending_accessibility_route
+ELSE IF evidence invalid, materially incomplete, or uninterpretable:
   pending_evidence_correction
 ELSE IF artifact reviewers disagree:
   pending_additional_blind_review
 ELSE IF three reviews have no majority:
   pending_no_majority
-ELSE IF equivalent accessible route unavailable:
-  pending_accessibility_route
 ELSE IF policy has no deterministic answer:
   pending_policy_configuration
 ELSE:
@@ -479,3 +479,46 @@ DO NOT:
   ignore zero/one probability applicants
   estimate ever-offered effect with a naive mean difference
 ```
+
+## P. Accessibility, Translation, and Route Fairness
+
+```text
+FOR each decision-used construct:
+  version construct definition, essential demands, barriers,
+  permitted supports, route anchors, and prohibited proxies
+
+FOR each accommodation/language route:
+  record route version and transformation lineage
+  review semantic, cultural, accessibility, and construct changes
+  classify:
+    approved_provisional
+    approved_distinct_construct
+    pending_revision
+    rejected_construct_change
+
+GENERATE matched synthetic case families:
+  hold intended capability evidence constant
+  mutate language, presentation, access metadata, interpreter,
+  formatting polish, support fulfillment, and prohibited fields
+
+EXACT SOFTWARE INVARIANCE:
+  metadata-only mutation ->
+    identical outcome, ordered reasons, and decision-input hash
+
+CONSTRUCT-MATCHED ROUTE CONSISTENCY:
+  compare dimension ratings, uninterpretable flags, final decisions,
+  pending, reviewer disagreement, burden, and completion time
+  do not require byte/hash identity across transformed evidence
+
+IF live sample/model is inadequate:
+  report effect sizes, intervals, denominators, and missingness
+  status = insufficient_information
+  prohibit "equivalent", "DIF-free", or "fairness proven"
+
+IF DIF or noninvariance is detected:
+  trigger linguistic/cultural/construct review
+  do not automatically label bias or change applicant result
+```
+
+Track B is intentionally multidimensional and rater-mediated. Do not collapse it
+into one latent giftedness score solely to run multigroup CFA.

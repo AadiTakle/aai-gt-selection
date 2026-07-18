@@ -174,6 +174,23 @@
   finance, export, differential-privacy, and ML infrastructure.
 - Added a Day-0 contradiction gate before implementation.
 
+### Iteration 12 — 2026-07-18
+
+- Researched measurement invariance, DIF, accommodation validity, translation,
+  cultural adaptation, multilingual rater effects, and small-sample abstention.
+- Verified foundational standards and peer-reviewed methods, including
+  AERA/APA/NCME, ITC, Meredith, Wu–Estabrook, Sireci, Abedi, and CogAT-adjacent
+  Lakin/Lohman evidence.
+- Separated interface accessibility, accommodation-use noninterference,
+  construct preservation, and empirical route equivalence.
+- Corrected the unreachable accessibility-pending branch.
+- Renamed the synthetic accommodation invariant to noninterference rather than
+  unsupported equivalence.
+- Added private synthetic access-route records and removed access details from
+  decision-visible assistance data.
+- Added language/translation/interpreter invariance fixtures and a measurement
+  fairness research specification.
+
 ## Implementation Transition
 
 The broad research clusters are covered. Next actions:

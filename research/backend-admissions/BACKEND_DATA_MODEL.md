@@ -81,6 +81,28 @@ reason_code(reason_code, decision_kind, applicant_message, internal_description)
 
 Every decision references one immutable bundle.
 
+## Private Access and Language Routing
+
+```sql
+access_route_version(
+  route_version_id, route_code, source_language, target_language,
+  presentation_mode, response_mode, interpreter_protocol_version,
+  construct_map_version, approval_status, review_due_at, content_hash
+)
+access_support_request(
+  request_id, application_id, requested_support_code,
+  requested_at, status, private_rationale, route_version_id
+)
+access_support_event(
+  event_id, request_id, event_type,
+  offered_at, delivered_at, failed_at, failure_reason,
+  deadline_pause_start, deadline_pause_end, recorded_at
+)
+```
+
+These synthetic private records support request/fulfillment/failure audits.
+Eligibility and reviewers cannot read them.
+
 ## Snapshot Evidence
 
 ```sql
@@ -97,13 +119,16 @@ evidence_item_version(
   paid_relationship, opportunity_context, conflict_of_interest,
   synthetic_object_id, content_hash, recorded_at
 )
-assistance(
+substantive_assistance(
   evidence_version_id, assistance_type,
-  description, substantive_contribution
+  sanitized_contribution_category, substantive_contribution
 )
 ```
 
 The prototype stores metadata and fixed synthetic fixture references, not real media.
+Diagnosis, access-route, screen-reader, interpreter, and accommodation details
+remain in the private access schema and are excluded from evidence/decision
+manifests.
 
 ## Review
 

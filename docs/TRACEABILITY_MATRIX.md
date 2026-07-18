@@ -19,7 +19,7 @@
 | R6 | Measure growth without ceiling effects | No impact outcome ratified | Future measurement validation | Measurement owner | Deferred |
 | R7 | Make the process auditable and falsifiable | Versioned routing, reviewer, decision, correction, and claim traces | Deterministic replay and claim-boundary tests | Product owner | Specified |
 | R8 | Operate under real GT constraints | Four-week synthetic workflow; GT values remain configurable | Synthetic feasibility review and open-decision register | Operations owner | In progress |
-| R9 | Protect students and families | Access, privacy, consent, correction, appeal, and re-entry workflows | Applicant-rights and prohibited-field acceptance tests | Student/family advocate | Specified |
+| R9 | Protect students and families | Access, privacy, consent, correction, appeal, and re-entry workflows | Applicant-rights, access-fulfillment, translation, and prohibited-field acceptance tests | Student/family advocate | Partially specified |
 | R10 | State claim boundaries | Eligibility separated from allocation and program-effect claims | Claims register and adversarial notice tests | Team lead | Specified |
 | H1 | Use broader capability measures | Any demonstrable talent domain may support Track B | Domain-neutral rubric and domain-anchor validation | Selection owner | Specified pending validation |
 | H2 | Separate capability from family advantage | Prose, income, prestige, awards, paid enrichment, and recommender access prohibited | Field-firewall and route-outcome audits | Selection owner | Specified |
@@ -27,7 +27,7 @@
 | H4 | Expand candidate-pool access | Profile-aware below-cutoff Track B | Invitation and route-completion funnel tests | Access owner | Specified |
 | H5 | Use independent evaluation | Auditor role defined; evaluation protocol deferred | Future independence agreement | Team lead | Deferred |
 | H6 | Ensure adequate statistical information | No sample/power design chosen | Future power or precision assessment | Evaluation owner | Deferred |
-| H7 | Track equity and access | Route, subgroup, accommodation, pending, and reviewer metrics | Synthetic subgroup funnel and reviewer audit | Access owner | Specified |
+| H7 | Track equity and access | Route, subgroup, accommodation, pending, and reviewer metrics | Synthetic subgroup funnel, access-fulfillment, language-route, and reviewer audit | Access owner | Partially specified |
 | H8 | Protect current high performers | Not addressed by admissions prototype | Future guardrail definition | Program owner | Not assessed |
 | H9 | Explain and contest decisions | Reason traces, correction, appeal, pending, and re-entry | Applicant explanation and appeal tests | Student/family advocate | Specified |
 | H10 | Minimize gaming and burden | 10–15 minute Snapshot, provenance, fallback route, prohibited-input rules | Timed usability and adversarial evidence tests | Product owner | Specified |
@@ -50,6 +50,7 @@ Add one row before beginning substantive work.
 | PRD-001 | Specify the Track A/Track B admissions prototype | R1, R5, R7–R10, H1, H2, H4, H7, H9, H10 | Convert confirmed product decisions into a bounded, testable four-week synthetic MVP while deferring R2, R3, R6, and remaining R4 evaluation work | PRD preserves Track A, defines profile-aware Track B invitation and dual-route Snapshot eligibility, separates allocation/research/finance, includes roles, states, requirements, acceptance criteria, metrics, risks, and open decisions | Product owner | Team | Verified | None |
 | PLAN-002 | Divide the four-week MVP across two members and agent lanes | R7, R8, R10 | Sequence independent work, minimize concurrent-file edits and merge conflicts, and expose external dependencies | PRD assigns module ownership, agent boundaries, weekly checkpoints, merge rules, blocker tags, sources, synthetic fallbacks, and blocked claims | Team lead | Team | Verified | None |
 | TECH-001 | Select the prototype backend | R7, R8, R9 | Align the PRD and labor plan to the team’s chosen data and backend platform | D-009 and the PRD consistently specify local Supabase with PostgreSQL and prohibit live child data or production deployment | Technical owner | Team | Verified | None |
+| RES-003 | Research accessibility, translation, and measurement fairness | R5, R7–R10, H2, H4, H7, H9, H10 | Prevent software noninterference from being misrepresented as construct or route equivalence | Source-verified report separates interface access, noninterference, construct preservation, and empirical route equivalence; algorithms, fixtures, and private data contracts implement bounded synthetic checks | Evidence owner | Team | Implemented | None |
 
 ## Requirement coverage statuses
 

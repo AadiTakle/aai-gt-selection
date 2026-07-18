@@ -169,9 +169,24 @@ These are future protocols and design constraints.
 
 ## Implementation Artifacts
 
+- `ACCESSIBILITY_AND_MEASUREMENT_FAIRNESS.md`
 - `BACKEND_IMPLEMENTATION_BACKLOG.md`
 - `MVP_DATA_CONTRACT.md`
 - `SYNTHETIC_FIXTURE_MATRIX.md`
 - `MVP_THREAT_MODEL.md`
 
 These are synthetic prototype specifications, not validation for live admissions.
+
+## Accessibility Claim Boundary
+
+Prohibited-field invariance is firewall evidence only. It does not prove:
+
+- accessibility conformance;
+- accommodation construct preservation;
+- translation quality;
+- artifact/narrative route equivalence; or
+- fair participation.
+
+The synthetic MVP should claim accommodation-use noninterference and protected
+pending states, not accommodation equivalence. WCAG 2.2 AA is a target until
+manual and assistive-technology testing is complete.

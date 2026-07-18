@@ -1013,3 +1013,112 @@
 
 - **URL:** https://ies.ed.gov/sites/default/files/ies/document/2024/10/Standards%20for%20the%20Economic%20Evaluation%20of%20Educational%20and%20Social%20Programs.pdf
 - **Use:** Ingredients-based costing and education economic evaluation.
+
+## Accessibility, Translation, and Measurement Fairness
+
+### AERA/APA/NCME Standards (2014)
+
+- **URL:** https://www.aera.net/Standards14
+- **Grade:** A
+- **Use:** Governing validity, fairness, accessibility, administration, and
+  high-stakes use principles.
+- **Limit:** Professional standards, not empirical validation of a GT route.
+
+### ITC Test Adaptation Guidelines (2017)
+
+- **DOI:** https://doi.org/10.1080/15305058.2017.1398166
+- **Grade:** A
+- **Use:** Construct review, team translation, reconciliation, cognitive
+  pretesting, empirical confirmation, administration, and documentation.
+- **Limit:** General adaptation guidance; does not establish Track B equivalence.
+
+### Meredith (1993) — Measurement Invariance
+
+- **DOI:** https://doi.org/10.1007/BF02294825
+- **Grade:** A
+- **Use:** Weak, strong, and strict factorial-invariance framework.
+- **Limit:** Foundational continuous-factor theory, not a direct Track B model.
+
+### Putnick & Bornstein (2016) — Invariance Reporting
+
+- **DOI:** https://doi.org/10.1016/j.dr.2016.06.004
+- **Grade:** A
+- **Use:** Sequential invariance workflow, partial invariance, and reporting.
+- **Limit:** Conventions are not universal validation cutoffs.
+
+### Wu & Estabrook (2016) — Ordinal Invariance
+
+- **DOI:** https://doi.org/10.1007/s11336-016-9506-0
+- **Grade:** A
+- **Use:** Identification of threshold/loading/residual constraints for ordered
+  categorical indicators.
+- **Limit:** Does not make sparse rubric data adequate.
+
+### Chen (2007) — Fit-Index Sensitivity
+
+- **DOI:** https://doi.org/10.1080/10705510701301834
+- **Grade:** A
+- **Use:** Shows sensitivity depends on parameter, imbalance, and design.
+- **Limit:** Frequently quoted cutoffs are conditional simulation findings.
+
+### Yoon & Lai (2018) — Unbalanced Samples
+
+- **DOI:** https://doi.org/10.1080/10705511.2017.1387859
+- **Grade:** A
+- **Use:** Demonstrates severe imbalance can mask noninvariance.
+- **Limit:** Subsampling is a diagnostic, not a universal fix.
+
+### Swaminathan & Rogers (1990) — Logistic DIF
+
+- **DOI:** https://doi.org/10.1111/j.1745-3984.1990.tb00754.x
+- **Grade:** A
+- **Use:** Uniform and nonuniform DIF via group and score interaction.
+- **Limit:** Matching contamination, sparse cells, and multiplicity remain.
+
+### Woods (2009) — DIF Anchors
+
+- **DOI:** https://doi.org/10.1177/0146621607314044
+- **Grade:** A
+- **Use:** Anchor selection and contamination sensitivity.
+- **Limit:** Empirical anchor selection is not independent validity evidence.
+
+### Sireci, Scarpati, & Li (2005) — Accommodations
+
+- **DOI:** https://doi.org/10.3102/00346543075004457
+- **Grade:** A
+- **Use:** Review of interaction-hypothesis evidence; accommodation effects are
+  heterogeneous and often benefit both groups.
+- **Limit:** Differential boost alone does not establish construct preservation.
+
+### Abedi, Hofstetter, & Lord (2004) — ELL Accommodations
+
+- **DOI:** https://doi.org/10.3102/00346543074001001
+- **Grade:** A
+- **Use:** No one-size-fits-all language accommodation; modified English and
+  constrained dictionaries were more promising than broad substitutions.
+- **Limit:** General K–12 assessment evidence, not GT validation.
+
+### Lakin (2012) — Ability-Test Invariance
+
+- **DOI:** https://doi.org/10.1016/j.lindif.2011.12.003
+- **Grade:** A
+- **Use:** Configural/loading invariance evidence across ELL/non-ELL groups;
+  verbal relations/variance differed.
+- **Limit:** Modest specific sample and earlier CogAT context; not Form 8 or
+  scalar live-GT validation.
+
+### Lohman, Korb, & Lakin (2008) — Nonverbal Tests
+
+- **DOI:** https://doi.org/10.1177/0016986208321808
+- **Grade:** A
+- **Use:** Nonverbal tests did not remove ELL differences; precision, norms, and
+  prediction varied.
+- **Limit:** Earlier forms and one context.
+
+### Gentry et al. (2021) — Gifted Test Evidence Audit
+
+- **DOI:** https://doi.org/10.1080/02783193.2021.1967545
+- **Grade:** A
+- **Use:** Finds sparse subgroup psychometric evidence in commonly used gifted
+  identification tests.
+- **Limit:** Document review; missing evidence is not proof of noninvariance.

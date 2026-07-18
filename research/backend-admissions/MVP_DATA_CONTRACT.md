@@ -112,6 +112,51 @@ policy_bundle(
 
 Config permits a typed rule AST only. No arbitrary SQL or prohibited fields.
 
+## Synthetic Private Access Route
+
+```text
+access_route_version(
+  route_version_id,
+  route_code,
+  source_language,
+  target_language,
+  presentation_mode,
+  response_mode,
+  construct_map_version,
+  interpreter_protocol_version,
+  approval_status,
+  review_due_at,
+  content_hash
+)
+
+access_support_request(
+  request_id,
+  application_id,
+  requested_support_code,
+  requested_at,
+  status,
+  private_rationale,
+  route_version_id
+)
+
+access_support_event(
+  event_id,
+  request_id,
+  event_type,
+  offered_at,
+  delivered_at,
+  failed_at,
+  failure_reason,
+  deadline_pause_start,
+  deadline_pause_end,
+  recorded_at
+)
+```
+
+These records are visibly synthetic and private. Eligibility/reviewer roles
+cannot read them. They support request, fulfillment, failure, and pending-state
+tests only.
+
 ## Snapshot
 
 ```text
@@ -302,7 +347,7 @@ Forced RLS on exposed tables. No client service key.
 - Finance/aid
 - Seat allocation/lottery/waitlist
 - Research consent
-- Identity/contact/accessibility records
+- Real identity/contact/accessibility records
 - Outcomes/evaluation
 - Evaluator exports
 - Live artifacts/child data
