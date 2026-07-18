@@ -67,6 +67,66 @@ Every completion handoff must state:
 - remaining assumptions or blockers;
 - decisions or scope exceptions created.
 
+## Git branch workflow
+
+The repository uses a fixed four-tier branch hierarchy plus short-lived feature
+branches. Every branch has one purpose. Do not commit product, research, or
+governance work directly to `main`, `staging`, or `dev`.
+
+### Branch tiers
+
+1. **`main`** — Stable, reviewed baseline. Reflects the current approved
+   governance, PRD, and research state. Only receives merges from `staging`
+   (or an explicit one-off research/governance branch that has already been
+   fully reviewed). Never commit directly to `main`.
+2. **`staging`** — Pre-release integration branch. Receives merges from `dev`
+   once a batch of feature work is complete and internally consistent.
+   Used as the last checkpoint before promoting to `main`. Never commit
+   directly to `staging`.
+3. **`dev`** — Active integration branch. This is the default base for new
+   work. All `feat/*` branches are created from `dev` and merged back into
+   `dev` when their task is complete and verified. Never commit directly to
+   `dev` outside of merging a completed `feat/*` branch.
+4. **`feat/<short-task-name>`** — Where all actual development happens:
+   product code, documentation edits, governance updates, or research
+   corrections for one bounded task. Branch from `dev`, do the work, verify
+   it, then merge back to `dev`. Use a descriptive kebab-case name (for
+   example `feat/track-b-review-workflow`, `feat/brainlift-two-stage-evaluation`).
+
+Promotion always flows one direction:
+
+```
+feat/* -> dev -> staging -> main
+```
+
+Do not skip a tier and do not merge sideways (for example `feat/*` directly
+into `staging` or `main`).
+
+### Special-purpose branches
+
+- **`research/overnight-backend-selection`** — A long-running, dedicated
+  research branch used for the multi-iteration overnight research process.
+  It follows the same promotion path (`research/* -> dev/staging/main` once
+  reviewed) but is not a template for future feature work; treat it as a
+  historical/archival branch rather than an active integration target.
+
+### Where agents should work
+
+- **Default:** branch a new `feat/*` branch from the latest `dev` for any
+  task — PRD edits, governance-log updates, backend research, or BrainLift
+  revisions.
+- **Keep unrelated concerns on separate `feat/*` branches** (for example, PRD
+  corrections and BrainLift corrections must not share one branch), so each
+  can be reviewed and merged independently.
+- Before merging a `feat/*` branch into `dev`, verify the change against the
+  acceptance evidence in the plan or task, and confirm no unrelated files
+  were touched.
+- Only merge `dev -> staging` and `staging -> main` after the batch of
+  `feat/*` work being promoted has been reviewed as a whole.
+- Push branches to `origin` with `-u` on first push so tracking is set up;
+  do not force-push shared branches (`main`, `staging`, `dev`) without
+  explicit user consent.
+
 ## Document precedence
 
 Follow the precedence in `PROJECT_CHARTER.md`. A lower-precedence plan, specification, comment, or historical document cannot override a higher-precedence requirement.
