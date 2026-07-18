@@ -30,9 +30,9 @@ ReviewState =
   ready_for_decision | pending_correction | completed
 ReviewClassification = qualifies | does_not_currently_qualify
 Pending =
+  pending_assessment_correction |
   pending_evidence_correction |
   pending_additional_blind_review |
-  pending_no_majority |
   pending_accessibility_route |
   pending_policy_configuration
 DecisionKind = track_a_eligibility | track_b_invitation | track_b_eligibility

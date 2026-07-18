@@ -242,6 +242,20 @@
 - Narrowed the executable two-week backend cut and fixed fixture ID collisions.
 - Created the final research audit and seven-item Day-0 decision brief.
 
+### Iteration 16 — 2026-07-18
+
+- Converted the narrowed research handoff into a provisional executable
+  implementation contract without starting code.
+- Defined one private application schema, one exposed API schema, twelve tables,
+  seven RPCs, three read views, typed outcomes, error codes, roles, invariants,
+  and frontend status projections.
+- Added the missing `pending_assessment_correction` state.
+- Selected a unique 25-test critical manifest from the 109-case research
+  fixture inventory.
+- Preserved the seven Day-0 decisions as a hard pre-scaffold gate.
+- Confirmed that no application, package manifest, migrations, or executable
+  tests exist yet.
+
 ## Implementation Transition
 
 The broad research clusters are covered. Next actions:

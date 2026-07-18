@@ -697,9 +697,11 @@ domain-field, appeal, pending-state, and finance contradictions.
 Implementation artifacts:
 
 - `BACKEND_IMPLEMENTATION_BACKLOG.md`
+- `CRITICAL_TEST_MANIFEST.md`
 - `DAY_ZERO_DECISION_BRIEF.md`
 - `FINAL_RESEARCH_AUDIT.md`
 - `MVP_DATA_CONTRACT.md`
+- `PROVISIONAL_IMPLEMENTATION_CONTRACT.md`
 - `SYNTHETIC_FIXTURE_MATRIX.md`
 - `MVP_THREAT_MODEL.md`
 

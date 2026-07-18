@@ -10,6 +10,11 @@ The broader research data/privacy contracts are design references, not the
 two-week build. Field registries, retention/disposition engines, consent
 management, full remedy/appeal, and production security are deferred.
 
+Canonical provisional build references:
+
+- `PROVISIONAL_IMPLEMENTATION_CONTRACT.md`
+- `CRITICAL_TEST_MANIFEST.md`
+
 ## Day 0 — Resolve Contract Conflicts
 
 Before coding:

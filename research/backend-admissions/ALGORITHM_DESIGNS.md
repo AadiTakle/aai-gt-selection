@@ -402,8 +402,6 @@ ELSE IF evidence invalid, materially incomplete, or uninterpretable:
   pending_evidence_correction
 ELSE IF artifact reviewers disagree:
   pending_additional_blind_review
-ELSE IF three reviews have no majority:
-  pending_no_majority
 ELSE IF policy has no deterministic answer:
   pending_policy_configuration
 ELSE:

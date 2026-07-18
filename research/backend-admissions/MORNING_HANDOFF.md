@@ -177,12 +177,14 @@ These are future protocols and design constraints.
 - `ACCESSIBILITY_AND_MEASUREMENT_FAIRNESS.md`
 - `BACKEND_IMPLEMENTATION_BACKLOG.md`
 - `CHILD_DATA_PRIVACY_AND_RETENTION.md`
+- `CRITICAL_TEST_MANIFEST.md`
 - `DAY_ZERO_DECISION_BRIEF.md`
 - `EXPLANATION_AND_CONTESTABILITY.md`
 - `FINAL_RESEARCH_AUDIT.md`
 - `MVP_DATA_CONTRACT.md`
 - `SYNTHETIC_FIXTURE_MATRIX.md`
 - `MVP_THREAT_MODEL.md`
+- `PROVISIONAL_IMPLEMENTATION_CONTRACT.md`
 
 These are synthetic prototype specifications, not validation for live admissions.
 

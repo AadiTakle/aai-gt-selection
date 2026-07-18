@@ -171,3 +171,8 @@ After decisions 1–7:
 5. Start the two-week backend backlog.
 
 No scope exception is required.
+
+After ratification, use:
+
+- `PROVISIONAL_IMPLEMENTATION_CONTRACT.md`
+- `CRITICAL_TEST_MANIFEST.md`

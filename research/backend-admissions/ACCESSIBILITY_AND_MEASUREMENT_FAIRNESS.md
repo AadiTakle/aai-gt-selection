@@ -185,9 +185,6 @@ evaluate(application, route_version, policy_bundle):
   IF artifact and first two disagree:
     RETURN pending_additional_blind_review
 
-  IF required reviews complete and no majority:
-    RETURN pending_no_majority
-
   IF rule or route configuration unresolved:
     RETURN pending_policy_configuration
 

@@ -155,6 +155,8 @@ Expected:
 
 - identical routing, eligibility, ordered reasons, and canonical decision-input hash.
 
+Canonical parameterized test ID: `PF-01`.
+
 ## Accessibility and Route Consistency
 
 | ID | Matched case | Expected |
@@ -228,6 +230,8 @@ Minimum denial/allow matrix:
 - All MVP roles: no future finance/allocation/evaluation
 
 Test direct REST/RPC access, not only UI.
+
+Canonical role/table/operation matrix test ID: `RLS-01`.
 
 ## Property Invariants
 

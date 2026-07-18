@@ -221,7 +221,6 @@ Prototype outcomes:
 - `does_not_currently_qualify`
 - `pending_evidence_correction`
 - `pending_additional_blind_review`
-- `pending_no_majority`
 - `pending_accessibility_route`
 - `pending_policy_configuration`
 
