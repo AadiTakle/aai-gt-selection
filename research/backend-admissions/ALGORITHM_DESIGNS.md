@@ -175,3 +175,114 @@ Measure:
 - power;
 - attrition sensitivity; and
 - welfare under constrained seats.
+
+## H. Selective-Label Audit
+
+Historical admitted-only data observe outcomes under GT for selected students. They do not observe:
+
+- GT outcomes for rejected applicants;
+- no-GT outcomes for admitted applicants; or
+- treatment benefit for either group.
+
+```text
+FOR each candidate target variable:
+  label as:
+    human_decision
+    reviewer_judgment
+    observed_outcome
+    proxy_outcome
+    Y1_observed
+    Y0_observed
+
+REJECT target if:
+  admission/reviewer decision is mislabeled as success
+  outcome is available only in a zero-overlap region
+  causal benefit is inferred from admitted-only outcomes
+
+REPORT:
+  outcome availability map
+  admission-propensity overlap
+  effective sample size
+  admitted-only optimism gap
+  Manski/assumption-based bounds
+```
+
+Reject inference, positive-unlabeled learning, and Heckman correction are sensitivity/comparator methods—not evidence generators. Pseudo-labels do not create rejected applicants’ outcomes.
+
+## I. Alternative-Path RD Audit
+
+Track B changes the policy immediately below the Track A cutoff.
+
+```text
+DEFINE:
+  running score X
+  Track A cutoff cA
+  Track B invitation and eligibility rules
+  offer/enrollment/exposure separately
+
+ESTIMATE FIRST:
+  jump in Track A route
+  jump in overall eligibility
+  jump in offer
+  jump in enrollment
+
+IF Track B availability changes at cA:
+  label reduced form as A-side policy vs B-available policy
+
+DO NOT label as:
+  pure Track A program effect
+  overall GT effect
+  separate A and B effects
+
+VALIDATE:
+  first/final score distributions
+  retests, appeals, corrections, overrides
+  battery/profile assignment variables
+  ties and lottery probabilities
+  density and covariate continuity
+  cutoff-specific treatment versions
+```
+
+A fuzzy enrollment LATE is possible only when a nonzero first stage and exclusion, monotonicity, continuity, and treatment-version assumptions are defensible.
+
+## J. Future CATE and Policy Validation
+
+An individual treatment effect is never observed. Validate group ranking and policy value.
+
+```text
+1. Preregister population, offer, comparison, outcome, horizon,
+   capacity, features, model candidates, missingness, and claim.
+
+2. Freeze development and untouched randomized evaluation data.
+
+3. Build cross-fitted AIPW causal scores on valid randomized data.
+
+4. Run:
+   BLP calibration slope
+   2-3 group GATES
+   one prespecified RATE/AUTOC or Qini metric
+   held-out doubly robust policy value
+   capacity-matched comparison to lottery/current policy
+
+5. Repeat honest splits using published aggregation;
+   never count split-level significance.
+
+6. Audit:
+   rank correlation across algorithms
+   top-capacity Jaccard overlap
+   group-effect order reversals
+   subgroup burden/harm
+   leave-one-cohort-out stability
+
+7. Promote only when the held-out lower confidence bound beats
+   a capacity-matched lottery by the preregistered meaningful margin.
+
+8. Otherwise retain the simpler rule or lottery.
+```
+
+Recommended first future models:
+
+- depth-2 doubly robust policy tree;
+- calibrated benefit scorecard with 3–5 preregistered modifiers.
+
+Flexible forests remain exploratory unless sample size and held-out validation support them.

@@ -56,6 +56,7 @@
       "_origin": "ast",
       "id": "docs_critic_ready_product_roadmap_canvas",
       "community": 7,
+      "community_name": "Four-Week Roadmap",
       "norm_label": "critic-ready-product-roadmap.canvas.tsx"
     },
     {
@@ -66,6 +67,7 @@
       "_origin": "ast",
       "id": "docs_critic_ready_product_roadmap_canvas_week",
       "community": 7,
+      "community_name": "Four-Week Roadmap",
       "norm_label": "week"
     },
     {
@@ -76,6 +78,7 @@
       "_origin": "ast",
       "id": "docs_critic_ready_product_roadmap_canvas_task",
       "community": 7,
+      "community_name": "Four-Week Roadmap",
       "norm_label": "task"
     },
     {
@@ -86,6 +89,7 @@
       "_origin": "ast",
       "id": "docs_critic_ready_product_roadmap_canvas_tasks",
       "community": 7,
+      "community_name": "Four-Week Roadmap",
       "norm_label": "tasks"
     },
     {
@@ -96,6 +100,7 @@
       "_origin": "ast",
       "id": "docs_critic_ready_product_roadmap_canvas_weeks",
       "community": 7,
+      "community_name": "Four-Week Roadmap",
       "norm_label": "weeks"
     },
     {
@@ -106,6 +111,7 @@
       "_origin": "ast",
       "id": "docs_critic_ready_product_roadmap_canvas_views",
       "community": 7,
+      "community_name": "Four-Week Roadmap",
       "norm_label": "views"
     },
     {
@@ -116,7 +122,1163 @@
       "_origin": "ast",
       "id": "docs_critic_ready_product_roadmap_canvas_fourweekroadmap",
       "community": 7,
+      "community_name": "Four-Week Roadmap",
       "norm_label": "fourweekroadmap()"
+    },
+    {
+      "label": "ALGORITHM_DESIGNS.md",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/ALGORITHM_DESIGNS.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "research_backend_admissions_algorithm_designs",
+      "community": 26,
+      "community_name": "Backend and Admissions Algorithm Designs",
+      "norm_label": "algorithm_designs.md"
+    },
+    {
+      "label": "Backend and Admissions Algorithm Designs",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/ALGORITHM_DESIGNS.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "research_backend_admissions_algorithm_designs_backend_and_admissions_algorithm_designs",
+      "community": 26,
+      "community_name": "Backend and Admissions Algorithm Designs",
+      "norm_label": "backend and admissions algorithm designs"
+    },
+    {
+      "label": "Status",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/ALGORITHM_DESIGNS.md",
+      "source_location": "L3",
+      "_origin": "ast",
+      "id": "research_backend_admissions_algorithm_designs_status",
+      "community": 26,
+      "community_name": "Backend and Admissions Algorithm Designs",
+      "norm_label": "status"
+    },
+    {
+      "label": "A. Track A Audit",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/ALGORITHM_DESIGNS.md",
+      "source_location": "L7",
+      "_origin": "ast",
+      "id": "research_backend_admissions_algorithm_designs_a_track_a_audit",
+      "community": 26,
+      "community_name": "Backend and Admissions Algorithm Designs",
+      "norm_label": "a. track a audit"
+    },
+    {
+      "label": "B. Track B Invitation",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/ALGORITHM_DESIGNS.md",
+      "source_location": "L28",
+      "_origin": "ast",
+      "id": "research_backend_admissions_algorithm_designs_b_track_b_invitation",
+      "community": 26,
+      "community_name": "Backend and Admissions Algorithm Designs",
+      "norm_label": "b. track b invitation"
+    },
+    {
+      "label": "C. Track B Snapshot Eligibility",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/ALGORITHM_DESIGNS.md",
+      "source_location": "L46",
+      "_origin": "ast",
+      "id": "research_backend_admissions_algorithm_designs_c_track_b_snapshot_eligibility",
+      "community": 26,
+      "community_name": "Backend and Admissions Algorithm Designs",
+      "norm_label": "c. track b snapshot eligibility"
+    },
+    {
+      "label": "D. Future Randomized-Offer Evaluation",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/ALGORITHM_DESIGNS.md",
+      "source_location": "L78",
+      "_origin": "ast",
+      "id": "research_backend_admissions_algorithm_designs_d_future_randomized_offer_evaluation",
+      "community": 26,
+      "community_name": "Backend and Admissions Algorithm Designs",
+      "norm_label": "d. future randomized-offer evaluation"
+    },
+    {
+      "label": "E. Future Regression-Discontinuity Evaluation",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/ALGORITHM_DESIGNS.md",
+      "source_location": "L98",
+      "_origin": "ast",
+      "id": "research_backend_admissions_algorithm_designs_e_future_regression_discontinuity_evaluation",
+      "community": 26,
+      "community_name": "Backend and Admissions Algorithm Designs",
+      "norm_label": "e. future regression-discontinuity evaluation"
+    },
+    {
+      "label": "F. Candidate-Selection Modeling Rules",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/ALGORITHM_DESIGNS.md",
+      "source_location": "L121",
+      "_origin": "ast",
+      "id": "research_backend_admissions_algorithm_designs_f_candidate_selection_modeling_rules",
+      "community": 26,
+      "community_name": "Backend and Admissions Algorithm Designs",
+      "norm_label": "f. candidate-selection modeling rules"
+    },
+    {
+      "label": "G. Synthetic Simulation Plan",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/ALGORITHM_DESIGNS.md",
+      "source_location": "L142",
+      "_origin": "ast",
+      "id": "research_backend_admissions_algorithm_designs_g_synthetic_simulation_plan",
+      "community": 26,
+      "community_name": "Backend and Admissions Algorithm Designs",
+      "norm_label": "g. synthetic simulation plan"
+    },
+    {
+      "label": "H. Selective-Label Audit",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/ALGORITHM_DESIGNS.md",
+      "source_location": "L179",
+      "_origin": "ast",
+      "id": "research_backend_admissions_algorithm_designs_h_selective_label_audit",
+      "community": 26,
+      "community_name": "Backend and Admissions Algorithm Designs",
+      "norm_label": "h. selective-label audit"
+    },
+    {
+      "label": "I. Alternative-Path RD Audit",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/ALGORITHM_DESIGNS.md",
+      "source_location": "L212",
+      "_origin": "ast",
+      "id": "research_backend_admissions_algorithm_designs_i_alternative_path_rd_audit",
+      "community": 26,
+      "community_name": "Backend and Admissions Algorithm Designs",
+      "norm_label": "i. alternative-path rd audit"
+    },
+    {
+      "label": "J. Future CATE and Policy Validation",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/ALGORITHM_DESIGNS.md",
+      "source_location": "L248",
+      "_origin": "ast",
+      "id": "research_backend_admissions_algorithm_designs_j_future_cate_and_policy_validation",
+      "community": 26,
+      "community_name": "Backend and Admissions Algorithm Designs",
+      "norm_label": "j. future cate and policy validation"
+    },
+    {
+      "label": "OVERNIGHT_RESEARCH_REPORT.md",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "overnight_research_report.md"
+    },
+    {
+      "label": "Separating Selection Effect from Program Effect",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "separating selection effect from program effect"
+    },
+    {
+      "label": "Backend and Admissions Research Report",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L3",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_backend_and_admissions_research_report",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "backend and admissions research report"
+    },
+    {
+      "label": "Executive Position",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L11",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_executive_position",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "executive position"
+    },
+    {
+      "label": "Core Statistical Estimands",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L23",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_core_statistical_estimands",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "core statistical estimands"
+    },
+    {
+      "label": "Selection Effect",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L25",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_selection_effect",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "selection effect"
+    },
+    {
+      "label": "Program Effect",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L35",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_program_effect",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "program effect"
+    },
+    {
+      "label": "Offer Effect",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L45",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_offer_effect",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "offer effect"
+    },
+    {
+      "label": "Benefit-Targeting Effect",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L55",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_benefit_targeting_effect",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "benefit-targeting effect"
+    },
+    {
+      "label": "Two Anchor Evidence Families",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L65",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_two_anchor_evidence_families",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "two anchor evidence families"
+    },
+    {
+      "label": "Differentiated instruction can produce program effects",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L67",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_differentiated_instruction_can_produce_program_effects",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "differentiated instruction can produce program effects"
+    },
+    {
+      "label": "Selective admission alone often produces null effects",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L71",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_selective_admission_alone_often_produces_null_effects",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "selective admission alone often produces null effects"
+    },
+    {
+      "label": "Research Questions",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L75",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_research_questions",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "research questions"
+    },
+    {
+      "label": "Provisional Method Hierarchy",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L86",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_provisional_method_hierarchy",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "provisional method hierarchy"
+    },
+    {
+      "label": "Algorithmic Guardrails",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L94",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_algorithmic_guardrails",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "algorithmic guardrails"
+    },
+    {
+      "label": "Initial Power Findings",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L106",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_initial_power_findings",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "initial power findings"
+    },
+    {
+      "label": "Policy-Learning Finding",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L121",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_policy_learning_finding",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "policy-learning finding"
+    },
+    {
+      "label": "Advanced STEM Readiness Outcome",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L149",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_advanced_stem_readiness_outcome",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "advanced stem readiness outcome"
+    },
+    {
+      "label": "Primary",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L155",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_primary",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "primary"
+    },
+    {
+      "label": "Secondary readiness profile",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L159",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_secondary_readiness_profile",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "secondary readiness profile"
+    },
+    {
+      "label": "Backend Research Direction",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L169",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_backend_research_direction",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "backend research direction"
+    },
+    {
+      "label": "Important Current Claim Correction",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L183",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_important_current_claim_correction",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "important current claim correction"
+    },
+    {
+      "label": "Selective-Label Finding",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L193",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_selective_label_finding",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "selective-label finding"
+    },
+    {
+      "label": "Track A RD with Track B",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L207",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_track_a_rd_with_track_b",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "track a rd with track b"
+    },
+    {
+      "label": "Heterogeneity Validation",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L227",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_heterogeneity_validation",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "heterogeneity validation"
+    },
+    {
+      "label": "Synthetic Simulation",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L242",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_synthetic_simulation",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "synthetic simulation"
+    },
+    {
+      "label": "Deliverables Under Construction",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L257",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_deliverables_under_construction",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "deliverables under construction"
+    },
+    {
+      "label": "RESEARCH_LOG.md",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/RESEARCH_LOG.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "research_backend_admissions_research_log",
+      "community": 27,
+      "community_name": "Overnight Backend and Admissions Research Log",
+      "norm_label": "research_log.md"
+    },
+    {
+      "label": "Overnight Backend and Admissions Research Log",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/RESEARCH_LOG.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "research_backend_admissions_research_log_overnight_backend_and_admissions_research_log",
+      "community": 27,
+      "community_name": "Overnight Backend and Admissions Research Log",
+      "norm_label": "overnight backend and admissions research log"
+    },
+    {
+      "label": "Scope",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/RESEARCH_LOG.md",
+      "source_location": "L3",
+      "_origin": "ast",
+      "id": "research_backend_admissions_research_log_scope",
+      "community": 27,
+      "community_name": "Overnight Backend and Admissions Research Log",
+      "norm_label": "scope"
+    },
+    {
+      "label": "Research Standards",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/RESEARCH_LOG.md",
+      "source_location": "L13",
+      "_origin": "ast",
+      "id": "research_backend_admissions_research_log_research_standards",
+      "community": 27,
+      "community_name": "Overnight Backend and Admissions Research Log",
+      "norm_label": "research standards"
+    },
+    {
+      "label": "Iteration Log",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/RESEARCH_LOG.md",
+      "source_location": "L22",
+      "_origin": "ast",
+      "id": "research_backend_admissions_research_log_iteration_log",
+      "community": 27,
+      "community_name": "Overnight Backend and Admissions Research Log",
+      "norm_label": "iteration log"
+    },
+    {
+      "label": "Iteration 0 \u2014 2026-07-18",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/RESEARCH_LOG.md",
+      "source_location": "L24",
+      "_origin": "ast",
+      "id": "research_backend_admissions_research_log_iteration_0_2026_07_18",
+      "community": 27,
+      "community_name": "Overnight Backend and Admissions Research Log",
+      "norm_label": "iteration 0 \u2014 2026-07-18"
+    },
+    {
+      "label": "Iteration 1 \u2014 2026-07-18",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/RESEARCH_LOG.md",
+      "source_location": "L33",
+      "_origin": "ast",
+      "id": "research_backend_admissions_research_log_iteration_1_2026_07_18",
+      "community": 27,
+      "community_name": "Overnight Backend and Admissions Research Log",
+      "norm_label": "iteration 1 \u2014 2026-07-18"
+    },
+    {
+      "label": "Iteration 2 \u2014 2026-07-18",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/RESEARCH_LOG.md",
+      "source_location": "L48",
+      "_origin": "ast",
+      "id": "research_backend_admissions_research_log_iteration_2_2026_07_18",
+      "community": 27,
+      "community_name": "Overnight Backend and Admissions Research Log",
+      "norm_label": "iteration 2 \u2014 2026-07-18"
+    },
+    {
+      "label": "Next Research Clusters",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/RESEARCH_LOG.md",
+      "source_location": "L62",
+      "_origin": "ast",
+      "id": "research_backend_admissions_research_log_next_research_clusters",
+      "community": 27,
+      "community_name": "Overnight Backend and Admissions Research Log",
+      "norm_label": "next research clusters"
+    },
+    {
+      "label": "SIMULATION_SPECIFICATION.md",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "research_backend_admissions_simulation_specification",
+      "community": 8,
+      "community_name": "Synthetic Track Configuration",
+      "norm_label": "simulation_specification.md"
+    },
+    {
+      "label": "Synthetic Simulation Specification",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "research_backend_admissions_simulation_specification_synthetic_simulation_specification",
+      "community": 8,
+      "community_name": "Synthetic Track Configuration",
+      "norm_label": "synthetic simulation specification"
+    },
+    {
+      "label": "Purpose",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L3",
+      "_origin": "ast",
+      "id": "research_backend_admissions_simulation_specification_purpose",
+      "community": 8,
+      "community_name": "Synthetic Track Configuration",
+      "norm_label": "purpose"
+    },
+    {
+      "label": "Reproducibility",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L15",
+      "_origin": "ast",
+      "id": "research_backend_admissions_simulation_specification_reproducibility",
+      "community": 8,
+      "community_name": "Synthetic Track Configuration",
+      "norm_label": "reproducibility"
+    },
+    {
+      "label": "Applicant Model",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L26",
+      "_origin": "ast",
+      "id": "research_backend_admissions_simulation_specification_applicant_model",
+      "community": 8,
+      "community_name": "Synthetic Track Configuration",
+      "norm_label": "applicant model"
+    },
+    {
+      "label": "CogAT-Like Measurements",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L41",
+      "_origin": "ast",
+      "id": "research_backend_admissions_simulation_specification_cogat_like_measurements",
+      "community": 8,
+      "community_name": "Synthetic Track Configuration",
+      "norm_label": "cogat-like measurements"
+    },
+    {
+      "label": "Track A",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L55",
+      "_origin": "ast",
+      "id": "research_backend_admissions_simulation_specification_track_a",
+      "community": 8,
+      "community_name": "Synthetic Track Configuration",
+      "norm_label": "track a"
+    },
+    {
+      "label": "Track B Invitation",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L70",
+      "_origin": "ast",
+      "id": "research_backend_admissions_simulation_specification_track_b_invitation",
+      "community": 8,
+      "community_name": "Synthetic Track Configuration",
+      "norm_label": "track b invitation"
+    },
+    {
+      "label": "Track B Evidence and Review",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L80",
+      "_origin": "ast",
+      "id": "research_backend_admissions_simulation_specification_track_b_evidence_and_review",
+      "community": 8,
+      "community_name": "Synthetic Track Configuration",
+      "norm_label": "track b evidence and review"
+    },
+    {
+      "label": "Potential Outcomes",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L121",
+      "_origin": "ast",
+      "id": "research_backend_admissions_simulation_specification_potential_outcomes",
+      "community": 8,
+      "community_name": "Synthetic Track Configuration",
+      "norm_label": "potential outcomes"
+    },
+    {
+      "label": "Assignment Designs",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L147",
+      "_origin": "ast",
+      "id": "research_backend_admissions_simulation_specification_assignment_designs",
+      "community": 8,
+      "community_name": "Synthetic Track Configuration",
+      "norm_label": "assignment designs"
+    },
+    {
+      "label": "Route comparison",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L149",
+      "_origin": "ast",
+      "id": "research_backend_admissions_simulation_specification_route_comparison",
+      "community": 8,
+      "community_name": "Synthetic Track Configuration",
+      "norm_label": "route comparison"
+    },
+    {
+      "label": "Randomized offers",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L161",
+      "_origin": "ast",
+      "id": "research_backend_admissions_simulation_specification_randomized_offers",
+      "community": 8,
+      "community_name": "Synthetic Track Configuration",
+      "norm_label": "randomized offers"
+    },
+    {
+      "label": "Regression discontinuity",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L172",
+      "_origin": "ast",
+      "id": "research_backend_admissions_simulation_specification_regression_discontinuity",
+      "community": 8,
+      "community_name": "Synthetic Track Configuration",
+      "norm_label": "regression discontinuity"
+    },
+    {
+      "label": "Matching",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L183",
+      "_origin": "ast",
+      "id": "research_backend_admissions_simulation_specification_matching",
+      "community": 8,
+      "community_name": "Synthetic Track Configuration",
+      "norm_label": "matching"
+    },
+    {
+      "label": "Pre/post",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L193",
+      "_origin": "ast",
+      "id": "research_backend_admissions_simulation_specification_pre_post",
+      "community": 8,
+      "community_name": "Synthetic Track Configuration",
+      "norm_label": "pre/post"
+    },
+    {
+      "label": "Core Scenario Set",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L199",
+      "_origin": "ast",
+      "id": "research_backend_admissions_simulation_specification_core_scenario_set",
+      "community": 8,
+      "community_name": "Synthetic Track Configuration",
+      "norm_label": "core scenario set"
+    },
+    {
+      "label": "Metrics",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L223",
+      "_origin": "ast",
+      "id": "research_backend_admissions_simulation_specification_metrics",
+      "community": 8,
+      "community_name": "Synthetic Track Configuration",
+      "norm_label": "metrics"
+    },
+    {
+      "label": "Causal",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L225",
+      "_origin": "ast",
+      "id": "research_backend_admissions_simulation_specification_causal",
+      "community": 8,
+      "community_name": "Synthetic Track Configuration",
+      "norm_label": "causal"
+    },
+    {
+      "label": "Eligibility",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L237",
+      "_origin": "ast",
+      "id": "research_backend_admissions_simulation_specification_eligibility",
+      "community": 8,
+      "community_name": "Synthetic Track Configuration",
+      "norm_label": "eligibility"
+    },
+    {
+      "label": "Expected Demonstrations",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L248",
+      "_origin": "ast",
+      "id": "research_backend_admissions_simulation_specification_expected_demonstrations",
+      "community": 8,
+      "community_name": "Synthetic Track Configuration",
+      "norm_label": "expected demonstrations"
+    },
+    {
+      "label": "Implementation Packages",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L261",
+      "_origin": "ast",
+      "id": "research_backend_admissions_simulation_specification_implementation_packages",
+      "community": 8,
+      "community_name": "Synthetic Track Configuration",
+      "norm_label": "implementation packages"
+    },
+    {
+      "label": "Methods",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L276",
+      "_origin": "ast",
+      "id": "research_backend_admissions_simulation_specification_methods",
+      "community": 8,
+      "community_name": "Synthetic Track Configuration",
+      "norm_label": "methods"
+    },
+    {
+      "label": "01_BUI_CRAIG_IMBERMAN_2014.md",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/paper-deep-dives/01_BUI_CRAIG_IMBERMAN_2014.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014",
+      "community": 13,
+      "community_name": "Concept Options and Scoring",
+      "norm_label": "01_bui_craig_imberman_2014.md"
+    },
+    {
+      "label": "Paper Deep Dive 1",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/paper-deep-dives/01_BUI_CRAIG_IMBERMAN_2014.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_paper_deep_dive_1",
+      "community": 13,
+      "community_name": "Concept Options and Scoring",
+      "norm_label": "paper deep dive 1"
+    },
+    {
+      "label": "Bui, Craig, and Imberman (2014)",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/paper-deep-dives/01_BUI_CRAIG_IMBERMAN_2014.md",
+      "source_location": "L3",
+      "_origin": "ast",
+      "id": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_bui_craig_and_imberman_2014",
+      "community": 13,
+      "community_name": "Concept Options and Scoring",
+      "norm_label": "bui, craig, and imberman (2014)"
+    },
+    {
+      "label": "Why This Paper Matters",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/paper-deep-dives/01_BUI_CRAIG_IMBERMAN_2014.md",
+      "source_location": "L10",
+      "_origin": "ast",
+      "id": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_why_this_paper_matters",
+      "community": 13,
+      "community_name": "Concept Options and Scoring",
+      "norm_label": "why this paper matters"
+    },
+    {
+      "label": "Designs",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/paper-deep-dives/01_BUI_CRAIG_IMBERMAN_2014.md",
+      "source_location": "L19",
+      "_origin": "ast",
+      "id": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_designs",
+      "community": 13,
+      "community_name": "Concept Options and Scoring",
+      "norm_label": "designs"
+    },
+    {
+      "label": "Fuzzy Regression Discontinuity",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/paper-deep-dives/01_BUI_CRAIG_IMBERMAN_2014.md",
+      "source_location": "L21",
+      "_origin": "ast",
+      "id": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_fuzzy_regression_discontinuity",
+      "community": 13,
+      "community_name": "Concept Options and Scoring",
+      "norm_label": "fuzzy regression discontinuity"
+    },
+    {
+      "label": "Magnet Lottery Instrumental Variables",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/paper-deep-dives/01_BUI_CRAIG_IMBERMAN_2014.md",
+      "source_location": "L27",
+      "_origin": "ast",
+      "id": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_magnet_lottery_instrumental_variables",
+      "community": 13,
+      "community_name": "Concept Options and Scoring",
+      "norm_label": "magnet lottery instrumental variables"
+    },
+    {
+      "label": "Quantitative Evidence",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/paper-deep-dives/01_BUI_CRAIG_IMBERMAN_2014.md",
+      "source_location": "L33",
+      "_origin": "ast",
+      "id": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_quantitative_evidence",
+      "community": 13,
+      "community_name": "Concept Options and Scoring",
+      "norm_label": "quantitative evidence"
+    },
+    {
+      "label": "Ordinary gifted services",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/paper-deep-dives/01_BUI_CRAIG_IMBERMAN_2014.md",
+      "source_location": "L35",
+      "_origin": "ast",
+      "id": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_ordinary_gifted_services",
+      "community": 13,
+      "community_name": "Concept Options and Scoring",
+      "norm_label": "ordinary gifted services"
+    },
+    {
+      "label": "Gifted magnet lottery",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/paper-deep-dives/01_BUI_CRAIG_IMBERMAN_2014.md",
+      "source_location": "L47",
+      "_origin": "ast",
+      "id": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_gifted_magnet_lottery",
+      "community": 13,
+      "community_name": "Concept Options and Scoring",
+      "norm_label": "gifted magnet lottery"
+    },
+    {
+      "label": "Implementation Lessons",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/paper-deep-dives/01_BUI_CRAIG_IMBERMAN_2014.md",
+      "source_location": "L58",
+      "_origin": "ast",
+      "id": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_implementation_lessons",
+      "community": 13,
+      "community_name": "Concept Options and Scoring",
+      "norm_label": "implementation lessons"
+    },
+    {
+      "label": "Backend records required",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/paper-deep-dives/01_BUI_CRAIG_IMBERMAN_2014.md",
+      "source_location": "L60",
+      "_origin": "ast",
+      "id": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_backend_records_required",
+      "community": 13,
+      "community_name": "Concept Options and Scoring",
+      "norm_label": "backend records required"
+    },
+    {
+      "label": "Statistical requirements",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/paper-deep-dives/01_BUI_CRAIG_IMBERMAN_2014.md",
+      "source_location": "L71",
+      "_origin": "ast",
+      "id": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_statistical_requirements",
+      "community": 13,
+      "community_name": "Concept Options and Scoring",
+      "norm_label": "statistical requirements"
+    },
+    {
+      "label": "Direct Implications for GT",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/paper-deep-dives/01_BUI_CRAIG_IMBERMAN_2014.md",
+      "source_location": "L80",
+      "_origin": "ast",
+      "id": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_direct_implications_for_gt",
+      "community": 13,
+      "community_name": "Concept Options and Scoring",
+      "norm_label": "direct implications for gt"
+    },
+    {
+      "label": "Limits",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/paper-deep-dives/01_BUI_CRAIG_IMBERMAN_2014.md",
+      "source_location": "L88",
+      "_origin": "ast",
+      "id": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_limits",
+      "community": 13,
+      "community_name": "Concept Options and Scoring",
+      "norm_label": "limits"
+    },
+    {
+      "label": "Product-Support Claim",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/paper-deep-dives/01_BUI_CRAIG_IMBERMAN_2014.md",
+      "source_location": "L96",
+      "_origin": "ast",
+      "id": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_product_support_claim",
+      "community": 13,
+      "community_name": "Concept Options and Scoring",
+      "norm_label": "product-support claim"
+    },
+    {
+      "label": "02_CARD_GIULIANO_2016.md",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016",
+      "community": 9,
+      "community_name": "Capability Breadth",
+      "norm_label": "02_card_giuliano_2016.md"
+    },
+    {
+      "label": "Paper Deep Dive 2",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_paper_deep_dive_2",
+      "community": 9,
+      "community_name": "Capability Breadth",
+      "norm_label": "paper deep dive 2"
+    },
+    {
+      "label": "Card and Giuliano (2016)",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md",
+      "source_location": "L3",
+      "_origin": "ast",
+      "id": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_card_and_giuliano_2016",
+      "community": 9,
+      "community_name": "Capability Breadth",
+      "norm_label": "card and giuliano (2016)"
+    },
+    {
+      "label": "Why This Paper Matters",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md",
+      "source_location": "L10",
+      "_origin": "ast",
+      "id": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_why_this_paper_matters",
+      "community": 9,
+      "community_name": "Capability Breadth",
+      "norm_label": "why this paper matters"
+    },
+    {
+      "label": "Program and Identification Design",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md",
+      "source_location": "L16",
+      "_origin": "ast",
+      "id": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_program_and_identification_design",
+      "community": 9,
+      "community_name": "Capability Breadth",
+      "norm_label": "program and identification design"
+    },
+    {
+      "label": "Quantitative Evidence",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md",
+      "source_location": "L23",
+      "_origin": "ast",
+      "id": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_quantitative_evidence",
+      "community": 9,
+      "community_name": "Capability Breadth",
+      "norm_label": "quantitative evidence"
+    },
+    {
+      "label": "Sample",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md",
+      "source_location": "L25",
+      "_origin": "ast",
+      "id": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_sample",
+      "community": 9,
+      "community_name": "Capability Breadth",
+      "norm_label": "sample"
+    },
+    {
+      "label": "First stage",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md",
+      "source_location": "L31",
+      "_origin": "ast",
+      "id": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_first_stage",
+      "community": 9,
+      "community_name": "Capability Breadth",
+      "norm_label": "first stage"
+    },
+    {
+      "label": "Reduced-form effects",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md",
+      "source_location": "L36",
+      "_origin": "ast",
+      "id": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_reduced_form_effects",
+      "community": 9,
+      "community_name": "Capability Breadth",
+      "norm_label": "reduced-form effects"
+    },
+    {
+      "label": "Implied treatment effects",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md",
+      "source_location": "L41",
+      "_origin": "ast",
+      "id": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_implied_treatment_effects",
+      "community": 9,
+      "community_name": "Capability Breadth",
+      "norm_label": "implied treatment effects"
+    },
+    {
+      "label": "Interpretation",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md",
+      "source_location": "L50",
+      "_origin": "ast",
+      "id": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_interpretation",
+      "community": 9,
+      "community_name": "Capability Breadth",
+      "norm_label": "interpretation"
+    },
+    {
+      "label": "Implementation Lessons",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md",
+      "source_location": "L64",
+      "_origin": "ast",
+      "id": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_implementation_lessons",
+      "community": 9,
+      "community_name": "Capability Breadth",
+      "norm_label": "implementation lessons"
+    },
+    {
+      "label": "Candidate-selection lesson",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md",
+      "source_location": "L66",
+      "_origin": "ast",
+      "id": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_candidate_selection_lesson",
+      "community": 9,
+      "community_name": "Capability Breadth",
+      "norm_label": "candidate-selection lesson"
+    },
+    {
+      "label": "Evaluation lesson",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md",
+      "source_location": "L77",
+      "_origin": "ast",
+      "id": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_evaluation_lesson",
+      "community": 9,
+      "community_name": "Capability Breadth",
+      "norm_label": "evaluation lesson"
+    },
+    {
+      "label": "Direct Implications for GT",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md",
+      "source_location": "L89",
+      "_origin": "ast",
+      "id": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_direct_implications_for_gt",
+      "community": 9,
+      "community_name": "Capability Breadth",
+      "norm_label": "direct implications for gt"
+    },
+    {
+      "label": "Limits",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md",
+      "source_location": "L97",
+      "_origin": "ast",
+      "id": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_limits",
+      "community": 9,
+      "community_name": "Capability Breadth",
+      "norm_label": "limits"
+    },
+    {
+      "label": "Product-Support Claim",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md",
+      "source_location": "L106",
+      "_origin": "ast",
+      "id": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_product_support_claim",
+      "community": 9,
+      "community_name": "Capability Breadth",
+      "norm_label": "product-support claim"
     },
     {
       "label": "Mandatory Contributor Workflow",
@@ -127,9 +1289,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "agents_mandatory_workflow",
       "community": 1,
-      "norm_label": "mandatory contributor workflow"
+      "norm_label": "mandatory contributor workflow",
+      "id": "agents_mandatory_workflow",
+      "community_name": "Selection Requirements and Rights"
     },
     {
       "label": "Project Stop Conditions",
@@ -140,9 +1303,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "agents_stop_conditions",
       "community": 16,
-      "norm_label": "project stop conditions"
+      "norm_label": "project stop conditions",
+      "id": "agents_stop_conditions",
+      "community_name": "Stop Conditions"
     },
     {
       "label": "Canonical Document Precedence",
@@ -153,9 +1317,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "agents_document_precedence",
       "community": 0,
-      "norm_label": "canonical document precedence"
+      "norm_label": "canonical document precedence",
+      "id": "agents_document_precedence",
+      "community_name": "Causal Attribution and Governance"
     },
     {
       "label": "Make GT School Contribution Testable",
@@ -166,9 +1331,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "project_charter_mission",
       "community": 0,
-      "norm_label": "make gt school contribution testable"
+      "norm_label": "make gt school contribution testable",
+      "id": "project_charter_mission",
+      "community_name": "Causal Attribution and Governance"
     },
     {
       "label": "Selection Effect",
@@ -179,9 +1345,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "project_charter_selection_effect",
       "community": 0,
-      "norm_label": "selection effect"
+      "norm_label": "selection effect",
+      "id": "project_charter_selection_effect",
+      "community_name": "Causal Attribution and Governance"
     },
     {
       "label": "Program Effect",
@@ -192,9 +1359,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "project_charter_program_effect",
       "community": 0,
-      "norm_label": "program effect"
+      "norm_label": "program effect",
+      "id": "project_charter_program_effect",
+      "community_name": "Causal Attribution and Governance"
     },
     {
       "label": "Credible Counterfactual",
@@ -205,9 +1373,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "project_charter_credible_counterfactual",
       "community": 0,
-      "norm_label": "credible counterfactual"
+      "norm_label": "credible counterfactual",
+      "id": "project_charter_credible_counterfactual",
+      "community_name": "Causal Attribution and Governance"
     },
     {
       "label": "Rights Before Research",
@@ -218,9 +1387,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "project_charter_rights_before_research",
       "community": 1,
-      "norm_label": "rights before research"
+      "norm_label": "rights before research",
+      "id": "project_charter_rights_before_research",
+      "community_name": "Selection Requirements and Rights"
     },
     {
       "label": "Minimum Sufficient Scope",
@@ -231,9 +1401,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "project_charter_minimum_sufficient_scope",
       "community": 19,
-      "norm_label": "minimum sufficient scope"
+      "norm_label": "minimum sufficient scope",
+      "id": "project_charter_minimum_sufficient_scope",
+      "community_name": "Minimum Four-Week Scope"
     },
     {
       "label": "R1 Actual Student-Selection Decision",
@@ -244,9 +1415,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_project_requirements_r1",
       "community": 1,
-      "norm_label": "r1 actual student-selection decision"
+      "norm_label": "r1 actual student-selection decision",
+      "id": "docs_project_requirements_r1",
+      "community_name": "Selection Requirements and Rights"
     },
     {
       "label": "R2 Credible Counterfactual",
@@ -257,9 +1429,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_project_requirements_r2",
       "community": 0,
-      "norm_label": "r2 credible counterfactual"
+      "norm_label": "r2 credible counterfactual",
+      "id": "docs_project_requirements_r2",
+      "community_name": "Causal Attribution and Governance"
     },
     {
       "label": "R3 Prospective Causal Question",
@@ -270,9 +1443,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_project_requirements_r3",
       "community": 2,
-      "norm_label": "r3 prospective causal question"
+      "norm_label": "r3 prospective causal question",
+      "id": "docs_project_requirements_r3",
+      "community_name": "Evaluation Design and Measurement"
     },
     {
       "label": "R4 Non-Circular Selection and Measurement",
@@ -283,9 +1457,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_project_requirements_r4",
       "community": 0,
-      "norm_label": "r4 non-circular selection and measurement"
+      "norm_label": "r4 non-circular selection and measurement",
+      "id": "docs_project_requirements_r4",
+      "community_name": "Causal Attribution and Governance"
     },
     {
       "label": "R5 Defensible Capability Standard",
@@ -296,9 +1471,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_project_requirements_r5",
       "community": 1,
-      "norm_label": "r5 defensible capability standard"
+      "norm_label": "r5 defensible capability standard",
+      "id": "docs_project_requirements_r5",
+      "community_name": "Selection Requirements and Rights"
     },
     {
       "label": "R6 Growth Without Gifted Ceiling",
@@ -309,9 +1485,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_project_requirements_r6",
       "community": 2,
-      "norm_label": "r6 growth without gifted ceiling"
+      "norm_label": "r6 growth without gifted ceiling",
+      "id": "docs_project_requirements_r6",
+      "community_name": "Evaluation Design and Measurement"
     },
     {
       "label": "R7 Auditable and Falsifiable Process",
@@ -322,9 +1499,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_project_requirements_r7",
       "community": 5,
-      "norm_label": "r7 auditable and falsifiable process"
+      "norm_label": "r7 auditable and falsifiable process",
+      "id": "docs_project_requirements_r7",
+      "community_name": "Audit and Local Validation"
     },
     {
       "label": "R8 Feasible Under Real GT Constraints",
@@ -335,9 +1513,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_project_requirements_r8",
       "community": 10,
-      "norm_label": "r8 feasible under real gt constraints"
+      "norm_label": "r8 feasible under real gt constraints",
+      "id": "docs_project_requirements_r8",
+      "community_name": "Feasibility and Power"
     },
     {
       "label": "R9 Protect Students and Families",
@@ -348,9 +1527,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_project_requirements_r9",
       "community": 1,
-      "norm_label": "r9 protect students and families"
+      "norm_label": "r9 protect students and families",
+      "id": "docs_project_requirements_r9",
+      "community_name": "Selection Requirements and Rights"
     },
     {
       "label": "R10 Conclusion Boundaries",
@@ -361,9 +1541,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_project_requirements_r10",
       "community": 0,
-      "norm_label": "r10 conclusion boundaries"
+      "norm_label": "r10 conclusion boundaries",
+      "id": "docs_project_requirements_r10",
+      "community_name": "Causal Attribution and Governance"
     },
     {
       "label": "H1 Broader Evidence-Backed Capability Measures",
@@ -374,9 +1555,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
+      "community": 3,
+      "norm_label": "h1 broader evidence-backed capability measures",
       "id": "docs_project_requirements_h1",
-      "community": 9,
-      "norm_label": "h1 broader evidence-backed capability measures"
+      "community_name": "Track B Snapshot Review"
     },
     {
       "label": "H2 Capability Separated from Family Advantage",
@@ -387,9 +1569,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
+      "community": 4,
+      "norm_label": "h2 capability separated from family advantage",
       "id": "docs_project_requirements_h2",
-      "community": 6,
-      "norm_label": "h2 capability separated from family advantage"
+      "community_name": "Evidence Quality and Screening"
     },
     {
       "label": "H3 Address Unobserved Selection",
@@ -400,9 +1583,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_project_requirements_h3",
       "community": 2,
-      "norm_label": "h3 address unobserved selection"
+      "norm_label": "h3 address unobserved selection",
+      "id": "docs_project_requirements_h3",
+      "community_name": "Evaluation Design and Measurement"
     },
     {
       "label": "H4 Expand Candidate-Pool Access",
@@ -413,9 +1597,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_project_requirements_h4",
       "community": 4,
-      "norm_label": "h4 expand candidate-pool access"
+      "norm_label": "h4 expand candidate-pool access",
+      "id": "docs_project_requirements_h4",
+      "community_name": "Evidence Quality and Screening"
     },
     {
       "label": "H5 Independent Evaluator",
@@ -426,9 +1611,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_project_requirements_h5",
       "community": 5,
-      "norm_label": "h5 independent evaluator"
+      "norm_label": "h5 independent evaluator",
+      "id": "docs_project_requirements_h5",
+      "community_name": "Audit and Local Validation"
     },
     {
       "label": "H6 Adequate Statistical Information",
@@ -439,9 +1625,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_project_requirements_h6",
       "community": 10,
-      "norm_label": "h6 adequate statistical information"
+      "norm_label": "h6 adequate statistical information",
+      "id": "docs_project_requirements_h6",
+      "community_name": "Feasibility and Power"
     },
     {
       "label": "H7 Equity and Access Guardrails",
@@ -452,9 +1639,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_project_requirements_h7",
       "community": 4,
-      "norm_label": "h7 equity and access guardrails"
+      "norm_label": "h7 equity and access guardrails",
+      "id": "docs_project_requirements_h7",
+      "community_name": "Evidence Quality and Screening"
     },
     {
       "label": "H8 Protect Current High Performers",
@@ -465,9 +1653,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_project_requirements_h8",
       "community": 17,
-      "norm_label": "h8 protect current high performers"
+      "norm_label": "h8 protect current high performers",
+      "id": "docs_project_requirements_h8",
+      "community_name": "High-Performer Guardrail"
     },
     {
       "label": "H9 Explainable and Contestable Decisions",
@@ -478,9 +1667,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_project_requirements_h9",
       "community": 1,
-      "norm_label": "h9 explainable and contestable decisions"
+      "norm_label": "h9 explainable and contestable decisions",
+      "id": "docs_project_requirements_h9",
+      "community_name": "Selection Requirements and Rights"
     },
     {
       "label": "H10 Minimize Gaming and Burden",
@@ -491,9 +1681,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_project_requirements_h10",
       "community": 24,
-      "norm_label": "h10 minimize gaming and burden"
+      "norm_label": "h10 minimize gaming and burden",
+      "id": "docs_project_requirements_h10",
+      "community_name": "Gaming and Burden"
     },
     {
       "label": "Required Hard Gates",
@@ -504,9 +1695,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_development_rubric_hard_gates",
       "community": 1,
-      "norm_label": "required hard gates"
+      "norm_label": "required hard gates",
+      "id": "docs_development_rubric_hard_gates",
+      "community_name": "Selection Requirements and Rights"
     },
     {
       "label": "Weighted Concept Comparison Scorecard",
@@ -517,9 +1709,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
+      "community": 1,
+      "norm_label": "weighted concept comparison scorecard",
       "id": "docs_development_rubric_concept_scorecard",
-      "community": 13,
-      "norm_label": "weighted concept comparison scorecard"
+      "community_name": "Selection Requirements and Rights"
     },
     {
       "label": "Automatic Rejection Conditions",
@@ -530,9 +1723,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_development_rubric_automatic_rejection",
       "community": 16,
-      "norm_label": "automatic rejection conditions"
+      "norm_label": "automatic rejection conditions",
+      "id": "docs_development_rubric_automatic_rejection",
+      "community_name": "Stop Conditions"
     },
     {
       "label": "E-001 Public GT Reporting Lacks Credible Comparison",
@@ -543,9 +1737,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_assumptions_and_evidence_e001",
       "community": 0,
-      "norm_label": "e-001 public gt reporting lacks credible comparison"
+      "norm_label": "e-001 public gt reporting lacks credible comparison",
+      "id": "docs_assumptions_and_evidence_e001",
+      "community_name": "Causal Attribution and Governance"
     },
     {
       "label": "E-002 Unconfirmed CogAT Threshold Near 90th Percentile",
@@ -556,9 +1751,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
+      "community": 3,
+      "norm_label": "e-002 unconfirmed cogat threshold near 90th percentile",
       "id": "docs_assumptions_and_evidence_e002",
-      "community": 8,
-      "norm_label": "e-002 unconfirmed cogat threshold near 90th percentile"
+      "community_name": "Track B Snapshot Review"
     },
     {
       "label": "E-003 Financial Resources Shape Access",
@@ -569,9 +1765,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
+      "community": 4,
+      "norm_label": "e-003 financial resources shape access",
       "id": "docs_assumptions_and_evidence_e003",
-      "community": 6,
-      "norm_label": "e-003 financial resources shape access"
+      "community_name": "Evidence Quality and Screening"
     },
     {
       "label": "E-004 Alpha 2.6x MAP Growth Company Claim",
@@ -582,9 +1779,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_assumptions_and_evidence_e004",
       "community": 4,
-      "norm_label": "e-004 alpha 2.6x map growth company claim"
+      "norm_label": "e-004 alpha 2.6x map growth company claim",
+      "id": "docs_assumptions_and_evidence_e004",
+      "community_name": "Evidence Quality and Screening"
     },
     {
       "label": "E-005 Single Cognitive Screen False Negatives",
@@ -595,9 +1793,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
+      "community": 3,
+      "norm_label": "e-005 single cognitive screen false negatives",
       "id": "docs_assumptions_and_evidence_e005",
-      "community": 9,
-      "norm_label": "e-005 single cognitive screen false negatives"
+      "community_name": "Track B Snapshot Review"
     },
     {
       "label": "E-006 Ability and Achievement Remain Predictive",
@@ -608,9 +1807,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_assumptions_and_evidence_e006",
       "community": 1,
-      "norm_label": "e-006 ability and achievement remain predictive"
+      "norm_label": "e-006 ability and achievement remain predictive",
+      "id": "docs_assumptions_and_evidence_e006",
+      "community_name": "Selection Requirements and Rights"
     },
     {
       "label": "E-007 Grit and Mindset Weak Standalone Signals",
@@ -621,9 +1821,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
+      "community": 4,
+      "norm_label": "e-007 grit and mindset weak standalone signals",
       "id": "docs_assumptions_and_evidence_e007",
-      "community": 6,
-      "norm_label": "e-007 grit and mindset weak standalone signals"
+      "community_name": "Evidence Quality and Screening"
     },
     {
       "label": "E-008 Spatial Ability Adds Distinct Information",
@@ -634,9 +1835,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
+      "community": 3,
+      "norm_label": "e-008 spatial ability adds distinct information",
       "id": "docs_assumptions_and_evidence_e008",
-      "community": 9,
-      "norm_label": "e-008 spatial ability adds distinct information"
+      "community_name": "Track B Snapshot Review"
     },
     {
       "label": "E-009 Random Assignment Balances Unobserved Traits",
@@ -647,9 +1849,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_assumptions_and_evidence_e009",
       "community": 2,
-      "norm_label": "e-009 random assignment balances unobserved traits"
+      "norm_label": "e-009 random assignment balances unobserved traits",
+      "id": "docs_assumptions_and_evidence_e009",
+      "community_name": "Evaluation Design and Measurement"
     },
     {
       "label": "E-010 Sufficient Demand and Scarce Seats Assumption",
@@ -660,9 +1863,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_assumptions_and_evidence_e010",
       "community": 10,
-      "norm_label": "e-010 sufficient demand and scarce seats assumption"
+      "norm_label": "e-010 sufficient demand and scarce seats assumption",
+      "id": "docs_assumptions_and_evidence_e010",
+      "community_name": "Feasibility and Power"
     },
     {
       "label": "E-011 Independent Evaluation Permission Assumption",
@@ -673,9 +1877,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_assumptions_and_evidence_e011",
       "community": 5,
-      "norm_label": "e-011 independent evaluation permission assumption"
+      "norm_label": "e-011 independent evaluation permission assumption",
+      "id": "docs_assumptions_and_evidence_e011",
+      "community_name": "Audit and Local Validation"
     },
     {
       "label": "E-012 High-Ceiling Outcome Availability Assumption",
@@ -686,9 +1891,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_assumptions_and_evidence_e012",
       "community": 2,
-      "norm_label": "e-012 high-ceiling outcome availability assumption"
+      "norm_label": "e-012 high-ceiling outcome availability assumption",
+      "id": "docs_assumptions_and_evidence_e012",
+      "community_name": "Evaluation Design and Measurement"
     },
     {
       "label": "E-013 Calendar and Staffing Feasibility Assumption",
@@ -699,9 +1905,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_assumptions_and_evidence_e013",
       "community": 10,
-      "norm_label": "e-013 calendar and staffing feasibility assumption"
+      "norm_label": "e-013 calendar and staffing feasibility assumption",
+      "id": "docs_assumptions_and_evidence_e013",
+      "community_name": "Feasibility and Power"
     },
     {
       "label": "E-014 Protect Current High Performers Assumption",
@@ -712,9 +1919,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_assumptions_and_evidence_e014",
       "community": 17,
-      "norm_label": "e-014 protect current high performers assumption"
+      "norm_label": "e-014 protect current high performers assumption",
+      "id": "docs_assumptions_and_evidence_e014",
+      "community_name": "High-Performer Guardrail"
     },
     {
       "label": "E-015 CogAT Construct Coverage",
@@ -725,9 +1933,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_assumptions_and_evidence_e015",
       "community": 11,
-      "norm_label": "e-015 cogat construct coverage"
+      "norm_label": "e-015 cogat construct coverage",
+      "id": "docs_assumptions_and_evidence_e015",
+      "community_name": "CogAT and MAP Evidence"
     },
     {
       "label": "E-016 MAP Growth Candidate Complement",
@@ -738,9 +1947,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_assumptions_and_evidence_e016",
       "community": 11,
-      "norm_label": "e-016 map growth candidate complement"
+      "norm_label": "e-016 map growth candidate complement",
+      "id": "docs_assumptions_and_evidence_e016",
+      "community_name": "CogAT and MAP Evidence"
     },
     {
       "label": "E-017 WJ V and WISC-V Targeted Pathway",
@@ -751,9 +1961,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_assumptions_and_evidence_e017",
       "community": 5,
-      "norm_label": "e-017 wj v and wisc-v targeted pathway"
+      "norm_label": "e-017 wj v and wisc-v targeted pathway",
+      "id": "docs_assumptions_and_evidence_e017",
+      "community_name": "Audit and Local Validation"
     },
     {
       "label": "E-018 Nonverbal Substitution Does Not Remove Bias",
@@ -764,9 +1975,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
+      "community": 4,
+      "norm_label": "e-018 nonverbal substitution does not remove bias",
       "id": "docs_assumptions_and_evidence_e018",
-      "community": 6,
-      "norm_label": "e-018 nonverbal substitution does not remove bias"
+      "community_name": "Evidence Quality and Screening"
     },
     {
       "label": "E-019 Nominations Are Limited Complementary Evidence",
@@ -777,9 +1989,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_assumptions_and_evidence_e019",
       "community": 3,
-      "norm_label": "e-019 nominations are limited complementary evidence"
+      "norm_label": "e-019 nominations are limited complementary evidence",
+      "id": "docs_assumptions_and_evidence_e019",
+      "community_name": "Track B Snapshot Review"
     },
     {
       "label": "E-020 Teacher Effects in Ratings",
@@ -790,9 +2003,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_assumptions_and_evidence_e020",
       "community": 3,
-      "norm_label": "e-020 teacher effects in ratings"
+      "norm_label": "e-020 teacher effects in ratings",
+      "id": "docs_assumptions_and_evidence_e020",
+      "community_name": "Track B Snapshot Review"
     },
     {
       "label": "E-021 Unstructured Recommendations Encode Advantage",
@@ -803,9 +2017,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_assumptions_and_evidence_e021",
       "community": 3,
-      "norm_label": "e-021 unstructured recommendations encode advantage"
+      "norm_label": "e-021 unstructured recommendations encode advantage",
+      "id": "docs_assumptions_and_evidence_e021",
+      "community_name": "Track B Snapshot Review"
     },
     {
       "label": "E-022 Performance and Dynamic Assessment Candidates",
@@ -816,9 +2031,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_assumptions_and_evidence_e022",
       "community": 12,
-      "norm_label": "e-022 performance and dynamic assessment candidates"
+      "norm_label": "e-022 performance and dynamic assessment candidates",
+      "id": "docs_assumptions_and_evidence_e022",
+      "community_name": "Performance and Dynamic Evidence"
     },
     {
       "label": "E-023 Structured Review Beats Freeform Holism",
@@ -829,9 +2045,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_assumptions_and_evidence_e023",
       "community": 5,
-      "norm_label": "e-023 structured review beats freeform holism"
+      "norm_label": "e-023 structured review beats freeform holism",
+      "id": "docs_assumptions_and_evidence_e023",
+      "community_name": "Audit and Local Validation"
     },
     {
       "label": "D-001 Canonical Project Governance",
@@ -842,9 +2059,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_decision_log_d001",
       "community": 0,
-      "norm_label": "d-001 canonical project governance"
+      "norm_label": "d-001 canonical project governance",
+      "id": "docs_decision_log_d001",
+      "community_name": "Causal Attribution and Governance"
     },
     {
       "label": "D-002 Solution-Agnostic Requirements",
@@ -855,9 +2073,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_decision_log_d002",
       "community": 1,
-      "norm_label": "d-002 solution-agnostic requirements"
+      "norm_label": "d-002 solution-agnostic requirements",
+      "id": "docs_decision_log_d002",
+      "community_name": "Selection Requirements and Rights"
     },
     {
       "label": "D-003 Requirement-ID Traceability",
@@ -868,9 +2087,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_decision_log_d003",
       "community": 1,
-      "norm_label": "d-003 requirement-id traceability"
+      "norm_label": "d-003 requirement-id traceability",
+      "id": "docs_decision_log_d003",
+      "community_name": "Selection Requirements and Rights"
     },
     {
       "label": "D-004 Historical PRD Exploration",
@@ -881,9 +2101,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_decision_log_d004",
       "community": 18,
-      "norm_label": "d-004 historical prd exploration"
+      "norm_label": "d-004 historical prd exploration",
+      "id": "docs_decision_log_d004",
+      "community_name": "Historical PRD Decisions"
     },
     {
       "label": "D-005 No Ratified Concept",
@@ -894,9 +2115,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_decision_log_d005",
       "community": 3,
-      "norm_label": "d-005 no ratified concept"
+      "norm_label": "d-005 no ratified concept",
+      "id": "docs_decision_log_d005",
+      "community_name": "Track B Snapshot Review"
     },
     {
       "label": "D-006 Four-Week Two-Person Synthetic Prototype",
@@ -907,9 +2129,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_decision_log_d006",
       "community": 19,
-      "norm_label": "d-006 four-week two-person synthetic prototype"
+      "norm_label": "d-006 four-week two-person synthetic prototype",
+      "id": "docs_decision_log_d006",
+      "community_name": "Minimum Four-Week Scope"
     },
     {
       "label": "D-007 Distill Historical PRD Sprint",
@@ -920,9 +2143,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_decision_log_d007",
       "community": 18,
-      "norm_label": "d-007 distill historical prd sprint"
+      "norm_label": "d-007 distill historical prd sprint",
+      "id": "docs_decision_log_d007",
+      "community_name": "Historical PRD Decisions"
     },
     {
       "label": "D-008 Track B Talent Evidence Snapshot Prototype",
@@ -933,9 +2157,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_decision_log_d008",
       "community": 3,
-      "norm_label": "d-008 track b talent evidence snapshot prototype"
+      "norm_label": "d-008 track b talent evidence snapshot prototype",
+      "id": "docs_decision_log_d008",
+      "community_name": "Track B Snapshot Review"
     },
     {
       "label": "D-009 Supabase and PostgreSQL Backend",
@@ -946,9 +2171,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_decision_log_d009",
       "community": 20,
-      "norm_label": "d-009 supabase and postgresql backend"
+      "norm_label": "d-009 supabase and postgresql backend",
+      "id": "docs_decision_log_d009",
+      "community_name": "Supabase and PostgreSQL"
     },
     {
       "label": "No Active Scope Exceptions",
@@ -959,9 +2185,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
+      "community": 3,
+      "norm_label": "no active scope exceptions",
       "id": "docs_scope_exception_log_no_active_exceptions",
-      "community": 8,
-      "norm_label": "no active scope exceptions"
+      "community_name": "Track B Snapshot Review"
     },
     {
       "label": "PRD-001 Track A and Track B Prototype Work Item",
@@ -972,9 +2199,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_traceability_matrix_prd_001",
       "community": 1,
-      "norm_label": "prd-001 track a and track b prototype work item"
+      "norm_label": "prd-001 track a and track b prototype work item",
+      "id": "docs_traceability_matrix_prd_001",
+      "community_name": "Selection Requirements and Rights"
     },
     {
       "label": "Deferred R2 R3 R6 Evaluation Work",
@@ -985,9 +2213,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_traceability_matrix_deferred_evaluation_requirements",
       "community": 2,
-      "norm_label": "deferred r2 r3 r6 evaluation work"
+      "norm_label": "deferred r2 r3 r6 evaluation work",
+      "id": "docs_traceability_matrix_deferred_evaluation_requirements",
+      "community_name": "Evaluation Design and Measurement"
     },
     {
       "label": "Synthetic Admissions Decision Support MVP",
@@ -998,9 +2227,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
+      "community": 3,
+      "norm_label": "synthetic admissions decision support mvp",
       "id": "docs_gt_admissions_application_mvp_prd_synthetic_mvp",
-      "community": 8,
-      "norm_label": "synthetic admissions decision support mvp"
+      "community_name": "Track B Snapshot Review"
     },
     {
       "label": "Track A Preserved CogAT Route",
@@ -1011,9 +2241,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
+      "community": 3,
+      "norm_label": "track a preserved cogat route",
       "id": "docs_gt_admissions_application_mvp_prd_track_a",
-      "community": 8,
-      "norm_label": "track a preserved cogat route"
+      "community_name": "Track B Snapshot Review"
     },
     {
       "label": "Profile-Aware Track B Invitation",
@@ -1024,9 +2255,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
+      "community": 3,
+      "norm_label": "profile-aware track b invitation",
       "id": "docs_gt_admissions_application_mvp_prd_track_b_invitation",
-      "community": 8,
-      "norm_label": "profile-aware track b invitation"
+      "community_name": "Track B Snapshot Review"
     },
     {
       "label": "Talent Evidence Snapshot",
@@ -1037,9 +2269,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_gt_admissions_application_mvp_prd_talent_evidence_snapshot",
       "community": 3,
-      "norm_label": "talent evidence snapshot"
+      "norm_label": "talent evidence snapshot",
+      "id": "docs_gt_admissions_application_mvp_prd_talent_evidence_snapshot",
+      "community_name": "Track B Snapshot Review"
     },
     {
       "label": "Existing Artifact Evidence Route",
@@ -1050,9 +2283,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_gt_admissions_application_mvp_prd_artifact_route",
       "community": 3,
-      "norm_label": "existing artifact evidence route"
+      "norm_label": "existing artifact evidence route",
+      "id": "docs_gt_admissions_application_mvp_prd_artifact_route",
+      "community_name": "Track B Snapshot Review"
     },
     {
       "label": "Bounded Structured Narrative Fallback",
@@ -1063,9 +2297,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_gt_admissions_application_mvp_prd_narrative_fallback",
       "community": 3,
-      "norm_label": "bounded structured narrative fallback"
+      "norm_label": "bounded structured narrative fallback",
+      "id": "docs_gt_admissions_application_mvp_prd_narrative_fallback",
+      "community_name": "Track B Snapshot Review"
     },
     {
       "label": "Independent Blind Majority Review",
@@ -1076,9 +2311,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_gt_admissions_application_mvp_prd_independent_review",
       "community": 3,
-      "norm_label": "independent blind majority review"
+      "norm_label": "independent blind majority review",
+      "id": "docs_gt_admissions_application_mvp_prd_independent_review",
+      "community_name": "Track B Snapshot Review"
     },
     {
       "label": "Prohibited Eligibility Inputs",
@@ -1089,9 +2325,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
+      "community": 4,
+      "norm_label": "prohibited eligibility inputs",
       "id": "docs_gt_admissions_application_mvp_prd_prohibited_inputs",
-      "community": 6,
-      "norm_label": "prohibited eligibility inputs"
+      "community_name": "Evidence Quality and Screening"
     },
     {
       "label": "Versioned Decision Audit and Replay",
@@ -1102,9 +2339,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_gt_admissions_application_mvp_prd_audit_replay",
       "community": 5,
-      "norm_label": "versioned decision audit and replay"
+      "norm_label": "versioned decision audit and replay",
+      "id": "docs_gt_admissions_application_mvp_prd_audit_replay",
+      "community_name": "Audit and Local Validation"
     },
     {
       "label": "Seat Allocation and Evaluation Out of Scope",
@@ -1115,9 +2353,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_gt_admissions_application_mvp_prd_allocation_out_of_scope",
       "community": 0,
-      "norm_label": "seat allocation and evaluation out of scope"
+      "norm_label": "seat allocation and evaluation out of scope",
+      "id": "docs_gt_admissions_application_mvp_prd_allocation_out_of_scope",
+      "community_name": "Causal Attribution and Governance"
     },
     {
       "label": "Track A vs Track B Difference as Program Effect Claim",
@@ -1128,9 +2367,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_gt_admissions_application_mvp_prd_track_comparison_causal_claim",
       "community": 0,
-      "norm_label": "track a vs track b difference as program effect claim"
+      "norm_label": "track a vs track b difference as program effect claim",
+      "id": "docs_gt_admissions_application_mvp_prd_track_comparison_causal_claim",
+      "community_name": "Causal Attribution and Governance"
     },
     {
       "label": "Local Supabase PostgreSQL Stack",
@@ -1141,9 +2381,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_gt_admissions_application_mvp_prd_supabase_postgresql",
       "community": 20,
-      "norm_label": "local supabase postgresql stack"
+      "norm_label": "local supabase postgresql stack",
+      "id": "docs_gt_admissions_application_mvp_prd_supabase_postgresql",
+      "community_name": "Supabase and PostgreSQL"
     },
     {
       "label": "Concept A Selection-First",
@@ -1154,9 +2395,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
+      "community": 1,
+      "norm_label": "concept a selection-first",
       "id": "docs_concept_options_concept_a",
-      "community": 13,
-      "norm_label": "concept a selection-first"
+      "community_name": "Selection Requirements and Rights"
     },
     {
       "label": "Concept B Evaluation-First",
@@ -1167,9 +2409,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
+      "community": 1,
+      "norm_label": "concept b evaluation-first",
       "id": "docs_concept_options_concept_b",
-      "community": 13,
-      "norm_label": "concept b evaluation-first"
+      "community_name": "Selection Requirements and Rights"
     },
     {
       "label": "Concept C Integrated Selection and Evaluation",
@@ -1180,9 +2423,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
+      "community": 1,
+      "norm_label": "concept c integrated selection and evaluation",
       "id": "docs_concept_options_concept_c",
-      "community": 13,
-      "norm_label": "concept c integrated selection and evaluation"
+      "community_name": "Selection Requirements and Rights"
     },
     {
       "label": "Methodologist Critic Lens",
@@ -1193,9 +2437,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_critic_review_checklist_methodologist_lens",
       "community": 0,
-      "norm_label": "methodologist critic lens"
+      "norm_label": "methodologist critic lens",
+      "id": "docs_critic_review_checklist_methodologist_lens",
+      "community_name": "Causal Attribution and Governance"
     },
     {
       "label": "Applicant and Family Critic Lens",
@@ -1206,9 +2451,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_critic_review_checklist_family_lens",
       "community": 1,
-      "norm_label": "applicant and family critic lens"
+      "norm_label": "applicant and family critic lens",
+      "id": "docs_critic_review_checklist_family_lens",
+      "community_name": "Selection Requirements and Rights"
     },
     {
       "label": "GT Operator Critic Lens",
@@ -1219,9 +2465,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_critic_review_checklist_operator_lens",
       "community": 10,
-      "norm_label": "gt operator critic lens"
+      "norm_label": "gt operator critic lens",
+      "id": "docs_critic_review_checklist_operator_lens",
+      "community_name": "Feasibility and Power"
     },
     {
       "label": "Reusable Adversarial Tests",
@@ -1232,9 +2479,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_critic_review_checklist_adversarial_tests",
       "community": 5,
-      "norm_label": "reusable adversarial tests"
+      "norm_label": "reusable adversarial tests",
+      "id": "docs_critic_review_checklist_adversarial_tests",
+      "community_name": "Audit and Local Validation"
     },
     {
       "label": "Impact and Measurement Metrics",
@@ -1245,9 +2493,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_metrics_and_guardrails_library_impact_metrics",
       "community": 2,
-      "norm_label": "impact and measurement metrics"
+      "norm_label": "impact and measurement metrics",
+      "id": "docs_metrics_and_guardrails_library_impact_metrics",
+      "community_name": "Evaluation Design and Measurement"
     },
     {
       "label": "Selection Reliability Metrics",
@@ -1258,9 +2507,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_metrics_and_guardrails_library_selection_metrics",
       "community": 5,
-      "norm_label": "selection reliability metrics"
+      "norm_label": "selection reliability metrics",
+      "id": "docs_metrics_and_guardrails_library_selection_metrics",
+      "community_name": "Audit and Local Validation"
     },
     {
       "label": "Access and Fairness Metrics",
@@ -1271,9 +2521,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_metrics_and_guardrails_library_access_metrics",
       "community": 4,
-      "norm_label": "access and fairness metrics"
+      "norm_label": "access and fairness metrics",
+      "id": "docs_metrics_and_guardrails_library_access_metrics",
+      "community_name": "Evidence Quality and Screening"
     },
     {
       "label": "Rights Safety and Data Metrics",
@@ -1284,9 +2535,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_metrics_and_guardrails_library_rights_metrics",
       "community": 1,
-      "norm_label": "rights safety and data metrics"
+      "norm_label": "rights safety and data metrics",
+      "id": "docs_metrics_and_guardrails_library_rights_metrics",
+      "community_name": "Selection Requirements and Rights"
     },
     {
       "label": "Domain-Specific and Asynchronous Applicant Stories",
@@ -1297,9 +2549,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_user_stories_domain_and_asynchronous",
       "community": 21,
-      "norm_label": "domain-specific and asynchronous applicant stories"
+      "norm_label": "domain-specific and asynchronous applicant stories",
+      "id": "docs_user_stories_domain_and_asynchronous",
+      "community_name": "Domain-Diverse User Stories"
     },
     {
       "label": "Access Language and Accommodation Stories",
@@ -1310,9 +2563,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_user_stories_access_and_accommodation",
       "community": 14,
-      "norm_label": "access language and accommodation stories"
+      "norm_label": "access language and accommodation stories",
+      "id": "docs_user_stories_access_and_accommodation",
+      "community_name": "Accessibility and Accommodations"
     },
     {
       "label": "Privacy Correction Appeal and Re-entry Stories",
@@ -1323,9 +2577,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_user_stories_decision_rights",
       "community": 15,
-      "norm_label": "privacy correction appeal and re-entry stories"
+      "norm_label": "privacy correction appeal and re-entry stories",
+      "id": "docs_user_stories_decision_rights",
+      "community_name": "Decision Rights and Privacy"
     },
     {
       "label": "Operator Evaluator and Auditor Stories",
@@ -1336,9 +2591,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_user_stories_operator_and_auditor",
       "community": 22,
-      "norm_label": "operator evaluator and auditor stories"
+      "norm_label": "operator evaluator and auditor stories",
+      "id": "docs_user_stories_operator_and_auditor",
+      "community_name": "Operations and Audit"
     },
     {
       "label": "F1 Service and Domain Pathway Registry",
@@ -1349,9 +2605,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_user_story_feature_map_f1",
       "community": 21,
-      "norm_label": "f1 service and domain pathway registry"
+      "norm_label": "f1 service and domain pathway registry",
+      "id": "docs_user_story_feature_map_f1",
+      "community_name": "Domain-Diverse User Stories"
     },
     {
       "label": "F2 Universal Accessible Application",
@@ -1362,9 +2619,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_user_story_feature_map_f2",
       "community": 14,
-      "norm_label": "f2 universal accessible application"
+      "norm_label": "f2 universal accessible application",
+      "id": "docs_user_story_feature_map_f2",
+      "community_name": "Accessibility and Accommodations"
     },
     {
       "label": "F3 Structured Parent and Recommender Evidence",
@@ -1375,9 +2633,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_user_story_feature_map_f3",
       "community": 3,
-      "norm_label": "f3 structured parent and recommender evidence"
+      "norm_label": "f3 structured parent and recommender evidence",
+      "id": "docs_user_story_feature_map_f3",
+      "community_name": "Track B Snapshot Review"
     },
     {
       "label": "F4 Common Direct Evidence and Domain Task Hub",
@@ -1388,9 +2647,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_user_story_feature_map_f4",
       "community": 12,
-      "norm_label": "f4 common direct evidence and domain task hub"
+      "norm_label": "f4 common direct evidence and domain task hub",
+      "id": "docs_user_story_feature_map_f4",
+      "community_name": "Performance and Dynamic Evidence"
     },
     {
       "label": "F5 Artifact Provenance and Assistance Controls",
@@ -1401,9 +2661,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_user_story_feature_map_f5",
       "community": 3,
-      "norm_label": "f5 artifact provenance and assistance controls"
+      "norm_label": "f5 artifact provenance and assistance controls",
+      "id": "docs_user_story_feature_map_f5",
+      "community_name": "Track B Snapshot Review"
     },
     {
       "label": "F6 Accommodations and Administration Integrity",
@@ -1414,9 +2675,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_user_story_feature_map_f6",
       "community": 14,
-      "norm_label": "f6 accommodations and administration integrity"
+      "norm_label": "f6 accommodations and administration integrity",
+      "id": "docs_user_story_feature_map_f6",
+      "community_name": "Accessibility and Accommodations"
     },
     {
       "label": "F7 Profile-Preserving Decision Engine",
@@ -1427,9 +2689,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
+      "community": 4,
+      "norm_label": "f7 profile-preserving decision engine",
       "id": "docs_user_story_feature_map_f7",
-      "community": 6,
-      "norm_label": "f7 profile-preserving decision engine"
+      "community_name": "Evidence Quality and Screening"
     },
     {
       "label": "F8 Structured Domain Review and Calibration",
@@ -1440,9 +2703,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_user_story_feature_map_f8",
       "community": 3,
-      "norm_label": "f8 structured domain review and calibration"
+      "norm_label": "f8 structured domain review and calibration",
+      "id": "docs_user_story_feature_map_f8",
+      "community_name": "Track B Snapshot Review"
     },
     {
       "label": "F9 Explainable Decision and Remedy Lifecycle",
@@ -1453,9 +2717,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_user_story_feature_map_f9",
       "community": 15,
-      "norm_label": "f9 explainable decision and remedy lifecycle"
+      "norm_label": "f9 explainable decision and remedy lifecycle",
+      "id": "docs_user_story_feature_map_f9",
+      "community_name": "Decision Rights and Privacy"
     },
     {
       "label": "F10 Consent Privacy and Research Separation",
@@ -1466,9 +2731,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_user_story_feature_map_f10",
       "community": 15,
-      "norm_label": "f10 consent privacy and research separation"
+      "norm_label": "f10 consent privacy and research separation",
+      "id": "docs_user_story_feature_map_f10",
+      "community_name": "Decision Rights and Privacy"
     },
     {
       "label": "F11 Operations Readiness and Audit Console",
@@ -1479,9 +2745,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_user_story_feature_map_f11",
       "community": 22,
-      "norm_label": "f11 operations readiness and audit console"
+      "norm_label": "f11 operations readiness and audit console",
+      "id": "docs_user_story_feature_map_f11",
+      "community_name": "Operations and Audit"
     },
     {
       "label": "CogAT Form 8 Reasoning Screen",
@@ -1492,9 +2759,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_cogat_gaps_and_test_suite_report_cogat_form_8",
       "community": 11,
-      "norm_label": "cogat form 8 reasoning screen"
+      "norm_label": "cogat form 8 reasoning screen",
+      "id": "docs_cogat_gaps_and_test_suite_report_cogat_form_8",
+      "community_name": "CogAT and MAP Evidence"
     },
     {
       "label": "CogAT Plus One MAP Growth Subject Candidate",
@@ -1505,9 +2773,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_cogat_gaps_and_test_suite_report_map_growth_candidate",
       "community": 11,
-      "norm_label": "cogat plus one map growth subject candidate"
+      "norm_label": "cogat plus one map growth subject candidate",
+      "id": "docs_cogat_gaps_and_test_suite_report_map_growth_candidate",
+      "community_name": "CogAT and MAP Evidence"
     },
     {
       "label": "Decision Rule Matters More Than Extra Test",
@@ -1518,9 +2787,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_cogat_gaps_and_test_suite_report_decision_rule",
       "community": 1,
-      "norm_label": "decision rule matters more than extra test"
+      "norm_label": "decision rule matters more than extra test",
+      "id": "docs_cogat_gaps_and_test_suite_report_decision_rule",
+      "community_name": "Selection Requirements and Rights"
     },
     {
       "label": "Prospective Local Psychometric Validation",
@@ -1531,9 +2801,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_cogat_gaps_and_test_suite_report_local_validation",
       "community": 5,
-      "norm_label": "prospective local psychometric validation"
+      "norm_label": "prospective local psychometric validation",
+      "id": "docs_cogat_gaps_and_test_suite_report_local_validation",
+      "community_name": "Audit and Local Validation"
     },
     {
       "label": "Structured Multi-Domain Evidence Profile",
@@ -1544,9 +2815,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
+      "community": 3,
+      "norm_label": "structured multi-domain evidence profile",
       "id": "docs_holistic_giftedness_evidence_report_structured_multi_domain_evidence",
-      "community": 9,
-      "norm_label": "structured multi-domain evidence profile"
+      "community_name": "Track B Snapshot Review"
     },
     {
       "label": "Freeform Holistic Review Failure",
@@ -1557,9 +2829,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_holistic_giftedness_evidence_report_freeform_holistic_review",
       "community": 5,
-      "norm_label": "freeform holistic review failure"
+      "norm_label": "freeform holistic review failure",
+      "id": "docs_holistic_giftedness_evidence_report_freeform_holistic_review",
+      "community_name": "Audit and Local Validation"
     },
     {
       "label": "Common-Condition Performance Task",
@@ -1570,9 +2843,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_holistic_giftedness_evidence_report_common_performance_task",
       "community": 12,
-      "norm_label": "common-condition performance task"
+      "norm_label": "common-condition performance task",
+      "id": "docs_holistic_giftedness_evidence_report_common_performance_task",
+      "community_name": "Performance and Dynamic Evidence"
     },
     {
       "label": "Scripted Mini Dynamic Assessment",
@@ -1583,9 +2857,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "docs_holistic_giftedness_evidence_report_dynamic_assessment",
       "community": 12,
-      "norm_label": "scripted mini dynamic assessment"
+      "norm_label": "scripted mini dynamic assessment",
+      "id": "docs_holistic_giftedness_evidence_report_dynamic_assessment",
+      "community_name": "Performance and Dynamic Evidence"
     },
     {
       "label": "Capability-Gated Admission Lottery",
@@ -1596,9 +2871,10 @@
       "captured_at": null,
       "author": "Aadi Takle",
       "contributor": null,
-      "id": "gt_school_counterfactual_brainlift_brainlift_gt_school_counterfactual_capability_gated_lottery",
       "community": 2,
-      "norm_label": "capability-gated admission lottery"
+      "norm_label": "capability-gated admission lottery",
+      "id": "gt_school_counterfactual_brainlift_brainlift_gt_school_counterfactual_capability_gated_lottery",
+      "community_name": "Evaluation Design and Measurement"
     },
     {
       "label": "Capable-but-Underserved Students",
@@ -1609,9 +2885,10 @@
       "captured_at": null,
       "author": "Aadi Takle",
       "contributor": null,
-      "id": "gt_school_counterfactual_brainlift_brainlift_gt_school_counterfactual_capable_but_underserved",
       "community": 2,
-      "norm_label": "capable-but-underserved students"
+      "norm_label": "capable-but-underserved students",
+      "id": "gt_school_counterfactual_brainlift_brainlift_gt_school_counterfactual_capable_but_underserved",
+      "community_name": "Evaluation Design and Measurement"
     },
     {
       "label": "Study of Mathematically Precocious Youth",
@@ -1622,9 +2899,10 @@
       "captured_at": null,
       "author": "Julian Stanley; David Lubinski; Camilla Benbow",
       "contributor": "Aadi Takle",
-      "id": "gt_school_counterfactual_brainlift_brainlift_gt_school_counterfactual_smpy",
       "community": 23,
-      "norm_label": "study of mathematically precocious youth"
+      "norm_label": "study of mathematically precocious youth",
+      "id": "gt_school_counterfactual_brainlift_brainlift_gt_school_counterfactual_smpy",
+      "community_name": "SMPY and Matching Limits"
     },
     {
       "label": "Lottery ITT and LATE Identification",
@@ -1635,9 +2913,10 @@
       "captured_at": null,
       "author": "Aadi Takle",
       "contributor": null,
-      "id": "gt_school_counterfactual_brainlift_brainlift_gt_school_counterfactual_lottery_identification",
       "community": 2,
-      "norm_label": "lottery itt and late identification"
+      "norm_label": "lottery itt and late identification",
+      "id": "gt_school_counterfactual_brainlift_brainlift_gt_school_counterfactual_lottery_identification",
+      "community_name": "Evaluation Design and Measurement"
     },
     {
       "label": "Regression Discontinuity at Admission Cutoff",
@@ -1648,9 +2927,10 @@
       "captured_at": null,
       "author": "Aadi Takle",
       "contributor": null,
-      "id": "gt_school_counterfactual_brainlift_brainlift_gt_school_counterfactual_regression_discontinuity",
       "community": 0,
-      "norm_label": "regression discontinuity at admission cutoff"
+      "norm_label": "regression discontinuity at admission cutoff",
+      "id": "gt_school_counterfactual_brainlift_brainlift_gt_school_counterfactual_regression_discontinuity",
+      "community_name": "Causal Attribution and Governance"
     },
     {
       "label": "Matching Balances Only Observed Covariates",
@@ -1661,9 +2941,10 @@
       "captured_at": null,
       "author": "Aadi Takle",
       "contributor": null,
-      "id": "gt_school_counterfactual_brainlift_brainlift_gt_school_counterfactual_matching_limit",
       "community": 23,
-      "norm_label": "matching balances only observed covariates"
+      "norm_label": "matching balances only observed covariates",
+      "id": "gt_school_counterfactual_brainlift_brainlift_gt_school_counterfactual_matching_limit",
+      "community_name": "SMPY and Matching Limits"
     },
     {
       "label": "Credible Causal Measurement Stack",
@@ -1674,9 +2955,10 @@
       "captured_at": null,
       "author": "Aadi Takle",
       "contributor": null,
-      "id": "gt_school_counterfactual_brainlift_brainlift_gt_school_counterfactual_credible_measurement_stack",
       "community": 2,
-      "norm_label": "credible causal measurement stack"
+      "norm_label": "credible causal measurement stack",
+      "id": "gt_school_counterfactual_brainlift_brainlift_gt_school_counterfactual_credible_measurement_stack",
+      "community_name": "Evaluation Design and Measurement"
     },
     {
       "label": "Elite Illusion Null-at-the-Margin Evidence",
@@ -1687,9 +2969,10 @@
       "captured_at": null,
       "author": "Atila Abdulkadiro\u011flu; Joshua Angrist; Parag Pathak",
       "contributor": "Aadi Takle",
-      "id": "gt_school_counterfactual_brainlift_brainlift_gt_school_counterfactual_elite_illusion",
       "community": 4,
-      "norm_label": "elite illusion null-at-the-margin evidence"
+      "norm_label": "elite illusion null-at-the-margin evidence",
+      "id": "gt_school_counterfactual_brainlift_brainlift_gt_school_counterfactual_elite_illusion",
+      "community_name": "Evidence Quality and Screening"
     },
     {
       "label": "Card and Giuliano Universal Screening Study",
@@ -1700,9 +2983,10 @@
       "captured_at": null,
       "author": "David Card; Laura Giuliano",
       "contributor": "Aadi Takle",
-      "id": "gt_school_counterfactual_brainlift_brainlift_gt_school_counterfactual_card_giuliano_universal_screening",
       "community": 4,
-      "norm_label": "card and giuliano universal screening study"
+      "norm_label": "card and giuliano universal screening study",
+      "id": "gt_school_counterfactual_brainlift_brainlift_gt_school_counterfactual_card_giuliano_universal_screening",
+      "community_name": "Evidence Quality and Screening"
     },
     {
       "label": "Cred\u00e9 Grit Meta-Analysis",
@@ -1713,9 +2997,10 @@
       "captured_at": null,
       "author": "Marcus Cred\u00e9; Michael Tynan; Peter Harms",
       "contributor": "Aadi Takle",
+      "community": 4,
+      "norm_label": "crede grit meta-analysis",
       "id": "gt_school_counterfactual_brainlift_brainlift_gt_school_counterfactual_crede_grit_meta_analysis",
-      "community": 6,
-      "norm_label": "crede grit meta-analysis"
+      "community_name": "Evidence Quality and Screening"
     },
     {
       "label": "Ability Breadth Including Spatial Reasoning",
@@ -1726,9 +3011,10 @@
       "captured_at": null,
       "author": "Aadi Takle",
       "contributor": null,
+      "community": 3,
+      "norm_label": "ability breadth including spatial reasoning",
       "id": "gt_school_counterfactual_brainlift_brainlift_gt_school_counterfactual_ability_breadth",
-      "community": 9,
-      "norm_label": "ability breadth including spatial reasoning"
+      "community_name": "Track B Snapshot Review"
     },
     {
       "label": "Alpha 2.6x MAP Growth Claim Under Test",
@@ -1739,9 +3025,10 @@
       "captured_at": null,
       "author": "Alpha School",
       "contributor": "Aadi Takle",
-      "id": "gt_school_counterfactual_brainlift_brainlift_gt_school_counterfactual_company_growth_claim",
       "community": 4,
-      "norm_label": "alpha 2.6x map growth claim under test"
+      "norm_label": "alpha 2.6x map growth claim under test",
+      "id": "gt_school_counterfactual_brainlift_brainlift_gt_school_counterfactual_company_growth_claim",
+      "community_name": "Evidence Quality and Screening"
     },
     {
       "label": "Tier A Load-Bearing Evidence",
@@ -1752,9 +3039,10 @@
       "captured_at": null,
       "author": "Aadi Takle",
       "contributor": null,
-      "id": "gt_school_counterfactual_brainlift_source_register_annotated_tier_a",
       "community": 4,
-      "norm_label": "tier a load-bearing evidence"
+      "norm_label": "tier a load-bearing evidence",
+      "id": "gt_school_counterfactual_brainlift_source_register_annotated_tier_a",
+      "community_name": "Evidence Quality and Screening"
     },
     {
       "label": "Tier B Supporting Evidence",
@@ -1765,9 +3053,10 @@
       "captured_at": null,
       "author": "Aadi Takle",
       "contributor": null,
-      "id": "gt_school_counterfactual_brainlift_source_register_annotated_tier_b",
       "community": 25,
-      "norm_label": "tier b supporting evidence"
+      "norm_label": "tier b supporting evidence",
+      "id": "gt_school_counterfactual_brainlift_source_register_annotated_tier_b",
+      "community_name": "Supporting Tier-B Sources"
     },
     {
       "label": "Tier C Context and Claims-to-Rebut",
@@ -1778,9 +3067,10 @@
       "captured_at": null,
       "author": "Aadi Takle",
       "contributor": null,
-      "id": "gt_school_counterfactual_brainlift_source_register_annotated_tier_c",
       "community": 4,
-      "norm_label": "tier c context and claims-to-rebut"
+      "norm_label": "tier c context and claims-to-rebut",
+      "id": "gt_school_counterfactual_brainlift_source_register_annotated_tier_c",
+      "community_name": "Evidence Quality and Screening"
     },
     {
       "label": "Author Stake and Conflict-of-Interest Audit",
@@ -1791,9 +3081,10 @@
       "captured_at": null,
       "author": "Aadi Takle",
       "contributor": null,
-      "id": "gt_school_counterfactual_brainlift_source_register_annotated_author_stake",
       "community": 4,
-      "norm_label": "author stake and conflict-of-interest audit"
+      "norm_label": "author stake and conflict-of-interest audit",
+      "id": "gt_school_counterfactual_brainlift_source_register_annotated_author_stake",
+      "community_name": "Evidence Quality and Screening"
     },
     {
       "label": "BrainLift PDF Export",
@@ -1804,9 +3095,10 @@
       "captured_at": null,
       "author": "Aadi Takle",
       "contributor": null,
-      "id": "gt_school_counterfactual_brainlift_aadi_takle_brainlift_the_gt_school_counterfactual_separating_program_effect_from_selection_effect_pdf_export",
       "community": 2,
-      "norm_label": "brainlift pdf export"
+      "norm_label": "brainlift pdf export",
+      "id": "gt_school_counterfactual_brainlift_aadi_takle_brainlift_the_gt_school_counterfactual_separating_program_effect_from_selection_effect_pdf_export",
+      "community_name": "Evaluation Design and Measurement"
     }
   ],
   "links": [
@@ -1874,6 +3166,1095 @@
       "_origin": "ast",
       "source": "docs_critic_ready_product_roadmap_canvas",
       "target": "docs_critic_ready_product_roadmap_canvas_weeks",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/ALGORITHM_DESIGNS.md",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_algorithm_designs",
+      "target": "research_backend_admissions_algorithm_designs_backend_and_admissions_algorithm_designs",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/ALGORITHM_DESIGNS.md",
+      "source_location": "L7",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_algorithm_designs_backend_and_admissions_algorithm_designs",
+      "target": "research_backend_admissions_algorithm_designs_a_track_a_audit",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/ALGORITHM_DESIGNS.md",
+      "source_location": "L28",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_algorithm_designs_backend_and_admissions_algorithm_designs",
+      "target": "research_backend_admissions_algorithm_designs_b_track_b_invitation",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/ALGORITHM_DESIGNS.md",
+      "source_location": "L46",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_algorithm_designs_backend_and_admissions_algorithm_designs",
+      "target": "research_backend_admissions_algorithm_designs_c_track_b_snapshot_eligibility",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/ALGORITHM_DESIGNS.md",
+      "source_location": "L78",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_algorithm_designs_backend_and_admissions_algorithm_designs",
+      "target": "research_backend_admissions_algorithm_designs_d_future_randomized_offer_evaluation",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/ALGORITHM_DESIGNS.md",
+      "source_location": "L98",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_algorithm_designs_backend_and_admissions_algorithm_designs",
+      "target": "research_backend_admissions_algorithm_designs_e_future_regression_discontinuity_evaluation",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/ALGORITHM_DESIGNS.md",
+      "source_location": "L121",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_algorithm_designs_backend_and_admissions_algorithm_designs",
+      "target": "research_backend_admissions_algorithm_designs_f_candidate_selection_modeling_rules",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/ALGORITHM_DESIGNS.md",
+      "source_location": "L142",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_algorithm_designs_backend_and_admissions_algorithm_designs",
+      "target": "research_backend_admissions_algorithm_designs_g_synthetic_simulation_plan",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/ALGORITHM_DESIGNS.md",
+      "source_location": "L179",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_algorithm_designs_backend_and_admissions_algorithm_designs",
+      "target": "research_backend_admissions_algorithm_designs_h_selective_label_audit",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/ALGORITHM_DESIGNS.md",
+      "source_location": "L212",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_algorithm_designs_backend_and_admissions_algorithm_designs",
+      "target": "research_backend_admissions_algorithm_designs_i_alternative_path_rd_audit",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/ALGORITHM_DESIGNS.md",
+      "source_location": "L248",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_algorithm_designs_backend_and_admissions_algorithm_designs",
+      "target": "research_backend_admissions_algorithm_designs_j_future_cate_and_policy_validation",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/ALGORITHM_DESIGNS.md",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_algorithm_designs_backend_and_admissions_algorithm_designs",
+      "target": "research_backend_admissions_algorithm_designs_status",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report",
+      "target": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L149",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
+      "target": "research_backend_admissions_overnight_research_report_advanced_stem_readiness_outcome",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L94",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
+      "target": "research_backend_admissions_overnight_research_report_algorithmic_guardrails",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
+      "target": "research_backend_admissions_overnight_research_report_backend_and_admissions_research_report",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L169",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
+      "target": "research_backend_admissions_overnight_research_report_backend_research_direction",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L23",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
+      "target": "research_backend_admissions_overnight_research_report_core_statistical_estimands",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L257",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
+      "target": "research_backend_admissions_overnight_research_report_deliverables_under_construction",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L11",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
+      "target": "research_backend_admissions_overnight_research_report_executive_position",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L227",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
+      "target": "research_backend_admissions_overnight_research_report_heterogeneity_validation",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L183",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
+      "target": "research_backend_admissions_overnight_research_report_important_current_claim_correction",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L106",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
+      "target": "research_backend_admissions_overnight_research_report_initial_power_findings",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L121",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
+      "target": "research_backend_admissions_overnight_research_report_policy_learning_finding",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L86",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
+      "target": "research_backend_admissions_overnight_research_report_provisional_method_hierarchy",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L75",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
+      "target": "research_backend_admissions_overnight_research_report_research_questions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L193",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
+      "target": "research_backend_admissions_overnight_research_report_selective_label_finding",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L242",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
+      "target": "research_backend_admissions_overnight_research_report_synthetic_simulation",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L207",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
+      "target": "research_backend_admissions_overnight_research_report_track_a_rd_with_track_b",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L65",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
+      "target": "research_backend_admissions_overnight_research_report_two_anchor_evidence_families",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L55",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_core_statistical_estimands",
+      "target": "research_backend_admissions_overnight_research_report_benefit_targeting_effect",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L45",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_core_statistical_estimands",
+      "target": "research_backend_admissions_overnight_research_report_offer_effect",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L35",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_core_statistical_estimands",
+      "target": "research_backend_admissions_overnight_research_report_program_effect",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L25",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_core_statistical_estimands",
+      "target": "research_backend_admissions_overnight_research_report_selection_effect",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L67",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_two_anchor_evidence_families",
+      "target": "research_backend_admissions_overnight_research_report_differentiated_instruction_can_produce_program_effects",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L71",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_two_anchor_evidence_families",
+      "target": "research_backend_admissions_overnight_research_report_selective_admission_alone_often_produces_null_effects",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L155",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_advanced_stem_readiness_outcome",
+      "target": "research_backend_admissions_overnight_research_report_primary",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L159",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_advanced_stem_readiness_outcome",
+      "target": "research_backend_admissions_overnight_research_report_secondary_readiness_profile",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/RESEARCH_LOG.md",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_research_log",
+      "target": "research_backend_admissions_research_log_overnight_backend_and_admissions_research_log",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/RESEARCH_LOG.md",
+      "source_location": "L22",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_research_log_overnight_backend_and_admissions_research_log",
+      "target": "research_backend_admissions_research_log_iteration_log",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/RESEARCH_LOG.md",
+      "source_location": "L62",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_research_log_overnight_backend_and_admissions_research_log",
+      "target": "research_backend_admissions_research_log_next_research_clusters",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/RESEARCH_LOG.md",
+      "source_location": "L13",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_research_log_overnight_backend_and_admissions_research_log",
+      "target": "research_backend_admissions_research_log_research_standards",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/RESEARCH_LOG.md",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_research_log_overnight_backend_and_admissions_research_log",
+      "target": "research_backend_admissions_research_log_scope",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/RESEARCH_LOG.md",
+      "source_location": "L24",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_research_log_iteration_log",
+      "target": "research_backend_admissions_research_log_iteration_0_2026_07_18",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/RESEARCH_LOG.md",
+      "source_location": "L33",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_research_log_iteration_log",
+      "target": "research_backend_admissions_research_log_iteration_1_2026_07_18",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/RESEARCH_LOG.md",
+      "source_location": "L48",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_research_log_iteration_log",
+      "target": "research_backend_admissions_research_log_iteration_2_2026_07_18",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_simulation_specification",
+      "target": "research_backend_admissions_simulation_specification_synthetic_simulation_specification",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L26",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_simulation_specification_synthetic_simulation_specification",
+      "target": "research_backend_admissions_simulation_specification_applicant_model",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L147",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_simulation_specification_synthetic_simulation_specification",
+      "target": "research_backend_admissions_simulation_specification_assignment_designs",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L41",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_simulation_specification_synthetic_simulation_specification",
+      "target": "research_backend_admissions_simulation_specification_cogat_like_measurements",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L199",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_simulation_specification_synthetic_simulation_specification",
+      "target": "research_backend_admissions_simulation_specification_core_scenario_set",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L248",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_simulation_specification_synthetic_simulation_specification",
+      "target": "research_backend_admissions_simulation_specification_expected_demonstrations",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L261",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_simulation_specification_synthetic_simulation_specification",
+      "target": "research_backend_admissions_simulation_specification_implementation_packages",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L276",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_simulation_specification_synthetic_simulation_specification",
+      "target": "research_backend_admissions_simulation_specification_methods",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L223",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_simulation_specification_synthetic_simulation_specification",
+      "target": "research_backend_admissions_simulation_specification_metrics",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L121",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_simulation_specification_synthetic_simulation_specification",
+      "target": "research_backend_admissions_simulation_specification_potential_outcomes",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_simulation_specification_synthetic_simulation_specification",
+      "target": "research_backend_admissions_simulation_specification_purpose",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L15",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_simulation_specification_synthetic_simulation_specification",
+      "target": "research_backend_admissions_simulation_specification_reproducibility",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L55",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_simulation_specification_synthetic_simulation_specification",
+      "target": "research_backend_admissions_simulation_specification_track_a",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L80",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_simulation_specification_synthetic_simulation_specification",
+      "target": "research_backend_admissions_simulation_specification_track_b_evidence_and_review",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L70",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_simulation_specification_synthetic_simulation_specification",
+      "target": "research_backend_admissions_simulation_specification_track_b_invitation",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L183",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_simulation_specification_assignment_designs",
+      "target": "research_backend_admissions_simulation_specification_matching",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L193",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_simulation_specification_assignment_designs",
+      "target": "research_backend_admissions_simulation_specification_pre_post",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L161",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_simulation_specification_assignment_designs",
+      "target": "research_backend_admissions_simulation_specification_randomized_offers",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L172",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_simulation_specification_assignment_designs",
+      "target": "research_backend_admissions_simulation_specification_regression_discontinuity",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L149",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_simulation_specification_assignment_designs",
+      "target": "research_backend_admissions_simulation_specification_route_comparison",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L225",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_simulation_specification_metrics",
+      "target": "research_backend_admissions_simulation_specification_causal",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/SIMULATION_SPECIFICATION.md",
+      "source_location": "L237",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_simulation_specification_metrics",
+      "target": "research_backend_admissions_simulation_specification_eligibility",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/paper-deep-dives/01_BUI_CRAIG_IMBERMAN_2014.md",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014",
+      "target": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_paper_deep_dive_1",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/paper-deep-dives/01_BUI_CRAIG_IMBERMAN_2014.md",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_paper_deep_dive_1",
+      "target": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_bui_craig_and_imberman_2014",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/paper-deep-dives/01_BUI_CRAIG_IMBERMAN_2014.md",
+      "source_location": "L19",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_paper_deep_dive_1",
+      "target": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_designs",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/paper-deep-dives/01_BUI_CRAIG_IMBERMAN_2014.md",
+      "source_location": "L80",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_paper_deep_dive_1",
+      "target": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_direct_implications_for_gt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/paper-deep-dives/01_BUI_CRAIG_IMBERMAN_2014.md",
+      "source_location": "L58",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_paper_deep_dive_1",
+      "target": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_implementation_lessons",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/paper-deep-dives/01_BUI_CRAIG_IMBERMAN_2014.md",
+      "source_location": "L88",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_paper_deep_dive_1",
+      "target": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_limits",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/paper-deep-dives/01_BUI_CRAIG_IMBERMAN_2014.md",
+      "source_location": "L96",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_paper_deep_dive_1",
+      "target": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_product_support_claim",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/paper-deep-dives/01_BUI_CRAIG_IMBERMAN_2014.md",
+      "source_location": "L33",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_paper_deep_dive_1",
+      "target": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_quantitative_evidence",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/paper-deep-dives/01_BUI_CRAIG_IMBERMAN_2014.md",
+      "source_location": "L10",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_paper_deep_dive_1",
+      "target": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_why_this_paper_matters",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/paper-deep-dives/01_BUI_CRAIG_IMBERMAN_2014.md",
+      "source_location": "L21",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_designs",
+      "target": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_fuzzy_regression_discontinuity",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/paper-deep-dives/01_BUI_CRAIG_IMBERMAN_2014.md",
+      "source_location": "L27",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_designs",
+      "target": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_magnet_lottery_instrumental_variables",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/paper-deep-dives/01_BUI_CRAIG_IMBERMAN_2014.md",
+      "source_location": "L47",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_quantitative_evidence",
+      "target": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_gifted_magnet_lottery",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/paper-deep-dives/01_BUI_CRAIG_IMBERMAN_2014.md",
+      "source_location": "L35",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_quantitative_evidence",
+      "target": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_ordinary_gifted_services",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/paper-deep-dives/01_BUI_CRAIG_IMBERMAN_2014.md",
+      "source_location": "L60",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_implementation_lessons",
+      "target": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_backend_records_required",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/paper-deep-dives/01_BUI_CRAIG_IMBERMAN_2014.md",
+      "source_location": "L71",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_implementation_lessons",
+      "target": "research_backend_admissions_paper_deep_dives_01_bui_craig_imberman_2014_statistical_requirements",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016",
+      "target": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_paper_deep_dive_2",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_paper_deep_dive_2",
+      "target": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_card_and_giuliano_2016",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md",
+      "source_location": "L89",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_paper_deep_dive_2",
+      "target": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_direct_implications_for_gt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md",
+      "source_location": "L64",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_paper_deep_dive_2",
+      "target": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_implementation_lessons",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md",
+      "source_location": "L50",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_paper_deep_dive_2",
+      "target": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_interpretation",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md",
+      "source_location": "L97",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_paper_deep_dive_2",
+      "target": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_limits",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md",
+      "source_location": "L106",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_paper_deep_dive_2",
+      "target": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_product_support_claim",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md",
+      "source_location": "L16",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_paper_deep_dive_2",
+      "target": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_program_and_identification_design",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md",
+      "source_location": "L23",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_paper_deep_dive_2",
+      "target": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_quantitative_evidence",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md",
+      "source_location": "L10",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_paper_deep_dive_2",
+      "target": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_why_this_paper_matters",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md",
+      "source_location": "L31",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_quantitative_evidence",
+      "target": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_first_stage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md",
+      "source_location": "L41",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_quantitative_evidence",
+      "target": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_implied_treatment_effects",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md",
+      "source_location": "L36",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_quantitative_evidence",
+      "target": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_reduced_form_effects",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md",
+      "source_location": "L25",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_quantitative_evidence",
+      "target": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_sample",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md",
+      "source_location": "L66",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_implementation_lessons",
+      "target": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_candidate_selection_lesson",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md",
+      "source_location": "L77",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_implementation_lessons",
+      "target": "research_backend_admissions_paper_deep_dives_02_card_giuliano_2016_evaluation_lesson",
       "confidence_score": 1.0
     },
     {
@@ -3171,5 +5552,5 @@
       "source_file": "gt-school-counterfactual-brainlift/brainlift-gt-school-counterfactual.md"
     }
   ],
-  "built_at_commit": "c6921d58f779880fb19ede5259afea6dc2b75e96"
+  "built_at_commit": "418f8b46a5b0b1956ace4601caed68f69d34a099"
 }

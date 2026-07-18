@@ -45,6 +45,20 @@
 - Recorded power illustrations showing why a single small cohort detects only very large effects.
 - Recorded the critical correction that Track A versus Track B performance differences do not identify program effect.
 
+### Iteration 2 — 2026-07-18
+
+- Deepened selective-label research:
+  - admitted-only outcomes are nonidentified for rejected-applicant success and treatment benefit;
+  - reject inference and PU learning do not create missing counterfactual evidence;
+  - Track A audit should map outcome availability, overlap, range restriction, and extrapolation optimism.
+- Added held-out CATE/policy validation stack:
+  - BLP, GATES, RATE/AUTOC or Qini, doubly robust policy value, and split/cohort stability.
+- Specified why Track B changes the estimand at the Track A cutoff:
+  - reduced-form RD becomes Track A-side policy versus Track B-available policy;
+  - separate route effects are not identified from one discontinuity.
+- Added a full synthetic simulation specification with 21 scenarios, oracle outcomes, reviewer models, causal estimators, and expected failure demonstrations.
+- Added 15+ methods sources on selective labels, HTE calibration, complex/multivalued RD, and discrete scores.
+
 ## Next Research Clusters
 
 1. Randomized/lottery and regression-discontinuity identification in selective education.

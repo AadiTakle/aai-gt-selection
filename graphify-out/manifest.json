@@ -98,5 +98,40 @@
     "mtime": 1784084129.3038805,
     "ast_hash": "8658761c915a5e209eaaa4b3cdda1610",
     "semantic_hash": "8658761c915a5e209eaaa4b3cdda1610"
+  },
+  "research/backend-admissions/ALGORITHM_DESIGNS.md": {
+    "mtime": 1784356126.315197,
+    "ast_hash": "08a32b403e19aa45c2c79d3eca22c4a9",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md": {
+    "mtime": 1784356144.4052172,
+    "ast_hash": "52b327f442eed6cd6b615e59f5cf550e",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/RESEARCH_LOG.md": {
+    "mtime": 1784356173.4213102,
+    "ast_hash": "85763ac64c22135779d98dbf135d0549",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/SIMULATION_SPECIFICATION.md": {
+    "mtime": 1784356106.3476653,
+    "ast_hash": "877e397f6492a761bfcea100e1c6e381",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/paper-deep-dives/01_BUI_CRAIG_IMBERMAN_2014.md": {
+    "mtime": 1784354471.725136,
+    "ast_hash": "da627295dcf8363ca50ab5f154548234",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md": {
+    "mtime": 1784354502.239284,
+    "ast_hash": "30f9464b7d62f286cefc693b7f208e02",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/ANNOTATED_SOURCE_REGISTER.md": {
+    "mtime": 1784356163.7601402,
+    "ast_hash": "82bf63aea39ba9e455826384a4bc6ecd",
+    "semantic_hash": ""
   }
 }

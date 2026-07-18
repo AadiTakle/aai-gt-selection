@@ -272,3 +272,107 @@
 
 - **URL:** https://www.rfc-editor.org/rfc/rfc8493.html
 - **Use:** Checksum-verifiable evaluation export packages.
+
+## Selective Labels and Missing Outcomes
+
+### Heckman (1979) — Sample Selection
+
+- **DOI:** https://doi.org/10.2307/1912352
+- **Grade:** A
+- **Use:** Structural selection correction and specification-error framing.
+- **Limit:** Depends strongly on model form and a credible exclusion variable.
+
+### Manski (1989) — Anatomy of Selection
+
+- **DOI:** https://doi.org/10.2307/145818
+- **Grade:** A
+- **Use:** Partial-identification perspective when point identification is unjustified.
+
+### Lakkaraju et al. (2017) — Selective Labels
+
+- **DOI:** https://doi.org/10.1145/3097983.3098066
+- **Grade:** A
+- **Use:** Shows why selectively observed outcomes undermine model evaluation and decision support.
+
+### Kleinberg et al. (2018) — Human Decisions and Machine Predictions
+
+- **DOI:** https://doi.org/10.1093/qje/qjx032
+- **Grade:** A
+- **Use:** Decision-maker variation and algorithm evaluation under selective labels.
+
+### Coston et al. (2020) — Counterfactual Risk
+
+- **DOI:** https://doi.org/10.1145/3351095.3372851
+- **Grade:** A
+- **Use:** Fairness/evaluation when target outcomes depend on decisions.
+
+### Wei (2021) — Decision-Making Under Selective Labels
+
+- **URL:** https://proceedings.mlr.press/v139/wei21a.html
+- **Grade:** A
+- **Use:** Learning/decision limits under selective observation.
+
+## CATE Calibration and Policy Evaluation
+
+### Chernozhukov et al. (2025) — Generic HTE Inference
+
+- **DOI:** https://doi.org/10.3982/ECTA19303
+- **Grade:** A
+- **Use:** BLP, GATES, and repeated-split inference.
+
+### Imai & Li (2023) — Experimental Policy Evaluation
+
+- **URL:** https://imai.fas.harvard.edu/research/indtreat/
+- **Grade:** A
+- **Use:** PAPE/AUPEC and finite-sample randomized evaluation of treatment rules.
+
+### Xu & Yadlowsky (2022) — CATE Calibration
+
+- **URL:** https://proceedings.mlr.press/v151/xu22c/xu22c.pdf
+- **Grade:** A
+- **Use:** Robust calibration-error evaluation for heterogeneous-effect models.
+
+### Lei & Candès (2021) — Conformal Counterfactuals
+
+- **DOI:** https://doi.org/10.1111/rssb.12445
+- **Grade:** A
+- **Use:** Marginal counterfactual/ITE interval methods under randomized settings.
+- **Limit:** Does not provide conditional individual-effect truth.
+
+## Complex Regression Discontinuity
+
+### Papay, Willett, & Murnane (2011) — Multiple Assignment Variables
+
+- **DOI:** https://doi.org/10.1016/j.jeconom.2010.12.008
+- **Grade:** A
+- **Use:** RD when more than one assignment variable controls treatment.
+
+### Reardon & Robinson (2012) — Multiple Rating Scores
+
+- **DOI:** https://doi.org/10.1080/19345747.2011.609583
+- **Grade:** A
+- **Use:** Education-specific RD with multiple rating-score variables.
+
+### Cattaneo et al. (2016) — Multiple Cutoffs
+
+- **DOI:** https://doi.org/10.1086/686802
+- **Grade:** A
+- **Use:** Interpreting cutoff-specific and pooled RD effects.
+
+### Caetano, Caetano, & Escanciano (2023) — Multivalued Treatment RD
+
+- **DOI:** https://doi.org/10.1002/jae.2982
+- **Grade:** A
+- **Use:** RD with multiple treatment states such as none/Track A/Track B.
+
+### Kolesár & Rothe (2018) — Discrete Running Variable
+
+- **DOI:** https://doi.org/10.1257/aer.20160945
+- **Grade:** A
+- **Use:** Inference when scores are coarse, rounded, or heavily tied.
+
+### Abdulkadiroğlu et al. (2022) — Breaking Ties
+
+- **DOI:** https://doi.org/10.3982/ECTA17125
+- **Grade:** A
+- **Use:** Randomized tie-breakers and local assignment propensities.

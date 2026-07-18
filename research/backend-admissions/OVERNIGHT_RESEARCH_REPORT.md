@@ -190,6 +190,70 @@ A performance difference between accepted Track A and Track B students does not 
 
 That comparison is descriptive route heterogeneity. Program effect requires a treated-versus-untreated contrast or another valid causal design.
 
+## Selective-Label Finding
+
+Admitted-only records create nonidentification, not ordinary missing data.
+
+- Models trained on admitted outcomes estimate performance under GT for historically selected students.
+- They do not estimate rejected applicants’ GT outcomes.
+- They do not observe admitted students’ no-GT outcomes.
+- Hard cutoffs create feature regions with zero treatment overlap.
+- Reviewer-majority labels teach the current policy, not student benefit.
+
+Heckman selection, reject inference, positive-unlabeled learning, and outcome extrapolation remain assumption-dependent. They may be useful synthetic comparators, but none replaces exploration/randomization or a credible quasi-experiment.
+
+Track A should receive a label-provenance, overlap, range-restriction, and admitted-only optimism audit without changing its decisions.
+
+## Track A RD with Track B
+
+Track A’s numerical cutoff remains, but Track B changes the policy immediately below it.
+
+The most defensible RD estimand is:
+
+> the local effect of crossing from the Track B-available policy regime to the Track A policy regime.
+
+It is not automatically:
+
+- overall GT eligibility;
+- an offer;
+- enrollment;
+- a pure Track A effect; or
+- separate Track A and Track B effects.
+
+A fuzzy enrollment LATE may remain possible only if a meaningful enrollment jump survives and continuity, exclusion, monotonicity, score integrity, and common-treatment assumptions are defensible.
+
+The backend must retain first and final scores, retests, appeals, overrides, battery-profile rules, ties, route versions, offers, enrollment, and exposure.
+
+## Heterogeneity Validation
+
+Future personalized allocation should validate:
+
+- BLP calibration;
+- two- or three-group GATES;
+- one prespecified RATE metric;
+- held-out doubly robust policy value;
+- capacity-matched comparison against lottery/current policy; and
+- stability across algorithms, splits, and cohorts.
+
+Do not report individual treatment-effect accuracy. A held-out randomized study still observes only one potential outcome per student.
+
+If the held-out lower confidence bound does not beat a capacity-matched lottery by a meaningful preregistered margin, the lottery remains the better-supported policy.
+
+## Synthetic Simulation
+
+The simulation specification now includes:
+
+- latent readiness, domain talent, opportunity, and unobserved advocacy;
+- CogAT measurement error and Track A/B rules;
+- artifact/narrative availability and reviewer severity;
+- null, homogeneous, and heterogeneous treatment effects;
+- randomized offers, RD, matching, and pre/post estimators;
+- attrition, ceiling, compliance, clustering, and manipulation stress;
+- causal bias/coverage/power metrics; and
+- eligibility accuracy, reviewer agreement, route differences, and replay metrics.
+
+The central synthetic demonstration is that Track A-versus-Track B outcome gaps can be nonzero when the true program effect is exactly zero.
+
 ## Deliverables Under Construction
 
 - Source-graded paper deep dives
