@@ -1,0 +1,102 @@
+{
+  "docs/critic-ready-product-roadmap.canvas.tsx": {
+    "mtime": 1784276308.398665,
+    "ast_hash": "b3fb6c599074233bebdd1ad0872d5018",
+    "semantic_hash": "b3fb6c599074233bebdd1ad0872d5018"
+  },
+  "AGENTS.md": {
+    "mtime": 1784300688.3230681,
+    "ast_hash": "e5e046465efceab10d9997b370d0dde4",
+    "semantic_hash": "e5e046465efceab10d9997b370d0dde4"
+  },
+  "PROJECT_CHARTER.md": {
+    "mtime": 1784300684.8880103,
+    "ast_hash": "6b2d45b0b93a7ae725adedfd514aa569",
+    "semantic_hash": "6b2d45b0b93a7ae725adedfd514aa569"
+  },
+  "docs/ASSUMPTIONS_AND_EVIDENCE.md": {
+    "mtime": 1784311474.0291533,
+    "ast_hash": "971b66523b438e839f87a8471430efcd",
+    "semantic_hash": "971b66523b438e839f87a8471430efcd"
+  },
+  "docs/COGAT_GAPS_AND_TEST_SUITE_REPORT.md": {
+    "mtime": 1784310127.3232048,
+    "ast_hash": "c6c5eb628cf88fbf2f74178e08004489",
+    "semantic_hash": "c6c5eb628cf88fbf2f74178e08004489"
+  },
+  "docs/CONCEPT_OPTIONS.md": {
+    "mtime": 1784323894.307377,
+    "ast_hash": "8d558ffbc848a0c4d4a5d8e108bb83d2",
+    "semantic_hash": "8d558ffbc848a0c4d4a5d8e108bb83d2"
+  },
+  "docs/CRITIC_REVIEW_CHECKLIST.md": {
+    "mtime": 1784300646.5155067,
+    "ast_hash": "3c9d843f60241e9c030a6637cbb3f2a5",
+    "semantic_hash": "3c9d843f60241e9c030a6637cbb3f2a5"
+  },
+  "docs/DECISION_LOG.md": {
+    "mtime": 1784340412.3797908,
+    "ast_hash": "7f5becd56d0a8a326fb57c0361283b53",
+    "semantic_hash": "7f5becd56d0a8a326fb57c0361283b53"
+  },
+  "docs/DEVELOPMENT_RUBRIC.md": {
+    "mtime": 1784300679.3752735,
+    "ast_hash": "dfeb2b89fb275c7420e35e5276de89d3",
+    "semantic_hash": "dfeb2b89fb275c7420e35e5276de89d3"
+  },
+  "docs/GT_ADMISSIONS_APPLICATION_MVP_PRD.md": {
+    "mtime": 1784340400.9781291,
+    "ast_hash": "cf727d4045503673d2f3c3e1d14314b8",
+    "semantic_hash": "cf727d4045503673d2f3c3e1d14314b8"
+  },
+  "docs/HOLISTIC_GIFTEDNESS_EVIDENCE_REPORT.md": {
+    "mtime": 1784311971.1406152,
+    "ast_hash": "f19432a05aa1405a1d54863206d37e07",
+    "semantic_hash": "f19432a05aa1405a1d54863206d37e07"
+  },
+  "docs/METRICS_AND_GUARDRAILS_LIBRARY.md": {
+    "mtime": 1784300668.1604943,
+    "ast_hash": "9120fe8b3f3e6082564f599b39a193fe",
+    "semantic_hash": "9120fe8b3f3e6082564f599b39a193fe"
+  },
+  "docs/SCOPE_EXCEPTION_LOG.md": {
+    "mtime": 1784274759.7995467,
+    "ast_hash": "65bb07c98c2665536934fad8b7a5bb4d",
+    "semantic_hash": "65bb07c98c2665536934fad8b7a5bb4d"
+  },
+  "docs/TRACEABILITY_MATRIX.md": {
+    "mtime": 1784340419.74381,
+    "ast_hash": "41163522e930032030846305beb0f9a1",
+    "semantic_hash": "41163522e930032030846305beb0f9a1"
+  },
+  "docs/USER_STORIES.md": {
+    "mtime": 1784316094.210154,
+    "ast_hash": "d0622a2e34f03b5566d1f8661ff92301",
+    "semantic_hash": "d0622a2e34f03b5566d1f8661ff92301"
+  },
+  "docs/USER_STORY_FEATURE_MAP.md": {
+    "mtime": 1784324344.849974,
+    "ast_hash": "f8ef62a0189d459e7d1dc1fda259cd67",
+    "semantic_hash": "f8ef62a0189d459e7d1dc1fda259cd67"
+  },
+  "docs/project-requirements.md": {
+    "mtime": 1784274759.8142455,
+    "ast_hash": "93199aee6a3c0804bab0f56dba5a806a",
+    "semantic_hash": "93199aee6a3c0804bab0f56dba5a806a"
+  },
+  "gt-school-counterfactual-brainlift/brainlift-gt-school-counterfactual.md": {
+    "mtime": 1784083705.6947153,
+    "ast_hash": "cd43855c443f80ac077a22c432b38b9f",
+    "semantic_hash": "cd43855c443f80ac077a22c432b38b9f"
+  },
+  "gt-school-counterfactual-brainlift/source-register-annotated.md": {
+    "mtime": 1784068606.9874048,
+    "ast_hash": "0d21ea86189aaf82bf00abb7d68b039f",
+    "semantic_hash": "0d21ea86189aaf82bf00abb7d68b039f"
+  },
+  "gt-school-counterfactual-brainlift/Aadi Takle - BrainLift- The GT School Counterfactual \u2014 Separating Program Effect from Selection Effect.pdf": {
+    "mtime": 1784084129.3038805,
+    "ast_hash": "8658761c915a5e209eaaa4b3cdda1610",
+    "semantic_hash": "8658761c915a5e209eaaa4b3cdda1610"
+  }
+}

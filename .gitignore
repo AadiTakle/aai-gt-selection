@@ -1,2 +1,12 @@
 .DS_Store
 **/.DS_Store
+
+# Graphify machine-local and temporary files
+graphify-out/.graphify_python
+graphify-out/.graphify_root
+graphify-out/.graphify_detect.json
+graphify-out/.graphify_extract.json
+graphify-out/.graphify_ast.json
+graphify-out/.graphify_analysis.json
+graphify-out/.graphify_chunk_*.json
+graphify-out/cache/
