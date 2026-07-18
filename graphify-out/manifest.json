@@ -100,18 +100,18 @@
     "semantic_hash": "8658761c915a5e209eaaa4b3cdda1610"
   },
   "research/backend-admissions/ALGORITHM_DESIGNS.md": {
-    "mtime": 1784357871.8975291,
-    "ast_hash": "2080f56f922cf78bdd05779c11e4c771",
+    "mtime": 1784359727.5113366,
+    "ast_hash": "639d014b4409b1390842cf8516462a33",
     "semantic_hash": ""
   },
   "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md": {
-    "mtime": 1784357858.1968093,
-    "ast_hash": "beb6d0ab651b2e7a789b5bcbee549f91",
+    "mtime": 1784359711.981122,
+    "ast_hash": "5eeeab198f4f166c80a6fa2bbc249c9b",
     "semantic_hash": ""
   },
   "research/backend-admissions/RESEARCH_LOG.md": {
-    "mtime": 1784357898.3174863,
-    "ast_hash": "fdcdc220a03644110c9bd968876175af",
+    "mtime": 1784359749.4800694,
+    "ast_hash": "aff3fa56d90cbb09193f14632a2d2459",
     "semantic_hash": ""
   },
   "research/backend-admissions/SIMULATION_SPECIFICATION.md": {
@@ -130,13 +130,28 @@
     "semantic_hash": ""
   },
   "research/backend-admissions/ANNOTATED_SOURCE_REGISTER.md": {
-    "mtime": 1784357890.9841142,
-    "ast_hash": "9827f92f0a651cc899e87056179c9c81",
+    "mtime": 1784359741.455167,
+    "ast_hash": "5697bbefd297c056ce201009a0d8a392",
     "semantic_hash": ""
   },
   "research/backend-admissions/REVIEWER_AND_FAIRNESS_VALIDATION.md": {
     "mtime": 1784357845.0262485,
     "ast_hash": "6fbfcf1aaaf92dafc2fa313c6cb7046a",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/ALLOCATION_AND_AID_RESEARCH.md": {
+    "mtime": 1784359698.4484997,
+    "ast_hash": "b34c992f8a279618d8f21db841228d91",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/paper-deep-dives/03_RESEARCH_DESIGN_MEETS_MARKET_DESIGN.md": {
+    "mtime": 1784359639.4832888,
+    "ast_hash": "8d5274595888532582c4ed863846673c",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/paper-deep-dives/04_POLICY_LEARNING.md": {
+    "mtime": 1784359663.618691,
+    "ast_hash": "e355ae08b5c9caaf8a18c070821fa3ef",
     "semantic_hash": ""
   }
 }

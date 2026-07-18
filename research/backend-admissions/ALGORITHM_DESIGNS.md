@@ -375,3 +375,71 @@ FOR every pending state:
 ```
 
 Do not create confidence probabilities until a prospectively validated predictive model and representative calibration set exist.
+
+## N. Auditable Blocked Lottery
+
+```text
+PRECONDITIONS:
+  final eligible roster
+  genuine oversubscription and equipoise
+  fixed seat counts by real operational block
+  complete offer package
+  independent protocol approval
+
+FREEZE:
+  pseudonymous entrant tokens
+  block IDs and capacities
+  eligibility/policy hashes
+  waitlist and transfer rules
+  target future randomness source
+
+CANONICALIZE and sign freeze manifest before randomness is available.
+
+DERIVE key from:
+  frozen-manifest hash
+  fixed future public randomness
+  optional independently escrowed operator secret
+
+FOR applicant in each block:
+  rank_digest = HMAC_SHA256(
+    key,
+    draw_id || block_id || applicant_token
+  )
+
+SORT complete digest ascending.
+OFFER first k.
+WAITLIST everyone else in same immutable order.
+
+STORE:
+  manifest, signature, randomness proof, key/reveal
+  every digest and rank
+  initial assignment
+  append-only offer/waitlist events
+  exact assignment probability
+
+ANALYZE:
+  initial-offer ITT by original block
+  preserve noncompliers and later waitlist offers in original assignment
+```
+
+Do not use database `random()`, post-hoc seeds, mutable rosters, or rerandomization after declines.
+
+## O. Complex Assignment Propensity
+
+```text
+IF allocation uses only one frozen block:
+  propensity = seats_in_block / eligible_in_block
+
+IF allocation uses preferences, priorities, aid constraints,
+multiple programs, or linked waitlists:
+  freeze full mechanism state
+  simulate or analytically derive assignment propensity
+  condition evaluation on complete type/propensity
+  verify balance within propensity support
+
+DO NOT:
+  assume raw offer is unconditionally random
+  use global offer rate when block probabilities differ
+  ignore zero/one probability applicants
+  estimate ever-offered effect with a naive mean difference
+```

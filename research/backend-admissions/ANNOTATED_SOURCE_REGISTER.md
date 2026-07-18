@@ -473,3 +473,86 @@
 
 - **URL:** https://proceedings.mlr.press/v119/mozannar20b.html
 - **Use:** Model/expert routing after expert behavior and ground truth exist.
+
+## Randomized Allocation and Aid
+
+### Morgan & Rubin (2012) — Rerandomization
+
+- **DOI:** https://doi.org/10.1214/12-AOS1008
+- **Grade:** A
+- **Use:** Prespecified covariate-balance constraints and resulting inference.
+
+### Bugni, Canay, & Shaikh (2018) — Covariate-Adaptive Randomization
+
+- **DOI:** https://doi.org/10.1080/01621459.2017.1375934
+- **Grade:** A
+- **Use:** Valid inference under adaptive/stratified assignment.
+
+### de Chaisemartin & Behaghel (2020) — Randomized Waiting Lists
+
+- **DOI:** https://doi.org/10.3982/ECTA14682
+- **Grade:** A
+- **Use:** Treatment-effect estimation with randomized waitlist mechanisms.
+
+### Frangakis & Rubin (2002) — Principal Stratification
+
+- **DOI:** https://doi.org/10.1111/j.0006-341X.2002.00021.x
+- **Grade:** A
+- **Use:** Post-assignment compliance and latent principal strata.
+
+### Hernán & VanderWeele (2011) — Compound Treatments
+
+- **DOI:** https://doi.org/10.1097/EDE.0b013e3182109296
+- **Grade:** A
+- **Use:** Clarifies that different aid/support packages define different treatments.
+
+### Dynarski et al. (2021) — HAIL Aid Guarantee
+
+- **DOI:** https://doi.org/10.1257/aer.20200451
+- **Grade:** A
+- **Use:** Evidence that aid certainty and communication alter enrollment behavior.
+
+### Bettinger et al. (2012) — FAFSA Assistance
+
+- **DOI:** https://doi.org/10.1093/qje/qjs017
+- **Grade:** A
+- **Use:** Administrative aid support can itself change enrollment.
+
+### Fairlie & Robinson (2013) — Technology Access
+
+- **DOI:** https://doi.org/10.1257/app.5.3.211
+- **Grade:** A
+- **Use:** Technology provision is a treatment component and is not automatically an academic benefit.
+
+## Auditable Randomness and Allocation Security
+
+### NIST SP 800-90A/B/C — Random Number Generation
+
+- **URLs:** https://csrc.nist.gov/pubs/sp/800/90/a/r1/final
+- **Use:** CSPRNG and entropy-source standards.
+
+### RFC 2104 / RFC 4231 — HMAC
+
+- **URLs:** https://www.rfc-editor.org/rfc/rfc2104 and https://www.rfc-editor.org/rfc/rfc4231
+- **Use:** Domain-separated deterministic ranking and test vectors.
+
+### RFC 5869 — HKDF
+
+- **URL:** https://www.rfc-editor.org/rfc/rfc5869
+- **Use:** Derive assignment key from frozen manifest and randomness.
+
+### RFC 8032 — Ed25519
+
+- **URL:** https://www.rfc-editor.org/rfc/rfc8032
+- **Use:** Signed freeze and result manifests.
+
+### drand Protocol
+
+- **URL:** https://docs.drand.love/developer/
+- **Use:** Publicly verifiable future randomness beacon.
+
+### SPIRIT and CONSORT 2025
+
+- **SPIRIT DOI:** https://doi.org/10.1038/s41591-025-03668-w
+- **CONSORT:** https://pmc.ncbi.nlm.nih.gov/articles/PMC11996237/
+- **Use:** Prespecified allocation, concealment, protocol, and reporting.

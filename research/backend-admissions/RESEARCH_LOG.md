@@ -72,6 +72,19 @@
 - Added interpretable challenger ladder and strict promotion gates for any future model.
 - Added 20+ sources on agreement, validation, fairness, contestability, interpretable models, and abstention.
 
+### Iteration 4 — 2026-07-18
+
+- Deepened constrained allocation research:
+  - complete, blocked, matched-pair, rerandomized, and covariate-adaptive assignment;
+  - recommended batch-based blocked lottery with immutable waitlist and initial-offer ITT.
+- Added treatment-bundle analysis for scholarships, tuition, deposits, transportation, and technology.
+- Specified separate capability, finance, allocation, and evaluation data planes.
+- Added cryptographically auditable draw design using frozen signed rosters, future randomness, HMAC ranking, and append-only events.
+- Added deep dives for Research Design Meets Market Design and policy-learning papers.
+- Recorded Denver evidence that omitting assignment propensity attenuated estimated effects by roughly 44%–60%.
+- Added future capacity-constrained policy-learning implications and the lottery-default rule when heterogeneity evidence is weak.
+- Added 20+ allocation, aid, principal-stratification, and security sources.
+
 ## Next Research Clusters
 
 1. Randomized/lottery and regression-discontinuity identification in selective education.
