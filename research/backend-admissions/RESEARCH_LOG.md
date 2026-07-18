@@ -319,6 +319,16 @@
 - Identified estimand drift across program, policy, population, site, outcome,
   and norm versions as the next major flaw.
 
+### Iteration 21 — 2026-07-18
+
+- Reclassified cohort/version drift as a downstream analyst responsibility, not
+  an MVP statistical-collection requirement.
+- Added no applicant-facing fields, surveys, or admissions workflow.
+- Directed future analysts to use operational policy, program, instrument,
+  norm, site, and timestamp metadata already attached to records.
+- Kept version-specific effects, heterogeneity, and sequential inference in the
+  evaluator analysis plan only.
+
 ## Implementation Transition
 
 The broad research clusters are covered. Next actions:

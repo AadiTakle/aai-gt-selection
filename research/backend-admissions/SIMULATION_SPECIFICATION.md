@@ -16,6 +16,9 @@ Demonstrate, with known synthetic truth:
 
 Not approved for live admissions or GT-specific effect claims.
 
+Multi-cohort pooling and drift scenarios evaluate future analyst behavior. They
+do not imply new applicant fields or MVP statistical-collection requirements.
+
 ## Reproducibility
 
 - Root seed: `20260718`

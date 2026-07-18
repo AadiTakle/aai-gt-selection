@@ -65,9 +65,10 @@ Future research infrastructure should be designed but not built into the four-we
 - Decompose the public growth multiple into total observed, randomized
   counterfactual, and GT-attributable components.
 
-The next major flaw is estimand drift: if Timeback, staffing, eligibility,
-outcome instruments, or norms change across years, more data can converge on a
-precise average of different programs rather than one exact GT effect.
+Downstream analyst caveat: if Timeback, staffing, eligibility, outcome
+instruments, or norms change across years, more data can converge on a precise
+average of different programs rather than one exact GT effect. This belongs to
+analysis, not MVP applicant/statistical collection.
 
 ## Five Highest-Confidence Papers
 

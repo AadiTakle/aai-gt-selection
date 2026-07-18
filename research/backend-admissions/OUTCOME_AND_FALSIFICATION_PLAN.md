@@ -113,6 +113,11 @@ counterfactual.
 
 ## Multi-Cohort Pooling
 
+This section is an analyst/evaluator specification, not an admissions-product
+collection requirement. It introduces no new applicant questions or prototype
+workflow. Required version identifiers should come from existing operational
+policy, program, instrument, norm, site, and timestamp metadata.
+
 For every cohort:
 
 - preserve original randomization block and offer probability;

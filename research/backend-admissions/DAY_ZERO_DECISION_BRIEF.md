@@ -26,11 +26,10 @@ outcome follow-up, notices, acceptance tests, and claims register.
 
 **Owner/deadline:** Team lead, reviewed by evaluation owner; before coding.
 
-**Next flaw after ratification:** pooling improves precision only when cohorts
-estimate a sufficiently stable target. If Timeback, staffing, eligibility,
-outcomes, or norms change, a single pooled number can become a precise average
-of different treatments. Version-specific effects and heterogeneity must remain
-visible.
+**Downstream analysis note—not a coding gate:** analysts pooling cohorts must
+keep version-specific effects and heterogeneity visible when Timeback, staffing,
+eligibility, outcomes, or norms change. This adds no applicant fields or MVP
+statistical-collection workflow.
 
 ## 2. Allocation and Aid
 

@@ -135,9 +135,14 @@ DO NOT:
   compare selected enrolled Track B students with all non-admitted applicants
 ```
 
-### D3. Cumulative Multi-Cohort Effect
+### D3. Future Evaluator — Cumulative Multi-Cohort Effect
 
 ```text
+SCOPE:
+  downstream analysis only
+  no new applicant questions or MVP collection workflow
+  use operational version metadata already attached to records
+
 FOR each cohort:
   verify registered protocol and outcome horizon
   preserve randomization block and assignment probability

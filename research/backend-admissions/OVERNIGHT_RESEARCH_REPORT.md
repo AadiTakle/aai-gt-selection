@@ -274,6 +274,12 @@ complete follow-up.
 
 ### Multi-cohort cumulative estimation
 
+Scope boundary: cohort pooling, sequential inference, and version-heterogeneity
+modeling belong to the future analyst/evaluator workflow. They do not add
+applicant-facing fields or new statistical collection requirements to the MVP.
+Analysts should use operational policy/program/outcome-version metadata already
+created by the systems producing the records.
+
 For cohort \(k\), estimate the blocked Track B initial-offer effect:
 
 \[
