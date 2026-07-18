@@ -19,13 +19,13 @@ It does not administer CogAT, change Track A policy, allocate seats, operate fin
   - Review application completeness
   - Import or enter synthetic CogAT results
   - Route applicants to Track A or Track B
-  - Manage pending evidence, corrections, appeals, and re-entry
+  - Manage pending evidence, factual/procedural corrections, and manual re-entry (substantive rubric appeal deferred beyond MVP)
 - **Track B Reviewer Workspace**
   - Collect independent rubric classifications
   - Trigger blind third review when required
   - Prevent reviewers from seeing prior ratings
 - **Configuration and Audit View**
-  - Store versioned synthetic Track A and Track B rules
+  - Store versioned synthetic Track A and Track B rules; all prototype rules are fictional, versioned, tagged `synthetic_only=true`, and `validated=false`
   - Display decision reasons and workflow history
   - Replay decisions and inspect reviewer agreement
   - Enforce the boundary between eligibility, allocation, finance, and research
@@ -42,9 +42,8 @@ The product connects the admissions stages through one status-driven workflow:
 4. Track A continues through GT’s unchanged existing process.
 5. Eligible below-cutoff applicants receive a Track B Snapshot invitation.
 6. The appropriate artifact or narrative review workflow runs.
-7. The product records Track B eligibility, explanation, correction/appeal status, and audit history.
-8. Any future seat allocation, financial aid, enrollment, or evaluation process receives the eligibility result downstream but remains outside this MVP.
-  a. Here is the current idea for implementation: Financial aid resources are allocated to Track A students in a first pass, with remaining funds being reserved for Track B students. Based on the remaining aid resources and the income distribution of Track B eligible candidates, an algorithm programmatically determines the distribution of cohort seats across household income brackets (adjusted for household size). These seats are then assigned to the candidates through a lottery system in each bracket.
+7. The product records Track B eligibility, explanation, correction status, and audit history.
+8. Any future seat allocation, financial aid, enrollment, longitudinal follow-up, or causal evaluation process receives the eligibility result downstream but remains outside this MVP. Allocation mechanics remain undecided pending GT staff clarification (see `B-08`).
 
 
 
@@ -71,9 +70,7 @@ The product connects the admissions stages through one status-driven workflow:
     - Contact information
     - Primary address only if operationally required
   - **Financial aid**
-    - Household income
-    - Number of dependents/household members
-    - W2 & other forms only required on acceptance into program (FAFSA Style)
+    - Financial aid intake (household income, dependents, W-2/income documentation) is deferred beyond MVP persistence pending GT financial-aid policy and allocation design (`B-08`); the MVP does not collect or store these fields
   - **Final submission**
     - Required-step checklist
     - Optional evidence clearly labeled
@@ -188,7 +185,7 @@ Reviewers retain these dimensions separately:
 - **Recurrence**
 - **Evidence specificity**
 
-Domain expertise uses domain-specific anchors. The remaining dimensions use shared anchors across domains.
+The selected talent domain code determines which domain-specific anchors apply to the Domain Expertise dimension; domain identity or prestige is never itself a scored input. The remaining dimensions use shared anchors across domains.
 
 Construct-preserving accommodations and accessibility assistance never reduce independence. Independence refers only to authorship and substantive contribution.
 
@@ -196,6 +193,7 @@ No overall holistic giftedness score is created.
 
 ### Independent Review
 
+Reviewers are GT admissions officers using the anchored rubric above. The artifact route starts with two blind independent reviews and adds a third reviewer on disagreement; the narrative route uses three blind reviewers from the start. Reviewers complete benchmark-set calibration before live review, and reviewer-severity is monitored on an ongoing basis against the benchmark and peer reviewers.
 
 
 #### Artifact Route
@@ -218,11 +216,12 @@ No overall holistic giftedness score is created.
 
 ### Reviewer Outcomes
 
+Reviewer votes are:
+
 - `qualifies`
 - `does not currently qualify`
-- `uninterpretable / pending correction`
 
-Invalid, inaccessible, or uninterpretable evidence becomes pending rather than rejected.
+`pending correction` is a workflow state, not a reviewer vote: invalid, inaccessible, or uninterpretable evidence is routed to pending rather than rejected or scored.
 
 ### Final Track B Eligibility
 
@@ -238,10 +237,9 @@ Track B eligibility does not guarantee admission or a seat.
 
 ### Correction, Appeal, and Re-entry
 
-- Parents may correct factual or provenance errors.
-- Failed or unavailable accessibility routes receive an equivalent route or pending status.
-- A rubric-application appeal uses the same submitted evidence and a new trained reviewer. Not in scope for MVP
-- Applicants may re-enter a later cycle with genuinely new existing evidence.
+- The MVP supports factual or procedural correction only: parents may correct factual or provenance errors, and failed or unavailable accessibility routes receive an equivalent route or pending status.
+- A substantive rubric-application appeal (re-scoring the same evidence for a disputed rubric judgment) uses a new trained reviewer but is deferred beyond MVP scope.
+- Applicants may re-enter a later cycle with genuinely new existing evidence; re-entry is a manual staff-initiated action in the MVP, not an automated system rule.
 - Correction, appeal, accommodation, research refusal, and re-entry cannot reduce future access.
 
 
@@ -251,7 +249,25 @@ Track B eligibility does not guarantee admission or a seat.
 - Track B seat allocation remains undecided and outside the MVP until GT staff clarification.
 - Household income cannot affect Track A or Track B capability eligibility.
 - No live ranking, or offer rule is assumed.
-- Track B broadens the eligible pool but does not itself demonstrate program effect. It is the difference in performance between accepted students from Track A and B that will statistically demonstrate program effect.
+- Track B broadens the eligible pool but eligibility alone does not demonstrate program effect. Any future evaluation is a two-stage design, not a single Track-A-vs.-Track-B comparison:
+  1. Randomizing offer-versus-not-offered among equally eligible Track B candidates estimates the Track B initial-offer/package effect.
+  2. Comparing treated Track B against treated Track A is a service-fit noninferiority comparison, not a randomized causal estimate.
+
+  Together, these two stages may support a decision to expand Track B or revise the test-only cutoff, but they do not prove that Track A and Track B have equal route-specific causal effects.
+- Live allocation, longitudinal follow-up, and causal analysis are downstream of this MVP; the MVP's role is limited to producing the Track A/Track B eligibility determination that a future evaluation would consume.
+
+#### Future Evaluation Handoff
+
+The following describes a possible future evaluation design outside MVP scope, recorded here only so the eligibility product does not foreclose it:
+
+- Sufficient Track B demand/oversubscription (needed for randomized offer-versus-not-offered) is an external go-to-market (GTM) assumption, not a product blocker.
+- Offered and non-offered Track B candidates would follow the same fall/winter/spring MAP testing schedule. MAP is the selected common future outcome measure, checked only with lightweight upper-tail and administration-consistency checks, not scored or used for eligibility.
+- Non-offered candidates who submit all three MAP results would receive a proposed next-cycle application-fee waiver of about $100.
+- Each MAP score submission would include a 2-3 minute structured questionnaire on schooling, tutoring, adaptive software, enrichment, and MAP prep since the prior test.
+- Questionnaire responses are hidden from admissions and cannot affect eligibility or re-entry.
+- These post-assignment resources/questionnaire responses are descriptive mechanism/substitution information for a future evaluator, not primary intent-to-treat controls.
+- Pooling cohorts across cycles and handling drift belong to future analysts using existing operational metadata; the MVP does not add new applicant-facing fields to support this.
+- Any future change to the Track B eligibility boundary (cutoff or promising band) would apply between admissions cycles only, never mid-cycle; would leave Track A unchanged; and would require both a positive Track B offer effect (stage 1) and A/B service-fit noninferiority (stage 2), plus capacity and applicant-wellbeing guardrails, before being adopted.
 
 
 
@@ -263,7 +279,7 @@ Track B eligibility does not guarantee admission or a seat.
 - Paid enrichment
 - Awards or certificates
 - Disability, diagnosis, or accommodation use
-- Domain
+- Domain prestige (domain code only selects rubric anchors and never scores)
 - Parent advocacy
 - Recommender access or absence
 - Referral source
@@ -346,14 +362,14 @@ These items do not stop the synthetic prototype when a placeholder is listed. Th
 
 | ID   | Label                        | What we need                                                        | Who provides it                          | What we use for the prototype         | What cannot be finalized                   |
 | ---- | ---------------------------- | ------------------------------------------------------------------- | ---------------------------------------- | ------------------------------------- | ------------------------------------------ |
-| B-01 | `[GT INFO]`                  | Current Track A workflow and cutoff                                 | GT admissions                            | Fictional Track A rule                | Claim that the prototype matches GT policy |
+| B-01 | `[GT INFO]`                  | Current Track A workflow and cutoff, including current CogAT form/edition, cutoff value, battery/profile interpretation, retest policy, score-correction handling, and the base application workflow around it | GT admissions | Fictional Track A rule, CogAT form, cutoff, retest, and correction handling | Claim that the prototype matches GT policy |
 | B-02 | `[GT INFO]`                  | Actual ages, grades, and services                                   | GT leadership/admissions                 | Grades 3–8 interdisciplinary example  | Live pathway setup                         |
 | B-03 | `[GT INFO]` `[TESTING RULE]` | Track B promising band and battery-profile rule                     | GT and assessment expert                 | Fictional CogAT band/profile          | Live Track B invitations                   |
 | B-04 | `[GT INFO]` `[TESTING RULE]` | Talent domains, rubric anchors, and passing rules                   | GT, domain experts, evaluator            | Math/STEM and music examples          | Live Snapshot eligibility                  |
 | B-05 | `[GT INFO]`                  | Number of reviewers and available training time                     | GT admissions                            | Simulated reviewer accounts           | Staffing claims                            |
 | B-06 | `[PRIVACY]`                  | Rules for child data, accessibility, consent, storage, and security | GT privacy/legal/accessibility reviewers | Synthetic records and fixed artifacts | Live data use and deployment               |
 | B-07 | `[GT INFO]` `[PRIVACY]`      | Allowed artifact types, file limits, storage, and deletion          | GT IT/privacy                            | Fixed synthetic artifact examples     | Real artifact uploads                      |
-| B-08 | `[FUTURE DECISION]`          | Track B seats, financial aid, outcomes, and evaluation method       | GT leadership and evaluator              | `allocation undecided` status         | Offers and program-effect claims           |
+| B-08 | `[FUTURE DECISION]`          | Track B seats and future genuine seat scarcity, financial aid, MAP follow-up logistics (schedule, submission tracking), fee-waiver terms (amount, eligibility, timing), evaluator access to operational metadata, and evaluation method. Applicant volume is not treated as a blocker. | GT leadership and evaluator | `allocation undecided` status | Offers and program-effect claims |
 
 
 
@@ -402,7 +418,7 @@ See:
   - CogAT routing
   - Track B Snapshot
   - Independent review and adjudication
-  - Decision explanation, correction, and appeal
+  - Decision explanation, correction, and re-entry (substantive rubric appeal deferred beyond MVP)
   - Configuration and audit
 
 The MVP uses the local Supabase development stack with synthetic data only. It does not use live child data or a production Supabase project.
