@@ -1,0 +1,254 @@
+name: Monorepo CI
+
+on:
+  pull_request:
+    branches:
+      - dev
+      - staging
+      - main
+    paths:
+      - .github/workflows/**
+      - apps/**
+      - packages/**
+      - scripts/**
+      - supabase/**
+      - .editorconfig
+      - .env.example
+      - .nvmrc
+      - .prettierignore
+      - .prettierrc.json
+      - eslint.config.mjs
+      - package.json
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - tsconfig.base.json
+  push:
+    branches:
+      - dev
+      - staging
+      - main
+    paths:
+      - .github/workflows/**
+      - apps/**
+      - packages/**
+      - scripts/**
+      - supabase/**
+      - .editorconfig
+      - .env.example
+      - .nvmrc
+      - .prettierignore
+      - .prettierrc.json
+      - eslint.config.mjs
+      - package.json
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - tsconfig.base.json
+  workflow_dispatch:
+
+concurrency:
+  group: monorepo-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Workspace quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check formatting
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Run tests
+        run: pnpm test:coverage
+
+      - name: Check workspace dependency direction
+        run: pnpm boundaries:check
+
+      - name: Build workspaces
+        run: pnpm build
+
+  database:
+    name: Local database and generated types
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Start local Supabase
+        run: pnpm db:start
+
+      - name: Reset database
+        run: pnpm db:reset
+
+      - name: Lint database schemas
+        run: pnpm db:lint
+
+      - name: Run pgTAP
+        run: pnpm db:test
+
+      - name: Check generated API types
+        run: pnpm db:types:check
+
+      - name: Stop local Supabase
+        if: always()
+        run: pnpm db:stop
+
+  web-smoke:
+    name: Web smoke and security boundary
+    needs:
+      - quality
+      - database
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm --filter @gt-selection/web exec playwright install --with-deps chromium
+
+      - name: Start and reset local Supabase
+        run: |
+          pnpm db:start
+          pnpm db:reset
+
+      - name: Export local public test environment
+        run: |
+          STATUS="$(pnpm exec supabase status -o json)"
+          echo "NEXT_PUBLIC_SUPABASE_URL=$(jq -r .API_URL <<<"$STATUS")" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$(jq -r .PUBLISHABLE_KEY <<<"$STATUS")" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_GT_RETURN_URL=http://127.0.0.1:3000" >> "$GITHUB_ENV"
+
+      - name: Create local synthetic Auth users
+        run: pnpm db:users
+
+      - name: Build web application
+        run: pnpm build
+
+      - name: Scan elevated-key boundaries
+        run: pnpm security:scan
+
+      - name: Run Playwright smoke tests
+        run: pnpm --filter @gt-selection/web test:e2e
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-${{ github.run_id }}
+          path: apps/web/playwright-report
+          retention-days: 7
+
+      - name: Stop local Supabase
+        if: always()
+        run: pnpm db:stop
+
+  promotion-artifact:
+    name: Promotion artifact
+    if: github.event_name == 'push' && (github.ref_name == 'staging' || github.ref_name == 'main')
+    needs:
+      - quality
+      - database
+      - web-smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.5
+          run_install: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build promotion metadata
+        run: |
+          mkdir -p promotion-artifact
+          cp pnpm-lock.yaml promotion-artifact/
+          {
+            echo "commit=${GITHUB_SHA}"
+            echo "branch=${GITHUB_REF_NAME}"
+            echo "node=$(node --version)"
+            echo "pnpm=$(pnpm --version)"
+            echo "next=$(pnpm --filter @gt-selection/web exec next --version)"
+            shasum -a 256 pnpm-lock.yaml
+          } > promotion-artifact/manifest.txt
+
+      - name: Upload verified promotion artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: gt-selection-${{ github.ref_name }}-${{ github.sha }}
+          path: promotion-artifact
+          retention-days: 14
