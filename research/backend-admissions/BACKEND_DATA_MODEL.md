@@ -189,11 +189,18 @@ instrument_version(
   instrument_version_id, instrument_code, version,
   scale_definition, upper_range_evidence_ref
 )
+outcome_schedule(
+  schedule_id, participant_id, protocol_version_id,
+  instrument_version_id, timepoint, planned_window_start,
+  planned_window_end, observation_status,
+  missing_reason, withdrawal_type,
+  followup_attempt_count, last_contact_at
+)
 outcome_observation(
-  outcome_id, participant_id, protocol_version_id,
+  outcome_id, schedule_id, participant_id, protocol_version_id,
   instrument_version_id, timepoint, observed_at,
   score, standard_error, ceiling_flag,
-  missing_reason, source_hash
+  validity_status, source_hash
 )
 exposure_event(
   exposure_event_id, participant_id,
@@ -204,6 +211,16 @@ analysis_snapshot(
   code_version, package_lock_hash, created_at
 )
 ```
+
+Primary missing-data plan for a future randomized study:
+
+- retain every randomized participant-timepoint in `outcome_schedule`;
+- use prespecified multiple imputation or likelihood-based endpoint analysis under the stated primary MAR assumption;
+- include assignment, blocks, baseline outcomes, analysis covariates, prior waves, and missingness predictors;
+- report arm-specific reasons;
+- add delta/pattern-mixture MNAR sensitivity and bounded-outcome/Lee bounds where assumptions fit.
+
+An absent outcome row is never allowed to erase the scheduled denominator.
 
 ## Roles
 

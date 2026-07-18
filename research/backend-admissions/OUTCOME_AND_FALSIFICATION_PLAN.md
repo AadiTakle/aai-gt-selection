@@ -27,6 +27,17 @@ Report:
 
 Use HC2/HC3 plus design-matched randomization inference.
 
+Primary missing-outcome strategy:
+
+- preserve every randomized participant and scheduled endpoint;
+- use prespecified multiple imputation or likelihood-based analysis under a stated MAR assumption;
+- include assignment, blocks, baseline outcomes, analysis covariates, prior waves, and strong missingness predictors;
+- report arm-specific missingness reasons and follow-up;
+- add delta/pattern-mixture MNAR sensitivity;
+- add bounded-outcome worst/best cases and Lee bounds only when their assumptions fit.
+
+Complete-case analysis is not the primary estimator.
+
 ## Why ANCOVA
 
 - Usually more precise than gain scores.

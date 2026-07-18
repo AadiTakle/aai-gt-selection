@@ -9,7 +9,7 @@
 
 ## Why This Paper Matters
 
-This is the strongest direct support for the Track B hypothesis. It finds that a differentiated high-achiever classroom produced meaningful gains for students selected on prior achievement, with especially large effects among underserved Black and Hispanic students.
+This is the strongest direct support for the possibility behind the Track B hypothesis: a differentiated high-achiever classroom produced meaningful gains for a specific prior-achievement-selected population, with especially large effects among underserved Black and Hispanic students. It does not validate the Track B Snapshot rule.
 
 It does not show that every gifted program works. The same broader research context contains null effects for students marginal to formal IQ-based gifted eligibility.
 
@@ -24,7 +24,7 @@ It does not show that every gifted program works. The same broader research cont
 
 ### Sample
 
-- District population: approximately 159,895 third graders across 140 elementary schools
+- Administrative data: 159,895 third-grade student observations from 2004–2011 across 140 non-charter elementary schools
 - Main high-achiever RD sample: 4,144 students near the within-school rank cutoff
 - Approximately 2,098 advantaged and 2,046 disadvantaged students
 
@@ -38,11 +38,11 @@ It does not show that every gifted program works. The same broader research cont
 - Reading: approximately +0.093 SD, SE 0.031
 - Math: approximately +0.087 SD, SE 0.035
 
-### Implied treatment effects
+### Implied local fuzzy-RD treatment effects
 
-- Reading: approximately +0.29 SD
-- Math: approximately +0.27 SD
-- Effects among Black and Hispanic participants were approximately +0.4 to +0.5 SD
+- Reading: approximately +0.29 SD for compliers near within-school cutoffs
+- Math: approximately +0.27 SD for compliers near within-school cutoffs
+- Local effects among Black and Hispanic compliers were approximately +0.4 to +0.5 SD
 - Math gains persisted into fifth grade; science outcomes also improved
 
 Separate IQ-threshold regression discontinuities for formally gifted students produced essentially null reading and math effects.

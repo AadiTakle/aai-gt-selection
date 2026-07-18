@@ -100,38 +100,38 @@
     "semantic_hash": "8658761c915a5e209eaaa4b3cdda1610"
   },
   "research/backend-admissions/ALGORITHM_DESIGNS.md": {
-    "mtime": 1784359727.5113366,
-    "ast_hash": "639d014b4409b1390842cf8516462a33",
+    "mtime": 1784366917.6144636,
+    "ast_hash": "c9e231382c4e0e6a42209972e8c0c8a2",
     "semantic_hash": ""
   },
   "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md": {
-    "mtime": 1784364986.0728786,
-    "ast_hash": "c4018957b15fe89e554fc05a00bef78f",
+    "mtime": 1784367162.2284284,
+    "ast_hash": "bfd8c2919ab740d7de84aeb98249728b",
     "semantic_hash": ""
   },
   "research/backend-admissions/RESEARCH_LOG.md": {
-    "mtime": 1784365011.5703645,
-    "ast_hash": "3169d1abfdc1f5824a064517990fa7b8",
+    "mtime": 1784367192.2571135,
+    "ast_hash": "564b94a944927ae5f63a372c8ffd4caf",
     "semantic_hash": ""
   },
   "research/backend-admissions/SIMULATION_SPECIFICATION.md": {
-    "mtime": 1784356106.3476653,
-    "ast_hash": "877e397f6492a761bfcea100e1c6e381",
+    "mtime": 1784366872.1814387,
+    "ast_hash": "362bb9f8a558e783d740131498ff2c04",
     "semantic_hash": ""
   },
   "research/backend-admissions/paper-deep-dives/01_BUI_CRAIG_IMBERMAN_2014.md": {
-    "mtime": 1784354471.725136,
-    "ast_hash": "da627295dcf8363ca50ab5f154548234",
+    "mtime": 1784366957.652483,
+    "ast_hash": "6c740546e99f1d232910641338583ad6",
     "semantic_hash": ""
   },
   "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md": {
-    "mtime": 1784354502.239284,
-    "ast_hash": "30f9464b7d62f286cefc693b7f208e02",
+    "mtime": 1784366973.496642,
+    "ast_hash": "5b2d0eeab23be5ff3ea600e6e00f5a37",
     "semantic_hash": ""
   },
   "research/backend-admissions/ANNOTATED_SOURCE_REGISTER.md": {
-    "mtime": 1784365004.0376365,
-    "ast_hash": "df5bc2c1e6f8d1fc962d182a5fbff5c8",
+    "mtime": 1784367126.3284671,
+    "ast_hash": "d237c4962b8be9833062e17c19eb24be",
     "semantic_hash": ""
   },
   "research/backend-admissions/REVIEWER_AND_FAIRNESS_VALIDATION.md": {
@@ -145,8 +145,8 @@
     "semantic_hash": ""
   },
   "research/backend-admissions/paper-deep-dives/03_RESEARCH_DESIGN_MEETS_MARKET_DESIGN.md": {
-    "mtime": 1784359639.4832888,
-    "ast_hash": "8d5274595888532582c4ed863846673c",
+    "mtime": 1784366987.1435661,
+    "ast_hash": "c8d7c132ff0e572c66cfa7c5c8d0afe5",
     "semantic_hash": ""
   },
   "research/backend-admissions/paper-deep-dives/04_POLICY_LEARNING.md": {
@@ -155,8 +155,8 @@
     "semantic_hash": ""
   },
   "research/backend-admissions/BACKEND_DATA_MODEL.md": {
-    "mtime": 1784361328.1275866,
-    "ast_hash": "81cb8424a4d6f48a4b9d2d105f7f8d60",
+    "mtime": 1784366835.0152276,
+    "ast_hash": "71606434c08fd3db0aac3e851050489a",
     "semantic_hash": ""
   },
   "research/backend-admissions/EVALUATOR_EXPORT_SPEC.md": {
@@ -165,8 +165,8 @@
     "semantic_hash": ""
   },
   "research/backend-admissions/OUTCOME_AND_FALSIFICATION_PLAN.md": {
-    "mtime": 1784361373.4429574,
-    "ast_hash": "2e952beff64e6ad0f090484f583d288c",
+    "mtime": 1784366843.2519438,
+    "ast_hash": "15614ef2c4b3935a82ee9bddc0145449",
     "semantic_hash": ""
   },
   "research/backend-admissions/TRACK_A_AUDIT_PLAN.md": {
@@ -175,13 +175,23 @@
     "semantic_hash": ""
   },
   "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md": {
-    "mtime": 1784363277.4374502,
-    "ast_hash": "5bb696c5dac30c0cf3f37c7c16d58b96",
+    "mtime": 1784367033.0811105,
+    "ast_hash": "f5704348e161c295cc00dffdaaca5f42",
     "semantic_hash": ""
   },
   "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md": {
-    "mtime": 1784364974.732569,
-    "ast_hash": "fee65d87ed41250620c5e0d579ca1a12",
+    "mtime": 1784367147.535849,
+    "ast_hash": "4bceed92ddae4bb4cfe1df4a9c2e3aed",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/MORNING_HANDOFF.md": {
+    "mtime": 1784367062.8630188,
+    "ast_hash": "9cb7cba7a75bce839755e5c9ca1d5219",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/RESEARCH_AUDIT_CORRECTIONS.md": {
+    "mtime": 1784367183.1492367,
+    "ast_hash": "95ab2177d91ce268283b62d71824194e",
     "semantic_hash": ""
   }
 }

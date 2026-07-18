@@ -89,7 +89,13 @@ WITHIN each predeclared randomization block:
   preserve nonzero offer and non-offer probabilities
 
 PRIMARY ANALYSIS:
-  intention-to-treat = mean(outcome | offer) - mean(outcome | no_offer)
+  estimate the block-specific initial-offer ITT
+  aggregate using prespecified target eligible-population block weights
+  if assignment probabilities differ within support:
+    use the known design probabilities in a Horvitz-Thompson,
+    Hájek, or equivalent design-based estimator
+  exclude certainty cells from the randomized contrast
+  retain them in descriptive policy reporting
 
 SECONDARY:
   complier effect via instrumental variables, only if assumptions hold
@@ -104,8 +110,22 @@ PRECONDITIONS:
   no score manipulation
   adequate observations near cutoff
 
-ESTIMATE:
-  discontinuity in outcome at cutoff
+SHARP RD:
+  treatment equals cutoff assignment
+  treatment effect = outcome discontinuity
+
+FUZZY RD:
+  estimate outcome discontinuity (reduced form)
+  estimate treatment/enrollment discontinuity (first stage)
+  local complier effect = reduced form / first stage
+  require continuity, exclusion, monotonicity,
+  nonzero first stage, and stable treatment version
+
+TRACK A WITH TRACK B:
+  first estimate the jump in route, eligibility, offer,
+  enrollment, and exposure separately
+  label reduced form as Track A-side policy versus
+  Track B-available policy unless stronger assumptions hold
 
 VALIDATE:
   density/manipulation test
@@ -115,7 +135,8 @@ VALIDATE:
   placebo cutoffs
 
 CLAIM:
-  local effect near cutoff only
+  sharp local effect, fuzzy local complier effect,
+  or local policy-regime effect—never an unspecified RD effect
 ```
 
 ## F. Candidate-Selection Modeling Rules
@@ -267,17 +288,30 @@ An individual treatment effect is never observed. Validate group ranking and pol
 5. Repeat honest splits using published aggregation;
    never count split-level significance.
 
-6. Audit:
+6. On an untouched randomized evaluation set with known
+   assignment probabilities and action support, estimate the paired contrast:
+
+     Delta_V =
+       V(policy_learned) - V(policy_capacity_matched_lottery)
+
+   Use the same applicant-level doubly robust scores for both
+   policy values so covariance is retained.
+
+7. Audit:
    rank correlation across algorithms
    top-capacity Jaccard overlap
    group-effect order reversals
    subgroup burden/harm
    leave-one-cohort-out stability
 
-7. Promote only when the held-out lower confidence bound beats
+8. Account prospectively for policy-search, metric, and subgroup
+   multiplicity; evaluation data cannot influence policy learning.
+
+9. Promote only when the one-sided lower confidence bound for
+   Delta_V exceeds
    a capacity-matched lottery by the preregistered meaningful margin.
 
-8. Otherwise retain the simpler rule or lottery.
+10. Otherwise retain the simpler rule or lottery.
 ```
 
 Recommended first future models:

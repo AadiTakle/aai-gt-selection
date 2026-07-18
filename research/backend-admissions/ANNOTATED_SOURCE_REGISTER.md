@@ -162,9 +162,10 @@
 - **Grade:** B
 - **Use:** Implementable shallow policy-tree optimization.
 
-### Yadlowsky et al. (2024) — Ranking Evaluation
+### Yadlowsky et al. (online 2024; issue 2025) — Ranking Evaluation
 
 - **DOI:** https://doi.org/10.1080/01621459.2024.2393466
+- **Issue:** Journal of the American Statistical Association, 120(549), 38–51
 - **Grade:** A
 - **Use:** Held-out RATE/AUTOC inference for treatment-benefit rankings.
 
@@ -229,7 +230,7 @@
 ### Steenbergen-Hu & Moon (2011) — Acceleration
 
 - **DOI:** https://doi.org/10.1177/0016986210383155
-- **Grade:** A−
+- **Grade:** B
 - **Use:** Academic and social-emotional evidence on acceleration.
 - **Limit:** Mostly nonrandom selection into acceleration.
 
@@ -288,12 +289,6 @@
 - **Grade:** A
 - **Use:** Partial-identification perspective when point identification is unjustified.
 
-### Lakkaraju et al. (2017) — Selective Labels
-
-- **DOI:** https://doi.org/10.1145/3097983.3098066
-- **Grade:** A
-- **Use:** Shows why selectively observed outcomes undermine model evaluation and decision support.
-
 ### Kleinberg et al. (2018) — Human Decisions and Machine Predictions
 
 - **DOI:** https://doi.org/10.1093/qje/qjx032
@@ -322,7 +317,7 @@
 
 ### Imai & Li (2023) — Experimental Policy Evaluation
 
-- **URL:** https://imai.fas.harvard.edu/research/indtreat/
+- **DOI:** https://doi.org/10.1080/01621459.2021.1923511
 - **Grade:** A
 - **Use:** PAPE/AUPEC and finite-sample randomized evaluation of treatment rules.
 
@@ -528,7 +523,7 @@
 
 ### NIST SP 800-90A/B/C — Random Number Generation
 
-- **URLs:** https://csrc.nist.gov/pubs/sp/800/90/a/r1/final
+- **URLs:** https://csrc.nist.gov/pubs/sp/800/90/a/r1/final, https://csrc.nist.gov/pubs/sp/800/90/b/final, https://csrc.nist.gov/pubs/sp/800/90/c/final
 - **Use:** CSPRNG and entropy-source standards.
 
 ### RFC 2104 / RFC 4231 — HMAC
@@ -554,7 +549,7 @@
 ### SPIRIT and CONSORT 2025
 
 - **SPIRIT DOI:** https://doi.org/10.1038/s41591-025-03668-w
-- **CONSORT:** https://pmc.ncbi.nlm.nih.gov/articles/PMC11996237/
+- **CONSORT DOI:** https://doi.org/10.1038/s41591-025-03635-5
 - **Use:** Prespecified allocation, concealment, protocol, and reporting.
 
 ## Growth Outcomes and Falsification
@@ -650,6 +645,12 @@
 - **Use:** Pooled human-tutoring benchmark of approximately 0.288 SD.
 - **Limit:** Primarily mainstream/struggling students, not gifted software-led replacement instruction.
 
+### Kraft, Schueler, & Falken (2026) — Tutoring at Scale
+
+- **DOI:** https://doi.org/10.3102/00346543261446660
+- **Grade:** A
+- **Use:** Distinguishes full-sample tutoring effects from large-scale independent standardized-outcome effects around 0.16–0.22 SD.
+
 ### Guryan et al. (2023) — High-Dosage Math Tutoring
 
 - **DOI:** https://doi.org/10.1257/aer.20210434
@@ -681,6 +682,25 @@
 - **Grade:** A
 - **Use:** Independent cluster RCT with approximately 0.18-SD initial effect.
 
+### Cognitive Tutor Algebra I Trial
+
+- **DOI:** https://doi.org/10.3102/0162373713507480
+- **Grade:** A
+- **Use:** Null first-year and approximately +0.20 second-year high-school effect; demonstrates implementation learning.
+
+### Reasoning Mind Randomized Trial
+
+- **DOI:** https://doi.org/10.1177/2332858419850482
+- **Grade:** A
+- **Use:** Full-year school-randomized null/slightly negative evidence despite earlier positive quasi-experiments.
+
+### Agarwal & Gaule (2026) — Developing Math Talent Worldwide
+
+- **URL:** https://docs.iza.org/dp18381.pdf
+- **Grade:** B
+- **Use:** Preliminary gifted/Olympiad advanced-course RCT with approximately +0.165-SD ITT.
+- **Limit:** Working paper, author-linked nonprofit implementation, 15% full engagement, stronger-assumption IV estimate.
+
 ### Muralidharan, Singh, & Ganimian (2019) — Mindspark
 
 - **DOI:** https://doi.org/10.1257/aer.20171112
@@ -690,7 +710,7 @@
 ### Reis et al. (1998) — Curriculum Compacting
 
 - **DOI:** https://doi.org/10.1177/001698629804200206
-- **Grade:** A−
+- **Grade:** B
 - **Use:** Randomized district-training study showing 40%–50% compacting without broad achievement loss.
 
 ### Duflo, Dupas, & Kremer (2011) — Tracking
@@ -702,7 +722,7 @@
 ### Kulik, Kulik, & Bangert-Drowns (1990) — Mastery Learning
 
 - **DOI:** https://doi.org/10.3102/00346543060002265
-- **Grade:** A−
+- **Grade:** B
 - **Use:** Mastery effect synthesis and completion/moderator cautions.
 
 ### Tetzlaff et al. (2025) — Expertise Reversal

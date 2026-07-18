@@ -5,7 +5,7 @@
 **Title:** Is Gifted Education a Bright Idea? Assessing the Impact of Gifted and Talented Programs on Students  
 **Venue:** American Economic Journal: Economic Policy, 6(3), 30–62  
 **DOI:** https://doi.org/10.1257/pol.6.3.30  
-**Evidence grade:** A+  
+**Evidence grade:** A  
 
 ## Why This Paper Matters
 
@@ -34,15 +34,18 @@ The results are mostly null. That makes the paper especially valuable: it shows 
 
 ### Ordinary gifted services
 
-Preferred controlled estimates were approximately:
+Published article preferred controlled 2SLS estimates were approximately:
 
-- Math: −0.035 SD, SE 0.047
-- Reading: −0.002 SD, SE 0.044
-- Language: +0.010 SD, SE 0.068
-- Social studies: −0.016 SD, SE 0.068
-- Science: +0.017 SD, SE 0.106
+- Math: −0.037 SD, SE 0.074
+- Reading: +0.049 SD, SE 0.068
+- Language: −0.015 SD, SE 0.066
+- Social studies: +0.003 SD, SE 0.084
+- Science: −0.025 SD, SE 0.084
+- Approximately 4,018–4,025 observations by outcome
 
 These are consistent with negligible short-run effects near the eligibility margin.
+
+The earlier NBER working paper reported the −0.035/−0.002/+0.010/−0.016/+0.017 sequence on a smaller sample. Those values should not be paired with the journal DOI without explicit version labeling.
 
 ### Gifted magnet lottery
 
@@ -50,7 +53,7 @@ These are consistent with negligible short-run effects near the eligibility marg
 - 394 offered
 - 148 not offered
 - Weighted first stage approximately 0.47, SE 0.11
-- Preferred science effect approximately +0.28 SD
+- Preferred attendance-IV/LATE science effect approximately +0.28 SD
 - Other subject effects were small
 
 Attrition was material and differed by offer status. Bounds for science included zero, weakening the positive interpretation.

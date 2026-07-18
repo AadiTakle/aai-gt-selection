@@ -44,7 +44,8 @@ Headline meta-analytic effects depend strongly on comparison and measurement:
 
 Independent field evidence:
 
-- ASSISTments: approximately 0.18 SD initially and 0.10 one year later
+- ASSISTments Maine cluster RCT: approximately 0.18 SD at the end of grade 7
+- Separate North Carolina replication: approximately 0.10 SD on the grade-8 state test one year after implementation; COVID canceled the intended grade-7 state outcome
 - DreamBox: approximately 0.11 SD on MAP after four months
 - Cognitive Tutor Algebra I: null year one; approximately 0.20 year-two high-school effect
 - Reasoning Mind randomized trial: approximately −0.06, nonsignificant
@@ -166,11 +167,20 @@ Proposed for later evaluator ratification:
 
 Interpret:
 
-- Lower 95% CI ≥0.10: meaningful benefit demonstrated
-- Point ≥0.10 but CI crosses: possible, not established
-- Upper 95% CI <0.10: preregistered meaningful benefit ruled out
-- Upper 95% CI <0: evidence of harm
-- 90% CI inside [−0.10,+0.10]: equivalence under that bound
+- **Effect-existence test:** two-sided 95% CI against zero on the overall ITT.
+- **Meaningful-superiority test:** one-sided lower 95% bound above +0.10 SD.
+- **Equivalence test:** separate TOST procedure with 90% CI inside [−0.10,+0.10].
+- **Highest-baseline noninferiority:** one-sided lower 95% bound above −0.05 SD for the prespecified subgroup interaction/contrast.
+- **Persistence:** separate 24-month estimand and +0.05-SD threshold.
+
+Interpretation:
+
+- Positive effect but lower bound below +0.10: benefit may exist, but meaningful superiority is not established.
+- Upper bound below +0.10: the preregistered meaningful-superiority claim is ruled out.
+- Upper 95% bound below zero: evidence of harm.
+- Equivalence, superiority, persistence, and noninferiority are different hypotheses and cannot share one ambiguous CI rule.
+
+Preregister a hierarchy/multiplicity plan. A plausible order is overall primary ITT, meaningful-superiority test, then key-secondary progression/persistence; the high-performer guardrail remains a separately protected safety family.
 
 These are proposals, not GT facts.
 

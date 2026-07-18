@@ -125,11 +125,24 @@ Transport requires:
 
 Weights:
 
+Let \(S=1\) denote membership in the source randomized study and \(T=1\) denote the locked target frame.
+
+For a trial sampled from a larger target frame that includes trial-eligible members:
+
 \[
 w_i\propto\frac{1}{P(S_i=1\mid X_i)}
 \]
 
-or inverse odds when source and target samples are distinct.
+For separate, nonoverlapping source and target samples:
+
+\[
+w_i\propto
+\frac{P(S_i=0\mid X_i)}{P(S_i=1\mid X_i)}
+\]
+
+combined with any target-frame sampling weights.
+
+The protocol must state whether target members include the source trial, how weights are normalized, and whether trimming changes the target estimand.
 
 Report:
 
@@ -152,6 +165,18 @@ No source support means narrow the target, collect new data, or label the effect
 - Distinguish pooled mean confidence interval from future-site prediction interval.
 
 Repeated cohorts at one school improve temporal evidence, not geographic transport.
+
+With enough contexts, use a hierarchical model such as:
+
+\[
+Y_{ic}
+=
+\alpha_c+\tau_c Z_{ic}+\beta X_{ic}+\epsilon_{ic},
+\qquad
+\tau_c\sim N(\mu_\tau,\sigma_\tau^2)
+\]
+
+and standardize to one locked target population. Report each \(\tau_c\), pooled \(\mu_\tau\), heterogeneity \(\sigma_\tau\), and a prediction interval for a future comparable context. With only a few cohorts/sites, heterogeneity and prediction intervals remain weakly identified.
 
 ## 4. Monitoring and Drift
 

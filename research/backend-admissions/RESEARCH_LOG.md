@@ -124,6 +124,23 @@
 - Added backend fields for target frames, contexts, program versions, fidelity, costs, monitoring, and model updates.
 - Added 15+ sources on standard setting, utility, transportability, drift, fidelity, and education economics.
 
+### Iteration 8 — 2026-07-18
+
+- Ran five adversarial package reviews:
+  - causal-method correctness;
+  - quantitative source/version audit;
+  - backend/governance consistency;
+  - selection/rubric methodology;
+  - morning executive synthesis.
+- Corrected one critical fuzzy-RD estimand error and eight important causal-design ambiguities.
+- Corrected Bui working-paper/journal estimate mixing and Card–Giuliano sample/effect labels.
+- Corrected market-design simulation/sample descriptions and separated two ASSISTments trials.
+- Added missing tutoring, ITS, gifted-course, and standards citations.
+- Added explicit missing-outcome schedule, clustered/interference simulation, and policy-value comparator.
+- Normalized source grades and removed duplicate source entry.
+- Added morning handoff and adversarial-corrections register.
+- Preserved unresolved canonical PRD/feature-map conflicts for explicit team decisions rather than silently editing product policy.
+
 ## Next Research Clusters
 
 1. Randomized/lottery and regression-discontinuity identification in selective education.

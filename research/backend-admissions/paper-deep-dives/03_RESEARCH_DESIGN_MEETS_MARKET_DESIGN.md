@@ -5,7 +5,7 @@
 **Title:** Research Design Meets Market Design: Using Centralized Assignment for Impact Evaluation  
 **Venue:** Econometrica, 85(5), 1373–1432  
 **DOI:** https://doi.org/10.3982/ECTA13925  
-**Evidence grade:** A+  
+**Evidence grade:** A  
 
 ## Why This Paper Matters
 
@@ -20,7 +20,7 @@ This paper shows how to reconstruct each applicant’s offer probability from th
 - Applicants ranking at least one charter: 10,203
 - Charter applicants with nondegenerate simulated offer propensity: 3,466
 - Preferred outcome-analysis sample: roughly 2,058–2,308
-- Conditioning on every exact preference/priority type would retain only about 462 observations in some models
+- A saturated exact-type balance specification retained about 462 observations; the preferred formula-score outcome model used 2,058
 
 ## Assignment-Propensity Method
 
@@ -37,7 +37,7 @@ The researchers:
 2. redrew lottery numbers;
 3. reran the exact assignment mechanism;
 4. recorded each applicant’s assignment;
-5. repeated one million times per cohort; and
+5. repeated one million lottery draws per application year; and
 6. estimated offer propensity as the assignment frequency.
 
 They also developed analytic/formula scores based on marginal priority and the most informative disqualification at more-preferred schools.

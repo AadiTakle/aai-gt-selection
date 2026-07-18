@@ -38,6 +38,33 @@ Correlate \(Q\), \(S\), and \(O\) with \(A\). Let \(U\) depend partly on \(A\) a
 
 Generate grades 3–8.
 
+Assign applicants to synthetic cohorts, classrooms, and guides. Generate:
+
+- cohort random effect;
+- classroom/guide random effect;
+- unequal cluster sizes; and
+- a prespecified peer-exposure mapping \(g_i\), such as the fraction of peers offered/enrolled.
+
+The outcome DGP includes:
+
+\[
+Y_i(z_i,g_i)
+=
+Y_i(0,0)
++
+z_i\tau_i
++
+\eta g_i
++
+u_{cohort}
++
+u_{class/guide}
+\]
+
+Use ICC scenarios \(0,.05,.10,.20\) and spillover effects \(0,.10,.20\) SD.
+
+When exposure is not randomized at multiple independent groups, interpret the ITT as the effect of the realized offer policy/package, not a pure direct instructional effect.
+
 ## CogAT-Like Measurements
 
 Create verbal, quantitative, and nonverbal batteries from latent readiness/domain variables plus measurement error.
@@ -184,6 +211,11 @@ Compare:
 
 Generate observational participation from baseline, opportunity, and unobserved \(U\). Omit \(U\) from estimators.
 
+Scenario definitions:
+
+- S09: set the \(U\rightarrow participation\) coefficient to zero, so observed covariates suffice.
+- S10/S11: set positive \(U\rightarrow participation\) coefficients while \(U\) remains an outcome cause and omitted from estimators.
+
 Compare:
 
 - propensity matching;
@@ -219,6 +251,9 @@ Expected failure: natural growth and regression to the mean appear as program ef
 - S18: independent versus anchored review
 - S19: structured/AND/OR/compensatory rules
 - S20: prohibited-field mutation and replay
+- S21: clustered outcomes with increasing ICC
+- S22: peer spillover contamination
+- S23: treatment-version differences across cohorts
 
 ## Metrics
 

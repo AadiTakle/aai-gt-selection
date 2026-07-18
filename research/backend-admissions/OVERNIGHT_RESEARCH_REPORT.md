@@ -22,6 +22,18 @@ Track A should be audited as the unchanged baseline. Track B can prototype trans
 
 ## Core Statistical Estimands
 
+Every estimand must name:
+
+- target population;
+- treatment/offer package;
+- comparison condition;
+- outcome and scale;
+- horizon;
+- assignment/selection route; and
+- weighting population.
+
+Symbols below are templates, not complete GT estimands until those fields are locked.
+
 ### Selection Effect
 
 Difference between admitted and non-admitted students attributable to pre-existing characteristics:
@@ -47,10 +59,17 @@ The individual counterfactual is never observed. Randomization, instrumental var
 If seats are randomized among equally eligible applicants, the primary intention-to-treat estimand is:
 
 \[
-E[Y \mid Z=1] - E[Y \mid Z=0]
+\tau_{\text{ITT,target}}
+=
+\sum_h w_h
+\left(
+E[Y\mid Z=1,H=h]
+-
+E[Y\mid Z=0,H=h]
+\right)
 \]
 
-where \(Z\) is assignment to an offer.
+where \(Z\) is initial assignment to the complete offer package, \(H\) is the randomization block, and \(w_h\) is the prespecified target eligible-population weight. When assignment probabilities differ, use the known design probabilities. Certainty cells are descriptive and do not identify the randomized contrast.
 
 ### Benefit-Targeting Effect
 
@@ -98,7 +117,7 @@ Exam-school and gifted-program studies by Abdulkadiroğlu, Angrist, Pathak, Dobb
 - Do not train on outcomes observed only for admitted students without correcting selective labels.
 - Separate decision-used, routing, operations, financial, and research fields.
 - Preserve raw inputs, feature versions, reviewer ratings, rule versions, and reason codes.
-- Report calibration and error by relevant applicant groups.
+- Report calibration and outcome-based error by relevant applicant groups only after an independent common outcome and adequate support exist; before then, report process, missingness, burden, agreement, and invariance metrics.
 - Use uncertainty bands rather than false precision at cutoffs.
 - Keep Track A and Track B outcomes separate before pooling.
 - Never describe predicted success as predicted program benefit.
@@ -543,6 +562,26 @@ Primary causal result remains the offer ITT for the complete package.
 Fidelity measures describe adherence, dose, reach, quality, responsiveness, differentiation, adaptations, and context. Do not condition the primary analysis on post-treatment fidelity or engagement.
 
 Costing should use an ingredients approach and compare incremental cost with the same randomized effect. Report cost per offered and served applicant, cost per 0.10 SD, and cost per progression milestone. Long-run monetization remains scenario analysis.
+
+## Adversarial Research Audit
+
+Independent review of the overnight package identified and corrected:
+
+- fuzzy RD reduced-form versus LATE conflation;
+- inconsistent block weighting;
+- undefined estimand fields;
+- missing-outcome denominator/strategy;
+- omitted clustering and interference in simulation;
+- hidden-confounding scenario contradiction;
+- conflated superiority/equivalence/noninferiority tests;
+- ambiguous policy-value promotion;
+- local-complier effect labels;
+- working-paper/journal estimate mixing;
+- ASSISTments trial conflation;
+- evidence-grade inconsistency; and
+- missing benchmark citations.
+
+Remaining canonical product contradictions are documented in `MORNING_HANDOFF.md` rather than silently changing the PRD on the research branch.
 
 ## Deliverables Under Construction
 
