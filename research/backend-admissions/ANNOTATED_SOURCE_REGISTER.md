@@ -556,3 +556,87 @@
 - **SPIRIT DOI:** https://doi.org/10.1038/s41591-025-03668-w
 - **CONSORT:** https://pmc.ncbi.nlm.nih.gov/articles/PMC11996237/
 - **Use:** Prespecified allocation, concealment, protocol, and reporting.
+
+## Growth Outcomes and Falsification
+
+### Vickers & Altman (2001) — ANCOVA
+
+- **DOI:** https://doi.org/10.1136/bmj.323.7321.1123
+- **Use:** Baseline-adjusted endpoint analysis over simple change scores.
+
+### Lord (1967) — Gain/Adjustment Paradox
+
+- **DOI:** https://doi.org/10.1037/h0025105
+- **Use:** Shows nonrandom gain and adjusted comparisons can answer different questions.
+
+### Betebenner (2009) — Student Growth Percentiles
+
+- **DOI:** https://doi.org/10.1111/j.1745-3992.2009.00161.x
+- **Use:** Defines descriptive conditional growth, not causal value added.
+
+### Lipsitch, Tchetgen Tchetgen, & Cohen (2010) — Negative Controls
+
+- **DOI:** https://doi.org/10.1097/EDE.0b013e3181d61eeb
+- **Use:** Negative-control outcomes/exposures as bias diagnostics.
+
+### Callaway & Sant’Anna (2021) — Staggered DiD
+
+- **DOI:** https://doi.org/10.1016/j.jeconom.2020.12.001
+- **Use:** Cohort/time ATT under staggered adoption.
+
+### Sun & Abraham (2021) — Event Studies
+
+- **DOI:** https://doi.org/10.1016/j.jeconom.2020.09.006
+- **Use:** Avoid contaminated TWFE event-study coefficients.
+
+### Rambachan & Roth (2023) — HonestDiD
+
+- **DOI:** https://doi.org/10.1093/restud/rdad018
+- **Use:** Sensitivity to deviations from parallel trends.
+
+### Simonsohn, Simmons, & Nelson (2020) — Specification Curves
+
+- **DOI:** https://doi.org/10.1038/s41562-020-0912-z
+- **Use:** Display preregistered estimand-preserving analysis choices.
+
+### VanderWeele & Ding (2017) — E-Value
+
+- **DOI:** https://doi.org/10.7326/M16-2607
+- **Use:** Risk-ratio-scale unmeasured-confounding sensitivity.
+
+### Oster (2019) — Coefficient Stability
+
+- **DOI:** https://doi.org/10.1080/07350015.2016.1227711
+- **Use:** Proportional-selection sensitivity with explicit \(R_{max}\).
+
+## Reproducible Evaluator Exports
+
+### NIST SP 800-188 — De-Identification
+
+- **URL:** https://csrc.nist.gov/pubs/sp/800/188/final
+- **Use:** Disclosure-risk and de-identification process.
+
+### NIST SP 800-226 — Differential Privacy
+
+- **URL:** https://csrc.nist.gov/pubs/sp/800/226/final
+- **Use:** Evaluate DP guarantees and limitations.
+
+### RO-Crate
+
+- **URL:** https://www.researchobject.org/ro-crate/specification/
+- **Use:** Package data, code, metadata, and provenance.
+
+### DDI Lifecycle
+
+- **URL:** https://ddialliance.org/ddi-lifecycle
+- **Use:** Variable-level data-dictionary model.
+
+### OCI Image Specification
+
+- **URL:** https://github.com/opencontainers/image-spec/blob/v1.1.1/descriptor.md
+- **Use:** Immutable environment digests.
+
+### National Academies (2019) — Reproducibility
+
+- **URL:** https://www.nationalacademies.org/read/25303/chapter/2
+- **Use:** Reproducibility/replicability definitions and practices.

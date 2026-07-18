@@ -369,6 +369,76 @@ Provides direct quantitative evidence that complete assignment-mechanism records
 
 Kitagawa–Tetenov and Athey–Wager show how to choose a restricted capacity-aware policy after causal identification exists. Policy class complexity creates an explicit sample-size/regret trade-off. GT should begin with a depth-2 policy tree or small benefit scorecard and retain lottery allocation unless held-out value improves credibly.
 
+## Backend Data Model
+
+The research now specifies:
+
+- separate identity, privacy, admissions, policy, evidence, review, decision, audit, and consent schemas;
+- immutable application, assessment, policy, evidence, rating, and decision versions;
+- append-only corrections and audit events;
+- feature-permission firewall;
+- Track A invariance and decision replay queries;
+- future isolated allocation and evaluation schemas; and
+- role-level RLS for family, admissions, reviewers, policy admin, auditor, privacy, allocation, and evaluator.
+
+Full event sourcing is unnecessary. Use mutable queue projections plus immutable decision/audit records.
+
+## Track A Audit
+
+Track A remains unchanged.
+
+The audit should test:
+
+- Track B toggle invariance;
+- exact historical replay;
+- cutoff and boundary behavior;
+- score/battery distributions;
+- missing, invalid, retest, and correction patterns;
+- subgroup and opportunity funnels;
+- range restriction;
+- selective outcome availability; and
+- calibration only when an independent common outcome gate passes.
+
+Permitted claim: implementation was reproduced and observed disparities were measured.
+
+Prohibited claim: Track A is fair, locally valid, or causally effective from synthetic/admitted-only data.
+
+## Outcome Model and Falsification
+
+Primary future model:
+
+- blocked initial-offer ITT;
+- high-ceiling scale-score endpoint;
+- baseline-adjusted ANCOVA;
+- block fixed effects;
+- Lin-style treatment–covariate interactions;
+- HC2/HC3 plus design-matched randomization inference.
+
+Gain scores, percentiles, SGPs, value-added models, and route differences remain descriptive.
+
+Every evaluation needs:
+
+- causal DAG;
+- negative-control/pre-treatment placebo register;
+- design-specific balance/manipulation/pretrend checks;
+- preregistered specification curve;
+- threat-matched sensitivity analysis; and
+- stop/narrow response rules.
+
+Diagnostics can discredit a design. Passing them does not prove identification.
+
+## Evaluator Export
+
+Recommended three-tier output:
+
+1. Restricted pseudonymous replay package
+2. Disclosure-reviewed report package
+3. Public protocol/code/aggregate package
+
+Use explicit allowlisted PostgreSQL views, one consistent snapshot, release-specific HMAC pseudonyms, BagIt checksums, signed manifests, full data dictionary, provenance, environment lock, disclosure review, and independent offline replay.
+
+Pseudonymization is not anonymization. Differential privacy is a possible public-aggregate tool, not a substitute for controlled microdata access.
+
 ## Deliverables Under Construction
 
 - Source-graded paper deep dives

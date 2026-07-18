@@ -85,6 +85,23 @@
 - Added future capacity-constrained policy-learning implications and the lottery-default rule when heterogeneity evidence is weak.
 - Added 20+ allocation, aid, principal-stratification, and security sources.
 
+### Iteration 5 — 2026-07-18
+
+- Added concrete Supabase/PostgreSQL logical schema:
+  - identity/privacy separation;
+  - versioned applications, assessments, policies, evidence, reviews, and decisions;
+  - append-only audit and consent firewall;
+  - future isolated allocation/evaluation schemas;
+  - RLS roles and replay contracts.
+- Added read-only Track A audit plan with SQL/statistical query library and hard claim boundaries.
+- Added high-ceiling outcome recommendation:
+  - initial-offer ITT;
+  - baseline-adjusted endpoint ANCOVA;
+  - gain/SGP/value-added/route differences descriptive only.
+- Added falsification and design-specific sensitivity register for lotteries, RD, matching, and phased rollout.
+- Added reproducible evaluator export specification using snapshot consistency, pseudonyms, BagIt, signed manifests, provenance, environment locks, and offline replay.
+- Added 20+ sources on growth models, negative controls, staggered DiD, sensitivity, de-identification, and reproducibility.
+
 ## Next Research Clusters
 
 1. Randomized/lottery and regression-discontinuity identification in selective education.

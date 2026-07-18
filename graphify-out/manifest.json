@@ -105,13 +105,13 @@
     "semantic_hash": ""
   },
   "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md": {
-    "mtime": 1784359711.981122,
-    "ast_hash": "5eeeab198f4f166c80a6fa2bbc249c9b",
+    "mtime": 1784361405.0136757,
+    "ast_hash": "cb879c186a4c1df5e2a432cadddc617d",
     "semantic_hash": ""
   },
   "research/backend-admissions/RESEARCH_LOG.md": {
-    "mtime": 1784359749.4800694,
-    "ast_hash": "aff3fa56d90cbb09193f14632a2d2459",
+    "mtime": 1784361428.308897,
+    "ast_hash": "8c1811339ac6b1a433418a4642683944",
     "semantic_hash": ""
   },
   "research/backend-admissions/SIMULATION_SPECIFICATION.md": {
@@ -130,8 +130,8 @@
     "semantic_hash": ""
   },
   "research/backend-admissions/ANNOTATED_SOURCE_REGISTER.md": {
-    "mtime": 1784359741.455167,
-    "ast_hash": "5697bbefd297c056ce201009a0d8a392",
+    "mtime": 1784361418.160029,
+    "ast_hash": "0eed24104fad8fe24b386ea65e59c6bd",
     "semantic_hash": ""
   },
   "research/backend-admissions/REVIEWER_AND_FAIRNESS_VALIDATION.md": {
@@ -152,6 +152,26 @@
   "research/backend-admissions/paper-deep-dives/04_POLICY_LEARNING.md": {
     "mtime": 1784359663.618691,
     "ast_hash": "e355ae08b5c9caaf8a18c070821fa3ef",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/BACKEND_DATA_MODEL.md": {
+    "mtime": 1784361328.1275866,
+    "ast_hash": "81cb8424a4d6f48a4b9d2d105f7f8d60",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/EVALUATOR_EXPORT_SPEC.md": {
+    "mtime": 1784361389.9465926,
+    "ast_hash": "c3a09619bce04c749a954c7643485f93",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/OUTCOME_AND_FALSIFICATION_PLAN.md": {
+    "mtime": 1784361373.4429574,
+    "ast_hash": "2e952beff64e6ad0f090484f583d288c",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/TRACK_A_AUDIT_PLAN.md": {
+    "mtime": 1784361347.066553,
+    "ast_hash": "8c3694825f74c31d027941e8737f7788",
     "semantic_hash": ""
   }
 }
