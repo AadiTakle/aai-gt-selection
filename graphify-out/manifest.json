@@ -105,13 +105,13 @@
     "semantic_hash": ""
   },
   "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md": {
-    "mtime": 1784363289.9681594,
-    "ast_hash": "259c7d417f29d62722a870e89e449ea9",
+    "mtime": 1784364986.0728786,
+    "ast_hash": "c4018957b15fe89e554fc05a00bef78f",
     "semantic_hash": ""
   },
   "research/backend-admissions/RESEARCH_LOG.md": {
-    "mtime": 1784363317.8242753,
-    "ast_hash": "4f1e8a5a4e14073f91b793455fd31851",
+    "mtime": 1784365011.5703645,
+    "ast_hash": "3169d1abfdc1f5824a064517990fa7b8",
     "semantic_hash": ""
   },
   "research/backend-admissions/SIMULATION_SPECIFICATION.md": {
@@ -130,8 +130,8 @@
     "semantic_hash": ""
   },
   "research/backend-admissions/ANNOTATED_SOURCE_REGISTER.md": {
-    "mtime": 1784363307.4011304,
-    "ast_hash": "a2aeb4274f2c319f1e8d1eeee6c1e87e",
+    "mtime": 1784365004.0376365,
+    "ast_hash": "df5bc2c1e6f8d1fc962d182a5fbff5c8",
     "semantic_hash": ""
   },
   "research/backend-admissions/REVIEWER_AND_FAIRNESS_VALIDATION.md": {
@@ -177,6 +177,11 @@
   "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md": {
     "mtime": 1784363277.4374502,
     "ast_hash": "5bb696c5dac30c0cf3f37c7c16d58b96",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md": {
+    "mtime": 1784364974.732569,
+    "ast_hash": "fee65d87ed41250620c5e0d579ca1a12",
     "semantic_hash": ""
   }
 }

@@ -483,6 +483,67 @@ Effects around 0.20–0.30 SD would be strong. Effects above 0.30 SD would be ex
 
 These values are proposals, not GT facts. Do not change the MME to fit sample size.
 
+## Standard Setting
+
+Track B needs a configural boundary, not a global score.
+
+Recommended future method:
+
+- modified Dominant Profile Judgment;
+- complete-profile independent classification;
+- replicated panels;
+- withheld boundary cases;
+- separate artifact/narrative route analysis; and
+- shadow validation before live influence.
+
+Angoff and Bookmark are poor fits because Track B lacks item probabilities and a unidimensional calibrated scale. Classical Body of Work usually depends on a total score.
+
+Synthetic anchors must remain clearly named fixtures with no GT authority or “validated” label.
+
+## Decision Utility
+
+Rules should be compared through:
+
+- hard validity/rights/feasibility gates;
+- expected utility across plausible false-positive/false-negative costs;
+- decision-curve/net-benefit sensitivity;
+- reviewer and seat capacity;
+- process and fairness metrics; and
+- Pareto frontiers.
+
+Accuracy alone assumes equal error costs. One fairness metric cannot certify a rule.
+
+## Transportability
+
+Effects and selection-rule performance may change by cohort, grade, site, treatment version, comparator, and applicant population.
+
+GT should define source and target frames, measure effect modifiers, inspect sampling positivity, standardize/weight to the target where defensible, and report context-specific estimates plus future-context prediction intervals.
+
+Repeated cohorts at one school improve temporal evidence, not multisite generalizability.
+
+## Monitoring and Updating
+
+Monitor deterministic rules for:
+
+- data/provenance failure;
+- input/population drift;
+- boundary/missingness changes;
+- reviewer drift;
+- access and subgroup consequences; and
+- outcome relationships when valid labels mature.
+
+Learned models require additional calibration, discrimination, training stability, feature/training lineage, shadow deployment, and rollback.
+
+Do not use automatic continual learning. Every update is offline, versioned, independently validated, shadowed, and explicitly approved.
+
+## Fidelity and Economics
+
+Primary causal result remains the offer ITT for the complete package.
+
+Fidelity measures describe adherence, dose, reach, quality, responsiveness, differentiation, adaptations, and context. Do not condition the primary analysis on post-treatment fidelity or engagement.
+
+Costing should use an ingredients approach and compare incremental cost with the same randomized effect. Report cost per offered and served applicant, cost per 0.10 SD, and cost per progression milestone. Long-run monetization remains scenario analysis.
+
 ## Deliverables Under Construction
 
 - Source-graded paper deep dives

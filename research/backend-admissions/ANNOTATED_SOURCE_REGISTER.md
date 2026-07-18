@@ -737,3 +737,106 @@
 - **DOI:** https://doi.org/10.1080/19345747.2016.1232459
 - **Grade:** A
 - **Use:** Framework for persistence and fadeout of educational intervention effects.
+
+## Standard Setting and Decision Utility
+
+### Plake, Hambleton, & Jaeger (1997) — Dominant Profiles
+
+- **DOI:** https://doi.org/10.1177/0013164497057003002
+- **Use:** Configural standard setting for multidimensional profiles.
+
+### Plake & Hambleton (2000) — Categorical Assignment
+
+- **DOI:** https://doi.org/10.1207/s15326977ea0603_2
+- **Use:** Direct complete-profile classification.
+
+### Vickers & Elkin (2006) — Decision Curve Analysis
+
+- **DOI:** https://doi.org/10.1177/0272989X06295361
+- **Use:** Net benefit across threshold/cost assumptions.
+
+### Drummond & Holte (2006) — Cost Curves
+
+- **DOI:** https://doi.org/10.1007/s10994-006-8199-5
+- **Use:** Classifier cost/prevalence trade-offs without one fixed cost.
+
+## Transportability and External Validity
+
+### Stuart et al. (2011) — Trial Generalizability
+
+- **DOI:** https://doi.org/10.1111/j.1467-985X.2010.00673.x
+- **Use:** Sampling weights from randomized trial to target population.
+
+### Tipton (2013) — Generalizing Experiments
+
+- **DOI:** https://doi.org/10.3102/1076998612441947
+- **Use:** Generalization weights and target-population diagnostics.
+
+### Pearl & Bareinboim (2014) — External Validity
+
+- **DOI:** https://doi.org/10.1214/14-STS486
+- **Use:** Formal transportability and selection diagrams.
+
+### Dahabreh & Hernán (2019) — Trial Transport
+
+- **DOI:** https://doi.org/10.1007/s10654-019-00533-2
+- **Use:** Identification conditions for transporting randomized effects.
+
+### Debray et al. (2013) — Internal-External Validation
+
+- **DOI:** https://doi.org/10.1002/sim.5732
+- **Use:** Leave-one-context-out prediction-rule validation.
+
+## Monitoring and Drift
+
+### NIST AI 800-4 (2026) — Deployed AI Monitoring
+
+- **DOI:** https://doi.org/10.6028/NIST.AI.800-4
+- **Use:** Monitoring risks, governance, and response.
+
+### Gama et al. (2014) — Concept Drift
+
+- **DOI:** https://doi.org/10.1145/2523813
+- **Use:** Drift taxonomy and adaptation review.
+
+### Perdomo et al. (2020) — Performative Prediction
+
+- **URL:** https://proceedings.mlr.press/v119/perdomo20a.html
+- **Use:** Policies alter future data and outcome relationships.
+
+### Steyerberg et al. (2004) — Model Updating
+
+- **DOI:** https://doi.org/10.1002/sim.1844
+- **Use:** Validation, recalibration, and model revision ladder.
+
+### Mitchell et al. (2019) — Model Cards
+
+- **DOI:** https://doi.org/10.1145/3287560.3287596
+- **Use:** Document model purpose, performance, limitations, and groups.
+
+## Fidelity and Economic Evaluation
+
+### Carroll et al. (2007) — Fidelity Framework
+
+- **DOI:** https://doi.org/10.1186/1748-5908-2-40
+- **Use:** Adherence and moderating implementation factors.
+
+### O’Donnell (2008) — K–12 Fidelity Review
+
+- **DOI:** https://doi.org/10.3102/0034654307313793
+- **Use:** Fidelity measurement in educational interventions.
+
+### Moore et al. (2015) — Process Evaluation
+
+- **DOI:** https://doi.org/10.1136/bmj.h1258
+- **Use:** Implementation, mechanisms, and context alongside outcomes.
+
+### Imai, Keele, & Yamamoto (2010) — Causal Mediation
+
+- **DOI:** https://doi.org/10.1214/10-STS321
+- **Use:** Mediation identification and sensitivity.
+
+### IES Economic Evaluation Standards
+
+- **URL:** https://ies.ed.gov/sites/default/files/ies/document/2024/10/Standards%20for%20the%20Economic%20Evaluation%20of%20Educational%20and%20Social%20Programs.pdf
+- **Use:** Ingredients-based costing and education economic evaluation.

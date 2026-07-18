@@ -114,6 +114,16 @@
 - Added a provisional future MME framework: +0.10 SD at 12 months, +0.05 persistence, and −0.05 high-performer noninferiority.
 - Added 15+ mechanism, moderator, persistence, and benchmark sources.
 
+### Iteration 7 — 2026-07-18
+
+- Added modified Dominant Profile Judgment and complete-profile standard-setting design for multidimensional Track B evidence.
+- Added expected-utility, decision-curve, cost-sensitive, capacity, and Pareto-frontier rule comparison.
+- Added source-to-target transportability, sampling/transport weights, positivity, context-specific effects, and prediction intervals.
+- Added deterministic-rule and learned-model drift taxonomy, monitoring cadence, alert responses, offline update ladder, shadow validation, and rollback.
+- Added treatment-package, fidelity, implementation, mediation, principal-stratification, and economic-evaluation framework.
+- Added backend fields for target frames, contexts, program versions, fidelity, costs, monitoring, and model updates.
+- Added 15+ sources on standard setting, utility, transportability, drift, fidelity, and education economics.
+
 ## Next Research Clusters
 
 1. Randomized/lottery and regression-discontinuity identification in selective education.

@@ -1155,8 +1155,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "research_backend_admissions_overnight_research_report_core_statistical_estimands",
-      "community": 6,
-      "community_name": "Prohibited Inputs and Equity",
+      "community": 37,
+      "community_name": "Core Statistical Estimands",
       "norm_label": "core statistical estimands"
     },
     {
@@ -1166,8 +1166,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "research_backend_admissions_overnight_research_report_selection_effect",
-      "community": 6,
-      "community_name": "Prohibited Inputs and Equity",
+      "community": 37,
+      "community_name": "Core Statistical Estimands",
       "norm_label": "selection effect"
     },
     {
@@ -1177,8 +1177,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "research_backend_admissions_overnight_research_report_program_effect",
-      "community": 6,
-      "community_name": "Prohibited Inputs and Equity",
+      "community": 37,
+      "community_name": "Core Statistical Estimands",
       "norm_label": "program effect"
     },
     {
@@ -1188,8 +1188,8 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "research_backend_admissions_overnight_research_report_offer_effect",
-      "community": 6,
-      "community_name": "Prohibited Inputs and Equity",
+      "community": 37,
+      "community_name": "Core Statistical Estimands",
       "norm_label": "offer effect"
     },
     {
@@ -1199,8 +1199,8 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "research_backend_admissions_overnight_research_report_benefit_targeting_effect",
-      "community": 6,
-      "community_name": "Prohibited Inputs and Equity",
+      "community": 37,
+      "community_name": "Core Statistical Estimands",
       "norm_label": "benefit-targeting effect"
     },
     {
@@ -1210,8 +1210,8 @@
       "source_location": "L65",
       "_origin": "ast",
       "id": "research_backend_admissions_overnight_research_report_two_anchor_evidence_families",
-      "community": 6,
-      "community_name": "Prohibited Inputs and Equity",
+      "community": 39,
+      "community_name": "Two Anchor Evidence Families",
       "norm_label": "two anchor evidence families"
     },
     {
@@ -1221,8 +1221,8 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "research_backend_admissions_overnight_research_report_differentiated_instruction_can_produce_program_effects",
-      "community": 6,
-      "community_name": "Prohibited Inputs and Equity",
+      "community": 39,
+      "community_name": "Two Anchor Evidence Families",
       "norm_label": "differentiated instruction can produce program effects"
     },
     {
@@ -1232,8 +1232,8 @@
       "source_location": "L71",
       "_origin": "ast",
       "id": "research_backend_admissions_overnight_research_report_selective_admission_alone_often_produces_null_effects",
-      "community": 6,
-      "community_name": "Prohibited Inputs and Equity",
+      "community": 39,
+      "community_name": "Two Anchor Evidence Families",
       "norm_label": "selective admission alone often produces null effects"
     },
     {
@@ -1298,8 +1298,8 @@
       "source_location": "L149",
       "_origin": "ast",
       "id": "research_backend_admissions_overnight_research_report_advanced_stem_readiness_outcome",
-      "community": 6,
-      "community_name": "Prohibited Inputs and Equity",
+      "community": 38,
+      "community_name": "Advanced STEM Readiness Outcome",
       "norm_label": "advanced stem readiness outcome"
     },
     {
@@ -1309,8 +1309,8 @@
       "source_location": "L155",
       "_origin": "ast",
       "id": "research_backend_admissions_overnight_research_report_primary",
-      "community": 6,
-      "community_name": "Prohibited Inputs and Equity",
+      "community": 38,
+      "community_name": "Advanced STEM Readiness Outcome",
       "norm_label": "primary"
     },
     {
@@ -1320,8 +1320,8 @@
       "source_location": "L159",
       "_origin": "ast",
       "id": "research_backend_admissions_overnight_research_report_secondary_readiness_profile",
-      "community": 6,
-      "community_name": "Prohibited Inputs and Equity",
+      "community": 38,
+      "community_name": "Advanced STEM Readiness Outcome",
       "norm_label": "secondary readiness profile"
     },
     {
@@ -1474,8 +1474,8 @@
       "source_location": "L362",
       "_origin": "ast",
       "id": "research_backend_admissions_overnight_research_report_two_additional_anchor_papers",
-      "community": 6,
-      "community_name": "Prohibited Inputs and Equity",
+      "community": 40,
+      "community_name": "Two Additional Anchor Papers",
       "norm_label": "two additional anchor papers"
     },
     {
@@ -1485,8 +1485,8 @@
       "source_location": "L364",
       "_origin": "ast",
       "id": "research_backend_admissions_overnight_research_report_research_design_meets_market_design",
-      "community": 6,
-      "community_name": "Prohibited Inputs and Equity",
+      "community": 40,
+      "community_name": "Two Additional Anchor Papers",
       "norm_label": "research design meets market design"
     },
     {
@@ -1496,8 +1496,8 @@
       "source_location": "L368",
       "_origin": "ast",
       "id": "research_backend_admissions_overnight_research_report_empirical_welfare_and_doubly_robust_policy_learning",
-      "community": 6,
-      "community_name": "Prohibited Inputs and Equity",
+      "community": 40,
+      "community_name": "Two Additional Anchor Papers",
       "norm_label": "empirical welfare and doubly robust policy learning"
     },
     {
@@ -1589,10 +1589,65 @@
       "norm_label": "provisional meaningful-effect framework"
     },
     {
-      "label": "Deliverables Under Construction",
+      "label": "Standard Setting",
       "file_type": "document",
       "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
       "source_location": "L486",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_standard_setting",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "standard setting"
+    },
+    {
+      "label": "Decision Utility",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L503",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_decision_utility",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "decision utility"
+    },
+    {
+      "label": "Transportability",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L516",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_transportability",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "transportability"
+    },
+    {
+      "label": "Monitoring and Updating",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L524",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_monitoring_and_updating",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "monitoring and updating"
+    },
+    {
+      "label": "Fidelity and Economics",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L539",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_fidelity_and_economics",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "fidelity and economics"
+    },
+    {
+      "label": "Deliverables Under Construction",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L547",
       "_origin": "ast",
       "id": "research_backend_admissions_overnight_research_report_deliverables_under_construction",
       "community": 6,
@@ -1919,10 +1974,21 @@
       "norm_label": "iteration 6 \u2014 2026-07-18"
     },
     {
-      "label": "Next Research Clusters",
+      "label": "Iteration 7 \u2014 2026-07-18",
       "file_type": "document",
       "source_file": "research/backend-admissions/RESEARCH_LOG.md",
       "source_location": "L117",
+      "_origin": "ast",
+      "id": "research_backend_admissions_research_log_iteration_7_2026_07_18",
+      "community": 27,
+      "community_name": "Overnight Backend and Admissions Research Log",
+      "norm_label": "iteration 7 \u2014 2026-07-18"
+    },
+    {
+      "label": "Next Research Clusters",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/RESEARCH_LOG.md",
+      "source_location": "L127",
       "_origin": "ast",
       "id": "research_backend_admissions_research_log_next_research_clusters",
       "community": 27,
@@ -2445,6 +2511,259 @@
       "community": 8,
       "community_name": "Synthetic Track Configuration",
       "norm_label": "methods"
+    },
+    {
+      "label": "STANDARD_SETTING_AND_LIFECYCLE.md",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "research_backend_admissions_standard_setting_and_lifecycle",
+      "community": 36,
+      "community_name": "Standard Setting, Decision Utility, and Lifecycle Validation",
+      "norm_label": "standard_setting_and_lifecycle.md"
+    },
+    {
+      "label": "Standard Setting, Decision Utility, and Lifecycle Validation",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "research_backend_admissions_standard_setting_and_lifecycle_standard_setting_decision_utility_and_lifecycle_validation",
+      "community": 36,
+      "community_name": "Standard Setting, Decision Utility, and Lifecycle Validation",
+      "norm_label": "standard setting, decision utility, and lifecycle validation"
+    },
+    {
+      "label": "1. Track B Standard Setting",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L3",
+      "_origin": "ast",
+      "id": "research_backend_admissions_standard_setting_and_lifecycle_1_track_b_standard_setting",
+      "community": 36,
+      "community_name": "Standard Setting, Decision Utility, and Lifecycle Validation",
+      "norm_label": "1. track b standard setting"
+    },
+    {
+      "label": "Configural Boundary",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L11",
+      "_origin": "ast",
+      "id": "research_backend_admissions_standard_setting_and_lifecycle_configural_boundary",
+      "community": 36,
+      "community_name": "Standard Setting, Decision Utility, and Lifecycle Validation",
+      "norm_label": "configural boundary"
+    },
+    {
+      "label": "Study",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L25",
+      "_origin": "ast",
+      "id": "research_backend_admissions_standard_setting_and_lifecycle_study",
+      "community": 36,
+      "community_name": "Standard Setting, Decision Utility, and Lifecycle Validation",
+      "norm_label": "study"
+    },
+    {
+      "label": "Synthetic Rule Representation",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L39",
+      "_origin": "ast",
+      "id": "research_backend_admissions_standard_setting_and_lifecycle_synthetic_rule_representation",
+      "community": 36,
+      "community_name": "Standard Setting, Decision Utility, and Lifecycle Validation",
+      "norm_label": "synthetic rule representation"
+    },
+    {
+      "label": "2. Decision Utility",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L54",
+      "_origin": "ast",
+      "id": "research_backend_admissions_standard_setting_and_lifecycle_2_decision_utility",
+      "community": 36,
+      "community_name": "Standard Setting, Decision Utility, and Lifecycle Validation",
+      "norm_label": "2. decision utility"
+    },
+    {
+      "label": "Decision-Curve Net Benefit",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L79",
+      "_origin": "ast",
+      "id": "research_backend_admissions_standard_setting_and_lifecycle_decision_curve_net_benefit",
+      "community": 36,
+      "community_name": "Standard Setting, Decision Utility, and Lifecycle Validation",
+      "norm_label": "decision-curve net benefit"
+    },
+    {
+      "label": "Pareto Comparison",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L87",
+      "_origin": "ast",
+      "id": "research_backend_admissions_standard_setting_and_lifecycle_pareto_comparison",
+      "community": 36,
+      "community_name": "Standard Setting, Decision Utility, and Lifecycle Validation",
+      "norm_label": "pareto comparison"
+    },
+    {
+      "label": "3. Transportability",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L102",
+      "_origin": "ast",
+      "id": "research_backend_admissions_standard_setting_and_lifecycle_3_transportability",
+      "community": 36,
+      "community_name": "Standard Setting, Decision Utility, and Lifecycle Validation",
+      "norm_label": "3. transportability"
+    },
+    {
+      "label": "Cohorts and Sites",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L145",
+      "_origin": "ast",
+      "id": "research_backend_admissions_standard_setting_and_lifecycle_cohorts_and_sites",
+      "community": 36,
+      "community_name": "Standard Setting, Decision Utility, and Lifecycle Validation",
+      "norm_label": "cohorts and sites"
+    },
+    {
+      "label": "4. Monitoring and Drift",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L156",
+      "_origin": "ast",
+      "id": "research_backend_admissions_standard_setting_and_lifecycle_4_monitoring_and_drift",
+      "community": 36,
+      "community_name": "Standard Setting, Decision Utility, and Lifecycle Validation",
+      "norm_label": "4. monitoring and drift"
+    },
+    {
+      "label": "Drift Types",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L160",
+      "_origin": "ast",
+      "id": "research_backend_admissions_standard_setting_and_lifecycle_drift_types",
+      "community": 36,
+      "community_name": "Standard Setting, Decision Utility, and Lifecycle Validation",
+      "norm_label": "drift types"
+    },
+    {
+      "label": "Monitoring Schedule",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L171",
+      "_origin": "ast",
+      "id": "research_backend_admissions_standard_setting_and_lifecycle_monitoring_schedule",
+      "community": 36,
+      "community_name": "Standard Setting, Decision Utility, and Lifecycle Validation",
+      "norm_label": "monitoring schedule"
+    },
+    {
+      "label": "Alert Response",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L201",
+      "_origin": "ast",
+      "id": "research_backend_admissions_standard_setting_and_lifecycle_alert_response",
+      "community": 36,
+      "community_name": "Standard Setting, Decision Utility, and Lifecycle Validation",
+      "norm_label": "alert response"
+    },
+    {
+      "label": "5. Fidelity and Package Effects",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L209",
+      "_origin": "ast",
+      "id": "research_backend_admissions_standard_setting_and_lifecycle_5_fidelity_and_package_effects",
+      "community": 36,
+      "community_name": "Standard Setting, Decision Utility, and Lifecycle Validation",
+      "norm_label": "5. fidelity and package effects"
+    },
+    {
+      "label": "6. Economic Evaluation",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L239",
+      "_origin": "ast",
+      "id": "research_backend_admissions_standard_setting_and_lifecycle_6_economic_evaluation",
+      "community": 36,
+      "community_name": "Standard Setting, Decision Utility, and Lifecycle Validation",
+      "norm_label": "6. economic evaluation"
+    },
+    {
+      "label": "7. Backend Fields",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L285",
+      "_origin": "ast",
+      "id": "research_backend_admissions_standard_setting_and_lifecycle_7_backend_fields",
+      "community": 36,
+      "community_name": "Standard Setting, Decision Utility, and Lifecycle Validation",
+      "norm_label": "7. backend fields"
+    },
+    {
+      "label": "Target/context",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L287",
+      "_origin": "ast",
+      "id": "research_backend_admissions_standard_setting_and_lifecycle_target_context",
+      "community": 36,
+      "community_name": "Standard Setting, Decision Utility, and Lifecycle Validation",
+      "norm_label": "target/context"
+    },
+    {
+      "label": "Monitoring",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L295",
+      "_origin": "ast",
+      "id": "research_backend_admissions_standard_setting_and_lifecycle_monitoring",
+      "community": 36,
+      "community_name": "Standard Setting, Decision Utility, and Lifecycle Validation",
+      "norm_label": "monitoring"
+    },
+    {
+      "label": "Fidelity",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L305",
+      "_origin": "ast",
+      "id": "research_backend_admissions_standard_setting_and_lifecycle_fidelity",
+      "community": 36,
+      "community_name": "Standard Setting, Decision Utility, and Lifecycle Validation",
+      "norm_label": "fidelity"
+    },
+    {
+      "label": "Cost",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L313",
+      "_origin": "ast",
+      "id": "research_backend_admissions_standard_setting_and_lifecycle_cost",
+      "community": 36,
+      "community_name": "Standard Setting, Decision Utility, and Lifecycle Validation",
+      "norm_label": "cost"
+    },
+    {
+      "label": "8. Sources",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L322",
+      "_origin": "ast",
+      "id": "research_backend_admissions_standard_setting_and_lifecycle_8_sources",
+      "community": 36,
+      "community_name": "Standard Setting, Decision Utility, and Lifecycle Validation",
+      "norm_label": "8. sources"
     },
     {
       "label": "TRACK_A_AUDIT_PLAN.md",
@@ -3418,9 +3737,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 1,
+      "community": 4,
       "norm_label": "canonical document precedence",
-      "community_name": "Selection Requirements and Rights",
+      "community_name": "Evidence Quality and Screening",
       "id": "agents_document_precedence"
     },
     {
@@ -3432,9 +3751,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 1,
+      "community": 4,
       "norm_label": "make gt school contribution testable",
-      "community_name": "Selection Requirements and Rights",
+      "community_name": "Evidence Quality and Screening",
       "id": "project_charter_mission"
     },
     {
@@ -3446,9 +3765,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 1,
+      "community": 4,
       "norm_label": "selection effect",
-      "community_name": "Selection Requirements and Rights",
+      "community_name": "Evidence Quality and Screening",
       "id": "project_charter_selection_effect"
     },
     {
@@ -3460,9 +3779,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 1,
+      "community": 4,
       "norm_label": "program effect",
-      "community_name": "Selection Requirements and Rights",
+      "community_name": "Evidence Quality and Screening",
       "id": "project_charter_program_effect"
     },
     {
@@ -3474,9 +3793,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 1,
+      "community": 4,
       "norm_label": "credible counterfactual",
-      "community_name": "Selection Requirements and Rights",
+      "community_name": "Evidence Quality and Screening",
       "id": "project_charter_credible_counterfactual"
     },
     {
@@ -3530,9 +3849,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 1,
+      "community": 2,
       "norm_label": "r2 credible counterfactual",
-      "community_name": "Selection Requirements and Rights",
+      "community_name": "Evaluation Design and Measurement",
       "id": "docs_project_requirements_r2"
     },
     {
@@ -3558,9 +3877,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 1,
+      "community": 4,
       "norm_label": "r4 non-circular selection and measurement",
-      "community_name": "Selection Requirements and Rights",
+      "community_name": "Evidence Quality and Screening",
       "id": "docs_project_requirements_r4"
     },
     {
@@ -3642,9 +3961,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 1,
+      "community": 2,
       "norm_label": "r10 conclusion boundaries",
-      "community_name": "Selection Requirements and Rights",
+      "community_name": "Evaluation Design and Measurement",
       "id": "docs_project_requirements_r10"
     },
     {
@@ -3838,9 +4157,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 1,
+      "community": 2,
       "norm_label": "e-001 public gt reporting lacks credible comparison",
-      "community_name": "Selection Requirements and Rights",
+      "community_name": "Evaluation Design and Measurement",
       "id": "docs_assumptions_and_evidence_e001"
     },
     {
@@ -4160,9 +4479,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 1,
+      "community": 4,
       "norm_label": "d-001 canonical project governance",
-      "community_name": "Selection Requirements and Rights",
+      "community_name": "Evidence Quality and Screening",
       "id": "docs_decision_log_d001"
     },
     {
@@ -4454,9 +4773,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 1,
+      "community": 2,
       "norm_label": "seat allocation and evaluation out of scope",
-      "community_name": "Selection Requirements and Rights",
+      "community_name": "Evaluation Design and Measurement",
       "id": "docs_gt_admissions_application_mvp_prd_allocation_out_of_scope"
     },
     {
@@ -4468,9 +4787,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 1,
+      "community": 2,
       "norm_label": "track a vs track b difference as program effect claim",
-      "community_name": "Selection Requirements and Rights",
+      "community_name": "Evaluation Design and Measurement",
       "id": "docs_gt_admissions_application_mvp_prd_track_comparison_causal_claim"
     },
     {
@@ -4538,9 +4857,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 1,
+      "community": 2,
       "norm_label": "methodologist critic lens",
-      "community_name": "Selection Requirements and Rights",
+      "community_name": "Evaluation Design and Measurement",
       "id": "docs_critic_review_checklist_methodologist_lens"
     },
     {
@@ -5028,9 +5347,9 @@
       "captured_at": null,
       "author": "Aadi Takle",
       "contributor": null,
-      "community": 1,
+      "community": 2,
       "norm_label": "regression discontinuity at admission cutoff",
-      "community_name": "Selection Requirements and Rights",
+      "community_name": "Evaluation Design and Measurement",
       "id": "gt_school_counterfactual_brainlift_brainlift_gt_school_counterfactual_regression_discontinuity"
     },
     {
@@ -5070,9 +5389,9 @@
       "captured_at": null,
       "author": "Atila Abdulkadiro\u011flu; Joshua Angrist; Parag Pathak",
       "contributor": "Aadi Takle",
-      "community": 1,
+      "community": 4,
       "norm_label": "elite illusion null-at-the-margin evidence",
-      "community_name": "Selection Requirements and Rights",
+      "community_name": "Evidence Quality and Screening",
       "id": "gt_school_counterfactual_brainlift_brainlift_gt_school_counterfactual_elite_illusion"
     },
     {
@@ -6296,7 +6615,18 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
-      "source_location": "L486",
+      "source_location": "L503",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
+      "target": "research_backend_admissions_overnight_research_report_decision_utility",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L547",
       "weight": 1.0,
       "_origin": "ast",
       "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
@@ -6334,6 +6664,17 @@
       "_origin": "ast",
       "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
       "target": "research_backend_admissions_overnight_research_report_fairness_findings",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L539",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
+      "target": "research_backend_admissions_overnight_research_report_fidelity_and_economics",
       "confidence_score": 1.0
     },
     {
@@ -6389,6 +6730,17 @@
       "_origin": "ast",
       "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
       "target": "research_backend_admissions_overnight_research_report_interpretable_model_ladder",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L524",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
+      "target": "research_backend_admissions_overnight_research_report_monitoring_and_updating",
       "confidence_score": 1.0
     },
     {
@@ -6494,6 +6846,17 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L486",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
+      "target": "research_backend_admissions_overnight_research_report_standard_setting",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
       "source_location": "L242",
       "weight": 1.0,
       "_origin": "ast",
@@ -6521,6 +6884,17 @@
       "_origin": "ast",
       "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
       "target": "research_backend_admissions_overnight_research_report_track_a_rd_with_track_b",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L516",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
+      "target": "research_backend_admissions_overnight_research_report_transportability",
       "confidence_score": 1.0
     },
     {
@@ -6879,7 +7253,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "research/backend-admissions/RESEARCH_LOG.md",
-      "source_location": "L117",
+      "source_location": "L127",
       "weight": 1.0,
       "_origin": "ast",
       "source": "research_backend_admissions_research_log_overnight_backend_and_admissions_research_log",
@@ -6983,6 +7357,17 @@
       "_origin": "ast",
       "source": "research_backend_admissions_research_log_iteration_log",
       "target": "research_backend_admissions_research_log_iteration_6_2026_07_18",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/RESEARCH_LOG.md",
+      "source_location": "L117",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_research_log_iteration_log",
+      "target": "research_backend_admissions_research_log_iteration_7_2026_07_18",
       "confidence_score": 1.0
     },
     {
@@ -7478,6 +7863,248 @@
       "_origin": "ast",
       "source": "research_backend_admissions_simulation_specification_metrics",
       "target": "research_backend_admissions_simulation_specification_eligibility",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_standard_setting_and_lifecycle",
+      "target": "research_backend_admissions_standard_setting_and_lifecycle_standard_setting_decision_utility_and_lifecycle_validation",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_standard_setting_and_lifecycle_standard_setting_decision_utility_and_lifecycle_validation",
+      "target": "research_backend_admissions_standard_setting_and_lifecycle_1_track_b_standard_setting",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L54",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_standard_setting_and_lifecycle_standard_setting_decision_utility_and_lifecycle_validation",
+      "target": "research_backend_admissions_standard_setting_and_lifecycle_2_decision_utility",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L102",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_standard_setting_and_lifecycle_standard_setting_decision_utility_and_lifecycle_validation",
+      "target": "research_backend_admissions_standard_setting_and_lifecycle_3_transportability",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L156",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_standard_setting_and_lifecycle_standard_setting_decision_utility_and_lifecycle_validation",
+      "target": "research_backend_admissions_standard_setting_and_lifecycle_4_monitoring_and_drift",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L209",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_standard_setting_and_lifecycle_standard_setting_decision_utility_and_lifecycle_validation",
+      "target": "research_backend_admissions_standard_setting_and_lifecycle_5_fidelity_and_package_effects",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L239",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_standard_setting_and_lifecycle_standard_setting_decision_utility_and_lifecycle_validation",
+      "target": "research_backend_admissions_standard_setting_and_lifecycle_6_economic_evaluation",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L285",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_standard_setting_and_lifecycle_standard_setting_decision_utility_and_lifecycle_validation",
+      "target": "research_backend_admissions_standard_setting_and_lifecycle_7_backend_fields",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L322",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_standard_setting_and_lifecycle_standard_setting_decision_utility_and_lifecycle_validation",
+      "target": "research_backend_admissions_standard_setting_and_lifecycle_8_sources",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L11",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_standard_setting_and_lifecycle_1_track_b_standard_setting",
+      "target": "research_backend_admissions_standard_setting_and_lifecycle_configural_boundary",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L25",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_standard_setting_and_lifecycle_1_track_b_standard_setting",
+      "target": "research_backend_admissions_standard_setting_and_lifecycle_study",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L39",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_standard_setting_and_lifecycle_1_track_b_standard_setting",
+      "target": "research_backend_admissions_standard_setting_and_lifecycle_synthetic_rule_representation",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L79",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_standard_setting_and_lifecycle_2_decision_utility",
+      "target": "research_backend_admissions_standard_setting_and_lifecycle_decision_curve_net_benefit",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L87",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_standard_setting_and_lifecycle_2_decision_utility",
+      "target": "research_backend_admissions_standard_setting_and_lifecycle_pareto_comparison",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L145",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_standard_setting_and_lifecycle_3_transportability",
+      "target": "research_backend_admissions_standard_setting_and_lifecycle_cohorts_and_sites",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L201",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_standard_setting_and_lifecycle_4_monitoring_and_drift",
+      "target": "research_backend_admissions_standard_setting_and_lifecycle_alert_response",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L160",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_standard_setting_and_lifecycle_4_monitoring_and_drift",
+      "target": "research_backend_admissions_standard_setting_and_lifecycle_drift_types",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L171",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_standard_setting_and_lifecycle_4_monitoring_and_drift",
+      "target": "research_backend_admissions_standard_setting_and_lifecycle_monitoring_schedule",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L313",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_standard_setting_and_lifecycle_7_backend_fields",
+      "target": "research_backend_admissions_standard_setting_and_lifecycle_cost",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L305",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_standard_setting_and_lifecycle_7_backend_fields",
+      "target": "research_backend_admissions_standard_setting_and_lifecycle_fidelity",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L295",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_standard_setting_and_lifecycle_7_backend_fields",
+      "target": "research_backend_admissions_standard_setting_and_lifecycle_monitoring",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md",
+      "source_location": "L287",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_standard_setting_and_lifecycle_7_backend_fields",
+      "target": "research_backend_admissions_standard_setting_and_lifecycle_target_context",
       "confidence_score": 1.0
     },
     {
@@ -9655,5 +10282,5 @@
       "source_file": "gt-school-counterfactual-brainlift/brainlift-gt-school-counterfactual.md"
     }
   ],
-  "built_at_commit": "5719a4d125318229254c94825810dc570af2fb1c"
+  "built_at_commit": "5eeb921d05cad97d293c653ea6faf993fbcea55c"
 }
