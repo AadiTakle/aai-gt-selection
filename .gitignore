@@ -1,6 +1,24 @@
 .DS_Store
 **/.DS_Store
 
+# Node / pnpm / Next.js
+node_modules/
+.pnpm-store/
+.next/
+apps/web/next-env.d.ts
+out/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+
+# Local environment and Supabase state
+.env
+.env.local
+.env.*.local
+supabase/.branches/
+supabase/.temp/
+
 # Graphify machine-local and temporary files
 graphify-out/.graphify_python
 graphify-out/.graphify_root

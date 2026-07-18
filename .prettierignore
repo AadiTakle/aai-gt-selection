@@ -1,0 +1,10 @@
+.cursor/
+docs/
+graphify-out/
+gt-school-counterfactual-brainlift/
+node_modules/
+research/
+*.md
+pnpm-lock.yaml
+packages/db-types/src/database.generated.ts
+apps/web/next-env.d.ts
