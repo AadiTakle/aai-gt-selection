@@ -103,6 +103,17 @@ Each decision must include the requirements served, alternatives considered, evi
 - **Owner:** Team lead
 - **Supersedes:** D-005
 
+### D-009 — Use Supabase and PostgreSQL for the prototype backend
+
+- **Date:** 2026-07-17
+- **Status:** Approved
+- **Decision:** Use Next.js with the local Supabase development stack and PostgreSQL for the four-week synthetic prototype.
+- **Requirements served:** R7, R8, R9
+- **Alternatives considered:** Firebase Emulator Suite.
+- **Rationale:** The team selected PostgreSQL and Supabase in a separate technical discussion.
+- **Consequences:** PostgreSQL stores synthetic application and workflow data; Supabase provides local APIs, authentication, storage integration, and role-based access. No live child data or production Supabase project is authorized.
+- **Owner:** Team lead
+
 ## Entry template
 
 ### D-XXX — Decision title

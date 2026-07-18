@@ -30,6 +30,8 @@ It does not administer CogAT, change Track A policy, allocate seats, operate fin
   - Replay decisions and inspect reviewer agreement
   - Enforce the boundary between eligibility, allocation, finance, and research
 
+
+
 ### Pipeline Integration
 
 The product connects the admissions stages through one status-driven workflow:
@@ -43,6 +45,8 @@ The product connects the admissions stages through one status-driven workflow:
 7. The product records Track B eligibility, explanation, correction/appeal status, and audit history.
 8. Any future seat allocation, financial aid, enrollment, or evaluation process receives the eligibility result downstream but remains outside this MVP.
   a. Here is the current idea for implementation: Financial aid resources are allocated to Track A students in a first pass, with remaining funds being reserved for Track B students. Based on the remaining aid resources and the income distribution of Track B eligible candidates, an algorithm programmatically determines the distribution of cohort seats across household income brackets (adjusted for household size). These seats are then assigned to the candidates through a lottery system in each bracket.
+
+
 
 ### Base Application Information
 
@@ -85,13 +89,19 @@ The product connects the admissions stages through one status-driven workflow:
   - Uses synthetic applicants, CogAT profiles, artifacts, and narrative evidence.
   - Does not process live child data, financial documents, fees, or applications.
 
+
+
 ## Track A
 
 - Track A preserves GT’s current CogAT cutoff and base admissions rule unchanged.
 - Enabling Track B must not change any Track A result.
 - Actual cutoff values and policies remain configurable until confirmed by authorized GT staff.
 
+
+
 ## Track B
+
+
 
 ### Invitation Rule
 
@@ -112,6 +122,8 @@ The prototype uses visibly synthetic values for:
 - reviewer anchors; and
 - eligibility boundary.
 
+
+
 ### Talent Evidence Snapshot
 
 The parent/guardian completes the Snapshot in 10–15 minutes.
@@ -120,6 +132,8 @@ The parent/guardian completes the Snapshot in 10–15 minutes.
 - The parent selects 1-2 primary talent domain.
 - Any demonstrable talent domain may contribute.
 - Evidence must indicate exceptional domain talent plus learning rate, transfer, abstraction, or comparable capacity relevant to thriving in GT.
+
+
 
 #### Route A — Primary Artifact Evidence
 
@@ -182,6 +196,8 @@ No overall holistic giftedness score is created.
 
 ### Independent Review
 
+
+
 #### Artifact Route
 
 - Reviewer 1 and Reviewer 2 score independently.
@@ -190,11 +206,15 @@ No overall holistic giftedness score is created.
 - If they disagree, a supervisor scores the application without seeing prior ratings.
 - Majority classification controls.
 
+
+
 #### Narrative Route
 
 - Reviewer 1, Reviewer 2, and the supervisor score independently from the start.
 - They cannot see each other’s ratings.
 - Majority classification controls.
+
+
 
 ### Reviewer Outcomes
 
@@ -224,12 +244,16 @@ Track B eligibility does not guarantee admission or a seat.
 - Applicants may re-enter a later cycle with genuinely new existing evidence.
 - Correction, appeal, accommodation, research refusal, and re-entry cannot reduce future access.
 
+
+
 ### Allocation and Evaluation
 
 - Track B seat allocation remains undecided and outside the MVP until GT staff clarification.
 - Household income cannot affect Track A or Track B capability eligibility.
 - No live ranking, or offer rule is assumed.
 - Track B broadens the eligible pool but does not itself demonstrate program effect. It is the difference in performance between accepted students from Track A and B that will statistically demonstrate program effect.
+
+
 
 ### Prohibited Eligibility Inputs
 
@@ -246,6 +270,94 @@ Track B eligibility does not guarantee admission or a seat.
 - Research-consent choices
 - Demographic identity
 
+
+
+## Division of Labor, Timeline, and External Blockers
+
+
+
+### Tiffany — Product and Frontend
+
+Owns:
+
+- Family application and status pages
+- Track B Snapshot experience
+- Accessibility and applicant-facing language
+- Correction and pending-state screens
+- Synthetic applicant examples
+- Documentation and demo story
+
+Their agents help with UI, accessibility, content, user scenarios, and documentation review.
+
+### Aadi — Backend and Admissions Logic
+
+Owns:
+
+- Local Supabase stack and synthetic PostgreSQL records
+- Track A/Track B routing
+- Reviewer and third-review workflow
+- Eligibility decisions and reason codes
+- Audit history and replay
+- Automated tests and demo setup
+
+Their agents help with data design, backend logic, automated tests, and integration checks.
+
+### Shared Work
+
+The team shares the PRD, data format, frontend/backend interface, test-case list, and demo script.
+
+Only one person edits a shared file at a time. Member A owns applicant-facing fields and copy. Member B owns routing and workflow interfaces.
+
+### Four-Week Timeline
+
+
+| Week                 | Tiffany                                                                                            | Aadi                                                                                   | End-of-week goal                                                          | Blockers                    |
+| -------------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | --------------------------- |
+| 1 — Plan             | Finalize application flow, Snapshot fields, accessibility states, and synthetic applicant examples | Define the data format, workflow states, routing interface, and synthetic rules        | Agree on fields, interfaces, test cases, and file ownership before coding | `B-01`–`B-04`               |
+| 2 — Build            | Build the Family Portal, status flow, artifact route, and narrative fallback                       | Build the local Supabase/PostgreSQL data layer, CogAT routing, reviewer workflow, and eligibility logic | Frontend and backend work independently against the agreed interface      | `B-05`, `B-07`              |
+| 3 — Connect and test | Add accessibility, corrections, pending states, and applicant explanations                         | Connect modules and add audit history, rule checks, and automated tests                | Complete the main Track A and Track B demo flows                          | `B-06` blocks live use only |
+| 4 — Finalize         | Run usability checks and finish documentation and presentation                                     | Run regression tests, fix bugs, and prepare the demo environment                       | Complete critic review, final fixes, and rehearsal                        | `B-08` remains undecided    |
+
+
+
+
+### Merge Rules
+
+1. Use a separate branch for each task.
+2. Each person and their agents edit only their assigned files.
+3. Do not have two agents edit the same file at the same time.
+4. Agree on shared data and interfaces before building against them.
+5. Merge and test together once per day.
+6. When external information is missing, use the listed placeholder and keep the blocker ID visible.
+
+
+
+### Blocker Labels
+
+- `[GT INFO]` — We need GT policy, workflow, staffing, or data.
+- `[TESTING RULE]` — We need a decision or expert input about CogAT or the Snapshot rubric.
+- `[PRIVACY]` — We need approval before using real child data or uploads.
+- `[FUTURE DECISION]` — We have intentionally left this outside the MVP.
+
+These items do not stop the synthetic prototype when a placeholder is listed. They do stop live use or claims that the prototype matches real GT policy.
+
+### Blocker List
+
+
+| ID   | Label                        | What we need                                                        | Who provides it                          | What we use for the prototype         | What cannot be finalized                   |
+| ---- | ---------------------------- | ------------------------------------------------------------------- | ---------------------------------------- | ------------------------------------- | ------------------------------------------ |
+| B-01 | `[GT INFO]`                  | Current Track A workflow and cutoff                                 | GT admissions                            | Fictional Track A rule                | Claim that the prototype matches GT policy |
+| B-02 | `[GT INFO]`                  | Actual ages, grades, and services                                   | GT leadership/admissions                 | Grades 3–8 interdisciplinary example  | Live pathway setup                         |
+| B-03 | `[GT INFO]` `[TESTING RULE]` | Track B promising band and battery-profile rule                     | GT and assessment expert                 | Fictional CogAT band/profile          | Live Track B invitations                   |
+| B-04 | `[GT INFO]` `[TESTING RULE]` | Talent domains, rubric anchors, and passing rules                   | GT, domain experts, evaluator            | Math/STEM and music examples          | Live Snapshot eligibility                  |
+| B-05 | `[GT INFO]`                  | Number of reviewers and available training time                     | GT admissions                            | Simulated reviewer accounts           | Staffing claims                            |
+| B-06 | `[PRIVACY]`                  | Rules for child data, accessibility, consent, storage, and security | GT privacy/legal/accessibility reviewers | Synthetic records and fixed artifacts | Live data use and deployment               |
+| B-07 | `[GT INFO]` `[PRIVACY]`      | Allowed artifact types, file limits, storage, and deletion          | GT IT/privacy                            | Fixed synthetic artifact examples     | Real artifact uploads                      |
+| B-08 | `[FUTURE DECISION]`          | Track B seats, financial aid, outcomes, and evaluation method       | GT leadership and evaluator              | `allocation undecided` status         | Offers and program-effect claims           |
+
+
+
+
 ## User Persona
 
 Parents or guardians applying for a child within the configured age/grade and service area who believe the child may qualify through Track A or the supplemental Track B pathway.
@@ -258,6 +370,8 @@ See:
 
 - `USER_STORIES.md`
 - `USER_STORY_FEATURE_MAP.md`
+
+
 
 ## MVP Acceptance Checks
 
@@ -274,12 +388,15 @@ See:
 - Every synthetic decision can be replayed from retained inputs and versions.
 - Applicant messages do not imply admission, “not gifted” status, or program effect.
 
+
+
 ## Tech Stack
 
 - **Next.js**
   - Provides the Family Portal, Admissions Dashboard, Reviewer Workspace, and Configuration/Audit views.
-- **Firebase Emulator Suite**
-  - Stores synthetic applications, CogAT profiles, Snapshot metadata, reviewer classifications, workflow states, and audit events.
+- **Supabase with PostgreSQL**
+  - PostgreSQL stores synthetic applications, CogAT profiles, Snapshot metadata, reviewer classifications, workflow states, and audit events.
+  - Supabase provides the local database API, authentication, storage integration, and role-based access layer.
 - **High-level product modules**
   - Base application
   - CogAT routing
@@ -288,4 +405,4 @@ See:
   - Decision explanation, correction, and appeal
   - Configuration and audit
 
-These are implementation candidates for the synthetic prototype, not product requirements. The MVP uses no live child data or production Firebase project.
+The MVP uses the local Supabase development stack with synthetic data only. It does not use live child data or a production Supabase project.
