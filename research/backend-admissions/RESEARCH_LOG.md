@@ -247,14 +247,28 @@
 - Converted the narrowed research handoff into a provisional executable
   implementation contract without starting code.
 - Defined one private application schema, one exposed API schema, twelve tables,
-  seven RPCs, three read views, typed outcomes, error codes, roles, invariants,
-  and frontend status projections.
+  seven core RPCs, three read RPCs, typed outcomes, error codes, roles,
+  invariants, and frontend status projections.
 - Added the missing `pending_assessment_correction` state.
 - Selected a unique 25-test critical manifest from the 109-case research
   fixture inventory.
 - Preserved the seven Day-0 decisions as a hard pre-scaffold gate.
 - Confirmed that no application, package manifest, migrations, or executable
   tests exist yet.
+
+### Iteration 17 — 2026-07-18
+
+- Verified official Supabase SSR, custom-claims, Auth-hook, RLS, API-key, local
+  testing, and pgTAP guidance.
+- Standardized human JWTs on top-level `authenticated` plus a separate
+  admin-controlled `user_role` claim.
+- Prohibited authorization from user-editable metadata and bound ownership to
+  `auth.uid()`.
+- Replaced read views with hardened read RPCs to avoid owner-rights/RLS
+  ambiguity.
+- Defined definer-function ownership, search-path, grant, idempotency,
+  concurrency, and service-key boundaries.
+- Added ten merge-blocking Auth/RLS/IDOR/grant/definer/new-object gates.
 
 ## Implementation Transition
 

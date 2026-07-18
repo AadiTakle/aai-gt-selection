@@ -1369,3 +1369,52 @@ source-authority role does not imply causal evidence.
 - **Use:** Demonstrates different DP synthesizers distort minority groups and
   subgroup utility differently.
 - **Limit:** Evaluated algorithms/tasks are not GT.
+
+## Supabase Auth, RLS, and Local Testing
+
+### Supabase SSR Auth
+
+- **URL:** https://supabase.com/docs/guides/auth/server-side
+- **Source role:** vendor documentation
+- **Evidence grade:** not applicable
+- **Use:** Request-scoped clients, cookie sessions, PKCE, and verified server
+  claims.
+
+### Supabase Custom Claims/RBAC
+
+- **URL:** https://supabase.com/docs/guides/api/custom-claims-and-role-based-access-control-rbac
+- **Source role:** vendor documentation
+- **Evidence grade:** not applicable
+- **Use:** Admin-controlled custom role claim and database authorization.
+
+### Supabase Custom Access Token Hook
+
+- **URL:** https://supabase.com/docs/guides/auth/auth-hooks/custom-access-token-hook
+- **Source role:** vendor documentation
+- **Evidence grade:** not applicable
+- **Use:** Version-sensitive hook pattern for adding coarse JWT claims.
+
+### Supabase Local Testing
+
+- **URL:** https://supabase.com/docs/guides/local-development/testing/overview
+- **pgTAP:** https://supabase.com/docs/guides/database/extensions/pgtap
+- **Source role:** vendor documentation
+- **Evidence grade:** not applicable
+- **Use:** Local reset, pgTAP, RLS/JWT simulation, and direct API test split.
+
+### PostgreSQL Row Security and Function Security
+
+- **RLS:** https://www.postgresql.org/docs/current/ddl-rowsecurity.html
+- **Functions:** https://www.postgresql.org/docs/current/sql-createfunction.html
+- **Serialization:** https://www.postgresql.org/docs/current/mvcc-serialization-failure-handling.html
+- **Source role:** official technical documentation
+- **Evidence grade:** not applicable
+- **Use:** Force RLS, owner/BYPASSRLS limits, safe definer functions, and
+  complete-transaction retries.
+
+### PostgREST Transactions
+
+- **URL:** https://docs.postgrest.org/en/stable/references/transactions.html
+- **Source role:** official technical documentation
+- **Evidence grade:** not applicable
+- **Use:** One request/transaction and per-function isolation behavior.

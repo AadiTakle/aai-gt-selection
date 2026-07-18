@@ -185,6 +185,7 @@ These are future protocols and design constraints.
 - `SYNTHETIC_FIXTURE_MATRIX.md`
 - `MVP_THREAT_MODEL.md`
 - `PROVISIONAL_IMPLEMENTATION_CONTRACT.md`
+- `RLS_AND_AUTH_BLUEPRINT.md`
 
 These are synthetic prototype specifications, not validation for live admissions.
 

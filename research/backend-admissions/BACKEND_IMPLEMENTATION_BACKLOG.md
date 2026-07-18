@@ -14,6 +14,7 @@ Canonical provisional build references:
 
 - `PROVISIONAL_IMPLEMENTATION_CONTRACT.md`
 - `CRITICAL_TEST_MANIFEST.md`
+- `RLS_AND_AUTH_BLUEPRINT.md`
 
 ## Day 0 — Resolve Contract Conflicts
 
@@ -41,6 +42,7 @@ Define:
 - review classifications;
 - pending reasons;
 - applicant-safe messages;
+- authoritative `user_role` claim vocabulary;
 - synthetic-only startup/data assertion;
 - API request/response fixtures.
 
@@ -101,6 +103,9 @@ Roles:
 Acceptance:
 
 - default-deny role/table matrix;
+- `auth.uid()` ownership and assignment predicates;
+- no authorization from `user_metadata`;
+- hardened read/definer RPC catalog;
 - reviewer assigned-case access only;
 - prohibited-field mutations leave decisions unchanged;
 - service credentials server-only.

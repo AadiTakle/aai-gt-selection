@@ -15,8 +15,8 @@
     "semantic_hash": "6b2d45b0b93a7ae725adedfd514aa569"
   },
   "docs/ASSUMPTIONS_AND_EVIDENCE.md": {
-    "mtime": 1784377777.7507045,
-    "ast_hash": "98fb313d75b4d03085556fcaaf0d13fc",
+    "mtime": 1784383093.4856255,
+    "ast_hash": "7c56fba57f172c459d6f396da3b3e139",
     "semantic_hash": ""
   },
   "docs/COGAT_GAPS_AND_TEST_SUITE_REPORT.md": {
@@ -65,8 +65,8 @@
     "semantic_hash": "65bb07c98c2665536934fad8b7a5bb4d"
   },
   "docs/TRACEABILITY_MATRIX.md": {
-    "mtime": 1784377781.6559567,
-    "ast_hash": "46077d6ddd4d5827c09811834743bd43",
+    "mtime": 1784383099.338919,
+    "ast_hash": "82a8a3b4c2e2d153c983eee8d2a1f382",
     "semantic_hash": ""
   },
   "docs/USER_STORIES.md": {
@@ -105,13 +105,13 @@
     "semantic_hash": ""
   },
   "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md": {
-    "mtime": 1784381163.3442605,
-    "ast_hash": "ed71f2cf53b9eb52012358b848ebedd8",
+    "mtime": 1784383074.5120814,
+    "ast_hash": "6fe93f098ff21a39be21dbb3e813c7b9",
     "semantic_hash": ""
   },
   "research/backend-admissions/RESEARCH_LOG.md": {
-    "mtime": 1784381158.3025854,
-    "ast_hash": "b7b4fcfcdf90ea6f582b686e64ad1029",
+    "mtime": 1784383036.596244,
+    "ast_hash": "f015162d6ec31bb712bec55f50cf881c",
     "semantic_hash": ""
   },
   "research/backend-admissions/SIMULATION_SPECIFICATION.md": {
@@ -130,8 +130,8 @@
     "semantic_hash": ""
   },
   "research/backend-admissions/ANNOTATED_SOURCE_REGISTER.md": {
-    "mtime": 1784379663.3383162,
-    "ast_hash": "acf52a397520c75775ebf21c42867e01",
+    "mtime": 1784383083.5302236,
+    "ast_hash": "2b9f4ac7d17bc526f0b1b19cab4ebbaa",
     "semantic_hash": ""
   },
   "research/backend-admissions/REVIEWER_AND_FAIRNESS_VALIDATION.md": {
@@ -185,8 +185,8 @@
     "semantic_hash": ""
   },
   "research/backend-admissions/MORNING_HANDOFF.md": {
-    "mtime": 1784381146.595037,
-    "ast_hash": "cbca2b3f43120a0973837a04eeaadb34",
+    "mtime": 1784383063.1742508,
+    "ast_hash": "79c77bcbf9547afbf71334c84880a97e",
     "semantic_hash": ""
   },
   "research/backend-admissions/RESEARCH_AUDIT_CORRECTIONS.md": {
@@ -200,8 +200,8 @@
     "semantic_hash": ""
   },
   "research/backend-admissions/BACKEND_IMPLEMENTATION_BACKLOG.md": {
-    "mtime": 1784381142.6592293,
-    "ast_hash": "feb62b37daa6fbfc4ffa280c712874e9",
+    "mtime": 1784383059.9129632,
+    "ast_hash": "b870fcfe1393f50e1644dd8e103e1502",
     "semantic_hash": ""
   },
   "research/backend-admissions/MVP_DATA_CONTRACT.md": {
@@ -245,13 +245,18 @@
     "semantic_hash": ""
   },
   "research/backend-admissions/CRITICAL_TEST_MANIFEST.md": {
-    "mtime": 1784381137.4112277,
-    "ast_hash": "1a64016a947134e2ec4f8cee6ea8edbc",
+    "mtime": 1784383054.2952197,
+    "ast_hash": "0017dd406d4ba100467d6bea2e179ece",
     "semantic_hash": ""
   },
   "research/backend-admissions/PROVISIONAL_IMPLEMENTATION_CONTRACT.md": {
-    "mtime": 1784381125.614344,
-    "ast_hash": "b2e6f1f40de869760e8a0fa0e1cee9bc",
+    "mtime": 1784383015.321854,
+    "ast_hash": "7d1e584a6991cdef4eb962b6178255dc",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/RLS_AND_AUTH_BLUEPRINT.md": {
+    "mtime": 1784383007.6129224,
+    "ast_hash": "9fd912a0890dc04fba5a4a825b649240",
     "semantic_hash": ""
   }
 }

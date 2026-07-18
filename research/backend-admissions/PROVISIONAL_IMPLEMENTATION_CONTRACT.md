@@ -13,6 +13,7 @@ This is the executable cut, not the complete research architecture.
 - pnpm 10 with committed lockfile
 - Next.js/TypeScript
 - Local Supabase/PostgreSQL
+- Pinned `@supabase/ssr` with request-scoped clients
 - Zod shared contracts
 - Vitest for TypeScript tests
 - pgTAP through `supabase test db`
@@ -56,6 +57,10 @@ create schema api; -- views and narrow RPCs only
 
 `auth.users` remains Supabase-owned.
 
+Human JWTs keep top-level `role=authenticated`. An admin-controlled
+`user_role` claim carries the coarse business role. Identity is always
+`auth.uid()`. User-editable `user_metadata` is never an authorization source.
+
 ### Twelve private tables
 
 1. `app.application`
@@ -88,6 +93,7 @@ create schema api; -- views and narrow RPCs only
 ## Core Database Invariants
 
 - All rows/configuration are synthetic.
+- Application ownership is bound to `auth.uid()`.
 - Submitted inputs are immutable.
 - Corrections create one successor; successor chains cannot branch.
 - Locked policy cannot change.
@@ -102,7 +108,7 @@ create schema api; -- views and narrow RPCs only
 - Correction, access, choice, and remedy history are excluded from decision
   inputs.
 
-## Seven RPCs
+## Seven Core RPCs
 
 ### 1. `api.save_application_draft`
 
@@ -168,13 +174,13 @@ Auditor or dedicated non-bypass decision service.
 Verifies exact input, policy, code, outcome, ordered reasons, and hashes. Writes
 one audit event without modifying the original decision.
 
-## Read Views
+## Read RPCs
 
-- `api.application_status`
-- `api.assigned_review_case`
-- `api.decision_explanation`
+- `api.get_application_status`
+- `api.get_assigned_review_case`
+- `api.get_decision_explanation`
 
-No writable API tables.
+No writable API tables or owner-rights views.
 
 ## Request Contract
 
@@ -182,7 +188,8 @@ Every mutation includes:
 
 - `idempotency_key`;
 - `expected_version` when stateful;
-- actor/role from JWT, never request fields;
+- actor from `auth.uid()` and business role from admin-controlled JWT claim,
+  never request fields or `user_metadata`;
 - correlation ID; and
 - database-enforced synthetic context.
 
@@ -254,6 +261,20 @@ validation, or program-effect language.
 - Auditor: trace read and replay only
 - Privacy steward: coded private context only, no eligibility mutation
 - Anonymous/service role: denied for ordinary runtime
+
+## RPC Hardening
+
+Default to invoker behavior. Any required `SECURITY DEFINER` RPC:
+
+- is owned by dedicated `NOLOGIN NOBYPASSRLS` `api_executor`;
+- uses fixed empty/`pg_catalog` search path and schema-qualified objects;
+- has `PUBLIC`, `anon`, `authenticated`, and `service_role` execution revoked
+  before explicit authenticated grant;
+- validates `user_role`, `auth.uid()`, ownership/assignment, expected version,
+  idempotency, allowed JSON keys, and synthetic context; and
+- writes only minimized idempotency/audit metadata.
+
+See `RLS_AND_AUTH_BLUEPRINT.md`.
 
 ## Day Sequence
 

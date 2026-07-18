@@ -50,6 +50,16 @@ Day-0 ratification.
 | BD-01 | Database/startup | Non-synthetic configuration or row fails closed |
 | SR-02 | Integration | Ordinary runtime service-role execution fails |
 
+`RLS-01` is one parameterized suite and must include:
+
+- `AUTH-01`: user-metadata role forgery has no effect;
+- `AUTH-02`: forged/expired/wrong-audience tokens fail;
+- `IDOR-01`: cross-owner/assignment IDs do not leak existence;
+- `GRANT-01`: catalog/default privileges match declaration;
+- `DEF-01`: definer owner/search-path/execute grants are safe;
+- `READ-01`: read RPCs expose no forbidden row/column; and
+- `NEW-OBJECT`: undeclared table/view/function security posture fails CI.
+
 ## Coverage
 
 Requirements:

@@ -83,5 +83,9 @@
   "81": "Standard Setting and Decision Utility",
   "82": "H4 Expand Candidate-Pool Access",
   "83": "Annotated Source Register",
-  "84": "Critical 25-Test Backend Manifest"
+  "84": "Critical 25-Test Backend Manifest",
+  "85": "Supabase Auth, RLS, and RPC Blueprint",
+  "86": "Supabase Auth, RLS, and Local Testing",
+  "87": "Concept A Selection-First",
+  "88": "Annotated Source Register"
 }
