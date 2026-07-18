@@ -5,7 +5,7 @@ alwaysApply: true
 
 # GT Selection Project Guardrails
 
-Before substantive work, read and follow:
+Before new or ambiguous substantive work, read and follow:
 
 1. `PROJECT_CHARTER.md`
 2. `docs/project-requirements.md`
@@ -15,7 +15,7 @@ Before substantive work, read and follow:
 Use `docs/CONCEPT_OPTIONS.md`, `docs/CRITIC_REVIEW_CHECKLIST.md`, and
 `docs/METRICS_AND_GUARDRAILS_LIBRARY.md` as references only, not approved direction.
 
-For every plan or implementation:
+For every new plan or implementation:
 
 - Cite the R/H requirement IDs served.
 - Identify evidence-register IDs and open assumptions.
@@ -23,6 +23,11 @@ For every plan or implementation:
 - State what is explicitly out of scope.
 - Update traceability, evidence, decisions, or exceptions when affected.
 - Verify acceptance evidence before claiming completion.
+
+When `AGENTS.md` fast mode applies, inherit these mappings and boundaries from
+the approved plan/spec instead of reopening all canonical documents. Do not
+repeat requirement/evidence summaries or governance edits unless the task
+actually changes product behavior, scope, evidence, or a recorded decision.
 
 Stop and ask when:
 
