@@ -119,7 +119,7 @@ Implements:
 
 Every evidence field is classified as `decision-used`, `optional research/context`, `routing`, or `operations-only`. The engine accepts decision-used fields only when an approved evidence-use record identifies the construct, pathway, evidence limits, effective version, approver, rater requirements, scoring rule, disagreement threshold, and adjudication procedure. D-008 authorizes synthetic artifact-route and narrative-fallback Snapshot evidence for Track B prototype decisions. F4 task, transfer, dynamic/process, commercial rating-scale, and all non-Snapshot optional outputs remain disconnected from eligibility fixtures.
 
-The engine also contains a bounded seat/offer/waitlist allocation state machine. Allocation inputs and outputs are versioned and research-consent fields are technically excluded.
+Any future seat/offer/waitlist allocation state machine is undecided and remains downstream of this engine's four-week scope (see D-010 and `B-08`); research-consent fields are technically excluded from eligibility and from any future allocation design.
 
 **Complete when:** Asynchronous strengths survive unrelated weaknesses, unauthorized or optional evidence cannot change eligibility/allocation, missingness never becomes zero, and identical valid inputs reproduce the same pathway and allocation result.
 
@@ -278,11 +278,11 @@ Implement all eleven features as bounded prototype capabilities, but constrain d
 - F4: implement one reusable hypothetical task/transfer/accommodation schema and instantiate it for every configured supported domain.
 - F5: capture provenance and assistance metadata; no advanced authenticity detection.
 - F6: implement accommodation states, equivalent-route configuration, and invalid-administration recovery.
-- F7: implement pathway/allocation pseudocode, approved-evidence registry, optional-field rejection, missingness, and uncertainty using synthetic decision fixtures disconnected from F4 research outputs.
+- F7: implement pathway decision pseudocode, approved-evidence registry, optional-field rejection, missingness, uncertainty, and an `allocation_undecided` downstream interface using synthetic decision fixtures disconnected from F4 research outputs; no allocation rule is implemented.
 - F8: implement synthetic calibration/adjudication workflows, not production rater validation.
-- F9: implement explanation, correction, appeal, retest, and re-entry state machines.
-- F10: implement consent/data-rights state separation using synthetic records.
-- F11: implement audit/replay, correction propagation, queue triggers, and automatic rights-preserving overload fail-safes rather than a production operations platform.
+- F9: implement explanation and factual/procedural correction state machines only; substantive rubric appeal, automated retest, and automated re-entry are deferred beyond the four-week MVP (D-010), though manual staff-initiated re-entry may remain.
+- F10: implement synthetic consent/data-rights choice separation and eligibility noninterference only, while proving those fields are excluded from the downstream allocation interface; this demonstrates the firewall, not legally effective consent, guardian authorization, or a production data-rights workflow.
+- F11: implement audit/replay, correction propagation, and queue-trigger demonstrations, including automatic rights-preserving overload fail-safes, as a synthetic demonstration rather than a production operations platform.
 
 ## MVP acceptance gate
 
@@ -294,5 +294,5 @@ The future MVP document should not approve a feature unless:
 4. all required evidence has an accessible common route;
 5. every decision and correction can be replayed;
 6. unsupported domains receive truthful service-mismatch outcomes;
-7. research, privacy, and appeal rights are enforceable in workflow state; and
+7. explanation, factual/procedural correction, and consent/data-rights choice separation are enforceable in workflow state as synthetic demonstrations, without claiming implemented substantive appeal or legally effective/production consent rights; and
 8. synthetic success is not described as live validity or production readiness.

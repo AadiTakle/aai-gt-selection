@@ -1,0 +1,340 @@
+# Overnight Backend and Admissions Research Log
+
+## Scope
+
+- Branch: `research/overnight-backend-selection`
+- Track A: audit only; do not propose MVP policy changes
+- Track B: research transparent candidate-selection and future allocation/evaluation methods
+- Primary target: academic growth after admission
+- Secondary target: operationalize “MIT-ready by eighth grade” as an advanced STEM-readiness construct, not an MIT admissions prediction
+- Data: public research and synthetic examples only
+- Deliverables: research report, annotated source register, and implementable algorithms/pseudocode
+
+## Research Standards
+
+- Prefer peer-reviewed causal studies, meta-analyses, technical standards, and reproducible methods.
+- Label publisher, company, working-paper, and transfer evidence.
+- Separate prediction of success from prediction of treatment benefit.
+- Do not use protected traits as capability features.
+- Do not turn exploratory models into live admissions rules.
+- Record null and contradictory findings.
+
+## Iteration Log
+
+### Iteration 0 — 2026-07-18
+
+- Created dedicated research branch.
+- Installed Graphify 0.9.18 and Cursor project rule.
+- Built initial project knowledge graph: 137 nodes, 131 edges, 26 communities.
+- Graph health warning: one dangling endpoint edge; no missing endpoints, duplicate edges, or edge-collapse variants.
+- Armed a 30-minute recurring research loop.
+- Confirmed user scope and deliverables.
+
+### Iteration 1 — 2026-07-18
+
+- Ran six parallel research tracks:
+  - causal selective-education designs;
+  - policy learning and heterogeneous treatment effects;
+  - power, attrition, clustering, and interference;
+  - transparent/fair selection algorithms;
+  - advanced STEM-readiness outcomes; and
+  - Supabase/PostgreSQL audit architecture.
+- Added 30+ source entries across direct education evidence, methods, policy learning, readiness, and backend standards.
+- Added deep dives for Bui–Craig–Imberman (2014) and Card–Giuliano (2016).
+- Added initial algorithms for Track A audit, Track B eligibility, randomized offers, RD, future modeling, and synthetic simulation.
+- Recorded power illustrations showing why a single small cohort detects only very large effects.
+- Recorded that Track A versus Track B performance differences alone do not
+  identify program effect; the BrainLift's complete design pairs Track B offer
+  randomization with a separate treated-route service-fit comparison.
+
+### Iteration 2 — 2026-07-18
+
+- Deepened selective-label research:
+  - admitted-only outcomes are nonidentified for rejected-applicant success and treatment benefit;
+  - reject inference and PU learning do not create missing counterfactual evidence;
+  - Track A audit should map outcome availability, overlap, range restriction, and extrapolation optimism.
+- Added held-out CATE/policy validation stack:
+  - BLP, GATES, RATE/AUTOC, doubly robust policy value, and split/cohort stability.
+- Specified why Track B changes the estimand at the Track A cutoff:
+  - reduced-form RD becomes Track A-side policy versus Track B-available policy;
+  - separate route effects are not identified from one discontinuity.
+- Added a full synthetic simulation specification with 21 scenarios, oracle outcomes, reviewer models, causal estimators, and expected failure demonstrations.
+- Added 15+ methods sources on selective labels, HTE calibration, complex/multivalued RD, and discrete scores.
+
+### Iteration 3 — 2026-07-18
+
+- Added reviewer reliability design:
+  - weighted kappa, AC1/AC2, ordinal alpha, class-specific agreement, G-theory, MFRM, severity, and drift;
+  - route-specific and pre-adjudication reporting;
+  - staged sample planning from 30–50 development cases to 200+ validation cases.
+- Added seven-stage rubric validation protocol covering content, response process, standard setting, rater/task structure, shadow validity, subgroup evidence, and consequences.
+- Added fairness taxonomy separating outcome-free process audits from outcome-dependent error/calibration metrics.
+- Added explicit fairness-impossibility and protected-trait audit boundaries.
+- Added three-way pending/abstention state machine and separated test, reviewer, predictive, causal, and operational uncertainty.
+- Added interpretable challenger ladder and strict promotion gates for any future model.
+- Added 20+ sources on agreement, validation, fairness, contestability, interpretable models, and abstention.
+
+### Iteration 4 — 2026-07-18
+
+- Deepened constrained allocation research:
+  - complete, blocked, matched-pair, rerandomized, and covariate-adaptive assignment;
+  - recommended batch-based blocked lottery with immutable waitlist and initial-offer ITT.
+- Added treatment-bundle analysis for scholarships, tuition, deposits, transportation, and technology.
+- Specified separate capability, finance, allocation, and evaluation data planes.
+- Added cryptographically auditable draw design using frozen signed rosters, future randomness, HMAC ranking, and append-only events.
+- Added deep dives for Research Design Meets Market Design and policy-learning papers.
+- Recorded Denver evidence that omitting assignment propensity attenuated estimated effects by roughly 44%–60%.
+- Added future capacity-constrained policy-learning implications and the lottery-default rule when heterogeneity evidence is weak.
+- Added 20+ allocation, aid, principal-stratification, and security sources.
+
+### Iteration 5 — 2026-07-18
+
+- Added concrete Supabase/PostgreSQL logical schema:
+  - identity/privacy separation;
+  - versioned applications, assessments, policies, evidence, reviews, and decisions;
+  - append-only audit and consent firewall;
+  - future isolated allocation/evaluation schemas;
+  - RLS roles and replay contracts.
+- Added read-only Track A audit plan with SQL/statistical query library and hard claim boundaries.
+- Added high-ceiling outcome recommendation:
+  - initial-offer ITT;
+  - baseline-adjusted endpoint ANCOVA;
+  - adjusted scale-score endpoint preferred; randomized transformed-outcome
+    contrasts distinguished from observational route/value-added comparisons.
+- Added falsification and design-specific sensitivity register for lotteries, RD, matching, and phased rollout.
+- Added reproducible evaluator export specification using snapshot consistency, pseudonyms, BagIt, signed manifests, provenance, environment locks, and offline replay.
+- Added 20+ sources on growth models, negative controls, staggered DiD, sensitivity, de-identification, and reproducibility.
+
+### Iteration 6 — 2026-07-18
+
+- Researched randomized tutoring and realistic scaled implementation effects.
+- Separated human tutoring, ITS/adaptive software, mastery, compacting, acceleration, grouping, and self-paced instruction evidence.
+- Recorded realistic independent broad-outcome benchmarks of roughly 0.10–0.20 SD and the strong-result range around 0.20–0.30 SD.
+- Added direct cautions that high-ability-specific RCT evidence is sparse and that GT’s bundled two-hour model differs from tutoring/adaptive studies.
+- Identified domain-specific baseline knowledge/instructional mismatch as the strongest plausible confirmatory benefit moderator.
+- Kept SES, ELL, disability/2e as equity analyses and broad ability, motivation, conscientiousness, and age as exploratory moderators.
+- Added fastest-student and wellbeing guardrails.
+- Added a provisional future MME framework: +0.10 SD at 12 months, +0.05 persistence, and −0.05 high-performer noninferiority.
+- Added 15+ mechanism, moderator, persistence, and benchmark sources.
+
+### Iteration 7 — 2026-07-18
+
+- Added modified Dominant Profile Judgment and complete-profile standard-setting design for multidimensional Track B evidence.
+- Added expected-utility, decision-curve, cost-sensitive, capacity, and Pareto-frontier rule comparison.
+- Added source-to-target transportability, sampling/transport weights, positivity, context-specific effects, and prediction intervals.
+- Added deterministic-rule and learned-model drift taxonomy, monitoring cadence, alert responses, offline update ladder, shadow validation, and rollback.
+- Added treatment-package, fidelity, implementation, mediation, principal-stratification, and economic-evaluation framework.
+- Added backend fields for target frames, contexts, program versions, fidelity, costs, monitoring, and model updates.
+- Added 15+ sources on standard setting, utility, transportability, drift, fidelity, and education economics.
+
+### Iteration 8 — 2026-07-18
+
+- Ran five adversarial package reviews:
+  - causal-method correctness;
+  - quantitative source/version audit;
+  - backend/governance consistency;
+  - selection/rubric methodology;
+  - morning executive synthesis.
+- Corrected one critical fuzzy-RD estimand error and eight important causal-design ambiguities.
+- Corrected Bui working-paper/journal estimate mixing and Card–Giuliano sample/effect labels.
+- Corrected market-design simulation/sample descriptions and separated two ASSISTments trials.
+- Added missing tutoring, ITS, gifted-course, and standards citations.
+- Added explicit missing-outcome schedule, clustered/interference simulation, and policy-value comparator.
+- Normalized source grades and removed duplicate source entry.
+- Added morning handoff and adversarial-corrections register.
+- Preserved unresolved canonical PRD/feature-map conflicts for explicit team decisions rather than silently editing product policy.
+
+### Iteration 9 — 2026-07-18
+
+- Audited education, causal-methods, fairness/selection, backend standards, and 2024–2026 literature.
+- Corrected randomized-waitlist DOI, Card–Giuliano sample/effect labels, policy-value formula, and RD implementation wording.
+- Tightened reviewer-metric citations and separated Gwet AC1 from AC2.
+- Added source and limitation labels for standard-setting heuristics, drift controls, and black-box promotion policy.
+- Fixed RO-Crate URL/version, NIST monitoring scope, cryptographic encoding/KDF details, and WWC citation.
+- Added recent gifted long-run, GenAI learning, scaled tutoring, selective-label, constrained-policy, weighted-lottery, and fairness-monitoring evidence.
+- Recorded that long-run attainment can move even when short-run standardized tests do not.
+- Added guardrail finding that unrestricted AI can raise assisted practice while harming independent performance.
+
+### Iteration 10 — 2026-07-18
+
+- Verified current public GT School campus, grades, Georgetown address, admissions entry, reported tuition/enrollment, scholarships, services, and remaining unknowns.
+- Confirmed current independent CogAT-around-90th-percentile reporting while leaving exact official rule/form unverified.
+- Built Timeback product/architecture/treatment-version inventory from public beta/API/support documentation.
+- Audited public Alpha/GT outcome claims, including the 154-student 2024–25 NWEA artifact and recalculated ~1.69× math/~1.54× reading aggregate ratios.
+- Documented current absence of independent peer-reviewed/causal Timeback/GT evaluation.
+- Verified Texas TEFA 2026–27 awards, priorities, lottery, school/testing requirements, tuition rules, and GT-specific unknowns.
+- Audited public GT/Alpha/Timeback privacy, monitoring, retention, vendor, consent, and public assurance gaps.
+- Added GT public facts dossier and current official/independent sources.
+
+### Iteration 11 — 2026-07-18
+
+- Distilled the research schema into a minimum synthetic MVP data contract.
+- Created a two-week backend implementation backlog with ownership and merge boundaries.
+- Created deterministic routing, review, pending, correction, replay, concurrency,
+  prohibited-field, accessibility, and RLS fixture matrices.
+- Added a bounded local Supabase/PostgreSQL threat model and minimum security gate.
+- Separated build-now admissions workflow from future allocation, evaluation, outcome,
+  finance, export, differential-privacy, and ML infrastructure.
+- Added a Day-0 contradiction gate before implementation.
+
+### Iteration 12 — 2026-07-18
+
+- Researched measurement invariance, DIF, accommodation validity, translation,
+  cultural adaptation, multilingual rater effects, and small-sample abstention.
+- Verified foundational standards and peer-reviewed methods, including
+  AERA/APA/NCME, ITC, Meredith, Wu–Estabrook, Sireci, Abedi, and CogAT-adjacent
+  Lakin/Lohman evidence.
+- Separated interface accessibility, accommodation-use noninterference,
+  construct preservation, and empirical route equivalence.
+- Corrected the unreachable accessibility-pending branch.
+- Renamed the synthetic accommodation invariant to noninterference rather than
+  unsupported equivalence.
+- Added private synthetic access-route records and removed access details from
+  decision-visible assistance data.
+- Added language/translation/interpreter invariance fixtures and a measurement
+  fairness research specification.
+
+### Iteration 13 — 2026-07-18
+
+- Researched faithful explanation, contrastive explanation, contestability,
+  procedural justice, meaningful human review, and algorithmic recourse.
+- Verified key empirical HCI findings that explanation can increase trust or
+  perceived fairness without improving objective understanding or decisions.
+- Separated explanation, factual/procedural correction, substantive rubric
+  appeal, later-cycle re-entry, and feature-changing recourse.
+- Recommended implementing correction in the MVP while specifying but disabling
+  substantive appeal until the PRD/feature-map conflict is resolved.
+- Added immutable decision trace/notice and remedy-case contracts.
+- Defined pending as a workflow state rather than a third reviewer vote.
+- Added explanation fidelity, remedy, notice delivery, concurrency, and
+  non-retaliation fixtures.
+- Downgraded H9 and PRD-001 status to reflect unresolved appeal, allocation, and
+  causal-claim contradictions.
+
+### Iteration 14 — 2026-07-18
+
+- Verified the current April 22, 2026 COPPA amended-rule compliance context and
+  conditional FERPA, PPRA, and Texas applicability boundaries.
+- Researched NIST privacy engineering, deidentification, differential privacy,
+  sanitization, LINDDUN, and privacy-design strategies.
+- Added peer-reviewed evidence that real-data-trained synthetic datasets can
+  leak membership, outliers, or copied records.
+- Established born-synthetic fixtures independent of real child records as the
+  prototype boundary.
+- Added field-purpose-retention registry, typed privacy-safe audit, synthetic
+  choice sentinel, lifecycle/disposition, hold, backup, and purge contracts.
+- Restricted Supabase `service_role` to local seed/reset rather than ordinary
+  runtime use.
+- Corrected GT versus Alpha monitoring and retention policy attribution.
+- Added privacy/retention/service-role/fixture-provenance acceptance fixtures.
+
+### Iteration 15 — 2026-07-18
+
+- Ran final cross-document, methodological, MVP-scope, source-integrity, and
+  Day-0 decision audits.
+- Corrected marginal-ITT, transformed-outcome, high-performer noninferiority,
+  mechanism, null/equivalence, and Card–Giuliano wording.
+- Required fairness labels to specify a construct-valid target and treatment
+  regime.
+- Removed reviewer-pending vote conflicts and clarified reviewer-population
+  inference.
+- Narrowed cryptographic, provenance, privacy, and legal-scope claims.
+- Removed duplicate source entries and added missing accessibility,
+  contestability, and privacy authorities.
+- Narrowed the executable two-week backend cut and fixed fixture ID collisions.
+- Created the final research audit and seven-item Day-0 decision brief.
+
+### Iteration 16 — 2026-07-18
+
+- Converted the narrowed research handoff into a provisional executable
+  implementation contract without starting code.
+- Defined one private application schema, one exposed API schema, twelve tables,
+  seven core RPCs, three read RPCs, typed outcomes, error codes, roles,
+  invariants, and frontend status projections.
+- Added the missing `pending_assessment_correction` state.
+- Selected a unique 25-test critical manifest from the 109-case research
+  fixture inventory.
+- Preserved the seven Day-0 decisions as a hard pre-scaffold gate.
+- Confirmed that no application, package manifest, migrations, or executable
+  tests exist yet.
+
+### Iteration 17 — 2026-07-18
+
+- Verified official Supabase SSR, custom-claims, Auth-hook, RLS, API-key, local
+  testing, and pgTAP guidance.
+- Standardized human JWTs on top-level `authenticated` plus a separate
+  admin-controlled `user_role` claim.
+- Prohibited authorization from user-editable metadata and bound ownership to
+  `auth.uid()`.
+- Replaced read views with hardened read RPCs to avoid owner-rights/RLS
+  ambiguity.
+- Defined definer-function ownership, search-path, grant, idempotency,
+  concurrency, and service-key boundaries.
+- Added ten merge-blocking Auth/RLS/IDOR/grant/definer/new-object gates.
+
+### Iteration 18 — 2026-07-18
+
+- Verified RFC 8785/8259/7493, FIPS 180-4, PostgreSQL 18 determinism,
+  W3C PROV, and build-provenance guidance.
+- Defined strict JCS application profile for duplicate keys, Unicode, numbers,
+  decimal strings, UUIDs, dates, and audit timestamps.
+- Made canonical TypeScript-produced bytes authoritative; retained `jsonb` only
+  as a query projection.
+- Bound inputs, policy, code/environment, outcome, ordered reasons, and trace
+  into one decision-root commitment.
+- Replaced ambiguous `hash_verifiable_only` with truthful reconstruction,
+  digest-verification, and not-replayable statuses.
+- Added cold replay, canonical-vector, root-mutation, audit-chain concurrency,
+  idempotency, workflow-race, and owner-boundary gates.
+- Clarified that internal hash chains do not detect owner rewrites without an
+  independently retained prior checkpoint.
+
+### Iteration 19 — 2026-07-18
+
+- Re-read the BrainLift's SPOV 1 and SPOV 3 and corrected the overnight
+  package's overly broad rejection of Track A/Track B comparisons.
+- Restored the intended two-stage design:
+  - Track B randomized offered-versus-not-offered ITT estimates Track B program
+    effect.
+  - Treated Track B versus treated Track A noninferiority tests whether Track B
+    keeps pace under GT.
+- Preserved the limitation that equal treated outcomes do not establish equal
+  Track A and Track B causal effects without a Track A counterfactual.
+- Identified statistical power and formal noninferiority—not causal framing—as
+  the next major design flaw.
+
+### Iteration 20 — 2026-07-18
+
+- Specified cumulative pooling of randomized Track B cohorts with
+  cohort-specific ITTs, prespecified target-population weights, and
+  heterogeneity reporting.
+- Added registered group-sequential/confidence-sequence requirements for annual
+  updates.
+- Decomposed the public growth multiple into total observed, randomized
+  counterfactual, and GT-attributable components.
+- Kept adjusted score/SD ITT primary because growth-ratio denominators can be
+  small and norm-version dependent.
+- Added simulation scenarios for cumulative precision, repeated-testing error,
+  treatment/norm drift, and unstable multiplier denominators.
+- Identified estimand drift across program, policy, population, site, outcome,
+  and norm versions as the next major flaw.
+
+### Iteration 21 — 2026-07-18
+
+- Reclassified cohort/version drift as a downstream analyst responsibility, not
+  an MVP statistical-collection requirement.
+- Added no applicant-facing fields, surveys, or admissions workflow.
+- Directed future analysts to use operational policy, program, instrument,
+  norm, site, and timestamp metadata already attached to records.
+- Kept version-specific effects, heterogeneity, and sequential inference in the
+  evaluator analysis plan only.
+
+## Implementation Transition
+
+The broad research clusters are covered. Next actions:
+
+1. Resolve the seven Day-0 PRD/governance decisions.
+2. Freeze synthetic policy values and reason codes.
+3. Add implementation work items to traceability.
+4. Scaffold local Supabase and implement the minimum data contract.
+5. Turn the fixture matrix into executable tests.

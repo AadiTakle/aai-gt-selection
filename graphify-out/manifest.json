@@ -1,0 +1,267 @@
+{
+  "docs/critic-ready-product-roadmap.canvas.tsx": {
+    "mtime": 1784276308.398665,
+    "ast_hash": "b3fb6c599074233bebdd1ad0872d5018",
+    "semantic_hash": "b3fb6c599074233bebdd1ad0872d5018"
+  },
+  "AGENTS.md": {
+    "mtime": 1784300688.3230681,
+    "ast_hash": "e5e046465efceab10d9997b370d0dde4",
+    "semantic_hash": "e5e046465efceab10d9997b370d0dde4"
+  },
+  "PROJECT_CHARTER.md": {
+    "mtime": 1784300684.8880103,
+    "ast_hash": "6b2d45b0b93a7ae725adedfd514aa569",
+    "semantic_hash": "6b2d45b0b93a7ae725adedfd514aa569"
+  },
+  "docs/ASSUMPTIONS_AND_EVIDENCE.md": {
+    "mtime": 1784391767.8568995,
+    "ast_hash": "8afcd519beb4ae452dc0f88a0d31ff02",
+    "semantic_hash": ""
+  },
+  "docs/COGAT_GAPS_AND_TEST_SUITE_REPORT.md": {
+    "mtime": 1784310127.3232048,
+    "ast_hash": "c6c5eb628cf88fbf2f74178e08004489",
+    "semantic_hash": "c6c5eb628cf88fbf2f74178e08004489"
+  },
+  "docs/CONCEPT_OPTIONS.md": {
+    "mtime": 1784323894.307377,
+    "ast_hash": "8d558ffbc848a0c4d4a5d8e108bb83d2",
+    "semantic_hash": "8d558ffbc848a0c4d4a5d8e108bb83d2"
+  },
+  "docs/CRITIC_REVIEW_CHECKLIST.md": {
+    "mtime": 1784300646.5155067,
+    "ast_hash": "3c9d843f60241e9c030a6637cbb3f2a5",
+    "semantic_hash": "3c9d843f60241e9c030a6637cbb3f2a5"
+  },
+  "docs/DECISION_LOG.md": {
+    "mtime": 1784340412.3797908,
+    "ast_hash": "7f5becd56d0a8a326fb57c0361283b53",
+    "semantic_hash": "7f5becd56d0a8a326fb57c0361283b53"
+  },
+  "docs/DEVELOPMENT_RUBRIC.md": {
+    "mtime": 1784300679.3752735,
+    "ast_hash": "dfeb2b89fb275c7420e35e5276de89d3",
+    "semantic_hash": "dfeb2b89fb275c7420e35e5276de89d3"
+  },
+  "docs/GT_ADMISSIONS_APPLICATION_MVP_PRD.md": {
+    "mtime": 1784340400.9781291,
+    "ast_hash": "cf727d4045503673d2f3c3e1d14314b8",
+    "semantic_hash": "cf727d4045503673d2f3c3e1d14314b8"
+  },
+  "docs/HOLISTIC_GIFTEDNESS_EVIDENCE_REPORT.md": {
+    "mtime": 1784311971.1406152,
+    "ast_hash": "f19432a05aa1405a1d54863206d37e07",
+    "semantic_hash": "f19432a05aa1405a1d54863206d37e07"
+  },
+  "docs/METRICS_AND_GUARDRAILS_LIBRARY.md": {
+    "mtime": 1784300668.1604943,
+    "ast_hash": "9120fe8b3f3e6082564f599b39a193fe",
+    "semantic_hash": "9120fe8b3f3e6082564f599b39a193fe"
+  },
+  "docs/SCOPE_EXCEPTION_LOG.md": {
+    "mtime": 1784274759.7995467,
+    "ast_hash": "65bb07c98c2665536934fad8b7a5bb4d",
+    "semantic_hash": "65bb07c98c2665536934fad8b7a5bb4d"
+  },
+  "docs/TRACEABILITY_MATRIX.md": {
+    "mtime": 1784391773.442385,
+    "ast_hash": "e596dd254cba8fc8e0490b1e69409839",
+    "semantic_hash": ""
+  },
+  "docs/USER_STORIES.md": {
+    "mtime": 1784316094.210154,
+    "ast_hash": "d0622a2e34f03b5566d1f8661ff92301",
+    "semantic_hash": "d0622a2e34f03b5566d1f8661ff92301"
+  },
+  "docs/USER_STORY_FEATURE_MAP.md": {
+    "mtime": 1784324344.849974,
+    "ast_hash": "f8ef62a0189d459e7d1dc1fda259cd67",
+    "semantic_hash": "f8ef62a0189d459e7d1dc1fda259cd67"
+  },
+  "docs/project-requirements.md": {
+    "mtime": 1784274759.8142455,
+    "ast_hash": "93199aee6a3c0804bab0f56dba5a806a",
+    "semantic_hash": "93199aee6a3c0804bab0f56dba5a806a"
+  },
+  "gt-school-counterfactual-brainlift/brainlift-gt-school-counterfactual.md": {
+    "mtime": 1784083705.6947153,
+    "ast_hash": "cd43855c443f80ac077a22c432b38b9f",
+    "semantic_hash": "cd43855c443f80ac077a22c432b38b9f"
+  },
+  "gt-school-counterfactual-brainlift/source-register-annotated.md": {
+    "mtime": 1784068606.9874048,
+    "ast_hash": "0d21ea86189aaf82bf00abb7d68b039f",
+    "semantic_hash": "0d21ea86189aaf82bf00abb7d68b039f"
+  },
+  "gt-school-counterfactual-brainlift/Aadi Takle - BrainLift- The GT School Counterfactual \u2014 Separating Program Effect from Selection Effect.pdf": {
+    "mtime": 1784084129.3038805,
+    "ast_hash": "8658761c915a5e209eaaa4b3cdda1610",
+    "semantic_hash": "8658761c915a5e209eaaa4b3cdda1610"
+  },
+  "research/backend-admissions/ALGORITHM_DESIGNS.md": {
+    "mtime": 1784391756.5693274,
+    "ast_hash": "8bf1c0c170df775c723224faf2ebbe79",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md": {
+    "mtime": 1784391729.3901522,
+    "ast_hash": "d15af49d41d44eb86238e5efc4f97b7f",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/RESEARCH_LOG.md": {
+    "mtime": 1784391780.3523977,
+    "ast_hash": "0751e312d3a2b8ea74d13b9e1ac8ce93",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/SIMULATION_SPECIFICATION.md": {
+    "mtime": 1784391761.1757836,
+    "ast_hash": "1a53c92896afbd2a64029b6688fa13bb",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/paper-deep-dives/01_BUI_CRAIG_IMBERMAN_2014.md": {
+    "mtime": 1784388995.5886536,
+    "ast_hash": "d47f823474dacfee8803601276acc30c",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/paper-deep-dives/02_CARD_GIULIANO_2016.md": {
+    "mtime": 1784379509.715398,
+    "ast_hash": "06417b84a8d4a4e8716a2ba54f266430",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/ANNOTATED_SOURCE_REGISTER.md": {
+    "mtime": 1784384993.367827,
+    "ast_hash": "e0e0a40561ff520d9754c74a6863bc88",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/REVIEWER_AND_FAIRNESS_VALIDATION.md": {
+    "mtime": 1784381216.3296435,
+    "ast_hash": "602e402fe9264d843d7171bc14cc5843",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/ALLOCATION_AND_AID_RESEARCH.md": {
+    "mtime": 1784389007.3439958,
+    "ast_hash": "5a124679e0cff0feb5324370fc48d7d5",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/paper-deep-dives/03_RESEARCH_DESIGN_MEETS_MARKET_DESIGN.md": {
+    "mtime": 1784379645.7033708,
+    "ast_hash": "017852f41df3e12bce5bd64766216cd0",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/paper-deep-dives/04_POLICY_LEARNING.md": {
+    "mtime": 1784368787.537528,
+    "ast_hash": "32e696aa1ae3e1d01dbc980c6bd2967a",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/BACKEND_DATA_MODEL.md": {
+    "mtime": 1784384858.2817798,
+    "ast_hash": "17964311e42a190f1a1a076fbf1f3438",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/EVALUATOR_EXPORT_SPEC.md": {
+    "mtime": 1784369004.1478467,
+    "ast_hash": "a0dc47d00d5da59a53c2484cfa8abd31",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/OUTCOME_AND_FALSIFICATION_PLAN.md": {
+    "mtime": 1784391736.06934,
+    "ast_hash": "7d6686f8eef9dc85ae901a38c31d0a9e",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/TRACK_A_AUDIT_PLAN.md": {
+    "mtime": 1784389000.04107,
+    "ast_hash": "ce6b40e553ce39eb11d127d7af66f466",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md": {
+    "mtime": 1784379497.3345675,
+    "ast_hash": "87bf5ed910d2ddf9b670c3feac6da070",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/STANDARD_SETTING_AND_LIFECYCLE.md": {
+    "mtime": 1784368948.2257702,
+    "ast_hash": "cef93eb4cbdc70f3e9209e5bd337056a",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/MORNING_HANDOFF.md": {
+    "mtime": 1784391749.9697297,
+    "ast_hash": "9f6bda299eeb8c45012fb768f403f673",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/RESEARCH_AUDIT_CORRECTIONS.md": {
+    "mtime": 1784388879.5580912,
+    "ast_hash": "537a3b04c5f27f0c03eeb4eb98fcd95d",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md": {
+    "mtime": 1784391361.266672,
+    "ast_hash": "ae8857f23bcfb3ee4166cefac2b35f45",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/BACKEND_IMPLEMENTATION_BACKLOG.md": {
+    "mtime": 1784388871.6398113,
+    "ast_hash": "5a5d67813f7512d5b8aacb90640553ab",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/MVP_DATA_CONTRACT.md": {
+    "mtime": 1784384870.0088105,
+    "ast_hash": "3521a0fbdb7ced5d5c9cb114500b5507",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/MVP_THREAT_MODEL.md": {
+    "mtime": 1784384880.3450043,
+    "ast_hash": "72531540791cd88f7ac4f9358f5fe03e",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/SYNTHETIC_FIXTURE_MATRIX.md": {
+    "mtime": 1784384866.3303244,
+    "ast_hash": "5927f2f3d158b8d3360252c79f555e6e",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/ACCESSIBILITY_AND_MEASUREMENT_FAIRNESS.md": {
+    "mtime": 1784381212.3063476,
+    "ast_hash": "e0b1fb8a360b2ec17bac5e9dd37e290f",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/EXPLANATION_AND_CONTESTABILITY.md": {
+    "mtime": 1784375819.6437933,
+    "ast_hash": "a521d97b1e78344415e7e97f6dc13f3d",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/CHILD_DATA_PRIVACY_AND_RETENTION.md": {
+    "mtime": 1784384862.3244712,
+    "ast_hash": "847bc3807c5c7ede4b5744691a247a14",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/DAY_ZERO_DECISION_BRIEF.md": {
+    "mtime": 1784391741.5953982,
+    "ast_hash": "db589378dbb256988313369584e71bde",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/FINAL_RESEARCH_AUDIT.md": {
+    "mtime": 1784388875.522107,
+    "ast_hash": "bae16d4a8ffa643a87c44eaabf342de7",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/CRITICAL_TEST_MANIFEST.md": {
+    "mtime": 1784384852.7761786,
+    "ast_hash": "9c463a7cd54c0d69b665451c7557f2c5",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/PROVISIONAL_IMPLEMENTATION_CONTRACT.md": {
+    "mtime": 1784384846.426894,
+    "ast_hash": "5279b1e43a28381eef231b5a845e22c0",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/RLS_AND_AUTH_BLUEPRINT.md": {
+    "mtime": 1784383007.6129224,
+    "ast_hash": "9fd912a0890dc04fba5a4a825b649240",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/CANONICALIZATION_AND_REPLAY_BLUEPRINT.md": {
+    "mtime": 1784384997.3192034,
+    "ast_hash": "240ca04aeb2f452a5b856d3f664b12f9",
+    "semantic_hash": ""
+  }
+}
