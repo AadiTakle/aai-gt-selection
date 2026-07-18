@@ -1,5 +1,6 @@
 # @gt-selection/contracts
 
-Reserved for framework-independent Zod schemas and TypeScript request/response contracts.
+Framework-independent Zod schemas and TypeScript request/response contracts for the synthetic
+application boundary.
 
 This package must not import from `apps/web` or from generated Supabase implementation types.

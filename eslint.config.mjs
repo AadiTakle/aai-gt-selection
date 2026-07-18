@@ -5,11 +5,14 @@ export default tseslint.config(
   {
     ignores: [
       '.cursor/**',
+      '**/.next/**',
       'docs/**',
       'graphify-out/**',
       'gt-school-counterfactual-brainlift/**',
       'node_modules/**',
+      'packages/db-types/src/database.generated.ts',
       'research/**',
+      'supabase/.temp/**',
     ],
   },
   eslint.configs.recommended,

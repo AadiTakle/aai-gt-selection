@@ -1,6 +1,7 @@
 # @gt-selection/web
 
-Reserved for the single Next.js App Router application.
+Single Next.js App Router application for the synthetic GT admissions architecture shell.
 
-Phase A intentionally contains no application source or framework dependencies. Phase B will
-initialize this package after the architecture plan is accepted.
+It contains role-gated placeholder surfaces, request-scoped Supabase clients, a synthetic-only
+environment guard, health/session routes, component/unit tests, and Playwright smoke tests. It
+does not contain admissions workflow or decision logic.

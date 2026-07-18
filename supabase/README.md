@@ -1,7 +1,10 @@
 # Local Supabase boundary
 
-Phase A reserves this directory for the local-only Supabase project.
+This directory contains the local-only Supabase project boundary.
 
-Phase B will add `config.toml`, migrations, deterministic seeds, pgTAP tests, and generated
-type commands after the architecture plan is accepted. Do not link this repository to a hosted
-Supabase project or place production credentials here.
+The bootstrap migration creates only private `app` and exposed `api` schemas, non-bypass owner
+roles, and pgTAP. It intentionally creates no admissions entities, policies, allocation,
+evaluation, finance, or real-data structures.
+
+Use the root `db:*` commands for start/reset/lint/test/type generation. Do not link this
+repository to a hosted Supabase project or place production credentials here.
