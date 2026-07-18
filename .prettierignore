@@ -1,0 +1,8 @@
+.cursor/
+docs/
+graphify-out/
+gt-school-counterfactual-brainlift/
+node_modules/
+research/
+*.md
+pnpm-lock.yaml
