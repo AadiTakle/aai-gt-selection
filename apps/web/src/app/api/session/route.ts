@@ -1,6 +1,6 @@
-import { userRoleSchema } from '@gt-selection/contracts';
 import { NextResponse } from 'next/server';
 
+import { parseUserRoleClaim } from '@/lib/role-claims';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -9,7 +9,7 @@ export async function GET() {
   try {
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase.auth.getClaims();
-    const userRole = userRoleSchema.safeParse(data?.claims.user_role);
+    const userRole = parseUserRoleClaim(data?.claims);
 
     if (error || !userRole.success) {
       return NextResponse.json({
