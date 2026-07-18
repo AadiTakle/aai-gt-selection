@@ -59,7 +59,9 @@ Overnight research package reviewed by causal-method, quantitative-source, backe
 
 These are not silently edited on the research branch:
 
-1. PRD claims Track A-versus-Track B performance demonstrates program effect.
+1. PRD collapses the BrainLift's two-stage design: only the Track B
+   offered-versus-not-offered lottery identifies Track B effect; treated
+   Track A/Track B comparison is service-fit noninferiority.
 2. PRD says allocation is outside MVP but includes Track-A-first aid/lottery concept.
 3. PRD calls Track A current policy while B-01/E-002 remain unresolved.
 4. PRD prohibits `Domain` while routing and anchors require a domain; likely intent is to prohibit domain prestige/unsupported-domain advantage.

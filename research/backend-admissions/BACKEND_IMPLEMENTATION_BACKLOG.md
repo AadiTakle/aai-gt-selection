@@ -21,7 +21,8 @@ Canonical provisional build references:
 
 Before coding:
 
-1. Remove the false Track A/Track B program-effect claim.
+1. Replace the collapsed Track A/Track B causal claim with the BrainLift
+   two-stage lottery-effect and service-fit/noninferiority design.
 2. Quarantine Track-A-first aid/lottery as future research.
 3. Clarify `domain` versus `domain prestige`.
 4. Choose one pending/reviewer aggregation contract.

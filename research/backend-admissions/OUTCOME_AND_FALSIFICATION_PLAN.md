@@ -64,8 +64,52 @@ these transforms do not create causal identification.
 - Percentile change
 - Student growth percentile
 - Value-added model in one selected school
-- Track A-versus-Track B route difference
+- Track A-versus-Track B route difference as the sole causal estimator
 - Compensatory “MIT readiness” composite
+
+## BrainLift Two-Stage Evaluation
+
+### Stage 1 — Track B causal effect
+
+Primary estimand:
+
+\[
+\tau_B = E[Y_T \mid B,Z=1] - E[Y_T \mid B,Z=0]
+\]
+
+where \(Z\) is randomized initial offer among equally eligible Track B
+candidates. Analyze all candidates by original assignment regardless of
+enrollment.
+
+### Stage 2 — Service-fit noninferiority
+
+Secondary estimand:
+
+\[
+\Delta_{fit} =
+E[Y_T \mid B,Z=1] - E[Y_T \mid A]
+\]
+
+standardized over prespecified baseline covariates and blocks.
+
+This is a treated-policy/service-fit comparison, not a causal treatment-effect
+contrast. Preregister a substantively justified noninferiority margin
+\(m_{fit}\) and require the one-sided lower confidence bound for
+\(\Delta_{fit}\) to exceed \(-m_{fit}\).
+
+A nonsignificant Track A/Track B difference does not establish equivalence.
+
+Combined interpretation:
+
+- \(\tau_B > 0\) with the required precision: Track B offer/package benefits
+  capable-but-underserved candidates.
+- \(\Delta_{fit} > -m_{fit}\): the offered Track B cohort keeps pace under the
+  GT policy.
+- Both results support pathway expansion, subject to access, capacity,
+  high-performer, and wellbeing guardrails.
+
+This does not establish \(\tau_A=\tau_B\); that requires a credible Track A
+counterfactual.
 
 ## Multiple Pretests
 

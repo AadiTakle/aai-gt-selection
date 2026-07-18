@@ -250,7 +250,7 @@ Do not use:
 - enrolled-versus-declined as-treated comparison;
 - post-assignment financial variables as controls;
 - rebalanced or manually swapped assignments; or
-- Track A-versus-Track B outcomes as program effect.
+- Track A-versus-Track B outcomes alone as program effect.
 
 ## 9. Anchor Sources
 

@@ -4,11 +4,15 @@
 
 Demonstrate, with known synthetic truth:
 
-1. why Track A-versus-Track B performance differences do not estimate program effect;
-2. when randomized offers and RD recover causal effects;
-3. how matching and pre/post designs fail under hidden selection;
-4. how Track B rule choices change false positives/negatives; and
-5. how reviewer disagreement, artifacts, missingness, and measurement error affect decisions.
+1. why treated Track A-versus-Track B differences alone do not estimate program
+   effect;
+2. how the BrainLift's Track B randomized-offer effect plus treated-route
+   noninferiority design supports pathway expansion;
+3. when randomized offers and RD recover causal effects;
+4. how matching and pre/post designs fail under hidden selection;
+5. how Track B rule choices change false positives/negatives; and
+6. how reviewer disagreement, artifacts, missingness, and measurement error
+   affect decisions.
 
 Not approved for live admissions or GT-specific effect claims.
 
@@ -185,9 +189,14 @@ E[Y(1)\mid A]-E[Y(1)\mid B]
 
 does not equal \(E[Y(1)-Y(0)]\). Under a null effect, route differences can remain large because selection differs.
 
+Use this comparison only for the Stage-2 service-fit estimand. Evaluate
+one-sided noninferiority coverage under prespecified margins and demonstrate
+that failure to reject a route difference does not establish equivalence.
+
 ### Randomized offers
 
-Randomize half of qualified applicants within grade and CogAT bands.
+Randomize offers among equally eligible Track B candidates within prespecified
+operational blocks.
 
 Compare:
 
@@ -195,6 +204,10 @@ Compare:
 - Lin-adjusted blocked ANCOVA;
 - IV/LATE under compliance scenarios;
 - deliberately invalid as-treated analysis.
+
+Combine the valid Track B ITT with the service-fit noninferiority result and
+measure how often the joint decision correctly supports or rejects pathway
+expansion.
 
 ### Regression discontinuity
 
@@ -283,7 +296,10 @@ Expected failure: natural growth and regression to the mean appear as program ef
 ## Expected Demonstrations
 
 - Valid lottery ITT is approximately unbiased with correct coverage.
-- Track A/B route differences remain nonzero under a true zero program effect.
+- Track A/B route differences remain nonzero under a true zero program effect,
+  while the joint design distinguishes causal Track B benefit from service fit.
+- Small samples frequently fail to establish either Track B benefit or
+  Track A/B noninferiority even when both are true.
 - Matching bias increases with hidden confounding despite observed balance.
 - Pre/post analysis reports apparent gains under zero treatment effect.
 - Weak compliance preserves diluted ITT but destabilizes IV.

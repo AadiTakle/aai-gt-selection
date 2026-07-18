@@ -85,7 +85,8 @@ Attrition was material and differed by offer status. Bounds for science included
 
 ## Direct Implications for GT
 
-1. Track A versus Track B outcomes do not estimate program effect.
+1. Track A versus Track B outcomes alone do not estimate program effect; the
+   BrainLift pairs that service-fit comparison with randomized Track B offers.
 2. Better peer composition is not sufficient evidence of value added.
 3. Subject-specific effects may exist even when broad effects are null.
 4. Differential attrition can invalidate an apparently positive result.

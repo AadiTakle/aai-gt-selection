@@ -205,7 +205,8 @@ Otherwise report: `calibration not identifiable`.
 - Track A is fair from selection-rate parity.
 - CogAT is locally valid from synthetic/public aggregates.
 - A calibrated model identifies who benefits.
-- Track A-versus-Track B outcomes demonstrate program effect.
+- Track A-versus-Track B outcomes alone demonstrate program effect or equal
+  route-specific treatment effects.
 
 ## Sources
 

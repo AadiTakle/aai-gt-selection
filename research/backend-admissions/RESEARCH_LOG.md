@@ -43,7 +43,9 @@
 - Added deep dives for Bui–Craig–Imberman (2014) and Card–Giuliano (2016).
 - Added initial algorithms for Track A audit, Track B eligibility, randomized offers, RD, future modeling, and synthetic simulation.
 - Recorded power illustrations showing why a single small cohort detects only very large effects.
-- Recorded the critical correction that Track A versus Track B performance differences do not identify program effect.
+- Recorded that Track A versus Track B performance differences alone do not
+  identify program effect; the BrainLift's complete design pairs Track B offer
+  randomization with a separate treated-route service-fit comparison.
 
 ### Iteration 2 — 2026-07-18
 
@@ -286,6 +288,20 @@
   idempotency, workflow-race, and owner-boundary gates.
 - Clarified that internal hash chains do not detect owner rewrites without an
   independently retained prior checkpoint.
+
+### Iteration 19 — 2026-07-18
+
+- Re-read the BrainLift's SPOV 1 and SPOV 3 and corrected the overnight
+  package's overly broad rejection of Track A/Track B comparisons.
+- Restored the intended two-stage design:
+  - Track B randomized offered-versus-not-offered ITT estimates Track B program
+    effect.
+  - Treated Track B versus treated Track A noninferiority tests whether Track B
+    keeps pace under GT.
+- Preserved the limitation that equal treated outcomes do not establish equal
+  Track A and Track B causal effects without a Track A counterfactual.
+- Identified statistical power and formal noninferiority—not causal framing—as
+  the next major design flaw.
 
 ## Implementation Transition
 

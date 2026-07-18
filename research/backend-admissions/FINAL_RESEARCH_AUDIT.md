@@ -34,7 +34,8 @@ It is not:
 
 ## Canonical Decisions Still Required
 
-1. Remove the Track A/Track B causal overclaim.
+1. Restore the BrainLift's two-stage design: Track B randomized-offer effect
+   plus treated Track A/Track B service-fit noninferiority.
 2. Remove/quarantine the Track-A-first aid/allocation concept.
 3. Remove finance fields from MVP persistence.
 4. Clarify domain versus domain prestige.

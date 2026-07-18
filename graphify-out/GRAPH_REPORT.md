@@ -1,16 +1,16 @@
 # Graph Report - gt-selection-capstone  (2026-07-18)
 
 ## Corpus Check
-- 52 files · ~94,608 words
+- 52 files · ~95,864 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1021 nodes · 982 edges · 89 communities (79 shown, 10 thin omitted)
+- 1030 nodes · 991 edges · 91 communities (81 shown, 10 thin omitted)
 - Extraction: 98% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 12 edges (avg confidence: 0.89)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `76a2d9bd`
+- Built from commit: `58d63b9a`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -104,16 +104,18 @@
 - Supabase Auth, RLS, and Local Testing
 - Concept A Selection-First
 - Annotated Source Register
+- Concept A Selection-First
+- Two-Stage BrainLift Evaluation Logic
 
 ## God Nodes (most connected - your core abstractions)
 1. `Separating Selection Effect from Program Effect` - 47 edges
 2. `Annotated Source Register` - 31 edges
-3. `Iteration Log` - 20 edges
+3. `Iteration Log` - 21 edges
 4. `Backend and Admissions Algorithm Designs` - 19 edges
 5. `Supabase/PostgreSQL Research Data Model` - 18 edges
 6. `Canonicalization, Hashing, and Replay Blueprint` - 18 edges
-7. `Child Data Privacy, Retention, and Synthetic-Data Safety` - 17 edges
-8. `Morning Handoff` - 17 edges
+7. `Morning Handoff` - 18 edges
+8. `Child Data Privacy, Retention, and Synthetic-Data Safety` - 17 edges
 9. `Minimum Synthetic MVP Data Contract` - 17 edges
 10. `Supabase Auth, RLS, and RPC Blueprint` - 17 edges
 
@@ -137,7 +139,7 @@
 - **Track B Snapshot Workflow** — docs_gt_admissions_application_mvp_prd_track_b_invitation, docs_gt_admissions_application_mvp_prd_artifact_route, docs_gt_admissions_application_mvp_prd_narrative_fallback, docs_gt_admissions_application_mvp_prd_independent_review [EXTRACTED 1.00]
 - **Credible Causal Evaluation Stack** — gt_school_counterfactual_brainlift_brainlift_gt_school_counterfactual_lottery_identification, docs_project_requirements_r3, docs_project_requirements_r6, docs_project_requirements_h6 [INFERRED 0.95]
 
-## Communities (89 total, 10 thin omitted)
+## Communities (91 total, 10 thin omitted)
 
 ### Community 0 - "Causal Attribution and Governance"
 Cohesion: 0.08
@@ -165,7 +167,7 @@ Nodes (10): E-011 Independent Evaluation Permission Assumption, E-017 WJ V and W
 
 ### Community 6 - "Prohibited Inputs and Equity"
 Cohesion: 0.05
-Nodes (43): Accessibility and Measurement Fairness, Adversarial Research Audit, Aid and Treatment Package, Algorithmic Guardrails, Assignment and Market-Design Finding, Backend and Admissions Research Report, Backend Data Model, Backend Research Direction (+35 more)
+Nodes (42): Accessibility and Measurement Fairness, Adversarial Research Audit, Aid and Treatment Package, Algorithmic Guardrails, Assignment and Market-Design Finding, Backend and Admissions Research Report, Backend Data Model, Backend Research Direction (+34 more)
 
 ### Community 7 - "Four-Week Roadmap"
 Cohesion: 0.29
@@ -205,11 +207,11 @@ Nodes (3): Privacy Correction Appeal and Re-entry Stories, F10 Consent Privacy a
 
 ### Community 26 - "Backend and Admissions Algorithm Designs"
 Cohesion: 0.10
-Nodes (19): A. Track A Audit, B. Track B Invitation, Backend and Admissions Algorithm Designs, C. Track B Snapshot Eligibility, D. Future Randomized-Offer Evaluation, E. Future Regression-Discontinuity Evaluation, F. Candidate-Selection Modeling Rules, G. Synthetic Simulation Plan (+11 more)
+Nodes (20): A. Track A Audit, B. Track B Invitation, Backend and Admissions Algorithm Designs, C. Track B Snapshot Eligibility, D2. Joint Track B Effect and Service-Fit Decision, D. Future Randomized-Offer Evaluation, E. Future Regression-Discontinuity Evaluation, F. Candidate-Selection Modeling Rules (+12 more)
 
 ### Community 27 - "Overnight Backend and Admissions Research Log"
 Cohesion: 0.08
-Nodes (24): Implementation Transition, Iteration 0 — 2026-07-18, Iteration 10 — 2026-07-18, Iteration 11 — 2026-07-18, Iteration 12 — 2026-07-18, Iteration 13 — 2026-07-18, Iteration 14 — 2026-07-18, Iteration 15 — 2026-07-18 (+16 more)
+Nodes (25): Implementation Transition, Iteration 0 — 2026-07-18, Iteration 10 — 2026-07-18, Iteration 11 — 2026-07-18, Iteration 12 — 2026-07-18, Iteration 13 — 2026-07-18, Iteration 14 — 2026-07-18, Iteration 15 — 2026-07-18 (+17 more)
 
 ### Community 28 - "Future Allocation, Aid, and Auditable Lottery Research"
 Cohesion: 0.11
@@ -224,8 +226,8 @@ Cohesion: 0.13
 Nodes (14): A complex assignment mechanism, A simple fixed block lottery, Abdulkadiroğlu, Angrist, Narita, and Pathak (2017), Assignment-Propensity Method, Bias from Ignoring the Mechanism, Denver Sample, GT Implementation Lessons, Limits (+6 more)
 
 ### Community 31 - "Outcome Modeling and Causal Falsification Plan"
-Cohesion: 0.10
-Nodes (20): Assessment event, Assignment, Backend Fields, By Design, Causal DAG Minimum, Falsification Register, Governance, High-Ceiling Gate (+12 more)
+Cohesion: 0.08
+Nodes (23): Assessment event, Assignment, Backend Fields, BrainLift Two-Stage Evaluation, By Design, Causal DAG Minimum, Falsification Register, Governance (+15 more)
 
 ### Community 32 - "Track A Read-Only Audit Plan"
 Cohesion: 0.10
@@ -265,7 +267,7 @@ Nodes (3): Additional Anchor Evidence Families, Empirical Welfare and Doubly Rob
 
 ### Community 41 - "Morning Handoff"
 Cohesion: 0.09
-Nodes (21): Accessibility Claim Boundary, Bottom-Line Claims, Canonical Contradictions to Resolve Separately, Contestability Boundary, Current Public-Fact Update, Day-0 Decisions, Executive Summary, Final Implementation Warning (+13 more)
+Nodes (22): Accessibility Claim Boundary, Bottom-Line Claims, Canonical Contradictions to Resolve Separately, Contestability Boundary, Current Public-Fact Update, Day-0 Decisions, Executive Summary, Final Implementation Warning (+14 more)
 
 ### Community 42 - "Adversarial Research Audit and Corrections"
 Cohesion: 0.17
@@ -328,8 +330,8 @@ Cohesion: 0.17
 Nodes (12): Brennan (2001) — Generalizability Theory, Cohen (1960, 1968) — Kappa, Conger (1980) — Generalized Kappa, Fleiss (1971) — Many-Rater Kappa, Gwet (2008) — Agreement Under Prevalence Imbalance, Gwet (2014) — AC2, Kane (2013) — Argument-Based Validation, Krippendorff (2004) — Alpha (+4 more)
 
 ### Community 57 - "R2 Credible Counterfactual"
-Cohesion: 0.18
-Nodes (11): E-001 Public GT Reporting Lacks Credible Comparison, Concept A Selection-First, Concept B Evaluation-First, Concept C Integrated Selection and Evaluation, Methodologist Critic Lens, Weighted Concept Comparison Scorecard, Seat Allocation and Evaluation Out of Scope, Track A vs Track B Difference as Program Effect Claim (+3 more)
+Cohesion: 0.29
+Nodes (7): E-001 Public GT Reporting Lacks Credible Comparison, Methodologist Critic Lens, Seat Allocation and Evaluation Out of Scope, Track A vs Track B Difference as Program Effect Claim, R10 Conclusion Boundaries, R2 Credible Counterfactual, Regression Discontinuity at Admission Cutoff
 
 ### Community 58 - "Initial Anchor Sources"
 Cohesion: 0.18
@@ -368,8 +370,8 @@ Cohesion: 0.25
 Nodes (8): Cherian & Candès (2024) — Fairness Auditing Inference, Chouldechova (2017) — Calibration and Error Balance, Fairness and Contestability, Hardt, Price, & Srebro (2016) — Equalized Odds, Jacobs & Wallach (2021) — Measurement and Fairness, Kleinberg, Mullainathan, & Raghavan (2017) — Fairness Trade-offs, Kuncel et al. (2013) — Mechanical Combination, Rudin (2019) — Interpretable High-Stakes Models
 
 ### Community 67 - "R6 Growth Without Gifted Ceiling"
-Cohesion: 0.33
-Nodes (7): E-012 High-Ceiling Outcome Availability Assumption, Impact and Measurement Metrics, R3 Prospective Causal Question, R6 Growth Without Gifted Ceiling, Deferred R2 R3 R6 Evaluation Work, BrainLift PDF Export, Credible Causal Measurement Stack
+Cohesion: 0.40
+Nodes (6): E-012 High-Ceiling Outcome Availability Assumption, Impact and Measurement Metrics, R3 Prospective Causal Question, R6 Growth Without Gifted Ceiling, Deferred R2 R3 R6 Evaluation Work, Credible Causal Measurement Stack
 
 ### Community 68 - "Complex Regression Discontinuity"
 Cohesion: 0.29
@@ -404,8 +406,8 @@ Cohesion: 0.33
 Nodes (6): Gama et al. (2014) — Concept Drift, Mitchell et al. (2019) — Model Cards, Monitoring and Drift, NIST AI 800-4 (2026) — Deployed AI Monitoring, Perdomo et al. (2020) — Performative Prediction, Steyerberg et al. (2004) — Model Updating
 
 ### Community 76 - "H3 Address Unobserved Selection"
-Cohesion: 0.40
-Nodes (5): E-009 Random Assignment Balances Unobserved Traits, H3 Address Unobserved Selection, Capability-Gated Admission Lottery, Capable-but-Underserved Students, Lottery ITT and LATE Identification
+Cohesion: 0.33
+Nodes (6): E-009 Random Assignment Balances Unobserved Traits, H3 Address Unobserved Selection, BrainLift PDF Export, Capability-Gated Admission Lottery, Capable-but-Underserved Students, Lottery ITT and LATE Identification
 
 ### Community 77 - "Effect-Size and Meaningful-Effect Benchmarks"
 Cohesion: 0.40
@@ -416,12 +418,12 @@ Cohesion: 0.40
 Nodes (5): Bartlett & Wegkamp (2008) — Classification with Reject Option, Bates et al. (2021) — Risk-Controlling Prediction Sets, Chow (1970) — Reject Option, Mozannar & Sontag (2020) — Learning to Defer, Uncertainty and Abstention
 
 ### Community 79 - "CATE Calibration and Policy Evaluation"
-Cohesion: 0.22
-Nodes (8): Annotated Source Register, CATE Calibration and Policy Evaluation, Chernozhukov et al. (2025) — Generic HTE Inference, Evidence Grades, Expansion Areas, Imai & Li (2023) — Experimental Policy Evaluation, Lei & Candès (2021) — Conformal Counterfactuals, Xu & Yadlowsky (2022) — CATE Calibration
+Cohesion: 0.40
+Nodes (5): CATE Calibration and Policy Evaluation, Chernozhukov et al. (2025) — Generic HTE Inference, Imai & Li (2023) — Experimental Policy Evaluation, Lei & Candès (2021) — Conformal Counterfactuals, Xu & Yadlowsky (2022) — CATE Calibration
 
 ### Community 80 - "Reproducible Evaluator Exports"
-Cohesion: 0.40
-Nodes (5): DDI Lifecycle, National Academies (2019) — Reproducibility, OCI Image Specification, Reproducible Evaluator Exports, RO-Crate
+Cohesion: 0.22
+Nodes (8): Annotated Source Register, DDI Lifecycle, Evidence Grades, Expansion Areas, National Academies (2019) — Reproducibility, OCI Image Specification, Reproducible Evaluator Exports, RO-Crate
 
 ### Community 81 - "Standard Setting and Decision Utility"
 Cohesion: 0.40
@@ -455,6 +457,14 @@ Nodes (22): Audit Chain, Canonical Profile, Canonicalization, Hashing, and Repla
 Cohesion: 0.29
 Nodes (7): Canonicalization, Hashing, and Replay, FIPS 180-4 — SHA-256, PostgreSQL 18 Determinism References, RFC 8259 and RFC 7493 — JSON/I-JSON, RFC 8785 — JSON Canonicalization Scheme, SLSA Build Provenance 1.2, W3C PROV-DM
 
+### Community 89 - "Concept A Selection-First"
+Cohesion: 0.50
+Nodes (4): Concept A Selection-First, Concept B Evaluation-First, Concept C Integrated Selection and Evaluation, Weighted Concept Comparison Scorecard
+
+### Community 90 - "Two-Stage BrainLift Evaluation Logic"
+Cohesion: 0.50
+Nodes (4): Next unresolved weakness — power and noninferiority, Stage 1 — Track B program effect, Stage 2 — Track B service fit, Two-Stage BrainLift Evaluation Logic
+
 ## Ambiguous Edges - Review These
 - `Program Effect` → `Track A vs Track B Difference as Program Effect Claim`  [AMBIGUOUS]
   docs/GT_ADMISSIONS_APPLICATION_MVP_PRD.md · relation: conceptually_related_to
@@ -466,7 +476,7 @@ Nodes (7): Canonicalization, Hashing, and Replay, FIPS 180-4 — SHA-256, Postgr
   docs/GT_ADMISSIONS_APPLICATION_MVP_PRD.md · relation: conceptually_related_to
 
 ## Knowledge Gaps
-- **813 isolated node(s):** `Week`, `Task`, `tasks`, `weeks`, `views` (+808 more)
+- **819 isolated node(s):** `Week`, `Task`, `tasks`, `weeks`, `views` (+814 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **10 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -481,9 +491,9 @@ _Questions this graph is uniquely positioned to answer:_
   _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._
 - **What is the exact relationship between `R10 Conclusion Boundaries` and `Track A vs Track B Difference as Program Effect Claim`?**
   _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._
-- **Why does `Annotated Source Register` connect `CATE Calibration and Policy Evaluation` to `Accessibility, Translation, and Measurement Fairness`, `Tutoring, Adaptive Software, and Program Mechanisms`, `Child Data Privacy and Synthetic-Data Safety`, `Explanation and Contestability`, `Reviewer Reliability and Rubric Validation`, `Initial Anchor Sources`, `Growth Outcomes and Falsification`, `Recent 2024–2026 Evidence`, `Current GT, Timeback, Alpha, and TEFA Sources`, `Policy Learning and Heterogeneous Effects`, `Randomized Allocation and Aid`, `Power, Missingness, and Interference`, `Auditable Randomness and Allocation Security`, `Fairness and Contestability`, `Complex Regression Discontinuity`, `Advanced STEM Readiness`, `Backend, Audit, and Reproducibility`, `Fidelity and Economic Evaluation`, `Selective Labels and Missing Outcomes`, `Transportability and External Validity`, `Monitoring and Drift`, `Effect-Size and Meaningful-Effect Benchmarks`, `Uncertainty and Abstention`, `Reproducible Evaluator Exports`, `Standard Setting and Decision Utility`, `Supabase Auth, RLS, and Local Testing`, `Annotated Source Register`?**
-  _High betweenness centrality (0.069) - this node is a cross-community bridge._
-- **Why does `Child Data Privacy and Synthetic-Data Safety` connect `Child Data Privacy and Synthetic-Data Safety` to `CATE Calibration and Policy Evaluation`?**
+- **Why does `Annotated Source Register` connect `Reproducible Evaluator Exports` to `Accessibility, Translation, and Measurement Fairness`, `Tutoring, Adaptive Software, and Program Mechanisms`, `Child Data Privacy and Synthetic-Data Safety`, `Explanation and Contestability`, `Reviewer Reliability and Rubric Validation`, `Initial Anchor Sources`, `Growth Outcomes and Falsification`, `Recent 2024–2026 Evidence`, `Current GT, Timeback, Alpha, and TEFA Sources`, `Policy Learning and Heterogeneous Effects`, `Randomized Allocation and Aid`, `Power, Missingness, and Interference`, `Auditable Randomness and Allocation Security`, `Fairness and Contestability`, `Complex Regression Discontinuity`, `Advanced STEM Readiness`, `Backend, Audit, and Reproducibility`, `Fidelity and Economic Evaluation`, `Selective Labels and Missing Outcomes`, `Transportability and External Validity`, `Monitoring and Drift`, `Effect-Size and Meaningful-Effect Benchmarks`, `Uncertainty and Abstention`, `CATE Calibration and Policy Evaluation`, `Standard Setting and Decision Utility`, `Supabase Auth, RLS, and Local Testing`, `Annotated Source Register`?**
+  _High betweenness centrality (0.066) - this node is a cross-community bridge._
+- **Why does `Power, Missingness, and Interference` connect `Power, Missingness, and Interference` to `Reproducible Evaluator Exports`?**
   _High betweenness centrality (0.009) - this node is a cross-community bridge._
-- **Why does `Policy Learning and Heterogeneous Effects` connect `Policy Learning and Heterogeneous Effects` to `CATE Calibration and Policy Evaluation`?**
-  _High betweenness centrality (0.007) - this node is a cross-community bridge._
+- **Why does `Child Data Privacy and Synthetic-Data Safety` connect `Child Data Privacy and Synthetic-Data Safety` to `Reproducible Evaluator Exports`?**
+  _High betweenness centrality (0.009) - this node is a cross-community bridge._

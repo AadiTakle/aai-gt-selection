@@ -9,18 +9,27 @@ feature map, or GT policy.
 
 ## 1. Program-Effect Claim
 
-**Recommended default:** Track A/Track B outcome differences never estimate GT's
-program effect.
+**Recommended default:** Adopt the BrainLift's two-stage claim:
 
-**Alternative:** Keep them as a descriptive route comparison only.
+1. randomized Track B offered-versus-not-offered outcomes estimate the Track B
+   initial-offer program/package effect; and
+2. treated Track B versus treated Track A is a prespecified
+   service-fit/noninferiority analysis.
 
-**Why:** Both routes remain selected and receive GT; there is no untreated
-counterfactual.
+**Why:** The Track B lottery supplies the untreated counterfactual. The Track
+A/Track B comparison then tests whether causally benefiting Track B students
+keep pace under GT. It does not establish equal Track A and Track B causal
+effects without a Track A counterfactual.
 
-**Changes after ratification:** PRD claim, notices, acceptance tests, claims
-register.
+**Changes after ratification:** PRD estimands, allocation/evaluation boundary,
+outcome follow-up, notices, acceptance tests, and claims register.
 
 **Owner/deadline:** Team lead, reviewed by evaluation owner; before coding.
+
+**Next flaw after ratification:** equivalence and benefit both require adequate
+precision. A nonsignificant Track A/Track B difference is not noninferiority,
+and a small Track B lottery may detect only effects far larger than the
+0.10–0.20 SD range supported by independent education evidence.
 
 ## 2. Allocation and Aid
 

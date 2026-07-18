@@ -1,12 +1,12 @@
 # Morning Handoff
 
-## Final Package State — 2026-07-18 09:35 UTC-5
+## Overnight Package Baseline — 2026-07-18 09:35 UTC-5
 
 - Branch: `research/overnight-backend-selection`
 - Final research-cycle commit: `c11c1373a1320c4588d4f9ff1fd4d9613fb50873`
-- Branch after this handoff commit: 19 commits ahead of `main`
-- Delta from `main`: 43 files, +34,321/−4 lines
-- Research package: 33 Markdown artifacts, 10,682 lines, 43,303 words
+- Branch at handoff: 19 commits ahead of `main`
+- Delta at handoff: 43 files, +34,321/−4 lines
+- Research package at handoff: 33 Markdown artifacts, 10,682 lines, 43,303 words
 - Source-register entries: 214
 - Logged iterations: 19 (`0` through `18`)
 - Graphify: 1,021 nodes, 982 edges, no duplicate/dangling edges
@@ -44,7 +44,8 @@ Future research infrastructure should be designed but not built into the four-we
 ## Ten Strongest Findings
 
 1. Predicted success is not predicted GT benefit.
-2. Track A-versus-Track B outcomes cannot identify program effect.
+2. Track B randomized offers identify Track B program effect; treated Track
+   A/Track B comparison separately tests service-fit noninferiority.
 3. Admitted-only outcomes create nonidentification, not routine missingness.
 4. Selective programs often show null causal effects despite impressive observed outcomes.
 5. Differentiated instruction can benefit specific underserved high-achiever populations.
@@ -90,7 +91,8 @@ These block live use and causal claims. They do not block synthetic backend work
 
 Before implementation:
 
-1. Remove the false Track A/Track B program-effect claim.
+1. Replace the single Track A/Track B causal claim with the BrainLift two-stage
+   Track B lottery-effect plus Track A/Track B noninferiority design.
 2. Quarantine Track-A-first aid/lottery as future research.
 3. Clarify `domain` versus `domain prestige`.
 4. Freeze one pending/reviewer aggregation contract.
@@ -133,7 +135,8 @@ These are future protocols and design constraints.
 
 ## Canonical Contradictions to Resolve Separately
 
-1. PRD Track A/Track B difference as program effect is causally false.
+1. PRD collapses the BrainLift's two-stage design: Track B offer randomization
+   identifies effect, while treated Track A/Track B comparison tests service fit.
 2. PRD allocation is outside MVP but includes a Track-A-first aid/lottery idea.
 3. PRD says current Track A is preserved while current GT policy remains unconfirmed.
 4. `Domain` is prohibited while domain-specific anchors are required; the intended prohibition is domain prestige/unsupported domain use.
@@ -170,7 +173,8 @@ These are future protocols and design constraints.
 
 ### Not Supported
 
-- Track A-versus-Track B outcome differences prove program effect.
+- Treated Track A-versus-Track B outcomes alone prove program effect or equal
+  Track A/Track B treatment effects.
 - Snapshot evidence is validated for live admissions.
 - GT will produce Alpha’s claimed growth.
 - A model can learn who benefits from admitted-only data.

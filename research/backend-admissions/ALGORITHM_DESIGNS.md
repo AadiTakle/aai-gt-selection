@@ -102,6 +102,39 @@ SECONDARY:
   complier effect via instrumental variables, only if assumptions hold
 ```
 
+### D2. Joint Track B Effect and Service-Fit Decision
+
+```text
+INPUT:
+  randomized Track B offer assignment and common outcomes
+  treated/offered Track B cohort
+  treated Track A cohort
+  prespecified high-ceiling outcome
+  baseline covariates and operational blocks
+  meaningful-effect threshold
+  service-fit noninferiority margin
+
+STAGE 1 — CAUSAL:
+  estimate blocked Track B initial-offer ITT
+  preserve all candidates by assignment
+
+STAGE 2 — SERVICE FIT:
+  standardize treated/offered Track B and Track A outcomes
+  estimate Track B minus Track A difference
+  compute one-sided noninferiority interval
+  do not call this a treatment-effect difference
+
+SUPPORT EXPANSION only if:
+  Track B ITT meets the prespecified benefit evidence rule
+  AND service-fit lower bound exceeds the negative margin
+  AND access, capacity, high-performer, and wellbeing guardrails pass
+
+DO NOT:
+  infer equivalence from a nonsignificant route difference
+  claim equal Track A and Track B causal effects
+  compare selected enrolled Track B students with all non-admitted applicants
+```
+
 ## E. Future Regression-Discontinuity Evaluation
 
 ```text

@@ -18,7 +18,10 @@ The backend must keep three questions separate:
 
 A predictive admissions model answers the second question. A program-effect design answers the third. Conflating them recreates the selection-effect problem.
 
-Track A should be audited as the unchanged baseline. Track B can prototype transparent eligibility rules, but Track B success cannot establish program effect without a credible comparison group.
+Track A should be audited as the unchanged baseline. Track B can prototype
+transparent eligibility rules. Its program effect requires a credible
+Track B offered-versus-not-offered comparison; treated Track A versus treated
+Track B is a separate service-fit/noninferiority analysis.
 
 ## Core Statistical Estimands
 
@@ -208,15 +211,66 @@ Recommended architecture:
 
 Full event sourcing is unnecessary for the four-week prototype.
 
-## Important Current Claim Correction
+## Two-Stage BrainLift Evaluation Logic
 
-A performance difference between accepted Track A and Track B students does not demonstrate program effect:
+The BrainLift proposes two linked analyses with different jobs.
 
-- both groups receive GT;
-- each route selects a systematically different population; and
-- there is no untreated counterfactual.
+### Stage 1 — Track B program effect
 
-That comparison is descriptive route heterogeneity. Program effect requires a treated-versus-untreated contrast or another valid causal design.
+Among equally eligible Track B candidates, randomize genuinely scarce offers
+and follow both groups:
+
+\[
+\tau_B = E[Y \mid B,\ offer] - E[Y \mid B,\ no\ offer]
+\]
+
+Under valid randomization and follow-up, this estimates the initial-offer
+program/package effect for capable-but-underserved Track B candidates.
+
+### Stage 2 — Track B service fit
+
+Compare treated Track B students with treated Track A students using a
+prespecified noninferiority estimand:
+
+\[
+E[Y(1)\mid B] - E[Y(1)\mid A]
+\]
+
+This asks whether Track B students keep pace under GT. It does not, by itself,
+estimate program effect because both groups receive GT and were selected through
+different routes.
+
+Together, a positive Track B randomized-offer effect and noninferior treated
+Track B outcomes support expanding the Track B pathway or later revisiting the
+test-only cutoff. They establish that Track B benefits causally and performs
+comparably under treatment.
+
+They do not establish equal causal effects for Track A and Track B:
+
+\[
+\tau_A = \tau_B
+\]
+
+would require a credible untreated/counterfactual outcome for Track A as well.
+
+### Next unresolved weakness — power and noninferiority
+
+“Track A and Track B are not significantly different” is not evidence that
+they are equivalent. Service fit requires a prespecified noninferiority margin
+and a confidence interval narrow enough to exclude unacceptable shortfall.
+
+This is likely harder than the BrainLift assumes:
+
+- independent broad-outcome effects are more plausibly 0.10–0.20 SD than the
+  advertised growth multiplier;
+- a total randomized cohort of 40 detects only effects around 0.63 SD under
+  simple assumptions; and
+- noninferiority/equivalence generally requires enough data to bound both
+  benefit and shortfall, not merely fail to reject zero.
+
+The design may therefore require pooled cohorts, multiple years or campuses,
+one primary high-ceiling outcome, strong baseline adjustment, and unusually
+complete follow-up.
 
 ## Selective-Label Finding
 
