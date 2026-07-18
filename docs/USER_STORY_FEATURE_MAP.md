@@ -121,7 +121,7 @@ Every evidence field is classified as `decision-used`, `optional research/contex
 
 Any future seat/offer/waitlist allocation state machine is undecided and remains downstream of this engine's four-week scope (see D-010 and `B-08`); research-consent fields are technically excluded from eligibility and from any future allocation design.
 
-**Complete when:** Asynchronous strengths survive unrelated weaknesses, unauthorized or optional evidence cannot change eligibility/allocation, missingness never becomes zero, and identical valid inputs reproduce the same pathway and allocation result.
+**Complete when:** Asynchronous strengths survive unrelated weaknesses, unauthorized or optional evidence cannot change eligibility or future allocation inputs, missingness never becomes zero, identical valid inputs reproduce the same pathway result, and the downstream interface remains explicitly `allocation_undecided` until a later allocation decision.
 
 ### F8 — Structured Domain Review and Rater Calibration
 
@@ -232,13 +232,13 @@ Removing any feature leaves at least one user group dependent on an unwritten ex
 | 22 | F3 | F5, F7 | Accomplishment is retained while opportunity and assistance are documented separately and not converted into hidden penalties or bonuses. |
 | 23 | F3 | F2, F7 | Recommendation absence has exactly zero effect on access, evidence sufficiency, and eligibility. |
 | 24 | F8 | F3, F7 | Home/school disagreement triggers one documented contextual question whose output may route support/provenance follow-up but cannot directly award or deny eligibility. |
-| 25 | F9 | F7 | An uncertainty interval crossing the boundary automatically produces pending status and a free retest/equivalent route. |
+| 25 | F9 | F7 | An uncertainty interval crossing the boundary automatically produces pending status and a documented manual retest/equivalent-route entitlement; automated retest workflow remains deferred beyond MVP. |
 | 26 | F6 | F9, F11 | Invalid evidence is excluded, the event is logged, and the child receives the prescribed repeat/equivalent route. |
 | 27 | F5 | F8 | Adult/AI support is captured consistently, ownership can be verified, and disclosure alone never causes rejection. |
 | 28 | F4 | F2, F7 | The complete pathway requires no portfolio, award, or optional artifact. |
 | 29 | F9 | F7 | The policy fixes provisional status, interim access rights, reassessment owner/date, evidence allowed, and expiry; no provisional result becomes permanent without the scheduled rerun. |
 | 30 | F9 | F1, F7 | Later applicants can submit genuinely new common direct evidence with no penalty from an earlier result. |
-| 31 | F10 | F7, F11 | Technical field exclusion and a replayable allocation state machine prove that research refusal or withdrawal cannot change eligibility, offer/waitlist state, ordinary service access, or communications. |
+| 31 | F10 | F7, F11 | Technical field exclusion and the `allocation_undecided` downstream interface prove that research refusal or withdrawal cannot change eligibility, future allocation inputs, ordinary service access, or communications; offer/waitlist behavior remains outside MVP. |
 | 32 | F10 | F11 | The family can access, correct, export, and exercise documented deletion/retention rights through a tracked request. |
 | 33 | F9 | F6, F8, F11 | The correct independent owner reviews each error type, applies the same evidence/rule, records the remedy, and protects against retaliation. |
 | 34 | F9 | F1, F7 | The notice states the evaluated pathway, evidence, uncertainty, service fit, and re-entry route without labeling the child “not gifted.” |
