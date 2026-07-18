@@ -191,6 +191,23 @@
 - Added language/translation/interpreter invariance fixtures and a measurement
   fairness research specification.
 
+### Iteration 13 — 2026-07-18
+
+- Researched faithful explanation, contrastive explanation, contestability,
+  procedural justice, meaningful human review, and algorithmic recourse.
+- Verified key empirical HCI findings that explanation can increase trust or
+  perceived fairness without improving objective understanding or decisions.
+- Separated explanation, factual/procedural correction, substantive rubric
+  appeal, later-cycle re-entry, and feature-changing recourse.
+- Recommended implementing correction in the MVP while specifying but disabling
+  substantive appeal until the PRD/feature-map conflict is resolved.
+- Added immutable decision trace/notice and remedy-case contracts.
+- Defined pending as a workflow state rather than a third reviewer vote.
+- Added explanation fidelity, remedy, notice delivery, concurrency, and
+  non-retaliation fixtures.
+- Downgraded H9 and PRD-001 status to reflect unresolved appeal, allocation, and
+  causal-claim contradictions.
+
 ## Implementation Transition
 
 The broad research clusters are covered. Next actions:

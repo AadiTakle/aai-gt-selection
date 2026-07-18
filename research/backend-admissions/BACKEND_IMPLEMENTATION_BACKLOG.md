@@ -162,6 +162,8 @@ Store:
 - code version;
 - outcome;
 - ordered reasons;
+- immutable rule trace and message-catalog version;
+- notice delivery status;
 - result hash;
 - supersession.
 
@@ -170,6 +172,8 @@ Acceptance:
 - no application-role update/delete;
 - identical replay;
 - corrections create successor run.
+- every public explanation clause maps to a trace step/event;
+- explanation/correction history cannot affect eligibility.
 
 ### Days 9–10 — Fixtures and Test Suite
 
@@ -178,7 +182,7 @@ Cover:
 - Track A boundaries;
 - Track B invitations;
 - artifact/narrative review patterns;
-- pending/corrections;
+- pending, explanations, and corrections;
 - prohibited-field mutations;
 - consent/accessibility invariance;
 - replay;

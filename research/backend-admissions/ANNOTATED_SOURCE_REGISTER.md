@@ -1122,3 +1122,101 @@
 - **Use:** Finds sparse subgroup psychometric evidence in commonly used gifted
   identification tests.
 - **Limit:** Document review; missing evidence is not proof of noninvariance.
+
+## Explanation and Contestability
+
+### Miller (2019) — Human Explanation
+
+- **DOI:** https://doi.org/10.1016/j.artint.2018.07.007
+- **Grade:** A
+- **Use:** Explanations are often contrastive, selective, and social.
+- **Limit:** Interdisciplinary review, not an admissions interface experiment.
+
+### Rudin (2019) — Interpretable High-Stakes Models
+
+- **DOI:** https://doi.org/10.1038/s42256-019-0048-x
+- **Grade:** A
+- **Use:** Argues for inherently interpretable models over post-hoc black-box
+  explanations in high-stakes settings.
+- **Limit:** Perspective; not proof interpretable models always perform equally.
+
+### Poursabzi-Sangdeh et al. (2021) — Interpretability Experiment
+
+- **DOI:** https://doi.org/10.1145/3411764.3445315
+- **Grade:** A
+- **Use:** Four preregistered experiments, N=3,800; sparse clear models improved
+  prediction simulation but not beneficial adherence and sometimes hindered
+  error detection.
+- **Limit:** Real-estate valuation proxy task, not admissions.
+
+### Bansal et al. (2021) — Explanations and Reliance
+
+- **DOI:** https://doi.org/10.1145/3411764.3445717
+- **Grade:** A
+- **Use:** Explanations increased acceptance of recommendations without
+  improving human–AI team performance.
+- **Limit:** Crowdworker proxy tasks.
+
+### Lyons, Velloso, & Miller (2021) — Contestability
+
+- **DOI:** https://doi.org/10.1145/3449180
+- **Grade:** A
+- **Use:** Contestability requires concrete grounds, review, accountability, and
+  remedy rather than a generic button.
+- **Limit:** Qualitative policy-submission analysis.
+
+### Lyons et al. (2022) — Appeal Preferences
+
+- **DOI:** https://doi.org/10.1145/3491102.3517606
+- **Grade:** A
+- **Use:** Conjoint study found preferences for participation, human review, and
+  timely resolution.
+- **Limit:** Hypothetical perceptions, not correction effectiveness.
+
+### Yurrita et al. (2023) — Explanation, Oversight, Contestability
+
+- **DOI:** https://doi.org/10.1145/3544548.3581161
+- **Grade:** A
+- **Use:** N=267 loan scenario; explanation improved informational fairness
+  perception, contestability procedural fairness, and a human-oversight label
+  showed no effect.
+- **Limit:** Perceived fairness, non-education context.
+
+### Gilliland (1993) — Selection-System Fairness
+
+- **DOI:** https://doi.org/10.5465/amr.1993.9402210155
+- **Grade:** A
+- **Use:** Selection-specific procedural-justice model includes correctability,
+  consistency, relevance, information, and respectful treatment.
+- **Limit:** Employment-selection theory transfers imperfectly to minors.
+
+### Colquitt (2001) — Justice Dimensions
+
+- **DOI:** https://doi.org/10.1037/0021-9010.86.3.386
+- **Grade:** A
+- **Use:** Distinguishes procedural, interpersonal, informational, and
+  distributive justice.
+- **Limit:** Organizational setting, not gifted admissions.
+
+### Karimi, Schölkopf, & Valera (2021) — Causal Recourse
+
+- **DOI:** https://doi.org/10.1145/3442188.3445899
+- **Grade:** A
+- **Use:** Nearest counterfactuals identify target states, not necessarily
+  feasible causal interventions.
+- **Limit:** Requires causal knowledge usually unavailable in admissions.
+
+### Barocas, Selbst, & Raghavan (2020) — Counterfactual Assumptions
+
+- **DOI:** https://doi.org/10.1145/3351095.3372830
+- **Grade:** A
+- **Use:** Exposes actionability, stability, monotonicity, and context
+  assumptions behind feature-level counterfactual advice.
+- **Limit:** Methodological analysis, not admissions evaluation.
+
+### Milli et al. (2019) — Strategic Classification
+
+- **DOI:** https://doi.org/10.1145/3287560.3287576
+- **Grade:** A
+- **Use:** Strategic adaptation creates social costs and unequal burdens.
+- **Limit:** Formal/modeling context; domain transfer required.

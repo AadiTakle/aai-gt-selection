@@ -76,7 +76,10 @@ policy_bundle(
   bundle_hash, locked_at
 )
 feature_permission(policy_version_id, feature_code, purpose, allowed)
-reason_code(reason_code, decision_kind, applicant_message, internal_description)
+reason_code(
+  reason_code, decision_kind, message_catalog_version,
+  applicant_message, internal_description, next_action_code
+)
 ```
 
 Every decision references one immutable bundle.
@@ -167,9 +170,40 @@ evidence_input(decision_run_id, evidence_version_id)
 review_input(decision_run_id, review_submission_id)
 decision_result(decision_run_id, outcome, decided_at, result_hash)
 decision_reason(decision_run_id, ordinal, reason_code)
+decision_trace(
+  trace_id, decision_run_id, trace_schema_version,
+  ordered_rule_steps, trace_hash, created_at
+)
+decision_notice(
+  notice_id, decision_run_id, message_catalog_version, locale,
+  rendered_content_hash, delivery_channel,
+  sent_at, delivered_at, delivery_failure_code
+)
 ```
 
 Store complete input references rather than copying mutable current-state fields.
+
+## Explanation and Remedy
+
+```sql
+remedy_case(
+  remedy_case_id, application_id, target_decision_run_id,
+  target_input_hash, target_policy_bundle_id,
+  remedy_kind, normalized_ground, request_hash,
+  state, owner_id, clock_policy_version,
+  submitted_at, due_at, paused_at, resolved_at,
+  resolution_code, successor_id, rerun_decision_run_id
+)
+remedy_event(
+  remedy_event_id, remedy_case_id, transition_version,
+  event_type, actor_id, occurred_at, payload_hash
+)
+```
+
+Explanation and factual/provenance/access/procedural correction are implemented
+first. Substantive rubric appeal is specified but disabled until the PRD/feature
+map scope conflict is explicitly resolved. New evidence creates later-cycle
+re-entry rather than correction.
 
 ## Append-Only Audit
 
@@ -287,6 +321,8 @@ replay(decision_run_id):
 - Prohibited-field mutations change zero decisions.
 - Every completed decision replays.
 - Corrections create successor versions.
+- Every notice clause traces to an executed rule/event.
+- Remedy-history mutations change zero eligibility results.
 - Consent changes alter zero admissions inputs/results.
 - Review-count and blind-third rules hold under concurrency.
 - RLS denial tests pass for every role/table pair.

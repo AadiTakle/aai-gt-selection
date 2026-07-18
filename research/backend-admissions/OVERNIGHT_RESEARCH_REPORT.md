@@ -705,3 +705,27 @@ engineering checks and abstain from empirical claims when live samples are
 insufficient.
 
 See `ACCESSIBILITY_AND_MEASUREMENT_FAIRNESS.md`.
+
+## Explanation and Contestability
+
+The recommended MVP boundary is:
+
+- faithful trace-derived explanations;
+- factual/provenance, access, and procedural correction;
+- immutable successor records and deterministic reruns;
+- later-cycle re-entry for genuinely new evidence; and
+- substantive rubric appeal specified but disabled until GT authority and scope
+  are resolved.
+
+Explanation, contestability, and feature-changing recourse are distinct.
+Counterfactual or post-hoc explanations can increase trust without improving
+understanding, fidelity, or decisions. The rule-based prototype should render
+reasons directly from executed predicates, not LIME, SHAP, or LLM-generated
+rationales.
+
+Every notice must identify the outcome, contrast, decision-used evidence,
+ordered reasons, rule/rubric version, prohibited inputs, next action, deadline,
+and claim boundary. Objective comprehension and error detection matter more
+than trust or acceptance.
+
+See `EXPLANATION_AND_CONTESTABILITY.md`.

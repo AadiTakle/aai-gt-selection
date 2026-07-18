@@ -1,16 +1,16 @@
 # Graph Report - gt-selection-capstone  (2026-07-18)
 
 ## Corpus Check
-- 43 files · ~80,497 words
+- 44 files · ~83,594 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 603 nodes · 573 edges · 48 communities (38 shown, 10 thin omitted)
+- 631 nodes · 600 edges · 49 communities (39 shown, 10 thin omitted)
 - Extraction: 97% EXTRACTED · 2% INFERRED · 1% AMBIGUOUS · INFERRED: 12 edges (avg confidence: 0.89)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `61b4e34b`
+- Built from commit: `042a5e5c`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -63,18 +63,19 @@
 - Minimum Synthetic MVP Data Contract
 - Synthetic Fixture and Acceptance Matrix
 - Accessibility, Translation, and Measurement Fairness
+- Explanation, Correction, and Contestability
 
 ## God Nodes (most connected - your core abstractions)
-1. `Separating Selection Effect from Program Effect` - 45 edges
-2. `Backend and Admissions Algorithm Designs` - 18 edges
-3. `Accessibility, Translation, and Measurement Fairness` - 15 edges
-4. `Supabase/PostgreSQL Research Data Model` - 15 edges
-5. `Synthetic Simulation Specification` - 15 edges
-6. `Morning Handoff` - 14 edges
-7. `Iteration Log` - 14 edges
-8. `Minimum Synthetic MVP Data Contract` - 13 edges
-9. `Program-Mechanism and Effect-Size Benchmarks` - 13 edges
-10. `Evaluator Export and Reproducibility Specification` - 12 edges
+1. `Separating Selection Effect from Program Effect` - 46 edges
+2. `Backend and Admissions Algorithm Designs` - 19 edges
+3. `Supabase/PostgreSQL Research Data Model` - 16 edges
+4. `Accessibility, Translation, and Measurement Fairness` - 15 edges
+5. `Morning Handoff` - 15 edges
+6. `Iteration Log` - 15 edges
+7. `Synthetic Simulation Specification` - 15 edges
+8. `Explanation, Correction, and Contestability` - 14 edges
+9. `Minimum Synthetic MVP Data Contract` - 13 edges
+10. `Program-Mechanism and Effect-Size Benchmarks` - 13 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Project Stop Conditions` --semantically_similar_to--> `Automatic Rejection Conditions`  [INFERRED] [semantically similar]
@@ -96,7 +97,7 @@
 - **Track B Snapshot Workflow** — docs_gt_admissions_application_mvp_prd_track_b_invitation, docs_gt_admissions_application_mvp_prd_artifact_route, docs_gt_admissions_application_mvp_prd_narrative_fallback, docs_gt_admissions_application_mvp_prd_independent_review [EXTRACTED 1.00]
 - **Credible Causal Evaluation Stack** — gt_school_counterfactual_brainlift_brainlift_gt_school_counterfactual_lottery_identification, docs_project_requirements_r3, docs_project_requirements_r6, docs_project_requirements_h6 [INFERRED 0.95]
 
-## Communities (48 total, 10 thin omitted)
+## Communities (49 total, 10 thin omitted)
 
 ### Community 0 - "Causal Attribution and Governance"
 Cohesion: 0.08
@@ -124,7 +125,7 @@ Nodes (10): E-011 Independent Evaluation Permission Assumption, E-017 WJ V and W
 
 ### Community 6 - "Prohibited Inputs and Equity"
 Cohesion: 0.05
-Nodes (41): Accessibility and Measurement Fairness, Adversarial Research Audit, Aid and Treatment Package, Algorithmic Guardrails, Assignment and Market-Design Finding, Backend and Admissions Research Report, Backend Data Model, Backend Research Direction (+33 more)
+Nodes (42): Accessibility and Measurement Fairness, Adversarial Research Audit, Aid and Treatment Package, Algorithmic Guardrails, Assignment and Market-Design Finding, Backend and Admissions Research Report, Backend Data Model, Backend Research Direction (+34 more)
 
 ### Community 7 - "Four-Week Roadmap"
 Cohesion: 0.29
@@ -163,12 +164,12 @@ Cohesion: 0.67
 Nodes (3): Privacy Correction Appeal and Re-entry Stories, F10 Consent Privacy and Research Separation, F9 Explainable Decision and Remedy Lifecycle
 
 ### Community 26 - "Backend and Admissions Algorithm Designs"
-Cohesion: 0.11
-Nodes (18): A. Track A Audit, B. Track B Invitation, Backend and Admissions Algorithm Designs, C. Track B Snapshot Eligibility, D. Future Randomized-Offer Evaluation, E. Future Regression-Discontinuity Evaluation, F. Candidate-Selection Modeling Rules, G. Synthetic Simulation Plan (+10 more)
+Cohesion: 0.10
+Nodes (19): A. Track A Audit, B. Track B Invitation, Backend and Admissions Algorithm Designs, C. Track B Snapshot Eligibility, D. Future Randomized-Offer Evaluation, E. Future Regression-Discontinuity Evaluation, F. Candidate-Selection Modeling Rules, G. Synthetic Simulation Plan (+11 more)
 
 ### Community 27 - "Overnight Backend and Admissions Research Log"
-Cohesion: 0.11
-Nodes (18): Implementation Transition, Iteration 0 — 2026-07-18, Iteration 10 — 2026-07-18, Iteration 11 — 2026-07-18, Iteration 12 — 2026-07-18, Iteration 1 — 2026-07-18, Iteration 2 — 2026-07-18, Iteration 3 — 2026-07-18 (+10 more)
+Cohesion: 0.10
+Nodes (19): Implementation Transition, Iteration 0 — 2026-07-18, Iteration 10 — 2026-07-18, Iteration 11 — 2026-07-18, Iteration 12 — 2026-07-18, Iteration 13 — 2026-07-18, Iteration 1 — 2026-07-18, Iteration 2 — 2026-07-18 (+11 more)
 
 ### Community 28 - "Future Allocation, Aid, and Auditable Lottery Research"
 Cohesion: 0.11
@@ -191,8 +192,8 @@ Cohesion: 0.10
 Nodes (19): Acceptance Tests, Audit Goals, Boundary and Cutoff Distance, Calibration Gate, Core Queries, Execution Sequence, Funnel, Historical Replay (+11 more)
 
 ### Community 33 - "Supabase/PostgreSQL Research Data Model"
-Cohesion: 0.11
-Nodes (18): Acceptance Queries, Append-Only Audit, Application, Assessment, Consent Firewall, Core Entities, Decisions, Future Evaluation (+10 more)
+Cohesion: 0.10
+Nodes (19): Acceptance Queries, Append-Only Audit, Application, Assessment, Consent Firewall, Core Entities, Decisions, Explanation and Remedy (+11 more)
 
 ### Community 34 - "Evaluator Export and Reproducibility Specification"
 Cohesion: 0.15
@@ -223,8 +224,8 @@ Cohesion: 0.67
 Nodes (3): Empirical Welfare and Doubly Robust Policy Learning, Research Design Meets Market Design, Two Additional Anchor Papers
 
 ### Community 41 - "Morning Handoff"
-Cohesion: 0.11
-Nodes (18): Accessibility Claim Boundary, Bottom-Line Claims, Canonical Contradictions to Resolve Separately, Current Public-Fact Update, Day-0 Decisions, Executive Summary, Five Highest-Confidence Papers, Five Main Blockers (+10 more)
+Cohesion: 0.10
+Nodes (19): Accessibility Claim Boundary, Bottom-Line Claims, Canonical Contradictions to Resolve Separately, Contestability Boundary, Current Public-Fact Update, Day-0 Decisions, Executive Summary, Five Highest-Confidence Papers (+11 more)
 
 ### Community 42 - "Adversarial Research Audit and Corrections"
 Cohesion: 0.18
@@ -240,15 +241,19 @@ Nodes (15): Assets, Audit Tampering, Concurrency, Evidence Access, Injection / X
 
 ### Community 45 - "Minimum Synthetic MVP Data Contract"
 Cohesion: 0.14
-Nodes (13): API Boundaries, Application, Assessment, Audit, Correction, Decision, Excluded, Minimum Synthetic MVP Data Contract (+5 more)
+Nodes (13): API Boundaries, Application, Assessment, Audit, Decision, Excluded, Explanation and Remedy, Minimum Synthetic MVP Data Contract (+5 more)
 
 ### Community 46 - "Synthetic Fixture and Acceptance Matrix"
-Cohesion: 0.15
-Nodes (12): Accessibility and Route Consistency, Assessment Fixtures, Corrections and Pending, Frozen Test Policy, Prohibited-Field Invariance, Property Invariants, Replay and Concurrency, Review Aggregation (+4 more)
+Cohesion: 0.14
+Nodes (13): Accessibility and Route Consistency, Assessment Fixtures, Corrections and Pending, Explanation and Remedy, Frozen Test Policy, Prohibited-Field Invariance, Property Invariants, Replay and Concurrency (+5 more)
 
 ### Community 47 - "Accessibility, Translation, and Measurement Fairness"
 Cohesion: 0.12
 Nodes (15): Accessibility, Translation, and Measurement Fairness, Accommodation Review, Audit Fields, Construct Map, Executive Position, Governing Principle, Interface Target, Key Sources (+7 more)
+
+### Community 48 - "Explanation, Correction, and Contestability"
+Cohesion: 0.09
+Nodes (21): Access Failure, Concurrency, Executive Position, Explanation, Explanation, Correction, and Contestability, Explanation Design, Factual or Provenance Correction, Feature-Changing Recourse (+13 more)
 
 ## Ambiguous Edges - Review These
 - `Program Effect` → `Track A vs Track B Difference as Program Effect Claim`  [AMBIGUOUS]
@@ -261,7 +266,7 @@ Nodes (15): Accessibility, Translation, and Measurement Fairness, Accommodation 
   docs/GT_ADMISSIONS_APPLICATION_MVP_PRD.md · relation: conceptually_related_to
 
 ## Knowledge Gaps
-- **449 isolated node(s):** `Week`, `Task`, `tasks`, `weeks`, `views` (+444 more)
+- **474 isolated node(s):** `Week`, `Task`, `tasks`, `weeks`, `views` (+469 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **10 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -279,6 +284,6 @@ _Questions this graph is uniquely positioned to answer:_
 - **Why does `Separating Selection Effect from Program Effect` connect `Prohibited Inputs and Equity` to `Two Additional Anchor Papers`, `Core Statistical Estimands`, `Advanced STEM Readiness Outcome`, `Two Anchor Evidence Families`?**
   _High betweenness centrality (0.008) - this node is a cross-community bridge._
 - **What connects `Week`, `Task`, `tasks` to the rest of the system?**
-  _449 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _474 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Causal Attribution and Governance` be split into smaller, more focused modules?**
   _Cohesion score 0.08333333333333333 - nodes in this community are weakly interconnected._

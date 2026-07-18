@@ -522,3 +522,52 @@ IF DIF or noninvariance is detected:
 
 Track B is intentionally multidimensional and rater-mediated. Do not collapse it
 into one latent giftedness score solely to run multigroup CFA.
+
+## Q. Explanation and Contestability
+
+`pending` is a workflow state, not a reviewer vote. Resolve decision-critical
+invalidity/access/ambiguity before aggregation; replace reviewer competence or
+conflict abstentions. Aggregate only `qualifies` and
+`does_not_currently_qualify`.
+
+```text
+EXPLAIN:
+  render from exact decision trace
+  include outcome, contrast, decision-used evidence,
+  policy/rubric version, ordered reasons, prohibited inputs,
+  next action, deadline, and claim boundary
+
+SUBMIT REMEDY:
+  pin target decision, input hash, and policy bundle
+  use idempotency key
+  classify:
+    explanation
+    factual_or_provenance_correction
+    access_failure
+    procedural_error
+    rubric_appeal
+    re_entry
+
+TRIAGE:
+  factual/provenance -> data steward
+  access failure -> protected pending + paused clock
+  procedure -> independent conflict-cleared reviewer
+  rubric appeal when disabled -> explicit deferred status
+  new evidence -> later-cycle re-entry
+
+APPLY CORRECTION:
+  create immutable successor
+  rerun only from one complete versioned manifest
+  preserve original trace
+  issue new versioned notice
+
+IF future rubric appeal is enabled:
+  same evidence and rubric only
+  hide prior votes, identities, and outcome
+  appeal reviewer may uphold or remand
+  remand creates fresh normal panel
+```
+
+Do not generate threshold-distance, smallest-change, or feature-optimization
+advice. Explanation fidelity is tested against the executed trace; satisfaction
+or trust is not evidence of correctness.

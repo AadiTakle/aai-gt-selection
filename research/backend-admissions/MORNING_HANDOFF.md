@@ -171,6 +171,7 @@ These are future protocols and design constraints.
 
 - `ACCESSIBILITY_AND_MEASUREMENT_FAIRNESS.md`
 - `BACKEND_IMPLEMENTATION_BACKLOG.md`
+- `EXPLANATION_AND_CONTESTABILITY.md`
 - `MVP_DATA_CONTRACT.md`
 - `SYNTHETIC_FIXTURE_MATRIX.md`
 - `MVP_THREAT_MODEL.md`
@@ -190,3 +191,16 @@ Prohibited-field invariance is firewall evidence only. It does not prove:
 The synthetic MVP should claim accommodation-use noninterference and protected
 pending states, not accommodation equivalence. WCAG 2.2 AA is a target until
 manual and assistive-technology testing is complete.
+
+## Contestability Boundary
+
+Implement now:
+
+- trace-derived decision notices;
+- factual/provenance, access, and procedural correction;
+- immutable successors and reruns; and
+- re-entry isolation fixtures.
+
+Specify but disable substantive rubric appeal until the PRD/feature-map scope,
+authority, staffing, deadlines, and standard of review are decided. Do not offer
+feature-changing “how to qualify” advice.

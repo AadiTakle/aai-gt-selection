@@ -275,37 +275,90 @@ decision_result(
 reason_code(
   reason_code,
   decision_kind,
+  message_catalog_version,
   applicant_message,
-  internal_description
+  internal_description,
+  next_action_code
 )
 
 decision_reason(decision_run_id, ordinal, reason_code)
+
+decision_trace(
+  trace_id,
+  decision_run_id,
+  trace_schema_version,
+  ordered_rule_steps,
+  trace_hash,
+  created_at
+)
+
+decision_notice(
+  notice_id,
+  decision_run_id,
+  message_catalog_version,
+  locale,
+  rendered_content_hash,
+  delivery_channel,
+  sent_at,
+  delivered_at,
+  delivery_failure_code
+)
 ```
 
 Eligibility terminal outputs never include admitted, offered, waitlisted, or funded.
 
-## Correction
+## Explanation and Remedy
 
 ```text
-correction_request(
-  correction_id,
+remedy_case(
+  remedy_case_id,
   application_id,
-  target_type,
-  target_id,
-  category,
-  request_text,
+  target_decision_run_id,
+  target_input_hash,
+  target_policy_bundle_id,
+  kind,
+  normalized_ground,
+  request_hash,
   state,
   submitted_at,
+  owner_id,
+  clock_policy_version,
+  due_at,
+  paused_at,
   resolved_at,
   resolved_by,
-  resolution_reason,
+  resolution_code,
   successor_type,
   successor_id,
   rerun_decision_run_id
 )
+
+remedy_event(
+  remedy_event_id,
+  remedy_case_id,
+  transition_version,
+  event_type,
+  actor_id,
+  occurred_at,
+  payload_hash
+)
 ```
 
-Applied correction requires a successor version and new decision run when decision-used input changes.
+Kinds:
+
+- `explanation`
+- `factual_or_provenance_correction`
+- `access_failure`
+- `procedural_error`
+- `rubric_appeal`
+- `re_entry`
+
+The MVP implements explanation and correction kinds. Rubric appeal remains
+specified but disabled until the canonical scope conflict is resolved.
+
+Applied correction requires a successor version and new decision run when
+decision-used input changes. A prohibited/private-field correction changes no
+decision result, ordered reason, or input hash.
 
 ## Audit
 
@@ -332,7 +385,7 @@ No application role receives update/delete permission.
 
 ## API Boundaries
 
-- Family: own draft/submission/status/correction
+- Family: own draft/submission/status/explanation/remedy
 - Admissions: synthetic assessment and routing
 - Reviewer: assigned evidence and own ratings
 - Supervisor: assigned third review

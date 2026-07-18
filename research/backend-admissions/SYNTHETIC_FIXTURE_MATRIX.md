@@ -112,6 +112,28 @@ Qualifies when:
 | CR-05 | Replay old/new | Both reproduce |
 | CR-06 | New later-cycle evidence | New case, no prior penalty |
 
+## Explanation and Remedy
+
+| ID | Scenario | Expected |
+|---|---|---|
+| EX-01 | Explanation requested twice | Same notice version; no mutation |
+| EX-02 | Public explanation clause | Maps to rule step/event |
+| EX-03 | Pending rather than negative | Correct contrast stated |
+| MSG-01 | Negative notice | No “not gifted,” seat, or causal claim |
+| MSG-02 | Notice delivery fails | Remedy clock not started |
+| RM-01 | Wrong policy version | Procedural cure and successor |
+| RM-02 | Required review omitted | Fresh conflict-cleared review |
+| RM-03 | Rubric appeal disabled | Explicit deferred status |
+| RM-04 | Appeal submits new evidence | Route to re-entry |
+| RM-05 | Remedy history mutated | Eligibility unchanged |
+| RM-06 | Duplicate remedy request | One idempotent case |
+| RM-07 | Correction races appeal | One complete successor |
+| RM-08 | Duplicate remand | One fresh panel |
+
+Reviewer `pending` is not counted as a vote. Decision-critical evidence defects
+move the case to pending before aggregation; reviewer conflict/competence
+abstention creates a replacement assignment.
+
 ## Prohibited-Field Invariance
 
 Mutate individually and jointly:
@@ -203,3 +225,6 @@ Test direct REST/RPC access, not only UI.
 14. RLS isolation
 15. Missing/unlocked inputs fail closed
 16. Applicant notices avoid admission/program-effect claims
+17. Every explanation clause traces to the executed decision
+18. Remedy history never affects eligibility
+19. New evidence enters re-entry, not correction/appeal
