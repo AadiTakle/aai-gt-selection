@@ -1,5 +1,28 @@
 # Morning Handoff
 
+## Final Package State — 2026-07-18 09:35 UTC-5
+
+- Branch: `research/overnight-backend-selection`
+- Final research-cycle commit: `c11c1373a1320c4588d4f9ff1fd4d9613fb50873`
+- Branch after this handoff commit: 19 commits ahead of `main`
+- Delta from `main`: 43 files, +34,321/−4 lines
+- Research package: 33 Markdown artifacts, 10,682 lines, 43,303 words
+- Source-register entries: 214
+- Logged iterations: 19 (`0` through `18`)
+- Graphify: 1,021 nodes, 982 edges, no duplicate/dangling edges
+- Executable implementation: none; no package manifest, migrations, source
+  scaffold, or tests exist
+- Overnight recurring loop: stopped at user request
+
+Canonical reading order:
+
+1. `MORNING_HANDOFF.md`
+2. `DAY_ZERO_DECISION_BRIEF.md`
+3. `FINAL_RESEARCH_AUDIT.md`
+4. `OVERNIGHT_RESEARCH_REPORT.md`
+5. `PROVISIONAL_IMPLEMENTATION_CONTRACT.md`
+6. `CRITICAL_TEST_MANIFEST.md`
+
 ## Executive Summary
 
 The overnight research supports a minimal, auditable synthetic admissions backend—not live allocation, causal evaluation, or machine-learned admissions.
