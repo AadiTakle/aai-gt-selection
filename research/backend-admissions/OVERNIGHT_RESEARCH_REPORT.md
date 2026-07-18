@@ -439,6 +439,50 @@ Use explicit allowlisted PostgreSQL views, one consistent snapshot, release-spec
 
 Pseudonymization is not anonymization. Differential privacy is a possible public-aggregate tool, not a substitute for controlled microdata access.
 
+## Program-Mechanism Evidence
+
+Randomized tutoring provides a plausible upper benchmark, not GT validation:
+
+- Nickow et al. final pooled effect: approximately 0.288 SD
+- Large-scale independent standardized tutoring: often approximately 0.16–0.22 SD
+- ASSISTments: approximately 0.18 initially and 0.10 one year later
+- DreamBox: approximately 0.11
+- Reasoning Mind RCT: approximately −0.06, nonsignificant
+
+ITS headline effects shrink sharply on independent standardized outcomes. Kulik/Fletcher found local-test effects around 0.62–0.73 versus standardized effects around 0.09–0.13.
+
+The current evidence supports planning around 0.10–0.20 SD, not 0.40+, 2 SD, or Alpha’s growth multiplier.
+
+## High-Ability and Service-Design Evidence
+
+Direct high-ability randomized evidence is sparse. A 2026 Olympiad-nominated combinatorics-course working paper reports +0.165 SD ITT, supporting structured advanced teaching over independent study but not validating GT’s model.
+
+Service design implication:
+
+> high-ceiling diagnostic → compact demonstrated mastery → immediate advanced work → dynamic domain grouping → structured flexible pacing → retention and wellbeing checks.
+
+Grouping labels and peer composition are insufficient. Program effects arise when instruction, level, feedback, and advanced content actually change.
+
+## Treatment Moderators
+
+The strongest confirmatory candidate is continuous domain-specific pretreatment achievement relative to the offered curriculum.
+
+Use SES/opportunity, ELL, and disability/2e for prespecified equity reporting without directional benefit claims.
+
+Keep broad ability profiles, spatial ability outside spatial instruction, motivation, conscientiousness, and age exploratory unless a specific mechanism and adequate interaction power exist.
+
+## Provisional Meaningful-Effect Framework
+
+For future evaluator ratification:
+
+- 12-month MME: +0.10 SD
+- 24-month persistence threshold: +0.05 SD
+- Highest-baseline noninferiority margin: −0.05 SD
+
+Effects around 0.20–0.30 SD would be strong. Effects above 0.30 SD would be exceptional for a full-year independent broad-outcome evaluation.
+
+These values are proposals, not GT facts. Do not change the MME to fit sample size.
+
 ## Deliverables Under Construction
 
 - Source-graded paper deep dives

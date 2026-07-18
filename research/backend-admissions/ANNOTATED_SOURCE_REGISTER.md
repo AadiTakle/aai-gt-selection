@@ -640,3 +640,100 @@
 
 - **URL:** https://www.nationalacademies.org/read/25303/chapter/2
 - **Use:** Reproducibility/replicability definitions and practices.
+
+## Tutoring, Adaptive Software, and Program Mechanisms
+
+### Nickow, Oreopoulos, & Quan (2024) — Tutoring Meta-Analysis
+
+- **DOI:** https://doi.org/10.3102/00028312231208687
+- **Grade:** A
+- **Use:** Pooled human-tutoring benchmark of approximately 0.288 SD.
+- **Limit:** Primarily mainstream/struggling students, not gifted software-led replacement instruction.
+
+### Guryan et al. (2023) — High-Dosage Math Tutoring
+
+- **DOI:** https://doi.org/10.1257/aer.20210434
+- **Grade:** A
+- **Use:** Large secondary-math RCT with pooled roughly 0.28-SD participant effect and persistence evidence.
+
+### Steenbergen-Hu & Cooper (2013) — K–12 ITS Math
+
+- **DOI:** https://doi.org/10.1037/a0032447
+- **Grade:** A
+- **Use:** Direct K–12 ITS synthesis; adjusted average near zero.
+
+### Ma et al. (2014) — ITS Meta-Analysis
+
+- **DOI:** https://doi.org/10.1037/a0037123
+- **Grade:** A
+- **Use:** Broad ITS effect by counterfactual, grade, and prior knowledge.
+- **Limit:** Mixed levels/designs and high heterogeneity.
+
+### Kulik & Fletcher (2016) — Intelligent Tutoring Review
+
+- **DOI:** https://doi.org/10.3102/0034654315581420
+- **Grade:** A
+- **Use:** Shows large gap between local/aligned and standardized outcomes.
+
+### Roschelle et al. (2016) — ASSISTments RCT
+
+- **DOI:** https://doi.org/10.1177/2332858416673968
+- **Grade:** A
+- **Use:** Independent cluster RCT with approximately 0.18-SD initial effect.
+
+### Muralidharan, Singh, & Ganimian (2019) — Mindspark
+
+- **DOI:** https://doi.org/10.1257/aer.20171112
+- **Grade:** A
+- **Use:** Adaptive software field RCT and baseline-achievement analysis.
+
+### Reis et al. (1998) — Curriculum Compacting
+
+- **DOI:** https://doi.org/10.1177/001698629804200206
+- **Grade:** A−
+- **Use:** Randomized district-training study showing 40%–50% compacting without broad achievement loss.
+
+### Duflo, Dupas, & Kremer (2011) — Tracking
+
+- **DOI:** https://doi.org/10.1257/aer.101.5.1739
+- **Grade:** A
+- **Use:** Randomized grouping evidence supporting readiness-targeted instruction rather than peer sorting alone.
+
+### Kulik, Kulik, & Bangert-Drowns (1990) — Mastery Learning
+
+- **DOI:** https://doi.org/10.3102/00346543060002265
+- **Grade:** A−
+- **Use:** Mastery effect synthesis and completion/moderator cautions.
+
+### Tetzlaff et al. (2025) — Expertise Reversal
+
+- **DOI:** https://doi.org/10.1016/j.learninstruc.2025.102142
+- **Grade:** A
+- **Use:** Meta-analytic evidence that assistance × prior-knowledge fit matters.
+
+## Effect-Size and Meaningful-Effect Benchmarks
+
+### Kraft (2020) — Education Effect-Size Benchmarks
+
+- **DOI:** https://doi.org/10.3102/0013189X20912798
+- **Grade:** A
+- **Use:** Empirical distribution of causal standardized achievement effects.
+- **Limit:** Descriptive benchmark, not a universal MME.
+
+### Hill et al. (2008) — Empirical Benchmarks
+
+- **DOI:** https://doi.org/10.1111/j.1750-8606.2008.00061.x
+- **Grade:** A
+- **Use:** Compare effect sizes with grade/subject growth and similar interventions.
+
+### Lakens, Scheel, & Isager (2018) — Equivalence Testing
+
+- **DOI:** https://doi.org/10.1177/2515245918770963
+- **Grade:** A
+- **Use:** Equivalence tests with preregistered smallest effect size of interest.
+
+### Bailey et al. (2017) — Persistence and Fadeout
+
+- **DOI:** https://doi.org/10.1080/19345747.2016.1232459
+- **Grade:** A
+- **Use:** Framework for persistence and fadeout of educational intervention effects.

@@ -102,6 +102,18 @@
 - Added reproducible evaluator export specification using snapshot consistency, pseudonyms, BagIt, signed manifests, provenance, environment locks, and offline replay.
 - Added 20+ sources on growth models, negative controls, staggered DiD, sensitivity, de-identification, and reproducibility.
 
+### Iteration 6 — 2026-07-18
+
+- Researched randomized tutoring and realistic scaled implementation effects.
+- Separated human tutoring, ITS/adaptive software, mastery, compacting, acceleration, grouping, and self-paced instruction evidence.
+- Recorded realistic independent broad-outcome benchmarks of roughly 0.10–0.20 SD and the strong-result range around 0.20–0.30 SD.
+- Added direct cautions that high-ability-specific RCT evidence is sparse and that GT’s bundled two-hour model differs from tutoring/adaptive studies.
+- Identified domain-specific baseline knowledge/instructional mismatch as the strongest plausible confirmatory benefit moderator.
+- Kept SES, ELL, disability/2e as equity analyses and broad ability, motivation, conscientiousness, and age as exploratory moderators.
+- Added fastest-student and wellbeing guardrails.
+- Added a provisional future MME framework: +0.10 SD at 12 months, +0.05 persistence, and −0.05 high-performer noninferiority.
+- Added 15+ mechanism, moderator, persistence, and benchmark sources.
+
 ## Next Research Clusters
 
 1. Randomized/lottery and regression-discontinuity identification in selective education.

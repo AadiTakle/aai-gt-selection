@@ -1545,15 +1545,246 @@
       "norm_label": "evaluator export"
     },
     {
-      "label": "Deliverables Under Construction",
+      "label": "Program-Mechanism Evidence",
       "file_type": "document",
       "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
       "source_location": "L442",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_program_mechanism_evidence",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "program-mechanism evidence"
+    },
+    {
+      "label": "High-Ability and Service-Design Evidence",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L456",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_high_ability_and_service_design_evidence",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "high-ability and service-design evidence"
+    },
+    {
+      "label": "Treatment Moderators",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L466",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_treatment_moderators",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "treatment moderators"
+    },
+    {
+      "label": "Provisional Meaningful-Effect Framework",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L474",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_provisional_meaningful_effect_framework",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "provisional meaningful-effect framework"
+    },
+    {
+      "label": "Deliverables Under Construction",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L486",
       "_origin": "ast",
       "id": "research_backend_admissions_overnight_research_report_deliverables_under_construction",
       "community": 6,
       "community_name": "Prohibited Inputs and Equity",
       "norm_label": "deliverables under construction"
+    },
+    {
+      "label": "PROGRAM_MECHANISM_BENCHMARKS.md",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "research_backend_admissions_program_mechanism_benchmarks",
+      "community": 35,
+      "community_name": "Program-Mechanism and Effect-Size Benchmarks",
+      "norm_label": "program_mechanism_benchmarks.md"
+    },
+    {
+      "label": "Program-Mechanism and Effect-Size Benchmarks",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "research_backend_admissions_program_mechanism_benchmarks_program_mechanism_and_effect_size_benchmarks",
+      "community": 35,
+      "community_name": "Program-Mechanism and Effect-Size Benchmarks",
+      "norm_label": "program-mechanism and effect-size benchmarks"
+    },
+    {
+      "label": "Bottom Line",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md",
+      "source_location": "L3",
+      "_origin": "ast",
+      "id": "research_backend_admissions_program_mechanism_benchmarks_bottom_line",
+      "community": 35,
+      "community_name": "Program-Mechanism and Effect-Size Benchmarks",
+      "norm_label": "bottom line"
+    },
+    {
+      "label": "Human Tutoring",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md",
+      "source_location": "L16",
+      "_origin": "ast",
+      "id": "research_backend_admissions_program_mechanism_benchmarks_human_tutoring",
+      "community": 35,
+      "community_name": "Program-Mechanism and Effect-Size Benchmarks",
+      "norm_label": "human tutoring"
+    },
+    {
+      "label": "Intelligent Tutoring and Adaptive Software",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md",
+      "source_location": "L35",
+      "_origin": "ast",
+      "id": "research_backend_admissions_program_mechanism_benchmarks_intelligent_tutoring_and_adaptive_software",
+      "community": 35,
+      "community_name": "Program-Mechanism and Effect-Size Benchmarks",
+      "norm_label": "intelligent tutoring and adaptive software"
+    },
+    {
+      "label": "Evidence for High-Ability Students",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md",
+      "source_location": "L59",
+      "_origin": "ast",
+      "id": "research_backend_admissions_program_mechanism_benchmarks_evidence_for_high_ability_students",
+      "community": 35,
+      "community_name": "Program-Mechanism and Effect-Size Benchmarks",
+      "norm_label": "evidence for high-ability students"
+    },
+    {
+      "label": "Mastery and Compacting",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md",
+      "source_location": "L73",
+      "_origin": "ast",
+      "id": "research_backend_admissions_program_mechanism_benchmarks_mastery_and_compacting",
+      "community": 35,
+      "community_name": "Program-Mechanism and Effect-Size Benchmarks",
+      "norm_label": "mastery and compacting"
+    },
+    {
+      "label": "Acceleration and Grouping",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md",
+      "source_location": "L93",
+      "_origin": "ast",
+      "id": "research_backend_admissions_program_mechanism_benchmarks_acceleration_and_grouping",
+      "community": 35,
+      "community_name": "Program-Mechanism and Effect-Size Benchmarks",
+      "norm_label": "acceleration and grouping"
+    },
+    {
+      "label": "Benefit Moderators",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md",
+      "source_location": "L111",
+      "_origin": "ast",
+      "id": "research_backend_admissions_program_mechanism_benchmarks_benefit_moderators",
+      "community": 35,
+      "community_name": "Program-Mechanism and Effect-Size Benchmarks",
+      "norm_label": "benefit moderators"
+    },
+    {
+      "label": "Confirmatory candidate",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md",
+      "source_location": "L113",
+      "_origin": "ast",
+      "id": "research_backend_admissions_program_mechanism_benchmarks_confirmatory_candidate",
+      "community": 35,
+      "community_name": "Program-Mechanism and Effect-Size Benchmarks",
+      "norm_label": "confirmatory candidate"
+    },
+    {
+      "label": "Optional second candidate",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md",
+      "source_location": "L122",
+      "_origin": "ast",
+      "id": "research_backend_admissions_program_mechanism_benchmarks_optional_second_candidate",
+      "community": 35,
+      "community_name": "Program-Mechanism and Effect-Size Benchmarks",
+      "norm_label": "optional second candidate"
+    },
+    {
+      "label": "Equity reporting, not directional benefit claims",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md",
+      "source_location": "L126",
+      "_origin": "ast",
+      "id": "research_backend_admissions_program_mechanism_benchmarks_equity_reporting_not_directional_benefit_claims",
+      "community": 35,
+      "community_name": "Program-Mechanism and Effect-Size Benchmarks",
+      "norm_label": "equity reporting, not directional benefit claims"
+    },
+    {
+      "label": "Exploratory only",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md",
+      "source_location": "L132",
+      "_origin": "ast",
+      "id": "research_backend_admissions_program_mechanism_benchmarks_exploratory_only",
+      "community": 35,
+      "community_name": "Program-Mechanism and Effect-Size Benchmarks",
+      "norm_label": "exploratory only"
+    },
+    {
+      "label": "Fastest-Student and Wellbeing Guardrails",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md",
+      "source_location": "L143",
+      "_origin": "ast",
+      "id": "research_backend_admissions_program_mechanism_benchmarks_fastest_student_and_wellbeing_guardrails",
+      "community": 35,
+      "community_name": "Program-Mechanism and Effect-Size Benchmarks",
+      "norm_label": "fastest-student and wellbeing guardrails"
+    },
+    {
+      "label": "Provisional MME Framework",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md",
+      "source_location": "L158",
+      "_origin": "ast",
+      "id": "research_backend_admissions_program_mechanism_benchmarks_provisional_mme_framework",
+      "community": 35,
+      "community_name": "Program-Mechanism and Effect-Size Benchmarks",
+      "norm_label": "provisional mme framework"
+    },
+    {
+      "label": "Power Reality",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md",
+      "source_location": "L177",
+      "_origin": "ast",
+      "id": "research_backend_admissions_program_mechanism_benchmarks_power_reality",
+      "community": 35,
+      "community_name": "Program-Mechanism and Effect-Size Benchmarks",
+      "norm_label": "power reality"
+    },
+    {
+      "label": "Primary Sources",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md",
+      "source_location": "L185",
+      "_origin": "ast",
+      "id": "research_backend_admissions_program_mechanism_benchmarks_primary_sources",
+      "community": 35,
+      "community_name": "Program-Mechanism and Effect-Size Benchmarks",
+      "norm_label": "primary sources"
     },
     {
       "label": "RESEARCH_LOG.md",
@@ -1677,10 +1908,21 @@
       "norm_label": "iteration 5 \u2014 2026-07-18"
     },
     {
-      "label": "Next Research Clusters",
+      "label": "Iteration 6 \u2014 2026-07-18",
       "file_type": "document",
       "source_file": "research/backend-admissions/RESEARCH_LOG.md",
       "source_location": "L105",
+      "_origin": "ast",
+      "id": "research_backend_admissions_research_log_iteration_6_2026_07_18",
+      "community": 27,
+      "community_name": "Overnight Backend and Admissions Research Log",
+      "norm_label": "iteration 6 \u2014 2026-07-18"
+    },
+    {
+      "label": "Next Research Clusters",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/RESEARCH_LOG.md",
+      "source_location": "L117",
       "_origin": "ast",
       "id": "research_backend_admissions_research_log_next_research_clusters",
       "community": 27,
@@ -3176,9 +3418,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 1,
       "norm_label": "canonical document precedence",
-      "community_name": "Evidence Quality and Screening",
+      "community_name": "Selection Requirements and Rights",
       "id": "agents_document_precedence"
     },
     {
@@ -3190,9 +3432,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 1,
       "norm_label": "make gt school contribution testable",
-      "community_name": "Evidence Quality and Screening",
+      "community_name": "Selection Requirements and Rights",
       "id": "project_charter_mission"
     },
     {
@@ -3204,9 +3446,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 1,
       "norm_label": "selection effect",
-      "community_name": "Evidence Quality and Screening",
+      "community_name": "Selection Requirements and Rights",
       "id": "project_charter_selection_effect"
     },
     {
@@ -3218,9 +3460,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 1,
       "norm_label": "program effect",
-      "community_name": "Evidence Quality and Screening",
+      "community_name": "Selection Requirements and Rights",
       "id": "project_charter_program_effect"
     },
     {
@@ -3232,9 +3474,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 1,
       "norm_label": "credible counterfactual",
-      "community_name": "Evidence Quality and Screening",
+      "community_name": "Selection Requirements and Rights",
       "id": "project_charter_credible_counterfactual"
     },
     {
@@ -3288,9 +3530,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 2,
+      "community": 1,
       "norm_label": "r2 credible counterfactual",
-      "community_name": "Evaluation Design and Measurement",
+      "community_name": "Selection Requirements and Rights",
       "id": "docs_project_requirements_r2"
     },
     {
@@ -3316,9 +3558,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 1,
       "norm_label": "r4 non-circular selection and measurement",
-      "community_name": "Evidence Quality and Screening",
+      "community_name": "Selection Requirements and Rights",
       "id": "docs_project_requirements_r4"
     },
     {
@@ -3400,9 +3642,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 2,
+      "community": 1,
       "norm_label": "r10 conclusion boundaries",
-      "community_name": "Evaluation Design and Measurement",
+      "community_name": "Selection Requirements and Rights",
       "id": "docs_project_requirements_r10"
     },
     {
@@ -3596,9 +3838,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 2,
+      "community": 1,
       "norm_label": "e-001 public gt reporting lacks credible comparison",
-      "community_name": "Evaluation Design and Measurement",
+      "community_name": "Selection Requirements and Rights",
       "id": "docs_assumptions_and_evidence_e001"
     },
     {
@@ -3918,9 +4160,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 1,
       "norm_label": "d-001 canonical project governance",
-      "community_name": "Evidence Quality and Screening",
+      "community_name": "Selection Requirements and Rights",
       "id": "docs_decision_log_d001"
     },
     {
@@ -4212,9 +4454,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 2,
+      "community": 1,
       "norm_label": "seat allocation and evaluation out of scope",
-      "community_name": "Evaluation Design and Measurement",
+      "community_name": "Selection Requirements and Rights",
       "id": "docs_gt_admissions_application_mvp_prd_allocation_out_of_scope"
     },
     {
@@ -4226,9 +4468,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 2,
+      "community": 1,
       "norm_label": "track a vs track b difference as program effect claim",
-      "community_name": "Evaluation Design and Measurement",
+      "community_name": "Selection Requirements and Rights",
       "id": "docs_gt_admissions_application_mvp_prd_track_comparison_causal_claim"
     },
     {
@@ -4296,9 +4538,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 2,
+      "community": 1,
       "norm_label": "methodologist critic lens",
-      "community_name": "Evaluation Design and Measurement",
+      "community_name": "Selection Requirements and Rights",
       "id": "docs_critic_review_checklist_methodologist_lens"
     },
     {
@@ -4786,9 +5028,9 @@
       "captured_at": null,
       "author": "Aadi Takle",
       "contributor": null,
-      "community": 2,
+      "community": 1,
       "norm_label": "regression discontinuity at admission cutoff",
-      "community_name": "Evaluation Design and Measurement",
+      "community_name": "Selection Requirements and Rights",
       "id": "gt_school_counterfactual_brainlift_brainlift_gt_school_counterfactual_regression_discontinuity"
     },
     {
@@ -4828,9 +5070,9 @@
       "captured_at": null,
       "author": "Atila Abdulkadiro\u011flu; Joshua Angrist; Parag Pathak",
       "contributor": "Aadi Takle",
-      "community": 4,
+      "community": 1,
       "norm_label": "elite illusion null-at-the-margin evidence",
-      "community_name": "Evidence Quality and Screening",
+      "community_name": "Selection Requirements and Rights",
       "id": "gt_school_counterfactual_brainlift_brainlift_gt_school_counterfactual_elite_illusion"
     },
     {
@@ -6054,7 +6296,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
-      "source_location": "L442",
+      "source_location": "L486",
       "weight": 1.0,
       "_origin": "ast",
       "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
@@ -6103,6 +6345,17 @@
       "_origin": "ast",
       "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
       "target": "research_backend_admissions_overnight_research_report_heterogeneity_validation",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L456",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
+      "target": "research_backend_admissions_overnight_research_report_high_ability_and_service_design_evidence",
       "confidence_score": 1.0
     },
     {
@@ -6158,6 +6411,28 @@
       "_origin": "ast",
       "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
       "target": "research_backend_admissions_overnight_research_report_policy_learning_finding",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L442",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
+      "target": "research_backend_admissions_overnight_research_report_program_mechanism_evidence",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L474",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
+      "target": "research_backend_admissions_overnight_research_report_provisional_meaningful_effect_framework",
       "confidence_score": 1.0
     },
     {
@@ -6246,6 +6521,17 @@
       "_origin": "ast",
       "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
       "target": "research_backend_admissions_overnight_research_report_track_a_rd_with_track_b",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L466",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
+      "target": "research_backend_admissions_overnight_research_report_treatment_moderators",
       "confidence_score": 1.0
     },
     {
@@ -6394,6 +6680,182 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_program_mechanism_benchmarks",
+      "target": "research_backend_admissions_program_mechanism_benchmarks_program_mechanism_and_effect_size_benchmarks",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md",
+      "source_location": "L93",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_program_mechanism_benchmarks_program_mechanism_and_effect_size_benchmarks",
+      "target": "research_backend_admissions_program_mechanism_benchmarks_acceleration_and_grouping",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md",
+      "source_location": "L111",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_program_mechanism_benchmarks_program_mechanism_and_effect_size_benchmarks",
+      "target": "research_backend_admissions_program_mechanism_benchmarks_benefit_moderators",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_program_mechanism_benchmarks_program_mechanism_and_effect_size_benchmarks",
+      "target": "research_backend_admissions_program_mechanism_benchmarks_bottom_line",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md",
+      "source_location": "L59",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_program_mechanism_benchmarks_program_mechanism_and_effect_size_benchmarks",
+      "target": "research_backend_admissions_program_mechanism_benchmarks_evidence_for_high_ability_students",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md",
+      "source_location": "L143",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_program_mechanism_benchmarks_program_mechanism_and_effect_size_benchmarks",
+      "target": "research_backend_admissions_program_mechanism_benchmarks_fastest_student_and_wellbeing_guardrails",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md",
+      "source_location": "L16",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_program_mechanism_benchmarks_program_mechanism_and_effect_size_benchmarks",
+      "target": "research_backend_admissions_program_mechanism_benchmarks_human_tutoring",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md",
+      "source_location": "L35",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_program_mechanism_benchmarks_program_mechanism_and_effect_size_benchmarks",
+      "target": "research_backend_admissions_program_mechanism_benchmarks_intelligent_tutoring_and_adaptive_software",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md",
+      "source_location": "L73",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_program_mechanism_benchmarks_program_mechanism_and_effect_size_benchmarks",
+      "target": "research_backend_admissions_program_mechanism_benchmarks_mastery_and_compacting",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md",
+      "source_location": "L177",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_program_mechanism_benchmarks_program_mechanism_and_effect_size_benchmarks",
+      "target": "research_backend_admissions_program_mechanism_benchmarks_power_reality",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md",
+      "source_location": "L185",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_program_mechanism_benchmarks_program_mechanism_and_effect_size_benchmarks",
+      "target": "research_backend_admissions_program_mechanism_benchmarks_primary_sources",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md",
+      "source_location": "L158",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_program_mechanism_benchmarks_program_mechanism_and_effect_size_benchmarks",
+      "target": "research_backend_admissions_program_mechanism_benchmarks_provisional_mme_framework",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md",
+      "source_location": "L113",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_program_mechanism_benchmarks_benefit_moderators",
+      "target": "research_backend_admissions_program_mechanism_benchmarks_confirmatory_candidate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md",
+      "source_location": "L126",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_program_mechanism_benchmarks_benefit_moderators",
+      "target": "research_backend_admissions_program_mechanism_benchmarks_equity_reporting_not_directional_benefit_claims",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md",
+      "source_location": "L132",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_program_mechanism_benchmarks_benefit_moderators",
+      "target": "research_backend_admissions_program_mechanism_benchmarks_exploratory_only",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/PROGRAM_MECHANISM_BENCHMARKS.md",
+      "source_location": "L122",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_program_mechanism_benchmarks_benefit_moderators",
+      "target": "research_backend_admissions_program_mechanism_benchmarks_optional_second_candidate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "research/backend-admissions/RESEARCH_LOG.md",
       "source_location": "L1",
       "weight": 1.0,
@@ -6417,7 +6879,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "research/backend-admissions/RESEARCH_LOG.md",
-      "source_location": "L105",
+      "source_location": "L117",
       "weight": 1.0,
       "_origin": "ast",
       "source": "research_backend_admissions_research_log_overnight_backend_and_admissions_research_log",
@@ -6510,6 +6972,17 @@
       "_origin": "ast",
       "source": "research_backend_admissions_research_log_iteration_log",
       "target": "research_backend_admissions_research_log_iteration_5_2026_07_18",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/RESEARCH_LOG.md",
+      "source_location": "L105",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_research_log_iteration_log",
+      "target": "research_backend_admissions_research_log_iteration_6_2026_07_18",
       "confidence_score": 1.0
     },
     {
@@ -9182,5 +9655,5 @@
       "source_file": "gt-school-counterfactual-brainlift/brainlift-gt-school-counterfactual.md"
     }
   ],
-  "built_at_commit": "671cd05c038c310f1ed69d29fb3dea7c80e08e74"
+  "built_at_commit": "5719a4d125318229254c94825810dc570af2fb1c"
 }
