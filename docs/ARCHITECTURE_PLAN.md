@@ -1,6 +1,6 @@
 # GT Admissions MVP — Web Application Architecture Plan
 
-**Status:** Draft for review. Synthetic four-week prototype only; not live admissions.
+**Status:** Approved by D-011 for the synthetic four-week prototype only; not live admissions.
 **Scope of this document:** End-to-end technical architecture for the Next.js + Supabase/PostgreSQL web application described in `docs/GT_ADMISSIONS_APPLICATION_MVP_PRD.md` (§ Tech Stack), designed to embed into a pre-existing GT website and to support every PRD product surface and feature.
 **Owner:** Aadi (backend/admissions logic) with Tiffany (product/frontend) on the shared frontend/backend interface. See PRD § Division of Labor.
 
@@ -117,11 +117,17 @@ app/
   api/health, api/session      # minimal route handlers
 lib/
   supabase/ (server, browser, middleware clients)
-  contracts/ (Zod schemas shared FE/BE)   engine/ (decision engine, isolated)
+  contracts.ts (adapter over packages/contracts)   engine/ (future decision engine)
   canonical/ (JCS + hashing)              rpc/ (typed RPC wrappers)
 supabase/
   migrations/ (schema, RLS, RPCs, seed)   tests/ (pgTAP)
 ```
+
+In the monorepo, this application tree lives under `apps/web/src/`.
+Framework-independent Zod schemas live in `packages/contracts`, generated exposed-schema types
+live in `packages/db-types`, and fixed fictional examples live in `packages/test-fixtures`.
+`apps/web/src/lib/contracts.ts` is only the application-facing re-export; packages never import
+from `apps/web`.
 
 **Rendering rules (security-driven):**
 - Authed pages are dynamically rendered; **no ISR/static caching of authenticated content** (`RLS_AND_AUTH_BLUEPRINT.md:43-52`).

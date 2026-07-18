@@ -1,0 +1,101 @@
+:root {
+  --gt-color-background: #f4f1e8;
+  --gt-color-foreground: #18211b;
+  --gt-color-muted: #58635b;
+  --gt-color-accent: #1f5d42;
+  --gt-color-surface: #fffdf7;
+  --gt-color-border: #cad0c8;
+  --gt-font-body: Arial, Helvetica, sans-serif;
+  --gt-font-heading: Georgia, 'Times New Roman', serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--gt-color-background);
+  color: var(--gt-color-foreground);
+  font-family: var(--gt-font-body);
+}
+
+body {
+  margin: 0;
+}
+
+a {
+  color: var(--gt-color-accent);
+}
+
+.app-shell {
+  margin: 0 auto;
+  max-width: 72rem;
+  min-height: 100vh;
+  padding: 1rem 1.5rem 3rem;
+}
+
+.app-header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  padding: 1.5rem 0;
+}
+
+.app-header strong,
+h1 {
+  font-family: var(--gt-font-heading);
+}
+
+.prototype-banner {
+  background: var(--gt-color-foreground);
+  color: var(--gt-color-background);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 0.75rem 1rem;
+  text-align: center;
+}
+
+.surface-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  margin-top: 2rem;
+}
+
+.surface-card,
+.surface-placeholder {
+  background: var(--gt-color-surface);
+  border: 1px solid var(--gt-color-border);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+}
+
+.surface-card {
+  display: block;
+  text-decoration: none;
+}
+
+.surface-placeholder {
+  margin-top: 3rem;
+}
+
+.surface-placeholder h1 {
+  font-size: clamp(2rem, 5vw, 4rem);
+  margin: 0.25rem 0 1rem;
+}
+
+.eyebrow {
+  color: var(--gt-color-accent);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.boundary {
+  border-top: 1px solid var(--gt-color-border);
+  color: var(--gt-color-muted);
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+}
