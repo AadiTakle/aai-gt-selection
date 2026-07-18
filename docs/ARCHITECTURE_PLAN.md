@@ -1,6 +1,6 @@
 # GT Admissions MVP — Web Application Architecture Plan
 
-**Status:** Draft for review. Synthetic four-week prototype only; not live admissions.
+**Status:** Approved by D-011 for the synthetic four-week prototype only; not live admissions.
 **Scope of this document:** End-to-end technical architecture for the Next.js + Supabase/PostgreSQL web application described in `docs/GT_ADMISSIONS_APPLICATION_MVP_PRD.md` (§ Tech Stack), designed to embed into a pre-existing GT website and to support every PRD product surface and feature.
 **Owner:** Aadi (backend/admissions logic) with Tiffany (product/frontend) on the shared frontend/backend interface. See PRD § Division of Labor.
 

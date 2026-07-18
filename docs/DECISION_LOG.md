@@ -127,6 +127,19 @@ Each decision must include the requirements served, alternatives considered, evi
 - **Owner:** Team lead
 - **Relationship to prior decisions:** Builds on D-008 (Track A/Track B prototype ratification) and D-009 (Supabase/PostgreSQL backend) by fixing the future evaluation and remedy boundaries those decisions left open; does not supersede either.
 
+### D-011 — Approve the synthetic web application architecture and integration boundary
+
+- **Date:** 2026-07-18
+- **Status:** Approved
+- **Decision:** Approve `docs/ARCHITECTURE_PLAN.md` as the technical architecture for the synthetic prototype: one Next.js App Router sub-application in a pnpm monorepo, local Supabase/PostgreSQL, framework-independent Zod contracts, generated API-only database types, fixed synthetic fixtures, forced-RLS database boundaries, deterministic replay seams, and no ORM. Use Mode A (a linked sub-application on its own origin) for the prototype integration default; retain Mode B (a reverse-proxy path mount) as the future production-shaped option. The synthetic application owns its own local authentication and does not share or infer a live host-site session.
+- **Requirements served:** R1, R5, R7, R8, R9, R10, H1, H2, H4, H7, H9, H10
+- **Evidence:** D-008, D-009, D-010; E-034, E-037, E-039–E-045; `PROVISIONAL_IMPLEMENTATION_CONTRACT.md`; `RLS_AND_AUTH_BLUEPRINT.md`; `CANONICALIZATION_AND_REPLAY_BLUEPRINT.md`
+- **Alternatives considered:** Rewriting or absorbing the pre-existing GT website into the application; embedding authenticated flows in the host DOM; using a shared live-site SSO session in the MVP; adding a separate API service or ORM; linking a hosted Supabase project.
+- **Rationale:** A bounded sub-application preserves the synthetic/privacy boundary while still allowing brand-compatible navigation from a pre-existing host site. The monorepo packages keep shared contracts and generated types independent of Next.js, while local Supabase exercises the real Auth/PostgREST/PostgreSQL boundary without authorizing live data or deployment.
+- **Consequences:** Phase B may scaffold the application, package, database, test, and CI boundaries but may not implement admissions business logic, real uploads/data, hosted Supabase, live host integration, production deployment, allocation, or evaluator systems. Host-link capability, brand tokens, and any future SSO remain assumptions until confirmed by GT IT.
+- **Owner:** Team lead
+- **Relationship to prior decisions:** Implements D-009 and the MVP boundaries in D-008/D-010; does not supersede them.
+
 ## Entry template
 
 ### D-XXX — Decision title
