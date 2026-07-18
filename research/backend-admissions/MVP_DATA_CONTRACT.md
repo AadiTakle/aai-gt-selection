@@ -1,5 +1,23 @@
 # Minimum Synthetic MVP Data Contract
 
+## Two-Week Implementation Cut
+
+Implement only:
+
+- application and assessment versions;
+- one locked synthetic policy bundle;
+- fixed Snapshot references;
+- reviewer assignments and binary reviewer classifications;
+- pending work items;
+- immutable decision runs, ordered reasons, and rule trace;
+- factual/procedural correction successors;
+- minimized audit events; and
+- narrow role-bound API/RPCs.
+
+The field registry, synthetic-choice, retention/disposition, hold, export,
+substantive appeal, re-entry, and evaluation contracts below are future design
+references. They are not required for the two-week backend build.
+
 ## Shared Types
 
 ```text
@@ -10,7 +28,7 @@ SnapshotRoute = artifact | narrative
 ReviewState =
   awaiting_assignments | in_review | awaiting_blind_third |
   ready_for_decision | pending_correction | completed
-Classification = qualifies | does_not_currently_qualify | pending
+ReviewClassification = qualifies | does_not_currently_qualify
 Pending =
   pending_evidence_correction |
   pending_additional_blind_review |

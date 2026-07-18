@@ -60,10 +60,11 @@ FOR each reviewer:
   classify independence
   classify recurrence
   classify evidence specificity
-  output qualifies / does_not_currently_qualify / pending
+  output qualifies / does_not_currently_qualify
+  OR abstain for conflict/competence and trigger replacement
 
 IF any decision-critical evidence is uninterpretable:
-  final = pending
+  case workflow = pending_evidence_correction before vote aggregation
 ELSE:
   final = majority reviewer classification
 
@@ -374,12 +375,16 @@ BEFORE valid outcomes:
   label gaps as disparities requiring investigation
   never label as TPR/FPR, calibration, or equal opportunity
 
-AFTER an independent common outcome exists:
+AFTER a construct-valid target is defined under an explicit treatment regime
+and representative labels exist for that target:
   estimate sensitivity/FNR and specificity/FPR
   predictive parity and NPV
   calibration/differential prediction
   equalized odds/equal opportunity
   simultaneous subgroup intervals
+
+  do not use a post-admission outcome as neutral ground truth when admission
+  can change that outcome
 
 PROTECTED ATTRIBUTES:
   separate permissioned audit store

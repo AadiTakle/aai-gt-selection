@@ -28,7 +28,8 @@ Overnight research package reviewed by causal-method, quantitative-source, backe
 - Added missing tutoring, ITS, gifted-course, and scaled-tutoring sources.
 - Added working-paper/author-implementation caveats for the Olympiad course.
 - Removed duplicate Lakkaraju entry.
-- Normalized source grades to A/B/C.
+- Clarified A/B/C as inferential research grades and separated nonresearch
+  source roles.
 - Added final Imai–Li and CONSORT DOIs and complete NIST random-source links.
 
 ### Backend and Product Boundaries
@@ -38,6 +39,21 @@ Overnight research package reviewed by causal-method, quantitative-source, backe
 - Added allocation-mechanism propensity and cryptographic audit boundaries.
 - Added source/target frames, treatment versions, monitoring, fidelity, costs, and evaluator exports.
 - Kept future evaluation/allocation schemas isolated from the four-week MVP.
+
+### Final Consolidation
+
+- Defined marginal standardization for interacted ANCOVA.
+- Corrected transformed-outcome causal/descriptive wording.
+- Defined high-baseline noninferiority on the absolute subgroup effect.
+- Narrowed high-ability course evidence to package ITT.
+- Removed unsupported equivalence/negligible-effect language.
+- Reported one coherent Card–Giuliano principal fuzzy-RD specification.
+- Required construct-valid fairness targets under explicit treatment regimes.
+- Made reviewer classifications binary and pending a workflow state.
+- Clarified reviewer-population inference.
+- Narrowed commitment/provenance/privacy/legal claims.
+- Removed duplicate source entries and added missing authorities.
+- Narrowed the executable backend to a feasible two-week cut.
 
 ## Unresolved Canonical Product Conflicts
 

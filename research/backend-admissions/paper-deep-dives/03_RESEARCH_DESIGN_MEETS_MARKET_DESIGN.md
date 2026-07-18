@@ -121,4 +121,7 @@ It does not identify effects for every applicant or for policies outside the rep
 
 ## Product-Support Claim
 
-This paper provides direct quantitative evidence that faithfully storing and replaying the assignment mechanism can change causal effect estimates by roughly a factor of two. Backend mechanism provenance is therefore part of statistical validity, not merely engineering hygiene.
+This paper provides direct quantitative evidence that omitting
+assignment-mechanism propensity attenuated the Denver estimates by approximately
+44%–60%. Backend mechanism provenance is therefore part of statistical
+validity, not merely engineering hygiene.

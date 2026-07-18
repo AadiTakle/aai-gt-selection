@@ -97,7 +97,8 @@
 - Added high-ceiling outcome recommendation:
   - initial-offer ITT;
   - baseline-adjusted endpoint ANCOVA;
-  - gain/SGP/value-added/route differences descriptive only.
+  - adjusted scale-score endpoint preferred; randomized transformed-outcome
+    contrasts distinguished from observational route/value-added comparisons.
 - Added falsification and design-specific sensitivity register for lotteries, RD, matching, and phased rollout.
 - Added reproducible evaluator export specification using snapshot consistency, pseudonyms, BagIt, signed manifests, provenance, environment locks, and offline replay.
 - Added 20+ sources on growth models, negative controls, staggered DiD, sensitivity, de-identification, and reproducibility.
@@ -224,6 +225,22 @@
   runtime use.
 - Corrected GT versus Alpha monitoring and retention policy attribution.
 - Added privacy/retention/service-role/fixture-provenance acceptance fixtures.
+
+### Iteration 15 — 2026-07-18
+
+- Ran final cross-document, methodological, MVP-scope, source-integrity, and
+  Day-0 decision audits.
+- Corrected marginal-ITT, transformed-outcome, high-performer noninferiority,
+  mechanism, null/equivalence, and Card–Giuliano wording.
+- Required fairness labels to specify a construct-valid target and treatment
+  regime.
+- Removed reviewer-pending vote conflicts and clarified reviewer-population
+  inference.
+- Narrowed cryptographic, provenance, privacy, and legal-scope claims.
+- Removed duplicate source entries and added missing accessibility,
+  contestability, and privacy authorities.
+- Narrowed the executable two-week backend cut and fixed fixture ID collisions.
+- Created the final research audit and seven-item Day-0 decision brief.
 
 ## Implementation Transition
 

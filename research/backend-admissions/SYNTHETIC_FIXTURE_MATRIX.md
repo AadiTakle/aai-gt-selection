@@ -11,7 +11,6 @@
 - Artifact: two reviews, third on disagreement
 - Narrative: three reviews
 - Majority requires two matching classifications
-- Three-way split: `pending_no_majority`
 - Invalid/inaccessible evidence: pending
 
 Rubric `RB-SYN-01`:
@@ -56,7 +55,7 @@ Qualifies when:
 | RV-N-DE | 1/2/2/2/2/2 | does not currently qualify |
 | RV-N-CAP | 2/1/1/2/2/2 | does not currently qualify |
 | RV-N-IN | 2/2/2/0/2/2 | does not currently qualify |
-| RV-P | 2/2/2/1/1/U | pending |
+| EV-P | 2/2/2/1/1/U | case pending before vote |
 
 ## Routing
 
@@ -93,7 +92,7 @@ Qualifies when:
 | AR-08 | Inaccessible fixture | pending accessibility route |
 | NR-01 | Narrative Q,Q,N | qualifies |
 | NR-02 | Narrative N,N,Q | does not currently qualify |
-| NR-03 | Narrative Q,N,P | pending no majority |
+| NR-03 | Narrative Q,N,reviewer abstains | Replacement reviewer; no aggregation |
 | NR-04 | Narrative first two agree | Third still required |
 | NR-05 | Narrative finalizes after two | Rejected |
 
@@ -191,8 +190,8 @@ invariance applies only when the mutated fields are excluded metadata.
 | LG-01 | Forbidden canary strings | Absent from logs |
 | EV-01 | Non-allowlisted fixture | Rejected |
 | EV-02 | Fixture manifest | Synthetic provenance/checksum/license complete |
-| EX-01 | Family synthetic export | Own allowlisted fields/checksums only |
-| EX-02 | Expired export | Unavailable |
+| PX-01 | Family synthetic export | Own allowlisted fields/checksums only |
+| PX-02 | Expired export | Unavailable |
 | CN-01 | Synthetic choice grant/refusal/withdrawal | Admissions invariant |
 | CN-02 | Evaluation/export access | Fail closed |
 | LC-01 | Non-loopback/public tunnel/remote project | Startup fails |

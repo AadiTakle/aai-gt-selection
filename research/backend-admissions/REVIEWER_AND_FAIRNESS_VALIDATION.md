@@ -19,13 +19,20 @@ Report by route and dimension:
 - Gwet AC2
 - Ordinal Krippendorff alpha when ratings are missing or reviewer counts vary
 - Non-adjacent and decision-critical disagreement
-- 95% confidence intervals from case-level resampling
+- 95% confidence intervals from case-level resampling when inference is
+  conditional on the observed reviewer panel
+
+To generalize to a reviewer population, use a design with connected reviewer
+assignment and a cross-classified reviewer/case model or resampling procedure;
+case-only resampling does not provide that inference.
 
 Quadratic weights are sensitivity analyses because they assume stronger interval-like spacing.
 
-### Final three-class decision
+### Final reviewer classification
 
-`qualifies`, `does_not_currently_qualify`, and `pending` are nominal.
+`qualifies` and `does_not_currently_qualify` are nominal reviewer
+classifications. `pending` is a case/workflow state handled before aggregation,
+not a reviewer vote.
 
 Report:
 
@@ -166,7 +173,7 @@ Define:
 
 These identify disparities or process failures. They do not prove fairness or discrimination.
 
-### Require independent valid outcomes
+### Require a construct-valid target under a specified treatment regime
 
 - Sensitivity/true-positive rate
 - False-negative and false-positive rates
@@ -177,6 +184,11 @@ These identify disparities or process failures. They do not prove fairness or di
 - Differential prediction
 
 Reviewer decisions, admission, or Track A/Track B route are not ground truth.
+An observed post-admission outcome is also not automatically a fairness label:
+admission can change that outcome. Any TPR/FPR, calibration, equalized-odds, or
+differential-prediction analysis must define the target construct, population,
+horizon, and treatment regime or potential outcome. Without that
+identification, report process disparities only.
 
 ### Metric trade-offs
 

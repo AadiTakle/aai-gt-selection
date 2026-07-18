@@ -177,7 +177,9 @@ These are future protocols and design constraints.
 - `ACCESSIBILITY_AND_MEASUREMENT_FAIRNESS.md`
 - `BACKEND_IMPLEMENTATION_BACKLOG.md`
 - `CHILD_DATA_PRIVACY_AND_RETENTION.md`
+- `DAY_ZERO_DECISION_BRIEF.md`
 - `EXPLANATION_AND_CONTESTABILITY.md`
+- `FINAL_RESEARCH_AUDIT.md`
 - `MVP_DATA_CONTRACT.md`
 - `SYNTHETIC_FIXTURE_MATRIX.md`
 - `MVP_THREAT_MODEL.md`
@@ -217,3 +219,9 @@ Use born-synthetic fixtures only—never real or lightly modified child records.
 Restrict Supabase `service_role` to local seed/reset, add typed purpose/retention
 metadata, and verify end-of-demo purge. The synthetic choice sentinel tests
 noninterference; it is not legally effective consent management.
+
+## Final Implementation Warning
+
+No executable application/backend exists yet. The full research data/privacy
+architecture is intentionally broader than the feasible two-week backend cut.
+Ratify `DAY_ZERO_DECISION_BRIEF.md`, then implement only the narrowed backlog.

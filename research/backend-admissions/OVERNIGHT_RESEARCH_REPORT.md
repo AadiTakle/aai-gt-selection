@@ -385,13 +385,18 @@ Capability eligibility, finance, allocation, identity/consent, and evaluation ne
 - Analyze initial-offer ITT.
 - Use IV/LATE only with defensible assumptions.
 
-For public verifiability, a future implementation can freeze a signed pseudonymous roster before a fixed public randomness beacon, derive an HMAC ranking key, and publish signed result artifacts. Cryptographic auditability prevents seed/roster manipulation; it does not establish causal validity or fairness.
+For public verifiability, a future implementation can freeze a signed
+pseudonymous roster before a fixed public randomness beacon, derive an HMAC
+ranking key, and publish signed result artifacts. This makes changes after the
+commitment detectable; it cannot show that the initially committed roster was
+complete or unmanipulated and does not establish causal validity or fairness.
 
-## Two Additional Anchor Papers
+## Additional Anchor Evidence Families
 
 ### Research Design Meets Market Design
 
-Provides direct quantitative evidence that complete assignment-mechanism records can change estimated school effects by approximately a factor of two.
+Provides direct quantitative evidence that omitting assignment-mechanism
+propensity attenuated the Denver estimates by approximately 44%–60%.
 
 ### Empirical Welfare and Doubly Robust Policy Learning
 
@@ -442,7 +447,10 @@ Primary future model:
 - Lin-style treatment–covariate interactions;
 - HC2/HC3 plus design-matched randomization inference.
 
-Gain scores, percentiles, SGPs, value-added models, and route differences remain descriptive.
+Route differences and observational value-added results remain descriptive.
+Under random assignment, a prespecified gain-score or SGP contrast can be causal
+for that transformed outcome, but is generally less precise or less directly
+interpretable than the adjusted scale-score endpoint.
 
 Every evaluation needs:
 
@@ -483,7 +491,11 @@ The current evidence supports planning around 0.10–0.20 SD, not 0.40+, 2 SD, o
 
 ## High-Ability and Service-Design Evidence
 
-Direct high-ability randomized evidence is sparse. A 2026 Olympiad-nominated combinatorics-course working paper reports +0.165 SD ITT, supporting structured advanced teaching over independent study but not validating GT’s model.
+Direct high-ability randomized evidence is sparse. A 2026
+Olympiad-nominated combinatorics-course working paper reports a +0.165 SD ITT
+for the complete offered course package versus independent study. It does not
+isolate instruction, feedback, or engagement mechanisms and does not validate
+GT's model.
 
 Service design implication:
 
@@ -615,7 +627,9 @@ Timeback is a beta, multi-app, version-sensitive platform. A causal treatment re
 
 ## Updated Public Outcome Audit
 
-The strongest public descriptive Alpha artifact contains 154 matched students/events and yields roughly:
+The strongest public descriptive Alpha artifact contains 154 PK–8 matched math
+growth events; the aggregate does not establish 154 distinct students. It
+yields roughly:
 
 - 1.69× aggregate math growth
 - 1.54× aggregate reading growth
@@ -628,7 +642,8 @@ This does not reproduce the 2.6× headline and remains:
 - without attrition accounting; and
 - without a counterfactual.
 
-Current GT marketing also includes a 3× guarantee and 1400+ SAT framing. These remain company claims, not causal effect estimates.
+GT Anywhere marketing includes a 3× guarantee, and GT marketing includes 1400+
+SAT framing. These remain company claims, not causal effect estimates.
 
 ## TEFA Context
 
@@ -682,6 +697,8 @@ domain-field, appeal, pending-state, and finance contradictions.
 Implementation artifacts:
 
 - `BACKEND_IMPLEMENTATION_BACKLOG.md`
+- `DAY_ZERO_DECISION_BRIEF.md`
+- `FINAL_RESEARCH_AUDIT.md`
 - `MVP_DATA_CONTRACT.md`
 - `SYNTHETIC_FIXTURE_MATRIX.md`
 - `MVP_THREAT_MODEL.md`

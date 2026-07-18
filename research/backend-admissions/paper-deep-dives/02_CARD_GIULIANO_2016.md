@@ -27,22 +27,17 @@ It does not show that every gifted program works. The same broader research cont
 - Administrative data: 70,058 third-grade students from 2008–2011 across 140 non-charter elementary schools
 - Main high-achiever RD sample: 4,144 students near the within-school rank cutoff
 
-### First stage
+### Principal local fuzzy-RD treatment effects
 
-- Jump in gifted/high-achiever classroom placement: approximately 0.319
-- Standard error: 0.026
-
-### Reduced-form effects
-
-- Reading: approximately +0.093 SD, SE 0.031
-- Math: approximately +0.087 SD, SE 0.035
-
-### Implied local fuzzy-RD treatment effects
-
-- Reading: approximately +0.29 SD for compliers near within-school cutoffs
-- Math: approximately +0.28 SD for compliers near within-school cutoffs
+- Combined reading/math: approximately +0.27 SD
+- Reading: approximately +0.29 SD
+- Math: approximately +0.34 SD
 - Local effects among Black and Hispanic compliers were approximately +0.4 to +0.5 SD
 - Math gains persisted into fifth grade; science outcomes also improved
+
+These principal 2SLS estimates are reported together to avoid mixing a first
+stage and reduced form from a different table/specification. The estimand is
+local to compliers near within-school rank cutoffs.
 
 Separate IQ-threshold regression discontinuities for formally gifted students produced essentially null reading and math effects.
 

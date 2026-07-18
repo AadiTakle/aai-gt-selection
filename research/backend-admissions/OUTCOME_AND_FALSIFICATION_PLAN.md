@@ -14,7 +14,13 @@ Where:
 - \(Y_T\): fixed-horizon endpoint;
 - \(X\): prespecified same-domain baseline;
 - \(\lambda_{block}\): randomization block effects;
-- \(\tau\): offer ITT.
+- \(\tau\): conditional offer effect at the covariate-centering value in this
+  parameterization, not automatically the marginal ITT.
+
+Estimate the marginal ITT by prespecified standardization of treatment/control
+predictions over the target randomized sample with design-consistent block
+weights, or use a fully specified block-aware Lin estimator whose coefficient
+has that interpretation. Report the standardization rule and weights.
 
 Report:
 
@@ -46,7 +52,11 @@ Complete-case analysis is not the primary estimator.
 - Baseline-adjusted gain analysis is algebraically endpoint ANCOVA.
 - In nonrandom comparisons, neither ANCOVA nor gain scores creates causal identification.
 
-Gain and Student Growth Percentile results remain descriptive.
+In a randomized design, a treatment contrast on a prespecified gain score or SGP
+can be causal for that particular transformed outcome. It is not inherently
+descriptive, but is generally less precise or less directly interpretable than
+the baseline-adjusted scale-score endpoint. In observational route comparisons,
+these transforms do not create causal identification.
 
 ## Reject as Primary
 

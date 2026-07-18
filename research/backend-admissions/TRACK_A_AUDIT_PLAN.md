@@ -166,8 +166,10 @@ Admitted-only outcomes do not reveal rejected applicants’ GT outcomes or admit
 Calibration is allowed only when:
 
 1. a prospectively defined prediction exists;
-2. target is an independent outcome, not admission/reviewer decision;
-3. outcome is measured comparably across target population;
+2. target is construct-valid and defined under an explicit treatment regime or
+   potential outcome, not admission/reviewer decision;
+3. outcome is measured comparably across the target population and is not
+   treated as neutral ground truth when admission can change it;
 4. support/missingness are adequate;
 5. predictions are out-of-sample or temporal holdout;
 6. sample supports overall/subgroup estimates; and

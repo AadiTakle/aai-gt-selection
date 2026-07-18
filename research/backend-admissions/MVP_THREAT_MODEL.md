@@ -243,4 +243,6 @@ Controls:
 9. Clean locked dependency install passes.
 10. Demo clearly states local/synthetic/non-production.
 11. Field registry, expiry, deletion, backup, and log-canary tests pass.
-12. Fixture provenance proves no real child-derived inputs.
+12. Fixture provenance documents independent synthetic creation, and review
+    finds no evidence of real child-derived inputs; this reduces risk but is not
+    mathematical proof.

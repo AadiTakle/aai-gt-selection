@@ -3,8 +3,14 @@
 ## Evidence Grades
 
 - **A:** Peer-reviewed causal study, meta-analysis, or methods canon
-- **B:** Strong working paper, technical report, or externally valid adjacent evidence
-- **C:** Context, publisher, company, or transfer evidence
+- **B:** Strong working paper or externally valid adjacent research
+- **C:** Weak/indirect research or contextual evidence
+
+Grades describe inferential research strength only. Legal/program authorities,
+technical standards, vendor documentation, company claims, and independent
+reporting should use a separate `Source role` and an evidence grade of
+`not applicable`. Historical entries are being normalized incrementally; a high
+source-authority role does not imply causal evidence.
 
 ## Initial Anchor Sources
 
@@ -14,8 +20,10 @@
 - **Venue:** American Economic Review, 106(10)
 - **DOI:** https://doi.org/10.1257/aer.20150484
 - **Grade:** A
-- **Method:** Regression discontinuity around prior-achievement rank.
-- **Reported result:** Approximately 0.27–0.29 SD local fuzzy-RD effects for compliers near within-school cutoffs; larger local effects for Black and Hispanic high achievers.
+- **Method:** Rank-based fuzzy RD plus between-school/cohort analysis.
+- **Reported result:** Fuzzy-RD treatment-on-treated estimates were
+  approximately 0.27 SD for combined reading/math, 0.29 SD for reading, and
+  0.34 SD for math; larger minority estimates came from additional analyses.
 - **Use:** Direct evidence that a differentiated program can create measurable effects beyond selection for underserved high achievers.
 - **Limit:** One district/program; achievement cutoff and tracked classroom differ from GT.
 
@@ -26,7 +34,8 @@
 - **DOI:** https://doi.org/10.1257/pol.6.3.30
 - **Grade:** A
 - **Method:** Regression discontinuity plus magnet lottery.
-- **Reported result:** Generally near-zero short-run math/reading gains; science benefit in the lottery setting.
+- **Reported result:** No statistically detectable short-run math/reading
+  effects; a science benefit appears in the lottery attendance-IV/LATE estimate.
 - **Use:** Closest cautionary analogue; selective placement does not guarantee program effect.
 - **Limit:** Local/marginal estimands and different intervention.
 
@@ -633,16 +642,6 @@
 
 ## Reproducible Evaluator Exports
 
-### NIST SP 800-188 — De-Identification
-
-- **URL:** https://csrc.nist.gov/pubs/sp/800/188/final
-- **Use:** Disclosure-risk and de-identification process.
-
-### NIST SP 800-226 — Differential Privacy
-
-- **URL:** https://csrc.nist.gov/pubs/sp/800/226/final
-- **Use:** Evaluate DP guarantees and limitations.
-
 ### RO-Crate
 
 - **URL:** https://www.researchobject.org/ro-crate/specification/1.3/index.html
@@ -903,6 +902,13 @@
   biometric and 4–5-year retention statements located in Alpha's policy must not
   be attributed to GT without confirmation.
 
+### GT Anywhere Refund/Guarantee Policy
+
+- **URL:** https://anywhere.gt.school/refund-policy
+- **Source role:** company claim
+- **Evidence grade:** not applicable
+- **Use:** Scope the 3× guarantee claim specifically to GT Anywhere.
+
 ### Texas TEFA
 
 - **Statute:** https://capitol.texas.gov/tlodocs/89R/billtext/html/SB00002F.htm
@@ -1018,6 +1024,14 @@
 - **Use:** Ingredients-based costing and education economic evaluation.
 
 ## Accessibility, Translation, and Measurement Fairness
+
+### WCAG 2.2
+
+- **URL:** https://www.w3.org/TR/WCAG22/
+- **Source role:** technical standard
+- **Evidence grade:** not applicable
+- **Use:** Interface-accessibility target; does not establish psychometric
+  equivalence.
 
 ### AERA/APA/NCME Standards (2014)
 
@@ -1135,14 +1149,6 @@
 - **Use:** Explanations are often contrastive, selective, and social.
 - **Limit:** Interdisciplinary review, not an admissions interface experiment.
 
-### Rudin (2019) — Interpretable High-Stakes Models
-
-- **DOI:** https://doi.org/10.1038/s42256-019-0048-x
-- **Grade:** A
-- **Use:** Argues for inherently interpretable models over post-hoc black-box
-  explanations in high-stakes settings.
-- **Limit:** Perspective; not proof interpretable models always perform equally.
-
 ### Poursabzi-Sangdeh et al. (2021) — Interpretability Experiment
 
 - **DOI:** https://doi.org/10.1145/3411764.3445315
@@ -1224,6 +1230,30 @@
 - **Use:** Strategic adaptation creates social costs and unequal burdens.
 - **Limit:** Formal/modeling context; domain transfer required.
 
+### Sterz et al. (2024) — Meaningful Human Oversight
+
+- **URL:** https://doi.org/10.48550/arXiv.2404.04059
+- **Grade:** B
+- **Use:** Oversight requires competence, information, authority, and supportive
+  organizational conditions.
+- **Limit:** Interdisciplinary analysis/preprint, not admissions validation.
+
+### Bahner, Hüper, & Manzey (2008) — Automation Misuse
+
+- **DOI:** https://doi.org/10.1016/j.ijhcs.2008.06.001
+- **Grade:** A
+- **Use:** Laboratory evidence on verification failures and commission errors
+  with automated decision aids.
+- **Limit:** Process-control setting, not admissions.
+
+### NIST AI RMF 1.0
+
+- **DOI:** https://doi.org/10.6028/NIST.AI.100-1
+- **Source role:** technical standard/framework
+- **Evidence grade:** not applicable
+- **Use:** Feedback, appeal, override, documentation, and accountability
+  patterns.
+
 ## Child Data Privacy and Synthetic-Data Safety
 
 ### FTC COPPA Final Rule Amendments (2025)
@@ -1234,6 +1264,13 @@
   April 22, 2026.
 - **Limit:** Applicability depends on operator, service, child interaction, and
   collection facts; not legal advice.
+
+### FTC COPPA FAQ
+
+- **URL:** https://www.ftc.gov/business-guidance/resources/complying-coppa-frequently-asked-questions
+- **Source role:** official legal guidance
+- **Evidence grade:** not applicable
+- **Use:** Operator/applicability and parent-versus-child collection guidance.
 
 ### NIST Privacy Framework 1.0
 
@@ -1271,6 +1308,23 @@
 - **Grade:** A
 - **Use:** Validated media sanitization and cloud logical-deletion guidance.
 - **Limit:** Does not itself solve record, backup, export, or vendor lifecycle.
+
+### NIST SP 800-53 Rev. 5
+
+- **DOI:** https://doi.org/10.6028/NIST.SP.800-53r5
+- **Source role:** technical standard/control catalog
+- **Evidence grade:** not applicable
+- **Use:** Purpose, retention/disposal, logging, audit protection, and supplier
+  controls.
+
+### Supabase API-Key and RLS Guidance
+
+- **URL:** https://supabase.com/docs/guides/getting-started/api-keys
+- **RLS:** https://supabase.com/docs/guides/database/postgres/row-level-security
+- **Source role:** vendor documentation
+- **Evidence grade:** not applicable
+- **Use:** Service-role/secret keys bypass RLS and require trusted
+  administrative handling.
 
 ### Deng et al. (2011) — LINDDUN
 

@@ -65,11 +65,19 @@ A 2026 working paper randomized 620 Olympiad-nominated students to a structured 
 
 - ITT: +0.165 SD
 - Full engagement: only 15%
-- IV estimate for full engagement: +0.66 SD, dependent on stronger assumptions
+- IV estimate for full engagement: +0.66 SD, dependent on stronger exclusion,
+  monotonicity, engagement-definition, and functional-form assumptions
 
-This supports structured instruction and feedback over independent study for highly gifted students. It does not validate GT or unattended self-paced software.
+The defensible causal result is the +0.165-SD offer/package ITT. The IV estimate
+does not isolate instruction, feedback, or engagement as a mechanism. The study
+supports the complete offered course package over the independent-study
+alternative in that setting; it does not validate GT or unattended self-paced
+software.
 
-Bui–Craig–Imberman found approximately +0.28 SD science but null math/reading/language/social-studies effects in a gifted magnet lottery; attrition bounds weakened the science result.
+Bui–Craig–Imberman found an approximately +0.28 SD science attendance-IV/LATE
+estimate but no statistically detectable math/reading/language/social-studies
+effects in the gifted magnet lottery; the intervals do not establish
+equivalence, and attrition bounds weakened the science result.
 
 A conclusion-changing 2026 revision by Card, Chyn, and Giuliano reports:
 
@@ -191,7 +199,10 @@ Interpret:
 - **Effect-existence test:** two-sided 95% CI against zero on the overall ITT.
 - **Meaningful-superiority test:** one-sided lower 95% bound above +0.10 SD.
 - **Equivalence test:** separate TOST procedure with 90% CI inside [−0.10,+0.10].
-- **Highest-baseline noninferiority:** one-sided lower 95% bound above −0.05 SD for the prespecified subgroup interaction/contrast.
+- **Highest-baseline noninferiority:** define the absolute high-baseline offer
+  effect \(\tau_{high}\) and require its one-sided lower 95% bound above −0.05
+  SD. A treatment-by-baseline interaction alone tests relative heterogeneity
+  and is not this safety estimand.
 - **Persistence:** separate 24-month estimand and +0.05-SD threshold.
 
 Interpretation:

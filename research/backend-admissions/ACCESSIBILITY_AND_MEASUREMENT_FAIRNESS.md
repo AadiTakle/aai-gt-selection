@@ -295,6 +295,8 @@ Automated accessibility checks are insufficient.
 
 ## Key Sources
 
+- WCAG 2.2:
+  https://www.w3.org/TR/WCAG22/
 - AERA/APA/NCME (2014), *Standards for Educational and Psychological Testing*:
   https://www.aera.net/Standards14
 - ITC (2017), *Guidelines for Translating and Adapting Tests*:
@@ -305,6 +307,14 @@ Automated accessibility checks are insufficient.
   https://doi.org/10.1016/j.dr.2016.06.004
 - Wu & Estabrook (2016), ordinal invariance:
   https://doi.org/10.1007/s11336-016-9506-0
+- Chen (2007), fit-index sensitivity:
+  https://doi.org/10.1080/10705510701301834
+- Yoon & Lai (2018), unbalanced samples:
+  https://doi.org/10.1080/10705511.2017.1387859
+- Swaminathan & Rogers (1990), logistic DIF:
+  https://doi.org/10.1111/j.1745-3984.1990.tb00754.x
+- Woods (2009), DIF anchor contamination:
+  https://doi.org/10.1177/0146621607314044
 - Sireci, Scarpati, & Li (2005), accommodations review:
   https://doi.org/10.3102/00346543075004457
 - Abedi, Hofstetter, & Lord (2004), ELL accommodations:

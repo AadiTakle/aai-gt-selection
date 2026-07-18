@@ -21,6 +21,13 @@ requires qualified legal/privacy review.
 
 ## Current Legal Context — July 2026
 
+This is a privacy-focused issue inventory, not a complete live-use legal review.
+Before live admissions, qualified review must also consider disability and
+public-accommodation duties (including ADA Title III, Section 504 where
+applicable, and Texas Human Resources Code Chapter 121), 42 U.S.C. §1981,
+research/IRB obligations, and then-current Texas youth/AI amendments including
+SCOPE/TRAIGA. Listing them does not establish applicability.
+
 ### COPPA
 
 The FTC's 2025 COPPA amendments:
@@ -205,6 +212,10 @@ Data classes:
 
 Live periods are unresolved. Synthetic tests use virtual clocks and duration
 codes that cannot be promoted to production.
+
+Backup deletion-ledger replay, content-free receipts, and the end-of-demo purge
+are project engineering controls derived from lifecycle standards; NIST does not
+mandate these exact procedures.
 
 ```text
 retention_policy(

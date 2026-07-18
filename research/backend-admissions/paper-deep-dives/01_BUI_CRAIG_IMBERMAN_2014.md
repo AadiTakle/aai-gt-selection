@@ -43,7 +43,10 @@ Published article preferred controlled 2SLS estimates were approximately:
 - Science: −0.025 SD, SE 0.084
 - Approximately 4,018–4,025 observations by outcome
 
-These are consistent with negligible short-run effects near the eligibility margin.
+These are not statistically distinguishable from zero near the eligibility
+margin. With standard errors around 0.07–0.08, the intervals still permit
+modest benefits or harms; negligible effects are not established without a
+prespecified equivalence margin.
 
 The earlier NBER working paper reported the −0.035/−0.002/+0.010/−0.016/+0.017 sequence on a smaller sample. Those values should not be paired with the journal DOI without explicit version labeling.
 

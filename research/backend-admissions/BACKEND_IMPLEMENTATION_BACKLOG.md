@@ -6,6 +6,10 @@ Build a local, synthetic-only Supabase/PostgreSQL backend for deterministic rout
 
 Future causal, evaluator, allocation, aid, outcome, and ML infrastructure is excluded.
 
+The broader research data/privacy contracts are design references, not the
+two-week build. Field registries, retention/disposition engines, consent
+management, full remedy/appeal, and production security are deferred.
+
 ## Day 0 — Resolve Contract Conflicts
 
 Before coding:
@@ -32,7 +36,6 @@ Define:
 - review classifications;
 - pending reasons;
 - applicant-safe messages;
-- field-purpose-retention registry;
 - synthetic-only startup/data assertion;
 - API request/response fixtures.
 
@@ -49,17 +52,12 @@ Blockers B-01–B-04 use explicit synthetic values.
 **Owner:** Aadi  
 **Files:** `supabase/config.toml`, migrations, local seeds
 
-Create MVP schemas only:
+Scaffold the application/test runner and create:
 
-- `iam_private`
-- `privacy_private`
-- `admissions`
-- `policy`
-- `evidence`
-- `review`
-- `decision`
-- `audit`
-- `api`
+- one private application schema for MVP tables;
+- one exposed `api` schema with narrow RPCs/views;
+- seeded synthetic users/roles;
+- one reset/seed/demo command.
 
 Acceptance:
 
@@ -75,7 +73,6 @@ Implement:
 - assessment/version;
 - policy/version/bundle;
 - reason codes;
-- feature permissions.
 
 Acceptance:
 
@@ -187,7 +184,7 @@ Cover:
 - pending, explanations, and corrections;
 - prohibited-field mutations;
 - consent/accessibility invariance;
-- service-role, log-canary, retention, deletion, and purge tests;
+- service-key and synthetic-only startup tests;
 - replay;
 - concurrency;
 - RLS.
@@ -242,3 +239,6 @@ Shared:
 - Production deployment
 - ML scoring
 - Production retention/legal-consent management
+- Field-purpose registry and retention/disposition engine
+- Full rubric appeal/remand and re-entry workflow
+- Evaluator/privacy release infrastructure
