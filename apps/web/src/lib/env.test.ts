@@ -7,7 +7,7 @@ describe('synthetic runtime environment', () => {
     expect(
       validatePublicEnvironment({
         NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'local-publishable-key',
-        NEXT_PUBLIC_SUPABASE_URL: 'http://127.0.0.1:55321',
+        NEXT_PUBLIC_SUPABASE_URL: 'http://127.0.0.1:65421',
       }),
     ).toBeDefined();
   });
