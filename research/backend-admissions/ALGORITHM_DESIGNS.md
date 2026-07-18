@@ -131,7 +131,9 @@ VALIDATE:
   density/manipulation test
   covariate continuity
   bandwidth sensitivity
-  polynomial/order sensitivity
+  local-linear primary estimation
+  local-quadratic bias correction/sensitivity
+  never use global high-order polynomial as primary
   placebo cutoffs
 
 CLAIM:
@@ -281,7 +283,7 @@ An individual treatment effect is never observed. Validate group ranking and pol
 4. Run:
    BLP calibration slope
    2-3 group GATES
-   one prespecified RATE/AUTOC or Qini metric
+   one prespecified RATE/AUTOC metric
    held-out doubly robust policy value
    capacity-matched comparison to lottery/current policy
 

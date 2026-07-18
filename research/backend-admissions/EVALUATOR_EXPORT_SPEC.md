@@ -188,6 +188,6 @@ Evaluator must:
 - RFC 8785 JCS: https://www.rfc-editor.org/rfc/rfc8785
 - RFC 8032 Ed25519: https://www.rfc-editor.org/info/rfc8032/
 - W3C PROV: https://www.w3.org/TR/prov-o/
-- RO-Crate: https://www.researchobject.org/ro-crate/specification/
+- RO-Crate 1.3.0: https://www.researchobject.org/ro-crate/specification/1.3/index.html
 - PostgreSQL snapshot sync: https://www.postgresql.org/docs/17/functions-admin.html#FUNCTIONS-SNAPSHOT-SYNCHRONIZATION
 - National Academies reproducibility: https://www.nationalacademies.org/read/25303/chapter/2

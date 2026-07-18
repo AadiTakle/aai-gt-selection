@@ -33,7 +33,9 @@ They do not:
 Let \(\pi(x)\) indicate whether the policy offers GT:
 
 \[
-V(\pi)=E[\pi(X)\tau(X)]
+V_{\text{total}}(\pi)
+=
+E[Y(0)+\pi(X)\tau(X)]
 \]
 
 where:
@@ -42,7 +44,7 @@ where:
 \tau(x)=E[Y(1)-Y(0)\mid X=x]
 \]
 
-The goal is to select the best policy inside a restricted implementable class, not estimate every student’s individual causal effect.
+The incremental value relative to never offering is \(E[\pi(X)\tau(X)]\). The untreated baseline cancels when comparing two policies. The goal is to select the best policy inside a restricted implementable class, not estimate every student’s individual causal effect.
 
 ## Kitagawa–Tetenov: Empirical Welfare Maximization
 

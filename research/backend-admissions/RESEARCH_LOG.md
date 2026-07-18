@@ -52,7 +52,7 @@
   - reject inference and PU learning do not create missing counterfactual evidence;
   - Track A audit should map outcome availability, overlap, range restriction, and extrapolation optimism.
 - Added held-out CATE/policy validation stack:
-  - BLP, GATES, RATE/AUTOC or Qini, doubly robust policy value, and split/cohort stability.
+  - BLP, GATES, RATE/AUTOC, doubly robust policy value, and split/cohort stability.
 - Specified why Track B changes the estimand at the Track A cutoff:
   - reduced-form RD becomes Track A-side policy versus Track B-available policy;
   - separate route effects are not identified from one discontinuity.
@@ -140,6 +140,17 @@
 - Normalized source grades and removed duplicate source entry.
 - Added morning handoff and adversarial-corrections register.
 - Preserved unresolved canonical PRD/feature-map conflicts for explicit team decisions rather than silently editing product policy.
+
+### Iteration 9 — 2026-07-18
+
+- Audited education, causal-methods, fairness/selection, backend standards, and 2024–2026 literature.
+- Corrected randomized-waitlist DOI, Card–Giuliano sample/effect labels, policy-value formula, and RD implementation wording.
+- Tightened reviewer-metric citations and separated Gwet AC1 from AC2.
+- Added source and limitation labels for standard-setting heuristics, drift controls, and black-box promotion policy.
+- Fixed RO-Crate URL/version, NIST monitoring scope, cryptographic encoding/KDF details, and WWC citation.
+- Added recent gifted long-run, GenAI learning, scaled tutoring, selective-label, constrained-policy, weighted-lottery, and fairness-monitoring evidence.
+- Recorded that long-run attainment can move even when short-run standardized tests do not.
+- Added guardrail finding that unrestricted AI can raise assisted practice while harming independent performance.
 
 ## Next Research Clusters
 

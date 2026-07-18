@@ -50,7 +50,7 @@ Calculate artifact reliability from the first two independent ratings only. The 
 - Connected benchmark library: 60–100 cases
 - Per-reviewer linked ratings: at least 30; 50–100 preferred for severity/drift
 
-These are planning targets, not universal authorization thresholds.
+These are project heuristics for scenario planning, not source-established universal thresholds. Final sizes require precision or simulation-based justification using expected category prevalence, route mix, reviewer count, and desired interval width.
 
 ## 2. Reviewer Severity and Drift
 
@@ -255,12 +255,13 @@ Promotion requires:
 - rollback and monitoring; and
 - independent approval.
 
-A black box must materially outperform every constrained interpretable alternative. Post-hoc explanations do not satisfy this gate.
+Project governance gate: a black box would need to materially outperform every constrained interpretable alternative. This is a proposed GT policy requirement, not an empirical finding established by Rudin or the benchmark literature. Post-hoc explanations do not satisfy the intended contestability standard.
 
 ## 7. Core Sources
 
 - Cohen (1960): https://doi.org/10.1177/001316446002000104
-- Gwet (2008): https://doi.org/10.1348/000711006X126600
+- Gwet (2008) AC1: https://doi.org/10.1348/000711006X126600
+- Gwet (2014) AC2: Handbook of Inter-Rater Reliability, 4th ed., ISBN 9780970806284
 - Krippendorff (2004): https://doi.org/10.1093/hcr/30.3.411
 - Brennan (2001): https://doi.org/10.1007/978-1-4757-3456-0
 - Myford & Wolfe (2003): https://pubmed.ncbi.nlm.nih.gov/14523257/

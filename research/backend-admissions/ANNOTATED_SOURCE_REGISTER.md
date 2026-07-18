@@ -15,7 +15,7 @@
 - **DOI:** https://doi.org/10.1257/aer.20150484
 - **Grade:** A
 - **Method:** Regression discontinuity around prior-achievement rank.
-- **Reported result:** Approximately 0.28–0.29 SD full-sample gains; substantially larger effects for Black and Hispanic high achievers in the studied program.
+- **Reported result:** Approximately 0.27–0.29 SD local fuzzy-RD effects for compliers near within-school cutoffs; larger local effects for Black and Hispanic high achievers.
 - **Use:** Direct evidence that a differentiated program can create measurable effects beyond selection for underserved high achievers.
 - **Limit:** One district/program; achievement cutoff and tracked classroom differ from GT.
 
@@ -383,7 +383,22 @@
 ### Gwet (2008) — Agreement Under Prevalence Imbalance
 
 - **DOI:** https://doi.org/10.1348/000711006X126600
-- **Use:** AC1/AC2 as complements when kappa is prevalence-sensitive.
+- **Use:** AC1 as a complement when kappa is prevalence-sensitive.
+
+### Gwet (2014) — AC2
+
+- **Source:** Handbook of Inter-Rater Reliability, 4th ed., ISBN 9780970806284
+- **Use:** Weighted AC2 for ordinal agreement.
+
+### Fleiss (1971) — Many-Rater Kappa
+
+- **DOI:** https://doi.org/10.1037/h0031619
+- **Use:** Nominal agreement among exchangeable raters.
+
+### Conger (1980) — Generalized Kappa
+
+- **DOI:** https://doi.org/10.1037/0033-2909.88.2.322
+- **Use:** Multiple named raters with differing marginals.
 
 ### Krippendorff (2004) — Alpha
 
@@ -398,7 +413,12 @@
 ### Myford & Wolfe (2003) — Rater Effects
 
 - **URL:** https://pubmed.ncbi.nlm.nih.gov/14523257/
-- **Use:** Many-facet Rasch diagnostics for severity, halo, and misfit.
+- **Use:** Many-facet Rasch background and reviewer-effect framing.
+
+### Myford & Wolfe (2004) — Rater Diagnostics
+
+- **URL:** https://pubmed.ncbi.nlm.nih.gov/15064538/
+- **Use:** Severity, halo, randomness, and differential-severity diagnostics.
 
 ### Mislevy, Steinberg, & Almond (2003) — Evidence-Centered Design
 
@@ -485,7 +505,7 @@
 
 ### de Chaisemartin & Behaghel (2020) — Randomized Waiting Lists
 
-- **DOI:** https://doi.org/10.3982/ECTA14682
+- **DOI:** https://doi.org/10.3982/ECTA16032
 - **Grade:** A
 - **Use:** Treatment-effect estimation with randomized waitlist mechanisms.
 
@@ -551,6 +571,13 @@
 - **SPIRIT DOI:** https://doi.org/10.1038/s41591-025-03668-w
 - **CONSORT DOI:** https://doi.org/10.1038/s41591-025-03635-5
 - **Use:** Prespecified allocation, concealment, protocol, and reporting.
+
+### What Works Clearinghouse Handbook 5.0
+
+- **URL:** https://ies.ed.gov/ncee/WWC/handbooks
+- **Version:** Procedures and Standards Handbook 5.0, August 2022; revised December 2022, with Study Review Protocol 5.1
+- **Use:** Education-study design, attrition, baseline, and evidence standards.
+- **Limit:** Reporting/standards guidance does not establish GT-specific causal validity.
 
 ## Growth Outcomes and Falsification
 
@@ -618,7 +645,8 @@
 
 ### RO-Crate
 
-- **URL:** https://www.researchobject.org/ro-crate/specification/
+- **URL:** https://www.researchobject.org/ro-crate/specification/1.3/index.html
+- **Version:** 1.3.0, June 2026
 - **Use:** Package data, code, metadata, and provenance.
 
 ### DDI Lifecycle
@@ -758,6 +786,65 @@
 - **Grade:** A
 - **Use:** Framework for persistence and fadeout of educational intervention effects.
 
+## Recent 2024–2026 Evidence
+
+### Card, Chyn, & Giuliano (revised 2026) — Long-Run Gifted Effects
+
+- **DOI:** https://doi.org/10.3386/w33282
+- **Grade:** B
+- **Status:** NBER working paper, revised May 2026, forthcoming JPE
+- **Use:** Null short-run tests but large local on-time college-entry effect for disadvantaged marginally eligible boys.
+- **Limit:** Donut fuzzy RD, local subgroup/compliers, attrition/data restrictions, noncognitive mechanism inferred.
+
+### Bastani et al. (2025) — GenAI Learning Harm
+
+- **DOI:** https://doi.org/10.1073/pnas.2422633122
+- **Grade:** A
+- **Use:** Unrestricted GPT assistance improved practice while harming unassisted performance; guardrailed hints avoided harm.
+
+### De Simone et al. (2025) — Teacher-Guided GenAI
+
+- **DOI:** https://doi.org/10.1596/1813-9450-11125
+- **Grade:** B
+- **Use:** Six-week Nigeria package with positive English/composite effects.
+- **Limit:** Working paper, complete package, local outcomes, substantial analysis attrition.
+
+### Bhatt et al. (2024) — Hybrid Tutoring and CAL
+
+- **DOI:** https://doi.org/10.3386/w32510
+- **Grade:** B
+- **Use:** Human/software hybrid tutoring with positive standardized math effects and lower costs.
+
+### Kraft, Edwards, & Cannata (2024) — District Tutoring at Scale
+
+- **DOI:** https://doi.org/10.26300/zcw7-4547
+- **Grade:** B
+- **Use:** Large district program showing modest reading and null average math/course-grade effects.
+
+### Chen, Li, & Mao (2025) — Selective Labels with Multiple Decision-Makers
+
+- **URL:** https://proceedings.mlr.press/v267/chen25al.html
+- **Grade:** A
+- **Use:** Point/partial identification using decision-maker variation under strong assumptions.
+
+### Sun (2026) — Constrained Welfare Maximization
+
+- **DOI:** https://doi.org/10.1016/j.jeconom.2025.106169
+- **Grade:** A
+- **Use:** Welfare/feasibility trade-offs when costs or take-up must be estimated.
+
+### Abdulkadiroğlu & Back (2024) — Weighted Lotteries
+
+- **DOI:** https://doi.org/10.1257/pandp.20241135
+- **Grade:** B
+- **Use:** Assignment-based research design with weighted school-choice lottery tie-breakers.
+
+### Simson, Pfisterer, & Kern (2024) — Fairness Metric Fragility
+
+- **DOI:** https://doi.org/10.1145/3630106.3658974
+- **Grade:** A
+- **Use:** Evaluation choices can dramatically alter fairness scores; metrics/denominators require locking.
+
 ## Standard Setting and Decision Utility
 
 ### Plake, Hambleton, & Jaeger (1997) — Dominant Profiles
@@ -812,7 +899,8 @@
 ### NIST AI 800-4 (2026) — Deployed AI Monitoring
 
 - **DOI:** https://doi.org/10.6028/NIST.AI.800-4
-- **Use:** Monitoring risks, governance, and response.
+- **Use:** Final March 2026 report cataloging monitoring categories, gaps, barriers, and open questions.
+- **Limit:** It does not validate this package’s proposed cadence, statistical alarms, or response rules.
 
 ### Gama et al. (2014) — Concept Drift
 

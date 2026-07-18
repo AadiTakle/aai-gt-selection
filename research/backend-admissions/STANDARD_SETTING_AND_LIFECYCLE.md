@@ -6,6 +6,8 @@ Recommended future method:
 
 > Modified Dominant Profile Judgment plus independent complete-profile categorical review.
 
+This is a reasoned transfer from complex-performance standard-setting literature, not a validated Track B method.
+
 Track B has a multidimensional profile, not one total score. Angoff and Bookmark are poor fits because they assume item-level probabilities or a calibrated ordered item scale. Classical Body of Work is useful conceptually but normally locates cuts on a total-score continuum.
 
 ### Configural Boundary
@@ -34,7 +36,7 @@ AND reviewer majority is obtained
 8. Do not average incompatible panel policies.
 9. Freeze for shadow validation.
 
-Suggested operational research design: two independent panels of roughly 10–12 members, including domain, psychometric, accessibility/language, developmental, service, and applicant-rights expertise.
+Suggested operational research heuristic: two independent panels of roughly 10–12 members, including domain, psychometric, accessibility/language, developmental, service, and applicant-rights expertise. Panel size must be justified through feasibility and panel-replication precision rather than treated as a universal standard.
 
 ### Synthetic Rule Representation
 

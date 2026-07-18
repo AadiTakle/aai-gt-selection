@@ -71,6 +71,15 @@ This supports structured instruction and feedback over independent study for hig
 
 Bui–Craig–Imberman found approximately +0.28 SD science but null math/reading/language/social-studies effects in a gifted magnet lottery; attrition bounds weakened the science result.
 
+A conclusion-changing 2026 revision by Card, Chyn, and Giuliano reports:
+
+- approximately 3,500 disadvantaged students near a gifted-eligibility threshold;
+- null standardized-test effects;
+- +28 percentage points in on-time college entry for marginally eligible boys;
+- 95% CI approximately [7, 48] percentage points.
+
+This remains local to boys/compliers near one IQ threshold, uses a donut RD because of score bunching, loses observations through district/data requirements, and is not direct evidence for the Snapshot. It shows that long-run attainment can move even when near-term test scores do not.
+
 ## Mastery and Compacting
 
 Mastery meta-analyses report around 0.5 SD on average, but:
@@ -90,6 +99,18 @@ Curriculum compacting randomized district training:
 The strongest supported claim:
 
 > Demonstrated repetition can be removed without obvious harm when advanced replacement work is substantive.
+
+## Recent Generative-AI and Scaled Tutoring Evidence
+
+- Bastani et al. (2025): unrestricted GPT-4 improved assisted practice by 48% but reduced subsequent unassisted performance by 17%; hint-based teacher-informed tutoring avoided the harm.
+- Nigeria teacher-guided Copilot package: roughly +0.23 SD English and +0.31 SD composite after six weeks, but only 759 of 1,328 assigned students entered final analysis and outcomes were locally aligned.
+- Hybrid human tutoring/computer-assisted learning: +0.19 SD ITT and +0.23 SD TOT in a first cohort, with cost reductions; working-paper evidence.
+- District-operated tutoring at scale: approximately 0.04–0.09 SD reading and null average math/course-grade effects.
+
+These findings strengthen two boundaries:
+
+1. guardrails and pedagogy are treatment components; and
+2. assisted performance must be separated from independent learning.
 
 ## Acceleration and Grouping
 

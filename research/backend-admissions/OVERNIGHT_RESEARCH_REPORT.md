@@ -126,6 +126,15 @@ Exam-school and gifted-program studies by Abdulkadiroğlu, Angrist, Pathak, Dobb
 
 Illustrative assumptions: balanced individual randomization, two-sided 5% level, 80% power, baseline covariates explaining 50% of outcome variance, complete outcomes, and no clustering.
 
+\[
+N
+\approx
+\frac{(z_{.975}+z_{.80})^2(1-R^2)}
+{q(1-q)d^2}
+\]
+
+This normal approximation follows standard education-experiment power logic; design-specific planning should follow Schochet’s framework and exact Monte Carlo simulation: https://doi.org/10.3102/1076998607302714
+
 - One cohort with \(N=40\): minimum detectable effect approximately 0.63 SD
 - \(N=80\): approximately 0.44 SD
 - Four pooled cohorts totaling \(N=160\): approximately 0.31 SD
@@ -133,7 +142,7 @@ Illustrative assumptions: balanced individual randomization, two-sided 5% level,
 - Detecting 0.20 SD: approximately 393 analyzed applicants
 - Detecting 0.50 SD: approximately 63 analyzed applicants
 
-With 20% attrition and a 75% first stage, a 0.30-SD complier effect may require roughly 389 recruited applicants before clustering or multiplicity.
+With 20% attrition and a 75% first stage, a first-order approximation for a 0.30-SD complier effect is roughly 389 recruited applicants before finite-sample weak-IV behavior, clustering, or multiplicity.
 
 These are planning illustrations, not GT forecasts. Design-specific simulation must use actual applicant volume, offer ratio, baseline correlation, outcome reliability, attrition, compliance, and clustering.
 
@@ -591,5 +600,5 @@ Remaining canonical product contradictions are documented in `MORNING_HANDOFF.md
 - Track B eligibility algorithm
 - Future randomized-offer and RD algorithms
 - Synthetic data and simulation specification
-- Power and sensitivity analysis checklist
+- Power and sensitivity specifications in `SIMULATION_SPECIFICATION.md` and `OUTCOME_AND_FALSIFICATION_PLAN.md`
 - Advanced STEM-readiness outcome framework

@@ -130,22 +130,44 @@ Include:
 
 Canonicalize with RFC 8785, sign, and timestamp before randomness is knowable.
 
+Pin the JCS implementation/version and current RFC errata, including negative-zero handling.
+
 ### Randomness
 
 Preferred future design:
 
 - fixed future drand beacon round;
+- pinned drand network, chain hash, round, and verification algorithm;
 - independently verified beacon proof;
 - optional operator secret committed and independently escrowed before the beacon.
 
 ### Rank
 
-Derive a fixed 256-bit key and compute:
+Derive a fixed 256-bit key with explicit HKDF parameters:
+
+```text
+salt = SHA256(frozen_manifest_bytes)
+IKM  = fixed_32_byte_beacon_randomness ||
+       fixed_32_byte_operator_secret
+info = UTF8("gt-allocation/key/v1") ||
+       fixed_width(draw_id) ||
+       SHA256(frozen_manifest_bytes)
+key  = HKDF-SHA256(salt, IKM, info, 32)
+```
+
+If no operator secret is used, define that variant as a separate protocol version rather than concatenating an absent field ambiguously.
+
+Encode the HMAC message as RFC-8785 canonical JSON or fixed-width/length-prefixed fields; raw variable-length concatenation is prohibited.
 
 ```text
 rank_digest = HMAC-SHA-256(
   key,
-  domain || draw_id || block_id || lottery_token
+  JCS({
+    "v": "gt-allocation/rank/v1",
+    "draw_id": draw_id,
+    "block_id": block_id,
+    "lottery_token": lottery_token
+  })
 )
 ```
 
@@ -235,7 +257,7 @@ Do not use:
 - Morgan & Rubin rerandomization: https://doi.org/10.1214/12-AOS1008
 - Bruhn & McKenzie small randomization: https://doi.org/10.1257/app.1.4.200
 - Bugni, Canay, & Shaikh covariate-adaptive inference: https://doi.org/10.1080/01621459.2017.1375934
-- de Chaisemartin & Behaghel randomized waitlists: https://doi.org/10.3982/ECTA14682
+- de Chaisemartin & Behaghel randomized waitlists: https://doi.org/10.3982/ECTA16032
 - Abdulkadiroğlu et al. market design: https://doi.org/10.3982/ECTA13925
 - Angrist, Imbens, & Rubin IV/LATE: https://doi.org/10.1080/01621459.1996.10476902
 - Frangakis & Rubin principal stratification: https://doi.org/10.1111/j.0006-341X.2002.00021.x
