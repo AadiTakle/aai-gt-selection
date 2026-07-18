@@ -60,6 +60,16 @@ Day-0 ratification.
 - `READ-01`: read RPCs expose no forbidden row/column; and
 - `NEW-OBJECT`: undeclared table/view/function security posture fails CI.
 
+`RP-01` is one replay suite and must include:
+
+- `CAN-01`: cross-runtime canonicalization vectors and invalid-input rejection;
+- `HASH-01`: any committed component mutation changes the decision root;
+- cold network-disabled replay from retained artifacts;
+- missing executable and disposed-input refusal;
+- `AUD-01`: concurrent audit append creates no fork/gap;
+- `IDEM-01`: concurrent same/different-payload idempotency behavior; and
+- workflow race matrix for finalization/correction/replacement.
+
 ## Coverage
 
 Requirements:

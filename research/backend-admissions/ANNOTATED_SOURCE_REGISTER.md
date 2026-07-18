@@ -1418,3 +1418,62 @@ source-authority role does not imply causal evidence.
 - **Source role:** official technical documentation
 - **Evidence grade:** not applicable
 - **Use:** One request/transaction and per-function isolation behavior.
+
+## Canonicalization, Hashing, and Replay
+
+### RFC 8785 — JSON Canonicalization Scheme
+
+- **URL:** https://www.rfc-editor.org/rfc/rfc8785
+- **Errata:** https://www.rfc-editor.org/errata/rfc8785
+- **Source role:** technical specification
+- **Evidence grade:** not applicable
+- **Use:** Deterministic JSON property/number/string serialization and vectors.
+- **Limit:** Informational RFC; requires stricter application rules for
+  timestamps, UUIDs, decimals, duplicate keys, and hash domains.
+
+### RFC 8259 and RFC 7493 — JSON/I-JSON
+
+- **JSON:** https://www.rfc-editor.org/rfc/rfc8259
+- **I-JSON:** https://www.rfc-editor.org/rfc/rfc7493
+- **Source role:** technical specifications
+- **Evidence grade:** not applicable
+- **Use:** UTF-8, duplicate-name, number, Unicode, and interoperable JSON
+  constraints.
+
+### FIPS 180-4 — SHA-256
+
+- **URL:** https://csrc.nist.gov/pubs/fips/180-4/upd1/final
+- **Source role:** cryptographic standard
+- **Evidence grade:** not applicable
+- **Use:** SHA-256 digest definition.
+- **Limit:** A digest alone does not prove authenticity, completeness, or
+  correctness.
+
+### W3C PROV-DM
+
+- **URL:** https://www.w3.org/TR/prov-dm/
+- **Source role:** provenance standard
+- **Evidence grade:** not applicable
+- **Use:** Entity/activity/agent lineage for inputs, policy, code, run, result,
+  and operator.
+- **Limit:** Does not provide canonical bytes, integrity, or replay.
+
+### SLSA Build Provenance 1.2
+
+- **URL:** https://slsa.dev/spec/v1.2/build-provenance
+- **Source role:** software supply-chain specification
+- **Evidence grade:** not applicable
+- **Use:** Future content-addressed build definition/dependency/output
+  provenance.
+- **Limit:** Not per-decision provenance and no SLSA level is claimed.
+
+### PostgreSQL 18 Determinism References
+
+- **JSON:** https://www.postgresql.org/docs/18/datatype-json.html
+- **Numeric:** https://www.postgresql.org/docs/18/datatype-numeric.html
+- **Ordering:** https://www.postgresql.org/docs/18/queries-order.html
+- **pgcrypto:** https://www.postgresql.org/docs/18/pgcrypto.html
+- **Source role:** official technical documentation
+- **Evidence grade:** not applicable
+- **Use:** `jsonb` representation limits, exact numeric, explicit ordering,
+  raw-byte SHA-256, timestamp/collation/version caveats.

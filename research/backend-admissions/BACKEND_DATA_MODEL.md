@@ -281,7 +281,8 @@ disposition_receipt(
 
 Synthetic virtual-clock durations cannot become production defaults. Deletion
 removes payloads and leaves a content-free receipt. A disposed decision becomes
-`hash_verifiable_only`, not replayable.
+`not_replayable_inputs_disposed`; a retained digest can verify later-supplied
+candidate bytes but cannot reconstruct deleted inputs.
 
 ## Future Evaluation
 
@@ -369,7 +370,8 @@ replay(decision_run_id):
 
 - Track B enablement changes zero Track A results.
 - Prohibited-field mutations change zero decisions.
-- Every completed decision replays.
+- Every completed decision replays exactly while its canonical inputs,
+  executable artifact, and required environment remain retained.
 - Corrections create successor versions.
 - Every notice clause traces to an executed rule/event.
 - Remedy-history mutations change zero eligibility results.

@@ -187,7 +187,7 @@ invariance applies only when the mutated fields are excluded metadata.
 | HD-01 | Synthetic hold | Deletion pauses; access unchanged |
 | DL-01 | Subject disposition | Payload removed; content-free receipt |
 | DL-02 | Repeat disposition | Idempotent |
-| RP-DEL-01 | Replay after input disposition | `hash_verifiable_only` |
+| RP-DEL-01 | Replay after input disposition | `not_replayable_inputs_disposed` |
 | BK-01 | Backup restore | Deletion ledger applies before access |
 | LG-01 | Forbidden canary strings | Absent from logs |
 | EV-01 | Non-allowlisted fixture | Rejected |

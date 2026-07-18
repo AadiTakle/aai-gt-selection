@@ -15,6 +15,7 @@ Canonical provisional build references:
 - `PROVISIONAL_IMPLEMENTATION_CONTRACT.md`
 - `CRITICAL_TEST_MANIFEST.md`
 - `RLS_AND_AUTH_BLUEPRINT.md`
+- `CANONICALIZATION_AND_REPLAY_BLUEPRINT.md`
 
 ## Day 0 — Resolve Contract Conflicts
 
@@ -172,6 +173,8 @@ Store:
 - outcome;
 - ordered reasons;
 - immutable rule trace and message-catalog version;
+- canonical profile/bytes and code/environment manifests;
+- decision-root commitment;
 - notice delivery status;
 - result hash;
 - supersession.
@@ -180,6 +183,7 @@ Acceptance:
 
 - no application-role update/delete;
 - identical replay;
+- missing artifact/disposed input refuses exact replay;
 - corrections create successor run.
 - every public explanation clause maps to a trace step/event;
 - explanation/correction history cannot affect eligibility.

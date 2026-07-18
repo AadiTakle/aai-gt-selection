@@ -131,7 +131,9 @@ Controls:
 
 Limit:
 
-- Database owner is trusted; tampering is detectable, not prevented.
+- Application-role mutation is constrained. A database owner can rewrite and
+  rehash internal history; owner-level tampering is detectable only relative to
+  an independently retained prior checkpoint, which is outside the two-week MVP.
 
 ### Injection / XSS
 
@@ -205,7 +207,7 @@ Controls:
 - Content-free disposition receipts
 - Restore-time deletion-ledger replay
 - Hold expiry/review without expanded access
-- `hash_verifiable_only` after input disposition
+- `not_replayable_inputs_disposed` after input disposition
 
 Tests:
 

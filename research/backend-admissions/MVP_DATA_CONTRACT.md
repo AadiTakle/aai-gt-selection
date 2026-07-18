@@ -478,7 +478,8 @@ disposition_receipt(
 Synthetic duration codes use a virtual clock and cannot be promoted to
 production. Disposition receipts contain no subject ID, payload hash, evidence,
 or decision reason. Decisions whose inputs were disposed become
-`hash_verifiable_only`.
+`not_replayable_inputs_disposed`; retained digests alone do not reconstruct or
+verify absent payloads.
 
 ## Audit
 

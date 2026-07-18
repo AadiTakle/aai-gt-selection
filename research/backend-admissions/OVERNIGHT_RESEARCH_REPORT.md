@@ -697,6 +697,7 @@ domain-field, appeal, pending-state, and finance contradictions.
 Implementation artifacts:
 
 - `BACKEND_IMPLEMENTATION_BACKLOG.md`
+- `CANONICALIZATION_AND_REPLAY_BLUEPRINT.md`
 - `CRITICAL_TEST_MANIFEST.md`
 - `DAY_ZERO_DECISION_BRIEF.md`
 - `FINAL_RESEARCH_AUDIT.md`

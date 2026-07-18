@@ -270,6 +270,23 @@
   concurrency, and service-key boundaries.
 - Added ten merge-blocking Auth/RLS/IDOR/grant/definer/new-object gates.
 
+### Iteration 18 — 2026-07-18
+
+- Verified RFC 8785/8259/7493, FIPS 180-4, PostgreSQL 18 determinism,
+  W3C PROV, and build-provenance guidance.
+- Defined strict JCS application profile for duplicate keys, Unicode, numbers,
+  decimal strings, UUIDs, dates, and audit timestamps.
+- Made canonical TypeScript-produced bytes authoritative; retained `jsonb` only
+  as a query projection.
+- Bound inputs, policy, code/environment, outcome, ordered reasons, and trace
+  into one decision-root commitment.
+- Replaced ambiguous `hash_verifiable_only` with truthful reconstruction,
+  digest-verification, and not-replayable statuses.
+- Added cold replay, canonical-vector, root-mutation, audit-chain concurrency,
+  idempotency, workflow-race, and owner-boundary gates.
+- Clarified that internal hash chains do not detect owner rewrites without an
+  independently retained prior checkpoint.
+
 ## Implementation Transition
 
 The broad research clusters are covered. Next actions:

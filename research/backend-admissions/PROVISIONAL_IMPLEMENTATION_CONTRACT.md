@@ -83,7 +83,8 @@ Human JWTs keep top-level `role=authenticated`. An admin-controlled
 9. `app.pending_item`
    - reason, owner, due date, route, open/escalated/resolved
 10. `app.decision_run`
-    - exact input refs, outcome, ordered reasons, trace, hashes, code version
+    - exact input refs, outcome, ordered reasons, trace, canonical profile/bytes,
+      policy/code/environment manifests, and decision-root commitment
 11. `app.audit_event`
     - minimized typed event metadata, no sensitive payload
 12. `app.applicant_context`
@@ -162,7 +163,8 @@ Data/admissions steward only.
 
 - creates immutable successor;
 - reruns only affected decisions from one complete manifest;
-- leaves original replayable;
+- leaves original exactly replayable while retained inputs/executable/environment
+  remain available;
 - proves private/prohibited corrections change no decision/hash.
 
 Substantive appeal and new evidence return `FEATURE_DISABLED`.
@@ -171,8 +173,10 @@ Substantive appeal and new evidence return `FEATURE_DISABLED`.
 
 Auditor or dedicated non-bypass decision service.
 
-Verifies exact input, policy, code, outcome, ordered reasons, and hashes. Writes
-one audit event without modifying the original decision.
+Verifies exact canonical input, policy, executable/environment artifact,
+outcome, ordered reasons, trace, and decision-root commitment. Missing artifacts
+or disposed inputs refuse exact replay. Writes one audit event without modifying
+the original decision.
 
 ## Read RPCs
 
@@ -275,6 +279,9 @@ Default to invoker behavior. Any required `SECURITY DEFINER` RPC:
 - writes only minimized idempotency/audit metadata.
 
 See `RLS_AND_AUTH_BLUEPRINT.md`.
+
+Canonical bytes, hash domains, replay statuses, and cold-replay gates are
+defined in `CANONICALIZATION_AND_REPLAY_BLUEPRINT.md`.
 
 ## Day Sequence
 

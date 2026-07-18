@@ -253,7 +253,7 @@ After allowed disposition:
   associations;
 - preserve shared public policies/code/fixture catalog;
 - leave only a content-free disposition receipt;
-- mark affected decisions `hash_verifiable_only`; and
+- mark affected decisions `not_replayable_inputs_disposed`; and
 - never report successful exact replay after inputs are gone.
 
 Content-free receipt:
@@ -378,7 +378,7 @@ No upload endpoint exists.
 | HD-01 | Hold pauses deletion | Access unchanged; authority ref required |
 | DL-01 | Delete synthetic subject | Payloads removed; content-free receipt |
 | DL-02 | Repeat deletion | Idempotent |
-| RP-DEL-01 | Replay disposed decision | `hash_verifiable_only` |
+| RP-DEL-01 | Replay disposed decision | `not_replayable_inputs_disposed` |
 | BK-01 | Restore backup | Deletion ledger applied before access |
 | LG-01 | Forbidden canary strings | Absent from logs |
 | EV-01 | Non-allowlisted fixture | Rejected |
