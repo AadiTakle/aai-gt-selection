@@ -152,6 +152,17 @@
 - Recorded that long-run attainment can move even when short-run standardized tests do not.
 - Added guardrail finding that unrestricted AI can raise assisted practice while harming independent performance.
 
+### Iteration 10 — 2026-07-18
+
+- Verified current public GT School campus, grades, Georgetown address, admissions entry, reported tuition/enrollment, scholarships, services, and remaining unknowns.
+- Confirmed current independent CogAT-around-90th-percentile reporting while leaving exact official rule/form unverified.
+- Built Timeback product/architecture/treatment-version inventory from public beta/API/support documentation.
+- Audited public Alpha/GT outcome claims, including the 154-student 2024–25 NWEA artifact and recalculated ~1.69× math/~1.54× reading aggregate ratios.
+- Documented current absence of independent peer-reviewed/causal Timeback/GT evaluation.
+- Verified Texas TEFA 2026–27 awards, priorities, lottery, school/testing requirements, tuition rules, and GT-specific unknowns.
+- Audited public GT/Alpha/Timeback privacy, monitoring, retention, vendor, consent, and public assurance gaps.
+- Added GT public facts dossier and current official/independent sources.
+
 ## Next Research Clusters
 
 1. Randomized/lottery and regression-discontinuity identification in selective education.

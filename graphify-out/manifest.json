@@ -105,13 +105,13 @@
     "semantic_hash": ""
   },
   "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md": {
-    "mtime": 1784368865.2498455,
-    "ast_hash": "e35022d212d39f26d2f2151a8c57eb1a",
+    "mtime": 1784370578.343548,
+    "ast_hash": "1b2cf57970d17ee67d76c52863d92307",
     "semantic_hash": ""
   },
   "research/backend-admissions/RESEARCH_LOG.md": {
-    "mtime": 1784369102.6327384,
-    "ast_hash": "2d7c3cc67a610c3af430b4afbf41cb7d",
+    "mtime": 1784370639.2273912,
+    "ast_hash": "54600ddc269d40bbe20ec758b7186110",
     "semantic_hash": ""
   },
   "research/backend-admissions/SIMULATION_SPECIFICATION.md": {
@@ -130,8 +130,8 @@
     "semantic_hash": ""
   },
   "research/backend-admissions/ANNOTATED_SOURCE_REGISTER.md": {
-    "mtime": 1784369091.0323913,
-    "ast_hash": "f78afc6064e1d0147e3a789838eb4ade",
+    "mtime": 1784370599.3661356,
+    "ast_hash": "ca2aca239eb3d3b6c28ef23598a1ae0b",
     "semantic_hash": ""
   },
   "research/backend-admissions/REVIEWER_AND_FAIRNESS_VALIDATION.md": {
@@ -192,6 +192,11 @@
   "research/backend-admissions/RESEARCH_AUDIT_CORRECTIONS.md": {
     "mtime": 1784367183.1492367,
     "ast_hash": "95ab2177d91ce268283b62d71824194e",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md": {
+    "mtime": 1784370563.02916,
+    "ast_hash": "dec7f9e10f89c15fb8b3dbbf82327e5b",
     "semantic_hash": ""
   }
 }

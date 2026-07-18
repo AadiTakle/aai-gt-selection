@@ -874,6 +874,226 @@
       "norm_label": "sources"
     },
     {
+      "label": "GT_PUBLIC_FACTS_DOSSIER.md",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "research_backend_admissions_gt_public_facts_dossier",
+      "community": 2,
+      "community_name": "GT School, Alpha, Timeback, and TEFA Public Facts",
+      "norm_label": "gt_public_facts_dossier.md"
+    },
+    {
+      "label": "GT School, Alpha, Timeback, and TEFA Public Facts",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "research_backend_admissions_gt_public_facts_dossier_gt_school_alpha_timeback_and_tefa_public_facts",
+      "community": 2,
+      "community_name": "GT School, Alpha, Timeback, and TEFA Public Facts",
+      "norm_label": "gt school, alpha, timeback, and tefa public facts"
+    },
+    {
+      "label": "GT School",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L6",
+      "_origin": "ast",
+      "id": "research_backend_admissions_gt_public_facts_dossier_gt_school",
+      "community": 2,
+      "community_name": "GT School, Alpha, Timeback, and TEFA Public Facts",
+      "norm_label": "gt school"
+    },
+    {
+      "label": "Confirmed",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L8",
+      "_origin": "ast",
+      "id": "research_backend_admissions_gt_public_facts_dossier_confirmed",
+      "community": 2,
+      "community_name": "GT School, Alpha, Timeback, and TEFA Public Facts",
+      "norm_label": "confirmed"
+    },
+    {
+      "label": "Unverified",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L22",
+      "_origin": "ast",
+      "id": "research_backend_admissions_gt_public_facts_dossier_unverified",
+      "community": 2,
+      "community_name": "GT School, Alpha, Timeback, and TEFA Public Facts",
+      "norm_label": "unverified"
+    },
+    {
+      "label": "Current GT Services",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L34",
+      "_origin": "ast",
+      "id": "research_backend_admissions_gt_public_facts_dossier_current_gt_services",
+      "community": 2,
+      "community_name": "GT School, Alpha, Timeback, and TEFA Public Facts",
+      "norm_label": "current gt services"
+    },
+    {
+      "label": "Timeback",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L45",
+      "_origin": "ast",
+      "id": "research_backend_admissions_gt_public_facts_dossier_timeback",
+      "community": 2,
+      "community_name": "GT School, Alpha, Timeback, and TEFA Public Facts",
+      "norm_label": "timeback"
+    },
+    {
+      "label": "Public adaptive logic examples",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L59",
+      "_origin": "ast",
+      "id": "research_backend_admissions_gt_public_facts_dossier_public_adaptive_logic_examples",
+      "community": 2,
+      "community_name": "GT School, Alpha, Timeback, and TEFA Public Facts",
+      "norm_label": "public adaptive logic examples"
+    },
+    {
+      "label": "Treatment version fields",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L74",
+      "_origin": "ast",
+      "id": "research_backend_admissions_gt_public_facts_dossier_treatment_version_fields",
+      "community": 2,
+      "community_name": "GT School, Alpha, Timeback, and TEFA Public Facts",
+      "norm_label": "treatment version fields"
+    },
+    {
+      "label": "Public Outcome Claims",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L91",
+      "_origin": "ast",
+      "id": "research_backend_admissions_gt_public_facts_dossier_public_outcome_claims",
+      "community": 2,
+      "community_name": "GT School, Alpha, Timeback, and TEFA Public Facts",
+      "norm_label": "public outcome claims"
+    },
+    {
+      "label": "Company claims",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L93",
+      "_origin": "ast",
+      "id": "research_backend_admissions_gt_public_facts_dossier_company_claims",
+      "community": 2,
+      "community_name": "GT School, Alpha, Timeback, and TEFA Public Facts",
+      "norm_label": "company claims"
+    },
+    {
+      "label": "What MAP multiplier means",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L101",
+      "_origin": "ast",
+      "id": "research_backend_admissions_gt_public_facts_dossier_what_map_multiplier_means",
+      "community": 2,
+      "community_name": "GT School, Alpha, Timeback, and TEFA Public Facts",
+      "norm_label": "what map multiplier means"
+    },
+    {
+      "label": "Strongest public descriptive artifact",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L119",
+      "_origin": "ast",
+      "id": "research_backend_admissions_gt_public_facts_dossier_strongest_public_descriptive_artifact",
+      "community": 2,
+      "community_name": "GT School, Alpha, Timeback, and TEFA Public Facts",
+      "norm_label": "strongest public descriptive artifact"
+    },
+    {
+      "label": "Privacy and Data",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L141",
+      "_origin": "ast",
+      "id": "research_backend_admissions_gt_public_facts_dossier_privacy_and_data",
+      "community": 2,
+      "community_name": "GT School, Alpha, Timeback, and TEFA Public Facts",
+      "norm_label": "privacy and data"
+    },
+    {
+      "label": "Texas TEFA",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L175",
+      "_origin": "ast",
+      "id": "research_backend_admissions_gt_public_facts_dossier_texas_tefa",
+      "community": 2,
+      "community_name": "GT School, Alpha, Timeback, and TEFA Public Facts",
+      "norm_label": "texas tefa"
+    },
+    {
+      "label": "Public 2026\u201327 facts",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L177",
+      "_origin": "ast",
+      "id": "research_backend_admissions_gt_public_facts_dossier_public_2026_27_facts",
+      "community": 2,
+      "community_name": "GT School, Alpha, Timeback, and TEFA Public Facts",
+      "norm_label": "public 2026\u201327 facts"
+    },
+    {
+      "label": "GT-specific unknowns",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L190",
+      "_origin": "ast",
+      "id": "research_backend_admissions_gt_public_facts_dossier_gt_specific_unknowns",
+      "community": 2,
+      "community_name": "GT School, Alpha, Timeback, and TEFA Public Facts",
+      "norm_label": "gt-specific unknowns"
+    },
+    {
+      "label": "Charter and External Record",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L203",
+      "_origin": "ast",
+      "id": "research_backend_admissions_gt_public_facts_dossier_charter_and_external_record",
+      "community": 2,
+      "community_name": "GT School, Alpha, Timeback, and TEFA Public Facts",
+      "norm_label": "charter and external record"
+    },
+    {
+      "label": "Highest-Priority Questions for GT",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L214",
+      "_origin": "ast",
+      "id": "research_backend_admissions_gt_public_facts_dossier_highest_priority_questions_for_gt",
+      "community": 2,
+      "community_name": "GT School, Alpha, Timeback, and TEFA Public Facts",
+      "norm_label": "highest-priority questions for gt"
+    },
+    {
+      "label": "Key Sources",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L227",
+      "_origin": "ast",
+      "id": "research_backend_admissions_gt_public_facts_dossier_key_sources",
+      "community": 2,
+      "community_name": "GT School, Alpha, Timeback, and TEFA Public Facts",
+      "norm_label": "key sources"
+    },
+    {
       "label": "MORNING_HANDOFF.md",
       "file_type": "document",
       "source_file": "research/backend-admissions/MORNING_HANDOFF.md",
@@ -1842,10 +2062,54 @@
       "norm_label": "adversarial research audit"
     },
     {
-      "label": "Deliverables Under Construction",
+      "label": "Current GT and Timeback Public Facts",
       "file_type": "document",
       "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
       "source_location": "L595",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_current_gt_and_timeback_public_facts",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "current gt and timeback public facts"
+    },
+    {
+      "label": "Updated Public Outcome Audit",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L616",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_updated_public_outcome_audit",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "updated public outcome audit"
+    },
+    {
+      "label": "TEFA Context",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L633",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_tefa_context",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "tefa context"
+    },
+    {
+      "label": "Public Privacy Gap",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L645",
+      "_origin": "ast",
+      "id": "research_backend_admissions_overnight_research_report_public_privacy_gap",
+      "community": 6,
+      "community_name": "Prohibited Inputs and Equity",
+      "norm_label": "public privacy gap"
+    },
+    {
+      "label": "Deliverables Under Construction",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L651",
       "_origin": "ast",
       "id": "research_backend_admissions_overnight_research_report_deliverables_under_construction",
       "community": 6,
@@ -2337,10 +2601,21 @@
       "norm_label": "iteration 9 \u2014 2026-07-18"
     },
     {
-      "label": "Next Research Clusters",
+      "label": "Iteration 10 \u2014 2026-07-18",
       "file_type": "document",
       "source_file": "research/backend-admissions/RESEARCH_LOG.md",
       "source_location": "L155",
+      "_origin": "ast",
+      "id": "research_backend_admissions_research_log_iteration_10_2026_07_18",
+      "community": 27,
+      "community_name": "Overnight Backend and Admissions Research Log",
+      "norm_label": "iteration 10 \u2014 2026-07-18"
+    },
+    {
+      "label": "Next Research Clusters",
+      "file_type": "document",
+      "source_file": "research/backend-admissions/RESEARCH_LOG.md",
+      "source_location": "L166",
       "_origin": "ast",
       "id": "research_backend_admissions_research_log_next_research_clusters",
       "community": 27,
@@ -4313,9 +4588,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 1,
       "norm_label": "r10 conclusion boundaries",
-      "community_name": "Evidence Quality and Screening",
+      "community_name": "Selection Requirements and Rights",
       "id": "docs_project_requirements_r10"
     },
     {
@@ -5125,9 +5400,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 1,
       "norm_label": "seat allocation and evaluation out of scope",
-      "community_name": "Evidence Quality and Screening",
+      "community_name": "Selection Requirements and Rights",
       "id": "docs_gt_admissions_application_mvp_prd_allocation_out_of_scope"
     },
     {
@@ -5139,9 +5414,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 4,
+      "community": 1,
       "norm_label": "track a vs track b difference as program effect claim",
-      "community_name": "Evidence Quality and Screening",
+      "community_name": "Selection Requirements and Rights",
       "id": "docs_gt_admissions_application_mvp_prd_track_comparison_causal_claim"
     },
     {
@@ -6647,6 +6922,215 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_gt_public_facts_dossier",
+      "target": "research_backend_admissions_gt_public_facts_dossier_gt_school_alpha_timeback_and_tefa_public_facts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L203",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_gt_public_facts_dossier_gt_school_alpha_timeback_and_tefa_public_facts",
+      "target": "research_backend_admissions_gt_public_facts_dossier_charter_and_external_record",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L34",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_gt_public_facts_dossier_gt_school_alpha_timeback_and_tefa_public_facts",
+      "target": "research_backend_admissions_gt_public_facts_dossier_current_gt_services",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L6",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_gt_public_facts_dossier_gt_school_alpha_timeback_and_tefa_public_facts",
+      "target": "research_backend_admissions_gt_public_facts_dossier_gt_school",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L214",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_gt_public_facts_dossier_gt_school_alpha_timeback_and_tefa_public_facts",
+      "target": "research_backend_admissions_gt_public_facts_dossier_highest_priority_questions_for_gt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L227",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_gt_public_facts_dossier_gt_school_alpha_timeback_and_tefa_public_facts",
+      "target": "research_backend_admissions_gt_public_facts_dossier_key_sources",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L141",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_gt_public_facts_dossier_gt_school_alpha_timeback_and_tefa_public_facts",
+      "target": "research_backend_admissions_gt_public_facts_dossier_privacy_and_data",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L91",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_gt_public_facts_dossier_gt_school_alpha_timeback_and_tefa_public_facts",
+      "target": "research_backend_admissions_gt_public_facts_dossier_public_outcome_claims",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L175",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_gt_public_facts_dossier_gt_school_alpha_timeback_and_tefa_public_facts",
+      "target": "research_backend_admissions_gt_public_facts_dossier_texas_tefa",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L45",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_gt_public_facts_dossier_gt_school_alpha_timeback_and_tefa_public_facts",
+      "target": "research_backend_admissions_gt_public_facts_dossier_timeback",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L8",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_gt_public_facts_dossier_gt_school",
+      "target": "research_backend_admissions_gt_public_facts_dossier_confirmed",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L22",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_gt_public_facts_dossier_gt_school",
+      "target": "research_backend_admissions_gt_public_facts_dossier_unverified",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L59",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_gt_public_facts_dossier_timeback",
+      "target": "research_backend_admissions_gt_public_facts_dossier_public_adaptive_logic_examples",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L74",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_gt_public_facts_dossier_timeback",
+      "target": "research_backend_admissions_gt_public_facts_dossier_treatment_version_fields",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L93",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_gt_public_facts_dossier_public_outcome_claims",
+      "target": "research_backend_admissions_gt_public_facts_dossier_company_claims",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L119",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_gt_public_facts_dossier_public_outcome_claims",
+      "target": "research_backend_admissions_gt_public_facts_dossier_strongest_public_descriptive_artifact",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L101",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_gt_public_facts_dossier_public_outcome_claims",
+      "target": "research_backend_admissions_gt_public_facts_dossier_what_map_multiplier_means",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L190",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_gt_public_facts_dossier_texas_tefa",
+      "target": "research_backend_admissions_gt_public_facts_dossier_gt_specific_unknowns",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md",
+      "source_location": "L177",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_gt_public_facts_dossier_texas_tefa",
+      "target": "research_backend_admissions_gt_public_facts_dossier_public_2026_27_facts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "research/backend-admissions/MORNING_HANDOFF.md",
       "source_location": "L1",
       "weight": 1.0,
@@ -7154,6 +7638,17 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L595",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
+      "target": "research_backend_admissions_overnight_research_report_current_gt_and_timeback_public_facts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
       "source_location": "L531",
       "weight": 1.0,
       "_origin": "ast",
@@ -7165,7 +7660,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
-      "source_location": "L595",
+      "source_location": "L651",
       "weight": 1.0,
       "_origin": "ast",
       "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
@@ -7341,6 +7836,17 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L645",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
+      "target": "research_backend_admissions_overnight_research_report_public_privacy_gap",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
       "source_location": "L377",
       "weight": 1.0,
       "_origin": "ast",
@@ -7401,6 +7907,17 @@
       "_origin": "ast",
       "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
       "target": "research_backend_admissions_overnight_research_report_synthetic_simulation",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L633",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
+      "target": "research_backend_admissions_overnight_research_report_tefa_context",
       "confidence_score": 1.0
     },
     {
@@ -7478,6 +7995,17 @@
       "_origin": "ast",
       "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
       "target": "research_backend_admissions_overnight_research_report_uncertainty_and_pending",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md",
+      "source_location": "L616",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_overnight_research_report_separating_selection_effect_from_program_effect",
+      "target": "research_backend_admissions_overnight_research_report_updated_public_outcome_audit",
       "confidence_score": 1.0
     },
     {
@@ -7913,7 +8441,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "research/backend-admissions/RESEARCH_LOG.md",
-      "source_location": "L155",
+      "source_location": "L166",
       "weight": 1.0,
       "_origin": "ast",
       "source": "research_backend_admissions_research_log_overnight_backend_and_admissions_research_log",
@@ -7951,6 +8479,17 @@
       "_origin": "ast",
       "source": "research_backend_admissions_research_log_iteration_log",
       "target": "research_backend_admissions_research_log_iteration_0_2026_07_18",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "research/backend-admissions/RESEARCH_LOG.md",
+      "source_location": "L155",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "research_backend_admissions_research_log_iteration_log",
+      "target": "research_backend_admissions_research_log_iteration_10_2026_07_18",
       "confidence_score": 1.0
     },
     {
@@ -10964,5 +11503,5 @@
       "source_file": "gt-school-counterfactual-brainlift/brainlift-gt-school-counterfactual.md"
     }
   ],
-  "built_at_commit": "7e9ee84bd089cc5285fbe3c8438870fc99d3c62b"
+  "built_at_commit": "8c6bcc8be147f76d94802c62b6519502c0bfd0c0"
 }

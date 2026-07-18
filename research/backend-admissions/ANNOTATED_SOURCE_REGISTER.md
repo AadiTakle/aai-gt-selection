@@ -845,6 +845,71 @@
 - **Grade:** A
 - **Use:** Evaluation choices can dramatically alter fairness scores; metrics/denominators require locking.
 
+## Current GT, Timeback, Alpha, and TEFA Sources
+
+### GT School Official Pages
+
+- **Homepage:** https://gt.school/
+- **Admissions:** https://gt.school/admissions/
+- **About:** https://www.gt.school/about-us
+- **Programs:** https://www.gt.school/programs
+- **Academics:** https://www.gt.school/academics
+- **Privacy:** https://www.gt.school/privacy-policy
+- **Terms:** https://www.gt.school/terms-of-use
+- **Grade:** C
+- **Use:** Current company representations about campus, services, admissions entry, claims, and data policy.
+
+### Reason (June 2026) — GT School Profile
+
+- **URL:** https://reason.com/2026/06/24/g-t-schools-bet-on-gifted-ed-cash-rewards-2-hours-of-ai-tutoring-no-lectures/
+- **Grade:** B
+- **Use:** Current independent reporting of CogAT around the 90th percentile, tuition, and observed model.
+- **Limit:** Editorially school-choice-friendly outlet; CogAT wording appears in interviewer framing.
+
+### Community Impact (April 2026)
+
+- **URL:** https://communityimpact.com/austin/georgetown/education/2026/04/24/15-private-and-charter-school-options-available-to-georgetown-area-families/
+- **Grade:** B
+- **Use:** Dated enrollment 30 and $25,000 tuition report.
+
+### Timeback Documentation
+
+- **Architecture:** https://docs.timeback.com/beta/about-timeback/how-it-works
+- **API overview:** https://docs.timeback.com/beta/api-reference/overview
+- **Grade:** C
+- **Use:** Public beta architecture, standards, events, placement, and integration descriptions.
+- **Limit:** Company documentation; does not establish efficacy or deployed campus configuration.
+
+### Alpha 2024–25 NWEA Report
+
+- **URL:** https://go.alpha.school/hubfs/MAP%20Results%20-%2024%2025/2025%20NWEA%20MAP%20results.pdf
+- **Grade:** C
+- **Use:** Strongest public descriptive matched-score artifact; 154 math events and recalculable grade rows.
+- **Limit:** No student data, attrition, external audit, or counterfactual.
+
+### NWEA Growth-Ratio Guidance
+
+- **URL:** https://connection.nwea.org/s/article/overall-rit-explained
+- **Grade:** A
+- **Use:** Defines observed/projected growth ratio and outlier/small-denominator sensitivity.
+
+### GT/Alpha Privacy Policies
+
+- **GT:** https://www.gt.school/privacy-policy
+- **Alpha:** https://alpha.school/privacy-policy/
+- **Grade:** C
+- **Use:** Public company representations about child data collection, use, sharing, consent, and retention.
+
+### Texas TEFA
+
+- **Statute:** https://capitol.texas.gov/tlodocs/89R/billtext/html/SB00002F.htm
+- **Funding:** https://educationfreedom.texas.gov/newsupdates/funding-timelines-and-installments/
+- **Lottery:** https://educationfreedom.texas.gov/newsupdates/lottery-update/
+- **Tuition guidance:** https://educationfreedom.texas.gov/newsupdates/tuition-and-fee-guidelines-for-participating-private-schools/
+- **Grade:** A
+- **Use:** Current official eligibility, award, priority, lottery, school, and tuition rules.
+- **Limit:** Does not confirm GT provider participation or effect.
+
 ## Standard Setting and Decision Utility
 
 ### Plake, Hambleton, & Jaeger (1997) — Dominant Profiles

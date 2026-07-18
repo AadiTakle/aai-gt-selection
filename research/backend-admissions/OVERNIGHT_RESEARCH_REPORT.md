@@ -592,6 +592,62 @@ Independent review of the overnight package identified and corrected:
 
 Remaining canonical product contradictions are documented in `MORNING_HANDOFF.md` rather than silently changing the PRD on the research branch.
 
+## Current GT and Timeback Public Facts
+
+Publicly confirmed:
+
+- Georgetown K–8 campus
+- 2351 Westinghouse Rd
+- 30 students reported in April 2026
+- $25,000 in-person tuition reported independently
+- limited $10,000 founding-family scholarships advertised
+- current independent report of CogAT around the 90th percentile
+- GT Anywhere launched in 2026
+
+Still unverified:
+
+- CogAT form, exact rule, retest, and accommodations
+- complete application and parent essay
+- age cutoff, capacity, transportation, and several support services
+- exact aid/TEFA treatment
+
+Timeback is a beta, multi-app, version-sensitive platform. A causal treatment record must include app, platform, placement, threshold, MAP, recommendation, Guide, monitoring, workshop, and cohort versions.
+
+## Updated Public Outcome Audit
+
+The strongest public descriptive Alpha artifact contains 154 matched students/events and yields roughly:
+
+- 1.69× aggregate math growth
+- 1.54× aggregate reading growth
+
+This does not reproduce the 2.6× headline and remains:
+
+- matched-completer data;
+- internally administered/analyzed;
+- without student-level release;
+- without attrition accounting; and
+- without a counterfactual.
+
+Current GT marketing also includes a 3× guarantee and 1400+ SAT framing. These remain company claims, not causal effect estimates.
+
+## TEFA Context
+
+Texas TEFA is operational for 2026–27:
+
+- standard private-school award: $10,474;
+- disability formula up to $30,000;
+- income/disability priority tiers;
+- oversubscription lottery/waitlist;
+- private-school admission remains separate.
+
+GT-specific provider, accreditation, tuition, aid-offset, testing, and disability practices remain unverified.
+
+## Public Privacy Gap
+
+GT/Alpha policies disclose extensive child activity, screen, audio/video, behavioral, location, and learning-app data. Publicly unavailable items include a complete subprocessor list, detailed retention schedule, public security audit, DPA, SOC 2 report, and breach SLA.
+
+The synthetic-only boundary remains necessary.
+
 ## Deliverables Under Construction
 
 - Source-graded paper deep dives
