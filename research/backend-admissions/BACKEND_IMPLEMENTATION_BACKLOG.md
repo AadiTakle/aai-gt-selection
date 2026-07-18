@@ -32,6 +32,8 @@ Define:
 - review classifications;
 - pending reasons;
 - applicant-safe messages;
+- field-purpose-retention registry;
+- synthetic-only startup/data assertion;
 - API request/response fixtures.
 
 Acceptance:
@@ -185,6 +187,7 @@ Cover:
 - pending, explanations, and corrections;
 - prohibited-field mutations;
 - consent/accessibility invariance;
+- service-role, log-canary, retention, deletion, and purge tests;
 - replay;
 - concurrency;
 - RLS.
@@ -238,3 +241,4 @@ Shared:
 - Live uploads/data
 - Production deployment
 - ML scoring
+- Production retention/legal-consent management

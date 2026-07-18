@@ -140,7 +140,9 @@ No public independent peer-reviewed or credible quasi-experimental Timeback/Alph
 
 ## Privacy and Data
 
-Public GT/Alpha policies describe broad collection including:
+### GT Privacy Policy — April 2026
+
+Public GT materials describe:
 
 - tests and academic records;
 - browser/app activity;
@@ -148,24 +150,33 @@ Public GT/Alpha policies describe broad collection including:
 - mouse/keyboard activity;
 - microphone/system audio;
 - webcam recording;
-- eye contact/body-language/engagement signals;
-- geolocation/RFID/Bluetooth and possible biometrics;
-- rewards/purchases;
-- third-party app data;
-- messages and profiles.
+- precise geolocation;
+- analytics and broad learning-app data; and
+- purpose-based retention language without category-specific durations.
 
-Public policies describe COPPA/parental-rights representations and broad vendor/affiliate/research sharing.
+### Alpha Privacy Policy — August 2025
 
-Material public gaps:
+Alpha's separate policy additionally describes:
 
-- no public complete subprocessor list;
+- eye-contact/body-language/engagement analysis;
+- RFID/Bluetooth tracking;
+- possible biometric processing; and
+- general graduation/disenrollment plus 4–5-year retention, with limited
+  retention for extended-capability data.
+
+These Alpha statements must not be attributed to GT without confirmation that
+the relevant policy and processing apply.
+
+Across the reviewed public pages, material gaps include:
+
+- no posted complete subprocessor list;
 - no public SOC 2 report;
 - no penetration-test summary;
 - no detailed DPA;
 - no encryption-at-rest specification;
 - no breach-notification SLA;
 - no detailed role/access matrix;
-- no category-specific retention schedule;
+- no complete category-by-category retention schedule; and
 - no independent privacy/security audit.
 
 Timeback’s public technical documentation does not expose a standalone privacy/terms framework.

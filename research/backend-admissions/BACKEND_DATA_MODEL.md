@@ -14,8 +14,8 @@ policy              immutable rules and rubric versions
 evidence            Snapshot metadata and synthetic fixtures
 review              blind reviewer workflow
 decision            immutable runs and results
-audit               append-only events
-consent_private     permission ledger and identity linkage
+audit               minimized typed events and disposition receipts
+consent_private     synthetic optional-choice sentinel only
 
 future only:
 finance_private
@@ -29,6 +29,21 @@ api                 narrow security-invoker views and RPCs
 ```
 
 Eligibility can read only approved admissions, policy, evidence, and locked review data. It cannot read identity, accommodation, finance, consent, allocation, outcomes, or audit-only demographics.
+
+## Field and Purpose Registry
+
+```sql
+field_registry(
+  field_id, schema_name, object_name, field_name,
+  purpose_code, data_class, synthetic_only,
+  decision_use, export_rule, correction_rule,
+  retention_policy_id, prohibited_uses,
+  owner_role, lineage_ref, registry_version
+)
+```
+
+Every stored field requires a registry entry. All MVP rows must be
+born-synthetic and fail closed otherwise.
 
 ## Core Entities
 
@@ -211,28 +226,62 @@ re-entry rather than correction.
 audit_event(
   event_id, sequence,
   aggregate_type, aggregate_id, event_type,
-  actor_id, actor_role, purpose,
+  actor_id, actor_role, purpose, object_class, operation_result,
   occurred_at, recorded_at,
-  payload, previous_hash, event_hash, correlation_id
+  policy_version, previous_hash, event_hash,
+  correlation_id, causation_id
 )
 ```
 
 Application roles receive no update/delete grants on decision runs, ratings, assignments, consent events, or audit events.
+Raw evidence, scores, contact/access rationales, consent text, tokens, signed
+URLs, secrets, query strings, and generic payload blobs are prohibited in audit.
 
 PostgreSQL cannot protect against its owner/superuser. External signed exports/checkpoints are required for tamper evidence.
 
-## Consent Firewall
+## Synthetic Choice Firewall
 
 ```sql
-consent_event(
-  consent_event_id, applicant_id, study_key,
+synthetic_choice_event(
+  choice_event_id, applicant_id, purpose_code,
   event_type, notice_version, occurred_at,
-  actor_id, previous_event_id
+  previous_event_id
 )
-research_identity_link(applicant_id, participant_id, created_at)
 ```
 
-Admissions cannot query consent. Evaluation receives only approved pseudonymous participant IDs.
+Admissions cannot query the choice store. Grant, refusal, and withdrawal alter
+zero admissions inputs/results. This is not legally effective consent
+management and cannot authorize evaluation.
+
+## Retention and Disposition
+
+```sql
+retention_policy(
+  policy_id, record_type, purpose_code, trigger_event,
+  duration_code, disposition_action, backup_expiry_code,
+  tombstone_policy_id, owner_role, approver_role,
+  synthetic_only, version
+)
+retention_state(
+  record_type, record_id, policy_id,
+  state, due_at, transitioned_at
+)
+retention_hold(
+  hold_id, synthetic_only, scope_type, scope_selector,
+  authority_reference, reason_code,
+  requested_by, approved_by,
+  starts_at, review_at, ends_at, state
+)
+disposition_receipt(
+  disposition_id, record_type, policy_version,
+  result_code, actor_role, started_at, completed_at,
+  backup_status
+)
+```
+
+Synthetic virtual-clock durations cannot become production defaults. Deletion
+removes payloads and leaves a content-free receipt. A disposed decision becomes
+`hash_verifiable_only`, not replayable.
 
 ## Future Evaluation
 
@@ -293,13 +342,14 @@ An absent outcome row is never allowed to erase the scheduled denominator.
 - `finance_operator` — future only
 - `allocation_operator` — future only
 - `evaluator` — future only
-- trusted server `service_role`
+- local seed/reset `service_role` — never ordinary runtime
 
 Rules:
 
 - Enable and force RLS on exposed tables.
 - Application connections are non-owner, non-`BYPASSRLS`.
-- Service key remains server-only.
+- Service role is prohibited in request handlers and decision execution.
+- Privileged seed/reset calls are purpose-limited and audited.
 - Reviewer sees assigned synthetic evidence only.
 - Identity, accommodation, finance, consent, and audit traits remain unavailable to eligibility.
 

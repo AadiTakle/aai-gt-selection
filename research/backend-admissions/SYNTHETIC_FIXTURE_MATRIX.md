@@ -174,6 +174,29 @@ Expected:
 Different transformed evidence may have different content hashes. Exact hash
 invariance applies only when the mutated fields are excluded metadata.
 
+## Privacy and Retention
+
+| ID | Scenario | Expected |
+|---|---|---|
+| FI-01 | Stored field lacks registry entry | Migration/test fails |
+| BD-01 | Non-synthetic row/config | Insert/startup fails |
+| SR-01 | Service key scan | No source/client/log/request-handler match |
+| SR-02 | Runtime request uses service role | Test fails |
+| RT-01 | Virtual-clock expiry | One disposition-due transition |
+| HD-01 | Synthetic hold | Deletion pauses; access unchanged |
+| DL-01 | Subject disposition | Payload removed; content-free receipt |
+| DL-02 | Repeat disposition | Idempotent |
+| RP-DEL-01 | Replay after input disposition | `hash_verifiable_only` |
+| BK-01 | Backup restore | Deletion ledger applies before access |
+| LG-01 | Forbidden canary strings | Absent from logs |
+| EV-01 | Non-allowlisted fixture | Rejected |
+| EV-02 | Fixture manifest | Synthetic provenance/checksum/license complete |
+| EX-01 | Family synthetic export | Own allowlisted fields/checksums only |
+| EX-02 | Expired export | Unavailable |
+| CN-01 | Synthetic choice grant/refusal/withdrawal | Admissions invariant |
+| CN-02 | Evaluation/export access | Fail closed |
+| LC-01 | Non-loopback/public tunnel/remote project | Startup fails |
+
 ## Replay and Concurrency
 
 | ID | Test | Expected |
@@ -228,3 +251,7 @@ Test direct REST/RPC access, not only UI.
 17. Every explanation clause traces to the executed decision
 18. Remedy history never affects eligibility
 19. New evidence enters re-entry, not correction/appeal
+20. Every persisted field has purpose and retention metadata
+21. Append-only does not imply indefinite retention
+22. Disposed inputs cannot claim exact replay
+23. Synthetic provenance is independent of real child records

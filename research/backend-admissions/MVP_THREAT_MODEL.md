@@ -74,8 +74,10 @@ Threat:
 Controls:
 
 - No `NEXT_PUBLIC_*`
-- Server/CLI only
-- Prefer user JWT/narrow RPCs
+- Service role limited to local seed/reset administration
+- Prohibited in ordinary request handlers and decision execution
+- Prefer user JWT/dedicated non-bypass role/narrow RPCs
+- Audit every privileged invocation
 - Secret scan source/history/build output
 
 ### Reviewer Blindness
@@ -186,6 +188,48 @@ Controls:
 - Triage reachable high/critical advisories
 - Secret scan before merge/demo
 
+### Privacy Lifecycle
+
+Threat:
+
+- Indefinite append-only retention
+- Soft deletion that preserves payloads
+- Logs/backups/exports outliving primary records
+- Hold used to expand access or purpose
+- Exact replay claimed after inputs are gone
+
+Controls:
+
+- Field-purpose-retention registry
+- Virtual-clock synthetic retention policies
+- Content-free disposition receipts
+- Restore-time deletion-ledger replay
+- Hold expiry/review without expanded access
+- `hash_verifiable_only` after input disposition
+
+Tests:
+
+- Expiry and deletion idempotency
+- Backup restore before access
+- Forbidden canary values absent from logs
+- Hold pauses deletion but not RLS
+
+### Synthetic-Data Provenance
+
+Threat:
+
+- Real or lightly modified child data mislabeled synthetic
+- Generated data memorizes/reproduces source records
+- Fixture media contains identifiers or metadata
+
+Controls:
+
+- Born-synthetic fixtures independent of real records
+- Provenance/license/checksum manifest
+- No upload endpoint or external model prompt
+- Database/startup assertion rejects non-synthetic configuration
+- Treat future real-data-trained synthesis as separate privacy-reviewed research
+
 ## Minimum Security Gate
 
 1. Direct API role/table denial tests pass.
@@ -198,3 +242,5 @@ Controls:
 8. Injection payloads remain inert.
 9. Clean locked dependency install passes.
 10. Demo clearly states local/synthetic/non-production.
+11. Field registry, expiry, deletion, backup, and log-canary tests pass.
+12. Fixture provenance proves no real child-derived inputs.

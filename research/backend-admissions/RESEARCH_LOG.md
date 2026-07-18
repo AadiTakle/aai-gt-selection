@@ -208,6 +208,23 @@
 - Downgraded H9 and PRD-001 status to reflect unresolved appeal, allocation, and
   causal-claim contradictions.
 
+### Iteration 14 — 2026-07-18
+
+- Verified the current April 22, 2026 COPPA amended-rule compliance context and
+  conditional FERPA, PPRA, and Texas applicability boundaries.
+- Researched NIST privacy engineering, deidentification, differential privacy,
+  sanitization, LINDDUN, and privacy-design strategies.
+- Added peer-reviewed evidence that real-data-trained synthetic datasets can
+  leak membership, outliers, or copied records.
+- Established born-synthetic fixtures independent of real child records as the
+  prototype boundary.
+- Added field-purpose-retention registry, typed privacy-safe audit, synthetic
+  choice sentinel, lifecycle/disposition, hold, backup, and purge contracts.
+- Restricted Supabase `service_role` to local seed/reset rather than ordinary
+  runtime use.
+- Corrected GT versus Alpha monitoring and retention policy attribution.
+- Added privacy/retention/service-role/fixture-provenance acceptance fixtures.
+
 ## Implementation Transition
 
 The broad research clusters are covered. Next actions:

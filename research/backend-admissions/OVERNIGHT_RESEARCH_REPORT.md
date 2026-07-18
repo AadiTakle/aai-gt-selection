@@ -644,7 +644,16 @@ GT-specific provider, accreditation, tuition, aid-offset, testing, and disabilit
 
 ## Public Privacy Gap
 
-GT/Alpha policies disclose extensive child activity, screen, audio/video, behavioral, location, and learning-app data. Publicly unavailable items include a complete subprocessor list, detailed retention schedule, public security audit, DPA, SOC 2 report, and breach SLA.
+GT's April 2026 policy describes extensive screen, audio/video, location, and
+learning-app data. Alpha's separate August 2025 policy includes additional
+eye-contact/body-language, RFID/Bluetooth, and possible biometric processing;
+those claims must not be attributed to GT without confirmation.
+
+GT states purpose-based retention but no category-specific durations. Alpha
+states a general graduation/disenrollment plus 4–5-year period for much of its
+data. Neither reviewed public page supplies a complete category-by-category
+schedule. A complete posted subprocessor list, public security audit, detailed
+DPA, SOC 2 report, and breach SLA were not found.
 
 The synthetic-only boundary remains necessary.
 
@@ -729,3 +738,25 @@ and claim boundary. Objective comprehension and error detection matter more
 than trust or acceptance.
 
 See `EXPLANATION_AND_CONTESTABILITY.md`.
+
+## Child Data Privacy and Retention
+
+The prototype must use born-synthetic fixtures independent of all real child
+records. Synthetic data derived from real records can expose membership,
+outliers, or memorized records; the label “synthetic” is not anonymization.
+
+Implement:
+
+- field-purpose-retention registry;
+- typed privacy-safe audit;
+- virtual-clock lifecycle/disposition tests;
+- content-free deletion receipts;
+- backup restore with deletion-ledger replay;
+- synthetic choice sentinel for consent-firewall testing only;
+- service role restricted to seed/reset; and
+- end-of-demo purge.
+
+Do not claim legally effective consent, production retention compliance, or
+exact replay after decision inputs have been disposed.
+
+See `CHILD_DATA_PRIVACY_AND_RETENTION.md`.

@@ -163,14 +163,20 @@ These are future protocols and design constraints.
   and 1.54× reading, not the 2.6× headline, and has no counterfactual.
 - TEFA's standard 2026–27 award is $10,474, with up to $30,000 under the
   disability formula; GT participation and aid interaction remain unknown.
-- Public privacy materials disclose extensive child monitoring, while a
-  complete subprocessor list, retention schedule, public security audit, DPA,
+- GT's policy describes extensive screen/audio/video/location/app monitoring;
+  Alpha's separate policy includes additional behavioral, RFID/Bluetooth, and
+  possible biometric processing.
+- GT states purpose-based retention without category-specific durations; Alpha
+  states a general graduation/disenrollment plus 4–5-year period. No complete
+  category-by-category schedule was found.
+- A complete posted subprocessor list, public security audit, detailed DPA,
   SOC 2 report, and breach SLA were not found.
 
 ## Implementation Artifacts
 
 - `ACCESSIBILITY_AND_MEASUREMENT_FAIRNESS.md`
 - `BACKEND_IMPLEMENTATION_BACKLOG.md`
+- `CHILD_DATA_PRIVACY_AND_RETENTION.md`
 - `EXPLANATION_AND_CONTESTABILITY.md`
 - `MVP_DATA_CONTRACT.md`
 - `SYNTHETIC_FIXTURE_MATRIX.md`
@@ -204,3 +210,10 @@ Implement now:
 Specify but disable substantive rubric appeal until the PRD/feature-map scope,
 authority, staffing, deadlines, and standard of review are decided. Do not offer
 feature-changing “how to qualify” advice.
+
+## Privacy Lifecycle Boundary
+
+Use born-synthetic fixtures only—never real or lightly modified child records.
+Restrict Supabase `service_role` to local seed/reset, add typed purpose/retention
+metadata, and verify end-of-demo purge. The synthetic choice sentinel tests
+noninterference; it is not legally effective consent management.

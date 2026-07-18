@@ -20,6 +20,31 @@ Pending =
 DecisionKind = track_a_eligibility | track_b_invitation | track_b_eligibility
 ```
 
+## Field Registry
+
+```text
+field_registry(
+  field_id,
+  schema_name,
+  object_name,
+  field_name,
+  purpose_code,
+  data_class,
+  synthetic_only,
+  decision_use,
+  export_rule,
+  correction_rule,
+  retention_policy_id,
+  prohibited_uses,
+  owner_role,
+  lineage_ref,
+  registry_version
+)
+```
+
+Every stored field requires a registry entry. `synthetic_only=true` is mandatory
+for this MVP.
+
 ## Application
 
 ```text
@@ -360,6 +385,83 @@ Applied correction requires a successor version and new decision run when
 decision-used input changes. A prohibited/private-field correction changes no
 decision result, ordered reason, or input hash.
 
+## Synthetic Choice Firewall
+
+```text
+synthetic_choice_event(
+  choice_event_id,
+  application_id,
+  purpose_code,
+  event_type,
+  notice_version,
+  occurred_at,
+  previous_event_id
+)
+```
+
+This sentinel exists only to prove that grant, refusal, and withdrawal alter
+zero admissions inputs/results. It is not legally effective consent management
+and cannot authorize evaluation processing.
+
+## Retention and Disposition
+
+```text
+retention_policy(
+  policy_id,
+  record_type,
+  purpose_code,
+  trigger_event,
+  duration_code,
+  disposition_action,
+  backup_expiry_code,
+  tombstone_policy_id,
+  owner_role,
+  approver_role,
+  synthetic_only,
+  version
+)
+
+retention_state(
+  record_type,
+  record_id,
+  policy_id,
+  state,
+  due_at,
+  transitioned_at
+)
+
+retention_hold(
+  hold_id,
+  synthetic_only,
+  scope_type,
+  scope_selector,
+  authority_reference,
+  reason_code,
+  requested_by,
+  approved_by,
+  starts_at,
+  review_at,
+  ends_at,
+  state
+)
+
+disposition_receipt(
+  disposition_id,
+  record_type,
+  policy_version,
+  result_code,
+  actor_role,
+  started_at,
+  completed_at,
+  backup_status
+)
+```
+
+Synthetic duration codes use a virtual clock and cannot be promoted to
+production. Disposition receipts contain no subject ID, payload hash, evidence,
+or decision reason. Decisions whose inputs were disposed become
+`hash_verifiable_only`.
+
 ## Audit
 
 ```text
@@ -372,16 +474,21 @@ audit_event(
   actor_id,
   actor_role,
   purpose,
+  object_class,
+  operation_result,
   occurred_at,
   recorded_at,
-  payload,
+  policy_version,
   previous_hash,
   event_hash,
-  correlation_id
+  correlation_id,
+  causation_id
 )
 ```
 
 No application role receives update/delete permission.
+Narratives, scores, contact/access rationales, consent text, tokens, signed URLs,
+secrets, and query strings are prohibited from audit records.
 
 ## API Boundaries
 
@@ -399,7 +506,7 @@ Forced RLS on exposed tables. No client service key.
 
 - Finance/aid
 - Seat allocation/lottery/waitlist
-- Research consent
+- Legally effective consent management and evaluation processing
 - Real identity/contact/accessibility records
 - Outcomes/evaluation
 - Evaluator exports

@@ -15,8 +15,8 @@
     "semantic_hash": "6b2d45b0b93a7ae725adedfd514aa569"
   },
   "docs/ASSUMPTIONS_AND_EVIDENCE.md": {
-    "mtime": 1784375959.5382936,
-    "ast_hash": "d0e8a1fb085bcd468aeb1c241c07b506",
+    "mtime": 1784377777.7507045,
+    "ast_hash": "98fb313d75b4d03085556fcaaf0d13fc",
     "semantic_hash": ""
   },
   "docs/COGAT_GAPS_AND_TEST_SUITE_REPORT.md": {
@@ -65,8 +65,8 @@
     "semantic_hash": "65bb07c98c2665536934fad8b7a5bb4d"
   },
   "docs/TRACEABILITY_MATRIX.md": {
-    "mtime": 1784375984.396443,
-    "ast_hash": "99ee7610f3f916c94b0bbe9525e2c9f4",
+    "mtime": 1784377781.6559567,
+    "ast_hash": "46077d6ddd4d5827c09811834743bd43",
     "semantic_hash": ""
   },
   "docs/USER_STORIES.md": {
@@ -105,13 +105,13 @@
     "semantic_hash": ""
   },
   "research/backend-admissions/OVERNIGHT_RESEARCH_REPORT.md": {
-    "mtime": 1784376044.8596396,
-    "ast_hash": "e08d11cf2d972fe5e8d7f1c21371bd17",
+    "mtime": 1784377745.170652,
+    "ast_hash": "ec1c3cb8931813a76f6be09aafae66ee",
     "semantic_hash": ""
   },
   "research/backend-admissions/RESEARCH_LOG.md": {
-    "mtime": 1784376056.551168,
-    "ast_hash": "2653706837ff81022292f45536ae49ea",
+    "mtime": 1784377786.8055198,
+    "ast_hash": "180c1d30cf3b4b1abdcc13f492e0bafa",
     "semantic_hash": ""
   },
   "research/backend-admissions/SIMULATION_SPECIFICATION.md": {
@@ -130,8 +130,8 @@
     "semantic_hash": ""
   },
   "research/backend-admissions/ANNOTATED_SOURCE_REGISTER.md": {
-    "mtime": 1784376028.38211,
-    "ast_hash": "98be7bb2936b542aa6ed8f097bf2a8e8",
+    "mtime": 1784377765.7072546,
+    "ast_hash": "d0f0da035801e32a4875b162c37492cf",
     "semantic_hash": ""
   },
   "research/backend-admissions/REVIEWER_AND_FAIRNESS_VALIDATION.md": {
@@ -155,8 +155,8 @@
     "semantic_hash": ""
   },
   "research/backend-admissions/BACKEND_DATA_MODEL.md": {
-    "mtime": 1784375889.2311492,
-    "ast_hash": "7bdcd5896af8bb35a1e74406e7b5961d",
+    "mtime": 1784377715.989314,
+    "ast_hash": "b51556eba7fa44c2f3ac4b3ca1df829d",
     "semantic_hash": ""
   },
   "research/backend-admissions/EVALUATOR_EXPORT_SPEC.md": {
@@ -185,8 +185,8 @@
     "semantic_hash": ""
   },
   "research/backend-admissions/MORNING_HANDOFF.md": {
-    "mtime": 1784376117.0462568,
-    "ast_hash": "be796fbe5d08ca288f12760943c70774",
+    "mtime": 1784377752.1909811,
+    "ast_hash": "7ecba37c7f60661cffd3ed576c241680",
     "semantic_hash": ""
   },
   "research/backend-admissions/RESEARCH_AUDIT_CORRECTIONS.md": {
@@ -195,28 +195,28 @@
     "semantic_hash": ""
   },
   "research/backend-admissions/GT_PUBLIC_FACTS_DOSSIER.md": {
-    "mtime": 1784370563.02916,
-    "ast_hash": "dec7f9e10f89c15fb8b3dbbf82327e5b",
+    "mtime": 1784377738.6865683,
+    "ast_hash": "11b30df219399633024d9aab99286e9f",
     "semantic_hash": ""
   },
   "research/backend-admissions/BACKEND_IMPLEMENTATION_BACKLOG.md": {
-    "mtime": 1784376142.2421625,
-    "ast_hash": "5753609fbdbd7d33f8deba2cbb81b8b6",
+    "mtime": 1784377807.0679626,
+    "ast_hash": "3535fcf03fd64434205501aafc76a86e",
     "semantic_hash": ""
   },
   "research/backend-admissions/MVP_DATA_CONTRACT.md": {
-    "mtime": 1784375855.636205,
-    "ast_hash": "dd99365562e9b87d3cb59e43cf10afe2",
+    "mtime": 1784377699.4255536,
+    "ast_hash": "428f8298bf987f20b566680c11f02b17",
     "semantic_hash": ""
   },
   "research/backend-admissions/MVP_THREAT_MODEL.md": {
-    "mtime": 1784372197.675478,
-    "ast_hash": "78fdc464ad6c8333265d8d233f75facc",
+    "mtime": 1784377724.5306787,
+    "ast_hash": "e09ed3a32ad2076d414ca613e6a546f6",
     "semantic_hash": ""
   },
   "research/backend-admissions/SYNTHETIC_FIXTURE_MATRIX.md": {
-    "mtime": 1784375933.3898344,
-    "ast_hash": "4fe8ad2ebcf6fe95aedfb3e8cdd76f7d",
+    "mtime": 1784377730.982929,
+    "ast_hash": "21a9d9d84d74b3cac21185fb2486e446",
     "semantic_hash": ""
   },
   "research/backend-admissions/ACCESSIBILITY_AND_MEASUREMENT_FAIRNESS.md": {
@@ -227,6 +227,11 @@
   "research/backend-admissions/EXPLANATION_AND_CONTESTABILITY.md": {
     "mtime": 1784375819.6437933,
     "ast_hash": "a521d97b1e78344415e7e97f6dc13f3d",
+    "semantic_hash": ""
+  },
+  "research/backend-admissions/CHILD_DATA_PRIVACY_AND_RETENTION.md": {
+    "mtime": 1784377685.1429095,
+    "ast_hash": "b6a3507dced93630de8de8c79e603689",
     "semantic_hash": ""
   }
 }

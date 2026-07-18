@@ -899,6 +899,9 @@
 - **Alpha:** https://alpha.school/privacy-policy/
 - **Grade:** C
 - **Use:** Public company representations about child data collection, use, sharing, consent, and retention.
+- **Limit:** GT and Alpha are separate policies. Behavioral/RFID/Bluetooth/
+  biometric and 4–5-year retention statements located in Alpha's policy must not
+  be attributed to GT without confirmation.
 
 ### Texas TEFA
 
@@ -1220,3 +1223,95 @@
 - **Grade:** A
 - **Use:** Strategic adaptation creates social costs and unequal burdens.
 - **Limit:** Formal/modeling context; domain transfer required.
+
+## Child Data Privacy and Synthetic-Data Safety
+
+### FTC COPPA Final Rule Amendments (2025)
+
+- **URL:** https://www.federalregister.gov/documents/2025/04/22/2025-05904/childrens-online-privacy-protection-rule
+- **Grade:** A
+- **Use:** Current under-13 online privacy rule; general compliance deadline was
+  April 22, 2026.
+- **Limit:** Applicability depends on operator, service, child interaction, and
+  collection facts; not legal advice.
+
+### NIST Privacy Framework 1.0
+
+- **DOI:** https://doi.org/10.6028/NIST.CSWP.01162020
+- **Grade:** A
+- **Use:** Purpose/data inventory, lifecycle, vendor, logging, and disassociated
+  processing framework.
+- **Limit:** Voluntary and technology-neutral; not compliance evidence.
+
+### NISTIR 8062 — Privacy Engineering
+
+- **DOI:** https://doi.org/10.6028/NIST.IR.8062
+- **Grade:** A
+- **Use:** Predictability, manageability, disassociability, and problematic-data-
+  action risk analysis.
+
+### NIST SP 800-188 — Deidentification
+
+- **DOI:** https://doi.org/10.6028/NIST.SP.800-188
+- **Grade:** A
+- **Use:** Release models, disclosure risk, review, and reidentification testing.
+- **Limit:** Masking/pseudonymization alone does not establish anonymity.
+
+### NIST SP 800-226 — Differential Privacy
+
+- **DOI:** https://doi.org/10.6028/NIST.SP.800-226
+- **Grade:** A
+- **Use:** Protected unit, adjacency, contribution bounds, parameters,
+  composition, implementation, and utility review.
+- **Limit:** DP does not authorize collection and can harm small-cohort utility.
+
+### NIST SP 800-88 Rev. 2 — Media Sanitization
+
+- **DOI:** https://doi.org/10.6028/NIST.SP.800-88r2
+- **Grade:** A
+- **Use:** Validated media sanitization and cloud logical-deletion guidance.
+- **Limit:** Does not itself solve record, backup, export, or vendor lifecycle.
+
+### Deng et al. (2011) — LINDDUN
+
+- **DOI:** https://doi.org/10.1007/s00766-010-0115-7
+- **Grade:** A
+- **Use:** Privacy-threat analysis over data-flow diagrams.
+
+### Hoepman (2014) — Privacy Design Strategies
+
+- **DOI:** https://doi.org/10.1007/978-3-642-55415-5_38
+- **Grade:** A
+- **Use:** Minimize, hide, separate, aggregate, inform, control, enforce,
+  demonstrate.
+
+### Stadler, Oprisanu, & Troncoso (2022) — Synthetic Data Privacy
+
+- **URL:** https://www.usenix.org/conference/usenixsecurity22/presentation/stadler
+- **Grade:** A
+- **Use:** Empirical membership/linkage/attribute attacks show non-DP synthesis
+  can leave selected outliers vulnerable.
+- **Limit:** Two datasets/selected attacks; passing attacks is not privacy proof.
+
+### Chen et al. (2020) — GAN-Leaks
+
+- **DOI:** https://doi.org/10.1145/3372297.3417238
+- **Grade:** A
+- **Use:** Calibrated membership attacks across access levels and data domains.
+- **Limit:** Generative models, not manually invented fixtures.
+
+### Meehan, Chaudhuri, & Dasgupta (2020) — Data Copying
+
+- **URL:** https://proceedings.mlr.press/v108/meehan20a.html
+- **Grade:** A
+- **Use:** Formalizes generation of training examples/near variants and a
+  three-sample detection test.
+- **Limit:** One test and embedding cannot guarantee privacy.
+
+### Ganev et al. (2022) — DP Synthetic Minority Utility
+
+- **URL:** https://proceedings.mlr.press/v162/ganev22a.html
+- **Grade:** A
+- **Use:** Demonstrates different DP synthesizers distort minority groups and
+  subgroup utility differently.
+- **Limit:** Evaluated algorithms/tasks are not GT.
