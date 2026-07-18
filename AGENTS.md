@@ -33,6 +33,47 @@ These are reference libraries, not approved product direction.
 7. **Update governance:** Maintain traceability, evidence, decision, and exception records when affected.
 8. **Verify:** Report fresh evidence against acceptance criteria before claiming completion.
 
+## Execution modes
+
+Use the lightest process proportional to the task.
+
+### Fast mode (default for planned or small work)
+
+Enter fast mode automatically when an approved plan/spec already fixes the
+approach, or when a task is mechanical, localized, low-risk, and has an obvious
+verification command. The user can also request it explicitly with
+`FAST MODE` or `/fast-mode`.
+
+In fast mode:
+
+- do not re-run brainstorming, planning, Graphify orientation, worktree setup,
+  TDD ceremony, or per-task reviewer subagents solely because a generic skill
+  calls them mandatory;
+- inherit requirements, evidence, scope, and acceptance criteria from the
+  approved plan instead of restating or re-researching them;
+- batch independent reads and commands, edit directly, and avoid routine
+  narration;
+- use targeted checks during implementation and one proportional final
+  verification;
+- use at most one final review for a substantive change; skip review agents for
+  docs, config, formatting, or straightforward 1–3 file changes;
+- make one coherent commit at the end unless the user requests another split.
+
+For small subagent tasks, give the exact files, change, and verification in one
+prompt. Do not make the subagent re-read the full plan, invoke Graphify, create a
+worktree, or spawn a second reviewer.
+
+### Full mode
+
+Use the full planning/TDD/worktree/subagent-review workflow only when the task
+is ambiguous, architectural, security-sensitive, involves database migrations
+or live data, changes causal/statistical logic, spans independent parallel
+workstreams, or when the user explicitly requests a full review.
+
+Fast mode never relaxes correctness, privacy, claim boundaries, or the final
+verification requirement. Escalate to full mode if implementation reveals one
+of those risks.
+
 ## Stop conditions
 
 Stop and ask for direction when:
