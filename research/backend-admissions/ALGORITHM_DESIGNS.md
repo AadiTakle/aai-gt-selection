@@ -286,3 +286,92 @@ Recommended first future models:
 - calibrated benefit scorecard with 3–5 preregistered modifiers.
 
 Flexible forests remain exploratory unless sample size and held-out validation support them.
+
+## K. Reviewer Reliability Algorithm
+
+```text
+INPUT:
+  independent pre-adjudication ratings
+  route, domain, reviewer, case, time, and synthetic audit group
+
+FOR each ordinal dimension and route:
+  compute category distribution
+  exact agreement
+  adjacent agreement
+  linear-weighted kappa
+  Gwet AC2
+  ordinal alpha when ratings are missing/variable
+  case-bootstrap 95% intervals
+
+FOR final three-class decision:
+  compute confusion matrix
+  exact and class-specific agreement
+  Gwet AC1
+  unweighted kappa
+  third-review rate
+
+FIT diagnostics:
+  reviewer severity adjusted for case mix
+  reviewer × route
+  reviewer × domain
+  reviewer × time
+  reviewer × accessibility/language context
+
+DO NOT:
+  use adjudicated outcomes as reliability data
+  treat agreement as validity
+  combine dimensions into one latent giftedness score
+```
+
+## L. Fairness Audit Algorithm
+
+```text
+BEFORE valid outcomes:
+  report stage counts and denominators
+  selection-rate difference and ratio
+  completion, missing, pending, correction, appeal
+  accommodation fulfillment and burden
+  reviewer severity/disagreement
+  Track A and prohibited-field invariance
+  replay accuracy
+
+  label gaps as disparities requiring investigation
+  never label as TPR/FPR, calibration, or equal opportunity
+
+AFTER an independent common outcome exists:
+  estimate sensitivity/FNR and specificity/FPR
+  predictive parity and NPV
+  calibration/differential prediction
+  equalized odds/equal opportunity
+  simultaneous subgroup intervals
+
+PROTECTED ATTRIBUTES:
+  separate permissioned audit store
+  excluded from eligibility inputs
+  unknown remains unknown
+  no proxy inference for individual decisions
+```
+
+## M. Pending/Abstention State Machine
+
+```text
+IF evidence invalid, inaccessible, or materially incomplete:
+  pending_evidence_correction
+ELSE IF artifact reviewers disagree:
+  pending_additional_blind_review
+ELSE IF three reviews have no majority:
+  pending_no_majority
+ELSE IF equivalent accessible route unavailable:
+  pending_accessibility_route
+ELSE IF policy has no deterministic answer:
+  pending_policy_configuration
+ELSE:
+  apply majority classification
+
+FOR every pending state:
+  assign reason, owner, deadline, correction/access route
+  preserve input/rule/rating versions
+  prohibit silent timeout to rejection
+```
+
+Do not create confidence probabilities until a prospectively validated predictive model and representative calibration set exist.

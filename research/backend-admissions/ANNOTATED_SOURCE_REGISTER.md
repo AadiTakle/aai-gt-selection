@@ -376,3 +376,100 @@
 - **DOI:** https://doi.org/10.3982/ECTA17125
 - **Grade:** A
 - **Use:** Randomized tie-breakers and local assignment propensities.
+
+## Reviewer Reliability and Rubric Validation
+
+### Cohen (1960, 1968) — Kappa
+
+- **DOI:** https://doi.org/10.1177/001316446002000104
+- **Weighted kappa DOI:** https://doi.org/10.1037/h0026256
+- **Use:** Nominal and ordinal pairwise agreement.
+
+### Gwet (2008) — Agreement Under Prevalence Imbalance
+
+- **DOI:** https://doi.org/10.1348/000711006X126600
+- **Use:** AC1/AC2 as complements when kappa is prevalence-sensitive.
+
+### Krippendorff (2004) — Alpha
+
+- **DOI:** https://doi.org/10.1093/hcr/30.3.411
+- **Use:** Agreement with missing ratings or variable reviewer counts.
+
+### Brennan (2001) — Generalizability Theory
+
+- **DOI:** https://doi.org/10.1007/978-1-4757-3456-0
+- **Use:** Rater, task, occasion, and interaction variance.
+
+### Myford & Wolfe (2003) — Rater Effects
+
+- **URL:** https://pubmed.ncbi.nlm.nih.gov/14523257/
+- **Use:** Many-facet Rasch diagnostics for severity, halo, and misfit.
+
+### Mislevy, Steinberg, & Almond (2003) — Evidence-Centered Design
+
+- **DOI:** https://doi.org/10.1207/S15366359MEA0101_02
+- **Use:** Student, evidence, task, scoring, and decision models.
+
+### Kane (2013) — Argument-Based Validation
+
+- **DOI:** https://doi.org/10.1111/jedm.12000
+- **Use:** Use-specific interpretation, warrants, assumptions, and rebuttals.
+
+## Fairness and Contestability
+
+### Hardt, Price, & Srebro (2016) — Equalized Odds
+
+- **URL:** https://proceedings.neurips.cc/paper_files/paper/2016/file/6a9659feb1216f14f7384ba499518b38-Paper.pdf
+- **Use:** Equalized odds and equal opportunity after valid labels exist.
+
+### Kleinberg, Mullainathan, & Raghavan (2017) — Fairness Trade-offs
+
+- **DOI:** https://doi.org/10.4230/LIPIcs.ITCS.2017.43
+- **Use:** Incompatibility among calibration and error-rate criteria.
+
+### Chouldechova (2017) — Calibration and Error Balance
+
+- **DOI:** https://doi.org/10.1089/big.2016.0047
+- **Use:** Predictive-parity/error-rate trade-offs.
+
+### Cherian & Candès (2024) — Fairness Auditing Inference
+
+- **URL:** https://www.jmlr.org/papers/v25/23-0739.html
+- **Use:** Simultaneous statistical inference across subgroup audits.
+
+### Jacobs & Wallach (2021) — Measurement and Fairness
+
+- **DOI:** https://doi.org/10.1145/3442188.3445901
+- **Use:** Construct validity as a prerequisite for fairness claims.
+
+### Kuncel et al. (2013) — Mechanical Combination
+
+- **DOI:** https://doi.org/10.1037/a0034156
+- **Use:** Mechanical combination generally outperforms freeform holistic judgment.
+
+### Rudin (2019) — Interpretable High-Stakes Models
+
+- **DOI:** https://doi.org/10.1038/s42256-019-0048-x
+- **Use:** Prefer intrinsically interpretable models over post-hoc explanation in high-stakes settings.
+
+## Uncertainty and Abstention
+
+### Chow (1970) — Reject Option
+
+- **DOI:** https://doi.org/10.1109/TIT.1970.1054406
+- **Use:** Decision-theoretic abstention when error and deferral costs are known.
+
+### Bartlett & Wegkamp (2008) — Classification with Reject Option
+
+- **URL:** https://www.jmlr.org/papers/v9/bartlett08a.html
+- **Use:** Consistent reject-option learning under valid labels.
+
+### Bates et al. (2021) — Risk-Controlling Prediction Sets
+
+- **DOI:** https://doi.org/10.1145/3478535
+- **Use:** Finite-sample risk control with representative calibration data.
+
+### Mozannar & Sontag (2020) — Learning to Defer
+
+- **URL:** https://proceedings.mlr.press/v119/mozannar20b.html
+- **Use:** Model/expert routing after expert behavior and ground truth exist.

@@ -254,6 +254,69 @@ The simulation specification now includes:
 
 The central synthetic demonstration is that Track A-versus-Track B outcome gaps can be nonzero when the true program effect is exactly zero.
 
+## Reviewer and Rubric Validation
+
+Use a layered reliability report:
+
+- ordinal dimensions: exact/adjacent agreement, linear-weighted kappa, Gwet AC2, and ordinal alpha when needed;
+- final three-class decisions: confusion matrix, exact/class-specific agreement, AC1, and unweighted kappa;
+- artifact reliability: first two reviewers only;
+- narrative reliability: all three reviewers;
+- third-review frequency and decision changes reported separately.
+
+Planning targets:
+
+- 30–50 difficult synthetic cases for rubric development;
+- 100 cases for a minimum pilot;
+- approximately 200 balanced cases for plausible route-level validation;
+- 300+ for rare pending/subgroup analyses; and
+- 30–100 linked ratings per reviewer for severity and drift.
+
+Reliability is not validity. Validation must also address content, response process, route equivalence, standard setting, criterion validity, incremental value, subgroup prediction, and consequences.
+
+## Fairness Findings
+
+Before independent valid outcomes, report:
+
+- funnel-stage selection and completion;
+- accommodation, missing, pending, correction, and appeal;
+- reviewer severity and disagreement;
+- burden;
+- prohibited-field invariance; and
+- replay/implementation consistency.
+
+Equalized odds, equal opportunity, predictive parity, calibration, and true error rates require a valid outcome observed across selected and comparison applicants. Admission and reviewer majority are not ground truth.
+
+Protected traits belong in a separate permissioned audit dataset, not eligibility logic.
+
+## Uncertainty and Pending
+
+Keep separate:
+
+- CogAT measurement uncertainty;
+- reviewer/evidence uncertainty;
+- predictive uncertainty;
+- causal-benefit uncertainty; and
+- operational/policy uncertainty.
+
+The synthetic prototype should use explicit pending reason codes and no automated confidence probability. Pending must have an owner, deadline, correction/access route, and no silent conversion to rejection.
+
+## Interpretable Model Ladder
+
+Current recommendation: deterministic rule plus independent reviewer majority.
+
+Future shadow challengers:
+
+1. Regularized logistic/ordinal model
+2. Sparse integer scorecard
+3. Short optimal rule list
+4. Depth-2/3 optimal tree
+5. Monotonic GAM/EBM/lattice
+6. Black-box model as a performance ceiling
+7. After identified treatment data: shallow DR policy tree or calibrated benefit scorecard
+
+A challenger must beat the deterministic baseline on untouched data by a meaningful margin while passing calibration, subgroup harm, stability, monotonicity, contestability, and rollback gates.
+
 ## Deliverables Under Construction
 
 - Source-graded paper deep dives

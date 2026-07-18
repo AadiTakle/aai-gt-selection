@@ -1,16 +1,16 @@
 # Graph Report - gt-selection-capstone  (2026-07-18)
 
 ## Corpus Check
-- 25 files · ~56,760 words
+- 26 files · ~58,978 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 242 nodes · 230 edges · 28 communities (18 shown, 10 thin omitted)
-- Extraction: 93% EXTRACTED · 5% INFERRED · 2% AMBIGUOUS · INFERRED: 12 edges (avg confidence: 0.89)
+- 274 nodes · 261 edges · 28 communities (18 shown, 10 thin omitted)
+- Extraction: 94% EXTRACTED · 5% INFERRED · 2% AMBIGUOUS · INFERRED: 12 edges (avg confidence: 0.89)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `418f8b46`
+- Built from commit: `a9d120d7`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -45,28 +45,28 @@
 - Overnight Backend and Admissions Research Log
 
 ## God Nodes (most connected - your core abstractions)
-1. `Separating Selection Effect from Program Effect` - 18 edges
-2. `Synthetic Simulation Specification` - 15 edges
-3. `Backend and Admissions Algorithm Designs` - 12 edges
+1. `Separating Selection Effect from Program Effect` - 22 edges
+2. `Backend and Admissions Algorithm Designs` - 15 edges
+3. `Synthetic Simulation Specification` - 15 edges
 4. `Paper Deep Dive 2` - 10 edges
-5. `Paper Deep Dive 1` - 9 edges
-6. `R2 Credible Counterfactual` - 9 edges
-7. `Assignment Designs` - 6 edges
-8. `R9 Protect Students and Families` - 6 edges
-9. `D-008 Track B Talent Evidence Snapshot Prototype` - 6 edges
-10. `Core Statistical Estimands` - 5 edges
+5. `Reviewer, Rubric, and Fairness Validation` - 9 edges
+6. `3. Rubric Validation Stages` - 9 edges
+7. `Paper Deep Dive 1` - 9 edges
+8. `R2 Credible Counterfactual` - 9 edges
+9. `Assignment Designs` - 6 edges
+10. `R9 Protect Students and Families` - 6 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Project Stop Conditions` --semantically_similar_to--> `Automatic Rejection Conditions`  [INFERRED] [semantically similar]
   AGENTS.md → docs/DEVELOPMENT_RUBRIC.md
-- `Alpha 2.6x MAP Growth Claim Under Test` --conceptually_related_to--> `Program Effect`  [AMBIGUOUS]
-  gt-school-counterfactual-brainlift/brainlift-gt-school-counterfactual.md → PROJECT_CHARTER.md
-- `Lottery ITT and LATE Identification` --semantically_similar_to--> `H3 Address Unobserved Selection`  [INFERRED] [semantically similar]
-  gt-school-counterfactual-brainlift/brainlift-gt-school-counterfactual.md → docs/project-requirements.md
 - `Track A vs Track B Difference as Program Effect Claim` --conceptually_related_to--> `Program Effect`  [AMBIGUOUS]
   docs/GT_ADMISSIONS_APPLICATION_MVP_PRD.md → PROJECT_CHARTER.md
-- `Elite Illusion Null-at-the-Margin Evidence` --cites--> `Selection Effect`  [EXTRACTED]
+- `Lottery ITT and LATE Identification` --semantically_similar_to--> `H3 Address Unobserved Selection`  [INFERRED] [semantically similar]
+  gt-school-counterfactual-brainlift/brainlift-gt-school-counterfactual.md → docs/project-requirements.md
+- `Alpha 2.6x MAP Growth Claim Under Test` --conceptually_related_to--> `Program Effect`  [AMBIGUOUS]
   gt-school-counterfactual-brainlift/brainlift-gt-school-counterfactual.md → PROJECT_CHARTER.md
+- `R2 Credible Counterfactual` --implements--> `Credible Counterfactual`  [EXTRACTED]
+  docs/project-requirements.md → PROJECT_CHARTER.md
 
 ## Import Cycles
 - None detected.
@@ -79,32 +79,32 @@
 ## Communities (28 total, 10 thin omitted)
 
 ### Community 0 - "Causal Attribution and Governance"
-Cohesion: 0.16
-Nodes (14): Canonical Document Precedence, E-001 Public GT Reporting Lacks Credible Comparison, Methodologist Critic Lens, D-001 Canonical Project Governance, Seat Allocation and Evaluation Out of Scope, Track A vs Track B Difference as Program Effect Claim, R10 Conclusion Boundaries, R2 Credible Counterfactual (+6 more)
+Cohesion: 0.08
+Nodes (23): 1. Reviewer Reliability Package, 2. Reviewer Severity and Drift, 3. Rubric Validation Stages, 4. Fairness Metrics, 5. Pending and Abstention Logic, 6. Transparent Challenger Ladder, 7. Core Sources, Defensible before valid outcomes (+15 more)
 
 ### Community 1 - "Selection Requirements and Rights"
 Cohesion: 0.12
 Nodes (18): Mandatory Contributor Workflow, E-006 Ability and Achievement Remain Predictive, Decision Rule Matters More Than Extra Test, Concept A Selection-First, Concept B Evaluation-First, Concept C Integrated Selection and Evaluation, Applicant and Family Critic Lens, D-002 Solution-Agnostic Requirements (+10 more)
 
 ### Community 2 - "Evaluation Design and Measurement"
-Cohesion: 0.18
-Nodes (12): E-009 Random Assignment Balances Unobserved Traits, E-012 High-Ceiling Outcome Availability Assumption, Impact and Measurement Metrics, H3 Address Unobserved Selection, R3 Prospective Causal Question, R6 Growth Without Gifted Ceiling, Deferred R2 R3 R6 Evaluation Work, BrainLift PDF Export (+4 more)
+Cohesion: 0.12
+Nodes (19): E-001 Public GT Reporting Lacks Credible Comparison, E-009 Random Assignment Balances Unobserved Traits, E-012 High-Ceiling Outcome Availability Assumption, Methodologist Critic Lens, Seat Allocation and Evaluation Out of Scope, Track A vs Track B Difference as Program Effect Claim, Impact and Measurement Metrics, H3 Address Unobserved Selection (+11 more)
 
 ### Community 3 - "Track B Snapshot Review"
 Cohesion: 0.10
 Nodes (22): E-002 Unconfirmed CogAT Threshold Near 90th Percentile, E-005 Single Cognitive Screen False Negatives, E-008 Spatial Ability Adds Distinct Information, E-019 Nominations Are Limited Complementary Evidence, E-020 Teacher Effects in Ratings, E-021 Unstructured Recommendations Encode Advantage, D-005 No Ratified Concept, D-008 Track B Talent Evidence Snapshot Prototype (+14 more)
 
 ### Community 4 - "Evidence Quality and Screening"
-Cohesion: 0.12
-Nodes (17): E-003 Financial Resources Shape Access, E-004 Alpha 2.6x MAP Growth Company Claim, E-007 Grit and Mindset Weak Standalone Signals, E-018 Nonverbal Substitution Does Not Remove Bias, Prohibited Eligibility Inputs, Access and Fairness Metrics, H2 Capability Separated from Family Advantage, H4 Expand Candidate-Pool Access (+9 more)
+Cohesion: 0.09
+Nodes (24): Canonical Document Precedence, E-003 Financial Resources Shape Access, E-004 Alpha 2.6x MAP Growth Company Claim, E-007 Grit and Mindset Weak Standalone Signals, E-018 Nonverbal Substitution Does Not Remove Bias, D-001 Canonical Project Governance, Prohibited Eligibility Inputs, Access and Fairness Metrics (+16 more)
 
 ### Community 5 - "Audit and Local Validation"
 Cohesion: 0.20
 Nodes (10): E-011 Independent Evaluation Permission Assumption, E-017 WJ V and WISC-V Targeted Pathway, E-023 Structured Review Beats Freeform Holism, Prospective Local Psychometric Validation, Reusable Adversarial Tests, Versioned Decision Audit and Replay, Freeform Holistic Review Failure, Selection Reliability Metrics (+2 more)
 
 ### Community 6 - "Prohibited Inputs and Equity"
-Cohesion: 0.07
-Nodes (26): Advanced STEM Readiness Outcome, Algorithmic Guardrails, Backend and Admissions Research Report, Backend Research Direction, Benefit-Targeting Effect, Core Statistical Estimands, Deliverables Under Construction, Differentiated instruction can produce program effects (+18 more)
+Cohesion: 0.06
+Nodes (30): Advanced STEM Readiness Outcome, Algorithmic Guardrails, Backend and Admissions Research Report, Backend Research Direction, Benefit-Targeting Effect, Core Statistical Estimands, Deliverables Under Construction, Differentiated instruction can produce program effects (+22 more)
 
 ### Community 7 - "Four-Week Roadmap"
 Cohesion: 0.29
@@ -143,12 +143,12 @@ Cohesion: 0.67
 Nodes (3): Privacy Correction Appeal and Re-entry Stories, F10 Consent Privacy and Research Separation, F9 Explainable Decision and Remedy Lifecycle
 
 ### Community 26 - "Backend and Admissions Algorithm Designs"
-Cohesion: 0.15
-Nodes (12): A. Track A Audit, B. Track B Invitation, Backend and Admissions Algorithm Designs, C. Track B Snapshot Eligibility, D. Future Randomized-Offer Evaluation, E. Future Regression-Discontinuity Evaluation, F. Candidate-Selection Modeling Rules, G. Synthetic Simulation Plan (+4 more)
+Cohesion: 0.12
+Nodes (15): A. Track A Audit, B. Track B Invitation, Backend and Admissions Algorithm Designs, C. Track B Snapshot Eligibility, D. Future Randomized-Offer Evaluation, E. Future Regression-Discontinuity Evaluation, F. Candidate-Selection Modeling Rules, G. Synthetic Simulation Plan (+7 more)
 
 ### Community 27 - "Overnight Backend and Admissions Research Log"
-Cohesion: 0.22
-Nodes (8): Iteration 0 — 2026-07-18, Iteration 1 — 2026-07-18, Iteration 2 — 2026-07-18, Iteration Log, Next Research Clusters, Overnight Backend and Admissions Research Log, Research Standards, Scope
+Cohesion: 0.20
+Nodes (9): Iteration 0 — 2026-07-18, Iteration 1 — 2026-07-18, Iteration 2 — 2026-07-18, Iteration 3 — 2026-07-18, Iteration Log, Next Research Clusters, Overnight Backend and Admissions Research Log, Research Standards (+1 more)
 
 ## Ambiguous Edges - Review These
 - `Program Effect` → `Track A vs Track B Difference as Program Effect Claim`  [AMBIGUOUS]
@@ -161,7 +161,7 @@ Nodes (8): Iteration 0 — 2026-07-18, Iteration 1 — 2026-07-18, Iteration 2 �
   docs/GT_ADMISSIONS_APPLICATION_MVP_PRD.md · relation: conceptually_related_to
 
 ## Knowledge Gaps
-- **153 isolated node(s):** `Week`, `Task`, `tasks`, `weeks`, `views` (+148 more)
+- **180 isolated node(s):** `Week`, `Task`, `tasks`, `weeks`, `views` (+175 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **10 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -176,9 +176,9 @@ _Questions this graph is uniquely positioned to answer:_
   _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._
 - **What is the exact relationship between `R10 Conclusion Boundaries` and `Track A vs Track B Difference as Program Effect Claim`?**
   _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._
-- **Why does `R2 Credible Counterfactual` connect `Causal Attribution and Governance` to `Selection Requirements and Rights`, `Evaluation Design and Measurement`?**
-  _High betweenness centrality (0.072) - this node is a cross-community bridge._
-- **Why does `Required Hard Gates` connect `Selection Requirements and Rights` to `Causal Attribution and Governance`?**
-  _High betweenness centrality (0.058) - this node is a cross-community bridge._
+- **Why does `R2 Credible Counterfactual` connect `Evaluation Design and Measurement` to `Selection Requirements and Rights`, `Evidence Quality and Screening`?**
+  _High betweenness centrality (0.056) - this node is a cross-community bridge._
+- **Why does `Required Hard Gates` connect `Selection Requirements and Rights` to `Evaluation Design and Measurement`?**
+  _High betweenness centrality (0.045) - this node is a cross-community bridge._
 - **Why does `D-008 Track B Talent Evidence Snapshot Prototype` connect `Track B Snapshot Review` to `Selection Requirements and Rights`?**
-  _High betweenness centrality (0.048) - this node is a cross-community bridge._
+  _High betweenness centrality (0.037) - this node is a cross-community bridge._

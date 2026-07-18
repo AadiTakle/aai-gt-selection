@@ -59,6 +59,19 @@
 - Added a full synthetic simulation specification with 21 scenarios, oracle outcomes, reviewer models, causal estimators, and expected failure demonstrations.
 - Added 15+ methods sources on selective labels, HTE calibration, complex/multivalued RD, and discrete scores.
 
+### Iteration 3 — 2026-07-18
+
+- Added reviewer reliability design:
+  - weighted kappa, AC1/AC2, ordinal alpha, class-specific agreement, G-theory, MFRM, severity, and drift;
+  - route-specific and pre-adjudication reporting;
+  - staged sample planning from 30–50 development cases to 200+ validation cases.
+- Added seven-stage rubric validation protocol covering content, response process, standard setting, rater/task structure, shadow validity, subgroup evidence, and consequences.
+- Added fairness taxonomy separating outcome-free process audits from outcome-dependent error/calibration metrics.
+- Added explicit fairness-impossibility and protected-trait audit boundaries.
+- Added three-way pending/abstention state machine and separated test, reviewer, predictive, causal, and operational uncertainty.
+- Added interpretable challenger ladder and strict promotion gates for any future model.
+- Added 20+ sources on agreement, validation, fairness, contestability, interpretable models, and abstention.
+
 ## Next Research Clusters
 
 1. Randomized/lottery and regression-discontinuity identification in selective education.
