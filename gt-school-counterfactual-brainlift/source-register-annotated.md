@@ -359,7 +359,7 @@ Sources that are in the brainlift or research but must **not** be treated as ind
 
 ## Section 9 — Deep-research additions (design, intervention evidence, motivation measurement)
 
-*Added from a fan-out/adversarial-verification research pass (105 agents; 23 confirmed claims, 2 refuted, 1 empty angle). These fill the two thinnest parts of the brainlift: how to build the counterfactual, and the intervention's own evidence base. Not yet folded into the brainlift body — pending review.*
+*Added from a fan-out/adversarial-verification research pass (105 agents; 23 confirmed claims, 2 refuted, 1 empty angle). These fill the two thinnest parts of the brainlift: how to build the counterfactual, and the intervention's own evidence base. The confirmed design and intervention findings are now incorporated into the BrainLift body; this section retains the source-level audit trail.*
 
 ### Lottery / waitlist causal designs (the deliverable's backbone)
 
@@ -440,17 +440,17 @@ Sources that are in the brainlift or research but must **not** be treated as ind
 
 ## Section 10 — Program effect net of selection for high-ability students (the SMPY rebuttal)
 
-*The direct answer to "can any study attribute growth to a program rather than to pre-existing ability?" These are the causal (RD) studies that isolate a program effect for high-ability students — the piece SMPY structurally cannot supply. Not yet in the brainlift; proposed as new subcategory 3.7.*
+*The direct answer to "can any study attribute growth to a program rather than to pre-existing ability?" These are the causal (RD) studies that isolate a program effect for high-ability students — the piece SMPY structurally cannot supply. These findings are incorporated in BrainLift subcategory 3.7.*
 
 ### Card, D., & Giuliano, L. (2016) — "Can Tracking Raise the Test Scores of High-Ability Minority Students?" *American Economic Review*, 106(10), 2783–2816
-- **Content:** Rank-based **RD** (n=4,144) on a separate high-achiever classroom entered by *achievement* rank. Full sample +0.29 SD reading / +0.28 math; **Black & Hispanic high-achievers +0.5–0.7 SD** (Black-only +0.65/+0.69); white/advantaged ≈ 0; persists to 6th grade (~0.2σ); no spillovers. Mechanism: differentiated curriculum + higher expectations for underserved high-achievers, not just better peers.
+- **Content:** Rank-based **fuzzy RD** (n=4,144) on a separate high-achiever classroom entered by *achievement* rank. Principal local treatment-on-treated estimates are approximately +0.27 SD combined reading/math, +0.29 reading, and +0.34 math; Black & Hispanic complier effects are approximately +0.4–0.5 SD in additional analyses. Math gains persisted into fifth grade and science outcomes improved. Mechanism: differentiated curriculum + higher expectations for underserved high-achievers, not just better peers.
 - **1 Credibility:** Very High (Card, Nobel laureate). **2:** Large RD sample. **3:** Quantitative. **4:** Independent.
-- **Verdict: Tier A.** **Use:** the single strongest "program raises achievement for high-ability students, net of selection" result — and the effect is concentrated in the *underserved*, directly supporting the motivation/underserved-inversion thesis. Proposed for new 3.7. (District anonymized in the AER text; widely identified as Broward County, FL.)
+- **Verdict: Tier A.** **Use:** the single strongest "program raises achievement for high-ability students, net of selection" result — and the effect is concentrated in the *underserved*, directly supporting the motivation/underserved-inversion thesis. Incorporated in 3.7. (District anonymized in the AER text; widely identified as Broward County, FL.)
 
 ### Booij, A. S., Haan, F., & Plug, E. (2016) — "Enriching Students Pays Off…," IZA DP 9757
 - **Content:** **Fuzzy RD** at a gifted-program aptitude cutoff (N=3,127, selective Dutch school): GPA +0.38 SD math / +0.30 language / +0.44 other; persists into university field choice. Authors: effects "comparable to what Card and Giuliano find for high achievers, but not for gifted students."
 - **1 Credibility:** High (Plug is an established labor economist). **2:** N=3,127, multi-cohort RD. **3:** Quantitative. **4:** Independent. (Working paper, not yet journal-published at the DP stage — verify final publication.)
-- **Verdict: Tier A/B (working paper).** **Use:** second clean causal "gifted program works" result; the differentiated-instruction mechanism. Proposed for 3.7.
+- **Verdict: Tier A/B (working paper).** **Use:** second clean causal "gifted program works" result; the differentiated-instruction mechanism. Incorporated in 3.7.
 
 ### Booij, Haan & Plug (2017) — "Can Gifted and Talented Education Raise the Academic Achievement of All High-Achieving Students?" IZA DP 10836
 - **Content:** DiD + RD across three schools (~2,400 students): ~+0.2 SD GPA near the cutoff, with gains *growing* with distance above the cutoff (inframarginal students benefit more).
