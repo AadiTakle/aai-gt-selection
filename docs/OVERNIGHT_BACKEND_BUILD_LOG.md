@@ -144,3 +144,24 @@ duplicate implementation logic, or rely on snapshots that cannot independently f
   available for pending/internal and still-under-review UI states.
 - Next slice: freeze reviewer abstention/replacement and decision-critical evidence/access pending
   transitions before moving from public contracts into database implementation.
+
+### Cycle 6 — Abstention, replacement, and pending blockers
+
+- **Seam:** non-vote review actions, replacement work, evidence/access blockers, and owned pending
+  items.
+- **Red:** action tests failed before abstention and blocking-issue request/response schemas
+  existed; fixture tests failed before canonical action responses existed; a follow-up test showed
+  slot-3 replacement work could carry the wrong reviewer role.
+- **Green:** added strict abstention reasons, bounded evidence/access issue codes, unified review
+  action envelopes, replacement-assignment transitions, typed pending items with owner/deadline/
+  route, family/internal status projections, deadline consistency, and slot-role preservation.
+- **Regression:** 24 contract tests, 11 fixture tests, and both package typechecks pass.
+- Conflict/competence abstention contains no classification or ratings, does not enter majority
+  aggregation, and creates replacement work for the same case and assignment slot.
+- Missing/materially incomplete/uninterpretable evidence pauses aggregation for family correction.
+  A failed accessibility route pauses aggregation for the access steward; neither becomes a
+  negative classification.
+- Frontend enablement: canonical abstention, evidence-correction, and accessibility-pending
+  response fixtures now cover reviewer, family, and internal pending surfaces.
+- Next slice: freeze `apply_correction` successor request/response contracts, preserving immutable
+  originals and triggering a fresh deterministic rerun without implementing substantive appeal.

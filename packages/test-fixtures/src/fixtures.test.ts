@@ -4,13 +4,17 @@ import {
   recordAssessmentVersionResponseSchema,
   snapshotFixtureReferenceSchema,
   statusProjectionSchema,
+  submitReviewActionResponseSchema,
   submitReviewResponseSchema,
   submitSnapshotVersionResponseSchema,
 } from '@gt-selection/contracts';
 import { describe, expect, it } from 'vitest';
 
 import {
+  accessibilityPendingReviewResponseFixture,
   artifactDisagreementReviewResponseFixture,
+  evidencePendingReviewResponseFixture,
+  reviewAbstentionResponseFixture,
   artifactSnapshotSubmissionResponseFixture,
   narrativeTwoVotesReviewResponseFixture,
   fictionalFixtures,
@@ -78,6 +82,19 @@ describe('fictional fixture boundary', () => {
     expect(narrativeTwoVotesReviewResponseFixture.data.transition.kind).toBe(
       'awaiting_required_reviews',
     );
+  });
+
+  it('provides abstention and pending review action fixtures', () => {
+    expect(submitReviewActionResponseSchema.parse(reviewAbstentionResponseFixture)).toEqual(
+      reviewAbstentionResponseFixture,
+    );
+    expect(submitReviewActionResponseSchema.parse(evidencePendingReviewResponseFixture)).toEqual(
+      evidencePendingReviewResponseFixture,
+    );
+    expect(
+      submitReviewActionResponseSchema.parse(accessibilityPendingReviewResponseFixture),
+    ).toEqual(accessibilityPendingReviewResponseFixture);
+    expect(reviewAbstentionResponseFixture.data.transition.completedVoteCount).toBe(2);
   });
 
   it('keeps every fixture visibly synthetic', () => {

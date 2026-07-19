@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { apiSuccessSchema } from './api-envelope';
 import { trackBEligibilityDecisionSummarySchema } from './decision';
-import { statusProjectionSchema } from './workflow';
+import { pendingItemSchema, statusProjectionSchema } from './workflow';
 
 export const snapshotRouteSchema = z.enum(['artifact', 'narrative']);
 export const reviewerClassificationSchema = z.enum(['qualifies', 'does_not_currently_qualify']);
@@ -470,6 +470,299 @@ export const submitReviewResponseSchema = apiSuccessSchema(
   ]),
 );
 
+export const abstentionReasonSchema = z.enum([
+  'conflict_of_interest',
+  'insufficient_route_competence',
+]);
+
+export const abstainReviewRequestSchema = z
+  .object({
+    assignmentId: z.uuid(),
+    expectedVersion: z.int().nonnegative(),
+    idempotencyKey: z.uuid(),
+    correlationId: z.uuid(),
+    abstentionReason: abstentionReasonSchema,
+  })
+  .strict();
+
+const evidenceBlockingIssueSchema = z
+  .object({
+    kind: z.literal('evidence_correction_required'),
+    reasonCode: z.enum(['missing_provenance', 'materially_incomplete', 'uninterpretable']),
+    syntheticOnly: z.literal(true),
+  })
+  .strict();
+
+const accessibilityBlockingIssueSchema = z
+  .object({
+    kind: z.literal('accessibility_route_required'),
+    reasonCode: z.enum([
+      'route_unavailable',
+      'route_denied',
+      'route_failed',
+      'route_not_provisionally_approved',
+    ]),
+    syntheticOnly: z.literal(true),
+  })
+  .strict();
+
+export const reviewBlockingIssueSchema = z.discriminatedUnion('kind', [
+  evidenceBlockingIssueSchema,
+  accessibilityBlockingIssueSchema,
+]);
+
+export const reportReviewBlockingIssueRequestSchema = z
+  .object({
+    assignmentId: z.uuid(),
+    expectedVersion: z.int().nonnegative(),
+    idempotencyKey: z.uuid(),
+    correlationId: z.uuid(),
+    issue: reviewBlockingIssueSchema,
+  })
+  .strict();
+
+export const submitReviewActionRequestSchema = z.union([
+  submitReviewRequestSchema,
+  abstainReviewRequestSchema,
+  reportReviewBlockingIssueRequestSchema,
+]);
+
+export const reviewAbstentionSchema = z
+  .object({
+    abstentionId: z.uuid(),
+    assignmentId: z.uuid(),
+    reviewCaseId: z.uuid(),
+    reason: abstentionReasonSchema,
+    version: z.int().positive(),
+    locked: z.literal(true),
+    syntheticOnly: z.literal(true),
+  })
+  .strict();
+
+export const replacementAssignmentSchema = z
+  .object({
+    assignmentId: z.uuid(),
+    replacesAssignmentId: z.uuid(),
+    slot: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+    reviewerRole: z.enum(['reviewer', 'supervisor']),
+    status: z.literal('assigned'),
+    blind: z.literal(true),
+    syntheticOnly: z.literal(true),
+  })
+  .strict();
+
+export const replacementAssignmentTransitionSchema = z
+  .object({
+    kind: z.literal('replacement_assignment_created'),
+    reviewCaseId: z.uuid(),
+    route: snapshotRouteSchema,
+    workflowState: z.literal('under_review'),
+    completedVoteCount: z.int().min(0).max(2),
+    requiredVoteCount: z.union([z.literal(2), z.literal(3)]),
+    pendingReason: z.null(),
+    createdAssignment: replacementAssignmentSchema,
+    decision: z.null(),
+    previousVotesExposed: z.literal(false),
+    syntheticOnly: z.literal(true),
+  })
+  .strict()
+  .superRefine(({ route, completedVoteCount, requiredVoteCount, createdAssignment }, context) => {
+    const expectedRequiredCount = route === 'narrative' || createdAssignment.slot === 3 ? 3 : 2;
+    const expectedReviewerRole = createdAssignment.slot === 3 ? 'supervisor' : 'reviewer';
+    if (requiredVoteCount !== expectedRequiredCount || completedVoteCount >= requiredVoteCount) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Replacement work must preserve the route vote requirement.',
+      });
+    }
+    if (createdAssignment.reviewerRole !== expectedReviewerRole) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Replacement work must preserve the assignment slot role.',
+        path: ['createdAssignment', 'reviewerRole'],
+      });
+    }
+  });
+
+const evidencePendingItemSchema = pendingItemSchema.safeExtend({
+  reason: z.literal('pending_evidence_correction'),
+  ownerRole: z.literal('family'),
+  routeCode: z.literal('family_evidence_correction'),
+  state: z.literal('open'),
+});
+
+const accessibilityPendingItemSchema = pendingItemSchema.safeExtend({
+  reason: z.literal('pending_accessibility_route'),
+  ownerRole: z.literal('access_steward'),
+  routeCode: z.literal('internal_accessibility_route'),
+  state: z.literal('open'),
+});
+
+const pendingTransitionBaseFields = {
+  kind: z.literal('pending_review_blocker'),
+  reviewCaseId: z.uuid(),
+  route: snapshotRouteSchema,
+  workflowState: z.literal('pending'),
+  completedVoteCount: z.int().min(0).max(2),
+  requiredVoteCount: z.union([z.literal(2), z.literal(3)]),
+  createdAssignment: z.null(),
+  decision: z.null(),
+  previousVotesExposed: z.literal(false),
+  syntheticOnly: z.literal(true),
+};
+
+const requirePendingRouteCount = (
+  value: { route: SnapshotRoute; completedVoteCount: number; requiredVoteCount: number },
+  context: z.RefinementCtx,
+) => {
+  const expectedRequiredCount = value.route === 'artifact' ? 2 : 3;
+  if (
+    value.requiredVoteCount !== expectedRequiredCount ||
+    value.completedVoteCount >= value.requiredVoteCount
+  ) {
+    context.addIssue({
+      code: 'custom',
+      message: 'Pending work must preserve the incomplete route vote requirement.',
+    });
+  }
+};
+
+const evidencePendingTransitionSchema = z
+  .object({
+    ...pendingTransitionBaseFields,
+    pendingReason: z.literal('pending_evidence_correction'),
+    pendingItem: evidencePendingItemSchema,
+  })
+  .strict()
+  .superRefine(requirePendingRouteCount);
+
+const accessibilityPendingTransitionSchema = z
+  .object({
+    ...pendingTransitionBaseFields,
+    pendingReason: z.literal('pending_accessibility_route'),
+    pendingItem: accessibilityPendingItemSchema,
+  })
+  .strict()
+  .superRefine(requirePendingRouteCount);
+
+export const pendingReviewBlockerTransitionSchema = z.union([
+  evidencePendingTransitionSchema,
+  accessibilityPendingTransitionSchema,
+]);
+
+const abstainReviewResponseDataSchema = z
+  .object({
+    abstention: reviewAbstentionSchema,
+    transition: replacementAssignmentTransitionSchema,
+    status: snapshotUnderReviewStatusSchema,
+  })
+  .strict()
+  .superRefine(({ abstention, transition }, context) => {
+    if (
+      abstention.reviewCaseId !== transition.reviewCaseId ||
+      abstention.assignmentId !== transition.createdAssignment.replacesAssignmentId
+    ) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Replacement work must reference the abstained assignment and case.',
+      });
+    }
+  });
+
+const evidenceBlockingIssueRecordSchema = z
+  .object({
+    blockingIssueId: z.uuid(),
+    assignmentId: z.uuid(),
+    reviewCaseId: z.uuid(),
+    issue: evidenceBlockingIssueSchema,
+    version: z.int().positive(),
+    locked: z.literal(true),
+    syntheticOnly: z.literal(true),
+  })
+  .strict();
+
+const accessibilityBlockingIssueRecordSchema = z
+  .object({
+    blockingIssueId: z.uuid(),
+    assignmentId: z.uuid(),
+    reviewCaseId: z.uuid(),
+    issue: accessibilityBlockingIssueSchema,
+    version: z.int().positive(),
+    locked: z.literal(true),
+    syntheticOnly: z.literal(true),
+  })
+  .strict();
+
+const evidencePendingStatusSchema = statusProjectionSchema.extend({
+  workflowStatus: z.literal('review_pending_family_action'),
+  displayLabelCode: z.literal('STATUS_REVIEW_PENDING_FAMILY_ACTION'),
+  phase: z.literal('review'),
+  familyActionRequired: z.literal(true),
+  nextActionCode: z.literal('CORRECT_SNAPSHOT_EVIDENCE'),
+  pendingReason: z.literal('pending_evidence_correction'),
+});
+
+const accessibilityPendingStatusSchema = statusProjectionSchema.extend({
+  workflowStatus: z.literal('review_pending_internal_action'),
+  displayLabelCode: z.literal('STATUS_REVIEW_PENDING_INTERNAL_ACTION'),
+  phase: z.literal('review'),
+  familyActionRequired: z.literal(false),
+  nextActionCode: z.literal('AWAIT_ACCESSIBILITY_ROUTE'),
+  pendingReason: z.literal('pending_accessibility_route'),
+});
+
+const requirePendingReferences = (
+  value: {
+    blockingIssue: { reviewCaseId: string };
+    transition: { reviewCaseId: string; pendingItem: { dueAt: string } };
+    status: { deadline: string | null };
+  },
+  context: z.RefinementCtx,
+) => {
+  if (value.blockingIssue.reviewCaseId !== value.transition.reviewCaseId) {
+    context.addIssue({
+      code: 'custom',
+      message: 'Blocking issue and pending transition must reference the same case.',
+    });
+  }
+  if (value.status.deadline !== value.transition.pendingItem.dueAt) {
+    context.addIssue({
+      code: 'custom',
+      message: 'Applicant status deadline must match the pending item deadline.',
+      path: ['status', 'deadline'],
+    });
+  }
+};
+
+const evidencePendingResponseDataSchema = z
+  .object({
+    blockingIssue: evidenceBlockingIssueRecordSchema,
+    transition: evidencePendingTransitionSchema,
+    status: evidencePendingStatusSchema,
+  })
+  .strict()
+  .superRefine(requirePendingReferences);
+
+const accessibilityPendingResponseDataSchema = z
+  .object({
+    blockingIssue: accessibilityBlockingIssueRecordSchema,
+    transition: accessibilityPendingTransitionSchema,
+    status: accessibilityPendingStatusSchema,
+  })
+  .strict()
+  .superRefine(requirePendingReferences);
+
+export const abstainReviewResponseSchema = apiSuccessSchema(abstainReviewResponseDataSchema);
+export const reportReviewBlockingIssueResponseSchema = apiSuccessSchema(
+  z.union([evidencePendingResponseDataSchema, accessibilityPendingResponseDataSchema]),
+);
+
+export const submitReviewActionResponseSchema = z.union([
+  submitReviewResponseSchema,
+  abstainReviewResponseSchema,
+  reportReviewBlockingIssueResponseSchema,
+]);
+
 export type SnapshotRoute = z.infer<typeof snapshotRouteSchema>;
 export type FixtureProvenance = z.infer<typeof fixtureProvenanceSchema>;
 export type SnapshotFixtureReference = z.infer<typeof snapshotFixtureReferenceSchema>;
@@ -485,3 +778,14 @@ export type SubmitReviewRequest = z.infer<typeof submitReviewRequestSchema>;
 export type ReviewSubmission = z.infer<typeof reviewSubmissionSchema>;
 export type ReviewTransition = z.infer<typeof reviewTransitionSchema>;
 export type SubmitReviewResponse = z.infer<typeof submitReviewResponseSchema>;
+export type AbstentionReason = z.infer<typeof abstentionReasonSchema>;
+export type AbstainReviewRequest = z.infer<typeof abstainReviewRequestSchema>;
+export type ReviewBlockingIssue = z.infer<typeof reviewBlockingIssueSchema>;
+export type ReportReviewBlockingIssueRequest = z.infer<
+  typeof reportReviewBlockingIssueRequestSchema
+>;
+export type SubmitReviewActionRequest = z.infer<typeof submitReviewActionRequestSchema>;
+export type ReviewAbstention = z.infer<typeof reviewAbstentionSchema>;
+export type ReplacementAssignment = z.infer<typeof replacementAssignmentSchema>;
+export type PendingReviewBlockerTransition = z.infer<typeof pendingReviewBlockerTransitionSchema>;
+export type SubmitReviewActionResponse = z.infer<typeof submitReviewActionResponseSchema>;

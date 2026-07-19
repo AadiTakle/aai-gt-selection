@@ -151,3 +151,21 @@ third vote.
 Frontend code must render the supplied status projection and must not derive an aggregate from
 individual reviews. Responses intentionally expose `previousVotesExposed: false`, no reviewer
 identity, and no admission, offer, funding, or program-effect statement.
+
+## Cycle 6 frontend handoff
+
+`@gt-selection/contracts` now exports the unified `submitReviewActionRequestSchema` and
+`submitReviewActionResponseSchema`, plus typed abstention, blocking-issue, replacement-assignment,
+and pending-item contracts. `@gt-selection/test-fixtures` now exports:
+
+- `reviewAbstentionResponseFixture`;
+- `evidencePendingReviewResponseFixture`; and
+- `accessibilityPendingReviewResponseFixture`.
+
+An abstention is a non-vote action and returns replacement work without a classification. Evidence
+correction projects `review_pending_family_action` with `CORRECT_SNAPSHOT_EVIDENCE`; accessibility
+failure projects `review_pending_internal_action` with `AWAIT_ACCESSIBILITY_ROUTE`. In both pending
+fixtures, the displayed deadline exactly matches the owned pending item.
+
+Frontend code must not infer a negative outcome from either pending state and must not collect
+free-text issue descriptions; the contract exposes only the bounded synthetic reason vocabulary.

@@ -5,6 +5,7 @@ import type {
   StatusProjection,
   RecordAssessmentVersionResponse,
   SubmitApplicationResponse,
+  SubmitReviewActionResponse,
   SubmitReviewResponse,
   SubmitSnapshotVersionResponse,
 } from '@gt-selection/contracts';
@@ -406,6 +407,160 @@ export const narrativeTwoVotesReviewResponseFixture = {
   },
 } satisfies SubmitReviewResponse;
 
+const reviewPendingDueAt = '2026-07-21T17:00:00.000-05:00';
+
+export const reviewAbstentionResponseFixture = {
+  apiVersion: 'v1',
+  syntheticOnly: true,
+  data: {
+    abstention: {
+      abstentionId: '00000000-0000-4000-8000-000000000811',
+      assignmentId: '00000000-0000-4000-8000-000000000705',
+      reviewCaseId: '00000000-0000-4000-8000-000000000602',
+      reason: 'insufficient_route_competence',
+      version: 1,
+      locked: true,
+      syntheticOnly: true,
+    },
+    transition: {
+      kind: 'replacement_assignment_created',
+      reviewCaseId: '00000000-0000-4000-8000-000000000602',
+      route: 'narrative',
+      workflowState: 'under_review',
+      completedVoteCount: 2,
+      requiredVoteCount: 3,
+      pendingReason: null,
+      createdAssignment: {
+        ...initialAssignment('00000000-0000-4000-8000-000000000707', 3, 'supervisor'),
+        replacesAssignmentId: '00000000-0000-4000-8000-000000000705',
+      },
+      decision: null,
+      previousVotesExposed: false,
+      syntheticOnly: true,
+    },
+    status: snapshotUnderReviewStatus,
+  },
+  meta: {
+    correlationId: '00000000-0000-4000-8000-000000000315',
+    idempotencyKey: '00000000-0000-4000-8000-000000000316',
+    idempotentReplay: false,
+  },
+} satisfies SubmitReviewActionResponse;
+
+export const evidencePendingReviewResponseFixture = {
+  apiVersion: 'v1',
+  syntheticOnly: true,
+  data: {
+    blockingIssue: {
+      blockingIssueId: '00000000-0000-4000-8000-000000000821',
+      assignmentId: '00000000-0000-4000-8000-000000000702',
+      reviewCaseId: '00000000-0000-4000-8000-000000000601',
+      issue: {
+        kind: 'evidence_correction_required',
+        reasonCode: 'missing_provenance',
+        syntheticOnly: true,
+      },
+      version: 1,
+      locked: true,
+      syntheticOnly: true,
+    },
+    transition: {
+      kind: 'pending_review_blocker',
+      reviewCaseId: '00000000-0000-4000-8000-000000000601',
+      route: 'artifact',
+      workflowState: 'pending',
+      completedVoteCount: 1,
+      requiredVoteCount: 2,
+      pendingReason: 'pending_evidence_correction',
+      pendingItem: {
+        pendingItemId: '00000000-0000-4000-8000-000000000831',
+        reason: 'pending_evidence_correction',
+        ownerRole: 'family',
+        dueAt: reviewPendingDueAt,
+        routeCode: 'family_evidence_correction',
+        state: 'open',
+        syntheticOnly: true,
+      },
+      createdAssignment: null,
+      decision: null,
+      previousVotesExposed: false,
+      syntheticOnly: true,
+    },
+    status: {
+      workflowStatus: 'review_pending_family_action',
+      displayLabelCode: 'STATUS_REVIEW_PENDING_FAMILY_ACTION',
+      phase: 'review',
+      familyActionRequired: true,
+      nextActionCode: 'CORRECT_SNAPSHOT_EVIDENCE',
+      deadline: reviewPendingDueAt,
+      pendingReason: 'pending_evidence_correction',
+      claimBoundaryCode: 'ELIGIBILITY_NOT_ADMISSION',
+    },
+  },
+  meta: {
+    correlationId: '00000000-0000-4000-8000-000000000317',
+    idempotencyKey: '00000000-0000-4000-8000-000000000318',
+    idempotentReplay: false,
+  },
+} satisfies SubmitReviewActionResponse;
+
+export const accessibilityPendingReviewResponseFixture = {
+  apiVersion: 'v1',
+  syntheticOnly: true,
+  data: {
+    blockingIssue: {
+      blockingIssueId: '00000000-0000-4000-8000-000000000822',
+      assignmentId: '00000000-0000-4000-8000-000000000704',
+      reviewCaseId: '00000000-0000-4000-8000-000000000602',
+      issue: {
+        kind: 'accessibility_route_required',
+        reasonCode: 'route_failed',
+        syntheticOnly: true,
+      },
+      version: 1,
+      locked: true,
+      syntheticOnly: true,
+    },
+    transition: {
+      kind: 'pending_review_blocker',
+      reviewCaseId: '00000000-0000-4000-8000-000000000602',
+      route: 'narrative',
+      workflowState: 'pending',
+      completedVoteCount: 0,
+      requiredVoteCount: 3,
+      pendingReason: 'pending_accessibility_route',
+      pendingItem: {
+        pendingItemId: '00000000-0000-4000-8000-000000000832',
+        reason: 'pending_accessibility_route',
+        ownerRole: 'access_steward',
+        dueAt: reviewPendingDueAt,
+        routeCode: 'internal_accessibility_route',
+        state: 'open',
+        syntheticOnly: true,
+      },
+      createdAssignment: null,
+      decision: null,
+      previousVotesExposed: false,
+      syntheticOnly: true,
+    },
+    status: {
+      workflowStatus: 'review_pending_internal_action',
+      displayLabelCode: 'STATUS_REVIEW_PENDING_INTERNAL_ACTION',
+      phase: 'review',
+      familyActionRequired: false,
+      nextActionCode: 'AWAIT_ACCESSIBILITY_ROUTE',
+      deadline: reviewPendingDueAt,
+      pendingReason: 'pending_accessibility_route',
+      claimBoundaryCode: 'ELIGIBILITY_NOT_ADMISSION',
+    },
+  },
+  meta: {
+    correlationId: '00000000-0000-4000-8000-000000000319',
+    idempotencyKey: '00000000-0000-4000-8000-000000000320',
+    idempotentReplay: false,
+  },
+} satisfies SubmitReviewActionResponse;
+
 export const fictionalFixtures = [
   syntheticTrackBApplication,
   syntheticTrackAAssessment,
@@ -420,4 +575,7 @@ export const fictionalFixtures = [
   narrativeSnapshotSubmissionResponseFixture,
   artifactDisagreementReviewResponseFixture,
   narrativeTwoVotesReviewResponseFixture,
+  reviewAbstentionResponseFixture,
+  evidencePendingReviewResponseFixture,
+  accessibilityPendingReviewResponseFixture,
 ] as const;
