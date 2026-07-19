@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+import { apiSuccessSchema } from './api-envelope';
+import { statusProjectionSchema } from './workflow';
+
 export const applicationStateSchema = z.enum(['draft', 'submitted', 'superseded']);
 
 export const applicationDraftSchema = z
@@ -45,6 +48,17 @@ export const submitApplicationRequestSchema = z
   })
   .strict();
 
+export const submitApplicationResponseDataSchema = z
+  .object({
+    application: applicationVersionSchema,
+    status: statusProjectionSchema,
+  })
+  .strict();
+
+export const submitApplicationResponseSchema = apiSuccessSchema(
+  submitApplicationResponseDataSchema,
+);
+
 export const assessmentValiditySchema = z.enum(['pending', 'valid', 'invalid']);
 
 export const assessmentVersionSchema = z
@@ -68,5 +82,6 @@ export type ApplicationDraft = z.infer<typeof applicationDraftSchema>;
 export type SaveApplicationDraftRequest = z.infer<typeof saveApplicationDraftRequestSchema>;
 export type ApplicationVersion = z.infer<typeof applicationVersionSchema>;
 export type SubmitApplicationRequest = z.infer<typeof submitApplicationRequestSchema>;
+export type SubmitApplicationResponse = z.infer<typeof submitApplicationResponseSchema>;
 export type AssessmentValidity = z.infer<typeof assessmentValiditySchema>;
 export type AssessmentVersion = z.infer<typeof assessmentVersionSchema>;

@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   fictionalFixtures,
+  submittedApplicationResponseFixture,
   syntheticArtifactFixture,
   syntheticNarrativeFixture,
   syntheticTrackAAssessment,
@@ -17,6 +18,13 @@ import {
 } from './index';
 
 describe('fictional fixture boundary', () => {
+  it('provides a valid submitted application response for frontend integration', () => {
+    expect(submittedApplicationResponseFixture.data.status.workflowStatus).toBe(
+      'awaiting_assessment',
+    );
+    expect(submittedApplicationResponseFixture.syntheticOnly).toBe(true);
+  });
+
   it('keeps every fixture visibly synthetic', () => {
     expect(fictionalFixtures.every(({ syntheticOnly }) => syntheticOnly)).toBe(true);
   });

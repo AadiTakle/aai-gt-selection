@@ -85,3 +85,18 @@ TypeScript type. The family application branch can:
 
 The contract deliberately contains no household-income, finance, allocation, or live applicant
 fields.
+
+## Cycle 2 frontend handoff
+
+`@gt-selection/contracts` now exports `submitApplicationResponseSchema` and its inferred type.
+`@gt-selection/test-fixtures` exports `submittedApplicationResponseFixture`.
+
+The frontend teammate can now implement and test:
+
+- successful application submission confirmation;
+- transition from draft to `awaiting_assessment`;
+- applicant-safe next-action copy driven by `AWAIT_ASSESSMENT`;
+- idempotent response handling; and
+- rejection of accidental admission/offer wording at the contract boundary.
+
+This fixture is the canonical UI mock for the submitted state until the database RPC exists.

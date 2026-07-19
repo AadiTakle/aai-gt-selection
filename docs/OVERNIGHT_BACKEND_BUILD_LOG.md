@@ -67,3 +67,18 @@ duplicate implementation logic, or rely on snapshots that cannot independently f
   payloads without importing Supabase or private database types.
 - Next slice: freeze `submit_application` response/envelope and status projection examples,
   then continue through the remaining write/read RPC contracts.
+
+### Cycle 2 — Submitted-application response
+
+- **Seam:** `submit_application` public response envelope and frontend fixture.
+- **Red:** contract test failed because `submitApplicationResponseSchema` was absent; fixture
+  test failed because the submitted response example was absent.
+- **Green:** added a strict v1 success envelope containing the immutable submitted application,
+  applicant-safe `awaiting_assessment` projection, synthetic-only marker, and idempotency
+  metadata; added the matching fictional frontend fixture.
+- **Regression:** 12 contract tests, 6 fixture tests, and both package typechecks pass.
+- Confirmed the response rejects prohibited workflow values such as `admitted`.
+- Frontend enablement: the family portal can build submit-success and awaiting-assessment UI
+  against one validated response object rather than maintaining a hand-written mock.
+- Next slice: freeze assessment-recording/routing request and response contracts, including
+  pending assessment outcomes and Track A/Track B reason ordering.

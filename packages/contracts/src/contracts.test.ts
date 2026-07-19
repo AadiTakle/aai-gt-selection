@@ -6,6 +6,7 @@ import {
   saveApplicationDraftRequestSchema,
   statusProjectionSchema,
   submitApplicationRequestSchema,
+  submitApplicationResponseSchema,
   submitReviewRequestSchema,
   trackAOutcomeSchema,
   trackBEligibilityOutcomeSchema,
@@ -47,6 +48,56 @@ describe('public contract boundaries', () => {
         correlationId: uuid,
       }),
     ).toBeDefined();
+  });
+
+  it('returns the submitted application with an applicant-safe status envelope', () => {
+    const response = {
+      apiVersion: 'v1',
+      syntheticOnly: true,
+      data: {
+        application: {
+          applicationId: uuid,
+          applicationVersionId: uuid,
+          version: 1,
+          supersedesId: null,
+          state: 'submitted',
+          syntheticOnly: true,
+          currentGrade: '5',
+          requestedGrade: '6',
+          requestedEntryYear: 2027,
+          contentHash: `sha256:${'1'.repeat(64)}`,
+        },
+        status: {
+          workflowStatus: 'awaiting_assessment',
+          displayLabelCode: 'STATUS_AWAITING_ASSESSMENT',
+          phase: 'assessment',
+          familyActionRequired: false,
+          nextActionCode: 'AWAIT_ASSESSMENT',
+          deadline: null,
+          pendingReason: null,
+          claimBoundaryCode: 'ELIGIBILITY_NOT_ADMISSION',
+        },
+      },
+      meta: {
+        correlationId: uuid,
+        idempotencyKey: uuid,
+        idempotentReplay: false,
+      },
+    };
+
+    expect(submitApplicationResponseSchema.parse(response)).toEqual(response);
+    expect(
+      submitApplicationResponseSchema.safeParse({
+        ...response,
+        data: {
+          ...response.data,
+          status: {
+            ...response.data.status,
+            workflowStatus: 'admitted',
+          },
+        },
+      }).success,
+    ).toBe(false);
   });
 
   it.each(['admitted', 'offered', 'waitlisted', 'funded', 'not gifted'])(

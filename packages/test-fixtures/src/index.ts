@@ -3,6 +3,7 @@ import type {
   AssessmentVersion,
   SnapshotFixtureReference,
   StatusProjection,
+  SubmitApplicationResponse,
 } from '@gt-selection/contracts';
 
 const provenance = {
@@ -73,6 +74,29 @@ export const trackBSnapshotRequiredStatus = {
   pendingReason: null,
   claimBoundaryCode: 'ELIGIBILITY_NOT_ADMISSION',
 } satisfies StatusProjection;
+
+export const submittedApplicationResponseFixture = {
+  apiVersion: 'v1',
+  syntheticOnly: true,
+  data: {
+    application: syntheticTrackBApplication,
+    status: {
+      workflowStatus: 'awaiting_assessment',
+      displayLabelCode: 'STATUS_AWAITING_ASSESSMENT',
+      phase: 'assessment',
+      familyActionRequired: false,
+      nextActionCode: 'AWAIT_ASSESSMENT',
+      deadline: null,
+      pendingReason: null,
+      claimBoundaryCode: 'ELIGIBILITY_NOT_ADMISSION',
+    },
+  },
+  meta: {
+    correlationId: '00000000-0000-4000-8000-000000000301',
+    idempotencyKey: '00000000-0000-4000-8000-000000000302',
+    idempotentReplay: false,
+  },
+} satisfies SubmitApplicationResponse;
 
 export const fictionalFixtures = [
   syntheticTrackBApplication,
