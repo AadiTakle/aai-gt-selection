@@ -20,6 +20,21 @@
 4. Database behavior through pgTAP and direct RPC/Auth tests
 5. CI checks on the draft PR
 
+## Mandatory TDD gate
+
+Every implementation slice must record all four stages before it can be committed:
+
+1. **Seam:** name the public contract, RPC, or database behavior being tested.
+2. **Red:** add one focused acceptance test and run it before implementation; record the command
+   and the expected failure.
+3. **Green:** implement only enough behavior to satisfy that test; rerun the targeted test.
+4. **Regression:** run the relevant package checks plus workspace lint, typecheck, and tests.
+
+No implementation commit is allowed without observed red and green evidence. Documentation-only,
+generated-file, or CI-maintenance changes must be labeled explicitly rather than presented as a
+TDD implementation slice. Tests verify public behavior and may not assert private helpers,
+duplicate implementation logic, or rely on snapshots that cannot independently fail.
+
 ## Ordered slices
 
 - [ ] Shared write/read RPC schemas, workflow transitions, reasons, errors, and examples
