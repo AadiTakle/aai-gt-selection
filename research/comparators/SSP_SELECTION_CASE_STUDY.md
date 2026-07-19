@@ -33,7 +33,12 @@ The prompt that initiated this research described the funnel as: **~10,000 appli
 
 **Bottom line:** the *shape* of the described funnel is correct and matches SSP's own process description, but only the **~700 admits** figure is verifiable. The 10,000 and 1,000 numbers should be treated as illustrative placeholders, not facts.
 
-**Acceptance rate — [ESTIMATE], and unreliable.** SSP publishes none. Third-party guides give wildly conflicting figures: 13–15% (based on the *pre-expansion* 108-seat model), ~10%, "<5% / fewer than 1 in 20," and 4–5%. Most predate the 2023 expansion, so they describe a different program.
+**A second, deeper scrape (2026-07-19) reinforced this and found no number.** Every anonymous route to an official applicant count was exhausted: Wayback Machine archives of the old `summerscience.org` admissions/FAQ pages (via the CDX API + `curl`, since WebFetch is blocked for archive.org), IRS 990 XML (ProPublica download endpoint 403s; the IRS S3 `irs-form-990` bucket 404s for these object IDs — it stopped updating ~2021), Hacker News (empty), and news profiles (no number). Notable archival finding:
+- **[VERIFIED — archived]** A **2002 SSP FAQ** answered "How many students apply… what are my chances?" with: *"SSP isn't for everyone, and students 'self-select', meaning that we aren't flooded with applicants… your chances are pretty good of getting in."* (Wayback `20020208132013`). Historically SSP was a **modest, self-selected pool**, not a 10,000-applicant funnel — the mass-application framing is a *recent, post-2023-expansion* phenomenon at most.
+- **[VERIFIED — press/990 context]** FY2024 filing context references **"368 participants… 12 programs… 8 universities,"** consistent with the ~350→~700 doubling after the bequest. This is an *admits* count, still not applicants.
+- **[FORUM — weak]** A single 2023 College Confidential user asserted a **"7% acceptance rate,"** unsourced.
+
+**Acceptance rate — [ESTIMATE], and unreliable.** SSP publishes none. Third-party guides give wildly conflicting figures: 13–15% (explicitly based on the *pre-expansion* "700–800 applications for 108 spots" model), ~10%, "<5% / fewer than 1 in 20," and 4–5%. Most predate the 2023 expansion, so they describe a different program.
 - **[INFERENCE]** If 720 admits ≈ 4–5%, that implies ~14,000–18,000 applicants; if ≈ 10%, ~7,200. Both are arithmetic, not data. The true applicant count remains unknown.
 
 ---
@@ -58,6 +63,7 @@ Selection criteria that survive into the decision: demonstrated interest/motivat
 - **[VERIFIED]** **Who runs it:** conducted by **Abt Global** (external research firm); ethics oversight by **Abt Global's own IRB** (notably *not* a university IRB); SSPI sponsors. Data on Qualtrics/Embark/Canvas. Contact: reval@ssp.org.
 - **[VERIFIED]** **Safeguards:** "minimal risk"; names used only to match pre/post then replaced with a code; group-level reporting only; **withdraw anytime without penalty** (and may remain in the program); students **paid** for survey time (amount unspecified).
 - **[VERIFIED — as a gap]** **No public preregistration.** Searches of the AEA RCT Registry, OSF, and clinicaltrials.gov returned nothing for SSP or the Abt lottery study; no published protocol, sample-size target, or power analysis is available. (A registration could exist unindexed, but none was found.)
+- **[VERIFIED — as a gap, confirmed 2nd pass]** **No sample size / lottery-pool N published.** Abt Global's public project pages describe an unrelated NASA study, not SSP; no SSP-specific N, control-group size, or power analysis was locatable. This is the number that would reveal the true "qualified pool" size.
 
 ---
 
@@ -88,9 +94,11 @@ The 2026 change did not happen in a vacuum — it followed a transformational wi
 
 ## 6. Critiques, tensions, and open questions
 
-**Access limitation to record honestly:** we found **no published, attributable backlash** (news, op-ed, or blog) naming the 2026 consent/lottery change. Reddit — the most likely venue (r/ApplyingToCollege, r/SummerProgramResults) — is **blocked to our search crawler**, so community reaction could not be captured. Absence of found criticism is *not* evidence of absence. The critiques below are therefore drawn from (a) tensions visible in SSP's own wording and (b) the general research-ethics literature, not from documented complaints.
+**Access limitation to record honestly:** after two scraping passes we found **no published *lay* backlash** (news, op-ed, parent/applicant post) naming the 2026 consent/lottery change. We *did* find a **directly-applicable peer-reviewed ethics critique** of the mechanism (Jenkins 2023, below), which does not name SSP but describes its exact design. Reddit — the most likely venue for applicant reaction (r/summerscienceprogram, r/ApplyingToCollege, r/SummerProgramResults) — is **blocked to every anonymous route** we tried (search crawler, WebFetch, curl, jina proxy, redlib mirrors; the pullpush archive index ends ~April 2025, before the Nov 2025–Apr 2026 window). Absence of found lay criticism is *not* evidence of absence. The critiques below draw on (a) tensions in SSP's own wording, (b) peer-reviewed research-ethics literature, and (c) general literature — not on documented complaints.
 
 1. **Consent-as-coercion (the sharpest issue). [VERIFIED tension]** Study participation is a **condition of admission eligibility** — decline and you are excluded from both the program *and* the waitlist — yet SSP also calls joining "completely your choice." Those two framings appear on the same materials and contradict each other. Research-ethics literature holds that a choice architecture that forbids refusal is "profoundly coercive," acutely so for minors.
+   - **Directly on-point peer-reviewed critique [VERIFIED — academic; does not name SSP].** Jenkins, S. P. (2023), *"Offering Lottery Entry as an Incentive for Research Participation Compromises Informed Consent,"* **Ethics & Human Research** (Hastings Center; Wiley) — argues that making **lottery entry the incentive/gateway for research participation** "represents a challenge to the principle of informed, coercion-free consent." Two reasons: (a) applicants usually **cannot know their odds of winning**, so they cannot weigh risk vs. benefit; (b) even with odds, the design "capitalizes on the difficulty of weighing up small probabilities," exploiting cognitive bias. Conclusion: lotteries are **not** more ethical than simply paying participants. This paper describes SSP's exact 2026 mechanism (though it predates and doesn't name SSP) — the strongest formal critique available. (https://onlinelibrary.wiley.com/doi/full/10.1002/eahr.500165)
+   - **Compulsory-participant-pool analog [VERIFIED — academic].** *Science & Engineering Ethics* (2020) holds that pools where students are "compulsorily enrolled are objectively coercive" because they "face a costly alternative task or penalties," unlike ordinary participants who can refuse "without cost or penalty." Applied to SSP, the cost of refusing is losing the admissions-lottery chance entirely. (https://link.springer.com/article/10.1007/s11948-020-00232-2)
 2. **Equipoise. [INFERENCE]** Randomizing seats is ethically clean only under genuine uncertainty that the program helps. A program that markets itself as transformative sits awkwardly beside "we're evaluating whether it works via a denied-access control group."
 3. **IRB independence. [VERIFIED, flagged]** Oversight is by the *research contractor's own* IRB rather than an independent/university IRB — a structural conflict worth noting, though contractor IRBs are legal and common.
 4. **Lottery fairness to vulnerable applicants. [INFERENCE / literature]** A pure lottery can disadvantage already-disadvantaged applicants who clear the bar but lose the draw; the literature suggests weighted assignment as a mitigation SSP does not appear to use.
@@ -119,10 +127,12 @@ SSP 2026 is close to a natural template *and* a cautionary tale for our MVP:
 
 ## 8. Open data gaps (for anyone extending this)
 
-1. **Official applicant count** — unknown for any year; the ~10,000 figure is unverified. Would require SSP disclosure, a detailed 990 schedule, or press reporting.
-2. **Qualified-pool / lottery-pool size** — not disclosed; needed to compute the true lottery odds.
-3. **Study registration / protocol / power analysis** — none found; check AEA RCT Registry / OSF periodically as the study matures.
-4. **Community/forum reaction** — Reddit is crawler-blocked; capturing r/ApplyingToCollege and r/SummerProgramResults threads needs manual browsing.
+Two scraping passes (2026-07-19) closed the *critique-literature* gap but **not** the applicant-count or lay-reaction gaps. Remaining, with the specific next route to try:
+
+1. **Official applicant count** — still unknown for any year; ~10,000 unverified. Anonymous routes exhausted (Wayback archives, ProPublica 990-download 403, IRS S3 bucket 404 / not updated since ~2021, HN, news). **Best unchecked routes:** the FY2024 990 **Schedule O / Part III narrative** via an authenticated/GUI ProPublica session or a paid data provider; SSP's "Annual Reports & Strategic Plan" page (PDF not yet located); or a direct email to reval@ssp.org / SSP admissions.
+2. **Qualified-pool / lottery-pool / study sample size** — not disclosed; the Abt Global RCT publishes no N or power analysis. **Best route:** OSF / ClinicalTrials.gov / REES registration once the study matures; or direct inquiry.
+3. **Study registration / protocol / power analysis** — none found; recheck AEA RCT Registry / OSF periodically.
+4. **Community/forum reaction (lay backlash)** — Reddit blocked on *all* anonymous routes; the controversy window (Nov 2025–Apr 2026) postdates the pullpush archive index. **Best route:** an authenticated Reddit API/OAuth token or a logged-in session to search r/summerscienceprogram, r/ApplyingToCollege, r/SummerProgramResults; or check Instagram/Facebook 2026-decision-day post comments. *(The recurring sweep job continues to retry the open web.)*
 5. **Tuition & aid share** — no official dollar figure; third-party "$7,500 / ~40% aid" unconfirmed.
 
 ---
@@ -138,9 +148,15 @@ SSP 2026 is close to a natural template *and* a cautionary tale for our MVP:
 - https://www.causeiq.com/organizations/summer-science-program,943341965/ , https://www.guidestar.org/profile/94-3341965
 - https://en.wikipedia.org/wiki/Summer_Science_Program
 
+- Wayback Machine — old `summerscience.org` admissions/FAQ snapshots (via CDX API + `curl`): 2002 FAQ (`20020208132013`, "we aren't flooded with applicants"); 2024 "Is SSP for You" (`20240221071604`).
+
 **Press:**
 - https://www.science.org/content/article/surprise-200-million-bequest-has-tiny-summer-science-program-thinking-big
 - https://www.washingtonpost.com/business/2023/11/01/stem-education-bequest-qualcomm-summer-science-program/ (AP mirror: https://phys.org/news/2023-11-summer-science-spent-million-year.html)
+
+**Peer-reviewed critique of the exact mechanism (VERIFIED — academic; do not name SSP):**
+- Jenkins, S. P. (2023), "Offering Lottery Entry as an Incentive for Research Participation Compromises Informed Consent," *Ethics & Human Research* — https://onlinelibrary.wiley.com/doi/full/10.1002/eahr.500165 (also https://pubmed.ncbi.nlm.nih.gov/37167474/)
+- "The Opportunity Cost of Compulsory Research Participation," *Science & Engineering Ethics* (2020) — https://link.springer.com/article/10.1007/s11948-020-00232-2
 
 **Third-party estimates (UNVERIFIED — cite with caution):**
 - https://www.collegebase.org/blog/summer-science-program-ssp-college-admissions
