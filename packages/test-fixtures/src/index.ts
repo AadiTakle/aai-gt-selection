@@ -5,6 +5,7 @@ import type {
   StatusProjection,
   RecordAssessmentVersionResponse,
   SubmitApplicationResponse,
+  SubmitSnapshotVersionResponse,
 } from '@gt-selection/contracts';
 
 const provenance = {
@@ -201,6 +202,118 @@ export const trackBInvitationResponseFixture = {
   },
 } satisfies RecordAssessmentVersionResponse;
 
+const snapshotUnderReviewStatus = {
+  workflowStatus: 'snapshot_under_review',
+  displayLabelCode: 'STATUS_SNAPSHOT_UNDER_REVIEW',
+  phase: 'review',
+  familyActionRequired: false,
+  nextActionCode: 'AWAIT_REVIEW',
+  deadline: null,
+  pendingReason: null,
+  claimBoundaryCode: 'ELIGIBILITY_NOT_ADMISSION',
+} as const;
+
+const initialAssignment = <Slot extends 1 | 2 | 3, Role extends 'reviewer' | 'supervisor'>(
+  assignmentId: string,
+  slot: Slot,
+  reviewerRole: Role,
+) =>
+  ({
+    assignmentId,
+    slot,
+    reviewerRole,
+    status: 'assigned',
+    blind: true,
+    syntheticOnly: true,
+  }) as const;
+
+export const artifactSnapshotSubmissionResponseFixture = {
+  apiVersion: 'v1',
+  syntheticOnly: true,
+  data: {
+    snapshot: {
+      snapshotVersionId: '00000000-0000-4000-8000-000000000501',
+      applicationId: syntheticTrackBApplication.applicationId,
+      version: 1,
+      supersedesId: null,
+      contentHash: `sha256:${'8'.repeat(64)}`,
+      route: 'artifact',
+      domainCodes: ['synthetic-mathematics'],
+      fixtureReferences: [syntheticArtifactFixture],
+      syntheticOnly: true,
+    },
+    reviewCase: {
+      reviewCaseId: '00000000-0000-4000-8000-000000000601',
+      snapshotVersionId: '00000000-0000-4000-8000-000000000501',
+      route: 'artifact',
+      rubricVersionId: 'RB-SYN-01',
+      workflowState: 'under_review',
+      blind: true,
+      initialAssignments: [
+        initialAssignment('00000000-0000-4000-8000-000000000701', 1, 'reviewer'),
+        initialAssignment('00000000-0000-4000-8000-000000000702', 2, 'reviewer'),
+      ],
+      syntheticOnly: true,
+    },
+    status: snapshotUnderReviewStatus,
+  },
+  meta: {
+    correlationId: '00000000-0000-4000-8000-000000000307',
+    idempotencyKey: '00000000-0000-4000-8000-000000000308',
+    idempotentReplay: false,
+  },
+} satisfies SubmitSnapshotVersionResponse;
+
+export const narrativeSnapshotSubmissionResponseFixture = {
+  apiVersion: 'v1',
+  syntheticOnly: true,
+  data: {
+    snapshot: {
+      snapshotVersionId: '00000000-0000-4000-8000-000000000502',
+      applicationId: syntheticTrackBApplication.applicationId,
+      version: 1,
+      supersedesId: null,
+      contentHash: `sha256:${'9'.repeat(64)}`,
+      route: 'narrative',
+      domainCodes: ['synthetic-music'],
+      fixtureReferences: [syntheticNarrativeFixture],
+      narrativeContext: {
+        observerRelationship: 'parent_guardian',
+        observationDurationMonths: 24,
+        observationFrequency: 'weekly',
+        settingCodes: ['home'],
+        paidRelationship: false,
+        instructionOrAssistance: 'limited',
+        opportunityContext: 'routine_access',
+        conflictOfInterest: false,
+        wordCount: 215,
+        syntheticOnly: true,
+      },
+      syntheticOnly: true,
+    },
+    reviewCase: {
+      reviewCaseId: '00000000-0000-4000-8000-000000000602',
+      snapshotVersionId: '00000000-0000-4000-8000-000000000502',
+      route: 'narrative',
+      rubricVersionId: 'RB-SYN-01',
+      workflowState: 'under_review',
+      blind: true,
+      initialAssignments: [
+        initialAssignment('00000000-0000-4000-8000-000000000703', 1, 'reviewer'),
+        initialAssignment('00000000-0000-4000-8000-000000000704', 2, 'reviewer'),
+        initialAssignment('00000000-0000-4000-8000-000000000705', 3, 'supervisor'),
+      ],
+      syntheticOnly: true,
+    },
+    status: snapshotUnderReviewStatus,
+  },
+  meta: {
+    correlationId: '00000000-0000-4000-8000-000000000309',
+    idempotencyKey: '00000000-0000-4000-8000-000000000310',
+    idempotentReplay: false,
+  },
+} satisfies SubmitSnapshotVersionResponse;
+
 export const fictionalFixtures = [
   syntheticTrackBApplication,
   syntheticTrackAAssessment,
@@ -211,4 +324,6 @@ export const fictionalFixtures = [
   syntheticNarrativeFixture,
   pendingAssessmentResponseFixture,
   trackBInvitationResponseFixture,
+  artifactSnapshotSubmissionResponseFixture,
+  narrativeSnapshotSubmissionResponseFixture,
 ] as const;

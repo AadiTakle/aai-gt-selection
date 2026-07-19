@@ -102,3 +102,24 @@ duplicate implementation logic, or rely on snapshots that cannot independently f
   correction and Snapshot-invitation states against runtime-validated fixtures.
 - Next slice: freeze `submit_snapshot_version` request/response contracts for artifact and
   narrative routes, including review-case creation and initial blind assignments.
+
+### Cycle 4 — Snapshot submission contracts
+
+- **Seam:** `submit_snapshot_version` artifact/narrative requests, immutable Snapshot versions,
+  review-case creation, and initial blind assignments.
+- **Red:** route tests failed before the request/response schemas existed; fixture tests failed
+  before canonical response examples existed; follow-up tests showed domain/fixture mismatches
+  and mismatched review-case version references were still accepted.
+- **Green:** added strict discriminated artifact and narrative contracts, bounded synthetic
+  narrative provenance, immutable version metadata, route-specific assignment tuples, applicant-
+  safe under-review status, domain consistency checks, and review-case version consistency.
+- **Regression:** 17 contract tests, 9 fixture tests, and both package typechecks pass.
+- Artifact submissions accept one or two synthetic fixture references and create exactly two
+  blind reviewer assignments. Narrative submissions require one fixture plus bounded provenance
+  and create exactly two reviewer assignments plus one blind supervisor assignment. The future
+  RPC/database seam must still enforce the policy-bundle fixture allowlist.
+- URL, upload, media, and unknown fields fail at the strict contract boundary.
+- Frontend enablement: both Snapshot routes now have runtime-valid submission response fixtures
+  with no reviewer identity or prior-vote exposure.
+- Next slice: freeze `submit_review` response and transition contracts, including artifact
+  disagreement creating one blind-third assignment and narrative remaining open after two votes.

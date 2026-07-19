@@ -117,3 +117,20 @@ A and Track B invitation results, ordered reasons, and applicant-safe status pro
 The pending fixture is a successful domain response, not an error response. The invitation fixture
 means Snapshot submission is available; it does not mean Track B eligibility, admission, an offer,
 or funding.
+
+## Cycle 4 frontend handoff
+
+`@gt-selection/contracts` now exports `submitSnapshotVersionRequestSchema`,
+`submitSnapshotVersionResponseSchema`, and the inferred Snapshot, narrative-context, review-case,
+and request/response types. `@gt-selection/test-fixtures` now exports:
+
+- `artifactSnapshotSubmissionResponseFixture`; and
+- `narrativeSnapshotSubmissionResponseFixture`.
+
+The artifact contract accepts one or two synthetic fixture references and returns two blind initial
+assignments. The narrative contract accepts exactly one synthetic fixture, requires its bounded
+factual context, and returns three blind initial assignments with slot 3 designated supervisor.
+
+The frontend must send fixture references, never URLs, media, file data, or upload metadata. The
+response intentionally omits reviewer identities and all prior votes. Both fixtures project
+`snapshot_under_review` with `AWAIT_REVIEW` and preserve the eligibility-not-admission boundary.

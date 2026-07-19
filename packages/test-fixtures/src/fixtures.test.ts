@@ -4,11 +4,14 @@ import {
   recordAssessmentVersionResponseSchema,
   snapshotFixtureReferenceSchema,
   statusProjectionSchema,
+  submitSnapshotVersionResponseSchema,
 } from '@gt-selection/contracts';
 import { describe, expect, it } from 'vitest';
 
 import {
+  artifactSnapshotSubmissionResponseFixture,
   fictionalFixtures,
+  narrativeSnapshotSubmissionResponseFixture,
   pendingAssessmentResponseFixture,
   submittedApplicationResponseFixture,
   syntheticArtifactFixture,
@@ -42,6 +45,21 @@ describe('fictional fixture boundary', () => {
     expect(
       trackBInvitationResponseFixture.data.routing.trackBInvitation.orderedReasonCodes,
     ).toEqual(['TB_COMPOSITE_BAND', 'TB_BATTERY_PROFILE']);
+  });
+
+  it('provides route-correct blind assignment fixtures', () => {
+    expect(
+      submitSnapshotVersionResponseSchema.parse(artifactSnapshotSubmissionResponseFixture),
+    ).toEqual(artifactSnapshotSubmissionResponseFixture);
+    expect(
+      submitSnapshotVersionResponseSchema.parse(narrativeSnapshotSubmissionResponseFixture),
+    ).toEqual(narrativeSnapshotSubmissionResponseFixture);
+    expect(
+      artifactSnapshotSubmissionResponseFixture.data.reviewCase.initialAssignments,
+    ).toHaveLength(2);
+    expect(
+      narrativeSnapshotSubmissionResponseFixture.data.reviewCase.initialAssignments,
+    ).toHaveLength(3);
   });
 
   it('keeps every fixture visibly synthetic', () => {
