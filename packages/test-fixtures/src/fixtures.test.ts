@@ -1,22 +1,133 @@
 import {
+  applyCorrectionResponseSchema,
   applicationVersionSchema,
   assessmentVersionSchema,
+  disabledCorrectionResponseSchema,
+  recordAssessmentVersionResponseSchema,
+  replayDecisionResponseSchema,
   snapshotFixtureReferenceSchema,
   statusProjectionSchema,
+  submitReviewActionResponseSchema,
+  submitReviewResponseSchema,
+  submitSnapshotVersionResponseSchema,
 } from '@gt-selection/contracts';
 import { describe, expect, it } from 'vitest';
 
 import {
+  accessibilityPendingReviewResponseFixture,
+  assessmentCorrectionResponseFixture,
+  disabledAppealResponseFixture,
+  disposedInputReplayResponseFixture,
+  exactReplayResponseFixture,
+  invariantCorrectionResponseFixture,
+  artifactDisagreementReviewResponseFixture,
+  evidencePendingReviewResponseFixture,
+  reviewAbstentionResponseFixture,
+  artifactSnapshotSubmissionResponseFixture,
+  narrativeTwoVotesReviewResponseFixture,
   fictionalFixtures,
+  narrativeSnapshotSubmissionResponseFixture,
+  pendingAssessmentResponseFixture,
+  submittedApplicationResponseFixture,
   syntheticArtifactFixture,
   syntheticNarrativeFixture,
   syntheticTrackAAssessment,
   syntheticTrackBAssessment,
   syntheticTrackBApplication,
+  trackBInvitationResponseFixture,
   trackBSnapshotRequiredStatus,
 } from './index';
 
 describe('fictional fixture boundary', () => {
+  it('provides a valid submitted application response for frontend integration', () => {
+    expect(submittedApplicationResponseFixture.data.status.workflowStatus).toBe(
+      'awaiting_assessment',
+    );
+    expect(submittedApplicationResponseFixture.syntheticOnly).toBe(true);
+  });
+
+  it('provides a domain-level pending assessment response', () => {
+    expect(recordAssessmentVersionResponseSchema.parse(pendingAssessmentResponseFixture)).toEqual(
+      pendingAssessmentResponseFixture,
+    );
+    expect(pendingAssessmentResponseFixture.data.routing.trackA.outcome).toBe('pending');
+  });
+
+  it('preserves canonical Track B invitation reason ordering', () => {
+    expect(recordAssessmentVersionResponseSchema.parse(trackBInvitationResponseFixture)).toEqual(
+      trackBInvitationResponseFixture,
+    );
+    expect(
+      trackBInvitationResponseFixture.data.routing.trackBInvitation.orderedReasonCodes,
+    ).toEqual(['TB_COMPOSITE_BAND', 'TB_BATTERY_PROFILE']);
+  });
+
+  it('provides route-correct blind assignment fixtures', () => {
+    expect(
+      submitSnapshotVersionResponseSchema.parse(artifactSnapshotSubmissionResponseFixture),
+    ).toEqual(artifactSnapshotSubmissionResponseFixture);
+    expect(
+      submitSnapshotVersionResponseSchema.parse(narrativeSnapshotSubmissionResponseFixture),
+    ).toEqual(narrativeSnapshotSubmissionResponseFixture);
+    expect(
+      artifactSnapshotSubmissionResponseFixture.data.reviewCase.initialAssignments,
+    ).toHaveLength(2);
+    expect(
+      narrativeSnapshotSubmissionResponseFixture.data.reviewCase.initialAssignments,
+    ).toHaveLength(3);
+  });
+
+  it('provides blind-third and narrative-awaiting review transitions', () => {
+    expect(submitReviewResponseSchema.parse(artifactDisagreementReviewResponseFixture)).toEqual(
+      artifactDisagreementReviewResponseFixture,
+    );
+    expect(submitReviewResponseSchema.parse(narrativeTwoVotesReviewResponseFixture)).toEqual(
+      narrativeTwoVotesReviewResponseFixture,
+    );
+    expect(artifactDisagreementReviewResponseFixture.data.transition.createdAssignment.slot).toBe(
+      3,
+    );
+    expect(narrativeTwoVotesReviewResponseFixture.data.transition.kind).toBe(
+      'awaiting_required_reviews',
+    );
+  });
+
+  it('provides abstention and pending review action fixtures', () => {
+    expect(submitReviewActionResponseSchema.parse(reviewAbstentionResponseFixture)).toEqual(
+      reviewAbstentionResponseFixture,
+    );
+    expect(submitReviewActionResponseSchema.parse(evidencePendingReviewResponseFixture)).toEqual(
+      evidencePendingReviewResponseFixture,
+    );
+    expect(
+      submitReviewActionResponseSchema.parse(accessibilityPendingReviewResponseFixture),
+    ).toEqual(accessibilityPendingReviewResponseFixture);
+    expect(reviewAbstentionResponseFixture.data.transition.completedVoteCount).toBe(2);
+  });
+
+  it('provides successor, invariant, and disabled correction fixtures', () => {
+    expect(applyCorrectionResponseSchema.parse(assessmentCorrectionResponseFixture)).toEqual(
+      assessmentCorrectionResponseFixture,
+    );
+    expect(applyCorrectionResponseSchema.parse(invariantCorrectionResponseFixture)).toEqual(
+      invariantCorrectionResponseFixture,
+    );
+    expect(disabledCorrectionResponseSchema.parse(disabledAppealResponseFixture)).toEqual(
+      disabledAppealResponseFixture,
+    );
+    expect(assessmentCorrectionResponseFixture.data.correction.originalPreserved).toBe(true);
+  });
+
+  it('provides exact and truthfully refused replay fixtures', () => {
+    expect(replayDecisionResponseSchema.parse(exactReplayResponseFixture)).toEqual(
+      exactReplayResponseFixture,
+    );
+    expect(replayDecisionResponseSchema.parse(disposedInputReplayResponseFixture)).toEqual(
+      disposedInputReplayResponseFixture,
+    );
+    expect(disposedInputReplayResponseFixture.data.exactReplayClaimed).toBe(false);
+  });
+
   it('keeps every fixture visibly synthetic', () => {
     expect(fictionalFixtures.every(({ syntheticOnly }) => syntheticOnly)).toBe(true);
   });

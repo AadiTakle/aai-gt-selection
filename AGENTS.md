@@ -10,9 +10,15 @@ Read in this order before proposing or changing product behavior:
 2. `docs/project-requirements.md`
 3. `docs/DEVELOPMENT_RUBRIC.md`
 4. `docs/TRACEABILITY_MATRIX.md`
-5. `docs/ASSUMPTIONS_AND_EVIDENCE.md`
-6. `docs/DECISION_LOG.md`
-7. `docs/SCOPE_EXCEPTION_LOG.md`
+5. `docs/FEATURE_TO_REQUIREMENT_MAP.md`
+6. `docs/ASSUMPTIONS_AND_EVIDENCE.md`
+7. `docs/DECISION_LOG.md`
+8. `docs/SCOPE_EXCEPTION_LOG.md`
+
+Use `docs/FEATURE_TO_REQUIREMENT_MAP.md` as the development index for feature
+IDs, requirement mappings, scope, current implementation status, blockers, and
+remaining work. It is a derived implementation aid and cannot override a
+higher-precedence canonical requirement or ratified decision.
 
 When relevant, also read:
 

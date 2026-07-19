@@ -1,0 +1,206 @@
+# Frontend Enablement Report
+
+## Purpose
+
+This report explains what the backend-owned overnight changes make possible for the frontend
+developer without requiring them to know private database tables or wait for the complete
+admissions engine.
+
+## Stable frontend dependencies
+
+Frontend code should consume only:
+
+- `@gt-selection/contracts` for request/response validation, roles, status projections,
+  reason codes, API errors, and TypeScript types;
+- `@gt-selection/db-types` for generated exposed-`api` schema types;
+- `@gt-selection/test-fixtures` for visibly fictional UI states and stories;
+- the three read RPCs and seven write RPCs named in `docs/ARCHITECTURE_PLAN.md`.
+
+Frontend code must not import private SQL/migration code or infer workflow state from tables.
+
+## What the existing scaffold already enables
+
+- Build route shells independently using the shared role, status, pending, outcome, and error
+  vocabularies.
+- Render Track A, Track B invitation, review-pending, qualifying, and non-qualifying states
+  from fictional fixtures.
+- Keep “eligibility” distinct from admission, offer, waitlist, funding, or “not gifted.”
+- Validate local-only Supabase configuration and keep elevated credentials out of browser code.
+- Run unit/component/Playwright checks in the same CI pipeline as backend pgTAP tests.
+
+## What each backend slice will unlock
+
+### Contract freeze
+
+- Typed Server Action/RPC wrappers
+- Stable mock responses for every status and error
+- Fewer merge conflicts because payload names stop changing
+
+### Versioning and routing
+
+- Application autosave/submit integration
+- Synthetic CogAT entry and deterministic Track A/Track B status rendering
+- Reason-code-driven applicant copy
+
+### Review and pending workflow
+
+- Reviewer queue and locked submission integration
+- Family pending/correction screens
+- Blind-third-review and narrative-review status states
+
+### Decisions and replay
+
+- Applicant-safe explanations
+- Correction history
+- Auditor replay and integrity displays
+
+## Frontend ownership boundary
+
+The frontend teammate may work concurrently in:
+
+```text
+apps/web/src/app/**
+apps/web/src/components/**
+apps/web/src/styles/**
+```
+
+The overnight loop will not edit those paths. Shared contract changes are published through the
+draft PR and documented here before frontend integration.
+
+## Current integration guidance
+
+Until a backend RPC exists, use exported fictional fixtures rather than duplicating payload
+objects in frontend files. Treat every new contract as provisional until its slice is marked
+complete in `OVERNIGHT_BACKEND_BUILD_LOG.md` and draft-PR CI is green.
+
+## Cycle 1 frontend handoff
+
+`@gt-selection/contracts` now exports `saveApplicationDraftRequestSchema` and its inferred
+TypeScript type. The family application branch can:
+
+- construct autosave payloads with stable version/idempotency/correlation fields;
+- validate them before invoking a future Server Action;
+- reject unknown or private fields before they cross the frontend/backend boundary; and
+- test autosave UI state without waiting for the database RPC implementation.
+
+The contract deliberately contains no household-income, finance, allocation, or live applicant
+fields.
+
+## Cycle 2 frontend handoff
+
+`@gt-selection/contracts` now exports `submitApplicationResponseSchema` and its inferred type.
+`@gt-selection/test-fixtures` exports `submittedApplicationResponseFixture`.
+
+The frontend teammate can now implement and test:
+
+- successful application submission confirmation;
+- transition from draft to `awaiting_assessment`;
+- applicant-safe next-action copy driven by `AWAIT_ASSESSMENT`;
+- idempotent response handling; and
+- rejection of accidental admission/offer wording at the contract boundary.
+
+This fixture is the canonical UI mock for the submitted state until the database RPC exists.
+
+## Cycle 3 frontend handoff
+
+`@gt-selection/contracts` now exports the `recordAssessmentVersionRequestSchema`,
+`recordAssessmentVersionResponseSchema`, and inferred request/response types.
+`@gt-selection/test-fixtures` now exports:
+
+- `pendingAssessmentResponseFixture` for `assessment_needs_correction`; and
+- `trackBInvitationResponseFixture` for `track_b_snapshot_required`.
+
+The frontend teammate can use these without reproducing routing logic. Both are runtime-valid v1
+envelopes with correlation/idempotency metadata, exact synthetic assessment versions, typed Track
+A and Track B invitation results, ordered reasons, and applicant-safe status projections.
+
+The pending fixture is a successful domain response, not an error response. The invitation fixture
+means Snapshot submission is available; it does not mean Track B eligibility, admission, an offer,
+or funding.
+
+## Cycle 4 frontend handoff
+
+`@gt-selection/contracts` now exports `submitSnapshotVersionRequestSchema`,
+`submitSnapshotVersionResponseSchema`, and the inferred Snapshot, narrative-context, review-case,
+and request/response types. `@gt-selection/test-fixtures` now exports:
+
+- `artifactSnapshotSubmissionResponseFixture`; and
+- `narrativeSnapshotSubmissionResponseFixture`.
+
+The artifact contract accepts one or two synthetic fixture references and returns two blind initial
+assignments. The narrative contract accepts exactly one synthetic fixture, requires its bounded
+factual context, and returns three blind initial assignments with slot 3 designated supervisor.
+
+The frontend must send fixture references, never URLs, media, file data, or upload metadata. The
+response intentionally omits reviewer identities and all prior votes. Both fixtures project
+`snapshot_under_review` with `AWAIT_REVIEW` and preserve the eligibility-not-admission boundary.
+
+## Cycle 5 frontend handoff
+
+`@gt-selection/contracts` now exports `submitReviewResponseSchema`, `reviewSubmissionSchema`,
+`reviewTransitionSchema`, and their inferred types. `@gt-selection/test-fixtures` now exports:
+
+- `artifactDisagreementReviewResponseFixture`; and
+- `narrativeTwoVotesReviewResponseFixture`.
+
+The artifact fixture demonstrates the internal pending state and the single opaque slot-3
+supervisor assignment created after conflicting blind votes. The narrative fixture demonstrates
+that two completed votes, even if they agree, remain `snapshot_under_review` until the required
+third vote.
+
+Frontend code must render the supplied status projection and must not derive an aggregate from
+individual reviews. Responses intentionally expose `previousVotesExposed: false`, no reviewer
+identity, and no admission, offer, funding, or program-effect statement.
+
+## Cycle 6 frontend handoff
+
+`@gt-selection/contracts` now exports the unified `submitReviewActionRequestSchema` and
+`submitReviewActionResponseSchema`, plus typed abstention, blocking-issue, replacement-assignment,
+and pending-item contracts. `@gt-selection/test-fixtures` now exports:
+
+- `reviewAbstentionResponseFixture`;
+- `evidencePendingReviewResponseFixture`; and
+- `accessibilityPendingReviewResponseFixture`.
+
+An abstention is a non-vote action and returns replacement work without a classification. Evidence
+correction projects `review_pending_family_action` with `CORRECT_SNAPSHOT_EVIDENCE`; accessibility
+failure projects `review_pending_internal_action` with `AWAIT_ACCESSIBILITY_ROUTE`. In both pending
+fixtures, the displayed deadline exactly matches the owned pending item.
+
+Frontend code must not infer a negative outcome from either pending state and must not collect
+free-text issue descriptions; the contract exposes only the bounded synthetic reason vocabulary.
+
+## Cycle 7 frontend handoff
+
+`@gt-selection/contracts` now exports `applyCorrectionRequestSchema`,
+`applyCorrectionResponseSchema`, `disabledCorrectionRequestSchema`, and the correction lineage/
+impact types. `@gt-selection/test-fixtures` now exports:
+
+- `assessmentCorrectionResponseFixture`;
+- `invariantCorrectionResponseFixture`; and
+- `disabledAppealResponseFixture`.
+
+The assessment fixture demonstrates a preserved original, one immutable successor, a completed
+decision rerun from a complete manifest, and the corrected applicant-safe status. The invariant
+fixture demonstrates unchanged decision input/result hashes when corrected metadata is excluded
+from decision use.
+
+Substantive rubric appeal and genuinely new evidence are not correction payloads. Both receive
+non-retryable `FEATURE_DISABLED`; new evidence belongs to manual later-cycle re-entry.
+
+## Cycle 8 frontend handoff
+
+`@gt-selection/contracts` now exports `replayDecisionRequestSchema`,
+`replayDecisionResponseSchema`, replay mode/status schemas, component verification states, and
+failure-code types. `@gt-selection/test-fixtures` now exports:
+
+- `exactReplayResponseFixture`; and
+- `disposedInputReplayResponseFixture`.
+
+The audit UI may display `reexecuted_exact` only when `exactReplayClaimed` is true and every
+component verifies. `record_reconstructed` and `digest_verified` are intentionally weaker modes.
+Disposed input or a missing executable/environment artifact must display a refusal state, not a
+successful replay.
+
+No replay fixture uses network access. Integrity failures and execution mismatches remain separate
+so the UI does not collapse tampering/corruption into nondeterministic execution.
