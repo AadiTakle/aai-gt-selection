@@ -44,29 +44,105 @@ The architecture is organized around invariants that the corpus already ratified
 
 ## 2. System context (C4 level 1)
 
-```
-        ┌───────────────────────────────────────────────────────────┐
-        │            Pre-existing GT website (host)                  │
-        │  Marketing pages · nav · brand shell · CMS content         │
-        │                                                            │
-        │   embeds / links to ▼                                      │
-        │  ┌──────────────────────────────────────────────────┐     │
-        │  │      GT Admissions MVP (this system)              │     │
-        │  │  Next.js app (App Router) — 4 role-scoped surfaces │     │
-        │  │      │  request-scoped @supabase/ssr client        │     │
-        │  │      ▼                                             │     │
-        │  │  Supabase local stack                              │     │
-        │  │   • Postgres (app + api schemas, RLS forced)       │     │
-        │  │   • Auth (JWT, admin-controlled user_role claim)   │     │
-        │  │   • Storage (private synthetic fixtures)           │     │
-        │  │  Decision engine (TS, deterministic, offline)      │     │
-        │  └──────────────────────────────────────────────────┘     │
-        └───────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+  subgraph actors [Human actors]
+    Family["Family / guardian"]
+    Admissions["Admissions operator"]
+    Reviewer["Track B reviewer"]
+    Supervisor["Review supervisor"]
+    Auditor["Auditor"]
+    Privacy["Privacy steward"]
+  end
 
-External human actors: Family/guardian · Admissions operator · Reviewer ·
-Review supervisor · Auditor · Privacy steward.  (Decision service = internal.)
-External systems (out of MVP, seams only): CogAT admin (manual import),
-downstream allocation/finance/evaluation (allocation_undecided handoff).
+  Host["Pre-existing GT website<br/>marketing, navigation, brand, CMS"]
+
+  subgraph integration [Host integration boundary]
+    ModeA["Mode A<br/>linked sub-application<br/>prototype default"]
+    ModeB["Mode B<br/>reverse-proxy path mount<br/>future production-shaped option"]
+    ModeC["Mode C<br/>unauthenticated launcher only"]
+  end
+
+  subgraph web [GT Admissions MVP — Next.js App Router]
+    Banner["Persistent synthetic-prototype banner"]
+    FamilyPortal["Family Application Portal"]
+    ReviewWorkspace["Track B Reviewer Workspace"]
+    AdmissionsDashboard["Admissions Operations Dashboard"]
+    ConfigAudit["Configuration and Audit View"]
+    ServerBoundary["Server Components + Server Actions<br/>request-scoped Supabase clients"]
+    RoleGuard["Server-side role guard<br/>verified claims + auth.uid"]
+    HealthSession["Minimal health + session routes"]
+    DecisionEngine["Future deterministic decision-engine seam<br/>no network, clock, or randomness"]
+  end
+
+  subgraph shared [Framework-independent workspace packages]
+    Contracts["@gt-selection/contracts<br/>Zod schemas + public types"]
+    DbTypes["@gt-selection/db-types<br/>generated api-schema types"]
+    Fixtures["@gt-selection/test-fixtures<br/>born-synthetic examples"]
+  end
+
+  subgraph supabase [Local Supabase / PostgreSQL]
+    SupabaseAuth["Supabase Auth<br/>authenticated role + controlled app_metadata.user_role"]
+    ApiSchema["api schema<br/>typed read/write RPC boundary"]
+    AppSchema["app schema<br/>private data + forced RLS"]
+    Storage["Private fixed synthetic fixtures<br/>no live upload endpoint"]
+  end
+
+  CogAT["External CogAT administration<br/>manual synthetic result import"]
+  Downstream["Future downstream systems<br/>allocation_undecided only<br/>finance + evaluation out of MVP"]
+
+  subgraph delivery [Verification and promotion]
+    QualityGate["Workspace quality<br/>format, lint, types, unit tests, build"]
+    DatabaseGate["Database gate<br/>reset, lint, pgTAP, type drift"]
+    WebGate["Web gate<br/>Playwright + elevated-key scan"]
+    Promotion["Promotion artifact<br/>dev → staging → main<br/>no live deployment"]
+  end
+
+  Host -->|"prototype navigation"| ModeA
+  Host -->|"future same-domain option"| ModeB
+  Host -->|"optional public launcher"| ModeC
+  ModeA --> Banner
+  ModeB --> Banner
+  ModeC --> Banner
+
+  Family --> FamilyPortal
+  Admissions --> AdmissionsDashboard
+  Reviewer --> ReviewWorkspace
+  Supervisor --> ReviewWorkspace
+  Auditor --> ConfigAudit
+  Privacy --> ConfigAudit
+
+  Banner --> FamilyPortal
+  Banner --> ReviewWorkspace
+  Banner --> AdmissionsDashboard
+  Banner --> ConfigAudit
+
+  FamilyPortal --> ServerBoundary
+  ReviewWorkspace --> ServerBoundary
+  AdmissionsDashboard --> ServerBoundary
+  ConfigAudit --> ServerBoundary
+  HealthSession --> ServerBoundary
+  ServerBoundary --> RoleGuard
+  RoleGuard --> SupabaseAuth
+  ServerBoundary --> ApiSchema
+  ServerBoundary --> Storage
+  ApiSchema --> AppSchema
+
+  Contracts --> ServerBoundary
+  DbTypes --> ServerBoundary
+  Fixtures -->|"tests only"| ServerBoundary
+  ServerBoundary --> DecisionEngine
+  DecisionEngine --> ApiSchema
+
+  CogAT -->|"outside product; operator entry"| AdmissionsDashboard
+  AppSchema -->|"eligibility result only"| Downstream
+
+  QualityGate --> DatabaseGate
+  DatabaseGate --> WebGate
+  WebGate --> Promotion
+  QualityGate -.-> ServerBoundary
+  DatabaseGate -.-> AppSchema
+  WebGate -.-> Banner
 ```
 
 The MVP is a **self-contained bounded system** that the host website *composes with* rather than *contains*. This boundary is the crux of the "easily integratable" requirement and is detailed in § 6.
