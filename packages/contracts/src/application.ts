@@ -2,6 +2,25 @@ import { z } from 'zod';
 
 export const applicationStateSchema = z.enum(['draft', 'submitted', 'superseded']);
 
+export const applicationDraftSchema = z
+  .object({
+    currentGrade: z.string().min(1),
+    requestedGrade: z.string().min(1),
+    requestedEntryYear: z.int().min(2026).max(2100),
+    syntheticOnly: z.literal(true),
+  })
+  .strict();
+
+export const saveApplicationDraftRequestSchema = z
+  .object({
+    applicationId: z.uuid(),
+    draft: applicationDraftSchema,
+    expectedVersion: z.int().nonnegative(),
+    idempotencyKey: z.uuid(),
+    correlationId: z.uuid(),
+  })
+  .strict();
+
 export const applicationVersionSchema = z
   .object({
     applicationId: z.uuid(),
@@ -45,6 +64,8 @@ export const assessmentVersionSchema = z
   .strict();
 
 export type ApplicationState = z.infer<typeof applicationStateSchema>;
+export type ApplicationDraft = z.infer<typeof applicationDraftSchema>;
+export type SaveApplicationDraftRequest = z.infer<typeof saveApplicationDraftRequestSchema>;
 export type ApplicationVersion = z.infer<typeof applicationVersionSchema>;
 export type SubmitApplicationRequest = z.infer<typeof submitApplicationRequestSchema>;
 export type AssessmentValidity = z.infer<typeof assessmentValiditySchema>;

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   apiErrorCodeSchema,
   reviewerClassificationSchema,
+  saveApplicationDraftRequestSchema,
   statusProjectionSchema,
   submitApplicationRequestSchema,
   submitReviewRequestSchema,
@@ -14,6 +15,29 @@ import {
 const uuid = '00000000-0000-4000-8000-000000000001';
 
 describe('public contract boundaries', () => {
+  it('accepts a versioned idempotent draft-save request and rejects unknown fields', () => {
+    const request = {
+      applicationId: uuid,
+      draft: {
+        currentGrade: '5',
+        requestedEntryYear: 2027,
+        requestedGrade: '6',
+        syntheticOnly: true,
+      },
+      expectedVersion: 0,
+      idempotencyKey: uuid,
+      correlationId: uuid,
+    };
+
+    expect(saveApplicationDraftRequestSchema.parse(request)).toEqual(request);
+    expect(
+      saveApplicationDraftRequestSchema.safeParse({
+        ...request,
+        householdIncome: 100_000,
+      }).success,
+    ).toBe(false);
+  });
+
   it('accepts a valid application submission request', () => {
     expect(
       submitApplicationRequestSchema.parse({
