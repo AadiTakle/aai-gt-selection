@@ -1,5 +1,6 @@
 export * from './api-envelope';
 export * from './application';
+export * from './correction';
 export * from './decision';
 export * from './errors';
 export * from './reason-codes';

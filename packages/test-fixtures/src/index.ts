@@ -1,4 +1,6 @@
 import type {
+  ApiError,
+  ApplyCorrectionResponse,
   ApplicationVersion,
   AssessmentVersion,
   SnapshotFixtureReference,
@@ -561,6 +563,122 @@ export const accessibilityPendingReviewResponseFixture = {
   },
 } satisfies SubmitReviewActionResponse;
 
+export const assessmentCorrectionResponseFixture = {
+  apiVersion: 'v1',
+  syntheticOnly: true,
+  data: {
+    correction: {
+      correctionCaseId: '00000000-0000-4000-8000-000000000911',
+      correctionKind: 'factual_or_provenance',
+      resolution: 'applied',
+      originalPreserved: true,
+      syntheticOnly: true,
+    },
+    originalVersion: {
+      entityType: 'assessment_version',
+      versionId: syntheticTrackBAssessment.assessmentVersionId,
+      version: 1,
+      supersedesId: null,
+      contentHash: `sha256:${'c'.repeat(64)}`,
+      syntheticOnly: true,
+    },
+    successorVersion: {
+      entityType: 'assessment_version',
+      versionId: '00000000-0000-4000-8000-000000000205',
+      version: 2,
+      supersedesId: syntheticTrackBAssessment.assessmentVersionId,
+      contentHash: `sha256:${'d'.repeat(64)}`,
+      syntheticOnly: true,
+    },
+    decisionImpact: {
+      decisionUse: 'decision_used',
+      rerunStatus: 'completed',
+      manifestHash: `sha256:${'e'.repeat(64)}`,
+      policyBundleId: 'PB-SYN-01',
+      affectedDecisionRunIds: ['00000000-0000-4000-8000-000000000921'],
+      inputHashBefore: `sha256:${'1'.repeat(64)}`,
+      inputHashAfter: `sha256:${'2'.repeat(64)}`,
+      resultHashBefore: `sha256:${'3'.repeat(64)}`,
+      resultHashAfter: `sha256:${'4'.repeat(64)}`,
+      exactOriginalReplayPreserved: true,
+    },
+    status: {
+      workflowStatus: 'track_a_eligible',
+      displayLabelCode: 'STATUS_TRACK_A_ELIGIBLE',
+      phase: 'decision',
+      familyActionRequired: false,
+      nextActionCode: null,
+      deadline: null,
+      pendingReason: null,
+      claimBoundaryCode: 'ELIGIBILITY_NOT_ADMISSION',
+    },
+  },
+  meta: {
+    correlationId: '00000000-0000-4000-8000-000000000321',
+    idempotencyKey: '00000000-0000-4000-8000-000000000322',
+    idempotentReplay: false,
+  },
+} satisfies ApplyCorrectionResponse;
+
+export const invariantCorrectionResponseFixture = {
+  apiVersion: 'v1',
+  syntheticOnly: true,
+  data: {
+    correction: {
+      correctionCaseId: '00000000-0000-4000-8000-000000000912',
+      correctionKind: 'factual_or_provenance',
+      resolution: 'applied',
+      originalPreserved: true,
+      syntheticOnly: true,
+    },
+    originalVersion: {
+      entityType: 'application_version',
+      versionId: syntheticTrackBApplication.applicationVersionId,
+      version: 1,
+      supersedesId: null,
+      contentHash: `sha256:${'5'.repeat(64)}`,
+      syntheticOnly: true,
+    },
+    successorVersion: {
+      entityType: 'application_version',
+      versionId: '00000000-0000-4000-8000-000000000102',
+      version: 2,
+      supersedesId: syntheticTrackBApplication.applicationVersionId,
+      contentHash: `sha256:${'6'.repeat(64)}`,
+      syntheticOnly: true,
+    },
+    decisionImpact: {
+      decisionUse: 'excluded_from_decision',
+      rerunStatus: 'not_required_invariant_verified',
+      manifestHash: null,
+      policyBundleId: 'PB-SYN-01',
+      affectedDecisionRunIds: [],
+      inputHashBefore: `sha256:${'7'.repeat(64)}`,
+      inputHashAfter: `sha256:${'7'.repeat(64)}`,
+      resultHashBefore: `sha256:${'8'.repeat(64)}`,
+      resultHashAfter: `sha256:${'8'.repeat(64)}`,
+      exactOriginalReplayPreserved: true,
+    },
+    status: trackBSnapshotRequiredStatus,
+  },
+  meta: {
+    correlationId: '00000000-0000-4000-8000-000000000323',
+    idempotencyKey: '00000000-0000-4000-8000-000000000324',
+    idempotentReplay: false,
+  },
+} satisfies ApplyCorrectionResponse;
+
+export const disabledAppealResponseFixture = {
+  error: {
+    code: 'FEATURE_DISABLED',
+    message: 'Substantive rubric appeal is deferred beyond the synthetic MVP.',
+    retryable: false,
+    correlationId: '00000000-0000-4000-8000-000000000325',
+    currentState: 'correction_available',
+    fieldErrors: [],
+  },
+} satisfies ApiError;
+
 export const fictionalFixtures = [
   syntheticTrackBApplication,
   syntheticTrackAAssessment,
@@ -578,4 +696,6 @@ export const fictionalFixtures = [
   reviewAbstentionResponseFixture,
   evidencePendingReviewResponseFixture,
   accessibilityPendingReviewResponseFixture,
+  assessmentCorrectionResponseFixture,
+  invariantCorrectionResponseFixture,
 ] as const;

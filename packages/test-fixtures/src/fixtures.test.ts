@@ -1,6 +1,8 @@
 import {
+  applyCorrectionResponseSchema,
   applicationVersionSchema,
   assessmentVersionSchema,
+  disabledCorrectionResponseSchema,
   recordAssessmentVersionResponseSchema,
   snapshotFixtureReferenceSchema,
   statusProjectionSchema,
@@ -12,6 +14,9 @@ import { describe, expect, it } from 'vitest';
 
 import {
   accessibilityPendingReviewResponseFixture,
+  assessmentCorrectionResponseFixture,
+  disabledAppealResponseFixture,
+  invariantCorrectionResponseFixture,
   artifactDisagreementReviewResponseFixture,
   evidencePendingReviewResponseFixture,
   reviewAbstentionResponseFixture,
@@ -95,6 +100,19 @@ describe('fictional fixture boundary', () => {
       submitReviewActionResponseSchema.parse(accessibilityPendingReviewResponseFixture),
     ).toEqual(accessibilityPendingReviewResponseFixture);
     expect(reviewAbstentionResponseFixture.data.transition.completedVoteCount).toBe(2);
+  });
+
+  it('provides successor, invariant, and disabled correction fixtures', () => {
+    expect(applyCorrectionResponseSchema.parse(assessmentCorrectionResponseFixture)).toEqual(
+      assessmentCorrectionResponseFixture,
+    );
+    expect(applyCorrectionResponseSchema.parse(invariantCorrectionResponseFixture)).toEqual(
+      invariantCorrectionResponseFixture,
+    );
+    expect(disabledCorrectionResponseSchema.parse(disabledAppealResponseFixture)).toEqual(
+      disabledAppealResponseFixture,
+    );
+    expect(assessmentCorrectionResponseFixture.data.correction.originalPreserved).toBe(true);
   });
 
   it('keeps every fixture visibly synthetic', () => {

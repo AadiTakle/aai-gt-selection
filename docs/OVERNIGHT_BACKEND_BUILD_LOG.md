@@ -165,3 +165,24 @@ duplicate implementation logic, or rely on snapshots that cannot independently f
   response fixtures now cover reviewer, family, and internal pending surfaces.
 - Next slice: freeze `apply_correction` successor request/response contracts, preserving immutable
   originals and triggering a fresh deterministic rerun without implementing substantive appeal.
+
+### Cycle 7 — Immutable correction successors
+
+- **Seam:** `apply_correction` requests, one-step successor lineage, decision-impact proof, and
+  explicit disabled-scope responses.
+- **Red:** contract tests failed before correction schemas existed; fixture tests failed before
+  canonical correction examples existed; follow-up tests showed a decision-used correction could
+  claim completion without new input/result commitments.
+- **Green:** added bounded application, assessment, Snapshot-provenance, and procedural correction
+  payloads; strict original/successor references; complete-manifest rerun evidence; decision-
+  excluded hash invariance; and non-retryable `FEATURE_DISABLED` for substantive rubric appeal or
+  new evidence.
+- **Regression:** 28 contract tests, 12 fixture tests, and both package typechecks pass.
+- Every applied correction preserves the original, creates exactly the next immutable version,
+  and identifies whether a complete decision rerun occurred or invariance was verified.
+- Snapshot correction may change bounded provenance for an existing fixture only; there is no
+  payload for adding evidence. Procedural cures use a closed error/cure vocabulary.
+- Frontend enablement: assessment-successor, decision-invariant, and disabled-appeal fixtures now
+  cover corrected status and deferred-scope messaging without implying substantive review.
+- Next slice: freeze `replay_decision` request/response contracts for exact re-execution,
+  reconstruction/digest-only modes, and truthful refusal when artifacts or inputs are unavailable.

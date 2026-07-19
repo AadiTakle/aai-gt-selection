@@ -169,3 +169,21 @@ fixtures, the displayed deadline exactly matches the owned pending item.
 
 Frontend code must not infer a negative outcome from either pending state and must not collect
 free-text issue descriptions; the contract exposes only the bounded synthetic reason vocabulary.
+
+## Cycle 7 frontend handoff
+
+`@gt-selection/contracts` now exports `applyCorrectionRequestSchema`,
+`applyCorrectionResponseSchema`, `disabledCorrectionRequestSchema`, and the correction lineage/
+impact types. `@gt-selection/test-fixtures` now exports:
+
+- `assessmentCorrectionResponseFixture`;
+- `invariantCorrectionResponseFixture`; and
+- `disabledAppealResponseFixture`.
+
+The assessment fixture demonstrates a preserved original, one immutable successor, a completed
+decision rerun from a complete manifest, and the corrected applicant-safe status. The invariant
+fixture demonstrates unchanged decision input/result hashes when corrected metadata is excluded
+from decision use.
+
+Substantive rubric appeal and genuinely new evidence are not correction payloads. Both receive
+non-retryable `FEATURE_DISABLED`; new evidence belongs to manual later-cycle re-entry.
