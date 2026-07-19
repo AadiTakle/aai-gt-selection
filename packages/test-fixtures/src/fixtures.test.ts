@@ -4,12 +4,15 @@ import {
   recordAssessmentVersionResponseSchema,
   snapshotFixtureReferenceSchema,
   statusProjectionSchema,
+  submitReviewResponseSchema,
   submitSnapshotVersionResponseSchema,
 } from '@gt-selection/contracts';
 import { describe, expect, it } from 'vitest';
 
 import {
+  artifactDisagreementReviewResponseFixture,
   artifactSnapshotSubmissionResponseFixture,
+  narrativeTwoVotesReviewResponseFixture,
   fictionalFixtures,
   narrativeSnapshotSubmissionResponseFixture,
   pendingAssessmentResponseFixture,
@@ -60,6 +63,21 @@ describe('fictional fixture boundary', () => {
     expect(
       narrativeSnapshotSubmissionResponseFixture.data.reviewCase.initialAssignments,
     ).toHaveLength(3);
+  });
+
+  it('provides blind-third and narrative-awaiting review transitions', () => {
+    expect(submitReviewResponseSchema.parse(artifactDisagreementReviewResponseFixture)).toEqual(
+      artifactDisagreementReviewResponseFixture,
+    );
+    expect(submitReviewResponseSchema.parse(narrativeTwoVotesReviewResponseFixture)).toEqual(
+      narrativeTwoVotesReviewResponseFixture,
+    );
+    expect(artifactDisagreementReviewResponseFixture.data.transition.createdAssignment.slot).toBe(
+      3,
+    );
+    expect(narrativeTwoVotesReviewResponseFixture.data.transition.kind).toBe(
+      'awaiting_required_reviews',
+    );
   });
 
   it('keeps every fixture visibly synthetic', () => {

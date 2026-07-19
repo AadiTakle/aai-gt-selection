@@ -134,3 +134,20 @@ factual context, and returns three blind initial assignments with slot 3 designa
 The frontend must send fixture references, never URLs, media, file data, or upload metadata. The
 response intentionally omits reviewer identities and all prior votes. Both fixtures project
 `snapshot_under_review` with `AWAIT_REVIEW` and preserve the eligibility-not-admission boundary.
+
+## Cycle 5 frontend handoff
+
+`@gt-selection/contracts` now exports `submitReviewResponseSchema`, `reviewSubmissionSchema`,
+`reviewTransitionSchema`, and their inferred types. `@gt-selection/test-fixtures` now exports:
+
+- `artifactDisagreementReviewResponseFixture`; and
+- `narrativeTwoVotesReviewResponseFixture`.
+
+The artifact fixture demonstrates the internal pending state and the single opaque slot-3
+supervisor assignment created after conflicting blind votes. The narrative fixture demonstrates
+that two completed votes, even if they agree, remain `snapshot_under_review` until the required
+third vote.
+
+Frontend code must render the supplied status projection and must not derive an aggregate from
+individual reviews. Responses intentionally expose `previousVotesExposed: false`, no reviewer
+identity, and no admission, offer, funding, or program-effect statement.

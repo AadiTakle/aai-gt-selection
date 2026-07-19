@@ -5,6 +5,7 @@ import type {
   StatusProjection,
   RecordAssessmentVersionResponse,
   SubmitApplicationResponse,
+  SubmitReviewResponse,
   SubmitSnapshotVersionResponse,
 } from '@gt-selection/contracts';
 
@@ -314,6 +315,97 @@ export const narrativeSnapshotSubmissionResponseFixture = {
   },
 } satisfies SubmitSnapshotVersionResponse;
 
+const reviewDimensionCodes = ['DE', 'LR', 'TA', 'IN', 'RE', 'SP'] as const;
+const syntheticReviewRatings = reviewDimensionCodes.map((dimensionCode) => ({
+  dimensionCode,
+  anchorCode: `${dimensionCode}-2`,
+  ratingCode: '2',
+  evidenceReference: syntheticArtifactFixture.fixtureId,
+}));
+
+export const artifactDisagreementReviewResponseFixture = {
+  apiVersion: 'v1',
+  syntheticOnly: true,
+  data: {
+    reviewSubmission: {
+      reviewSubmissionId: '00000000-0000-4000-8000-000000000801',
+      assignmentId: '00000000-0000-4000-8000-000000000702',
+      reviewCaseId: '00000000-0000-4000-8000-000000000601',
+      classification: 'does_not_currently_qualify',
+      ratings: syntheticReviewRatings,
+      version: 1,
+      contentHash: `sha256:${'a'.repeat(64)}`,
+      locked: true,
+      syntheticOnly: true,
+    },
+    transition: {
+      kind: 'additional_blind_review_required',
+      reviewCaseId: '00000000-0000-4000-8000-000000000601',
+      route: 'artifact',
+      workflowState: 'under_review',
+      completedVoteCount: 2,
+      requiredVoteCount: 3,
+      pendingReason: 'pending_additional_blind_review',
+      createdAssignment: initialAssignment('00000000-0000-4000-8000-000000000706', 3, 'supervisor'),
+      decision: null,
+      previousVotesExposed: false,
+      syntheticOnly: true,
+    },
+    status: {
+      workflowStatus: 'review_pending_internal_action',
+      displayLabelCode: 'STATUS_REVIEW_PENDING_INTERNAL_ACTION',
+      phase: 'review',
+      familyActionRequired: false,
+      nextActionCode: 'AWAIT_ADDITIONAL_BLIND_REVIEW',
+      deadline: null,
+      pendingReason: 'pending_additional_blind_review',
+      claimBoundaryCode: 'ELIGIBILITY_NOT_ADMISSION',
+    },
+  },
+  meta: {
+    correlationId: '00000000-0000-4000-8000-000000000311',
+    idempotencyKey: '00000000-0000-4000-8000-000000000312',
+    idempotentReplay: false,
+  },
+} satisfies SubmitReviewResponse;
+
+export const narrativeTwoVotesReviewResponseFixture = {
+  apiVersion: 'v1',
+  syntheticOnly: true,
+  data: {
+    reviewSubmission: {
+      reviewSubmissionId: '00000000-0000-4000-8000-000000000802',
+      assignmentId: '00000000-0000-4000-8000-000000000704',
+      reviewCaseId: '00000000-0000-4000-8000-000000000602',
+      classification: 'qualifies',
+      ratings: syntheticReviewRatings,
+      version: 1,
+      contentHash: `sha256:${'b'.repeat(64)}`,
+      locked: true,
+      syntheticOnly: true,
+    },
+    transition: {
+      kind: 'awaiting_required_reviews',
+      reviewCaseId: '00000000-0000-4000-8000-000000000602',
+      route: 'narrative',
+      workflowState: 'under_review',
+      completedVoteCount: 2,
+      requiredVoteCount: 3,
+      pendingReason: null,
+      createdAssignment: null,
+      decision: null,
+      previousVotesExposed: false,
+      syntheticOnly: true,
+    },
+    status: snapshotUnderReviewStatus,
+  },
+  meta: {
+    correlationId: '00000000-0000-4000-8000-000000000313',
+    idempotencyKey: '00000000-0000-4000-8000-000000000314',
+    idempotentReplay: false,
+  },
+} satisfies SubmitReviewResponse;
+
 export const fictionalFixtures = [
   syntheticTrackBApplication,
   syntheticTrackAAssessment,
@@ -326,4 +418,6 @@ export const fictionalFixtures = [
   trackBInvitationResponseFixture,
   artifactSnapshotSubmissionResponseFixture,
   narrativeSnapshotSubmissionResponseFixture,
+  artifactDisagreementReviewResponseFixture,
+  narrativeTwoVotesReviewResponseFixture,
 ] as const;

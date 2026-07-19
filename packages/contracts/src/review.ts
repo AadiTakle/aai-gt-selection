@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { apiSuccessSchema } from './api-envelope';
+import { trackBEligibilityDecisionSummarySchema } from './decision';
 import { statusProjectionSchema } from './workflow';
 
 export const snapshotRouteSchema = z.enum(['artifact', 'narrative']);
@@ -233,6 +234,19 @@ export const reviewRatingSchema = z
   })
   .strict();
 
+export const reviewRatingsSchema = z
+  .array(reviewRatingSchema)
+  .length(6)
+  .superRefine((ratings, context) => {
+    const uniqueDimensions = new Set(ratings.map(({ dimensionCode }) => dimensionCode));
+    if (uniqueDimensions.size !== ratings.length) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Each review dimension may be rated exactly once.',
+      });
+    }
+  });
+
 export const submitReviewRequestSchema = z
   .object({
     assignmentId: z.uuid(),
@@ -240,19 +254,221 @@ export const submitReviewRequestSchema = z
     idempotencyKey: z.uuid(),
     correlationId: z.uuid(),
     classification: reviewerClassificationSchema,
-    ratings: z.array(reviewRatingSchema).length(6),
+    ratings: reviewRatingsSchema,
+  })
+  .strict();
+
+export const reviewSubmissionSchema = z
+  .object({
+    reviewSubmissionId: z.uuid(),
+    assignmentId: z.uuid(),
+    reviewCaseId: z.uuid(),
+    classification: reviewerClassificationSchema,
+    ratings: reviewRatingsSchema,
+    version: z.int().positive(),
+    contentHash: z.string().regex(/^sha256:[0-9a-f]{64}$/),
+    locked: z.literal(true),
+    syntheticOnly: z.literal(true),
+  })
+  .strict();
+
+const transitionBaseFields = {
+  reviewCaseId: z.uuid(),
+  workflowState: z.literal('under_review'),
+  pendingReason: z.null(),
+  createdAssignment: z.null(),
+  decision: z.null(),
+  previousVotesExposed: z.literal(false),
+  syntheticOnly: z.literal(true),
+};
+
+const artifactAwaitingReviewsTransitionSchema = z
+  .object({
+    ...transitionBaseFields,
+    kind: z.literal('awaiting_required_reviews'),
+    route: z.literal('artifact'),
+    completedVoteCount: z.literal(1),
+    requiredVoteCount: z.literal(2),
+  })
+  .strict();
+
+const narrativeAwaitingReviewsTransitionSchema = z
+  .object({
+    ...transitionBaseFields,
+    kind: z.literal('awaiting_required_reviews'),
+    route: z.literal('narrative'),
+    completedVoteCount: z.union([z.literal(1), z.literal(2)]),
+    requiredVoteCount: z.literal(3),
+  })
+  .strict();
+
+export const awaitingRequiredReviewsTransitionSchema = z.union([
+  artifactAwaitingReviewsTransitionSchema,
+  narrativeAwaitingReviewsTransitionSchema,
+]);
+
+export const additionalBlindReviewTransitionSchema = z
+  .object({
+    reviewCaseId: z.uuid(),
+    kind: z.literal('additional_blind_review_required'),
+    route: z.literal('artifact'),
+    workflowState: z.literal('under_review'),
+    completedVoteCount: z.literal(2),
+    requiredVoteCount: z.literal(3),
+    pendingReason: z.literal('pending_additional_blind_review'),
+    createdAssignment: supervisorSlotThreeSchema,
+    decision: z.null(),
+    previousVotesExposed: z.literal(false),
+    syntheticOnly: z.literal(true),
+  })
+  .strict();
+
+const finalTrackBDecisionSchema = trackBEligibilityDecisionSummarySchema.safeExtend({
+  outcome: reviewerClassificationSchema,
+  pendingReason: z.null(),
+});
+
+const finalTransitionBaseFields = {
+  reviewCaseId: z.uuid(),
+  kind: z.literal('finalized'),
+  workflowState: z.literal('finalized'),
+  pendingReason: z.null(),
+  createdAssignment: z.null(),
+  decision: finalTrackBDecisionSchema,
+  previousVotesExposed: z.literal(false),
+  syntheticOnly: z.literal(true),
+};
+
+const artifactTwoVoteFinalizedTransitionSchema = z
+  .object({
+    ...finalTransitionBaseFields,
+    route: z.literal('artifact'),
+    completedVoteCount: z.literal(2),
+    requiredVoteCount: z.literal(2),
+  })
+  .strict();
+const artifactThreeVoteFinalizedTransitionSchema = z
+  .object({
+    ...finalTransitionBaseFields,
+    route: z.literal('artifact'),
+    completedVoteCount: z.literal(3),
+    requiredVoteCount: z.literal(3),
+  })
+  .strict();
+const narrativeFinalizedTransitionSchema = z
+  .object({
+    ...finalTransitionBaseFields,
+    route: z.literal('narrative'),
+    completedVoteCount: z.literal(3),
+    requiredVoteCount: z.literal(3),
+  })
+  .strict();
+
+export const finalizedReviewTransitionSchema = z.union([
+  artifactTwoVoteFinalizedTransitionSchema,
+  artifactThreeVoteFinalizedTransitionSchema,
+  narrativeFinalizedTransitionSchema,
+]);
+
+export const reviewTransitionSchema = z.union([
+  awaitingRequiredReviewsTransitionSchema,
+  additionalBlindReviewTransitionSchema,
+  finalizedReviewTransitionSchema,
+]);
+
+const additionalBlindReviewStatusSchema = statusProjectionSchema.extend({
+  workflowStatus: z.literal('review_pending_internal_action'),
+  displayLabelCode: z.literal('STATUS_REVIEW_PENDING_INTERNAL_ACTION'),
+  phase: z.literal('review'),
+  familyActionRequired: z.literal(false),
+  nextActionCode: z.literal('AWAIT_ADDITIONAL_BLIND_REVIEW'),
+  deadline: z.null(),
+  pendingReason: z.literal('pending_additional_blind_review'),
+});
+
+const eligibleStatusSchema = statusProjectionSchema.extend({
+  workflowStatus: z.literal('track_b_eligible'),
+  displayLabelCode: z.literal('STATUS_TRACK_B_ELIGIBLE'),
+  phase: z.literal('decision'),
+  familyActionRequired: z.literal(false),
+  nextActionCode: z.null(),
+  deadline: z.null(),
+  pendingReason: z.null(),
+});
+
+const doesNotCurrentlyQualifyStatusSchema = statusProjectionSchema.extend({
+  workflowStatus: z.literal('track_b_does_not_currently_qualify'),
+  displayLabelCode: z.literal('STATUS_TRACK_B_DOES_NOT_CURRENTLY_QUALIFY'),
+  phase: z.literal('decision'),
+  familyActionRequired: z.literal(false),
+  nextActionCode: z.null(),
+  deadline: z.null(),
+  pendingReason: z.null(),
+});
+
+const requireReviewCaseReference = (
+  value: {
+    reviewSubmission: { reviewCaseId: string };
+    transition: { reviewCaseId: string };
+  },
+  context: z.RefinementCtx,
+) => {
+  if (value.reviewSubmission.reviewCaseId !== value.transition.reviewCaseId) {
+    context.addIssue({
+      code: 'custom',
+      message: 'Review submission and transition must reference the same case.',
+      path: ['reviewSubmission', 'reviewCaseId'],
+    });
+  }
+};
+
+const awaitingReviewResponseDataSchema = z
+  .object({
+    reviewSubmission: reviewSubmissionSchema,
+    transition: awaitingRequiredReviewsTransitionSchema,
+    status: snapshotUnderReviewStatusSchema,
   })
   .strict()
-  .superRefine(({ ratings }, context) => {
-    const uniqueDimensions = new Set(ratings.map(({ dimensionCode }) => dimensionCode));
-    if (uniqueDimensions.size !== ratings.length) {
+  .superRefine(requireReviewCaseReference);
+
+const additionalBlindReviewResponseDataSchema = z
+  .object({
+    reviewSubmission: reviewSubmissionSchema,
+    transition: additionalBlindReviewTransitionSchema,
+    status: additionalBlindReviewStatusSchema,
+  })
+  .strict()
+  .superRefine(requireReviewCaseReference);
+
+const finalizedReviewResponseDataSchema = z
+  .object({
+    reviewSubmission: reviewSubmissionSchema,
+    transition: finalizedReviewTransitionSchema,
+    status: z.union([eligibleStatusSchema, doesNotCurrentlyQualifyStatusSchema]),
+  })
+  .strict()
+  .superRefine(requireReviewCaseReference)
+  .superRefine(({ transition, status }, context) => {
+    const expectedStatus =
+      transition.decision.outcome === 'qualifies'
+        ? 'track_b_eligible'
+        : 'track_b_does_not_currently_qualify';
+    if (status.workflowStatus !== expectedStatus) {
       context.addIssue({
         code: 'custom',
-        message: 'Each review dimension may be rated exactly once.',
-        path: ['ratings'],
+        message: 'Final applicant status must match the Track B eligibility outcome.',
+        path: ['status', 'workflowStatus'],
       });
     }
   });
+
+export const submitReviewResponseSchema = apiSuccessSchema(
+  z.union([
+    awaitingReviewResponseDataSchema,
+    additionalBlindReviewResponseDataSchema,
+    finalizedReviewResponseDataSchema,
+  ]),
+);
 
 export type SnapshotRoute = z.infer<typeof snapshotRouteSchema>;
 export type FixtureProvenance = z.infer<typeof fixtureProvenanceSchema>;
@@ -266,3 +482,6 @@ export type SubmitSnapshotVersionResponse = z.infer<typeof submitSnapshotVersion
 export type ReviewerClassification = z.infer<typeof reviewerClassificationSchema>;
 export type ReviewRating = z.infer<typeof reviewRatingSchema>;
 export type SubmitReviewRequest = z.infer<typeof submitReviewRequestSchema>;
+export type ReviewSubmission = z.infer<typeof reviewSubmissionSchema>;
+export type ReviewTransition = z.infer<typeof reviewTransitionSchema>;
+export type SubmitReviewResponse = z.infer<typeof submitReviewResponseSchema>;

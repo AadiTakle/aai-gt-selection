@@ -123,3 +123,24 @@ duplicate implementation logic, or rely on snapshots that cannot independently f
   with no reviewer identity or prior-vote exposure.
 - Next slice: freeze `submit_review` response and transition contracts, including artifact
   disagreement creating one blind-third assignment and narrative remaining open after two votes.
+
+### Cycle 5 — Review submission transitions
+
+- **Seam:** immutable review submission output plus awaiting, blind-third, and finalized
+  `submit_review` response transitions.
+- **Red:** response tests failed before `submitReviewResponseSchema` existed; fixture tests failed
+  before canonical transition examples existed; a follow-up test showed mismatched submission and
+  transition case references were accepted.
+- **Green:** added reusable six-dimension rating validation, locked review submissions,
+  route/count-specific transition schemas, one opaque blind supervisor assignment for artifact
+  disagreement, final Track B decision/status coupling, and cross-object review-case binding.
+- **Regression:** 21 contract tests, 10 fixture tests, and both package typechecks pass.
+- Narrative finalization is impossible at two votes; its contract remains under review until all
+  three classifications are locked. Matching artifact votes may finalize at two; conflicting
+  artifact votes require exactly the slot-3 blind supervisor shape.
+- Responses expose neither reviewer identity nor prior votes and retain the
+  eligibility-not-admission boundary.
+- Frontend enablement: canonical artifact-disagreement and narrative-two-vote responses are now
+  available for pending/internal and still-under-review UI states.
+- Next slice: freeze reviewer abstention/replacement and decision-critical evidence/access pending
+  transitions before moving from public contracts into database implementation.
