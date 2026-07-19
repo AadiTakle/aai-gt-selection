@@ -1,8 +1,10 @@
 # Two-Week Backend Implementation Backlog
 
+> **Platform (D-012):** Target platform is AWS with PostgreSQL retained (Aurora/Cognito/S3/RDS Proxy/Secrets Manager; see `docs/DECISION_LOG.md` D-012). The security/replay design is unchanged; only bindings move. See the **AWS platform migration** items under "Follow-up work" below.
+
 ## Scope
 
-Build a local, synthetic-only Supabase/PostgreSQL backend for deterministic routing, blind review, pending states, immutable decisions, audit, replay, and RLS.
+Build a synthetic-only PostgreSQL backend for deterministic routing, blind review, pending states, immutable decisions, audit, replay, and RLS. (Currently on the local Supabase dev stack; migrating to the AWS Aurora dev boundary per D-012.)
 
 Future causal, evaluator, allocation, aid, outcome, and ML infrastructure is excluded.
 
@@ -243,6 +245,20 @@ Shared:
 - package/lockfile/root config: one editor per merge window;
 - contracts first, backend second, frontend third;
 - daily integration only.
+
+## Follow-up work — AWS platform migration (D-012)
+
+The documents now describe the AWS target; the **functional code migration** is not yet done. Tracked items:
+
+- Replace `@supabase/ssr` / `@supabase/supabase-js` with a request-scoped `pg` (node-postgres) client via RDS Proxy (one transaction per request), connecting as the non-`BYPASSRLS` `authenticated` role.
+- Replace Supabase Auth with Amazon Cognito: verify the JWT server-side (signature/issuer/audience/expiry against the user-pool JWKS), seed `custom:user_role` via a pre-token-generation trigger, and `SET LOCAL app.user_id`/`app.user_role` per request so RLS predicates read `current_setting(...)`.
+- **Caveat — `getUser()` revocation semantics:** Supabase `getUser()` did a live server-side revocation check; the AWS equivalent needs an explicit Cognito admin lookup / token-revocation-state check on sensitive operations (not a free binding swap).
+- **Caveat — RDS Proxy connection pinning:** GUC-based principal binding only holds within a transaction; ensure a pooled/multiplexed connection never carries `app.user_id`/`app.user_role` across requests (reset per transaction).
+- Move object storage to Amazon S3 (private buckets, pre-signed URLs); replace the Supabase Storage path.
+- Replace the Supabase CLI dev loop (`db:start/reset/lint/test/types`) with the Aurora dev-DB equivalents; keep pgTAP.
+- Add Terraform for Aurora Serverless v2, Cognito, S3, ECS Fargate, RDS Proxy, Secrets Manager, and CloudFront.
+- Re-scope the fail-closed guard (`LC-01`) from loopback-only to "designated dev AWS account + synthetic resource tags."
+- Rename directories to the AWS layout (`lib/db/`, `lib/auth/`, `db/`, `infra/terraform/`).
 
 ## Explicitly Deferred
 
