@@ -106,13 +106,14 @@ Each decision must include the requirements served, alternatives considered, evi
 ### D-009 — Use Supabase and PostgreSQL for the prototype backend
 
 - **Date:** 2026-07-17
-- **Status:** Approved
+- **Status:** Superseded by D-012
 - **Decision:** Use Next.js with the local Supabase development stack and PostgreSQL for the four-week synthetic prototype.
 - **Requirements served:** R7, R8, R9
 - **Alternatives considered:** Firebase Emulator Suite.
 - **Rationale:** The team selected PostgreSQL and Supabase in a separate technical discussion.
 - **Consequences:** PostgreSQL stores synthetic application and workflow data; Supabase provides local APIs, authentication, storage integration, and role-based access. No live child data or production Supabase project is authorized.
 - **Owner:** Team lead
+- **Superseded by:** D-012 (retain PostgreSQL, replace the Supabase platform with AWS managed services). PostgreSQL — and therefore the row-level-security, definer-RPC, immutable-versioning, and deterministic-replay design — is unchanged; only the platform bindings move.
 
 ### D-010 — Ratify future two-stage evaluation design, MAP outcome, and MVP remedy/consent boundaries
 
@@ -138,7 +139,35 @@ Each decision must include the requirements served, alternatives considered, evi
 - **Rationale:** A bounded sub-application preserves the synthetic/privacy boundary while still allowing brand-compatible navigation from a pre-existing host site. The monorepo packages keep shared contracts and generated types independent of Next.js, while local Supabase exercises the real Auth/PostgREST/PostgreSQL boundary without authorizing live data or deployment.
 - **Consequences:** Phase B may scaffold the application, package, database, test, and CI boundaries but may not implement admissions business logic, real uploads/data, hosted Supabase, live host integration, production deployment, allocation, or evaluator systems. Host-link capability, brand tokens, and any future SSO remain assumptions until confirmed by GT IT.
 - **Owner:** Team lead
-- **Relationship to prior decisions:** Implements D-009 and the MVP boundaries in D-008/D-010; does not supersede them.
+- **Relationship to prior decisions:** Implements D-009 and the MVP boundaries in D-008/D-010; does not supersede them. Its PostgreSQL/RLS/replay design is unchanged by D-012; only the platform bindings named in D-009 move to AWS.
+
+### D-012 — Move the prototype backend platform from Supabase to AWS (retain PostgreSQL)
+
+- **Date:** 2026-07-19
+- **Status:** Approved
+- **Decision:** Replace the Supabase development platform with AWS managed services for the synthetic prototype, **keeping PostgreSQL as the database engine**. The row-level-security firewall, `SECURITY DEFINER` RPC write surface, immutable successor versioning, hash-chained audit, reason-code explanations, and deterministic canonical replay are retained unchanged; only the platform bindings move. The canonical Supabase→AWS mapping is:
+
+  | Concern | Supabase (D-009) | AWS (D-012) |
+  |---|---|---|
+  | Database engine | Supabase-hosted PostgreSQL | **Amazon Aurora Serverless v2 (PostgreSQL-compatible)** — same SQL, RLS, RPCs, replay |
+  | Auth / identity | Supabase Auth (GoTrue) JWT | **Amazon Cognito** user pool; JWT carries a `custom:user_role` claim; identity is `sub` |
+  | RLS principal binding | `auth.uid()`, `auth.jwt()->>'user_role'` | App verifies the Cognito JWT and sets request-scoped session GUCs (`SET LOCAL app.user_id`, `app.user_role`); RLS predicates read `current_setting(...)` |
+  | DB client | `@supabase/ssr` request-scoped client | **`pg` (node-postgres)** via **Amazon RDS Proxy**, one transaction per request, connecting as a non-`BYPASSRLS` role |
+  | Write/read API surface | PostgREST-exposed `api` RPCs | Same `api` schema `SECURITY DEFINER` RPCs, invoked over `pg` from Next.js Server Actions/route handlers |
+  | Object storage | Supabase Storage | **Amazon S3** (private buckets, pre-signed URLs; no public objects) |
+  | Compute / hosting | Supabase-adjacent / local | **Next.js container on Amazon ECS Fargate**, fronted by **CloudFront + ALB** |
+  | Secrets / elevated access | service-role key | **AWS Secrets Manager** + IAM database authentication; no RLS-bypassing credential in the app runtime (the "by construction" control is retained) |
+  | Infrastructure as code | Supabase CLI/config | **Terraform** (cloud-portable) |
+  | Synthetic/dev safety | local-only, loopback fail-closed | **dedicated dev AWS account, synthetic-only, resource-tag/account-id fail-closed guard** (replaces the loopback guard) |
+  | Website integration | own origin | **own CloudFront origin** (subdomain, or a path behavior on the host distribution) |
+
+- **Requirements served:** R7 (auditability/replay preserved), R8 (feasibility/portability), R9 (student protection — synthetic-only, least-privilege, no RLS-bypass credential), R10 (claim boundaries unchanged)
+- **Evidence:** D-009 (prior platform), D-011 (architecture it revises); `docs/ARCHITECTURE_PLAN.md`; `RLS_AND_AUTH_BLUEPRINT.md`; `PROVISIONAL_IMPLEMENTATION_CONTRACT.md`; `CANONICALIZATION_AND_REPLAY_BLUEPRINT.md`
+- **Alternatives considered:** (a) DynamoDB + Lambda + Cognito (fully serverless/NoSQL) — rejected because it discards PostgreSQL RLS, forcing a full rewrite of the data model, auth firewall, and canonical replay, and reduces portability. (b) RDS Postgres + API Gateway/Lambda for the RPC layer — deferred; retained as a possible future refactor, but keeping the definer-RPC surface in-database minimizes churn now. (c) Staying on Supabase — overridden by the team's platform decision.
+- **Rationale:** Keeping PostgreSQL preserves the security and replay invariants that most of the corpus depends on, so the migration is a binding swap rather than a redesign. Standard PostgreSQL + a container + Terraform keeps the system portable across clouds or self-hosting and cleanly attachable to a pre-existing website via a CloudFront origin, satisfying the "easy to migrate / move across platforms / hook up to an existing site" objective.
+- **Consequences:** Documentation and stack descriptions across the canonical, active-contract, and code layers are updated to the AWS mapping. The **functional code migration** (replacing `@supabase/ssr`/`@supabase/supabase-js` with `pg` + Cognito verification and session GUCs, replacing the Supabase CLI dev loop, and adding Terraform) is a **tracked follow-up**, not completed by this decision; the existing Supabase prototype code remains runnable until that migration lands (see `ASSUMPTIONS_AND_EVIDENCE.md` A-AWS-1..3 and the backend backlog). Development uses a dev AWS account with synthetic data only; no live child data, production account, or public endpoint is authorized.
+- **Owner:** Team lead
+- **Supersedes:** D-009
 
 ## Entry template
 

@@ -1,4 +1,6 @@
-# Supabase/PostgreSQL Research Data Model
+# PostgreSQL Research Data Model
+
+> **Platform (D-012):** PostgreSQL retained; platform moved Supabase→AWS (Aurora/Cognito/S3/RDS Proxy/Secrets Manager). RLS, definer RPCs, immutable versioning, hash-chained audit, and deterministic replay are unchanged; only bindings change. Canonical mapping: docs/DECISION_LOG.md D-012.
 
 ## Status
 
@@ -343,14 +345,17 @@ An absent outcome row is never allowed to erase the scheduled denominator.
 - `finance_operator` — future only
 - `allocation_operator` — future only
 - `evaluator` — future only
-- local seed/reset `service_role` — never ordinary runtime
+- CI/operator IAM principal for seed/reset — never ordinary runtime; no
+  RLS-bypassing credential in the app runtime
 
 Rules:
 
 - Enable and force RLS on exposed tables.
-- Application connections are non-owner, non-`BYPASSRLS`.
-- Service role is prohibited in request handlers and decision execution.
-- Privileged seed/reset calls are purpose-limited and audited.
+- Application connections are non-owner, non-`BYPASSRLS` (`authenticated`).
+- No RLS-bypassing credential is present in request handlers or decision
+  execution.
+- Privileged seed/reset calls run only via the separate CI/operator IAM
+  principal, are purpose-limited, and audited.
 - Reviewer sees assigned synthetic evidence only.
 - Identity, accommodation, finance, consent, and audit traits remain unavailable to eligibility.
 
@@ -384,7 +389,7 @@ replay(decision_run_id):
 
 - PostgreSQL constraints: https://www.postgresql.org/docs/current/ddl-constraints.html
 - PostgreSQL RLS: https://www.postgresql.org/docs/current/ddl-rowsecurity.html
-- Supabase RLS: https://supabase.com/docs/guides/database/postgres/row-level-security
+- Amazon Aurora PostgreSQL: https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/CHAP_AuroraPostgreSQL.html
 - W3C PROV: https://www.w3.org/TR/prov-dm/
 - RFC 8785: https://www.rfc-editor.org/rfc/rfc8785
 - RFC 8493: https://www.rfc-editor.org/rfc/rfc8493

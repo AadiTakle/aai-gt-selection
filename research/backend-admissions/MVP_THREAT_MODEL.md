@@ -1,4 +1,6 @@
-# Synthetic Supabase/PostgreSQL MVP Threat Model
+# Synthetic PostgreSQL MVP Threat Model
+
+> **Platform (D-012):** PostgreSQL retained; platform moved Supabase→AWS (Aurora/Cognito/S3/RDS Proxy/Secrets Manager). RLS, definer RPCs, immutable versioning, hash-chained audit, and deterministic replay are unchanged; only bindings change. Canonical mapping: docs/DECISION_LOG.md D-012.
 
 ## Scope
 
@@ -15,7 +17,7 @@ Out of scope:
 - formal penetration testing;
 - production key management.
 
-If the prototype stops being local, synthetic, or fixture-only, this threat model is insufficient.
+If the prototype stops being dev-account, synthetic, or fixture-only, this threat model is insufficient.
 
 ## Assets
 
@@ -25,15 +27,15 @@ If the prototype stops being local, synthetic, or fixture-only, this threat mode
 - Eligibility results and manifests
 - Append-only audit history
 - Synthetic fixtures
-- Local credentials and sessions
+- Dev credentials and sessions
 - Migrations, seed data, and lockfiles
 
 ## Trust Boundaries
 
 1. Browser → Next.js
-2. Next.js → Supabase API/Auth
-3. JWT/API → PostgreSQL RLS
-4. Exposed API → private schemas
+2. Next.js → Cognito (auth) and Aurora/PostgreSQL via RDS Proxy (`pg`)
+3. Verified JWT → session GUCs → PostgreSQL RLS
+4. Exposed API RPCs → private schemas
 5. Reviewer assignment → evidence/ratings
 6. Eligibility → prohibited/private fields
 7. Database audit → external checkpoint
@@ -46,7 +48,7 @@ If the prototype stops being local, synthetic, or fixture-only, this threat mode
 Threat:
 
 - Change UUIDs
-- Direct PostgREST access
+- Direct database/RPC access bypassing the app boundary
 - Permissive view/RPC
 - Cross-applicant updates
 
@@ -65,16 +67,19 @@ Tests:
 - Wrong applicant/case/assignment IDs
 - Anonymous/expired/wrong-role requests
 
-### Service-Key Exposure
+### Elevated-Credential Exposure
 
 Threat:
 
-- Key in browser bundle/log/commit/screenshot
+- Credential/secret in browser bundle/log/commit/screenshot
 
 Controls:
 
 - No `NEXT_PUBLIC_*`
-- Service role limited to local seed/reset administration
+- No RLS-bypassing credential in the app runtime; elevated access limited to a
+  separate CI/operator IAM principal for seed/reset administration
+- AWS Secrets Manager + IAM database authentication; no static elevated key in
+  the runtime
 - Prohibited in ordinary request handlers and decision execution
 - Prefer user JWT/dedicated non-bypass role/narrow RPCs
 - Audit every privileged invocation
@@ -105,14 +110,14 @@ Tests:
 Threat:
 
 - Guess object ID
-- Reuse signed URL
+- Reuse pre-signed URL
 - Enumerate bucket
 
 Controls:
 
 - Fixed synthetic fixtures
-- Private bucket/protected route
-- Assignment check before short-lived URL
+- Private Amazon S3 bucket/protected route
+- Assignment check before short-lived pre-signed URL
 - No real uploads
 
 ### Audit Tampering
@@ -185,7 +190,7 @@ Controls:
 
 - Commit lockfile
 - Reproducible clean install
-- Pin Supabase CLI/container used for demo
+- Pin the container image and toolchain used for demo
 - Minimize packages
 - Triage reachable high/critical advisories
 - Secret scan before merge/demo
@@ -229,13 +234,15 @@ Controls:
 - Born-synthetic fixtures independent of real records
 - Provenance/license/checksum manifest
 - No upload endpoint or external model prompt
-- Database/startup assertion rejects non-synthetic configuration
+- Database/startup fail-closed guard rejects non-synthetic configuration and any
+  non-dev AWS account (resource-tag/account-id check, replacing the loopback
+  guard); keeps the fail-closed intent
 - Treat future real-data-trained synthesis as separate privacy-reviewed research
 
 ## Minimum Security Gate
 
 1. Direct API role/table denial tests pass.
-2. No service key in source/client output.
+2. No RLS-bypassing credential in source/client output.
 3. Cross-case and prior-rating access fail.
 4. Audit/locked decisions reject mutation.
 5. Every decision replays.
@@ -243,7 +250,7 @@ Controls:
 7. Concurrency yields one deterministic result.
 8. Injection payloads remain inert.
 9. Clean locked dependency install passes.
-10. Demo clearly states local/synthetic/non-production.
+10. Demo clearly states dev-account/synthetic/non-production.
 11. Field registry, expiry, deletion, backup, and log-canary tests pass.
 12. Fixture provenance documents independent synthetic creation, and review
     finds no evidence of real child-derived inputs; this reduces risk but is not

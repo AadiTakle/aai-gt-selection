@@ -309,7 +309,7 @@ Their agents help with UI, accessibility, content, user scenarios, and documenta
 
 Owns:
 
-- Local Supabase stack and synthetic PostgreSQL records
+- AWS backend (Amazon Aurora PostgreSQL, Cognito, S3) and synthetic PostgreSQL records
 - Track A/Track B routing
 - Reviewer and third-review workflow
 - Eligibility decisions and reason codes
@@ -330,7 +330,7 @@ Only one person edits a shared file at a time. Member A owns applicant-facing fi
 | Week                 | Tiffany                                                                                            | Aadi                                                                                   | End-of-week goal                                                          | Blockers                    |
 | -------------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | --------------------------- |
 | 1 — Plan             | Finalize application flow, Snapshot fields, accessibility states, and synthetic applicant examples | Define the data format, workflow states, routing interface, and synthetic rules        | Agree on fields, interfaces, test cases, and file ownership before coding | `B-01`–`B-04`               |
-| 2 — Build            | Build the Family Portal, status flow, artifact route, and narrative fallback                       | Build the local Supabase/PostgreSQL data layer, CogAT routing, reviewer workflow, and eligibility logic | Frontend and backend work independently against the agreed interface      | `B-05`, `B-07`              |
+| 2 — Build            | Build the Family Portal, status flow, artifact route, and narrative fallback                       | Build the AWS/PostgreSQL (Aurora) data layer, CogAT routing, reviewer workflow, and eligibility logic | Frontend and backend work independently against the agreed interface      | `B-05`, `B-07`              |
 | 3 — Connect and test | Add accessibility, corrections, pending states, and applicant explanations                         | Connect modules and add audit history, rule checks, and automated tests                | Complete the main Track A and Track B demo flows                          | `B-06` blocks live use only |
 | 4 — Finalize         | Run usability checks and finish documentation and presentation                                     | Run regression tests, fix bugs, and prepare the demo environment                       | Complete critic review, final fixes, and rehearsal                        | `B-08` remains undecided    |
 
@@ -410,9 +410,11 @@ See:
 
 - **Next.js**
   - Provides the Family Portal, Admissions Dashboard, Reviewer Workspace, and Configuration/Audit views.
-- **Supabase with PostgreSQL**
-  - PostgreSQL stores synthetic applications, CogAT profiles, Snapshot metadata, reviewer classifications, workflow states, and audit events.
-  - Supabase provides the local database API, authentication, storage integration, and role-based access layer.
+  - Deployed as a container on **Amazon ECS Fargate**, fronted by **Amazon CloudFront + ALB**.
+- **AWS with PostgreSQL (Amazon Aurora Serverless v2, PostgreSQL-compatible)**
+  - PostgreSQL stores synthetic applications, CogAT profiles, Snapshot metadata, reviewer classifications, workflow states, and audit events. Row-level security, `SECURITY DEFINER` RPCs, immutable versioning, hash-chained audit, and deterministic replay are unchanged from the prior PostgreSQL design.
+  - **Amazon Cognito** provides authentication; the JWT carries a `custom:user_role` claim, and the application sets request-scoped PostgreSQL session settings that the RLS policies read.
+  - **Amazon S3** provides private object storage (pre-signed URLs; no public objects); **RDS Proxy** manages database connections; **AWS Secrets Manager** and IAM database authentication manage credentials, with no row-level-security-bypassing credential in the application runtime.
 - **High-level product modules**
   - Base application
   - CogAT routing
@@ -421,4 +423,4 @@ See:
   - Decision explanation, correction, and re-entry (substantive rubric appeal deferred beyond MVP)
   - Configuration and audit
 
-The MVP uses the local Supabase development stack with synthetic data only. It does not use live child data or a production Supabase project.
+The MVP uses a dedicated AWS development account with synthetic data only. It does not use live child data, a production AWS account, or any public endpoint. See `docs/DECISION_LOG.md` D-012 for the platform decision (which supersedes the prior Supabase choice in D-009) and `docs/ARCHITECTURE_PLAN.md` for the full architecture.

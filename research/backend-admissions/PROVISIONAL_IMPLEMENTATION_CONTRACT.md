@@ -1,5 +1,7 @@
 # Provisional Two-Week Backend Contract
 
+> **Platform (D-012):** PostgreSQL retained; platform moved Supabase→AWS (Aurora/Cognito/S3/RDS Proxy/Secrets Manager). RLS, definer RPCs, immutable versioning, hash-chained audit, and deterministic replay are unchanged; only bindings change. Canonical mapping: docs/DECISION_LOG.md D-012.
+
 ## Status
 
 Design-only. Do not scaffold until the seven defaults in
@@ -12,14 +14,15 @@ This is the executable cut, not the complete research architecture.
 - Node 24 LTS
 - pnpm 10 with committed lockfile
 - Next.js/TypeScript
-- Local Supabase/PostgreSQL
-- Pinned `@supabase/ssr` with request-scoped clients
+- Amazon Aurora Serverless v2 (PostgreSQL-compatible), dev AWS account
+- Pinned `pg` (node-postgres) via Amazon RDS Proxy, request-scoped, one
+  transaction per request; Cognito JWT verified server-side before session GUCs
 - Zod shared contracts
 - Vitest for TypeScript tests
-- pgTAP through `supabase test db`
-- Generated Supabase TypeScript types
+- pgTAP run against the dev Aurora/PostgreSQL instance
+- Generated TypeScript types from the PostgreSQL schema
 
-No ORM, remote Supabase project, live uploads, production credentials, or
+No ORM, non-dev/production AWS account, live uploads, production credentials, or
 external AI.
 
 ## Public Outcome Types
@@ -52,14 +55,16 @@ always exists, so `pending_no_majority` is not part of v1.
 
 ```sql
 create schema app; -- private
-create schema api; -- views and narrow RPCs only
+create schema api; -- narrow RPCs only
 ```
 
-`auth.users` remains Supabase-owned.
+Identity is owned by the Amazon Cognito user pool.
 
-Human JWTs keep top-level `role=authenticated`. An admin-controlled
-`user_role` claim carries the coarse business role. Identity is always
-`auth.uid()`. User-editable `user_metadata` is never an authorization source.
+Human requests connect as the PostgreSQL `authenticated` login role. An
+admin-controlled Cognito `custom:user_role` claim carries the coarse business
+role. Identity is always the verified `sub`, bound as
+`current_setting('app.user_id')::uuid`. User-editable Cognito attributes are
+never an authorization source.
 
 ### Twelve private tables
 
@@ -94,7 +99,7 @@ Human JWTs keep top-level `role=authenticated`. An admin-controlled
 ## Core Database Invariants
 
 - All rows/configuration are synthetic.
-- Application ownership is bound to `auth.uid()`.
+- Application ownership is bound to `current_setting('app.user_id')::uuid`.
 - Submitted inputs are immutable.
 - Corrections create one successor; successor chains cannot branch.
 - Locked policy cannot change.
@@ -192,8 +197,9 @@ Every mutation includes:
 
 - `idempotency_key`;
 - `expected_version` when stateful;
-- actor from `auth.uid()` and business role from admin-controlled JWT claim,
-  never request fields or `user_metadata`;
+- actor from the verified Cognito `sub` (`current_setting('app.user_id')::uuid`)
+  and business role from the admin-controlled `custom:user_role` claim, never
+  request fields or user-editable attributes;
 - correlation ID; and
 - database-enforced synthetic context.
 
@@ -261,10 +267,11 @@ validation, or program-effect language.
 - Admissions: pseudonymous assessment/routing/assignment/correction
 - Reviewer: assigned case and own submission only
 - Supervisor: assigned blind third review, no prior votes
-- Decision service: dedicated non-`BYPASSRLS` JWT role
+- Decision service: dedicated non-`BYPASSRLS` role
 - Auditor: trace read and replay only
 - Privacy steward: coded private context only, no eligibility mutation
-- Anonymous/service role: denied for ordinary runtime
+- Anonymous / RLS-bypassing credential: denied for ordinary runtime (no such
+  credential exists in the app runtime)
 
 ## RPC Hardening
 
@@ -272,10 +279,11 @@ Default to invoker behavior. Any required `SECURITY DEFINER` RPC:
 
 - is owned by dedicated `NOLOGIN NOBYPASSRLS` `api_executor`;
 - uses fixed empty/`pg_catalog` search path and schema-qualified objects;
-- has `PUBLIC`, `anon`, `authenticated`, and `service_role` execution revoked
-  before explicit authenticated grant;
-- validates `user_role`, `auth.uid()`, ownership/assignment, expected version,
-  idempotency, allowed JSON keys, and synthetic context; and
+- has `PUBLIC` and `authenticated` execution revoked before explicit
+  authenticated grant;
+- validates `user_role`, `current_setting('app.user_id')::uuid`,
+  ownership/assignment, expected version, idempotency, allowed JSON keys, and
+  synthetic context; and
 - writes only minimized idempotency/audit metadata.
 
 See `RLS_AND_AUTH_BLUEPRINT.md`.
@@ -286,7 +294,7 @@ defined in `CANONICALIZATION_AND_REPLAY_BLUEPRINT.md`.
 ## Day Sequence
 
 1. Contract freeze and scaffold
-2. Local database, roles, deterministic seed/reset
+2. Dev Aurora/PostgreSQL database, roles, deterministic seed/reset
 3. Versioning, locked policy, generated types
 4. RLS and field firewall
 5. Routing plus frontend integration checkpoint
