@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import {
   apiErrorCodeSchema,
+  decisionSummarySchema,
+  recordAssessmentVersionRequestSchema,
+  recordAssessmentVersionResponseSchema,
   reviewerClassificationSchema,
   saveApplicationDraftRequestSchema,
   statusProjectionSchema,
@@ -108,6 +111,110 @@ describe('public contract boundaries', () => {
       expect(trackBEligibilityOutcomeSchema.safeParse(prohibitedOutcome).success).toBe(false);
     },
   );
+
+  it('restricts decision reasons to the versioned public vocabulary', () => {
+    const result = decisionSummarySchema.safeParse({
+      decisionId: uuid,
+      decisionKind: 'track_a_eligibility',
+      outcome: 'eligible',
+      pendingReason: null,
+      orderedReasonCodes: ['UNVERSIONED_REASON'],
+      resultHash: `sha256:${'1'.repeat(64)}`,
+      policyBundleId: 'PB-SYN-01',
+      syntheticOnly: true,
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('ties each decision outcome to its decision kind', () => {
+    const result = decisionSummarySchema.safeParse({
+      decisionId: uuid,
+      decisionKind: 'track_a_eligibility',
+      outcome: 'invited',
+      pendingReason: null,
+      orderedReasonCodes: ['TA_BELOW_CONFIGURED_BOUNDARY'],
+      resultHash: `sha256:${'1'.repeat(64)}`,
+      policyBundleId: 'PB-SYN-01',
+      syntheticOnly: true,
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('returns invalid assessment routing as a domain-level pending response', () => {
+    const assessment = {
+      instrumentCode: 'COGAT_SYNTHETIC',
+      compositeScore: null,
+      verbalScore: null,
+      quantitativeScore: null,
+      nonverbalScore: null,
+      validity: 'invalid',
+      syntheticOnly: true,
+    };
+    const request = {
+      applicationId: uuid,
+      assessment,
+      supersedesAssessmentVersionId: null,
+      expectedVersion: 0,
+      idempotencyKey: uuid,
+      correlationId: uuid,
+    };
+    const decisionBase = {
+      decisionId: uuid,
+      outcome: 'pending',
+      pendingReason: 'pending_assessment_correction',
+      orderedReasonCodes: ['ASSESSMENT_MISSING_OR_INVALID'],
+      resultHash: `sha256:${'2'.repeat(64)}`,
+      policyBundleId: 'PB-SYN-01',
+      syntheticOnly: true,
+    };
+    const response = {
+      apiVersion: 'v1',
+      syntheticOnly: true,
+      data: {
+        assessment: {
+          assessmentVersionId: uuid,
+          applicationId: uuid,
+          version: 1,
+          supersedesId: null,
+          ...assessment,
+        },
+        routing: {
+          inputHash: `sha256:${'1'.repeat(64)}`,
+          trackA: {
+            ...decisionBase,
+            decisionKind: 'track_a_eligibility',
+          },
+          trackBInvitation: {
+            ...decisionBase,
+            decisionKind: 'track_b_invitation',
+          },
+        },
+        status: {
+          workflowStatus: 'assessment_needs_correction',
+          displayLabelCode: 'STATUS_ASSESSMENT_NEEDS_CORRECTION',
+          phase: 'assessment',
+          familyActionRequired: false,
+          nextActionCode: 'AWAIT_ASSESSMENT_CORRECTION',
+          deadline: null,
+          pendingReason: 'pending_assessment_correction',
+          claimBoundaryCode: 'ELIGIBILITY_NOT_ADMISSION',
+        },
+      },
+      meta: {
+        correlationId: uuid,
+        idempotencyKey: uuid,
+        idempotentReplay: false,
+      },
+    };
+
+    expect(recordAssessmentVersionRequestSchema.parse(request)).toEqual(request);
+    expect(recordAssessmentVersionResponseSchema.parse(response)).toEqual(response);
+    expect(response.data.routing.trackA.orderedReasonCodes).toEqual([
+      'ASSESSMENT_MISSING_OR_INVALID',
+    ]);
+  });
 
   it('accepts only binary reviewer classifications', () => {
     expect(reviewerClassificationSchema.safeParse('qualifies').success).toBe(true);

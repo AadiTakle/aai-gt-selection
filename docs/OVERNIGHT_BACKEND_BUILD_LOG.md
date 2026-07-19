@@ -82,3 +82,23 @@ duplicate implementation logic, or rely on snapshots that cannot independently f
   against one validated response object rather than maintaining a hand-written mock.
 - Next slice: freeze assessment-recording/routing request and response contracts, including
   pending assessment outcomes and Track A/Track B reason ordering.
+
+### Cycle 3 — Assessment recording and routing contracts
+
+- **Seam:** `record_assessment_version` request/response, typed routing decisions, and canonical
+  pending/invitation fixtures.
+- **Red:** tests first exposed three absent or permissive boundaries: unversioned reasons were
+  accepted, a Track A decision could carry a Track B outcome, and the assessment RPC
+  request/response plus fixtures did not exist.
+- **Green:** closed reasons to the versioned reason-code vocabulary; discriminated decision
+  summaries by decision kind; added strict assessment input, immutable version, routing, and v1
+  response schemas; added validated missing/invalid and dual-reason Track B fixtures.
+- **Regression:** 15 contract tests, 8 fixture tests, and both package typechecks pass.
+- Missing or invalid assessment data now resolves as a successful domain envelope with both
+  routing decisions `pending`, never as an HTTP/transport failure or negative classification.
+- The synthetic dual-reason fixture preserves canonical order:
+  `TB_COMPOSITE_BAND`, then `TB_BATTERY_PROFILE`.
+- Frontend enablement: admissions and family surfaces can independently implement assessment
+  correction and Snapshot-invitation states against runtime-validated fixtures.
+- Next slice: freeze `submit_snapshot_version` request/response contracts for artifact and
+  narrative routes, including review-case creation and initial blind assignments.

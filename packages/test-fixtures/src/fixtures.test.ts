@@ -1,6 +1,7 @@
 import {
   applicationVersionSchema,
   assessmentVersionSchema,
+  recordAssessmentVersionResponseSchema,
   snapshotFixtureReferenceSchema,
   statusProjectionSchema,
 } from '@gt-selection/contracts';
@@ -8,12 +9,14 @@ import { describe, expect, it } from 'vitest';
 
 import {
   fictionalFixtures,
+  pendingAssessmentResponseFixture,
   submittedApplicationResponseFixture,
   syntheticArtifactFixture,
   syntheticNarrativeFixture,
   syntheticTrackAAssessment,
   syntheticTrackBAssessment,
   syntheticTrackBApplication,
+  trackBInvitationResponseFixture,
   trackBSnapshotRequiredStatus,
 } from './index';
 
@@ -23,6 +26,22 @@ describe('fictional fixture boundary', () => {
       'awaiting_assessment',
     );
     expect(submittedApplicationResponseFixture.syntheticOnly).toBe(true);
+  });
+
+  it('provides a domain-level pending assessment response', () => {
+    expect(recordAssessmentVersionResponseSchema.parse(pendingAssessmentResponseFixture)).toEqual(
+      pendingAssessmentResponseFixture,
+    );
+    expect(pendingAssessmentResponseFixture.data.routing.trackA.outcome).toBe('pending');
+  });
+
+  it('preserves canonical Track B invitation reason ordering', () => {
+    expect(recordAssessmentVersionResponseSchema.parse(trackBInvitationResponseFixture)).toEqual(
+      trackBInvitationResponseFixture,
+    );
+    expect(
+      trackBInvitationResponseFixture.data.routing.trackBInvitation.orderedReasonCodes,
+    ).toEqual(['TB_COMPOSITE_BAND', 'TB_BATTERY_PROFILE']);
   });
 
   it('keeps every fixture visibly synthetic', () => {

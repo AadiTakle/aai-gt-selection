@@ -100,3 +100,20 @@ The frontend teammate can now implement and test:
 - rejection of accidental admission/offer wording at the contract boundary.
 
 This fixture is the canonical UI mock for the submitted state until the database RPC exists.
+
+## Cycle 3 frontend handoff
+
+`@gt-selection/contracts` now exports the `recordAssessmentVersionRequestSchema`,
+`recordAssessmentVersionResponseSchema`, and inferred request/response types.
+`@gt-selection/test-fixtures` now exports:
+
+- `pendingAssessmentResponseFixture` for `assessment_needs_correction`; and
+- `trackBInvitationResponseFixture` for `track_b_snapshot_required`.
+
+The frontend teammate can use these without reproducing routing logic. Both are runtime-valid v1
+envelopes with correlation/idempotency metadata, exact synthetic assessment versions, typed Track
+A and Track B invitation results, ordered reasons, and applicant-safe status projections.
+
+The pending fixture is a successful domain response, not an error response. The invitation fixture
+means Snapshot submission is available; it does not mean Track B eligibility, admission, an offer,
+or funding.
