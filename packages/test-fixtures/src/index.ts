@@ -6,6 +6,7 @@ import type {
   SnapshotFixtureReference,
   StatusProjection,
   RecordAssessmentVersionResponse,
+  ReplayDecisionResponse,
   SubmitApplicationResponse,
   SubmitReviewActionResponse,
   SubmitReviewResponse,
@@ -679,6 +680,83 @@ export const disabledAppealResponseFixture = {
   },
 } satisfies ApiError;
 
+const replayedTrackBInvitationDecision =
+  trackBInvitationResponseFixture.data.routing.trackBInvitation;
+const replayDecisionRoot = replayedTrackBInvitationDecision.resultHash;
+const exactReplayVerification = {
+  canonicalInput: 'verified',
+  inputManifest: 'verified',
+  policyBundle: 'verified',
+  executableArtifact: 'verified',
+  environmentArtifact: 'verified',
+  outcome: 'verified',
+  orderedReasons: 'verified',
+  trace: 'verified',
+  decisionRoot: 'verified',
+  auditChain: 'verified',
+} as const;
+
+export const exactReplayResponseFixture = {
+  apiVersion: 'v1',
+  syntheticOnly: true,
+  data: {
+    decisionRunId: '00000000-0000-4000-8000-000000000921',
+    requestedMode: 'exact_reexecution',
+    status: 'reexecuted_exact',
+    storedDecision: replayedTrackBInvitationDecision,
+    replayedDecision: replayedTrackBInvitationDecision,
+    verification: exactReplayVerification,
+    decisionRootBefore: replayDecisionRoot,
+    decisionRootAfter: replayDecisionRoot,
+    exactReplayClaimed: true,
+    networkAccessUsed: false,
+    failureCode: null,
+    auditEventId: '00000000-0000-4000-8000-000000000931',
+    syntheticOnly: true,
+  },
+  meta: {
+    correlationId: '00000000-0000-4000-8000-000000000326',
+    idempotencyKey: '00000000-0000-4000-8000-000000000327',
+    idempotentReplay: false,
+  },
+} satisfies ReplayDecisionResponse;
+
+export const disposedInputReplayResponseFixture = {
+  apiVersion: 'v1',
+  syntheticOnly: true,
+  data: {
+    decisionRunId: '00000000-0000-4000-8000-000000000921',
+    requestedMode: 'exact_reexecution',
+    status: 'not_replayable_inputs_disposed',
+    storedDecision: replayedTrackBInvitationDecision,
+    replayedDecision: null,
+    verification: {
+      canonicalInput: 'disposed',
+      inputManifest: 'not_checked',
+      policyBundle: 'not_checked',
+      executableArtifact: 'not_checked',
+      environmentArtifact: 'not_checked',
+      outcome: 'not_checked',
+      orderedReasons: 'not_checked',
+      trace: 'not_checked',
+      decisionRoot: 'not_checked',
+      auditChain: 'verified',
+    },
+    decisionRootBefore: replayDecisionRoot,
+    decisionRootAfter: null,
+    exactReplayClaimed: false,
+    networkAccessUsed: false,
+    failureCode: 'input_payload_disposed',
+    auditEventId: '00000000-0000-4000-8000-000000000932',
+    syntheticOnly: true,
+  },
+  meta: {
+    correlationId: '00000000-0000-4000-8000-000000000328',
+    idempotencyKey: '00000000-0000-4000-8000-000000000329',
+    idempotentReplay: false,
+  },
+} satisfies ReplayDecisionResponse;
+
 export const fictionalFixtures = [
   syntheticTrackBApplication,
   syntheticTrackAAssessment,
@@ -698,4 +776,6 @@ export const fictionalFixtures = [
   accessibilityPendingReviewResponseFixture,
   assessmentCorrectionResponseFixture,
   invariantCorrectionResponseFixture,
+  exactReplayResponseFixture,
+  disposedInputReplayResponseFixture,
 ] as const;

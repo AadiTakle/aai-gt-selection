@@ -187,3 +187,20 @@ from decision use.
 
 Substantive rubric appeal and genuinely new evidence are not correction payloads. Both receive
 non-retryable `FEATURE_DISABLED`; new evidence belongs to manual later-cycle re-entry.
+
+## Cycle 8 frontend handoff
+
+`@gt-selection/contracts` now exports `replayDecisionRequestSchema`,
+`replayDecisionResponseSchema`, replay mode/status schemas, component verification states, and
+failure-code types. `@gt-selection/test-fixtures` now exports:
+
+- `exactReplayResponseFixture`; and
+- `disposedInputReplayResponseFixture`.
+
+The audit UI may display `reexecuted_exact` only when `exactReplayClaimed` is true and every
+component verifies. `record_reconstructed` and `digest_verified` are intentionally weaker modes.
+Disposed input or a missing executable/environment artifact must display a refusal state, not a
+successful replay.
+
+No replay fixture uses network access. Integrity failures and execution mismatches remain separate
+so the UI does not collapse tampering/corruption into nondeterministic execution.

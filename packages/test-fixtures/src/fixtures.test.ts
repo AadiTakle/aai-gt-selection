@@ -4,6 +4,7 @@ import {
   assessmentVersionSchema,
   disabledCorrectionResponseSchema,
   recordAssessmentVersionResponseSchema,
+  replayDecisionResponseSchema,
   snapshotFixtureReferenceSchema,
   statusProjectionSchema,
   submitReviewActionResponseSchema,
@@ -16,6 +17,8 @@ import {
   accessibilityPendingReviewResponseFixture,
   assessmentCorrectionResponseFixture,
   disabledAppealResponseFixture,
+  disposedInputReplayResponseFixture,
+  exactReplayResponseFixture,
   invariantCorrectionResponseFixture,
   artifactDisagreementReviewResponseFixture,
   evidencePendingReviewResponseFixture,
@@ -113,6 +116,16 @@ describe('fictional fixture boundary', () => {
       disabledAppealResponseFixture,
     );
     expect(assessmentCorrectionResponseFixture.data.correction.originalPreserved).toBe(true);
+  });
+
+  it('provides exact and truthfully refused replay fixtures', () => {
+    expect(replayDecisionResponseSchema.parse(exactReplayResponseFixture)).toEqual(
+      exactReplayResponseFixture,
+    );
+    expect(replayDecisionResponseSchema.parse(disposedInputReplayResponseFixture)).toEqual(
+      disposedInputReplayResponseFixture,
+    );
+    expect(disposedInputReplayResponseFixture.data.exactReplayClaimed).toBe(false);
   });
 
   it('keeps every fixture visibly synthetic', () => {

@@ -4,6 +4,7 @@ export * from './correction';
 export * from './decision';
 export * from './errors';
 export * from './reason-codes';
+export * from './replay';
 export * from './review';
 export * from './roles';
 export * from './workflow';

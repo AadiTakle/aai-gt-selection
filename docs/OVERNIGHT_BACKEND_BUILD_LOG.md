@@ -186,3 +186,24 @@ duplicate implementation logic, or rely on snapshots that cannot independently f
   cover corrected status and deferred-scope messaging without implying substantive review.
 - Next slice: freeze `replay_decision` request/response contracts for exact re-execution,
   reconstruction/digest-only modes, and truthful refusal when artifacts or inputs are unavailable.
+
+### Cycle 8 — Truthful decision replay contracts
+
+- **Seam:** `replay_decision` requests and exact, reconstruction, digest, refusal, integrity-
+  failure, and execution-mismatch responses.
+- **Red:** replay tests failed before request/response schemas existed; fixture tests failed before
+  exact and disposed-input examples existed. One intermediate failure exposed a missing test
+  envelope `meta` field and was corrected before regression verification.
+- **Green:** added strict replay modes/statuses, component-level verification states, failure-code
+  vocabularies in documented precedence classes, network-disabled execution evidence, audit-event
+  references, and exact stored/replayed decision and root equality.
+- **Regression:** 32 contract tests, 13 fixture tests, and both package typechecks pass.
+- `reexecuted_exact` is available only when canonical input, policy, executable/environment,
+  outcome, ordered reasons, trace, root, and audit chain all verify and the full result reproduces.
+- Reconstruction and digest verification explicitly set `exactReplayClaimed=false`. Missing
+  executable/environment artifacts and disposed inputs truthfully refuse exact replay; integrity
+  and execution mismatches remain distinct.
+- Frontend enablement: canonical exact-replay and disposed-input refusal fixtures now support the
+  configuration/audit surface without overstating retained evidence.
+- **Loop stop:** no further cycle is scheduled, per user request. The next implementation phase is
+  the private schema/RLS/RPC database slice using these frozen contracts.
