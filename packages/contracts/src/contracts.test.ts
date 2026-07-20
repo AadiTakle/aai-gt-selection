@@ -88,17 +88,35 @@ describe('public contract boundaries', () => {
         },
       }).success,
     ).toBe(false);
+    expect(
+      saveApplicationDraftRequestSchema.safeParse({
+        ...request,
+        draft: {
+          ...request.draft,
+          guardian: {
+            ...request.draft.guardian,
+            email: 'real-family@gmail.com',
+          },
+        },
+      }).success,
+    ).toBe(false);
   });
 
   it('accepts a valid application submission request', () => {
+    const request = {
+      applicationVersionId: uuid,
+      expectedVersion: 1,
+      idempotencyKey: uuid,
+      correlationId: uuid,
+    };
+
+    expect(submitApplicationRequestSchema.parse(request)).toBeDefined();
     expect(
-      submitApplicationRequestSchema.parse({
-        applicationVersionId: uuid,
-        expectedVersion: 1,
-        idempotencyKey: uuid,
-        correlationId: uuid,
-      }),
-    ).toBeDefined();
+      submitApplicationRequestSchema.safeParse({
+        ...request,
+        expectedVersion: 0,
+      }).success,
+    ).toBe(false);
   });
 
   it('returns typed draft-save and applicant-safe status-read envelopes', () => {

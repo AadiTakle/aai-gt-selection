@@ -42,7 +42,9 @@ status**, nothing else.
 
 **Status:** Complete (2026-07-20). The contract stores age rather than date of
 birth and omits address until an operational need is confirmed, minimizing
-synthetic child-data shape while `B-02` remains open.
+synthetic child-data shape while `B-02` remains open. Identifiers, names,
+school types, contact values, and referral codes are constrained to visibly
+fictional patterns so `syntheticOnly=true` is not the sole privacy control.
 
 **What:** `applicationDraftSchema` and `applicationVersionSchema` in
 `packages/contracts/src/application.ts` currently only have
@@ -104,6 +106,10 @@ fixtures/tests
 
 ### B3 — Migration: `app.application` and `app.application_version` tables
 
+**Status:** Complete (2026-07-20). Draft content is stored as validated JSONB
+to preserve partial autosaves; identity, state, lineage, timestamps, and
+commitments remain typed relational columns.
+
 **What:** First real data migration. Add the two core tables from
 `MVP_DATA_CONTRACT.md`: `app.application` (owner, synthetic code, cycle,
 timestamps) and `app.application_version` (immutable submitted versions,
@@ -129,6 +135,8 @@ why in the migration comment).
 
 ### B4 — Migration: minimal synthetic `cycle` table + seed row
 
+**Status:** Complete (2026-07-20).
+
 **What:** Add the `cycle(cycle_id, cycle_code, data_class, opens_at,
 closes_at)` table from `BACKEND_DATA_MODEL.md` (minimal columns only — no
 policy bundle reference needed for this slice) and seed exactly one synthetic
@@ -148,6 +156,8 @@ cycle so local dev has something to attach applications to.
 ---
 
 ### B5 — Migration: idempotency-key table
+
+**Status:** Complete (2026-07-20).
 
 **What:** Add the shared idempotency dedupe table referenced by every write
 RPC in the provisional contract (`(actor_id, rpc_name, idempotency_key)`
@@ -171,6 +181,9 @@ slice.
 ---
 
 ### B6 — RLS policies for `app.application` / `app.application_version`
+
+**Status:** Complete (2026-07-20). Policies use the D-012 Cognito-to-GUC
+principal contract (`app.user_id`, `app.user_role`).
 
 **What:** Force RLS on both tables, revoke all direct grants from
 `authenticated`, and add the ownership policy from
@@ -196,6 +209,10 @@ at assessment recording, which is out of scope).
 
 ### B7 — pgTAP tests: ownership isolation for application tables
 
+**Status:** Complete (2026-07-20). Tests cover hard direct-table denial,
+family-owner isolation, wrong-owner insert denial, and idempotency actor
+isolation.
+
 **What:** Extend `supabase/tests/` with a new test file covering: anon denied,
 one family cannot read/write another family's application, and the
 `authenticated` role has zero direct table grants (must go through RPCs).
@@ -218,9 +235,12 @@ This is the `RLS-01`/`AUTH-01`/`IDOR-01` subset from
 
 ### B8 — Implement `api.save_application_draft`
 
+**Status:** Complete (2026-07-20).
+
 **What:** The first write RPC. `SECURITY DEFINER`, owned by `api_executor`,
-re-verifies `auth.uid()`/role, ownership, `expected_version`, idempotency key,
-and allowlisted JSON keys before upserting a new `application_version` row.
+re-verifies the Cognito-bound session GUC identity/role, ownership,
+`expected_version`, idempotency key, and typed/allowlisted JSON content before
+appending a new `application_version` row.
 Returns the new version + content hash per B2's response schema.
 
 **Files:** new migration (RPC function), integration test
@@ -242,6 +262,8 @@ Returns the new version + content hash per B2's response schema.
 
 ### B9 — Implement `api.submit_application`
 
+**Status:** Complete (2026-07-20).
+
 **What:** Locks the current draft into a `submitted` state (immutable from
 this point), and returns the frontend `statusProjection` with
 `workflowStatus: awaiting_assessment`.
@@ -250,9 +272,8 @@ this point), and returns the frontend `statusProjection` with
 
 **Acceptance criteria:**
 
-- Submitted version becomes immutable (verified in test: a second
-  `save_application_draft` call cannot alter it, only create a new
-  application if one existed — but for this slice, submission is terminal)
+- Submitted version becomes immutable (verified in test: a later draft save
+  or submission cannot alter or append to that application)
 - Returned status projection matches `statusProjectionSchema` exactly,
   including `claimBoundaryCode: 'ELIGIBILITY_NOT_ADMISSION'`
 - Double-submit returns `409 SUBMISSION_LOCKED`
@@ -264,6 +285,8 @@ this point), and returns the frontend `statusProjection` with
 ---
 
 ### B10 — Implement `api.get_application_status` (read RPC)
+
+**Status:** Complete (2026-07-20).
 
 **What:** Family-only read RPC (or `security_invoker=true` view) returning the
 current status projection for the caller's own application. For this slice,
@@ -287,6 +310,8 @@ bundle or routing engine needed.
 
 ### B11 — Regenerate and commit `packages/db-types`
 
+**Status:** Complete (2026-07-20).
+
 **What:** Run `pnpm db:types` after B3–B5 land so generated types reflect the
 new tables, and fix `scripts/check-generated-types.ts` drift if any.
 
@@ -299,6 +324,41 @@ new tables, and fix `scripts/check-generated-types.ts` drift if any.
 **Requirements:** R7
 **Depends on:** B3, B4, B5
 **Size:** S (mechanical)
+
+---
+
+### B11A — Implement the Cognito/`pg` request adapter
+
+**Status:** Pending. Required before the frontend uses live RPCs; intentionally
+not part of the database-only overnight slice.
+
+**What:** Add a server-only Next.js adapter that verifies the Cognito JWT,
+extracts `sub` and the admin-controlled `custom:user_role`, opens one `pg`
+transaction, sets `SET LOCAL app.user_id` and `app.user_role`, invokes the
+three `api` functions, maps `PT4xx` SQLSTATEs to typed HTTP errors, and commits
+or rolls back. This is the D-012 replacement for browser/PostgREST
+`supabase.rpc(...)`; no database credential or role claim may enter browser
+code.
+
+**Files:** server-only database/auth modules and Server Actions or route
+handlers under `apps/web/src/`; AWS client configuration owned by the AWS
+binding workstream
+
+**Acceptance criteria:**
+
+- Forged, missing, or user-editable roles cannot set either PostgreSQL GUC
+- Each request uses one transaction and clears identity automatically at its
+  end
+- The three actions parse requests/responses through `@gt-selection/contracts`
+- `PT400/401/403/404/409` map to the documented typed error envelope
+- Integration tests prove family ownership and cross-owner not-found behavior
+  through the adapter, not only direct SQL
+- No browser bundle or ordinary app runtime contains an RLS-bypassing
+  credential
+
+**Requirements:** R7, R8, R9, R10, H9
+**Depends on:** B8–B11 and the D-012 AWS binding foundation
+**Size:** M–L
 
 ---
 
@@ -331,11 +391,11 @@ a launch blocker for your teammate's UI work.
 
 ### F1 — Typed RPC wrapper layer
 
-**What:** `apps/web/src/lib/rpc/` — thin wrappers around
-`supabase.rpc('save_application_draft', ...)` etc. that take/return the
-`packages/contracts` types, so Server Actions never touch raw RPC responses
-directly. Can be built and unit-tested against `packages/test-fixtures`
-before the real RPCs exist (B8–B10).
+**What:** `apps/web/src/lib/rpc/` — transport-neutral typed clients for
+`saveApplicationDraft`, `submitApplication`, and `getApplicationStatus`.
+Components call Server Actions, never `supabase.rpc(...)` or PostgreSQL
+directly. The interface can be built and unit-tested against
+`packages/test-fixtures` before B11A provides the live Cognito/`pg` adapter.
 
 **Files:** new files under `apps/web/src/lib/rpc/`
 
@@ -347,7 +407,7 @@ before the real RPCs exist (B8–B10).
 - Unit tests use fixtures, not a live database
 
 **Requirements:** R7, R10
-**Depends on:** B1, B2 (contracts only — not the live RPCs)
+**Depends on:** B1, B2 for the fixture-backed interface; B11A for live calls
 **Size:** S–M
 
 ---
@@ -392,7 +452,7 @@ current draft when the family revisits `/family/apply`.
   else changed this" message, not a silent overwrite
 
 **Requirements:** R9, H9, H10
-**Depends on:** F1, F2, B8
+**Depends on:** F1, F2, B8, B11A for live integration
 **Size:** M
 
 ---
@@ -413,7 +473,7 @@ accuracy acknowledgement, wired to `submitApplication`. Handles
   never a raw error code or stack trace
 
 **Requirements:** R1, R9, R10, H9
-**Depends on:** F3, B9
+**Depends on:** F3, B9, B11A
 **Size:** M
 
 ---
@@ -438,7 +498,7 @@ admission decision..."*, CogAT as next step, deadline, and next-action code.
   `statusProjectionSchema`
 
 **Requirements:** R9, R10, H9
-**Depends on:** B10, F1
+**Depends on:** B10, B11A, F1
 **Size:** S–M
 
 ---
@@ -508,10 +568,10 @@ reload mid-way to confirm autosave, submit, confirm status shows
 
 ```
 Backend:  B1 → B2 ─┐
-          B4, B5 ───┼─→ B3 → B6 → B7 → B8 → B9 → B10 → B11
+          B4, B5 ───┼─→ B3 → B6 → B7 → B8 → B9 → B10 → B11 → B11A
                      │                  (parallel with B6/B7)
 Frontend: F1 (against fixtures, doesn't wait for backend)
-          F2 (needs B1 only) → F3 (needs B8) → F4 (needs B9) → F5 (needs B10)
+          F2 (needs B1 only) → F3/F4/F5 live wiring (needs B11A)
           F7 anytime, wire into F3/F4
           F8 last
 Stretch:  B12 → F6 (defer unless accessibility is a launch blocker)
@@ -519,7 +579,7 @@ Stretch:  B12 → F6 (defer unless accessibility is a launch blocker)
 
 Backend and frontend can run in parallel almost immediately: your teammate
 can start **F2** the moment **B1** (contract) lands, using
-`packages/test-fixtures` to mock RPC responses via **F1** until the real
-RPCs (B8–B10) exist.
+`packages/test-fixtures` to mock RPC responses via **F1** until the database
+RPCs (B8–B10) and request adapter (B11A) are both ready.
 
-## Total: 14 backend tickets (11 required + 3 stretch/mechanical), 8 frontend tickets (6 required + 2 stretch)
+## Total: 13 backend tickets (12 required + 1 stretch), 8 frontend tickets (7 required + 1 stretch)

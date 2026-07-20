@@ -15,7 +15,29 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_application_status: {
+        Args: { p_application_id: string; p_correlation_id: string }
+        Returns: Json
+      }
+      save_application_draft: {
+        Args: {
+          p_application_id: string
+          p_correlation_id: string
+          p_draft: Json
+          p_expected_version: number
+          p_idempotency_key: string
+        }
+        Returns: Json
+      }
+      submit_application: {
+        Args: {
+          p_application_version_id: string
+          p_correlation_id: string
+          p_expected_version: number
+          p_idempotency_key: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

@@ -101,9 +101,9 @@ Canonical sources: `PROJECT_CHARTER.md`, `docs/project-requirements.md`,
 |---|---|---|---|---|---|
 | F1.1 | Service and domain pathway registry | R1, R5, R8, R10, H1, H4, H7 | MVP-bounded | Specified/researched | Build registry tables/config UI; B-02 and B-04 block live domains and anchors. |
 | F1.2 | Unsupported-domain and unavailable-service outcome | R5, R8, R10, H4 | MVP-bounded | Specified/researched | Add one synthetic unsupported domain and applicant-safe outcome. |
-| F2.1 | Universal base application | R1, R8, R9, H2, H4, H10 | MVP | Contract/fixture ready | Implement database persistence and the functional family form. |
+| F2.1 | Universal base application | R1, R8, R9, H2, H4, H10 | MVP | Backend implemented; UI pending | Application/version persistence and save/submit RPCs are tested; build the functional family form and AWS request adapter. |
 | F2.2 | Accessible, multilingual, low-bandwidth, phone, and paper routes | R9, H4, H7, H10 | MVP-bounded | Specified/researched | Implement request/fulfillment workflow; B-06 and WCAG validation remain. |
-| F2.3 | Applicant status, deadlines, and next steps | R9, R10, H9 | MVP | Contract/fixture ready | Implement `get_application_status` and the family status UI. |
+| F2.3 | Applicant status, deadlines, and next steps | R9, R10, H9 | MVP | Backend implemented; UI pending | `get_application_status` is tested for draft/submitted states; build the family status UI and AWS request adapter. |
 | F3.1 | Structured parent observable-evidence form | R5, R9, H1, H2, H9, H10 | MVP | Contract/fixture ready | Build the form and validate burden. |
 | F3.2 | Bounded narrative fallback | R5, R9, H1, H2, H10 | MVP | Contract/fixture ready | Implement family UI and database fixture allowlisting. |
 | F3.3 | Optional directly-observing adult evidence | R5, R9, H1, H2, H10 | MVP-bounded | Specified/researched | Clarify whether a separate recommender surface is needed. |
@@ -157,19 +157,19 @@ Primary sources: `apps/web/src/app/`, `apps/web/src/components/`, and
 
 | ID | Feature | Requirements | Scope | Current status | Remaining work / dependency |
 |---|---|---|---|---|---|
-| BE-01 | Shared runtime-validated API contracts | R1, R5, R7, R9, R10, H9, H10 | MVP | Contract/fixture ready | Add three read RPC contracts. |
+| BE-01 | Shared runtime-validated API contracts | R1, R5, R7, R9, R10, H9, H10 | MVP | Contract/fixture ready | Onboarding save/submit/status contracts are frozen; add the remaining two read-RPC contracts. |
 | BE-02 | Canonical synthetic fixture library | R7, R8, R10, H9 | MVP | Contract/fixture ready | Expand to full fixture matrix and consume in UI tests. |
-| BE-03 | Local Supabase/PostgreSQL environment | R7, R8, R9 | MVP | Scaffold only | Only bootstrap schemas/roles exist. |
-| BE-04 | Private 12-table admissions data model | R1, R4, R5, R7, R9, R10, H2, H9 | MVP | Specified/researched | Translate `MVP_DATA_CONTRACT.md` into migrations and pgTAP tests. |
-| BE-05 | Seven hardened write RPCs | R1, R7, R9, R10, H9 | MVP | Contract/fixture ready | Public shapes are frozen; zero Postgres functions exist. |
-| BE-06 | Three minimized read RPCs | R7, R9, R10, H9 | MVP | Specified/researched | Freeze contracts/fixtures and implement functions. |
+| BE-03 | Local Supabase/PostgreSQL environment | R7, R8, R9 | MVP | Partially implemented | Onboarding migrations/RPC tests run locally; AWS Aurora/Cognito binding remains pending under D-012. |
+| BE-04 | Private 12-table admissions data model | R1, R4, R5, R7, R9, R10, H2, H9 | MVP | Partially implemented | Cycle, idempotency, application, and application-version storage exist; assessment through audit tables remain. |
+| BE-05 | Seven hardened write RPCs | R1, R7, R9, R10, H9 | MVP | Partially implemented | `save_application_draft` and `submit_application` are tested; five write RPCs remain. |
+| BE-06 | Three minimized read RPCs | R7, R9, R10, H9 | MVP | Partially implemented | `get_application_status` is tested; assigned-review and decision-explanation reads remain. |
 | BE-07 | Locked synthetic policy bundle and typed rule AST | R1, R5, R7, R10 | MVP | Specified/researched | Create policy tables, seed, locking constraints, and read surface. |
 | BE-08 | Pure deterministic decision engine | R1, R4, R5, R7, R10, H1, H2, H9 | MVP | Specified/researched | Implement offline engine plus unit/property tests. |
-| BE-09 | Immutable successor versioning | R7, R9, H9 | MVP | Contract/fixture ready | Enforce non-branching lineage and immutability in Postgres. |
+| BE-09 | Immutable successor versioning | R7, R9, H9 | MVP | Partially implemented | Application versions enforce append-only non-branching lineage; assessment, Snapshot, policy, and correction successors remain. |
 | BE-10 | RFC 8785 canonicalization and SHA-256 commitments | R7, R10, H9 | MVP | Specified/researched | Implement canonical vectors and HASH-01 tests. |
 | BE-11 | Truthful decision replay executor | R7, R10, H5, H9 | MVP | Contract/fixture ready | Implement retained-artifact loading, execution, comparison, and audit append. |
 | BE-12 | Append-only hash-chained audit log | R7, R9 | MVP | Specified/researched | Implement append function, concurrency test, and tamper-limit disclosure. |
-| BE-13 | Generated public database types | R7 | MVP | Implemented & verified | Regenerate after tables/RPCs; current function surface is empty. |
+| BE-13 | Generated public database types | R7 | MVP | Implemented & verified | Types include the three onboarding RPCs; regenerate after every exposed API migration. |
 | BE-14 | Applicant-safe status and message catalog | R10, H9 | MVP | Contract/fixture ready | Implement versioned templates and MSG-01/EX-02 mapping. |
 | BE-15 | Decision projection allowlist | R4, R5, R7, R10, H2, H10 | MVP | Specified/researched | Implement field projection and prohibited-field invariance. |
 | BE-16 | Frontend RPC adapters and server actions | R7, R9, R10 | MVP | Scaffold only | No RPC adapter/server-action workflow exists. |
@@ -182,14 +182,14 @@ Primary sources: `docs/ARCHITECTURE_PLAN.md`,
 
 | ID | Feature | Requirements | Scope | Current status | Remaining work / dependency |
 |---|---|---|---|---|---|
-| SEC-01 | Admin-controlled role claims and seven-role authorization | R7, R9, H7, H9 | MVP | Scaffold only | Role parsing is tested; table/RPC grants and policies are not. |
-| SEC-02 | Forced RLS on every private object | R7, R9 | MVP | Specified/researched | Implement policies, grants, safe definer ownership/search path, and RLS-01. |
+| SEC-01 | Admin-controlled role claims and seven-role authorization | R7, R9, H7, H9 | MVP | Partially implemented | Family onboarding uses the Cognito-to-GUC role contract; remaining role/table/RPC authorization is not built. |
+| SEC-02 | Forced RLS on every private object | R7, R9 | MVP | Partially implemented | All onboarding tables force RLS with safe grants/definer ownership; future private objects still need policies and RLS-01 coverage. |
 | SEC-03 | Database-enforced reviewer blindness | R5, R7, R9, H2 | MVP | Specified/researched | Implement read policies and READ-01. |
 | SEC-04 | Service-role and elevated-key elimination | R7, R9 | MVP | Implemented & verified | Keep provisioning separate and add SR-01/SR-02 integration tests. |
 | SEC-05 | Born-synthetic loopback fail-closed boundary | R9, R10 | MVP | Implemented & verified | Add DB startup/data gates BD-01 and LC-01. |
-| SEC-06 | Idempotency, serializable transitions, and race safety | R7, R8, R9 | MVP | Specified/researched | Implement storage, locking, unique constraints, and concurrency suite. |
+| SEC-06 | Idempotency, serializable transitions, and race safety | R7, R8, R9 | MVP | Partially implemented | Shared idempotency storage, unique constraints, and advisory transaction locks protect onboarding RPCs; broader concurrency tests remain. |
 | SEC-07 | Purpose-separated private fields and field registry | R4, R7, R9, R10, H2 | MVP-bounded | Specified/researched | Full registry and migration gate are deferred from the two-week cut. |
-| SEC-08 | Threat model and minimum security gate | R7, R9 | MVP | Specified/researched | Activate database and adversarial tests. |
+| SEC-08 | Threat model and minimum security gate | R7, R9 | MVP | Partially implemented | Onboarding pgTAP covers grants, forced RLS, IDOR, typed allowlists, idempotency, and immutable submission; full critical manifest remains. |
 | SEC-09 | Merge-blocking CI/CD quality, database, and web-smoke gates | R7, R8, R9, R10 | MVP | Implemented & verified | Expand scaffold checks to the full critical manifest. |
 | SEC-10 | Production privacy, legal consent, retention, and incident controls | R8, R9 | Future | Blocked | B-06/E-038 block live child data and legal claims. |
 | OPS-01 | pnpm monorepo and package ownership boundaries | R7, R8, R10 | MVP | Implemented & verified | Preserve boundaries as engine and RPC modules are added. |
@@ -245,14 +245,15 @@ Handoff, `research/backend-admissions/OUTCOME_AND_FALSIFICATION_PLAN.md`,
 
 ## Current implementation snapshot
 
-As of 2026-07-19 on `feat/backend-admissions-core`:
+As of 2026-07-20 on `feat/onboarding-backend-core`:
 
 - governance, PRD, architecture, and research specifications are present;
 - all seven write-RPC public contract families are frozen;
-- 32 contract tests and 13 fixture tests pass;
-- three read-RPC contracts are still missing;
-- the private tables, RLS policies, database RPCs, decision engine, canonicalization, and replay
-  executor are not implemented;
+- 33 contract tests, 14 fixture tests, and 84 onboarding pgTAP assertions pass;
+- the pre-CogAT contract, application persistence, forced-RLS ownership boundary,
+  save/submit/status RPCs, idempotency registry, and generated API types are implemented;
+- the remaining assessment/review/decision tables and RPCs, AWS request binding, decision engine,
+  RFC 8785 canonicalization, and replay executor are not implemented;
 - the four role-scoped frontend surfaces remain placeholders;
 - the critical 25-test manifest and PRD end-to-end acceptance checks are not yet executable; and
 - causal/evaluation requirements R2, R3, R6, H3, H5, H6, and H8 remain future/deferred work.

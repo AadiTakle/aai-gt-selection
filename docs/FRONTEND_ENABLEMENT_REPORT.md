@@ -204,3 +204,33 @@ successful replay.
 
 No replay fixture uses network access. Integrity failures and execution mismatches remain separate
 so the UI does not collapse tampering/corruption into nondeterministic execution.
+
+## 2026-07-20 pre-CogAT onboarding handoff
+
+The shared `dev` contract foundation now exports the complete, privacy-minimized onboarding shape:
+
+- nested `student`, `education`, `guardian`, and `finalSubmission` draft sections;
+- age instead of date of birth and no address, financial-aid, accommodation, or language-route
+  fields in this slice;
+- visibly fictional value rules: `STUDENT-SYN-*` identifiers, names beginning `Synthetic`,
+  `synthetic-*` school types, lowercase `*@example.test` emails, reserved North American
+  `+1...55501xx` phone numbers, and `SYNTHETIC_*` referral codes;
+- `saveApplicationDraftResponseSchema`, `getApplicationStatusRequestSchema`, and
+  `getApplicationStatusResponseSchema`; and
+- `savedApplicationDraftResponseFixture` and `applicationDraftStatusResponseFixture`.
+
+The backend branch implements and tests `api.save_application_draft`,
+`api.submit_application`, and `api.get_application_status`. The frontend may use their generated
+types and fixture responses now, but **must not call them from the browser or through
+`supabase.rpc(...)`**. D-012 requires the pending B11A server adapter to verify Cognito, bind
+`sub`/`custom:user_role` to transaction-local PostgreSQL GUCs, and map database errors.
+
+Safe parallel work before B11A lands:
+
+1. Build the transport-neutral F1 client interface with fixture-backed tests.
+2. Build the F2 multi-step form from the Zod schemas.
+3. Build F7 applicant-safe error-copy mapping.
+
+Hold live autosave, submit, and status wiring until B11A is merged. This keeps all frontend work
+inside `apps/web/**` and prevents either teammate from editing contracts or migrations
+concurrently.

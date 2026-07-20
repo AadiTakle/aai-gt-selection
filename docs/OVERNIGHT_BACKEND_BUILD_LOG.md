@@ -207,3 +207,32 @@ duplicate implementation logic, or rely on snapshots that cannot independently f
   configuration/audit surface without overstating retained evidence.
 - **Loop stop:** no further cycle is scheduled, per user request. The next implementation phase is
   the private schema/RLS/RPC database slice using these frozen contracts.
+
+## Pre-CogAT onboarding run — 2026-07-20
+
+- **Branch:** `feat/onboarding-backend-core`
+- **Requirements:** R1, R7–R10, H2, H9, H10
+- **In scope:** synthetic create/save/resume/submit/status backend through
+  `awaiting_assessment`
+- **Out of scope:** CogAT, Track A/B routing, Snapshot/review, eligibility decisions,
+  accessibility-route fulfillment, allocation, evaluation, uploads, and production deployment
+- **Evidence/assumptions:** uses E-037, E-039–E-040, E-054–E-057 and D-012; introduces no new GT
+  facts, product decision, evidence claim, or scope exception
+
+### TDD slices completed
+
+1. Synthetic cycle registry and fixture seed.
+2. Per-actor/RPC idempotency registry.
+3. Append-only application/application-version persistence with forced RLS.
+4. Family ownership, direct-grant denial, and IDOR behavior.
+5. `api.save_application_draft`, including typed/deep allowlists, optimistic concurrency,
+   idempotent replay, and HTTP-mappable error SQLSTATEs.
+6. `api.submit_application`, including completeness validation, immutable successor submission,
+   `awaiting_assessment`, and submission lock.
+7. `api.get_application_status`, exposing only the eight applicant-safe projection fields.
+8. Regenerated exposed-`api` database types.
+
+Each behavior was observed failing before its migration/function existed, then passing after the
+minimum implementation. Final acceptance evidence is `pnpm db:reset`, 84 passing pgTAP
+assertions, `pnpm db:lint`, and `pnpm db:types:check`; workspace verification is recorded on the
+branch before handoff.
