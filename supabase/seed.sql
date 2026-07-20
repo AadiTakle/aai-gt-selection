@@ -19,3 +19,69 @@ values (
   true
 )
 on conflict (cycle_id) do nothing;
+
+insert into app.school_directory_version (
+  school_version_id,
+  school_id,
+  version_no,
+  supersedes_id,
+  directory_version,
+  source_code,
+  content,
+  active_from,
+  active_to,
+  content_hash,
+  synthetic_only
+)
+values
+(
+  '00000000-0000-4000-8000-000000000511',
+  '00000000-0000-4000-8000-000000000501',
+  1,
+  null,
+  'SCHOOL-DIRECTORY-SYN-V1',
+  'SYN_DIRECTORY_FIXTURE',
+  '{
+    "name": "Synthetic Learning Academy",
+    "typeCode": "SYN_SCHOOL_INDEPENDENT",
+    "address": {
+      "line1": "Synthetic 100 Example Way",
+      "line2": null,
+      "city": "Synthetic City",
+      "regionCode": "SYN_REGION_TX",
+      "postalCode": "00000",
+      "countryCode": "US"
+    },
+    "syntheticOnly": true
+  }'::jsonb,
+  '2026-01-01',
+  null,
+  'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+  true
+),
+(
+  '00000000-0000-4000-8000-000000000512',
+  '00000000-0000-4000-8000-000000000502',
+  1,
+  null,
+  'SCHOOL-DIRECTORY-SYN-V1',
+  'SYN_DIRECTORY_FIXTURE',
+  '{
+    "name": "Synthetic Community School",
+    "typeCode": "SYN_SCHOOL_PUBLIC",
+    "address": {
+      "line1": "Synthetic 200 Fixture Avenue",
+      "line2": null,
+      "city": "Synthetic City",
+      "regionCode": "SYN_REGION_TX",
+      "postalCode": "00000",
+      "countryCode": "US"
+    },
+    "syntheticOnly": true
+  }'::jsonb,
+  '2026-01-01',
+  null,
+  'sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+  true
+)
+on conflict (school_version_id) do nothing;

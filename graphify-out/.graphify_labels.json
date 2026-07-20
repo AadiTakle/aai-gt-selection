@@ -109,6 +109,7 @@
   "107": "Feature-to-Requirement Development Map",
   "108": "Cycle log",
   "109": "decision.ts",
+  "110": "service.ts",
   "111": "tsconfig.json",
   "112": "package.json",
   "113": "workflow.ts",
@@ -147,5 +148,15 @@
   "146": "eslint.config.mjs",
   "147": "playwright.config.ts",
   "148": "vitest.setup.ts",
-  "149": "eslint.config.mjs"
+  "149": "eslint.config.mjs",
+  "150": "local-synthetic-adapter.integration.test.ts",
+  "151": "Effect-Size and Meaningful-Effect Benchmarks",
+  "152": "@testing-library/user-event",
+  "153": "@vitejs/plugin-react",
+  "154": "vitest.integration.config.ts",
+  "155": "vitest.server-only.ts",
+  "156": "review-transition.test.ts",
+  "157": "api-envelope.ts",
+  "158": "review-pending.test.ts",
+  "159": "jsdom"
 }

@@ -10,11 +10,63 @@ select set_config('app.user_id', '00000000-0000-4000-8000-00000000f101', true);
 select set_config('app.user_role', 'family', true);
 set local role authenticated;
 
+select set_config(
+  'test.profile_content',
+  '{
+    "student": {
+      "syntheticStudentCode": "STUDENT-SYN-101",
+      "fullName": "Synthetic Draft Student",
+      "dateOfBirth": "2016-04-12",
+      "genderCode": "SYN_GENDER_UNSPECIFIED",
+      "genderVocabularyVersion": "GENDER-SYN-V1"
+    },
+    "household": {
+      "guardianRelationshipCode": "SYN_RELATIONSHIP_PARENT",
+      "primaryAddress": {
+        "line1": "Synthetic 100 Draft Way",
+        "line2": null,
+        "city": "Synthetic City",
+        "regionCode": "SYN_REGION_TX",
+        "postalCode": "00000",
+        "countryCode": "US"
+      },
+      "hasPriorGtRelative": false,
+      "priorGtRelativeNames": [],
+      "languageSurvey": {
+        "homeLanguageCode": "SYN_LANGUAGE_ENGLISH",
+        "firstLanguageCode": "SYN_LANGUAGE_ENGLISH",
+        "primaryLanguageCode": "SYN_LANGUAGE_ENGLISH",
+        "hasAdditionalLanguages": false,
+        "additionalLanguageCodes": [],
+        "vocabularyVersion": "LANGUAGE-SYN-V1"
+      }
+    },
+    "purpose": {
+      "code": "SYN_PROFILE_ACCOUNT_SETUP",
+      "version": "PROFILE-PURPOSE-SYN-V1"
+    },
+    "syntheticOnly": true
+  }',
+  true
+);
+select set_config(
+  'test.profile_version_id',
+  api.save_student_profile(
+    '00000000-0000-4000-8000-000000002301',
+    current_setting('test.profile_content')::jsonb,
+    0,
+    '00000000-0000-4000-8000-000000002401',
+    '00000000-0000-4000-8000-000000002501'
+  ) #>> '{data,profile,profileVersionId}',
+  true
+);
+
 select is(
   (
     api.save_application_draft(
       '00000000-0000-4000-8000-000000002001',
-      '{"student":{"currentGrade":"5"},"syntheticOnly":true}'::jsonb,
+      current_setting('test.profile_version_id')::uuid,
+      '{"application":{"currentGradeCode":"SYN_GRADE_05","requestedEntryYear":2027,"requestedGradeCode":"SYN_GRADE_06"},"syntheticOnly":true}'::jsonb,
       0,
       '00000000-0000-4000-8000-000000002101',
       '00000000-0000-4000-8000-000000002201'
@@ -28,7 +80,8 @@ select is(
   (
     api.save_application_draft(
       '00000000-0000-4000-8000-000000002001',
-      '{"student":{"currentGrade":"5","requestedGrade":"6"},"syntheticOnly":true}'::jsonb,
+      current_setting('test.profile_version_id')::uuid,
+      '{"application":{"currentGradeCode":"SYN_GRADE_05","requestedEntryYear":2027,"requestedGradeCode":"SYN_GRADE_06"},"syntheticOnly":true}'::jsonb,
       1,
       '00000000-0000-4000-8000-000000002102',
       '00000000-0000-4000-8000-000000002202'
@@ -42,7 +95,8 @@ select is(
   (
     api.save_application_draft(
       '00000000-0000-4000-8000-000000002001',
-      '{"student":{"currentGrade":"5","requestedGrade":"6"},"syntheticOnly":true}'::jsonb,
+      current_setting('test.profile_version_id')::uuid,
+      '{"application":{"currentGradeCode":"SYN_GRADE_05","requestedEntryYear":2027,"requestedGradeCode":"SYN_GRADE_06"},"syntheticOnly":true}'::jsonb,
       1,
       '00000000-0000-4000-8000-000000002102',
       '00000000-0000-4000-8000-000000002203'
@@ -72,7 +126,8 @@ select throws_ok(
   $sql$
     select api.save_application_draft(
       '00000000-0000-4000-8000-000000002001',
-      '{"student":{"currentGrade":"4"},"syntheticOnly":true}'::jsonb,
+      current_setting('test.profile_version_id')::uuid,
+      '{"application":{"currentGradeCode":"SYN_GRADE_04","requestedEntryYear":2027,"requestedGradeCode":"SYN_GRADE_05"},"syntheticOnly":true}'::jsonb,
       1,
       '00000000-0000-4000-8000-000000002102',
       '00000000-0000-4000-8000-000000002204'
@@ -87,7 +142,8 @@ select throws_ok(
   $sql$
     select api.save_application_draft(
       '00000000-0000-4000-8000-000000002001',
-      '{"student":{"currentGrade":"5"},"syntheticOnly":true}'::jsonb,
+      current_setting('test.profile_version_id')::uuid,
+      '{"application":{"currentGradeCode":"SYN_GRADE_05","requestedEntryYear":2027,"requestedGradeCode":"SYN_GRADE_06"},"syntheticOnly":true}'::jsonb,
       0,
       '00000000-0000-4000-8000-000000002103',
       '00000000-0000-4000-8000-000000002205'
@@ -102,6 +158,7 @@ select throws_ok(
   $sql$
     select api.save_application_draft(
       '00000000-0000-4000-8000-000000002001',
+      current_setting('test.profile_version_id')::uuid,
       '{"householdIncome":100000,"syntheticOnly":true}'::jsonb,
       2,
       '00000000-0000-4000-8000-000000002104',
@@ -117,7 +174,8 @@ select throws_ok(
   $sql$
     select api.save_application_draft(
       '00000000-0000-4000-8000-000000002001',
-      '{"student":{"currentGrade":"5"}}'::jsonb,
+      current_setting('test.profile_version_id')::uuid,
+      '{"application":{"currentGradeCode":"SYN_GRADE_05","requestedEntryYear":2027,"requestedGradeCode":"SYN_GRADE_06"}}'::jsonb,
       2,
       '00000000-0000-4000-8000-000000002108',
       '00000000-0000-4000-8000-000000002210'
@@ -132,7 +190,8 @@ select throws_ok(
   $sql$
     select api.save_application_draft(
       '00000000-0000-4000-8000-000000002001',
-      '{"student":{"ageYears":"ten"},"syntheticOnly":true}'::jsonb,
+      current_setting('test.profile_version_id')::uuid,
+      '{"application":{"currentGradeCode":"SYN_GRADE_05","requestedEntryYear":"2027","requestedGradeCode":"SYN_GRADE_06"},"syntheticOnly":true}'::jsonb,
       2,
       '00000000-0000-4000-8000-000000002107',
       '00000000-0000-4000-8000-000000002209'
@@ -147,6 +206,7 @@ select throws_ok(
   $sql$
     select api.save_application_draft(
       '00000000-0000-4000-8000-000000002001',
+      current_setting('test.profile_version_id')::uuid,
       '{"education":{"enrollmentStartDate":"not-a-date"},"syntheticOnly":true}'::jsonb,
       2,
       '00000000-0000-4000-8000-000000002109',
@@ -162,6 +222,7 @@ select throws_ok(
   $sql$
     select api.save_application_draft(
       '00000000-0000-4000-8000-000000002001',
+      current_setting('test.profile_version_id')::uuid,
       '{"guardian":{"fullName":"Real Parent","email":"real-family@gmail.com"},"syntheticOnly":true}'::jsonb,
       2,
       '00000000-0000-4000-8000-000000002110',
@@ -177,6 +238,7 @@ select throws_ok(
   $sql$
     select api.save_application_draft(
       '00000000-0000-4000-8000-000000002001',
+      current_setting('test.profile_version_id')::uuid,
       '{"guardian":{"email":"a..b@example.test"},"syntheticOnly":true}'::jsonb,
       2,
       '00000000-0000-4000-8000-000000002112',
@@ -192,6 +254,7 @@ select throws_ok(
   $sql$
     select api.save_application_draft(
       '00000000-0000-4000-8000-000000002001',
+      current_setting('test.profile_version_id')::uuid,
       '{"finalSubmission":{"signedAt":"not-a-timestamp"},"syntheticOnly":true}'::jsonb,
       2,
       '00000000-0000-4000-8000-000000002111',
@@ -212,7 +275,8 @@ select throws_ok(
   $sql$
     select api.save_application_draft(
       '00000000-0000-4000-8000-000000002001',
-      '{"student":{"currentGrade":"5"},"syntheticOnly":true}'::jsonb,
+      current_setting('test.profile_version_id')::uuid,
+      '{"application":{"currentGradeCode":"SYN_GRADE_05","requestedEntryYear":2027,"requestedGradeCode":"SYN_GRADE_06"},"syntheticOnly":true}'::jsonb,
       2,
       '00000000-0000-4000-8000-000000002105',
       '00000000-0000-4000-8000-000000002207'
@@ -232,7 +296,8 @@ select throws_ok(
   $sql$
     select api.save_application_draft(
       '00000000-0000-4000-8000-000000002003',
-      '{"student":{"currentGrade":"5"},"syntheticOnly":true}'::jsonb,
+      current_setting('test.profile_version_id')::uuid,
+      '{"application":{"currentGradeCode":"SYN_GRADE_05","requestedEntryYear":2027,"requestedGradeCode":"SYN_GRADE_06"},"syntheticOnly":true}'::jsonb,
       0,
       '00000000-0000-4000-8000-000000002106',
       '00000000-0000-4000-8000-000000002208'

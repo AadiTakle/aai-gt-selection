@@ -68,9 +68,10 @@ flowchart TB
   subgraph web [GT Admissions MVP — Next.js App Router]
     Banner["Persistent synthetic-prototype banner"]
     FamilyPortal["Family Application Portal"]
-    ReviewWorkspace["Track B Reviewer Workspace"]
+    ReviewWorkspace["Blind Track B Reviewer Workspace"]
+    SupervisorWorkspace["Blind Review Supervisor Workspace"]
     AdmissionsDashboard["Admissions Operations Dashboard"]
-    ConfigAudit["Configuration and Audit View"]
+    ConfigAudit["Deferred non-functional<br/>Configuration and Audit View"]
     ServerBoundary["Server Components + Server Actions<br/>request-scoped pg client via RDS Proxy"]
     RoleGuard["Server-side role guard<br/>verified Cognito JWT + session GUCs"]
     HealthSession["Minimal health + session routes"]
@@ -90,7 +91,7 @@ flowchart TB
     Storage["Amazon S3 — private fixed synthetic fixtures<br/>no live upload endpoint"]
   end
 
-  CogAT["External CogAT administration<br/>manual synthetic result import"]
+  CogAT["External CogAT/admissions portal<br/>synthetic handoff + operator result import"]
   Downstream["Future downstream systems<br/>allocation_undecided only<br/>finance + evaluation out of MVP"]
 
   subgraph delivery [Verification and promotion]
@@ -110,17 +111,19 @@ flowchart TB
   Family --> FamilyPortal
   Admissions --> AdmissionsDashboard
   Reviewer --> ReviewWorkspace
-  Supervisor --> ReviewWorkspace
+  Supervisor --> SupervisorWorkspace
   Auditor --> ConfigAudit
   Privacy --> ConfigAudit
 
   Banner --> FamilyPortal
   Banner --> ReviewWorkspace
+  Banner --> SupervisorWorkspace
   Banner --> AdmissionsDashboard
   Banner --> ConfigAudit
 
   FamilyPortal --> ServerBoundary
   ReviewWorkspace --> ServerBoundary
+  SupervisorWorkspace --> ServerBoundary
   AdmissionsDashboard --> ServerBoundary
   ConfigAudit --> ServerBoundary
   HealthSession --> ServerBoundary
@@ -136,7 +139,8 @@ flowchart TB
   ServerBoundary --> DecisionEngine
   DecisionEngine --> ApiSchema
 
-  CogAT -->|"outside product; operator entry"| AdmissionsDashboard
+  FamilyPortal -->|"external testing handoff"| CogAT
+  CogAT -->|"result return/import; B-01 open"| AdmissionsDashboard
   AppSchema -->|"eligibility result only"| Downstream
 
   QualityGate --> DatabaseGate
@@ -179,23 +183,31 @@ No ORM, no production account, no upload endpoint, no external AI service, and n
 
 ## 4. Application architecture (C4 level 2 — containers/modules)
 
-### 4.1 Next.js structure — four role-scoped surfaces
+### 4.1 Next.js structure — four functional persona surfaces
 
-The four PRD product surfaces map to four route groups, each guarded by role at the layout boundary. Server Components read via request-scoped clients; all mutations go through Server Actions → definer RPCs (never direct table writes from the client).
+Family, admissions, reviewer, and review-supervisor routes are the functional
+MVP surfaces under D-014. Each is guarded by role at the layout boundary.
+Server Components read via request-scoped clients; all mutations go through
+Server Actions → definer RPCs (never direct table writes from the client). The
+existing config/audit placeholder is deferred as a functional persona page.
 
 ```
 app/
   (embed)/                     # thin, embeddable entry points (see § 6)
     family/                    # Family Application Portal        → F2-F6, F9
-      apply/                   #   draft, autosave, submit
+      setup/ apply/            #   profile + cycle draft, autosave, submit
+      cogat/ routing-result/   #   external handoff + automatic routing notice
       status/                  #   status projection, next steps, notices
       snapshot/                #   Track B artifact / narrative routes
+      decision/                #   final eligibility + explanation
       correction/              #   factual/procedural correction
-    review/                    # Track B Reviewer Workspace        → F8
+    review/                    # Blind Track B Reviewer Workspace  → F8
       queue/  case/[id]/       #   assigned cases; blind rating form
+    review-supervisor/         # Blind slot-three workspace        → F8
+      queue/  case/[id]/       #   no prior votes or override
     admissions/                # Admissions Operations Dashboard   → F7, F11
-      applications/ assessment/ routing/ pending/ corrections/
-    config-audit/              # Configuration & Audit View        → F1, F11
+      applications/ assessment/ pending/ assignments/ corrections/
+    config-audit/              # deferred non-functional placeholder
       policy/ decisions/ replay/ claims/ audit-log/
   api/health, api/session      # minimal route handlers
 lib/
@@ -225,12 +237,12 @@ from `apps/web`.
 
 | PRD module | Surface(s) | Primary R/H | Feature IDs |
 |---|---|---|---|
-| Base application | Family Portal | R1, R5, R9, H4, H10 | F2-F6 |
-| CogAT routing | Admissions Dashboard | R1, R5, R8 | F7 |
+| Account/profile setup + cycle application | Family Portal | R1, R5, R7–R10, H2, H4, H7, H9, H10 | F2-F6, F10 |
+| External CogAT handoff + automatic routing | Family + Admissions | R1, R5, R8, R10, H9 | F7 |
 | Track B Snapshot | Family Portal | R5, H1, H2, H10 | F3-F5 |
-| Independent review & adjudication | Reviewer Workspace | R5, R7, H1, H2 | F8 |
+| Blind independent review + slot-three vote | Reviewer + Supervisor Workspaces | R5, R7, H1, H2 | F8 |
 | Decision explanation / correction / re-entry | Family + Admissions | H9, R9, R7 | F9 |
-| Configuration & audit | Config/Audit View | R7, R10, R8, H5 | F1, F11 |
+| Configuration & audit controls | Backend/tests; future Config/Audit View | R7, R10, R8, H5 | F1, F11 |
 
 (Cross-cutting concern → R/H mapping in § 5.3 of the feature map; reproduced in § 9 risk table.)
 
@@ -238,11 +250,39 @@ from `apps/web`.
 
 This is the **shared file** both members build against (PRD § Shared Work). It is already specified; the architecture consumes it verbatim.
 
-**Write RPCs (7)** — Server Actions call these over `pg`; all are `SECURITY DEFINER`, owned by `api_executor`, `search_path=''`, granted only to `authenticated`, and internally re-verify role + caller identity (`current_setting('app.user_id')`, set from the verified Cognito `sub`) + ownership/assignment + `expected_version` + `idempotency_key` + allowed JSON keys + synthetic context (`PROVISIONAL_IMPLEMENTATION_CONTRACT.md:113-202`):
+**Implemented Milestone A family RPCs (8):**
+`save_student_profile`, `get_student_profile`, `list_student_profiles`,
+`list_active_schools`, `save_application_draft`, `get_application`,
+`submit_application`, and `get_application_status`. All are
+`SECURITY DEFINER`, owned by `api_executor`, use a pinned
+`pg_catalog, extensions` search path, and expose no writable API tables.
+
+B11B calls these through server-only actions and the local authenticated
+PostgREST client. PostgREST verifies the local JWT; a synthetic-only binder
+reads only `sub` and admin-controlled `app_metadata.user_role`, requires the
+designated loopback issuer, and sets transaction-local D-012 GUCs. Actor and
+role never come from action input. B11A later replaces this local binding with
+Cognito verification plus `pg`/RDS Proxy without changing the frontend
+contracts. Next instrumentation validates B11B at server bootstrap whenever
+either local-adapter setting is present, while ordinary builds with B11B
+disabled remain unaffected. CI signs in through the real local Auth endpoint,
+populates the same cookie store consumed by the server client, and invokes all
+frontend-exported onboarding actions. Separate authenticated clients also race
+save and submit to verify one winner plus deterministic
+`STALE_VERSION`/`SUBMISSION_LOCKED` outcomes.
+
+**Full admissions write RPC catalog (7)** — the first two are implemented for
+onboarding; Server Actions ultimately call the rest over `pg`. All follow the
+same definer, role, ownership/assignment,
+`expected_version`, idempotency, allowlist, and synthetic-context controls
+(`PROVISIONAL_IMPLEMENTATION_CONTRACT.md:113-202`):
 
 1. `api.save_application_draft` · 2. `api.submit_application` · 3. `api.record_assessment_version` · 4. `api.submit_snapshot_version` · 5. `api.submit_review` · 6. `api.apply_correction` · 7. `api.replay_decision`.
 
-**Read RPCs (3):** `api.get_application_status`, `api.get_assigned_review_case`, `api.get_decision_explanation`. No writable API tables; any view is `security_invoker=true` with explicit column grants.
+The remaining admissions reads are `api.get_assigned_review_case` and
+`api.get_decision_explanation`; `api.get_application_status` is already
+implemented above. Any future view must be `security_invoker=true` with
+explicit column grants.
 
 **Request contract:** every mutation carries `idempotency_key`, `expected_version` (when stateful), `correlation_id`; actor identity from the verified Cognito `sub` (surfaced to SQL as `current_setting('app.user_id')`), role from the `custom:user_role` JWT claim (never the request body). Idempotency unique on `(actor_id, rpc_name, idempotency_key)`; assignment/finalization run at serializable isolation with retry on `40001`.
 
@@ -258,15 +298,41 @@ This is the **shared file** both members build against (PRD § Shared Work). It 
 
 Executable cut uses two schemas behind forced RLS (`PROVISIONAL_IMPLEMENTATION_CONTRACT.md:53-56`):
 
-- `app` — all private tables (12 MVP tables). No direct external grants.
+- `app` — all private tables. No direct external grants. D-013 is implemented
+  with a grouped student/household profile version, directory versions, and a
+  purpose-separated application-private-context version.
 - `api` — the only externally reachable surface: definer RPCs + `security_invoker` views.
 - Identity is external to the database: **Amazon Cognito** owns user records; the database only receives the verified `sub` and `custom:user_role` as request-scoped session settings (`app.user_id`, `app.user_role`). There is no in-database `auth` schema.
 
-The full research model's purpose-separated schemas (`admissions`, `policy`, `evidence`, `review`, `decision`, `audit`, `consent_private`, `privacy_private`, future `finance`/`allocation`/`evaluation`) are the *target* separation; the MVP collapses them into `app` with the same firewall rules enforced by RLS predicates and the decision-projection allowlist rather than by schema walls. Future/allocation/evaluation schemas are absent and unreachable in MVP.
+The full research model's purpose-separated schemas (`admissions`, `policy`,
+`evidence`, `review`, `decision`, `audit`, `consent_private`,
+`privacy_private`, future `allocation`/`evaluation`) are the *target*
+separation; the MVP collapses them into `app` with the same firewall rules
+enforced by RLS predicates and the decision-projection allowlist rather than by
+schema walls. D-013 permits synthetic financial-intake versions inside the
+private `app` boundary but no aid-decision or W-2/document surface. Future
+allocation/evaluation schemas are absent and unreachable in MVP.
 
-### 5.2 Core entities (12 MVP tables)
+### 5.2 Core entities
 
-`application`, `application_version`, `assessment_version`, `policy_bundle` (+ `policy_version`), `snapshot_version` (+ `snapshot`, `snapshot_item`), `review_case`, `review_assignment`, `review_submission` (+ `dimension_rating`), `pending_item`, `decision_run` (+ `decision_input_*`, `decision_result`, `decision_reason`, `decision_trace`, `decision_notice`), `audit_event`, `applicant_context`. Full field lists in `MVP_DATA_CONTRACT.md`.
+Account/setup entities added by D-013 are deliberately small:
+`student_profile` + `student_profile_version`,
+`school_directory_version`, and `application_private_context_version`.
+Profile JSONB groups child identity, household/address, relative, and language
+fields under explicit purpose metadata. Private-context JSONB groups
+support/disclosure and financial intake while remaining physically separate
+from the application core. Each submitted `application_version` binds exact
+profile/private/directory references and stores immutable school and final
+submission snapshots.
+
+Admissions entities: `application`, `application_version`,
+`assessment_version`, `policy_bundle` (+ `policy_version`), `snapshot_version`
+(+ `snapshot`, `snapshot_item`), `review_case`, `review_assignment`,
+`review_submission` (+ `dimension_rating`), `pending_item`, `decision_run` (+
+`decision_input_*`, `decision_result`, `decision_reason`, `decision_trace`,
+`decision_notice`), `audit_event`, and minimized `applicant_context`. Detailed
+field work is indexed in `ONBOARDING_OVERHAUL_TICKETS.md` and
+`MVP_DATA_CONTRACT.md`.
 
 **Load-bearing patterns:**
 - **Immutable successor versioning** — `*_version(version_no, supersedes_id, content_hash)`; one predecessor has at most one active successor; corrections append, never mutate.
@@ -277,6 +343,15 @@ The full research model's purpose-separated schemas (`admissions`, `policy`, `ev
 ### 5.3 The decision projection (firewall implementation)
 
 The decision engine never hashes or reads a whole row. It reads an **allowlisted projection** containing only decision-relevant fields; identity, accommodation, consent, referral, and every prohibited input are structurally absent from the projection (`CANONICALIZATION_AND_REPLAY_BLUEPRINT.md:165-210`). Reference ordering is fixed (application → assessment → snapshot → evidence → review; submissions by slot; policy members in fixed order; reasons by locked `reason_order`). This is how R4/H2 become a mechanical guarantee rather than a code-review promise.
+
+Milestone A currently implements only the onboarding firewall seam: the exact
+allowlist is current grade, requested year/grade, and the synthetic marker, with
+a separate SHA-256 projection commitment. Tests mutate every represented D-013
+prohibited class and feed the unchanged projection to a deterministic test-only
+consumer, proving unchanged probe result/hash. No eligibility engine,
+eligibility result, or decision-root hash exists yet, so this evidence must not
+be described as implemented decision-result invariance; that remains part of
+the later D-014 routing/decision build.
 
 ---
 
@@ -330,7 +405,10 @@ Directly per `RLS_AND_AUTH_BLUEPRINT.md`:
 - **Ownership model:** `app_owner` (NOLOGIN, NOBYPASSRLS) owns tables; `api_executor` owns definer RPCs. Every private table: `ENABLE` + `FORCE` RLS, then `REVOKE ALL` from public/`authenticated` (no broad grants; no elevated/admin role is reachable from the app connection).
 - **Predicates:** `OWNS(application_id)` = `owner_user_id = current_setting('app.user_id')::uuid AND synthetic_only`; `ASSIGNED(review_case_id)` = active assignment for `current_setting('app.user_id')` with matching role. Wrong-owner returns identical **not-found** to absent (no existence oracle).
 - **Reviewer blindness (enforced in DB, not UI):** RLS blocks reading a peer submission before *and* after one's own lock; the reviewer read RPC never joins peer submissions; the supervisor sees no prior vote; majority is computed only inside a private routine; the reviewer response says only `accepted`.
-- **Private-field firewall:** accommodation/access-route/consent/referral live in private structures excluded from every evidence and decision manifest; eligibility functions cannot read them.
+- **Private-field firewall:** identity/demographic, household/address/language,
+  accommodation/support/disclosure, financial intake, consent, referral, and
+  signature data live in private structures excluded from every evidence and
+  decision manifest; eligibility functions cannot read them.
 - **No RLS-bypassing capability in the app runtime (by construction).** See § 7.1 — this is treated as a structural property, not a discipline.
 
 ### 7.1 Eliminating RLS-bypass credential exposure by construction

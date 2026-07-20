@@ -236,3 +236,98 @@ Each behavior was observed failing before its migration/function existed, then p
 minimum implementation. Final acceptance evidence is `pnpm db:reset`, 84 passing pgTAP
 assertions, `pnpm db:lint`, and `pnpm db:types:check`; workspace verification is recorded on the
 branch before handoff.
+
+**Later scope clarification:** D-013 expanded account setup beyond this run's
+field contract. These tests remain foundation evidence; the following
+Milestone A run records the field-complete synthetic backend expansion.
+
+## D-013 Milestone A expansion — 2026-07-20
+
+- **Requirements:** R1, R7–R10; H2, H4, H7, H9, H10
+- **Evidence/boundaries:** D-013; E-032–E-040, E-054–E-057, E-062–E-065;
+  born-synthetic only; no live/COPPA, aid-decision, assessment, review, or
+  allocation claim
+- **Public seams:** exported Zod schemas/fixtures; explicit `api` RPCs; family
+  server actions/local adapter
+
+### Observed red → green
+
+1. **Contracts:** `onboarding-contract.test.ts` first ran with 8 of 9 tests
+   failing because the D-013 schemas/constants did not exist. After the
+   profile, school, support, finance, final-signature, and family API schemas
+   landed, the focused suite passed 9/9 and the full contract suite passed
+   42/42.
+2. **Fixtures:** the focused fixture test first failed 4/4 because multiple
+   profiles, active schools, full/partial/`other`, and reload/review fixtures
+   were absent. It then passed 4/4; the full fixture suite passed 18/18.
+3. **PostgreSQL boundary:** the Milestone A schema/security test first failed on
+   missing profile, directory, private-context, reference columns, and RPCs.
+   After the three migrations, it passed 35/35. Round-trip/firewall hardening
+   then exposed and corrected test-path assumptions before passing 36/36; the
+   complete pgTAP suite passes 173 assertions.
+4. **B11B adapter:** focused web tests first failed because the environment
+   guard and local adapter did not exist. They then passed 11/11, and the full
+   web unit suite passed 15/15. A real local Auth/PostgREST integration test
+   signs in two fictional families and verifies profile → school → draft →
+   reload → submit → status plus wrong-owner not-found through the same typed
+   adapter surface.
+
+No new product decision or scope exception was introduced. The grouped
+profile JSONB and grouped private-context JSONB are the minimum implementation
+of D-013's already approved small-boundary direction; E-063–E-065 remain
+visible blockers for real vocabularies, authorities, and requiredness.
+
+### Initial Milestone A verification
+
+On Node `v24.18.0`, `pnpm verify` passed end to end: formatting, lint,
+typecheck, 42 contract tests, 18 fixture tests, 15 web unit tests, workspace
+boundaries, clean database reset/lint, 173 pgTAP assertions, generated-type
+drift, seven fictional Auth users, the live local-adapter integration test,
+production build, elevated-key scan, and three existing Playwright shell tests.
+Graphify was refreshed for the material code-topology change.
+
+## Independent-review hardening — 2026-07-20
+
+This follow-up preserves D-014's six-stage/four-persona target while hardening
+the implemented D-013 onboarding seam.
+
+### Observed red → green
+
+1. **Submitted contracts/cardinality/uniqueness:** the focused contract run
+   failed five review cases: duplicate relative/support codes were accepted,
+   profile lists rejected item 21, and impossible submitted responses parsed.
+   Submitted-specific schemas, uniqueness refinements, and uncapped list
+   responses turned the focused suite green at 14/14 and the full contract
+   suite green at 47/47.
+2. **Frontend-exported actions/startup:** the new action integration test first
+   failed because no Next request-cookie harness existed. A Next-compatible
+   cookie store then let local Auth populate the production server client and
+   all eight `actions.ts` exports execute. The startup test first failed because
+   no instrumentation module existed; the actual `register()` hook now fails
+   partial/unsafe B11B configuration while leaving disabled builds alone.
+3. **Expiry-safe idempotency:** an exact draft retry failed
+   `VALIDATION_FAILED` after its selected school expired. Moving actor-scoped
+   replay lookup before active-directory validation made the three-assertion
+   regression green without weakening first-write validation.
+4. **Firewall/concurrency:** the expanded firewall test first failed because no
+   projection commitment existed. It now asserts the exact grade-only
+   allowlist and mutates identity, household, language, school, support,
+   disclosure, finance, referral, and signature classes through unchanged
+   projection, deterministic test-probe result, and probe-result hash. A real
+   two-client integration race verifies one save/submit winner and deterministic
+   `STALE_VERSION`/`SUBMISSION_LOCKED` loser outcomes.
+
+The probe result/hash is test-only evidence for structural noninterference; no
+eligibility engine or decision-result hash is implemented or claimed.
+
+### Independent-review final verification
+
+On Node `v24.18.0`, `pnpm verify` passed with 47 contract tests, 18 fixture
+tests, 22 web unit/startup tests, 204 pgTAP assertions, three live integration
+tests, a clean database reset/lint/type-drift check, production build,
+security/boundary scans, and three Playwright shell tests. The separate
+CI-equivalent `pnpm test:coverage` command also passed. The live integration
+suite was additionally repeated three times without a race-ordering failure.
+Graphify was refreshed for the new instrumentation/action topology; its
+optional SQL parser remains unavailable, so SQL evidence comes from reset,
+lint, and pgTAP rather than the code graph.

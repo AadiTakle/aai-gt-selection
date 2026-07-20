@@ -20,6 +20,13 @@ const publicEnvironmentSchema = z
   });
 
 const elevatedKeyNamePattern = /^(?:NEXT_PUBLIC_)?SUPABASE_(?:SECRET|SERVICE_ROLE)_KEY$/;
+const localSyntheticAdapterSchema = z
+  .object({
+    GT_LOCAL_SYNTHETIC_ADAPTER_ENABLED: z.literal('true'),
+    GT_LOCAL_SYNTHETIC_PROJECT_ID: z.literal('gt-selection-capstone'),
+    NODE_ENV: z.enum(['development', 'test']),
+  })
+  .strict();
 
 export function validatePublicEnvironment(input: Record<string, string | undefined>) {
   return publicEnvironmentSchema.parse({
@@ -45,6 +52,33 @@ export function getPublicEnvironment() {
 export function getServerEnvironment() {
   assertNoElevatedRuntimeKeys(process.env);
   return getPublicEnvironment();
+}
+
+export function validateLocalSyntheticAdapterEnvironment(
+  input: Record<string, string | undefined>,
+) {
+  assertNoElevatedRuntimeKeys(input);
+  const publicEnvironment = validatePublicEnvironment(input);
+  const adapterEnvironment = localSyntheticAdapterSchema.parse({
+    GT_LOCAL_SYNTHETIC_ADAPTER_ENABLED: input.GT_LOCAL_SYNTHETIC_ADAPTER_ENABLED,
+    GT_LOCAL_SYNTHETIC_PROJECT_ID: input.GT_LOCAL_SYNTHETIC_PROJECT_ID,
+    NODE_ENV: input.NODE_ENV,
+  });
+  const databaseUrl = new URL(publicEnvironment.NEXT_PUBLIC_SUPABASE_URL);
+  if (databaseUrl.protocol !== 'http:' || databaseUrl.port !== '65421') {
+    throw new Error(
+      'The local synthetic adapter only permits the designated loopback project port.',
+    );
+  }
+
+  return {
+    ...publicEnvironment,
+    ...adapterEnvironment,
+  };
+}
+
+export function getLocalSyntheticAdapterEnvironment() {
+  return validateLocalSyntheticAdapterEnvironment(process.env);
 }
 
 export function getReturnUrl() {

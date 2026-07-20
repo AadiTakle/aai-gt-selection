@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  FINAL_SIGNATURE_STATEMENT,
   apiErrorCodeSchema,
   decisionSummarySchema,
   getApplicationStatusRequestSchema,
@@ -25,42 +26,13 @@ describe('public contract boundaries', () => {
   it('accepts a versioned idempotent draft-save request and rejects unknown fields', () => {
     const request = {
       applicationId: uuid,
+      studentProfileVersionId: uuid,
       draft: {
-        student: {
-          syntheticStudentIdentifier: 'STUDENT-SYN-001',
-          ageYears: 10,
-          currentGrade: '5',
+        application: {
+          currentGradeCode: 'SYN_GRADE_05',
           requestedEntryYear: 2027,
-          requestedGrade: '6',
+          requestedGradeCode: 'SYN_GRADE_06',
         },
-        education: {
-          currentSchoolName: 'Synthetic Learning Academy',
-          currentSchoolType: 'synthetic-independent',
-          enrollmentStartDate: '2025-08-15',
-          enrollmentEndDate: null,
-          priorSchools: [
-            {
-              schoolName: 'Synthetic Primary School',
-              schoolType: 'synthetic-public',
-              enrollmentStartDate: '2022-08-15',
-              enrollmentEndDate: '2025-06-01',
-            },
-          ],
-        },
-        guardian: {
-          fullName: 'Synthetic Guardian',
-          relationshipToChild: 'parent',
-          hasRelativeInGtProgram: false,
-          email: 'guardian@example.test',
-          phone: null,
-        },
-        finalSubmission: {
-          completedStepCodes: ['STUDENT', 'EDUCATION', 'GUARDIAN'],
-          accuracyAcknowledged: true,
-          signatureName: 'Synthetic Guardian',
-          signedAt: '2026-07-20T06:00:00.000Z',
-        },
-        referralSourceCode: 'SYNTHETIC_WEB_SEARCH',
         syntheticOnly: true,
       },
       expectedVersion: 0,
@@ -84,7 +56,6 @@ describe('public contract boundaries', () => {
         draft: {
           ...request.draft,
           dateOfBirth: '2016-01-01',
-          primaryAddress: '123 Real Child Data Lane',
         },
       }).success,
     ).toBe(false);
@@ -93,10 +64,7 @@ describe('public contract boundaries', () => {
         ...request,
         draft: {
           ...request.draft,
-          guardian: {
-            ...request.draft.guardian,
-            email: 'real-family@gmail.com',
-          },
+          essayOne: 'Synthetic prose is explicitly outside onboarding.',
         },
       }).success,
     ).toBe(false);
@@ -127,14 +95,19 @@ describe('public contract boundaries', () => {
         application: {
           applicationId: uuid,
           applicationVersionId: uuid,
+          studentProfileVersionId: uuid,
+          privateContextVersionId: uuid,
           version: 1,
           supersedesId: null,
           state: 'draft',
-          student: {
-            currentGrade: '5',
+          application: {
+            currentGradeCode: 'SYN_GRADE_05',
+            requestedEntryYear: 2027,
+            requestedGradeCode: 'SYN_GRADE_06',
           },
           syntheticOnly: true,
           contentHash: `sha256:${'1'.repeat(64)}`,
+          privateContextContentHash: `sha256:${'2'.repeat(64)}`,
         },
       },
       meta: {
@@ -188,41 +161,80 @@ describe('public contract boundaries', () => {
       syntheticOnly: true,
       data: {
         application: {
-          applicationId: uuid,
-          applicationVersionId: uuid,
-          version: 1,
-          supersedesId: null,
+          applicationId: '00000000-0000-4000-8000-000000000001',
+          applicationVersionId: '00000000-0000-4000-8000-000000000002',
+          studentProfileVersionId: '00000000-0000-4000-8000-000000000003',
+          privateContextVersionId: '00000000-0000-4000-8000-000000000004',
+          version: 2,
+          supersedesId: '00000000-0000-4000-8000-000000000005',
           state: 'submitted',
           syntheticOnly: true,
-          student: {
-            syntheticStudentIdentifier: 'STUDENT-SYN-001',
-            ageYears: 10,
-            currentGrade: '5',
-            requestedGrade: '6',
+          application: {
+            currentGradeCode: 'SYN_GRADE_05',
             requestedEntryYear: 2027,
+            requestedGradeCode: 'SYN_GRADE_06',
           },
-          education: {
-            currentSchoolName: 'Synthetic Learning Academy',
-            currentSchoolType: 'synthetic-independent',
-            enrollmentStartDate: '2025-08-15',
-            enrollmentEndDate: null,
-            priorSchools: [],
+          school: {
+            selectionKind: 'other',
+            snapshot: {
+              name: 'Synthetic Other School',
+              typeCode: 'SYN_SCHOOL_OTHER',
+              address: {
+                line1: 'Synthetic 100 Example Way',
+                line2: null,
+                city: 'Synthetic City',
+                regionCode: 'SYN_REGION_TX',
+                postalCode: '00000',
+                countryCode: 'US',
+              },
+              syntheticOnly: true,
+            },
           },
-          guardian: {
-            fullName: 'Synthetic Guardian',
-            relationshipToChild: 'parent',
-            hasRelativeInGtProgram: false,
-            email: 'guardian@example.test',
-            phone: null,
+          supportDisclosure: {
+            supportNeeded: false,
+            vocabularyVersion: 'SUPPORT-SYN-V1',
+            accommodationCodes: [],
+            supportPlanCodes: [],
+            otherSelected: false,
+            details: null,
+            seriousDisciplineSanction: false,
+            nonHealthWithdrawal: false,
+            disclosureExplanation: null,
+            purposeCode: 'SYN_SUPPORT_OPERATIONS_ONLY',
+            syntheticOnly: true,
+          },
+          financialIntake: {
+            annualHouseholdIncomeMinor: 12_500_000,
+            currencyCode: 'USD',
+            taxYear: 2025,
+            incomeDefinitionCode: 'SYN_INCOME_GROSS_ANNUAL_V1',
+            householdMemberCount: 4,
+            householdMemberDefinitionCode: 'SYN_HOUSEHOLD_MEMBERS_V1',
+            semanticsVersion: 'FINANCE-SYN-V1',
+            purposeCode: 'SYN_FINANCIAL_AID_INTAKE_ONLY',
+            syntheticOnly: true,
           },
           finalSubmission: {
-            completedStepCodes: ['STUDENT', 'EDUCATION', 'GUARDIAN'],
+            completedStepCodes: [
+              'STUDENT_PROFILE',
+              'EDUCATIONAL_BACKGROUND',
+              'SUPPORT_DISCLOSURE',
+              'HOUSEHOLD_LANGUAGE',
+              'FINANCIAL_INTAKE',
+              'REVIEW_SIGNATURE',
+            ],
+            acknowledgementVersion: 'ACKNOWLEDGEMENT-SYN-V1',
+            acknowledgementStatement: FINAL_SIGNATURE_STATEMENT,
             accuracyAcknowledged: true,
-            signatureName: 'Synthetic Guardian',
-            signedAt: '2026-07-20T06:00:00.000Z',
+            acknowledgedAt: '2026-07-20T16:00:00.000Z',
+            referralSourceCode: 'SYN_REFERRAL_WEB_SEARCH',
+            signatureStatementVersion: 'SIGNATURE-SYN-V1',
+            signatureStatement: FINAL_SIGNATURE_STATEMENT,
+            signatureName: 'Synthetic Guardian One',
+            signedAt: '2026-07-20T16:01:00.000Z',
           },
-          referralSourceCode: 'SYNTHETIC_WEB_SEARCH',
           contentHash: `sha256:${'1'.repeat(64)}`,
+          privateContextContentHash: `sha256:${'2'.repeat(64)}`,
         },
         status: {
           workflowStatus: 'awaiting_assessment',

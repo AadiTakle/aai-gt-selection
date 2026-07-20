@@ -15,8 +15,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_application: {
+        Args: { p_application_id: string; p_correlation_id: string }
+        Returns: Json
+      }
       get_application_status: {
         Args: { p_application_id: string; p_correlation_id: string }
+        Returns: Json
+      }
+      get_student_profile: {
+        Args: { p_correlation_id: string; p_profile_id: string }
+        Returns: Json
+      }
+      list_active_schools: { Args: { p_correlation_id: string }; Returns: Json }
+      list_student_profiles: {
+        Args: { p_correlation_id: string }
         Returns: Json
       }
       save_application_draft: {
@@ -26,6 +39,17 @@ export type Database = {
           p_draft: Json
           p_expected_version: number
           p_idempotency_key: string
+          p_student_profile_version_id: string
+        }
+        Returns: Json
+      }
+      save_student_profile: {
+        Args: {
+          p_correlation_id: string
+          p_expected_version: number
+          p_idempotency_key: string
+          p_profile: Json
+          p_profile_id: string
         }
         Returns: Json
       }

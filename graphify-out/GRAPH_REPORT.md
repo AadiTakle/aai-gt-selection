@@ -1,16 +1,16 @@
 # Graph Report - gt-selection-capstone  (2026-07-20)
 
 ## Corpus Check
-- 146 files · ~144,554 words
+- 167 files · ~166,013 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1793 nodes · 1856 edges · 149 communities (126 shown, 23 thin omitted)
+- 1973 nodes · 2201 edges · 160 communities (136 shown, 24 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 16 edges (avg confidence: 0.79)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `435b720e`
+- Built from commit: `73f44c06`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -125,6 +125,7 @@
 - Feature-to-Requirement Development Map
 - Cycle log
 - decision.ts
+- service.ts
 - tsconfig.json
 - package.json
 - workflow.ts
@@ -157,18 +158,27 @@
 - README.md
 - README.md
 - README.md
+- local-synthetic-adapter.integration.test.ts
+- Effect-Size and Meaningful-Effect Benchmarks
+- @testing-library/user-event
+- @vitejs/plugin-react
+- vitest.integration.config.ts
+- review-transition.test.ts
+- api-envelope.ts
+- review-pending.test.ts
+- jsdom
 
 ## God Nodes (most connected - your core abstractions)
 1. `Separating Selection Effect from Program Effect` - 47 edges
 2. `Annotated Source Register` - 31 edges
 3. `Iteration Log` - 23 edges
 4. `scripts` - 19 edges
-5. `Backend and Admissions Algorithm Designs` - 19 edges
-6. `Morning Handoff` - 19 edges
-7. `PostgreSQL Research Data Model` - 18 edges
-8. `Canonicalization, Hashing, and Replay Blueprint` - 18 edges
-9. `Child Data Privacy, Retention, and Synthetic-Data Safety` - 17 edges
-10. `Minimum Synthetic MVP Data Contract` - 17 edges
+5. `Backend tickets` - 19 edges
+6. `Backend and Admissions Algorithm Designs` - 19 edges
+7. `Morning Handoff` - 19 edges
+8. `PostgreSQL Research Data Model` - 18 edges
+9. `Canonicalization, Hashing, and Replay Blueprint` - 18 edges
+10. `Child Data Privacy, Retention, and Synthetic-Data Safety` - 17 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Project Stop Conditions` --semantically_similar_to--> `Automatic Rejection Conditions`  [INFERRED] [semantically similar]
@@ -190,7 +200,7 @@
 - **Track B Snapshot Workflow** — docs_gt_admissions_application_mvp_prd_track_b_invitation, docs_gt_admissions_application_mvp_prd_artifact_route, docs_gt_admissions_application_mvp_prd_narrative_fallback, docs_gt_admissions_application_mvp_prd_independent_review [EXTRACTED 1.00]
 - **Credible Causal Evaluation Stack** — gt_school_counterfactual_brainlift_brainlift_gt_school_counterfactual_lottery_identification, docs_project_requirements_r3, docs_project_requirements_r6, docs_project_requirements_h6 [INFERRED 0.95]
 
-## Communities (149 total, 23 thin omitted)
+## Communities (160 total, 24 thin omitted)
 
 ### Community 0 - "Causal Attribution and Governance"
 Cohesion: 0.08
@@ -381,8 +391,8 @@ Cohesion: 0.17
 Nodes (12): Brennan (2001) — Generalizability Theory, Cohen (1960, 1968) — Kappa, Conger (1980) — Generalized Kappa, Fleiss (1971) — Many-Rater Kappa, Gwet (2008) — Agreement Under Prevalence Imbalance, Gwet (2014) — AC2, Kane (2013) — Argument-Based Validation, Krippendorff (2004) — Alpha (+4 more)
 
 ### Community 57 - "R2 Credible Counterfactual"
-Cohesion: 0.29
-Nodes (7): E-001 Public GT Reporting Lacks Credible Comparison, Methodologist Critic Lens, Seat Allocation and Evaluation Out of Scope, Track A vs Track B Difference as Program Effect Claim, R10 Conclusion Boundaries, R2 Credible Counterfactual, Regression Discontinuity at Admission Cutoff
+Cohesion: 0.18
+Nodes (11): E-001 Public GT Reporting Lacks Credible Comparison, Concept A Selection-First, Concept B Evaluation-First, Concept C Integrated Selection and Evaluation, Methodologist Critic Lens, Weighted Concept Comparison Scorecard, Seat Allocation and Evaluation Out of Scope, Track A vs Track B Difference as Program Effect Claim (+3 more)
 
 ### Community 58 - "Initial Anchor Sources"
 Cohesion: 0.18
@@ -421,8 +431,8 @@ Cohesion: 0.25
 Nodes (8): Cherian & Candès (2024) — Fairness Auditing Inference, Chouldechova (2017) — Calibration and Error Balance, Fairness and Contestability, Hardt, Price, & Srebro (2016) — Equalized Odds, Jacobs & Wallach (2021) — Measurement and Fairness, Kleinberg, Mullainathan, & Raghavan (2017) — Fairness Trade-offs, Kuncel et al. (2013) — Mechanical Combination, Rudin (2019) — Interpretable High-Stakes Models
 
 ### Community 67 - "R6 Growth Without Gifted Ceiling"
-Cohesion: 0.40
-Nodes (6): E-012 High-Ceiling Outcome Availability Assumption, Impact and Measurement Metrics, R3 Prospective Causal Question, R6 Growth Without Gifted Ceiling, Deferred R2 R3 R6 Evaluation Work, Credible Causal Measurement Stack
+Cohesion: 0.33
+Nodes (7): E-012 High-Ceiling Outcome Availability Assumption, Impact and Measurement Metrics, R3 Prospective Causal Question, R6 Growth Without Gifted Ceiling, Deferred R2 R3 R6 Evaluation Work, BrainLift PDF Export, Credible Causal Measurement Stack
 
 ### Community 68 - "Complex Regression Discontinuity"
 Cohesion: 0.29
@@ -457,20 +467,20 @@ Cohesion: 0.33
 Nodes (6): Gama et al. (2014) — Concept Drift, Mitchell et al. (2019) — Model Cards, Monitoring and Drift, NIST AI 800-4 (2026) — Deployed AI Monitoring, Perdomo et al. (2020) — Performative Prediction, Steyerberg et al. (2004) — Model Updating
 
 ### Community 76 - "H3 Address Unobserved Selection"
-Cohesion: 0.33
-Nodes (6): E-009 Random Assignment Balances Unobserved Traits, H3 Address Unobserved Selection, BrainLift PDF Export, Capability-Gated Admission Lottery, Capable-but-Underserved Students, Lottery ITT and LATE Identification
+Cohesion: 0.40
+Nodes (5): E-009 Random Assignment Balances Unobserved Traits, H3 Address Unobserved Selection, Capability-Gated Admission Lottery, Capable-but-Underserved Students, Lottery ITT and LATE Identification
 
 ### Community 77 - "Effect-Size and Meaningful-Effect Benchmarks"
-Cohesion: 0.14
-Nodes (13): Annotated Source Register, Bailey et al. (2017) — Persistence and Fadeout, CATE Calibration and Policy Evaluation, Chernozhukov et al. (2025) — Generic HTE Inference, Effect-Size and Meaningful-Effect Benchmarks, Evidence Grades, Expansion Areas, Hill et al. (2008) — Empirical Benchmarks (+5 more)
+Cohesion: 0.22
+Nodes (8): Annotated Source Register, CATE Calibration and Policy Evaluation, Chernozhukov et al. (2025) — Generic HTE Inference, Evidence Grades, Expansion Areas, Imai & Li (2023) — Experimental Policy Evaluation, Lei & Candès (2021) — Conformal Counterfactuals, Xu & Yadlowsky (2022) — CATE Calibration
 
 ### Community 78 - "Uncertainty and Abstention"
 Cohesion: 0.40
 Nodes (5): Bartlett & Wegkamp (2008) — Classification with Reject Option, Bates et al. (2021) — Risk-Controlling Prediction Sets, Chow (1970) — Reject Option, Mozannar & Sontag (2020) — Learning to Defer, Uncertainty and Abstention
 
 ### Community 79 - "CATE Calibration and Policy Evaluation"
-Cohesion: 0.50
-Nodes (4): Concept A Selection-First, Concept B Evaluation-First, Concept C Integrated Selection and Evaluation, Weighted Concept Comparison Scorecard
+Cohesion: 0.05
+Nodes (41): ApplicationCore, applicationCoreSchema, ApplicationFinalSubmission, applicationFinalSubmissionSchema, ApplicationState, applicationStateSchema, boundedDetailsSchema, contentHashSchema (+33 more)
 
 ### Community 80 - "Reproducible Evaluator Exports"
 Cohesion: 0.40
@@ -518,31 +528,31 @@ Nodes (6): Decomposing the 2.6× claim, Multi-cohort cumulative estimation, Next
 
 ### Community 91 - "env.ts"
 Cohesion: 0.06
-Nodes (39): GET(), GET(), AdmissionsPage(), ConfigAuditPage(), FamilyPage(), ReviewPage(), metadata, SurfacePlaceholder() (+31 more)
+Nodes (42): GET(), GET(), AdmissionsPage(), ConfigAuditPage(), FamilyPage(), ReviewPage(), metadata, SurfacePlaceholder() (+34 more)
 
 ### Community 92 - "replay.ts"
 Cohesion: 0.06
-Nodes (32): ApiMeta, apiMetaSchema, apiSuccessSchema(), exactVerification, meta, storedDecision, digestReplayResultSchema, digestVerificationSchema (+24 more)
+Nodes (30): exactVerification, meta, storedDecision, digestReplayResultSchema, digestVerificationSchema, disposedInputReplayResultSchema, exactReplayResultSchema, exactVerificationSchema (+22 more)
 
 ### Community 93 - "Backend tickets"
-Cohesion: 0.07
-Nodes (29): B10 — Implement `api.get_application_status` (read RPC), B11 — Regenerate and commit `packages/db-types`, B11A — Implement the Cognito/`pg` request adapter, B12 — Stretch: private accommodation/language route request table, B1 — Expand the application draft/version contract to the full PRD field set, B2 — Define the missing read-RPC and draft-save-response contracts, B3 — Migration: `app.application` and `app.application_version` tables, B4 — Migration: minimal synthetic `cycle` table + seed row (+21 more)
+Cohesion: 0.05
+Nodes (39): B10 — Implement `api.get_application_status` (read RPC), B11 — Regenerate and commit `packages/db-types`, B11A — Implement the Cognito/`pg` request adapter, B11B — Server-only local synthetic integration adapter, B12 — Private support-plan and disclosure versions, B13 — Versioned school directory and signed school snapshot, B14 — Reusable student and household profiles, B15 — Private financial-aid intake (+31 more)
 
 ### Community 94 - "GT Admissions MVP — Web Application Architecture Plan"
 Cohesion: 0.07
-Nodes (28): 10. Testing & CI gate architecture (acceptance), 11. Build sequence (aligned to the PRD four-week timeline), 12. Governance updates required (per AGENTS.md § Update governance + Completion check), 13. Open blockers referenced, 1. Architectural goals and non-negotiable invariants, 2. System context (C4 level 1), 3. Technology stack (locked), 4.1 Next.js structure — four role-scoped surfaces (+20 more)
+Nodes (28): 10. Testing & CI gate architecture (acceptance), 11. Build sequence (aligned to the PRD four-week timeline), 12. Governance updates required (per AGENTS.md § Update governance + Completion check), 13. Open blockers referenced, 1. Architectural goals and non-negotiable invariants, 2. System context (C4 level 1), 3. Technology stack (locked), 4.1 Next.js structure — four functional persona surfaces (+20 more)
 
 ### Community 95 - "application.ts"
-Cohesion: 0.06
-Nodes (32): ApplicationDraft, ApplicationEducation, applicationEducationSchema, ApplicationFinalSubmission, applicationFinalSubmissionSchema, ApplicationGuardian, applicationGuardianSchema, ApplicationState (+24 more)
+Cohesion: 0.05
+Nodes (37): ApplicationDraft, applicationDraftSchema, ApplicationEducation, applicationEducationSchema, ApplicationFinalSubmission, applicationFinalSubmissionSchema, ApplicationGuardian, applicationGuardianSchema (+29 more)
 
 ### Community 96 - "correction.ts"
 Cohesion: 0.07
-Nodes (30): applicationDraftSchema, assessmentInputSchema, applicationFactualCorrectionSchema, AppliedCorrection, appliedCorrectionSchema, ApplyCorrectionRequest, applyCorrectionRequestSchema, applyCorrectionResponseDataSchema (+22 more)
+Nodes (28): applicationFactualCorrectionSchema, AppliedCorrection, appliedCorrectionSchema, ApplyCorrectionRequest, applyCorrectionRequestSchema, ApplyCorrectionResponse, applyCorrectionResponseDataSchema, applyCorrectionResponseSchema (+20 more)
 
 ### Community 97 - "Frontend Enablement Report"
 Cohesion: 0.10
-Nodes (20): 2026-07-20 pre-CogAT onboarding handoff, Contract freeze, Current integration guidance, Cycle 1 frontend handoff, Cycle 2 frontend handoff, Cycle 3 frontend handoff, Cycle 4 frontend handoff, Cycle 5 frontend handoff (+12 more)
+Nodes (20): 2026-07-20 Milestone A onboarding backend handoff, Contract freeze, Current integration guidance, Cycle 1 frontend handoff, Cycle 2 frontend handoff, Cycle 3 frontend handoff, Cycle 4 frontend handoff, Cycle 5 frontend handoff (+12 more)
 
 ### Community 98 - "package.json"
 Cohesion: 0.10
@@ -557,8 +567,8 @@ Cohesion: 0.10
 Nodes (20): DOM, DOM.Iterable, ES2022, node, compilerOptions, esModuleInterop, exactOptionalPropertyTypes, forceConsistentCasingInFileNames (+12 more)
 
 ### Community 101 - "contracts.test.ts"
-Cohesion: 0.11
-Nodes (18): applicationVersionSchema, assessmentVersionSchema, getApplicationStatusRequestSchema, getApplicationStatusResponseSchema, recordAssessmentVersionRequestSchema, recordAssessmentVersionResponseSchema, saveApplicationDraftRequestSchema, saveApplicationDraftResponseSchema (+10 more)
+Cohesion: 0.12
+Nodes (17): assessmentVersionSchema, recordAssessmentVersionRequestSchema, recordAssessmentVersionResponseSchema, decisionSummarySchema, trackAOutcomeSchema, trackBEligibilityOutcomeSchema, trackBInvitationOutcomeSchema, applicationVersionSchema (+9 more)
 
 ### Community 102 - "dependencies"
 Cohesion: 0.11
@@ -566,7 +576,7 @@ Nodes (19): dependencies, @gt-selection/contracts, @gt-selection/db-types, @gt-s
 
 ### Community 103 - "devDependencies"
 Cohesion: 0.11
-Nodes (19): devDependencies, eslint-config-next, @playwright/test, @testing-library/jest-dom, @testing-library/user-event, @types/react, typescript, @vitejs/plugin-react (+11 more)
+Nodes (19): devDependencies, eslint-config-next, @playwright/test, @testing-library/jest-dom, @testing-library/user-event, @types/react, @types/react-dom, typescript (+11 more)
 
 ### Community 104 - "devDependencies"
 Cohesion: 0.11
@@ -577,20 +587,24 @@ Cohesion: 0.11
 Nodes (19): scripts, boundaries:check, build, db:lint, db:reset, db:start, db:stop, db:test (+11 more)
 
 ### Community 106 - "index.ts"
-Cohesion: 0.11
-Nodes (17): ApplicationVersion, AssessmentVersion, GetApplicationStatusResponse, RecordAssessmentVersionResponse, SaveApplicationDraftResponse, SubmitApplicationResponse, ApplyCorrectionResponse, ReplayDecisionResponse (+9 more)
+Cohesion: 0.08
+Nodes (22): ApplicationDraft, ApplicationVersion, FinancialIntake, SchoolDirectoryEntry, StudentProfileContent, StudentProfileVersion, SubmittedApplicationVersion, SupportDisclosure (+14 more)
 
 ### Community 107 - "Feature-to-Requirement Development Map"
 Cohesion: 0.11
 Nodes (17): Admissions product, Backend and platform, Complete feature inventory, Current implementation snapshot, Current status, Evaluation and future live-use features, External blockers for live use, Feature-to-Requirement Development Map (+9 more)
 
 ### Community 108 - "Cycle log"
-Cohesion: 0.11
-Nodes (17): Cycle 0 — Setup, Cycle 1 — Draft-save contract, Cycle 2 — Submitted-application response, Cycle 3 — Assessment recording and routing contracts, Cycle 4 — Snapshot submission contracts, Cycle 5 — Review submission transitions, Cycle 6 — Abstention, replacement, and pending blockers, Cycle 7 — Immutable correction successors (+9 more)
+Cohesion: 0.09
+Nodes (22): Cycle 0 — Setup, Cycle 1 — Draft-save contract, Cycle 2 — Submitted-application response, Cycle 3 — Assessment recording and routing contracts, Cycle 4 — Snapshot submission contracts, Cycle 5 — Review submission transitions, Cycle 6 — Abstention, replacement, and pending blockers, Cycle 7 — Immutable correction successors (+14 more)
 
 ### Community 109 - "decision.ts"
 Cohesion: 0.12
 Nodes (15): DecisionKind, decisionKindSchema, DecisionSummary, decisionSummaryBaseSchema, TrackADecisionSummary, trackADecisionSummarySchema, TrackAOutcome, TrackBEligibilityDecisionSummary (+7 more)
+
+### Community 110 - "service.ts"
+Cohesion: 0.13
+Nodes (17): OnboardingService, GetApplicationRequest, GetApplicationResponse, GetApplicationStatusRequest, GetApplicationStatusResponse, GetStudentProfileRequest, GetStudentProfileResponse, ListActiveSchoolsRequest (+9 more)
 
 ### Community 111 - "tsconfig.json"
 Cohesion: 0.14
@@ -601,16 +615,16 @@ Cohesion: 0.17
 Nodes (11): devDependencies, typescript, exports, typescript, name, private, scripts, lint (+3 more)
 
 ### Community 113 - "workflow.ts"
-Cohesion: 0.18
-Nodes (10): PendingItem, pendingItemOwnerRoleSchema, pendingItemRouteCodeSchema, pendingItemSchema, PendingReason, pendingReasonSchema, StatusProjection, statusProjectionSchema (+2 more)
+Cohesion: 0.20
+Nodes (9): PendingItem, pendingItemOwnerRoleSchema, pendingItemRouteCodeSchema, pendingItemSchema, PendingReason, pendingReasonSchema, StatusProjection, WorkflowStatus (+1 more)
 
 ### Community 114 - "Comparator Case Study — Summer Science Program (SSP International)"
 Cohesion: 0.18
 Nodes (10): 1. What SSP is, 2. The selection funnel — original claim vs. verified numbers, 3. The actual 2026 process (the significant change), 4. The evaluation study, 5. Organizational scale & the money (context for feasibility, R8), 6. Critiques, tensions, and open questions, 7. Direct relevance to the GT project, 8. Open data gaps (for anyone extending this) (+2 more)
 
 ### Community 115 - "scripts"
-Cohesion: 0.22
-Nodes (9): scripts, build, dev, lint, start, test, test:coverage, test:e2e (+1 more)
+Cohesion: 0.20
+Nodes (10): scripts, build, dev, lint, start, test, test:coverage, test:e2e (+2 more)
 
 ### Community 116 - "package.json"
 Cohesion: 0.22
@@ -665,6 +679,38 @@ Cohesion: 0.40
 Nodes (4): existingEmails, parsedUrl, supabase, syntheticUsers
 
 ### Community 129 - "review-pending.test.ts"
+Cohesion: 0.11
+Nodes (21): assertTrustedSyntheticFamilySession(), getClaims(), invokeRpc(), LocalRpcError, LocalRpcName, LocalSyntheticOnboardingError, LocalSyntheticRpcClient, trustedFamilyClaimsSchema (+13 more)
+
+### Community 134 - "jsdom"
+Cohesion: 0.13
+Nodes (14): applicationDraftSchema, completeProfile, financialIntake, fullDraft, submittedResponse, supportDisclosure, syntheticAddress, financialIntakeSchema (+6 more)
+
+### Community 136 - "@types/react-dom"
+Cohesion: 0.27
+Nodes (12): getApplicationAction(), getApplicationStatusAction(), getStudentProfileAction(), listActiveSchoolsAction(), listStudentProfilesAction(), saveApplicationDraftAction(), saveStudentProfileAction(), submitApplicationAction() (+4 more)
+
+### Community 150 - "local-synthetic-adapter.integration.test.ts"
+Cohesion: 0.22
+Nodes (7): createLocalSyntheticOnboardingAdapter(), environment, familyClient, otherFamilyClient, sameFamilyConcurrentClient, environment, syntheticProfileContent
+
+### Community 151 - "Effect-Size and Meaningful-Effect Benchmarks"
+Cohesion: 0.40
+Nodes (5): Bailey et al. (2017) — Persistence and Fadeout, Effect-Size and Meaningful-Effect Benchmarks, Hill et al. (2008) — Empirical Benchmarks, Kraft (2020) — Education Effect-Size Benchmarks, Lakens, Scheel, & Isager (2018) — Equivalence Testing
+
+### Community 152 - "@testing-library/user-event"
+Cohesion: 0.17
+Nodes (10): AssessmentInput, assessmentInputSchema, AssessmentRouting, assessmentRoutingSchema, AssessmentValidity, assessmentValiditySchema, AssessmentVersion, RecordAssessmentVersionRequest (+2 more)
+
+### Community 156 - "review-transition.test.ts"
+Cohesion: 0.40
+Nodes (4): submitReviewResponseSchema, meta, ratings, reviewSubmission
+
+### Community 157 - "api-envelope.ts"
+Cohesion: 0.50
+Nodes (3): ApiMeta, apiMetaSchema, apiSuccessSchema()
+
+### Community 158 - "review-pending.test.ts"
 Cohesion: 0.50
 Nodes (3): meta, submitReviewActionRequestSchema, submitReviewActionResponseSchema
 
@@ -679,9 +725,9 @@ Nodes (3): meta, submitReviewActionRequestSchema, submitReviewActionResponseSche
   docs/GT_ADMISSIONS_APPLICATION_MVP_PRD.md · relation: conceptually_related_to
 
 ## Knowledge Gaps
-- **1325 isolated node(s):** `printWidth`, `proseWrap`, `semi`, `singleQuote`, `trailingComma` (+1320 more)
+- **1408 isolated node(s):** `printWidth`, `proseWrap`, `semi`, `singleQuote`, `trailingComma` (+1403 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **23 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **24 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
@@ -694,9 +740,9 @@ _Questions this graph is uniquely positioned to answer:_
   _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._
 - **What is the exact relationship between `R10 Conclusion Boundaries` and `Track A vs Track B Difference as Program Effect Claim`?**
   _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._
-- **Why does `Annotated Source Register` connect `Effect-Size and Meaningful-Effect Benchmarks` to `Accessibility, Translation, and Measurement Fairness`, `Tutoring, Adaptive Software, and Program Mechanisms`, `Child Data Privacy and Synthetic-Data Safety`, `Explanation and Contestability`, `Reviewer Reliability and Rubric Validation`, `Initial Anchor Sources`, `Growth Outcomes and Falsification`, `Recent 2024–2026 Evidence`, `Current GT, Timeback, Alpha, and TEFA Sources`, `Policy Learning and Heterogeneous Effects`, `Randomized Allocation and Aid`, `Power, Missingness, and Interference`, `Auditable Randomness and Allocation Security`, `Fairness and Contestability`, `Complex Regression Discontinuity`, `Advanced STEM Readiness`, `Backend, Audit, and Reproducibility`, `Fidelity and Economic Evaluation`, `Selective Labels and Missing Outcomes`, `Transportability and External Validity`, `Monitoring and Drift`, `Uncertainty and Abstention`, `Reproducible Evaluator Exports`, `Standard Setting and Decision Utility`, `Supabase Auth, RLS, and Local Testing`, `Annotated Source Register`?**
+- **Why does `Annotated Source Register` connect `Effect-Size and Meaningful-Effect Benchmarks` to `Effect-Size and Meaningful-Effect Benchmarks`, `Accessibility, Translation, and Measurement Fairness`, `Tutoring, Adaptive Software, and Program Mechanisms`, `Child Data Privacy and Synthetic-Data Safety`, `Explanation and Contestability`, `Reviewer Reliability and Rubric Validation`, `Initial Anchor Sources`, `Growth Outcomes and Falsification`, `Recent 2024–2026 Evidence`, `Current GT, Timeback, Alpha, and TEFA Sources`, `Policy Learning and Heterogeneous Effects`, `Randomized Allocation and Aid`, `Power, Missingness, and Interference`, `Auditable Randomness and Allocation Security`, `Fairness and Contestability`, `Complex Regression Discontinuity`, `Advanced STEM Readiness`, `Backend, Audit, and Reproducibility`, `Fidelity and Economic Evaluation`, `Selective Labels and Missing Outcomes`, `Transportability and External Validity`, `Monitoring and Drift`, `Uncertainty and Abstention`, `Reproducible Evaluator Exports`, `Standard Setting and Decision Utility`, `Supabase Auth, RLS, and Local Testing`, `Annotated Source Register`?**
   _High betweenness centrality (0.009) - this node is a cross-community bridge._
-- **Why does `Tutoring, Adaptive Software, and Program Mechanisms` connect `Tutoring, Adaptive Software, and Program Mechanisms` to `Effect-Size and Meaningful-Effect Benchmarks`?**
+- **Why does `Child Data Privacy and Synthetic-Data Safety` connect `Child Data Privacy and Synthetic-Data Safety` to `Effect-Size and Meaningful-Effect Benchmarks`?**
   _High betweenness centrality (0.003) - this node is a cross-community bridge._
-- **Why does `Complex Regression Discontinuity` connect `Complex Regression Discontinuity` to `Effect-Size and Meaningful-Effect Benchmarks`?**
+- **Why does `apiSuccessSchema()` connect `api-envelope.ts` to `correction.ts`, `CATE Calibration and Policy Evaluation`, `review.ts`, `replay.ts`, `application.ts`?**
   _High betweenness centrality (0.003) - this node is a cross-community bridge._

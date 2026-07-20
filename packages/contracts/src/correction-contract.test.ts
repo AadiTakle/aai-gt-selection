@@ -216,10 +216,10 @@ describe('correction contracts', () => {
         kind: 'application_factual',
         targetApplicationVersionId: '00000000-0000-4000-8000-000000000101',
         correctedApplication: {
-          student: {
-            currentGrade: '5',
-            requestedGrade: '6',
+          application: {
+            currentGradeCode: 'SYN_GRADE_05',
             requestedEntryYear: 2028,
+            requestedGradeCode: 'SYN_GRADE_06',
           },
           syntheticOnly: true,
         },
