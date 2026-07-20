@@ -18,6 +18,56 @@ AWS/Cognito/Aurora/RDS Proxy/ECS design is the approved Milestone B target; it
 is not deployed or provisioned by the current implementation, and this PRD
 makes no claim that an AWS account or hosting route is available.
 
+## Referenced Specifications and Identifier Registers
+
+This PRD is the apex product specification. It states target behavior and scope;
+it does not restate the schema, API signatures, or governance registers that
+live in dedicated documents. Developers should treat the following as the
+authoritative sources for the implementation detail this PRD references but does
+not duplicate.
+
+### Identifier registers
+
+- **`D-###` decisions** — ratified design/scope decisions. Register:
+  `docs/DECISION_LOG.md`. Load-bearing here: `D-012` (Supabase→AWS platform
+  move, PostgreSQL retained), `D-013` (two-layer onboarding: reusable profile
+  vs. immutable cycle application), `D-014` (six-stage family journey and four
+  functional personas).
+- **`E-###` evidence/assumptions** — evidence-and-assumption register with a
+  class and status per entry. Register: `docs/ASSUMPTIONS_AND_EVIDENCE.md`.
+- **`R#` / `H#` requirements** — core requirements (R1–R10) and
+  hypothesis-level requirements (H1–H10). Register:
+  `docs/project-requirements.md`; status summary in
+  `docs/TRACEABILITY_MATRIX.md`.
+- **`B-##` external blockers** — GT/privacy/testing/future-decision blockers,
+  cataloged in the Blocker List in this document and tracked in
+  `docs/FEATURE_TO_REQUIREMENT_MAP.md`.
+
+### Developer specifications not duplicated in this PRD
+
+- **Data model / schema** — entity overview in `docs/ARCHITECTURE_PLAN.md` §5;
+  field-level tracked-data map and migration specs in
+  `docs/ONBOARDING_OVERHAUL_TICKETS.md`; authoritative DDL in
+  `supabase/migrations/*`.
+- **API / frontend↔backend interface** — RPC catalog, request envelope, and
+  status/error contract in `docs/ARCHITECTURE_PLAN.md` §4.3; the executable
+  contract is the Zod schemas and inferred types in `packages/contracts/src/`
+  and the server-only actions in `apps/web/src/lib/onboarding/actions.ts` (the
+  "B11B" local synthetic adapter).
+- **AuthN/AuthZ and RLS** — principal model, seven business roles, ownership
+  predicates, and the "no RLS-bypass credential" invariant in
+  `docs/ARCHITECTURE_PLAN.md` §7.
+- **Versioning, hashing, and replay** — immutable successor versioning,
+  hash-chained audit, canonicalization (`sha256+jcs-rfc8785+gt-v1`), and the
+  `replay_decision` procedure in `docs/ARCHITECTURE_PLAN.md` §8.
+- **Contributor workflow, branch tiers, and document precedence** — `AGENTS.md`
+  and `PROJECT_CHARTER.md`.
+
+Concrete contract values used across this document—workflow statuses, reason
+codes, error codes, and the synthetic CogAT intake shape—are summarized in
+"Workflow Status, Reason Codes, and Contract Summary" below and remain governed
+by the code contracts above.
+
 ## MVP Definition
 
 The target product is a role-based web application that guides families through
@@ -83,6 +133,15 @@ controls remain enforced through configuration, RLS, tests, and operational
 work outside this page-level MVP; future dedicated surfaces remain in the
 feature library.
 
+The runtime authorization model defines seven business roles, of which only the
+four personas above are functional MVP page surfaces. The full role vocabulary
+(`packages/contracts/src/roles.ts`) is `family`, `admissions_operator`,
+`reviewer`, `review_supervisor`, and three non-UI roles: `decision_service`
+(the isolated engine principal that runs locked routing/finalization and
+publishes decisions), `auditor`, and `privacy_steward`. The three non-UI roles
+have no MVP page; their controls are enforced through RLS, `SECURITY DEFINER`
+RPCs, configuration, and tests as noted above.
+
 ## End-to-End Page Workflow
 
 ### Stage 1 — Account Setup and Application
@@ -120,6 +179,13 @@ feature library.
    - Admissions enters/imports and validates the synthetic result.
    - Missing/invalid results become pending correction, never a zero or
      negative eligibility result.
+   - The result is recorded as an immutable, versioned assessment: instrument
+     `COGAT_SYNTHETIC`; a composite score plus verbal, quantitative, and
+     nonverbal battery scores (each `0–100` or null); and a `validity` of
+     `pending`, `valid`, or `invalid`. Only a `valid` locked assessment drives
+     routing; `pending`/`invalid` yield `assessment_needs_correction`. Battery
+     and composite values are visibly synthetic and configurable (`B-01`,
+     `B-03`).
 3. **Automatic Routing**
    - A valid locked assessment automatically executes Track A and Track B
      invitation rules and immediately publishes the applicant-safe result.
@@ -698,6 +764,132 @@ four personas above.
   signature fields changes zero eligibility inputs, results, or hashes; only
   current/requested grade and entry year may affect operational pathway
   availability.
+
+## Workflow Status, Reason Codes, and Contract Summary
+
+These values are the current Milestone A code contracts
+(`packages/contracts/src/`), reproduced so this document's prose stages map to
+concrete states. The code remains authoritative; if it diverges from this
+summary, the code wins and this section is the bug.
+
+### Application version state
+
+An application progresses through an immutable, versioned lifecycle:
+`draft` → `submitted` → `superseded`. Each save writes a new version with a
+`sha256:` content hash and a `supersedes` pointer; a submitted version is locked
+and can only be superseded through a traceable correction rerun, never rewritten
+in place.
+
+### Family-facing workflow status
+
+The status projection exposes exactly one `workflowStatus` at a time, plus a
+`phase` (`application`, `assessment`, `snapshot`, `review`, `decision`), a
+`familyActionRequired` flag, an optional `nextActionCode` and `deadline`, an
+optional `pendingReason`, and the fixed `claimBoundaryCode`
+`ELIGIBILITY_NOT_ADMISSION`. The twelve statuses and the stage each maps to:
+
+| Status | Stage / meaning |
+| --- | --- |
+| `application_draft` | Stage 1 — application being completed/saved |
+| `awaiting_assessment` | Stage 1→2 — submitted, external CogAT pending |
+| `assessment_needs_correction` | Stage 2 — CogAT missing/invalid, pending correction |
+| `track_a_eligible` | Stage 3 — Track A eligible (no Snapshot requested) |
+| `track_b_snapshot_required` | Stage 3 — Track B Snapshot invited |
+| `no_current_pathway` | Stage 3 — below cutoff and not invited |
+| `snapshot_under_review` | Stage 4→5 — Snapshot submitted, blind review in progress |
+| `review_pending_family_action` | Stage 5 — paused; family owes an action |
+| `review_pending_internal_action` | Stage 5 — paused; admissions/access owes an action |
+| `track_b_eligible` | Stage 6 — final: qualifies |
+| `track_b_does_not_currently_qualify` | Stage 6 — final: does not currently qualify |
+| `policy_configuration_pending` | Any — blocked on an unresolved configuration input |
+
+### Pending work
+
+A pause never becomes a negative vote. Pending work carries a `pendingReason`
+(`pending_assessment_correction`, `pending_evidence_correction`,
+`pending_additional_blind_review`, `pending_accessibility_route`,
+`pending_policy_configuration`), an owner role (`family`, `admissions`,
+`access_steward`, `decision_service`), a route code, a deadline, and a state of
+`open`, `escalated`, or `resolved`.
+
+### Review states and outcomes
+
+Snapshot route is `artifact` or `narrative`. Reviewer/supervisor slots are 1 and
+2 (`reviewer`) and 3 (`supervisor`); the rubric is version `RB-SYN-01` with six
+dimension codes: `DE` (Domain Expertise), `LR` (Learning rate), `TA` (Transfer
+or abstraction), `IN` (Independence), `RE` (Recurrence), and `SP` (Evidence
+specificity). A reviewer classification is `qualifies` or
+`does_not_currently_qualify`; drafts are editable, final submission is locked,
+and peer votes are never exposed.
+
+### Decision reason codes
+
+Every routing and eligibility decision carries an ordered, non-empty list of
+reason codes (`packages/contracts/src/reason-codes.ts`), a result hash, and a
+policy-bundle id. The thirteen codes:
+
+| Reason code | Applies to |
+| --- | --- |
+| `TA_MET_CONFIGURED_BOUNDARY` | Track A eligible |
+| `TA_BELOW_CONFIGURED_BOUNDARY` | Below the Track A cutoff |
+| `TB_COMPOSITE_BAND` | Track B invited via promising composite band |
+| `TB_BATTERY_PROFILE` | Track B invited via strong battery profile |
+| `TB_OUTSIDE_CONFIGURED_RULE` | Not invited to Track B |
+| `ASSESSMENT_MISSING_OR_INVALID` | CogAT pending correction |
+| `SNAPSHOT_REQUIRED` | Snapshot evidence requested |
+| `REVIEW_MAJORITY_QUALIFIES` | Track B eligible by reviewer majority |
+| `REVIEW_MAJORITY_DOES_NOT_CURRENTLY_QUALIFY` | Track B does not currently qualify |
+| `EVIDENCE_NEEDS_CORRECTION` | Evidence routed to pending correction |
+| `ADDITIONAL_BLIND_REVIEW_REQUIRED` | Artifact disagreement adds slot three |
+| `ACCESSIBILITY_ROUTE_REQUIRED` | Accessible alternative / pending route |
+| `POLICY_CONFIGURATION_PENDING` | Blocked on an unresolved configuration input |
+
+Decision outcomes are enumerated per kind: Track A (`eligible`, `not_eligible`,
+`pending`), Track B invitation (`invited`, `not_invited`, `not_applicable`,
+`pending`), and Track B eligibility (`qualifies`, `does_not_currently_qualify`,
+`pending`).
+
+### Concurrency, idempotency, and error contract
+
+Every mutating call carries an `idempotencyKey`, an `expectedVersion` for
+optimistic concurrency, and a `correlationId`. This is the mechanism behind the
+save/resume and two-session save/submit guarantees noted in the status block at
+the top of this document: a stale write fails with `STALE_VERSION`, a replayed
+key with `IDEMPOTENCY_KEY_REUSED`, and a second submit with `SUBMISSION_LOCKED`.
+The error envelope returns a machine `code`, a `retryable` flag, the
+`correlationId`, the `currentState`, and field-level errors. The seventeen error
+codes (`packages/contracts/src/errors.ts`) are `VALIDATION_FAILED`,
+`AUTH_REQUIRED`, `ROLE_FORBIDDEN`, `RESOURCE_NOT_FOUND`, `STALE_VERSION`,
+`INVALID_STATE_TRANSITION`, `SUBMISSION_LOCKED`, `ASSIGNMENT_CONFLICT`,
+`NOT_INVITED`, `IDEMPOTENCY_KEY_REUSED`, `INPUT_HASH_MISMATCH`,
+`POLICY_HASH_MISMATCH`, `CODE_VERSION_UNAVAILABLE`, `FIXTURE_NOT_ALLOWLISTED`,
+`NON_SYNTHETIC_INPUT`, `FEATURE_DISABLED`, and `SERIALIZATION_RETRY_EXHAUSTED`.
+
+## Non-Functional Requirements and Notifications
+
+These are the dev-actionable baselines for the synthetic prototype. Items marked
+proposed are engineering baselines, not ratified decisions; live-use targets
+remain blocked by `B-06` and E-024–E-027 and are not claimed here.
+
+- **Accessibility** — applicant-facing surfaces target WCAG 2.2 AA (proposed
+  baseline, not yet a ratified decision) with an accessible alternative for
+  every evidence route. Formal conformance and any accessible-route equivalence
+  claim remain subject to `B-06`/E-024–E-027.
+- **Internationalization** — applicant-facing language and translated routes are
+  target behavior; the live language set and translation mechanism remain
+  configurable under E-065/E-024–E-027 and are not finalized.
+- **Data minimization and retention** — the prototype stores only born-synthetic
+  values; live retention/deletion windows for support, discipline, and finance
+  context remain open under E-064/E-065 and `B-06`.
+- **Platform/runtime** — the current implementation is a local, single-node
+  Supabase/PostgreSQL stack; performance budgets, availability targets, and a
+  supported-browser matrix are Milestone B concerns and are not specified for
+  the synthetic prototype.
+- **Notifications** — the MVP delivers in-app task, status, and deadline
+  notifications derived from the workflow status projection and pending-item
+  owner/deadline fields; Milestone A adds no separate notification store or
+  trigger language. Synthetic email notifications are an explicit post-MVP
+  extension.
 
 ## Target Tech Stack (Milestone B)
 
