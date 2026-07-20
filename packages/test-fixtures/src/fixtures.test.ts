@@ -3,8 +3,10 @@ import {
   applicationVersionSchema,
   assessmentVersionSchema,
   disabledCorrectionResponseSchema,
+  getApplicationStatusResponseSchema,
   recordAssessmentVersionResponseSchema,
   replayDecisionResponseSchema,
+  saveApplicationDraftResponseSchema,
   snapshotFixtureReferenceSchema,
   statusProjectionSchema,
   submitReviewActionResponseSchema,
@@ -28,6 +30,8 @@ import {
   fictionalFixtures,
   narrativeSnapshotSubmissionResponseFixture,
   pendingAssessmentResponseFixture,
+  applicationDraftStatusResponseFixture,
+  savedApplicationDraftResponseFixture,
   submittedApplicationResponseFixture,
   syntheticArtifactFixture,
   syntheticNarrativeFixture,
@@ -39,6 +43,16 @@ import {
 } from './index';
 
 describe('fictional fixture boundary', () => {
+  it('provides valid draft-save and status-read responses for frontend integration', () => {
+    expect(saveApplicationDraftResponseSchema.parse(savedApplicationDraftResponseFixture)).toEqual(
+      savedApplicationDraftResponseFixture,
+    );
+    expect(getApplicationStatusResponseSchema.parse(applicationDraftStatusResponseFixture)).toEqual(
+      applicationDraftStatusResponseFixture,
+    );
+    expect(applicationDraftStatusResponseFixture.data.workflowStatus).toBe('application_draft');
+  });
+
   it('provides a valid submitted application response for frontend integration', () => {
     expect(submittedApplicationResponseFixture.data.status.workflowStatus).toBe(
       'awaiting_assessment',

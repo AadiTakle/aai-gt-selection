@@ -3,10 +3,13 @@ import { describe, expect, it } from 'vitest';
 import {
   apiErrorCodeSchema,
   decisionSummarySchema,
+  getApplicationStatusRequestSchema,
+  getApplicationStatusResponseSchema,
   recordAssessmentVersionRequestSchema,
   recordAssessmentVersionResponseSchema,
   reviewerClassificationSchema,
   saveApplicationDraftRequestSchema,
+  saveApplicationDraftResponseSchema,
   statusProjectionSchema,
   submitApplicationRequestSchema,
   submitApplicationResponseSchema,
@@ -23,9 +26,41 @@ describe('public contract boundaries', () => {
     const request = {
       applicationId: uuid,
       draft: {
-        currentGrade: '5',
-        requestedEntryYear: 2027,
-        requestedGrade: '6',
+        student: {
+          syntheticStudentIdentifier: 'STUDENT-SYN-001',
+          ageYears: 10,
+          currentGrade: '5',
+          requestedEntryYear: 2027,
+          requestedGrade: '6',
+        },
+        education: {
+          currentSchoolName: 'Synthetic Learning Academy',
+          currentSchoolType: 'synthetic-independent',
+          enrollmentStartDate: '2025-08-15',
+          enrollmentEndDate: null,
+          priorSchools: [
+            {
+              schoolName: 'Synthetic Primary School',
+              schoolType: 'synthetic-public',
+              enrollmentStartDate: '2022-08-15',
+              enrollmentEndDate: '2025-06-01',
+            },
+          ],
+        },
+        guardian: {
+          fullName: 'Synthetic Guardian',
+          relationshipToChild: 'parent',
+          hasRelativeInGtProgram: false,
+          email: 'guardian@example.test',
+          phone: null,
+        },
+        finalSubmission: {
+          completedStepCodes: ['STUDENT', 'EDUCATION', 'GUARDIAN'],
+          accuracyAcknowledged: true,
+          signatureName: 'Synthetic Guardian',
+          signedAt: '2026-07-20T06:00:00.000Z',
+        },
+        referralSourceCode: 'SYNTHETIC_WEB_SEARCH',
         syntheticOnly: true,
       },
       expectedVersion: 0,
@@ -37,7 +72,20 @@ describe('public contract boundaries', () => {
     expect(
       saveApplicationDraftRequestSchema.safeParse({
         ...request,
-        householdIncome: 100_000,
+        draft: {
+          ...request.draft,
+          householdIncome: 100_000,
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      saveApplicationDraftRequestSchema.safeParse({
+        ...request,
+        draft: {
+          ...request.draft,
+          dateOfBirth: '2016-01-01',
+          primaryAddress: '123 Real Child Data Lane',
+        },
       }).success,
     ).toBe(false);
   });
@@ -53,6 +101,69 @@ describe('public contract boundaries', () => {
     ).toBeDefined();
   });
 
+  it('returns typed draft-save and applicant-safe status-read envelopes', () => {
+    const draftResponse = {
+      apiVersion: 'v1',
+      syntheticOnly: true,
+      data: {
+        application: {
+          applicationId: uuid,
+          applicationVersionId: uuid,
+          version: 1,
+          supersedesId: null,
+          state: 'draft',
+          student: {
+            currentGrade: '5',
+          },
+          syntheticOnly: true,
+          contentHash: `sha256:${'1'.repeat(64)}`,
+        },
+      },
+      meta: {
+        correlationId: uuid,
+        idempotencyKey: uuid,
+        idempotentReplay: false,
+      },
+    };
+    const statusRequest = {
+      applicationId: uuid,
+      correlationId: uuid,
+    };
+    const statusResponse = {
+      apiVersion: 'v1',
+      syntheticOnly: true,
+      data: {
+        workflowStatus: 'application_draft',
+        displayLabelCode: 'STATUS_APPLICATION_DRAFT',
+        phase: 'application',
+        familyActionRequired: true,
+        nextActionCode: 'COMPLETE_APPLICATION',
+        deadline: null,
+        pendingReason: null,
+        claimBoundaryCode: 'ELIGIBILITY_NOT_ADMISSION',
+      },
+      meta: {
+        correlationId: uuid,
+        idempotencyKey: null,
+        idempotentReplay: false,
+      },
+    };
+
+    expect(saveApplicationDraftResponseSchema.parse(draftResponse)).toEqual(draftResponse);
+    expect(getApplicationStatusRequestSchema.parse(statusRequest)).toEqual(statusRequest);
+    expect(getApplicationStatusResponseSchema.parse(statusResponse)).toEqual(statusResponse);
+    expect(Object.keys(statusResponse.data)).toEqual([
+      'workflowStatus',
+      'displayLabelCode',
+      'phase',
+      'familyActionRequired',
+      'nextActionCode',
+      'deadline',
+      'pendingReason',
+      'claimBoundaryCode',
+    ]);
+  });
+
   it('returns the submitted application with an applicant-safe status envelope', () => {
     const response = {
       apiVersion: 'v1',
@@ -65,9 +176,34 @@ describe('public contract boundaries', () => {
           supersedesId: null,
           state: 'submitted',
           syntheticOnly: true,
-          currentGrade: '5',
-          requestedGrade: '6',
-          requestedEntryYear: 2027,
+          student: {
+            syntheticStudentIdentifier: 'STUDENT-SYN-001',
+            ageYears: 10,
+            currentGrade: '5',
+            requestedGrade: '6',
+            requestedEntryYear: 2027,
+          },
+          education: {
+            currentSchoolName: 'Synthetic Learning Academy',
+            currentSchoolType: 'synthetic-independent',
+            enrollmentStartDate: '2025-08-15',
+            enrollmentEndDate: null,
+            priorSchools: [],
+          },
+          guardian: {
+            fullName: 'Synthetic Guardian',
+            relationshipToChild: 'parent',
+            hasRelativeInGtProgram: false,
+            email: 'guardian@example.test',
+            phone: null,
+          },
+          finalSubmission: {
+            completedStepCodes: ['STUDENT', 'EDUCATION', 'GUARDIAN'],
+            accuracyAcknowledged: true,
+            signatureName: 'Synthetic Guardian',
+            signedAt: '2026-07-20T06:00:00.000Z',
+          },
+          referralSourceCode: 'SYNTHETIC_WEB_SEARCH',
           contentHash: `sha256:${'1'.repeat(64)}`,
         },
         status: {

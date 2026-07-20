@@ -216,9 +216,11 @@ describe('correction contracts', () => {
         kind: 'application_factual',
         targetApplicationVersionId: '00000000-0000-4000-8000-000000000101',
         correctedApplication: {
-          currentGrade: '5',
-          requestedGrade: '6',
-          requestedEntryYear: 2028,
+          student: {
+            currentGrade: '5',
+            requestedGrade: '6',
+            requestedEntryYear: 2028,
+          },
           syntheticOnly: true,
         },
       },

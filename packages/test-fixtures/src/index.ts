@@ -3,6 +3,8 @@ import type {
   ApplyCorrectionResponse,
   ApplicationVersion,
   AssessmentVersion,
+  GetApplicationStatusResponse,
+  SaveApplicationDraftResponse,
   SnapshotFixtureReference,
   StatusProjection,
   RecordAssessmentVersionResponse,
@@ -26,11 +28,84 @@ export const syntheticTrackBApplication = {
   supersedesId: null,
   state: 'submitted',
   syntheticOnly: true,
-  currentGrade: '5',
-  requestedGrade: '6',
-  requestedEntryYear: 2027,
+  student: {
+    syntheticStudentIdentifier: 'STUDENT-SYN-001',
+    ageYears: 10,
+    currentGrade: '5',
+    requestedGrade: '6',
+    requestedEntryYear: 2027,
+  },
+  education: {
+    currentSchoolName: 'Synthetic Learning Academy',
+    currentSchoolType: 'synthetic-independent',
+    enrollmentStartDate: '2025-08-15',
+    enrollmentEndDate: null,
+    priorSchools: [],
+  },
+  guardian: {
+    fullName: 'Synthetic Guardian',
+    relationshipToChild: 'parent',
+    hasRelativeInGtProgram: false,
+    email: 'guardian@example.test',
+    phone: null,
+  },
+  finalSubmission: {
+    completedStepCodes: ['STUDENT', 'EDUCATION', 'GUARDIAN'],
+    accuracyAcknowledged: true,
+    signatureName: 'Synthetic Guardian',
+    signedAt: '2026-07-20T06:00:00.000Z',
+  },
+  referralSourceCode: 'SYNTHETIC_WEB_SEARCH',
   contentHash: `sha256:${'1'.repeat(64)}`,
 } satisfies ApplicationVersion;
+
+export const syntheticApplicationDraft = {
+  applicationId: syntheticTrackBApplication.applicationId,
+  applicationVersionId: '00000000-0000-4000-8000-000000000102',
+  version: 1,
+  supersedesId: null,
+  state: 'draft',
+  syntheticOnly: true,
+  student: {
+    syntheticStudentIdentifier: 'STUDENT-SYN-001',
+    ageYears: 10,
+    currentGrade: '5',
+  },
+  contentHash: `sha256:${'0'.repeat(64)}`,
+} satisfies ApplicationVersion;
+
+export const savedApplicationDraftResponseFixture = {
+  apiVersion: 'v1',
+  syntheticOnly: true,
+  data: {
+    application: syntheticApplicationDraft,
+  },
+  meta: {
+    correlationId: '00000000-0000-4000-8000-000000000300',
+    idempotencyKey: '00000000-0000-4000-8000-000000000299',
+    idempotentReplay: false,
+  },
+} satisfies SaveApplicationDraftResponse;
+
+export const applicationDraftStatusResponseFixture = {
+  apiVersion: 'v1',
+  syntheticOnly: true,
+  data: {
+    workflowStatus: 'application_draft',
+    displayLabelCode: 'STATUS_APPLICATION_DRAFT',
+    phase: 'application',
+    familyActionRequired: true,
+    nextActionCode: 'COMPLETE_APPLICATION',
+    deadline: null,
+    pendingReason: null,
+    claimBoundaryCode: 'ELIGIBILITY_NOT_ADMISSION',
+  },
+  meta: {
+    correlationId: '00000000-0000-4000-8000-000000000298',
+    idempotencyKey: null,
+    idempotentReplay: false,
+  },
+} satisfies GetApplicationStatusResponse;
 
 export const syntheticTrackAAssessment = {
   assessmentVersionId: '00000000-0000-4000-8000-000000000201',
