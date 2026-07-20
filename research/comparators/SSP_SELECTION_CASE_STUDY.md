@@ -26,12 +26,17 @@ The prompt that initiated this research described the funnel as: **~10,000 appli
 
 | Stage | Original claim | Status | What sources actually say |
 |---|---|---|---|
-| Applicants/yr | ~10,000 | **[UNVERIFIED]** | SSP says only "thousands of talented students apply." No official applicant count exists anywhere. |
-| "Qualified" / would-benefit pool | ~1,000 | **[UNVERIFIED]** | Not disclosed. SSP identifies those "with the most to gain from and contribute to" the program but never publishes the pool size. |
-| Admitted (lottery winners) | ~700 | **[VERIFIED]** | **720 participants in 2026** (largest ever), across **13 campuses / 20 sections**. SSP/application page says "around 700." |
+| Applicants/yr | ~10,000 | **[REFUTED — official figure found]** | **3,739 applications** in the 2025 cycle per SSP's own FY2025 annual report — roughly **a third** of the rumored 10,000. |
+| "Qualified" / would-benefit pool | ~1,000 | **[UNVERIFIED]** | Still not disclosed as a distinct number, but the report gives a **16% admission rate** on 3,739 applications (≈ 598 admitted), so any "admittable" pool is far below 1,000·10. |
+| Admitted (lottery winners) | ~700 | **[VERIFIED]** | **720 participants in 2026** (largest ever), 13 campuses / 20 sections; **588 enrolled in 2025** (80% of ~598 admitted). SSP/application page says "around 700." |
 | Waitlist | remainder | **[VERIFIED (mechanism)]** | Waitlist exists and doubles as the research control group; its size is not published. |
 
-**Bottom line:** the *shape* of the described funnel is correct and matches SSP's own process description, but only the **~700 admits** figure is verifiable. The 10,000 and 1,000 numbers should be treated as illustrative placeholders, not facts.
+**Bottom line:** the *shape* of the described funnel is correct, but the headline number was wrong. As of the FY2025 annual report the real figures are **3,739 applications → 16% admission rate → 588 enrolled** — not ~10,000 applicants. The "~10,000 / ~1,000" chain is **refuted** for applications and remains unquantified for the lottery-qualified pool specifically (2025 was still the merit cycle; the 2026 lottery-pool size is not yet published).
+
+**Update — third sweep (2026-07-20) found the official number.** SSP's **FY2025 annual report** (published May 2026) publishes an admissions-funnel stat block: **3,739 applications · 16% admission rate · 80% enrollment rate · 588 total enrollment · 6 programs / 17 campuses · $3,382,505 financial aid awarded.**
+- **[VERIFIED — official]** Source: `https://ssp.org/wp-content/uploads/2026/05/SSP_AR_Design_Singles.pdf` (linked from `https://ssp.org/annual-reports/`). This is the first official applicant count located and it **refutes the ~10,000 figure**.
+- **[VERIFIED — exists, not yet parsed]** A **2025 audited financial statement** now exists: `https://ssp.org/wp-content/uploads/2026/05/SSP-International-Inc.-Audited-Financial-Statements-2025.pdf` (line items not yet extracted).
+- **[INFERENCE]** The 16% rate is for the 2025 *merit* cycle; it bounds but does not equal the 2026 lottery-qualified pool, which SSP still has not published.
 
 **A second, deeper scrape (2026-07-19) reinforced this and found no number.** Every anonymous route to an official applicant count was exhausted: Wayback Machine archives of the old `summerscience.org` admissions/FAQ pages (via the CDX API + `curl`, since WebFetch is blocked for archive.org), IRS 990 XML (ProPublica download endpoint 403s; the IRS S3 `irs-form-990` bucket 404s for these object IDs — it stopped updating ~2021), Hacker News (empty), and news profiles (no number). Notable archival finding:
 - **[VERIFIED — archived]** A **2002 SSP FAQ** answered "How many students apply… what are my chances?" with: *"SSP isn't for everyone, and students 'self-select', meaning that we aren't flooded with applicants… your chances are pretty good of getting in."* (Wayback `20020208132013`). Historically SSP was a **modest, self-selected pool**, not a 10,000-applicant funnel — the mass-application framing is a *recent, post-2023-expansion* phenomenon at most.
@@ -127,12 +132,12 @@ SSP 2026 is close to a natural template *and* a cautionary tale for our MVP:
 
 ## 8. Open data gaps (for anyone extending this)
 
-Two scraping passes (2026-07-19) closed the *critique-literature* gap but **not** the applicant-count or lay-reaction gaps. Remaining, with the specific next route to try:
+Three sweeps (2026-07-19 → 2026-07-20) closed the *critique-literature* gap and the *applicant-count* gap; the *lottery-pool size* and *lay-reaction* gaps remain. Status, with the next route to try:
 
-1. **Official applicant count** — still unknown for any year; ~10,000 unverified. Anonymous routes exhausted (Wayback archives, ProPublica 990-download 403, IRS S3 bucket 404 / not updated since ~2021, HN, news). **Best unchecked routes:** the FY2024 990 **Schedule O / Part III narrative** via an authenticated/GUI ProPublica session or a paid data provider; SSP's "Annual Reports & Strategic Plan" page (PDF not yet located); or a direct email to reval@ssp.org / SSP admissions.
+1. **Official applicant count** — ✅ **RESOLVED (2026-07-20).** SSP's FY2025 annual report gives **3,739 applications / 16% admission rate / 588 enrolled** (`https://ssp.org/wp-content/uploads/2026/05/SSP_AR_Design_Singles.pdf`). The ~10,000 figure is refuted. Remaining: parse the 2025 audited financials PDF for line items, and obtain the *2026-cycle* application count once its report publishes.
 2. **Qualified-pool / lottery-pool / study sample size** — not disclosed; the Abt Global RCT publishes no N or power analysis. **Best route:** OSF / ClinicalTrials.gov / REES registration once the study matures; or direct inquiry.
 3. **Study registration / protocol / power analysis** — none found; recheck AEA RCT Registry / OSF periodically.
-4. **Community/forum reaction (lay backlash)** — Reddit blocked on *all* anonymous routes; the controversy window (Nov 2025–Apr 2026) postdates the pullpush archive index. **Best route:** an authenticated Reddit API/OAuth token or a logged-in session to search r/summerscienceprogram, r/ApplyingToCollege, r/SummerProgramResults; or check Instagram/Facebook 2026-decision-day post comments. *(The recurring sweep job continues to retry the open web.)*
+4. **Community/forum reaction (lay backlash)** — still none found (HN, College Confidential, blogs, news, X all empty across three sweeps; Jenkins 2023 remains the only critique). Reddit blocked on *all* anonymous routes; the controversy window (Nov 2025–Apr 2026) postdates the pullpush archive index. **Best route:** an authenticated Reddit API/OAuth token or a logged-in session to search r/summerscienceprogram, r/ApplyingToCollege, r/SummerProgramResults; or Instagram/Facebook 2026-decision-day post comments. *(The recurring sweep job was stopped on 2026-07-20 at the team's request; re-run manually if needed.)*
 5. **Tuition & aid share** — no official dollar figure; third-party "$7,500 / ~40% aid" unconfirmed.
 
 ---
@@ -144,6 +149,8 @@ Two scraping passes (2026-07-19) closed the *critique-literature* gap but **not*
 - https://ssp.org/application/ — ~700 admits, need-blind, aid thresholds, $3,000 stipend
 - https://ssp.org/news/the-summer-science-program-begins-its-biggest-summer-yet/ — 720 students / 13 campuses / 20 sections, 2026
 - https://ssp.org/mission-history/ , https://ssp.org/program-overview/ , https://ssp.org/faqs/
+- https://ssp.org/annual-reports/ → **FY2025 annual report** `https://ssp.org/wp-content/uploads/2026/05/SSP_AR_Design_Singles.pdf` — 3,739 applications, 16% admission rate, 80% enrollment, 588 enrolled, 6 programs / 17 campuses, $3,382,505 aid
+- https://ssp.org/wp-content/uploads/2026/05/SSP-International-Inc.-Audited-Financial-Statements-2025.pdf — 2025 audited financials (not yet parsed)
 - https://projects.propublica.org/nonprofits/organizations/943341965 — IRS Form 990 filings 2011–2024 (EIN 94-3341965)
 - https://www.causeiq.com/organizations/summer-science-program,943341965/ , https://www.guidestar.org/profile/94-3341965
 - https://en.wikipedia.org/wiki/Summer_Science_Program
