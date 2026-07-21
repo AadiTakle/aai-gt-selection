@@ -702,24 +702,139 @@
         line-height: 1.5;
       }
 
-      /* final step: give the 3D mark the floor (camera also dollies in) */
-      .shell.focus-final {
-        grid-template-columns: var(--rail-w) minmax(0, 1fr) 560px;
+      /* ---------- full-screen space (final step + dashboard) ---------- */
+      body.space-mode {
+        overflow: hidden;
       }
-      .shell.focus-final .stage {
-        min-height: 640px;
-        box-shadow: 0 30px 70px -40px rgba(0, 42, 58, 0.6);
+      .space {
+        position: fixed;
+        inset: 0;
+        z-index: 60;
+        overflow: hidden;
+        background:
+          radial-gradient(1200px 640px at 50% 2%, #0a3646 0%, transparent 62%),
+          radial-gradient(1000px 820px at 50% 120%, rgba(228, 139, 83, 0.18), transparent 60%),
+          linear-gradient(180deg, #00323f 0%, #001420 100%);
+        opacity: 0;
+        transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1);
       }
-      .shell.focus-final .stage-copy .head {
-        font-size: 20px;
+      .space.on {
+        opacity: 1;
       }
-      /* after liftoff: the dashboard takes the mark’s place */
-      .shell.state-done {
-        grid-template-columns: minmax(0, 1fr);
+      .space-mount {
+        position: absolute;
+        inset: 0;
       }
-      .shell.state-done .rail,
-      .shell.state-done .stage {
+      .space-mount canvas {
+        display: block;
+        width: 100% !important;
+        height: 100% !important;
+      }
+      .space-fallback {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+      }
+      .space-fallback svg {
+        width: 260px;
+        height: 232px;
+        color: #d7c3b0;
+        opacity: 0.55;
+      }
+      .space-scrim {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(62% 62% at 50% 46%, rgba(0, 12, 18, 0.3), rgba(0, 12, 18, 0.66));
+        backdrop-filter: blur(2px);
+      }
+      .space-top {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 30px;
+        z-index: 2;
+      }
+      .space-top .wm {
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 18px;
+        letter-spacing: 0.02em;
+        color: #fff;
+      }
+      .space-top .wm span {
+        color: var(--orange);
+      }
+      .space-top .cyc {
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        color: #86a6b0;
+      }
+      .space-modal {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 64px 18px 28px;
+        z-index: 3;
+      }
+      /* the review section becomes the modal card, floated over the space */
+      .space-modal .page {
         display: none;
+        width: min(720px, 100%);
+        max-height: 82vh;
+        overflow-y: auto;
+        background: var(--paper);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 22px;
+        box-shadow: 0 44px 96px -34px rgba(0, 0, 0, 0.7);
+        padding: 32px 34px 10px;
+        animation: modalIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+      .space-modal .page.active {
+        display: block;
+      }
+      .space-modal .actions {
+        width: min(720px, 100%);
+        background: rgba(252, 244, 239, 0.92);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 16px;
+        padding: 12px 18px;
+        backdrop-filter: blur(6px);
+        box-shadow: 0 20px 50px -30px rgba(0, 0, 0, 0.6);
+      }
+      .space-modal .dash {
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        box-shadow: 0 44px 96px -34px rgba(0, 0, 0, 0.7);
+      }
+      @keyframes modalIn {
+        from {
+          opacity: 0;
+          transform: translateY(26px) scale(0.98);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @media (max-width: 560px) {
+        .space-top .cyc {
+          display: none;
+        }
+        .space-modal {
+          padding: 56px 12px 20px;
+        }
+        .space-modal .page {
+          padding: 24px 22px 8px;
+        }
       }
 
       /* ---------- welcome + success ---------- */
@@ -1530,6 +1645,26 @@
       </aside>
     </div>
 
+    <!-- ============ FULL-SCREEN SPACE (final step + dashboard) ============ -->
+    <div class="space" id="space" hidden>
+      <div class="space-top">
+        <span class="wm">GT<span>SCHOOL</span></span>
+        <span class="cyc">SYNTHETIC DEMO · FALL 2027 · GRADES 3–8</span>
+      </div>
+      <div class="space-mount" id="spaceMount">
+        <div class="space-fallback" id="spaceFallback" aria-hidden="true">
+          <svg viewBox="0 0 36 32" fill="currentColor">
+            <path d="M7.24083 17.8085C7.7729 18.9925 8.37035 20.1469 9.0254 21.2674C8.83293 22.19 8.71281 23.0685 8.66364 23.8875C8.46723 27.1596 9.3937 28.6326 10.1887 29.0916C10.8887 29.4956 12.3202 29.5949 14.5194 28.3806C15.2061 29.0472 15.9041 29.655 16.606 30.1986C13.7161 32.0213 10.925 32.5523 8.87407 31.3684C5.67609 29.5222 5.18985 24.0333 7.24083 17.8085Z" />
+            <path d="M10.127 0.140114C11.9565 -0.286359 14.2189 0.296172 16.6062 1.80147C15.9036 2.3455 15.205 2.95266 14.5177 3.61999C12.7714 2.66143 11.4725 2.51824 10.7028 2.70552C10.013 2.87339 9.21138 3.45205 8.82708 5.28302C8.4279 7.18491 8.63879 9.94582 9.68001 13.1824C10.7092 16.3818 12.4277 19.6601 14.5637 22.4743C16.7123 25.3052 19.0615 27.3755 21.165 28.4792C23.3149 29.6073 24.6289 29.4584 25.2618 29.1171C25.8702 28.7889 26.6739 27.8317 26.8322 25.4993C26.9613 23.5983 26.6091 21.1976 25.7345 18.5673H16.4992C15.9728 17.7092 15.511 16.8294 15.0695 15.9343H27.5589L27.6285 16.089C29.0011 19.5522 29.6429 22.9174 29.4556 25.6773C29.2667 28.4591 28.246 30.4718 26.5501 31.4091L26.51 31.431C24.8035 32.3512 22.5178 32.1426 20.0026 30.8382L19.9432 30.8072C17.4442 29.4959 14.8595 27.1785 12.5776 24.2057L12.4692 24.0636C10.161 21.0226 8.30074 17.4807 7.17696 13.9875C6.05318 10.4942 5.72869 7.24475 6.25377 4.74307C6.77885 2.24139 8.12417 0.627249 10.0811 0.151057L10.127 0.140114Z" />
+            <path d="M12.8244 7.47298C17.452 1.5929 23.1176 -1.39147 26.6222 0.631674C28.6732 1.81567 29.6088 4.49799 29.475 7.91181C28.6533 7.57578 27.7778 7.27529 26.857 7.01396C26.8092 4.50251 26.0075 3.31254 25.3076 2.90847C24.5125 2.44951 22.7734 2.38375 20.0376 4.18986C18.9067 4.93642 17.7322 5.9315 16.5771 7.14615C16.9642 7.13354 17.3547 7.12709 17.7481 7.12709C27.5502 7.12709 35.4963 11.0996 35.4963 16C35.4963 18.368 33.6408 20.5192 30.6171 22.1104C30.4973 21.2308 30.3197 20.3225 30.0857 19.3945C32.2371 18.0973 32.8669 16.8081 32.8669 16C32.8669 15.0821 32.0543 13.5433 29.1221 12.0774C26.3471 10.6901 22.3295 9.7561 17.7481 9.7561C16.4809 9.7561 15.2567 9.82758 14.0901 9.96033C14.0277 9.96743 13.9655 9.97467 13.9034 9.98212C12.7631 10.119 11.679 10.3145 10.6649 10.559C11.3481 9.45998 12.0725 8.42829 12.8243 7.47301L12.8244 7.47298Z" />
+            <path d="M4.87916 9.8896C4.99898 10.7692 5.17653 11.6775 5.41056 12.6055C3.25914 13.9026 2.62935 15.1919 2.62935 16C2.62935 16.8081 3.25916 18.0973 5.41052 19.3944C5.1765 20.3224 4.99898 21.2308 4.87916 22.1103C1.85547 20.5192 0 18.368 0 16C0 13.632 1.85545 11.4807 4.87916 9.8896Z" />
+          </svg>
+        </div>
+      </div>
+      <div class="space-scrim" id="spaceScrim"></div>
+      <div class="space-modal" id="spaceModal" role="dialog" aria-modal="true" aria-label="Review and sign"></div>
+    </div>
+
     <script type="importmap">
       {
         "imports": {
@@ -1580,6 +1715,47 @@
       const backBtn = document.getElementById('backBtn');
       const assurance = document.getElementById('assurance');
 
+      // ---------------- full-screen space (final step + dashboard) ----------------
+      const mainEl = document.querySelector('.main');
+      const sectionsEl = document.getElementById('sections');
+      const spaceEl = document.getElementById('space');
+      const spaceModal = document.getElementById('spaceModal');
+      const reviewSection = pages['5'];
+      const dashEl = pages.done.querySelector('.dash');
+      let inSpace = false;
+      let spaceHideTimer = null;
+
+      function enterSpace() {
+        if (inSpace) return;
+        inSpace = true;
+        clearTimeout(spaceHideTimer);
+        document.body.classList.add('space-mode');
+        spaceEl.hidden = false;
+        // float the review card + footer nav over the space
+        spaceModal.appendChild(reviewSection);
+        spaceModal.appendChild(actions);
+        actions.hidden = false;
+        reviewSection.classList.add('active');
+        if (markState.api && markState.api.setFullscreen) markState.api.setFullscreen(true);
+        requestAnimationFrame(() => spaceEl.classList.add('on'));
+      }
+
+      function exitSpace() {
+        if (!inSpace) return;
+        inSpace = false;
+        document.body.classList.remove('space-mode');
+        spaceEl.classList.remove('on');
+        reviewSection.classList.remove('active');
+        // return the moved nodes to the normal document flow
+        sectionsEl.appendChild(reviewSection);
+        mainEl.appendChild(actions);
+        if (dashEl && dashEl.parentElement === spaceModal) pages.done.appendChild(dashEl);
+        if (markState.api && markState.api.setFullscreen) markState.api.setFullscreen(false);
+        spaceHideTimer = setTimeout(() => {
+          if (!inSpace) spaceEl.hidden = true;
+        }, 650);
+      }
+
       // ---------------- silent persistence ----------------
       function save() {
         try {
@@ -1604,12 +1780,10 @@
       // ---------------- navigation ----------------
       function showWelcome() {
         state.view = 'welcome';
+        exitSpace();
         Object.values(pages).forEach((p) => p.classList.remove('active'));
         pages.welcome.classList.add('active');
         actions.hidden = true;
-        const shell = document.querySelector('.shell');
-        shell.classList.remove('focus-final', 'state-done');
-        if (markState.api && markState.api.setFocus) markState.api.setFocus(false);
         setStage('Welcome', 'The mark fills as your child’s story comes together.');
         renderRail();
         updateMark();
@@ -1619,19 +1793,22 @@
         i = Math.max(0, Math.min(SECTIONS.length - 1, i));
         state.view = 'section';
         state.index = i;
-        Object.values(pages).forEach((p) => p.classList.remove('active'));
-        pages[i].classList.add('active');
-        actions.hidden = false;
-        backBtn.textContent = i === 0 ? '← Back' : '← Back';
         const last = i === SECTIONS.length - 1;
+        Object.values(pages).forEach((p) => p.classList.remove('active'));
         nextBtn.textContent = last ? 'Submit application' : 'Continue →';
         assurance.textContent = last ? 'Review anything above before you sign.' : 'Your answers stay with you as you go.';
-        if (last) buildReview();
+        if (last) {
+          buildReview();
+          enterSpace(); // full-screen space + review modal
+          reviewSection.classList.add('active');
+        } else {
+          exitSpace();
+          pages[i].classList.add('active');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        actions.hidden = false;
         setStage(stageLines[i][0], stageLines[i][1]);
         renderRail();
-        document.querySelector('.shell').classList.toggle('focus-final', last);
-        if (markState.api && markState.api.setFocus) markState.api.setFocus(last);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
         updateMark();
       }
 
@@ -1702,7 +1879,7 @@
           actions.hidden = true;
           state.done.add('all');
           updateMark(1); // top off the fill before launch
-          setStage('Ready for liftoff', 'Sending your application to GT School.');
+          reviewSection.classList.remove('active'); // hide the review card
           document.querySelectorAll('.step[data-step]').forEach((b) => {
             b.classList.remove('current');
             b.classList.add('done');
@@ -1710,17 +1887,12 @@
             b.querySelector('.st').textContent = 'Done';
           });
           const reveal = () => {
-            Object.values(pages).forEach((p) => p.classList.remove('active'));
-            pages.done.classList.add('active');
-            const shell = document.querySelector('.shell');
-            shell.classList.remove('focus-final');
-            shell.classList.add('state-done');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            spaceModal.appendChild(dashEl); // dashboard fades into the same space
           };
           if (!reduce && markState.api && markState.api.blastOff) {
-            setTimeout(() => markState.api.blastOff(reveal), 700); // let the fill top off, then launch
+            setTimeout(() => markState.api.blastOff(reveal), 650); // top off, then launch
           } else {
-            setTimeout(reveal, 350);
+            setTimeout(reveal, 300);
           }
           return;
         }
@@ -1865,39 +2037,86 @@
         if (e.target.closest('.segmented, .chip, .add-btn')) setTimeout(updateMark, 0);
       });
 
-      // 3D mark IS the progress tracker: it fills with orange from the bottom up
-      // as sections complete, dollies in on the final step, and launches on submit.
-      // Falls back to the static SVG if WebGL/module load fails.
+      // 3D GT mark in a starfield. Each ribbon warms white → ember as the form
+      // fills (one material per ribbon, so no z-fighting / no color flicker). On the
+      // final step it goes full-screen behind the review modal; on submit it launches
+      // off the top and the dashboard fades into the same space. Falls back to SVG.
       const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       (async () => {
         try {
           const THREE = await import('three');
           const { SVGLoader } = await import('three/addons/loaders/SVGLoader.js');
           const mount = document.getElementById('markMount');
+          const spaceMount = document.getElementById('spaceMount');
           const fallback = document.getElementById('markFallback');
-          let w = mount.clientWidth || 340;
-          let h = mount.clientHeight || 320;
+          const spaceFallback = document.getElementById('spaceFallback');
+          let fullscreen = false;
+          const dims = () =>
+            fullscreen
+              ? [window.innerWidth, window.innerHeight]
+              : [mount.clientWidth || 340, mount.clientHeight || 320];
 
           const scene = new THREE.Scene();
-          const camera = new THREE.PerspectiveCamera(38, w / h, 0.1, 600);
+          let [vw, vh] = dims();
+          const camera = new THREE.PerspectiveCamera(40, vw / vh, 0.1, 600);
           camera.position.set(0, 0, 34);
           const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
           renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
-          renderer.setSize(w, h);
-          renderer.localClippingEnabled = true;
+          renderer.setSize(vw, vh);
           mount.appendChild(renderer.domElement);
           fallback.style.display = 'none';
+          if (spaceFallback) spaceFallback.style.display = 'none';
 
-          scene.add(new THREE.AmbientLight(0xffffff, 0.92));
-          const key = new THREE.DirectionalLight(0xffffff, 1.15);
-          key.position.set(6, 10, 16);
+          scene.add(new THREE.AmbientLight(0xffffff, 0.95));
+          const key = new THREE.DirectionalLight(0xffffff, 1.25);
+          key.position.set(5, 9, 15);
           scene.add(key);
-          const rim = new THREE.DirectionalLight(0xbcd4e6, 0.35);
-          rim.position.set(-10, -4, 8);
+          const front = new THREE.DirectionalLight(0xffffff, 0.6);
+          front.position.set(0, 0, 16);
+          scene.add(front);
+          const rim = new THREE.DirectionalLight(0xe4894f, 0.5);
+          rim.position.set(-10, -4, -6);
           scene.add(rim);
-          const warm = new THREE.PointLight(0xe4894f, 0.1, 140, 2);
+          const warm = new THREE.PointLight(0xe4894f, 0.1, 160, 2);
           warm.position.set(-3, -5, 18);
           scene.add(warm);
+
+          // ---- starfield (the "space") ----
+          const starCount = 320;
+          const starPos = new Float32Array(starCount * 3);
+          for (let i = 0; i < starCount; i++) {
+            const rr = 24 + Math.random() * 26;
+            const th = Math.random() * Math.PI * 2;
+            const ph = Math.acos(2 * Math.random() - 1);
+            starPos[i * 3] = rr * Math.sin(ph) * Math.cos(th);
+            starPos[i * 3 + 1] = rr * Math.sin(ph) * Math.sin(th) * 0.7;
+            starPos[i * 3 + 2] = -10 - Math.random() * 34;
+          }
+          const starGeo = new THREE.BufferGeometry();
+          starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+          const dotCanvas = document.createElement('canvas');
+          dotCanvas.width = dotCanvas.height = 64;
+          const dctx = dotCanvas.getContext('2d');
+          const dgrad = dctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+          dgrad.addColorStop(0, 'rgba(255,255,255,1)');
+          dgrad.addColorStop(0.5, 'rgba(255,255,255,0.8)');
+          dgrad.addColorStop(1, 'rgba(255,255,255,0)');
+          dctx.fillStyle = dgrad;
+          dctx.beginPath();
+          dctx.arc(32, 32, 32, 0, Math.PI * 2);
+          dctx.fill();
+          const stars = new THREE.Points(
+            starGeo,
+            new THREE.PointsMaterial({
+              map: new THREE.CanvasTexture(dotCanvas),
+              size: 0.4,
+              transparent: true,
+              opacity: 0.85,
+              sizeAttenuation: true,
+              depthWrite: false,
+            }),
+          );
+          scene.add(stars);
 
           // real GT knot (4 paths from the brand SVG)
           const svg =
@@ -1910,45 +2129,35 @@
           const data = new SVGLoader().parse(svg);
           const shapes = [];
           data.paths.forEach((p) => SVGLoader.createShapes(p).forEach((s) => shapes.push(s)));
-          const extrude = { depth: 3.4, bevelEnabled: true, bevelThickness: 0.5, bevelSize: 0.42, bevelSegments: 2 };
+          const extrude = { depth: 3.0, bevelEnabled: true, bevelThickness: 0.45, bevelSize: 0.38, bevelSegments: 3, curveSegments: 18 };
 
-          // cool (empty) shell + hot (orange) fill clipped by a rising world-space plane
-          const cool = new THREE.MeshStandardMaterial({ color: 0xe9e6e0, roughness: 0.62, metalness: 0.04, transparent: true, opacity: 1 });
-          const hot = new THREE.MeshStandardMaterial({ color: 0xe4894f, roughness: 0.42, metalness: 0.06, emissive: 0x7a2f0c, emissiveIntensity: 0.3, transparent: true, opacity: 1 });
-          const clip = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0); // keeps fragments where y <= constant
-          hot.clippingPlanes = [clip];
-
+          // one material per ribbon; each warms white → ember with progress (no overlap)
+          const WHITE = new THREE.Color('#efe9e1');
+          const EMBER = new THREE.Color('#e4894f');
+          const segMats = [];
           const pivot = new THREE.Group();
-          const baseGroup = new THREE.Group();
-          const fillGroup = new THREE.Group();
           shapes.forEach((shape) => {
-            const geo = new THREE.ExtrudeGeometry(shape, extrude);
-            baseGroup.add(new THREE.Mesh(geo, cool));
-            const gm = new THREE.Mesh(geo, hot);
-            gm.position.z = 0.08; // sit the fill just in front to avoid z-fighting
-            fillGroup.add(gm);
+            const mat = new THREE.MeshStandardMaterial({
+              color: WHITE.clone(),
+              roughness: 0.5,
+              metalness: 0.0,
+              emissive: EMBER.clone(),
+              emissiveIntensity: 0,
+            });
+            pivot.add(new THREE.Mesh(new THREE.ExtrudeGeometry(shape, extrude), mat));
+            segMats.push(mat);
           });
-          pivot.add(baseGroup, fillGroup);
 
-          // center, then flip (SVG y-down) and scale via a wrapper so world-space stays clean
+          // center, flip (SVG y-down), and scale
           const b0 = new THREE.Box3().setFromObject(pivot);
-          const c0 = new THREE.Vector3();
-          b0.getCenter(c0);
+          const c0 = b0.getCenter(new THREE.Vector3());
           pivot.position.sub(c0);
-          const sz = new THREE.Vector3();
-          b0.getSize(sz);
-          const scl = 17 / Math.max(sz.x, sz.y);
+          const sz = b0.getSize(new THREE.Vector3());
+          const scl = 18 / Math.max(sz.x, sz.y);
           const wrap = new THREE.Group();
           wrap.add(pivot);
           wrap.scale.set(scl, -scl, scl);
           scene.add(wrap);
-
-          function fillBounds() {
-            const bb = new THREE.Box3().setFromObject(wrap);
-            return { lo: bb.min.y, hi: bb.max.y };
-          }
-          let bounds = fillBounds();
-          const pad = 0.6; // margin so 0 => empty and 1 => completely filled despite the tilt
 
           let targetFill = markState.ratio;
           let curFill = markState.ratio;
@@ -1956,60 +2165,81 @@
           let launching = false;
           let launchElapsed = 0;
 
+          function applySize() {
+            const [W, H] = dims();
+            camera.aspect = W / H;
+            camera.updateProjectionMatrix();
+            renderer.setSize(W, H);
+          }
+
           markState.api = {
             setFill(r) {
               targetFill = Math.max(0, Math.min(1, r));
             },
-            setFocus(on) {
-              camTargetZ = on ? 22 : 34;
+            setFullscreen(on) {
+              fullscreen = on;
+              (on ? spaceMount : mount).appendChild(renderer.domElement);
+              camTargetZ = on ? 19 : 34;
+              applySize();
             },
             blastOff(done) {
               launching = true;
               launchElapsed = 0;
+              segMats.forEach((m) => {
+                m.transparent = true;
+                m.needsUpdate = true;
+              });
               markState._onLanded = done || null;
             },
           };
 
           // time-based loop so motion looks identical at any frame rate
-          let last = performance.now();
+          const tmpCol = new THREE.Color();
+          let lastT = performance.now();
           let idle = 0;
           function frame(now) {
             now = now || performance.now();
-            let dt = (now - last) / 1000;
-            last = now;
+            let dt = (now - lastT) / 1000;
+            lastT = now;
             if (dt > 0.05) dt = 0.05; // clamp after a tab switch
             idle += dt;
 
             const fillK = reduce && !launching ? 1 : 1 - Math.pow(0.02, dt);
             curFill += (targetFill - curFill) * fillK;
-            clip.constant = bounds.lo - pad + curFill * (bounds.hi - bounds.lo + 2 * pad);
-            warm.intensity = 0.12 + curFill * 1.7;
+            const blend = reduce ? 1 : 0.2;
+            tmpCol.copy(WHITE).lerp(EMBER, curFill); // whole knot warms along its ribbons
+            segMats.forEach((m) => {
+              m.color.lerp(tmpCol, blend);
+              m.emissiveIntensity += (curFill * 0.5 - m.emissiveIntensity) * blend;
+            });
+            warm.intensity = 0.12 + curFill * 1.8;
             const camK = 1 - Math.pow(0.02, dt);
             camera.position.z += (camTargetZ - camera.position.z) * camK;
+            stars.rotation.y += dt * 0.012;
+            stars.rotation.z += dt * 0.004;
 
             if (!launching) {
-              wrap.rotation.y = reduce ? 0.42 : Math.sin(idle * 0.6) * 0.5;
-              wrap.rotation.x = -0.12;
+              wrap.rotation.y = reduce ? 0.4 : Math.sin(idle * 0.5) * 0.5;
+              wrap.rotation.x = -0.14;
               pivot.scale.set(1, 1, 1);
               camera.position.x += (0 - camera.position.x) * camK;
             } else {
               launchElapsed += dt;
-              const HOLD = 0.2; // seconds of crouch before ignition
+              const HOLD = 0.22; // seconds of crouch before ignition
               if (launchElapsed < HOLD) {
                 const k = launchElapsed / HOLD;
-                wrap.position.y = -1.6 * Math.sin(k * Math.PI * 0.5); // dip down
+                wrap.position.y = -1.8 * Math.sin(k * Math.PI * 0.5); // dip down
                 pivot.scale.set(1 + 0.07 * k, 1 - 0.1 * k, 1); // squash
               } else {
                 const lt = launchElapsed - HOLD; // seconds since ignition
-                wrap.position.y = -1.6 + 75 * lt * lt; // y = ½·a·t² (a ≈ 150 u/s²)
-                wrap.rotation.y += 3.2 * dt;
-                wrap.rotation.z += 1.1 * dt;
-                pivot.scale.set(1, Math.min(1.9, 1 + lt * 5), 1); // vertical stretch = motion streak
+                wrap.position.y = -1.8 + 85 * lt * lt; // y = ½·a·t²
+                wrap.rotation.y += 3.0 * dt;
+                wrap.rotation.z += 1.0 * dt;
+                pivot.scale.set(1, Math.min(2.0, 1 + lt * 5), 1); // vertical stretch = motion streak
                 const shake = Math.max(0, 0.18 - lt); // camera kick at ignition
                 camera.position.x = (Math.random() - 0.5) * shake * 14;
                 const o = Math.max(0, 1 - lt / 0.6);
-                cool.opacity = o;
-                hot.opacity = o;
+                segMats.forEach((m) => (m.opacity = o));
                 if (lt > 0.9 && markState._onLanded) {
                   const cb = markState._onLanded;
                   markState._onLanded = null;
@@ -2021,26 +2251,18 @@
             requestAnimationFrame(frame);
           }
           requestAnimationFrame(frame);
-
-          window.addEventListener('resize', () => {
-            w = mount.clientWidth;
-            h = mount.clientHeight;
-            camera.aspect = w / h;
-            camera.updateProjectionMatrix();
-            renderer.setSize(w, h);
-            bounds = fillBounds();
-          });
+          window.addEventListener('resize', applySize);
 
           // verification hooks (harmless in the demo)
           window.__demo = {
             fill: (r) => markState.api.setFill(r),
-            focus: (on) => markState.api.setFocus(on),
+            full: (on) => markState.api.setFullscreen(on),
             blast: () => markState.api.blastOff(() => {}),
           };
         } catch (e) {
           markState.api = {
             setFill() {},
-            setFocus() {},
+            setFullscreen() {},
             blastOff(cb) {
               if (cb) cb();
             },
