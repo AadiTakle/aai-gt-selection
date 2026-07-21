@@ -124,20 +124,10 @@
         align-items: center;
         gap: 10px;
       }
-      .brand svg {
-        width: 30px;
-        height: 27px;
-        color: var(--petrol);
-      }
-      .brand .wm {
-        font-family: var(--display);
-        font-weight: 700;
-        font-size: 19px;
-        letter-spacing: -0.01em;
-        color: var(--ink);
-      }
-      .brand .wm span {
-        color: var(--orange-deep);
+      .brand .logo {
+        height: 26px;
+        width: auto;
+        display: block;
       }
       .topbar .cycle {
         margin-left: auto;
@@ -712,6 +702,26 @@
         line-height: 1.5;
       }
 
+      /* final step: give the 3D mark the floor (camera also dollies in) */
+      .shell.focus-final {
+        grid-template-columns: var(--rail-w) minmax(0, 1fr) 560px;
+      }
+      .shell.focus-final .stage {
+        min-height: 640px;
+        box-shadow: 0 30px 70px -40px rgba(0, 42, 58, 0.6);
+      }
+      .shell.focus-final .stage-copy .head {
+        font-size: 20px;
+      }
+      /* after liftoff: the dashboard takes the mark’s place */
+      .shell.state-done {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .shell.state-done .rail,
+      .shell.state-done .stage {
+        display: none;
+      }
+
       /* ---------- welcome + success ---------- */
       .welcome,
       .done {
@@ -787,6 +797,97 @@
       .next-step p {
         margin: 0;
         font-size: 13px;
+      }
+
+      /* ---------- post-liftoff dashboard ---------- */
+      .dash {
+        background: var(--white);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 34px;
+        max-width: 760px;
+        margin: 0 auto;
+        animation: dashIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+      @keyframes dashIn {
+        from {
+          opacity: 0;
+          transform: translateY(16px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      .dash-head {
+        display: flex;
+        gap: 18px;
+        align-items: flex-start;
+        margin-bottom: 24px;
+      }
+      .dash-head .seal {
+        flex: none;
+        width: 60px;
+        height: 60px;
+        border-radius: 16px;
+        background: var(--gold-1);
+        border: 1px solid var(--gold-3);
+        display: grid;
+        place-items: center;
+        color: var(--orange-deep);
+        margin: 0;
+      }
+      .dash-head h1 {
+        font-size: 27px;
+        margin: 2px 0 8px;
+      }
+      .dash-sub {
+        color: var(--ink-50);
+        font-size: 14px;
+        line-height: 1.55;
+        margin: 0;
+        max-width: 60ch;
+      }
+      .dash-tiles {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-bottom: 22px;
+      }
+      .tile {
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm);
+        background: var(--paper);
+        padding: 14px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .tile .k {
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--ink-35);
+      }
+      .tile .v {
+        font-family: var(--display);
+        font-size: 18px;
+        color: var(--ink);
+      }
+      .tile .v.ok {
+        color: #2f7d55;
+      }
+      .tile .v.wait {
+        color: var(--orange-deep);
+      }
+      .tile .m {
+        font-size: 12px;
+        color: var(--ink-50);
+      }
+      .dash .next-step {
+        display: flex;
+        width: 100%;
       }
 
       /* ---------- responsive ---------- */
@@ -867,15 +968,14 @@
 
     <header class="topbar">
       <a class="brand" href="#" aria-label="GT School home">
-        <svg viewBox="0 0 36 32" fill="currentColor" aria-hidden="true">
-          <path
-            d="M10.13.14C11.96-.29 14.22.3 16.61 1.8c-.7.54-1.4 1.15-2.09 1.82-1.75-.96-3.04-1.1-3.81-.91-.69.17-1.5.75-1.88 2.58-.4 1.9-.19 4.66.85 7.9 1.03 3.2 2.75 6.48 4.88 9.29 2.15 2.83 4.5 4.9 6.6 6.01 2.15 1.13 3.47.98 4.1.64.61-.33 1.41-1.29 1.57-3.62.13-1.9-.22-4.3-1.1-6.93h-9.24c-.53-.86-.99-1.74-1.43-2.63h12.49l.07.15c1.37 3.46 2.01 6.83 1.83 9.59-.19 2.78-1.21 4.79-2.9 5.73l-.04.02c-1.71.92-3.99.71-6.51-.59l-.06-.03c-2.5-1.31-5.08-3.63-7.36-6.6l-.11-.14c-2.31-3.04-4.17-6.58-5.29-10.07C6.05 10.5 5.73 7.25 6.25 4.74 6.78 2.24 8.12.63 10.08.15l.05-.01Z"
-          />
-          <path
-            d="M12.82 7.47C17.45 1.59 23.12-1.39 26.62.63c2.05 1.18 2.99 3.87 2.85 7.28-.82-.34-1.7-.64-2.62-.9-.05-2.51-.85-3.7-1.55-4.1-.79-.46-2.53-.53-5.27 1.28-1.13.75-2.3 1.74-3.46 2.96.39-.01.78-.02 1.17-.02 9.8 0 17.75 3.97 17.75 8.87 0 2.37-1.86 4.52-4.88 6.11-.12-.88-.3-1.79-.53-2.72 2.15-1.3 2.78-2.59 2.78-3.39 0-.92-.81-2.46-3.74-3.92-2.78-1.39-6.8-2.32-11.38-2.32-1.27 0-2.49.07-3.66.2h-.01c-1.14.14-2.23.34-3.24.58.68-1.1 1.4-2.13 2.16-3.09Z"
-          />
+        <svg class="logo" viewBox="0 0 139 32" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="GT School">
+          <path d="M90.2546 18.2728L87.9706 18.511C87.875 18.1615 87.6679 17.8534 87.3494 17.5866C87.0308 17.3134 86.5816 17.1767 86.0019 17.1767C85.4794 17.1767 85.0398 17.2911 84.683 17.5198C84.3326 17.7486 84.1574 18.0408 84.1574 18.3967C84.1574 18.708 84.2721 18.9653 84.5014 19.1686C84.7372 19.3656 85.1258 19.5244 85.6674 19.6452L87.4927 20.0264C88.493 20.2361 89.2416 20.5792 89.7386 21.0557C90.2356 21.5323 90.484 22.1486 90.484 22.9047C90.484 23.5718 90.2897 24.1627 89.9011 24.6774C89.5124 25.192 88.974 25.5923 88.286 25.8782C87.6042 26.1642 86.8174 26.3071 85.9254 26.3071C84.6193 26.3071 83.568 26.0339 82.7716 25.4875C81.9816 24.9347 81.5069 24.1691 81.3477 23.1906L83.8038 22.9619C83.9121 23.4384 84.1478 23.8005 84.511 24.0483C84.8805 24.2898 85.352 24.4105 85.9254 24.4105C86.5243 24.4105 87.0053 24.2898 87.3685 24.0483C87.7317 23.8005 87.9132 23.4987 87.9132 23.143C87.9132 22.5457 87.4354 22.139 86.4797 21.923L84.6543 21.5418C83.6286 21.3194 82.8704 20.9604 82.3798 20.4648C81.8892 19.9628 81.6439 19.3243 81.6439 18.5491C81.6439 17.8883 81.8255 17.3165 82.1887 16.8336C82.5518 16.3507 83.0583 15.9759 83.7082 15.709C84.3581 15.4421 85.1099 15.3087 85.9636 15.3087C87.2188 15.3087 88.2031 15.5787 88.9167 16.1188C89.6366 16.6525 90.0827 17.3705 90.2546 18.2728ZM96.4953 26.3071C95.4313 26.3071 94.517 26.0752 93.7525 25.6114C92.9879 25.1412 92.4017 24.4931 91.994 23.6671C91.5863 22.8411 91.3824 21.8913 91.3824 20.8174C91.3824 19.731 91.5894 18.7747 92.0035 17.9487C92.4177 17.1227 93.007 16.4778 93.7716 16.014C94.5361 15.5438 95.4377 15.3087 96.4762 15.3087C97.349 15.3087 98.1199 15.4676 98.7889 15.7852C99.4579 16.1029 99.9899 16.5509 100.385 17.1291C100.786 17.7009 101.016 18.3712 101.073 19.1401H98.6647C98.601 18.7969 98.4767 18.4888 98.292 18.2156C98.1072 17.9423 97.8651 17.7263 97.5657 17.5675C97.2726 17.4087 96.9222 17.3292 96.5144 17.3292C95.9983 17.3292 95.546 17.469 95.1574 17.7486C94.7751 18.0218 94.4756 18.4157 94.259 18.9304C94.0424 19.4451 93.9341 20.0614 93.9341 20.7793C93.9341 21.5037 94.0392 22.1295 94.2494 22.6569C94.4597 23.1779 94.7592 23.5813 95.1478 23.8672C95.5364 24.1469 95.992 24.2866 96.5144 24.2866C97.0687 24.2866 97.537 24.1246 97.9193 23.8005C98.3079 23.4765 98.5564 23.0286 98.6647 22.4567H101.073C101.016 23.2128 100.793 23.88 100.404 24.4582C100.015 25.0364 99.4898 25.4907 98.8272 25.8211C98.1646 26.1451 97.3872 26.3071 96.4953 26.3071ZM104.944 19.8644V26.0975H102.43V11.8967H104.886V17.2625H105.02C105.268 16.6589 105.654 16.1824 106.176 15.8329C106.699 15.4834 107.371 15.3087 108.193 15.3087C108.932 15.3087 109.575 15.4644 110.123 15.7757C110.678 16.0871 111.108 16.5414 111.414 17.1386C111.719 17.7358 111.872 18.4634 111.872 19.3211V26.0975H109.349V19.7119C109.349 18.9875 109.165 18.4284 108.795 18.0345C108.425 17.6342 107.909 17.4341 107.247 17.4341C106.801 17.4341 106.403 17.5294 106.052 17.72C105.708 17.9106 105.437 18.187 105.24 18.5491C105.042 18.905 104.944 19.3434 104.944 19.8644ZM118.381 26.3071C117.336 26.3071 116.431 26.0784 115.666 25.6209C114.902 25.1634 114.309 24.5217 113.889 23.6957C113.475 22.8697 113.268 21.9103 113.268 20.8174C113.268 19.7182 113.475 18.7557 113.889 17.9297C114.309 17.0973 114.902 16.4524 115.666 15.9949C116.431 15.5375 117.336 15.3087 118.381 15.3087C119.425 15.3087 120.33 15.5375 121.095 15.9949C121.859 16.4524 122.452 17.0973 122.872 17.9297C123.293 18.7557 123.503 19.7182 123.503 20.8174C123.503 21.9103 123.293 22.8697 122.872 23.6957C122.452 24.5217 121.859 25.1634 121.095 25.6209C120.33 26.0784 119.425 26.3071 118.381 26.3071ZM118.381 24.2866C118.96 24.2866 119.438 24.1341 119.814 23.8291C120.19 23.5178 120.47 23.0984 120.655 22.5711C120.846 22.0437 120.942 21.4592 120.942 20.8174C120.942 20.163 120.846 19.5721 120.655 19.0447C120.47 18.5174 120.19 18.1012 119.814 17.7962C119.438 17.4849 118.96 17.3292 118.381 17.3292C117.813 17.3292 117.339 17.4849 116.957 17.7962C116.574 18.1012 116.288 18.5174 116.096 19.0447C115.912 19.5721 115.819 20.163 115.819 20.8174C115.819 21.4592 115.912 22.0437 116.096 22.5711C116.288 23.0984 116.574 23.5178 116.957 23.8291C117.339 24.1341 117.813 24.2866 118.381 24.2866ZM129.543 26.3071C128.498 26.3071 127.593 26.0784 126.829 25.6209C126.064 25.1634 125.472 24.5217 125.051 23.6957C124.637 22.8697 124.43 21.9103 124.43 20.8174C124.43 19.7182 124.637 18.7557 125.051 17.9297C125.472 17.0973 126.064 16.4524 126.829 15.9949C127.593 15.5375 128.498 15.3087 129.543 15.3087C130.588 15.3087 131.492 15.5375 132.257 15.9949C133.021 16.4524 133.614 17.0973 134.035 17.9297C134.455 18.7557 134.666 19.7182 134.666 20.8174C134.666 21.9103 134.455 22.8697 134.035 23.6957C133.614 24.5217 133.021 25.1634 132.257 25.6209C131.492 26.0784 130.588 26.3071 129.543 26.3071ZM129.543 24.2866C130.123 24.2866 130.601 24.1341 130.977 23.8291C131.352 23.5178 131.633 23.0984 131.818 22.5711C132.009 22.0437 132.104 21.4592 132.104 20.8174C132.104 20.163 132.009 19.5721 131.818 19.0447C131.633 18.5174 131.352 18.1012 130.977 17.7962C130.601 17.4849 130.123 17.3292 129.543 17.3292C128.976 17.3292 128.501 17.4849 128.119 17.7962C127.737 18.1012 127.45 18.5174 127.259 19.0447C127.074 19.5721 126.982 20.163 126.982 20.8174C126.982 21.4592 127.074 22.0437 127.259 22.5711C127.45 23.0984 127.737 23.5178 128.119 23.8291C128.501 24.1341 128.976 24.2866 129.543 24.2866ZM138.565 11.8967V26.0975H136.051V11.8967H138.565Z" fill="#E48B53"/>
+          <path d="M53.9021 26.5185C48.0522 26.5185 43.4961 22.1592 43.4961 15.9156C43.4961 9.95322 47.8272 5.48145 53.7334 5.48145C58.852 5.48145 62.5082 8.51888 63.8301 12.9063H58.7958C58.177 10.8532 56.3208 9.30636 53.6209 9.30636C50.3584 9.30636 47.8835 11.6969 47.8835 16.0281C47.8835 19.9093 50.0491 22.8904 54.099 22.8904C57.0802 22.8904 58.9645 21.1186 59.527 18.6155H53.6771V15.2125H64.0832C64.3363 21.7936 60.3426 26.5185 53.9021 26.5185ZM74.9635 26.0966H70.6886V9.75635H64.3323V5.90331H81.3477V9.75635H74.9635V26.0966Z" fill="#002A3A"/>
+          <path d="M7.24083 17.8085C7.7729 18.9925 8.37035 20.1469 9.0254 21.2674C8.83293 22.19 8.71281 23.0685 8.66364 23.8875C8.46723 27.1596 9.3937 28.6326 10.1887 29.0916C10.8887 29.4956 12.3202 29.5949 14.5194 28.3806C15.2061 29.0472 15.9041 29.655 16.606 30.1986C13.7161 32.0213 10.925 32.5523 8.87407 31.3684C5.67609 29.5222 5.18985 24.0333 7.24083 17.8085Z" fill="#E48B53"/>
+          <path d="M10.127 0.140114C11.9565 -0.286359 14.2189 0.296172 16.6062 1.80147C15.9036 2.3455 15.205 2.95266 14.5177 3.61999C12.7714 2.66143 11.4725 2.51824 10.7028 2.70552C10.013 2.87339 9.21138 3.45205 8.82708 5.28302C8.4279 7.18491 8.63879 9.94582 9.68001 13.1824C10.7092 16.3818 12.4277 19.6601 14.5637 22.4743C16.7123 25.3052 19.0615 27.3755 21.165 28.4792C23.3149 29.6073 24.6289 29.4584 25.2618 29.1171C25.8702 28.7889 26.6739 27.8317 26.8322 25.4993C26.9613 23.5983 26.6091 21.1976 25.7345 18.5673H16.4992C15.9728 17.7092 15.511 16.8294 15.0695 15.9343H27.5589L27.6285 16.089C29.0011 19.5522 29.6429 22.9174 29.4556 25.6773C29.2667 28.4591 28.246 30.4718 26.5501 31.4091L26.51 31.431C24.8035 32.3512 22.5178 32.1426 20.0026 30.8382L19.9432 30.8072C17.4442 29.4959 14.8595 27.1785 12.5776 24.2057L12.4692 24.0636C10.161 21.0226 8.30074 17.4807 7.17696 13.9875C6.05318 10.4942 5.72869 7.24475 6.25377 4.74307C6.77885 2.24139 8.12417 0.627249 10.0811 0.151057L10.127 0.140114Z" fill="#E48B53"/>
+          <path d="M12.8244 7.47298C17.452 1.5929 23.1176 -1.39147 26.6222 0.631674C28.6732 1.81567 29.6088 4.49799 29.475 7.91181C28.6533 7.57578 27.7778 7.27529 26.857 7.01396C26.8092 4.50251 26.0075 3.31254 25.3076 2.90847C24.5125 2.44951 22.7734 2.38375 20.0376 4.18986C18.9067 4.93642 17.7322 5.9315 16.5771 7.14615C16.9642 7.13354 17.3547 7.12709 17.7481 7.12709C27.5502 7.12709 35.4963 11.0996 35.4963 16C35.4963 18.368 33.6408 20.5192 30.6171 22.1104C30.4973 21.2308 30.3197 20.3225 30.0857 19.3945C32.2371 18.0973 32.8669 16.8081 32.8669 16C32.8669 15.0821 32.0543 13.5433 29.1221 12.0774C26.3471 10.6901 22.3295 9.7561 17.7481 9.7561C16.4809 9.7561 15.2567 9.82758 14.0901 9.96033C14.0277 9.96743 13.9655 9.97467 13.9034 9.98212C12.7631 10.119 11.679 10.3145 10.6649 10.559C11.3481 9.45998 12.0725 8.42829 12.8243 7.47301L12.8244 7.47298Z" fill="#E48B53"/>
+          <path d="M4.87916 9.8896C4.99898 10.7692 5.17653 11.6775 5.41056 12.6055C3.25914 13.9026 2.62935 15.1919 2.62935 16C2.62935 16.8081 3.25916 18.0973 5.41052 19.3944C5.1765 20.3224 4.99898 21.2308 4.87916 22.1103C1.85547 20.5192 0 18.368 0 16C0 13.632 1.85545 11.4807 4.87916 9.8896Z" fill="#E48B53"/>
         </svg>
-        <span class="wm">GT<span>School</span></span>
       </a>
       <span class="cycle">Fall 2027 · Grades 3–8</span>
     </header>
@@ -1355,14 +1455,42 @@
 
           <!-- SUCCESS -->
           <section class="page" data-page="done">
-            <div class="done">
-              <div class="seal" aria-hidden="true">
-                <svg width="34" height="30" viewBox="0 0 36 32" fill="currentColor">
-                  <path d="M10.13.14C11.96-.29 14.22.3 16.61 1.8c-.7.54-1.4 1.15-2.09 1.82-1.75-.96-3.04-1.1-3.81-.91-.69.17-1.5.75-1.88 2.58-.4 1.9-.19 4.66.85 7.9 1.03 3.2 2.75 6.48 4.88 9.29 2.15 2.83 4.5 4.9 6.6 6.01 2.15 1.13 3.47.98 4.1.64.61-.33 1.41-1.29 1.57-3.62.13-1.9-.22-4.3-1.1-6.93h-9.24c-.53-.86-.99-1.74-1.43-2.63h12.49l.07.15c1.37 3.46 2.01 6.83 1.83 9.59-.19 2.78-1.21 4.79-2.9 5.73l-.04.02c-1.71.92-3.99.71-6.51-.59l-.06-.03c-2.5-1.31-5.08-3.63-7.36-6.6l-.11-.14c-2.31-3.04-4.17-6.58-5.29-10.07C6.05 10.5 5.73 7.25 6.25 4.74 6.78 2.24 8.12.63 10.08.15l.05-.01Z" />
-                </svg>
+            <div class="dash">
+              <div class="dash-head">
+                <div class="seal" aria-hidden="true">
+                  <svg width="30" height="27" viewBox="0 0 36 32" fill="currentColor">
+                    <path d="M7.24083 17.8085C7.7729 18.9925 8.37035 20.1469 9.0254 21.2674C8.83293 22.19 8.71281 23.0685 8.66364 23.8875C8.46723 27.1596 9.3937 28.6326 10.1887 29.0916C10.8887 29.4956 12.3202 29.5949 14.5194 28.3806C15.2061 29.0472 15.9041 29.655 16.606 30.1986C13.7161 32.0213 10.925 32.5523 8.87407 31.3684C5.67609 29.5222 5.18985 24.0333 7.24083 17.8085Z" />
+                    <path d="M10.127 0.140114C11.9565 -0.286359 14.2189 0.296172 16.6062 1.80147C15.9036 2.3455 15.205 2.95266 14.5177 3.61999C12.7714 2.66143 11.4725 2.51824 10.7028 2.70552C10.013 2.87339 9.21138 3.45205 8.82708 5.28302C8.4279 7.18491 8.63879 9.94582 9.68001 13.1824C10.7092 16.3818 12.4277 19.6601 14.5637 22.4743C16.7123 25.3052 19.0615 27.3755 21.165 28.4792C23.3149 29.6073 24.6289 29.4584 25.2618 29.1171C25.8702 28.7889 26.6739 27.8317 26.8322 25.4993C26.9613 23.5983 26.6091 21.1976 25.7345 18.5673H16.4992C15.9728 17.7092 15.511 16.8294 15.0695 15.9343H27.5589L27.6285 16.089C29.0011 19.5522 29.6429 22.9174 29.4556 25.6773C29.2667 28.4591 28.246 30.4718 26.5501 31.4091L26.51 31.431C24.8035 32.3512 22.5178 32.1426 20.0026 30.8382L19.9432 30.8072C17.4442 29.4959 14.8595 27.1785 12.5776 24.2057L12.4692 24.0636C10.161 21.0226 8.30074 17.4807 7.17696 13.9875C6.05318 10.4942 5.72869 7.24475 6.25377 4.74307C6.77885 2.24139 8.12417 0.627249 10.0811 0.151057L10.127 0.140114Z" />
+                    <path d="M12.8244 7.47298C17.452 1.5929 23.1176 -1.39147 26.6222 0.631674C28.6732 1.81567 29.6088 4.49799 29.475 7.91181C28.6533 7.57578 27.7778 7.27529 26.857 7.01396C26.8092 4.50251 26.0075 3.31254 25.3076 2.90847C24.5125 2.44951 22.7734 2.38375 20.0376 4.18986C18.9067 4.93642 17.7322 5.9315 16.5771 7.14615C16.9642 7.13354 17.3547 7.12709 17.7481 7.12709C27.5502 7.12709 35.4963 11.0996 35.4963 16C35.4963 18.368 33.6408 20.5192 30.6171 22.1104C30.4973 21.2308 30.3197 20.3225 30.0857 19.3945C32.2371 18.0973 32.8669 16.8081 32.8669 16C32.8669 15.0821 32.0543 13.5433 29.1221 12.0774C26.3471 10.6901 22.3295 9.7561 17.7481 9.7561C16.4809 9.7561 15.2567 9.82758 14.0901 9.96033C14.0277 9.96743 13.9655 9.97467 13.9034 9.98212C12.7631 10.119 11.679 10.3145 10.6649 10.559C11.3481 9.45998 12.0725 8.42829 12.8243 7.47301L12.8244 7.47298Z" />
+                    <path d="M4.87916 9.8896C4.99898 10.7692 5.17653 11.6775 5.41056 12.6055C3.25914 13.9026 2.62935 15.1919 2.62935 16C2.62935 16.8081 3.25916 18.0973 5.41052 19.3944C5.1765 20.3224 4.99898 21.2308 4.87916 22.1103C1.85547 20.5192 0 18.368 0 16C0 13.632 1.85545 11.4807 4.87916 9.8896Z" />
+                  </svg>
+                </div>
+                <div>
+                  <div class="eyebrow">Your status</div>
+                  <h1>Application received</h1>
+                  <p class="dash-sub">
+                    This is not an eligibility or admission decision. Your status page lists required next steps,
+                    deadlines, available accommodations, and assistance routes.
+                  </p>
+                </div>
               </div>
-              <h1>Application received</h1>
-              <p>This is not an eligibility or admission decision. Your status page lists required next steps, deadlines, available accommodations, and assistance routes.</p>
+              <div class="dash-tiles">
+                <div class="tile">
+                  <span class="k">Application</span>
+                  <span class="v ok">Received</span>
+                  <span class="m">Submitted just now</span>
+                </div>
+                <div class="tile">
+                  <span class="k">CogAT assessment</span>
+                  <span class="v">Not started</span>
+                  <span class="m">Opens from your status page</span>
+                </div>
+                <div class="tile">
+                  <span class="k">Decision</span>
+                  <span class="v wait">Pending</span>
+                  <span class="m">After assessments complete</span>
+                </div>
+              </div>
               <div class="next-step">
                 <div class="n">CogAT</div>
                 <div>
@@ -1388,14 +1516,16 @@
         <div id="markMount">
           <div class="stage-fallback" id="markFallback">
             <svg viewBox="0 0 36 32" fill="currentColor">
-              <path d="M10.13.14C11.96-.29 14.22.3 16.61 1.8c-.7.54-1.4 1.15-2.09 1.82-1.75-.96-3.04-1.1-3.81-.91-.69.17-1.5.75-1.88 2.58-.4 1.9-.19 4.66.85 7.9 1.03 3.2 2.75 6.48 4.88 9.29 2.15 2.83 4.5 4.9 6.6 6.01 2.15 1.13 3.47.98 4.1.64.61-.33 1.41-1.29 1.57-3.62.13-1.9-.22-4.3-1.1-6.93h-9.24c-.53-.86-.99-1.74-1.43-2.63h12.49l.07.15c1.37 3.46 2.01 6.83 1.83 9.59-.19 2.78-1.21 4.79-2.9 5.73l-.04.02c-1.71.92-3.99.71-6.51-.59l-.06-.03c-2.5-1.31-5.08-3.63-7.36-6.6l-.11-.14c-2.31-3.04-4.17-6.58-5.29-10.07C6.05 10.5 5.73 7.25 6.25 4.74 6.78 2.24 8.12.63 10.08.15l.05-.01Z" />
-              <path d="M12.82 7.47C17.45 1.59 23.12-1.39 26.62.63c2.05 1.18 2.99 3.87 2.85 7.28-.82-.34-1.7-.64-2.62-.9-.05-2.51-.85-3.7-1.55-4.1-.79-.46-2.53-.53-5.27 1.28-1.13.75-2.3 1.74-3.46 2.96.39-.01.78-.02 1.17-.02 9.8 0 17.75 3.97 17.75 8.87 0 2.37-1.86 4.52-4.88 6.11-.12-.88-.3-1.79-.53-2.72 2.15-1.3 2.78-2.59 2.78-3.39 0-.92-.81-2.46-3.74-3.92-2.78-1.39-6.8-2.32-11.38-2.32-1.27 0-2.49.07-3.66.2h-.01c-1.14.14-2.23.34-3.24.58.68-1.1 1.4-2.13 2.16-3.09Z" />
+              <path d="M7.24083 17.8085C7.7729 18.9925 8.37035 20.1469 9.0254 21.2674C8.83293 22.19 8.71281 23.0685 8.66364 23.8875C8.46723 27.1596 9.3937 28.6326 10.1887 29.0916C10.8887 29.4956 12.3202 29.5949 14.5194 28.3806C15.2061 29.0472 15.9041 29.655 16.606 30.1986C13.7161 32.0213 10.925 32.5523 8.87407 31.3684C5.67609 29.5222 5.18985 24.0333 7.24083 17.8085Z" />
+              <path d="M10.127 0.140114C11.9565 -0.286359 14.2189 0.296172 16.6062 1.80147C15.9036 2.3455 15.205 2.95266 14.5177 3.61999C12.7714 2.66143 11.4725 2.51824 10.7028 2.70552C10.013 2.87339 9.21138 3.45205 8.82708 5.28302C8.4279 7.18491 8.63879 9.94582 9.68001 13.1824C10.7092 16.3818 12.4277 19.6601 14.5637 22.4743C16.7123 25.3052 19.0615 27.3755 21.165 28.4792C23.3149 29.6073 24.6289 29.4584 25.2618 29.1171C25.8702 28.7889 26.6739 27.8317 26.8322 25.4993C26.9613 23.5983 26.6091 21.1976 25.7345 18.5673H16.4992C15.9728 17.7092 15.511 16.8294 15.0695 15.9343H27.5589L27.6285 16.089C29.0011 19.5522 29.6429 22.9174 29.4556 25.6773C29.2667 28.4591 28.246 30.4718 26.5501 31.4091L26.51 31.431C24.8035 32.3512 22.5178 32.1426 20.0026 30.8382L19.9432 30.8072C17.4442 29.4959 14.8595 27.1785 12.5776 24.2057L12.4692 24.0636C10.161 21.0226 8.30074 17.4807 7.17696 13.9875C6.05318 10.4942 5.72869 7.24475 6.25377 4.74307C6.77885 2.24139 8.12417 0.627249 10.0811 0.151057L10.127 0.140114Z" />
+              <path d="M12.8244 7.47298C17.452 1.5929 23.1176 -1.39147 26.6222 0.631674C28.6732 1.81567 29.6088 4.49799 29.475 7.91181C28.6533 7.57578 27.7778 7.27529 26.857 7.01396C26.8092 4.50251 26.0075 3.31254 25.3076 2.90847C24.5125 2.44951 22.7734 2.38375 20.0376 4.18986C18.9067 4.93642 17.7322 5.9315 16.5771 7.14615C16.9642 7.13354 17.3547 7.12709 17.7481 7.12709C27.5502 7.12709 35.4963 11.0996 35.4963 16C35.4963 18.368 33.6408 20.5192 30.6171 22.1104C30.4973 21.2308 30.3197 20.3225 30.0857 19.3945C32.2371 18.0973 32.8669 16.8081 32.8669 16C32.8669 15.0821 32.0543 13.5433 29.1221 12.0774C26.3471 10.6901 22.3295 9.7561 17.7481 9.7561C16.4809 9.7561 15.2567 9.82758 14.0901 9.96033C14.0277 9.96743 13.9655 9.97467 13.9034 9.98212C12.7631 10.119 11.679 10.3145 10.6649 10.559C11.3481 9.45998 12.0725 8.42829 12.8243 7.47301L12.8244 7.47298Z" />
+              <path d="M4.87916 9.8896C4.99898 10.7692 5.17653 11.6775 5.41056 12.6055C3.25914 13.9026 2.62935 15.1919 2.62935 16C2.62935 16.8081 3.25916 18.0973 5.41052 19.3944C5.1765 20.3224 4.99898 21.2308 4.87916 22.1103C1.85547 20.5192 0 18.368 0 16C0 13.632 1.85545 11.4807 4.87916 9.8896Z" />
             </svg>
           </div>
         </div>
         <div class="stage-copy">
           <div class="head" id="stageHead">Welcome</div>
-          <div class="sub" id="stageSub">The mark warms as your child’s story comes together.</div>
+          <div class="sub" id="stageSub">The mark fills as your child’s story comes together.</div>
         </div>
       </aside>
     </div>
@@ -1477,8 +1607,12 @@
         Object.values(pages).forEach((p) => p.classList.remove('active'));
         pages.welcome.classList.add('active');
         actions.hidden = true;
-        setStage('Welcome', 'The mark warms as your child’s story comes together.');
+        const shell = document.querySelector('.shell');
+        shell.classList.remove('focus-final', 'state-done');
+        if (markState.api && markState.api.setFocus) markState.api.setFocus(false);
+        setStage('Welcome', 'The mark fills as your child’s story comes together.');
         renderRail();
+        updateMark();
       }
 
       function go(i) {
@@ -1495,6 +1629,8 @@
         if (last) buildReview();
         setStage(stageLines[i][0], stageLines[i][1]);
         renderRail();
+        document.querySelector('.shell').classList.toggle('focus-final', last);
+        if (markState.api && markState.api.setFocus) markState.api.setFocus(last);
         window.scrollTo({ top: 0, behavior: 'smooth' });
         updateMark();
       }
@@ -1563,19 +1699,29 @@
         state.done.add(state.index);
         save();
         if (state.index === SECTIONS.length - 1) {
-          Object.values(pages).forEach((p) => p.classList.remove('active'));
-          pages.done.classList.add('active');
           actions.hidden = true;
-          setStage('Received', 'Thank you — your application is in.');
           state.done.add('all');
-          updateMark(1);
+          updateMark(1); // top off the fill before launch
+          setStage('Ready for liftoff', 'Sending your application to GT School.');
           document.querySelectorAll('.step[data-step]').forEach((b) => {
             b.classList.remove('current');
             b.classList.add('done');
             b.querySelector('.dot').textContent = '✓';
             b.querySelector('.st').textContent = 'Done';
           });
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+          const reveal = () => {
+            Object.values(pages).forEach((p) => p.classList.remove('active'));
+            pages.done.classList.add('active');
+            const shell = document.querySelector('.shell');
+            shell.classList.remove('focus-final');
+            shell.classList.add('state-done');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          };
+          if (!reduce && markState.api && markState.api.blastOff) {
+            setTimeout(() => markState.api.blastOff(reveal), 700); // let the fill top off, then launch
+          } else {
+            setTimeout(reveal, 350);
+          }
           return;
         }
         go(state.index + 1);
@@ -1679,15 +1825,28 @@
 
       // ---------------- ambient 3D mark ----------------
       const markState = { ratio: 0, api: null };
+      function sectionFillFraction(i) {
+        const page = pages[i];
+        if (!page) return 0;
+        const reqs = [...page.querySelectorAll('[data-req]')].filter((el) => {
+          const rev = el.closest('.reveal');
+          return !(rev && !rev.classList.contains('open'));
+        });
+        if (!reqs.length) return 0.4; // some credit just for arriving on the page
+        const filled = reqs.filter((el) => el.value && String(el.value).trim()).length;
+        return filled / reqs.length;
+      }
       function completionRatio() {
         const total = SECTIONS.length;
-        let n = 0;
-        for (let i = 0; i < total; i++) if (state.done.has(i)) n++;
-        return Math.min(1, n / total);
+        let done = 0;
+        for (let i = 0; i < total; i++) if (state.done.has(i)) done++;
+        let partial = 0;
+        if (state.view === 'section' && !state.done.has(state.index)) partial = sectionFillFraction(state.index);
+        return Math.min(1, (done + partial) / total);
       }
       function updateMark(force) {
         markState.ratio = force != null ? force : completionRatio();
-        if (markState.api) markState.api.setWarmth(markState.ratio);
+        if (markState.api) markState.api.setFill(markState.ratio);
       }
       function setStage(head, sub) {
         document.getElementById('stageHead').textContent = head;
@@ -1699,7 +1858,16 @@
       showWelcome();
       updateMark();
 
-      // 3D enhancement (progressive; falls back to the static SVG)
+      // live fill: the mark warms as fields are completed
+      document.addEventListener('input', () => updateMark());
+      document.addEventListener('change', () => updateMark());
+      document.addEventListener('click', (e) => {
+        if (e.target.closest('.segmented, .chip, .add-btn')) setTimeout(updateMark, 0);
+      });
+
+      // 3D mark IS the progress tracker: it fills with orange from the bottom up
+      // as sections complete, dollies in on the final step, and launches on submit.
+      // Falls back to the static SVG if WebGL/module load fails.
       const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       (async () => {
         try {
@@ -1707,86 +1875,176 @@
           const { SVGLoader } = await import('three/addons/loaders/SVGLoader.js');
           const mount = document.getElementById('markMount');
           const fallback = document.getElementById('markFallback');
-          const w = mount.clientWidth || 340;
-          const h = mount.clientHeight || 320;
+          let w = mount.clientWidth || 340;
+          let h = mount.clientHeight || 320;
 
           const scene = new THREE.Scene();
-          const camera = new THREE.PerspectiveCamera(38, w / h, 0.1, 100);
+          const camera = new THREE.PerspectiveCamera(38, w / h, 0.1, 600);
           camera.position.set(0, 0, 34);
           const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
           renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
           renderer.setSize(w, h);
+          renderer.localClippingEnabled = true;
           mount.appendChild(renderer.domElement);
           fallback.style.display = 'none';
 
-          scene.add(new THREE.AmbientLight(0xffffff, 0.85));
-          const key = new THREE.DirectionalLight(0xffffff, 1.1);
-          key.position.set(6, 10, 14);
+          scene.add(new THREE.AmbientLight(0xffffff, 0.92));
+          const key = new THREE.DirectionalLight(0xffffff, 1.15);
+          key.position.set(6, 10, 16);
           scene.add(key);
-          const warm = new THREE.PointLight(0xe48b53, 0, 60);
-          warm.position.set(-6, -2, 16);
+          const rim = new THREE.DirectionalLight(0xbcd4e6, 0.35);
+          rim.position.set(-10, -4, 8);
+          scene.add(rim);
+          const warm = new THREE.PointLight(0xe4894f, 0.1, 140, 2);
+          warm.position.set(-3, -5, 18);
           scene.add(warm);
 
+          // real GT knot (4 paths from the brand SVG)
           const svg =
             '<svg viewBox="0 0 36 32" xmlns="http://www.w3.org/2000/svg">' +
-            '<path d="M10.13.14C11.96-.29 14.22.3 16.61 1.8c-.7.54-1.4 1.15-2.09 1.82-1.75-.96-3.04-1.1-3.81-.91-.69.17-1.5.75-1.88 2.58-.4 1.9-.19 4.66.85 7.9 1.03 3.2 2.75 6.48 4.88 9.29 2.15 2.83 4.5 4.9 6.6 6.01 2.15 1.13 3.47.98 4.1.64.61-.33 1.41-1.29 1.57-3.62.13-1.9-.22-4.3-1.1-6.93h-9.24c-.53-.86-.99-1.74-1.43-2.63h12.49l.07.15c1.37 3.46 2.01 6.83 1.83 9.59-.19 2.78-1.21 4.79-2.9 5.73l-.04.02c-1.71.92-3.99.71-6.51-.59l-.06-.03c-2.5-1.31-5.08-3.63-7.36-6.6l-.11-.14c-2.31-3.04-4.17-6.58-5.29-10.07C6.05 10.5 5.73 7.25 6.25 4.74 6.78 2.24 8.12.63 10.08.15l.05-.01Z"/>' +
-            '<path d="M12.82 7.47C17.45 1.59 23.12-1.39 26.62.63c2.05 1.18 2.99 3.87 2.85 7.28-.82-.34-1.7-.64-2.62-.9-.05-2.51-.85-3.7-1.55-4.1-.79-.46-2.53-.53-5.27 1.28-1.13.75-2.3 1.74-3.46 2.96.39-.01.78-.02 1.17-.02 9.8 0 17.75 3.97 17.75 8.87 0 2.37-1.86 4.52-4.88 6.11-.12-.88-.3-1.79-.53-2.72 2.15-1.3 2.78-2.59 2.78-3.39 0-.92-.81-2.46-3.74-3.92-2.78-1.39-6.8-2.32-11.38-2.32-1.27 0-2.49.07-3.66.2h-.01c-1.14.14-2.23.34-3.24.58.68-1.1 1.4-2.13 2.16-3.09Z"/>' +
-            '<path d="M4.88 9.89c.12.88.3 1.79.53 2.72-2.15 1.3-2.78 2.59-2.78 3.39 0 .81.63 2.1 2.78 3.39-.23.93-.41 1.84-.53 2.72C1.86 20.52 0 18.37 0 16c0-2.37 1.86-4.52 4.88-6.11Z"/>' +
+            '<path d="M7.24083 17.8085C7.7729 18.9925 8.37035 20.1469 9.0254 21.2674C8.83293 22.19 8.71281 23.0685 8.66364 23.8875C8.46723 27.1596 9.3937 28.6326 10.1887 29.0916C10.8887 29.4956 12.3202 29.5949 14.5194 28.3806C15.2061 29.0472 15.9041 29.655 16.606 30.1986C13.7161 32.0213 10.925 32.5523 8.87407 31.3684C5.67609 29.5222 5.18985 24.0333 7.24083 17.8085Z"/>' +
+            '<path d="M10.127 0.140114C11.9565 -0.286359 14.2189 0.296172 16.6062 1.80147C15.9036 2.3455 15.205 2.95266 14.5177 3.61999C12.7714 2.66143 11.4725 2.51824 10.7028 2.70552C10.013 2.87339 9.21138 3.45205 8.82708 5.28302C8.4279 7.18491 8.63879 9.94582 9.68001 13.1824C10.7092 16.3818 12.4277 19.6601 14.5637 22.4743C16.7123 25.3052 19.0615 27.3755 21.165 28.4792C23.3149 29.6073 24.6289 29.4584 25.2618 29.1171C25.8702 28.7889 26.6739 27.8317 26.8322 25.4993C26.9613 23.5983 26.6091 21.1976 25.7345 18.5673H16.4992C15.9728 17.7092 15.511 16.8294 15.0695 15.9343H27.5589L27.6285 16.089C29.0011 19.5522 29.6429 22.9174 29.4556 25.6773C29.2667 28.4591 28.246 30.4718 26.5501 31.4091L26.51 31.431C24.8035 32.3512 22.5178 32.1426 20.0026 30.8382L19.9432 30.8072C17.4442 29.4959 14.8595 27.1785 12.5776 24.2057L12.4692 24.0636C10.161 21.0226 8.30074 17.4807 7.17696 13.9875C6.05318 10.4942 5.72869 7.24475 6.25377 4.74307C6.77885 2.24139 8.12417 0.627249 10.0811 0.151057L10.127 0.140114Z"/>' +
+            '<path d="M12.8244 7.47298C17.452 1.5929 23.1176 -1.39147 26.6222 0.631674C28.6732 1.81567 29.6088 4.49799 29.475 7.91181C28.6533 7.57578 27.7778 7.27529 26.857 7.01396C26.8092 4.50251 26.0075 3.31254 25.3076 2.90847C24.5125 2.44951 22.7734 2.38375 20.0376 4.18986C18.9067 4.93642 17.7322 5.9315 16.5771 7.14615C16.9642 7.13354 17.3547 7.12709 17.7481 7.12709C27.5502 7.12709 35.4963 11.0996 35.4963 16C35.4963 18.368 33.6408 20.5192 30.6171 22.1104C30.4973 21.2308 30.3197 20.3225 30.0857 19.3945C32.2371 18.0973 32.8669 16.8081 32.8669 16C32.8669 15.0821 32.0543 13.5433 29.1221 12.0774C26.3471 10.6901 22.3295 9.7561 17.7481 9.7561C16.4809 9.7561 15.2567 9.82758 14.0901 9.96033C14.0277 9.96743 13.9655 9.97467 13.9034 9.98212C12.7631 10.119 11.679 10.3145 10.6649 10.559C11.3481 9.45998 12.0725 8.42829 12.8243 7.47301L12.8244 7.47298Z"/>' +
+            '<path d="M4.87916 9.8896C4.99898 10.7692 5.17653 11.6775 5.41056 12.6055C3.25914 13.9026 2.62935 15.1919 2.62935 16C2.62935 16.8081 3.25916 18.0973 5.41052 19.3944C5.1765 20.3224 4.99898 21.2308 4.87916 22.1103C1.85547 20.5192 0 18.368 0 16C0 13.632 1.85545 11.4807 4.87916 9.8896Z"/>' +
             '</svg>';
           const data = new SVGLoader().parse(svg);
-          const group = new THREE.Group();
-          const mat = new THREE.MeshStandardMaterial({ color: 0xf3efe9, roughness: 0.55, metalness: 0.05 });
-          markState.mat = mat;
-          data.paths.forEach((p) => {
-            SVGLoader.createShapes(p).forEach((shape) => {
-              const geo = new THREE.ExtrudeGeometry(shape, { depth: 3.2, bevelEnabled: true, bevelThickness: 0.5, bevelSize: 0.4, bevelSegments: 2 });
-              group.add(new THREE.Mesh(geo, mat));
-            });
-          });
-          // center + flip (SVG y-down)
-          const box = new THREE.Box3().setFromObject(group);
-          const center = new THREE.Vector3();
-          box.getCenter(center);
-          group.children.forEach((m) => {
-            m.geometry.translate(-center.x, -center.y, -center.z);
-          });
-          group.scale.y = -1;
-          const s = 18 / Math.max(box.max.x - box.min.x, box.max.y - box.min.y);
-          group.scale.multiplyScalar(s);
-          group.scale.y *= -1 < 0 ? 1 : 1;
-          scene.add(group);
+          const shapes = [];
+          data.paths.forEach((p) => SVGLoader.createShapes(p).forEach((s) => shapes.push(s)));
+          const extrude = { depth: 3.4, bevelEnabled: true, bevelThickness: 0.5, bevelSize: 0.42, bevelSegments: 2 };
 
-          const warmCool = new THREE.Color(0xf3efe9);
-          const warmHot = new THREE.Color(0xe9974f);
+          // cool (empty) shell + hot (orange) fill clipped by a rising world-space plane
+          const cool = new THREE.MeshStandardMaterial({ color: 0xe9e6e0, roughness: 0.62, metalness: 0.04, transparent: true, opacity: 1 });
+          const hot = new THREE.MeshStandardMaterial({ color: 0xe4894f, roughness: 0.42, metalness: 0.06, emissive: 0x7a2f0c, emissiveIntensity: 0.3, transparent: true, opacity: 1 });
+          const clip = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0); // keeps fragments where y <= constant
+          hot.clippingPlanes = [clip];
+
+          const pivot = new THREE.Group();
+          const baseGroup = new THREE.Group();
+          const fillGroup = new THREE.Group();
+          shapes.forEach((shape) => {
+            const geo = new THREE.ExtrudeGeometry(shape, extrude);
+            baseGroup.add(new THREE.Mesh(geo, cool));
+            const gm = new THREE.Mesh(geo, hot);
+            gm.position.z = 0.08; // sit the fill just in front to avoid z-fighting
+            fillGroup.add(gm);
+          });
+          pivot.add(baseGroup, fillGroup);
+
+          // center, then flip (SVG y-down) and scale via a wrapper so world-space stays clean
+          const b0 = new THREE.Box3().setFromObject(pivot);
+          const c0 = new THREE.Vector3();
+          b0.getCenter(c0);
+          pivot.position.sub(c0);
+          const sz = new THREE.Vector3();
+          b0.getSize(sz);
+          const scl = 17 / Math.max(sz.x, sz.y);
+          const wrap = new THREE.Group();
+          wrap.add(pivot);
+          wrap.scale.set(scl, -scl, scl);
+          scene.add(wrap);
+
+          function fillBounds() {
+            const bb = new THREE.Box3().setFromObject(wrap);
+            return { lo: bb.min.y, hi: bb.max.y };
+          }
+          let bounds = fillBounds();
+          const pad = 0.6; // margin so 0 => empty and 1 => completely filled despite the tilt
+
+          let targetFill = markState.ratio;
+          let curFill = markState.ratio;
+          let camTargetZ = 34;
+          let launching = false;
+          let launchElapsed = 0;
+
           markState.api = {
-            setWarmth(r) {
-              mat.color.copy(warmCool).lerp(warmHot, r);
-              warm.intensity = 0.2 + r * 1.4;
+            setFill(r) {
+              targetFill = Math.max(0, Math.min(1, r));
+            },
+            setFocus(on) {
+              camTargetZ = on ? 22 : 34;
+            },
+            blastOff(done) {
+              launching = true;
+              launchElapsed = 0;
+              markState._onLanded = done || null;
             },
           };
-          markState.api.setWarmth(markState.ratio);
 
-          let t = 0;
-          function loop() {
-            t += 0.005;
-            if (!reduce) group.rotation.y = Math.sin(t) * 0.5;
-            group.rotation.x = -0.12;
+          // time-based loop so motion looks identical at any frame rate
+          let last = performance.now();
+          let idle = 0;
+          function frame(now) {
+            now = now || performance.now();
+            let dt = (now - last) / 1000;
+            last = now;
+            if (dt > 0.05) dt = 0.05; // clamp after a tab switch
+            idle += dt;
+
+            const fillK = reduce && !launching ? 1 : 1 - Math.pow(0.02, dt);
+            curFill += (targetFill - curFill) * fillK;
+            clip.constant = bounds.lo - pad + curFill * (bounds.hi - bounds.lo + 2 * pad);
+            warm.intensity = 0.12 + curFill * 1.7;
+            const camK = 1 - Math.pow(0.02, dt);
+            camera.position.z += (camTargetZ - camera.position.z) * camK;
+
+            if (!launching) {
+              wrap.rotation.y = reduce ? 0.42 : Math.sin(idle * 0.6) * 0.5;
+              wrap.rotation.x = -0.12;
+              pivot.scale.set(1, 1, 1);
+              camera.position.x += (0 - camera.position.x) * camK;
+            } else {
+              launchElapsed += dt;
+              const HOLD = 0.2; // seconds of crouch before ignition
+              if (launchElapsed < HOLD) {
+                const k = launchElapsed / HOLD;
+                wrap.position.y = -1.6 * Math.sin(k * Math.PI * 0.5); // dip down
+                pivot.scale.set(1 + 0.07 * k, 1 - 0.1 * k, 1); // squash
+              } else {
+                const lt = launchElapsed - HOLD; // seconds since ignition
+                wrap.position.y = -1.6 + 75 * lt * lt; // y = ½·a·t² (a ≈ 150 u/s²)
+                wrap.rotation.y += 3.2 * dt;
+                wrap.rotation.z += 1.1 * dt;
+                pivot.scale.set(1, Math.min(1.9, 1 + lt * 5), 1); // vertical stretch = motion streak
+                const shake = Math.max(0, 0.18 - lt); // camera kick at ignition
+                camera.position.x = (Math.random() - 0.5) * shake * 14;
+                const o = Math.max(0, 1 - lt / 0.6);
+                cool.opacity = o;
+                hot.opacity = o;
+                if (lt > 0.9 && markState._onLanded) {
+                  const cb = markState._onLanded;
+                  markState._onLanded = null;
+                  cb();
+                }
+              }
+            }
             renderer.render(scene, camera);
-            if (!reduce) requestAnimationFrame(loop);
+            requestAnimationFrame(frame);
           }
-          loop();
-          if (reduce) renderer.render(scene, camera);
+          requestAnimationFrame(frame);
 
           window.addEventListener('resize', () => {
-            const nw = mount.clientWidth,
-              nh = mount.clientHeight;
-            camera.aspect = nw / nh;
+            w = mount.clientWidth;
+            h = mount.clientHeight;
+            camera.aspect = w / h;
             camera.updateProjectionMatrix();
-            renderer.setSize(nw, nh);
-            if (reduce) renderer.render(scene, camera);
+            renderer.setSize(w, h);
+            bounds = fillBounds();
           });
+
+          // verification hooks (harmless in the demo)
+          window.__demo = {
+            fill: (r) => markState.api.setFill(r),
+            focus: (on) => markState.api.setFocus(on),
+            blast: () => markState.api.blastOff(() => {}),
+          };
         } catch (e) {
-          // keep the static SVG fallback
+          markState.api = {
+            setFill() {},
+            setFocus() {},
+            blastOff(cb) {
+              if (cb) cb();
+            },
+          };
         }
       })();
     </script>
