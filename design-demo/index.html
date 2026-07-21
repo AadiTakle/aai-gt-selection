@@ -1115,14 +1115,11 @@
         <!-- WELCOME -->
         <section class="page active" data-page="welcome">
           <div class="welcome">
-            <h1>Let’s introduce us to your child</h1>
-            <p>
-              You’ve already started. A few short sections — about your child, your family, and how they learn — and
-              you’ll be ready for the next step.
-            </p>
-            <p>Every answer helps GT School understand who your child is. Take it at your pace; nothing is timed.</p>
-            <button class="btn btn-primary" id="beginBtn">Begin with your child →</button>
-            <div class="est">Most families finish in one sitting · pick up anytime</div>
+            <h1>GT School application</h1>
+            <p>Six short sections about your child, your family, and their schooling.</p>
+            <p>Required fields are marked with an asterisk.</p>
+            <button class="btn btn-primary" id="beginBtn">Start application →</button>
+            <div class="est">About 10–15 minutes</div>
           </div>
         </section>
 
@@ -1131,9 +1128,9 @@
           <!-- 1 STUDENT -->
           <section class="page" data-page="0">
             <div class="eyebrow" data-eyebrow>Student</div>
-            <h1 class="page-title">Tell us about your child</h1>
+            <h1 class="page-title">About your child</h1>
             <p class="intro">
-              The basics, in your child’s own terms.
+              Your child’s name, date of birth, and grade level.
               <span class="why">Kept private · never used to judge eligibility</span>
             </p>
             <div class="card">
@@ -1210,9 +1207,9 @@
           <!-- 2 EDUCATION -->
           <section class="page" data-page="1">
             <div class="eyebrow" data-eyebrow>Education</div>
-            <h1 class="page-title">Where your child learns now</h1>
+            <h1 class="page-title">Educational background</h1>
             <p class="intro">
-              Pick from the directory and we’ll fill in the address and type for you.
+              Choose your child’s current school; the address and type fill in automatically.
               <span class="why">School details never affect eligibility</span>
             </p>
             <div class="card">
@@ -1285,7 +1282,7 @@
             <div class="eyebrow" data-eyebrow>Support</div>
             <h1 class="page-title">Support &amp; disclosures</h1>
             <p class="intro">
-              This helps us support your child well from day one.
+              Any accommodations, learning plans, or disclosures.
               <span class="why">Private · hidden from eligibility reviewers · never affects routing</span>
             </p>
             <div class="card">
@@ -1347,8 +1344,8 @@
             <div class="eyebrow" data-eyebrow>Family</div>
             <h1 class="page-title">Family &amp; language</h1>
             <p class="intro">
-              Your household and the languages your child lives with.
-              <span class="why">Home language helps us serve you — it’s never scored</span>
+              Your household and home languages.
+              <span class="why">Home language is never scored</span>
             </p>
             <div class="card">
               <p class="card-title">Guardian &amp; household</p>
@@ -1397,7 +1394,7 @@
             </div>
             <div class="card">
               <p class="card-title">Home language survey</p>
-              <p class="card-note">These help us serve multilingual families — they’re never scored.</p>
+              <p class="card-note">Used to support multilingual families. Never scored.</p>
               <div class="grid">
                 <div class="field">
                   <label>Language most often spoken at home <span class="req">*</span></label>
@@ -1451,7 +1448,7 @@
             <div class="eyebrow" data-eyebrow>Financial</div>
             <h1 class="page-title">Financial intake</h1>
             <p class="intro">
-              Purpose-separated and private.
+              Optional financial-aid information.
               <span class="why">Income can never affect eligibility · no documents requested now</span>
             </p>
             <div class="card">
@@ -1491,9 +1488,9 @@
           <!-- 6 REVIEW & SIGN -->
           <section class="page" data-page="5">
             <div class="eyebrow" data-eyebrow>Review</div>
-            <h1 class="page-title">Last one — then you’re done</h1>
+            <h1 class="page-title">Review &amp; sign</h1>
             <p class="intro">
-              Take a last look, then acknowledge and sign to submit.
+              Review your answers, then sign to submit.
               <span class="why">You can still edit any section from here</span>
             </p>
             <details class="review-group" open>
@@ -1584,8 +1581,7 @@
                   <div class="eyebrow">Your status</div>
                   <h1>Application received</h1>
                   <p class="dash-sub">
-                    This is not an eligibility or admission decision. Your status page lists required next steps,
-                    deadlines, available accommodations, and assistance routes.
+                    This is not an eligibility or admission decision. Next steps and deadlines are on your status page.
                   </p>
                 </div>
               </div>
@@ -1610,7 +1606,7 @@
                 <div class="n">CogAT</div>
                 <div>
                   <h3>Next: CogAT assessment</h3>
-                  <p>We’ll open the secure testing portal from your status page and bring you back when results are in.</p>
+                  <p>Opens from your status page when it’s time.</p>
                 </div>
               </div>
             </div>
@@ -1621,7 +1617,7 @@
         <div class="actions" id="actions" hidden>
           <button class="btn btn-ghost" id="backBtn">← Back</button>
           <span class="spacer"></span>
-          <span class="assurance" id="assurance">Your answers stay with you as you go.</span>
+          <span class="assurance" id="assurance">Fields marked * are required.</span>
           <button class="btn btn-primary" id="nextBtn">Continue →</button>
         </div>
       </main>
@@ -1640,7 +1636,7 @@
         </div>
         <div class="stage-copy">
           <div class="head" id="stageHead">Welcome</div>
-          <div class="sub" id="stageSub">The mark fills as your child’s story comes together.</div>
+          <div class="sub" id="stageSub"></div>
         </div>
       </aside>
     </div>
@@ -1684,15 +1680,6 @@
         { name: 'Financial', short: 'Financial' },
         { name: 'Review & sign', short: 'Review' },
       ];
-      const stageLines = [
-        ['Your child', 'A few details about who they are.'],
-        ['Education', 'Where they learn today.'],
-        ['Support', 'How we can support them well.'],
-        ['Family & language', 'Your household and languages.'],
-        ['Financial', 'Private and separate from eligibility.'],
-        ['Almost there', 'One last look, then sign.'],
-      ];
-
       const STORE = 'gt_demo_v2';
       const state = { view: 'welcome', index: 0, done: new Set(), data: {}, toggles: { support: 'no', disclose: 'no', relatives: 'no' } };
 
@@ -1784,7 +1771,7 @@
         Object.values(pages).forEach((p) => p.classList.remove('active'));
         pages.welcome.classList.add('active');
         actions.hidden = true;
-        setStage('Welcome', 'The mark fills as your child’s story comes together.');
+        setStage('Welcome');
         renderRail();
         updateMark();
       }
@@ -1796,7 +1783,7 @@
         const last = i === SECTIONS.length - 1;
         Object.values(pages).forEach((p) => p.classList.remove('active'));
         nextBtn.textContent = last ? 'Submit application' : 'Continue →';
-        assurance.textContent = last ? 'Review anything above before you sign.' : 'Your answers stay with you as you go.';
+        assurance.textContent = last ? 'Review your answers, then sign.' : 'Fields marked * are required.';
         if (last) {
           buildReview();
           enterSpace(); // full-screen space + review modal
@@ -1807,7 +1794,7 @@
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }
         actions.hidden = false;
-        setStage(stageLines[i][0], stageLines[i][1]);
+        setStage(SECTIONS[i].name);
         renderRail();
         updateMark();
       }
@@ -2022,7 +2009,7 @@
       }
       function setStage(head, sub) {
         document.getElementById('stageHead').textContent = head;
-        document.getElementById('stageSub').textContent = sub;
+        document.getElementById('stageSub').textContent = sub || '';
       }
 
       // ---------------- init ----------------
