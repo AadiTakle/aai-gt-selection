@@ -1,8 +1,9 @@
 import { z } from 'zod';
 
 import { apiSuccessSchema } from './api-envelope';
-import { applicationDraftSchema, assessmentInputSchema } from './application';
+import { assessmentInputSchema } from './application';
 import { apiErrorSchema } from './errors';
+import { applicationDraftSchema } from './onboarding';
 import { fixtureProvenanceSchema } from './review';
 import { statusProjectionSchema } from './workflow';
 

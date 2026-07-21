@@ -35,8 +35,14 @@ function localSupabaseEnvironments() {
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: status.PUBLISHABLE_KEY,
     NEXT_PUBLIC_SUPABASE_URL: status.API_URL,
   };
+  const integrationEnvironment = {
+    ...publicEnvironment,
+    GT_LOCAL_SYNTHETIC_ADAPTER_ENABLED: 'true',
+    GT_LOCAL_SYNTHETIC_PROJECT_ID: 'gt-selection-capstone',
+  };
 
   return {
+    integrationEnvironment,
     publicEnvironment,
     setupEnvironment: {
       ...publicEnvironment,
@@ -60,8 +66,10 @@ try {
   run('pnpm', ['db:test']);
   run('pnpm', ['db:types:check']);
 
-  const { publicEnvironment, setupEnvironment } = localSupabaseEnvironments();
+  const { integrationEnvironment, publicEnvironment, setupEnvironment } =
+    localSupabaseEnvironments();
   run('pnpm', ['db:users'], setupEnvironment);
+  run('pnpm', ['--filter', '@gt-selection/web', 'test:integration'], integrationEnvironment);
   run('pnpm', ['build'], publicEnvironment);
   run('pnpm', ['security:scan'], publicEnvironment);
   run('pnpm', ['--filter', '@gt-selection/web', 'test:e2e'], publicEnvironment);

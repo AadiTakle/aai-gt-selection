@@ -14,7 +14,8 @@ Frontend code should consume only:
   reason codes, API errors, and TypeScript types;
 - `@gt-selection/db-types` for generated exposed-`api` schema types;
 - `@gt-selection/test-fixtures` for visibly fictional UI states and stories;
-- the three read RPCs and seven write RPCs named in `docs/ARCHITECTURE_PLAN.md`.
+- the eight implemented Milestone A family RPCs plus the later admissions RPC
+  catalog named in `docs/ARCHITECTURE_PLAN.md`.
 
 Frontend code must not import private SQL/migration code or infer workflow state from tables.
 
@@ -83,8 +84,9 @@ TypeScript type. The family application branch can:
 - reject unknown or private fields before they cross the frontend/backend boundary; and
 - test autosave UI state without waiting for the database RPC implementation.
 
-The contract deliberately contains no household-income, finance, allocation, or live applicant
-fields.
+This historical foundation contract contains no household-income, finance,
+allocation, or live applicant fields. D-013 now requires a separate synthetic
+financial-intake contract; it does not add allocation, W-2, or live-data fields.
 
 ## Cycle 2 frontend handoff
 
@@ -204,3 +206,48 @@ successful replay.
 
 No replay fixture uses network access. Integrity failures and execution mismatches remain separate
 so the UI does not collapse tampering/corruption into nondeterministic execution.
+
+## 2026-07-20 Milestone A onboarding backend handoff
+
+The final D-013 contract now separates:
+
+- reusable `studentProfileContentSchema` identity/household/language content;
+- cycle `applicationDraftSchema` core and immutable school snapshot;
+- private `supportDisclosureSchema` and `financialIntakeSchema` sections; and
+- the exact versioned acknowledgement/signature statement.
+
+The schemas reject essays, enrollment date, prior-school history, W-2/document
+metadata, actor IDs, and role claims. Synthetic placeholder vocabularies remain
+explicit because E-063–E-065 are unresolved.
+
+`@gt-selection/test-fixtures` now provides two profiles, an active fictional
+school list, full and partial drafts, an `other` school route, save/reload/review
+responses, and a submitted `awaiting_assessment` response. Use these objects
+instead of rebuilding payloads in components.
+
+Frontend code can import these server actions from
+`apps/web/src/lib/onboarding/actions.ts`:
+
+- `saveStudentProfileAction`, `getStudentProfileAction`,
+  `listStudentProfilesAction`;
+- `listActiveSchoolsAction`;
+- `saveApplicationDraftAction`, `getApplicationAction`,
+  `submitApplicationAction`, and `getApplicationStatusAction`.
+
+The actions validate both directions through `@gt-selection/contracts`. B11B
+uses the current local Auth cookie only on the server, accepts no actor/role
+input, requires an admin-controlled synthetic family claim, binds the verified
+local principal transactionally in PostgreSQL, and fails outside the designated
+loopback synthetic project. No elevated key or database credential is present
+in browser code. Merge-blocking integration now imports `actions.ts` directly,
+signs in through local Auth, lets the production server client restore the
+session from Next-compatible request cookies, and executes all eight actions.
+Next instrumentation rejects partial, remote, or production B11B configuration
+at bootstrap; disabled ordinary builds remain unaffected.
+
+The frontend may now build and locally connect F2–F5/F6 against these actions.
+The form UI itself is still absent. B11A later replaces only the local
+Supabase/PostgREST binding with Cognito, RDS Proxy, and Aurora; the action and
+Zod contracts remain transport-neutral. This handoff does not authorize live
+child data, real school values, aid decisions, proof documents, or a legal
+compliance claim.

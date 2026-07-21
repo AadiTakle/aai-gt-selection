@@ -13,12 +13,23 @@ const codeSchema = z
   .min(1)
   .max(100)
   .regex(/^[A-Z0-9_-]+$/);
-const phoneSchema = z.string().trim().min(7).max(32);
+const syntheticNameSchema = shortTextSchema.regex(/^Synthetic(?:\s|$)/);
+const syntheticSchoolTypeSchema = shortTextSchema.regex(/^synthetic-[a-z0-9-]+$/);
+const syntheticStudentIdentifierSchema = codeSchema.regex(/^STUDENT-SYN-[A-Z0-9_-]+$/);
+const syntheticEmailSchema = z
+  .string()
+  .trim()
+  .max(254)
+  .regex(/^[a-z][a-z0-9_-]{0,63}@example\.test$/);
+const syntheticPhoneSchema = z
+  .string()
+  .trim()
+  .regex(/^\+1[2-9]\d{2}55501\d{2}$/);
 
 export const priorSchoolSchema = z
   .object({
-    schoolName: shortTextSchema.optional(),
-    schoolType: shortTextSchema,
+    schoolName: syntheticNameSchema.optional(),
+    schoolType: syntheticSchoolTypeSchema,
     enrollmentStartDate: z.iso.date().optional(),
     enrollmentEndDate: z.iso.date().nullable().optional(),
   })
@@ -26,7 +37,7 @@ export const priorSchoolSchema = z
 
 export const applicationStudentSchema = z
   .object({
-    syntheticStudentIdentifier: codeSchema,
+    syntheticStudentIdentifier: syntheticStudentIdentifierSchema,
     // Age is intentionally used instead of date of birth to minimize child data.
     ageYears: z.int().positive(),
     currentGrade: shortTextSchema,
@@ -38,8 +49,8 @@ export const applicationStudentSchema = z
 
 export const applicationEducationSchema = z
   .object({
-    currentSchoolName: shortTextSchema.optional(),
-    currentSchoolType: shortTextSchema,
+    currentSchoolName: syntheticNameSchema.optional(),
+    currentSchoolType: syntheticSchoolTypeSchema,
     enrollmentStartDate: z.iso.date().optional(),
     enrollmentEndDate: z.iso.date().nullable().optional(),
     priorSchools: z.array(priorSchoolSchema).max(10),
@@ -49,11 +60,11 @@ export const applicationEducationSchema = z
 
 export const applicationGuardianSchema = z
   .object({
-    fullName: shortTextSchema,
+    fullName: syntheticNameSchema,
     relationshipToChild: shortTextSchema,
     hasRelativeInGtProgram: z.boolean(),
-    email: z.string().trim().email().max(254).nullable(),
-    phone: phoneSchema.nullable(),
+    email: syntheticEmailSchema.nullable(),
+    phone: syntheticPhoneSchema.nullable(),
   })
   .partial()
   .strict();
@@ -62,7 +73,7 @@ export const applicationFinalSubmissionSchema = z
   .object({
     completedStepCodes: z.array(codeSchema).max(20),
     accuracyAcknowledged: z.boolean(),
-    signatureName: shortTextSchema,
+    signatureName: syntheticNameSchema,
     signedAt: z.iso.datetime({ offset: true }),
   })
   .partial()
@@ -123,7 +134,7 @@ export const getApplicationStatusResponseSchema = apiSuccessSchema(statusProject
 export const submitApplicationRequestSchema = z
   .object({
     applicationVersionId: z.uuid(),
-    expectedVersion: z.int().nonnegative(),
+    expectedVersion: z.int().positive(),
     idempotencyKey: z.uuid(),
     correlationId: z.uuid(),
   })

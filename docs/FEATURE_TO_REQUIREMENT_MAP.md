@@ -101,9 +101,11 @@ Canonical sources: `PROJECT_CHARTER.md`, `docs/project-requirements.md`,
 |---|---|---|---|---|---|
 | F1.1 | Service and domain pathway registry | R1, R5, R8, R10, H1, H4, H7 | MVP-bounded | Specified/researched | Build registry tables/config UI; B-02 and B-04 block live domains and anchors. |
 | F1.2 | Unsupported-domain and unavailable-service outcome | R5, R8, R10, H4 | MVP-bounded | Specified/researched | Add one synthetic unsupported domain and applicant-safe outcome. |
-| F2.1 | Universal base application | R1, R8, R9, H2, H4, H10 | MVP | Contract/fixture ready | Implement database persistence and the functional family form. |
-| F2.2 | Accessible, multilingual, low-bandwidth, phone, and paper routes | R9, H4, H7, H10 | MVP-bounded | Specified/researched | Implement request/fulfillment workflow; B-06 and WCAG validation remain. |
-| F2.3 | Applicant status, deadlines, and next steps | R9, R10, H9 | MVP | Contract/fixture ready | Implement `get_application_status` and the family status UI. |
+| F2.1 | Reusable student/household profile plus cycle application | R1, R7–R10, H2, H4, H7, H9, H10 | MVP | Backend implemented & verified | Build the family UI; B11A AWS/live binding remains Milestone B. |
+| F2.2 | Accessible, multilingual, low-bandwidth, phone, and paper routes | R9, H4, H7, H10 | MVP | Intake backend implemented; UI/fulfillment pending | Support and language context round-trips privately; build accessible UI and operational fulfillment after B-06/WCAG decisions. |
+| F2.3 | Applicant status, deadlines, and next steps | R9, R10, H9 | MVP | Backend and B11B implemented; UI pending | Full owner-only reload plus minimized status are callable through server actions; build the family status UI. |
+| F2.4 | Versioned school directory and signed school snapshot | R7–R10, H2, H10 | MVP | Synthetic implementation verified; source blocked | Fictional active-list and immutable snapshot work; E-063 still blocks an authoritative GT directory. |
+| F2.5 | Purpose-separated financial-aid intake | R7–R10, H2, H7, H9 | MVP (synthetic) | Synthetic implementation verified; policy blocked | Private income/count round-trip and noninterference are tested; B-08 blocks definitions, aid decisions, viewers, and proof. |
 | F3.1 | Structured parent observable-evidence form | R5, R9, H1, H2, H9, H10 | MVP | Contract/fixture ready | Build the form and validate burden. |
 | F3.2 | Bounded narrative fallback | R5, R9, H1, H2, H10 | MVP | Contract/fixture ready | Implement family UI and database fixture allowlisting. |
 | F3.3 | Optional directly-observing adult evidence | R5, R9, H1, H2, H10 | MVP-bounded | Specified/researched | Clarify whether a separate recommender surface is needed. |
@@ -129,8 +131,8 @@ Canonical sources: `PROJECT_CHARTER.md`, `docs/project-requirements.md`,
 | F9.4 | Substantive rubric appeal | R9, H9 | Deferred | Deferred | D-010 defers it; current contract returns `FEATURE_DISABLED`. |
 | F9.5 | Retest and later-cycle re-entry | R5, R9, H4, H9 | Deferred | Deferred | Manual staff re-entry only; automation is deferred. |
 | F10.1 | Consent and research-choice separation | R4, R7, R9, R10, H2, H7, H9, H10 | MVP-bounded | Specified/researched | Implement purpose-separated storage and noninterference tests. |
-| F10.2 | Data-rights request intake | R9, H9 | MVP-bounded | Specified/researched | Build synthetic workflow; B-06/E-038 remain. |
-| F10.3 | Purpose limitation, retention, and disposition | R7, R9 | Future | Specified/researched | Full lifecycle/disposition engine is deferred from the two-week backend cut. |
+| F10.2 | Data-rights request intake | R9, H9 | MVP | Required by D-013 | Build B16/F9 synthetic access/correction/export/deletion workflow; B-06/E-038 still block legal/live claims. |
+| F10.3 | Purpose limitation, retention, and disposition | R7, R9 | MVP-bounded | Required by D-013 | Implement synthetic field-purpose and deletion/disposition tests; production schedules remain blocked by B-06. |
 | F11.1 | Admissions queues, deadlines, and SLA fail-safes | R7, R8, R9, H7, H9 | MVP-bounded | Specified/researched | Implement queue reads, deadline engine, and B-05 staffing rules. |
 | F11.2 | Configuration and policy registry | R1, R7, R8, R10, H9 | MVP | Scaffold only | Build policy tables, seed, locking constraints, and UI. |
 | F11.3 | Decision audit and replay console | R7, R10, H5, H9 | MVP | Contract/fixture ready | Implement executor, audit storage, read RPC, and console. |
@@ -144,10 +146,11 @@ Primary sources: `docs/USER_STORY_FEATURE_MAP.md`,
 
 | ID | Feature | Requirements | Scope | Current status | Remaining work / dependency |
 |---|---|---|---|---|---|
-| UI-01 | Functional Family Application Portal | R1, R5, R8, R9, H4, H7, H9, H10 | MVP | Scaffold only | Role-gated placeholder exists; forms, state views, and RPC wiring do not. |
-| UI-02 | Functional Admissions Operations Dashboard | R1, R5, R7, R8, H9 | MVP | Scaffold only | Placeholder exists; queues and actions are not wired. |
-| UI-03 | Functional Reviewer Workspace | R5, R7, H1, H2, H9 | MVP | Scaffold only | Placeholder exists; assigned-case read and review actions are not wired. |
-| UI-04 | Functional Configuration and Audit View | R7, R10, H5, H9 | MVP | Scaffold only | Placeholder exists; policy, audit, replay, and claim data are absent. |
+| UI-01 | Functional Family Portal: setup → CogAT handoff → routing → Snapshot → final result | R1, R5, R8–R10, H4, H7, H9, H10 | MVP | Backend integration ready; UI scaffold | B11B onboarding actions exist; build the six-stage page flow, in-app tasks/status, and Track A/Track B/final state views. |
+| UI-02 | Functional Admissions Operations Dashboard | R1, R5, R7–R9, H9 | MVP | Scaffold only | Build completeness/CogAT/pending/assignment queues and correction-rerun actions; no direct override or manual routing/release. |
+| UI-03 | Functional blind Reviewer Workspace | R5, R7, H1, H2, H9 | MVP | Scaffold only | Build assigned queue/deadlines, blind evidence, rubric citations, draft/locked submit, abstain, and non-vote blocker actions. |
+| UI-03S | Functional blind Review Supervisor Workspace | R5, R7, H1, H2, H9 | MVP | Scaffold only | Build slot-three queue and same blind rubric/submit controls; prohibit prior votes, override, calibration, and assignment management. |
+| UI-04 | Configuration and Audit View | R7, R10, H5, H9 | Deferred functional UI | Placeholder only | D-014 defers this persona page; retain backend audit/replay controls and future feature-library scope. |
 | UI-05 | Integration shell and persistent synthetic banner | R8, R9, R10 | MVP-bounded | Implemented & verified | Validate E-051/E-052 with the actual host; Mode A remains default. |
 
 Primary sources: `apps/web/src/app/`, `apps/web/src/components/`, and
@@ -157,22 +160,22 @@ Primary sources: `apps/web/src/app/`, `apps/web/src/components/`, and
 
 | ID | Feature | Requirements | Scope | Current status | Remaining work / dependency |
 |---|---|---|---|---|---|
-| BE-01 | Shared runtime-validated API contracts | R1, R5, R7, R9, R10, H9, H10 | MVP | Contract/fixture ready | Add three read RPC contracts. |
-| BE-02 | Canonical synthetic fixture library | R7, R8, R10, H9 | MVP | Contract/fixture ready | Expand to full fixture matrix and consume in UI tests. |
-| BE-03 | Local Supabase/PostgreSQL environment | R7, R8, R9 | MVP | Scaffold only | Only bootstrap schemas/roles exist. |
-| BE-04 | Private 12-table admissions data model | R1, R4, R5, R7, R9, R10, H2, H9 | MVP | Specified/researched | Translate `MVP_DATA_CONTRACT.md` into migrations and pgTAP tests. |
-| BE-05 | Seven hardened write RPCs | R1, R7, R9, R10, H9 | MVP | Contract/fixture ready | Public shapes are frozen; zero Postgres functions exist. |
-| BE-06 | Three minimized read RPCs | R7, R9, R10, H9 | MVP | Specified/researched | Freeze contracts/fixtures and implement functions. |
+| BE-01 | Shared runtime-validated API contracts | R1, R5, R7, R9, R10, H9, H10 | MVP | Onboarding contracts implemented & verified | Submitted responses require every D-013 section, all steps, coherent lineage, and exact safe status; profile lists have no invented cardinality cap. Assessment/review contracts remain fixture-only. |
+| BE-02 | Canonical synthetic fixture library | R7, R8, R10, H9 | MVP | Onboarding fixtures implemented & verified | Full, partial, `other`, multiple-profile, and response fixtures are ready for family UI tests. |
+| BE-03 | Local Supabase/PostgreSQL environment | R7, R8, R9 | MVP | Milestone A implemented & verified | B11B exercises trusted local Auth → transaction-local GUC → RPC; AWS Aurora/Cognito remains Milestone B. |
+| BE-04 | Private admissions/profile data model | R1, R4, R5, R7, R9, R10, H2, H9 | MVP | Onboarding model implemented; later admissions pending | Profile, directory, private context, and application snapshot storage exist; assessment through audit tables remain. |
+| BE-05 | Hardened write RPCs | R1, R7, R9, R10, H9 | MVP | Milestone A writes implemented & verified | Profile save, application save, and submit are tested; later assessment/review/correction/replay writes remain. |
+| BE-06 | Minimized read RPCs | R7, R9, R10, H9 | MVP | Milestone A reads implemented & verified | Profile read/list, school list, full application read, and status are tested; assigned-review and decision-explanation reads remain. |
 | BE-07 | Locked synthetic policy bundle and typed rule AST | R1, R5, R7, R10 | MVP | Specified/researched | Create policy tables, seed, locking constraints, and read surface. |
 | BE-08 | Pure deterministic decision engine | R1, R4, R5, R7, R10, H1, H2, H9 | MVP | Specified/researched | Implement offline engine plus unit/property tests. |
-| BE-09 | Immutable successor versioning | R7, R9, H9 | MVP | Contract/fixture ready | Enforce non-branching lineage and immutability in Postgres. |
+| BE-09 | Immutable successor versioning | R7, R9, H9 | MVP | Partially implemented | Application versions enforce append-only non-branching lineage; assessment, Snapshot, policy, and correction successors remain. |
 | BE-10 | RFC 8785 canonicalization and SHA-256 commitments | R7, R10, H9 | MVP | Specified/researched | Implement canonical vectors and HASH-01 tests. |
 | BE-11 | Truthful decision replay executor | R7, R10, H5, H9 | MVP | Contract/fixture ready | Implement retained-artifact loading, execution, comparison, and audit append. |
 | BE-12 | Append-only hash-chained audit log | R7, R9 | MVP | Specified/researched | Implement append function, concurrency test, and tamper-limit disclosure. |
-| BE-13 | Generated public database types | R7 | MVP | Implemented & verified | Regenerate after tables/RPCs; current function surface is empty. |
+| BE-13 | Generated public database types | R7 | MVP | Implemented & verified | Types include all eight Milestone A RPCs; regenerate after every exposed API migration. |
 | BE-14 | Applicant-safe status and message catalog | R10, H9 | MVP | Contract/fixture ready | Implement versioned templates and MSG-01/EX-02 mapping. |
-| BE-15 | Decision projection allowlist | R4, R5, R7, R10, H2, H10 | MVP | Specified/researched | Implement field projection and prohibited-field invariance. |
-| BE-16 | Frontend RPC adapters and server actions | R7, R9, R10 | MVP | Scaffold only | No RPC adapter/server-action workflow exists. |
+| BE-15 | Decision projection allowlist | R4, R5, R7, R10, H2, H10 | MVP | Onboarding firewall seam verified; full engine pending | Exact grade-only keys plus projection commitment are invariant to all represented identity/household/language/school/support/disclosure/finance/referral/signature mutations. The deterministic result/hash probe is test-only; no eligibility result exists yet. |
+| BE-16 | Frontend RPC adapters and server actions | R7, R9, R10 | MVP | B11B action path implemented & CI-verified | CI invokes all eight exported actions through local Auth, Next-compatible cookies, and the production server client; instrumentation validates B11B at bootstrap. B11A later swaps Cognito/Aurora binding without changing contracts. |
 
 Primary sources: `docs/ARCHITECTURE_PLAN.md`,
 `research/backend-admissions/PROVISIONAL_IMPLEMENTATION_CONTRACT.md`,
@@ -182,16 +185,16 @@ Primary sources: `docs/ARCHITECTURE_PLAN.md`,
 
 | ID | Feature | Requirements | Scope | Current status | Remaining work / dependency |
 |---|---|---|---|---|---|
-| SEC-01 | Admin-controlled role claims and seven-role authorization | R7, R9, H7, H9 | MVP | Scaffold only | Role parsing is tested; table/RPC grants and policies are not. |
-| SEC-02 | Forced RLS on every private object | R7, R9 | MVP | Specified/researched | Implement policies, grants, safe definer ownership/search path, and RLS-01. |
+| SEC-01 | Admin-controlled role claims and seven-role authorization | R7, R9, H7, H9 | MVP | Family local binding verified; remaining roles pending | B11B rejects user metadata and binds the verified local JWT subject/admin metadata to GUCs; B11A Cognito and later role surfaces remain. |
+| SEC-02 | Forced RLS on every private object | R7, R9 | MVP | Partially implemented | All onboarding tables force RLS with safe grants/definer ownership; future private objects still need policies and RLS-01 coverage. |
 | SEC-03 | Database-enforced reviewer blindness | R5, R7, R9, H2 | MVP | Specified/researched | Implement read policies and READ-01. |
 | SEC-04 | Service-role and elevated-key elimination | R7, R9 | MVP | Implemented & verified | Keep provisioning separate and add SR-01/SR-02 integration tests. |
-| SEC-05 | Born-synthetic loopback fail-closed boundary | R9, R10 | MVP | Implemented & verified | Add DB startup/data gates BD-01 and LC-01. |
-| SEC-06 | Idempotency, serializable transitions, and race safety | R7, R8, R9 | MVP | Specified/researched | Implement storage, locking, unique constraints, and concurrency suite. |
-| SEC-07 | Purpose-separated private fields and field registry | R4, R7, R9, R10, H2 | MVP-bounded | Specified/researched | Full registry and migration gate are deferred from the two-week cut. |
-| SEC-08 | Threat model and minimum security gate | R7, R9 | MVP | Specified/researched | Activate database and adversarial tests. |
-| SEC-09 | Merge-blocking CI/CD quality, database, and web-smoke gates | R7, R8, R9, R10 | MVP | Implemented & verified | Expand scaffold checks to the full critical manifest. |
-| SEC-10 | Production privacy, legal consent, retention, and incident controls | R8, R9 | Future | Blocked | B-06/E-038 block live child data and legal claims. |
+| SEC-05 | Born-synthetic loopback fail-closed boundary | R9, R10 | MVP | Local bootstrap guard implemented & verified | Next instrumentation fails when either B11B setting is partial/unsafe and leaves ordinary disabled builds unaffected; AWS account/tag startup guard remains Milestone B. |
+| SEC-06 | Idempotency, serializable transitions, and race safety | R7, R8, R9 | MVP | Onboarding concurrency verified; later workflows pending | Exact retries survive school-directory expiry; two independent authenticated sessions race save/submit with one winner and deterministic `STALE_VERSION`/`SUBMISSION_LOCKED`. Later assignment/finalization races remain. |
+| SEC-07 | Purpose-separated private fields and field registry | R4, R7, R9, R10, H2 | MVP | Onboarding separation implemented; full registry pending | Profile and private-context purposes are physical/tested; full field registry and later admissions projections remain. |
+| SEC-08 | Threat model and minimum security gate | R7, R9 | MVP | Milestone A gate verified | 204 pgTAP assertions cover grants, forced RLS, IDOR, allowlists, idempotency after directory expiry, immutable submission, snapshots, and every D-013 firewall class; the full admissions manifest remains. |
+| SEC-09 | Merge-blocking CI/CD quality, database, and web-smoke gates | R7, R8, R9, R10 | MVP | Onboarding action integration is merge-blocking | Web-smoke CI creates local users then runs the exported-action happy path and owner isolation before build/security/Playwright; later D-014 stages remain. |
+| SEC-10 | Production privacy, legal consent, retention, and incident controls | R8, R9 | Future | Blocked | B16 specifies technical preparation; B-06/E-038 still block live child data and legal-compliance claims. |
 | OPS-01 | pnpm monorepo and package ownership boundaries | R7, R8, R10 | MVP | Implemented & verified | Preserve boundaries as engine and RPC modules are added. |
 | OPS-02 | Host integration modes and brand theming | R8, R9, R10 | MVP-bounded | Specified/researched | Validate E-051/E-052 with the actual host. |
 
@@ -241,19 +244,24 @@ Handoff, `research/backend-admissions/OUTCOME_AND_FALSIFICATION_PLAN.md`,
 | B-05 | Reviewer staffing and training capacity | Production review operations and SLA | Simulated reviewer accounts |
 | B-06 | Privacy, consent, data rights, and deployment rules | Live child data or production use | Born-synthetic local-only mode |
 | B-07 | Real artifact upload/storage policy | File uploads | Fixed synthetic fixture references |
-| B-08 | Allocation, aid, MAP logistics, fee waiver, and evaluator access | Offers, aid, and program-effect evaluation | `allocation_undecided` |
+| B-08 | Allocation; financial definitions/authority, aid separation, and post-admission W-2 trigger/retention; MAP logistics; fee waiver; evaluator access | Aid decisions/proof, offers, and program-effect evaluation | Synthetic household income/count only; no documents; `allocation_undecided` |
 
 ## Current implementation snapshot
 
-As of 2026-07-19 on `feat/backend-admissions-core`:
+As of 2026-07-20 on `feat/onboarding-backend-core`:
 
 - governance, PRD, architecture, and research specifications are present;
-- all seven write-RPC public contract families are frozen;
-- 32 contract tests and 13 fixture tests pass;
-- three read-RPC contracts are still missing;
-- the private tables, RLS policies, database RPCs, decision engine, canonicalization, and replay
-  executor are not implemented;
-- the four role-scoped frontend surfaces remain placeholders;
+- the eight Milestone A family API contracts, generated types, and B11B actions are implemented;
+- 47 contract tests, 18 fixture tests, 22 web/unit tests, 204 pgTAP assertions,
+  and three live integration tests (exported actions, owner isolation, and a
+  real two-session race) pass;
+- reusable profiles, fictional school versions, private support/disclosure and
+  finance context, immutable application snapshots, owner-only reload,
+  save/submit/status, and forced-RLS isolation are implemented;
+- the remaining assessment/review/decision tables and RPCs, AWS request binding, decision engine,
+  RFC 8785 canonicalization, and replay executor are not implemented;
+- the D-014 family/admissions/reviewer/supervisor functional surfaces remain
+  unimplemented or placeholder-only;
 - the critical 25-test manifest and PRD end-to-end acceptance checks are not yet executable; and
 - causal/evaluation requirements R2, R3, R6, H3, H5, H6, and H8 remain future/deferred work.
 

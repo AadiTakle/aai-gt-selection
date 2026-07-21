@@ -169,6 +169,37 @@ Each decision must include the requirements served, alternatives considered, evi
 - **Owner:** Team lead
 - **Supersedes:** D-009
 
+### D-013 — Separate reusable account profiles from cycle applications and expand onboarding intake
+
+- **Date:** 2026-07-20
+- **Status:** Approved
+- **Decision:** Structure pre-CogAT onboarding as (1) reusable, guardian-owned student/household profiles and (2) an immutable cycle-specific application snapshot. The synthetic MVP field set includes: student name, date of birth, gender, and current grade; requested entry year/grade; a versioned current-school directory selection with name/address autofill and school type; accommodation/support-plan selections and bounded details; disciplinary-sanction and non-health withdrawal disclosures with a conditional explanation; guardian relationship, primary household address, prior-GT relatives and names, and a home-language survey; household income and number of household members for financial-aid intake; and versioned acknowledgements, referral source, and signature. Current-school enrollment date and prior-school history are removed from this setup flow. The two general application essays are not collected or persisted.
+- **Privacy/use boundary:** Identity, demographic, household, language, accommodation/support, discipline, finance, referral, and signature fields are purpose-separated private context. They are excluded from Track A/Track B eligibility inputs and hashes, hidden from eligibility reviewers, and available only to explicitly authorized operational roles. Household income and household size may support a future financial-aid process but cannot affect capability or eligibility. The setup flow does not collect W-2s or other proof documents; any future proof request occurs only after an authorized downstream admission/aid trigger and remains blocked by `B-08`.
+- **Live-use boundary:** The prototype remains born-synthetic. “COPPA compliant” or equivalent legal-compliance language is not authorized; `B-06` still requires GT privacy/legal approval of notice, parental authority, consent, access, retention, deletion, security, and operator/data-flow facts before live child data.
+- **Requirements served:** R1, R7, R8, R9, R10, H2, H4, H7, H9, H10
+- **Evidence/assumptions:** Team-lead field direction dated 2026-07-20; E-032–E-040 and E-054–E-057. School-directory authority, field requiredness/vocabularies, financial definitions, retention, and live legal applicability remain open assumptions.
+- **Alternatives considered:** Keep all setup data in one application JSON document; keep accommodation/language and financial intake deferred; collect W-2 proof during setup; treat every setup field as durable account data; or let contextual fields enter eligibility review.
+- **Rationale:** Separating reusable profile facts from cycle-specific assertions reduces repeat burden while preserving the exact application snapshot that was signed. Purpose-separated storage makes the “store it but never use it for eligibility” boundary testable and avoids turning family resources, disability context, language, or advocacy into capability evidence. Deferring proof documents avoids collecting the highest-risk financial data before there is an authorized need.
+- **Consequences:** The PRD, feature map, onboarding backlog, traceability matrix, and assumptions register must reflect the expanded synthetic field set. The current onboarding backend remains a verified create/save/submit/status foundation, not field-complete account setup. New profile/private-context storage, contracts, draft-read projection, RLS, and noninterference tests are required. B11B enables local synthetic frontend integration; B11A remains required only for AWS/live wiring.
+- **Owner:** Team lead
+- **Relationship to prior decisions:** Narrows and extends D-010/D-011/D-012 without changing their causal, allocation, or platform decisions. It supersedes only the prior PRD/D-010-derived statement that no household-income or household-size fields are persisted in the MVP; it does not authorize financial-aid decisions, admission/offer logic, W-2 collection, or live child data.
+
+### D-014 — Organize the MVP around a six-stage family journey and four functional personas
+
+- **Date:** 2026-07-20
+- **Status:** Approved
+- **Decision:** Make the PRD page-oriented around the family journey: account/application setup; external CogAT handoff; automatic initial routing; Track B artifact/narrative submission when invited; blind reviewer/supervisor workflow; and final eligibility/explanation/correction. The only functional MVP personas are family/guardian, admissions operator, reviewer, and blind review supervisor. Track A displays `eligible`, never accepted/admitted. A valid CogAT result and the final required review automatically execute the locked rule and publish the applicant-safe notice.
+- **Reviewer/supervisor boundary:** Reviewers receive assigned queues/deadlines, blind evidence, the six-dimension rubric with citations, draft/locked submit, abstention, and a non-vote blocker action. Live artifact/narrative de-identification is deferred; fixed synthetic evidence remains the MVP boundary. Supervisors act only as blind slot-three voters under the artifact-disagreement/narrative rules, with no prior-vote access, assignment management, calibration authority, discussion, or override.
+- **Admissions boundary:** Admissions checks completeness, enters/imports CogAT, resolves pending work, manages assignments/replacements, and applies factual/procedural corrections followed by a locked rerun. Admissions cannot directly override eligibility. In-app notifications are MVP; email notifications are an extension.
+- **CogAT boundary:** The MVP assumes an external portal handoff. Portal/provider, authentication, scheduling, return/status, and result-exchange details remain part of `B-01` and must follow the confirmed current GT workflow.
+- **Requirements served:** R1, R5, R7–R10, H1, H2, H4, H7, H9, H10
+- **Evidence/assumptions:** Team-lead workflow decisions dated 2026-07-20; D-008/D-010/D-013; current contract blindness, abstention, blocker, and majority invariants. B-01/B-05/B-06/B-07 remain open for live operation.
+- **Alternatives considered:** Topic-only PRD organization; embedded CogAT; manual routing/release; direct admissions override; supervisor adjudication/override; full applicant context for reviewers; functional auditor/privacy/accessibility/leader pages; MVP email notifications.
+- **Rationale:** Page and persona boundaries give frontend/backend contributors one navigable workflow, while automatic locked transitions and blind role limits preserve reproducibility, applicant rights, and reviewer independence.
+- **Consequences:** The PRD, feature map, architecture surface map, and traceability must show the six stages and four functional personas. Auditor/configuration, privacy-steward, accessibility-coordinator, and school-leader pages are deferred as functional UI, without removing their required backend/security controls or future feature-library stories.
+- **Owner:** Team lead
+- **Relationship to prior decisions:** Operationalizes D-008’s review mechanics, D-010’s claim/remedy boundaries, and D-013’s account/application lifecycle; it does not change Track A policy, allocation, causal evaluation, or production authorization.
+
 ## Entry template
 
 ### D-XXX — Decision title

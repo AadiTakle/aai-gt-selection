@@ -1,19 +1,32 @@
 import type {
   ApiError,
   ApplyCorrectionResponse,
+  ApplicationDraft,
   ApplicationVersion,
   AssessmentVersion,
+  GetApplicationResponse,
   GetApplicationStatusResponse,
+  GetStudentProfileResponse,
+  FinancialIntake,
+  ListActiveSchoolsResponse,
+  ListStudentProfilesResponse,
   SaveApplicationDraftResponse,
+  SaveStudentProfileResponse,
+  SchoolDirectoryEntry,
   SnapshotFixtureReference,
   StatusProjection,
   RecordAssessmentVersionResponse,
   ReplayDecisionResponse,
+  StudentProfileVersion,
+  StudentProfileContent,
+  SubmittedApplicationVersion,
+  SupportDisclosure,
   SubmitApplicationResponse,
   SubmitReviewActionResponse,
   SubmitReviewResponse,
   SubmitSnapshotVersionResponse,
 } from '@gt-selection/contracts';
+import { FINAL_SIGNATURE_STATEMENT } from '@gt-selection/contracts';
 
 const provenance = {
   creationMethod: 'independent_synthetic_construction',
@@ -21,58 +34,268 @@ const provenance = {
   reviewedAt: '2026-07-18T12:00:00.000Z',
 } as const;
 
-export const syntheticTrackBApplication = {
-  applicationId: '00000000-0000-4000-8000-000000000001',
-  applicationVersionId: '00000000-0000-4000-8000-000000000101',
+export const syntheticPrimaryAddress = {
+  line1: 'Synthetic 100 Example Way',
+  line2: null,
+  city: 'Synthetic City',
+  regionCode: 'SYN_REGION_TX',
+  postalCode: '00000',
+  countryCode: 'US',
+} as const;
+
+export const syntheticProfileContent: StudentProfileContent = {
+  student: {
+    syntheticStudentCode: 'STUDENT-SYN-001',
+    fullName: 'Synthetic Student One',
+    dateOfBirth: '2016-04-12',
+    genderCode: 'SYN_GENDER_UNSPECIFIED',
+    genderVocabularyVersion: 'GENDER-SYN-V1',
+  },
+  household: {
+    guardianRelationshipCode: 'SYN_RELATIONSHIP_PARENT',
+    primaryAddress: syntheticPrimaryAddress,
+    hasPriorGtRelative: true,
+    priorGtRelativeNames: ['Synthetic Relative One'],
+    languageSurvey: {
+      homeLanguageCode: 'SYN_LANGUAGE_ENGLISH',
+      firstLanguageCode: 'SYN_LANGUAGE_ENGLISH',
+      primaryLanguageCode: 'SYN_LANGUAGE_ENGLISH',
+      hasAdditionalLanguages: true,
+      additionalLanguageCodes: ['SYN_LANGUAGE_SPANISH'],
+      vocabularyVersion: 'LANGUAGE-SYN-V1',
+    },
+  },
+  purpose: {
+    code: 'SYN_PROFILE_ACCOUNT_SETUP',
+    version: 'PROFILE-PURPOSE-SYN-V1',
+  },
+  syntheticOnly: true,
+};
+
+export const syntheticStudentProfile = {
+  ...syntheticProfileContent,
+  profileId: '00000000-0000-4000-8000-000000000401',
+  profileVersionId: '00000000-0000-4000-8000-000000000411',
   version: 1,
   supersedesId: null,
-  state: 'submitted',
-  syntheticOnly: true,
+  contentHash: `sha256:${'a'.repeat(64)}`,
+} satisfies StudentProfileVersion;
+
+export const syntheticSecondStudentProfile = {
+  ...syntheticProfileContent,
+  profileId: '00000000-0000-4000-8000-000000000402',
+  profileVersionId: '00000000-0000-4000-8000-000000000412',
+  version: 1,
+  supersedesId: null,
   student: {
-    syntheticStudentIdentifier: 'STUDENT-SYN-001',
-    ageYears: 10,
-    currentGrade: '5',
-    requestedGrade: '6',
+    ...syntheticProfileContent.student,
+    syntheticStudentCode: 'STUDENT-SYN-002',
+    fullName: 'Synthetic Student Two',
+    dateOfBirth: '2017-08-21',
+  },
+  household: {
+    ...syntheticProfileContent.household,
+    hasPriorGtRelative: false,
+    priorGtRelativeNames: [],
+    languageSurvey: {
+      ...syntheticProfileContent.household.languageSurvey,
+      hasAdditionalLanguages: false,
+      additionalLanguageCodes: [],
+    },
+  },
+  contentHash: `sha256:${'b'.repeat(64)}`,
+} satisfies StudentProfileVersion;
+
+export const savedStudentProfileResponseFixture = {
+  apiVersion: 'v1',
+  syntheticOnly: true,
+  data: {
+    profile: syntheticStudentProfile,
+  },
+  meta: {
+    correlationId: '00000000-0000-4000-8000-000000000321',
+    idempotencyKey: '00000000-0000-4000-8000-000000000322',
+    idempotentReplay: false,
+  },
+} satisfies SaveStudentProfileResponse;
+
+export const syntheticStudentProfileResponseFixture = {
+  ...savedStudentProfileResponseFixture,
+  meta: {
+    correlationId: '00000000-0000-4000-8000-000000000323',
+    idempotencyKey: null,
+    idempotentReplay: false,
+  },
+} satisfies GetStudentProfileResponse;
+
+export const studentProfilesResponseFixture = {
+  apiVersion: 'v1',
+  syntheticOnly: true,
+  data: {
+    profiles: [syntheticStudentProfile, syntheticSecondStudentProfile].map(
+      ({ profileId, profileVersionId, version, student }) => ({
+        profileId,
+        profileVersionId,
+        version,
+        syntheticStudentCode: student.syntheticStudentCode,
+        fullName: student.fullName,
+        syntheticOnly: true as const,
+      }),
+    ),
+  },
+  meta: {
+    correlationId: '00000000-0000-4000-8000-000000000324',
+    idempotencyKey: null,
+    idempotentReplay: false,
+  },
+} satisfies ListStudentProfilesResponse;
+
+export const syntheticSchoolSnapshot = {
+  name: 'Synthetic Learning Academy',
+  typeCode: 'SYN_SCHOOL_INDEPENDENT',
+  address: syntheticPrimaryAddress,
+  syntheticOnly: true,
+} as const;
+
+const syntheticSecondSchoolSnapshot = {
+  name: 'Synthetic Community School',
+  typeCode: 'SYN_SCHOOL_PUBLIC',
+  address: {
+    ...syntheticPrimaryAddress,
+    line1: 'Synthetic 200 Fixture Avenue',
+  },
+  syntheticOnly: true,
+} as const;
+
+export const syntheticSchoolDirectoryEntries = [
+  {
+    ...syntheticSchoolSnapshot,
+    schoolId: '00000000-0000-4000-8000-000000000501',
+    schoolVersionId: '00000000-0000-4000-8000-000000000511',
+    version: 1,
+    directoryVersion: 'SCHOOL-DIRECTORY-SYN-V1',
+  },
+  {
+    ...syntheticSecondSchoolSnapshot,
+    schoolId: '00000000-0000-4000-8000-000000000502',
+    schoolVersionId: '00000000-0000-4000-8000-000000000512',
+    version: 1,
+    directoryVersion: 'SCHOOL-DIRECTORY-SYN-V1',
+  },
+] as const satisfies readonly SchoolDirectoryEntry[];
+
+export const activeSyntheticSchoolsResponseFixture = {
+  apiVersion: 'v1',
+  syntheticOnly: true,
+  data: {
+    schools: [...syntheticSchoolDirectoryEntries],
+  },
+  meta: {
+    correlationId: '00000000-0000-4000-8000-000000000325',
+    idempotencyKey: null,
+    idempotentReplay: false,
+  },
+} satisfies ListActiveSchoolsResponse;
+
+const syntheticSupportDisclosure: SupportDisclosure = {
+  supportNeeded: true,
+  vocabularyVersion: 'SUPPORT-SYN-V1',
+  accommodationCodes: ['SYN_ACCOM_EXTENDED_TIME'],
+  supportPlanCodes: ['SYN_PLAN_504'],
+  otherSelected: false,
+  details: 'Synthetic support details for local integration testing.',
+  seriousDisciplineSanction: true,
+  nonHealthWithdrawal: false,
+  disclosureExplanation: 'Synthetic disciplinary explanation for fixture coverage.',
+  purposeCode: 'SYN_SUPPORT_OPERATIONS_ONLY',
+  syntheticOnly: true,
+};
+
+const syntheticFinancialIntake: FinancialIntake = {
+  annualHouseholdIncomeMinor: 12_500_000,
+  currencyCode: 'USD',
+  taxYear: 2025,
+  incomeDefinitionCode: 'SYN_INCOME_GROSS_ANNUAL_V1',
+  householdMemberCount: 4,
+  householdMemberDefinitionCode: 'SYN_HOUSEHOLD_MEMBERS_V1',
+  semanticsVersion: 'FINANCE-SYN-V1',
+  purposeCode: 'SYN_FINANCIAL_AID_INTAKE_ONLY',
+  syntheticOnly: true,
+};
+
+export const syntheticFullApplicationDraft = {
+  application: {
+    currentGradeCode: 'SYN_GRADE_05',
     requestedEntryYear: 2027,
+    requestedGradeCode: 'SYN_GRADE_06',
   },
-  education: {
-    currentSchoolName: 'Synthetic Learning Academy',
-    currentSchoolType: 'synthetic-independent',
-    enrollmentStartDate: '2025-08-15',
-    enrollmentEndDate: null,
-    priorSchools: [],
+  school: {
+    selectionKind: 'directory',
+    schoolId: syntheticSchoolDirectoryEntries[0].schoolId,
+    schoolVersionId: syntheticSchoolDirectoryEntries[0].schoolVersionId,
+    snapshot: syntheticSchoolSnapshot,
   },
-  guardian: {
-    fullName: 'Synthetic Guardian',
-    relationshipToChild: 'parent',
-    hasRelativeInGtProgram: false,
-    email: 'guardian@example.test',
-    phone: null,
-  },
+  supportDisclosure: syntheticSupportDisclosure,
+  financialIntake: syntheticFinancialIntake,
   finalSubmission: {
-    completedStepCodes: ['STUDENT', 'EDUCATION', 'GUARDIAN'],
+    completedStepCodes: [
+      'STUDENT_PROFILE',
+      'EDUCATIONAL_BACKGROUND',
+      'SUPPORT_DISCLOSURE',
+      'HOUSEHOLD_LANGUAGE',
+      'FINANCIAL_INTAKE',
+      'REVIEW_SIGNATURE',
+    ],
+    acknowledgementVersion: 'ACKNOWLEDGEMENT-SYN-V1',
+    acknowledgementStatement: FINAL_SIGNATURE_STATEMENT,
     accuracyAcknowledged: true,
-    signatureName: 'Synthetic Guardian',
-    signedAt: '2026-07-20T06:00:00.000Z',
+    acknowledgedAt: '2026-07-20T16:00:00.000Z',
+    referralSourceCode: 'SYN_REFERRAL_WEB_SEARCH',
+    signatureStatementVersion: 'SIGNATURE-SYN-V1',
+    signatureStatement: FINAL_SIGNATURE_STATEMENT,
+    signatureName: 'Synthetic Guardian One',
+    signedAt: '2026-07-20T16:01:00.000Z',
   },
-  referralSourceCode: 'SYNTHETIC_WEB_SEARCH',
-  contentHash: `sha256:${'1'.repeat(64)}`,
-} satisfies ApplicationVersion;
+  syntheticOnly: true,
+} satisfies ApplicationDraft;
+
+export const syntheticPartialApplicationDraft: ApplicationDraft = {
+  application: syntheticFullApplicationDraft.application,
+  syntheticOnly: true,
+};
+
+export const syntheticOtherSchoolApplicationDraft: ApplicationDraft = {
+  ...syntheticFullApplicationDraft,
+  school: {
+    selectionKind: 'other',
+    snapshot: {
+      ...syntheticSchoolSnapshot,
+      name: 'Synthetic Other School',
+      typeCode: 'SYN_SCHOOL_OTHER',
+    },
+  },
+};
 
 export const syntheticApplicationDraft = {
-  applicationId: syntheticTrackBApplication.applicationId,
-  applicationVersionId: '00000000-0000-4000-8000-000000000102',
+  ...syntheticFullApplicationDraft,
+  applicationId: '00000000-0000-4000-8000-000000000001',
+  applicationVersionId: '00000000-0000-4000-8000-000000000100',
+  studentProfileVersionId: syntheticStudentProfile.profileVersionId,
+  privateContextVersionId: '00000000-0000-4000-8000-000000000421',
   version: 1,
   supersedesId: null,
   state: 'draft',
-  syntheticOnly: true,
-  student: {
-    syntheticStudentIdentifier: 'STUDENT-SYN-001',
-    ageYears: 10,
-    currentGrade: '5',
-  },
   contentHash: `sha256:${'0'.repeat(64)}`,
+  privateContextContentHash: `sha256:${'1'.repeat(64)}`,
 } satisfies ApplicationVersion;
+
+export const syntheticTrackBApplication = {
+  ...syntheticApplicationDraft,
+  applicationVersionId: '00000000-0000-4000-8000-000000000101',
+  version: 2,
+  supersedesId: syntheticApplicationDraft.applicationVersionId,
+  state: 'submitted',
+} satisfies SubmittedApplicationVersion;
 
 export const savedApplicationDraftResponseFixture = {
   apiVersion: 'v1',
@@ -86,6 +309,20 @@ export const savedApplicationDraftResponseFixture = {
     idempotentReplay: false,
   },
 } satisfies SaveApplicationDraftResponse;
+
+export const applicationReviewResponseFixture = {
+  apiVersion: 'v1',
+  syntheticOnly: true,
+  data: {
+    profile: syntheticStudentProfile,
+    application: syntheticApplicationDraft,
+  },
+  meta: {
+    correlationId: '00000000-0000-4000-8000-000000000326',
+    idempotencyKey: null,
+    idempotentReplay: false,
+  },
+} satisfies GetApplicationResponse;
 
 export const applicationDraftStatusResponseFixture = {
   apiVersion: 'v1',

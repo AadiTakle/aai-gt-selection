@@ -12,6 +12,9 @@ export async function createSupabaseServerClient() {
     environment.NEXT_PUBLIC_SUPABASE_URL,
     environment.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
     {
+      db: {
+        schema: 'api',
+      },
       cookies: {
         getAll() {
           return cookieStore.getAll();

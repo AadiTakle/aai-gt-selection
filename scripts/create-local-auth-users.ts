@@ -39,6 +39,7 @@ const supabase = createClient(apiUrl, secretKey, {
 
 const syntheticUsers = [
   ['family@example.test', 'family'],
+  ['family-two@example.test', 'family'],
   ['admissions@example.test', 'admissions_operator'],
   ['reviewer@example.test', 'reviewer'],
   ['supervisor@example.test', 'review_supervisor'],
