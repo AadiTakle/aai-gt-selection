@@ -49,6 +49,7 @@ Decision records, scope control, and review standards.
 Stakeholder interview material.
 
 - [GT_STAKEHOLDER_INTERVIEW_GUIDE.md](interviews/GT_STAKEHOLDER_INTERVIEW_GUIDE.md) — GT stakeholder interview guide
+- [CRYSTAL_MARTEL_INTERVIEW_QUESTIONS.md](interviews/CRYSTAL_MARTEL_INTERVIEW_QUESTIONS.md) — Interview questions for Crystal Martel (Director of Admissions), from PRD blockers
 
 ## Other
 
