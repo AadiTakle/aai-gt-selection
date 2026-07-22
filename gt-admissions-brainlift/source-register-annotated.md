@@ -2,7 +2,7 @@
 
 ## Provenance and source-completeness
 
-This ledger is a complete merger of the original `gifted-assessment-quality-brainlift/source-register-annotated.md` and `gt-school-counterfactual-brainlift/source-register-annotated.md`, preserving every original source entry, including weak, vendor, opinion, contested, and verification-gap entries. Sources appearing in both registers remain in both provenance branches rather than being silently deduplicated; this makes both original uses auditable. The only additive material is explicitly marked as sourced from the unvetted `origin/dev:docs/EVIDENCE_DOSSIER.md`, whose labels are preserved and never upgraded.
+This ledger is a complete merger of the original `gifted-assessment-quality-brainlift/source-register-annotated.md` and `gt-school-counterfactual-brainlift/source-register-annotated.md`, preserving every original source entry, including weak, vendor, opinion, contested, and verification-gap entries. Sources appearing in both registers remain in both provenance branches rather than being silently deduplicated; this makes both original uses auditable. Additive material is explicitly marked: first the unvetted `origin/dev:docs/EVIDENCE_DOSSIER.md`, then the 2026-07-22 integration from `gifted-assessment-quality-brainlift/test-effectiveness-metrics-research.md`, `docs/IN_HOUSE_COGNITIVE_TEST_RESEARCH.md`, and `docs/COGNITIVE_TEST_DESIGN_GUIDE.md`. Original verification, inference, vendor, and COI labels are preserved and never upgraded merely because a source was integrated.
 
 **Completeness confirmation:** all entries from both original registers are represented verbatim below, including Tier A/B/C classifications, author stakes/COIs, URLs/DOIs, corrections, and verification flags. This document does not convert dossier claims into verified facts.
 
@@ -11,6 +11,42 @@ This ledger is a complete merger of the original `gifted-assessment-quality-brai
 - **Tier A** = load-bearing; **Tier B** = supporting with stated caveat; **Tier C** = context, claim-under-test, vendor, opinion, or unverified material.
 - Dossier labels retain their original meaning: `[VERIFIED]`, `[PRESS]`, `[ESTIMATE]`, `[INFERENCE]`, `[UNVERIFIED]`, and `[COMPANY CLAIM]`.
 - Corrections that govern both branches: Lohman & Korb says approximately half fall out of top-3% status in one year and 35–40% remain from grade 3 to 8; N=320/44% doctorate is Kell/Lubinski/Benbow **2013**; Assouline DOI is `10.1177/0734282911433946`; Thompson & Weiss (2011) is *A Framework for the Development of CAT*; Wai headline is **70%**; “attention span equals age in minutes” is unverified/likely myth; no high-stakes K–8 gamified-assessment validation exists; CogAT current-form tail statistics are `[UNVERIFIED]`.
+
+---
+
+## 2026-07-22 integration addendum
+
+This addendum records the sources newly promoted into the unified Knowledge Tree. The overnight A1–A12 report contains 190 labeled findings but is not independently re-vetted as a whole; only the sources below were promoted. Proposed designs, worked examples, software/tool lists, vendor estimates, and unresolved Wave-7 topics remain in the research reports.
+
+### Tail precision, decision metrics, fairness, and comparison
+
+- **Green, Bock, Humphreys, Linn & Reckase (1984), "Technical guidelines for assessing computerized adaptive tests," *JEM* 21(4):347–360. DOI 10.1111/j.1745-3984.1984.tb01039.x.** `[VERIFIED]` Tier A/B foundational-method source. **Use:** 9.1 marginal/empirical IRT reliability; it is **not** the source for difference-score reliability.
+- **Trafimow (2015), difference-score reliability. DOI 10.1080/23311835.2015.1064626; Lord & Novick (1968).** `[VERIFIED]` / foundational. **Use:** 9.2 formula and profile/tilt-score caution.
+- **Saito & Rehmsmeier (2015), *PLOS ONE*. DOI 10.1371/journal.pone.0118432; Manning, Raghavan & Schütze (2008), *Introduction to Information Retrieval*.** `[VERIFIED]` Tier A/B. **Use:** 9.10 PR-AUC baseline and precision@k/recall@k. Application to fixed GT capacity is a reasoned mapping; GT's actual capacity remains unverified.
+- **Raju, van der Linden & Fleer (1995), *APM*. DOI 10.1177/014662169501900405; Millsap (1997), *Psychological Methods*. DOI 10.1037/1082-989X.2.3.248.** `[VERIFIED]` Tier A. **Use:** 9.11 DTF and the measurement–prediction duality.
+- **Kleinberg, Mullainathan & Raghavan (2017), ITCS. DOI 10.4230/LIPIcs.ITCS.2017.43; Chouldechova (2017), *Big Data*.** `[VERIFIED]/[SECONDARY]` Tier A/B. **Use:** 9.11 fairness-impossibility boundary; does not choose a fairness policy.
+- **Begg & Greenes (1983), *Biometrics*. DOI 10.2307/2530820; Ransohoff & Feinstein (1978), *NEJM*. DOI 10.1056/NEJM197810262991705; Rubin (1976), *Biometrika*. DOI 10.1093/biomet/63.3.581.** `[VERIFIED]` Tier A. **Use:** 9.12 verification/spectrum bias and the MAR/MNAR identification boundary.
+- **Kane (1994), *RER*. DOI 10.3102/00346543064003425; Brennan & Lockwood (1980), *APM*. DOI 10.1177/014662168000400209.** `[VERIFIED]` Tier A. **Use:** 9.13 standard-setting validity and uncertainty of the cut.
+- **Warm (1989), *Psychometrika*. DOI 10.1007/BF02294627; Bock & Mislevy (1982), *APM*. DOI 10.1177/014662168200600405.** `[VERIFIED]` Tier A. **Use:** 10.10 directional tail bias of MLE/WLE/EAP/MAP.
+- **Reckase (2010), *Psychological Test and Assessment Modeling* 52(2):127–141; Belov & Armstrong (2005), *APM*. DOI 10.1177/0146621605275413; Eggen & Straetmans (2000), *EPM*. DOI 10.1177/00131640021970862.** `[VERIFIED]` Tier A/B. **Use:** 10.10 pool-depth audit and classification CAT. Worked pool-size targets in the overnight report remain `[INFERENCE]` and were not promoted.
+- **van der Linden (1984), *Statistica Neerlandica*. DOI 10.1111/j.1467-9574.1984.tb01101.x; Kolen & Brennan (2014), DOI 10.1007/978-1-4939-0317-7; Linn (1993), DOI 10.1207/s15324818ame0601_5; DeLong et al. (1988), DOI 10.2307/2531595.** `[VERIFIED]` Tier A. **Use:** 11.5/11.8 relative efficiency, linking strength, and paired comparison.
+- **Oosterhuis, van der Ark & Sijtsma (2016), *Assessment*. DOI 10.1177/1073191115580638.** `[VERIFIED]` Tier A/B. **Use:** 11.2 continuous-norming efficiency.
+- **Sackett, Zhang, Berry & Lievens (2022), *JAP*. DOI 10.1037/apl0000994.** `[VERIFIED, contested major correction]` Tier A. **Use:** 4.4; pair the revised ~.31 operational-validity estimate with Schmidt & Hunter's ~.51 rather than silently replacing it.
+
+### Selection/evaluation additions
+
+- **Cheung & Slavin (2016), *Educational Researcher*. DOI 10.3102/0013189X16656615.** `[VERIFIED]` Tier A. **Use:** 3.4 average QED-versus-RCT difference across 645 studies; not proof every observational estimate is inflated.
+- **Card & Giuliano (2016), *PNAS*, DOI 10.1073/pnas.1605043113; *AER*, DOI 10.1257/aer.20150484.** `[VERIFIED]` Tier A. **New uses:** 3.3 disadvantaged-complier/deconcentration facts; 3.7 positive achievement-rank RD versus essentially null IQ-threshold RD. Keep the two papers distinct.
+- **Gleason et al. (2010), NCEE 2010-4029, ERIC ED510573.** `[VERIFIED official evaluation]` Tier A/B. **Use:** 3.9 pooled lottery scale and oversubscription transfer caveat.
+- **SSP FY2025 annual report and 2026 evaluation materials.** `[VERIFIED official-source operational context]` Tier B/C. **Use:** 3.10 official 3,739 applications / 16% admitted / 588 enrolled for FY2025; 2026 qualified-pool size remains undisclosed.
+
+### Child administration, security, game assessment, and open task precedents
+
+- **Scharfen, Peters & Holling (2018), *Intelligence* 67:44–66. DOI 10.1016/j.intell.2018.01.003; Bors & Vigneau (2003).** `[VERIFIED]` Tier A/B. **Use:** 6.3 cognitive-test retest/form-reuse and matrix-strategy effects. No CogAT-specific coaching trial was located.
+- **Riverside CogAT Form 7 short guide; EBSCO CogAT overview; WISC-V/WPPSI-IV/WJ-IV/SB5/NIH Toolbox administration materials.** `[VERIFIED official/publisher or strong-secondary; publisher-COI]` Tier B/C. **Use:** 7.4–7.5 concrete age and task mechanics. These describe formats, not independent validity.
+- **Aneni, de la Vega, Jiao, Funaro & Fiellin (2023), *Progress in Brain Research*. DOI 10.1016/bs.pbr.2023.02.002; Song, Yi & Park (2020), *PLOS ONE*. DOI 10.1371/journal.pone.0230498.** `[VERIFIED]` Tier A/B. **Use:** 12.4 child/adolescent GBA evidence; neither validates high-stakes gifted identification.
+- **National Academies, "Overview of Psychological Testing"; child tablet/touchscreen studies (PMC7710155 and cited interface work); WISC-V administration materials.** `[VERIFIED official/research; WISC publisher-COI]` Tier B. **Use:** 13.7 standardization, teaching items, mode/device, and examiner-error risk.
+- **Condon & Revelle (2014), ICAR, *Intelligence* 43:52–64; school-age n-back norming (PMC4597481).** `[VERIFIED]` Tier A/B. **Use:** 15.6 public-domain/open task precedents. Reuse permission and task reliability do not transfer norms or gifted-use validity.
 
 ---
 
@@ -93,14 +129,14 @@ Each entry ends with **Verification**, a **Verdict** (tier), and **Use in brainl
 - **Verification:** Citation verified; specific paraphrase `[UNVERIFIED]` (not a direct quote). **Verdict: Tier B.** **Use:** 1.3 support.
 
 ### Lord, F. M., & Novick, M. R. (1968) — *Statistical Theories of Mental Test Scores*, Addison-Wesley
-- **Content:** Classical true-score theory; reliability as true/observed variance ratio (bounded 0–1).
+- **Content:** Classical true-score theory; reliability as true/observed variance ratio (bounded 0–1), including the foundations for reliability of composites and differences.
 - **1** Very High · **2** Foundational · **3** Quantitative · **4** Independent.
-- **Verification:** Citation verified; page-level detail `[UNVERIFIED]`. **Verdict: Tier B (foundational).** **Use:** 1.5 — reliability ceiling.
+- **Verification:** Citation verified; page-level detail `[UNVERIFIED]`. **Verdict: Tier B (foundational).** **Use:** 9.2 difference-score foundation and 11.4 reliability ceiling.
 
 ### Green, Bock, Humphreys, Linn & Reckase (1984) — "Technical guidelines for assessing computerized adaptive tests," *J. Educational Measurement*, 21(4)
-- **Content:** Marginal reliability and difference/profile-score reliability guidance for adaptive tests.
+- **Content:** Marginal and empirical IRT reliability plus guidelines for assessing computerized adaptive tests. It is not the source for the classical difference/profile-score formula.
 - **1** High · **2** Guidelines paper · **3** Quantitative · **4** Independent.
-- **Verification:** Verified via Thread A; exact pages `[PARTIAL]`. **Verdict: Tier B.** **Use:** 1.3 — profile-score noise caveat.
+- **Verification:** Verified; DOI 10.1111/j.1745-3984.1984.tb01039.x. **Verdict: Tier A/B foundational-method source.** **Use:** 9.1 marginal/tail-restricted reliability; prior 9.2 attribution corrected.
 
 ### Hunsley, J., & Meyer, G. J. (2003) — "The incremental validity of psychological testing and assessment," *Psychological Assessment*, 15(4), 446–455
 - **Content:** Defines the incremental-validity bar for adding a second measure.
