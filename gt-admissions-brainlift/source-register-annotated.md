@@ -2,7 +2,7 @@
 
 ## Provenance and source-completeness
 
-This ledger is a complete merger of the original `gifted-assessment-quality-brainlift/source-register-annotated.md` and `gt-school-counterfactual-brainlift/source-register-annotated.md`, preserving every original source entry, including weak, vendor, opinion, contested, and verification-gap entries. Sources appearing in both registers remain in both provenance branches rather than being silently deduplicated; this makes both original uses auditable. Additive material is explicitly marked: first the unvetted `origin/dev:docs/EVIDENCE_DOSSIER.md`, then the 2026-07-22 integration from `gifted-assessment-quality-brainlift/test-effectiveness-metrics-research.md`, `docs/IN_HOUSE_COGNITIVE_TEST_RESEARCH.md`, and `docs/COGNITIVE_TEST_DESIGN_GUIDE.md`. Original verification, inference, vendor, and COI labels are preserved and never upgraded merely because a source was integrated.
+This ledger is a complete merger of the original `gifted-assessment-quality-brainlift/source-register-annotated.md` and `gt-school-counterfactual-brainlift/source-register-annotated.md`, preserving every original source entry, including weak, vendor, opinion, contested, and verification-gap entries. Sources appearing in both registers remain in both provenance branches rather than being silently deduplicated; this makes both original uses auditable. Additive material is explicitly marked: first the unvetted `origin/dev:docs/research/EVIDENCE_DOSSIER.md`, then the 2026-07-22 integration from `gifted-assessment-quality-brainlift/test-effectiveness-metrics-research.md`, `docs/research/IN_HOUSE_COGNITIVE_TEST_RESEARCH.md`, and `docs/research/COGNITIVE_TEST_DESIGN_GUIDE.md`. Original verification, inference, vendor, and COI labels are preserved and never upgraded merely because a source was integrated.
 
 **Completeness confirmation:** all entries from both original registers are represented verbatim below, including Tier A/B/C classifications, author stakes/COIs, URLs/DOIs, corrections, and verification flags. This document does not convert dossier claims into verified facts.
 
@@ -538,7 +538,7 @@ Each entry ends with **Verification**, a **Verdict** (tier), and **Use in brainl
 
 ## Section 11 — Incorporated from the dev evidence dossier (measurement-quality subset)
 
-Source: `docs/EVIDENCE_DOSSIER.md` (origin/dev) — an explicitly **unvetted, overnight-scraped** evidence pile for the admissions/lottery thesis (claims C1–C8). Only the **measurement-quality** items (C2/C3/C8) are curated into this BrainLift; the **selection / lottery / counterfactual** items (C1, C4–C7) defend the access/causal thesis and belong in `gt-school-counterfactual-brainlift/`, not here.
+Source: `docs/research/EVIDENCE_DOSSIER.md` (origin/dev) — an explicitly **unvetted, overnight-scraped** evidence pile for the admissions/lottery thesis (claims C1–C8). Only the **measurement-quality** items (C2/C3/C8) are curated into this BrainLift; the **selection / lottery / counterfactual** items (C1, C4–C7) defend the access/causal thesis and belong in `gt-school-counterfactual-brainlift/`, not here.
 
 **Citation correction issued:** the dossier attributes the N=320 / 44%-doctorate SMPY figures to "Kell, Lubinski & Benbow, 2014, *Psychological Science* 25(12):2217–2232." That is a mis-citation — those figures are **Kell, Lubinski & Benbow (2013), *Psychological Science* 24(5):648–659, DOI 10.1177/0956797612457784** (verified via SAGE + PubMed 23531483). The within-top-1% quartile gradient traces to **Lubinski (2016), "From Terman to Today."**
 
@@ -569,7 +569,7 @@ Source: `docs/EVIDENCE_DOSSIER.md` (origin/dev) — an explicitly **unvetted, ov
 
 ### SEM-at-the-cutoff illustration (±3–5 IQ points; asymmetric error at a 130 cut; reliability lowest in young children)
 - **Content:** Concrete confidence-band / asymmetric-misclassification numbers used to illustrate why a single hard cutoff misfires at the gifted boundary.
-- **Verification:** Underlying principle is standard (AERA/APA/NCME 2014 Standards 2.14–2.16; regression-to-mean). The specific numeric illustration comes from a **secondary summary (Gavin Publishers)** compiled in `docs/EVIDENCE_DOSSIER.md`. **Verdict: Tier C (secondary / illustrative).** **Use:** §1.2, cited as illustrative only.
+- **Verification:** Underlying principle is standard (AERA/APA/NCME 2014 Standards 2.14–2.16; regression-to-mean). The specific numeric illustration comes from a **secondary summary (Gavin Publishers)** compiled in `docs/research/EVIDENCE_DOSSIER.md`. **Verdict: Tier C (secondary / illustrative).** **Use:** §1.2, cited as illustrative only.
 
 **Not incorporated (out of scope for this BrainLift):** C1 "Elite Illusion" RD (Abdulkadiroğlu, Angrist & Pathak 2014); C4 universal screening (Card & Giuliano 2016); C5–C7 lottery/charter/feasibility (Boston charters; federal charter-lottery N=2,330; Cheung & Slavin 2016 QED-vs-RCT). These defend the counterfactual/access thesis → `gt-school-counterfactual-brainlift/`.
 
@@ -1231,7 +1231,7 @@ Solidly verified: Angrist-Imbens-Rubin, McCrary, Abadie et al., Oster, VanderWee
 
 ## Additive dossier provenance (unvetted; labels retained)
 
-`origin/dev:docs/EVIDENCE_DOSSIER.md` was used as an additive lead source only. Its C1–C8 items are represented in the BrainLift only with their existing `[VERIFIED]`, `[PRESS]`, `[ESTIMATE]`, `[INFERENCE]`, or `[UNVERIFIED]` labels. The dossier's citation errors are not propagated: Kell/Lubinski/Benbow N=320/44% is 2013, and its CogAT current-form tail claims remain `[UNVERIFIED]`. No dossier item upgrades a source's tier or verification status in either provenance branch.
+`origin/dev:docs/research/EVIDENCE_DOSSIER.md` was used as an additive lead source only. Its C1–C8 items are represented in the BrainLift only with their existing `[VERIFIED]`, `[PRESS]`, `[ESTIMATE]`, `[INFERENCE]`, or `[UNVERIFIED]` labels. The dossier's citation errors are not propagated: Kell/Lubinski/Benbow N=320/44% is 2013, and its CogAT current-form tail claims remain `[UNVERIFIED]`. No dossier item upgrades a source's tier or verification status in either provenance branch.
 
 ---
 

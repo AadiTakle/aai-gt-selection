@@ -100,8 +100,8 @@ export default function FourWeekRoadmap() {
         </Row>
         <Row gap={8} wrap>
           <Button variant="secondary" onClick={() => dispatch({ type: "openFile", path: "PROJECT_CHARTER.md" })}>Open charter</Button>
-          <Button variant="secondary" onClick={() => dispatch({ type: "openFile", path: "docs/project-requirements.md" })}>Open requirements</Button>
-          <Button variant="secondary" onClick={() => dispatch({ type: "openFile", path: "docs/DEVELOPMENT_RUBRIC.md" })}>Open rubric</Button>
+          <Button variant="secondary" onClick={() => dispatch({ type: "openFile", path: "docs/product/project-requirements.md" })}>Open requirements</Button>
+          <Button variant="secondary" onClick={() => dispatch({ type: "openFile", path: "docs/governance/DEVELOPMENT_RUBRIC.md" })}>Open rubric</Button>
         </Row>
       </Stack>
 

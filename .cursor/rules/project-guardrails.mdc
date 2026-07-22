@@ -8,12 +8,12 @@ alwaysApply: true
 Before new or ambiguous substantive work, read and follow:
 
 1. `PROJECT_CHARTER.md`
-2. `docs/project-requirements.md`
-3. `docs/DEVELOPMENT_RUBRIC.md`
+2. `docs/product/project-requirements.md`
+3. `docs/governance/DEVELOPMENT_RUBRIC.md`
 4. `AGENTS.md`
 
-Use `docs/CONCEPT_OPTIONS.md`, `docs/CRITIC_REVIEW_CHECKLIST.md`, and
-`docs/METRICS_AND_GUARDRAILS_LIBRARY.md` as references only, not approved direction.
+Use `docs/product/CONCEPT_OPTIONS.md`, `docs/governance/CRITIC_REVIEW_CHECKLIST.md`, and
+`docs/research/METRICS_AND_GUARDRAILS_LIBRARY.md` as references only, not approved direction.
 
 For every new plan or implementation:
 

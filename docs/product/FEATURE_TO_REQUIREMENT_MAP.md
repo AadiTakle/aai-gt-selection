@@ -90,10 +90,10 @@ Do not interpret:
 | GOV-07 | Versioned claim register | R7, R10, H5 | MVP-bounded | Specified/researched | Implement in the configuration/audit console and bind notices to claim versions. |
 | GOV-08 | Acceptance-evidence matrix | R1, R4, R5, R7, R8, R9, R10, H1, H2, H4, H7, H9, H10 | MVP | Specified/researched | Implement the 25 critical tests and 12 end-to-end PRD acceptance checks. |
 
-Canonical sources: `PROJECT_CHARTER.md`, `docs/project-requirements.md`,
-`docs/DEVELOPMENT_RUBRIC.md`, `docs/TRACEABILITY_MATRIX.md`,
-`docs/ASSUMPTIONS_AND_EVIDENCE.md`, `docs/DECISION_LOG.md`,
-`docs/SCOPE_EXCEPTION_LOG.md`, and `docs/CRITIC_REVIEW_CHECKLIST.md`.
+Canonical sources: `PROJECT_CHARTER.md`, `docs/product/project-requirements.md`,
+`docs/governance/DEVELOPMENT_RUBRIC.md`, `docs/product/TRACEABILITY_MATRIX.md`,
+`docs/research/ASSUMPTIONS_AND_EVIDENCE.md`, `docs/governance/DECISION_LOG.md`,
+`docs/governance/SCOPE_EXCEPTION_LOG.md`, and `docs/governance/CRITIC_REVIEW_CHECKLIST.md`.
 
 ### Admissions product
 
@@ -139,8 +139,8 @@ Canonical sources: `PROJECT_CHARTER.md`, `docs/project-requirements.md`,
 | F11.4 | Compliance and evaluator exports | R7, R9, R10, H5 | Future | Specified/researched | Requires evaluator agreement and privacy review. |
 | F11.5 | Incident, recovery, and correction propagation | R7, R8, R9, H9 | Future | Specified/researched | Production controls are outside the synthetic MVP. |
 
-Primary sources: `docs/USER_STORY_FEATURE_MAP.md`,
-`docs/GT_ADMISSIONS_APPLICATION_MVP_PRD.md`, and the backend research implementation contracts.
+Primary sources: `docs/product/USER_STORY_FEATURE_MAP.md`,
+`docs/product/GT_ADMISSIONS_APPLICATION_MVP_PRD.md`, and the backend research implementation contracts.
 
 ### User surfaces
 
@@ -154,7 +154,7 @@ Primary sources: `docs/USER_STORY_FEATURE_MAP.md`,
 | UI-05 | Integration shell and persistent synthetic banner | R8, R9, R10 | MVP-bounded | Implemented & verified | Validate E-051/E-052 with the actual host; Mode A remains default. |
 
 Primary sources: `apps/web/src/app/`, `apps/web/src/components/`, and
-`docs/ARCHITECTURE_PLAN.md`.
+`docs/architecture/ARCHITECTURE_PLAN.md`.
 
 ### Backend and platform
 
@@ -177,7 +177,7 @@ Primary sources: `apps/web/src/app/`, `apps/web/src/components/`, and
 | BE-15 | Decision projection allowlist | R4, R5, R7, R10, H2, H10 | MVP | Onboarding firewall seam verified; full engine pending | Exact grade-only keys plus projection commitment are invariant to all represented identity/household/language/school/support/disclosure/finance/referral/signature mutations. The deterministic result/hash probe is test-only; no eligibility result exists yet. |
 | BE-16 | Frontend RPC adapters and server actions | R7, R9, R10 | MVP | B11B action path implemented & CI-verified | CI invokes all eight exported actions through local Auth, Next-compatible cookies, and the production server client; instrumentation validates B11B at bootstrap. B11A later swaps Cognito/Aurora binding without changing contracts. |
 
-Primary sources: `docs/ARCHITECTURE_PLAN.md`,
+Primary sources: `docs/architecture/ARCHITECTURE_PLAN.md`,
 `research/backend-admissions/PROVISIONAL_IMPLEMENTATION_CONTRACT.md`,
 `research/backend-admissions/MVP_DATA_CONTRACT.md`, and `packages/`.
 
@@ -229,7 +229,7 @@ Primary sources: `research/backend-admissions/RLS_AND_AUTH_BLUEPRINT.md`,
 | EV-20 | Program drift, fidelity, mechanism, and economic evaluation | R2, R6, R7, R8, R10, H5, H6, H8 | Future | Specified/researched | Requires analyst protocol and longitudinal operational metadata. |
 | EV-21 | Program-effect and 2.6x growth-multiple reporting | R2, R3, R4, R6, R7, R10, H3, H5, H6 | Future | Specified/researched | Report only after credible Stage 1 causal evidence; MVP proves no effect. |
 
-Primary sources: D-010, `docs/GT_ADMISSIONS_APPLICATION_MVP_PRD.md` § Future Evaluation
+Primary sources: D-010, `docs/product/GT_ADMISSIONS_APPLICATION_MVP_PRD.md` § Future Evaluation
 Handoff, `research/backend-admissions/OUTCOME_AND_FALSIFICATION_PLAN.md`,
 `research/backend-admissions/SIMULATION_SPECIFICATION.md`, and the BrainLift.
 

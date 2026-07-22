@@ -1,8 +1,8 @@
 # Local Supabase boundary (migrating to AWS — D-012)
 
 > **Platform note (D-012):** The project's target platform is AWS with PostgreSQL retained
-> (Aurora/Cognito/S3/RDS Proxy/Secrets Manager; see `docs/DECISION_LOG.md` D-012 and
-> `docs/ARCHITECTURE_PLAN.md`). This directory and the `db:*` commands still describe the
+> (Aurora/Cognito/S3/RDS Proxy/Secrets Manager; see `docs/governance/DECISION_LOG.md` D-012 and
+> `docs/architecture/ARCHITECTURE_PLAN.md`). This directory and the `db:*` commands still describe the
 > **current** local Supabase dev boundary used until the functional code migration lands; the
 > SQL migrations here (schemas, RLS, definer RPCs) are standard PostgreSQL and carry over to
 > Aurora unchanged. Target layout after migration: `db/` (migrations, pgTAP) and

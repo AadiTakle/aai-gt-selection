@@ -6,7 +6,7 @@
 
 The emphasis is on **HOW** — for every construct we say "measure X," this doc must record the actual question format and administration method a real test uses to measure it.
 
-**Relationship to other docs:** This is the *design guide* companion to `docs/IN_HOUSE_COGNITIVE_TEST_RESEARCH.md` (the raw Q1-Q7 evidence pile + synthesis). That doc gathers evidence; THIS doc organizes it into "good-test ingredients + how to administer them." Do NOT duplicate — cite/extend. Also related: `docs/COGAT_GAPS_AND_TEST_SUITE_REPORT.md`.
+**Relationship to other docs:** This is the *design guide* companion to `docs/research/IN_HOUSE_COGNITIVE_TEST_RESEARCH.md` (the raw Q1-Q7 evidence pile + synthesis). That doc gathers evidence; THIS doc organizes it into "good-test ingredients + how to administer them." Do NOT duplicate — cite/extend. Also related: `docs/research/COGAT_GAPS_AND_TEST_SUITE_REPORT.md`.
 
 **Owner:** Team. **Started:** 2026-07-22 (overnight loop). **Status:** Running aggregation — raw, labeled, NOT a design decision.
 

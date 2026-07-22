@@ -1,6 +1,6 @@
 # Two-Week Backend Implementation Backlog
 
-> **Platform (D-012):** Target platform is AWS with PostgreSQL retained (Aurora/Cognito/S3/RDS Proxy/Secrets Manager; see `docs/DECISION_LOG.md` D-012). The security/replay design is unchanged; only bindings move. See the **AWS platform migration** items under "Follow-up work" below.
+> **Platform (D-012):** Target platform is AWS with PostgreSQL retained (Aurora/Cognito/S3/RDS Proxy/Secrets Manager; see `docs/governance/DECISION_LOG.md` D-012). The security/replay design is unchanged; only bindings move. See the **AWS platform migration** items under "Follow-up work" below.
 
 ## Scope
 

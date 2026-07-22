@@ -13,7 +13,7 @@
 > Discipline: never fabricate authors, years, formulas, or effect sizes. Predictive validity ≠ program impact. A metric quantifies only what it measures.
 
 ## How this report is built
-Continuous research waves; each wave appends a dated findings block + a sweep-log line. **Complements (does not duplicate)** the brainlift's §1.3 tail-metrics and `docs/METRICS_AND_GUARDRAILS_LIBRARY.md` — the goal here is greater depth, formulas, thresholds, lesser-known methods, and newly discovered dimensions.
+Continuous research waves; each wave appends a dated findings block + a sweep-log line. **Complements (does not duplicate)** the brainlift's §1.3 tail-metrics and `docs/research/METRICS_AND_GUARDRAILS_LIBRARY.md` — the goal here is greater depth, formulas, thresholds, lesser-known methods, and newly discovered dimensions.
 
 ## Coverage ledger (sub-areas; deepen + discover as we go)
 - **A1** — IRT/CAT measurement precision at the tail (test/item information, conditional SEM, information-based/marginal/empirical reliability, targeting the gifted cut)
@@ -249,7 +249,7 @@ _(one line per wave: timestamp · sub-area(s) · # new verified findings · nota
 - **Cross-validation / optimism-shrinkage for classification metrics** (apparent sensitivity/PPV/AUC of a *newly fit* screen are optimistic; need bootstrap-.632+ or k-fold correction) — not covered by resampling *CIs* alone.
 - **Bayesian / probabilistic ID (calibrated "gifted probability" + Brier/calibration)** instead of hard cuts, feeding decision-curve/net-benefit (A2 #16) — turns the whole pipeline into a calibrated-risk system.
 - **Definition-sensitivity simulation** (McBee & Makel 2019): benchmark *what* the screen targets, since incidence swings wildly (some definitions imply >75% "gifted").
-- **`giftedCalcs`/`pROC`/`boot` as a concrete prototype stack** for the 4-week deliverable's "one power/precision scenario" and "eligibility agreement" requirements (`docs/METRICS_AND_GUARDRAILS_LIBRARY.md`).
+- **`giftedCalcs`/`pROC`/`boot` as a concrete prototype stack** for the 4-week deliverable's "one power/precision scenario" and "eligibility agreement" requirements (`docs/research/METRICS_AND_GUARDRAILS_LIBRARY.md`).
 
 **(h) Gaps / next:** No located study reports a **head-to-head, paired DeLong/pAUC comparison of a candidate screen vs CogAT against a construct-distinct external gifted criterion**, nor a published **selection-utility (Naylor–Shine/BCG) analysis in gifted ed** — both are standard elsewhere but essentially absent here; next, (1) hunt any gifted-ID dataset with paired screen+CogAT scores and an external outcome to run DeLong + bootstrap CIs, and (2) spec a Monte-Carlo + giftedCalcs prototype that outputs the #16 benchmarking panel (tail RE, ΔAUC±CI, subgroup FNR, incremental utility, CASA) for a simulated CogAT-vs-new-screen comparison.
 

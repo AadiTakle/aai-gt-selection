@@ -65,18 +65,18 @@ The team can explain:
 When documents conflict, use this precedence:
 
 1. `PROJECT_CHARTER.md`
-2. `docs/project-requirements.md`
-3. `docs/DEVELOPMENT_RUBRIC.md`
-4. Approved entries in `docs/DECISION_LOG.md` and `docs/SCOPE_EXCEPTION_LOG.md`
-5. `docs/TRACEABILITY_MATRIX.md`
-6. `docs/ASSUMPTIONS_AND_EVIDENCE.md`
+2. `docs/product/project-requirements.md`
+3. `docs/governance/DEVELOPMENT_RUBRIC.md`
+4. Approved entries in `docs/governance/DECISION_LOG.md` and `docs/governance/SCOPE_EXCEPTION_LOG.md`
+5. `docs/product/TRACEABILITY_MATRIX.md`
+6. `docs/research/ASSUMPTIONS_AND_EVIDENCE.md`
 7. Product plans, specifications, designs, and implementation notes
 
 Supporting reference libraries:
 
-- `docs/CONCEPT_OPTIONS.md` preserves the unratified concept space.
-- `docs/CRITIC_REVIEW_CHECKLIST.md` defines reusable adversarial reviews.
-- `docs/METRICS_AND_GUARDRAILS_LIBRARY.md` contains candidate measures, not an approved metric set.
+- `docs/product/CONCEPT_OPTIONS.md` preserves the unratified concept space.
+- `docs/governance/CRITIC_REVIEW_CHECKLIST.md` defines reusable adversarial reviews.
+- `docs/research/METRICS_AND_GUARDRAILS_LIBRARY.md` contains candidate measures, not an approved metric set.
 
 Supporting references cannot override the canonical documents above or ratify a product direction.
 

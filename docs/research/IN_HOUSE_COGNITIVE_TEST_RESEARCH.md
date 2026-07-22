@@ -4,7 +4,7 @@
 
 **This doc is the running aggregation** of a recurring background research loop. Each sweep appends findings under the matching research question. Do NOT duplicate prior findings. This is a raw, labeled evidence pile to curate — NOT a design decision or approval to deploy a live test.
 
-**Owner:** Team. **Started:** 2026-07-21. **Related prior work:** `docs/COGAT_GAPS_AND_TEST_SUITE_REPORT.md` (which *external* tests to use), `docs/EVIDENCE_DOSSIER.md` (admissions-overhaul thesis), `docs/HOLISTIC_GIFTEDNESS_EVIDENCE_REPORT.md`.
+**Owner:** Team. **Started:** 2026-07-21. **Related prior work:** `docs/research/COGAT_GAPS_AND_TEST_SUITE_REPORT.md` (which *external* tests to use), `docs/research/EVIDENCE_DOSSIER.md` (admissions-overhaul thesis), `docs/research/HOLISTIC_GIFTEDNESS_EVIDENCE_REPORT.md`.
 
 > **CRITICAL LEGAL/IP NOTE (carry into every sweep):** CogAT, CCAT, NNAT, OLSAT, WISC, etc. are copyrighted. We can research *what constructs they measure and what psychometric properties make them defensible*, and build an original instrument on the same public science (item-response theory, reasoning constructs, norming). We must NOT copy items, item formats verbatim, or normed content. Flag any finding that edges toward copying.
 
