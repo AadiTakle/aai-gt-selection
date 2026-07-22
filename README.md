@@ -6,8 +6,8 @@ adds a structured Track B eligibility route, and keeps future allocation/evaluat
 > **Platform: AWS with PostgreSQL (D-012).** The target platform is AWS managed services —
 > Amazon Aurora Serverless v2 (PostgreSQL), Amazon Cognito, Amazon S3, ECS Fargate, RDS Proxy,
 > and Secrets Manager, provisioned with Terraform — keeping PostgreSQL as the database engine
-> (see `docs/DECISION_LOG.md` D-012, which supersedes the prior Supabase choice in D-009, and
-> `docs/ARCHITECTURE_PLAN.md`). The **functional code migration** from the current Supabase
+> (see `docs/governance/DECISION_LOG.md` D-012, which supersedes the prior Supabase choice in D-009, and
+> `docs/architecture/ARCHITECTURE_PLAN.md`). The **functional code migration** from the current Supabase
 > dev stack to the AWS bindings is a tracked follow-up; the `supabase/` layout and `pnpm db:*`
 > commands documented below still describe how the prototype runs **today**, until that
 > migration lands.
@@ -41,7 +41,7 @@ packages/test-fixtures           @gt-selection/test-fixtures
 supabase/                        local Supabase boundary
 ```
 
-The accepted architecture is documented in `docs/ARCHITECTURE_PLAN.md`. Framework-independent
+The accepted architecture is documented in `docs/architecture/ARCHITECTURE_PLAN.md`. Framework-independent
 contracts and fixtures remain outside the Next.js package; app-only clients and wrappers stay
 inside `apps/web`.
 

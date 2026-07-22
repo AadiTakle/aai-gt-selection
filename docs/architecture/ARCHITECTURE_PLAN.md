@@ -1,10 +1,10 @@
 # GT Admissions MVP — Web Application Architecture Plan
 
 **Status:** Approved by D-011 for the synthetic four-week prototype only; not live admissions.
-**Scope of this document:** End-to-end technical architecture for the Next.js + AWS (Amazon Aurora PostgreSQL) web application described in `docs/GT_ADMISSIONS_APPLICATION_MVP_PRD.md` (§ Tech Stack), designed to embed into a pre-existing GT website and to support every PRD product surface and feature.
+**Scope of this document:** End-to-end technical architecture for the Next.js + AWS (Amazon Aurora PostgreSQL) web application described in `docs/product/GT_ADMISSIONS_APPLICATION_MVP_PRD.md` (§ Tech Stack), designed to embed into a pre-existing GT website and to support every PRD product surface and feature.
 **Owner:** Aadi (backend/admissions logic) with Tiffany (product/frontend) on the shared frontend/backend interface. See PRD § Division of Labor.
 
-> **Platform note (D-012):** This plan targets **AWS managed services with PostgreSQL retained** as the database engine. The security and replay design below (forced RLS, `SECURITY DEFINER` RPCs, immutable versioning, hash-chained audit, deterministic replay) is engine-level and therefore unchanged by the platform move; only the *bindings* change — Supabase Auth → Amazon Cognito, `@supabase/ssr` → `pg`/RDS Proxy, `auth.uid()` → request-scoped PostgreSQL session settings (GUCs), and the loopback guard → a dev-account/resource-tag guard. The canonical Supabase→AWS mapping lives in `docs/DECISION_LOG.md` D-012. Where this document still says "`authenticated`," "definer RPC," or "RLS," those are retained verbatim; where it names a Supabase-specific binding, the AWS equivalent is given inline.
+> **Platform note (D-012):** This plan targets **AWS managed services with PostgreSQL retained** as the database engine. The security and replay design below (forced RLS, `SECURITY DEFINER` RPCs, immutable versioning, hash-chained audit, deterministic replay) is engine-level and therefore unchanged by the platform move; only the *bindings* change — Supabase Auth → Amazon Cognito, `@supabase/ssr` → `pg`/RDS Proxy, `auth.uid()` → request-scoped PostgreSQL session settings (GUCs), and the loopback guard → a dev-account/resource-tag guard. The canonical Supabase→AWS mapping lives in `docs/governance/DECISION_LOG.md` D-012. Where this document still says "`authenticated`," "definer RPC," or "RLS," those are retained verbatim; where it names a Supabase-specific binding, the AWS equivalent is given inline.
 
 This plan is deliberately consistent with the existing backend research corpus. It does not re-specify the data model, RLS rules, canonicalization, or API contract already established there; it references them as authoritative and adds the application-level architecture and the pre-existing-website integration design, which the corpus does not yet cover. Authoritative sources:
 
@@ -20,13 +20,13 @@ This plan is deliberately consistent with the existing backend research corpus. 
 
 ## Required plan header (per AGENTS.md § Required plan and handoff format)
 
-- **Requirements:** R1, R5, R7, R8, R9, R10; H1, H2, H4, H7, H9, H10. (R2, R3, R6, H3, H5-protocol, H6, H8 are MVP-deferred per `docs/TRACEABILITY_MATRIX.md:15-31` and appear here only in the downstream-handoff seams, never as build items.)
-- **Evidence/assumptions:** Grounded in the research corpus above and decisions D-008 (synthetic Track A/B prototype), D-009 → **D-012 (AWS/PostgreSQL backend platform, superseding the prior Supabase choice)**, D-010 (defers substantive appeal, automated retest/re-entry, allocation), D-011 (this architecture). New assumptions introduced by this plan are listed in § 12 for entry into `docs/ASSUMPTIONS_AND_EVIDENCE.md`.
+- **Requirements:** R1, R5, R7, R8, R9, R10; H1, H2, H4, H7, H9, H10. (R2, R3, R6, H3, H5-protocol, H6, H8 are MVP-deferred per `docs/product/TRACEABILITY_MATRIX.md:15-31` and appear here only in the downstream-handoff seams, never as build items.)
+- **Evidence/assumptions:** Grounded in the research corpus above and decisions D-008 (synthetic Track A/B prototype), D-009 → **D-012 (AWS/PostgreSQL backend platform, superseding the prior Supabase choice)**, D-010 (defers substantive appeal, automated retest/re-entry, allocation), D-011 (this architecture). New assumptions introduced by this plan are listed in § 12 for entry into `docs/research/ASSUMPTIONS_AND_EVIDENCE.md`.
 - **In scope:** Application, routing, review, decision/replay, correction, config/audit surfaces; the embedding/integration layer for a pre-existing website; local-only synthetic operation.
 - **Out of scope:** Finance/aid, seat allocation, evaluator exports, live child data, real uploads, production deployment, causal claims (PRD § Tech Stack; `MVP_DATA_CONTRACT.md:524-534`). The allocation seam is `allocation_undecided` only (B-08).
 - **Acceptance evidence:** The MVP Acceptance Checks in the PRD (§ MVP Acceptance Checks) plus the merge-blocking gate IDs from the corpus (§ 10 below). Each is expressed as an automated test.
 - **Risks:** Reviewer-blindness leakage, RLS/IDOR bypass, service-key exposure, decision non-determinism, prohibited-field leakage into eligibility, and integration-boundary trust confusion (embedding a synthetic app in a real site). Mitigations in § 9.
-- **Governance updates:** `docs/DECISION_LOG.md` (this architecture as a material decision; new integration decision), `docs/TRACEABILITY_MATRIX.md` (add TECH/ARCH row), `docs/ASSUMPTIONS_AND_EVIDENCE.md` (integration assumptions). Listed in § 12.
+- **Governance updates:** `docs/governance/DECISION_LOG.md` (this architecture as a material decision; new integration decision), `docs/product/TRACEABILITY_MATRIX.md` (add TECH/ARCH row), `docs/research/ASSUMPTIONS_AND_EVIDENCE.md` (integration assumptions). Listed in § 12.
 
 ---
 
@@ -488,9 +488,9 @@ Tooling: Vitest for engine/contract/canonicalization; pgTAP (run against Aurora 
 
 Before this plan is marked complete:
 
-1. `docs/DECISION_LOG.md` — recorded: **D-011** (this architecture) and **D-012** (Supabase→AWS platform move, superseding D-009). No further decision entry required unless the integration mode or AWS mapping changes.
-2. `docs/TRACEABILITY_MATRIX.md` — add/confirm an ARCH/TECH row citing R1, R5, R7, R8, R9, R10, H1, H2, H4, H7, H9, H10 and this file; note the D-009→D-012 platform change.
-3. `docs/ASSUMPTIONS_AND_EVIDENCE.md` — record assumptions this plan introduces:
+1. `docs/governance/DECISION_LOG.md` — recorded: **D-011** (this architecture) and **D-012** (Supabase→AWS platform move, superseding D-009). No further decision entry required unless the integration mode or AWS mapping changes.
+2. `docs/product/TRACEABILITY_MATRIX.md` — add/confirm an ARCH/TECH row citing R1, R5, R7, R8, R9, R10, H1, H2, H4, H7, H9, H10 and this file; note the D-009→D-012 platform change.
+3. `docs/research/ASSUMPTIONS_AND_EVIDENCE.md` — record assumptions this plan introduces:
    - **A-INT-1:** The pre-existing GT website can either link to a separate origin (Mode A) or provide a reverse-proxy path mount (Mode B). *Evidence needed from GT IT; placeholder until confirmed (relates to B-06/B-07).*
    - **A-INT-2:** Host brand tokens can be supplied as CSS custom properties for the theming contract (§ 6.4). *Assumption; low risk.*
    - **A-INT-3:** No authenticated GT-site session is expected to SSO into the app for the MVP; the app owns its own synthetic auth. *Assumption consistent with synthetic-only scope.*

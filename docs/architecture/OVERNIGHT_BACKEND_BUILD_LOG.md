@@ -7,7 +7,7 @@
 - **Cadence:** one bounded TDD slice every 30 minutes
 - **Owned paths:** `packages/contracts/**`, `packages/db-types/**`,
   `packages/test-fixtures/**`, `supabase/**`, backend scripts, this log, and
-  `docs/FRONTEND_ENABLEMENT_REPORT.md`
+  `docs/architecture/FRONTEND_ENABLEMENT_REPORT.md`
 - **Excluded:** frontend routes/components/styles, allocation, finance,
   evaluation, uploads, hosted Supabase, production deployment, and substantive appeals
 - **Merge policy:** commit and push green slices; never merge overnight

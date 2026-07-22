@@ -530,11 +530,11 @@ checks, and demo story.
 - **Milestone A (current implementation as of 2026-07-20):** local
   born-synthetic D-013 profile/application persistence, contracts, family RPCs,
   generated types, tests, and B11B server actions. See
-  `docs/ONBOARDING_OVERHAUL_TICKETS.md` and
-  `docs/FEATURE_TO_REQUIREMENT_MAP.md`.
+  `docs/architecture/ONBOARDING_OVERHAUL_TICKETS.md` and
+  `docs/product/FEATURE_TO_REQUIREMENT_MAP.md`.
 - **Milestone B (approved target, deferred):** Cognito/RDS Proxy/Aurora
   binding and infrastructure, `B-06` live-use controls, `B-08` finance/proof
-  policy, and production operations. See `docs/ARCHITECTURE_PLAN.md`.
+  policy, and production operations. See `docs/architecture/ARCHITECTURE_PLAN.md`.
 - Assessment/routing, Snapshot, review, decision/replay, and role-scoped
   frontend surfaces remain target work outside the completed Milestone A
   onboarding slice.
@@ -722,4 +722,4 @@ D-012 approves this Milestone B platform target but does not establish that an
 AWS account, resources, DNS, or endpoint currently exists. The current
 Milestone A implementation remains local and born-synthetic; live child data
 and production/public deployment are unauthorized. See
-`docs/ARCHITECTURE_PLAN.md` and E-057/E-058.
+`docs/architecture/ARCHITECTURE_PLAN.md` and E-057/E-058.

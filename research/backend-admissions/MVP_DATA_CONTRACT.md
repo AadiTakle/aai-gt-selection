@@ -1,6 +1,6 @@
 # Minimum Synthetic MVP Data Contract
 
-> **Platform (D-012):** PostgreSQL retained; platform moved Supabase→AWS (Aurora/Cognito/S3/RDS Proxy/Secrets Manager). RLS, definer RPCs, immutable versioning, hash-chained audit, and deterministic replay are unchanged; only bindings change. Canonical mapping: docs/DECISION_LOG.md D-012.
+> **Platform (D-012):** PostgreSQL retained; platform moved Supabase→AWS (Aurora/Cognito/S3/RDS Proxy/Secrets Manager). RLS, definer RPCs, immutable versioning, hash-chained audit, and deterministic replay are unchanged; only bindings change. Canonical mapping: docs/governance/DECISION_LOG.md D-012.
 
 ## Two-Week Implementation Cut
 

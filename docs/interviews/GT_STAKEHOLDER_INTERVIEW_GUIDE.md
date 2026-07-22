@@ -2,7 +2,7 @@
 
 **Purpose:** Turn our documented gaps into concrete questions for someone with real GT knowledge (admissions staff, program leadership, current students/families, or a domain/assessment expert). It exists so that when an interview opportunity arises, we can capture the highest-value facts quickly and convert placeholders into evidence.
 
-**Status:** Working reference, not a canonical governance doc. It draws entirely from gaps already recorded in `docs/GT_ADMISSIONS_APPLICATION_MVP_PRD.md` (§ Blocker List, B-01–B-08) and `docs/ASSUMPTIONS_AND_EVIDENCE.md` (open/unverified entries). Answers feed back into those files.
+**Status:** Working reference, not a canonical governance doc. It draws entirely from gaps already recorded in `docs/product/GT_ADMISSIONS_APPLICATION_MVP_PRD.md` (§ Blocker List, B-01–B-08) and `docs/research/ASSUMPTIONS_AND_EVIDENCE.md` (open/unverified entries). Answers feed back into those files.
 
 **Owner:** Team. **Date:** 2026-07-20.
 
@@ -135,7 +135,7 @@ Questions are phrased to elicit *current reality*, not to lead. Each is tagged w
 
 For each answer captured:
 
-1. **Update `docs/ASSUMPTIONS_AND_EVIDENCE.md`** — change the E-ID status (Unverified → Supported/Refuted), add the source (person/role + date), and note if a new assumption appeared.
+1. **Update `docs/research/ASSUMPTIONS_AND_EVIDENCE.md`** — change the E-ID status (Unverified → Supported/Refuted), add the source (person/role + date), and note if a new assumption appeared.
 2. **Update the PRD `B-0x` row** — replace the placeholder with the confirmed fact, or note it's still open.
 3. **Add a `DECISION_LOG.md` entry** only if an answer changes a requirement, scope, or a locked synthetic value.
 4. **Keep the label discipline:** one person's recollection is *company claim / independent context*, not a verified fact, until corroborated. A single staffer's memory of the cutoff is not the same as written policy.
