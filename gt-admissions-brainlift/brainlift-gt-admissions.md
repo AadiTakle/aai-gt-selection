@@ -4,6 +4,57 @@
 
 **Requirements served:** R2–R10; H1–H10. **Evidence registers used:** the two source BrainLift ledgers, plus unvetted/additive dossier material retaining its original labels. **Open assumptions:** current GT cutoff, capacity, demand, allocation authority, evaluator independence, and MAP feasibility remain open and cannot be inferred from this research.
 
+## DOK 4: Spiky Points of View
+
+**SPOV 1: A capability-gated admission lottery is a clean and feasible method of collecting causal evidence that can separate GT's program effect from its selection effect.**
+
+- **Elaboration:** The core problem GT faces is that the current selection effect methodology of a high CogAT cutoff and private-school tuition rate results in a confirmation bias that renders it impossible to adequately measure program effect (Insight 1). However, the immediate fix of just lowering GT's CogAT cutoff reduces the programs effectiveness as a result (Insight 5). Thus, any solution that intends to separate program effect from selection effect needs to broaden program access without lowering the bar of admission. One way to do this is to identify a separate set of capable but underserved applicants who are gifted in metrics not covered by the CogAT (spatial reasoning, conscientiousness, demonstrated achievement, etc.) (Insight 2). By our existing knowledge of giftedness, these kids are classified as gifted and likely just as capable of succeeding in GT's program as any accepted GT applicant, yet they are denied by the current system. 
+
+Since GT's program doesn't currently serve this group of applicants, it makes them prime candidates for demonstrating the program's effectiveness (Insight 3, 3.7). By separating and tracking the group of capable but underserved applicants who are offered a seat vs. not offered a seat into GT's next cohort, we can analyze their growth over the academic year (via MAP scores or another trusted metric) to determine if GT's program disproportionately benefits capable gifted students over traditional schooling. The selection of students into offered and not offerred groups should be done using a capability-gated lottery since research has shown these systems to boost accepted applicant performance and allow us to account for income/financial disparities between applicants gracefully (Insight 6, 3.9). Given GT's small size, this method will likely need to prove its worth over several years worth of cohorts to result in a counterfactual that is precise enough to truly be bulletproof (5.5, 3.9).
+
+**SPOV 1: A capability-gated admission *lottery* is GT School's cleanest currently feasible path to credible causal evidence that its program, not its selection, drives a specified, preregistered outcome.**
+
+- **Elaboration:** GT's core problem is that its front door *is* the confound: by admitting only students who clear a high CogAT cutoff **and** pay private-school tuition (Insight 1). The obvious "fix" of *lowering* the CogAT cutoff would genuinely damage GT (Insight 5). The resolution is to broaden **access, not the bar**: assemble a pool of **capable-but-underserved (Track B)** applicants who are *all* identified as genuinely able through broader measures than a single narrow test (spatial reasoning, conscientiousness, demonstrated achievement — Insight 2) and who were missed only because that test is too narrow or because they couldn't pay. Then, treating the seats as **genuinely scarce**, *randomize the offers* among these **equally eligible** candidates and follow **offered** and **non-offered** students on common outcomes **by original assignment** (intent-to-treat). That randomized offer is the cleanest currently feasible design for separating program effect from both ability and motivation (Insight 6, §3.9), and it targets exactly the population where a real program effect is largest and most detectable (Insight 3, §3.7). The usual "a small school's lottery is underpowered" objection does not collapse for free: it is answered by **pooling a modest cohort across multiple years** (which fits the incoming voucher ramp — §5.5) to accumulate precision (§3.9), while planning around *realistic* independent effects on broad standardized outcomes on the order of **~0.10–0.20 SD**, well below the headline multiplier and smaller than curriculum-aligned or local outcomes (§4.4, §3.7). Power still has to be argued, not assumed: an *ordinary* nonsignificant difference would **not** establish that Track B students do as well as Track A since noninferiority/equivalence is a separate, pre-specified test (§3.8). This design only proves whatever outcome we preregister (see SPOV 4 for what a MAP win can and can't be used to claim).
+
+**SPOV 2: The same capability-gated admission lottery can help provide the program accessibility needed to begin briding the "excellence gap."**
+
+- **Elaboration:** The current CogAT cutoff and high tuition combination that resulted in confirmation bias also excludes capable Black, Hispanic, low-income, and ELL students (Insight 4, 6). This means that the same methodology used to solve the confirmation bias as part of SPOV 1 will also help to bridge the excellence gap observed as a side effect.
+
+**SPOV 2: The same lottery that fixes GT School's evidence problem also bridges the racial and class "excellence gap" its current screen widens because the equity failure and the measurement failure are one and the same.**
+
+- **Elaboration:** The same culturally and income-loaded CogAT-plus-tuition filter that confounds GT's data is exactly what excludes capable Black, Hispanic, low-income, and ELL students, so the equity failure and the measurement failure are the same failure (Insight 4, Category 6), meaning a capability-gated lottery bridges the racial and class excellence gap in the very act of producing the counterfactual, handing an opportunity to able students on the basis of capability rather than privilege.
+
+**SPOV 3: If the lottery offered students show a positive program effect and demonstrate capabilities closely resembling the students admitted above the CogAT cutoff, then there is enough supporting evidence to expand the GT admitted cohort and capability-based lottery to slowly work towards the 10K MIT ready kids by 8th grade goal.**
+
+- **Elaboration:** 
+
+**SPOV 3: If offered Track B students show a positive randomized program effect *and* clear a pre-specified service-fit bar against Track A (subject to capacity, high-performer, and wellbeing guardrails), GT School should *expand* Track B. This will turn Track B from a one-off proof into GT School's fastest route to cohort growth and program expansion (towards the 10k MIT ready kids by 8th grade goal).**
+
+- **Elaboration:** GT's adaptive academics may make expansion scalable, but Guides, workshops, and the peer environment are real capacity constraints; they therefore belong in explicit guardrails rather than being assumed negligible (Insight 5, §5.6). But "keep pace" has to be made precise using real GT admissions and testing data or the split provides no real beneficial insight. Expansion should clear three tests. Offered Track B kids need to actually outgain non-offered kids on outcomes we preregistered (SPOV 1). Treated Track B students need to be doing no worse than treated Track A, judged against a margin fixed before we see the data (§3.8). Finally, the following guardrails have to hold: capacity, current high-performers' outcomes, student wellbeing, plus a check that gains stick and transfer without the software (§3.8, §5.7). Clearing that bar supports **expanding Track B** (or *later*, revising the *CogAT-only* gate) **while preserving the capability bar** (broaden access, not the bar — Insight 5); it is not a warrant for automatic standard-lowering, and Track A's current policy is not itself on the table here. This rule only tests whether GT serves Track B well enough to grow it. It doesn't prove GT's effect is equal for Track A and Track B since Track A was never randomized and there's no real counterfactual for it. Each expansion that clears the rule strengthens the evidence and widens GT's reach at once: the path from a boutique for the already-advantaged into a genuine educational powerhouse.
+
+**SPOV 4: A positive randomized MAP effect proves GT's package moved MAP. Expanding Track B or marketing the model on that alone would no longer be evidence-backed.**
+
+- **Elaboration:** Kulik & Fletcher's tutoring meta-analysis and Bastani et al.'s randomized GPT study both show that a tool can raise performance on aligned or assisted tasks while leaving independent, unaided, or standardized performance flat or worse (§3.8, §5.7); Bailey et al. adds that many child/adolescent intervention effects fade. A causal MAP win under randomization tells us the complete GT package changed MAP growth for that randomized group. It says nothing about whether the learning is deep, whether it lasts, whether AI is doing the work a teacher would, or whether GT is simply a better education. Before treating a positive MAP result as grounds to expand Track B or market GT's model, GT should hold out a small preregistered secondary hierarchy (delayed persistence; one independently administered, unaided transfer/application task) and report it alongside the primary MAP result rather than after the fact.
+
+*Note: This step is out of scope for the Onboarding/Admissions pipeline. Rather, this SPOV is meant to identify what can and can't be claimed using the data the project will gather to hard scope the results.*
+
+## DOK 3 - Insights
+
+**Insight 1 - GT's selection process directly hinders measuring program effect**
+- GT school admits kids in the top percentile of CogAT scores (5.3) and are willing to pay their $25K tuition fee (5.3, 6.3). Critics argue that this barrier makes measuring the program effect unreliable because naturally gifted students will likely excel, therefore skewing the data toward high-achieving scores. In turn, the results will have a confirmation bias (5.4). For example, if a student were to spend the same amount on tutoring services, it's possible their MAP score may outperform a GT School student.
+**Insight 2 - CogAT's batteries are too narrow to identify the breadth of a gifted student's talents.**
+- While the CogAT assesses verbal, nonverbal, and quantitative reasoning well, it lacks in other areas such as spatial reasoning (1.6), which may be key identifiers of giftedness. Thus, for qualities such as intrisic motivation and conscientiousness that cannot be measured with the CogAT (4.5), GT School's loses a substantial portion of admittable students from the selection effect.
+**Insight 3 - The students right beneath the CogAT's minimum bar are the exact people who can help prove GT School's program effect.**
+ - Studies support that individualized tutoring helps those falling behind the most (3.7, 4.4), but GT itself doesn't have the necessary control group (5.2, 5.4) to substantiate that claim GT says it helps capable but underserved students, but their statistics are supplemented by outside sourcing. They have not tested transfers to their gifted cohort (4.4), and the promise of GT's complete package (5.1) is hindered by screening out capable students through CogAT and tuition (5.3).
+ **Insight 4 - GT’s extreme exclusivity is the driving force behind the “excellence gap” seen in so many G&T programs.**
+- Studies show that tests like CogAT disproportionately select kids on race and class lines. Children’s test scores are closely and positively correlated to a family’s income starting as early as 2 years old (6.3) and even “culture-fair” tests fail to account for ELL/subgroup kids (6.2). Additionally, black and hispanic students have been selected less frequently by other GT programs despite demonstrating equivalent achievements and talents (6.1). As a result, the extremely restrictive CogAT cutoff and high tuition fee of GT school is likely to be driving the race/class gap come to be known as the “excellence gap" (5.4).
+ **Insight 5 - Instead of diluting GT's edge by lowering the CogAT cutoff, GT School should utilize a capability-gated lottery system.**
+ - While GT and Alpha School utilize the same timeback model (5.1), GT's uniqueness banks on its selective cohort of gifted students (5.6). Lowering the cutoff as suggested through local-norm/lower-threshold remedies (6.4) risks the marginal-admit pattern Bui found (3.7). A lottery bypasses this issue, broadening access without sacrificing the bar (5.1, 5.3).
+**Insight 6 - A capability-based lottery will provide the necessary data to demonstrate GT's program effect separately from its selection effect.**
+- By randomizing offers to a program, studies have shown that applicants balance both ability and motivation (3.9). On average, students perform ~0.35 SD/yr better, largest for those behind (3.9, 3.7). Critiques on the small cohorts can be solved through pooling data over the years, fitting the voucher ramp (5.5). This plans around ~0.10-0.20 SD effects (4.4, 3.7), with noninferiority as a separate test (3.8). The school's current "2.6x growth" claim recalculates to ~1.69x math/1.54x reading in comparison to public matched completers with no counterfactual (5.2).
+**Insight 7 - SSP's 2026 lottery systems demonstrates the design is possible and why research consent must be prioritized.**
+- Currently, SSP's selection process goes through a contextual review, qualified pool, randomized offers, and waitlist comparison (3.10). However, conditions lottery exploit research consent (ex: if students decline, they lose their spot on the program waitlist), which Jenkins (2023) calls coercive (3.10). The new proposed design must keep the two structurally separate, meaning refusing research does not affect the student's admission inputs/outputs.
+
 ## Experts (Sources)
 
 This is a deliberately disagreeing expert set, not an endorsement list. The companion complete ledger gives URLs/DOIs, tiers, verification flags, and source-level author stakes.
@@ -16,155 +67,23 @@ This is a deliberately disagreeing expert set, not an endorsement list. The comp
 - **Duckworth/Dweck/Yeager** make the noncognitive/intervention case; **Credé, Sisk, Poropat, Mammadov, and Guez** constrain it: grit and mindset are weak or context-specific, prior ability remains predictive, and conscientiousness is distinct but not validated as a high-stakes gifted-admissions gate.
 - **GT/Alpha, Hobart, NWEA, SSP, Reason, Kane, ACX, NEPC, and company materials** are included because they state the program, operational precedent, or critique being evaluated. They are not independent proof. Company statements remain `[COMPANY CLAIM]`; press, estimates, inferences, and unverified dossier claims retain their labels below.
 
-## DOK 1: Facts
+## Knowledge Tree: Facts
 
-> The two knowledge-tree branches below preserve the detailed, source-attributed factual material from both predecessor BrainLifts. A source-context note inside the evaluation branch preserves a predecessor caveat or traceable compression; it is **not** this document's DOK 2.
+> **One knowledge tree, organized by topic (broad → specific).** Everything below is a single knowledge tree of DOK 1 facts, each tied to a named source, with a plain-language "general idea" and a source-context note so a reader new to the field can follow it. Read it as two connected halves: **Categories 1–6 are about *selection and the counterfactual*** — is a single CogAT cutoff too strict, and how could GT School ever prove that its *program* (not its *admissions filter*) is what helps students? **Categories 7–13 are about the *measurement instrument itself*** — what a test like CogAT captures and misses, how to judge a test at the gifted "tail," how the gaps can be patched, whether a "2× better" test is even feasible, and the wider toolbox of instruments. The two halves meet at one idea: the front door is simultaneously a *measurement* choice and a *selection* choice.
+>
+> Litmus test applied to every item: it is something two analysts reading the same source would extract the same way; interpretation is deferred to DOK 3. Verification flags — `[UNVERIFIED]`, `[COMPANY CLAIM]`, `[PRESS]`, `[ESTIMATE]`, `[INFERENCE]`, and conflict-of-interest (COI) notes — are kept honest, and load-bearing citations are re-checked in the Appendix.
 
-### Knowledge Tree A — Assessment quality, construct coverage, tail metrics, and feasibility
-
-
-
-> Litmus test applied: every item below is something two engineers reading the same source would extract the same way. Each cites a specific source; interpretation is deferred to DOK 3. `[UNVERIFIED]` and COI flags are kept honest.
-
-### 1.1 — What CogAT-class tests *capture well*
-
-- **CogAT measures developed reasoning in three domains.** The Complete Battery contains Verbal (analogies, sentence completion, classification), Quantitative (number analogies/puzzles/series), and Nonverbal/Figural (figure matrices, **Paper Folding**, figure classification). It is not "just verbal/math," and it is not devoid of spatial content. *(Riverside CogAT test descriptions; synthesized in `docs/COGAT_GAPS_AND_TEST_SUITE_REPORT.md`.)*
-- **CogAT predicts achievement moderately-to-strongly.** A meta-analysis reports a mean CogAT↔achievement validity of **r = .63, 95% CI [.57, .69]**. *(Ozen, Pereira, Karatas, Castillo-Hermosilla & Maeda, 2024, *Gifted Child Quarterly*, DOI 10.1177/00169862241285593. COI: the meta-analysis itself flags author-of-test effects on reported validity.)*
-- **Cognitive ability is a strong early predictor of later achievement.** In >70,000 English children, a cognitive test at age 11 correlated **r ≈ .69 (observed) / .81 (latent)** with national exams at 16. *(Deary, Strand, Smith & Fernandes, 2007, *Intelligence*, DOI 10.1016/j.intell.2006.02.001.)*
-
-### 1.2 — What they *miss*, especially at the gifted tail
-
-- **Fixed-form tests are *least* precise exactly where the gifted decision is made.** In IRT, the conditional standard error is `SE(θ) = 1/√I(θ)`, and information peaks where items cluster (the middle). In sparse tails, information collapses and the standard error "balloons." *(Baker, 2001, *The Basics of Item Response Theory*, 2nd ed., ERIC ED458219, ch. 6; Lord, 1980, *Applications of IRT*.)*
-- **A one-shot score is a moving target.** "Approximately half of the students who score in the top 3% … in 1 year will not fall in the top 3% … in the next year," and only **~35–40% remain top-3% from grade 3 to grade 8** — regression to the mean, not merely measurement error. *(Lohman & Korb, 2006, *Journal for the Education of the Gifted*, DOI 10.4219/jeg-2006-245; corroborated by Warne, 2012, *Roeper Review*, DOI 10.1080/02783193.2012.686425.)* **Correction to the existing project register:** its "~70% not top-3% by grade 8 / ~40% one year later" phrasing overstates the fall-out; the primary source says ~half fall out in *one year* and ~60–65% over five years.
-- **One test barely reproduces another's "top" list.** CogAT Composite captured only **~32%** of the top-3% readers; Nonverbal only **~18%**. *(Lohman, 2005, *Journal for the Education of the Gifted*, DOI 10.1177/001698620504900203.)*
-- **"Culture-fair" nonverbal tests do not erase opportunity gaps.** English-language learners scored **0.5–0.67 SD lower** on Raven's, NNAT, and CogAT-Nonverbal. *(Lohman, Korb & Lakin, 2008, *Gifted Child Quarterly*, DOI 10.1177/0016986208321808.)*
-- **Spatial talent is systematically under-selected.** **70% of the top 1% in spatial ability did not make the top-1% cut on either the math or the verbal composite.** *(Wai, Lubinski & Benbow, 2009, *Journal of Educational Psychology*, DOI 10.1037/a0016127, p. 825; large stratified sample + Project TALENT, ~400,000, 11-yr longitudinal; incremental variance from spatial ≈ 4% on average but large in absolute tail counts. COI: authors are spatial-ability proponents, mitigated by the independent Project TALENT data.)*
-- **CogAT's exact upper-tail reliability, conditional error, and ceiling for the current form/norm are `[UNVERIFIED]`** — they are largely publisher-controlled; the project should obtain the technical tables before any high-stakes use. *(Flagged by research threads B and D; consistent with `docs/COGAT_GAPS_AND_TEST_SUITE_REPORT.md`.)*
-- **A hard cutoff misclassifies boundary cases *asymmetrically*.** A score is a confidence band, not a point (best practice is a 95% CI, ±2 SEM); at a high cut, regression to the mean pulls true scores *below* the threshold, so a child scoring exactly at the cut is more likely a false positive while a truly gifted child is easily pushed just under — and reliability is **lowest in young children**, exactly when screening happens. *(Standard measurement theory — AERA/APA/NCME 2014, Standards 2.14–2.16; regression: Lohman & Korb, 2006. The concrete "±3–5 IQ-point band / asymmetric error at a 130 cut" illustration is compiled in `docs/EVIDENCE_DOSSIER.md` from a secondary summary — treat as illustrative.)*
-- **A single test *plus referral* tracks family/social advantage, not just ability.** At equal measured achievement, Black students are less likely to be identified as gifted; high-achieving Black students were only ~one-third as likely to be identified when taught by a non-Black teacher. *(Grissom & Redding, 2016, *AERA Open*, DOI 10.1177/2332858415622175; via `docs/EVIDENCE_DOSSIER.md`.)*
-- **Test scores rise monotonically with family income.** On the SAT, mean total climbed from **891 (lowest census-tract income quintile) to 1148 (highest)** — a 257-point gap — with "met both benchmarks" rising 15% → 63%. *(College Board, 2023 Total Group SAT Suite Annual Report — primary; via `docs/EVIDENCE_DOSSIER.md`. Note: the SAT is an achievement test, not an ability screen — cited as illustration that scores track family advantage, relevant to H2.)*
-
-### 1.3 — How to *measure a test's quality at the tail* (the metrics that answer "how well does it capture gifted kids by score?")
-
-- **Precision is conditional, not a single reliability number.** The Test Information Function reports precision at each θ; `SE(θ) = 1/√I(θ)`. A test can be sharp mid-range and weak at the top. *(Baker, 2001, ch. 6; Embretson & Reise, 2000.)*
-- **Profile/difference scores are noisier than their parts.** Reliability of a difference (e.g., "spatial minus verbal" tilt) is lower than the reliabilities of the components — relevant to any multi-domain profile decision. *(Green, Bock, Humphreys, Linn & Reckase, 1984, *Journal of Educational Measurement*; classical difference-score result.)*
-- **Classification accuracy and consistency are the decision-level metrics.** From a single form you can estimate the % correctly classified (accuracy) and the % who would be classified the same on a parallel form (consistency). *(Livingston & Lewis, 1995, *Journal of Educational Measurement*, 32(2):179–197, DOI 10.1111/j.1745-3984.1995.tb00462.x.)* The *Standards* tie classification error directly to the **conditional SEM near the cut**. *(AERA/APA/NCME, 2014, Standards 2.14–2.16.)*
-- **Sensitivity, specificity, false-negative rate — and base rates dominate.** Because "gifted" is a low-base-rate category, positive predictive value is fragile: even an accurate test yields many misclassifications near a stringent cut. *(Meehl & Rosen, 1955, *Psychological Bulletin*, DOI 10.1037/h0048070.)*
-- **ROC / AUC** summarizes sensitivity–specificity trade-offs across all cut points. *(Hanley & McNeil, 1982, *Radiology*, DOI 10.1148/radiology.143.1.7063747.)*
-- **Incremental validity** is the bar a *second* measure must clear: it must add predictive information beyond the first, not just correlate with the outcome. *(Hunsley & Meyer, 2003, *Psychological Assessment*, DOI 10.1037/1040-3590.15.4.446.)*
-- **Fairness is measurable:** measurement invariance / Differential Item Functioning tests whether items behave the same across subgroups at equal ability. *(Meredith, 1993, *Psychometrika*, DOI 10.1007/BF02294825; Holland & Wainer, 1993, *Differential Item Functioning*.)*
-- **The rulebook:** all of the above is governed by the *Standards for Educational and Psychological Testing*. *(AERA/APA/NCME, 2014.)*
-- **The bounds that cap "2×":** reliability ≤ 1.0; an observed validity correlation ≤ `√(r_xx · r_yy)`. *(Spearman, 1904, *American Journal of Psychology*, DOI 10.2307/1412159; Lord & Novick, 1968, *Statistical Theories of Mental Test Scores*.)*
-
-### 1.4 — How the holes *can be patched* (methods, with honest maturity flags)
-
-- **Adaptive testing (CAT) — mature.** Live-testing data showed adaptive tests needed **half the items for equal reliability and ~one-third for equal validity**, produced **"measurements of equal precision at all trait levels,"** and gave **more accurate classification** than fixed forms. *(Weiss, 1982, *Applied Psychological Measurement*, DOI 10.1177/014662168200600408; Weiss & Kingsbury, 1984, DOI 10.1111/j.1745-3984.1984.tb01040.x. COI: Weiss is a commercial CAT vendor principal.)* Requires a **large IRT-calibrated item bank** + item-exposure/security controls. *(Thompson & Weiss, 2011, "A Framework for the Development of CAT," *PARE*, DOI 10.7275/wqzt-9427; van der Linden & Glas, 2010, *Elements of Adaptive Testing*, DOI 10.1007/978-0-387-85461-8; Wainer et al., 2000.)*
-- **Multistage testing (MST) — mature.** Module-based adaptivity keeps most CAT precision while allowing answer review and simpler exposure control. *(Yan, von Davier & Lewis, 2014, *Computerized Multistage Testing*.)*
-- **Above-level testing — established practice, but flagged.** Giving older-level items raises the ceiling so gifted growth is visible; the Talent Search model is fundamentally above-level. *(Assouline & Lupkowski-Shoplik, 2012, *Journal of Psychoeducational Assessment*, DOI 10.1177/0734282911433946.)* **But** it "has not been subject to careful psychometric scrutiny." *(Warne, 2014, *Gifted Child Quarterly*, DOI 10.1177/0016986213513793 — the author's own words.)*
-- **A high ceiling captures real tail variation a grade-level ceiling flattens.** Youth identified before age 13 as top-1-in-10,000 via *above-level* SAT reached striking outcomes by age 38 (**44% earned doctorates** vs. ~2% of the population), and accomplishment keeps climbing *within* the top 1% — so a ceiling that compresses the tail discards meaningful, predictive signal. *(Kell, Lubinski & Benbow, 2013, *Psychological Science*, 24(5):648–659, DOI 10.1177/0956797612457784; within-top-1% gradient: Lubinski, 2016, "From Terman to Today." Via `docs/EVIDENCE_DOSSIER.md` — which mis-dated this to 2014; corrected here.)*
-- **Vertical scaling — necessary but assumption-laden.** Scaling-method choices change the apparent growth pattern of high scorers. *(Tong & Kolen, 2007, *Applied Measurement in Education*, DOI 10.1080/08957340701301207.)*
-- **Multidimensional IRT / diagnostic models — mature theory for *profiles*, with pitfalls.** *(Reckase, 2009, *Multidimensional IRT*, DOI 10.1007/978-0-387-89976-3; Rupp, Templin & Henson, 2010, *Diagnostic Measurement* — the authors themselves flag limitations.)*
-- **A spatial patch already exists.** CTY built a Spatial Test Battery to supplement math/verbal talent searches. *(Stumpf, Mills, Brody & Baxley, 2013, *Roeper Review*, DOI 10.1080/02783193.2013.829548. COI: authors are the developers.)*
-- **Dynamic assessment / repeated measurement — promising, unproven for this use.** It measures *learning potential* rather than prior accomplishment. *(Sternberg & Grigorenko, 2002, *Dynamic Testing*.)* **No meta-analysis establishing predictive validity for K-8 gifted identification specifically was located `[gap]`.**
-- **Stealth / game-based / process-data assessment — emerging, limited evidence.** Promise: embed measurement in tasks to capture hard-to-test skills; measured convergent correlations were **modest (r ≈ 0.22–0.41)** on small samples, all proponent-generated. *(Shute & Ventura, 2013, *Stealth Assessment*; Shute & Moore validation. COI: originators.)*
-
-### 1.5 — Feasibility of a *new* test, and what "2×" can and cannot mean
-
-- **Building a standardized test is a multi-year, validation-heavy program.** Item review + tryouts on representative samples + DIF screening are required, not optional; adaptive designs additionally require large operational item pools and stopping rules. *(AERA/APA/NCME, 2014, Standards ch. 4–5.)*
-- **Calibration samples:** rules of thumb ≈ **500 for 2PL, ≈1,000 for 3PL** item calibration; de Ayala's honest answer is "it depends" on model, items, and sample. *(Hulin, Lissak & Drasgow, 1982, *Applied Psychological Measurement*, DOI 10.1177/014662168200600301; de Ayala, 2009, *The Theory and Practice of IRT*.)*
-- **Time/cost (indicative, from achievement-testing context):** ≥3 years is a common rule of thumb for a large-scale test; item creation ~$1,000–$20,000 per item; NAEP item development ≈ $16.3M/yr. *(Center for Assessment [expert blog, not peer-reviewed]; National Academies, 2022, *A Pragmatic Future for NAEP*.)*
-- **BOUNDED axes — cannot 2×:** reliability (already ~.90s, capped at 1.0) and observed criterion validity (capped at `√(r_xx · r_yy)`). *(Standards ch. 2; Spearman, 1904.)*
-- **UNBOUNDED / tail-specific axes — 2× is coherent:**
-  - **Test information at high θ** is additive and uncapped — but **halving the conditional SEM requires ~4× the information, not 2×** (since `SEM ∝ 1/√I`; doubling information cuts SEM to ≈0.707, a ~29% reduction). *(Lord, 1980; Baker, 2001.)*
-  - **False-negative rate at the cut** is a proportion in [0,1] not pinned near a ceiling, so 20% → 10% is arithmetically real. *(Standards 2.14–2.16; Livingston & Lewis, 1995.)*
-  - **Classification consistency** at the cut can rise materially. *(Livingston & Lewis, 1995.)*
-- **Precedent that adaptivity moves exactly these axes:** equal precision at all trait levels, fewer items, better classification. *(Weiss, 1982.)*
-- **A cautionary real-world case:** NWEA MAP is adaptive and reports lower SEM than fixed forms and a "very high ceiling," yet its own documents show SEM rising near the top of a level's range — adaptivity helps but does not make the tail free. Its 2025 norms draw on ~13.8M students, but expected RIT growth *compresses* in upper grades (≈6 RIT in grades 5–6 vs. ≈4 in 7–8), so raw gain understates gifted growth and conditional growth percentiles are the appropriate high-ceiling metric. *(NWEA technical documents — publisher COI; a specific numeric "effective RIT ceiling" is `[UNVERIFIED]`; RIT-compression detail via `docs/EVIDENCE_DOSSIER.md`.)*
-
-### 1.6 — Game-based / "gamified" assessment (the Roblox-style option): promise, evidence ceiling, and fairness threats
-
-- **Game-based assessment (GBA) / "stealth assessment" is a real paradigm:** embed performance tasks in a game and score process/telemetry data using evidence-centered design + Bayesian networks. *(Shute & Ventura, 2013, *Stealth Assessment*, MIT Press, DOI 10.7551/mitpress/9589.001.0001; Mislevy, Steinberg & Almond, 2003, *Measurement*, DOI 10.1207/s15366359mea0101_02.)*
-- **Roblox is a working proof-of-concept — for adults, not children.** Since 2021 Roblox has operationalized a **game-based hiring assessment** to measure "cognitive skills such as creative problem-solving and systems thinking" for entry-level engineers/PMs (practice game "Kaiju Cats"). *(EDM 2024 proceedings poster, "Identifying Off-Task Users in a Large-Scale, Game-Based Practice Assessment.")* Roblox calls it "standardized, scientifically validated" — a **`[COMPANY CLAIM]`**, not independent peer review *(Roblox Newsroom, 2025, "Fair Play")*. Population = adult job candidates; **not** a child/gifted instrument.
-- **Single-game validity looks encouraging but is proponent-generated and small-sample.** Physics Playground reported internal consistency α ≈ 0.87 and convergent r ≈ 0.22–0.41 with an external physics test *(Shute & Moore, 2017)*; Portal 2 vs. Lumosity gave problem-solving d ≈ 0.59, spatial d ≈ 0.64, persistence d ≈ 0.42 — but **adults, n = 77** *(Shute, Ventura & Ke, 2015, *Computers & Education*, DOI 10.1016/j.compedu.2014.08.013)*.
-- **The independent evidence is only moderate — and in adults.** A 2024 meta-analysis (52 samples, >6,100 people) puts the correlation between game-based assessment and traditional cognitive-ability tests at **r ≈ 0.30 (corrected ≈ 0.45), ranging −0.35 to +0.75**. *(*Journal of Intelligence*, 12(12):129, DOI 10.3390/jintelligence12120129.)*
-- **GBA is positioned as *formative/low-stakes*; high-stakes use is an open question, and no study validates it for high-stakes K-8 gifted identification (`[gap]`).** *(Shute & Sun, 2020, *Handbook of Game-Based Learning*; systematic review: Gomez, Ruipérez-Valiente & García Clemente, 2023, *IEEE Trans. Learning Technologies*, DOI 10.1109/TLT.2022.3226661.)*
-- **The fairness threat is empirically documented, not hypothetical.** Video-game experience **predicts game-based-assessment scores but not academic performance — i.e., test bias / criterion-irrelevant variance.** *(Ohlms, Hohner & Melchers, 2025, *Applied Psychology*, DOI 10.1111/apps.70038.)* In a spatial GBA, "enjoyment significantly affects one key feature," with explicit gender-subgroup concerns *(Kim et al., 2023, *BJET*, DOI 10.1111/bjet.13286)*.
-- **Commercial "games measure cognition" claims are mostly unvalidated marketing.** The one independent pymetrics audit checked only that the de-biasing *code* met the four-fifths rule and **explicitly did not test whether the games measure ability or predict performance** *(Wilson et al., 2021, ACM FAccT)*; brain-training far-transfer is weak *(Simons et al., 2016, *Psych. Science in the Public Interest*, DOI 10.1177/1529100616661983; FTC Lumosity $2M settlement, 2016)*. The one rigorously validated game — Akili's **EndeavorRx** (FDA De Novo, 2020; Kollins et al., 2020, *Lancet Digital Health*, DOI 10.1016/S2589-7500(20)30017-0) — is a narrow ADHD **treatment**, not an ability test.
-- **Minecraft's most rigorous trial was null:** a cluster RCT (N = 885) found no overall effect on spatial thinking, and a systematic review flags medium/high risk of bias across studies. *(*Computers & Education*, 2024; Slattery et al., 2025, *Review of Education*, DOI 10.1002/rev3.70035.)*
-
-### 1.7 — Learning science of eliciting a child's best performance (and whether "fun" helps *measurement*)
-
-- **Test anxiety depresses scores and adds construct-irrelevant variance — measurably, in K-8.** Achievement correlations: grades 1–5 r ≈ −.22, grades 6–8 r ≈ −.25 *(von der Embse et al., 2018, *J. Affective Disorders*, DOI 10.1016/j.jad.2017.11.048)*; a 20-year meta-analysis of **53,617 children aged 5–12** confirms the negative link *(Robson et al., 2023, *J. School Psychology*, DOI 10.1016/j.jsp.2023.02.003)*; foundational: Hembree, 1988, *Review of Educational Research*, DOI 10.3102/00346543058001047.
-- **Flow requires a challenge–skill balance:** challenge above skill breeds anxiety, below it breeds boredom — adaptive difficulty-matching is the mechanism that sustains engagement. *(Csikszentmihalyi, 1990, *Flow*.)*
-- **Extrinsic rewards can *crowd out* intrinsic motivation — and it is worse for children.** Tangible/performance rewards undermined free-choice intrinsic motivation (d ≈ −0.28 to −0.40) and were "more detrimental for children than college students"; positive *feedback* enhanced it (d ≈ 0.33). *(Deci, Koestner & Ryan, 1999, *Psychological Bulletin*, DOI 10.1037/0033-2909.125.6.627; framework: Ryan & Deci, 2000, *American Psychologist*, DOI 10.1037/0003-066X.55.1.68.)*
-- **Game interfaces can inject *extraneous* cognitive load** — working memory spent decoding controls/graphics is unavailable for the reasoning being measured. *(Sweller, 1988, DOI 10.1207/s15516709cog1202_4; Sweller, van Merriënboer & Paas, 1998/2019, DOIs 10.1023/A:1022193728205, 10.1007/s10648-019-09465-5.)*
-- **Gamification's measured benefit is real but modest and about *learning/engagement*, not measurement validity.** Cognitive g = 0.49, motivational g = 0.36, behavioral g = 0.25 (the latter two less stable) *(Sailer & Homner, 2020, *Educational Psychology Review*, DOI 10.1007/s10648-019-09498-w)*; effects are context/user-dependent with an explicit **novelty-effect** caveat *(Hamari et al., 2014, HICSS, DOI 10.1109/HICSS.2014.377)*; shorter interventions show larger effects (consistent with novelty) and some learners report anxiety/jealousy *(Bai, Hew & Huang, 2020, *Educational Research Review*, DOI 10.1016/j.edurev.2020.100322)*.
-- **Stereotype threat (contested):** the original demonstration *(Steele & Aronson, 1995, DOI 10.1037/0022-3514.69.5.797)* attenuates to negligible-to-small under operational conditions, with publication-bias signs (d ≈ −.14) *(Shewach, Sackett & Quint, 2019, DOI 10.1037/apl0000420; Flore & Wicherts, 2015)*. Treat as a **possible**, not settled, performance factor.
-
-### 1.8 — Game design/development practices migrated to test design (what transfers, and what doesn't)
-
-- **Playtesting → cognitive labs / response-process validity.** Studios playtest before ship; test developers run think-aloud "cognitive labs" to verify items elicit the intended reasoning (response-process validity). *(Leighton, 2017, *Using Think-Aloud Interviews and Cognitive Labs in Educational Research*, Oxford, DOI 10.1093/acprof:oso/9780199372904.001.0001; AERA/APA/NCME, 2014, ch. 1; game-side analog — Drachen, Mirza-Babaei & Nacke, 2018, *Games User Research*, Oxford.)*
-- **Game telemetry/analytics → process/log-data & item analytics.** Mining player telemetry maps onto assessment log/process data and item analytics. *(Seif El-Nasr, Drachen & Canossa, 2013, *Game Analytics*, Springer, DOI 10.1007/978-1-4471-4769-5; assessment side — Bergner & von Davier, 2019, *J. Educational and Behavioral Statistics*, DOI 10.3102/1076998618784700, who note response time alone can't even establish engagement.)*
-- **Level design / difficulty curves → item-difficulty sequencing & adaptive routing.** A tuned difficulty curve is formally an item-difficulty sequence; the psychometric version is adaptive routing on θ (CAT/MST). *(van der Linden & Glas, 2010; Weiss, 1982 — §1.4.)*
-- **Game balancing / live-ops tuning → equating, DIF & item-parameter-drift monitoring.** Continuously "balancing" a live game maps to ongoing calibration: item parameters *drift* over time and must be monitored, and fairness requires DIF/invariance checks. *(Bock, Muraki & Pfeiffenberger, 1988, *J. Educational Measurement*, 25(4):275–285, DOI 10.1111/j.1745-3984.1988.tb00308.x; Meredith, 1993 — §1.3.)*
-- **Live-ops A/B testing → continuous, trustworthy experimentation on items.** Disciplined online experimentation (guardrail metrics; avoiding carryover/novelty confounds) is the model for *ongoing* item tryout rather than one-shot norming. *(Kohavi, Tang & Xu, 2020, *Trustworthy Online Controlled Experiments*, Cambridge, ISBN 9781108724265.)*
-- **Procedural content generation → Automatic Item Generation (AIG).** PCG's assessment cousin generates many calibrated items from cognitive "item models" — one model produced **1,248** items in a licensure example — feeding an adaptive bank and easing exposure. *(Gierl, Lai & Turner, 2012, *Medical Education*, 46(8):757–765, DOI 10.1111/j.1365-2923.2012.04289.x; Gierl & Haladyna, 2012, *Automatic Item Generation*, Routledge, DOI 10.4324/9780203803912.)*
-- **Player/difficulty modeling → IRT, knowledge tracing, and CAT.** Games model a player's latent skill to pick the next challenge; assessment's equivalents are IRT/CAT and **knowledge tracing** (Bayesian, and neural "Deep Knowledge Tracing"). *(Corbett & Anderson, 1994/95, *User Modeling and User-Adapted Interaction*, 4(4):253–278, DOI 10.1007/BF01099821; Piech et al., 2015, *Deep Knowledge Tracing*, NeurIPS, arXiv 1506.05908; CAT — §1.4.)*
-- **"Juice" / game feel → feedback design.** The craft of responsive feedback ("game feel") maps to assessment feedback — but in a scored segment feedback must be neutral/process-focused, and **over-juicing measurably lowers performance** (§1.7). *(Swink, 2009, *Game Feel*, Morgan Kaufmann, ISBN 978-0-12-374328-2; Kao, 2020 — §1.7.)*
-- **Accessibility in games → Universal Design for Assessment & accommodations.** Design accessibility in from the start: the seven elements of Universal Design for Assessment + construct-preserving accommodations. *(Thompson, Johnstone & Thurlow, 2002, NCEO Synthesis Report 44, ERIC ED467721; AERA/APA/NCME, 2014, ch. 3.)*
-- **Anti-cheat / exposure → test security & item-exposure control.** Games fight exploits; adaptive tests fight over-exposure of their best items with exposure-control algorithms + secure delivery. *(Sympson & Hetter, 1985, Proc. 27th Military Testing Association, pp. 973–977; van der Linden & Glas, 2010 — §1.4.)*
-- **The migration has a hard limit — it transfers *engineering*, not *validity*.** Anything a game adds that moves scores but isn't the target construct is **construct-irrelevant variance**, a defined validity threat; every mapping above still has to clear the §1.3 psychometric bar. *(Haladyna & Downing, 2004, *Educational Measurement: Issues and Practice*, 23(1):17–27, DOI 10.1111/j.1745-3992.2004.tb00149.x.)*
-
-### 1.9 — The gifted-measurement toolbox beyond CogAT (instruments, their evidence, and what to borrow vs. discard)
-
-> **Cross-cutting practicality fact:** the individually-administered batteries in 1.9a are **Level-C, one-examiner-one-child** instruments (40–90+ min, graduate-trained administrator, ~$800–$1,600+ kits) — **confirmatory/diagnostic tools, not scalable universal screens.** Full per-instrument entries (with every source) are in the register's "§1.9 instrument ledger."
-
-**1.9a — Individually-administered IQ batteries (confirmatory, not screens)**
-- **WISC-V** (6:0–16:11): **Content/engine —** 10 primary + 6 secondary subtests → five indices (Verbal Comprehension, Visual-Spatial, Fluid Reasoning, Working Memory, Processing Speed), FSIQ, and the General Ability Index; fixed-form individual, norm-referenced scaled scores (not adaptive). FSIQ internal consistency ~.96; **Extended Norms (Tech Report #6)** push composites toward ~210 to differentiate the profoundly gifted, and the **GAI / Expanded GAI** strip Working Memory + Processing Speed so speed/memory don't mask reasoning. But independent CFAs show the **publisher's five-factor model fails (negative Fluid-Reasoning variance); a bifactor with dominant *g* fits best, and the group indices are "of questionable interpretive value independent of *g*."** *(Wechsler, 2014, Pearson; TR#5/#6 [PUBLISHER-COI]; Canivez, Watkins & Dombrowski, 2017, *Psychological Assessment*, DOI 10.1037/pas0000358 [independent, verified].)* **BORROW:** the extended-norm concept + a *g*-loaded reasoning composite (GAI) without WM/PS. **DISCARD:** interpreting the five index scores for selection; treating a 1:1 clinician test as a first-stage screen.
-- **WPPSI-IV** (2:6–7:7): **Content/engine —** age-banded preschool subtests → Verbal Comprehension, Visual-Spatial, Fluid Reasoning (4:0+), Working Memory, and Processing Speed indices + FSIQ; fixed-form individual. A psychometrically sound early-childhood battery, but a **lower ceiling than WISC-V** and preschool scores are inherently unstable. *(Wechsler, 2012, Pearson [COI]; Syeda & Climie, 2014, *JPA*.)* **BORROW:** developmentally appropriate low-language item formats. **DISCARD:** any single early-childhood IQ as a gate.
-- **Stanford-Binet 5** (2–85+): **Content/engine —** 10 subtests entered via a routing/adaptive-start (basal–ceiling) procedure → FSIQ, Nonverbal IQ, Verbal IQ, and five factors (Fluid Reasoning, Knowledge, Quantitative Reasoning, Visual-Spatial, Working Memory) each in verbal and nonverbal domains; change-sensitive (Rasch) scaling. Markets an Extended IQ to 225, but **independent data show it *compresses* the gifted tail** — gifted children scored significantly lower than on WISC-III with rank order not preserved, and Roid's own manual maps L-M 145 → SB5 ~122–123; **2003 norms** add Flynn inflation. *(Roid, 2003 [COI]; Minton & Pratt, 2006, *Roeper Review*, 28(4):232–236, DOI 10.1080/02783190609554369 [independent, verified].)* **BORROW:** the verbal + nonverbal parallel-routing design. **DISCARD:** SB5's stale norms + extrapolated high end for HG/PG ID — it *under-identifies* the gifted.
-- **WJ V (2025) / WJ IV Cognitive**: **Content/engine —** CHC-based cognitive tests → a General Intellectual Ability (*g*), a Gf-Gc composite, and broad CHC clusters; continuous W-score (Rasch) scoring, WJ V fully digital. Fully digital, co-normed, **current post-pandemic norms (~5,837)**, continuous W-score scoring, efficient Gf-Gc/GIA; independent review calls the psychometrics "robust" but "less convincing under six," and there are **no dedicated gifted extended norms**. *(McGrew, Mather & LaForte, 2025, Riverside [COI]; *JPA* Test Review, 2025, DOI 10.1177/07342829251395781 [independent].)* **BORROW:** the digital-native, continuously-scored, currently-normed architecture + a parsimonious Gf-Gc *g*. **DISCARD:** treating it as a high-end gifted differentiator; ignoring the hardware/access barrier.
-- **DAS-II** (2:6–17:11): **Content/engine —** 20 subtests → General Conceptual Ability + Special Nonverbal Composite + clusters (Verbal/Gc, Nonverbal Reasoning/Gf, Spatial/Gv, Working Memory, Processing Speed, School Readiness); fixed-form individual. A clean **General Conceptual Ability (g without WM/PS/knowledge dilution)** + Special Nonverbal Composite, but the **extended/gifted and early-years norms are still 2007** (only school-age was re-normed in 2023). *(Elliott, 2007 / NU 2023, Pearson [COI].)* **BORROW:** the reasoning-first GCA + SNC template. **DISCARD:** reliance on stale 2007 extended/early-years norms at the high end.
-- **KABC-II** (3:0–18:11): **Content/engine —** a dual-model engine — Luria **MPI** (excludes acquired knowledge) vs. CHC **FCI** (includes Gc), plus a Nonverbal Index — over scales Sequential/Gsm, Simultaneous/Gv, Learning/Glr, Planning/Gf, Knowledge/Gc. **MPI/NVI deliberately drop acquired-knowledge/language**, yielding smaller Black–White gaps; independent work shows MPI/NVI *over-predict* minority achievement and are therefore recommended to capture *potential* for equitable gifted placement — but the ceiling tops at 160 (no gifted extended norms) and the 2018 renorm sample is small (N=700). *(Kaufman & Kaufman, 2004 / NU 2018 [COI]; Scheiber, 2016, *Assessment*, DOI 10.1177/1073191115624545 [independent].)* **BORROW:** the reduced-cultural-loading + potential-vs-attainment framing for equity. **DISCARD:** the 160 ceiling; don't expect low-Gc indices to predict *current* achievement.
-- **RIAS-2** (3–94): **Content/engine —** 8 subtests → Composite Intelligence (CIX), Verbal (VIX), and Nonverbal (NIX) indices, plus co-normed Composite Memory and Speeded Processing; deliberately low motor/reading load. Brief (~25–45 min), low motor/reading load, indices >.90 — but independent structural work finds the RIAS is **essentially one *g* factor** (VIX/NIX/memory of limited standalone value) and it isn't accepted as a full IQ in some high-stakes uses. *(Reynolds & Kamphaus, 2015, PAR [COI]; Nelson & Canivez, 2012, *Psychological Assessment*, DOI 10.1037/a0024878 [independent].)* **BORROW:** an efficient, low-load *g* estimate for a confirmatory second stage. **DISCARD:** interpreting its sub-indices as distinct abilities; sole high-stakes use.
-
-**1.9b — Group ability & nonverbal / "culture-reduced" screens (and the culture-fair myth)**
-- **OLSAT 8** (K–12, group; SAI SD=16): **Content/engine —** multiple-choice group items across Verbal (verbal comprehension, verbal reasoning) and Nonverbal (pictorial, figural, quantitative reasoning) clusters → a School Ability Index + Verbal/Nonverbal scores; 7 grade-based levels (A–G), fixed-form. A scalable, CogAT-like verbal + nonverbal screener long used for G&T (e.g., historically NYC), but **Form-8 upper-tail precision and current subgroup evidence aren't independently published**, and its verbal load reintroduces language dependence. *(Pearson, 2003 [COI]; Buros review by Lohman — a CogAT co-author, i.e., a reverse-COI; older-form OLSAT/WISC-R predictive-bias study, ERIC ED286883 [OLDER-FORM].)* **BORROW (partial):** a proven scalable group format — but obtain the technical manual before high-stakes tail use.
-- **NNAT3** (K–12, group nonverbal; NAI): **Content/engine —** a single item type — geometric progressive matrices (48 items, ~30 min) → the Naglieri Ability Index; IRT-scaled, fixed-form, group. Single-format matrices, but manual reliabilities are only **~.80–.90 (weakest at K–3; SEM ≈ 5–7 NAI → a ±10–13 band)** exactly where it is most used, and — decisively — **independent data contradict the culture-fair claim:** ELL scored **~9.5 NAI points lower**, and a figural screen did **not** identify more underrepresented students than CogAT's nonverbal battery. *(NNAT3 manuals, 2018 [COI]; Naglieri & Ford, 2003, DOI 10.1177/001698620304700206 [author-COI]; Lohman, Korb & Lakin, 2008, DOI 10.1177/0016986208321808; Giessman, Gambrell & Stebbins, 2013, DOI 10.1177/0016986213477190 [independent].)* **DISCARD** as a universal add-on / equity fix; **BORROW** only as a narrow language-reduced alternate route.
-- **Raven's 2** (4–90, individual): **Content/engine —** nonverbal matrix-reasoning (fluid / "educative" ability) → a single standardized score; IRT-normed and Flynn-corrected; individual, digital or paper. An efficient fluid-reasoning estimate re-normed against the Flynn effect, but **individually administered (not a universal screen)**; its own author-family critique warns of residual ceiling risk at the tails, and ELL still scored ~7.5 points lower. *(Raven, Rust, Chan & Zhou, 2018, Pearson [COI]; McLeod & McCrimmon, 2021, *JPA*, DOI 10.1177/0734282920958220 [independent]; Lohman, Korb & Lakin, 2008.)* **DISCARD** for universal screening; individual language-reduced follow-up only.
-- **InView** (grades 2–12, group; CSI SD=16): **Content/engine —** five subtests (Verbal Reasoning–Words, Verbal Reasoning–Context, Sequences, Analogies, Quantitative Reasoning) → Verbal, Nonverbal, and Total scores + a Cognitive Skills Index; fixed-form, group (companion to the TerraNova achievement battery). Used in some states for gifted ID (e.g., Ohio, CSI ≥ 128), but has **essentially no independent psychometrics located** — all reliability/validity are publisher (DRC/CTB) claims. *(DRC/TerraNova [COI]; Ohio DOE approved-test list [verified use].)* **DISCARD pending independent evidence.**
-- **UNIT-2** (5:0–21:11, individual, 100% nonverbal): **Content/engine —** 100% nonverbal administration *and* response (standardized gestures; point/manipulate/mark); six subtests (Symbolic Memory, Nonsymbolic Quantity, Analogic Reasoning, Spatial Memory, Numerical Series, Cube Design) → Full Scale + Memory/Reasoning/Quantitative factors (abbreviated/standard/full batteries). Useful for deaf/ELL/2e follow-up, but independent CFA shows it is **primarily *g*, its factor indices lack unique interpretable variance, and it is non-invariant across age/gender/race.** *(Bracken & McCallum, PRO-ED [COI]; Benson, Kranzler & Floyd, 2020, *Assessment*, DOI 10.1177/1073191118786584 [independent].)* **BORROW** as an individual language-free 2e/ELL follow-up (Full-Scale *g* only). **DISCARD** as a group screen / equity fix.
-- **Leiter-3** (3–75+, individual, fully nonverbal): **Content/engine —** fully nonverbal (no spoken directions or responses); four Cognitive (fluid-reasoning) subtests → a Nonverbal IQ, plus an optional Attention/Memory battery; game-like manipulatives. A reliable global NVIQ for nonverbal/hearing-impaired follow-up, but with **no separable fluid vs. visual-spatial indices**, small criterion samples, and "culture-fairness" as a publisher claim. *(Roid, Miller, Pomplun & Koch, 2013, Stoelting [COI]; Buros/Wiese, 2014 [independent].)* **BORROW** as an individual nonverbal follow-up only.
-- **CTONI-2** (6–89, individual): **Content/engine —** six subtests — analogical reasoning, categorical classification, sequential reasoning, each in both pictorial and geometric-design contexts → a Full-Scale nonverbal IQ; individual. Independent evidence shows a **high-end ceiling — item difficulties "too low to capture individual differences" in higher-ability examinees — with weaker-than-expected reliability and achievement relations.** *(Hammill, Pearson & Wiederholt, 2009, PRO-ED [COI]; Parkin et al., 2018, *JPA*, DOI 10.1177/0734282916688792 [independent]; McGill, 2016, DOI 10.1177/0734282915610717.)* **DISCARD for gifted ID** — a ceiling exactly where selection operates (child-transfer of the adult finding is inferential).
-- **Cross-cutting (verified):** nonverbal tests are "**neither culture free nor culture fair**" (Lohman, 2005, DOI 10.1177/001698620504900203); ELL still scored **~0.5–0.67 SD lower** across Raven / CogAT-NV / NNAT (Lohman, Korb & Lakin, 2008); and both NNAT2 and CogAT-Nonverbal under-identify underrepresented groups depending on norms/cutoff (Giessman et al., 2013; Carman, Walther & Bartsch, 2018, DOI 10.1177/0016986217752097). **The "switch to a nonverbal test for equity" move is not supported by the independent data.**
-
-**1.9c — Rating scales, creativity, above-level, dynamic assessment**
-- **Teacher/parent rating scales (GRS-2, SRBCSS/Renzulli, GATES-2, HOPE):** **Content/engine —** norm-referenced (or local-norm) Likert/frequency ratings by teachers/parents — GRS-2 rates scales such as Intellectual, Academic, Creativity, Artistic, Leadership, Motivation; SRBCSS uses 6-point frequency ratings across 14 behavioral domains; GATES-2 has five 10-item scales (General Intellectual, Academic, Creativity, Leadership, Artistic); HOPE is a short 11–13-item teacher rating with Academic and Social subscales. Structured multi-domain signals, but they share a **halo / general-factor problem** (raters can't separate the purported subscales), carry meaningful **teacher-rater variance (10–25%)**, and their validity is produced largely by the **developers themselves** (Pfeiffer/GRS, Renzulli/SRBCSS, Gilliam/GATES — all COI). **HOPE** is the standout — built for low-income/diverse students, with no race/income DIF (but gender DIF; income bias in *national* norms → **use local norms**). *(GRS-2, MHS [COI]; Jabůrek et al., 2021, DOI 10.1177/0734282920970718 [halo]; McCoach et al., 2024, DOI 10.1177/00144029241247035 [rater variance]; Peters & Gentry, 2010, DOI 10.1177/0016986210378332 [HOPE].)* **BORROW:** structured multi-domain signals + HOPE's documented-and-correctable equity design — **non-decisional only.** **DISCARD:** any rating subscale as a standalone gate; GATES-2 as decisional (publisher-only evidence).
-- **Creativity — TTCT:** **Content/engine —** a timed divergent-thinking test — Verbal (fluency, flexibility, originality) and Figural (fluency, originality, elaboration, abstractness of titles, resistance to closure), rubric/hand-scored. Strong internal consistency/inter-rater reliability, but it **predicts *personal* creative achievement (r ≈ .31) far better than *public* achievement (r < .05)**, scoring is subjective/coachable, and the validity chain is proponent-run. *(Kim, 2006, *Creativity Research Journal*, DOI 10.1207/s15326934crj1801_2 [independent review]; Runco et al., 2010, DOI 10.1080/10400419.2010.523393; Torrance [COI].)* **DISCARD as a gate; BORROW** as a non-decisional creative-domain signal.
-- **Above-level testing (SMPY / talent-search model):** **Content/engine —** no bespoke instrument — it administers *older-grade, off-the-shelf tests* (e.g., SAT/ACT) to younger students for ceiling headroom, scored on the host test's scale. The **strongest longitudinal validity base in gifted ID** — age-13 above-level SAT/ACT rank-orders even *within* the top 1%, predicting doctorates/patents/tenure/income decades later (no threshold effect). *(Lubinski & Benbow, 2006, DOI 10.1111/j.1745-6916.2006.00019.x; 2021, DOI 10.1177/0016986220925447; some COI — SMPY proponents; instruments are College Board/ACT.)* **BORROW the above-level principle** (ceiling relief for high scorers) — but pair with universal screening/local norms to offset its access bias.
-- **Dynamic assessment (test–teach–retest):** **Content/engine —** a test → mediate/teach → retest (or graduated-prompt) procedure that scores learning gain and prompt-dependence rather than a static level. Measures *learning potential* and can surface underserved/2e learners, but it is examiner-dependent, low-standardization, with **no validated GT-admissions use.** *(Kirschenbaum, 1998, DOI 10.1177/001698629804200302; Dumas, McNeish & Greene, 2020, DOI 10.1080/00461520.2020.1744150.)* **BORROW as a research/process signal; DISCARD as a gate** (consistent with §1.4 and the repo's holistic report).
-
-**1.9d — Multi-criteria identification systems (the highest-leverage, lowest-COI evidence)**
-- **NAGC 2019 Standard 2:** consensus calls for multiple, technically-defensible, valid-for-purpose, non-biased measures with local norms — a **design checklist, not validity evidence.** *(NAGC, 2019.)*
-- **Local norms:** building-level norms raised Black representation ~238–300% and Hispanic/Latinx ~157–170% vs. national norms (still under-proportional); **preregistered.** *(Peters, Rambo-Hernandez, Makel, Matthews & Plucker, 2019, *AERA Open*, DOI 10.1177/2332858419848446.)* **BORROW — a low-cost, evidence-backed equity lever.**
-- **Universal screening:** testing all students (vs. referral) sharply raised identification of Black, Hispanic, FRL, and ELL students — an **access** finding, not a validity finding. *(Card & Giuliano, 2016, *PNAS*, DOI 10.1073/pnas.1605043113.)* **BORROW — the strongest referral-stage equity move.**
-- **Combination rules:** **MEAN/compensatory** yields the highest composite reliability; the **AND** rule maximizes false negatives; and the apparent "**OR** = more diverse" advantage is a **pool-size artifact** — at equal pool size, rule choice barely changes demographics. *(McBee, Peters & Waterman, 2014, DOI 10.1177/0016986213513794; Lakin, 2018, *GCQ*, 62(2):210–219, DOI 10.1177/0016986217752099 [verified; GCQ Paper of the Year].)* **BORROW the MEAN/compensatory logic; DISCARD** the belief that an OR rule fixes diversity.
-
-**1.9e — Borrow-the-best / discard-the-rest (catalog-level design synthesis):**
-- **Borrow:** adaptive + **extended-norm** high-ceiling measurement (WISC-V EGAI concept); a **reasoning-first *g* composite** excluding WM/PS/knowledge (GAI / DAS-II GCA); **reduced-cultural-loading + potential-vs-attainment** framing (KABC-II); the **above-level principle** (SMPY) for ceiling relief; **universal screening + local norms + compensatory (MEAN) combination**; **HOPE-style** documented-and-correctable equity design; and an efficient low-load confirmatory *g* (RIAS-2) for a second stage.
-- **Discard:** **any single fixed cutoff or one-shot instrument** as a gate; **nonverbal "culture-fair" tests as an equity fix** (NNAT/Raven/CTONI/UNIT/Leiter — unsupported, and several ceiling-compress or lack independent evidence); **stale-norm high-end extrapolations** (SB5 EXIQ; DAS-II 2007 extended norms); **rating/creativity subscales as standalone gates** (halo + developer-COI); and **1:1 clinician batteries as universal screens** (they are confirmatory, not scalable).
-
----
-
-
-
-### Knowledge Tree B — Selection, counterfactual design, program evidence, ethics, and evidence quality
-
-
-
-> Broad categories → sources → **DOK 1 facts** (what two analysts would extract identically) and a **DOK 2 summary** (compression in our own words, each sentence traceable to a fact). Verification flags for load-bearing citations are collected in the appendix.
-
-
+> **Key terms for the non-specialist** (used throughout the tree):
+> - **CogAT (Cognitive Abilities Test):** a widely used, group-administered school test of *developed reasoning* in three areas — Verbal, Quantitative, and Nonverbal/Figural. GT School uses it at roughly the **90th percentile** as its admissions screen.
+> - **The "gifted tail":** the top ~1–2% of the score distribution, where gifted decisions are actually made — and, as the tree shows, where tests are *least* precise.
+> - **IRT, θ, information, and SEM:** *Item Response Theory (IRT)* models a student's latent ability as **θ ("theta")**. A test's **information** is how sharply it pins down θ at a given level; the **conditional standard error of measurement (SEM ≈ 1/√information)** is the "error bar" on a score, and it *grows* in the sparse tail — so a top-end score is a band, not a point.
+> - **Regression to the mean:** because no test is perfectly reliable, students picked for an *extreme* score tend to drift back toward average on a retest — so some "top 3%" scorers drop out next year for statistical, not real, reasons.
+> - **False negative / false positive / base rate:** a *false negative* is a truly able child the screen rejects; a *false positive* is an admitted child who is not actually at the target level. The **base rate** is how rare "gifted" is — and when it is rare, even an accurate test produces many misclassifications right at the cut.
+> - **DIF / measurement invariance:** statistical fairness checks of whether a test item behaves the *same* for equally-able students from different groups.
+> - **Selection effect vs. program effect:** the central evaluation problem — did students thrive because the program *taught* them (program effect) or because it *admitted already-advantaged kids* (selection effect)?
+> - **Counterfactual:** what a student *would* have achieved *without* the program. It is never directly observed, so a study *design* must estimate it.
+> - **Regression discontinuity (RD) & LATE:** a design that compares students *just above* vs. *just below* an admission cutoff (otherwise near-identical) to estimate a causal effect **at the cutoff** — a "Local Average Treatment Effect," which need not generalize to students far above the line.
+> - **Admission lottery & intent-to-treat (ITT):** randomly assigning scarce offers among *equally-eligible* applicants so winners and losers are comparable; **ITT** then compares them by the offer they were randomly given, whether or not they enrolled — the cleanest way to separate program from selection.
 
 ### Category 1: Why GT School's CogAT Screen May Be Too Strict — The False-Negative Problem in Cognitive Selection
 
@@ -226,6 +145,8 @@ This is a deliberately disagreeing expert set, not an endorsement list. The comp
 
 
 ### Category 2: SMPY as a Design (the anchor literature)
+
+*General idea: SMPY (the Study of Mathematically Precocious Youth) is a 50-year longitudinal study that identified gifted 12–13-year-olds by "above-level" testing (giving them the SAT early) and tracked them for decades. It is the anchor evidence that **ability measured young really does predict later achievement** — the strongest case *against* this project's "the screen is too strict / selection ≠ program" thesis, so any counterfactual design must confront it rather than wish it away. It is also, by the authors' own admission, an *observational* design that cannot separate program from selection (2.4).*
 
 - **Subcategory 2.1: The Selection Mechanism & Cohort Structure**
   - **Source:** Lubinski & Benbow (2006)
@@ -365,6 +286,8 @@ This is a deliberately disagreeing expert set, not an endorsement list. The comp
 
 ### Category 4: The Motivation Hypothesis — Can Admission Select on Drive Instead of Prior Achievement?
 
+*General idea: if a narrow ability test misses talent, could "drive" — grit, growth mindset, or conscientiousness — be a fairer or additional admissions signal? This category weighs the case for and against and lands on a disciplined answer: prior ability still predicts strongly (with no plateau at the top), self-reported "grit" is weak and largely a relabeling of conscientiousness, but **conscientiousness/self-discipline measured behaviorally** is the best-validated ability-independent lever — most useful for the "behind-but-capable" students the program's tutoring model is built to help.*
+
 - **Subcategory 4.1: Grit as a Selection Signal — the case for**
   - **Source:** Duckworth et al. (2007)
     - **DOK 1 — Facts:**
@@ -410,6 +333,8 @@ This is a deliberately disagreeing expert set, not an endorsement list. The comp
 
 
 ### Category 5: GT School / Alpha — The Program and the Selection Critique
+
+*General idea: the concrete program being evaluated. GT School is the gifted branch of Alpha School — roughly 2 hours/day of adaptive "core" software plus adult "guides," admitting students through a ~90th-percentile CogAT cutoff **and** private-school tuition. Its headline growth claims (e.g., "2.6× faster") are self-reported, un-audited, and recalculate lower from the company's own public data — the double filter (ability + ability-to-pay) and the missing counterfactual are exactly the evidence gap this BrainLift exists to close.*
 
 - **Subcategory 5.1: What the Program Is**
   - **Source:** Alpha School / 2 Hour Learning marketing [COMPANY CLAIM]; Reason (Segan, 2026) [INDEPENDENT]; Wikipedia [INDEPENDENT]
@@ -518,6 +443,512 @@ This is a deliberately disagreeing expert set, not an endorsement list. The comp
     - **Source-context note (kept here as attribution/caveat, not this document's DOK 2):** The equity literature converges on a prescription that mirrors this project's design question: single-point, single-test gatekeeping is the problem, and universal screening plus multiple measures and local norms is the evidence-based remedy. The disparity critique is therefore not an argument against selection but an argument for redesigning it.
     - **Link to source:** [https://apply.jhu.edu/hopkins-insider/a-tale-of-two-cities-and-their-gifted-education-systems/](https://apply.jhu.edu/hopkins-insider/a-tale-of-two-cities-and-their-gifted-education-systems/) | [https://www.nagc.org/equity](https://www.nagc.org/equity) | [https://www.pnas.org/doi/10.1073/pnas.1605043113](https://www.pnas.org/doi/10.1073/pnas.1605043113)
 
+
+
+### Category 7: What Cognitive-Ability Tests Like CogAT Actually Measure
+
+*General idea: before critiquing the screen, be fair to it. CogAT-class tests measure real, developed reasoning and do predict school achievement moderately well — this is the steelman for the **instrument** (the steelman for cognitive **selection** is in Category 1.5). Categories 8–11 then show where the instrument breaks down at the gifted tail.*
+
+- **Subcategory 7.1: CogAT measures developed reasoning in three domains — it is not "just verbal/math"**
+  - **Source:** Riverside CogAT test descriptions (synthesized in `docs/COGAT_GAPS_AND_TEST_SUITE_REPORT.md`)
+    - **Plain-language idea:** CogAT is a group-administered reasoning test split into three "batteries." Knowing what is actually on it prevents both over-claiming and under-claiming what a cutoff captures.
+    - **DOK 1 — Facts:**
+      - The CogAT Complete Battery contains a **Verbal** battery (analogies, sentence completion, classification), a **Quantitative** battery (number analogies/puzzles/series), and a **Nonverbal/Figural** battery (figure matrices, **Paper Folding**, figure classification). It is not "just verbal/math," and it is not devoid of spatial content.
+    - **Source-context note:** Establishes the construct CogAT actually samples; the "what it misses" case (Category 8) is about *degree and tail precision*, not a claim that CogAT measures nothing spatial.
+    - **Link to source:** Riverside Insights CogAT test descriptions; synthesized in `docs/COGAT_GAPS_AND_TEST_SUITE_REPORT.md`.
+- **Subcategory 7.2: CogAT predicts achievement moderately-to-strongly**
+  - **Source:** Ozen, Pereira, Karatas, Castillo-Hermosilla & Maeda (2024)
+    - **Plain-language idea:** "Predictive validity" is how well a test's scores forecast a later outcome (here, school achievement); it is reported as a correlation *r* from 0 (no relationship) to 1 (perfect).
+    - **DOK 1 — Facts:**
+      - A meta-analysis reports a mean CogAT↔achievement validity of **r = .63, 95% CI [.57, .69]**. *(Ozen, Pereira, Karatas, Castillo-Hermosilla & Maeda, 2024, *Gifted Child Quarterly*, DOI 10.1177/00169862241285593. **COI:** the meta-analysis itself flags author-of-test effects on reported validity.)*
+    - **Source-context note:** A solid but not overwhelming correlation — and partly inflated where test authors report it — so CogAT is a good-not-perfect proxy for the achievement it is used to forecast.
+    - **Link to source:** [https://doi.org/10.1177/00169862241285593](https://doi.org/10.1177/00169862241285593)
+- **Subcategory 7.3: Cognitive ability is a strong *early* predictor of later achievement**
+  - **Source:** Deary, Strand, Smith & Fernandes (2007)
+    - **Plain-language idea:** a very large study testing whether one ability test in childhood forecasts exam results years later — the core evidence that "ability measured young" carries real signal.
+    - **DOK 1 — Facts:**
+      - In >70,000 English children, a cognitive test at age 11 correlated **r ≈ .69 (observed) / .81 (latent)** with national exams at 16. *(Deary, Strand, Smith & Fernandes, 2007, *Intelligence*, DOI 10.1016/j.intell.2006.02.001.)*
+    - **Source-context note:** The strongest single-number case *for* ability screening (it recurs as the steelman in Categories 1.5 and 4.4); any argument to broaden the screen must contend with it rather than wish it away.
+    - **Link to source:** [https://doi.org/10.1016/j.intell.2006.02.001](https://doi.org/10.1016/j.intell.2006.02.001)
+
+
+
+### Category 8: What These Tests Miss — Especially at the Gifted "Tail"
+
+*General idea: the same test that predicts achievement on average becomes imprecise and incomplete exactly at the top ~1–2%, where gifted decisions are made. Category 1 details the false-negative consequence for **selection**; Category 6 details **who** is missed by race/class; this category is the **measurement** root cause.*
+
+- **Subcategory 8.1: Fixed-form tests are *least* precise exactly where the gifted decision is made**
+  - **Source:** Baker (2001); Lord (1980)
+    - **Plain-language idea:** every test measures the middle of the ability range best (most items sit there); at the extremes it has few items, so its "error bar" balloons — the opposite of what a top-1% cutoff needs.
+    - **DOK 1 — Facts:**
+      - In IRT, the conditional standard error is **`SE(θ) = 1/√I(θ)`**, and information *I(θ)* peaks where items cluster (the middle). In sparse tails, information collapses and the standard error balloons. *(Baker, 2001, *The Basics of Item Response Theory*, 2nd ed., ERIC ED458219, ch. 6; Lord, 1980, *Applications of IRT to Practical Testing Problems*.)*
+    - **Source-context note:** This is the mathematical reason a single fixed-form cut is weakest exactly at the gifted threshold — and the seed of the "adaptive testing can do 2× better *at the tail*" argument (Categories 10–11).
+    - **Link to source:** [https://files.eric.ed.gov/fulltext/ED458219.pdf](https://files.eric.ed.gov/fulltext/ED458219.pdf)
+- **Subcategory 8.2: A one-shot score is a moving target (regression to the mean + real change)**
+  - **Source:** Lohman & Korb (2006); Warne (2012)
+    - **Plain-language idea:** because a top score partly reflects a good day, many top scorers "fall out" of the top tier on a later test — not because they changed, but because extreme scores drift back toward average.
+    - **DOK 1 — Facts:**
+      - "Approximately half of the students who score in the top 3% … in 1 year will not fall in the top 3% … in the next year," and only **~35–40% remain top-3% from grade 3 to grade 8** (≈60–65% fall out over that interval) — regression to the mean plus real developmental change, not merely measurement error. *(Lohman & Korb, 2006, *Journal for the Education of the Gifted*, DOI 10.4219/jeg-2006-245; corroborated by Warne, 2012, *Roeper Review*, DOI 10.1080/02783193.2012.686425.)*
+      - **Correction to the project register:** its "~70% not top-3% by grade 8 / ~40% one year later" phrasing overstates the fall-out; the primary source says ~half fall out in *one year* and ~60–65% over five years. (Same correction is carried in Category 1.2.)
+    - **Source-context note:** A screen applied once, at entry, locks in a snapshot that a large fraction of eventual high achievers would fail *at that moment* even if they would clear it later — the instability that Category 1.2 turns into a selection critique.
+    - **Link to source:** [https://files.eric.ed.gov/fulltext/EJ746292.pdf](https://files.eric.ed.gov/fulltext/EJ746292.pdf) | [https://doi.org/10.1080/02783193.2012.686425](https://doi.org/10.1080/02783193.2012.686425)
+- **Subcategory 8.3: One test barely reproduces another's "top" list**
+  - **Source:** Lohman (2005)
+    - **Plain-language idea:** even two tests that correlate highly disagree sharply about *who* is in the top few percent — so "the gifted kids" is really "the kids this one test ranked highly."
+    - **DOK 1 — Facts:**
+      - Of students in the top 3% on an achievement criterion, CogAT Composite captured only **~32%** of the top readers; CogAT Nonverbal only **~18%**. *(Lohman, 2005, *Journal for the Education of the Gifted*, DOI 10.1177/001698620504900203.)*
+    - **Source-context note:** Detailed with the underlying identification tables in Category 1.1; here it is the *measurement* fact (tests disagree at extremes), there it is the *selection* consequence (a single screen misses most "best" kids).
+    - **Link to source:** [https://doi.org/10.1177/001698620504900203](https://doi.org/10.1177/001698620504900203)
+- **Subcategory 8.4: "Culture-fair" nonverbal tests do not erase opportunity gaps**
+  - **Source:** Lohman, Korb & Lakin (2008)
+    - **Plain-language idea:** switching to a picture/shape-based "nonverbal" test is often sold as an equity fix; the data say it still leaves large gaps for English-language learners.
+    - **DOK 1 — Facts:**
+      - English-language learners scored **0.5–0.67 SD lower** on Raven's, NNAT, and CogAT-Nonverbal. *(Lohman, Korb & Lakin, 2008, *Gifted Child Quarterly*, DOI 10.1177/0016986208321808.)*
+    - **Source-context note:** The "switch to nonverbal for equity" move is not supported by the independent data — expanded in Categories 6.2 and 15.1b.
+    - **Link to source:** [https://doi.org/10.1177/0016986208321808](https://doi.org/10.1177/0016986208321808)
+- **Subcategory 8.5: Spatial talent is systematically under-selected**
+  - **Source:** Wai, Lubinski & Benbow (2009)
+    - **Plain-language idea:** "spatial ability" (mentally rotating/visualizing objects) predicts STEM success but is barely used in selection — so a verbal/math cutoff is blind to a whole class of talent.
+    - **DOK 1 — Facts:**
+      - **70% of the top 1% in spatial ability did not make the top-1% cut on either the math or the verbal composite.** *(Wai, Lubinski & Benbow, 2009, *Journal of Educational Psychology*, DOI 10.1037/a0016127, p. 825; large stratified sample + Project TALENT, ~400,000, 11-yr longitudinal; incremental variance from spatial ≈ 4% on average but large in absolute tail counts. **COI:** authors are spatial-ability proponents, mitigated by the independent Project TALENT data.)*
+    - **Source-context note:** The same finding anchors the "screen misses an entire ability dimension" argument in Category 1.6; the *patch* (a validated spatial battery) is in Category 10.7.
+    - **Link to source:** [https://doi.org/10.1037/a0016127](https://doi.org/10.1037/a0016127)
+- **Subcategory 8.6: CogAT's exact upper-tail precision is publisher-controlled and `[UNVERIFIED]`**
+  - **Source:** Project research threads; `docs/COGAT_GAPS_AND_TEST_SUITE_REPORT.md`
+    - **Plain-language idea:** we cannot independently confirm how precise CogAT is at the very top because the needed technical tables are proprietary.
+    - **DOK 1 — Facts:**
+      - **CogAT's exact upper-tail reliability, conditional error, and ceiling for the current form/norm are `[UNVERIFIED]`** — largely publisher-controlled; the project should obtain the technical tables before any high-stakes use. *(Flagged by research threads; consistent with `docs/COGAT_GAPS_AND_TEST_SUITE_REPORT.md`.)*
+    - **Source-context note:** A material evidence gap: several tail claims in this tree cannot be pinned to CogAT's *current* form without these tables.
+    - **Link to source:** `docs/COGAT_GAPS_AND_TEST_SUITE_REPORT.md`.
+- **Subcategory 8.7: A hard cutoff misclassifies boundary cases *asymmetrically***
+  - **Source:** AERA/APA/NCME (2014) Standards 2.14–2.16; Lohman & Korb (2006); `docs/EVIDENCE_DOSSIER.md`
+    - **Plain-language idea:** a score is a fuzzy band, not a point; right at a high cut, statistical drift makes a child *at* the line more likely a false positive and a truly gifted child easily pushed just under — and tests are least reliable in the youngest children, exactly when screening happens.
+    - **DOK 1 — Facts:**
+      - A score is a confidence band, not a point (best practice ≈ a 95% CI, ±2 SEM); at a high cut, regression to the mean pulls true scores *below* the threshold, so a child scoring exactly at the cut is more likely a false positive while a truly gifted child is easily pushed just under — and reliability is **lowest in young children**. *(Standard measurement theory — AERA/APA/NCME, 2014, Standards 2.14–2.16; regression: Lohman & Korb, 2006. The concrete "±3–5 IQ-point band / asymmetric error at a 130 cut" illustration is compiled in `docs/EVIDENCE_DOSSIER.md` from a secondary summary — treat as illustrative.)*
+    - **Source-context note:** Turns "the cutoff is arbitrary" from rhetoric into measurement theory; the decision-metric version (classification accuracy/consistency at the cut) is in Category 9.3.
+    - **Link to source:** `docs/EVIDENCE_DOSSIER.md`; AERA/APA/NCME (2014) *Standards*.
+- **Subcategory 8.8: A single test *plus referral* tracks family/social advantage, not just ability**
+  - **Source:** Grissom & Redding (2016); `docs/EVIDENCE_DOSSIER.md`
+    - **Plain-language idea:** who gets *referred* for testing is itself biased, so the pipeline encodes advantage before the test is even scored.
+    - **DOK 1 — Facts:**
+      - At equal measured achievement, Black students are less likely to be identified as gifted; high-achieving Black students were only ~one-third as likely to be identified when taught by a non-Black teacher. *(Grissom & Redding, 2016, *AERA Open*, DOI 10.1177/2332858415622175; via `docs/EVIDENCE_DOSSIER.md`.)*
+    - **Source-context note:** Fully developed in Categories 1.5 and 6.1; here it flags that "the test" is never used alone — the referral stage is part of the instrument's real-world behavior.
+    - **Link to source:** [https://doi.org/10.1177/2332858415622175](https://doi.org/10.1177/2332858415622175)
+- **Subcategory 8.9: Test scores rise monotonically with family income**
+  - **Source:** College Board (2023); `docs/EVIDENCE_DOSSIER.md`
+    - **Plain-language idea:** the higher a family's income, the higher the average score — so a score cutoff partly sorts on money.
+    - **DOK 1 — Facts:**
+      - On the SAT, mean total climbed from **891 (lowest census-tract income quintile) to 1148 (highest)** — a 257-point gap — with "met both benchmarks" rising 15% → 63%. *(College Board, 2023 Total Group SAT Suite Annual Report — primary; via `docs/EVIDENCE_DOSSIER.md`.)*
+    - **Source-context note:** The SAT is an achievement test, not an ability screen — cited as illustration that scores track family advantage; the developmental mechanism (not test-prep) is detailed in Category 6.3.
+    - **Link to source:** College Board (2023) Total Group SAT Suite Annual Report.
+
+
+
+### Category 9: How to Measure a Test's Quality *at the Tail* — the Metrics That Answer "How Well Does It Capture Gifted Kids by Score?"
+
+*General idea: "reliability" and "validity" as single numbers are not enough for a top-1% decision. This category is the toolbox of metrics that judge a test **at the cut** — and it defines the yardsticks any "2× better" claim (Category 11) must use.*
+
+- **Subcategory 9.1: Precision is *conditional*, not one reliability number**
+  - **Source:** Baker (2001); Embretson & Reise (2000)
+    - **Plain-language idea:** the right question is not "how reliable is the test?" but "how precise is it *at the score that matters*?" — a test can be sharp in the middle and blurry at the top.
+    - **DOK 1 — Facts:**
+      - The **Test Information Function** reports precision at each ability level θ, with `SE(θ) = 1/√I(θ)`; a test can be precise mid-range and weak at the top. *(Baker, 2001, ch. 6; Embretson & Reise, 2000, *Item Response Theory for Psychologists*.)*
+    - **Source-context note:** The organizing metric for the whole category; "conditional SEM at the cut" is the honest replacement for a single reliability coefficient.
+    - **Link to source:** [https://files.eric.ed.gov/fulltext/ED458219.pdf](https://files.eric.ed.gov/fulltext/ED458219.pdf)
+- **Subcategory 9.2: Profile/difference scores are noisier than their parts**
+  - **Source:** Green, Bock, Humphreys, Linn & Reckase (1984)
+    - **Plain-language idea:** a "he's more spatial than verbal" tilt score is less reliable than either score alone — so multi-domain profile decisions carry extra error.
+    - **DOK 1 — Facts:**
+      - The reliability of a *difference* (e.g., "spatial minus verbal" tilt) is lower than the reliabilities of the components. *(Green, Bock, Humphreys, Linn & Reckase, 1984, *Journal of Educational Measurement*; classical difference-score result.)*
+    - **Source-context note:** A caution for any profile-based gifted rule (and for the multidimensional models in Category 10.6).
+    - **Link to source:** Green et al. (1984), *Journal of Educational Measurement*.
+- **Subcategory 9.3: Classification accuracy and consistency are the *decision-level* metrics**
+  - **Source:** Livingston & Lewis (1995); AERA/APA/NCME (2014)
+    - **Plain-language idea:** what a gifted program cares about is not the score but the *decision* — "how often is the pass/fail call correct (accuracy) and how often would the same child get the same call on a parallel form (consistency)?"
+    - **DOK 1 — Facts:**
+      - From a single form you can estimate the % correctly classified (**accuracy**) and the % who would be classified the same on a parallel form (**consistency**). *(Livingston & Lewis, 1995, *Journal of Educational Measurement*, 32(2):179–197, DOI 10.1111/j.1745-3984.1995.tb00462.x.)*
+      - The *Standards* tie classification error directly to the **conditional SEM near the cut**. *(AERA/APA/NCME, 2014, Standards 2.14–2.16.)*
+    - **Source-context note:** These are the metrics a "2× fewer misclassifications at the cut" claim would use (Category 11.5).
+    - **Link to source:** [https://doi.org/10.1111/j.1745-3984.1995.tb00462.x](https://doi.org/10.1111/j.1745-3984.1995.tb00462.x)
+- **Subcategory 9.4: Sensitivity, specificity, false-negative rate — and base rates dominate**
+  - **Source:** Meehl & Rosen (1955)
+    - **Plain-language idea:** because "gifted" is rare, even a good test produces lots of wrong calls near the cut — a counterintuitive but decisive statistical fact.
+    - **DOK 1 — Facts:**
+      - Because "gifted" is a low-base-rate category, **positive predictive value is fragile**: even an accurate test yields many misclassifications near a stringent cut. *(Meehl & Rosen, 1955, *Psychological Bulletin*, DOI 10.1037/h0048070.)*
+    - **Source-context note:** The base-rate reality behind why a stringent cut with high specificity still misses many able children (and why a "2×" claim must be stated at the cut, Category 11).
+    - **Link to source:** [https://doi.org/10.1037/h0048070](https://doi.org/10.1037/h0048070)
+- **Subcategory 9.5: ROC / AUC summarizes the sensitivity–specificity trade-off**
+  - **Source:** Hanley & McNeil (1982)
+    - **Plain-language idea:** a single curve/number describing how well a test separates two groups across *every* possible cut point.
+    - **DOK 1 — Facts:**
+      - **ROC / AUC** summarizes sensitivity–specificity trade-offs across all cut points. *(Hanley & McNeil, 1982, *Radiology*, DOI 10.1148/radiology.143.1.7063747.)*
+    - **Source-context note:** Useful for comparing instruments, but it is a *whole-range* summary — for a top-1% decision the *tail* portion of the curve matters more than the overall area.
+    - **Link to source:** [https://doi.org/10.1148/radiology.143.1.7063747](https://doi.org/10.1148/radiology.143.1.7063747)
+- **Subcategory 9.6: Incremental validity is the bar a *second* measure must clear**
+  - **Source:** Hunsley & Meyer (2003)
+    - **Plain-language idea:** adding a new test (say, a spatial or motivation measure) is only worth it if it predicts the outcome *beyond* what CogAT already predicts — not just correlates with it.
+    - **DOK 1 — Facts:**
+      - A second measure must **add predictive information beyond the first**, not merely correlate with the outcome. *(Hunsley & Meyer, 2003, *Psychological Assessment*, DOI 10.1037/1040-3590.15.4.446.)*
+    - **Source-context note:** The formal test any "multiple-measures" expansion (spatial, conscientiousness) must pass; recurs in Category 4.5's caution about range restriction.
+    - **Link to source:** [https://doi.org/10.1037/1040-3590.15.4.446](https://doi.org/10.1037/1040-3590.15.4.446)
+- **Subcategory 9.7: Fairness is measurable — DIF / measurement invariance**
+  - **Source:** Meredith (1993); Holland & Wainer (1993)
+    - **Plain-language idea:** you can statistically test whether a test item is "harder" for one group than another *at equal ability* — a direct bias check.
+    - **DOK 1 — Facts:**
+      - **Measurement invariance / Differential Item Functioning (DIF)** tests whether items behave the same across subgroups at equal ability. *(Meredith, 1993, *Psychometrika*, DOI 10.1007/BF02294825; Holland & Wainer, 1993, *Differential Item Functioning*.)*
+    - **Source-context note:** The measurement-side fairness tool (distinct from the *impact*-side equity data in Category 6); a new test would have to clear this bar.
+    - **Link to source:** [https://doi.org/10.1007/BF02294825](https://doi.org/10.1007/BF02294825)
+- **Subcategory 9.8: The rulebook — the *Standards for Educational and Psychological Testing***
+  - **Source:** AERA/APA/NCME (2014)
+    - **Plain-language idea:** the profession's governing manual for what counts as a valid, fair, defensible test — the authority every other metric here answers to.
+    - **DOK 1 — Facts:**
+      - All of the above is governed by the *Standards for Educational and Psychological Testing*. *(AERA/APA/NCME, 2014.)*
+    - **Source-context note:** Cited throughout the tree (Categories 9, 11, and the cut-score/validity arguments) as the neutral rulebook.
+    - **Link to source:** AERA/APA/NCME (2014), *Standards for Educational and Psychological Testing*.
+- **Subcategory 9.9: The bounds that *cap* "2×"**
+  - **Source:** Spearman (1904); Lord & Novick (1968)
+    - **Plain-language idea:** some quality numbers have hard ceilings (reliability can't exceed 1.0; an observed validity can't exceed the square root of the two reliabilities), so you literally *cannot* double them — a fact that disciplines the "2× better" goal.
+    - **DOK 1 — Facts:**
+      - Reliability ≤ 1.0; an observed validity correlation ≤ **`√(r_xx · r_yy)`**. *(Spearman, 1904, *American Journal of Psychology*, DOI 10.2307/1412159; Lord & Novick, 1968, *Statistical Theories of Mental Test Scores*.)*
+    - **Source-context note:** The mathematical reason a "2× better test" must be defined on *unbounded, tail-specific* axes (information, false-negative rate) — see Category 11.
+    - **Link to source:** [https://doi.org/10.2307/1412159](https://doi.org/10.2307/1412159)
+
+
+
+### Category 10: How the Gaps *Can Be Patched* — Methods and Their Maturity
+
+*General idea: most weaknesses in Categories 8–9 have known fixes, but the fixes differ sharply in how well-validated they are. Each item is flagged **mature**, **established-but-flagged**, or **emerging/unproven** so the project does not treat a promising idea as a proven one.*
+
+- **Subcategory 10.1: Adaptive testing (CAT) — *mature***
+  - **Source:** Weiss (1982); Weiss & Kingsbury (1984); Thompson & Weiss (2011); van der Linden & Glas (2010); Wainer et al. (2000)
+    - **Plain-language idea:** a computer-adaptive test picks each next question based on how you have answered so far, so it can measure the very top precisely with fewer items — directly attacking the tail-imprecision problem of Category 8.1.
+    - **DOK 1 — Facts:**
+      - Live-testing data showed adaptive tests needed **half the items for equal reliability and ~one-third for equal validity**, produced **"measurements of equal precision at all trait levels,"** and gave **more accurate classification** than fixed forms. *(Weiss, 1982, *Applied Psychological Measurement*, DOI 10.1177/014662168200600408; Weiss & Kingsbury, 1984, DOI 10.1111/j.1745-3984.1984.tb01040.x. **COI:** Weiss is a commercial CAT vendor principal.)*
+      - Requires a **large IRT-calibrated item bank** + item-exposure/security controls. *(Thompson & Weiss, 2011, "A Framework for the Development of CAT," *PARE*, DOI 10.7275/wqzt-9427; van der Linden & Glas, 2010, *Elements of Adaptive Testing*, DOI 10.1007/978-0-387-85461-8; Wainer et al., 2000.)*
+    - **Source-context note:** The single most important patch — and the concrete mechanism behind a defensible "better at the tail" claim (Category 11.6) — but its vendor-sourced efficiency numbers should be read with the COI in mind.
+    - **Link to source:** [https://doi.org/10.1177/014662168200600408](https://doi.org/10.1177/014662168200600408) | [https://doi.org/10.7275/wqzt-9427](https://doi.org/10.7275/wqzt-9427)
+- **Subcategory 10.2: Multistage testing (MST) — *mature***
+  - **Source:** Yan, von Davier & Lewis (2014)
+    - **Plain-language idea:** a "modular" cousin of CAT that adapts in blocks of items rather than one at a time — keeping most of the precision while allowing answer review and simpler security.
+    - **DOK 1 — Facts:**
+      - Module-based adaptivity keeps most CAT precision while allowing answer review and simpler exposure control. *(Yan, von Davier & Lewis, 2014, *Computerized Multistage Testing*.)*
+    - **Source-context note:** A practical middle ground for a young-child gifted screen where fully item-by-item adaptivity is operationally hard.
+    - **Link to source:** Yan, von Davier & Lewis (2014), *Computerized Multistage Testing: Theory and Applications*.
+- **Subcategory 10.3: Above-level testing — *established practice, but flagged***
+  - **Source:** Assouline & Lupkowski-Shoplik (2012); Warne (2014)
+    - **Plain-language idea:** give gifted kids *older-grade* items so the test has "headroom" and their true level shows — the core trick of talent searches like SMPY.
+    - **DOK 1 — Facts:**
+      - Giving older-level items raises the ceiling so gifted growth is visible; the Talent Search model is fundamentally above-level. *(Assouline & Lupkowski-Shoplik, 2012, *Journal of Psychoeducational Assessment*, DOI 10.1177/0734282911433946.)*
+      - **But** it "has not been subject to careful psychometric scrutiny." *(Warne, 2014, *Gifted Child Quarterly*, DOI 10.1177/0016986213513793 — the author's own words.)*
+    - **Source-context note:** Strong track record for identification (Category 2/SMPY), but the *psychometric* validation is thinner than its popularity implies.
+    - **Link to source:** [https://doi.org/10.1177/0734282911433946](https://doi.org/10.1177/0734282911433946) | [https://doi.org/10.1177/0016986213513793](https://doi.org/10.1177/0016986213513793)
+- **Subcategory 10.4: A high ceiling captures real tail variation a grade-level ceiling flattens**
+  - **Source:** Kell, Lubinski & Benbow (2013); Lubinski (2016)
+    - **Plain-language idea:** differences *within* the top 1% are real and predictive, so a test that "tops out" throws away meaningful signal.
+    - **DOK 1 — Facts:**
+      - Youth identified before age 13 as top-1-in-10,000 via *above-level* SAT reached striking outcomes by age 38 (**44% earned doctorates** vs. ~2% of the population), and accomplishment keeps climbing *within* the top 1%. *(Kell, Lubinski & Benbow, 2013, *Psychological Science*, 24(5):648–659, DOI 10.1177/0956797612457784; within-top-1% gradient: Lubinski, 2016, "From Terman to Today." Via `docs/EVIDENCE_DOSSIER.md`, which mis-dated this to 2014; corrected here.)*
+    - **Source-context note:** The evidentiary case for a high ceiling; the same SMPY finding is the "ability predicts attainment" steelman in Category 2.3.
+    - **Link to source:** [https://doi.org/10.1177/0956797612457784](https://doi.org/10.1177/0956797612457784)
+- **Subcategory 10.5: Vertical scaling — *necessary but assumption-laden***
+  - **Source:** Tong & Kolen (2007)
+    - **Plain-language idea:** putting different grade levels on one common yardstick (needed to track growth) involves modeling choices that can themselves change the apparent growth of high scorers.
+    - **DOK 1 — Facts:**
+      - Scaling-method choices change the apparent growth pattern of high scorers. *(Tong & Kolen, 2007, *Applied Measurement in Education*, DOI 10.1080/08957340701301207.)*
+    - **Source-context note:** A hidden degree of freedom behind any "growth" claim (relevant to the MAP-growth outcome debated in Categories 5.2 and 11.7).
+    - **Link to source:** [https://doi.org/10.1080/08957340701301207](https://doi.org/10.1080/08957340701301207)
+- **Subcategory 10.6: Multidimensional IRT / diagnostic models — *mature theory for profiles, with pitfalls***
+  - **Source:** Reckase (2009); Rupp, Templin & Henson (2010)
+    - **Plain-language idea:** models that score *several* abilities at once (a profile) rather than one number — useful for capturing spatial+verbal+quant, but harder to keep reliable (see Category 9.2).
+    - **DOK 1 — Facts:**
+      - Multidimensional IRT and diagnostic classification models are mature theory for *profiles*, with documented pitfalls the authors themselves flag. *(Reckase, 2009, *Multidimensional IRT*, DOI 10.1007/978-0-387-89976-3; Rupp, Templin & Henson, 2010, *Diagnostic Measurement*.)*
+    - **Source-context note:** The technical basis for a multi-domain gifted profile — but difference-score noise (9.2) caps how much a profile can be trusted for individual decisions.
+    - **Link to source:** [https://doi.org/10.1007/978-0-387-89976-3](https://doi.org/10.1007/978-0-387-89976-3)
+- **Subcategory 10.7: A spatial patch already exists**
+  - **Source:** Stumpf, Mills, Brody & Baxley (2013)
+    - **Plain-language idea:** you don't have to invent spatial measurement — a validated spatial battery was already built to supplement math/verbal talent searches.
+    - **DOK 1 — Facts:**
+      - CTY built a **Spatial Test Battery** to supplement math/verbal talent searches. *(Stumpf, Mills, Brody & Baxley, 2013, *Roeper Review*, DOI 10.1080/02783193.2013.829548. **COI:** authors are the developers.)*
+    - **Source-context note:** The concrete remedy for the spatial gap of Categories 8.5 / 1.6 — an add-on, not a reason to rebuild CogAT.
+    - **Link to source:** [https://doi.org/10.1080/02783193.2013.829548](https://doi.org/10.1080/02783193.2013.829548)
+- **Subcategory 10.8: Dynamic assessment / repeated measurement — *promising, unproven for this use***
+  - **Source:** Sternberg & Grigorenko (2002)
+    - **Plain-language idea:** instead of testing what a child already knows, test how quickly they *learn* when taught — capturing "potential" rather than prior advantage.
+    - **DOK 1 — Facts:**
+      - It measures *learning potential* rather than prior accomplishment. *(Sternberg & Grigorenko, 2002, *Dynamic Testing*.)* **No meta-analysis establishing predictive validity for K-8 gifted identification specifically was located `[gap]`.**
+    - **Source-context note:** Conceptually attractive for equity (Category 15.3), but not validated as a gate — treat as a research signal.
+    - **Link to source:** Sternberg & Grigorenko (2002), *Dynamic Testing: The Nature and Measurement of Learning Potential*.
+- **Subcategory 10.9: Stealth / game-based / process-data assessment — *emerging, limited evidence***
+  - **Source:** Shute & Ventura (2013); Shute & Moore
+    - **Plain-language idea:** embed the measurement inside a task/game and score the *process* (how the child plays), not just the answer — the bridge to Category 12.
+    - **DOK 1 — Facts:**
+      - Promise: embed measurement in tasks to capture hard-to-test skills; measured convergent correlations were **modest (r ≈ 0.22–0.41)** on small samples, all proponent-generated. *(Shute & Ventura, 2013, *Stealth Assessment*; Shute & Moore validation. **COI:** originators.)*
+    - **Source-context note:** Included here as a *candidate patch*; its promise, evidence ceiling, and fairness threats are examined in depth in Category 12.
+    - **Link to source:** Shute & Ventura (2013), *Stealth Assessment: Measuring and Supporting Learning in Video Games*, MIT Press.
+
+
+
+### Category 11: Feasibility of a "Better" Test — and What "2×" *Can* and *Cannot* Mean
+
+*General idea: this category disciplines the founding goal ("a test ~2× better than CogAT"). It separates the real cost of building a validated test from the mathematical question of *which* quality axes can even be doubled — the honest home for a "2×" claim is a tail-specific, unbounded metric, not "2× validity."*
+
+- **Subcategory 11.1: Building a standardized test is a multi-year, validation-heavy program**
+  - **Source:** AERA/APA/NCME (2014), Standards ch. 4–5
+    - **Plain-language idea:** a defensible test isn't just good questions — it requires reviews, tryouts on representative samples, and bias screening, all of which take years.
+    - **DOK 1 — Facts:**
+      - Item review + tryouts on representative samples + DIF screening are required, not optional; adaptive designs additionally require large operational item pools and stopping rules. *(AERA/APA/NCME, 2014, Standards ch. 4–5.)*
+    - **Source-context note:** The reason "build our own test" is a multi-year commitment, not a sprint (bridges to Category 15's "borrow existing instruments" option).
+    - **Link to source:** AERA/APA/NCME (2014), *Standards*, ch. 4–5.
+- **Subcategory 11.2: Calibration samples**
+  - **Source:** Hulin, Lissak & Drasgow (1982); de Ayala (2009)
+    - **Plain-language idea:** to "calibrate" each item (estimate its difficulty/discrimination) you need enough test-takers — hundreds to thousands, depending on the model.
+    - **DOK 1 — Facts:**
+      - Rules of thumb ≈ **500 for 2PL, ≈1,000 for 3PL** item calibration; de Ayala's honest answer is "it depends" on model, items, and sample. *(Hulin, Lissak & Drasgow, 1982, *Applied Psychological Measurement*, DOI 10.1177/014662168200600301; de Ayala, 2009, *The Theory and Practice of IRT*.)*
+    - **Source-context note:** A concrete data requirement for any new adaptive bank — nontrivial at a small school.
+    - **Link to source:** [https://doi.org/10.1177/014662168200600301](https://doi.org/10.1177/014662168200600301)
+- **Subcategory 11.3: Time / cost (indicative)**
+  - **Source:** Center for Assessment (expert blog); National Academies (2022)
+    - **Plain-language idea:** rough industry figures for what a serious test costs and how long it takes.
+    - **DOK 1 — Facts:**
+      - ≥3 years is a common rule of thumb for a large-scale test; item creation ~$1,000–$20,000 per item; NAEP item development ≈ $16.3M/yr. *(Center for Assessment [expert blog, not peer-reviewed]; National Academies, 2022, *A Pragmatic Future for NAEP*.)*
+    - **Source-context note:** Indicative, drawn from large-scale achievement testing — a scale check, not a precise GT budget.
+    - **Link to source:** National Academies (2022), *A Pragmatic Future for NAEP*.
+- **Subcategory 11.4: BOUNDED axes — you *cannot* 2×**
+  - **Source:** AERA/APA/NCME (2014) Standards ch. 2; Spearman (1904)
+    - **Plain-language idea:** reliability and observed validity are already high and capped, so "2× the validity" is not even mathematically possible.
+    - **DOK 1 — Facts:**
+      - Reliability (already ~.90s, capped at 1.0) and observed criterion validity (capped at `√(r_xx · r_yy)`) cannot be doubled. *(Standards ch. 2; Spearman, 1904.)*
+    - **Source-context note:** Rules out the naïve reading of the founding goal; forces the claim onto the axes in 11.5.
+    - **Link to source:** AERA/APA/NCME (2014) *Standards* ch. 2; Spearman (1904).
+- **Subcategory 11.5: UNBOUNDED / tail-specific axes — where "2×" *is* coherent**
+  - **Source:** Lord (1980); Baker (2001); Livingston & Lewis (1995); AERA/APA/NCME (2014)
+    - **Plain-language idea:** some quality measures *aren't* capped and live exactly at the tail — you can genuinely double the test's information at the cut, or halve how many gifted kids it misses.
+    - **DOK 1 — Facts:**
+      - **Test information at high θ** is additive and uncapped — but **halving the conditional SEM requires ~4× the information, not 2×** (since `SEM ∝ 1/√I`; doubling information cuts SEM to ≈0.707, a ~29% reduction). *(Lord, 1980; Baker, 2001.)*
+      - **False-negative rate at the cut** is a proportion in [0,1] not pinned near a ceiling, so 20% → 10% is arithmetically real. *(Standards 2.14–2.16; Livingston & Lewis, 1995.)*
+      - **Classification consistency** at the cut can rise materially. *(Livingston & Lewis, 1995.)*
+    - **Source-context note:** The defensible operationalization of the founding goal — and it matches the DOK-4 discipline that the only honest "2×" is a false-negative reduction at the cut.
+    - **Link to source:** Lord (1980); [https://doi.org/10.1111/j.1745-3984.1995.tb00462.x](https://doi.org/10.1111/j.1745-3984.1995.tb00462.x)
+- **Subcategory 11.6: Precedent that adaptivity moves exactly these axes**
+  - **Source:** Weiss (1982)
+    - **Plain-language idea:** the "equal precision at all levels + fewer items + better classification" result (Category 10.1) is precisely the tail-axis improvement 11.5 says is possible.
+    - **DOK 1 — Facts:**
+      - Equal precision at all trait levels, fewer items, better classification. *(Weiss, 1982.)*
+    - **Source-context note:** Ties the feasibility argument back to a real, published mechanism (CAT), not a hope.
+    - **Link to source:** [https://doi.org/10.1177/014662168200600408](https://doi.org/10.1177/014662168200600408)
+- **Subcategory 11.7: A cautionary real-world case — NWEA MAP**
+  - **Source:** NWEA technical documents; `docs/EVIDENCE_DOSSIER.md`
+    - **Plain-language idea:** even a real adaptive test used by millions still loses precision near the top and compresses gifted growth — a reality check that "adaptive" is not magic.
+    - **DOK 1 — Facts:**
+      - NWEA MAP is adaptive and reports lower SEM than fixed forms and a "very high ceiling," yet its own documents show SEM rising near the top of a level's range. Its 2025 norms draw on ~13.8M students, but expected RIT growth *compresses* in upper grades (≈6 RIT in grades 5–6 vs. ≈4 in 7–8), so raw gain understates gifted growth and conditional growth percentiles are the appropriate high-ceiling metric. *(NWEA technical documents — **publisher COI**; a specific numeric "effective RIT ceiling" is `[UNVERIFIED]`; RIT-compression detail via `docs/EVIDENCE_DOSSIER.md`.)*
+    - **Source-context note:** MAP is the chosen evaluation outcome in Part I's counterfactual design (Categories 3.8, 5.2), so its tail behavior is doubly relevant — adaptivity helps but does not make the tail free.
+    - **Link to source:** NWEA technical documentation; `docs/EVIDENCE_DOSSIER.md`.
+
+
+
+### Category 12: Game-Based / "Gamified" Assessment (the Roblox-Style Option) — Promise, Evidence Ceiling, and Fairness Threats
+
+*General idea: could a fun game measure gifted reasoning while feeling like play? "Game-based assessment" (GBA) / "stealth assessment" scores how a child plays, not just their answers. The paradigm is real, but the independent evidence is modest, adult, and low-stakes — and games introduce their own biases.*
+
+- **Subcategory 12.1: GBA / "stealth assessment" is a real paradigm**
+  - **Source:** Shute & Ventura (2013); Mislevy, Steinberg & Almond (2003)
+    - **Plain-language idea:** instead of asking questions, you embed a task in a game and infer ability from the *process data* (the "telemetry" of how the player acts), using a scoring framework called **evidence-centered design**.
+    - **DOK 1 — Facts:**
+      - Embed performance tasks in a game and score process/telemetry data using **evidence-centered design + Bayesian networks**. *(Shute & Ventura, 2013, *Stealth Assessment*, MIT Press, DOI 10.7551/mitpress/9589.001.0001; Mislevy, Steinberg & Almond, 2003, *Measurement*, DOI 10.1207/s15366359mea0101_02.)*
+    - **Source-context note:** Establishes GBA as a legitimate measurement method (not a gimmick) — the question is whether it works for *high-stakes K–8 gifted ID*, which the rest of the category probes.
+    - **Link to source:** [https://doi.org/10.7551/mitpress/9589.001.0001](https://doi.org/10.7551/mitpress/9589.001.0001) | [https://doi.org/10.1207/s15366359mea0101_02](https://doi.org/10.1207/s15366359mea0101_02)
+- **Subcategory 12.2: Roblox is a working proof-of-concept — for *adults*, not children**
+  - **Source:** EDM 2024 proceedings; Roblox Newsroom (2025) [COMPANY CLAIM]
+    - **Plain-language idea:** Roblox actually uses a game to screen adult job candidates — proof the idea can be operationalized, but on a very different population than K–8 kids.
+    - **DOK 1 — Facts:**
+      - Since 2021 Roblox has operationalized a **game-based hiring assessment** to measure "cognitive skills such as creative problem-solving and systems thinking" for entry-level engineers/PMs (practice game "Kaiju Cats"). *(EDM 2024 proceedings poster, "Identifying Off-Task Users in a Large-Scale, Game-Based Practice Assessment.")* Roblox calls it "standardized, scientifically validated" — a **`[COMPANY CLAIM]`**, not independent peer review *(Roblox Newsroom, 2025, "Fair Play")*. Population = adult job candidates; **not** a child/gifted instrument.
+    - **Source-context note:** The strongest "it can be done at scale" evidence, but the population gap (adults → K–8) is exactly the untested leap for this project.
+    - **Link to source:** EDM 2024 proceedings; Roblox Newsroom (2025), "Fair Play."
+- **Subcategory 12.3: Single-game validity looks encouraging — but proponent-generated and small-sample**
+  - **Source:** Shute & Moore (2017); Shute, Ventura & Ke (2015)
+    - **Plain-language idea:** the tests-of-the-tests were run by the games' own creators on small adult samples, so the encouraging numbers need independent replication.
+    - **DOK 1 — Facts:**
+      - Physics Playground reported internal consistency α ≈ 0.87 and convergent **r ≈ 0.22–0.41** with an external physics test *(Shute & Moore, 2017)*; Portal 2 vs. Lumosity gave problem-solving d ≈ 0.59, spatial d ≈ 0.64, persistence d ≈ 0.42 — but **adults, n = 77** *(Shute, Ventura & Ke, 2015, *Computers & Education*, DOI 10.1016/j.compedu.2014.08.013)*.
+    - **Source-context note:** "Convergent validity" here means the game correlates with an established test; r ≈ 0.3 is modest, and small proponent samples cap how much weight it can bear.
+    - **Link to source:** [https://doi.org/10.1016/j.compedu.2014.08.013](https://doi.org/10.1016/j.compedu.2014.08.013)
+- **Subcategory 12.4: The *independent* evidence is only moderate — and in adults**
+  - **Source:** *Journal of Intelligence* (2024) meta-analysis
+    - **Plain-language idea:** pooling many studies, game scores correlate only moderately with real cognitive tests.
+    - **DOK 1 — Facts:**
+      - A 2024 meta-analysis (52 samples, >6,100 people) puts the correlation between game-based assessment and traditional cognitive-ability tests at **r ≈ 0.30 (corrected ≈ 0.45), ranging −0.35 to +0.75**. *(*Journal of Intelligence*, 12(12):129, DOI 10.3390/jintelligence12120129.)*
+    - **Source-context note:** The wide range (including *negative* correlations) is the caution: some "cognitive" games measure something else entirely.
+    - **Link to source:** [https://doi.org/10.3390/jintelligence12120129](https://doi.org/10.3390/jintelligence12120129)
+- **Subcategory 12.5: GBA is positioned as *formative/low-stakes*; high-stakes K–8 gifted use is unvalidated `[gap]`**
+  - **Source:** Shute & Sun (2020); Gomez, Ruipérez-Valiente & García Clemente (2023)
+    - **Plain-language idea:** the field itself frames GBA as a *learning/low-stakes* tool; no study validates it for a high-stakes gifted-admissions decision on children.
+    - **DOK 1 — Facts:**
+      - GBA is positioned as formative/low-stakes; **no study validates it for high-stakes K-8 gifted identification (`[gap]`).** *(Shute & Sun, 2020, *Handbook of Game-Based Learning*; systematic review: Gomez, Ruipérez-Valiente & García Clemente, 2023, *IEEE Trans. Learning Technologies*, DOI 10.1109/TLT.2022.3226661.)*
+    - **Source-context note:** The single most important limit for adopting GBA *as the score*: the exact use this project would need is the one with no evidence.
+    - **Link to source:** [https://doi.org/10.1109/TLT.2022.3226661](https://doi.org/10.1109/TLT.2022.3226661)
+- **Subcategory 12.6: The fairness threat is empirically documented, not hypothetical**
+  - **Source:** Ohlms, Hohner & Melchers (2025); Kim et al. (2023)
+    - **Plain-language idea:** kids who play more video games score higher on the *game* without being more able — that extra bit is "construct-irrelevant variance" (measurement noise unrelated to what you meant to measure), i.e., bias.
+    - **DOK 1 — Facts:**
+      - Video-game experience **predicts game-based-assessment scores but not academic performance — i.e., test bias / criterion-irrelevant variance.** *(Ohlms, Hohner & Melchers, 2025, *Applied Psychology*, DOI 10.1111/apps.70038.)* In a spatial GBA, "enjoyment significantly affects one key feature," with explicit gender-subgroup concerns *(Kim et al., 2023, *BJET*, DOI 10.1111/bjet.13286)*.
+    - **Source-context note:** Game-familiarity and enjoyment leaking into the score would violate the fairness bar (Category 9.7) and the project's R5/R9 guardrails.
+    - **Link to source:** [https://doi.org/10.1111/apps.70038](https://doi.org/10.1111/apps.70038) | [https://doi.org/10.1111/bjet.13286](https://doi.org/10.1111/bjet.13286)
+- **Subcategory 12.7: Commercial "games measure cognition" claims are mostly unvalidated marketing**
+  - **Source:** Wilson et al. (2021); Simons et al. (2016); FTC (2016); Kollins et al. (2020)
+    - **Plain-language idea:** most "brain games" that claim to measure or boost ability have not shown they actually do; the one FDA-cleared game is a narrow ADHD *treatment*, not an ability test.
+    - **DOK 1 — Facts:**
+      - The one independent pymetrics audit checked only that the de-biasing *code* met the four-fifths rule and **explicitly did not test whether the games measure ability or predict performance** *(Wilson et al., 2021, ACM FAccT)*; brain-training far-transfer is weak *(Simons et al., 2016, *Psych. Science in the Public Interest*, DOI 10.1177/1529100616661983; FTC Lumosity $2M settlement, 2016)*. The one rigorously validated game — Akili's **EndeavorRx** (FDA De Novo, 2020; Kollins et al., 2020, *Lancet Digital Health*, DOI 10.1016/S2589-7500(20)30017-0) — is a narrow ADHD **treatment**, not an ability test.
+    - **Source-context note:** Separates the hype from the evidence; a caution against importing vendor validity claims.
+    - **Link to source:** [https://doi.org/10.1177/1529100616661983](https://doi.org/10.1177/1529100616661983) | [https://doi.org/10.1016/S2589-7500(20)30017-0](https://doi.org/10.1016/S2589-7500(20)30017-0)
+- **Subcategory 12.8: The most rigorous game trial (Minecraft) was null**
+  - **Source:** *Computers & Education* (2024); Slattery et al. (2025)
+    - **Plain-language idea:** the best-designed test of a popular "educational" game found no real effect — and the wider literature is at high risk of bias.
+    - **DOK 1 — Facts:**
+      - A cluster RCT (N = 885) found no overall effect on spatial thinking, and a systematic review flags medium/high risk of bias across studies. *(*Computers & Education*, 2024; Slattery et al., 2025, *Review of Education*, DOI 10.1002/rev3.70035.)*
+    - **Source-context note:** Reinforces that game "cognitive" claims often evaporate under rigorous testing.
+    - **Link to source:** [https://doi.org/10.1002/rev3.70035](https://doi.org/10.1002/rev3.70035)
+
+
+
+### Category 13: The Learning Science of Eliciting a Child's *Best* Performance (and Whether "Fun" Helps *Measurement*)
+
+*General idea: a screen only measures well if the child performs near their true ability. This category covers what raises or lowers a child's demonstrated performance — and the crucial distinction that engagement can rise while measurement quality falls.*
+
+- **Subcategory 13.1: Test anxiety depresses scores and adds noise — measurably, in K–8**
+  - **Source:** von der Embse et al. (2018); Robson et al. (2023); Hembree (1988)
+    - **Plain-language idea:** anxiety makes kids underperform, so a stressful test *underestimates* true ability — a real source of false negatives.
+    - **DOK 1 — Facts:**
+      - Achievement correlations: grades 1–5 **r ≈ −.22**, grades 6–8 **r ≈ −.25** *(von der Embse et al., 2018, *J. Affective Disorders*, DOI 10.1016/j.jad.2017.11.048)*; a 20-year meta-analysis of **53,617 children aged 5–12** confirms the negative link *(Robson et al., 2023, *J. School Psychology*, DOI 10.1016/j.jsp.2023.02.003)*; foundational: Hembree, 1988, *Review of Educational Research*, DOI 10.3102/00346543058001047.
+    - **Source-context note:** The strongest reason a *lower-anxiety* (e.g., playful) delivery could improve *measurement* — by removing a known downward bias, not by making the test "easier."
+    - **Link to source:** [https://doi.org/10.1016/j.jad.2017.11.048](https://doi.org/10.1016/j.jad.2017.11.048) | [https://doi.org/10.1016/j.jsp.2023.02.003](https://doi.org/10.1016/j.jsp.2023.02.003)
+- **Subcategory 13.2: "Flow" requires a challenge–skill balance**
+  - **Source:** Csikszentmihalyi (1990)
+    - **Plain-language idea:** people engage best when difficulty matches skill — too hard breeds anxiety, too easy breeds boredom. This is exactly what adaptive difficulty (Category 10.1) does.
+    - **DOK 1 — Facts:**
+      - Challenge above skill breeds anxiety, below it breeds boredom — adaptive difficulty-matching is the mechanism that sustains engagement. *(Csikszentmihalyi, 1990, *Flow*.)*
+    - **Source-context note:** A theoretical bridge between engagement and adaptive testing — the same difficulty-matching that aids measurement also sustains motivation.
+    - **Link to source:** Csikszentmihalyi (1990), *Flow: The Psychology of Optimal Experience*.
+- **Subcategory 13.3: Extrinsic rewards can *crowd out* intrinsic motivation — and it is worse for children**
+  - **Source:** Deci, Koestner & Ryan (1999); Ryan & Deci (2000)
+    - **Plain-language idea:** paying/badging kids for performance can *reduce* their genuine interest — a caution against "gamified" reward mechanics in a measurement setting.
+    - **DOK 1 — Facts:**
+      - Tangible/performance rewards undermined free-choice intrinsic motivation (d ≈ −0.28 to −0.40) and were "more detrimental for children than college students"; positive *feedback* enhanced it (d ≈ 0.33). *(Deci, Koestner & Ryan, 1999, *Psychological Bulletin*, DOI 10.1037/0033-2909.125.6.627; framework: Ryan & Deci, 2000, *American Psychologist*, DOI 10.1037/0003-066X.55.1.68.)*
+    - **Source-context note:** Directly relevant to GT School's "cash rewards" framing and to any point/badge system in a gifted screen.
+    - **Link to source:** [https://doi.org/10.1037/0033-2909.125.6.627](https://doi.org/10.1037/0033-2909.125.6.627) | [https://doi.org/10.1037/0003-066X.55.1.68](https://doi.org/10.1037/0003-066X.55.1.68)
+- **Subcategory 13.4: Game interfaces can inject *extraneous* cognitive load**
+  - **Source:** Sweller (1988); Sweller, van Merriënboer & Paas (1998/2019)
+    - **Plain-language idea:** "cognitive load" is the mental effort a task demands; effort spent decoding controls/graphics is effort *not* spent on the reasoning you meant to measure.
+    - **DOK 1 — Facts:**
+      - Working memory spent decoding controls/graphics is unavailable for the reasoning being measured. *(Sweller, 1988, DOI 10.1207/s15516709cog1202_4; Sweller, van Merriënboer & Paas, 1998/2019, DOIs 10.1023/A:1022193728205, 10.1007/s10648-019-09465-5.)*
+    - **Source-context note:** The mechanism by which a "richer" game can *lower* measurement quality — especially for young children (Category 13's link to K-4 motor/onboarding load).
+    - **Link to source:** [https://doi.org/10.1207/s15516709cog1202_4](https://doi.org/10.1207/s15516709cog1202_4) | [https://doi.org/10.1007/s10648-019-09465-5](https://doi.org/10.1007/s10648-019-09465-5)
+- **Subcategory 13.5: Gamification's measured benefit is real but modest — and about *learning/engagement*, not measurement validity**
+  - **Source:** Sailer & Homner (2020); Hamari et al. (2014); Bai, Hew & Huang (2020)
+    - **Plain-language idea:** adding game elements helps engagement/learning a little, but that is a different claim from "the game measures ability accurately," and the benefit fades as novelty wears off.
+    - **DOK 1 — Facts:**
+      - Cognitive g = 0.49, motivational g = 0.36, behavioral g = 0.25 (the latter two less stable) *(Sailer & Homner, 2020, *Educational Psychology Review*, DOI 10.1007/s10648-019-09498-w)*; effects are context/user-dependent with an explicit **novelty-effect** caveat *(Hamari et al., 2014, HICSS, DOI 10.1109/HICSS.2014.377)*; shorter interventions show larger effects (consistent with novelty), and some learners report anxiety/jealousy *(Bai, Hew & Huang, 2020, *Educational Research Review*, DOI 10.1016/j.edurev.2020.100322)*.
+    - **Source-context note:** The load-bearing distinction for this project: **engagement ≠ validity**. Gamification can aid learning without improving (or while harming) measurement.
+    - **Link to source:** [https://doi.org/10.1007/s10648-019-09498-w](https://doi.org/10.1007/s10648-019-09498-w) | [https://doi.org/10.1016/j.edurev.2020.100322](https://doi.org/10.1016/j.edurev.2020.100322)
+- **Subcategory 13.6: Stereotype threat — a *possible*, not settled, performance factor (contested)**
+  - **Source:** Steele & Aronson (1995); Shewach, Sackett & Quint (2019); Flore & Wicherts (2015)
+    - **Plain-language idea:** the idea that reminding students of a negative group stereotype depresses their scores; the original effect looks much smaller under real testing conditions.
+    - **DOK 1 — Facts:**
+      - The original demonstration *(Steele & Aronson, 1995, DOI 10.1037/0022-3514.69.5.797)* attenuates to negligible-to-small under operational conditions, with publication-bias signs (d ≈ −.14) *(Shewach, Sackett & Quint, 2019, DOI 10.1037/apl0000420; Flore & Wicherts, 2015)*.
+    - **Source-context note:** Treat as a candidate, not settled, factor — flagged honestly rather than assumed.
+    - **Link to source:** [https://doi.org/10.1037/apl0000420](https://doi.org/10.1037/apl0000420)
+
+
+
+### Category 14: Migrating Game-Development Practice to Test Design — What Transfers, and What Doesn't
+
+*General idea: even if a game shouldn't *be* the score (Category 12), the engineering discipline of game studios maps cleanly onto psychometric practice. The catch (14.11): it transfers **engineering**, not **validity** — every borrowed practice still has to clear the Category 9 bar.*
+
+- **Subcategory 14.1: Ten mappings from game development to assessment engineering**
+  - **Source:** Leighton (2017); Seif El-Nasr, Drachen & Canossa (2013); Bergner & von Davier (2019); van der Linden & Glas (2010); Bock, Muraki & Pfeiffenberger (1988); Kohavi, Tang & Xu (2020); Gierl, Lai & Turner (2012); Corbett & Anderson (1994); Piech et al. (2015); Swink (2009); Thompson, Johnstone & Thurlow (2002); Sympson & Hetter (1985)
+    - **Plain-language idea:** familiar studio practices (playtesting, telemetry, difficulty curves, live tuning, content generation, player modeling, "juice," accessibility, anti-cheat) each have an established psychometric counterpart.
+    - **DOK 1 — Facts:**
+      - **Playtesting → cognitive labs / response-process validity:** studios playtest; test developers run think-aloud "cognitive labs" to verify items elicit the intended reasoning. *(Leighton, 2017, Oxford, DOI 10.1093/acprof:oso/9780199372904.001.0001; AERA/APA/NCME, 2014, ch. 1; game-side — Drachen, Mirza-Babaei & Nacke, 2018, *Games User Research*.)*
+      - **Game telemetry/analytics → process/log-data & item analytics.** *(Seif El-Nasr, Drachen & Canossa, 2013, *Game Analytics*, DOI 10.1007/978-1-4471-4769-5; Bergner & von Davier, 2019, *JEBS*, DOI 10.3102/1076998618784700, who note response time alone can't even establish engagement.)*
+      - **Level design / difficulty curves → item-difficulty sequencing & adaptive routing (CAT/MST).** *(van der Linden & Glas, 2010; Weiss, 1982 — Category 10.1.)*
+      - **Game balancing / live-ops tuning → equating, DIF & item-parameter-drift monitoring** (item parameters *drift* and must be monitored). *(Bock, Muraki & Pfeiffenberger, 1988, *JEM*, DOI 10.1111/j.1745-3984.1988.tb00308.x; Meredith, 1993 — Category 9.7.)*
+      - **Live-ops A/B testing → continuous, trustworthy experimentation on items** (guardrail metrics; avoiding carryover/novelty confounds). *(Kohavi, Tang & Xu, 2020, *Trustworthy Online Controlled Experiments*.)*
+      - **Procedural content generation → Automatic Item Generation (AIG)** — one model produced **1,248** items in a licensure example. *(Gierl, Lai & Turner, 2012, *Medical Education*, DOI 10.1111/j.1365-2923.2012.04289.x; Gierl & Haladyna, 2012, *Automatic Item Generation*.)*
+      - **Player/difficulty modeling → IRT, knowledge tracing, and CAT** (incl. "Deep Knowledge Tracing"). *(Corbett & Anderson, 1994/95, DOI 10.1007/BF01099821; Piech et al., 2015, NeurIPS, arXiv 1506.05908.)*
+      - **"Juice" / game feel → feedback design** — but in a *scored* segment feedback must be neutral/process-focused, and **over-juicing measurably lowers performance** (Category 13). *(Swink, 2009, *Game Feel*; Kao, 2020.)*
+      - **Accessibility in games → Universal Design for Assessment + construct-preserving accommodations.** *(Thompson, Johnstone & Thurlow, 2002, NCEO Synthesis Report 44, ERIC ED467721; AERA/APA/NCME, 2014, ch. 3.)*
+      - **Anti-cheat / exposure → test security & item-exposure control.** *(Sympson & Hetter, 1985, Proc. 27th Military Testing Association; van der Linden & Glas, 2010.)*
+    - **Source-context note:** These map real GT-School-style engineering strengths onto the psychometric bar the tree sets — the "how we would actually build it" layer.
+    - **Link to source:** [https://doi.org/10.1111/j.1365-2923.2012.04289.x](https://doi.org/10.1111/j.1365-2923.2012.04289.x) | [https://doi.org/10.3102/1076998618784700](https://doi.org/10.3102/1076998618784700)
+- **Subcategory 14.2: The migration's hard limit — it transfers *engineering*, not *validity***
+  - **Source:** Haladyna & Downing (2004)
+    - **Plain-language idea:** anything a game adds that moves scores but isn't the ability you meant to measure is *construct-irrelevant variance* — a named validity threat, no matter how good the engineering.
+    - **DOK 1 — Facts:**
+      - Anything a game adds that moves scores but isn't the target construct is **construct-irrelevant variance**, a defined validity threat; every mapping above still has to clear the Category 9 psychometric bar. *(Haladyna & Downing, 2004, *Educational Measurement: Issues and Practice*, DOI 10.1111/j.1745-3992.2004.tb00149.x.)*
+    - **Source-context note:** The disciplining rule for the whole "build a gamified test" idea — and the reason the DOK-4 stance is "gamify for engagement/access, not as the measurement."
+    - **Link to source:** [https://doi.org/10.1111/j.1745-3992.2004.tb00149.x](https://doi.org/10.1111/j.1745-3992.2004.tb00149.x)
+
+
+
+### Category 15: The Gifted-Measurement Toolbox *Beyond* CogAT — Instruments, Their Evidence, and What to Borrow vs. Discard
+
+*General idea: GT School need not build a test from scratch — a large catalog of validated instruments already exists. This category surveys them by class, with each entry's evidence and a "**Borrow** / **Discard**" verdict, so the design can assemble the best parts. Full per-instrument source entries live in the register's "§1.9 instrument ledger."*
+
+> **Cross-cutting practicality fact:** the individually-administered batteries in 15.1 are **Level-C, one-examiner-one-child** instruments (40–90+ min, graduate-trained administrator, ~$800–$1,600+ kits) — **confirmatory/diagnostic tools, not scalable universal screens.**
+
+- **Subcategory 15.1: Individually-administered IQ batteries (confirmatory, not screens)**
+  - **Source:** Wechsler (WISC-V, WPPSI-IV); Roid (SB5); McGrew/Mather/LaForte (WJ V); Elliott (DAS-II); Kaufman (KABC-II); Reynolds/Kamphaus (RIAS-2) — with independent reviews
+    - **Plain-language idea:** these are the gold-standard "IQ tests" a psychologist gives one child at a time; they are precise and high-ceiling but far too costly/slow to screen everyone — a *second-stage confirmatory* tool.
+    - **DOK 1 — Facts:**
+      - **WISC-V** (6:0–16:11): 10 primary + 6 secondary subtests → five indices + FSIQ + General Ability Index (GAI); FSIQ internal consistency ~.96; **Extended Norms** push composites toward ~210 for the profoundly gifted; the **GAI** strips Working Memory + Processing Speed so speed/memory don't mask reasoning. Independent CFAs show the **publisher's five-factor model fails; a bifactor with dominant *g* fits best**, and the group indices are "of questionable interpretive value independent of *g*." *(Wechsler, 2014, Pearson; TR#5/#6 [PUBLISHER-COI]; Canivez, Watkins & Dombrowski, 2017, *Psychological Assessment*, DOI 10.1037/pas0000358 [independent].)* **BORROW:** the extended-norm concept + a *g*-loaded reasoning composite (GAI) without WM/PS. **DISCARD:** interpreting the five index scores for selection; a 1:1 clinician test as a first-stage screen.
+      - **WPPSI-IV** (2:6–7:7): age-banded preschool subtests → five indices + FSIQ; a sound early-childhood battery but a **lower ceiling than WISC-V** and preschool scores are inherently unstable. *(Wechsler, 2012, Pearson [COI]; Syeda & Climie, 2014, *JPA*.)* **BORROW:** developmentally appropriate low-language item formats. **DISCARD:** any single early-childhood IQ as a gate.
+      - **Stanford-Binet 5** (2–85+): routing/adaptive-start subtests → FSIQ/NVIQ/VIQ + five factors; markets an Extended IQ to 225 but **independent data show it *compresses* the gifted tail** (gifted children scored significantly lower than on WISC-III; rank order not preserved), plus **stale 2003 norms**. *(Roid, 2003 [COI]; Minton & Pratt, 2006, *Roeper Review*, DOI 10.1080/02783190609554369 [independent].)* **BORROW:** the verbal + nonverbal parallel-routing design. **DISCARD:** SB5's stale norms + extrapolated high end — it *under-identifies* the gifted.
+      - **WJ V (2025) / WJ IV Cognitive**: CHC-based → GIA (*g*), Gf-Gc composite, broad CHC clusters; continuous W-score (Rasch) scoring, WJ V fully digital, **current post-pandemic norms (~5,837)**; independent review calls the psychometrics "robust" but "less convincing under six," with **no dedicated gifted extended norms**. *(McGrew, Mather & LaForte, 2025, Riverside [COI]; *JPA* Test Review, 2025, DOI 10.1177/07342829251395781 [independent].)* **BORROW:** the digital-native, continuously-scored, currently-normed architecture + a parsimonious Gf-Gc *g*. **DISCARD:** treating it as a high-end gifted differentiator; ignoring the hardware/access barrier.
+      - **DAS-II** (2:6–17:11): 20 subtests → General Conceptual Ability (GCA) + Special Nonverbal Composite + clusters; a clean **GCA (g without WM/PS/knowledge dilution)**, but **extended/gifted and early-years norms are still 2007**. *(Elliott, 2007 / NU 2023, Pearson [COI].)* **BORROW:** the reasoning-first GCA + SNC template. **DISCARD:** reliance on stale 2007 extended/early-years norms at the high end.
+      - **KABC-II** (3:0–18:11): dual-model engine — Luria MPI (excludes acquired knowledge) vs. CHC FCI — plus a Nonverbal Index; **MPI/NVI deliberately drop acquired-knowledge/language**, yielding smaller Black–White gaps and *over-predicting* minority achievement (recommended to capture *potential*), but the ceiling tops at 160 and the 2018 renorm sample is small (N=700). *(Kaufman & Kaufman, 2004 / NU 2018 [COI]; Scheiber, 2016, *Assessment*, DOI 10.1177/1073191115624545 [independent].)* **BORROW:** reduced-cultural-loading + potential-vs-attainment framing for equity. **DISCARD:** the 160 ceiling; expecting low-Gc indices to predict *current* achievement.
+      - **RIAS-2** (3–94): 8 subtests → Composite Intelligence (CIX), Verbal (VIX), Nonverbal (NIX) + co-normed memory/speed; brief (~25–45 min), low motor/reading load, indices >.90 — but independent work finds it is **essentially one *g* factor** (sub-indices of limited standalone value). *(Reynolds & Kamphaus, 2015, PAR [COI]; Nelson & Canivez, 2012, *Psychological Assessment*, DOI 10.1037/a0024878 [independent].)* **BORROW:** an efficient, low-load *g* estimate for a confirmatory second stage. **DISCARD:** interpreting its sub-indices as distinct abilities; sole high-stakes use.
+    - **Source-context note:** The recurring pattern — most batteries collapse to a dominant *g*, most ceiling-compress or carry stale high-end norms, and all are 1:1 confirmatory tools — is itself the finding: borrow the *g*-composite and extended-norm ideas, not the batteries as screens.
+    - **Link to source:** register "§1.9 instrument ledger"; key independent reviews: [https://doi.org/10.1037/pas0000358](https://doi.org/10.1037/pas0000358) | [https://doi.org/10.1177/1073191115624545](https://doi.org/10.1177/1073191115624545)
+- **Subcategory 15.2: Group ability & nonverbal / "culture-reduced" screens (and the culture-fair myth)**
+  - **Source:** OLSAT 8; NNAT3; Raven's 2; InView; UNIT-2; Leiter-3; CTONI-2 — with independent reviews; Lohman; Giessman et al.; Carman et al.
+    - **Plain-language idea:** these are scalable *group* tests (or language-free individual ones) often adopted as an "equity" fix; the independent evidence says the "culture-fair" promise does not hold.
+    - **DOK 1 — Facts:**
+      - **OLSAT 8** (group; SAI): verbal + nonverbal clusters → School Ability Index; scalable and CogAT-like, but **Form-8 upper-tail precision and current subgroup evidence aren't independently published**, and its verbal load reintroduces language dependence. *(Pearson, 2003 [COI]; Buros review by Lohman [reverse-COI]; OLSAT/WISC-R predictive-bias study, ERIC ED286883 [OLDER-FORM].)* **BORROW (partial):** a proven scalable group format — but obtain the technical manual first.
+      - **NNAT3** (group nonverbal; NAI): geometric progressive matrices → Naglieri Ability Index; **reliabilities ~.80–.90 (weakest at K–3; SEM ≈ 5–7 → ±10–13 band)**, and **independent data contradict the culture-fair claim** (ELL ~9.5 NAI points lower; did not identify more underrepresented students than CogAT-Nonverbal). *(NNAT3 manuals, 2018 [COI]; Naglieri & Ford, 2003 [author-COI]; Lohman, Korb & Lakin, 2008; Giessman, Gambrell & Stebbins, 2013, DOI 10.1177/0016986213477190 [independent].)* **DISCARD** as a universal add-on / equity fix; **BORROW** only as a narrow language-reduced alternate route.
+      - **Raven's 2** (individual): nonverbal matrix-reasoning → single score; IRT-normed and Flynn-corrected, but **individually administered (not a universal screen)** and ELL still scored ~7.5 points lower. *(Raven, Rust, Chan & Zhou, 2018, Pearson [COI]; McLeod & McCrimmon, 2021, *JPA*, DOI 10.1177/0734282920958220 [independent]; Lohman, Korb & Lakin, 2008.)* **DISCARD** for universal screening; individual follow-up only.
+      - **InView** (group; CSI): five subtests → Verbal/Nonverbal/Total + Cognitive Skills Index; used in some states for gifted ID but with **essentially no independent psychometrics** (all publisher claims). *(DRC/TerraNova [COI]; Ohio DOE approved-test list [verified use].)* **DISCARD pending independent evidence.**
+      - **UNIT-2** (individual, 100% nonverbal admin *and* response): six subtests → Full Scale + factors; useful for deaf/ELL/2e follow-up, but independent CFA shows it is **primarily *g*, factor indices lack unique variance, non-invariant across age/gender/race.** *(Bracken & McCallum, PRO-ED [COI]; Benson, Kranzler & Floyd, 2020, *Assessment*, DOI 10.1177/1073191118786584 [independent].)* **BORROW** as an individual language-free 2e/ELL follow-up (Full-Scale *g* only). **DISCARD** as a group screen.
+      - **Leiter-3** (individual, fully nonverbal): four Cognitive subtests → Nonverbal IQ; reliable global NVIQ for nonverbal/hearing-impaired follow-up, but **no separable fluid vs. visual-spatial indices** and small criterion samples. *(Roid, Miller, Pomplun & Koch, 2013, Stoelting [COI]; Buros/Wiese, 2014 [independent].)* **BORROW** as an individual nonverbal follow-up only.
+      - **CTONI-2** (individual): six nonverbal reasoning subtests → Full-Scale nonverbal IQ; independent evidence shows a **high-end ceiling — items "too low to capture individual differences" in higher-ability examinees.** *(Hammill, Pearson & Wiederholt, 2009, PRO-ED [COI]; Parkin et al., 2018, *JPA*, DOI 10.1177/0734282916688792 [independent].)* **DISCARD for gifted ID** — a ceiling exactly where selection operates.
+      - **Cross-cutting (verified):** nonverbal tests are "**neither culture free nor culture fair**" (Lohman, 2005); ELL scored **~0.5–0.67 SD lower** across Raven/CogAT-NV/NNAT (Lohman, Korb & Lakin, 2008); NNAT2 and CogAT-Nonverbal both under-identify underrepresented groups depending on norms/cutoff (Giessman et al., 2013; Carman, Walther & Bartsch, 2018, DOI 10.1177/0016986217752097). **"Switch to a nonverbal test for equity" is not supported by the independent data.**
+    - **Source-context note:** Directly answers the tempting "just use a culture-fair nonverbal test" move (also raised in Categories 6.2 and 8.4) — the data say it does not deliver the promised equity.
+    - **Link to source:** register "§1.9 instrument ledger"; [https://doi.org/10.1177/0016986213477190](https://doi.org/10.1177/0016986213477190) | [https://doi.org/10.1177/0016986217752097](https://doi.org/10.1177/0016986217752097)
+- **Subcategory 15.3: Rating scales, creativity, above-level, and dynamic assessment**
+  - **Source:** GRS-2/SRBCSS/GATES-2/HOPE; TTCT; SMPY talent-search; dynamic-assessment literature
+    - **Plain-language idea:** non-test signals (teacher/parent ratings, creativity tasks, above-level testing, "test-teach-retest" learning-potential measures) — useful as *supplements*, dangerous as *gates*.
+    - **DOK 1 — Facts:**
+      - **Teacher/parent rating scales (GRS-2, SRBCSS/Renzulli, GATES-2, HOPE):** structured multi-domain ratings, but they share a **halo / general-factor problem**, carry **teacher-rater variance (10–25%)**, and their validity is largely developer-produced (COI). **HOPE** is the standout — built for low-income/diverse students, no race/income DIF (but gender DIF; income bias in *national* norms → **use local norms**). *(GRS-2, MHS [COI]; Jabůrek et al., 2021, DOI 10.1177/0734282920970718 [halo]; McCoach et al., 2024, DOI 10.1177/00144029241247035 [rater variance]; Peters & Gentry, 2010, DOI 10.1177/0016986210378332 [HOPE].)* **BORROW:** structured multi-domain signals + HOPE's correctable equity design — **non-decisional only.** **DISCARD:** any rating subscale as a standalone gate; GATES-2 as decisional.
+      - **Creativity — TTCT:** timed divergent-thinking test; **predicts *personal* creative achievement (r ≈ .31) far better than *public* achievement (r < .05)**, scoring is subjective/coachable, validity chain proponent-run. *(Kim, 2006, *Creativity Research Journal*, DOI 10.1207/s15326934crj1801_2 [independent review]; Torrance [COI].)* **DISCARD as a gate; BORROW** as a non-decisional creative-domain signal.
+      - **Above-level testing (SMPY / talent-search model):** administers *older-grade* off-the-shelf tests to younger students for ceiling headroom — the **strongest longitudinal validity base in gifted ID** (rank-orders even *within* the top 1%). *(Lubinski & Benbow, 2006, DOI 10.1111/j.1745-6916.2006.00019.x; 2021, DOI 10.1177/0016986220925447; some COI.)* **BORROW the above-level principle** — but pair with universal screening/local norms to offset its access bias. *(Cross-ref Categories 2 and 10.3.)*
+      - **Dynamic assessment (test–teach–retest):** scores learning gain/prompt-dependence rather than a static level; surfaces underserved/2e learners but is examiner-dependent with **no validated GT-admissions use.** *(Kirschenbaum, 1998, DOI 10.1177/001698629804200302; Dumas, McNeish & Greene, 2020, DOI 10.1080/00461520.2020.1744150.)* **BORROW as a research/process signal; DISCARD as a gate** (consistent with Category 10.8).
+    - **Source-context note:** The theme is "supplement, don't gate": these widen the lens for equity and breadth but lack the psychometric standing to be a standalone decision rule.
+    - **Link to source:** register "§1.9 instrument ledger"; [https://doi.org/10.1177/0016986210378332](https://doi.org/10.1177/0016986210378332)
+- **Subcategory 15.4: Multi-criteria identification *systems* (the highest-leverage, lowest-COI evidence)**
+  - **Source:** NAGC (2019); Peters et al. (2019); Card & Giuliano (2016); McBee, Peters & Waterman (2014); Lakin (2018)
+    - **Plain-language idea:** how you *combine* measures and *whom you test* often matters more than which single test you pick — and these are the best-evidenced, least-conflicted levers.
+    - **DOK 1 — Facts:**
+      - **NAGC 2019 Standard 2:** multiple, technically-defensible, valid-for-purpose, non-biased measures with local norms — a **design checklist, not validity evidence.** *(NAGC, 2019.)*
+      - **Local norms:** building-level norms raised Black representation ~238–300% and Hispanic/Latinx ~157–170% vs. national norms (still under-proportional); **preregistered.** *(Peters, Rambo-Hernandez, Makel, Matthews & Plucker, 2019, *AERA Open*, DOI 10.1177/2332858419848446.)* **BORROW — a low-cost, evidence-backed equity lever.** *(Also in Categories 1.3 and 6.4.)*
+      - **Universal screening:** testing all students (vs. referral) sharply raised identification of Black, Hispanic, FRL, and ELL students — an **access** finding. *(Card & Giuliano, 2016, *PNAS*, DOI 10.1073/pnas.1605043113.)* **BORROW — the strongest referral-stage equity move.** *(Detailed in Categories 1.5, 3.3, 6.)*
+      - **Combination rules:** **MEAN/compensatory** yields the highest composite reliability; the **AND** rule maximizes false negatives; the apparent "**OR** = more diverse" advantage is a **pool-size artifact**. *(McBee, Peters & Waterman, 2014, DOI 10.1177/0016986213513794; Lakin, 2018, *GCQ*, DOI 10.1177/0016986217752099 [GCQ Paper of the Year].)* **BORROW the MEAN/compensatory logic; DISCARD** the belief that an OR rule fixes diversity. *(Also in Categories 1.3 and the DOK-4 "fix the combination rule" thread.)*
+    - **Source-context note:** These *system-level* moves (who is tested, how scores combine, which norms) are the highest-leverage, lowest-COI findings in the whole toolbox — and they connect the measurement half of the tree back to the selection half (Categories 1, 3, 6).
+    - **Link to source:** register "§1.9 instrument ledger"; [https://doi.org/10.1177/2332858419848446](https://doi.org/10.1177/2332858419848446) | [https://doi.org/10.1177/0016986217752099](https://doi.org/10.1177/0016986217752099)
+- **Subcategory 15.5: Borrow-the-best / discard-the-rest — catalog-level design synthesis**
+  - **Source:** Synthesis across 15.1–15.4 (each claim traceable to the instrument entries above)
+    - **Plain-language idea:** the whole toolbox, distilled into a shortlist of what to keep and what to avoid when designing GT School's identification.
+    - **DOK 1 — Facts:**
+      - **Borrow:** adaptive + **extended-norm** high-ceiling measurement (WISC-V EGAI concept); a **reasoning-first *g* composite** excluding WM/PS/knowledge (GAI / DAS-II GCA); **reduced-cultural-loading + potential-vs-attainment** framing (KABC-II); the **above-level principle** (SMPY) for ceiling relief; **universal screening + local norms + compensatory (MEAN) combination**; **HOPE-style** documented-and-correctable equity design; and an efficient low-load confirmatory *g* (RIAS-2) for a second stage.
+      - **Discard:** **any single fixed cutoff or one-shot instrument** as a gate; **nonverbal "culture-fair" tests as an equity fix** (NNAT/Raven/CTONI/UNIT/Leiter — unsupported, several ceiling-compress); **stale-norm high-end extrapolations** (SB5 EXIQ; DAS-II 2007 extended norms); **rating/creativity subscales as standalone gates** (halo + developer-COI); and **1:1 clinician batteries as universal screens** (confirmatory, not scalable).
+    - **Source-context note:** This synthesis is the practical payload of the measurement half of the tree — it feeds directly into the DOK-4 stance that the leverage is in *administration design + decision rule*, not a brand-new item set.
+    - **Link to source:** derived from the instrument entries in 15.1–15.4 (full sources in the register's "§1.9 instrument ledger").
+
 ---
 
 
@@ -551,69 +982,13 @@ Load-bearing citations were verified against primary sources (journal pages, Pub
 
 ## DOK 2: Summary
 
+*In plain terms: a single CogAT cutoff is a decent but blurry snapshot — good on average, weakest exactly at the top where gifted decisions are made — and a selected, tuition-charging school's raw results cannot by themselves tell us whether the program or the admissions filter produced them. The three paragraphs below compress the tree into (1) the measurement record, (2) the maturity of the available fixes, and (3) the counterfactual problem.*
+
 CogAT-class measures capture developed verbal, quantitative, and nonverbal reasoning and have meaningful predictive validity, but a one-shot fixed-form cut is a weak proxy for a stable, complete gifted-capability construct. The factual record shows tail error, rank instability, false negatives created by gates and combination rules, missed spatial talent, and unequal access; it also shows that universal, multiple-measure screening can improve identification without abandoning a capability standard. Any improvement claim must be tied to a tail metric—conditional SEM, information, false-negative rate, or classification consistency—not a vague claim of “2× validity.”
 
 The available technical remedies differ in maturity and risk. CAT/MST, above-level testing, repeated measurement, compensatory decision rules, spatial breadth, and DIF monitoring have plausible roles, while dynamic and game/process-data assessment lack validation for high-stakes K–8 gifted identification. Engagement can reduce burden or anxiety but is not validity; gaming familiarity, device access, rewards, and interface load can themselves become construct-irrelevant variance.
 
 Selected-cohort outcomes cannot separate ability, family resources, applicant motivation, and program effect. SMPY establishes long-run predictive validity, not a program counterfactual; RD and lottery evidence shows selective programs can have null, positive, or heterogeneous effects depending on population, curriculum, comparison, and outcome. A future capability-gated lottery may be a strong design only under genuine scarcity, independent oversight, preregistration, high-ceiling outcomes, adequate follow-up/power, and a firewall that keeps research choice from changing admission rights.
-
-## DOK 3: Insights
-
-> **PRIOR MATERIAL ONLY — team synthesis required.** The following is carried over as candidate material; it is not a final merged DOK 3 and must be interrogated, revised, or discarded by the team.
-
-
-
-> **PRIOR MATERIAL for the team to synthesize and handwrite.** Per the BrainLift method, DOK 3 must originate with the authors. Below are the two source brainlifts' existing insights, carried over verbatim-in-substance and attributed, as raw material for a *new* merged DOK 3 the team will write. **These are not presented as final merged insights.**
-
-**From the counterfactual brainlift (Insights 1–7):**
-1. GT's selection process directly hinders measurement of program effect (CogAT cutoff + tuition select on the very things that would explain outcomes).
-2. CogAT is too narrow to identify the variety of gifted talent (misses spatial; ignores conscientiousness).
-3. The children who could *demonstrate* program effect are the ones turned away (capable-but-underserved), so the cohort that could prove GT works is screened out.
-4. GT's racial/class bias *is the engine* of its selection-effect problem — the equity failure and the measurement failure are the same failure.
-5. Lowering the CogAT cutoff risks diluting GT's edge; a capability-gated lottery does not (broaden access, not the bar).
-6. A capability-gated offer lottery separates program effect from ability *and* motivation; pooling a modest cohort across years makes it powerful enough.
-7. SSP's 2026 lottery shows the design is operable — and shows exactly why research consent must be firewalled from ordinary admission rights.
-
-**From the assessment brainlift (candidate insights a–f):**
-- (a) Intrinsic integration is the make-or-break variable deciding whether a game measures *reasoning* or *dexterity*.
-- (b) Engagement and validity are orthogonal — "fun" can rise while measurement quality falls.
-- (c) The transferable game-dev superpower is **live-ops continuous calibration/DIF**, not the 3D graphics.
-- (d) Telemetry-as-evidence is double-edged — more process data = more surfaces for construct-irrelevant variance.
-- (e) The "decide-when-to-stop" mechanic measures metacognition/risk-tolerance, not spatial ability.
-- (f) For K-4, motor/onboarding load can silently convert a spatial game into a processing-speed/dexterity test.
-
-*Plus the additional measurement↔psychometrics candidates (from the assessment brainlift's DOK 3 block): the gifted-ID problem is precision-and-stability more than construct; the only honest "2×" is false-negative reduction at the cut; adding spatial and fixing the combination rule are separable from building a new instrument.*
-
-**→ Team to write the merged DOK 3** that connects the measurement insights (a–f, precision/stability) with the evaluation insights (1–7, counterfactual) into one coherent set.
-
----
-
-
-
-## DOK 4: SPOV
-
-> **PRIOR MATERIAL ONLY — team handwriting required.** The following is carried over as candidate material; it is not a final SPOV and is not an approved product direction.
-
-
-
-> **PRIOR MATERIAL for the team to synthesize and handwrite.** DOK 4 is the authors' stance. Below are the existing SPOVs from both brainlifts, attributed, as starting material for a *new* merged SPOV set. **Not presented as final.**
-
-**From the counterfactual brainlift (SPOVs 1–4):**
-1. A **capability-gated admission lottery** is GT's cleanest currently feasible path to credible causal evidence that its program (not its selection) drives a preregistered outcome.
-2. The **same lottery that fixes the evidence problem also bridges the racial/class excellence gap** — because the equity failure and the measurement failure are one and the same.
-3. If offered Track B students show a positive randomized effect *and* clear a pre-specified service-fit bar (with capacity/high-performer/wellbeing guardrails), GT should **expand Track B** — its fastest route to credible growth.
-4. A positive randomized **MAP** effect proves the package moved MAP; expanding or marketing on that alone would **not** be evidence-backed (durability/transfer/unaided performance are separate, preregistered outcomes).
-
-**From the assessment brainlift (candidate SPOV drafts 1–3):**
-1. Stop grading gifted tests by reliability/validity; a gifted test's quality is its **conditional SEM and classification consistency at the cut** — by that standard a single fixed-form CogAT is the wrong instrument; target a **2× reduction in false negatives at the cut** via adaptive, high-ceiling, repeated measurement.
-2. **Building "our own test" may be the wrong goal** — the leverage is in administration design + decision rule (adaptive delivery + compensatory rule + spatial pathway on validated items), not a new item set.
-3. **Gamified assessment should be adopted for engagement/access, not as the measurement** — the score must come from a psychometrically validated adaptive engine held to conditional-SEM/DIF standards; a screen that lets game-familiarity leak into the score fails R5/R9.
-
-**→ Team to write the merged DOK 4** — likely a single unifying SPOV (the front door is simultaneously the measurement failure and the evaluation failure; fix both with one integrated move) plus the supporting lottery/equity/claim-boundary SPOVs. Apply the spikiness test: would a reasonable expert (an SMPY ability-proponent, a Weiss-camp adaptivist, an Angrist-camp methodologist) argue with it?
-
----
-
-
 
 ## Purpose
 
