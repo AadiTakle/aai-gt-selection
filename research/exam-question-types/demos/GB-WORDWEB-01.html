@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GB-WORDWEB-01 · Word Trace</title>
+<style>
+  :root{--bg1:#eef7ff;--bg2:#eaffef;--ink:#26304a;--card:#fff;--accent:#2a86c8;--good:#22b573;--bad:#ff6b6b;
+    --tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box}html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:12px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
+  #phasecue{font-size:32px;height:38px}
+  #stagecard{background:var(--card);border-radius:24px;padding:22px;box-shadow:0 18px 50px -22px #4a4a7a;
+    display:flex;flex-direction:column;align-items:center;gap:12px;width:440px;max-width:100%}
+  #instr{font-size:14px;color:#666;min-height:20px;text-align:center}
+  #topbar{display:flex;justify-content:space-between;width:210px;font-weight:800}
+  #timer{color:var(--accent)}#word{color:#a5603a;min-height:26px;font-size:22px;letter-spacing:3px}
+  #grid{display:grid;grid-template-columns:repeat(3,64px);gap:8px}
+  .cell{width:64px;height:64px;border-radius:12px;background:#eef4fb;border:3px solid #d7e6f5;display:flex;align-items:center;justify-content:center;
+    font-size:30px;font-weight:900;color:#3a5578;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .cell.on{background:#cfe8fb;border-color:var(--accent);transform:scale(1.04)}
+  #btns{display:flex;gap:10px}
+  button{font:inherit;border:0;cursor:pointer;border-radius:12px}
+  #enter{background:var(--accent);color:#fff;padding:9px 20px;font-weight:800}
+  #clr{background:#ffe9ec;color:#c0455a;padding:9px 14px;font-weight:700}
+  #shelf{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;min-height:24px}
+  .gem{font-size:13px;font-weight:800;padding:3px 8px;border-radius:8px;background:#e7fbf1;color:#1c8a5a}
+  .gem.b2{background:#fff2d6;color:#9a6b12}.gem.b3{background:#f0e2ff;color:#7a3fb0}
+  #fb{font-size:14px;min-height:18px;font-weight:700}
+  #replay{width:44px;height:44px;background:#eef1ff;color:#5b6cff;font-size:20px;border-radius:50%;border:0;cursor:pointer}
+  #ghost{position:fixed;left:0;top:0;font-size:34px;pointer-events:none;z-index:60;opacity:0;
+    transition:transform .35s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;
+    font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:118px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}.mval{color:#fff}
+  .mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:170px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}.t{color:#5f6f9e}
+  @media(max-width:900px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:250px}}
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">GB-WORDWEB-01 · Word Trace</div>
+    <div id="phasecue">👁️</div>
+    <div id="stagecard">
+      <div id="instr"></div>
+      <div id="topbar"><span id="timer"></span><span>💎 <span id="score">0</span></span></div>
+      <div id="word"></div>
+      <div id="grid"></div>
+      <div id="btns"><button id="enter">✓ ENTER</button><button id="clr">clear</button></div>
+      <div id="shelf"></div>
+      <div id="fb"></div>
+      <div><button id="replay" title="replay demo">↻</button></div>
+    </div>
+  </div>
+  <aside id="telemetry"><h3>Live telemetry · per-child</h3><div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div></aside>
+  <div id="ghost">👆</div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):null;
+const WORDS=['CAT','CAR','RAT','ART','TAR','ROT','TOR','TOE','OAR','ORE','ROE','DOG','GOD','ROD','DOE','ODE','COD','COG','COT','COR',
+ 'CART','CARE','CORE','TORE','GORE','ROTE','DOER','RODE','GOAD','TOAD','CODA','ARC','OAT','EAR','ERA','AGO','EGO','TOGA','GATOR'];
+const DICT=new Set(WORDS);const RARE={'TOR':2,'OAR':2,'ROE':2,'ODE':2,'COR':2,'CODA':3,'ROTE':3,'DOER':2,'GOAD':3,'TOGA':3,'GATOR':3,'ORE':2,'ERA':2,'AGO':2,'OAT':2,'CART':2,'CORE':2,'TORE':2,'GORE':2,'RODE':2,'TOAD':2,'DOE':2,'GOD':1};
+function band(w){return RARE[w]||1}
+const GRID=[['C','A','T'],['R','O','E'],['D','G','O']];
+const T={found:new Set(),attempts:0,valid:0,rts:[],firstLat:null,lens:new Set(),maxBand:0,startT:0,firstFoundT:null};
+const METERS=[
+ {id:'M-ACC',name:'Valid / attempts',get:()=>T.attempts?`${T.valid}/${T.attempts}`:'—'},
+ {id:'M-RT',name:'Time per word (mean)',get:()=>mean(T.rts)==null?'—':mean(T.rts)+' ms'},
+ {id:'M-IDEAFLU',name:'Distinct words found',get:()=>T.found.size+''},
+ {id:'M-VOCABLVL',name:'Rarest word (band)',get:()=>T.maxBand?('band '+T.maxBand):'—'},
+ {id:'M-RTFIRST',name:'Time to first word',get:()=>T.firstFoundT==null?'—':T.firstFoundT+' ms'},
+ {id:'M-FLEX',name:'Distinct word lengths',get:()=>T.lens.size+''},
+ {id:'M-PERSIST',name:'Time-on-task (ms)',get:()=>T.startT?(Date.now()-T.startT):'—'},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('')}
+function renderMeters(){METERS.forEach(m=>{const e=$('#v_'+m.id);if(e)e.textContent=m.get()})}
+function log(msg){const d=document.createElement('div');d.innerHTML=`<span class="t">•</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight}
+const ghost=$('#ghost');const gShow=v=>ghost.classList.toggle('show',v);
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}}
+async function gTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-8}px,${c.y-6}px)`;await sleep(340)}
+
+let phase='demo',trace=[],locked=false,timerId=null,timeLeft=0,wordT=0;
+const setCue=i=>$('#phasecue').textContent=i;
+function renderGrid(){const g=$('#grid');g.innerHTML='';for(let r=0;r<3;r++)for(let c=0;c<3;c++){g.insertAdjacentHTML('beforeend',`<div class="cell" data-r="${r}" data-c="${c}">${GRID[r][c]}</div>`)}}
+function updateTrace(){$$('.cell').forEach(x=>x.classList.remove('on'));trace.forEach(([r,c])=>$(`.cell[data-r="${r}"][data-c="${c}"]`).classList.add('on'));
+  $('#word').textContent=trace.map(([r,c])=>GRID[r][c]).join('')}
+function adj(a,b){return Math.abs(a[0]-b[0])<=1&&Math.abs(a[1]-b[1])<=1&&!(a[0]===b[0]&&a[1]===b[1])}
+function tapCell(r,c){if(locked)return;const cell=[r,c];
+  if(trace.length&&trace[trace.length-1][0]===r&&trace[trace.length-1][1]===c){submit();return}
+  if(trace.some(t=>t[0]===r&&t[1]===c))return;
+  if(trace.length&&!adj(trace[trace.length-1],cell))return;
+  if(!trace.length&&T.firstLat==null){T.firstLat=Date.now()-T.startT;wordT=Date.now()}
+  if(!trace.length)wordT=Date.now();
+  trace.push(cell);updateTrace()}
+function clearTrace(){trace=[];updateTrace()}
+function submit(){if(locked)return;const w=trace.map(([r,c])=>GRID[r][c]).join('');if(w.length<3){clearTrace();return}
+  T.attempts++;const scored=phase==='scored';
+  if(DICT.has(w)&&!T.found.has(w)){T.valid++;T.found.add(w);T.lens.add(w.length);T.maxBand=Math.max(T.maxBand,band(w));
+    const rt=Date.now()-wordT;T.rts.push(rt);if(T.firstFoundT==null)T.firstFoundT=T.startT?Date.now()-T.startT:rt;
+    const b=band(w);$('#shelf').insertAdjacentHTML('beforeend',`<span class="gem b${b}">${w}</span>`);$('#score').textContent=T.found.size;
+    $('#fb').textContent='✓ '+w+(b>1?' (rare!)':'');$('#fb').style.color='var(--good)';log('word ✓ '+w+' (band '+b+')')}
+  else if(T.found.has(w)){$('#fb').textContent='already found';$('#fb').style.color='#999';log('dup '+w)}
+  else{$('#fb').textContent='not a word';$('#fb').style.color='var(--bad)';log('invalid '+w)}
+  clearTrace();renderMeters()}
+function startTimer(sec){timeLeft=sec;$('#timer').textContent='⏳ '+timeLeft;timerId=setInterval(()=>{timeLeft--;$('#timer').textContent='⏳ '+Math.max(0,timeLeft);if(timeLeft<=0){clearInterval(timerId);finish()}},1000)}
+function startWarmup(){phase='warmup';setCue('⭐');$('#instr').textContent='Warm-up: trace touching letters to make a word, tap ENTER. (unscored)';T.startT=Date.now();clearTrace();$('#timer').textContent=''}
+function startScored(){phase='scored';setCue('🎯');$('#instr').textContent='SCORED: find as many words as you can before time runs out! Longer & rarer = brighter gems.';T.found=new Set();T.attempts=0;T.valid=0;T.rts=[];T.lens=new Set();T.maxBand=0;T.firstFoundT=null;T.startT=Date.now();T.firstLat=null;$('#shelf').innerHTML='';$('#score').textContent='0';clearTrace();log('— SCORED timed word hunt —');startTimer(30)}
+function finish(){phase='done';locked=true;setCue('🏆');$('#timer').textContent='⏳ 0';$('#instr').textContent='Done! Great word hunting.';$('#fb').textContent='';log(`— DONE · ${T.found.size} words · rarest band ${T.maxBand} · lengths ${T.lens.size} —`);renderMeters()}
+async function runDemo(){phase='demo';setCue('👁️');$('#instr').textContent='';clearTrace();log('ghost-hand demo (wordless, <10s)');gShow(true);await sleep(300);
+  for(const[r,c]of[[0,0],[0,1],[0,2]]){await gTo($(`.cell[data-r="${r}"][data-c="${c}"]`));trace.push([r,c]);updateTrace();await sleep(150)}
+  await gTo($('#enter'));gShow(false);T.found.add('CAT');$('#shelf').insertAdjacentHTML('beforeend','<span class="gem">CAT</span>');$('#score').textContent='1';$('#fb').textContent='✓ CAT';$('#fb').style.color='var(--good)';clearTrace();await sleep(900);T.found=new Set();$('#shelf').innerHTML='';$('#score').textContent='0';$('#fb').textContent='';startWarmup()}
+$('#grid').addEventListener('click',e=>{const c=e.target.closest('.cell');if(c)tapCell(+c.dataset.r,+c.dataset.c)});
+$('#enter').addEventListener('click',submit);
+$('#clr').addEventListener('click',clearTrace);
+$('#replay').addEventListener('click',()=>{if(phase==='done')runDemo()});
+buildMeters();renderGrid();renderMeters();runDemo();
+</script>
+</body>
+</html>

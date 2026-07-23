@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GB-WORDLADDER-01 · Letter Climb</title>
+<style>
+  :root{--bg1:#fef3ea;--bg2:#eef1ff;--ink:#26304a;--card:#fff;--accent:#e07a4b;--good:#22b573;--bad:#ff6b6b;
+    --tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box}html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:12px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
+  #phasecue{font-size:32px;height:38px}
+  #stagecard{background:var(--card);border-radius:24px;padding:22px;box-shadow:0 18px 50px -22px #4a4a7a;
+    display:flex;flex-direction:column;align-items:center;gap:12px;width:460px;max-width:100%}
+  #instr{font-size:14px;color:#666;min-height:20px;text-align:center}
+  #goalrow{font-size:14px;color:#8a5a3a;font-weight:800}
+  #ladder{display:flex;flex-direction:column-reverse;gap:4px;align-items:center;min-height:40px}
+  .rung{display:flex;gap:5px}
+  .rung .lt{width:30px;height:30px;border-radius:5px;background:#f0d9c8;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;color:#8a5a3a}
+  #current{display:flex;gap:8px}
+  #current .lt{width:48px;height:48px;border-radius:9px;background:#fbe6d6;border:3px solid #f0c9ad;display:flex;align-items:center;
+    justify-content:center;font-weight:900;font-size:24px;color:#a5603a;cursor:pointer}
+  #current .lt.sel{border-color:var(--accent);background:#ffd9bf}
+  #current.shake{animation:sh .3s}@keyframes sh{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+  #pad{display:grid;grid-template-columns:repeat(9,1fr);gap:4px;max-width:340px}
+  .key{height:30px;border-radius:6px;background:#eef1ff;border:2px solid #dbe1ff;font-weight:800;font-size:13px;cursor:pointer;color:#4a5578}
+  #fb{font-size:14px;min-height:18px;font-weight:700}
+  #replay{width:44px;height:44px;background:#eef1ff;color:#5b6cff;font-size:20px;border-radius:50%;border:0;cursor:pointer}
+  #ghost{position:fixed;left:0;top:0;font-size:34px;pointer-events:none;z-index:60;opacity:0;
+    transition:transform .45s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;
+    font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:118px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}.mval{color:#fff}
+  .mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:170px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}.t{color:#5f6f9e}
+  @media(max-width:900px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:250px}}
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">GB-WORDLADDER-01 · Letter Climb</div>
+    <div id="phasecue">👁️</div>
+    <div id="stagecard">
+      <div id="instr"></div>
+      <div id="goalrow"></div>
+      <div id="ladder"></div>
+      <div id="current"></div>
+      <div id="pad"></div>
+      <div id="fb"></div>
+      <div><button id="replay" title="replay demo">↻</button></div>
+    </div>
+  </div>
+  <aside id="telemetry"><h3>Live telemetry · per-child</h3><div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div></aside>
+  <div id="ghost">👆</div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):null;
+const WORDS=['CAT','COT','COG','DOG','DOT','COP','COB','COD','CON','DON','HOG','LOG','BOG','FOG','JOG','HOT','POT','ROT','NOT','LOT',
+ 'BAT','HAT','RAT','MAT','SAT','PAT','FAT','CAP','MAP','TAP','GAP','LAP','NAP','RAP','CAR','BAR','CAN','MAN','FAN','PAN','RAN','TAN','BAN',
+ 'PIG','DIG','BIG','FIG','WIG','PIT','BIT','SIT','FIT','KIT','PIN','WIN','BIN','FIN','DIN','SUN','RUN','BUN','FUN','GUN','NUN','BUG','DUG','HUG','JUG','MUG','RUG','TUG'];
+const DICT=new Set(WORDS);
+const RARE={'COG':2,'COB':2,'COD':2,'CON':2,'DON':2,'BOG':2,'FOG':2,'JOG':2,'NAP':2,'TAN':2,'FIG':2,'WIG':2,'DIN':2,'NUN':3,'JUG':2,'TUG':2};
+function band(w){return RARE[w]||1}
+function neighbors(w){const out=[];for(let i=0;i<w.length;i++)for(let ch=65;ch<=90;ch++){const c=String.fromCharCode(ch);if(c===w[i])continue;const n=w.slice(0,i)+c+w.slice(i+1);if(DICT.has(n))out.push(n)}return out}
+function bfs(a,b){if(a===b)return 0;const seen=new Set([a]),q=[[a,0]];while(q.length){const[w,d]=q.shift();for(const n of neighbors(w)){if(n===b)return d+1;if(!seen.has(n)){seen.add(n);q.push([n,d+1])}}}return Infinity}
+const LEVELS={warm:{start:'CAT',goal:'COT'},s1:{start:'CAT',goal:'DOG'}};
+const T={rts:[],firstLat:null,firstActed:false,opt:0,rungs:0,scored:0,correct:0,maxBand:1,path:[]};
+const METERS=[
+ {id:'M-ACC',name:'Ladder reached goal',get:()=>T.scored?`${T.correct}/${T.scored}`:'—'},
+ {id:'M-RT',name:'Step time (mean)',get:()=>mean(T.rts)==null?'—':mean(T.rts)+' ms'},
+ {id:'M-EFF',name:'Rungs vs shortest',get:()=>T.opt?`${T.opt}/${T.rungs}`:'—'},
+ {id:'M-VOCABLVL',name:'Rarest rung (band)',get:()=>T.maxBand?('band '+T.maxBand):'—'},
+ {id:'M-RTFIRST',name:'First-change latency',get:()=>T.firstLat==null?'—':T.firstLat+' ms'},
+ {id:'M-PATH',name:'Ladder',get:()=>T.path.length?T.path.join('→'):'—'},
+ {id:'M-PERSIST',name:'Time-on-task (ms)',get:()=>startT?(Date.now()-startT):'—'},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('')}
+function renderMeters(){METERS.forEach(m=>{const e=$('#v_'+m.id);if(e)e.textContent=m.get()})}
+function log(msg){const d=document.createElement('div');d.innerHTML=`<span class="t">•</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight}
+const ghost=$('#ghost');const gShow=v=>ghost.classList.toggle('show',v);
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}}
+async function gTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-8}px,${c.y-6}px)`;await sleep(430)}
+
+let phase='demo',L=null,cur='',goal='',selPos=-1,locked=false,startT=0,stepT=0;
+const setCue=i=>$('#phasecue').textContent=i;
+function renderPad(){const p=$('#pad');p.innerHTML='';for(let i=65;i<=90;i++){const c=String.fromCharCode(i);p.insertAdjacentHTML('beforeend',`<button class="key" data-c="${c}">${c}</button>`)}}
+function renderCurrent(){const el=$('#current');el.innerHTML=cur.split('').map((ch,i)=>`<div class="lt${i===selPos?' sel':''}" data-i="${i}">${ch}</div>`).join('')}
+function renderLadder(){$('#ladder').innerHTML=T.path.map(w=>`<div class="rung">${w.split('').map(c=>`<div class="lt">${c}</div>`).join('')}</div>`).join('')}
+function newLevel(spec){L=spec;cur=spec.start;goal=spec.goal;selPos=-1;locked=false;startT=Date.now();stepT=Date.now();T.firstActed=false;T.firstLat=null;T.opt=bfs(spec.start,spec.goal);T.rungs=0;T.maxBand=band(spec.start);T.path=[spec.start];
+  $('#goalrow').textContent='Start '+spec.start+'  →  Goal '+spec.goal;renderCurrent();renderLadder();renderMeters()}
+function pick(i){if(locked)return;selPos=i;renderCurrent()}
+function setLetter(c){if(locked||selPos<0)return;const cand=cur.slice(0,selPos)+c+cur.slice(selPos+1);
+  if(cand===cur)return;
+  if(!T.firstActed){T.firstActed=true;T.firstLat=Date.now()-startT;log('first change (after planning)')}
+  if(!DICT.has(cand)){const el=$('#current');el.classList.add('shake');setTimeout(()=>el.classList.remove('shake'),300);log(cand+' is not a word');return}
+  const rt=Date.now()-stepT;stepT=Date.now();T.rts.push(rt);cur=cand;T.rungs++;T.path.push(cand);T.maxBand=Math.max(T.maxBand,band(cand));selPos=-1;
+  log('rung → '+cand+' (band '+band(cand)+')');renderCurrent();renderLadder();renderMeters();
+  if(cur===goal)solved()}
+function solved(){locked=true;setCue(phase==='scored'?'🏆':'⭐');$('#fb').textContent='Reached the goal! 🎉';$('#fb').style.color='var(--good)';
+  if(phase==='scored'){T.scored++;T.correct++;log(`SOLVED ${L.start}→${goal} · rungs ${T.rungs} (shortest ${T.opt}) · rarest band ${T.maxBand}`);renderMeters();setTimeout(finish,1500)}
+  else{log('warm-up solved (unscored)');setTimeout(startScored,1400)}}
+function finish(){phase='done';locked=true;setCue('🏆');$('#instr').textContent='Done! Nice climbing.'}
+function startWarmup(){phase='warmup';setCue('⭐');$('#instr').textContent='Warm-up: change ONE letter to reach the goal word. Tap a tile, then a letter. (unscored)';newLevel(LEVELS.warm);$('#fb').textContent=''}
+function startScored(){phase='scored';setCue('🎯');$('#instr').textContent='SCORED: climb from CAT to DOG, one letter at a time — each rung a real word. Fewest rungs wins.';newLevel(LEVELS.s1);$('#fb').textContent='';log('— SCORED CAT → DOG —')}
+async function runDemo(){phase='demo';setCue('👁️');$('#instr').textContent='';newLevel(LEVELS.warm);log('ghost-hand demo (wordless, <10s)');gShow(true);await sleep(400);
+  await gTo($('#current .lt[data-i="1"]'));selPos=1;renderCurrent();await sleep(300);await gTo($('.key[data-c="O"]'));gShow(false);
+  cur='COT';T.path=['CAT','COT'];renderCurrent();renderLadder();$('#fb').textContent='reached the goal! 🎉';$('#fb').style.color='var(--good)';await sleep(1100);$('#fb').textContent='';startWarmup()}
+$('#current').addEventListener('click',e=>{const t=e.target.closest('.lt');if(t)pick(+t.dataset.i)});
+$('#pad').addEventListener('click',e=>{const k=e.target.closest('.key');if(k)setLetter(k.dataset.c)});
+$('#replay').addEventListener('click',()=>{if(phase==='done')runDemo()});
+buildMeters();renderPad();renderMeters();runDemo();
+</script>
+</body>
+</html>

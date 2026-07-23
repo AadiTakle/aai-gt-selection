@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WM-rulezoo-01 — Secret Rule Zoo (rule discovery / shifting)</title>
+<style>
+  :root{--bg:#0e1220;--panel:#171d33;--edge:#2a3358;--ink:#e9edff;--mut:#8b93c0;--accent:#5cc8ff;--good:#5ce39a;--bad:#ff6b8a;--warn:#ffd166}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.45 system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);display:flex;min-height:100vh}
+  .main{flex:1;display:flex;flex-direction:column;align-items:center;padding:20px;gap:14px}
+  h1{font-size:19px;margin:.2rem 0}.sub{color:var(--mut);font-size:13px;margin:0;text-align:center;max-width:470px}
+  .badge{display:inline-block;padding:2px 9px;border-radius:99px;background:var(--panel);border:1px solid var(--edge);color:var(--warn);font-size:12px}
+  #arena{display:flex;align-items:center;gap:16px}
+  .gate{width:120px;height:150px;border-radius:16px;border:2px solid var(--edge);background:#101a30;display:flex;align-items:flex-end;justify-content:center;font-size:44px;cursor:pointer;padding-bottom:8px}
+  .gate .g{font-size:34px}.gate:active{transform:scale(.98)}
+  .gate.flash{border-color:var(--good);background:#123a26}.gate.wrong{border-color:var(--bad);background:#3a1420}
+  #card{width:120px;height:110px;border-radius:16px;background:#20284a;border:2px solid var(--edge);display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4px;font-size:40px}
+  #verdict{font-size:26px;height:34px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+  button.ctl{font:inherit;padding:9px 15px;border-radius:10px;border:1px solid var(--edge);background:#20284a;color:var(--ink);cursor:pointer}
+  button.pri{background:var(--accent);color:#062033;border-color:transparent;font-weight:600}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .tel{width:320px;background:var(--panel);border-left:1px solid var(--edge);padding:14px 14px 40px;overflow:auto;font:12px/1.55 ui-monospace,Menlo,Consolas,monospace}
+  .tel h2{font:600 12px system-ui;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:14px 0 6px}
+  .kv{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted #2a3358;padding:2px 0}
+  .kv b{color:var(--accent);font-weight:600}.kv .m{color:var(--mut);font-size:10px}
+  .log{margin-top:6px;max-height:150px;overflow:auto;border:1px solid var(--edge);border-radius:8px;padding:6px;background:#10152a}
+  .log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+</head>
+<body>
+<div class="main">
+  <div style="text-align:center">
+    <h1>🦁 Secret Rule Zoo <span class="badge" id="blevel">rule 1</span></h1>
+    <p class="sub">Send each animal card to a gate. A 😊 means right, 😞 means wrong. Figure out the <b>secret rule</b> — and it will change without warning!</p>
+  </div>
+  <div id="arena">
+    <div class="gate" data-s="L">⬅️<span class="g">🚪</span></div>
+    <div id="card"></div>
+    <div class="gate" data-s="R">➡️<span class="g">🚪</span></div>
+  </div>
+  <div id="verdict"></div>
+  <div class="row">
+    <button class="pri ctl" id="go">▶ Watch how it works</button>
+    <button class="ctl" id="replay" disabled>↺ Replay demo</button>
+  </div>
+  <p class="sub" id="phasehint">A ghost hand shows you first — no reading needed.</p>
+</div>
+<aside class="tel" id="tel"></aside>
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const gates=[...document.querySelectorAll(".gate")],card=$("#card"),verdict=$("#verdict");
+const COLORS=[{k:"red",e:"🔴"},{k:"blue",e:"🔵"}],SHAPES=[{k:"star",e:"⭐"},{k:"circ",e:"⚫"}];
+const T={phase:"idle",trial:0,acc:[0,0],persev:0,rulesSolved:0,edShifts:0,idShifts:0,
+  sinceChange:0,critAfter:[],rt:[],switchRT:[],repeatRT:[],justSwitched:false,log:[]};
+let rule=null,prevRule=null,streak=0,cur=null;
+function mean(a){return a.length?a.reduce((x,y)=>x+y,0)/a.length:0}
+function med(a){if(!a.length)return 0;const b=[...a].sort((x,y)=>x-y);const m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2}
+function pct(p){return p[1]?Math.round(100*p[0]/p[1]):0}
+function logE(s){T.log.unshift(`${(performance.now()/1000).toFixed(1)}s · ${s}`);if(T.log.length>60)T.log.pop()}
+function render(){
+  const sw=Math.round(med(T.switchRT)-med(T.repeatRT))||0;
+  $("#tel").innerHTML=`
+  <h2>Live telemetry · WM-rulezoo-01</h2>
+  <div class="kv"><span>phase</span><b>${T.phase}</b></div>
+  <div class="kv"><span>sorts</span><b>${T.trial}</b></div>
+  <h2>Accuracy <span class="m">M-ACC</span></h2>
+  <div class="kv"><span>correct sorts</span><b>${pct(T.acc)}%</b></div>
+  <h2>Flexibility</h2>
+  <div class="kv"><span>perseverative errors <span class="m">M-PERSEV</span></span><b>${T.persev}</b></div>
+  <div class="kv"><span>extra-dim switch cost <span class="m">M-SWITCHCOST</span></span><b>${sw} ms</b></div>
+  <h2>Discovery <span class="m">M-HYP</span></h2>
+  <div class="kv"><span>avg sorts to crack rule</span><b>${T.critAfter.length?mean(T.critAfter).toFixed(1):"—"}</b></div>
+  <div class="kv"><span>rules solved</span><b>${T.rulesSolved}</b></div>
+  <h2>Rule dimensionality <span class="m">M-RULEID</span></h2>
+  <div class="kv"><span>dims used (color/shape/count)</span><b>${T.rulesSolved?Math.min(3,1+T.edShifts):0}</b></div>
+  <div class="kv"><span>sort path <span class="m">M-PATH</span></span><b>logged</b></div>
+  <div class="log">${T.log.map(l=>`<div>${l}</div>`).join("")}</div>`;
+}
+render();
+
+function randRule(prev){const dims=["color","shape","count"];let dim,map;
+  if(!prev){dim="color";map={red:"L",blue:"R"};return {dim,map,label:"color"};}
+  if(Math.random()<0.5){ // extra-dimensional: new dimension
+    do{dim=dims[Math.floor(Math.random()*3)];}while(dim===prev.dim);T.edShifts++;
+  } else { dim=prev.dim; T.idShifts++; } // intra-dimensional: same dim, flip mapping
+  if(dim==="color")map=Math.random()<.5?{red:"L",blue:"R"}:{red:"R",blue:"L"};
+  else if(dim==="shape")map=Math.random()<.5?{star:"L",circ:"R"}:{star:"R",circ:"L"};
+  else map=Math.random()<.5?{1:"L",2:"R"}:{1:"R",2:"L"};
+  return {dim,map,label:dim};
+}
+function newCard(){const c=COLORS[Math.floor(Math.random()*2)],s=SHAPES[Math.floor(Math.random()*2)],n=1+Math.floor(Math.random()*2);
+  card.innerHTML="";for(let i=0;i<n;i++){const sp=document.createElement("span");sp.textContent=s.e;sp.style.filter=c.k==="red"?"hue-rotate(-60deg) saturate(3)":"none";sp.style.color=c.k==="red"?"#ff6b6b":"#5cc8ff";card.appendChild(sp);}
+  cur={color:c.k,shape:s.k,count:n};cur.onset=performance.now();cur.done=false;}
+function correctGate(card,r){const v=r.dim==="color"?card.color:r.dim==="shape"?card.shape:card.count;return r.map[v];}
+
+function decide(side,el){
+  if(!cur||cur.done)return;cur.done=true;const rt=performance.now()-cur.onset;
+  const want=correctGate(cur,rule);const ok=side===want;
+  el.classList.add(ok?"flash":"wrong");setTimeout(()=>el.classList.remove("flash","wrong"),240);
+  if(T.phase==="scored"||T.phase.startsWith("warm")){
+    if(T.phase==="scored"){T.trial++;T.acc[1]++;T.sinceChange++;T.rt.push(rt);
+      (T.justSwitched?T.switchRT:T.repeatRT).push(rt);
+      if(ok){T.acc[0]++;streak++;verdict.textContent="😊";
+        if(streak>=4){T.rulesSolved++;T.critAfter.push(T.sinceChange);logE(`cracked ${rule.label} rule`);prevRule=rule;rule=randRule(rule);streak=0;T.sinceChange=0;T.justSwitched=true;$("#blevel").textContent="rule "+(T.rulesSolved+1);verdict.textContent="😊 ✨new rule!";}
+        else T.justSwitched=false;
+      } else { streak=0;verdict.textContent="😞";T.justSwitched=false;
+        if(prevRule&&side===correctGate(cur,prevRule)&&want!==side){T.persev++;logE("perseverative error (old rule)");}
+        else logE("error");
+      }
+    }
+  } else verdict.textContent=ok?"😊":"😞";
+  render();setTimeout(()=>{if(T.phase==="scored"||T.phase.startsWith("warm"))newCard();},550);
+}
+gates.forEach(g=>g.addEventListener("pointerdown",()=>decide(g.dataset.s,g)));
+
+async function demo(){
+  if(T.phase==="demo")return;T.phase="demo";render();$("#go").disabled=true;$("#replay").disabled=true;
+  rule={dim:"color",map:{red:"L",blue:"R"},label:"color"};
+  card.innerHTML='<span style="color:#5cc8ff">⭐</span>';cur={color:"blue",shape:"star",count:1,done:false,onset:performance.now()};
+  const ghost=document.createElement("div");ghost.textContent="👆";ghost.style.cssText="position:fixed;font-size:30px;z-index:9;transition:left .5s,top .5s;opacity:0;pointer-events:none";document.body.appendChild(ghost);
+  const gL=gates[0].getBoundingClientRect();await sleep(400);ghost.style.opacity="1";ghost.style.left=(gL.left+gL.width/2-12)+"px";ghost.style.top=(gL.top+30)+"px";
+  await sleep(700);gates[0].classList.add("wrong");verdict.textContent="😞 not that gate";await sleep(700);gates[0].classList.remove("wrong");
+  const gR=gates[1].getBoundingClientRect();ghost.style.left=(gR.left+gR.width/2-12)+"px";ghost.style.top=(gR.top+30)+"px";
+  await sleep(700);gates[1].classList.add("flash");verdict.textContent="😊 blue goes right!";await sleep(700);gates[1].classList.remove("flash");
+  ghost.remove();T.phase="idle";$("#go").disabled=false;$("#replay").disabled=false;
+  $("#go").textContent="▶ Try a practice round";$("#go").onclick=warmup;
+  $("#phasehint").textContent="Learn the rule from the faces; it will change. Practice (not scored).";render();
+}
+$("#go").onclick=demo;$("#replay").onclick=demo;
+function warmup(){T.phase="warm-up (unscored)";rule=randRule(null);prevRule=null;streak=0;newCard();
+  $("#phasehint").textContent="Not scored — get a feel for it, then start.";$("#go").textContent="▶ Start scored game";$("#go").onclick=startScored;render();}
+function startScored(){T.phase="scored";T.trial=0;rule=randRule(null);prevRule=null;streak=0;T.sinceChange=0;T.justSwitched=false;newCard();
+  $("#phasehint").textContent="These count. Drop the old rule fast when the faces change.";$("#go").textContent="(playing…)";$("#go").disabled=true;$("#replay").disabled=true;
+  const iv=setInterval(()=>{if(T.trial>=24){clearInterval(iv);T.phase="done";$("#go").disabled=false;$("#go").textContent="▶ Play again";$("#go").onclick=startScored;$("#replay").disabled=false;
+    $("#phasehint").textContent=`Done. Rules solved ${T.rulesSolved}; perseverative errors ${T.persev}.`;render();}},400);
+  render();}
+</script>
+</body>
+</html>

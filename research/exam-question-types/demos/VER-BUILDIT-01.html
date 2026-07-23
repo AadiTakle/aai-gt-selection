@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VER-BUILDIT-01 — Build-It Buddy (follow spoken directions to build)</title>
+<style>
+  :root{--bg:#0e1220;--panel:#171d33;--edge:#2a3358;--ink:#e9edff;--mut:#8b93c0;--accent:#5cc8ff;--good:#5ce39a;--bad:#ff6b8a;--warn:#ffd166}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.45 system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);display:flex;min-height:100vh}
+  .main{flex:1;display:flex;flex-direction:column;align-items:center;padding:20px;gap:14px}
+  h1{font-size:19px;margin:.2rem 0}.sub{color:var(--mut);font-size:13px;margin:0;text-align:center;max-width:480px}
+  .badge{display:inline-block;padding:2px 9px;border-radius:99px;background:var(--panel);border:1px solid var(--edge);color:var(--warn);font-size:12px}
+  #cmd{min-height:30px;font-size:17px;background:var(--panel);border:1px solid var(--edge);border-radius:12px;padding:8px 14px;max-width:470px;text-align:center}
+  #cmd .spk{color:var(--accent)}
+  #canvas{display:flex;gap:14px}
+  .box{width:96px;height:96px;border-radius:16px;background:#10152a;border:2px dashed var(--edge);display:flex;align-items:center;justify-content:center;font-size:44px;cursor:pointer;position:relative}
+  .box .lbl{position:absolute;top:4px;left:8px;font-size:11px;color:var(--mut)}
+  .box.sel{border-color:var(--accent);border-style:solid}
+  .tray{display:flex;gap:10px}
+  .piece{width:70px;height:70px;border-radius:14px;background:#20284a;border:2px solid var(--edge);display:flex;align-items:center;justify-content:center;font-size:38px;cursor:pointer}
+  .piece.sel{border-color:var(--warn);box-shadow:0 0 0 3px #ffd16644}.piece:active{transform:scale(.96)}
+  #verdict{font-size:22px;height:30px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+  button.ctl{font:inherit;padding:9px 15px;border-radius:10px;border:1px solid var(--edge);background:#20284a;color:var(--ink);cursor:pointer}
+  button.pri{background:var(--accent);color:#062033;border-color:transparent;font-weight:600}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .tel{width:320px;background:var(--panel);border-left:1px solid var(--edge);padding:14px 14px 40px;overflow:auto;font:12px/1.55 ui-monospace,Menlo,Consolas,monospace}
+  .tel h2{font:600 12px system-ui;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:14px 0 6px}
+  .kv{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted #2a3358;padding:2px 0}
+  .kv b{color:var(--accent);font-weight:600}.kv .m{color:var(--mut);font-size:10px}
+  .log{margin-top:6px;max-height:150px;overflow:auto;border:1px solid var(--edge);border-radius:8px;padding:6px;background:#10152a}
+  .log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+</head>
+<body>
+<div class="main">
+  <div style="text-align:center">
+    <h1>🛠️ Build-It Buddy <span class="badge" id="blevel">2 steps</span></h1>
+    <p class="sub">Listen to the plan, then build it: tap a piece, then tap the box to place it. Do every step in the order you heard.</p>
+  </div>
+  <div id="cmd">🔊 <span class="spk">tap ▶ to hear the plan</span></div>
+  <div id="canvas"></div>
+  <div class="tray" id="tray"></div>
+  <div id="verdict"></div>
+  <div class="row">
+    <button class="pri ctl" id="go">▶ Watch how it works</button>
+    <button class="ctl" id="replay" disabled>↺ Replay demo</button>
+    <button class="ctl" id="done" disabled>✓ done</button>
+  </div>
+  <p class="sub" id="phasehint">A ghost hand shows you first — no reading needed.</p>
+</div>
+<aside class="tel" id="tel"></aside>
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const PIECES=[{e:"🟥",n:"red square"},{e:"⭐",n:"star"},{e:"🌳",n:"tree"},{e:"🔵",n:"blue dot"}];
+const BOXES=["left","middle","right"];
+const canvas=$("#canvas"),tray=$("#tray"),cmd=$("#cmd"),verdict=$("#verdict");
+const T={phase:"idle",trial:0,steps:2,acc:[0,0],polyNum:0,polyDen:0,span:0,maxreach:0,rev:0,log:[]};
+function pct(p){return p[1]?Math.round(100*p[0]/p[1]):0}
+function pctPoly(){return T.polyDen?Math.round(100*T.polyNum/T.polyDen):0}
+function logE(s){T.log.unshift(`${(performance.now()/1000).toFixed(1)}s · ${s}`);if(T.log.length>60)T.log.pop()}
+function render(){
+  $("#tel").innerHTML=`
+  <h2>Live telemetry · VER-BUILDIT-01</h2>
+  <div class="kv"><span>phase</span><b>${T.phase}</b></div>
+  <div class="kv"><span>plans built</span><b>${T.trial}</b></div>
+  <h2>Accuracy <span class="m">M-ACC</span></h2>
+  <div class="kv"><span>whole plan correct</span><b>${pct(T.acc)}%</b></div>
+  <h2>Step partial-credit <span class="m">M-POLY</span></h2>
+  <div class="kv"><span>steps satisfied</span><b>${pctPoly()}%</b></div>
+  <h2>Oral-direction span <span class="m">M-ORALSPAN</span></h2>
+  <div class="kv"><span>max steps fully built</span><b>${T.span}</b></div>
+  <div class="kv"><span>highest reached <span class="m">M-DIFFREACH</span></span><b>${T.maxreach} steps</b></div>
+  <h2>Process</h2>
+  <div class="kv"><span>re-placements <span class="m">M-REV</span></span><b>${T.rev}</b></div>
+  <div class="kv"><span>build path <span class="m">M-PATH</span></span><b>logged</b></div>
+  <div class="log">${T.log.map(l=>`<div>${l}</div>`).join("")}</div>`;
+}
+render();
+
+let target={},state={},sel=null;
+function build(){canvas.innerHTML="";BOXES.forEach((b,i)=>{const d=document.createElement("div");d.className="box";d.dataset.i=i;d.innerHTML=`<span class="lbl">${b}</span>`;d.onpointerdown=()=>drop(i,d);canvas.appendChild(d)});
+  tray.innerHTML="";PIECES.forEach((p,i)=>{const d=document.createElement("div");d.className="piece";d.dataset.i=i;d.textContent=p.e;d.onpointerdown=()=>pick(i,d);tray.appendChild(d)});}
+function pick(i,el){sel=i;[...tray.children].forEach(c=>c.classList.remove("sel"));el.classList.add("sel");}
+function drop(bi){if(sel==null)return;if(state[bi]!=null)T.rev++;state[bi]=sel;const p=PIECES[sel];[...canvas.children][bi].innerHTML=`<span class="lbl">${BOXES[bi]}</span>${p.e}`;sel=null;[...tray.children].forEach(c=>c.classList.remove("sel"));render();}
+function newItem(){T.maxreach=Math.max(T.maxreach,0);state={};sel=null;build();verdict.textContent="";
+  const boxes=[0,1,2].sort(()=>Math.random()-0.5).slice(0,T.steps);
+  const pcs=[0,1,2,3].sort(()=>Math.random()-0.5);
+  target={};boxes.forEach((b,k)=>target[b]=pcs[k]);
+  const parts=boxes.map((b,k)=>`put the ${PIECES[pcs[k]].n} in the ${BOXES[b]} box`);
+  cmd.innerHTML=`🔊 <span class="spk">Plan:</span> ${parts.join(", then ")}`;
+  $("#done").disabled=false;
+}
+function judge(){
+  const keys=Object.keys(target);let ok=0;keys.forEach(b=>{if(state[b]===target[b])ok++});
+  const all=ok===keys.length;
+  if(T.phase==="scored"){T.trial++;T.acc[1]++;T.polyDen+=keys.length;T.polyNum+=ok;T.maxreach=Math.max(T.maxreach,keys.length);
+    if(all){T.acc[0]++;T.span=Math.max(T.span,keys.length);verdict.textContent="✅ built it!";logE(`built all ${keys.length} steps`);}
+    else{verdict.textContent=`◑ ${ok}/${keys.length} steps`;logE(`${ok}/${keys.length} steps correct`);}
+  } else verdict.textContent=all?"✅ built it!":`◑ ${ok}/${keys.length}`;
+  render();
+}
+$("#done").onclick=()=>{judge();$("#done").disabled=true;setTimeout(()=>{if(T.phase==="scored"||T.phase.startsWith("warm"))newItem();},900);};
+build();
+
+async function demo(){
+  if(T.phase==="demo")return;T.phase="demo";render();$("#go").disabled=true;$("#replay").disabled=true;$("#done").disabled=true;
+  state={};build();cmd.innerHTML=`🔊 <span class="spk">Plan:</span> put the red square in the left box, then the star in the middle box`;
+  const ghost=document.createElement("div");ghost.textContent="👆";ghost.style.cssText="position:fixed;font-size:30px;z-index:9;transition:left .45s,top .45s;opacity:0;pointer-events:none";document.body.appendChild(ghost);
+  await sleep(500);ghost.style.opacity="1";
+  async function move(el){const r=el.getBoundingClientRect();ghost.style.left=(r.left+r.width/2-12)+"px";ghost.style.top=(r.top+8)+"px";await sleep(520);}
+  await move([...tray.children][0]);pick(0,[...tray.children][0]);await move([...canvas.children][0]);drop(0);
+  await move([...tray.children][1]);pick(1,[...tray.children][1]);await move([...canvas.children][1]);drop(1);
+  verdict.textContent="✅ built it!";await sleep(500);ghost.remove();
+  T.phase="idle";$("#go").disabled=false;$("#replay").disabled=false;
+  $("#go").textContent="▶ Try a practice one";$("#go").onclick=warmup;
+  $("#phasehint").textContent="Tap a piece then a box. Practice one (not scored).";newItem();render();
+}
+$("#go").onclick=demo;$("#replay").onclick=demo;
+function warmup(){T.phase="warm-up (unscored)";newItem();$("#phasehint").textContent="Not scored — build one, tap done, then start.";
+  $("#go").textContent="▶ Start scored game";$("#go").onclick=startScored;render();}
+function startScored(){T.phase="scored";T.trial=0;$("#phasehint").textContent="These count. Longer plans unlock as you succeed — hold every step in mind.";
+  $("#go").textContent="(playing…)";$("#go").disabled=true;$("#replay").disabled=true;
+  newItem();render();
+  const iv=setInterval(()=>{ if(T.trial>=2&&T.steps<3&&pct(T.acc)>=60){T.steps=3;$("#blevel").textContent="3 steps";logE("level up → 3 steps");}
+    if(T.trial>=4){clearInterval(iv);T.phase="done";$("#go").disabled=false;$("#go").textContent="▶ Play again";$("#go").onclick=startScored;$("#replay").disabled=false;
+    $("#phasehint").textContent=`Done. Oral-direction span ${T.span} steps; step partial-credit ${pctPoly()}%.`;render();}},500);
+}
+</script>
+</body>
+</html>

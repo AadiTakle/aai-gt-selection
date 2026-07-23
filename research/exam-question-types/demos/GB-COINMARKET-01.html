@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GB-COINMARKET-01 · Coin Market</title>
+<style>
+  :root{--bg1:#fff6e0;--bg2:#eafaf0;--ink:#26304a;--card:#fff;--accent:#e0a020;--good:#22b573;--bad:#ff6b6b;
+    --tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box}html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:12px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
+  #phasecue{font-size:32px;height:38px}
+  #stagecard{background:var(--card);border-radius:24px;padding:22px;box-shadow:0 18px 50px -22px #4a4a7a;
+    display:flex;flex-direction:column;align-items:center;gap:14px;width:460px;max-width:100%}
+  #instr{font-size:14px;color:#666;min-height:20px;text-align:center}
+  #price{font-size:26px;font-weight:900;color:#a86a12}
+  #pay{display:flex;flex-direction:column;align-items:center;gap:8px;width:100%}
+  #tray{min-height:64px;width:100%;background:#fffaf0;border:3px dashed #f0d79a;border-radius:14px;display:flex;flex-wrap:wrap;gap:6px;
+    align-items:center;justify-content:center;padding:8px}
+  .coin{width:34px;height:34px;border-radius:50%;background:#f4c542;border:2px solid #d19b1e;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px}
+  .bill{width:46px;height:30px;border-radius:6px;background:#8fd18f;border:2px solid #5aa15a;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#245224}
+  #sum{font-weight:800;font-size:18px}
+  #btns{display:flex;gap:10px}
+  button{font:inherit;border:0;cursor:pointer;border-radius:12px}
+  .add{background:#fff2d0;border:3px solid #f0d79a;padding:10px 14px;font-weight:800;font-size:15px;cursor:pointer}
+  #payok{background:var(--accent);color:#fff;padding:10px 20px;font-weight:800}
+  #clear{background:#ffe9ec;color:#c0455a;padding:10px 14px;font-weight:700}
+  #compare{display:flex;gap:20px;justify-content:center}
+  .toy{width:130px;padding:14px;border-radius:16px;background:#f6f8ff;border:3px solid #e2e8fb;text-align:center;cursor:pointer}
+  .toy:active{transform:scale(.97)}.toy .e{font-size:44px}.toy .p{font-size:22px;font-weight:900;color:#a86a12}
+  #fb{font-size:14px;min-height:18px;font-weight:700}
+  #controls{display:flex;gap:12px;align-items:center}
+  #replay{width:44px;height:44px;background:#eef1ff;color:#5b6cff;font-size:20px;border-radius:50%;border:0;cursor:pointer}
+  #ghost{position:fixed;left:0;top:0;font-size:34px;pointer-events:none;z-index:60;opacity:0;
+    transition:transform .45s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;
+    font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:118px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}.mval{color:#fff}
+  .mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:170px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}.t{color:#5f6f9e}
+  @media(max-width:900px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:250px}}
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">GB-COINMARKET-01 · Coin Market</div>
+    <div id="phasecue">👁️</div>
+    <div id="stagecard">
+      <div id="instr"></div>
+      <div id="price"></div>
+      <div id="pay">
+        <div id="tray"></div>
+        <div id="sum"></div>
+        <div id="btns"><button class="add" data-v="1">＋1 🪙</button><button class="add" data-v="10">＋10 💵</button><button id="clear">clear</button><button id="payok">PAY</button></div>
+      </div>
+      <div id="compare"></div>
+      <div id="fb"></div>
+      <div id="controls"><button id="replay" title="replay demo">↻</button></div>
+    </div>
+  </div>
+  <aside id="telemetry"><h3>Live telemetry · per-child</h3><div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div></aside>
+  <div id="ghost">👆</div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):null;
+function speak(t){try{if(window.speechSynthesis){const u=new SpeechSynthesisUtterance(t);u.rate=.95;speechSynthesis.cancel();speechSynthesis.speak(u)}}catch(e){}}
+const T={rts:[],correct:0,total:0,scored:0,payUsed:0,payOpt:0,firstLat:null,firstActed:false,changes:0,lastErr:'',magCorrect:0,magTotal:0};
+const METERS=[
+ {id:'M-ACC',name:'Items correct (scored)',get:()=>T.total?`${T.correct}/${T.total}`:'—'},
+ {id:'M-RT',name:'Response time (mean)',get:()=>mean(T.rts)==null?'—':mean(T.rts)+' ms'},
+ {id:'M-EFF',name:'Coins vs minimal (pay)',get:()=>T.payOpt?`${T.payOpt}/${T.payUsed}`:'—'},
+ {id:'M-ERRTYPE',name:'Last miss type',get:()=>T.lastErr||'—'},
+ {id:'M-RTFIRST',name:'First-action latency',get:()=>T.firstLat==null?'—':T.firstLat+' ms'},
+ {id:'M-SPEEDACC',name:'Compare acc (magnitude)',get:()=>T.magTotal?`${T.magCorrect}/${T.magTotal}`:'—'},
+ {id:'M-PATH',name:'Coin actions',get:()=>T.actions||0},
+ {id:'M-REV',name:'Clears / undos',get:()=>T.changes+''},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('')}
+function renderMeters(){METERS.forEach(m=>{const e=$('#v_'+m.id);if(e)e.textContent=m.get()})}
+function log(msg){const d=document.createElement('div');d.innerHTML=`<span class="t">•</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight}
+const ghost=$('#ghost');const gShow=v=>ghost.classList.toggle('show',v);
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}}
+async function gTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-8}px,${c.y-6}px)`;await sleep(430)}
+
+let phase='demo',mode='pay',target=0,tens=0,ones=0,startT=0,answered=false,curCmp=null;
+const setCue=i=>$('#phasecue').textContent=i;
+function showPay(v){mode='pay';$('#pay').style.display='flex';$('#compare').style.display='none';target=v;tens=0;ones=0;T.actions=0;T.firstActed=false;answered=false;startT=performance.now();
+  $('#price').textContent='Price: '+v;speak('Pay '+v);renderTray();$('#instr').textContent=phase==='scored'?'Pay the exact price — use the fewest coins.':'Warm-up: pay the price with coins. (unscored)'}
+function renderTray(){const t=$('#tray');t.innerHTML='';for(let i=0;i<tens;i++)t.insertAdjacentHTML('beforeend','<div class="bill">10</div>');for(let i=0;i<ones;i++)t.insertAdjacentHTML('beforeend','<div class="coin">1</div>');
+  $('#sum').textContent='Tray: '+(tens*10+ones)}
+function addCoin(v){if(mode!=='pay'||answered)return;if(!T.firstActed){T.firstActed=true;T.firstLat=Math.round(performance.now()-startT);log('first action (after planning)')}
+  if(v===10)tens++;else ones++;T.actions++;renderTray();renderMeters()}
+function clearPay(){if(answered)return;if(tens+ones>0)T.changes++;tens=0;ones=0;renderTray();log('cleared tray')}
+function payok(){if(mode!=='pay'||answered)return;answered=true;const sum=tens*10+ones;const rt=Math.round(performance.now()-startT);
+  const scored=phase==='scored';if(scored)T.total++;
+  const opt=Math.floor(target/10)+target%10;
+  if(sum===target){if(scored){T.correct++;T.rts.push(rt);T.payUsed=tens+ones;T.payOpt=opt;
+      if(tens+ones>opt){T.lastErr='inefficient (too many ones)'}else T.lastErr='';log(`PAY ${target} exact ✓ · coins ${tens+ones} (min ${opt}) · rt ${rt}`)}
+    else log(`warm-up paid ${target} ✓`);
+    $('#fb').textContent='Exact! 🎉';$('#fb').style.color='var(--good)';nextItem(scored)}
+  else{T.lastErr=sum>target?'overpaid':'underpaid';$('#fb').textContent=sum>target?'too much — clear and retry':'not enough — add more';$('#fb').style.color='var(--bad)';log(`PAY ${sum} vs ${target}: ${T.lastErr}`);answered=false;renderMeters()}}
+function showCompare(a,b){mode='cmp';$('#pay').style.display='none';$('#compare').style.display='flex';curCmp={a,b};answered=false;startT=performance.now();T.firstActed=false;
+  $('#price').textContent='Which costs MORE?';$('#instr').textContent='Tap the toy that costs more.';
+  $('#compare').innerHTML=`<div class="toy" data-p="${a}"><div class="e">🧸</div><div class="p">${a}</div></div><div class="toy" data-p="${b}"><div class="e">🚗</div><div class="p">${b}</div></div>`}
+function pickToy(p){if(mode!=='cmp'||answered)return;answered=true;const rt=Math.round(performance.now()-startT);const scored=phase==='scored';
+  const hi=Math.max(curCmp.a,curCmp.b);const ok=p===hi;if(scored){T.total++;T.magTotal++;if(ok){T.correct++;T.magCorrect++;T.rts.push(rt)}else T.lastErr='magnitude miss'}
+  $('#fb').textContent=ok?'Right! 🎉':'the other one costs more';$('#fb').style.color=ok?'var(--good)':'var(--bad)';log(`compare ${curCmp.a} vs ${curCmp.b}: ${ok?'✓':'✗'} rt ${rt}`);renderMeters();
+  setTimeout(()=>nextItem(scored),900)}
+// item flow
+let scoredQ=[],qi=0;
+function nextItem(scored){if(!scored){setTimeout(startScored,900);return}
+  qi++;if(qi>=scoredQ.length){setTimeout(finish,700);return}
+  const it=scoredQ[qi];$('#fb').textContent='';if(it.t==='pay')showPay(it.v);else showCompare(it.a,it.b)}
+function startWarmup(){phase='warmup';setCue('⭐');showPay(3)}
+function startScored(){phase='scored';setCue('🎯');scoredQ=[{t:'cmp',a:7,b:12},{t:'pay',v:13},{t:'pay',v:24}];qi=0;$('#fb').textContent='';const it=scoredQ[0];showCompare(it.a,it.b);log('— SCORED market: compare + pay with regrouping —')}
+function finish(){phase='done';setCue('🏆');mode='';$('#pay').style.display='none';$('#compare').style.display='none';$('#price').textContent='';$('#instr').textContent='Done! Great shopping math.';$('#fb').textContent='';log(`— DONE · correct ${T.correct}/${T.total} · pay coins ${T.payUsed} (min ${T.payOpt}) —`);renderMeters()}
+async function runDemo(){phase='demo';setCue('👁️');$('#compare').style.display='none';showPay(3);$('#instr').textContent='';$('#price').textContent='Price: 3';log('ghost-hand demo (wordless, <10s)');gShow(true);await sleep(400);
+  const b1=$('.add[data-v="1"]');for(let i=0;i<3;i++){await gTo(b1);ones++;renderTray();await sleep(180)}
+  await gTo($('#payok'));gShow(false);$('#fb').textContent='Exact! 🎉';$('#fb').style.color='var(--good)';await sleep(900);$('#fb').textContent='';startWarmup()}
+$('#btns').addEventListener('click',e=>{const a=e.target.closest('.add');if(a)addCoin(+a.dataset.v)});
+$('#clear').addEventListener('click',clearPay);
+$('#payok').addEventListener('click',payok);
+$('#compare').addEventListener('click',e=>{const t=e.target.closest('.toy');if(t)pickToy(+t.dataset.p)});
+$('#replay').addEventListener('click',()=>{if(phase==='done')runDemo()});
+buildMeters();renderMeters();runDemo();
+</script>
+</body>
+</html>

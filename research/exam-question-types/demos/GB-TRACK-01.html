@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GB-TRACK-01 · Firefly Jars</title>
+<style>
+  :root{--bg1:#0e1330;--bg2:#1a1a3a;--ink:#eaf0ff;--card:#20264a;--accent:#ffd23f;--good:#22b573;--bad:#ff6b6b;
+    --tel-bg:#0a0e22;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box}html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:12px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
+  #phasecue{font-size:32px;height:38px}
+  #stagecard{background:var(--card);border-radius:24px;padding:22px;box-shadow:0 18px 50px -22px #000;
+    display:flex;flex-direction:column;align-items:center;gap:16px;width:520px;max-width:100%}
+  #instr{font-size:14px;color:#b9c2e8;min-height:20px;text-align:center}
+  #field{position:relative;height:120px;width:100%}
+  .jar{position:absolute;top:20px;width:72px;height:84px;border-radius:14px 14px 20px 20px;background:rgba(180,200,255,.14);
+    border:3px solid #6f7bb0;display:flex;align-items:center;justify-content:center;font-size:34px;cursor:pointer;
+    transition:left .5s cubic-bezier(.4,.1,.2,1),transform .15s,border-color .2s;-webkit-tap-highlight-color:transparent}
+  .jar.glow{background:rgba(255,210,63,.3);border-color:var(--accent);box-shadow:0 0 22px #ffd23f}
+  .jar.sel{border-color:#7fffcf;transform:translateY(-6px)}
+  .jar.rt{border-color:var(--good);background:rgba(34,181,115,.3)}
+  .jar.wrong{border-color:var(--bad);background:rgba(255,107,107,.3)}
+  #done{padding:10px 26px;border-radius:16px;background:var(--accent);color:#3a2f00;font-weight:800;font-size:17px;border:0;cursor:pointer}
+  #done:disabled{opacity:.4}
+  #fb{font-size:14px;min-height:18px;font-weight:700}
+  #controls{display:flex;gap:12px;align-items:center}
+  #replay{width:44px;height:44px;background:#2c335f;color:#9fb0ff;font-size:20px;border-radius:50%;border:0;cursor:pointer}
+  #ghost{position:fixed;left:0;top:0;font-size:34px;pointer-events:none;z-index:60;opacity:0;
+    transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.4))}
+  #ghost.show{opacity:.95}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;
+    font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#141a38;text-transform:uppercase}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:110px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}.mval{color:#fff}
+  .mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:180px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}.t{color:#5f6f9e}
+  @media(max-width:900px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:250px}}
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">GB-TRACK-01 · Firefly Jars</div>
+    <div id="phasecue">👁️</div>
+    <div id="stagecard">
+      <div id="instr"></div>
+      <div id="field"></div>
+      <button id="done" disabled>DONE</button>
+      <div id="fb"></div>
+      <div id="controls"><button id="replay" title="replay demo">↻</button></div>
+    </div>
+  </div>
+  <aside id="telemetry"><h3>Live telemetry · per-child</h3><div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div></aside>
+  <div id="ghost">👆</div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):null;
+function ndtri(p){p=Math.min(.99,Math.max(.01,p));const a=[-39.6968,220.9460,-275.9285,138.3577,-30.6648,2.5066],b=[-54.4760,161.5858,-155.6989,66.8013,-13.2801],c=[-.00778,-.32239,-2.40076,-2.54973,4.37466,2.93816],d=[.00778,.32246,2.44513,3.75440],pl=.02425;let q,r,x;if(p<pl){q=Math.sqrt(-2*Math.log(p));x=(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1)}else if(p<=1-pl){q=p-.5;r=q*q;x=(((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1)}else{q=Math.sqrt(-2*Math.log(1-p));x=-(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1)}return x}
+const W=84;
+const LEVELS={warm:{jars:3,ff:1,swaps:1,bug:0},s1:{jars:5,ff:2,swaps:3,bug:1}};
+const T={hits:0,targets:0,fa:0,nontargets:0,decideRT:null,swaps:0,ff:0,removes:0,scored:0,correct:0,rounds:0};
+const METERS=[
+ {id:'M-ACC',name:'Firefly jars found',get:()=>T.targets?`${T.hits}/${T.targets}`:'—'},
+ {id:'M-RT',name:'Decision time',get:()=>T.decideRT==null?'—':T.decideRT+' ms'},
+ {id:'M-DPRIME',name:"Sensitivity d'",get:()=>{if(!T.targets||!T.nontargets)return '—';const h=(T.hits+.5)/(T.targets+1),f=(T.fa+.5)/(T.nontargets+1);return (ndtri(h)-ndtri(f)).toFixed(2)}},
+ {id:'M-UPDATECOST',name:'Swaps (update load)',get:()=>T.swaps+''},
+ {id:'M-FALSEALARM',name:'Empty/bug jars tapped',get:()=>T.fa+''},
+ {id:'M-SPAN',name:'Fireflies tracked',get:()=>T.ff||'—'},
+ {id:'M-REV',name:'Deselects (revisions)',get:()=>T.removes+''},
+ {id:'M-ENGAGE',name:'Rounds played',get:()=>T.rounds+''},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('')}
+function renderMeters(){METERS.forEach(m=>{const e=$('#v_'+m.id);if(e)e.textContent=m.get()})}
+function log(msg){const d=document.createElement('div');d.innerHTML=`<span class="t">•</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight}
+const ghost=$('#ghost');const gShow=v=>ghost.classList.toggle('show',v);
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}}
+async function gTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-8}px,${c.y-6}px)`;await sleep(480)}
+
+let phase='demo',jars=[],selectable=false,selected=new Set(),decideStart=0;
+const setCue=i=>$('#phasecue').textContent=i;
+function layout(){const f=$('#field');const total=jars.length;const gap=(f.clientWidth-total*72)/(total+1);
+  jars.forEach(j=>{j.el.style.left=(gap+j.slot*(72+gap))+'px';})}
+function build(L){const f=$('#field');f.innerHTML='';jars=[];selected.clear();selectable=false;$('#done').disabled=true;
+  const ffSlots=new Set();while(ffSlots.size<L.ff)ffSlots.add(Math.floor(Math.random()*L.jars));
+  let bugSlot=-1;if(L.bug){do{bugSlot=Math.floor(Math.random()*L.jars)}while(ffSlots.has(bugSlot))}
+  for(let s=0;s<L.jars;s++){const el=document.createElement('div');el.className='jar';const j={id:s,slot:s,ff:ffSlots.has(s),bug:s===bugSlot,el};el.dataset.id=s;f.appendChild(el);jars.push(j)}
+  layout()}
+function jarAtSlot(s){return jars.find(j=>j.slot===s)}
+async function reveal(L){ // glow fireflies, show bug, then close
+  jars.forEach(j=>{if(j.ff){j.el.classList.add('glow');j.el.textContent='🪰'}if(j.bug){j.el.textContent='🐛'}});
+  await sleep(1400);jars.forEach(j=>{j.el.classList.remove('glow');j.el.textContent=''});await sleep(400)}
+async function doSwaps(L){for(let k=0;k<L.swaps;k++){let a=Math.floor(Math.random()*L.jars),b;do{b=Math.floor(Math.random()*L.jars)}while(b===a);
+  const ja=jarAtSlot(a),jb=jarAtSlot(b);const tmp=ja.slot;ja.slot=jb.slot;jb.slot=tmp;T.swaps++;layout();renderMeters();await sleep(650)}}
+async function playRound(L,scored){build(L);T.rounds++;if(scored){T.ff=L.ff}$('#fb').textContent='';
+  $('#instr').textContent='Watch the fireflies…';await reveal(L);
+  $('#instr').textContent='Jars are shuffling…';await doSwaps(L);
+  selectable=true;$('#done').disabled=false;decideStart=performance.now();
+  $('#instr').textContent=scored?'Now tap every jar that still holds a firefly, then DONE.':'Tap the firefly jar, then DONE. (unscored)'}
+function toggle(id){if(!selectable)return;const j=jars.find(x=>x.id===id);
+  if(selected.has(id)){selected.delete(id);j.el.classList.remove('sel');T.removes++;renderMeters()}
+  else{selected.add(id);j.el.classList.add('sel')}}
+function evaluate(scored){selectable=false;$('#done').disabled=true;T.decideRT=Math.round(performance.now()-decideStart);
+  let hits=0,fa=0;jars.forEach(j=>{const picked=selected.has(j.id);
+    if(j.ff&&picked){hits++;j.el.classList.add('rt');j.el.textContent='🪰'}
+    else if(j.ff&&!picked){j.el.classList.add('wrong');j.el.textContent='🪰'}
+    else if(!j.ff&&picked){fa++;j.el.classList.add('wrong')}});
+  const targets=jars.filter(j=>j.ff).length,non=jars.length-targets;
+  if(scored){T.hits+=hits;T.targets+=targets;T.fa+=fa;T.nontargets+=non;
+    const perfect=hits===targets&&fa===0;if(perfect)T.correct++;T.scored++;
+    $('#fb').textContent=perfect?'Perfect tracking! 🎉':`${hits}/${targets} fireflies, ${fa} wrong`;$('#fb').style.color=perfect?'var(--good)':'var(--bad)';
+    log(`SCORED · hits ${hits}/${targets} · false alarms ${fa} · RT ${T.decideRT}ms · swaps ${T.swaps}`);renderMeters();setTimeout(finish,1600)}
+  else{$('#fb').textContent=hits?'Nice! 🎉':'try again next time';$('#fb').style.color='var(--good)';log('warm-up done (unscored)');setTimeout(()=>startScored(),1500)}}
+function finish(){phase='done';setCue('🏆');$('#instr').textContent='Done! Sharp tracking.';const h=(T.hits+.5)/(T.targets+1),f=(T.fa+.5)/(T.nontargets+1);log(`— DONE · d' ${(ndtri(h)-ndtri(f)).toFixed(2)} —`)}
+async function startWarmup(){phase='warmup';setCue('⭐');await playRound(LEVELS.warm,false)}
+async function startScored(){phase='scored';setCue('🎯');await playRound(LEVELS.s1,true)}
+async function runDemo(){phase='demo';setCue('👁️');$('#instr').textContent='';build(LEVELS.warm);
+  // force jar0 to be the firefly for a clean demo
+  jars.forEach((j,i)=>{j.ff=(i===0);j.bug=false});log('ghost-hand demo (wordless, <10s)');gShow(true);
+  jars[0].el.classList.add('glow');jars[0].el.textContent='🪰';await sleep(1100);jars[0].el.classList.remove('glow');jars[0].el.textContent='';
+  // one swap
+  const ja=jarAtSlot(0),jb=jarAtSlot(1);const tmp=ja.slot;ja.slot=jb.slot;jb.slot=tmp;layout();await sleep(700);
+  const ffJar=jars[0];await gTo(ffJar.el);gShow(false);ffJar.el.classList.add('rt');ffJar.el.textContent='🪰';await sleep(900);startWarmup()}
+$('#field').addEventListener('click',e=>{const j=e.target.closest('.jar');if(j)toggle(+j.dataset.id)});
+$('#done').addEventListener('click',()=>{if(selectable)evaluate(phase==='scored')});
+$('#replay').addEventListener('click',()=>{if(phase==='done')runDemo()});
+buildMeters();renderMeters();runDemo();
+</script>
+</body>
+</html>

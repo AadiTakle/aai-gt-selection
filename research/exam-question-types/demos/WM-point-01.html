@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WM-point-01 — New Every Time (self-ordered pointing)</title>
+<style>
+  :root{--bg:#0e1220;--panel:#171d33;--edge:#2a3358;--ink:#e9edff;--mut:#8b93c0;--accent:#5cc8ff;--good:#5ce39a;--bad:#ff6b8a;--warn:#ffd166}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.45 system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);display:flex;min-height:100vh}
+  .main{flex:1;display:flex;flex-direction:column;align-items:center;padding:20px;gap:14px}
+  h1{font-size:19px;margin:.2rem 0}.sub{color:var(--mut);font-size:13px;margin:0;text-align:center;max-width:470px}
+  .badge{display:inline-block;padding:2px 9px;border-radius:99px;background:var(--panel);border:1px solid var(--edge);color:var(--warn);font-size:12px}
+  #board{width:440px;min-height:250px;background:#101a30;border:1px solid var(--edge);border-radius:18px;position:relative}
+  .pic{position:absolute;width:74px;height:74px;border-radius:14px;background:#20284a;border:2px solid var(--edge);display:flex;align-items:center;justify-content:center;font-size:40px;cursor:pointer;transition:left .35s,top .35s}
+  .pic:active{transform:scale(.95)}.pic.flash{border-color:var(--good);background:#123a26}.pic.wrong{border-color:var(--bad);background:#3a1420}
+  .pic.done{opacity:.35}
+  #verdict{font-size:20px;height:28px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+  button.ctl{font:inherit;padding:9px 15px;border-radius:10px;border:1px solid var(--edge);background:#20284a;color:var(--ink);cursor:pointer}
+  button.pri{background:var(--accent);color:#062033;border-color:transparent;font-weight:600}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .tel{width:320px;background:var(--panel);border-left:1px solid var(--edge);padding:14px 14px 40px;overflow:auto;font:12px/1.55 ui-monospace,Menlo,Consolas,monospace}
+  .tel h2{font:600 12px system-ui;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:14px 0 6px}
+  .kv{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted #2a3358;padding:2px 0}
+  .kv b{color:var(--accent);font-weight:600}.kv .m{color:var(--mut);font-size:10px}
+  .log{margin-top:6px;max-height:150px;overflow:auto;border:1px solid var(--edge);border-radius:8px;padding:6px;background:#10152a}
+  .log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+</head>
+<body>
+<div class="main">
+  <div style="text-align:center">
+    <h1>🔀 New Every Time <span class="badge" id="blevel">4 pictures</span></h1>
+    <p class="sub">Tap a picture you have <b>not tapped before</b>. The pictures jump to new spots each turn — so remember <b>which</b> ones you picked, not where they were.</p>
+  </div>
+  <div id="board"></div>
+  <div id="verdict"></div>
+  <div class="row">
+    <button class="pri ctl" id="go">▶ Watch how it works</button>
+    <button class="ctl" id="replay" disabled>↺ Replay demo</button>
+  </div>
+  <p class="sub" id="phasehint">A ghost hand shows you first — no reading needed.</p>
+</div>
+<aside class="tel" id="tel"></aside>
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const ICONS=["🍎","🚗","🐶","⭐","🌸","🎈","🐟","🔑","🎸","🦋"];
+const board=$("#board");
+const T={phase:"idle",n:4,maxClean:0,rounds:0,turns:0,between:0,rev:0,chosenOrders:[],log:[]};
+function logE(s){T.log.unshift(`${(performance.now()/1000).toFixed(1)}s · ${s}`);if(T.log.length>60)T.log.pop()}
+function strat(){ // fewer distinct starting picks across rounds = more strategic
+  if(T.chosenOrders.length<1)return 0;const starts=new Set(T.chosenOrders.map(o=>o[0]));
+  return Math.round(100*(1-(starts.size-1)/Math.max(1,T.chosenOrders.length)));}
+function render(){
+  $("#tel").innerHTML=`
+  <h2>Live telemetry · WM-point-01</h2>
+  <div class="kv"><span>phase</span><b>${T.phase}</b></div>
+  <div class="kv"><span>rounds / turns</span><b>${T.rounds} / ${T.turns}</b></div>
+  <h2>Monitoring errors <span class="m">M-BETWEENERR</span></h2>
+  <div class="kv"><span>picked an old one</span><b>${T.between}</b></div>
+  <h2>Above-grade ceiling <span class="m">M-DIFFREACH</span></h2>
+  <div class="kv"><span>largest clean set</span><b>${T.maxClean} pics</b></div>
+  <h2>Strategy <span class="m">M-SEARCHSTRAT</span></h2>
+  <div class="kv"><span>self-ordering index</span><b>${strat()}%</b></div>
+  <h2>Process</h2>
+  <div class="kv"><span>corrections <span class="m">M-REV</span></span><b>${T.rev}</b></div>
+  <div class="kv"><span>clean-round rate <span class="m">M-ACC</span></span><b>${T.rounds?Math.round(100*T.maxCleanRounds/T.rounds):0}%</b></div>
+  <div class="kv"><span>selection path <span class="m">M-PATH</span></span><b>logged</b></div>
+  <div class="log">${T.log.map(l=>`<div>${l}</div>`).join("")}</div>`;
+}
+T.maxCleanRounds=0;
+render();
+
+let chosen=new Set(),thisOrder=[],roundErr=0,active=false;
+function layout(){board.innerHTML="";const ids=[...Array(T.n).keys()];
+  const cols=Math.min(4,T.n);
+  ids.forEach(i=>{const p=document.createElement("div");p.className="pic"+(chosen.has(i)?" done":"");p.dataset.i=i;p.textContent=ICONS[i];
+    const gx=Math.random()*(440-84)+5,gy=Math.random()*(250-84)+5;p.style.left=gx+"px";p.style.top=gy+"px";
+    p.onpointerdown=()=>pick(i,p);board.appendChild(p);});}
+function reshuffle(){[...board.children].forEach(p=>{p.style.left=(Math.random()*(440-84)+5)+"px";p.style.top=(Math.random()*(250-84)+5)+"px";});}
+function pick(i,el){if(!active)return;
+  if(chosen.has(i)){T.between++;T.rev++;roundErr++;el.classList.add("wrong");setTimeout(()=>el.classList.remove("wrong"),220);$("#verdict").textContent="🔁 already picked!";logE("between-selection error");render();return;}
+  chosen.add(i);thisOrder.push(i);el.classList.add("flash","done");setTimeout(()=>el.classList.remove("flash"),220);T.turns++;
+  $("#verdict").textContent="✅ new one!";
+  if(chosen.size>=T.n){active=false;T.rounds++;T.chosenOrders.push(thisOrder.slice());
+    if(roundErr===0){T.maxClean=Math.max(T.maxClean,T.n);T.maxCleanRounds++;$("#verdict").textContent="🌟 clean round!";if(T.phase==="scored"&&T.n<8){T.n++;$("#blevel").textContent=T.n+" pictures";logE("clean → grow to "+T.n);}}
+    render();setTimeout(()=>{if(T.phase==="scored"||T.phase.startsWith("warm"))startRound();},700);return;}
+  render();setTimeout(reshuffle,180);
+}
+function startRound(){chosen=new Set();thisOrder=[];roundErr=0;active=true;$("#verdict").textContent="";layout();}
+
+async function demo(){
+  if(T.phase==="demo")return;T.phase="demo";render();$("#go").disabled=true;$("#replay").disabled=true;
+  T.n=4;chosen=new Set();thisOrder=[];active=false;layout();
+  const ghost=document.createElement("div");ghost.textContent="👆";ghost.style.cssText="position:fixed;font-size:30px;z-index:9;transition:left .45s,top .45s;opacity:0;pointer-events:none";document.body.appendChild(ghost);
+  await sleep(400);ghost.style.opacity="1";
+  let el=[...board.children][0];let r=el.getBoundingClientRect();ghost.style.left=(r.left+r.width/2-12)+"px";ghost.style.top=(r.top+10)+"px";await sleep(600);
+  el.classList.add("flash","done");chosen.add(+el.dataset.i);$("#verdict").textContent="✅ picked one";await sleep(500);reshuffle();await sleep(500);
+  el=[...board.children].find(p=>!chosen.has(+p.dataset.i));r=el.getBoundingClientRect();ghost.style.left=(r.left+r.width/2-12)+"px";ghost.style.top=(r.top+10)+"px";await sleep(600);
+  el.classList.add("flash","done");$("#verdict").textContent="✅ a different one!";await sleep(600);
+  ghost.remove();T.phase="idle";$("#go").disabled=false;$("#replay").disabled=false;chosen=new Set();
+  $("#go").textContent="▶ Try a practice round";$("#go").onclick=warmup;
+  $("#phasehint").textContent="Always pick one you haven't tapped yet. Practice (not scored).";layout();render();
+}
+$("#go").onclick=demo;$("#replay").onclick=demo;
+function warmup(){T.phase="warm-up (unscored)";T.n=4;$("#phasehint").textContent="Not scored — try a round, then start.";
+  $("#go").textContent="▶ Start scored game";$("#go").onclick=startScored;startRound();render();}
+function startScored(){T.phase="scored";T.n=4;T.rounds=0;T.turns=0;T.between=0;T.maxCleanRounds=0;T.chosenOrders=[];$("#blevel").textContent="4 pictures";
+  $("#phasehint").textContent="These count. Tracking who you already picked (as they jump) is the challenge.";$("#go").textContent="(playing…)";$("#go").disabled=true;$("#replay").disabled=true;
+  startRound();render();
+  const iv=setInterval(()=>{if(T.rounds>=5){clearInterval(iv);active=false;T.phase="done";$("#go").disabled=false;$("#go").textContent="▶ Play again";$("#go").onclick=startScored;$("#replay").disabled=false;
+    $("#phasehint").textContent=`Done. Largest clean set ${T.maxClean} pics; between-selection errors ${T.between}.`;render();}},500);
+}
+</script>
+</body>
+</html>

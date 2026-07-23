@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GB-BALANCE-01 · Number Balance</title>
+<style>
+  :root{--bg1:#eafaf6;--bg2:#eef0ff;--ink:#26304a;--card:#fff;--accent:#1f9e86;--good:#22b573;--bad:#ff6b6b;
+    --tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box}html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:12px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
+  #phasecue{font-size:32px;height:38px}
+  #stagecard{background:var(--card);border-radius:24px;padding:22px;box-shadow:0 18px 50px -22px #4a4a7a;
+    display:flex;flex-direction:column;align-items:center;gap:14px;width:470px;max-width:100%}
+  #instr{font-size:14px;color:#666;min-height:20px;text-align:center}
+  #scale{width:360px;height:150px;position:relative}
+  #pivot{position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:0;height:0;border-left:26px solid transparent;border-right:26px solid transparent;border-bottom:70px solid #b7c0d8}
+  #beam{position:absolute;top:36px;left:30px;right:30px;height:12px;background:#8a6a44;border-radius:6px;transform-origin:center;transition:transform .5s cubic-bezier(.3,.7,.3,1)}
+  .pan{position:absolute;top:36px;width:120px;min-height:64px;background:#eef3ff;border:3px solid #cdd8f2;border-radius:0 0 16px 16px;
+    display:flex;flex-wrap:wrap;gap:3px;align-items:flex-end;justify-content:center;padding:6px;transition:top .5s}
+  #panL{left:0}#panR{right:0}
+  .pan .lab{width:100%;text-align:center;font-weight:900;font-size:18px;color:#4a5578}
+  .blk{width:16px;height:16px;border-radius:3px;background:#f4c542;border:1px solid #d19b1e}
+  .blk.ten{width:16px;height:44px;background:#8fd18f;border-color:#5aa15a}
+  #btns{display:flex;gap:10px}
+  button{font:inherit;border:0;cursor:pointer;border-radius:12px}
+  .add{background:#e5f6f1;border:3px solid #b9e4d8;padding:10px 14px;font-weight:800;font-size:15px;cursor:pointer}
+  #reset{background:#ffe9ec;color:#c0455a;padding:10px 14px;font-weight:700}
+  #compare{display:flex;gap:20px;justify-content:center}
+  .cpan{width:130px;padding:12px;border-radius:14px;background:#f6f8ff;border:3px solid #e2e8fb;text-align:center;cursor:pointer;font-weight:900;font-size:22px;color:#4a5578}
+  #fb{font-size:14px;min-height:18px;font-weight:700}
+  #controls{display:flex;gap:12px;align-items:center}
+  #replay{width:44px;height:44px;background:#eef1ff;color:#5b6cff;font-size:20px;border-radius:50%;border:0;cursor:pointer}
+  #ghost{position:fixed;left:0;top:0;font-size:34px;pointer-events:none;z-index:60;opacity:0;
+    transition:transform .45s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;
+    font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:118px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}.mval{color:#fff}
+  .mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:170px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}.t{color:#5f6f9e}
+  @media(max-width:900px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:250px}}
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">GB-BALANCE-01 · Number Balance</div>
+    <div id="phasecue">👁️</div>
+    <div id="stagecard">
+      <div id="instr"></div>
+      <div id="scale"><div id="beam"></div><div id="pivot"></div>
+        <div class="pan" id="panL"></div><div class="pan" id="panR"></div></div>
+      <div id="btns"><button class="add" data-v="1">＋1 🟨</button><button class="add" data-v="10">＋10 🟩</button><button id="reset">reset</button></div>
+      <div id="compare"></div>
+      <div id="fb"></div>
+      <div id="controls"><button id="replay" title="replay demo">↻</button></div>
+    </div>
+  </div>
+  <aside id="telemetry"><h3>Live telemetry · per-child</h3><div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div></aside>
+  <div id="ghost">👆</div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):null;
+function speak(t){try{if(window.speechSynthesis){const u=new SpeechSynthesisUtterance(t);u.rate=.95;speechSynthesis.cancel();speechSynthesis.speak(u)}}catch(e){}}
+const T={rts:[],correct:0,total:0,used:0,opt:0,firstLat:null,firstActed:false,lastErr:'',eqrel:'—',magTotal:0,magCorrect:0,actions:0};
+const METERS=[
+ {id:'M-ACC',name:'Balanced (scored)',get:()=>T.total?`${T.correct}/${T.total}`:'—'},
+ {id:'M-RT',name:'Response time (mean)',get:()=>mean(T.rts)==null?'—':mean(T.rts)+' ms'},
+ {id:'M-EFF',name:'Blocks vs minimal',get:()=>T.opt?`${T.opt}/${T.used}`:'—'},
+ {id:'M-ERRTYPE',name:'Last miss type',get:()=>T.lastErr||'—'},
+ {id:'M-RTFIRST',name:'First-action latency',get:()=>T.firstLat==null?'—':T.firstLat+' ms'},
+ {id:'M-EQREL',name:'Equals strategy',get:()=>T.eqrel},
+ {id:'M-PATH',name:'Block actions',get:()=>T.actions+''},
+ {id:'M-SPEEDACC',name:'Compare acc (magnitude)',get:()=>T.magTotal?`${T.magCorrect}/${T.magTotal}`:'—'},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('')}
+function renderMeters(){METERS.forEach(m=>{const e=$('#v_'+m.id);if(e)e.textContent=m.get()})}
+function log(msg){const d=document.createElement('div');d.innerHTML=`<span class="t">•</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight}
+const ghost=$('#ghost');const gShow=v=>ghost.classList.toggle('show',v);
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}}
+async function gTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-8}px,${c.y-6}px)`;await sleep(430)}
+
+let phase='demo',mode='bal',target=0,tens=0,ones=0,startT=0,answered=false,usedTenFirst=null,curCmp=null;
+const setCue=i=>$('#phasecue').textContent=i;
+function tilt(){const left=target,right=tens*10+ones;const diff=Math.max(-8,Math.min(8,right-left));
+  $('#beam').style.transform=`rotate(${diff*-2}deg)`;$('#panL').style.top=(36+diff*3)+'px';$('#panR').style.top=(36-diff*3)+'px'}
+function renderPans(){const l=$('#panL'),r=$('#panR');l.innerHTML=`<div class="lab">${target}</div>`;
+  let rh='';for(let i=0;i<tens;i++)rh+='<div class="blk ten"></div>';for(let i=0;i<ones;i++)rh+='<div class="blk"></div>';r.innerHTML=`<div class="lab">${tens*10+ones}</div>`+rh;tilt()}
+function showBalance(v){mode='bal';$('#btns').style.display='flex';$('#compare').style.display='none';$('#scale').style.display='block';
+  target=v;tens=0;ones=0;answered=false;usedTenFirst=null;T.actions=0;T.firstActed=false;startT=performance.now();speak('Balance '+v);renderPans();
+  $('#instr').textContent=phase==='scored'?'Add blocks to the right pan until it balances '+v+'. Use the fewest blocks.':'Warm-up: balance the '+v+'. (unscored)'}
+function addBlk(v){if(mode!=='bal'||answered)return;if(!T.firstActed){T.firstActed=true;T.firstLat=Math.round(performance.now()-startT);log('first action (after planning)');usedTenFirst=(v===10)}
+  if(v===10)tens++;else ones++;T.actions++;renderPans();renderMeters();
+  const right=tens*10+ones;if(right===target)balanced();else if(right>target){T.lastErr='overshoot';log(`right=${right} > ${target} (tilts right)`)}}
+function balanced(){answered=true;const rt=Math.round(performance.now()-startT);const scored=phase==='scored';
+  $('#beam').style.transform='rotate(0deg)';$('#panL').style.top='36px';$('#panR').style.top='36px';
+  if(scored){T.total++;T.correct++;T.rts.push(rt);T.used=tens+ones;T.opt=Math.floor(target/10)+target%10;
+    if(target>=10)T.eqrel=(usedTenFirst||tens>0)?'relational (used tens)':'operational (all ones)';
+    if(tens+ones>T.opt)T.lastErr='inefficient (all ones)';else T.lastErr='';
+    log(`BALANCED ${target} ✓ · blocks ${tens+ones} (min ${T.opt}) · ${T.eqrel} · rt ${rt}`)}
+  else log(`warm-up balanced ${target} ✓`);
+  $('#fb').textContent='Level! 🎉';$('#fb').style.color='var(--good)';renderMeters();nextItem(scored)}
+function resetPan(){if(answered)return;tens=0;ones=0;renderPans();log('reset pan')}
+function showCompare(a,b){mode='cmp';$('#btns').style.display='none';$('#scale').style.display='none';$('#compare').style.display='flex';curCmp={a,b};answered=false;startT=performance.now();
+  $('#instr').textContent='Tap the pan that is HEAVIER (the bigger number).';
+  $('#compare').innerHTML=`<div class="cpan" data-p="${a}">⚖️<br>${a}</div><div class="cpan" data-p="${b}">⚖️<br>${b}</div>`}
+function pickPan(p){if(mode!=='cmp'||answered)return;answered=true;const rt=Math.round(performance.now()-startT);const scored=phase==='scored';
+  const hi=Math.max(curCmp.a,curCmp.b),ok=p===hi;if(scored){T.total++;T.magTotal++;if(ok){T.correct++;T.magCorrect++;T.rts.push(rt)}else T.lastErr='magnitude miss'}
+  $('#fb').textContent=ok?'Right! 🎉':'the other is heavier';$('#fb').style.color=ok?'var(--good)':'var(--bad)';log(`compare ${curCmp.a} vs ${curCmp.b}: ${ok?'✓':'✗'}`);renderMeters();setTimeout(()=>nextItem(scored),900)}
+let scoredQ=[],qi=0;
+function nextItem(scored){if(!scored){setTimeout(startScored,900);return}qi++;if(qi>=scoredQ.length){setTimeout(finish,700);return}
+  const it=scoredQ[qi];$('#fb').textContent='';if(it.t==='bal')showBalance(it.v);else showCompare(it.a,it.b)}
+function startWarmup(){phase='warmup';setCue('⭐');showBalance(3)}
+function startScored(){phase='scored';setCue('🎯');scoredQ=[{t:'bal',v:12},{t:'cmp',a:23,b:19},{t:'bal',v:21}];qi=0;$('#fb').textContent='';showBalance(12);log('— SCORED balance + compare —')}
+function finish(){phase='done';setCue('🏆');mode='';$('#btns').style.display='none';$('#compare').style.display='none';$('#scale').style.display='block';$('#instr').textContent='Done! Nice balancing.';$('#fb').textContent='';log(`— DONE · correct ${T.correct}/${T.total} · blocks ${T.used} (min ${T.opt}) · ${T.eqrel} —`);renderMeters()}
+async function runDemo(){phase='demo';setCue('👁️');$('#compare').style.display='none';showBalance(3);$('#instr').textContent='';log('ghost-hand demo (wordless, <10s)');gShow(true);await sleep(400);
+  const b1=$('.add[data-v="1"]');for(let i=0;i<3;i++){await gTo(b1);ones++;renderPans();await sleep(220)}gShow(false);await sleep(400);$('#fb').textContent='';startWarmup()}
+$('#btns').addEventListener('click',e=>{const a=e.target.closest('.add');if(a)addBlk(+a.dataset.v)});
+$('#reset').addEventListener('click',resetPan);
+$('#compare').addEventListener('click',e=>{const t=e.target.closest('.cpan');if(t)pickPan(+t.dataset.p)});
+$('#replay').addEventListener('click',()=>{if(phase==='done')runDemo()});
+buildMeters();renderMeters();runDemo();
+</script>
+</body>
+</html>

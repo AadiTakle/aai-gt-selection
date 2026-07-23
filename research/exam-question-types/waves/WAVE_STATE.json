@@ -1,12 +1,13 @@
 {
-  "wave": 3,
-  "phase": "coverage+gamebased",
-  "wave2_committed": "ceb5220",
+  "wave": 4,
+  "phase": "coverage-push",
+  "wave3_committed": "633b497",
   "coverage": {
-    "types": 100,
+    "types": 144,
     "top_gt": 160,
-    "ge3_pct": 45,
-    "zero": 38
+    "ge3_pct": 80,
+    "zero": 0,
+    "mid": 31
   },
-  "note": "Wave 3: 1 cross-cutting game-based agent (new game_based shard, covers unmatched game techniques) + 7 area top-up agents for remaining <3 cells. Reuse measurement IDs."
+  "note": "Wave 4: 1 game-based alt-shells agent (bring ~20 game techniques from 1 to >=3 via distinct multi-technique shells) + 1 residual agent (verbal absurdities/sentence-arrangement/oral-directions; WM n-back/dual-n-back/inhibition/set-shifting)."
 }

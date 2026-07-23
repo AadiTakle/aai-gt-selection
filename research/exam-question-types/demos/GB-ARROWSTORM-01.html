@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GB-ARROWSTORM-01 · Arrow Storm</title>
+<style>
+  :root{--bg1:#eaf1ff;--bg2:#ffe9f0;--ink:#26304a;--card:#fff;--accent:#4b6bff;--good:#22b573;--bad:#ff6b6b;
+    --tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box}html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:12px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
+  #phasecue{font-size:32px;height:38px}
+  #stagecard{background:var(--card);border-radius:24px;padding:22px;box-shadow:0 18px 50px -22px #4a4a7a;
+    display:flex;flex-direction:column;align-items:center;gap:14px;width:460px;max-width:100%}
+  #instr{font-size:14px;color:#666;min-height:20px;text-align:center}
+  #arena{width:100%;height:150px;background:#f3f6ff;border-radius:16px;position:relative;border:3px solid #e2e8fb;
+    display:flex;align-items:center;justify-content:center;overflow:hidden}
+  #stim{font-size:52px;letter-spacing:4px;display:flex;gap:4px;transition:opacity .08s}
+  #nogo{position:absolute;font-size:80px;opacity:0;transition:opacity .05s}#nogo.show{opacity:1}
+  #zones{display:flex;gap:14px;width:100%}
+  .zone{flex:1;height:74px;border-radius:16px;background:#eef2ff;border:3px solid #d7deff;font-size:34px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent}
+  .zone:active{transform:scale(.97)}
+  #combo{font-size:14px;color:var(--accent);font-weight:800;min-height:18px}
+  #flash{position:absolute;inset:0;opacity:0;pointer-events:none}
+  #controls{display:flex;gap:12px;align-items:center}
+  #replay{width:44px;height:44px;background:#eef1ff;color:#5b6cff;font-size:20px;border-radius:50%;border:0;cursor:pointer}
+  #ghost{position:fixed;left:0;top:0;font-size:34px;pointer-events:none;z-index:60;opacity:0;
+    transition:transform .4s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;
+    font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:118px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}.mval{color:#fff}
+  .mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:170px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}.t{color:#5f6f9e}
+  @media(max-width:900px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:250px}}
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">GB-ARROWSTORM-01 · Arrow Storm</div>
+    <div id="phasecue">👁️</div>
+    <div id="stagecard">
+      <div id="instr"></div>
+      <div id="arena"><div id="flash"></div><div id="stim"></div><div id="nogo">🚫</div></div>
+      <div id="zones"><div class="zone" data-d="L">⬅️</div><div class="zone" data-d="R">➡️</div></div>
+      <div id="combo"></div>
+      <div id="controls"><button id="replay" title="replay demo">↻</button></div>
+    </div>
+  </div>
+  <aside id="telemetry"><h3>Live telemetry · per-child</h3><div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div></aside>
+  <div id="ghost">👆</div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):null;
+const sd=a=>{if(a.length<2)return null;const m=a.reduce((x,y)=>x+y,0)/a.length;return Math.round(Math.sqrt(a.reduce((s,x)=>s+(x-m)**2,0)/(a.length-1)))};
+const AR={L:'◀',R:'▶'};
+const T={correct:0,total:0,cong:[],incong:[],comm:0,nogo:0,fa:0,afterErr:[],afterCor:[],rts:[],combo:0,maxCombo:0,_prevErr:null};
+const METERS=[
+ {id:'M-ACC',name:'Accuracy',get:()=>T.total?`${T.correct}/${T.total}  ${Math.round(100*T.correct/T.total)}%`:'—'},
+ {id:'M-RT',name:'RT (mean, correct)',get:()=>mean(T.rts)==null?'—':mean(T.rts)+' ms'},
+ {id:'M-CONGEFF',name:'Congruency cost',get:()=>{const i=mean(T.incong),c=mean(T.cong);return i!=null&&c!=null?(i-c)+' ms':'—'}},
+ {id:'M-COMM',name:'No-go commission',get:()=>T.nogo?`${T.comm}/${T.nogo}`:'0'},
+ {id:'M-FALSEALARM',name:'Anticipatory (<150ms)',get:()=>T.fa+''},
+ {id:'M-POSTERR',name:'Post-error slowing',get:()=>{const a=mean(T.afterErr),c=mean(T.afterCor);return a!=null&&c!=null?(a-c)+' ms':'—'}},
+ {id:'M-RTVAR',name:'RT variability (SD)',get:()=>sd(T.rts)==null?'—':sd(T.rts)+' ms'},
+ {id:'M-COMBO',name:'Max accurate streak',get:()=>T.maxCombo+''},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('')}
+function renderMeters(){METERS.forEach(m=>{const e=$('#v_'+m.id);if(e)e.textContent=m.get()})}
+function log(msg){const d=document.createElement('div');d.innerHTML=`<span class="t">•</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight}
+const ghost=$('#ghost');const gShow=v=>ghost.classList.toggle('show',v);
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}}
+async function gTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-8}px,${c.y-6}px)`;await sleep(360)}
+function flash(col){const f=$('#flash');f.style.background=col;f.style.transition='none';f.style.opacity=.5;requestAnimationFrame(()=>{f.style.transition='opacity .3s';f.style.opacity=0})}
+function combo(m){$('#combo').textContent=m}
+
+let phase='demo';const setCue=i=>$('#phasecue').textContent=i;
+function showStim(tr){const s=$('#stim');s.style.justifyContent='center';s.style.paddingLeft='0';
+  if(tr.type==='nogo'){s.textContent='';$('#nogo').classList.add('show');return}
+  if(tr.type==='simon'){s.textContent=AR[tr.dir];s.style.justifyContent=tr.side==='L'?'flex-start':'flex-end';s.style.paddingLeft='0';return}
+  // flanker
+  const c=AR[tr.dir],f=tr.cong?c:AR[tr.dir==='L'?'R':'L'];s.textContent=f+f+c+f+f}
+function clearStim(){$('#stim').textContent='';$('#nogo').classList.remove('show')}
+function scoreResp(tr,dir,rt,timeout){T.total++;
+  if(tr.type==='nogo'){if(timeout){T.correct++;T.combo++;combo('great stop! 🚫');log('no-go: withheld ✓')}else{T.comm++;T.combo=0;flash('#ff6b6b');combo('oops — that was STOP');log('no-go: tapped ✗ (commission)')}T.nogo;record(!timeout?false:true,null);return}
+  const ok=dir===tr.dir;
+  if(timeout){T.combo=0;combo('too slow');log('missed (no tap)');record(false,null);return}
+  if(rt<150)T.fa++;
+  if(ok){T.correct++;T.rts.push(rt);T.combo++;T.maxCombo=Math.max(T.maxCombo,T.combo);combo('✓ '+rt+'ms');flash('#22b573');
+    if(tr.type==='flanker'){(tr.cong?T.cong:T.incong).push(rt)}log(`${tr.type} ${tr.cong===false?'incong':(tr.cong?'cong':'')} ${tr.dir}: ✓ rt ${rt}`);record(true,rt)}
+  else{T.combo=0;combo('✗');flash('#ff6b6b');log(`${tr.type} ${tr.dir}: ✗ tapped wrong way`);record(false,rt)}}
+function record(correct,rt){if(rt!=null){if(T._prevErr===true)T.afterErr.push(rt);else if(T._prevErr===false)T.afterCor.push(rt)}T._prevErr=!correct;renderMeters()}
+function trial(tr,win){return new Promise(res=>{let done=false;const t0=performance.now();if(tr.type==='nogo')T.nogo++;
+  const onZone=e=>{const z=e.target.closest('.zone');if(!z||done)return;done=true;const rt=Math.round(performance.now()-t0);cleanup();scoreResp(tr,z.dataset.d,rt,false);setTimeout(res,260)};
+  function cleanup(){$('#zones').removeEventListener('click',onZone);clearStim()}
+  $('#zones').addEventListener('click',onZone);showStim(tr);
+  setTimeout(()=>{if(done)return;done=true;cleanup();scoreResp(tr,null,null,true);setTimeout(res,220)},win)})}
+async function block(seq,win){for(const tr of seq){await sleep(500);await trial(tr,win)}}
+const WARM=[{type:'flanker',dir:'R',cong:true},{type:'flanker',dir:'L',cong:true},{type:'flanker',dir:'R',cong:true}];
+const SCORED=[{type:'flanker',dir:'R',cong:true},{type:'flanker',dir:'L',cong:false},{type:'simon',dir:'R',side:'L'},
+ {type:'flanker',dir:'R',cong:false},{type:'nogo'},{type:'flanker',dir:'L',cong:true},{type:'simon',dir:'L',side:'R'},
+ {type:'flanker',dir:'L',cong:false},{type:'flanker',dir:'R',cong:true},{type:'nogo'},{type:'flanker',dir:'R',cong:false},{type:'flanker',dir:'L',cong:true}];
+async function startWarmup(){phase='warmup';setCue('⭐');$('#instr').textContent='Warm-up: tap the way the MIDDLE arrow points. (unscored)';await block(WARM,2600);startScored()}
+async function startScored(){phase='scored';setCue('🎯');$('#instr').textContent='SCORED: tap the MIDDLE arrow\u2019s way fast; ignore the side arrows; do NOT tap on 🚫.';log('— SCORED flanker + Simon + no-go —');await block(SCORED,1600);finish()}
+function finish(){phase='done';setCue('🏆');combo('done!');$('#instr').textContent='Done! Great control.';log(`— DONE · acc ${Math.round(100*T.correct/T.total)}% · congruency cost ${(mean(T.incong)&&mean(T.cong))?(mean(T.incong)-mean(T.cong)):'-'}ms · commission ${T.comm}/${T.nogo} —`);renderMeters()}
+async function runDemo(){phase='demo';setCue('👁️');$('#instr').textContent='';log('ghost-hand demo (wordless, <10s)');gShow(true);
+  showStim({type:'flanker',dir:'R',cong:true});await sleep(500);await gTo($('.zone[data-d="R"]'));flash('#22b573');combo('follow the middle!');await sleep(500);clearStim();
+  $('#nogo').classList.add('show');combo('STOP — don\u2019t tap');ghost.style.transform=ghost.style.transform+' translateY(-36px)';await sleep(1000);$('#nogo').classList.remove('show');gShow(false);combo('');await sleep(400);startWarmup()}
+$('#replay').addEventListener('click',()=>{if(phase==='done')runDemo()});
+buildMeters();renderMeters();runDemo();
+</script>
+</body>
+</html>

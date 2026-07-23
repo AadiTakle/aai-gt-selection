@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GB-ROBOPATH-01 · Path Coder</title>
+<style>
+  :root{--bg1:#eef0ff;--bg2:#e9fbff;--ink:#26304a;--card:#fff;--accent:#5b6cff;--good:#22b573;--bad:#ff6b6b;
+    --tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box}html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:12px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
+  #phasecue{font-size:32px;height:38px}
+  #stagecard{background:var(--card);border-radius:24px;padding:22px;box-shadow:0 18px 50px -22px #4a4a7a;
+    display:flex;flex-direction:column;align-items:center;gap:12px}
+  #instr{font-size:14px;color:#666;min-height:20px;text-align:center;max-width:420px}
+  #grid{display:grid;gap:3px;background:#dfe3f7;padding:6px;border-radius:12px;position:relative}
+  .c{width:54px;height:54px;border-radius:7px;background:#f4f5fd;display:flex;align-items:center;justify-content:center;font-size:26px}
+  .c.wall{background:#3b4a63}
+  #bot{position:absolute;font-size:30px;transition:left .3s,top .3s,transform .25s;pointer-events:none}
+  #strip{display:flex;gap:5px;min-height:46px;background:#f0f2ff;border-radius:10px;padding:6px 8px;flex-wrap:wrap;max-width:360px;justify-content:center}
+  .step{width:34px;height:34px;border-radius:8px;background:#dfe4ff;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer}
+  #pal{display:flex;gap:10px}
+  .pb{width:52px;height:46px;border-radius:12px;background:#eef1ff;border:3px solid #d7deff;font-size:22px;cursor:pointer}
+  #row{display:flex;gap:12px;align-items:center}
+  button{font:inherit;border:0;cursor:pointer;border-radius:12px}
+  #run{background:var(--accent);color:#fff;padding:9px 20px;font-weight:700;font-size:16px}
+  #clr{background:#ffe9ec;color:#c0455a;padding:9px 14px;font-weight:700}
+  #replay{width:42px;height:42px;background:#eef1ff;color:#5b6cff;font-size:19px;border-radius:50%}
+  #ghost{position:fixed;left:0;top:0;font-size:32px;pointer-events:none;z-index:60;opacity:0;
+    transition:transform .45s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;
+    font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:110px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}.mval{color:#fff}
+  .mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:170px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}.t{color:#5f6f9e}
+  @media(max-width:880px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:260px}}
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">GB-ROBOPATH-01 · Path Coder</div>
+    <div id="phasecue">👁️</div>
+    <div id="stagecard">
+      <div id="instr"></div>
+      <div id="grid"><div id="bot">🤖</div></div>
+      <div id="strip"></div>
+      <div id="pal"><button class="pb" data-cmd="F">⬆️</button><button class="pb" data-cmd="L">↩️</button><button class="pb" data-cmd="R">↪️</button></div>
+      <div id="row"><button id="run">▶ RUN</button><button id="clr">⌫ clear</button><button id="replay" title="replay demo">↻</button></div>
+    </div>
+  </div>
+  <aside id="telemetry"><h3>Live telemetry · per-child</h3><div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div></aside>
+  <div id="ghost">👆</div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const SZ=57;const HED={N:[-1,0],E:[0,1],S:[1,0],W:[0,-1]},ORD=['N','E','S','W'],ROT={N:0,E:90,S:180,W:270};
+const LEVELS={
+ warm:{rows:1,cols:3,walls:[],start:[0,0],dir:'E',key:null,door:[0,2],opt:2},
+ s1:{rows:3,cols:3,walls:['1,1'],start:[2,0],dir:'N',key:[0,0],door:[0,2],opt:5}
+};
+const T={itemStart:0,firstLat:null,firstActed:false,opt:0,edits:0,runs:0,progLen:0,scored:0,correct:0,gotKey:false};
+const METERS=[
+ {id:'M-ACC',name:'Route solved (scored)',get:()=>T.scored?`${T.correct}/${T.scored}`:'—'},
+ {id:'M-EFF',name:'Program vs optimal',get:()=>T.opt&&T.progLen?`${T.opt}/${T.progLen}`:'—'},
+ {id:'M-RTFIRST',name:'First-tile latency (plan)',get:()=>T.firstLat==null?'—':T.firstLat+' ms'},
+ {id:'M-PATH',name:'Program length',get:()=>prog.length+''},
+ {id:'M-REV',name:'Edits (deletes)',get:()=>T.edits+''},
+ {id:'M-EXPLORE',name:'RUN attempts',get:()=>T.runs+''},
+ {id:'M-PROG',name:'Key + door reached',get:()=>`${T.gotKey?'🔑':'—'} ${'—'}`},
+ {id:'M-PERSIST',name:'Time-on-task (ms)',get:()=>T.itemStart?(Date.now()-T.itemStart):'—'},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('')}
+function renderMeters(){METERS.forEach(m=>{const e=$('#v_'+m.id);if(e)e.textContent=m.get()})}
+function log(msg){const t=T.itemStart?Date.now()-T.itemStart:0;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight}
+const ghost=$('#ghost');const gShow=v=>ghost.classList.toggle('show',v);
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}}
+async function gTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-6}px,${c.y-4}px)`;await sleep(430)}
+
+let phase='demo',L=null,prog=[],pos=null,dir=null,locked=false;
+const setCue=i=>$('#phasecue').textContent=i;
+const GL={F:'⬆️',L:'↩️',R:'↪️'};
+function render(){const g=$('#grid');g.style.gridTemplateColumns=`repeat(${L.cols},54px)`;[...g.querySelectorAll('.c')].forEach(x=>x.remove());
+  for(let r=0;r<L.rows;r++)for(let c=0;c<L.cols;c++){const d=document.createElement('div');d.className='c';d.dataset.r=r;d.dataset.c=c;
+    if(L.walls.includes(r+','+c))d.classList.add('wall');
+    if(L.key&&L.key[0]===r&&L.key[1]===c&&!T.gotKey)d.textContent='🔑';
+    if(L.door[0]===r&&L.door[1]===c)d.textContent='🚪';g.appendChild(d)}
+  placeBot(false)}
+function placeBot(anim){const b=$('#bot');b.style.transition=anim?'left .3s,top .3s,transform .25s':'none';
+  b.style.left=(6+pos[1]*SZ+14)+'px';b.style.top=(6+pos[0]*SZ+14)+'px';b.style.transform=`rotate(${ROT[dir]}deg)`;
+  if(!anim)requestAnimationFrame(()=>b.style.transition='left .3s,top .3s,transform .25s')}
+function renderStrip(){$('#strip').innerHTML=prog.map((c,i)=>`<div class="step" data-i="${i}">${GL[c]}</div>`).join('')||'<span style="color:#aab;font-size:13px">tap arrows to build a plan…</span>'}
+function newLevel(spec){L=spec;prog=[];pos=spec.start.slice();dir=spec.dir;T.itemStart=Date.now();T.firstActed=false;T.firstLat=null;T.opt=spec.opt;T.edits=0;T.runs=0;T.progLen=0;T.gotKey=false;locked=false;render();renderStrip();renderMeters()}
+function addCmd(c){if(locked)return;if(!T.firstActed){T.firstActed=true;T.firstLat=Date.now()-T.itemStart;log('first tile placed (after planning)')}
+  prog.push(c);renderStrip();renderMeters();log('add '+c)}
+function delAt(i){if(locked)return;prog.splice(i,1);T.edits++;renderStrip();renderMeters();log('delete step '+i)}
+async function run(){if(locked||!prog.length)return;T.runs++;T.progLen=prog.length;pos=L.start.slice();dir=L.dir;T.gotKey=false;render();log('RUN ('+prog.length+' steps)');
+  for(const cmd of prog){await sleep(340);
+    if(cmd==='L')dir=ORD[(ORD.indexOf(dir)+3)%4];
+    else if(cmd==='R')dir=ORD[(ORD.indexOf(dir)+1)%4];
+    else{const[dr,dc]=HED[dir];const nr=pos[0]+dr,nc=pos[1]+dc;
+      if(nr<0||nc<0||nr>=L.rows||nc>=L.cols||L.walls.includes(nr+','+nc)){log('bump! ran into a wall');$('#bot').textContent='💥';await sleep(400);$('#bot').textContent='🤖';break}
+      pos=[nr,nc]}
+    placeBot(true);
+    if(L.key&&pos[0]===L.key[0]&&pos[1]===L.key[1]&&!T.gotKey){T.gotKey=true;log('🔑 key collected');render();placeBot(true)}
+    renderMeters()}
+  await sleep(200);const atDoor=pos[0]===L.door[0]&&pos[1]===L.door[1];const keyOk=!L.key||T.gotKey;
+  if(atDoor&&keyOk){locked=true;$('#bot').textContent='🎉';setCue(phase==='scored'?'🏆':'⭐');$('#instr').textContent='The robot reached the door! 🎉';
+    if(phase==='scored'){T.scored++;T.correct++;log(`SOLVED · program ${prog.length} (optimal ${T.opt}) · runs ${T.runs} · edits ${T.edits}`);renderMeters();setTimeout(()=>{$('#bot').textContent='🤖';finish()},1400)}
+    else{log('warm-up solved (unscored)');setTimeout(()=>{$('#bot').textContent='🤖';startScored()},1300)}}
+  else{log('did not finish — edit the plan and RUN again')}}
+function finish(){phase='done';locked=true;setCue('🏆');$('#instr').textContent='Done! Elegant coding.'}
+function clr(){if(locked)return;if(prog.length){T.edits+=prog.length}prog=[];renderStrip();renderMeters();log('cleared program')}
+function startWarmup(){phase='warmup';setCue('⭐');$('#instr').textContent='Warm-up: tap ⬆️ twice, then RUN to reach 🚪. (unscored)';newLevel(LEVELS.warm);log('— warm-up (unscored) —')}
+function startScored(){phase='scored';setCue('🎯');$('#instr').textContent='SCORED: program the robot to grab 🔑 then reach 🚪. Turns are from the robot\u2019s view. Fewest steps wins.';newLevel(LEVELS.s1);log('— SCORED: plan the whole route, then RUN —')}
+async function runDemo(){phase='demo';setCue('👁️');$('#instr').textContent='';newLevel(LEVELS.warm);log('ghost-hand demo (wordless, <10s)');gShow(true);await sleep(300);
+  const fbtn=$('[data-cmd="F"]');await gTo(fbtn);prog.push('F');renderStrip();await sleep(250);await gTo(fbtn);prog.push('F');renderStrip();await sleep(250);
+  await gTo($('#run'));gShow(false);await sleep(200);
+  pos=L.start.slice();dir=L.dir;for(const cmd of prog){await sleep(340);const[dr,dc]=HED[dir];pos=[pos[0]+dr,pos[1]+dc];placeBot(true)}
+  $('#bot').textContent='🎉';await sleep(900);$('#bot').textContent='🤖';$('#instr').textContent='';startWarmup()}
+$('#pal').addEventListener('click',e=>{const b=e.target.closest('.pb');if(b)addCmd(b.dataset.cmd)});
+$('#strip').addEventListener('click',e=>{const s=e.target.closest('.step');if(s)delAt(+s.dataset.i)});
+$('#run').addEventListener('click',run);
+$('#clr').addEventListener('click',clr);
+$('#replay').addEventListener('click',()=>{if(phase==='done')runDemo()});
+buildMeters();renderMeters();runDemo();
+</script>
+</body>
+</html>

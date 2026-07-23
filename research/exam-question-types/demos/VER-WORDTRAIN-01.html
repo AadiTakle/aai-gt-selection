@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VER-WORDTRAIN-01 — Word Train (arrange scrambled words into a sentence)</title>
+<style>
+  :root{--bg:#0e1220;--panel:#171d33;--edge:#2a3358;--ink:#e9edff;--mut:#8b93c0;--accent:#5cc8ff;--good:#5ce39a;--bad:#ff6b8a;--warn:#ffd166}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.45 system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);display:flex;min-height:100vh}
+  .main{flex:1;display:flex;flex-direction:column;align-items:center;padding:20px;gap:14px}
+  h1{font-size:19px;margin:.2rem 0}.sub{color:var(--mut);font-size:13px;margin:0;text-align:center;max-width:480px}
+  .badge{display:inline-block;padding:2px 9px;border-radius:99px;background:var(--panel);border:1px solid var(--edge);color:var(--warn);font-size:12px}
+  #track{display:flex;gap:8px;min-height:60px;align-items:center;padding:8px 14px;border-radius:40px;background:#10152a;border:1px solid var(--edge)}
+  #track .eng{font-size:30px}
+  .slot{min-width:78px;height:44px;border-radius:10px;border:1px dashed var(--edge);display:flex;align-items:center;justify-content:center;color:var(--mut)}
+  .slot.filled{background:#20284a;border-style:solid;border-color:var(--accent);color:var(--ink);cursor:pointer}
+  .tray{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;min-height:44px}
+  .car{min-width:78px;height:44px;padding:0 12px;background:#20284a;border:2px solid var(--edge);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .car:active{transform:scale(.96)}
+  #verdict{font-size:22px;height:30px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+  button.ctl{font:inherit;padding:9px 15px;border-radius:10px;border:1px solid var(--edge);background:#20284a;color:var(--ink);cursor:pointer}
+  button.pri{background:var(--accent);color:#062033;border-color:transparent;font-weight:600}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .tel{width:320px;background:var(--panel);border-left:1px solid var(--edge);padding:14px 14px 40px;overflow:auto;font:12px/1.55 ui-monospace,Menlo,Consolas,monospace}
+  .tel h2{font:600 12px system-ui;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:14px 0 6px}
+  .kv{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted #2a3358;padding:2px 0}
+  .kv b{color:var(--accent);font-weight:600}.kv .m{color:var(--mut);font-size:10px}
+  .log{margin-top:6px;max-height:150px;overflow:auto;border:1px solid var(--edge);border-radius:8px;padding:6px;background:#10152a}
+  .log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+</head>
+<body>
+<div class="main">
+  <div style="text-align:center">
+    <h1>🚂 Word Train <span class="badge" id="blevel">band · 3 cars</span></h1>
+    <p class="sub">Tap the word cars in order to build one sentence that is written correctly. The train chugs away when the order is right!</p>
+  </div>
+  <div id="track"><span class="eng">🚂</span></div>
+  <div class="tray" id="tray"></div>
+  <div id="verdict"></div>
+  <div class="row">
+    <button class="pri ctl" id="go">▶ Watch how it works</button>
+    <button class="ctl" id="replay" disabled>↺ Replay demo</button>
+    <button class="ctl" id="reset">↩ clear</button>
+  </div>
+  <p class="sub" id="phasehint">A ghost hand shows you first — no reading needed.</p>
+</div>
+<aside class="tel" id="tel"></aside>
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+// each item: words in CORRECT order; frequency band label (adaptive vocab leveling)
+const ITEMS=[
+ {w:["the","dog","runs"],band:"common",lvl:1},
+ {w:["the","cat","naps"],band:"common",lvl:1},
+ {w:["the","happy","child","sings"],band:"common",lvl:2},
+ {w:["the","clever","fox","hides","quickly"],band:"mid",lvl:3}];
+const track=$("#track"),tray=$("#tray"),verdict=$("#verdict");
+const T={phase:"idle",trial:0,acc:[0,0],polyNum:0,polyDen:0,moves:0,minMoves:0,maxlvl:0,band:"common",log:[]};
+function pct(p){return p[1]?Math.round(100*p[0]/p[1]):0}
+function pctPoly(){return T.polyDen?Math.round(100*T.polyNum/T.polyDen):0}
+function eff(){return T.minMoves?Math.round(100*T.minMoves/Math.max(T.moves,T.minMoves)):100}
+function logE(s){T.log.unshift(`${(performance.now()/1000).toFixed(1)}s · ${s}`);if(T.log.length>60)T.log.pop()}
+function render(){
+  $("#tel").innerHTML=`
+  <h2>Live telemetry · VER-WORDTRAIN-01</h2>
+  <div class="kv"><span>phase</span><b>${T.phase}</b></div>
+  <div class="kv"><span>sentences</span><b>${T.trial}</b></div>
+  <h2>Accuracy <span class="m">M-ACC</span></h2>
+  <div class="kv"><span>whole sentence correct</span><b>${pct(T.acc)}%</b></div>
+  <h2>Order partial-credit <span class="m">M-POLY</span></h2>
+  <div class="kv"><span>adjacent pairs correct</span><b>${pctPoly()}%</b></div>
+  <h2>Syntactic ceiling <span class="m">M-DIFFREACH</span></h2>
+  <div class="kv"><span>hardest structure ordered</span><b>lvl ${T.maxlvl}</b></div>
+  <h2>Vocab leveling <span class="m">M-VOCABLVL</span></h2>
+  <div class="kv"><span>frequency band</span><b>${T.band}</b></div>
+  <h2>Process</h2>
+  <div class="kv"><span>efficiency vs min <span class="m">M-EFF</span></span><b>${eff()}%</b></div>
+  <div class="kv"><span>placement path <span class="m">M-PATH</span></span><b>logged</b></div>
+  <div class="log">${T.log.map(l=>`<div>${l}</div>`).join("")}</div>`;
+}
+render();
+
+let item=null,order=[],placed=[];
+function newItem(){item=ITEMS[T.trial%ITEMS.length];T.band=item.band;order=[];placed=item.w.map(()=>false);verdict.textContent="";
+  const shuf=item.w.map((_,i)=>i).sort(()=>Math.random()-0.5);
+  track.innerHTML='<span class="eng">🚂</span>';item.w.forEach(()=>{const s=document.createElement("div");s.className="slot";s.textContent="•";track.appendChild(s)});
+  tray.innerHTML="";shuf.forEach(i=>{const d=document.createElement("div");d.className="car";d.dataset.i=i;d.textContent=item.w[i];d.onpointerdown=()=>place(i,d);tray.appendChild(d)});
+  draw();}
+function draw(){const slots=[...track.querySelectorAll(".slot")];slots.forEach((s,k)=>{if(order[k]!=null){s.className="slot filled";s.textContent=item.w[order[k]];s.onpointerdown=()=>unplace(k);}else{s.className="slot";s.textContent="•";s.onpointerdown=null;}});}
+function place(i,el){if(placed[i]||order.length>=item.w.length)return;placed[i]=true;el.style.visibility="hidden";order.push(i);T.moves++;draw();if(order.length===item.w.length)check();}
+function unplace(k){const i=order[k];order.splice(k,1);placed[i]=false;[...tray.children].forEach(c=>{if(+c.dataset.i===i)c.style.visibility="visible"});draw();}
+function check(){
+  const correct=order.every((v,k)=>v===k);
+  let pairs=0;for(let k=0;k<order.length-1;k++)if(order[k]+1===order[k+1])pairs++;
+  if(T.phase==="scored"){T.trial++;T.acc[1]++;T.polyDen+=item.w.length-1;T.polyNum+=pairs;T.minMoves+=item.w.length;
+    if(correct){T.acc[0]++;T.maxlvl=Math.max(T.maxlvl,item.lvl);verdict.textContent="✅ 🚂💨";logE(`correct (lvl ${item.lvl}, ${item.band})`);}
+    else{verdict.textContent="❌ try order";logE(`${pairs}/${item.w.length-1} pairs correct`);}
+  } else verdict.textContent=correct?"✅ 🚂💨":"❌";
+  render();setTimeout(()=>{if(T.phase==="scored"||T.phase.startsWith("warm"))newItem();},850);
+}
+newItem();$("#reset").onclick=()=>newItem();
+
+async function demo(){
+  if(T.phase==="demo")return;T.phase="demo";render();$("#go").disabled=true;$("#replay").disabled=true;
+  T.trial=0;item=ITEMS[0];newItem();
+  const ghost=document.createElement("div");ghost.textContent="👆";ghost.style.cssText="position:fixed;font-size:30px;z-index:9;transition:left .45s,top .45s;opacity:0;pointer-events:none";document.body.appendChild(ghost);
+  await sleep(400);ghost.style.opacity="1";
+  for(const want of [0,1,2]){const el=[...tray.children].find(c=>+c.dataset.i===want&&c.style.visibility!=="hidden");const r=el.getBoundingClientRect();
+    ghost.style.left=(r.left+r.width/2-12)+"px";ghost.style.top=(r.top+6)+"px";await sleep(520);place(want,el);await sleep(220);}
+  await sleep(300);ghost.remove();T.phase="idle";$("#go").disabled=false;$("#replay").disabled=false;
+  $("#go").textContent="▶ Try a practice one";$("#go").onclick=warmup;
+  $("#phasehint").textContent="Tap words in order to make a sentence. Practice one (not scored).";newItem();render();
+}
+$("#go").onclick=demo;$("#replay").onclick=demo;
+function warmup(){T.phase="warm-up (unscored)";newItem();$("#phasehint").textContent="Not scored — build one, then start.";
+  $("#go").textContent="▶ Start scored game";$("#go").onclick=startScored;render();}
+function startScored(){T.phase="scored";T.trial=0;T.moves=0;T.minMoves=0;newItem();
+  $("#phasehint").textContent="These count. Sentences get longer as you succeed — the words are kept common so grammar is the challenge.";
+  $("#go").textContent="(playing…)";$("#go").disabled=true;$("#replay").disabled=true;
+  const iv=setInterval(()=>{$("#blevel").textContent=`band · ${item?item.w.length:3} cars`;
+    if(T.trial>=4){clearInterval(iv);T.phase="done";$("#go").disabled=false;$("#go").textContent="▶ Play again";$("#go").onclick=startScored;$("#replay").disabled=false;
+    $("#phasehint").textContent=`Done. Syntactic ceiling lvl ${T.maxlvl}; order partial-credit ${pctPoly()}%; efficiency ${eff()}%.`;render();}},450);
+  render();}
+</script>
+</body>
+</html>

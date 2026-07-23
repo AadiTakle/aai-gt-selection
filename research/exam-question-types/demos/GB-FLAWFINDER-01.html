@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GB-FLAWFINDER-01 · Fib Finder</title>
+<style>
+  :root{--bg1:#eef1ff;--bg2:#fdeefb;--ink:#26304a;--card:#fff;--accent:#8b5cf6;--good:#22b573;--bad:#ff6b6b;
+    --tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box}html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:12px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
+  #phasecue{font-size:32px;height:38px}
+  #stagecard{background:var(--card);border-radius:24px;padding:22px;box-shadow:0 18px 50px -22px #4a4a7a;
+    display:flex;flex-direction:column;align-items:center;gap:14px;width:470px;max-width:100%}
+  #instr{font-size:14px;color:#666;min-height:20px;text-align:center}
+  #speaker{display:flex;align-items:center;gap:10px;background:#f4f0ff;border-radius:16px;padding:12px 14px;width:100%}
+  #speaker .face{font-size:40px}
+  #bubble{font-size:15px;color:#3a3560;font-style:italic}
+  #cards{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+  .card{width:132px;min-height:110px;border-radius:16px;background:#f6f8ff;border:3px solid #e2e8fb;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:10px;text-align:center}
+  .card:active{transform:scale(.97)}.card .e{font-size:38px}.card .c{font-size:12px;color:#667}
+  .card.right{border-color:var(--good);background:#e7fbf1}.card.wrong{border-color:var(--bad);background:#ffecec}
+  #row{display:flex;gap:12px;align-items:center}
+  button{font:inherit;border:0;cursor:pointer;border-radius:12px}
+  #replayaud{background:#eef1ff;color:#5b6cff;padding:8px 16px;font-weight:700}
+  #fb{font-size:14px;min-height:18px;font-weight:700}
+  #replay{width:44px;height:44px;background:#eef1ff;color:#5b6cff;font-size:20px;border-radius:50%;border:0;cursor:pointer}
+  #ghost{position:fixed;left:0;top:0;font-size:34px;pointer-events:none;z-index:60;opacity:0;
+    transition:transform .45s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;
+    font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:118px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}.mval{color:#fff}
+  .mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:170px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}.t{color:#5f6f9e}
+  @media(max-width:900px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:250px}}
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">GB-FLAWFINDER-01 · Fib Finder</div>
+    <div id="phasecue">👁️</div>
+    <div id="stagecard">
+      <div id="instr"></div>
+      <div id="speaker"><span class="face">🧑</span><span id="bubble"></span></div>
+      <div id="cards"></div>
+      <div id="row"><button id="replayaud">🔊 replay</button><button id="replay" title="replay demo">↻</button></div>
+      <div id="fb"></div>
+    </div>
+  </div>
+  <aside id="telemetry"><h3>Live telemetry · per-child</h3><div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div></aside>
+  <div id="ghost">👆</div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):null;
+function speak(t){try{if(window.speechSynthesis){const u=new SpeechSynthesisUtterance(t);u.rate=.95;speechSynthesis.cancel();speechSynthesis.speak(u)}}catch(e){}}
+const ITEMS={
+ warm:{say:'A fish is riding a bicycle to school.',depth:1,cards:[{e:'🐟🚲',c:'fish on a bike',role:'flaw'},{e:'🏫',c:'a school',role:'ok'}]},
+ s1:{say:'All birds can fly. A penguin is a bird. So the penguin flew over the mountain.',depth:2,
+     cards:[{e:'🐦☁️',c:'all birds can fly',role:'flaw'},{e:'🐧',c:'a penguin is a bird',role:'ok'},{e:'🐧⛰️',c:'penguin flew over',role:'lure'}]},
+ s2:{say:'Every game I wear my lucky socks, my team wins. So my socks make the team win.',depth:3,
+     cards:[{e:'🧦',c:'I wear lucky socks',role:'ok'},{e:'🏆',c:'the team wins',role:'ok'},{e:'🧦➡️🏆',c:'socks MAKE them win',role:'flaw'}]}
+};
+const T={correct:0,total:0,rts:[],depthCaught:0,poly:0,replays:0,lure:0,okmiss:0,startT:0};
+const METERS=[
+ {id:'M-ACC',name:'Flaws caught (scored)',get:()=>T.total?`${T.correct}/${T.total}`:'—'},
+ {id:'M-INFDEPTH',name:'Deepest flaw caught',get:()=>T.depthCaught?('level '+T.depthCaught):'—'},
+ {id:'M-RT',name:'Decision time (mean)',get:()=>mean(T.rts)==null?'—':mean(T.rts)+' ms'},
+ {id:'M-LURETYPE',name:'Lure errors (conclusion)',get:()=>T.lure+''},
+ {id:'M-ERRTYPE',name:'Other errors (true stmt)',get:()=>T.okmiss+''},
+ {id:'M-HINT',name:'Audio replays',get:()=>T.replays+''},
+ {id:'M-POLY',name:'Depth-weighted score',get:()=>T.poly+''},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('')}
+function renderMeters(){METERS.forEach(m=>{const e=$('#v_'+m.id);if(e)e.textContent=m.get()})}
+function log(msg){const d=document.createElement('div');d.innerHTML=`<span class="t">•</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight}
+const ghost=$('#ghost');const gShow=v=>ghost.classList.toggle('show',v);
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}}
+async function gTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-8}px,${c.y-6}px)`;await sleep(460)}
+
+let phase='demo',cur=null,answered=false;
+const setCue=i=>$('#phasecue').textContent=i;
+function present(item){cur=item;answered=false;$('#bubble').textContent='“'+item.say+'”';speak(item.say);
+  const c=$('#cards');c.innerHTML=item.cards.map((cd,i)=>`<div class="card" data-i="${i}"><div class="e">${cd.e}</div><div class="c">${cd.c}</div></div>`).join('');
+  T.startT=performance.now()}
+function choose(i){if(answered||!cur)return;answered=true;const cd=cur.cards[i];const rt=Math.round(performance.now()-T.startT);const scored=phase==='scored';
+  const el=$(`.card[data-i="${i}"]`);
+  if(scored)T.total++;
+  if(cd.role==='flaw'){el.classList.add('right');if(scored){T.correct++;T.rts.push(rt);T.depthCaught=Math.max(T.depthCaught,cur.depth);T.poly+=cur.depth}
+    $('#fb').textContent='Yes — that part is wrong! 🎉';$('#fb').style.color='var(--good)';log(`${scored?'SCORED ':''}caught flaw (depth ${cur.depth}) · rt ${rt}`)}
+  else{el.classList.add('wrong');if(scored){if(cd.role==='lure')T.lure++;else T.okmiss++}
+    $('#fb').textContent='Hmm, that part is fine — listen again.';$('#fb').style.color='var(--bad)';log(`${scored?'SCORED ':''}miss (chose ${cd.role})`);answered=false;renderMeters();return}
+  renderMeters();next(scored)}
+let q=[],qi=0;
+function next(scored){if(!scored){setTimeout(startScored,1100);return}qi++;if(qi>=q.length){setTimeout(finish,900);return}setTimeout(()=>{$('#fb').textContent='';present(q[qi])},1100)}
+function startWarmup(){phase='warmup';setCue('⭐');$('#instr').textContent='Warm-up: listen, then tap the part that CANNOT be true. (unscored)';present(ITEMS.warm)}
+function startScored(){phase='scored';setCue('🎯');q=[ITEMS.s1,ITEMS.s2];qi=0;$('#instr').textContent='SCORED: listen, then tap the part that does not make sense or does not follow.';$('#fb').textContent='';present(q[0]);log('— SCORED flaw-finding —')}
+function finish(){phase='done';setCue('🏆');$('#instr').textContent='Done! Sharp listening.';$('#bubble').textContent='';$('#cards').innerHTML='';log(`— DONE · caught ${T.correct}/${T.total} · deepest depth ${T.depthCaught} —`);renderMeters()}
+async function runDemo(){phase='demo';setCue('👁️');$('#instr').textContent='';present(ITEMS.warm);log('ghost-hand demo (wordless, <10s)');gShow(true);await sleep(1200);
+  const flawCard=$('.card[data-i="0"]');await gTo(flawCard);gShow(false);flawCard.classList.add('right');$('#fb').textContent='that is silly! 🎉';$('#fb').style.color='var(--good)';await sleep(1100);$('#fb').textContent='';startWarmup()}
+$('#cards').addEventListener('click',e=>{const c=e.target.closest('.card');if(c)choose(+c.dataset.i)});
+$('#replayaud').addEventListener('click',()=>{if(cur){T.replays++;speak(cur.say);renderMeters();log('audio replay')}});
+$('#replay').addEventListener('click',()=>{if(phase==='done')runDemo()});
+buildMeters();renderMeters();runDemo();
+</script>
+</body>
+</html>

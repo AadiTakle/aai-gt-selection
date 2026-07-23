@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WM-costume-01 — Costume Party (DCCS match-to-sample)</title>
+<style>
+  :root{--bg:#0e1220;--panel:#171d33;--edge:#2a3358;--ink:#e9edff;--mut:#8b93c0;--accent:#5cc8ff;--good:#5ce39a;--bad:#ff6b8a;--warn:#ffd166}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.45 system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);display:flex;min-height:100vh}
+  .main{flex:1;display:flex;flex-direction:column;align-items:center;padding:20px;gap:12px}
+  h1{font-size:19px;margin:.2rem 0}.sub{color:var(--mut);font-size:13px;margin:0;text-align:center;max-width:470px}
+  .badge{display:inline-block;padding:2px 9px;border-radius:99px;background:var(--panel);border:1px solid var(--edge);color:var(--warn);font-size:12px}
+  #ruleban{font-size:16px;color:var(--warn);height:26px}
+  .targets{display:flex;gap:40px}
+  .tgt{width:96px;height:96px;border-radius:14px;background:#101a30;border:2px solid var(--edge);display:flex;align-items:center;justify-content:center;font-size:52px;cursor:pointer}
+  .tgt:active{transform:scale(.97)}.tgt.flash{border-color:var(--good);background:#123a26}.tgt.wrong{border-color:var(--bad);background:#3a1420}
+  #cardwrap{height:110px;display:flex;align-items:center;justify-content:center}
+  #card{width:96px;height:96px;border-radius:14px;background:#20284a;border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:52px}
+  #verdict{font-size:22px;height:30px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+  button.ctl{font:inherit;padding:9px 15px;border-radius:10px;border:1px solid var(--edge);background:#20284a;color:var(--ink);cursor:pointer}
+  button.pri{background:var(--accent);color:#062033;border-color:transparent;font-weight:600}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .tel{width:320px;background:var(--panel);border-left:1px solid var(--edge);padding:14px 14px 40px;overflow:auto;font:12px/1.55 ui-monospace,Menlo,Consolas,monospace}
+  .tel h2{font:600 12px system-ui;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:14px 0 6px}
+  .kv{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted #2a3358;padding:2px 0}
+  .kv b{color:var(--accent);font-weight:600}.kv .m{color:var(--mut);font-size:10px}
+  .log{margin-top:6px;max-height:150px;overflow:auto;border:1px solid var(--edge);border-radius:8px;padding:6px;background:#10152a}
+  .log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+</head>
+<body>
+<div class="main">
+  <div style="text-align:center">
+    <h1>🎉 Costume Party <span class="badge" id="blevel">by colour</span></h1>
+    <p class="sub">Match the guest to the target guest by the rule on the badge: 🎨 means match the <b>colour</b>, 🎩 means match the <b>shape</b>. The rule switches — keep up!</p>
+  </div>
+  <div class="targets"><div class="tgt" data-s="L"></div><div class="tgt" data-s="R"></div></div>
+  <div id="ruleban"></div>
+  <div id="cardwrap"><div id="card"></div></div>
+  <div id="verdict"></div>
+  <div class="row">
+    <button class="pri ctl" id="go">▶ Watch how it works</button>
+    <button class="ctl" id="replay" disabled>↺ Replay demo</button>
+  </div>
+  <p class="sub" id="phasehint">A ghost hand shows you first — no reading needed.</p>
+</div>
+<aside class="tel" id="tel"></aside>
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const tgts=[...document.querySelectorAll(".tgt")],card=$("#card"),ruleban=$("#ruleban"),verdict=$("#verdict");
+const L={color:"red",shape:"star"},R={color:"blue",shape:"circ"};
+function glyph(g){const e=g.shape==="star"?"⭐":"⚫";return `<span style="color:${g.color==="red"?"#ff6b6b":"#5cc8ff"};filter:${g.shape==="star"&&g.color==="blue"?"hue-rotate(200deg)":"none"}">${e}</span>`;}
+tgts[0].innerHTML=glyph(L);tgts[1].innerHTML=glyph(R);
+const T={phase:"idle",trial:0,acc:[0,0],rtCong:[],rtIncong:[],switchRT:[],repeatRT:[],persev:0,
+  rule:"color",lastRule:null,block:0,justSwitch:false,lastErr:false,postErr:[],base:[],log:[]};
+function mean(a){return a.length?a.reduce((x,y)=>x+y,0)/a.length:0}
+function med(a){if(!a.length)return 0;const b=[...a].sort((x,y)=>x-y);const m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2}
+function cv(a){if(a.length<2)return 0;const m=mean(a);if(!m)return 0;return Math.sqrt(mean(a.map(x=>(x-m)**2)))/m}
+function pct(p){return p[1]?Math.round(100*p[0]/p[1]):0}
+function logE(s){T.log.unshift(`${(performance.now()/1000).toFixed(1)}s · ${s}`);if(T.log.length>60)T.log.pop()}
+function render(){
+  const sw=Math.round(med(T.switchRT)-med(T.repeatRT))||0,conEff=Math.round(med(T.rtIncong)-med(T.rtCong))||0,pes=Math.round(mean(T.postErr)-mean(T.base))||0;
+  $("#tel").innerHTML=`
+  <h2>Live telemetry · WM-costume-01</h2>
+  <div class="kv"><span>phase</span><b>${T.phase}</b></div>
+  <div class="kv"><span>matches</span><b>${T.trial}</b></div>
+  <h2>Accuracy <span class="m">M-ACC</span></h2>
+  <div class="kv"><span>correct</span><b>${pct(T.acc)}%</b></div>
+  <h2>Flexibility</h2>
+  <div class="kv"><span>switch − repeat RT <span class="m">M-SWITCHCOST</span></span><b>${sw} ms</b></div>
+  <div class="kv"><span>perseverative errors <span class="m">M-PERSEV</span></span><b>${T.persev}</b></div>
+  <h2>Conflict control <span class="m">M-CONGEFF</span></h2>
+  <div class="kv"><span>incong − cong RT</span><b>${conEff} ms</b></div>
+  <h2>Consistency</h2>
+  <div class="kv"><span>RT CV <span class="m">M-RTVAR</span></span><b>${cv([...T.rtCong,...T.rtIncong]).toFixed(2)}</b></div>
+  <div class="kv"><span>post-error slowing <span class="m">M-POSTERR</span></span><b>${pes>0?"+":""}${pes} ms</b></div>
+  <div class="log">${T.log.map(l=>`<div>${l}</div>`).join("")}</div>`;
+}
+render();
+
+let cur=null;
+function correctSide(c,rule){if(rule==="color")return c.color===L.color?"L":"R";return c.shape===L.shape?"L":"R";}
+function newCard(){const color=Math.random()<.5?"red":"blue",shape=Math.random()<.5?"star":"circ";
+  card.innerHTML=glyph({color,shape});cur={color,shape,onset:performance.now(),done:false};
+  const cong=correctSide(cur,"color")===correctSide(cur,"shape");cur.cong=cong;}
+tgts.forEach(t=>t.addEventListener("pointerdown",()=>{if(!cur||cur.done)return;cur.done=true;const rt=performance.now()-cur.onset;
+  const want=correctSide(cur,T.rule),ok=t.dataset.s===want;t.classList.add(ok?"flash":"wrong");setTimeout(()=>t.classList.remove("flash","wrong"),220);
+  if(T.phase==="scored"){T.trial++;T.acc[1]++;
+    if(ok){T.acc[0]++;(cur.cong?T.rtCong:T.rtIncong).push(rt);(T.justSwitch?T.switchRT:T.repeatRT).push(rt);(T.lastErr?T.postErr:T.base).push(rt);verdict.textContent="✅";T.lastErr=false;}
+    else{const other=T.rule==="color"?"shape":"color";if(t.dataset.s===correctSide(cur,other)){T.persev++;logE("perseverative (old rule)");}else logE("error");verdict.textContent="❌";T.lastErr=true;}
+    T.justSwitch=false;}
+  else verdict.textContent=ok?"✅":"❌";
+  render();setTimeout(()=>{if(T.phase==="scored"||T.phase.startsWith("warm"))next();},520);}));
+
+function next(){T.block++;
+  if(T.phase==="scored"&&T.block%5===0){T.lastRule=T.rule;T.rule=T.rule==="color"?"shape":"color";T.justSwitch=true;
+    $("#blevel").textContent="by "+(T.rule==="color"?"colour":"shape");logE("rule switched → "+T.rule);}
+  ruleban.textContent=T.rule==="color"?"🎨 match the COLOUR":"🎩 match the SHAPE";newCard();}
+
+async function demo(){
+  if(T.phase==="demo")return;T.phase="demo";render();$("#go").disabled=true;$("#replay").disabled=true;
+  T.rule="color";ruleban.textContent="🎨 match the COLOUR";card.innerHTML=glyph({color:"red",shape:"circ"});cur={color:"red",shape:"circ",done:false,onset:performance.now(),cong:false};
+  const ghost=document.createElement("div");ghost.textContent="👆";ghost.style.cssText="position:fixed;font-size:30px;z-index:9;transition:left .5s,top .5s;opacity:0;pointer-events:none";document.body.appendChild(ghost);
+  const r=tgts[0].getBoundingClientRect();await sleep(500);ghost.style.opacity="1";ghost.style.left=(r.left+r.width/2-12)+"px";ghost.style.top=(r.top+30)+"px";
+  await sleep(800);tgts[0].classList.add("flash");verdict.textContent="✅ same colour (red)";await sleep(700);tgts[0].classList.remove("flash");
+  ruleban.textContent="🎩 now match the SHAPE";await sleep(700);
+  ghost.remove();T.phase="idle";$("#go").disabled=false;$("#replay").disabled=false;
+  $("#go").textContent="▶ Try a practice round";$("#go").onclick=warmup;
+  $("#phasehint").textContent="Follow the badge; the rule flips sometimes. Practice (not scored).";render();
+}
+$("#go").onclick=demo;$("#replay").onclick=demo;
+function warmup(){T.phase="warm-up (unscored)";T.rule="color";T.block=0;next();$("#phasehint").textContent="Not scored — try it, then start.";
+  $("#go").textContent="▶ Start scored game";$("#go").onclick=startScored;render();}
+function startScored(){T.phase="scored";T.trial=0;T.block=0;T.rule="color";T.justSwitch=false;$("#blevel").textContent="by colour";next();
+  $("#phasehint").textContent="These count. When the badge changes, switch fast — don't slip into the old rule.";$("#go").textContent="(playing…)";$("#go").disabled=true;$("#replay").disabled=true;
+  const iv=setInterval(()=>{if(T.trial>=20){clearInterval(iv);T.phase="done";$("#go").disabled=false;$("#go").textContent="▶ Play again";$("#go").onclick=startScored;$("#replay").disabled=false;
+    $("#phasehint").textContent=`Done. Switch cost ${Math.round(med(T.switchRT)-med(T.repeatRT))||0}ms; perseverative errors ${T.persev}.`;render();}},400);
+  render();}
+</script>
+</body>
+</html>

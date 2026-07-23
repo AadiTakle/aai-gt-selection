@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VER-SENSE-01 — Sentence Sense (build the sentence that makes sense)</title>
+<style>
+  :root{--bg:#0e1220;--panel:#171d33;--edge:#2a3358;--ink:#e9edff;--mut:#8b93c0;--accent:#5cc8ff;--good:#5ce39a;--bad:#ff6b8a;--warn:#ffd166}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.45 system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);display:flex;min-height:100vh}
+  .main{flex:1;display:flex;flex-direction:column;align-items:center;padding:20px;gap:14px}
+  h1{font-size:19px;margin:.2rem 0}.sub{color:var(--mut);font-size:13px;margin:0;text-align:center;max-width:480px}
+  .badge{display:inline-block;padding:2px 9px;border-radius:99px;background:var(--panel);border:1px solid var(--edge);color:var(--warn);font-size:12px}
+  #track{display:flex;gap:10px;min-height:78px;align-items:center;padding:8px;border:1px dashed var(--edge);border-radius:14px}
+  .slot{width:104px;height:62px;border-radius:12px;background:#10152a;border:1px solid var(--edge);display:flex;align-items:center;justify-content:center;color:var(--mut)}
+  .tray{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;min-height:62px}
+  .card{min-width:104px;height:62px;padding:0 10px;background:#20284a;border:2px solid var(--edge);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:16px}
+  .card .e{font-size:26px}.card:active{transform:scale(.96)}
+  .slot.filled{background:#20284a;border-color:var(--accent);cursor:pointer;color:var(--ink)}
+  #scene{font-size:30px;height:40px}
+  #verdict{font-size:22px;height:30px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+  button.ctl{font:inherit;padding:9px 15px;border-radius:10px;border:1px solid var(--edge);background:#20284a;color:var(--ink);cursor:pointer}
+  button.pri{background:var(--accent);color:#062033;border-color:transparent;font-weight:600}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .tel{width:320px;background:var(--panel);border-left:1px solid var(--edge);padding:14px 14px 40px;overflow:auto;font:12px/1.55 ui-monospace,Menlo,Consolas,monospace}
+  .tel h2{font:600 12px system-ui;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:14px 0 6px}
+  .kv{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted #2a3358;padding:2px 0}
+  .kv b{color:var(--accent);font-weight:600}.kv .m{color:var(--mut);font-size:10px}
+  .log{margin-top:6px;max-height:150px;overflow:auto;border:1px solid var(--edge);border-radius:8px;padding:6px;background:#10152a}
+  .log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+</head>
+<body>
+<div class="main">
+  <div style="text-align:center">
+    <h1>🧩 Sentence Sense <span class="badge" id="blevel">3 words</span></h1>
+    <p class="sub">Tap the word cards in order to build the sentence that <b>makes sense</b> — not the silly one that could not really happen.</p>
+  </div>
+  <div id="track"></div>
+  <div class="tray" id="tray"></div>
+  <div id="scene"></div>
+  <div id="verdict"></div>
+  <div class="row">
+    <button class="pri ctl" id="go">▶ Watch how it works</button>
+    <button class="ctl" id="replay" disabled>↺ Replay demo</button>
+    <button class="ctl" id="reset">↩ clear</button>
+  </div>
+  <p class="sub" id="phasehint">A ghost hand shows you first — no reading needed.</p>
+</div>
+<aside class="tel" id="tel"></aside>
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const ITEMS=[
+ {cards:[{e:"🐱",n:"cat"},{n:"chases"},{e:"🐭",n:"mouse"}],sensible:[0,1,2],silly:[2,1,0],play:"🐱💨🐭"},
+ {cards:[{e:"🐶",n:"dog"},{n:"buries"},{e:"🦴",n:"bone"}],sensible:[0,1,2],silly:[2,1,0],play:"🐶⛏️🦴"},
+ {cards:[{e:"🐦",n:"bird"},{n:"eats"},{e:"🐛",n:"worm"}],sensible:[0,1,2],silly:[2,1,0],play:"🐦😋🐛"}];
+const track=$("#track"),tray=$("#tray"),scene=$("#scene"),verdict=$("#verdict");
+const T={phase:"idle",trial:0,acc:[0,0],polyNum:0,polyDen:0,inf:{lit:0,plaus:0},err:{silly:0,ungram:0},rev:0,log:[]};
+function pctPoly(){return T.polyDen?Math.round(100*T.polyNum/T.polyDen):0}
+function pct(p){return p[1]?Math.round(100*p[0]/p[1]):0}
+function logE(s){T.log.unshift(`${(performance.now()/1000).toFixed(1)}s · ${s}`);if(T.log.length>60)T.log.pop()}
+function render(){
+  $("#tel").innerHTML=`
+  <h2>Live telemetry · VER-SENSE-01</h2>
+  <div class="kv"><span>phase</span><b>${T.phase}</b></div>
+  <div class="kv"><span>items</span><b>${T.trial}</b></div>
+  <h2>Accuracy <span class="m">M-ACC</span></h2>
+  <div class="kv"><span>sensible sentence built</span><b>${pct(T.acc)}%</b></div>
+  <h2>Order partial-credit <span class="m">M-POLY</span></h2>
+  <div class="kv"><span>adjacent pairs correct</span><b>${pctPoly()}%</b></div>
+  <h2>Inference depth <span class="m">M-INFDEPTH</span></h2>
+  <div class="kv"><span>reached plausibility layer</span><b>${T.inf.plaus}</b></div>
+  <div class="kv"><span>literal/grammatical only</span><b>${T.inf.lit}</b></div>
+  <h2>Error type <span class="m">M-ERRTYPE</span></h2>
+  <div class="kv"><span>grammatical-but-silly</span><b>${T.err.silly}</b></div>
+  <div class="kv"><span>ungrammatical scramble</span><b>${T.err.ungram}</b></div>
+  <h2>Process</h2>
+  <div class="kv"><span>re-placements <span class="m">M-REV</span></span><b>${T.rev}</b></div>
+  <div class="kv"><span>placement path <span class="m">M-PATH</span></span><b>logged</b></div>
+  <div class="log">${T.log.map(l=>`<div>${l}</div>`).join("")}</div>`;
+}
+render();
+
+let item=null,order=[],placed=[];
+function newItem(){item=ITEMS[T.trial%ITEMS.length];order=[];placed=item.cards.map(()=>false);scene.textContent="";verdict.textContent="";
+  const shuf=item.cards.map((c,i)=>i).sort(()=>Math.random()-0.5);
+  track.innerHTML="";item.cards.forEach(()=>{const s=document.createElement("div");s.className="slot";s.textContent="•";track.appendChild(s)});
+  tray.innerHTML="";shuf.forEach(i=>{const c=item.cards[i];const d=document.createElement("div");d.className="card";d.dataset.i=i;d.innerHTML=(c.e?`<span class="e">${c.e}</span>`:"")+`<span>${c.n}</span>`;d.onpointerdown=()=>place(i,d);tray.appendChild(d)});
+  drawTrack();}
+function drawTrack(){[...track.children].forEach((s,idx)=>{if(order[idx]!=null){const c=item.cards[order[idx]];s.className="slot filled";s.innerHTML=(c.e?c.e+" ":"")+c.n;s.onpointerdown=()=>unplace(idx);}else{s.className="slot";s.textContent="•";s.onpointerdown=null;}});}
+function place(i,el){if(placed[i]||order.length>=item.cards.length)return;placed[i]=true;el.style.visibility="hidden";order.push(i);drawTrack();
+  if(order.length===item.cards.length)check();}
+function unplace(idx){const i=order[idx];order.splice(idx,1);placed[i]=false;T.rev++;[...tray.children].forEach(c=>{if(+c.dataset.i===i)c.style.visibility="visible"});drawTrack();render();}
+function eq(a,b){return a.length===b.length&&a.every((x,k)=>x===b[k])}
+function check(){
+  const sameSens=eq(order,item.sensible),sameSilly=eq(order,item.silly);
+  let pairs=0;for(let k=0;k<order.length-1;k++)if(item.sensible.indexOf(order[k])+1===item.sensible.indexOf(order[k+1]))pairs++;
+  if(T.phase==="scored"){T.trial++;T.acc[1]++;T.polyDen+=item.cards.length-1;T.polyNum+=pairs;
+    if(sameSens){T.acc[0]++;T.inf.plaus++;verdict.textContent="✅ makes sense!";scene.textContent=item.play;logE("built sensible sentence");}
+    else if(sameSilly){T.inf.lit++;T.err.silly++;verdict.textContent="🙃 that's silly!";scene.textContent="🐭💨🐱";logE("built grammatical-but-silly (near-miss)");}
+    else{T.err.ungram++;verdict.textContent="❌";logE("ungrammatical order");}
+  } else {verdict.textContent=sameSens?"✅ makes sense!":(sameSilly?"🙃 silly one":"❌");if(sameSens)scene.textContent=item.play;}
+  render();setTimeout(()=>{if(T.phase==="scored"||T.phase==="warm-up (unscored)")newItem();},900);
+}
+newItem();
+$("#reset").onclick=()=>newItem();
+
+async function demo(){
+  if(T.phase==="demo")return;T.phase="demo";render();$("#go").disabled=true;$("#replay").disabled=true;
+  item=ITEMS[0];newItem();
+  const ghost=document.createElement("div");ghost.textContent="👆";ghost.style.cssText="position:fixed;font-size:30px;z-index:9;transition:left .45s,top .45s;opacity:0;pointer-events:none";document.body.appendChild(ghost);
+  await sleep(400);ghost.style.opacity="1";
+  for(const want of [0,1,2]){const el=[...tray.children].find(c=>+c.dataset.i===want&&c.style.visibility!=="hidden");const r=el.getBoundingClientRect();
+    ghost.style.left=(r.left+r.width/2-12)+"px";ghost.style.top=(r.top+10)+"px";await sleep(550);place(want,el);await sleep(250);}
+  await sleep(300);ghost.remove();T.phase="idle";$("#go").disabled=false;$("#replay").disabled=false;
+  $("#go").textContent="▶ Try a practice one";$("#go").onclick=warmup;
+  $("#phasehint").textContent="Build the sentence that could really happen. Practice one (not scored).";newItem();render();
+}
+$("#go").onclick=demo;$("#replay").onclick=demo;
+async function warmup(){T.phase="warm-up (unscored)";newItem();render();$("#phasehint").textContent="Not scored — give it a try, then start.";
+  $("#go").textContent="▶ Start scored game";$("#go").onclick=startScored;}
+async function startScored(){T.phase="scored";T.trial=0;newItem();$("#phasehint").textContent="These count. Think about what could really happen — the reversed order is a trap.";
+  $("#go").textContent="(playing…)";$("#go").disabled=true;$("#replay").disabled=true;
+  const iv=setInterval(()=>{if(T.trial>=4){clearInterval(iv);T.phase="done";$("#go").disabled=false;$("#go").textContent="▶ Play again";$("#go").onclick=startScored;$("#replay").disabled=false;
+    $("#phasehint").textContent=`Done. Sensible sentences ${pct(T.acc)}%; grammatical-but-silly near-misses ${T.err.silly}.`;render();}},400);
+  render();}
+</script>
+</body>
+</html>
