@@ -1,0 +1,162 @@
+[
+  {
+    "id": "M-ACC",
+    "name": "Item accuracy",
+    "what": "Correct / incorrect (dichotomous) on a scored item.",
+    "usefulness_tail": "The base IRT signal; at the tail, accuracy on very hard items is the primary separator once difficulty is high enough to avoid ceiling.",
+    "how_to_collect": "Log final response vs key per scored item.",
+    "how_much_to_collect": ">=8-12 scored items per construct per child near the child's ability for a stable theta; more hard items near the cut."
+  },
+  {
+    "id": "M-POLY",
+    "name": "Partial-credit (polytomous) score",
+    "what": "Graded score for multi-step / multi-part items (0..k).",
+    "usefulness_tail": "Extracts tail information from a single rich item (a partial-credit item behaves like several dichotomous ones), sharpening theta with fewer items.",
+    "how_to_collect": "Define ordered scoring categories per item; log category reached.",
+    "how_much_to_collect": ">=4-6 polytomous items per construct; each contributes more information than one dichotomous item."
+  },
+  {
+    "id": "M-RT",
+    "name": "Response time (total)",
+    "what": "Milliseconds from item onset to submitted answer.",
+    "usefulness_tail": "Combined with accuracy it separates fast-accurate (able) from slow-accurate; feeds effort-moderated and joint speed-accuracy models.",
+    "how_to_collect": "Timestamp item render and submit; store ms.",
+    "how_much_to_collect": ">=20 RT samples per child for a usable per-child RT distribution; log on every item."
+  },
+  {
+    "id": "M-RTFIRST",
+    "name": "First-action latency",
+    "what": "Milliseconds from item onset to the child's first interaction.",
+    "usefulness_tail": "Indexes planning/encoding before acting; high-ability reflective solvers often show longer first-action latency with fewer revisions.",
+    "how_to_collect": "Timestamp first pointer/key/drag event.",
+    "how_much_to_collect": "Every interactive item; >=15 samples for a stable per-child median."
+  },
+  {
+    "id": "M-RTVAR",
+    "name": "Intra-individual RT variability",
+    "what": "SD or coefficient of variation of RT across items.",
+    "usefulness_tail": "Consistency (low variability) tracks ability better than peak speed (worst-performance rule); a strong, less-coachable tail signal.",
+    "how_to_collect": "Compute SD/CV over the child's RT series (correct trials).",
+    "how_much_to_collect": ">=20-30 RT samples for a reliable CV; do NOT reward raw speed."
+  },
+  {
+    "id": "M-LAPSE",
+    "name": "Lapse rate",
+    "what": "Frequency / magnitude of the child's slowest responses (worst-performance).",
+    "usefulness_tail": "The slowest responses, not the fastest, are most diagnostic of ability; fewer lapses => higher ability.",
+    "how_to_collect": "Take the slowest quartile/decile of RTs; count lapses beyond a threshold.",
+    "how_much_to_collect": ">=25 trials so the slow tail of the RT distribution is estimable."
+  },
+  {
+    "id": "M-REV",
+    "name": "Revisions / answer changes",
+    "what": "Count of answer changes, undos, or re-drags before commit.",
+    "usefulness_tail": "Distinguishes confident tail performers (few, targeted revisions) from guess-and-check; adds process variance beyond right/wrong.",
+    "how_to_collect": "Increment a counter on each answer change / undo event.",
+    "how_much_to_collect": "Every item; interpret relative to item difficulty."
+  },
+  {
+    "id": "M-PATH",
+    "name": "Solution path / move sequence",
+    "what": "Ordered sequence of actions taken to reach the answer.",
+    "usefulness_tail": "Strategy signature: efficient/novel paths mark strong reasoners; supports evidence-model (Bayes-net) scoring that separates HOW, not just WHETHER.",
+    "how_to_collect": "Append each action {t, action, state} to an event log per item.",
+    "how_much_to_collect": "Log fully on constructed/interactive items; needs >=5 such items per construct to characterize strategy."
+  },
+  {
+    "id": "M-EFF",
+    "name": "Efficiency vs optimal",
+    "what": "Moves or time used relative to the optimal solution for the item's difficulty.",
+    "usefulness_tail": "Near-optimal solving at high difficulty is a clean tail separator; catches able children who are also economical.",
+    "how_to_collect": "Compare M-PATH length/time to a stored optimal for the item.",
+    "how_much_to_collect": ">=5 items with known optima per construct."
+  },
+  {
+    "id": "M-HINT",
+    "name": "Scaffold / hint usage",
+    "what": "Count and timing of hints or scaffolds the child invokes.",
+    "usefulness_tail": "Hint-free solving at difficulty is stronger evidence; dynamic-assessment signal (learning rate) can add incremental tail validity.",
+    "how_to_collect": "Log each hint request with timestamp and item state.",
+    "how_much_to_collect": "Every item that offers hints; interpret against difficulty."
+  },
+  {
+    "id": "M-PERSIST",
+    "name": "Persistence / time-on-task",
+    "what": "Time spent engaging a hard item before solving or giving up.",
+    "usefulness_tail": "Task commitment (Renzulli) is a construct CogAT misses; persistence on hard items adds non-cognitive tail signal and flags disengagement.",
+    "how_to_collect": "Time from onset to solve/skip on items above the child's level.",
+    "how_much_to_collect": ">=6 above-level items per child."
+  },
+  {
+    "id": "M-ERRTYPE",
+    "name": "Error type",
+    "what": "Classification of errors: near-miss / systematic / random / motor-slip.",
+    "usefulness_tail": "Near-misses at high difficulty indicate latent ability just below threshold, refining tail placement; filters motor/attention noise.",
+    "how_to_collect": "Tag the chosen wrong answer against a distractor taxonomy.",
+    "how_much_to_collect": "Every incorrect response; needs distractors designed with error meaning."
+  },
+  {
+    "id": "M-CONF",
+    "name": "Confidence / wager",
+    "what": "Elicited confidence rating or points wager on the answer.",
+    "usefulness_tail": "Metacognitive calibration (accuracy of confidence) adds incremental validity and helps down-weight lucky guesses at the tail.",
+    "how_to_collect": "Optional quick confidence tap or wager after answering.",
+    "how_much_to_collect": "On a subset (>=8 items) to avoid burden; not every item."
+  },
+  {
+    "id": "M-EXPLORE",
+    "name": "Exploration behavior",
+    "what": "Number of options sampled / states explored before committing.",
+    "usefulness_tail": "Systematic exploration vs flailing separates strategic tail solvers; useful in open/interactive items.",
+    "how_to_collect": "Count distinct states/options visited via M-PATH log.",
+    "how_much_to_collect": "Interactive items only; >=5 per construct."
+  },
+  {
+    "id": "M-PROG",
+    "name": "Progress trajectory",
+    "what": "Partial progress achieved over a multi-step item over time.",
+    "usefulness_tail": "Turns one hard item into a curve; the shape (fast-to-plateau vs steady) adds tail resolution beyond final score.",
+    "how_to_collect": "Snapshot state/score at intervals or per sub-step.",
+    "how_much_to_collect": "Multi-step items; >=4 per construct."
+  },
+  {
+    "id": "M-SPEEDACC",
+    "name": "Speed-accuracy tradeoff",
+    "what": "Joint position on the RT x accuracy plane.",
+    "usefulness_tail": "Models the child's chosen operating point so speed is only credited when accuracy is held; prevents rewarding impulsive fast-wrong responding.",
+    "how_to_collect": "Pair M-RT with M-ACC per item; fit per-child SAT.",
+    "how_much_to_collect": ">=20 items with both signals."
+  },
+  {
+    "id": "M-DIFFREACH",
+    "name": "Ceiling / max difficulty reached",
+    "what": "Highest item difficulty answered correctly.",
+    "usefulness_tail": "Directly probes the tail; adaptive escalation to failure pinpoints the child's edge and is the sharpest single tail statistic.",
+    "how_to_collect": "Track max b-parameter solved under adaptive escalation.",
+    "how_much_to_collect": "Requires an item bank extending well above grade level (above-level items)."
+  },
+  {
+    "id": "M-DRIFT",
+    "name": "Performance drift (fatigue/engagement)",
+    "what": "Change in accuracy/RT across the session.",
+    "usefulness_tail": "Detects disengagement/fatigue that would bias a tail decision; lets scoring discount low-effort late items.",
+    "how_to_collect": "Regress accuracy/RT on item position within session.",
+    "how_much_to_collect": "Whole session; needs >=30 items to estimate a slope."
+  },
+  {
+    "id": "M-ENGAGE",
+    "name": "Engagement / off-task",
+    "what": "Idle time, focus loss (blur), and re-engagement latency.",
+    "usefulness_tail": "Gates all other signals: a tail decision is only valid on engaged responses (supports the 'speed as evidence only when engaged' principle).",
+    "how_to_collect": "Log window blur/idle timers and time-to-resume.",
+    "how_much_to_collect": "Continuous background logging across the session."
+  },
+  {
+    "id": "M-CONSIST",
+    "name": "Cross-item consistency",
+    "what": "Reliability of responses across parallel/equivalent items.",
+    "usefulness_tail": "Reduces conditional standard error at the cut; inconsistent responders near the cut get more items before a decision.",
+    "how_to_collect": "Compare responses to matched parallel items (same b, cloned via AIG).",
+    "how_much_to_collect": ">=3 matched pairs near the child's ability."
+  }
+]
