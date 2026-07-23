@@ -8,7 +8,7 @@ a token in type.topics_techniques_covered, and item.age_band is in type.age_band
 Reads catalog/top_gt_items.jsonl + catalog/master_types.jsonl.
 Writes catalog/COVERAGE_REPORT.md and prints a summary + the most under-covered cells.
 """
-import json, os, re
+import json, os, re, sys
 from collections import defaultdict, Counter
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -53,7 +53,9 @@ def area_and_sub(item):
 
 
 def main():
-    items = load(os.path.join(CAT, "top_gt_items.jsonl"))
+    items_path = sys.argv[1] if len(sys.argv) > 1 else os.path.join(CAT, "top_gt_items.jsonl")
+    out_path = sys.argv[2] if len(sys.argv) > 2 else os.path.join(CAT, "COVERAGE_REPORT.md")
+    items = load(items_path)
     types = load(os.path.join(CAT, "master_types.jsonl"))
 
     per_item = []
@@ -91,7 +93,7 @@ def main():
              "## Most under-covered (construct, subconstruct) cells — target these next", ""]
     for (a, s), c in undercovered.most_common(40):
         lines.append(f"- {a} / {s}: {c} top-GT item(s) still < {TARGET}")
-    open(os.path.join(CAT, "COVERAGE_REPORT.md"), "w", encoding="utf-8").write("\n".join(lines) + "\n")
+    open(out_path, "w", encoding="utf-8").write("\n".join(lines) + "\n")
 
     print(f"top_gt={total} ge{TARGET}={ge3} ({pct}%) mid={mid} zero={zero} types={len(types)}")
     if undercovered:
