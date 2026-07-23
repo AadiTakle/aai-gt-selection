@@ -1,12 +1,58 @@
 :root {
-  --gt-color-background: #f4f1e8;
-  --gt-color-foreground: #18211b;
-  --gt-color-muted: #58635b;
-  --gt-color-accent: #1f5d42;
-  --gt-color-surface: #fffdf7;
-  --gt-color-border: #cad0c8;
-  --gt-font-body: Arial, Helvetica, sans-serif;
-  --gt-font-heading: Georgia, 'Times New Roman', serif;
+  /* legacy tokens now mapped onto the real GT palette + type */
+  --gt-color-background: #fbf7f2;
+  --gt-color-foreground: #001117;
+  --gt-color-muted: #4a5a62;
+  --gt-color-accent: #004f71;
+  --gt-color-surface: #fdf4ef;
+  --gt-color-border: #ece4da;
+  --gt-font-body: var(--gt-font-body-next, 'Inter Tight'), system-ui, sans-serif;
+  --gt-font-heading: var(--gt-font-display-next, Literata), Georgia, serif;
+
+  /* --- GT School brand palette (scraped from gt.school Webflow stylesheet) --- */
+  --gt-navy: #00293a; /* brand navy */
+  --gt-navy-dark: #001117;
+  --gt-blue: #004f71; /* softer than navy, GT's secondary deep tone */
+  --gt-blue-dark: #003b5c;
+  --gt-ember: #e48b53; /* brand orange */
+  --gt-ember-hi: #ebba9b; /* gold-light */
+  --gt-ember-lo: #f5ddcd; /* gold-lighter */
+  --gt-gold-lightest: #f8e8de; /* warm cream tint */
+  /* legacy aliases (kept so existing petrol references still resolve to navy) */
+  --gt-petrol: #00293a;
+  --gt-petrol-70: #244857;
+  --gt-petrol-50: #6f929e;
+  --gt-paper: #ffffff; /* page background */
+  --gt-card: #fdf4ef; /* soft warm card surface */
+  --gt-ink: #001117; /* navy-dark text */
+  --gt-ink-60: #4a5a62;
+  --gt-ink-40: #8a968f;
+  --gt-line: #ece4da;
+  --gt-line-strong: #ddd3c6;
+  --gt-good: #2f7d5b;
+
+  /* GT School type system: Literata (display) + Inter Tight (body) +
+     Inconsolata (utility). next/font sets the -next/-utility vars on <html>. */
+  --gt-font-display: var(--gt-font-display-next, Literata), Georgia, serif;
+  --gt-font-sans: var(--gt-font-body-next, 'Inter Tight'), system-ui, -apple-system, sans-serif;
+  --gt-font-utility: var(--gt-font-utility-next, Inconsolata), 'Courier New', monospace;
+
+  /* scales */
+  --gt-space-1: 0.25rem;
+  --gt-space-2: 0.5rem;
+  --gt-space-3: 0.75rem;
+  --gt-space-4: 1rem;
+  --gt-space-5: 1.5rem;
+  --gt-space-6: 2rem;
+  --gt-space-7: 3rem;
+  --gt-space-8: 4rem;
+  --gt-radius-sm: 10px;
+  --gt-radius-md: 14px;
+  --gt-radius-lg: 20px;
+  /* box/card surfaces sit flat — no drop shadow behind them */
+  --gt-shadow-card: none;
+  --gt-shadow-pop: none;
+  --gt-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 * {
@@ -14,13 +60,14 @@
 }
 
 html {
-  background: var(--gt-color-background);
   color: var(--gt-color-foreground);
   font-family: var(--gt-font-body);
 }
 
 body {
   margin: 0;
+  min-height: 100vh;
+  background: #ffffff;
 }
 
 a {
@@ -44,16 +91,31 @@ a {
 .app-header strong,
 h1 {
   font-family: var(--gt-font-heading);
+  font-weight: 500;
 }
 
-.prototype-banner {
-  background: var(--gt-color-foreground);
-  color: var(--gt-color-background);
-  font-size: 0.875rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  padding: 0.75rem 1rem;
-  text-align: center;
+.gt-brand-link {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.gt-brand-link:hover {
+  opacity: 0.85;
+}
+
+/* On the wizard, the fixed 300px sidebar covers the top-left, hiding the header
+   logo. Shift the logo right to line up with where the canvas text starts.
+   Logo and canvas share the centered app-shell origin, so the gap is a constant:
+   sidebar 300px + canvas padding 2rem − header padding 1.5rem = 308px. */
+body:has(.wizard-shell) .gt-brand-link {
+  margin-left: 308px;
+}
+
+@media (max-width: 860px) {
+  body:has(.wizard-shell) .gt-brand-link {
+    margin-left: 0;
+  }
 }
 
 .surface-grid {
@@ -88,7 +150,7 @@ h1 {
 .eyebrow {
   color: var(--gt-color-accent);
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }

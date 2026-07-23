@@ -1,0 +1,133 @@
+.wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--gt-space-6) var(--gt-space-5) var(--gt-space-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-4);
+}
+
+.back {
+  color: var(--gt-blue);
+  font-family: var(--gt-font-utility);
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  align-self: flex-start;
+}
+
+.back:hover {
+  color: var(--gt-ember);
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--gt-space-4);
+  margin-bottom: var(--gt-space-2);
+}
+
+.kicker {
+  font-family: var(--gt-font-utility);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gt-ember);
+  margin: 0;
+}
+
+.title {
+  font-family: var(--gt-font-display);
+  font-size: 2rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  margin: var(--gt-space-2) 0 var(--gt-space-2);
+}
+
+.intro {
+  color: var(--gt-ink-60);
+  margin: 0;
+  max-width: 52ch;
+}
+
+.editBtn {
+  all: unset;
+  flex: none;
+  cursor: pointer;
+  background: var(--gt-ember);
+  color: #fff;
+  padding: 0.7rem 1.2rem;
+  border-radius: 11px;
+  font-weight: 600;
+  box-shadow: 0 8px 20px rgba(228, 139, 83, 0.28);
+}
+
+.editBtn:hover {
+  background: #d97e45;
+}
+
+.editBtn:focus-visible {
+  outline: 2px solid var(--gt-navy);
+  outline-offset: 2px;
+}
+
+/* locked cards: muted, no editable affordance */
+.card {
+  background: var(--gt-card);
+  border-radius: var(--gt-radius-md);
+  padding: var(--gt-space-4) var(--gt-space-5) var(--gt-space-5);
+  display: flex;
+  flex-direction: column;
+}
+
+.lockBar {
+  font-family: var(--gt-font-display);
+  font-size: 1.05rem;
+  color: var(--gt-navy);
+  padding-bottom: var(--gt-space-3);
+  margin-bottom: var(--gt-space-2);
+  border-bottom: 1px solid var(--gt-line);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: var(--gt-space-4);
+  padding: var(--gt-space-2) 0;
+}
+
+.rowLabel {
+  color: var(--gt-ink-60);
+  font-size: 0.9rem;
+}
+
+.rowValue {
+  color: var(--gt-ink);
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.privateNote {
+  font-size: 0.78rem;
+  color: var(--gt-ink-40);
+  font-style: italic;
+  margin: var(--gt-space-3) 0 0;
+}
+
+.boundary {
+  font-size: 0.78rem;
+  color: var(--gt-ink-40);
+  text-align: center;
+  margin: var(--gt-space-2) 0 0;
+}
+
+@media (max-width: 620px) {
+  .row {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .head {
+    flex-direction: column;
+  }
+}

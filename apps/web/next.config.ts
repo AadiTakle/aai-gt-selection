@@ -1,6 +1,30 @@
 import type { NextConfig } from 'next';
 
+const isDev = process.env.NODE_ENV !== 'production';
+
+// The interactive family portal (client components) needs Next.js's inline
+// hydration bootstrap scripts and inline styles (also emitted by next/font),
+// so `default-src 'self'` alone would block hydration. We keep every other
+// directive strict and only widen script/style. Dev additionally needs
+// 'unsafe-eval' for Turbopack HMR.
+// TODO(D-012): move to a nonce-based script-src for production hardening.
+const scriptSrc = isDev ? "'self' 'unsafe-inline' 'unsafe-eval'" : "'self' 'unsafe-inline'";
+const contentSecurityPolicy = [
+  "default-src 'self'",
+  `script-src ${scriptSrc}`,
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data:",
+  "font-src 'self'",
+  "connect-src 'self'",
+  "frame-ancestors 'none'",
+  "object-src 'none'",
+  "base-uri 'self'",
+].join('; ');
+
 const nextConfig: NextConfig = {
+  // Emit a minimal self-contained server bundle for container images
+  // (Amazon ECS Fargate target per D-012). No effect on local dev.
+  output: 'standalone',
   poweredByHeader: false,
   async headers() {
     return [
@@ -9,7 +33,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'",
+            value: contentSecurityPolicy,
           },
           {
             key: 'Referrer-Policy',
