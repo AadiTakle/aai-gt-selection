@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clue Giver - GB-CLUEGIVER-01</title>
+<style>
+  :root{ --bg1:#082a2e; --bg2:#0f4d54; --card:#fff; --ink:#0f2f33; --accent:#ffd23f; --good:#2ec27e; --bad:#e5484d; }
+  *{ box-sizing:border-box; font-family:'Segoe UI',system-ui,Arial,sans-serif; }
+  body{ margin:0; min-height:100vh; background:linear-gradient(160deg,var(--bg1),var(--bg2)); color:var(--ink); display:flex; flex-direction:column; align-items:center; padding:16px; }
+  .head{ color:#fff; text-align:center; }
+  .head h1{ margin:2px 0; font-size:26px; }
+  .badges span{ display:inline-block; background:#ffffff22; color:#fff; border:1px solid #ffffff44; border-radius:999px; padding:3px 10px; margin:2px; font-size:12px; }
+  .wrap{ display:flex; gap:16px; flex-wrap:wrap; justify-content:center; align-items:flex-start; margin-top:12px; width:100%; max-width:1000px; }
+  .card{ background:var(--card); border-radius:20px; padding:18px; box-shadow:0 12px 30px #0005; }
+  .stage{ width:540px; max-width:94vw; text-align:center; }
+  .banner{ font-weight:700; font-size:17px; min-height:24px; margin-bottom:8px; color:#0d5c53; }
+  .robot{ font-size:40px; }
+  .pics{ display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin:10px 0; }
+  .pic{ width:80px; height:80px; border-radius:14px; background:#eef6f5; display:flex; align-items:center; justify-content:center; border:3px solid #d5e6e3; position:relative; }
+  .pic.target::after{ content:'\u2B50'; position:absolute; top:-10px; right:-8px; font-size:20px; }
+  .pic.robotpick{ box-shadow:0 0 0 4px var(--good); }
+  .pic.robotwrong{ box-shadow:0 0 0 4px var(--bad); }
+  .glyph{ line-height:1; }
+  .clues{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:12px 0; }
+  .dimgroup{ background:#f2f8f7; border-radius:12px; padding:6px; }
+  .dimlab{ font-size:11px; color:#789; margin-bottom:4px; }
+  .ccard{ display:inline-flex; align-items:center; gap:4px; background:#fff; border:2px solid #cdd; border-radius:10px; padding:8px 10px; margin:2px; font-size:14px; font-weight:700; cursor:pointer; }
+  .ccard.sel{ border-color:var(--accent); background:#fff7d6; }
+  .btn{ background:var(--accent); border:none; border-radius:14px; padding:12px 24px; font-size:17px; font-weight:800; cursor:pointer; color:#3a2f00; box-shadow:0 6px 0 #0003; }
+  .btn:active{ transform:translateY(3px); box-shadow:0 3px 0 #0003; }
+  .btn.sec{ background:#e5f1ef; color:#0d5c53; font-size:15px; }
+  .row{ display:flex; gap:10px; justify-content:center; margin-top:8px; flex-wrap:wrap; }
+  .hint{ color:#fff9; font-size:12px; text-align:center; margin-top:8px; }
+  .tele{ width:360px; max-width:94vw; background:#06201f; color:#c9f4e6; border-radius:20px; padding:16px; font-family:'SFMono-Regular',Consolas,monospace; box-shadow:0 12px 30px #0006; }
+  .tele h2{ color:#ffd166; font-size:15px; margin:0 0 10px; }
+  .m{ display:flex; justify-content:space-between; gap:8px; padding:6px 8px; border-radius:8px; font-size:13px; }
+  .m:nth-child(odd){ background:#ffffff08; }
+  .m .id{ color:#8ab4ff; } .m .v{ color:#fff; font-weight:700; }
+  .log{ margin-top:10px; max-height:140px; overflow:auto; font-size:11px; color:#9fb0d0; border-top:1px solid #ffffff22; padding-top:8px; }
+</style>
+</head>
+<body>
+  <div class="head">
+    <div class="badges"><span>GB-CLUEGIVER-01</span><span>Areas: verbal + fluid_reasoning</span><span>Bands: 2-3 &middot; 4-5 &middot; 6-8</span></div>
+    <h1>Clue Giver</h1>
+    <div style="opacity:.85;font-size:14px">Give just enough clues so the robot finds YOUR secret picture</div>
+  </div>
+
+  <div class="wrap">
+    <div class="card stage">
+      <div class="banner" id="banner">Tap START to watch the demo</div>
+      <div class="robot" id="robot">\uD83E\uDD16</div>
+      <div class="pics" id="pics"></div>
+      <div class="clues" id="clues"></div>
+      <div class="row">
+        <button class="btn sec" id="clearBtn">Clear clues</button>
+        <button class="btn" id="tellBtn" disabled>TELL the robot</button>
+        <button class="btn sec" id="startBtn">START</button>
+        <button class="btn sec" id="nextBtn" style="display:none">Next round</button>
+      </div>
+      <div class="hint">Tap word-cards (they say the word aloud), then TELL. Fewer, better clues score higher.</div>
+    </div>
+
+    <div class="tele">
+      <h2>LIVE TELEMETRY (referential clues)</h2>
+      <div class="m"><span class="id">M-EFF (clues vs minimal)</span> <span class="v" id="t_eff">-</span></div>
+      <div class="m"><span class="id">M-HYP (candidates cut)</span> <span class="v" id="t_hyp">-</span></div>
+      <div class="m"><span class="id">candidates left</span> <span class="v" id="t_cand">-</span></div>
+      <div class="m"><span class="id">M-ACC (robot correct)</span> <span class="v" id="t_acc">-</span></div>
+      <div class="m"><span class="id">M-DIFFREACH (shared attrs)</span> <span class="v" id="t_diff">-</span></div>
+      <div class="m"><span class="id">M-RTFIRST (plan pause)</span> <span class="v" id="t_first">-</span></div>
+      <div class="m"><span class="id">M-REV (clue changes)</span> <span class="v" id="t_rev">0</span></div>
+      <div class="m"><span class="id">M-PATH (clues chosen)</span> <span class="v" id="t_path">0</span></div>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+  const SHAPES=['\u25CF','\u25B2','\u25A0'], SHAPENAME=['round','pointy','square'];
+  const COLORS=['#e5484d','#3a86ff','#2ec27e'], COLORNAME=['red','blue','green'];
+  const SIZE=[64,38], SIZENAME=['big','small'];
+  const DIMS=['shape','color','size'];
+  const banner=document.getElementById('banner'), picsEl=document.getElementById('pics'),
+        cluesEl=document.getElementById('clues'), tellBtn=document.getElementById('tellBtn'), logEl=document.getElementById('log');
+
+  const S={ phase:'idle', items:[], target:0, sel:{shape:null,color:null,size:null}, firstAt:null, shownAt:0, revs:0, path:0, sharedMax:0 };
+  let level=0;
+
+  // rounds: define items so decoys share increasing attributes with target
+  const rounds=[
+    { items:[ {shape:0,color:0,size:0}, {shape:1,color:1,size:1}, {shape:2,color:2,size:0} ], target:0, label:'Round 1 - very different pictures' },
+    { items:[ {shape:0,color:0,size:0}, {shape:0,color:1,size:0}, {shape:1,color:0,size:1} ], target:0, label:'Round 2 - some look-alikes' },
+    { items:[ {shape:0,color:0,size:0}, {shape:0,color:0,size:1}, {shape:0,color:1,size:0}, {shape:1,color:0,size:0} ], target:0, label:'Round 3 - tricky look-alikes' }
+  ];
+
+  function log(s){ const d=document.createElement('div'); d.textContent=s; logEl.prepend(d); }
+  function say(txt){ try{ if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance(txt); u.rate=.95; speechSynthesis.cancel(); speechSynthesis.speak(u); } }catch(e){} }
+
+  function renderPics(showTarget){
+    picsEl.innerHTML='';
+    S.items.forEach((it,idx)=>{
+      const d=document.createElement('div'); d.className='pic'+((showTarget&&idx===S.target)?' target':'');
+      const g=document.createElement('div'); g.className='glyph'; g.textContent=SHAPES[it.shape]; g.style.color=COLORS[it.color]; g.style.fontSize=SIZE[it.size]+'px';
+      d.appendChild(g); d.dataset.idx=idx; picsEl.appendChild(d);
+    });
+  }
+  function attrName(dim,val){ return dim==='shape'?SHAPENAME[val]:dim==='color'?COLORNAME[val]:SIZENAME[val]; }
+  function attrIcon(dim,val){ return dim==='shape'?SHAPES[val]:dim==='color'?'\u25CF':(val===0?'\uD83D\uDD3C':'\uD83D\uDD3D'); }
+
+  function buildClues(){
+    cluesEl.innerHTML='';
+    DIMS.forEach(dim=>{
+      const grp=document.createElement('div'); grp.className='dimgroup';
+      const lab=document.createElement('div'); lab.className='dimlab'; lab.textContent=dim; grp.appendChild(lab);
+      const vals = dim==='size'?[0,1]:[0,1,2];
+      vals.forEach(v=>{
+        const c=document.createElement('div'); c.className='ccard'; 
+        const ic=document.createElement('span'); ic.textContent=attrIcon(dim,v); if(dim==='color') ic.style.color=COLORS[v]; else if(dim==='shape') ic.style.color='#333';
+        const tx=document.createElement('span'); tx.textContent=attrName(dim,v);
+        c.appendChild(ic); c.appendChild(tx);
+        c.addEventListener('click', ()=>toggleClue(dim,v,c));
+        grp.appendChild(c);
+      });
+      cluesEl.appendChild(grp);
+    });
+  }
+  function toggleClue(dim,val,el){
+    if(S.phase!=='scored'&&S.phase!=='warm') return;
+    if(S.firstAt===null){ S.firstAt=performance.now()-S.shownAt; }
+    if(S.sel[dim]===val){ S.sel[dim]=null; }
+    else { if(S.sel[dim]!==null) S.revs++; S.sel[dim]=val; say(attrName(dim,val)); }
+    S.path++;
+    // refresh selection styling
+    [...cluesEl.querySelectorAll('.dimgroup')].forEach((grp,gi)=>{
+      const dimName=DIMS[gi];
+      [...grp.querySelectorAll('.ccard')].forEach((cc,vi)=> cc.classList.toggle('sel', S.sel[dimName]===vi));
+    });
+    tellBtn.disabled = !(S.sel.shape!==null||S.sel.color!==null||S.sel.size!==null);
+    updCandidates();
+  }
+  function matches(it){ return (S.sel.shape===null||it.shape===S.sel.shape) && (S.sel.color===null||it.color===S.sel.color) && (S.sel.size===null||it.size===S.sel.size); }
+  function candidates(){ return S.items.filter(matches); }
+
+  function minimalClues(){
+    // smallest subset of dims (with target's values) that isolates target
+    const t=S.items[S.target];
+    for(let k=1;k<=3;k++){
+      const combos=kSubsets(DIMS,k);
+      for(const combo of combos){
+        const cnt=S.items.filter(it=> combo.every(d=> it[d]===t[d])).length;
+        if(cnt===1) return k;
+      }
+    }
+    return 3;
+  }
+  function kSubsets(arr,k){ const res=[]; const rec=(start,cur)=>{ if(cur.length===k){ res.push(cur.slice()); return; } for(let i=start;i<arr.length;i++){ cur.push(arr[i]); rec(i+1,cur); cur.pop(); } }; rec(0,[]); return res; }
+
+  let prevCand=null;
+  function updCandidates(){
+    const c=candidates();
+    document.getElementById('t_cand').textContent=c.length+' / '+S.items.length;
+    document.getElementById('t_path').textContent=S.path;
+    document.getElementById('t_rev').textContent=S.revs;
+    document.getElementById('t_first').textContent=S.firstAt!==null?Math.round(S.firstAt)+' ms':'-';
+    prevCand=c.length;
+  }
+
+  function tell(){
+    const c=candidates();
+    S.items.forEach((it,idx)=> picsEl.children[idx].classList.remove('robotpick','robotwrong'));
+    let pick;
+    if(c.length===1){ pick=S.items.indexOf(c[0]); }
+    else { // ambiguous: robot picks a NON-target match to show the miss (deterministic)
+      const nonTarget=c.find(x=>S.items.indexOf(x)!==S.target); pick = nonTarget?S.items.indexOf(nonTarget):S.target; }
+    const correct = pick===S.target;
+    picsEl.children[pick].classList.add(correct?'robotpick':'robotwrong');
+    const cluesUsed=['shape','color','size'].filter(d=>S.sel[d]!==null).length;
+    if(S.phase==='scored'){
+      const minC=minimalClues();
+      document.getElementById('t_eff').textContent=cluesUsed+' vs min '+minC+(correct&&cluesUsed===minC?' \u2713optimal':'');
+      document.getElementById('t_hyp').textContent=(S.items.length)+'\u2192'+c.length;
+      document.getElementById('t_acc').textContent=correct?'CORRECT':'wrong (ambiguous)';
+      document.getElementById('t_diff').textContent=maxSharedWithTarget();
+      log('TELL ['+describe()+'] -> robot picked #'+pick+' '+(correct?'CORRECT':'WRONG')+' (clues '+cluesUsed+', min '+minC+')');
+      if(correct){ banner.textContent='\uD83E\uDD16\uD83C\uDF89 Robot found it with '+cluesUsed+' clue(s)! (best: '+minC+')'; document.getElementById('nextBtn').style.display=(level<rounds.length-1)?'inline-block':'none'; S.phase='between'; }
+      else banner.textContent='\uD83E\uDD16 Robot picked the wrong one - your clues fit more than one. Add a clue!';
+    } else {
+      banner.textContent=correct?'\uD83E\uDD16\uD83C\uDF89 Robot found it! Now the real rounds.':'\uD83E\uDD16 Not enough - try another clue';
+      if(correct){ setTimeout(()=>startScored(0),1300); }
+    }
+  }
+  function describe(){ return DIMS.filter(d=>S.sel[d]!==null).map(d=>attrName(d,S.sel[d])).join(' '); }
+  function maxSharedWithTarget(){ const t=S.items[S.target]; let m=0; S.items.forEach((it,i)=>{ if(i===S.target) return; let s=0; DIMS.forEach(d=>{ if(it[d]===t[d]) s++; }); m=Math.max(m,s); }); return m+' / 3'; }
+
+  function loadRound(r, phase){
+    const R=rounds[r]; S.items=R.items.map(x=>Object.assign({},x)); S.target=R.target;
+    S.sel={shape:null,color:null,size:null}; S.firstAt=null; S.revs=0; S.path=0; S.shownAt=performance.now(); S.phase=phase;
+    renderPics(true); buildClues(); tellBtn.disabled=true;
+    banner.textContent=(phase==='scored'?R.label+' - ':'Warm-up: ')+'describe the \u2b50 star picture';
+    document.getElementById('nextBtn').style.display='none';
+    document.getElementById('t_eff').textContent='-'; document.getElementById('t_acc').textContent='-'; document.getElementById('t_hyp').textContent='-'; document.getElementById('t_diff').textContent=maxSharedWithTarget();
+    updCandidates();
+  }
+  function startScored(r){ level=r; loadRound(r,'scored'); }
+  function startWarm(){ loadRound(0,'warm'); banner.textContent='Warm-up (not scored): describe the \u2b50 picture so the robot finds it'; }
+
+  // ghost demo
+  function ghost(){
+    S.phase='demo'; S.items=rounds[1].items.map(x=>Object.assign({},x)); S.target=0;
+    renderPics(true); buildClues(); banner.textContent='\uD83D\uDC4B Watch: pick words that fit only the \u2b50 one';
+    S.sel={shape:null,color:null,size:null};
+    setTimeout(()=>{ S.sel.color=0; refreshSel(); say('red'); banner.textContent='clue: red...'; },900);
+    setTimeout(()=>{ S.sel.shape=0; refreshSel(); say('round'); banner.textContent='clue: round...'; },1900);
+    setTimeout(()=>{ const c=candidates(); const pick=(c.length===1)?S.items.indexOf(c[0]):S.target; picsEl.children[pick].classList.add('robotpick'); banner.textContent='\uD83E\uDD16\uD83C\uDF89 Robot found it! Now you try.'; },2900);
+    setTimeout(startWarm, 4200);
+  }
+  function refreshSel(){ [...cluesEl.querySelectorAll('.dimgroup')].forEach((grp,gi)=>{ const d=DIMS[gi]; [...grp.querySelectorAll('.ccard')].forEach((cc,vi)=> cc.classList.toggle('sel', S.sel[d]===vi)); }); }
+
+  tellBtn.addEventListener('click', tell);
+  document.getElementById('clearBtn').addEventListener('click', ()=>{ if(S.sel.shape!==null||S.sel.color!==null||S.sel.size!==null) S.revs++; S.sel={shape:null,color:null,size:null}; refreshSel(); tellBtn.disabled=true; S.items.forEach((it,idx)=> picsEl.children[idx].classList.remove('robotpick','robotwrong')); updCandidates(); });
+  document.getElementById('nextBtn').addEventListener('click', ()=>{ if(level<rounds.length-1) startScored(level+1); });
+  document.getElementById('startBtn').addEventListener('click', ()=>{ document.getElementById('startBtn').style.display='none'; ghost(); });
+})();
+</script>
+</body>
+</html>

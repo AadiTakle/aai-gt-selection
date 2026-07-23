@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QUANT-ESTIMATE-01 · Ballpark It</title>
+<style>
+  :root{--bg1:#eef4ff;--bg2:#eafff6;--ink:#22304a;--card:#fff;--accent:#5b6cff;--good:#22b573;--bad:#ff6b6b;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
+  #phasecue{font-size:32px;height:38px;line-height:38px}
+  #stagecard{background:var(--card);border-radius:24px;padding:26px 22px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:22px;max-width:640px;width:100%}
+  #stim{height:120px;display:flex;align-items:center;justify-content:center;font-size:48px;font-weight:800;color:#2a3a63;width:100%}
+  #dots{position:relative;width:220px;height:110px}
+  #dots .dot{position:absolute;width:14px;height:14px;border-radius:50%;background:#5b6cff}
+  #scalewrap{width:100%;padding:0 12px}
+  #scale{position:relative;height:16px;background:#e6ebf7;border-radius:10px;margin:38px 0}
+  .end{position:absolute;top:22px;font-size:13px;color:#8a93b5}
+  #fill{position:absolute;top:0;height:16px;background:linear-gradient(90deg,#c7d0ff,#9fb0ff);border-radius:10px}
+  .handle{position:absolute;top:-12px;width:30px;height:40px;border-radius:8px;background:#fff;border:3px solid var(--accent);transform:translateX(-50%);cursor:grab;touch-action:none;box-shadow:0 4px 10px -4px var(--accent)}
+  .handle .v{position:absolute;top:-24px;left:50%;transform:translateX(-50%);font-size:13px;font-weight:700;color:var(--accent);white-space:nowrap}
+  #truemark{position:absolute;top:-16px;width:4px;height:48px;background:var(--good);transform:translateX(-50%);opacity:0;transition:opacity .3s}
+  #truemark .lbl{position:absolute;top:-24px;left:50%;transform:translateX(-50%);font-size:13px;font-weight:800;color:var(--good);white-space:nowrap}
+  #truemark.spark{filter:drop-shadow(0 0 8px #22b573)}
+  #tools{display:flex;gap:14px;align-items:center}
+  button{font:inherit;border:0;cursor:pointer;border-radius:14px}
+  #lock{padding:12px 26px;background:var(--accent);color:#fff;font-size:17px;font-weight:700}
+  #replay{width:46px;height:46px;border-radius:50%;background:#eef1ff;color:#5b6cff;font-size:20px}
+  #verdict{font-size:16px;font-weight:700;height:22px}
+  #ghost{position:fixed;left:0;top:0;font-size:38px;pointer-events:none;z-index:60;opacity:0;transition:transform .6s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:92px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}
+  .mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:190px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:280px}}
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">QUANT-ESTIMATE-01 · Ballpark It</div>
+    <div id="phasecue">👁️</div>
+    <div id="stagecard">
+      <div id="stim"></div>
+      <div id="scalewrap">
+        <div id="scale">
+          <span class="end" id="end0" style="left:0">0</span>
+          <span class="end" id="endM" style="right:0">100</span>
+          <div id="fill"></div>
+          <div class="handle" id="hLo"><span class="v">0</span></div>
+          <div class="handle" id="hHi"><span class="v">0</span></div>
+          <div id="truemark"><span class="lbl"></span></div>
+        </div>
+      </div>
+      <div id="verdict"></div>
+      <div id="tools">
+        <button id="replay" title="replay demo">↻</button>
+        <button id="lock">Lock it in</button>
+      </div>
+    </div>
+  </div>
+  <aside id="telemetry">
+    <h3>Live telemetry · per-child</h3>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+  <div id="ghost">👆</div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0;
+
+/* telemetry */
+const T={paes:[],hits:0,n:0,firsts:[],rts:[],confs:[],errTypes:[],itemStart:0,firstMove:null};
+function errStr(){if(!T.errTypes.length)return 'none';const c={};T.errTypes.forEach(e=>c[e]=(c[e]||0)+1);return Object.entries(c).map(([k,v])=>k+':'+v).join(' ');}
+const METERS=[
+ {id:'M-PAE',name:'Placement error (% of scale, mean)',get:()=>T.paes.length?mean(T.paes)+'%':'\u2014'},
+ {id:'M-ACC',name:'True value inside bracket',get:()=>T.n?`${T.hits}/${T.n}`:'\u2014'},
+ {id:'M-RTFIRST',name:'First-drag latency (mean)',get:()=>T.firsts.length?mean(T.firsts)+' ms':'\u2014'},
+ {id:'M-CONF',name:'Bracket width = precision (% of scale)',get:()=>T.confs.length?mean(T.confs)+'%':'\u2014'},
+ {id:'M-ERRTYPE',name:'Error type (magnitude vs small)',get:()=>errStr()},
+ {id:'M-RT',name:'Response time (mean)',get:()=>T.rts.length?mean(T.rts)+' ms':'\u2014'},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});}
+function log(msg){const t=Date.now()-T.itemStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+const ghost=$('#ghost');const ghostShow=v=>ghost.classList.toggle('show',v);
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-8}px,${c.y-6}px)`;await sleep(560);}
+
+/* scale + handles */
+let MAX=100,loPct=0.25,hiPct=0.45,phase='demo',cur=null,seq=[],si=0,locked=false;
+function pctToVal(p){return Math.round(p*MAX);}
+function refresh(){const sc=$('#scale');const w=1;$('#hLo').style.left=(loPct*100)+'%';$('#hHi').style.left=(hiPct*100)+'%';
+  $('#fill').style.left=(loPct*100)+'%';$('#fill').style.width=((hiPct-loPct)*100)+'%';
+  $('#hLo').querySelector('.v').textContent=pctToVal(loPct);$('#hHi').querySelector('.v').textContent=pctToVal(hiPct);}
+let drag=null;
+function onDown(which,e){if(locked||phase==='demo'||phase==='done')return;drag=which;if(T.firstMove===null){T.firstMove=Date.now()-T.itemStart;}e.preventDefault();}
+function onMove(e){if(!drag)return;const r=$('#scale').getBoundingClientRect();let p=(( (e.touches?e.touches[0].clientX:e.clientX) )-r.left)/r.width;p=Math.max(0,Math.min(1,p));
+  if(drag==='lo')loPct=Math.min(p,hiPct-0.01);else hiPct=Math.max(p,loPct+0.01);refresh();}
+function onUp(){drag=null;}
+$('#hLo').addEventListener('pointerdown',e=>onDown('lo',e));
+$('#hHi').addEventListener('pointerdown',e=>onDown('hi',e));
+window.addEventListener('pointermove',onMove);window.addEventListener('pointerup',onUp);
+
+function setCue(i){$('#phasecue').textContent=i;}
+function paintDots(n){let h='';for(let i=0;i<n;i++)h+=`<div class="dot" style="left:${Math.random()*200|0}px;top:${Math.random()*95|0}px;background:hsl(${Math.random()*360|0} 70% 60%)"></div>`;$('#stim').innerHTML=`<div id="dots">${h}</div>`;}
+async function presentStim(){locked=false;$('#truemark').style.opacity=0;$('#verdict').textContent='';
+  if(cur.kind==='dots'){paintDots(cur.true);log(`estimate: about how many dots?`);await sleep(1500);$('#stim').innerHTML='<span style="color:#b6c0d8;font-size:26px">how many? place your range</span>';}
+  else{$('#stim').textContent=cur.expr;log(`estimate the answer to ${cur.expr} (rounding, not exact!)`);await sleep(1500);$('#stim').innerHTML='<span style="color:#b6c0d8;font-size:26px">'+cur.expr+' = ?</span>';}
+}
+function lock(){if(locked||phase==='demo'||phase==='done')return;locked=true;const rt=Date.now()-T.itemStart;const lo=pctToVal(loPct),hi=pctToVal(hiPct),mid=(lo+hi)/2,tv=cur.true;
+  const pae=Math.round(100*Math.abs(mid-tv)/MAX);const width=Math.round(100*(hiPct-loPct));const hit=tv>=lo&&tv<=hi;
+  const ratio=Math.max(mid,tv)/Math.max(1,Math.min(mid,tv));const errType=hit?'hit':(ratio>=3?'magnitude':'small');
+  T.n++;if(hit)T.hits++;T.paes.push(pae);T.rts.push(rt);T.confs.push(width);if(T.firstMove!=null)T.firsts.push(T.firstMove);if(errType!=='hit')T.errTypes.push(errType);
+  const tm=$('#truemark');tm.style.left=(100*tv/MAX)+'%';tm.style.opacity=1;tm.querySelector('.lbl').textContent=tv;if(hit)tm.classList.add('spark');
+  $('#verdict').style.color=hit?'#1c9c63':'#c0392b';$('#verdict').textContent=hit?`✓ ${tv} is inside! (±${pae}% off center, width ${width}%)`:`✗ ${tv} · off by ${pae}% of the scale`;
+  log(`LOCK [${lo}, ${hi}] mid ${mid} · true ${tv} · ${hit?'HIT':'miss'} · PAE ${pae}% · width ${width}%`);renderMeters();
+  setTimeout(()=>{tm.classList.remove('spark');si++;si<seq.length?startItem(seq[si]):finish();},1500);}
+async function startItem(cfg){phase=cfg.warm?'warmup':'scored';cur=cfg;MAX=cfg.max;loPct=0.3;hiPct=0.5;T.itemStart=Date.now();T.firstMove=null;
+  $('#end0').textContent=0;$('#endM').textContent=MAX;refresh();renderMeters();setCue(cfg.warm?'\u2b50':'\ud83c\udfaf');
+  log(`— ${cfg.warm?'warm-up':'SCORED'}: slide the bracket to where the answer lands · narrower if you are sure —`);await presentStim();}
+function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;log(`— DONE · mean PAE ${mean(T.paes)}% · inside ${T.hits}/${T.n} —`);}
+async function runDemo(){phase='demo';si=0;cur={kind:'dots',true:12,max:30};MAX=30;loPct=0.3;hiPct=0.5;T.itemStart=Date.now();$('#end0').textContent=0;$('#endM').textContent=30;refresh();
+  paintDots(12);log('ghost-hand demo (wordless): frame about-where the answer is, then Lock');await sleep(900);$('#stim').innerHTML='<span style="color:#b6c0d8;font-size:26px">how many? place your range</span>';
+  ghostShow(true);await ghostTo($('#hHi'));hiPct=0.62;refresh();await sleep(250);await ghostTo($('#hLo'));loPct=0.28;refresh();await sleep(300);
+  await ghostTo($('#lock'));const tm=$('#truemark');tm.style.left=(100*12/30)+'%';tm.style.opacity=1;tm.querySelector('.lbl').textContent=12;tm.classList.add('spark');$('#verdict').style.color='#1c9c63';$('#verdict').textContent='✓ 12 is inside!';await sleep(1100);
+  tm.classList.remove('spark');tm.style.opacity=0;$('#verdict').textContent='';ghostShow(false);log('demo done — your turn (warm-up)');
+  seq=[{warm:true,kind:'dots',true:14,max:30},{kind:'calc',expr:'38 × 21',true:798,max:1500},{kind:'calc',expr:'19 × 48',true:912,max:2000}];startItem(seq[0]);}
+$('#lock').addEventListener('click',lock);
+$('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
+buildMeters();renderMeters();runDemo();
+</script>
+</body>
+</html>

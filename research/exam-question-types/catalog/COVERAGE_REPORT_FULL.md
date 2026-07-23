@@ -1,6 +1,6 @@
 # Coverage report — top-GT item -> question-type representation
 
-**North star:** 311/311 top-GT items have >=3 representing types (**100%**). types in catalog: 218.
+**North star:** 311/311 top-GT items have >=3 representing types (**100%**). types in catalog: 243.
 
 - >= 3 types: 311
 - 1-2 types: 0

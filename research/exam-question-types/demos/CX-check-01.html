@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CX-check-01 — Check It Twice (behavioral conscientiousness / self-review)</title>
+<style>
+  :root{--bg:#0e1220;--panel:#171d33;--edge:#2a3358;--ink:#e9edff;--mut:#8b93c0;
+    --accent:#5cc8ff;--good:#5ce39a;--bad:#ff6b8a;--warn:#ffd166;}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.45 system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);display:flex;min-height:100vh}
+  .main{flex:1;display:flex;flex-direction:column;align-items:center;padding:20px;gap:12px}
+  h1{font-size:19px;margin:.2rem 0}
+  .sub{color:var(--mut);font-size:13px;margin:0 0 6px;text-align:center;max-width:500px}
+  .badge{display:inline-block;padding:2px 9px;border-radius:99px;background:var(--panel);border:1px solid var(--edge);color:var(--accent);font-size:12px}
+  #stage{position:relative;width:520px;background:var(--panel);border:1px solid var(--edge);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px}
+  .baskets{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .basket{background:#10152a;border:1px solid var(--edge);border-radius:14px;padding:10px;min-height:150px}
+  .basket h3{margin:0 0 8px;font-size:14px;text-align:center;color:var(--warn)}
+  .items{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+  .item{background:#20284a;border:2px solid var(--edge);border-radius:12px;padding:6px 6px 4px;display:flex;flex-direction:column;align-items:center;gap:3px}
+  .item .emo{font-size:30px}
+  .item.reviewed{border-color:var(--good)}
+  .item .acts{display:flex;gap:4px}
+  .item button{font:inherit;font-size:12px;padding:2px 7px;border-radius:8px;border:1px solid var(--edge);background:#171d33;color:var(--ink);cursor:pointer}
+  .item .mv:hover{background:#2b2f10}
+  #ghost{position:absolute;font-size:26px;left:0;top:0;transition:left .4s cubic-bezier(.5,0,.3,1),top .4s cubic-bezier(.5,0,.3,1);pointer-events:none;filter:drop-shadow(0 3px 3px #0008);z-index:9;opacity:0}
+  .submit{display:flex;justify-content:center;gap:10px;align-items:center}
+  #cue{font-size:24px;height:30px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+  button{font:inherit;padding:9px 16px;border-radius:10px;border:1px solid var(--edge);background:#20284a;color:var(--ink);cursor:pointer}
+  button.pri{background:var(--accent);color:#062033;border-color:transparent;font-weight:600}
+  button.send{background:var(--good);color:#04231b;border-color:transparent;font-weight:700}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .tel{width:320px;background:var(--panel);border-left:1px solid var(--edge);padding:14px 14px 40px;overflow:auto;font:12px/1.55 ui-monospace,Menlo,Consolas,monospace}
+  .tel h2{font:600 12px system-ui;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:14px 0 6px}
+  .kv{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted #2a3358;padding:2px 0}
+  .kv b{color:var(--accent);font-weight:600}
+  .kv .m{color:var(--mut);font-size:10px}
+  .note{font-size:10px;color:var(--mut);margin-top:6px}
+  .log{margin-top:6px;max-height:140px;overflow:auto;border:1px solid var(--edge);border-radius:8px;padding:6px;background:#10152a}
+  .log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+</head>
+<body>
+<div class="main">
+  <div style="text-align:center">
+    <h1>✅ Check It Twice <span class="badge" id="bround">round 1</span></h1>
+    <p class="sub">The robot sorted these in a hurry and made a few mistakes. You can turn it in anytime — but you can also <b>check its work</b> and fix what's wrong first. It's up to you.</p>
+  </div>
+  <div id="stage">
+    <div class="baskets">
+      <div class="basket"><h3>🍎 Fruit basket</h3><div class="items" id="fruit"></div></div>
+      <div class="basket"><h3>🥕 Veggie basket</h3><div class="items" id="veg"></div></div>
+    </div>
+    <div class="submit"><button class="send" id="send">📨 I'm done — turn it in</button></div>
+    <div id="ghost">👆</div>
+  </div>
+  <div id="cue">🤖</div>
+  <div class="row"><button class="pri" id="go">▶ Watch how it works</button></div>
+  <p class="sub" id="hint">A ghost hand shows you first — no reading needed.</p>
+</div>
+<aside class="tel" id="tel"></aside>
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const stage=$("#stage"),ghost=$("#ghost"),cue=$("#cue"),fruitEl=$("#fruit"),vegEl=$("#veg");
+// cat: F=fruit, V=veg (truth). Rounds pre-place with 2 planted errors each.
+const ROUNDS=[
+ [["🍎","F"],["🍌","F"],["🥕","V"],["🥦","V"],["🍇","F"],["🌽","V"]],
+ [["🍓","F"],["🥔","V"],["🍊","F"],["🥬","V"],["🍉","F"],["🧅","V"]],
+ [["🍐","F"],["🫑","V"],["🍑","F"],["🥒","V"],["🍒","F"],["🍆","V"]]
+];
+const T={phase:"idle",round:0,submits:0,
+  checkTimes:[],corrections:0,reviewCov:[],caught:0,missed:0,over:0,finalAcc:[],
+  planted:0,log:[],startT:0,reviewed:new Set(),path:[]};
+function med(a){if(!a.length)return 0;const b=[...a].sort((x,y)=>x-y);const m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2;}
+function mean(a){return a.length?Math.round(a.reduce((s,v)=>s+v,0)/a.length):0;}
+function drift(){if(T.checkTimes.length<2)return"—";const f=T.checkTimes[0],l=T.checkTimes[T.checkTimes.length-1];return (l>=f?"+":"")+Math.round((l-f)/1000*10)/10+"s";}
+function logE(s){T.log.unshift(`${(performance.now()/1000).toFixed(1)}s · ${s}`);if(T.log.length>50)T.log.pop();}
+function render(){
+  $("#tel").innerHTML=`
+  <h2>Live telemetry · CX-check-01</h2>
+  <div class="kv"><span>phase</span><b>${T.phase}</b></div>
+  <div class="kv"><span>rounds turned in</span><b>${T.submits}</b></div>
+  <h2>Checking behavior (the signal)</h2>
+  <div class="kv"><span>review time before submit <span class="m">M-PERSIST</span></span><b>${mean(T.checkTimes)} ms</b></div>
+  <div class="kv"><span>items reviewed / round <span class="m">M-PATH</span></span><b>${T.reviewCov.length?Math.round(mean(T.reviewCov)):0}%</b></div>
+  <div class="kv"><span>corrections made <span class="m">M-REV</span></span><b>${T.corrections}</b></div>
+  <h2>Outcome quality</h2>
+  <div class="kv"><span>final accuracy <span class="m">M-ACC</span></span><b>${T.finalAcc.length?mean(T.finalAcc):"—"}%</b></div>
+  <div class="kv"><span>planted errors caught <span class="m">M-ERRTYPE</span></span><b>${T.caught}</b></div>
+  <div class="kv"><span>planted errors missed <span class="m">M-ERRTYPE</span></span><b>${T.missed}</b></div>
+  <div class="kv"><span>good ones broken <span class="m">M-ERRTYPE</span></span><b>${T.over}</b></div>
+  <div class="kv"><span>persistence drift <span class="m">M-DRIFT</span></span><b>${drift()}</b></div>
+  <div class="kv"><span>engagement <span class="m">M-ENGAGE</span></span><b>${T.phase==="working"?"active":"idle"}</b></div>
+  <div class="note">Validity caveat: long review time alone is ambiguous (could be slow processing). Read it WITH review coverage, corrections, and final accuracy — behavioral, not self-report.</div>
+  <div class="log">${T.log.map(l=>`<div>${l}</div>`).join("")}</div>`;
+}
+render();
+function centerOf(el){const r=el.getBoundingClientRect(),s=stage.getBoundingClientRect();return{x:r.left-s.left+r.width/2,y:r.top-s.top+r.height/2};}
+function makeItem(emo,cat,placed){
+  const d=document.createElement("div");d.className="item";d.dataset.cat=cat;d.dataset.emo=emo;
+  d.innerHTML=`<div class="emo">${emo}</div><div class="acts"><button class="ok">✓ ok</button><button class="mv">↔ move</button></div>`;
+  return d;
+}
+function layout(data,plantIdx){
+  fruitEl.innerHTML="";vegEl.innerHTML="";T.reviewed=new Set();T.path=[];
+  data.forEach(([emo,cat],i)=>{
+    const wrong=plantIdx.includes(i);const placed=wrong?(cat==="F"?"V":"F"):cat;
+    const el=makeItem(emo,cat,placed);(placed==="F"?fruitEl:vegEl).appendChild(el);el.dataset.placed=placed;
+  });
+}
+function currentPlaced(el){return fruitEl.contains(el)?"F":"V";}
+function markReviewed(el){el.classList.add("reviewed");const key=el.dataset.emo;if(!T.reviewed.has(key)){T.reviewed.add(key);T.path.push(key);}}
+function moveItem(el){const to=currentPlaced(el)==="F"?vegEl:fruitEl;to.appendChild(el);}
+async function demo(){
+  if(T.phase==="demo")return;T.phase="demo";render();$("#go").disabled=true;$("#send").disabled=true;
+  layout(ROUNDS[0],[2]);await sleep(400);cue.textContent="🔎";
+  // ghost inspects a couple, moves the wrong carrot from fruit? (in round0 idx2 carrot is planted -> shown in fruit)
+  const wrong=[...fruitEl.children,...vegEl.children].find(x=>currentPlaced(x)!==x.dataset.cat);
+  ghost.style.opacity="1";let c=centerOf(wrong);ghost.style.left=(c.x-12)+"px";ghost.style.top=(c.y-10)+"px";await sleep(700);
+  markReviewed(wrong);moveItem(wrong);wrong.style.outline="2px solid var(--good)";cue.textContent="🛠️";await sleep(700);
+  wrong.style.outline="";c=centerOf($("#send"));ghost.style.left=(c.x-12)+"px";ghost.style.top=(c.y-10)+"px";await sleep(700);
+  cue.textContent="✅";await sleep(700);ghost.style.opacity="0";
+  $("#go").disabled=false;$("#send").disabled=false;$("#go").textContent="▶ Try a practice one";$("#go").onclick=warmup;
+  T.phase="idle";$("#hint").textContent="Now you try — this practice one is NOT scored. Check or just submit — up to you.";render();
+}
+$("#go").onclick=demo;
+let resolveRound=null;
+function startRound(scored){
+  const data=ROUNDS[T.round%ROUNDS.length];
+  const plant=[];while(plant.length<2){const k=Math.random()*data.length|0;if(!plant.includes(k))plant.push(k);}
+  T.planted=plant.length;layout(data,plant);cue.textContent="🔎";T.startT=performance.now();T.phase="working";render();
+  $("#send").disabled=false;
+  function onAct(e){const b=e.target.closest("button");if(!b)return;const it=e.target.closest(".item");if(!it)return;
+    markReviewed(it);
+    if(b.classList.contains("mv")){moveItem(it);if(scored){T.corrections++;}logE("moved "+it.dataset.emo);}
+    else logE("checked "+it.dataset.emo);
+    render();
+  }
+  fruitEl.addEventListener("click",onAct);vegEl.addEventListener("click",onAct);
+  function onSend(){
+    const took=performance.now()-T.startT;
+    $("#send").removeEventListener("click",onSend);fruitEl.removeEventListener("click",onAct);vegEl.removeEventListener("click",onAct);
+    // score
+    const all=[...fruitEl.children,...vegEl.children];let right=0;let caught=0,missed=0,over=0;
+    all.forEach(el=>{const ok=currentPlaced(el)===el.dataset.cat;if(ok)right++;});
+    // planted analysis: an item is planted-wrong initially; caught if now correct
+    all.forEach(el=>{const wasWrongInit=el.dataset.placed!==el.dataset.cat;const nowOk=currentPlaced(el)===el.dataset.cat;
+      if(wasWrongInit&&nowOk)caught++;if(wasWrongInit&&!nowOk)missed++;if(!wasWrongInit&&!nowOk)over++;});
+    if(scored){
+      T.submits++;T.checkTimes.push(took);T.corrections=T.corrections; // already counted
+      T.reviewCov.push(Math.round(100*T.reviewed.size/all.length));
+      T.caught+=caught;T.missed+=missed;T.over+=over;T.finalAcc.push(Math.round(100*right/all.length));
+      logE(`turned in: ${Math.round(took)}ms, reviewed ${T.reviewed.size}/${all.length}, caught ${caught}/${T.planted}`);
+      T.round++;
+    }
+    cue.textContent=missed===0?"🌟":"📨";T.phase="idle";
+    // flash truth
+    all.forEach(el=>{el.style.outline="2px solid "+(currentPlaced(el)===el.dataset.cat?"var(--good)":"var(--bad)");});
+    render();setTimeout(()=>{all.forEach(el=>el.style.outline="");if(resolveRound)resolveRound();},1100);
+  }
+  $("#send").addEventListener("click",onSend);
+}
+function roundPromise(scored){return new Promise(r=>{resolveRound=r;startRound(scored);});}
+async function warmup(){$("#go").disabled=true;await roundPromise(false);
+  $("#go").disabled=false;$("#go").textContent="▶ Start scored rounds";$("#go").onclick=startScored;
+  $("#hint").textContent="Great! These count. Whether and how you check is exactly what we measure.";render();}
+let left=0;
+async function startScored(){$("#go").disabled=true;left=3;T.round=0;await loop();}
+async function loop(){if(left<=0){finish();return;}await roundPromise(true);left--;if(left>0)await loop();else finish();}
+function finish(){T.phase="done";cue.textContent="🏁";$("#go").disabled=false;$("#go").textContent="▶ Run more rounds";$("#go").onclick=startScored;
+  $("#hint").textContent=`Done. Median review ${Math.round(med(T.checkTimes))}ms, ${T.caught} planted errors caught, ${T.missed} missed. Checking behavior — not a self-rating — is the conscientiousness signal.`;render();}
+layout(ROUNDS[0],[2]);
+</script>
+</body>
+</html>

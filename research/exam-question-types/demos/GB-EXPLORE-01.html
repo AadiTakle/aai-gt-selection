@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Explorer's Map - GB-EXPLORE-01</title>
+<style>
+  :root{ --bg1:#0c2a1b; --bg2:#12463a; --card:#fff; --ink:#12303a; --accent:#ffd23f; --good:#2ec27e; --bad:#e5484d; }
+  *{ box-sizing:border-box; font-family:'Segoe UI',system-ui,Arial,sans-serif; }
+  body{ margin:0; min-height:100vh; background:linear-gradient(160deg,var(--bg1),var(--bg2)); color:var(--ink); display:flex; flex-direction:column; align-items:center; padding:16px; }
+  .head{ color:#fff; text-align:center; }
+  .head h1{ margin:2px 0; font-size:26px; }
+  .badges span{ display:inline-block; background:#ffffff22; color:#fff; border:1px solid #ffffff44; border-radius:999px; padding:3px 10px; margin:2px; font-size:12px; }
+  .wrap{ display:flex; gap:16px; flex-wrap:wrap; justify-content:center; align-items:flex-start; margin-top:12px; width:100%; max-width:1000px; }
+  .card{ background:var(--card); border-radius:20px; padding:18px; box-shadow:0 12px 30px #0005; }
+  .stage{ width:520px; max-width:94vw; text-align:center; }
+  .banner{ font-weight:700; font-size:17px; min-height:24px; margin-bottom:8px; color:#0d5c44; }
+  .grid{ display:grid; gap:3px; background:#2b6f5a; padding:8px; border-radius:14px; justify-content:center; touch-action:none; }
+  .cell{ width:52px; height:52px; border-radius:8px; background:#7bbfa3; display:flex; align-items:center; justify-content:center; font-size:26px; cursor:pointer; position:relative; transition:background .15s; }
+  .cell.fog{ background:#123a2c; color:transparent; }
+  .cell.explored{ background:#a9d9c6; }
+  .cell.here{ box-shadow:inset 0 0 0 4px var(--accent); }
+  .cell.trail::before{ content:''; position:absolute; width:12px; height:12px; border-radius:50%; background:#ffd23f88; }
+  .avatar{ font-size:30px; }
+  .compassWrap{ display:none; flex-direction:column; align-items:center; gap:8px; }
+  .compass{ width:180px; height:180px; border-radius:50%; background:radial-gradient(circle,#eef7f3,#cfe6dc); border:6px solid #2b6f5a; position:relative; touch-action:none; cursor:grab; }
+  .needle{ position:absolute; left:50%; top:50%; width:78px; height:8px; background:linear-gradient(90deg,#2b6f5a,#e5484d); border-radius:6px; transform-origin:0 50%; transform:rotate(0deg); }
+  .hub{ position:absolute; left:50%; top:50%; width:16px; height:16px; background:#12303a; border-radius:50%; transform:translate(-50%,-50%); }
+  .ask{ font-size:34px; }
+  .btn{ background:var(--accent); border:none; border-radius:14px; padding:12px 20px; font-size:16px; font-weight:800; cursor:pointer; color:#3a2f00; box-shadow:0 6px 0 #0003; }
+  .btn:active{ transform:translateY(3px); box-shadow:0 3px 0 #0003; }
+  .btn.sec{ background:#e7f2ee; color:#0d5c44; }
+  .row{ display:flex; gap:10px; justify-content:center; margin-top:12px; flex-wrap:wrap; }
+  .hint{ color:#fff9; font-size:12px; text-align:center; margin-top:8px; }
+  .tele{ width:360px; max-width:94vw; background:#08221a; color:#c9f4e6; border-radius:20px; padding:16px; font-family:'SFMono-Regular',Consolas,monospace; box-shadow:0 12px 30px #0006; }
+  .tele h2{ color:#ffd166; font-size:15px; margin:0 0 10px; }
+  .m{ display:flex; justify-content:space-between; gap:8px; padding:6px 8px; border-radius:8px; font-size:13px; }
+  .m:nth-child(odd){ background:#ffffff08; }
+  .m .id{ color:#8ab4ff; } .m .v{ color:#fff; font-weight:700; }
+  .log{ margin-top:10px; max-height:150px; overflow:auto; font-size:11px; color:#9fb0d0; border-top:1px solid #ffffff22; padding-top:8px; }
+</style>
+</head>
+<body>
+  <div class="head">
+    <div class="badges"><span>GB-EXPLORE-01</span><span>Area: spatial</span><span>Bands: 2-3 &middot; 4-5 &middot; 6-8</span></div>
+    <h1>Explorer's Map</h1>
+    <div style="opacity:.85;font-size:14px">Explore the fog, then point back to what you found</div>
+  </div>
+
+  <div class="wrap">
+    <div class="card stage">
+      <div class="banner" id="banner">Tap START to watch the demo</div>
+      <div class="grid" id="grid"></div>
+      <div class="compassWrap" id="compassWrap">
+        <div class="ask" id="ask"></div>
+        <div class="compass" id="compass"><div class="needle" id="needle"></div><div class="hub"></div></div>
+        <button class="btn" id="pointBtn">Point!</button>
+      </div>
+      <div class="row">
+        <button class="btn sec" id="startBtn">START</button>
+      </div>
+      <div class="hint">Tap a tile next to you to walk. Fog clears as you go. Then drag the compass to point back.</div>
+    </div>
+
+    <div class="tele">
+      <h2>LIVE TELEMETRY (survey knowledge)</h2>
+      <div class="m"><span class="id">M-VIEWANG (mean point err)</span> <span class="v" id="t_view">-</span></div>
+      <div class="m"><span class="id">M-EXPLORE (tiles revealed)</span> <span class="v" id="t_exp">0</span></div>
+      <div class="m"><span class="id">M-EFF (homeward opt/actual)</span> <span class="v" id="t_eff">-</span></div>
+      <div class="m"><span class="id">M-PATH (steps)</span> <span class="v" id="t_path">0</span></div>
+      <div class="m"><span class="id">M-REV (backtracks)</span> <span class="v" id="t_rev">0</span></div>
+      <div class="m"><span class="id">M-RTFIRST (plan pause)</span> <span class="v" id="t_first">-</span></div>
+      <div class="m"><span class="id">M-DIFFREACH (world size)</span> <span class="v" id="t_diff">6x6</span></div>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+  const N=6, FOGR=1;
+  const gridEl=document.getElementById('grid'), banner=document.getElementById('banner'), logEl=document.getElementById('log');
+  gridEl.style.gridTemplateColumns='repeat('+N+',52px)';
+  let cells=[];
+  const S={ phase:'idle', ar:0, ac:0, revealed:new Set(), trail:[], steps:0, backtracks:0, firstAt:null, shownAt:0,
+            landmarks:[], collected:0, pointErrs:[], pointIdx:0, homeOpt:0 };
+  const HOME={r:5,c:0,icon:'\uD83C\uDFE0',name:'home'};
+
+  function log(s){ const d=document.createElement('div'); d.textContent=s; logEl.prepend(d); }
+  function idx(r,c){ return r*N+c; }
+  function buildGrid(){
+    gridEl.innerHTML=''; cells=[];
+    for(let r=0;r<N;r++) for(let c=0;c<N;c++){
+      const d=document.createElement('div'); d.className='cell fog'; d.dataset.r=r; d.dataset.c=c;
+      d.addEventListener('click', ()=>tryMove(r,c));
+      gridEl.appendChild(d); cells.push(d);
+    }
+  }
+  function newWorld(){
+    S.ar=HOME.r; S.ac=HOME.c; S.revealed=new Set(); S.trail=[]; S.steps=0; S.backtracks=0; S.firstAt=null; S.collected=0; S.pointErrs=[]; S.pointIdx=0;
+    S.landmarks=[ {r:0,c:4,icon:'\uD83C\uDF33',name:'tree'}, {r:2,c:1,icon:'\u26F2',name:'well'}, {r:4,c:5,icon:'\uD83C\uDF44',name:'mushroom'} ];
+    reveal(S.ar,S.ac); render();
+  }
+  function reveal(r,c){
+    for(let dr=-FOGR;dr<=FOGR;dr++) for(let dc=-FOGR;dc<=FOGR;dc++){
+      const nr=r+dr, nc=c+dc; if(nr>=0&&nr<N&&nc>=0&&nc<N) S.revealed.add(idx(nr,nc));
+    }
+  }
+  function landmarkAt(r,c){ return S.landmarks.find(l=>l.r===r&&l.c===c && !l.got); }
+  function render(fogAll){
+    for(let r=0;r<N;r++) for(let c=0;c<N;c++){
+      const el=cells[idx(r,c)]; el.className='cell';
+      const rev=S.revealed.has(idx(r,c));
+      if(fogAll || !rev){ el.classList.add('fog'); el.textContent=''; continue; }
+      el.classList.add('explored');
+      if(S.trail.some(t=>t.r===r&&t.c===c)) el.classList.add('trail');
+      let icon='';
+      if(HOME.r===r&&HOME.c===c) icon=HOME.icon;
+      const lm=S.landmarks.find(l=>l.r===r&&l.c===c);
+      if(lm && (lm.got||rev)) icon=lm.icon;
+      el.textContent=icon;
+    }
+    const here=cells[idx(S.ar,S.ac)]; here.classList.add('here'); here.textContent='\uD83E\uDDED';
+    document.getElementById('t_exp').textContent=S.revealed.size;
+    document.getElementById('t_path').textContent=S.steps;
+    document.getElementById('t_rev').textContent=S.backtracks;
+    document.getElementById('t_first').textContent=S.firstAt!==null?Math.round(S.firstAt)+' ms':'-';
+  }
+  function adjacent(r,c){ return Math.abs(r-S.ar)+Math.abs(c-S.ac)===1; }
+
+  function tryMove(r,c){
+    if(S.phase!=='explore' && S.phase!=='homeward' && S.phase!=='demo') return;
+    if(!adjacent(r,c)) return;
+    if(S.firstAt===null){ S.firstAt=performance.now()-S.shownAt; }
+    if(S.trail.length && S.trail[S.trail.length-1].r===r && S.trail[S.trail.length-1].c===c) S.backtracks++;
+    S.trail.push({r:S.ar,c:S.ac});
+    S.ar=r; S.ac=c; S.steps++;
+    if(S.phase==='explore'){ reveal(r,c); const lm=landmarkAt(r,c); if(lm){ lm.got=true; S.collected++; log('found '+lm.name+' '+lm.icon); banner.textContent='Found the '+lm.name+'! ('+S.collected+'/'+S.landmarks.length+')'; }
+      render();
+      if(S.collected>=S.landmarks.length){ setTimeout(startPointing, 700); }
+    } else if(S.phase==='homeward'){
+      render(true); // fog on during homeward
+      cells[idx(S.ar,S.ac)].classList.remove('fog'); cells[idx(S.ar,S.ac)].textContent='\uD83E\uDDED'; cells[idx(S.ar,S.ac)].classList.add('here');
+      if(r===HOME.r&&c===HOME.c){ finishHomeward(); }
+    } else { render(); }
+  }
+
+  // ---------- pointing phase ----------
+  const compassWrap=document.getElementById('compassWrap'), needle=document.getElementById('needle'),
+        compass=document.getElementById('compass'), askEl=document.getElementById('ask');
+  let dialAngle=0;
+  function setNeedle(a){ dialAngle=a; needle.style.transform='rotate('+a+'deg)'; }
+  function compassAngleFromEvent(e){
+    const rc=compass.getBoundingClientRect(); const cx=rc.left+rc.width/2, cy=rc.top+rc.height/2;
+    const px=(e.touches?e.touches[0].clientX:e.clientX), py=(e.touches?e.touches[0].clientY:e.clientY);
+    return Math.atan2(py-cy, px-cx)*180/Math.PI;
+  }
+  let dragging=false;
+  compass.addEventListener('pointerdown', e=>{ dragging=true; setNeedle(compassAngleFromEvent(e)); });
+  compass.addEventListener('pointermove', e=>{ if(dragging){ e.preventDefault(); setNeedle(compassAngleFromEvent(e)); } });
+  window.addEventListener('pointerup', ()=>{ dragging=false; });
+
+  function targetAngle(l){ return Math.atan2(l.r-S.ar, l.c-S.ac)*180/Math.PI; } // screen deg (0=E,90=S)
+  function startPointing(){
+    S.phase='point'; render(true); // fog returns
+    gridEl.style.opacity=.35;
+    compassWrap.style.display='flex';
+    S.pointIdx=0; nextPoint();
+  }
+  function nextPoint(){
+    if(S.pointIdx>=S.landmarks.length){ compassWrap.style.display='none'; gridEl.style.opacity=1; startHomeward(); return; }
+    const l=S.landmarks[S.pointIdx];
+    askEl.textContent='Point to '+l.icon; setNeedle(0);
+    banner.textContent='From here, which way is the '+l.name+'?';
+  }
+  document.getElementById('pointBtn').addEventListener('click', ()=>{
+    const l=S.landmarks[S.pointIdx];
+    let err=Math.abs(dialAngle-targetAngle(l))%360; if(err>180) err=360-err;
+    S.pointErrs.push(err);
+    log('pointed to '+l.name+': error '+Math.round(err)+'\u00b0');
+    const mean=S.pointErrs.reduce((a,b)=>a+b,0)/S.pointErrs.length;
+    document.getElementById('t_view').textContent=Math.round(mean)+'\u00b0';
+    S.pointIdx++; nextPoint();
+  });
+
+  // ---------- homeward shortcut ----------
+  function startHomeward(){
+    S.phase='homeward';
+    S.homeOpt=Math.abs(S.ar-HOME.r)+Math.abs(S.ac-HOME.c);
+    S.steps=0; S.trail=[];
+    render(true); cells[idx(S.ar,S.ac)].classList.remove('fog'); cells[idx(S.ar,S.ac)].textContent='\uD83E\uDDED'; cells[idx(S.ar,S.ac)].classList.add('here');
+    cells[idx(HOME.r,HOME.c)].classList.remove('fog'); cells[idx(HOME.r,HOME.c)].textContent=HOME.icon;
+    banner.textContent='Now find the SHORTEST way home \uD83C\uDFE0 (map is foggy - use your memory!)';
+  }
+  function finishHomeward(){
+    const eff=S.homeOpt/Math.max(S.steps,1);
+    document.getElementById('t_eff').textContent=S.homeOpt+' / '+S.steps+' = '+eff.toFixed(2);
+    const meanView=S.pointErrs.length?Math.round(S.pointErrs.reduce((a,b)=>a+b,0)/S.pointErrs.length):0;
+    banner.textContent='\uD83C\uDF89 Home! Shortcut '+S.steps+' steps (best '+S.homeOpt+'), pointing error '+meanView+'\u00b0';
+    log('=> homeward '+S.steps+' steps vs optimal '+S.homeOpt);
+    S.phase='done';
+  }
+
+  // ---------- ghost demo ----------
+  function ghost(){
+    S.phase='demo'; newWorld(); banner.textContent='\uD83D\uDC4B Watch: walk to uncover, then point back';
+    const moves=[[5,1],[4,1],[3,1],[2,1]]; let i=0;
+    (function step(){
+      if(i>=moves.length){ setTimeout(()=>{ banner.textContent='Your turn! Explore and find all 3 landmarks.'; startExplore(); },800); return; }
+      tryMove(moves[i][0],moves[i][1]); i++; setTimeout(step,650);
+    })();
+  }
+  function startExplore(){ S.phase='explore'; newWorld(); S.shownAt=performance.now(); banner.textContent='Explore! Walk onto the '+S.landmarks.length+' landmarks.'; render(); }
+
+  buildGrid();
+  document.getElementById('startBtn').addEventListener('click', ()=>{ document.getElementById('startBtn').style.display='none'; ghost(); });
+})();
+</script>
+</body>
+</html>

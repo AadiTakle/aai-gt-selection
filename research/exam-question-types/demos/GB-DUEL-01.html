@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Robot Duel - GB-DUEL-01</title>
+<style>
+  :root{ --bg1:#2a0f3f; --bg2:#4b1e6b; --card:#fff; --ink:#2b1740; --accent:#ffd23f; --good:#2ec27e; --bad:#e5484d; }
+  *{ box-sizing:border-box; font-family:'Segoe UI',system-ui,Arial,sans-serif; }
+  body{ margin:0; min-height:100vh; background:linear-gradient(160deg,var(--bg1),var(--bg2)); color:var(--ink); display:flex; flex-direction:column; align-items:center; padding:16px; }
+  .head{ color:#fff; text-align:center; }
+  .head h1{ margin:2px 0; font-size:26px; }
+  .badges span{ display:inline-block; background:#ffffff22; color:#fff; border:1px solid #ffffff44; border-radius:999px; padding:3px 10px; margin:2px; font-size:12px; }
+  .wrap{ display:flex; gap:16px; flex-wrap:wrap; justify-content:center; align-items:flex-start; margin-top:12px; width:100%; max-width:1000px; }
+  .card{ background:var(--card); border-radius:20px; padding:18px; box-shadow:0 12px 30px #0005; }
+  .stage{ width:560px; max-width:94vw; text-align:center; }
+  .banner{ font-weight:700; font-size:18px; min-height:26px; margin-bottom:8px; color:#5b2a86; }
+  .players{ display:flex; justify-content:space-between; font-size:38px; margin:6px 20px; }
+  .who{ font-size:13px; color:#888; }
+  .active{ text-shadow:0 0 16px #ffd23f; }
+  .pile{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; min-height:120px; align-items:center; background:#f5eefb; border-radius:16px; padding:14px; margin:10px 0; }
+  .tok{ width:34px; height:34px; border-radius:50%; background:radial-gradient(circle at 30% 30%,#ffe08a,#f4a300); box-shadow:0 3px 6px #0003; transition:transform .25s, opacity .25s; }
+  .tok.gone{ transform:scale(0) rotate(90deg); opacity:0; }
+  .tok.take{ outline:3px solid #e5484d; }
+  .btns{ display:flex; gap:10px; justify-content:center; margin-top:6px; }
+  .btn{ background:var(--accent); border:none; border-radius:14px; padding:14px 22px; font-size:20px; font-weight:800; cursor:pointer; color:#3a2f00; box-shadow:0 6px 0 #0003; }
+  .btn:disabled{ opacity:.4; cursor:default; }
+  .btn:active:not(:disabled){ transform:translateY(3px); box-shadow:0 3px 0 #0003; }
+  .btn.sec{ background:#efe3fb; color:#5b2a86; font-size:16px; }
+  .robotlvl{ font-size:13px; color:#7a5a95; margin-top:6px; }
+  .hint{ color:#fff9; font-size:12px; text-align:center; margin-top:10px; }
+  .tele{ width:360px; max-width:94vw; background:#1a0a26; color:#e9d5f5; border-radius:20px; padding:16px; font-family:'SFMono-Regular',Consolas,monospace; box-shadow:0 12px 30px #0006; }
+  .tele h2{ color:#ffd166; font-size:15px; margin:0 0 10px; }
+  .m{ display:flex; justify-content:space-between; gap:8px; padding:6px 8px; border-radius:8px; font-size:13px; }
+  .m:nth-child(odd){ background:#ffffff08; }
+  .m .id{ color:#c79bff; } .m .v{ color:#fff; font-weight:700; }
+  .log{ margin-top:10px; max-height:150px; overflow:auto; font-size:11px; color:#bfa9d0; border-top:1px solid #ffffff22; padding-top:8px; }
+</style>
+</head>
+<body>
+  <div class="head">
+    <div class="badges"><span>GB-DUEL-01</span><span>Areas: quantitative + fluid_reasoning</span><span>Bands: 2-3 &middot; 4-5 &middot; 6-8</span></div>
+    <h1>Robot Duel</h1>
+    <div style="opacity:.85;font-size:14px">Take the last token to win. Beat the robot that keeps getting smarter.</div>
+  </div>
+
+  <div class="wrap">
+    <div class="card stage">
+      <div class="banner" id="banner">Tap START to watch the demo</div>
+      <div class="players"><div><div id="youFace">\uD83E\uDDD2</div><div class="who">You</div></div><div><div id="botFace">\uD83E\uDD16</div><div class="who">Robot</div></div></div>
+      <div class="pile" id="pile"></div>
+      <div class="btns">
+        <button class="btn" data-n="1" disabled>Take 1</button>
+        <button class="btn" data-n="2" disabled>Take 2</button>
+        <button class="btn" data-n="3" disabled>Take 3</button>
+      </div>
+      <div class="robotlvl" id="robotlvl">Robot level: 1</div>
+      <div class="btns" style="margin-top:12px">
+        <button class="btn sec" id="startBtn">START</button>
+        <button class="btn sec" id="againBtn" style="display:none">Play again</button>
+      </div>
+      <div class="hint">Wordless demo &rarr; free warm-up &rarr; scored rounds. Robot levels up each time you win.</div>
+    </div>
+
+    <div class="tele">
+      <h2>LIVE TELEMETRY (strategic play)</h2>
+      <div class="m"><span class="id">M-ACC (rounds won)</span> <span class="v" id="t_acc">0 / 0</span></div>
+      <div class="m"><span class="id">M-EFF (optimal moves)</span> <span class="v" id="t_eff">-</span></div>
+      <div class="m"><span class="id">M-HYP (round strategy locked)</span> <span class="v" id="t_hyp">-</span></div>
+      <div class="m"><span class="id">M-DIFFREACH (robot lvl beaten)</span> <span class="v" id="t_diff">0</span></div>
+      <div class="m"><span class="id">M-RTFIRST (median plan ms)</span> <span class="v" id="t_first">-</span></div>
+      <div class="m"><span class="id">M-RESUME (retries/latency)</span> <span class="v" id="t_res">0</span></div>
+      <div class="m"><span class="id">M-PROG (rounds)</span> <span class="v" id="t_prog">0</span></div>
+      <div class="m"><span class="id">M-PATH (moves)</span> <span class="v" id="t_path">0</span></div>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+  const K=3; // take up to 3
+  const pileEl=document.getElementById('pile'), banner=document.getElementById('banner'),
+        robotlvlEl=document.getElementById('robotlvl'), logEl=document.getElementById('log');
+  const takeBtns=[...document.querySelectorAll('.btn[data-n]')];
+  const S={ pile:0, robotLvl:1, phase:'idle', turn:'you', roundsWon:0, roundsPlayed:0,
+            optMoves:0, totMoves:0, firstTimes:[], moves:0, diffReach:0, retries:0, lastLossAt:0, resumeLat:[],
+            stratLockRound:null, perRoundOptimal:true, moveShownAt:0 };
+
+  function log(s){ const d=document.createElement('div'); d.textContent=s; logEl.prepend(d); }
+  function renderPile(){
+    pileEl.innerHTML='';
+    for(let i=0;i<S.pile;i++){ const t=document.createElement('div'); t.className='tok'; pileEl.appendChild(t); }
+  }
+  function setButtons(on){
+    takeBtns.forEach(b=>{ const n=+b.dataset.n; b.disabled = !on || n>S.pile; });
+  }
+  function optimalTake(pile){ const m=pile%(K+1); return m===0?1:m; } // if losing pos, any move; return 1
+  function isOptimalMove(pileBefore, take){
+    if(take===pileBefore) return true;              // took the last -> win
+    if(pileBefore%(K+1)===0) return true;           // losing position: no better move, not penalized
+    return (pileBefore-take)%(K+1)===0;             // leaves opponent a multiple of K+1
+  }
+
+  function updTele(){
+    document.getElementById('t_acc').textContent=S.roundsWon+' / '+S.roundsPlayed;
+    document.getElementById('t_eff').textContent=S.totMoves? Math.round(100*S.optMoves/S.totMoves)+'%':'-';
+    document.getElementById('t_hyp').textContent=S.stratLockRound!==null? 'round '+S.stratLockRound : (S.roundsPlayed?'searching':'-');
+    document.getElementById('t_diff').textContent=S.diffReach;
+    if(S.firstTimes.length){ const s=[...S.firstTimes].sort((a,b)=>a-b); document.getElementById('t_first').textContent=Math.round(s[Math.floor(s.length/2)])+' ms'; }
+    document.getElementById('t_res').textContent=S.retries+ (S.resumeLat.length? ' ('+Math.round(S.resumeLat.reduce((a,b)=>a+b,0)/S.resumeLat.length/1000)+'s)':'');
+    document.getElementById('t_prog').textContent=S.roundsPlayed;
+    document.getElementById('t_path').textContent=S.moves;
+  }
+
+  function youMove(n){
+    if(S.turn!=='you'||n>S.pile) return;
+    const before=S.pile;
+    const opt=isOptimalMove(before,n);
+    if(S.phase==='scored'){ S.totMoves++; if(opt) S.optMoves++; else S.perRoundOptimal=false; S.firstTimes.push(performance.now()-S.moveShownAt); }
+    S.moves++;
+    S.pile-=n; renderPile();
+    log((S.phase==='scored'?'[scored] ':'[warmup] ')+'you took '+n+' ('+before+'->'+S.pile+') '+(S.phase==='scored'?(opt?'optimal':'suboptimal'):''));
+    setButtons(false); updTele();
+    if(S.pile<=0){ endRound('you'); return; }
+    S.turn='robot'; document.getElementById('youFace').classList.remove('active'); document.getElementById('botFace').classList.add('active');
+    banner.textContent='Robot is thinking...';
+    setTimeout(robotMove, 850);
+  }
+  function robotMove(){
+    let take;
+    const skill=[0,0.0,0.5,0.85,1.0][Math.min(S.robotLvl,4)];
+    if(Math.random()<skill) take=Math.min(optimalTake(S.pile), S.pile);
+    else take=Math.min(1+Math.floor(Math.random()*K), S.pile);
+    const before=S.pile; S.pile-=take; renderPile();
+    log('robot took '+take+' ('+before+'->'+S.pile+')');
+    if(S.pile<=0){ endRound('robot'); return; }
+    S.turn='you'; document.getElementById('botFace').classList.remove('active'); document.getElementById('youFace').classList.add('active');
+    banner.textContent='Your turn - take the last one to win!';
+    S.moveShownAt=performance.now(); setButtons(true);
+  }
+  function endRound(winner){
+    setButtons(false);
+    document.getElementById('youFace').classList.remove('active'); document.getElementById('botFace').classList.remove('active');
+    if(S.phase!=='scored'){ // warmup
+      banner.textContent = winner==='you' ? '\uD83C\uDFC6 You win the warm-up!' : 'Robot won - let\u2019s play for real';
+      setTimeout(startScored, 1200); return;
+    }
+    S.roundsPlayed++;
+    if(winner==='you'){
+      S.roundsWon++;
+      S.diffReach=Math.max(S.diffReach, S.robotLvl);
+      if(S.perRoundOptimal && S.stratLockRound===null) S.stratLockRound=S.roundsPlayed;
+      banner.textContent='\uD83D\uDC51 You beat robot level '+S.robotLvl+'!';
+      log('=> WON vs robot lvl '+S.robotLvl+(S.perRoundOptimal?' (all-optimal)':''));
+      S.robotLvl=Math.min(S.robotLvl+1,4);
+    } else {
+      S.lastLossAt=Date.now();
+      banner.textContent='Robot wins this round. Try again!';
+      log('=> LOST vs robot lvl '+S.robotLvl);
+    }
+    robotlvlEl.textContent='Robot level: '+S.robotLvl;
+    document.getElementById('againBtn').style.display='inline-block';
+    document.getElementById('againBtn').textContent = 'Next round (robot lvl '+S.robotLvl+')';
+    updTele();
+  }
+
+  function startRoundPile(){ S.pile=[9,13,10,14][Math.min(S.roundsPlayed,3)] || (8+Math.floor(Math.random()*8)); }
+  function newScoredRound(){
+    S.phase='scored'; S.perRoundOptimal=true; startRoundPile(); renderPile();
+    S.turn='you'; document.getElementById('youFace').classList.add('active');
+    banner.textContent='Round '+(S.roundsPlayed+1)+' - your move (take the last token!)';
+    robotlvlEl.textContent='Robot level: '+S.robotLvl;
+    S.moveShownAt=performance.now(); setButtons(true); updTele();
+  }
+  function startScored(){ document.getElementById('againBtn').style.display='none'; newScoredRound(); }
+
+  // warm-up: tiny pile you can always win
+  function startWarm(){ S.phase='warmup'; S.pile=3; renderPile(); S.turn='you'; document.getElementById('youFace').classList.add('active'); banner.textContent='Warm-up: take some tokens - grab the last to win!'; setButtons(true); }
+
+  // ghost-hand demo
+  function ghost(){
+    S.phase='demo'; S.pile=5; renderPile(); banner.textContent='\uD83D\uDC4B Watch: take the last token to win';
+    const acts=[['you',2],['robot',1],['you',2]];
+    let i=0;
+    (function step(){
+      if(i>=acts.length){ // you took last -> crown
+        setTimeout(()=>{ banner.textContent='\uD83D\uDC51 The one who takes the last token wins!'; setTimeout(startWarm,1200); }, 400); return; }
+      const [w,n]=acts[i]; S.pile-=n; renderPile();
+      banner.textContent=(w==='you'?'\uD83E\uDDD2 you take '+n:'\uD83E\uDD16 robot takes '+n);
+      i++; setTimeout(step, 950);
+    })();
+  }
+
+  takeBtns.forEach(b=> b.addEventListener('click', ()=> youMove(+b.dataset.n)));
+  document.getElementById('startBtn').addEventListener('click', ()=>{ document.getElementById('startBtn').style.display='none'; ghost(); });
+  document.getElementById('againBtn').addEventListener('click', ()=>{
+    if(S.lastLossAt){ S.retries++; S.resumeLat.push(Date.now()-S.lastLossAt); S.lastLossAt=0; }
+    startScored();
+  });
+  updTele();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tinker Lab - GB-TINKERLAB-01</title>
+<style>
+  :root{ --bg1:#3a1f0c; --bg2:#6b3e14; --card:#fff; --ink:#2b1c10; --accent:#ffd23f; --good:#2ec27e; --bad:#e5484d; }
+  *{ box-sizing:border-box; font-family:'Segoe UI',system-ui,Arial,sans-serif; }
+  body{ margin:0; min-height:100vh; background:linear-gradient(160deg,var(--bg1),var(--bg2)); color:var(--ink); display:flex; flex-direction:column; align-items:center; padding:16px; }
+  .head{ color:#fff; text-align:center; }
+  .head h1{ margin:2px 0; font-size:26px; }
+  .badges span{ display:inline-block; background:#ffffff22; color:#fff; border:1px solid #ffffff44; border-radius:999px; padding:3px 10px; margin:2px; font-size:12px; }
+  .wrap{ display:flex; gap:16px; flex-wrap:wrap; justify-content:center; align-items:flex-start; margin-top:12px; width:100%; max-width:1020px; }
+  .card{ background:var(--card); border-radius:20px; padding:18px; box-shadow:0 12px 30px #0005; }
+  .stage{ width:560px; max-width:94vw; }
+  .banner{ text-align:center; font-weight:700; font-size:17px; min-height:24px; margin-bottom:8px; color:#8a4b12; }
+  .track{ position:relative; height:60px; background:linear-gradient(#dff,#bef); border-radius:12px; margin:8px 0 4px; overflow:hidden; }
+  .racer{ position:absolute; bottom:6px; left:0; font-size:34px; transition:left 1s cubic-bezier(.2,.8,.2,1); }
+  .target{ position:absolute; top:0; bottom:0; width:4px; background:var(--bad); }
+  .flag{ position:absolute; top:2px; font-size:16px; transform:translateX(-6px); }
+  .gauge{ text-align:center; font-size:14px; color:#8a4b12; margin-bottom:8px; }
+  .knob{ display:flex; align-items:center; gap:10px; margin:8px 0; }
+  .knob label{ width:120px; font-weight:700; font-size:14px; }
+  .knob input[type=range]{ flex:1; height:26px; }
+  .knob .val{ width:28px; text-align:center; font-weight:800; }
+  .decoy{ opacity:.9; }
+  .btn{ background:var(--accent); border:none; border-radius:14px; padding:14px 24px; font-size:18px; font-weight:800; cursor:pointer; color:#3a2f00; box-shadow:0 6px 0 #0003; }
+  .btn:active{ transform:translateY(3px); box-shadow:0 3px 0 #0003; }
+  .btn.sec{ background:#fdeccd; color:#8a4b12; font-size:15px; }
+  .row{ display:flex; gap:10px; justify-content:center; margin-top:10px; flex-wrap:wrap; }
+  .history{ margin-top:10px; max-height:110px; overflow:auto; font-size:12px; }
+  .history table{ width:100%; border-collapse:collapse; }
+  .history td,.history th{ padding:2px 6px; text-align:center; border-bottom:1px solid #eee; }
+  .ctrl{ color:var(--good); font-weight:700; } .unctrl{ color:var(--bad); }
+  .hint{ color:#fff9; font-size:12px; text-align:center; margin-top:8px; }
+  .tele{ width:360px; max-width:94vw; background:#2a1608; color:#ffe9c9; border-radius:20px; padding:16px; font-family:'SFMono-Regular',Consolas,monospace; box-shadow:0 12px 30px #0006; }
+  .tele h2{ color:#ffd166; font-size:15px; margin:0 0 10px; }
+  .m{ display:flex; justify-content:space-between; gap:8px; padding:6px 8px; border-radius:8px; font-size:13px; }
+  .m:nth-child(odd){ background:#ffffff08; }
+  .m .id{ color:#ffb86b; } .m .v{ color:#fff; font-weight:700; }
+  .log{ margin-top:10px; max-height:120px; overflow:auto; font-size:11px; color:#d8c0a0; border-top:1px solid #ffffff22; padding-top:8px; }
+</style>
+</head>
+<body>
+  <div class="head">
+    <div class="badges"><span>GB-TINKERLAB-01</span><span>Areas: fluid_reasoning + complementary</span><span>Bands: 2-3 &middot; 4-5 &middot; 6-8</span></div>
+    <h1>Tinker Lab</h1>
+    <div style="opacity:.85;font-size:14px">Change a knob, TEST, learn what it does - hit the target</div>
+  </div>
+
+  <div class="wrap">
+    <div class="card stage">
+      <div class="banner" id="banner">Tap START to watch the demo</div>
+      <div class="track" id="track">
+        <div class="target" id="targetLine"></div><div class="flag" id="flag">\uD83C\uDFC1</div>
+        <div class="racer" id="racer">\uD83D\uDC1B</div>
+      </div>
+      <div class="gauge" id="gauge">Aim the racer at the flag</div>
+      <div id="knobs"></div>
+      <div class="row">
+        <button class="btn" id="testBtn" disabled>TEST \u25B6</button>
+        <button class="btn sec" id="startBtn">START</button>
+        <button class="btn sec" id="nextBtn" style="display:none">Next challenge</button>
+      </div>
+      <div class="history" id="history"></div>
+      <div class="hint">Tip: change ONE knob at a time to figure out what each one does. One knob is a decoy that does nothing.</div>
+    </div>
+
+    <div class="tele">
+      <h2>LIVE TELEMETRY (experimentation)</h2>
+      <div class="m"><span class="id">M-HYP (controlled tests)</span> <span class="v" id="t_hyp">-</span></div>
+      <div class="m"><span class="id">M-EXPLORE (distinct setups)</span> <span class="v" id="t_exp">0</span></div>
+      <div class="m"><span class="id">M-EFF (tests vs min)</span> <span class="v" id="t_eff">-</span></div>
+      <div class="m"><span class="id">M-PROG (dist to target)</span> <span class="v" id="t_prog">-</span></div>
+      <div class="m"><span class="id">M-DIFFREACH (level)</span> <span class="v" id="t_diff">1</span></div>
+      <div class="m"><span class="id">M-RTFIRST (plan pause)</span> <span class="v" id="t_first">-</span></div>
+      <div class="m"><span class="id">M-PERSIST (time on task)</span> <span class="v" id="t_pers">0s</span></div>
+      <div class="m"><span class="id">M-ACC (target hit)</span> <span class="v" id="t_acc">-</span></div>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+  const KN=[
+    {id:'leg', name:'Leg length', w:2},
+    {id:'wheel', name:'Wheel size', w:3},
+    {id:'spring', name:'Spring power', w:1},
+    {id:'fin', name:'Fin angle', w:0, decoy:true}
+  ];
+  const BASE=5, TOL=2;
+  const levels=[ {target:45, minTests:4, label:'Level 1 - hit the flag'}, {target:24, minTests:4, label:'Level 2 - new target'} ];
+  let level=0;
+  const S={ phase:'idle', vals:{}, prev:null, tests:0, controlled:0, distinct:new Set(), best:Infinity, hit:false, startTime:0, firstAt:null, scoredShown:0 };
+  function markFirst(){ if(S.phase==='scored' && S.firstAt===null){ S.firstAt=performance.now()-S.scoredShown; document.getElementById('t_first').textContent=Math.round(S.firstAt)+' ms'; } }
+
+  const knobsEl=document.getElementById('knobs'), banner=document.getElementById('banner'),
+        racer=document.getElementById('racer'), targetLine=document.getElementById('targetLine'),
+        flag=document.getElementById('flag'), gauge=document.getElementById('gauge'), logEl=document.getElementById('log'),
+        historyEl=document.getElementById('history'), testBtn=document.getElementById('testBtn');
+
+  function log(s){ const d=document.createElement('div'); d.textContent=s; logEl.prepend(d); }
+  function buildKnobs(){
+    knobsEl.innerHTML='';
+    KN.forEach(k=>{
+      S.vals[k.id]=3;
+      const row=document.createElement('div'); row.className='knob'+(k.decoy?' decoy':'');
+      row.innerHTML='<label>'+k.name+'</label><input type="range" min="0" max="10" value="3" id="k_'+k.id+'"><span class="val" id="v_'+k.id+'">3</span>';
+      knobsEl.appendChild(row);
+      const inp=row.querySelector('input');
+      inp.addEventListener('input', ()=>{ S.vals[k.id]=+inp.value; document.getElementById('v_'+k.id).textContent=inp.value; markFirst(); });
+    });
+  }
+  function outcome(){ let d=BASE; KN.forEach(k=> d+=k.w*S.vals[k.id]); return d; }
+  function maxOut(){ let d=BASE; KN.forEach(k=> d+=k.w*10); return d; }
+  function drawTarget(){ const pct=Math.min(100, levels[level].target/maxOut()*100); targetLine.style.left=pct+'%'; flag.style.left=pct+'%'; }
+
+  function runTest(){
+    markFirst();
+    const vec=KN.map(k=>S.vals[k.id]).join(',');
+    S.tests++; S.distinct.add(vec);
+    let changed=0; if(S.prev){ KN.forEach((k,i)=>{ if(S.prev[i]!==KN[i]?false:false){} }); changed=KN.reduce((n,k,i)=> n + (S.prev[i]!==S.vals[k.id]?1:0),0); }
+    const controlled = (S.prev===null) ? false : (changed===1);
+    if(S.prev!==null && controlled) S.controlled++;
+    S.prev=KN.map(k=>S.vals[k.id]);
+    const out=outcome(); const dist=Math.abs(out-levels[level].target);
+    S.best=Math.min(S.best,dist);
+    // animate
+    const pct=Math.min(100, out/maxOut()*100);
+    racer.style.left='calc('+pct+'% - 18px)';
+    gauge.textContent='Racer went '+out+'  (target '+levels[level].target+', off by '+dist+')';
+    addHistoryRow(out, dist, changed, controlled);
+    log('test '+S.tests+': ['+vec+'] -> '+out+' (off '+dist+') '+(S.prev&&controlled?'controlled':'')); 
+    if(dist<=TOL){ S.hit=true; banner.textContent='\uD83C\uDF89 Hit the target in '+S.tests+' tests!'; document.getElementById('nextBtn').style.display=(level<levels.length-1)?'inline-block':'none'; }
+    else banner.textContent='Off by '+dist+' - change a knob and TEST again';
+    updTele();
+  }
+  function addHistoryRow(out,dist,changed,controlled){
+    if(!historyEl.querySelector('table')){ historyEl.innerHTML='<table><tr><th>#</th><th>leg</th><th>wheel</th><th>spring</th><th>fin</th><th>went</th><th>off</th><th>1-var?</th></tr></table>'; }
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td>'+S.tests+'</td><td>'+S.vals.leg+'</td><td>'+S.vals.wheel+'</td><td>'+S.vals.spring+'</td><td>'+S.vals.fin+'</td><td>'+out+'</td><td>'+dist+'</td>'+
+      '<td class="'+(controlled?'ctrl':'unctrl')+'">'+(S.prev&&changed===1?'yes':(S.tests===1?'-':'no'))+'</td>';
+    historyEl.querySelector('table').appendChild(tr);
+    historyEl.scrollTop=historyEl.scrollHeight;
+  }
+  function updTele(){
+    const denom=Math.max(S.tests-1,1);
+    document.getElementById('t_hyp').textContent=(S.tests>1)? (S.controlled+' / '+denom+' one-var') : '-';
+    document.getElementById('t_exp').textContent=S.distinct.size;
+    document.getElementById('t_eff').textContent=S.hit? (levels[level].minTests+' / '+S.tests) : (S.tests+' so far');
+    document.getElementById('t_prog').textContent=isFinite(S.best)?S.best:'-';
+    document.getElementById('t_diff').textContent=(level+1);
+    document.getElementById('t_acc').textContent=S.hit?'HIT':'-';
+  }
+
+  function resetLevel(){ S.vals={}; S.prev=null; S.tests=0; S.controlled=0; S.distinct=new Set(); S.best=Infinity; S.hit=false; S.firstAt=null; buildKnobs(); drawTarget(); racer.style.left='0'; historyEl.innerHTML=''; gauge.textContent='Aim the racer at the flag'; document.getElementById('t_first').textContent='-'; updTele(); }
+
+  function startScored(){ S.phase='scored'; level=0; resetLevel(); S.scoredShown=performance.now(); testBtn.disabled=false; banner.textContent=levels[level].label+' - tweak knobs and TEST'; S.startTime=Date.now(); }
+
+  // ghost demo: nudge one knob, test, show change
+  function ghost(){
+    S.phase='demo'; resetLevel(); testBtn.disabled=true; banner.textContent='\uD83D\uDC4B Watch: change ONE knob, then TEST';
+    let step=0;
+    const seq=[ ()=>{ setKnob('wheel',6); }, ()=>{ racer.style.left='40%'; gauge.textContent='Bigger wheel -> went farther!'; }, ()=>{ banner.textContent='Your turn - a quick warm-up'; startWarm(); } ];
+    (function run(){ if(step>=seq.length) return; seq[step](); step++; setTimeout(run, 1100); })();
+  }
+  function setKnob(id,v){ S.vals[id]=v; const inp=document.getElementById('k_'+id); if(inp){ inp.value=v; document.getElementById('v_'+id).textContent=v; } }
+  function startWarm(){ S.phase='warm'; resetLevel(); testBtn.disabled=false; banner.textContent='Warm-up (not scored): press TEST, then change a knob and TEST again'; }
+
+  testBtn.addEventListener('click', ()=>{
+    if(S.phase==='warm'){ // unscored: just show the loop
+      const out=outcome(); const pct=Math.min(100,out/maxOut()*100); racer.style.left='calc('+pct+'% - 18px)'; gauge.textContent='Racer went '+out; 
+      log('warm-up test -> '+out);
+      if(!S._warmCount) S._warmCount=0; S._warmCount++;
+      if(S._warmCount>=2){ banner.textContent='Warm-up done! Now the real challenge.'; setTimeout(startScored, 900); }
+      return;
+    }
+    if(S.phase==='scored'){ runTest(); }
+  });
+  document.getElementById('nextBtn').addEventListener('click', ()=>{ if(level<levels.length-1){ level++; resetLevel(); S.scoredShown=performance.now(); banner.textContent=levels[level].label; document.getElementById('nextBtn').style.display='none'; } });
+  document.getElementById('startBtn').addEventListener('click', ()=>{ document.getElementById('startBtn').style.display='none'; buildKnobs(); drawTarget(); ghost(); });
+
+  setInterval(()=>{ if(S.phase==='scored'&&!S.hit){ document.getElementById('t_pers').textContent=Math.round((Date.now()-S.startTime)/1000)+'s'; } },1000);
+})();
+</script>
+</body>
+</html>

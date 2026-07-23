@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VER-UMBRELLA-01 — Umbrella Words (superordinate abstraction)</title>
+<style>
+  :root{--bg:#0e1220;--panel:#171d33;--edge:#2a3358;--ink:#e9edff;--mut:#8b93c0;
+    --accent:#5cc8ff;--good:#5ce39a;--bad:#ff6b8a;--warn:#ffd166;--pick:#2f6df0;}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.45 system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);display:flex;min-height:100vh}
+  .main{flex:1;display:flex;flex-direction:column;align-items:center;padding:20px;gap:14px}
+  h1{font-size:19px;margin:.2rem 0}
+  .sub{color:var(--mut);font-size:13px;margin:0 0 6px;text-align:center;max-width:480px}
+  .badge{display:inline-block;padding:2px 9px;border-radius:99px;background:var(--panel);border:1px solid var(--edge);color:var(--accent);font-size:12px}
+  #stage{position:relative;width:460px;min-height:150px;background:var(--panel);border:1px solid var(--edge);border-radius:18px;padding:18px;display:flex;flex-direction:column;align-items:center;gap:10px}
+  .umbrella{font-size:34px}
+  .members{display:flex;gap:16px;font-size:40px;justify-content:center;flex-wrap:wrap}
+  .members span{filter:drop-shadow(0 3px 3px #0007)}
+  .opts{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;width:460px}
+  .opt{min-width:120px;flex:1 1 40%;padding:14px 10px;border-radius:12px;border:1px solid var(--edge);background:#20284a;color:var(--ink);cursor:pointer;font-size:17px;font-weight:600;transition:transform .08s,background .12s}
+  .opt:active{transform:scale(.96)}
+  .opt.ok{background:var(--good);color:#04231b;border-color:transparent}
+  .opt.no{background:var(--bad);color:#2a0410;border-color:transparent}
+  .opt .spk{font-size:12px;color:var(--mut);display:block;font-weight:400}
+  #ghost{position:absolute;font-size:30px;left:0;top:0;transition:left .45s cubic-bezier(.5,0,.3,1),top .45s cubic-bezier(.5,0,.3,1);pointer-events:none;filter:drop-shadow(0 3px 3px #0008);z-index:5;opacity:0}
+  #cue{font-size:30px;height:38px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+  button{font:inherit;padding:9px 16px;border-radius:10px;border:1px solid var(--edge);background:#20284a;color:var(--ink);cursor:pointer}
+  button.pri{background:var(--accent);color:#062033;border-color:transparent;font-weight:600}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .tel{width:320px;background:var(--panel);border-left:1px solid var(--edge);padding:14px 14px 40px;overflow:auto;font:12px/1.55 ui-monospace,Menlo,Consolas,monospace}
+  .tel h2{font:600 12px system-ui;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:14px 0 6px}
+  .kv{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted #2a3358;padding:2px 0}
+  .kv b{color:var(--accent);font-weight:600}
+  .kv .m{color:var(--mut);font-size:10px}
+  .log{margin-top:6px;max-height:170px;overflow:auto;border:1px solid var(--edge);border-radius:8px;padding:6px;background:#10152a}
+  .log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+</head>
+<body>
+<div class="main">
+  <div style="text-align:center">
+    <h1>☂️ Umbrella Words <span class="badge" id="blvl">level 1</span></h1>
+    <p class="sub">All these pictures fit under one big word. Tap the word that <b>covers them all</b> — not too small, not too big.</p>
+  </div>
+  <div id="stage">
+    <div class="umbrella">☂️</div>
+    <div class="members" id="members"></div>
+    <div class="opts" id="opts"></div>
+    <div id="ghost">👆</div>
+  </div>
+  <div id="cue">👀</div>
+  <div class="row">
+    <button class="pri" id="go">▶ Watch how it works</button>
+    <button id="say" title="hear the words">🔊 Say the words</button>
+  </div>
+  <p class="sub" id="hint">A ghost hand shows you first — no reading needed. Words are read aloud.</p>
+</div>
+<aside class="tel" id="tel"></aside>
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const stage=$("#stage"),ghost=$("#ghost"),cue=$("#cue"),optsEl=$("#opts"),memEl=$("#members");
+function say(t){try{const u=new SpeechSynthesisUtterance(t);u.rate=.95;speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){}}
+// class: super(correct), narrow(one member), broad(too general), associate(thematic)
+// vocab band = approx Zipf rarity of the correct word (higher # = rarer)
+const BANK=[
+ [{lvl:1,band:5,mem:["🍎","🍌","🍇","🍓"],opts:[["Fruit","super"],["Apple","narrow"],["Food","broad"],["Juice","associate"]]},
+  {lvl:1,band:5,mem:["🐶","🐱","🐰","🐴"],opts:[["Animals","super"],["Dog","narrow"],["Living things","broad"],["Leash","associate"]]}],
+ [{lvl:2,band:4,mem:["🚗","🚌","🚲","✈️"],opts:[["Vehicles","super"],["Car","narrow"],["Machines","broad"],["Road","associate"]]},
+  {lvl:2,band:4,mem:["👕","👖","🧥","🧦"],opts:[["Clothes","super"],["Shirt","narrow"],["Things","broad"],["Closet","associate"]]}],
+ [{lvl:3,band:3,mem:["🔨","🪚","🔧","🪛"],opts:[["Tools","super"],["Hammer","narrow"],["Objects","broad"],["Toolbox","associate"]]},
+  {lvl:3,band:3,mem:["🎻","🥁","🎺","🎸"],opts:[["Instruments","super"],["Drum","narrow"],["Sounds","broad"],["Concert","associate"]]}],
+ [{lvl:4,band:2,mem:["😀","😢","😡","😨"],opts:[["Emotions","super"],["Happy","narrow"],["Things","broad"],["Tears","associate"]]},
+  {lvl:4,band:2,mem:["🧭","🗺️","🧳","🎒"],opts:[["Travel gear","super"],["Map","narrow"],["Stuff","broad"],["Vacation","associate"]]}]
+];
+const T={phase:"idle",trial:0,lvl:1,maxlvl:0,rarest:0,correct:0,total:0,rt:[],first:[],
+  lure:{narrow:0,broad:0,associate:0},err:0,byLvl:{},log:[]};
+function med(a){if(!a.length)return 0;const b=[...a].sort((x,y)=>x-y);const m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2;}
+function consistency(){let p=0,ag=0;for(const k in T.byLvl){const a=T.byLvl[k];for(let i=0;i<a.length;i++)for(let j=i+1;j<a.length;j++){p++;if(a[i]===a[j])ag++;}}return p?Math.round(100*ag/p):"—";}
+function logE(s){T.log.unshift(`${(performance.now()/1000).toFixed(1)}s · ${s}`);if(T.log.length>50)T.log.pop();}
+function render(){
+  const acc=T.total?Math.round(100*T.correct/T.total):0;
+  $("#tel").innerHTML=`
+  <h2>Live telemetry · VER-UMBRELLA-01</h2>
+  <div class="kv"><span>phase</span><b>${T.phase}</b></div>
+  <div class="kv"><span>scored items</span><b>${T.total}</b></div>
+  <h2>Ability</h2>
+  <div class="kv"><span>accuracy <span class="m">M-ACC</span></span><b>${acc}% <span class="m">(${T.correct}/${T.total})</span></b></div>
+  <div class="kv"><span>abstraction level <span class="m">M-DIFFREACH</span></span><b>${T.maxlvl} / 4</b></div>
+  <div class="kv"><span>rarest word solved <span class="m">M-VOCABLVL</span></span><b>band ${T.rarest||"—"}</b></div>
+  <div class="kv"><span>consistency <span class="m">M-CONSIST</span></span><b>${consistency()}${consistency()==="—"?"":"%"}</b></div>
+  <h2>Speed (not scored for peak)</h2>
+  <div class="kv"><span>median decision <span class="m">M-RT</span></span><b>${Math.round(med(T.rt))} ms</b></div>
+  <div class="kv"><span>first-look latency <span class="m">M-RTFIRST</span></span><b>${Math.round(med(T.first))} ms</b></div>
+  <h2>Error grain <span class="m">M-ERRTYPE · M-LURETYPE</span></h2>
+  <div class="kv"><span>too-narrow lure</span><b>${T.lure.narrow}</b></div>
+  <div class="kv"><span>too-broad lure</span><b>${T.lure.broad}</b></div>
+  <div class="kv"><span>associate lure</span><b>${T.lure.associate}</b></div>
+  <div class="log">${T.log.map(l=>`<div>${l}</div>`).join("")}</div>`;
+}
+render();
+function centerOf(el){const r=el.getBoundingClientRect(),s=stage.getBoundingClientRect();return{x:r.left-s.left+r.width/2,y:r.top-s.top+r.height/2};}
+let cur=null,shownAt=0,firstDone=false;
+function draw(item){
+  cur=item;memEl.innerHTML=item.mem.map(m=>`<span>${m}</span>`).join("");
+  const shuffled=[...item.opts].map(o=>({w:o[0],c:o[1]}));
+  for(let i=shuffled.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]];}
+  optsEl.innerHTML="";shuffled.forEach(o=>{const b=document.createElement("div");b.className="opt";b.dataset.c=o.c;b.dataset.w=o.w;
+    b.innerHTML=`${o.w}<span class="spk">🔊</span>`;optsEl.appendChild(b);});
+  $("#blvl").textContent="level "+item.lvl;
+}
+async function ghostTo(el){ghost.style.opacity="1";const c=centerOf(el);ghost.style.left=(c.x-14)+"px";ghost.style.top=(c.y-30)+"px";await sleep(500);}
+async function demo(){
+  if(T.phase==="demo")return;T.phase="demo";render();$("#go").disabled=true;
+  const it={lvl:1,mem:["🐶","🐱","🐴"],opts:[["Animals","super"],["Dog","narrow"],["Living things","broad"],["Fur","associate"]]};
+  draw(it);cue.textContent="👀";say("Animals");await sleep(700);
+  const target=[...optsEl.children].find(b=>b.dataset.c==="super");
+  await ghostTo(target);target.classList.add("ok");cue.textContent="✅";await sleep(900);
+  ghost.style.opacity="0";target.classList.remove("ok");
+  $("#go").disabled=false;$("#go").textContent="▶ Try a practice one";$("#go").onclick=warmup;
+  T.phase="idle";$("#hint").textContent="Now you try — this practice one is NOT scored.";render();
+}
+$("#go").onclick=demo;
+$("#say").onclick=()=>{if(cur){say(cur.opts.map(o=>o[0]).join(", "));}};
+function pickItem(){const tier=BANK[Math.min(3,T.lvl-1)];return tier[T.trial%tier.length];}
+function answer(scored){
+  return new Promise(res=>{
+    firstDone=false;shownAt=performance.now();
+    function onClick(e){const b=e.target.closest(".opt");if(!b)return;
+      if(!firstDone){firstDone=true;if(scored)T.first.push(performance.now()-shownAt);}
+      optsEl.removeEventListener("click",onClick);
+      const cls=b.dataset.c,rt=performance.now()-shownAt,ok=cls==="super";
+      b.classList.add(ok?"ok":"no");
+      if(!ok){const t=[...optsEl.children].find(x=>x.dataset.c==="super");t.classList.add("ok");}
+      cue.textContent=ok?"✅":"🙂";
+      if(scored){
+        T.total++;T.rt.push(rt);
+        (T.byLvl[cur.lvl]=T.byLvl[cur.lvl]||[]).push(ok?1:0);
+        if(ok){T.correct++;if(cur.lvl>T.maxlvl)T.maxlvl=cur.lvl;if(cur.band>T.rarest)T.rarest=cur.band;}
+        else{T.err++;T.lure[cls]=(T.lure[cls]||0)+1;}
+        logE(`lvl ${cur.lvl} "${b.dataset.w}" ${ok?"OK":"("+cls+")"} ${Math.round(rt)}ms`);
+        T.lvl=ok?Math.min(4,T.lvl+1):Math.max(1,T.lvl-1);T.trial++;
+      }
+      render();res(ok);
+    }
+    optsEl.addEventListener("click",onClick);
+  });
+}
+async function warmup(){$("#go").disabled=true;T.phase="warm-up (unscored)";render();
+  draw({lvl:1,mem:["⚽","🏀","🎾","🏈"],opts:[["Balls","super"],["Soccer ball","narrow"],["Toys","broad"],["Game","associate"]]});
+  cue.textContent="👆";say("Balls, Soccer ball, Toys, Game");await answer(false);await sleep(700);
+  T.phase="idle";$("#go").disabled=false;$("#go").textContent="▶ Start scored items";$("#go").onclick=startScored;
+  $("#hint").textContent="Great! The next ones count, and get trickier when you're right.";render();
+}
+let left=0;
+async function startScored(){$("#go").disabled=true;T.phase="scored";T.lvl=1;T.trial=0;render();left=8;await loop();}
+async function loop(){if(left<=0){finish();return;}const it=pickItem();draw(it);cue.textContent="👆";say(it.opts.map(o=>o[0]).join(", "));await answer(true);left--;await sleep(650);if(left>0)await loop();else finish();}
+function finish(){T.phase="done";cue.textContent="🏁";$("#go").disabled=false;$("#go").textContent="▶ Run another block";$("#go").onclick=startScored;
+  $("#hint").textContent=`Done. Reached abstraction level ${T.maxlvl}/4. Errors show whether a child slips too-narrow, too-broad, or to an associate.`;render();}
+draw(BANK[0][0]);say("");
+</script>
+</body>
+</html>

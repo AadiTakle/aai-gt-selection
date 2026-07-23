@@ -1,12 +1,6 @@
 {
-  "wave": 6,
-  "phase": "full-qbank-finish",
-  "top_gt": "100%",
-  "coverage_full": {
-    "items": 311,
-    "ge3_pct": 95,
-    "remaining": 15,
-    "types": 204
-  },
-  "note": "Wave 6: WM agent (K-1 span/inhibition/updating/set-shift variants + cognitive_flexibility_set_shifting) + game/quant agent (persistence_grit, risk_decision_making, numerical_magnitude_number_line, number_analogies@K-8)."
+  "wave": 7,
+  "phase": "novelty",
+  "milestone": "coverage complete: top-GT 100% + full-qbank 100% at 4d51190 (218 types)",
+  "note": "Wave 7+ = novelty/variety (coverage saturated). Add genuinely-new distinct shells, dedup vs master_types, reuse measurements. Continue while RUN exists."
 }

@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FLU-DEDUCE-01 · Clue Detective</title>
+<style>
+  :root{--bg1:#eef4ff;--bg2:#f7ecff;--ink:#26304a;--card:#fff;--accent:#5b6cff;--good:#22b573;--bad:#ff6b6b;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:12px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
+  #phasecue{font-size:32px;height:38px;line-height:38px}
+  #stagecard{background:var(--card);border-radius:24px;padding:20px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:16px;max-width:620px;width:100%}
+  #clues{display:flex;gap:10px;min-height:78px;align-items:center;flex-wrap:wrap;justify-content:center}
+  .clue{width:96px;height:70px;border-radius:12px;border:2px solid #e2c66a;background:#fff9e8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 6px 14px -10px #b78a00}
+  .clue .lab{font-size:10px;color:#a07b00;text-transform:uppercase;letter-spacing:.04em}
+  .clue.pending{opacity:.25;filter:grayscale(1)}
+  #lineup{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+  .cand{width:84px;height:84px;background:#fff;border-radius:14px;border:3px solid #e8ecf8;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:.14s}
+  .cand.dead{opacity:.32;filter:grayscale(.6)}
+  .cand.dead::after{content:"✗";position:absolute;font-size:34px;color:#ff6b6b;font-weight:800}
+  .cand.pick{border-color:var(--good);box-shadow:0 0 0 4px #cdeede}
+  .cand.wrong{border-color:var(--bad);box-shadow:0 0 0 4px #f7d3d3}
+  #tools{display:flex;gap:14px;align-items:center}
+  button{font:inherit;border:0;cursor:pointer;border-radius:14px}
+  #next{padding:11px 22px;background:var(--accent);color:#fff;font-size:16px;font-weight:700}
+  #replay{width:46px;height:46px;border-radius:50%;background:#eef1ff;color:#5b6cff;font-size:20px}
+  #ghost{position:fixed;left:0;top:0;font-size:38px;pointer-events:none;z-index:60;opacity:0;transition:transform .6s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:92px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}
+  .mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:190px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:280px}}
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">FLU-DEDUCE-01 · Clue Detective</div>
+    <div id="phasecue">👁️</div>
+    <div id="stagecard">
+      <div id="clues"></div>
+      <div id="lineup"></div>
+      <div id="tools">
+        <button id="replay" title="replay demo">↻</button>
+        <button id="next">Next clue ▶</button>
+      </div>
+    </div>
+  </div>
+  <aside id="telemetry">
+    <h3>Live telemetry · per-child</h3>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+  <div id="ghost">👆</div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const SHAPES=['triangle','circle','square'],COLORS={red:'#e6194b',blue:'#4363d8',green:'#2ca25f'};
+const CK=Object.keys(COLORS);
+function shapeSVG(f,box=58){const col=COLORS[f.color],r=box*0.32,cx=box/2,cy=box/2;
+  const fill=f.hole==='outline'?`fill="none" stroke="${col}" stroke-width="6"`:`fill="${col}"`;
+  let s='';switch(f.shape){case 'circle':s=`<circle cx="${cx}" cy="${cy}" r="${r}" ${fill}/>`;break;
+    case 'square':s=`<rect x="${cx-r}" y="${cy-r}" width="${2*r}" height="${2*r}" rx="4" ${fill}/>`;break;
+    case 'triangle':s=`<polygon points="${cx},${cy-r} ${cx-r},${cy+r} ${cx+r},${cy+r}" ${fill}/>`;break;}
+  return `<svg width="${box}" height="${box}" viewBox="0 0 ${box} ${box}">${s}</svg>`;}
+const key=f=>f.shape+f.color+f.hole;
+function randFig(){return{shape:SHAPES[Math.random()*3|0],color:CK[Math.random()*3|0],hole:Math.random()<.5?'solid':'outline'};}
+
+/* clue makers (all satisfied by target) */
+function makeClues(target,k){const opts=[];
+  opts.push({test:f=>f.shape===target.shape,lab:'shape',icon:shapeSVG({shape:target.shape,color:'red',hole:'solid'},34),neg:false,attr:'shape'});
+  const badColor=CK.find(c=>c!==target.color);
+  opts.push({test:f=>f.color!==badColor,lab:'not '+badColor,icon:`<div style="position:relative;width:26px;height:26px"><div style="width:26px;height:26px;border-radius:6px;background:${COLORS[badColor]}"></div><div style="position:absolute;left:-2px;top:11px;width:30px;height:4px;background:#c00;transform:rotate(-30deg)"></div></div>`,neg:true,attr:'color'});
+  opts.push({test:f=>f.hole===target.hole,lab:target.hole==='outline'?'has hole':'solid',icon:shapeSVG({shape:'circle',color:'#555',hole:target.hole},34),neg:false,attr:'hole'});
+  return opts.slice(0,k);}
+
+/* telemetry */
+const T={acc:0,n:0,poly:[],crosses:0,forced:0,revs:0,path:[],errTypes:[],curClue:0,itemStart:0};
+function polyStr(){if(!T.poly.length)return '\u2014';const last=T.poly[T.poly.length-1];return Math.round(100*last)+'% clues applied';}
+function effStr(){if(!T.forced)return '\u2014';return `${T.crosses} cross / ${T.forced} forced`;}
+function errStr(){if(!T.errTypes.length)return 'none';const c={};T.errTypes.forEach(e=>c[e]=(c[e]||0)+1);return Object.entries(c).map(([k,v])=>k+':'+v).join(' ');}
+const METERS=[
+ {id:'M-ACC',name:'Final culprit correct',get:()=>T.n?`${T.acc}/${T.n}`:'\u2014'},
+ {id:'M-POLY',name:'Partial: clues correctly applied',get:()=>polyStr()},
+ {id:'M-PATH',name:'Elimination order (clue#:cand#)',get:()=>T.path.length?T.path.join(' '):'\u2014'},
+ {id:'M-EFF',name:'Eliminations vs forced',get:()=>effStr()},
+ {id:'M-REV',name:'Restores (answer changes)',get:()=>T.revs+''},
+ {id:'M-ERRTYPE',name:'Error type (negation vs other)',get:()=>errStr()},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});}
+function log(msg){const t=Date.now()-T.itemStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+const ghost=$('#ghost');const ghostShow=v=>ghost.classList.toggle('show',v);
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-8}px,${c.y-6}px)`;await sleep(560);}
+
+/* generate unique-survivor item */
+function genItem(nCand,nClue){for(let attempt=0;attempt<400;attempt++){
+  const target=randFig();const clues=makeClues(target,nClue);
+  const pool=[target];while(pool.length<nCand){const f=randFig();if(!pool.some(x=>key(x)===key(f)))pool.push(f);}
+  const survivors=pool.filter(f=>clues.every(c=>c.test(f)));
+  if(survivors.length===1){for(let i=pool.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[pool[i],pool[j]]=[pool[j],pool[i]];}
+    return{cands:pool,clues,survivor:pool.findIndex(f=>clues.every(c=>c.test(f)))};}}
+  return genItem(nCand,nClue);}
+
+let phase='demo',item=null,crossed=[],shownClues=0,seq=[['warm',4,2],['scored',6,3]],si=0;
+function setCue(i){$('#phasecue').textContent=i;}
+function renderClues(){$('#clues').innerHTML=item.clues.map((c,i)=>`<div class="clue ${i<shownClues?'':'pending'}"><div>${c.icon}</div><div class="lab">${i<shownClues?'must fit':'?'}</div></div>`).join('');}
+function renderLineup(){$('#lineup').innerHTML=item.cands.map((f,i)=>`<div class="cand ${crossed[i]?'dead':''}" data-i="${i}">${shapeSVG(f)}</div>`).join('');}
+function aliveConsistent(){ // fraction of candidates whose crossed-state matches truth-under-shown-clues
+  const shown=item.clues.slice(0,shownClues);let ok=0;
+  item.cands.forEach((f,i)=>{const dead=shown.some(c=>!c.test(f));if(!!crossed[i]===dead)ok++;});
+  return ok/item.cands.length;}
+function toggleCross(i){if(phase!=='play')return;
+  if(shownClues>=item.clues.length && item.cands.filter((_,j)=>!crossed[j]).length===1){ // answer mode: tapping the lone survivor selects
+    return finalPick(i);}
+  if(crossed[i]){crossed[i]=false;T.revs++;log(`restore cand#${i+1}`);}
+  else{crossed[i]=true;T.crosses++;T.path.push((shownClues)+':'+(i+1));log(`cross cand#${i+1} (under clue ${shownClues})`);}
+  renderLineup();renderMeters();}
+function nextClue(){if(phase!=='play')return;
+  T.poly.push(aliveConsistent());
+  if(shownClues<item.clues.length){shownClues++;renderClues();log(`reveal clue ${shownClues}: "${item.clues[shownClues-1].lab}"`);renderMeters();
+    if(shownClues>=item.clues.length)$('#next').textContent='Tap the survivor ✓';}
+  else{ // force pick if a survivor is lit
+    const alive=item.cands.map((_,i)=>i).filter(i=>!crossed[i]);if(alive.length===1)finalPick(alive[0]);else log('cross out until one remains, then tap it');}
+}
+function finalPick(i){if(phase!=='play')return;const ok=i===item.survivor;T.n++;if(ok)T.acc++;
+  // final poly + forced + errortype
+  T.forced+=item.cands.filter((f)=>item.clues.some(c=>!c.test(f))).length; // dead count
+  item.cands.forEach((f,j)=>{const dead=item.clues.some(c=>!c.test(f));if(!!crossed[j]!==dead){
+    if(!dead&&crossed[j])T.errTypes.push('over-elim');
+    else{const badClue=item.clues.find(c=>!c.test(f));T.errTypes.push(badClue&&badClue.neg?'negation':'attr');}}});
+  T.poly.push(item.cands.reduce((a,f,j)=>{const dead=item.clues.some(c=>!c.test(f));return a+(!!crossed[j]===dead?1:0);},0)/item.cands.length);
+  const el=$(`.cand[data-i="${i}"]`);el.classList.add(ok?'pick':'wrong');if(!ok)$(`.cand[data-i="${item.survivor}"]`).classList.add('pick');
+  log(`SELECT cand#${i+1} · ${ok?'✓ culprit!':'✗ (was #'+(item.survivor+1)+')'}`);renderMeters();
+  phase='between';setTimeout(nextItem,900);}
+function nextItem(){si++;if(si<seq.length)startItem(seq[si]);else finish();}
+function startItem([kind,nC,nK]){phase='play';item=genItem(nC,nK);crossed=item.cands.map(()=>false);shownClues=1;T.path=[];T.poly=[];T.crosses=0;T.itemStart=Date.now();
+  $('#next').textContent='Next clue ▶';renderClues();renderLineup();renderMeters();setCue(kind==='warm'?'\u2b50':'\ud83c\udfaf');
+  log(`— ${kind==='warm'?'warm-up':'SCORED'}: cross out figures each clue rules out, then tap the survivor —`);log(`reveal clue 1: "${item.clues[0].lab}"`);
+  if(item.clues.length===1)$('#next').textContent='Tap the survivor ✓';}
+function finish(){phase='done';setCue('\ud83c\udfc6');log(`— DONE · culprit acc ${T.acc}/${T.n} —`);}
+async function runDemo(){phase='demo';si=0;setCue('\ud83d\udc41\ufe0f');item=genItem(4,2);crossed=item.cands.map(()=>false);shownClues=1;T.itemStart=Date.now();renderClues();renderLineup();
+  log('ghost-hand demo (wordless): a clue rules some out — cross those, keep the fits');ghostShow(true);await sleep(300);
+  const dead=item.cands.map((f,i)=>({i,dead:!item.clues[0].test(f)})).filter(x=>x.dead).slice(0,2);
+  for(const d of dead){await ghostTo($(`.cand[data-i="${d.i}"]`));crossed[d.i]=true;renderLineup();await sleep(250);}
+  const fit=item.cands.findIndex((f,i)=>!crossed[i]&&item.clues[0].test(f));await ghostTo($(`.cand[data-i="${fit}"]`));await sleep(400);
+  ghostShow(false);log('demo done — your turn (warm-up)');startItem(seq[0]);}
+$('#lineup').addEventListener('click',e=>{const c=e.target.closest('.cand');if(c)toggleCross(+c.dataset.i);});
+$('#next').addEventListener('click',nextClue);
+$('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
+buildMeters();renderMeters();runDemo();
+</script>
+</body>
+</html>

@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WM-bind-01 — Home Again (object-location binding)</title>
+<style>
+  :root{--bg:#0e1220;--panel:#171d33;--edge:#2a3358;--ink:#e9edff;--mut:#8b93c0;
+    --accent:#5cc8ff;--good:#5ce39a;--bad:#ff6b8a;--warn:#ffd166;--house:#243056;}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.45 system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);display:flex;min-height:100vh}
+  .main{flex:1;display:flex;flex-direction:column;align-items:center;padding:20px;gap:12px}
+  h1{font-size:19px;margin:.2rem 0}
+  .sub{color:var(--mut);font-size:13px;margin:0 0 6px;text-align:center;max-width:480px}
+  .badge{display:inline-block;padding:2px 9px;border-radius:99px;background:var(--panel);border:1px solid var(--edge);color:var(--accent);font-size:12px}
+  #stage{position:relative;width:400px;background:var(--panel);border:1px solid var(--edge);border-radius:18px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:14px}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .house{position:relative;width:104px;height:88px;background:var(--house);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:34px;cursor:pointer;transition:transform .08s,background .12s,box-shadow .12s}
+  .house:active{transform:scale(.96)}
+  .house .roof{position:absolute;top:-2px;font-size:16px;opacity:.5}
+  .house.host{background:#2c3a68}
+  .house.sel{box-shadow:0 0 0 3px var(--accent) inset}
+  .house.ok{background:var(--good)}
+  .house.no{background:var(--bad)}
+  .tray{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;min-height:60px;align-items:center}
+  .animal{width:56px;height:56px;border-radius:12px;background:#20284a;border:1px solid var(--edge);display:flex;align-items:center;justify-content:center;font-size:32px;cursor:pointer;transition:transform .08s}
+  .animal:active{transform:scale(.92)}
+  .animal.sel{box-shadow:0 0 0 3px var(--warn) inset;background:#2b2f10}
+  .animal.used{opacity:.25;pointer-events:none}
+  #ghost{position:absolute;font-size:28px;left:0;top:0;transition:left .45s cubic-bezier(.5,0,.3,1),top .45s cubic-bezier(.5,0,.3,1);pointer-events:none;filter:drop-shadow(0 3px 3px #0008);z-index:9;opacity:0}
+  #cue{font-size:28px;height:34px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+  button{font:inherit;padding:9px 16px;border-radius:10px;border:1px solid var(--edge);background:#20284a;color:var(--ink);cursor:pointer}
+  button.pri{background:var(--accent);color:#062033;border-color:transparent;font-weight:600}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .tel{width:320px;background:var(--panel);border-left:1px solid var(--edge);padding:14px 14px 40px;overflow:auto;font:12px/1.55 ui-monospace,Menlo,Consolas,monospace}
+  .tel h2{font:600 12px system-ui;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:14px 0 6px}
+  .kv{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted #2a3358;padding:2px 0}
+  .kv b{color:var(--accent);font-weight:600}
+  .kv .m{color:var(--mut);font-size:10px}
+  .log{margin-top:6px;max-height:150px;overflow:auto;border:1px solid var(--edge);border-radius:8px;padding:6px;background:#10152a}
+  .log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+</head>
+<body>
+<div class="main">
+  <div style="text-align:center">
+    <h1>🏘️ Home Again <span class="badge" id="bset">set 3</span></h1>
+    <p class="sub">Watch which animal lives in which house. When they come out to play and shuffle, put <b>each animal back in its own house</b>. Take your time — being right matters, not being fast.</p>
+  </div>
+  <div id="stage">
+    <div class="grid" id="grid"></div>
+    <div class="tray" id="tray"></div>
+    <div id="ghost">👆</div>
+  </div>
+  <div id="cue">👀</div>
+  <div class="row">
+    <button class="pri" id="go">▶ Watch how it works</button>
+  </div>
+  <p class="sub" id="hint">A ghost hand shows you first — no reading needed.</p>
+</div>
+<aside class="tel" id="tel"></aside>
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const gridEl=$("#grid"),trayEl=$("#tray"),stage=$("#stage"),ghost=$("#ghost"),cue=$("#cue");
+const POOL=["🐶","🐱","🐰","🐼","🦊","🐸","🐷","🐵","🐧","🦁","🐯","🐨"];
+const NHOUSE=9,houses=[];
+function buildHouses(){gridEl.innerHTML="";houses.length=0;for(let i=0;i<NHOUSE;i++){const h=document.createElement("div");h.className="house";h.dataset.i=i;h.innerHTML='<div class="roof">🔺</div>';houses.push(h);gridEl.appendChild(h);}}
+const T={phase:"idle",trial:0,set:3,spanMax:0,correctBind:0,totalBind:0,
+  swap:0,empty:0,revis:0,firstLat:[],bySet:{},log:[]};
+function med(a){if(!a.length)return 0;const b=[...a].sort((x,y)=>x-y);const m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2;}
+function consistency(){let p=0,ag=0;for(const k in T.bySet){const a=T.bySet[k];for(let i=0;i<a.length;i++)for(let j=i+1;j<a.length;j++){p++;if(a[i]===a[j])ag++;}}return p?Math.round(100*ag/p):"—";}
+function logE(s){T.log.unshift(`${(performance.now()/1000).toFixed(1)}s · ${s}`);if(T.log.length>50)T.log.pop();}
+function render(){
+  const acc=T.totalBind?Math.round(100*T.correctBind/T.totalBind):0;
+  $("#tel").innerHTML=`
+  <h2>Live telemetry · WM-bind-01</h2>
+  <div class="kv"><span>phase</span><b>${T.phase}</b></div>
+  <div class="kv"><span>current set size</span><b>${T.set}</b></div>
+  <div class="kv"><span>scored rounds</span><b>${T.trial}</b></div>
+  <h2>Capacity</h2>
+  <div class="kv"><span>binding span <span class="m">M-SPAN·M-DIFFREACH</span></span><b>${T.spanMax}</b></div>
+  <div class="kv"><span>binding accuracy <span class="m">M-ACC</span></span><b>${acc}% <span class="m">(${T.correctBind}/${T.totalBind})</span></b></div>
+  <div class="kv"><span>consistency <span class="m">M-CONSIST</span></span><b>${consistency()}${consistency()==="—"?"":"%"}</b></div>
+  <h2>Error grain <span class="m">M-ERRTYPE</span></h2>
+  <div class="kv"><span>swap (wrong home)</span><b>${T.swap}</b></div>
+  <div class="kv"><span>empty (no-animal home)</span><b>${T.empty}</b></div>
+  <h2>Process</h2>
+  <div class="kv"><span>revisions <span class="m">M-REV</span></span><b>${T.revis}</b></div>
+  <div class="kv"><span>plan latency <span class="m">M-RTFIRST</span></span><b>${Math.round(med(T.firstLat))} ms</b></div>
+  <div class="kv"><span>placement path <span class="m">M-PATH</span></span><b>logged</b></div>
+  <div class="log">${T.log.map(l=>`<div>${l}</div>`).join("")}</div>`;
+}
+render();buildHouses();
+function centerOf(el){const r=el.getBoundingClientRect(),s=stage.getBoundingClientRect();return{x:r.left-s.left+r.width/2,y:r.top-s.top+r.height/2};}
+function clearHouses(){houses.forEach(h=>{h.className="house";h.querySelector(".animal-in")?.remove();});}
+function pickHouses(n){const idx=[...Array(NHOUSE).keys()];for(let i=idx.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[idx[i],idx[j]]=[idx[j],idx[i]];}return idx.slice(0,n);}
+function pickAnimals(n){const p=[...POOL];for(let i=p.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[p[i],p[j]]=[p[j],p[i]];}return p.slice(0,n);}
+function setHouseAnimal(h,emoji){h.querySelector(".animal-in")?.remove();if(emoji){const s=document.createElement("div");s.className="animal-in";s.style.fontSize="34px";s.textContent=emoji;h.appendChild(s);}}
+async function reveal(map){ // map: {houseIndex: emoji}
+  clearHouses();cue.textContent="👀";
+  for(const hi in map){houses[hi].classList.add("host");}
+  await sleep(300);
+  for(const hi in map){setHouseAnimal(houses[hi],map[hi]);await sleep(650);}
+  await sleep(700*Object.keys(map).length>2400?1600:1200);
+  for(const hi in map){setHouseAnimal(houses[hi],"");}
+  cue.textContent="🔀";await sleep(500);
+}
+async function demo(){
+  if(T.phase==="demo")return;T.phase="demo";render();$("#go").disabled=true;
+  const map={2:"🐶",6:"🐱"};await reveal(map);
+  // ghost picks dog from tray -> house 2
+  drawTray(["🐶","🐱"]);cue.textContent="👆";ghost.style.opacity="1";
+  const dog=[...trayEl.children][0];let c=centerOf(dog);ghost.style.left=(c.x-14)+"px";ghost.style.top=(c.y-28)+"px";await sleep(600);
+  dog.classList.add("sel");c=centerOf(houses[2]);ghost.style.left=(c.x-14)+"px";ghost.style.top=(c.y-28)+"px";await sleep(600);
+  setHouseAnimal(houses[2],"🐶");dog.classList.remove("sel");dog.classList.add("used");houses[2].classList.add("ok");
+  const cat=[...trayEl.children][1];c=centerOf(cat);ghost.style.left=(c.x-14)+"px";ghost.style.top=(c.y-28)+"px";await sleep(600);
+  c=centerOf(houses[6]);ghost.style.left=(c.x-14)+"px";ghost.style.top=(c.y-28)+"px";await sleep(600);
+  setHouseAnimal(houses[6],"🐱");cat.classList.add("used");houses[6].classList.add("ok");cue.textContent="✅";await sleep(900);
+  ghost.style.opacity="0";clearHouses();trayEl.innerHTML="";
+  $("#go").disabled=false;$("#go").textContent="▶ Try a practice one";$("#go").onclick=warmup;
+  T.phase="idle";$("#hint").textContent="Now you try — this practice one is NOT scored.";render();
+}
+$("#go").onclick=demo;
+function drawTray(list){trayEl.innerHTML="";list.forEach(e=>{const a=document.createElement("div");a.className="animal";a.dataset.e=e;a.textContent=e;trayEl.appendChild(a);});}
+let sel=null;
+async function runRound(scored){
+  $("#go").disabled=true;
+  const n=T.set,hs=pickHouses(n),ans=pickAnimals(n);
+  const map={};hs.forEach((h,k)=>map[h]=ans[k]); // house -> correct animal
+  await reveal(map);
+  const shuffled=[...ans];for(let i=shuffled.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]];}
+  drawTray(shuffled);
+  hs.forEach(h=>houses[h].classList.add("host"));
+  cue.textContent="🏠";$("#hint").textContent=scored?"Send each animal home.":"Practice — send each animal home.";
+  const placed={};// houseIndex -> emoji
+  const path=[];const t0=performance.now();let firstDone=false;sel=null;
+  await new Promise(res=>{
+    function onTray(e){const a=e.target.closest(".animal");if(!a||a.classList.contains("used"))return;
+      trayEl.querySelectorAll(".animal.sel").forEach(x=>x.classList.remove("sel"));a.classList.add("sel");sel=a;}
+    function onHouse(e){const h=e.target.closest(".house");if(!h)return;const hi=+h.dataset.i;
+      if(!sel){ // tapping a filled house returns its animal to tray
+        if(placed[hi]){const em=placed[hi];delete placed[hi];setHouseAnimal(h,"");h.classList.remove("sel");
+          [...trayEl.children].find(x=>x.dataset.e===em&&x.classList.contains("used"))?.classList.remove("used");T.revis++;render();}
+        return;}
+      if(placed[hi]){ // occupied: bounce old animal back
+        const old=placed[hi];[...trayEl.children].find(x=>x.dataset.e===old)?.classList.remove("used");T.revis++;}
+      if(!firstDone){firstDone=true;if(scored)T.firstLat.push(performance.now()-t0);}
+      const em=sel.dataset.e;
+      // remove this animal from any prior house
+      for(const k in placed){if(placed[k]===em){delete placed[k];setHouseAnimal(houses[k],"");houses[k].classList.remove("sel");}}
+      placed[hi]=em;setHouseAnimal(h,em);sel.classList.add("used");sel.classList.remove("sel");sel=null;
+      path.push(hi);
+      if(Object.keys(placed).length===n){trayEl.removeEventListener("click",onTray);gridEl.removeEventListener("click",onHouse);res();}
+      render();
+    }
+    trayEl.addEventListener("click",onTray);gridEl.addEventListener("click",onHouse);
+  });
+  // score
+  let right=0;
+  for(const hi in placed){const h=houses[hi];const correct=map[hi]===placed[hi];
+    if(correct){right++;h.classList.add("ok");}
+    else{h.classList.add("no");
+      if(scored){ if(map[hi]===undefined) T.empty++; else T.swap++; }
+    }
+  }
+  const perfect=right===n;
+  cue.textContent=perfect?"✅":"↔️";
+  if(scored){
+    T.trial++;T.totalBind+=n;T.correctBind+=right;
+    (T.bySet[n]=T.bySet[n]||[]).push(perfect?1:0);
+    if(perfect&&n>T.spanMax)T.spanMax=n;
+    logE(`set ${n}: ${right}/${n} home · path[${path.join(",")}]`);
+    T.set=perfect?Math.min(NHOUSE,T.set+1):Math.max(2,T.set-1);
+  }
+  render();await sleep(1100);clearHouses();trayEl.innerHTML="";cue.textContent="";
+  $("#go").disabled=false;
+  return perfect;
+}
+async function warmup(){T.phase="warm-up (unscored)";render();T.set=2;await runRound(false);T.set=3;
+  T.phase="idle";$("#go").textContent="▶ Start scored rounds";$("#go").onclick=startScored;
+  $("#hint").textContent="Great! These count. More animals when you get them all home.";render();}
+let left=0;
+async function startScored(){T.phase="scored";render();left=7;$("#go").disabled=true;await loop();}
+async function loop(){if(left<=0){finish();return;}await runRound(true);left--;if(left>0)await loop();else finish();}
+function finish(){T.phase="done";cue.textContent="🏁";$("#go").disabled=false;$("#go").textContent="▶ Run another block";$("#go").onclick=startScored;
+  $("#hint").textContent=`Done. Binding span ${T.spanMax}. Swaps vs empties tell apart mis-binding from lost locations.`;render();}
+</script>
+</body>
+</html>

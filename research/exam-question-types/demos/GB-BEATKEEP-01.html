@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beat Keeper - GB-BEATKEEP-01</title>
+<style>
+  :root{ --bg1:#12183b; --bg2:#28215a; --card:#ffffff; --ink:#1d2140; --accent:#ffb703; --good:#2ec27e; --warn:#f4a259; --bad:#e5484d; }
+  *{ box-sizing:border-box; font-family:'Segoe UI',system-ui,Arial,sans-serif; }
+  body{ margin:0; min-height:100vh; background:linear-gradient(160deg,var(--bg1),var(--bg2)); color:var(--ink); display:flex; flex-direction:column; align-items:center; padding:16px; }
+  .head{ color:#fff; text-align:center; }
+  .head h1{ margin:2px 0; font-size:26px; }
+  .badges span{ display:inline-block; background:#ffffff22; color:#fff; border:1px solid #ffffff44; border-radius:999px; padding:3px 10px; margin:2px; font-size:12px; }
+  .wrap{ display:flex; gap:16px; flex-wrap:wrap; justify-content:center; align-items:flex-start; margin-top:12px; width:100%; max-width:1000px; }
+  .card{ background:var(--card); border-radius:20px; padding:18px; box-shadow:0 12px 30px #0005; }
+  .stage{ width:560px; max-width:94vw; }
+  .banner{ text-align:center; font-weight:700; font-size:18px; min-height:26px; margin-bottom:8px; color:#3a2f7a; }
+  .track{ position:relative; height:14px; background:#eef; border-radius:8px; overflow:hidden; margin:10px 0 18px; }
+  .playhead{ position:absolute; top:0; left:0; height:100%; width:4px; background:var(--accent); border-radius:4px; }
+  .pads{ display:flex; gap:14px; justify-content:center; }
+  .pad{ flex:1; height:150px; border-radius:18px; border:none; color:#fff; font-size:44px; font-weight:800; cursor:pointer; transition:transform .05s, box-shadow .08s, filter .08s; box-shadow:0 8px 0 #0003; user-select:none; }
+  .pad:active{ transform:translateY(3px); }
+  .pad.p0{ background:#ef476f; } .pad.p1{ background:#3a86ff; } .pad.p2{ background:#8338ec; }
+  .pad.flash{ filter:brightness(1.7); box-shadow:0 0 26px #fff, 0 8px 0 #0003; }
+  .pad.ghost{ outline:6px dashed #fff; outline-offset:-14px; }
+  .pad.hit-good{ box-shadow:0 0 0 6px var(--good), 0 8px 0 #0003; }
+  .pad.hit-bad{ box-shadow:0 0 0 6px var(--warn), 0 8px 0 #0003; }
+  .btn{ background:var(--accent); border:none; border-radius:14px; padding:14px 22px; font-size:18px; font-weight:800; cursor:pointer; color:#3a2f00; box-shadow:0 6px 0 #0003; }
+  .btn:active{ transform:translateY(3px); box-shadow:0 3px 0 #0003; }
+  .btn.sec{ background:#e7e9ff; color:#3a2f7a; }
+  .row{ display:flex; gap:10px; justify-content:center; margin-top:12px; flex-wrap:wrap; }
+  .combo{ text-align:center; font-size:15px; color:#6b6f99; margin-top:6px; }
+  /* telemetry */
+  .tele{ width:360px; max-width:94vw; background:#0e1030; color:#c9f4e6; border-radius:20px; padding:16px; font-family:'SFMono-Regular',Consolas,monospace; box-shadow:0 12px 30px #0006; }
+  .tele h2{ color:#ffd166; font-size:15px; margin:0 0 10px; letter-spacing:.5px; }
+  .m{ display:flex; justify-content:space-between; gap:8px; padding:6px 8px; border-radius:8px; font-size:13px; }
+  .m:nth-child(odd){ background:#ffffff08; }
+  .m .id{ color:#8ab4ff; } .m .v{ color:#fff; font-weight:700; }
+  .log{ margin-top:10px; max-height:150px; overflow:auto; font-size:11px; color:#9fb0d0; border-top:1px solid #ffffff22; padding-top:8px; }
+  .log div{ padding:1px 0; }
+  .hint{ color:#fff9; font-size:12px; text-align:center; margin-top:8px; }
+</style>
+</head>
+<body>
+  <div class="head">
+    <div class="badges"><span>GB-BEATKEEP-01</span><span>Area: fluid_reasoning</span><span>Bands: K-1 &middot; 2-3 &middot; 4-5 &middot; 6-8</span></div>
+    <h1>Beat Keeper</h1>
+    <div style="opacity:.8;font-size:14px">Keep the rhythm going after the sound drops out</div>
+  </div>
+
+  <div class="wrap">
+    <div class="card stage">
+      <div class="banner" id="banner">Tap START to watch the demo</div>
+      <div class="track"><div class="playhead" id="playhead"></div></div>
+      <div class="pads" id="pads"></div>
+      <div class="combo" id="combo"></div>
+      <div class="row">
+        <button class="btn" id="startBtn">START</button>
+        <button class="btn sec" id="replayBtn" style="display:none">Replay demo</button>
+      </div>
+      <div class="hint">Wordless demo &rarr; unscored warm-up &rarr; scored rhythm. No reading required.</div>
+    </div>
+
+    <div class="tele">
+      <h2>LIVE TELEMETRY (per-beat)</h2>
+      <div class="m"><span class="id">M-ACC</span> <span class="v" id="t_acc">-</span></div>
+      <div class="m"><span class="id">M-RTVAR (async SD ms)</span> <span class="v" id="t_rtvar">-</span></div>
+      <div class="m"><span class="id">M-LAPSE (worst |async|)</span> <span class="v" id="t_lapse">-</span></div>
+      <div class="m"><span class="id">M-RULEID (temporal rules)</span> <span class="v" id="t_rule">-</span></div>
+      <div class="m"><span class="id">M-PROG (kept beats)</span> <span class="v" id="t_prog">-</span></div>
+      <div class="m"><span class="id">M-DIFFREACH (level)</span> <span class="v" id="t_diff">1</span></div>
+      <div class="m"><span class="id">M-ENGAGE (idle/blur)</span> <span class="v" id="t_eng">0 / 0</span></div>
+      <div class="m"><span class="id">M-PATH (taps)</span> <span class="v" id="t_path">0</span></div>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+  // ---------- audio ----------
+  let AC=null;
+  function beep(freq, when, dur, vol){
+    if(!AC) return;
+    const o=AC.createOscillator(), g=AC.createGain();
+    o.frequency.value=freq; o.type='sine';
+    g.gain.setValueAtTime(0.0001, when);
+    g.gain.exponentialRampToValueAtTime(vol||0.3, when+0.005);
+    g.gain.exponentialRampToValueAtTime(0.0001, when+(dur||0.12));
+    o.connect(g); g.connect(AC.destination); o.start(when); o.stop(when+(dur||0.12)+0.02);
+  }
+  const padFreq=[330,440,554];
+
+  // ---------- state ----------
+  const N_PADS=3, BEAT_MS=620, WINDOW=200;
+  // levels: pattern = array of pad index per beat (null = rest). rules = # temporal rules.
+  const levels=[
+    {pads:2, pattern:[0,0,0,0], rules:1, label:"Level 1 - steady beat"},
+    {pads:3, pattern:[0,1,0,1], rules:2, label:"Level 2 - two-pad alternation"},
+    {pads:3, pattern:[0,0,1,2], rules:3, label:"Level 3 - accent + subdivision"}
+  ];
+  let level=0;
+  const state={ phase:'idle', expected:[], taps:[], async:[], correct:0, kept:0, idle:0, blur:0, lastActivity:Date.now() };
+
+  // ---------- dom ----------
+  const padsEl=document.getElementById('pads'), banner=document.getElementById('banner'),
+        playhead=document.getElementById('playhead'), combo=document.getElementById('combo'),
+        startBtn=document.getElementById('startBtn'), replayBtn=document.getElementById('replayBtn'),
+        logEl=document.getElementById('log');
+  const padBtns=[];
+  for(let i=0;i<N_PADS;i++){
+    const b=document.createElement('button');
+    b.className='pad p'+i; b.textContent=['\u25CF','\u25B2','\u2726'][i];
+    b.dataset.i=i; b.addEventListener('pointerdown', ()=>onTap(i));
+    padsEl.appendChild(b); padBtns.push(b);
+  }
+  function log(s){ const d=document.createElement('div'); d.textContent=s; logEl.prepend(d); }
+  function flash(i, cls){ padBtns[i].classList.add(cls||'flash'); setTimeout(()=>padBtns[i].classList.remove(cls||'flash'),140); }
+
+  // ---------- telemetry ----------
+  function updTele(){
+    const total=state.expected.length||1;
+    document.getElementById('t_acc').textContent = state.expected.length? Math.round(100*state.correct/total)+'%':'-';
+    const a=state.async;
+    if(a.length){
+      const mean=a.reduce((x,y)=>x+y,0)/a.length;
+      const sd=Math.sqrt(a.reduce((x,y)=>x+(y-mean)*(y-mean),0)/a.length);
+      document.getElementById('t_rtvar').textContent=Math.round(sd)+' ms';
+      document.getElementById('t_lapse').textContent=Math.round(Math.max.apply(null,a.map(Math.abs)))+' ms';
+    }
+    document.getElementById('t_rule').textContent=levels[level].rules;
+    document.getElementById('t_prog').textContent=state.kept+' / '+total;
+    document.getElementById('t_diff').textContent=(level+1);
+    document.getElementById('t_eng').textContent=state.idle+' / '+state.blur;
+    document.getElementById('t_path').textContent=state.taps.length;
+  }
+
+  // ---------- sequencer ----------
+  function playPattern(cb){
+    const pat=levels[level].pattern; const bars=2;
+    const seq=[]; for(let b=0;b<bars;b++) for(const p of pat) seq.push(p);
+    let i=0;
+    banner.textContent='Listen and watch...';
+    const t0=AC?AC.currentTime:0;
+    (function step(){
+      if(i>=seq.length){ cb&&cb(); return; }
+      const p=seq[i];
+      if(p!==null){ if(AC) beep(padFreq[p], t0+i*BEAT_MS/1000, 0.12, 0.32); flash(p); }
+      animatePlayhead(i%pat.length, pat.length);
+      i++; setTimeout(step, BEAT_MS);
+    })();
+  }
+  function ghostDemo(cb){
+    // wordless ghost-hand: pulse the pad on each beat, sound plays
+    const pat=[0,0,0,0]; let i=0;
+    banner.textContent='\uD83D\uDC4B Watch the beat';
+    const t0=AC?AC.currentTime:0;
+    (function step(){
+      if(i>=pat.length){ setTimeout(cb,300); return; }
+      padBtns[0].classList.add('ghost'); flash(0); if(AC) beep(padFreq[0], t0+i*BEAT_MS/1000,0.12,0.3);
+      animatePlayhead(i,pat.length);
+      setTimeout(()=>padBtns[0].classList.remove('ghost'),200);
+      i++; setTimeout(step,BEAT_MS);
+    })();
+  }
+  function animatePlayhead(beatIndex, len){
+    const pct=(beatIndex+1)/len*100;
+    playhead.style.transition='left '+BEAT_MS+'ms linear';
+    playhead.style.left=pct+'%';
+    if(beatIndex===len-1) setTimeout(()=>{ playhead.style.transition='none'; playhead.style.left='0%'; }, BEAT_MS);
+  }
+
+  // ---------- child continues ----------
+  let continueTimer=null, beatIndex=0, expectedTimes=[];
+  function childContinue(scored){
+    const pat=levels[level].pattern;
+    state.expected=[]; state.taps=[]; state.async=[]; state.correct=0; state.kept=0;
+    for(const p of pat) state.expected.push(p); // one bar to continue
+    banner.textContent = scored? '\u2b50 Your turn - keep the beat!' : 'Warm-up - your turn (not scored)';
+    combo.textContent='';
+    beatIndex=0; expectedTimes=[];
+    const start=performance.now()+120;
+    for(let i=0;i<pat.length;i++) expectedTimes.push(start+i*BEAT_MS);
+    state._scored=scored; state._resolved=new Array(pat.length).fill(false);
+    // advance playhead visually per beat
+    let vb=0;
+    continueTimer=setInterval(()=>{
+      animatePlayhead(vb%pat.length, pat.length);
+      vb++;
+      if(vb>pat.length){
+        clearInterval(continueTimer);
+        finishBar(scored);
+      }
+    }, BEAT_MS);
+    updTele();
+  }
+  function nearestBeat(t){
+    let best=-1, bd=1e9;
+    for(let i=0;i<expectedTimes.length;i++){ const d=Math.abs(t-expectedTimes[i]); if(d<bd){bd=d;best=i;} }
+    return {i:best,d:t-expectedTimes[best]};
+  }
+  function onTap(padIndex){
+    ensureAudio();
+    state.lastActivity=Date.now();
+    if(AC){ const t=AC.currentTime; beep(padFreq[padIndex],t,0.1,0.28); }
+    flash(padIndex);
+    if(state.phase!=='warmup' && state.phase!=='scored'){ return; }
+    const now=performance.now();
+    const nb=nearestBeat(now);
+    const expPad=state.expected[nb.i];
+    const onTime=Math.abs(nb.d)<=WINDOW;
+    const rightPad=(padIndex===expPad);
+    state.taps.push({beat:nb.i,pad:padIndex,async:Math.round(nb.d),onTime,rightPad});
+    if(state.phase==='scored'){
+      if(rightPad && onTime){ state.correct++; state.kept++; state.async.push(nb.d); flash(padIndex,'hit-good'); }
+      else{ flash(padIndex,'hit-bad'); if(rightPad) state.async.push(nb.d); }
+      combo.textContent='kept '+state.kept+' beats';
+      log('beat '+nb.i+' pad '+padIndex+(rightPad?' OK':' wrongpad')+' async '+Math.round(nb.d)+'ms');
+    } else {
+      log('warm-up tap pad '+padIndex+' async '+Math.round(nb.d)+'ms');
+    }
+    updTele();
+  }
+  function finishBar(scored){
+    if(scored){
+      state.phase='between';
+      const acc=state.correct/state.expected.length;
+      banner.textContent = acc>=0.75 ? '\uD83C\uDF89 Great rhythm! ('+state.correct+'/'+state.expected.length+')' : 'Nice try - '+state.correct+'/'+state.expected.length+' kept';
+      if(acc>=0.75 && level<levels.length-1){
+        setTimeout(()=>{ level++; log('--- level up to '+(level+1)+' ('+levels[level].label+') ---'); runScored(); }, 1200);
+      } else {
+        replayBtn.style.display='inline-block';
+        replayBtn.textContent='Play again';
+      }
+    } else {
+      // warm-up done -> go scored
+      banner.textContent='Warm-up done!';
+      setTimeout(runScored, 900);
+    }
+    updTele();
+  }
+
+  // ---------- flow ----------
+  function runDemo(){
+    state.phase='demo';
+    ghostDemo(()=>{
+      banner.textContent='Now you try (warm-up)';
+      setTimeout(()=>{ playPattern(()=>{ state.phase='warmup'; childContinue(false); }); }, 400);
+    });
+  }
+  function runScored(){
+    banner.textContent=levels[level].label+' - listen...';
+    playPattern(()=>{ state.phase='scored'; childContinue(true); });
+  }
+
+  function ensureAudio(){
+    if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ AC=null; } }
+    if(AC && AC.state==='suspended') AC.resume();
+  }
+
+  startBtn.addEventListener('click', ()=>{ ensureAudio(); startBtn.style.display='none'; replayBtn.style.display='none'; level=0; runDemo(); });
+  replayBtn.addEventListener('click', ()=>{ level=0; replayBtn.style.display='none'; runScored(); });
+
+  // engagement logging
+  setInterval(()=>{ if(Date.now()-state.lastActivity>3000 && (state.phase==='warmup'||state.phase==='scored')){ state.idle++; state.lastActivity=Date.now(); updTele(); } },1000);
+  window.addEventListener('blur', ()=>{ state.blur++; updTele(); });
+  updTele();
+})();
+</script>
+</body>
+</html>
