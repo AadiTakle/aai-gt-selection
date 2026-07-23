@@ -75,9 +75,6 @@ def main():
                 warnings.append(f"{name}:{i} {o['type_id']} bad areas {o['areas']}")
             if not set(o["age_bands"]) <= set(BANDS):
                 warnings.append(f"{name}:{i} {o['type_id']} bad age_bands {o['age_bands']}")
-            for mid in o.get("measurements", []):
-                if mid not in meas_ids:
-                    warnings.append(f"{name}:{i} {o['type_id']} unknown measurement {mid}")
             dp = os.path.join(HERE, o["demo_path"])
             if not os.path.exists(dp):
                 warnings.append(f"{name}:{i} {o['type_id']} demo missing: {o['demo_path']}")
@@ -93,6 +90,13 @@ def main():
                              "how_much_to_collect": nm.get("how_much_to_collect", "")})
                 meas_ids.add(nm["id"]); meas_names.add(nm.get("name", "").lower()); new_meas_added += 1
             rows.append(o)
+
+    # validate measurement references AFTER all proposals are merged (two-pass; avoids
+    # false "unknown" warnings for measurements a type proposes and uses on the same line)
+    for r in rows:
+        for mid in r.get("measurements", []):
+            if mid not in meas_ids:
+                warnings.append(f"{r['type_id']} references unknown measurement {mid}")
 
     json.dump(meas, open(MEAS_JSON, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
     render_measurements_md(meas)
