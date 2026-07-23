@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WM-ruleflip-01 — Rule-Flip Farm (DCCS sort + opposite gate)</title>
+<style>
+  :root{--bg:#0e1220;--panel:#171d33;--edge:#2a3358;--ink:#e9edff;--mut:#8b93c0;--accent:#5cc8ff;--good:#5ce39a;--bad:#ff6b8a;--warn:#ffd166;--red:#ff5a7a;--blue:#4aa3ff;}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.45 system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);display:flex;min-height:100vh}
+  .main{flex:1;display:flex;flex-direction:column;align-items:center;padding:20px;gap:12px}
+  h1{font-size:19px;margin:.2rem 0}.sub{color:var(--mut);font-size:13px;margin:0;text-align:center;max-width:480px}
+  .badge{display:inline-block;padding:2px 9px;border-radius:99px;background:var(--panel);border:1px solid var(--edge);color:var(--warn);font-size:12px}
+  #flag{font-size:15px;font-weight:700;padding:8px 16px;border-radius:12px;background:#20284a;border:1px solid var(--edge);display:flex;gap:10px;align-items:center}
+  .fico{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:20px}
+  .barns{display:flex;gap:26px}
+  .barn{width:180px;height:150px;border-radius:14px 14px 10px 10px;border:3px solid var(--edge);background:#1a2140;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-size:44px;position:relative}
+  .barn:active{transform:scale(.98)}
+  .barn .tag{position:absolute;top:8px;display:flex;gap:8px;font-size:22px}
+  .barn.roofL{border-top:14px solid var(--red)}
+  .barn.roofR{border-top:14px solid var(--blue)}
+  .barn.good{box-shadow:0 0 22px 4px #5ce39a88}.barn.bad{box-shadow:0 0 22px 4px #ff6b8a88}
+  #card{width:120px;height:120px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:70px;border:4px solid #fff3;box-shadow:0 6px 20px #0006;transition:opacity .15s,transform .15s}
+  #cue{font-size:22px;height:30px;text-align:center}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+  button{font:inherit;padding:9px 15px;border-radius:10px;border:1px solid var(--edge);background:#20284a;color:var(--ink);cursor:pointer}
+  button.pri{background:var(--accent);color:#062033;border-color:transparent;font-weight:600}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .tel{width:320px;background:var(--panel);border-left:1px solid var(--edge);padding:14px 14px 40px;overflow:auto;font:12px/1.55 ui-monospace,Menlo,Consolas,monospace}
+  .tel h2{font:600 12px system-ui;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:14px 0 6px}
+  .kv{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted #2a3358;padding:2px 0}
+  .kv b{color:var(--accent);font-weight:600}.kv .m{color:var(--mut);font-size:10px}
+  .log{margin-top:6px;max-height:150px;overflow:auto;border:1px solid var(--edge);border-radius:8px;padding:6px;background:#10152a}
+  .log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+</head>
+<body>
+<div class="main">
+  <div style="text-align:center">
+    <h1>🚜 Rule-Flip Farm <span class="badge" id="bmode">sort by colour</span></h1>
+    <p class="sub" id="prompt">Send each animal to the barn that matches the <b>flag rule</b>. When the flag flips, switch rules!</p>
+  </div>
+  <div id="flag"><span>rule:</span><span class="fico" id="fico">🎨</span><span id="flabel">colour</span></div>
+  <div class="barns">
+    <div class="barn roofL" id="barnL"><div class="tag"><span>🟥</span><span>🐰</span></div><span id="barnLbody"> </span></div>
+    <div class="barn roofR" id="barnR"><div class="tag"><span>🟦</span><span>⛵</span></div><span id="barnRbody"> </span></div>
+  </div>
+  <div style="display:flex;align-items:center;justify-content:center;height:130px"><div id="card">🐰</div></div>
+  <div id="cue">👀</div>
+  <div class="row">
+    <button class="pri" id="go">▶ Watch how it works</button>
+    <button id="replay" disabled>↺ Replay demo</button>
+  </div>
+  <p class="sub" id="phasehint">A ghost hand shows you first — no reading needed.</p>
+</div>
+<aside class="tel" id="tel"></aside>
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+// bivalent cards: color in {red,blue}, kind in {rabbit,boat}
+const KIND={rabbit:"🐰",boat:"⛵"};
+const card=$("#card"),barnL=$("#barnL"),barnR=$("#barnR");
+const T={phase:"idle",trials:[],blur:0,log:[]};
+
+function mean(a){return a.length?a.reduce((x,y)=>x+y,0)/a.length:0;}
+function cv(a){if(a.length<2)return 0;const m=mean(a);if(!m)return 0;return Math.sqrt(mean(a.map(x=>(x-m)**2)))/m;}
+function logE(s){T.log.unshift(`${(performance.now()/1000).toFixed(1)}s · ${s}`);if(T.log.length>60)T.log.pop();}
+function scored(){return T.trials.filter(t=>t.scored);}
+function render(){
+  const S=scored();
+  const rep=S.filter(t=>t.type==="repeat"&&t.correct),sw=S.filter(t=>t.type==="switch"&&t.correct);
+  const switchCost=(rep.length&&sw.length)?Math.round(mean(sw.map(t=>t.rt))-mean(rep.map(t=>t.rt))):null;
+  const post=S.filter(t=>t.type==="switch");const persev=post.length?Math.round(100*post.filter(t=>t.perseverative).length/post.length):null;
+  const norm=S.filter(t=>!t.opposite&&t.correct),opp=S.filter(t=>t.opposite&&t.correct);
+  const congEff=(norm.length&&opp.length)?Math.round(mean(opp.map(t=>t.rt))-mean(norm.map(t=>t.rt))):null;
+  const oppAll=S.filter(t=>t.opposite);const comm=oppAll.length?Math.round(100*oppAll.filter(t=>!t.correct).length/oppAll.length):null;
+  const acc=S.length?Math.round(100*S.filter(t=>t.correct).length/S.length):0;
+  // post-error slowing
+  let peRT=[],pcRT=[];for(let i=1;i<S.length;i++){if(!S[i-1].correct)peRT.push(S[i].rt);else pcRT.push(S[i].rt);}
+  const posterr=(peRT.length&&pcRT.length)?Math.round(mean(peRT)-mean(pcRT)):null;
+  const errItems=S.filter(t=>!t.correct);
+  $("#tel").innerHTML=`
+  <h2>Live telemetry · WM-ruleflip-01</h2>
+  <div class="kv"><span>phase</span><b>${T.phase}</b></div>
+  <div class="kv"><span>scored trials</span><b>${S.length}</b></div>
+  <div class="kv"><span>overall acc <span class="m">M-ACC</span></span><b>${acc}%</b></div>
+  <h2>Set-shifting</h2>
+  <div class="kv"><span>switch cost (ms) <span class="m">M-SWITCHCOST</span></span><b>${switchCost==null?"—":switchCost}</b></div>
+  <div class="kv"><span>perseverative err <span class="m">M-PERSEV</span></span><b>${persev==null?"—":persev+"%"}</b></div>
+  <h2>Inhibition (opposite gate)</h2>
+  <div class="kv"><span>interference (ms) <span class="m">M-CONGEFF</span></span><b>${congEff==null?"—":congEff}</b></div>
+  <div class="kv"><span>commission err <span class="m">M-COMM</span></span><b>${comm==null?"—":comm+"%"}</b></div>
+  <h2>Consistency & monitoring</h2>
+  <div class="kv"><span>RT CV <span class="m">M-RTVAR</span></span><b>${cv(S.filter(t=>t.correct).map(t=>t.rt)).toFixed(2)}</b></div>
+  <div class="kv"><span>post-error slowing <span class="m">M-POSTERR</span></span><b>${posterr==null?"—":posterr+"ms"}</b></div>
+  <div class="kv"><span>error trials <span class="m">M-ERRTYPE</span></span><b>${errItems.length}</b></div>
+  <div class="kv"><span>focus-loss (blur) <span class="m">M-ENGAGE</span></span><b>${T.blur}</b></div>
+  <div class="log">${T.log.map(l=>`<div>${l}</div>`).join("")}</div>`;
+}
+window.addEventListener("blur",()=>{T.blur++;render();});
+render();
+
+function setFlag(rule,opposite){
+  if(opposite){$("#fico").textContent="🌗";$("#flabel").textContent="OPPOSITE — wrong barn!";$("#flag").style.borderColor="var(--warn)";}
+  else{$("#fico").textContent=rule==="color"?"🎨":"🐾";$("#flabel").textContent=rule==="color"?"colour":"animal";$("#flag").style.borderColor="var(--edge)";}
+  $("#bmode").textContent=opposite?"opposite gate":"sort by "+(rule==="color"?"colour":"animal");
+}
+// correct barn (L/R) for a card under a rule (before opposite flip)
+function baseBarn(cd,rule){ if(rule==="color")return cd.color==="red"?"L":"R"; return cd.kind==="rabbit"?"L":"R"; }
+
+let awaiting=null;
+function bindBarns(){
+  [["L",barnL],["R",barnR]].forEach(([side,el])=>el.onclick=()=>{ if(!awaiting)return;awaiting(side); });
+}
+bindBarns();
+
+async function presentTrial({rule,type,opposite,scored:sc}){
+  const cd={color:Math.random()<.5?"red":"blue",kind:Math.random()<.5?"rabbit":"boat"};
+  setFlag(rule,opposite);
+  card.textContent=KIND[cd.kind];card.style.background=cd.color==="red"?"var(--red)":"var(--blue)";card.style.opacity="1";
+  $("#cue").textContent=opposite?"send to the OPPOSITE barn!":"which barn?";
+  const t0=performance.now();
+  const side=await new Promise(res=>{awaiting=res;});
+  awaiting=null;const rt=performance.now()-t0;
+  const base=baseBarn(cd,rule);const correctSide=opposite?(base==="L"?"R":"L"):base;
+  const correct=side===correctSide;
+  // perseverative: on a switch trial, choosing the barn that the OLD rule would have picked
+  let perseverative=false;
+  if(type==="switch"){const oldRule=rule==="color"?"kind":"color";const oldBase=baseBarn(cd,oldRule);const oldSide=opposite?(oldBase==="L"?"R":"L"):oldBase;perseverative=(side===oldSide&&side!==correctSide);}
+  (side==="L"?barnL:barnR).classList.add(correct?"good":"bad");
+  await sleep(300);barnL.classList.remove("good","bad");barnR.classList.remove("good","bad");
+  card.style.opacity="0";
+  const rec={rule,type,opposite:!!opposite,scored:sc,rt,correct,perseverative};
+  T.trials.push(rec);
+  if(sc)logE(`${type}${opposite?"/opp":""} ${cd.color[0]}${cd.kind[0]} ${correct?"ok":"X"} ${Math.round(rt)}ms`);
+  render();await sleep(200);return rec;
+}
+
+// schedule builder: pure color -> switch to kind -> mixed with opposite gates
+function buildSchedule(sc){
+  const sch=[];
+  for(let i=0;i<4;i++)sch.push({rule:"color",type:i===0?"start":"repeat",opposite:false,scored:sc});
+  sch.push({rule:"kind",type:"switch",opposite:false,scored:sc});
+  for(let i=0;i<3;i++)sch.push({rule:"kind",type:"repeat",opposite:false,scored:sc});
+  sch.push({rule:"color",type:"switch",opposite:false,scored:sc});
+  // opposite gates
+  sch.push({rule:"color",type:"repeat",opposite:true,scored:sc});
+  sch.push({rule:"color",type:"repeat",opposite:false,scored:sc});
+  sch.push({rule:"kind",type:"switch",opposite:true,scored:sc});
+  return sch;
+}
+
+async function demo(){
+  if(T.phase==="demo")return;T.phase="demo";$("#go").disabled=true;$("#replay").disabled=true;render();
+  const ghost=document.createElement("div");ghost.textContent="👆";
+  ghost.style.cssText="position:fixed;font-size:30px;z-index:9;transition:left .3s,top .3s;opacity:0;pointer-events:none";document.body.appendChild(ghost);
+  // 1) color rule: red rabbit -> left (red) barn
+  setFlag("color",false);card.textContent="🐰";card.style.background="var(--red)";card.style.opacity="1";$("#cue").textContent="colour flag → red barn";
+  let r=barnL.getBoundingClientRect();ghost.style.opacity="1";ghost.style.left=(r.left+r.width/2-10)+"px";ghost.style.top=(r.top+20)+"px";
+  await sleep(600);barnL.classList.add("good");await sleep(350);barnL.classList.remove("good");card.style.opacity="0";await sleep(300);
+  // 2) flag flips to animal: red boat -> right (boat) barn
+  setFlag("kind",false);card.textContent="⛵";card.style.background="var(--red)";card.style.opacity="1";$("#cue").textContent="flag flipped → animal rule";
+  r=barnR.getBoundingClientRect();ghost.style.left=(r.left+r.width/2-10)+"px";ghost.style.top=(r.top+20)+"px";
+  await sleep(600);barnR.classList.add("good");await sleep(350);barnR.classList.remove("good");card.style.opacity="0";
+  $("#cue").textContent="✅";await sleep(500);ghost.remove();
+  T.phase="idle";$("#go").disabled=false;$("#replay").disabled=false;
+  $("#go").textContent="▶ Try a practice round";$("#go").onclick=warmup;
+  $("#phasehint").textContent="Now you try — this practice round is NOT scored.";render();
+}
+async function warmup(){
+  T.phase="warm-up (unscored)";$("#go").disabled=true;$("#replay").disabled=true;render();
+  for(const step of [{rule:"color",type:"start",opposite:false,scored:false},{rule:"color",type:"repeat",opposite:false,scored:false},{rule:"kind",type:"switch",opposite:false,scored:false}])
+    await presentTrial(step);
+  T.phase="idle";$("#go").disabled=false;$("#replay").disabled=false;
+  $("#go").textContent="▶ Start scored game";$("#go").onclick=startScored;
+  $("#phasehint").textContent="These count. Watch the flag — switch the rule when it flips.";render();
+}
+async function startScored(){
+  T.phase="scored";$("#go").disabled=true;$("#replay").disabled=true;render();
+  for(const step of buildSchedule(true))await presentTrial(step);
+  T.phase="done";$("#go").disabled=false;$("#replay").disabled=false;
+  $("#go").textContent="▶ Play again";$("#go").onclick=startScored;
+  $("#phasehint").textContent="Done. Low perseveration + small switch/interference cost held at high accuracy is the strong signal — not speed.";
+  $("#cue").textContent="🏁";render();
+}
+$("#go").onclick=demo;$("#replay").onclick=demo;
+</script>
+</body>
+</html>

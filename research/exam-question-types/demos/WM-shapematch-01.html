@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WM-shapematch-01 — Shape Buddy Match (match-to-sample DCCS)</title>
+<style>
+  :root{--bg:#0e1220;--panel:#171d33;--edge:#2a3358;--ink:#e9edff;--mut:#8b93c0;--accent:#5cc8ff;--good:#5ce39a;--bad:#ff6b8a;--warn:#ffd166;}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.45 system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);display:flex;min-height:100vh}
+  .main{flex:1;display:flex;flex-direction:column;align-items:center;padding:20px;gap:12px}
+  h1{font-size:19px;margin:.2rem 0}.sub{color:var(--mut);font-size:13px;margin:0;text-align:center;max-width:480px}
+  .badge{display:inline-block;padding:2px 9px;border-radius:99px;background:var(--panel);border:1px solid var(--edge);color:var(--warn);font-size:12px}
+  #banner{font-size:15px;font-weight:800;padding:8px 16px;border-radius:12px;border:2px solid var(--edge);background:#20284a;display:flex;gap:10px;align-items:center}
+  .bswatch{width:24px;height:24px;border-radius:6px}
+  .card{width:110px;height:110px;background:var(--panel);border:2px solid var(--edge);border-radius:16px;display:flex;align-items:center;justify-content:center}
+  .card.target{border-color:var(--warn);box-shadow:0 0 18px 2px #ffd16655}
+  .choice{cursor:pointer;transition:transform .1s}
+  .choice:active{transform:scale(.96)}
+  .choice.good{box-shadow:0 0 22px 4px #5ce39a88;border-color:var(--good)}
+  .choice.bad{box-shadow:0 0 22px 4px #ff6b8a88;border-color:var(--bad)}
+  .sh{width:66px;height:66px}
+  .choices{display:flex;gap:34px}
+  #cue{font-size:22px;height:30px;text-align:center}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+  button.ctl{font:inherit;padding:9px 15px;border-radius:10px;border:1px solid var(--edge);background:#20284a;color:var(--ink);cursor:pointer}
+  button.pri{background:var(--accent);color:#062033;border-color:transparent;font-weight:600}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .seg{display:inline-flex;border:1px solid var(--edge);border-radius:10px;overflow:hidden}
+  .seg button{border:0;border-radius:0;padding:7px 12px;background:#182042;color:var(--ink);cursor:pointer}
+  .seg button.on{background:var(--warn);color:#3a2c00;font-weight:600}
+  .tel{width:320px;background:var(--panel);border-left:1px solid var(--edge);padding:14px 14px 40px;overflow:auto;font:12px/1.55 ui-monospace,Menlo,Consolas,monospace}
+  .tel h2{font:600 12px system-ui;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:14px 0 6px}
+  .kv{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted #2a3358;padding:2px 0}
+  .kv b{color:var(--accent);font-weight:600}.kv .m{color:var(--mut);font-size:10px}
+  .log{margin-top:6px;max-height:150px;overflow:auto;border:1px solid var(--edge);border-radius:8px;padding:6px;background:#10152a}
+  .log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+</head>
+<body>
+<div class="main">
+  <div style="text-align:center">
+    <h1>🧩 Shape Buddy Match <span class="badge" id="bmode">match by colour</span></h1>
+    <p class="sub">Tap the card that <b>goes with</b> the top buddy by the banner rule. The rule can quietly change!</p>
+  </div>
+  <div id="banner"><span>match by:</span><span class="bswatch" id="bsw"></span><span id="blabel">colour</span></div>
+  <div class="card target" id="target"><div class="sh" id="targetSh"></div></div>
+  <div id="cue">👀</div>
+  <div class="choices">
+    <div class="card choice" id="c0"><div class="sh"></div></div>
+    <div class="card choice" id="c1"><div class="sh"></div></div>
+  </div>
+  <div class="row">
+    <div class="seg" id="ruleseg">
+      <button data-r="cued" class="on">rule shown</button>
+      <button data-r="hidden">rule hidden (discover)</button>
+    </div>
+  </div>
+  <div class="row">
+    <button class="ctl pri" id="go">▶ Watch how it works</button>
+    <button class="ctl" id="replay" disabled>↺ Replay demo</button>
+  </div>
+  <p class="sub" id="phasehint">A ghost hand shows you first — no reading needed.</p>
+</div>
+<aside class="tel" id="tel"></aside>
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const COLORS={red:"#ff5a7a",blue:"#4aa3ff",green:"#7bd88f",yellow:"#ffd166"};
+const SHAPES=["circle","square","star","triangle"];
+const CLIP={star:"polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)",
+  triangle:"polygon(50% 2%,98% 98%,2% 98%)"};
+let ruleMode="cued";
+const T={phase:"idle",rule:"color",trials:[],blur:0,log:[]};
+
+function styleShape(el,color,shape){el.style.background=COLORS[color];
+  el.style.borderRadius=shape==="circle"?"50%":shape==="square"?"10px":"0";
+  el.style.clipPath=CLIP[shape]||"none";}
+function mean(a){return a.length?a.reduce((x,y)=>x+y,0)/a.length:0;}
+function cv(a){if(a.length<2)return 0;const m=mean(a);if(!m)return 0;return Math.sqrt(mean(a.map(x=>(x-m)**2)))/m;}
+function logE(s){T.log.unshift(`${(performance.now()/1000).toFixed(1)}s · ${s}`);if(T.log.length>60)T.log.pop();}
+function scored(){return T.trials.filter(t=>t.scored);}
+function render(){
+  const S=scored();
+  const rep=S.filter(t=>t.type==="repeat"&&t.correct),sw=S.filter(t=>t.type==="switch"&&t.correct);
+  const switchCost=(rep.length&&sw.length)?Math.round(mean(sw.map(t=>t.rt))-mean(rep.map(t=>t.rt))):null;
+  const post=S.filter(t=>t.type==="switch");const persev=post.length?Math.round(100*post.filter(t=>t.perseverative).length/post.length):null;
+  const acc=S.length?Math.round(100*S.filter(t=>t.correct).length/S.length):0;
+  $("#tel").innerHTML=`
+  <h2>Live telemetry · WM-shapematch-01</h2>
+  <div class="kv"><span>phase</span><b>${T.phase}</b></div>
+  <div class="kv"><span>scored trials</span><b>${S.length}</b></div>
+  <div class="kv"><span>overall acc <span class="m">M-ACC</span></span><b>${acc}%</b></div>
+  <h2>Set-shifting</h2>
+  <div class="kv"><span>switch cost (ms) <span class="m">M-SWITCHCOST</span></span><b>${switchCost==null?"—":switchCost}</b></div>
+  <div class="kv"><span>perseverative err <span class="m">M-PERSEV</span></span><b>${persev==null?"—":persev+"%"}</b></div>
+  <h2>Timing (consistency, not speed)</h2>
+  <div class="kv"><span>first-action latency <span class="m">M-RTFIRST</span></span><b>${S.length?Math.round(mean(S.map(t=>t.rt)))+"ms":"—"}</b></div>
+  <div class="kv"><span>RT CV <span class="m">M-RTVAR</span></span><b>${cv(S.filter(t=>t.correct).map(t=>t.rt)).toFixed(2)}</b></div>
+  <div class="kv"><span>correct series <span class="m">M-CONSIST</span></span><b>${S.slice(-14).map(t=>t.correct?"✓":"✗").join("")||"—"}</b></div>
+  <div class="kv"><span>error trials <span class="m">M-ERRTYPE</span></span><b>${S.filter(t=>!t.correct).length}</b></div>
+  <div class="kv"><span>focus-loss (blur) <span class="m">M-ENGAGE</span></span><b>${T.blur}</b></div>
+  <div class="log">${T.log.map(l=>`<div>${l}</div>`).join("")}</div>`;
+}
+window.addEventListener("blur",()=>{T.blur++;render();});
+render();
+
+function setBanner(){const known=ruleMode==="cued";
+  $("#bsw").style.background=known?(T.rule==="color"?"#4aa3ff":"transparent"):"transparent";
+  $("#bsw").style.clipPath=(known&&T.rule==="shape")?CLIP.star:"none";
+  $("#bsw").style.border=(known&&T.rule==="shape")?"3px solid var(--ink)":"none";
+  $("#blabel").textContent=known?(T.rule==="color"?"colour":"shape"):"??? (figure it out)";
+  $("#bmode").textContent=known?"match by "+(T.rule==="color"?"colour":"shape"):"hidden rule";}
+
+let awaiting=null;
+$("#c0").onclick=()=>awaiting&&awaiting(0);
+$("#c1").onclick=()=>awaiting&&awaiting(1);
+
+function pick(arr,not){let x;do{x=arr[Math.random()*arr.length|0];}while(not!==undefined&&x===not);return x;}
+async function presentTrial({type,scored:sc}){
+  const tcolor=pick(Object.keys(COLORS)),tshape=pick(SHAPES);
+  styleShape($("#targetSh"),tcolor,tshape);
+  // one choice matches colour (diff shape), other matches shape (diff colour)
+  const colorMatch={color:tcolor,shape:pick(SHAPES,tshape)};
+  const shapeMatch={color:pick(Object.keys(COLORS),tcolor),shape:tshape};
+  const opts=Math.random()<.5?[colorMatch,shapeMatch]:[shapeMatch,colorMatch];
+  const colorIdx=opts.indexOf(colorMatch);
+  styleShape($("#c0").firstElementChild,opts[0].color,opts[0].shape);
+  styleShape($("#c1").firstElementChild,opts[1].color,opts[1].shape);
+  setBanner();$("#cue").textContent=ruleMode==="cued"?"tap the match":"tap your best guess";
+  const correctIdx=T.rule==="color"?colorIdx:(colorIdx===0?1:0);
+  const oldRuleIdx=T.rule==="color"?((colorIdx===0)?1:0):colorIdx; // idx that OLD rule would pick
+  const t0=performance.now();
+  const p=await new Promise(res=>{awaiting=res;});awaiting=null;
+  const rt=performance.now()-t0;const correct=p===correctIdx;
+  const perseverative=(type==="switch"&&p===oldRuleIdx&&p!==correctIdx);
+  (p===0?$("#c0"):$("#c1")).classList.add(correct?"good":"bad");
+  await sleep(300);$("#c0").classList.remove("good","bad");$("#c1").classList.remove("good","bad");
+  const rec={type,scored:sc,rt,correct,perseverative};T.trials.push(rec);
+  if(sc)logE(`${T.rule}/${type} ${correct?"ok":"X"}${perseverative?" persev":""} ${Math.round(rt)}ms`);
+  render();await sleep(160);return rec;
+}
+function buildSchedule(sc){
+  const s=[];T.rule="color";
+  const seq=[["color","start"],["color","repeat"],["color","repeat"],
+    ["shape","switch"],["shape","repeat"],["shape","repeat"],
+    ["color","switch"],["color","repeat"],
+    ["shape","switch"],["shape","repeat"]];
+  return seq.map(([r,t])=>({rule:r,type:t,scored:sc}));
+}
+async function runSeq(seq){for(const step of seq){T.rule=step.rule;await presentTrial(step);}}
+
+async function demo(){
+  if(T.phase==="demo")return;T.phase="demo";$("#go").disabled=true;$("#replay").disabled=true;render();
+  const ghost=document.createElement("div");ghost.textContent="👆";
+  ghost.style.cssText="position:fixed;font-size:30px;z-index:9;transition:left .3s,top .3s;opacity:0;pointer-events:none";document.body.appendChild(ghost);
+  ruleMode="cued";
+  // trial 1: colour rule. target blue star; choices blue circle (colour), red star (shape)
+  T.rule="color";styleShape($("#targetSh"),"blue","star");
+  styleShape($("#c0").firstElementChild,"blue","circle");styleShape($("#c1").firstElementChild,"red","star");setBanner();
+  $("#cue").textContent="colour rule → tap the BLUE one";
+  let r=$("#c0").getBoundingClientRect();ghost.style.opacity="1";ghost.style.left=(r.left+r.width/2-10)+"px";ghost.style.top=(r.top+30)+"px";
+  await sleep(700);$("#c0").classList.add("good");await sleep(400);$("#c0").classList.remove("good");await sleep(300);
+  // trial 2: banner flips to shape. tap the star (red star)
+  T.rule="shape";setBanner();styleShape($("#targetSh"),"blue","star");
+  styleShape($("#c0").firstElementChild,"blue","circle");styleShape($("#c1").firstElementChild,"red","star");
+  $("#cue").textContent="rule changed → tap the STAR";
+  r=$("#c1").getBoundingClientRect();ghost.style.left=(r.left+r.width/2-10)+"px";ghost.style.top=(r.top+30)+"px";
+  await sleep(700);$("#c1").classList.add("good");await sleep(400);$("#c1").classList.remove("good");
+  $("#cue").textContent="✅";await sleep(500);ghost.remove();
+  T.phase="idle";$("#go").disabled=false;$("#replay").disabled=false;
+  $("#go").textContent="▶ Try a practice round";$("#go").onclick=warmup;
+  $("#phasehint").textContent="Now you try — this practice round is NOT scored.";render();
+}
+async function warmup(){
+  T.phase="warm-up (unscored)";$("#go").disabled=true;$("#replay").disabled=true;render();
+  await runSeq([{rule:"color",type:"start",scored:false},{rule:"color",type:"repeat",scored:false},{rule:"shape",type:"switch",scored:false}]);
+  T.phase="idle";$("#go").disabled=false;$("#replay").disabled=false;
+  $("#go").textContent="▶ Start scored game";$("#go").onclick=startScored;
+  $("#phasehint").textContent="These count. The rule can switch without warning — watch the banner (or feedback).";render();
+}
+async function startScored(){
+  T.phase="scored";$("#go").disabled=true;$("#replay").disabled=true;render();
+  await runSeq(buildSchedule(true));
+  T.phase="done";$("#go").disabled=false;$("#replay").disabled=false;
+  $("#go").textContent="▶ Play again";$("#go").onclick=startScored;
+  $("#phasehint").textContent="Done. Low perseveration + small switch cost at high accuracy is the strong signal — consistency over speed.";
+  $("#cue").textContent="🏁";render();
+}
+$("#go").onclick=demo;$("#replay").onclick=demo;
+$("#ruleseg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;ruleMode=b.dataset.r;
+  [...$("#ruleseg").children].forEach(x=>x.classList.toggle("on",x===b));setBanner();logE("rule cue → "+ruleMode);render();});
+setBanner();
+</script>
+</body>
+</html>

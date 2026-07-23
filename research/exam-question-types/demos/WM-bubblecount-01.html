@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WM-bubblecount-01 — Bubble Count Catch (counting span + same-count 1-back)</title>
+<style>
+  :root{--bg:#0e1220;--panel:#171d33;--edge:#2a3358;--ink:#e9edff;--mut:#8b93c0;--accent:#5cc8ff;--good:#5ce39a;--bad:#ff6b8a;--warn:#ffd166;}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.45 system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);display:flex;min-height:100vh}
+  .main{flex:1;display:flex;flex-direction:column;align-items:center;padding:20px;gap:12px}
+  h1{font-size:19px;margin:.2rem 0}.sub{color:var(--mut);font-size:13px;margin:0;text-align:center;max-width:470px}
+  .badge{display:inline-block;padding:2px 9px;border-radius:99px;background:var(--panel);border:1px solid var(--edge);color:var(--warn);font-size:12px}
+  .legend{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--mut)}
+  .swatch{width:22px;height:22px;border-radius:50%}
+  #tank{width:380px;height:320px;background:linear-gradient(180deg,#0b2545,#0a1a33);border:1px solid var(--edge);border-radius:18px;position:relative;overflow:hidden}
+  .bub{position:absolute;border-radius:50%;cursor:pointer;box-shadow:inset -6px -8px 12px #0004,inset 6px 6px 10px #fff5;transition:transform .1s,opacity .15s}
+  .bub:active{transform:scale(.8)}
+  .bub.pop{opacity:0;transform:scale(1.4)}
+  .slots{display:flex;gap:10px;min-height:34px;align-items:center;justify-content:center}
+  .slot{width:32px;height:32px;border-radius:8px;border:2px dashed var(--edge);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700}
+  .slot.full{border-style:solid;border-color:var(--accent)}
+  .paw{font:600 17px system-ui;padding:16px 26px;border-radius:14px;border:2px solid var(--edge);background:#20284a;color:var(--ink);cursor:pointer;min-width:190px}
+  .paw.flash{background:var(--good);color:#05261a;border-color:transparent}
+  .pad{width:50px;height:50px;border-radius:12px;border:2px solid var(--edge);background:#20284a;color:var(--ink);font-size:22px;font-weight:700;cursor:pointer}
+  #cue{font-size:22px;height:30px;text-align:center}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+  button{font:inherit;padding:9px 15px;border-radius:10px;border:1px solid var(--edge);background:#20284a;color:var(--ink);cursor:pointer}
+  button.pri{background:var(--accent);color:#062033;border-color:transparent;font-weight:600}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .seg{display:inline-flex;border:1px solid var(--edge);border-radius:10px;overflow:hidden}
+  .seg button{border:0;border-radius:0;padding:7px 12px;background:#182042}
+  .seg button.on{background:var(--warn);color:#3a2c00;font-weight:600}
+  .tel{width:320px;background:var(--panel);border-left:1px solid var(--edge);padding:14px 14px 40px;overflow:auto;font:12px/1.55 ui-monospace,Menlo,Consolas,monospace}
+  .tel h2{font:600 12px system-ui;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:14px 0 6px}
+  .kv{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted #2a3358;padding:2px 0}
+  .kv b{color:var(--accent);font-weight:600}.kv .m{color:var(--mut);font-size:10px}
+  .log{margin-top:6px;max-height:140px;overflow:auto;border:1px solid var(--edge);border-radius:8px;padding:6px;background:#10152a}
+  .log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+</head>
+<body>
+<div class="main">
+  <div style="text-align:center">
+    <h1>🫧 Bubble Count Catch <span class="badge" id="bmode">count · set 2</span></h1>
+    <p class="sub" id="prompt">Pop only the <b>red</b> bubbles to count them. Remember how many red were in each burst.</p>
+  </div>
+  <div class="legend">count the <span class="swatch" style="background:#ff5a7a"></span> red bubbles — ignore the rest</div>
+  <div id="tank"></div>
+  <div class="slots" id="slots"></div>
+  <div id="cue">👀</div>
+  <div class="row" id="answerRow"></div>
+  <div class="row">
+    <div class="seg" id="modeseg">
+      <button data-m="count" class="on">Count (span)</button>
+      <button data-m="same">Same-count (1-back)</button>
+    </div>
+    <label class="sub" style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="adapt" checked> above-grade staircase</label>
+  </div>
+  <div class="row">
+    <button class="pri" id="go">▶ Watch how it works</button>
+    <button id="replay" disabled>↺ Replay demo</button>
+  </div>
+  <p class="sub" id="phasehint">A ghost hand shows you first — no reading needed.</p>
+</div>
+<aside class="tel" id="tel"></aside>
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const tank=$("#tank");
+const TARGET="#ff5a7a", OTHERS=["#5cc8ff","#7bd88f","#ffd166","#b98cff"];
+let mode="count";
+const T={phase:"idle",setSize:2,spanMax:0,cHit:0,cTot:0,misTap:0,
+  hit:0,miss:0,fa:0,cr:0,target:0,hitRT:[],
+  recallHit:0,recallTot:0,blockAcc:[],accBySize:{},blur:0,log:[]};
+
+function mean(a){return a.length?a.reduce((x,y)=>x+y,0)/a.length:0;}
+function cv(a){if(a.length<2)return 0;const m=mean(a);if(!m)return 0;return Math.sqrt(mean(a.map(x=>(x-m)**2)))/m;}
+function qnorm(p){p=Math.min(1-1e-6,Math.max(1e-6,p));const a=[-39.6968302,220.9460984,-275.928510,138.357751,-30.6647980,2.50662827];
+  const b=[-54.4760987,161.585836,-155.698979,66.8013118,-13.2806815];const c=[-.00778489,-.322396458,-2.40075827,-2.54973253,4.37466414,2.93816398];
+  const d=[.00778469,.322467129,2.44513413,3.75440866];const pl=.02425;
+  if(p<pl){const q=Math.sqrt(-2*Math.log(p));return(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);}
+  if(p<=1-pl){const q=p-.5,r=q*q;return(((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);}
+  const q=Math.sqrt(-2*Math.log(1-p));return-(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);}
+function dprime(){const t=T.target,nt=T.cr+T.fa;if(!t||!nt)return 0;let h=T.hit/t,f=T.fa/nt;
+  h=Math.min(1-.5/t,Math.max(.5/t,h));f=Math.min(1-.5/nt,Math.max(.5/nt,f));return qnorm(h)-qnorm(f);}
+function logE(s){T.log.unshift(`${(performance.now()/1000).toFixed(1)}s · ${s}`);if(T.log.length>50)T.log.pop();}
+function render(){
+  const proc=T.cTot?Math.round(100*T.cHit/T.cTot):0;
+  const recall=T.recallTot?Math.round(100*T.recallHit/T.recallTot):0;
+  const faRate=(T.fa+T.cr)?Math.round(100*T.fa/(T.fa+T.cr)):0;
+  const slope=Object.keys(T.accBySize).sort().map(k=>{const s=T.accBySize[k];return `s${k}:${Math.round(100*s.hit/s.tot)}%`;}).join(" ");
+  $("#tel").innerHTML=`
+  <h2>Live telemetry · WM-bubblecount-01</h2>
+  <div class="kv"><span>phase</span><b>${T.phase}</b></div>
+  <div class="kv"><span>mode</span><b>${mode}</b></div>
+  <h2>Counting span</h2>
+  <div class="kv"><span>span threshold <span class="m">M-SPAN</span></span><b>${T.spanMax||"—"}</b></div>
+  <div class="kv"><span>counting accuracy <span class="m">M-PROCACC</span></span><b>${T.cTot?proc+"%":"—"}</b></div>
+  <div class="kv"><span>recall accuracy <span class="m">M-ACC</span></span><b>${T.recallTot?recall+"%":"—"}</b></div>
+  <div class="kv"><span>acc by set size <span class="m">M-UPDATECOST</span></span><b>${slope||"—"}</b></div>
+  <h2>Same-count 1-back</h2>
+  <div class="kv"><span>hits / targets</span><b>${T.hit}/${T.target}</b></div>
+  <div class="kv"><span>sensitivity d′ <span class="m">M-DPRIME</span></span><b>${dprime().toFixed(2)}</b></div>
+  <div class="kv"><span>false-alarm rate <span class="m">M-FALSEALARM</span></span><b>${faRate}%</b></div>
+  <h2>Consistency & engagement</h2>
+  <div class="kv"><span>hit-RT CV <span class="m">M-RTVAR</span></span><b>${cv(T.hitRT).toFixed(2)}</b></div>
+  <div class="kv"><span>recall series <span class="m">M-CONSIST</span></span><b>${T.blockAcc.length?T.blockAcc.map(x=>x?"✓":"✗").join(""):"—"}</b></div>
+  <div class="kv"><span>bug/other mis-taps</span><b>${T.misTap}</b></div>
+  <div class="kv"><span>focus-loss (blur) <span class="m">M-ENGAGE</span></span><b>${T.blur}</b></div>
+  <div class="log">${T.log.map(l=>`<div>${l}</div>`).join("")}</div>`;
+}
+window.addEventListener("blur",()=>{T.blur++;render();});
+function rnd(n){return Math.random()*n|0;}
+function clearTank(){tank.querySelectorAll(".bub").forEach(e=>e.remove());}
+
+// place a burst; returns {red} count; if tappable, red bubbles pop and increment counted
+function makeBurst(tappable){
+  const red=1+rnd(4); // 1..4 target
+  const other=1+rnd(4);
+  let counted=0;
+  const place=(color,isTarget)=>{const sz=34+rnd(20);const b=document.createElement("div");b.className="bub";
+    b.style.width=b.style.height=sz+"px";b.style.background=color;
+    b.style.left=rnd(380-sz)+"px";b.style.top=rnd(320-sz)+"px";
+    if(tappable)b.onclick=()=>{ if(b.classList.contains("pop"))return;
+      if(isTarget){counted++;b.classList.add("pop");}else{T.misTap++;b.style.transform="scale(1.15)";setTimeout(()=>b.style.transform="",120);} render();};
+    tank.appendChild(b);};
+  for(let i=0;i<red;i++)place(TARGET,true);
+  for(let i=0;i<other;i++)place(OTHERS[rnd(OTHERS.length)],false);
+  return {red,getCounted:()=>counted};
+}
+
+// ---- COUNT (counting span) ----
+async function countTrial(scored){
+  const counts=[];
+  for(let p=0;p<T.setSize;p++){ clearTank();const burst=makeBurst(true);
+    $("#cue").innerHTML="pop the red 🔴, then <b>next</b>";
+    await new Promise(res=>{const row=$("#answerRow");row.innerHTML="";
+      const btn=document.createElement("button");btn.className="paw";btn.textContent="✓ next burst";btn.onclick=res;row.appendChild(btn);});
+    const committed=burst.getCounted();counts.push(burst.red);
+    if(scored){T.cTot++;if(committed===burst.red)T.cHit++;}
+    clearTank();await sleep(200);
+  }
+  // recall
+  const k=counts.length;const slots=$("#slots");slots.innerHTML="";for(let i=0;i<k;i++){const d=document.createElement("div");d.className="slot";slots.appendChild(d);}
+  $("#cue").innerHTML="tap the red counts <b>in order</b>";
+  const row=$("#answerRow");row.innerHTML="";const picks=[];
+  await new Promise(res=>{for(let n=1;n<=4;n++){const b=document.createElement("button");b.className="pad";b.textContent=n;
+    b.onclick=()=>{picks.push(n);slots.children[picks.length-1].textContent=n;slots.children[picks.length-1].classList.add("full");if(picks.length===k)setTimeout(res,150);};row.appendChild(b);}});
+  row.innerHTML="";
+  const ok=picks.every((v,i)=>v===counts[i]);
+  if(scored){T.recallTot++;if(ok)T.recallHit++;T.blockAcc.push(ok?1:0);
+    const st=T.accBySize[k]||(T.accBySize[k]={hit:0,tot:0});st.tot++;if(ok)st.hit++;
+    if(ok){T.setSize=Math.min(6,k+1);if(k>T.spanMax)T.spanMax=k;}else if($("#adapt").checked)T.setSize=Math.max(2,k-1);
+    logE(`count set ${counts.join("-")} ${ok?"ok":"miss"} → set ${T.setSize}`);}
+  $("#cue").textContent=ok?"✅":"↺";$("#bmode").textContent="count · set "+T.setSize;render();return ok;
+}
+// ---- SAME-COUNT 1-back ----
+let step=null;
+function buildPaw(){const row=$("#answerRow");row.innerHTML='<button class="paw" id="paw">SAME as last ✋</button>';
+  $("#paw").onclick=()=>{if(!step||step.done||step.r!=null)return;step.r=performance.now()-step.onset;
+    $("#paw").classList.add("flash");setTimeout(()=>$("#paw").classList.remove("flash"),150);};}
+async function sameBlock(scored,len){
+  buildPaw();let prev=null,good=0,tot=0;
+  for(let i=0;i<len;i++){ clearTank();
+    // ~40% same as prev when possible
+    let red;const burst0=makeBurst(false);red=burst0.red;
+    if(prev!=null&&Math.random()<.4){clearTank();const forced=Math.random();
+      // rebuild with red==prev
+      let counted=0;const place=(color,isT,n)=>{for(let j=0;j<n;j++){const sz=34+rnd(20);const b=document.createElement("div");b.className="bub";b.style.width=b.style.height=sz+"px";b.style.background=color;b.style.left=rnd(380-sz)+"px";b.style.top=rnd(320-sz)+"px";tank.appendChild(b);} };
+      place(TARGET,true,prev);place(OTHERS[rnd(OTHERS.length)],false,1+rnd(4));red=prev;}
+    step={onset:performance.now(),r:null,done:false};$("#cue").innerHTML="tap <b>SAME</b> if the red count matches the last burst";
+    await sleep(1700);step.done=true;
+    const tgt=prev!=null&&red===prev;const resp=step.r!=null;
+    if(tgt){if(scored){T.target++;if(resp){T.hit++;T.hitRT.push(step.r);}else T.miss++;}if(resp)good++;}
+    else{if(scored){if(resp)T.fa++;else T.cr++;}if(!resp)good++;}
+    if(scored)tot++;
+    prev=red;clearTank();await sleep(300);render();
+  }
+  $("#cue").textContent="";return tot?Math.round(100*good/tot):0;
+}
+
+// ---- ghost demo (count 2 red, ignore blue) ----
+async function demo(){
+  if(T.phase==="demo")return;T.phase="demo";$("#go").disabled=true;$("#replay").disabled=true;render();
+  const ghost=document.createElement("div");ghost.textContent="👆";
+  ghost.style.cssText="position:fixed;font-size:30px;z-index:9;transition:left .3s,top .3s;opacity:0;pointer-events:none";document.body.appendChild(ghost);
+  clearTank();
+  const reds=[];[[60,80],[220,60]].forEach(p=>{const b=document.createElement("div");b.className="bub";b.style.width=b.style.height="46px";b.style.background=TARGET;b.style.left=p[0]+"px";b.style.top=p[1]+"px";tank.appendChild(b);reds.push(b);});
+  const bl=document.createElement("div");bl.className="bub";bl.style.width=bl.style.height="46px";bl.style.background="#5cc8ff";bl.style.left="150px";bl.style.top="190px";tank.appendChild(bl);
+  $("#cue").innerHTML="pop the 2 red 🔴 (skip blue)";
+  for(const b of reds){const r=b.getBoundingClientRect();ghost.style.opacity="1";ghost.style.left=(r.left+10)+"px";ghost.style.top=(r.top-2)+"px";await sleep(450);b.classList.add("pop");await sleep(220);}
+  clearTank();
+  // recall demo: tap 2
+  const slots=$("#slots");slots.innerHTML="";[0].forEach(()=>{const d=document.createElement("div");d.className="slot";slots.appendChild(d);});
+  const row=$("#answerRow");row.innerHTML="";const pads={};for(let n=1;n<=4;n++){const b=document.createElement("button");b.className="pad";b.textContent=n;row.appendChild(b);pads[n]=b;}
+  $("#cue").innerHTML="how many red? tap 2";
+  const r=pads[2].getBoundingClientRect();ghost.style.left=(r.left+14)+"px";ghost.style.top=(r.top+12)+"px";await sleep(500);slots.children[0].textContent="2";slots.children[0].classList.add("full");
+  $("#cue").textContent="✅";await sleep(600);ghost.remove();row.innerHTML="";slots.innerHTML="";
+  T.phase="idle";$("#go").disabled=false;$("#replay").disabled=false;
+  $("#go").textContent="▶ Try a practice round";$("#go").onclick=warmup;
+  $("#phasehint").textContent="Now you try — this practice round is NOT scored.";render();
+}
+async function warmup(){
+  T.phase="warm-up (unscored)";$("#go").disabled=true;$("#replay").disabled=true;render();
+  if(mode==="count"){const s=T.setSize;T.setSize=2;await countTrial(false);T.setSize=s;} else await sameBlock(false,5);
+  T.phase="idle";$("#go").disabled=false;$("#replay").disabled=false;
+  $("#go").textContent="▶ Start scored game";$("#go").onclick=startScored;
+  $("#phasehint").textContent="These count. Count carefully — recall only counts if your counting was right.";render();
+}
+async function startScored(){
+  T.phase="scored";$("#go").disabled=true;$("#replay").disabled=true;render();
+  if(mode==="count"){for(let r=0;r<4;r++){await countTrial(true);await sleep(400);}}
+  else{const acc=await sameBlock(true,12);T.blockAcc.push(acc);logE(`same-count block acc ${acc}%`);}
+  T.phase="done";$("#go").disabled=false;$("#replay").disabled=false;
+  $("#go").textContent="▶ Play again";$("#go").onclick=startScored;
+  $("#phasehint").textContent="Done. Counting accuracy gates the span; consistency beats speed.";
+  $("#cue").textContent="🏁";render();
+}
+function setMode(m){mode=m;[...$("#modeseg").children].forEach(x=>x.classList.toggle("on",x.dataset.m===m));
+  $("#answerRow").innerHTML="";$("#slots").innerHTML="";clearTank();
+  $("#bmode").textContent=m==="count"?"count · set "+T.setSize:"same · 1-back";
+  $("#prompt").innerHTML=m==="count"?"Pop only the <b>red</b> bubbles to count them. Remember how many red were in each burst.":
+    "Tap <b>SAME</b> when a burst has the same number of red bubbles as the burst before.";
+  logE("mode → "+m);render();}
+$("#go").onclick=demo;$("#replay").onclick=demo;
+$("#modeseg").addEventListener("click",e=>{const b=e.target.closest("button");if(b)setMode(b.dataset.m);});
+setMode("count");
+</script>
+</body>
+</html>
