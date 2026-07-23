@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PS-CIPHERWHEEL-01 — Decoder Ring</title>
+<style>
+  :root{--panel:#161f38;--ink:#eaf0ff;--dim:#93a2c9;--accent:#54d6ff;--good:#43e59a;--bad:#ff6b7d;--warn:#ffd166;--line:#26314f;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{background:linear-gradient(180deg,#0e1424,#0b0f1c);color:var(--ink);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden}
+  .wrap{display:grid;grid-template-columns:1fr 340px;gap:14px;height:100vh;padding:14px}
+  @media(max-width:820px){.wrap{grid-template-columns:1fr;grid-template-rows:1fr auto;overflow:auto;height:auto;min-height:100vh}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px}
+  header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px}
+  header h1{font-size:16px;margin:0}header .id{color:var(--dim);font-size:12px}
+  .badge{padding:5px 12px;border-radius:999px;font-size:12px;font-weight:700}
+  .badge.demo{background:#3a2f5e;color:#d7c4ff}.badge.warm{background:#123c46;color:#8fe9ff}
+  .badge.play{background:#123c2b;color:#8bf0c0}.badge.done{background:#402a2f;color:#ffb0bb}
+  .stage{position:relative;display:flex;flex-direction:column;height:calc(100% - 58px);min-height:520px;padding:16px}
+  .roundlab{text-align:center;font-weight:700;color:var(--accent);min-height:22px}
+  .prompt{color:var(--dim);text-align:center;min-height:20px;margin:2px 0}
+  .promptsym{text-align:center;color:var(--dim);font-size:13px;margin-bottom:4px}
+  .promptsym b{font-size:30px;color:var(--ink);vertical-align:middle;margin-left:6px}
+  .field{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;gap:12px}
+  .pointer{font-size:26px;color:var(--warn);line-height:1;margin-bottom:-6px}
+  .wheelwrap{position:relative;width:280px;height:280px}
+  .wheel{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 50% 45%,#17233f,#0c1424 72%);
+    border:4px solid #33507f;transition:transform .28s cubic-bezier(.3,.8,.3,1)}
+  .hub{position:absolute;left:50%;top:50%;width:78px;height:78px;transform:translate(-50%,-50%);border-radius:50%;
+    background:#0e2233;border:2px solid #2f5c7a;display:flex;align-items:center;justify-content:center;font-size:34px;z-index:5}
+  .slot{position:absolute;left:50%;top:50%;width:66px;height:66px;margin:-33px 0 0 -33px}
+  .slot .inner{width:100%;height:100%;border-radius:12px;background:#0b1526;border:2px solid #26406a;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .slot .s{font-size:26px}.slot .o{font-size:15px;font-weight:800;color:var(--warn)}
+  .slot.attop .inner{border-color:var(--accent);box-shadow:0 0 0 3px #54d6ff44;background:#0e2233}
+  .slot.good .inner{border-color:var(--good);box-shadow:0 0 0 3px var(--good)}
+  .slot.bad .inner{border-color:var(--bad);box-shadow:0 0 0 3px var(--bad)}
+  .controls{display:flex;gap:14px;align-items:center}
+  .rot{width:62px;height:56px;border-radius:12px;background:#16305a;border:2px solid #2f78d6;color:#eaf3ff;font-size:24px;font-weight:800;cursor:pointer;user-select:none}
+  .rot:active{transform:translateY(1px)}
+  .lock{padding:14px 26px;border-radius:12px;background:linear-gradient(180deg,#1d64c8,#154a97);color:#eaf3ff;font-weight:800;font-size:17px;cursor:pointer;user-select:none;border:2px solid #2f78d6}
+  .lock:active{transform:translateY(1px)}
+  .flash{position:absolute;top:0;left:50%;transform:translateX(-50%);font-weight:800;font-size:15px;z-index:9}
+  .flash.g{color:var(--good)}.flash.b{color:var(--bad)}
+  .center-msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:8}
+  button.cta{background:linear-gradient(180deg,#3aa9ff,#2b7fe0);color:#04122b;border:0;font-weight:800;padding:14px 26px;border-radius:14px;font-size:16px;cursor:pointer;box-shadow:0 6px 18px #1f6bd155}
+  button.cta:active{transform:translateY(1px)}
+  .ghost{position:absolute;font-size:38px;pointer-events:none;transition:left .45s cubic-bezier(.3,.7,.3,1),top .45s cubic-bezier(.3,.7,.3,1);z-index:7;filter:drop-shadow(0 3px 4px #000a)}
+  .tel{padding:14px;display:flex;flex-direction:column;min-height:0}
+  .tel h2{font-size:13px;margin:0 0 10px;color:var(--accent);text-transform:uppercase;letter-spacing:1.4px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .tile{background:#0f1830;border:1px solid var(--line);border-radius:12px;padding:9px 10px}
+  .tile .k{font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px}
+  .tile .v{font-size:19px;font-weight:800;margin-top:2px}.tile .m{font-size:10px;color:#6f80ab;margin-top:1px}
+  .tile.hl{border-color:#2f5c7a;background:#0e2233}
+  .log{margin-top:10px;flex:1;overflow:auto;background:#0b1220;border:1px solid var(--line);border-radius:10px;padding:8px;font:11.5px/1.5 ui-monospace,Menlo,Consolas,monospace;color:#b9c6e6;min-height:96px}
+  .log div{padding:1px 0;border-bottom:1px dashed #1a2540}
+  .log .g{color:var(--good)}.log .b{color:var(--bad)}.log .y{color:var(--warn)}.log .d{color:var(--dim)}
+  .foot{color:#5f6f97;font-size:10.5px;margin-top:8px}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section class="card" style="display:flex;flex-direction:column">
+    <header>
+      <div><h1>🔐 Decoder Ring</h1><div class="id">PS-CIPHERWHEEL-01 · symbol coding · digit-symbol</div></div>
+      <div id="badge" class="badge demo">WATCH</div>
+    </header>
+    <div class="stage">
+      <div class="roundlab" id="roundlab"></div>
+      <div class="prompt" id="prompt">Watch the hand…</div>
+      <div class="promptsym">Decode:<b id="promptsym">✦</b></div>
+      <div class="field" id="field">
+        <div class="flash" id="flash"></div>
+        <div class="pointer">▼</div>
+        <div class="wheelwrap"><div class="wheel" id="wheel"></div><div class="hub" id="hub">✦</div></div>
+        <div class="controls">
+          <div class="rot" id="rotL">◀</div>
+          <div class="lock" id="lock">LOCK</div>
+          <div class="rot" id="rotR">▶</div>
+        </div>
+        <div class="ghost hidden" id="ghost">👆</div>
+      </div>
+    </div>
+  </section>
+
+  <aside class="card tel">
+    <h2>Live telemetry</h2>
+    <div class="grid">
+      <div class="tile hl"><div class="k">Decoded</div><div class="v" id="m_dec">0</div><div class="m">M-ACC correct</div></div>
+      <div class="tile hl"><div class="k">Mean/decode</div><div class="v" id="m_rt">–</div><div class="m">M-RT per correct</div></div>
+      <div class="tile hl"><div class="k">RT var (CV)</div><div class="v" id="m_cv">–</div><div class="m">M-RTVAR · key</div></div>
+      <div class="tile"><div class="k">Lapses</div><div class="v" id="m_lap">0</div><div class="m">M-LAPSE slow tail</div></div>
+      <div class="tile"><div class="k">Revisions</div><div class="v" id="m_rev">0</div><div class="m">M-REV over-rotate/relock</div></div>
+      <div class="tile hl"><div class="k">Speed×Acc</div><div class="v" id="m_sa">–</div><div class="m">M-SPEEDACC</div></div>
+      <div class="tile hl"><div class="k">Drift</div><div class="v" id="m_dr">–</div><div class="m">M-DRIFT 1st→2nd half</div></div>
+      <div class="tile"><div class="k">Engagement</div><div class="v" id="m_eng">ok</div><div class="m">M-ENGAGE blur</div></div>
+    </div>
+    <div class="log" id="log"></div>
+    <div class="foot">Wheel reshuffles each block (anti-practice). A wrong lock must be fixed — we score consistency, never fast-wrong.</div>
+  </aside>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var $=function(id){return document.getElementById(id)};
+  var now=function(){return performance.now()};
+  var GLYPHS=["✦","❄","☀","♣","◆","▲","●","✿"];
+  var OUTS=["A","B","C","D","E","F","G","H"];
+  var K=4, RADIUS=96, DECODES=6;
+  var STEP=360/K;
+
+  var S={dec:0,rts:[],rev:0,blur:0,order:[]};
+  var phase="demo", slots=[], R=0, promptIdx=-1, symT=0, rotThisTrial=0, running=false, decCount=0;
+
+  function log(m,c){var l=$("log");var d=document.createElement("div");if(c)d.className=c;d.textContent=m;l.insertBefore(d,l.firstChild);}
+  function mean(a){if(!a.length)return 0;var s=0;for(var i=0;i<a.length;i++)s+=a[i];return s/a.length;}
+  function sd(a){if(a.length<2)return 0;var m=mean(a),s=0;for(var i=0;i<a.length;i++)s+=(a[i]-m)*(a[i]-m);return Math.sqrt(s/(a.length-1));}
+  function median(a){if(!a.length)return 0;var b=a.slice().sort(function(x,y){return x-y});var m=Math.floor(b.length/2);return b.length%2?b[m]:(b[m-1]+b[m])/2;}
+  function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+  function driftPct(){ if(S.order.length<4)return null; var h=Math.floor(S.order.length/2);
+    var a=S.order.slice(0,h),b=S.order.slice(h); return Math.round(mean(b)-mean(a)); }
+
+  function render(){
+    $("m_dec").textContent=S.dec;
+    $("m_rt").textContent=S.rts.length?Math.round(mean(S.rts))+"ms":"–";
+    var cv=S.rts.length>1?Math.round(100*sd(S.rts)/mean(S.rts)):null;$("m_cv").textContent=cv==null?"–":cv+"%";
+    var med=median(S.rts),lap=0;for(var i=0;i<S.rts.length;i++){if(med&&S.rts[i]>med*1.5)lap++;}$("m_lap").textContent=lap;
+    $("m_rev").textContent=S.rev;
+    var tot=S.dec+S.rev; var acc=tot?Math.round(100*S.dec/tot):null;
+    $("m_sa").textContent=(S.rts.length&&acc!=null)?(Math.round(mean(S.rts))+"ms@"+acc+"%"):"–";
+    var dr=driftPct();$("m_dr").textContent=dr==null?"–":(dr>0?("+"+dr+"ms"):dr+"ms");
+    $("m_eng").textContent=S.blur?("blur×"+S.blur):"ok";
+  }
+
+  function buildWheel(){
+    var gs=shuffle(GLYPHS).slice(0,K), os=shuffle(OUTS).slice(0,K);
+    slots=gs.map(function(g,i){return {sym:g,out:os[i]};});
+    var W=$("wheel");W.innerHTML="";
+    slots.forEach(function(p,i){
+      var ang=i*STEP;
+      var d=document.createElement("div");d.className="slot";d.setAttribute("data-i",i);
+      d.style.transform="rotate("+ang+"deg) translateY(-"+RADIUS+"px)";
+      d.innerHTML='<div class="inner" data-ang="'+ang+'"><div class="s">'+p.sym+'</div><div class="o">'+p.out+'</div></div>';
+      W.appendChild(d);
+    });
+    R=0; applyRotation();
+  }
+  function applyRotation(){
+    $("wheel").style.transform="rotate("+R+"deg)";
+    // keep each label upright and mark the slot under the pointer
+    var pi=pointerIndex();
+    Array.prototype.forEach.call($("wheel").children,function(d){
+      var i=+d.getAttribute("data-i");
+      var inner=d.querySelector(".inner"); var ang=+inner.getAttribute("data-ang");
+      inner.style.transform="rotate("+(-(R+ang))+"deg)";
+      d.classList.toggle("attop", i===pi);
+    });
+    $("hub").textContent=slots.length?slots[pi].sym:"";
+  }
+  function pointerIndex(){ return ((Math.round(-R/STEP))%K+K)%K; }
+
+  function rotate(dir){
+    if(!running||phase==="demo")return;
+    R+=dir*STEP; rotThisTrial++; applyRotation();
+  }
+  function flash(t,c){var f=$("flash");f.textContent=t;f.className="flash "+c;setTimeout(function(){if(f.textContent===t)f.textContent="";},500);}
+
+  function minSteps(from,to){ var d=Math.abs(from-to)%K; return Math.min(d,K-d); }
+
+  function newPrompt(){
+    promptIdx=Math.floor(Math.random()*K);
+    $("promptsym").textContent=slots[promptIdx].sym;
+    rotThisTrial=0; symT=now();
+  }
+  function onLock(){
+    if(!running||phase==="demo")return;
+    var pi=pointerIndex();
+    var d=$("wheel").querySelector('[data-i="'+pi+'"]');
+    if(pi===promptIdx){
+      var rt=now()-symT; S.dec++; S.rts.push(rt); S.order.push(rt);
+      d.classList.add("good"); flash("decoded "+slots[pi].out+" ✓","g");
+      log("✓ "+slots[pi].sym+"→"+slots[pi].out+" "+Math.round(rt)+"ms ("+rotThisTrial+" spins)","g");
+      setTimeout(function(){d.classList.remove("good");},350);
+      decCount++; render();
+      if(phase==="warm"){ setTimeout(offerStart,650); return; }
+      if(decCount>=DECODES){ setTimeout(endBlock,650); return; }
+      setTimeout(function(){ buildWheel(); newPrompt(); },500);
+    } else {
+      S.rev++; d.classList.add("bad"); flash("not a match","b");
+      log("✗ locked "+slots[pi].sym+" (need "+slots[promptIdx].sym+") — relock","b");
+      setTimeout(function(){d.classList.remove("bad");},350); render();
+    }
+  }
+
+  function ghostTo(el,cb){var g=$("ghost"),f=$("field");g.classList.remove("hidden");
+    var fr=f.getBoundingClientRect(),tr=el.getBoundingClientRect();
+    g.style.left=(tr.left-fr.left+tr.width*0.5)+"px";g.style.top=(tr.top-fr.top+tr.height*0.5)+"px";setTimeout(cb,480);}
+  function runDemo(){
+    phase="demo";running=false;$("badge").className="badge demo";$("badge").textContent="WATCH";
+    $("roundlab").textContent="How to play";$("prompt").textContent="Spin the ring so the code symbol sits under the ▼, then LOCK it in.";
+    buildWheel(); promptIdx=1; $("promptsym").textContent=slots[1].sym;
+    var seq=[
+      function(n){ log("demo: spin toward the code symbol…","d"); n(500); },
+      function(n){ ghostTo($("rotR"),function(){ R-=STEP; applyRotation(); n(520); }); },
+      function(n){ ghostTo($("rotR"),function(){ R-=STEP; applyRotation();
+        // ensure prompt slot lands on top for the demo
+        var pi=pointerIndex(); if(pi!==1){ R-=STEP*(((pi-1)%K+K)%K); applyRotation(); } n(520); }); },
+      function(n){ ghostTo($("lock"),function(){ var d=$("wheel").querySelector('[data-i="1"]'); if(d){d.classList.add("good");}
+        flash("locked ✓","g"); log("demo: symbol under ▼ → LOCK → decoded "+slots[1].out,"d");
+        setTimeout(function(){if(d)d.classList.remove("good");},450); n(950); }); },
+      function(n){ $("ghost").classList.add("hidden"); n(200); }
+    ];
+    var i=0;(function nx(t){if(i>=seq.length){startWarmup();return;}var f=seq[i++];setTimeout(function(){f(nx);},t||0);})(500);
+  }
+  function startWarmup(){ phase="warm";$("badge").className="badge warm";$("badge").textContent="WARM-UP";
+    $("roundlab").textContent="Warm-up";$("prompt").textContent="Try one — spin the code symbol under the ▼ and LOCK (not counted).";
+    clearCenter(); buildWheel(); decCount=0; newPrompt(); running=true; render(); }
+  function offerStart(){ running=false;
+    $("prompt").textContent="Ready? Decode "+DECODES+" symbols as fast — and as cleanly — as you can.";
+    showCenter('<button class="cta" id="go">Start scored block ▸</button>',function(){$("go").onclick=startScored;}); }
+  function startScored(){ phase="play";$("badge").className="badge play";$("badge").textContent="SCORED";
+    S={dec:0,rts:[],rev:0,blur:0,order:[]}; decCount=0; clearCenter(); $("roundlab").textContent="Decode!";
+    $("prompt").textContent="Spin the code symbol under the ▼, then LOCK. Wheel reshuffles each decode.";
+    buildWheel(); newPrompt(); running=true; render(); }
+  function endBlock(){ running=false; $("badge").className="badge done";$("badge").textContent="DONE";
+    $("prompt").textContent="Done! "+S.dec+" decoded, mean "+(S.rts.length?Math.round(mean(S.rts)):0)+"ms, CV "+(S.rts.length>1?Math.round(100*sd(S.rts)/mean(S.rts)):0)+"%, "+S.rev+" relocks";
+    log("── block complete. Consistency (CV) is the read, not raw speed ──","y");
+    showCenter('<button class="cta" id="again">Decode again ▸</button>',function(){$("again").onclick=startScored;}); }
+
+  function showCenter(html,after){clearCenter();var m=document.createElement("div");m.className="center-msg";m.innerHTML=html;$("field").appendChild(m);if(after)after();}
+  function clearCenter(){var o=$("field").querySelector(".center-msg");if(o)o.remove();}
+  $("rotL").addEventListener("click",function(){rotate(1);});
+  $("rotR").addEventListener("click",function(){rotate(-1);});
+  $("lock").addEventListener("click",onLock);
+  window.addEventListener("blur",function(){if(running){S.blur++;render();log("focus lost (engagement)","y");}});
+
+  log("Loaded PS-CIPHERWHEEL-01. Watch the wordless demo…","d");
+  render(); runDemo();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CX-build-01 — Master Builder</title>
+<style>
+  :root{--bg:#2a1e12;--card:#382718;--ink:#fff3e2;--muted:#d6b98f;--acc:#ffb14e;--gold:#ffd35c;}
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.4 system-ui,Segoe UI,Roboto,sans-serif;color:var(--ink);background:radial-gradient(circle at 20% 0%,#4a331d,#2a1e12)}
+  header{padding:14px 20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  header h1{font-size:18px;margin:0}
+  .badge{font-size:12px;color:var(--muted);border:1px solid #5f4526;padding:2px 8px;border-radius:999px}
+  .wrap{display:grid;grid-template-columns:1fr 330px;gap:16px;padding:0 20px 30px;max-width:1100px}
+  @media(max-width:820px){.wrap{grid-template-columns:1fr}}
+  .stage{background:var(--card);border-radius:18px;padding:16px;position:relative;min-height:470px}
+  .phaseTag{position:absolute;top:12px;right:14px;font-size:12px;color:var(--gold);background:#463219;border:1px solid #77602f;padding:3px 10px;border-radius:999px}
+  .story{text-align:center;font-size:16px;min-height:24px;margin:2px auto 6px;max-width:520px}
+  .tools{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:6px}
+  .blk{width:34px;height:34px;border-radius:6px;cursor:pointer;border:2px solid transparent;display:flex;align-items:center;justify-content:center;font-size:20px}
+  .blk.sel{border-color:var(--gold);box-shadow:0 0 6px var(--gold)}
+  .site{display:flex;gap:6px;justify-content:center;align-items:flex-end;height:260px;border-bottom:4px solid #6b4a24;margin:6px auto;max-width:540px;padding:0 8px}
+  .col{width:46px;display:flex;flex-direction:column-reverse;align-items:center;cursor:pointer;min-height:20px;border-radius:6px}
+  .col:hover{background:#ffffff0d}
+  .col .cell{width:40px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:16px;margin-top:2px;animation:drop .2s}
+  @keyframes drop{from{transform:translateY(-16px);opacity:.3}to{transform:none;opacity:1}}
+  .bar{display:flex;gap:10px;justify-content:center;align-items:center;margin-top:8px;flex-wrap:wrap}
+  button.go{font:inherit;border:0;border-radius:12px;padding:9px 16px;cursor:pointer;font-weight:700;background:var(--acc);color:#3a2205}
+  button.alt{background:#463219;color:#ffe9c9;border:1px solid #77602f}
+  .outcome{text-align:center;font-size:15px;color:var(--gold);min-height:22px;margin-top:6px}
+  .ghost{position:absolute;font-size:36px;pointer-events:none;z-index:6;transition:left .7s ease,top .7s ease;filter:drop-shadow(0 3px 5px rgba(0,0,0,.5))}
+  .tele{background:#241a0f;border:1px solid #5f4526;border-radius:18px;padding:14px;height:fit-content;position:sticky;top:12px}
+  .tele h3{margin:0 0 8px;font-size:14px;color:var(--gold);letter-spacing:.5px}
+  .metrics{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+  .chip{font-size:12px;background:#382718;border:1px solid #5f4526;border-radius:8px;padding:4px 8px}
+  .chip b{color:var(--gold)}
+  .log{font:11px/1.5 ui-monospace,Menlo,Consolas,monospace;color:#e6cca8;max-height:200px;overflow:auto;background:#181109;border-radius:10px;padding:8px}
+  .log div{border-bottom:1px solid #2e2110;padding:1px 0}
+  .note{font-size:11px;color:var(--muted);margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>🧱 Master Builder</h1>
+  <span class="badge">CX-build-01</span>
+  <span class="badge">bands: K–1 · 2–3 · 4–5</span>
+  <span class="badge">demonstrated achievement · open construction</span>
+</header>
+<div class="wrap">
+  <div class="stage" id="stage">
+    <div class="phaseTag" id="phaseTag">demo</div>
+    <div class="story" id="story">Watch…</div>
+    <div class="tools" id="blocks"></div>
+    <div class="site" id="site"></div>
+    <div class="bar" id="bar"></div>
+    <div class="outcome" id="outcome"></div>
+    <div class="ghost" id="ghost" style="display:none">👆</div>
+  </div>
+  <div class="tele">
+    <h3>LIVE TELEMETRY</h3>
+    <div class="metrics" id="metrics"></div>
+    <div class="log" id="log"></div>
+    <div class="note">M-RUBRIC (saved structure rated later for ingenuity/originality/elaboration — demo shows a proxy), M-PROG (how the build grows over time — steady arc vs stall), M-REV (undo / rebuild = iteration), M-ELAB (blocks, kinds, decorations, symmetry), M-PERSIST (time + late additions), M-ENGAGE. Wordless open construction for pre-readers.</div>
+  </div>
+</div>
+<script>
+const T={ev:[],m:{},t0:performance.now(),now(){return Math.round(performance.now()-this.t0)},
+  log(a,d){const t=this.now();this.ev.push(Object.assign({t,a},d||{}));const el=document.getElementById('log');
+    const line=document.createElement('div');line.textContent='+'+(t/1000).toFixed(2)+'s  '+a+(d?'  '+JSON.stringify(d):'');el.prepend(line);},
+  set(k,v){this.m[k]=v;this.render();},
+  render(){document.getElementById('metrics').innerHTML=Object.entries(this.m).map(([k,v])=>'<span class="chip"><b>'+k+'</b> '+v+'</span>').join('');}};
+const $=s=>document.querySelector(s);
+const story=$('#story'),blocksEl=$('#blocks'),site=$('#site'),bar=$('#bar'),outcome=$('#outcome'),ghost=$('#ghost'),phaseTag=$('#phaseTag');
+const BLOCKS=[{bg:'#d1553f',e:''},{bg:'#4f86c6',e:''},{bg:'#5aa469',e:''},{bg:'#e0b23c',e:''},{bg:'#8a6fc0',e:''},{bg:'#8a5a34',e:'🚪'},{bg:'#bcd6ff',e:'🪟'},{bg:'#c0392b',e:'🚩'}];
+const NCOL=5;
+let selBlk=0,stacks=[],history=[],reworks=0,startT=0,progTimer=null,progSnaps=[];
+function speak(t){try{if(window.speechSynthesis){speechSynthesis.cancel();speechSynthesis.speak(new SpeechSynthesisUtterance(t));}}catch(e){}}
+T.set('phase','demo');T.set('blocks_M-ELAB','0');T.set('height_M-PROG','0');T.set('rebuilds_M-REV',0);T.set('time_M-PERSIST','0s');
+
+function buildPalette(active){
+  blocksEl.innerHTML='';BLOCKS.forEach((b,i)=>{const d=document.createElement('div');d.className='blk'+(i===selBlk?' sel':'');d.style.background=b.bg;d.textContent=b.e;
+    if(active)d.onclick=()=>{selBlk=i;[...blocksEl.children].forEach(c=>c.classList.remove('sel'));d.classList.add('sel');T.log('pick_block',{i});};blocksEl.appendChild(d);});
+}
+function buildSite(active){
+  site.innerHTML='';stacks=[];for(let c=0;c<NCOL;c++){stacks.push([]);const col=document.createElement('div');col.className='col';col.dataset.c=c;
+    if(active)col.onclick=()=>addBlock(c);site.appendChild(col);}
+}
+function addBlock(c){
+  const b=BLOCKS[selBlk];stacks[c].push(selBlk);history.push(c);
+  const cell=document.createElement('div');cell.className='cell';cell.style.background=b.bg;cell.textContent=b.e;
+  site.children[c].appendChild(cell);
+  const total=stacks.reduce((a,s)=>a+s.length,0),height=Math.max(...stacks.map(s=>s.length));
+  const kinds=new Set([].concat(...stacks)).size,decos=[].concat(...stacks).filter(i=>BLOCKS[i].e).length;
+  T.set('blocks_M-ELAB',total+' ('+kinds+' kinds · '+decos+' details)');T.set('height_M-PROG',height+' tall');
+  T.set('time_M-PERSIST',Math.round((performance.now()-startT)/1000)+'s');
+  T.log('add_block',{col:c,total,height});
+}
+function undo(){
+  if(!history.length)return;const c=history.pop();stacks[c].pop();const col=site.children[c];if(col.lastChild)col.removeChild(col.lastChild);
+  reworks++;T.set('rebuilds_M-REV',reworks);T.log('undo_rework',{col:c});
+  const total=stacks.reduce((a,s)=>a+s.length,0),height=Math.max(0,...stacks.map(s=>s.length));
+  T.set('blocks_M-ELAB',total+' blocks');T.set('height_M-PROG',height+' tall');
+}
+function startProg(){progSnaps=[];progTimer=setInterval(()=>{const total=stacks.reduce((a,s)=>a+s.length,0);progSnaps.push(total);T.log('progress_snapshot_M-PROG',{s:Math.round((performance.now()-startT)/1000),blocks:total});},4000);}
+function runGhost(){
+  ghost.style.display='block';story.textContent='Build whatever you like…';buildPalette(false);buildSite(false);
+  const stg=$('#stage').getBoundingClientRect();const R=el=>{const r=el.getBoundingClientRect();return[r.left-stg.left+r.width/2-18,r.top-stg.top-8];};
+  const c=2;const drop=(n,cb)=>{const[x,y]=R(site.children[c]);ghost.style.left=x+'px';ghost.style.top=(y-n*24)+'px';
+    setTimeout(()=>{const cell=document.createElement('div');cell.className='cell';cell.style.background=BLOCKS[n%3].bg;site.children[c].appendChild(cell);cb&&cb();},700);};
+  setTimeout(()=>drop(0,()=>drop(1,()=>drop(2,()=>{const flag=document.createElement('div');flag.className='cell';flag.style.background='#c0392b';flag.textContent='🚩';site.children[c].appendChild(flag);
+    outcome.textContent='Tap a spot to stack blocks — make it your own ✔';setTimeout(()=>{ghost.style.display='none';startWarm();},1300);}))),700);
+}
+function startWarm(){phaseTag.textContent='warm-up (practice)';outcome.textContent='';story.textContent='Try it: pick a block, tap a spot to stack it.';buildPalette(true);buildSite(true);
+  bar.innerHTML='<button class="go">Start building! →</button>';bar.firstChild.onclick=startItems;}
+function startItems(){phaseTag.textContent='build something great';story.textContent='Build something TALL and INTERESTING! Add as much as you like.';outcome.textContent='';
+  buildPalette(true);buildSite(true);history=[];reworks=0;startT=performance.now();T.set('phase','scored');T.set('rebuilds_M-REV',0);T.log('phase_scored');startProg();
+  bar.innerHTML='<button class="go alt" id="undo">↶ Undo</button><button class="go" id="fin">✅ I\'m finished</button>';
+  $('#undo').onclick=undo;$('#fin').onclick=finish;}
+function finish(){
+  clearInterval(progTimer);
+  const total=stacks.reduce((a,s)=>a+s.length,0),height=Math.max(0,...stacks.map(s=>s.length));
+  const kinds=new Set([].concat(...stacks)).size,decos=[].concat(...stacks).filter(i=>BLOCKS[i].e).length;
+  const nonEmpty=stacks.filter(s=>s.length).length,rubricProxy=total+kinds*2+decos*2+height;
+  T.log('artifact_saved',{stacks:stacks.map(s=>s.length),total,height,kinds,decorations:decos});
+  T.log('SESSION_END',{blocks:total,height,kinds,decorations:decos,rebuilds:reworks,rubric_proxy:rubricProxy,progress:progSnaps.join('>')});
+  phaseTag.textContent='done';story.innerHTML='<b style="color:var(--gold)">What a build — nice work! 🌟</b>';bar.innerHTML='';blocksEl.innerHTML='';
+  [...site.children].forEach(col=>col.onclick=null);
+  outcome.innerHTML='<div class="note">The saved structure is rated later by humans for ingenuity, originality, and elaboration (M-RUBRIC); the demo shows a proxy from blocks, kinds, decorations, and height (M-ELAB). How the build grows (M-PROG: a steady arc vs an early stall) and how much the child re-does to improve it (M-REV) reveal the process. This construction shell is distinct from the snap-a-machine Maker\'s Workshop and the science-investigation Investigation Station. <b>Caveat:</b> open products score with low reliability (multiple identity-blind trained raters, anchored rubrics, report agreement); fine-motor/device skill and block-play exposure differ — score design intent, not neatness; standardize the build window.</div><div class="bar"><button class="go" onclick="location.reload()">↺ Build again</button></div>';
+  T.set('phase','done');
+}
+window.addEventListener('blur',()=>T.log('off_task_blur (M-ENGAGE)'));
+runGhost();
+</script>
+</body>
+</html>

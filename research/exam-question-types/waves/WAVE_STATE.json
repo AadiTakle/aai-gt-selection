@@ -1,13 +1,13 @@
 {
-  "wave": 4,
-  "phase": "coverage-push",
-  "wave3_committed": "633b497",
-  "coverage": {
-    "types": 144,
-    "top_gt": 160,
-    "ge3_pct": 80,
-    "zero": 0,
-    "mid": 31
+  "wave": 5,
+  "phase": "full-qbank-push",
+  "milestone": "top-GT 100% at wave4 (72c74f7)",
+  "coverage_full": {
+    "items": 312,
+    "ge3_pct": 84,
+    "mid": 36,
+    "zero": 13,
+    "types": 174
   },
-  "note": "Wave 4: 1 game-based alt-shells agent (bring ~20 game techniques from 1 to >=3 via distinct multi-technique shells) + 1 residual agent (verbal absurdities/sentence-arrangement/oral-directions; WM n-back/dual-n-back/inhibition/set-shifting)."
+  "note": "Wave 5: 5 area agents (processing_speed, complementary, verbal, spatial, fluid) close remaining FULL-qbank <3 cells per COVERAGE_REPORT_FULL.md. WM + quantitative already 100%."
 }

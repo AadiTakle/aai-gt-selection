@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CX-sjtpair-01 — Better Move</title>
+<style>
+  :root{--bg:#0f1b2b;--card:#152538;--ink:#eaf2ff;--muted:#8fb0cc;--acc:#6fa8ff;--gold:#ffd35c;}
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.4 system-ui,Segoe UI,Roboto,sans-serif;color:var(--ink);background:radial-gradient(circle at 80% 0%,#1b3350,#0f1b2b)}
+  header{padding:14px 20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  header h1{font-size:18px;margin:0}
+  .badge{font-size:12px;color:var(--muted);border:1px solid #2f4560;padding:2px 8px;border-radius:999px}
+  .wrap{display:grid;grid-template-columns:1fr 330px;gap:16px;padding:0 20px 30px;max-width:1100px}
+  @media(max-width:820px){.wrap{grid-template-columns:1fr}}
+  .stage{background:var(--card);border-radius:18px;padding:18px;position:relative;min-height:440px;text-align:center}
+  .phaseTag{position:absolute;top:12px;right:14px;font-size:12px;color:var(--gold);background:#243040;border:1px solid #4f5f70;padding:3px 10px;border-radius:999px}
+  .scene{font-size:56px;margin:8px 0 2px}
+  .story{font-size:17px;min-height:44px;max-width:540px;margin:0 auto 4px}
+  .read{display:inline-block;margin:0 auto 8px;background:#1d3247;border:1px solid #2f4560;color:#cde2ee;border-radius:999px;padding:6px 14px;cursor:pointer;font:inherit;font-size:13px}
+  .q{font-size:15px;color:var(--gold);margin:6px 0}
+  .pair{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:10px auto;max-width:560px}
+  .opt{flex:1;min-width:180px;max-width:250px;background:#0e1e30;border:3px solid #2f4560;border-radius:16px;padding:18px 14px;cursor:pointer;transition:transform .08s}
+  .opt:hover{border-color:var(--acc)} .opt:active{transform:scale(.97)}
+  .opt .e{font-size:46px;display:block;margin-bottom:6px}
+  .opt .t{font-size:15px}
+  .vs{align-self:center;font-weight:800;color:var(--muted)}
+  .prog{display:flex;gap:4px;justify-content:center;margin:8px 0}
+  .dot{width:12px;height:12px;border-radius:50%;background:#284056}
+  .dot.on{background:var(--gold)} .dot.now{outline:2px solid var(--acc)}
+  .outcome{font-size:15px;color:var(--gold);min-height:22px;margin-top:8px}
+  button.go{font:inherit;border:0;border-radius:12px;padding:10px 18px;cursor:pointer;font-weight:700;background:var(--acc);color:#04213a}
+  .ghost{position:absolute;font-size:38px;pointer-events:none;z-index:6;transition:left .7s ease,top .7s ease;filter:drop-shadow(0 3px 5px rgba(0,0,0,.5))}
+  .tele{background:#0e1e30;border:1px solid #244560;border-radius:18px;padding:14px;height:fit-content;position:sticky;top:12px}
+  .tele h3{margin:0 0 8px;font-size:14px;color:var(--gold);letter-spacing:.5px}
+  .metrics{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+  .chip{font-size:12px;background:#152538;border:1px solid #2f4560;border-radius:8px;padding:4px 8px}
+  .chip b{color:var(--gold)}
+  .log{font:11px/1.5 ui-monospace,Menlo,Consolas,monospace;color:#b5d2e6;max-height:210px;overflow:auto;background:#0a1521;border-radius:10px;padding:8px}
+  .log div{border-bottom:1px solid #16283a;padding:1px 0}
+  .note{font-size:11px;color:var(--muted);margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>⚖️ Better Move</h1>
+  <span class="badge">CX-sjtpair-01</span>
+  <span class="badge">bands: 2–3 · 4–5 · 6–8</span>
+  <span class="badge">situational judgment · forced-choice pairs</span>
+</header>
+<div class="wrap">
+  <div class="stage" id="stage">
+    <div class="phaseTag" id="phaseTag">demo</div>
+    <div class="scene" id="scene">🎬</div>
+    <div class="story" id="story">Watch…</div>
+    <button class="read" id="read" style="display:none">🔊 Read to me</button>
+    <div class="q" id="q"></div>
+    <div class="pair" id="pair"></div>
+    <div class="prog" id="prog"></div>
+    <div class="outcome" id="outcome"></div>
+    <div class="ghost" id="ghost" style="display:none">👆</div>
+  </div>
+  <div class="tele">
+    <h3>LIVE TELEMETRY</h3>
+    <div class="metrics" id="metrics"></div>
+    <div class="log" id="log"></div>
+    <div class="note">M-ACC (agree with consensus per pair), M-POLY (net effectiveness across pairs), M-RT (quick decision time), M-CONSIST (same choice on repeated/parallel pairs), M-DRIFT (accuracy/RT change across the run), M-ENGAGE. Many fast binary judgments resist halo and yield reliable tail granularity.</div>
+  </div>
+</div>
+<script>
+const T={ev:[],m:{},t0:performance.now(),now(){return Math.round(performance.now()-this.t0)},
+  log(a,d){const t=this.now();this.ev.push(Object.assign({t,a},d||{}));const el=document.getElementById('log');
+    const line=document.createElement('div');line.textContent='+'+(t/1000).toFixed(2)+'s  '+a+(d?'  '+JSON.stringify(d):'');el.prepend(line);},
+  set(k,v){this.m[k]=v;this.render();},
+  render(){document.getElementById('metrics').innerHTML=Object.entries(this.m).map(([k,v])=>'<span class="chip"><b>'+k+'</b> '+v+'</span>').join('');}};
+const $=s=>document.querySelector(s);
+const scene=$('#scene'),story=$('#story'),qEl=$('#q'),pairEl=$('#pair'),progEl=$('#prog'),outcome=$('#outcome'),ghost=$('#ghost'),phaseTag=$('#phaseTag');
+function speak(t){try{if(window.speechSynthesis){speechSynthesis.cancel();speechSynthesis.speak(new SpeechSynthesisUtterance(t));}}catch(e){}}
+
+/* each pair: two responses to a mini-situation; "better" marks the expert-consensus stronger move.
+   pairs tagged with the same 'twin' id are parallel/near-identical and used for the consistency check. */
+const WARM={scene:'🧸',ctx:'A little kid drops their teddy and cries.',
+  a:{e:'🤝',t:'Pick it up for them'},b:{e:'🙈',t:'Ignore them'},better:'a'};
+const ITEMS=[
+ {scene:'🎨',ctx:'A classmate spills paint on your drawing by accident.',a:{e:'🗣️',t:'Calmly say it was an accident'},b:{e:'😠',t:'Yell at them'},better:'a',twin:1},
+ {scene:'🏫',ctx:'You do not understand the teacher\'s directions.',a:{e:'🙋',t:'Raise your hand to ask'},b:{e:'🤫',t:'Guess and stay quiet'},better:'a'},
+ {scene:'🥱',ctx:'Your homework is boring but due tomorrow.',a:{e:'⏱️',t:'Do a little now, break later'},b:{e:'📱',t:'Skip it and play'},better:'a'},
+ {scene:'🎨',ctx:'A classmate knocks over your project by mistake.',a:{e:'😡',t:'Yell at them'},b:{e:'🗣️',t:'Calmly say it was an accident'},better:'b',twin:1},
+ {scene:'🤼',ctx:'Two friends are arguing and want you to pick a side.',a:{e:'🕊️',t:'Help them talk it out'},b:{e:'🔥',t:'Take one side and argue'},better:'a'},
+ {scene:'⭐',ctx:'You finish your work early.',a:{e:'📖',t:'Check it or help a friend'},b:{e:'😴',t:'Distract others'},better:'a'}
+];
+
+let scored=false,i=0,accHits=0,polyTotal=0,tStart=0,rts=[],accSeq=[],choicesByTwin={},consistPairs=0,consistHits=0;
+T.set('phase','demo');T.set('agree_M-ACC','–');T.set('net_effect_M-POLY',0);T.set('avg_RT_M-RT','–');T.set('consistency_M-CONSIST','–');
+
+function renderPair(it,isScored){
+  scene.textContent=it.scene;story.textContent=it.ctx;qEl.textContent='Which is the better move?';
+  outcome.textContent='';$('#read').style.display='inline-block';$('#read').onclick=()=>{T.log('read_aloud');speak(it.ctx+' Which is the better move?');};
+  pairEl.innerHTML='';tStart=performance.now();
+  // randomize left/right display without changing keys
+  const sides=[['a',it.a],['b',it.b]].sort(()=>Math.random()-0.5);
+  sides.forEach(([key,o],n)=>{
+    if(n===1){const v=document.createElement('div');v.className='vs';v.textContent='or';pairEl.appendChild(v);}
+    const d=document.createElement('div');d.className='opt';d.innerHTML='<span class="e">'+o.e+'</span><span class="t">'+o.t+'</span>';
+    d.onclick=()=>choose(it,key,isScored);pairEl.appendChild(d);
+  });
+  drawProg();
+}
+function drawProg(){progEl.innerHTML='';if(!scored)return;ITEMS.forEach((_,n)=>{const d=document.createElement('div');d.className='dot'+(n<i?' on':'')+(n===i?' now':'');progEl.appendChild(d);});}
+function choose(it,key,isScored){
+  const rt=Math.round(performance.now()-tStart);
+  if(!isScored){outcome.textContent=key===it.better?'Yes — kinder and smarter!':'Hmm, the other is a bit better. Ready!';
+    T.log('warmup_choice',{picked:key});pairEl.innerHTML='';qEl.textContent='';
+    outcome.innerHTML+='<div style="margin-top:8px"><button class="go">Start →</button></div>';outcome.querySelector('button').onclick=()=>startItems();return;}
+  const correct=key===it.better;rts.push(rt);accSeq.push(correct?1:0);
+  if(correct){accHits++;polyTotal++;}else{polyTotal--;}
+  if(it.twin!==undefined){(choicesByTwin[it.twin]=choicesByTwin[it.twin]||[]).push(key==='a'?it.a.t:it.b.t);}
+  T.set('agree_M-ACC',accHits+'/'+(i+1));T.set('net_effect_M-POLY',(polyTotal>=0?'+':'')+polyTotal);
+  T.set('avg_RT_M-RT',(rts.reduce((x,y)=>x+y,0)/rts.length/1000).toFixed(2)+'s');
+  T.log('CHOICE',{ctx:it.ctx.slice(0,22)+'…',picked_effective:correct,rt_ms:rt});
+  outcome.textContent=correct?'👍':'🤔';
+  i++;setTimeout(()=>{if(i>=ITEMS.length)finish();else{renderPair(ITEMS[i],true);}},430);
+}
+function computeConsistency(){
+  // twin pairs present the SAME two responses; a consistent child picks the same response text both times
+  consistPairs=0;consistHits=0;
+  for(const k in choicesByTwin){if(choicesByTwin[k].length>=2){consistPairs++;if(choicesByTwin[k][0]===choicesByTwin[k][1])consistHits++;}}
+  return consistPairs?consistHits+'/'+consistPairs:'n/a';
+}
+function computeDrift(){
+  if(accSeq.length<4)return'–';const h=Math.floor(accSeq.length/2);
+  const first=accSeq.slice(0,h).reduce((a,b)=>a+b,0)/h,second=accSeq.slice(h).reduce((a,b)=>a+b,0)/(accSeq.length-h);
+  const d=second-first;return(d>=0?'+':'')+(d*100).toFixed(0)+'% late';
+}
+function runGhost(){
+  ghost.style.display='block';scene.textContent='🧸';story.textContent='A kid drops their teddy…';qEl.textContent='Which is the better move?';
+  pairEl.innerHTML='';const A={e:'🤝',t:'Help pick it up'},B={e:'🙈',t:'Ignore them'};
+  [A,B].forEach((o,n)=>{if(n===1){const v=document.createElement('div');v.className='vs';v.textContent='or';pairEl.appendChild(v);}const d=document.createElement('div');d.className='opt';d.innerHTML='<span class="e">'+o.e+'</span><span class="t">'+o.t+'</span>';pairEl.appendChild(d);});
+  const stg=$('#stage').getBoundingClientRect();const R=el=>{const r=el.getBoundingClientRect();return[r.left-stg.left+r.width/2-19,r.top-stg.top+r.height/2-19];};
+  setTimeout(()=>{const[x,y]=R(pairEl.children[0]);ghost.style.left=x+'px';ghost.style.top=y+'px';
+    setTimeout(()=>{pairEl.children[0].style.borderColor='var(--gold)';outcome.textContent='Tap the kinder, smarter move ✔';
+      setTimeout(()=>{ghost.style.display='none';startWarm();},1300);},900);},700);
+}
+function startWarm(){scored=false;phaseTag.textContent='warm-up (practice)';T.set('phase','warm-up');T.log('phase_warmup');renderPair(WARM,false);}
+function startItems(){scored=true;i=0;accHits=0;polyTotal=0;rts=[];accSeq=[];choicesByTwin={};phaseTag.textContent='quick choices';T.set('phase','scored');T.log('phase_scored');renderPair(ITEMS[0],true);}
+function finish(){
+  const cons=computeConsistency(),drift=computeDrift();
+  T.set('consistency_M-CONSIST',cons);T.set('drift_M-DRIFT',drift);
+  T.log('SESSION_END',{agree:accHits+'/'+ITEMS.length,net:polyTotal,consistency:cons,drift:drift});
+  scene.textContent='🌟';story.innerHTML='<b style="color:var(--gold)">All done — nice quick thinking!</b>';qEl.textContent='';pairEl.innerHTML='';progEl.innerHTML='';
+  $('#read').style.display='none';
+  outcome.innerHTML='<div class="note">Many fast binary comparisons give a reliable judgment score (M-ACC / M-POLY) with less halo than rating scales; parallel repeated pairs check whether the child is internally consistent (M-CONSIST) and M-DRIFT flags fading effort. <b>Caveat:</b> still semi-self-report — reaction-time flooring, forced trade-offs, and consequence-free framing help; consensus keys need diverse, bias-audited panels and locale checks.</div><div style="margin-top:10px"><button class="go" onclick="location.reload()">↺ Play again</button></div>';
+  T.set('phase','done');
+}
+window.addEventListener('blur',()=>T.log('off_task_blur (M-ENGAGE)'));
+runGhost();
+</script>
+</body>
+</html>

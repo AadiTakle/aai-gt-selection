@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SPA-SNAPVIEW-01 — Snap the Photo</title>
+<style>
+  :root{--bg:#eef2fb;--card:#fff;--ink:#1e293b;--muted:#64748b;--accent:#4f46e5;--good:#16a34a;--warn:#f59e0b;--bad:#dc2626;--stage:#f3f7f4}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.4 system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  .wrap{display:flex;gap:14px;padding:14px;max-width:1180px;margin:0 auto;align-items:flex-start;flex-wrap:wrap}
+  .col{flex:1 1 600px;min-width:340px}.side{flex:1 1 320px;min-width:300px}
+  .card{background:var(--card);border-radius:16px;box-shadow:0 6px 22px rgba(15,23,42,.08);padding:16px;margin-bottom:14px}
+  h1{font-size:19px;margin:0 0 2px}.sub{color:var(--muted);font-size:13px;margin:0 0 10px}
+  .pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;background:#e0e7ff;color:#3730a3}
+  .banner{display:flex;align-items:center;gap:10px;background:#f1f5ff;border:1px solid #dbe3ff;border-radius:12px;padding:10px 12px;margin-bottom:12px;min-height:44px}
+  .banner .icon{font-size:22px}.banner b{color:var(--accent)}
+  #stageWrap{position:relative;background:var(--stage);border-radius:14px;border:1px solid #e2e8f0;overflow:hidden}
+  svg{display:block;width:100%;height:250px}
+  .hand{position:absolute;font-size:30px;pointer-events:none;z-index:5;filter:drop-shadow(0 2px 3px rgba(0,0,0,.25));transition:left .5s,top .5s}
+  .opts{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .opt{flex:1 1 120px;min-width:110px;background:#f8fafc;border:3px solid #e2e8f0;border-radius:14px;padding:10px 6px;cursor:pointer;text-align:center;font-size:26px;letter-spacing:4px;user-select:none}
+  .opt.sel{border-color:var(--accent);background:#eef2ff}
+  .opt.ok{border-color:var(--good);background:#dcfce7}.opt.bad{border-color:var(--bad);background:#fee2e2}
+  .opt small{display:block;font-size:11px;color:var(--muted);letter-spacing:0;margin-top:4px}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+  button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:10px 16px;cursor:pointer;background:var(--accent);color:#fff}
+  button.ghost{background:#e2e8f0;color:#334155}button:disabled{opacity:.45;cursor:not-allowed}
+  .conf{display:flex;gap:8px;align-items:center;margin-top:8px}.conf button{background:#f1f5f9;color:#334155;font-size:20px;padding:6px 12px}
+  .tel{background:#0b1220;color:#d1fae5;border-radius:16px;padding:14px;font:12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
+  .tel h2{font-size:13px;margin:0 0 8px;color:#93c5fd;letter-spacing:.05em;text-transform:uppercase}
+  .tel .m{display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px dotted #1e293b}
+  .tel .m .k{color:#7dd3fc}.tel .m .v{color:#fde68a;font-weight:700;text-align:right}
+  #log{margin-top:10px;max-height:150px;overflow:auto;background:#060b16;border-radius:8px;padding:8px}
+  #log div{white-space:pre-wrap;color:#a7f3d0}#log .t{color:#475569}
+  .done{color:var(--good);font-weight:700}.miss{color:var(--warn)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="col"><div class="card">
+    <span class="pill" id="phasePill">DEMO</span>
+    <h1>Snap the Photo <span style="color:var(--muted);font-weight:400">· SPA-SNAPVIEW-01</span></h1>
+    <p class="sub">The camera-critter takes a photo from its side. Tap the photo it sees — left to right from its eyes.</p>
+    <div class="banner"><span class="icon" id="bIcon">📸</span><div id="bText"><b>Watch.</b> From the critter's side, the toys line up in a new order…</div></div>
+    <div id="stageWrap"><svg id="svg" viewBox="0 0 460 250"></svg><div class="hand" id="hand" style="display:none">👆</div></div>
+    <div class="opts" id="opts"></div>
+    <div class="conf" id="confRow" style="display:none"><span class="sub">How sure?</span>
+      <button data-c="1">🤔</button><button data-c="2">🙂</button><button data-c="3">😎</button></div>
+    <div class="controls">
+      <button id="lockBtn" disabled>🔒 Lock</button>
+      <button id="nextBtn" class="ghost" style="display:none">Next ▶</button>
+    </div>
+  </div></div>
+  <div class="side"><div class="tel">
+    <h2>◉ Live telemetry</h2>
+    <div class="m"><span class="k">M-ACC accuracy</span><span class="v" id="mAcc">—</span></div>
+    <div class="m"><span class="k">M-RT total</span><span class="v" id="mRt">—</span></div>
+    <div class="m"><span class="k">M-RTFIRST first-tap</span><span class="v" id="mFirst">—</span></div>
+    <div class="m"><span class="k">M-REV changes</span><span class="v" id="mRev">0</span></div>
+    <div class="m"><span class="k">M-EXPLORE opts tried</span><span class="v" id="mExp">0</span></div>
+    <div class="m"><span class="k">M-ERRTYPE last err</span><span class="v" id="mErr">—</span></div>
+    <div class="m"><span class="k">M-CONF wager</span><span class="v" id="mConf">—</span></div>
+    <div class="m"><span class="k">M-DIFFREACH offset</span><span class="v" id="mDiff">—</span></div>
+    <div id="log"></div>
+  </div></div>
+</div>
+<script>
+(function(){
+  "use strict";
+  var SVGNS="http://www.w3.org/2000/svg",svg=document.getElementById("svg"),hand=document.getElementById("hand");
+  function beep(f,t){try{var A=beep.a=beep.a||new(window.AudioContext||window.webkitAudioContext)();var o=A.createOscillator(),g=A.createGain();o.frequency.value=f;o.connect(g);g.connect(A.destination);g.gain.value=.07;o.start();o.stop(A.currentTime+(t||.1));}catch(e){}}
+  var T={start:0,first:0,revs:0,explore:{},scored:0,correct:0,err:"—",conf:"—",logEl:document.getElementById("log")};
+  function tlog(m,c){var d=document.createElement("div");var t=((performance.now()-T.start)/1000).toFixed(2);d.innerHTML='<span class="t">['+t+'s]</span> '+m;if(c)d.className=c;T.logEl.appendChild(d);T.logEl.scrollTop=T.logEl.scrollHeight;}
+  function render(){
+    document.getElementById("mAcc").textContent=T.scored?T.correct+"/"+T.scored+" ("+Math.round(100*T.correct/T.scored)+"%)":"—";
+    document.getElementById("mFirst").textContent=T.first?Math.round(T.first)+" ms":"—";
+    document.getElementById("mRev").textContent=T.revs;document.getElementById("mExp").textContent=Object.keys(T.explore).length;
+    document.getElementById("mErr").textContent=T.err;document.getElementById("mConf").textContent=T.conf;
+  }
+  function begin(l){T.start=performance.now();T.first=0;T.revs=0;T.explore={};render();tlog("▶ "+l);}
+  function firstAct(w){if(!T.first){T.first=performance.now()-T.start;tlog("first tap: "+w+" @"+Math.round(T.first)+"ms");render();}}
+
+  var C={x:230,y:120};
+  function rightVec(P){var fx=C.x-P.x,fy=C.y-P.y,m=Math.hypot(fx,fy);fx/=m;fy/=m;return {x:-fy,y:fx};}
+  function seenOrder(objs,P){var r=rightVec(P);return objs.map(function(o){return {s:o.s,k:(o.x-P.x)*r.x+(o.y-P.y)*r.y};}).sort(function(a,b){return a.k-b.k;}).map(function(o){return o.s;});}
+  function txt(x,y,s,size,col){var t=document.createElementNS(SVGNS,"text");t.setAttribute("x",x);t.setAttribute("y",y);t.setAttribute("text-anchor","middle");t.setAttribute("dominant-baseline","central");t.setAttribute("font-size",size);if(col)t.setAttribute("fill",col);t.textContent=s;svg.appendChild(t);return t;}
+  function line(x1,y1,x2,y2,col,w,dash){var l=document.createElementNS(SVGNS,"line");l.setAttribute("x1",x1);l.setAttribute("y1",y1);l.setAttribute("x2",x2);l.setAttribute("y2",y2);l.setAttribute("stroke",col);l.setAttribute("stroke-width",w);if(dash)l.setAttribute("stroke-dasharray",dash);svg.appendChild(l);return l;}
+  var cam={x:230,y:20,icon:"📷"},objs=[];
+  function draw(){
+    svg.innerHTML="";
+    var tb=document.createElementNS(SVGNS,"rect");tb.setAttribute("x",120);tb.setAttribute("y",55);tb.setAttribute("width",220);tb.setAttribute("height",130);tb.setAttribute("rx",16);tb.setAttribute("fill","#eafaef");tb.setAttribute("stroke","#c7ead1");tb.setAttribute("stroke-width",2);svg.appendChild(tb);
+    objs.forEach(function(o){line(cam.x,cam.y,o.x,o.y,"#e2e8f0",1.5);});
+    objs.forEach(function(o){txt(o.x,o.y,o.s,26);});
+    // camera facing center
+    txt(cam.x,cam.y,cam.icon,28);var f={x:C.x-cam.x,y:C.y-cam.y},m=Math.hypot(f.x,f.y);line(cam.x,cam.y,cam.x+f.x/m*26,cam.y+f.y/m*26,"#4f46e5",3);
+    txt(230,205,"👦 you",13,"#94a3b8");
+    render();
+  }
+  // ---- options ----
+  var optsEl=document.getElementById("opts"),sel=-1,options=[],correctIdx=0,confRow=document.getElementById("confRow");
+  function buildOptions(list,corr){options=list;correctIdx=corr;sel=-1;optsEl.innerHTML="";
+    list.forEach(function(o,i){var d=document.createElement("div");d.className="opt";d.innerHTML=o.arr.join(" ")+"<small>"+o.lbl+"</small>";
+      d.onclick=function(){if(!interactive)return;firstAct("option "+(i+1));if(sel!==i){if(sel!==-1)T.revs++;sel=i;T.explore[i]=1;beep(560,.03);}
+        [].forEach.call(optsEl.children,function(c,j){c.className="opt"+(j===sel?" sel":"");});document.getElementById("lockBtn").disabled=false;render();};
+      optsEl.appendChild(d);});
+  }
+  function orderArr(P){return seenOrder(objs,P);}
+
+  var phase="demo",interactive=false;
+  var pill=document.getElementById("phasePill"),bIcon=document.getElementById("bIcon"),bText=document.getElementById("bText"),lockBtn=document.getElementById("lockBtn"),nextBtn=document.getElementById("nextBtn");
+  function setBanner(i,h){bIcon.textContent=i;bText.innerHTML=h;}
+  function setScene(list,camPos){objs=list;cam=camPos;}
+  function optionsFor(camPos,n){ // build correct + egocentric + mirror (+ neighbor)
+    var corr=orderArr(camPos);var ego=orderArr({x:230,y:230});var mir=corr.slice().reverse();
+    var uniq=[],labels=[];function add(a,l){var k=a.join("");if(uniq.some(function(u){return u.arr.join("")===k;}))return;uniq.push({arr:a,lbl:l});}
+    add(corr,"critter view");add(ego,"your view");add(mir,"flipped");
+    if(uniq.length<n){var nb=orderArr({x:20,y:120});add(nb,"side view");}
+    // shuffle, track correct
+    for(var i=uniq.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=uniq[i];uniq[i]=uniq[j];uniq[j]=t;}
+    var out=uniq.slice(0,n);
+    if(!out.some(function(u){return u.arr.join("")===corr.join("");}))out[0]={arr:corr,lbl:"critter view"};
+    return {list:out,ci:out.findIndex(function(u){return u.arr.join("")===corr.join("");})};
+  }
+  function startDemo(){
+    phase="demo";pill.textContent="DEMO";interactive=false;confRow.style.display="none";
+    setScene([{s:"🌳",x:160,y:120},{s:"🏠",x:230,y:95},{s:"⛲",x:300,y:120}],{x:230,y:20,icon:"📷"});
+    var o=optionsFor(cam,3);buildOptions(o.list,o.ci);
+    setBanner("📸","<b>Watch.</b> The camera looks from the TOP — its photo flips left↔right from what you see.");
+    draw();hand.style.display="";
+    setTimeout(function(){var el=optsEl.children[o.ci];var r=el.getBoundingClientRect();hand.style.left=(el.offsetLeft+el.offsetWidth/2)+"px";hand.style.top=(el.offsetTop+el.offsetHeight)+"px";el.classList.add("ok");beep(760,.08);
+      setTimeout(function(){hand.style.display="none";startWarmup();},1200);},900);
+  }
+  function startWarmup(){
+    phase="warmup";pill.textContent="WARM-UP";interactive=true;confRow.style.display="none";
+    setScene([{s:"🐱",x:185,y:120},{s:"🎈",x:275,y:120}],{x:20,y:120,icon:"📷"});
+    var o=optionsFor(cam,2);buildOptions(o.list,o.ci);begin("Warm-up — camera on the LEFT, two toys");
+    setBanner("✋","<b>Practice.</b> The camera looks from the LEFT. Tap the photo it sees, then Lock.");
+    lockBtn.style.display="";lockBtn.disabled=true;nextBtn.style.display="none";
+    lockBtn.onclick=function(){var ok=sel===correctIdx;[].forEach.call(optsEl.children,function(c,j){c.className="opt"+(j===correctIdx?" ok":(j===sel&&!ok?" bad":""));});
+      if(ok){beep(880);tlog("matched the critter view ✔","done");setBanner("✅","<b>Yes!</b> Now the scored photos.");lockBtn.style.display="none";nextBtn.style.display="";nextBtn.textContent="Start scored ▶";nextBtn.onclick=startScored1;interactive=false;}
+      else{beep(260);tlog("that is your own view, not the critter's — try again","miss");setBanner("↻","<b>Not quite.</b> Imagine standing where the camera is.");}};
+  }
+  function scored(n,list,camPos,label,offset,nextFn){
+    phase="scored";pill.textContent=label;interactive=true;confRow.style.display="none";
+    setScene(list,camPos);var o=optionsFor(cam,list.length>=4?4:3);buildOptions(o.list,o.ci);
+    begin("Scored — pick the camera's photo");T.scored=n;document.getElementById("mDiff").textContent=offset;
+    setBanner("🎯","<b>What does the camera see?</b> Tap its photo (left→right from its eyes), then Lock.");
+    lockBtn.style.display="";lockBtn.disabled=true;nextBtn.style.display="none";
+    lockBtn.onclick=function(){var rt=performance.now()-T.start;var ok=sel===correctIdx;
+      if(!ok){var picked=options[sel];var lbl=picked?picked.lbl:"";T.err=(lbl==="your view"?"egocentric":lbl==="flipped"?"mirror":"other");}
+      [].forEach.call(optsEl.children,function(c,j){c.className="opt"+(j===correctIdx?" ok":(j===sel&&!ok?" bad":""));});
+      if(ok){T.correct++;tlog("LOCK correct ✔ RT="+Math.round(rt)+"ms","done");}else{tlog("LOCK wrong ✗ chose "+(options[sel]?options[sel].lbl:"?")+" ("+T.err+")","miss");}
+      document.getElementById("mRt").textContent=Math.round(rt)+" ms";render();interactive=false;
+      // confidence tap
+      confRow.style.display="";[].forEach.call(confRow.querySelectorAll("button"),function(b){b.onclick=function(){T.conf=["","low","med","high"][+b.dataset.c];tlog("confidence: "+T.conf,"done");render();confRow.style.display="none";lockBtn.style.display="none";nextBtn.style.display="";nextBtn.textContent=nextFn?"Next ▶":"Finish ▶";nextBtn.onclick=nextFn||finish;};});};
+  }
+  function startScored1(){scored(1,[{s:"🌳",x:160,y:120},{s:"🏠",x:230,y:95},{s:"⛲",x:300,y:120}],{x:230,y:20,icon:"📷"},"SCORED 1/2","top (180°)",startScored2);}
+  function startScored2(){scored(2,[{s:"🦁",x:160,y:105},{s:"🌵",x:235,y:150},{s:"🎁",x:305,y:100},{s:"🚗",x:230,y:60}],{x:410,y:120,icon:"📷"},"SCORED 2/2","right/diagonal",null);}
+  function finish(){
+    phase="done";pill.textContent="DONE";interactive=false;lockBtn.style.display="none";confRow.style.display="none";
+    setBanner("🏁","<b>Accuracy "+T.correct+"/"+T.scored+".</b> Fast, correct picks from opposite/diagonal cameras — with the egocentric 'your view' foil rejected — mark a true allocentric model (M-ERRTYPE types the near-misses).");
+    tlog("── summary ── M-ACC="+T.correct+"/"+T.scored+"  M-REV="+T.revs+"  M-CONF="+T.conf,"done");
+    nextBtn.style.display="";nextBtn.textContent="↻ Run again";nextBtn.onclick=function(){location.reload();};
+  }
+  draw();startDemo();
+})();
+</script>
+</body>
+</html>

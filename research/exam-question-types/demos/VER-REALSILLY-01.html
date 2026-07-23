@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VER-REALSILLY-01 - Real or Impossible?</title>
+<style>
+  :root{--bg:#0f1226;--panel:#181c3a;--card:#20264f;--ink:#f4f6ff;--mut:#9aa3d4;--acc:#ffd23f;
+    --good:#37d67a;--bad:#ff6b6b;--line:#2c3566;--brand:#7c8cff}
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.45 system-ui,Segoe UI,Roboto,sans-serif;color:var(--ink);min-height:100vh;
+    background:radial-gradient(1200px 600px at 20% -10%,#2a2f66 0,var(--bg) 55%)}
+  .wrap{display:flex;gap:18px;max-width:1180px;margin:0 auto;padding:18px;flex-wrap:wrap}
+  .main{flex:1 1 560px;min-width:340px}.side{flex:1 1 320px;min-width:300px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px}
+  header.card{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-bottom:14px}
+  h1{font-size:18px;margin:0}.id{font:12px ui-monospace,monospace;color:var(--mut)}
+  .pill{font:12px ui-monospace,monospace;padding:4px 10px;border-radius:999px;background:#12163a;border:1px solid var(--line);color:var(--acc)}
+  .promptbar{display:flex;align-items:center;gap:12px;margin:2px 0 12px}
+  .play{width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;font-size:22px;color:#fff;background:linear-gradient(160deg,var(--brand),#4d5bd6);box-shadow:0 6px 18px #0006}
+  .play.pulse{animation:pulse 1s infinite}@keyframes pulse{0%,100%{box-shadow:0 0 0 0 #7c8cff88}50%{box-shadow:0 0 0 14px #7c8cff00}}
+  .caption{font-size:13px;color:var(--mut)}
+  .meter{font-size:26px;margin-left:auto}
+  .scene{display:grid;place-items:center;gap:8px;background:linear-gradient(180deg,#1a2350,#141a3c);border:1px solid var(--line);border-radius:16px;padding:22px;margin:4px 0 12px;min-height:150px}
+  .scene .art{font-size:64px;letter-spacing:6px}
+  .scene .txt{font-size:19px;text-align:center;color:#dfe4ff}
+  .doors{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .door{border:none;border-radius:16px;padding:18px 12px;font-size:16px;font-weight:800;cursor:pointer}
+  .door.real{background:linear-gradient(160deg,var(--good),#1f9e5a);color:#04240f}
+  .door.imp{background:linear-gradient(160deg,#ffc24d,#ff8a5c);color:#3a1400}
+  .door:disabled{opacity:.45;cursor:not-allowed}
+  .door.demo-hit{outline:4px solid var(--acc);transform:scale(1.03)}
+  .conf{display:none;margin-top:12px;padding:12px;border:1px dashed var(--brand);border-radius:14px;background:#161a3d}
+  .conf h3{margin:0 0 8px;font-size:13px;color:var(--brand)}
+  .conf .cbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .conf button{padding:12px;border-radius:12px;border:1px solid var(--line);background:#20264f;color:var(--ink);cursor:pointer;font-weight:700}
+  .conf button:hover{border-color:var(--brand)}
+  .feedback{min-height:26px;margin-top:12px;font-weight:600}
+  .row{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+  button.btn{border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:9px 16px;cursor:pointer;background:#242a56}
+  button.btn.primary{background:linear-gradient(160deg,var(--good),#1f9e5a);border:none;color:#04240f;font-weight:700}
+  button.btn:disabled{opacity:.4;cursor:not-allowed}
+  .tallies{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 12px}
+  .t{background:#12163a;border:1px solid var(--line);border-radius:12px;padding:10px}
+  .t .k{font:11px ui-monospace,monospace;color:var(--mut)}.t .v{font-size:19px;font-weight:700}.t .m{font:10px ui-monospace,monospace;color:var(--brand)}
+  .log{height:230px;overflow:auto;background:#0c0f28;border:1px solid var(--line);border-radius:12px;padding:10px;font:12px/1.5 ui-monospace,Menlo,monospace}
+  .log div{white-space:pre-wrap;border-bottom:1px dashed #1c2350;padding:2px 0}.log .mid{color:var(--acc)}.log .tt{color:var(--mut)}
+  .hand{position:fixed;z-index:50;font-size:38px;pointer-events:none;opacity:0;filter:drop-shadow(0 3px 4px #0008);transition:left .8s cubic-bezier(.5,.1,.3,1),top .8s cubic-bezier(.5,.1,.3,1),opacity .3s}
+  .note{font-size:12px;color:var(--mut);margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="main">
+    <header class="card"><div><h1>Real or Impossible?</h1><div class="id">VER-REALSILLY-01 &middot; verbal_absurdities</div></div><span class="pill" id="phase">DEMO</span></header>
+    <div class="card">
+      <div class="promptbar"><button class="play" id="play">&#9654;</button>
+        <div class="caption" id="cap">Could this really happen, or could it never happen? Tap a door.<br><span style="font-size:11px">(demo caption; production plays each scene as audio for young bands)</span></div>
+        <div class="meter" id="meter">&#128528;</div>
+      </div>
+      <div class="scene" id="scene"><div class="art" id="art"></div><div class="txt" id="txt"></div></div>
+      <div class="doors">
+        <button class="door real" id="doorReal">&#9989; Could really happen</button>
+        <button class="door imp" id="doorImp">&#129322; Could never happen</button>
+      </div>
+      <div class="conf" id="conf"><h3>How sure are you?</h3><div class="cbtns"><button id="cSure">&#128526; Sure</button><button id="cUnsure">&#129300; Not sure</button></div></div>
+      <div class="feedback" id="fb"></div>
+      <div class="row"><button class="btn" id="replay">&#8635; Replay demo</button><button class="btn primary" id="next" disabled>Next &rarr;</button></div>
+      <div class="note">Real and impossible scenes are <b>balanced</b>, so scoring uses signal-detection sensitivity (d&prime;), not raw catches - a cautious child and a yes-biased guesser are told apart. Older bands add a subtle "only one impossible among several real" set. Young bands: audio + picture, single tap.</div>
+    </div>
+  </div>
+  <aside class="side"><div class="card">
+    <h1 style="font-size:15px;margin:0 0 8px">Live telemetry</h1>
+    <div class="tallies">
+      <div class="t"><div class="k">Verdict accuracy</div><div class="v" id="v-acc">0/0</div><div class="m">M-ACC</div></div>
+      <div class="t"><div class="k">Verdict RT</div><div class="v" id="v-rt">&mdash;</div><div class="m">M-RT</div></div>
+      <div class="t"><div class="k">Sensitivity d&prime;</div><div class="v" id="v-dprime">&mdash;</div><div class="m">M-DPRIME</div></div>
+      <div class="t"><div class="k">Confidence calib.</div><div class="v" id="v-conf" style="font-size:13px">&mdash;</div><div class="m">M-CONF</div></div>
+      <div class="t" style="grid-column:1/3"><div class="k">Graded score (hits / false alarms)</div><div class="v" id="v-poly" style="font-size:14px">0/0 &middot; FA 0</div><div class="m">M-POLY / M-ERRTYPE</div></div>
+    </div>
+    <div class="log" id="log"></div>
+  </div></aside>
+</div>
+<div class="hand" id="hand">&#128070;</div>
+<script>
+"use strict";
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));const $=s=>document.querySelector(s);const T0=performance.now();
+// real:true = plausible. viol: gross | subtle (only on impossible scenes) for M-ERRTYPE.
+const DEMO=[{art:"\ud83d\udc36",txt:"A dog is barking",real:true},{art:"\ud83d\udc31\ud83d\ude8c",txt:"A cat is driving a bus",real:false,viol:"gross"}];
+const WARMUP={art:"\ud83d\udc37\u2708\ufe0f",txt:"A pig is flying an airplane",real:false,viol:"gross"};
+const SCORED=[
+  {art:"\ud83d\udc26",txt:"A bird is flying in the sky",real:true},
+  {art:"\ud83d\udc37\u2708\ufe0f",txt:"A pig is flying an airplane",real:false,viol:"gross"},
+  {art:"\ud83c\udf27\ufe0f",txt:"It is raining on a cloudy day",real:true},
+  {art:"\ud83d\udc1f\ud83d\udeb2",txt:"A fish is riding a bicycle",real:false,viol:"gross"},
+  {art:"\ud83c\udf4e\ud83c\udf33",txt:"Apples are growing on a tree",real:true},
+  {art:"\ud83d\udc18\ud83e\udeba",txt:"An elephant is sleeping in a bird's nest",real:false,viol:"subtle"},
+  {art:"\ud83d\udcda\ud83e\uddd2",txt:"A child is reading a book",real:true},
+  {art:"\u2600\ufe0f\ud83c\udf7d\ufe0f",txt:"The sun sits down to eat dinner",real:false,viol:"subtle"},
+];
+let phase="demo",idx=0,cur=null,tShown=0,locked=false,lastCorrect=false;
+let nCorrect=0,nTotal=0,rts=[];let hits=0,nSig=0,fa=0,nNoise=0;
+let sureC=0,sureN=0,unsureC=0,unsureN=0;
+function log(mid,msg){const el=document.createElement("div");const t=((performance.now()-T0)/1000).toFixed(2);el.innerHTML=`<span class="tt">t+${t}s</span> <span class="mid">[${mid}]</span> ${msg}`;const b=$("#log");b.appendChild(el);b.scrollTop=b.scrollHeight;}
+function speak(t){try{if(window.speechSynthesis){const u=new SpeechSynthesisUtterance(t);u.rate=.95;speechSynthesis.cancel();speechSynthesis.speak(u);}}catch(e){}}
+function setPhase(p){phase=p;$("#phase").textContent=p.toUpperCase();}
+function qnorm(p){const a=[-3.969683028665376e+01,2.209460984245205e+02,-2.759285104469687e+02,1.383577518672690e+02,-3.066479806614716e+01,2.506628277459239e+00],
+  b=[-5.447609879822406e+01,1.615858368580409e+02,-1.556989798598866e+02,6.680131188771972e+01,-1.328068155288572e+01],
+  c=[-7.784894002430293e-03,-3.223964580411365e-01,-2.400758277161838e+00,-2.549732539343734e+00,4.374664141464968e+00,2.938163982698783e+00],
+  d=[7.784695709041462e-03,3.224671290700398e-01,2.445134137142996e+00,3.754408661907416e+00];
+  const pl=0.02425,ph=1-pl;let q,r;
+  if(p<pl){q=Math.sqrt(-2*Math.log(p));return(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);}
+  if(p<=ph){q=p-.5;r=q*q;return(((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);}
+  q=Math.sqrt(-2*Math.log(1-p));return-(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);}
+function dprime(){if(nSig<1||nNoise<1)return null;const h=(hits+.5)/(nSig+1),f=(fa+.5)/(nNoise+1);return qnorm(h)-qnorm(f);}
+function setDoors(on){$("#doorReal").disabled=!on;$("#doorImp").disabled=!on;}
+function showScene(s,{interactive=true}={}){
+  cur=s;locked=false;$("#art").textContent=s.art;$("#txt").textContent=s.txt;$("#conf").style.display="none";$("#fb").textContent="";$("#meter").textContent="\ud83e\udd14";
+  setDoors(interactive);tShown=performance.now();speak(s.txt);
+}
+function verdict(sayReal){
+  if(locked)return;locked=true;setDoors(false);
+  const rt=Math.round(performance.now()-tShown);const correct=(sayReal===cur.real);lastCorrect=correct;
+  $("#meter").textContent=correct?"\ud83d\ude04":"\ud83d\ude45";
+  if(phase==="warmup"){$("#fb").textContent=correct?"Right - good eye!":"Look again next time.";$("#fb").style.color=correct?"var(--good)":"var(--mut)";$("#next").disabled=false;return;}
+  nTotal++;if(correct)nCorrect++;rts.push(rt);
+  if(!cur.real){nSig++;if(!sayReal)hits++;}else{nNoise++;if(sayReal===false)fa++;}
+  log("M-ACC",`scene ${idx+1}: "${cur.txt}" -> ${sayReal?"REAL":"IMPOSSIBLE"} ${correct?"CORRECT":"WRONG"}`);
+  log("M-RT",`verdict RT ${rt}ms`);
+  if(!correct){
+    if(!cur.real)log("M-ERRTYPE",cur.viol==="subtle"?`missed a SUBTLE impossibility (latent ability just under)`:`missed a gross impossibility`);
+    else log("M-ERRTYPE",`false alarm - flagged a REAL scene as impossible (yes-bias)`);
+  }
+  const dp=dprime();log("M-DPRIME",`hits ${hits}/${nSig}, false-alarms ${fa}/${nNoise} -> d' ${dp===null?"n/a":dp.toFixed(2)}`);
+  log("M-POLY",`graded verdicts ${nCorrect}/${nTotal}`);
+  updateTallies();
+  showConf();
+}
+function showConf(){$("#conf").style.display="block";$("#cSure").disabled=false;$("#cUnsure").disabled=false;
+  $("#fb").textContent=lastCorrect?"\u2605 Good verdict!":"That one was tricky.";$("#fb").style.color=lastCorrect?"var(--good)":"var(--bad)";}
+function pickConf(sure){
+  $("#cSure").disabled=true;$("#cUnsure").disabled=true;
+  if(sure){sureN++;if(lastCorrect)sureC++;}else{unsureN++;if(lastCorrect)unsureC++;}
+  log("M-CONF",`confidence ${sure?"SURE":"not sure"} on a ${lastCorrect?"correct":"wrong"} verdict -> calibration sure ${sureC}/${sureN}, unsure ${unsureC}/${unsureN}`);
+  updateTallies();
+  setTimeout(()=>{idx++;if(idx<SCORED.length)showScene(SCORED[idx],{interactive:true});else finish();},450);
+}
+function updateTallies(){$("#v-acc").textContent=`${nCorrect}/${nTotal}`;
+  if(rts.length)$("#v-rt").textContent=Math.round(rts.reduce((a,b)=>a+b,0)/rts.length)+"ms";
+  const dp=dprime();$("#v-dprime").textContent=dp===null?"—":dp.toFixed(2);
+  $("#v-conf").textContent=`sure ${sureC}/${sureN} · unsure ${unsureC}/${unsureN}`;
+  $("#v-poly").textContent=`${nCorrect}/${nTotal} · FA ${fa}`;}
+async function ghostGlide(target){const hand=$("#hand");const pb=$("#play").getBoundingClientRect();hand.style.left=(pb.left+10)+"px";hand.style.top=(pb.top+20)+"px";hand.style.opacity="1";await sleep(60);
+  const r=target.getBoundingClientRect();hand.style.left=(r.left+r.width/2-8)+"px";hand.style.top=(r.top+r.height/2)+"px";await sleep(820);target.classList.add("demo-hit");await sleep(500);target.classList.remove("demo-hit");hand.style.opacity="0";}
+async function runDemo(){setPhase("demo");$("#next").disabled=true;$("#replay").disabled=true;log("M-ENGAGE","wordless ghost-hand demo start (<10s, no instructions)");
+  showScene(DEMO[0],{interactive:false});setDoors(false);await sleep(700);$("#play").classList.add("pulse");await sleep(500);
+  await ghostGlide($("#doorReal"));$("#meter").textContent="\ud83d\ude04";await sleep(500);
+  showScene(DEMO[1],{interactive:false});setDoors(false);await sleep(700);
+  await ghostGlide($("#doorImp"));$("#meter").textContent="\ud83d\ude02";$("#play").classList.remove("pulse");await sleep(600);$("#replay").disabled=false;startWarmup();}
+function startWarmup(){setPhase("warmup");showScene(WARMUP,{interactive:true});$("#fb").textContent="Your turn - could this really happen?";$("#fb").style.color="var(--mut)";log("M-ENGAGE","unscored warm-up scene shown");}
+function startScored(){setPhase("scored");idx=0;showScene(SCORED[0],{interactive:true});log("M-ENGAGE","scoring begins (balanced real/impossible; subtle ones mixed in)");}
+function finish(){setPhase("done");setDoors(false);$("#conf").style.display="none";$("#next").disabled=true;$("#play").classList.remove("pulse");$("#meter").textContent="\ud83c\udfc6";
+  const dp=dprime();$("#art").textContent="\ud83c\udf89";$("#txt").textContent="All done!";
+  $("#fb").innerHTML=`Complete - ${nCorrect}/${nTotal} verdicts; d' ${dp===null?"n/a":dp.toFixed(2)}; calibration sure ${sureC}/${sureN}, unsure ${unsureC}/${unsureN}.`;$("#fb").style.color="var(--good)";}
+$("#doorReal").addEventListener("click",()=>verdict(true));
+$("#doorImp").addEventListener("click",()=>verdict(false));
+$("#cSure").addEventListener("click",()=>pickConf(true));
+$("#cUnsure").addEventListener("click",()=>pickConf(false));
+$("#play").addEventListener("click",()=>{if(cur)speak(cur.txt);});
+$("#next").addEventListener("click",()=>{if(phase==="warmup"){startScored();return;}});
+$("#replay").addEventListener("click",()=>{nCorrect=0;nTotal=0;rts=[];hits=0;nSig=0;fa=0;nNoise=0;sureC=sureN=unsureC=unsureN=0;$("#log").innerHTML="";updateTallies();runDemo();});
+updateTallies();runDemo();
+</script>
+</body>
+</html>

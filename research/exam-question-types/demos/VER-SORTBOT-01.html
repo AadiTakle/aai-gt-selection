@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VER-SORTBOT-01 - Sorting Robot</title>
+<style>
+  :root{--bg:#0f1226;--panel:#181c3a;--card:#20264f;--ink:#f4f6ff;--mut:#9aa3d4;--acc:#ffd23f;
+    --good:#37d67a;--bad:#ff6b6b;--line:#2c3566;--brand:#7c8cff}
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.45 system-ui,Segoe UI,Roboto,sans-serif;color:var(--ink);min-height:100vh;
+    background:radial-gradient(1200px 600px at 20% -10%,#2a2f66 0,var(--bg) 55%)}
+  .wrap{display:flex;gap:18px;max-width:1180px;margin:0 auto;padding:18px;flex-wrap:wrap}
+  .main{flex:1 1 560px;min-width:340px}.side{flex:1 1 320px;min-width:300px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px}
+  header.card{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-bottom:14px}
+  h1{font-size:18px;margin:0}.id{font:12px ui-monospace,monospace;color:var(--mut)}
+  .pill{font:12px ui-monospace,monospace;padding:4px 10px;border-radius:999px;background:#12163a;border:1px solid var(--line);color:var(--acc)}
+  .robotbar{display:flex;align-items:center;gap:12px;margin:2px 0 12px}
+  .play{width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;font-size:22px;color:#fff;background:linear-gradient(160deg,var(--brand),#4d5bd6);box-shadow:0 6px 18px #0006}
+  .play.pulse{animation:pulse 1s infinite}@keyframes pulse{0%,100%{box-shadow:0 0 0 0 #7c8cff88}50%{box-shadow:0 0 0 14px #7c8cff00}}
+  .caption{font-size:13px;color:var(--mut)}
+  .robo{font-size:30px;margin-left:auto}
+  .bins{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:4px 0 12px}
+  .bin{border-radius:16px;padding:12px;min-height:120px;border:2px solid var(--line);background:#141a3c}
+  .bin.in{border-color:#2b6b45;background:linear-gradient(180deg,#153a28,#12251c)}
+  .bin.out{border-color:#6b2b3a;background:linear-gradient(180deg,#3a1520,#251217)}
+  .bin h3{margin:0 0 8px;font-size:13px;letter-spacing:.5px}
+  .bin.in h3{color:var(--good)}.bin.out h3{color:var(--bad)}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;min-height:44px}
+  .chip{width:42px;height:42px;display:grid;place-items:center;font-size:26px;background:#20264f;border:1px solid var(--line);border-radius:10px;animation:pop .3s}
+  @keyframes pop{0%{transform:scale(.4)}60%{transform:scale(1.18)}100%{transform:scale(1)}}
+  .stage{display:grid;place-items:center;background:#161a3d;border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:12px}
+  .cardface{width:110px;height:110px;display:grid;place-items:center;font-size:60px;background:var(--card);border:2px solid var(--brand);border-radius:18px;transition:transform .15s}
+  .cardface.word{font-size:24px;font-weight:800;text-align:center;padding:6px}
+  .cardface.hit{border-color:var(--good);transform:scale(1.08)}
+  .cardface.demo-hit{border-color:var(--acc);transform:scale(1.1)}
+  .cardface.miss{border-color:var(--bad);animation:shake .35s}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+  .sortbtns{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;margin-top:10px}
+  .sb{border:none;border-radius:14px;padding:14px;font-size:17px;font-weight:800;cursor:pointer;color:#04240f}
+  .sb.out{background:linear-gradient(160deg,#ff8a8a,#e05555);color:#2a0d12}
+  .sb.in{background:linear-gradient(160deg,var(--good),#1f9e5a)}
+  .sb.peek{background:#242a56;color:var(--ink);font-weight:700;border:1px solid var(--line);font-size:15px}
+  .sb:disabled{opacity:.4;cursor:not-allowed}
+  .feedback{min-height:26px;margin-top:12px;font-weight:600}
+  .row{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+  button.btn{border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:9px 16px;cursor:pointer;background:#242a56}
+  button.btn.primary{background:linear-gradient(160deg,var(--good),#1f9e5a);border:none;color:#04240f;font-weight:700}
+  button.btn:disabled{opacity:.4;cursor:not-allowed}
+  .tallies{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 12px}
+  .t{background:#12163a;border:1px solid var(--line);border-radius:12px;padding:10px}
+  .t .k{font:11px ui-monospace,monospace;color:var(--mut)}.t .v{font-size:19px;font-weight:700}.t .m{font:10px ui-monospace,monospace;color:var(--brand)}
+  .log{height:230px;overflow:auto;background:#0c0f28;border:1px solid var(--line);border-radius:12px;padding:10px;font:12px/1.5 ui-monospace,Menlo,monospace}
+  .log div{white-space:pre-wrap;border-bottom:1px dashed #1c2350;padding:2px 0}.log .mid{color:var(--acc)}.log .tt{color:var(--mut)}
+  .hand{position:fixed;z-index:50;font-size:38px;pointer-events:none;opacity:0;filter:drop-shadow(0 3px 4px #0008);transition:left .8s cubic-bezier(.5,.1,.3,1),top .8s cubic-bezier(.5,.1,.3,1),opacity .3s}
+  .note{font-size:12px;color:var(--mut);margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="main">
+    <header class="card"><div><h1>Sorting Robot</h1><div class="id">VER-SORTBOT-01 &middot; verbal_classification</div></div><span class="pill" id="phase">DEMO</span></header>
+    <div class="card">
+      <div class="robotbar"><button class="play" id="play">&#9654;</button>
+        <div class="caption" id="cap">The robot shows a few examples. Find its secret rule, then sort each new card IN or OUT.<br><span style="font-size:11px">(demo caption; production names each item as audio for young bands)</span></div>
+        <div class="robo" id="robo">&#129302;</div>
+      </div>
+      <div class="bins">
+        <div class="bin in"><h3>&#9989; IN</h3><div class="chips" id="chipsIn"></div></div>
+        <div class="bin out"><h3>&#10060; OUT</h3><div class="chips" id="chipsOut"></div></div>
+      </div>
+      <div class="stage"><div class="cardface" id="card">&#10067;</div></div>
+      <div class="sortbtns"><button class="sb out" id="bout">&#9664; OUT</button><button class="sb peek" id="peek">&#128064; Peek</button><button class="sb in" id="bin">IN &#9654;</button></div>
+      <div class="feedback" id="fb"></div>
+      <div class="row"><button class="btn" id="replay">&#8635; Replay demo</button><button class="btn primary" id="next" disabled>Next &rarr;</button></div>
+      <div class="note">Category-rule <b>induction</b>: the hidden rule (a semantic category) is never stated - the child infers it from the demonstrated examples, so this differs from picking a fourth member or ejecting an odd one. Rounds rise from perceptual to taxonomic to functional categories; word bands are frequency-leveled.</div>
+    </div>
+  </div>
+  <aside class="side"><div class="card">
+    <h1 style="font-size:15px;margin:0 0 8px">Live telemetry</h1>
+    <div class="tallies">
+      <div class="t"><div class="k">Sort accuracy</div><div class="v" id="v-acc">0/0</div><div class="m">M-ACC</div></div>
+      <div class="t"><div class="k">Trials-to-criterion</div><div class="v" id="v-hyp">&mdash;</div><div class="m">M-HYP</div></div>
+      <div class="t"><div class="k">Abstractness reached</div><div class="v" id="v-diff">0</div><div class="m">M-DIFFREACH</div></div>
+      <div class="t"><div class="k">Peeks (hints)</div><div class="v" id="v-hint">0</div><div class="m">M-HINT</div></div>
+      <div class="t" style="grid-column:1/3"><div class="k">Explore / test actions</div><div class="v" id="v-explore" style="font-size:14px">0</div><div class="m">M-EXPLORE</div></div>
+    </div>
+    <div class="log" id="log"></div>
+  </div></aside>
+</div>
+<div class="hand" id="hand">&#128070;</div>
+<script>
+"use strict";
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));const $=s=>document.querySelector(s);const T0=performance.now();
+const ABS={1:"perceptual",2:"taxonomic",3:"functional"};
+// in: belongs to the hidden semantic rule. boundary: competing-category near-miss lure.
+const DEMO={rule:"animals",abstract:2,ex:[{e:"\ud83d\udc36",in:true},{e:"\ud83c\udf4e",in:false},{e:"\ud83d\udc31",in:true}],test:[{e:"\ud83d\udc1f",in:true}],peek:[{e:"\ud83e\udd89",in:true}]};
+const WARMUP={rule:"round things",abstract:1,ex:[{e:"\u26bd",in:true},{e:"\ud83d\udce6",in:false},{e:"\ud83c\udf69",in:true}],test:[{e:"\ud83c\udf15",in:true},{e:"\ud83d\udcd0",in:false},{e:"\u26aa",in:true}],peek:[{e:"\ud83c\udfc0",in:true}]};
+const SCORED=[
+  {rule:"red things",abstract:1,band:1,ex:[{e:"\ud83c\udf53",in:true},{e:"\ud83e\udded",in:false},{e:"\ud83c\udf39",in:true}],
+   test:[{e:"\ud83c\udf4e",in:true},{e:"\ud83c\udf4b",in:false},{e:"\ud83d\ude92",in:true},{e:"\ud83e\udd66",in:false}],peek:[{e:"\ud83c\udf45",in:true}]},
+  {rule:"animals",abstract:2,band:3,ex:[{e:"\ud83d\udc18",in:true},{e:"\ud83c\udf33",in:false},{e:"\ud83e\udd89",in:true}],
+   test:[{e:"\ud83d\udc0d",in:true},{e:"\ud83d\ude97",in:false},{e:"\ud83e\udd8b",in:true},{e:"\ud83e\uddf8",in:false,boundary:true}],peek:[{e:"\ud83e\udd80",in:true}]},
+  {rule:"things you can eat",abstract:3,band:4,ex:[{e:"\ud83c\udf55",in:true},{e:"\ud83e\ude91",in:false},{e:"\ud83c\udf5e",in:true}],
+   test:[{e:"\ud83e\udd55",in:true},{e:"\ud83d\udc5f",in:false},{e:"\ud83c\udf66",in:true},{e:"\ud83d\udcf1",in:false},{e:"\ud83c\udf44",in:true,boundary:true}],peek:[{e:"\ud83e\uddc0",in:true}]},
+];
+let phase="demo",roundIdx=0,cur=null,testIdx=0,tShown=0,locked=false,peekUsed=false;
+let totalCorrect=0,totalCards=0,hints=0,explore=0,diffReach=0;let roundSeq=[];
+function log(mid,msg){const el=document.createElement("div");const t=((performance.now()-T0)/1000).toFixed(2);el.innerHTML=`<span class="tt">t+${t}s</span> <span class="mid">[${mid}]</span> ${msg}`;const b=$("#log");b.appendChild(el);b.scrollTop=b.scrollHeight;}
+function speak(t){try{if(window.speechSynthesis){const u=new SpeechSynthesisUtterance(t);u.rate=.95;speechSynthesis.cancel();speechSynthesis.speak(u);}}catch(e){}}
+function setPhase(p){phase=p;$("#phase").textContent=p.toUpperCase();}
+function robotMood(){const r=totalCards?totalCorrect/totalCards:0;$("#robo").textContent=totalCards===0?"\ud83e\udd16":r>=.85?"\ud83e\udd29":r>=.6?"\ud83d\ude04":"\ud83d\ude42";}
+function chip(o){const c=document.createElement("span");c.className="chip";c.textContent=o.e;return c;}
+function setBtns(on){["#bout","#bin","#peek"].forEach(s=>$(s).disabled=!on);}
+function renderRound(round,{interactive=true}={}){
+  cur=round;testIdx=0;locked=false;peekUsed=false;roundSeq=[];
+  $("#chipsIn").innerHTML="";$("#chipsOut").innerHTML="";$("#fb").textContent="";$("#next").disabled=true;
+  round.ex.forEach(o=>{(o.in?$("#chipsIn"):$("#chipsOut")).appendChild(chip(o));});
+  showCard(interactive);
+}
+function showCard(interactive){
+  if(testIdx>=cur.test.length){endRound();return;}
+  const o=cur.test[testIdx];const c=$("#card");c.className="cardface"+(o.w?" word":"");c.textContent=o.w||o.e;
+  setBtns(!!interactive);$("#peek").disabled=!interactive||peekUsed;
+  tShown=performance.now();
+}
+function decide(choice){
+  if(locked)return;const o=cur.test[testIdx];const rt=Math.round(performance.now()-tShown);
+  const correct=((choice==="in")===o.in);const c=$("#card");
+  c.classList.add(correct?"hit":"miss");
+  (o.in?$("#chipsIn"):$("#chipsOut")).appendChild(chip(o));
+  if(phase==="warmup"){$("#fb").textContent=correct?"Yes - that follows the rule!":"The robot would file it the other way.";$("#fb").style.color=correct?"var(--good)":"var(--mut)";}
+  else{
+    totalCards++;if(correct)totalCorrect++;roundSeq.push(correct);
+    log("M-ACC",`${cur.rule} | card ${testIdx+1}: ${o.w||o.e} -> ${choice.toUpperCase()} ${correct?"CORRECT":"WRONG"}`);
+    log("M-RT",`sort RT ${rt}ms`);
+    if(!correct)log("M-ERRTYPE",o.boundary?`boundary near-miss (competing-category lure - fine discrimination)`:`clear-member misfile`);
+    robotMood();updateTallies();
+  }
+  locked=true;
+  setTimeout(()=>{testIdx++;locked=false;showCard(true);},700);
+}
+function doPeek(){
+  if(peekUsed||locked)return;peekUsed=true;$("#peek").disabled=true;
+  const p=cur.peek&&cur.peek[0];if(!p)return;
+  (p.in?$("#chipsIn"):$("#chipsOut")).appendChild(chip(p));
+  if(phase!=="warmup"){hints++;explore++;log("M-HINT",`peek used: ${p.e} filed ${p.in?"IN":"OUT"} (test example -> hint)`);log("M-EXPLORE",`exploration action (peek) -> ${explore} total`);updateTallies();}
+}
+function endRound(){
+  setBtns(false);$("#card").textContent="\u2713";$("#card").className="cardface";
+  if(phase==="warmup"){$("#fb").textContent="Warm-up done. Ready for real rounds.";$("#fb").style.color="var(--mut)";$("#next").disabled=false;return;}
+  const n=roundSeq.length,c=roundSeq.filter(Boolean).length;
+  let k=n;for(let i=n-1;i>=0;i--){if(roundSeq[i])k=i;else break;}
+  const converged=roundSeq[n-1]===true;const ttc=converged?k:null;
+  explore+=n;
+  log("M-HYP",converged?`rule '${cur.rule}': locked on after ${ttc} card(s) (trials-to-criterion)`:`rule '${cur.rule}': did not reach criterion this round`);
+  log("M-EXPLORE",`${n} test sorts this round -> ${explore} explore actions total`);
+  if(c/n>=0.75){diffReach=Math.max(diffReach,cur.abstract);log("M-DIFFREACH",`${ABS[cur.abstract]} category solved (>=75%) -> max abstractness ${diffReach} (${ABS[diffReach]})`);}
+  $("#v-hyp").textContent=converged?ttc:"n/r";
+  $("#fb").textContent=`Round done - ${c}/${n} sorted right${converged?`, rule found after ${ttc}`:""}.`;$("#fb").style.color="var(--good)";
+  updateTallies();$("#next").disabled=false;
+}
+function updateTallies(){$("#v-acc").textContent=`${totalCorrect}/${totalCards}`;$("#v-diff").textContent=diffReach?`${diffReach} (${ABS[diffReach]})`:"0";
+  $("#v-hint").textContent=hints;$("#v-explore").textContent=explore;}
+function ripple(){}
+async function ghostGlide(target){const hand=$("#hand");const pb=$("#play").getBoundingClientRect();hand.style.left=(pb.left+10)+"px";hand.style.top=(pb.top+20)+"px";hand.style.opacity="1";await sleep(60);
+  const r=target.getBoundingClientRect();hand.style.left=(r.left+r.width/2-8)+"px";hand.style.top=(r.top+r.height/2)+"px";await sleep(820);target.classList.add("demo-hit");await sleep(120);target.classList.remove("demo-hit");hand.style.opacity="0";}
+async function runDemo(){setPhase("demo");$("#next").disabled=true;$("#replay").disabled=true;renderRound(DEMO,{interactive:false});setBtns(false);
+  log("M-ENGAGE","wordless ghost-hand demo start (<10s, no instructions)");speak("The robot sorts animals in, and other things out.");
+  await sleep(700);$("#play").classList.add("pulse");await sleep(700);
+  const card=$("#card");card.classList.add("demo-hit");await sleep(600);card.classList.remove("demo-hit");
+  await ghostGlide($("#bin"));$("#chipsIn").appendChild(chip(DEMO.test[0]));card.classList.add("hit");
+  $("#play").classList.remove("pulse");await sleep(600);$("#replay").disabled=false;startWarmup();}
+function startWarmup(){setPhase("warmup");renderRound(WARMUP,{interactive:true});$("#fb").textContent="Your turn - the secret rule is 'round things'. Sort IN or OUT.";$("#fb").style.color="var(--mut)";log("M-ENGAGE","unscored warm-up round shown");}
+function startScored(){setPhase("scored");roundIdx=0;renderRound(SCORED[0],{interactive:true});log("M-ENGAGE",`scoring begins - hidden rule round 1 (${ABS[SCORED[0].abstract]}); abstractness rises`);}
+function next(){if(phase==="warmup"){startScored();return;}
+  if(phase==="scored"){roundIdx++;if(roundIdx<SCORED.length){renderRound(SCORED[roundIdx],{interactive:true});log("M-ENGAGE",`round ${roundIdx+1} (${ABS[SCORED[roundIdx].abstract]} category)`);}else finish();}}
+function finish(){setPhase("done");setBtns(false);$("#next").disabled=true;$("#play").classList.remove("pulse");$("#robo").textContent="\ud83c\udfc6";$("#card").textContent="\ud83c\udf89";
+  $("#fb").innerHTML=`Complete - ${totalCorrect}/${totalCards} sorted right; reached ${ABS[diffReach]||"-"} categories; ${hints} peek(s).`;$("#fb").style.color="var(--good)";}
+$("#bout").addEventListener("click",()=>decide("out"));
+$("#bin").addEventListener("click",()=>decide("in"));
+$("#peek").addEventListener("click",doPeek);
+$("#play").addEventListener("click",()=>speak(cur?("Find the robot's secret rule, then sort each card in or out."):""));
+$("#next").addEventListener("click",next);
+$("#replay").addEventListener("click",()=>{totalCorrect=0;totalCards=0;hints=0;explore=0;diffReach=0;$("#v-hyp").textContent="—";$("#log").innerHTML="";updateTallies();robotMood();runDemo();});
+updateTallies();robotMood();runDemo();
+</script>
+</body>
+</html>

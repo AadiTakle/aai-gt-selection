@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SPA-MARBLE-01 — Marble Run Maker</title>
+<style>
+  :root{--bg:#eef2fb;--card:#fff;--ink:#1e293b;--muted:#64748b;--accent:#4f46e5;--good:#16a34a;--warn:#f59e0b;--bad:#dc2626;--stage:#eef6ff}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.4 system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  .wrap{display:flex;gap:14px;padding:14px;max-width:1180px;margin:0 auto;align-items:flex-start;flex-wrap:wrap}
+  .col{flex:1 1 600px;min-width:340px}.side{flex:1 1 320px;min-width:300px}
+  .card{background:var(--card);border-radius:16px;box-shadow:0 6px 22px rgba(15,23,42,.08);padding:16px;margin-bottom:14px}
+  h1{font-size:19px;margin:0 0 2px}.sub{color:var(--muted);font-size:13px;margin:0 0 10px}
+  .pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;background:#e0e7ff;color:#3730a3}
+  .banner{display:flex;align-items:center;gap:10px;background:#f1f5ff;border:1px solid #dbe3ff;border-radius:12px;padding:10px 12px;margin-bottom:12px;min-height:44px}
+  .banner .icon{font-size:22px}.banner b{color:var(--accent)}
+  #stageWrap{position:relative;background:var(--stage);border-radius:14px;border:1px solid #e2e8f0;overflow:hidden}
+  svg{display:block;width:100%;height:330px;touch-action:none}
+  .hand{position:absolute;font-size:30px;pointer-events:none;z-index:5;filter:drop-shadow(0 2px 3px rgba(0,0,0,.25))}
+  .palette{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+  .chip{min-width:56px;height:50px;border-radius:12px;border:3px solid #e2e8f0;cursor:pointer;background:#fff;font-size:22px;font-weight:800}
+  .chip.sel{border-color:var(--accent);box-shadow:0 0 0 3px #c7d2fe}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+  button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:10px 16px;cursor:pointer;background:var(--accent);color:#fff}
+  button.ghost{background:#e2e8f0;color:#334155}button:disabled{opacity:.45;cursor:not-allowed}
+  button.play{background:#16a34a}
+  .tel{background:#0b1220;color:#d1fae5;border-radius:16px;padding:14px;font:12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
+  .tel h2{font-size:13px;margin:0 0 8px;color:#93c5fd;letter-spacing:.05em;text-transform:uppercase}
+  .tel .m{display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px dotted #1e293b}
+  .tel .m .k{color:#7dd3fc}.tel .m .v{color:#fde68a;font-weight:700;text-align:right}
+  #log{margin-top:10px;max-height:140px;overflow:auto;background:#060b16;border-radius:8px;padding:8px}
+  #log div{white-space:pre-wrap;color:#a7f3d0}#log .t{color:#475569}
+  .done{color:var(--good);font-weight:700}.miss{color:var(--warn)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="col"><div class="card">
+    <span class="pill" id="phasePill">DEMO</span>
+    <h1>Marble Run Maker <span style="color:var(--muted);font-weight:400">· SPA-MARBLE-01</span></h1>
+    <p class="sub">Drop ramps into the board so the marble rolls from the top into the bucket (and grabs the ⭐). Tap a ramp to flip it.</p>
+    <div class="banner"><span class="icon" id="bIcon">🟡</span><div id="bText"><b>Watch.</b> A ramp steers the marble into the bucket…</div></div>
+    <div id="stageWrap"><svg id="svg" viewBox="0 0 400 330"></svg><div class="hand" id="hand" style="display:none">👆</div></div>
+    <div class="palette" id="palette"></div>
+    <div class="controls">
+      <button id="playBtn" class="play">▶ Play</button>
+      <button id="lockBtn" disabled>🔒 Lock</button>
+      <button id="nextBtn" class="ghost" style="display:none">Next ▶</button>
+    </div>
+  </div></div>
+  <div class="side"><div class="tel">
+    <h2>◉ Live telemetry</h2>
+    <div class="m"><span class="k">M-ACC reached</span><span class="v" id="mAcc">—</span></div>
+    <div class="m"><span class="k">M-POLY progress</span><span class="v" id="mPoly">—</span></div>
+    <div class="m"><span class="k">M-RTFIRST first-act</span><span class="v" id="mFirst">—</span></div>
+    <div class="m"><span class="k">M-REV re-edits</span><span class="v" id="mRev">0</span></div>
+    <div class="m"><span class="k">M-EFF ramps/opt</span><span class="v" id="mEff">—</span></div>
+    <div class="m"><span class="k">M-EXPLORE test-runs</span><span class="v" id="mExp">0</span></div>
+    <div class="m"><span class="k">M-PATH marble</span><span class="v" id="mPath">—</span></div>
+    <div class="m"><span class="k">M-DIFFREACH</span><span class="v" id="mDiff">—</span></div>
+    <div class="m"><span class="k">M-IDEAFLU pieces</span><span class="v" id="mFlu">—</span></div>
+    <div class="m"><span class="k">M-ORIG / M-RUBRIC</span><span class="v" id="mOrig">—</span></div>
+    <div class="m"><span class="k">M-CHOICE free time</span><span class="v" id="mChoice">—</span></div>
+    <div id="log"></div>
+  </div></div>
+</div>
+<script>
+(function(){
+  "use strict";
+  var SVGNS="http://www.w3.org/2000/svg",svg=document.getElementById("svg"),hand=document.getElementById("hand");
+  function beep(f,t){try{var A=beep.a=beep.a||new(window.AudioContext||window.webkitAudioContext)();var o=A.createOscillator(),g=A.createGain();o.frequency.value=f;o.connect(g);g.connect(A.destination);g.gain.value=.06;o.start();o.stop(A.currentTime+(t||.1));}catch(e){}}
+  var T={start:0,first:0,rev:0,exp:0,scored:0,correct:0,logEl:document.getElementById("log")};
+  function tlog(m,c){var d=document.createElement("div");var t=((performance.now()-T.start)/1000).toFixed(2);d.innerHTML='<span class="t">['+t+'s]</span> '+m;if(c)d.className=c;T.logEl.appendChild(d);T.logEl.scrollTop=T.logEl.scrollHeight;}
+  function firstAct(w){if(!T.first){T.first=performance.now()-T.start;document.getElementById("mFirst").textContent=Math.round(T.first)+" ms";tlog("first action: "+w+" @"+Math.round(T.first)+"ms");}}
+
+  var C=5,R=4,CS=60,OX=50,OY=45;
+  var ramps={},startCol=0,goalCol=4,star=null,optimal=1,mode="target";
+  function cx(c){return OX+c*CS+CS/2;}function cy(r){return OY+r*CS+CS/2;}
+  function simulate(){var path=[],c=startCol;path.push([0,c]);for(var r=0;r<R-1;r++){var k=r+","+c,d=ramps[k];if(d==="L")c=Math.max(0,c-1);else if(d==="R")c=Math.min(C-1,c+1);path.push([r+1,c]);}return path;}
+  function draw(marbleAt){
+    svg.innerHTML="";
+    // board
+    var bd=document.createElementNS(SVGNS,"rect");bd.setAttribute("x",OX-8);bd.setAttribute("y",OY-8);bd.setAttribute("width",C*CS+16);bd.setAttribute("height",R*CS+30);bd.setAttribute("rx",12);bd.setAttribute("fill","#f8fbff");bd.setAttribute("stroke","#dbe4ee");bd.setAttribute("stroke-width",2);svg.appendChild(bd);
+    for(var r=0;r<R;r++)for(var c=0;c<C;c++){var g=document.createElementNS(SVGNS,"rect");g.setAttribute("x",OX+c*CS+2);g.setAttribute("y",OY+r*CS+2);g.setAttribute("width",CS-4);g.setAttribute("height",CS-4);g.setAttribute("rx",8);g.setAttribute("fill","#fff");g.setAttribute("stroke","#eef2f7");svg.appendChild(g);}
+    // star
+    if(star){var st=document.createElementNS(SVGNS,"text");st.setAttribute("x",cx(star[1]));st.setAttribute("y",cy(star[0]));st.setAttribute("text-anchor","middle");st.setAttribute("dominant-baseline","central");st.setAttribute("font-size",26);st.textContent=starGot?"✨":"⭐";svg.appendChild(st);}
+    // ramps
+    Object.keys(ramps).forEach(function(k){var p=k.split(","),r=+p[0],c=+p[1],d=ramps[k];
+      var tri=document.createElementNS(SVGNS,"polygon");var x=OX+c*CS,y=OY+r*CS;
+      var pts=d==="R"?[[x+6,y+8],[x+CS-6,y+CS-8],[x+6,y+CS-8]]:[[x+CS-6,y+8],[x+6,y+CS-8],[x+CS-6,y+CS-8]];
+      tri.setAttribute("points",pts.map(function(a){return a[0]+","+a[1];}).join(" "));tri.setAttribute("fill","#a78bfa");tri.setAttribute("stroke","#6d28d9");tri.setAttribute("stroke-width",2);svg.appendChild(tri);
+      var ar=document.createElementNS(SVGNS,"text");ar.setAttribute("x",cx(c));ar.setAttribute("y",cy(r));ar.setAttribute("text-anchor","middle");ar.setAttribute("dominant-baseline","central");ar.setAttribute("font-size",18);ar.setAttribute("fill","#4c1d95");ar.textContent=d==="R"?"→":"←";svg.appendChild(ar);});
+    // start + goal
+    var s=document.createElementNS(SVGNS,"text");s.setAttribute("x",cx(startCol));s.setAttribute("y",OY-20);s.setAttribute("text-anchor","middle");s.setAttribute("font-size",20);s.textContent="⬇";svg.appendChild(s);
+    var b=document.createElementNS(SVGNS,"text");b.setAttribute("x",cx(goalCol));b.setAttribute("y",OY+R*CS+14);b.setAttribute("text-anchor","middle");b.setAttribute("font-size",24);b.textContent="🪣";svg.appendChild(b);
+    // marble
+    if(marbleAt){var m=document.createElementNS(SVGNS,"circle");m.setAttribute("cx",cx(marbleAt[1]));m.setAttribute("cy",cy(marbleAt[0]));m.setAttribute("r",15);m.setAttribute("fill","#fbbf24");m.setAttribute("stroke","#d97706");m.setAttribute("stroke-width",3);svg.appendChild(m);}
+    updateTel();
+  }
+  var starGot=false;
+  function updateTel(){var pieces=Object.keys(ramps).length;document.getElementById("mFlu").textContent=pieces;}
+
+  function toSvg(e){var r=svg.getBoundingClientRect();return {x:(e.clientX-r.left)*(400/r.width),y:(e.clientY-r.top)*(330/r.height)};}
+  var selPal="R";
+  svg.addEventListener("pointerdown",function(e){if(!interactive||playing)return;var p=toSvg(e);var c=Math.floor((p.x-OX)/CS),r=Math.floor((p.y-OY)/CS);
+    if(r<0||r>=R-1||c<0||c>=C)return; // no ramps on bottom row
+    firstAct("place ramp");var k=r+","+c,cur=ramps[k];
+    if(selPal==="x"){if(cur){delete ramps[k];T.rev++;}}
+    else if(cur===selPal){delete ramps[k];T.rev++;}
+    else {if(cur)T.rev++;ramps[k]=selPal;}
+    document.getElementById("mRev").textContent=T.rev;beep(540,.025);draw();
+    if(mode!=="free")document.getElementById("lockBtn").disabled=false;else updateFree();
+  });
+
+  var palEl=document.getElementById("palette");
+  function buildPalette(kinds){palEl.innerHTML="";selPal=kinds[0];var labels={R:"→ ramp",L:"← ramp",x:"🧽"};
+    kinds.forEach(function(k){var bt=document.createElement("button");bt.className="chip"+(k===selPal?" sel":"");bt.textContent=labels[k];bt.onclick=function(){selPal=k;[].forEach.call(palEl.children,function(c){c.className="chip";});bt.className="chip sel";};palEl.appendChild(bt);});}
+
+  var phase="demo",interactive=false,playing=false,freeStart=0;
+  var pill=document.getElementById("phasePill"),bIcon=document.getElementById("bIcon"),bText=document.getElementById("bText"),playBtn=document.getElementById("playBtn"),lockBtn=document.getElementById("lockBtn"),nextBtn=document.getElementById("nextBtn");
+  function setBanner(i,h){bIcon.textContent=i;bText.innerHTML=h;}
+  function begin(l){T.start=performance.now();T.first=0;T.rev=0;T.exp=0;starGot=false;document.getElementById("mRev").textContent=0;document.getElementById("mExp").textContent=0;tlog("▶ "+l);}
+  function play(cb){if(playing)return;playing=true;var path=simulate();var i=0;starGot=false;
+    var iv=setInterval(function(){var at=path[i];draw(at);beep(400+i*40,.03);if(star&&at[0]===star[0]&&at[1]===star[1]){starGot=true;beep(1000,.08);}i++;
+      if(i>=path.length){clearInterval(iv);playing=false;var end=path[path.length-1];var reached=end[1]===goalCol;var starOk=!star||starGot;
+        document.getElementById("mPath").textContent=path.map(function(p){return p[1];}).join("");
+        tlog("marble path cols: "+path.map(function(p){return p[1];}).join("→")+" | bucket:"+(reached?"HIT":"miss")+(star?(" star:"+(starOk?"got":"no")):""),reached&&starOk?"done":"miss");
+        if(cb)cb(reached,starOk,path);}
+    },260);
+  }
+  playBtn.onclick=function(){if(phase==="demo"||mode==="free"){if(mode==="free"){T.exp++;document.getElementById("mExp").textContent=T.exp;play();}return;}T.exp++;document.getElementById("mExp").textContent=T.exp;tlog("test run");play(function(reached,starOk){document.getElementById("lockBtn").disabled=false;});};
+  function setPuzzle(cfg){C=cfg.C;R=cfg.R;startCol=cfg.s;goalCol=cfg.g;star=cfg.star||null;optimal=cfg.opt;ramps={};CS=Math.min(60,Math.floor(300/C));OX=(400-C*CS)/2;OY=45;}
+  function startDemo(){
+    phase="demo";pill.textContent="DEMO";interactive=false;mode="target";setPuzzle({C:4,R:3,s:1,g:2,opt:1});buildPalette(["R","L","x"]);
+    setBanner("🟡","<b>Watch.</b> A → ramp steers the falling marble one step right, into the bucket.");
+    draw();hand.style.display="";
+    setTimeout(function(){ramps["0,1"]="R";var r=svg.getBoundingClientRect();hand.style.left=(cx(1)*(r.width/400))+"px";hand.style.top=(cy(0)*(r.height/330))+"px";beep(560,.05);draw();
+      setTimeout(function(){hand.style.display="none";play(function(){setTimeout(startWarmup,600);});},700);},900);
+  }
+  function startWarmup(){
+    phase="warmup";pill.textContent="WARM-UP";interactive=true;mode="target";setPuzzle({C:4,R:3,s:0,g:2,opt:2});buildPalette(["R","L","x"]);
+    begin("Warm-up — get the marble to the bucket");document.getElementById("mDiff").textContent="no star";
+    setBanner("✋","<b>Practice.</b> Place → ramps so the marble reaches the bucket. Press Play to test, then Lock.");
+    playBtn.style.display="";lockBtn.style.display="";lockBtn.disabled=true;nextBtn.style.display="none";
+    lockBtn.onclick=function(){play(function(reached,starOk){if(reached&&starOk){tlog("reached the bucket ✔","done");setBanner("✅","<b>It rolled in!</b> Now scored runs — one needs a ⭐.");lockBtn.style.display="none";playBtn.style.display="none";nextBtn.style.display="";nextBtn.textContent="Start scored ▶";nextBtn.onclick=startScored1;interactive=false;}else{beep(300);setBanner("↻","<b>Not in yet.</b> Add or flip ramps so it lands in the bucket.");}});};
+    draw();
+  }
+  function scored(n,cfg,label,diff,nextFn){
+    phase="scored";pill.textContent=label;interactive=true;mode="target";setPuzzle(cfg);buildPalette(["R","L","x"]);
+    begin("Scored — route the marble");T.scored=n;document.getElementById("mDiff").textContent=diff;
+    setBanner("🎯","<b>Route the marble to the bucket"+(cfg.star?" through the ⭐":"")+".</b> Place ramps, Play to test, then Lock.");
+    playBtn.style.display="";lockBtn.style.display="";lockBtn.disabled=true;nextBtn.style.display="none";
+    lockBtn.onclick=function(){play(function(reached,starOk,path){var ok=reached&&starOk;var pieces=Object.keys(ramps).length;
+      var descended=path.length-1;var prog=(reached?0.6:0.3*descended/(R-1))+(reached?0.2:0)+(starOk&&star?0.2:(star?0:0.2));prog=Math.min(1,ok?1:prog);
+      document.getElementById("mPoly").textContent=prog.toFixed(2);document.getElementById("mEff").textContent=pieces+"/"+optimal;
+      if(ok)T.correct++;tlog("LOCK "+(ok?"solved ✔":"not solved ✗")+" ramps="+pieces+"/"+optimal,ok?"done":"miss");
+      document.getElementById("mAcc").textContent=T.correct+"/"+T.scored;beep(ok?880:300);
+      lockBtn.style.display="none";playBtn.style.display="none";nextBtn.style.display="";nextBtn.textContent=nextFn?"Next ▶":"Free build ▶";nextBtn.onclick=nextFn||startFree;interactive=false;});};
+    draw();
+  }
+  function startScored1(){scored(1,{C:5,R:4,s:1,g:3,opt:2},"SCORED 1/3","reach bucket",startScored2);}
+  function startScored2(){scored(2,{C:5,R:4,s:0,g:3,star:[2,2],opt:3},"SCORED 2/3","collect ⭐ + bucket",startFree);}
+  function startFree(){
+    phase="free";pill.textContent="FREE BUILD";interactive=true;mode="free";setPuzzle({C:5,R:4,s:2,g:2,opt:0});buildPalette(["R","L","x"]);
+    begin("Free build — design your own run");freeStart=performance.now();document.getElementById("mDiff").textContent="open";
+    setBanner("🎨","<b>Make your own run!</b> Place any ramps and Play as much as you like. Tap Done when finished.");
+    playBtn.style.display="";lockBtn.style.display="";lockBtn.textContent="✓ Done";lockBtn.disabled=false;nextBtn.style.display="none";
+    lockBtn.onclick=function(){var sec=((performance.now()-freeStart)/1000).toFixed(1);document.getElementById("mChoice").textContent=sec+" s";var pieces=Object.keys(ramps).length;var rub=Math.min(4,Math.round(pieces/2+T.exp/3));document.getElementById("mOrig").textContent=pieces+" pcs · "+rub+"/4";tlog("free run submitted after "+sec+"s, "+pieces+" ramps, "+T.exp+" test-plays","done");finish();};
+    draw();updateFree();
+  }
+  function updateFree(){var pieces=Object.keys(ramps).length;document.getElementById("mFlu").textContent=pieces;var rub=Math.min(4,Math.round(pieces/2+T.exp/3));document.getElementById("mOrig").textContent=pieces+" pcs · "+rub+"/4";}
+  function finish(){
+    phase="done";pill.textContent="DONE";interactive=false;lockBtn.style.display="none";playBtn.style.display="none";
+    setBanner("🏁","<b>Runs solved "+T.correct+"/"+T.scored+".</b> Ramps-vs-optimum (M-EFF), plan-first latency (M-RTFIRST), and few test-plays (M-EXPLORE) reveal planning; the open run adds fluency, originality, and rubric quality plus voluntary time (M-CHOICE).");
+    tlog("── summary ── M-ACC="+T.correct+"/"+T.scored+"  M-EFF captured  M-EXPLORE(test-runs)="+T.exp,"done");
+    nextBtn.style.display="";nextBtn.textContent="↻ Run again";nextBtn.onclick=function(){location.reload();};
+  }
+  draw();startDemo();
+})();
+</script>
+</body>
+</html>

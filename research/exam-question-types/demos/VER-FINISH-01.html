@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VER-FINISH-01 - Finish the Sentence</title>
+<style>
+  :root{--bg:#0f1226;--panel:#181c3a;--card:#20264f;--ink:#f4f6ff;--mut:#9aa3d4;--acc:#ffd23f;
+    --good:#37d67a;--bad:#ff6b6b;--line:#2c3566;--brand:#7c8cff}
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.45 system-ui,Segoe UI,Roboto,sans-serif;color:var(--ink);min-height:100vh;
+    background:radial-gradient(1200px 600px at 20% -10%,#2a2f66 0,var(--bg) 55%)}
+  .wrap{display:flex;gap:18px;max-width:1180px;margin:0 auto;padding:18px;flex-wrap:wrap}
+  .main{flex:1 1 560px;min-width:340px}.side{flex:1 1 320px;min-width:300px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px}
+  header.card{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-bottom:14px}
+  h1{font-size:18px;margin:0}.id{font:12px ui-monospace,monospace;color:var(--mut)}
+  .pill{font:12px ui-monospace,monospace;padding:4px 10px;border-radius:999px;background:#12163a;border:1px solid var(--line);color:var(--acc)}
+  .parrot{font-size:30px;margin-right:6px;display:inline-block}
+  .parrot.frozen{filter:grayscale(.6) brightness(.8);animation:shiver .5s infinite}
+  @keyframes shiver{0%,100%{transform:translateX(0)}25%{transform:translateX(-2px) rotate(-3deg)}75%{transform:translateX(2px) rotate(3deg)}}
+  .sentence{font-size:23px;line-height:1.7;background:#161a3d;border:1px solid var(--line);border-radius:16px;padding:18px;margin:4px 0 12px;text-align:center;min-height:82px}
+  .conn{color:var(--acc);font-weight:800}
+  .slot{display:inline-grid;place-items:center;min-width:110px;height:44px;vertical-align:middle;border-bottom:3px dashed var(--brand);margin:0 4px;font-size:22px;color:var(--acc);font-weight:800;padding:0 6px}
+  .slot.filled{border-bottom-color:var(--good);animation:pop .35s}
+  @keyframes pop{0%{transform:scale(.6)}60%{transform:scale(1.18)}100%{transform:scale(1)}}
+  .promptbar{display:flex;align-items:center;gap:12px;margin:2px 0 12px}
+  .play{width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;font-size:22px;color:#fff;background:linear-gradient(160deg,var(--brand),#4d5bd6);box-shadow:0 6px 18px #0006}
+  .play.pulse{animation:pulse 1s infinite}@keyframes pulse{0%,100%{box-shadow:0 0 0 0 #7c8cff88}50%{box-shadow:0 0 0 14px #7c8cff00}}
+  .caption{font-size:13px;color:var(--mut)}
+  .opts{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .tile{background:var(--card);border:2px solid var(--line);border-radius:16px;min-height:80px;display:grid;place-items:center;font-size:40px;cursor:pointer;transition:transform .12s,border-color .15s,background .15s;user-select:none;text-align:center;padding:6px}
+  .tile.word{font-size:19px;font-weight:700}
+  .tile:hover{border-color:var(--brand)}.tile.pick{border-color:var(--acc);background:#2b2f5e}
+  .tile.correct{border-color:var(--good);background:#1f5138}.tile.wrong{border-color:var(--bad);background:#5a2330}
+  .tile.demo-hit{border-color:var(--acc);transform:scale(1.08)}.tile.lock{pointer-events:none}
+  .feedback{min-height:26px;margin-top:14px;font-weight:600}
+  .row{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+  button.btn{border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:9px 16px;cursor:pointer;background:#242a56}
+  button.btn.primary{background:linear-gradient(160deg,var(--good),#1f9e5a);border:none;color:#04240f;font-weight:700}
+  button.btn:disabled{opacity:.4;cursor:not-allowed}
+  .tallies{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 12px}
+  .t{background:#12163a;border:1px solid var(--line);border-radius:12px;padding:10px}
+  .t .k{font:11px ui-monospace,monospace;color:var(--mut)}.t .v{font-size:19px;font-weight:700}.t .m{font:10px ui-monospace,monospace;color:var(--brand)}
+  .log{height:230px;overflow:auto;background:#0c0f28;border:1px solid var(--line);border-radius:12px;padding:10px;font:12px/1.5 ui-monospace,Menlo,monospace}
+  .log div{white-space:pre-wrap;border-bottom:1px dashed #1c2350;padding:2px 0}.log .mid{color:var(--acc)}.log .tt{color:var(--mut)}
+  .hand{position:fixed;z-index:50;font-size:38px;pointer-events:none;opacity:0;filter:drop-shadow(0 3px 4px #0008);transition:left .8s cubic-bezier(.5,.1,.3,1),top .8s cubic-bezier(.5,.1,.3,1),opacity .3s}
+  .ripple{position:fixed;z-index:49;width:10px;height:10px;border-radius:50%;background:var(--acc);pointer-events:none;opacity:.8;animation:rip .6s forwards}@keyframes rip{to{transform:scale(9);opacity:0}}
+  .note{font-size:12px;color:var(--mut);margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="main">
+    <header class="card"><div><h1>Finish the Sentence</h1><div class="id">VER-FINISH-01 &middot; sentence_completion</div></div><span class="pill" id="phase">DEMO</span></header>
+    <div class="card">
+      <div class="sentence" id="sentence"></div>
+      <div class="promptbar"><button class="play" id="play">&#9654;</button><div class="caption" id="cap">Tap the ending that best finishes the sentence.<br><span style="font-size:11px">(demo caption; production plays the stem as audio for young bands, with a beep at the gap)</span></div></div>
+      <div class="opts" id="opts"></div>
+      <div class="feedback" id="fb"></div>
+      <div class="row"><button class="btn" id="replay">&#8635; Replay demo</button><button class="btn primary" id="next" disabled>Next &rarr;</button></div>
+      <div class="note">The <span class="conn">joining word</span> (because / so / but / if) carries the item. One ending fits locally but breaks the logic (logic-reversal lure); one fits a nearby word only (local-associate lure). Young bands: audio stem + picture endings. Older bands: printed words leveled by frequency to probe the vocabulary-in-context ceiling.</div>
+    </div>
+  </div>
+  <aside class="side"><div class="card">
+    <h1 style="font-size:15px;margin:0 0 8px">Live telemetry</h1>
+    <div class="tallies">
+      <div class="t"><div class="k">Accuracy</div><div class="v" id="v-acc">0/0</div><div class="m">M-ACC</div></div>
+      <div class="t"><div class="k">1st-action lat.</div><div class="v" id="v-first">&mdash;</div><div class="m">M-RTFIRST</div></div>
+      <div class="t"><div class="k">Vocab-in-context ceiling</div><div class="v" id="v-lvl">1</div><div class="m">M-VOCABLVL</div></div>
+      <div class="t"><div class="k">Completion depth</div><div class="v" id="v-depth">0</div><div class="m">M-INFDEPTH</div></div>
+      <div class="t" style="grid-column:1/3"><div class="k">Ending-lure profile (errors)</div><div class="v" id="v-lure" style="font-size:13px">local 0 / reversal 0 / random 0</div><div class="m">M-LURETYPE / M-ERRTYPE</div></div>
+    </div>
+    <div class="log" id="log"></div>
+  </div></aside>
+</div>
+<div class="hand" id="hand">&#128070;</div>
+<script>
+"use strict";
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));const $=s=>document.querySelector(s);const T0=performance.now();
+// depth: 2 = functional/collocation-plus; 3 = causal/conditional (whole-sentence). lure: local | reversal | unrelated.
+const DEMO={pre:"The plant grew tall",conn:"because",post:"",band:1,depth:3,
+  opts:[{e:"\u2600\ufe0f\ud83d\udca7",correct:true,depth:3},{e:"\ud83c\udfa9",lure:"local"},{e:"\ud83d\ude97",lure:"unrelated"}]};
+const WARMUP={pre:"I opened my umbrella",conn:"because",post:"",band:1,depth:3,
+  opts:[{e:"\ud83c\udf27\ufe0f",correct:true,depth:3},{e:"\ud83c\udf4c",lure:"unrelated"},{e:"\ud83d\udc5f",lure:"unrelated"}]};
+const SCORED=[
+  {pre:"It was cold outside,",conn:"so",post:"Mia put on her",band:2,depth:2,
+   opts:[{w:"warm coat",correct:true,depth:2},{w:"swimsuit",lure:"reversal"},{w:"ice cream",lure:"unrelated"}]},
+  {pre:"The dog wagged its tail",conn:"because",post:"it was",band:3,depth:3,
+   opts:[{w:"happy",correct:true,depth:3},{w:"a puppy",lure:"local"},{w:"angry",lure:"reversal"},{w:"furry",lure:"local"}]},
+  {pre:"The soup was too hot to eat,",conn:"so",post:"Sam waited for it to",band:4,depth:3,
+   opts:[{w:"cool down",correct:true,depth:3},{w:"boil",lure:"reversal"},{w:"float away",lure:"unrelated"},{w:"taste good",lure:"local"}]},
+  {pre:"The workers closed the old bridge",conn:"because",post:"it had grown too",band:6,depth:3,
+   opts:[{w:"rickety",correct:true,depth:3},{w:"sturdy",lure:"reversal"},{w:"old",lure:"local"},{w:"tall",lure:"unrelated"}]},
+];
+let phase="demo",itemIdx=0,cur=null,tShown=0,tFirst=0,locked=false,ceiling=1,depthMax=0;
+const results=[];const lure={local:0,reversal:0,unrelated:0};
+function log(mid,msg){const el=document.createElement("div");const t=((performance.now()-T0)/1000).toFixed(2);el.innerHTML=`<span class="tt">t+${t}s</span> <span class="mid">[${mid}]</span> ${msg}`;const b=$("#log");b.appendChild(el);b.scrollTop=b.scrollHeight;}
+function speak(t){try{if(window.speechSynthesis){const u=new SpeechSynthesisUtterance(t);u.rate=.93;speechSynthesis.cancel();speechSynthesis.speak(u);}}catch(e){}}
+function setPhase(p){phase=p;$("#phase").textContent=p.toUpperCase();}
+function fillText(o){return o?(o.w||o.e):null;}
+function spokenSentence(item,fill){return [item.pre,item.conn,(fill||"hmm"),item.post].filter(Boolean).join(" ").replace(/\s+/g," ").trim()+".";}
+function renderSentence(item,fill,frozen){
+  const p=`<span class="parrot${frozen?" frozen":""}">\ud83e\udd9c</span>`;
+  $("#sentence").innerHTML=`${p} ${item.pre} <span class="conn">${item.conn}</span> `+
+    `<span class="slot${fill?" filled":""}" id="slot">${fill||"___"}</span>`+(item.post?` ${item.post}`:"")+".";
+}
+function renderItem(item,{interactive=true}={}){
+  cur=item;locked=false;tFirst=0;
+  renderSentence(item,null,true);$("#fb").textContent="";$("#next").disabled=true;
+  const g=$("#opts");g.innerHTML="";g.style.gridTemplateColumns=`repeat(${item.opts.length},1fr)`;
+  item.opts.forEach((o,i)=>{const d=document.createElement("div");d.className="tile"+(o.w?" word":"");d.textContent=o.w||o.e;d.dataset.i=i;
+    if(interactive)d.addEventListener("click",()=>choose(i,d));g.appendChild(d);});
+  tShown=performance.now();speak(spokenSentence(item,null));
+}
+const tiles=()=>[...document.querySelectorAll("#opts .tile")];
+function choose(i,el){if(locked)return;const now=performance.now();
+  if(!tFirst){tFirst=now;log("M-RTFIRST",`first-action latency ${Math.round(tFirst-tShown)}ms`);}
+  tiles().forEach(t=>t.classList.remove("pick"));el.classList.add("pick");
+  renderSentence(cur,fillText(cur.opts[i]),false);
+  $("#next").disabled=false;
+}
+function correctIdx(){return cur.opts.findIndex(o=>o.correct);}
+function commit(){
+  const el=document.querySelector("#opts .tile.pick");if(!el)return;locked=true;
+  const i=+el.dataset.i;const rt=Math.round(performance.now()-tShown);const opt=cur.opts[i];const correct=!!opt.correct;
+  tiles().forEach(t=>t.classList.add("lock"));el.classList.add(correct?"correct":"wrong");
+  if(!correct)tiles()[correctIdx()].classList.add("correct");
+  renderSentence(cur,fillText(cur.opts[correct?i:correctIdx()]),false);
+  if(phase==="warmup"){log("M-ENGAGE",`warm-up (unscored) rt ${rt}ms`);$("#fb").textContent=correct?"Nice - the parrot finishes happily!":"See how it reads now.";$("#fb").style.color=correct?"var(--good)":"var(--mut)";$("#next").disabled=false;return;}
+  results.push({correct,rt,band:cur.band,depth:cur.depth,first:tFirst?Math.round(tFirst-tShown):0});
+  log("M-ACC",`item ${itemIdx+1}: ${correct?"CORRECT":"incorrect"} (freq band ${cur.band}, '${cur.conn}' completion)`);log("M-RT",`response time ${rt}ms`);
+  if(correct){ceiling=Math.max(ceiling,cur.band);depthMax=Math.max(depthMax,cur.depth);
+    log("M-VOCABLVL",`band ${cur.band} ending solved -> vocab-in-context ceiling ${ceiling}`);
+    log("M-INFDEPTH",`completion depth ${cur.depth} (${cur.depth===3?"causal/conditional - used the joining word":"functional/local"}) -> max ${depthMax}`);}
+  else{const cls=opt.lure||"unrelated";lure[cls]=(lure[cls]||0)+1;
+    log("M-LURETYPE",`chose ${cls}-lure ending`);
+    log("M-ERRTYPE",(cls==="reversal"||cls==="local")?`near-miss (${cls}: fine relational confusion, latent ability just under)`:`random/unrelated error`);}
+  $("#fb").textContent=correct?"\u2605 It fits the logic!":"Not the best ending.";$("#fb").style.color=correct?"var(--good)":"var(--bad)";
+  updateTallies();$("#next").disabled=false;
+}
+function updateTallies(){const n=results.length,c=results.filter(r=>r.correct).length;$("#v-acc").textContent=`${c}/${n}`;
+  const firsts=results.map(r=>r.first).filter(Boolean);
+  if(firsts.length)$("#v-first").textContent=Math.round(firsts.reduce((a,b)=>a+b,0)/firsts.length)+"ms";
+  $("#v-lvl").textContent=ceiling;$("#v-depth").textContent=depthMax;
+  $("#v-lure").textContent=`local ${lure.local} / reversal ${lure.reversal} / random ${lure.unrelated}`;}
+function ripple(x,y){const d=document.createElement("div");d.className="ripple";d.style.left=(x-5)+"px";d.style.top=(y-5)+"px";document.body.appendChild(d);setTimeout(()=>d.remove(),620);}
+async function ghostGlide(target){const hand=$("#hand");const pb=$("#play").getBoundingClientRect();hand.style.left=(pb.left+10)+"px";hand.style.top=(pb.top+20)+"px";hand.style.opacity="1";await sleep(60);
+  const r=target.getBoundingClientRect();hand.style.left=(r.left+r.width/2-8)+"px";hand.style.top=(r.top+r.height/2)+"px";await sleep(820);target.classList.add("demo-hit");ripple(r.left+r.width/2,r.top+r.height/2);await sleep(520);target.classList.remove("demo-hit");hand.style.opacity="0";}
+async function runDemo(){setPhase("demo");$("#next").disabled=true;$("#replay").disabled=true;renderItem(DEMO,{interactive:false});log("M-ENGAGE","wordless ghost-hand demo start (<10s, no instructions)");
+  await sleep(500);$("#play").classList.add("pulse");await sleep(900);await ghostGlide(tiles()[0]);tiles()[0].classList.add("correct");renderSentence(DEMO,fillText(DEMO.opts[0]),false);$("#play").classList.remove("pulse");await sleep(600);$("#replay").disabled=false;startWarmup();}
+function startWarmup(){setPhase("warmup");renderItem(WARMUP,{interactive:true});$("#fb").textContent="Your turn - tap the ending that finishes it.";$("#fb").style.color="var(--mut)";log("M-ENGAGE","unscored warm-up shown");}
+function startScored(){setPhase("scored");itemIdx=0;renderItem(SCORED[0],{interactive:true});log("M-ENGAGE","scoring begins (connective completion; word rarity rises)");}
+function next(){if(phase==="warmup"){startScored();return;}if(phase==="scored"){itemIdx++;if(itemIdx<SCORED.length)renderItem(SCORED[itemIdx],{interactive:true});else finish();}}
+function finish(){setPhase("done");$("#opts").innerHTML="";$("#next").disabled=true;$("#play").classList.remove("pulse");
+  const c=results.filter(r=>r.correct).length;$("#sentence").innerHTML="\ud83e\udd9c \ud83c\udf89 Great finishing!";$("#fb").innerHTML=`Complete - ${c}/${results.length} correct, vocab-in-context ceiling band ${ceiling}, max completion depth ${depthMax}.`;$("#fb").style.color="var(--good)";}
+$("#play").addEventListener("click",()=>{if(cur)speak(spokenSentence(cur,document.querySelector(".tile.pick")?fillText(cur.opts[+document.querySelector(".tile.pick").dataset.i]):null));});
+$("#next").addEventListener("click",()=>{if((phase==="scored"||phase==="warmup")&&!locked&&document.querySelector("#opts .tile.pick")){commit();return;}next();});
+$("#replay").addEventListener("click",()=>{results.length=0;ceiling=1;depthMax=0;lure.local=lure.reversal=lure.unrelated=0;$("#log").innerHTML="";updateTallies();runDemo();});
+setInterval(()=>{const hasPick=!!document.querySelector("#opts .tile.pick");$("#next").textContent=((phase==="scored"||phase==="warmup")&&hasPick&&!locked)?"Check \u2713":"Next \u2192";},150);
+updateTallies();runDemo();
+</script>
+</body>
+</html>

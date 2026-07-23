@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SPA-MIRRORFOLD-01 — Butterfly Fold</title>
+<style>
+  :root{--bg:#eef2fb;--card:#fff;--ink:#1e293b;--muted:#64748b;--accent:#4f46e5;--good:#16a34a;--warn:#f59e0b;--bad:#dc2626;--stage:#f2fbf7}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.4 system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  .wrap{display:flex;gap:14px;padding:14px;max-width:1180px;margin:0 auto;align-items:flex-start;flex-wrap:wrap}
+  .col{flex:1 1 600px;min-width:340px}.side{flex:1 1 320px;min-width:300px}
+  .card{background:var(--card);border-radius:16px;box-shadow:0 6px 22px rgba(15,23,42,.08);padding:16px;margin-bottom:14px}
+  h1{font-size:19px;margin:0 0 2px}.sub{color:var(--muted);font-size:13px;margin:0 0 10px}
+  .pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;background:#e0e7ff;color:#3730a3}
+  .banner{display:flex;align-items:center;gap:10px;background:#f1f5ff;border:1px solid #dbe3ff;border-radius:12px;padding:10px 12px;margin-bottom:12px;min-height:44px}
+  .banner .icon{font-size:22px}.banner b{color:var(--accent)}
+  #stageWrap{position:relative;background:var(--stage);border-radius:14px;border:1px solid #e2e8f0;overflow:hidden}
+  svg{display:block;width:100%;height:320px;touch-action:none}
+  .hand{position:absolute;font-size:30px;pointer-events:none;z-index:5;filter:drop-shadow(0 2px 3px rgba(0,0,0,.25))}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+  button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:10px 16px;cursor:pointer;background:var(--accent);color:#fff}
+  button.ghost{background:#e2e8f0;color:#334155}button:disabled{opacity:.45;cursor:not-allowed}
+  .tel{background:#0b1220;color:#d1fae5;border-radius:16px;padding:14px;font:12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
+  .tel h2{font-size:13px;margin:0 0 8px;color:#93c5fd;letter-spacing:.05em;text-transform:uppercase}
+  .tel .m{display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px dotted #1e293b}
+  .tel .m .k{color:#7dd3fc}.tel .m .v{color:#fde68a;font-weight:700;text-align:right}
+  #log{margin-top:10px;max-height:150px;overflow:auto;background:#060b16;border-radius:8px;padding:8px}
+  #log div{white-space:pre-wrap;color:#a7f3d0}#log .t{color:#475569}
+  .done{color:var(--good);font-weight:700}.miss{color:var(--warn)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="col"><div class="card">
+    <span class="pill" id="phasePill">DEMO</span>
+    <h1>Butterfly Fold <span style="color:var(--muted);font-weight:400">· SPA-MIRRORFOLD-01</span></h1>
+    <p class="sub">Fold the painted half over the crease. Tap the cells on the blank half where the paint will print.</p>
+    <div class="banner"><span class="icon" id="bIcon">🦋</span><div id="bText"><b>Watch.</b> The paint prints a mirror across the fold…</div></div>
+    <div id="stageWrap"><svg id="svg" viewBox="0 0 400 320"></svg><div class="hand" id="hand" style="display:none">👆</div></div>
+    <div class="controls">
+      <button id="foldBtn" class="ghost">⤵ Fold to check</button>
+      <button id="lockBtn" disabled>✓ Check &amp; Lock</button>
+      <button id="nextBtn" class="ghost" style="display:none">Next ▶</button>
+    </div>
+  </div></div>
+  <div class="side"><div class="tel">
+    <h2>◉ Live telemetry</h2>
+    <div class="m"><span class="k">M-ACC exact</span><span class="v" id="mAcc">—</span></div>
+    <div class="m"><span class="k">M-POLY overlap</span><span class="v" id="mPoly">—</span></div>
+    <div class="m"><span class="k">M-RT total</span><span class="v" id="mRt">—</span></div>
+    <div class="m"><span class="k">M-RTFIRST first-act</span><span class="v" id="mFirst">—</span></div>
+    <div class="m"><span class="k">M-REV toggles</span><span class="v" id="mRev">0</span></div>
+    <div class="m"><span class="k">M-EXPLORE fold peeks</span><span class="v" id="mExp">0</span></div>
+    <div class="m"><span class="k">M-ERRTYPE last err</span><span class="v" id="mErr">—</span></div>
+    <div class="m"><span class="k">M-DIFFREACH axis/marks</span><span class="v" id="mDiff">—</span></div>
+    <div id="log"></div>
+  </div></div>
+</div>
+<script>
+(function(){
+  "use strict";
+  var SVGNS="http://www.w3.org/2000/svg",svg=document.getElementById("svg"),hand=document.getElementById("hand");
+  function beep(f,t){try{var A=beep.a=beep.a||new(window.AudioContext||window.webkitAudioContext)();var o=A.createOscillator(),g=A.createGain();o.frequency.value=f;o.connect(g);g.connect(A.destination);g.gain.value=.07;o.start();o.stop(A.currentTime+(t||.1));}catch(e){}}
+  var T={start:0,first:0,revs:0,explore:0,scored:0,correct:0,poly:[],err:"—",logEl:document.getElementById("log")};
+  function tlog(m,c){var d=document.createElement("div");var t=((performance.now()-T.start)/1000).toFixed(2);d.innerHTML='<span class="t">['+t+'s]</span> '+m;if(c)d.className=c;T.logEl.appendChild(d);T.logEl.scrollTop=T.logEl.scrollHeight;}
+  function render(){
+    document.getElementById("mAcc").textContent=T.scored?T.correct+"/"+T.scored:"—";
+    document.getElementById("mPoly").textContent=T.poly.length?T.poly[T.poly.length-1].toFixed(2):"—";
+    document.getElementById("mFirst").textContent=T.first?Math.round(T.first)+" ms":"—";
+    document.getElementById("mRev").textContent=T.revs;document.getElementById("mExp").textContent=T.explore;
+    document.getElementById("mErr").textContent=T.err;
+  }
+  function begin(l){T.start=performance.now();T.first=0;T.revs=0;T.explore=0;render();tlog("▶ "+l);}
+  function firstAct(w){if(!T.first){T.first=performance.now()-T.start;tlog("first action: "+w+" @"+Math.round(T.first)+"ms");render();}}
+
+  var COLS=6,ROWS=4,CS=44,OX=(400-COLS*CS)/2,OY=(320-ROWS*CS)/2;
+  var axis="v",mid=3,src=[],chosen={},truth={},reveal=false;
+  function key(r,c){return r+","+c;}
+  function inSource(r,c){return axis==="v"?c<mid:r<mid;}
+  function mirror(r,c){return axis==="v"?[r,(COLS-1)-c]:[(ROWS-1)-r,c];}
+  function computeTruth(){truth={};src.forEach(function(m){var q=mirror(m[0],m[1]);truth[key(q[0],q[1])]=1;});}
+  function cellRect(r,c,fill,stroke){var x=OX+c*CS,y=OY+r*CS;var rc=document.createElementNS(SVGNS,"rect");rc.setAttribute("x",x+2);rc.setAttribute("y",y+2);rc.setAttribute("width",CS-4);rc.setAttribute("height",CS-4);rc.setAttribute("rx",7);rc.setAttribute("fill",fill);if(stroke){rc.setAttribute("stroke",stroke);rc.setAttribute("stroke-width",2);}svg.appendChild(rc);}
+  function draw(){
+    svg.innerHTML="";
+    for(var r=0;r<ROWS;r++)for(var c=0;c<COLS;c++){
+      var srcHalf=inSource(r,c);var isMark=src.some(function(m){return m[0]===r&&m[1]===c;});
+      var fill=srcHalf?"#f1f5f9":"#eef7f2";
+      if(isMark)fill="#3b82f6";
+      cellRect(r,c,fill,"#dbe4ee");
+    }
+    // chosen paint on target half
+    Object.keys(chosen).forEach(function(k){var p=k.split(",");cellRect(+p[0],+p[1],"#93c5fd","#2563eb");});
+    // reveal true print
+    if(reveal)Object.keys(truth).forEach(function(k){var p=k.split(",");var x=OX+(+p[1])*CS,y=OY+(+p[0])*CS;var t=document.createElementNS(SVGNS,"text");t.setAttribute("x",x+CS/2);t.setAttribute("y",y+CS/2);t.setAttribute("text-anchor","middle");t.setAttribute("dominant-baseline","central");t.setAttribute("font-size",18);t.textContent="⭐";svg.appendChild(t);});
+    // crease
+    var l=document.createElementNS(SVGNS,"line");
+    if(axis==="v"){var cx=OX+mid*CS;l.setAttribute("x1",cx);l.setAttribute("y1",OY);l.setAttribute("x2",cx);l.setAttribute("y2",OY+ROWS*CS);}
+    else{var cy=OY+mid*CS;l.setAttribute("x1",OX);l.setAttribute("y1",cy);l.setAttribute("x2",OX+COLS*CS);l.setAttribute("y2",cy);}
+    l.setAttribute("stroke","#0f766e");l.setAttribute("stroke-width",3);l.setAttribute("stroke-dasharray","7 5");svg.appendChild(l);
+    render();
+  }
+  function toSvg(e){var r=svg.getBoundingClientRect();return {x:(e.clientX-r.left)*(400/r.width),y:(e.clientY-r.top)*(320/r.height)};}
+  svg.addEventListener("pointerdown",function(e){if(!interactive)return;var p=toSvg(e);var c=Math.floor((p.x-OX)/CS),r=Math.floor((p.y-OY)/CS);
+    if(r<0||r>=ROWS||c<0||c>=COLS)return;if(inSource(r,c))return; // only target half
+    firstAct("paint cell");var k=key(r,c);if(chosen[k])delete chosen[k];else chosen[k]=1;T.revs++;beep(560,.03);draw();document.getElementById("lockBtn").disabled=false;});
+
+  var phase="demo",interactive=false;
+  var pill=document.getElementById("phasePill"),bIcon=document.getElementById("bIcon"),bText=document.getElementById("bText"),lockBtn=document.getElementById("lockBtn"),nextBtn=document.getElementById("nextBtn"),foldBtn=document.getElementById("foldBtn");
+  function setBanner(i,h){bIcon.textContent=i;bText.innerHTML=h;}
+  foldBtn.onclick=function(){if(phase==="demo")return;reveal=!reveal;if(reveal){T.explore++;beep(700,.06);tlog("peeked at the fold (scaffold)");}draw();};
+  function setItem(ax,m,marks){axis=ax;mid=m;src=marks;chosen={};reveal=false;computeTruth();}
+  function startDemo(){
+    phase="demo";pill.textContent="DEMO";interactive=false;setItem("v",3,[[1,1]]);reveal=false;
+    setBanner("🦋","<b>Watch.</b> The star on the left prints as a mirror star on the right.");
+    draw();hand.style.display="";
+    setTimeout(function(){reveal=true;draw();var q=mirror(1,1);var r=svg.getBoundingClientRect();hand.style.left=((OX+q[1]*CS+CS/2)*(r.width/400))+"px";hand.style.top=((OY+q[0]*CS+CS/2)*(r.height/320))+"px";beep(780,.08);
+      setTimeout(function(){hand.style.display="none";startWarmup();},1200);},900);
+  }
+  function startWarmup(){
+    phase="warmup";pill.textContent="WARM-UP";interactive=true;setItem("v",3,[[2,1]]);begin("Warm-up — 1 mark, vertical crease");
+    document.getElementById("mDiff").textContent="vertical, 1 mark";
+    setBanner("✋","<b>Practice.</b> Tap the right-side cell where this star prints. Use ⤵ to peek. Then Check.");
+    lockBtn.style.display="";lockBtn.disabled=true;nextBtn.style.display="none";foldBtn.style.display="";
+    lockBtn.onclick=function(){grade(true,startScored1,"✅ <b>Right!</b> Now scored ones — no peeking is best.");};
+  }
+  function scored(n,ax,m,marks,label,diff,nextFn){
+    phase="scored";pill.textContent=label;interactive=true;setItem(ax,m,marks);begin("Scored — print the mirror");T.scored=n;document.getElementById("mDiff").textContent=diff;
+    setBanner("🎯","<b>Paint where the print lands.</b> Tap all the mirror cells, then Check &amp; Lock.");
+    lockBtn.style.display="";lockBtn.disabled=true;nextBtn.style.display="none";foldBtn.style.display="";
+    lockBtn.onclick=function(){grade(false,nextFn,null);};
+  }
+  function grade(isWarm,nextFn,okMsg){
+    var rt=performance.now()-T.start;var ck=Object.keys(chosen),tk=Object.keys(truth);
+    var hits=ck.filter(function(k){return truth[k];}).length;var extra=ck.length-hits;var missed=tk.length-hits;
+    var union=hits+extra+missed;var pv=union?hits/union:0;var ok=(extra===0&&missed===0);
+    reveal=true;draw();interactive=false;
+    if(!isWarm){T.poly.push(pv);if(ok)T.correct++;if(!ok)T.err=(missed===0&&extra>0?"over-painted":extra===0?"missed cells":"wrong cells (axis?)");
+      document.getElementById("mRt").textContent=Math.round(rt)+" ms";tlog("LOCK "+(ok?"exact ✔":"partial ✗ ("+T.err+")")+" overlap="+pv.toFixed(2),ok?"done":"miss");}
+    else tlog(ok?"warm-up correct ✔":"warm-up: mirror it across the crease","done");
+    render();beep(ok?880:260);
+    if(isWarm&&!ok){setBanner("↻","<b>Not yet.</b> Each star jumps to the mirror cell across the crease.");interactive=true;return;}
+    setBanner(ok?"✅":"🔎",okMsg||("<b>Overlap "+pv.toFixed(2)+".</b> "+(ok?"Perfect mirror.":"Compare to the revealed stars.")));
+    lockBtn.style.display="none";nextBtn.style.display="";nextBtn.textContent=nextFn?"Next ▶":"Finish ▶";nextBtn.onclick=nextFn||finish;
+  }
+  function startScored1(){scored(1,"v",3,[[0,0],[2,1],[3,2]],"SCORED 1/2","vertical, 3 marks",startScored2);}
+  function startScored2(){scored(2,"h",2,[[0,1],[0,4],[1,3]],"SCORED 2/2","horizontal axis",null);}
+  function finish(){
+    phase="done";pill.textContent="DONE";interactive=false;lockBtn.style.display="none";foldBtn.style.display="none";
+    var mp=T.poly.length?(T.poly.reduce(function(a,b){return a+b;},0)/T.poly.length):0;
+    setBanner("🏁","<b>Exact "+T.correct+"/"+T.scored+"</b> · mean overlap "+mp.toFixed(2)+" (M-POLY). Horizontal/diagonal axes (high M-DIFFREACH) with few fold-peeks (M-EXPLORE) mark internal reflection; wrong-axis prints are typed by M-ERRTYPE.");
+    tlog("── summary ── M-ACC="+T.correct+"/"+T.scored+"  M-POLY(mean)="+mp.toFixed(2)+"  M-EXPLORE(peeks)="+T.explore,"done");
+    nextBtn.style.display="";nextBtn.textContent="↻ Run again";nextBtn.onclick=function(){location.reload();};
+  }
+  draw();startDemo();
+})();
+</script>
+</body>
+</html>
