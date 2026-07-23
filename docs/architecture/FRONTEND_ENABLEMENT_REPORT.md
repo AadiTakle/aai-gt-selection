@@ -15,7 +15,7 @@ Frontend code should consume only:
 - `@gt-selection/db-types` for generated exposed-`api` schema types;
 - `@gt-selection/test-fixtures` for visibly fictional UI states and stories;
 - the eight implemented Milestone A family RPCs plus the later admissions RPC
-  catalog named in `docs/ARCHITECTURE_PLAN.md`.
+  catalog named in `docs/architecture/ARCHITECTURE_PLAN.md`.
 
 Frontend code must not import private SQL/migration code or infer workflow state from tables.
 

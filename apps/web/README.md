@@ -3,7 +3,7 @@
 Single Next.js App Router application for the synthetic GT admissions architecture shell.
 
 > **Platform note (D-012):** Target platform is AWS (Aurora PostgreSQL, Cognito, S3, ECS
-> Fargate; see `docs/ARCHITECTURE_PLAN.md`). The request-scoped Supabase clients described
+> Fargate; see `docs/architecture/ARCHITECTURE_PLAN.md`). The request-scoped Supabase clients described
 > below are the **current** bindings; replacing them with `pg`/RDS Proxy + Cognito JWT
 > verification (`lib/db/`, `lib/auth/`) is a tracked follow-up.
 

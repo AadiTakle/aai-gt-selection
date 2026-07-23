@@ -19,6 +19,9 @@ test-results/
 supabase/.branches/
 supabase/.temp/
 
+# Graphify generated output (auto-generated dependency-graph dump)
+graphify-out/
+
 # Graphify machine-local and temporary files
 graphify-out/.graphify_python
 graphify-out/.graphify_root
