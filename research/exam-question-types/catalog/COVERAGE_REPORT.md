@@ -1,10 +1,10 @@
 # Coverage report — top-GT item -> question-type representation
 
-**North star:** 73/165 top-GT items have >=3 representing types (**44%**). types in catalog: 100.
+**North star:** 73/160 top-GT items have >=3 representing types (**45%**). types in catalog: 100.
 
 - >= 3 types: 73
 - 1-2 types: 49
-- 0 types: 43
+- 0 types: 38
 
 ## Most under-covered (construct, subconstruct) cells — target these next
 
@@ -44,7 +44,7 @@
 - verbal / listening_comprehension_inference: 1 top-GT item(s) still < 3
 - verbal / verbal_reasoning_argumentation: 1 top-GT item(s) still < 3
 - verbal / orthographic_lexical_access: 1 top-GT item(s) still < 3
-- game_based / stealth_assessment_evidence_model: 1 top-GT item(s) still < 3
-- game_based / executive_function_battery: 1 top-GT item(s) still < 3
-- game_based / cognition_battery: 1 top-GT item(s) still < 3
 - processing_speed / attention_control: 1 top-GT item(s) still < 3
+- processing_speed / symbol_search: 1 top-GT item(s) still < 3
+- processing_speed / coding_digit_symbol: 1 top-GT item(s) still < 3
+- processing_speed / inspection_time: 1 top-GT item(s) still < 3

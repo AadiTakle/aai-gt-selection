@@ -11,8 +11,10 @@ band) is the floor; this item-level goal is the ceiling.
 `catalog/top_gt_items.jsonl` — the "top GT-identifying" subset of the committed qbank.
 
 **Selection rule (adjustable):** an item is "top-GT" if its `tail_discrimination` mentions
-`high` (i.e., it is among the best at separating the gifted tail). The sponsor can widen or
-tighten this (e.g., add strong `advantage_vs_cogat`, or restrict by construct) in the morning;
+`high` (i.e., it is among the best at separating the gifted tail), EXCLUDING instrument-level /
+meta game-based labels (whole "batteries," commercial-training precedents, and scoring/evidence
+models) that cannot be represented as a single question type. The sponsor can widen or tighten
+this (e.g., add strong `advantage_vs_cogat`, or restrict by construct) in the morning;
 `build`/coverage tooling will recompute automatically.
 
 ## Coverage metric (north star)
