@@ -79,3 +79,17 @@ measurements (accuracy, RT, first-action latency, revisions, path, etc.) to make
 Each agent writes ONLY its own `specs/types_<area>.jsonl` and its `demos/<type_id>.html`
 files; it never edits shared files. The parent runs `build_types.py` to merge, dedupe,
 merge new measurements, regenerate the index/gallery/coverage matrix, and commit.
+
+## Explore it — `app.html`
+
+`build_app.py` generates **`app.html`**, a single self-contained explorer (all type + measurement
+data inlined, so it opens by double-click). It lets you: browse/search/filter all question types
+by area and age band, read each type's full a–e detail (learning-science basis, measurements +
+tail-precision rationale, ages, adaptive fit, risks), play its **live demo embedded inline**, review
+the **measurement registry** (cross-linked to the types that collect each), and see the **coverage**
+view (100% top-GT and full-qbank).
+
+Open it: double-click `app.html`. If an embedded demo shows blank (some browsers block local
+`file://` iframes), either use the per-demo "Open in new tab" link, or serve the folder for the full
+inline experience: `python3 -m http.server` from `research/exam-question-types/`, then open
+`http://localhost:8000/app.html`. Regenerate after catalog changes with `python3 build_app.py`.
