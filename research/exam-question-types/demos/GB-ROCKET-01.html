@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GB-ROCKET-01 — Rocket Height</title>
+<style>
+:root{--bg:#0f1226;--panel:#1b2140;--panel2:#232a52;--accent:#5eead4;--accent2:#f59e0b;--good:#4ade80;--bad:#f87171;--ink:#eef1ff;--muted:#9aa3c7}
+*{box-sizing:border-box}html,body{margin:0}
+body{font:16px/1.45 system-ui,Segoe UI,Roboto,sans-serif;color:var(--ink);background:radial-gradient(1200px 700px at 80% -10%,#2a2350,#0f1226 60%);min-height:100vh}
+.wrap{display:grid;grid-template-columns:1fr 340px;gap:16px;max-width:1120px;margin:0 auto;padding:18px}
+@media(max-width:880px){.wrap{grid-template-columns:1fr}}
+h1{font-size:18px;margin:0 0 2px}.sub{color:var(--muted);font-size:13px;margin-bottom:10px}
+.card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid #313a6b;border-radius:16px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.phasebar{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.pill{font-size:12px;padding:4px 10px;border-radius:999px;background:#2b336a;color:var(--muted);border:1px solid #3a447f}
+.pill.on{background:var(--accent);color:#053;font-weight:700}
+.prompt{font-size:15px;color:var(--muted);min-height:22px;margin:6px 0;text-align:center}
+.numeral{font-size:46px;font-weight:800;text-align:center;color:var(--accent2)}
+.stage{position:relative;display:flex;gap:26px;justify-content:center;align-items:flex-end;padding:14px 6px 6px}
+.gantry{position:relative;width:70px;height:340px;background:linear-gradient(180deg,#232a52,#1a2044);border-radius:12px;border:1px solid #313a6b}
+.axis{position:absolute;left:50%;top:10px;bottom:10px;width:6px;margin-left:-3px;background:linear-gradient(180deg,#5a67b8,#3a447f);border-radius:4px}
+.tick{position:absolute;left:50%;width:26px;height:3px;background:#6b78c0;transform:translateX(-13px)}
+.ticklab{position:absolute;left:100%;margin-left:6px;font-size:14px;font-weight:700;color:var(--muted);transform:translateY(-50%)}
+.rocket{position:absolute;left:50%;width:46px;height:46px;margin-left:-23px;font-size:34px;text-align:center;cursor:grab;touch-action:none;z-index:5;transition:none}
+.rocket:active{cursor:grabbing}
+.rocket.pulse{animation:pl .5s ease}@keyframes pl{0%{transform:scale(1)}50%{transform:scale(1.3)}100%{transform:scale(1)}}
+.band{position:absolute;left:6px;right:6px;background:rgba(94,234,212,.16);border:2px dashed var(--accent);border-radius:8px;display:none;z-index:1}
+.side{display:flex;flex-direction:column;align-items:center;gap:12px;padding-bottom:20px}
+.row{display:flex;gap:10px;align-items:center;justify-content:center;margin-top:14px;flex-wrap:wrap}
+button.act{font:600 15px system-ui;padding:11px 20px;border-radius:12px;border:0;cursor:pointer;background:var(--accent);color:#053}
+button.act.ghost{background:#2b336a;color:var(--ink);border:1px solid #3a447f}
+button.act:disabled{opacity:.4;cursor:default}
+.fb{min-height:26px;text-align:center;font-weight:700;margin-top:12px}.fb.good{color:var(--good)}.fb.bad{color:var(--bad)}
+.hand{position:absolute;font-size:32px;z-index:20;pointer-events:none;filter:drop-shadow(0 4px 6px rgba(0,0,0,.5));transition:top .9s cubic-bezier(.4,0,.2,1),left .4s ease;opacity:0}
+.tele{font-size:13px}.tele h2{font-size:14px;margin:0 0 8px;color:var(--accent)}
+.metrics{display:grid;grid-template-columns:1fr auto;gap:4px 8px;margin-bottom:10px}
+.metrics div:nth-child(odd){color:var(--muted)}.metrics b{font-variant-numeric:tabular-nums}
+.log{height:230px;overflow:auto;background:#12172f;border:1px solid #2a336a;border-radius:10px;padding:8px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace}
+.log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-acc{color:var(--good)}.t-err{color:var(--bad)}.t-evt{color:#9fb0ff}.t-sys{color:var(--muted)}
+.legend{color:var(--muted);font-size:12px;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <main class="card">
+    <h1>Rocket Height</h1>
+    <div class="sub">Slide the rocket up the tower to the right number, then Launch.</div>
+    <div class="phasebar" id="phasebar"></div>
+    <div class="prompt" id="prompt"></div>
+    <div class="stage">
+      <div class="gantry" id="gantry">
+        <div class="axis"></div>
+        <div class="band" id="band"></div>
+        <div class="rocket" id="rocket">&#128640;</div>
+      </div>
+      <div class="side">
+        <div class="numeral" id="numeral"></div>
+        <button class="act" id="launchBtn">Launch here</button>
+        <button class="act ghost" id="nextBtn" style="display:none">Next</button>
+      </div>
+    </div>
+    <div class="fb" id="fb"></div>
+    <div class="hand" id="hand">&#128070;</div>
+  </main>
+  <aside class="card tele">
+    <h2>Live telemetry</h2>
+    <div class="metrics" id="metrics"></div>
+    <div class="log" id="log"></div>
+    <div class="legend">Logs M-ACC, M-PAE (height % error), M-RT, M-RTFIRST, M-REV, M-ERRTYPE.</div>
+  </aside>
+</div>
+<script>
+(function(){
+  "use strict";
+  var el=function(id){return document.getElementById(id)};
+  var gantry=el('gantry'),rocket=el('rocket'),band=el('band'),hand=el('hand'),prompt=el('prompt'),numeral=el('numeral'),fb=el('fb'),launchBtn=el('launchBtn'),nextBtn=el('nextBtn');
+  var T0=Date.now();function now(){return Date.now()-T0;}
+  var PAD=18; // px inset top/bottom for travel
+  var Tel={scored:0,correct:0,paeSum:0,paeN:0,rtSum:0,rtN:0,firstSum:0,firstN:0,revSum:0,
+    push:function(c,m){var d=document.createElement('div');d.className=c;d.textContent='['+(now()/1000).toFixed(2)+'s] '+m;var L=el('log');L.appendChild(d);L.scrollTop=L.scrollHeight;},
+    render:function(){var acc=Tel.scored?Math.round(100*Tel.correct/Tel.scored)+'% ('+Tel.correct+'/'+Tel.scored+')':'\u2014';
+      var pae=Tel.paeN?(Tel.paeSum/Tel.paeN).toFixed(1)+'%':'\u2014',rt=Tel.rtN?Math.round(Tel.rtSum/Tel.rtN)+' ms':'\u2014',fr=Tel.firstN?Math.round(Tel.firstSum/Tel.firstN)+' ms':'\u2014';
+      el('metrics').innerHTML='<div>M-ACC accuracy</div><b>'+acc+'</b><div>M-PAE mean err</div><b>'+pae+'</b><div>M-RT mean</div><b>'+rt+'</b><div>M-RTFIRST mean</div><b>'+fr+'</b><div>M-REV total</div><b>'+Tel.revSum+'</b>';}};
+
+  var items=[
+    {phase:'demo',   max:10, target:4,  tol:0.6},
+    {phase:'warmup', max:10, target:7,  tol:0.8},
+    {phase:'scored', max:10, target:5,  tol:0.6},
+    {phase:'scored', max:20, target:12, tol:0.9},
+    {phase:'scored', max:100,target:60, tol:5}
+  ];
+  var phaseName={demo:'Ghost demo',warmup:'Warm-up (not scored)',scored:'Scored item'};
+  var idx=-1,cur=null,dragging=false,firstAction=0,itemStart=0,revisions=0,placedVal=null;
+
+  function trackH(){return gantry.clientHeight-2*PAD-46;} // travel range in px (minus rocket size)
+  function valToTop(v){return PAD + (1-v/cur.max)*trackH();}   // top px for value
+  function topToVal(t){var f=1-(t-PAD)/trackH();return Math.max(0,Math.min(cur.max,f*cur.max));}
+  function setRocket(v){rocket.style.top=valToTop(v)+'px';}
+
+  function renderPhasebar(){var order=['demo','warmup','scored'],lab={demo:'1 Watch',warmup:'2 Try',scored:'3 Solve'};
+    el('phasebar').innerHTML=order.map(function(p){var on=cur&&cur.phase===p?' on':'';return '<span class="pill'+on+'">'+lab[p]+'</span>';}).join('')+(cur?'<span class="pill">'+phaseName[cur.phase]+'</span>':'');}
+
+  function buildTicks(){[].slice.call(gantry.querySelectorAll('.tick,.ticklab')).forEach(function(n){n.remove();});
+    var step=cur.max<=10?1:(cur.max<=20?2:10);
+    for(var v=0;v<=cur.max;v+=step){var y=valToTop(v)+23;var t=document.createElement('div');t.className='tick';t.style.top=y+'px';gantry.appendChild(t);
+      var lb=document.createElement('div');lb.className='ticklab';lb.style.top=y+'px';lb.textContent=v;gantry.appendChild(lb);}}
+
+  function loadItem(){idx++;if(idx>=items.length){finish();return;}cur=items[idx];
+    dragging=false;firstAction=0;revisions=0;placedVal=null;fb.textContent='';fb.className='fb';band.style.display='none';nextBtn.style.display='none';
+    renderPhasebar();buildTicks();setRocket(0);launchBtn.disabled=false;launchBtn.style.display='inline-block';
+    prompt.textContent='Fly the rocket to this number:';numeral.textContent=cur.target;
+    itemStart=now();Tel.push('t-sys','LOAD '+cur.phase+' item (target '+cur.target+' on 0-'+cur.max+')');
+    if(cur.phase==='demo')ghost();Tel.render();}
+
+  function pointerTop(ev){var r=gantry.getBoundingClientRect();return (ev.touches?ev.touches[0].clientY:ev.clientY)-r.top-23;}
+  rocket.addEventListener('pointerdown',function(ev){if(cur.phase==='demo')return;dragging=true;rocket.setPointerCapture(ev.pointerId);if(!firstAction){firstAction=now();Tel.push('t-evt','first action (grab rocket)');}});
+  window.addEventListener('pointermove',function(ev){if(!dragging)return;var t=Math.max(PAD,Math.min(PAD+trackH(),pointerTop(ev)));rocket.style.top=t+'px';});
+  window.addEventListener('pointerup',function(){if(!dragging)return;dragging=false;var v=topToVal(parseFloat(rocket.style.top));if(placedVal!==null){revisions++;Tel.push('t-evt','revision #'+revisions+' -> '+fmt(v));}placedVal=v;});
+  function fmt(v){return cur.max<=10?Math.round(v*10)/10:Math.round(v);}
+
+  launchBtn.onclick=function(){if(cur.phase==='demo')return;if(placedVal===null)placedVal=topToVal(parseFloat(rocket.style.top)||valToTop(0));commit(placedVal);};
+
+  function commit(v){var rt=now()-itemStart,err=Math.abs(v-cur.target),pae=100*err/cur.max,ok=err<=cur.tol;
+    rocket.classList.add('pulse');setTimeout(function(){rocket.classList.remove('pulse');},500);
+    if(cur.phase==='scored'){Tel.scored++;if(ok)Tel.correct++;Tel.paeSum+=pae;Tel.paeN++;Tel.rtSum+=rt;Tel.rtN++;if(firstAction){Tel.firstSum+=(firstAction-itemStart);Tel.firstN++;}Tel.revSum+=revisions;
+      var et=ok?'correct':(pae<=100*cur.tol/cur.max*2?'near-miss':(v>cur.target?'over':'under'));
+      Tel.push(ok?'t-acc':'t-err','SCORED target '+cur.target+': flew to '+fmt(v)+'  PAE='+pae.toFixed(1)+'%  RT='+rt+'ms  rev='+revisions+'  err='+et);}
+    else Tel.push('t-sys',cur.phase.toUpperCase()+': flew to '+fmt(v)+' (PAE '+pae.toFixed(1)+'%) \u2014 not scored');
+    fb.textContent=ok?(cur.phase==='warmup'?'Liftoff! Now the real ones.':'Perfect orbit!'):'See the green target band.';
+    fb.className='fb '+(ok?'good':'bad');
+    var by=valToTop(cur.target),bh=Math.max(20,cur.tol/cur.max*trackH()*2);band.style.display='block';band.style.top=(by+23-bh/2)+'px';band.style.height=bh+'px';
+    launchBtn.disabled=true;nextBtn.style.display='inline-block';Tel.render();}
+
+  nextBtn.onclick=function(){loadItem();};
+
+  function ghost(){launchBtn.disabled=true;var ty=valToTop(cur.target);hand.style.opacity='0';
+    setTimeout(function(){hand.style.transition='none';hand.style.left=(gantry.offsetLeft+gantry.clientWidth+6)+'px';hand.style.top=(gantry.offsetTop+valToTop(0))+'px';hand.style.opacity='1';Tel.push('t-sys','ghost: grab rocket');},300);
+    setTimeout(function(){hand.style.transition='top .9s cubic-bezier(.4,0,.2,1)';rocket.style.transition='top .9s cubic-bezier(.4,0,.2,1)';rocket.style.top=ty+'px';hand.style.top=(gantry.offsetTop+ty)+'px';Tel.push('t-sys','ghost: fly up to '+cur.target);},1000);
+    setTimeout(function(){rocket.classList.add('pulse');beep();var bh=Math.max(20,valToTop(0)-valToTop(1));band.style.display='block';band.style.top=(ty+23-bh/2)+'px';band.style.height=bh+'px';Tel.push('t-sys','ghost: launch (snap)');},2100);
+    setTimeout(function(){hand.style.opacity='0';rocket.style.transition='';},2900);
+    setTimeout(function(){band.style.display='none';rocket.classList.remove('pulse');loadItem();},3600);}
+
+  function beep(){try{var a=new(window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.type='sawtooth';o.frequency.setValueAtTime(300,a.currentTime);o.frequency.exponentialRampToValueAtTime(760,a.currentTime+.25);g.gain.setValueAtTime(.08,a.currentTime);g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+.35);o.start();o.stop(a.currentTime+.36);}catch(e){}}
+
+  function finish(){prompt.textContent='';document.querySelector('.stage').innerHTML='<div style="text-align:center;padding:30px 0;width:100%"><div style="font-size:44px">\ud83c\udf89</div><div style="color:var(--muted)">Sample complete. Telemetry captured on the right.</div></div>';Tel.push('t-sys','SESSION complete: '+Tel.correct+'/'+Tel.scored+' scored correct');}
+  window.addEventListener('blur',function(){Tel.push('t-sys','engagement: focus lost');});
+  Tel.render();loadItem();
+})();
+</script>
+</body>
+</html>

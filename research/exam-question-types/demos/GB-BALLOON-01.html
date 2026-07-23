@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GB-BALLOON-01 — Balloon Pump</title>
+<style>
+:root{--bg:#0f1226;--panel:#1b2140;--panel2:#232a52;--accent:#5eead4;--accent2:#f59e0b;--good:#4ade80;--bad:#f87171;--ink:#eef1ff;--muted:#9aa3c7}
+*{box-sizing:border-box}html,body{margin:0}
+body{font:16px/1.45 system-ui,Segoe UI,Roboto,sans-serif;color:var(--ink);background:radial-gradient(1200px 700px at 40% -10%,#2a1236,#0f1226 60%);min-height:100vh}
+.wrap{display:grid;grid-template-columns:1fr 340px;gap:16px;max-width:1120px;margin:0 auto;padding:18px}
+@media(max-width:880px){.wrap{grid-template-columns:1fr}}
+h1{font-size:18px;margin:0 0 2px}.sub{color:var(--muted);font-size:13px;margin-bottom:10px}
+.card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid #313a6b;border-radius:16px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.phasebar{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.pill{font-size:12px;padding:4px 10px;border-radius:999px;background:#2b336a;color:var(--muted);border:1px solid #3a447f}
+.pill.on{background:var(--accent);color:#053;font-weight:700}
+.prompt{font-size:15px;color:var(--muted);min-height:22px;margin:6px 0;text-align:center}
+.hud{display:flex;justify-content:space-between;font-weight:700;margin:8px 2px}.hud .haul{color:var(--accent2)}.hud .bank{color:var(--good)}
+.stage{position:relative;height:290px;display:flex;align-items:flex-end;justify-content:center}
+.balloon{position:relative;width:60px;height:60px;border-radius:50% 50% 50% 50%;background:radial-gradient(circle at 35% 30%,#ffd1e8,#e0459a);transition:width .18s ease,height .18s ease,transform .1s;transform-origin:bottom center}
+.balloon:after{content:"";position:absolute;left:50%;bottom:-10px;width:2px;height:12px;background:#aaa;transform:translateX(-50%)}
+.balloon .score{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-weight:800;color:#5a1030;font-size:18px}
+.balloon.pop{animation:popA .3s forwards}@keyframes popA{0%{transform:scale(1)}60%{transform:scale(1.4);opacity:.6}100%{transform:scale(0);opacity:0}}
+.row{display:flex;gap:10px;align-items:center;justify-content:center;margin-top:10px;flex-wrap:wrap}
+button.act{font:600 16px system-ui;padding:12px 22px;border-radius:12px;border:0;cursor:pointer;background:#e0459a;color:#fff}
+button.act.collect{background:var(--good);color:#053}button.act.ghost{background:#2b336a;color:var(--ink);border:1px solid #3a447f}
+button.act:disabled{opacity:.4;cursor:default}
+.fb{min-height:26px;text-align:center;font-weight:700;margin-top:8px}.fb.good{color:var(--good)}.fb.bad{color:var(--bad)}
+.hand{position:absolute;font-size:32px;z-index:20;pointer-events:none;filter:drop-shadow(0 4px 6px rgba(0,0,0,.5));transition:left .3s ease,top .3s ease;opacity:0}
+.tele{font-size:13px}.tele h2{font-size:14px;margin:0 0 8px;color:var(--accent)}
+.metrics{display:grid;grid-template-columns:1fr auto;gap:4px 8px;margin-bottom:10px}
+.metrics div:nth-child(odd){color:var(--muted)}.metrics b{font-variant-numeric:tabular-nums}
+.log{height:220px;overflow:auto;background:#12172f;border:1px solid #2a336a;border-radius:10px;padding:8px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace}
+.log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-acc{color:var(--good)}.t-err{color:var(--bad)}.t-evt{color:#9fb0ff}.t-sys{color:var(--muted)}
+.legend{color:var(--muted);font-size:12px;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <main class="card">
+    <h1>Balloon Pump</h1>
+    <div class="sub">Each pump earns a point, but too many pops the balloon. Collect points whenever you like.</div>
+    <div class="phasebar" id="phasebar"></div>
+    <div class="prompt" id="prompt"></div>
+    <div class="hud"><span class="haul">This balloon: <span id="haul">0</span></span><span class="bank">Banked: <span id="bankv">0</span></span></div>
+    <div class="stage" id="stage"><div class="balloon" id="balloon"><span class="score" id="bscore">0</span></div></div>
+    <div class="row">
+      <button class="act" id="pumpBtn">Pump</button>
+      <button class="act collect" id="collectBtn">Collect</button>
+      <button class="act ghost" id="nextBtn" style="display:none">Next balloon</button>
+    </div>
+    <div class="fb" id="fb"></div>
+    <div class="hand" id="hand">&#128070;</div>
+  </main>
+  <aside class="card tele">
+    <h2>Live telemetry</h2>
+    <div class="metrics" id="metrics"></div>
+    <div class="log" id="log"></div>
+    <div class="legend">Risk: M-EXPLORE (pumps/balloon), M-CONF (adjusted pumps after feedback), M-PATH, M-REV (pullback after a pop). Persistence: M-RESUME (keep going after pops), M-PERSIST, M-DRIFT, M-ENGAGE.</div>
+  </aside>
+</div>
+<script>
+(function(){
+  "use strict";
+  var el=function(id){return document.getElementById(id)};
+  var stage=el('stage'),balloon=el('balloon'),bscore=el('bscore'),haulEl=el('haul'),bankEl=el('bankv'),
+      prompt=el('prompt'),fb=el('fb'),pumpBtn=el('pumpBtn'),collectBtn=el('collectBtn'),nextBtn=el('nextBtn'),hand=el('hand');
+  var T0=Date.now();function now(){return Date.now()-T0;}
+  var Tel={banked:0,pops:0,collects:0,pumps:[],prevPumps:null,sessionStart:Date.now(),
+    push:function(c,m){var d=document.createElement('div');d.className=c;d.textContent='['+(now()/1000).toFixed(2)+'s] '+m;var L=el('log');L.appendChild(d);L.scrollTop=L.scrollHeight;},
+    render:function(){var s=Tel.pumps.filter(function(x){return x.scored;});
+      var avg=s.length?(s.reduce(function(a,x){return a+x.pumps;},0)/s.length).toFixed(1):'\u2014';
+      var mx=s.length?Math.max.apply(null,s.map(function(x){return x.pumps;})):'\u2014';
+      el('metrics').innerHTML='<div>M-EXPLORE avg pumps</div><b>'+avg+'</b><div>Max pumps</div><b>'+mx+'</b>'+
+        '<div>Banked total</div><b>'+Tel.banked+'</b><div>Pops</div><b>'+Tel.pops+'</b>'+
+        '<div>M-RESUME after pop</div><b>'+Tel.afterPop()+'</b><div>M-CHOICE collects</div><b>'+Tel.collects+'</b>';},
+    afterPop:function(){return Tel.pumps.filter(function(x){return x.scored&&x.afterPop;}).length;}};
+
+  // each balloon has a hidden burst point drawn from a range; risk grows as pumps approach it.
+  var balloons=[
+    {phase:'demo',   maxSafe:5,  burst:99},        // demo never pops
+    {phase:'warmup', maxSafe:6,  burst:8},
+    {phase:'scored', maxSafe:5,  burst:7},
+    {phase:'scored', maxSafe:8,  burst:12},
+    {phase:'scored', maxSafe:4,  burst:6},
+    {phase:'scored', maxSafe:9,  burst:14}
+  ];
+  var phaseName={demo:'Ghost demo',warmup:'Warm-up (not scored)',scored:'Scored balloon'};
+  var idx=-1,cur=null,pumps=0,ended=false,lastWasPop=false;
+
+  function renderPhasebar(){var order=['demo','warmup','scored'],lab={demo:'1 Watch',warmup:'2 Try',scored:'3 Pump'};
+    el('phasebar').innerHTML=order.map(function(p){var on=cur&&cur.phase===p?' on':'';return '<span class="pill'+on+'">'+lab[p]+'</span>';}).join('')+(cur?'<span class="pill">'+phaseName[cur.phase]+'</span>':'');}
+
+  function sizeBalloon(){var s=60+pumps*14;balloon.style.width=s+'px';balloon.style.height=s+'px';bscore.textContent=pumps;haulEl.textContent=pumps;}
+
+  function loadBalloon(fromPop){idx++;if(idx>=balloons.length){finish();return;}cur=balloons[idx];pumps=0;ended=false;
+    balloon.className='balloon';balloon.style.display='block';sizeBalloon();fb.textContent='';fb.className='fb';nextBtn.style.display='none';
+    pumpBtn.style.display='inline-block';collectBtn.style.display='inline-block';pumpBtn.disabled=false;collectBtn.disabled=true;renderPhasebar();
+    prompt.textContent=cur.phase==='demo'?'Watch the ghost pump, then collect.':'Pump for points, then collect before it pops.';
+    Tel.push('t-sys','BALLOON '+idx+' start ('+cur.phase+')');
+    if(cur.phase==='demo')ghost();Tel.render();}
+
+  pumpBtn.onclick=function(){if(ended||cur.phase==='demo')return;pumps++;collectBtn.disabled=false;
+    balloon.style.transform='scale(1.06)';setTimeout(function(){balloon.style.transform='scale(1)';},90);
+    if(pumps>=cur.burst){popIt();return;}sizeBalloon();beep(500+pumps*30);
+    Tel.push('t-evt','pump #'+pumps+' (balloon '+idx+')');Tel.render();};
+
+  function popIt(){ended=true;Tel.pops++;lastWasPop=true;balloon.classList.add('pop');
+    fb.textContent='POP! This balloon\u2019s points are gone.';fb.className='fb bad';pumpBtn.disabled=true;collectBtn.disabled=true;
+    if(cur.phase==='scored')Tel.pumps.push({pumps:pumps,scored:true,collected:false,afterPop:wasAfterPop});
+    Tel.push('t-err','BALLOON '+idx+' POP at '+pumps+' pumps');
+    nextBtn.style.display='inline-block';Tel.render();wasAfterPop=true;}
+
+  var wasAfterPop=false;
+  collectBtn.onclick=function(){if(ended||cur.phase==='demo'||pumps===0)return;ended=true;Tel.banked+=pumps;bankEl.textContent=Tel.banked;Tel.collects++;
+    fb.textContent='Collected '+pumps+'!';fb.className='fb good';pumpBtn.disabled=true;collectBtn.disabled=true;
+    if(cur.phase==='scored'){var rev='';if(Tel.prevPumps!==null&&pumps<Tel.prevPumps&&lastWasPop)rev=' (fewer pumps after a pop \u2014 risk pullback)';
+      Tel.pumps.push({pumps:pumps,scored:true,collected:true,afterPop:wasAfterPop});Tel.prevPumps=pumps;
+      Tel.push('t-acc','BALLOON '+idx+' COLLECT at '+pumps+' pumps (+'+pumps+')'+rev);}
+    lastWasPop=false;wasAfterPop=false;nextBtn.style.display='inline-block';Tel.render();}
+
+  nextBtn.onclick=function(){if(lastWasPop){Tel.push('t-evt','RESUME: start a new balloon after a pop');}loadBalloon(true);};
+
+  function ghost(){pumpBtn.disabled=true;collectBtn.disabled=true;var steps=[400,900,1400,1900];
+    steps.forEach(function(t){setTimeout(function(){hand.style.opacity='1';hand.style.left=(pumpBtn.offsetLeft+24)+'px';hand.style.top=(pumpBtn.offsetTop-4)+'px';pumps++;sizeBalloon();beep(500+pumps*30);Tel.push('t-sys','ghost: pump #'+pumps);},t);});
+    setTimeout(function(){hand.style.left=(collectBtn.offsetLeft+24)+'px';hand.style.top=(collectBtn.offsetTop-4)+'px';},2400);
+    setTimeout(function(){fb.textContent='Ghost collected \u2014 points are safe!';fb.className='fb good';beep(920);Tel.push('t-sys','ghost: collect (safe)');},2800);
+    setTimeout(function(){hand.style.opacity='0';fb.textContent='';fb.className='fb';loadBalloon(false);},3700);}
+
+  function beep(f){try{var a=new(window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.type='sine';o.frequency.setValueAtTime(f,a.currentTime);g.gain.setValueAtTime(.06,a.currentTime);g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+.16);o.start();o.stop(a.currentTime+.18);}catch(e){}}
+
+  function finish(){prompt.textContent='';stage.style.display='none';document.querySelectorAll('.row,.hud').forEach(function(n){n.style.display='none';});
+    fb.innerHTML='<div style="font-size:44px">\ud83c\udf89</div><div style="color:var(--muted)">Sample complete. Banked '+Tel.banked+'. Telemetry captured on the right.</div>';fb.className='fb';
+    Tel.push('t-sys','SESSION complete: banked='+Tel.banked+', pops='+Tel.pops+', collects='+Tel.collects);}
+  window.addEventListener('blur',function(){Tel.push('t-sys','engagement: focus lost (M-ENGAGE)');});
+  Tel.render();loadBalloon(false);
+})();
+</script>
+</body>
+</html>

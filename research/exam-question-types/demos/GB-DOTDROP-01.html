@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GB-DOTDROP-01 — Dot Drop</title>
+<style>
+:root{--bg:#0f1226;--panel:#1b2140;--panel2:#232a52;--accent:#5eead4;--accent2:#f59e0b;--good:#4ade80;--bad:#f87171;--ink:#eef1ff;--muted:#9aa3c7}
+*{box-sizing:border-box}html,body{margin:0}
+body{font:16px/1.45 system-ui,Segoe UI,Roboto,sans-serif;color:var(--ink);
+  background:radial-gradient(1200px 700px at 20% -10%,#26305e,#0f1226 60%);min-height:100vh}
+.wrap{display:grid;grid-template-columns:1fr 340px;gap:16px;max-width:1120px;margin:0 auto;padding:18px}
+@media(max-width:880px){.wrap{grid-template-columns:1fr}}
+h1{font-size:18px;margin:0 0 2px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:10px}
+.card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid #313a6b;border-radius:16px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.phasebar{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.pill{font-size:12px;padding:4px 10px;border-radius:999px;background:#2b336a;color:var(--muted);border:1px solid #3a447f}
+.pill.on{background:var(--accent);color:#053;font-weight:700}
+.prompt{font-size:15px;color:var(--muted);min-height:22px;margin:6px 0 2px;text-align:center}
+.objs{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;min-height:70px;font-size:36px;margin:6px 0}
+.numeral{font-size:52px;font-weight:800;text-align:center;color:var(--accent2)}
+.stage{position:relative;padding:34px 26px 16px}
+.line{position:relative;height:16px;background:linear-gradient(90deg,#3a447f,#5a67b8);border-radius:8px;margin:70px 18px 34px}
+.tick{position:absolute;top:-10px;width:3px;height:36px;background:#6b78c0;transform:translateX(-1px);border-radius:2px}
+.ticklab{position:absolute;top:30px;font-size:16px;font-weight:700;color:var(--muted);transform:translateX(-50%)}
+.basket{position:absolute;top:50%;left:0;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:14px;
+  background:radial-gradient(circle at 35% 30%,#fff,var(--accent2));border:3px solid #fff;cursor:grab;touch-action:none;
+  box-shadow:0 6px 16px rgba(245,158,11,.5);z-index:5;display:flex;align-items:center;justify-content:center;font-size:26px}
+.basket:active{cursor:grabbing}
+.basket.pulse{animation:pl .5s ease}
+@keyframes pl{0%{transform:translate(0,-50%) scale(1)}50%{transform:translate(0,-50%) scale(1.28)}100%{transform:translate(0,-50%) scale(1)}}
+.bull{position:absolute;top:50%;height:52px;margin-top:-26px;border-radius:12px;background:rgba(94,234,212,.16);border:2px dashed var(--accent);z-index:1;display:none}
+.row{display:flex;gap:10px;align-items:center;justify-content:center;margin-top:8px;flex-wrap:wrap}
+button.act{font:600 15px system-ui;padding:11px 20px;border-radius:12px;border:0;cursor:pointer;background:var(--accent);color:#053}
+button.act.ghost{background:#2b336a;color:var(--ink);border:1px solid #3a447f}
+button.act:disabled{opacity:.4;cursor:default}
+.fb{min-height:26px;text-align:center;font-weight:700;margin-top:10px}
+.fb.good{color:var(--good)}.fb.bad{color:var(--bad)}
+.hand{position:absolute;font-size:34px;z-index:20;pointer-events:none;filter:drop-shadow(0 4px 6px rgba(0,0,0,.5));transition:left .9s cubic-bezier(.4,0,.2,1),top .6s ease;opacity:0}
+.tele{font-size:13px}.tele h2{font-size:14px;margin:0 0 8px;color:var(--accent)}
+.metrics{display:grid;grid-template-columns:1fr auto;gap:4px 8px;margin-bottom:10px}
+.metrics div:nth-child(odd){color:var(--muted)}.metrics b{font-variant-numeric:tabular-nums}
+.log{height:230px;overflow:auto;background:#12172f;border:1px solid #2a336a;border-radius:10px;padding:8px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace}
+.log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-acc{color:var(--good)}.t-err{color:var(--bad)}.t-evt{color:#9fb0ff}.t-sys{color:var(--muted)}
+.legend{color:var(--muted);font-size:12px;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <main class="card">
+    <h1>Dot Drop</h1>
+    <div class="sub">Count the things, then drag the basket to that number on the line.</div>
+    <div class="phasebar" id="phasebar"></div>
+    <div class="prompt" id="prompt"></div>
+    <div class="objs" id="objs"></div>
+    <div class="stage">
+      <div class="line" id="line">
+        <div class="basket" id="basket">&#129508;</div>
+        <div class="bull" id="bull"></div>
+      </div>
+      <div class="row">
+        <button class="act" id="dropBtn">Drop it here</button>
+        <button class="act ghost" id="nextBtn" style="display:none">Next</button>
+      </div>
+      <div class="fb" id="fb"></div>
+    </div>
+    <div class="hand" id="hand">&#128070;</div>
+  </main>
+  <aside class="card tele">
+    <h2>Live telemetry</h2>
+    <div class="metrics" id="metrics"></div>
+    <div class="log" id="log"></div>
+    <div class="legend">Logs M-ACC, M-PAE (placement % error), M-RT, M-RTFIRST, M-REV, M-ERRTYPE.</div>
+  </aside>
+</div>
+<script>
+(function(){
+  "use strict";
+  var el=function(id){return document.getElementById(id)};
+  var line=el('line'),basket=el('basket'),bull=el('bull'),hand=el('hand'),
+      prompt=el('prompt'),objs=el('objs'),fb=el('fb'),dropBtn=el('dropBtn'),nextBtn=el('nextBtn');
+  var T0=Date.now(); function now(){return Date.now()-T0;}
+
+  var Tel={scored:0,correct:0,paeSum:0,paeN:0,rtSum:0,rtN:0,firstSum:0,firstN:0,revSum:0,
+    push:function(c,m){var d=document.createElement('div');d.className=c;d.textContent='['+(now()/1000).toFixed(2)+'s] '+m;var L=el('log');L.appendChild(d);L.scrollTop=L.scrollHeight;},
+    render:function(){var acc=Tel.scored?Math.round(100*Tel.correct/Tel.scored)+'% ('+Tel.correct+'/'+Tel.scored+')':'\u2014';
+      var pae=Tel.paeN?(Tel.paeSum/Tel.paeN).toFixed(1)+'%':'\u2014';
+      var rt=Tel.rtN?Math.round(Tel.rtSum/Tel.rtN)+' ms':'\u2014';
+      var fr=Tel.firstN?Math.round(Tel.firstSum/Tel.firstN)+' ms':'\u2014';
+      el('metrics').innerHTML='<div>M-ACC accuracy</div><b>'+acc+'</b><div>M-PAE mean err</div><b>'+pae+'</b>'+
+        '<div>M-RT mean</div><b>'+rt+'</b><div>M-RTFIRST mean</div><b>'+fr+'</b><div>M-REV total</div><b>'+Tel.revSum+'</b>';}};
+
+  // items: 0-10 line. show objects (count) or numeral. target = integer.
+  var items=[
+    {phase:'demo',   max:10, target:3, show:'obj', icon:'\u2b50'},
+    {phase:'warmup', max:10, target:2, show:'obj', icon:'\ud83d\udc1f'},
+    {phase:'scored', max:10, target:6, show:'obj', icon:'\ud83c\udf4e'},
+    {phase:'scored', max:10, target:8, show:'num'},
+    {phase:'scored', max:20, target:14,show:'num'}
+  ];
+  var phaseName={demo:'Ghost demo',warmup:'Warm-up (not scored)',scored:'Scored item'};
+  var idx=-1,cur=null,dragging=false,firstAction=0,itemStart=0,revisions=0,placedVal=null,tol=0.6;
+
+  function renderPhasebar(){var order=['demo','warmup','scored'],lab={demo:'1 Watch',warmup:'2 Try',scored:'3 Solve'};
+    el('phasebar').innerHTML=order.map(function(p){var on=cur&&cur.phase===p?' on':'';return '<span class="pill'+on+'">'+lab[p]+'</span>';}).join('')+(cur?'<span class="pill">'+phaseName[cur.phase]+'</span>':'');}
+  function valToX(v){return v/cur.max*line.clientWidth;}
+  function xToVal(x){return Math.max(0,Math.min(line.clientWidth,x))/line.clientWidth*cur.max;}
+  function snap(v){return Math.round(v);}
+  function setBasket(v){basket.style.left=valToX(v)+'px';}
+
+  function buildTicks(){[].slice.call(line.querySelectorAll('.tick,.ticklab')).forEach(function(n){n.remove();});
+    var step=cur.max<=10?1:2;
+    for(var v=0;v<=cur.max;v+=step){var t=document.createElement('div');t.className='tick';t.style.left=valToX(v)+'px';line.appendChild(t);
+      var lb=document.createElement('div');lb.className='ticklab';lb.style.left=valToX(v)+'px';lb.textContent=v;line.appendChild(lb);}}
+
+  function loadItem(){idx++;if(idx>=items.length){finish();return;}cur=items[idx];
+    dragging=false;firstAction=0;revisions=0;placedVal=null;fb.textContent='';fb.className='fb';bull.style.display='none';nextBtn.style.display='none';
+    renderPhasebar();buildTicks();setBasket(0);dropBtn.disabled=false;dropBtn.style.display='inline-block';
+    if(cur.show==='obj'){prompt.textContent='How many? Drag the basket to that spot.';objs.innerHTML='';
+      for(var i=0;i<cur.target;i++){var s=document.createElement('span');s.textContent=cur.icon;objs.appendChild(s);}objs.className='objs';}
+    else{prompt.textContent='Drag the basket to this number.';objs.innerHTML='<span class="numeral">'+cur.target+'</span>';objs.className='';}
+    itemStart=now();Tel.push('t-sys','LOAD '+cur.phase+' item (target '+cur.target+' on 0-'+cur.max+')');
+    if(cur.phase==='demo')ghost();Tel.render();}
+
+  function pointerX(ev){var r=line.getBoundingClientRect();return (ev.touches?ev.touches[0].clientX:ev.clientX)-r.left;}
+  basket.addEventListener('pointerdown',function(ev){if(cur.phase==='demo')return;dragging=true;basket.setPointerCapture(ev.pointerId);
+    if(!firstAction){firstAction=now();Tel.push('t-evt','first action (grab basket)');}});
+  window.addEventListener('pointermove',function(ev){if(!dragging)return;basket.style.left=Math.max(0,Math.min(line.clientWidth,pointerX(ev)))+'px';});
+  window.addEventListener('pointerup',function(){if(!dragging)return;dragging=false;var v=xToVal(parseFloat(basket.style.left));
+    if(placedVal!==null){revisions++;Tel.push('t-evt','revision #'+revisions+' -> '+snap(v));}placedVal=v;});
+
+  dropBtn.onclick=function(){if(cur.phase==='demo')return;if(placedVal===null)placedVal=xToVal(parseFloat(basket.style.left)||0);commit(placedVal);};
+
+  function commit(v){var sv=snap(v),rt=now()-itemStart,err=Math.abs(sv-cur.target),pae=100*Math.abs(v-cur.target)/cur.max,ok=err<=tol;
+    setBasket(sv);basket.classList.add('pulse');setTimeout(function(){basket.classList.remove('pulse');},500);
+    if(cur.phase==='scored'){Tel.scored++;if(ok)Tel.correct++;Tel.paeSum+=pae;Tel.paeN++;Tel.rtSum+=rt;Tel.rtN++;
+      if(firstAction){Tel.firstSum+=(firstAction-itemStart);Tel.firstN++;}Tel.revSum+=revisions;
+      var et=ok?'correct':(err<=1?'near-miss':(sv>cur.target?'over':'under'));
+      Tel.push(ok?'t-acc':'t-err','SCORED target '+cur.target+': dropped '+sv+'  PAE='+pae.toFixed(1)+'%  RT='+rt+'ms  rev='+revisions+'  err='+et);}
+    else Tel.push('t-sys',cur.phase.toUpperCase()+': dropped '+sv+' (PAE '+pae.toFixed(1)+'%) \u2014 not scored');
+    fb.textContent=ok?(cur.phase==='warmup'?'Nice! Now the real ones.':'Great drop!'):'See the green target band.';
+    fb.className='fb '+(ok?'good':'bad');
+    var bx=valToX(cur.target),bw=Math.max(24,tol/cur.max*line.clientWidth*2+valToX(1));bull.style.display='block';bull.style.left=(bx-bw/2)+'px';bull.style.width=bw+'px';
+    dropBtn.disabled=true;nextBtn.style.display='inline-block';Tel.render();}
+
+  nextBtn.onclick=function(){loadItem();};
+
+  function ghost(){dropBtn.disabled=true;var tx=valToX(cur.target);hand.style.opacity='0';
+    setTimeout(function(){hand.style.transition='none';hand.style.left=(line.offsetLeft+10)+'px';hand.style.top=(line.offsetTop+80)+'px';hand.style.opacity='1';Tel.push('t-sys','ghost: grab basket');},300);
+    setTimeout(function(){hand.style.transition='left .9s cubic-bezier(.4,0,.2,1),top .6s ease';basket.style.transition='left .9s cubic-bezier(.4,0,.2,1)';
+      basket.style.left=tx+'px';hand.style.left=(line.offsetLeft+tx-6)+'px';Tel.push('t-sys','ghost: glide to '+cur.target);},1000);
+    setTimeout(function(){basket.classList.add('pulse');beep();var bx=valToX(cur.target),bw=Math.max(24,valToX(1));bull.style.display='block';bull.style.left=(bx-bw/2)+'px';bull.style.width=bw+'px';Tel.push('t-sys','ghost: drop (snap)');},2100);
+    setTimeout(function(){hand.style.opacity='0';basket.style.transition='';},2900);
+    setTimeout(function(){bull.style.display='none';basket.classList.remove('pulse');loadItem();},3600);}
+
+  function beep(){try{var a=new(window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);
+    o.type='sine';o.frequency.setValueAtTime(660,a.currentTime);o.frequency.exponentialRampToValueAtTime(990,a.currentTime+.15);
+    g.gain.setValueAtTime(.12,a.currentTime);g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+.3);o.start();o.stop(a.currentTime+.32);}catch(e){}}
+
+  function finish(){prompt.textContent='';objs.innerHTML='';document.querySelector('.stage').innerHTML='<div style="text-align:center;padding:30px 0"><div style="font-size:44px">\ud83c\udf89</div><div style="color:var(--muted)">Sample complete. Telemetry captured on the right.</div></div>';
+    Tel.push('t-sys','SESSION complete: '+Tel.correct+'/'+Tel.scored+' scored correct');}
+  window.addEventListener('blur',function(){Tel.push('t-sys','engagement: focus lost');});
+  Tel.render();loadItem();
+})();
+</script>
+</body>
+</html>
