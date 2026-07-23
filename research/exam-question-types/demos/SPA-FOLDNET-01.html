@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SPA-FOLDNET-01 — Fold-the-Net</title>
+<style>
+  :root{--bg:#eef2fb;--card:#fff;--ink:#1e293b;--muted:#64748b;--accent:#4f46e5;--good:#16a34a;--warn:#f59e0b;--bad:#dc2626;--stage:#f4f7fe}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.4 system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  .wrap{display:flex;gap:14px;padding:14px;max-width:1180px;margin:0 auto;align-items:flex-start;flex-wrap:wrap}
+  .col{flex:1 1 560px;min-width:340px}.side{flex:1 1 320px;min-width:300px}
+  .card{background:var(--card);border-radius:16px;box-shadow:0 6px 22px rgba(15,23,42,.08);padding:16px;margin-bottom:14px}
+  h1{font-size:19px;margin:0 0 2px}.sub{color:var(--muted);font-size:13px;margin:0 0 10px}
+  .pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;background:#e0e7ff;color:#3730a3}
+  .banner{display:flex;align-items:center;gap:10px;background:#f1f5ff;border:1px solid #dbe3ff;border-radius:12px;padding:10px 12px;margin-bottom:12px;min-height:44px}
+  .banner .icon{font-size:22px}.banner b{color:var(--accent)}
+  #scene{position:relative;background:var(--stage);border-radius:14px;border:1px solid #e2e8f0;height:340px;perspective:900px;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:none;cursor:grab}
+  #scene.drag{cursor:grabbing}
+  .cube{position:relative;width:78px;height:78px;transform-style:preserve-3d}
+  .face{position:absolute;left:0;top:0;width:78px;height:78px;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;color:#fff;border:2px solid rgba(255,255,255,.7);border-radius:6px;box-shadow:inset 0 0 0 2px rgba(0,0,0,.08);backface-visibility:visible}
+  .hand{position:absolute;font-size:30px;pointer-events:none;z-index:6;filter:drop-shadow(0 2px 3px rgba(0,0,0,.25))}
+  .row{display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}
+  input[type=range]{flex:1;min-width:140px}
+  button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:10px 16px;cursor:pointer;background:var(--accent);color:#fff}
+  button.ghost{background:#e2e8f0;color:#334155}button:disabled{opacity:.45;cursor:not-allowed}
+  .opts{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .opt{width:64px;height:64px;border-radius:10px;border:3px solid transparent;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:#fff;cursor:pointer}
+  .opt.sel{border-color:#111;box-shadow:0 0 0 3px #fde68a}
+  .tel{background:#0b1220;color:#d1fae5;border-radius:16px;padding:14px;font:12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
+  .tel h2{font-size:13px;margin:0 0 8px;color:#93c5fd;letter-spacing:.05em;text-transform:uppercase}
+  .tel .m{display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px dotted #1e293b}
+  .tel .m .k{color:#7dd3fc}.tel .m .v{color:#fde68a;font-weight:700;text-align:right}
+  #log{margin-top:10px;max-height:180px;overflow:auto;background:#060b16;border-radius:8px;padding:8px}
+  #log div{white-space:pre-wrap;color:#a7f3d0}#log .t{color:#475569}
+  .done{color:var(--good);font-weight:700}.miss{color:var(--warn)}
+  .tag{position:absolute;top:8px;left:10px;font-size:12px;color:#94a3b8}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="col"><div class="card">
+    <span class="pill" id="phasePill">DEMO</span>
+    <h1>Fold-the-Net <span style="color:var(--muted);font-weight:400">· SPA-FOLDNET-01</span></h1>
+    <p class="sub">Slide to fold the flat net into a box. Drag the box to spin it. Which face is OPPOSITE the ★?</p>
+    <div class="banner"><span class="icon" id="bIcon">👀</span><div id="bText"><b>Watch.</b> The net folds into a cube, then spins…</div></div>
+    <div id="scene"><span class="tag">drag to spin</span><div class="cube" id="cube"></div><div class="hand" id="hand" style="display:none">👆</div></div>
+    <div class="row">
+      <span class="sub">flat</span><input type="range" id="fold" min="0" max="100" value="0"><span class="sub">folded</span>
+      <button id="foldBtn" class="ghost">▶ Fold</button>
+    </div>
+    <div class="opts" id="opts"></div>
+    <div class="row">
+      <button id="lockBtn" disabled>🔒 Lock answer</button>
+      <button id="nextBtn" class="ghost" style="display:none">Next ▶</button>
+      <span class="sub" id="live" style="margin-left:auto"></span>
+    </div>
+  </div></div>
+  <div class="side"><div class="tel">
+    <h2>◉ Live telemetry</h2>
+    <div class="m"><span class="k">M-ACC accuracy</span><span class="v" id="mAcc">—</span></div>
+    <div class="m"><span class="k">M-RT total</span><span class="v" id="mRt">—</span></div>
+    <div class="m"><span class="k">M-RTFIRST first-act</span><span class="v" id="mFirst">—</span></div>
+    <div class="m"><span class="k">M-REV answer changes</span><span class="v" id="mRev">0</span></div>
+    <div class="m"><span class="k">M-EXPLORE fold+spin</span><span class="v" id="mExp">0</span></div>
+    <div class="m"><span class="k">M-ERRTYPE last error</span><span class="v" id="mErr">—</span></div>
+    <div class="m"><span class="k">M-DIFFREACH solid</span><span class="v" id="mDiff">cube</span></div>
+    <div id="log"></div>
+  </div></div>
+</div>
+<script>
+(function(){
+  "use strict";
+  var cubeEl=document.getElementById("cube"),scene=document.getElementById("scene"),hand=document.getElementById("hand");
+  var foldEl=document.getElementById("fold"),foldBtn=document.getElementById("foldBtn"),optsEl=document.getElementById("opts");
+  var lockBtn=document.getElementById("lockBtn"),nextBtn=document.getElementById("nextBtn");
+  function beep(f,t){try{var A=beep.a=beep.a||new(window.AudioContext||window.webkitAudioContext)();var o=A.createOscillator(),g=A.createGain();o.frequency.value=f;o.connect(g);g.connect(A.destination);g.gain.value=.08;o.start();o.stop(A.currentTime+(t||.12));}catch(e){}}
+  var S=78,H=S/2;
+  // face defs: net position (grid units) + cube transform params
+  var COLORS={F:"#ef4444",R:"#3b82f6",Bk:"#10b981",L:"#f59e0b",U:"#8b5cf6",D:"#ec4899"};
+  var SYM={F:"A",R:"B",Bk:"C",L:"D",U:"E",D:"F"};
+  var OPP={F:"Bk",Bk:"F",L:"R",R:"L",U:"D",D:"U"};
+  // net (cross) grid centers in face units, then multiply by S; shift to center
+  var NET={F:[0,0],R:[1,0],Bk:[2,0],L:[-1,0],U:[0,-1],D:[0,1]};
+  var CUBE={ // {tx,ty,tz,rx,ry}
+    F:[0,0,H,0,0], R:[H,0,0,0,90], Bk:[0,0,-H,0,180], L:[-H,0,0,0,-90], U:[0,-H,0,90,0], D:[0,H,0,-90,0]
+  };
+  var order=["F","R","Bk","L","U","D"];
+  var faces={},uX=-18,uY=24,foldT=0,star="F";
+  function build(){
+    cubeEl.innerHTML="";faces={};
+    order.forEach(function(id){var d=document.createElement("div");d.className="face";d.style.background=COLORS[id];
+      d.textContent=SYM[id];faces[id]=d;cubeEl.appendChild(d);});
+    applyStar();layout();
+  }
+  function applyStar(){order.forEach(function(id){faces[id].textContent=(id===star?"★":"")+SYM[id];});}
+  function lerp(a,b,t){return a+(b-a)*t;}
+  function layout(){
+    var xoff=-0.5; // roughly center the cross
+    order.forEach(function(id){
+      var n=NET[id],c=CUBE[id];
+      var tx=lerp((n[0]+xoff)*S,c[0],foldT), ty=lerp(n[1]*S,c[1],foldT), tz=lerp(0,c[2],foldT);
+      var rx=lerp(0,c[3],foldT), ry=lerp(0,c[4],foldT);
+      faces[id].style.transform="translate3d("+tx+"px,"+ty+"px,"+tz+"px) rotateX("+rx+"deg) rotateY("+ry+"deg)";
+    });
+    cubeEl.style.transform="translateZ(-"+(foldT*0)+"px) rotateX("+uX+"deg) rotateY("+uY+"deg)";
+  }
+  // telemetry
+  var Tel={start:0,first:0,revs:0,explore:0,scored:0,correct:0,logEl:document.getElementById("log"),
+    line:function(m,c){var d=document.createElement("div");var t=((performance.now()-Tel.start)/1000).toFixed(2);d.innerHTML='<span class="t">['+t+'s]</span> '+m;if(c)d.className=c;Tel.logEl.appendChild(d);Tel.logEl.scrollTop=Tel.logEl.scrollHeight;},
+    begin:function(l){Tel.start=performance.now();Tel.first=0;Tel.revs=0;Tel.explore=0;Tel.line("▶ "+l);render();},
+    firstAct:function(w){if(!Tel.first){Tel.first=performance.now()-Tel.start;Tel.line("first action: "+w+" @"+Math.round(Tel.first)+"ms");render();}},
+    exp:function(){Tel.explore++;render();}};
+  function render(){
+    document.getElementById("mAcc").textContent=Tel.scored?Tel.correct+"/"+Tel.scored+" ("+Math.round(100*Tel.correct/Tel.scored)+"%)":"—";
+    document.getElementById("mFirst").textContent=Tel.first?Math.round(Tel.first)+" ms":"—";
+    document.getElementById("mRev").textContent=Tel.revs;
+    document.getElementById("mExp").textContent=Tel.explore;
+  }
+  // orbit drag
+  var dragging=false,lx=0,ly=0;
+  scene.addEventListener("pointerdown",function(e){if(!interactive)return;dragging=true;scene.classList.add("drag");lx=e.clientX;ly=e.clientY;scene.setPointerCapture(e.pointerId);Tel.firstAct("spin");});
+  scene.addEventListener("pointermove",function(e){if(!dragging)return;uY+=(e.clientX-lx)*0.5;uX-=(e.clientY-ly)*0.5;lx=e.clientX;ly=e.clientY;layout();if((Math.abs(e.movementX)||1)>0){/*count coarse*/}});
+  function endD(){if(dragging){dragging=false;scene.classList.remove("drag");Tel.exp();Tel.line("spun the box");}}
+  scene.addEventListener("pointerup",endD);scene.addEventListener("pointercancel",endD);
+  foldEl.addEventListener("input",function(){foldT=+foldEl.value/100;layout();if(interactive){Tel.firstAct("fold");}});
+  foldEl.addEventListener("change",function(){if(interactive){Tel.exp();Tel.line("scrubbed the fold");}});
+  foldBtn.onclick=function(){autoFold(foldT<0.5?1:0);if(interactive){Tel.firstAct("fold");Tel.exp();}};
+  function autoFold(to){var from=foldT,t0=performance.now(),dur=900;
+    (function step(now){var k=Math.min(1,(now-t0)/dur);foldT=from+(to-from)*k;foldEl.value=Math.round(foldT*100);layout();if(k<1)requestAnimationFrame(step);else beep(to>0.5?660:440);})(performance.now());}
+  // options
+  var sel=null,optionIds=[];
+  function buildOptions(){optsEl.innerHTML="";sel=null;optionIds=order.filter(function(id){return id!==star;});
+    optionIds.forEach(function(id){var d=document.createElement("div");d.className="opt";d.style.background=COLORS[id];d.textContent=SYM[id];
+      d.onclick=function(){if(!interactive)return;Tel.firstAct("pick option");if(sel!==null&&sel!==id)Tel.revs++;sel=id;
+        Array.prototype.forEach.call(optsEl.children,function(c){c.classList.remove("sel")});d.classList.add("sel");lockBtn.disabled=false;};
+      optsEl.appendChild(d);});
+  }
+  // phases
+  var phase="demo",interactive=false;
+  var pill=document.getElementById("phasePill"),bIcon=document.getElementById("bIcon"),bText=document.getElementById("bText");
+  function setBanner(i,h){bIcon.textContent=i;bText.innerHTML=h;}
+  function newItem(){star=order[Math.floor(Math.random()*order.length)];applyStar();buildOptions();foldT=0;foldEl.value=0;uX=-18;uY=24;layout();}
+  function startDemo(){
+    phase="demo";pill.textContent="DEMO";interactive=false;nextBtn.style.display="none";lockBtn.style.display="";lockBtn.disabled=true;optsEl.style.opacity=".4";
+    star="F";build();setBanner("👀","<b>Watch.</b> The flat net folds into a box. The ★ face is red-A; its OPPOSITE is green-C.");
+    hand.style.display="";foldT=0;foldEl.value=0;uX=0;uY=0;layout();
+    setTimeout(function(){autoFold(1);var r=scene.getBoundingClientRect();hand.style.left=(r.left+r.width/2)+"px";hand.style.top=(r.top+window.scrollY+r.height/2)+"px";},600);
+    setTimeout(function(){var t0=performance.now();(function spin(now){var k=Math.min(1,(now-t0)/1600);uY=k*300;uX=-18;layout();if(k<1)requestAnimationFrame(spin);})(performance.now());},1700);
+    setTimeout(function(){hand.style.display="none";startWarmup();},3800);
+  }
+  function startWarmup(){
+    phase="warmup";pill.textContent="WARM-UP";interactive=true;optsEl.style.opacity="1";lockBtn.style.display="";
+    build();newItem();Tel.begin("Warm-up (unscored) — fold & find the opposite");
+    setBanner("✋","<b>Practice.</b> Fold it, spin it, then tap the face OPPOSITE the ★ and Lock. I'll show you if it's right.");
+    lockBtn.onclick=function(){if(!sel)return;var ok=(sel===OPP[star]);
+      if(ok){beep(880);Tel.line("opposite = "+SYM[sel]+" ✔ (fold to confirm!)","done");setBanner("✅","<b>Yes!</b> "+SYM[sel]+" sits opposite the ★. Now real ones — try to answer before folding.");}
+      else{beep(240);Tel.line("picked "+SYM[sel]+" ✗ — that one touches the ★ (adjacent). Opposite is "+SYM[OPP[star]],"miss");setBanner("↻","<b>Not quite.</b> Adjacent faces touch the ★. Fold & spin to see which is truly opposite, then Lock.");return;}
+      lockBtn.style.display="none";nextBtn.style.display="";nextBtn.textContent="Start scored ▶";nextBtn.onclick=startScored;};
+  }
+  function startScored(){
+    phase="scored";pill.textContent="SCORED 1/1";interactive=true;lockBtn.style.display="";lockBtn.disabled=true;nextBtn.style.display="none";
+    build();newItem();Tel.begin("Scored — which face is opposite the ★? (you MAY fold to check)");Tel.scored=1;
+    setBanner("🎯","<b>Which face is OPPOSITE the ★?</b> Try to picture it first. You can fold & spin to check — that gets logged.");
+    lockBtn.onclick=function(){if(!sel)return;var rt=performance.now()-Tel.start;var ok=(sel===OPP[star]);
+      if(ok){Tel.correct=1;document.getElementById("mErr").textContent="—";Tel.line("LOCK "+SYM[sel]+" = opposite ✔  RT="+Math.round(rt)+"ms  explore="+Tel.explore,"done");}
+      else{document.getElementById("mErr").textContent="adjacent-face near-miss";Tel.line("LOCK "+SYM[sel]+" ✗ (adjacent). Opposite="+SYM[OPP[star]],"miss");}
+      document.getElementById("mRt").textContent=Math.round(rt)+" ms";render();finish(ok,rt);};
+  }
+  function finish(ok,rt){
+    phase="done";pill.textContent="DONE";interactive=false;lockBtn.style.display="none";
+    setBanner("🏁","<b>"+(ok?"Correct":"Missed")+".</b> RT "+Math.round(rt)+"ms · exploration (fold+spin) "+Tel.explore+". Solving hard nets with LOW exploration = internal visualization; heavy folding to reach the same answer marks a manipulator — the M-EXPLORE split sharpens the tail.");
+    Tel.line("── summary ── M-ACC="+Tel.correct+"/1  M-RT="+Math.round(rt)+"ms  M-EXPLORE="+Tel.explore+"  M-REV="+Tel.revs,"done");
+    nextBtn.style.display="";nextBtn.textContent="↻ Run again";nextBtn.onclick=function(){location.reload();};
+  }
+  build();render();startDemo();
+})();
+</script>
+</body>
+</html>

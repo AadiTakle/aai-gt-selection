@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WM-gonogo-01 — Catch & Freeze (go/no-go & stop-signal)</title>
+<style>
+  :root{--bg:#0e1220;--panel:#171d33;--edge:#2a3358;--ink:#e9edff;--mut:#8b93c0;--accent:#5cc8ff;--good:#5ce39a;--bad:#ff6b8a;--warn:#ffd166;}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.45 system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);display:flex;min-height:100vh}
+  .main{flex:1;display:flex;flex-direction:column;align-items:center;padding:20px;gap:12px}
+  h1{font-size:19px;margin:.2rem 0}.sub{color:var(--mut);font-size:13px;margin:0;text-align:center;max-width:470px}
+  .badge{display:inline-block;padding:2px 9px;border-radius:99px;background:var(--panel);border:1px solid var(--edge);color:var(--warn);font-size:12px}
+  #stage{width:380px;height:300px;background:var(--panel);border:2px solid var(--edge);border-radius:20px;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer;user-select:none;transition:background .08s,border-color .08s}
+  #stage.tap{background:#173a2a}
+  #stage.stopflash{border-color:var(--bad);background:#3a1622}
+  #stim{font-size:120px;transition:transform .12s,opacity .1s;opacity:0;transform:scale(.5)}
+  #stim.show{opacity:1;transform:scale(1)}
+  #stopbadge{position:absolute;font-size:120px;opacity:0;transition:opacity .05s}
+  #stopbadge.on{opacity:1}
+  #cue{font-size:26px;height:32px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+  button{font:inherit;padding:9px 15px;border-radius:10px;border:1px solid var(--edge);background:#20284a;color:var(--ink);cursor:pointer}
+  button.pri{background:var(--accent);color:#062033;border-color:transparent;font-weight:600}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .seg{display:inline-flex;border:1px solid var(--edge);border-radius:10px;overflow:hidden}
+  .seg button{border:0;border-radius:0;padding:7px 12px;background:#182042}
+  .seg button.on{background:var(--warn);color:#3a2c00;font-weight:600}
+  .tel{width:315px;background:var(--panel);border-left:1px solid var(--edge);padding:14px 14px 40px;overflow:auto;font:12px/1.55 ui-monospace,Menlo,Consolas,monospace}
+  .tel h2{font:600 12px system-ui;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:14px 0 6px}
+  .kv{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted #2a3358;padding:2px 0}
+  .kv b{color:var(--accent);font-weight:600}.kv .m{color:var(--mut);font-size:10px}
+  .log{margin-top:6px;max-height:150px;overflow:auto;border:1px solid var(--edge);border-radius:8px;padding:6px;background:#10152a}
+  .log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+</head>
+<body>
+<div class="main">
+  <div style="text-align:center">
+    <h1>🦋 Catch &amp; Freeze <span class="badge" id="bmode">Go / No-Go</span></h1>
+    <p class="sub" id="task">Tap fast to <b>catch the butterfly 🦋</b>. But <b>FREEZE</b> (don't tap!) when you see a bee 🐝.</p>
+  </div>
+  <div id="stage"><div id="stim">🦋</div><div id="stopbadge">🛑</div></div>
+  <div id="cue">👀</div>
+  <div class="row">
+    <div class="seg" id="modeseg">
+      <button data-m="gng" class="on">Go / No-Go</button>
+      <button data-m="stop">Stop-signal</button>
+    </div>
+    <label class="sub" style="display:flex;align-items:center;gap:6px">no-go rate
+      <select id="pnogo"><option value="0.2">low</option><option value="0.28" selected>med</option><option value="0.4">high</option></select></label>
+  </div>
+  <div class="row">
+    <button class="pri" id="go">▶ Watch how it works</button>
+    <button id="replay" disabled>↺ Replay demo</button>
+  </div>
+  <p class="sub" id="phasehint">A ghost hand shows you first — no reading needed.</p>
+</div>
+<aside class="tel" id="tel"></aside>
+
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const stage=$("#stage"),stim=$("#stim"),stopBadge=$("#stopbadge"),cue=$("#cue");
+let mode="gng", pNoGo=0.28;
+const GO="🦋", NOGO="🐝";
+const T={phase:"idle",mode:"gng",trial:0,
+  goRT:[],goHit:0,goMiss:0,          // go trials
+  comm:0,nogoTot:0,cr:0,             // no-go / commission
+  ssd:250,stopTot:0,stopSucc:0,stopFail:0,ssrt:0,
+  postErrRT:[],baseRT:[],pes:0,
+  lastErr:false, log:[]};
+const MAXRT=1150, ISI=650, LAPSE=800;
+function mean(a){return a.length?a.reduce((x,y)=>x+y,0)/a.length:0;}
+function med(a){if(!a.length)return 0;const b=[...a].sort((x,y)=>x-y);const m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2;}
+function cv(a){if(a.length<2)return 0;const m=mean(a);if(!m)return 0;return Math.sqrt(mean(a.map(x=>(x-m)**2)))/m;}
+function logE(s){T.log.unshift(`${(performance.now()/1000).toFixed(1)}s · ${s}`);if(T.log.length>60)T.log.pop();}
+function render(){
+  const goAcc=(T.goHit+T.goMiss)?Math.round(100*T.goHit/(T.goHit+T.goMiss)):0;
+  T.ssrt=Math.max(0,Math.round(med(T.goRT)-T.ssd));
+  T.pes=Math.round(mean(T.postErrRT)-mean(T.baseRT))||0;
+  $("#tel").innerHTML=`
+  <h2>Live telemetry · WM-gonogo-01</h2>
+  <div class="kv"><span>phase</span><b>${T.phase}</b></div>
+  <div class="kv"><span>mode</span><b>${T.mode==="gng"?"go/no-go":"stop-signal"}</b></div>
+  <div class="kv"><span>trials</span><b>${T.trial}</b></div>
+  <h2>Go performance</h2>
+  <div class="kv"><span>go RT median <span class="m">M-RT</span></span><b>${Math.round(med(T.goRT))} ms</b></div>
+  <div class="kv"><span>go-RT CV <span class="m">M-RTVAR</span></span><b>${cv(T.goRT).toFixed(2)}</b></div>
+  <div class="kv"><span>lapses(&gt;${LAPSE}ms) <span class="m">M-LAPSE</span></span><b>${T.goRT.filter(x=>x>LAPSE).length}</b></div>
+  <div class="kv"><span>omissions (missed go)</span><b>${T.goMiss}</b></div>
+  <div class="kv"><span>go accuracy <span class="m">M-ACC</span></span><b>${goAcc}%</b></div>
+  <h2>Inhibition</h2>
+  <div class="kv"><span>commission errors <span class="m">M-COMM</span></span><b>${T.comm}</b></div>
+  <div class="kv"><span>no-go correct</span><b>${T.cr}/${T.nogoTot}</b></div>
+  ${T.mode==="stop"?`
+  <div class="kv"><span>stop-signal delay <span class="m">SSD</span></span><b>${T.ssd} ms</b></div>
+  <div class="kv"><span>stop success</span><b>${T.stopSucc}/${T.stopTot}</b></div>
+  <div class="kv"><span>est. SSRT <span class="m">M-SSRT</span></span><b>${T.ssrt} ms</b></div>`:""}
+  <h2>Error monitoring</h2>
+  <div class="kv"><span>post-error slowing <span class="m">M-POSTERR</span></span><b>${T.pes>0?"+":""}${T.pes} ms</b></div>
+  <div class="log">${T.log.map(l=>`<div>${l}</div>`).join("")}</div>`;
+}
+render();
+
+function planBlock(len){
+  const trials=[];
+  for(let i=0;i<len;i++){
+    if(mode==="gng"){trials.push(Math.random()<pNoGo?"nogo":"go");}
+    else{trials.push(Math.random()<0.32?"stop":"go");}
+  }
+  // ensure first two are go (build prepotency)
+  trials[0]="go";trials[1]="go";return trials;
+}
+
+let cur=null;
+stage.addEventListener("pointerdown",()=>{
+  if(!cur||cur.responded||cur.locked)return;
+  cur.responded=true;cur.rt=performance.now()-cur.onset;
+  stage.classList.add("tap");setTimeout(()=>stage.classList.remove("tap"),120);
+});
+
+async function trial(type,scored){
+  cur={type,onset:0,responded:false,rt:null,locked:false,stopShown:false};
+  stopBadge.classList.remove("on");stage.classList.remove("stopflash");
+  const isGo = type!=="nogo";
+  stim.textContent = type==="nogo"?NOGO:GO;
+  stim.classList.add("show");cur.onset=performance.now();cue.textContent="";
+  if(type==="stop"){setTimeout(()=>{if(cur&&!cur.responded){cur.stopShown=true;stopBadge.classList.add("on");stage.classList.add("stopflash");}},T.ssd);}
+  await sleep(MAXRT);
+  stim.classList.remove("show");stopBadge.classList.remove("on");stage.classList.remove("stopflash");
+  // classify
+  let err=false;
+  if(scored){
+    if(type==="go"){
+      if(cur.responded){T.goHit++;T.goRT.push(cur.rt);(T.lastErr?T.postErrRT:T.baseRT).push(cur.rt);cue.textContent="✅";}
+      else{T.goMiss++;err=true;cue.textContent="💤";}
+    } else if(type==="nogo"){
+      T.nogoTot++;
+      if(cur.responded){T.comm++;err=true;cue.textContent="❌";} else {T.cr++;cue.textContent="🧊";}
+    } else { // stop
+      T.stopTot++;
+      if(cur.responded){T.stopFail++;T.comm++;err=true;cue.textContent="❌";T.ssd=Math.max(50,T.ssd-50);} // failed -> easier
+      else{T.stopSucc++;cue.textContent="🧊";T.ssd=Math.min(MAXRT-150,T.ssd+50);}                        // success -> harder
+    }
+    T.lastErr=err;T.trial++;
+    logE(`${type}${type==="stop"?"@"+T.ssd:""}: ${cur.responded?("tap "+Math.round(cur.rt)+"ms"):"withhold"} ${err?"✗":"✓"}`);
+  }
+  render();
+  await sleep(ISI);cue.textContent="";
+  cur=null;
+}
+
+async function runBlock(scored,len){
+  const plan=planBlock(len);
+  for(const t of plan){await trial(t,scored);}
+}
+
+// ---------- ghost-hand demo ----------
+async function demo(){
+  if(T.phase==="demo")return;T.phase="demo";render();$("#go").disabled=true;$("#replay").disabled=true;
+  const ghost=document.createElement("div");ghost.textContent="👆";ghost.style.cssText="position:fixed;font-size:34px;z-index:9;transition:left .3s,top .3s,opacity .2s;opacity:0;pointer-events:none";document.body.appendChild(ghost);
+  const seq=[GO,GO,NOGO,GO];
+  for(let i=0;i<seq.length;i++){
+    stim.textContent=seq[i];stim.classList.add("show");
+    const r=stage.getBoundingClientRect();
+    if(seq[i]===GO){ ghost.style.opacity="1";ghost.style.left=(r.left+r.width/2-14)+"px";ghost.style.top=(r.top+r.height/2)+"px";
+      await sleep(420);stage.classList.add("tap");cue.textContent="✅";await sleep(180);stage.classList.remove("tap"); }
+    else { ghost.style.opacity="1";ghost.style.left=(r.left+r.width/2-14)+"px";ghost.style.top=(r.bottom+30)+"px"; // hand pulls away
+      cue.textContent="🧊";await sleep(650); }
+    stim.classList.remove("show");await sleep(280);cue.textContent="";
+  }
+  ghost.remove();cue.textContent="✅";await sleep(400);
+  T.phase="idle";$("#go").disabled=false;$("#replay").disabled=false;
+  $("#go").textContent="▶ Try a practice round";$("#go").onclick=warmup;
+  $("#phasehint").textContent="Now you try — this practice round is NOT scored.";render();
+}
+$("#go").onclick=demo;$("#replay").onclick=demo;
+
+async function warmup(){T.phase="warm-up (unscored)";render();$("#go").disabled=true;$("#replay").disabled=true;
+  await runBlock(false,6);
+  T.phase="idle";$("#go").disabled=false;$("#replay").disabled=false;
+  $("#go").textContent="▶ Start scored game";$("#go").onclick=startScored;
+  $("#phasehint").textContent="These count. Be fast on butterflies, but FREEZE on bees / red stop.";render();}
+async function startScored(){T.phase="scored";render();$("#go").disabled=true;$("#replay").disabled=true;
+  await runBlock(true, mode==="stop"?22:20);
+  T.phase="done";$("#go").disabled=false;$("#replay").disabled=false;
+  $("#go").textContent="▶ Play again";$("#go").onclick=startScored;
+  $("#phasehint").textContent=`Done. What separates the tail: low RT variability + few commission errors${mode==="stop"?` + short SSRT (${T.ssrt}ms)`:""} — not raw speed.`;
+  cue.textContent="🏁";render();}
+
+$("#modeseg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  mode=b.dataset.m;T.mode=mode;[...$("#modeseg").children].forEach(x=>x.classList.toggle("on",x===b));
+  $("#bmode").textContent=mode==="gng"?"Go / No-Go":"Stop-signal";
+  $("#task").innerHTML=mode==="gng"?"Tap fast to <b>catch the butterfly 🦋</b>. But <b>FREEZE</b> (don't tap!) when you see a bee 🐝.":"Tap fast to catch every 🦋 — but if it flashes <b>🛑 red</b>, try to <b>STOP your tap</b> in time!";
+  logE(`mode → ${mode}`);render();});
+$("#pnogo").addEventListener("change",e=>{pNoGo=+e.target.value;logE(`no-go rate ${pNoGo}`);});
+</script>
+</body>
+</html>

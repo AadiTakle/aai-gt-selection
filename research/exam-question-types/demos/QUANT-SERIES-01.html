@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QUANT-SERIES-01 — Number Series Stepping Stones</title>
+<style>
+:root{--bg:#0f1226;--panel:#1b2140;--panel2:#232a52;--accent:#5eead4;--accent2:#f59e0b;--good:#4ade80;--bad:#f87171;--ink:#eef1ff;--muted:#9aa3c7}
+*{box-sizing:border-box}html,body{margin:0}
+body{font:16px/1.45 system-ui,Segoe UI,Roboto,sans-serif;color:var(--ink);
+  background:radial-gradient(1200px 700px at 50% -10%,#123a33,#0f1226 62%);min-height:100vh}
+.wrap{display:grid;grid-template-columns:1fr 340px;gap:16px;max-width:1120px;margin:0 auto;padding:18px}
+@media(max-width:880px){.wrap{grid-template-columns:1fr}}
+h1{font-size:18px;margin:0 0 2px}.sub{color:var(--muted);font-size:13px;margin-bottom:10px}
+.card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid #313a6b;border-radius:16px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.phasebar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.pill{font-size:12px;padding:4px 10px;border-radius:999px;background:#2b336a;color:var(--muted);border:1px solid #3a447f}
+.pill.on{background:var(--accent);color:#053;font-weight:700}
+.prompt{text-align:center;color:var(--muted);min-height:22px;margin-bottom:6px}
+.path{position:relative;display:flex;gap:14px;justify-content:center;align-items:flex-end;min-height:150px;padding:20px 8px 8px}
+.stone{width:74px;height:74px;border-radius:20px 20px 26px 26px;background:radial-gradient(circle at 40% 30%,#7d88c9,#414c86);
+  display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;color:#fff;box-shadow:0 8px 0 #2c355f, 0 12px 16px rgba(0,0,0,.4);position:relative}
+.stone.blank{background:repeating-linear-gradient(45deg,#243056,#243056 8px,#2b3a67 8px,#2b3a67 16px);color:#8ea0ff;border:2px dashed #6b78c0}
+.stone.blank.filled{background:radial-gradient(circle at 40% 30%,#5eead4,#22b3a0);color:#052}
+.stone.placepulse{animation:pop .4s ease}
+@keyframes pop{0%{transform:translateY(0)}40%{transform:translateY(-16px) scale(1.08)}100%{transform:translateY(0)}}
+.tray{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+.cand{width:64px;height:64px;border-radius:16px;background:#2b336a;border:2px solid #3a447f;color:var(--ink);font-size:26px;font-weight:800;cursor:pointer}
+.cand:hover{border-color:var(--accent)}
+.keypad{display:grid;grid-template-columns:repeat(3,64px);gap:8px;justify-content:center;margin-top:10px}
+.key{height:52px;border-radius:12px;background:#2b336a;border:2px solid #3a447f;color:var(--ink);font-size:22px;font-weight:800;cursor:pointer}
+.key:hover{border-color:var(--accent)}
+.entry{text-align:center;font-size:30px;font-weight:800;min-height:40px;letter-spacing:2px}
+.row{display:flex;gap:10px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+button.act{font:600 15px system-ui;padding:10px 18px;border-radius:12px;border:0;cursor:pointer;background:var(--accent);color:#053}
+button.act.ghost{background:#2b336a;color:var(--ink);border:1px solid #3a447f}
+button.act:disabled{opacity:.4}
+.fb{text-align:center;font-weight:700;min-height:26px;margin-top:12px}
+.fb.good{color:var(--good)}.fb.bad{color:var(--bad)}
+.hand{position:absolute;font-size:34px;z-index:20;pointer-events:none;opacity:0;filter:drop-shadow(0 4px 6px rgba(0,0,0,.5));transition:left .7s cubic-bezier(.4,0,.2,1),top .5s ease}
+.tele{font-size:13px}.tele h2{font-size:14px;margin:0 0 8px;color:var(--accent)}
+.metrics{display:grid;grid-template-columns:1fr auto;gap:4px 8px;margin-bottom:10px}
+.metrics div:nth-child(odd){color:var(--muted)}.metrics b{font-variant-numeric:tabular-nums}
+.log{height:210px;overflow:auto;background:#12172f;border:1px solid #2a336a;border-radius:10px;padding:8px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace}
+.log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-acc{color:var(--good)}.t-err{color:var(--bad)}.t-sys{color:var(--muted)}.t-evt{color:#9fb0ff}
+.legend{color:var(--muted);font-size:12px;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <main class="card">
+    <h1>Number Series Stepping Stones</h1>
+    <div class="sub">Find the pattern and set the missing stone to finish the bridge.</div>
+    <div class="phasebar" id="phasebar"></div>
+    <div class="prompt" id="prompt"></div>
+    <div class="path" id="path"></div>
+    <div id="answerArea"></div>
+    <div class="fb" id="fb"></div>
+    <div class="row"><button class="act ghost" id="nextBtn" style="display:none">Next</button></div>
+  </main>
+  <aside class="card tele">
+    <h2>Live telemetry</h2>
+    <div class="metrics" id="metrics"></div>
+    <div class="log" id="log"></div>
+    <div class="legend">Logs M-ACC, M-RTFIRST, M-RTVAR, M-ERRTYPE and <b>M-DIFFREACH</b> (hardest rule solved).</div>
+  </aside>
+</div>
+<script>
+(function(){
+  "use strict";
+  var el=function(id){return document.getElementById(id)};
+  var pathEl=el('path'),ansEl=el('answerArea'),prompt=el('prompt'),fb=el('fb'),nextBtn=el('nextBtn');
+  var T0=Date.now();function perf(){return Date.now()-T0;}
+
+  var diffName={1:'linear (+/-k)',2:'interior gap',3:'multiplicative'};
+  var Tel={scored:0,correct:0,rts:[],firsts:[],maxDiff:0,errs:{},
+    push:function(cls,msg){var d=document.createElement('div');d.className=cls;d.textContent='['+(perf()/1000).toFixed(2)+'s] '+msg;
+      var g=el('log');g.appendChild(d);g.scrollTop=g.scrollHeight;},
+    render:function(){
+      var acc=Tel.scored?Math.round(100*Tel.correct/Tel.scored)+'% ('+Tel.correct+'/'+Tel.scored+')':'—';
+      var mean=Tel.firsts.length?Math.round(Tel.firsts.reduce(function(a,b){return a+b},0)/Tel.firsts.length):0;
+      var sd=0;if(Tel.rts.length>1){var m=Tel.rts.reduce(function(a,b){return a+b},0)/Tel.rts.length;
+        sd=Math.round(Math.sqrt(Tel.rts.reduce(function(a,b){return a+(b-m)*(b-m)},0)/Tel.rts.length));}
+      var errStr=Object.keys(Tel.errs).length?Object.keys(Tel.errs).map(function(k){return k+':'+Tel.errs[k]}).join(', '):'—';
+      el('metrics').innerHTML=
+        '<div>M-ACC accuracy</div><b>'+acc+'</b>'+
+        '<div>M-RTFIRST mean</div><b>'+(mean||'—')+' ms</b>'+
+        '<div>M-RTVAR (SD)</div><b>'+(sd||'—')+' ms</b>'+
+        '<div>M-DIFFREACH</div><b>'+(Tel.maxDiff?diffName[Tel.maxDiff]:'—')+'</b>'+
+        '<div>M-ERRTYPE</div><b style="font-size:11px">'+errStr+'</b>';
+    }};
+
+  var items=[
+    {phase:'demo',seq:[2,4,6,null],ans:8,mode:'cand',options:[7,8,9,10],rule:'+2',diff:1,step:2},
+    {phase:'warmup',seq:[5,6,7,null],ans:8,mode:'cand',options:[8,9,10,7],rule:'+1',diff:1,step:1},
+    {phase:'scored',seq:[3,6,9,12,null],ans:15,mode:'cand',options:[13,14,15,18],rule:'+3',diff:1,step:3},
+    {phase:'scored',seq:[1,4,null,10],ans:7,mode:'cand',options:[6,7,8,9],rule:'+3 interior',diff:2,step:3},
+    {phase:'scored',seq:[2,6,18,null],ans:54,mode:'keypad',rule:'x3',diff:3,step:36,addMisread:30}
+  ];
+  var labels={demo:'1 Watch',warmup:'2 Try',scored:'3 Solve'};
+  var i=-1,cur=null,blankIdx=0,itemStart=0,firstAction=0,answered=false,entry='';
+
+  function renderPhasebar(){el('phasebar').innerHTML=['demo','warmup','scored'].map(function(p){
+    return '<span class="pill'+(cur&&cur.phase===p?' on':'')+'">'+labels[p]+'</span>';}).join('')+
+    (cur?'<span class="pill">'+(cur.phase==='scored'?'diff: '+diffName[cur.diff]:'')+'</span>':'');}
+
+  function drawStones(fillVal){
+    pathEl.innerHTML='';
+    cur.seq.forEach(function(v,k){
+      var s=document.createElement('div');
+      if(v===null){ blankIdx=k; s.className='stone blank'; s.id='blankStone';
+        if(fillVal!=null){s.textContent=fillVal;s.classList.add('filled');} else s.textContent='?';
+      } else { s.className='stone'; s.textContent=v; }
+      s.style.bottom=(k%2? '0':'14px'); // little zigzag
+      pathEl.appendChild(s);
+    });
+  }
+
+  function load(){
+    i++; if(i>=items.length)return finish();
+    cur=items[i]; answered=false; firstAction=0; entry=''; fb.textContent='';fb.className='fb';
+    nextBtn.style.display='none'; renderPhasebar();
+    drawStones(null); ansEl.innerHTML='';
+    prompt.textContent = cur.phase==='demo'?'Watch how the missing stone is found.':
+      (blankIdxIsLast()?'Which number continues the pattern?':'Which number is missing?');
+    itemStart=perf();
+    Tel.push('t-sys','LOAD '+cur.phase+' ['+cur.seq.map(function(x){return x===null?'?':x}).join(', ')+'] rule='+cur.rule);
+    if(cur.phase==='demo'){ghost();return;}
+    if(cur.mode==='cand') buildCands(); else buildKeypad();
+    Tel.render();
+  }
+  function blankIdxIsLast(){return cur.seq[cur.seq.length-1]===null;}
+
+  function buildCands(){
+    var tray=document.createElement('div');tray.className='tray';
+    cur.options.forEach(function(o){var b=document.createElement('button');b.className='cand';b.textContent=o;
+      b.onclick=function(){mark(o);};tray.appendChild(b);});
+    ansEl.appendChild(tray);
+  }
+  function buildKeypad(){
+    var e=document.createElement('div');e.className='entry';e.id='entry';e.textContent='_';ansEl.appendChild(e);
+    var kp=document.createElement('div');kp.className='keypad';
+    ['1','2','3','4','5','6','7','8','9','del','0','ok'].forEach(function(t){
+      var b=document.createElement('button');b.className='key';b.textContent=t==='del'?'\u232b':(t==='ok'?'\u2713':t);
+      b.onclick=function(){ if(firstAction===0){firstAction=perf();Tel.push('t-evt','first action');}
+        if(t==='del')entry=entry.slice(0,-1); else if(t==='ok'){ if(entry!=='')mark(parseInt(entry,10)); return;} else if(entry.length<4) entry+=t;
+        el('entry').textContent=entry===''?'_':entry; };
+      kp.appendChild(b);});
+    ansEl.appendChild(kp);
+  }
+
+  function classifyErr(a){
+    if(a===cur.ans)return 'correct';
+    if(cur.addMisread!=null && a===cur.addMisread)return 'additive-misread';
+    if(Math.abs(a-cur.ans)<=cur.step)return 'near-miss';
+    return 'other';
+  }
+
+  function mark(val){
+    if(answered)return; answered=true;
+    if(firstAction===0)firstAction=perf();
+    var rt=perf()-itemStart, ok=(val===cur.ans), etype=classifyErr(val);
+    drawStones(val);
+    var bs=el('blankStone'); if(bs){bs.classList.add('placepulse');}
+    if(cur.phase==='scored'){
+      Tel.scored++; Tel.rts.push(rt); Tel.firsts.push(firstAction-itemStart);
+      if(ok){Tel.correct++; if(cur.diff>Tel.maxDiff)Tel.maxDiff=cur.diff;}
+      if(!ok){Tel.errs[etype]=(Tel.errs[etype]||0)+1;}
+      Tel.push(ok?'t-acc':'t-err','SCORED '+cur.rule+': set '+val+(ok?' OK':' WRONG(key='+cur.ans+')')+
+        '  RT='+rt+'ms  first='+(firstAction-itemStart)+'ms  err='+etype);
+      if(ok)beep();
+    } else {
+      Tel.push('t-sys',cur.phase.toUpperCase()+': set '+val+(ok?' OK':' (key '+cur.ans+')')+' — not scored');
+    }
+    fb.textContent= ok? (cur.phase==='warmup'?'The bridge connects! Now solve these.':'Bridge complete!') : 'The stone was '+cur.ans+'.';
+    fb.className='fb '+(ok?'good':'bad');
+    // disable inputs
+    [].slice.call(ansEl.querySelectorAll('button')).forEach(function(b){b.disabled=true;});
+    nextBtn.style.display='inline-block'; Tel.render();
+  }
+
+  nextBtn.onclick=load;
+
+  function ghost(){
+    // frog hops across stones, then drops 8 on blank
+    var stones=pathEl.children;
+    var hand=document.createElement('div');hand.className='hand';hand.textContent='\uD83D\uDC38';pathEl.appendChild(hand);
+    function pos(k){var s=stones[k].getBoundingClientRect(),p=pathEl.getBoundingClientRect();return [s.left-p.left+s.width/2-16,s.top-p.top-30];}
+    hand.style.opacity='0';
+    var seqIdx=[0,1,2]; var delay=400;
+    seqIdx.forEach(function(k,n){ setTimeout(function(){hand.style.opacity='1';
+      if(n===0)hand.style.transition='none'; else hand.style.transition='left .5s ease,top .35s ease';
+      var xy=pos(k);hand.style.left=xy[0]+'px';hand.style.top=xy[1]+'px';
+      if(n>0)Tel.push('t-sys','ghost: hop (+'+cur.step+')');},delay+n*550);});
+    var afterHops=delay+seqIdx.length*550;
+    setTimeout(function(){var xy=pos(3);hand.style.left=xy[0]+'px';hand.style.top=xy[1]+'px';Tel.push('t-sys','ghost: reach gap');},afterHops);
+    setTimeout(function(){drawStones(cur.ans);var bs=el('blankStone');if(bs)bs.classList.add('placepulse');beep();
+      // re-add hand since drawStones cleared it
+      Tel.push('t-sys','ghost: place '+cur.ans);},afterHops+600);
+    setTimeout(function(){load();},afterHops+1600);
+  }
+
+  function beep(){try{var a=new(window.AudioContext||window.webkitAudioContext)();var o=a.createOscillator(),g=a.createGain();
+    o.connect(g);g.connect(a.destination);o.type='sine';o.frequency.setValueAtTime(600,a.currentTime);
+    o.frequency.exponentialRampToValueAtTime(950,a.currentTime+.14);g.gain.setValueAtTime(.1,a.currentTime);
+    g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+.3);o.start();o.stop(a.currentTime+.31);}catch(e){}}
+
+  function finish(){
+    prompt.textContent='';pathEl.innerHTML='';ansEl.innerHTML='';fb.textContent='';
+    pathEl.innerHTML='<div style="text-align:center;width:100%;padding:20px"><div style="font-size:44px">\uD83C\uDF89</div>'+
+      '<div style="color:var(--muted)">Bridge built! Hardest rule solved: '+(Tel.maxDiff?diffName[Tel.maxDiff]:'none')+'.</div></div>';
+    Tel.push('t-sys','SESSION complete: '+Tel.correct+'/'+Tel.scored+' — M-DIFFREACH='+(Tel.maxDiff?diffName[Tel.maxDiff]:'none'));
+  }
+  window.addEventListener('blur',function(){Tel.push('t-sys','engagement: focus lost');});
+  Tel.render(); load();
+})();
+</script>
+</body>
+</html>

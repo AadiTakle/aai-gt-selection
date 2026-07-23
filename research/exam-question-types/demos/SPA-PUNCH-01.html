@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SPA-PUNCH-01 — Fold &amp; Punch</title>
+<style>
+  :root{--bg:#eef2fb;--card:#fff;--ink:#1e293b;--muted:#64748b;--accent:#4f46e5;--good:#16a34a;--warn:#f59e0b;--bad:#dc2626;--stage:#f8fafc}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.4 system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  .wrap{display:flex;gap:14px;padding:14px;max-width:1180px;margin:0 auto;align-items:flex-start;flex-wrap:wrap}
+  .col{flex:1 1 560px;min-width:340px}.side{flex:1 1 320px;min-width:300px}
+  .card{background:var(--card);border-radius:16px;box-shadow:0 6px 22px rgba(15,23,42,.08);padding:16px;margin-bottom:14px}
+  h1{font-size:19px;margin:0 0 2px}.sub{color:var(--muted);font-size:13px;margin:0 0 10px}
+  .pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;background:#e0e7ff;color:#3730a3}
+  .banner{display:flex;align-items:center;gap:10px;background:#f1f5ff;border:1px solid #dbe3ff;border-radius:12px;padding:10px 12px;margin-bottom:12px;min-height:44px}
+  .banner .icon{font-size:22px}.banner b{color:var(--accent)}
+  #stageWrap{position:relative;background:var(--stage);border-radius:14px;border:1px solid #e2e8f0;overflow:hidden}
+  svg{display:block;width:100%;height:360px;touch-action:none}
+  .hand{position:absolute;font-size:30px;pointer-events:none;z-index:5;filter:drop-shadow(0 2px 3px rgba(0,0,0,.25))}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+  button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:10px 16px;cursor:pointer;background:var(--accent);color:#fff}
+  button.ghost{background:#e2e8f0;color:#334155}button:disabled{opacity:.45;cursor:not-allowed}
+  .tel{background:#0b1220;color:#d1fae5;border-radius:16px;padding:14px;font:12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
+  .tel h2{font-size:13px;margin:0 0 8px;color:#93c5fd;letter-spacing:.05em;text-transform:uppercase}
+  .tel .m{display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px dotted #1e293b}
+  .tel .m .k{color:#7dd3fc}.tel .m .v{color:#fde68a;font-weight:700;text-align:right}
+  #log{margin-top:10px;max-height:170px;overflow:auto;background:#060b16;border-radius:8px;padding:8px}
+  #log div{white-space:pre-wrap;color:#a7f3d0}#log .t{color:#475569}
+  .done{color:var(--good);font-weight:700}.miss{color:var(--warn)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="col"><div class="card">
+    <span class="pill" id="phasePill">DEMO</span>
+    <h1>Fold &amp; Punch <span style="color:var(--muted);font-weight:400">· SPA-PUNCH-01</span></h1>
+    <p class="sub">Fold the paper, punch a hole, then tap where the holes will be when it's unfolded.</p>
+    <div class="banner"><span class="icon" id="bIcon">👀</span><div id="bText"><b>Watch.</b> Fold, punch, unfold — see the two holes appear…</div></div>
+    <div id="stageWrap"><svg id="svg" viewBox="0 0 440 360"></svg><div class="hand" id="hand" style="display:none">👆</div></div>
+    <div class="controls">
+      <button id="foldV" class="ghost">⬌ Fold</button>
+      <button id="foldH" class="ghost">⬍ Fold</button>
+      <button id="predictBtn" style="display:none">Predict ▶</button>
+      <button id="lockBtn" style="display:none" disabled>🔒 Check</button>
+      <button id="nextBtn" class="ghost" style="display:none">Next ▶</button>
+      <span class="sub" id="live" style="margin-left:auto"></span>
+    </div>
+  </div></div>
+  <div class="side"><div class="tel">
+    <h2>◉ Live telemetry</h2>
+    <div class="m"><span class="k">M-POLY hole overlap</span><span class="v" id="mPoly">—</span></div>
+    <div class="m"><span class="k">M-ACC exact</span><span class="v" id="mAcc">—</span></div>
+    <div class="m"><span class="k">M-RT total</span><span class="v" id="mRt">—</span></div>
+    <div class="m"><span class="k">M-RTFIRST first-act</span><span class="v" id="mFirst">—</span></div>
+    <div class="m"><span class="k">M-REV mark changes</span><span class="v" id="mRev">0</span></div>
+    <div class="m"><span class="k">M-ERRTYPE last error</span><span class="v" id="mErr">—</span></div>
+    <div class="m"><span class="k">M-PROG folds·punch</span><span class="v" id="mProg">—</span></div>
+    <div class="m"><span class="k">M-DIFFREACH folds</span><span class="v" id="mDiff">—</span></div>
+    <div id="log"></div>
+  </div></div>
+</div>
+<script>
+(function(){
+  "use strict";
+  var SVGNS="http://www.w3.org/2000/svg",svg=document.getElementById("svg"),hand=document.getElementById("hand");
+  function beep(f,t){try{var A=beep.a=beep.a||new(window.AudioContext||window.webkitAudioContext)();var o=A.createOscillator(),g=A.createGain();o.frequency.value=f;o.connect(g);g.connect(A.destination);g.gain.value=.08;o.start();o.stop(A.currentTime+(t||.1));}catch(e){}}
+  var Tel={start:0,first:0,revs:0,logEl:document.getElementById("log"),
+    line:function(m,c){var d=document.createElement("div");var t=((performance.now()-Tel.start)/1000).toFixed(2);d.innerHTML='<span class="t">['+t+'s]</span> '+m;if(c)d.className=c;Tel.logEl.appendChild(d);Tel.logEl.scrollTop=Tel.logEl.scrollHeight;},
+    begin:function(l){Tel.start=performance.now();Tel.first=0;Tel.revs=0;Tel.line("▶ "+l);render();},
+    firstAct:function(w){if(!Tel.first){Tel.first=performance.now()-Tel.start;Tel.line("first action: "+w+" @"+Math.round(Tel.first)+"ms");render();}}};
+  function render(){document.getElementById("mFirst").textContent=Tel.first?Math.round(Tel.first)+" ms":"—";document.getElementById("mRev").textContent=Tel.revs;}
+  // ---- model ----
+  var G=4,pos=[],region={},punched={},predicted={},foldsDone=0,foldsNeeded=1,step="fold",phase="demo",interactive=false,punchesMax=1,punchCount=0;
+  function key(x,y){return x+","+y;}
+  function reset(){pos=[];for(var o=0;o<G*G;o++)pos.push({x:o%G,y:Math.floor(o/G)});region={x0:0,x1:G-1,y0:0,y1:G-1};punched={};predicted={};foldsDone=0;punchCount=0;}
+  function fold(axis){
+    if(axis==="V"){var w=region.x1-region.x0+1;if(w<2)return false;var p=region.x0+Math.floor(w/2);
+      pos.forEach(function(q){if(q.x>=p)q.x=2*p-1-q.x;});region.x1=p-1;}
+    else{var h=region.y1-region.y0+1;if(h<2)return false;var p2=region.y0+Math.floor(h/2);
+      pos.forEach(function(q){if(q.y>=p2)q.y=2*p2-1-q.y;});region.y1=p2-1;}
+    foldsDone++;return true;
+  }
+  function layerCount(x,y){var n=0;pos.forEach(function(q){if(q.x===x&&q.y===y)n++;});return n;}
+  function truthHoles(){var s={};for(var o=0;o<G*G;o++){if(punched[key(pos[o].x,pos[o].y)])s[key(o%G,Math.floor(o/G))]=1;}return s;}
+  // ---- geometry ----
+  var LX=30,LY=80,cell=40,RX=250,RY=80;
+  function regionW(){return region.x1-region.x0+1;}function regionH(){return region.y1-region.y0+1;}
+  function foldedScreen(x,y){var padX=(4*cell-regionW()*cell)/2,padY=(4*cell-regionH()*cell)/2;return {x:LX+padX+(x-region.x0)*cell,y:LY+padY+(y-region.y0)*cell};}
+  function origScreen(ox,oy){return {x:RX+ox*cell,y:RY+oy*cell};}
+  function rect(x,y,w,h,fill,stroke,sw,rx){var r=document.createElementNS(SVGNS,"rect");r.setAttribute("x",x);r.setAttribute("y",y);r.setAttribute("width",w);r.setAttribute("height",h);r.setAttribute("fill",fill);if(stroke){r.setAttribute("stroke",stroke);r.setAttribute("stroke-width",sw||1);}if(rx)r.setAttribute("rx",rx);svg.appendChild(r);return r;}
+  function circle(x,y,r,fill,stroke){var c=document.createElementNS(SVGNS,"circle");c.setAttribute("cx",x);c.setAttribute("cy",y);c.setAttribute("r",r);c.setAttribute("fill",fill);if(stroke){c.setAttribute("stroke",stroke);c.setAttribute("stroke-width",2);}svg.appendChild(c);return c;}
+  function label(x,y,s,col){var t=document.createElementNS(SVGNS,"text");t.setAttribute("x",x);t.setAttribute("y",y);t.setAttribute("fill",col||"#94a3b8");t.setAttribute("font-size","13");t.setAttribute("font-weight","700");t.textContent=s;svg.appendChild(t);return t;}
+  var revealMode=false;
+  function draw(){
+    svg.innerHTML="";
+    label(LX,LY-12,step==="predict"||revealMode?"FOLDED PAPER":"FOLD, THEN PUNCH");
+    // folded paper: draw region cells (top layer)
+    var pad=6;
+    for(var y=region.y0;y<=region.y1;y++)for(var x=region.x0;x<=region.x1;x++){var s=foldedScreen(x,y);
+      rect(s.x,s.y,cell,cell,"#fdf6e3","#cbd5e1",1);
+      var lc=layerCount(x,y);if(lc>1){label(s.x+4,s.y+14,lc+"×","#b45309");}
+    }
+    // fold outline shadow to hint stack
+    var padX=(4*cell-regionW()*cell)/2,padY=(4*cell-regionH()*cell)/2;
+    rect(LX+padX,LY+padY,regionW()*cell,regionH()*cell,"none","#a16207",2.5,4);
+    // punches on folded paper
+    for(var kk in punched){var xy=kk.split(",");var sc=foldedScreen(+xy[0],+xy[1]);circle(sc.x+cell/2,sc.y+cell/2,cell*0.22,"#0b1220");}
+    // right grid: prediction / reveal
+    label(RX,RY-12,revealMode?"UNFOLDED (truth)":"YOUR PREDICTION (tap cells)");
+    var truth=revealMode?truthHoles():null;
+    for(var oy=0;oy<G;oy++)for(var ox=0;ox<G;ox++){var os=origScreen(ox,oy);
+      rect(os.x,os.y,cell,cell,"#ffffff","#e2e8f0",1);
+      var pk=key(ox,oy),isPred=predicted[pk],isTruth=truth&&truth[pk];
+      if(revealMode){
+        if(isTruth&&isPred)circle(os.x+cell/2,os.y+cell/2,cell*0.22,"#16a34a");        // hit
+        else if(isTruth&&!isPred)circle(os.x+cell/2,os.y+cell/2,cell*0.22,"#dc2626");  // missed hole
+        else if(!isTruth&&isPred){circle(os.x+cell/2,os.y+cell/2,cell*0.18,"none","#f59e0b");var xx=document.createElementNS(SVGNS,"text");xx.setAttribute("x",os.x+cell/2);xx.setAttribute("y",os.y+cell/2+5);xx.setAttribute("text-anchor","middle");xx.setAttribute("fill","#f59e0b");xx.setAttribute("font-size","16");xx.textContent="×";svg.appendChild(xx);}
+      } else if(isPred){circle(os.x+cell/2,os.y+cell/2,cell*0.22,"#334155");}
+    }
+    // fold arrows hint
+    if(step==="fold"&&!revealMode){label(LX,LY+4*cell+26,"Folds left: "+(foldsNeeded-foldsDone),"#4f46e5");}
+    if(step==="punch"){label(LX,LY+4*cell+26,"Tap the paper to PUNCH ("+punchCount+"/"+punchesMax+")","#4f46e5");}
+    render();
+  }
+  function toSvg(e){var r=svg.getBoundingClientRect();return {x:(e.clientX-r.left)*(440/r.width),y:(e.clientY-r.top)*(360/r.height)};}
+  svg.addEventListener("pointerdown",function(e){
+    if(!interactive)return;var p=toSvg(e);
+    if(step==="punch"){ // hit folded region
+      for(var y=region.y0;y<=region.y1;y++)for(var x=region.x0;x<=region.x1;x++){var s=foldedScreen(x,y);
+        if(p.x>=s.x&&p.x<=s.x+cell&&p.y>=s.y&&p.y<=s.y+cell){Tel.firstAct("punch");punched[key(x,y)]=1;punchCount++;beep(300,.12);Tel.line("punched folded cell ("+x+","+y+") — "+layerCount(x,y)+" layers");
+          if(punchCount>=punchesMax){step="predict";document.getElementById("predictBtn").style.display="none";document.getElementById("lockBtn").style.display="";document.getElementById("lockBtn").disabled=true;document.getElementById("foldV").style.display="none";document.getElementById("foldH").style.display="none";setBanner("✏️","<b>Now predict.</b> Tap every cell on the right where a hole will appear when unfolded. Then Check.");}
+          draw();return;}}
+    } else if(step==="predict"){ // toggle prediction on right grid
+      for(var oy=0;oy<G;oy++)for(var ox=0;ox<G;ox++){var os=origScreen(ox,oy);
+        if(p.x>=os.x&&p.x<=os.x+cell&&p.y>=os.y&&p.y<=os.y+cell){Tel.firstAct("mark");var k=key(ox,oy);
+          if(predicted[k]){delete predicted[k];Tel.revs++;}else{predicted[k]=1;}
+          document.getElementById("lockBtn").disabled=Object.keys(predicted).length===0;beep(560,.05);draw();return;}}
+    }
+  });
+  // fold buttons
+  document.getElementById("foldV").onclick=function(){doFold("V");};
+  document.getElementById("foldH").onclick=function(){doFold("H");};
+  function doFold(axis){if(!interactive||step!=="fold")return;if(!fold(axis)){beep(200,.1);Tel.line("can't fold that way again","miss");return;}
+    Tel.firstAct("fold "+axis);beep(480,.08);Tel.line("folded "+(axis==="V"?"⬌":"⬍")+" (fold "+foldsDone+")");
+    if(foldsDone>=foldsNeeded){step="punch";document.getElementById("foldV").disabled=true;document.getElementById("foldH").disabled=true;setBanner("🥊","<b>Punch a hole.</b> Tap the folded paper to punch through all the layers.");}
+    draw();}
+  // ---- phases ----
+  var pill=document.getElementById("phasePill"),bIcon=document.getElementById("bIcon"),bText=document.getElementById("bText");
+  var predictBtn=document.getElementById("predictBtn"),lockBtn=document.getElementById("lockBtn"),nextBtn=document.getElementById("nextBtn");
+  function setBanner(i,h){bIcon.textContent=i;bText.innerHTML=h;}
+  function newItem(n){reset();foldsNeeded=n;step="fold";revealMode=false;punchesMax=1;
+    document.getElementById("foldV").style.display="";document.getElementById("foldH").style.display="";
+    document.getElementById("foldV").disabled=false;document.getElementById("foldH").disabled=false;
+    lockBtn.style.display="none";predictBtn.style.display="none";document.getElementById("mDiff").textContent=n+" folds";}
+  function startDemo(){
+    phase="demo";pill.textContent="DEMO";interactive=false;nextBtn.style.display="none";
+    document.getElementById("foldV").disabled=true;document.getElementById("foldH").disabled=true;
+    setBanner("👀","<b>Watch.</b> Fold once, punch a hole, then unfold — two holes appear, mirrored across the fold.");
+    newItem(1);draw();hand.style.display="";
+    setTimeout(function(){fold("V");beep(480,.08);draw();var s=foldedScreen(region.x0+0,region.y0+1);
+      var r=svg.getBoundingClientRect();hand.style.left=(r.left+(s.x+cell/2)*(r.width/440)-4)+"px";hand.style.top=(r.top+window.scrollY+(s.y+cell/2)*(r.height/360))+"px";},700);
+    setTimeout(function(){punched[key(region.x0,region.y0+1)]=1;beep(300,.12);draw();},1500);
+    setTimeout(function(){revealMode=true;var th=truthHoles();for(var k in th)predicted[k]=1;draw();beep(880);Tel.line("unfolded → holes at "+Object.keys(th).join(" "),"done");},2400);
+    setTimeout(function(){hand.style.display="none";startWarmup();},3600);
+  }
+  function startWarmup(){
+    phase="warmup";pill.textContent="WARM-UP";interactive=true;revealMode=false;
+    newItem(1);draw();Tel.begin("Warm-up — fold once, punch, predict (reveal after)");
+    setBanner("✋","<b>Practice.</b> Tap ⬌ or ⬍ to fold ONCE, punch the paper, then predict the holes. I'll unfold to show you.");
+    lockBtn.onclick=function(){if(Object.keys(predicted).length===0)return;
+      var truth=truthHoles();revealMode=true;draw();
+      var ok=sameSet(predicted,truth);
+      if(ok){beep(880);setBanner("✅","<b>Exactly right!</b> Holes mirror across each fold. Now a harder one — fold TWICE, no reveal until you commit.");}
+      else{beep(300);setBanner("↻","<b>Close — see the truth.</b> Green = you got it, red = missed hole, × = extra. Holes reflect across the fold line.");}
+      lockBtn.style.display="none";nextBtn.style.display="";nextBtn.textContent="Start scored ▶";nextBtn.onclick=startScored;};
+  }
+  function startScored(){
+    phase="scored";pill.textContent="SCORED 1/1";interactive=true;revealMode=false;nextBtn.style.display="none";
+    newItem(2);draw();Tel.begin("Scored — fold twice, punch, predict all holes");
+    setBanner("🎯","<b>Fold TWICE</b> (any two folds), punch once, then tap ALL cells that will have a hole when unfolded. Check when done.");
+    lockBtn.onclick=function(){if(Object.keys(predicted).length===0)return;
+      var rt=performance.now()-Tel.start;var truth=truthHoles();revealMode=true;draw();
+      var inter=0,uni={};for(var k in predicted)uni[k]=1;for(k in truth)uni[k]=1;for(k in truth)if(predicted[k])inter++;
+      var unionN=Object.keys(uni).length,truthN=Object.keys(truth).length,predN=Object.keys(predicted).length;
+      var jac=unionN?inter/unionN:0,exact=sameSet(predicted,truth);
+      document.getElementById("mPoly").textContent=Math.round(100*jac)+"% ("+inter+"/"+unionN+")";
+      document.getElementById("mAcc").textContent=exact?"1/1 (100%)":"0/1";
+      document.getElementById("mRt").textContent=Math.round(rt)+" ms";
+      document.getElementById("mProg").textContent=foldsDone+" folds · "+Object.keys(punched).length+" punch";
+      var et=exact?"—":(predN===truthN?"wrong reflection axis (systematic)":"lost a fold/layer ("+predN+" vs "+truthN+")");
+      document.getElementById("mErr").textContent=et;
+      Tel.line("CHECK — overlap "+inter+"/"+unionN+" (Jaccard "+Math.round(100*jac)+"%), "+(exact?"exact ✔":et),exact?"done":"miss");
+      finish(jac,exact,rt);
+    };
+  }
+  function sameSet(a,b){var ka=Object.keys(a),kb=Object.keys(b);if(ka.length!==kb.length)return false;for(var i=0;i<ka.length;i++)if(!b[ka[i]])return false;return true;}
+  function finish(jac,exact,rt){
+    phase="done";pill.textContent="DONE";interactive=false;lockBtn.style.display="none";
+    setBanner("🏁","<b>Overlap "+Math.round(100*jac)+"%.</b> Each fold doubles the reflections; graded hole-overlap (M-POLY) + error type (right count but wrong axis vs a lost fold) pull fine tail signal from one item.");
+    Tel.line("── summary ── M-POLY="+Math.round(100*jac)+"%  M-ACC="+(exact?1:0)+"/1  M-RT="+Math.round(rt)+"ms","done");
+    nextBtn.style.display="";nextBtn.textContent="↻ Run again";nextBtn.onclick=function(){location.reload();};
+  }
+  reset();draw();startDemo();
+})();
+</script>
+</body>
+</html>

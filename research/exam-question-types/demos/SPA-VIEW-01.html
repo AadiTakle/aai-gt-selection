@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SPA-VIEW-01 — What Do They See?</title>
+<style>
+  :root{--bg:#eef2fb;--card:#fff;--ink:#1e293b;--muted:#64748b;--accent:#4f46e5;--good:#16a34a;--warn:#f59e0b;--bad:#dc2626;--stage:#f4f9f4}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.4 system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  .wrap{display:flex;gap:14px;padding:14px;max-width:1180px;margin:0 auto;align-items:flex-start;flex-wrap:wrap}
+  .col{flex:1 1 600px;min-width:340px}.side{flex:1 1 320px;min-width:300px}
+  .card{background:var(--card);border-radius:16px;box-shadow:0 6px 22px rgba(15,23,42,.08);padding:16px;margin-bottom:14px}
+  h1{font-size:19px;margin:0 0 2px}.sub{color:var(--muted);font-size:13px;margin:0 0 10px}
+  .pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;background:#e0e7ff;color:#3730a3}
+  .banner{display:flex;align-items:center;gap:10px;background:#f1f5ff;border:1px solid #dbe3ff;border-radius:12px;padding:10px 12px;margin-bottom:12px;min-height:44px}
+  .banner .icon{font-size:22px}.banner b{color:var(--accent)}
+  #stageWrap{position:relative;background:var(--stage);border-radius:14px;border:1px solid #e2e8f0;overflow:hidden}
+  svg{display:block;width:100%;height:380px;touch-action:none}
+  .hand{position:absolute;font-size:30px;pointer-events:none;z-index:5;filter:drop-shadow(0 2px 3px rgba(0,0,0,.25))}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+  button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:10px 16px;cursor:pointer;background:var(--accent);color:#fff}
+  button.ghost{background:#e2e8f0;color:#334155}button:disabled{opacity:.45;cursor:not-allowed}
+  .tel{background:#0b1220;color:#d1fae5;border-radius:16px;padding:14px;font:12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
+  .tel h2{font-size:13px;margin:0 0 8px;color:#93c5fd;letter-spacing:.05em;text-transform:uppercase}
+  .tel .m{display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px dotted #1e293b}
+  .tel .m .k{color:#7dd3fc}.tel .m .v{color:#fde68a;font-weight:700;text-align:right}
+  #log{margin-top:10px;max-height:170px;overflow:auto;background:#060b16;border-radius:8px;padding:8px}
+  #log div{white-space:pre-wrap;color:#a7f3d0}#log .t{color:#475569}
+  .done{color:var(--good);font-weight:700}.miss{color:var(--warn)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="col"><div class="card">
+    <span class="pill" id="phasePill">DEMO</span>
+    <h1>What Do They See? <span style="color:var(--muted);font-weight:400">· SPA-VIEW-01</span></h1>
+    <p class="sub">Move the robot 🤖 around the scene. The strip shows what it sees, left to right.</p>
+    <div class="banner"><span class="icon" id="bIcon">👀</span><div id="bText"><b>Watch.</b> The robot walks to the other side — its view flips…</div></div>
+    <div id="stageWrap"><svg id="svg" viewBox="0 0 460 380"></svg><div class="hand" id="hand" style="display:none">👆</div></div>
+    <div class="controls">
+      <button id="lockBtn" disabled>🔒 Lock</button>
+      <button id="nextBtn" class="ghost" style="display:none">Next ▶</button>
+      <span class="sub" id="live" style="margin-left:auto"></span>
+    </div>
+  </div></div>
+  <div class="side"><div class="tel">
+    <h2>◉ Live telemetry</h2>
+    <div class="m"><span class="k">M-ACC accuracy</span><span class="v" id="mAcc">—</span></div>
+    <div class="m"><span class="k">M-VIEWANG ang.error</span><span class="v" id="mAng">—</span></div>
+    <div class="m"><span class="k">M-RT total</span><span class="v" id="mRt">—</span></div>
+    <div class="m"><span class="k">M-RTFIRST first-act</span><span class="v" id="mFirst">—</span></div>
+    <div class="m"><span class="k">M-REV changes</span><span class="v" id="mRev">0</span></div>
+    <div class="m"><span class="k">M-EXPLORE viewpoints</span><span class="v" id="mExp">0</span></div>
+    <div class="m"><span class="k">M-DIFFREACH offset</span><span class="v" id="mDiff">—</span></div>
+    <div id="log"></div>
+  </div></div>
+</div>
+<script>
+(function(){
+  "use strict";
+  var SVGNS="http://www.w3.org/2000/svg",svg=document.getElementById("svg"),hand=document.getElementById("hand");
+  function beep(f,t){try{var A=beep.a=beep.a||new(window.AudioContext||window.webkitAudioContext)();var o=A.createOscillator(),g=A.createGain();o.frequency.value=f;o.connect(g);g.connect(A.destination);g.gain.value=.08;o.start();o.stop(A.currentTime+(t||.1));}catch(e){}}
+  var Tel={start:0,first:0,revs:0,explore:0,scored:0,correct:0,angErr:[],logEl:document.getElementById("log"),
+    line:function(m,c){var d=document.createElement("div");var t=((performance.now()-Tel.start)/1000).toFixed(2);d.innerHTML='<span class="t">['+t+'s]</span> '+m;if(c)d.className=c;Tel.logEl.appendChild(d);Tel.logEl.scrollTop=Tel.logEl.scrollHeight;},
+    begin:function(l){Tel.start=performance.now();Tel.first=0;Tel.revs=0;Tel.explore=0;Tel.line("▶ "+l);render();},
+    firstAct:function(w){if(!Tel.first){Tel.first=performance.now()-Tel.start;Tel.line("first action: "+w+" @"+Math.round(Tel.first)+"ms");render();}}};
+  function render(){
+    document.getElementById("mAcc").textContent=Tel.scored?Tel.correct+"/"+Tel.scored+" ("+Math.round(100*Tel.correct/Tel.scored)+"%)":"—";
+    document.getElementById("mFirst").textContent=Tel.first?Math.round(Tel.first)+" ms":"—";
+    document.getElementById("mRev").textContent=Tel.revs;document.getElementById("mExp").textContent=Tel.explore;
+    document.getElementById("mAng").textContent=Tel.angErr.length?Math.round(Tel.angErr[Tel.angErr.length-1])+"°":"—";
+  }
+  // ---- scene ----
+  var C={x:170,y:190},R=125;
+  var OBJS=[{s:"🌳",a:60,r:60},{s:"🏠",a:155,r:72},{s:"⛲",a:250,r:50},{s:"🗿",a:330,r:78}];
+  OBJS.forEach(function(o){o.x=C.x+o.r*Math.cos(o.a*Math.PI/180);o.y=C.y+o.r*Math.sin(o.a*Math.PI/180);});
+  var NVP=6,viewpoints=[];
+  for(var i=0;i<NVP;i++){var ang=(-90+i*(360/NVP))*Math.PI/180;viewpoints.push({x:C.x+R*Math.cos(ang),y:C.y+R*Math.sin(ang),deg:-90+i*(360/NVP)});}
+  var robotVP=0,mode="match",answerVP=0,dialAngle=0,faceObj=1,targetObj=0,dragMode=null;
+  function norm180(a){a=((a+180)%360+360)%360-180;return a;}
+  function forwardOf(P){var dx=C.x-P.x,dy=C.y-P.y,m=Math.hypot(dx,dy);return {x:dx/m,y:dy/m};}
+  function getView(P){var f=forwardOf(P),right={x:-f.y,y:f.x};
+    return OBJS.map(function(o){var vx=o.x-P.x,vy=o.y-P.y;return {s:o.s,lat:vx*right.x+vy*right.y,dep:vx*f.x+vy*f.y};}).sort(function(a,b){return a.lat-b.lat;});
+  }
+  // ---- draw ----
+  function line(x1,y1,x2,y2,col,w,dash){var l=document.createElementNS(SVGNS,"line");l.setAttribute("x1",x1);l.setAttribute("y1",y1);l.setAttribute("x2",x2);l.setAttribute("y2",y2);l.setAttribute("stroke",col);l.setAttribute("stroke-width",w);if(dash)l.setAttribute("stroke-dasharray",dash);svg.appendChild(l);return l;}
+  function txt(x,y,s,size,col,id){var t=document.createElementNS(SVGNS,"text");t.setAttribute("x",x);t.setAttribute("y",y);t.setAttribute("text-anchor","middle");t.setAttribute("dominant-baseline","central");t.setAttribute("font-size",size);if(col)t.setAttribute("fill",col);if(id)t.setAttribute("id",id);t.textContent=s;svg.appendChild(t);return t;}
+  function draw(){
+    svg.innerHTML="";
+    // table
+    var tb=document.createElementNS(SVGNS,"circle");tb.setAttribute("cx",C.x);tb.setAttribute("cy",C.y);tb.setAttribute("r",R+18);tb.setAttribute("fill","#eafaef");tb.setAttribute("stroke","#c7ead1");tb.setAttribute("stroke-width","2");svg.appendChild(tb);
+    // viewpoints
+    viewpoints.forEach(function(v,i){var c=document.createElementNS(SVGNS,"circle");c.setAttribute("cx",v.x);c.setAttribute("cy",v.y);c.setAttribute("r",i===robotVP?4:6);c.setAttribute("fill",i===robotVP?"#4f46e5":"#cbd5e1");svg.appendChild(c);});
+    // objects
+    OBJS.forEach(function(o){txt(o.x,o.y,o.s,26);});
+    // robot
+    var P=viewpoints[robotVP];
+    if(mode==="point"){var F=OBJS[faceObj];line(P.x,P.y,P.x+(F.x-P.x)*0.5,P.y+(F.y-P.y)*0.5,"#94a3b8",3,"5 4");}
+    txt(P.x,P.y,"🤖",30);
+    // sightlines to objects (subtle)
+    OBJS.forEach(function(o){line(P.x,P.y,o.x,o.y,"#e2e8f0",1.5);});
+    // panels on right
+    if(mode==="match"){drawStrip(320,60,"🤖 SEES (live)",getView(P),false);
+      drawStrip(320,175,"MATCH THIS VIEW",getView(viewpoints[answerVP]),true);}
+    if(mode==="point"){drawDial(390,150);
+      txt(320,300,"Stand at 🤖, face "+OBJS[faceObj].s,13,"#334155");txt(320,320,"Point to "+OBJS[targetObj].s,13,"#334155");}
+    render();
+  }
+  function drawStrip(x,y,label,view,isTarget){
+    txt(x+65,y-8,"",12);var t=document.createElementNS(SVGNS,"text");t.setAttribute("x",x);t.setAttribute("y",y-8);t.setAttribute("font-size","12");t.setAttribute("font-weight","700");t.setAttribute("fill",isTarget?"#b45309":"#4f46e5");t.textContent=label;svg.appendChild(t);
+    var w=130,h=64;var r=document.createElementNS(SVGNS,"rect");r.setAttribute("x",x);r.setAttribute("y",y);r.setAttribute("width",w);r.setAttribute("height",h);r.setAttribute("rx","10");r.setAttribute("fill",isTarget?"#fffbeb":"#eef2ff");r.setAttribute("stroke",isTarget?"#fcd34d":"#c7d2fe");r.setAttribute("stroke-width","2");svg.appendChild(r);
+    var n=view.length;var deps=view.map(function(v){return v.dep;});var mx=Math.max.apply(null,deps),mn=Math.min.apply(null,deps);
+    view.forEach(function(v,i){var px=x+ (w/(n+1))*(i+1);var sz=18+16*(1-((v.dep-mn)/((mx-mn)||1)));txt(px,y+h/2,v.s,sz);});
+  }
+  var Dc={x:390,y:150},Dr=52;
+  function drawDial(cx,cy){Dc={x:cx,y:cy};
+    var c=document.createElementNS(SVGNS,"circle");c.setAttribute("cx",cx);c.setAttribute("cy",cy);c.setAttribute("r",Dr);c.setAttribute("fill","#eef2ff");c.setAttribute("stroke","#c7d2fe");c.setAttribute("stroke-width","3");svg.appendChild(c);
+    txt(cx,cy-Dr-10,"AHEAD ⬆",11,"#4f46e5");
+    // arrow at dialAngle clockwise from up => screen angle = dialAngle-90
+    var sa=(dialAngle-90)*Math.PI/180;var ex=cx+Dr*0.82*Math.cos(sa),ey=cy+Dr*0.82*Math.sin(sa);
+    line(cx,cy,ex,ey,"#4f46e5",5);var head=document.createElementNS(SVGNS,"circle");head.setAttribute("cx",ex);head.setAttribute("cy",ey);head.setAttribute("r",7);head.setAttribute("fill","#4f46e5");svg.appendChild(head);
+    var dot=document.createElementNS(SVGNS,"circle");dot.setAttribute("cx",cx);dot.setAttribute("cy",cy);dot.setAttribute("r",4);dot.setAttribute("fill","#334155");svg.appendChild(dot);
+  }
+  function toSvg(e){var r=svg.getBoundingClientRect();return {x:(e.clientX-r.left)*(460/r.width),y:(e.clientY-r.top)*(380/r.height)};}
+  svg.addEventListener("pointerdown",function(e){if(!interactive)return;var p=toSvg(e);
+    if(mode==="match"){ // grab robot -> drag to nearest viewpoint
+      var P=viewpoints[robotVP];if(Math.hypot(p.x-P.x,p.y-P.y)<40){dragMode="robot";svg.setPointerCapture(e.pointerId);Tel.firstAct("grab robot");}
+    } else if(mode==="point"){ if(Math.hypot(p.x-Dc.x,p.y-Dc.y)<Dr+16){dragMode="dial";svg.setPointerCapture(e.pointerId);Tel.firstAct("turn dial");setDial(p);}}
+  });
+  svg.addEventListener("pointermove",function(e){if(!dragMode)return;var p=toSvg(e);
+    if(dragMode==="robot"){var best=0,bd=1e9;viewpoints.forEach(function(v,i){var d=Math.hypot(p.x-v.x,p.y-v.y);if(d<bd){bd=d;best=i;}});
+      if(best!==robotVP){robotVP=best;Tel.explore++;beep(560,.04);}draw();document.getElementById("lockBtn").disabled=false;}
+    else if(dragMode==="dial"){setDial(p);draw();document.getElementById("lockBtn").disabled=false;}
+  });
+  function setDial(p){var sa=Math.atan2(p.y-Dc.y,p.x-Dc.x)*180/Math.PI;dialAngle=norm180(sa+90);}
+  function endD(){dragMode=null;}
+  svg.addEventListener("pointerup",endD);svg.addEventListener("pointercancel",endD);
+  // ---- phases ----
+  var phase="demo",interactive=false;
+  var pill=document.getElementById("phasePill"),bIcon=document.getElementById("bIcon"),bText=document.getElementById("bText"),lockBtn=document.getElementById("lockBtn"),nextBtn=document.getElementById("nextBtn");
+  function setBanner(i,h){bIcon.textContent=i;bText.innerHTML=h;}
+  function startDemo(){
+    phase="demo";pill.textContent="DEMO";interactive=false;mode="match";answerVP=3;robotVP=0;nextBtn.style.display="none";lockBtn.style.display="";lockBtn.disabled=true;
+    setBanner("👀","<b>Watch.</b> As the robot moves around, the strip shows its view — the world reorders left↔right.");
+    draw();hand.style.display="";var seq=[0,1,2,3],k=0;
+    function go(){if(k>=seq.length){hand.style.display="none";setTimeout(startWarmup,700);return;}robotVP=seq[k];beep(520,.05);draw();
+      var P=viewpoints[robotVP],r=svg.getBoundingClientRect();hand.style.left=(r.left+P.x*(r.width/460)-2)+"px";hand.style.top=(r.top+window.scrollY+P.y*(r.height/380)+10)+"px";k++;setTimeout(go,750);}
+    setTimeout(go,700);
+  }
+  function startWarmup(){
+    phase="warmup";pill.textContent="WARM-UP";interactive=true;mode="match";robotVP=0;answerVP=2;lockBtn.style.display="";lockBtn.disabled=true;
+    Tel.begin("Warm-up — move robot so its view matches the target");
+    setBanner("✋","<b>Practice.</b> Drag the robot around until its live view matches the amber target strip, then Lock.");
+    document.getElementById("mDiff").textContent="±"+Math.round(Math.abs(norm180(viewpoints[answerVP].deg-viewpoints[robotVP].deg)))+"°";
+    lockBtn.onclick=function(){var ok=robotVP===answerVP;
+      if(ok){beep(880);Tel.line("views match ✔","done");setBanner("✅","<b>Matched!</b> Now real ones. Later you'll aim a pointer from the robot's point of view.");}
+      else{beep(260);Tel.line("not matching yet (robot@"+robotVP+", target@"+answerVP+")","miss");setBanner("↻","<b>Not yet.</b> Compare the strips — drag the robot to the side that reorders them the same way.");return;}
+      lockBtn.style.display="none";nextBtn.style.display="";nextBtn.textContent="Start scored ▶";nextBtn.onclick=startScored1;};
+  }
+  function startScored1(){
+    phase="scored";pill.textContent="SCORED 1/2";interactive=true;mode="match";robotVP=0;answerVP=1+Math.floor(Math.random()*(NVP-1));lockBtn.style.display="";lockBtn.disabled=true;nextBtn.style.display="none";
+    Tel.begin("Scored 1 — match the view (drag robot)");Tel.scored=1;
+    setBanner("🎯","<b>Where must the robot stand</b> to see the target view? Drag it there, then Lock.");
+    document.getElementById("mDiff").textContent="±"+Math.round(Math.abs(norm180(viewpoints[answerVP].deg-viewpoints[0].deg)))+"°";
+    lockBtn.onclick=function(){var rt=performance.now()-Tel.start;var ok=robotVP===answerVP;
+      var ae=Math.abs(norm180(viewpoints[robotVP].deg-viewpoints[answerVP].deg));Tel.angErr.push(ae);
+      if(ok){Tel.correct++;Tel.line("LOCK correct viewpoint ✔ RT="+Math.round(rt)+"ms","done");}else{Tel.line("LOCK wrong viewpoint ✗ (off "+Math.round(ae)+"°)","miss");}
+      document.getElementById("mRt").textContent=Math.round(rt)+" ms";render();
+      lockBtn.style.display="none";nextBtn.style.display="";nextBtn.textContent="Next ▶";nextBtn.onclick=startScored2;};
+  }
+  function startScored2(){
+    phase="scored";pill.textContent="SCORED 2/2";interactive=true;mode="point";robotVP=1+Math.floor(Math.random()*(NVP-1));dialAngle=0;lockBtn.style.display="";lockBtn.disabled=true;nextBtn.style.display="none";
+    faceObj=1;targetObj=0;if(faceObj===targetObj)targetObj=2;
+    Tel.begin("Scored 2 — egocentric pointing (turn the dial)");Tel.scored=2;
+    setBanner("🧭","<b>Imagine you are the robot facing "+OBJS[faceObj].s+".</b> Turn the AHEAD dial to point at "+OBJS[targetObj].s+", then Lock.");
+    var P=viewpoints[robotVP],F=OBJS[faceObj],Z=OBJS[targetObj];
+    var aheadS=Math.atan2(F.y-P.y,F.x-P.x)*180/Math.PI,targS=Math.atan2(Z.y-P.y,Z.x-P.x)*180/Math.PI;
+    var trueBearing=norm180(targS-aheadS);document.getElementById("mDiff").textContent="bearing "+Math.round(trueBearing)+"°";
+    draw();
+    lockBtn.onclick=function(){var rt=performance.now()-Tel.start;var err=Math.abs(norm180(dialAngle-trueBearing));Tel.angErr.push(err);
+      var ok=err<=20;if(ok)Tel.correct++;
+      Tel.line("LOCK dial "+Math.round(dialAngle)+"° vs true "+Math.round(trueBearing)+"° → error "+Math.round(err)+"° "+(ok?"✔":"✗"),ok?"done":"miss");
+      document.getElementById("mRt").textContent=Math.round(rt)+" ms";render();finish();};
+  }
+  function finish(){
+    phase="done";pill.textContent="DONE";interactive=false;lockBtn.style.display="none";
+    var meanAng=Tel.angErr.length?Math.round(Tel.angErr.reduce(function(a,b){return a+b},0)/Tel.angErr.length):0;
+    setBanner("🏁","<b>Accuracy "+Tel.correct+"/"+Tel.scored+"</b> · mean angular error "+meanAng+"° (M-VIEWANG). Low pointing error at large viewpoint offsets, with little exploration, marks a true allocentric model — a navigation-linked tail signal.");
+    Tel.line("── summary ── M-ACC="+Tel.correct+"/"+Tel.scored+"  M-VIEWANG(mean)="+meanAng+"°  M-EXPLORE="+Tel.explore,"done");
+    nextBtn.style.display="";nextBtn.textContent="↻ Run again";nextBtn.onclick=function(){location.reload();};
+  }
+  draw();startDemo();
+})();
+</script>
+</body>
+</html>

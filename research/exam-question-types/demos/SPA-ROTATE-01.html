@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SPA-ROTATE-01 — Turn-to-Match</title>
+<style>
+  :root{
+    --bg:#eef2fb; --card:#ffffff; --ink:#1e293b; --muted:#64748b;
+    --accent:#4f46e5; --good:#16a34a; --warn:#f59e0b; --bad:#dc2626;
+    --ghost:#94a3b8; --stage:#f8fafc;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.4 system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  .wrap{display:flex;gap:14px;padding:14px;max-width:1180px;margin:0 auto;align-items:flex-start;flex-wrap:wrap}
+  .col{flex:1 1 560px;min-width:340px}
+  .side{flex:1 1 320px;min-width:300px}
+  .card{background:var(--card);border-radius:16px;box-shadow:0 6px 22px rgba(15,23,42,.08);padding:16px;margin-bottom:14px}
+  h1{font-size:19px;margin:0 0 2px}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 10px}
+  .pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;background:#e0e7ff;color:#3730a3}
+  .banner{display:flex;align-items:center;gap:10px;background:#f1f5ff;border:1px solid #dbe3ff;border-radius:12px;padding:10px 12px;margin-bottom:12px;min-height:44px}
+  .banner .icon{font-size:22px}
+  .banner b{color:var(--accent)}
+  #stageWrap{position:relative;background:var(--stage);border-radius:14px;border:1px solid #e2e8f0;overflow:hidden}
+  svg{display:block;width:100%;height:360px;touch-action:none}
+  .hand{position:absolute;font-size:34px;pointer-events:none;transition:none;filter:drop-shadow(0 2px 3px rgba(0,0,0,.25));z-index:5}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+  button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:10px 16px;cursor:pointer;background:var(--accent);color:#fff}
+  button.ghost{background:#e2e8f0;color:#334155}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .mc{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px}
+  .mc .opt{background:#fff;border:2px solid #e2e8f0;border-radius:12px;padding:6px;cursor:pointer;width:150px}
+  .mc .opt.sel{border-color:var(--accent)}
+  .mc .opt svg{height:120px}
+  .angle{font-variant-numeric:tabular-nums;font-weight:700;color:var(--accent)}
+  /* telemetry */
+  .tel{background:#0b1220;color:#d1fae5;border-radius:16px;padding:14px;font:12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
+  .tel h2{font-size:13px;margin:0 0 8px;color:#93c5fd;letter-spacing:.05em;text-transform:uppercase}
+  .tel .m{display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px dotted #1e293b}
+  .tel .m .k{color:#7dd3fc}
+  .tel .m .v{color:#fde68a;font-weight:700;text-align:right}
+  .tel .mid{color:#64748b}
+  #log{margin-top:10px;max-height:190px;overflow:auto;background:#060b16;border-radius:8px;padding:8px}
+  #log div{white-space:pre-wrap;color:#a7f3d0}
+  #log .t{color:#475569}
+  .done{color:var(--good);font-weight:700}
+  .miss{color:var(--warn)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="col">
+    <div class="card">
+      <span class="pill" id="phasePill">DEMO</span>
+      <h1>Turn-to-Match <span style="color:var(--muted);font-weight:400">· SPA-ROTATE-01</span></h1>
+      <p class="sub">Spin the shape until it lines up with the dashed target, then LOCK. (Mental rotation)</p>
+      <div class="banner"><span class="icon" id="bIcon">👀</span><div id="bText"><b>Watch.</b> The hand spins the flag to match the dashed shape…</div></div>
+      <div id="stageWrap">
+        <svg id="svg" viewBox="0 0 400 360" aria-label="rotation stage"></svg>
+        <div class="hand" id="hand" style="display:none">👆</div>
+      </div>
+      <div class="mc" id="mc" style="display:none"></div>
+      <div class="controls" id="controls">
+        <button id="lockBtn" disabled>🔒 Lock it in</button>
+        <button id="nextBtn" class="ghost" style="display:none">Next ▶</button>
+        <span id="live" class="sub" style="margin-left:auto"></span>
+      </div>
+    </div>
+  </div>
+  <div class="side">
+    <div class="tel">
+      <h2>◉ Live telemetry</h2>
+      <div class="m"><span class="k">M-ACC accuracy</span><span class="v" id="mAcc">—</span></div>
+      <div class="m"><span class="k">M-RT last / mean</span><span class="v" id="mRt">—</span></div>
+      <div class="m"><span class="k">M-RTFIRST first-act</span><span class="v" id="mFirst">—</span></div>
+      <div class="m"><span class="k">M-RTVAR RT CV</span><span class="v" id="mVar">—</span></div>
+      <div class="m"><span class="k">M-REV revisions</span><span class="v" id="mRev">—</span></div>
+      <div class="m"><span class="k">M-ROTSLOPE ms/deg</span><span class="v" id="mSlope">—</span></div>
+      <div class="m"><span class="k">M-MIRRORFA mirror FA</span><span class="v" id="mMir">—</span></div>
+      <div class="m"><span class="k">M-ERRTYPE last error</span><span class="v" id="mErr">—</span></div>
+      <div class="m"><span class="k">M-DIFFREACH max Δ solved</span><span class="v" id="mDiff">—</span></div>
+      <div class="m"><span class="k">M-SPEEDACC point</span><span class="v" id="mSA">—</span></div>
+      <div id="log"></div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  "use strict";
+  var SVGNS="http://www.w3.org/2000/svg";
+  var svg=document.getElementById("svg");
+  // ---------- flag shape (asymmetric, mirror-distinguishable) ----------
+  var FLAG="M -8,-42 L -8,42 L 0,42 L 0,-6 L 40,-18 L 0,-30 L 0,-42 Z";
+  function shape(fill,stroke,dash){
+    var p=document.createElementNS(SVGNS,"path");
+    p.setAttribute("d",FLAG); p.setAttribute("fill",fill);
+    p.setAttribute("stroke",stroke); p.setAttribute("stroke-width","3");
+    p.setAttribute("stroke-linejoin","round");
+    if(dash){p.setAttribute("stroke-dasharray","7 6");}
+    return p;
+  }
+  // ---------- telemetry ----------
+  var Tel={
+    itemStart:0, firstAt:0, revs:0, rts:[], firsts:[], correct:0, scored:0,
+    mirrorTrials:0, mirrorFA:0, rotPts:[], diff:0,
+    logEl:document.getElementById("log"),
+    line:function(msg,cls){var d=document.createElement("div");var t=((performance.now()-Tel.itemStart)/1000).toFixed(2);
+      d.innerHTML='<span class="t">['+t+'s]</span> '+msg; if(cls)d.className=cls; Tel.logEl.appendChild(d); Tel.logEl.scrollTop=Tel.logEl.scrollHeight;},
+    beginItem:function(label){Tel.itemStart=performance.now();Tel.firstAt=0;Tel.revs=0;Tel.line("▶ "+label);},
+    first:function(what){if(!Tel.firstAt){Tel.firstAt=performance.now()-Tel.itemStart;Tel.firsts.push(Tel.firstAt);Tel.line("first action: "+what+" @"+Math.round(Tel.firstAt)+"ms");render();}},
+    rev:function(){Tel.revs++;},
+    mean:function(a){return a.length?a.reduce(function(x,y){return x+y},0)/a.length:0;},
+    cv:function(a){if(a.length<2)return 0;var m=Tel.mean(a);var v=Tel.mean(a.map(function(x){return (x-m)*(x-m)}));return Math.sqrt(v)/m;},
+    slope:function(){if(Tel.rotPts.length<2)return null;
+      var n=Tel.rotPts.length,sx=0,sy=0,sxx=0,sxy=0;
+      Tel.rotPts.forEach(function(p){sx+=p.a;sy+=p.rt;sxx+=p.a*p.a;sxy+=p.a*p.rt;});
+      var d=n*sxx-sx*sx; if(!d)return null; return (n*sxy-sx*sy)/d;}
+  };
+  function render(){
+    document.getElementById("mAcc").textContent=Tel.scored?Tel.correct+"/"+Tel.scored+" ("+Math.round(100*Tel.correct/Tel.scored)+"%)":"—";
+    document.getElementById("mRt").textContent=Tel.rts.length?Math.round(Tel.rts[Tel.rts.length-1])+" / "+Math.round(Tel.mean(Tel.rts))+" ms":"—";
+    document.getElementById("mFirst").textContent=Tel.firsts.length?Math.round(Tel.mean(Tel.firsts))+" ms":"—";
+    document.getElementById("mVar").textContent=Tel.rts.length>1?Tel.cv(Tel.rts).toFixed(2):"—";
+    document.getElementById("mRev").textContent=Tel.revs;
+    var sl=Tel.slope(); document.getElementById("mSlope").textContent=(sl!==null)?sl.toFixed(1)+" ms/°":"need ≥2";
+    document.getElementById("mMir").textContent=Tel.mirrorTrials?Tel.mirrorFA+"/"+Tel.mirrorTrials:"—";
+    document.getElementById("mDiff").textContent=Tel.diff?Tel.diff+"°":"—";
+  }
+  // ---------- audio ----------
+  var AC=null;
+  function beep(f,t){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();var o=AC.createOscillator(),g=AC.createGain();o.frequency.value=f;o.connect(g);g.connect(AC.destination);g.gain.value=.09;o.start();o.stop(AC.currentTime+(t||.12));}catch(e){}}
+  // ---------- rotate widget ----------
+  var gTarget=document.createElementNS(SVGNS,"g");
+  var gMove=document.createElementNS(SVGNS,"g");
+  var CX=200, CY=185;
+  gTarget.setAttribute("transform","translate("+CX+","+CY+")");
+  gMove.setAttribute("transform","translate("+CX+","+CY+")");
+  var tShape=shape("none","#cbd5e1",true); tShape.setAttribute("stroke-width","4");
+  var mShape=shape("#6366f1","#3730a3",false);
+  gTarget.appendChild(tShape); gMove.appendChild(mShape);
+  function buildStage(){svg.innerHTML="";svg.appendChild(gTarget);svg.appendChild(gMove);}
+  var moveAngle=0, targetAngle=0, dragging=false, grabOffset=0, lastDir=0, showHint=false, snap=45, interactive=false;
+  function setMove(a){moveAngle=a;gMove.setAttribute("transform","translate("+CX+","+CY+") rotate("+a+")");checkAlign();}
+  function setTarget(a){targetAngle=((a%360)+360)%360;gTarget.setAttribute("transform","translate("+CX+","+CY+") rotate("+targetAngle+")");}
+  function norm(a){return ((a%360)+360)%360;}
+  function aligned(){return norm(moveAngle)===targetAngle;}
+  function checkAlign(){
+    document.getElementById("live").innerHTML='angle <span class="angle">'+Math.round(norm(moveAngle))+'°</span> · target '+targetAngle+'°';
+    if(showHint && aligned()){mShape.setAttribute("fill","#22c55e");}
+    else{mShape.setAttribute("fill","#6366f1");}
+  }
+  function ptrAngle(e){var r=svg.getBoundingClientRect();
+    var sx=(e.clientX-r.left)*(400/r.width), sy=(e.clientY-r.top)*(360/r.height);
+    return Math.atan2(sy-CY,sx-CX)*180/Math.PI;}
+  svg.addEventListener("pointerdown",function(e){
+    if(!interactive)return; dragging=true; svg.setPointerCapture(e.pointerId);
+    grabOffset=ptrAngle(e)-moveAngle; Tel.first("grab"); });
+  svg.addEventListener("pointermove",function(e){
+    if(!dragging)return; var a=ptrAngle(e)-grabOffset; var dir=Math.sign(a-moveAngle);
+    if(dir&&dir!==lastDir&&lastDir!==0){Tel.rev();} if(dir)lastDir=dir; setMove(a);});
+  function endDrag(){ if(!dragging)return; dragging=false;
+    var snapped=Math.round(moveAngle/snap)*snap; setMove(snapped);
+    Tel.line("released → "+norm(snapped)+"°"); render();
+    document.getElementById("lockBtn").disabled=false; }
+  svg.addEventListener("pointerup",endDrag); svg.addEventListener("pointercancel",endDrag);
+  // ---------- phase machine ----------
+  var phase="demo", scoredIdx=0;
+  var pill=document.getElementById("phasePill"),bIcon=document.getElementById("bIcon"),bText=document.getElementById("bText");
+  var lockBtn=document.getElementById("lockBtn"),nextBtn=document.getElementById("nextBtn"),mc=document.getElementById("mc");
+  function setBanner(icon,html){bIcon.textContent=icon;bText.innerHTML=html;}
+  // scored plan: two rotate-to-match at different disparities (for slope) + one mirror MC
+  var scored=[
+    {kind:"rot",disp:135,label:"Scored 1 — rotate to match (Δ135°)"},
+    {kind:"rot",disp:180,label:"Scored 2 — rotate to match (Δ180°)"},
+    {kind:"mir",label:"Scored 3 — tap the true rotation (not the mirror)"}
+  ];
+
+  function startDemo(){
+    phase="demo"; pill.textContent="DEMO"; interactive=false; showHint=true; snap=45;
+    buildStage(); mc.style.display="none"; lockBtn.style.display=""; lockBtn.disabled=true; nextBtn.style.display="none";
+    setBanner("👀","<b>Watch.</b> The hand spins the flag until it matches the dashed target.");
+    setTarget(90); setMove(0);
+    var hand=document.getElementById("hand"); hand.style.display="";
+    var loops=0;
+    function anim(){
+      var from=0,to=90,dur=2200,t0=performance.now();
+      function step(now){var k=Math.min(1,(now-t0)/dur);var e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
+        setMove(from+(to-from)*e);
+        var r=svg.getBoundingClientRect();var ang=(moveAngle-70)*Math.PI/180;
+        var hx=r.left+ (CX+52*Math.cos(ang))*(r.width/400); var hy=r.top+ (CY+52*Math.sin(ang))*(r.height/360);
+        hand.style.left=(hx-6)+"px"; hand.style.top=(hy+window.scrollY-6)+"px";
+        if(k<1){requestAnimationFrame(step);} else {beep(660);setMove(90);
+          setTimeout(function(){loops++; if(loops<2){setMove(0);setTimeout(anim,500);} else {hand.style.display="none";startWarmup();}},700);} }
+      requestAnimationFrame(step);
+    }
+    setTimeout(anim,500);
+  }
+
+  function startWarmup(){
+    phase="warmup"; pill.textContent="WARM-UP"; interactive=true; showHint=true; snap=45; lastDir=0;
+    buildStage(); setTarget(135); setMove(0); lockBtn.disabled=true;
+    setBanner("✋","<b>Your turn (practice).</b> Drag the flag to spin it onto the dashed target. It turns green when it matches.");
+    Tel.beginItem("Warm-up (unscored)"); render();
+    lockBtn.onclick=function(){
+      if(aligned()){beep(720);Tel.line("warm-up matched ✔","done");setBanner("✅","<b>Nice!</b> That is a match. Now some real ones — no green helper this time.");}
+      else{Tel.line("warm-up locked at "+norm(moveAngle)+"° (target "+targetAngle+"°)","miss");setBanner("↻","<b>Almost.</b> Keep turning until it sits exactly on the dashed shape, then Lock.");return;}
+      lockBtn.style.display="none"; nextBtn.style.display=""; nextBtn.textContent="Start scored ▶";
+      nextBtn.onclick=function(){scoredIdx=0;runScored();};
+    };
+  }
+
+  function runScored(){
+    if(scoredIdx>=scored.length){return finish();}
+    var it=scored[scoredIdx];
+    phase="scored"; pill.textContent="SCORED "+(scoredIdx+1)+"/"+scored.length;
+    showHint=false; nextBtn.style.display="none"; mc.style.display="none"; lockBtn.style.display=""; lockBtn.disabled=true; lastDir=0;
+    if(it.kind==="rot"){
+      interactive=true; buildStage(); var t=45*Math.round((it.disp)/45); setTarget(t); setMove(0);
+      setBanner("🎯","<b>Rotate to match.</b> Turn the flag onto the dashed target, then Lock. (No green helper.)");
+      Tel.beginItem(it.label); render();
+      lockBtn.onclick=function(){
+        var rt=performance.now()-Tel.itemStart; Tel.rts.push(rt);
+        var ok=aligned(); var absDisp=Math.min(norm(targetAngle),360-norm(targetAngle))||norm(targetAngle);
+        Tel.scored++; if(ok){Tel.correct++;Tel.rotPts.push({a:it.disp,rt:rt});Tel.diff=Math.max(Tel.diff,it.disp);
+          Tel.line("LOCK "+norm(moveAngle)+"° = target ✔  RT="+Math.round(rt)+"ms","done");document.getElementById("mErr").textContent="—";}
+        else{var off=Math.abs(norm(moveAngle)-targetAngle); off=Math.min(off,360-off);
+          var et=(off<=snap)?"near-miss (1 step)":"gross";
+          document.getElementById("mErr").textContent=et+" ("+off+"°)";
+          Tel.line("LOCK "+norm(moveAngle)+"° ✗ target "+targetAngle+"° — "+et,"miss");}
+        document.getElementById("mSA").textContent=Math.round(rt)+"ms · "+(ok?"correct":"wrong");
+        render(); advance();
+      };
+    } else { // mirror MC
+      interactive=false; buildStage(); setTarget(60); setMove(60); // show a "target" flag, upright-ish
+      // build 3 options: 2 pure rotations of the flag, 1 mirror
+      Tel.beginItem(it.label); Tel.mirrorTrials++;
+      setBanner("🪞","<b>Which one is the SAME flag, just turned?</b> One is a mirror (flipped) — avoid it. Tap your pick, then Lock.");
+      // present target big at center, options below
+      svg.innerHTML=""; var gt=document.createElementNS(SVGNS,"g");
+      gt.setAttribute("transform","translate(200,120) rotate(0) scale(1.15)"); gt.appendChild(shape("#6366f1","#3730a3",false)); svg.appendChild(gt);
+      var lbl=document.createElementNS(SVGNS,"text");lbl.setAttribute("x","200");lbl.setAttribute("y","30");lbl.setAttribute("text-anchor","middle");lbl.setAttribute("fill","#64748b");lbl.textContent="TARGET";svg.appendChild(lbl);
+      mc.style.display="flex"; mc.innerHTML="";
+      var opts=[{rot:120,mir:false},{rot:210,mir:true},{rot:300,mir:false}];
+      // shuffle
+      for(var i=opts.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var tmp=opts[i];opts[i]=opts[j];opts[j]=tmp;}
+      var sel=-1;
+      opts.forEach(function(o,idx){
+        var d=document.createElement("div");d.className="opt";
+        var s=document.createElementNS(SVGNS,"svg");s.setAttribute("viewBox","-60 -60 120 120");
+        var g=document.createElementNS(SVGNS,"g");
+        g.setAttribute("transform","rotate("+o.rot+")"+(o.mir?" scale(-1,1)":""));
+        g.appendChild(shape("#818cf8","#3730a3",false)); s.appendChild(g); d.appendChild(s);
+        d.onclick=function(){Tel.first("tap option");sel=idx;o.chosen=true;
+          Array.prototype.forEach.call(mc.children,function(c){c.classList.remove("sel")}); d.classList.add("sel");
+          lockBtn.disabled=false; opts.forEach(function(x){x.chosen=false}); o.chosen=true;};
+        mc.appendChild(d); o.el=d;
+      });
+      lockBtn.onclick=function(){ if(sel<0)return;
+        var rt=performance.now()-Tel.itemStart; Tel.rts.push(rt); Tel.scored++;
+        var pick=opts[sel]; var ok=!pick.mir;
+        if(ok){Tel.correct++;Tel.line("picked a pure rotation ✔  RT="+Math.round(rt)+"ms","done");document.getElementById("mErr").textContent="—";}
+        else{Tel.mirrorFA++;document.getElementById("mErr").textContent="mirror false-alarm";Tel.line("picked the MIRROR foil ✗","miss");}
+        render(); advance();
+      };
+    }
+  }
+  function advance(){
+    interactive=false; dragging=false; lockBtn.disabled=true; lockBtn.style.display="none";
+    nextBtn.style.display=""; nextBtn.textContent=(scoredIdx<scored.length-1)?"Next ▶":"See results ▶";
+    nextBtn.onclick=function(){scoredIdx++;runScored();};
+  }
+  function finish(){
+    phase="done"; pill.textContent="DONE"; svg.innerHTML=""; mc.style.display="none"; lockBtn.style.display="none"; nextBtn.style.display="";
+    nextBtn.textContent="↻ Run again"; nextBtn.onclick=function(){location.reload();};
+    var sl=Tel.slope();
+    setBanner("🏁","<b>Session complete.</b> Accuracy "+Tel.correct+"/"+Tel.scored+" · rotation rate "+(sl!==null?sl.toFixed(1)+" ms/° (M-ROTSLOPE)":"—")+" · mirror FA "+Tel.mirrorFA+"/"+Tel.mirrorTrials+". These per-child signals sharpen tail placement.");
+    Tel.line("── session summary ──");
+    Tel.line("M-ACC="+Tel.correct+"/"+Tel.scored+"  meanRT="+Math.round(Tel.mean(Tel.rts))+"ms  RTcv="+Tel.cv(Tel.rts).toFixed(2));
+    Tel.line("M-ROTSLOPE="+(sl!==null?sl.toFixed(1)+" ms/°":"n/a")+"  M-MIRRORFA="+Tel.mirrorFA+"/"+Tel.mirrorTrials+"  M-DIFFREACH="+Tel.diff+"°");
+    render();
+  }
+  buildStage(); render(); startDemo();
+})();
+</script>
+</body>
+</html>

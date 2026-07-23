@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VER-STORYQUEST-01 - Story Quest</title>
+<style>
+  :root{--bg:#0f1226;--panel:#181c3a;--card:#20264f;--ink:#f4f6ff;--mut:#9aa3d4;--acc:#ffd23f;
+    --good:#37d67a;--bad:#ff6b6b;--line:#2c3566;--brand:#7c8cff}
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.45 system-ui,Segoe UI,Roboto,sans-serif;color:var(--ink);min-height:100vh;
+    background:radial-gradient(1200px 600px at 20% -10%,#2a2f66 0,var(--bg) 55%)}
+  .wrap{display:flex;gap:18px;max-width:1180px;margin:0 auto;padding:18px;flex-wrap:wrap}
+  .main{flex:1 1 560px;min-width:340px}.side{flex:1 1 320px;min-width:300px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px}
+  header.card{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-bottom:14px}
+  h1{font-size:18px;margin:0}.id{font:12px ui-monospace,monospace;color:var(--mut)}
+  .pill{font:12px ui-monospace,monospace;padding:4px 10px;border-radius:999px;background:#12163a;border:1px solid var(--line);color:var(--acc)}
+  .bar{height:10px;background:#12163a;border:1px solid var(--line);border-radius:999px;overflow:hidden;margin:2px 0 12px}
+  .bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--brand),var(--good));transition:width .4s}
+  .scene{font-size:56px;text-align:center;background:linear-gradient(180deg,#1a2350,#141a3c);border:1px solid var(--line);border-radius:16px;padding:16px;letter-spacing:6px}
+  .story{background:#161a3d;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:10px 0;font-size:16px}
+  .depthtag{font:11px ui-monospace,monospace;color:var(--brand);margin-top:8px}
+  .q{font-weight:700;margin:10px 0 6px}
+  .opts button{display:block;width:100%;text-align:left;margin:7px 0;padding:11px 13px;border-radius:11px;border:1px solid var(--line);background:#20264f;color:var(--ink);cursor:pointer;font-size:15px}
+  .opts button:hover{border-color:var(--brand)}
+  .opts button.good{border-color:var(--good);background:#1f5138}.opts button.part{border-color:var(--acc);background:#4a441f}.opts button.bad{border-color:var(--bad);background:#5a2330}
+  .opts button:disabled{cursor:default}
+  .promptbar{display:flex;align-items:center;gap:10px;margin-top:6px}
+  .play{width:48px;height:48px;border-radius:50%;border:none;cursor:pointer;font-size:19px;color:#fff;background:linear-gradient(160deg,var(--brand),#4d5bd6);box-shadow:0 6px 18px #0006}
+  .play.pulse{animation:pulse 1s infinite}@keyframes pulse{0%,100%{box-shadow:0 0 0 0 #7c8cff88}50%{box-shadow:0 0 0 12px #7c8cff00}}
+  .hintbtn{border:1px solid var(--line);color:var(--acc);border-radius:10px;padding:8px 12px;cursor:pointer;background:#242a56;font-size:13px}
+  .gems{margin-left:auto;font-size:20px;letter-spacing:2px}
+  .feedback{min-height:24px;margin-top:10px;font-weight:600}
+  .row{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+  button.btn{border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:9px 16px;cursor:pointer;background:#242a56}
+  button.btn.primary{background:linear-gradient(160deg,var(--good),#1f9e5a);border:none;color:#04240f;font-weight:700}
+  button.btn:disabled{opacity:.4;cursor:not-allowed}
+  .tallies{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 12px}
+  .t{background:#12163a;border:1px solid var(--line);border-radius:12px;padding:10px}
+  .t .k{font:11px ui-monospace,monospace;color:var(--mut)}.t .v{font-size:19px;font-weight:700}.t .m{font:10px ui-monospace,monospace;color:var(--brand)}
+  .log{height:220px;overflow:auto;background:#0c0f28;border:1px solid var(--line);border-radius:12px;padding:10px;font:12px/1.5 ui-monospace,Menlo,monospace}
+  .log div{white-space:pre-wrap;border-bottom:1px dashed #1c2350;padding:2px 0}.log .mid{color:var(--acc)}.log .tt{color:var(--mut)}
+  .hand{position:fixed;z-index:50;font-size:38px;pointer-events:none;opacity:0;filter:drop-shadow(0 3px 4px #0008);transition:left .8s cubic-bezier(.5,.1,.3,1),top .8s cubic-bezier(.5,.1,.3,1),opacity .3s}
+  .ripple{position:fixed;z-index:49;width:10px;height:10px;border-radius:50%;background:var(--acc);pointer-events:none;opacity:.8;animation:rip .6s forwards}@keyframes rip{to{transform:scale(9);opacity:0}}
+  .note{font-size:12px;color:var(--mut);margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="main">
+    <header class="card"><div><h1>Story Quest</h1><div class="id">VER-STORYQUEST-01 &middot; inference_reading_comprehension</div></div><span class="pill" id="phase">DEMO</span></header>
+    <div class="card">
+      <div class="bar"><i id="prog"></i></div>
+      <div class="scene" id="scene"></div>
+      <div class="story" id="story"></div>
+      <div class="depthtag" id="depth"></div>
+      <div class="q" id="q"></div>
+      <div class="opts" id="opts"></div>
+      <div class="promptbar">
+        <button class="play" id="play">&#9654;</button>
+        <button class="hintbtn" id="hint">&#128161; Hint</button>
+        <span class="gems" id="gems"></span>
+      </div>
+      <div class="feedback" id="fb"></div>
+      <div class="row"><button class="btn" id="replay">&#8635; Replay demo</button><button class="btn primary" id="next" disabled>Next &rarr;</button></div>
+      <div class="note">Young bands listen (audio + picture answers); older bands read passages and give a rubric-scored response. Probes escalate literal &rarr; local &rarr; global &rarr; author's-purpose, so one story yields an inference-depth curve.</div>
+    </div>
+  </div>
+  <aside class="side"><div class="card">
+    <h1 style="font-size:15px;margin:0 0 8px">Live telemetry</h1>
+    <div class="tallies">
+      <div class="t"><div class="k">MCQ accuracy</div><div class="v" id="v-acc">0/0</div><div class="m">M-ACC</div></div>
+      <div class="t"><div class="k">Theme partial-credit</div><div class="v" id="v-poly">0/0</div><div class="m">M-POLY</div></div>
+      <div class="t"><div class="k">Max inference depth</div><div class="v" id="v-depth">0</div><div class="m">M-INFDEPTH</div></div>
+      <div class="t"><div class="k">Hints used</div><div class="v" id="v-hint">0</div><div class="m">M-HINT</div></div>
+      <div class="t"><div class="k">Progress</div><div class="v" id="v-prog">0%</div><div class="m">M-PROG</div></div>
+      <div class="t"><div class="k">Time on probe</div><div class="v" id="v-persist">&mdash;</div><div class="m">M-PERSIST / M-RT</div></div>
+    </div>
+    <div class="log" id="log"></div>
+  </div></aside>
+</div>
+<div class="hand" id="hand">&#128070;</div>
+<script>
+"use strict";
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));const $=s=>document.querySelector(s);const T0=performance.now();
+const DEPTHNAME={1:"literal",2:"local inference",3:"global / prediction",4:"author's purpose / theme"};
+const DEMO_P={scene:"🧒🍪🫙",text:"A child reaches for the cookie jar.",q:"How does the child feel?",
+  opts:[{t:"😀 Excited",correct:true,depth:1},{t:"😴 Sleepy",depth:0}]};
+const WARMUP_P={scene:"🐶🎾",text:"The dog sees his favorite ball.",q:"What does the dog want?",
+  opts:[{t:"To play with the ball",correct:true,depth:1},{t:"To take a bath",depth:0},{t:"To read a book",depth:0}],
+  hint:"Look at what the dog is looking at."};
+const PROBES=[
+  {scene:"🦊 📦🔒",text:"Pip the fox found a shiny box. It was locked. Pip really wanted to see what was inside.",
+   q:"What did Pip find?",depth:1,hint:"Look at what Pip is holding.",
+   opts:[{t:"A locked box",correct:true,depth:1},{t:"A red ball",depth:0},{t:"A little bird",depth:0}]},
+  {scene:"🦊🔎🗝️",text:"Pip looked under a big rock. There was a key!",
+   q:"Why is Pip glad to see the key?",depth:2,hint:"Remember - the box was locked.",
+   opts:[{t:"The key might open the locked box",correct:true,depth:2},{t:"Pip likes shiny rocks",depth:0},{t:"The key is cold",depth:0}]},
+  {scene:"🦊📦➡️🗺️",text:"Click! The box opened. Inside was a map to the berry patch.",
+   q:"What will Pip most likely do next?",depth:3,hint:"Think about what Pip wanted from the start.",
+   opts:[{t:"Follow the map to find the berries",correct:true,depth:3},{t:"Put the map back and nap",depth:0},{t:"Eat the box",depth:0}]},
+  {scene:"🦊🌟🫐",text:"Pip smiled. The berries were the sweetest he had ever tasted.",
+   q:"What is the big idea of this story?",depth:4,poly:true,hint:"Think about HOW Pip solved his problem.",
+   opts:[{t:"Being curious and not giving up leads to a reward",credit:2,depth:4},
+         {t:"Looking carefully helps you solve problems",credit:2,depth:4},
+         {t:"Foxes should stay home",credit:0,depth:0},
+         {t:"Boxes are dangerous",credit:0,depth:0}]},
+];
+let phase="demo",idx=0,cur=null,tShown=0,answered=false,hintUsed=false;
+let accN=0,accC=0,polySum=0,polyMax=0,depthMax=0,hints=0,gems=0;
+function log(mid,msg){const el=document.createElement("div");const t=((performance.now()-T0)/1000).toFixed(2);el.innerHTML=`<span class="tt">t+${t}s</span> <span class="mid">[${mid}]</span> ${msg}`;const b=$("#log");b.appendChild(el);b.scrollTop=b.scrollHeight;}
+function speak(t){try{if(window.speechSynthesis){const u=new SpeechSynthesisUtterance(t);u.rate=.95;speechSynthesis.cancel();speechSynthesis.speak(u);}}catch(e){}}
+function setPhase(p){phase=p;$("#phase").textContent=p.toUpperCase();}
+function setProg(){const pct=Math.round((idx/PROBES.length)*100);$("#prog").style.width=pct+"%";$("#v-prog").textContent=pct+"%";}
+function renderProbe(p,{interactive=true,scored=true}={}){
+  cur=p;answered=false;hintUsed=false;
+  $("#scene").textContent=p.scene;$("#story").textContent=p.text;
+  $("#depth").textContent= scored?("probe depth: "+p.depth+" ("+DEPTHNAME[p.depth]+")"):"warm-up (unscored)";
+  $("#q").textContent=p.q;$("#fb").textContent="";$("#next").disabled=true;$("#hint").disabled=!p.hint;
+  const g=$("#opts");g.innerHTML="";
+  p.opts.forEach((o,i)=>{const b=document.createElement("button");b.textContent=o.t;b.dataset.i=i;
+    if(interactive)b.addEventListener("click",()=>answer(o,b,scored));g.appendChild(b);});
+  tShown=performance.now();speak(p.text);
+}
+function answer(o,b,scored){
+  if(answered)return;answered=true;
+  const rt=Math.round(performance.now()-tShown);
+  [...$("#opts").children].forEach(x=>x.disabled=true);
+  const poly=!!cur.poly;
+  if(poly){b.classList.add(o.credit===2?"good":o.credit===1?"part":"bad");}
+  else{b.classList.add(o.correct?"good":"bad");if(!o.correct){[...$("#opts").children].find(x=>cur.opts[+x.dataset.i].correct)?.classList.add("good");}}
+  $("#v-persist").textContent=rt+"ms";
+  log("M-RT",`probe ${idx+1} answered in ${rt}ms`);
+  if(rt>4000&&cur.depth>=3)log("M-PERSIST",`sustained ${rt}ms on a deep probe (engaged effort)`);
+  if(!scored){log("M-ENGAGE",`warm-up probe (unscored)`);$("#fb").textContent=o.correct?"Nice!":"Good try.";$("#fb").style.color=o.correct?"var(--good)":"var(--mut)";$("#next").disabled=false;return;}
+  if(poly){
+    polySum+=o.credit;polyMax+=2;log("M-POLY",`theme answer credit ${o.credit}/2`);
+    if(o.credit>0){depthMax=Math.max(depthMax,o.depth);log("M-INFDEPTH",`reached depth ${o.depth} (${DEPTHNAME[o.depth]}) -> max ${depthMax}`);gems++;}
+    $("#fb").textContent=o.credit===2?"★ Deep idea - gem earned!":o.credit===1?"On the way there.":"That's not the theme.";
+    $("#fb").style.color=o.credit===2?"var(--good)":o.credit===1?"var(--acc)":"var(--bad)";
+  }else{
+    accN++;const correct=!!o.correct;if(correct)accC++;
+    log("M-ACC",`probe ${idx+1}: ${correct?"CORRECT":"incorrect"} (depth ${cur.depth})`);
+    if(correct){depthMax=Math.max(depthMax,o.depth);log("M-INFDEPTH",`reached depth ${o.depth} (${DEPTHNAME[o.depth]}) -> max ${depthMax}`);gems++;}
+    $("#fb").textContent=correct?"★ Correct - gem earned!":"Not quite.";$("#fb").style.color=correct?"var(--good)":"var(--bad)";
+  }
+  renderGems();updateTallies();$("#next").disabled=false;
+}
+function renderGems(){$("#gems").textContent="💎".repeat(gems);}
+function updateTallies(){$("#v-acc").textContent=`${accC}/${accN}`;$("#v-poly").textContent=`${polySum}/${polyMax||0}`;$("#v-depth").textContent=depthMax;$("#v-hint").textContent=hints;}
+function ripple(x,y){const d=document.createElement("div");d.className="ripple";d.style.left=(x-5)+"px";d.style.top=(y-5)+"px";document.body.appendChild(d);setTimeout(()=>d.remove(),620);}
+async function ghostGlide(target){const hand=$("#hand");const pb=$("#play").getBoundingClientRect();hand.style.left=(pb.left+10)+"px";hand.style.top=(pb.top+20)+"px";hand.style.opacity="1";await sleep(60);
+  const r=target.getBoundingClientRect();hand.style.left=(r.left+r.width/2-8)+"px";hand.style.top=(r.top+r.height/2)+"px";await sleep(820);ripple(r.left+r.width/2,r.top+r.height/2);await sleep(500);hand.style.opacity="0";}
+async function runDemo(){setPhase("demo");$("#next").disabled=true;$("#replay").disabled=true;setProg();
+  renderProbe(DEMO_P,{interactive:false,scored:false});log("M-ENGAGE","wordless ghost-hand demo start (<10s, no instructions)");
+  $("#play").classList.add("pulse");await sleep(1100);const b=$("#opts").children[0];await ghostGlide(b);b.classList.add("good");$("#play").classList.remove("pulse");await sleep(500);$("#replay").disabled=false;startWarmup();}
+function startWarmup(){setPhase("warmup");renderProbe(WARMUP_P,{interactive:true,scored:false});$("#fb").textContent="Your turn - tap your answer.";$("#fb").style.color="var(--mut)";log("M-ENGAGE","unscored warm-up shown");}
+function startScored(){setPhase("scored");idx=0;setProg();renderProbe(PROBES[0],{interactive:true,scored:true});log("M-ENGAGE","scoring begins - story quest (probes escalate in inference depth)");}
+function next(){if(phase==="warmup"){startScored();return;}if(phase==="scored"){idx++;setProg();if(idx<PROBES.length)renderProbe(PROBES[idx],{interactive:true,scored:true});else finish();}}
+function finish(){setPhase("done");$("#prog").style.width="100%";$("#v-prog").textContent="100%";$("#opts").innerHTML="";$("#q").textContent="";$("#depth").textContent="";
+  $("#scene").textContent="🦊🏆🫐";$("#story").textContent="Quest complete!";$("#next").disabled=true;$("#hint").disabled=true;$("#play").classList.remove("pulse");
+  $("#fb").innerHTML=`MCQ ${accC}/${accN}; theme ${polySum}/${polyMax}; max inference depth ${depthMax}; hints ${hints}.`;$("#fb").style.color="var(--good)";
+  log("M-PROG",`all ${PROBES.length} probes complete; depth curve captured`);}
+$("#play").addEventListener("click",()=>{if(cur)speak(cur.text);});
+$("#hint").addEventListener("click",()=>{if(!cur||!cur.hint||answered)return;if(!hintUsed){hintUsed=true;hints++;log("M-HINT",`hint used on probe ${idx+1} (hint-free solving is stronger evidence)`);updateTallies();}$("#fb").textContent="💡 "+cur.hint;$("#fb").style.color="var(--acc)";});
+$("#next").addEventListener("click",next);
+$("#replay").addEventListener("click",()=>{accN=accC=polySum=polyMax=depthMax=hints=gems=0;$("#log").innerHTML="";renderGems();updateTallies();runDemo();});
+updateTallies();runDemo();
+</script>
+</body>
+</html>

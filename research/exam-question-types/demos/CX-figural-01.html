@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CX-figural-01 — Squiggle Studio</title>
+<style>
+  :root{--bg:#1a1030;--card:#271846;--ink:#f7f0ff;--muted:#c3b0e8;--acc:#ff8fd0;--gold:#ffd35c;}
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.4 system-ui,Segoe UI,Roboto,sans-serif;color:var(--ink);background:radial-gradient(circle at 20% 0%,#331e5c,#1a1030)}
+  header{padding:14px 20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  header h1{font-size:18px;margin:0}
+  .badge{font-size:12px;color:var(--muted);border:1px solid #4a3573;padding:2px 8px;border-radius:999px}
+  .wrap{display:grid;grid-template-columns:1fr 330px;gap:16px;padding:0 20px 30px;max-width:1100px}
+  @media(max-width:820px){.wrap{grid-template-columns:1fr}}
+  .stage{background:var(--card);border-radius:18px;padding:16px;position:relative}
+  .phaseTag{position:absolute;top:12px;right:14px;font-size:12px;color:var(--gold);background:#3a2140;border:1px solid #6a4a5f;padding:3px 10px;border-radius:999px;z-index:3}
+  .prompt{text-align:center;color:var(--muted);min-height:22px;margin-bottom:8px}
+  .canvasWrap{position:relative;width:520px;max-width:100%;margin:0 auto}
+  canvas{width:100%;height:auto;background:#fdfbff;border-radius:14px;touch-action:none;display:block;cursor:crosshair}
+  .ghost{position:absolute;font-size:38px;pointer-events:none;z-index:5;transition:left .25s linear,top .25s linear;filter:drop-shadow(0 3px 5px rgba(0,0,0,.4))}
+  .tools{display:flex;gap:8px;justify-content:center;margin:10px 0;flex-wrap:wrap;align-items:center}
+  .swatch{width:26px;height:26px;border-radius:50%;cursor:pointer;border:3px solid transparent}
+  .swatch.on{border-color:#fff}
+  button{font:inherit;border:0;border-radius:12px;padding:9px 14px;cursor:pointer;font-weight:600}
+  .new{background:var(--acc);color:#3a0a28}
+  .ghost-btn{background:#3a2a52;color:#eaddff}
+  .labels{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+  .labels div{font-size:26px;background:#fff;border:1px solid #d9c9f2;border-radius:10px;padding:3px 6px;cursor:pointer}
+  .labels input{font:inherit;padding:8px;border-radius:10px;border:2px solid #4a3573;background:#1c1236;color:var(--ink);width:150px}
+  .tele{background:#1c1236;border:1px solid #3d2b63;border-radius:18px;padding:14px;height:fit-content;position:sticky;top:12px}
+  .tele h3{margin:0 0 8px;font-size:14px;color:var(--gold);letter-spacing:.5px}
+  .metrics{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+  .chip{font-size:12px;background:#271846;border:1px solid #4a3573;border-radius:8px;padding:4px 8px}
+  .chip b{color:var(--gold)}
+  .log{font:11px/1.5 ui-monospace,Menlo,Consolas,monospace;color:#d6c6f5;max-height:210px;overflow:auto;background:#150c29;border-radius:10px;padding:8px}
+  .log div{border-bottom:1px solid #241640;padding:1px 0}
+  .note{font-size:11px;color:var(--muted);margin-top:8px}
+  .gallery{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+  .gallery img{width:56px;height:34px;border-radius:6px;border:1px solid #4a3573;object-fit:cover;background:#fff}
+</style>
+</head>
+<body>
+<header>
+  <h1>🎨 Squiggle Studio</h1>
+  <span class="badge">CX-figural-01</span>
+  <span class="badge">bands: K–1 · 2–3 · 4–5 · 6–8</span>
+  <span class="badge">figural creativity</span>
+</header>
+<div class="wrap">
+  <div class="stage">
+    <div class="phaseTag" id="phaseTag">demo</div>
+    <div class="prompt" id="prompt">Watch…</div>
+    <div class="canvasWrap">
+      <canvas id="cv" width="520" height="300"></canvas>
+      <div class="ghost" id="ghost" style="display:none">✏️</div>
+    </div>
+    <div class="tools" id="tools" style="display:none">
+      <span style="font-size:12px;color:var(--muted)">color:</span>
+      <span class="swatch on" style="background:#e8437a" data-c="#e8437a"></span>
+      <span class="swatch" style="background:#3aa0ff" data-c="#3aa0ff"></span>
+      <span class="swatch" style="background:#2fb673" data-c="#2fb673"></span>
+      <span class="swatch" style="background:#7b52d6" data-c="#7b52d6"></span>
+      <span class="swatch" style="background:#222" data-c="#222"></span>
+      <button class="ghost-btn" id="undo">↩ undo</button>
+      <button class="new" id="newIdea">✨ New idea (same squiggle)</button>
+    </div>
+    <div class="labels" id="labels" style="display:none"></div>
+    <div class="gallery" id="gallery"></div>
+    <div class="tools" id="finishRow" style="display:none">
+      <button class="ghost-btn" id="doneBtn">Done → results</button>
+    </div>
+  </div>
+  <div class="tele">
+    <h3>LIVE TELEMETRY</h3>
+    <div class="metrics" id="metrics"></div>
+    <div class="log" id="log"></div>
+    <div class="note">M-IDEAFLU (distinct pictures from one squiggle), M-ELAB (strokes/detail), M-ORIG (rare labels), M-PATH (how far the base line is transformed), M-PERSIST (still creating late).</div>
+  </div>
+</div>
+<script>
+const T={ev:[],m:{},t0:performance.now(),now(){return Math.round(performance.now()-this.t0)},
+  log(a,d){const t=this.now();this.ev.push(Object.assign({t,a},d||{}));const el=document.getElementById('log');
+    const line=document.createElement('div');line.textContent='+'+(t/1000).toFixed(2)+'s  '+a+(d?'  '+JSON.stringify(d):'');el.prepend(line);},
+  set(k,v){this.m[k]=v;this.render();},
+  render(){document.getElementById('metrics').innerHTML=Object.entries(this.m).map(([k,v])=>'<span class="chip"><b>'+k+'</b> '+v+'</span>').join('');}};
+const $=s=>document.querySelector(s);
+const cv=$('#cv'),ctx=cv.getContext('2d'),ghost=$('#ghost'),phaseTag=$('#phaseTag');
+let color='#e8437a',drawing=false,strokes=0,curStrokes=0,curInk=0,paths=[],interp=0,orig=0,scored=false,phaseStart=0;
+const COMMON=['snake','line','worm','squiggle','scribble','wave','string'];
+const LABELS=[['🐍','snake'],['😊','face'],['⛰️','mountain'],['🐟','fish'],['🚗','car'],['🌊','wave'],['🦋','butterfly'],['🌳','tree'],['👽','alien'],['🎈','balloon']];
+
+T.set('phase','demo');T.set('pictures_M-IDEAFLU',0);T.set('strokes_this_M-ELAB',0);T.set('total_strokes',0);T.set('rare_labels_M-ORIG',0);
+
+/* base squiggle */
+const BASE=[[80,180],[150,120],[210,200],[280,110],[350,190],[430,140]];
+function drawBase(){ctx.clearRect(0,0,cv.width,cv.height);ctx.lineCap='round';ctx.lineJoin='round';
+  ctx.strokeStyle='#b9a9d6';ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(BASE[0][0],BASE[0][1]);
+  for(let i=1;i<BASE.length;i++){const[x,y]=BASE[i],[px,py]=BASE[i-1];ctx.quadraticCurveTo(px+ (x-px)/2, py, x, y);}
+  ctx.stroke();curStrokes=0;curInk=0;paths=[];T.set('strokes_this_M-ELAB',0);}
+function pos(e){const r=cv.getBoundingClientRect(),sx=cv.width/r.width,sy=cv.height/r.height;
+  const p=e.touches?e.touches[0]:e;return[(p.clientX-r.left)*sx,(p.clientY-r.top)*sy];}
+function down(e){e.preventDefault();drawing=true;const[x,y]=pos(e);ctx.strokeStyle=color;ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(x,y);paths.push([x,y]);
+  if(scored&&!phaseStart)phaseStart=T.now();
+  if(scored&&curStrokes===0&&interp===0&&strokes===0)T.log('first_action');}
+function move(e){if(!drawing)return;e.preventDefault();const[x,y]=pos(e);const last=paths[paths.length-1];
+  curInk+=Math.hypot(x-last[0],y-last[1]);ctx.lineTo(x,y);ctx.stroke();paths.push([x,y]);}
+function up(){if(!drawing)return;drawing=false;strokes++;curStrokes++;
+  if(scored){T.set('strokes_this_M-ELAB',curStrokes);T.set('total_strokes',strokes);T.log('stroke',{n:curStrokes,ink:Math.round(curInk)});}}
+cv.addEventListener('pointerdown',down);cv.addEventListener('pointermove',move);
+window.addEventListener('pointerup',up);
+
+$('#tools').querySelectorAll('.swatch').forEach(s=>s.onclick=()=>{color=s.dataset.c;
+  $('#tools').querySelectorAll('.swatch').forEach(o=>o.classList.remove('on'));s.classList.add('on');});
+$('#undo').onclick=()=>{drawBase();T.log('undo_all');};
+
+/* labels */
+function showLabels(){const L=$('#labels');L.style.display='flex';L.innerHTML='';
+  LABELS.forEach(([e,name])=>{const d=document.createElement('div');d.textContent=e;d.title=name;d.onclick=()=>saveInterp(name);L.appendChild(d);});
+  const inp=document.createElement('input');inp.placeholder='or type…';inp.onkeydown=ev=>{if(ev.key==='Enter'&&inp.value.trim())saveInterp(inp.value.trim());};L.appendChild(inp);}
+function saveInterp(label){
+  if(curStrokes===0){T.log('label_no_drawing');return;}
+  interp++;const isOrig=!COMMON.includes(label.toLowerCase());if(isOrig)orig++;
+  const thumb=document.createElement('img');thumb.src=cv.toDataURL();$('#gallery').appendChild(thumb);
+  const late=(T.now()-phaseStart)>15000;
+  T.log('SAVE_PICTURE',{label,strokes:curStrokes,ink:Math.round(curInk),original:isOrig,late});
+  T.set('pictures_M-IDEAFLU',interp);T.set('rare_labels_M-ORIG',orig);
+  T.set('late_pictures_M-PERSIST',$('#gallery').querySelectorAll('img').length&&paths?T.m['late_pictures_M-PERSIST']||0:0);
+  const lateCount=(T.m['late_pictures_M-PERSIST']||0)+(late?1:0);T.set('late_pictures_M-PERSIST',lateCount);
+  $('#labels').style.display='none';drawBase();
+}
+$('#newIdea').onclick=()=>{if(curStrokes>0){showLabels();}else{T.log('new_idea_empty');}};
+$('#doneBtn').onclick=finish;
+
+/* ---- ghost demo (programmatic drawing) ---- */
+function runGhost(){
+  drawBase();ghost.style.display='block';$('#prompt').textContent='Watch: one squiggle → many things…';
+  const wrap=$('.canvasWrap').getBoundingClientRect(),cr=cv.getBoundingClientRect();
+  const toScreen=(x,y)=>[(x*cr.width/cv.width)+(cr.left-wrap.left)-10,(y*cr.height/cv.height)+(cr.top-wrap.top)-30];
+  // transformation 1: snake -> add eye + tongue
+  const acts=[
+    ()=>{ctx.strokeStyle='#2fb673';ctx.lineWidth=4;ctx.beginPath();ctx.arc(80,180,10,0,7);ctx.stroke();hand(80,180);}, // head
+    ()=>{ctx.fillStyle='#222';ctx.beginPath();ctx.arc(78,176,2,0,7);ctx.fill();hand(78,176);},                        // eye
+    ()=>{ctx.strokeStyle='#e8437a';ctx.beginPath();ctx.moveTo(70,182);ctx.lineTo(58,178);ctx.stroke();hand(60,180);}, // tongue
+    ()=>{bubbleLabel('🐍 snake');},
+    ()=>{drawBase();$('#prompt').textContent='…again, something different…';},
+    ()=>{ctx.strokeStyle='#3aa0ff';ctx.lineWidth=4;ctx.beginPath();ctx.arc(255,150,70,0,7);ctx.stroke();hand(255,150);}, // face circle
+    ()=>{ctx.fillStyle='#222';ctx.beginPath();ctx.arc(230,140,4,0,7);ctx.fill();ctx.beginPath();ctx.arc(280,140,4,0,7);ctx.fill();hand(255,140);}, // eyes
+    ()=>{ctx.strokeStyle='#e8437a';ctx.beginPath();ctx.arc(255,160,30,0.2,2.9);ctx.stroke();hand(255,185);bubbleLabel('😊 face');},
+  ];
+  let i=0;const run=()=>{if(i>=acts.length){setTimeout(()=>{ghost.style.display='none';startWarm();},900);return;}
+    acts[i]();i++;setTimeout(run,900);};
+  function hand(x,y){const[sx,sy]=toScreen(x,y);ghost.style.left=sx+'px';ghost.style.top=sy+'px';}
+  setTimeout(run,500);
+}
+function bubbleLabel(t){$('#prompt').textContent=t;}
+
+function startWarm(){
+  drawBase();scored=false;phaseTag.textContent='warm-up (practice)';
+  $('#prompt').textContent='Your turn (practice): draw the squiggle into anything!';
+  $('#tools').style.display='flex';
+  $('#finishRow').style.display='none';
+  T.set('phase','warm-up');T.log('phase_warmup');
+  // after first stroke, offer to start real
+  const iv=setInterval(()=>{if(strokes>0){clearInterval(iv);
+    $('#prompt').innerHTML='Nice! <button class="new" onclick="startItem()">Start the real one →</button>';}},300);
+}
+function startItem(){
+  scored=true;interp=0;orig=0;strokes=0;phaseStart=0;$('#gallery').innerHTML='';
+  drawBase();phaseTag.textContent='scored';
+  $('#prompt').innerHTML='<b>How many different things can this ONE squiggle become?</b> Draw one, tap ✨ New idea, repeat!';
+  $('#finishRow').style.display='flex';
+  T.set('phase','scored');T.set('pictures_M-IDEAFLU',0);T.set('total_strokes',0);T.set('rare_labels_M-ORIG',0);
+  T.log('phase_scored');
+}
+function finish(){
+  if(curStrokes>0&&interp===0){saveInterp('untitled');}
+  T.log('SESSION_END',{pictures:interp,total_strokes:strokes,rare_labels:orig});
+  $('#tools').style.display='none';$('#finishRow').style.display='none';$('#labels').style.display='none';
+  $('#prompt').innerHTML='<b style="color:var(--gold);font-size:19px">Gallery complete! 🖼️</b> '+
+    '<div class="note">'+interp+' pictures · '+strokes+' strokes · '+orig+' rare interpretations. '+
+    'Reinterpreting one line many ways — and <i>transforming</i> it, not just tracing — is the figural-creativity signal a multiple-choice test cannot capture.</div>'+
+    '<div class="tools"><button class="new" onclick="location.reload()">↺ Play again</button></div>';
+  T.set('phase','done');
+}
+window.addEventListener('blur',()=>T.log('off_task_blur (M-ENGAGE)'));
+runGhost();
+</script>
+</body>
+</html>

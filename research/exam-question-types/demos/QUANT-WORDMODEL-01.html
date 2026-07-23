@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QUANT-WORDMODEL-01 — Story Model Builder</title>
+<style>
+:root{--bg:#0f1226;--panel:#1b2140;--panel2:#232a52;--accent:#5eead4;--accent2:#f59e0b;--good:#4ade80;--bad:#f87171;--ink:#eef1ff;--muted:#9aa3c7;--a:#f87171;--b:#4ade80;--c:#60a5fa}
+*{box-sizing:border-box}html,body{margin:0}
+body{font:16px/1.45 system-ui,Segoe UI,Roboto,sans-serif;color:var(--ink);background:radial-gradient(1100px 700px at 25% -10%,#123a2e,#0f1226 60%);min-height:100vh}
+.wrap{display:grid;grid-template-columns:1fr 340px;gap:16px;max-width:1120px;margin:0 auto;padding:18px}
+@media(max-width:880px){.wrap{grid-template-columns:1fr}}
+h1{font-size:18px;margin:0 0 2px}.sub{color:var(--muted);font-size:13px;margin-bottom:10px}
+.card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid #313a6b;border-radius:16px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.phasebar{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.pill{font-size:12px;padding:4px 10px;border-radius:999px;background:#2b336a;color:var(--muted);border:1px solid #3a447f}
+.pill.on{background:var(--accent);color:#053;font-weight:700}
+.story{background:#12172f;border:1px solid #2a336a;border-radius:12px;padding:10px 12px;display:flex;gap:10px;align-items:center;margin-bottom:8px}
+.story .txt{font-size:14px}
+.spk{flex:0 0 auto;width:38px;height:38px;border-radius:50%;background:#2b336a;border:2px solid #3a447f;color:var(--ink);font-size:18px;cursor:pointer}
+.plots{display:flex;gap:26px;justify-content:center;align-items:flex-end;height:210px;margin:8px 0;padding:0 10px}
+.barcol{display:flex;flex-direction:column;align-items:center;gap:4px;justify-content:flex-end;height:100%}
+.bar{width:56px;border-radius:8px 8px 0 0;transition:height .35s;display:flex;align-items:flex-start;justify-content:center;color:#0a1020;font-weight:800;padding-top:4px}
+.bar.a{background:var(--a)}.bar.b{background:var(--b)}
+.barlab{font-size:12px;color:var(--muted)}
+.dayrow{text-align:center;font-weight:800;margin-top:4px}
+.equalflag{text-align:center;font-size:22px;min-height:26px;color:var(--good);font-weight:800}
+.controls{display:flex;gap:8px;justify-content:center;align-items:center;margin-top:8px;flex-wrap:wrap}
+.step{width:56px;height:48px;border-radius:12px;background:#2b336a;border:2px solid #3a447f;color:var(--ink);font-size:20px;font-weight:800;cursor:pointer}
+.step:hover{border-color:var(--accent)}
+/* bar-model */
+.model{margin:10px 0}
+.mrow{display:flex;align-items:center;gap:8px;margin:8px 0}
+.mname{width:56px;color:var(--muted);font-size:14px}
+.seg{height:34px;border-radius:8px;display:inline-block;margin-right:3px}
+.seg.k{background:var(--b)}.seg.d{background:var(--accent2)}
+.total{text-align:center;font-weight:800;margin-top:6px}
+.row{display:flex;gap:10px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+button.act{font:600 15px system-ui;padding:10px 16px;border-radius:12px;border:0;cursor:pointer;background:var(--accent);color:#053}
+button.act.ghost{background:#2b336a;color:var(--ink);border:1px solid #3a447f}
+button.act.warn{background:var(--accent2);color:#3a2500}
+button.act:disabled{opacity:.4}
+.fb{text-align:center;font-weight:700;min-height:24px;margin-top:8px}
+.fb.good{color:var(--good)}.fb.bad{color:var(--bad)}.fb.part{color:var(--accent2)}
+.hand{position:fixed;font-size:32px;z-index:40;pointer-events:none;opacity:0;filter:drop-shadow(0 4px 6px rgba(0,0,0,.5));transition:left .4s ease,top .4s ease}
+.tele{font-size:13px}.tele h2{font-size:14px;margin:0 0 8px;color:var(--accent)}
+.metrics{display:grid;grid-template-columns:1fr auto;gap:4px 8px;margin-bottom:10px}
+.metrics div:nth-child(odd){color:var(--muted)}.metrics b{font-variant-numeric:tabular-nums}
+.log{height:180px;overflow:auto;background:#12172f;border:1px solid #2a336a;border-radius:10px;padding:8px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace}
+.log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-acc{color:var(--good)}.t-err{color:var(--bad)}.t-part{color:var(--accent2)}.t-sys{color:var(--muted)}.t-evt{color:#9fb0ff}
+.legend{color:var(--muted);font-size:12px;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <main class="card">
+    <h1>Story Model Builder</h1>
+    <div class="sub">Build the picture of the story and use it to find the answer.</div>
+    <div class="phasebar" id="phasebar"></div>
+    <div class="story"><button class="spk" id="spk" title="read aloud">&#128266;</button><div class="txt" id="story"></div></div>
+
+    <div id="covaryArea">
+      <div class="plots">
+        <div class="barcol"><div class="bar a" id="barA" style="height:0"></div><div class="barlab" id="labA">A</div></div>
+        <div class="barcol"><div class="bar b" id="barB" style="height:0"></div><div class="barlab" id="labB">B</div></div>
+      </div>
+      <div class="dayrow">Day <span id="day">0</span></div>
+      <div class="equalflag" id="flag"></div>
+      <div class="controls">
+        <button class="step" id="backDay">&#8592;</button>
+        <button class="act" id="nextDay">Next day &#8594;</button>
+        <button class="step" id="fwdNone" style="visibility:hidden">.</button>
+      </div>
+      <div class="row"><button class="act warn" id="equalBtn">They're equal now!</button></div>
+    </div>
+
+    <div id="barArea" style="display:none">
+      <div class="model">
+        <div class="mrow"><div class="mname" id="nameK">Kim</div><div id="rowK"></div></div>
+        <div class="mrow"><div class="mname" id="nameS">Sam</div><div id="rowS"></div></div>
+      </div>
+      <div class="total">Total: <b id="mtotal">0</b> &nbsp; (target <b id="mtarget">?</b>)</div>
+      <div class="controls">
+        <span style="color:var(--muted);font-size:13px" id="adjLabel">Kim's blocks</span>
+        <button class="step" id="kMinus">&#8722;</button><div style="min-width:40px;text-align:center;font-weight:800" id="kVal">0</div><button class="step" id="kPlus">&#43;</button>
+      </div>
+      <div class="row"><button class="act" id="answerBtn">Answer</button></div>
+    </div>
+
+    <div class="row"><button class="act ghost" id="hintBtn">Hint</button><button class="act ghost" id="nextBtn" style="display:none">Next</button></div>
+    <div class="fb" id="fb"></div>
+    <div class="hand" id="hand">&#128070;</div>
+  </main>
+  <aside class="card tele">
+    <h2>Live telemetry</h2>
+    <div class="metrics" id="metrics"></div>
+    <div class="log" id="log"></div>
+    <div class="legend">Logs M-POLY (partial credit), M-PROG, M-PATH, M-PERSIST, M-HINT.</div>
+  </aside>
+</div>
+<script>
+(function(){
+  "use strict";
+  var el=function(id){return document.getElementById(id)};
+  var barA=el('barA'),barB=el('barB'),labA=el('labA'),labB=el('labB'),dayEl=el('day'),flag=el('flag'),
+      nextDay=el('nextDay'),backDay=el('backDay'),equalBtn=el('equalBtn'),
+      covaryArea=el('covaryArea'),barArea=el('barArea'),
+      kMinus=el('kMinus'),kPlus=el('kPlus'),kVal=el('kVal'),answerBtn=el('answerBtn'),mtotal=el('mtotal'),mtarget=el('mtarget'),
+      rowK=el('rowK'),rowS=el('rowS'),hintBtn=el('hintBtn'),nextBtn=el('nextBtn'),fb=el('fb'),hand=el('hand'),story=el('story');
+  var T0=Date.now();function perf(){return Date.now()-T0;}
+
+  var Tel={scored:0,polySum:0,polyMax:0,pathLen:0,hintTotal:0,persistSum:0,
+    push:function(cls,msg){var d=document.createElement('div');d.className=cls;d.textContent='['+(perf()/1000).toFixed(2)+'s] '+msg;
+      var g=el('log');g.appendChild(d);g.scrollTop=g.scrollHeight;},
+    render:function(){
+      var poly=Tel.polyMax?Tel.polySum+'/'+Tel.polyMax+' pts':'—';
+      el('metrics').innerHTML=
+        '<div>M-POLY partial</div><b>'+poly+'</b>'+
+        '<div>M-PATH actions</div><b>'+Tel.pathLen+'</b>'+
+        '<div>M-HINT hints</div><b>'+Tel.hintTotal+'</b>'+
+        '<div>M-PERSIST total</div><b>'+Math.round(Tel.persistSum/1000)+' s</b>'+
+        '<div>M-PROG</div><b style="font-size:11px" id="progCell">—</b>';
+    }};
+  function setProg(txt){var c=el('progCell'); if(c)c.textContent=txt;}
+
+  var items=[
+    {phase:'demo',kind:'covary',aS:2,aR:1,bS:0,bR:2,meet:2,story:'Plant A starts at 2 and grows 1 each day. Plant B starts at 0 and grows 2 each day. When are they equal?'},
+    {phase:'warmup',kind:'covary',aS:2,aR:0,bS:0,bR:1,meet:2,story:'A short plant stays at 2. A sprout starts at 0 and grows 1 each day. When are they the same height?'},
+    {phase:'scored',kind:'covary',aS:3,aR:1,bS:0,bR:2,meet:3,maxPts:2,story:'Plant A starts at 3 and grows 1 each day. Plant B starts at 0 and grows 2 each day. Step the days and mark when they are equal.'},
+    {phase:'scored',kind:'bar',diff:3,total:11,target:'k',correctK:4,story:'Sam has 3 more stickers than Kim. Together they have 11. How many does Kim have? Build the bars so the total is 11.',maxPts:2}
+  ];
+  var labels={demo:'1 Watch',warmup:'2 Try',scored:'3 Solve'};
+  var i=-1,cur=null,day=0,K=0,itemStart=0,answered=false;
+
+  function renderPhasebar(){el('phasebar').innerHTML=['demo','warmup','scored'].map(function(p){
+    return '<span class="pill'+(cur&&cur.phase===p?' on':'')+'">'+labels[p]+'</span>';}).join('');}
+
+  function valA(d){return cur.aS+cur.aR*d;}
+  function valB(d){return cur.bS+cur.bR*d;}
+  var UNIT=18;
+  function drawCovary(){
+    var a=valA(day),b=valB(day);
+    barA.style.height=(a*UNIT)+'px';barA.textContent=a;
+    barB.style.height=(b*UNIT)+'px';barB.textContent=b;
+    labA.textContent='Plant A';labB.textContent='Plant B';
+    dayEl.textContent=day;
+    if(a===b&&day>0){flag.textContent='\u2691 EQUAL at '+a+'!';} else {flag.textContent='';}
+    setProg('day '+day+': A='+a+', B='+b+' (gap '+Math.abs(a-b)+')');
+  }
+
+  function drawBar(){
+    rowK.innerHTML=''; rowS.innerHTML='';
+    for(var x=0;x<K;x++){var s=document.createElement('span');s.className='seg k';s.style.width='26px';rowK.appendChild(s);}
+    for(var y=0;y<K;y++){var s2=document.createElement('span');s2.className='seg k';s2.style.width='26px';rowS.appendChild(s2);}
+    for(var z=0;z<3;z++){var d=document.createElement('span');d.className='seg d';d.style.width='26px';rowS.appendChild(d);}
+    var tot=K+(K+3);
+    kVal.textContent=K; mtotal.textContent=tot; mtarget.textContent=cur.total;
+    setProg('Kim='+K+', Sam='+(K+3)+', total='+tot+' (target '+cur.total+')');
+  }
+
+  function load(){
+    i++; if(i>=items.length)return finish();
+    cur=items[i]; answered=false; day=0; K=0;
+    fb.textContent='';fb.className='fb'; nextBtn.style.display='none'; hintBtn.disabled=false;
+    renderPhasebar(); story.textContent=cur.story;
+    if(cur.kind==='covary'){
+      covaryArea.style.display='block';barArea.style.display='none';
+      document.querySelector('#covaryArea .controls').style.visibility = cur.phase==='demo'?'hidden':'visible';
+      equalBtn.style.visibility = cur.phase==='demo'?'hidden':'visible';
+      drawCovary();
+    } else {
+      covaryArea.style.display='none';barArea.style.display='block';drawBar();
+    }
+    itemStart=perf();
+    Tel.push('t-sys','LOAD '+cur.phase+' '+cur.kind+(cur.meet?' meet@day'+cur.meet:'')+(cur.correctK?' Kim='+cur.correctK:''));
+    Tel.render();
+    if(cur.phase==='demo')ghost();
+  }
+
+  nextDay.onclick=function(){ if(answered||cur.phase==='demo')return; day++; Tel.pathLen++; Tel.push('t-evt','next day -> '+day+' (A='+valA(day)+',B='+valB(day)+')'); drawCovary(); };
+  backDay.onclick=function(){ if(answered||cur.phase==='demo'||day<=0)return; day--; Tel.pathLen++; Tel.push('t-evt','back day -> '+day); drawCovary(); };
+  equalBtn.onclick=function(){ if(answered||cur.phase==='demo')return; commitCovary(); };
+
+  function commitCovary(){
+    answered=true;
+    var elapsed=perf()-itemStart;
+    var exact=(day===cur.meet), near=(Math.abs(day-cur.meet)===1);
+    var pts= exact?2 : (near?1:0);
+    if(cur.phase==='scored'){
+      Tel.scored++; Tel.polyMax+=(cur.maxPts||2); Tel.polySum+=pts; Tel.persistSum+=elapsed;
+      Tel.push(exact?'t-acc':(near?'t-part':'t-err'),'ANSWER equal@day'+day+' (meet@'+cur.meet+') -> M-POLY '+pts+'/'+ (cur.maxPts||2)+'  time='+Math.round(elapsed/1000)+'s');
+      if(exact)chime();
+    } else { Tel.push('t-sys',cur.phase.toUpperCase()+': equal@day'+day+(exact?' OK':'')+' — not scored'); }
+    fb.textContent= exact?(cur.phase==='warmup'?'They meet! Now the real story.':'Exactly! They meet at day '+cur.meet+'.'): (near?'So close — off by one day.':'Not yet equal there.');
+    fb.className='fb '+(exact?'good':(near?'part':'bad'));
+    equalBtn.disabled=true; nextBtn.style.display='inline-block'; Tel.render();
+  }
+
+  kMinus.onclick=function(){ if(answered)return; if(K>0){K--;Tel.pathLen++;Tel.push('t-evt','Kim-1 -> '+K);drawBar();} };
+  kPlus.onclick=function(){ if(answered)return; if(K<10){K++;Tel.pathLen++;Tel.push('t-evt','Kim+1 -> '+K);drawBar();} };
+  answerBtn.onclick=function(){ if(answered)return; commitBar(); };
+
+  function commitBar(){
+    answered=true;
+    var elapsed=perf()-itemStart;
+    var tot=K+(K+3);
+    var exact=(tot===cur.total), near=(Math.abs(tot-cur.total)<=2);
+    var pts= exact?2 : (near?1:0);
+    Tel.scored++; Tel.polyMax+=(cur.maxPts||2); Tel.polySum+=pts; Tel.persistSum+=elapsed;
+    Tel.push(exact?'t-acc':(near?'t-part':'t-err'),'ANSWER Kim='+K+' total='+tot+' (target '+cur.total+') -> M-POLY '+pts+'/'+(cur.maxPts||2)+'  time='+Math.round(elapsed/1000)+'s');
+    if(exact)chime();
+    fb.textContent= exact?('Right! Kim has '+K+', Sam has '+(K+3)+'.'): (near?'Structure right, total is off by a little.':'Total is '+tot+', needs '+cur.total+'.');
+    fb.className='fb '+(exact?'good':(near?'part':'bad'));
+    answerBtn.disabled=true; nextBtn.style.display='inline-block'; Tel.render();
+  }
+  nextBtn.onclick=function(){equalBtn.disabled=false;answerBtn.disabled=false;load();};
+
+  hintBtn.onclick=function(){ if(answered)return; Tel.hintTotal++;
+    if(cur.kind==='covary'){flag.style.color='var(--accent2)';fb.textContent='Tip: step forward and watch the gap shrink to 0.';fb.className='fb part';}
+    else {fb.textContent='Tip: Sam is always Kim + 3. Two Kims + 3 must equal '+cur.total+'.';fb.className='fb part';}
+    Tel.push('t-evt','HINT used'); Tel.render(); };
+
+  el('spk').onclick=function(){ try{var u=new SpeechSynthesisUtterance(cur.story);u.rate=.95;window.speechSynthesis.cancel();window.speechSynthesis.speak(u);Tel.push('t-sys','audio narration played');}catch(e){} };
+
+  function ghost(){
+    var t=600;hand.style.opacity='0';
+    for(var d=1;d<=cur.meet;d++){(function(d){setTimeout(function(){
+      var r=nextDay.getBoundingClientRect();hand.style.opacity='1';hand.style.left=(r.left+r.width/2-10)+'px';hand.style.top=(r.top+r.height/2)+'px';
+      setTimeout(function(){day=d;drawCovary();Tel.push('t-sys','ghost: next day '+day+' (A='+valA(day)+',B='+valB(day)+')');},170);
+    },t+d*750);})(d);}
+    var end=t+cur.meet*750+400;
+    setTimeout(function(){flag.textContent='\u2691 EQUAL at '+valA(day)+'!';chime();Tel.push('t-sys','ghost: mark equal @day'+day);},end);
+    setTimeout(function(){hand.style.opacity='0';load();},end+1400);
+  }
+  function chime(){try{var a=new(window.AudioContext||window.webkitAudioContext)();var o=a.createOscillator(),g=a.createGain();
+    o.connect(g);g.connect(a.destination);o.type='sine';o.frequency.setValueAtTime(540,a.currentTime);
+    o.frequency.exponentialRampToValueAtTime(820,a.currentTime+.16);g.gain.setValueAtTime(.1,a.currentTime);
+    g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+.32);o.start();o.stop(a.currentTime+.34);}catch(e){}}
+
+  function finish(){
+    story.textContent='';covaryArea.style.display='none';barArea.style.display='none';hintBtn.style.display='none';fb.textContent='';
+    document.querySelector('.story').style.display='none';
+    var host=el('covaryArea');host.style.display='block';
+    host.innerHTML='<div style="text-align:center;padding:24px"><div style="font-size:44px">\uD83C\uDF31</div>'+
+      '<div style="color:var(--muted)">Story solved! M-POLY captured partial credit: '+Tel.polySum+'/'+Tel.polyMax+' pts.</div></div>';
+    Tel.push('t-sys','SESSION complete: M-POLY '+Tel.polySum+'/'+Tel.polyMax+' pts');
+  }
+  window.addEventListener('blur',function(){Tel.push('t-sys','engagement: focus lost');});
+  Tel.render(); load();
+})();
+</script>
+</body>
+</html>

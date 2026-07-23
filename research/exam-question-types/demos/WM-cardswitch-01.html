@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WM-cardswitch-01 — Rule Swap (DCCS / task-switch)</title>
+<style>
+  :root{--bg:#0e1220;--panel:#171d33;--edge:#2a3358;--ink:#e9edff;--mut:#8b93c0;--accent:#5cc8ff;--good:#5ce39a;--bad:#ff6b8a;--warn:#ffd166;--red:#ff5b6e;--blue:#4a9bff;}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.45 system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);display:flex;min-height:100vh}
+  .main{flex:1;display:flex;flex-direction:column;align-items:center;padding:20px;gap:12px}
+  h1{font-size:19px;margin:.2rem 0}.sub{color:var(--mut);font-size:13px;margin:0;text-align:center;max-width:470px}
+  .badge{display:inline-block;padding:2px 9px;border-radius:99px;background:var(--panel);border:1px solid var(--edge);color:var(--warn);font-size:12px}
+  #ruletoken{font-size:15px;padding:5px 14px;border-radius:99px;background:#20284a;border:1px solid var(--edge);display:flex;align-items:center;gap:8px;min-height:34px}
+  #stage{width:420px;height:210px;background:var(--panel);border:1px solid var(--edge);border-radius:18px;display:flex;align-items:center;justify-content:center;position:relative}
+  .card{width:120px;height:150px;background:#0d1226;border:3px solid var(--edge);border-radius:14px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:60px;opacity:0;transition:opacity .12s,transform .12s;transform:scale(.8)}
+  .card.show{opacity:1;transform:scale(1)}
+  .card.solid{border-style:solid;border-color:#e8ecff}
+  .card.dashed{border-style:dashed;border-color:#e8ecff}
+  .bins{display:flex;gap:60px}
+  .bin{width:130px;height:150px;background:#141a30;border:2px solid var(--edge);border-radius:14px;display:flex;align-items:center;justify-content:center;gap:5px;font-size:52px;cursor:pointer;position:relative}
+  .bin:hover{border-color:var(--accent)}
+  .bin .lab{position:absolute;bottom:-22px;left:0;right:0;text-align:center;font-size:12px;color:var(--mut)}
+  .bin.flash{outline:4px solid var(--good)}
+  .bin.wrong{outline:4px solid var(--bad)}
+  #cue{font-size:26px;height:32px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+  button.ctl{font:inherit;padding:9px 15px;border-radius:10px;border:1px solid var(--edge);background:#20284a;color:var(--ink);cursor:pointer}
+  button.pri{background:var(--accent);color:#062033;border-color:transparent;font-weight:600}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .seg{display:inline-flex;border:1px solid var(--edge);border-radius:10px;overflow:hidden}
+  .seg button{border:0;border-radius:0;padding:7px 12px;background:#182042}
+  .seg button.on{background:var(--warn);color:#3a2c00;font-weight:600}
+  .tel{width:315px;background:var(--panel);border-left:1px solid var(--edge);padding:14px 14px 40px;overflow:auto;font:12px/1.55 ui-monospace,Menlo,Consolas,monospace}
+  .tel h2{font:600 12px system-ui;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:14px 0 6px}
+  .kv{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted #2a3358;padding:2px 0}
+  .kv b{color:var(--accent);font-weight:600}.kv .m{color:var(--mut);font-size:10px}
+  .log{margin-top:6px;max-height:150px;overflow:auto;border:1px solid var(--edge);border-radius:8px;padding:6px;background:#10152a}
+  .log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+</head>
+<body>
+<div class="main">
+  <div style="text-align:center">
+    <h1>🃏 Rule Swap <span class="badge" id="bmode">Card Sort (DCCS)</span></h1>
+    <p class="sub" id="task">Put the card in the matching box. Follow the current rule badge — the rule can change!</p>
+  </div>
+  <div id="ruletoken">🎯 <span id="ruletext">match by…</span></div>
+  <div id="stage"><div class="card" id="card"></div></div>
+  <div class="bins" id="bins"></div>
+  <div id="cue">👀</div>
+  <div class="row">
+    <div class="seg" id="modeseg">
+      <button data-m="dccs" class="on">DCCS switch</button>
+      <button data-m="mixed">Cued (mixed)</button>
+      <button data-m="disc">Discover rule</button>
+    </div>
+  </div>
+  <div class="row">
+    <button class="pri ctl" id="go">▶ Watch how it works</button>
+    <button class="ctl" id="replay" disabled>↺ Replay demo</button>
+  </div>
+  <p class="sub" id="phasehint">A ghost hand shows you first — no reading needed.</p>
+</div>
+<aside class="tel" id="tel"></aside>
+
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const cardEl=$("#card"),binsEl=$("#bins"),cue=$("#cue"),tokenText=$("#ruletext"),token=$("#ruletoken");
+let mode="dccs";
+const SHAPES={star:"★",heart:"♥"};
+const COLORVAL={red:"var(--red)",blue:"var(--blue)"};
+// bins for dccs/mixed keyed by exemplar cards
+const BIN1={color:"red",shape:"star"}, BIN2={color:"blue",shape:"heart"};
+const T={phase:"idle",mode:"dccs",trial:0,rule:"color",
+  acc:[0,0],rtRepeat:[],rtSwitch:[],persev:0,other:0,
+  discRule:"color",discStreak:0,discShifts:0,toCriterion:[],log:[]};
+function mean(a){return a.length?a.reduce((x,y)=>x+y,0)/a.length:0;}
+function med(a){if(!a.length)return 0;const b=[...a].sort((x,y)=>x-y);const m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2;}
+function logE(s){T.log.unshift(`${(performance.now()/1000).toFixed(1)}s · ${s}`);if(T.log.length>60)T.log.pop();}
+function render(){
+  const acc=T.acc[1]?Math.round(100*T.acc[0]/T.acc[1]):0;
+  const sc=Math.round(med(T.rtSwitch)-med(T.rtRepeat));
+  $("#tel").innerHTML=`
+  <h2>Live telemetry · WM-cardswitch-01</h2>
+  <div class="kv"><span>phase</span><b>${T.phase}</b></div>
+  <div class="kv"><span>mode</span><b>${({dccs:"DCCS",mixed:"cued switch",disc:"rule discovery"})[T.mode]}</b></div>
+  <div class="kv"><span>current rule</span><b>${T.mode==="disc"?"hidden":T.rule}</b></div>
+  <div class="kv"><span>trials</span><b>${T.trial}</b></div>
+  <h2>Accuracy <span class="m">M-ACC</span></h2>
+  <div class="kv"><span>correct</span><b>${acc}% (${T.acc[0]}/${T.acc[1]})</b></div>
+  <h2>Shifting cost</h2>
+  <div class="kv"><span>repeat-trial RT <span class="m">M-RT</span></span><b>${Math.round(med(T.rtRepeat))} ms</b></div>
+  <div class="kv"><span>switch-trial RT <span class="m">M-RT</span></span><b>${Math.round(med(T.rtSwitch))} ms</b></div>
+  <div class="kv"><span>switch cost <span class="m">M-SWITCHCOST</span></span><b>${isNaN(sc)?0:sc} ms</b></div>
+  <h2>Error type <span class="m">M-ERRTYPE</span></h2>
+  <div class="kv"><span>perseverative <span class="m">M-PERSEV</span></span><b>${T.persev}</b></div>
+  <div class="kv"><span>other errors</span><b>${T.other}</b></div>
+  ${T.mode==="disc"?`<h2>Discovery <span class="m">M-PATH</span></h2>
+  <div class="kv"><span>rule shifts</span><b>${T.discShifts}</b></div>
+  <div class="kv"><span>trials-to-criterion</span><b>${T.toCriterion.length?T.toCriterion.join(", "):"—"}</b></div>`:""}
+  <div class="log">${T.log.map(l=>`<div>${l}</div>`).join("")}</div>`;
+}
+render();
+
+function glyph(o){return `<span style="color:${COLORVAL[o.color]}">${SHAPES[o.shape]}</span>`;}
+function renderBinsDCCS(){binsEl.innerHTML="";[[BIN1,"box 1"],[BIN2,"box 2"]].forEach(([b,l],i)=>{
+  const d=document.createElement("div");d.className="bin";d.dataset.bin=i+1;d.innerHTML=glyph(b)+`<div class="lab">${l}</div>`;binsEl.appendChild(d);});}
+function renderBinsDisc(){binsEl.innerHTML="";["A","B"].forEach((l,i)=>{const d=document.createElement("div");d.className="bin";d.dataset.bin=i+1;d.style.fontSize="40px";d.textContent=l;binsEl.appendChild(d);});}
+
+function newCardConflict(){ // bivalent: color says one bin, shape says other
+  const combos=[{color:"red",shape:"heart"},{color:"blue",shape:"star"}];
+  return combos[Math.random()*combos.length|0];
+}
+function newCardDisc(){return {color:Math.random()<.5?"red":"blue",shape:Math.random()<.5?"star":"heart",num:Math.random()<.5?1:2};}
+function correctBin(card,rule){
+  if(mode!=="disc"){ if(rule==="color")return card.color===BIN1.color?1:2; return card.shape===BIN1.shape?1:2; }
+  if(rule==="color")return card.color==="red"?1:2;
+  if(rule==="shape")return card.shape==="star"?1:2;
+  return card.num===1?1:2;
+}
+function setToken(rule){
+  if(mode==="disc"){token.style.display="none";return;}token.style.display="flex";
+  token.firstChild.textContent=rule==="color"?"🎨":"🔷";
+  tokenText.textContent=rule==="color"?"match by COLOR":"match by SHAPE";
+}
+
+let cur=null;
+binsEl.addEventListener("pointerdown",e=>{const b=e.target.closest(".bin");if(!b||!cur||cur.done)return;
+  cur.done=true;cur.rt=performance.now()-cur.onset;cur.bin=+b.dataset.bin;cur.ok=cur.bin===cur.correct;
+  b.classList.add(cur.ok?"flash":"wrong");setTimeout(()=>b.classList.remove("flash","wrong"),220);cur.resolve&&cur.resolve();});
+
+async function oneTrial(scored,rule,isSwitch){
+  const card = mode==="disc"?newCardDisc():newCardConflict();
+  const correct=correctBin(card,rule);
+  cardEl.className="card"+(mode==="mixed"?(rule==="color"?" solid":" dashed"):"");
+  if(mode==="disc"){cardEl.innerHTML=(card.num===2?glyph(card)+glyph(card):glyph(card));}
+  else cardEl.innerHTML=glyph(card);
+  setToken(rule);cue.textContent="";await sleep(300);cardEl.classList.add("show");
+  cur={correct,onset:performance.now(),done:false,rule,card,resolve:null};
+  await new Promise(res=>{cur.resolve=res;setTimeout(()=>{if(!cur.done){cur.done=true;cur.timeout=true;res();}},4000);});
+  cardEl.classList.remove("show");
+  if(scored){
+    T.trial++;
+    if(cur.timeout){cue.textContent="🐢";logE("too slow");}
+    else{
+      T.acc[1]++;
+      if(cur.ok){T.acc[0]++;(isSwitch?T.rtSwitch:T.rtRepeat).push(cur.rt);cue.textContent="✅";}
+      else{ // was it a perseverative error (correct under the *previous/other* rule)?
+        const other = mode==="disc"? null : (rule==="color"?"shape":"color");
+        const persevBin = mode==="disc"? correctBin(card,T.prevDiscRule||"color") : correctBin(card,other);
+        if(cur.bin===persevBin)T.persev++;else T.other++;
+        cue.textContent="❌";
+      }
+      logE(`${rule}${isSwitch?"(switch)":""}: box${cur.bin} ${cur.ok?"ok":"err"} ${Math.round(cur.rt)}ms`);
+    }
+  }
+  render();await sleep(mode==="disc"?520:460);cue.textContent="";
+  return cur.ok;
+}
+
+// ----- block runners per mode -----
+async function runDCCS(scored){
+  renderBinsDCCS();T.rule="color";let prev="color";
+  const pre=scored?5:2, post=scored?6:2;
+  for(let i=0;i<pre;i++){await oneTrial(scored,"color",false);prev="color";}
+  // announce switch (wordless: token pulses)
+  T.rule="shape";token.animate([{transform:"scale(1)"},{transform:"scale(1.25)"},{transform:"scale(1)"}],{duration:600});
+  if(scored)logE("↔ RULE SWITCHED to SHAPE");
+  await sleep(500);
+  for(let i=0;i<post;i++){const isSwitch=(i===0);await oneTrial(scored,"shape",isSwitch);}
+}
+async function runMixed(scored){
+  renderBinsDCCS();let prev=null;const n=scored?14:4;
+  for(let i=0;i<n;i++){const rule=Math.random()<.5?"color":"shape";const isSwitch=prev!==null&&rule!==prev;await oneTrial(scored,rule,isSwitch);prev=rule;}
+}
+async function runDisc(scored){
+  renderBinsDisc();const rules=["color","shape","num"];let ri=0;T.discRule=rules[0];T.prevDiscRule=rules[0];T.discStreak=0;let sinceShift=0;
+  const total=scored?18:5;
+  for(let i=0;i<total;i++){
+    sinceShift++;
+    const ok=await oneTrial(scored,T.discRule,false);
+    if(scored){
+      if(ok)T.discStreak++;else T.discStreak=0;
+      if(T.discStreak>=4 && ri<rules.length-1){T.toCriterion.push(sinceShift);sinceShift=0;T.prevDiscRule=T.discRule;ri++;T.discRule=rules[ri];T.discShifts++;T.discStreak=0;logE("↔ hidden rule changed");}
+    }
+  }
+}
+
+// ----- ghost-hand demo -----
+async function demo(){
+  if(T.phase==="demo")return;T.phase="demo";render();$("#go").disabled=true;$("#replay").disabled=true;
+  const sm=mode;mode="dccs";renderBinsDCCS();setToken("color");
+  const card={color:"blue",shape:"star"};cardEl.className="card";cardEl.innerHTML=glyph(card);cardEl.classList.add("show");
+  const ghost=document.createElement("div");ghost.textContent="👆";ghost.style.cssText="position:fixed;font-size:30px;z-index:9;transition:left .45s,top .45s;opacity:0;pointer-events:none";document.body.appendChild(ghost);
+  const bin=[...binsEl.children].find(b=>+b.dataset.bin===2); // blue box (color rule)
+  const r=bin.getBoundingClientRect();
+  await sleep(650);ghost.style.opacity="1";ghost.style.left=(r.left+r.width/2-12)+"px";ghost.style.top=(r.top+8)+"px";
+  await sleep(550);bin.classList.add("flash");cue.textContent="✅";await sleep(300);bin.classList.remove("flash");cardEl.classList.remove("show");
+  await sleep(400);ghost.remove();
+  mode=sm;
+  T.phase="idle";$("#go").disabled=false;$("#replay").disabled=false;
+  $("#go").textContent="▶ Try a practice one";$("#go").onclick=warmup;
+  $("#phasehint").textContent="Match by the rule on the badge. Practice (not scored).";render();
+}
+$("#go").onclick=demo;$("#replay").onclick=demo;
+
+async function warmup(){T.phase="warm-up (unscored)";render();$("#go").disabled=true;$("#replay").disabled=true;
+  if(mode==="dccs")await runDCCS(false);else if(mode==="mixed")await runMixed(false);else await runDisc(false);
+  T.phase="idle";$("#go").disabled=false;$("#replay").disabled=false;
+  $("#go").textContent="▶ Start scored game";$("#go").onclick=startScored;
+  $("#phasehint").textContent="These count. Watch for the rule changing!";render();}
+async function startScored(){T.phase="scored";render();$("#go").disabled=true;$("#replay").disabled=true;
+  if(mode==="dccs")await runDCCS(true);else if(mode==="mixed")await runMixed(true);else await runDisc(true);
+  T.phase="done";$("#go").disabled=false;$("#replay").disabled=false;
+  $("#go").textContent="▶ Play again";$("#go").onclick=startScored;
+  $("#phasehint").textContent=`Done. Perseverative errors (${T.persev}) and switch cost isolate cognitive flexibility — the ability to drop an old rule fast.`;
+  cue.textContent="🏁";render();}
+
+$("#modeseg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  mode=b.dataset.m;T.mode=mode;[...$("#modeseg").children].forEach(x=>x.classList.toggle("on",x===b));
+  $("#bmode").textContent=({dccs:"Card Sort (DCCS)",mixed:"Cued task-switch",disc:"Discover the rule"})[mode];
+  $("#task").innerHTML=({dccs:"Sort by <b>one rule</b>, then the rule <b>switches</b> — can you switch too?",
+    mixed:"Each card's <b>badge/border</b> tells you the rule for THAT card. Switch on the fly.",
+    disc:"No rule is shown — <b>figure it out</b> from ✓/✗ feedback. The secret rule changes without warning!"})[mode];
+  if(mode==="disc")renderBinsDisc();else renderBinsDCCS();
+  logE(`mode → ${mode}`);render();});
+renderBinsDCCS();setToken("color");
+</script>
+</body>
+</html>

@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QUANT-NUMLINE-01 — Number Line Navigator</title>
+<style>
+:root{--bg:#0f1226;--panel:#1b2140;--panel2:#232a52;--accent:#5eead4;--accent2:#f59e0b;--good:#4ade80;--bad:#f87171;--ink:#eef1ff;--muted:#9aa3c7}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font:16px/1.45 system-ui,Segoe UI,Roboto,sans-serif;color:var(--ink);
+  background:radial-gradient(1200px 700px at 20% -10%,#26305e,#0f1226 60%);min-height:100vh}
+.wrap{display:grid;grid-template-columns:1fr 340px;gap:16px;max-width:1120px;margin:0 auto;padding:18px}
+@media(max-width:880px){.wrap{grid-template-columns:1fr}}
+h1{font-size:18px;margin:0 0 2px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:10px}
+.card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid #313a6b;border-radius:16px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.phasebar{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.pill{font-size:12px;padding:4px 10px;border-radius:999px;background:#2b336a;color:var(--muted);border:1px solid #3a447f}
+.pill.on{background:var(--accent);color:#053;font-weight:700}
+.prompt{font-size:15px;color:var(--muted);min-height:22px;margin:6px 0 2px}
+.target{font-size:40px;font-weight:800;letter-spacing:.5px;text-align:center;margin:6px 0 18px}
+.stage{position:relative;padding:40px 26px 26px}
+.line{position:relative;height:10px;background:linear-gradient(90deg,#3a447f,#5a67b8);border-radius:6px;margin:56px 8px 26px}
+.tick{position:absolute;top:-8px;width:2px;height:24px;background:#6b78c0;transform:translateX(-1px)}
+.ticklab{position:absolute;top:20px;font-size:12px;color:var(--muted);transform:translateX(-50%)}
+.end{position:absolute;top:-46px;font-weight:800;font-size:20px;transform:translateX(-50%)}
+.knob{position:absolute;top:50%;left:0;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#fff,var(--accent2));border:3px solid #fff;cursor:grab;touch-action:none;
+  box-shadow:0 6px 16px rgba(245,158,11,.5);z-index:5}
+.knob:active{cursor:grabbing}
+.knob.pulse{animation:pl .5s ease}
+@keyframes pl{0%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.35)}100%{transform:translate(-50%,-50%) scale(1)}}
+.bull{position:absolute;top:50%;height:44px;margin-top:-22px;border-radius:10px;background:rgba(94,234,212,.16);border:1px dashed var(--accent);z-index:1;display:none}
+.readmark{position:absolute;top:50%;width:0;height:0;margin-top:-30px;border-left:9px solid transparent;border-right:9px solid transparent;border-top:16px solid var(--accent2);transform:translateX(-9px);display:none}
+.opts{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:10px}
+.opt{font-size:22px;font-weight:800;padding:10px 18px;border-radius:12px;background:#2b336a;border:2px solid #3a447f;color:var(--ink);cursor:pointer}
+.opt:hover{border-color:var(--accent)}
+.row{display:flex;gap:10px;align-items:center;justify-content:center;margin-top:16px;flex-wrap:wrap}
+button.act{font:600 15px system-ui;padding:10px 18px;border-radius:12px;border:0;cursor:pointer;background:var(--accent);color:#053}
+button.act.ghost{background:#2b336a;color:var(--ink);border:1px solid #3a447f}
+button.act:disabled{opacity:.4;cursor:default}
+.fb{min-height:26px;text-align:center;font-weight:700;margin-top:12px}
+.fb.good{color:var(--good)}.fb.bad{color:var(--bad)}
+.hand{position:absolute;font-size:34px;z-index:20;pointer-events:none;filter:drop-shadow(0 4px 6px rgba(0,0,0,.5));transition:left .9s cubic-bezier(.4,0,.2,1),top .6s ease;opacity:0}
+.tele{font-size:13px}
+.tele h2{font-size:14px;margin:0 0 8px;color:var(--accent)}
+.metrics{display:grid;grid-template-columns:1fr auto;gap:4px 8px;margin-bottom:10px}
+.metrics div:nth-child(odd){color:var(--muted)}
+.metrics b{font-variant-numeric:tabular-nums}
+.log{height:230px;overflow:auto;background:#12172f;border:1px solid #2a336a;border-radius:10px;padding:8px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace}
+.log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-acc{color:var(--good)}.t-err{color:var(--bad)}.t-evt{color:#9fb0ff}.t-sys{color:var(--muted)}
+.legend{color:var(--muted);font-size:12px;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <main class="card">
+    <h1>Number Line Navigator</h1>
+    <div class="sub">Slide the knob to where the number belongs, then Lock it in.</div>
+    <div class="phasebar" id="phasebar"></div>
+    <div class="prompt" id="prompt"></div>
+    <div class="target" id="target"></div>
+    <div class="stage">
+      <div class="line" id="line">
+        <div class="knob" id="knob"></div>
+        <div class="bull" id="bull"></div>
+        <div class="readmark" id="readmark"></div>
+      </div>
+      <div class="opts" id="opts"></div>
+      <div class="row">
+        <button class="act" id="lockBtn">Lock it in</button>
+        <button class="act ghost" id="nextBtn" style="display:none">Next</button>
+      </div>
+      <div class="fb" id="fb"></div>
+    </div>
+    <div class="hand" id="hand">&#128070;</div>
+  </main>
+  <aside class="card tele">
+    <h2>Live telemetry</h2>
+    <div class="metrics" id="metrics"></div>
+    <div class="log" id="log"></div>
+    <div class="legend">Logs M-ACC, M-RTFIRST, M-RT, M-REV, M-ERRTYPE, and proposed <b>M-PAE</b> (placement % error).</div>
+  </aside>
+</div>
+<script>
+(function(){
+  "use strict";
+  var el=function(id){return document.getElementById(id)};
+  var line=el('line'),knob=el('knob'),bull=el('bull'),readmark=el('readmark'),
+      hand=el('hand'),prompt=el('prompt'),target=el('target'),opts=el('opts'),
+      fb=el('fb'),lockBtn=el('lockBtn'),nextBtn=el('nextBtn');
+
+  // ---- Telemetry ----
+  var Tel={
+    scored:0, correct:0, paeSum:0, paeN:0, rtSum:0, rtN:0, firstSum:0, firstN:0, revSum:0,
+    push:function(cls,msg){var d=document.createElement('div');d.className=cls;
+      d.textContent='['+ (perf()/1000).toFixed(2) +'s] '+msg; var L=el('log'); L.appendChild(d); L.scrollTop=L.scrollHeight;},
+    render:function(){
+      var m=el('metrics');
+      var acc=Tel.scored? Math.round(100*Tel.correct/Tel.scored)+'% ('+Tel.correct+'/'+Tel.scored+')':'—';
+      var pae=Tel.paeN? (Tel.paeSum/Tel.paeN).toFixed(1)+'%':'—';
+      var rt=Tel.rtN? Math.round(Tel.rtSum/Tel.rtN)+' ms':'—';
+      var first=Tel.firstN? Math.round(Tel.firstSum/Tel.firstN)+' ms':'—';
+      m.innerHTML=
+        '<div>M-ACC accuracy</div><b>'+acc+'</b>'+
+        '<div>M-PAE mean err</div><b>'+pae+'</b>'+
+        '<div>M-RT mean</div><b>'+rt+'</b>'+
+        '<div>M-RTFIRST mean</div><b>'+first+'</b>'+
+        '<div>M-REV total</div><b>'+Tel.revSum+'</b>';
+    }
+  };
+  var T0=Date.now(); function perf(){return Date.now()-T0;}
+
+  // ---- Items ----
+  // type: 'place' (drag) or 'read' (tap option). frac renders as fraction label.
+  var items=[
+    {phase:'demo',  min:0,max:10, target:5,  tol:0.9, ticks:1, type:'place', label:'5'},
+    {phase:'warmup',min:0,max:10, target:2,  tol:1.2, ticks:1, type:'place', label:'2'},
+    {phase:'scored',min:0,max:100,target:70, tol:5,   ticks:10,type:'place', label:'70'},
+    {phase:'scored',min:0,max:1,  target:0.75,tol:0.04,ticks:0,type:'place', label:'3/4', frac:true},
+    {phase:'scored',min:0,max:1,  target:0.5, tol:0,   ticks:0,type:'read',  atFrac:'1/2', at:0.5,
+       options:[{t:'1/4',v:0.25},{t:'1/2',v:0.5},{t:'2/3',v:0.667},{t:'3/4',v:0.75}]}
+  ];
+  var phaseName={demo:'Ghost demo',warmup:'Warm-up (not scored)',scored:'Scored item'};
+  var idx=-1, cur=null, dragging=false, firstAction=0, itemStart=0, revisions=0, placedVal=null;
+
+  function renderPhasebar(){
+    var order=['demo','warmup','scored'];
+    var labels={demo:'1 Watch',warmup:'2 Try',scored:'3 Solve'};
+    el('phasebar').innerHTML=order.map(function(p){
+      var on = cur && cur.phase===p ? ' on':'';
+      return '<span class="pill'+on+'">'+labels[p]+'</span>';
+    }).join('') + (cur?'<span class="pill">'+phaseName[cur.phase]+'</span>':'');
+  }
+
+  function valToX(v){var w=line.clientWidth; return (v-cur.min)/(cur.max-cur.min)*w;}
+  function xToVal(x){var w=line.clientWidth; var v=cur.min + Math.max(0,Math.min(w,x))/w*(cur.max-cur.min); return v;}
+  function setKnob(v){knob.style.left=valToX(v)+'px';}
+  function fmt(v){ if(cur.max<=1) return (Math.round(v*100)/100); return Math.round(v);}
+
+  function buildTicks(){
+    // remove old ticks
+    [].slice.call(line.querySelectorAll('.tick,.ticklab,.end')).forEach(function(n){n.remove()});
+    var w=line.clientWidth;
+    // endpoints
+    var e0=document.createElement('div');e0.className='end';e0.style.left='0px';e0.textContent=cur.frac?'0':cur.min;line.appendChild(e0);
+    var e1=document.createElement('div');e1.className='end';e1.style.left=w+'px';e1.textContent=(cur.max<=1?'1':cur.max);line.appendChild(e1);
+    if(cur.ticks>0){
+      for(var v=cur.min+cur.ticks; v<cur.max; v+=cur.ticks){
+        var t=document.createElement('div');t.className='tick';t.style.left=valToX(v)+'px';line.appendChild(t);
+        var lb=document.createElement('div');lb.className='ticklab';lb.style.left=valToX(v)+'px';lb.textContent=v;line.appendChild(lb);
+      }
+    }
+  }
+
+  function loadItem(){
+    idx++;
+    if(idx>=items.length){ finish(); return; }
+    cur=items[idx];
+    dragging=false; firstAction=0; revisions=0; placedVal=null;
+    fb.textContent=''; fb.className='fb';
+    opts.innerHTML=''; bull.style.display='none'; readmark.style.display='none';
+    nextBtn.style.display='none';
+    renderPhasebar();
+    buildTicks();
+
+    if(cur.type==='read'){
+      prompt.textContent='What number is the arrow pointing to?';
+      target.textContent='';
+      knob.style.display='none';
+      readmark.style.display='block';
+      readmark.style.left=valToX(cur.at)+'px';
+      lockBtn.style.display='none';
+      cur.options.forEach(function(o){
+        var b=document.createElement('button');b.className='opt';b.textContent=o.t;
+        b.onclick=function(){ if(firstAction===0){firstAction=perf();Tel.push('t-evt','first action (tap option)');} chooseRead(o); };
+        opts.appendChild(b);
+      });
+      itemStart=perf();
+      Tel.push('t-sys','LOAD read-point item ('+cur.atFrac+' on 0-1)');
+    } else {
+      prompt.textContent = cur.frac? 'Place this fraction on the line:' : 'Slide the knob to this number:';
+      target.textContent = cur.label;
+      knob.style.display='block';
+      lockBtn.style.display='inline-block';
+      lockBtn.disabled=false;
+      setKnob(cur.min); // start at left
+      itemStart=perf();
+      Tel.push('t-sys','LOAD '+cur.phase+' place item ('+cur.label+' on '+cur.min+'-'+cur.max+')');
+      if(cur.phase==='demo'){ ghostDemo(); }
+    }
+    Tel.render();
+  }
+
+  // ---- drag handling ----
+  function pointerVal(ev){
+    var r=line.getBoundingClientRect();
+    var cx=(ev.touches?ev.touches[0].clientX:ev.clientX)-r.left;
+    return {x:cx, v:xToVal(cx)};
+  }
+  knob.addEventListener('pointerdown',function(ev){
+    if(cur.phase==='demo'||cur.type==='read') return;
+    dragging=true; knob.setPointerCapture(ev.pointerId);
+    if(firstAction===0){firstAction=perf();Tel.push('t-evt','first action (grab knob)');}
+  });
+  window.addEventListener('pointermove',function(ev){
+    if(!dragging) return;
+    var p=pointerVal(ev); knob.style.left=Math.max(0,Math.min(line.clientWidth,p.x))+'px';
+  });
+  window.addEventListener('pointerup',function(ev){
+    if(!dragging) return; dragging=false;
+    var v=xToVal(parseFloat(knob.style.left));
+    if(placedVal!==null){ revisions++; Tel.push('t-evt','revision #'+revisions+' -> '+fmt(v)); }
+    placedVal=v;
+  });
+
+  lockBtn.onclick=function(){
+    if(cur.phase==='demo') return;
+    if(placedVal===null){ placedVal=xToVal(parseFloat(knob.style.left)||0); }
+    commitPlace(placedVal);
+  };
+
+  function commitPlace(v){
+    var rt=perf()-itemStart;
+    var err=Math.abs(v-cur.target);
+    var pae= 100*err/(cur.max-cur.min);
+    var ok= err<=cur.tol;
+    knob.classList.add('pulse'); setTimeout(function(){knob.classList.remove('pulse')},500);
+    if(cur.phase==='scored'){
+      Tel.scored++; if(ok)Tel.correct++;
+      Tel.paeSum+=pae; Tel.paeN++;
+      Tel.rtSum+=rt; Tel.rtN++;
+      if(firstAction){Tel.firstSum+=(firstAction-itemStart); Tel.firstN++;}
+      Tel.revSum+=revisions;
+      var etype = ok?'correct' : (pae<= (100*cur.tol/(cur.max-cur.min))*2 ? 'near-miss' : (v>cur.target?'over':'under'));
+      Tel.push(ok?'t-acc':'t-err','SCORED '+cur.label+': placed '+fmt(v)+
+        '  PAE='+pae.toFixed(1)+'%  RT='+rt+'ms  rev='+revisions+'  err='+etype);
+    } else {
+      Tel.push('t-sys',cur.phase.toUpperCase()+': placed '+fmt(v)+' (PAE '+pae.toFixed(1)+'%) — not scored');
+    }
+    fb.textContent = ok? (cur.phase==='warmup'?'Nice! You try the real ones now.':'Locked in!') : 'Locked — see the target band.';
+    fb.className='fb '+(ok?'good':'bad');
+    // show target band
+    bull.style.display='block';
+    var bx=valToX(cur.target), bw=Math.max(14, (cur.tol/(cur.max-cur.min))*line.clientWidth*2);
+    bull.style.left=(bx-bw/2)+'px'; bull.style.width=bw+'px';
+    lockBtn.disabled=true;
+    nextBtn.style.display='inline-block';
+    Tel.render();
+  }
+
+  function chooseRead(o){
+    var rt=perf()-itemStart;
+    var ok=Math.abs(o.v-cur.at)<0.01;
+    Tel.scored++; if(ok)Tel.correct++;
+    Tel.rtSum+=rt; Tel.rtN++;
+    if(firstAction){Tel.firstSum+=(firstAction-itemStart);Tel.firstN++;}
+    var etype= ok?'correct':(o.v>cur.at?'over':'under');
+    Tel.push(ok?'t-acc':'t-err','SCORED read '+cur.atFrac+': chose '+o.t+'  RT='+rt+'ms  err='+etype);
+    fb.textContent= ok?'Correct!':'The arrow was at '+cur.atFrac+'.';
+    fb.className='fb '+(ok?'good':'bad');
+    [].slice.call(opts.children).forEach(function(b){b.disabled=true;});
+    nextBtn.style.display='inline-block';
+    Tel.render();
+  }
+
+  nextBtn.onclick=function(){ knob.style.display='block'; lockBtn.style.display='inline-block'; loadItem(); };
+
+  // ---- Ghost hand demo (wordless, < 8s) ----
+  function ghostDemo(){
+    lockBtn.disabled=true;
+    var tx=valToX(cur.target);
+    hand.style.opacity='0';
+    // 1) hand appears at knob
+    setTimeout(function(){ hand.style.transition='none'; hand.style.left=(line.offsetLeft+10)+'px';
+      hand.style.top=(line.offsetTop+70)+'px'; hand.style.opacity='1'; Tel.push('t-sys','ghost: grab knob'); },300);
+    // 2) drag knob + hand to target
+    setTimeout(function(){ hand.style.transition='left .9s cubic-bezier(.4,0,.2,1),top .6s ease';
+      knob.style.transition='left .9s cubic-bezier(.4,0,.2,1)';
+      knob.style.left=tx+'px'; hand.style.left=(line.offsetLeft+tx-6)+'px';
+      Tel.push('t-sys','ghost: glide to '+cur.label); },900);
+    // 3) snap + chime pulse
+    setTimeout(function(){ knob.classList.add('pulse'); beep();
+      bull.style.display='block'; var bx=valToX(cur.target),bw=Math.max(16,(cur.tol/(cur.max-cur.min))*line.clientWidth*2);
+      bull.style.left=(bx-bw/2)+'px';bull.style.width=bw+'px'; Tel.push('t-sys','ghost: lock (snap)'); },2000);
+    // 4) fade hand, advance
+    setTimeout(function(){ hand.style.opacity='0'; knob.style.transition=''; },2900);
+    setTimeout(function(){ bull.style.display='none'; knob.classList.remove('pulse'); loadItem(); },3600);
+  }
+
+  function beep(){ try{var a=new (window.AudioContext||window.webkitAudioContext)();
+    var o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);
+    o.type='sine';o.frequency.setValueAtTime(660,a.currentTime);
+    o.frequency.exponentialRampToValueAtTime(990,a.currentTime+.15);
+    g.gain.setValueAtTime(.12,a.currentTime);g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+.3);
+    o.start();o.stop(a.currentTime+.32);}catch(e){} }
+
+  function finish(){
+    prompt.textContent=''; target.textContent='All done!';
+    document.querySelector('.stage').innerHTML='<div style="text-align:center;padding:30px 0">'+
+      '<div style="font-size:44px">&#127881;</div><div style="color:var(--muted)">Sample complete. Telemetry captured on the right.</div></div>';
+    Tel.push('t-sys','SESSION complete: '+Tel.correct+'/'+Tel.scored+' scored correct');
+  }
+
+  // engagement: track window blur (M-ENGAGE style, background)
+  window.addEventListener('blur',function(){Tel.push('t-sys','engagement: focus lost');});
+
+  Tel.render();
+  loadItem();
+})();
+</script>
+</body>
+</html>

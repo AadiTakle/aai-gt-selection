@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CX-diligence-01 — Effort Garden</title>
+<style>
+  :root{--bg:#121a12;--card:#1a271a;--ink:#eefceb;--muted:#a9c99e;--acc:#8be06a;--gold:#ffd35c;--fun:#ff7ac0;}
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.4 system-ui,Segoe UI,Roboto,sans-serif;color:var(--ink);background:radial-gradient(circle at 20% 0%,#22331f,#121a12)}
+  header{padding:14px 20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  header h1{font-size:18px;margin:0}
+  .badge{font-size:12px;color:var(--muted);border:1px solid #3a5a32;padding:2px 8px;border-radius:999px}
+  .wrap{display:grid;grid-template-columns:1fr 330px;gap:16px;padding:0 20px 30px;max-width:1100px}
+  @media(max-width:820px){.wrap{grid-template-columns:1fr}}
+  .stage{background:var(--card);border-radius:18px;padding:16px;position:relative;min-height:440px}
+  .phaseTag{position:absolute;top:12px;right:14px;font-size:12px;color:var(--gold);background:#243020;border:1px solid #5f5522;padding:3px 10px;border-radius:999px;z-index:5}
+  .prompt{text-align:center;color:var(--muted);min-height:22px;margin-bottom:6px}
+  .timer{text-align:center;font-weight:800;color:var(--gold);font-size:20px;min-height:26px}
+  .panels{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
+  @media(max-width:560px){.panels{grid-template-columns:1fr}}
+  .panel{border-radius:16px;padding:12px;min-height:250px;position:relative;border:3px solid transparent;transition:border-color .15s}
+  .panel.focus{border-color:#fff}
+  .work{background:#12200f}
+  .fun{background:#2a1424}
+  .panel h3{margin:0 0 6px;font-size:14px;text-align:center}
+  .work h3{color:var(--acc)} .fun h3{color:var(--fun)}
+  .plots{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin:8px 0;font-size:26px;min-height:34px}
+  .can{display:block;margin:6px auto;background:#1c3316;border:1px solid #3a5a32;color:#dfffce;border-radius:12px;padding:12px 16px;font:inherit;font-weight:700;cursor:pointer;font-size:18px}
+  .arcade{position:relative;height:150px;background:#1c0f19;border-radius:12px;overflow:hidden;margin-top:6px}
+  .balloon{position:absolute;font-size:32px;cursor:pointer;transition:transform .1s}
+  .score{text-align:center;color:var(--fun);font-weight:700;margin-top:4px}
+  .ghost{position:absolute;font-size:36px;pointer-events:none;z-index:9;transition:left .6s ease,top .6s ease;filter:drop-shadow(0 3px 5px rgba(0,0,0,.5))}
+  .row{display:flex;gap:10px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+  button.go{font:inherit;border:0;border-radius:12px;padding:10px 16px;cursor:pointer;font-weight:700;background:var(--acc);color:#08300a}
+  .tele{background:#12200f;border:1px solid #2f4a28;border-radius:18px;padding:14px;height:fit-content;position:sticky;top:12px}
+  .tele h3{margin:0 0 8px;font-size:14px;color:var(--gold);letter-spacing:.5px}
+  .metrics{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+  .chip{font-size:12px;background:#1a271a;border:1px solid #3a5a32;border-radius:8px;padding:4px 8px}
+  .chip b{color:var(--gold)}
+  .log{font:11px/1.5 ui-monospace,Menlo,Consolas,monospace;color:#c6e6b9;max-height:200px;overflow:auto;background:#0c140a;border-radius:10px;padding:8px}
+  .log div{border-bottom:1px solid #1a2816;padding:1px 0}
+  .note{font-size:11px;color:var(--muted);margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>🌱 Effort Garden</h1>
+  <span class="badge">CX-diligence-01</span>
+  <span class="badge">bands: 2–3 · 4–5 · 6–8</span>
+  <span class="badge">academic diligence / conscientiousness</span>
+</header>
+<div class="wrap">
+  <div class="stage" id="stage">
+    <div class="phaseTag" id="phaseTag">demo</div>
+    <div class="prompt" id="prompt">Watch…</div>
+    <div class="timer" id="timer"></div>
+    <div class="panels">
+      <div class="panel work" id="workPanel">
+        <h3>🌿 Grow the garden (helpful, a little boring)</h3>
+        <div class="plots" id="plots"></div>
+        <button class="can" id="water">💧 Water</button>
+        <div class="score" style="color:var(--acc)" id="grown">plants grown: 0</div>
+      </div>
+      <div class="panel fun" id="funPanel">
+        <h3>🎈 Balloon Pop (just for fun)</h3>
+        <div class="arcade" id="arcade"></div>
+        <div class="score" id="arcScore">score: 0</div>
+      </div>
+    </div>
+    <div class="row" id="row"></div>
+    <div class="ghost" id="ghost" style="display:none">👆</div>
+  </div>
+  <div class="tele">
+    <h3>LIVE TELEMETRY</h3>
+    <div class="metrics" id="metrics"></div>
+    <div class="log" id="log"></div>
+    <div class="note">M-EFFALLOC (share of free time on the useful-but-boring task), M-PERSIST (longest work stretch), M-DRIFT (does effort fade?), M-PATH (switches), M-ENGAGE.</div>
+  </div>
+</div>
+<script>
+const T={ev:[],m:{},t0:performance.now(),now(){return Math.round(performance.now()-this.t0)},
+  log(a,d){const t=this.now();this.ev.push(Object.assign({t,a},d||{}));const el=document.getElementById('log');
+    const line=document.createElement('div');line.textContent='+'+(t/1000).toFixed(2)+'s  '+a+(d?'  '+JSON.stringify(d):'');el.prepend(line);},
+  set(k,v){this.m[k]=v;this.render();},
+  render(){document.getElementById('metrics').innerHTML=Object.entries(this.m).map(([k,v])=>'<span class="chip"><b>'+k+'</b> '+v+'</span>').join('');}};
+const $=s=>document.querySelector(s);
+const plots=$('#plots'),arcade=$('#arcade'),ghost=$('#ghost'),phaseTag=$('#phaseTag');
+const STAGES=['🌱','🌿','🌷'];
+let focus=null,scored=false,running=false;
+let bucket={work:0,fun:0},half1={work:0,fun:0},half2={work:0,fun:0};
+let switches=0,workStreak=0,longestWork=0,grown=0,arc=0,waters=0,plantStage=0;
+let blockLen=30000,blockStart=0,tickTimer=null,spawnTimer=null,countTimer=null;
+T.set('phase','demo');T.set('on_task_ratio_M-EFFALLOC','–');T.set('switches_M-PATH',0);T.set('longest_work_M-PERSIST','0.0s');T.set('drift_M-DRIFT','–');
+
+function setFocus(f){if(focus!==f){if(f&&focus)switches++;focus=f;
+  $('#workPanel').classList.toggle('focus',f==='work');$('#funPanel').classList.toggle('focus',f==='fun');
+  if(scored){T.set('switches_M-PATH',switches);T.log('switch_focus',{to:f});}
+  if(f!=='work')workStreak=0;}}
+function renderPlots(){plots.innerHTML='';const bloomed=Math.min(grown,8);
+  for(let i=0;i<bloomed;i++)plots.innerHTML+='🌷';plots.innerHTML+=STAGES[plantStage];}
+$('#water').onclick=()=>{setFocus('work');plantStage++;waters++;
+  if(plantStage>=STAGES.length){plantStage=0;grown++;$('#grown').textContent='plants grown: '+grown;}
+  renderPlots();if(scored)T.log('water',{waters});};
+function spawnBalloon(){if(!running)return;const b=document.createElement('div');b.className='balloon';
+  b.textContent=['🎈','🎈','🟣','🔴'][Math.floor(Math.random()*4)];
+  b.style.left=(6+Math.random()*80)+'%';b.style.top=(6+Math.random()*70)+'%';
+  b.onclick=()=>{setFocus('fun');arc++;$('#arcScore').textContent='score: '+arc;b.textContent='💥';
+    if(scored)T.log('pop',{score:arc});setTimeout(()=>b.remove(),120);};
+  arcade.appendChild(b);setTimeout(()=>b.remove(),1800);}
+
+function startBlock(isScored,len){
+  scored=isScored;blockLen=len;running=true;blockStart=performance.now();
+  bucket={work:0,fun:0};half1={work:0,fun:0};half2={work:0,fun:0};switches=0;longestWork=0;workStreak=0;
+  spawnTimer=setInterval(spawnBalloon,850);
+  tickTimer=setInterval(()=>{
+    const dt=100,el=performance.now()-blockStart;
+    if(focus){bucket[focus]+=dt;(el<blockLen/2?half1:half2)[focus]+=dt;
+      if(focus==='work'){workStreak+=dt;longestWork=Math.max(longestWork,workStreak);}}
+    const tot=bucket.work+bucket.fun;
+    if(scored&&tot>0){T.set('on_task_ratio_M-EFFALLOC',Math.round(100*bucket.work/tot)+'%');
+      T.set('longest_work_M-PERSIST',(longestWork/1000).toFixed(1)+'s');}
+    const remain=Math.max(0,(blockLen-el)/1000);$('#timer').textContent='⏱ '+remain.toFixed(0)+'s left';
+    if(el>=blockLen)endBlock();
+  },100);
+}
+function endBlock(){
+  running=false;clearInterval(tickTimer);clearInterval(spawnTimer);arcade.innerHTML='';
+  const tot=bucket.work+bucket.fun||1;const ratio=bucket.work/tot;
+  const h1=half1.work/((half1.work+half1.fun)||1),h2=half2.work/((half2.work+half2.fun)||1);
+  const drift=Math.round(100*(h2-h1));
+  if(scored){
+    T.set('on_task_ratio_M-EFFALLOC',Math.round(100*ratio)+'%');
+    T.set('drift_M-DRIFT',(drift>=0?'+':'')+drift+'%');
+    T.log('BLOCK_END',{work_ratio:+ratio.toFixed(2),switches,longest_work_s:+(longestWork/1000).toFixed(1),drift_pct:drift,plants:grown,arcade:arc});
+    finish(ratio,drift);
+  } else {
+    $('#prompt').innerHTML='Practice over — you tried both! <button class="go" onclick="startItem()">Start the real block →</button>';
+    $('#timer').textContent='';
+  }
+}
+
+/* ---- flow ---- */
+function runGhost(){
+  ghost.style.display='block';renderPlots();$('#prompt').textContent='Watch: both are open — the hand chooses to keep growing the garden…';
+  const stage=$('#stage').getBoundingClientRect();
+  const R=el=>{const r=el.getBoundingClientRect();return[r.left-stage.left+r.width/2-18,r.top-stage.top+r.height/2-18];};
+  const steps=[()=>{water3();},()=>{glanceFun();},()=>{water3();},()=>{water3();bloom();}];
+  let i=0;const run=()=>{if(i>=steps.length){setTimeout(()=>{ghost.style.display='none';grown=0;plantStage=0;renderPlots();$('#grown').textContent='plants grown: 0';startWarm();},900);return;}steps[i]();i++;setTimeout(run,1100);};
+  function water3(){const[x,y]=R($('#water'));ghost.style.left=x+'px';ghost.style.top=y+'px';
+    setTimeout(()=>{plantStage++;if(plantStage>=STAGES.length){plantStage=0;grown++;$('#grown').textContent='plants grown: '+grown;}renderPlots();},500);}
+  function glanceFun(){const[x,y]=R($('#funPanel'));ghost.style.left=x+'px';ghost.style.top=y+'px';}
+  function bloom(){$('#prompt').textContent='🌸 The garden blooms!';}
+  setTimeout(run,600);
+}
+function startWarm(){
+  scored=false;phaseTag.textContent='warm-up (practice)';grown=0;arc=0;plantStage=0;renderPlots();
+  $('#grown').textContent='plants grown: 0';$('#arcScore').textContent='score: 0';
+  $('#prompt').innerHTML='Practice: try watering AND popping — see what each does. (not scored)';
+  T.set('phase','warm-up');T.log('phase_warmup');
+  startBlock(false,8000);
+}
+function startItem(){
+  scored=true;phaseTag.textContent='free block (scored)';grown=0;arc=0;plantStage=0;waters=0;renderPlots();
+  $('#grown').textContent='plants grown: 0';$('#arcScore').textContent='score: 0';
+  $('#prompt').innerHTML='<b>You have 30 seconds. Spend them however you like</b> — grow the garden, pop balloons, or mix. Totally up to you.';
+  T.set('phase','scored');T.set('on_task_ratio_M-EFFALLOC','–');T.set('switches_M-PATH',0);
+  T.log('phase_scored');startBlock(true,30000);
+}
+function finish(ratio,drift){
+  phaseTag.textContent='done';$('#timer').textContent='';
+  $('#prompt').innerHTML='<b style="color:var(--gold);font-size:19px">Time! 🌼</b>'+
+    '<div class="note">Spent <b>'+Math.round(100*ratio)+'%</b> of free time on the useful-but-boring watering task (effort drift '+(drift>=0?'+':'')+drift+
+    '% into the 2nd half), '+switches+' switches, longest work stretch '+(longestWork/1000).toFixed(1)+'s. Choosing beneficial-but-tedious effort over a fun alternative is a behavioral <b>conscientiousness/diligence</b> signal that predicts grades beyond IQ — and is far harder to fake than a questionnaire.</div>';
+  $('#row').innerHTML='<button class="go" onclick="location.reload()">↺ Play again</button>';
+  T.set('phase','done');
+}
+window.addEventListener('blur',()=>T.log('off_task_blur (M-ENGAGE)'));
+runGhost();
+</script>
+</body>
+</html>

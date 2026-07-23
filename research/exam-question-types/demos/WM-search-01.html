@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WM-search-01 — Treasure Boxes (self-ordered search)</title>
+<style>
+  :root{--bg:#0e1220;--panel:#171d33;--edge:#2a3358;--ink:#e9edff;--mut:#8b93c0;--accent:#5cc8ff;--good:#5ce39a;--bad:#ff6b8a;--warn:#ffd166;}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.45 system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);display:flex;min-height:100vh}
+  .main{flex:1;display:flex;flex-direction:column;align-items:center;padding:20px;gap:12px}
+  h1{font-size:19px;margin:.2rem 0}.sub{color:var(--mut);font-size:13px;margin:0;text-align:center;max-width:470px}
+  .badge{display:inline-block;padding:2px 9px;border-radius:99px;background:var(--panel);border:1px solid var(--edge);color:var(--warn);font-size:12px}
+  #stage{width:440px;height:330px;background:linear-gradient(#1a2140,#141a30);border:1px solid var(--edge);border-radius:18px;position:relative;overflow:hidden}
+  .box{position:absolute;width:66px;height:66px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:40px;cursor:pointer;background:#2b3560;border:2px solid #3a4680;transition:transform .08s,background .12s;user-select:none}
+  .box:active{transform:scale(.94)}
+  .box.open{background:#0d1226;border-color:var(--edge)}
+  .box.gem{background:#243a2c;border-color:var(--good)}
+  .box.solved{background:#1c2a20;border-color:#2f5a3a;cursor:not-allowed}
+  .box.err{background:#3a1622;border-color:var(--bad)}
+  #collected{display:flex;gap:6px;min-height:34px;align-items:center}
+  #collected .slot{width:28px;height:28px;border-radius:6px;border:1px dashed var(--edge);display:flex;align-items:center;justify-content:center;font-size:18px}
+  #collected .slot.full{border-style:solid;border-color:var(--good)}
+  #cue{font-size:24px;height:30px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+  button.ctl{font:inherit;padding:9px 15px;border-radius:10px;border:1px solid var(--edge);background:#20284a;color:var(--ink);cursor:pointer}
+  button.pri{background:var(--accent);color:#062033;border-color:transparent;font-weight:600}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .tel{width:320px;background:var(--panel);border-left:1px solid var(--edge);padding:14px 14px 40px;overflow:auto;font:12px/1.55 ui-monospace,Menlo,Consolas,monospace}
+  .tel h2{font:600 12px system-ui;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:14px 0 6px}
+  .kv{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted #2a3358;padding:2px 0}
+  .kv b{color:var(--accent);font-weight:600}.kv .m{color:var(--mut);font-size:10px}
+  .log{margin-top:6px;max-height:150px;overflow:auto;border:1px solid var(--edge);border-radius:8px;padding:6px;background:#10152a}
+  .log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+</head>
+<body>
+<div class="main">
+  <div style="text-align:center">
+    <h1>🗺️ Treasure Boxes <span class="badge" id="blevel">4 boxes</span></h1>
+    <p class="sub">Find a 💎 hidden in a box. Once a box gives you a gem, it's <b>empty forever</b> — don't open it again! Find one gem per box.</p>
+  </div>
+  <div id="stage"></div>
+  <div id="collected"></div>
+  <div id="cue">👀</div>
+  <div class="row">
+    <button class="pri ctl" id="go">▶ Watch how it works</button>
+    <button class="ctl" id="replay" disabled>↺ Replay demo</button>
+    <label class="sub" style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="adapt" checked> add boxes when you play clean</label>
+  </div>
+  <p class="sub" id="phasehint">A ghost hand shows you first — no reading needed.</p>
+</div>
+<aside class="tel" id="tel"></aside>
+
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const stage=$("#stage"),collected=$("#collected"),cue=$("#cue");
+let setSize=4;
+const T={phase:"idle",round:0,setSize:4,
+  tokensFound:0,tokensTotal:0,
+  between:0,within:0,totalOpens:0,optimalOpens:0,
+  explore:0,firstLat:[],startBoxes:[],log:[]};
+function mean(a){return a.length?a.reduce((x,y)=>x+y,0)/a.length:0;}
+function med(a){if(!a.length)return 0;const b=[...a].sort((x,y)=>x-y);const m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2;}
+function logE(s){T.log.unshift(`${(performance.now()/1000).toFixed(1)}s · ${s}`);if(T.log.length>60)T.log.pop();}
+function render(){
+  const eff=T.optimalOpens?Math.round(100*T.optimalOpens/Math.max(T.totalOpens,1)):0;
+  const strat=new Set(T.startBoxes).size;
+  $("#tel").innerHTML=`
+  <h2>Live telemetry · WM-search-01</h2>
+  <div class="kv"><span>phase</span><b>${T.phase}</b></div>
+  <div class="kv"><span>boxes (set size)</span><b>${T.setSize}</b></div>
+  <div class="kv"><span>rounds done</span><b>${T.round}</b></div>
+  <div class="kv"><span>gems found <span class="m">M-ACC</span></span><b>${T.tokensFound}/${T.tokensTotal}</b></div>
+  <h2>Search errors <span class="m">M-ERRTYPE</span></h2>
+  <div class="kv"><span>between-search <span class="m">M-BETWEENERR</span></span><b>${T.between}</b></div>
+  <div class="kv"><span>within-search <span class="m">M-WITHINERR</span></span><b>${T.within}</b></div>
+  <h2>Strategy & efficiency</h2>
+  <div class="kv"><span>total opens</span><b>${T.totalOpens}</b></div>
+  <div class="kv"><span>efficiency vs optimal <span class="m">M-EFF</span></span><b>${eff}%</b></div>
+  <div class="kv"><span>distinct start boxes <span class="m">M-SEARCHSTRAT</span></span><b>${strat||"—"}</b></div>
+  <div class="kv"><span>boxes explored <span class="m">M-EXPLORE</span></span><b>${T.explore}</b></div>
+  <div class="kv"><span>first-open latency <span class="m">M-RTFIRST</span></span><b>${Math.round(med(T.firstLat))} ms</b></div>
+  <div class="log">${T.log.map(l=>`<div>${l}</div>`).join("")}</div>`;
+}
+render();
+
+function layout(n){ // scattered non-overlapping positions in stage
+  const W=440,H=330,bs=66,pad=14,pts=[];
+  let tries=0;
+  while(pts.length<n && tries<2000){tries++;
+    const x=pad+Math.random()*(W-bs-2*pad),y=pad+Math.random()*(H-bs-2*pad);
+    if(pts.every(p=>Math.hypot(p.x-x,p.y-y)>bs+18)){pts.push({x,y});}
+  }
+  return pts;
+}
+
+let boxes=[],tokenBox=-1,solved=new Set(),openedThisSearch=new Set(),searchStart=null,firstOfSearch=true,active=false;
+
+function newToken(){const avail=[];for(let i=0;i<boxes.length;i++)if(!solved.has(i))avail.push(i);tokenBox=avail[Math.random()*avail.length|0];openedThisSearch.clear();firstOfSearch=true;searchStart=performance.now();}
+function buildBoxes(n,scored){
+  stage.innerHTML="";boxes=[];solved=new Set();
+  const pts=layout(n);
+  for(let i=0;i<n;i++){const b=document.createElement("div");b.className="box";b.textContent="🧰";b.style.left=pts[i].x+"px";b.style.top=pts[i].y+"px";b.dataset.i=i;stage.appendChild(b);boxes.push(b);}
+  collected.innerHTML="";for(let i=0;i<n;i++){const s=document.createElement("div");s.className="slot";collected.appendChild(s);}
+}
+
+function tap(idx,scored,onDone){
+  if(!active)return;const b=boxes[idx];
+  if(solved.has(idx)){ // between-search error
+    if(scored){T.between++;T.totalOpens++;}b.classList.add("err");logE(`box${idx}: BETWEEN error`);render();
+    setTimeout(()=>b.classList.remove("err"),260);return;
+  }
+  // record timing/strategy
+  if(scored){T.totalOpens++;if(firstOfSearch){T.firstLat.push(performance.now()-searchStart);T.startBoxes.push(idx);firstOfSearch=false;}}
+  if(idx===tokenBox){ // found gem
+    b.classList.remove("open");b.classList.add("gem");b.textContent="💎";
+    solved.add(idx);if(scored){T.tokensFound++;}
+    const slot=collected.querySelector(".slot:not(.full)");if(slot){slot.classList.add("full");slot.textContent="💎";}
+    logE(`box${idx}: 💎 found (${solved.size}/${boxes.length})`);
+    setTimeout(()=>{b.classList.remove("gem");b.classList.add("solved");b.textContent="✔";},450);
+    if(solved.size===boxes.length){active=false;cue.textContent="🏆";render();setTimeout(onDone,600);return;}
+    newToken();cue.textContent="🔎";render();return;
+  }
+  // empty box
+  if(openedThisSearch.has(idx)){ if(scored)T.within++; b.classList.add("err");logE(`box${idx}: WITHIN error`);setTimeout(()=>b.classList.remove("err"),260); }
+  else { openedThisSearch.add(idx);if(scored){T.explore++;} b.classList.add("open");b.textContent="·";logE(`box${idx}: empty`);setTimeout(()=>{if(!solved.has(idx)){b.classList.remove("open");b.textContent="🧰";}},420); }
+  render();
+}
+
+stage.addEventListener("pointerdown",e=>{const b=e.target.closest(".box");if(!b)return;tap(+b.dataset.i,stage.dataset.scored==="1",stage._onDone||(()=>{}));});
+
+async function runRound(scored){
+  buildBoxes(setSize,scored);
+  stage.dataset.scored=scored?"1":"0";
+  if(scored){T.tokensTotal+=setSize;T.optimalOpens+=setSize*(setSize+1)/2;} // best case: search shrinks each time
+  newToken();active=true;cue.textContent="🔎";
+  $("#go").disabled=true;$("#replay").disabled=true;render();
+  await new Promise(res=>{stage._onDone=res;});
+  active=false;
+  if(scored){T.round++;
+    const roundErr=0; // adaptivity based on cumulative error rate
+    if($("#adapt").checked){const clean=(T.between+T.within)<=1;if(clean)setSize=Math.min(8,setSize+1);else setSize=Math.max(3,setSize-1);T.setSize=setSize;$("#blevel").textContent=setSize+" boxes";}
+  }
+  $("#go").disabled=false;$("#replay").disabled=false;render();
+}
+
+// ---------- ghost-hand demo ----------
+async function demo(){
+  if(T.phase==="demo")return;T.phase="demo";render();$("#go").disabled=true;$("#replay").disabled=true;
+  const ss=setSize;setSize=3;buildBoxes(3,false);stage.dataset.scored="0";
+  const ghost=document.createElement("div");ghost.textContent="👆";ghost.style.cssText="position:fixed;font-size:30px;z-index:9;transition:left .4s,top .4s;opacity:0;pointer-events:none";document.body.appendChild(ghost);
+  // token in box index 1; hand opens box0 (empty), box1 (gem), collects; avoids reopening
+  tokenBox=1;solved=new Set();openedThisSearch.clear();active=true;
+  async function ghostTap(i){const b=boxes[i];const r=b.getBoundingClientRect();ghost.style.opacity="1";ghost.style.left=(r.left+r.width/2-12)+"px";ghost.style.top=(r.top+8)+"px";await sleep(500);
+    if(i===tokenBox){b.classList.add("gem");b.textContent="💎";const slot=collected.querySelector(".slot:not(.full)");if(slot){slot.classList.add("full");slot.textContent="💎";}cue.textContent="💎";}
+    else{b.classList.add("open");b.textContent="·";cue.textContent="🔎";}
+    await sleep(400);}
+  cue.textContent="🔎";await sleep(300);
+  await ghostTap(0);await ghostTap(1);
+  await sleep(300);ghost.remove();cue.textContent="✅";await sleep(500);
+  setSize=ss;buildBoxes(setSize,false);collected.innerHTML="";
+  T.phase="idle";$("#go").disabled=false;$("#replay").disabled=false;
+  $("#go").textContent="▶ Try a practice hunt";$("#go").onclick=warmup;
+  $("#phasehint").textContent="Find gems, don't reopen a box that already gave one. Practice (not scored).";render();
+}
+$("#go").onclick=demo;$("#replay").onclick=demo;
+
+async function warmup(){T.phase="warm-up (unscored)";setSize=3;$("#blevel").textContent="3 boxes";render();
+  await runRound(false);T.phase="idle";
+  $("#go").textContent="▶ Start scored hunt";$("#go").onclick=startScored;
+  $("#phasehint").textContent="These count. Play clean and boxes get added (harder).";render();}
+let left=0;
+async function startScored(){T.phase="scored";setSize=Math.max(4,setSize);$("#blevel").textContent=setSize+" boxes";render();left=3;await sLoop();}
+async function sLoop(){await runRound(true);left--;if(left>0)await sLoop();else finish();}
+function finish(){T.phase="done";render();cue.textContent="🏁";
+  $("#go").textContent="▶ Hunt again";$("#go").onclick=startScored;
+  $("#phasehint").textContent=`Done. Between-search errors (${T.between}) show a weak spatial memory of where you've been; a small set of start boxes shows a planful search strategy.`;}
+</script>
+</body>
+</html>

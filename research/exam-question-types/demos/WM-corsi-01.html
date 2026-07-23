@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WM-corsi-01 — Firefly Trail (spatial span)</title>
+<style>
+  :root{
+    --bg:#0e1220;--panel:#171d33;--edge:#2a3358;--ink:#e9edff;--mut:#8b93c0;
+    --accent:#5cc8ff;--good:#5ce39a;--bad:#ff6b8a;--warn:#ffd166;--tile:#232c4d;--lit:#ffd86b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.45 system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);display:flex;min-height:100vh}
+  .main{flex:1;display:flex;flex-direction:column;align-items:center;padding:20px;gap:14px}
+  h1{font-size:19px;margin:.2rem 0}
+  .sub{color:var(--mut);font-size:13px;margin:0 0 6px}
+  .badge{display:inline-block;padding:2px 9px;border-radius:99px;background:var(--panel);border:1px solid var(--edge);color:var(--accent);font-size:12px}
+  #stage{position:relative;width:360px;height:360px;background:var(--panel);border:1px solid var(--edge);border-radius:18px;padding:18px}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:14px;width:100%;height:100%}
+  .cell{background:var(--tile);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:30px;cursor:pointer;transition:transform .08s,background .12s,box-shadow .12s;user-select:none}
+  .cell:active{transform:scale(.96)}
+  .cell.lit{background:var(--lit);box-shadow:0 0 26px 6px #ffd86b88}
+  .cell.pick{background:#2f6df0;box-shadow:0 0 18px 3px #2f6df088}
+  .cell.ok{background:var(--good)}
+  .cell.no{background:var(--bad)}
+  .cell.dim{opacity:.5}
+  #cue{font-size:34px;height:44px;display:flex;align-items:center;justify-content:center;gap:12px}
+  #ghost{position:absolute;font-size:30px;left:0;top:0;transition:left .45s cubic-bezier(.5,0,.3,1),top .45s cubic-bezier(.5,0,.3,1);pointer-events:none;filter:drop-shadow(0 3px 3px #0008);z-index:5;opacity:0}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+  button{font:inherit;padding:9px 16px;border-radius:10px;border:1px solid var(--edge);background:#20284a;color:var(--ink);cursor:pointer}
+  button.pri{background:var(--accent);color:#062033;border-color:transparent;font-weight:600}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .modebtn.on{background:var(--warn);color:#3a2c00;border-color:transparent;font-weight:600}
+  /* telemetry */
+  .tel{width:310px;background:var(--panel);border-left:1px solid var(--edge);padding:14px 14px 40px;overflow:auto;font:12px/1.55 ui-monospace,Menlo,Consolas,monospace}
+  .tel h2{font:600 12px system-ui;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:14px 0 6px}
+  .kv{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted #2a3358;padding:2px 0}
+  .kv b{color:var(--accent);font-weight:600}
+  .kv .m{color:var(--mut);font-size:10px}
+  .log{margin-top:6px;max-height:150px;overflow:auto;border:1px solid var(--edge);border-radius:8px;padding:6px;background:#10152a}
+  .log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sp{display:flex;gap:3px;margin-top:3px}
+  .sp span{flex:1;height:22px;border-radius:3px;background:#223;position:relative;font-size:9px;color:#000;display:flex;align-items:flex-end;justify-content:center}
+  .pill{font-size:10px;color:var(--mut)}
+</style>
+</head>
+<body>
+<div class="main">
+  <div style="text-align:center">
+    <h1>🪁 Firefly Trail <span class="badge" id="bmode">Forward</span></h1>
+    <p class="sub">Watch the fireflies light up, then tap them back <b id="ordertxt">in the same order</b>.</p>
+  </div>
+  <div id="stage">
+    <div class="grid" id="grid"></div>
+    <div id="ghost">👆</div>
+  </div>
+  <div id="cue">👀</div>
+  <div class="row">
+    <button class="pri" id="go">▶ Watch how it works</button>
+    <button id="replay" disabled>↺ Replay demo</button>
+    <button class="modebtn" id="tmode" title="switch storage vs manipulation">Backward mode</button>
+  </div>
+  <p class="sub" id="phasehint">A ghost hand will show you first — no reading needed.</p>
+</div>
+
+<aside class="tel" id="tel"></aside>
+
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const grid=$("#grid"), stage=$("#stage"), ghost=$("#ghost"), cue=$("#cue");
+const cells=[];
+for(let i=0;i<9;i++){const d=document.createElement("div");d.className="cell";d.dataset.i=i;grid.appendChild(d);cells.push(d);}
+
+// ---------- telemetry state ----------
+const T={
+  phase:"idle", mode:"F", trial:0,
+  span:3, fwdMax:0, bwdMax:0,
+  correct:0, total:0,
+  firstLat:[],           // first-tap latency per trial (M-RTFIRST)
+  interTap:[],           // all inter-tap intervals (for RT variability, M-RTVAR)
+  lapses:0,              // taps slower than lapse threshold (M-LAPSE)
+  orderErr:0, itemErr:0, // M-ERRTYPE
+  revis:0,               // M-REV (deselects / re-taps)
+  serialHit:Array(9).fill(0), serialTot:Array(9).fill(0), // M-SERIALPOS
+  log:[]
+};
+const LAPSE_MS=3000;
+function med(a){if(!a.length)return 0;const b=[...a].sort((x,y)=>x-y);const m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2;}
+function mean(a){return a.length?a.reduce((x,y)=>x+y,0)/a.length:0;}
+function cv(a){if(a.length<2)return 0;const m=mean(a);if(!m)return 0;const v=mean(a.map(x=>(x-m)**2));return Math.sqrt(v)/m;}
+function logE(s){T.log.unshift(`${(performance.now()/1000).toFixed(1)}s · ${s}`);if(T.log.length>60)T.log.pop();}
+function render(){
+  const acc=T.total?Math.round(100*T.correct/T.total):0;
+  const spBars=T.serialTot.map((t,i)=>{const h=t?Math.round(100*T.serialHit[i]/t):0;const hi=t?`${h}%`:"";return `<span style="background:linear-gradient(0deg,#5ce39a ${h}%,#223 ${h}%)" title="pos ${i+1}">${hi}</span>`;}).slice(0,Math.max(3,Math.max(...T.serialTot.map((t,i)=>t?i+1:0)))).join("");
+  $("#tel").innerHTML=`
+  <h2>Live telemetry · WM-corsi-01</h2>
+  <div class="kv"><span>phase</span><b>${T.phase}</b></div>
+  <div class="kv"><span>mode</span><b>${T.mode==="F"?"forward":"backward"}</b></div>
+  <div class="kv"><span>trial</span><b>${T.trial}</b></div>
+  <h2>Span (capacity)</h2>
+  <div class="kv"><span>current span</span><b>${T.span}</b></div>
+  <div class="kv"><span>max span fwd <span class="m">M-SPAN·M-DIFFREACH</span></span><b>${T.fwdMax}</b></div>
+  <div class="kv"><span>max span bwd <span class="m">M-SPAN</span></span><b>${T.bwdMax}</b></div>
+  <div class="kv"><span>manip. cost <span class="m">M-MANIPCOST</span></span><b>${T.fwdMax&&T.bwdMax?(T.fwdMax-T.bwdMax):"—"}</b></div>
+  <h2>Accuracy & process</h2>
+  <div class="kv"><span>accuracy <span class="m">M-ACC</span></span><b>${acc}% <span class="m">(${T.correct}/${T.total})</span></b></div>
+  <div class="kv"><span>first-tap lat <span class="m">M-RTFIRST</span></span><b>${Math.round(med(T.firstLat))} ms</b></div>
+  <div class="kv"><span>inter-tap CV <span class="m">M-RTVAR</span></span><b>${cv(T.interTap).toFixed(2)}</b></div>
+  <div class="kv"><span>lapses &gt;${LAPSE_MS}ms <span class="m">M-LAPSE</span></span><b>${T.lapses}</b></div>
+  <div class="kv"><span>order errors <span class="m">M-ERRTYPE</span></span><b>${T.orderErr}</b></div>
+  <div class="kv"><span>item errors <span class="m">M-ERRTYPE</span></span><b>${T.itemErr}</b></div>
+  <div class="kv"><span>revisions <span class="m">M-REV</span></span><b>${T.revis}</b></div>
+  <h2>Serial position <span class="m">M-SERIALPOS</span></h2>
+  <div class="sp">${spBars||'<span>—</span>'}</div>
+  <div class="pill">primacy/recency accuracy by position</div>
+  <div class="log" id="log">${T.log.map(l=>`<div>${l}</div>`).join("")}</div>`;
+}
+render();
+
+// ---------- helpers ----------
+function centerOf(el){const r=el.getBoundingClientRect(),s=stage.getBoundingClientRect();return {x:r.left-s.left+r.width/2,y:r.top-s.top+r.height/2};}
+function clearCells(){cells.forEach(c=>c.className="cell");}
+function randSeq(n){const idx=[...Array(9).keys()];for(let i=idx.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[idx[i],idx[j]]=[idx[j],idx[i]];}return idx.slice(0,n);}
+async function showSeq(seq,litMs=560,gap=230){
+  cue.textContent="👀";
+  for(const i of seq){cells[i].classList.add("lit");await sleep(litMs);cells[i].classList.remove("lit");await sleep(gap);}
+}
+
+// ---------- ghost-hand wordless demo (<10s) ----------
+async function demo(){
+  if(T.phase==="demo")return;
+  T.phase="demo";render();$("#go").disabled=true;$("#replay").disabled=true;$("#tmode").disabled=true;
+  clearCells();const seq=[4,0,8];
+  await sleep(400);
+  await showSeq(seq,520,200);
+  cue.textContent="👆";
+  ghost.style.opacity="1";
+  for(const i of seq){
+    const c=centerOf(cells[i]);ghost.style.left=(c.x-15)+"px";ghost.style.top=(c.y-30)+"px";
+    await sleep(520);cells[i].classList.add("pick");await sleep(140);cells[i].classList.remove("pick");
+  }
+  cue.textContent="✅";ghost.style.opacity="0";await sleep(700);
+  clearCells();
+  $("#go").disabled=false;$("#go").textContent="▶ Try a practice one";$("#go").onclick=warmup;
+  $("#replay").disabled=false;$("#tmode").disabled=false;
+  T.phase="idle";$("#phasehint").textContent="Now you try — this practice one is NOT scored.";render();
+}
+$("#go").onclick=demo;
+$("#replay").onclick=demo;
+
+// ---------- one trial (warmup=unscored, scored=true) ----------
+let awaiting=false;
+async function runTrial(scored){
+  awaiting=false;$("#go").disabled=true;$("#replay").disabled=true;$("#tmode").disabled=true;
+  clearCells();
+  const n=T.span, seq=randSeq(n);
+  const expected= T.mode==="F"? seq.slice() : seq.slice().reverse();
+  await sleep(350);
+  await showSeq(seq);
+  // response phase
+  cue.textContent="👆";$("#phasehint").textContent= scored? "Tap them back now.":"Practice — tap them back.";
+  const picks=[]; const tapT=[]; const t0=performance.now(); let last=t0; awaiting=true;
+  await new Promise(res=>{
+    function onTap(e){
+      const cell=e.target.closest(".cell"); if(!cell||!awaiting) return;
+      const i=+cell.dataset.i, now=performance.now();
+      if(cell.classList.contains("pick")){ // deselect = revision
+        cell.classList.remove("pick"); const p=picks.indexOf(i); if(p>=0){picks.splice(p,1);tapT.splice(p,1);} T.revis++; render(); return;
+      }
+      cell.classList.add("pick"); const dt=now-last; last=now;
+      if(picks.length===0){ if(scored) T.firstLat.push(now-t0); }
+      else { if(scored){ T.interTap.push(dt); if(dt>LAPSE_MS)T.lapses++; } }
+      picks.push(i); tapT.push(now);
+      if(picks.length===n){ awaiting=false; grid.removeEventListener("click",onTap); res(); }
+    }
+    grid.addEventListener("click",onTap);
+  });
+  // score
+  let correct=true;
+  for(let k=0;k<n;k++){
+    const ok=picks[k]===expected[k];
+    if(scored){ T.serialTot[k]++; if(ok)T.serialHit[k]++; }
+    if(!ok){
+      correct=false;
+      if(scored){ if(seq.includes(picks[k])) T.orderErr++; else T.itemErr++; }
+    }
+  }
+  // feedback (wordless)
+  picks.forEach((i,k)=>cells[i].classList.add(picks[k]===expected[k]?"ok":"no"));
+  cue.textContent=correct?"✅":"↔️";
+  if(scored){
+    T.total++; if(correct)T.correct++;
+    if(T.mode==="F"){ if(correct&&n>T.fwdMax)T.fwdMax=n; } else { if(correct&&n>T.bwdMax)T.bwdMax=n; }
+    logE(`${T.mode} span ${n}: ${correct?"OK":"miss"} (first ${Math.round(T.firstLat.at(-1)||0)}ms)`);
+    // adaptive staircase: 1-up / 1-down, floor 2, ceiling 9
+    if(correct)T.span=Math.min(9,T.span+1); else T.span=Math.max(2,T.span-1);
+    T.trial++;
+  }
+  render();
+  await sleep(850);clearCells();cue.textContent="";
+  $("#go").disabled=false;$("#replay").disabled=false;$("#tmode").disabled=false;
+  return correct;
+}
+
+async function warmup(){
+  T.phase="warm-up (unscored)";render();
+  await runTrial(false);
+  T.phase="idle";
+  $("#go").textContent="▶ Start scored trails";$("#go").onclick=startScored;
+  $("#phasehint").textContent="Great! These next ones count. The trail gets longer when you're right.";
+  render();
+}
+
+let scoredLeft=0;
+async function startScored(){
+  T.phase="scored";T.span=3;render();
+  scoredLeft=8;
+  $("#go").disabled=true;
+  await scoredLoop();
+}
+async function scoredLoop(){
+  if(scoredLeft<=0){finish();return;}
+  await runTrial(true);
+  scoredLeft--;
+  if(scoredLeft>0){ await scoredLoop(); }
+  else finish();
+}
+function finish(){
+  T.phase="done";render();
+  cue.textContent="🏁";
+  $("#go").disabled=false;$("#go").textContent="▶ Run another block";$("#go").onclick=()=>{ if(T.mode==="B"){/*keep*/} startScored(); };
+  $("#phasehint").textContent=`Done. Forward max span ${T.fwdMax}${T.bwdMax?`, backward max span ${T.bwdMax}`:""}. Try Backward mode to measure manipulation cost.`;
+}
+
+// mode toggle: forward (storage) vs backward (executive manipulation)
+$("#tmode").onclick=()=>{
+  T.mode = T.mode==="F"?"B":"F";
+  $("#bmode").textContent=T.mode==="F"?"Forward":"Backward";
+  $("#bmode").className="badge";
+  $("#tmode").textContent=T.mode==="F"?"Backward mode":"Forward mode";
+  $("#tmode").classList.toggle("on",T.mode==="B");
+  $("#ordertxt").textContent=T.mode==="F"?"in the same order":"in REVERSE order";
+  logE(`switched to ${T.mode==="F"?"forward":"backward"} mode`);
+  render();
+};
+</script>
+</body>
+</html>

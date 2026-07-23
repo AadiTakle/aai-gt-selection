@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SPA-CROSS-01 — Slice-It</title>
+<style>
+  :root{--bg:#eef2fb;--card:#fff;--ink:#1e293b;--muted:#64748b;--accent:#4f46e5;--good:#16a34a;--warn:#f59e0b;--bad:#dc2626;--stage:#f6f7fb}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.4 system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  .wrap{display:flex;gap:14px;padding:14px;max-width:1180px;margin:0 auto;align-items:flex-start;flex-wrap:wrap}
+  .col{flex:1 1 560px;min-width:340px}.side{flex:1 1 320px;min-width:300px}
+  .card{background:var(--card);border-radius:16px;box-shadow:0 6px 22px rgba(15,23,42,.08);padding:16px;margin-bottom:14px}
+  h1{font-size:19px;margin:0 0 2px}.sub{color:var(--muted);font-size:13px;margin:0 0 10px}
+  .pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;background:#e0e7ff;color:#3730a3}
+  .banner{display:flex;align-items:center;gap:10px;background:#f1f5ff;border:1px solid #dbe3ff;border-radius:12px;padding:10px 12px;margin-bottom:12px;min-height:44px}
+  .banner .icon{font-size:22px}.banner b{color:var(--accent)}
+  #stageWrap{position:relative;background:var(--stage);border-radius:14px;border:1px solid #e2e8f0;overflow:hidden}
+  svg{display:block;width:100%;height:340px;touch-action:none}
+  .hand{position:absolute;font-size:30px;pointer-events:none;z-index:5;filter:drop-shadow(0 2px 3px rgba(0,0,0,.25))}
+  .row{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
+  input[type=range]{flex:1;min-width:120px}
+  button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:10px 16px;cursor:pointer;background:var(--accent);color:#fff}
+  button.ghost{background:#e2e8f0;color:#334155}button:disabled{opacity:.45;cursor:not-allowed}
+  .opts{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .opt{width:70px;height:70px;border-radius:12px;border:3px solid #e2e8f0;background:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .opt.sel{border-color:var(--accent);box-shadow:0 0 0 3px #e0e7ff}
+  .opt svg{width:44px;height:38px}.opt span{font-size:10px;color:#64748b}
+  .tel{background:#0b1220;color:#d1fae5;border-radius:16px;padding:14px;font:12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
+  .tel h2{font-size:13px;margin:0 0 8px;color:#93c5fd;letter-spacing:.05em;text-transform:uppercase}
+  .tel .m{display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px dotted #1e293b}
+  .tel .m .k{color:#7dd3fc}.tel .m .v{color:#fde68a;font-weight:700;text-align:right}
+  #log{margin-top:10px;max-height:160px;overflow:auto;background:#060b16;border-radius:8px;padding:8px}
+  #log div{white-space:pre-wrap;color:#a7f3d0}#log .t{color:#475569}
+  .done{color:var(--good);font-weight:700}.miss{color:var(--warn)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="col"><div class="card">
+    <span class="pill" id="phasePill">DEMO</span>
+    <h1>Slice-It <span style="color:var(--muted);font-weight:400">· SPA-CROSS-01</span></h1>
+    <p class="sub">Slide the cutting plane through the solid. What 2D shape is the cut face? (imagine it flat-on)</p>
+    <div class="banner"><span class="icon" id="bIcon">👀</span><div id="bText"><b>Watch.</b> The plane slices the solid; the cut face is a circle…</div></div>
+    <div id="stageWrap"><svg id="svg" viewBox="0 0 320 340"></svg><div class="hand" id="hand" style="display:none">👆</div></div>
+    <div class="row">
+      <span class="sub">low</span><input type="range" id="hgt" min="8" max="92" value="50"><span class="sub">high</span>
+    </div>
+    <div class="row" id="tiltRow" style="display:none">
+      <span class="sub">flat</span><input type="range" id="tilt" min="0" max="45" value="0"><span class="sub">tilted</span>
+    </div>
+    <div class="opts" id="opts"></div>
+    <div class="row">
+      <button id="lockBtn" disabled>🔒 Lock</button>
+      <button id="nextBtn" class="ghost" style="display:none">Next ▶</button>
+      <span class="sub" id="live" style="margin-left:auto"></span>
+    </div>
+  </div></div>
+  <div class="side"><div class="tel">
+    <h2>◉ Live telemetry</h2>
+    <div class="m"><span class="k">M-ACC accuracy</span><span class="v" id="mAcc">—</span></div>
+    <div class="m"><span class="k">M-RT total</span><span class="v" id="mRt">—</span></div>
+    <div class="m"><span class="k">M-RTFIRST first-act</span><span class="v" id="mFirst">—</span></div>
+    <div class="m"><span class="k">M-REV answer changes</span><span class="v" id="mRev">0</span></div>
+    <div class="m"><span class="k">M-EXPLORE slice moves</span><span class="v" id="mExp">0</span></div>
+    <div class="m"><span class="k">M-ERRTYPE last error</span><span class="v" id="mErr">—</span></div>
+    <div class="m"><span class="k">M-DIFFREACH cut</span><span class="v" id="mDiff">—</span></div>
+    <div id="log"></div>
+  </div></div>
+</div>
+<script>
+(function(){
+  "use strict";
+  var SVGNS="http://www.w3.org/2000/svg",svg=document.getElementById("svg"),hand=document.getElementById("hand");
+  var hgtEl=document.getElementById("hgt"),tiltEl=document.getElementById("tilt"),optsEl=document.getElementById("opts");
+  var lockBtn=document.getElementById("lockBtn"),nextBtn=document.getElementById("nextBtn"),tiltRow=document.getElementById("tiltRow");
+  function beep(f,t){try{var A=beep.a=beep.a||new(window.AudioContext||window.webkitAudioContext)();var o=A.createOscillator(),g=A.createGain();o.frequency.value=f;o.connect(g);g.connect(A.destination);g.gain.value=.08;o.start();o.stop(A.currentTime+(t||.1));}catch(e){}}
+  var Tel={start:0,first:0,revs:0,explore:0,scored:0,correct:0,logEl:document.getElementById("log"),
+    line:function(m,c){var d=document.createElement("div");var t=((performance.now()-Tel.start)/1000).toFixed(2);d.innerHTML='<span class="t">['+t+'s]</span> '+m;if(c)d.className=c;Tel.logEl.appendChild(d);Tel.logEl.scrollTop=Tel.logEl.scrollHeight;},
+    begin:function(l){Tel.start=performance.now();Tel.first=0;Tel.revs=0;Tel.explore=0;Tel.line("▶ "+l);render();},
+    firstAct:function(w){if(!Tel.first){Tel.first=performance.now()-Tel.start;Tel.line("first action: "+w+" @"+Math.round(Tel.first)+"ms");render();}}};
+  function render(){document.getElementById("mAcc").textContent=Tel.scored?Tel.correct+"/"+Tel.scored+" ("+Math.round(100*Tel.correct/Tel.scored)+"%)":"—";
+    document.getElementById("mFirst").textContent=Tel.first?Math.round(Tel.first)+" ms":"—";document.getElementById("mRev").textContent=Tel.revs;document.getElementById("mExp").textContent=Tel.explore;}
+  // ---- solid geometry ----
+  var cx=150,yTop=70,yBot=250,W=64; // solid vertical extents, half-width
+  var solid="cyl";
+  function hwAt(t){ // t: 0 bottom .. 1 top; returns half-width
+    if(solid==="cone")return W*(1-0.85*t);
+    return W;
+  }
+  function ellipsePath(cxv,cyv,rx,ry,rot){var e=document.createElementNS(SVGNS,"ellipse");e.setAttribute("cx",cxv);e.setAttribute("cy",cyv);e.setAttribute("rx",rx);e.setAttribute("ry",ry);if(rot)e.setAttribute("transform","rotate("+rot+" "+cxv+" "+cyv+")");return e;}
+  function drawSolid(){
+    var IY=0.32; // iso foreshorten
+    if(solid==="cyl"){
+      // body
+      var body=document.createElementNS(SVGNS,"path");body.setAttribute("d","M "+(cx-W)+","+yTop+" L "+(cx-W)+","+yBot+" A "+W+" "+(W*IY)+" 0 0 0 "+(cx+W)+","+yBot+" L "+(cx+W)+","+yTop);
+      body.setAttribute("fill","#c7d2fe");body.setAttribute("stroke","#6366f1");body.setAttribute("stroke-width","2");svg.appendChild(body);
+      var top=ellipsePath(cx,yTop,W,W*IY);top.setAttribute("fill","#e0e7ff");top.setAttribute("stroke","#6366f1");top.setAttribute("stroke-width","2");svg.appendChild(top);
+    } else if(solid==="cone"){
+      var b=document.createElementNS(SVGNS,"path");b.setAttribute("d","M "+cx+","+yTop+" L "+(cx-W)+","+yBot+" A "+W+" "+(W*IY)+" 0 0 0 "+(cx+W)+","+yBot+" Z");
+      b.setAttribute("fill","#c7d2fe");b.setAttribute("stroke","#6366f1");b.setAttribute("stroke-width","2");svg.appendChild(b);
+      var base=ellipsePath(cx,yBot,W,W*IY);base.setAttribute("fill","none");base.setAttribute("stroke","#6366f1");base.setAttribute("stroke-width","2");svg.appendChild(base);
+    } else if(solid==="cube"){
+      var s=W; // draw an isometric-ish box (front + top + side)
+      var topP=document.createElementNS(SVGNS,"path");topP.setAttribute("d","M "+cx+","+(yTop-18)+" L "+(cx+s)+","+yTop+" L "+cx+","+(yTop+18)+" L "+(cx-s)+","+yTop+" Z");
+      topP.setAttribute("fill","#e0e7ff");topP.setAttribute("stroke","#6366f1");topP.setAttribute("stroke-width","2");svg.appendChild(topP);
+      var left=document.createElementNS(SVGNS,"path");left.setAttribute("d","M "+(cx-s)+","+yTop+" L "+cx+","+(yTop+18)+" L "+cx+","+yBot+" L "+(cx-s)+","+(yBot-18)+" Z");
+      left.setAttribute("fill","#c7d2fe");left.setAttribute("stroke","#6366f1");left.setAttribute("stroke-width","2");svg.appendChild(left);
+      var right=document.createElementNS(SVGNS,"path");right.setAttribute("d","M "+(cx+s)+","+yTop+" L "+cx+","+(yTop+18)+" L "+cx+","+yBot+" L "+(cx+s)+","+(yBot-18)+" Z");
+      right.setAttribute("fill","#a5b4fc");right.setAttribute("stroke","#6366f1");right.setAttribute("stroke-width","2");svg.appendChild(right);
+    }
+  }
+  var t=0.5,tilt=0,sel=null;
+  function drawPlane(){
+    var IY=0.32;var yy=yBot+(yTop-yBot)*t;var rx=hwAt(t)+8;var ry=rx*IY;
+    // tilt increases apparent ry (oblique -> more open ellipse) and rotates slightly
+    var ry2=ry+(rx-ry)*(tilt/45)*0.9;
+    var pl=ellipsePath(cx,yy,rx,ry2,tilt*0.4);pl.setAttribute("fill","rgba(244,63,94,.28)");pl.setAttribute("stroke","#e11d48");pl.setAttribute("stroke-width","2.5");svg.appendChild(pl);
+    // plane wings
+    var wing=document.createElementNS(SVGNS,"line");wing.setAttribute("x1",cx-rx-30);wing.setAttribute("y1",yy+ (rx+30)*Math.tan(tilt*Math.PI/180)*0.4);wing.setAttribute("x2",cx+rx+30);wing.setAttribute("y2",yy-(rx+30)*Math.tan(tilt*Math.PI/180)*0.4);wing.setAttribute("stroke","#fb7185");wing.setAttribute("stroke-width","2");wing.setAttribute("stroke-dasharray","5 4");svg.appendChild(wing);
+  }
+  function draw(){svg.innerHTML="";drawSolid();drawPlane();
+    var lbl=document.createElementNS(SVGNS,"text");lbl.setAttribute("x",cx);lbl.setAttribute("y",300);lbl.setAttribute("text-anchor","middle");lbl.setAttribute("fill","#94a3b8");lbl.setAttribute("font-size","12");lbl.textContent=({cyl:"CYLINDER",cone:"CONE",cube:"CUBE"})[solid]+(tiltRow.style.display!=="none"?"  ·  tilt "+tilt+"°":"");svg.appendChild(lbl);
+    render();}
+  // correct answer
+  function answer(){
+    if(solid==="cyl")return tilt<=8?"circle":"ellipse";
+    if(solid==="cone")return tilt<=8?"circle":"ellipse";
+    if(solid==="cube")return tilt<=8?"square":(tilt<=34?"rect":"hex");
+    return "circle";
+  }
+  var SHAPES=[
+    {id:"circle",name:"circle",svg:'<circle cx="22" cy="19" r="15" fill="#fca5a5" stroke="#b91c1c" stroke-width="2"/>'},
+    {id:"ellipse",name:"oval",svg:'<ellipse cx="22" cy="19" rx="18" ry="10" fill="#fca5a5" stroke="#b91c1c" stroke-width="2"/>'},
+    {id:"square",name:"square",svg:'<rect x="8" y="5" width="28" height="28" fill="#fca5a5" stroke="#b91c1c" stroke-width="2"/>'},
+    {id:"rect",name:"rectangle",svg:'<rect x="4" y="10" width="36" height="18" fill="#fca5a5" stroke="#b91c1c" stroke-width="2"/>'},
+    {id:"triangle",name:"triangle",svg:'<polygon points="22,4 40,33 4,33" fill="#fca5a5" stroke="#b91c1c" stroke-width="2"/>'},
+    {id:"hex",name:"hexagon",svg:'<polygon points="12,5 32,5 42,19 32,33 12,33 2,19" fill="#fca5a5" stroke="#b91c1c" stroke-width="2"/>'}
+  ];
+  function buildOptions(){optsEl.innerHTML="";sel=null;
+    SHAPES.forEach(function(sh){var d=document.createElement("div");d.className="opt";d.innerHTML='<svg viewBox="0 0 44 38">'+sh.svg+'</svg><span>'+sh.name+'</span>';
+      d.onclick=function(){if(!interactive)return;Tel.firstAct("pick shape");if(sel&&sel!==sh.id)Tel.revs++;sel=sh.id;
+        Array.prototype.forEach.call(optsEl.children,function(c){c.classList.remove("sel")});d.classList.add("sel");lockBtn.disabled=false;};
+      optsEl.appendChild(d);});
+  }
+  hgtEl.addEventListener("input",function(){t=(+hgtEl.value)/100;if(interactive)Tel.firstAct("move plane");draw();});
+  hgtEl.addEventListener("change",function(){if(interactive){Tel.explore++;render();}});
+  tiltEl.addEventListener("input",function(){tilt=+tiltEl.value;if(interactive)Tel.firstAct("tilt plane");draw();});
+  tiltEl.addEventListener("change",function(){if(interactive){Tel.explore++;render();}});
+  // ---- phases ----
+  var phase="demo",interactive=false;
+  var pill=document.getElementById("phasePill"),bIcon=document.getElementById("bIcon"),bText=document.getElementById("bText");
+  function setBanner(i,h){bIcon.textContent=i;bText.innerHTML=h;}
+  function setItem(sol,showTilt){solid=sol;tilt=0;tiltEl.value=0;t=0.5;hgtEl.value=50;tiltRow.style.display=showTilt?"flex":"none";buildOptions();draw();}
+  function startDemo(){
+    phase="demo";pill.textContent="DEMO";interactive=false;nextBtn.style.display="none";lockBtn.style.display="";lockBtn.disabled=true;optsEl.style.opacity=".4";
+    setItem("cyl",false);setBanner("👀","<b>Watch.</b> The plane slides through the cylinder; slice it flat and the cut face is a circle.");
+    hand.style.display="";var v=20,dir=1;
+    var iv=setInterval(function(){v+=dir*6;if(v>=80){dir=-1;}if(v<=20&&dir<0){clearInterval(iv);pickCircle();return;}hgtEl.value=v;t=v/100;draw();
+      var r=svg.getBoundingClientRect();hand.style.left=(r.left+cx*(r.width/320)+30)+"px";hand.style.top=(r.top+window.scrollY+(yBot+(yTop-yBot)*t)*(r.height/340))+"px";},120);
+    function pickCircle(){setTimeout(function(){var opt=optsEl.children[0];opt.classList.add("sel");beep(760);var r=svg.getBoundingClientRect();
+      hand.style.left=(r.left+40)+"px";hand.style.top=(r.top+window.scrollY+r.height+40)+"px";setTimeout(function(){hand.style.display="none";startWarmup();},900);},500);}
+  }
+  function startWarmup(){
+    phase="warmup";pill.textContent="WARM-UP";interactive=true;optsEl.style.opacity="1";lockBtn.style.display="";lockBtn.disabled=true;
+    setItem("cyl",false);Tel.begin("Warm-up — cylinder, flat cut");
+    setBanner("✋","<b>Practice.</b> Slide the plane, then tap the shape of the flat cut face. Lock your pick.");
+    lockBtn.onclick=function(){if(!sel)return;var ok=sel===answer();
+      if(ok){beep(880);Tel.line("cut face = circle ✔","done");setBanner("✅","<b>Right!</b> A flat slice of a cylinder is a circle. Real ones next — some let you TILT the cut.");}
+      else{beep(260);Tel.line("picked "+sel+" ✗ (a flat cylinder cut is a circle)","miss");setBanner("↻","<b>Not quite.</b> Picture the cut face straight-on. A flat slice of a round tube is a circle.");return;}
+      lockBtn.style.display="none";nextBtn.style.display="";nextBtn.textContent="Start scored ▶";nextBtn.onclick=startScored1;};
+  }
+  function startScored1(){
+    phase="scored";pill.textContent="SCORED 1/2";interactive=true;lockBtn.style.display="";lockBtn.disabled=true;nextBtn.style.display="none";
+    setItem("cube",false);Tel.begin("Scored 1 — cube, flat cut");Tel.scored=1;document.getElementById("mDiff").textContent="flat cube";
+    setBanner("🎯","<b>Flat cut of a cube.</b> Slide the plane, imagine the cut face straight-on, pick the shape, Lock.");
+    lockBtn.onclick=function(){grade(function(){startScored2();});};
+  }
+  function startScored2(){
+    phase="scored";pill.textContent="SCORED 2/2";interactive=true;lockBtn.style.display="";lockBtn.disabled=true;nextBtn.style.display="none";
+    setItem("cyl",true);tilt=30;tiltEl.value=30;draw();Tel.begin("Scored 2 — cylinder, TILTED cut");Tel.scored=2;document.getElementById("mDiff").textContent="oblique cyl";
+    setBanner("🎯","<b>Now a TILTED cut of the cylinder.</b> Use the tilt slider to explore, then pick the true cut-face shape. Lock.");
+    lockBtn.onclick=function(){grade(function(){finish();});};
+  }
+  function grade(after){if(!sel)return;var rt=performance.now()-Tel.start;var corr=answer(),ok=sel===corr;
+    if(ok){Tel.correct++;document.getElementById("mErr").textContent="—";Tel.line("LOCK "+sel+" = "+corr+" ✔ RT="+Math.round(rt)+"ms explore="+Tel.explore,"done");}
+    else{var et=(corr==="ellipse"&&sel==="circle")?"ignored obliquity":(corr==="rect"&&sel==="square")?"ignored obliquity":"gross";document.getElementById("mErr").textContent=et;Tel.line("LOCK "+sel+" ✗ (true="+corr+") — "+et,"miss");}
+    document.getElementById("mRt").textContent=Math.round(rt)+" ms";render();
+    lockBtn.style.display="none";nextBtn.style.display="";nextBtn.textContent=Tel.scored<2?"Next ▶":"See results ▶";nextBtn.onclick=after;
+  }
+  function finish(){
+    phase="done";pill.textContent="DONE";interactive=false;lockBtn.style.display="none";
+    setBanner("🏁","<b>Accuracy "+Tel.correct+"/"+Tel.scored+".</b> Correct oblique cross-sections with little slice-scrubbing (M-EXPLORE), and near-miss typing (circle-for-ellipse = ignored obliquity), pinpoint penetrative-thinking ability at the tail.");
+    Tel.line("── summary ── M-ACC="+Tel.correct+"/"+Tel.scored+"  M-EXPLORE="+Tel.explore+"  M-REV="+Tel.revs,"done");
+    nextBtn.style.display="";nextBtn.textContent="↻ Run again";nextBtn.onclick=function(){location.reload();};
+  }
+  buildOptions();draw();startDemo();
+})();
+</script>
+</body>
+</html>

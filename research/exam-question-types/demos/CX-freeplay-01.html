@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CX-freeplay-01 — Keep-Playing Sandbox</title>
+<style>
+  :root{--bg:#1b1524;--card:#291f38;--ink:#f6f0ff;--muted:#c1aee0;--acc:#ffb454;--gold:#ffd35c;--good:#7be0a3;}
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.4 system-ui,Segoe UI,Roboto,sans-serif;color:var(--ink);background:radial-gradient(circle at 70% 0%,#3a2a52,#1b1524)}
+  header{padding:14px 20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  header h1{font-size:18px;margin:0}
+  .badge{font-size:12px;color:var(--muted);border:1px solid #4c3a68;padding:2px 8px;border-radius:999px}
+  .wrap{display:grid;grid-template-columns:1fr 330px;gap:16px;padding:0 20px 30px;max-width:1100px}
+  @media(max-width:820px){.wrap{grid-template-columns:1fr}}
+  .stage{background:var(--card);border-radius:18px;padding:18px;position:relative;min-height:440px}
+  .phaseTag{position:absolute;top:12px;right:14px;font-size:12px;color:var(--gold);background:#33263f;border:1px solid #5f4a22;padding:3px 10px;border-radius:999px;z-index:4}
+  .prompt{text-align:center;color:var(--muted);min-height:22px;margin-bottom:8px}
+  .grid{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;max-width:460px;margin:8px auto}
+  .cell{aspect-ratio:1;background:#191223;border:1px solid #3b2d4f;border-radius:8px;cursor:pointer;transition:transform .06s}
+  .cell:active{transform:scale(.9)}
+  .cell.target{box-shadow:0 0 0 3px var(--gold);}
+  .palette{display:flex;gap:8px;justify-content:center;margin:10px 0;flex-wrap:wrap;align-items:center}
+  .sw{width:30px;height:30px;border-radius:8px;cursor:pointer;border:3px solid transparent}
+  .sw.on{border-color:#fff}
+  .banner{text-align:center;background:#22331f;border:1px solid #4f7f3a;border-radius:14px;padding:12px;margin:8px auto;max-width:460px;display:none}
+  .banner.show{display:block}
+  .row{display:flex;gap:10px;justify-content:center;margin-top:8px;flex-wrap:wrap}
+  button{font:inherit;border:0;border-radius:12px;padding:10px 16px;cursor:pointer;font-weight:600}
+  .exit{background:#4c3a68;color:#eadcff}
+  .go{background:var(--good);color:#04331e}
+  .ghost{position:absolute;font-size:38px;pointer-events:none;z-index:6;transition:left .5s ease,top .5s ease;filter:drop-shadow(0 3px 5px rgba(0,0,0,.5))}
+  .tele{background:#191223;border:1px solid #3d2b5f;border-radius:18px;padding:14px;height:fit-content;position:sticky;top:12px}
+  .tele h3{margin:0 0 8px;font-size:14px;color:var(--gold);letter-spacing:.5px}
+  .metrics{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+  .chip{font-size:12px;background:#291f38;border:1px solid #4c3a68;border-radius:8px;padding:4px 8px}
+  .chip b{color:var(--gold)}
+  .log{font:11px/1.5 ui-monospace,Menlo,Consolas,monospace;color:#d3c2f0;max-height:210px;overflow:auto;background:#120c1c;border-radius:10px;padding:8px}
+  .log div{border-bottom:1px solid #241a34;padding:1px 0}
+  .note{font-size:11px;color:var(--muted);margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>🧱 Keep-Playing Sandbox</h1>
+  <span class="badge">CX-freeplay-01</span>
+  <span class="badge">bands: K–1 · 2–3 · 4–5 · 6–8</span>
+  <span class="badge">intrinsic motivation (free choice)</span>
+</header>
+<div class="wrap">
+  <div class="stage" id="stage">
+    <div class="phaseTag" id="phaseTag">demo</div>
+    <div class="prompt" id="prompt">Watch…</div>
+    <div class="banner" id="banner">🎉 <b>You're all done — great job!</b><br>You can stop now, or keep building just for fun.
+      <div class="row"><button class="exit" id="exitBtn">✔ I'm finished</button></div></div>
+    <div class="grid" id="grid"></div>
+    <div class="palette" id="palette" style="display:none"></div>
+    <div class="row" id="row"></div>
+    <div class="ghost" id="ghost" style="display:none">👆</div>
+  </div>
+  <div class="tele">
+    <h3>LIVE TELEMETRY</h3>
+    <div class="metrics" id="metrics"></div>
+    <div class="log" id="log"></div>
+    <div class="note">The measure is what you do AFTER "you're done": M-CHOICE (free-play time + voluntary actions), M-PERSIST, M-EXPLORE (variety), M-ENGAGE. No rewards for continuing.</div>
+  </div>
+</div>
+<script>
+const T={ev:[],m:{},t0:performance.now(),now(){return Math.round(performance.now()-this.t0)},
+  log(a,d){const t=this.now();this.ev.push(Object.assign({t,a},d||{}));const el=document.getElementById('log');
+    const line=document.createElement('div');line.textContent='+'+(t/1000).toFixed(2)+'s  '+a+(d?'  '+JSON.stringify(d):'');el.prepend(line);},
+  set(k,v){this.m[k]=v;this.render();},
+  render(){document.getElementById('metrics').innerHTML=Object.entries(this.m).map(([k,v])=>'<span class="chip"><b>'+k+'</b> '+v+'</span>').join('');}};
+const $=s=>document.querySelector(s);
+const grid=$('#grid'),ghost=$('#ghost'),phaseTag=$('#phaseTag'),banner=$('#banner');
+const COLORS=['#ff6b6b','#ffb454','#ffe66d','#7be0a3','#5aa9ff','#c58bff'];
+let color=COLORS[0];
+const ROWS=4,COLS=8,TARGETS=[9,10,11];
+let cells=[],requiredDone=false,freeMode=false,freeStart=0,freeActions=0,freeColors=new Set(),lastAction=0,freeTimer=null;
+
+T.set('phase','demo');T.set('required','not done');T.set('free_time_M-CHOICE','0.0s');T.set('free_actions',0);T.set('variety_M-EXPLORE',0);
+
+function buildGrid(interactive){
+  grid.innerHTML='';cells=[];
+  for(let i=0;i<ROWS*COLS;i++){
+    const c=document.createElement('div');c.className='cell'+(TARGETS.includes(i)?' target':'');
+    c.dataset.i=i;if(interactive)c.onclick=()=>paint(i,c);
+    grid.appendChild(c);cells.push(c);
+  }
+}
+function buildPalette(){const p=$('#palette');p.style.display='flex';p.innerHTML='<span style="font-size:12px;color:var(--muted)">color:</span>';
+  COLORS.forEach((col,i)=>{const s=document.createElement('span');s.className='sw'+(i===0?' on':'');s.style.background=col;
+    s.onclick=()=>{color=col;p.querySelectorAll('.sw').forEach(o=>o.classList.remove('on'));s.classList.add('on');};p.appendChild(s);});}
+function paint(i,c){
+  c.style.background=color;
+  if(!freeMode){
+    checkRequired();
+  }else{
+    freeActions++;freeColors.add(color);lastAction=performance.now();
+    T.set('free_actions',freeActions);T.set('variety_M-EXPLORE',freeColors.size);
+    T.log('free_place',{cell:i,color:color});
+  }
+}
+function checkRequired(){
+  const done=TARGETS.every(i=>cells[i].style.background&&cells[i].style.background!=='');
+  if(done&&!requiredDone){requiredDone=true;T.set('required','done ✔');T.log('REQUIRED_COMPLETE');openGate();}
+}
+function openGate(){
+  banner.classList.add('show');freeMode=true;freeStart=performance.now();lastAction=performance.now();
+  cells.forEach(c=>c.classList.remove('target'));
+  T.log('FREE_CHOICE_WINDOW_OPEN');
+  phaseTag.textContent='FREE CHOICE (you may leave)';
+  freeTimer=setInterval(()=>{
+    const t=(performance.now()-freeStart)/1000;T.set('free_time_M-CHOICE',t.toFixed(1)+'s');
+    const idle=(performance.now()-lastAction)/1000;
+    if(idle>6&&!T.m._idleLogged){T.log('idle>6s (M-ENGAGE)');T.m._idleLogged=1;}
+    if(idle<=1)T.m._idleLogged=0;
+  },100);
+}
+$('#exitBtn').onclick=()=>{if(freeMode)endFree('tapped_finished');};
+function endFree(reason){
+  clearInterval(freeTimer);const t=(performance.now()-freeStart)/1000;
+  T.log('FREE_CHOICE_END',{reason,free_seconds:+t.toFixed(1),voluntary_actions:freeActions,color_variety:freeColors.size});
+  finish(t);
+}
+
+/* ---- flow ---- */
+function runGhost(){
+  buildGrid(false);ghost.style.display='block';$('#prompt').textContent='Watch: finish the task, then keep playing for fun…';
+  const stage=$('#stage').getBoundingClientRect();
+  const R=el=>{const r=el.getBoundingClientRect();return[r.left-stage.left+r.width/2-19,r.top-stage.top+r.height/2-19];};
+  const fillSeq=TARGETS.concat([2,3,20,21,22]);let k=0;
+  const step=()=>{
+    if(k===TARGETS.length){banner.classList.add('show');$('#prompt').textContent='Done! …but the hand keeps building 🎨';}
+    if(k>=fillSeq.length){setTimeout(()=>{banner.classList.remove('show');ghost.style.display='none';startReq();},1000);return;}
+    const el=cells[fillSeq[k]];const[x,y]=R(el);ghost.style.left=x+'px';ghost.style.top=y+'px';
+    setTimeout(()=>{el.style.background=COLORS[k%COLORS.length];k++;setTimeout(step,700);},520);
+  };
+  setTimeout(step,600);
+}
+function startReq(){
+  buildGrid(true);buildPalette();banner.classList.remove('show');requiredDone=false;freeMode=false;
+  phaseTag.textContent='task';$('#prompt').innerHTML='<b>Fill the 3 glowing squares</b> with any colors to finish the task.';
+  T.set('phase','task');T.set('required','not done');T.log('phase_task');
+}
+function finish(freeSecs){
+  freeMode=false;$('#palette').style.display='none';banner.classList.remove('show');
+  phaseTag.textContent='done';grid.style.opacity='.5';
+  $('#prompt').innerHTML='<b style="color:var(--gold);font-size:19px">Thanks for playing! 👋</b>'+
+    '<div class="note">After the task was over and leaving was free, this child kept building for <b>'+freeSecs.toFixed(1)+'s</b> '+
+    'with '+freeActions+' voluntary blocks in '+freeColors.size+' colors. Free-choice continuation with no reward is the cleanest behavioral read on <b>intrinsic motivation</b> — the drive that turns ability into achievement.</div>';
+  $('#row').innerHTML='<button class="go" onclick="location.reload()">↺ Play again</button>';
+  T.set('phase','done');
+  T.log('SESSION_END',{free_seconds:+freeSecs.toFixed(1),voluntary_actions:freeActions,variety:freeColors.size});
+}
+window.addEventListener('blur',()=>{T.log('off_task_blur (M-ENGAGE)');});
+runGhost();
+</script>
+</body>
+</html>

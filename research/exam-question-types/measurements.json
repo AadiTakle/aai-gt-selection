@@ -158,5 +158,341 @@
     "usefulness_tail": "Reduces conditional standard error at the cut; inconsistent responders near the cut get more items before a decision.",
     "how_to_collect": "Compare responses to matched parallel items (same b, cloned via AIG).",
     "how_much_to_collect": ">=3 matched pairs near the child's ability."
+  },
+  {
+    "id": "M-RESUME",
+    "name": "Post-failure resumption",
+    "what": "Post-failure resumption",
+    "usefulness_tail": "How a child responds to failure (retries, latency to re-attempt, voluntary-quit timing on hard items) is a task-commitment signal invisible to accuracy; near-cut children who re-engage after failure differ meaningfully from those who quit.",
+    "how_to_collect": "On above-level or near-unsolvable items, log each retry, the latency from failure to next attempt, and any voluntary-quit event with its timestamp.",
+    "how_much_to_collect": ">=6 hard/near-unsolvable items per child so retry and quit behavior is estimable."
+  },
+  {
+    "id": "M-IDEAFLU",
+    "name": "Idea fluency",
+    "what": "Idea fluency",
+    "usefulness_tail": "Count of distinct valid ideas in an open divergent task; fluency is the most reliable single divergent-thinking index and higher-ability children generate more, providing a continuous creativity axis CogAT lacks.",
+    "how_to_collect": "Count non-duplicate on-topic responses per prompt (dedupe near-identical entries).",
+    "how_much_to_collect": ">=3 prompts, roughly 2-3 minutes each, to stabilize the fluency estimate."
+  },
+  {
+    "id": "M-FLEX",
+    "name": "Category flexibility",
+    "what": "Category flexibility",
+    "usefulness_tail": "Number of distinct semantic/functional categories the child moves among; flexibility separates truly divergent thinkers from fluent-but-repetitive ones and is harder to coach than raw count.",
+    "how_to_collect": "Cluster responses into categories (functional, physical, imaginative) and count distinct categories and switches.",
+    "how_much_to_collect": "Same open prompts as fluency; needs a category scheme or embedding model."
+  },
+  {
+    "id": "M-ORIG",
+    "name": "Statistical originality",
+    "what": "Statistical originality",
+    "usefulness_tail": "Infrequency of a response against a reference norm bank; rare-but-appropriate ideas are the cleanest creativity tail signal and mark the Renzulli creativity ring.",
+    "how_to_collect": "Score each response's frequency against a norm corpus; low frequency plus on-topic appropriateness scores as original.",
+    "how_much_to_collect": "Requires a norm bank per prompt; >=3 prompts per child."
+  },
+  {
+    "id": "M-ELAB",
+    "name": "Elaboration",
+    "what": "Elaboration",
+    "usefulness_tail": "Amount of detail/embellishment added to an idea or figure (extra words, sub-features, strokes); adds incremental creativity variance beyond how many ideas are produced.",
+    "how_to_collect": "Count added descriptors/words per verbal idea or strokes/added features per figural response.",
+    "how_much_to_collect": "Open verbal and figural tasks; interpret relative to time on task."
+  },
+  {
+    "id": "M-QUERY",
+    "name": "Information-seeking / question count",
+    "what": "Information-seeking / question count",
+    "usefulness_tail": "Number and quality of questions asked or information-requests made during a novel activity; a direct behavioral index of epistemic curiosity that reasoning tests miss and that predicts intrinsic drive to learn.",
+    "how_to_collect": "Count question-card taps or composed questions and rate their depth (surface fact vs causal/why question) during a mystery activity.",
+    "how_much_to_collect": ">=1 novel exploration activity of 2-3 minutes; more activities improve reliability."
+  },
+  {
+    "id": "M-UNCERT",
+    "name": "Uncertainty preference",
+    "what": "Uncertainty preference",
+    "usefulness_tail": "Proportion of choices for uncertain/novel over certain/known options; a preference for informative uncertainty behaviorally marks curiosity-driven explorers and is hard to fake.",
+    "how_to_collect": "Present repeated certain-vs-uncertain choices; compute the proportion of uncertain picks and how it shifts as uncertainty is resolved.",
+    "how_much_to_collect": ">=10 certain-vs-uncertain choice trials per child."
+  },
+  {
+    "id": "M-CHOICE",
+    "name": "Free-choice engagement",
+    "what": "Free-choice engagement",
+    "usefulness_tail": "Time and voluntary actions spent on an activity after the required portion ends and stopping is free; the canonical behavioral intrinsic-motivation measure, avoiding self-report bias and predicting the sustained engagement behind gifted achievement.",
+    "how_to_collect": "After a 'you're done' gate with an always-visible exit and no rewards, log continued time, count of self-initiated actions, and variety of self-directed play.",
+    "how_much_to_collect": ">=1 free-choice window of 60-120 seconds; multiple windows across activities improve reliability."
+  },
+  {
+    "id": "M-DELAY",
+    "name": "Delay-of-gratification wait time",
+    "what": "Delay-of-gratification wait time",
+    "usefulness_tail": "Time willingly waited (or the choice to delay) for a larger-later reward; a self-regulation/future-orientation signal that predicts achievement independent of IQ and shows the most variance in young children where reasoning tests are least reliable.",
+    "how_to_collect": "On a growing-reward wait task with an always-available cash-out, log total wait time, the delay choice, and any strategic self-distraction behaviors.",
+    "how_much_to_collect": "1-3 wait trials (a single well-designed trial can be long and informative)."
+  },
+  {
+    "id": "M-EFFALLOC",
+    "name": "Effort allocation ratio",
+    "what": "Effort allocation ratio",
+    "usefulness_tail": "Proportion of free time spent on a beneficial-but-tedious task versus an available fun distraction; a behavioral academic-diligence/self-discipline signal that predicts grades beyond IQ and is far less fakeable than conscientiousness self-report.",
+    "how_to_collect": "In a dual-panel task-vs-distraction block, log time and actions on the diligent task divided by total, plus sustained on-task stretch lengths.",
+    "how_much_to_collect": "A single 3-5 minute free-allocation block yields a usable ratio; more blocks improve reliability."
+  },
+  {
+    "id": "M-RUBRIC",
+    "name": "Rubric-scored product quality",
+    "what": "Rubric-scored product quality",
+    "usefulness_tail": "Polytomous expert/consensual rating of an open product on originality, reasoning, and elaboration; captures authentic creative-productive giftedness (Renzulli Type III) that keyed items miss and adds ecological tail signal.",
+    "how_to_collect": "Score the stored product and reflection with an anchored rubric using multiple trained raters; report the mean and inter-rater reliability.",
+    "how_much_to_collect": ">=1 product per child; >=2 raters per product to establish inter-rater reliability."
+  },
+  {
+    "id": "M-CARELESS",
+    "name": "Careless / invalid self-report flag",
+    "what": "Careless / invalid self-report flag",
+    "usefulness_tail": "A validity index for self-report (straight-lining, too-fast responses, inconsistent reverse-coded pairs, infrequency-item failures, social-desirability lean) that gates non-cognitive self-report so faked or careless questionnaires do not distort tail decisions.",
+    "how_to_collect": "Log per-item response time and response variance, compare reverse-coded pairs for consistency, and check infrequency/attention items; combine into an invalidity score.",
+    "how_much_to_collect": "Whole questionnaire; requires several reverse-coded pairs and at least one infrequency item."
+  },
+  {
+    "id": "M-RULEID",
+    "name": "Rule dimensionality solved",
+    "what": "Number of independent relational rules or attributes the child integrated simultaneously in the correct answer (e.g., a 3x3 matrix solved under three co-acting rules).",
+    "usefulness_tail": "Separates children by the relational complexity they can bind at once (Halford). Two children may both be correct, but at 1 vs 3 co-acting rules; exposing that structure sharpens tail placement where a single difficulty index blurs it, and it is harder to coach than surface speed.",
+    "how_to_collect": "Tag each item with its rule set and design distractors so each foil violates exactly one named rule; the chosen option reveals which rule-dimensions were satisfied. Log the maximum simultaneously satisfied rules on correct high-complexity items.",
+    "how_much_to_collect": ">=6 items whose distractors are orthogonally keyed to individual rules, spanning 1 to 4 co-acting rules near the child's edge."
+  },
+  {
+    "id": "M-HYP",
+    "name": "Hypothesis-search efficiency",
+    "what": "Informativeness of the child's exploratory choices during rule discovery: how quickly errors are eliminated and whether placements test maximally disambiguating cases versus redundant or random ones.",
+    "usefulness_tail": "In rule-discovery tasks, able children run efficient disambiguating tests and converge fast; this indexes inductive/scientific reasoning and dynamic-assessment learning rate, adding tail signal beyond final accuracy and resisting coaching.",
+    "how_to_collect": "From the placement/action log, compute the reduction in the viable-rule space per action (or trials-to-criterion after the first informative feedback) and flag perseverative or random tests.",
+    "how_much_to_collect": ">=1 rule-discovery item with >=6 feedback-bearing actions; aggregate over >=3 such items for a stable rate."
+  },
+  {
+    "id": "M-COMBO",
+    "name": "Accuracy-gated speed combo",
+    "what": "Accuracy-gated speed combo",
+    "usefulness_tail": "Rewards sustained joint speed+accuracy rather than impulsive peak speed; a coach-resistant index of controlled processing efficiency that separates children who hold both at pace from those who trade one for the other.",
+    "how_to_collect": "Increment a streak on each response meeting BOTH a correctness check and a per-child adaptive RT band; reset to 0 on any error, false alarm, or timeout; store max streak and the streak distribution.",
+    "how_much_to_collect": ">=30 speeded trials so streak length is estimable."
+  },
+  {
+    "id": "M-FALSEALARM",
+    "name": "Commission / false-alarm rate",
+    "what": "Commission / false-alarm rate",
+    "usefulness_tail": "Isolates impulsive fast-but-wrong responding so raw speed is never rewarded; separates careful-fast (able) from impulsive-fast responders and underlies the concentration-performance index.",
+    "how_to_collect": "Count taps on non-target/foil stimuli plus anticipatory responses faster than a plausible floor (<150 ms), divided by response opportunities.",
+    "how_much_to_collect": ">=40 target/non-target events with a meaningful foil rate (>=30% non-targets)."
+  },
+  {
+    "id": "M-HICKSLOPE",
+    "name": "Hick's-law RT slope",
+    "what": "Hick's-law RT slope",
+    "usefulness_tail": "A device- and base-motor-robust estimate of information-processing RATE: the intercept absorbs motor/device latency while the slope reflects central processing, so it is less confounded than absolute RT at the tail.",
+    "how_to_collect": "Administer blocks at 1, 2, and 4 response alternatives; regress mean correct RT on log2(N) and store slope and intercept.",
+    "how_much_to_collect": ">=15 correct trials per set size (>=45 total) for a stable slope."
+  },
+  {
+    "id": "M-ITTHRESH",
+    "name": "Inspection-time threshold",
+    "what": "Inspection-time threshold",
+    "usefulness_tail": "A near motor-free, practice-resistant index of perceptual intake speed - the processing-speed measure with the cleanest (still modest) link to g and the least motor/device confound, making it the most defensible single speed adjunct at the tail.",
+    "how_to_collect": "Staircase the pre-mask exposure duration (e.g., 2-down/1-up) in a backward-masked two-alternative discrimination and estimate the exposure at the target accuracy (~71-75% correct).",
+    "how_much_to_collect": ">=40-60 masked trials for a stable staircase threshold; report threshold in ms alongside the measured display frame time."
+  },
+  {
+    "id": "M-PAE",
+    "name": "Placement error (percent absolute error)",
+    "what": "Placement error (percent absolute error)",
+    "usefulness_tail": "Continuous placement error turns a single number-line item into a fine-grained latent-magnitude signal; small, consistent PAE at hard scales (fractions, wide ranges) separates top reasoners far better than dichotomous accuracy and avoids ceiling.",
+    "how_to_collect": "Record released position, convert to a value, compute absolute(placed - target) / line-range as a percent per item; also fit the child's placement curve (linear vs log R^2).",
+    "how_much_to_collect": ">=10-15 placements spanning the scale for a stable PAE and linearity estimate."
+  },
+  {
+    "id": "M-WEBER",
+    "name": "ANS acuity (Weber fraction)",
+    "what": "ANS acuity (Weber fraction)",
+    "usefulness_tail": "Estimates the finest numerical ratio a child can reliably discriminate; a less-coachable, low-literacy tail signal that keeps separating children when symbolic items would floor or ceiling, especially in K-1.",
+    "how_to_collect": "Adaptively vary the ratio of the two non-symbolic arrays (staircase), fit a psychometric function to accuracy-by-ratio, and report the Weber fraction w and its standard error.",
+    "how_much_to_collect": ">=30-40 non-symbolic trials spanning ratios ~1.1 to 2.5 for a stable w."
+  },
+  {
+    "id": "M-EQREL",
+    "name": "Relational-vs-operational equivalence signature",
+    "what": "Relational-vs-operational equivalence signature",
+    "usefulness_tail": "Flags whether a child treats '=' relationally (balances both sides) or operationally (dumps a running total), a research-backed early separator of algebra-ready reasoning that dichotomous accuracy hides; concentrates information exactly where pre-algebraic talent emerges.",
+    "how_to_collect": "On non-canonical equivalence items, classify the child's first substantive placement/entry against known operational-error targets vs the relational solution, and record whether they self-correct.",
+    "how_much_to_collect": ">=4-6 non-canonical equivalence items to reliably classify the child's dominant strategy."
+  },
+  {
+    "id": "M-PROPSTRAT",
+    "name": "Proportional strategy signature (multiplicative vs additive)",
+    "what": "Proportional strategy signature (multiplicative vs additive)",
+    "usefulness_tail": "Classifies whether the child preserves the ratio (multiplicative/scaling) or a constant difference (additive) during adjustments, the decisive divide in proportional reasoning that a correct/incorrect score cannot see; isolates genuine proportional reasoners at the tail.",
+    "how_to_collect": "From the move sequence, fit whether successive adjustments hold the quantity-ratio constant vs the quantity-difference constant, classify the strategy, and record consistency across items.",
+    "how_much_to_collect": ">=4-6 proportion items including non-integer/non-doubling targets to classify strategy reliably."
+  },
+  {
+    "id": "M-ROTSLOPE",
+    "name": "Mental-rotation RT slope",
+    "what": "Slope of correct-trial response time regressed on target angular disparity.",
+    "usefulness_tail": "The classic Shepard-Metzler chronometric signature; a shallow slope held at high accuracy is a rate-of-mental-transformation measure that is hard to coach and finely separates the spatial tail.",
+    "how_to_collect": "Present matched trials at several angular disparities and regress correct-trial RT on angle per child.",
+    "how_much_to_collect": ">=12 trials spanning >=3 disparities for a stable slope estimate."
+  },
+  {
+    "id": "M-MIRRORFA",
+    "name": "Mirror false-alarm rate",
+    "what": "Rate of selecting an enantiomorph (mirror-image) foil instead of a true rotation.",
+    "usefulness_tail": "Distinguishes genuine 3D mental rotation from partial feature-matching; low mirror false alarms at high disparity is a clean tail separator.",
+    "how_to_collect": "Include exact mirror foils and log the chirality of the chosen distractor.",
+    "how_much_to_collect": ">=8 trials that contain a mirror foil."
+  },
+  {
+    "id": "M-VIEWANG",
+    "name": "Perspective-taking angular error",
+    "what": "Signed angular error between the child's indicated heading/direction and the true direction to the target from an imagined viewpoint.",
+    "usefulness_tail": "Grades perspective responses far more finely than right/wrong, and its systematic component quantifies residual egocentric bias; low angular error at large viewpoint offsets is a navigation-linked tail signal standard batteries omit.",
+    "how_to_collect": "On pointing/heading items, record the dial angle and subtract the geometric correct heading; decompose into random and egocentric-bias components.",
+    "how_much_to_collect": ">=10 pointing trials across a range of viewpoint offsets for a stable error and bias estimate."
+  },
+  {
+    "id": "M-VOCABLVL",
+    "name": "Lexical frequency ceiling",
+    "what": "Lexical frequency ceiling",
+    "usefulness_tail": "Vocabulary breadth is one of the strongest, most stable verbal-ability correlates; the rarest word-frequency (Zipf) band a child reliably handles separates gifted lexical depth once common words ceiling. An adaptive staircase individualizes the frontier, making it less coachable than a fixed word list.",
+    "how_to_collect": "Run an adaptive frequency staircase over frequency-tagged word items (receptive vocab, opposites/synonyms, context cloze); record the lowest-frequency (rarest) band answered correctly at criterion.",
+    "how_much_to_collect": ">=15-20 adaptive vocabulary items spanning several frequency bands to localize the ceiling with acceptable error."
+  },
+  {
+    "id": "M-LURETYPE",
+    "name": "Distractor lure profile",
+    "what": "Distractor lure profile",
+    "usefulness_tail": "Which class of distractor (phonological cousin, category/semantic cousin, thematic associate, surface match) pulls a child's errors reveals the grain of their semantic/relational discrimination; category-cousin near-misses at high difficulty indicate latent ability just below the cut, refining placement beyond right/wrong.",
+    "how_to_collect": "Tag every distractor with a lure class; on each error log the lure class chosen; aggregate the per-child error-by-lure distribution.",
+    "how_much_to_collect": "Every incorrect response; requires items built with a designed lure taxonomy; >=10-15 errors for a stable profile (pooled across verbal types)."
+  },
+  {
+    "id": "M-INFDEPTH",
+    "name": "Inference depth level reached",
+    "what": "Inference depth level reached",
+    "usefulness_tail": "Comprehension discrimination at the tail is about inference layer, not literal recall; recording the deepest layer answered correctly (literal -> local/bridging inference -> global/thematic -> author's-purpose/evaluative) cleanly separates strong comprehenders who reach evaluative inference from those who plateau at literal.",
+    "how_to_collect": "Tag each comprehension/absurdity/cloze probe with an inference-depth level; record the maximum level answered correctly at criterion within a passage/unit.",
+    "how_much_to_collect": ">=4-6 probes spanning depth levels per passage/unit; several passages to stabilize the estimate."
+  },
+  {
+    "id": "M-ORALSPAN",
+    "name": "Oral-direction condition span",
+    "what": "Oral-direction condition span",
+    "usefulness_tail": "The maximum number of simultaneous spoken conditions a child can integrate before dropping one is a sharp, near-language-neutral tail separator that jointly loads receptive language and verbal working memory; gifted children reliably cross-reference 4-5 embedded constraints.",
+    "how_to_collect": "Adaptive condition-count staircase on following-oral-directions items; record the highest condition count satisfied on all constraints at criterion; log which single condition is dropped on near-misses.",
+    "how_much_to_collect": ">=12-16 adaptive direction items across condition counts; report span plus the near-miss condition-drop pattern."
+  },
+  {
+    "id": "M-SPAN",
+    "name": "Memory span threshold",
+    "what": "Memory span threshold",
+    "usefulness_tail": "The staircase-estimated longest sequence a child reliably reproduces is a continuous, fine-grained capacity index that keeps separating high performers who all hit ceiling on fixed-length items.",
+    "how_to_collect": "Track the highest sequence length reproduced correctly under a 1-up/1-down span staircase; average the last several reversal lengths.",
+    "how_much_to_collect": "6-10 adaptive trials per mode (forward/backward) for a stable threshold."
+  },
+  {
+    "id": "M-MANIPCOST",
+    "name": "Manipulation cost",
+    "what": "Manipulation cost",
+    "usefulness_tail": "The drop from forward (storage) span to backward/reorder (manipulation) span isolates central-executive manipulation, which tracks fluid reasoning better than raw storage at the tail.",
+    "how_to_collect": "Compute forward max span minus backward or sorted max span under matched staircases.",
+    "how_much_to_collect": "Enough trials in each mode to estimate both spans (6-10 each)."
+  },
+  {
+    "id": "M-DPRIME",
+    "name": "Signal-detection sensitivity (d-prime)",
+    "what": "Signal-detection sensitivity (d-prime)",
+    "usefulness_tail": "Separates true match-detection sensitivity from response bias in continuous tasks, so a cautious child and a guesser are not scored alike near the cut.",
+    "how_to_collect": "From hits and false alarms compute d-prime = z(hit rate) minus z(false-alarm rate) with standard edge corrections.",
+    "how_much_to_collect": ">=20 target and >=20 non-target trials for a stable estimate."
+  },
+  {
+    "id": "M-UPDATECOST",
+    "name": "Updating cost",
+    "what": "Updating cost",
+    "usefulness_tail": "The accuracy or RT decrement per additional to-be-updated item or level indexes the efficiency of gating and replacing WM contents, a purer executive signal than static span.",
+    "how_to_collect": "Regress accuracy (or RT) on memory load / update count and take the slope.",
+    "how_much_to_collect": ">=4 load levels with several trials each."
+  },
+  {
+    "id": "M-POSTERR",
+    "name": "Post-error adjustment",
+    "what": "Post-error adjustment",
+    "usefulness_tail": "Slowing and accuracy recovery after an error index performance monitoring; adaptive post-error slowing (not rigid or absent) marks metacognitive control at the tail.",
+    "how_to_collect": "Mean RT on trials immediately after an error minus mean RT after correct trials; also track post-error accuracy.",
+    "how_much_to_collect": ">=10 error trials with valid following trials."
+  },
+  {
+    "id": "M-COMM",
+    "name": "Commission-error rate",
+    "what": "Commission-error rate",
+    "usefulness_tail": "Failures to withhold on no-go/stop trials index prepotent-response inhibition; low commission rates at high go-probability distinguish strong inhibitory control from impulsivity in a way speed cannot.",
+    "how_to_collect": "Proportion of no-go/stop trials on which a response was executed.",
+    "how_much_to_collect": ">=15-20 no-go/stop trials (rare relative to go)."
+  },
+  {
+    "id": "M-SSRT",
+    "name": "Stop-signal reaction time",
+    "what": "Stop-signal reaction time",
+    "usefulness_tail": "The estimated latency of the covert inhibitory process is one of the least coachable executive metrics; shorter SSRT marks stronger response control at the tail.",
+    "how_to_collect": "Track stop-signal delay with a staircase and estimate SSRT (median go RT minus mean stop-signal delay).",
+    "how_much_to_collect": ">=30 go and >=15 stop trials for a usable estimate."
+  },
+  {
+    "id": "M-CONGEFF",
+    "name": "Congruency/interference effect",
+    "what": "Congruency/interference effect",
+    "usefulness_tail": "Incongruent-minus-congruent RT (flanker/Stroop) isolates interference control independent of baseline speed; a small effect at high accuracy is a strong, hard-to-game tail marker.",
+    "how_to_collect": "Median RT on incongruent trials minus median RT on congruent trials (correct trials only).",
+    "how_much_to_collect": ">=20 correct trials per congruency condition."
+  },
+  {
+    "id": "M-SWITCHCOST",
+    "name": "Task-switch cost",
+    "what": "Task-switch cost",
+    "usefulness_tail": "Switch-trial minus repeat-trial RT/accuracy indexes set-shifting efficiency; low switch cost with maintained accuracy is a clean flexibility signal that fixed-format tests miss.",
+    "how_to_collect": "Compare RT/accuracy on rule-switch trials vs rule-repeat trials in a mixed block.",
+    "how_much_to_collect": ">=15 switch and >=15 repeat trials."
+  },
+  {
+    "id": "M-PERSEV",
+    "name": "Perseverative-error rate",
+    "what": "Perseverative-error rate",
+    "usefulness_tail": "Continuing to apply the old rule after a switch or silent rule change directly indexes failure to update task set; near-zero perseveration at high difficulty is a sharp executive marker.",
+    "how_to_collect": "Count post-switch errors whose response matches the previously correct rule.",
+    "how_much_to_collect": ">=6 post-switch trials per switch across several switches."
+  },
+  {
+    "id": "M-PROCACC",
+    "name": "Processing-task accuracy (complex-span gate)",
+    "what": "Processing-task accuracy (complex-span gate)",
+    "usefulness_tail": "Accuracy on the interleaved processing task gates the validity of the storage score; it detects children who trade away processing to boost recall, protecting tail comparability.",
+    "how_to_collect": "Proportion correct on the interleaved processing judgments; enforce a minimum (e.g. >=80%) for a valid storage estimate.",
+    "how_much_to_collect": "All processing trials in a complex-span session (typically >=15)."
+  },
+  {
+    "id": "M-BETWEENERR",
+    "name": "Between-search errors",
+    "what": "Between-search errors",
+    "usefulness_tail": "Returning to a location that already yielded a token indexes failure to maintain and update a spatial WM record across searches; few between-errors at large set sizes is a strong tail separator.",
+    "how_to_collect": "Count revisits to boxes that have already produced a token in a self-ordered search.",
+    "how_much_to_collect": "Several rounds at set sizes 4-8."
+  },
+  {
+    "id": "M-SEARCHSTRAT",
+    "name": "Search strategy score",
+    "what": "Search strategy score",
+    "usefulness_tail": "The degree to which searches follow a fixed, systematic sequence (few distinct starting boxes) reveals planful strategy use that predicts giftedness beyond error counts.",
+    "how_to_collect": "Count distinct boxes used to begin each new search (lower = more strategic); log the full move path.",
+    "how_much_to_collect": "Higher set sizes (>=6 boxes) across several rounds."
   }
 ]

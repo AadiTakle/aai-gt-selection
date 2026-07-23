@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QUANT-ANALOGY-01 — Number Analogy & Matrix</title>
+<style>
+:root{--bg:#0f1226;--panel:#1b2140;--panel2:#232a52;--accent:#5eead4;--accent2:#f59e0b;--good:#4ade80;--bad:#f87171;--ink:#eef1ff;--muted:#9aa3c7}
+*{box-sizing:border-box}html,body{margin:0}
+body{font:16px/1.45 system-ui,Segoe UI,Roboto,sans-serif;color:var(--ink);background:radial-gradient(1100px 700px at 60% -10%,#123a4e,#0f1226 60%);min-height:100vh}
+.wrap{display:grid;grid-template-columns:1fr 340px;gap:16px;max-width:1120px;margin:0 auto;padding:18px}
+@media(max-width:880px){.wrap{grid-template-columns:1fr}}
+h1{font-size:18px;margin:0 0 2px}.sub{color:var(--muted);font-size:13px;margin-bottom:10px}
+.card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid #313a6b;border-radius:16px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.phasebar{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.pill{font-size:12px;padding:4px 10px;border-radius:999px;background:#2b336a;color:var(--muted);border:1px solid #3a447f}
+.pill.on{background:var(--accent);color:#053;font-weight:700}
+.prompt{text-align:center;color:var(--muted);min-height:22px;margin-bottom:8px}
+.gridwrap{position:relative;display:flex;justify-content:center;margin:8px 0}
+.grid{display:grid;gap:12px;position:relative}
+.cell{width:78px;height:78px;border-radius:14px;background:#2b336a;border:2px solid #3a447f;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:800}
+.cell.blank{background:#161c3a;border:2px dashed #6b78c0;color:#8ea0ff}
+.cell.blank.filled{background:radial-gradient(circle at 40% 30%,#5eead4,#22b3a0);color:#052}
+.cell.pop{animation:pop .4s ease}
+@keyframes pop{0%{transform:scale(1)}45%{transform:scale(1.15)}100%{transform:scale(1)}}
+.badge{position:absolute;font-size:16px;font-weight:800;color:#3a2500;background:var(--accent2);border-radius:8px;padding:2px 8px;opacity:0;transition:opacity .4s}
+.badge.show{opacity:1}
+.tray{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:10px}
+.cand{width:64px;height:64px;border-radius:14px;background:#2b336a;border:2px solid #3a447f;color:var(--ink);font-size:26px;font-weight:800;cursor:pointer}
+.cand:hover{border-color:var(--accent)}
+.row{display:flex;gap:10px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+button.act{font:600 15px system-ui;padding:9px 16px;border-radius:12px;border:0;cursor:pointer;background:var(--accent);color:#053}
+button.act.ghost{background:#2b336a;color:var(--ink);border:1px solid #3a447f}
+button.act:disabled{opacity:.4}
+.fb{text-align:center;font-weight:700;min-height:24px;margin-top:10px}
+.fb.good{color:var(--good)}.fb.bad{color:var(--bad)}
+.hand{position:fixed;font-size:32px;z-index:40;pointer-events:none;opacity:0;filter:drop-shadow(0 4px 6px rgba(0,0,0,.5));transition:left .45s ease,top .45s ease}
+.tele{font-size:13px}.tele h2{font-size:14px;margin:0 0 8px;color:var(--accent)}
+.metrics{display:grid;grid-template-columns:1fr auto;gap:4px 8px;margin-bottom:10px}
+.metrics div:nth-child(odd){color:var(--muted)}.metrics b{font-variant-numeric:tabular-nums}
+.log{height:190px;overflow:auto;background:#12172f;border:1px solid #2a336a;border-radius:10px;padding:8px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace}
+.log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-acc{color:var(--good)}.t-err{color:var(--bad)}.t-sys{color:var(--muted)}.t-evt{color:#9fb0ff}
+.legend{color:var(--muted);font-size:12px;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <main class="card">
+    <h1>Number Analogy &amp; Matrix</h1>
+    <div class="sub">Find the number rule linking the pairs, then complete the missing cell.</div>
+    <div class="phasebar" id="phasebar"></div>
+    <div class="prompt" id="prompt"></div>
+    <div class="gridwrap"><div class="grid" id="grid"></div>
+      <div class="badge" id="b1"></div><div class="badge" id="b2"></div></div>
+    <div class="tray" id="tray"></div>
+    <div class="row"><button class="act ghost" id="nextBtn" style="display:none">Next</button></div>
+    <div class="fb" id="fb"></div>
+    <div class="hand" id="hand">&#128070;</div>
+  </main>
+  <aside class="card tele">
+    <h2>Live telemetry</h2>
+    <div class="metrics" id="metrics"></div>
+    <div class="log" id="log"></div>
+    <div class="legend">Logs M-ACC, M-RTFIRST, M-ERRTYPE, M-DIFFREACH and <b>M-CONSIST</b> (matched-clone agreement).</div>
+  </aside>
+</div>
+<script>
+(function(){
+  "use strict";
+  var el=function(id){return document.getElementById(id)};
+  var grid=el('grid'),tray=el('tray'),prompt=el('prompt'),fb=el('fb'),nextBtn=el('nextBtn'),hand=el('hand'),
+      b1=el('b1'),b2=el('b2');
+  var T0=Date.now();function perf(){return Date.now()-T0;}
+  var diffName={1:'2x2 additive',2:'2x2 multiplicative',3:'3x3 matrix'};
+
+  var Tel={scored:0,correct:0,firsts:[],maxDiff:0,errs:{},cloneResults:{},
+    push:function(cls,msg){var d=document.createElement('div');d.className=cls;d.textContent='['+(perf()/1000).toFixed(2)+'s] '+msg;
+      var g=el('log');g.appendChild(d);g.scrollTop=g.scrollHeight;},
+    consistency:function(){var pairs=Object.keys(Tel.cloneResults);if(!pairs.length)return '—';
+      var agree=0,tot=0;pairs.forEach(function(k){var arr=Tel.cloneResults[k];if(arr.length>=2){tot++;if(arr[0]===arr[1])agree++;}});
+      return tot?agree+'/'+tot+' pairs agree':'need pair';},
+    render:function(){
+      var acc=Tel.scored?Math.round(100*Tel.correct/Tel.scored)+'% ('+Tel.correct+'/'+Tel.scored+')':'—';
+      var mean=Tel.firsts.length?Math.round(Tel.firsts.reduce(function(a,b){return a+b},0)/Tel.firsts.length):0;
+      var errStr=Object.keys(Tel.errs).length?Object.keys(Tel.errs).map(function(k){return k+':'+Tel.errs[k]}).join(', '):'—';
+      el('metrics').innerHTML=
+        '<div>M-ACC accuracy</div><b>'+acc+'</b>'+
+        '<div>M-RTFIRST mean</div><b>'+(mean||'—')+' ms</b>'+
+        '<div>M-DIFFREACH</div><b>'+(Tel.maxDiff?diffName[Tel.maxDiff]:'—')+'</b>'+
+        '<div>M-ERRTYPE</div><b style="font-size:11px">'+errStr+'</b>'+
+        '<div>M-CONSIST</div><b style="font-size:11px">'+Tel.consistency()+'</b>';
+    }};
+
+  // 2x2: cells row-major [A,B,C,null]; matrix 3x3 with one null.
+  var items=[
+    {phase:'demo',shape:'2x2',cells:[2,4,3,null],ans:6,rel:'x2',diff:2,options:[5,6,7,8]},
+    {phase:'warmup',shape:'2x2',cells:[2,4,5,null],ans:10,rel:'x2',diff:2,options:[7,9,10,25],addFoil:7},
+    {phase:'scored',shape:'2x2',cells:[3,12,5,null],ans:20,rel:'x4',diff:2,options:[14,17,20,25],addFoil:14,clone:'x4'},
+    {phase:'scored',shape:'2x2',cells:[2,8,6,null],ans:24,rel:'x4',diff:2,options:[12,18,24,30],addFoil:12,clone:'x4'},
+    {phase:'scored',shape:'3x3',cells:[2,4,6, 3,6,9, 4,8,null],ans:12,rel:'row+col',diff:3,options:[10,11,12,16]}
+  ];
+  var labels={demo:'1 Watch',warmup:'2 Try',scored:'3 Solve'};
+  var i=-1,cur=null,itemStart=0,firstAction=0,answered=false;
+
+  function renderPhasebar(){el('phasebar').innerHTML=['demo','warmup','scored'].map(function(p){
+    return '<span class="pill'+(cur&&cur.phase===p?' on':'')+'">'+labels[p]+'</span>';}).join('')+
+    (cur&&cur.phase==='scored'?'<span class="pill">'+diffName[cur.diff]+'</span>':'');}
+
+  function drawGrid(fill){
+    var n=cur.shape==='3x3'?3:2;
+    grid.style.gridTemplateColumns='repeat('+n+',78px)';
+    grid.innerHTML='';
+    cur.cells.forEach(function(v,k){
+      var c=document.createElement('div');
+      if(v===null){c.className='cell blank';c.id='blankCell';c.textContent=(fill!=null?fill:'?');if(fill!=null)c.classList.add('filled');}
+      else{c.className='cell';c.textContent=v;}
+      grid.appendChild(c);
+    });
+  }
+  function buildCands(){
+    tray.innerHTML='';
+    cur.options.forEach(function(o){var b=document.createElement('button');b.className='cand';b.textContent=o;
+      b.onclick=function(){ if(firstAction===0){firstAction=perf();Tel.push('t-evt','first action');} mark(o); };
+      tray.appendChild(b);});
+  }
+
+  function classifyErr(a){ if(a===cur.ans)return 'correct'; if(cur.addFoil!=null&&a===cur.addFoil)return 'additive-misread'; return 'other'; }
+
+  function mark(val){
+    if(answered)return; answered=true;
+    var rt=perf()-itemStart, ok=(val===cur.ans), etype=classifyErr(val);
+    drawGrid(val); var bc=el('blankCell'); if(bc)bc.classList.add('pop');
+    if(cur.phase==='scored'){
+      Tel.scored++; if(firstAction)Tel.firsts.push(firstAction-itemStart);
+      if(ok){Tel.correct++; if(cur.diff>Tel.maxDiff)Tel.maxDiff=cur.diff;} else {Tel.errs[etype]=(Tel.errs[etype]||0)+1;}
+      if(cur.clone){Tel.cloneResults[cur.clone]=Tel.cloneResults[cur.clone]||[];Tel.cloneResults[cur.clone].push(ok?1:0);}
+      Tel.push(ok?'t-acc':'t-err','SCORED '+cur.rel+': chose '+val+(ok?' OK':' WRONG(key='+cur.ans+')')+'  RT='+rt+'ms err='+etype);
+      if(ok)beep();
+    } else { Tel.push('t-sys',cur.phase.toUpperCase()+': chose '+val+(ok?' OK':' (key '+cur.ans+')')+' — not scored'); }
+    fb.textContent= ok?(cur.phase==='warmup'?'Yes! Now the real ones.':'Correct!'):'The answer was '+cur.ans+'.';
+    fb.className='fb '+(ok?'good':'bad');
+    [].slice.call(tray.children).forEach(function(b){b.disabled=true;});
+    nextBtn.style.display='inline-block'; Tel.render();
+  }
+  nextBtn.onclick=load;
+
+  function load(){
+    i++; if(i>=items.length)return finish();
+    cur=items[i]; answered=false; firstAction=0; fb.textContent='';fb.className='fb'; nextBtn.style.display='none';
+    b1.className='badge';b2.className='badge';
+    renderPhasebar(); drawGrid(null);
+    prompt.textContent = cur.phase==='demo'?'Watch the rule that links each pair.':
+      (cur.shape==='3x3'?'Find the number that fits the row AND column.':'What number completes the pattern?');
+    if(cur.phase!=='demo')buildCands(); else tray.innerHTML='';
+    itemStart=perf();
+    Tel.push('t-sys','LOAD '+cur.phase+' '+cur.shape+' rel='+cur.rel);
+    Tel.render();
+    if(cur.phase==='demo')ghost();
+  }
+
+  function cellRect(k){var c=grid.children[k].getBoundingClientRect();var w=el('grid').parentElement.getBoundingClientRect();return {left:c.left-w.left,top:c.top-w.top,cx:c.left-w.left+c.width/2,cy:c.top-w.top+c.height/2};}
+  function ghost(){
+    // show x2 badge over A->B, then over C->?, then hand taps 6
+    setTimeout(function(){var a=cellRect(0),b=cellRect(1);b1.textContent='\u00d72';b1.style.left=((a.cx+b.cx)/2-14)+'px';b1.style.top=(a.top-6)+'px';b1.className='badge show';Tel.push('t-sys','ghost: 2 \u00d72 = 4');},500);
+    setTimeout(function(){var c=cellRect(2),d=cellRect(3);b2.textContent='\u00d72';b2.style.left=((c.cx+d.cx)/2-14)+'px';b2.style.top=(c.top-6)+'px';b2.className='badge show';Tel.push('t-sys','ghost: apply \u00d72 to 3');},1500);
+    setTimeout(function(){drawGrid(6);var bc=el('blankCell');if(bc)bc.classList.add('pop');beep();Tel.push('t-sys','ghost: place 6');},2400);
+    setTimeout(function(){fb.textContent='Rule: \u00d72';fb.className='fb good';},2800);
+    setTimeout(function(){fb.textContent='';load();},3800);
+  }
+  function beep(){try{var a=new(window.AudioContext||window.webkitAudioContext)();var o=a.createOscillator(),g=a.createGain();
+    o.connect(g);g.connect(a.destination);o.type='sine';o.frequency.setValueAtTime(640,a.currentTime);
+    o.frequency.exponentialRampToValueAtTime(940,a.currentTime+.13);g.gain.setValueAtTime(.1,a.currentTime);
+    g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+.28);o.start();o.stop(a.currentTime+.3);}catch(e){}}
+
+  function finish(){
+    prompt.textContent='';grid.innerHTML='';tray.innerHTML='';fb.textContent='';b1.className='badge';b2.className='badge';
+    grid.innerHTML='<div style="text-align:center;padding:20px;grid-column:1"><div style="font-size:44px">\uD83D\uDD17</div>'+
+      '<div style="color:var(--muted)">Done! Matched clones give M-CONSIST: '+Tel.consistency()+'.</div></div>';
+    Tel.push('t-sys','SESSION complete: '+Tel.correct+'/'+Tel.scored+' — consistency '+Tel.consistency());
+  }
+  window.addEventListener('blur',function(){Tel.push('t-sys','engagement: focus lost');});
+  Tel.render(); load();
+})();
+</script>
+</body>
+</html>

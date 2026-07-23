@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FLU-LATIN-01 · Fill the Grid</title>
+<style>
+  :root{--bg1:#eef4ff;--bg2:#f7ecff;--ink:#26304a;--card:#fff;--accent:#5b6cff;--good:#22b573;--bad:#ff6b6b;--socket:#c9d3ef;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
+  #phasecue{font-size:34px;height:40px;line-height:40px}
+  #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:20px;max-width:600px;width:100%}
+  #board{display:flex;gap:18px;align-items:center}
+  .matrix{display:grid;gap:8px;background:#c7d2f2;padding:8px;border-radius:14px}
+  .cell{background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;width:84px;height:84px;cursor:pointer;transition:.12s;position:relative}
+  .cell.given{background:#eef2ff;cursor:default}
+  .cell.given:after{content:"";position:absolute;right:5px;top:5px;width:7px;height:7px;border-radius:50%;background:#c3ccf5}
+  .cell.empty{background:repeating-linear-gradient(45deg,#eef2ff,#eef2ff 8px,#e2e9ff 8px,#e2e9ff 16px);border:3px dashed var(--socket)}
+  .cell.hl{box-shadow:inset 0 0 0 4px #ffd479}
+  .cell.correct{box-shadow:0 0 0 4px #b4ecd0}.cell.wrong{box-shadow:0 0 0 4px #ffd0d0}
+  .cell.filled-anim{animation:pop .3s ease}
+  @keyframes pop{0%{transform:scale(.6);opacity:.2}100%{transform:scale(1);opacity:1}}
+  #palette{display:flex;flex-direction:column;gap:12px}
+  .psym{background:#fff;border:3px solid #e2e8fb;border-radius:14px;width:70px;height:70px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.12s;-webkit-tap-highlight-color:transparent}
+  .psym:hover{border-color:#c3ccf5}
+  .psym.sel{border-color:var(--accent);box-shadow:0 0 0 4px #c9d0ff;transform:scale(1.05)}
+  #controls{display:flex;gap:16px;align-items:center}
+  button{font:inherit;border:0;cursor:pointer;border-radius:50%}
+  #go{width:76px;height:76px;background:var(--accent);color:#fff;font-size:32px;box-shadow:0 10px 24px -8px var(--accent);opacity:.35;pointer-events:none;transition:.2s}
+  #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.1s infinite}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+  #replay{width:52px;height:52px;background:#eef1ff;color:#5b6cff;font-size:24px}
+  .shake{animation:shake .4s}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+  #ghost{position:fixed;left:0;top:0;font-size:40px;pointer-events:none;z-index:60;opacity:0;transition:transform .7s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}
+  @keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}.mid.prop{color:#ffd479}
+  .mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:210px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">FLU-LATIN-01 · Fill the Grid</div>
+    <div id="phasecue">👁️</div>
+    <div id="stagecard">
+      <div id="board">
+        <div id="grid" class="matrix"></div>
+        <div id="palette"></div>
+      </div>
+      <div id="controls">
+        <button id="replay" title="replay demo">↻</button>
+        <button id="go" title="submit">✓</button>
+      </div>
+    </div>
+  </div>
+  <aside id="telemetry">
+    <h3>Live telemetry · per-child</h3>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+  <div id="ghost">👆<span class="ring"></span></div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>Math.round(a.reduce((x,y)=>x+y,0)/a.length),last=a=>a[a.length-1];
+const PAL={red:'#e6194b',green:'#2ca25f',blue:'#4363d8',orange:'#f58231',purple:'#911eb4'};
+const SYMS=[{shape:'circle',color:'blue'},{shape:'triangle',color:'green'},{shape:'square',color:'orange'},{shape:'star',color:'purple'}];
+const SYMCHAR=['\u25cf','\u25b2','\u25a0','\u2605'];
+function polyPts(cx,cy,r,n,rot){let p=[];for(let i=0;i<n;i++){let a=rot+i*2*Math.PI/n;p.push((cx+r*Math.cos(a)).toFixed(1)+','+(cy+r*Math.sin(a)).toFixed(1));}return p.join(' ');}
+function starPts(cx,cy,r,n){let p=[];for(let i=0;i<2*n;i++){let rr=i%2?r*0.45:r;let a=-Math.PI/2+i*Math.PI/n;p.push((cx+rr*Math.cos(a)).toFixed(1)+','+(cy+rr*Math.sin(a)).toFixed(1));}return p.join(' ');}
+function oneShape(shape,color,cx,cy,r){const f='fill="'+color+'"';switch(shape){
+  case 'circle':return `<circle cx="${cx}" cy="${cy}" r="${r}" ${f}/>`;
+  case 'square':return `<rect x="${cx-r}" y="${cy-r}" width="${2*r}" height="${2*r}" rx="3" ${f}/>`;
+  case 'triangle':return `<polygon points="${polyPts(cx,cy,r,3,-Math.PI/2)}" ${f}/>`;
+  case 'star':return `<polygon points="${starPts(cx,cy,r,5)}" ${f}/>`;}return '';}
+function symSVG(i,box=80){const s=SYMS[i];return `<svg width="${box}" height="${box}" viewBox="0 0 ${box} ${box}">${oneShape(s.shape,PAL[s.color],box/2,box/2,box*0.30)}</svg>`;}
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){let j=(Math.random()*(i+1))|0;[a[i],a[j]]=[a[j],a[i]];}return a;}
+function transpose(m){return m[0].map((_,c)=>m.map(row=>row[c]));}
+
+/* ---------- Latin-square generation with unique-solution guarantee (AIG) ---------- */
+function okPlace(st,r,c,s,size){for(let k=0;k<size;k++){if(st[r][k]===s)return false;if(st[k][c]===s)return false;}return true;}
+function countSol(st,size,cap){let pos=-1;for(let i=0;i<size*size;i++){const r=(i/size)|0,c=i%size;if(st[r][c]==null){pos=i;break;}}
+  if(pos<0)return 1;const r=(pos/size)|0,c=pos%size;let cnt=0;
+  for(let s=0;s<size;s++){if(okPlace(st,r,c,s,size)){st[r][c]=s;cnt+=countSol(st,size,cap);st[r][c]=null;if(cnt>=cap)return cnt;}}
+  return cnt;}
+function genLatin(size,nEmpty){let base=[];for(let r=0;r<size;r++){base.push([]);for(let c=0;c<size;c++)base[r].push((r+c)%size);}
+  let L=shuffle(base);L=transpose(shuffle(transpose(L)));
+  for(let a=0;a<80;a++){const idxs=shuffle([...Array(size*size).keys()]).slice(0,nEmpty);
+    const state=L.map(r=>r.slice());const given=L.map(r=>r.map(()=>true));
+    idxs.forEach(i=>{const r=(i/size)|0,c=i%size;state[r][c]=null;given[r][c]=false;});
+    if(countSol(state.map(r=>r.slice()),size,2)===1)return{size,solution:L,state,given,empties:idxs.map(i=>[(i/size)|0,i%size])};}
+  const state=L.map(r=>r.slice());const given=L.map(r=>r.map(()=>true));state[0][0]=null;given[0][0]=false;
+  return{size,solution:L,state,given,empties:[[0,0]]};}
+
+/* ---------- telemetry ---------- */
+const T={scored:0,correct:0,rts:[],firstLat:null,itemStart:0,firstActed:false,placements:0,clears:0,overwrites:0,path:[],poly:'\u2014'};
+function effStr(){if(!cur)return '\u2014';return `${T.placements} placed / opt ${cur.empties.length} · clears ${T.clears} · overwrites ${T.overwrites}`;}
+function pathStr(){if(!T.path.length)return '\u2014';const h=T.path.slice(0,4).join(', ');return `${T.path.length} moves: ${h}${T.path.length>4?' …':''}`;}
+const METERS=[
+ {id:'M-ACC',name:'Item accuracy (grid fully correct)',get:()=>T.scored?`${T.correct}/${T.scored}  ${Math.round(100*T.correct/T.scored)}%`:'\u2014'},
+ {id:'M-POLY',name:'Partial credit (cells correct)',get:()=>T.poly},
+ {id:'M-RT',name:'Response time — total',get:()=>T.rts.length?`${last(T.rts)} ms  (mean ${mean(T.rts)})`:'\u2014'},
+ {id:'M-PATH',name:'Solution path (placement order)',get:()=>pathStr()},
+ {id:'M-REV',name:'Revisions (clears + overwrites)',get:()=>`${T.clears+T.overwrites}`},
+ {id:'M-EFF',name:'Efficiency vs optimal',get:()=>effStr()},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});}
+function log(msg){const t=Date.now()-T.itemStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+const ghost=$('#ghost');function ghostShow(v){ghost.classList.toggle('show',v);}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(680);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(480);}
+
+/* ---------- flow ---------- */
+let phase='demo',cur=null,work=null,selSym=null,locked=false,scoredIndex=0;
+const scoredItems=[genLatin(3,2),genLatin(3,3)];
+function setCue(i){$('#phasecue').textContent=i;}
+function cellEl(r,c){return $('#grid').children[r*cur.size+c];}
+function renderItem(item){cur=item;work=item.state.map(r=>r.slice());selSym=null;
+  T.placements=0;T.clears=0;T.overwrites=0;T.path=[];T.firstActed=false;T.firstLat=null;T.itemStart=Date.now();
+  const g=$('#grid');g.style.gridTemplateColumns=`repeat(${item.size},1fr)`;g.innerHTML='';
+  for(let r=0;r<item.size;r++)for(let c=0;c<item.size;c++){const cell=document.createElement('div');cell.dataset.r=r;cell.dataset.c=c;paintCell(cell,r,c);g.appendChild(cell);}
+  const p=$('#palette');p.innerHTML='';for(let s=0;s<item.size;s++){const b=document.createElement('div');b.className='psym';b.dataset.s=s;b.innerHTML=symSVG(s,64);p.appendChild(b);}
+  $('#go').classList.remove('ready');renderMeters();}
+function paintCell(cell,r,c){cell.className='cell';cell.innerHTML='';
+  if(cur.given[r][c]){cell.classList.add('given');cell.innerHTML=symSVG(cur.solution[r][c]);}
+  else if(work[r][c]==null)cell.classList.add('empty');
+  else{cell.innerHTML=symSVG(work[r][c]);cell.classList.add('filled-anim');setTimeout(()=>cell.classList.remove('filled-anim'),300);}}
+function allFilled(){return cur.empties.every(([r,c])=>work[r][c]!=null);}
+function updateGo(){$('#go').classList.toggle('ready',allFilled()&&!locked);}
+function onPsym(s){if(locked||phase==='demo'||phase==='done')return;selSym=s;$$('#palette .psym').forEach(p=>p.classList.toggle('sel',+p.dataset.s===s));}
+function onCell(r,c){if(locked||phase==='demo'||phase==='done'||cur.given[r][c])return;
+  if(!T.firstActed){T.firstActed=true;T.firstLat=Date.now()-T.itemStart;log('first action @'+T.firstLat+'ms');}
+  const nm='R'+(r+1)+'C'+(c+1);
+  if(selSym!=null){const was=work[r][c];work[r][c]=selSym;T.placements++;if(was!=null&&was!==selSym)T.overwrites++;T.path.push(nm+'='+SYMCHAR[selSym]);paintCell(cellEl(r,c),r,c);}
+  else if(work[r][c]!=null){work[r][c]=null;T.clears++;T.path.push('clr '+nm);paintCell(cellEl(r,c),r,c);}
+  updateGo();renderMeters();}
+function feedback(all){cur.empties.forEach(([r,c])=>{const ok=work[r][c]===cur.solution[r][c];cellEl(r,c).classList.add(ok?'correct':'wrong');});
+  if(!all){$('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),450);}
+  locked=true;$('#go').classList.remove('ready');}
+function submit(){if(!allFilled())return;let ok=0;cur.empties.forEach(([r,c])=>{if(work[r][c]===cur.solution[r][c])ok++;});
+  const all=ok===cur.empties.length;const rt=Date.now()-T.itemStart;T.poly=ok+'/'+cur.empties.length;
+  if(phase==='warmup'){feedback(all);log('warm-up '+(all?'solved':'not solved')+' — UNSCORED');setTimeout(nextPhase,1000);return;}
+  T.scored++;T.rts.push(rt);if(all)T.correct++;feedback(all);
+  log(`SUBMIT ${cur.size}x${cur.size} · ${ok}/${cur.empties.length} cells · RT ${rt}ms · ${effStr()}`);
+  renderMeters();setTimeout(nextPhase,1250);}
+function nextPhase(){locked=false;if(phase==='warmup'){scoredIndex=0;startScored();}else if(phase==='scored'){scoredIndex++;scoredIndex<scoredItems.length?startScored():finish();}}
+function startWarmup(){phase='warmup';setCue('\u2b50');renderItem(genLatin(2,1));log('— warm-up (unscored): 2x2, one empty —');}
+function startScored(){phase='scored';setCue('\ud83c\udfaf');renderItem(scoredItems[scoredIndex]);log(`— SCORED ${cur.size}x${cur.size}, ${cur.empties.length} empty cells —`);}
+function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;log(`— DONE · accuracy ${T.correct}/${T.scored} —`);}
+async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;renderItem(genLatin(2,1));log('ghost-hand demo (wordless, <10s)');
+  const [er,ec]=cur.empties[0];const sol=cur.solution[er][ec];
+  ghostShow(true);await sleep(300);
+  for(let c=0;c<cur.size;c++){if(c!==ec){cellEl(er,c).classList.add('hl');await ghostTo(cellEl(er,c));await sleep(120);}}
+  for(let r=0;r<cur.size;r++){if(r!==er){cellEl(r,ec).classList.add('hl');await ghostTo(cellEl(r,ec));await sleep(120);}}
+  const psym=$$('#palette .psym')[sol];await ghostTo(psym);await ghostTap();psym.classList.add('sel');
+  await ghostTo(cellEl(er,ec));await ghostTap();work[er][ec]=sol;paintCell(cellEl(er,ec),er,ec);cellEl(er,ec).classList.add('correct');
+  $$('#grid .cell').forEach(c=>c.classList.remove('hl'));
+  await sleep(500);await ghostTo($('#go'));await ghostTap();await sleep(350);ghostShow(false);await sleep(500);startWarmup();}
+$('#grid').addEventListener('click',e=>{const c=e.target.closest('.cell');if(c)onCell(+c.dataset.r,+c.dataset.c);});
+$('#palette').addEventListener('click',e=>{const p=e.target.closest('.psym');if(p)onPsym(+p.dataset.s);});
+$('#go').addEventListener('click',()=>{if($('#go').classList.contains('ready'))submit();});
+$('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
+buildMeters();renderMeters();runDemo();
+</script>
+</body>
+</html>

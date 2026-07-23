@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QUANT-COMPARE-01 — Magnitude Duel</title>
+<style>
+:root{--bg:#0f1226;--panel:#1b2140;--panel2:#232a52;--accent:#5eead4;--accent2:#f59e0b;--good:#4ade80;--bad:#f87171;--ink:#eef1ff;--muted:#9aa3c7}
+*{box-sizing:border-box}html,body{margin:0}
+body{font:16px/1.45 system-ui,Segoe UI,Roboto,sans-serif;color:var(--ink);
+  background:radial-gradient(1200px 700px at 80% -10%,#2a2f66,#0f1226 60%);min-height:100vh}
+.wrap{display:grid;grid-template-columns:1fr 340px;gap:16px;max-width:1120px;margin:0 auto;padding:18px}
+@media(max-width:880px){.wrap{grid-template-columns:1fr}}
+h1{font-size:18px;margin:0 0 2px}.sub{color:var(--muted);font-size:13px;margin-bottom:10px}
+.card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid #313a6b;border-radius:16px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.phasebar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.pill{font-size:12px;padding:4px 10px;border-radius:999px;background:#2b336a;color:var(--muted);border:1px solid #3a447f}
+.pill.on{background:var(--accent);color:#053;font-weight:700}
+.combo{margin-left:auto;font-weight:800;color:var(--accent2)}
+.prompt{text-align:center;color:var(--muted);min-height:22px;margin-bottom:8px}
+.arena{display:grid;grid-template-columns:1fr 90px 1fr;gap:12px;align-items:stretch;position:relative}
+.panel{position:relative;height:230px;border-radius:16px;background:#161c3a;border:3px solid #33407e;cursor:pointer;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.panel:hover{border-color:var(--accent)}
+.panel.win{border-color:var(--good);box-shadow:0 0 0 3px rgba(74,222,128,.4) inset}
+.panel.lose{border-color:var(--bad)}
+.panel.dim{opacity:.5}
+.big{font-size:64px;font-weight:800}
+.frac{display:inline-block;text-align:center;font-size:40px;font-weight:800;line-height:1.05}
+.frac .den{border-top:4px solid var(--ink);padding-top:2px}
+.mask{position:absolute;inset:0;background:#161c3a;display:flex;align-items:center;justify-content:center;font-size:70px;color:#33407e}
+.mid{display:flex;flex-direction:column;gap:8px;align-items:center;justify-content:center}
+.mbtn{width:82px;padding:10px 0;border-radius:12px;border:2px solid #3a447f;background:#2b336a;color:var(--ink);font:700 13px system-ui;cursor:pointer}
+.mbtn:hover{border-color:var(--accent)}
+.dot{position:absolute;border-radius:50%}
+.fb{text-align:center;font-weight:700;min-height:26px;margin-top:12px}
+.fb.good{color:var(--good)}.fb.bad{color:var(--bad)}
+.hand{position:absolute;font-size:34px;z-index:20;pointer-events:none;opacity:0;filter:drop-shadow(0 4px 6px rgba(0,0,0,.5));transition:left .7s cubic-bezier(.4,0,.2,1),top .7s ease}
+.row{display:flex;justify-content:center;margin-top:12px}
+button.act{font:600 15px system-ui;padding:10px 18px;border-radius:12px;border:0;cursor:pointer;background:var(--accent);color:#053}
+button.act:disabled{opacity:.4}
+.tele{font-size:13px}.tele h2{font-size:14px;margin:0 0 8px;color:var(--accent)}
+.metrics{display:grid;grid-template-columns:1fr auto;gap:4px 8px;margin-bottom:10px}
+.metrics div:nth-child(odd){color:var(--muted)}.metrics b{font-variant-numeric:tabular-nums}
+.log{height:210px;overflow:auto;background:#12172f;border:1px solid #2a336a;border-radius:10px;padding:8px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace}
+.log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-acc{color:var(--good)}.t-err{color:var(--bad)}.t-sys{color:var(--muted)}.t-evt{color:#9fb0ff}
+.legend{color:var(--muted);font-size:12px;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <main class="card">
+    <h1>Magnitude Duel</h1>
+    <div class="sub">Tap the side with MORE. Use EQUAL for a tie or CAN'T TELL if you cannot know.</div>
+    <div class="phasebar" id="phasebar"><span class="combo" id="combo"></span></div>
+    <div class="prompt" id="prompt"></div>
+    <div class="arena">
+      <div class="panel" id="L" data-side="L"></div>
+      <div class="mid">
+        <button class="mbtn" id="eqBtn" data-side="EQ">EQUAL</button>
+        <button class="mbtn" id="ctBtn" data-side="CT" style="display:none">CAN'T&nbsp;TELL</button>
+      </div>
+      <div class="panel" id="R" data-side="R"></div>
+      <div class="hand" id="hand">&#128070;</div>
+    </div>
+    <div class="fb" id="fb"></div>
+    <div class="row"><button class="act" id="nextBtn" style="display:none">Next</button></div>
+  </main>
+  <aside class="card tele">
+    <h2>Live telemetry</h2>
+    <div class="metrics" id="metrics"></div>
+    <div class="log" id="log"></div>
+    <div class="legend">Logs M-ACC, M-RT, M-RTVAR, M-LAPSE, M-SPEEDACC and proposed <b>M-WEBER</b> (ANS acuity).</div>
+  </aside>
+</div>
+<script>
+(function(){
+  "use strict";
+  var el=function(id){return document.getElementById(id)};
+  var L=el('L'),R=el('R'),eqBtn=el('eqBtn'),ctBtn=el('ctBtn'),hand=el('hand'),
+      prompt=el('prompt'),fb=el('fb'),nextBtn=el('nextBtn');
+  var T0=Date.now(); function perf(){return Date.now()-T0;}
+
+  var Tel={rts:[],scored:0,correct:0,combo:0,best:0,minRatioCorrect:99,
+    push:function(cls,msg){var d=document.createElement('div');d.className=cls;
+      d.textContent='['+(perf()/1000).toFixed(2)+'s] '+msg;var g=el('log');g.appendChild(d);g.scrollTop=g.scrollHeight;},
+    render:function(){
+      var acc=Tel.scored?Math.round(100*Tel.correct/Tel.scored)+'% ('+Tel.correct+'/'+Tel.scored+')':'—';
+      var mean=Tel.rts.length?Math.round(Tel.rts.reduce(function(a,b){return a+b},0)/Tel.rts.length):0;
+      var sd=0; if(Tel.rts.length>1){var m=mean;sd=Math.round(Math.sqrt(Tel.rts.reduce(function(a,b){return a+(b-m)*(b-m)},0)/Tel.rts.length));}
+      var cv=mean?(sd/mean).toFixed(2):'—';
+      var lapse=Tel.rts.length?Math.max.apply(null,Tel.rts):0;
+      var w=Tel.minRatioCorrect<90?((Tel.minRatioCorrect-1).toFixed(2)):'—';
+      el('metrics').innerHTML=
+        '<div>M-ACC accuracy</div><b>'+acc+'</b>'+
+        '<div>M-RT mean</div><b>'+(mean||'—')+' ms</b>'+
+        '<div>M-RTVAR (SD / CV)</div><b>'+(sd||'—')+' / '+cv+'</b>'+
+        '<div>M-LAPSE slowest</div><b>'+(lapse||'—')+' ms</b>'+
+        '<div>M-WEBER (w approx)</div><b>'+w+'</b>';
+      el('combo').textContent=Tel.combo>1?('COMBO x'+Tel.combo):'';
+    }};
+
+  // trials
+  var trials=[
+    {phase:'demo',  kind:'dots',l:3,r:8, flash:false, correct:'R'},
+    {phase:'warmup',kind:'dots',l:2,r:8, flash:false, correct:'R'},
+    {phase:'scored',kind:'dots',l:10,r:20,flash:true, correct:'R'},   // ratio 2.0
+    {phase:'scored',kind:'dots',l:16,r:13,flash:true, correct:'L'},   // ratio 1.23
+    {phase:'scored',kind:'dots',l:14,r:15,flash:true, correct:'R'},   // ratio 1.07 (hard)
+    {phase:'scored',kind:'num', l:'47',r:'74',correct:'R'},
+    {phase:'scored',kind:'frac',l:[2,3],r:[3,5],correct:'L'},         // 0.667 vs 0.6
+    {phase:'scored',kind:'unknown',l:'?',r:'?',correct:'CT', ct:true}
+  ];
+  var labels={demo:'1 Watch',warmup:'2 Try',scored:'3 Duel'};
+  var i=-1,cur=null,shownAt=0,answered=false;
+
+  function renderPhasebar(){
+    el('phasebar').innerHTML=['demo','warmup','scored'].map(function(p){
+      return '<span class="pill'+(cur&&cur.phase===p?' on':'')+'">'+labels[p]+'</span>';
+    }).join('')+'<span class="combo" id="combo"></span>';
+  }
+  function clearPanel(p){p.className='panel';p.innerHTML='';}
+  function fracHTML(a){return '<span class="frac"><span class="num">'+a[0]+'</span><br><span class="den">'+a[1]+'</span></span>';}
+
+  function drawDots(panel,n){
+    clearPanel(panel);
+    var w=panel.clientWidth,h=panel.clientHeight,pad=24,r=9;
+    var placed=[];
+    for(var k=0;k<n;k++){
+      var tries=0,x,y,ok;
+      do{ ok=true; x=pad+Math.random()*(w-2*pad); y=pad+Math.random()*(h-2*pad);
+        for(var j=0;j<placed.length;j++){var dx=x-placed[j][0],dy=y-placed[j][1];if(dx*dx+dy*dy<(2*r+6)*(2*r+6)){ok=false;break;}}
+        tries++; }while(!ok&&tries<80);
+      placed.push([x,y]);
+      var d=document.createElement('div');d.className='dot';
+      d.style.width=d.style.height=(2*r)+'px';d.style.left=(x-r)+'px';d.style.top=(y-r)+'px';
+      d.style.background=k%2? '#5eead4':'#f59e0b';
+      panel.appendChild(d);
+    }
+  }
+  function maskPanel(panel){var m=document.createElement('div');m.className='mask';m.textContent='?';panel.appendChild(m);}
+
+  function load(){
+    i++; if(i>=trials.length){return finish();}
+    cur=trials[i]; answered=false; fb.textContent='';fb.className='fb';
+    nextBtn.style.display='none'; renderPhasebar(); Tel.render();
+    ctBtn.style.display = cur.ct? 'block':'none';
+    clearPanel(L);clearPanel(R);
+    if(cur.kind==='dots'){
+      prompt.textContent = cur.flash? 'Quick — which side had more?':'Which side has more?';
+      drawDots(L,cur.l);drawDots(R,cur.r);
+      if(cur.flash){ setTimeout(function(){maskPanel(L);maskPanel(R);shownAt=perf();
+        Tel.push('t-sys','flash '+cur.l+' vs '+cur.r+' masked (ratio '+ (Math.max(cur.l,cur.r)/Math.min(cur.l,cur.r)).toFixed(2)+')');},800);}
+      else { shownAt=perf(); }
+    } else if(cur.kind==='num'){
+      prompt.textContent='Which number is bigger?';
+      L.innerHTML='<div class="big">'+cur.l+'</div>';R.innerHTML='<div class="big">'+cur.r+'</div>';shownAt=perf();
+    } else if(cur.kind==='frac'){
+      prompt.textContent='Which fraction is bigger?';
+      L.innerHTML=fracHTML(cur.l);R.innerHTML=fracHTML(cur.r);shownAt=perf();
+    } else if(cur.kind==='unknown'){
+      prompt.textContent='Two mystery boxes. Which holds more?';
+      L.innerHTML='<div class="big">?</div>';R.innerHTML='<div class="big">?</div>';shownAt=perf();
+    }
+    Tel.push('t-sys','LOAD '+cur.phase+' ('+cur.kind+')');
+    if(cur.phase==='demo') ghost();
+  }
+
+  function choose(side){
+    if(answered||cur.phase==='demo') return;
+    answered=true;
+    var rt=perf()-shownAt;
+    var ok=(side===cur.correct);
+    if(cur.phase==='scored'){
+      Tel.scored++; Tel.rts.push(rt);
+      if(ok){Tel.correct++; Tel.combo++; if(Tel.combo>Tel.best)Tel.best=Tel.combo;
+        if(cur.kind==='dots'){var ratio=Math.max(cur.l,cur.r)/Math.min(cur.l,cur.r); if(ratio<Tel.minRatioCorrect)Tel.minRatioCorrect=ratio;}
+      } else {Tel.combo=0;}
+      Tel.push(ok?'t-acc':'t-err','SCORED '+cur.kind+': chose '+side+(ok?' OK':' WRONG(key='+cur.correct+')')+
+        '  RT='+rt+'ms  combo='+Tel.combo);
+    } else {
+      Tel.push('t-sys',cur.phase.toUpperCase()+': chose '+side+' (not scored)');
+    }
+    // visuals
+    var winId={L:'L',R:'R'}[cur.correct];
+    if(winId) el(winId).classList.add('win');
+    if(side==='L'||side==='R'){ if(!ok) el(side).classList.add('lose'); }
+    fb.textContent= ok? (cur.phase==='warmup'?'Yes! Now the real duels.':'Correct!') : 'Not quite.';
+    fb.className='fb '+(ok?'good':'bad');
+    if(ok&&rt<1500&&cur.phase==='scored') beep();
+    nextBtn.style.display='inline-block';
+    Tel.render();
+  }
+
+  L.onclick=function(){choose('L')};R.onclick=function(){choose('R')};
+  eqBtn.onclick=function(){choose('EQ')};ctBtn.onclick=function(){choose('CT')};
+  nextBtn.onclick=load;
+
+  function ghost(){
+    var target=R; // demo answer side
+    hand.style.opacity='0';
+    setTimeout(function(){hand.style.transition='none';hand.style.left='30px';hand.style.top='90px';hand.style.opacity='1';Tel.push('t-sys','ghost: look');},400);
+    setTimeout(function(){hand.style.transition='left .7s cubic-bezier(.4,0,.2,1),top .7s ease';
+      var r=target.getBoundingClientRect(),a=document.querySelector('.arena').getBoundingClientRect();
+      hand.style.left=(r.left-a.left+r.width/2-16)+'px';hand.style.top=(r.top-a.top+r.height/2)+'px';Tel.push('t-sys','ghost: point to more');},900);
+    setTimeout(function(){target.classList.add('win');beep();Tel.push('t-sys','ghost: tap');},1700);
+    setTimeout(function(){hand.style.opacity='0';load();},2600);
+  }
+  function beep(){try{var a=new(window.AudioContext||window.webkitAudioContext)();var o=a.createOscillator(),g=a.createGain();
+    o.connect(g);g.connect(a.destination);o.type='triangle';o.frequency.setValueAtTime(720,a.currentTime);
+    o.frequency.exponentialRampToValueAtTime(1080,a.currentTime+.12);g.gain.setValueAtTime(.1,a.currentTime);
+    g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+.25);o.start();o.stop(a.currentTime+.26);}catch(e){}}
+
+  function finish(){
+    prompt.textContent='';fb.textContent='';
+    document.querySelector('.arena').innerHTML='<div style="grid-column:1/4;text-align:center;padding:26px">'+
+      '<div style="font-size:44px">&#127942;</div><div style="color:var(--muted)">Best combo: '+Tel.best+'. Telemetry on the right.</div></div>';
+    Tel.push('t-sys','SESSION complete: '+Tel.correct+'/'+Tel.scored+', best combo '+Tel.best);
+  }
+  window.addEventListener('blur',function(){Tel.push('t-sys','engagement: focus lost');});
+  Tel.render(); load();
+})();
+</script>
+</body>
+</html>

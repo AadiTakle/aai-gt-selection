@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SPA-BLOCKS-01 — Build-the-Blocks</title>
+<style>
+  :root{--bg:#eef2fb;--card:#fff;--ink:#1e293b;--muted:#64748b;--accent:#4f46e5;--good:#16a34a;--warn:#f59e0b;--bad:#dc2626;--stage:#f8fafc}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.4 system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  .wrap{display:flex;gap:14px;padding:14px;max-width:1180px;margin:0 auto;align-items:flex-start;flex-wrap:wrap}
+  .col{flex:1 1 560px;min-width:340px}.side{flex:1 1 320px;min-width:300px}
+  .card{background:var(--card);border-radius:16px;box-shadow:0 6px 22px rgba(15,23,42,.08);padding:16px;margin-bottom:14px}
+  h1{font-size:19px;margin:0 0 2px}.sub{color:var(--muted);font-size:13px;margin:0 0 10px}
+  .pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;background:#e0e7ff;color:#3730a3}
+  .banner{display:flex;align-items:center;gap:10px;background:#f1f5ff;border:1px solid #dbe3ff;border-radius:12px;padding:10px 12px;margin-bottom:12px;min-height:44px}
+  .banner .icon{font-size:22px}.banner b{color:var(--accent)}
+  #stageWrap{position:relative;background:var(--stage);border-radius:14px;border:1px solid #e2e8f0;overflow:hidden}
+  svg{display:block;width:100%;height:400px;touch-action:none}
+  .hand{position:absolute;font-size:30px;pointer-events:none;z-index:5;filter:drop-shadow(0 2px 3px rgba(0,0,0,.25))}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+  button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:10px 16px;cursor:pointer;background:var(--accent);color:#fff}
+  button.ghost{background:#e2e8f0;color:#334155}button:disabled{opacity:.45;cursor:not-allowed}
+  .meter{height:12px;background:#e2e8f0;border-radius:7px;overflow:hidden;margin-top:8px}
+  .meter>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#34d399,#16a34a);transition:width .25s}
+  .tel{background:#0b1220;color:#d1fae5;border-radius:16px;padding:14px;font:12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
+  .tel h2{font-size:13px;margin:0 0 8px;color:#93c5fd;letter-spacing:.05em;text-transform:uppercase}
+  .tel .m{display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px dotted #1e293b}
+  .tel .m .k{color:#7dd3fc}.tel .m .v{color:#fde68a;font-weight:700;text-align:right}
+  #log{margin-top:10px;max-height:180px;overflow:auto;background:#060b16;border-radius:8px;padding:8px}
+  #log div{white-space:pre-wrap;color:#a7f3d0}#log .t{color:#475569}
+  .done{color:var(--good);font-weight:700}.miss{color:var(--warn)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="col"><div class="card">
+    <span class="pill" id="phasePill">DEMO</span>
+    <h1>Build-the-Blocks <span style="color:var(--muted);font-weight:400">· SPA-BLOCKS-01</span></h1>
+    <p class="sub">Copy the pattern. Pick a block from the tray, tap a cell to place it, tap a split block again (or ⟳) to turn it.</p>
+    <div class="banner"><span class="icon" id="bIcon">👀</span><div id="bText"><b>Watch.</b> The hand copies the pattern block by block…</div></div>
+    <div id="stageWrap"><svg id="svg" viewBox="0 0 400 400"></svg><div class="hand" id="hand" style="display:none">👆</div></div>
+    <div class="controls">
+      <button id="rotBtn" class="ghost" disabled>⟳ Rotate cell</button>
+      <button id="doneBtn" disabled>✓ Done</button>
+      <button id="nextBtn" class="ghost" style="display:none">Next ▶</button>
+      <span class="sub" id="live" style="margin-left:auto"></span>
+    </div>
+    <div class="meter"><i id="meterBar"></i></div>
+  </div></div>
+  <div class="side"><div class="tel">
+    <h2>◉ Live telemetry</h2>
+    <div class="m"><span class="k">M-POLY cells matched</span><span class="v" id="mPoly">—</span></div>
+    <div class="m"><span class="k">M-ACC exact copy</span><span class="v" id="mAcc">—</span></div>
+    <div class="m"><span class="k">M-RT total</span><span class="v" id="mRt">—</span></div>
+    <div class="m"><span class="k">M-RTFIRST first-act</span><span class="v" id="mFirst">—</span></div>
+    <div class="m"><span class="k">M-REV placements-extra</span><span class="v" id="mRev">0</span></div>
+    <div class="m"><span class="k">M-EFF moves/cell</span><span class="v" id="mEff">—</span></div>
+    <div class="m"><span class="k">M-PROG match trace</span><span class="v" id="mProg">—</span></div>
+    <div class="m"><span class="k">M-DIFFREACH grid</span><span class="v" id="mDiff">—</span></div>
+    <div id="log"></div>
+  </div></div>
+</div>
+<script>
+(function(){
+  "use strict";
+  var SVGNS="http://www.w3.org/2000/svg",svg=document.getElementById("svg"),hand=document.getElementById("hand");
+  var RED="#ef4444",BLUE="#2563eb";
+  function beep(f,t){try{var A=beep.a=beep.a||new(window.AudioContext||window.webkitAudioContext)();var o=A.createOscillator(),g=A.createGain();o.frequency.value=f;o.connect(g);g.connect(A.destination);g.gain.value=.08;o.start();o.stop(A.currentTime+(t||.1));}catch(e){}}
+  var Tel={start:0,first:0,moves:0,extra:0,logEl:document.getElementById("log"),prog:[],
+    line:function(m,c){var d=document.createElement("div");var t=((performance.now()-Tel.start)/1000).toFixed(2);d.innerHTML='<span class="t">['+t+'s]</span> '+m;if(c)d.className=c;Tel.logEl.appendChild(d);Tel.logEl.scrollTop=Tel.logEl.scrollHeight;},
+    begin:function(l){Tel.start=performance.now();Tel.first=0;Tel.moves=0;Tel.extra=0;Tel.prog=[];Tel.line("▶ "+l);},
+    firstAct:function(w){if(!Tel.first){Tel.first=performance.now()-Tel.start;Tel.line("first action: "+w+" @"+Math.round(Tel.first)+"ms");render();}}};
+  function matches(){var m=0;for(var i=0;i<target.length;i++)if(cellEq(player[i],target[i]))m++;return m;}
+  function render(){
+    var m=matches(),tot=target.length;
+    document.getElementById("mPoly").textContent=tot?m+"/"+tot+" ("+Math.round(100*m/tot)+"%)":"—";
+    document.getElementById("meterBar").style.width=(tot?100*m/tot:0)+"%";
+    document.getElementById("mFirst").textContent=Tel.first?Math.round(Tel.first)+" ms":"—";
+    document.getElementById("mRev").textContent=Tel.extra;
+    document.getElementById("mEff").textContent=Tel.moves?(Tel.moves/tot).toFixed(2):"—";
+    document.getElementById("mProg").textContent=Tel.prog.length?Tel.prog.join(","):"—";
+    document.getElementById("mDiff").textContent=N+"×"+N;
+  }
+  // ---- model ----
+  var N=2,target=[],player=[],brush=null,active=-1,phase="demo",interactive=false;
+  function cellEq(a,b){if(!a||!b)return false;if(a.k!==b.k)return false;if(a.k!=="split")return true;return (a.rot%360)===(b.rot%360);}
+  // geometry
+  var cs,tx0,ty0,bx0,by0,palY,palTiles;
+  function layout(){cs=N===2?64:48;ty0=64;tx0=40;bx0=400-40-N*cs;by0=64;palY=by0+N*cs+26;
+    palTiles=[{k:"solidR"},{k:"solidB"},{k:"split"}];}
+  function drawTile(x,y,cell,size){
+    var r=document.createElementNS(SVGNS,"rect");r.setAttribute("x",x);r.setAttribute("y",y);r.setAttribute("width",size);r.setAttribute("height",size);r.setAttribute("rx","4");
+    r.setAttribute("fill","#fff");r.setAttribute("stroke","#cbd5e1");r.setAttribute("stroke-width","2");svg.appendChild(r);
+    if(!cell)return;
+    if(cell.k==="solidR"||cell.k==="solidB"){var f=document.createElementNS(SVGNS,"rect");f.setAttribute("x",x+2);f.setAttribute("y",y+2);f.setAttribute("width",size-4);f.setAttribute("height",size-4);f.setAttribute("rx","3");f.setAttribute("fill",cell.k==="solidR"?RED:BLUE);svg.appendChild(f);}
+    else if(cell.k==="split"){var cx=x+size/2,cy=y+size/2;var g=document.createElementNS(SVGNS,"g");g.setAttribute("transform","rotate("+(cell.rot||0)+" "+cx+" "+cy+")");
+      var t1=document.createElementNS(SVGNS,"path");t1.setAttribute("d","M "+(x+2)+","+(y+2)+" L "+(x+size-2)+","+(y+2)+" L "+(x+2)+","+(y+size-2)+" Z");t1.setAttribute("fill",RED);
+      var t2=document.createElementNS(SVGNS,"path");t2.setAttribute("d","M "+(x+size-2)+","+(y+2)+" L "+(x+size-2)+","+(y+size-2)+" L "+(x+2)+","+(y+size-2)+" Z");t2.setAttribute("fill",BLUE);
+      g.appendChild(t1);g.appendChild(t2);svg.appendChild(g);}
+  }
+  function cellRect(which,i){var r=Math.floor(i/N),c=i%N;var ox=which==="t"?tx0:bx0,oy=which==="t"?ty0:by0;return {x:ox+c*cs,y:oy+r*cs};}
+  function label(x,y,s){var t=document.createElementNS(SVGNS,"text");t.setAttribute("x",x);t.setAttribute("y",y);t.setAttribute("fill","#94a3b8");t.setAttribute("font-size","13");t.setAttribute("font-weight","700");t.textContent=s;svg.appendChild(t);}
+  function draw(){
+    svg.innerHTML="";
+    label(tx0,ty0-10,"COPY THIS");label(bx0,by0-10,"BUILD HERE");
+    for(var i=0;i<target.length;i++){var p=cellRect("t",i);drawTile(p.x,p.y,target[i],cs);}
+    for(i=0;i<player.length;i++){var q=cellRect("b",i);drawTile(q.x,q.y,player[i],cs);
+      if(i===active){var hl=document.createElementNS(SVGNS,"rect");hl.setAttribute("x",q.x);hl.setAttribute("y",q.y);hl.setAttribute("width",cs);hl.setAttribute("height",cs);hl.setAttribute("fill","none");hl.setAttribute("stroke","#4f46e5");hl.setAttribute("stroke-width","3");hl.setAttribute("rx","4");svg.appendChild(hl);}}
+    // palette
+    label(tx0,palY-8,"TRAY (tap to pick)");
+    palTiles.forEach(function(pt,i){var x=tx0+i*(cs+14);drawTile(x,palY,pt.k==="split"?{k:"split",rot:0}:{k:pt.k},cs);pt.x=x;pt.y=palY;
+      if(brush&&brush.k===pt.k){var hl=document.createElementNS(SVGNS,"rect");hl.setAttribute("x",x-3);hl.setAttribute("y",palY-3);hl.setAttribute("width",cs+6);hl.setAttribute("height",cs+6);hl.setAttribute("fill","none");hl.setAttribute("stroke","#4f46e5");hl.setAttribute("stroke-width","3");hl.setAttribute("rx","6");svg.appendChild(hl);}});
+    render();
+  }
+  function hit(x,y){
+    // palette
+    for(var i=0;i<palTiles.length;i++){var pt=palTiles[i];if(x>=pt.x&&x<=pt.x+cs&&y>=palY&&y<=palY+cs)return {z:"pal",i:i};}
+    // player cells
+    for(i=0;i<player.length;i++){var q=cellRect("b",i);if(x>=q.x&&x<=q.x+cs&&y>=q.y&&y<=q.y+cs)return {z:"cell",i:i};}
+    return null;
+  }
+  function toSvg(e){var r=svg.getBoundingClientRect();return {x:(e.clientX-r.left)*(400/r.width),y:(e.clientY-r.top)*(400/r.height)};}
+  svg.addEventListener("pointerdown",function(e){
+    if(!interactive)return;var p=toSvg(e),h=hit(p.x,p.y);if(!h)return;
+    if(h.z==="pal"){brush={k:palTiles[h.i].k};Tel.firstAct("pick block");document.getElementById("live").textContent="brush: "+brush.k;draw();return;}
+    if(h.z==="cell"){
+      active=h.i;
+      var cur=player[h.i];
+      if(brush){
+        if(brush.k==="split"){
+          if(cur&&cur.k==="split"){cur.rot=((cur.rot||0)+90)%360;Tel.line("rotated cell "+h.i+" → "+cur.rot+"°");Tel.extra++;}
+          else{player[h.i]={k:"split",rot:0};Tel.moves++;if(cur)Tel.extra++;Tel.line("placed split in cell "+h.i);}
+        } else {
+          if(cur&&cur.k===brush.k){Tel.line("cell "+h.i+" already that color");}
+          else{player[h.i]={k:brush.k};Tel.moves++;if(cur)Tel.extra++;Tel.line("placed "+brush.k+" in cell "+h.i);}
+        }
+        beep(cellEq(player[h.i],target[h.i])?820:520,.06);
+      } else if(cur&&cur.k==="split"){cur.rot=((cur.rot||0)+90)%360;Tel.line("rotated cell "+h.i+" → "+cur.rot+"°");Tel.extra++;beep(600,.06);}
+      Tel.firstAct("place block");
+      document.getElementById("rotBtn").disabled=!(player[h.i]&&player[h.i].k==="split");
+      Tel.prog.push(matches());draw();checkDone();
+    }
+  });
+  document.getElementById("rotBtn").onclick=function(){if(active<0||!player[active]||player[active].k!=="split")return;player[active].rot=((player[active].rot||0)+90)%360;Tel.extra++;Tel.line("rotated cell "+active+" → "+player[active].rot+"°");beep(600,.06);Tel.prog.push(matches());draw();checkDone();};
+  function full(){return player.every(function(p){return p;});}
+  function checkDone(){document.getElementById("doneBtn").disabled=!full();
+    if(matches()===target.length&&full()){beep(1046);setTimeout(function(){beep(1318)},110);}}
+  // ---- targets ----
+  function makeTarget(n,withSplit){N=n;layout();target=[];player=[];
+    var kinds=["solidR","solidB"];
+    for(var i=0;i<n*n;i++){
+      if(withSplit&&Math.random()<0.45)target.push({k:"split",rot:90*Math.floor(Math.random()*4)});
+      else target.push({k:kinds[Math.floor(Math.random()*2)]});
+      player.push(null);
+    }
+    // guarantee at least one split if requested
+    if(withSplit&&!target.some(function(c){return c.k==="split"}))target[0]={k:"split",rot:90};
+  }
+  // ---- phases ----
+  var pill=document.getElementById("phasePill"),bIcon=document.getElementById("bIcon"),bText=document.getElementById("bText"),nextBtn=document.getElementById("nextBtn"),doneBtn=document.getElementById("doneBtn");
+  function setBanner(i,h){bIcon.textContent=i;bText.innerHTML=h;}
+  function startDemo(){
+    phase="demo";pill.textContent="DEMO";interactive=false;nextBtn.style.display="none";doneBtn.disabled=true;
+    setBanner("👀","<b>Watch.</b> The hand copies each block into the matching cell; a split block gets turned to match.");
+    makeTarget(2,true);draw();hand.style.display="";
+    var order=[0,1,2,3],step=0;
+    function go(){if(step>=order.length){hand.style.display="none";setTimeout(startWarmup,700);return;}
+      var i=order[step];player[i]={k:target[i].k,rot:target[i].rot||0};
+      var q=cellRect("b",i);var r=svg.getBoundingClientRect();
+      hand.style.left=(r.left+(q.x+cs/2)*(r.width/400)-4)+"px";hand.style.top=(r.top+window.scrollY+(q.y+cs/2)*(r.height/400)+6)+"px";
+      beep(cellEq(player[i],target[i])?820:520,.06);draw();step++;setTimeout(go,650);}
+    setTimeout(go,700);
+  }
+  function startWarmup(){
+    phase="warmup";pill.textContent="WARM-UP";interactive=true;brush=null;active=-1;
+    setBanner("✋","<b>Your turn (practice).</b> Tap a color in the tray, then tap a cell to copy the top pattern. Solid colors only.");
+    makeTarget(2,false);draw();Tel.begin("Warm-up (unscored)");render();
+    doneBtn.disabled=true;doneBtn.onclick=null;
+    var iv=setInterval(function(){if(full()&&matches()===target.length){clearInterval(iv);
+      setBanner("✅","<b>Matched!</b> Next has SPLIT blocks — place one, then tap it again (or ⟳) to turn it the right way.");
+      nextBtn.style.display="";nextBtn.textContent="Start scored ▶";nextBtn.onclick=startScored;}},250);
+  }
+  function startScored(){
+    phase="scored";pill.textContent="SCORED 1/1";interactive=true;brush=null;active=-1;nextBtn.style.display="none";
+    makeTarget(3,true);draw();Tel.begin("Scored — 3×3 with split blocks");render();
+    setBanner("🎯","<b>Copy the 3×3 pattern exactly</b> — colors AND the diagonal directions. Tap Done when it matches.");
+    doneBtn.disabled=true;
+    doneBtn.onclick=function(){
+      var rt=performance.now()-Tel.start,m=matches(),tot=target.length,exact=(m===tot);
+      document.getElementById("mRt").textContent=Math.round(rt)+" ms";
+      document.getElementById("mAcc").textContent=exact?"1/1 (100%)":"0/1 ("+m+"/"+tot+" cells)";
+      Tel.line("DONE — "+m+"/"+tot+" cells, "+Math.round(rt)+"ms, moves "+Tel.moves+", extra "+Tel.extra,exact?"done":"miss");
+      finish(exact,m,tot,rt);
+    };
+  }
+  function finish(exact,m,tot,rt){
+    phase="done";pill.textContent="DONE";interactive=false;document.getElementById("rotBtn").disabled=true;doneBtn.style.display="none";
+    setBanner("🏁","<b>"+m+"/"+tot+" cells matched</b> · "+(Tel.moves/tot).toFixed(2)+" moves/cell · churn "+Tel.extra+". Per-cell partial credit (M-POLY) plus an efficient, low-churn build path (M-EFF/M-PROG) grade decomposition skill at the tail.");
+    Tel.line("── summary ── M-POLY="+Math.round(100*m/tot)+"%  M-EFF="+(Tel.moves/tot).toFixed(2)+"  M-REV="+Tel.extra+"  M-PROG="+Tel.prog.join(","),"done");
+    nextBtn.style.display="";nextBtn.textContent="↻ Run again";nextBtn.onclick=function(){location.reload();};
+  }
+  layout();makeTarget(2,true);draw();startDemo();
+})();
+</script>
+</body>
+</html>

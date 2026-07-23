@@ -1,6 +1,15 @@
 {
   "wave": 1,
   "phase": "breadth",
-  "launched": [],
-  "finished": []
+  "agents": {
+    "fluid_reasoning": "2d4f305c",
+    "verbal": "0a19f521",
+    "quantitative": "857c868b",
+    "spatial": "2d10f586",
+    "working_memory": "19183ab5",
+    "processing_speed": "f533e64d",
+    "complementary": "3af1db3c"
+  },
+  "heartbeat_pid": 23209,
+  "note": "Wave 1 breadth (>=3 types/band/area). On all-7 completion: run build_types.py, commit, then per WAVE_PROTOCOL launch fill (if gaps) or novelty wave while RUN exists."
 }

@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CX-curious-01 — Mystery Box</title>
+<style>
+  :root{--bg:#101a2b;--card:#182740;--ink:#eef5ff;--muted:#93add0;--acc:#5ad1ff;--gold:#ffd35c;--pink:#ff8fd0;}
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.4 system-ui,Segoe UI,Roboto,sans-serif;color:var(--ink);background:radial-gradient(circle at 80% 0%,#1d3455,#101a2b)}
+  header{padding:14px 20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  header h1{font-size:18px;margin:0}
+  .badge{font-size:12px;color:var(--muted);border:1px solid #345074;padding:2px 8px;border-radius:999px}
+  .wrap{display:grid;grid-template-columns:1fr 330px;gap:16px;padding:0 20px 30px;max-width:1100px}
+  @media(max-width:820px){.wrap{grid-template-columns:1fr}}
+  .stage{background:var(--card);border-radius:18px;padding:18px;position:relative;min-height:460px}
+  .phaseTag{position:absolute;top:12px;right:14px;font-size:12px;color:var(--gold);background:#243040;border:1px solid #4a5f22;padding:3px 10px;border-radius:999px;z-index:4}
+  .prompt{text-align:center;color:var(--muted);min-height:22px;margin-bottom:6px}
+  .box{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:440px;margin:8px auto}
+  .gizmo{background:#0e1a2e;border:2px solid #2c476e;border-radius:14px;height:92px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:transform .1s;user-select:none}
+  .gizmo:active{transform:scale(.95)}
+  .gizmo .ico{font-size:34px}
+  .gizmo .reveal{font-size:22px;height:24px}
+  .gizmo .depth{position:absolute;bottom:3px;right:6px;font-size:10px;color:var(--gold)}
+  .qcards{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:12px 0}
+  .qcards button{font:inherit;background:#12233b;border:1px solid #345074;color:#cfe4ff;border-radius:10px;padding:8px 12px;cursor:pointer;font-size:13px}
+  .doors{display:flex;gap:20px;justify-content:center;margin:8px 0}
+  .door{width:120px;height:120px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:44px;border:3px solid;transition:transform .1s}
+  .door:active{transform:scale(.96)}
+  .door.sure{background:#12233b;border-color:#5ce6a3}
+  .door.myst{background:#241436;border-color:var(--pink)}
+  .door small{font-size:12px;color:var(--muted);margin-top:4px}
+  .ghost{position:absolute;font-size:38px;pointer-events:none;z-index:6;transition:left .7s ease,top .7s ease;filter:drop-shadow(0 3px 5px rgba(0,0,0,.5))}
+  button.big{font:inherit;border:0;border-radius:12px;padding:10px 16px;cursor:pointer;font-weight:600;background:var(--acc);color:#04283a}
+  .row{display:flex;gap:10px;justify-content:center;margin-top:8px;flex-wrap:wrap}
+  .tele{background:#0e1a2e;border:1px solid #294467;border-radius:18px;padding:14px;height:fit-content;position:sticky;top:12px}
+  .tele h3{margin:0 0 8px;font-size:14px;color:var(--gold);letter-spacing:.5px}
+  .metrics{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+  .chip{font-size:12px;background:#182740;border:1px solid #345074;border-radius:8px;padding:4px 8px}
+  .chip b{color:var(--gold)}
+  .log{font:11px/1.5 ui-monospace,Menlo,Consolas,monospace;color:#bcd6f5;max-height:210px;overflow:auto;background:#0a1424;border-radius:10px;padding:8px}
+  .log div{border-bottom:1px solid #16233b;padding:1px 0}
+  .note{font-size:11px;color:var(--muted);margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>🎁 Mystery Box</h1>
+  <span class="badge">CX-curious-01</span>
+  <span class="badge">bands: K–1 · 2–3 · 4–5 · 6–8</span>
+  <span class="badge">curiosity / exploration</span>
+</header>
+<div class="wrap">
+  <div class="stage" id="stage">
+    <div class="phaseTag" id="phaseTag">demo</div>
+    <div class="prompt" id="prompt">Watch…</div>
+    <div class="box" id="box"></div>
+    <div class="qcards" id="qcards" style="display:none"></div>
+    <div id="choiceArea" style="display:none">
+      <div class="prompt">Pick a door — the <b style="color:var(--pink)">?</b> is a surprise!</div>
+      <div class="doors">
+        <div class="door sure" id="sure">🎁<small>+2 (you know)</small></div>
+        <div class="door myst" id="myst">❓<small>surprise?</small></div>
+      </div>
+      <div class="prompt" id="choiceOut"></div>
+    </div>
+    <div class="row" id="row"></div>
+    <div class="ghost" id="ghost" style="display:none">👆</div>
+  </div>
+  <div class="tele">
+    <h3>LIVE TELEMETRY</h3>
+    <div class="metrics" id="metrics"></div>
+    <div class="log" id="log"></div>
+    <div class="note">M-EXPLORE (distinct parts + depth), M-PATH (exploration order), M-QUERY (questions asked), M-UNCERT (share of surprise-door picks), M-PERSIST, M-ENGAGE.</div>
+  </div>
+</div>
+<script>
+const T={ev:[],m:{},t0:performance.now(),now(){return Math.round(performance.now()-this.t0)},
+  log(a,d){const t=this.now();this.ev.push(Object.assign({t,a},d||{}));const el=document.getElementById('log');
+    const line=document.createElement('div');line.textContent='+'+(t/1000).toFixed(2)+'s  '+a+(d?'  '+JSON.stringify(d):'');el.prepend(line);},
+  set(k,v){this.m[k]=v;this.render();},
+  render(){document.getElementById('metrics').innerHTML=Object.entries(this.m).map(([k,v])=>'<span class="chip"><b>'+k+'</b> '+v+'</span>').join('');}};
+const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+const box=$('#box'),ghost=$('#ghost'),phaseTag=$('#phaseTag');
+
+const GIZMOS=[
+  {ico:'🔴',reveals:['💡','✨']},
+  {ico:'🎚️',reveals:['🎵','🎶','📀']},
+  {ico:'🚪',reveals:['🐙']},
+  {ico:'🔘',reveals:['🌟']},
+  {ico:'🎛️',reveals:['🌈','🎆']},
+  {ico:'📦',reveals:['🧸','🍬','💎']}
+];
+const QUESTIONS=[["🔎 What's inside?","There is something soft and something shiny…"],
+  ["❓ What does this do?","Each control changes a different thing."],
+  ["🤔 Is there more?","Some parts have hidden layers — try pressing again!"]];
+
+let explored=new Set(),depth=0,questions=0,uncertain=0,trials=0,scored=false,started=0;
+T.set('phase','demo');T.set('parts_explored_M-EXPLORE','0/6');T.set('depth',0);T.set('questions_M-QUERY',0);T.set('uncertainty_M-UNCERT','–');
+
+function buildBox(interactive){
+  box.innerHTML='';
+  GIZMOS.forEach((g,i)=>{
+    const el=document.createElement('div');el.className='gizmo';el.dataset.i=i;el.dataset.d=0;
+    el.innerHTML='<div class="ico">'+g.ico+'</div><div class="reveal"></div><div class="depth"></div>';
+    if(interactive)el.onclick=()=>poke(i,el);
+    box.appendChild(el);
+  });
+}
+function poke(i,el){
+  const g=GIZMOS[i];let d=+el.dataset.d;
+  if(d<g.reveals.length){el.querySelector('.reveal').textContent=g.reveals[d];d++;el.dataset.d=d;
+    el.querySelector('.depth').textContent=d>1?('lvl '+d):'';el.querySelector('.ico').style.transform='rotate('+(d*15)+'deg)';}
+  if(scored){
+    if(!explored.has(i)){explored.add(i);}
+    depth=Math.max(depth,d);
+    if(started===0)started=T.now();
+    T.log('poke',{gizmo:i,layer:d});
+    T.set('parts_explored_M-EXPLORE',explored.size+'/6');T.set('depth',depth);
+    const late=(T.now()-started)>15000;if(late)T.set('late_pokes_M-PERSIST',(T.m['late_pokes_M-PERSIST']||0)+1);
+  }
+}
+function buildQuestions(){const q=$('#qcards');q.style.display='flex';q.innerHTML='';
+  QUESTIONS.forEach(([label,ans])=>{const b=document.createElement('button');b.textContent=label;
+    b.onclick=()=>{questions++;T.log('ASK_QUESTION',{q:label});T.set('questions_M-QUERY',questions);
+      $('#prompt').innerHTML='💬 '+ans;};q.appendChild(b);});}
+
+/* choice trials */
+function setupChoices(){
+  $('#choiceArea').style.display='block';
+  $('#sure').onclick=()=>choose(false);
+  $('#myst').onclick=()=>choose(true);
+}
+function choose(isMyst){
+  trials++;let out;
+  if(isMyst){uncertain++;const v=Math.floor(Math.random()*11);out=(v>=6?'🎉 WOW +'+v+'!':'🙂 +'+v);}
+  else out='🎁 +2 (as expected)';
+  T.log('DOOR_CHOICE',{choice:isMyst?'mystery':'sure',trial:trials});
+  T.set('uncertainty_M-UNCERT',uncertain+'/'+trials+' ('+Math.round(100*uncertain/trials)+'%)');
+  $('#choiceOut').innerHTML=out;
+  if(trials>=6){setTimeout(()=>{$('#choiceOut').innerHTML+=' — that\'s the last door!';},300);}
+}
+
+/* ---- flow ---- */
+function runGhost(){
+  buildBox(false);ghost.style.display='block';$('#prompt').textContent='Watch: poke things, find surprises…';
+  const stage=$('#stage').getBoundingClientRect();
+  const R=el=>{const r=el.getBoundingClientRect();return[r.left-stage.left+r.width/2-19,r.top-stage.top+r.height/2-19];};
+  const tiles=box.children;
+  const seq=[0,1,5];let k=0;
+  const step=()=>{if(k>=seq.length){
+      // show a door choice hint
+      $('#prompt').textContent='…or pick the surprise door!';ghost.style.display='none';
+      setTimeout(()=>{ghost.style.display='none';startWarm();},700);return;}
+    const el=tiles[seq[k]];const[x,y]=R(el);ghost.style.left=x+'px';ghost.style.top=y+'px';
+    setTimeout(()=>{const g=GIZMOS[seq[k]];el.querySelector('.reveal').textContent=g.reveals[0];el.querySelector('.ico').style.transform='rotate(15deg)';k++;setTimeout(step,900);},700);};
+  setTimeout(step,600);
+}
+function startWarm(){
+  buildBox(true);scored=false;phaseTag.textContent='warm-up (practice)';
+  $('#prompt').textContent='Your turn (practice): tap anything to see what it does!';
+  T.set('phase','warm-up');T.log('phase_warmup');
+  $('#row').innerHTML='<button class="big" onclick="startItem()">Explore for real →</button>';
+}
+function startItem(){
+  buildBox(true);scored=true;explored=new Set();depth=0;questions=0;uncertain=0;trials=0;started=0;
+  phaseTag.textContent='scored (free exploration)';
+  $('#prompt').innerHTML='<b>Explore the box however you like</b> — there\'s no goal. Ask questions, poke deeper, or try the surprise door.';
+  buildQuestions();setupChoices();
+  T.set('phase','scored');T.set('parts_explored_M-EXPLORE','0/6');T.set('questions_M-QUERY',0);T.set('uncertainty_M-UNCERT','–');
+  T.log('phase_scored');
+  $('#row').innerHTML='<button class="big" onclick="finish()">I\'m done → results</button>';
+}
+function finish(){
+  T.log('SESSION_END',{explored:explored.size,depth:depth,questions:questions,uncertain_ratio:trials?+(uncertain/trials).toFixed(2):null});
+  $('#qcards').style.display='none';$('#choiceArea').style.display='none';box.style.display='none';
+  $('#prompt').innerHTML='<b style="color:var(--gold);font-size:19px">Thanks for exploring! 🔍</b>'+
+    '<div class="note">Explored '+explored.size+'/6 parts (max depth '+depth+'), asked '+questions+' questions, chose the surprise door '+
+    (trials?Math.round(100*uncertain/trials):0)+'% of the time. Curiosity — how much a child explores and prefers to resolve uncertainty when nothing forces them to — is invisible to a timed reasoning test.</div>';
+  $('#row').innerHTML='<button class="big" onclick="location.reload()">↺ Play again</button>';
+  T.set('phase','done');
+}
+window.addEventListener('blur',()=>T.log('off_task_blur (M-ENGAGE)'));
+runGhost();
+</script>
+</body>
+</html>
