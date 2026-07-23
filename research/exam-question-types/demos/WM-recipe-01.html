@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WM-recipe-01 — Recipe Recall (verbal/numeric complex span)</title>
+<style>
+  :root{
+    --bg:#180f0c;--panel:#241611;--edge:#402a20;--ink:#fff2e9;--mut:#c39a83;
+    --accent:#ff9e5c;--good:#5ce39a;--bad:#ff6b8a;--warn:#ffd166;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.45 system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);display:flex;min-height:100vh}
+  .main{flex:1;display:flex;flex-direction:column;align-items:center;padding:20px;gap:12px}
+  h1{font-size:19px;margin:.2rem 0}
+  .sub{color:var(--mut);font-size:13px;margin:0 0 6px;text-align:center;max-width:470px}
+  .badge{display:inline-block;padding:2px 9px;border-radius:99px;background:var(--panel);border:1px solid var(--edge);color:var(--accent);font-size:12px}
+  #stage{position:relative;width:420px;height:230px;background:var(--panel);border:1px solid var(--edge);border-radius:18px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  #card{font-size:40px;text-align:center;letter-spacing:6px}
+  #ingredient{font-size:66px}
+  #cue{font-size:22px;min-height:32px;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 12px}
+  #ghost{position:absolute;font-size:28px;left:0;top:0;transition:left .4s,top .4s;pointer-events:none;z-index:5;opacity:0;filter:drop-shadow(0 3px 3px #0008)}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+  button{font:inherit;padding:9px 16px;border-radius:10px;border:1px solid var(--edge);background:#2e1d15;color:var(--ink);cursor:pointer}
+  button.pri{background:var(--accent);color:#3a1900;border-color:transparent;font-weight:600}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .tf{font-size:24px;min-width:70px}
+  .pal{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+  .ing{width:60px;height:60px;border-radius:14px;background:#2e1d15;border:1px solid var(--edge);display:flex;align-items:center;justify-content:center;font-size:34px;cursor:pointer}
+  .ing:active{transform:scale(.92)}
+  .slots{display:flex;gap:6px;justify-content:center;margin-top:6px}
+  .slot{width:38px;height:38px;border-radius:10px;border:2px dashed #533726;display:flex;align-items:center;justify-content:center;font-size:24px}
+  .modebtn.on{background:var(--warn);color:#3a2c00;border-color:transparent;font-weight:600}
+  .tel{width:320px;background:var(--panel);border-left:1px solid var(--edge);padding:14px 14px 40px;overflow:auto;font:12px/1.55 ui-monospace,Menlo,Consolas,monospace}
+  .tel h2{font:600 12px system-ui;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:14px 0 6px}
+  .kv{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted #402a20;padding:2px 0}
+  .kv b{color:var(--accent);font-weight:600}
+  .kv .m{color:var(--mut);font-size:10px}
+  .log{margin-top:6px;max-height:150px;overflow:auto;border:1px solid var(--edge);border-radius:8px;padding:6px;background:#160d09}
+  .log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+</head>
+<body>
+<div class="main">
+  <div style="text-align:center">
+    <h1>🍳 Recipe Recall <span class="badge" id="bmode">Operation · forward</span></h1>
+    <p class="sub">Check each step (right or wrong?), watch the ingredient, then tap the ingredients back <b id="ordertxt">in order</b>.</p>
+  </div>
+  <div id="stage"><div id="card"></div><div id="ingredient"></div><div id="ghost">👆</div></div>
+  <div id="cue">👀</div>
+  <div class="row" id="tf" style="display:none">
+    <button class="tf" data-a="1">✔️ Right</button>
+    <button class="tf" data-a="0">✖️ Wrong</button>
+  </div>
+  <div class="slots" id="slots" style="display:none"></div>
+  <div class="row pal" id="palette" style="display:none"></div>
+  <div class="row">
+    <button class="pri" id="go">▶ Watch how it works</button>
+    <button id="replay" disabled>↺ Replay demo</button>
+    <button class="modebtn" id="pmode" title="processing module">Read module</button>
+    <button class="modebtn" id="rmode" title="recall direction">Reverse recall</button>
+  </div>
+  <p class="sub" id="phasehint">A ghost hand will show you first — no reading needed.</p>
+</div>
+<aside class="tel" id="tel"></aside>
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const card=$("#card"),ing=$("#ingredient"),cue=$("#cue"),ghost=$("#ghost"),stage=$("#stage");
+const INGR=["🍎","🥕","🧀","🍞","🥚","🍇","🌽","🍅"];
+const SENSE=[["🐟","💧",true],["🐟","🔥",false],["🐦","🌳",true],["🐦","🌊",false],["☀️","🌞",true],["🐧","🏜️",false],["🌱","💧",true],["🔥","❄️",false]];
+const T={phase:"idle",proc:"operation",rev:false,cycle:0,set:2,spanMax:0,correct:0,total:0,
+  procHit:0,procTot:0,firstLat:[],posHit:Array(9).fill(0),posTot:Array(9).fill(0),
+  orderErr:0,itemErr:0,lure:{pos:0,prior:0,novel:0},priorSeen:new Set(),log:[]};
+function med(a){if(!a.length)return 0;const b=[...a].sort((x,y)=>x-y);const m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2;}
+function polyPct(){const h=T.posHit.reduce((a,b)=>a+b,0),t=T.posTot.reduce((a,b)=>a+b,0);return t?Math.round(100*h/t):0;}
+function logE(s){T.log.unshift(`${(performance.now()/1000).toFixed(1)}s · ${s}`);if(T.log.length>60)T.log.pop();}
+function render(){
+  const acc=T.total?Math.round(100*T.correct/T.total):0;const pa=T.procTot?Math.round(100*T.procHit/T.procTot):0;const gate=pa>=80?"✓ valid":"✗ gated";
+  $("#tel").innerHTML=`
+  <h2>Live telemetry · WM-recipe-01</h2>
+  <div class="kv"><span>phase</span><b>${T.phase}</b></div>
+  <div class="kv"><span>module · dir</span><b>${T.proc} · ${T.rev?"reverse":"forward"}</b></div>
+  <div class="kv"><span>set size</span><b>${T.set}</b></div>
+  <h2>Storage span</h2>
+  <div class="kv"><span>recall span <span class="m">M-SPAN</span></span><b>${T.set}</b></div>
+  <div class="kv"><span>max set solved <span class="m">M-DIFFREACH</span></span><b>${T.spanMax}</b></div>
+  <div class="kv"><span>recall accuracy <span class="m">M-ACC</span></span><b>${acc}% <span class="m">(${T.correct}/${T.total})</span></b></div>
+  <div class="kv"><span>partial credit <span class="m">M-POLY</span></span><b>${polyPct()}%</b></div>
+  <h2>Processing gate</h2>
+  <div class="kv"><span>proc. accuracy <span class="m">M-PROCACC</span></span><b>${pa}% <span class="m">${gate}</span></b></div>
+  <div class="kv"><span>first-tap lat <span class="m">M-RTFIRST</span></span><b>${Math.round(med(T.firstLat))} ms</b></div>
+  <h2>Errors & lure profile</h2>
+  <div class="kv"><span>order errors <span class="m">M-ERRTYPE</span></span><b>${T.orderErr}</b></div>
+  <div class="kv"><span>item errors <span class="m">M-ERRTYPE</span></span><b>${T.itemErr}</b></div>
+  <div class="kv"><span>pos-swap lure <span class="m">M-LURETYPE</span></span><b>${T.lure.pos}</b></div>
+  <div class="kv"><span>prior-set lure <span class="m">M-LURETYPE</span></span><b>${T.lure.prior}</b></div>
+  <div class="kv"><span>novel lure <span class="m">M-LURETYPE</span></span><b>${T.lure.novel}</b></div>
+  <div class="log">${T.log.map(l=>`<div>${l}</div>`).join("")}</div>`;
+}
+render();
+function makeProc(){
+  if(T.proc==="operation"){const a=1+(Math.random()*4|0),b=1+(Math.random()*4|0);const right=Math.random()<.5;const shown=right?a+b:a+b+(Math.random()<.5?1:-1);card.textContent=`${a}+${b}=${Math.max(1,shown)}`;ing.textContent="";return right && (a+b===Math.max(1,shown));}
+  else{const s=SENSE[Math.random()*SENSE.length|0];card.textContent=`${s[0]} ➜ ${s[1]}`;ing.textContent="";return s[2];}
+}
+async function askProc(scored){
+  const truth=makeProc();cue.textContent=T.proc==="operation"?"Is the math right?":"Does this make sense?";
+  $("#tf").style.display="flex";const t0=performance.now();
+  const ans=await new Promise(res=>{let done=false;const to=setTimeout(()=>{if(!done){done=true;res(null);}},3800);document.querySelectorAll(".tf").forEach(b=>b.onclick=()=>{if(done)return;done=true;clearTimeout(to);res(b.dataset.a==="1");});});
+  $("#tf").style.display="none";card.textContent="";
+  const ok=ans===truth;if(scored){T.procTot++;if(ok)T.procHit++;}
+  return ok;
+}
+async function showIngredient(i){ing.textContent=INGR[i];cue.textContent="";await sleep(850);ing.textContent="";}
+async function recall(seq,scored){
+  const target=T.rev?seq.slice().reverse():seq.slice();
+  cue.textContent=T.rev?"Tap them back in REVERSE":"Tap them back in order";
+  const slots=$("#slots");slots.style.display="flex";slots.innerHTML="";for(let k=0;k<seq.length;k++){const s=document.createElement("div");s.className="slot";slots.appendChild(s);}
+  const pal=$("#palette");pal.style.display="flex";pal.innerHTML="";
+  const opts=[...new Set([...seq,...Array.from({length:3},()=>Math.random()*INGR.length|0)])];
+  for(let i=opts.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[opts[i],opts[j]]=[opts[j],opts[i]];}
+  opts.forEach(i=>{const d=document.createElement("div");d.className="ing";d.textContent=INGR[i];d.dataset.i=i;pal.appendChild(d);});
+  const picks=[];const t0=performance.now();
+  await new Promise(res=>{pal.querySelectorAll(".ing").forEach(d=>d.onclick=()=>{if(picks.length>=seq.length)return;if(picks.length===0&&scored)T.firstLat.push(performance.now()-t0);const i=+d.dataset.i;picks.push(i);slots.children[picks.length-1].textContent=INGR[i];if(picks.length===seq.length)res();});});
+  slots.style.display="none";pal.style.display="none";
+  let correct=true;
+  for(let k=0;k<target.length;k++){const ok=picks[k]===target[k];if(scored){T.posTot[k]++;if(ok)T.posHit[k]++;}
+    if(!ok){correct=false;if(scored){if(seq.includes(picks[k])){T.orderErr++;T.lure.pos++;}else if(T.priorSeen.has(picks[k])){T.itemErr++;T.lure.prior++;}else{T.itemErr++;T.lure.novel++;}}}}
+  seq.forEach(i=>T.priorSeen.add(i));
+  return correct;
+}
+async function demo(){
+  if(T.phase==="demo")return;T.phase="demo";render();$("#go").disabled=$("#replay").disabled=$("#pmode").disabled=$("#rmode").disabled=true;
+  card.textContent="2+1=3";cue.textContent="Is the math right?";await sleep(500);$("#tf").style.display="flex";
+  ghost.style.opacity="1";const b=document.querySelector('.tf[data-a="1"]').getBoundingClientRect(),s=stage.getBoundingClientRect();ghost.style.left=(b.left-s.left+b.width/2-12)+"px";ghost.style.top=(b.top-s.top+b.height/2-26)+"px";
+  await sleep(700);document.querySelector('.tf[data-a="1"]').style.outline="3px solid #5ce39a";await sleep(450);document.querySelector('.tf[data-a="1"]').style.outline="";$("#tf").style.display="none";card.textContent="";
+  await showIngredient(0);card.textContent="3+1=5";await sleep(500);await showIngredient(2);
+  cue.textContent="Now tap them back in order";ghost.style.opacity="0";
+  const pal=$("#palette");pal.style.display="flex";pal.innerHTML="";[0,2,4].forEach(i=>{const d=document.createElement("div");d.className="ing";d.textContent=INGR[i];pal.appendChild(d);});
+  await sleep(400);pal.children[0].style.outline="3px solid #5ce39a";await sleep(500);pal.children[0].style.outline="";pal.children[1].style.outline="3px solid #5ce39a";await sleep(500);pal.style.display="none";
+  cue.textContent="✅";await sleep(600);
+  $("#go").disabled=$("#replay").disabled=$("#pmode").disabled=$("#rmode").disabled=false;$("#go").textContent="▶ Try a practice one";$("#go").onclick=warmup;
+  T.phase="idle";$("#phasehint").textContent="Now you try — this practice round is NOT scored.";render();
+}
+$("#go").onclick=demo;$("#replay").onclick=demo;
+async function runSet(scored){
+  $("#go").disabled=$("#replay").disabled=$("#pmode").disabled=$("#rmode").disabled=true;
+  const n=T.set,seq=[];let procOK=0;
+  for(let k=0;k<n;k++){const ok=await askProc(scored);if(ok)procOK++;await sleep(150);const i=Math.random()*INGR.length|0;seq.push(i);await showIngredient(i);await sleep(150);}
+  const recOK=await recall(seq,scored);const valid=procOK/n>=0.8;
+  cue.textContent=recOK?(valid?"✅":"✅ (check steps!)"):"↔️";
+  if(scored){T.total++;if(recOK&&valid)T.correct++;if(recOK&&valid&&n>T.spanMax)T.spanMax=n;logE(`set ${n} ${T.rev?"rev":"fwd"}: recall ${recOK?"OK":"miss"}, proc ${Math.round(100*procOK/n)}%`);if(recOK&&valid)T.set=Math.min(7,T.set+1);else T.set=Math.max(2,T.set-1);T.cycle++;}
+  render();await sleep(800);cue.textContent="";$("#go").disabled=$("#replay").disabled=$("#pmode").disabled=$("#rmode").disabled=false;
+}
+async function warmup(){T.phase="warm-up (unscored)";render();await runSet(false);T.phase="idle";$("#go").textContent="▶ Start scored rounds";$("#go").onclick=startScored;$("#phasehint").textContent="Great! These count. Check each step AND remember the ingredients.";render();}
+let left=0;
+async function startScored(){T.phase="scored";T.set=2;render();left=6;$("#go").disabled=true;await loop();}
+async function loop(){if(left<=0){finish();return;}await runSet(true);left--;if(left>0)await loop();else finish();}
+function finish(){T.phase="done";render();cue.textContent="🏁";$("#go").disabled=false;$("#go").textContent="▶ Run another block";$("#go").onclick=startScored;const pa=T.procTot?Math.round(100*T.procHit/T.procTot):0;$("#phasehint").textContent=`Done. Max set solved ${T.spanMax||"—"} at ${pa}% processing accuracy${pa<80?" (span gated)":""}.`;}
+$("#pmode").onclick=()=>{T.proc=T.proc==="operation"?"read":"operation";$("#pmode").textContent=T.proc==="operation"?"Read module":"Operation module";$("#pmode").classList.toggle("on",T.proc==="read");$("#bmode").textContent=`${T.proc==="operation"?"Operation":"Read"} · ${T.rev?"reverse":"forward"}`;logE(`module → ${T.proc}`);render();};
+$("#rmode").onclick=()=>{T.rev=!T.rev;$("#rmode").textContent=T.rev?"Forward recall":"Reverse recall";$("#rmode").classList.toggle("on",T.rev);$("#ordertxt").textContent=T.rev?"in REVERSE":"in order";$("#bmode").textContent=`${T.proc==="operation"?"Operation":"Read"} · ${T.rev?"reverse":"forward"}`;logE(`recall → ${T.rev?"reverse":"forward"}`);render();};
+</script>
+</body>
+</html>

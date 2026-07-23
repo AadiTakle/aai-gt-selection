@@ -69,7 +69,9 @@ def main():
             if not tokens_match(sub, t.get("topics_techniques_covered", [])):
                 continue
             tb = set(t.get("age_bands", []))
-            if band and band not in tb and "K-8" not in tb:
+            # "K-8" is a wildcard band on EITHER side: an item that spans all grades is
+            # coverable by any correctly-scoped type, and a type marked K-8 covers any item.
+            if band and band != "K-8" and band not in tb and "K-8" not in tb:
                 continue
             n += 1
         per_item.append((it["item_id"], area or it["construct"], sub, band, n))

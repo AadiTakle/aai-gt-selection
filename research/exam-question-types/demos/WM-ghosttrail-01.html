@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WM-ghosttrail-01 — Ghost Trail (reverse path retrace)</title>
+<style>
+  :root{
+    --bg:#0b1410;--panel:#122019;--edge:#22402f;--ink:#e9fff2;--mut:#7fb79a;
+    --accent:#5ce39a;--good:#7dffb0;--bad:#ff6b8a;--warn:#ffd166;--pad:#1c3326;--lit:#ffe680;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.45 system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);display:flex;min-height:100vh}
+  .main{flex:1;display:flex;flex-direction:column;align-items:center;padding:20px;gap:14px}
+  h1{font-size:19px;margin:.2rem 0}
+  .sub{color:var(--mut);font-size:13px;margin:0 0 6px;text-align:center;max-width:460px}
+  .badge{display:inline-block;padding:2px 9px;border-radius:99px;background:var(--panel);border:1px solid var(--edge);color:var(--accent);font-size:12px}
+  #stage{position:relative;width:420px;height:380px;background:radial-gradient(circle at 50% 30%,#16281d,#0b1410);border:1px solid var(--edge);border-radius:18px;overflow:hidden}
+  svg#lines{position:absolute;inset:0;pointer-events:none;z-index:1}
+  .pad{position:absolute;width:70px;height:70px;border-radius:50%;background:var(--pad);border:2px solid #2c4a37;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;transition:transform .08s,background .12s,box-shadow .12s;user-select:none;z-index:2}
+  .pad:active{transform:scale(.94)}
+  .pad.lit{background:var(--lit);box-shadow:0 0 26px 8px #ffe68088}
+  .pad.pick{background:#2f8f6b;color:#fff;box-shadow:0 0 16px 4px #2f8f6b88}
+  .pad .ord{font-size:15px;font-weight:800;color:#04220f}
+  .pad.ok{background:var(--good);color:#04220f}
+  .pad.no{background:var(--bad)}
+  #firefly{position:absolute;font-size:26px;left:0;top:0;transition:left .42s ease,top .42s ease;z-index:4;opacity:0;filter:drop-shadow(0 0 6px #ffe680)}
+  #ghost{position:absolute;font-size:28px;left:0;top:0;transition:left .4s cubic-bezier(.5,0,.3,1),top .4s cubic-bezier(.5,0,.3,1);pointer-events:none;z-index:5;opacity:0;filter:drop-shadow(0 3px 3px #0008)}
+  #cue{font-size:30px;height:40px;display:flex;align-items:center;justify-content:center}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+  button{font:inherit;padding:9px 16px;border-radius:10px;border:1px solid var(--edge);background:#173025;color:var(--ink);cursor:pointer}
+  button.pri{background:var(--accent);color:#03210f;border-color:transparent;font-weight:600}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .modebtn.on{background:var(--warn);color:#3a2c00;border-color:transparent;font-weight:600}
+  .tel{width:320px;background:var(--panel);border-left:1px solid var(--edge);padding:14px 14px 40px;overflow:auto;font:12px/1.55 ui-monospace,Menlo,Consolas,monospace}
+  .tel h2{font:600 12px system-ui;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:14px 0 6px}
+  .kv{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted #22402f;padding:2px 0}
+  .kv b{color:var(--accent);font-weight:600}
+  .kv .m{color:var(--mut);font-size:10px}
+  .log{margin-top:6px;max-height:150px;overflow:auto;border:1px solid var(--edge);border-radius:8px;padding:6px;background:#0c1712}
+  .log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+</head>
+<body>
+<div class="main">
+  <div style="text-align:center">
+    <h1>🐸 Ghost Trail <span class="badge" id="bmode">Reverse</span></h1>
+    <p class="sub">Watch the firefly hop the trail, then send it home by tapping the pads <b id="ordertxt">in REVERSE</b> (last pad back to first).</p>
+  </div>
+  <div id="stage"><svg id="lines"></svg><div id="firefly">✨</div><div id="ghost">👆</div></div>
+  <div id="cue">👀</div>
+  <div class="row">
+    <button class="pri" id="go">▶ Watch how it works</button>
+    <button id="replay" disabled>↺ Replay demo</button>
+    <button class="modebtn" id="tmode" title="reverse vs forward baseline">Forward mode</button>
+  </div>
+  <p class="sub" id="phasehint">A ghost hand will show you first — no reading needed.</p>
+</div>
+<aside class="tel" id="tel"></aside>
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const stage=$("#stage"),ff=$("#firefly"),ghost=$("#ghost"),cue=$("#cue"),lines=$("#lines");
+const pads=[];const COLS=4,ROWS=4,W=420,H=380;
+function buildPads(){
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const d=document.createElement("div");d.className="pad";const idx=r*COLS+c;d.dataset.i=idx;
+    const x=28+c*(W-92)/(COLS-1)+ (Math.random()*10-5);
+    const y=24+r*(H-92)/(ROWS-1)+ (Math.random()*10-5);
+    d.style.left=x+"px";d.style.top=y+"px";d._x=x+35;d._y=y+35;stage.appendChild(d);pads.push(d);
+  }
+}
+const T={phase:"idle",mode:"B",trial:0,span:3,fwdMax:0,bwdMax:0,correct:0,total:0,firstLat:[],revis:0,orderErr:0,itemErr:0,lastPath:[],effList:[],log:[]};
+function med(a){if(!a.length)return 0;const b=[...a].sort((x,y)=>x-y);const m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2;}
+function mean(a){return a.length?a.reduce((x,y)=>x+y,0)/a.length:0;}
+function logE(s){T.log.unshift(`${(performance.now()/1000).toFixed(1)}s · ${s}`);if(T.log.length>60)T.log.pop();}
+function render(){
+  const acc=T.total?Math.round(100*T.correct/T.total):0;
+  $("#tel").innerHTML=`
+  <h2>Live telemetry · WM-ghosttrail-01</h2>
+  <div class="kv"><span>phase</span><b>${T.phase}</b></div>
+  <div class="kv"><span>mode</span><b>${T.mode==="B"?"reverse":"forward"}</b></div>
+  <div class="kv"><span>trial</span><b>${T.trial}</b></div>
+  <h2>Path span (capacity)</h2>
+  <div class="kv"><span>current length</span><b>${T.span}</b></div>
+  <div class="kv"><span>max reverse <span class="m">M-SPAN·M-DIFFREACH</span></span><b>${T.bwdMax}</b></div>
+  <div class="kv"><span>max forward <span class="m">M-SPAN</span></span><b>${T.fwdMax}</b></div>
+  <div class="kv"><span>manip. cost <span class="m">M-MANIPCOST</span></span><b>${T.fwdMax&&T.bwdMax?(T.fwdMax-T.bwdMax):"—"}</b></div>
+  <h2>Accuracy & process</h2>
+  <div class="kv"><span>accuracy <span class="m">M-ACC</span></span><b>${acc}% <span class="m">(${T.correct}/${T.total})</span></b></div>
+  <div class="kv"><span>efficiency <span class="m">M-EFF</span></span><b>${T.effList.length?Math.round(100*mean(T.effList))+"%":"—"}</b></div>
+  <div class="kv"><span>order errors <span class="m">M-ERRTYPE</span></span><b>${T.orderErr}</b></div>
+  <div class="kv"><span>item errors <span class="m">M-ERRTYPE</span></span><b>${T.itemErr}</b></div>
+  <div class="kv"><span>revisions <span class="m">M-EFF</span></span><b>${T.revis}</b></div>
+  <div class="kv"><span>first-tap lat <span class="m">M-RTFIRST</span></span><b>${Math.round(med(T.firstLat))} ms</b></div>
+  <h2>Move path <span class="m">M-PATH</span></h2>
+  <div class="kv"><span>last taps</span><b>${T.lastPath.length?T.lastPath.join("→"):"—"}</b></div>
+  <div class="log">${T.log.map(l=>`<div>${l}</div>`).join("")}</div>`;
+}
+render();
+function clearPads(){pads.forEach(p=>{p.className="pad";p.textContent="";});lines.innerHTML="";}
+function randPath(n){const idx=[...pads.keys()];for(let i=idx.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[idx[i],idx[j]]=[idx[j],idx[i]];}return idx.slice(0,n);}
+function drawLine(a,b){const l=document.createElementNS("http://www.w3.org/2000/svg","line");l.setAttribute("x1",pads[a]._x);l.setAttribute("y1",pads[a]._y);l.setAttribute("x2",pads[b]._x);l.setAttribute("y2",pads[b]._y);l.setAttribute("stroke","#ffe68066");l.setAttribute("stroke-width","4");l.setAttribute("stroke-linecap","round");lines.appendChild(l);}
+async function flyPath(seq){cue.textContent="👀";ff.style.opacity="1";ff.style.left=(pads[seq[0]]._x-13)+"px";ff.style.top=(pads[seq[0]]._y-13)+"px";await sleep(450);
+  for(let k=0;k<seq.length;k++){const i=seq[k];ff.style.left=(pads[i]._x-13)+"px";ff.style.top=(pads[i]._y-13)+"px";await sleep(430);pads[i].classList.add("lit");if(k>0)drawLine(seq[k-1],i);await sleep(230);pads[i].classList.remove("lit");}
+  ff.style.opacity="0";await sleep(200);lines.innerHTML="";}
+function expectedFor(seq){return T.mode==="B"?seq.slice().reverse():seq.slice();}
+async function demo(){
+  if(T.phase==="demo")return;T.phase="demo";render();$("#go").disabled=$("#replay").disabled=$("#tmode").disabled=true;
+  clearPads();const seq=[5,6,10];await flyPath(seq);
+  cue.textContent="👆";ghost.style.opacity="1";const exp=seq.slice().reverse();
+  for(const i of exp){ghost.style.left=(pads[i]._x-12)+"px";ghost.style.top=(pads[i]._y-26)+"px";await sleep(470);pads[i].classList.add("pick");await sleep(160);pads[i].classList.remove("pick");}
+  cue.textContent="✅";ghost.style.opacity="0";await sleep(650);clearPads();
+  $("#go").disabled=$("#replay").disabled=$("#tmode").disabled=false;$("#go").textContent="▶ Try a practice one";$("#go").onclick=warmup;
+  T.phase="idle";$("#phasehint").textContent="Now you try — this practice one is NOT scored.";render();
+}
+$("#go").onclick=demo;$("#replay").onclick=demo;
+let awaiting=false;
+async function runTrial(scored){
+  $("#go").disabled=$("#replay").disabled=$("#tmode").disabled=true;clearPads();
+  const n=T.span,seq=randPath(n),exp=expectedFor(seq);await sleep(300);await flyPath(seq);
+  cue.textContent="👆";$("#phasehint").textContent=scored?"Send it home — tap the trail.":"Practice — tap the trail.";
+  const picks=[];const t0=performance.now();awaiting=true;let taps=0;
+  await new Promise(res=>{
+    function onTap(e){const p=e.target.closest(".pad");if(!p||!awaiting)return;const i=+p.dataset.i;
+      if(p.classList.contains("pick")){p.classList.remove("pick");p.textContent="";const q=picks.indexOf(i);if(q>=0)picks.splice(q,1);T.revis++;render();return;}
+      p.classList.add("pick");taps++;if(picks.length===0&&scored)T.firstLat.push(performance.now()-t0);
+      const o=document.createElement("span");o.className="ord";o.textContent=picks.length+1;p.appendChild(o);
+      if(picks.length>0)drawLine(picks[picks.length-1],i);
+      picks.push(i);if(picks.length===n){awaiting=false;stage.removeEventListener("click",onTap);res();}
+    }
+    stage.addEventListener("click",onTap);
+  });
+  let correct=true;for(let k=0;k<n;k++){const ok=picks[k]===exp[k];if(!ok){correct=false;if(scored){if(seq.includes(picks[k]))T.orderErr++;else T.itemErr++;}}}
+  picks.forEach((i,k)=>pads[i].classList.add(picks[k]===exp[k]?"ok":"no"));cue.textContent=correct?"✅":"↔️";
+  if(scored){
+    T.total++;if(correct)T.correct++;T.lastPath=picks.slice();T.effList.push(n/Math.max(taps,n));
+    if(T.mode==="B"){if(correct&&n>T.bwdMax)T.bwdMax=n;}else{if(correct&&n>T.fwdMax)T.fwdMax=n;}
+    logE(`${T.mode==="B"?"rev":"fwd"} path ${n}: ${correct?"OK":"miss"} (${taps} taps)`);
+    T.span=correct?Math.min(9,T.span+1):Math.max(2,T.span-1);T.trial++;
+  }
+  render();await sleep(820);clearPads();cue.textContent="";
+  $("#go").disabled=$("#replay").disabled=$("#tmode").disabled=false;return correct;
+}
+async function warmup(){T.phase="warm-up (unscored)";render();await runTrial(false);T.phase="idle";$("#go").textContent="▶ Start scored trails";$("#go").onclick=startScored;$("#phasehint").textContent="Great! These next ones count. Longer trails when you're right.";render();}
+let scoredLeft=0;
+async function startScored(){T.phase="scored";T.span=3;render();scoredLeft=8;$("#go").disabled=true;await scoredLoop();}
+async function scoredLoop(){if(scoredLeft<=0){finish();return;}await runTrial(true);scoredLeft--;if(scoredLeft>0)await scoredLoop();else finish();}
+function finish(){T.phase="done";render();cue.textContent="🏁";$("#go").disabled=false;$("#go").textContent="▶ Run another block";$("#go").onclick=startScored;$("#phasehint").textContent=`Done. Reverse max ${T.bwdMax||"—"}, forward max ${T.fwdMax||"—"}. Toggle Forward mode for manipulation cost.`;}
+$("#tmode").onclick=()=>{T.mode=T.mode==="B"?"F":"B";$("#bmode").textContent=T.mode==="B"?"Reverse":"Forward";$("#tmode").textContent=T.mode==="B"?"Forward mode":"Reverse mode";$("#tmode").classList.toggle("on",T.mode==="F");$("#ordertxt").textContent=T.mode==="B"?"in REVERSE":"in the same order";logE(`mode → ${T.mode==="B"?"reverse":"forward"}`);render();};
+buildPads();
+</script>
+</body>
+</html>

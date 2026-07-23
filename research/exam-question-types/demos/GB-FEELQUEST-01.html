@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GB-FEELQUEST-01 · Robot Feelings</title>
+<style>
+  :root{--bg1:#eafff6;--bg2:#eef0ff;--ink:#26304a;--card:#fff;--accent:#14b8a6;--good:#22b573;--bad:#ff6b6b;
+    --tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box}html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:12px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
+  #phasecue{font-size:32px;height:38px}
+  #stagecard{background:var(--card);border-radius:24px;padding:20px;box-shadow:0 18px 50px -22px #4a4a7a;
+    display:flex;flex-direction:column;align-items:center;gap:14px;width:460px;max-width:100%}
+  #robot{font-size:22px}
+  #face{font-size:96px;min-height:104px}
+  #instr{font-size:14px;color:#666;min-height:20px;text-align:center}
+  #emos{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  .emo{width:66px;height:76px;border-radius:14px;border:3px solid #e2e8fb;background:#fff;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:30px;transition:.1s}
+  .emo small{font-size:10px;color:#889}
+  .emo:hover{border-color:var(--accent);transform:translateY(-3px)}
+  .emo.ok{border-color:var(--good);background:#e7fbef}.emo.no{border-color:var(--bad);background:#fdecec}
+  #intens{display:none;flex-direction:column;align-items:center;gap:8px;width:100%}
+  #intens input{width:80%}
+  #conf{display:flex;gap:10px}
+  .chip{padding:6px 12px;border-radius:20px;border:2px solid #cdd7f5;background:#eef2ff;cursor:pointer;font-weight:700}
+  .chip.sel{background:#14b8a6;color:#fff;border-color:#14b8a6}
+  #resp{display:none;gap:12px;flex-wrap:wrap;justify-content:center}
+  .rb{width:130px;min-height:88px;border-radius:14px;border:3px solid #e2e8fb;background:#fff;cursor:pointer;padding:8px;
+    display:flex;flex-direction:column;align-items:center;gap:6px;font-size:30px;text-align:center}
+  .rb small{font-size:12px;color:#778}
+  .rb:hover{border-color:var(--accent)}.rb.ok{border-color:var(--good);background:#e7fbef}.rb.no{border-color:var(--bad);background:#fdecec}
+  .btn{padding:9px 16px;border-radius:12px;border:0;font-weight:700;cursor:pointer;background:var(--accent);color:#fff}
+  #controls{display:flex;gap:14px;align-items:center}
+  #replay{width:44px;height:44px;background:#eef1ff;color:#5b6cff;font-size:20px;border:0;cursor:pointer;border-radius:50%}
+  #ghost{position:fixed;left:0;top:0;font-size:36px;pointer-events:none;z-index:60;opacity:0;
+    transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;
+    font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:104px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}.mval{color:#fff}
+  .mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:180px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}.t{color:#5f6f9e}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:280px}}
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">GB-FEELQUEST-01 · Robot Feelings</div>
+    <div id="phasecue">👁️</div>
+    <div id="stagecard">
+      <div id="robot">🤖 help the robot read the feeling</div>
+      <div id="face">🙂</div>
+      <div id="instr"></div>
+      <div id="emos"></div>
+      <div id="intens">
+        <div>How strong is the feeling?</div>
+        <input type="range" min="1" max="5" value="3" id="slider">
+        <div id="conf"><span class="chip" data-c="sure">👍 sure</span><span class="chip" data-c="unsure">🤔 not sure</span></div>
+        <button class="btn" id="confirmI">Next →</button>
+      </div>
+      <div id="resp"></div>
+      <div id="controls"><button id="replay" title="replay demo">↻</button></div>
+    </div>
+  </div>
+  <aside id="telemetry"><h3>Live telemetry · per-child</h3><div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div></aside>
+  <div id="ghost">👆</div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):null;
+function say(t){try{const u=new SpeechSynthesisUtterance(t);u.rate=.95;speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
+const EMOS=[{k:'happy',ic:'😊'},{k:'sad',ic:'😢'},{k:'angry',ic:'😠'},{k:'scared',ic:'😨'},{k:'surprised',ic:'😲'},{k:'calm',ic:'😌'}];
+const CONFUSE={scared:'surprised',surprised:'scared',angry:'sad',sad:'angry',happy:'calm',calm:'happy'};
+// items: face, emotion, intensity(1-5), responses
+const WARM={face:'😄',emo:'happy',intensity:5,resp:[{ic:'🙌',l:'high-five!',c:true},{ic:'😴',l:'ignore',c:false}]};
+const SCORED=[
+ {face:'😢',emo:'sad',intensity:4,resp:[{ic:'🤗',l:'offer a hug',c:true},{ic:'😂',l:'laugh at them',c:false},{ic:'🚶',l:'walk away',c:false}]},
+ {face:'😨',emo:'scared',intensity:3,resp:[{ic:'🫂',l:'stay and comfort',c:true},{ic:'📸',l:'take a photo',c:false},{ic:'👻',l:'scare more',c:false}]}];
+
+const T={total:0,correct:0,rts:[],firstLat:null,poly:0,polyMax:0,confHits:0,confN:0,errType:'—',answered:0,totalQ:0};
+const METERS=[
+ {id:'M-ACC',name:'Emotion label accuracy',get:()=>T.total?`${T.correct}/${T.total}`:'—'},
+ {id:'M-POLY',name:'Intensity calibration',get:()=>T.polyMax?`${T.poly}/${T.polyMax}`:'—'},
+ {id:'M-RT',name:'Response time (mean)',get:()=>mean(T.rts)==null?'—':mean(T.rts)+' ms'},
+ {id:'M-CONF',name:'Confidence calibration',get:()=>T.confN?`${T.confHits}/${T.confN}`:'—'},
+ {id:'M-ERRTYPE',name:'Confusion type',get:()=>T.errType},
+ {id:'M-RTFIRST',name:'First-action latency',get:()=>T.firstLat==null?'—':T.firstLat+' ms'},
+ {id:'M-PROG',name:'Faces read',get:()=>T.answered+'/'+T.totalQ},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('')}
+function renderMeters(){METERS.forEach(m=>{const e=$('#v_'+m.id);if(e)e.textContent=m.get()})}
+function log(msg){const d=document.createElement('div');d.innerHTML=`<span class="t">•</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight}
+const ghost=$('#ghost');const gShow=v=>ghost.classList.toggle('show',v);
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}}
+async function gTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-8}px,${c.y-6}px)`;await sleep(480)}
+
+let phase='demo',queue=[],qi=0,cur=null,t0=0,pickedEmo=null,conf=null,emoCorrect=false;
+const setCue=i=>$('#phasecue').textContent=i;
+function renderEmos(){$('#emos').innerHTML=EMOS.map(e=>`<div class="emo" data-k="${e.k}"><div>${e.ic}</div><small>${e.k}</small></div>`).join('')}
+function showItem(it){cur=it;$('#face').textContent=it.face;$('#emos').style.display='flex';$('#intens').style.display='none';$('#resp').style.display='none';
+  $$('.emo').forEach(x=>x.classList.remove('ok','no'));renderEmos();$('#instr').textContent='Tap the feeling on the face';t0=performance.now();pickedEmo=null;conf=null;$$('.chip').forEach(c=>c.classList.remove('sel'))}
+function pickEmo(k){if(phase==='demo'||phase==='done'||pickedEmo)return;pickedEmo=k;const rt=Math.round(performance.now()-t0);T.rts.push(rt);
+  if(T.firstLat==null)T.firstLat=rt;const el=$(`.emo[data-k="${k}"]`);T.total++;emoCorrect=(k===cur.emo);
+  if(emoCorrect){T.correct++;el.classList.add('ok');T.errType='none';log(`emotion ✓ ${k} rt ${rt}ms`)}
+  else{el.classList.add('no');T.errType=(CONFUSE[cur.emo]===k?`${cur.emo}↔${k} (near)`:'unrelated');$(`.emo[data-k="${cur.emo}"]`).classList.add('ok');log(`emotion ✗ chose ${k} (was ${cur.emo})`)}
+  renderMeters();setTimeout(()=>{$('#emos').style.display='none';$('#intens').style.display='flex';$('#slider').value=3;$('#instr').textContent='Set how strong & how sure';say('how strong is the feeling')},700)}
+function confirmIntensity(){if($('#intens').style.display==='none')return;const chosen=+$('#slider').value;const d=Math.abs(chosen-cur.intensity);
+  const pts=Math.max(0,3-d);T.poly+=pts;T.polyMax+=3;
+  if(conf){T.confN++;if((conf==='sure'&&emoCorrect)||(conf==='unsure'&&!emoCorrect))T.confHits++}
+  log(`intensity ${chosen} (true ${cur.intensity}, +${pts}) · conf ${conf||'—'}`);renderMeters();
+  $('#intens').style.display='none';$('#resp').style.display='flex';$('#instr').textContent='Now pick the kind thing to do';
+  $('#resp').innerHTML=cur.resp.map((r,i)=>`<div class="rb" data-i="${i}"><div>${r.ic}</div><small>${r.l}</small></div>`).join('')}
+function pickResp(i){const r=cur.resp[i];const el=$(`.rb[data-i="${i}"]`);
+  if(r.c){el.classList.add('ok');log('response ✓ '+r.l)}else{el.classList.add('no');const ci=cur.resp.findIndex(x=>x.c);$(`.rb[data-i="${ci}"]`).classList.add('ok');log('response ✗ '+r.l)}
+  T.answered++;renderMeters();$$('.rb').forEach(x=>x.style.pointerEvents='none');
+  setTimeout(()=>{qi++;if(qi<queue.length){showItem(queue[qi])}else roundDone()},1100)}
+function roundDone(){if(phase==='warmup'){log('warm-up done (unscored)');startScored();return}
+  phase='done';setCue('🏆');$('#instr').textContent='The robot made friends! 🤖💚';$('#face').textContent='🥰';$('#emos').style.display='none';$('#intens').style.display='none';$('#resp').style.display='none';
+  log(`— DONE · label ${T.correct}/${T.total} · calibration ${T.poly}/${T.polyMax} —`);renderMeters()}
+function startWarmup(){phase='warmup';setCue('⭐');queue=[WARM];qi=0;Object.assign(T,{total:0,correct:0,rts:[],firstLat:null,poly:0,polyMax:0,confHits:0,confN:0,errType:'—',answered:0,totalQ:1});
+  log('— warm-up (unscored): read the happy face —');showItem(WARM)}
+function startScored(){phase='scored';setCue('🎯');queue=SCORED;qi=0;Object.assign(T,{total:0,correct:0,rts:[],firstLat:null,poly:0,polyMax:0,confHits:0,confN:0,errType:'—',answered:0,totalQ:SCORED.length});
+  log('— SCORED: subtler feelings + intensity —');showItem(SCORED[0])}
+async function runDemo(){phase='demo';setCue('👁️');$('#face').textContent='😢';renderEmos();$('#emos').style.display='flex';$('#intens').style.display='none';$('#resp').style.display='none';$('#instr').textContent='';log('ghost-hand demo (wordless, <10s)');gShow(true);await sleep(400);
+  await gTo($('.emo[data-k="sad"]'));$('.emo[data-k="sad"]').classList.add('ok');await sleep(600);
+  $('#emos').style.display='none';$('#intens').style.display='flex';$('#slider').value=4;await gTo($('#slider'));await sleep(400);await gTo($('#confirmI'));
+  $('#intens').style.display='none';$('#resp').style.display='flex';$('#resp').innerHTML=`<div class="rb"><div>🤗</div><small>offer a hug</small></div>`;await gTo($('.rb'));$('.rb').classList.add('ok');await sleep(700);
+  gShow(false);await sleep(300);$('#resp').style.display='none';startWarmup()}
+$('#emos').addEventListener('click',e=>{const em=e.target.closest('.emo');if(em)pickEmo(em.dataset.k)});
+$('#conf').addEventListener('click',e=>{const c=e.target.closest('.chip');if(!c)return;conf=c.dataset.c;$$('.chip').forEach(x=>x.classList.remove('sel'));c.classList.add('sel')});
+$('#confirmI').addEventListener('click',confirmIntensity);
+$('#resp').addEventListener('click',e=>{const r=e.target.closest('.rb');if(r&&phase!=='demo')pickResp(+r.dataset.i)});
+$('#replay').addEventListener('click',()=>{if(phase==='done'||phase==='warmup'||phase==='scored')runDemo()});
+buildMeters();renderMeters();runDemo();
+</script>
+</body>
+</html>

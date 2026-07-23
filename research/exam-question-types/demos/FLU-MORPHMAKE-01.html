@@ -202,7 +202,7 @@ function firstAct(){if(!T.firstActed){T.firstActed=true;T.firstLat=Date.now()-T.
 function tool(btn){if(locked)return;
   if(btn==='undo'){if(hist.length){Dstate=hist.pop();T.rev++;T.path.push('undo');log('undo');renderFigs();renderMeters();}return;}
   firstAct();hist.push({...Dstate});Dstate=applyBtn(Dstate,btn);T.path.push(btn);log('applied '+btn);
-  $('#figD').classList.add('poplite');$('#go').classList.add('ready');renderFigs();renderMeters();}
+  $('#go').classList.add('ready');renderFigs();renderMeters();}
 function score(){const keyOf={size:'sizeIdx',rotation:'rotIdx',count:'countIdx'};
   const req=cur.attrs.map(a=>keyOf[a]);const allK=['sizeIdx','rotIdx','countIdx'];
   const correctReq=req.filter(k=>Dstate[k]===cur.expectedD[k]).length;

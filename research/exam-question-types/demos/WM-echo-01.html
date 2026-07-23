@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WM-echo-01 — Echo Ridge (reverse-order span)</title>
+<style>
+  :root{
+    --bg:#0e1220;--panel:#171d33;--edge:#2a3358;--ink:#e9edff;--mut:#8b93c0;
+    --accent:#5cc8ff;--good:#5ce39a;--bad:#ff6b8a;--warn:#ffd166;--stone:#243056;--lit:#ffd86b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.45 system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);display:flex;min-height:100vh}
+  .main{flex:1;display:flex;flex-direction:column;align-items:center;padding:20px;gap:14px}
+  h1{font-size:19px;margin:.2rem 0}
+  .sub{color:var(--mut);font-size:13px;margin:0 0 6px;text-align:center;max-width:460px}
+  .badge{display:inline-block;padding:2px 9px;border-radius:99px;background:var(--panel);border:1px solid var(--edge);color:var(--accent);font-size:12px}
+  #stage{position:relative;width:420px;min-height:210px;background:var(--panel);border:1px solid var(--edge);border-radius:18px;padding:26px 18px;display:flex;align-items:center;justify-content:center}
+  .stones{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;width:100%}
+  .stone{width:74px;height:74px;background:var(--stone);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;cursor:pointer;transition:transform .08s,background .12s,box-shadow .12s;user-select:none;border:2px solid #33407011}
+  .stone:active{transform:scale(.94)}
+  .stone.lit{background:var(--lit);box-shadow:0 0 26px 6px #ffd86b88}
+  .stone.pick{background:#2f6df0;color:#fff;box-shadow:0 0 18px 3px #2f6df088}
+  .stone .ord{font-size:15px;font-weight:700}
+  .stone.ok{background:var(--good)}
+  .stone.no{background:var(--bad)}
+  #cue{font-size:32px;height:42px;display:flex;align-items:center;justify-content:center;gap:12px}
+  #ghost{position:absolute;font-size:30px;left:0;top:0;transition:left .42s cubic-bezier(.5,0,.3,1),top .42s cubic-bezier(.5,0,.3,1);pointer-events:none;filter:drop-shadow(0 3px 3px #0008);z-index:5;opacity:0}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+  button{font:inherit;padding:9px 16px;border-radius:10px;border:1px solid var(--edge);background:#20284a;color:var(--ink);cursor:pointer}
+  button.pri{background:var(--accent);color:#062033;border-color:transparent;font-weight:600}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .modebtn.on{background:var(--warn);color:#3a2c00;border-color:transparent;font-weight:600}
+  .tel{width:320px;background:var(--panel);border-left:1px solid var(--edge);padding:14px 14px 40px;overflow:auto;font:12px/1.55 ui-monospace,Menlo,Consolas,monospace}
+  .tel h2{font:600 12px system-ui;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:14px 0 6px}
+  .kv{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted #2a3358;padding:2px 0}
+  .kv b{color:var(--accent);font-weight:600}
+  .kv .m{color:var(--mut);font-size:10px}
+  .log{margin-top:6px;max-height:150px;overflow:auto;border:1px solid var(--edge);border-radius:8px;padding:6px;background:#10152a}
+  .log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sp{display:flex;gap:3px;margin-top:3px}
+  .sp span{flex:1;height:22px;border-radius:3px;background:#223;font-size:9px;color:#000;display:flex;align-items:flex-end;justify-content:center}
+  .pill{font-size:10px;color:var(--mut)}
+</style>
+</head>
+<body>
+<div class="main">
+  <div style="text-align:center">
+    <h1>🏔️ Echo Ridge <span class="badge" id="bmode">Reverse</span></h1>
+    <p class="sub">Watch the stones light and chime, then tap them back <b id="ordertxt">in REVERSE order</b> — the echo returns backwards.</p>
+  </div>
+  <div id="stage"><div class="stones" id="stones"></div><div id="ghost">👆</div></div>
+  <div id="cue">👀</div>
+  <div class="row">
+    <button class="pri" id="go">▶ Watch how it works</button>
+    <button id="replay" disabled>↺ Replay demo</button>
+    <button class="modebtn" id="tmode" title="reverse vs forward baseline">Forward mode</button>
+    <button class="modebtn" id="shell" title="stones vs digits">Digit shell</button>
+  </div>
+  <p class="sub" id="phasehint">A ghost hand will show you first — no reading needed.</p>
+</div>
+<aside class="tel" id="tel"></aside>
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const stonesEl=$("#stones"), stage=$("#stage"), ghost=$("#ghost"), cue=$("#cue");
+const NST=6; const stones=[];
+let AC=null; function beep(f){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.frequency.value=f;o.connect(g);g.connect(AC.destination);g.gain.value=.06;o.start();o.stop(AC.currentTime+.16);}catch(e){}}
+function buildStones(){stonesEl.innerHTML="";stones.length=0;for(let i=0;i<NST;i++){const d=document.createElement("div");d.className="stone";d.dataset.i=i;stonesEl.appendChild(d);stones.push(d);}labelShell();}
+function labelShell(){stones.forEach((s,i)=>{s.querySelector(".ord")?.remove();s.textContent = T.shell==="digit"? String(i) : "";});}
+const T={
+  phase:"idle", mode:"B", shell:"stone", trial:0, span:3,
+  fwdMax:0, bwdMax:0, correct:0, total:0,
+  firstLat:[], revis:0, orderErr:0, itemErr:0,
+  posHit:Array(9).fill(0), posTot:Array(9).fill(0),
+  byLen:{}, log:[]
+};
+const tones=[392,440,494,523,587,659];
+function med(a){if(!a.length)return 0;const b=[...a].sort((x,y)=>x-y);const m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2;}
+function consistency(){let pairs=0,agree=0;for(const k in T.byLen){const arr=T.byLen[k];for(let i=0;i<arr.length;i++)for(let j=i+1;j<arr.length;j++){pairs++;if(arr[i]===arr[j])agree++;}}return pairs?Math.round(100*agree/pairs):"—";}
+function polyPct(){const h=T.posHit.reduce((a,b)=>a+b,0),t=T.posTot.reduce((a,b)=>a+b,0);return t?Math.round(100*h/t):0;}
+function logE(s){T.log.unshift(`${(performance.now()/1000).toFixed(1)}s · ${s}`);if(T.log.length>60)T.log.pop();}
+function render(){
+  const acc=T.total?Math.round(100*T.correct/T.total):0;
+  const maxpos=Math.max(3,...T.posTot.map((t,i)=>t?i+1:0));
+  const spBars=T.posTot.slice(0,maxpos).map((t,i)=>{const h=t?Math.round(100*T.posHit[i]/t):0;return `<span style="background:linear-gradient(0deg,#5ce39a ${h}%,#223 ${h}%)" title="pos ${i+1}">${t?h:""}</span>`;}).join("");
+  $("#tel").innerHTML=`
+  <h2>Live telemetry · WM-echo-01</h2>
+  <div class="kv"><span>phase</span><b>${T.phase}</b></div>
+  <div class="kv"><span>mode</span><b>${T.mode==="B"?"reverse":"forward"} · ${T.shell}</b></div>
+  <div class="kv"><span>trial</span><b>${T.trial}</b></div>
+  <h2>Span (capacity)</h2>
+  <div class="kv"><span>current span</span><b>${T.span}</b></div>
+  <div class="kv"><span>max reverse <span class="m">M-SPAN·M-DIFFREACH</span></span><b>${T.bwdMax}</b></div>
+  <div class="kv"><span>max forward <span class="m">M-SPAN</span></span><b>${T.fwdMax}</b></div>
+  <div class="kv"><span>manip. cost <span class="m">M-MANIPCOST</span></span><b>${T.fwdMax&&T.bwdMax?(T.fwdMax-T.bwdMax):"—"}</b></div>
+  <h2>Accuracy & process</h2>
+  <div class="kv"><span>accuracy <span class="m">M-ACC</span></span><b>${acc}% <span class="m">(${T.correct}/${T.total})</span></b></div>
+  <div class="kv"><span>partial credit <span class="m">M-POLY</span></span><b>${polyPct()}%</b></div>
+  <div class="kv"><span>order errors <span class="m">M-ERRTYPE</span></span><b>${T.orderErr}</b></div>
+  <div class="kv"><span>item errors <span class="m">M-ERRTYPE</span></span><b>${T.itemErr}</b></div>
+  <div class="kv"><span>revisions <span class="m">M-REV</span></span><b>${T.revis}</b></div>
+  <div class="kv"><span>first-tap lat <span class="m">M-RTFIRST</span></span><b>${Math.round(med(T.firstLat))} ms</b></div>
+  <div class="kv"><span>consistency <span class="m">M-CONSIST</span></span><b>${consistency()}${consistency()==="—"?"":"%"}</b></div>
+  <h2>Serial position <span class="m">M-POLY</span></h2>
+  <div class="sp">${spBars||'<span>—</span>'}</div>
+  <div class="pill">accuracy by recall position (reverse output)</div>
+  <div class="log">${T.log.map(l=>`<div>${l}</div>`).join("")}</div>`;
+}
+render();
+function centerOf(el){const r=el.getBoundingClientRect(),s=stage.getBoundingClientRect();return {x:r.left-s.left+r.width/2,y:r.top-s.top+r.height/2};}
+function clearStones(){stones.forEach(c=>{c.className="stone";labelOne(c);});}
+function labelOne(c){c.textContent=T.shell==="digit"?String(c.dataset.i):"";}
+function randSeq(n){const idx=[...Array(NST).keys()];for(let i=idx.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[idx[i],idx[j]]=[idx[j],idx[i]];}return idx.slice(0,n);}
+async function showSeq(seq,litMs=540,gap=230){cue.textContent="👀";for(let k=0;k<seq.length;k++){const i=seq[k];stones[i].classList.add("lit");beep(tones[k%tones.length]);await sleep(litMs);stones[i].classList.remove("lit");await sleep(gap);}}
+function expectedFor(seq){return T.mode==="B"?seq.slice().reverse():seq.slice();}
+async function demo(){
+  if(T.phase==="demo")return;T.phase="demo";render();
+  $("#go").disabled=$("#replay").disabled=$("#tmode").disabled=$("#shell").disabled=true;
+  clearStones();const seq=[1,4,2];await sleep(350);await showSeq(seq,500,200);
+  cue.textContent="👆";ghost.style.opacity="1";const exp=seq.slice().reverse();
+  for(const i of exp){const c=centerOf(stones[i]);ghost.style.left=(c.x-14)+"px";ghost.style.top=(c.y-28)+"px";await sleep(480);stones[i].classList.add("pick");await sleep(150);stones[i].classList.remove("pick");}
+  cue.textContent="✅";ghost.style.opacity="0";await sleep(650);clearStones();
+  $("#go").disabled=$("#replay").disabled=$("#tmode").disabled=$("#shell").disabled=false;
+  $("#go").textContent="▶ Try a practice one";$("#go").onclick=warmup;
+  T.phase="idle";$("#phasehint").textContent="Now you try — this practice one is NOT scored.";render();
+}
+$("#go").onclick=demo;$("#replay").onclick=demo;
+let awaiting=false;
+async function runTrial(scored){
+  $("#go").disabled=$("#replay").disabled=$("#tmode").disabled=$("#shell").disabled=true;
+  clearStones();const n=T.span,seq=randSeq(n),exp=expectedFor(seq);
+  await sleep(320);await showSeq(seq);
+  cue.textContent="👆";$("#phasehint").textContent=scored?"Tap them back now.":"Practice — tap them back.";
+  const picks=[];const t0=performance.now();awaiting=true;
+  await new Promise(res=>{
+    function onTap(e){const cell=e.target.closest(".stone");if(!cell||!awaiting)return;const i=+cell.dataset.i;
+      if(cell.classList.contains("pick")){cell.classList.remove("pick");const p=picks.indexOf(i);if(p>=0)picks.splice(p,1);labelOne(cell);T.revis++;render();return;}
+      cell.classList.add("pick");if(picks.length===0&&scored)T.firstLat.push(performance.now()-t0);
+      const ordEl=document.createElement("span");ordEl.className="ord";cell.appendChild(ordEl);
+      picks.push(i);if(picks.length===n){awaiting=false;stonesEl.removeEventListener("click",onTap);res();}
+    }
+    stonesEl.addEventListener("click",onTap);
+  });
+  let correct=true,posRight=0;
+  for(let k=0;k<n;k++){const ok=picks[k]===exp[k];if(scored){T.posTot[k]++;if(ok){T.posHit[k]++;posRight++;}}if(!ok){correct=false;if(scored){if(seq.includes(picks[k]))T.orderErr++;else T.itemErr++;}}}
+  picks.forEach((i,k)=>stones[i].classList.add(picks[k]===exp[k]?"ok":"no"));
+  cue.textContent=correct?"✅":"↔️";
+  if(scored){
+    T.total++;if(correct)T.correct++;
+    (T.byLen[n]=T.byLen[n]||[]).push(correct?1:0);
+    if(T.mode==="B"){if(correct&&n>T.bwdMax)T.bwdMax=n;}else{if(correct&&n>T.fwdMax)T.fwdMax=n;}
+    logE(`${T.mode==="B"?"rev":"fwd"} span ${n}: ${correct?"OK":`${posRight}/${n}`}`);
+    T.span=correct?Math.min(9,T.span+1):Math.max(2,T.span-1);T.trial++;
+  }
+  render();await sleep(820);clearStones();cue.textContent="";
+  $("#go").disabled=$("#replay").disabled=$("#tmode").disabled=$("#shell").disabled=false;
+  return correct;
+}
+async function warmup(){T.phase="warm-up (unscored)";render();await runTrial(false);T.phase="idle";$("#go").textContent="▶ Start scored trials";$("#go").onclick=startScored;$("#phasehint").textContent="Great! These next ones count. The trail grows when you're right.";render();}
+let scoredLeft=0;
+async function startScored(){T.phase="scored";T.span=3;render();scoredLeft=8;$("#go").disabled=true;await scoredLoop();}
+async function scoredLoop(){if(scoredLeft<=0){finish();return;}await runTrial(true);scoredLeft--;if(scoredLeft>0)await scoredLoop();else finish();}
+function finish(){T.phase="done";render();cue.textContent="🏁";$("#go").disabled=false;$("#go").textContent="▶ Run another block";$("#go").onclick=startScored;$("#phasehint").textContent=`Done. Reverse max ${T.bwdMax||"—"}, forward max ${T.fwdMax||"—"}. Toggle Forward mode to measure manipulation cost.`;}
+$("#tmode").onclick=()=>{T.mode=T.mode==="B"?"F":"B";$("#bmode").textContent=T.mode==="B"?"Reverse":"Forward";$("#tmode").textContent=T.mode==="B"?"Forward mode":"Reverse mode";$("#tmode").classList.toggle("on",T.mode==="F");$("#ordertxt").textContent=T.mode==="B"?"in REVERSE order":"in the same order";logE(`mode → ${T.mode==="B"?"reverse":"forward"}`);render();};
+$("#shell").onclick=()=>{T.shell=T.shell==="stone"?"digit":"stone";$("#shell").textContent=T.shell==="stone"?"Digit shell":"Stone shell";$("#shell").classList.toggle("on",T.shell==="digit");clearStones();logE(`shell → ${T.shell}`);render();};
+buildStones();
+</script>
+</body>
+</html>

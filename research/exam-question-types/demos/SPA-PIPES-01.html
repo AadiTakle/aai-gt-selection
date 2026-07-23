@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SPA-PIPES-01 — Path Connect</title>
+<style>
+  :root{--bg:#eef2fb;--card:#fff;--ink:#1e293b;--muted:#64748b;--accent:#4f46e5;--good:#16a34a;--warn:#f59e0b;--bad:#dc2626;--stage:#f8fafc}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.4 system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  .wrap{display:flex;gap:14px;padding:14px;max-width:1180px;margin:0 auto;align-items:flex-start;flex-wrap:wrap}
+  .col{flex:1 1 560px;min-width:340px}.side{flex:1 1 320px;min-width:300px}
+  .card{background:var(--card);border-radius:16px;box-shadow:0 6px 22px rgba(15,23,42,.08);padding:16px;margin-bottom:14px}
+  h1{font-size:19px;margin:0 0 2px}.sub{color:var(--muted);font-size:13px;margin:0 0 10px}
+  .pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;background:#e0e7ff;color:#3730a3}
+  .banner{display:flex;align-items:center;gap:10px;background:#f1f5ff;border:1px solid #dbe3ff;border-radius:12px;padding:10px 12px;margin-bottom:12px;min-height:44px}
+  .banner .icon{font-size:22px}.banner b{color:var(--accent)}
+  #stageWrap{position:relative;background:var(--stage);border-radius:14px;border:1px solid #e2e8f0;overflow:hidden}
+  svg{display:block;width:100%;height:400px;touch-action:none}
+  .hand{position:absolute;font-size:30px;pointer-events:none;z-index:5;filter:drop-shadow(0 2px 3px rgba(0,0,0,.25));transition:left .2s,top .2s}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+  button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:10px 16px;cursor:pointer;background:var(--accent);color:#fff}
+  button.ghost{background:#e2e8f0;color:#334155}button:disabled{opacity:.45;cursor:not-allowed}
+  .meter{height:12px;background:#e2e8f0;border-radius:7px;overflow:hidden;margin-top:8px}
+  .meter>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#34d399,#16a34a);transition:width .25s}
+  .tel{background:#0b1220;color:#d1fae5;border-radius:16px;padding:14px;font:12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
+  .tel h2{font-size:13px;margin:0 0 8px;color:#93c5fd;letter-spacing:.05em;text-transform:uppercase}
+  .tel .m{display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px dotted #1e293b}
+  .tel .m .k{color:#7dd3fc}.tel .m .v{color:#fde68a;font-weight:700;text-align:right}
+  #log{margin-top:10px;max-height:160px;overflow:auto;background:#060b16;border-radius:8px;padding:8px}
+  #log div{white-space:pre-wrap;color:#a7f3d0}#log .t{color:#475569}
+  .done{color:var(--good);font-weight:700}.miss{color:var(--warn)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="col"><div class="card">
+    <span class="pill" id="phasePill">DEMO</span>
+    <h1>Path Connect <span style="color:var(--muted);font-weight:400">· SPA-PIPES-01</span></h1>
+    <p class="sub">Tap a road tile to turn it. Make one connected road from the house 🏠 to the flag 🚩 (harder rounds must pass the stars ⭐).</p>
+    <div class="banner"><span class="icon" id="bIcon">👀</span><div id="bText"><b>Watch.</b> The hand turns tiles until the road links up…</div></div>
+    <div id="stageWrap"><svg id="svg" viewBox="0 0 400 400"></svg><div class="hand" id="hand" style="display:none">👆</div></div>
+    <div class="controls">
+      <button id="nextBtn" class="ghost" style="display:none">Next ▶</button>
+      <span class="sub" id="live" style="margin-left:auto"></span>
+    </div>
+    <div class="meter"><i id="meterBar"></i></div>
+  </div></div>
+  <div class="side"><div class="tel">
+    <h2>◉ Live telemetry</h2>
+    <div class="m"><span class="k">M-ACC connected</span><span class="v" id="mAcc">—</span></div>
+    <div class="m"><span class="k">M-POLY path linked</span><span class="v" id="mPoly">—</span></div>
+    <div class="m"><span class="k">M-EFF turns/optimal</span><span class="v" id="mEff">—</span></div>
+    <div class="m"><span class="k">M-RTFIRST first-act</span><span class="v" id="mFirst">—</span></div>
+    <div class="m"><span class="k">M-REV extra turns</span><span class="v" id="mRev">0</span></div>
+    <div class="m"><span class="k">M-EXPLORE tiles touched</span><span class="v" id="mExp">0</span></div>
+    <div class="m"><span class="k">M-PATH turn count</span><span class="v" id="mPath">0</span></div>
+    <div class="m"><span class="k">M-DIFFREACH grid</span><span class="v" id="mDiff">—</span></div>
+    <div id="log"></div>
+  </div></div>
+</div>
+<script>
+(function(){
+  "use strict";
+  var SVGNS="http://www.w3.org/2000/svg",svg=document.getElementById("svg"),hand=document.getElementById("hand");
+  function beep(f,t){try{var A=beep.a=beep.a||new(window.AudioContext||window.webkitAudioContext)();var o=A.createOscillator(),g=A.createGain();o.frequency.value=f;o.connect(g);g.connect(A.destination);g.gain.value=.08;o.start();o.stop(A.currentTime+(t||.1));}catch(e){}}
+  var BASE={S:[1,0,1,0],B:[1,1,0,0],T:[1,1,1,0],X:[1,1,1,1],E:[0,0,0,0]};
+  var DC=[0,1,0,-1],DR=[-1,0,1,0]; // N,E,S,W
+  var N=3,cells=[],startI=0,goalI=0,solPath=[],reqStops=[],optimal=0,phase="demo",interactive=false;
+  function idx(c,r){return r*N+c;}
+  function openings(t){var o=[0,0,0,0];for(var k=0;k<4;k++)o[k]=BASE[t.type][(k-t.rot%4+4)%4];return o;}
+  function needDirs(i){ // path dirs required at cell i (from solution adjacency)
+    var need=[];var pos=solPath.indexOf(i);if(pos<0)return need;
+    if(pos>0){var p=solPath[pos-1];need.push(dirBetween(i,p));}
+    if(pos<solPath.length-1){var n=solPath[pos+1];need.push(dirBetween(i,n));}
+    return need;
+  }
+  function dirBetween(a,b){var ca=a%N,ra=Math.floor(a/N),cb=b%N,rb=Math.floor(b/N);
+    if(cb===ca+1)return 1;if(cb===ca-1)return 3;if(rb===ra+1)return 2;if(rb===ra-1)return 0;return -1;}
+  function connectedSet(){ // flood from start following mutual openings
+    var seen={},q=[startI];seen[startI]=1;var order=[startI];
+    while(q.length){var cur=q.shift();var op=openings(cells[cur]);var cc=cur%N,rr=Math.floor(cur/N);
+      for(var k=0;k<4;k++){if(!op[k])continue;var nc=cc+DC[k],nr=rr+DR[k];if(nc<0||nc>=N||nr<0||nr>=N)continue;var ni=idx(nc,nr);if(seen[ni])continue;var nop=openings(cells[ni]);if(nop[(k+2)%4]){seen[ni]=1;q.push(ni);order.push(ni);}}}
+    return seen;
+  }
+  function polyLinked(){ // how far along solution path (in order) is reached from start
+    var seen=connectedSet();var n=0;for(var i=0;i<solPath.length;i++){if(seen[solPath[i]])n++;else break;}return {reached:n,total:solPath.length,seen:seen};}
+  function solved(){var pl=polyLinked();var stopsOk=reqStops.every(function(s){return pl.seen[s];});return pl.seen[goalI]&&stopsOk;}
+  function calcOptimal(){var tot=0;
+    solPath.forEach(function(i){if(cells[i].fixed)return;var need=needDirs(i);var best=99;
+      for(var r=0;r<4;r++){var op=[0,0,0,0];for(var k=0;k<4;k++)op[k]=BASE[cells[i].type][(k-r+4)%4];
+        if(need.every(function(d){return op[d];})){var dd=Math.min((r-cells[i].rot+4)%4,(cells[i].rot-r+4)%4);best=Math.min(best,dd);}}
+      if(best<99)tot+=best;});
+    return tot;}
+  // ---- generation ----
+  function genPath(){ // random simple path from left-mid start to right-mid goal
+    for(var attempt=0;attempt<300;attempt++){
+      var sc=0,sr=Math.floor(N/2),gc=N-1,gr=Math.floor(N/2);
+      var path=[idx(sc,sr)],used={};used[idx(sc,sr)]=1;var cur={c:sc,r:sr},dir=1,ok=true;
+      var target=idx(gc,gr);var guard=0;
+      while(!(cur.c===gc&&cur.r===gr)&&guard++<60){
+        var opts=[];[[1,0,1],[0,1,2],[0,-1,0],[-1,0,3]].forEach(function(d){var nc=cur.c+d[0],nr=cur.r+d[1];if(nc<0||nc>=N||nr<0||nr>=N)return;if(used[idx(nc,nr)])return;opts.push({c:nc,r:nr,dir:d[2],bias:(gc-nc>=0?1:0)+(d[0]>0?1:0)});});
+        if(!opts.length){ok=false;break;}
+        opts.sort(function(a,b){return (b.bias-a.bias)|| (Math.random()-.5);});
+        var pick=opts[Math.random()<0.7?0:Math.floor(Math.random()*opts.length)];
+        cur={c:pick.c,r:pick.r};path.push(idx(cur.c,cur.r));used[idx(cur.c,cur.r)]=1;
+      }
+      if(ok&&cur.c===gc&&cur.r===gr&&path.length>=N){return path;}
+    }
+    // fallback: straight middle row
+    var p=[];var rr=Math.floor(N/2);for(var c=0;c<N;c++)p.push(idx(c,rr));return p;
+  }
+  function tileForPath(i,path){var pos=path.indexOf(i);var dirs=[];
+    if(pos>0)dirs.push(dirBetween(i,path[pos-1]));if(pos<path.length-1)dirs.push(dirBetween(i,path[pos+1]));
+    if(dirs.length===1){ // endpoint: straight along that axis (opening toward neighbor)
+      var d=dirs[0];return {type:"S",rot:(d%2===0)?0:1};}
+    var a=dirs[0],b=dirs[1];
+    if((a+2)%4===b)return {type:"S",rot:(a%2===0)?0:1};
+    // bend connecting a and b: find rot of B([N,E]) matching {a,b}
+    for(var r=0;r<4;r++){var o=[0,0,0,0];for(var k=0;k<4;k++)o[k]=BASE.B[(k-r+4)%4];if(o[a]&&o[b])return {type:"B",rot:r};}
+    return {type:"X",rot:0};
+  }
+  function build(n,withStops){
+    N=n;cells=[];for(var i=0;i<N*N;i++)cells.push({type:"E",rot:0,fixed:false});
+    solPath=genPath();startI=solPath[0];goalI=solPath[solPath.length-1];
+    // lay solution tiles
+    solPath.forEach(function(i){var t=tileForPath(i,solPath);cells[i]={type:t.type,rot:t.rot,fixed:false};});
+    cells[startI].fixed=true;cells[goalI].fixed=true;
+    // required stops (interior path cells) for harder boards
+    reqStops=[];if(withStops&&solPath.length>4){var mid=solPath[Math.floor(solPath.length/2)];reqStops=[mid];}
+    // decoys on some empty cells
+    for(var j=0;j<N*N;j++){if(cells[j].type==="E"&&Math.random()<0.55){var ts=["S","B","B","T"];cells[j]={type:ts[Math.floor(Math.random()*ts.length)],rot:Math.floor(Math.random()*4),fixed:false};}}
+    // scramble non-fixed rotations (ensure at least some are wrong)
+    solPath.forEach(function(i){if(!cells[i].fixed)cells[i].rot=(cells[i].rot+1+Math.floor(Math.random()*3))%4;});
+    for(var m=0;m<N*N;m++){if(!cells[m].fixed&&solPath.indexOf(m)<0&&cells[m].type!=="E")cells[m].rot=Math.floor(Math.random()*4);}
+    optimal=calcOptimal();
+    document.getElementById("mDiff").textContent=N+"x"+N+(reqStops.length?" +"+reqStops.length+"⭐":"");
+  }
+  // ---- render ----
+  var SZ,PAD=30;
+  function draw(){
+    SZ=(400-2*PAD)/N;svg.innerHTML="";
+    var seen=connectedSet();
+    for(var r=0;r<N;r++)for(var c=0;c<N;c++){var i=idx(c,r);var x=PAD+c*SZ,y=PAD+r*SZ,cx=x+SZ/2,cy=y+SZ/2;
+      var bg=document.createElementNS(SVGNS,"rect");bg.setAttribute("x",x+2);bg.setAttribute("y",y+2);bg.setAttribute("width",SZ-4);bg.setAttribute("height",SZ-4);bg.setAttribute("rx",8);bg.setAttribute("fill",cells[i].fixed?"#eef2ff":"#ffffff");bg.setAttribute("stroke","#e2e8f0");bg.setAttribute("data-i",i);svg.appendChild(bg);
+      var op=openings(cells[i]);var col=seen[i]?"#16a34a":"#94a3b8";var w=Math.max(7,SZ*0.20);
+      for(var k=0;k<4;k++){if(!op[k])continue;var ex=cx+DC[k]*SZ/2*0.92,ey=cy+DR[k]*SZ/2*0.92;
+        var l=document.createElementNS(SVGNS,"line");l.setAttribute("x1",cx);l.setAttribute("y1",cy);l.setAttribute("x2",ex);l.setAttribute("y2",ey);l.setAttribute("stroke",col);l.setAttribute("stroke-width",w);l.setAttribute("stroke-linecap","round");svg.appendChild(l);}
+      if(op.some(function(v){return v;})){var hub=document.createElementNS(SVGNS,"circle");hub.setAttribute("cx",cx);hub.setAttribute("cy",cy);hub.setAttribute("r",w*0.6);hub.setAttribute("fill",col);svg.appendChild(hub);}
+      if(reqStops.indexOf(i)>=0)txt(cx,cy,"⭐",SZ*0.34);
+    }
+    txt(PAD+ (startI%N)*SZ+SZ/2, PAD+Math.floor(startI/N)*SZ+SZ/2,"🏠",SZ*0.4);
+    txt(PAD+ (goalI%N)*SZ+SZ/2, PAD+Math.floor(goalI/N)*SZ+SZ/2,"🚩",SZ*0.4);
+    render();
+  }
+  function txt(x,y,s,sz){var t=document.createElementNS(SVGNS,"text");t.setAttribute("x",x);t.setAttribute("y",y);t.setAttribute("text-anchor","middle");t.setAttribute("dominant-baseline","central");t.setAttribute("font-size",sz);t.textContent=s;svg.appendChild(t);return t;}
+  var Tel={start:0,first:0,turns:0,extra:0,touched:{},logEl:document.getElementById("log"),
+    line:function(m,c){var d=document.createElement("div");var t=((performance.now()-Tel.start)/1000).toFixed(2);d.innerHTML='<span class="t">['+t+'s]</span> '+m;if(c)d.className=c;Tel.logEl.appendChild(d);Tel.logEl.scrollTop=Tel.logEl.scrollHeight;},
+    begin:function(l){Tel.start=performance.now();Tel.first=0;Tel.turns=0;Tel.extra=0;Tel.touched={};Tel.line("▶ "+l);}};
+  function render(){var pl=polyLinked();
+    document.getElementById("mPoly").textContent=pl.reached+"/"+pl.total+" ("+Math.round(100*pl.reached/pl.total)+"%)";
+    document.getElementById("meterBar").style.width=(100*pl.reached/pl.total)+"%";
+    document.getElementById("mFirst").textContent=Tel.first?Math.round(Tel.first)+" ms":"—";
+    document.getElementById("mRev").textContent=Tel.extra;
+    document.getElementById("mExp").textContent=Object.keys(Tel.touched).length;
+    document.getElementById("mPath").textContent=Tel.turns;
+    document.getElementById("mEff").textContent=(Tel.turns&&optimal)?(Tel.turns+"/"+optimal):(optimal?("0/"+optimal):"—");
+  }
+  function rotate(i){if(!interactive||cells[i].fixed||cells[i].type==="E")return;
+    if(!Tel.first){Tel.first=performance.now()-Tel.start;Tel.line("first turn @"+Math.round(Tel.first)+"ms");}
+    if(Tel.touched[i])Tel.extra++; // re-touching a tile = churn
+    Tel.touched[i]=(Tel.touched[i]||0)+1;
+    cells[i].rot=(cells[i].rot+1)%4;Tel.turns++;beep(500,.04);draw();
+    if(solved()){beep(1046);setTimeout(function(){beep(1318)},110);win();}
+  }
+  svg.addEventListener("pointerdown",function(e){if(!interactive)return;var r=svg.getBoundingClientRect();var x=(e.clientX-r.left)*(400/r.width),y=(e.clientY-r.top)*(400/r.height);var c=Math.floor((x-PAD)/SZ),rr=Math.floor((y-PAD)/SZ);if(c<0||c>=N||rr<0||rr>=N)return;rotate(idx(c,rr));});
+  // ---- phases ----
+  var pill=document.getElementById("phasePill"),bIcon=document.getElementById("bIcon"),bText=document.getElementById("bText"),nextBtn=document.getElementById("nextBtn");
+  function setBanner(i,h){bIcon.textContent=i;bText.innerHTML=h;}
+  function startDemo(){
+    phase="demo";pill.textContent="DEMO";interactive=false;nextBtn.style.display="none";
+    setBanner("👀","<b>Watch.</b> The hand turns each road tile until the path links the house to the flag and lights up green.");
+    build(3,false);draw();
+    // ghost: rotate wrong solution tiles to correct
+    var wrong=solPath.filter(function(i){return !cells[i].fixed;});
+    hand.style.display="";var wi=0;
+    function go(){if(wi>=wrong.length||solved()){hand.style.display="none";if(!solved()){/*force*/}setTimeout(startWarmup,800);return;}
+      var i=wrong[wi];var need=needDirs(i);var guard=0;
+      (function turnIt(){var op=openings(cells[i]);if(need.every(function(d){return op[d];})||guard++>4){wi++;setTimeout(go,350);return;}
+        cells[i].rot=(cells[i].rot+1)%4;beep(500,.04);draw();var x=PAD+(i%N)*SZ+SZ/2,y=PAD+Math.floor(i/N)*SZ+SZ/2;var rr=svg.getBoundingClientRect();hand.style.left=(rr.left+x*(rr.width/400)-6)+"px";hand.style.top=(rr.top+window.scrollY+y*(rr.height/400)+6)+"px";
+        if(solved()){beep(1046);hand.style.display="none";setTimeout(startWarmup,900);return;}setTimeout(turnIt,420);})();
+    }
+    setTimeout(go,800);
+  }
+  function startWarmup(){
+    phase="warmup";pill.textContent="WARM-UP";interactive=true;
+    setBanner("✋","<b>Your turn (practice).</b> Tap the road tiles to turn them until the road connects 🏠 to 🚩.");
+    build(3,false);draw();Tel.begin("Warm-up (unscored)");render();document.getElementById("mAcc").textContent="—";
+  }
+  function startScored(){
+    phase="scored";pill.textContent="SCORED";interactive=true;nextBtn.style.display="none";
+    build(5,true);draw();Tel.begin("Scored — connect 🏠 to 🚩 through the ⭐ in few turns");render();document.getElementById("mAcc").textContent="—";
+    setBanner("🎯","<b>Plan the whole road.</b> Connect the house to the flag AND pass the star, using as few turns as you can (optimal is "+optimal+").");
+  }
+  function win(){
+    interactive=false;
+    if(phase==="warmup"){setBanner("✅","<b>Connected!</b> Now a bigger grid — the road must also pass the ⭐. Think about the whole path before turning.");
+      nextBtn.style.display="";nextBtn.textContent="Start scored ▶";nextBtn.onclick=startScored;return;}
+    phase="done";pill.textContent="DONE";
+    var rt=((performance.now()-Tel.start)/1000).toFixed(1);
+    document.getElementById("mAcc").textContent="1/1 connected";
+    var eff=optimal?Math.round(100*optimal/Tel.turns):100;var stars=eff>=90?"★★★":eff>=65?"★★":"★";
+    setBanner("🏁","<b>Road connected in "+Tel.turns+" turns</b> (optimal "+optimal+") "+stars+" · tiles touched "+Object.keys(Tel.touched).length+" · churn "+Tel.extra+". Near-minimal turning with little churn is the plan-the-whole-path tail signal.");
+    Tel.line("── summary ── M-EFF="+Tel.turns+"/"+optimal+" ("+eff+"%)  M-REV="+Tel.extra+"  M-EXPLORE="+Object.keys(Tel.touched).length+"  M-RTFIRST="+Math.round(Tel.first)+"ms  M-PATH="+Tel.turns,"done");
+    nextBtn.style.display="";nextBtn.textContent="↻ Run again";nextBtn.onclick=function(){location.reload();};
+  }
+  build(3,false);draw();startDemo();
+})();
+</script>
+</body>
+</html>

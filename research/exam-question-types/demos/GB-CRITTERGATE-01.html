@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GB-CRITTERGATE-01 · Critter Gates</title>
+<style>
+  :root{--bg1:#eef7ff;--bg2:#f3ecff;--ink:#26304a;--card:#fff;--accent:#7b5bff;--good:#22b573;--bad:#ff6b6b;
+    --tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box}html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:12px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
+  #phasecue{font-size:32px;height:38px}
+  #stagecard{background:var(--card);border-radius:24px;padding:22px;box-shadow:0 18px 50px -22px #4a4a7a;
+    display:flex;flex-direction:column;align-items:center;gap:16px;max-width:520px;width:100%}
+  #gates{display:flex;gap:60px}
+  .gate{width:120px;height:90px;border-radius:14px;background:#e9eeff;border:4px solid #c7d2f2;
+    display:flex;align-items:center;justify-content:center;font-size:40px;cursor:pointer;transition:.15s}
+  .gate:hover{border-color:var(--accent);transform:translateY(-3px)}
+  .gate.ok{border-color:var(--good);background:#e7fbef;box-shadow:0 0 0 4px #b4ecd0}
+  .gate.no{border-color:var(--bad);background:#fdecec;box-shadow:0 0 0 4px #ffd0d0}
+  #stage{height:120px;display:flex;align-items:center;justify-content:center}
+  .critter{width:72px;height:72px;position:relative;display:flex;align-items:center;justify-content:center}
+  .body{width:64px;height:64px}
+  .feet{position:absolute;bottom:-8px;display:flex;gap:6px;justify-content:center;width:100%}
+  .feet i{width:9px;height:9px;border-radius:50%;background:#5a4632;display:block}
+  .eyes{position:absolute;top:16px;font-size:18px;color:#222}
+  #controls{display:flex;gap:14px;align-items:center}
+  button{font:inherit;border:0;cursor:pointer;border-radius:50%}
+  #replay{width:48px;height:48px;background:#eef1ff;color:#5b6cff;font-size:22px}
+  #ghost{position:fixed;left:0;top:0;font-size:38px;pointer-events:none;z-index:60;opacity:0;
+    transition:transform .7s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;
+    font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:104px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}.mval{color:#fff}
+  .mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:200px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}.t{color:#5f6f9e}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:280px}}
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">GB-CRITTERGATE-01 · Critter Gates</div>
+    <div id="phasecue">👁️</div>
+    <div id="stagecard">
+      <div id="gates">
+        <div class="gate" data-g="L">⬅️</div>
+        <div class="gate" data-g="R">➡️</div>
+      </div>
+      <div id="stage"></div>
+      <div id="controls"><button id="replay" title="replay demo">↻</button></div>
+    </div>
+  </div>
+  <aside id="telemetry"><h3>Live telemetry · per-child</h3><div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div></aside>
+  <div id="ghost">👆</div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const COLORS={red:'#e6194b',blue:'#4363d8',green:'#3cb44b'};
+const SHAPES=['circle','square','triangle'];
+function bodyStyle(shape,color){let s=`background:${color};`;
+  if(shape==='circle')s+='border-radius:50%;';
+  else if(shape==='square')s+='border-radius:10px;';
+  else s+='clip-path:polygon(50% 0,100% 100%,0 100%);';
+  return s}
+// rules keyed to a single attribute value -> Left, else Right
+function ruleFn(attr,val){return cr=>cr[attr]===val?'L':'R'}
+// hypothesis space: every (attr,val) single-feature rule
+const HYPS=[];for(const a of ['color','shape','feet'])for(const v of (a==='color'?Object.keys(COLORS):a==='shape'?SHAPES:[2,4]))HYPS.push({a,v,fn:ruleFn(a,v)});
+function genCritter(){return{color:Object.keys(COLORS)[Math.random()*3|0],shape:SHAPES[Math.random()*3|0],feet:Math.random()<.5?2:4}}
+function renderCritter(cr){const d=document.createElement('div');d.className='critter';
+  d.innerHTML=`<div class="body" style="${bodyStyle(cr.shape,COLORS[cr.color])}"></div>
+   <div class="eyes">👀</div><div class="feet">${'<i></i>'.repeat(cr.feet)}</div>`;return d}
+
+const T={itemStart:0,trials:0,correct:0,streak:0,firstLat:null,firstActed:false,solvedAt:null,
+  viable:HYPS.length,phaseTrials:0,hint:0};
+const METERS=[
+ {id:'M-ACC',name:'First-try accuracy',get:()=>T.trials?`${T.correct}/${T.trials}  ${Math.round(100*T.correct/T.trials)}%`:'—'},
+ {id:'M-HYP',name:'Viable rules remaining',get:()=>T.viable+' / '+HYPS.length},
+ {id:'M-PATH',name:'Routings logged',get:()=>T.trials+''},
+ {id:'M-EXPLORE',name:'Distinct critters seen',get:()=>T.seen?T.seen.size:0},
+ {id:'M-RTFIRST',name:'First-action latency',get:()=>T.firstLat==null?'—':T.firstLat+' ms'},
+ {id:'M-EFF',name:'Trials to criterion (4 streak)',get:()=>T.solvedAt==null?'in progress':T.solvedAt+''},
+ {id:'M-HINT',name:'Hints used',get:()=>T.hint+''},
+ {id:'M-RULEID',name:'Rule attributes (dimensionality)',get:()=>T.ruleDim||'—'},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('')}
+function renderMeters(){METERS.forEach(m=>{const e=$('#v_'+m.id);if(e)e.textContent=m.get()})}
+function log(msg){const t=T.itemStart?Date.now()-T.itemStart:0;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight}
+const ghost=$('#ghost');const gShow=v=>ghost.classList.toggle('show',v);
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}}
+async function gTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-8}px,${c.y-6}px)`;await sleep(700)}
+
+let phase='demo',rule=null,cur=null,locked=false;
+const setCue=i=>$('#phasecue').textContent=i;
+function nextCritter(){cur=genCritter();T.seen=T.seen||new Set();T.seen.add(cur.color+cur.shape+cur.feet);
+  const s=$('#stage');s.innerHTML='';s.appendChild(renderCritter(cur));T._t0=Date.now();renderMeters()}
+function updateViable(cr,gate){T.viable=HYPS.filter(h=>h.fn(cr)===gate?false:true).length; // keep hyps NOT contradicted
+  // recompute properly: a hyp is viable if it predicts the correct gate for cr
+  T.viable=HYPS.filter(h=>h.fn(cr)===rule(cr)).length; // consistent with truth for this cr (feedback reveals truth)
+}
+function route(gate){if(locked||phase==='demo'||phase==='done')return;const el=$(`.gate[data-g="${gate}"]`);
+  if(!T.firstActed){T.firstActed=true;T.firstLat=Date.now()-T.itemStart;log('first routing')}
+  const truth=rule(cur);const ok=gate===truth;T.trials++;
+  // narrow viable set using the revealed correct gate for this critter
+  T.viable=HYPS.filter(h=>h.fn(cur)===truth).length;
+  if(ok){T.correct++;T.streak++;el.classList.add('ok');log(`route ${gate} ✓  [${cur.color},${cur.shape},${cur.feet}ft]  viable rules→${T.viable}`)}
+  else{T.streak=0;el.classList.add('no');log(`route ${gate} ✗ (was ${truth})  [${cur.color},${cur.shape},${cur.feet}ft]  viable→${T.viable}`)}
+  renderMeters();locked=true;
+  setTimeout(()=>{el.classList.remove('ok','no');locked=false;
+    if(phase==='scored'&&T.streak>=4){T.solvedAt=T.solvedAt??T.trials;setCue('🏆');log(`— RULE CRACKED in ${T.trials} trials · first-try acc ${Math.round(100*T.correct/T.trials)}% —`);renderMeters();finish();return}
+    if(phase==='warmup'&&T.streak>=2){log('warm-up rule found (unscored)');startScored();return}
+    nextCritter()},760)}
+function startWarmup(){phase='warmup';setCue('⭐');rule=ruleFn('color','red');T.ruleDim='1 (color)';
+  Object.assign(T,{itemStart:Date.now(),trials:0,correct:0,streak:0,firstActed:false,firstLat:null,viable:HYPS.length,seen:new Set(),solvedAt:null});
+  log('— warm-up (unscored): find which gate each critter wants (rule: colour) —');nextCritter();renderMeters()}
+function startScored(){phase='scored';setCue('🎯');rule=ruleFn('shape','square');T.ruleDim='1 (shape) — hidden';
+  Object.assign(T,{itemStart:Date.now(),trials:0,correct:0,streak:0,firstActed:false,firstLat:null,viable:HYPS.length,seen:new Set(),solvedAt:null});
+  log('— SCORED: hidden rule. Route 4 in a row correctly to crack it —');nextCritter();renderMeters()}
+function finish(){phase='done';locked=true}
+async function runDemo(){phase='demo';setCue('👁️');rule=ruleFn('color','red');T.itemStart=Date.now();log('ghost-hand demo (wordless, <10s)');
+  gShow(true);cur={color:'red',shape:'circle',feet:2};$('#stage').innerHTML='';$('#stage').appendChild(renderCritter(cur));await sleep(500);
+  await gTo($('.gate[data-g="L"]'));$('.gate[data-g="L"]').classList.add('ok');await sleep(600);$('.gate[data-g="L"]').classList.remove('ok');
+  cur={color:'blue',shape:'square',feet:4};$('#stage').innerHTML='';$('#stage').appendChild(renderCritter(cur));await sleep(500);
+  await gTo($('.gate[data-g="R"]'));$('.gate[data-g="R"]').classList.add('ok');await sleep(600);$('.gate[data-g="R"]').classList.remove('ok');
+  gShow(false);await sleep(300);startWarmup()}
+$('#gates').addEventListener('click',e=>{const g=e.target.closest('.gate');if(g)route(g.dataset.g)});
+$('#replay').addEventListener('click',()=>{if(phase==='done'||phase==='warmup'||phase==='scored')runDemo()});
+buildMeters();renderMeters();runDemo();
+</script>
+</body>
+</html>

@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GB-FILTER-01 · Star Filter</title>
+<style>
+  :root{--bg1:#e9f6ff;--bg2:#eef0ff;--ink:#26304a;--card:#fff;--accent:#1c8cff;--good:#22b573;--bad:#ff6b6b;
+    --tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box}html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:12px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
+  #phasecue{font-size:32px;height:38px}
+  #stagecard{background:var(--card);border-radius:24px;padding:22px;box-shadow:0 18px 50px -22px #4a4a7a;
+    display:flex;flex-direction:column;align-items:center;gap:14px}
+  #cue{font-size:15px;font-weight:700;display:flex;gap:8px;align-items:center;min-height:30px}
+  #cue .swatch{font-size:26px}
+  #grid{display:grid;grid-template-columns:repeat(3,72px);gap:8px;background:#dbe8f7;padding:10px;border-radius:14px}
+  .cell{width:72px;height:72px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;
+    font-size:40px;cursor:pointer;transition:.1s;-webkit-tap-highlight-color:transparent}
+  .cell.pick{outline:4px solid var(--accent);background:#e4f1ff}
+  .cell.hit{outline:4px solid var(--good);background:#e7fbef}
+  .cell.fa{outline:4px solid var(--bad);background:#fdecec}
+  .cell.miss{outline:4px dashed var(--bad)}
+  #controls{display:flex;gap:14px;align-items:center}
+  button{font:inherit;border:0;cursor:pointer;border-radius:50%}
+  #done{width:70px;height:70px;background:var(--accent);color:#fff;font-size:18px;font-weight:700;
+    box-shadow:0 10px 24px -8px var(--accent);opacity:.35;pointer-events:none;transition:.2s}
+  #done.ready{opacity:1;pointer-events:auto;animation:pulse 1.2s infinite}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+  #replay{width:48px;height:48px;background:#eef1ff;color:#5b6cff;font-size:22px}
+  #ghost{position:fixed;left:0;top:0;font-size:38px;pointer-events:none;z-index:60;opacity:0;
+    transition:transform .55s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;
+    font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:104px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}.mval{color:#fff}
+  .mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:200px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}.t{color:#5f6f9e}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:280px}}
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">GB-FILTER-01 · Star Filter</div>
+    <div id="phasecue">👁️</div>
+    <div id="stagecard">
+      <div id="cue"></div>
+      <div id="grid"></div>
+      <div id="controls"><button id="replay" title="replay demo">↻</button><button id="done" title="done">DONE</button></div>
+    </div>
+  </div>
+  <aside id="telemetry"><h3>Live telemetry · per-child</h3><div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div></aside>
+  <div id="ghost">👆</div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+// target = blue star; distractors = grey circle. cells: {shape,color,target}
+function zi(p){p=Math.min(.99,Math.max(.01,p));// rational approx of inverse normal CDF (Beasley-Springer)
+  const a=[-3.969683028665376e+01,2.209460984245205e+02,-2.759285104469687e+02,1.383577518672690e+02,-3.066479806614716e+01,2.506628277459239e+00];
+  const b=[-5.447609879822406e+01,1.615858368580409e+02,-1.556989798598866e+02,6.680131188771972e+01,-1.328068155288572e+01];
+  const c=[-7.784894002430293e-03,-3.223964580411365e-01,-2.400758277161838e+00,-2.549732539343734e+00,4.374664141464968e+00,2.938163982698783e+00];
+  const d=[7.784695709041462e-03,3.224671290700398e-01,2.445134137142996e+00,3.754408661907416e+00];
+  const pl=0.02425;let q,r;
+  if(p<pl){q=Math.sqrt(-2*Math.log(p));return(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1)}
+  if(p<=1-pl){q=p-.5;r=q*q;return(((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1)}
+  q=Math.sqrt(-2*Math.log(1-p));return-(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1)}
+
+const T={reveal:0,scored:0,acc:'—',rt:'—',dprime:'—',fa:0,rev:0,span:'—',warmAcc:null,updcost:'—',idle:0};
+const METERS=[
+ {id:'M-ACC',name:'Target hit rate',get:()=>T.acc},
+ {id:'M-RT',name:'Recall RT (reveal→done)',get:()=>T.rt},
+ {id:'M-DPRIME',name:"Sensitivity d'",get:()=>T.dprime},
+ {id:'M-UPDATECOST',name:'Δacc per added distractor',get:()=>T.updcost},
+ {id:'M-SPAN',name:'Targets correctly recalled',get:()=>T.span},
+ {id:'M-REV',name:'Deselections',get:()=>T.rev+''},
+ {id:'M-FALSEALARM',name:'Distractor intrusions (FA)',get:()=>T.fa+''},
+ {id:'M-ENGAGE',name:'Idle/off-task events',get:()=>T.idle+''},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('')}
+function renderMeters(){METERS.forEach(m=>{const e=$('#v_'+m.id);if(e)e.textContent=m.get()})}
+function log(msg){const d=document.createElement('div');d.innerHTML=`<span class="t">•</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight}
+const ghost=$('#ghost');const gShow=v=>ghost.classList.toggle('show',v);
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}}
+async function gTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-8}px,${c.y-6}px)`;await sleep(560)}
+window.addEventListener('blur',()=>{if(phase==='recall'){T.idle++;log('window blur (off-task) — M-ENGAGE');renderMeters()}});
+
+let phase='demo',cells=[],picks=new Set(),revealTime=0,exposMs=900,nTarget=0,nDist=0;
+const setCue=i=>$('#phasecue').textContent=i;
+function renderCue(){$('#cue').innerHTML=`remember the <span class="swatch">⭐</span> blue stars (ignore grey ●)`}
+function makeLayout(nt,nd){const idx=[...Array(9).keys()];for(let i=idx.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[idx[i],idx[j]]=[idx[j],idx[i]]}
+  const arr=Array(9).fill(null);for(let i=0;i<nt;i++)arr[idx[i]]={t:true};for(let i=0;i<nd;i++)arr[idx[nt+i]]={t:false};return arr}
+function renderGrid(showContents){const g=$('#grid');g.innerHTML='';cells.forEach((c,i)=>{const d=document.createElement('div');d.className='cell';d.dataset.i=i;
+  if(showContents&&c)d.textContent=c.t?'⭐':'●',d.style.color=c.t?'#1c8cff':'#9aa4b2';
+  if(picks.has(i))d.classList.add('pick');g.appendChild(d)})}
+async function present(nt,nd){nTarget=nt;nDist=nd;cells=makeLayout(nt,nd);picks=new Set();renderCue();
+  setCue('👀');renderGrid(true);log(`flash: ${nt} target(s) + ${nd} distractor(s)`);await sleep(exposMs);
+  phase='blank';setCue('…');renderGrid(false);await sleep(600);
+  phase='recall';setCue('🎯');revealTime=Date.now();renderGrid(false);$('#done').classList.add('ready');log('recall: tap where the stars were')}
+function onCell(el){if(phase!=='recall')return;const i=+el.dataset.i;if(picks.has(i)){picks.delete(i);T.rev++}else picks.add(i);renderGrid(false);
+  $('#done').classList.toggle('ready',picks.size>0);renderMeters()}
+function score(){const rt=Date.now()-revealTime;let hits=0,fa=0;const tgt=cells.map((c,i)=>c&&c.t?i:-1).filter(i=>i>=0);
+  picks.forEach(i=>{if(cells[i]&&cells[i].t)hits++;else fa++});const misses=tgt.length-hits;
+  const hr=(hits+.5)/(tgt.length+1),far=(fa+.5)/((9-tgt.length)+1);const dp=(zi(hr)-zi(far));
+  T.acc=`${hits}/${tgt.length}`;T.rt=rt+' ms';T.fa=fa;T.dprime=dp.toFixed(2);T.span=hits+'';
+  $$('#grid .cell').forEach((el,i)=>{const c=cells[i];if(picks.has(i))el.classList.add(c&&c.t?'hit':'fa');else if(c&&c.t)el.classList.add('miss')});
+  $('#done').classList.remove('ready');renderMeters();
+  return{hits,fa,misses,acc:hits/tgt.length}}
+let done=()=>{};
+function startWarmup(){phase='pre';setCue('⭐');log('— warm-up (unscored): 1 star + 1 distractor —');exposMs=1100;
+  done=()=>{const r=score();T.warmAcc=r.acc;log('warm-up scored internally (unscored to child)');setTimeout(startScored,1400)};
+  present(1,1)}
+function startScored(){phase='pre';setCue('🎯');log('— SCORED: 3 stars + 3 distractors (filter the grey) —');exposMs=900;
+  done=()=>{const r=score();T.scored++;if(T.warmAcc!=null)T.updcost=(((T.warmAcc-r.acc)/(3-1))).toFixed(2)+' /distractor';
+    setCue('🏆');log(`SCORED · hits ${r.hits}/3 · FA ${r.fa} · d' ${T.dprime} · RT ${T.rt}`);renderMeters();setTimeout(()=>{phase='done'},400)};
+  present(3,3)}
+async function runDemo(){phase='demo';setCue('👁️');renderCue();log('ghost-hand demo (wordless, <10s)');
+  cells=[{t:true},null,{t:false},null,{t:true},null,null,null,null];picks=new Set();renderGrid(true);gShow(true);await sleep(1100);
+  renderGrid(false);await sleep(500);
+  for(const i of [0,4]){await gTo($(`.cell[data-i="${i}"]`));picks.add(i);renderGrid(false)}
+  await gTo($('#done'));$$('#grid .cell').forEach((el,i)=>{if(picks.has(i))el.classList.add('hit')});await sleep(700);gShow(false);await sleep(500);startWarmup()}
+$('#grid').addEventListener('click',e=>{const c=e.target.closest('.cell');if(c)onCell(c)});
+$('#done').addEventListener('click',()=>{if($('#done').classList.contains('ready')||phase==='recall')done()});
+$('#replay').addEventListener('click',()=>{if(phase==='done'||phase==='recall'||phase==='pre')runDemo()});
+buildMeters();renderMeters();runDemo();
+</script>
+</body>
+</html>

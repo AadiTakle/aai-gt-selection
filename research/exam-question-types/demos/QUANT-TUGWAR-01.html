@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QUANT-TUGWAR-01 — Number Tug-of-War</title>
+<style>
+:root{--bg:#0f1226;--panel:#1b2140;--panel2:#232a52;--accent:#5eead4;--accent2:#f59e0b;--good:#4ade80;--bad:#f87171;--ink:#eef1ff;--muted:#9aa3c7;--red:#fb7185;--blue:#60a5fa}
+*{box-sizing:border-box}html,body{margin:0}
+body{font:16px/1.45 system-ui,Segoe UI,Roboto,sans-serif;color:var(--ink);background:radial-gradient(1200px 700px at 20% -10%,#26305e,#0f1226 60%);min-height:100vh}
+.wrap{display:grid;grid-template-columns:1fr 340px;gap:16px;max-width:1120px;margin:0 auto;padding:18px}
+@media(max-width:880px){.wrap{grid-template-columns:1fr}}
+h1{font-size:18px;margin:0 0 2px}.sub{color:var(--muted);font-size:13px;margin-bottom:10px}
+.card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid #313a6b;border-radius:16px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.phasebar{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.pill{font-size:12px;padding:4px 10px;border-radius:999px;background:#2b336a;color:var(--muted);border:1px solid #3a447f}
+.pill.on{background:var(--accent);color:#053;font-weight:700}
+.prompt{font-size:15px;color:var(--muted);min-height:22px;margin:6px 0 8px;text-align:center}
+.arena{display:grid;grid-template-columns:1fr 60px 1fr;gap:8px;align-items:center;min-height:150px}
+.team{border:2px solid transparent;border-radius:14px;padding:10px;min-height:120px;display:flex;flex-wrap:wrap;gap:6px;align-content:center;justify-content:center;cursor:pointer;background:#171d3d}
+.team.left{border-right:0}.team.pick{border-color:var(--accent)}
+.team.right{border-color:var(--good)!important}.team.wrong{border-color:var(--bad)!important}
+.tok{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;color:#08131f;background:radial-gradient(circle at 35% 30%,#bfe0ff,var(--blue));border:1px solid #2563eb}
+.team.red .tok{background:radial-gradient(circle at 35% 30%,#ffd0d8,var(--red));border-color:#e11d48}
+.mid{display:flex;flex-direction:column;align-items:center;gap:6px}
+.total{font-weight:800;font-size:20px;color:var(--accent2);text-align:center}
+.rope{position:relative;height:14px;background:#2b336a;border-radius:8px;margin:8px 4px 2px;overflow:visible}
+.center{position:absolute;left:50%;top:-4px;width:2px;height:22px;background:#4a5288;transform:translateX(-50%)}
+.flag{position:absolute;left:50%;top:-14px;font-size:22px;transform:translateX(-50%);transition:left .5s cubic-bezier(.3,.7,.3,1)}
+.stepper{display:flex;gap:8px;justify-content:center;align-items:center;margin-top:8px}
+.stepper button{width:38px;height:38px;border-radius:10px;border:1px solid #3a447f;background:#2b336a;color:var(--ink);font-size:20px;cursor:pointer}
+.row{display:flex;gap:10px;align-items:center;justify-content:center;margin-top:10px;flex-wrap:wrap}
+button.act{font:600 15px system-ui;padding:10px 18px;border-radius:12px;border:0;cursor:pointer;background:var(--accent);color:#053}
+button.act.ghost{background:#2b336a;color:var(--ink);border:1px solid #3a447f}
+button.act:disabled{opacity:.4;cursor:default}
+.fb{min-height:26px;text-align:center;font-weight:700;margin-top:8px}.fb.good{color:var(--good)}.fb.bad{color:var(--bad)}
+.hand{position:fixed;font-size:30px;z-index:20;pointer-events:none;filter:drop-shadow(0 4px 6px rgba(0,0,0,.5));transition:left .5s cubic-bezier(.4,0,.2,1),top .5s ease;opacity:0}
+.tele{font-size:13px}.tele h2{font-size:14px;margin:0 0 8px;color:var(--accent)}
+.metrics{display:grid;grid-template-columns:1fr auto;gap:4px 8px;margin-bottom:10px}
+.metrics div:nth-child(odd){color:var(--muted)}.metrics b{font-variant-numeric:tabular-nums}
+.log{height:236px;overflow:auto;background:#12172f;border:1px solid #2a336a;border-radius:10px;padding:8px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace}
+.log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-acc{color:var(--good)}.t-err{color:var(--bad)}.t-evt{color:#9fb0ff}.t-sys{color:var(--muted)}
+.legend{color:var(--muted);font-size:12px;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <main class="card">
+    <h1>Number Tug-of-War</h1>
+    <div class="sub">Tap the team that PULLS HARDER (or TIE) — or add players to make it fair.</div>
+    <div class="phasebar" id="phasebar"></div>
+    <div class="prompt" id="prompt"></div>
+    <div class="arena">
+      <div class="team left red" id="teamL"></div>
+      <div class="mid"><div class="total" id="totL">0</div></div>
+      <div class="team right" id="teamR"></div>
+    </div>
+    <div class="rope"><div class="center"></div><div class="flag" id="flag">&#128681;</div></div>
+    <div class="total" id="totR" style="text-align:right;padding-right:14px"></div>
+    <div class="stepper" id="stepper" style="display:none">
+      <button id="minus">&#8722;</button><div class="total" id="addVal">right +0</div><button id="plus">+</button>
+    </div>
+    <div class="row">
+      <button class="act ghost" id="tieBtn" style="display:none">TIE</button>
+      <button class="act" id="lockBtn" style="display:none">Lock (fair)</button>
+      <button class="act ghost" id="nextBtn" style="display:none">Next</button>
+    </div>
+    <div class="fb" id="fb"></div>
+    <div class="hand" id="hand">&#128070;</div>
+  </main>
+  <aside class="card tele">
+    <h2>Live telemetry</h2>
+    <div class="metrics" id="metrics"></div>
+    <div class="log" id="log"></div>
+    <div class="legend">Logs <b>M-ACC</b>, <b>M-RT</b> (decision time), <b>M-SPEEDACC</b> (correct &amp; in-band), <b>M-FALSEALARM</b> (wrong/too-fast taps), <b>M-REV</b> (equalize changes).</div>
+  </aside>
+</div>
+<script>
+(function(){
+  "use strict";
+  var el=function(id){return document.getElementById(id)};
+  var teamL=el('teamL'),teamR=el('teamR'),flag=el('flag'),hand=el('hand'),prompt=el('prompt'),fb=el('fb'),
+      lockBtn=el('lockBtn'),nextBtn=el('nextBtn'),tieBtn=el('tieBtn'),stepper=el('stepper');
+  var T0=Date.now();function perf(){return Date.now()-T0;}
+  var FLOOR=150, BAND=2500;
+  var Tel={scored:0,correct:0,rtSum:0,rtN:0,inband:0,fa:0,opp:0,revs:0,
+    push:function(c,m){var d=document.createElement('div');d.className=c;d.textContent='['+(perf()/1000).toFixed(2)+'s] '+m;var L=el('log');L.appendChild(d);L.scrollTop=L.scrollHeight;},
+    render:function(){
+      var acc=this.scored?Math.round(100*this.correct/this.scored)+'% ('+this.correct+'/'+this.scored+')':'—';
+      var rt=this.rtN?Math.round(this.rtSum/this.rtN)+' ms':'—';
+      var sa=this.scored?Math.round(100*this.inband/this.scored)+'%':'—';
+      var fa=this.opp?Math.round(100*this.fa/this.opp)+'% ('+this.fa+'/'+this.opp+')':'—';
+      el('metrics').innerHTML='<div>M-ACC accuracy</div><b>'+acc+'</b>'+
+        '<div>M-RT mean</div><b>'+rt+'</b>'+
+        '<div>M-SPEEDACC in-band</div><b>'+sa+'</b>'+
+        '<div>M-FALSEALARM</div><b>'+fa+'</b>'+
+        '<div>M-REV changes</div><b>'+this.revs+'</b>';
+    }};
+
+  var items=[
+    {phase:'demo',mode:'compare',L:[5],R:[3],ans:'L'},
+    {phase:'warmup',mode:'compare',L:[2],R:[1],ans:'L'},
+    {phase:'scored',mode:'compare',L:[4,3],R:[5],ans:'L'},   // 7 vs 5
+    {phase:'scored',mode:'compare',L:[3,3],R:[6],ans:'TIE'}, // 6 vs 6
+    {phase:'scored',mode:'equalize',L:[4,4],R:[5],ans:3}     // 8 vs 5 -> add 3
+  ];
+  var labels={demo:'1 Watch',warmup:'2 Try',scored:'3 Solve'};
+  var idx=-1,cur=null,addv=0,locked=false,itemStart=0,revs=0;
+
+  function phasebar(){el('phasebar').innerHTML=['demo','warmup','scored'].map(function(p){return '<span class="pill'+(cur&&cur.phase===p?' on':'')+'">'+labels[p]+'</span>';}).join('');}
+  function sum(a){return a.reduce(function(x,y){return x+y;},0);}
+  function totals(){return {l:sum(cur.L), r:sum(cur.R)+ (cur.mode==='equalize'?addv:0)};}
+  function drawTokens(zone,arr,extra){zone.innerHTML='';arr.forEach(function(v){var t=document.createElement('div');t.className='tok';t.textContent=v;zone.appendChild(t);});
+    for(var i=0;i<(extra||0);i++){var t=document.createElement('div');t.className='tok';t.textContent='1';t.style.opacity='.85';zone.appendChild(t);}}
+  function draw(){
+    drawTokens(teamL,cur.L,0);drawTokens(teamR,cur.R,cur.mode==='equalize'?addv:0);
+    var t=totals();el('totL').textContent=t.l;el('totR').textContent='right total: '+t.r;
+    var diff=t.r-t.l;var px=Math.max(-140,Math.min(140,diff*16));
+    flag.style.left='calc(50% + '+px+'px)';
+    if(diff===0){flag.style.filter='drop-shadow(0 0 8px #34d399)';}else{flag.style.filter='none';}
+  }
+  function decide(side){
+    if(locked||cur.phase==='demo')return;
+    var rt=perf()-itemStart;var correct=(side===cur.ans);
+    teamL.classList.remove('pick');teamR.classList.remove('pick');
+    if(side==='L')teamL.classList.add(correct?'right':'wrong');
+    if(side==='R')teamR.classList.add(correct?'right':'wrong');
+    locked=true;
+    if(cur.phase==='scored'){
+      Tel.scored++;Tel.opp++;if(correct)Tel.correct++;
+      Tel.rtSum+=rt;Tel.rtN++;
+      if(correct&&rt<=BAND)Tel.inband++;
+      if(!correct||rt<FLOOR){Tel.fa++;}
+      Tel.push(correct?'t-acc':'t-err','SCORED compare '+sum(cur.L)+' vs '+sum(cur.R)+' -> '+side+' (ans '+cur.ans+') rt='+rt+'ms'+(rt<FLOOR?' [too-fast!]':'')+(correct&&rt<=BAND?' [in-band]':''));
+    }else{Tel.push('t-sys',cur.phase.toUpperCase()+' compare -> '+side+' (ans '+cur.ans+') — not scored');}
+    fb.textContent=correct?(cur.phase==='warmup'?'Right! Now the real ones.':'Correct!'):'The answer was '+cur.ans+'.';
+    fb.className='fb '+(correct?'good':'bad');if(correct)beep();nextBtn.style.display='inline-block';tieBtn.style.display='none';Tel.render();
+  }
+  teamL.onclick=function(){if(cur&&cur.mode==='compare')decide('L');};
+  teamR.onclick=function(){if(cur&&cur.mode==='compare')decide('R');};
+  tieBtn.onclick=function(){if(cur&&cur.mode==='compare')decide('TIE');};
+  el('plus').onclick=function(){if(locked)return;addv++;revs++;Tel.revs++;if(revs===1)Tel.push('t-evt','first equalize move: +1');draw();lockBtn.style.display='inline-block';};
+  el('minus').onclick=function(){if(locked||addv<=0)return;addv--;revs++;Tel.revs++;draw();};
+  el('addVal') && (function(){})();
+  lockBtn.onclick=function(){
+    if(locked||cur.mode!=='equalize')return;locked=true;lockBtn.style.display='none';stepper.style.display='none';
+    var t=totals();var correct=(t.l===t.r);
+    Tel.scored++;if(correct)Tel.correct++;
+    Tel.push(correct?'t-acc':'t-err','SCORED equalize: added '+addv+' (need '+cur.ans+') totals '+t.l+'/'+t.r+'  moves='+revs+(addv===cur.ans?' [first-try exact]':''));
+    fb.textContent=correct?'Fair fight! Flag centered.':'Not fair yet — needed +'+cur.ans+'.';fb.className='fb '+(correct?'good':'bad');
+    if(correct)beep();nextBtn.style.display='inline-block';Tel.render();
+  };
+  function loadItem(){
+    idx++;if(idx>=items.length){finish();return;}
+    cur=items[idx];locked=false;addv=0;revs=0;itemStart=perf();
+    fb.textContent='';fb.className='fb';nextBtn.style.display='none';lockBtn.style.display='none';
+    teamL.className='team left red';teamR.className='team right';teamR.style.borderColor='transparent';
+    tieBtn.style.display=(cur.mode==='compare'&&cur.phase!=='demo')?'inline-block':'none';
+    stepper.style.display=(cur.mode==='equalize')?'flex':'none';
+    el('addVal').textContent='right +0';
+    phasebar();
+    prompt.textContent=cur.phase==='demo'?'Watch: more total pull drags the flag to that team.':
+      (cur.mode==='equalize'?'Add players to the weaker team so the flag sits at CENTER, then Lock.':'Tap the team that pulls HARDER — or TIE if equal.');
+    draw();
+    var t=totals();
+    Tel.push('t-sys','LOAD '+cur.phase+' '+cur.mode+': L='+t.l+' R='+sum(cur.R)+(cur.mode==='equalize'?(' add '+cur.ans):(' ans '+cur.ans)));
+    if(cur.phase==='demo')ghost();
+    Tel.render();
+  }
+  nextBtn.onclick=loadItem;
+  function ghost(){
+    setTimeout(function(){var r=teamL.getBoundingClientRect();hand.style.opacity='1';hand.style.left=(r.left+r.width/2)+'px';hand.style.top=(r.top+r.height/2)+'px';},600);
+    setTimeout(function(){teamL.classList.add('right');beep();fb.textContent='Left pulls '+sum(cur.L)+' vs '+sum(cur.R)+' — left wins.';fb.className='fb good';hand.style.opacity='0';},1400);
+    setTimeout(loadItem,2600);
+  }
+  function beep(){try{var a=new(window.AudioContext||window.webkitAudioContext)();var o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.type='sine';o.frequency.setValueAtTime(600,a.currentTime);o.frequency.exponentialRampToValueAtTime(920,a.currentTime+.15);g.gain.setValueAtTime(.12,a.currentTime);g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+.3);o.start();o.stop(a.currentTime+.32);}catch(e){}}
+  function finish(){prompt.textContent='';document.querySelector('.arena').style.display='none';document.querySelector('.rope').style.display='none';el('totR').style.display='none';stepper.style.display='none';nextBtn.style.display='none';tieBtn.style.display='none';fb.innerHTML='<div style="font-size:44px">&#127881;</div><div style="color:var(--muted);font-weight:400">Sample complete. Telemetry captured on the right.</div>';fb.className='fb good';Tel.push('t-sys','SESSION complete: '+Tel.correct+'/'+Tel.scored+' correct');}
+  window.addEventListener('blur',function(){Tel.push('t-sys','engagement: focus lost');});
+  Tel.render();loadItem();
+})();
+</script>
+</body>
+</html>

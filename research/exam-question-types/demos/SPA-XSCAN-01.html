@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SPA-XSCAN-01 — Scan Stacker</title>
+<style>
+  :root{--bg:#eef2fb;--card:#fff;--ink:#1e293b;--muted:#64748b;--accent:#4f46e5;--good:#16a34a;--warn:#f59e0b;--bad:#dc2626;--stage:#0b1220}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.4 system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  .wrap{display:flex;gap:14px;padding:14px;max-width:1180px;margin:0 auto;align-items:flex-start;flex-wrap:wrap}
+  .col{flex:1 1 560px;min-width:340px}.side{flex:1 1 320px;min-width:300px}
+  .card{background:var(--card);border-radius:16px;box-shadow:0 6px 22px rgba(15,23,42,.08);padding:16px;margin-bottom:14px}
+  h1{font-size:19px;margin:0 0 2px}.sub{color:var(--muted);font-size:13px;margin:0 0 10px}
+  .pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;background:#e0e7ff;color:#3730a3}
+  .banner{display:flex;align-items:center;gap:10px;background:#f1f5ff;border:1px solid #dbe3ff;border-radius:12px;padding:10px 12px;margin-bottom:12px;min-height:44px}
+  .banner .icon{font-size:22px}.banner b{color:var(--accent)}
+  #stageWrap{position:relative;background:var(--stage);border-radius:14px;border:1px solid #1e293b;overflow:hidden}
+  svg{display:block;width:100%;height:330px;touch-action:none}
+  .hand{position:absolute;font-size:30px;pointer-events:none;z-index:5;filter:drop-shadow(0 2px 3px rgba(0,0,0,.35));transition:left .2s,top .2s}
+  .scrub{display:flex;align-items:center;gap:10px;margin-top:12px}
+  .scrub input{flex:1}
+  input[type=range]{accent-color:#0ea5e9;height:26px}
+  .cands{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;justify-content:center}
+  .cand{background:#f8fafc;border:3px solid #e2e8f0;border-radius:14px;padding:6px;cursor:pointer;width:92px}
+  .cand.sel{border-color:var(--accent);box-shadow:0 0 0 3px #c7d2fe}
+  .cand svg{height:74px;background:transparent}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center;justify-content:center}
+  button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:10px 16px;cursor:pointer;background:var(--accent);color:#fff}
+  button.ghost{background:#e2e8f0;color:#334155}button:disabled{opacity:.45;cursor:not-allowed}
+  .tel{background:#0b1220;color:#d1fae5;border-radius:16px;padding:14px;font:12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
+  .tel h2{font-size:13px;margin:0 0 8px;color:#93c5fd;letter-spacing:.05em;text-transform:uppercase}
+  .tel .m{display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px dotted #1e293b}
+  .tel .m .k{color:#7dd3fc}.tel .m .v{color:#fde68a;font-weight:700;text-align:right}
+  #log{margin-top:10px;max-height:150px;overflow:auto;background:#060b16;border-radius:8px;padding:8px}
+  #log div{white-space:pre-wrap;color:#a7f3d0}#log .t{color:#475569}
+  .done{color:var(--good);font-weight:700}.miss{color:var(--warn)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="col"><div class="card">
+    <span class="pill" id="phasePill">DEMO</span>
+    <h1>Scan Stacker <span style="color:var(--muted);font-weight:400">· SPA-XSCAN-01</span></h1>
+    <p class="sub">Scrub the scanner up and down a mystery object. Watch how the slice changes, then tap which solid is hiding inside.</p>
+    <div class="banner"><span class="icon" id="bIcon">👀</span><div id="bText"><b>Watch.</b> The slice of a cone shrinks to a point…</div></div>
+    <div id="stageWrap"><svg id="svg" viewBox="0 0 400 330"></svg><div class="hand" id="hand" style="display:none">👆</div></div>
+    <div class="scrub"><span>⬆ top</span><input id="slider" type="range" min="0" max="100" value="0" disabled><span>bottom ⬇</span></div>
+    <div class="cands" id="cands"></div>
+    <div class="controls">
+      <button id="lockBtn" disabled>🔒 Lock answer</button>
+      <button id="nextBtn" class="ghost" style="display:none">Next ▶</button>
+    </div>
+  </div></div>
+  <div class="side"><div class="tel">
+    <h2>◉ Live telemetry</h2>
+    <div class="m"><span class="k">M-ACC correct solid</span><span class="v" id="mAcc">—</span></div>
+    <div class="m"><span class="k">M-RT total</span><span class="v" id="mRt">—</span></div>
+    <div class="m"><span class="k">M-RTFIRST first-act</span><span class="v" id="mFirst">—</span></div>
+    <div class="m"><span class="k">M-EXPLORE scrubs/heights</span><span class="v" id="mExp">0</span></div>
+    <div class="m"><span class="k">M-REV re-picks</span><span class="v" id="mRev">0</span></div>
+    <div class="m"><span class="k">M-ERRTYPE near/random</span><span class="v" id="mErr">—</span></div>
+    <div class="m"><span class="k">M-POLY (build shell)</span><span class="v" id="mPoly">identify</span></div>
+    <div class="m"><span class="k">M-DIFFREACH candidates</span><span class="v" id="mDiff">—</span></div>
+    <div id="log"></div>
+  </div></div>
+</div>
+<script>
+(function(){
+  "use strict";
+  var SVGNS="http://www.w3.org/2000/svg",svg=document.getElementById("svg"),hand=document.getElementById("hand");
+  function beep(f,t){try{var A=beep.a=beep.a||new(window.AudioContext||window.webkitAudioContext)();var o=A.createOscillator(),g=A.createGain();o.frequency.value=f;o.connect(g);g.connect(A.destination);g.gain.value=.08;o.start();o.stop(A.currentTime+(t||.1));}catch(e){}}
+  // slice profile: t in [0,1] top->bottom -> {shape, size 0..1}
+  var SOLIDS={
+    cylinder:{name:"cylinder",emoji:"🥫",prof:function(t){return {s:"circle",r:1};}},
+    cone:{name:"cone",emoji:"🍦",prof:function(t){return {s:"circle",r:t};}},
+    sphere:{name:"sphere",emoji:"⚽",prof:function(t){return {s:"circle",r:Math.sqrt(Math.max(0,1-(2*t-1)*(2*t-1)))};}},
+    prism:{name:"box",emoji:"📦",prof:function(t){return {s:"square",r:1};}},
+    pyramid:{name:"pyramid",emoji:"🔺",prof:function(t){return {s:"square",r:t};}},
+    bicone:{name:"double cone",emoji:"⧗",prof:function(t){return {s:"circle",r:Math.abs(2*t-1)};}}
+  };
+  function iconFor(key){ // small side-profile icon of the solid
+    var m={cylinder:'<rect x="26" y="14" width="40" height="60" rx="4" fill="#38bdf8"/><ellipse cx="46" cy="14" rx="20" ry="6" fill="#7dd3fc"/>',
+      cone:'<polygon points="46,10 70,74 22,74" fill="#38bdf8"/><ellipse cx="46" cy="74" rx="24" ry="6" fill="#7dd3fc"/>',
+      sphere:'<circle cx="46" cy="44" r="30" fill="#38bdf8"/><circle cx="38" cy="36" r="8" fill="#bae6fd"/>',
+      prism:'<rect x="24" y="20" width="44" height="48" fill="#a78bfa"/><polygon points="24,20 34,10 78,10 68,20" fill="#c4b5fd"/><polygon points="68,20 78,10 78,58 68,68" fill="#8b5cf6"/>',
+      pyramid:'<polygon points="46,10 74,70 18,70" fill="#a78bfa"/><polygon points="46,10 74,70 46,70" fill="#8b5cf6"/>',
+      bicone:'<polygon points="46,44 70,10 22,10" fill="#38bdf8"/><polygon points="46,44 70,78 22,78" fill="#0ea5e9"/>'};
+    return m[key]||"";
+  }
+  var Tel={start:0,first:0,exp:0,rev:0,heights:{},logEl:document.getElementById("log"),
+    line:function(m,c){var d=document.createElement("div");var t=((performance.now()-Tel.start)/1000).toFixed(2);d.innerHTML='<span class="t">['+t+'s]</span> '+m;if(c)d.className=c;Tel.logEl.appendChild(d);Tel.logEl.scrollTop=Tel.logEl.scrollHeight;},
+    begin:function(l){Tel.start=performance.now();Tel.first=0;Tel.exp=0;Tel.rev=0;Tel.heights={};Tel.line("▶ "+l);}};
+  var hidden=null,candidates=[],selected=null,phase="demo",interactive=false;
+  function drawSlice(t){
+    svg.innerHTML="";
+    // depth column on left
+    var colX=40;
+    var bar=document.createElementNS(SVGNS,"rect");bar.setAttribute("x",colX-9);bar.setAttribute("y",30);bar.setAttribute("width",18);bar.setAttribute("height",270);bar.setAttribute("rx",9);bar.setAttribute("fill","#1e293b");svg.appendChild(bar);
+    var knob=document.createElementNS(SVGNS,"circle");knob.setAttribute("cx",colX);knob.setAttribute("cy",30+t*270);knob.setAttribute("r",11);knob.setAttribute("fill","#0ea5e9");svg.appendChild(knob);
+    label(colX,20,"scan","#7dd3fc");
+    // filmstrip of sampled slices
+    var fx=372;label(fx,20,"stack","#7dd3fc");
+    var hs=Object.keys(Tel.heights).map(Number).sort(function(a,b){return a-b;}).slice(-6);
+    hs.forEach(function(hv,i){var pr=hidden.prof(hv);var y=34+i*46;miniSlice(fx,y,pr,16);});
+    // big current slice
+    var cx=205,cy=165;var pr=hidden.prof(t);
+    var scanline=document.createElementNS(SVGNS,"line");scanline.setAttribute("x1",70);scanline.setAttribute("y1",30+t*270);scanline.setAttribute("x2",340);scanline.setAttribute("y2",30+t*270);scanline.setAttribute("stroke","#334155");scanline.setAttribute("stroke-dasharray","4 4");svg.appendChild(scanline);
+    bigSlice(cx,cy,pr);
+    label(cx,300,"slice here","#64748b");
+  }
+  function bigSlice(cx,cy,pr){
+    var R=95;var sz=Math.max(0.02,pr.r)*R;
+    if(pr.s==="circle"){var c=document.createElementNS(SVGNS,"circle");c.setAttribute("cx",cx);c.setAttribute("cy",cy);c.setAttribute("r",sz);c.setAttribute("fill","#22d3ee");c.setAttribute("opacity",".85");svg.appendChild(c);}
+    else{var r=document.createElementNS(SVGNS,"rect");r.setAttribute("x",cx-sz);r.setAttribute("y",cy-sz);r.setAttribute("width",sz*2);r.setAttribute("height",sz*2);r.setAttribute("rx",4);r.setAttribute("fill","#c084fc");r.setAttribute("opacity",".85");svg.appendChild(r);}
+  }
+  function miniSlice(cx,cy,pr,R){var sz=Math.max(1,pr.r*R);
+    if(pr.s==="circle"){var c=document.createElementNS(SVGNS,"circle");c.setAttribute("cx",cx);c.setAttribute("cy",cy);c.setAttribute("r",sz);c.setAttribute("fill","#67e8f9");svg.appendChild(c);}
+    else{var r=document.createElementNS(SVGNS,"rect");r.setAttribute("x",cx-sz);r.setAttribute("y",cy-sz);r.setAttribute("width",sz*2);r.setAttribute("height",sz*2);r.setAttribute("fill","#d8b4fe");svg.appendChild(r);}}
+  function label(x,y,s,col){var t=document.createElementNS(SVGNS,"text");t.setAttribute("x",x);t.setAttribute("y",y);t.setAttribute("text-anchor","middle");t.setAttribute("font-size","11");t.setAttribute("fill",col||"#64748b");t.setAttribute("font-weight","700");t.textContent=s;svg.appendChild(t);}
+  function renderTel(){
+    document.getElementById("mExp").textContent=Tel.exp+" ("+Object.keys(Tel.heights).length+" h)";
+    document.getElementById("mFirst").textContent=Tel.first?Math.round(Tel.first)+" ms":"—";
+    document.getElementById("mRev").textContent=Tel.rev;
+    document.getElementById("mDiff").textContent=candidates.length+" solids";
+  }
+  var slider=document.getElementById("slider");
+  slider.addEventListener("input",function(){if(!interactive)return;var t=slider.value/100;if(!Tel.first){Tel.first=performance.now()-Tel.start;Tel.line("started scrubbing @"+Math.round(Tel.first)+"ms");}Tel.exp++;Tel.heights[Math.round(t*10)/10]=1;drawSlice(t);renderTel();});
+  function buildCands(keys){
+    candidates=keys.slice();var wrap=document.getElementById("cands");wrap.innerHTML="";
+    keys.forEach(function(k){var d=document.createElement("div");d.className="cand";d.dataset.k=k;
+      d.innerHTML='<svg viewBox="0 0 92 84">'+iconFor(k)+'</svg><div style="text-align:center;font-size:12px;color:#475569;font-weight:700">'+SOLIDS[k].emoji+" "+SOLIDS[k].name+'</div>';
+      d.onclick=function(){if(!interactive)return;if(!Tel.first){Tel.first=performance.now()-Tel.start;}
+        if(selected&&selected!==k){Tel.rev++;Tel.line("switched pick "+SOLIDS[selected].name+"→"+SOLIDS[k].name);}
+        selected=k;[].forEach.call(wrap.children,function(c){c.classList.toggle("sel",c.dataset.k===k);});
+        document.getElementById("lockBtn").disabled=false;renderTel();};
+      wrap.appendChild(d);});
+  }
+  function nearMiss(pick){var a=hidden.prof(0.25),b=hidden.prof(0.75);var pa=SOLIDS[pick].prof(0.25),pb=SOLIDS[pick].prof(0.75);
+    // same shape family (circle/square) but different change pattern = one-frame near miss
+    if(pa.s===a.s){return "near (matched a slice, missed the change)";}
+    return "random (wrong slice family)";}
+  document.getElementById("lockBtn").onclick=function(){if(!selected||!interactive)return;interactive=false;
+    var wasWarmup=(phase==="warmup");
+    var ok=(selected===hiddenKey);var rt=((performance.now()-Tel.start)/1000);
+    document.getElementById("mRt").textContent=rt.toFixed(1)+"s";
+    document.getElementById("mAcc").textContent=ok?"1/1 (100%)":"0/1";
+    if(ok){beep(880);setTimeout(function(){beep(1180)},110);document.getElementById("mErr").textContent="—";}
+    else{beep(200,.15);document.getElementById("mErr").textContent=nearMiss(selected);}
+    document.getElementById("lockBtn").disabled=true;
+    finish(ok,rt,wasWarmup);
+  };
+  var hiddenKey=null;
+  var pill=document.getElementById("phasePill"),bIcon=document.getElementById("bIcon"),bText=document.getElementById("bText"),nextBtn=document.getElementById("nextBtn");
+  function setBanner(i,h){bIcon.textContent=i;bText.innerHTML=h;}
+  function setSolid(k){hiddenKey=k;hidden=SOLIDS[k];}
+  function startDemo(){
+    phase="demo";pill.textContent="DEMO";interactive=false;nextBtn.style.display="none";slider.disabled=true;
+    setBanner("👀","<b>Watch.</b> The scan slides down a cone — the circle grows from a tiny point to a big circle. That change tells you it is a cone.");
+    setSolid("cone");buildCands(["cone","cylinder","sphere"]);selected=null;
+    Tel.heights={};var v=0;hand.style.display="";
+    var iv=setInterval(function(){v+=8;if(v>100){clearInterval(iv);
+        // ghost taps cone
+        var cell=document.querySelector('.cand[data-k="cone"]');var br=cell.getBoundingClientRect();hand.style.left=(br.left+br.width/2-6)+"px";hand.style.top=(br.top+window.scrollY+6)+"px";cell.classList.add("sel");beep(880);
+        setTimeout(function(){hand.style.display="none";startWarmup();},900);return;}
+      slider.value=v;var t=v/100;Tel.heights[Math.round(t*10)/10]=1;drawSlice(t);beep(400+v*4,.03);
+      var kr=svg.getBoundingClientRect();hand.style.left=(kr.left+40*(kr.width/400)-6)+"px";hand.style.top=(kr.top+window.scrollY+(30+t*270)*(kr.height/330))+"px";},110);
+  }
+  function startWarmup(){
+    phase="warmup";pill.textContent="WARM-UP";interactive=true;slider.disabled=false;slider.value=0;
+    setBanner("✋","<b>Your turn (practice).</b> Scrub the scan. This circle stays the SAME size all the way down — which solid is that? Tap it, then Lock.");
+    setSolid("cylinder");buildCands(["cone","cylinder","sphere"]);selected=null;document.getElementById("lockBtn").disabled=true;
+    Tel.begin("Warm-up (unscored)");drawSlice(0);renderTel();document.getElementById("mErr").textContent="—";document.getElementById("mAcc").textContent="—";
+  }
+  function startScored(){
+    phase="scored";pill.textContent="SCORED";interactive=true;slider.disabled=false;slider.value=0;nextBtn.style.display="none";
+    var keys=["cone","cylinder","sphere","pyramid","prism","bicone"];
+    setSolid("cone"); // hidden is a cone; cylinder is the one-frame trap
+    var shuffled=keys.slice().sort(function(){return Math.random()-.5;});
+    buildCands(shuffled);selected=null;document.getElementById("lockBtn").disabled=true;
+    Tel.begin("Scored — identify the hidden solid from its slices");drawSlice(0);renderTel();
+    document.getElementById("mErr").textContent="—";document.getElementById("mAcc").textContent="—";
+    setBanner("🎯","<b>Which solid makes these slices?</b> Scrub the whole way, watch how the circle changes, then Lock your pick. (Careful: a cylinder makes circles too — but they never change.)");
+  }
+  function finish(ok,rt,wasWarmup){
+    nextBtn.style.display="";
+    if(wasWarmup){
+      pill.textContent="WARM-UP ✓";
+      setBanner(ok?"✅":"↺",(ok?"<b>Yes — a cylinder!</b> ":"<b>Close — a cylinder's circle never changes size.</b> ")+"Now the real one: more solids to choose from, and a sneaky look-alike. Scrub carefully.");
+      nextBtn.textContent="Start scored ▶";nextBtn.onclick=startScored;return;}
+    phase="done";pill.textContent="DONE";
+    setBanner("🏁","<b>"+(ok?"Correct!":"Locked.")+"</b> Explored "+Tel.exp+" scrubs across "+Object.keys(Tel.heights).length+" heights, "+Tel.rev+" re-picks. Inferring a cone from the shrinking circle (not one frame) with little scrubbing is the section-to-3D tail signal.");
+    Tel.line("── summary ── M-ACC="+(ok?"1":"0")+"/1  M-EXPLORE="+Tel.exp+"("+Object.keys(Tel.heights).length+"h)  M-REV="+Tel.rev+"  M-RTFIRST="+Math.round(Tel.first)+"ms  M-RT="+rt.toFixed(1)+"s",ok?"done":"miss");
+    nextBtn.textContent="↻ Run again";nextBtn.onclick=function(){location.reload();};
+  }
+  setSolid("cone");drawSlice(0);startDemo();
+})();
+</script>
+</body>
+</html>

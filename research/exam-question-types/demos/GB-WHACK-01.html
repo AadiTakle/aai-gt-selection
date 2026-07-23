@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GB-WHACK-01 · Signal Whack</title>
+<style>
+  :root{--bg1:#fff2e8;--bg2:#ffe9f0;--ink:#26304a;--card:#fff;--accent:#ff5c8a;--good:#22b573;--bad:#ff6b6b;
+    --tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box}html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:12px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
+  #phasecue{font-size:32px;height:38px}
+  #stagecard{background:var(--card);border-radius:24px;padding:22px;box-shadow:0 18px 50px -22px #4a4a7a;
+    display:flex;flex-direction:column;align-items:center;gap:16px;width:440px;max-width:100%}
+  #instr{font-size:14px;color:#666;min-height:20px;text-align:center}
+  #arena{width:300px;height:200px;background:#f3f6ff;border-radius:18px;display:flex;align-items:center;justify-content:center;
+    position:relative;border:3px solid #e2e8fb;overflow:hidden}
+  #critter{font-size:96px;cursor:pointer;user-select:none;transform:scale(0);transition:transform .12s;-webkit-tap-highlight-color:transparent}
+  #critter.up{transform:scale(1)}
+  #stop{position:absolute;font-size:70px;opacity:0;transition:opacity .05s;pointer-events:none}
+  #stop.show{opacity:1}
+  #flank{display:none;gap:6px;font-size:52px}
+  #fbtns{display:none;gap:24px}
+  .fbtn{width:96px;height:70px;border-radius:14px;background:#eef2ff;border:3px solid #d7deff;font-size:34px;cursor:pointer}
+  #combo{font-size:14px;color:var(--accent);font-weight:700;min-height:18px}
+  #controls{display:flex;gap:14px;align-items:center}
+  button{font:inherit;border:0;cursor:pointer;border-radius:50%}
+  #replay{width:48px;height:48px;background:#eef1ff;color:#5b6cff;font-size:22px}
+  #flash{position:absolute;inset:0;background:var(--good);opacity:0;pointer-events:none}
+  #ghost{position:fixed;left:0;top:0;font-size:38px;pointer-events:none;z-index:60;opacity:0;
+    transition:transform .4s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;
+    font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:104px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}.mval{color:#fff}
+  .mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:190px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}.t{color:#5f6f9e}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:280px}}
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">GB-WHACK-01 · Signal Whack</div>
+    <div id="phasecue">👁️</div>
+    <div id="stagecard">
+      <div id="instr"></div>
+      <div id="arena">
+        <div id="flash"></div>
+        <span id="critter">🐸</span>
+        <span id="stop">🛑</span>
+        <div id="flank"></div>
+      </div>
+      <div id="fbtns"><div class="fbtn" data-d="L">⬅️</div><div class="fbtn" data-d="R">➡️</div></div>
+      <div id="combo"></div>
+      <div id="controls"><button id="replay" title="replay demo">↻</button></div>
+    </div>
+  </div>
+  <aside id="telemetry"><h3>Live telemetry · per-child</h3><div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div></aside>
+  <div id="ghost">👆</div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):null;
+const median=a=>{if(!a.length)return null;const s=[...a].sort((x,y)=>x-y);const m=s.length>>1;return s.length%2?s[m]:Math.round((s[m-1]+s[m])/2)};
+const sd=a=>{if(a.length<2)return null;const m=a.reduce((x,y)=>x+y,0)/a.length;return Math.round(Math.sqrt(a.reduce((s,x)=>s+(x-m)**2,0)/(a.length-1)))};
+
+const T={goRT:[],goErrPrev:[],afterErr:[],afterCor:[],comm:0,stopN:0,fa:0,ssd:250,ssdList:[],correct:0,total:0,
+  congRT:[],incongRT:[],lastErr:false};
+const METERS=[
+ {id:'M-ACC',name:'Overall accuracy',get:()=>T.total?`${T.correct}/${T.total}  ${Math.round(100*T.correct/T.total)}%`:'—'},
+ {id:'M-RT',name:'Go RT (mean)',get:()=>mean(T.goRT)==null?'—':mean(T.goRT)+' ms'},
+ {id:'M-COMM',name:'Stop commission rate',get:()=>T.stopN?`${T.comm}/${T.stopN}  ${Math.round(100*T.comm/T.stopN)}%`:'—'},
+ {id:'M-FALSEALARM',name:'Anticipatory (<150ms)',get:()=>T.fa+''},
+ {id:'M-SSRT',name:'Stop-signal RT (est)',get:()=>{const m=median(T.goRT);return m!=null&&T.ssdList.length?(m-mean(T.ssdList))+' ms':'—'}},
+ {id:'M-POSTERR',name:'Post-error slowing',get:()=>{const a=mean(T.afterErr),c=mean(T.afterCor);return a!=null&&c!=null?(a-c)+' ms':'—'}},
+ {id:'M-RTVAR',name:'Go RT variability (SD)',get:()=>sd(T.goRT)==null?'—':sd(T.goRT)+' ms'},
+ {id:'M-CONGEFF',name:'Flanker congruency cost',get:()=>{const i=mean(T.incongRT),c=mean(T.congRT);return i!=null&&c!=null?(i-c)+' ms':'—'}},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('')}
+function renderMeters(){METERS.forEach(m=>{const e=$('#v_'+m.id);if(e)e.textContent=m.get()})}
+function log(msg){const d=document.createElement('div');d.innerHTML=`<span class="t">•</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight}
+const ghost=$('#ghost');const gShow=v=>ghost.classList.toggle('show',v);
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}}
+async function gTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-8}px,${c.y-6}px)`;await sleep(360)}
+function flash(color){const f=$('#flash');f.style.background=color;f.style.transition='none';f.style.opacity=.5;requestAnimationFrame(()=>{f.style.transition='opacity .3s';f.style.opacity=0})}
+
+let phase='demo';const setCue=i=>$('#phasecue').textContent=i;
+const critter=$('#critter'),stopEl=$('#stop');
+function combo(msg){$('#combo').textContent=msg}
+// GO/STOP trial: returns promise
+function goTrial(isStop){return new Promise(async res=>{
+  let t0=performance.now(),answered=false,stopShown=false;
+  const onTap=()=>{if(answered)return;answered=true;const rt=Math.round(performance.now()-t0);cleanup();
+    if(rt<150){T.fa++;log('anticipatory tap '+rt+'ms (FA)')}
+    if(isStop){T.comm++;T.total++;combo('oops — that was a STOP!');flash('#ff6b6b');log(`STOP trial: tapped ✗ (commission) rt ${rt}`);T.lastErr=true;record(false,rt);setTimeout(()=>res(),350)}
+    else{T.total++;T.correct++;T.goRT.push(rt);record(true,rt);combo('nice! '+rt+'ms');flash('#22b573');log(`GO: tapped ✓ rt ${rt}`);T.lastErr=false;setTimeout(()=>res(),300)}};
+  critter.addEventListener('pointerdown',onTap,{once:false});
+  function cleanup(){critter.removeEventListener('pointerdown',onTap);critter.classList.remove('up');stopEl.classList.remove('show')}
+  critter.classList.add('up');
+  if(isStop){setTimeout(()=>{if(!answered){stopShown=true;stopEl.classList.add('show')}},T.ssd)}
+  // window
+  setTimeout(()=>{if(answered)return;answered=true;cleanup();
+    if(isStop){T.comm+=0;T.stopN;T.total++;T.correct++;T.ssdList.push(T.ssd);T.ssd=Math.min(500,T.ssd+50);combo('great stop! 🛑');log(`STOP trial: withheld ✓ (SSD ${T.ssd-50})`);T.lastErr=false;record(true,null);res()}
+    else{T.total++;combo('too slow');log('GO: missed (no tap)');T.lastErr=true;record(false,null);res()}},1100);
+  if(isStop){T.stopN++;}
+});}
+function record(correct,rt){if(rt!=null){if(T._prevErr)T.afterErr.push(rt);else if(T._prevErr===false)T.afterCor.push(rt)}T._prevErr=!correct;renderMeters()}
+// staircase for stop success handled above; on commission lower SSD
+function stopFail(){T.ssd=Math.max(50,T.ssd-50)}
+function flankerTrial(dir,cong){return new Promise(res=>{
+  $('#critter').style.display='none';const fl=$('#flank');fl.style.display='flex';$('#fbtns').style.display='flex';
+  const c=dir==='L'?'⬅️':'➡️';const f=cong?c:(dir==='L'?'➡️':'⬅️');fl.textContent='';fl.innerHTML=`${f}${f}${c}${f}${f}`;
+  let t0=performance.now(),done=false;
+  const handler=e=>{const b=e.target.closest('.fbtn');if(!b||done)return;done=true;const rt=Math.round(performance.now()-t0);
+    const ok=b.dataset.d===dir;T.total++;if(ok)T.correct++;(cong?T.congRT:T.incongRT).push(rt);
+    log(`flanker ${cong?'cong':'incong'} ${dir}: ${ok?'✓':'✗'} rt ${rt}`);flash(ok?'#22b573':'#ff6b6b');renderMeters();
+    $('#fbtns').removeEventListener('click',handler);setTimeout(()=>{fl.style.display='none';$('#fbtns').style.display='none';$('#critter').style.display='';res()},300)};
+  $('#fbtns').addEventListener('click',handler)})}
+
+async function block(seq){for(const tr of seq){await sleep(500);if(tr.type==='flank')await flankerTrial(tr.dir,tr.cong);else await goTrial(tr.type==='stop')}}
+async function startWarmup(){phase='warmup';setCue('⭐');$('#instr').textContent='Tap the frog fast — but STOP if 🛑 appears';
+  log('— warm-up (unscored) —');await block([{type:'go'},{type:'go'},{type:'stop'}]);startScored()}
+async function startScored(){phase='scored';setCue('🎯');$('#instr').textContent='Go fast on 🐸, hold on 🛑, then match the middle arrow';
+  log('— SCORED go/no-go + stop-signal block —');
+  const seq=[{type:'go'},{type:'go'},{type:'stop'},{type:'go'},{type:'go'},{type:'stop'},{type:'go'},{type:'go'}];
+  await block(seq);
+  log('— flanker block (interference) —');
+  await block([{type:'flank',dir:'L',cong:true},{type:'flank',dir:'R',cong:false},{type:'flank',dir:'L',cong:false},{type:'flank',dir:'R',cong:true}]);
+  finish()}
+function finish(){phase='done';setCue('🏆');combo('done!');log(`— DONE · acc ${Math.round(100*T.correct/T.total)}% · goRT ${mean(T.goRT)}ms · commission ${T.comm}/${T.stopN} —`);renderMeters()}
+async function runDemo(){phase='demo';setCue('👁️');$('#instr').textContent='';log('ghost-hand demo (wordless, <10s)');gShow(true);
+  critter.classList.add('up');await gTo(critter);flash('#22b573');combo('tap green!');await sleep(500);
+  await gTo(critter);flash('#22b573');await sleep(400);critter.classList.remove('up');
+  stopEl.classList.add('show');combo('STOP — don’t tap');ghost.style.transform=ghost.style.transform+' translateY(-40px)';await sleep(900);stopEl.classList.remove('show');
+  gShow(false);await sleep(400);startWarmup()}
+$('#replay').addEventListener('click',()=>{if(phase==='done')runDemo()});
+buildMeters();renderMeters();runDemo();
+</script>
+</body>
+</html>

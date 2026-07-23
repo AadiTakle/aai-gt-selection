@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GB-DEBATE-01 · Claim Duel</title>
+<style>
+  :root{--bg1:#eef7ff;--bg2:#fff0ec;--ink:#26304a;--card:#fff;--accent:#2563eb;--good:#22b573;--bad:#ff6b6b;
+    --tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box}html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:12px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
+  #phasecue{font-size:32px;height:38px}
+  #stagecard{background:var(--card);border-radius:24px;padding:20px;box-shadow:0 18px 50px -22px #4a4a7a;
+    display:flex;flex-direction:column;align-items:center;gap:14px;width:480px;max-width:100%}
+  #claim{width:100%;background:#eaf1ff;border:3px solid #cddcff;border-radius:14px;padding:12px;text-align:center;font-weight:700;font-size:16px}
+  #claim.rival{background:#ffecea;border-color:#ffcfc7}
+  #barwrap{width:100%;height:16px;background:#eee;border-radius:8px;overflow:hidden}
+  #bar{height:100%;width:0;background:linear-gradient(90deg,#7fd6a6,#22b573);transition:.3s}
+  #instr{font-size:14px;color:#666;min-height:20px;text-align:center}
+  #cards{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+  .card{width:140px;min-height:92px;border-radius:14px;border:3px solid #e2e8fb;background:#fff;cursor:pointer;padding:10px;
+    display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;font-size:13px;transition:.1s}
+  .card .ic{font-size:30px}
+  .card:hover{border-color:var(--accent);transform:translateY(-3px)}
+  .card.att{border-color:var(--good);background:#e9fbf1}
+  .card.bad{border-color:var(--bad);background:#fdecec}
+  .btn{padding:10px 18px;border-radius:12px;border:0;font-weight:700;cursor:pointer;font-size:15px;background:var(--accent);color:#fff}
+  #controls{display:flex;gap:14px;align-items:center}
+  #replay{width:44px;height:44px;background:#eef1ff;color:#5b6cff;font-size:20px;border:0;cursor:pointer;border-radius:50%}
+  #ghost{position:fixed;left:0;top:0;font-size:36px;pointer-events:none;z-index:60;opacity:0;
+    transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;
+    font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:104px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}.mval{color:#fff}
+  .mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:180px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}.t{color:#5f6f9e}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:280px}}
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">GB-DEBATE-01 · Claim Duel</div>
+    <div id="phasecue">👁️</div>
+    <div id="stagecard">
+      <div id="claim"></div>
+      <div id="barwrap"><div id="bar"></div></div>
+      <div id="instr"></div>
+      <div id="cards"></div>
+      <div id="row"><button class="btn" id="done">DONE ✓</button></div>
+      <div id="controls"><button id="replay" title="replay demo">↻</button></div>
+    </div>
+  </div>
+  <aside id="telemetry"><h3>Live telemetry · per-child</h3><div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div></aside>
+  <div id="ghost">👆</div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function say(t){try{const u=new SpeechSynthesisUtterance(t);u.rate=.95;speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
+// item: claim + evidence cards {ic,l,role,str}; role strong/weak/thematic/irrelevant
+const SCORED={claim:"Plants need sunlight to grow.",
+  cards:[
+   {ic:'🥀',l:'A plant kept in a dark closet turned yellow and died',role:'strong',str:3},
+   {ic:'🌱',l:'Plants by the sunny window grew tall and green',role:'strong',str:3},
+   {ic:'🟢',l:'Plants are usually green',role:'thematic',str:1},
+   {ic:'🐕',l:'Dogs like to run in the park',role:'irrelevant',str:0}],
+  rival:{claim:"Plants grow best in the dark.",
+   opts:[{ic:'🥀',l:'The closet plant died in the dark',c:true},{ic:'🟢',l:'Plants are green',lure:'thematic'},{ic:'🐕',l:'Dogs like the park',lure:'irrelevant'}]}};
+const WARM={claim:"Ice is cold.",
+  cards:[{ic:'🧊',l:'The ice cube made my hand feel freezing',role:'strong',str:3},{ic:'🚗',l:'Cars can be fast',role:'irrelevant',str:0}]};
+
+const T={itemStart:0,firstLat:null,firstActed:false,attached:new Set(),rev:0,path:[],poly:0,polyMax:0,
+  lure:{},correctRebut:null,rubric:0,phaseName:''};
+const METERS=[
+ {id:'M-ACC',name:'Strong evidence + rebuttal',get:()=>T._acc||'—'},
+ {id:'M-POLY',name:'Claim-evidence link score',get:()=>T.polyMax?`${T.poly}/${T.polyMax}`:'—'},
+ {id:'M-PATH',name:'Attach/rebut actions',get:()=>T.path.length+''},
+ {id:'M-RTFIRST',name:'First-action latency',get:()=>T.firstLat==null?'—':T.firstLat+' ms'},
+ {id:'M-REV',name:'Detach/changes',get:()=>T.rev+''},
+ {id:'M-LURETYPE',name:'Lure profile (errors)',get:()=>Object.keys(T.lure).length?Object.entries(T.lure).map(([k,v])=>k+':'+v).join(' '):'—'},
+ {id:'M-RUBRIC',name:'Argument quality (0-4)',get:()=>T.rubric?T.rubric+'/4':'—'},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('')}
+function renderMeters(){METERS.forEach(m=>{const e=$('#v_'+m.id);if(e)e.textContent=m.get()})}
+function log(msg){const d=document.createElement('div');d.innerHTML=`<span class="t">•</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight}
+const ghost=$('#ghost');const gShow=v=>ghost.classList.toggle('show',v);
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}}
+async function gTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-8}px,${c.y-6}px)`;await sleep(480)}
+
+let phase='demo',item=null,mode='build';
+const setCue=i=>$('#phasecue').textContent=i;
+function renderClaim(text,rival){const c=$('#claim');c.textContent=text;c.classList.toggle('rival',!!rival)}
+function renderCards(cards,rebut){$('#cards').innerHTML=cards.map((cd,i)=>`<div class="card" data-i="${i}"><div class="ic">${cd.ic}</div><div>${cd.l}</div></div>`).join('')}
+function setBar(pct){$('#bar').style.width=Math.max(0,Math.min(100,pct))+'%'}
+function newItem(it){item=it;mode='build';T.attached=new Set();T.rev=0;T.path=[];T.firstActed=false;T.firstLat=null;T.itemStart=Date.now();
+  T.polyMax=it.cards.filter(c=>c.role==='strong').reduce((s,c)=>s+c.str,0);T.poly=0;T.lure={};T.rubric=0;T._acc='—';
+  renderClaim(it.claim,false);renderCards(it.cards);$('#done').style.display='';setBar(0);renderMeters()}
+function tapCard(i){if(mode!=='build'||phase==='demo'||phase==='done')return;const cd=item.cards[i];const el=$(`.card[data-i="${i}"]`);
+  if(!T.firstActed){T.firstActed=true;T.firstLat=Date.now()-T.itemStart;log('first attach')}
+  if(T.attached.has(i)){T.attached.delete(i);T.rev++;el.classList.remove('att','bad');T.path.push('detach'+i);log('detached: '+cd.l)}
+  else{T.attached.add(i);T.path.push('attach'+i);if(cd.role==='strong'){el.classList.add('att');log('✓ attached STRONG: '+cd.l)}else if(cd.role==='irrelevant'||cd.role==='thematic'){el.classList.add('bad');T.lure[cd.role]=(T.lure[cd.role]||0)+1;log('✗ attached '+cd.role+': '+cd.l)}else{el.classList.add('att');log('attached weak: '+cd.l)}}
+  // recompute poly = sum strengths of attached strong (capped)
+  let s=0;T.attached.forEach(j=>{if(item.cards[j].role==='strong')s+=item.cards[j].str});T.poly=Math.min(s,T.polyMax);
+  setBar(100*T.poly/Math.max(1,T.polyMax));renderMeters();say(cd.l)}
+function doneBuild(){if(mode!=='build')return;
+  const attachedStrong=[...T.attached].filter(i=>item.cards[i].role==='strong').length;
+  const attachedBad=[...T.attached].filter(i=>['irrelevant','thematic'].includes(item.cards[i].role)).length;
+  const totalStrong=item.cards.filter(c=>c.role==='strong').length;
+  if(phase==='warmup'){log('warm-up built (unscored)');startScored();return}
+  if(!item.rival){finish(attachedStrong,attachedBad,totalStrong,true);return}
+  // rebuttal phase
+  mode='rebut';setCue('⚔️');renderClaim(item.rival.claim,true);$('#instr').textContent='Now KNOCK DOWN the rival claim: tap the best rebuttal';
+  $('#cards').innerHTML=item.rival.opts.map((o,i)=>`<div class="card" data-i="${i}"><div class="ic">${o.ic}</div><div>${o.l}</div></div>`).join('');$('#done').style.display='none';
+  T._buildScore={attachedStrong,attachedBad,totalStrong};log('— rebuttal phase —');say(item.rival.claim)}
+function tapRebut(i){if(mode!=='rebut')return;const o=item.rival.opts[i];const el=$(`.card[data-i="${i}"]`);T.path.push('rebut'+i);
+  if(o.c){el.classList.add('att');T.correctRebut=true;log('✓ rebuttal correct: '+o.l)}
+  else{el.classList.add('bad');T.correctRebut=false;T.lure[o.lure]=(T.lure[o.lure]||0)+1;log('✗ rebuttal weak: '+o.l);const ci=item.rival.opts.findIndex(x=>x.c);$(`.card[data-i="${ci}"]`).classList.add('att')}
+  const b=T._buildScore;finish(b.attachedStrong,b.attachedBad,b.totalStrong,T.correctRebut)}
+function finish(aStrong,aBad,totStrong,rebutOk){phase='done';mode='done';setCue('🏆');
+  const buildOk=aStrong===totStrong&&aBad===0;T._acc=`${buildOk?'build✓':'build✗'} ${rebutOk?'rebut✓':'rebut✗'}`;
+  T.rubric=(aStrong?1:0)+(aBad===0?1:0)+(aStrong===totStrong?1:0)+(rebutOk?1:0);
+  log(`— DONE · link ${T.poly}/${T.polyMax} · rubric ${T.rubric}/4 —`);renderMeters()}
+function startWarmup(){phase='warmup';setCue('⭐');$('#instr').textContent='Tap the evidence that SUPPORTS the claim, then DONE';newItem(WARM);log('— warm-up (unscored) —')}
+function startScored(){phase='scored';setCue('🎯');$('#instr').textContent='Attach the STRONG evidence (skip weak/off-topic), then DONE';newItem(SCORED);log('— SCORED: build then rebut —')}
+async function runDemo(){phase='demo';setCue('👁️');newItem(WARM);$('#instr').textContent='';log('ghost-hand demo (wordless, <10s)');gShow(true);await sleep(400);
+  await gTo($('.card[data-i="0"]'));$('.card[data-i="0"]').classList.add('att');setBar(100);await sleep(500);
+  await gTo($('.card[data-i="1"]'));$('.card[data-i="1"]').classList.add('bad');await sleep(400);$('.card[data-i="1"]').classList.remove('bad');
+  await gTo($('#done'));await sleep(400);gShow(false);startWarmup()}
+$('#cards').addEventListener('click',e=>{const c=e.target.closest('.card');if(!c)return;if(mode==='build')tapCard(+c.dataset.i);else if(mode==='rebut')tapRebut(+c.dataset.i)});
+$('#done').addEventListener('click',doneBuild);
+$('#replay').addEventListener('click',()=>{if(phase==='done'||phase==='warmup'||phase==='scored')runDemo()});
+buildMeters();renderMeters();runDemo();
+</script>
+</body>
+</html>

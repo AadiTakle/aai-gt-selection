@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CX-shapemake-01 — Shape-Maker Studio</title>
+<style>
+  :root{--bg:#0d1a1f;--card:#12262d;--ink:#eafff7;--muted:#8fc4bd;--acc:#38e6c5;--gold:#ffd35c;}
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.4 system-ui,Segoe UI,Roboto,sans-serif;color:var(--ink);background:radial-gradient(circle at 70% 0%,#17323b,#0d1a1f)}
+  header{padding:14px 20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  header h1{font-size:18px;margin:0}
+  .badge{font-size:12px;color:var(--muted);border:1px solid #2f5a55;padding:2px 8px;border-radius:999px}
+  .wrap{display:grid;grid-template-columns:1fr 340px;gap:16px;padding:0 20px 30px;max-width:1100px}
+  @media(max-width:820px){.wrap{grid-template-columns:1fr}}
+  .stage{background:var(--card);border-radius:18px;padding:16px;position:relative}
+  .phaseTag{position:absolute;top:12px;right:14px;font-size:12px;color:var(--gold);background:#22331f;border:1px solid #4a5a1f;padding:3px 10px;border-radius:999px;z-index:8}
+  .prompt{text-align:center;color:var(--muted);min-height:22px;margin:2px 0 8px}
+  .prompt b{color:var(--ink)}
+  .palette{display:flex;gap:10px;justify-content:center;margin-bottom:10px;flex-wrap:wrap}
+  .palette .p{width:52px;height:52px;background:#0c1c20;border:2px solid #2f5a55;border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .palette .p:hover{border-color:var(--acc)}
+  .canvas{position:relative;height:300px;background:repeating-linear-gradient(45deg,#0c1c20,#0c1c20 12px,#0e2026 12px,#0e2026 24px);border:2px dashed #2f5a55;border-radius:14px;overflow:hidden;touch-action:none}
+  .shape{position:absolute;cursor:grab;filter:drop-shadow(0 3px 4px rgba(0,0,0,.4));user-select:none}
+  .shape:active{cursor:grabbing}
+  .keep{display:flex;gap:10px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+  button{font:inherit;border:0;border-radius:12px;padding:10px 16px;cursor:pointer;font-weight:600}
+  .add{background:var(--acc);color:#04231d}
+  .ghost-btn{background:#20424a;color:#d7fff5}
+  .menu{position:absolute;inset:0;background:rgba(6,18,22,.94);display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;z-index:9;border-radius:14px}
+  .menu.on{display:flex}
+  .menuGrid{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:420px}
+  .menuGrid div{font-size:30px;background:#12262d;border:1px solid #2f5a55;border-radius:12px;padding:6px 8px;cursor:pointer}
+  .menuGrid div:hover{border-color:var(--gold)}
+  .gallery{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;min-height:40px;align-items:center}
+  .gcard{font-size:24px;background:#0c1c20;border:1px solid var(--acc);border-radius:10px;padding:4px 8px}
+  .gcard.rare{border-color:var(--gold)}
+  .gcard small{font-size:9px;color:var(--muted);display:block;text-align:center}
+  .ghost{position:absolute;font-size:38px;pointer-events:none;transition:left .7s ease,top .7s ease;z-index:10}
+  .tele{background:#0c1c20;border:1px solid #244b46;border-radius:18px;padding:14px;height:fit-content;position:sticky;top:12px}
+  .tele h3{margin:0 0 8px;font-size:14px;letter-spacing:.5px;color:var(--gold)}
+  .metrics{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+  .chip{font-size:12px;background:#12262d;border:1px solid #2f5a55;border-radius:8px;padding:4px 8px}
+  .chip b{color:var(--gold)}
+  .log{font:11px/1.5 ui-monospace,Menlo,Consolas,monospace;color:#a9e6dc;max-height:210px;overflow:auto;background:#08171b;border-radius:10px;padding:8px}
+  .log div{border-bottom:1px solid #14282d;padding:1px 0}
+  .note{font-size:11px;color:var(--muted);margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>🔷 Shape-Maker Studio</h1>
+  <span class="badge">CX-shapemake-01</span>
+  <span class="badge">bands: K-1 · 2-3 · 4-5 · 6-8</span>
+  <span class="badge">figural creativity</span>
+</header>
+<div class="wrap">
+  <div class="stage" id="stage">
+    <div class="phaseTag" id="phaseTag">demo</div>
+    <div class="prompt" id="prompt"></div>
+    <div class="palette" id="palette"></div>
+    <div class="canvas" id="canvas">
+      <div class="menu" id="menu"><div style="color:var(--gold)">What did you make?</div><div class="menuGrid" id="menuGrid"></div></div>
+      <div class="ghost" id="ghost" style="display:none">👆</div>
+    </div>
+    <div class="keep" id="keep"></div>
+    <div class="gallery" id="gallery"></div>
+  </div>
+  <div class="tele">
+    <h3>LIVE TELEMETRY</h3>
+    <div class="metrics" id="metrics"></div>
+    <div class="log" id="log"></div>
+    <div class="note">M-IDEAFLU (distinct pictures), M-ORIG (rare depiction), M-ELAB (shapes/detail per picture), M-FLEX (distinct kinds), M-PATH (build actions), M-ENGAGE (idle/off-task). Products are stored for later consensual expert rating.</div>
+  </div>
+</div>
+<script>
+const T={ev:[],m:{},t0:performance.now(),idle:0,off:0,last:0,
+  now(){return Math.round(performance.now()-this.t0)},
+  log(a,d){const t=this.now();this.ev.push(Object.assign({t,a},d||{}));
+    const el=document.getElementById('log');const line=document.createElement('div');
+    line.textContent='+'+(t/1000).toFixed(2)+'s  '+a+(d?'  '+JSON.stringify(d):'');el.prepend(line);},
+  set(k,v){this.m[k]=v;this.render();},
+  render(){document.getElementById('metrics').innerHTML=
+    Object.entries(this.m).map(([k,v])=>'<span class="chip"><b>'+k+'</b> '+v+'</span>').join('');}};
+const $=s=>document.querySelector(s);
+const canvas=$('#canvas'),ghost=$('#ghost'),phaseTag=$('#phaseTag');
+
+const SHAPES={
+  circle:'<div style="width:44px;height:44px;border-radius:50%;background:#38e6c5"></div>',
+  square:'<div style="width:42px;height:42px;border-radius:6px;background:#ffd35c"></div>',
+  triangle:'<div style="width:0;height:0;border-left:24px solid transparent;border-right:24px solid transparent;border-bottom:42px solid #ff8fa3"></div>',
+  arc:'<div style="width:46px;height:23px;border-radius:46px 46px 0 0;background:#9b8cff"></div>',
+  rect:'<div style="width:54px;height:22px;border-radius:6px;background:#7ec8ff"></div>'};
+const NAMES=[['🏠','house','structure','common'],['🐟','fish','animal','common'],['🍦','ice cream','food','common'],
+  ['🚀','rocket','vehicle','rare'],['🤖','robot','character','rare'],['🌸','flower','nature','common'],
+  ['🚗','car','vehicle','common'],['⛵','boat','vehicle','common'],['🦋','butterfly','animal','rare'],
+  ['🐍','snake','animal','common'],['🎂','cake','food','common'],['👤','person','character','common'],
+  ['🌈','rainbow','nature','rare'],['✏️','something new','novel','rare']];
+
+let creations=[],curShapes=0,actions=0,cats=new Set(),orig=0,totalShapes=0,scored=false;
+T.set('phase','demo');T.set('pictures_M-IDEAFLU',0);T.set('rare_M-ORIG',0);T.set('avg_shapes_M-ELAB','0');T.set('kinds_M-FLEX',0);T.set('actions_M-PATH',0);T.set('idle_s_M-ENGAGE','0.0');
+T.last=T.now();
+function act(){const g=T.now()-T.last;if(g>3000){T.idle+=g;T.set('idle_s_M-ENGAGE',(T.idle/1000).toFixed(1));}T.last=T.now();}
+
+function addShape(type,x,y,silent){
+  const el=document.createElement('div');el.className='shape';el.innerHTML=SHAPES[type];
+  x=x==null?(60+Math.random()*180):x;y=y==null?(60+Math.random()*160):y;
+  el.style.left=x+'px';el.style.top=y+'px';
+  canvas.appendChild(el);curShapes++;actions++;totalShapes++;
+  if(scored){T.set('actions_M-PATH',actions);T.log('place_shape',{type});}
+  drag(el);
+  return el;
+}
+function drag(el){
+  el.addEventListener('pointerdown',e=>{e.preventDefault();act();const r=canvas.getBoundingClientRect();
+    const ox=e.clientX-el.offsetLeft,oy=e.clientY-el.offsetTop;el.setPointerCapture(e.pointerId);
+    const mv=ev=>{el.style.left=Math.max(0,Math.min(r.width-40,ev.clientX-ox))+'px';el.style.top=Math.max(0,Math.min(r.height-40,ev.clientY-oy))+'px';};
+    const up=()=>{el.removeEventListener('pointermove',mv);el.removeEventListener('pointerup',up);actions++;if(scored){T.set('actions_M-PATH',actions);T.log('move_shape');}};
+    el.addEventListener('pointermove',mv);el.addEventListener('pointerup',up);});
+}
+function clearCanvas(){[...canvas.querySelectorAll('.shape')].forEach(s=>s.remove());curShapes=0;}
+
+function buildPalette(){
+  const p=$('#palette');p.innerHTML='';
+  Object.keys(SHAPES).forEach(t=>{const d=document.createElement('div');d.className='p';d.innerHTML=SHAPES[t];
+    d.onclick=()=>{act();addShape(t);};p.appendChild(d);});
+}
+function openNameMenu(){
+  if(curShapes===0){$('#prompt').innerHTML='<b>Add some shapes first!</b> Tap a shape above.';return;}
+  const mg=$('#menuGrid');mg.innerHTML='';
+  NAMES.forEach(([emo,label,cat,rar])=>{const d=document.createElement('div');d.textContent=emo;d.title=label;
+    d.onclick=()=>saveCreation(emo,label,cat,rar);mg.appendChild(d);});
+  $('#menu').classList.add('on');
+}
+function saveCreation(emo,label,cat,rar){
+  $('#menu').classList.remove('on');
+  const rare=rar==='rare';
+  creations.push({emo,label,shapes:curShapes,rare});
+  const newCat=!cats.has(cat);cats.add(cat);if(rare)orig++;
+  T.set('pictures_M-IDEAFLU',creations.length);T.set('rare_M-ORIG',orig);T.set('kinds_M-FLEX',cats.size);
+  T.set('avg_shapes_M-ELAB',(totalShapes/creations.length).toFixed(1));
+  T.log('creation_saved',{label,cat,shapes:curShapes,rare,switch:newCat});
+  $('#gallery').innerHTML=creations.map(c=>'<span class="gcard'+(c.rare?' rare':'')+'">'+c.emo+(c.rare?'⭐':'')+'<small>'+c.label+'</small></span>').join('');
+  clearCanvas();
+}
+
+/* ---- flow ---- */
+function runGhost(){
+  phaseTag.textContent='demo';buildPalette();
+  $('#prompt').innerHTML='Watch: turn shapes into <b>different pictures</b>...';
+  ghost.style.display='block';
+  const builds=[[['triangle',120,60],['circle',120,120]],[['square',110,120],['triangle',110,70]],[['arc',100,110],['arc',150,110]]];
+  const names=[['🍦','ice cream'],['🏠','house'],['🐟','fish']];
+  let b=0;
+  const doBuild=()=>{
+    if(b>=builds.length){ghost.style.display='none';setTimeout(startWarm,500);return;}
+    builds[b].forEach((s,k)=>setTimeout(()=>{ghost.style.left=s[1]+'px';ghost.style.top=s[2]+'px';addShape(s[0],s[1],s[2],true);},k*700));
+    setTimeout(()=>{const g=document.createElement('span');g.className='gcard';g.innerHTML=names[b][0]+'<small>'+names[b][1]+'</small>';$('#gallery').appendChild(g);clearCanvas();b++;doBuild();},builds[b].length*700+900);
+  };
+  setTimeout(doBuild,600);
+}
+function startWarm(){
+  scored=false;creations=[];$('#gallery').innerHTML='';clearCanvas();phaseTag.textContent='warm-up (practice)';
+  $('#prompt').innerHTML='Practice: tap shapes to drop them, drag to arrange. Make anything! (not scored)';
+  T.set('phase','warm-up');T.log('phase_warmup');
+  $('#keep').innerHTML='<button class="add" id="toReal">I am ready → real one</button>';
+  $('#toReal').onclick=startItem;
+}
+function startItem(){
+  scored=true;creations=[];cats=new Set();orig=0;totalShapes=0;actions=0;$('#gallery').innerHTML='';clearCanvas();
+  phaseTag.textContent='scored';
+  $('#prompt').innerHTML='<b>Make as many different pictures as you can</b> — name each, then start a new one!';
+  T.set('phase','scored');T.set('pictures_M-IDEAFLU',0);T.set('rare_M-ORIG',0);T.set('kinds_M-FLEX',0);T.set('actions_M-PATH',0);T.set('avg_shapes_M-ELAB','0');
+  T.log('phase_scored');
+  $('#keep').innerHTML='<button class="add" id="nameBtn">✓ Name it &amp; new idea</button><button class="ghost-btn" id="done">Done → results</button>';
+  $('#nameBtn').onclick=openNameMenu;$('#done').onclick=finish;
+}
+function finish(){
+  T.log('SESSION_END',{fluency:creations.length,kinds:cats.size,originality:orig,avg_shapes:+(totalShapes/(creations.length||1)).toFixed(1),actions});
+  $('#prompt').innerHTML='<b style="color:var(--gold);font-size:19px">Nice making! 🎨</b> '+creations.length+' pictures · '+cats.size+' kinds · '+orig+' rare · '+(totalShapes/(creations.length||1)).toFixed(1)+' shapes each.';
+  $('#keep').innerHTML='<button class="add" onclick="location.reload()">↺ Play again</button>';
+  T.set('phase','done');
+}
+window.addEventListener('blur',()=>{T.off++;T.set('idle_s_M-ENGAGE',(T.idle/1000).toFixed(1)+' /'+T.off+'blur');T.log('off_task_blur_M-ENGAGE');});
+runGhost();
+</script>
+</body>
+</html>

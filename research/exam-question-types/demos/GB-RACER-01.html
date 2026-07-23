@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GB-RACER-01 · Sky Courier</title>
+<style>
+  :root{--bg1:#e8f7ff;--bg2:#eafff0;--ink:#26304a;--card:#fff;--accent:#0ea5e9;--good:#22b573;--bad:#ff6b6b;
+    --tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box}html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:12px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
+  #phasecue{font-size:32px;height:38px}
+  #stagecard{background:var(--card);border-radius:24px;padding:20px;box-shadow:0 18px 50px -22px #4a4a7a;
+    display:flex;flex-direction:column;align-items:center;gap:12px;width:400px;max-width:100%}
+  #instr{font-size:14px;color:#666;min-height:20px;text-align:center}
+  #sign{width:96px;height:96px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:56px;
+    background:#f3f6ff;border:3px solid #e2e8fb;transition:.1s}
+  #road{position:relative;width:320px;height:150px;background:linear-gradient(#dff1ff,#eaf6ff);border-radius:16px;overflow:hidden;border:3px solid #d7e9ff}
+  #gate{position:absolute;top:0;height:100%;width:70px;background:rgba(34,181,115,.16);border-left:3px dashed #22b573;border-right:3px dashed #22b573}
+  #courier{position:absolute;bottom:14px;font-size:40px;transform:translateX(-50%)}
+  #onpath{font-size:12px;color:#0a8}
+  #btns{display:flex;gap:14px}
+  .b{width:88px;height:60px;border-radius:14px;border:3px solid #d7deff;background:#eef2ff;font-size:26px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  #collect{background:#ffe9a8;border-color:#f5cf6b}
+  #controls{display:flex;gap:14px;align-items:center}
+  button{font:inherit;border:0;cursor:pointer}
+  #replay{width:44px;height:44px;background:#eef1ff;color:#5b6cff;font-size:20px;border-radius:50%}
+  #ghost{position:fixed;left:0;top:0;font-size:36px;pointer-events:none;z-index:60;opacity:0;
+    transition:transform .45s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;
+    font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:104px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}.mval{color:#fff}
+  .mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:180px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}.t{color:#5f6f9e}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:280px}}
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">GB-RACER-01 · Sky Courier</div>
+    <div id="phasecue">👁️</div>
+    <div id="stagecard">
+      <div id="instr"></div>
+      <div id="sign">🚦</div>
+      <div id="road"><div id="gate"></div><div id="courier">📦</div></div>
+      <div id="onpath"></div>
+      <div id="btns"><div class="b" data-a="L">◀</div><div class="b" id="collect" data-a="C">COLLECT ⭐</div><div class="b" data-a="R">▶</div></div>
+      <div id="controls"><button id="replay" title="replay demo">↻</button></div>
+    </div>
+  </div>
+  <aside id="telemetry"><h3>Live telemetry · per-child</h3><div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div></aside>
+  <div id="ghost">👆</div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):null;
+const sd=a=>{if(a.length<2)return null;const m=a.reduce((x,y)=>x+y,0)/a.length;return Math.round(Math.sqrt(a.reduce((s,x)=>s+(x-m)**2,0)/(a.length-1)))};
+const maxA=a=>a.length?Math.max(...a):null;
+
+const T={singleRT:[],dualRT:[],hits:0,targets:0,fa:0,onPath:0,frames:0,combo:0,maxCombo:0,idle:0,lapses:0,correct:0,total:0};
+const METERS=[
+ {id:'M-RT',name:'Target RT (single / dual)',get:()=>`${mean(T.singleRT)??'—'} / ${mean(T.dualRT)??'—'} ms`},
+ {id:'M-ACC',name:'Response accuracy',get:()=>T.total?`${T.correct}/${T.total}  ${Math.round(100*T.correct/T.total)}%`:'—'},
+ {id:'M-SPEEDACC',name:'Multitask cost (dual−single)',get:()=>{const s=mean(T.singleRT),d=mean(T.dualRT);return s!=null&&d!=null?(d-s)+' ms':'—'}},
+ {id:'M-COMBO',name:'Accuracy-gated max combo',get:()=>T.maxCombo+''},
+ {id:'M-FALSEALARM',name:'Non-target taps (FA)',get:()=>T.fa+''},
+ {id:'M-RTVAR',name:'RT variability (SD dual)',get:()=>sd(T.dualRT)==null?'—':sd(T.dualRT)+' ms'},
+ {id:'M-LAPSE',name:'Lapses (>800ms)',get:()=>T.lapses+''},
+ {id:'M-ENGAGE',name:'On-path % (steering)',get:()=>T.frames?Math.round(100*T.onPath/T.frames)+'%':'—'},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('')}
+function renderMeters(){METERS.forEach(m=>{const e=$('#v_'+m.id);if(e)e.textContent=m.get()})}
+function log(msg){const d=document.createElement('div');d.innerHTML=`<span class="t">•</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight}
+const ghost=$('#ghost');const gShow=v=>ghost.classList.toggle('show',v);
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}}
+async function gTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-8}px,${c.y-6}px)`;await sleep(420)}
+
+let phase='demo',steer=false,cx=160,vel=0,gx=160,tt=0,loop=null;
+const setCue=i=>$('#phasecue').textContent=i;
+function tick(){tt+=0.045;gx=160+90*Math.sin(tt);
+  if(steer){cx+=vel;vel*=0.86;}else{cx+=(gx-cx)*0.18;}
+  cx=Math.max(30,Math.min(290,cx));
+  $('#courier').style.left=cx+'px';$('#gate').style.left=(gx-35)+'px';
+  const on=Math.abs(cx-gx)<45;if(steer){T.frames++;if(on)T.onPath++}
+  $('#onpath').textContent=steer?(on?'on the path ✓':'drifting…'):'auto-pilot';
+  if(steer&&T.frames%6===0)renderMeters()}
+function startLoop(){if(!loop)loop=setInterval(tick,45)}
+function nudge(dir){if(!steer)return;vel+=dir*7}
+// present a sign; target=⭐ collect; nontarget=⬛ withhold
+function signTrial(isTarget,dual){return new Promise(res=>{const el=$('#sign');el.textContent=isTarget?'⭐':'⬛';el.style.background=isTarget?'#fff7d6':'#eef0f5';
+  let t0=performance.now(),done=false;if(isTarget)T.targets++;
+  const collect=$('#collect');
+  const onC=()=>{if(done)return;done=true;const rt=Math.round(performance.now()-t0);finishTrial(isTarget,true,rt,dual)};
+  collect.addEventListener('click',onC);
+  const to=setTimeout(()=>{if(done)return;done=true;finishTrial(isTarget,false,null,dual)},1150);
+  function finishTrial(tg,tapped,rt,d){collect.removeEventListener('click',onC);clearTimeout(to);el.style.background='#f3f6ff';el.textContent='🚦';
+    T.total++;
+    if(tg&&tapped){T.hits++;T.correct++;(d?T.dualRT:T.singleRT).push(rt);if(rt>800)T.lapses++;T.combo++;T.maxCombo=Math.max(T.maxCombo,T.combo);log(`${d?'[dual]':'[single]'} ⭐ collected rt ${rt}`)}
+    else if(tg&&!tapped){T.combo=0;log(`${d?'[dual]':'[single]'} ⭐ MISSED`)}
+    else if(!tg&&tapped){T.fa++;T.combo=0;log(`${d?'[dual]':'[single]'} ⬛ false alarm ✗`)}
+    else{T.correct++;log(`${d?'[dual]':'[single]'} ⬛ withheld ✓`)}
+    renderMeters();res()}})}
+async function block(n,dual){steer=dual;for(let i=0;i<n;i++){await sleep(650);const isT=Math.random()<0.6;await signTrial(isT,dual)}}
+async function startWarmup(){phase='warmup';setCue('⭐');$('#instr').textContent='Tap COLLECT for ⭐ only (ignore ⬛)';startLoop();log('— warm-up (unscored, signs only) —');
+  await block(3,false);startSingle()}
+async function startSingle(){phase='single';setCue('🎯');$('#instr').textContent='Signs only — tap COLLECT for ⭐';log('— SCORED single-task block (auto-pilot) —');
+  await block(5,false);startDual()}
+async function startDual(){phase='dual';setCue('🎮');$('#instr').textContent='Now STEER ◀▶ to stay in the gate AND collect ⭐';log('— SCORED dual-task block (steer + signs) —');
+  await block(6,true);finish()}
+function finish(){phase='done';setCue('🏆');steer=false;const s=mean(T.singleRT),d=mean(T.dualRT);
+  log(`— DONE · single ${s}ms → dual ${d}ms · multitask cost ${s!=null&&d!=null?(d-s):'—'}ms · on-path ${T.frames?Math.round(100*T.onPath/T.frames):0}% —`);renderMeters()}
+async function runDemo(){phase='demo';setCue('👁️');$('#instr').textContent='';startLoop();log('ghost-hand demo (wordless, <10s)');gShow(true);
+  $('#sign').textContent='⭐';await gTo($('#collect'));$('#collect').style.background='#ffe08a';await sleep(300);$('#collect').style.background='';
+  $('#sign').textContent='⬛';await gTo($('#sign'));await sleep(500);$('#sign').textContent='🚦';
+  steer=true;await gTo($('.b[data-a="L"]'));nudge(-1);await sleep(300);await gTo($('.b[data-a="R"]'));nudge(1);await sleep(400);steer=false;
+  gShow(false);await sleep(400);startWarmup()}
+$('#btns').addEventListener('click',e=>{const b=e.target.closest('.b');if(!b)return;const a=b.dataset.a;if(a==='L')nudge(-1);else if(a==='R')nudge(1)});
+$('#replay').addEventListener('click',()=>{if(phase==='done')runDemo()});
+buildMeters();renderMeters();runDemo();
+</script>
+</body>
+</html>

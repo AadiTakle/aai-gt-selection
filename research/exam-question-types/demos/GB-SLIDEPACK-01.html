@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GB-SLIDEPACK-01 · Slide &amp; Stack</title>
+<style>
+  :root{--bg1:#fdf0ff;--bg2:#e8f0ff;--ink:#26304a;--card:#fff;--accent:#c04bff;--good:#22b573;--bad:#ff6b6b;
+    --tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box}html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:12px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
+  #phasecue{font-size:32px;height:38px}
+  #stagecard{background:var(--card);border-radius:24px;padding:22px;box-shadow:0 18px 50px -22px #4a4a7a;
+    display:flex;flex-direction:column;align-items:center;gap:16px}
+  #goalwrap{font-size:13px;color:#777;display:flex;flex-direction:column;align-items:center;gap:6px}
+  .board{display:grid;gap:6px;background:#e5d4f2;padding:8px;border-radius:14px}
+  .tile{width:64px;height:64px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;
+    font-size:36px;cursor:pointer;transition:.1s;box-shadow:0 3px 0 #d8c6e8;-webkit-tap-highlight-color:transparent}
+  .tile.blank{background:transparent;box-shadow:none;cursor:default}
+  .tile.movable:hover{transform:scale(1.05);outline:3px solid var(--accent)}
+  .mini .tile{width:34px;height:34px;font-size:20px;box-shadow:none}
+  #controls{display:flex;gap:14px;align-items:center}
+  button{font:inherit;border:0;cursor:pointer;border-radius:50%}
+  #replay{width:48px;height:48px;background:#eef1ff;color:#5b6cff;font-size:22px}
+  #ghost{position:fixed;left:0;top:0;font-size:38px;pointer-events:none;z-index:60;opacity:0;
+    transition:transform .6s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;
+    font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:104px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}.mval{color:#fff}
+  .mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:200px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}.t{color:#5f6f9e}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:280px}}
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">GB-SLIDEPACK-01 · Slide &amp; Stack</div>
+    <div id="phasecue">👁️</div>
+    <div id="stagecard">
+      <div id="goalwrap"><span>goal picture</span><div id="goal" class="board mini"></div></div>
+      <div id="board" class="board"></div>
+      <div id="controls"><button id="replay" title="replay demo">↻</button></div>
+    </div>
+  </div>
+  <aside id="telemetry"><h3>Live telemetry · per-child</h3><div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div></aside>
+  <div id="ghost">👆</div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const ICONS=['🍎','🍌','🍇','🍊','🍓','🥝'];
+// solved: tiles 1..(R*C-1) then 0(blank). state = array of tile ids.
+function solvedState(R,C){const a=[];for(let i=1;i<R*C;i++)a.push(i);a.push(0);return a}
+function neighbors(state,R,C){const bi=state.indexOf(0),br=(bi/C)|0,bc=bi%C,out=[];
+  for(const[dr,dc]of[[1,0],[-1,0],[0,1],[0,-1]]){const nr=br+dr,nc=bc+dc;
+    if(nr<0||nc<0||nr>=R||nc>=C)continue;const ni=nr*C+nc;const s=state.slice();[s[bi],s[ni]]=[s[ni],s[bi]];out.push([s,state[ni]])}
+  return out}
+function distMap(R,C){const solved=solvedState(R,C).join(',');const dist={[solved]:0};const q=[solvedState(R,C)];
+  while(q.length){const st=q.shift();const d=dist[st.join(',')];for(const[ns]of neighbors(st,R,C)){const k=ns.join(',');if(!(k in dist)){dist[k]=d+1;q.push(ns)}}}return dist}
+
+const T={itemStart:0,moves:0,firstLat:null,firstActed:false,opt:0,prevMovedTile:null,rev:0,scored:0,correct:0,visited:null,inPlace:0,total:0};
+const METERS=[
+ {id:'M-ACC',name:'Solved (scored)',get:()=>T.scored?`${T.correct}/${T.scored}`:'—'},
+ {id:'M-EFF',name:'Moves vs optimal',get:()=>T.opt?`${T.opt}/${T.moves}  ${T.moves?Math.round(100*T.opt/T.moves):0}%`:'—'},
+ {id:'M-PATH',name:'Moves made',get:()=>T.moves+''},
+ {id:'M-REV',name:'Undo/back-slides',get:()=>T.rev+''},
+ {id:'M-RTFIRST',name:'First-move latency (plan)',get:()=>T.firstLat==null?'—':T.firstLat+' ms'},
+ {id:'M-EXPLORE',name:'Distinct states visited',get:()=>T.visited?T.visited.size:0},
+ {id:'M-PROG',name:'Tiles in place',get:()=>T.inPlace+'/'+T.total},
+ {id:'M-PERSIST',name:'Time-on-task (ms)',get:()=>T.itemStart?(Date.now()-T.itemStart):'—'},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('')}
+function renderMeters(){METERS.forEach(m=>{const e=$('#v_'+m.id);if(e)e.textContent=m.get()})}
+function log(msg){const t=T.itemStart?Date.now()-T.itemStart:0;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight}
+const ghost=$('#ghost');const gShow=v=>ghost.classList.toggle('show',v);
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}}
+async function gTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-8}px,${c.y-6}px)`;await sleep(600)}
+
+let phase='demo',R,C,state,dist,locked=false;
+const setCue=i=>$('#phasecue').textContent=i;
+function renderGoal(){const g=$('#goal');g.style.gridTemplateColumns=`repeat(${C},34px)`;g.innerHTML='';
+  solvedState(R,C).forEach(t=>{const d=document.createElement('div');d.className='tile'+(t===0?' blank':'');d.textContent=t?ICONS[t-1]:'';g.appendChild(d)})}
+function render(){const b=$('#board');b.style.gridTemplateColumns=`repeat(${C},64px)`;b.innerHTML='';
+  const bi=state.indexOf(0);
+  state.forEach((t,i)=>{const d=document.createElement('div');d.className='tile'+(t===0?' blank':'');d.dataset.i=i;d.textContent=t?ICONS[t-1]:'';
+    const br=(bi/C)|0,bc=bi%C,r=(i/C)|0,c=i%C;if(t!==0&&Math.abs(r-br)+Math.abs(c-bc)===1)d.classList.add('movable');
+    b.appendChild(d)});computeProgress()}
+function computeProgress(){const sol=solvedState(R,C);T.inPlace=0;T.total=R*C-1;for(let i=0;i<sol.length;i++)if(state[i]!==0&&state[i]===sol[i])T.inPlace++}
+function scramble(R,C,k){let s=solvedState(R,C);let prev=null;for(let n=0;n<k;n++){const nb=neighbors(s,R,C).filter(x=>x[1]!==prev);const pick=nb[Math.random()*nb.length|0];prev=s[s.indexOf(0)];s=pick[0]}return s}
+function newLevel(r,c,k){R=r;C=c;dist=distMap(R,C);do{state=scramble(R,C,k)}while(dist[state.join(',')]===0);
+  T.itemStart=Date.now();T.moves=0;T.firstActed=false;T.firstLat=null;T.opt=dist[state.join(',')];T.rev=0;T.prevMovedTile=null;T.visited=new Set([state.join(',')]);locked=false;
+  renderGoal();render();renderMeters()}
+function tapTile(i){if(locked)return;const bi=state.indexOf(0);const br=(bi/C)|0,bc=bi%C,r=(i/C)|0,c=i%C;
+  if(Math.abs(r-br)+Math.abs(c-bc)!==1)return;const tile=state[i];
+  if(!T.firstActed){T.firstActed=true;T.firstLat=Date.now()-T.itemStart;log('first move (after planning)')}
+  if(tile===T.prevMovedTile)T.rev++;T.prevMovedTile=tile;
+  [state[bi],state[i]]=[state[i],state[bi]];T.moves++;T.visited.add(state.join(','));render();renderMeters();
+  log('slid '+ICONS[tile-1]+'  (dist→'+dist[state.join(',')]+')');
+  if(dist[state.join(',')]===0)solved()}
+function solved(){locked=true;render();
+  if(phase==='scored'){T.scored++;T.correct++;setCue('🏆');log(`SOLVED · moves ${T.moves} (optimal ${T.opt}) · back-slides ${T.rev} · firstLat ${T.firstLat}ms`);renderMeters();setTimeout(finish,1200)}
+  else{log('warm-up solved (unscored)');setTimeout(startScored,1100)}}
+function startWarmup(){phase='warmup';setCue('⭐');newLevel(2,2,2);log('— warm-up (unscored): slide tiles to match the goal —')}
+function startScored(){phase='scored';setCue('🎯');newLevel(2,3,7);log('— SCORED: match the goal picture in fewest slides —')}
+function finish(){phase='done';locked=true}
+async function runDemo(){phase='demo';setCue('👁️');newLevel(2,2,1);log('ghost-hand demo (wordless, <10s)');gShow(true);await sleep(400);
+  // one move to solve: find the movable tile whose move reaches solved
+  const bi=state.indexOf(0);let target=-1;state.forEach((t,i)=>{if(t===0)return;const s=state.slice();[s[bi],s[i]]=[s[i],s[bi]];if(dist[s.join(',')]===0)target=i});
+  if(target>=0){await gTo($(`.tile[data-i="${target}"]`));const s=state.slice();[s[bi],s[target]]=[s[target],s[bi]];state=s;render();}
+  await sleep(500);gShow(false);await sleep(600);startWarmup()}
+$('#board').addEventListener('click',e=>{const t=e.target.closest('.tile');if(t&&!t.classList.contains('blank'))tapTile(+t.dataset.i)});
+$('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo()});
+buildMeters();renderMeters();runDemo();
+</script>
+</body>
+</html>

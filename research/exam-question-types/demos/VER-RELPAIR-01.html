@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VER-RELPAIR-01 — Relation Match</title>
+<style>
+  :root{--bg:#0e1424;--panel:#161f38;--ink:#eaf0ff;--dim:#93a2c9;--accent:#54d6ff;
+    --good:#43e59a;--bad:#ff6b7d;--warn:#ffd166;--line:#26314f}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{background:radial-gradient(1200px 700px at 70% -10%,#1a2b45,transparent),linear-gradient(180deg,#0e1424,#0b0f1c);
+    color:var(--ink);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden}
+  .wrap{display:grid;grid-template-columns:1fr 340px;gap:14px;height:100vh;padding:14px}
+  @media(max-width:820px){.wrap{grid-template-columns:1fr;grid-template-rows:1fr auto;overflow:auto;height:auto;min-height:100vh}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px}
+  header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px}
+  header h1{font-size:16px;margin:0}header .id{color:var(--dim);font-size:12px}
+  .badge{padding:5px 12px;border-radius:999px;font-size:12px;font-weight:700;background:#2a3352}
+  .badge.demo{background:#3a2f5e;color:#d7c4ff}.badge.warm{background:#123c46;color:#8fe9ff}
+  .badge.play{background:#123c2b;color:#8bf0c0}.badge.done{background:#402a2f;color:#ffb0bb}
+  .stage{position:relative;display:flex;flex-direction:column;height:calc(100% - 54px);min-height:520px;padding:16px;overflow:hidden}
+  .prompt{color:var(--dim);text-align:center;min-height:22px;margin-bottom:8px;font-size:14px}
+  .arena{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;position:relative}
+  .keybox{padding:6px 8px;border:1px dashed var(--warn);border-radius:14px}
+  .keylab{font-size:11px;color:var(--warn);text-transform:uppercase;letter-spacing:.6px;text-align:center;margin-bottom:4px}
+  .pair{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:800}
+  .pw{padding:9px 14px;border-radius:12px;background:#0d1730;border:2px solid #2b3a5f;min-width:64px;text-align:center}
+  .arrow{color:var(--accent);font-size:22px}
+  .cands{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;max-width:620px}
+  .cand{cursor:pointer;border-radius:14px;border:2px solid #2b3a5f;background:linear-gradient(180deg,#0d1730,#0b1220);padding:12px;transition:transform .06s,box-shadow .15s,border-color .15s}
+  .cand:active{transform:scale(.97)}
+  .cand.hover{border-color:#4a6ea0}
+  .cand.pick{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent) inset}
+  .cand.good{border-color:var(--good);box-shadow:0 0 0 3px var(--good) inset;animation:pop .3s}
+  .cand.bad{border-color:var(--bad);box-shadow:0 0 0 3px var(--bad) inset}
+  .cand.ghosttap{box-shadow:0 0 0 4px var(--accent) inset;transform:scale(.94)}
+  @keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.1)}100%{transform:scale(1)}}
+  .cap{font-size:12px;color:var(--dim)}
+  .bigstart{margin-top:6px;text-align:center;min-height:52px}
+  button.cta{background:linear-gradient(180deg,#3aa9ff,#2b7fe0);color:#04122b;border:0;font-weight:800;padding:14px 26px;border-radius:14px;font-size:16px;cursor:pointer;box-shadow:0 6px 18px #1f6bd155}
+  button.cta:active{transform:translateY(1px)}
+  .ghost{position:absolute;font-size:38px;pointer-events:none;left:-999px;top:-999px;
+    transition:left .45s cubic-bezier(.3,.7,.3,1),top .45s cubic-bezier(.3,.7,.3,1);z-index:6;filter:drop-shadow(0 3px 4px #000a)}
+  .tel{padding:14px;display:flex;flex-direction:column;min-height:0}
+  .tel h2{font-size:13px;margin:0 0 10px;color:var(--accent);text-transform:uppercase;letter-spacing:1.4px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .tile{background:#0f1830;border:1px solid var(--line);border-radius:12px;padding:9px 10px}
+  .tile.hl{border-color:#2f5c7a;background:#0e2233}
+  .tile .k{font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px}
+  .tile .v{font-size:19px;font-weight:800;margin-top:2px}.tile .m{font-size:10px;color:#6f80ab;margin-top:1px}
+  .log{margin-top:12px;flex:1;overflow:auto;background:#0b1220;border:1px solid var(--line);border-radius:10px;padding:8px;font:11.5px/1.5 ui-monospace,Menlo,Consolas,monospace;color:#b9c6e6;min-height:110px}
+  .log div{padding:1px 0;border-bottom:1px dashed #1a2540}
+  .log .g{color:var(--good)}.log .b{color:var(--bad)}.log .y{color:var(--warn)}.log .d{color:var(--dim)}
+  .foot{color:#5f6f97;font-size:10.5px;margin-top:8px}.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section class="card" style="display:flex;flex-direction:column">
+    <header>
+      <div><h1>🧩 Relation Match</h1><div class="id">VER-RELPAIR-01 · verbal_analogy + verbal_classification · match the relationship</div></div>
+      <div id="badge" class="badge demo">WATCH</div>
+    </header>
+    <div class="stage">
+      <div class="prompt" id="prompt">Watch the hand…</div>
+      <div class="arena" id="arena">
+        <div class="keybox"><div class="keylab">this pair goes together like…</div>
+          <div class="pair"><div class="pw" id="ka">—</div><span class="arrow">→</span><div class="pw" id="kb">—</div></div></div>
+        <div class="cap">Pick the OTHER pair with the same relationship (not just a word about the same topic).</div>
+        <div class="cands" id="cands"></div>
+        <div class="bigstart" id="startBox"></div>
+        <div class="ghost hidden" id="ghost">👆</div>
+      </div>
+    </div>
+  </section>
+  <aside class="card tel">
+    <h2>Live telemetry</h2>
+    <div class="grid">
+      <div class="tile hl"><div class="k">Accuracy</div><div class="v" id="m_acc">–</div><div class="m">M-ACC</div></div>
+      <div class="tile"><div class="k">Mean RT</div><div class="v" id="m_rt">–</div><div class="m">M-RT</div></div>
+      <div class="tile"><div class="k">First action</div><div class="v" id="m_first">–</div><div class="m">M-RTFIRST</div></div>
+      <div class="tile hl"><div class="k">Ceiling lvl</div><div class="v" id="m_diff">–</div><div class="m">M-DIFFREACH</div></div>
+      <div class="tile hl"><div class="k">Pairs sampled</div><div class="v" id="m_expl">–</div><div class="m">M-EXPLORE</div></div>
+      <div class="tile"><div class="k">Lure profile</div><div class="v" id="m_lure">–</div><div class="m">M-LURETYPE</div></div>
+      <div class="tile"><div class="k">Err type</div><div class="v" id="m_err">–</div><div class="m">M-ERRTYPE</div></div>
+      <div class="tile"><div class="k">Items</div><div class="v" id="m_n">0</div><div class="m">scored</div></div>
+    </div>
+    <div class="log" id="log"></div>
+    <div class="foot">Associate lures (same topic, wrong relation) reveal surface vs relational matching at the tail.</div>
+  </aside>
+</div>
+<script>
+(function(){
+  "use strict";
+  var $=function(id){return document.getElementById(id)};var now=function(){return performance.now()};
+  // key pair, candidates {a,b,l: correct|associate|surface|reversal}, level
+  var BANK=[
+    {ka:"bird",kb:"nest",lvl:1,c:[{a:"bee",b:"hive",l:"correct"},{a:"dog",b:"bone",l:"associate"},{a:"nest",b:"egg",l:"surface"},{a:"fish",b:"fin",l:"reversal"}]},
+    {ka:"hand",kb:"glove",lvl:1,c:[{a:"foot",b:"sock",l:"correct"},{a:"hand",b:"wave",l:"associate"},{a:"glove",b:"warm",l:"surface"},{a:"head",b:"hair",l:"reversal"}]},
+    {ka:"cub",kb:"bear",lvl:2,c:[{a:"chick",b:"hen",l:"correct"},{a:"bear",b:"cave",l:"associate"},{a:"cub",b:"club",l:"surface"},{a:"bear",b:"cub",l:"reversal"}]},
+    {ka:"whisper",kb:"shout",lvl:3,c:[{a:"glow",b:"blaze",l:"correct"},{a:"whisper",b:"secret",l:"associate"},{a:"shout",b:"loud",l:"surface"},{a:"blaze",b:"glow",l:"reversal"}]},
+    {ka:"author",kb:"novel",lvl:3,c:[{a:"composer",b:"symphony",l:"correct"},{a:"author",b:"library",l:"associate"},{a:"novel",b:"chapter",l:"surface"},{a:"painting",b:"painter",l:"reversal"}]},
+    {ka:"drought",kb:"famine",lvl:4,c:[{a:"spark",b:"wildfire",l:"correct"},{a:"drought",b:"desert",l:"associate"},{a:"famine",b:"hunger",l:"surface"},{a:"famine",b:"drought",l:"reversal"}]}
+  ];
+  var N=6;
+  var S={n:0,ok:0,rts:[],firsts:[],expl:0,lures:{associate:0,surface:0,reversal:0},near:0,ceil:0};
+  var phase="demo",picked=false,itemStart=0,firstAt=0,tappedFirst=false,cur=null,sampled={};
+
+  function log(m,c){var l=$("log"),d=document.createElement("div");if(c)d.className=c;d.textContent=m;l.insertBefore(d,l.firstChild);}
+  function mean(a){if(!a.length)return 0;for(var i=0,s=0;i<a.length;i++)s+=a[i];return s/a.length;}
+  function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+  function render(){
+    $("m_acc").textContent=S.n?Math.round(100*S.ok/S.n)+"%":"–";
+    $("m_rt").textContent=S.rts.length?Math.round(mean(S.rts))+"ms":"–";
+    $("m_first").textContent=S.firsts.length?Math.round(mean(S.firsts))+"ms":"–";
+    $("m_diff").textContent=S.ceil?("L"+S.ceil):"–";
+    $("m_expl").textContent=S.n?(Math.round(10*S.expl/S.n)/10+"/item"):"–";
+    var tot=S.lures.associate+S.lures.surface+S.lures.reversal;
+    $("m_lure").textContent=tot?("assoc "+S.lures.associate+"·rev "+S.lures.reversal):"clean";
+    $("m_err").textContent=tot?(S.near+" near"):"–";$("m_n").textContent=S.n;
+  }
+  function draw(it){
+    cur=it;$("ka").textContent=it.ka;$("kb").textContent=it.kb;
+    var box=$("cands");box.innerHTML="";sampled={};
+    shuffle(it.c.slice()).forEach(function(o){
+      var d=document.createElement("div");d.className="cand";d.dataset.l=o.l;
+      d.innerHTML='<div class="pair"><div class="pw">'+o.a+'</div><span class="arrow">→</span><div class="pw">'+o.b+'</div></div>';
+      d.addEventListener("mouseenter",function(){if(phase==="play"&&!sampled[o.a]){sampled[o.a]=1;S.expl++;}d.classList.add("hover");});
+      d.addEventListener("mouseleave",function(){d.classList.remove("hover");});
+      d.addEventListener("click",function(){onPick(d,o);});
+      box.appendChild(d);
+    });
+    picked=false;tappedFirst=false;itemStart=now();firstAt=0;
+  }
+  function onPick(el,o){
+    if(picked||phase==="demo")return;
+    if(!tappedFirst){tappedFirst=true;firstAt=now()-itemStart;}
+    picked=true;var rt=now()-itemStart;var correct=(o.l==="correct");
+    document.querySelectorAll(".cand").forEach(function(x){x.style.pointerEvents="none";});
+    el.classList.add(correct?"good":"bad");
+    if(phase==="warm"){log("warm-up: "+(correct?"correct":o.a+"→"+o.b)+" (not scored)","d");
+      setTimeout(function(){$("prompt").textContent="Ready? Now it counts.";
+        $("startBox").innerHTML='<button class="cta" id="go">Start scored round ▸</button>';$("go").onclick=startScored;},600);return;}
+    S.n++;S.rts.push(rt);S.firsts.push(firstAt);
+    if(correct){S.ok++;S.ceil=Math.max(S.ceil,cur.lvl);log("✓ "+cur.ka+":"+cur.kb+" :: "+o.a+":"+o.b+" "+Math.round(rt)+"ms","g");}
+    else{S.lures[o.l]=(S.lures[o.l]||0)+1;if(o.l==="reversal"||o.l==="associate")S.near++;
+      log("✗ "+o.a+"→"+o.b+" ("+o.l+" lure) "+Math.round(rt)+"ms","b");}
+    render();setTimeout(function(){if(S.n>=N)finish();else nextScored();},650);
+  }
+  function moveGhost(el,cb){var g=$("ghost"),a=$("arena");g.classList.remove("hidden");
+    var ar=a.getBoundingClientRect(),tr=el.getBoundingClientRect();
+    g.style.left=(tr.left-ar.left+tr.width*0.5)+"px";g.style.top=(tr.top-ar.top+tr.height*0.5)+"px";setTimeout(cb,470);}
+  function ghostTap(el,cb){el.classList.add("ghosttap");setTimeout(function(){el.classList.remove("ghosttap");el.classList.add("good");cb&&cb();},320);}
+  function runDemo(){
+    phase="demo";$("badge").className="badge demo";$("badge").textContent="WATCH";
+    $("prompt").textContent="bird→nest means 'lives in'. The hand skips dog→bone (just a topic) and picks bee→hive.";
+    draw(BANK[0]);
+    var cs=document.querySelectorAll(".cand"),correctEl=null,assocEl=null;
+    cs.forEach(function(x){if(x.dataset.l==="correct")correctEl=x;if(x.dataset.l==="associate")assocEl=x;});
+    var seq=[
+      function(n){moveGhost(assocEl||cs[0],function(){n(150);});},
+      function(n){moveGhost(correctEl,function(){n(80);});},
+      function(n){ghostTap(correctEl,function(){log("demo: bird:nest :: bee:hive","d");n(700);});},
+      function(n){$("ghost").classList.add("hidden");startWarm();}
+    ];
+    var i=0;(function nx(d){if(i>=seq.length)return;var f=seq[i++];setTimeout(function(){f(nx);},d||0);})(500);
+  }
+  function startWarm(){phase="warm";$("badge").className="badge warm";$("badge").textContent="WARM-UP";
+    $("prompt").textContent="Your turn (not counted): fish→water, so which pair matches?";
+    draw({ka:"fish",kb:"water",lvl:1,c:[{a:"bird",b:"sky",l:"correct"},{a:"fish",b:"scale",l:"associate"},{a:"water",b:"wet",l:"surface"},{a:"sky",b:"bird",l:"reversal"}]});}
+  function startScored(){phase="play";S.n=0;S.ok=0;S.rts=[];S.firsts=[];S.expl=0;S.lures={associate:0,surface:0,reversal:0};S.near=0;S.ceil=0;
+    $("badge").className="badge play";$("badge").textContent="SCORED";$("startBox").innerHTML="";render();nextScored();}
+  function nextScored(){var it=BANK[Math.min(S.n,BANK.length-1)];$("prompt").textContent="Item "+(S.n+1)+" / "+N+" — match the relationship.";draw(it);}
+  function finish(){phase="done";$("badge").className="badge done";$("badge").textContent="DONE";$("cands").innerHTML="";
+    $("prompt").textContent="Done! "+Math.round(100*S.ok/S.n)+"% · reached relation level L"+S.ceil+".";
+    log("── done: "+S.ok+"/"+S.n+", ceiling L"+S.ceil+" ──","y");
+    $("startBox").innerHTML='<button class="cta" id="again">Play again ▸</button>';$("again").onclick=startScored;}
+  window.addEventListener("blur",function(){if(phase==="play"||phase==="warm")log("focus lost (M-ENGAGE)","y");});
+  log("Loaded VER-RELPAIR-01. Watch the wordless demo…","d");render();runDemo();
+})();
+</script>
+</body>
+</html>

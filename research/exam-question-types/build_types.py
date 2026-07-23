@@ -73,7 +73,7 @@ def main():
             seen_ids.add(o["type_id"])
             if not set(o["areas"]) <= set(AREAS):
                 warnings.append(f"{name}:{i} {o['type_id']} bad areas {o['areas']}")
-            if not set(o["age_bands"]) <= set(BANDS):
+            if not set(o["age_bands"]) <= (set(BANDS) | {"K-8"}):
                 warnings.append(f"{name}:{i} {o['type_id']} bad age_bands {o['age_bands']}")
             dp = os.path.join(HERE, o["demo_path"])
             if not os.path.exists(dp):
@@ -108,8 +108,11 @@ def main():
     # coverage matrix
     cell = {(a, b): 0 for a in AREAS for b in BANDS}
     for r in rows:
+        rb = set(r["age_bands"])
+        if "K-8" in rb:
+            rb |= set(BANDS)  # a K-8 type applies to every band
         for a in r["areas"]:
-            for b in r["age_bands"]:
+            for b in rb:
                 if (a, b) in cell:
                     cell[(a, b)] += 1
     gaps = [(a, b, cell[(a, b)]) for a in AREAS for b in BANDS if cell[(a, b)] < MIN_PER_CELL]

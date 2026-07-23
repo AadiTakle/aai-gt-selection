@@ -1,12 +1,12 @@
 {
-  "wave": 2,
-  "phase": "coverage",
-  "wave1_committed": "1743f47",
-  "baseline": {
-    "types": 60,
-    "measurements": 62,
-    "coverage_ge3_pct": 5,
-    "top_gt": 165
+  "wave": 3,
+  "phase": "coverage+gamebased",
+  "wave2_committed": "ceb5220",
+  "coverage": {
+    "types": 100,
+    "top_gt": 160,
+    "ge3_pct": 45,
+    "zero": 38
   },
-  "note": "Wave 2 coverage-driven: 7 area agents add distinct types for under-covered cells (reuse measurement IDs). On completion: build+coverage+commit, then continue waves while RUN exists."
+  "note": "Wave 3: 1 cross-cutting game-based agent (new game_based shard, covers unmatched game techniques) + 7 area top-up agents for remaining <3 cells. Reuse measurement IDs."
 }
