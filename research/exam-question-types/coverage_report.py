@@ -1,0 +1,101 @@
+#!/usr/bin/env python3
+"""North-star metric: how many top-GT qbank items are representable by >=3 question types.
+
+A type REPRESENTS an item when: item.construct is in type.areas (for game_based items, the
+target construct parsed from 'targetconstruct:technique'), item.subconstruct/technique matches
+a token in type.topics_techniques_covered, and item.age_band is in type.age_bands.
+
+Reads catalog/top_gt_items.jsonl + catalog/master_types.jsonl.
+Writes catalog/COVERAGE_REPORT.md and prints a summary + the most under-covered cells.
+"""
+import json, os, re
+from collections import defaultdict, Counter
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+CAT = os.path.join(HERE, "catalog")
+TARGET = 3
+AREAS = {"fluid_reasoning", "verbal", "quantitative", "spatial",
+         "working_memory", "processing_speed", "complementary"}
+
+
+def norm(s):
+    return re.sub(r"[^a-z0-9]+", " ", str(s).lower()).strip()
+
+
+def load(path):
+    if not os.path.exists(path):
+        return []
+    return [json.loads(l) for l in open(path, encoding="utf-8") if l.strip()]
+
+
+def tokens_match(item_sub, type_tokens):
+    a = norm(item_sub)
+    if not a:
+        return False
+    for t in type_tokens:
+        b = norm(t)
+        if not b:
+            continue
+        if a == b or a in b or b in a:
+            return True
+    return False
+
+
+def area_and_sub(item):
+    c = item["construct"]
+    sub = item.get("subconstruct", "")
+    if c == "game_based" and ":" in sub:
+        tgt, tech = sub.split(":", 1)
+        tgt = norm(tgt).replace(" ", "_")
+        return (tgt if tgt in AREAS else None), tech
+    return c, sub
+
+
+def main():
+    items = load(os.path.join(CAT, "top_gt_items.jsonl"))
+    types = load(os.path.join(CAT, "master_types.jsonl"))
+
+    per_item = []
+    undercovered = Counter()
+    for it in items:
+        area, sub = area_and_sub(it)
+        band = it.get("age_band", "")
+        n = 0
+        for t in types:
+            areas = set(t.get("areas", []))
+            # area gate: unmapped game_based items skip the area gate (technique-only match)
+            if area is not None and area not in areas:
+                continue
+            if not tokens_match(sub, t.get("topics_techniques_covered", [])):
+                continue
+            tb = set(t.get("age_bands", []))
+            if band and band not in tb and "K-8" not in tb:
+                continue
+            n += 1
+        per_item.append((it["item_id"], area or it["construct"], sub, band, n))
+        if n < TARGET:
+            undercovered[(area or it["construct"], sub)] += 1
+
+    total = len(per_item)
+    ge3 = sum(1 for *_, n in per_item if n >= TARGET)
+    mid = sum(1 for *_, n in per_item if 1 <= n < TARGET)
+    zero = sum(1 for *_, n in per_item if n == 0)
+    pct = (100 * ge3 // total) if total else 0
+
+    lines = ["# Coverage report — top-GT item -> question-type representation", "",
+             f"**North star:** {ge3}/{total} top-GT items have >=%d representing types "
+             f"(**{pct}%%**). types in catalog: {len(types)}." % TARGET, "",
+             f"- >= {TARGET} types: {ge3}", f"- 1-{TARGET-1} types: {mid}", f"- 0 types: {zero}", "",
+             "## Most under-covered (construct, subconstruct) cells — target these next", ""]
+    for (a, s), c in undercovered.most_common(40):
+        lines.append(f"- {a} / {s}: {c} top-GT item(s) still < {TARGET}")
+    open(os.path.join(CAT, "COVERAGE_REPORT.md"), "w", encoding="utf-8").write("\n".join(lines) + "\n")
+
+    print(f"top_gt={total} ge{TARGET}={ge3} ({pct}%) mid={mid} zero={zero} types={len(types)}")
+    if undercovered:
+        print("top under-covered cells:",
+              ", ".join(f"{a}/{s}={c}" for (a, s), c in undercovered.most_common(10)))
+
+
+if __name__ == "__main__":
+    main()
