@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FLU-LADDER-01 — Ranking Ladder</title>
+<style>
+  :root{--bg:#0f1420;--panel:#182234;--ink:#eaf0fb;--mut:#9fb0cc;--good:#37d67a;--bad:#ff6b6b;--accent:#ffd166;--line:#2a3852}
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.45 system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink);display:flex;min-height:100vh}
+  .stage{flex:1;padding:20px;max-width:760px}
+  .side{width:320px;background:var(--panel);border-left:1px solid var(--line);padding:16px;overflow:auto}
+  h1{font-size:20px;margin:0 0 2px}
+  .sub{color:var(--mut);font-size:13px;margin-bottom:14px}
+  .banner{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:14px}
+  .phase{color:var(--accent);font-weight:700;letter-spacing:.4px;text-transform:uppercase;font-size:12px}
+  .ask{font-size:18px;margin-top:4px}
+  .row{display:flex;gap:16px;flex-wrap:wrap}
+  .clues{flex:1;min-width:220px}
+  .clue{display:flex;align-items:center;gap:8px;background:#111a2b;border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:8px;cursor:pointer;user-select:none}
+  .clue.hi{outline:2px solid var(--accent)}
+  .clue .big{font-size:26px}
+  .clue .rel{color:var(--mut);font-size:22px}
+  .ladder{width:220px}
+  .rung{display:flex;align-items:center;gap:10px;background:#0d1626;border:1px dashed #3a4c6e;border-radius:10px;padding:8px;margin-bottom:8px;min-height:52px;cursor:pointer}
+  .rung .mark{width:26px;text-align:center;font-size:18px;color:var(--accent)}
+  .rung.filled{border-style:solid}
+  .rung.correct{border-color:var(--good);background:#0f2a1c}
+  .rung.wrong{border-color:var(--bad);background:#2a1414}
+  .rung .slot{font-size:30px}
+  .tray{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+  .chip{font-size:32px;background:#111a2b;border:1px solid var(--line);border-radius:12px;padding:6px 10px;cursor:pointer}
+  .chip.sel{outline:3px solid var(--accent);transform:translateY(-2px)}
+  .chip.used{opacity:.25;pointer-events:none}
+  button.act{background:var(--accent);color:#20160a;border:0;border-radius:10px;padding:10px 16px;font-weight:700;font-size:15px;cursor:pointer;margin-right:8px}
+  button.ghost{background:#22304a;color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px 16px;cursor:pointer}
+  .tele h2{font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut);margin:14px 0 6px}
+  .kv{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;border-bottom:1px dotted #24344e}
+  .kv span:last-child{color:var(--accent);font-variant-numeric:tabular-nums}
+  .log{font:12px/1.4 ui-monospace,Menlo,monospace;color:#bcd;background:#0c1424;border:1px solid var(--line);border-radius:8px;padding:8px;height:150px;overflow:auto;white-space:pre-wrap}
+  .fb{font-weight:700;margin-top:8px;min-height:22px}
+  .hint{color:var(--mut);font-size:12px}
+</style>
+</head>
+<body>
+<div class="stage">
+  <h1>Ranking Ladder <span class="hint">· FLU-LADDER-01</span></h1>
+  <div class="sub">Stack the match-up clues to work out the whole order (transitive inference).</div>
+  <div class="banner">
+    <div class="phase" id="phase">Demo</div>
+    <div class="ask" id="ask">Watch the ghost-hand build the order…</div>
+  </div>
+  <div class="row">
+    <div class="clues">
+      <div class="hint">Clue cards — each shows one wins over the other:</div>
+      <div id="clueList"></div>
+      <div class="hint" style="margin-top:6px">Pick a character, then tap a rung. Tap a filled rung to clear it.</div>
+      <div class="tray" id="tray"></div>
+    </div>
+    <div class="ladder">
+      <div class="hint">Ladder — 🥇 top to bottom:</div>
+      <div id="ladderList"></div>
+    </div>
+  </div>
+  <div style="margin-top:12px">
+    <button class="act" id="doneBtn">Done</button>
+    <button class="ghost" id="nextBtn" style="display:none">Next ▶</button>
+    <span class="fb" id="fb"></span>
+  </div>
+</div>
+<div class="side tele">
+  <h2>Live telemetry</h2>
+  <div class="kv"><span>Phase</span><span id="t_phase">demo</span></div>
+  <div class="kv"><span>M-ACC (last item)</span><span id="t_acc">–</span></div>
+  <div class="kv"><span>M-RULEID (relations integrated)</span><span id="t_rule">–</span></div>
+  <div class="kv"><span>M-HYP (forced-first efficiency)</span><span id="t_hyp">–</span></div>
+  <div class="kv"><span>M-RTFIRST (first move, ms)</span><span id="t_rtf">–</span></div>
+  <div class="kv"><span>M-REV (reseats)</span><span id="t_rev">0</span></div>
+  <div class="kv"><span>M-ERRTYPE</span><span id="t_err">–</span></div>
+  <div class="kv"><span>M-DIFFREACH (chain len solved)</span><span id="t_reach">0</span></div>
+  <h2>M-PATH (placement log)</h2>
+  <div class="log" id="log"></div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const ANIMALS={bunny:"🐰",frog:"🐸",snail:"🐌",cat:"🐱",owl:"🦉",fox:"🦊"};
+// levels: order is best->worst (index 0 = gold). clues are [winner,loser] pairs.
+const LEVELS=[
+  {mode:"demo", order:["bunny","frog","snail"], clues:[["bunny","frog"],["frog","snail"]]},
+  {mode:"warmup", order:["cat","bunny","frog"], clues:[["cat","bunny"],["bunny","frog"]]},
+  {mode:"scored", order:["owl","cat","bunny","frog"], clues:[["owl","cat"],["cat","bunny"],["bunny","frog"]]},
+  {mode:"scored", order:["fox","owl","cat","bunny","snail"],
+     clues:[["fox","owl"],["cat","bunny"],["owl","cat"],["bunny","snail"]]} // non-adjacent + tail
+];
+let li=-1, cur=null, seats=[], sel=null, firstMoveT=0, startT=0, reseats=0, placements=[], bestChain=0;
+
+function relCount(order){return order.length-1;} // chained relations to integrate
+function render(){
+  cur=LEVELS[li];
+  $("phase").textContent = cur.mode==="demo"?"Demo":cur.mode==="warmup"?"Warm-up (not scored)":"Scored item";
+  $("t_phase").textContent=cur.mode;
+  $("ask").textContent = cur.mode==="demo"?"Watch the ghost-hand build the order…":
+    "Seat everyone from best (🥇 top) to last (bottom) so every clue is true.";
+  // clues
+  $("clueList").innerHTML="";
+  cur.clues.forEach((c,i)=>{
+    const d=document.createElement("div");d.className="clue";d.dataset.i=i;
+    d.innerHTML=`<span class="big">${ANIMALS[c[0]]}</span><span class="rel">▸</span><span class="big" style="opacity:.7">${ANIMALS[c[1]]}</span><span class="hint" style="margin-left:auto">beats</span>`;
+    d.onclick=()=>{document.querySelectorAll('.clue').forEach(x=>x.classList.remove('hi'));d.classList.add('hi');};
+    $("clueList").appendChild(d);
+  });
+  // tray (shuffled)
+  const chars=[...cur.order].sort(()=>Math.random()-.5);
+  $("tray").innerHTML="";
+  chars.forEach(a=>{
+    const c=document.createElement("div");c.className="chip";c.dataset.a=a;c.textContent=ANIMALS[a];
+    c.onclick=()=>{if(c.classList.contains('used'))return;document.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');sel=a;mark();};
+    $("tray").appendChild(c);
+  });
+  // ladder
+  seats=new Array(cur.order.length).fill(null);
+  $("ladderList").innerHTML="";
+  const marks=["🥇","🥈","🥉","4️⃣","5️⃣"];
+  for(let r=0;r<cur.order.length;r++){
+    const d=document.createElement("div");d.className="rung";d.dataset.r=r;
+    d.innerHTML=`<span class="mark">${marks[r]||("#"+(r+1))}</span><span class="slot"></span>`;
+    d.onclick=()=>onRung(r,d);
+    $("ladderList").appendChild(d);
+  }
+  sel=null;reseats=0;firstMoveT=0;startT=performance.now();placements=[];
+  $("fb").textContent="";$("nextBtn").style.display="none";$("doneBtn").style.display="";
+  $("t_acc").textContent="–";$("t_rule").textContent="–";$("t_hyp").textContent="–";
+  $("t_rtf").textContent="–";$("t_rev").textContent="0";$("t_err").textContent="–";
+  if(cur.mode==="demo"){$("doneBtn").style.display="none";setTimeout(runGhost,600);}
+}
+function mark(){/* highlight nothing extra */}
+function onRung(r,d){
+  if(cur.mode==="demo")return;
+  const slot=d.querySelector('.slot');
+  if(seats[r]){ // clear
+    const a=seats[r];seats[r]=null;slot.textContent="";d.classList.remove('filled','correct','wrong');
+    document.querySelector(`.chip[data-a="${a}"]`).classList.remove('used');
+    return;
+  }
+  if(!sel)return;
+  if(!firstMoveT){firstMoveT=performance.now()-startT;$("t_rtf").textContent=Math.round(firstMoveT);}
+  if(seats.includes(sel)){reseats++;$("t_rev").textContent=reseats;const old=seats.indexOf(sel);seats[old]=null;
+    const od=$("ladderList").children[old];od.querySelector('.slot').textContent="";od.classList.remove('filled');}
+  seats[r]=sel;slot.textContent=ANIMALS[sel];d.classList.add('filled');
+  document.querySelectorAll('.chip').forEach(x=>{if(x.dataset.a===sel)x.classList.add('used')});
+  placements.push({rung:r,who:sel,t:Math.round(performance.now()-startT)});
+  logPath();
+  sel=null;document.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel'));
+}
+function logPath(){
+  $("log").textContent=placements.map(p=>`t+${p.t}ms  seat#${p.rung+1} ← ${ANIMALS[p.who]}`).join("\n");
+  $("log").scrollTop=1e9;
+}
+function forcedFirstScore(){
+  // efficiency: fraction of placements that filled a fully-constrained (end) rung before ambiguous middles
+  // heuristic proxy: reward placing gold or last rung early
+  if(!placements.length)return 0;
+  const n=cur.order.length;let good=0;
+  placements.forEach((p,i)=>{const isEnd=(p.rung===0||p.rung===n-1);if(i< n && isEnd)good++;});
+  return Math.round(100*good/Math.min(placements.length,2))/100;
+}
+$("doneBtn").onclick=()=>{
+  if(seats.includes(null)){$("fb").textContent="Fill every rung first.";$("fb").style.color="var(--accent)";return;}
+  const correct=seats.every((a,r)=>a===cur.order[r]);
+  // error typing
+  let err="none";
+  if(!correct){
+    // adjacent swap?
+    let swaps=0;for(let r=0;r<seats.length-1;r++){if(seats[r]===cur.order[r+1]&&seats[r+1]===cur.order[r])swaps++;}
+    const wrongCount=seats.filter((a,r)=>a!==cur.order[r]).length;
+    err= (swaps>=1 && wrongCount<=2)?"adjacent-swap (near-miss)":(wrongCount>=cur.order.length-1?"random":"partial");
+  }
+  const rc=relCount(cur.order);
+  if(cur.mode!=="demo"){
+    $("t_acc").textContent=correct?"1 ✓":"0 ✗";
+    $("t_rule").textContent=(correct?rc:Math.max(0,rc-1))+" / "+rc;
+    $("t_hyp").textContent=forcedFirstScore().toFixed(2);
+    $("t_err").textContent=correct?"none":err;
+    if(correct && cur.mode==="scored"){bestChain=Math.max(bestChain,cur.order.length);$("t_reach").textContent=bestChain;}
+  }
+  seats.forEach((a,r)=>{const d=$("ladderList").children[r];d.classList.add(a===cur.order[r]?'correct':'wrong');});
+  $("fb").textContent=correct?"Perfect ranking! 🎉":"Not quite — some clues are broken.";
+  $("fb").style.color=correct?"var(--good)":"var(--bad)";
+  $("doneBtn").style.display="none";
+  $("nextBtn").style.display = li<LEVELS.length-1?"":"none";
+  if(li>=LEVELS.length-1)$("fb").textContent+="  (end of demo)";
+};
+$("nextBtn").onclick=()=>{li++;if(li<LEVELS.length)render();};
+function runGhost(){ // wordless auto-solve of the demo
+  const order=cur.order;let step=0;
+  const t=setInterval(()=>{
+    const a=order[step];const rung=$("ladderList").children[step];
+    rung.querySelector('.slot').textContent=ANIMALS[a];rung.classList.add('filled','correct');
+    const chip=document.querySelector(`.chip[data-a="${a}"]`);if(chip)chip.classList.add('used');
+    document.querySelectorAll('.clue')[Math.min(step,cur.clues.length-1)]?.classList.add('hi');
+    step++;
+    if(step>=order.length){clearInterval(t);$("ask").textContent="See? The clues chain together into one full order. Now you try.";$("nextBtn").style.display="";}
+  },800);
+}
+li=0;render();
+</script>
+</body>
+</html>

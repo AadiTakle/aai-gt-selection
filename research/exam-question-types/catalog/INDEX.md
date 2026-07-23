@@ -1,24 +1,24 @@
 # Question-Type Catalog — INDEX
 
-**243 types** across 7 areas. Measurements in registry: 62.
+**251 types** across 7 areas. Measurements in registry: 62.
 
 ## Coverage matrix (types applicable per area x band; target >=3)
 
 | area | K-1 | 2-3 | 4-5 | 6-8 |
 |---|---|---|---|---|
-| fluid_reasoning | 17 | 36 | 37 | 37 |
-| verbal | 23 | 31 | 34 | 33 |
-| quantitative | 21 | 28 | 30 | 29 |
-| spatial | 16 | 33 | 38 | 33 |
-| working_memory | 24 | 40 | 42 | 42 |
-| processing_speed | 18 | 28 | 31 | 31 |
-| complementary | 20 | 34 | 32 | 29 |
+| fluid_reasoning | 17 | 38 | 39 | 39 |
+| verbal | 24 | 32 | 35 | 34 |
+| quantitative | 21 | 29 | 31 | 30 |
+| spatial | 16 | 34 | 39 | 34 |
+| working_memory | 24 | 41 | 43 | 43 |
+| processing_speed | 18 | 28 | 32 | 32 |
+| complementary | 21 | 35 | 33 | 30 |
 
 ## Coverage complete: every area x band has >=3 types.
 
 ## Types by area
 
-### fluid_reasoning (37)
+### fluid_reasoning (39)
 - **FLU-ANALOGY-01 — Shape Morph** [2-3,4-5,6-8] · meas: M-ACC,M-RT,M-RTFIRST,M-ERRTYPE,M-CONF · [demo](demos/FLU-ANALOGY-01.html)<br>A first shape turns into a second; the child makes the third shape change the same way by picking the matching fourth.
 - **FLU-CARPET-01 — Pattern Carpet** [K-1,2-3,4-5,6-8,K-8] · meas: M-ACC,M-RT,M-RTFIRST,M-ERRTYPE,M-DIFFREACH,M-CONSIST · [demo](demos/FLU-CARPET-01.html)<br>The child continues a woven pattern by picking the tile that keeps every row (and column) progressing the same way.
 - **FLU-CLUB-01 — Join the Club** [K-1,2-3,4-5,6-8] · meas: M-ACC,M-RT,M-EXPLORE,M-RTFIRST,M-ERRTYPE · [demo](demos/FLU-CLUB-01.html)<br>Three figures already belong to a club; the child taps the option that also belongs.
@@ -29,6 +29,7 @@
 - **FLU-FAMILYSORT-01 — Sort the Families** [K-1,2-3,4-5,6-8] · meas: M-ACC,M-POLY,M-PATH,M-REV,M-EXPLORE,M-ERRTYPE · [demo](demos/FLU-FAMILYSORT-01.html)<br>A pile of figures belongs to two hidden families; the child taps each figure to send it to the family it belongs in.
 - **FLU-GRIDCOPY-01 — Copy the Change** [2-3,4-5,6-8] · meas: M-ACC,M-POLY,M-RT,M-PATH,M-REV,M-EFF,M-PROG · [demo](demos/FLU-GRIDCOPY-01.html)<br>A small example shows a grid changing; the child makes the same change happen on a new grid by tapping cells.
 - **FLU-INOUT-01 — Guest List** [K-1,2-3,4-5,6-8] · meas: M-ACC,M-RT,M-DPRIME,M-FALSEALARM,M-ERRTYPE · [demo](demos/FLU-INOUT-01.html)<br>A club's members all share a secret property; guests arrive one at a time and the child lets in the ones that fit and keeps out the one that does not.
+- **FLU-LADDER-01 — Ranking Ladder** [2-3,4-5,6-8] · meas: M-ACC,M-RULEID,M-HYP,M-RTFIRST,M-REV,M-PATH,M-ERRTYPE,M-DIFFREACH · [demo](demos/FLU-LADDER-01.html)<br>Clue cards each show one thing beating another; the child stacks all the clues together to work out the full winner-to-loser order and seats each character on the right rung.
 - **FLU-LATIN-01 — Fill the Grid** [K-1,2-3,4-5,6-8] · meas: M-ACC,M-POLY,M-RT,M-PATH,M-REV,M-EFF · [demo](demos/FLU-LATIN-01.html)<br>The child fills the empty cell(s) so each symbol appears exactly once in every row and column.
 - **FLU-MATRIX-01 — Machine Matrix** [K-1,2-3,4-5,6-8] · meas: M-ACC,M-RT,M-RTFIRST,M-REV,M-ERRTYPE,M-DIFFREACH · [demo](demos/FLU-MATRIX-01.html)<br>The child taps the one tile that completes a glowing figural matrix so the machine powers on.
 - **FLU-MATRIXBUILD-01 — Build the Tile** [2-3,4-5,6-8] · meas: M-ACC,M-POLY,M-RT,M-RTFIRST,M-PATH,M-REV,M-ERRTYPE,M-RULEID · [demo](demos/FLU-MATRIXBUILD-01.html)<br>Instead of picking a tile, the child BUILDS the missing matrix cell by setting its shape, color and number so every row and column rule holds.
@@ -49,6 +50,7 @@
 - **GB-CODECRACK-01 — Code Cracker** [2-3,4-5,6-8] · meas: M-HYP,M-EFF,M-PATH,M-DIFFREACH,M-EXPLORE,M-RTFIRST,M-ACC,M-REV · [demo](demos/GB-CODECRACK-01.html)<br>The child guesses a hidden row of coloured gems and, from clues telling how many are the right gem in the right spot, deduces the secret code in as few guesses as possible.
 - **GB-CONTRAPT-01 — Chain-Reaction Lab** [2-3,4-5,6-8] · meas: M-ACC,M-EFF,M-PATH,M-EXPLORE,M-RTFIRST,M-HYP,M-PROG,M-PERSIST · [demo](demos/GB-CONTRAPT-01.html)<br>The child drops ramps, springs and dominoes into a physics sandbox so a chain reaction rolls the ball into the balloon.
 - **GB-CRITTERGATE-01 — Critter Gates** [K-1,2-3,4-5,6-8] · meas: M-ACC,M-HYP,M-PATH,M-EXPLORE,M-RTFIRST,M-EFF,M-HINT,M-RULEID · [demo](demos/GB-CRITTERGATE-01.html)<br>The child sends each little creature to the left or right gate to discover, from accept/reject feedback, the hidden rule about which creatures each gate lets pass.
+- **GB-DEFEND-01 — Picnic Defenders** [2-3,4-5,6-8] · meas: M-ACC,M-EFF,M-PATH,M-RTFIRST,M-HYP,M-PROG,M-DIFFREACH,M-RESUME · [demo](demos/GB-DEFEND-01.html)<br>The child spends a small budget to place defenders along a path so a marching parade of ants never reaches the picnic, planning across increasingly tricky waves.
 - **GB-DUEL-01 — Robot Duel** [2-3,4-5,6-8] · meas: M-ACC,M-EFF,M-HYP,M-PATH,M-DIFFREACH,M-RTFIRST,M-RESUME,M-PROG · [demo](demos/GB-DUEL-01.html)<br>The child takes turns with a robot removing 1-3 tokens from a shared pile, trying to be the one who takes the last token, and must figure out the winning pattern to beat a robot that keeps getting smarter.
 - **GB-GEARWORKS-01 — Gearworks** [4-5,6-8] · meas: M-ACC,M-RT,M-RTFIRST,M-EFF,M-PATH,M-ERRTYPE,M-REV,M-HYP · [demo](demos/GB-GEARWORKS-01.html)<br>The child drops gears onto pegs to build a working gear train that spins the flag the right way and speed.
 - **GB-HOIST-01 — Pulley Hoist** [2-3,4-5,6-8] · meas: M-ACC,M-EFF,M-PATH,M-RTFIRST,M-ERRTYPE,M-REV,M-HYP,M-PERSIST · [demo](demos/GB-HOIST-01.html)<br>The child arranges pulleys, ropes, levers and counterweights so pulling the handle lifts the heavy crate onto the high platform.
@@ -57,7 +59,7 @@
 - **GB-WATERWORKS-01 — Aqueduct Lab** [2-3,4-5,6-8] · meas: M-ACC,M-EFF,M-PATH,M-EXPLORE,M-RTFIRST,M-HYP,M-PROG,M-PERSIST · [demo](demos/GB-WATERWORKS-01.html)<br>The child lays and rotates pipes, valves and pumps so water flows from the tap through the network and fills the far tank.
 - **GB-WEAVE-01 — Pattern Weaver** [K-1,2-3,4-5,6-8] · meas: M-RULEID,M-PATH,M-EFF,M-REV,M-ORIG,M-ELAB,M-ACC · [demo](demos/GB-WEAVE-01.html)<br>The child weaves a whole pattern - a repeating border or a grid where each colour appears once per row and column - by placing tiles so that all the rules come out true at once.
 
-### verbal (34)
+### verbal (35)
 - **GB-CLUEGIVER-01 — Clue Giver** [2-3,4-5,6-8] · meas: M-EFF,M-HYP,M-PATH,M-ACC,M-DIFFREACH,M-RTFIRST,M-REV · [demo](demos/GB-CLUEGIVER-01.html)<br>The child is the clue-giver: they pick describing words to tell a robot which one of several look-alike pictures is the secret target, using just enough clues so the robot picks the right one and not a decoy.
 - **GB-DEBATE-01 — Claim Duel** [4-5,6-8] · meas: M-ACC,M-POLY,M-PATH,M-RTFIRST,M-REV,M-LURETYPE,M-RUBRIC · [demo](demos/GB-DEBATE-01.html)<br>The child props up a claim by dragging the strongest evidence cards to it and knocks down a rival claim by picking its weakest link.
 - **GB-FLAWFINDER-01 — Fib Finder** [2-3,4-5,6-8] · meas: M-ACC,M-INFDEPTH,M-RT,M-LURETYPE,M-ERRTYPE,M-HINT,M-POLY · [demo](demos/GB-FLAWFINDER-01.html)<br>The child listens to a short spoken reason-and-claim and taps the part that does not make sense or the step that does not follow.
@@ -67,6 +69,7 @@
 - **GB-WORDLADDER-01 — Letter Climb** [4-5,6-8] · meas: M-ACC,M-RT,M-EFF,M-VOCABLVL,M-RTFIRST,M-PATH,M-PERSIST · [demo](demos/GB-WORDLADDER-01.html)<br>The child changes one letter at a time to climb from the start word to the goal word, each rung a real word.
 - **GB-WORDWEB-01 — Word Trace** [4-5,6-8] · meas: M-ACC,M-RT,M-IDEAFLU,M-VOCABLVL,M-RTFIRST,M-FLEX,M-PERSIST · [demo](demos/GB-WORDWEB-01.html)<br>The child traces paths through a grid of neighbouring letters to spell as many real words as they can before the timer runs out.
 - **VER-BUILDIT-01 — Build-It Buddy** [K-1,2-3,4-5,6-8] · meas: M-ACC,M-POLY,M-ORALSPAN,M-PATH,M-DIFFREACH,M-REV · [demo](demos/VER-BUILDIT-01.html)<br>Listen to step-by-step spoken directions and build the picture by dragging, placing, and coloring the pieces so it matches what was described.
+- **VER-CHAIN-01 — Clue Chain** [K-1,2-3,4-5,6-8] · meas: M-ACC,M-RULEID,M-ORALSPAN,M-DIFFREACH,M-RT,M-RTFIRST,M-ERRTYPE,M-CONSIST,M-POLY · [demo](demos/VER-CHAIN-01.html)<br>Hear a few clues that link creatures (bigger, faster, older), then work out the answer no single clue tells you - like who is biggest - by chaining the clues together.
 - **VER-CLASSIFY-01 — Club or Odd One** [K-1,2-3,4-5,6-8] · meas: M-ACC,M-RT,M-ERRTYPE,M-EXPLORE,M-REV,M-LURETYPE · [demo](demos/VER-CLASSIFY-01.html)<br>Find the picture or word that belongs with a group, or tap the one that does not fit.
 - **VER-CLOZE-01 — Fill the Gap** [K-1,2-3,4-5,6-8] · meas: M-ACC,M-RT,M-RTFIRST,M-DIFFREACH,M-CONSIST,M-VOCABLVL,M-INFDEPTH · [demo](demos/VER-CLOZE-01.html)<br>Complete a sentence with the missing idea by picking the picture or word that best fills the gap.
 - **VER-DIRECTIONS-01 — Do What I Say** [K-1,2-3,4-5,6-8] · meas: M-ACC,M-RT,M-PATH,M-REV,M-DIFFREACH,M-ORALSPAN · [demo](demos/VER-DIRECTIONS-01.html)<br>Listen to a spoken instruction and tap the picture(s) that satisfy every condition.
@@ -93,7 +96,7 @@
 - **VER-WORDWEB-01 — Word Web** [2-3,4-5,6-8] · meas: M-ACC,M-POLY,M-RT,M-PATH,M-REV,M-VOCABLVL,M-LURETYPE · [demo](demos/VER-WORDWEB-01.html)<br>Sort a set of words (or pictures) into bins around a hub word - Same-meaning, Opposite, and Does-not-belong.
 - **VER-ZOOMIN-01 — Zoom In** [K-1,2-3,4-5,6-8] · meas: M-ACC,M-RT,M-RTFIRST,M-VOCABLVL,M-DIFFREACH,M-EXPLORE,M-DPRIME · [demo](demos/VER-ZOOMIN-01.html)<br>Hear a word and tap the exact thing - or part or detail - it names inside one busy picture.
 
-### quantitative (31)
+### quantitative (32)
 - **GB-BALANCE-01 — Number Balance** [K-1,2-3,4-5,6-8] · meas: M-ACC,M-RT,M-EFF,M-ERRTYPE,M-RTFIRST,M-EQREL,M-PATH,M-SPEEDACC · [demo](demos/GB-BALANCE-01.html)<br>The child hangs number-blocks on a pan balance so both sides weigh the same, comparing and composing magnitudes until the beam is level.
 - **GB-COINMARKET-01 — Coin Market** [K-1,2-3,4-5,6-8] · meas: M-ACC,M-RT,M-EFF,M-ERRTYPE,M-RTFIRST,M-SPEEDACC,M-PATH,M-REV · [demo](demos/GB-COINMARKET-01.html)<br>The child pays exact prices with coins and ten-bills and taps which of two toys costs more, building quantities from ones and tens.
 - **GB-DOTDROP-01 — Dot Drop** [K-1,2-3,4-5,6-8] · meas: M-PAE,M-ACC,M-RT,M-RTFIRST,M-REV,M-ERRTYPE · [demo](demos/GB-DOTDROP-01.html)<br>A child counts a small set of objects (or reads a numeral) and drags a big basket to that number's place on a wide, big-tick number line.
@@ -106,6 +109,7 @@
 - **QUANT-BALANCE-01 — Balance Beam Equivalence** [2-3,4-5,6-8] · meas: M-ACC,M-PATH,M-EFF,M-REV,M-EXPLORE,M-PROG · [demo](demos/QUANT-BALANCE-01.html)<br>The child adds or removes weights (or numbers) on a pan balance to make both sides equal, discovering the value that keeps the beam level.
 - **QUANT-BEADRACK-01 — Bead Rack Reasoner** [K-1,2-3,4-5,6-8,K-8] · meas: M-ACC,M-RTFIRST,M-DIFFREACH,M-SPEEDACC,M-CONSIST · [demo](demos/QUANT-BEADRACK-01.html)<br>The child slides beads on a two-row rack to continue a number series, show a target quantity, or compare two racks and say which shows more.
 - **QUANT-BUILDNUM-01 — Build-a-Number Blocks** [K-1,2-3,4-5,6-8] · meas: M-ACC,M-PATH,M-EFF,M-REV,M-EXPLORE · [demo](demos/QUANT-BUILDNUM-01.html)<br>The child composes a target quantity by dragging base-ten blocks (or ten-frame dots) into a workspace, regrouping units into tens as needed.
+- **QUANT-CHANCE-01 — Lucky Spinner** [2-3,4-5,6-8] · meas: M-ACC,M-PROPSTRAT,M-RT,M-ERRTYPE,M-EXPLORE,M-DIFFREACH · [demo](demos/QUANT-CHANCE-01.html)<br>Two spinners (or marble bags) show winning and losing parts; the child taps the one more likely to land on the winning colour, or taps 'same chance'.
 - **QUANT-COMPARE-01 — Magnitude Duel** [K-1,2-3,4-5,6-8] · meas: M-ACC,M-RT,M-SPEEDACC,M-RTVAR,M-LAPSE · [demo](demos/QUANT-COMPARE-01.html)<br>Two quantities flash side by side and the child quickly taps the side that is greater, or taps 'equal' or 'can't tell'.
 - **QUANT-COUNTWAYS-01 — Count the Ways** [2-3,4-5,6-8] · meas: M-ACC,M-POLY,M-EFF,M-EXPLORE,M-REV,M-PROG,M-PATH · [demo](demos/QUANT-COUNTWAYS-01.html)<br>The child builds all the different ways to make something - every distinct ice-cream cone or block tower - trying to find them all without any repeats.
 - **QUANT-EQNBUILD-01 — Equation Forge** [2-3,4-5,6-8] · meas: M-ACC,M-EXPLORE,M-PATH,M-EFF,M-EQREL · [demo](demos/QUANT-EQNBUILD-01.html)<br>The child drops a number tile into a blank on a symbolic number sentence so that both sides are equal, with the equals sign lighting up when the sentence becomes true.
@@ -126,7 +130,7 @@
 - **QUANT-TUGWAR-01 — Number Tug-of-War** [K-1,2-3,4-5,6-8,K-8] · meas: M-ACC,M-RT,M-SPEEDACC,M-FALSEALARM,M-REV · [demo](demos/QUANT-TUGWAR-01.html)<br>Two teams of numbered characters pull a rope; the child taps the stronger side, or adds characters so the totals match and the flag stays centered.
 - **QUANT-WORDMODEL-01 — Story Model Builder** [4-5,6-8] · meas: M-POLY,M-PROG,M-PATH,M-PERSIST,M-HINT · [demo](demos/QUANT-WORDMODEL-01.html)<br>The child builds a visual model (adjustable bars, two growing stacks, or tokens) of a short illustrated story problem and manipulates it to find the answer.
 
-### spatial (38)
+### spatial (39)
 - **GB-EXPLORE-01 — Explorer's Map** [2-3,4-5,6-8] · meas: M-VIEWANG,M-EXPLORE,M-PATH,M-EFF,M-DIFFREACH,M-RTFIRST,M-REV · [demo](demos/GB-EXPLORE-01.html)<br>The child explores a foggy top-down world that reveals only what is nearby, then shows they built a map in their head by pointing back toward hidden landmarks and taking a shortcut they never walked.
 - **GB-MAZE-01 — Gem Trail** [2-3,4-5,6-8] · meas: M-ACC,M-EFF,M-PATH,M-RTFIRST,M-EXPLORE,M-REV,M-PERSIST,M-PROG · [demo](demos/GB-MAZE-01.html)<br>The child taps a path through a maze to collect all the gems and reach the door using as few steps as possible.
 - **GB-PATHFORGE-01 — Path Forge** [2-3,4-5,6-8] · meas: M-ACC,M-EFF,M-PATH,M-RTFIRST,M-REV,M-EXPLORE,M-PROG,M-PERSIST · [demo](demos/GB-PATHFORGE-01.html)<br>The child rotates and drops road tiles to build one continuous path from the start hut to the goal, then the courier walks the route.
@@ -143,6 +147,7 @@
 - **SPA-FOLDOVER-01 — Fold & Overlap** [2-3,4-5,6-8] · meas: M-ACC,M-POLY,M-RT,M-RTFIRST,M-REV,M-ERRTYPE,M-PROG,M-DIFFREACH · [demo](demos/SPA-FOLDOVER-01.html)<br>A see-through sheet with printed shapes is folded over; the child predicts the combined pattern where the folded flap lands on the other half.
 - **SPA-FOLDSILH-01 — Fold to Shape** [K-1,2-3,4-5] · meas: M-ACC,M-POLY,M-RT,M-RTFIRST,M-REV,M-ERRTYPE,M-PROG,M-DIFFREACH · [demo](demos/SPA-FOLDSILH-01.html)<br>The child folds a square sheet along a shown crease and predicts the outline the paper makes after folding, by choosing or building the resulting silhouette.
 - **SPA-GAZE-01 — What Is It Looking At?** [K-1,2-3,4-5] · meas: M-ACC,M-RT,M-RTFIRST,M-REV,M-VIEWANG,M-ERRTYPE,M-DIFFREACH · [demo](demos/SPA-GAZE-01.html)<br>A character faces into a ring of objects and the child taps the object directly in its line of sight, or for older bands turns the character to aim at a named target.
+- **SPA-HIDDENCUBE-01 — X-Ray Cubes** [2-3,4-5,6-8] · meas: M-ACC,M-RT,M-RTFIRST,M-ERRTYPE,M-EXPLORE,M-DIFFREACH · [demo](demos/SPA-HIDDENCUBE-01.html)<br>A pile of blocks is shown from one corner; the child works out how many blocks there are in total, including the ones hidden behind and underneath, and dials in the count.
 - **SPA-HIDESEE-01 — Hide from the Seeker** [K-1,2-3,4-5] · meas: M-ACC,M-RTFIRST,M-RT,M-REV,M-PATH,M-EXPLORE,M-EFF,M-ERRTYPE,M-DIFFREACH · [demo](demos/SPA-HIDESEE-01.html)<br>The child slides a screen or moves a toy so that a character on one side either cannot (or can) see a target object along its line of sight.
 - **SPA-KOHS-01 — Cube Turner** [2-3,4-5,6-8] · meas: M-ACC,M-POLY,M-RT,M-RTFIRST,M-REV,M-PATH,M-EFF,M-ERRTYPE,M-PROG,M-DIFFREACH · [demo](demos/SPA-KOHS-01.html)<br>The child rolls each of several fixed 3D cubes to bring the correct painted face up so the cube tops reproduce a target block-design card.
 - **SPA-MARBLE-01 — Marble Run Maker** [K-1,2-3,4-5,6-8] · meas: M-ACC,M-POLY,M-RTFIRST,M-REV,M-PATH,M-EFF,M-EXPLORE,M-DIFFREACH,M-IDEAFLU,M-ORIG,M-RUBRIC,M-CHOICE · [demo](demos/SPA-MARBLE-01.html)<br>The child places and tilts ramps, funnels, and chutes so a dropped marble rolls from the start to the goal, and in harder items collects required stars along the way.
@@ -166,7 +171,7 @@
 - **SPA-XPLANE-01 — Place the Slice** [4-5,6-8] · meas: M-ACC,M-POLY,M-RT,M-RTFIRST,M-REV,M-EXPLORE,M-PATH,M-EFF,M-ERRTYPE,M-DIFFREACH · [demo](demos/SPA-XPLANE-01.html)<br>Given the exact 2D shape wanted, the child positions and tilts a cutting plane through a 3D solid so the cut face becomes that shape.
 - **SPA-XSCAN-01 — Scan Stacker** [4-5,6-8] · meas: M-ACC,M-POLY,M-RT,M-RTFIRST,M-REV,M-EXPLORE,M-ERRTYPE,M-DIFFREACH · [demo](demos/SPA-XSCAN-01.html)<br>The child scrubs through a stack of 2D cross-section slices (like a medical scan) and works out which 3D solid would produce them.
 
-### working_memory (42)
+### working_memory (43)
 - **GB-FILTER-01 — Star Filter** [2-3,4-5,6-8] · meas: M-ACC,M-RT,M-DPRIME,M-UPDATECOST,M-SPAN,M-REV,M-FALSEALARM,M-ENGAGE · [demo](demos/GB-FILTER-01.html)<br>The child watches a brief array, remembers only the target-coloured shapes (ignoring the rest), and after a short blank taps where those shapes were.
 - **GB-NBACK-01 — Burrow Echo** [2-3,4-5,6-8] · meas: M-ACC,M-RT,M-DPRIME,M-UPDATECOST,M-FALSEALARM,M-RTVAR,M-SPAN,M-ENGAGE · [demo](demos/GB-NBACK-01.html)<br>The child watches critters pop from burrows one at a time and taps MATCH whenever the current critter is the same as the one that popped a set number of steps back.
 - **GB-PORTAL-01 — Portal Planner** [2-3,4-5,6-8] · meas: M-ACC,M-EFF,M-RTFIRST,M-PATH,M-REV,M-HINT,M-PROG,M-PERSIST · [demo](demos/GB-PORTAL-01.html)<br>The child moves coloured orbs between pegs to match a goal picture in as few moves as possible, planning the order before touching anything.
@@ -202,6 +207,7 @@
 - **WM-radar-01 — Signal Radar (dual n-back / updating)** [2-3,4-5,6-8] · meas: M-DPRIME,M-ACC,M-RTVAR,M-LAPSE,M-ERRTYPE,M-DRIFT,M-UPDATECOST,M-DIFFREACH,M-ENGAGE · [demo](demos/WM-radar-01.html)<br>Blips sweep a radar scope while tones or letters play, and the child flags when the current position (or sound) matches the one n sweeps back, or keeps a running value or tally that must be updated.
 - **WM-recipe-01 — Recipe Recall (verbal/numeric complex span)** [4-5,6-8] · meas: M-SPAN,M-DIFFREACH,M-POLY,M-ACC,M-PROCACC,M-ERRTYPE,M-LURETYPE,M-RTFIRST · [demo](demos/WM-recipe-01.html)<br>Between remembering each ingredient the child answers a quick check (does this step make sense? is this measurement right?), then recalls the ingredients in order or in reverse - a verbal/numeric complex span.
 - **WM-relay-01 — Brain Arcade Relay (integrated EF: switch + hold + stop)** [4-5,6-8] · meas: M-ACC,M-SWITCHCOST,M-SPEEDACC,M-RTVAR,M-DRIFT,M-ENGAGE,M-CONSIST,M-COMM · [demo](demos/WM-relay-01.html)<br>A single game rotates between three arcade stations - route-by-rule, hold-the-last-few, and go/no-go - and the child must reconfigure to whichever station's mini-game is showing.
+- **WM-retrocue-01 — Late Whistle (retro-cue selective working memory)** [2-3,4-5,6-8] · meas: M-SPAN,M-ACC,M-CONSIST,M-ERRTYPE,M-REV,M-RTFIRST · [demo](demos/WM-retrocue-01.html)<br>Colored lights land across a grid and vanish; only AFTER they are gone does a flag say which color to tap back, so the child must hold them all then select just that subset from memory.
 - **WM-ruleflip-01 — Rule-Flip Farm (DCCS sort with an opposite gate)** [K-1,2-3,4-5,6-8,K-8] · meas: M-SWITCHCOST,M-PERSEV,M-CONGEFF,M-COMM,M-ACC,M-RTVAR,M-CONSIST,M-ENGAGE,M-ERRTYPE,M-POSTERR · [demo](demos/WM-ruleflip-01.html)<br>The child sends bivalent animal cards into one of two barns by the rule shown on a flag - by colour, then the flag flips to sort by animal - and at an opposite gate must send the card the other way on purpose.
 - **WM-rulezoo-01 — Secret Rule Zoo (rule-discovery sort / intra-extra shift)** [2-3,4-5,6-8] · meas: M-PERSEV,M-HYP,M-RULEID,M-SWITCHCOST,M-ACC,M-PATH · [demo](demos/WM-rulezoo-01.html)<br>Send each animal to the gate it likes; the secret rule (colour, shape, or how many) must be worked out from happy or sad feedback, and it changes without warning.
 - **WM-search-01 — Treasure Boxes (self-ordered spatial search)** [K-1,2-3,4-5,6-8] · meas: M-PATH,M-EXPLORE,M-REV,M-ERRTYPE,M-EFF,M-RTFIRST,M-BETWEENERR,M-SEARCHSTRAT · [demo](demos/WM-search-01.html)<br>The child hunts for gems hidden one at a time across scattered boxes and must remember which boxes already gave a gem so as never to reopen them.
@@ -210,7 +216,7 @@
 - **WM-tug-01 — True Tug (numerical Stroop / conflict tug)** [K-1,2-3,4-5,6-8] · meas: M-CONGEFF,M-SWITCHCOST,M-ERRTYPE,M-RTVAR,M-ACC,M-COMBO · [demo](demos/WM-tug-01.html)<br>Pull the rope toward the side that is truly bigger in number, ignoring how large or crowded it looks; sometimes ignore the surrounding distractors or switch to naming the ink not the word.
 - **WM-update-01 — Last Ones In (running memory / updating)** [2-3,4-5,6-8] · meas: M-ACC,M-POLY,M-RTFIRST,M-RTVAR,M-ERRTYPE,M-REV,M-UPDATECOST · [demo](demos/WM-update-01.html)<br>Items stream and stop unpredictably (report the last few), or the child keeps live tallies or the latest item per category - all requiring the WM buffer to be continuously overwritten.
 
-### processing_speed (31)
+### processing_speed (32)
 - **GB-ARROWSTORM-01 — Arrow Storm** [K-1,2-3,4-5,6-8] · meas: M-ACC,M-RT,M-CONGEFF,M-COMM,M-FALSEALARM,M-POSTERR,M-RTVAR,M-COMBO · [demo](demos/GB-ARROWSTORM-01.html)<br>The child taps the way the middle arrow points as fast as they can, ignoring the arrows beside it, and must not tap at all when a red X flashes.
 - **GB-RACER-01 — Sky Courier** [4-5,6-8] · meas: M-RT,M-ACC,M-SPEEDACC,M-COMBO,M-FALSEALARM,M-RTVAR,M-LAPSE,M-ENGAGE · [demo](demos/GB-RACER-01.html)<br>The child keeps a flying courier on the path with left/right taps while tapping only when the right delivery sign appears.
 - **GB-RULERUSH-01 — Rule Rush** [K-1,2-3,4-5,6-8] · meas: M-ACC,M-RT,M-SWITCHCOST,M-CONGEFF,M-PERSEV,M-COMM,M-RTVAR,M-COMBO · [demo](demos/GB-RULERUSH-01.html)<br>The child sorts each card fast by the rule the banner shows - sometimes by colour, sometimes by shape - and must freeze when a lock icon appears.
@@ -220,6 +226,7 @@
 - **PS-CIPHERWHEEL-01 — Decoder Ring** [4-5,6-8] · meas: M-RT,M-ACC,M-RTVAR,M-LAPSE,M-REV,M-SPEEDACC,M-DRIFT,M-ENGAGE · [demo](demos/PS-CIPHERWHEEL-01.html)<br>A spy decoder ring shows the code; for each symbol the child spins the ring to line up the matching letter under the pointer and locks it in.
 - **PS-CODECHECK-01 — Code Check** [2-3,4-5,6-8] · meas: M-ACC,M-RT,M-DPRIME,M-FALSEALARM,M-SPEEDACC,M-DRIFT,M-ENGAGE · [demo](demos/PS-CODECHECK-01.html)<br>A digit-symbol key sits on screen while pairs flash by; the child taps a check if the pair matches the key or a cross if it is a broken code, as fast as possible.
 - **PS-CRITTERWATCH-01 — Critter Watch** [K-1,2-3,4-5,6-8] · meas: M-RT,M-ACC,M-RTVAR,M-LAPSE,M-DPRIME,M-FALSEALARM,M-COMM,M-DRIFT,M-ENGAGE · [demo](demos/PS-CRITTERWATCH-01.html)<br>Friendly critters pop up one after another; the child taps every friendly one fast but must freeze and not tap the rare grumpy intruder.
+- **PS-DEADLINE-01 — Beat the Bar (response-deadline speed-accuracy threshold)** [4-5,6-8] · meas: M-SPEEDACC,M-ACC,M-RT,M-RTVAR,M-LAPSE,M-FALSEALARM · [demo](demos/PS-DEADLINE-01.html)<br>Decide if two cards are the same or different before a shrinking time bar runs out; the deadline speeds up when answers are right-and-in-time, mapping the fastest speed at which the child stays accurate.
 - **PS-DECODE-03 — Secret Decoder** [2-3,4-5,6-8] · meas: M-RT,M-ACC,M-RTVAR,M-LAPSE,M-SPEEDACC,M-DRIFT,M-ENGAGE · [demo](demos/PS-DECODE-03.html)<br>Using a visible key, the child taps the symbol that matches each incoming digit/shape, decoding as many as possible before the timer runs out.
 - **PS-DIFFSPOT-01 — Difference Detectives** [K-1,2-3,4-5,6-8] · meas: M-ACC,M-RT,M-RTVAR,M-COMBO,M-FALSEALARM,M-LAPSE,M-SPEEDACC,M-DRIFT,M-ENGAGE · [demo](demos/PS-DIFFSPOT-01.html)<br>Two tile grids are identical except one tile; tap the tile on the right that is different, fast but accurate.
 - **PS-DROPCATCH-01 — Coin Drop** [K-1,2-3,4-5,6-8] · meas: M-RT,M-RTVAR,M-LAPSE,M-HICKSLOPE,M-FALSEALARM,M-SPEEDACC,M-ENGAGE · [demo](demos/PS-DROPCATCH-01.html)<br>A coin hangs at the top and drops without warning; the child catches it the instant it falls - or taps the chute it tips into.
@@ -243,7 +250,7 @@
 - **PS-WHACK-05 — Whack-It** [K-1,2-3,4-5,6-8] · meas: M-RT,M-RTVAR,M-LAPSE,M-SPEEDACC,M-HICKSLOPE,M-FALSEALARM,M-ENGAGE · [demo](demos/PS-WHACK-05.html)<br>Critters pop out of holes and the child taps them the instant they appear (or taps the correct hole), with peeking-too-early penalized.
 - **PS-WINDOWWATCH-01 — Meadow Windows** [K-1,2-3,4-5,6-8] · meas: M-RT,M-ACC,M-DPRIME,M-FALSEALARM,M-RTVAR,M-LAPSE,M-PATH,M-DRIFT,M-ENGAGE · [demo](demos/PS-WINDOWWATCH-01.html)<br>Little windows dot a meadow; every so often a target peeks out of one and the child taps that window fast, ignoring the pesky look-alikes.
 
-### complementary (35)
+### complementary (36)
 - **CX-achieve-02 — Investigation Station** [2-3,4-5,6-8] · meas: M-RUBRIC,M-POLY,M-HYP,M-EXPLORE,M-PATH,M-PROG · [demo](demos/CX-achieve-02.html)<br>The child designs and runs a short hands-on investigation - like finding which ramp setting makes a ball roll farthest - and their testing strategy and conclusion are scored.
 - **CX-build-01 — Master Builder** [K-1,2-3,4-5] · meas: M-RUBRIC,M-PROG,M-REV,M-ELAB,M-PERSIST,M-ENGAGE · [demo](demos/CX-build-01.html)<br>The child builds a structure by stacking chosen blocks across a row of columns toward the loose goal of something tall and interesting, then the creation is saved for rating.
 - **CX-challenge-01 — Challenge Mountain** [K-1,2-3,4-5,6-8] · meas: M-CHOICE,M-DIFFREACH,M-PERSIST,M-RESUME,M-PATH,M-ENGAGE · [demo](demos/CX-challenge-01.html)<br>The child freely chooses how hard a level to attempt on a mountain of easy-to-expert challenges and can climb as high as they dare, with easy always an accepted choice.
@@ -255,6 +262,7 @@
 - **CX-diverge-01 — Brainstorm Blaster** [K-1,2-3,4-5,6-8] · meas: M-IDEAFLU,M-FLEX,M-ORIG,M-ELAB,M-PERSIST,M-ENGAGE · [demo](demos/CX-diverge-01.html)<br>The child rattles off as many different uses for a common object (or as many things in a category) as they can, and each idea pops onto the screen as a bubble.
 - **CX-diverge-02 — What-If World** [2-3,4-5,6-8] · meas: M-IDEAFLU,M-FLEX,M-ORIG,M-ELAB,M-RTFIRST,M-ENGAGE · [demo](demos/CX-diverge-02.html)<br>The child is dropped into an impossible 'what if' world (what if it rained candy forever?) and names as many different things that would happen as they can.
 - **CX-diverge-03 — Toy Tune-Up** [K-1,2-3,4-5,6-8] · meas: M-IDEAFLU,M-FLEX,M-ORIG,M-ELAB,M-REV,M-ENGAGE · [demo](demos/CX-diverge-03.html)<br>The child is shown a plain toy and invents as many different changes as they can to make it more fun, adding each idea by describing it or by stamping/drawing it onto the toy.
+- **CX-effort-01 — Worth the Work? (effort-based decision-making)** [K-1,2-3,4-5,6-8] · meas: M-EFFALLOC,M-PATH,M-CHOICE,M-PERSIST,M-RESUME,M-ENGAGE · [demo](demos/CX-effort-01.html)<br>Round after round, the child freely picks an easy chest (a little tapping, a small reward) or a big chest (lots of tapping, a bigger reward) - and how their choices scale with reward reveals willingness to work.
 - **CX-explore-01 — Berry Patch (explore-exploit foraging)** [K-1,2-3,4-5,6-8] · meas: M-UNCERT,M-EXPLORE,M-PATH,M-CHOICE,M-PERSIST,M-ENGAGE · [demo](demos/CX-explore-01.html)<br>Pick berries from bushes that thin out as you pick them, choosing freely whether to keep picking a known bush or wander to a mystery bush.
 - **CX-figural-01 — Squiggle Studio** [K-1,2-3,4-5,6-8] · meas: M-IDEAFLU,M-ORIG,M-ELAB,M-PATH,M-PERSIST,M-ENGAGE · [demo](demos/CX-figural-01.html)<br>The child is shown an abstract squiggle or half-finished shape and turns it into as many different pictures as they can by drawing on top of it.
 - **CX-freeplay-01 — Keep-Playing Sandbox** [K-1,2-3,4-5,6-8] · meas: M-CHOICE,M-PERSIST,M-ENGAGE,M-PATH,M-EXPLORE · [demo](demos/CX-freeplay-01.html)<br>After a short required activity ends with a clear 'You're all done - great job!', the child is left in a fun sandbox and free to stop or keep playing, and the engine simply watches which they choose.

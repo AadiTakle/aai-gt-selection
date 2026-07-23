@@ -1,6 +1,6 @@
 {
-  "wave": 7,
-  "phase": "novelty",
-  "milestone": "coverage complete: top-GT 100% + full-qbank 100% at 4d51190 (218 types)",
-  "note": "Wave 7+ = novelty/variety (coverage saturated). Add genuinely-new distinct shells, dedup vs master_types, reuse measurements. Continue while RUN exists."
+  "wave": 8,
+  "phase": "novelty-lean",
+  "prev": "9d0e604 (243 types, 100%/100%)",
+  "note": "Wave 8 lean novelty: 2 disjoint-shard agents, high-novelty bar (genuinely new mechanics only; add fewer/none if saturated). Continue while RUN exists."
 }

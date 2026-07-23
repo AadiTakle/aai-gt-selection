@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VER-CHAIN-01 — Clue Chain (transitive / linear-syllogism verbal deduction)</title>
+<style>
+  :root{--bg:#0e1220;--panel:#171d33;--edge:#2a3358;--ink:#e9edff;--mut:#8b93c0;
+    --accent:#5cc8ff;--good:#5ce39a;--bad:#ff6b8a;--warn:#ffd166;}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.45 system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);display:flex;min-height:100vh}
+  .main{flex:1;display:flex;flex-direction:column;align-items:center;padding:20px;gap:14px}
+  h1{font-size:19px;margin:.2rem 0}
+  .sub{color:var(--mut);font-size:13px;margin:0 0 6px;text-align:center;max-width:500px}
+  .badge{display:inline-block;padding:2px 9px;border-radius:99px;background:var(--panel);border:1px solid var(--edge);color:var(--accent);font-size:12px}
+  #stage{position:relative;width:490px;min-height:250px;background:var(--panel);border:1px solid var(--edge);border-radius:18px;padding:18px;display:flex;flex-direction:column;align-items:center;gap:12px}
+  .prem{display:flex;flex-direction:column;gap:8px;width:100%;align-items:center}
+  .clue{display:flex;align-items:center;gap:8px;font-size:18px;background:#20284a;border:1px solid var(--edge);border-radius:12px;padding:8px 14px}
+  .clue .arw{color:var(--warn);font-weight:700;font-size:13px;letter-spacing:.02em}
+  .q{font-size:18px;font-weight:700;text-align:center;min-height:24px}
+  .q b{color:var(--warn)}
+  .opts{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;width:100%}
+  .opt{padding:12px 10px;border-radius:14px;border:1px solid var(--edge);background:#20284a;cursor:pointer;font-size:16px;text-align:center;min-width:96px;transition:transform .08s,background .12s}
+  .opt .em{font-size:30px;display:block}
+  .opt:active{transform:scale(.94)}
+  .opt.ok{background:var(--good);color:#062a17}
+  .opt.no{background:var(--bad)}
+  .opt.near{outline:2px dashed var(--warn)}
+  #ghost{position:absolute;font-size:30px;left:0;top:0;transition:left .45s cubic-bezier(.5,0,.3,1),top .45s cubic-bezier(.5,0,.3,1);pointer-events:none;filter:drop-shadow(0 3px 3px #0008);z-index:5;opacity:0}
+  #cue{font-size:30px;height:38px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+  button{font:inherit;padding:9px 16px;border-radius:10px;border:1px solid var(--edge);background:#20284a;color:var(--ink);cursor:pointer}
+  button.pri{background:var(--accent);color:#062033;border-color:transparent;font-weight:600}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .tel{width:330px;background:var(--panel);border-left:1px solid var(--edge);padding:14px 14px 40px;overflow:auto;font:12px/1.55 ui-monospace,Menlo,Consolas,monospace}
+  .tel h2{font:600 12px system-ui;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:14px 0 6px}
+  .kv{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted #2a3358;padding:2px 0}
+  .kv b{color:var(--accent);font-weight:600}
+  .kv .m{color:var(--mut);font-size:10px}
+  .note{font-size:10px;color:var(--mut);margin-top:6px}
+  .log{margin-top:6px;max-height:150px;overflow:auto;border:1px solid var(--edge);border-radius:8px;padding:6px;background:#10152a}
+  .log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+</head>
+<body>
+<div class="main">
+  <div style="text-align:center">
+    <h1>🕵️ Clue Chain <span class="badge" id="lvl">2 clues</span></h1>
+    <p class="sub">Read the clues (they are read aloud too). The answer is NOT in any one clue — you have to link them. The clues stay on screen, so it is thinking, not remembering.</p>
+  </div>
+  <div id="stage">
+    <div class="prem" id="prem"></div>
+    <div class="q" id="q"></div>
+    <div class="opts" id="opts"></div>
+    <div id="ghost">👆</div>
+  </div>
+  <div id="cue">👀</div>
+  <div class="row">
+    <button class="pri" id="go">▶ Watch how it works</button>
+    <button id="say" title="hear the clues">🔊 Say the clues again</button>
+  </div>
+  <p class="sub" id="hint">A ghost hand shows you first. Made-up creatures mean no word you have to already know.</p>
+</div>
+<aside class="tel" id="tel"></aside>
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const stage=$("#stage"),ghost=$("#ghost"),cue=$("#cue"),optsEl=$("#opts"),premEl=$("#prem"),qEl=$("#q");
+function say(t){try{const u=new SpeechSynthesisUtterance(t);u.rate=.98;speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){}}
+// nonsense creatures (no vocabulary knowledge needed) + relations (verbal-bias mitigation)
+const POOL=[{n:"Wug",e:"🟣"},{n:"Blip",e:"🔵"},{n:"Zorf",e:"🟢"},{n:"Nix",e:"🟠"},{n:"Tam",e:"🔴"},{n:"Gled",e:"🟡"}];
+const RELS=[{comp:"taller",top:"TALLEST",low:"SHORTEST"},{comp:"faster",top:"FASTEST",low:"SLOWEST"},
+ {comp:"older",top:"OLDEST",low:"YOUNGEST"},{comp:"bigger",top:"BIGGEST",low:"SMALLEST"},{comp:"stronger",top:"STRONGEST",low:"WEAKEST"}];
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];}return a;}
+const T={phase:"idle",d:1,items:0,correct:0,maxPrem:0,maxSolved:0,rt:[],first:[],
+  err:{adjacent:0,far:0},byD:{},log:[]};
+function med(a){if(!a.length)return 0;const b=[...a].sort((x,y)=>x-y);const m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2;}
+function consistency(){let p=0,ag=0;for(const k in T.byD){const a=T.byD[k];for(let i=0;i<a.length;i++)for(let j=i+1;j<a.length;j++){p++;if(a[i]===a[j])ag++;}}return p?Math.round(100*ag/p):"—";}
+function logE(s){T.log.unshift(`${(performance.now()/1000).toFixed(1)}s · ${s}`);if(T.log.length>50)T.log.pop();}
+function render(){
+  const acc=T.items?Math.round(100*T.correct/T.items):0;
+  $("#tel").innerHTML=`
+  <h2>Live telemetry · VER-CHAIN-01</h2>
+  <div class="kv"><span>phase</span><b>${T.phase}</b></div>
+  <div class="kv"><span>scored items</span><b>${T.items}</b></div>
+  <h2>Reasoning depth</h2>
+  <div class="kv"><span>accuracy <span class="m">M-ACC</span></span><b>${acc}% <span class="m">(${T.correct}/${T.items})</span></b></div>
+  <div class="kv"><span>premises chained <span class="m">M-RULEID</span></span><b>${T.maxPrem||"—"}</b></div>
+  <div class="kv"><span>spoken clues integrated <span class="m">M-ORALSPAN</span></span><b>${T.maxPrem||"—"}</b></div>
+  <div class="kv"><span>hardest chain solved <span class="m">M-DIFFREACH</span></span><b>${T.maxSolved?T.maxSolved+" clues":"—"}</b></div>
+  <div class="kv"><span>consistency <span class="m">M-CONSIST</span></span><b>${consistency()}${consistency()==="—"?"":"%"}</b></div>
+  <h2>Process</h2>
+  <div class="kv"><span>median solve time <span class="m">M-RT</span></span><b>${Math.round(med(T.rt))} ms</b></div>
+  <div class="kv"><span>first-action latency <span class="m">M-RTFIRST</span></span><b>${Math.round(med(T.first))} ms</b></div>
+  <h2>Error grain <span class="m">M-ERRTYPE</span></h2>
+  <div class="kv"><span>near-miss (next in order)</span><b>${T.err.adjacent}</b></div>
+  <div class="kv"><span>far miss</span><b>${T.err.far}</b></div>
+  <div class="note">M-RULEID and M-ORALSPAN converge here: each spoken clue is one relational link that must be bound, so the chain length is the relational-integration load. Scored on chain length and accuracy, not speed.</div>
+  <div class="log">${T.log.map(l=>`<div>${l}</div>`).join("")}</div>`;
+}
+render();
+function centerOf(el){const r=el.getBoundingClientRect(),s=stage.getBoundingClientRect();return{x:r.left-s.left+r.width/2,y:r.top-s.top+r.height/2};}
+let cur=null,shownAt=0,firstDone=false;
+function makeTrial(nPrem){
+  const k=nPrem+1,cr=shuffle([...POOL]).slice(0,k); // cr[0]=extreme "top", cr[k-1]=extreme "low"
+  const rel=RELS[Math.random()*RELS.length|0];
+  const prem=[];for(let i=0;i<k-1;i++)prem.push({a:cr[i],b:cr[i+1]});
+  const disp=shuffle([...prem]); // scrambled clue order forces integration, not read-off
+  const askTop=Math.random()<0.6;
+  return {order:cr,rel,disp,askTop,answer:askTop?cr[0]:cr[k-1],near:askTop?cr[1]:cr[k-2],nPrem};
+}
+function draw(t){
+  cur=t;
+  premEl.innerHTML="";
+  t.disp.forEach(p=>{const d=document.createElement("div");d.className="clue";
+    d.innerHTML=`<span class="em" style="font-size:24px">${p.a.e}</span> ${p.a.n} <span class="arw">—${t.rel.comp}→</span> <span class="em" style="font-size:24px">${p.b.e}</span> ${p.b.n}`;
+    premEl.appendChild(d);});
+  qEl.innerHTML=`Who is the <b>${t.askTop?t.rel.top:t.rel.low}</b>?`;
+  const opts=shuffle([...t.order]);
+  optsEl.innerHTML="";opts.forEach(c=>{const b=document.createElement("div");b.className="opt";b.dataset.n=c.n;
+    b.innerHTML=`<span class="em">${c.e}</span>${c.n}`;optsEl.appendChild(b);});
+  $("#lvl").textContent=(t.nPrem)+" clues";
+}
+function trialText(t){let s=t.disp.map(p=>`A ${p.a.n} is ${t.rel.comp} than a ${p.b.n}.`).join(" ");
+  return s+` Who is the ${(t.askTop?t.rel.top:t.rel.low).toLowerCase()}?`;}
+async function ghostTo(el){ghost.style.opacity="1";const c=centerOf(el);ghost.style.left=(c.x-14)+"px";ghost.style.top=(c.y-30)+"px";await sleep(520);}
+async function demo(){
+  if(T.phase==="demo")return;T.phase="demo";render();$("#go").disabled=true;
+  const w=POOL[0],b=POOL[1],z=POOL[2],rel=RELS[0];
+  const t={order:[w,b,z],rel,disp:[{a:b,b:z},{a:w,b:b}],askTop:true,answer:w,near:b,nPrem:2};
+  draw(t);cue.textContent="👂";say(trialText(t));await sleep(3600);
+  const tgt=[...optsEl.children].find(o=>o.dataset.n===w.n);
+  cue.textContent="🤔";await sleep(500);await ghostTo(tgt);tgt.classList.add("ok");cue.textContent="✅";await sleep(1100);
+  ghost.style.opacity="0";
+  $("#go").disabled=false;$("#go").textContent="▶ Try a practice one";$("#go").onclick=warmup;
+  T.phase="idle";$("#hint").textContent="Wug beats Blip, Blip beats Zorf — so Wug wins, even though no clue says so! Now you try (not scored).";render();
+}
+$("#go").onclick=demo;
+$("#say").onclick=()=>{if(cur)say(trialText(cur));};
+function answer(scored){
+  return new Promise(res=>{
+    firstDone=false;shownAt=performance.now();
+    function onClick(e){const b=e.target.closest(".opt");if(!b)return;
+      if(!firstDone){firstDone=true;if(scored)T.first.push(performance.now()-shownAt);}
+      optsEl.removeEventListener("click",onClick);
+      const rt=performance.now()-shownAt,ok=b.dataset.n===cur.answer.n;
+      b.classList.add(ok?"ok":"no");
+      if(!ok){const tt=[...optsEl.children].find(x=>x.dataset.n===cur.answer.n);tt.classList.add("ok");
+        if(b.dataset.n===cur.near.n)b.classList.add("near");}
+      cue.textContent=ok?"✅":"🙂";
+      if(scored){
+        T.items++;T.rt.push(rt);(T.byD[cur.nPrem]=T.byD[cur.nPrem]||[]).push(ok?1:0);
+        if(ok){T.correct++;if(cur.nPrem>T.maxPrem)T.maxPrem=cur.nPrem;if(cur.nPrem>T.maxSolved)T.maxSolved=cur.nPrem;}
+        else{if(b.dataset.n===cur.near.n)T.err.adjacent++;else T.err.far++;}
+        logE(`${cur.nPrem} clues ${ok?"OK":(b.dataset.n===cur.near.n?"near":"far")} ${Math.round(rt)}ms`);
+        T.d=ok?Math.min(4,T.d+1):Math.max(1,T.d-1);
+      }
+      render();res(ok);
+    }
+    optsEl.addEventListener("click",onClick);
+  });
+}
+async function warmup(){$("#go").disabled=true;T.phase="warm-up (unscored)";render();
+  draw(makeTrial(2));cue.textContent="👂";say(trialText(cur));await sleep(600);await answer(false);await sleep(900);
+  T.phase="idle";$("#go").disabled=false;$("#go").textContent="▶ Start scored clues";$("#go").onclick=startScored;
+  $("#hint").textContent="Great! Next ones count. Get one right and the chain gets one clue longer.";render();}
+let left=0;
+async function startScored(){$("#go").disabled=true;T.phase="scored";T.d=1;render();left=8;await loop();}
+async function loop(){if(left<=0){finish();return;}draw(makeTrial(T.d+1));cue.textContent="👂";say(trialText(cur));await sleep(500);await answer(true);left--;await sleep(750);if(left>0)await loop();else finish();}
+function finish(){T.phase="done";cue.textContent="🏁";$("#go").disabled=false;$("#go").textContent="▶ Run another block";$("#go").onclick=startScored;
+  $("#hint").textContent=`Done. Longest chain solved: ${T.maxSolved} clues. Picking the NEXT-in-order creature is the diagnostic near-miss.`;render();}
+draw(makeTrial(2));say("");
+</script>
+</body>
+</html>

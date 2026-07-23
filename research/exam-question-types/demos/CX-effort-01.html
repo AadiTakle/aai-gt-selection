@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CX-effort-01 — Worth the Work? (effort-based decision-making / effort discounting)</title>
+<style>
+  :root{--bg:#0e1220;--panel:#171d33;--edge:#2a3358;--ink:#e9edff;--mut:#8b93c0;
+    --accent:#5cc8ff;--good:#5ce39a;--bad:#ff6b8a;--warn:#ffd166;--gold:#ffcf4a;}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.45 system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);display:flex;min-height:100vh}
+  .main{flex:1;display:flex;flex-direction:column;align-items:center;padding:20px;gap:12px}
+  h1{font-size:19px;margin:.2rem 0}
+  .sub{color:var(--mut);font-size:13px;margin:0 0 6px;text-align:center;max-width:520px}
+  .badge{display:inline-block;padding:2px 9px;border-radius:99px;background:var(--panel);border:1px solid var(--edge);color:var(--accent);font-size:12px}
+  #stage{position:relative;width:480px;min-height:270px;background:var(--panel);border:1px solid var(--edge);border-radius:18px;padding:18px;display:flex;flex-direction:column;align-items:center;gap:14px}
+  .chests{display:flex;gap:26px;justify-content:center}
+  .chest{width:190px;border-radius:16px;background:#20284a;border:2px solid var(--edge);padding:14px;text-align:center;cursor:pointer;transition:transform .08s,box-shadow .12s}
+  .chest:hover{box-shadow:0 0 0 2px var(--accent)}
+  .chest:active{transform:scale(.96)}
+  .chest .big{font-size:52px}
+  .chest .eff{font-size:13px;color:var(--mut);margin:6px 0}
+  .chest .rew{font-size:20px;color:var(--gold);font-weight:700}
+  .work{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%}
+  .ebar{width:82%;height:20px;background:#10152a;border:1px solid var(--edge);border-radius:99px;overflow:hidden}
+  .ebar>div{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--good));transition:width .06s}
+  .mash{font-size:22px;font-weight:800;padding:18px 40px;border-radius:18px;border:none;background:var(--warn);color:#3a2a00;cursor:pointer}
+  .mash:active{transform:scale(.95)}
+  .link{font-size:12px;color:var(--mut);background:none;border:none;cursor:pointer;text-decoration:underline}
+  #enough{font-size:14px;color:var(--good);min-height:20px;text-align:center}
+  #ghost{position:absolute;font-size:28px;left:0;top:0;transition:left .4s cubic-bezier(.5,0,.3,1),top .4s cubic-bezier(.5,0,.3,1);pointer-events:none;filter:drop-shadow(0 3px 3px #0008);z-index:9;opacity:0}
+  #cue{font-size:26px;height:32px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+  button.ctl{font:inherit;padding:9px 16px;border-radius:10px;border:1px solid var(--edge);background:#20284a;color:var(--ink);cursor:pointer}
+  button.pri{background:var(--accent);color:#062033;border-color:transparent;font-weight:600}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .purse{font-size:16px}
+  .tel{width:335px;background:var(--panel);border-left:1px solid var(--edge);padding:14px 14px 40px;overflow:auto;font:12px/1.55 ui-monospace,Menlo,Consolas,monospace}
+  .tel h2{font:600 12px system-ui;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:14px 0 6px}
+  .kv{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted #2a3358;padding:2px 0}
+  .kv b{color:var(--accent);font-weight:600}
+  .kv .m{color:var(--mut);font-size:10px}
+  .note{font-size:10px;color:var(--mut);margin-top:6px}
+  .log{margin-top:6px;max-height:130px;overflow:auto;border:1px solid var(--edge);border-radius:8px;padding:6px;background:#10152a}
+  .log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+</head>
+<body>
+<div class="main">
+  <div style="text-align:center">
+    <h1>🧰 Worth the Work? <span class="badge" id="bphase">warm-up soon</span></h1>
+    <p class="sub">Two chests each round: an EASY one (a little tapping, a little reward) or a BIG one (lots of tapping, a bigger reward). Pick whichever is worth it to you — there is no wrong choice. <span class="purse">Purse: 🪙 <b id="purse">0</b></span></p>
+  </div>
+  <div id="stage">
+    <div id="view"></div>
+    <div id="enough"></div>
+    <div id="ghost">👆</div>
+  </div>
+  <div id="cue">👀</div>
+  <div class="row">
+    <button class="ctl pri" id="go">▶ Watch how it works</button>
+    <button class="ctl" id="stopbtn" style="display:none">🧺 I'm happy — stop</button>
+  </div>
+  <p class="sub" id="hint">A ghost hand shows you first — no reading needed.</p>
+</div>
+<aside class="tel" id="tel"></aside>
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const stage=$("#stage"),ghost=$("#ghost"),cue=$("#cue"),viewEl=$("#view");
+const EASY={taps:5,rew:2};const BIG_TAPS=16;const REQUIRED=8;
+const T={phase:"idle",round:0,banked:0,hard:0,easy:0,
+  hardByRew:{low:{n:0,h:0},high:{n:0,h:0}},path:[],completesBig:0,chosenBig:0,abandons:0,retries:0,
+  freeRounds:0,gateShown:false,log:[]};
+function logE(s){T.log.unshift(`${(performance.now()/1000).toFixed(1)}s · ${s}`);if(T.log.length>50)T.log.pop();}
+function pick(a){return a[Math.random()*a.length|0];}
+function rewardForRound(i){const high=i%2===0;return {high,R:high?pick([8,10,12]):pick([3,4,5])};}
+function hardRate(){const t=T.hard+T.easy;return t?Math.round(100*T.hard/t):0;}
+function slope(){const lo=T.hardByRew.low,hi=T.hardByRew.high;
+  const lr=lo.n?100*lo.h/lo.n:null,hr=hi.n?100*hi.h/hi.n:null;
+  return (lr===null||hr===null)?null:Math.round(hr-lr);}
+function followThrough(){return T.chosenBig?Math.round(100*T.completesBig/T.chosenBig):null;}
+function render(){
+  $("#purse").textContent=Math.round(T.banked);
+  const sl=slope();
+  $("#tel").innerHTML=`
+  <h2>Live telemetry · CX-effort-01</h2>
+  <div class="kv"><span>phase</span><b>${T.phase}</b></div>
+  <div class="kv"><span>rounds played</span><b>${T.round}</b></div>
+  <div class="kv"><span>coins banked</span><b>${Math.round(T.banked)}</b></div>
+  <h2>Effort-based choice (behavioral)</h2>
+  <div class="kv"><span>big-chest rate <span class="m">M-EFFALLOC</span></span><b>${hardRate()}% <span class="m">(${T.hard}/${T.hard+T.easy})</span></b></div>
+  <div class="kv"><span>&nbsp;· at small reward</span><b>${T.hardByRew.low.n?Math.round(100*T.hardByRew.low.h/T.hardByRew.low.n)+"%":"—"}</b></div>
+  <div class="kv"><span>&nbsp;· at big reward</span><b>${T.hardByRew.high.n?Math.round(100*T.hardByRew.high.h/T.hardByRew.high.n)+"%":"—"}</b></div>
+  <div class="kv"><span>reward sensitivity (slope)</span><b>${sl===null?"—":(sl>=0?"+":"")+sl+" pts"}</b></div>
+  <div class="kv"><span>choice path <span class="m">M-PATH</span></span><b>${T.path.slice(-12).join("")||"—"}</b></div>
+  <h2>Follow-through & drive</h2>
+  <div class="kv"><span>big-chest completion <span class="m">M-PERSIST</span></span><b>${followThrough()===null?"—":followThrough()+"%"}</b></div>
+  <div class="kv"><span>changed mind / abandon</span><b>${T.abandons}</b></div>
+  <div class="kv"><span>retry after abandon <span class="m">M-RESUME</span></span><b>${T.retries}</b></div>
+  <div class="kv"><span>rounds after "enough" <span class="m">M-CHOICE</span></span><b>${T.freeRounds}</b></div>
+  <div class="kv"><span>engagement <span class="m">M-ENGAGE</span></span><b>${T.phase==="playing"?"active":"idle"}</b></div>
+  <div class="note">Validity caveat: this is APPROACH MOTIVATION / reward-sensitivity, not "grit." Read the SLOPE (does big-reward pull more effort?) and follow-through, not the raw big-rate — a low rate can mean the child just does not value coins, or is tired. Behavioral, not self-report; gate on engagement.</div>
+  <div class="log">${T.log.map(l=>`<div>${l}</div>`).join("")}</div>`;
+}
+render();
+function centerOf(el){const r=el.getBoundingClientRect(),s=stage.getBoundingClientRect();return{x:r.left-s.left+r.width/2,y:r.top-s.top+r.height/2};}
+function coins(n){return "🪙".repeat(Math.min(6,n))+(n>6?" +":"");}
+function showChoice(reward,scored,onPick){
+  viewEl.innerHTML=`<div class="chests">
+    <div class="chest" id="cEasy"><div class="big">🎁</div><div class="eff">tap ${EASY.taps} times</div><div class="rew">${coins(EASY.rew)} ${EASY.rew}</div></div>
+    <div class="chest" id="cBig"><div class="big">🧰</div><div class="eff">tap ${BIG_TAPS} times</div><div class="rew">${coins(reward)} ${reward}</div></div>
+  </div>`;
+  $("#cEasy").onclick=()=>onPick(false);
+  $("#cBig").onclick=()=>onPick(true);
+}
+function doWork(target,reward,isBig,scored){
+  return new Promise(res=>{
+    let taps=0;
+    viewEl.innerHTML=`<div class="work"><div>${isBig?"🧰 Big chest":"🎁 Easy chest"} — mash to open! <b>${coins(reward)} ${reward}</b></div>
+      <div class="ebar"><div id="efill"></div></div>
+      <button class="mash" id="mash">👊 TAP!</button>
+      <button class="link" id="quit">↩ change my mind</button></div>`;
+    const fill=$("#efill");
+    $("#mash").onclick=()=>{taps++;fill.style.width=Math.min(100,100*taps/target)+"%";cue.textContent="👊";
+      if(taps>=target){$("#mash").disabled=true;T.banked+=reward;cue.textContent="🪙";
+        if(scored){if(isBig)T.completesBig++;}
+        logE(`opened ${isBig?"BIG":"easy"} (+${reward}) after ${taps} taps`);render();setTimeout(()=>res(true),450);}};
+    $("#quit").onclick=()=>{if(scored){T.abandons++;}logE(`changed mind on ${isBig?"BIG":"easy"} at ${taps} taps`);render();res(false);};
+  });
+}
+async function playRound(scored){
+  const {high,R}=rewardForRound(T.round);
+  cue.textContent="🤔";
+  await new Promise(done=>{
+    showChoice(R,scored,async(isBig)=>{
+      if(scored){
+        T.round++;
+        if(isBig){T.hard++;T.chosenBig++;(high?T.hardByRew.high:T.hardByRew.low).n++;(high?T.hardByRew.high:T.hardByRew.low).h++;}
+        else{T.easy++;(high?T.hardByRew.high:T.hardByRew.low).n++;}
+        T.path.push(isBig?"B":"e");
+        if(T.gateShown)T.freeRounds++;
+      }
+      const target=isBig?BIG_TAPS:EASY.taps,rew=isBig?R:EASY.rew;
+      let ok=await doWork(target,rew,isBig,scored);
+      while(!ok){ // abandoned -> free to retry (same round), records resumption
+        if(scored)T.retries++;
+        ok=await new Promise(r2=>{showChoice(R,scored,async(b2)=>{const t2=b2?BIG_TAPS:EASY.taps,r3=b2?R:EASY.rew;r2(await doWork(t2,r3,b2,scored));});});
+      }
+      if(scored&&!T.gateShown&&T.round>=REQUIRED){T.gateShown=true;$("#enough").textContent="🎉 You have plenty of coins! You can stop now — or keep going if you like.";$("#stopbtn").style.display="";}
+      done();
+    });
+  });
+  render();
+}
+async function ghostTo(el){ghost.style.opacity="1";const c=centerOf(el);ghost.style.left=(c.x-12)+"px";ghost.style.top=(c.y-8)+"px";await sleep(420);}
+async function demo(){
+  if(T.phase==="demo")return;T.phase="demo";render();$("#go").disabled=true;
+  // choose easy, mash a little
+  showChoice(8,false,()=>{});cue.textContent="👀";await sleep(500);
+  await ghostTo($("#cEasy"));cue.textContent="🎁";await sleep(300);
+  viewEl.innerHTML=`<div class="work"><div>🎁 Easy chest — <b>🪙🪙 2</b></div><div class="ebar"><div id="efill" style="width:100%"></div></div><div>opened! 🪙</div></div>`;await sleep(900);
+  // choose big, mash a lot
+  showChoice(8,false,()=>{});await sleep(300);await ghostTo($("#cBig"));cue.textContent="🧰";await sleep(300);
+  viewEl.innerHTML=`<div class="work"><div>🧰 Big chest — <b>🪙🪙🪙🪙 8</b></div><div class="ebar"><div id="efill" style="width:100%"></div></div><div>lots of taps... opened! 🪙</div></div>`;await sleep(1000);
+  ghost.style.opacity="0";
+  $("#go").disabled=false;$("#go").textContent="▶ Try a practice round";$("#go").onclick=warmup;
+  T.phase="idle";$("#bphase").textContent="try it";$("#hint").textContent="Easy = quick + small. Big = more work + bigger. Your call! Now try a practice round (not counted).";render();
+}
+$("#go").onclick=demo;
+async function warmup(){$("#go").disabled=true;T.phase="warm";$("#bphase").textContent="practice";render();
+  await playRound(false);
+  T.phase="idle";$("#go").disabled=false;$("#go").textContent="▶ Start playing";$("#go").onclick=startScored;
+  T.round=0;T.banked=T.banked;$("#hint").textContent="Great! Now play for real. Pick whatever is worth it to you — we just watch what you choose.";
+  // reset counters (keep purse for fun)
+  T.hard=0;T.easy=0;T.hardByRew={low:{n:0,h:0},high:{n:0,h:0}};T.path=[];T.completesBig=0;T.chosenBig=0;T.abandons=0;T.retries=0;T.freeRounds=0;T.gateShown=false;render();}
+async function startScored(){$("#go").disabled=true;$("#go").style.display="none";T.phase="playing";$("#bphase").textContent="playing";render();await loop();}
+let stopped=false;
+async function loop(){stopped=false;
+  while(!stopped){await playRound(true);
+    if(T.gateShown){/* free choice continues until child stops */}
+    if(stopped)break;
+    // safety cap so the demo can't run forever
+    if(T.round>=REQUIRED+8){break;}
+  }
+  finish();
+}
+$("#stopbtn").onclick=()=>{stopped=true;$("#stopbtn").style.display="none";$("#enough").textContent="";};
+function finish(){T.phase="done";cue.textContent="🏁";$("#stopbtn").style.display="none";$("#go").style.display="";$("#go").disabled=false;$("#go").textContent="▶ Play again";$("#go").onclick=()=>{T.round=0;T.hard=0;T.easy=0;T.hardByRew={low:{n:0,h:0},high:{n:0,h:0}};T.path=[];T.completesBig=0;T.chosenBig=0;T.abandons=0;T.retries=0;T.freeRounds=0;T.gateShown=false;startScored();};
+  const sl=slope();$("#hint").textContent=`Done. Big-chest rate ${hardRate()}% (reward sensitivity ${sl===null?"—":(sl>=0?"+":"")+sl+" pts"}). Read the slope + follow-through, not the raw rate.`;render();}
+showChoice(8,false,()=>{});
+</script>
+</body>
+</html>

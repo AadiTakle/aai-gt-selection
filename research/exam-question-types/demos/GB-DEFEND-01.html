@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GB-DEFEND-01 — Picnic Defenders</title>
+<style>
+  :root{--bg:#0f1420;--panel:#182234;--ink:#eaf0fb;--mut:#9fb0cc;--good:#37d67a;--bad:#ff6b6b;--accent:#ffd166;--line:#2a3852;--path:#5a4632;--grass:#1c3524}
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.45 system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink);display:flex;min-height:100vh}
+  .stage{flex:1;padding:20px;max-width:760px}
+  .side{width:320px;background:var(--panel);border-left:1px solid var(--line);padding:16px;overflow:auto}
+  h1{font-size:20px;margin:0 0 2px}
+  .sub{color:var(--mut);font-size:13px;margin-bottom:12px}
+  .banner{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .phase{color:var(--accent);font-weight:700;text-transform:uppercase;font-size:12px}
+  .ask{font-size:16px}
+  .coins{font-size:18px;font-weight:700;color:var(--accent)}
+  canvas{background:#0c1424;border:1px solid var(--line);border-radius:12px;display:block;margin:0 auto}
+  .tray{display:flex;gap:10px;justify-content:center;margin:12px 0;flex-wrap:wrap}
+  .card{display:flex;flex-direction:column;align-items:center;background:#111a2b;border:2px solid var(--line);border-radius:12px;padding:8px 12px;cursor:pointer;min-width:92px}
+  .card.sel{border-color:var(--accent);transform:translateY(-2px)}
+  .card.no{opacity:.35;pointer-events:none}
+  .card .em{font-size:26px}
+  .card .nm{font-size:12px;color:var(--mut)}
+  .card .ct{font-weight:700;color:var(--accent)}
+  .controls{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  button.act{background:var(--accent);color:#20160a;border:0;border-radius:10px;padding:10px 18px;font-weight:700;font-size:15px;cursor:pointer}
+  button.ghost{background:#22304a;color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px 16px;cursor:pointer}
+  .fb{font-weight:700;margin-top:10px;min-height:22px;text-align:center}
+  .tele h2{font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut);margin:14px 0 6px}
+  .kv{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;border-bottom:1px dotted #24344e}
+  .kv span:last-child{color:var(--accent);font-variant-numeric:tabular-nums;text-align:right;max-width:170px}
+  .log{font:12px/1.4 ui-monospace,Menlo,monospace;color:#bcd;background:#0c1424;border:1px solid var(--line);border-radius:8px;padding:8px;height:130px;overflow:auto;white-space:pre-wrap}
+  .hint{color:var(--mut);font-size:12px;text-align:center}
+</style>
+</head>
+<body>
+<div class="stage">
+  <h1>Picnic Defenders <span class="hint" style="display:inline">· GB-DEFEND-01</span></h1>
+  <div class="sub">Spend coins to place defenders. Stop every ant before it reaches the 🧺.</div>
+  <div class="banner">
+    <div><div class="phase" id="phase">Demo</div><div class="ask" id="ask">Watch the ghost-hand defend…</div></div>
+    <div class="coins">🪙 <span id="coins">0</span></div>
+  </div>
+  <canvas id="cv" width="440" height="330"></canvas>
+  <div class="tray" id="tray"></div>
+  <div class="controls">
+    <button class="act" id="goBtn">▶ GO (send wave)</button>
+    <button class="ghost" id="retryBtn" style="display:none">↻ Retry wave</button>
+    <button class="ghost" id="nextBtn" style="display:none">Next wave ▶</button>
+  </div>
+  <div class="fb" id="fb"></div>
+  <div class="hint">Tap a defender card, then tap a green cell to place. Tap a placed defender to sell it back.</div>
+</div>
+<div class="side tele">
+  <h2>Live telemetry</h2>
+  <div class="kv"><span>Phase / wave</span><span id="t_phase">demo</span></div>
+  <div class="kv"><span>M-ACC (wave cleared)</span><span id="t_acc">–</span></div>
+  <div class="kv"><span>M-EFF (spent / optimal)</span><span id="t_eff">–</span></div>
+  <div class="kv"><span>M-PROG (ants stopped)</span><span id="t_prog">–</span></div>
+  <div class="kv"><span>M-RTFIRST (1st place, ms)</span><span id="t_rtf">–</span></div>
+  <div class="kv"><span>M-HYP (wave-to-wave)</span><span id="t_hyp">–</span></div>
+  <div class="kv"><span>M-DIFFREACH (waves cleared)</span><span id="t_reach">0</span></div>
+  <div class="kv"><span>M-RESUME (retries)</span><span id="t_res">0</span></div>
+  <h2>M-PATH (build log)</h2>
+  <div class="log" id="log"></div>
+</div>
+<script>
+const $$=id=>document.getElementById(id);
+const CW=440,CH=330,CS=44;                       // canvas + cell size
+const COLS=Math.floor(CW/CS), ROWS=Math.floor(CH/CS); // 10 x 7
+// winding path as [col,row] from spawn to basket
+const PATH=[[0,1],[1,1],[2,1],[2,2],[2,3],[3,3],[4,3],[4,2],[4,1],[5,1],[6,1],[6,2],[6,3],[6,4],[7,4],[8,4],[9,4]];
+const KEY=PATH.map(p=>p[0]+","+p[1]);
+const DEFS={
+  block:{em:"🪵",nm:"Blocker",cost:2,range:1,dmg:1},
+  fan:  {em:"🌀",nm:"Fan",    cost:3,range:2,dmg:1},
+  cannon:{em:"💥",nm:"Cannon",cost:5,range:1,dmg:3}
+};
+// waves: demo/warmup then scored, with escalating pressure. budget accrues.
+const WAVES=[
+  {mode:"demo",   ants:1, hp:2, budget:6, optimal:2},
+  {mode:"warmup", ants:2, hp:2, budget:6, optimal:3},
+  {mode:"scored", ants:3, hp:3, budget:6, optimal:5},
+  {mode:"scored", ants:4, hp:4, budget:5, optimal:8},
+  {mode:"scored", ants:6, hp:5, budget:6, optimal:12}
+];
+let wi=0, cur, coins=0, sel=null, placed={}, spent=0, firstT=0, startT=0;
+let running=false, tickH=null, ants=[], prevProg=null, wavesCleared=0, retries=0, totalSpentTracker=0;
+
+function cellIsPath(c,r){return KEY.includes(c+","+r);}
+function draw(){
+  const ctx=$$("cv").getContext("2d");ctx.clearRect(0,0,CW,CH);
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    ctx.fillStyle = cellIsPath(c,r)? "#5a4632" : "#16301f";
+    ctx.fillRect(c*CS,r*CS,CS-1,CS-1);
+  }
+  // range preview for selected placement is skipped for simplicity
+  // basket + spawn
+  const s=PATH[0], b=PATH[PATH.length-1];
+  ctx.font="26px system-ui";ctx.textAlign="center";ctx.textBaseline="middle";
+  ctx.fillText("🕳️", s[0]*CS+CS/2, s[1]*CS+CS/2);
+  ctx.fillText("🧺", b[0]*CS+CS/2, b[1]*CS+CS/2);
+  // defenders
+  for(const k in placed){const [c,r]=k.split(",").map(Number);ctx.fillText(DEFS[placed[k]].em,c*CS+CS/2,r*CS+CS/2);}
+  // ants
+  ctx.font="22px system-ui";
+  ants.forEach(a=>{if(a.idx>=0 && a.idx<PATH.length && a.alive){const [c,r]=PATH[a.idx];
+    ctx.fillText("🐜",c*CS+CS/2,r*CS+CS/2);
+    // hp pip
+    ctx.fillStyle="#ff6b6b";ctx.font="10px system-ui";ctx.fillText("♥"+a.hp,c*CS+CS/2,r*CS+8);ctx.font="22px system-ui";
+  }});
+}
+function buildTray(){
+  $$("tray").innerHTML="";
+  for(const k in DEFS){const d=DEFS[k];
+    const el=document.createElement("div");el.className="card";el.dataset.k=k;
+    el.innerHTML=`<div class="em">${d.em}</div><div class="nm">${d.nm} · r${d.range}·⚔${d.dmg}</div><div class="ct">🪙${d.cost}</div>`;
+    el.onclick=()=>{if(running||cur.mode==="demo")return;document.querySelectorAll('.card').forEach(x=>x.classList.remove('sel'));el.classList.add('sel');sel=k;};
+    $$("tray").appendChild(el);
+  }
+  refreshTray();
+}
+function refreshTray(){document.querySelectorAll('.card').forEach(el=>{el.classList.toggle('no',DEFS[el.dataset.k].cost>coins);});}
+$$("cv").onclick=(e)=>{
+  if(running||cur.mode==="demo")return;
+  const rect=e.target.getBoundingClientRect();
+  const c=Math.floor((e.clientX-rect.left)/CS), r=Math.floor((e.clientY-rect.top)/CS);
+  const k=c+","+r;
+  if(placed[k]){ // sell
+    coins+=DEFS[placed[k]].cost;spent-=DEFS[placed[k]].cost;log(`sell ${DEFS[placed[k]].nm} @${k}`);delete placed[k];
+    $$("coins").textContent=coins;refreshTray();draw();return;
+  }
+  if(!sel)return;
+  if(cellIsPath(c,r))return;
+  if(c<0||r<0||c>=COLS||r>=ROWS)return;
+  if(DEFS[sel].cost>coins){flash("Not enough coins");return;}
+  if(!firstT){firstT=Math.round(performance.now()-startT);$$("t_rtf").textContent=firstT;}
+  placed[k]=sel;coins-=DEFS[sel].cost;spent+=DEFS[sel].cost;
+  log(`place ${DEFS[sel].nm} @${k} (−${DEFS[sel].cost})`);
+  $$("coins").textContent=coins;refreshTray();draw();
+};
+function log(s){$$("log").textContent+=s+"\n";$$("log").scrollTop=1e9;}
+function flash(m){$$("fb").textContent=m;$$("fb").style.color="var(--accent)";}
+function loadWave(){
+  cur=WAVES[wi];
+  if(cur.mode!=="demo") coins+=cur.budget; else coins=cur.budget;
+  $$("phase").textContent=cur.mode==="demo"?"Demo":cur.mode==="warmup"?"Warm-up (not scored)":("Scored · wave "+(wi-1));
+  $$("t_phase").textContent=cur.mode+(cur.mode==="scored"?(" w"+(wi-1)):"");
+  $$("ask").textContent=cur.mode==="demo"?"Watch the ghost-hand defend…":`Stop all ${cur.ants} ants! (each ♥${cur.hp})`;
+  $$("coins").textContent=coins;
+  $$("fb").textContent="";$$("goBtn").style.display="";$$("retryBtn").style.display="none";$$("nextBtn").style.display="none";
+  ["t_acc","t_eff","t_prog","t_rtf","t_hyp"].forEach(k=>$$(k).textContent="–");
+  firstT=0;startT=performance.now();ants=[];running=false;
+  refreshTray();draw();
+  if(cur.mode==="demo"){$$("goBtn").style.display="none";document.querySelector('.tray').style.opacity=.5;setTimeout(runGhost,700);}
+  else document.querySelector('.tray').style.opacity=1;
+}
+$$("goBtn").onclick=()=>{ if(running)return; startWave(); };
+function startWave(){
+  running=true;$$("goBtn").style.display="none";sel=null;document.querySelectorAll('.card').forEach(x=>x.classList.remove('sel'));
+  ants=[];for(let i=0;i<cur.ants;i++)ants.push({idx:-2*i,hp:cur.hp,alive:true,leaked:false});
+  let leaked=0,stopped=0;
+  tickH=setInterval(()=>{
+    // damage phase
+    for(const k in placed){const [dc,dr]=k.split(",").map(Number);const d=DEFS[placed[k]];
+      ants.forEach(a=>{if(!a.alive||a.idx<0||a.idx>=PATH.length)return;const [ac,ar]=PATH[a.idx];
+        if(Math.max(Math.abs(dc-ac),Math.abs(dr-ar))<=d.range){a.hp-=d.dmg;}});
+    }
+    ants.forEach(a=>{if(a.alive&&a.hp<=0){a.alive=false;stopped++;}});
+    // move phase
+    ants.forEach(a=>{if(!a.alive)return;a.idx++;if(a.idx>=PATH.length-1){a.alive=false;a.leaked=true;leaked++;}});
+    draw();
+    const done=ants.every(a=>!a.alive);
+    if(done){clearInterval(tickH);endWave(stopped,leaked);}
+  },420);
+}
+function endWave(stopped,leaked){
+  running=false;
+  const total=cur.ants, prog=Math.round(100*stopped/total);
+  const cleared = leaked===0;
+  if(cur.mode!=="demo"){
+    $$("t_acc").textContent=cleared?"1 ✓":"0 ✗";
+    $$("t_eff").textContent=spent+" / "+cur.optimal+(spent<=cur.optimal?" ✓":" (over)");
+    $$("t_prog").textContent=prog+"%";
+    if(prevProg!==null)$$("t_hyp").textContent=(prog>=prevProg?"improving/steady":"dropped")+" ("+(prevProg)+"→"+prog+"%)";
+    prevProg=prog;
+  }
+  if(cleared){
+    if(cur.mode==="scored"){wavesCleared++;$$("t_reach").textContent=wavesCleared;}
+    $$("fb").textContent="Picnic saved! 🧺✨";$$("fb").style.color="var(--good)";
+    $$("nextBtn").style.display= wi<WAVES.length-1?"":"none";
+    if(wi>=WAVES.length-1)$$("fb").textContent+="  (all waves cleared — end of demo)";
+    log(`WAVE CLEARED — stopped ${stopped}/${total}, spent ${spent} (opt ${cur.optimal})`);
+  }else{
+    $$("fb").textContent=`Raided! ${leaked} ant(s) reached the picnic.`;$$("fb").style.color="var(--bad)";
+    $$("retryBtn").style.display="";
+    log(`WAVE FAILED — ${leaked} leaked, stopped ${stopped}/${total}`);
+  }
+}
+$$("retryBtn").onclick=()=>{ // M-RESUME: re-engage after failure; refund placements to re-plan
+  retries++;$$("t_res").textContent=retries;log("RETRY wave (re-plan)");
+  // refund current placements
+  for(const k in placed){coins+=DEFS[placed[k]].cost;spent-=DEFS[placed[k]].cost;}
+  placed={};ants=[];$$("coins").textContent=coins;firstT=0;startT=performance.now();
+  $$("fb").textContent="";$$("retryBtn").style.display="none";$$("goBtn").style.display="";refreshTray();draw();
+};
+$$("nextBtn").onclick=()=>{ if(wi<WAVES.length-1){wi++;loadWave();} };
+function runGhost(){
+  // wordless: place a blocker beside the path, then GO with 1 weak ant
+  const gk="1,2"; placed[gk]="block"; coins-=DEFS.block.cost; draw();
+  setTimeout(()=>{ startWaveGhost(); },900);
+}
+function startWaveGhost(){
+  ants=[{idx:0,hp:cur.hp,alive:true,leaked:false}];
+  const h=setInterval(()=>{
+    const [dc,dr]="1,2".split(",").map(Number);
+    ants.forEach(a=>{if(!a.alive)return;const [ac,ar]=PATH[a.idx];if(Math.max(Math.abs(dc-ac),Math.abs(dr-ar))<=1)a.hp-=1;});
+    ants.forEach(a=>{if(a.alive&&a.hp<=0)a.alive=false;});
+    ants.forEach(a=>{if(a.alive)a.idx++;});
+    draw();
+    if(ants.every(a=>!a.alive)){clearInterval(h);
+      $$("ask").textContent="Place → GO → ants pile up and never reach the 🧺. Now you try!";
+      $$("nextBtn").style.display="";}
+  },420);
+}
+buildTray();loadWave();
+</script>
+</body>
+</html>
