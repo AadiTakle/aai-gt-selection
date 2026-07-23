@@ -44,11 +44,12 @@ def tokens_match(item_sub, type_tokens):
 def area_and_sub(item):
     c = item["construct"]
     sub = item.get("subconstruct", "")
-    if c == "game_based" and ":" in sub:
-        tgt, tech = sub.split(":", 1)
-        tgt = norm(tgt).replace(" ", "_")
-        return (tgt if tgt in AREAS else None), tech
-    return c, sub
+    if c == "game_based":
+        # a game-based item can be represented by ANY question type covering its technique,
+        # regardless of area; map "targetconstruct:technique" -> technique, drop the area gate
+        tech = sub.split(":", 1)[1] if ":" in sub else sub
+        return None, tech, True
+    return c, sub, False
 
 
 def main():
@@ -58,13 +59,12 @@ def main():
     per_item = []
     undercovered = Counter()
     for it in items:
-        area, sub = area_and_sub(it)
+        area, sub, is_game = area_and_sub(it)
         band = it.get("age_band", "")
         n = 0
         for t in types:
-            areas = set(t.get("areas", []))
-            # area gate: unmapped game_based items skip the area gate (technique-only match)
-            if area is not None and area not in areas:
+            # non-game items are area-gated; game-based items match on technique+band across any area
+            if not is_game and area not in set(t.get("areas", [])):
                 continue
             if not tokens_match(sub, t.get("topics_techniques_covered", [])):
                 continue
