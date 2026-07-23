@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QUANT-EQNBUILD-01 — Equation Forge</title>
+<style>
+:root{--bg:#0f1226;--panel:#1b2140;--panel2:#232a52;--accent:#5eead4;--accent2:#f59e0b;--good:#4ade80;--bad:#f87171;--ink:#eef1ff;--muted:#9aa3c7}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font:16px/1.45 system-ui,Segoe UI,Roboto,sans-serif;color:var(--ink);
+  background:radial-gradient(1200px 700px at 20% -10%,#26305e,#0f1226 60%);min-height:100vh}
+.wrap{display:grid;grid-template-columns:1fr 340px;gap:16px;max-width:1120px;margin:0 auto;padding:18px}
+@media(max-width:880px){.wrap{grid-template-columns:1fr}}
+h1{font-size:18px;margin:0 0 2px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:10px}
+.card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid #313a6b;border-radius:16px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.phasebar{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.pill{font-size:12px;padding:4px 10px;border-radius:999px;background:#2b336a;color:var(--muted);border:1px solid #3a447f}
+.pill.on{background:var(--accent);color:#053;font-weight:700}
+.prompt{font-size:15px;color:var(--muted);min-height:22px;margin:6px 0 16px;text-align:center}
+.eqn{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;margin:6px 0}
+.term{font-size:40px;font-weight:800;min-width:44px;text-align:center}
+.op{font-size:34px;color:var(--accent2);font-weight:800}
+.eqsign{font-size:40px;font-weight:800;color:var(--muted);transition:color .2s;padding:0 4px}
+.eqsign.ok{color:var(--good)}
+.blank{min-width:58px;height:64px;border-radius:12px;border:2px dashed var(--accent);background:#171d3c;display:flex;
+  align-items:center;justify-content:center;font-size:36px;font-weight:800;cursor:pointer}
+.blank.active{box-shadow:0 0 0 3px rgba(94,234,212,.3)}
+.sides{display:flex;justify-content:center;gap:40px;margin:8px 0 4px;color:var(--muted);font-size:13px}
+.sides b{font-size:18px}
+.sides .bal b{color:var(--good)}
+.palette{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:16px 0 4px}
+.tile{width:54px;height:54px;border-radius:12px;background:#2b336a;border:2px solid #3a447f;color:var(--ink);
+  font-size:26px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.tile:hover{border-color:var(--accent)}
+.tile.used{opacity:.45}
+.row{display:flex;gap:10px;align-items:center;justify-content:center;margin-top:12px;flex-wrap:wrap}
+button.act{font:600 15px system-ui;padding:10px 18px;border-radius:12px;border:0;cursor:pointer;background:var(--accent);color:#053}
+button.act.ghost{background:#2b336a;color:var(--ink);border:1px solid #3a447f}
+button.act:disabled{opacity:.4;cursor:default}
+.fb{min-height:26px;text-align:center;font-weight:700;margin-top:12px}
+.fb.good{color:var(--good)}.fb.bad{color:var(--bad)}
+.hand{position:fixed;font-size:32px;z-index:20;pointer-events:none;filter:drop-shadow(0 4px 6px rgba(0,0,0,.5));transition:left .5s cubic-bezier(.4,0,.2,1),top .4s ease;opacity:0}
+.tele{font-size:13px}
+.tele h2{font-size:14px;margin:0 0 8px;color:var(--accent)}
+.metrics{display:grid;grid-template-columns:1fr auto;gap:4px 8px;margin-bottom:10px}
+.metrics div:nth-child(odd){color:var(--muted)}
+.metrics b{font-variant-numeric:tabular-nums}
+.log{height:236px;overflow:auto;background:#12172f;border:1px solid #2a336a;border-radius:10px;padding:8px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace}
+.log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-acc{color:var(--good)}.t-err{color:var(--bad)}.t-evt{color:#9fb0ff}.t-sys{color:var(--muted)}
+.legend{color:var(--muted);font-size:12px;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <main class="card">
+    <h1>Equation Forge</h1>
+    <div class="sub">Put a number in the box so BOTH sides are the same. The = turns green when they match.</div>
+    <div class="phasebar" id="phasebar"></div>
+    <div class="prompt" id="prompt"></div>
+    <div class="eqn" id="eqn"></div>
+    <div class="sides" id="sides"></div>
+    <div class="palette" id="palette"></div>
+    <div class="row">
+      <button class="act" id="doneBtn">Check</button>
+      <button class="act ghost" id="nextBtn" style="display:none">Next</button>
+    </div>
+    <div class="fb" id="fb"></div>
+    <div class="hand" id="hand">&#128070;</div>
+  </main>
+  <aside class="card tele">
+    <h2>Live telemetry</h2>
+    <div class="metrics" id="metrics"></div>
+    <div class="log" id="log"></div>
+    <div class="legend">Logs <b>M-ACC</b>, <b>M-EXPLORE</b> (tiles tried), <b>M-PATH</b> (placements), <b>M-EFF</b> (moves vs 1), and <b>M-EQREL</b> (first pick: relational vs operational trap).</div>
+  </aside>
+</div>
+<script>
+(function(){
+  "use strict";
+  var el=function(id){return document.getElementById(id)};
+  var eqn=el('eqn'),sides=el('sides'),palette=el('palette'),hand=el('hand'),prompt=el('prompt'),
+      fb=el('fb'),doneBtn=el('doneBtn'),nextBtn=el('nextBtn');
+  var T0=Date.now(); function perf(){return Date.now()-T0;}
+
+  var Tel={
+    scored:0,correct:0,moves:0,explore:{},effSum:0,effN:0,relN:0,relRel:0,opTrap:0,
+    push:function(cls,msg){var d=document.createElement('div');d.className=cls;
+      d.textContent='['+(perf()/1000).toFixed(2)+'s] '+msg;var L=el('log');L.appendChild(d);L.scrollTop=L.scrollHeight;},
+    render:function(){
+      var acc=Tel.scored?Math.round(100*Tel.correct/Tel.scored)+'% ('+Tel.correct+'/'+Tel.scored+')':'—';
+      var eff=Tel.effN?Math.round(100*Tel.effSum/Tel.effN)+'%':'—';
+      var rel=Tel.relN?(Tel.relRel+' rel / '+Tel.opTrap+' op'):'—';
+      el('metrics').innerHTML=
+        '<div>M-ACC accuracy</div><b>'+acc+'</b>'+
+        '<div>M-EXPLORE tiles</div><b>'+Object.keys(Tel.explore).length+'</b>'+
+        '<div>M-PATH placements</div><b>'+Tel.moves+'</b>'+
+        '<div>M-EFF mean</div><b>'+eff+'</b>'+
+        '<div>M-EQREL first pick</div><b>'+rel+'</b>';
+    }
+  };
+
+  // left = a op b (fixed). right = blank + c. answer solves left=blank+c. opTrap = a+b (running total).
+  var items=[
+    {phase:'demo',  a:2,b:3,opL:'+', c:1, tiles:[4,5,3,6]},
+    {phase:'warmup',a:4,b:0,opL:'+', c:1, tiles:[3,5,2,4]}, // 4 = _ + 1 -> 3  (b=0 hides second left term)
+    {phase:'scored',a:3,b:4,opL:'+', c:5, tiles:[2,7,5,9]}, // 3+4 = _ + 5 -> 2  (trap 7)
+    {phase:'scored',a:6,b:2,opL:'+', c:3, tiles:[5,8,3,10]} // 6+2 = _ + 3 -> 5  (trap 8)
+  ];
+  var labels={demo:'1 Watch',warmup:'2 Try',scored:'3 Solve'};
+  var idx=-1,cur=null,blankVal=null,firstPick=null,moves=0,activeBlank=true;
+
+  function renderPhasebar(){
+    el('phasebar').innerHTML=['demo','warmup','scored'].map(function(p){
+      var on=cur&&cur.phase===p?' on':''; return '<span class="pill'+on+'">'+labels[p]+'</span>';
+    }).join('');
+  }
+  function leftVal(){return cur.opL==='+'?cur.a+cur.b:cur.a-cur.b;}
+  function answer(){return leftVal()-cur.c;}
+  function trap(){return leftVal();} // operational running-total error
+
+  function drawEqn(){
+    eqn.innerHTML='';
+    function term(v){var d=document.createElement('div');d.className='term';d.textContent=v;return d;}
+    function op(s){var d=document.createElement('div');d.className='op';d.textContent=s;return d;}
+    // left side
+    eqn.appendChild(term(cur.a));
+    if(cur.b!==0){ eqn.appendChild(op(cur.opL)); eqn.appendChild(term(cur.b)); }
+    var eq=document.createElement('div');eq.className='eqsign';eq.id='eqsign';eq.textContent='=';eqn.appendChild(eq);
+    // right side: blank + c
+    var bl=document.createElement('div');bl.className='blank active';bl.id='blank';bl.textContent='';
+    bl.onclick=function(){}; eqn.appendChild(bl);
+    eqn.appendChild(op('+'));
+    eqn.appendChild(term(cur.c));
+  }
+  function drawSides(){
+    var L=leftVal(); var R=(blankVal===null?'?':blankVal+cur.c);
+    var bal=(blankVal!==null&&(blankVal+cur.c)===L);
+    sides.innerHTML='<div>left = <b>'+L+'</b></div><div class="'+(bal?'bal':'')+'">right = <b>'+R+'</b></div>';
+    el('eqsign').classList.toggle('ok',bal);
+  }
+  function drawPalette(){
+    palette.innerHTML='';
+    cur.tiles.forEach(function(v){
+      var t=document.createElement('div');t.className='tile';t.id='tile'+v;t.textContent=v;
+      t.onclick=function(){ if(cur.phase==='demo')return; pick(v); };
+      palette.appendChild(t);
+    });
+  }
+  function pick(v){
+    if(firstPick===null){
+      firstPick=v;
+      Tel.relN++;
+      var kind = v===answer()?'relational': v===trap()?'operational-trap':'other';
+      if(kind==='relational')Tel.relRel++; if(kind==='operational-trap')Tel.opTrap++;
+      Tel.push(kind==='relational'?'t-evt':kind==='operational-trap'?'t-err':'t-sys','M-EQREL first pick '+v+' = '+kind);
+    }
+    blankVal=v; moves++; Tel.moves++; Tel.explore[v]=1;
+    el('blank').textContent=v;
+    Tel.push('t-evt','place '+v+' in box');
+    drawSides(); Tel.render();
+  }
+
+  function loadItem(){
+    idx++; if(idx>=items.length){finish();return;}
+    cur=items[idx]; blankVal=null; firstPick=null; moves=0;
+    fb.textContent='';fb.className='fb'; nextBtn.style.display='none'; doneBtn.disabled=false;
+    renderPhasebar();
+    prompt.textContent = cur.phase==='demo'?'Watch: the box gets a number that makes both sides equal.'
+      :'Make both sides equal. Which number goes in the box?';
+    drawEqn(); drawSides(); drawPalette();
+    Tel.push('t-sys','LOAD '+cur.phase+': '+cur.a+(cur.b?(' '+cur.opL+' '+cur.b):'')+' = _ + '+cur.c+'  (answer '+answer()+', trap '+trap()+')');
+    if(cur.phase==='demo') ghostDemo();
+    Tel.render();
+  }
+
+  doneBtn.onclick=function(){ if(cur.phase==='demo')return; commit(); };
+  function commit(){
+    if(blankVal===null){ fb.textContent='Tap a number tile first.'; fb.className='fb bad'; return; }
+    var correct=(blankVal+cur.c)===leftVal();
+    var optimal=1, eff=optimal/Math.max(moves,optimal);
+    if(cur.phase==='scored'){
+      Tel.scored++; if(correct)Tel.correct++;
+      Tel.effSum+=eff; Tel.effN++;
+      Tel.push(correct?'t-acc':'t-err','SCORED: box='+blankVal+' -> '+(correct?'balanced':'not equal')+'  EFF='+Math.round(100*eff)+'%  moves='+moves+'  firstPick='+firstPick);
+    } else {
+      Tel.push('t-sys',cur.phase.toUpperCase()+': box='+blankVal+' — not scored');
+    }
+    fb.textContent = correct? (cur.phase==='warmup'?'Balanced! Now the tricky ones.':'Balanced — both sides match!')
+                    : 'Not equal yet — compare the two totals.';
+    fb.className='fb '+(correct?'good':'bad');
+    if(correct){ doneBtn.disabled=true; nextBtn.style.display='inline-block'; beep(); }
+    Tel.render();
+  }
+  nextBtn.onclick=loadItem;
+
+  function ghostDemo(){
+    doneBtn.disabled=true; hand.style.opacity='0';
+    setTimeout(function(){
+      var t=el('tile'+answer());var r=t.getBoundingClientRect();
+      hand.style.opacity='1';hand.style.left=(r.left+r.width/2-4)+'px';hand.style.top=(r.top+r.height/2)+'px';
+      Tel.push('t-sys','ghost: reach for '+answer());
+    },500);
+    setTimeout(function(){
+      var b=el('blank');var r=b.getBoundingClientRect();
+      hand.style.left=(r.left+r.width/2-4)+'px';hand.style.top=(r.top+r.height/2)+'px';
+      blankVal=answer();b.textContent=answer();drawSides();
+      Tel.push('t-sys','ghost: place '+answer()+' (both sides = '+leftVal()+')');
+    },1400);
+    setTimeout(function(){beep();fb.textContent='Both sides equal '+leftVal()+'.';fb.className='fb good';hand.style.opacity='0';},2100);
+    setTimeout(function(){loadItem();},3000);
+  }
+
+  function beep(){try{var a=new(window.AudioContext||window.webkitAudioContext)();var o=a.createOscillator(),g=a.createGain();
+    o.connect(g);g.connect(a.destination);o.type='sine';o.frequency.setValueAtTime(620,a.currentTime);
+    o.frequency.exponentialRampToValueAtTime(960,a.currentTime+.15);g.gain.setValueAtTime(.12,a.currentTime);
+    g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+.3);o.start();o.stop(a.currentTime+.32);}catch(e){}}
+
+  function finish(){
+    prompt.textContent='';eqn.innerHTML='';sides.innerHTML='';palette.innerHTML='';
+    document.querySelector('.eqn').innerHTML='<div style="text-align:center;padding:24px 0;width:100%">'+
+      '<div style="font-size:44px">&#127881;</div><div style="color:var(--muted)">Sample complete. Telemetry captured on the right.</div></div>';
+    doneBtn.style.display='none';nextBtn.style.display='none';
+    Tel.push('t-sys','SESSION complete: '+Tel.correct+'/'+Tel.scored+' scored correct');
+  }
+  window.addEventListener('blur',function(){Tel.push('t-sys','engagement: focus lost');});
+  Tel.render(); loadItem();
+})();
+</script>
+</body>
+</html>

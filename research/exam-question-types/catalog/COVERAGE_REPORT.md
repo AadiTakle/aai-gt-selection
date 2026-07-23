@@ -1,43 +1,25 @@
 # Coverage report — top-GT item -> question-type representation
 
-**North star:** 9/165 top-GT items have >=3 representing types (**5%**). types in catalog: 60.
+**North star:** 73/165 top-GT items have >=3 representing types (**44%**). types in catalog: 100.
 
-- >= 3 types: 9
-- 1-2 types: 111
-- 0 types: 45
+- >= 3 types: 73
+- 1-2 types: 49
+- 0 types: 43
 
 ## Most under-covered (construct, subconstruct) cells — target these next
 
-- quantitative / word_problem_reasoning: 9 top-GT item(s) still < 3
-- verbal / inference_reading_comprehension: 9 top-GT item(s) still < 3
-- fluid_reasoning / figural_matrix: 8 top-GT item(s) still < 3
-- spatial / mental_rotation: 7 top-GT item(s) still < 3
-- complementary / divergent_thinking: 5 top-GT item(s) still < 3
-- verbal / antonyms_synonyms: 4 top-GT item(s) still < 3
-- verbal / receptive_vocabulary: 3 top-GT item(s) still < 3
-- processing_speed / visual_matching: 3 top-GT item(s) still < 3
-- processing_speed / coding_digit_symbol: 3 top-GT item(s) still < 3
+- complementary / divergent_thinking: 3 top-GT item(s) still < 3
 - spatial / cross_sections: 3 top-GT item(s) still < 3
 - complementary / demonstrated_achievement: 2 top-GT item(s) still < 3
+- fluid_reasoning / figural_matrix: 2 top-GT item(s) still < 3
 - fluid_reasoning / odd_one_out: 2 top-GT item(s) still < 3
-- fluid_reasoning / visual_rule_discovery: 2 top-GT item(s) still < 3
-- fluid_reasoning / nonverbal_deduction: 2 top-GT item(s) still < 3
 - fluid_reasoning / problem_solving: 2 top-GT item(s) still < 3
-- processing_speed / cancellation: 2 top-GT item(s) still < 3
 - processing_speed / rapid_automatized_naming: 2 top-GT item(s) still < 3
-- quantitative / number_series: 2 top-GT item(s) still < 3
-- quantitative / pattern_completion: 2 top-GT item(s) still < 3
-- quantitative / number_sentence_building: 2 top-GT item(s) still < 3
-- spatial / paper_folding: 2 top-GT item(s) still < 3
-- spatial / form_board: 2 top-GT item(s) still < 3
 - spatial / block_design: 2 top-GT item(s) still < 3
 - spatial / mazes_route_planning: 2 top-GT item(s) still < 3
 - spatial / perspective_taking: 2 top-GT item(s) still < 3
 - verbal / verbal_analogy: 2 top-GT item(s) still < 3
-- working_memory / running_memory_span: 2 top-GT item(s) still < 3
-- working_memory / set_shifting_task_switch: 2 top-GT item(s) still < 3
 - complementary / figural_creativity: 1 top-GT item(s) still < 3
-- complementary / curiosity: 1 top-GT item(s) still < 3
 - complementary / task_commitment: 1 top-GT item(s) still < 3
 - fluid_reasoning / figure_series: 1 top-GT item(s) still < 3
 - fluid_reasoning / figure_analogy: 1 top-GT item(s) still < 3
@@ -47,4 +29,22 @@
 - fluid_reasoning / inductive_reasoning: 1 top-GT item(s) still < 3
 - fluid_reasoning / matrix_induction: 1 top-GT item(s) still < 3
 - fluid_reasoning / mechanical_systems_reasoning: 1 top-GT item(s) still < 3
-- spatial / paper_folding_visualization: 1 top-GT item(s) still < 3
+- spatial / spatial_navigation: 1 top-GT item(s) still < 3
+- working_memory / manipulation: 1 top-GT item(s) still < 3
+- working_memory / selective_filtering: 1 top-GT item(s) still < 3
+- working_memory / updating_binding: 1 top-GT item(s) still < 3
+- processing_speed / cognitive_control_speed: 1 top-GT item(s) still < 3
+- complementary / inhibitory_control_attention: 1 top-GT item(s) still < 3
+- complementary / planning_lookahead: 1 top-GT item(s) still < 3
+- complementary / response_inhibition_impulse_control: 1 top-GT item(s) still < 3
+- complementary / empathy_emotion_recognition: 1 top-GT item(s) still < 3
+- quantitative / approximate_number_system: 1 top-GT item(s) still < 3
+- quantitative / symbolic_magnitude_arithmetic: 1 top-GT item(s) still < 3
+- quantitative / place_value_composition: 1 top-GT item(s) still < 3
+- verbal / listening_comprehension_inference: 1 top-GT item(s) still < 3
+- verbal / verbal_reasoning_argumentation: 1 top-GT item(s) still < 3
+- verbal / orthographic_lexical_access: 1 top-GT item(s) still < 3
+- game_based / stealth_assessment_evidence_model: 1 top-GT item(s) still < 3
+- game_based / executive_function_battery: 1 top-GT item(s) still < 3
+- game_based / cognition_battery: 1 top-GT item(s) still < 3
+- processing_speed / attention_control: 1 top-GT item(s) still < 3

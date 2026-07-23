@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CX-diverge-03 — Toy Tune-Up</title>
+<style>
+  :root{--bg:#0f1626;--card:#182338;--ink:#eaf1ff;--muted:#9db0d6;--acc:#5cc8ff;--gold:#ffd35c;--lime:#9bff8a;}
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.4 system-ui,Segoe UI,Roboto,sans-serif;color:var(--ink);background:radial-gradient(circle at 70% 0%,#1d2c47,#0f1626)}
+  header{padding:14px 20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  header h1{font-size:18px;margin:0}
+  .badge{font-size:12px;color:var(--muted);border:1px solid #33456b;padding:2px 8px;border-radius:999px}
+  .wrap{display:grid;grid-template-columns:1fr 340px;gap:16px;padding:0 20px 30px;max-width:1100px}
+  @media(max-width:820px){.wrap{grid-template-columns:1fr}}
+  .stage{background:var(--card);border-radius:18px;padding:18px;min-height:470px;position:relative;overflow:hidden}
+  .phaseTag{position:absolute;top:12px;right:14px;font-size:12px;color:var(--gold);background:#3a2f17;border:1px solid #6b571f;padding:3px 10px;border-radius:999px}
+  .prompt{text-align:center;color:var(--muted);min-height:22px;margin-top:2px}
+  .bench{position:relative;height:180px;margin:6px auto 2px;width:100%}
+  .toy{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);font-size:88px;filter:drop-shadow(0 6px 8px rgba(0,0,0,.5))}
+  .feat{position:absolute;font-size:26px;animation:pop .4s ease;transition:all .3s}
+  @keyframes pop{0%{transform:scale(0)}70%{transform:scale(1.3)}100%{transform:scale(1)}}
+  .modeToggle{position:absolute;top:12px;left:14px;display:flex;gap:6px}
+  .modeToggle button{padding:6px 10px;font-size:13px;background:#1c2942;color:#cfe0ff;border:1px solid #33456b}
+  .modeToggle button.on{background:var(--acc);color:#06203a}
+  .palette{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:6px 0}
+  .palette div{font-size:13px;background:#0f1626;border:1px solid #33456b;border-radius:12px;padding:6px 9px;cursor:pointer;display:flex;gap:6px;align-items:center}
+  .palette div span{font-size:22px}
+  .palette .dom{font-size:9px;color:var(--muted);display:block}
+  .entry{display:flex;gap:8px;justify-content:center;margin:8px 0;flex-wrap:wrap}
+  input[type=text]{font:inherit;padding:10px 14px;border-radius:12px;border:2px solid #33456b;background:#0f1626;color:var(--ink);width:min(320px,66vw)}
+  button{font:inherit;border:0;border-radius:12px;padding:10px 16px;cursor:pointer;font-weight:600}
+  .add{background:var(--acc);color:#06203a}
+  .ghost-btn{background:#26365a;color:#dfeaff}
+  .cards{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-height:96px;overflow:auto;margin-top:4px}
+  .icard{font-size:12px;background:#0f1626;border:1px solid #33456b;border-radius:10px;padding:4px 8px;display:flex;gap:6px;align-items:center}
+  .icard.rare{border-color:var(--gold)}
+  .icard button{padding:2px 7px;font-size:11px;background:#26365a;color:#dfeaff;border-radius:8px}
+  .ghost{position:absolute;font-size:38px;pointer-events:none;transition:left .8s ease,top .8s ease;z-index:6;filter:drop-shadow(0 4px 6px rgba(0,0,0,.5))}
+  .tele{background:#0f1626;border:1px solid #2a3a5c;border-radius:18px;padding:14px;height:fit-content;position:sticky;top:12px}
+  .tele h3{margin:0 0 8px;font-size:14px;letter-spacing:.5px;color:var(--gold)}
+  .metrics{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+  .chip{font-size:12px;background:#182338;border:1px solid #33456b;border-radius:8px;padding:4px 8px}
+  .chip b{color:var(--gold)}
+  .log{font:11px/1.5 ui-monospace,Menlo,Consolas,monospace;color:#b8ccf0;max-height:200px;overflow:auto;background:#0a1120;border-radius:10px;padding:8px}
+  .log div{border-bottom:1px solid #1a2540;padding:1px 0}
+  .note{font-size:11px;color:var(--muted);margin-top:8px}
+  .cta{display:flex;gap:10px;justify-content:center;margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>🛠️ Toy Tune-Up</h1>
+  <span class="badge">CX-diverge-03</span>
+  <span class="badge">bands: K–1 · 2–3 · 4–5 · 6–8</span>
+  <span class="badge">divergent thinking · product improvement</span>
+</header>
+<div class="wrap">
+  <div class="stage" id="stage">
+    <div class="modeToggle" id="modeToggle" style="display:none">
+      <button id="mPic" class="on">🎨 stamp</button>
+      <button id="mText">Aa type</button>
+    </div>
+    <div class="phaseTag" id="phaseTag">demo</div>
+    <div class="prompt" id="prompt"></div>
+    <div class="bench" id="bench"><div class="toy" id="toy">🏐</div></div>
+    <div class="palette" id="palette" style="display:none"></div>
+    <div class="entry" id="entry" style="display:none">
+      <input type="text" id="idea" placeholder="a change to make it more fun…" autocomplete="off">
+      <button class="add" id="addBtn">Add! →</button>
+    </div>
+    <div class="cards" id="cards"></div>
+    <div class="ghost" id="ghost" style="display:none">👆</div>
+    <div class="cta" id="cta"></div>
+  </div>
+  <div class="tele">
+    <h3>LIVE TELEMETRY</h3>
+    <div class="metrics" id="metrics"></div>
+    <div class="log" id="log"></div>
+    <div class="note">M-IDEAFLU (changes) · M-FLEX (kinds: motion/sound/looks/powers) · M-ORIG (rare vs common) · M-ELAB (details/change) · M-REV (reworking earlier ideas) · M-ENGAGE.</div>
+  </div>
+</div>
+<script>
+const T={ev:[],m:{},t0:performance.now(),
+  now(){return Math.round(performance.now()-this.t0)},
+  log(a,d){const t=this.now();this.ev.push(Object.assign({t,a},d||{}));
+    const el=document.getElementById('log');const line=document.createElement('div');
+    line.textContent='+'+(t/1000).toFixed(2)+'s  '+a+(d?'  '+JSON.stringify(d):'');el.prepend(line);},
+  set(k,v){this.m[k]=v;this.render();},
+  render(){document.getElementById('metrics').innerHTML=
+    Object.entries(this.m).map(([k,v])=>'<span class="chip"><b>'+k+'</b> '+v+'</span>').join('');}};
+const $=s=>document.querySelector(s);
+const bench=$('#bench'),toy=$('#toy'),ghost=$('#ghost'),phaseTag=$('#phaseTag');
+
+/* stamp palette: emoji, label, domain, rare? */
+const STAMPS=[
+  ['🛞','wheels','motion',false],['🪽','wings','motion',true],['🌀','spring boots','motion',true],['🚀','rocket boost','motion',true],
+  ['🔔','a bell','sound',false],['📣','a horn','sound',false],['🎵','plays music','sound',true],
+  ['🌈','rainbow stripes','looks',false],['✨','glitter glow','looks',false],['👀','googly eyes','looks',false],
+  ['🧲','a magnet','powers',true],['🫥','turns invisible','powers',true],['🗣️','it can talk','powers',true],['🔦','shoots light','powers',true]];
+const COMMON=['wheels','wheel','bell','horn','stripe','stripes','color','colors','glow','glitter','eyes','faster','bigger','paint','light up'];
+/* text keyword -> domain */
+const KW={motion:['wheel','wing','fly','jump','spring','rocket','fast','roll','zoom','boost','bounce','float'],
+  sound:['bell','horn','music','song','beep','roar','sound','sing','loud','speaker'],
+  looks:['color','colour','stripe','glow','glitter','sparkle','paint','eyes','rainbow','shiny','pretty'],
+  powers:['magnet','invisible','magic','giant','shrink','talk','robot','laser','light','power','super']};
+function catText(t){t=t.toLowerCase();for(const d in KW){if(KW[d].some(k=>t.includes(k)))return d;}return 'powers';}
+function isRareText(t){t=t.toLowerCase();return !COMMON.some(c=>t.includes(c));}
+
+let ideas=[],kinds=new Set(),orig=0,details=0,revs=0,scored=false,angle=0;
+
+T.set('phase','demo');T.set('changes_M-IDEAFLU',0);T.set('kinds_M-FLEX',0);T.set('original_M-ORIG',0);
+T.set('detail_M-ELAB','0');T.set('reworks_M-REV',0);
+
+function placeFeat(emo){
+  const f=document.createElement('div');f.className='feat';f.textContent=emo;
+  const r=78,cx=bench.clientWidth/2,cy=bench.clientHeight*0.52;
+  f.style.left=(cx+r*Math.cos(angle)-13)+'px';f.style.top=(cy+r*Math.sin(angle)-13)+'px';
+  angle+=Math.PI*2/7;bench.appendChild(f);return f;
+}
+function addIdea(label,emo,dom,rare){
+  const norm=label.toLowerCase();
+  if(ideas.some(i=>i.norm===norm)){T.log('duplicate_ignored',{label});return;}
+  const it={label,norm,emo,dom,rare,detail:0,t:T.now()};ideas.push(it);
+  const newKind=!kinds.has(dom);kinds.add(dom);
+  placeFeat(emo||'⭐');
+  const c=document.createElement('div');c.className='icard'+(rare?' rare':'');
+  c.innerHTML=(rare?'⭐':'')+(emo?emo+' ':'')+label+' ';
+  const btn=document.createElement('button');btn.textContent='+more';
+  btn.onclick=()=>{it.detail++;details++;revs++;
+    T.set('detail_M-ELAB',(details/ideas.length).toFixed(1));T.set('reworks_M-REV',revs);
+    c.querySelector('.dtag')&&c.querySelector('.dtag').remove();
+    const s=document.createElement('span');s.className='dtag';s.style.color='var(--lime)';s.textContent=' ·'+it.detail;c.appendChild(s);
+    T.log('rework_elaborate (M-REV/M-ELAB)',{label,detail:it.detail});};
+  c.appendChild(btn);$('#cards').prepend(c);
+  if(scored){
+    if(rare)orig++;
+    if(newKind){$('#prompt').innerHTML='<b style="color:var(--gold)">🔥 new kind of change!</b>';}
+    T.set('changes_M-IDEAFLU',ideas.length);T.set('kinds_M-FLEX',kinds.size);T.set('original_M-ORIG',orig);
+  }
+  T.log(scored?'improvement':'warmup_improvement',{label,kind:dom,rare});
+}
+
+/* ---- flow ---- */
+function runGhost(){
+  phaseTag.textContent='demo';ghost.style.display='block';
+  const seq=[['rainbow stripes','🌈','looks',false],['wings','🪽','motion',true],['a bell','🔔','sound',false]];
+  let i=0;ghost.style.left='50%';ghost.style.top='60%';
+  const step=()=>{if(i>=seq.length){ghost.style.display='none';setTimeout(startWarm,500);return;}
+    ghost.style.left=(30+i*18)+'%';ghost.style.top='58%';
+    setTimeout(()=>{addIdea(seq[i][0],seq[i][1],seq[i][2],seq[i][3]);i++;setTimeout(step,1400);},700);};
+  $('#prompt').textContent='Watch: make the toy more fun, lots of different ways…';
+  setTimeout(step,700);
+}
+function reset(){ideas=[];kinds=new Set();orig=0;details=0;revs=0;angle=0;
+  document.querySelectorAll('.feat').forEach(f=>f.remove());$('#cards').innerHTML='';}
+function startWarm(){
+  reset();scored=false;phaseTag.textContent='warm-up (practice)';toy.textContent='🧸';
+  $('#prompt').textContent='Practice: change this teddy to make it more fun (not scored)';
+  $('#modeToggle').style.display='flex';showMode();
+  T.set('phase','warm-up');T.set('changes_M-IDEAFLU',0);T.set('kinds_M-FLEX',0);T.log('phase_warmup');
+  let count=0;const chk=()=>{count=ideas.length;if(count>=2)$('#cta').innerHTML='<button class="add" onclick="startItem()">I\'m ready → real one</button>';};
+  bindAll(chk);
+}
+function startItem(){
+  reset();scored=true;phaseTag.textContent='scored';toy.textContent='🏐';$('#cta').innerHTML='';
+  $('#prompt').innerHTML='<b>Change this ball to make it more fun!</b> Try many different <i>kinds</i> of changes.';
+  T.set('phase','scored');T.set('changes_M-IDEAFLU',0);T.set('kinds_M-FLEX',0);T.set('original_M-ORIG',0);
+  T.set('detail_M-ELAB','0');T.set('reworks_M-REV',0);T.log('phase_scored');
+  bindAll(()=>{});
+  $('#cta').innerHTML='<button class="ghost-btn" onclick="finish()">Done → results</button>';
+}
+function showMode(){const pic=$('#mPic').classList.contains('on');
+  $('#palette').style.display=pic?'flex':'none';$('#entry').style.display=pic?'none':'flex';}
+function bindAll(chk){
+  const pal=$('#palette');pal.innerHTML='';
+  STAMPS.forEach(([emo,label,dom,rare])=>{const d=document.createElement('div');
+    d.innerHTML='<span>'+emo+'</span><div>'+label+'<span class="dom">'+dom+'</span></div>';
+    d.onclick=()=>{addIdea(label,emo,dom,rare);chk();};pal.appendChild(d);});
+  $('#addBtn').onclick=()=>{const v=$('#idea').value.trim();if(v){addIdea(v,'⭐',catText(v),isRareText(v));$('#idea').value='';chk();}};
+  $('#idea').onkeydown=e=>{if(e.key==='Enter')$('#addBtn').click();};
+  $('#idea').oninput=()=>{if(!$('#idea').dataset.f){$('#idea').dataset.f=1;T.log('first_keystroke');}};
+  $('#mPic').onclick=()=>{$('#mPic').classList.add('on');$('#mText').classList.remove('on');showMode();T.log('mode_stamp');};
+  $('#mText').onclick=()=>{$('#mText').classList.add('on');$('#mPic').classList.remove('on');showMode();T.log('mode_text');};
+  showMode();
+}
+function finish(){
+  T.log('SESSION_END',{fluency:ideas.length,flexibility:kinds.size,originality:orig,
+    avg_detail:+(details/(ideas.length||1)).toFixed(1),reworks:revs});
+  $('#prompt').innerHTML='<b style="color:var(--gold);font-size:20px">Awesome custom toy! 🎉</b>'+
+    '<div class="note">'+ideas.length+' changes · '+kinds.size+' kinds · '+orig+' rare · '+
+    (details/(ideas.length||1)).toFixed(1)+' details/change · '+revs+' reworks. '+
+    '<b>Kinds of change</b> and <b>rare-but-fitting</b> ideas are the least-coachable creativity signals.</div>';
+  $('#palette').style.display='none';$('#entry').style.display='none';$('#modeToggle').style.display='none';
+  $('#cta').innerHTML='<button class="add" onclick="location.reload()">↺ Play again</button>';
+  T.set('phase','done');
+}
+window.addEventListener('blur',()=>T.log('off_task_blur (M-ENGAGE)'));
+runGhost();
+</script>
+</body>
+</html>

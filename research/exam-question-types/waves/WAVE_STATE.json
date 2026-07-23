@@ -1,15 +1,12 @@
 {
-  "wave": 1,
-  "phase": "breadth",
-  "agents": {
-    "fluid_reasoning": "2d4f305c",
-    "verbal": "0a19f521",
-    "quantitative": "857c868b",
-    "spatial": "2d10f586",
-    "working_memory": "19183ab5",
-    "processing_speed": "f533e64d",
-    "complementary": "3af1db3c"
+  "wave": 2,
+  "phase": "coverage",
+  "wave1_committed": "1743f47",
+  "baseline": {
+    "types": 60,
+    "measurements": 62,
+    "coverage_ge3_pct": 5,
+    "top_gt": 165
   },
-  "heartbeat_pid": 23209,
-  "note": "Wave 1 breadth (>=3 types/band/area). On all-7 completion: run build_types.py, commit, then per WAVE_PROTOCOL launch fill (if gaps) or novelty wave while RUN exists."
+  "note": "Wave 2 coverage-driven: 7 area agents add distinct types for under-covered cells (reuse measurement IDs). On completion: build+coverage+commit, then continue waves while RUN exists."
 }

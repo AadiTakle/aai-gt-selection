@@ -73,7 +73,90 @@
   </aside>
   <div id="ghost">👆<span class="ring"></span></div>
 <script>
-/*__JS__*/
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0,last=a=>a[a.length-1];
+
+/* ---------- grid transforms (AIG / ARC-style) ---------- */
+function clone2(g){return g.map(r=>r.slice());}
+function eqG(a,b){for(let r=0;r<a.length;r++)for(let c=0;c<a[0].length;c++)if(a[r][c]!==b[r][c])return false;return true;}
+function apply(g,t){const R=g.length,C=g[0].length,n=g.map(r=>r.map(()=>0));
+  for(let r=0;r<R;r++)for(let c=0;c<C;c++){switch(t){
+    case 'shiftRight':if(c>0)n[r][c]=g[r][c-1];break;
+    case 'shiftDown':if(r>0)n[r][c]=g[r-1][c];break;
+    case 'reflectH':n[r][c]=g[r][C-1-c];break;
+    case 'invert':n[r][c]=g[r][c]?0:1;break;}}
+  return n;}
+function randGrid(R,C){for(let k=0;k<200;k++){let cnt=0;const g=[];for(let r=0;r<R;r++){g.push([]);for(let c=0;c<C;c++){const v=Math.random()<0.34?1:0;g[r].push(v);cnt+=v;}}if(cnt>=1&&cnt<=R*C-1)return g;}
+  const g=[];for(let r=0;r<R;r++){g.push([]);for(let c=0;c<C;c++)g[r].push((r+c)%2);}return g;}
+function hamming(a,b){let d=0;for(let r=0;r<a.length;r++)for(let c=0;c<a[0].length;c++)if(a[r][c]!==b[r][c])d++;return d;}
+function genItem(R,C,t){let exIn,exOut,nb,tgt,g=0;
+  do{exIn=randGrid(R,C);exOut=apply(exIn,t);}while(eqG(exIn,exOut)&&g++<50);
+  g=0;do{nb=randGrid(R,C);tgt=apply(nb,t);}while(eqG(nb,tgt)&&g++<50);
+  return {R,C,t,exIn,exOut,nbefore:nb,targetOut:tgt};}
+
+/* ---------- telemetry ---------- */
+let cur=null,editState=null;
+const T={scored:0,exact:0,rts:[],edits:0,path:[],touch:{},prog:[],poly:'\u2014',itemStart:0,opt:0};
+function matchPct(){if(!cur)return 0;const tot=cur.R*cur.C;return Math.round(100*(tot-hamming(editState,cur.targetOut))/tot);}
+function progStr(){if(!T.prog.length)return '\u2014';const p=T.prog;const pick=p.length<=4?p:[p[0],p[(p.length/2)|0],last(p)];return pick.join('\u2192')+`%  (${T.edits} edits)`;}
+function effStr(){return `${T.edits} edits / optimal ${T.opt}`;}
+const METERS=[
+ {id:'M-POLY',name:'Partial credit (cells correct)',get:()=>T.poly},
+ {id:'M-ACC',name:'Item accuracy (grid exact)',get:()=>T.scored?`${T.exact}/${T.scored}  ${Math.round(100*T.exact/T.scored)}%`:'\u2014'},
+ {id:'M-RT',name:'Response time — total',get:()=>T.rts.length?`${last(T.rts)} ms  (mean ${mean(T.rts)})`:'\u2014'},
+ {id:'M-PATH',name:'Edit path (cells toggled)',get:()=>T.path.length?`${T.path.length}: ${T.path.slice(0,5).join(' ')}${T.path.length>5?' …':''}`:'\u2014'},
+ {id:'M-REV',name:'Revisions (re-toggled cells)',get:()=>`${T.edits-Object.keys(T.touch).length}`},
+ {id:'M-EFF',name:'Efficiency vs optimal',get:()=>effStr()},
+ {id:'M-PROG',name:'Progress trajectory (match %)',get:()=>progStr()},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});}
+function log(msg){const t=Date.now()-T.itemStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+const ghost=$('#ghost');function ghostShow(v){ghost.classList.toggle('show',v);}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(520);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(430);}
+
+/* ---------- render ---------- */
+function paintGrid(el,g,editable){el.innerHTML='';el.style.gridTemplateColumns=`repeat(${g[0].length},1fr)`;
+  for(let r=0;r<g.length;r++)for(let c=0;c<g[0].length;c++){const d=document.createElement('div');d.className='gc'+(g[r][c]?' on':'');if(editable){d.classList.add('edit');d.dataset.r=r;d.dataset.c=c;}el.appendChild(d);}}
+function editCell(r,c){return $('#editable').children[r*cur.C+c];}
+function renderItem(item){cur=item;editState=clone2(item.nbefore);
+  T.edits=0;T.path=[];T.touch={};T.opt=hamming(item.nbefore,item.targetOut);T.itemStart=Date.now();T.prog=[matchPct()];
+  paintGrid($('#exIn'),item.exIn,false);paintGrid($('#exOut'),item.exOut,false);
+  paintGrid($('#nbefore'),item.nbefore,false);paintGrid($('#editable'),editState,true);
+  $('#go').classList.toggle('ready',phase!=='demo');renderMeters();}
+function toggle(r,c){editState[r][c]=editState[r][c]?0:1;T.edits++;const k=r+','+c;T.touch[k]=(T.touch[k]||0)+1;T.path.push(`(${r+1},${c+1})`);
+  editCell(r,c).classList.toggle('on',!!editState[r][c]);T.prog.push(matchPct());T.poly=(cur.R*cur.C-hamming(editState,cur.targetOut))+'/'+(cur.R*cur.C);renderMeters();}
+function feedback(exact){for(let r=0;r<cur.R;r++)for(let c=0;c<cur.C;c++){const ok=editState[r][c]===cur.targetOut[r][c];editCell(r,c).classList.add(ok?'correct':'wrong');}
+  if(!exact){$('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),450);}}
+
+/* ---------- flow ---------- */
+let phase='demo',locked=false,scoredIndex=0;
+const scoredItems=[genItem(3,3,'reflectH'),genItem(4,4,'shiftDown')];
+function setCue(i){$('#phasecue').textContent=i;}
+function submit(){const tot=cur.R*cur.C;const matches=tot-hamming(editState,cur.targetOut);const exact=matches===tot;const rt=Date.now()-T.itemStart;T.poly=matches+'/'+tot;
+  if(phase==='warmup'){feedback(exact);log('warm-up '+(exact?'exact':matches+'/'+tot+' cells')+' — UNSCORED');locked=true;$('#go').classList.remove('ready');setTimeout(nextPhase,1050);return;}
+  T.scored++;T.rts.push(rt);if(exact)T.exact++;feedback(exact);locked=true;$('#go').classList.remove('ready');
+  log(`SUBMIT ${cur.R}x${cur.C} [${cur.t}] \u2192 ${matches}/${tot} cells${exact?' EXACT':''} · ${effStr()} · rev ${T.edits-Object.keys(T.touch).length}`);
+  renderMeters();setTimeout(nextPhase,1300);}
+function nextPhase(){locked=false;if(phase==='warmup'){scoredIndex=0;startScored();}else if(phase==='scored'){scoredIndex++;scoredIndex<scoredItems.length?startScored():finish();}}
+function startWarmup(){phase='warmup';setCue('\u2b50');renderItem(genItem(1,3,'shiftRight'));log('— warm-up (unscored): apply the same change (shift right) —');}
+function startScored(){phase='scored';setCue('\ud83c\udfaf');renderItem(scoredItems[scoredIndex]);log(`— SCORED item ${scoredIndex+1}: ${cur.R}x${cur.C}, transform [${cur.t}] —`);}
+function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;log(`— DONE · exact ${T.exact}/${T.scored} —`);}
+async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;
+  const nb=[[1,0,0],[0,1,0],[0,0,0]];const item={R:3,C:3,t:'shiftRight',exIn:[[0,1,0],[0,0,0],[1,0,0]],exOut:apply([[0,1,0],[0,0,0],[1,0,0]],'shiftRight'),nbefore:nb,targetOut:apply(nb,'shiftRight')};
+  renderItem(item);log('ghost-hand demo (wordless, <10s)');ghostShow(true);await sleep(300);
+  await ghostTo($('#exIn'));await sleep(150);await ghostTo($('#exOut'));await sleep(250);
+  const diffs=[];for(let r=0;r<cur.R;r++)for(let c=0;c<cur.C;c++)if(editState[r][c]!==cur.targetOut[r][c])diffs.push([r,c]);
+  for(const [r,c] of diffs){await ghostTo(editCell(r,c));await ghostTap();toggle(r,c);}
+  await sleep(400);await ghostTo($('#go'));await ghostTap();await sleep(300);ghostShow(false);await sleep(450);startWarmup();}
+$('#editable').addEventListener('click',e=>{const d=e.target.closest('.gc.edit');if(d&&!locked&&phase!=='demo'&&phase!=='done')toggle(+d.dataset.r,+d.dataset.c);});
+$('#go').addEventListener('click',()=>{if($('#go').classList.contains('ready'))submit();});
+$('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
+buildMeters();renderMeters();runDemo();
 </script>
 </body>
 </html>

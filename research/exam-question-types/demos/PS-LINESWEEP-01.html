@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PS-LINESWEEP-01 — Line Sweeper</title>
+<style>
+  :root{
+    --bg:#0e1424; --panel:#161f38; --ink:#eaf0ff; --dim:#93a2c9;
+    --accent:#54d6ff; --good:#43e59a; --bad:#ff6b7d; --warn:#ffd166; --line:#26314f;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{background:radial-gradient(1200px 700px at 70% -10%,#1a2b45,transparent),
+       linear-gradient(180deg,#0e1424,#0b0f1c);color:var(--ink);
+       font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden}
+  .wrap{display:grid;grid-template-columns:1fr 340px;gap:14px;height:100vh;padding:14px}
+  @media(max-width:820px){.wrap{grid-template-columns:1fr;grid-template-rows:1fr auto;overflow:auto;height:auto;min-height:100vh}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px}
+  header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px}
+  header h1{font-size:16px;margin:0}header .id{color:var(--dim);font-size:12px}
+  .badge{padding:5px 12px;border-radius:999px;font-size:12px;font-weight:700;background:#2a3352}
+  .badge.demo{background:#3a2f5e;color:#d7c4ff}.badge.warm{background:#123c46;color:#8fe9ff}
+  .badge.play{background:#123c2b;color:#8bf0c0}.badge.done{background:#402a2f;color:#ffb0bb}
+  .stage{position:relative;display:flex;flex-direction:column;height:calc(100% - 54px);min-height:540px;padding:16px}
+  .prompt{color:var(--dim);text-align:center;min-height:22px;margin-bottom:6px;font-size:14px}
+  .tgtbar{display:flex;align-items:center;justify-content:center;gap:8px;color:var(--warn);font-weight:700;font-size:14px;margin-bottom:6px}
+  .tgtbar .big{font-size:26px}
+  .rows{flex:1;display:flex;flex-direction:column;gap:8px;align-items:center;justify-content:center;position:relative;overflow:hidden}
+  .timer{position:absolute;top:0;left:2px;font-weight:800;color:var(--accent);font-size:14px}
+  .rline{display:flex;gap:10px;align-items:center;padding:6px 10px;border-radius:14px;border:2px solid transparent;opacity:.32;transition:opacity .2s,border-color .2s,background .2s}
+  .rline.active{opacity:1;border-color:#3a5c8a;background:#0e1c33;box-shadow:0 0 18px #1f4c7a55}
+  .rline.done{opacity:.5}
+  .cell{width:52px;height:52px;border-radius:12px;background:linear-gradient(180deg,#0d1730,#0b1220);
+    border:2px solid #2b3a5f;display:flex;align-items:center;justify-content:center;font-size:26px;cursor:default;transition:transform .06s}
+  .rline.active .cell{cursor:pointer}
+  .rline.active .cell:active{transform:scale(.92)}
+  .cell.hit{border-color:var(--good);box-shadow:0 0 0 3px var(--good) inset;background:#12351f}
+  .cell.fa{border-color:var(--bad);box-shadow:0 0 0 3px var(--bad) inset}
+  .cell.ghosttap{box-shadow:0 0 0 4px var(--accent) inset;transform:scale(.9)}
+  .nextbtn{width:52px;height:52px;border-radius:12px;border:2px dashed #46608f;background:#12203f;color:var(--accent);
+    font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .bigstart{margin-top:8px;text-align:center;min-height:50px}
+  button.cta{background:linear-gradient(180deg,#3aa9ff,#2b7fe0);color:#04122b;border:0;font-weight:800;
+    padding:14px 26px;border-radius:14px;font-size:16px;cursor:pointer;box-shadow:0 6px 18px #1f6bd155}
+  button.cta:active{transform:translateY(1px)}
+  .ghost{position:absolute;font-size:34px;pointer-events:none;left:-999px;top:-999px;
+    transition:left .4s cubic-bezier(.3,.7,.3,1),top .4s cubic-bezier(.3,.7,.3,1);z-index:9;filter:drop-shadow(0 3px 4px #000a)}
+  .tel{padding:14px;display:flex;flex-direction:column;min-height:0}
+  .tel h2{font-size:13px;margin:0 0 10px;color:var(--accent);text-transform:uppercase;letter-spacing:1.4px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .tile{background:#0f1830;border:1px solid var(--line);border-radius:12px;padding:9px 10px}
+  .tile.hl{border-color:#2f5c7a;background:#0e2233}
+  .tile .k{font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px}
+  .tile .v{font-size:19px;font-weight:800;margin-top:2px}
+  .tile .m{font-size:10px;color:#6f80ab;margin-top:1px}
+  .log{margin-top:12px;flex:1;overflow:auto;background:#0b1220;border:1px solid var(--line);border-radius:10px;
+    padding:8px;font:11.5px/1.5 ui-monospace,Menlo,Consolas,monospace;color:#b9c6e6;min-height:100px}
+  .log div{padding:1px 0;border-bottom:1px dashed #1a2540}
+  .log .g{color:var(--good)}.log .b{color:var(--bad)}.log .y{color:var(--warn)}.log .d{color:var(--dim)}
+  .foot{color:#5f6f97;font-size:10.5px;margin-top:8px}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section class="card" style="display:flex;flex-direction:column">
+    <header>
+      <div><h1>🧹 Line Sweeper</h1><div class="id">PS-LINESWEEP-01 · cancellation · one row at a time</div></div>
+      <div id="badge" class="badge demo">WATCH</div>
+    </header>
+    <div class="stage">
+      <div class="prompt" id="prompt">Watch the hand…</div>
+      <div class="tgtbar">Tap every <span class="big" id="tgt">🍎</span> in the glowing row, then ➡</div>
+      <div class="rows" id="rows"><div class="timer" id="timer"></div></div>
+      <div class="bigstart" id="startBox"></div>
+      <div class="ghost hidden" id="ghost">👆</div>
+    </div>
+  </section>
+
+  <aside class="card tel">
+    <h2>Live telemetry</h2>
+    <div class="grid">
+      <div class="tile"><div class="k">Rows</div><div class="v" id="m_rows">0</div><div class="m">swept</div></div>
+      <div class="tile hl"><div class="k">Hit acc</div><div class="v" id="m_acc">–</div><div class="m">M-ACC · targets found</div></div>
+      <div class="tile hl"><div class="k">False alarms</div><div class="v" id="m_fa">–</div><div class="m">M-FALSEALARM</div></div>
+      <div class="tile hl"><div class="k">d′ (CPI)</div><div class="v" id="m_dp">–</div><div class="m">M-DPRIME</div></div>
+      <div class="tile"><div class="k">Mean row RT</div><div class="v" id="m_rt">–</div><div class="m">M-RT</div></div>
+      <div class="tile hl"><div class="k">Row RT var</div><div class="v" id="m_cv">–</div><div class="m">M-RTVAR</div></div>
+      <div class="tile"><div class="k">L→R order</div><div class="v" id="m_path">–</div><div class="m">M-PATH scan</div></div>
+      <div class="tile"><div class="k">Drift</div><div class="v" id="m_drift">–</div><div class="m">M-DRIFT · Focus <span id="m_eng">0</span></div></div>
+    </div>
+    <div class="log" id="log"></div>
+    <div class="foot">Concentration-performance = hits minus false alarms (d′). Only the glowing row is tappable, enforcing serial scanning.</div>
+  </aside>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var $=function(id){return document.getElementById(id)};
+  var now=function(){return performance.now()};
+  var TARGET="🍎", FOILS=["🍌","🍇","🍊","🍐","🍑","🍒","🥝","🫐"];
+  var N_ROWS=8, ROW_LEN=8;
+
+  var S={rows:0,hit:0,tgt:0,fa:0,foil:0,rowRTs:[],blur:0,ordGood:0,ordTot:0};
+  var phase="demo",data=[],active=0,rowStart=0,locked=true,rowTapOrder=[];
+
+  function log(m,c){var l=$("log"),d=document.createElement("div");if(c)d.className=c;d.textContent=m;l.insertBefore(d,l.firstChild);}
+  function mean(a){if(!a.length)return 0;for(var i=0,s=0;i<a.length;i++)s+=a[i];return s/a.length;}
+  function sd(a){if(a.length<2)return 0;var m=mean(a),s=0;for(var i=0;i<a.length;i++)s+=(a[i]-m)*(a[i]-m);return Math.sqrt(s/(a.length-1));}
+  function pick1(a){return a[Math.floor(Math.random()*a.length)];}
+  function ppf(p){var a=[-39.6968302866538,220.946098424521,-275.928510446969,138.357751867269,-30.6647980661472,2.50662827745924],
+    b=[-54.4760987982241,161.585836858041,-155.698979859887,66.8013118877197,-13.2806815528857],
+    c=[-0.00778489400243029,-0.322396458041136,-2.40075827716184,-2.54973253934373,4.37466414146497,2.93816398269878],
+    d=[0.00778469570904146,0.32246712907004,2.445134137143,3.75440866190742],pl=0.02425,ph=1-pl,q,r;
+    if(p<pl){q=Math.sqrt(-2*Math.log(p));return(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);}
+    if(p<=ph){q=p-0.5;r=q*q;return(((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);}
+    q=Math.sqrt(-2*Math.log(1-p));return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);}
+
+  function render(){
+    $("m_rows").textContent=S.rows;
+    $("m_acc").textContent=S.tgt?Math.round(100*S.hit/S.tgt)+"%":"–";
+    $("m_fa").textContent=S.foil?Math.round(100*S.fa/S.foil)+"%":"–";
+    if(S.tgt>0&&S.foil>0){var H=(S.hit+0.5)/(S.tgt+1),F=(S.fa+0.5)/(S.foil+1);$("m_dp").textContent=(ppf(H)-ppf(F)).toFixed(2);}else $("m_dp").textContent="–";
+    $("m_rt").textContent=S.rowRTs.length?Math.round(mean(S.rowRTs))+"ms":"–";
+    $("m_cv").textContent=S.rowRTs.length>1?Math.round(100*sd(S.rowRTs)/mean(S.rowRTs))+"%":"–";
+    $("m_path").textContent=S.ordTot?Math.round(100*S.ordGood/S.ordTot)+"%":"–";
+    if(S.rowRTs.length>=4){var h=Math.floor(S.rowRTs.length/2);$("m_drift").textContent=(mean(S.rowRTs.slice(h))-mean(S.rowRTs.slice(0,h))>=0?"+":"")+Math.round(mean(S.rowRTs.slice(h))-mean(S.rowRTs.slice(0,h)))+"ms";}else $("m_drift").textContent="–";
+    $("m_eng").textContent=S.blur;
+  }
+
+  function makeRow(nt){var arr=[],pos={},c=0;while(c<nt){var p=Math.floor(Math.random()*ROW_LEN);if(!pos[p]){pos[p]=1;c++;}}
+    for(var i=0;i<ROW_LEN;i++){arr.push(pos[i]?{t:true,e:TARGET,hit:false}:{t:false,e:pick1(FOILS)});}return arr;}
+
+  function buildRows(){
+    data=[];for(var r=0;r<N_ROWS;r++){data.push(makeRow(2+Math.floor(Math.random()*2)));}
+    var rows=$("rows");rows.innerHTML='<div class="timer" id="timer"></div>';
+    data.forEach(function(row,ri){var el=document.createElement("div");el.className="rline";el.dataset.r=ri;
+      row.forEach(function(it,ci){var c=document.createElement("div");c.className="cell";c.textContent=it.e;c.dataset.r=ri;c.dataset.c=ci;
+        c.addEventListener("click",function(){tap(ri,ci,c);});el.appendChild(c);});
+      var nb=document.createElement("div");nb.className="nextbtn";nb.textContent="➡";nb.dataset.r=ri;
+      nb.addEventListener("click",function(){if(ri===active&&!locked)advance();});el.appendChild(nb);
+      rows.appendChild(el);});
+  }
+  function setActive(i){var els=$("rows").querySelectorAll(".rline");els.forEach(function(e,k){e.classList.toggle("active",k===i);e.classList.toggle("done",k<i);});}
+
+  function tap(ri,ci,el){
+    if(locked||phase==="demo"||ri!==active)return;
+    var it=data[ri][ci];
+    if(it.t){ if(it.hit)return; it.hit=true; el.classList.add("hit");
+      rowTapOrder.push(ci);
+      if(phase==="play"){S.tgt_seen=(S.tgt_seen||0); }
+      // remaining targets?
+      var rem=data[ri].filter(function(x){return x.t&&!x.hit;}).length;
+      if(rem===0){ setTimeout(function(){ if(!locked)advance(); },250); }
+    } else {
+      el.classList.add("fa");(function(cc){setTimeout(function(){cc.classList.remove("fa");},350);})(el);
+      if(phase==="play"){S.fa++;}
+      log((phase==="warm"?"warm: ":"")+"✗ false alarm (foil)","b");render();
+    }
+  }
+
+  function advance(){
+    locked=true;var rt=now()-rowStart;
+    // score the row just finished
+    var row=data[active], tgts=row.filter(function(x){return x.t;}).length, hits=row.filter(function(x){return x.t&&x.hit;}).length,
+        foils=row.length-tgts;
+    if(phase==="warm"){log("warm-up row done (not scored)","d");
+      setTimeout(function(){$("prompt").textContent="Ready? Now it counts.";
+        $("startBox").innerHTML='<button class="cta" id="go">Start scored round ▸</button>';$("go").onclick=startScored;},450);return;}
+    S.rows++;S.tgt+=tgts;S.hit+=hits;S.foil+=foils;S.rowRTs.push(rt);
+    // left-to-right order adherence
+    for(var i=1;i<rowTapOrder.length;i++){S.ordTot++;if(rowTapOrder[i]>rowTapOrder[i-1])S.ordGood++;}
+    log("✓ row "+S.rows+": "+hits+"/"+tgts+" targets, "+Math.round(rt)+"ms","g");
+    render();
+    active++;
+    if(active>=N_ROWS){finish();return;}
+    setActive(active);rowStart=now();rowTapOrder=[];locked=false;
+    $("prompt").textContent="Sweep the glowing row! ("+(active+1)+"/"+N_ROWS+")";
+  }
+
+  // ghost demo
+  function cellEl(r,c){return $("rows").querySelector('.cell[data-r="'+r+'"][data-c="'+c+'"]');}
+  function moveGhost(el,cb){var g=$("ghost"),a=$("stage");g.classList.remove("hidden");
+    var ar=a.getBoundingClientRect(),tr=el.getBoundingClientRect();
+    g.style.left=(tr.left-ar.left+tr.width*0.5)+"px";g.style.top=(tr.top-ar.top+tr.height*0.3)+"px";setTimeout(cb,430);}
+  function ghostTap(el,good,cb){el.classList.add("ghosttap");setTimeout(function(){el.classList.remove("ghosttap");if(good)el.classList.add("hit");cb&&cb();},260);}
+
+  function runDemo(){
+    phase="demo";locked=true;$("badge").className="badge demo";$("badge").textContent="WATCH";
+    $("prompt").textContent="Tap every 🍎 in the glowing row, then tap ➡ to go on.";
+    buildRows();active=0;setActive(0);
+    var tps=[];data[0].forEach(function(it,ci){if(it.t)tps.push(ci);});
+    var foilPos=null;data[0].forEach(function(it,ci){if(!it.t&&foilPos==null)foilPos=ci;});
+    var nb=$("rows").querySelector('.nextbtn[data-r="0"]');
+    var seq=[];
+    tps.forEach(function(ci){seq.push(function(n){moveGhost(cellEl(0,ci),function(){n(50);});});
+      seq.push(function(n){ghostTap(cellEl(0,ci),true,function(){log("demo: tapped a 🍎","d");n(350);});});});
+    if(foilPos!=null){seq.push(function(n){moveGhost(cellEl(0,foilPos),function(){log("demo: skip the other fruit","d");n(400);});});}
+    seq.push(function(n){moveGhost(nb,function(){n(50);});});
+    seq.push(function(n){ghostTap(nb,false,function(){log("demo: row clear → tap ➡","d");n(500);});});
+    seq.push(function(n){$("ghost").classList.add("hidden");startWarmup();});
+    var i=0;(function nx(d){if(i>=seq.length)return;var f=seq[i++];setTimeout(function(){f(nx);},d||0);})(500);
+  }
+
+  function startWarmup(){phase="warm";$("badge").className="badge warm";$("badge").textContent="WARM-UP";
+    buildRows();active=0;setActive(0);rowStart=now();rowTapOrder=[];locked=false;
+    $("prompt").textContent="Your turn — sweep this row (not counted), then ➡.";}
+  var blockStart=0,tick=null;
+  function startScored(){phase="play";S={rows:0,hit:0,tgt:0,fa:0,foil:0,rowRTs:[],blur:0,ordGood:0,ordTot:0};
+    buildRows();active=0;setActive(0);rowStart=now();rowTapOrder=[];locked=false;blockStart=now();
+    $("badge").className="badge play";$("badge").textContent="SCORED";$("startBox").innerHTML="";
+    if(tick)clearInterval(tick);tick=setInterval(function(){if(phase==="play")$("timer").textContent="⏱ "+((now()-blockStart)/1000).toFixed(1)+"s";},100);
+    $("prompt").textContent="Sweep the glowing row! (1/"+N_ROWS+")";render();}
+  function finish(){phase="done";locked=true;if(tick)clearInterval(tick);
+    $("badge").className="badge done";$("badge").textContent="DONE";
+    var acc=S.tgt?Math.round(100*S.hit/S.tgt):0,fa=S.foil?Math.round(100*S.fa/S.foil):0;
+    $("prompt").textContent="Done! "+acc+"% targets found · "+fa+"% false alarms";
+    log("── block done: hits "+acc+"%, false alarms "+fa+"% ──","y");
+    $("startBox").innerHTML='<button class="cta" id="again">Play again ▸</button>';$("again").onclick=startScored;}
+
+  window.addEventListener("blur",function(){if(phase==="play"||phase==="warm"){S.blur++;render();log("focus lost (engagement)","y");}});
+  log("Loaded PS-LINESWEEP-01. Watch the wordless demo…","d");render();runDemo();
+})();
+</script>
+</body>
+</html>

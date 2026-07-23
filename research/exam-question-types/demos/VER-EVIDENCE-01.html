@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VER-EVIDENCE-01 - Proof Hunt</title>
+<style>
+  :root{--bg:#0f1226;--panel:#181c3a;--card:#20264f;--ink:#f4f6ff;--mut:#9aa3d4;
+    --acc:#ffd23f;--good:#37d67a;--bad:#ff6b6b;--line:#2c3566;--brand:#7c8cff;}
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.45 system-ui,Segoe UI,Roboto,sans-serif;color:var(--ink);min-height:100vh;
+    background:radial-gradient(1200px 600px at 20% -10%,#2a2f66 0,var(--bg) 55%)}
+  .wrap{display:flex;gap:18px;max-width:1180px;margin:0 auto;padding:18px;flex-wrap:wrap}
+  .main{flex:1 1 560px;min-width:340px}.side{flex:1 1 320px;min-width:300px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px}
+  header.card{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-bottom:14px}
+  h1{font-size:18px;margin:0}.id{font:12px ui-monospace,Menlo,monospace;color:var(--mut)}
+  .pill{font:12px ui-monospace,monospace;padding:4px 10px;border-radius:999px;background:#12163a;border:1px solid var(--line);color:var(--acc)}
+  .steptag{font:12px ui-monospace,monospace;color:var(--brand);margin:2px 0 8px}
+  .passage{background:#0c0f28;border:1px solid var(--line);border-radius:12px;padding:8px}
+  .sent{padding:10px 12px;margin:6px 0;border-radius:10px;border:2px solid transparent;cursor:default;transition:.15s;background:#171b3d}
+  .sent.evon{border-color:var(--acc);background:#2b2f5e}
+  .sent.pickable{cursor:pointer}.sent.pickable:hover{border-color:var(--brand)}
+  .sent.ev-correct{border-color:var(--good);background:#1f5138}
+  .sent.ev-wrong{border-color:var(--bad);background:#5a2330}
+  .sent.demo-hit{border-color:var(--acc);transform:scale(1.02)}
+  .qbox{margin-top:14px}.q{font-weight:700;margin:4px 0 10px}
+  .choices{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .choice{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:16px;font-size:18px;cursor:pointer;text-align:center;transition:.12s}
+  .choice:hover{border-color:var(--brand)}.choice.pick{border-color:var(--acc);background:#2b2f5e}
+  .choice.correct{border-color:var(--good);background:#1f5138}.choice.wrong{border-color:var(--bad);background:#5a2330}
+  .choice.demo-hit{border-color:var(--acc);transform:scale(1.04)}
+  .choice.lock,.sent.lock{pointer-events:none}
+  .feedback{min-height:26px;margin-top:12px;font-weight:700}
+  .row{display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap}
+  button.btn{border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:9px 16px;cursor:pointer;background:#242a56}
+  button.btn.primary{background:linear-gradient(160deg,var(--good),#1f9e5a);border:none;color:#04240f;font-weight:700}
+  button.btn:disabled{opacity:.4;cursor:not-allowed}
+  .badge{display:inline-block;margin-left:6px;font-size:22px}
+  .note{font-size:12px;color:var(--mut);margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+  .tallies{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 12px}
+  .t{background:#12163a;border:1px solid var(--line);border-radius:12px;padding:10px}
+  .t .k{font:11px ui-monospace,monospace;color:var(--mut)}.t .v{font-size:19px;font-weight:700}.t .m{font:10px ui-monospace,monospace;color:var(--brand)}
+  .log{height:240px;overflow:auto;background:#0c0f28;border:1px solid var(--line);border-radius:12px;padding:10px;font:12px/1.5 ui-monospace,Menlo,monospace}
+  .log div{white-space:pre-wrap;border-bottom:1px dashed #1c2350;padding:2px 0}.log .mid{color:var(--acc)}.log .tt{color:var(--mut)}
+  .hand{position:fixed;z-index:50;font-size:38px;pointer-events:none;opacity:0;filter:drop-shadow(0 3px 4px #0008);
+    transition:left .8s cubic-bezier(.5,.1,.3,1),top .8s cubic-bezier(.5,.1,.3,1),opacity .3s}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="main">
+    <header class="card">
+      <div><h1>Proof Hunt</h1><div class="id">VER-EVIDENCE-01 &middot; inference_reading_comprehension</div></div>
+      <span class="pill" id="phase">DEMO</span>
+    </header>
+    <div class="card">
+      <div class="steptag" id="steptag">Read the story</div>
+      <div class="passage" id="passage"></div>
+      <div class="qbox">
+        <div class="q" id="q">&mdash;</div>
+        <div class="choices" id="choices"></div>
+      </div>
+      <div class="feedback" id="fb"></div>
+      <div class="row">
+        <button class="btn" id="replay">&#8635; Replay demo</button>
+        <button class="btn primary" id="next" disabled>Next &rarr;</button>
+      </div>
+      <div class="note">Two-part item: pick the answer, then tap the sentence that <b>proves</b> it. Full credit
+        needs answer + evidence. K-1 uses an audio story with comic panels (tap the panel that shows the proof).</div>
+    </div>
+  </div>
+  <aside class="side">
+    <div class="card">
+      <h1 style="font-size:15px;margin:0 0 8px">Live telemetry</h1>
+      <div class="tallies">
+        <div class="t"><div class="k">Answer accuracy</div><div class="v" id="v-acc">0/0</div><div class="m">M-ACC</div></div>
+        <div class="t"><div class="k">Two-part score</div><div class="v" id="v-poly">&mdash;</div><div class="m">M-POLY</div></div>
+        <div class="t"><div class="k">Mean RT</div><div class="v" id="v-rt">&mdash;</div><div class="m">M-RT</div></div>
+        <div class="t"><div class="k">1st-action lat.</div><div class="v" id="v-first">&mdash;</div><div class="m">M-RTFIRST</div></div>
+        <div class="t"><div class="k">Inference depth</div><div class="v" id="v-depth">&mdash;</div><div class="m">M-INFDEPTH</div></div>
+        <div class="t"><div class="k">Evidence revisions</div><div class="v" id="v-rev">0</div><div class="m">M-REV</div></div>
+        <div class="t" style="grid-column:1/3"><div class="k">Evidence taps / error type</div><div class="v" id="v-path" style="font-size:13px">&mdash;</div><div class="m">M-PATH / M-ERRTYPE</div></div>
+      </div>
+      <div class="log" id="log"></div>
+    </div>
+  </aside>
+</div>
+<div class="hand" id="hand">&#128070;</div>
+<script>
+"use strict";
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const $=s=>document.querySelector(s);
+const T0=performance.now();
+const DEPTHRANK={literal:1,bridging:2,global:3,"author's purpose":4};
+
+// sentences: ev=true is the correct evidence; lure marks a tempting wrong evidence sentence
+const DEMO={title:"The Lunchbox",depth:"bridging",
+  sents:[{t:"Sam opened his lunchbox at noon."},{t:"It was completely empty inside.",ev:true},{t:"He waited a long time for the bell.",lure:"thematic"}],
+  q:"How does Sam probably feel by the afternoon?",
+  choices:[{e:"\uD83D\uDE0A full and happy"},{e:"\uD83D\uDE16 hungry",correct:true}]};
+const WARMUP={title:"The Puppy",depth:"literal",
+  sents:[{t:"Mia's puppy ran in the muddy yard.",lure:"thematic"},{t:"Its paws left brown prints on the floor.",ev:true},{t:"Mia laughed at the mess."}],
+  q:"Why is the floor dirty?",
+  choices:[{e:"\uD83D\uDC3E muddy paw prints",correct:true},{e:"\uD83C\uDF67 spilled ice cream"}]};
+const SCORED=[
+  {title:"The Kite",depth:"bridging",
+   sents:[{t:"Leo ran across the field holding the string."},{t:"The kite climbed higher and higher.",ev:true},{t:"His sister cheered from the bench.",lure:"thematic"}],
+   q:"What made the kite go up?",
+   choices:[{e:"\uD83C\uDFC3 Leo running with it",correct:true},{e:"\uD83E\uDE91 the bench"}]},
+  {title:"The Library",depth:"global",
+   sents:[{t:"Ada visited the library every single day.",ev:true},{t:"She knew where each kind of book lived.",ev:true},{t:"The librarian waved hello.",lure:"thematic"}],
+   q:"What is the main idea?",
+   choices:[{e:"\uD83D\uDCDA Ada loves the library",correct:true},{e:"\uD83D\uDC4B the librarian is friendly"}]},
+  {title:"The Note",depth:"author's purpose",
+   sents:[{t:"Dad left a note: 'Please water the plant.'"},{t:"'It is thirsty and drooping,' he added.",ev:true},{t:"The note was on the blue fridge.",lure:"surface"}],
+   q:"Why did Dad mention the plant is drooping?",
+   choices:[{e:"\uD83E\uDEB4 to explain why to water it",correct:true},{e:"\uD83E\uDDCA to describe the fridge"}]}
+];
+
+let phase="demo",idx=0,cur=null,step="answer";
+let tShown=0,tFirst=0,answerPick=null,evPicks=[],revisions=0,locked=false;
+const results=[];let depthReached=0;
+
+function log(mid,msg){const el=document.createElement("div");const t=((performance.now()-T0)/1000).toFixed(2);
+  el.innerHTML=`<span class="tt">t+${t}s</span> <span class="mid">[${mid}]</span> ${msg}`;const b=$("#log");b.appendChild(el);b.scrollTop=b.scrollHeight;}
+function setPhase(p){phase=p;$("#phase").textContent=p.toUpperCase();}
+function sentEls(){return[...document.querySelectorAll(".sent")];}
+function choiceEls(){return[...document.querySelectorAll(".choice")];}
+
+function render(item,{interactive=true}={}){
+  cur=item;step="answer";answerPick=null;evPicks=[];revisions=0;locked=false;tFirst=0;
+  $("#fb").textContent="";$("#next").disabled=true;$("#v-path").textContent="\u2014";$("#v-rev").textContent="0";
+  $("#steptag").textContent="Step 1 \u2014 read, then choose the answer";
+  $("#q").textContent=item.q;
+  const p=$("#passage");p.innerHTML="";
+  item.sents.forEach((s,i)=>{const d=document.createElement("div");d.className="sent";d.dataset.i=i;d.textContent=s.t;p.appendChild(d);});
+  const c=$("#choices");c.innerHTML="";
+  item.choices.forEach((o,i)=>{const d=document.createElement("div");d.className="choice";d.dataset.i=i;d.textContent=o.e;
+    if(interactive)d.addEventListener("click",()=>pickAnswer(i,d));c.appendChild(d);});
+  tShown=performance.now();
+}
+function pickAnswer(i,el){
+  if(locked||step!=="answer")return;
+  if(!tFirst){tFirst=performance.now();log("M-RTFIRST",`first-action latency ${Math.round(tFirst-tShown)}ms`);}
+  choiceEls().forEach(c=>c.classList.remove("pick"));el.classList.add("pick");answerPick=i;
+  $("#next").disabled=false;
+}
+function toEvidenceStep(){
+  step="evidence";answerPick=answerPick;
+  $("#steptag").textContent="Step 2 \u2014 tap the sentence that PROVES your answer";
+  $("#fb").textContent="Now tap your proof in the story.";$("#fb").style.color="var(--mut)";
+  choiceEls().forEach(c=>c.classList.add("lock"));
+  sentEls().forEach(el=>{el.classList.add("pickable");el.addEventListener("click",toggleEv);});
+  $("#next").disabled=true;
+}
+function toggleEv(e){
+  if(locked||step!=="evidence")return;const el=e.currentTarget;const i=+el.dataset.i;
+  const pos=evPicks.indexOf(i);
+  if(pos>=0){evPicks.splice(pos,1);el.classList.remove("evon");if(evPicks.length){revisions++;$("#v-rev").textContent=revisions;log("M-REV",`deselected evidence (revision #${revisions})`);}}
+  else{evPicks.push(i);el.classList.add("evon");if(evPicks.length>1){revisions++;$("#v-rev").textContent=revisions;}}
+  $("#v-path").textContent=evPicks.length?("sents ["+evPicks.slice().sort().join(",")+"]"):"\u2014";
+  $("#next").disabled=evPicks.length===0;
+}
+function commit(){
+  locked=true;const rt=Math.round(performance.now()-tShown);
+  const ansCorrect=!!cur.choices[answerPick].correct;
+  const wantEv=cur.sents.map((s,i)=>s.ev?i:-1).filter(i=>i>=0);
+  const evCorrect=evPicks.length===wantEv.length&&wantEv.every(i=>evPicks.includes(i));
+  // lock visuals
+  choiceEls().forEach((c,i)=>{c.classList.add("lock");if(i===answerPick)c.classList.add(ansCorrect?"correct":"wrong");if(cur.choices[i].correct&&!ansCorrect)c.classList.add("correct");});
+  sentEls().forEach((el,i)=>{el.classList.add("lock");el.classList.remove("evon");
+    if(evPicks.includes(i))el.classList.add(cur.sents[i].ev?"ev-correct":"ev-wrong");
+    if(cur.sents[i].ev&&!evPicks.includes(i))el.classList.add("ev-correct");});
+  const poly=(ansCorrect?1:0)+(evCorrect?1:0);
+  if(phase==="warmup"){log("M-ENGAGE",`warm-up (unscored): answer ${ansCorrect?"ok":"no"}, evidence ${evCorrect?"ok":"no"}`);
+    $("#fb").textContent=poly===2?"Case solved! \uD83D\uDD0D":"Good try \u2014 the proof is highlighted.";$("#fb").style.color=poly===2?"var(--good)":"var(--mut)";$("#next").disabled=false;return;}
+  // error typing on evidence
+  let errtype="none";
+  if(!evCorrect){const wrong=evPicks.find(i=>!cur.sents[i].ev);errtype=wrong!=null?(cur.sents[wrong].lure||"off-topic"):"missing";}
+  results.push({ansCorrect,evCorrect,poly,rt,first:Math.round(tFirst-tShown||0),depth:cur.depth,errtype});
+  log("M-ACC",`answer ${ansCorrect?"CORRECT":"incorrect"} (${cur.title})`);
+  log("M-RT",`response time ${rt}ms`);
+  log("M-POLY",`two-part score ${poly}/2 (answer ${ansCorrect?1:0} + evidence ${evCorrect?1:0})`);
+  if(poly===2){depthReached=Math.max(depthReached,DEPTHRANK[cur.depth]||0);log("M-INFDEPTH",`supported '${cur.depth}' inference with evidence -> depth ${depthReached}`);}
+  log("M-PATH",`evidence taps [${evPicks.slice().sort().join(",")}] (target [${wantEv.join(",")}])`);
+  if(!evCorrect)log("M-ERRTYPE",`evidence error: '${errtype}' ${errtype==="thematic"||errtype==="surface"?"(plausible near-miss)":"(off-target)"}`);
+  $("#fb").textContent=poly===2?"\u2605 Case solved! Answer + proof both right.":ansCorrect?"Right answer \u2014 but that's not the proof.":"Not quite.";
+  $("#fb").style.color=poly===2?"var(--good)":"var(--bad)";
+  $("#v-path").textContent=`[${evPicks.slice().sort().join(",")}] err:${evCorrect?"none":errtype}`;
+  update();$("#next").disabled=false;
+}
+function update(){
+  const n=results.length,ac=results.filter(r=>r.ansCorrect).length;
+  $("#v-acc").textContent=`${ac}/${n}`;
+  const poly=results.reduce((a,b)=>a+b.poly,0);$("#v-poly").textContent=`${poly}/${n*2}`;
+  const rts=results.map(r=>r.rt);if(rts.length)$("#v-rt").textContent=Math.round(rts.reduce((a,b)=>a+b,0)/rts.length)+"ms";
+  const fs=results.map(r=>r.first).filter(Boolean);if(fs.length)$("#v-first").textContent=Math.round(fs.reduce((a,b)=>a+b,0)/fs.length)+"ms";
+  const names=Object.entries(DEPTHRANK).find(([k,v])=>v===depthReached);
+  $("#v-depth").textContent=depthReached?`L${depthReached} ${names?names[0]:""}`:"\u2014";
+}
+function ripple(x,y){const d=document.createElement("div");d.style.cssText=`position:fixed;left:${x-5}px;top:${y-5}px;width:10px;height:10px;border-radius:50%;background:var(--acc);z-index:49;pointer-events:none;opacity:.8;animation:rip .6s ease-out forwards`;document.body.appendChild(d);setTimeout(()=>d.remove(),620);}
+const style=document.createElement("style");style.textContent="@keyframes rip{to{transform:scale(9);opacity:0}}";document.head.appendChild(style);
+async function ghost(target){const hand=$("#hand");const r=target.getBoundingClientRect();
+  hand.style.opacity="1";hand.style.left=(r.left+r.width/2-8)+"px";hand.style.top=(r.top+r.height/2)+"px";
+  await sleep(820);target.classList.add("demo-hit");ripple(r.left+r.width/2,r.top+r.height/2);await sleep(520);target.classList.remove("demo-hit");}
+async function runDemo(){
+  setPhase("demo");$("#next").disabled=true;$("#replay").disabled=true;render(DEMO,{interactive:false});
+  log("M-ENGAGE","wordless ghost-hand demo start (<10s, no instructions)");
+  await sleep(600);
+  const hand=$("#hand");hand.style.opacity="1";hand.style.left="60px";hand.style.top="120px";await sleep(200);
+  await ghost(choiceEls()[1]);            // tap the 'hungry' answer
+  choiceEls()[1].classList.add("pick");
+  $("#steptag").textContent="Step 2 \u2014 tap the sentence that PROVES your answer";
+  await sleep(400);
+  await ghost(sentEls()[1]);              // tap the empty-lunchbox proof
+  sentEls()[1].classList.add("evon");
+  $("#hand").style.opacity="0";await sleep(400);$("#replay").disabled=false;startWarmup();
+}
+function startWarmup(){setPhase("warmup");render(WARMUP,{interactive:true});$("#fb").textContent="Your turn - pick the answer.";$("#fb").style.color="var(--mut)";log("M-ENGAGE","unscored warm-up shown");}
+function startScored(){setPhase("scored");idx=0;render(SCORED[0],{interactive:true});log("M-ENGAGE","scoring begins (evidence-based, inference depth escalates)");}
+function next(){if(phase==="warmup"){startScored();return;}if(phase==="scored"){idx++;if(idx<SCORED.length)render(SCORED[idx],{interactive:true});else finish();}}
+function finish(){setPhase("done");$("#passage").innerHTML="";$("#choices").innerHTML="";$("#q").textContent="\uD83C\uDF89";$("#steptag").textContent="";$("#next").disabled=true;
+  const poly=results.reduce((a,b)=>a+b.poly,0);const names=Object.entries(DEPTHRANK).find(([k,v])=>v===depthReached);
+  $("#fb").innerHTML=`Complete \u2014 two-part score ${poly}/${results.length*2}, deepest proven inference: ${names?names[0]:"\u2014"}.`;$("#fb").style.color="var(--good)";
+  log("M-DRIFT","session end; per-item answer/evidence/depth series available");}
+$("#next").addEventListener("click",()=>{
+  if(phase==="done")return;
+  if((phase==="scored"||phase==="warmup")&&!locked){
+    if(step==="answer"&&answerPick!=null){toEvidenceStep();return;}
+    if(step==="evidence"&&evPicks.length){commit();return;}
+  }
+  next();
+});
+$("#replay").addEventListener("click",()=>{results.length=0;depthReached=0;$("#log").innerHTML="";$("#v-acc").textContent="0/0";$("#v-poly").textContent="\u2014";$("#v-rt").textContent="\u2014";$("#v-first").textContent="\u2014";$("#v-depth").textContent="\u2014";runDemo();});
+setInterval(()=>{const b=$("#next");if(phase==="done"){b.textContent="Done";return;}
+  if((phase==="scored"||phase==="warmup")&&!locked){
+    if(step==="answer"&&answerPick!=null){b.textContent="Find proof \u2192";return;}
+    if(step==="evidence"&&evPicks.length){b.textContent="Check \u2713";return;}}
+  b.textContent="Next \u2192";},150);
+update();runDemo();
+</script>
+</body>
+</html>

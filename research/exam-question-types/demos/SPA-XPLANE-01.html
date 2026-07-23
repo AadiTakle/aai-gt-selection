@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SPA-XPLANE-01 — Place the Slice</title>
+<style>
+  :root{--bg:#eef2fb;--card:#fff;--ink:#1e293b;--muted:#64748b;--accent:#4f46e5;--good:#16a34a;--warn:#f59e0b;--bad:#dc2626;--stage:#f6f7fb}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.4 system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  .wrap{display:flex;gap:14px;padding:14px;max-width:1180px;margin:0 auto;align-items:flex-start;flex-wrap:wrap}
+  .col{flex:1 1 560px;min-width:340px}.side{flex:1 1 320px;min-width:300px}
+  .card{background:var(--card);border-radius:16px;box-shadow:0 6px 22px rgba(15,23,42,.08);padding:16px;margin-bottom:14px}
+  h1{font-size:19px;margin:0 0 2px}.sub{color:var(--muted);font-size:13px;margin:0 0 10px}
+  .pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;background:#e0e7ff;color:#3730a3}
+  .banner{display:flex;align-items:center;gap:10px;background:#f1f5ff;border:1px solid #dbe3ff;border-radius:12px;padding:10px 12px;margin-bottom:12px;min-height:44px}
+  .banner .icon{font-size:22px}.banner b{color:var(--accent)}
+  .target{display:flex;align-items:center;gap:10px;background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:8px 12px;margin-bottom:10px}
+  .target b{color:#c2410c}
+  #stageWrap{position:relative;background:var(--stage);border-radius:14px;border:1px solid #e2e8f0;overflow:hidden}
+  svg{display:block;width:100%;height:330px;touch-action:none}
+  .hand{position:absolute;font-size:30px;pointer-events:none;z-index:5;filter:drop-shadow(0 2px 3px rgba(0,0,0,.25))}
+  .row{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
+  input[type=range]{flex:1;min-width:120px}
+  button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:10px 16px;cursor:pointer;background:var(--accent);color:#fff}
+  button.ghost{background:#e2e8f0;color:#334155}button:disabled{opacity:.45;cursor:not-allowed}
+  .meter{height:12px;border-radius:8px;background:#e2e8f0;overflow:hidden;flex:1;min-width:120px}
+  .meter>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#f59e0b,#16a34a)}
+  .tel{background:#0b1220;color:#d1fae5;border-radius:16px;padding:14px;font:12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
+  .tel h2{font-size:13px;margin:0 0 8px;color:#93c5fd;letter-spacing:.05em;text-transform:uppercase}
+  .tel .m{display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px dotted #1e293b}
+  .tel .m .k{color:#7dd3fc}.tel .m .v{color:#fde68a;font-weight:700;text-align:right}
+  #log{margin-top:10px;max-height:150px;overflow:auto;background:#060b16;border-radius:8px;padding:8px}
+  #log div{white-space:pre-wrap;color:#a7f3d0}#log .t{color:#475569}
+  .done{color:var(--good);font-weight:700}.miss{color:var(--warn)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="col"><div class="card">
+    <span class="pill" id="phasePill">DEMO</span>
+    <h1>Place the Slice <span style="color:var(--muted);font-weight:400">· SPA-XPLANE-01</span></h1>
+    <p class="sub">You are told the shape to make. Slide and tilt the cut so the cut face becomes that shape. (Cross-sections)</p>
+    <div class="banner"><span class="icon" id="bIcon">👀</span><div id="bText"><b>Watch.</b> The hand tilts the cut through the cube until the face is a hexagon…</div></div>
+    <div class="target"><span>🎯 Make this shape:</span> <svg id="tgtIcon" viewBox="0 0 44 38" width="44" height="38"></svg> <b id="tgtName">—</b></div>
+    <div id="stageWrap"><svg id="svg" viewBox="0 0 320 330"></svg><div class="hand" id="hand" style="display:none">👆</div></div>
+    <div class="row"><span class="sub">low</span><input type="range" id="hgt" min="15" max="85" value="50"><span class="sub">high</span></div>
+    <div class="row" id="tiltRow"><span class="sub">flat</span><input type="range" id="tilt" min="0" max="52" value="0"><span class="sub">tilted</span></div>
+    <div class="row"><span class="sub">match</span><div class="meter"><i id="meter"></i></div><span class="sub" id="matchTxt">—</span></div>
+    <div class="row">
+      <button id="lockBtn" disabled>🔒 Lock</button>
+      <button id="nextBtn" class="ghost" style="display:none">Next ▶</button>
+      <span class="sub" id="live" style="margin-left:auto"></span>
+    </div>
+  </div></div>
+  <div class="side"><div class="tel">
+    <h2>◉ Live telemetry</h2>
+    <div class="m"><span class="k">M-ACC accuracy</span><span class="v" id="mAcc">—</span></div>
+    <div class="m"><span class="k">M-POLY match %</span><span class="v" id="mPoly">—</span></div>
+    <div class="m"><span class="k">M-RT total</span><span class="v" id="mRt">—</span></div>
+    <div class="m"><span class="k">M-RTFIRST first-act</span><span class="v" id="mFirst">—</span></div>
+    <div class="m"><span class="k">M-REV answer changes</span><span class="v" id="mRev">0</span></div>
+    <div class="m"><span class="k">M-EXPLORE slider moves</span><span class="v" id="mExp">0</span></div>
+    <div class="m"><span class="k">M-PATH states</span><span class="v" id="mPath">0</span></div>
+    <div class="m"><span class="k">M-EFF moves (ideal ≤3)</span><span class="v" id="mEff">—</span></div>
+    <div class="m"><span class="k">M-ERRTYPE last error</span><span class="v" id="mErr">—</span></div>
+    <div class="m"><span class="k">M-DIFFREACH hardest</span><span class="v" id="mDiff">—</span></div>
+    <div id="log"></div>
+  </div></div>
+</div>
+<script>
+(function(){
+  "use strict";
+  var SVGNS="http://www.w3.org/2000/svg",svg=document.getElementById("svg"),hand=document.getElementById("hand");
+  var hgtEl=document.getElementById("hgt"),tiltEl=document.getElementById("tilt"),tiltRow=document.getElementById("tiltRow");
+  var lockBtn=document.getElementById("lockBtn"),nextBtn=document.getElementById("nextBtn");
+  var pill=document.getElementById("phasePill"),bIcon=document.getElementById("bIcon"),bText=document.getElementById("bText");
+  function setBanner(i,h){bIcon.textContent=i;bText.innerHTML=h;}
+  function beep(f,t){try{var A=beep.a=beep.a||new(window.AudioContext||window.webkitAudioContext)();var o=A.createOscillator(),g=A.createGain();o.frequency.value=f;o.connect(g);g.connect(A.destination);g.gain.value=.08;o.start();o.stop(A.currentTime+(t||.1));}catch(e){}}
+  var SHAPES={
+    circle:'<circle cx="22" cy="19" r="14" fill="#fca5a5" stroke="#b91c1c" stroke-width="2"/>',
+    ellipse:'<ellipse cx="22" cy="19" rx="18" ry="9" fill="#fca5a5" stroke="#b91c1c" stroke-width="2"/>',
+    square:'<rect x="8" y="5" width="28" height="28" fill="#fca5a5" stroke="#b91c1c" stroke-width="2"/>',
+    rect:'<rect x="4" y="10" width="36" height="18" fill="#fca5a5" stroke="#b91c1c" stroke-width="2"/>',
+    hexagon:'<polygon points="12,5 32,5 42,19 32,33 12,33 2,19" fill="#fca5a5" stroke="#b91c1c" stroke-width="2"/>'};
+  var NAMES={circle:"circle",ellipse:"oval",square:"square",rect:"rectangle",hexagon:"hexagon"};
+
+  var cx=150,yTop=70,yBot=250,W=62,IY=0.32,solid="cube",t=0.5,tilt=0;
+  function drawSolid(){
+    if(solid==="cyl"){
+      var body=document.createElementNS(SVGNS,"path");body.setAttribute("d","M "+(cx-W)+","+yTop+" L "+(cx-W)+","+yBot+" A "+W+" "+(W*IY)+" 0 0 0 "+(cx+W)+","+yBot+" L "+(cx+W)+","+yTop);
+      body.setAttribute("fill","#c7d2fe");body.setAttribute("stroke","#6366f1");body.setAttribute("stroke-width","2");svg.appendChild(body);
+      var top=document.createElementNS(SVGNS,"ellipse");top.setAttribute("cx",cx);top.setAttribute("cy",yTop);top.setAttribute("rx",W);top.setAttribute("ry",W*IY);top.setAttribute("fill","#e0e7ff");top.setAttribute("stroke","#6366f1");top.setAttribute("stroke-width","2");svg.appendChild(top);
+    } else { // cube
+      var s=W;
+      var topP=document.createElementNS(SVGNS,"path");topP.setAttribute("d","M "+cx+","+(yTop-18)+" L "+(cx+s)+","+yTop+" L "+cx+","+(yTop+18)+" L "+(cx-s)+","+yTop+" Z");topP.setAttribute("fill","#e0e7ff");topP.setAttribute("stroke","#6366f1");topP.setAttribute("stroke-width","2");svg.appendChild(topP);
+      var left=document.createElementNS(SVGNS,"path");left.setAttribute("d","M "+(cx-s)+","+yTop+" L "+cx+","+(yTop+18)+" L "+cx+","+yBot+" L "+(cx-s)+","+(yBot-18)+" Z");left.setAttribute("fill","#c7d2fe");left.setAttribute("stroke","#6366f1");left.setAttribute("stroke-width","2");svg.appendChild(left);
+      var right=document.createElementNS(SVGNS,"path");right.setAttribute("d","M "+(cx+s)+","+yTop+" L "+cx+","+(yTop+18)+" L "+cx+","+yBot+" L "+(cx+s)+","+(yBot-18)+" Z");right.setAttribute("fill","#a5b4fc");right.setAttribute("stroke","#6366f1");right.setAttribute("stroke-width","2");svg.appendChild(right);
+    }
+  }
+  function drawPlane(){
+    var yy=yBot+(yTop-yBot)*t;var rx=W+10;var ry=rx*IY;var ry2=ry+(rx-ry)*(tilt/52)*0.95;
+    var pl=document.createElementNS(SVGNS,"ellipse");pl.setAttribute("cx",cx);pl.setAttribute("cy",yy);pl.setAttribute("rx",rx);pl.setAttribute("ry",ry2);pl.setAttribute("transform","rotate("+(tilt*0.35)+" "+cx+" "+yy+")");pl.setAttribute("fill","rgba(244,63,94,.26)");pl.setAttribute("stroke","#e11d48");pl.setAttribute("stroke-width","2.5");svg.appendChild(pl);
+    var wing=document.createElementNS(SVGNS,"line");var dy=(rx+28)*Math.tan(tilt*Math.PI/180)*0.4;wing.setAttribute("x1",cx-rx-28);wing.setAttribute("y1",yy+dy);wing.setAttribute("x2",cx+rx+28);wing.setAttribute("y2",yy-dy);wing.setAttribute("stroke","#fb7185");wing.setAttribute("stroke-width","2");wing.setAttribute("stroke-dasharray","5 4");svg.appendChild(wing);
+  }
+  function currentShape(){
+    if(solid==="cyl")return tilt<=8?"circle":"ellipse";
+    return tilt<=8?"square":(tilt<=34?"rect":"hexagon"); // cube
+  }
+  var idealTilt={square:0,rect:20,hexagon:44,circle:0,ellipse:32};
+  function draw(){svg.innerHTML="";drawSolid();drawPlane();
+    var cs=currentShape();
+    // current-cut preview icon
+    var pv=document.createElementNS(SVGNS,"g");pv.setAttribute("transform","translate("+(cx+80)+",290) scale(0.7)");pv.innerHTML=SHAPES[cs];svg.appendChild(pv);
+    svg.appendChild(mkText(cx+92,320,"your cut",11,"#94a3b8"));
+    svg.appendChild(mkText(cx,305,({cyl:"CYLINDER",cube:"CUBE"})[solid]+"  ·  tilt "+tilt+"°",12,"#64748b"));
+    updateMeter();render();
+  }
+  function mkText(x,y,s,sz,col){var t=document.createElementNS(SVGNS,"text");t.setAttribute("x",x);t.setAttribute("y",y);t.setAttribute("text-anchor","middle");t.setAttribute("fill",col||"#94a3b8");t.setAttribute("font-size",sz||12);t.textContent=s;return t;}
+
+  function polyScore(){var ok=currentShape()===target;var prox=1-Math.min(1,Math.abs(tilt-idealTilt[target])/26);
+    return ok?Math.round(100*(0.6+0.4*prox)):Math.round(100*0.15*prox);}
+  function updateMeter(){var p=polyScore();document.getElementById("meter").style.width=p+"%";
+    document.getElementById("matchTxt").textContent=(currentShape()===target?"✓ "+p+"%":"✗ "+NAMES[currentShape()]);}
+
+  var Tel={start:0,first:0,revs:0,explore:0,path:0,moves:0,scored:0,correct:0,polys:[],diff:"—",lastShape:null,
+    logEl:document.getElementById("log"),
+    line:function(m,c){var d=document.createElement("div");var t=((performance.now()-Tel.start)/1000).toFixed(2);d.innerHTML='<span class="t">['+t+'s]</span> '+m;if(c)d.className=c;Tel.logEl.appendChild(d);Tel.logEl.scrollTop=Tel.logEl.scrollHeight;},
+    begin:function(l){Tel.start=performance.now();Tel.first=0;Tel.revs=0;Tel.explore=0;Tel.path=0;Tel.moves=0;Tel.lastShape=null;Tel.line("▶ "+l);},
+    firstAct:function(w){if(!Tel.first){Tel.first=performance.now()-Tel.start;Tel.line("first action: "+w+" @"+Math.round(Tel.first)+"ms");}}};
+  function render(){
+    document.getElementById("mAcc").textContent=Tel.scored?Tel.correct+"/"+Tel.scored+" ("+Math.round(100*Tel.correct/Tel.scored)+"%)":"—";
+    document.getElementById("mPoly").textContent=Tel.polys.length?Tel.polys[Tel.polys.length-1]+"%":"—";
+    document.getElementById("mFirst").textContent=Tel.first?Math.round(Tel.first)+" ms":"—";
+    document.getElementById("mRev").textContent=Tel.revs;document.getElementById("mExp").textContent=Tel.explore;
+    document.getElementById("mPath").textContent=Tel.path;document.getElementById("mEff").textContent=Tel.moves||"—";
+    document.getElementById("mDiff").textContent=Tel.diff;}
+
+  var target="hexagon",interactive=false;
+  function trackShapeChange(){var cs=currentShape();if(Tel.lastShape!==null&&cs!==Tel.lastShape){Tel.revs++;}Tel.lastShape=cs;Tel.path++;}
+  hgtEl.addEventListener("input",function(){t=(+hgtEl.value)/100;if(interactive){Tel.firstAct("move plane");}draw();});
+  hgtEl.addEventListener("change",function(){if(interactive){Tel.explore++;trackShapeChange();Tel.moves++;render();}});
+  tiltEl.addEventListener("input",function(){tilt=+tiltEl.value;if(interactive){Tel.firstAct("tilt plane");}draw();});
+  tiltEl.addEventListener("change",function(){if(interactive){Tel.explore++;trackShapeChange();Tel.moves++;render();}});
+
+  function setTarget(name){target=name;document.getElementById("tgtIcon").innerHTML=SHAPES[name];document.getElementById("tgtName").textContent=NAMES[name];}
+  function setItem(sol,tgt,showTilt){solid=sol;setTarget(tgt);t=0.5;hgtEl.value=50;tilt=0;tiltEl.value=0;tiltRow.style.display=showTilt?"flex":"none";draw();}
+
+  function startDemo(){
+    pill.textContent="DEMO";interactive=false;lockBtn.disabled=true;nextBtn.style.display="none";lockBtn.style.display="";
+    setItem("cube","hexagon",true);
+    setBanner("👀","<b>Watch.</b> Target = hexagon. The hand TILTS the cut through the cube until the face becomes a hexagon.");
+    hand.style.display="";var v=0;
+    var iv=setInterval(function(){v+=4;tilt=v;tiltEl.value=v;draw();
+      var r=svg.getBoundingClientRect();hand.style.left=(r.left+(cx+rWing())*(r.width/320))+"px";hand.style.top=(r.top+window.scrollY+(yBot+(yTop-yBot)*t)*(r.height/330))+"px";
+      if(v>=46){clearInterval(iv);beep(820);setBanner("✅","<b>Hexagon!</b> A steep tilt through the cube makes six edges. Your turn.");setTimeout(function(){hand.style.display="none";startWarmup();},900);}},110);
+    function rWing(){return 30;}
+  }
+
+  function startWarmup(){
+    pill.textContent="WARM-UP";interactive=true;lockBtn.disabled=true;lockBtn.style.display="";nextBtn.style.display="none";
+    setItem("cube","square",false);Tel.begin("Warm-up — make a SQUARE (cube, flat)");
+    setBanner("✋","<b>Practice.</b> Target = square. Keep the cut flat and slide it, then Lock when the face is a square.");
+    lockBtn.disabled=false;
+    lockBtn.onclick=function(){var ok=currentShape()==="square";
+      if(ok){beep(880);Tel.line("made a square ✔","done");setBanner("✅","<b>Yes!</b> A flat cut of a cube is a square. Real ones next — some need TILT.");
+        lockBtn.style.display="none";nextBtn.style.display="";nextBtn.textContent="Start scored ▶";nextBtn.onclick=function(){scored1();};}
+      else{beep(300);Tel.line("cut is "+NAMES[currentShape()]+" (need square)","miss");setBanner("↻","<b>Keep it flat.</b> Slide without tilting so the face is a square.");}};
+  }
+
+  function scored1(){
+    pill.textContent="SCORED 1/2";interactive=true;lockBtn.style.display="";lockBtn.disabled=false;nextBtn.style.display="none";
+    setItem("cyl","ellipse",true);Tel.begin("Scored 1 — make an OVAL (cylinder)");document.getElementById("mErr").textContent="—";
+    setBanner("🎯","<b>Target = oval.</b> Tilt the cut through the cylinder until the face is an oval, then Lock.");
+    lockBtn.onclick=function(){grade("oblique cyl",scored2);};
+  }
+  function scored2(){
+    pill.textContent="SCORED 2/2";interactive=true;lockBtn.style.display="";lockBtn.disabled=false;nextBtn.style.display="none";
+    setItem("cube","hexagon",true);Tel.begin("Scored 2 — make a HEXAGON (cube)");
+    setBanner("🎯","<b>Target = hexagon.</b> Tilt the cut steeply through the cube corner-to-corner until the face is a hexagon, then Lock.");
+    lockBtn.onclick=function(){grade("oblique cube",finish);};
+  }
+  function grade(diffLabel,after){var rt=performance.now()-Tel.start;var cs=currentShape();var ok=cs===target;var poly=polyScore();
+    Tel.scored++;Tel.polys.push(poly);
+    if(ok){Tel.correct++;Tel.diff=diffLabel;document.getElementById("mErr").textContent="—";Tel.line("LOCK "+NAMES[cs]+" = target ✔ ("+poly+"%) RT="+Math.round(rt)+"ms moves="+Tel.moves+" explore="+Tel.explore,"done");}
+    else{var et=(target==="ellipse"&&cs==="circle")?"under-tilted":(target==="hexagon"&&cs==="rect")?"under-tilted":(target==="hexagon"&&cs==="square")?"not tilted":"gross";document.getElementById("mErr").textContent=et;Tel.line("LOCK "+NAMES[cs]+" ✗ (need "+NAMES[target]+") — "+et,"miss");}
+    document.getElementById("mRt").textContent=Math.round(rt)+" ms";interactive=false;lockBtn.style.display="none";render();
+    nextBtn.style.display="";nextBtn.textContent=Tel.scored<2?"Next ▶":"See results ▶";nextBtn.onclick=after;
+  }
+  function finish(){
+    pill.textContent="DONE";interactive=false;lockBtn.style.display="none";svg.innerHTML="";
+    var mp=Tel.polys.length?Math.round(Tel.polys.reduce(function(a,b){return a+b},0)/Tel.polys.length):0;
+    setBanner("🏁","<b>Done.</b> Acc "+Tel.correct+"/"+Tel.scored+" · avg match "+mp+"% · explore "+Tel.explore+". Producing a hard oblique cut with few plane moves and high match is the penetrative-thinking tail signal.");
+    Tel.line("── summary ── M-ACC="+Tel.correct+"/"+Tel.scored+" M-POLY(avg)="+mp+"% M-EXPLORE="+Tel.explore+" M-EFF(moves)="+Tel.moves,"done");
+    render();nextBtn.style.display="";nextBtn.textContent="↻ Run again";nextBtn.onclick=function(){location.reload();};
+  }
+  draw();startDemo();
+})();
+</script>
+</body>
+</html>

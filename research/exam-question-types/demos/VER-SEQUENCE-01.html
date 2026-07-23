@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VER-SEQUENCE-01 - Story Order</title>
+<style>
+  :root{--bg:#0f1226;--panel:#181c3a;--card:#20264f;--ink:#f4f6ff;--mut:#9aa3d4;
+    --acc:#ffd23f;--good:#37d67a;--bad:#ff6b6b;--line:#2c3566;--brand:#7c8cff;}
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.45 system-ui,Segoe UI,Roboto,sans-serif;color:var(--ink);min-height:100vh;
+    background:radial-gradient(1200px 600px at 20% -10%,#2a2f66 0,var(--bg) 55%)}
+  .wrap{display:flex;gap:18px;max-width:1180px;margin:0 auto;padding:18px;flex-wrap:wrap}
+  .main{flex:1 1 560px;min-width:340px}.side{flex:1 1 320px;min-width:300px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px}
+  header.card{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-bottom:14px}
+  h1{font-size:18px;margin:0}.id{font:12px ui-monospace,Menlo,monospace;color:var(--mut)}
+  .pill{font:12px ui-monospace,monospace;padding:4px 10px;border-radius:999px;background:#12163a;border:1px solid var(--line);color:var(--acc)}
+  .steptag{font:12px ui-monospace,monospace;color:var(--brand);margin:2px 0 10px}
+  .track{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;min-height:130px;align-items:center}
+  .slot{position:relative;width:120px;height:120px;border-radius:16px;background:var(--card);border:2px solid var(--line);
+    display:grid;place-items:center;font-size:52px;cursor:pointer;transition:.12s;user-select:none}
+  .slot:hover{border-color:var(--brand)}
+  .slot .num{position:absolute;top:6px;left:8px;font:12px ui-monospace,monospace;color:var(--mut)}
+  .slot.sel{border-color:var(--acc);background:#2b2f5e;transform:translateY(-4px)}
+  .slot.demo-hit{border-color:var(--acc);transform:scale(1.05)}
+  .slot.ok{border-color:var(--good)}.slot.no{border-color:var(--bad)}
+  .slot.lock{pointer-events:none}
+  .arrow{font-size:22px;color:var(--mut)}
+  .film{filter:grayscale(.15)}
+  .pred{margin-top:16px}.q{font-weight:700;margin:6px 0 10px}
+  .choices{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .choice{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:14px;font-size:17px;cursor:pointer;text-align:center;transition:.12s}
+  .choice:hover{border-color:var(--brand)}.choice.pick{border-color:var(--acc);background:#2b2f5e}
+  .choice.correct{border-color:var(--good);background:#1f5138}.choice.wrong{border-color:var(--bad);background:#5a2330}
+  .choice.demo-hit{border-color:var(--acc);transform:scale(1.04)}.choice.lock{pointer-events:none}
+  .feedback{min-height:26px;margin-top:12px;font-weight:700}
+  .row{display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap}
+  button.btn{border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:9px 16px;cursor:pointer;background:#242a56}
+  button.btn.primary{background:linear-gradient(160deg,var(--good),#1f9e5a);border:none;color:#04240f;font-weight:700}
+  button.btn:disabled{opacity:.4;cursor:not-allowed}
+  .note{font-size:12px;color:var(--mut);margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+  .tallies{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 12px}
+  .t{background:#12163a;border:1px solid var(--line);border-radius:12px;padding:10px}
+  .t .k{font:11px ui-monospace,monospace;color:var(--mut)}.t .v{font-size:19px;font-weight:700}.t .m{font:10px ui-monospace,monospace;color:var(--brand)}
+  .log{height:220px;overflow:auto;background:#0c0f28;border:1px solid var(--line);border-radius:12px;padding:10px;font:12px/1.5 ui-monospace,Menlo,monospace}
+  .log div{white-space:pre-wrap;border-bottom:1px dashed #1c2350;padding:2px 0}.log .mid{color:var(--acc)}.log .tt{color:var(--mut)}
+  .hand{position:fixed;z-index:50;font-size:38px;pointer-events:none;opacity:0;filter:drop-shadow(0 3px 4px #0008);
+    transition:left .7s cubic-bezier(.5,.1,.3,1),top .7s cubic-bezier(.5,.1,.3,1),opacity .3s}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="main">
+    <header class="card">
+      <div><h1>Story Order</h1><div class="id">VER-SEQUENCE-01 &middot; inference_reading_comprehension</div></div>
+      <span class="pill" id="phase">DEMO</span>
+    </header>
+    <div class="card">
+      <div class="steptag" id="steptag">Put the story in order</div>
+      <div class="track" id="track"></div>
+      <div class="pred" id="predbox" style="display:none">
+        <div class="q" id="q">What happens next?</div>
+        <div class="choices" id="choices"></div>
+      </div>
+      <div class="feedback" id="fb"></div>
+      <div class="row">
+        <button class="btn" id="replay">&#8635; Replay demo</button>
+        <button class="btn primary" id="next" disabled>Next &rarr;</button>
+      </div>
+      <div class="note">Tap two cards to swap them until the little movie makes sense, then press Play and guess what
+        happens next. K-1 uses wordless picture panels; older bands use sentence strips (also carries sentence_arrangement).</div>
+    </div>
+  </div>
+  <aside class="side">
+    <div class="card">
+      <h1 style="font-size:15px;margin:0 0 8px">Live telemetry</h1>
+      <div class="tallies">
+        <div class="t"><div class="k">Fully correct</div><div class="v" id="v-acc">0/0</div><div class="m">M-ACC</div></div>
+        <div class="t"><div class="k">Graded score</div><div class="v" id="v-poly">&mdash;</div><div class="m">M-POLY</div></div>
+        <div class="t"><div class="k">Swaps (reorders)</div><div class="v" id="v-rev">0</div><div class="m">M-REV</div></div>
+        <div class="t"><div class="k">Efficiency vs optimal</div><div class="v" id="v-eff">&mdash;</div><div class="m">M-EFF</div></div>
+        <div class="t"><div class="k">Mean RT</div><div class="v" id="v-rt">&mdash;</div><div class="m">M-RT</div></div>
+        <div class="t"><div class="k">Inference depth</div><div class="v" id="v-depth">&mdash;</div><div class="m">M-INFDEPTH</div></div>
+        <div class="t" style="grid-column:1/3"><div class="k">Move sequence</div><div class="v" id="v-path" style="font-size:12px">&mdash;</div><div class="m">M-PATH</div></div>
+      </div>
+      <div class="log" id="log"></div>
+    </div>
+  </aside>
+</div>
+<div class="hand" id="hand">&#128070;</div>
+<script>
+"use strict";
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const $=s=>document.querySelector(s);
+const T0=performance.now();
+const DEPTHRANK={temporal:1,causal:2,global:3};
+
+// parts[] listed in CORRECT order; scz = scrambled initial ids; predict has depth tag
+const DEMO={parts:["\uD83C\uDF31","\uD83D\uDCA7","\uD83C\uDF38"],scz:[2,0,1],depth:"causal",
+  predict:{q:"What happens next?",choices:[{e:"\uD83D\uDC1D a bee visits",correct:true},{e:"\u2744\uFE0F it snows"}]}};
+const WARMUP={parts:["\uD83D\uDECF\uFE0F","\uD83E\uDD5E","\uD83C\uDFEB"],scz:[1,2,0],depth:"temporal",
+  predict:{q:"What happens at school?",choices:[{e:"\uD83D\uDCDA they learn",correct:true},{e:"\uD83D\uDE34 they sleep in bed"}]}};
+const SCORED=[
+  {parts:["\uD83E\uDD5A","\uD83D\uDC24","\uD83D\uDC13"],scz:[2,0,1],depth:"causal",
+   predict:{q:"What comes next?",choices:[{e:"\uD83E\uDD5A it lays an egg",correct:true},{e:"\uD83D\uDE97 it drives a car"}]}},
+  {parts:["\u26C5","\uD83C\uDF27\uFE0F","\uD83C\uDF08"],scz:[1,2,0],depth:"causal",
+   predict:{q:"Why did the rainbow appear?",choices:[{e:"\uD83D\uDCA7 sun after rain",correct:true},{e:"\uD83C\uDF19 it was night"}]}},
+  {parts:["\uD83E\uDDCA","\uD83C\uDF7A","\uD83D\uDCA7","\uD83C\uDF31"],scz:[2,0,3,1],depth:"global",
+   predict:{q:"What is the whole story about?",choices:[{e:"\uD83C\uDF31 ice melts and grows a plant",correct:true},{e:"\uD83C\uDF82 a birthday party"}]}}
+];
+
+let phase="demo",idx=0,cur=null,step="order";
+let slots=[],sel=null,swaps=0,path=[],tShown=0,predPick=null,locked=false,minSwaps=0;
+const results=[];let depthReached=0;
+
+function log(mid,msg){const el=document.createElement("div");const t=((performance.now()-T0)/1000).toFixed(2);
+  el.innerHTML=`<span class="tt">t+${t}s</span> <span class="mid">[${mid}]</span> ${msg}`;const b=$("#log");b.appendChild(el);b.scrollTop=b.scrollHeight;}
+function setPhase(p){phase=p;$("#phase").textContent=p.toUpperCase();}
+function minSwapsToSort(perm){const n=perm.length;const seen=Array(n).fill(false);let s=0;
+  for(let i=0;i<n;i++){if(seen[i])continue;let j=i,len=0;while(!seen[j]){seen[j]=true;j=perm[j];len++;}s+=len-1;}return s;}
+function render(item,{interactive=true}={}){
+  cur=item;step="order";sel=null;swaps=0;path=[];predPick=null;locked=false;
+  slots=item.scz.map(id=>({id,e:item.parts[id]}));
+  minSwaps=minSwapsToSort(item.scz.slice());
+  $("#fb").textContent="";$("#next").disabled=true;$("#predbox").style.display="none";
+  $("#steptag").textContent="Step 1 \u2014 tap two cards to swap until the story makes sense";
+  $("#v-rev").textContent="0";$("#v-eff").textContent="\u2014";$("#v-path").textContent="\u2014";
+  drawTrack(interactive);
+  const c=$("#choices");c.innerHTML="";
+  item.predict.choices.forEach((o,i)=>{const d=document.createElement("div");d.className="choice";d.dataset.i=i;d.textContent=o.e;
+    if(interactive)d.addEventListener("click",()=>pickPred(i,d));c.appendChild(d);});
+  $("#q").textContent=item.predict.q;
+  tShown=performance.now();
+}
+function drawTrack(interactive){
+  const tr=$("#track");tr.innerHTML="";
+  slots.forEach((s,i)=>{
+    if(i>0){const a=document.createElement("div");a.className="arrow";a.textContent="\u2192";tr.appendChild(a);}
+    const d=document.createElement("div");d.className="slot"+(sel===i?" sel":"");d.dataset.i=i;
+    d.innerHTML=`<span class="num">${i+1}</span>${s.e}`;
+    if(interactive)d.addEventListener("click",()=>tapSlot(i));
+    tr.appendChild(d);
+  });
+}
+function tapSlot(i){
+  if(locked||step!=="order")return;
+  if(sel===null){sel=i;drawTrack(true);return;}
+  if(sel===i){sel=null;drawTrack(true);return;}
+  const tmp=slots[sel];slots[sel]=slots[i];slots[i]=tmp;
+  swaps++;path.push([sel+1,i+1]);sel=null;drawTrack(true);
+  $("#v-rev").textContent=swaps;$("#v-path").textContent=path.map(p=>p[0]+"\u21C4"+p[1]).join(" ");
+  log("M-REV",`swap #${swaps}: positions ${path[path.length-1][0]}\u21C4${path[path.length-1][1]}`);
+  $("#next").disabled=false; // can press Play once they've touched it
+}
+function pickPred(i,el){if(locked||step!=="predict")return;[...document.querySelectorAll(".choice")].forEach(c=>c.classList.remove("pick"));el.classList.add("pick");predPick=i;$("#next").disabled=false;}
+function toPredict(){
+  step="predict";locked=false;$("#next").disabled=true;
+  [...document.querySelectorAll(".slot")].forEach(s=>s.classList.add("lock"));
+  // reveal order correctness lightly
+  const perfect=slots.every((s,i)=>s.id===i);
+  slots.forEach((s,i)=>{const el=[...document.querySelectorAll(".slot")][i];el.classList.add(s.id===i?"ok":"no");el.classList.add("film");});
+  $("#predbox").style.display="block";
+  $("#steptag").textContent="Step 2 \u2014 now predict what happens next";
+  $("#fb").textContent=perfect?"Nice ordering! Now guess the next frame.":"Order locked \u2014 now guess the next frame.";
+  $("#fb").style.color="var(--mut)";
+}
+function commit(){
+  locked=true;const rt=Math.round(performance.now()-tShown);
+  const concord=slots.reduce((a,_,i)=>i<slots.length-1&&slots[i].id<slots[i+1].id?a+1:a,0);
+  const perfect=slots.every((s,i)=>s.id===i);
+  const predCorrect=!!cur.predict.choices[predPick].correct;
+  const N=slots.length;
+  // reveal prediction
+  [...document.querySelectorAll(".choice")].forEach((c,i)=>{c.classList.add("lock");if(i===predPick)c.classList.add(predCorrect?"correct":"wrong");if(cur.predict.choices[i].correct&&!predCorrect)c.classList.add("correct");});
+  const poly=concord+(predCorrect?1:0);const polyMax=(N-1)+1;
+  const eff=swaps>0?Math.min(1,minSwaps/swaps):(perfect?1:0);
+  if(phase==="warmup"){log("M-ENGAGE",`warm-up (unscored): order ${perfect?"perfect":concord+"/"+(N-1)}, pred ${predCorrect?"ok":"no"}`);
+    $("#fb").textContent=perfect&&predCorrect?"\uD83C\uDFAC The movie plays!":"Good try \u2014 here's the idea.";$("#fb").style.color=perfect&&predCorrect?"var(--good)":"var(--mut)";$("#next").disabled=false;return;}
+  const full=perfect&&predCorrect;
+  results.push({full,poly,polyMax,rt,eff,depth:cur.depth,predCorrect});
+  log("M-ACC",`item ${idx+1}: ${full?"FULLY CORRECT":"partial"} (order ${perfect?"perfect":concord+"/"+(N-1)}, pred ${predCorrect?"\u2713":"\u2717"})`);
+  log("M-RT",`response time ${rt}ms`);
+  log("M-POLY",`graded score ${poly}/${polyMax} (${concord} ordered pairs + ${predCorrect?1:0} prediction)`);
+  log("M-EFF",`used ${swaps} swaps vs optimal ${minSwaps} -> efficiency ${(eff*100|0)}%`);
+  log("M-PATH",`swap sequence ${path.length?path.map(p=>p[0]+"\u21C4"+p[1]).join(" "):"(none)"}`);
+  if(full){depthReached=Math.max(depthReached,DEPTHRANK[cur.depth]||0);log("M-INFDEPTH",`solved '${cur.depth}' inference -> depth ${depthReached}`);}
+  $("#fb").textContent=full?"\u2605 The movie plays perfectly!":predCorrect?"Good prediction \u2014 order not quite right.":"Not quite.";
+  $("#fb").style.color=full?"var(--good)":"var(--bad)";
+  $("#v-eff").textContent=(eff*100|0)+"%";
+  update();$("#next").disabled=false;
+}
+function update(){
+  const n=results.length,f=results.filter(r=>r.full).length;$("#v-acc").textContent=`${f}/${n}`;
+  const p=results.reduce((a,b)=>a+b.poly,0),pm=results.reduce((a,b)=>a+b.polyMax,0);$("#v-poly").textContent=n?`${p}/${pm}`:"\u2014";
+  const rts=results.map(r=>r.rt);if(rts.length)$("#v-rt").textContent=Math.round(rts.reduce((a,b)=>a+b,0)/rts.length)+"ms";
+  const names=Object.entries(DEPTHRANK).find(([k,v])=>v===depthReached);$("#v-depth").textContent=depthReached?`L${depthReached} ${names?names[0]:""}`:"\u2014";
+}
+function ripple(x,y){const d=document.createElement("div");d.style.cssText=`position:fixed;left:${x-5}px;top:${y-5}px;width:10px;height:10px;border-radius:50%;background:var(--acc);z-index:49;pointer-events:none;opacity:.8;animation:rip .6s ease-out forwards`;document.body.appendChild(d);setTimeout(()=>d.remove(),620);}
+const st=document.createElement("style");st.textContent="@keyframes rip{to{transform:scale(9);opacity:0}}";document.head.appendChild(st);
+async function ghost(el){const hand=$("#hand");const r=el.getBoundingClientRect();hand.style.opacity="1";hand.style.left=(r.left+r.width/2-8)+"px";hand.style.top=(r.top+r.height/2)+"px";await sleep(700);el.classList.add("demo-hit");ripple(r.left+r.width/2,r.top+r.height/2);await sleep(360);el.classList.remove("demo-hit");}
+async function runDemo(){
+  setPhase("demo");$("#next").disabled=true;$("#replay").disabled=true;render(DEMO,{interactive:false});
+  log("M-ENGAGE","wordless ghost-hand demo start (<10s, no instructions)");
+  await sleep(500);
+  // demo scz=[2,0,1] -> swap pos1&pos2 then pos2&pos3 to reach [0,1,2]
+  const S=()=>[...document.querySelectorAll(".slot")];
+  await ghost(S()[0]);await ghost(S()[1]);
+  {const t=slots[0];slots[0]=slots[1];slots[1]=t;drawTrack(false);}
+  await sleep(250);
+  await ghost(S()[1]);await ghost(S()[2]);
+  {const t=slots[1];slots[1]=slots[2];slots[2]=t;drawTrack(false);}
+  await sleep(300);
+  S().forEach((el,i)=>el.classList.add("ok","film"));
+  $("#predbox").style.display="block";$("#steptag").textContent="Step 2 \u2014 now predict what happens next";
+  await sleep(300);
+  await ghost([...document.querySelectorAll(".choice")][0]);
+  [...document.querySelectorAll(".choice")][0].classList.add("pick");
+  $("#hand").style.opacity="0";await sleep(400);$("#replay").disabled=false;startWarmup();
+}
+function startWarmup(){setPhase("warmup");render(WARMUP,{interactive:true});$("#fb").textContent="Your turn - swap cards to fix the order.";$("#fb").style.color="var(--mut)";log("M-ENGAGE","unscored warm-up shown");}
+function startScored(){setPhase("scored");idx=0;render(SCORED[0],{interactive:true});log("M-ENGAGE","scoring begins (causal ordering + prediction; depth escalates)");}
+function next(){if(phase==="warmup"){startScored();return;}if(phase==="scored"){idx++;if(idx<SCORED.length)render(SCORED[idx],{interactive:true});else finish();}}
+function finish(){setPhase("done");$("#track").innerHTML="";$("#predbox").style.display="none";$("#steptag").textContent="";$("#next").disabled=true;
+  const p=results.reduce((a,b)=>a+b.poly,0),pm=results.reduce((a,b)=>a+b.polyMax,0);const names=Object.entries(DEPTHRANK).find(([k,v])=>v===depthReached);
+  $("#fb").innerHTML=`\uD83C\uDF89 Complete \u2014 graded score ${p}/${pm}, deepest inference: ${names?names[0]:"\u2014"}.`;$("#fb").style.color="var(--good)";
+  log("M-DRIFT","session end; per-item order/efficiency/prediction series available");}
+$("#next").addEventListener("click",()=>{
+  if(phase==="done")return;
+  if((phase==="scored"||phase==="warmup")&&!locked){
+    if(step==="order"){toPredict();return;}
+    if(step==="predict"&&predPick!=null){commit();return;}
+  }
+  next();
+});
+$("#replay").addEventListener("click",()=>{results.length=0;depthReached=0;$("#log").innerHTML="";$("#v-acc").textContent="0/0";$("#v-poly").textContent="\u2014";$("#v-rt").textContent="\u2014";$("#v-depth").textContent="\u2014";runDemo();});
+setInterval(()=>{const b=$("#next");if(phase==="done"){b.textContent="Done";return;}
+  if((phase==="scored"||phase==="warmup")&&!locked){
+    if(step==="order"){b.textContent="Play \u25B6";return;}
+    if(step==="predict"&&predPick!=null){b.textContent="Check \u2713";return;}}
+  b.textContent="Next \u2192";},150);
+update();runDemo();
+</script>
+</body>
+</html>

@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SPA-FOLDOVER-01 — Fold &amp; Overlap</title>
+<style>
+  :root{--bg:#eef2fb;--card:#fff;--ink:#1e293b;--muted:#64748b;--accent:#4f46e5;--good:#16a34a;--warn:#f59e0b;--bad:#dc2626;--stage:#f8fafc}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.4 system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  .wrap{display:flex;gap:14px;padding:14px;max-width:1180px;margin:0 auto;align-items:flex-start;flex-wrap:wrap}
+  .col{flex:1 1 560px;min-width:340px}.side{flex:1 1 320px;min-width:300px}
+  .card{background:var(--card);border-radius:16px;box-shadow:0 6px 22px rgba(15,23,42,.08);padding:16px;margin-bottom:14px}
+  h1{font-size:19px;margin:0 0 2px}.sub{color:var(--muted);font-size:13px;margin:0 0 10px}
+  .pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;background:#e0e7ff;color:#3730a3}
+  .banner{display:flex;align-items:center;gap:10px;background:#f1f5ff;border:1px solid #dbe3ff;border-radius:12px;padding:10px 12px;margin-bottom:12px;min-height:44px}
+  .banner .icon{font-size:22px}.banner b{color:var(--accent)}
+  .legend{display:flex;gap:14px;font-size:12px;color:#64748b;margin:6px 2px 2px;flex-wrap:wrap}
+  .sw{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:-2px;margin-right:4px;border:2px solid #1e3a8a}
+  #stageWrap{position:relative;background:var(--stage);border-radius:14px;border:1px solid #e2e8f0;overflow:hidden}
+  svg{display:block;width:100%;height:360px;touch-action:none}
+  .hand{position:absolute;font-size:30px;pointer-events:none;z-index:5;filter:drop-shadow(0 2px 3px rgba(0,0,0,.25))}
+  .row{display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}
+  button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:10px 16px;cursor:pointer;background:var(--accent);color:#fff}
+  button.ghost{background:#e2e8f0;color:#334155}button:disabled{opacity:.45;cursor:not-allowed}
+  .tel{background:#0b1220;color:#d1fae5;border-radius:16px;padding:14px;font:12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
+  .tel h2{font-size:13px;margin:0 0 8px;color:#93c5fd;letter-spacing:.05em;text-transform:uppercase}
+  .tel .m{display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px dotted #1e293b}
+  .tel .m .k{color:#7dd3fc}.tel .m .v{color:#fde68a;font-weight:700;text-align:right}
+  #log{margin-top:10px;max-height:150px;overflow:auto;background:#060b16;border-radius:8px;padding:8px}
+  #log div{white-space:pre-wrap;color:#a7f3d0}#log .t{color:#475569}
+  .done{color:var(--good);font-weight:700}.miss{color:var(--warn)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="col"><div class="card">
+    <span class="pill" id="phasePill">DEMO</span>
+    <h1>Fold &amp; Overlap <span style="color:var(--muted);font-weight:400">· SPA-FOLDOVER-01</span></h1>
+    <p class="sub">The see-through sheet folds on the dotted line. Predict where the marks land and stack. (Paper folding)</p>
+    <div class="banner"><span class="icon" id="bIcon">👀</span><div id="bText"><b>Watch.</b> The left half folds over; its marks slide across and stack…</div></div>
+    <div id="stageWrap"><svg id="svg" viewBox="0 0 360 360"></svg><div class="hand" id="hand" style="display:none">👆</div></div>
+    <div class="legend"><span><span class="sw" style="background:#93c5fd"></span>one mark</span><span><span class="sw" style="background:#1d4ed8"></span>two stacked (double)</span><span>tap a result cell: empty → one → double</span></div>
+    <div class="row">
+      <button id="checkBtn" disabled>✓ Check my prediction</button>
+      <button id="nextBtn" class="ghost" style="display:none">Next ▶</button>
+      <span class="sub" id="live" style="margin-left:auto"></span>
+    </div>
+  </div></div>
+  <div class="side"><div class="tel">
+    <h2>◉ Live telemetry</h2>
+    <div class="m"><span class="k">M-ACC exact grids</span><span class="v" id="mAcc">—</span></div>
+    <div class="m"><span class="k">M-POLY cells matched</span><span class="v" id="mPoly">—</span></div>
+    <div class="m"><span class="k">M-RT total</span><span class="v" id="mRt">—</span></div>
+    <div class="m"><span class="k">M-RTFIRST first-act</span><span class="v" id="mFirst">—</span></div>
+    <div class="m"><span class="k">M-REV cell changes</span><span class="v" id="mRev">0</span></div>
+    <div class="m"><span class="k">M-PROG cells set</span><span class="v" id="mProg">0/0</span></div>
+    <div class="m"><span class="k">M-ERRTYPE last error</span><span class="v" id="mErr">—</span></div>
+    <div class="m"><span class="k">M-DIFFREACH hardest</span><span class="v" id="mDiff">—</span></div>
+    <div id="log"></div>
+  </div></div>
+</div>
+<script>
+(function(){
+  "use strict";
+  var SVGNS="http://www.w3.org/2000/svg",svg=document.getElementById("svg"),hand=document.getElementById("hand");
+  var checkBtn=document.getElementById("checkBtn"),nextBtn=document.getElementById("nextBtn");
+  var pill=document.getElementById("phasePill"),bIcon=document.getElementById("bIcon"),bText=document.getElementById("bText");
+  function setBanner(i,h){bIcon.textContent=i;bText.innerHTML=h;}
+  function beep(f,t){try{var A=beep.a=beep.a||new(window.AudioContext||window.webkitAudioContext)();var o=A.createOscillator(),g=A.createGain();o.frequency.value=f;o.connect(g);g.connect(A.destination);g.gain.value=.08;o.start();o.stop(A.currentTime+(t||.12));}catch(e){}}
+  // grid: 4 cols x 3 rows; fold vertical between col1 and col2. left {0,1} folds onto right {2,3}.
+  var COLS=4,ROWS=3,C=42,SX=52,SY=34; // sheet origin
+  var RC=48,RSX=126,RSY=225;          // result grid (2 cols x 3 rows)
+  var COLOR=["#ffffff","#93c5fd","#1d4ed8"];
+  function rightColForRc(rc){return rc===0?2:3;}
+  function leftColForRc(rc){return rc===0?1:0;} // reflection across fold
+  function target(base,flap){var g=[[0,0,0],[0,0,0]];
+    for(var rc=0;rc<2;rc++)for(var rr=0;rr<ROWS;rr++){
+      var bh=base.some(function(m){return m[0]===rightColForRc(rc)&&m[1]===rr;})?1:0;
+      var fh=flap.some(function(m){return m[0]===leftColForRc(rc)&&m[1]===rr;})?1:0;
+      g[rc][rr]=bh+fh;}
+    return g;}
+
+  var base=[],flap=[],pred=[[0,0,0],[0,0,0]],tgt=[[0,0,0],[0,0,0]],interactive=false;
+  function drawSheet(foldK){ // foldK 0..1 fold animation
+    for(var c=0;c<COLS;c++)for(var r=0;r<ROWS;r++){
+      var x=SX+c*C,y=SY+r*C;var cell=document.createElementNS(SVGNS,"rect");
+      cell.setAttribute("x",x);cell.setAttribute("y",y);cell.setAttribute("width",C);cell.setAttribute("height",C);
+      cell.setAttribute("fill",(c<2)?"#eef2ff":"#f8fafc");cell.setAttribute("stroke","#cbd5e1");cell.setAttribute("stroke-width","1");svg.appendChild(cell);}
+    // fold line
+    var fl=document.createElementNS(SVGNS,"line");fl.setAttribute("x1",SX+2*C);fl.setAttribute("y1",SY-6);fl.setAttribute("x2",SX+2*C);fl.setAttribute("y2",SY+ROWS*C+6);fl.setAttribute("stroke","#f59e0b");fl.setAttribute("stroke-width","2.5");fl.setAttribute("stroke-dasharray","6 5");svg.appendChild(fl);
+    // base marks (right, solid)
+    base.forEach(function(m){svg.appendChild(dot(SX+m[0]*C+C/2,SY+m[1]*C+C/2,"#1d4ed8",false));});
+    // flap marks (left, see-through) - animate sliding across the fold when folding
+    flap.forEach(function(m){
+      var lx=SX+m[0]*C+C/2, ly=SY+m[1]*C+C/2;
+      var foldedX=SX+rightColForRcInv(m[0])*C+C/2; // where it lands
+      var x=lx+(foldedX-lx)*foldK;
+      svg.appendChild(dot(x,ly,"#a855f7",true));});
+    var lab1=text(SX+2*C,SY-14,"see-through sheet — fold on dotted line",12,"#64748b");svg.appendChild(lab1);
+  }
+  function rightColForRcInv(leftCol){return leftCol===1?2:3;} // left1->right2, left0->right3
+  function dot(x,y,fill,dashed){var c=document.createElementNS(SVGNS,"circle");c.setAttribute("cx",x);c.setAttribute("cy",y);c.setAttribute("r",13);c.setAttribute("fill",fill);c.setAttribute("stroke","#1e3a8a");c.setAttribute("stroke-width","2");if(dashed){c.setAttribute("fill-opacity",".55");c.setAttribute("stroke-dasharray","4 3");}return c;}
+  function text(x,y,s,sz,col){var t=document.createElementNS(SVGNS,"text");t.setAttribute("x",x);t.setAttribute("y",y);t.setAttribute("text-anchor","middle");t.setAttribute("fill",col||"#94a3b8");t.setAttribute("font-size",sz||12);t.textContent=s;return t;}
+  function drawResult(showTruth){
+    svg.appendChild(text(RSX+RC,RSY-12,showTruth?"after folding (revealed)":"after folding — tap where marks land",12,"#64748b"));
+    for(var rc=0;rc<2;rc++)for(var rr=0;rr<ROWS;rr++){
+      var x=RSX+rc*RC,y=RSY+rr*RC;var st=showTruth?tgt[rc][rr]:pred[rc][rr];
+      var cell=document.createElementNS(SVGNS,"rect");cell.setAttribute("x",x);cell.setAttribute("y",y);cell.setAttribute("width",RC);cell.setAttribute("height",RC);
+      cell.setAttribute("rx",6);cell.setAttribute("fill",COLOR[st]);cell.setAttribute("stroke","#94a3b8");cell.setAttribute("stroke-width","2");cell.style.cursor=interactive?"pointer":"default";
+      (function(rc,rr){cell.addEventListener("click",function(){if(!interactive)return;
+        if(!Tel.first){Tel.first=performance.now()-Tel.start;Tel.line("first action: tap cell @"+Math.round(Tel.first)+"ms");render();}
+        Tel.revs++;pred[rc][rr]=(pred[rc][rr]+1)%3;checkBtn.disabled=false;draw();});})(rc,rr);
+      svg.appendChild(cell);
+      if(st===2){svg.appendChild(text(x+RC/2,y+RC/2+5,"2",16,"#fff"));}
+    }
+  }
+  function draw(foldK,showTruth){svg.innerHTML="";drawSheet(foldK||0);drawResult(showTruth);render();}
+
+  var Tel={start:0,first:0,revs:0,scored:0,correct:0,polys:[],diff:"—",
+    logEl:document.getElementById("log"),
+    line:function(m,c){var d=document.createElement("div");var t=((performance.now()-Tel.start)/1000).toFixed(2);d.innerHTML='<span class="t">['+t+'s]</span> '+m;if(c)d.className=c;Tel.logEl.appendChild(d);Tel.logEl.scrollTop=Tel.logEl.scrollHeight;},
+    begin:function(l){Tel.start=performance.now();Tel.first=0;Tel.revs=0;Tel.line("▶ "+l);}};
+  function predCount(){var n=0;for(var rc=0;rc<2;rc++)for(var rr=0;rr<ROWS;rr++)if(pred[rc][rr]>0)n++;return n;}
+  function render(){
+    document.getElementById("mAcc").textContent=Tel.scored?Tel.correct+"/"+Tel.scored:"—";
+    document.getElementById("mPoly").textContent=Tel.polys.length?Tel.polys[Tel.polys.length-1]+"%":"—";
+    document.getElementById("mFirst").textContent=Tel.first?Math.round(Tel.first)+" ms":"—";
+    document.getElementById("mRev").textContent=Tel.revs;
+    document.getElementById("mProg").textContent=predCount()+"/6";
+    document.getElementById("mDiff").textContent=Tel.diff;}
+
+  var plan=[
+    {base:[[3,2],[2,0]],flap:[[0,2],[1,0]],diff:"double overlaps"},
+    {base:[[2,0],[3,1]],flap:[[1,1],[0,0],[1,2],[0,1]],diff:"dense + double"}
+  ];
+  var idx=0;
+
+  function reset(item){base=item.base;flap=item.flap;tgt=target(base,flap);pred=[[0,0,0],[0,0,0]];}
+
+  function startDemo(){
+    pill.textContent="DEMO";interactive=false;checkBtn.disabled=true;nextBtn.style.display="none";
+    reset({base:[[2,1]],flap:[[1,0]]});draw(0,false);
+    setBanner("👀","<b>Watch.</b> The left half folds over the dotted line; its purple mark slides across and lands on the right.");
+    hand.style.display="";var k=0;
+    var iv=setInterval(function(){k+=0.05;draw(Math.min(1,k),false);
+      var r=svg.getBoundingClientRect();hand.style.left=(r.left+(SX+C)*(r.width/360))+"px";hand.style.top=(r.top+window.scrollY+(SY+C)*(r.height/360))+"px";
+      if(k>=1){clearInterval(iv);beep(760);
+        // reveal truth in result grid
+        for(var rc=0;rc<2;rc++)for(var rr=0;rr<ROWS;rr++)pred[rc][rr]=tgt[rc][rr];
+        draw(1,true);setBanner("✅","<b>See?</b> Each mark lands mirrored across the crease. Where two stack, it is a double. Your turn.");
+        setTimeout(function(){hand.style.display="none";startWarmup();},1400);}},70);
+  }
+
+  function startWarmup(){
+    pill.textContent="WARM-UP";interactive=true;reset({base:[[2,1]],flap:[[1,0]]});draw(0,false);
+    checkBtn.disabled=true;nextBtn.style.display="none";Tel.begin("Warm-up (unscored)");
+    setBanner("✋","<b>Practice.</b> Tap the result cells where a mark will land after folding. Then Check. (This one has no doubles.)");
+    checkBtn.onclick=function(){var res=score();
+      if(res.exact){beep(880);Tel.line("warm-up correct ✔","done");setBanner("✅","<b>Great!</b> Real ones next — watch for marks that STACK into a double (dark).");
+        checkBtn.disabled=true;nextBtn.style.display="";nextBtn.textContent="Start scored ▶";nextBtn.onclick=function(){idx=0;runScored();};}
+      else{beep(300);draw(0,true);Tel.line("warm-up: "+res.matched+"/6 cells — revealed truth","miss");setBanner("↻","<b>Look at the reveal.</b> Marks mirror across the crease. Try the next ones.");
+        checkBtn.disabled=true;nextBtn.style.display="";nextBtn.textContent="Start scored ▶";nextBtn.onclick=function(){idx=0;runScored();};}};
+  }
+
+  function score(){var matched=0;var predMarks=0,tgtMarks=0;
+    for(var rc=0;rc<2;rc++)for(var rr=0;rr<ROWS;rr++){if(pred[rc][rr]===tgt[rc][rr])matched++;if(pred[rc][rr]>0)predMarks++;if(tgt[rc][rr]>0)tgtMarks++;}
+    return {matched:matched,exact:matched===6,poly:Math.round(100*matched/6),predMarks:predMarks,tgtMarks:tgtMarks};}
+
+  function runScored(){
+    if(idx>=plan.length)return finish();
+    var it=plan[idx];reset(it);draw(0,false);pill.textContent="SCORED "+(idx+1)+"/"+plan.length;interactive=true;checkBtn.disabled=true;nextBtn.style.display="none";
+    Tel.begin("Scored "+(idx+1)+" — "+it.diff);document.getElementById("mErr").textContent="—";
+    setBanner("🎯","<b>Predict the fold.</b> Tap where marks land; tap again for a double (dark). Then Check.");
+    checkBtn.onclick=function(){var rt=performance.now()-Tel.start;var res=score();Tel.scored++;Tel.polys.push(res.poly);
+      if(res.exact){Tel.correct++;Tel.diff=it.diff;document.getElementById("mErr").textContent="—";Tel.line("Check ✔ 6/6 ("+res.poly+"%) RT="+Math.round(rt)+"ms","done");}
+      else{var et=(res.predMarks===res.tgtMarks)?"right count, wrong spots (axis)":(res.predMarks<res.tgtMarks?"missed a stacked mark":"extra marks");document.getElementById("mErr").textContent=et;Tel.line("Check ✗ "+res.matched+"/6 ("+res.poly+"%) — "+et,"miss");}
+      document.getElementById("mRt").textContent=Math.round(rt)+" ms";document.getElementById("mPoly").textContent=res.poly+"%";
+      interactive=false;draw(0,true);checkBtn.disabled=true;render();
+      nextBtn.style.display="";nextBtn.textContent=(idx<plan.length-1)?"Next ▶":"See results ▶";nextBtn.onclick=function(){idx++;runScored();};};
+  }
+
+  function finish(){
+    pill.textContent="DONE";interactive=false;checkBtn.disabled=true;svg.innerHTML="";
+    var mp=Tel.polys.length?Math.round(Tel.polys.reduce(function(a,b){return a+b},0)/Tel.polys.length):0;
+    setBanner("🏁","<b>Done.</b> Exact "+Tel.correct+"/"+Tel.scored+" · avg cells "+mp+"%. Tracking every stacked double on the multi-mark item is the folding tail signal; right-count-wrong-axis errors flag a partial model.");
+    Tel.line("── summary ── M-ACC="+Tel.correct+"/"+Tel.scored+" M-POLY(avg)="+mp+"% M-REV="+Tel.revs,"done");
+    render();nextBtn.style.display="";nextBtn.textContent="↻ Run again";nextBtn.onclick=function(){location.reload();};
+  }
+  draw(0,false);startDemo();
+})();
+</script>
+</body>
+</html>

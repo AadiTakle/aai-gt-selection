@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SPA-SCENE-01 — What the Robot Sees</title>
+<style>
+  :root{--bg:#eef2fb;--card:#fff;--ink:#1e293b;--muted:#64748b;--accent:#4f46e5;--good:#16a34a;--warn:#f59e0b;--bad:#dc2626;--stage:#f8fafc}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.4 system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  .wrap{display:flex;gap:14px;padding:14px;max-width:1180px;margin:0 auto;align-items:flex-start;flex-wrap:wrap}
+  .col{flex:1 1 560px;min-width:340px}.side{flex:1 1 320px;min-width:300px}
+  .card{background:var(--card);border-radius:16px;box-shadow:0 6px 22px rgba(15,23,42,.08);padding:16px;margin-bottom:14px}
+  h1{font-size:19px;margin:0 0 2px}.sub{color:var(--muted);font-size:13px;margin:0 0 10px}
+  .pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;background:#e0e7ff;color:#3730a3}
+  .banner{display:flex;align-items:center;gap:10px;background:#f1f5ff;border:1px solid #dbe3ff;border-radius:12px;padding:10px 12px;margin-bottom:12px;min-height:44px}
+  .banner .icon{font-size:22px}.banner b{color:var(--accent)}
+  #stageWrap{position:relative;background:var(--stage);border-radius:14px;border:1px solid #e2e8f0;overflow:hidden}
+  svg{display:block;width:100%;height:250px;touch-action:none}
+  .hand{position:absolute;font-size:30px;pointer-events:none;z-index:5;filter:drop-shadow(0 2px 3px rgba(0,0,0,.25))}
+  .stripbox{margin-top:12px}
+  .lab{font-size:12px;color:#64748b;margin:8px 0 4px}
+  .strip{display:flex;gap:8px;min-height:60px;padding:6px;border:2px dashed #cbd5e1;border-radius:12px;background:#fff}
+  .slot{width:52px;height:52px;border-radius:10px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:28px;cursor:pointer;border:1px solid #e2e8f0}
+  .slot.filled{background:#e0e7ff;border-color:#a5b4fc}
+  .hintrow{display:flex;gap:8px;min-height:34px}
+  .hintrow .h{width:52px;height:30px;display:flex;align-items:center;justify-content:center;font-size:20px;opacity:.5}
+  .tray{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .cardp{width:56px;height:56px;border-radius:12px;border:2px solid #e2e8f0;background:#fff;font-size:30px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .cardp.used{opacity:.3;pointer-events:none}
+  .row{display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}
+  button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:10px 16px;cursor:pointer;background:var(--accent);color:#fff}
+  button.ghost{background:#e2e8f0;color:#334155}button:disabled{opacity:.45;cursor:not-allowed}
+  .tel{background:#0b1220;color:#d1fae5;border-radius:16px;padding:14px;font:12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
+  .tel h2{font-size:13px;margin:0 0 8px;color:#93c5fd;letter-spacing:.05em;text-transform:uppercase}
+  .tel .m{display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px dotted #1e293b}
+  .tel .m .k{color:#7dd3fc}.tel .m .v{color:#fde68a;font-weight:700;text-align:right}
+  #log{margin-top:10px;max-height:150px;overflow:auto;background:#060b16;border-radius:8px;padding:8px}
+  #log div{white-space:pre-wrap;color:#a7f3d0}#log .t{color:#475569}
+  .done{color:var(--good);font-weight:700}.miss{color:var(--warn)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="col"><div class="card">
+    <span class="pill" id="phasePill">DEMO</span>
+    <h1>What the Robot Sees <span style="color:var(--muted);font-weight:400">· SPA-SCENE-01</span></h1>
+    <p class="sub">Put the things in the order the robot sees them, left to right from where it stands. (Perspective taking)</p>
+    <div class="banner"><span class="icon" id="bIcon">👀</span><div id="bText"><b>Watch.</b> From the robot's spot, the things line up in a new left-to-right order…</div></div>
+    <div id="stageWrap"><svg id="svg" viewBox="0 0 360 250"></svg><div class="hand" id="hand" style="display:none">👆</div></div>
+    <div class="stripbox">
+      <div class="lab" id="hintLab" style="display:none">robot sees (hint):</div>
+      <div class="hintrow" id="hintrow" style="display:none"></div>
+      <div class="lab">your answer — the robot sees, left → right:</div>
+      <div class="strip" id="strip"></div>
+      <div class="lab">tap a thing to add it; tap it in the strip to remove:</div>
+      <div class="tray" id="tray"></div>
+    </div>
+    <div class="row">
+      <button id="lockBtn" disabled>🔒 Lock</button>
+      <button id="nextBtn" class="ghost" style="display:none">Next ▶</button>
+      <span class="sub" id="live" style="margin-left:auto"></span>
+    </div>
+  </div></div>
+  <div class="side"><div class="tel">
+    <h2>◉ Live telemetry</h2>
+    <div class="m"><span class="k">M-ACC exact order</span><span class="v" id="mAcc">—</span></div>
+    <div class="m"><span class="k">M-POLY ordered pairs</span><span class="v" id="mPoly">—</span></div>
+    <div class="m"><span class="k">M-RT total</span><span class="v" id="mRt">—</span></div>
+    <div class="m"><span class="k">M-RTFIRST first-act</span><span class="v" id="mFirst">—</span></div>
+    <div class="m"><span class="k">M-REV reorders</span><span class="v" id="mRev">0</span></div>
+    <div class="m"><span class="k">M-EXPLORE placements</span><span class="v" id="mExp">0</span></div>
+    <div class="m"><span class="k">M-ERRTYPE last error</span><span class="v" id="mErr">—</span></div>
+    <div class="m"><span class="k">M-DIFFREACH viewpoint</span><span class="v" id="mDiff">—</span></div>
+    <div id="log"></div>
+  </div></div>
+</div>
+<script>
+(function(){
+  "use strict";
+  var SVGNS="http://www.w3.org/2000/svg",svg=document.getElementById("svg"),hand=document.getElementById("hand");
+  var strip=document.getElementById("strip"),tray=document.getElementById("tray"),lockBtn=document.getElementById("lockBtn"),nextBtn=document.getElementById("nextBtn");
+  var hintrow=document.getElementById("hintrow"),hintLab=document.getElementById("hintLab");
+  var pill=document.getElementById("phasePill"),bIcon=document.getElementById("bIcon"),bText=document.getElementById("bText");
+  function setBanner(i,h){bIcon.textContent=i;bText.innerHTML=h;}
+  function beep(f,t){try{var A=beep.a=beep.a||new(window.AudioContext||window.webkitAudioContext)();var o=A.createOscillator(),g=A.createGain();o.frequency.value=f;o.connect(g);g.connect(A.destination);g.gain.value=.08;o.start();o.stop(A.currentTime+(t||.12));}catch(e){}}
+  var CX=180,CY=110,S=78;
+  var SIDES={bottom:[0,1.35],top:[0,-1.35],left:[-1.5,0],right:[1.5,0]};
+  function seenOrder(objs,side){var rp=SIDES[side];var fx=-rp[0],fy=-rp[1];var n=Math.hypot(fx,fy)||1;fx/=n;fy/=n;
+    var rx=-fy,ry=fx; // robot's right vector
+    var idx=objs.map(function(o,i){return {i:i,p:o.x*rx+o.y*ry};});
+    idx.sort(function(a,b){return a.p-b.p;});return idx.map(function(e){return e.i;});}
+
+  var objs=[],side="bottom",trueOrder=[],childOrder=[],interactive=false,showHint=false;
+  function drawScene(){svg.innerHTML="";
+    var field=document.createElementNS(SVGNS,"rect");field.setAttribute("x",CX-1.05*S);field.setAttribute("y",CY-1.05*S);field.setAttribute("width",2.1*S);field.setAttribute("height",2.1*S);field.setAttribute("rx",12);field.setAttribute("fill","#eef2ff");field.setAttribute("stroke","#c7d2fe");field.setAttribute("stroke-width","2");svg.appendChild(field);
+    // robot
+    var rp=SIDES[side];var rx=CX+rp[0]*S,ry=CY+rp[1]*S;
+    svg.appendChild(icon(rx,ry,"🤖",30));
+    // facing arrow toward center
+    var fx=CX-rx,fy=CY-ry,n=Math.hypot(fx,fy)||1;fx/=n;fy/=n;
+    var ar=document.createElementNS(SVGNS,"line");ar.setAttribute("x1",rx+fx*18);ar.setAttribute("y1",ry+fy*18);ar.setAttribute("x2",rx+fx*40);ar.setAttribute("y2",ry+fy*40);ar.setAttribute("stroke","#4f46e5");ar.setAttribute("stroke-width","3");ar.setAttribute("marker-end","");svg.appendChild(ar);
+    var head=document.createElementNS(SVGNS,"polygon");var hxx=rx+fx*46,hyy=ry+fy*46;var px=-fy,py=fx;head.setAttribute("points",(hxx)+","+(hyy)+" "+(rx+fx*36+px*5)+","+(ry+fy*36+py*5)+" "+(rx+fx*36-px*5)+","+(ry+fy*36-py*5));head.setAttribute("fill","#4f46e5");svg.appendChild(head);
+    objs.forEach(function(o){svg.appendChild(icon(CX+o.x*S,CY+o.y*S,o.icon,28));});
+    var t=document.createElementNS(SVGNS,"text");t.setAttribute("x",CX);t.setAttribute("y",CY+1.05*S+22);t.setAttribute("text-anchor","middle");t.setAttribute("fill","#94a3b8");t.setAttribute("font-size","12");t.textContent="top-down map · robot at "+side;svg.appendChild(t);}
+  function icon(x,y,ch,sz){var t=document.createElementNS(SVGNS,"text");t.setAttribute("x",x);t.setAttribute("y",y+ (sz*0.34));t.setAttribute("text-anchor","middle");t.setAttribute("font-size",sz);t.textContent=ch;return t;}
+
+  var Tel={start:0,first:0,revs:0,explore:0,scored:0,correct:0,polys:[],diff:"—",
+    logEl:document.getElementById("log"),
+    line:function(m,c){var d=document.createElement("div");var t=((performance.now()-Tel.start)/1000).toFixed(2);d.innerHTML='<span class="t">['+t+'s]</span> '+m;if(c)d.className=c;Tel.logEl.appendChild(d);Tel.logEl.scrollTop=Tel.logEl.scrollHeight;},
+    begin:function(l){Tel.start=performance.now();Tel.first=0;Tel.revs=0;Tel.explore=0;Tel.line("▶ "+l);},
+    firstAct:function(w){if(!Tel.first){Tel.first=performance.now()-Tel.start;Tel.line("first action: "+w+" @"+Math.round(Tel.first)+"ms");render();}}};
+  function render(){
+    document.getElementById("mAcc").textContent=Tel.scored?Tel.correct+"/"+Tel.scored:"—";
+    document.getElementById("mPoly").textContent=Tel.polys.length?Tel.polys[Tel.polys.length-1]+"%":"—";
+    document.getElementById("mFirst").textContent=Tel.first?Math.round(Tel.first)+" ms":"—";
+    document.getElementById("mRev").textContent=Tel.revs;document.getElementById("mExp").textContent=Tel.explore;
+    document.getElementById("mDiff").textContent=Tel.diff;}
+
+  function drawStrip(){strip.innerHTML="";for(var s=0;s<objs.length;s++){var d=document.createElement("div");d.className="slot"+(childOrder[s]!=null?" filled":"");
+    d.textContent=childOrder[s]!=null?objs[childOrder[s]].icon:"";
+    (function(pos){d.onclick=function(){if(!interactive||childOrder[pos]==null)return;var removed=childOrder[pos];childOrder.splice(pos,1);Tel.revs++;Tel.line("removed "+objs[removed].icon);syncTray();drawStrip();updateLock();};})(s);
+    strip.appendChild(d);}}
+  function syncTray(){Array.prototype.forEach.call(tray.children,function(c,i){if(childOrder.indexOf(i)>=0)c.classList.add("used");else c.classList.remove("used");});}
+  function buildTray(){tray.innerHTML="";objs.forEach(function(o,i){var d=document.createElement("div");d.className="cardp";d.textContent=o.icon;
+    d.onclick=function(){if(!interactive)return;if(childOrder.indexOf(i)>=0)return;if(childOrder.length>=objs.length)return;
+      Tel.firstAct("place card");Tel.explore++;childOrder.push(i);Tel.line("placed "+o.icon+" at slot "+childOrder.length);syncTray();drawStrip();updateLock();render();};
+    tray.appendChild(d);});}
+  function updateLock(){lockBtn.disabled=childOrder.length!==objs.length;}
+
+  function showHintRow(){hintrow.innerHTML="";trueOrder.forEach(function(i){var h=document.createElement("div");h.className="h";h.textContent=objs[i].icon;hintrow.appendChild(h);});
+    hintrow.style.display=showHint?"flex":"none";hintLab.style.display=showHint?"block":"none";}
+
+  var plan=[
+    {side:"top",diff:"opposite view (reversal)",objs:[{icon:"🌳",x:-0.6,y:0.0},{icon:"🏠",x:0.0,y:0.15},{icon:"⭐",x:0.6,y:0.0}]},
+    {side:"left",diff:"side view (90° turn)",objs:[{icon:"🌳",x:-0.55,y:-0.35},{icon:"🏠",x:0.5,y:-0.5},{icon:"⭐",x:0.45,y:0.5},{icon:"🎈",x:-0.45,y:0.45}]}
+  ];
+  var idx=0;
+  function loadItem(it,hint){objs=it.objs;side=it.side;trueOrder=seenOrder(objs,side);childOrder=[];showHint=!!hint;drawScene();buildTray();drawStrip();showHintRow();updateLock();}
+
+  function startDemo(){
+    pill.textContent="DEMO";interactive=false;nextBtn.style.display="none";lockBtn.disabled=true;
+    loadItem({side:"top",objs:[{icon:"🌳",x:-0.6,y:0},{icon:"⭐",x:0.6,y:0}]},false);
+    setBanner("👀","<b>Watch.</b> On the map the tree is on the left. But the robot up top faces us, so it sees them the OTHER way around.");
+    hand.style.display="";showHint=true;showHintRow();
+    // animate filling strip in true order
+    var k=0;var iv=setInterval(function(){if(k<trueOrder.length){childOrder.push(trueOrder[k]);drawStrip();beep(600+120*k);k++;}else{clearInterval(iv);beep(880);setBanner("✅","<b>See — the robot sees it flipped.</b> Now you try.");hand.style.display="none";setTimeout(startWarmup,1100);}},800);
+  }
+
+  function startWarmup(){
+    pill.textContent="WARM-UP";interactive=true;loadItem({side:"bottom",objs:[{icon:"🌳",x:-0.5,y:0},{icon:"⭐",x:0.5,y:0}]},true);
+    Tel.begin("Warm-up (unscored, with hint)");
+    setBanner("✋","<b>Practice.</b> The robot is at the bottom, standing where you look from — so it sees the same order. Tap the things left→right, then Lock. (Hint shown.)");
+    lockBtn.onclick=function(){var res=grade();
+      if(res.exact){beep(880);Tel.line("warm-up correct ✔","done");setBanner("✅","<b>Yes!</b> Real ones next — the robot moves, and there is NO hint. Imagine its view.");}
+      else{beep(300);Tel.line("warm-up "+res.poly+"% — check the hint row","miss");setBanner("↻","<b>Match the hint row.</b> Tap left→right in that order.");}
+      lockBtn.disabled=true;nextBtn.style.display="";nextBtn.textContent="Start scored ▶";nextBtn.onclick=function(){idx=0;runScored();};};
+  }
+
+  function grade(){var total=0,ok=0;
+    for(var a=0;a<objs.length;a++)for(var b=a+1;b<objs.length;b++){total++;
+      var ta=trueOrder.indexOf(a),tb=trueOrder.indexOf(b),ca=childOrder.indexOf(a),cb=childOrder.indexOf(b);
+      if(Math.sign(ta-tb)===Math.sign(ca-cb))ok++;}
+    var poly=Math.round(100*ok/total);var exact=childOrder.join(",")===trueOrder.join(",");
+    var rev=childOrder.join(",")===trueOrder.slice().reverse().join(",");
+    return {poly:poly,exact:exact,rev:rev};}
+
+  function runScored(){
+    if(idx>=plan.length)return finish();
+    var it=plan[idx];loadItem(it,false);interactive=true;pill.textContent="SCORED "+(idx+1)+"/"+plan.length;nextBtn.style.display="none";
+    Tel.begin("Scored "+(idx+1)+" — "+it.diff);document.getElementById("mErr").textContent="—";
+    setBanner("🎯","<b>What does the robot see?</b> Put the things in the robot's left→right order, then Lock. (No hint.)");
+    lockBtn.onclick=function(){var rt=performance.now()-Tel.start;var res=grade();Tel.scored++;Tel.polys.push(res.poly);
+      if(res.exact){Tel.correct++;Tel.diff=it.diff;document.getElementById("mErr").textContent="—";Tel.line("Lock ✔ exact ("+res.poly+"%) RT="+Math.round(rt)+"ms reorders="+Tel.revs,"done");}
+      else{var et=res.rev?"egocentric reversal (your own view)":"partial order";document.getElementById("mErr").textContent=et;Tel.line("Lock ✗ "+res.poly+"% — "+et,"miss");}
+      document.getElementById("mRt").textContent=Math.round(rt)+" ms";document.getElementById("mPoly").textContent=res.poly+"%";
+      interactive=false;showHint=true;showHintRow();render();
+      nextBtn.style.display="";nextBtn.textContent=(idx<plan.length-1)?"Next ▶":"See results ▶";nextBtn.onclick=function(){idx++;runScored();};};
+  }
+
+  function finish(){
+    pill.textContent="DONE";interactive=false;lockBtn.disabled=true;
+    var mp=Tel.polys.length?Math.round(Tel.polys.reduce(function(a,b){return a+b},0)/Tel.polys.length):0;
+    setBanner("🏁","<b>Done.</b> Exact "+Tel.correct+"/"+Tel.scored+" · avg pairs "+mp+"%. Getting opposite and side viewpoints right with little reshuffling marks a true allocentric model; a clean left-right reversal flags egocentric responding.");
+    Tel.line("── summary ── M-ACC="+Tel.correct+"/"+Tel.scored+" M-POLY(avg)="+mp+"% M-REV="+Tel.revs+" M-EXPLORE="+Tel.explore,"done");
+    render();nextBtn.style.display="";nextBtn.textContent="↻ Run again";nextBtn.onclick=function(){location.reload();};
+  }
+  render();startDemo();
+})();
+</script>
+</body>
+</html>

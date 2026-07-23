@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QUANT-LOGICGRID-01 — Deduction Grid</title>
+<style>
+:root{--bg:#0f1226;--panel:#1b2140;--panel2:#232a52;--accent:#5eead4;--accent2:#f59e0b;--good:#4ade80;--bad:#f87171;--ink:#eef1ff;--muted:#9aa3c7}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font:16px/1.45 system-ui,Segoe UI,Roboto,sans-serif;color:var(--ink);
+  background:radial-gradient(1200px 700px at 20% -10%,#26305e,#0f1226 60%);min-height:100vh}
+.wrap{display:grid;grid-template-columns:1fr 340px;gap:16px;max-width:1120px;margin:0 auto;padding:18px}
+@media(max-width:880px){.wrap{grid-template-columns:1fr}}
+h1{font-size:18px;margin:0 0 2px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:10px}
+.card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid #313a6b;border-radius:16px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.phasebar{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.pill{font-size:12px;padding:4px 10px;border-radius:999px;background:#2b336a;color:var(--muted);border:1px solid #3a447f}
+.pill.on{background:var(--accent);color:#053;font-weight:700}
+.prompt{font-size:15px;color:var(--muted);min-height:22px;margin:6px 0}
+.clues{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:6px 0 16px}
+.clue{display:flex;align-items:center;gap:6px;background:#2b336a;border:1px solid #3a447f;border-radius:12px;padding:8px 12px;font-size:22px}
+.clue .op{color:var(--accent2);font-weight:800;font-size:20px}
+.gridwrap{display:flex;justify-content:center}
+table{border-collapse:collapse;margin:0 auto}
+th,td{width:78px;height:66px;text-align:center;border:1px solid #3a447f}
+th{font-size:26px;color:var(--ink);background:#20264d}
+th.corner{background:transparent;border:0}
+td{background:#171d3c;cursor:pointer;font-size:28px;font-weight:800;transition:background .12s}
+td:hover{background:#222a52}
+td.no{color:var(--bad)}
+td.yes{color:var(--good);background:#16351f}
+.row{display:flex;gap:10px;align-items:center;justify-content:center;margin-top:16px;flex-wrap:wrap}
+button.act{font:600 15px system-ui;padding:10px 18px;border-radius:12px;border:0;cursor:pointer;background:var(--accent);color:#053}
+button.act.ghost{background:#2b336a;color:var(--ink);border:1px solid #3a447f}
+button.act:disabled{opacity:.4;cursor:default}
+.fb{min-height:26px;text-align:center;font-weight:700;margin-top:12px}
+.fb.good{color:var(--good)}.fb.bad{color:var(--bad)}
+.hand{position:fixed;font-size:34px;z-index:20;pointer-events:none;filter:drop-shadow(0 4px 6px rgba(0,0,0,.5));transition:left .6s cubic-bezier(.4,0,.2,1),top .5s ease;opacity:0}
+.tele{font-size:13px}
+.tele h2{font-size:14px;margin:0 0 8px;color:var(--accent)}
+.metrics{display:grid;grid-template-columns:1fr auto;gap:4px 8px;margin-bottom:10px}
+.metrics div:nth-child(odd){color:var(--muted)}
+.metrics b{font-variant-numeric:tabular-nums}
+.log{height:236px;overflow:auto;background:#12172f;border:1px solid #2a336a;border-radius:10px;padding:8px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace}
+.log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-acc{color:var(--good)}.t-err{color:var(--bad)}.t-evt{color:#9fb0ff}.t-sys{color:var(--muted)}
+.legend{color:var(--muted);font-size:12px;margin-top:8px}
+.hint{color:var(--muted);font-size:12px;text-align:center;margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <main class="card">
+    <h1>Deduction Grid</h1>
+    <div class="sub">Use the clues to figure out how many each animal has. Tap a box to mark it &#10007; (no) or &#10003; (yes).</div>
+    <div class="phasebar" id="phasebar"></div>
+    <div class="prompt" id="prompt"></div>
+    <div class="clues" id="clues"></div>
+    <div class="gridwrap"><table id="grid"></table></div>
+    <div class="hint">Tap a box: blank &#8594; &#10007; &#8594; &#10003; &#8594; blank</div>
+    <div class="row">
+      <button class="act" id="checkBtn">Check</button>
+      <button class="act ghost" id="nextBtn" style="display:none">Next</button>
+    </div>
+    <div class="fb" id="fb"></div>
+  </main>
+  <aside class="card tele">
+    <h2>Live telemetry</h2>
+    <div class="metrics" id="metrics"></div>
+    <div class="log" id="log"></div>
+    <div class="legend">Logs <b>M-ACC</b>, <b>M-HYP</b> (share of marks that were logically valid), <b>M-PATH</b> (mark sequence), <b>M-EXPLORE</b> (cells touched), <b>M-DIFFREACH</b> (constraints solved).</div>
+  </aside>
+</div>
+<script>
+(function(){
+  "use strict";
+  var el=function(id){return document.getElementById(id)};
+  var grid=el('grid'),clues=el('clues'),hand=el('hand'),prompt=el('prompt'),fb=el('fb'),
+      checkBtn=el('checkBtn'),nextBtn=el('nextBtn');
+  var T0=Date.now(); function perf(){return Date.now()-T0;}
+
+  var Tel={
+    scored:0,correct:0,marks:0,valid:0,explore:{},diffMax:0,
+    push:function(cls,msg){var d=document.createElement('div');d.className=cls;
+      d.textContent='['+(perf()/1000).toFixed(2)+'s] '+msg;var L=el('log');L.appendChild(d);L.scrollTop=L.scrollHeight;},
+    render:function(){
+      var acc=Tel.scored?Math.round(100*Tel.correct/Tel.scored)+'% ('+Tel.correct+'/'+Tel.scored+')':'—';
+      var hyp=Tel.marks?Math.round(100*Tel.valid/Tel.marks)+'%':'—';
+      el('metrics').innerHTML=
+        '<div>M-ACC solved</div><b>'+acc+'</b>'+
+        '<div>M-HYP valid marks</div><b>'+hyp+'</b>'+
+        '<div>M-PATH marks</div><b>'+Tel.marks+'</b>'+
+        '<div>M-EXPLORE cells</div><b>'+Object.keys(Tel.explore).length+'</b>'+
+        '<div>M-DIFFREACH clues</div><b>'+Tel.diffMax+'</b>';
+    }
+  };
+
+  // Puzzles: chars (icons), nums, clues (a op b, op in '<','>'), solution char->num
+  var C={cat:'\uD83D\uDC31',dog:'\uD83D\uDC36',rab:'\uD83D\uDC30',fox:'\uD83E\uDD8A'};
+  var items=[
+    {phase:'demo',  chars:['cat','dog'], nums:[1,2], clues:[['cat','<','dog']], sol:{cat:1,dog:2}},
+    {phase:'warmup',chars:['cat','dog'], nums:[2,4], clues:[['dog','>','cat']], sol:{cat:2,dog:4}},
+    {phase:'scored',chars:['cat','rab','dog'], nums:[2,4,6], clues:[['cat','<','rab'],['dog','>','rab']], sol:{cat:2,rab:4,dog:6}}
+  ];
+  var labels={demo:'1 Watch',warmup:'2 Try',scored:'3 Solve'};
+  var idx=-1,cur=null,state={},firstAction=0,itemStart=0;
+
+  function renderPhasebar(){
+    el('phasebar').innerHTML=['demo','warmup','scored'].map(function(p){
+      var on=cur&&cur.phase===p?' on':''; return '<span class="pill'+on+'">'+labels[p]+'</span>';
+    }).join('');
+  }
+  function key(ch,n){return ch+':'+n;}
+  function cellState(ch,n){return state[key(ch,n)]||0;}
+  // is a "yes" at (ch,n) consistent with the unique solution?
+  function validYes(ch,n){return cur.sol[ch]===n;}
+  function validNo(ch,n){return cur.sol[ch]!==n;}
+
+  function drawClues(){
+    clues.innerHTML='';
+    cur.clues.forEach(function(c){
+      var d=document.createElement('div');d.className='clue';
+      d.innerHTML='<span>'+C[c[0]]+'</span><span class="op">'+c[1]+'</span><span>'+C[c[2]]+'</span>';
+      clues.appendChild(d);
+    });
+  }
+  function drawGrid(){
+    grid.innerHTML='';
+    var head=document.createElement('tr');
+    head.innerHTML='<th class="corner"></th>'+cur.nums.map(function(n){return '<th>'+n+'</th>';}).join('');
+    grid.appendChild(head);
+    cur.chars.forEach(function(ch){
+      var tr=document.createElement('tr');
+      var th=document.createElement('th');th.textContent=C[ch];tr.appendChild(th);
+      cur.nums.forEach(function(n){
+        var td=document.createElement('td');td.id='c_'+key(ch,n);
+        paintCell(td,cellState(ch,n));
+        td.onclick=function(){cycle(ch,n);};
+        tr.appendChild(td);
+      });
+      grid.appendChild(tr);
+    });
+  }
+  function paintCell(td,st){td.className='';td.textContent= st===1?'\u2717': st===2?'\u2713':'';
+    if(st===1)td.classList.add('no'); if(st===2)td.classList.add('yes');}
+
+  function cycle(ch,n){
+    if(cur.phase==='demo')return;
+    if(firstAction===0){firstAction=perf();Tel.push('t-evt','first action');}
+    var st=(cellState(ch,n)+1)%3; state[key(ch,n)]=st;
+    Tel.explore[key(ch,n)]=1;
+    if(st!==0){ // a mark was made
+      Tel.marks++;
+      var ok = st===2? validYes(ch,n) : validNo(ch,n);
+      if(ok)Tel.valid++;
+      Tel.push(ok?'t-evt':'t-err','mark '+C[ch]+'='+n+' -> '+(st===2?'\u2713 yes':'\u2717 no')+(ok?'':'  (inconsistent)'));
+    }
+    paintCell(el('c_'+key(ch,n)),st);
+    Tel.render();
+  }
+
+  function loadItem(){
+    idx++; if(idx>=items.length){finish();return;}
+    cur=items[idx]; state={}; firstAction=0; itemStart=perf();
+    fb.textContent='';fb.className='fb'; nextBtn.style.display='none'; checkBtn.disabled=false;
+    renderPhasebar();
+    prompt.textContent= cur.phase==='demo'?'Watch: cross out what is impossible, then check the box that must be true.'
+      :'Find how many stickers each animal has. Mark &#10003; when you are sure.';
+    drawClues(); drawGrid();
+    Tel.push('t-sys','LOAD '+cur.phase+': '+cur.chars.length+'x'+cur.nums.length+' grid, '+cur.clues.length+' clue(s)');
+    if(cur.phase==='demo') ghostDemo();
+    Tel.render();
+  }
+
+  checkBtn.onclick=function(){ if(cur.phase==='demo')return; commit(); };
+
+  function commit(){
+    // correct if every char has its solution cell = yes and no other yes, and each row has exactly one yes
+    var correct=true;
+    cur.chars.forEach(function(ch){
+      cur.nums.forEach(function(n){
+        var want = cur.sol[ch]===n ? 2 : null; // must be yes on solution; others must NOT be yes
+        var st=cellState(ch,n);
+        if(cur.sol[ch]===n){ if(st!==2)correct=false; }
+        else { if(st===2)correct=false; }
+      });
+    });
+    if(cur.phase==='scored'){
+      Tel.scored++; if(correct)Tel.correct++;
+      Tel.diffMax=Math.max(Tel.diffMax,cur.clues.length);
+      var hyp=Tel.marks?Math.round(100*Tel.valid/Tel.marks):0;
+      Tel.push(correct?'t-acc':'t-err','SCORED: '+(correct?'solved':'not solved')+'  clues='+cur.clues.length+'  marks='+Tel.marks+'  valid='+hyp+'%');
+    } else {
+      Tel.push('t-sys',cur.phase.toUpperCase()+': '+(correct?'solved':'not yet')+' — not scored');
+    }
+    fb.textContent = correct? (cur.phase==='warmup'?'You got it! Now the 3-animal puzzle.':'Solved! Every clue is satisfied.')
+                    : 'Not quite — re-check the clues.';
+    fb.className='fb '+(correct?'good':'bad');
+    if(correct){checkBtn.disabled=true; nextBtn.style.display='inline-block'; beep();}
+    Tel.render();
+  }
+  nextBtn.onclick=loadItem;
+
+  function ghostDemo(){
+    checkBtn.disabled=true;
+    // 2x2 with cat<dog, sol cat=1 dog=2. moves: cat-2 no, dog-1 no, cat-1 yes, dog-2 yes
+    var moves=[['cat',2,1],['dog',1,1],['cat',1,2],['dog',2,2]];
+    hand.style.opacity='0';
+    moves.forEach(function(m,i){
+      setTimeout(function(){
+        var td=el('c_'+key(m[0],m[1]));var r=td.getBoundingClientRect();
+        hand.style.opacity='1'; hand.style.left=(r.left+r.width/2-6)+'px'; hand.style.top=(r.top+r.height/2)+'px';
+        state[key(m[0],m[1])]=m[2]; paintCell(td,m[2]);
+        Tel.push('t-sys','ghost: '+C[m[0]]+'='+m[1]+' -> '+(m[2]===2?'\u2713':'\u2717'));
+      }, 400 + i*750);
+    });
+    setTimeout(function(){beep();fb.textContent='Cat=1, Dog=2.';fb.className='fb good';hand.style.opacity='0';},400+moves.length*750+200);
+    setTimeout(function(){loadItem();},400+moves.length*750+1200);
+  }
+
+  function beep(){try{var a=new(window.AudioContext||window.webkitAudioContext)();var o=a.createOscillator(),g=a.createGain();
+    o.connect(g);g.connect(a.destination);o.type='sine';o.frequency.setValueAtTime(620,a.currentTime);
+    o.frequency.exponentialRampToValueAtTime(960,a.currentTime+.15);g.gain.setValueAtTime(.12,a.currentTime);
+    g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+.3);o.start();o.stop(a.currentTime+.32);}catch(e){}}
+
+  function finish(){
+    prompt.textContent='';clues.innerHTML='';
+    document.querySelector('.gridwrap').innerHTML='<div style="text-align:center;padding:20px 0">'+
+      '<div style="font-size:44px">&#127881;</div><div style="color:var(--muted)">Sample complete. Telemetry captured on the right.</div></div>';
+    el('checkBtn').style.display='none';el('nextBtn').style.display='none';
+    document.querySelector('.hint').style.display='none';
+    Tel.push('t-sys','SESSION complete: '+Tel.correct+'/'+Tel.scored+' scored correct');
+  }
+  window.addEventListener('blur',function(){Tel.push('t-sys','engagement: focus lost');});
+  Tel.render(); loadItem();
+})();
+</script>
+</body>
+</html>

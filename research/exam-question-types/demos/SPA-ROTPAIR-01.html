@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SPA-ROTPAIR-01 — Same Turn or Mirror?</title>
+<style>
+  :root{--bg:#eef2fb;--card:#fff;--ink:#1e293b;--muted:#64748b;--accent:#4f46e5;--good:#16a34a;--warn:#f59e0b;--bad:#dc2626;--stage:#f8fafc}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.4 system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  .wrap{display:flex;gap:14px;padding:14px;max-width:1180px;margin:0 auto;align-items:flex-start;flex-wrap:wrap}
+  .col{flex:1 1 560px;min-width:340px}.side{flex:1 1 320px;min-width:300px}
+  .card{background:var(--card);border-radius:16px;box-shadow:0 6px 22px rgba(15,23,42,.08);padding:16px;margin-bottom:14px}
+  h1{font-size:19px;margin:0 0 2px}.sub{color:var(--muted);font-size:13px;margin:0 0 10px}
+  .pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;background:#e0e7ff;color:#3730a3}
+  .banner{display:flex;align-items:center;gap:10px;background:#f1f5ff;border:1px solid #dbe3ff;border-radius:12px;padding:10px 12px;margin-bottom:12px;min-height:44px}
+  .banner .icon{font-size:22px}.banner b{color:var(--accent)}
+  #stageWrap{position:relative;background:var(--stage);border-radius:14px;border:1px solid #e2e8f0;overflow:hidden}
+  svg{display:block;width:100%;height:300px;touch-action:none}
+  .hand{position:absolute;font-size:32px;pointer-events:none;z-index:5;filter:drop-shadow(0 2px 3px rgba(0,0,0,.25))}
+  .ans{display:flex;gap:12px;margin-top:12px}
+  .ans button{flex:1;font-size:17px;padding:16px}
+  button{font:inherit;font-weight:700;border:0;border-radius:12px;padding:10px 16px;cursor:pointer;background:var(--accent);color:#fff}
+  button.same{background:#16a34a}button.diff{background:#e11d48}button.ghost{background:#e2e8f0;color:#334155}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .row{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
+  .tel{background:#0b1220;color:#d1fae5;border-radius:16px;padding:14px;font:12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
+  .tel h2{font-size:13px;margin:0 0 8px;color:#93c5fd;letter-spacing:.05em;text-transform:uppercase}
+  .tel .m{display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px dotted #1e293b}
+  .tel .m .k{color:#7dd3fc}.tel .m .v{color:#fde68a;font-weight:700;text-align:right}
+  #log{margin-top:10px;max-height:170px;overflow:auto;background:#060b16;border-radius:8px;padding:8px}
+  #log div{white-space:pre-wrap;color:#a7f3d0}#log .t{color:#475569}
+  .done{color:var(--good);font-weight:700}.miss{color:var(--warn)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="col"><div class="card">
+    <span class="pill" id="phasePill">DEMO</span>
+    <h1>Same Turn or Mirror? <span style="color:var(--muted);font-weight:400">· SPA-ROTPAIR-01</span></h1>
+    <p class="sub">Is the right shape the SAME one just turned, or a flipped mirror twin? Tap fast. (Mental rotation)</p>
+    <div class="banner"><span class="icon" id="bIcon">👀</span><div id="bText"><b>Watch.</b> One is the same shape turned; one is a sneaky mirror…</div></div>
+    <div id="stageWrap"><svg id="svg" viewBox="0 0 400 300"></svg><div class="hand" id="hand" style="display:none">👆</div></div>
+    <div class="ans" id="ans">
+      <button class="same" id="sameBtn" disabled>✓ SAME (just turned)</button>
+      <button class="diff" id="diffBtn" disabled>⇋ DIFFERENT (mirror)</button>
+    </div>
+    <div class="row">
+      <button id="nextBtn" class="ghost" style="display:none">Next ▶</button>
+      <span class="sub" id="live" style="margin-left:auto"></span>
+    </div>
+  </div></div>
+  <div class="side"><div class="tel">
+    <h2>◉ Live telemetry</h2>
+    <div class="m"><span class="k">M-ACC accuracy</span><span class="v" id="mAcc">—</span></div>
+    <div class="m"><span class="k">M-RT last / mean</span><span class="v" id="mRt">—</span></div>
+    <div class="m"><span class="k">M-RTVAR RT CV</span><span class="v" id="mVar">—</span></div>
+    <div class="m"><span class="k">M-LAPSE slow lapses</span><span class="v" id="mLap">—</span></div>
+    <div class="m"><span class="k">M-ROTSLOPE ms/deg</span><span class="v" id="mSlope">—</span></div>
+    <div class="m"><span class="k">M-MIRRORFA mirror FA</span><span class="v" id="mMir">—</span></div>
+    <div class="m"><span class="k">M-DPRIME sensitivity</span><span class="v" id="mDp">—</span></div>
+    <div class="m"><span class="k">M-FALSEALARM rate</span><span class="v" id="mFa">—</span></div>
+    <div class="m"><span class="k">M-COMBO streak (max)</span><span class="v" id="mCombo">—</span></div>
+    <div class="m"><span class="k">M-SPEEDACC point</span><span class="v" id="mSA">—</span></div>
+    <div id="log"></div>
+  </div></div>
+</div>
+<script>
+(function(){
+  "use strict";
+  var SVGNS="http://www.w3.org/2000/svg",svg=document.getElementById("svg"),hand=document.getElementById("hand");
+  var sameBtn=document.getElementById("sameBtn"),diffBtn=document.getElementById("diffBtn"),nextBtn=document.getElementById("nextBtn");
+  var pill=document.getElementById("phasePill"),bIcon=document.getElementById("bIcon"),bText=document.getElementById("bText");
+  function setBanner(i,h){bIcon.textContent=i;bText.innerHTML=h;}
+  function beep(f,t){try{var A=beep.a=beep.a||new(window.AudioContext||window.webkitAudioContext)();var o=A.createOscillator(),g=A.createGain();o.frequency.value=f;o.connect(g);g.connect(A.destination);g.gain.value=.08;o.start();o.stop(A.currentTime+(t||.12));}catch(e){}}
+  var FLAG="M -8,-40 L -8,40 L 0,40 L 0,-6 L 38,-16 L 0,-28 L 0,-40 Z";
+  function makeFlag(x,fill,mir,rot){var g=document.createElementNS(SVGNS,"g");
+    g.setAttribute("transform","translate("+x+",150) rotate("+rot+")"+(mir?" scale(-1,1)":""));
+    var p=document.createElementNS(SVGNS,"path");p.setAttribute("d",FLAG);p.setAttribute("fill",fill);p.setAttribute("stroke","#3730a3");p.setAttribute("stroke-width","3");p.setAttribute("stroke-linejoin","round");
+    g.appendChild(p);return g;}
+  function label(x,txt){var t=document.createElementNS(SVGNS,"text");t.setAttribute("x",x);t.setAttribute("y",34);t.setAttribute("text-anchor","middle");t.setAttribute("fill","#94a3b8");t.setAttribute("font-size","13");t.textContent=txt;return t;}
+  function drawPair(mir,rot,rightFill){svg.innerHTML="";
+    svg.appendChild(makeFlag(110,"#6366f1",false,0));svg.appendChild(label(110,"THIS ONE"));
+    svg.appendChild(makeFlag(290,rightFill||"#818cf8",mir,rot));svg.appendChild(label(290,"and THIS ONE?"));
+    var vs=document.createElementNS(SVGNS,"text");vs.setAttribute("x",200);vs.setAttribute("y",158);vs.setAttribute("text-anchor","middle");vs.setAttribute("fill","#cbd5e1");vs.setAttribute("font-size","26");vs.textContent="?";svg.appendChild(vs);}
+
+  // inverse normal (Acklam) for d-prime
+  function normInv(p){if(p<=0)p=1e-6;if(p>=1)p=1-1e-6;
+    var a=[-3.969683028665376e1,2.209460984245205e2,-2.759285104469687e2,1.383577518672690e2,-3.066479806614716e1,2.506628277459239];
+    var b=[-5.447609879822406e1,1.615858368580409e2,-1.556989798598866e2,6.680131188771972e1,-1.328068155288572e1];
+    var c=[-7.784894002430293e-3,-3.223964580411365e-1,-2.400758277161838,-2.549732539343734,4.374664141464968,2.938163982698783];
+    var d=[7.784695709041462e-3,3.224671290700398e-1,2.445134137142996,3.754408661907416];
+    var pl=0.02425,ph=1-pl,q,r;
+    if(p<pl){q=Math.sqrt(-2*Math.log(p));return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);}
+    if(p<=ph){q=p-.5;r=q*q;return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);}
+    q=Math.sqrt(-2*Math.log(1-p));return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);}
+
+  var Tel={start:0,rts:[],rtsCorr:[],scored:0,correct:0,sameN:0,mirN:0,hits:0,fa:0,rotPts:[],combo:0,comboMax:0,lapses:0,fastFA:0,resp:0,
+    logEl:document.getElementById("log"),
+    line:function(m,c){var d=document.createElement("div");var t=((performance.now()-Tel.start)/1000).toFixed(2);d.innerHTML='<span class="t">['+t+'s]</span> '+m;if(c)d.className=c;Tel.logEl.appendChild(d);Tel.logEl.scrollTop=Tel.logEl.scrollHeight;},
+    mean:function(a){return a.length?a.reduce(function(x,y){return x+y},0)/a.length:0;},
+    cv:function(a){if(a.length<2)return 0;var m=Tel.mean(a);var v=Tel.mean(a.map(function(x){return (x-m)*(x-m)}));return Math.sqrt(v)/m;},
+    med:function(a){if(!a.length)return 0;var s=a.slice().sort(function(x,y){return x-y});var h=Math.floor(s.length/2);return s.length%2?s[h]:(s[h-1]+s[h])/2;},
+    slope:function(){if(Tel.rotPts.length<2)return null;var n=Tel.rotPts.length,sx=0,sy=0,sxx=0,sxy=0;
+      Tel.rotPts.forEach(function(p){sx+=p.a;sy+=p.rt;sxx+=p.a*p.a;sxy+=p.a*p.rt;});var dd=n*sxx-sx*sx;if(!dd)return null;return (n*sxy-sx*sy)/dd;},
+    dprime:function(){if(!Tel.sameN||!Tel.mirN)return null;
+      var h=Tel.hits/Tel.sameN,f=Tel.fa/Tel.mirN;h=Math.min(1-0.5/Tel.sameN,Math.max(0.5/Tel.sameN,h));f=Math.min(1-0.5/Tel.mirN,Math.max(0.5/Tel.mirN,f));
+      return normInv(h)-normInv(f);}
+  };
+  function render(){
+    document.getElementById("mAcc").textContent=Tel.scored?Tel.correct+"/"+Tel.scored+" ("+Math.round(100*Tel.correct/Tel.scored)+"%)":"—";
+    document.getElementById("mRt").textContent=Tel.rts.length?Math.round(Tel.rts[Tel.rts.length-1])+" / "+Math.round(Tel.mean(Tel.rts))+" ms":"—";
+    document.getElementById("mVar").textContent=Tel.rts.length>1?Tel.cv(Tel.rts).toFixed(2):"—";
+    document.getElementById("mLap").textContent=Tel.rts.length?Tel.lapses:"—";
+    var sl=Tel.slope();document.getElementById("mSlope").textContent=(sl!==null)?sl.toFixed(1)+" ms/°":"need ≥2";
+    document.getElementById("mMir").textContent=Tel.mirN?Tel.fa+"/"+Tel.mirN:"—";
+    var dp=Tel.dprime();document.getElementById("mDp").textContent=(dp!==null)?dp.toFixed(2):"—";
+    document.getElementById("mFa").textContent=Tel.resp?((100*(Tel.fa+Tel.fastFA)/Tel.resp).toFixed(0)+"%"):"—";
+    document.getElementById("mCombo").textContent=Tel.combo+" ("+Tel.comboMax+")";
+  }
+  // scored plan: mix SAME (for slope) + mirror DIFFERENT (for FA / d-prime)
+  var plan=[
+    {mir:false,disp:45},{mir:false,disp:90},{mir:true,disp:90},
+    {mir:false,disp:135},{mir:true,disp:135},{mir:false,disp:180}
+  ];
+  var idx=0,cur=null,interactive=false,BAND=2600;
+
+  function startDemo(){
+    phase("DEMO");sameBtn.disabled=true;diffBtn.disabled=true;nextBtn.style.display="none";
+    setBanner("👀","<b>Watch.</b> The hand spins the right shape until it matches — that is SAME. Then a mirror twin never lines up — that is DIFFERENT.");
+    drawPair(false,140);hand.style.display="";
+    var r=svg.getBoundingClientRect(),rot=140,t0=performance.now();
+    function spinToMatch(now){var k=Math.min(1,(now-t0)/1800);var e=1-Math.pow(1-k,3);var a=140*(1-e);drawPair(false,a);
+      var rr=svg.getBoundingClientRect();hand.style.left=(rr.left+290*(rr.width/400)-6)+"px";hand.style.top=(rr.top+window.scrollY+120*(rr.height/300))+"px";
+      if(k<1)requestAnimationFrame(spinToMatch);else{beep(760);setBanner("✅","<b>Lined up = SAME.</b> Now a mirror one…");setTimeout(showMirror,900);}}
+    setTimeout(function(){requestAnimationFrame(spinToMatch);},600);
+    function showMirror(){var m0=performance.now();drawPair(true,20,"#f0abfc");
+      function spinNoMatch(now){var k=Math.min(1,(now-m0)/1800);var a=20+320*k;drawPair(true,a,"#f0abfc");
+        if(k<1)requestAnimationFrame(spinNoMatch);else{beep(200,.2);setBanner("⇋","<b>Never lines up = DIFFERENT (mirror).</b> Your turn to practice.");hand.style.display="none";setTimeout(startWarmup,900);}}
+      requestAnimationFrame(spinNoMatch);}
+  }
+
+  // warm-up: drag right figure to spin & check, then judge
+  var wRot=60,wMir=false,dragging=false,grab=0;
+  function warmAngle(e){var r=svg.getBoundingClientRect();var sx=(e.clientX-r.left)*(400/r.width),sy=(e.clientY-r.top)*(300/r.height);return Math.atan2(sy-150,sx-290)*180/Math.PI;}
+  svg.addEventListener("pointerdown",function(e){if(!dragEnabled)return;dragging=true;svg.setPointerCapture(e.pointerId);grab=warmAngle(e)-wRot;});
+  svg.addEventListener("pointermove",function(e){if(!dragging)return;wRot=warmAngle(e)-grab;drawPair(wMir,wRot,"#818cf8");});
+  svg.addEventListener("pointerup",function(){dragging=false;});
+  var dragEnabled=false;
+  function startWarmup(){
+    phase("WARM-UP");Tel.start=performance.now();interactive=true;dragEnabled=true;wMir=false;wRot=70;drawPair(false,70,"#818cf8");
+    sameBtn.disabled=false;diffBtn.disabled=false;nextBtn.style.display="none";
+    setBanner("✋","<b>Practice.</b> This is a SAME pair (just turned). You may DRAG the right shape to spin and check, then tap SAME. No dragging in the real ones!");
+    Tel.line("▶ Warm-up (drag to check, unscored)");
+    var done=false;
+    function judge(ans){if(done)return;var ok=(ans==="same");
+      if(ok){done=true;beep(820);Tel.line("warm-up: SAME ✔ (you may have spun it to check)","done");setBanner("✅","<b>Yes — same shape, just turned.</b> Now go FAST: no dragging, just tap SAME or DIFFERENT.");
+        sameBtn.disabled=true;diffBtn.disabled=true;nextBtn.style.display="";nextBtn.textContent="Start scored ▶";nextBtn.onclick=function(){idx=0;runScored();};}
+      else{beep(300);Tel.line("warm-up: you tapped DIFFERENT — spin it and look again","miss");setBanner("↻","<b>Try spinning it.</b> If it can line up on the left shape, it is SAME.");}}
+    sameBtn.onclick=function(){judge("same");};diffBtn.onclick=function(){judge("diff");};
+  }
+
+  function runScored(){
+    dragEnabled=false;
+    if(idx>=plan.length)return finish();
+    cur=plan[idx];phase("SCORED "+(idx+1)+"/"+plan.length);
+    var baseRot=[35,110,200,320][idx%4]; // vary shown orientation
+    var rot=cur.disp;drawPair(cur.mir,rot,cur.mir?"#a78bfa":"#818cf8");
+    if(cur.mir)Tel.mirN++;else Tel.sameN++;
+    sameBtn.disabled=false;diffBtn.disabled=false;nextBtn.style.display="none";
+    setBanner("⚡","<b>Fast!</b> Is the right shape the SAME (just turned) or DIFFERENT (a mirror)?");
+    Tel.line("▶ Scored "+(idx+1)+" — Δ"+cur.disp+"° "+(cur.mir?"[mirror]":"[same]"));
+    Tel.start=performance.now();
+    var answered=false;
+    function answer(ans){if(answered)return;answered=true;
+      var rt=performance.now()-Tel.start;Tel.rts.push(rt);Tel.resp++;
+      var isSame=!cur.mir;var ok=((ans==="same")===isSame);
+      if(rt<150)Tel.fastFA++;
+      var med=Tel.med(Tel.rtsCorr);if(med&&rt>2*med)Tel.lapses++;
+      Tel.scored++;
+      if(ok){Tel.correct++;Tel.rtsCorr.push(rt);
+        if(isSame){Tel.hits++;Tel.rotPts.push({a:cur.disp,rt:rt});}
+        if(rt<BAND){Tel.combo++;Tel.comboMax=Math.max(Tel.comboMax,Tel.combo);}else{Tel.combo=0;}
+        Tel.line("tap "+ans.toUpperCase()+" ✔ RT="+Math.round(rt)+"ms"+(rt<BAND?" (in speed band → combo "+Tel.combo+")":" (slow, combo reset)"),"done");}
+      else{Tel.combo=0;if(cur.mir&&ans==="same")Tel.fa++;
+        Tel.line("tap "+ans.toUpperCase()+" ✗ RT="+Math.round(rt)+"ms"+(cur.mir&&ans==="same"?" — mirror false-alarm":""),"miss");}
+      document.getElementById("mSA").textContent=Math.round(rt)+"ms · "+(ok?"correct":"wrong");
+      sameBtn.disabled=true;diffBtn.disabled=true;render();
+      nextBtn.style.display="";nextBtn.textContent=(idx<plan.length-1)?"Next ▶":"See results ▶";nextBtn.onclick=function(){idx++;runScored();};}
+    sameBtn.onclick=function(){answer("same");};diffBtn.onclick=function(){answer("diff");};
+    render();
+  }
+
+  function phase(p){pill.textContent=p;}
+  function finish(){
+    pill.textContent="DONE";sameBtn.disabled=true;diffBtn.disabled=true;svg.innerHTML="";
+    var sl=Tel.slope(),dp=Tel.dprime();
+    setBanner("🏁","<b>Done.</b> Acc "+Tel.correct+"/"+Tel.scored+" · slope "+(sl!==null?sl.toFixed(1)+" ms/°":"—")+" · d′ "+(dp!==null?dp.toFixed(2):"—")+" · mirror FA "+Tel.fa+"/"+Tel.mirN+". A shallow slope at high d′ with no mirror false-alarms is the hard-to-coach rotation signature at the tail.");
+    Tel.line("── summary ── M-ACC="+Tel.correct+"/"+Tel.scored+" M-ROTSLOPE="+(sl!==null?sl.toFixed(1):"n/a")+" M-DPRIME="+(dp!==null?dp.toFixed(2):"n/a")+" M-MIRRORFA="+Tel.fa+"/"+Tel.mirN+" M-COMBO(max)="+Tel.comboMax,"done");
+    render();nextBtn.style.display="";nextBtn.textContent="↻ Run again";nextBtn.onclick=function(){location.reload();};
+  }
+  render();startDemo();
+})();
+</script>
+</body>
+</html>

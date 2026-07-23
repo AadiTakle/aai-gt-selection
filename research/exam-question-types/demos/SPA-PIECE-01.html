@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SPA-PIECE-01 — Find the Missing Piece</title>
+<style>
+  :root{--bg:#eef2fb;--card:#fff;--ink:#1e293b;--muted:#64748b;--accent:#4f46e5;--good:#16a34a;--warn:#f59e0b;--bad:#dc2626;--stage:#f8fafc}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.4 system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  .wrap{display:flex;gap:14px;padding:14px;max-width:1180px;margin:0 auto;align-items:flex-start;flex-wrap:wrap}
+  .col{flex:1 1 560px;min-width:340px}.side{flex:1 1 320px;min-width:300px}
+  .card{background:var(--card);border-radius:16px;box-shadow:0 6px 22px rgba(15,23,42,.08);padding:16px;margin-bottom:14px}
+  h1{font-size:19px;margin:0 0 2px}.sub{color:var(--muted);font-size:13px;margin:0 0 10px}
+  .pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;background:#e0e7ff;color:#3730a3}
+  .banner{display:flex;align-items:center;gap:10px;background:#f1f5ff;border:1px solid #dbe3ff;border-radius:12px;padding:10px 12px;margin-bottom:12px;min-height:44px}
+  .banner .icon{font-size:22px}.banner b{color:var(--accent)}
+  #stageWrap{position:relative;background:var(--stage);border-radius:14px;border:1px solid #e2e8f0;overflow:hidden}
+  svg{display:block;width:100%;height:250px;touch-action:none}
+  .hand{position:absolute;font-size:30px;pointer-events:none;z-index:5;filter:drop-shadow(0 2px 3px rgba(0,0,0,.25))}
+  .tray{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .piece{border:3px solid #e2e8f0;border-radius:12px;background:#fff;padding:4px;cursor:pointer;width:96px;height:96px;display:flex;align-items:center;justify-content:center}
+  .piece.sel{border-color:var(--accent);box-shadow:0 0 0 3px #e0e7ff}
+  .piece.used{opacity:.35;pointer-events:none}
+  .row{display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}
+  button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:10px 16px;cursor:pointer;background:var(--accent);color:#fff}
+  button.ghost{background:#e2e8f0;color:#334155}button:disabled{opacity:.45;cursor:not-allowed}
+  .tel{background:#0b1220;color:#d1fae5;border-radius:16px;padding:14px;font:12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
+  .tel h2{font-size:13px;margin:0 0 8px;color:#93c5fd;letter-spacing:.05em;text-transform:uppercase}
+  .tel .m{display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px dotted #1e293b}
+  .tel .m .k{color:#7dd3fc}.tel .m .v{color:#fde68a;font-weight:700;text-align:right}
+  #log{margin-top:10px;max-height:150px;overflow:auto;background:#060b16;border-radius:8px;padding:8px}
+  #log div{white-space:pre-wrap;color:#a7f3d0}#log .t{color:#475569}
+  .done{color:var(--good);font-weight:700}.miss{color:var(--warn)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="col"><div class="card">
+    <span class="pill" id="phasePill">DEMO</span>
+    <h1>Find the Missing Piece <span style="color:var(--muted);font-weight:400">· SPA-PIECE-01</span></h1>
+    <p class="sub">One piece is missing from the shape. Pick the piece that fills the gap, turn it to fit, and place it. (Form board)</p>
+    <div class="banner"><span class="icon" id="bIcon">👀</span><div id="bText"><b>Watch.</b> The hand picks the piece, turns it, and drops it into the gap…</div></div>
+    <div id="stageWrap"><svg id="svg" viewBox="0 0 360 250"></svg><div class="hand" id="hand" style="display:none">👆</div></div>
+    <div class="tray" id="tray"></div>
+    <div class="row">
+      <button id="rotBtn" class="ghost" disabled>⟳ Turn</button>
+      <button id="placeBtn" disabled>⬇ Place it</button>
+      <button id="nextBtn" class="ghost" style="display:none">Next ▶</button>
+      <span class="sub" id="live" style="margin-left:auto"></span>
+    </div>
+  </div></div>
+  <div class="side"><div class="tel">
+    <h2>◉ Live telemetry</h2>
+    <div class="m"><span class="k">M-ACC accuracy</span><span class="v" id="mAcc">—</span></div>
+    <div class="m"><span class="k">M-RT total</span><span class="v" id="mRt">—</span></div>
+    <div class="m"><span class="k">M-RTFIRST first-act</span><span class="v" id="mFirst">—</span></div>
+    <div class="m"><span class="k">M-REV turns/re-picks</span><span class="v" id="mRev">0</span></div>
+    <div class="m"><span class="k">M-EXPLORE pieces tried</span><span class="v" id="mExp">0</span></div>
+    <div class="m"><span class="k">M-EFF place attempts</span><span class="v" id="mEff">0</span></div>
+    <div class="m"><span class="k">M-ERRTYPE last error</span><span class="v" id="mErr">—</span></div>
+    <div class="m"><span class="k">M-DIFFREACH hardest</span><span class="v" id="mDiff">—</span></div>
+    <div id="log"></div>
+  </div></div>
+</div>
+<script>
+(function(){
+  "use strict";
+  var SVGNS="http://www.w3.org/2000/svg",svg=document.getElementById("svg"),hand=document.getElementById("hand");
+  var tray=document.getElementById("tray"),rotBtn=document.getElementById("rotBtn"),placeBtn=document.getElementById("placeBtn"),nextBtn=document.getElementById("nextBtn");
+  var pill=document.getElementById("phasePill"),bIcon=document.getElementById("bIcon"),bText=document.getElementById("bText");
+  function setBanner(i,h){bIcon.textContent=i;bText.innerHTML=h;}
+  function beep(f,t){try{var A=beep.a=beep.a||new(window.AudioContext||window.webkitAudioContext)();var o=A.createOscillator(),g=A.createGain();o.frequency.value=f;o.connect(g);g.connect(A.destination);g.gain.value=.08;o.start();o.stop(A.currentTime+(t||.12));}catch(e){}}
+  // polyomino helpers (translate-only fit; rotation via rot90)
+  function norm(cells){var mr=Math.min.apply(null,cells.map(function(c){return c[0]}));var mc=Math.min.apply(null,cells.map(function(c){return c[1]}));
+    return cells.map(function(c){return [c[0]-mr,c[1]-mc]}).sort(function(a,b){return a[0]-b[0]||a[1]-b[1]}).map(function(c){return c[0]+","+c[1]}).join(";");}
+  function rot90(cells){return cells.map(function(c){return [c[1],-c[0]]});}
+  function bbox(cells){var mr=Math.min.apply(null,cells.map(function(c){return c[0]})),Mr=Math.max.apply(null,cells.map(function(c){return c[0]}));
+    var mc=Math.min.apply(null,cells.map(function(c){return c[1]})),Mc=Math.max.apply(null,cells.map(function(c){return c[1]}));return {rows:Mr-mr+1,cols:Mc-mc+1};}
+
+  var G=34,TX=60,TY=40; // target grid origin
+  var item=null,held=null,heldCells=null,attempts=0,solved=false,interactive=false;
+  function cellRect(x,y,g,fill,stroke,dash,rx){var r=document.createElementNS(SVGNS,"rect");r.setAttribute("x",x);r.setAttribute("y",y);r.setAttribute("width",g);r.setAttribute("height",g);if(rx)r.setAttribute("rx",rx);r.setAttribute("fill",fill);r.setAttribute("stroke",stroke);r.setAttribute("stroke-width","2");if(dash)r.setAttribute("stroke-dasharray","5 4");return r;}
+  function gapOrigin(){var mr=Math.min.apply(null,item.gap.map(function(c){return c[0]}));var mc=Math.min.apply(null,item.gap.map(function(c){return c[1]}));return [mr,mc];}
+  function draw(){svg.innerHTML="";
+    item.filled.forEach(function(c){svg.appendChild(cellRect(TX+c[1]*G,TY+c[0]*G,G-2,"#6366f1","#3730a3",false,4));});
+    item.gap.forEach(function(c){svg.appendChild(cellRect(TX+c[1]*G,TY+c[0]*G,G-2,"#eef2ff","#94a3b8",true,4));});
+    // preview held piece over the gap origin
+    if(heldCells&&!solved){var go=gapOrigin();var nrm=heldCells.slice();var mr=Math.min.apply(null,nrm.map(function(c){return c[0]})),mc=Math.min.apply(null,nrm.map(function(c){return c[1]}));
+      nrm.forEach(function(c){var rr=go[0]+(c[0]-mr),cc=go[1]+(c[1]-mc);svg.appendChild(cellRect(TX+cc*G,TY+rr*G,G-2,"rgba(34,197,94,.55)","#16a34a",false,4));});}
+    if(solved){item.gap.forEach(function(c){svg.appendChild(cellRect(TX+c[1]*G,TY+c[0]*G,G-2,"#22c55e","#15803d",false,4));});}
+    var t=document.createElementNS(SVGNS,"text");t.setAttribute("x",180);t.setAttribute("y",232);t.setAttribute("text-anchor","middle");t.setAttribute("fill","#94a3b8");t.setAttribute("font-size","12");t.textContent=solved?"complete!":"the shape (dashed = gap to fill)";svg.appendChild(t);
+    render();}
+
+  function pieceSVG(cells){var b=bbox(cells);var g=20;var w=b.cols*g,h=b.rows*g;var mr=Math.min.apply(null,cells.map(function(c){return c[0]})),mc=Math.min.apply(null,cells.map(function(c){return c[1]}));
+    var s='<svg viewBox="0 0 '+(w+2)+' '+(h+2)+'" width="'+Math.min(80,w+2)+'" height="'+Math.min(80,h+2)+'">';
+    cells.forEach(function(c){s+='<rect x="'+((c[1]-mc)*g+1)+'" y="'+((c[0]-mr)*g+1)+'" width="'+(g-2)+'" height="'+(g-2)+'" rx="3" fill="#f59e0b" stroke="#b45309" stroke-width="2"/>';});
+    return s+'</svg>';}
+
+  var Tel={start:0,first:0,revs:0,explore:0,attempts:0,scored:0,correct:0,diff:"—",sampled:{},
+    logEl:document.getElementById("log"),
+    line:function(m,c){var d=document.createElement("div");var t=((performance.now()-Tel.start)/1000).toFixed(2);d.innerHTML='<span class="t">['+t+'s]</span> '+m;if(c)d.className=c;Tel.logEl.appendChild(d);Tel.logEl.scrollTop=Tel.logEl.scrollHeight;},
+    begin:function(l){Tel.start=performance.now();Tel.first=0;Tel.revs=0;Tel.explore=0;Tel.attempts=0;Tel.sampled={};Tel.line("▶ "+l);},
+    firstAct:function(w){if(!Tel.first){Tel.first=performance.now()-Tel.start;Tel.line("first action: "+w+" @"+Math.round(Tel.first)+"ms");render();}}};
+  function render(){
+    document.getElementById("mAcc").textContent=Tel.scored?Tel.correct+"/"+Tel.scored+" ("+Math.round(100*Tel.correct/Tel.scored)+"%)":"—";
+    document.getElementById("mFirst").textContent=Tel.first?Math.round(Tel.first)+" ms":"—";
+    document.getElementById("mRev").textContent=Tel.revs;document.getElementById("mExp").textContent=Tel.explore;
+    document.getElementById("mEff").textContent=Tel.attempts;document.getElementById("mDiff").textContent=Tel.diff;}
+
+  function buildTray(){tray.innerHTML="";item.pieces.forEach(function(p,i){var d=document.createElement("div");d.className="piece";d.innerHTML=pieceSVG(p.cells);
+    d.onclick=function(){if(!interactive||solved)return;Tel.firstAct("pick piece");
+      if(!Tel.sampled[i]){Tel.sampled[i]=1;Tel.explore++;}
+      if(held!==null&&held!==i)Tel.revs++;
+      held=i;heldCells=p.cells.map(function(c){return c.slice()});
+      Array.prototype.forEach.call(tray.children,function(c){c.classList.remove("sel")});d.classList.add("sel");
+      rotBtn.disabled=false;placeBtn.disabled=false;draw();};
+    tray.appendChild(d);});}
+
+  rotBtn.onclick=function(){if(held===null||solved)return;heldCells=rot90(heldCells);Tel.revs++;Tel.line("turned piece");draw();};
+  var phaseName="demo",idx=0;
+  function fitsByRotation(cells,gap){var c=cells.slice();for(var k=0;k<4;k++){if(norm(c)===norm(gap))return true;c=rot90(c);}return false;}
+  placeBtn.onclick=function(){if(held===null||solved)return;Tel.attempts++;
+    var ok=norm(heldCells)===norm(item.gap);
+    if(ok){solved=true;beep(880);draw();onSolve();}
+    else{var pc=item.pieces[held];var et=pc.mir?"mirror piece (never fits by turning)":(fitsByRotation(pc.cells,item.gap)?"wrong rotation":"wrong shape");
+      document.getElementById("mErr").textContent=et;beep(280);Tel.line("PLACE ✗ — "+et,"miss");shake();render();}};
+  function shake(){var w=document.getElementById("stageWrap");if(w.animate)w.animate([{transform:"translateX(0)"},{transform:"translateX(-6px)"},{transform:"translateX(6px)"},{transform:"translateX(0)"}],{duration:220});}
+  function onSolve(){var rt=performance.now()-Tel.start;document.getElementById("mRt").textContent=Math.round(rt)+" ms";
+    interactive=false;rotBtn.disabled=true;placeBtn.disabled=true;document.getElementById("mErr").textContent="—";
+    if(phaseName==="warmup"){Tel.line("warm-up solved ✔ RT="+Math.round(rt)+"ms","done");
+      setBanner("✅","<b>Nice!</b> Real ones next — some pieces must be TURNED, and a sneaky mirror piece will never fit.");
+      nextBtn.style.display="";nextBtn.textContent="Start scored ▶";nextBtn.onclick=function(){idx=0;runScored();};}
+    else{Tel.scored++;Tel.correct++;Tel.diff=item.diff;
+      Tel.line("PLACE fits ✔ RT="+Math.round(rt)+"ms · "+Tel.explore+" pieces tried, "+Tel.attempts+" attempts","done");render();
+      nextBtn.style.display="";nextBtn.textContent=(idx<PLAN.length-1)?"Next ▶":"See results ▶";nextBtn.onclick=function(){idx++;runScored();};}}
+
+  // items: filled + gap on a grid; pieces (one true, foils incl. a chiral mirror)
+  var WARM={filled:[[0,0],[0,1],[1,0]],gap:[[1,1]],diff:"1-cell gap",pieces:[{cells:[[0,0]]},{cells:[[0,0],[0,1]]}]};
+  var PLAN=[
+    {filled:[[0,0],[0,1],[1,0]],gap:[[0,2],[1,1],[1,2]],diff:"L-tromino gap (turn to fit)",
+     pieces:[{cells:[[0,0],[1,0],[1,1]]},{cells:[[0,0],[0,1]]},{cells:[[0,0],[0,1],[1,0],[1,1]]}]},
+    {filled:[[0,0],[0,1],[1,0],[1,1],[2,0]],gap:[[0,2],[1,2],[2,1],[2,2]],diff:"L-tetromino + mirror foil",
+     pieces:[{cells:[[0,0],[1,0],[1,1],[1,2]]},{cells:[[0,0],[1,0],[2,0],[2,1]],mir:true},{cells:[[0,0],[0,1],[0,2],[1,1]]},{cells:[[0,0],[1,0],[1,1],[2,1]]}]}
+  ];
+  function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+  function loadItem(it){item={filled:it.filled,gap:it.gap,diff:it.diff,pieces:shuffle(it.pieces.slice())};held=null;heldCells=null;attempts=0;solved=false;buildTray();draw();rotBtn.disabled=true;placeBtn.disabled=true;}
+
+  function startDemo(){
+    phaseName="demo";pill.textContent="DEMO";interactive=false;nextBtn.style.display="none";
+    loadItem(WARM);
+    setBanner("👀","<b>Watch.</b> The single-square gap needs the single-square piece. The hand picks it and places it.");
+    hand.style.display="";
+    setTimeout(function(){var correctIdx=-1;for(var i=0;i<item.pieces.length;i++){if(norm(item.pieces[i].cells)===norm(item.gap)){correctIdx=i;break;}}
+      held=correctIdx;heldCells=item.pieces[correctIdx].cells.map(function(c){return c.slice()});
+      Array.prototype.forEach.call(tray.children,function(c,i){if(i===correctIdx)c.classList.add("sel")});draw();
+      var r=svg.getBoundingClientRect();var go=gapOrigin();hand.style.left=(r.left+(TX+go[1]*G+G/2)*(r.width/360))+"px";hand.style.top=(r.top+window.scrollY+(TY+go[0]*G+G/2)*(r.height/250))+"px";
+      setTimeout(function(){solved=true;beep(820);draw();setBanner("✅","<b>It fits and the shape is whole!</b> Now you try — you may TURN a piece to make it fit.");
+        setTimeout(function(){hand.style.display="none";startWarmup();},1200);},900);},800);
+  }
+  function startWarmup(){
+    phaseName="warmup";pill.textContent="WARM-UP";interactive=true;loadItem(WARM);Tel.begin("Warm-up (unscored)");
+    setBanner("✋","<b>Practice.</b> Tap the piece that fills the gap, then Place it. (No turning needed here.)");
+  }
+  function runScored(){
+    if(idx>=PLAN.length)return finish();
+    phaseName="scored";loadItem(PLAN[idx]);interactive=true;pill.textContent="SCORED "+(idx+1)+"/"+PLAN.length;nextBtn.style.display="none";
+    Tel.begin("Scored "+(idx+1)+" — "+PLAN[idx].diff);document.getElementById("mErr").textContent="—";
+    setBanner("🎯","<b>Find the missing piece.</b> Pick it, use Turn to orient it, then Place. Only one piece truly fits.");
+  }
+  function finish(){
+    pill.textContent="DONE";interactive=false;rotBtn.disabled=true;placeBtn.disabled=true;svg.innerHTML="";tray.innerHTML="";
+    setBanner("🏁","<b>Done.</b> Solved "+Tel.correct+"/"+Tel.scored+". Picking and correctly turning the right piece on the first try, with few pieces sampled and no mirror-piece traps, is the figure-ground tail signal.");
+    Tel.line("── summary ── M-ACC="+Tel.correct+"/"+Tel.scored+" M-EXPLORE(last)="+Tel.explore+" M-EFF(attempts,last)="+Tel.attempts,"done");
+    render();nextBtn.style.display="";nextBtn.textContent="↻ Run again";nextBtn.onclick=function(){location.reload();};
+  }
+  startDemo();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CX-curious-02 — Question Quest</title>
+<style>
+  :root{--bg:#0c1a17;--card:#12271f;--ink:#eafff4;--muted:#8fc9b3;--acc:#4fe0a8;--gold:#ffd35c;--why:#ff9de0;}
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.4 system-ui,Segoe UI,Roboto,sans-serif;color:var(--ink);background:radial-gradient(circle at 30% 0%,#183a2d,#0c1a17)}
+  header{padding:14px 20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  header h1{font-size:18px;margin:0}
+  .badge{font-size:12px;color:var(--muted);border:1px solid #2c5a45;padding:2px 8px;border-radius:999px}
+  .wrap{display:grid;grid-template-columns:1fr 340px;gap:16px;padding:0 20px 30px;max-width:1100px}
+  @media(max-width:820px){.wrap{grid-template-columns:1fr}}
+  .stage{background:var(--card);border-radius:18px;padding:18px;min-height:470px;position:relative;overflow:hidden}
+  .phaseTag{position:absolute;top:12px;right:14px;font-size:12px;color:var(--gold);background:#3a3117;border:1px solid #6b5a1f;padding:3px 10px;border-radius:999px}
+  .scene{position:relative;height:150px;margin:4px auto;border-radius:14px;background:linear-gradient(#0a1512,#12271f);border:1px solid #2c5a45;display:flex;align-items:center;justify-content:center;gap:6px;font-size:60px;overflow:hidden}
+  .scene .hint{position:absolute;bottom:6px;left:0;right:0;text-align:center;font-size:12px;color:var(--gold);opacity:0;transition:opacity .5s}
+  .scene .hint.show{opacity:1}
+  .prompt{text-align:center;color:var(--muted);min-height:22px;margin:6px 0}
+  .starters{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:6px 0}
+  .starters button{background:#123024;color:#cffbe7;border:1px solid #2c5a45;padding:7px 11px;font-size:13px}
+  .starters button.deep{border-color:var(--why);color:var(--why)}
+  .starters button.on{background:var(--acc);color:#04231a}
+  .entry{display:flex;gap:8px;justify-content:center;margin:6px 0;flex-wrap:wrap}
+  input[type=text]{font:inherit;padding:10px 14px;border-radius:12px;border:2px solid #2c5a45;background:#0a1512;color:var(--ink);width:min(340px,70vw)}
+  button{font:inherit;border:0;border-radius:12px;padding:10px 16px;cursor:pointer;font-weight:600}
+  .add{background:var(--acc);color:#04231a}
+  .ghost-btn{background:#1d4535;color:#daffee}
+  .bubbles{display:flex;flex-direction:column;gap:5px;max-height:120px;overflow:auto;margin-top:6px}
+  .qb{font-size:13px;background:#0a1512;border:1px solid #2c5a45;border-radius:12px;padding:5px 10px}
+  .qb.deep{border-color:var(--why)}
+  .qb .d{font-size:10px;color:var(--muted);float:right}
+  .ghost{position:absolute;font-size:36px;pointer-events:none;transition:left .8s ease,top .8s ease;z-index:6;filter:drop-shadow(0 4px 6px rgba(0,0,0,.5))}
+  .tele{background:#0a1512;border:1px solid #244b3a;border-radius:18px;padding:14px;height:fit-content;position:sticky;top:12px}
+  .tele h3{margin:0 0 8px;font-size:14px;letter-spacing:.5px;color:var(--gold)}
+  .metrics{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+  .chip{font-size:12px;background:#12271f;border:1px solid #2c5a45;border-radius:8px;padding:4px 8px}
+  .chip b{color:var(--gold)}
+  .log{font:11px/1.5 ui-monospace,Menlo,Consolas,monospace;color:#a9ecd0;max-height:200px;overflow:auto;background:#07120f;border-radius:10px;padding:8px}
+  .log div{border-bottom:1px solid #14281f;padding:1px 0}
+  .note{font-size:11px;color:var(--muted);margin-top:8px}
+  .cta{display:flex;gap:10px;justify-content:center;margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>🔍 Question Quest</h1>
+  <span class="badge">CX-curious-02</span>
+  <span class="badge">bands: 2–3 · 4–5 · 6–8</span>
+  <span class="badge">curiosity · ask-and-guess</span>
+</header>
+<div class="wrap">
+  <div class="stage" id="stage">
+    <div class="phaseTag" id="phaseTag">demo</div>
+    <div class="scene" id="scene"><span id="sceneArt">🌳🚪✨</span><div class="hint" id="hint"></div></div>
+    <div class="prompt" id="prompt"></div>
+    <div class="starters" id="starters" style="display:none"></div>
+    <div class="entry" id="entry" style="display:none">
+      <input type="text" id="q" placeholder="finish your question…" autocomplete="off">
+      <button class="add" id="askBtn">Ask! →</button>
+    </div>
+    <div class="bubbles" id="bubbles"></div>
+    <div class="ghost" id="ghost" style="display:none">👆</div>
+    <div class="cta" id="cta"></div>
+  </div>
+  <div class="tele">
+    <h3>LIVE TELEMETRY</h3>
+    <div class="metrics" id="metrics"></div>
+    <div class="log" id="log"></div>
+    <div class="note">M-QUERY (question count + depth) · M-IDEAFLU (guesses) · M-FLEX (kinds of guess) · M-ORIG (rare guesses) · M-ENGAGE. Depth: why/how/what-if score higher than what/who/where.</div>
+  </div>
+</div>
+<script>
+const T={ev:[],m:{},t0:performance.now(),
+  now(){return Math.round(performance.now()-this.t0)},
+  log(a,d){const t=this.now();this.ev.push(Object.assign({t,a},d||{}));
+    const el=document.getElementById('log');const line=document.createElement('div');
+    line.textContent='+'+(t/1000).toFixed(2)+'s  '+a+(d?'  '+JSON.stringify(d):'');el.prepend(line);},
+  set(k,v){this.m[k]=v;this.render();},
+  render(){document.getElementById('metrics').innerHTML=
+    Object.entries(this.m).map(([k,v])=>'<span class="chip"><b>'+k+'</b> '+v+'</span>').join('');}};
+const $=s=>document.querySelector(s);
+const ghost=$('#ghost'),phaseTag=$('#phaseTag');
+
+/* starter cards: word, depth (1 surface, 2 causal, 3 hypothetical) */
+const STARTERS=[['Who','who ',1],['What','what ',1],['Where','where ',1],['Why','why ',2],['How','how ',2],['What if','what if ',3]];
+const SCENES={demo:{art:'🌳🚪✨',hints:['The door is warm to touch…']},
+  warm:{art:'🐈‍⬛🎈',hints:['The balloon never pops…']},
+  item:{art:'🌌🕳️💧',hints:['The puddle glows at night…','Tiny footprints lead away…','It hums a little tune…']}};
+/* guess categorization for the cause/consequence round */
+const GKW={magic:['magic','fairy','wizard','spell','portal','genie','ghost'],
+  nature:['water','rain','sun','plant','tree','glow','moon','star','mineral','chemical'],
+  animal:['animal','creature','bug','fish','frog','monster','alien','worm'],
+  machine:['robot','machine','battery','light','power','wire','engine','tech'],
+  people:['person','kid','scientist','someone','painted','spilled','dropped','made'],
+  accident:['accident','fell','broke','leak','melt','mistake']};
+function gcat(t){t=t.toLowerCase();for(const c in GKW){if(GKW[c].some(k=>t.includes(k)))return c;}return 'new-idea';}
+const GCOMMON=['water','light','someone','spilled','paint','magic'];
+
+let qs=[],depthSum=0,guesses=[],gkinds=new Set(),gorig=0,scored=false,mode='ask',hintIx=0;
+
+T.set('phase','demo');T.set('questions_M-QUERY',0);T.set('avgDepth',' — ');
+T.set('guesses_M-IDEAFLU',0);T.set('guessKinds_M-FLEX',0);T.set('rare_M-ORIG',0);
+
+function setScene(s){$('#sceneArt').textContent=s.art;$('#hint').classList.remove('show');hintIx=0;}
+function revealHint(s){if(hintIx<s.hints.length){$('#hint').textContent='👀 '+s.hints[hintIx];$('#hint').classList.add('show');hintIx++;}}
+
+function addQuestion(text,depth){
+  text=text.trim();if(text.length<3)return;
+  const norm=text.toLowerCase();
+  if(qs.some(q=>q.norm===norm)){T.log('duplicate_ignored',{text});return;}
+  qs.push({text,norm,depth,t:T.now()});depthSum+=depth;
+  const b=document.createElement('div');b.className='qb'+(depth>=2?' deep':'');
+  b.innerHTML=text+'<span class="d">'+(depth>=3?'hypothetical':depth==2?'causal':'surface')+'</span>';
+  $('#bubbles').prepend(b);
+  if(scored){T.set('questions_M-QUERY',qs.length);T.set('avgDepth',(depthSum/qs.length).toFixed(2));
+    revealHint(SCENES.item);}
+  T.log(scored?'question (M-QUERY)':'warmup_question',{text,depth});
+}
+function addGuess(text){
+  text=text.trim();if(text.length<2)return;
+  const norm=text.toLowerCase();
+  if(guesses.some(g=>g.norm===norm)){T.log('duplicate_ignored',{text});return;}
+  const cat=gcat(text),rare=!GCOMMON.some(c=>norm.includes(c));
+  guesses.push({text,norm,cat,rare});const newK=!gkinds.has(cat);gkinds.add(cat);if(rare)gorig++;
+  const b=document.createElement('div');b.className='qb';b.style.borderColor=rare?'var(--gold)':'';
+  b.innerHTML=(rare?'⭐ ':'')+text+'<span class="d">'+cat+'</span>';$('#bubbles').prepend(b);
+  T.set('guesses_M-IDEAFLU',guesses.length);T.set('guessKinds_M-FLEX',gkinds.size);T.set('rare_M-ORIG',gorig);
+  if(newK)$('#prompt').innerHTML='<b style="color:var(--gold)">🔥 a new kind of guess!</b>';
+  T.log('guess',{text,kind:cat,rare});
+}
+
+/* ---- flow ---- */
+function buildStarters(onAsk){
+  const wrap=$('#starters');wrap.innerHTML='';let picked='';
+  STARTERS.forEach(([w,stem,depth])=>{const b=document.createElement('button');
+    if(depth>=2)b.className='deep';b.textContent=w+'…';
+    b.onclick=()=>{picked=stem;const cur=$('#q').value.replace(/^(who|what if|what|where|why|how)\s*/i,'');
+      $('#q').value=stem+cur;$('#q').focus();
+      wrap.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+      $('#q').dataset.depth=depth;T.log('starter_tap',{w});};
+    wrap.appendChild(b);});
+  const submit=()=>{let v=$('#q').value.trim();if(v.length<3)return;
+    let depth=+($('#q').dataset.depth||1);
+    const lv=v.toLowerCase();
+    if(lv.startsWith('what if'))depth=3;else if(lv.startsWith('why')||lv.startsWith('how'))depth=2;
+    addQuestion(v,depth);$('#q').value='';$('#q').dataset.depth='';wrap.querySelectorAll('button').forEach(x=>x.classList.remove('on'));onAsk();};
+  $('#askBtn').onclick=submit;
+  $('#q').onkeydown=e=>{if(e.key==='Enter')submit();};
+  $('#q').oninput=()=>{if(!$('#q').dataset.f){$('#q').dataset.f=1;T.log('first_keystroke');}};
+}
+function runGhost(){
+  phaseTag.textContent='demo';setScene(SCENES.demo);ghost.style.display='block';
+  $('#prompt').textContent='Watch: ask questions about the mystery…';
+  const seq=[['why is the door glowing?',2],['what if I open it?',3]];
+  let i=0;ghost.style.left='50%';ghost.style.top='40%';
+  const step=()=>{if(i>=seq.length){ghost.style.display='none';setTimeout(startWarm,500);return;}
+    ghost.style.left=(30+i*22)+'%';ghost.style.top='62%';
+    setTimeout(()=>{addQuestion(seq[i][0],seq[i][1]);i++;setTimeout(step,1600);},700);};
+  setTimeout(step,700);
+}
+function startWarm(){
+  qs=[];depthSum=0;scored=false;$('#bubbles').innerHTML='';phaseTag.textContent='warm-up (practice)';
+  setScene(SCENES.warm);$('#prompt').textContent='Practice: ask 2 questions about this (not scored)';
+  $('#starters').style.display='flex';$('#entry').style.display='flex';
+  T.set('phase','warm-up');T.set('questions_M-QUERY',0);T.log('phase_warmup');
+  let n=0;buildStarters(()=>{n++;if(n>=2)$('#cta').innerHTML='<button class="add" onclick="startItem()">Ready → real mystery</button>';});
+}
+function startItem(){
+  qs=[];depthSum=0;guesses=[];gkinds=new Set();gorig=0;scored=true;mode='ask';
+  $('#bubbles').innerHTML='';$('#cta').innerHTML='';phaseTag.textContent='scored · ask';
+  setScene(SCENES.item);$('#prompt').innerHTML='<b>Ask everything you wonder about this!</b>';
+  T.set('phase','scored-ask');T.set('questions_M-QUERY',0);T.set('avgDepth',' — ');T.log('phase_scored_ask');
+  buildStarters(()=>{if(qs.length>=2)$('#cta').innerHTML='<button class="ghost-btn" onclick="startGuess()">Now guess why → </button>';});
+}
+function startGuess(){
+  mode='guess';phaseTag.textContent='scored · guess';$('#starters').style.display='none';
+  $('#prompt').innerHTML='<b>Guess: why did this happen? What happens next?</b> Many different ideas!';
+  $('#q').placeholder='a guess…';$('#cta').innerHTML='<button class="ghost-btn" onclick="finish()">Done → results</button>';
+  T.set('phase','scored-guess');T.log('phase_scored_guess');
+  const submit=()=>{const v=$('#q').value.trim();if(v){addGuess(v);$('#q').value='';}};
+  $('#askBtn').textContent='Guess! →';$('#askBtn').onclick=submit;$('#q').onkeydown=e=>{if(e.key==='Enter')submit();};
+}
+function finish(){
+  const avgD=qs.length?(depthSum/qs.length).toFixed(2):0;
+  T.log('SESSION_END',{questions:qs.length,avg_depth:+avgD,guesses:guesses.length,guess_kinds:gkinds.size,rare_guesses:gorig});
+  $('#prompt').innerHTML='<b style="color:var(--gold);font-size:20px">Great curiosity! 🎉</b>'+
+    '<div class="note">'+qs.length+' questions (avg depth '+avgD+') · '+guesses.length+' guesses across '+gkinds.size+
+    ' kinds · '+gorig+' rare. <b>Deep (why/how/what-if) questions</b> and <b>varied guesses</b> mark epistemic curiosity.</div>';
+  $('#entry').style.display='none';$('#starters').style.display='none';
+  $('#cta').innerHTML='<button class="add" onclick="location.reload()">↺ Play again</button>';
+  T.set('phase','done');
+}
+window.addEventListener('blur',()=>T.log('off_task_blur (M-ENGAGE)'));
+runGhost();
+</script>
+</body>
+</html>

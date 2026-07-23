@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QUANT-SEQORBIT-01 — Skip-Count Orbit</title>
+<style>
+:root{--bg:#0f1226;--panel:#1b2140;--panel2:#232a52;--accent:#5eead4;--accent2:#f59e0b;--good:#4ade80;--bad:#f87171;--ink:#eef1ff;--muted:#9aa3c7}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font:16px/1.45 system-ui,Segoe UI,Roboto,sans-serif;color:var(--ink);
+  background:radial-gradient(1200px 700px at 20% -10%,#26305e,#0f1226 60%);min-height:100vh}
+.wrap{display:grid;grid-template-columns:1fr 340px;gap:16px;max-width:1120px;margin:0 auto;padding:18px}
+@media(max-width:880px){.wrap{grid-template-columns:1fr}}
+h1{font-size:18px;margin:0 0 2px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:10px}
+.card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid #313a6b;border-radius:16px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.phasebar{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.pill{font-size:12px;padding:4px 10px;border-radius:999px;background:#2b336a;color:var(--muted);border:1px solid #3a447f}
+.pill.on{background:var(--accent);color:#053;font-weight:700}
+.prompt{font-size:15px;color:var(--muted);min-height:22px;margin:6px 0 8px;text-align:center}
+.seq{text-align:center;font-size:24px;font-weight:800;letter-spacing:2px;min-height:30px;margin-bottom:6px}
+.seq .cur{color:var(--accent2)}
+.seq .q{color:var(--accent)}
+.orbit{position:relative;width:340px;height:340px;margin:6px auto 0}
+.hub{position:absolute;left:50%;top:50%;width:96px;height:96px;margin:-48px 0 0 -48px;border-radius:50%;
+  background:radial-gradient(circle at 40% 35%,#2b336a,#191f42);border:1px solid #3a447f;display:flex;align-items:center;
+  justify-content:center;text-align:center;font-size:12px;color:var(--muted);padding:8px}
+.node{position:absolute;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:#20264d;
+  border:2px solid #3a447f;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;cursor:pointer;transition:transform .1s,background .15s,border-color .15s}
+.node:hover{border-color:var(--accent);transform:scale(1.08)}
+.node.visited{background:linear-gradient(180deg,#5a67b8,#3a447f);border-color:#7d8ad6;color:#fff}
+.node.last{background:linear-gradient(180deg,#f7c56b,#e8912a);border-color:#fff;color:#3a2600}
+.node.right{background:linear-gradient(180deg,#86efac,#22c55e);border-color:#16a34a;color:#053}
+.node.wrong{background:linear-gradient(180deg,#fca5a5,#ef4444);border-color:#b91c1c;color:#fff}
+.row{display:flex;gap:10px;align-items:center;justify-content:center;margin-top:14px;flex-wrap:wrap}
+button.act{font:600 15px system-ui;padding:10px 18px;border-radius:12px;border:0;cursor:pointer;background:var(--accent);color:#053}
+button.act.ghost{background:#2b336a;color:var(--ink);border:1px solid #3a447f}
+button.act:disabled{opacity:.4;cursor:default}
+.fb{min-height:26px;text-align:center;font-weight:700;margin-top:12px}
+.fb.good{color:var(--good)}.fb.bad{color:var(--bad)}
+.hand{position:fixed;font-size:30px;z-index:20;pointer-events:none;filter:drop-shadow(0 4px 6px rgba(0,0,0,.5));transition:left .5s cubic-bezier(.4,0,.2,1),top .5s ease;opacity:0}
+.tele{font-size:13px}
+.tele h2{font-size:14px;margin:0 0 8px;color:var(--accent)}
+.metrics{display:grid;grid-template-columns:1fr auto;gap:4px 8px;margin-bottom:10px}
+.metrics div:nth-child(odd){color:var(--muted)}
+.metrics b{font-variant-numeric:tabular-nums}
+.log{height:236px;overflow:auto;background:#12172f;border:1px solid #2a336a;border-radius:10px;padding:8px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace}
+.log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-acc{color:var(--good)}.t-err{color:var(--bad)}.t-evt{color:#9fb0ff}.t-sys{color:var(--muted)}
+.legend{color:var(--muted);font-size:12px;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <main class="card">
+    <h1>Skip-Count Orbit</h1>
+    <div class="sub">The token hops around the ring by the same jump each time. Tap where it lands NEXT.</div>
+    <div class="phasebar" id="phasebar"></div>
+    <div class="prompt" id="prompt"></div>
+    <div class="seq" id="seq"></div>
+    <div class="orbit" id="orbit"><div class="hub" id="hub"></div></div>
+    <div class="row">
+      <button class="act ghost" id="nextBtn" style="display:none">Next</button>
+    </div>
+    <div class="fb" id="fb"></div>
+    <div class="hand" id="hand">&#128070;</div>
+  </main>
+  <aside class="card tele">
+    <h2>Live telemetry</h2>
+    <div class="metrics" id="metrics"></div>
+    <div class="log" id="log"></div>
+    <div class="legend">Logs <b>M-ACC</b>, <b>M-RTFIRST</b> (plan time before tapping), <b>M-PATH</b> (taps), <b>M-DIFFREACH</b> (jump size / wrap solved), <b>M-CONSIST</b> (matched-clone agreement).</div>
+  </aside>
+</div>
+<script>
+(function(){
+  "use strict";
+  var el=function(id){return document.getElementById(id)};
+  var orbit=el('orbit'),hub=el('hub'),hand=el('hand'),prompt=el('prompt'),seq=el('seq'),
+      fb=el('fb'),nextBtn=el('nextBtn');
+  var T0=Date.now(); function perf(){return Date.now()-T0;}
+
+  var Tel={
+    scored:0,correct:0,taps:0,firstSum:0,firstN:0,diffMax:0,groupRes:{},
+    push:function(cls,msg){var d=document.createElement('div');d.className=cls;
+      d.textContent='['+(perf()/1000).toFixed(2)+'s] '+msg;var L=el('log');L.appendChild(d);L.scrollTop=L.scrollHeight;},
+    consist:function(){ // agreement across matched clone groups
+      var g=Tel.groupRes,keys=Object.keys(g),pairs=0,agree=0;
+      keys.forEach(function(k){ var a=g[k]; if(a.length>=2){ pairs++; if(a.every(function(x){return x===a[0];}))agree++; } });
+      return pairs?Math.round(100*agree/pairs)+'% ('+agree+'/'+pairs+')':'—';
+    },
+    render:function(){
+      var acc=Tel.scored?Math.round(100*Tel.correct/Tel.scored)+'% ('+Tel.correct+'/'+Tel.scored+')':'—';
+      var first=Tel.firstN?Math.round(Tel.firstSum/Tel.firstN)+' ms':'—';
+      el('metrics').innerHTML=
+        '<div>M-ACC accuracy</div><b>'+acc+'</b>'+
+        '<div>M-RTFIRST mean</div><b>'+first+'</b>'+
+        '<div>M-PATH taps</div><b>'+Tel.taps+'</b>'+
+        '<div>M-DIFFREACH jump</div><b>'+(Tel.diffMax||'—')+'</b>'+
+        '<div>M-CONSIST clones</div><b>'+Tel.consist()+'</b>';
+    }
+  };
+
+  // items: N cells (0..N-1), start, step, shown terms; answer=(start+step*shown)%N; group for M-CONSIST; wrap flag
+  var items=[
+    {phase:'demo',  N:12,start:0,step:2,shown:4},
+    {phase:'warmup',N:10,start:0,step:1,shown:3},
+    {phase:'scored',N:12,start:0,step:3,shown:3,group:'g3'},
+    {phase:'scored',N:12,start:1,step:3,shown:3,group:'g3'},
+    {phase:'scored',N:10,start:0,step:4,shown:3,wrap:true}
+  ];
+  var labels={demo:'1 Watch',warmup:'2 Try',scored:'3 Solve'};
+  var idx=-1,cur=null,visited=[],answer=0,firstAction=0,itemStart=0,locked=false;
+
+  function renderPhasebar(){
+    el('phasebar').innerHTML=['demo','warmup','scored'].map(function(p){
+      var on=cur&&cur.phase===p?' on':''; return '<span class="pill'+on+'">'+labels[p]+'</span>';
+    }).join('');
+  }
+  function pos(i){
+    var R=140, cx=170, cy=170, ang=-Math.PI/2 + i*2*Math.PI/cur.N;
+    return {x:cx+R*Math.cos(ang), y:cy+R*Math.sin(ang)};
+  }
+  function drawOrbit(){
+    [].slice.call(orbit.querySelectorAll('.node')).forEach(function(n){n.remove();});
+    for(var i=0;i<cur.N;i++){(function(i){
+      var p=pos(i);
+      var n=document.createElement('div');n.className='node';n.id='node'+i;n.textContent=i;
+      n.style.left=p.x+'px';n.style.top=p.y+'px';
+      var vpos=visited.indexOf(i);
+      if(vpos>=0){ n.classList.add(vpos===visited.length-1?'last':'visited'); }
+      n.onclick=function(){ tap(i); };
+      orbit.appendChild(n);
+    })(i);}
+  }
+  function drawSeq(){
+    var parts=visited.map(function(v){return '<span class="cur">'+v+'</span>';});
+    parts.push('<span class="q">?</span>');
+    seq.innerHTML=parts.join(' &#8594; ');
+    hub.innerHTML='jump of<br><b style="font-size:22px;color:var(--accent2)">+'+cur.step+'</b>';
+  }
+
+  function tap(i){
+    if(cur.phase==='demo'||locked)return;
+    if(firstAction===0){firstAction=perf();Tel.firstSum+=(firstAction-itemStart);Tel.firstN++;Tel.push('t-evt','first action (plan '+(firstAction-itemStart)+'ms)');}
+    Tel.taps++;
+    var correct=(i===answer);
+    locked=true;
+    var n=el('node'+i); n.classList.add(correct?'right':'wrong');
+    if(!correct){ el('node'+answer).classList.add('right'); }
+    var wrapErr = cur.wrap && i===(cur.start+cur.step*cur.shown) && i!==answer; // ignored wrap (linear guess)
+    var etype = correct?'correct': wrapErr?'no-wrap (forgot the ring wraps)': (Math.abs(i-answer)===1?'off-by-one':'other');
+    if(cur.phase==='scored'){
+      Tel.scored++; if(correct)Tel.correct++;
+      Tel.diffMax=Math.max(Tel.diffMax,cur.step);
+      if(cur.group){ (Tel.groupRes[cur.group]=Tel.groupRes[cur.group]||[]).push(correct?1:0); }
+      Tel.push(correct?'t-acc':'t-err','SCORED: tapped '+i+' (answer '+answer+')  jump=+'+cur.step+(cur.wrap?' [wrap]':'')+'  err='+etype);
+    } else {
+      Tel.push('t-sys',cur.phase.toUpperCase()+': tapped '+i+' (answer '+answer+') — not scored');
+    }
+    fb.textContent = correct? (cur.phase==='warmup'?'Landed it! Now the real ones.':'Correct — the next landing!')
+                    : 'It lands on '+answer+' (jump of +'+cur.step+(cur.wrap?', wrapping around the ring':'')+').';
+    fb.className='fb '+(correct?'good':'bad');
+    nextBtn.style.display='inline-block'; if(correct)beep();
+    Tel.render();
+  }
+
+  function loadItem(){
+    idx++; if(idx>=items.length){finish();return;}
+    cur=items[idx]; locked=false; firstAction=0; itemStart=perf();
+    visited=[]; for(var k=0;k<cur.shown;k++){visited.push((cur.start+cur.step*k)%cur.N);}
+    answer=(cur.start+cur.step*cur.shown)%cur.N;
+    fb.textContent='';fb.className='fb'; nextBtn.style.display='none';
+    renderPhasebar();
+    prompt.textContent = cur.phase==='demo'?'Watch: the token jumps by the same amount each time. Where next?'
+      :'Tap the ring where the token lands NEXT.';
+    drawSeq(); drawOrbit();
+    Tel.push('t-sys','LOAD '+cur.phase+': ring '+cur.N+', +'+cur.step+', shown '+visited.join(',')+' -> answer '+answer+(cur.wrap?' (wraps)':''));
+    if(cur.phase==='demo') ghostDemo();
+    Tel.render();
+  }
+  nextBtn.onclick=loadItem;
+
+  function ghostDemo(){
+    hand.style.opacity='0';
+    // hop across visited nodes, then land on answer
+    var path=visited.concat([answer]);
+    path.forEach(function(node,i){
+      setTimeout(function(){
+        var n=el('node'+node);var r=n.getBoundingClientRect();
+        hand.style.opacity='1';hand.style.left=(r.left+r.width/2-4)+'px';hand.style.top=(r.top+r.height/2)+'px';
+        if(i===path.length-1){ n.classList.add('right'); beep(); }
+        Tel.push('t-sys','ghost: hop to '+node);
+      }, 400 + i*650);
+    });
+    setTimeout(function(){fb.textContent='Next landing = '+answer+' (jump of +'+cur.step+').';fb.className='fb good';hand.style.opacity='0';},400+path.length*650+200);
+    setTimeout(function(){loadItem();},400+path.length*650+1200);
+  }
+
+  function beep(){try{var a=new(window.AudioContext||window.webkitAudioContext)();var o=a.createOscillator(),g=a.createGain();
+    o.connect(g);g.connect(a.destination);o.type='sine';o.frequency.setValueAtTime(620,a.currentTime);
+    o.frequency.exponentialRampToValueAtTime(960,a.currentTime+.15);g.gain.setValueAtTime(.12,a.currentTime);
+    g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+.3);o.start();o.stop(a.currentTime+.32);}catch(e){}}
+
+  function finish(){
+    prompt.textContent='';seq.innerHTML='';
+    orbit.innerHTML='<div style="text-align:center;padding:120px 0 0;color:var(--muted)">'+
+      '<div style="font-size:44px">&#127881;</div><div>Sample complete. Telemetry captured on the right.</div></div>';
+    nextBtn.style.display='none';
+    Tel.push('t-sys','SESSION complete: '+Tel.correct+'/'+Tel.scored+' scored correct; M-CONSIST '+Tel.consist());
+  }
+  window.addEventListener('blur',function(){Tel.push('t-sys','engagement: focus lost');});
+  Tel.render(); loadItem();
+})();
+</script>
+</body>
+</html>

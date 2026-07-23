@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VER-ZOOMIN-01 - Zoom In</title>
+<style>
+  :root{--bg:#0f1226;--panel:#181c3a;--card:#20264f;--ink:#f4f6ff;--mut:#9aa3d4;
+    --acc:#ffd23f;--good:#37d67a;--bad:#ff6b6b;--line:#2c3566;--brand:#7c8cff;}
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.45 system-ui,Segoe UI,Roboto,sans-serif;color:var(--ink);min-height:100vh;
+    background:radial-gradient(1200px 600px at 20% -10%,#2a2f66 0,var(--bg) 55%)}
+  .wrap{display:flex;gap:18px;max-width:1180px;margin:0 auto;padding:18px;flex-wrap:wrap}
+  .main{flex:1 1 560px;min-width:340px}.side{flex:1 1 320px;min-width:300px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px}
+  header.card{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-bottom:14px}
+  h1{font-size:18px;margin:0}.id{font:12px ui-monospace,Menlo,monospace;color:var(--mut)}
+  .pill{font:12px ui-monospace,monospace;padding:4px 10px;border-radius:999px;background:#12163a;border:1px solid var(--line);color:var(--acc)}
+  .promptbar{display:flex;align-items:center;gap:14px;margin:4px 0 12px}
+  .play{width:64px;height:64px;border-radius:50%;border:none;cursor:pointer;font-size:26px;color:#fff;
+    background:linear-gradient(160deg,var(--brand),#4d5bd6);box-shadow:0 6px 18px #0006;display:grid;place-items:center;transition:transform .12s}
+  .play:active{transform:scale(.94)}.play.pulse{animation:pulse 1s ease infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 #7c8cff88}50%{box-shadow:0 0 0 14px #7c8cff00}}
+  .caption{font-size:15px;color:var(--mut)}.caption b{color:var(--ink);font-size:20px}
+  .scene{position:relative;height:340px;border-radius:16px;overflow:hidden;border:1px solid var(--line);
+    background:linear-gradient(180deg,#1b2350 0,#20345c 55%,#274a37 55%,#22422f 100%)}
+  .obj{position:absolute;transform:translate(-50%,-50%);font-size:40px;cursor:pointer;transition:transform .1s;
+    filter:drop-shadow(0 2px 2px #0007);border-radius:12px;padding:4px;border:2px solid transparent}
+  .obj:hover{transform:translate(-50%,-50%) scale(1.12)}
+  .obj.sel{border-color:var(--acc);background:#2b2f5e88}
+  .obj.hit{border-color:var(--good);background:#1f513866}
+  .obj.miss{border-color:var(--bad);background:#5a233066}
+  .obj.demo-hit{border-color:var(--acc);transform:translate(-50%,-50%) scale(1.25)}
+  .obj.lock{pointer-events:none}
+  .feedback{min-height:26px;margin-top:12px;font-weight:700}
+  .row{display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap}
+  button.btn{border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:9px 16px;cursor:pointer;background:#242a56}
+  button.btn.primary{background:linear-gradient(160deg,var(--good),#1f9e5a);border:none;color:#04240f;font-weight:700}
+  button.btn:disabled{opacity:.4;cursor:not-allowed}
+  .note{font-size:12px;color:var(--mut);margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+  .tallies{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 12px}
+  .t{background:#12163a;border:1px solid var(--line);border-radius:12px;padding:10px}
+  .t .k{font:11px ui-monospace,monospace;color:var(--mut)}.t .v{font-size:19px;font-weight:700}.t .m{font:10px ui-monospace,monospace;color:var(--brand)}
+  .log{height:220px;overflow:auto;background:#0c0f28;border:1px solid var(--line);border-radius:12px;padding:10px;font:12px/1.5 ui-monospace,Menlo,monospace}
+  .log div{white-space:pre-wrap;border-bottom:1px dashed #1c2350;padding:2px 0}.log .mid{color:var(--acc)}.log .tt{color:var(--mut)}
+  .hand{position:fixed;z-index:50;font-size:38px;pointer-events:none;opacity:0;filter:drop-shadow(0 3px 4px #0008);
+    transition:left .8s cubic-bezier(.5,.1,.3,1),top .8s cubic-bezier(.5,.1,.3,1),opacity .3s}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="main">
+    <header class="card">
+      <div><h1>Zoom In</h1><div class="id">VER-ZOOMIN-01 &middot; receptive_vocabulary</div></div>
+      <span class="pill" id="phase">DEMO</span>
+    </header>
+    <div class="card">
+      <div class="promptbar">
+        <button class="play" id="play" title="play">&#9654;</button>
+        <div class="caption" id="cap">Find: <b id="word">&mdash;</b><div style="font-size:12px">(demo shows a caption; production plays audio only)</div></div>
+      </div>
+      <div class="scene" id="scene"></div>
+      <div class="feedback" id="fb"></div>
+      <div class="row">
+        <button class="btn" id="replay">&#8635; Replay demo</button>
+        <button class="btn primary" id="next" disabled>Next &rarr;</button>
+      </div>
+      <div class="note">Tap the thing the word names, right inside the picture. Rarer, more precise words (parts, attributes)
+        come as you succeed. The last round is "tap ALL the ___" (breadth). No reading; prompts are audio.</div>
+    </div>
+  </div>
+  <aside class="side">
+    <div class="card">
+      <h1 style="font-size:15px;margin:0 0 8px">Live telemetry</h1>
+      <div class="tallies">
+        <div class="t"><div class="k">Accuracy</div><div class="v" id="v-acc">0/0</div><div class="m">M-ACC</div></div>
+        <div class="t"><div class="k">Mean RT</div><div class="v" id="v-rt">&mdash;</div><div class="m">M-RT</div></div>
+        <div class="t"><div class="k">1st-action lat.</div><div class="v" id="v-first">&mdash;</div><div class="m">M-RTFIRST</div></div>
+        <div class="t"><div class="k">Word band / ceiling</div><div class="v" id="v-lvl">&mdash;</div><div class="m">M-VOCABLVL / M-DIFFREACH</div></div>
+        <div class="t"><div class="k">Regions sampled</div><div class="v" id="v-exp">&mdash;</div><div class="m">M-EXPLORE</div></div>
+        <div class="t"><div class="k">Breadth sensitivity</div><div class="v" id="v-dp">&mdash;</div><div class="m">M-DPRIME</div></div>
+      </div>
+      <div class="log" id="log"></div>
+    </div>
+  </aside>
+</div>
+<div class="hand" id="hand">&#128070;</div>
+<script>
+"use strict";
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const $=s=>document.querySelector(s);
+const T0=performance.now();
+// scene objects: id, emoji, x%, y%, tags (for breadth categories)
+const OBJ=[
+  {id:"sun",e:"\u2600\uFE0F",x:12,y:14,tags:["round","sky"]},
+  {id:"cloud",e:"\u2601\uFE0F",x:40,y:12,tags:["sky"]},
+  {id:"crescent",e:"\uD83C\uDF19",x:66,y:13,tags:["sky","round"]},
+  {id:"kite",e:"\uD83E\uDE81",x:86,y:20,tags:["sky"]},
+  {id:"bird",e:"\uD83D\uDC26",x:24,y:30,tags:["animal","sky"]},
+  {id:"tree",e:"\uD83C\uDF33",x:10,y:66,tags:["plant"]},
+  {id:"flower",e:"\uD83C\uDF38",x:28,y:80,tags:["plant","round"]},
+  {id:"mushroom",e:"\uD83C\uDF44",x:44,y:82,tags:["plant"]},
+  {id:"dog",e:"\uD83D\uDC15",x:60,y:74,tags:["animal"]},
+  {id:"ball",e:"\u26BD",x:74,y:84,tags:["round"]},
+  {id:"car",e:"\uD83D\uDE97",x:88,y:70,tags:["vehicle"]},
+  {id:"bicycle",e:"\uD83D\uDEB2",x:52,y:64,tags:["vehicle"]},
+  {id:"boat",e:"\u26F5",x:20,y:48,tags:["vehicle"]},
+  {id:"lantern",e:"\uD83C\uDFEE",x:78,y:46,tags:[]}
+];
+// items: word + target id (single) OR multi with tag; band for rarity
+const DEMO={word:"kite",target:"kite",band:1};
+const WARMUP={word:"dog",target:"dog",band:1};
+const SCORED=[
+  {word:"boat",target:"boat",band:2},
+  {word:"lantern",target:"lantern",band:4},
+  {word:"crescent",target:"crescent",band:6},
+  {word:"every vehicle",multi:"vehicle",band:5,breadth:true}
+];
+
+let phase="demo",idx=0,cur=null;
+let sel=[],sampled=new Set(),tShown=0,tFirst=0,locked=false;
+const results=[];let ceiling=0;
+
+function log(mid,msg){const el=document.createElement("div");const t=((performance.now()-T0)/1000).toFixed(2);
+  el.innerHTML=`<span class="tt">t+${t}s</span> <span class="mid">[${mid}]</span> ${msg}`;const b=$("#log");b.appendChild(el);b.scrollTop=b.scrollHeight;}
+function setPhase(p){phase=p;$("#phase").textContent=p.toUpperCase();}
+function speak(w){try{if(window.speechSynthesis){const u=new SpeechSynthesisUtterance(w);u.rate=.9;speechSynthesis.cancel();speechSynthesis.speak(u);}}catch(e){}}
+function normInv(p){// Acklam approximation
+  const a=[-3.969683028665376e+01,2.209460984245205e+02,-2.759285104469687e+02,1.383577518672690e+02,-3.066479806614716e+01,2.506628277459239e+00];
+  const b=[-5.447609879822406e+01,1.615858368580409e+02,-1.556989798598866e+02,6.680131188771972e+01,-1.328068155288572e+01];
+  const c=[-7.784894002430293e-03,-3.223964580411365e-01,-2.400758277161838e+00,-2.549732539343734e+00,4.374664141464968e+00,2.938163982698783e+00];
+  const d=[7.784695709041462e-03,3.224671290700398e-01,2.445134137142996e+00,3.754408661907416e+00];
+  const pl=0.02425;let q,r;
+  if(p<pl){q=Math.sqrt(-2*Math.log(p));return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);}
+  if(p<=1-pl){q=p-0.5;r=q*q;return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);}
+  q=Math.sqrt(-2*Math.log(1-p));return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);
+}
+function render(item,{interactive=true}={}){
+  cur=item;sel=[];sampled=new Set();locked=false;tFirst=0;
+  $("#fb").textContent="";$("#next").disabled=true;$("#v-exp").textContent="\u2014";
+  $("#word").textContent=item.word;
+  $("#cap").firstChild.textContent=item.breadth?"Tap ALL: ":"Find: ";
+  const sc=$("#scene");sc.innerHTML="";
+  OBJ.forEach(o=>{const d=document.createElement("div");d.className="obj";d.dataset.id=o.id;d.textContent=o.e;
+    d.style.left=o.x+"%";d.style.top=o.y+"%";if(interactive)d.addEventListener("click",()=>tap(o.id,d));sc.appendChild(d);});
+  tShown=performance.now();speak(item.word);
+}
+function objEls(){return[...document.querySelectorAll(".obj")];}
+function tap(id,el){
+  if(locked)return;
+  if(!tFirst){tFirst=performance.now();log("M-RTFIRST",`first-action latency ${Math.round(tFirst-tShown)}ms`);}
+  sampled.add(id);$("#v-exp").textContent=sampled.size;
+  if(cur.breadth){
+    const i=sel.indexOf(id);if(i>=0){sel.splice(i,1);el.classList.remove("sel");}else{sel.push(id);el.classList.add("sel");}
+    $("#next").disabled=sel.length===0;
+  }else{
+    objEls().forEach(o=>o.classList.remove("sel"));el.classList.add("sel");sel=[id];
+    if(sampled.size>1)log("M-EXPLORE",`sampled region '${id}' (distinct sampled: ${sampled.size})`);
+    $("#next").disabled=false;
+  }
+}
+function commit(){
+  locked=true;const rt=Math.round(performance.now()-tShown);
+  objEls().forEach(o=>o.classList.add("lock"));
+  if(cur.breadth){
+    const targets=OBJ.filter(o=>o.tags.includes(cur.multi)).map(o=>o.id);
+    const nonT=OBJ.filter(o=>!o.tags.includes(cur.multi)).map(o=>o.id);
+    const hits=sel.filter(x=>targets.includes(x)).length;
+    const fa=sel.filter(x=>nonT.includes(x)).length;
+    objEls().forEach(o=>{const id=o.dataset.id;const picked=sel.includes(id);const isT=targets.includes(id);
+      if(picked)o.classList.add(isT?"hit":"miss");if(isT&&!picked)o.classList.add("hit");});
+    let hr=hits/targets.length, far=fa/nonT.length;hr=Math.min(.99,Math.max(.01,hr));far=Math.min(.99,Math.max(.01,far));
+    const dp=(normInv(hr)-normInv(far));
+    const correct=(hits===targets.length&&fa===0);
+    if(phase!=="warmup"){results.push({correct,rt,first:Math.round(tFirst-tShown||0),band:cur.band,dp});
+      if(correct){ceiling=Math.max(ceiling,cur.band);}
+      log("M-ACC",`breadth 'every ${cur.multi}': ${hits}/${targets.length} hits, ${fa} false alarms`);
+      log("M-RT",`response time ${rt}ms`);
+      log("M-DPRIME",`sensitivity d' = ${dp.toFixed(2)} (hit ${(hr*100|0)}% / FA ${(far*100|0)}%)`);
+      $("#v-dp").textContent=dp.toFixed(2);
+    }
+    $("#fb").textContent=correct?"\u2605 Found them all - no extras!":"Some hits and some extras - see the marks.";
+    $("#fb").style.color=correct?"var(--good)":"var(--bad)";
+  }else{
+    const correct=sel[0]===cur.target;
+    objEls().forEach(o=>{if(o.dataset.id===sel[0])o.classList.add(correct?"hit":"miss");if(o.dataset.id===cur.target&&!correct)o.classList.add("hit");});
+    if(phase==="warmup"){log("M-ENGAGE",`warm-up (unscored) ${correct?"correct":"incorrect"} rt ${rt}ms`);
+      $("#fb").textContent=correct?"Nice!":"Here it is.";$("#fb").style.color=correct?"var(--good)":"var(--mut)";$("#next").disabled=false;return;}
+    results.push({correct,rt,first:Math.round(tFirst-tShown||0),band:cur.band,explore:sampled.size});
+    log("M-ACC",`item ${idx+1}: '${cur.word}' ${correct?"CORRECT":"incorrect"} (band ${cur.band})`);
+    log("M-RT",`response time ${rt}ms`);
+    if(correct){ceiling=Math.max(ceiling,cur.band);log("M-VOCABLVL",`band ${cur.band} solved -> ceiling ${ceiling}`);log("M-DIFFREACH",`max word band reached: ${ceiling}`);}
+    log("M-EXPLORE",`regions sampled before commit: ${sampled.size}`);
+    $("#fb").textContent=correct?"\u2605 Correct!":"Not quite.";$("#fb").style.color=correct?"var(--good)":"var(--bad)";
+  }
+  update();$("#next").disabled=false;
+}
+function update(){
+  const scored=results;const n=scored.length,c=scored.filter(r=>r.correct).length;$("#v-acc").textContent=`${c}/${n}`;
+  const rts=scored.map(r=>r.rt);if(rts.length)$("#v-rt").textContent=Math.round(rts.reduce((a,b)=>a+b,0)/rts.length)+"ms";
+  const fs=scored.map(r=>r.first).filter(Boolean);if(fs.length)$("#v-first").textContent=Math.round(fs.reduce((a,b)=>a+b,0)/fs.length)+"ms";
+  $("#v-lvl").textContent=ceiling?("band "+ceiling):"\u2014";
+}
+function ripple(x,y){const d=document.createElement("div");d.style.cssText=`position:fixed;left:${x-5}px;top:${y-5}px;width:10px;height:10px;border-radius:50%;background:var(--acc);z-index:49;pointer-events:none;opacity:.8;animation:rip .6s ease-out forwards`;document.body.appendChild(d);setTimeout(()=>d.remove(),620);}
+const st=document.createElement("style");st.textContent="@keyframes rip{to{transform:scale(9);opacity:0}}";document.head.appendChild(st);
+async function ghost(el){const hand=$("#hand");const r=el.getBoundingClientRect();hand.style.opacity="1";hand.style.left=(r.left+r.width/2-8)+"px";hand.style.top=(r.top+r.height/2)+"px";await sleep(820);el.classList.add("demo-hit");ripple(r.left+r.width/2,r.top+r.height/2);await sleep(520);el.classList.remove("demo-hit");}
+async function runDemo(){
+  setPhase("demo");$("#next").disabled=true;$("#replay").disabled=true;render(DEMO,{interactive:false});
+  log("M-ENGAGE","wordless ghost-hand demo start (<10s, no instructions)");
+  await sleep(500);$("#play").classList.add("pulse");speak(DEMO.word);await sleep(900);
+  const kite=objEls().find(o=>o.dataset.id==="kite");await ghost(kite);kite.classList.add("hit");
+  $("#play").classList.remove("pulse");$("#hand").style.opacity="0";await sleep(400);$("#replay").disabled=false;startWarmup();
+}
+function startWarmup(){setPhase("warmup");render(WARMUP,{interactive:true});$("#fb").textContent="Your turn - tap what you hear.";$("#fb").style.color="var(--mut)";log("M-ENGAGE","unscored warm-up shown");}
+function startScored(){setPhase("scored");idx=0;render(SCORED[0],{interactive:true});log("M-ENGAGE","scoring begins (rarity staircase; last round is breadth)");}
+function next(){if(phase==="warmup"){startScored();return;}if(phase==="scored"){idx++;if(idx<SCORED.length)render(SCORED[idx],{interactive:true});else finish();}}
+function finish(){setPhase("done");$("#scene").innerHTML="";$("#word").textContent="\uD83C\uDF89";$("#next").disabled=true;$("#play").classList.remove("pulse");
+  const c=results.filter(r=>r.correct).length;
+  $("#fb").innerHTML=`Complete \u2014 ${c}/${results.length} correct, lexical ceiling = band ${ceiling}.`;$("#fb").style.color="var(--good)";
+  log("M-DRIFT","session end; per-item RT/band/explore + breadth d' available");}
+$("#play").addEventListener("click",()=>{if(cur)speak(cur.word);});
+$("#next").addEventListener("click",()=>{if(phase==="done")return;if((phase==="scored"||phase==="warmup")&&!locked&&sel.length){commit();return;}next();});
+$("#replay").addEventListener("click",()=>{results.length=0;ceiling=0;$("#log").innerHTML="";$("#v-acc").textContent="0/0";$("#v-rt").textContent="\u2014";$("#v-first").textContent="\u2014";$("#v-lvl").textContent="\u2014";$("#v-dp").textContent="\u2014";runDemo();});
+setInterval(()=>{const b=$("#next");if(phase==="done"){b.textContent="Done";return;}b.textContent=((phase==="scored"||phase==="warmup")&&!locked&&sel.length)?(cur&&cur.breadth?"Submit \u2713":"Check \u2713"):"Next \u2192";},150);
+update();runDemo();
+</script>
+</body>
+</html>

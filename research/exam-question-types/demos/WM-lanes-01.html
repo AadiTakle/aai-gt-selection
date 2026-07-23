@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WM-lanes-01 — Sky Traffic Control (cued task-switching)</title>
+<style>
+  :root{--bg:#0e1220;--panel:#171d33;--edge:#2a3358;--ink:#e9edff;--mut:#8b93c0;--accent:#5cc8ff;--good:#5ce39a;--bad:#ff6b8a;--warn:#ffd166;}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.45 system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);display:flex;min-height:100vh}
+  .main{flex:1;display:flex;flex-direction:column;align-items:center;padding:20px;gap:12px}
+  h1{font-size:19px;margin:.2rem 0}.sub{color:var(--mut);font-size:13px;margin:0;text-align:center;max-width:480px}
+  .badge{display:inline-block;padding:2px 9px;border-radius:99px;background:var(--panel);border:1px solid var(--edge);color:var(--warn);font-size:12px}
+  #stage{width:470px;min-height:250px;background:var(--panel);border:1px solid var(--edge);border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:16px;gap:12px;position:relative}
+  #cuebar{display:flex;align-items:center;gap:10px;font-size:30px;padding:6px 16px;border-radius:12px;border:2px solid var(--edge);background:#141a30;min-height:52px}
+  #cuebar.color{border-color:#ff8f5c}#cuebar.number{border-color:#7aa2ff}
+  #cuebar .lbl{font-size:14px;color:var(--mut)}
+  #sky{height:96px;display:flex;align-items:center;justify-content:center}
+  .balloon{width:78px;height:78px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 0 rgba(0,0,0,.25);opacity:0;transform:translateY(-14px) scale(.7);transition:opacity .15s,transform .15s}
+  .balloon.show{opacity:1;transform:translateY(0) scale(1)}
+  .pips{display:grid;grid-template-columns:repeat(2,14px);gap:6px;justify-content:center}
+  .pip{width:14px;height:14px;border-radius:50%;background:rgba(0,0,0,.55)}
+  #timer{width:280px;height:8px;border-radius:4px;background:#141a30;overflow:hidden}
+  #timerfill{height:100%;width:100%;background:var(--warn);transition:width .05s linear}
+  .lr{display:flex;gap:60px}
+  .arw{width:96px;height:70px;font-size:38px;border-radius:14px;border:1px solid var(--edge);background:#20284a;color:var(--ink);cursor:pointer}
+  .arw:disabled{opacity:.35}.arw.ok{background:var(--good);color:#062a17}.arw.no{background:var(--bad);color:#3a0011}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+  button.pri{background:var(--accent);color:#062033;border:none;font-weight:600;padding:9px 15px;border-radius:10px;cursor:pointer;font-size:15px}
+  button.pri:disabled{opacity:.4}
+  .tel{width:322px;background:var(--panel);border-left:1px solid var(--edge);padding:14px 14px 40px;overflow:auto;font:12px/1.55 ui-monospace,Menlo,Consolas,monospace}
+  .tel h2{font:600 12px system-ui;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:14px 0 6px}
+  .kv{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted #2a3358;padding:2px 0}
+  .kv b{color:var(--accent);font-weight:600}.kv .m{color:var(--mut);font-size:10px}
+  .log{margin-top:6px;max-height:150px;overflow:auto;border:1px solid var(--edge);border-radius:8px;padding:6px;background:#10152a}
+  .log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+</head>
+<body>
+<div class="main">
+  <div style="text-align:center">
+    <h1>🎈 Sky Traffic Control <span class="badge" id="bcue">Follow the signpost</span></h1>
+    <p class="sub">The signpost says the rule. <b>🎨 = by colour</b> (warm ◀ / cool ▶). <b>🔢 = by number</b> (odd ◀ / even ▶). Send the balloon.</p>
+  </div>
+  <div id="stage">
+    <div id="cuebar"><span id="cueicon">👀</span><span class="lbl" id="cuelbl">get ready</span></div>
+    <div id="sky"><div class="balloon" id="balloon"></div></div>
+    <div id="timer"><div id="timerfill"></div></div>
+    <div class="lr">
+      <button class="arw" id="btnL" disabled>◀</button>
+      <button class="arw" id="btnR" disabled>▶</button>
+    </div>
+  </div>
+  <div class="row">
+    <button class="pri" id="go">▶ Watch how it works</button>
+  </div>
+  <p class="sub" id="phasehint">A ghost hand shows you first — no reading needed.</p>
+</div>
+<aside class="tel" id="tel"></aside>
+
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const balloon=$("#balloon"),timerfill=$("#timerfill");
+const WARM={"#ff5c5c":1,"#ff9f43":1},COOL={"#4da1ff":1,"#4be08a":1};
+const COLORS=["#ff5c5c","#ff9f43","#4da1ff","#4be08a"];
+let deadline=2600,prevCue=null;
+const T={phase:"idle",trial:0,correct:0,total:0,rtC:[],firstLat:[],
+  swRT:[],rpRT:[],ruleConf:0,mapSlip:0,timeout:0,
+  postErr:[],postCor:[],lastErr:false,combo:0,maxCombo:0,log:[]};
+const mean=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
+const rand=a=>a[Math.random()*a.length|0];
+function logE(s){T.log.unshift(`${(performance.now()/1000).toFixed(1)}s · ${s}`);if(T.log.length>60)T.log.pop();}
+function render(){
+  const acc=T.total?Math.round(100*T.correct/T.total):0;
+  const sc=(T.swRT.length&&T.rpRT.length)?Math.round(mean(T.swRT)-mean(T.rpRT)):0;
+  const pe=(T.postErr.length&&T.postCor.length)?Math.round(mean(T.postErr)-mean(T.postCor)):0;
+  $("#tel").innerHTML=`
+  <h2>Live telemetry · WM-lanes-01</h2>
+  <div class="kv"><span>phase</span><b>${T.phase}</b></div>
+  <div class="kv"><span>deadline</span><b>${deadline} ms</b></div>
+  <div class="kv"><span>trial</span><b>${T.trial}</b></div>
+  <h2>Accuracy & speed</h2>
+  <div class="kv"><span>accuracy <span class="m">M-ACC</span></span><b>${acc}% <span class="m">(${T.correct}/${T.total})</span></b></div>
+  <div class="kv"><span>median RT (correct) <span class="m">M-RT</span></span><b>${Math.round(mean(T.rtC))} ms</b></div>
+  <div class="kv"><span>cue-encoding lat <span class="m">M-RTFIRST</span></span><b>${Math.round(mean(T.firstLat))} ms</b></div>
+  <h2>Switch cost <span class="m">M-SWITCHCOST</span></h2>
+  <div class="kv"><span>switch RT</span><b>${T.swRT.length?Math.round(mean(T.swRT)):0} ms</b></div>
+  <div class="kv"><span>repeat RT</span><b>${T.rpRT.length?Math.round(mean(T.rpRT)):0} ms</b></div>
+  <div class="kv"><span>cost (switch−repeat)</span><b>${sc>0?"+":""}${sc} ms</b></div>
+  <h2>Error type <span class="m">M-ERRTYPE</span></h2>
+  <div class="kv"><span>rule-confusion</span><b>${T.ruleConf}</b></div>
+  <div class="kv"><span>mapping slip</span><b>${T.mapSlip}</b></div>
+  <div class="kv"><span>missed deadline</span><b>${T.timeout}</b></div>
+  <h2>Control</h2>
+  <div class="kv"><span>post-error slowing <span class="m">M-POSTERR</span></span><b>${pe>0?"+":""}${pe} ms</b></div>
+  <div class="kv"><span>acc-gated combo <span class="m">M-COMBO</span></span><b>${T.combo} (max ${T.maxCombo})</b></div>
+  <div class="kv"><span>operating point <span class="m">M-SPEEDACC</span></span><b>${acc}% @ ${Math.round(mean(T.rtC))}ms</b></div>
+  <div class="log">${T.log.map(l=>`<div>${l}</div>`).join("")}</div>`;
+}
+render();
+
+function makeTrial(){const rule=Math.random()<0.5?"color":"number";
+  const color=rand(COLORS);const num=1+(Math.random()*4|0);
+  const isSwitch=prevCue!==null&&prevCue!==rule;prevCue=rule;
+  return{rule,color,num,isSwitch};}
+function correctSide(t){return t.rule==="color"?(WARM[t.color]?"L":"R"):(t.num%2===1?"L":"R");}
+function otherSide(t){return t.rule==="color"?(t.num%2===1?"L":"R"):(WARM[t.color]?"L":"R");}
+function drawBalloon(t){balloon.style.background=t.color;
+  let pips="";for(let i=0;i<t.num;i++)pips+='<div class="pip"></div>';
+  balloon.innerHTML=`<div class="pips">${pips}</div>`;}
+function showCue(t){const cb=$("#cuebar");cb.className=t.rule;
+  $("#cueicon").textContent=t.rule==="color"?"🎨":"🔢";
+  $("#cuelbl").textContent=t.rule==="color"?"colour":"number";}
+
+let timerRAF=null;
+async function runTrial(t,scored){
+  showCue(t);balloon.classList.remove("show");$("#btnL").disabled=$("#btnR").disabled=true;
+  $("#btnL").className="arw";$("#btnR").className="arw";
+  await sleep(520); // cue-to-stimulus interval
+  drawBalloon(t);balloon.classList.add("show");
+  const onset=performance.now();let first=null,done=false;
+  $("#btnL").disabled=$("#btnR").disabled=false;
+  timerfill.style.transition="none";timerfill.style.width="100%";void timerfill.offsetWidth;
+  timerfill.style.transition="width "+deadline+"ms linear";timerfill.style.width="0%";
+  const side=correctSide(t);
+  return await new Promise(res=>{
+    const to=setTimeout(()=>{if(done)return;done=true;cleanup();
+      if(scored){T.total++;T.timeout++;T.combo=0;T.lastErr=true;logE("timeout");render();}res();},deadline);
+    function down(){if(first===null)first=performance.now();}
+    function pick(ch){if(done)return;done=true;clearTimeout(to);
+      const rt=performance.now()-onset;const ok=ch===side;
+      const btn=ch==="L"?$("#btnL"):$("#btnR");btn.classList.add(ok?"ok":"no");
+      if(scored){T.total++;T.trial++;if(first!==null)T.firstLat.push(first-onset);
+        if(ok){T.correct++;T.rtC.push(rt);(t.isSwitch?T.swRT:T.rpRT).push(rt);
+          T.combo++;T.maxCombo=Math.max(T.maxCombo,T.combo);
+          (T.lastErr?T.postErr:T.postCor).push(rt);T.lastErr=false;}
+        else{T.combo=0;(ch===otherSide(t))?T.ruleConf++:T.mapSlip++;T.lastErr=true;}
+        logE(`${t.rule[0]}${t.isSwitch?"·sw":"·rp"} ${ok?"✔":"✗"} ${Math.round(rt)}ms`);render();}
+      cleanup();setTimeout(res,360);}
+    function cleanup(){$("#btnL").disabled=$("#btnR").disabled=true;
+      $("#btnL").onpointerdown=$("#btnR").onpointerdown=null;$("#btnL").onclick=$("#btnR").onclick=null;
+      timerfill.style.transition="none";timerfill.style.width="0%";}
+    $("#btnL").onpointerdown=down;$("#btnR").onpointerdown=down;
+    $("#btnL").onclick=()=>pick("L");$("#btnR").onclick=()=>pick("R");
+  });
+}
+
+async function demo(){
+  if(T.phase==="demo")return;T.phase="demo";render();$("#go").disabled=true;
+  const ghost=document.createElement("div");ghost.textContent="👆";
+  ghost.style.cssText="position:fixed;font-size:30px;z-index:20;transition:left .4s,top .4s;pointer-events:none";document.body.appendChild(ghost);
+  const demos=[{rule:"color",color:"#ff5c5c",num:2,isSwitch:false},{rule:"number",color:"#4da1ff",num:2,isSwitch:true}];
+  for(const t of demos){prevCue=null;showCue(t);await sleep(560);drawBalloon(t);balloon.classList.add("show");
+    const side=correctSide(t);const btn=side==="L"?$("#btnL"):$("#btnR");
+    const r=btn.getBoundingClientRect();ghost.style.left=(r.left+30)+"px";ghost.style.top=(r.top-6)+"px";
+    await sleep(760);btn.classList.add("ok");await sleep(520);btn.className="arw";balloon.classList.remove("show");await sleep(300);}
+  ghost.remove();prevCue=null;T.phase="idle";$("#go").disabled=false;
+  $("#go").textContent="▶ Try a practice one";$("#go").onclick=warmup;
+  $("#cueicon").textContent="👀";$("#cuelbl").textContent="get ready";$("#cuebar").className="";
+  $("#phasehint").textContent="Now you try — this practice one is NOT scored.";render();
+}
+async function warmup(){T.phase="warm-up (unscored)";render();$("#go").disabled=true;
+  await runTrial(makeTrial(),false);T.phase="idle";$("#go").disabled=false;
+  $("#go").textContent="▶ Start scored round";$("#go").onclick=startScored;
+  $("#phasehint").textContent="These count. Watch the signpost — the rule keeps swapping.";render();}
+async function startScored(){T.phase="scored";render();$("#go").disabled=true;prevCue=null;
+  for(let i=0;i<14;i++){await runTrial(makeTrial(),true);
+    if(T.total>=6&&mean(T.rtC)<deadline*0.55&&T.correct/T.total>0.8)deadline=Math.max(1300,deadline-120);}
+  finish();}
+function finish(){T.phase="done";render();$("#go").disabled=false;
+  $("#go").textContent="▶ Another round";$("#go").onclick=startScored;
+  $("#phasehint").textContent="Done. A low switch cost held at high accuracy is the tail signal — not raw speed.";}
+$("#go").onclick=demo;
+</script>
+</body>
+</html>

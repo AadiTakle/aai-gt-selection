@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WM-conveyor-01 — Order Up! (running-memory serving)</title>
+<style>
+  :root{--bg:#0e1220;--panel:#171d33;--edge:#2a3358;--ink:#e9edff;--mut:#8b93c0;--accent:#5cc8ff;--good:#5ce39a;--bad:#ff6b8a;--warn:#ffd166;--tile:#232c4d;}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.45 system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);display:flex;min-height:100vh}
+  .main{flex:1;display:flex;flex-direction:column;align-items:center;padding:20px;gap:12px}
+  h1{font-size:19px;margin:.2rem 0}.sub{color:var(--mut);font-size:13px;margin:0;text-align:center;max-width:470px}
+  .badge{display:inline-block;padding:2px 9px;border-radius:99px;background:var(--panel);border:1px solid var(--edge);color:var(--warn);font-size:12px}
+  #stage{width:460px;min-height:220px;background:var(--panel);border:1px solid var(--edge);border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;gap:8px;position:relative}
+  #cust{font-size:40px}
+  #belt{width:100%;height:8px;border-radius:4px;background:repeating-linear-gradient(90deg,#2a3358 0 14px,#1a2140 14px 28px);margin:2px 0}
+  #big{font-size:88px;transition:transform .12s,opacity .12s;opacity:0;transform:scale(.5)}
+  #big.show{opacity:1;transform:scale(1)}
+  #cue{font-size:26px;height:32px}
+  .slots,.tray{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  .slot{width:58px;height:58px;border-radius:12px;border:2px dashed var(--edge);display:flex;align-items:center;justify-content:center;font-size:36px;background:#141a30;cursor:pointer}
+  .slot.filled{border-style:solid;border-color:var(--accent);background:var(--tile)}
+  .slot.ok{border-color:var(--good)}.slot.no{border-color:var(--bad)}
+  .chip{width:56px;height:56px;border-radius:12px;border:1px solid var(--edge);background:#20284a;font-size:34px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .chip:active{transform:scale(.94)}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+  button{font:inherit;padding:9px 15px;border-radius:10px;border:1px solid var(--edge);background:#20284a;color:var(--ink);cursor:pointer}
+  button.pri{background:var(--accent);color:#062033;border-color:transparent;font-weight:600}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .tel{width:320px;background:var(--panel);border-left:1px solid var(--edge);padding:14px 14px 40px;overflow:auto;font:12px/1.55 ui-monospace,Menlo,Consolas,monospace}
+  .tel h2{font:600 12px system-ui;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:14px 0 6px}
+  .kv{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted #2a3358;padding:2px 0}
+  .kv b{color:var(--accent);font-weight:600}.kv .m{color:var(--mut);font-size:10px}
+  .log{margin-top:6px;max-height:150px;overflow:auto;border:1px solid var(--edge);border-radius:8px;padding:6px;background:#10152a}
+  .log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+</head>
+<body>
+<div class="main">
+  <div style="text-align:center">
+    <h1>🍔 Order Up! <span class="badge" id="bmode">Serve the last few</span></h1>
+    <p class="sub" id="task">Food rolls down the belt. When the bell rings, plate the <b>last few</b> items <b>in order</b>.</p>
+  </div>
+  <div id="stage">
+    <div id="cust">🧑‍🍳</div>
+    <div id="belt"></div>
+    <div id="big">🍔</div>
+    <div id="cue">👀</div>
+    <div class="slots" id="resp"></div>
+  </div>
+  <div class="tray" id="tray"></div>
+  <div class="row">
+    <button class="pri" id="go">▶ Watch how it works</button>
+    <button id="replay" disabled>↺ Replay demo</button>
+  </div>
+  <p class="sub" id="phasehint">A ghost hand shows you first — no reading needed.</p>
+</div>
+<aside class="tel" id="tel"></aside>
+
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const big=$("#big"),cue=$("#cue"),resp=$("#resp"),tray=$("#tray");
+const FOODS=["🍔","🍟","🌭","🍕","🍩","🥤"];
+let k=2;
+const T={phase:"idle",trial:0,k:2,correct:0,total:0,poly:[],firstLat:[],rt:[],revis:0,
+  intrusion:0,novelErr:0,span:0,maxReach:0,curve:{},kOut:{},log:[]};
+const mean=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
+const med=a=>{if(!a.length)return 0;const b=[...a].sort((x,y)=>x-y);const m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2;};
+const sd=a=>a.length<2?0:Math.sqrt(mean(a.map(x=>(x-mean(a))**2)));
+const rand=a=>a[Math.random()*a.length|0];
+function logE(s){T.log.unshift(`${(performance.now()/1000).toFixed(1)}s · ${s}`);if(T.log.length>60)T.log.pop();}
+function consist(){const parts=Object.values(T.kOut).filter(a=>a.length>=2).map(a=>1-2*sd(a));
+  return parts.length?Math.max(0,Math.round(100*mean(parts))):0;}
+function render(){
+  const acc=T.total?Math.round(100*T.correct/T.total):0;
+  const poly=T.poly.length?Math.round(100*mean(T.poly)):0;
+  const cur=Object.entries(T.curve).sort().map(([kk,a])=>`k${kk}:${Math.round(100*mean(a))}%`).join("  ");
+  $("#tel").innerHTML=`
+  <h2>Live telemetry · WM-conveyor-01</h2>
+  <div class="kv"><span>phase</span><b>${T.phase}</b></div>
+  <div class="kv"><span>serve length (k)</span><b>${k}</b></div>
+  <div class="kv"><span>trial</span><b>${T.trial}</b></div>
+  <h2>Accuracy</h2>
+  <div class="kv"><span>whole serve <span class="m">M-ACC</span></span><b>${acc}% <span class="m">(${T.correct}/${T.total})</span></b></div>
+  <div class="kv"><span>partial credit <span class="m">M-POLY</span></span><b>${poly}%</b></div>
+  <h2>Capacity <span class="m">M-SPAN / M-DIFFREACH</span></h2>
+  <div class="kv"><span>serving span (clean k)</span><b>${T.span}</b></div>
+  <div class="kv"><span>max k reached</span><b>${T.maxReach}</b></div>
+  <h2>Updating cost <span class="m">M-UPDATECOST</span></h2>
+  <div class="kv"><span>acc by load</span><b style="font-size:11px">${cur||"—"}</b></div>
+  <h2>Error type <span class="m">M-ERRTYPE</span></h2>
+  <div class="kv"><span>intrusion (older item)</span><b>${T.intrusion}</b></div>
+  <div class="kv"><span>novel / order slip</span><b>${T.novelErr}</b></div>
+  <h2>Process</h2>
+  <div class="kv"><span>first-serve latency <span class="m">M-RTFIRST</span></span><b>${Math.round(med(T.firstLat))} ms</b></div>
+  <div class="kv"><span>consistency <span class="m">M-CONSIST</span></span><b>${consist()}%</b></div>
+  <div class="kv"><span>revisions <span class="m">M-REV(aux)</span></span><b>${T.revis}</b></div>
+  <div class="log">${T.log.map(l=>`<div>${l}</div>`).join("")}</div>`;
+}
+render();
+
+function buildStream(len){const s=[];for(let i=0;i<len;i++)s.push(rand(FOODS));return s;}
+async function present(s){cue.textContent="👀";
+  for(const e of s){big.textContent=e;big.classList.add("show");await sleep(700);big.classList.remove("show");await sleep(170);}
+  big.textContent="";}
+function buildResponse(){resp.innerHTML="";tray.innerHTML="";
+  for(let i=0;i<k;i++){const d=document.createElement("div");d.className="slot";resp.appendChild(d);}
+  FOODS.forEach(e=>{const c=document.createElement("div");c.className="chip";c.textContent=e;tray.appendChild(c);});}
+
+async function runTrial(scored){
+  $("#go").disabled=true;$("#replay").disabled=true;
+  const len=k+3+(Math.random()*4|0);const stream=buildStream(len);
+  await sleep(250);await present(stream);
+  cue.textContent="🔔";$("#cust").textContent=rand(["🧒","👦","👧","🧑"]);
+  buildResponse();
+  $("#phasehint").textContent=scored?"Bell! Plate the last "+k+" in order.":"Practice — plate the last "+k+" in order.";
+  const t0=performance.now();let last=t0,firstDone=false,awaiting=true;
+  await new Promise(res=>{
+    tray.onclick=e=>{const c=e.target.closest(".chip");if(!c||!awaiting)return;
+      const slot=resp.querySelector(".slot:not(.filled)");if(!slot)return;
+      if(!firstDone){firstDone=true;if(scored)T.firstLat.push(performance.now()-t0);}
+      if(scored)T.rt.push(performance.now()-last);last=performance.now();
+      slot.textContent=c.textContent;slot.classList.add("filled");
+      if(![...resp.querySelectorAll(".slot")].some(s=>!s.classList.contains("filled"))){awaiting=false;res();}
+      render();};
+    resp.onclick=e=>{const s=e.target.closest(".slot");if(!s||!s.classList.contains("filled")||!awaiting)return;
+      s.classList.remove("filled");s.textContent="";T.revis++;render();};
+  });
+  tray.onclick=null;resp.onclick=null;
+  const lastK=stream.slice(-k),slots=[...resp.querySelectorAll(".slot")];
+  let nc=0;
+  slots.forEach((s,i)=>{const ok=s.textContent===lastK[i];
+    if(ok){nc++;s.classList.add("ok");}else{s.classList.add("no");
+      if(scored){stream.slice(0,-k).includes(s.textContent)?T.intrusion++:T.novelErr++;}}});
+  const all=nc===k;cue.textContent=all?"✅":"↔️";$("#cust").textContent="🧑‍🍳";
+  if(scored){T.total++;if(all)T.correct++;T.poly.push(nc/k);
+    (T.curve[k]=T.curve[k]||[]).push(nc/k);(T.kOut[k]=T.kOut[k]||[]).push(all?1:0);
+    T.maxReach=Math.max(T.maxReach,k);if(all)T.span=Math.max(T.span,k);
+    logE(`k${k}: ${nc}/${k}${all?" ✔":""}`);
+    k=all?Math.min(5,k+1):Math.max(2,k-1);T.k=k;T.trial++;}
+  render();await sleep(950);
+  $("#go").disabled=false;$("#replay").disabled=false;cue.textContent="";resp.innerHTML="";tray.innerHTML="";
+  return all;
+}
+
+async function demo(){
+  if(T.phase==="demo")return;T.phase="demo";render();$("#go").disabled=true;$("#replay").disabled=true;
+  const kk=k;k=2;const stream=["🍩","🥤","🍔","🍟"];
+  await sleep(250);await present(stream);
+  cue.textContent="🔔";buildResponse();
+  const ghost=document.createElement("div");ghost.textContent="👆";
+  ghost.style.cssText="position:fixed;font-size:28px;z-index:9;transition:left .35s,top .35s;pointer-events:none";document.body.appendChild(ghost);
+  const lastK=stream.slice(-2);
+  for(let i=0;i<2;i++){
+    const chip=[...tray.querySelectorAll(".chip")].find(c=>c.textContent===lastK[i]);
+    const slot=resp.querySelector(".slot:not(.filled)");
+    const r=chip.getBoundingClientRect();ghost.style.left=(r.left+16)+"px";ghost.style.top=(r.top+8)+"px";
+    await sleep(520);slot.textContent=chip.textContent;slot.classList.add("filled","ok");await sleep(220);
+  }
+  cue.textContent="✅";await sleep(650);ghost.remove();
+  k=kk;resp.innerHTML="";tray.innerHTML="";T.phase="idle";
+  $("#go").disabled=false;$("#replay").disabled=false;
+  $("#go").textContent="▶ Try a practice one";$("#go").onclick=warmup;
+  $("#phasehint").textContent="Now you try — this practice one is NOT scored.";render();
+}
+async function warmup(){T.phase="warm-up (unscored)";render();await runTrial(false);
+  T.phase="idle";$("#go").textContent="▶ Start scored round";$("#go").onclick=startScored;
+  $("#phasehint").textContent="These count. The serve gets longer when you're right (harder).";render();}
+let left=0;
+async function startScored(){T.phase="scored";render();left=8;$("#go").disabled=true;await loop();}
+async function loop(){await runTrial(true);left--;if(left>0)await loop();else finish();}
+function finish(){T.phase="done";render();cue.textContent="🏁";$("#go").disabled=false;
+  $("#go").textContent="▶ Another round";$("#go").onclick=startScored;
+  $("#phasehint").textContent="Done. Serving span + the accuracy-by-load slope are the tail signals — not speed.";}
+$("#go").onclick=demo;$("#replay").onclick=demo;
+</script>
+</body>
+</html>
