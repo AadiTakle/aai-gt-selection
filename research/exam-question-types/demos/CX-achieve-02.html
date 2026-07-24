@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CX-achieve-02 · Investigation Station</title>
+<style>
+:root{
+  --ink:#173143;--paper:#fffef8;--blue:#278fc2;--lime:#50bd78;
+  --orange:#ef9b39;--red:#eb6268;--line:#d7e5e7;--tel:#0d1b25;
+  --tel2:#142a38;--key:#78ffd0;--dim:#789aaa;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{
+  min-height:100vh;display:flex;color:var(--ink);
+  font:16px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;
+  background:radial-gradient(circle at 12% 8%,#e6ffe9,transparent 27%),
+    linear-gradient(145deg,#e7f8ff,#f6f5e9 58%,#fff0db);
+}
+#wrap{
+  flex:1;min-width:0;padding:17px;display:flex;flex-direction:column;
+  align-items:center;gap:9px;
+}
+#badge{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#708f9b}
+#howto{max-width:720px;width:100%;background:#fff;border:1px solid #d7e5e7;border-left:5px solid var(--blue);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #24465a}
+#howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--blue)}
+#howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+#phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#e8f3f7;color:#278fc2;border:2px solid #bfe0ec;min-height:30px}
+#phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+#phasecue[data-phase="scored"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+#phasecue[data-phase="done"]{background:#e6f6ec;color:#2f8f57;border-color:#bfe6cc}
+#status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+#status.ok{color:var(--lime)} #status.no{color:var(--red)} #status.neutral{color:#8a93b5}
+#stagecard{
+  width:min(720px,100%);background:var(--paper);border-radius:28px;padding:17px;
+  box-shadow:0 24px 58px -35px #24465a;display:flex;flex-direction:column;
+  align-items:center;gap:11px;border:1px solid #fff;
+}
+#screen{
+  width:100%;height:205px;border-radius:20px;background:linear-gradient(#dff5fc 0 55%,#d4e7d6 55%);
+  border:8px solid #193441;position:relative;overflow:hidden;box-shadow:inset 0 0 0 2px #40616e;
+}
+#rec{
+  position:absolute;top:10px;left:12px;font:800 10px ui-monospace;color:#253d47;
+  display:flex;gap:6px;align-items:center;z-index:5;
+}
+#rec::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--red);animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.3}}
+.corner{position:absolute;width:24px;height:24px;border-color:#fff;border-style:solid;opacity:.72;z-index:4}
+.tl{left:12px;top:30px;border-width:3px 0 0 3px}.tr{right:12px;top:30px;border-width:3px 3px 0 0}
+.bl{left:12px;bottom:22px;border-width:0 0 3px 3px}.br{right:12px;bottom:22px;border-width:0 3px 3px 0}
+#ramp{
+  position:absolute;left:27px;bottom:43px;width:105px;height:10px;background:#278fc2;
+  border:2px solid #17668c;border-radius:5px;transform-origin:left center;transform:rotate(-18deg);
+}
+#ramp::before{
+  content:"";position:absolute;width:8px;height:58px;left:3px;top:2px;background:#667a82;
+  transform:rotate(18deg);transform-origin:top;border-radius:3px;
+}
+#ball{
+  position:absolute;left:112px;bottom:46px;width:29px;height:29px;border-radius:50%;
+  background:radial-gradient(circle at 34% 27%,#fff 0 8%,#f39d3c 10% 48%,#a9512b 50%);
+  border:2px solid #7b3d25;z-index:3;
+}
+#track{
+  position:absolute;left:70px;right:18px;bottom:37px;height:9px;border-radius:6px;
+  background:repeating-linear-gradient(90deg,#789583 0 2px,#bdd2c0 2px 30px);
+}
+#marker{
+  position:absolute;left:112px;bottom:28px;width:3px;height:37px;background:var(--orange);
+  opacity:0;transition:left .2s,opacity .2s;
+}
+#distance{
+  position:absolute;right:16px;top:12px;background:#173443dd;color:#fff;
+  border-radius:11px;padding:5px 9px;font:800 17px ui-monospace;
+}
+#scan{
+  position:absolute;left:0;right:0;top:-30%;height:35%;
+  background:linear-gradient(transparent,#fff4,transparent);animation:scan 2.4s linear infinite;pointer-events:none;
+}
+@keyframes scan{to{top:110%}}
+#playbar{position:absolute;left:14px;right:14px;bottom:8px;height:6px;border-radius:6px;background:#ffffff55;overflow:hidden}
+#playfill{height:100%;width:0;background:#fff;transition:width .9s linear}
+#controls{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.controlGroup{display:flex;gap:5px;padding:5px;border:2px solid var(--line);border-radius:15px;background:#f3f8f7}
+.choice{
+  width:55px;height:45px;border:0;border-radius:11px;background:#fff;color:var(--ink);
+  cursor:pointer;font:800 23px system-ui;transition:.14s;
+}
+.choice:hover{transform:translateY(-2px)}.choice.on{background:#d8f4e3;box-shadow:inset 0 0 0 3px var(--lime)}
+#trials{width:100%;min-height:54px;display:flex;gap:6px;overflow:auto;padding:3px 1px}
+.trial{
+  min-width:112px;border-radius:12px;border:2px solid var(--line);background:#f7faf8;
+  padding:5px 7px;font:11px/1.25 ui-monospace,monospace;
+}
+.trial.controlled{border-color:var(--lime)}.trial.random{border-color:var(--red)}
+#conclusion{display:none;grid-template-columns:repeat(2,1fr);gap:9px;width:100%}
+#conclusion.on{display:grid}
+.answer{
+  min-height:60px;border:3px solid var(--line);border-radius:15px;background:#fff;
+  cursor:pointer;font-size:21px;display:flex;justify-content:center;align-items:center;gap:12px;
+}
+.answer:hover{border-color:var(--blue);transform:translateY(-2px)}
+#tools{display:flex;gap:10px}
+#tools button{
+  height:50px;border:0;border-radius:16px;cursor:pointer;font:800 21px system-ui;
+  background:#e8f3f7;color:var(--blue);
+}
+#replay{width:52px}#run{width:84px;background:var(--blue)!important;color:#fff!important}
+#conclude{width:63px;background:var(--lime)!important;color:#09351d!important;display:none}
+button:focus-visible{outline:4px solid #168dff;outline-offset:2px}
+#ghost{
+  position:fixed;left:0;top:0;opacity:0;z-index:50;pointer-events:none;font-size:38px;
+  transition:transform .45s cubic-bezier(.2,.7,.2,1),opacity .2s;filter:drop-shadow(0 4px 4px #0004);
+}
+#ghost.show{opacity:1}
+#ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--blue);opacity:0}
+#ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+#telemetry{
+  width:345px;flex:0 0 345px;min-height:100vh;background:var(--tel);
+  color:#c8e3eb;display:flex;flex-direction:column;
+  font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+#telemetry h3{
+  margin:0;padding:13px 14px;background:var(--tel2);color:#fff;
+  font:800 12px system-ui;letter-spacing:.1em;text-transform:uppercase;
+}
+#difficulty{padding:10px 13px;border-bottom:1px solid #25414f}
+.diffTop{display:flex;justify-content:space-between;color:#9bb8c5}
+.diffTrack{height:8px;background:#203744;border-radius:8px;overflow:hidden;margin-top:6px}
+#diffFill{height:100%;width:20%;background:linear-gradient(90deg,#2691c7,#68dd91);transition:.3s}
+#mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+.mrow{display:grid;grid-template-columns:103px 1fr;gap:7px}
+.mid{color:var(--key);font-weight:800}.mval{color:#fff}
+.mname{grid-column:1/3;color:var(--dim);font-size:10px;margin-top:-3px}
+#logwrap{border-top:1px solid #25414f;margin-top:auto}
+#logwrap b{display:block;padding:8px 12px 3px;color:#7898a7;font-size:10px}
+#log{height:175px;overflow:auto;padding:0 12px 12px}
+#log div{border-bottom:1px dotted #25414f;padding:3px 0}
+#log .t{color:#507587}
+@media(max-width:860px){
+  body{flex-direction:column}#telemetry{width:100%;min-height:0;height:315px;flex:none}
+}
+@media(max-width:500px){#screen{height:180px}.choice{width:47px}#conclusion{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<main id="wrap">
+  <div id="badge">CX-achieve-02 · Investigation Station</div>
+  <header id="howto">
+    <h1>How to use — Investigation Station</h1>
+    <p>Change one setting at a time and press play (<b>▶</b>) to test how far the ball rolls. After a few tries, press the check (<b>✓</b>) and tap the setup you think rolls the ball the farthest.</p>
+  </header>
+  <div id="phasecue" data-phase="demo">Watch the example</div>
+  <section id="stagecard">
+    <div id="screen">
+      <div id="rec">LIVE · 00:00</div><i class="corner tl"></i><i class="corner tr"></i>
+      <i class="corner bl"></i><i class="corner br"></i>
+      <div id="track"></div><div id="ramp"></div><div id="ball"></div>
+      <div id="marker"></div><div id="distance">— cm</div><div id="scan"></div>
+      <div id="playbar"><div id="playfill"></div></div>
+    </div>
+    <div id="controls">
+      <div class="controlGroup" data-variable="ramp">
+        <button class="choice" data-value="0" aria-label="low ramp">╱</button>
+        <button class="choice" data-value="1" aria-label="medium ramp">⟋</button>
+        <button class="choice" data-value="2" aria-label="high ramp">⧍</button>
+      </div>
+      <div class="controlGroup" data-variable="surface">
+        <button class="choice" data-value="0" aria-label="bumpy surface">▒</button>
+        <button class="choice" data-value="1" aria-label="rough surface">≋</button>
+        <button class="choice" data-value="2" aria-label="smooth surface">━</button>
+      </div>
+      <div class="controlGroup" data-variable="ball">
+        <button class="choice" data-value="0" aria-label="heavy ball">●</button>
+        <button class="choice" data-value="1" aria-label="light ball">○</button>
+      </div>
+    </div>
+    <div id="trials"></div>
+    <div id="conclusion"></div>
+    <div id="tools">
+      <button id="replay" aria-label="replay">↻</button>
+      <button id="run" aria-label="run trial">▶</button>
+      <button id="conclude" aria-label="conclude">✓</button>
+    </div>
+    <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+  </section>
+</main>
+<aside id="telemetry">
+  <h3>Live telemetry · per-child</h3>
+  <div id="difficulty">
+    <div class="diffTop"><span>DIFFICULTY</span><span id="diffLabel">1 / 5</span></div>
+    <div class="diffTrack"><div id="diffFill"></div></div>
+  </div>
+  <div id="mlist"></div>
+  <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+</aside>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const ICONS={ramp:['╱','⟋','⧍'],surface:['▒','≋','━'],ball:['●','○']};
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+const T={
+  plan:{grounded:0,intentional:0,random:0},controlled:0,transitions:0,
+  explore:new Set(),path:[],progress:[],poly:0,polyMax:0,roundScores:[],
+  levels:[],itemStart:Date.now(),maxSolved:0
+};
+let phase='demo',level=1,scoredIndex=0,setting={ramp:1,surface:1,ball:0};
+let model=null,trials=[],locked=true,roundControlled=0,roundTransitions=0;
+function setupKey(s){return `${s.ramp}${s.surface}${s.ball}`;}
+function setupIcons(s){return `${ICONS.ramp[s.ramp]} ${ICONS.surface[s.surface]} ${ICONS.ball[s.ball]}`;}
+function allSetups(){
+  const a=[];for(let ramp=0;ramp<3;ramp++)for(let surface=0;surface<3;surface++)for(let ball=0;ball<2;ball++)a.push({ramp,surface,ball});
+  return a;
+}
+function makeModel(lvl,index){
+  const lightWins=(index+lvl)%2===0;
+  return {
+    base:24,ramp:[0,10+lvl*2,22+lvl*3],surface:[-7-lvl,0,8+lvl],
+    ball:lightWins?[0,5+lvl]:[5+lvl,0],interaction:lvl>=4?5+lvl:0,
+    noise:lvl>=3?lvl-2:0
+  };
+}
+function expected(s){
+  return model.base+model.ramp[s.ramp]+model.surface[s.surface]+model.ball[s.ball]+
+    (s.ramp===2&&s.surface===2?model.interaction:0);
+}
+function outcome(s,trialNo){
+  const pattern=[-1,1,0,2,-2,1],hash=s.ramp*5+s.surface*3+s.ball+trialNo;
+  return Math.max(4,Math.round(expected(s)+pattern[hash%pattern.length]*model.noise));
+}
+function bestSetup(){
+  return allSetups().reduce((best,s)=>expected(s)>expected(best)?s:best,allSetups()[0]);
+}
+function differences(a,b){return (a.ramp!==b.ramp)+(a.surface!==b.surface)+(a.ball!==b.ball);}
+function renderControls(){
+  $$('.controlGroup').forEach(group=>group.querySelectorAll('.choice').forEach(b=>{
+    b.classList.toggle('on',setting[group.dataset.variable]===+b.dataset.value);
+  }));
+  $('#ramp').style.transform=`rotate(${-10-setting.ramp*12}deg)`;
+  $('#ball').style.filter=setting.ball?'brightness(1.18) saturate(.8)':'none';
+}
+function planText(){
+  const p=T.plan,total=p.grounded+p.intentional+p.random;
+  return total?`G${p.grounded} · I${p.intentional} · R${p.random}`:'—';
+}
+function hypText(){return T.transitions?`${T.controlled}/${T.transitions} · ${Math.round(100*T.controlled/T.transitions)}%`:'—';}
+function polyText(){return T.polyMax?`${T.poly}/${T.polyMax} · ${Math.round(100*T.poly/T.polyMax)}%`:'—';}
+function learning(){
+  if(T.roundScores.length<2)return '—';
+  const slope=(T.roundScores.at(-1)-T.roundScores[0])/(T.roundScores.length-1);
+  const levelGain=(T.levels.at(-1)-T.levels[0])/(T.levels.length-1||1);
+  return `${levelGain>=0?'+':''}${levelGain.toFixed(2)} level/item · ${slope>=0?'+':''}${slope.toFixed(2)} poly`;
+}
+const METERS=[
+  {id:'M-PLANFUL',name:'Grounded / intentional / random trials',get:()=>planText()},
+  {id:'M-POLY',name:'Conclusion attributes correct',get:()=>polyText()},
+  {id:'M-HYP',name:'One-variable controlled comparisons',get:()=>hypText()},
+  {id:'M-EXPLORE',name:'Distinct setups investigated',get:()=>`${T.explore.size}`},
+  {id:'M-PATH',name:'Full test sequence',get:()=>T.path.length?T.path.slice(-8).join(' '):'—'},
+  {id:'M-PROG',name:'Best-to-optimum trajectory',get:()=>T.progress.length?T.progress.slice(-8).join('→')+'%':'—'},
+  {id:'M-LEARNRATE',name:'Improvement across investigations',get:()=>learning()}
+];
+function buildMeters(){
+  $('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');
+}
+function renderMeters(){
+  METERS.forEach(m=>{const el=$(`#v_${m.id}`);if(el)el.textContent=m.get();});
+  $('#diffLabel').textContent=`${level} / 5 · peak ${T.maxSolved}`;
+  $('#diffFill').style.width=`${level*20}%`;
+}
+function log(message){
+  const d=document.createElement('div');
+  d.innerHTML=`<span class="t">+${Date.now()-T.itemStart}ms</span> ${message}`;
+  $('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;
+}
+async function animateBall(cm){
+  locked=true;$('#marker').style.opacity='0';$('#distance').textContent='…';
+  $('#playfill').style.transition='none';$('#playfill').style.width='0';void $('#playfill').offsetWidth;
+  $('#playfill').style.transition='width .9s linear';$('#playfill').style.width='100%';
+  const screen=$('#screen'),available=Math.max(180,screen.clientWidth-165);
+  const pct=Math.min(.96,.16+cm/115*.76),destination=80+available*pct;
+  const ball=$('#ball');ball.style.left='112px';
+  const animation=ball.animate(
+    [{left:'112px',transform:'rotate(0deg) translateY(0)'},{left:`${destination}px`,transform:'rotate(620deg) translateY(-2px)'}],
+    {duration:900,easing:'cubic-bezier(.18,.68,.25,1)',fill:'forwards'}
+  );
+  try{await animation.finished;}catch(_){}
+  ball.style.left=`${destination}px`;ball.style.transform='rotate(620deg)';
+  $('#marker').style.left=`${destination+13}px`;$('#marker').style.opacity='1';
+  $('#distance').textContent=`${cm} cm`;locked=false;
+}
+function classifyStrategy(previous,current){
+  if(!previous)return 'intentional';
+  const changed=differences(previous.setup,current),sameBest=trials.length?
+    differences(current,trials.reduce((a,b)=>a.cm>b.cm?a:b).setup)<=1:false;
+  if(changed===1&&sameBest)return 'grounded';
+  if(changed===1||changed===0&&model.noise>0)return 'intentional';
+  return 'random';
+}
+async function runTrial(record=true){
+  if(locked||!['warmup','scored','demo'].includes(phase))return;
+  const current={...setting},cm=outcome(current,trials.length);
+  await animateBall(cm);
+  if(phase==='demo'){log(`demo ${setupIcons(current)} → ${cm}cm`);return;}
+  if(phase==='warmup'){
+    log(`warm-up trial ${setupIcons(current)} → ${cm}cm · UNSCORED`);
+    locked=true;setTimeout(startScored,700);return;
+  }
+  const previous=trials.at(-1),changed=previous?differences(previous.setup,current):null;
+  const strategy=classifyStrategy(previous,current);
+  if(previous){T.transitions++;roundTransitions++;if(changed===1){T.controlled++;roundControlled++;}}
+  T.plan[strategy]++;T.explore.add(setupKey(current));
+  const trial={setup:current,cm,changed,strategy};trials.push(trial);
+  const optimum=expected(bestSetup()),bestSeen=Math.max(...trials.map(x=>x.cm));
+  const progress=Math.min(100,Math.round(100*bestSeen/optimum));
+  T.progress.push(progress);T.path.push(`${setupKey(current)}:${cm}`);
+  const card=document.createElement('div');card.className=`trial ${strategy==='random'?'random':changed===1?'controlled':''}`;
+  card.innerHTML=`<b>${setupIcons(current)}</b><br>${cm} cm · ${strategy[0].toUpperCase()}`;
+  $('#trials').prepend(card);
+  log(`trial ${setupKey(current)} → ${cm}cm · Δ${changed??0} · ${strategy}`);
+  if(trials.length>=3)$('#conclude').style.display='';
+  renderMeters();
+}
+function conclusionOptions(){
+  const best=bestSetup(),options=[best];
+  const variants=[
+    {...best,ramp:(best.ramp+2)%3},{...best,surface:(best.surface+2)%3},{...best,ball:1-best.ball},
+    {...best,ramp:1,surface:1}
+  ];
+  variants.forEach(v=>{if(options.length<4&&!options.some(x=>setupKey(x)===setupKey(v)))options.push(v);});
+  return options.sort((a,b)=>(setupKey(a).charCodeAt(0)+scoredIndex)%3-(setupKey(b).charCodeAt(0)+scoredIndex)%3);
+}
+function showConclusion(){
+  if(phase!=='scored'||trials.length<3||locked)return;
+  phase='conclusion';$('#controls').style.display='none';$('#run').style.display='none';$('#conclude').style.display='none';
+  const host=$('#conclusion');host.classList.add('on');host.innerHTML=conclusionOptions().map(s=>`
+    <button class="answer" data-key="${setupKey(s)}" aria-label="setup ${setupKey(s)}">
+      <span>${ICONS.ramp[s.ramp]}</span><span>${ICONS.surface[s.surface]}</span><span>${ICONS.ball[s.ball]}</span>
+    </button>`).join('');
+  setStatus('neutral','Tap the setup you think sends the ball farthest.');
+  log('conclusion choices');
+}
+function chooseConclusion(key){
+  if(phase!=='conclusion'||locked)return;
+  locked=true;const chosen=allSetups().find(s=>setupKey(s)===key),best=bestSetup();
+  const points=3-differences(chosen,best),exact=points===3;
+  T.poly+=points;T.polyMax+=3;T.roundScores.push(points);T.levels.push(level);
+  $$('.answer').forEach(b=>{
+    if(b.dataset.key===setupKey(best))b.style.borderColor='var(--lime)';
+    else if(b.dataset.key===key)b.style.borderColor='var(--red)';
+  });
+  setStatus(exact?'ok':'no',exact?'\u2713 Correct - that is the best setup':'\u2717 Not quite - the best setup is highlighted');
+  const controlledRate=roundTransitions?roundControlled/roundTransitions:0;
+  itemResult=exact&&controlledRate>=.5;
+  log(`conclusion ${key} → ${points}/3 · target ${setupKey(best)} · controlled ${Math.round(100*controlledRate)}%`);
+  renderMeters();setTimeout(nextItem,850);
+}
+let itemResult=false;
+function nextItem(){
+  if(itemResult){T.maxSolved=Math.max(T.maxSolved,level);level=Math.min(5,level+1);}
+  else level=Math.max(1,level-1);
+  scoredIndex++;renderMeters();
+  if(scoredIndex>=5)finish();else startScored();
+}
+function resetStage(){
+  trials=[];roundControlled=0;roundTransitions=0;setting={ramp:1,surface:1,ball:0};
+  $('#trials').innerHTML='';$('#conclusion').classList.remove('on');$('#conclusion').innerHTML='';
+  $('#controls').style.display='flex';$('#run').style.display='';$('#conclude').style.display='none';
+  $('#distance').textContent='— cm';$('#marker').style.opacity='0';renderControls();
+}
+function startWarmup(){
+  phase='warmup';locked=false;model=makeModel(1,0);resetStage();T.itemStart=Date.now();
+  setCue('warmup');setStatus('neutral','Practice - run a trial to see how it works. Not scored.');log('— WARM-UP · ONE UNSCORED TRIAL —');renderMeters();
+}
+function startScored(){
+  phase='scored';locked=false;model=makeModel(level,scoredIndex);resetStage();T.itemStart=Date.now();itemResult=false;
+  setCue('scored',(scoredIndex+1)+'/5');setStatus('neutral','Change one thing at a time, then choose the best setup.');log(`— SCORED ${scoredIndex+1}/5 · level ${level} · noise ${model.noise} —`);renderMeters();
+}
+function finish(){
+  phase='done';locked=true;setCue('done');
+  $('#stagecard').innerHTML='<div style="font-size:34px;font-weight:800;padding:64px 0;color:var(--blue)">\u2713 Done</div><button id="again" class="choice" aria-label="play again" title="play again">\u21bb</button>';
+  $('#again').onclick=()=>location.reload();log(`— DONE · poly ${T.poly}/${T.polyMax} · peak ${T.maxSolved} —`);
+}
+const ghost=$('#ghost');
+function center(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){
+  const p=center(el);ghost.style.transform=`translate(${p.x-12}px,${p.y-8}px)`;await sleep(380);
+}
+async function runDemo(){
+  phase='demo';locked=false;model=makeModel(1,0);resetStage();T.itemStart=Date.now();
+  setCue('demo');setStatus('neutral','Watch the example.');ghost.classList.add('show');log('wordless video-style controlled comparison');
+  setting={ramp:0,surface:1,ball:0};renderControls();await ghostTo($(`.choice[data-value="0"]`));
+  await ghostTo($('#run'));await runTrial(false);await sleep(220);
+  setting={ramp:2,surface:1,ball:0};renderControls();
+  const high=$('.controlGroup[data-variable="ramp"] .choice[data-value="2"]');await ghostTo(high);
+  await ghostTo($('#run'));await runTrial(false);await sleep(300);
+  ghost.classList.remove('show');startWarmup();
+}
+$('#controls').addEventListener('click',e=>{
+  const b=e.target.closest('.choice');if(!b||locked||!['warmup','scored'].includes(phase))return;
+  const variable=b.parentElement.dataset.variable;setting[variable]=+b.dataset.value;
+  renderControls();log(`set ${variable}=${b.dataset.value}`);
+});
+$('#run').addEventListener('click',()=>runTrial(true));
+$('#conclude').addEventListener('click',showConclusion);
+$('#conclusion').addEventListener('click',e=>{
+  const b=e.target.closest('.answer');if(b)chooseConclusion(b.dataset.key);
+});
+$('#replay').addEventListener('click',()=>{if(phase!=='demo')location.reload();});
+buildMeters();renderMeters();runDemo();
+</script>
+</body>
+</html>

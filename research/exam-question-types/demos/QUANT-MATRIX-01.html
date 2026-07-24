@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QUANT-MATRIX-01 · Number Web</title>
+<style>
+  :root{
+    --mist:#eaf8f7;--lilac:#eeeaff;--ink:#26334e;--card:#fbffff;
+    --cyan:#1f9fa8;--indigo:#6467d9;--good:#2fbd7f;--bad:#ef6470;
+    --wire:#a9d8dc;--tel:#0d1728;--tel2:#17243d;--key:#79f5d2;--dim:#7285ae;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%}
+  body{
+    min-height:100vh;display:flex;color:var(--ink);
+    font:16px/1.35 ui-rounded,"Avenir Next",system-ui,sans-serif;
+    background:linear-gradient(135deg,var(--mist),var(--lilac));
+  }
+  button{font:inherit}
+  #wrap{
+    flex:1;min-width:0;padding:18px;display:flex;flex-direction:column;
+    align-items:center;gap:12px;
+  }
+  #badge{
+    color:#72839e;font-size:12px;font-weight:800;letter-spacing:.1em;
+    text-transform:uppercase;
+  }
+  #howto{width:min(720px,100%);background:#fff;border:1px solid #d9d2f2;border-left:5px solid var(--indigo);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #3c5377}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--indigo)}
+  #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eeeaff;color:var(--indigo);border:2px solid #cbc4f0;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:var(--indigo);color:#fff;border-color:var(--indigo)}
+  #phasecue[data-phase="done"]{background:#e7e3fb;color:#4b3fb0;border-color:#cbc4f0}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:var(--dim)}
+  #stagecard{
+    width:min(720px,100%);min-height:500px;border-radius:30px;padding:24px;
+    background:rgba(251,255,255,.96);box-shadow:0 24px 60px -32px #3c5377;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;
+  }
+  #webshell{position:relative;padding:18px}
+  #web{
+    display:grid;gap:18px;padding:18px;border-radius:28px;
+    background:radial-gradient(circle,#e8ffff,#edf1ff);
+    border:3px solid #c8e6eb;position:relative;
+  }
+  #web::before{
+    content:"";position:absolute;inset:50% 5%;height:3px;background:var(--wire);
+    box-shadow:0 -88px var(--wire),0 88px var(--wire);opacity:.5;
+  }
+  .cell{
+    width:88px;height:88px;border-radius:22px;background:#fff;border:3px solid #cfe3ea;
+    display:grid;place-items:center;position:relative;z-index:2;box-shadow:0 6px 0 #cfdee7;
+    transition:.2s;
+  }
+  .cell.hole{
+    border-style:dashed;border-color:var(--indigo);background:#f3efff;
+    animation:hole 1.3s ease-in-out infinite;
+  }
+  @keyframes hole{50%{box-shadow:0 6px 0 #d8d0ee,0 0 24px #7775de66}}
+  #guide{position:absolute;inset:0;pointer-events:none;display:none}
+  #guide.show{display:block}
+  .relation{
+    position:absolute;font-size:30px;color:var(--cyan);opacity:.25;
+    animation:flow .8s ease-in-out infinite alternate;
+  }
+  .relation.one{left:43%;top:27%}.relation.two{left:43%;bottom:25%}
+  @keyframes flow{to{opacity:1;transform:translateX(8px)}}
+  .quantity{
+    width:64px;display:grid;grid-template-columns:repeat(5,10px);
+    gap:3px;justify-content:center;align-content:center;
+  }
+  .bit{height:10px;border-radius:3px;background:var(--cyan)}
+  .bit:nth-child(5n+1){border-radius:6px 3px 3px 6px}
+  .bit:nth-child(5n){border-radius:3px 6px 6px 3px}
+  #choices{display:flex;gap:11px;justify-content:center;flex-wrap:wrap}
+  .choice{
+    width:86px;height:76px;border:3px solid #d4e5e9;border-radius:20px;background:#fff;
+    display:grid;place-items:center;cursor:pointer;box-shadow:0 6px 0 #d5e2e6;
+    transition:.15s;
+  }
+  .choice:hover,.choice:focus-visible{outline:none;transform:translateY(-3px);border-color:#80c5cc}
+  .choice.selected{transform:translateY(-4px);border-color:var(--indigo);box-shadow:0 8px 0 #d6d3ee}
+  .choice.correct{border-color:var(--good);background:#eafff4}
+  .choice.wrong{border-color:var(--bad);background:#fff0f2}
+  #controls{display:flex;gap:18px;align-items:center}
+  #replay,#go{border:0;border-radius:50%;cursor:pointer;display:grid;place-items:center}
+  #replay{width:50px;height:50px;color:var(--cyan);background:#e4f7f7;font-size:24px}
+  #go{
+    width:76px;height:76px;color:#fff;font-size:31px;
+    background:conic-gradient(from 45deg,var(--cyan),var(--indigo),var(--cyan));
+    box-shadow:0 11px 25px -9px var(--indigo);opacity:.34;pointer-events:none;
+  }
+  #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.1s infinite}
+  @keyframes pulse{50%{transform:scale(1.08) rotate(2deg)}}
+  .pulse .cell{animation:circuit .7s ease}
+  @keyframes circuit{50%{border-color:var(--good);box-shadow:0 0 24px #47dca588}}
+  .shake{animation:shake .4s}
+  @keyframes shake{25%,75%{transform:translateX(-8px)}50%{transform:translateX(8px)}}
+  #ghost{
+    position:fixed;left:0;top:0;z-index:90;font-size:42px;opacity:0;pointer-events:none;
+    filter:drop-shadow(0 3px 4px #0004);transition:transform .48s ease,opacity .2s;
+  }
+  #ghost.show{opacity:.94}#ghost.tap{animation:tap .34s}
+  @keyframes tap{50%{scale:.78}}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--indigo);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #telemetry{
+    width:326px;flex:0 0 326px;background:var(--tel);color:#c7d5fb;
+    display:flex;flex-direction:column;font:13px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  #telemetry h3{
+    margin:0;padding:13px 14px;background:var(--tel2);color:#fff;
+    font-size:12px;letter-spacing:.09em;text-transform:uppercase;
+  }
+  #difficulty{padding:11px 13px;border-bottom:1px solid #263653}
+  .cap{display:flex;justify-content:space-between;color:#8497c0;font-size:11px}
+  #dbar{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-top:7px}
+  #dbar i{height:9px;border-radius:5px;background:#283653}
+  #dbar i.on{background:linear-gradient(90deg,#75f0d0,#8587ff)}
+  #mlist{padding:11px 12px;display:flex;flex-direction:column;gap:8px}
+  .mrow{display:grid;grid-template-columns:96px 1fr;gap:7px}
+  .mid{color:var(--key);font-weight:800}.mval{color:#fff;text-align:right}
+  .mname{grid-column:1/3;color:var(--dim);font-size:11px}
+  #logwrap{border-top:1px solid #263653;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 3px;color:#8497c0;font-size:11px}
+  #log{height:190px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:3px 0;border-bottom:1px dotted #23324e}#log .t{color:#6277a6}
+  @media(max-width:860px){
+    body{flex-direction:column}#telemetry{width:100%;flex:none;min-height:340px}
+    #stagecard{min-height:460px}.cell{width:72px;height:72px}#web{gap:13px}
+  }
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<main id="wrap">
+  <div id="badge">QUANT-MATRIX-01 · Number Web</div>
+  <header id="howto">
+    <h1>How to use — Number Web</h1>
+    <p>Watch the pointer solve one example, then try one practice item (not scored). Work out how the amounts in each row change, then tap the amount that belongs in the empty (dashed) cell and press submit (<b>◉</b>). It gets harder each time you are right.</p>
+  </header>
+  <div id="phasecue" data-phase="demo">Watch the example</div>
+  <section id="stagecard">
+    <div id="webshell">
+      <div id="web"></div>
+      <div id="guide"><span class="relation one">➜</span><span class="relation two">➜</span></div>
+    </div>
+    <div id="choices"></div>
+    <div id="controls">
+      <button id="replay" aria-label="Replay demonstration">↻</button>
+      <button id="go" aria-label="Submit answer">◉</button>
+    </div>
+    <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+  </section>
+</main>
+<aside id="telemetry">
+  <h3>Live telemetry · per-child</h3>
+  <div id="difficulty">
+    <div class="cap"><span>DIFFICULTY</span><span id="dlabel">1 / 6</span></div>
+    <div id="dbar"></div>
+  </div>
+  <div id="mlist"></div>
+  <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+</aside>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0;
+const ITEMS=[
+  {size:2,cells:[2,3,4,null],answer:5,opts:[4,6,5,7],errs:['copy-left','double-only',null,'overshoot'],rule:'same growth',rules:1},
+  {size:2,cells:[2,4,3,null],answer:6,opts:[5,8,6,3],errs:['additive-for-double','double-top','', 'copy-input'],rule:'doubling analogy',rules:1},
+  {size:3,cells:[1,2,3,2,3,5,3,4,null],answer:7,opts:[6,8,7,5],errs:['repeat-gap','overshoot',null,'copy-row'],rule:'row join + column step',rules:2},
+  {size:3,cells:[1,2,4,2,4,8,3,6,null],answer:12,opts:[9,10,12,16],errs:['add-only','single-rule-only',null,'continue-eight'],rule:'double rows + column growth',rules:2},
+  {size:3,cells:[2,4,6,3,6,9,4,8,null],answer:12,opts:[10,12,16,11],errs:['first-column-only',null,'double-last','near-miss'],rule:'two-dimensional scaling',rules:2},
+  {size:3,cells:[2,3,5,4,6,10,6,9,null],answer:15,opts:[13,18,15,12],errs:['row-step-only','column-only',null,'single-rule-only'],rule:'join + two column scales',rules:3}
+];
+const DEMO={size:2,cells:[2,4,3,null],answer:6,opts:[5,6,3,7],errs:['add-one',null,'copy-input','overshoot'],rule:'doubling',rules:1};
+const WARM={size:2,cells:[1,2,2,null],answer:3,opts:[2,4,3,1],errs:['copy-left','double-only',null,'reverse'],rule:'add one',rules:1};
+let phase='demo',cur=null,choice=-1,locked=true,trial=0,level=1,itemStart=0,firstLatency=null;
+const T={scored:0,correct:0,firsts:[],lastErr:'—',ruleMax:0,maxLevel:0,levels:[]};
+function quantity(n){return `<div class="quantity">${Array.from({length:n},()=>'<i class="bit"></i>').join('')}</div>`;}
+function renderItem(item){
+  cur=item;choice=-1;firstLatency=null;itemStart=performance.now();
+  $('#web').style.gridTemplateColumns=`repeat(${item.size},88px)`;
+  $('#web').innerHTML=item.cells.map((n,i)=>n===null?`<div class="cell hole" id="hole" data-cell="${i}">?</div>`:`<div class="cell">${quantity(n)}</div>`).join('');
+  $('#choices').innerHTML=item.opts.map((n,i)=>`<button class="choice" data-i="${i}" aria-label="Quantity option">${quantity(n)}</button>`).join('');
+  $('#guide').classList.toggle('show',phase==='demo'&&item.size===2);
+  $('#go').classList.remove('ready');updateDifficulty();renderMeters();
+}
+function choose(i,ghosted=false){
+  if(locked&&!ghosted)return;
+  if(firstLatency===null)firstLatency=Math.round(performance.now()-itemStart);
+  choice=i;
+  document.querySelectorAll('.choice').forEach((b,k)=>b.classList.toggle('selected',k===i));
+  $('#hole').innerHTML=quantity(cur.opts[i]);$('#go').classList.add('ready');
+  if(!ghosted)log(`place option ${i+1} · ${cur.errs[i]||'key'}`);
+  renderMeters();
+}
+function feedback(ok){
+  const b=document.querySelector(`.choice[data-i="${choice}"]`);
+  if(b)b.classList.add(ok?'correct':'wrong');
+  if(ok){$('#web').classList.add('pulse');setTimeout(()=>$('#web').classList.remove('pulse'),720);}
+  else{$('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),430);}
+}
+function submit(){
+  if(locked||choice<0)return;
+  const ok=cur.opts[choice]===cur.answer;
+  if(phase==='warmup'){
+    locked=true;feedback(ok);setStatus('neutral',ok?'\u2713 Correct - practice':'\u2717 Not quite - the correct amount is shown (practice)');log(`warm-up ${ok?'correct':'corrective trace'} · UNSCORED`);
+    if(!ok)setTimeout(()=>{choose(cur.opts.indexOf(cur.answer),true);feedback(true);},420);
+    setTimeout(startScored,1050);return;
+  }
+  locked=true;T.scored++;if(ok)T.correct++;
+  T.firsts.push(firstLatency);T.lastErr=ok?'—':cur.errs[choice]||'other';
+  if(ok){T.ruleMax=Math.max(T.ruleMax,cur.rules);T.maxLevel=Math.max(T.maxLevel,level);}
+  T.levels.push({trial:T.scored,level,ok});
+  feedback(ok);setStatus(ok?'ok':'no',ok?'\u2713 Correct':'\u2717 Not quite - the correct amount is highlighted');log(`SCORED ${T.scored}/6 · ${cur.size}x${cur.size} · L${level} · ${ok?'correct':'miss '+T.lastErr} · first ${firstLatency}ms`);
+  level=Math.max(1,Math.min(6,level+(ok?1:-1)));updateDifficulty();renderMeters();
+  setTimeout(()=>{trial++;trial<6?startScored():finish();},920);
+}
+function learnRate(){return T.scored?((Math.max(1,T.maxLevel)-1)/T.scored).toFixed(2)+' levels/trial':'—';}
+const METERS=[
+  {id:'M-ACC',name:'Item accuracy',get:()=>T.scored?`${T.correct}/${T.scored} · ${Math.round(100*T.correct/T.scored)}%`:'—'},
+  {id:'M-RTFIRST',name:'First-action latency',get:()=>firstLatency!==null?`${firstLatency} ms current${T.firsts.length?` · mean ${mean(T.firsts)}`:''}`:T.firsts.length?`${T.firsts.at(-1)} ms · mean ${mean(T.firsts)}`:'—'},
+  {id:'M-ERRTYPE',name:'Relation-keyed error type',get:()=>T.lastErr},
+  {id:'M-RULEID',name:'Relations integrated correctly',get:()=>T.ruleMax?`${T.ruleMax} relation${T.ruleMax>1?'s':''}`:'—'},
+  {id:'M-DIFFREACH',name:'Maximum web difficulty solved',get:()=>T.maxLevel?`level ${T.maxLevel} / 6`:'—'},
+  {id:'M-LEARNRATE',name:'Within-session ceiling growth',get:learnRate}
+];
+function buildMeters(){
+  $('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');
+  $('#dbar').innerHTML=Array.from({length:6},()=>'<i></i>').join('');
+}
+function renderMeters(){METERS.forEach(m=>{$('#v_'+m.id).textContent=m.get();});}
+function updateDifficulty(){
+  $('#dlabel').textContent=`${level} / 6`;
+  [...$('#dbar').children].forEach((x,i)=>x.classList.toggle('on',i<level));
+}
+function log(msg){
+  const d=document.createElement('div');
+  d.innerHTML=`<span class="t">${new Date().toLocaleTimeString([],{minute:'2-digit',second:'2-digit'})}</span> ${msg}`;
+  $('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;
+}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+function startWarmup(){phase='warmup';locked=false;setCue('warmup');setStatus('neutral','Practice - this one is not scored.');renderItem(WARM);log('warm-up · single relation · unscored');}
+function startScored(){phase='scored';locked=false;setCue('scored',(trial+1)+'/6');setStatus('neutral','Tap the amount for the empty cell, then press submit.');renderItem(ITEMS[level-1]);log(`item ${trial+1}/6 · level ${level} · ${cur.rule}`);}
+function finish(){phase='done';locked=true;setCue('done');setStatus('ok','\u2713 Done');$('#go').classList.remove('ready');log(`DONE · ${T.correct}/${T.scored} · ceiling ${T.maxLevel}`);}
+const ghost=$('#ghost');
+function ghostShow(on){ghost.classList.toggle('show',on);}
+async function ghostTo(el){
+  const r=el.getBoundingClientRect();
+  ghost.style.transform=`translate(${r.left+r.width/2-12}px,${r.top+r.height/2-10}px)`;
+  await sleep(470);
+}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(330);}
+async function runDemo(){
+  phase='demo';locked=true;setCue('demo');setStatus('neutral','Watch the example.');renderItem(DEMO);log('ghost-hand demo · wordless relation trace');
+  ghostShow(true);await sleep(240);
+  const cells=$('#web').children;
+  await ghostTo(cells[0]);await ghostTo(cells[1]);await ghostTo(cells[2]);
+  const key=cur.opts.indexOf(cur.answer);
+  await ghostTo(document.querySelector(`.choice[data-i="${key}"]`));await ghostTap();choose(key,true);
+  await ghostTo($('#go'));await ghostTap();feedback(true);await sleep(380);
+  ghostShow(false);$('#guide').classList.remove('show');startWarmup();
+}
+$('#choices').addEventListener('click',e=>{const b=e.target.closest('.choice');if(b)choose(+b.dataset.i);});
+$('#go').addEventListener('click',submit);
+$('#replay').addEventListener('click',()=>{if(phase!=='demo')location.reload();});
+buildMeters();renderMeters();runDemo();
+</script>
+</body>
+</html>

@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FLU-DEDUCE-01 · Clue Detective</title>
+<style>
+:root{
+  --ink:#293249;--paper:#fffef9;--violet:#625bd8;--good:#31b87b;
+  --bad:#ec6670;--gold:#efba3f;--line:#dfe4f0;--tel:#111729;
+  --tel2:#1a233c;--key:#80ffd0;--dim:#7f8db7;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{
+  min-height:100vh;display:flex;color:var(--ink);
+  font:16px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;
+  background:radial-gradient(circle at 85% 8%,#fff0c7,transparent 26%),
+    linear-gradient(145deg,#ebf6ff,#f5efff 55%,#edfff6);
+}
+#wrap{
+  flex:1;min-width:0;padding:18px;display:flex;flex-direction:column;
+  align-items:center;gap:10px;
+}
+  #badge{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#828ba8}
+  #howto{max-width:600px;width:100%;background:#fff;border:1px solid #dfe4f0;border-left:5px solid var(--violet);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #313b75}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--violet)}
+  #howto p{margin:0;font-size:14px;color:#454f6e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#edf0ff;color:var(--violet);border:2px solid #cdd3ff;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:var(--violet);color:#fff;border-color:var(--violet)}
+  #phasecue[data-phase="done"]{background:#e7eaff;color:#3f3ab0;border-color:#cdd3ff}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#828ba8}
+#stagecard{
+  width:min(690px,100%);background:var(--paper);border-radius:28px;padding:18px;
+  box-shadow:0 24px 58px -35px #313b75;display:flex;flex-direction:column;
+  align-items:center;gap:15px;border:1px solid #fff;min-height:410px;
+}
+#clues{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;min-height:72px}
+.clue{
+  width:76px;height:68px;border-radius:14px;border:2px solid #e1c96b;
+  background:#fff8d9;display:grid;place-items:center;transition:.2s;
+  box-shadow:0 7px 16px -15px #6e5700;
+}
+.clue.pending{opacity:.22;filter:grayscale(1);transform:scale(.9)}
+.clue.current{box-shadow:0 0 0 4px #ffed9f;transform:translateY(-3px)}
+.clueIcon{width:51px;height:51px;display:grid;place-items:center;position:relative}
+.slash::after{
+  content:"";position:absolute;width:52px;height:5px;border-radius:5px;
+  background:#cf3d48;transform:rotate(-35deg);
+}
+#lineup{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;width:100%}
+.candidate{
+  width:92px;height:101px;border:3px solid #e5e9f2;border-radius:17px;background:#fff;
+  display:grid;place-items:center;cursor:pointer;position:relative;transition:.15s;
+}
+.candidate:hover{transform:translateY(-3px);border-color:#b7c1dc}
+.candidate.dead{opacity:.3;filter:grayscale(.75)}
+.candidate.dead::after{
+  content:"✕";position:absolute;font-size:42px;font-weight:900;color:var(--bad);
+  text-shadow:0 2px #fff;
+}
+.candidate.pick{border-color:var(--violet);box-shadow:0 0 0 4px #dfdcff}
+.candidate.good{border-color:var(--good);background:#eafaf4;opacity:1;filter:none}
+.candidate.bad{border-color:var(--bad);background:#fff0ef;opacity:1;filter:none}
+.num{
+  position:absolute;right:5px;bottom:3px;color:#a0a9c1;
+  font:800 10px ui-monospace,monospace;
+}
+#tools{display:flex;gap:11px;align-items:center}
+#tools button{
+  height:50px;border:0;border-radius:16px;cursor:pointer;font:800 21px system-ui;
+  background:#edf0ff;color:var(--violet);
+}
+#replay{width:52px}#advance{width:84px;background:var(--violet)!important;color:#fff!important}
+button:focus-visible,.candidate:focus-visible{outline:4px solid #168dff;outline-offset:2px}
+#ghost{
+  position:fixed;left:0;top:0;opacity:0;z-index:50;pointer-events:none;
+  transition:transform .45s cubic-bezier(.2,.7,.2,1),opacity .2s;filter:drop-shadow(0 4px 4px #0004);
+}
+#ghost.show{opacity:1}
+#ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--violet);opacity:0}
+#ghost.tap .ring{animation:tapring .5s ease-out}
+@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+#telemetry{
+  width:335px;flex:0 0 335px;min-height:100vh;background:var(--tel);
+  color:#cbd8ff;display:flex;flex-direction:column;
+  font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+#telemetry h3{
+  margin:0;padding:13px 14px;background:var(--tel2);color:#fff;
+  font:800 12px system-ui;letter-spacing:.1em;text-transform:uppercase;
+}
+#difficulty{padding:10px 13px;border-bottom:1px solid #29324f}
+.diffTop{display:flex;justify-content:space-between;color:#a8b5d9}
+.diffTrack{height:8px;background:#28314c;border-radius:8px;overflow:hidden;margin-top:6px}
+#diffFill{height:100%;width:20%;background:linear-gradient(90deg,#6863ff,#63e7bc);transition:.3s}
+#mlist{padding:11px 12px;display:flex;flex-direction:column;gap:8px}
+.mrow{display:grid;grid-template-columns:98px 1fr;gap:7px}
+.mid{color:var(--key);font-weight:800}.mval{color:#fff}
+.mname{grid-column:1/3;color:var(--dim);font-size:10px;margin-top:-3px}
+#logwrap{border-top:1px solid #29324f;margin-top:auto}
+#logwrap b{display:block;padding:8px 12px 3px;color:#8190b8;font-size:10px}
+#log{height:190px;overflow:auto;padding:0 12px 12px}
+#log div{border-bottom:1px dotted #29324f;padding:3px 0}
+#log .t{color:#6272a1}
+@media(max-width:860px){
+  body{flex-direction:column}#telemetry{width:100%;min-height:0;height:305px;flex:none}
+}
+@media(max-width:480px){.candidate{width:78px;height:87px}.clue{width:65px;height:60px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<main id="wrap">
+  <div id="badge">FLU-DEDUCE-01 · Clue Detective</div>
+  <header id="howto">
+    <h1>How to use — Clue Detective</h1>
+    <p>Read each clue as it appears and cross out every suspect it rules out. When one suspect is left, tap it, then press <b>Next</b> to check your answer.</p>
+  </header>
+  <div id="phasecue" data-phase="demo">Watch the example</div>
+  <section id="stagecard">
+    <div id="clues"></div>
+    <div id="lineup"></div>
+    <div id="tools">
+      <button id="replay" aria-label="replay">↻</button>
+      <button id="advance" aria-label="next clue">Next</button>
+    </div>
+    <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+  </section>
+</main>
+<aside id="telemetry">
+  <h3>Live telemetry · per-child</h3>
+  <div id="difficulty">
+    <div class="diffTop"><span>DIFFICULTY</span><span id="diffLabel">1 / 5</span></div>
+    <div class="diffTrack"><div id="diffFill"></div></div>
+  </div>
+  <div id="mlist"></div>
+  <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+</aside>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#625bd8" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const SHAPES=['triangle','circle','square','star','hex'];
+const COLORS=['red','blue','green','gold'];
+const INK={red:'#e3525f',blue:'#3975d3',green:'#2eaf79',gold:'#dfa51f'};
+const PATTERN={red:'／',blue:'••',green:'＋',gold:'＝'};
+const T={
+  n:0,acc:0,polyGood:0,polyTotal:0,elimGood:0,elimActions:0,
+  forced:0,revisions:0,path:[],errors:[],itemStart:Date.now(),maxSolved:0
+};
+let phase='demo',level=1,scoredIndex=0,item=null,crossed=[],shown=1;
+let answerMode=false,picked=null,locked=true;
+function starPoints(cx,cy,r){
+  const p=[];for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?r*.44:r;p.push(`${cx+Math.cos(a)*rr},${cy+Math.sin(a)*rr}`);}return p.join(' ');
+}
+function shapeMark(shape,cx,cy,r,attrs){
+  if(shape==='circle')return `<circle cx="${cx}" cy="${cy}" r="${r}" ${attrs}/>`;
+  if(shape==='square')return `<rect x="${cx-r}" y="${cy-r}" width="${2*r}" height="${2*r}" rx="5" ${attrs}/>`;
+  if(shape==='triangle')return `<polygon points="${cx},${cy-r} ${cx-r},${cy+r} ${cx+r},${cy+r}" ${attrs}/>`;
+  if(shape==='star')return `<polygon points="${starPoints(cx,cy,r)}" ${attrs}/>`;
+  const p=[];for(let i=0;i<6;i++){const a=-Math.PI/2+i*Math.PI/3;p.push(`${cx+Math.cos(a)*r},${cy+Math.sin(a)*r}`);}
+  return `<polygon points="${p.join(' ')}" ${attrs}/>`;
+}
+function figure(f,size=76){
+  const attrs=f.fill==='solid'?`fill="${INK[f.color]}" stroke="#fff" stroke-width="2"`:
+    `fill="none" stroke="${INK[f.color]}" stroke-width="7"`;
+  let dots='';for(let i=0;i<f.dots;i++)dots+=`<circle cx="${27+i*11}" cy="69" r="3" fill="#26314c"/>`;
+  const pos=f.pos==='inside'?'<circle cx="47" cy="42" r="4.5" fill="#fff" stroke="#20283d" stroke-width="2"/>':
+    '<circle cx="72" cy="13" r="4.5" fill="#fff" stroke="#20283d" stroke-width="2"/>';
+  return `<svg width="${size}" height="${size}" viewBox="0 0 84 84" aria-hidden="true">
+    ${shapeMark(f.shape,42,39,25,attrs)}${dots}${pos}
+    <text x="4" y="13" font-size="10" font-weight="900" fill="${INK[f.color]}">${PATTERN[f.color]}</text>
+  </svg>`;
+}
+function iconShape(shape){return `<svg width="48" height="48" viewBox="0 0 84 84">${shapeMark(shape,42,42,25,'fill="#59627b"')}</svg>`;}
+const key=f=>`${f.shape}/${f.color}/${f.fill}/${f.dots}/${f.pos}`;
+function clone(f){return {...f};}
+function targetFor(seed){
+  return {
+    shape:SHAPES[seed%SHAPES.length],color:COLORS[(seed+1)%COLORS.length],
+    fill:seed%2?'outline':'solid',dots:seed%3+1,pos:seed%2?'inside':'outside'
+  };
+}
+function clueSet(target,lvl){
+  const badColor=COLORS[(COLORS.indexOf(target.color)+1)%COLORS.length];
+  const pool=[
+    {attr:'shape',neg:false,test:f=>f.shape===target.shape,icon:()=>iconShape(target.shape)},
+    {attr:'color',neg:true,bad:badColor,test:f=>f.color!==badColor,icon:()=>`<span class="clueIcon slash"><span class="sw" style="width:35px;height:35px;border-radius:9px;background:${INK[badColor]};display:block">${PATTERN[badColor]}</span></span>`},
+    {attr:'fill',neg:false,test:f=>f.fill===target.fill,icon:()=>`<svg width="48" height="48" viewBox="0 0 60 60">${shapeMark('circle',30,30,19,target.fill==='solid'?'fill="#59627b"':'fill="none" stroke="#59627b" stroke-width="7"')}</svg>`},
+    {attr:'dots',neg:false,test:f=>f.dots===target.dots,icon:()=>`<span style="font-size:18px;letter-spacing:2px">${'●'.repeat(target.dots)}</span>`},
+    {attr:'pos',neg:false,test:f=>f.pos===target.pos,icon:()=>`<svg width="50" height="50" viewBox="0 0 60 60"><circle cx="28" cy="30" r="18" fill="none" stroke="#59627b" stroke-width="4"/><circle cx="${target.pos==='inside'?30:52}" cy="${target.pos==='inside'?30:9}" r="5" fill="#ed6671"/></svg>`}
+  ];
+  if(lvl===1)return [pool[0],pool[2]];
+  if(lvl===2)return [pool[0],pool[1],pool[2]];
+  if(lvl===3)return [pool[0],pool[1],pool[3]];
+  if(lvl===4)return [pool[0],pool[1],pool[2],pool[3]];
+  return pool;
+}
+function violate(f,clue,step=1){
+  const out=clone(f);
+  if(clue.attr==='shape')out.shape=SHAPES[(SHAPES.indexOf(f.shape)+step)%SHAPES.length];
+  if(clue.attr==='color')out.color=clue.bad;
+  if(clue.attr==='fill')out.fill=f.fill==='solid'?'outline':'solid';
+  if(clue.attr==='dots')out.dots=f.dots%3+1;
+  if(clue.attr==='pos')out.pos=f.pos==='inside'?'outside':'inside';
+  return out;
+}
+function seededShuffle(a,seed){
+  const out=[...a];for(let i=out.length-1;i>0;i--){const j=(seed*19+i*7)%(i+1);[out[i],out[j]]=[out[j],out[i]];}return out;
+}
+function makeItem(lvl,demo=false){
+  const seed=demo?2:scoredIndex*3+lvl,target=targetFor(seed),clues=clueSet(target,lvl);
+  const wanted=Math.min(8,lvl+3),candidates=[target];
+  clues.forEach(c=>candidates.push(violate(target,c)));
+  for(let a=0;candidates.length<wanted&&a<clues.length;a++){
+    for(let b=a+1;candidates.length<wanted&&b<clues.length;b++){
+      candidates.push(violate(violate(target,clues[a]),clues[b]));
+    }
+  }
+  for(let step=2;candidates.length<wanted;step++)candidates.push(violate(target,clues[0],step));
+  const unique=candidates.filter((f,i,x)=>x.findIndex(g=>key(g)===key(f))===i).slice(0,wanted);
+  const cands=seededShuffle(unique,seed+lvl);
+  const answer=cands.findIndex(f=>clues.every(c=>c.test(f)));
+  if(cands.filter(f=>clues.every(c=>c.test(f))).length!==1)throw new Error('deduction item is not unique');
+  return {target,clues,cands,answer,level:lvl};
+}
+function renderClues(){
+  $('#clues').innerHTML=item.clues.map((c,i)=>`
+    <div class="clue ${i<shown?'':'pending'} ${i===shown-1?'current':''}">
+      <span class="clueIcon">${i<shown?c.icon():'?'}</span>
+    </div>`).join('');
+}
+function renderLineup(){
+  $('#lineup').innerHTML=item.cands.map((f,i)=>`
+    <button class="candidate ${crossed[i]?'dead':''} ${picked===i?'pick':''}" data-index="${i}" aria-label="candidate ${i+1}">
+      ${figure(f)}<span class="num">${i+1}</span>
+    </button>`).join('');
+}
+function invalidAt(i,count=shown){return item.clues.slice(0,count).some(c=>!c.test(item.cands[i]));}
+function checkpoint(){
+  if(phase!=='scored')return;
+  item.cands.forEach((_,i)=>{
+    const correctState=invalidAt(i);T.polyTotal++;if(crossed[i]===correctState)T.polyGood++;
+  });
+}
+function toggleCandidate(index){
+  if(!['warmup','scored'].includes(phase)||locked)return;
+  if(answerMode){picked=index;log(`select survivor #${index+1}`);renderLineup();return;}
+  if(crossed[index]){
+    crossed[index]=false;if(phase==='scored')T.revisions++;
+    if(phase==='scored')T.path.push(`${shown}:${index+1}-`);log(`restore #${index+1}`);
+  }else{
+    crossed[index]=true;
+    const forced=invalidAt(index);
+    if(phase==='scored'){
+      T.elimActions++;if(forced)T.elimGood++;T.path.push(`${shown}:${index+1}+`);
+    }
+    log(`cross #${index+1} · ${forced?'forced':'over-elim'}`);
+  }
+  renderLineup();renderMeters();
+}
+function advance(){
+  if(!['warmup','scored'].includes(phase)||locked)return;
+  if(answerMode){submit();return;}
+  checkpoint();
+  if(shown<item.clues.length){
+    shown++;renderClues();log(`reveal clue ${shown}/${item.clues.length}`);
+  }else{
+    answerMode=true;$('#advance').textContent='✓';
+    const alive=item.cands.map((_,i)=>i).filter(i=>!crossed[i]);
+    if(alive.length===1)picked=alive[0];
+    renderLineup();log('answer mode');
+  }
+  renderMeters();
+}
+function processError(){
+  if(crossed[item.answer])return 'over-elim';
+  if(item.cands.some((_,i)=>i!==item.answer&&!crossed[i]))return 'under-elim';
+  if(picked!==item.answer){
+    const clue=item.clues.find(c=>!c.test(item.cands[picked]));
+    return clue&&clue.neg?'negation':'conjunction';
+  }
+  return 'none';
+}
+function submit(){
+  if(picked===null)return;
+  locked=true;const ok=picked===item.answer;
+  $$('.candidate')[picked].classList.add(ok?'good':'bad');
+  if(!ok)$$('.candidate')[item.answer].classList.add('good');
+  if(phase==='scored'){
+    T.n++;if(ok)T.acc++;T.forced+=item.cands.length-1;
+    const err=processError();if(err!=='none')T.errors.push(err);
+  }
+  if(phase==='warmup')setStatus(ok?'ok':'no',ok?'✓ Correct - practice':'✗ Not quite - practice (correct suspect shown)');
+  else setStatus(ok?'ok':'no',ok?'✓ Correct':'✗ Not quite - the correct suspect is highlighted');
+  item.result=ok;log(`submit #${picked+1} → ${ok?'✓ unique survivor':'✕'} `);
+  renderMeters();setTimeout(nextItem,850);
+}
+function polyText(){
+  return T.polyTotal?`${T.polyGood}/${T.polyTotal} · ${Math.round(100*T.polyGood/T.polyTotal)}%`:'—';
+}
+function errorText(){
+  if(!T.errors.length)return 'none';const c={};T.errors.forEach(e=>c[e]=(c[e]||0)+1);
+  return Object.entries(c).map(([k,v])=>`${k}:${v}`).join(' ');
+}
+const METERS=[
+  {id:'M-ACC',name:'Unique-survivor accuracy',get:()=>T.n?`${T.acc}/${T.n} · ${Math.round(100*T.acc/T.n)}%`:'—'},
+  {id:'M-POLY',name:'Clue-state checkpoints correct',get:()=>polyText()},
+  {id:'M-PATH',name:'Clue:candidate elimination path',get:()=>T.path.length?T.path.slice(-11).join(' '):'—'},
+  {id:'M-EFF',name:'Forced eliminations / elimination actions',get:()=>T.elimActions?`${T.elimGood}/${T.elimActions} · forced total ${T.forced}`:'—'},
+  {id:'M-REV',name:'Restored candidates',get:()=>`${T.revisions}`},
+  {id:'M-ERRTYPE',name:'Negation / conjunction / pruning',get:()=>errorText()}
+];
+function buildMeters(){
+  $('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');
+}
+function renderMeters(){
+  METERS.forEach(m=>{const el=$(`#v_${m.id}`);if(el)el.textContent=m.get();});
+  $('#diffLabel').textContent=`${level} / 5 · ${item?item.clues.length:2} clues`;
+  $('#diffFill').style.width=`${level*20}%`;
+}
+function log(message){
+  const d=document.createElement('div');
+  d.innerHTML=`<span class="t">+${Date.now()-T.itemStart}ms</span> ${message}`;
+  $('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;
+}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+function nextItem(){
+  if(phase==='warmup'){startScored();return;}
+  if(item.result){T.maxSolved=Math.max(T.maxSolved,level);level=Math.min(5,level+1);}
+  else level=Math.max(1,level-1);
+  scoredIndex++;renderMeters();
+  if(scoredIndex>=5)finish();else startScored();
+}
+function start(kind){
+  phase=kind;locked=false;T.itemStart=Date.now();item=makeItem(kind==='warmup'?1:level);
+  crossed=item.cands.map(()=>false);shown=1;answerMode=false;picked=null;
+  renderClues();renderLineup();$('#advance').textContent='Next';
+  setCue(kind,kind==='scored'?(scoredIndex+1)+'/5':'');
+  setStatus('neutral',kind==='warmup'?'Practice - this one is not scored.':'Cross out every suspect a clue rules out.');
+  log(`— ${kind==='warmup'?'WARM-UP · UNSCORED':`SCORED ${scoredIndex+1}/5 · level ${level}`} —`);
+  log(`unique-solver check → 1 survivor`);renderMeters();
+}
+function startWarmup(){start('warmup');}
+function startScored(){start('scored');}
+function finish(){
+  phase='done';locked=true;setCue('done');
+  $('#stagecard').innerHTML='<div style="font-size:20px;font-weight:800;color:var(--violet);padding:52px 0;text-align:center">All done — great detective work!</div><button id="again" class="candidate" style="width:auto;padding:0 16px" aria-label="play again">↻ Play again</button><div id="status" class="ok">✓ Done</div>';
+  $('#again').onclick=()=>location.reload();log(`— DONE · ${T.acc}/${T.n} · peak ${T.maxSolved} —`);
+}
+const ghost=$('#ghost');
+function center(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){
+  const p=center(el);ghost.style.transform=`translate(${p.x-12}px,${p.y-8}px)`;await sleep(360);
+}
+async function runDemo(){
+  phase='demo';locked=true;T.itemStart=Date.now();item=makeItem(1,true);
+  crossed=item.cands.map(()=>false);shown=1;answerMode=false;picked=null;
+  renderClues();renderLineup();$('#advance').textContent='Next';setCue('demo');setStatus('neutral','Watch the example, then try it yourself.');
+  ghost.classList.add('show');log('wordless unique deduction');
+  for(let c=1;c<=item.clues.length;c++){
+    const fresh=item.cands.map((_,i)=>i).filter(i=>!crossed[i]&&invalidAt(i,c));
+    for(const i of fresh){await ghostTo($$('.candidate')[i]);crossed[i]=true;renderLineup();}
+    if(c<item.clues.length){await ghostTo($('#advance'));shown++;renderClues();}
+  }
+  await ghostTo($$('.candidate')[item.answer]);picked=item.answer;renderLineup();
+  await ghostTo($('#advance'));$$('.candidate')[item.answer].classList.add('good');
+  await sleep(320);ghost.classList.remove('show');startWarmup();
+}
+$('#lineup').addEventListener('click',e=>{
+  const c=e.target.closest('.candidate');if(c)toggleCandidate(+c.dataset.index);
+});
+$('#advance').addEventListener('click',advance);
+$('#replay').addEventListener('click',()=>{if(phase!=='demo')location.reload();});
+buildMeters();renderMeters();runDemo();
+</script>
+</body>
+</html>

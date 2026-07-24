@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WM-bind-01 · Home Again</title>
+<style>
+  :root{--bg1:#fff6e6;--bg2:#eef8ff;--ink:#3a2e1f;--card:#fff;--accent:#ff9f43;--good:#22b573;--bad:#ff6b6b;--house:#f2e4c8;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8a7a5c;text-transform:uppercase;font-weight:700}
+  #howto{max-width:600px;width:100%;background:#fff;border:1px solid #f2e4c8;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #8a6a2a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:#d9791f}
+  #howto p{margin:0;font-size:14px;color:#5a4a30;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#fdecd2;color:#d9791f;border:2px solid #ffd9a8;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:#d9791f;color:#fff;border-color:#d9791f}
+  #phasecue[data-phase="done"]{background:#ffedd8;color:#9a531f;border-color:#ffd9a8}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#a08a5e}
+  #stagecard{background:var(--card);border-radius:26px;padding:24px;box-shadow:0 18px 50px -22px #8a6a2a55;display:flex;flex-direction:column;align-items:center;gap:16px;max-width:540px;width:100%}
+  #grid{display:grid;grid-template-columns:repeat(3,72px);grid-template-rows:repeat(3,72px);gap:8px}
+  .house{background:var(--house);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:30px;cursor:pointer;transition:.15s;box-shadow:inset 0 0 0 2px #dcc79a}
+  .house.filled{background:#ffe9c2}
+  .house.correct{box-shadow:inset 0 0 0 4px var(--good)}
+  .house.wrong{box-shadow:inset 0 0 0 4px var(--bad)}
+  #tray{display:flex;gap:10px;min-height:56px;flex-wrap:wrap;justify-content:center}
+  .animal{width:52px;height:52px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;cursor:pointer;box-shadow:0 4px 10px -4px #0003;transition:.15s}
+  .animal.sel{box-shadow:0 0 0 3px var(--accent)}
+  #diffwrap{width:100%;max-width:340px}
+  #diffbar{height:8px;background:#eee0c4;border-radius:5px;overflow:hidden}
+  #difffill{height:100%;background:linear-gradient(90deg,#ffbf69,#ff9f43);width:20%;transition:.3s}
+  #difflabel{font-size:11px;color:#a08a5e;text-align:center;margin-top:4px;letter-spacing:.05em}
+  #controls{display:flex;gap:16px;align-items:center}
+  button{font:inherit;border:0;cursor:pointer;border-radius:50%}
+  #replay{width:50px;height:50px;background:#fdecd2;color:var(--accent);font-size:22px}
+  .shake{animation:shake .4s}@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+  #ghost{position:fixed;left:0;top:0;font-size:40px;pointer-events:none;z-index:60;opacity:0;transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.3))}
+  #ghost.show{opacity:.95}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}
+  .mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:210px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">WM-bind-01 · Home Again</div>
+    <header id="howto">
+      <h1>How to use — Home Again</h1>
+      <p>Watch which animal lives in each house, then the houses go empty. Tap an animal, then tap its house to send it home. Get them all right to move up a level.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
+    <div id="stagecard">
+      <div id="grid"></div>
+      <div id="tray"></div>
+      <div id="diffwrap"><div id="diffbar"><div id="difffill"></div></div><div id="difflabel">SET 2</div></div>
+      <div id="controls"><button id="replay" title="replay demo">↻</button></div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+    </div>
+  </div>
+  <aside id="telemetry">
+    <h3>Live telemetry · per-child</h3>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#ff9f43" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0;
+const last=a=>a[a.length-1];
+const ANIMALS=['🐶','🐱','🐰','🐻','🦊','🐸','🐷','🐵'];
+const NH=9;
+
+/* ---------- grid / tray render ---------- */
+function buildGrid(){const g=$('#grid');g.innerHTML='';for(let i=0;i<NH;i++){const d=document.createElement('div');d.className='house';d.dataset.i=i;d.textContent='🏠';g.appendChild(d);}}
+function houseEl(i){return $('#grid').children[i];}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+
+/* ---------- telemetry ---------- */
+let level=2,maxLevel=0;
+const T={scored:0,correctItems:0,totalItems:0,fullCorrect:0,errTypes:[],revisions:0,path:[],rtFirst:[],accBySplit:[[],[]]};
+function consist(){const[a,b]=T.accBySplit;if(a.length<2||b.length<2)return '\u2014';return `${Math.round(100*mean(a))}% / ${Math.round(100*mean(b))}% (odd/even)`;}
+const METERS=[
+ {id:'M-ACC',name:'Item accuracy (bindings correct)',get:()=>T.totalItems?`${T.correctItems}/${T.totalItems}  ${Math.round(100*T.correctItems/T.totalItems)}%`:'\u2014'},
+ {id:'M-SPAN',name:'Current set size',get:()=>`${level}`},
+ {id:'M-DIFFREACH',name:'Ceiling / max difficulty reached',get:()=>maxLevel?`set ${maxLevel}`:'\u2014'},
+ {id:'M-ERRTYPE',name:'Error type on misses',get:()=>T.errTypes.length?last(T.errTypes):'\u2014'},
+ {id:'M-REV',name:'Revisions (animal returned to tray)',get:()=>`${T.revisions}`},
+ {id:'M-PATH',name:'Placement path',get:()=>T.path.length?T.path.slice(-5).join(' '):'\u2014'},
+ {id:'M-RTFIRST',name:'First-action latency',get:()=>T.rtFirst.length?`${last(T.rtFirst)} ms (mean ${mean(T.rtFirst)})`:'\u2014'},
+ {id:'M-CONSIST',name:'Cross-item consistency',get:()=>consist()},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});}
+let tStart=Date.now();
+function log(msg){const t=Date.now()-tStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+function setDiff(){const pct=Math.min(100,Math.round((level-2)/6*100));$('#difffill').style.width=pct+'%';$('#difflabel').textContent='SET '+level;}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+
+/* ---------- ghost ---------- */
+const ghost=$('#ghost');function ghostShow(v){ghost.classList.toggle('show',v);}
+async function ghostTo(el){const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(500);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(420);}
+
+/* ---------- trial logic ---------- */
+let phase='demo',locked=true,binding={},placed={},sel=null,firstActTime=0,vanishTime=0;
+function pickHouses(n){const pool=[];for(let i=0;i<NH;i++)pool.push(i);const out=[];for(let k=0;k<n;k++){const idx=Math.floor(Math.random()*pool.length);out.push(pool.splice(idx,1)[0]);}return out;}
+function pickAnimals(n){const pool=ANIMALS.slice();const out=[];for(let k=0;k<n;k++){const idx=Math.floor(Math.random()*pool.length);out.push(pool.splice(idx,1)[0]);}return out;}
+function renderTray(items){const tr=$('#tray');tr.innerHTML='';items.forEach(a=>{const d=document.createElement('div');d.className='animal';d.dataset.a=a;d.textContent=a;tr.appendChild(d);});}
+function trayEl(a){return $$('.animal').find(e=>e.dataset.a===a&&!e.classList.contains('gone'));}
+async function encode(n){binding={};placed={};$$('.house').forEach(h=>{h.textContent='🏠';h.classList.remove('filled','correct','wrong');});
+  const houses=pickHouses(n),animals=pickAnimals(n);houses.forEach((h,k)=>{binding[h]=animals[k];houseEl(h).textContent=animals[k];});
+  await sleep(700+n*250);houses.forEach(h=>houseEl(h).textContent='🏠');vanishTime=Date.now();
+  renderTray(animals.slice().sort(()=>Math.random()-0.5));sel=null;firstActTime=0;
+  T.path=[];T.revisions=0;}
+function selectAnimal(a,el){if(locked||phase==='demo')return;if(!firstActTime){firstActTime=Date.now();T.rtFirst.push(firstActTime-vanishTime);}
+  $$('.animal').forEach(x=>x.classList.remove('sel'));sel=a;el.classList.add('sel');}
+function placeAt(i){if(locked||phase==='demo')return;const el=houseEl(i);
+  if(placed[i]){const a=placed[i];delete placed[i];el.textContent='🏠';el.classList.remove('filled');T.revisions++;log(`revise: return ${a} to tray`);renderMeters();
+    const tr=$('#tray');const d=document.createElement('div');d.className='animal';d.dataset.a=a;d.textContent=a;tr.appendChild(d);return;}
+  if(!sel)return;placed[i]=sel;el.textContent=sel;el.classList.add('filled');T.path.push(sel+'\u2192'+(i+1));
+  const te=trayEl(sel);if(te)te.remove();sel=null;renderMeters();
+  if(Object.keys(placed).length===Object.keys(binding).length)finishRound();}
+function finishRound(){locked=true;let correctN=0;const entries=Object.keys(binding).map(Number);
+  entries.forEach(h=>{const ok=placed[h]===binding[h];if(ok)correctN++;houseEl(h).classList.add(ok?'correct':'wrong');});
+  const full=correctN===entries.length;
+  T.totalItems+=entries.length;T.correctItems+=correctN;
+  if(phase==='warmup'){setStatus(full?'ok':'no',full?'\u2713 All correct - practice':'Practice - '+correctN+'/'+entries.length+' correct');log(`warm-up ${full?'all correct':correctN+'/'+entries.length+' correct'} \u2014 UNSCORED`);setTimeout(()=>{phase='scored';nextScored();},1300);return;}
+  setStatus(full?'ok':'no',full?'\u2713 All correct':'\u2717 '+correctN+'/'+entries.length+' correct - the right houses are marked');
+  T.scored++;T.accBySplit[T.scored%2].push(full?1:0);
+  if(!full){let swap=false;entries.forEach(h=>{if(placed[h]&&placed[h]!==binding[h]&&Object.values(binding).includes(placed[h]))swap=true;});
+    T.errTypes.push(swap?'swap':'misplace');$('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),450);}
+  if(full){T.fullCorrect++;maxLevel=Math.max(maxLevel,level);level=Math.min(8,level+1);log(`SCORED set ${entries.length} \u2192 ALL correct \u2714 \u2192 set up to ${level}`);}
+  else{level=Math.max(2,level-1);log(`SCORED set ${entries.length} \u2192 ${correctN}/${entries.length} correct \u2192 set down to ${level}`);}
+  renderMeters();setDiff();
+  setTimeout(()=>{if(T.scored>=6)finish();else nextScored();},1300);}
+function nextScored(){setCue('scored',(T.scored+1)+'/6');setStatus('neutral','Tap an animal, then tap its house.');log(`\u2014 SCORED trial ${T.scored+1}: set size ${level} \u2014`);encode(level).then(()=>{locked=false;renderMeters();});}
+function startWarmup(){phase='warmup';setCue('warmup');setStatus('neutral','Practice - remember each animal\u2019s house.');log('\u2014 warm-up (unscored): remember each animal\u2019s house \u2014');encode(2).then(()=>{locked=false;renderMeters();});}
+function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;
+  log(`\u2014 DONE \u00b7 bindings correct ${T.correctItems}/${T.totalItems} \u00b7 ceiling set ${maxLevel} \u2014`);}
+async function runDemo(){phase='demo';setCue('demo');setStatus('neutral','Watch the example, then try it yourself.');locked=true;
+  const houses=[0,4];const animals=['🐶','🐱'];binding={};houses.forEach((h,k)=>{binding[h]=animals[k];houseEl(h).textContent=animals[k];});
+  log('ghost-hand demo (wordless, <10s)');await sleep(1000);houses.forEach(h=>houseEl(h).textContent='🏠');
+  renderTray(animals);placed={};ghostShow(true);
+  for(const h of houses){const a=binding[h];const te=trayEl(a);await ghostTo(te);await ghostTap();te.classList.add('sel');
+    await ghostTo(houseEl(h));await ghostTap();houseEl(h).textContent=a;houseEl(h).classList.add('correct','filled');te.remove();}
+  await sleep(500);ghostShow(false);setStatus('ok','\u2713 That\u2019s how it works');await sleep(600);startWarmup();}
+$('#grid').addEventListener('click',e=>{const h=e.target.closest('.house');if(h)placeAt(+h.dataset.i);});
+$('#tray').addEventListener('click',e=>{const a=e.target.closest('.animal');if(a)selectAnimal(a.dataset.a,a);});
+$('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
+buildGrid();buildMeters();renderMeters();setDiff();runDemo();
+</script>
+</body>
+</html>

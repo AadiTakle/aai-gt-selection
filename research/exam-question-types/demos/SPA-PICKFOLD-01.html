@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SPA-PICKFOLD-01 · Which Fold Made It?</title>
+<style>
+:root{--ink:#23304a;--paper:#fff9df;--edge:#d8a832;--coral:#ff6b6b;--blue:#3b82f6;--mint:#20b486;--violet:#8b5cf6;--good:#16a56a;--bad:#e14b5a;--tel:#10172b;--tel2:#1a2441}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%}body{display:flex;background:radial-gradient(circle at 20% 10%,#fff4c8 0,transparent 32%),linear-gradient(145deg,#eaf7ff,#f6edff);color:var(--ink);font:16px/1.35 system-ui,-apple-system,Segoe UI,sans-serif}
+#wrap{flex:1;min-width:0;padding:18px;display:flex;flex-direction:column;align-items:center;gap:10px}#badge{font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#7683a2}#howto{max-width:620px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--blue);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #33406d}
+#howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--blue)}
+#howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+#phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eaf0ff;color:var(--blue);border:2px solid #cbd8ff;min-height:30px}
+#phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+#phasecue[data-phase="scored"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+#phasecue[data-phase="done"]{background:#eaf0ff;color:#3a49c8;border-color:#cbd8ff}
+#status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+#status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
+#stagecard{width:min(720px,100%);background:#fff;border-radius:28px;padding:18px;box-shadow:0 24px 60px -32px #33406d;display:grid;gap:14px}
+#target{display:flex;align-items:center;justify-content:center;gap:18px;background:#fff7dc;border:3px solid #f0d379;border-radius:20px;padding:12px;min-height:118px}.scissors{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#a9741a;max-width:64px;text-align:center;line-height:1.25}.qmark{font-size:34px;font-weight:800;color:#8a93b5}
+.pattern{display:grid;grid-template-columns:repeat(8,1fr);width:94px;height:94px;border:3px solid var(--edge);background:var(--paper);box-shadow:inset 0 0 0 1px #fff}.pcell{border:.5px solid rgba(216,168,50,.18);display:grid;place-items:center;font-size:10px}.pcell.dot:after{content:"";width:8px;height:8px;border-radius:50%;background:var(--coral);box-shadow:0 0 0 2px #fff,0 0 0 3px var(--coral)}.pcell.diamond:after{content:"";width:7px;height:7px;background:var(--violet);transform:rotate(45deg);box-shadow:0 0 0 2px #fff}
+.arena{display:grid;grid-template-columns:230px 1fr;gap:16px;align-items:center}.foldScene{height:230px;border-radius:20px;background:linear-gradient(165deg,#16233d,#27385c);perspective:760px;display:grid;place-items:center;position:relative;overflow:hidden}.foldScene:before{content:"";position:absolute;inset:auto 18px 24px;height:18px;border-radius:50%;background:#080d19;filter:blur(10px);opacity:.45}
+#foldPaper{width:164px;height:164px;position:relative;background:var(--paper);border:3px solid var(--edge);border-radius:5px;transform:rotateX(57deg) rotateZ(-8deg);transform-style:preserve-3d;transition:width .2s,height .2s;box-shadow:0 10px 18px #050a14aa}
+#foldPaper:before{content:"◆";position:absolute;left:16%;top:18%;font-size:18px;color:var(--violet)}#foldPaper:after{content:"●";position:absolute;right:15%;bottom:18%;font-size:17px;color:var(--coral)}
+#flap{position:absolute;display:none;background:#ffe993;border:2px solid #d69b20;transform-style:preserve-3d;backface-visibility:visible;z-index:3}#cutPulse{position:absolute;display:none;font-size:38px;z-index:5;filter:drop-shadow(0 2px 2px #0008)}
+#layerBadge{position:absolute;right:12px;bottom:10px;color:#91a6d5;font:700 12px ui-monospace,monospace}
+#options{display:grid;grid-template-columns:1fr 1fr;gap:10px}.option{border:3px solid #e5e9f4;border-radius:16px;background:#fff;min-height:88px;padding:8px;cursor:pointer;display:grid;grid-template-columns:34px 1fr;align-items:center;gap:8px;transition:.15s}.option:hover,.option:focus-visible{transform:translateY(-2px);border-color:#9db0dc;outline:none}.option.sel{border-color:var(--blue);box-shadow:0 0 0 4px #dbeafe}.option.good{border-color:var(--good);background:#ecfff7}.option.bad{border-color:var(--bad);background:#fff0f2}.key{width:28px;height:28px;border-radius:9px;background:#26324e;color:#fff;display:grid;place-items:center;font-weight:900;box-shadow:0 3px 0 #10172b}.seq{display:flex;flex-wrap:wrap;gap:5px;justify-content:center}.foldchip{width:31px;height:31px;border-radius:9px;display:grid;place-items:center;color:#fff;font-size:18px;font-weight:900}.opL{background:var(--coral)}.opR{background:var(--blue)}.opT{background:var(--mint)}.opB{background:var(--violet)}
+#controls{display:flex;justify-content:center;align-items:center;gap:12px}.roundBtn{border:0;border-radius:50%;cursor:pointer;font:700 24px system-ui}.roundBtn:focus-visible{outline:4px solid #9fc4ff;outline-offset:2px}#replay{width:50px;height:50px;background:#eef2ff;color:#5063b5}#lock{width:66px;height:66px;background:var(--blue);color:#fff;box-shadow:0 10px 24px -10px var(--blue)}#lock:disabled{opacity:.28;cursor:not-allowed}#hotkeys{text-align:center;color:#7a86a3;font:700 12px ui-monospace,monospace}.kbd{display:inline-grid;place-items:center;min-width:23px;height:22px;padding:0 5px;border:1px solid #c7cede;border-bottom-width:3px;border-radius:6px;background:#fff;color:#34405d;margin:0 2px}
+#ghost{position:fixed;left:0;top:0;z-index:80;font-size:38px;opacity:0;pointer-events:none;transition:transform .48s cubic-bezier(.2,.8,.2,1),opacity .2s;filter:drop-shadow(0 3px 4px #0005)}#ghost.show{opacity:1}#ghost.tap{animation:tap .38s}@keyframes tap{50%{scale:.78}}#ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--blue);opacity:0}#ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+#telemetry{width:330px;flex:0 0 330px;min-height:100vh;background:var(--tel);color:#c9d7ff;display:flex;flex-direction:column;font:13px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace}#telemetry h3{margin:0;padding:13px 15px;background:var(--tel2);color:#fff;font-size:12px;text-transform:uppercase;letter-spacing:.1em}
+#mountain{margin:12px 12px 4px;padding:10px;border:1px solid #2d3a62;border-radius:12px}.mountTop{display:flex;justify-content:space-between;color:#8da2d9;font-size:11px}.track{height:9px;margin-top:7px;background:#222d4e;border-radius:9px;overflow:hidden}.track i{display:block;height:100%;width:0;background:linear-gradient(90deg,#5ec8ff,#87f5b8,#ffd166);transition:.3s}
+#mlist{padding:8px 12px;display:grid;gap:7px}.mrow{display:grid;grid-template-columns:105px 1fr;gap:6px}.mid{color:#7fffcf;font-weight:800}.mval{color:#fff;text-align:right;overflow-wrap:anywhere}.mname{grid-column:1/3;color:#6f82b6;font-size:11px;margin-top:-4px}#logwrap{margin-top:auto;border-top:1px solid #263251}#logwrap b{display:block;padding:8px 12px 4px;color:#8194ca;font-size:11px;letter-spacing:.08em}#log{height:220px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}#log div{padding:3px 0;border-bottom:1px dotted #242f4e}#log .t{color:#6678aa}
+@media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;min-height:0;height:330px;flex:none}.arena{grid-template-columns:1fr}.foldScene{height:180px}#stagecard{padding:13px}}@media(max-width:480px){#options{grid-template-columns:1fr}.option{min-height:62px}.arena{gap:10px}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="badge">SPA-PICKFOLD-01 · Which Fold Made It?</div>
+  <header id="howto">
+    <h1>How to use — Which Fold Made It?</h1>
+    <p>The top shows a sheet after it was folded, cut, and unfolded. Tap each choice to watch it fold and cut, then pick the fold order that makes that exact pattern and press the check (<b>✓</b>) to submit. Number keys 1–4 also work. It gets harder each time you are right.</p>
+  </header>
+  <div id="phasecue" data-phase="demo">Watch the example</div>
+  <main id="stagecard">
+    <div id="target"><span class="scissors">Unfolded cut</span><div id="targetGrid" class="pattern" aria-label="unfolded cut pattern"></div><span class="qmark">?</span></div>
+    <div class="arena">
+      <div class="foldScene"><div id="foldPaper"><div id="flap"></div><div id="cutPulse">✦</div></div><span id="layerBadge">1×</span></div>
+      <div id="options" aria-label="fold sequence choices"></div>
+    </div>
+    <div id="hotkeys"><span class="kbd">1</span><span class="kbd">2</span><span class="kbd">3</span><span class="kbd">4</span> · <span class="kbd">↵</span></div>
+    <div id="controls"><button id="replay" class="roundBtn" title="replay wordless example" aria-label="replay example">↻</button><button id="lock" class="roundBtn" title="lock answer" aria-label="lock answer" disabled>✓</button></div>
+    <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+  </main>
+</div>
+<aside id="telemetry">
+  <h3>Live telemetry · per-child</h3>
+  <div id="mountain"><div class="mountTop"><span>CHALLENGE MOUNTAIN</span><span id="mountText">1/5 · Δ 0.00</span></div><div class="track"><i id="mountFill"></i></div></div>
+  <div id="mlist"></div>
+  <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+</aside>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0;
+const ICON={L:'→│',R:'│←',T:'↓',B:'↑'};
+const T={scored:0,correct:0,rts:[],first:0,revs:0,hints:0,error:'—',explore:0,previewed:new Set(),maxSolved:0,level:1,startLevel:1,itemStart:0,rapid:false,blur:false,lastActivity:performance.now()};
+let phase='demo',item=null,selected=-1,trial=0,locked=true,demoRunning=false,animationToken=0;
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+function learnRate(){return T.scored?((T.maxSolved-T.startLevel)/T.scored).toFixed(2):'0.00';}
+function acc(){return T.scored?`${T.correct}/${T.scored} · ${Math.round(100*T.correct/T.scored)}%`:'—';}
+function rtValue(){if(!T.rts.length)return '—';return T.rapid||T.blur?'gated':`${T.rts.at(-1)} ms · μ ${mean(T.rts)}`;}
+const METERS=[
+ {id:'M-ACC',name:'Exact fold-sequence accuracy',get:acc},
+ {id:'M-RT',name:'Commit time, engagement-gated',get:rtValue},
+ {id:'M-RTFIRST',name:'Time to first option preview',get:()=>T.first?`${Math.round(T.first)} ms`:'—'},
+ {id:'M-REV',name:'Answer changes',get:()=>String(T.revs)},
+ {id:'M-HINT',name:'Wordless replay scaffolds',get:()=>String(T.hints)},
+ {id:'M-ERRTYPE',name:'Last keyed near-miss',get:()=>T.error},
+ {id:'M-EXPLORE',name:'Distinct sequences animated',get:()=>`${T.explore} previews`},
+ {id:'M-DIFFREACH',name:'Hardest fold level solved',get:()=>`${T.maxSolved}/5 · Δ/trial ${learnRate()}`}
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{$('#v_'+m.id).textContent=m.get();});$('#mountFill').style.width=(T.level/5*100)+'%';$('#mountText').textContent=`${T.level}/5 · Δ ${learnRate()}`;}
+function log(msg){const d=document.createElement('div'),dt=Math.max(0,performance.now()-T.itemStart);d.innerHTML=`<span class="t">+${Math.round(dt)}ms</span> ${msg}`;$('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;}
+function noteFirst(){if(!T.first){T.first=performance.now()-T.itemStart;log(`first preview @ ${Math.round(T.first)}ms`);}}
+function touchActivity(){T.lastActivity=performance.now();}addEventListener('pointerdown',touchActivity);addEventListener('keydown',touchActivity);document.addEventListener('visibilitychange',()=>{if(document.hidden&&phase==='scored')T.blur=true;});
+function gate(rt){T.rapid=rt<350||performance.now()-T.lastActivity>20000;if(T.rapid||T.blur)log(`RT gate: ${T.rapid?'rapid/idle':'blur'}`);}
+
+function foldModel(seq,punches){
+  const N=8,cells=[];for(let y=0;y<N;y++)for(let x=0;x<N;x++)cells.push({ox:x,oy:y,x,y});
+  let r={x0:0,x1:N-1,y0:0,y1:N-1};
+  for(const op of seq){const w=r.x1-r.x0+1,h=r.y1-r.y0+1;
+    if(op==='L'||op==='R'){if(w<2)return null;const p=r.x0+w/2;if(op==='L'){cells.forEach(q=>{if(q.x<p)q.x=2*p-1-q.x;});r.x0=p;}else{cells.forEach(q=>{if(q.x>=p)q.x=2*p-1-q.x;});r.x1=p-1;}}
+    else{if(h<2)return null;const p=r.y0+h/2;if(op==='T'){cells.forEach(q=>{if(q.y<p)q.y=2*p-1-q.y;});r.y0=p;}else{cells.forEach(q=>{if(q.y>=p)q.y=2*p-1-q.y;});r.y1=p-1;}}
+  }
+  const out=new Map(),w=r.x1-r.x0+1,h=r.y1-r.y0+1;
+  punches.forEach((p,i)=>{const px=r.x0+Math.round(p[0]*(w-1)),py=r.y0+Math.round(p[1]*(h-1));cells.forEach(q=>{if(q.x===px&&q.y===py)out.set(`${q.ox},${q.oy}`,i);});});
+  return out;
+}
+function allSeq(n,p=''){if(!n)return[p];return ['L','R','T','B'].flatMap(x=>allSeq(n-1,p+x));}
+function signature(seq,punches){const m=foldModel(seq,punches);return m?[...m].sort().map(x=>x.join(':')).join('|'):'';}
+function makeItem(level,seed,warm=false){
+  const folds=warm?1:[2,2,3,3,4][level-1],punches=level>=4?[[0,0],[1,1]]:[[seed%2,0]];
+  const seen=new Set(),pool=[];for(const s of allSeq(folds)){const sig=signature(s,punches);if(sig&&!seen.has(sig)){seen.add(sig);pool.push(s);}if(pool.length>=12)break;}
+  const offset=(seed*3+level)%Math.max(1,pool.length-4),seqs=[...pool.slice(offset,offset+4)];while(seqs.length<4)seqs.push(pool[seqs.length%pool.length]);
+  const correct=(seed+level)%4;return{level,folds,punches,seqs,correct,pattern:foldModel(seqs[correct],punches)};
+}
+function paintPattern(pattern){const g=$('#targetGrid');g.innerHTML='';for(let y=0;y<8;y++)for(let x=0;x<8;x++){const d=document.createElement('span'),v=pattern.get(`${x},${y}`);d.className='pcell'+(v===0?' dot':v===1?' diamond':'');g.appendChild(d);}}
+function optionHTML(seq,i){return `<button class="option" data-i="${i}" aria-label="choice ${i+1}"><span class="key">${i+1}</span><span class="seq">${[...seq].map(op=>`<i class="foldchip op${op}">${ICON[op]}</i>`).join('')}</span></button>`;}
+function renderItem(fresh=true){paintPattern(item.pattern);$('#options').innerHTML=item.seqs.map(optionHTML).join('');selected=-1;locked=phase==='demo';$('#lock').disabled=true;if(phase==='scored')setCue('scored',(trial+1)+'/6');else setCue(phase);
+  if(fresh){T.itemStart=performance.now();T.first=0;T.revs=0;T.previewed=new Set();T.rapid=false;T.blur=false;T.lastActivity=performance.now();}
+  resetPaper();renderMeters();
+}
+function resetPaper(){animationToken++;const p=$('#foldPaper');p.style.width='164px';p.style.height='164px';$('#flap').style.display='none';$('#cutPulse').style.display='none';$('#layerBadge').textContent='1×';}
+async function animateSequence(seq){
+  const token=++animationToken,p=$('#foldPaper'),flap=$('#flap');let w=164,h=164,layers=1;
+  p.style.width=w+'px';p.style.height=h+'px';await sleep(80);
+  for(const op of seq){if(token!==animationToken)return;flap.getAnimations().forEach(a=>a.cancel());flap.style.cssText='';flap.style.display='block';flap.style.background='#ffe993';flap.style.border='2px solid #d69b20';flap.style.zIndex='3';
+    let frames;
+    if(op==='L'||op==='R'){flap.style.top='0';flap.style.width='50%';flap.style.height='100%';flap.style.left=op==='L'?'0':'50%';flap.style.transformOrigin=op==='L'?'right center':'left center';frames=[{transform:'rotateY(0deg)'},{transform:`rotateY(${op==='L'?-178:178}deg)`}];}
+    else{flap.style.left='0';flap.style.width='100%';flap.style.height='50%';flap.style.top=op==='T'?'0':'50%';flap.style.transformOrigin=op==='T'?'center bottom':'center top';frames=[{transform:'rotateX(0deg)'},{transform:`rotateX(${op==='T'?178:-178}deg)`}];}
+    const a=flap.animate(frames,{duration:360,easing:'cubic-bezier(.25,.75,.25,1)',fill:'forwards'});try{await a.finished;}catch(e){return}if(token!==animationToken)return;flap.style.display='none';if(op==='L'||op==='R')w=Math.max(20,w/2);else h=Math.max(20,h/2);p.style.width=w+'px';p.style.height=h+'px';layers*=2;$('#layerBadge').textContent=layers+'×';await sleep(90);
+  }
+  if(token!==animationToken)return;const cut=$('#cutPulse');cut.style.display='block';cut.animate([{transform:'scale(.2) rotate(-20deg)',opacity:0},{transform:'scale(1.2)',opacity:1},{transform:'scale(.9)',opacity:1}],{duration:520,easing:'ease-out'});await sleep(560);
+}
+function choose(i,track=true,modality='tap'){
+  if(locked||demoRunning||i<0||i>3)return;noteFirst();if(selected>=0&&selected!==i)T.revs++;selected=i;$$('.option').forEach((o,k)=>o.classList.toggle('sel',k===i));$('#lock').disabled=false;
+  if(track){const sig=item.seqs[i];if(!T.previewed.has(sig)){T.previewed.add(sig);T.explore++;}log(`preview choice ${i+1} [${sig}] via ${modality}`);renderMeters();}
+  animateSequence(item.seqs[i]);
+}
+function errType(a,b){if(a.length!==b.length)return'fold-count';const axes=s=>[...s].map(x=>'LR'.includes(x)?'V':'H').join('');if(axes(a)===axes(b))return'right-axis / wrong-direction';let same=0;for(let i=0;i<a.length;i++)if(a[i]===b[i])same++;return same===a.length-1?'one-fold order/axis':'wrong fold path';}
+async function submit(){
+  if(locked||selected<0)return;locked=true;$('#lock').disabled=true;const rt=Math.round(performance.now()-T.itemStart),ok=selected===item.correct;
+  if(phase==='warmup'){log(`warm-up ${ok?'correct':'guided reveal'} · unscored`);$$('.option')[selected].classList.add(ok?'good':'bad');$$('.option')[item.correct].classList.add('good');setStatus(ok?'ok':'no',ok?'✓ Correct - practice':'✗ Not quite - the correct fold is highlighted (practice)');await animateSequence(item.seqs[item.correct]);await sleep(500);startScored();return;}
+  T.scored++;T.rts.push(rt);gate(rt);if(ok){T.correct++;T.maxSolved=Math.max(T.maxSolved,item.level);T.error='—';T.level=Math.min(5,T.level+1);}else{T.error=errType(item.seqs[selected],item.seqs[item.correct]);T.level=Math.max(1,T.level-1);}
+  const opts=$$('.option');opts[selected].classList.add(ok?'good':'bad');opts[item.correct].classList.add('good');setStatus(ok?'ok':'no',ok?'✓ Correct':'✗ Not quite - the correct fold is highlighted');
+  log(`LOCK ${ok?'correct':'miss '+T.error} · L${item.level} · ${rt}ms`);renderMeters();await animateSequence(item.seqs[item.correct]);await sleep(450);trial++;trial<6?startScored():finish();
+}
+function startWarmup(){phase='warmup';item=makeItem(1,1,true);renderItem(true);locked=false;setStatus('neutral','Practice - this one is not scored.');log('warm-up · one fold · unscored');}
+function startScored(){phase='scored';item=makeItem(T.level,trial+4,false);renderItem(true);locked=false;setStatus('neutral','Tap a choice to preview it, then lock your answer.');log(`scored ${trial+1}/6 · L${item.level} · ${item.folds} folds · ${item.punches.length} cut${item.punches.length>1?'s':''}`);}
+function finish(){phase='done';locked=true;setCue('done');setStatus('ok','✓ Done');$('#lock').disabled=true;$$('.option').forEach(o=>o.disabled=true);log(`DONE · ${T.correct}/${T.scored} · max L${T.maxSolved} · Δ ${learnRate()}`);renderMeters();}
+const ghost=$('#ghost');
+async function ghostTo(el){const r=el.getBoundingClientRect();ghost.style.transform=`translate(${r.left+r.width/2-12}px,${r.top+r.height/2-10}px)`;await sleep(500);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(380);}
+async function runDemo(initial=false){
+  if(demoRunning)return;demoRunning=true;const saved=initial?null:{phase,item,selected,locked,start:T.itemStart,first:T.first,revs:T.revs,previewed:new Set(T.previewed)};
+  phase='demo';item=makeItem(1,0,true);renderItem(false);locked=true;setCue('demo');setStatus('neutral','Watch the example.');log('wordless ghost demo');
+  ghost.classList.add('show');await sleep(180);const opt=$$('.option')[item.correct];await ghostTo(opt);await ghostTap();selected=item.correct;opt.classList.add('sel');await animateSequence(item.seqs[item.correct]);await ghostTo($('#lock'));await ghostTap();setStatus('neutral','Now you try.');await sleep(350);ghost.classList.remove('show');
+  demoRunning=false;if(initial){startWarmup();return;}
+  phase=saved.phase;item=saved.item;renderItem(false);selected=saved.selected;locked=saved.locked;T.itemStart=saved.start;T.first=saved.first;T.revs=saved.revs;T.previewed=saved.previewed;
+  if(selected>=0){$$('.option')[selected].classList.add('sel');$('#lock').disabled=locked;}if(phase==='scored')setCue('scored',(trial+1)+'/6');else if(phase==='warmup')setCue('warmup');else setCue('done');renderMeters();log('returned from replay scaffold');
+}
+$('#options').addEventListener('click',e=>{const o=e.target.closest('.option');if(o)choose(+o.dataset.i,true,'tap');});
+$('#lock').addEventListener('click',submit);
+$('#replay').addEventListener('click',()=>{if(demoRunning)return;if(phase!=='demo'){T.hints++;log('replay scaffold');renderMeters();}runDemo(false);});
+addEventListener('keydown',e=>{if(e.repeat)return;if(/^[1-4]$/.test(e.key)){e.preventDefault();choose(+e.key-1,true,'key');}else if(e.key==='Enter'){e.preventDefault();submit();}});
+buildMeters();renderMeters();runDemo(true);
+</script>
+</body>
+</html>

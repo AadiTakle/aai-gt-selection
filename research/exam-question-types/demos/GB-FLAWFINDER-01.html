@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GB-FLAWFINDER-01 · Fib Finder</title>
+<style>
+  :root{--bg1:#fff6e6;--bg2:#ffeef0;--ink:#3a2a1a;--card:#fff;--accent:#ff6b6b;--good:#22b573;--bad:#ff6b6b;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#a08060;text-transform:uppercase;font-weight:700}
+  #howto{max-width:600px;width:100%;background:#fff;border:1px solid #ffdcb0;border-left:5px solid #c06a2a;border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #7a4a3a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:#c06a2a}
+  #howto p{margin:0;font-size:14px;color:#5a4a3a;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#ffe6d0;color:#c06a2a;border:2px solid #ffcfa6;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:#c06a2a;color:#fff;border-color:#c06a2a}
+  #phasecue[data-phase="done"]{background:#ffedd8;color:#9a531f;border-color:#ffcfa6}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#a08060}
+  #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #7a4a3a;display:flex;flex-direction:column;align-items:center;gap:16px;max-width:640px;width:100%}
+  #speaker{font-size:15px;font-weight:800;color:#a06a3a;letter-spacing:.02em}
+  #cards{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+  .fcard{background:#fff8ee;border:3px solid #ffdcb0;border-radius:16px;padding:14px 16px;width:150px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:.15s}
+  .fcard:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .fcard .ic{font-size:34px}
+  .fcard .lb{font-size:13px;text-align:center;color:#5a4a3a}
+  .fcard.correct{border-color:var(--good);box-shadow:0 0 0 3px #22b57355}
+  .fcard.wrong{border-color:var(--bad);box-shadow:0 0 0 3px #ff6b6b55}
+  .fcard.dim{opacity:.4;pointer-events:none}
+  #hintbtn{width:44px;height:44px;background:#ffe6d0;color:#c06a2a;font-size:20px;border-radius:50%;border:0;cursor:pointer}
+  #controls{display:flex;gap:16px;align-items:center}
+  button{font:inherit;border:0;cursor:pointer;border-radius:50%}
+  #replay{width:50px;height:50px;background:#ffe6d0;color:#c06a2a;font-size:22px}
+  #hintbtn{width:auto;height:44px;padding:0 16px;font-size:14px;font-weight:800;border-radius:22px}
+  .shake{animation:shake .4s}@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+  #ghost{position:fixed;left:0;top:0;font-size:40px;pointer-events:none;z-index:60;opacity:0;transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}
+  .mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:210px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">GB-FLAWFINDER-01 · Fib Finder</div>
+    <header id="howto">
+      <h1>How to use — Fib Finder</h1>
+      <p>Read all the parts of the sentence. Tap the one part that <b>cannot be true</b>. Tap <b>Hint</b> if you get stuck.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
+    <div id="stagecard">
+      <div id="speaker">Which part can't be true?</div>
+      <div id="cards"></div>
+      <div id="controls">
+        <button id="replay" title="replay">↻</button>
+        <button id="hintbtn" title="hint">Hint</button>
+      </div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+    </div>
+  </div>
+  <aside id="telemetry">
+    <h3>Live telemetry · per-child</h3>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#ff6b6b" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0,last=a=>a[a.length-1];
+
+/* ---------- item bank: exactly one unambiguous flaw per item ---------- */
+/* difficulty 1-2: silly absurdity (obviously false statement); 3-4: subtle logical-gap (false conclusion from true premises) */
+const ABSURD=[
+ {parts:[{ic:'🐟',lb:'A fish',ok:true},{ic:'🚲',lb:'rides a bicycle',ok:true},{ic:'🏫',lb:'to school',ok:true}],flaw:1,type:'absurdity'},
+ {parts:[{ic:'🐘',lb:'An elephant',ok:true},{ic:'✈️',lb:'flaps its ears',ok:true},{ic:'🌙',lb:'and flies to the moon',ok:true}],flaw:2,type:'absurdity'},
+ {parts:[{ic:'🐢',lb:'A turtle',ok:true},{ic:'🏎️',lb:'races a rocket',ok:true},{ic:'🏆',lb:'and wins first place',ok:true}],flaw:1,type:'absurdity'},
+ {parts:[{ic:'🐱',lb:'A cat',ok:true},{ic:'📞',lb:'answers the phone',ok:true},{ic:'🗣️',lb:'and gives a speech',ok:true}],flaw:0,type:'absurdity'},
+];
+const GAP=[
+ {parts:[{ic:'🐦',lb:'All birds can fly.',ok:true},{ic:'🐧',lb:'A penguin is a bird.',ok:true},{ic:'🌳',lb:'So the penguin can fly to the tree.',ok:false}],flaw:2,type:'gap'},
+ {parts:[{ic:'🐕',lb:'All dogs bark.',ok:true},{ic:'🐺',lb:'A wolf is like a dog.',ok:true},{ic:'🐾',lb:'So every wolf must bark too.',ok:false}],flaw:2,type:'gap'},
+ {parts:[{ic:'🌧️',lb:'It rained this morning.',ok:true},{ic:'🌂',lb:'Maya carried an umbrella.',ok:true},{ic:'☂️',lb:'So the umbrella made it rain.',ok:false}],flaw:2,type:'gap'},
+ {parts:[{ic:'🍎',lb:'Some fruits are red.',ok:true},{ic:'🍓',lb:'A strawberry is red.',ok:true},{ic:'🍏',lb:'So all fruits must be red.',ok:false}],flaw:2,type:'gap'},
+];
+function genItem(level){const pool=level<=2?ABSURD:GAP;const it=pool[(Math.random()*pool.length)|0];return {...it,parts:it.parts.map((p,i)=>({...p,id:i}))};}
+
+/* ---------- state ---------- */
+let level=1,maxLevel=1,phase='demo',locked=true,hintUsed=false;
+let cur=null,T={itemStart:0,scored:0,exact:0,rts:[],lureHits:0,hints:0,errTypes:{},infSum:0};
+function accStr(){return T.scored?`${T.exact}/${T.scored}  ${Math.round(100*T.exact/T.scored)}%`:'\u2014';}
+function infDepth(){return T.scored?`${(T.infSum/T.scored*100).toFixed(0)}% gap-type solved`:'\u2014';}
+function lureStr(){return `${T.lureHits} plausible-but-wrong picks`;}
+function errStr(){const keys=Object.keys(T.errTypes);return keys.length?keys.map(k=>`${k}:${T.errTypes[k]}`).join(' '):'\u2014';}
+function hintStr(){return `${T.hints} hints used`;}
+function polyStr(){return T.scored?`${T.exact}/${T.scored} exact (no partial: single flaw)`:'\u2014';}
+function learnRate(){return T.scored?`level ${maxLevel} after ${T.scored} items`:'\u2014';}
+const METERS=[
+ {id:'M-ACC',name:'Flaw-spotting accuracy',get:accStr},
+ {id:'M-INFDEPTH',name:'Inference depth (gap vs absurdity solved)',get:infDepth},
+ {id:'M-RT',name:'Response time',get:()=>T.rts.length?`${last(T.rts)} ms  (mean ${mean(T.rts)})`:'\u2014'},
+ {id:'M-LURETYPE',name:'Lure picked (plausible distractor)',get:lureStr},
+ {id:'M-ERRTYPE',name:'Error type (which card mis-tapped)',get:errStr},
+ {id:'M-HINT',name:'Hints requested',get:hintStr},
+ {id:'M-POLY',name:'Scoring (single unambiguous flaw)',get:polyStr},
+ {id:'M-DIFFREACH',name:'Difficulty reached (absurdity\u2192gap)',get:()=>`level ${maxLevel}`},
+ {id:'M-LEARNRATE',name:'Learning rate across items',get:learnRate},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});}
+function log(msg){const t=Date.now()-T.itemStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+const ghost=$('#ghost');function ghostShow(v){ghost.classList.toggle('show',v);}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(480);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(400);}
+
+/* ---------- render ---------- */
+function paintCards(){$('#cards').innerHTML=cur.parts.map(p=>`<div class="fcard" data-id="${p.id}"><div class="ic">${p.ic}</div><div class="lb">${p.lb}</div></div>`).join('');
+  $$('#cards .fcard').forEach(el=>el.addEventListener('click',()=>onTap(+el.dataset.id)));}
+function onTap(id){if(locked||phase==='demo'||phase==='done')return;
+  const rt=Date.now()-T.itemStart;const correct=id===cur.flaw;
+  $$('#cards .fcard').forEach(el=>{const pid=+el.dataset.id;el.classList.add(pid===cur.flaw?'correct':(pid===id?'wrong':'dim'));});
+  locked=true;
+  setStatus(correct?'ok':'no',phase==='warmup'?(correct?'\u2713 Correct - practice':'\u2717 Not quite - practice'):(correct?'\u2713 Correct':'\u2717 Not quite - the impossible part is highlighted'));
+  if(!correct){$('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),400);T.lureHits++;
+    T.errTypes[cur.type]=(T.errTypes[cur.type]||0)+1;}
+  log(`tap "${cur.parts[id].lb}" \u2192 ${correct?'CORRECT flaw':'not the flaw'}${hintUsed?' (after hint)':''}`);
+  if(phase==='warmup'){log('— UNSCORED —');setTimeout(nextPhase,1200);return;}
+  T.scored++;T.rts.push(rt);if(correct){T.exact++;T.infSum+=cur.type==='gap'?1:0.5;level=Math.min(6,level+1);}else{level=Math.max(1,level-1);}
+  maxLevel=Math.max(maxLevel,level);renderMeters();setTimeout(nextPhase,1300);
+}
+
+/* ---------- flow ---------- */
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+function newItem(l){cur=genItem(l);hintUsed=false;T.itemStart=Date.now();paintCards();locked=false;renderMeters();}
+function nextPhase(){locked=false;
+  if(phase==='warmup'){startScored();}
+  else if(phase==='scored'){T.roundIdx=(T.roundIdx||0)+1;T.roundIdx<6?startScored():finish();}
+}
+function startWarmup(){phase='warmup';setCue('warmup');setStatus('neutral','Practice - this one is not scored.');newItem(1);log('— warm-up (unscored): tap the part that cannot be true —');}
+function startScored(){phase='scored';setCue('scored',((T.roundIdx||0)+1)+'/6');setStatus('neutral','Tap the one part that cannot be true.');newItem(level);log(`— SCORED item (level ${level}, ${level<=2?'absurdity':'logical gap'}) —`);}
+function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;log(`— DONE \u00b7 flaws found ${T.exact}/${T.scored} \u00b7 max level ${maxLevel} —`);}
+function useHint(){if(locked||phase==='demo'||phase==='done'||hintUsed)return;hintUsed=true;T.hints++;
+  const el=$(`.fcard[data-id="${cur.flaw}"]`);el.style.transform='scale(1.06)';el.style.borderColor='#ffb15e';
+  setStatus('neutral','Hint - look closely at the highlighted part.');log('hint used: flawed card highlighted');renderMeters();}
+async function runDemo(){phase='demo';setCue('demo');setStatus('neutral','Watch the example, then try it yourself.');locked=true;
+  cur=ABSURD[0];paintCards();log('ghost-hand demo (wordless, <10s)');ghostShow(true);await sleep(300);
+  await ghostTo($(`.fcard[data-id="${cur.flaw}"]`));await ghostTap();
+  $$('#cards .fcard').forEach(el=>{const pid=+el.dataset.id;el.classList.add(pid===cur.flaw?'correct':'dim');});
+  log('tap the impossible part \u2192 CORRECT');await sleep(600);ghostShow(false);await sleep(450);startWarmup();}
+$('#hintbtn').addEventListener('click',useHint);
+$('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
+buildMeters();renderMeters();runDemo();
+</script>
+</body>
+</html>

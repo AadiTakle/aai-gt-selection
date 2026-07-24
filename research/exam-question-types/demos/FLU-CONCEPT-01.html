@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FLU-CONCEPT-01 · Mystery Gate</title>
+<style>
+:root{
+  --paper:#fffdf7;--ink:#26314d;--violet:#6558df;--mint:#32bd83;
+  --coral:#f06468;--gold:#f3bc3d;--line:#dfe4f3;--tel:#11182b;
+  --tel2:#1a2440;--key:#7fffd1;--dim:#7e8db9;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{
+  min-height:100vh;display:flex;color:var(--ink);
+  font:16px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;
+  background:radial-gradient(circle at 18% 12%,#fff7d9 0 9%,transparent 28%),
+    linear-gradient(145deg,#edf5ff,#f4ecff 60%,#eafbf3);
+}
+#wrap{
+  flex:1;min-width:0;padding:18px;display:flex;flex-direction:column;
+  align-items:center;gap:10px;
+}
+#badge{
+  color:#7e88a8;font-size:12px;font-weight:800;letter-spacing:.1em;
+  text-transform:uppercase;
+}
+#howto{max-width:650px;width:100%;background:#fff;border:1px solid #dfe4f3;border-left:5px solid var(--violet);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #313a75}
+#howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--violet)}
+#howto p{margin:0;font-size:14px;color:#454e73;line-height:1.5}
+#phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#edf0ff;color:var(--violet);border:2px solid #cfd5ff;min-height:30px}
+#phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+#phasecue[data-phase="scored"]{background:var(--violet);color:#fff;border-color:var(--violet)}
+#phasecue[data-phase="done"]{background:#edf0ff;color:#3a3aa0;border-color:#cfd5ff}
+#status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+#status.ok{color:var(--mint)} #status.no{color:var(--coral)} #status.neutral{color:#8a93b5}
+#stagecard{
+  width:min(650px,100%);background:var(--paper);border:1px solid #fff;
+  border-radius:28px;padding:18px;box-shadow:0 24px 60px -35px #313a75;
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+}
+#gateRow{display:flex;align-items:center;justify-content:center;gap:18px}
+#preview,#probeFig{
+  width:104px;height:104px;border-radius:20px;background:#f5f7ff;
+  border:2px solid var(--line);display:grid;place-items:center;
+}
+#gate{
+  width:96px;height:116px;border-radius:48px 48px 14px 14px;
+  border:5px solid #aeb9dc;background:repeating-linear-gradient(
+    90deg,#e2e7f7 0 11px,#cdd5ed 11px 22px);
+  display:grid;place-items:center;font-size:36px;transition:.22s;
+  box-shadow:inset 0 0 0 6px #f8faff;
+}
+#gate.open{border-color:var(--mint);background:#dcf8ea;transform:translateY(-3px)}
+#gate.shut{border-color:var(--coral);background:#ffe6e6;animation:bump .35s}
+@keyframes bump{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.trays{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}
+.tray{
+  min-height:54px;padding:6px;border:2px dashed var(--line);border-radius:15px;
+  display:flex;gap:3px;align-items:center;flex-wrap:wrap;overflow:hidden;
+}
+.tray:first-child{background:#edfbf5;border-color:#b8e8d4}
+.tray:last-child{background:#fff0ef;border-color:#f4c9c7}
+.trayMark{font-size:20px;margin:0 4px}
+#palette{display:grid;gap:8px;width:100%}
+.pickRow{display:flex;justify-content:center;gap:8px}
+.pick{
+  min-width:62px;height:48px;border:2px solid var(--line);border-radius:14px;
+  background:#fff;color:var(--ink);font:700 19px/1 system-ui;cursor:pointer;
+  display:grid;place-items:center;transition:.14s;
+}
+.pick:hover{transform:translateY(-2px);border-color:#aab7df}
+.pick.sel{border-color:var(--violet);box-shadow:0 0 0 3px #e3e0ff}
+.swatch{width:33px;height:29px;border-radius:9px;border:2px solid #fff}
+.red{background:repeating-linear-gradient(45deg,#ed5157 0 6px,#fff 6px 8px)}
+.blue{background:radial-gradient(circle,#fff 1.8px,transparent 2px),#3973d6;background-size:8px 8px}
+.gold{background:repeating-linear-gradient(-45deg,#f2b52b 0 5px,#5a4708 5px 7px)}
+#probe{display:none;flex-direction:column;align-items:center;gap:10px}
+#probe.on{display:flex}
+#probeButtons{display:flex;gap:14px}
+.gateChoice{
+  width:112px;height:70px;border-radius:18px;border:3px solid var(--line);
+  background:#fff;font-size:15px;font-weight:800;cursor:pointer;
+}
+.gateChoice:hover{border-color:var(--violet);transform:translateY(-2px)}
+#tools{display:flex;gap:10px;align-items:center}
+#tools button{
+  border:0;cursor:pointer;font:700 21px system-ui;border-radius:16px;
+  width:54px;height:50px;background:#edf0ff;color:var(--violet);
+}
+#send,#know{width:76px!important;background:var(--violet)!important;color:#fff!important}
+#know{background:var(--gold)!important;color:#594000!important}
+#hint{background:#fff5cf!important;color:#9b7100!important}
+#hint,#know{font-size:13px!important}
+button:focus-visible{outline:4px solid #2a8fff;outline-offset:2px}
+#ghost{
+  position:fixed;left:0;top:0;opacity:0;z-index:50;pointer-events:none;
+  font-size:38px;transition:transform .5s cubic-bezier(.2,.7,.2,1),opacity .2s;
+  filter:drop-shadow(0 4px 4px #0004);
+}
+#ghost.show{opacity:1}
+#telemetry{
+  width:330px;flex:0 0 330px;min-height:100vh;background:var(--tel);
+  color:#cbd8ff;display:flex;flex-direction:column;
+  font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+#telemetry h3{
+  margin:0;padding:13px 14px;background:var(--tel2);color:#fff;
+  font:800 12px system-ui;letter-spacing:.1em;text-transform:uppercase;
+}
+#difficulty{padding:10px 13px;border-bottom:1px solid #283251}
+.diffTop{display:flex;justify-content:space-between;color:#aab7dc}
+.diffTrack{height:8px;background:#26304c;border-radius:9px;margin-top:6px;overflow:hidden}
+#diffFill{height:100%;width:20%;background:linear-gradient(90deg,#6a5fff,#72f0bd);transition:.3s}
+#mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+.mrow{display:grid;grid-template-columns:94px 1fr;gap:7px}
+.mid{color:var(--key);font-weight:800}.mval{color:#fff}
+.mname{grid-column:1/3;color:var(--dim);font-size:10px;margin-top:-3px}
+#logwrap{border-top:1px solid #283251;margin-top:auto}
+#logwrap b{display:block;color:#8090be;padding:8px 12px 3px;font-size:10px}
+#log{height:190px;overflow:auto;padding:0 12px 12px}
+#log div{padding:3px 0;border-bottom:1px dotted #283251}
+#log .t{color:#6273a5}
+@media(max-width:860px){
+  body{flex-direction:column}#telemetry{width:100%;flex:none;min-height:0;height:310px}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<main id="wrap">
+  <div id="badge">FLU-CONCEPT-01 · Mystery Gate</div>
+  <header id="howto">
+    <h1>How to use — Mystery Gate</h1>
+    <p>Build a figure with the pickers and press send (<b>➜</b>) to test it — figures that open the gate go to the <b>✓</b> tray, others to the <b>✕</b> tray. Work out the hidden rule, then press Test to say whether each new figure opens the gate.</p>
+  </header>
+  <div id="phasecue" data-phase="demo">Watch the example</div>
+  <section id="stagecard">
+    <div id="gateRow">
+      <div id="preview"></div>
+      <div id="gate">?</div>
+    </div>
+    <div class="trays">
+      <div class="tray" id="yesTray"><span class="trayMark">✓</span></div>
+      <div class="tray" id="noTray"><span class="trayMark">✕</span></div>
+    </div>
+    <div id="palette">
+      <div class="pickRow" data-attr="shape"></div>
+      <div class="pickRow" data-attr="color"></div>
+      <div class="pickRow" data-attr="count"></div>
+    </div>
+    <div id="probe">
+      <div id="probeFig"></div>
+      <div id="probeButtons">
+        <button class="gateChoice" id="openChoice" aria-label="opens">✓ Opens</button>
+        <button class="gateChoice" id="shutChoice" aria-label="does not open">✕ Stays shut</button>
+      </div>
+    </div>
+    <div id="tools">
+      <button id="replay" aria-label="replay">↻</button>
+      <button id="hint" aria-label="hint">Hint</button>
+      <button id="send" aria-label="send">➜</button>
+      <button id="know" aria-label="test the rule">Test</button>
+    </div>
+    <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+  </section>
+</main>
+<aside id="telemetry">
+  <h3>Live telemetry · per-child</h3>
+  <div id="difficulty">
+    <div class="diffTop"><span>DIFFICULTY</span><span id="diffLabel">1 / 5</span></div>
+    <div class="diffTrack"><div id="diffFill"></div></div>
+  </div>
+  <div id="mlist"></div>
+  <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+</aside>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const SHAPES=['triangle','circle','star'];
+const COLORS=['red','blue','gold'];
+const COUNTS=[1,2,3];
+const INK={red:'#ed5157',blue:'#3973d6',gold:'#e5a91d'};
+const GLYPH={triangle:'▲',circle:'●',star:'★'};
+const RULES=[
+  {id:'red',level:1,dims:1,test:f=>f.color==='red'},
+  {id:'star',level:2,dims:1,test:f=>f.shape==='star'},
+  {id:'blue+triangle',level:3,dims:2,test:f=>f.color==='blue'&&f.shape==='triangle'},
+  {id:'star+two',level:4,dims:2,test:f=>f.shape==='star'&&f.count===2},
+  {id:'gold+circle+three',level:5,dims:3,test:f=>f.color==='gold'&&f.shape==='circle'&&f.count===3}
+];
+const ALL=[];
+SHAPES.forEach(shape=>COLORS.forEach(color=>COUNTS.forEach(count=>ALL.push({shape,color,count}))));
+const key=f=>`${f.shape}/${f.color}/${f.count}`;
+const diffs=(a,b)=>(a.shape!==b.shape)+(a.color!==b.color)+(a.count!==b.count);
+function svg(f,size=88){
+  const box=88;
+  const pos=f.count===1?[.5]:f.count===2?[.32,.68]:[.23,.5,.77];
+  const r=f.count===1?22:13;
+  const marks=pos.map((x,i)=>{
+    const y=f.count===3&&i===1?35:46;
+    if(f.shape==='circle')return `<circle cx="${x*box}" cy="${y}" r="${r}" fill="${INK[f.color]}"/>`;
+    if(f.shape==='triangle')return `<polygon points="${x*box},${y-r} ${x*box-r},${y+r} ${x*box+r},${y+r}" fill="${INK[f.color]}"/>`;
+    const p=[];for(let j=0;j<10;j++){const a=-Math.PI/2+j*Math.PI/5,rr=j%2?r*.45:r;p.push(`${x*box+Math.cos(a)*rr},${y+Math.sin(a)*rr}`);}
+    return `<polygon points="${p.join(' ')}" fill="${INK[f.color]}"/>`;
+  }).join('');
+  const pattern=f.color==='red'?'<path d="M5 10L18 2M70 86L84 73" stroke="#8d2830" stroke-width="3"/>':
+    f.color==='blue'?'<circle cx="8" cy="78" r="3" fill="#163b82"/><circle cx="79" cy="8" r="3" fill="#163b82"/>':
+    '<path d="M4 80L15 86M72 2L84 8" stroke="#715607" stroke-width="3"/>';
+  return `<svg width="${size}" height="${Math.round(size*92/88)}" viewBox="0 0 88 92" aria-hidden="true">${marks}${pattern}</svg>`;
+}
+const T={
+  acc:0,n:0,tests:[],hints:0,strategies:{grounded:0,intentional:0,random:0},
+  progress:[],itemStart:Date.now(),maxSolved:0,optTarget:0
+};
+let phase='demo',level=1,scoredIndex=0,rule=RULES[0],sel={shape:'triangle',color:'red',count:1};
+let roundTests=[],probes=[],probeIndex=0,probeCorrect=0,locked=false;
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');if(!el)return;el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+function consistentCount(tests){
+  return RULES.filter(r=>tests.every(x=>r.test(x.f)===x.accept)).length;
+}
+function hyp(){
+  const s=T.strategies,total=s.grounded+s.intentional+s.random;
+  return total?`G${s.grounded} · I${s.intentional} · R${s.random}`:'—';
+}
+function efficiency(){
+  if(!T.tests.length)return '—';
+  return `${T.tests.length} tests · target ${T.optTarget}`;
+}
+function path(){
+  if(!T.tests.length)return '—';
+  return T.tests.slice(-7).map(x=>`${x.f.shape[0]}${x.f.color[0]}${x.f.count}${x.accept?'✓':'×'}`).join(' ');
+}
+const METERS=[
+  {id:'M-ACC',name:'Probe classification accuracy',get:()=>T.n?`${T.acc}/${T.n} · ${Math.round(100*T.acc/T.n)}%`:'—'},
+  {id:'M-HYP',name:'Grounded / intentional / random tests',get:()=>hyp()},
+  {id:'M-EXPLORE',name:'Distinct self-designed tests',get:()=>`${new Set(T.tests.map(x=>key(x.f))).size}`},
+  {id:'M-EFF',name:'Tests compared with disambiguating target',get:()=>efficiency()},
+  {id:'M-PROG',name:'Remaining-rule trajectory',get:()=>T.progress.length?T.progress.slice(-8).join('→'):'—'},
+  {id:'M-PATH',name:'Chosen experiment sequence',get:()=>path()},
+  {id:'M-HINT',name:'Accepted examples revealed',get:()=>`${T.hints}`}
+];
+function buildMeters(){
+  $('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');
+}
+function renderMeters(){
+  METERS.forEach(m=>{const el=$(`#v_${m.id}`);if(el)el.textContent=m.get();});
+  $('#diffLabel').textContent=`${level} / 5`;
+  $('#diffFill').style.width=`${level*20}%`;
+}
+function log(message){
+  const d=document.createElement('div');
+  d.innerHTML=`<span class="t">+${Date.now()-T.itemStart}ms</span> ${message}`;
+  $('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;
+}
+function paintPalette(){
+  const shape=$('.pickRow[data-attr="shape"]');
+  shape.innerHTML=SHAPES.map(v=>`<button class="pick" data-value="${v}" aria-label="${v}">${GLYPH[v]}</button>`).join('');
+  const color=$('.pickRow[data-attr="color"]');
+  color.innerHTML=COLORS.map(v=>`<button class="pick" data-value="${v}" aria-label="${v}"><span class="swatch ${v}"></span></button>`).join('');
+  const count=$('.pickRow[data-attr="count"]');
+  count.innerHTML=COUNTS.map(v=>`<button class="pick" data-value="${v}" aria-label="${v}">${'●'.repeat(v)}</button>`).join('');
+}
+function refreshBuilder(){
+  $$('.pickRow').forEach(row=>row.querySelectorAll('.pick').forEach(b=>{
+    const attr=row.dataset.attr;b.classList.toggle('sel',String(sel[attr])===b.dataset.value);
+  }));
+  $('#preview').innerHTML=svg(sel);
+}
+function resetTrays(){
+  $('#yesTray').innerHTML='<span class="trayMark">✓</span>';
+  $('#noTray').innerHTML='<span class="trayMark">✕</span>';
+}
+function addTray(f,accept){
+  const host=accept?$('#yesTray'):$('#noTray');
+  const d=document.createElement('span');d.innerHTML=svg(f,34);host.appendChild(d.firstChild);
+}
+function showBuilder(){
+  $('#palette').style.display='grid';$('#probe').classList.remove('on');
+  $('#preview').style.display='grid';$('#gate').style.display='grid';
+  $('#send').style.display='';$('#know').style.display='';$('#hint').style.display='';
+}
+function flashGate(accept){
+  $('#gate').className=accept?'open':'shut';$('#gate').textContent=accept?'\u2713':'\u2717';
+  setTimeout(()=>{$('#gate').className='';$('#gate').textContent='?';},650);
+}
+async function sendFigure(f,record=true){
+  if(locked&&record)return;
+  const copy={...f},accept=rule.test(copy),before=consistentCount(roundTests);
+  if(record){
+    const previous=roundTests.at(-1),change=previous?diffs(previous.f,copy):null;
+    roundTests.push({f:copy,accept});const after=consistentCount(roundTests);
+    let strategy='intentional';
+    if(previous&&(change===0||change>1))strategy='random';
+    else if(previous&&change===1&&after<before)strategy='grounded';
+    if(phase==='scored'){
+      T.strategies[strategy]++;
+      T.tests.push({f:copy,accept,dims:rule.dims,strategy});
+      T.progress.push(after);
+    }
+    log(`test ${key(copy)} → ${accept?'OPEN':'BOUNCE'} · ${strategy}`);
+  }
+  flashGate(accept);addTray(copy,accept);setStatus('neutral',accept?'That figure OPENS the gate.':'That figure does NOT open the gate.');renderMeters();await sleep(420);
+}
+function makeProbes(r){
+  const yes=ALL.filter(r.test),no=ALL.filter(f=>!r.test(f));
+  const out=[yes[(scoredIndex+level)%yes.length]];let cursor=scoredIndex*3+1;
+  while(out.length<3){
+    const candidate=no[cursor%no.length];if(!out.some(x=>key(x)===key(candidate)))out.push(candidate);
+    cursor+=7;
+  }
+  return out;
+}
+function enterProbes(){
+  phase=phase==='warmup'?'warmup-probes':'scored-probes';
+  probes=makeProbes(rule);probeIndex=0;probeCorrect=0;
+  $('#palette').style.display='none';$('#preview').style.display='none';$('#gate').style.display='none';
+  $('#send').style.display='none';$('#know').style.display='none';$('#hint').style.display='none';
+  $('#probe').classList.add('on');setStatus('neutral','Does this figure open the gate?');showProbe();
+}
+function showProbe(){
+  if(probeIndex>=probes.length){completeRound();return;}
+  $('#probeFig').innerHTML=svg(probes[probeIndex],92);
+  log(`probe ${probeIndex+1}/${probes.length}`);
+}
+function classify(opens){
+  if(!phase.endsWith('probes')||locked)return;
+  const truth=rule.test(probes[probeIndex]),ok=opens===truth;
+  if(phase==='scored-probes'){T.n++;if(ok)T.acc++;}
+  if(ok)probeCorrect++;
+  setStatus(ok?'ok':'no',ok?'\u2713 Correct':'\u2717 Not quite - watch the gate');
+  log(`${opens?'OPEN':'BOUNCE'} → ${ok?'✓':'✕'}`);renderMeters();
+  locked=true;$('#probeFig').style.outline=`5px solid ${ok?'var(--mint)':'var(--coral)'}`;
+  setTimeout(()=>{locked=false;$('#probeFig').style.outline='';probeIndex++;showProbe();},500);
+}
+function completeRound(){
+  const scored=phase==='scored-probes',success=probeCorrect===probes.length;
+  log(`${scored?'scored':'warm-up'} round · ${probeCorrect}/${probes.length}`);
+  if(!scored){setTimeout(startScored,650);return;}
+  if(success){T.maxSolved=Math.max(T.maxSolved,level);level=Math.min(5,level+1);}
+  else level=Math.max(1,level-1);
+  scoredIndex++;renderMeters();
+  if(scoredIndex>=5)setTimeout(finish,650);else setTimeout(startScored,650);
+}
+function beginRound(kind){
+  phase=kind;locked=false;roundTests=[];resetTrays();showBuilder();
+  rule=kind==='warmup'?RULES[0]:RULES[Math.max(0,level-1)];
+  if(kind==='scored')T.optTarget+=rule.dims+1;
+  sel={shape:'triangle',color:'red',count:1};refreshBuilder();
+  T.itemStart=Date.now();setCue(kind==='warmup'?'warmup':'scored',kind==='warmup'?'':(scoredIndex+1)+'/5');setStatus('neutral',kind==='warmup'?'Practice - this one is not scored.':'Build a figure and work out the rule.');
+  log(`— ${kind==='warmup'?'WARM-UP · UNSCORED':`SCORED ${scoredIndex+1}/5 · level ${level}`} —`);
+  renderMeters();
+}
+function startWarmup(){beginRound('warmup');}
+function startScored(){beginRound('scored');}
+function finish(){
+  phase='done';locked=true;setCue('done');setStatus('ok','\u2713 Done');
+  $('#stagecard').innerHTML='<div style="font-size:88px;padding:58px 0;color:var(--mint);font-weight:900">\u2713</div><button id="again" class="pick" aria-label="again">↻</button>';
+  $('#again').onclick=()=>location.reload();
+  log(`— DONE · probes ${T.acc}/${T.n} · highest solved ${T.maxSolved} —`);
+}
+const ghost=$('#ghost');
+function center(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){
+  const p=center(el);ghost.style.transform=`translate(${p.x-12}px,${p.y-8}px)`;await sleep(430);
+}
+async function runDemo(){
+  phase='demo';locked=true;rule=RULES[0];roundTests=[];resetTrays();showBuilder();
+  setCue('demo');setStatus('neutral','Watch the example.');T.itemStart=Date.now();ghost.classList.add('show');
+  sel={shape:'circle',color:'red',count:1};refreshBuilder();await ghostTo($('#preview'));
+  await ghostTo($('#send'));await sendFigure(sel,false);
+  sel={shape:'star',color:'blue',count:2};refreshBuilder();await ghostTo($('#preview'));
+  await ghostTo($('#send'));await sendFigure(sel,false);
+  const demoProbe={shape:'triangle',color:'red',count:3};
+  $('#palette').style.display='none';$('#preview').style.display='none';$('#gate').style.display='none';
+  $('#probe').classList.add('on');$('#probeFig').innerHTML=svg(demoProbe,92);
+  await ghostTo($('#openChoice'));$('#openChoice').style.borderColor='var(--mint)';await sleep(420);
+  $('#openChoice').style.borderColor='';ghost.classList.remove('show');await sleep(350);startWarmup();
+}
+$('#palette').addEventListener('click',e=>{
+  const b=e.target.closest('.pick');if(!b||!['warmup','scored'].includes(phase)||locked)return;
+  const attr=b.parentElement.dataset.attr;sel[attr]=attr==='count'?+b.dataset.value:b.dataset.value;
+  refreshBuilder();log(`build ${attr}=${b.dataset.value}`);
+});
+$('#send').addEventListener('click',()=>{if(['warmup','scored'].includes(phase))sendFigure(sel);});
+$('#know').addEventListener('click',()=>{if(['warmup','scored'].includes(phase))enterProbes();});
+$('#hint').addEventListener('click',()=>{
+  if(!['warmup','scored'].includes(phase))return;
+  const f=ALL.find(rule.test);addTray(f,true);
+  if(phase==='scored')T.hints++;log('hint → one opener');renderMeters();
+});
+$('#openChoice').addEventListener('click',()=>classify(true));
+$('#shutChoice').addEventListener('click',()=>classify(false));
+$('#replay').addEventListener('click',()=>{if(phase!=='demo')location.reload();});
+paintPalette();refreshBuilder();buildMeters();renderMeters();runDemo();
+</script>
+</body>
+</html>

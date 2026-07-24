@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GB-DEBATE-01 · Claim Duel</title>
+<style>
+  :root{--bg1:#eef4ff;--bg2:#fff0f5;--ink:#26304a;--card:#fff;--accent:#5b6cff;--good:#22b573;--bad:#ff6b6b;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
+  #howto{max-width:600px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:#5b6cff;border:2px solid #c9d0ff;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:#5b6cff;color:#fff;border-color:#5b6cff}
+  #phasecue[data-phase="done"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
+  #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:14px;max-width:680px;width:100%}
+  #claimbox{background:linear-gradient(160deg,#e8f0ff,#f2ecff);border:3px solid #cfd8ff;border-radius:16px;padding:14px 18px;display:flex;flex-direction:column;align-items:center;gap:8px;width:100%}
+  #claimtext{font-size:20px;font-weight:800;text-align:center}
+  #strength{width:80%;height:16px;background:#e2e8ff;border-radius:10px;overflow:hidden}
+  #strengthfill{height:100%;width:0%;background:linear-gradient(90deg,#8fd6a8,#22b573);transition:width .3s}
+  #evidencepool{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+  .card{background:#fff;border:3px solid #dfe4f5;border-radius:14px;padding:10px 12px;width:120px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;transition:.15s}
+  .card:hover{border-color:var(--accent)}
+  .card .ic{font-size:28px}
+  .card .lb{font-size:12px;text-align:center;color:#57628a}
+  .card.attached{opacity:.35;pointer-events:none;transform:scale(.92)}
+  .card.grey{opacity:.3;filter:grayscale(1)}
+  #rivalbox{background:linear-gradient(160deg,#fff0f0,#ffe8ef);border:3px solid #ffd0d8;border-radius:16px;padding:12px 16px;display:none;flex-direction:column;align-items:center;gap:8px;width:100%}
+  #rivaltext{font-size:17px;font-weight:700;text-align:center;color:#a33}
+  #controls{display:flex;gap:16px;align-items:center}
+  button{font:inherit;border:0;cursor:pointer;border-radius:50%}
+  #go{width:72px;height:72px;background:var(--accent);color:#fff;font-size:26px;box-shadow:0 10px 24px -8px var(--accent);opacity:.35;pointer-events:none;transition:.2s}
+  #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.1s infinite}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+  #replay{width:50px;height:50px;background:#eef1ff;color:#5b6cff;font-size:22px}
+  .shake{animation:shake .4s}@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+  #ghost{position:fixed;left:0;top:0;font-size:40px;pointer-events:none;z-index:60;opacity:0;transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}
+  .mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:210px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">GB-DEBATE-01 · Claim Duel</div>
+    <header id="howto">
+      <h1>How to use — Claim Duel</h1>
+      <p>Read the claim at the top. Tap the evidence cards that best support it and skip the weak or off-topic ones, then press the check (<b>✓</b>) to lock in. Then tap the one card that best answers the rival's argument. It gets harder each time you are right.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
+    <div id="stagecard">
+      <div id="claimbox">
+        <div class="ic" style="font-size:12px;font-weight:800;letter-spacing:.1em;color:#5b6cff">CLAIM</div>
+        <div id="claimtext"></div>
+        <div id="strength"><div id="strengthfill"></div></div>
+      </div>
+      <div id="evidencepool"></div>
+      <div id="rivalbox">
+        <div class="ic" style="font-size:12px;font-weight:800;letter-spacing:.1em;color:#a33">RIVAL SAYS</div>
+        <div id="rivaltext"></div>
+      </div>
+      <div id="controls">
+        <button id="replay" title="replay demo">↻</button>
+        <button id="go" title="lock in">✓</button>
+      </div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+    </div>
+  </div>
+  <aside id="telemetry">
+    <h3>Live telemetry · per-child</h3>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0,last=a=>a[a.length-1];
+
+/* ---------- claim/evidence bank (AIG-templated, strength-typed) ---------- */
+const BANK=[
+ {claim:'Plants need sunlight to grow.', icon:'🌱', ev:[
+   {ic:'☀️',lb:'sunny window',str:3},{ic:'🌑',lb:'dark closet',str:0},{ic:'💧',lb:'watering can',str:1},{ic:'🚲',lb:'bicycle',str:0,off:true}
+ ], rival:'Plants only need water, not light.', rebut:0},
+ {claim:'Dogs use their nose to find food.', icon:'🐶', ev:[
+   {ic:'👃',lb:'sniffing trail',str:3},{ic:'👀',lb:'closed eyes test',str:1},{ic:'🎈',lb:'balloon',str:0,off:true},{ic:'🦴',lb:'buried bone found',str:2}
+ ], rival:'Dogs only use their eyes to find food.', rebut:0},
+ {claim:'Ice melts when it gets warm.', icon:'🧊', ev:[
+   {ic:'🔥',lb:'near heat lamp',str:3},{ic:'🥶',lb:'kept in freezer',str:0},{ic:'📚',lb:'a library book',str:0,off:true},{ic:'🌡️',lb:'thermometer rising',str:2}
+ ], rival:'Ice only melts if you paint it.', rebut:0},
+ {claim:'Birds fly using their wings.', icon:'🐦', ev:[
+   {ic:'🪽',lb:'wing flapping',str:3},{ic:'🦶',lb:'bird walking',str:1},{ic:'🚗',lb:'toy car',str:0,off:true},{ic:'🌬️',lb:'gliding on wind',str:2}
+ ], rival:'Birds fly by wishing very hard.', rebut:0},
+ {claim:'Bees help flowers make seeds.', icon:'🐝', ev:[
+   {ic:'🌸',lb:'pollen on legs',str:3},{ic:'🍯',lb:'honey jar',str:1},{ic:'📺',lb:'a television',str:0,off:true},{ic:'🌻',lb:'flower after visit',str:2}
+ ], rival:'Bees only make honey, nothing else.', rebut:0},
+];
+function levelParams(l){return {numCards: Math.min(4+Math.floor((l-1)/2),6), subtlety: l};}
+function genItem(l){const base=BANK[(Math.random()*BANK.length)|0];const {numCards}=levelParams(l);
+  let ev=base.ev.slice();
+  while(ev.length<numCards){ev.push({ic:'❓',lb:'unrelated fact',str:0,off:true});}
+  ev=ev.slice(0,numCards);
+  return {claim:base.claim,icon:base.icon,ev:ev.map((e,i)=>({...e,id:i})),rival:base.rival,rebutIdx:base.rebut};}
+
+/* ---------- state ---------- */
+let level=1,maxLevel=1,phase='demo',locked=true,stage='support'; // support -> rebut
+let cur=null,attached=[],T={itemStart:0,path:[],rev:0,scored:0,infSum:0,firstT:null,lureHits:0,exact:0};
+function accStr(){return T.scored?`${T.exact}/${T.scored}  ${Math.round(100*T.exact/T.scored)}%`:'\u2014';}
+function polyStr(){if(!cur)return '\u2014';const got=attached.reduce((a,i)=>a+cur.ev[i].str,0);const max=cur.ev.reduce((a,e)=>Math.max(a,e.str),0)+cur.ev.filter(e=>e.str>0).reduce((a,e)=>a+e.str,0)*0;const tot=cur.ev.filter(e=>e.str>0).reduce((a,e)=>a+e.str,0);return `${got}/${tot||1}`;}
+function pathStr(){return T.path.length?T.path.slice(-5).join(' \u2192 '):'\u2014';}
+function rtFirstStr(){return T.firstT!=null?`${T.firstT} ms`:'\u2014';}
+function lureStr(){return `${T.lureHits} off-topic/weak picks`;}
+function infDepth(){return T.scored?`${(T.infSum/T.scored).toFixed(1)} avg link quality /3`:'\u2014';}
+function learnRate(){return T.scored?`level ${maxLevel} after ${T.scored} duels`:'\u2014';}
+const METERS=[
+ {id:'M-ACC',name:'Best-evidence accuracy',get:accStr},
+ {id:'M-POLY',name:'Partial credit (strength gathered)',get:polyStr},
+ {id:'M-PATH',name:'Evidence-attach order',get:pathStr},
+ {id:'M-RTFIRST',name:'Time to first attach',get:rtFirstStr},
+ {id:'M-REV',name:'Revisions (detach/re-attach)',get:()=>T.rev},
+ {id:'M-LURETYPE',name:'Lure type picked (weak/off-topic)',get:lureStr},
+ {id:'M-INFDEPTH',name:'Claim-evidence link quality (auto)',get:infDepth},
+ {id:'M-DIFFREACH',name:'Difficulty reached (subtlety)',get:()=>`level ${maxLevel}`},
+ {id:'M-LEARNRATE',name:'Learning rate across duels',get:learnRate},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});}
+function log(msg){const t=Date.now()-T.itemStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+const ghost=$('#ghost');function ghostShow(v){ghost.classList.toggle('show',v);}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(480);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(400);}
+
+/* ---------- render ---------- */
+function paintClaim(){$('#claimtext').textContent=cur.icon+' '+cur.claim;}
+function paintPool(){$('#evidencepool').innerHTML=cur.ev.map(e=>`<div class="card${attached.includes(e.id)?' attached':''}" data-id="${e.id}"><div class="ic">${e.ic}</div><div class="lb">${e.lb}</div></div>`).join('');
+  $$('#evidencepool .card').forEach(el=>el.addEventListener('click',()=>onCard(+el.dataset.id)));}
+function strengthTotal(){return attached.reduce((a,i)=>a+cur.ev[i].str,0);}
+function maxStrength(){return cur.ev.filter(e=>e.str>0).reduce((a,e)=>a+e.str,0);}
+function paintStrength(){const pct=Math.min(100,Math.round(100*strengthTotal()/Math.max(1,maxStrength())));$('#strengthfill').style.width=pct+'%';}
+function onCard(id){if(locked||phase==='demo'||phase==='done')return;
+  if(stage==='support'){
+    if(attached.includes(id)){attached=attached.filter(i=>i!==id);T.rev++;log(`detach card ${id}`);}
+    else{attached.push(id);const e=cur.ev[id];if(T.firstT==null)T.firstT=Date.now()-T.itemStart;
+      if(e.str===0)T.lureHits++;
+      T.path.push(e.lb);log(`attach "${e.lb}" (strength ${e.str})`);}
+    paintPool();paintStrength();renderMeters();
+    $('#go').classList.toggle('ready',attached.length>0);
+  } else if(stage==='rebut'){
+    const correct=id===cur.rebutIdx;
+    log(`rebut pick "${cur.ev[id].lb}" \u2192 ${correct?'strong rebuttal':'weak pick'}`);
+    finishItem(correct);
+  }
+}
+
+/* ---------- flow ---------- */
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+function newItem(l){cur=genItem(l);attached=[];stage='support';T.itemStart=Date.now();T.firstT=null;T.path=[];
+  paintClaim();paintPool();paintStrength();$('#rivalbox').style.display='none';$('#go').classList.remove('ready');renderMeters();}
+function goSupport(){ // lock support, move to rebut
+  locked=true;$('#go').classList.remove('ready');
+  const pct=strengthTotal()/Math.max(1,maxStrength());
+  const linkQ=Math.min(3,Math.round(pct*3));
+  T.infSum+=linkQ;
+  log(`support locked: ${strengthTotal()}/${maxStrength()} strength \u2192 link quality ${linkQ}/3`);
+  renderMeters();
+  setTimeout(()=>{stage='rebut';$('#rivalbox').style.display='flex';$('#rivaltext').textContent=cur.rival;
+    // re-render pool for rebuttal selection (fresh, all clickable)
+    attached=[];paintPool();if(phase!=='demo')setStatus('neutral','Now tap the one card that best beats the rival.');log('— duel: pick the card that best rebuts the rival —');locked=false;},900);
+}
+function finishItem(correct){locked=true;
+  if(phase==='warmup'){setStatus(correct?'ok':'no',correct?'✓ Correct - practice':'✗ Not quite - practice');log('warm-up '+(correct?'correct rebuttal':'try again next time')+' — UNSCORED');setTimeout(nextPhase,1100);return;}
+  T.scored++;if(correct){T.exact++;level=Math.min(6,level+1);}else{level=Math.max(1,level-1);}
+  maxLevel=Math.max(maxLevel,level);
+  setStatus(correct?'ok':'no',correct?'✓ Correct':'✗ Not quite - a stronger card would beat the rival');
+  renderMeters();setTimeout(nextPhase,1300);
+}
+function nextPhase(){locked=false;
+  if(phase==='warmup'){startScored();}
+  else if(phase==='scored'){T.roundIdx=(T.roundIdx||0)+1;T.roundIdx<6?startScored():finish();}
+}
+function startWarmup(){phase='warmup';setCue('warmup');setStatus('neutral','Practice - this one is not scored.');newItem(1);log('— warm-up (unscored): attach the strongest evidence, then rebut the rival —');}
+function startScored(){phase='scored';setCue('scored',((T.roundIdx||0)+1)+'/6');setStatus('neutral','Tap the strongest evidence, then lock in.');newItem(level);log(`— SCORED duel (level ${level}) —`);}
+function finish(){phase='done';setCue('done');setStatus('ok','✓ Done');locked=true;log(`— DONE \u00b7 rebuttals ${T.exact}/${T.scored} \u00b7 max level ${maxLevel} —`);}
+async function runDemo(){phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;
+  cur=genItem(1);attached=[];stage='support';T.itemStart=Date.now();
+  paintClaim();paintPool();paintStrength();$('#rivalbox').style.display='none';
+  log('ghost-hand demo (wordless, <10s)');ghostShow(true);await sleep(300);
+  const strongIdx=cur.ev.findIndex(e=>e.str===3);
+  await ghostTo($(`.card[data-id="${strongIdx}"]`));await ghostTap();onCard(strongIdx);
+  await sleep(300);await ghostTo($('#go'));await ghostTap();
+  goSupport();await sleep(1300);
+  await ghostTo($(`.card[data-id="${cur.rebutIdx}"]`));await ghostTap();onCard(cur.rebutIdx);
+  await sleep(300);ghostShow(false);await sleep(450);startWarmup();}
+$('#go').addEventListener('click',()=>{if($('#go').classList.contains('ready')&&stage==='support')goSupport();});
+$('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
+buildMeters();renderMeters();runDemo();
+</script>
+</body>
+</html>
