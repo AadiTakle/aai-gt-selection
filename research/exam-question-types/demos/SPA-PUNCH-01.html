@@ -3,206 +3,115 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SPA-PUNCH-01 — Fold &amp; Punch</title>
+<title>SPA-PUNCH-01 · Fold &amp; Punch</title>
 <style>
-  :root{--bg:#eef2fb;--card:#fff;--ink:#1e293b;--muted:#64748b;--accent:#4f46e5;--good:#16a34a;--warn:#f59e0b;--bad:#dc2626;--stage:#f8fafc}
-  *{box-sizing:border-box}
-  body{margin:0;font:15px/1.4 system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
-  .wrap{display:flex;gap:14px;padding:14px;max-width:1180px;margin:0 auto;align-items:flex-start;flex-wrap:wrap}
-  .col{flex:1 1 560px;min-width:340px}.side{flex:1 1 320px;min-width:300px}
-  .card{background:var(--card);border-radius:16px;box-shadow:0 6px 22px rgba(15,23,42,.08);padding:16px;margin-bottom:14px}
-  h1{font-size:19px;margin:0 0 2px}.sub{color:var(--muted);font-size:13px;margin:0 0 10px}
-  .pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;background:#e0e7ff;color:#3730a3}
-  .banner{display:flex;align-items:center;gap:10px;background:#f1f5ff;border:1px solid #dbe3ff;border-radius:12px;padding:10px 12px;margin-bottom:12px;min-height:44px}
-  .banner .icon{font-size:22px}.banner b{color:var(--accent)}
-  #stageWrap{position:relative;background:var(--stage);border-radius:14px;border:1px solid #e2e8f0;overflow:hidden}
-  svg{display:block;width:100%;height:360px;touch-action:none}
-  .hand{position:absolute;font-size:30px;pointer-events:none;z-index:5;filter:drop-shadow(0 2px 3px rgba(0,0,0,.25))}
-  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
-  button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:10px 16px;cursor:pointer;background:var(--accent);color:#fff}
-  button.ghost{background:#e2e8f0;color:#334155}button:disabled{opacity:.45;cursor:not-allowed}
-  .tel{background:#0b1220;color:#d1fae5;border-radius:16px;padding:14px;font:12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
-  .tel h2{font-size:13px;margin:0 0 8px;color:#93c5fd;letter-spacing:.05em;text-transform:uppercase}
-  .tel .m{display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px dotted #1e293b}
-  .tel .m .k{color:#7dd3fc}.tel .m .v{color:#fde68a;font-weight:700;text-align:right}
-  #log{margin-top:10px;max-height:170px;overflow:auto;background:#060b16;border-radius:8px;padding:8px}
-  #log div{white-space:pre-wrap;color:#a7f3d0}#log .t{color:#475569}
-  .done{color:var(--good);font-weight:700}.miss{color:var(--warn)}
+:root{--ink:#21313b;--cream:#fff8db;--edge:#d69a25;--aqua:#1db7a6;--red:#ef476f;--blue:#3a86ff;--gold:#ffb703;--good:#22a06b;--bad:#e0445e;--tel:#0c1821;--tel2:#142735}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%}body{display:flex;background:linear-gradient(145deg,#e5fff9,#fff1e8);font:16px/1.35 system-ui,-apple-system,Segoe UI,sans-serif;color:var(--ink)}
+#wrap{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:10px;padding:18px}#badge{font-size:12px;color:#6b7c82;font-weight:850;letter-spacing:.09em;text-transform:uppercase}#phasecue{font-size:34px;height:42px}
+#stagecard{width:min(730px,100%);background:#fff;border-radius:25px;padding:18px;box-shadow:0 22px 55px -32px #235862;display:grid;gap:14px}
+#sequence{min-height:45px;display:flex;align-items:center;justify-content:center;gap:7px;background:#effcf8;border:2px solid #bcebe2;border-radius:16px;padding:6px}.foldchip{width:34px;height:34px;border-radius:10px;color:#fff;display:grid;place-items:center;font-size:19px;font-weight:900}.foldchip.L{background:#ef476f}.foldchip.R{background:#3a86ff}.foldchip.T{background:#1db7a6}.foldchip.B{background:#8b5cf6}.then{color:#9cb1ae}.punchChip{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#15252c;color:#fff;font-size:18px}
+#rig{height:230px;border-radius:20px;background:linear-gradient(165deg,#193b42,#10242b);perspective:780px;display:grid;place-items:center;position:relative;overflow:hidden}#rig:after{content:"";position:absolute;bottom:24px;width:190px;height:20px;border-radius:50%;background:#020a0d;filter:blur(11px);opacity:.55}
+#paper{width:176px;height:176px;background:var(--cream);border:3px solid var(--edge);border-radius:5px;position:relative;transform:rotateX(58deg) rotateZ(7deg);transform-style:preserve-3d;z-index:2;transition:width .18s,height .18s,transform .2s;box-shadow:0 10px 17px #0008}
+#flap{position:absolute;display:none;background:#ffe98b;border:2px solid #c98514;z-index:4;backface-visibility:visible}.punchMark{position:absolute;width:24px;height:24px;border-radius:50%;background:#0b1519;border:5px solid #f8fafc;box-shadow:0 0 0 3px #0b1519;opacity:0;z-index:6;left:calc(50% - 12px);top:calc(50% - 12px)}.punchMark.hit{animation:punch .46s ease-out forwards}@keyframes punch{0%{opacity:0;transform:translateZ(90px) scale(1.8)}55%{opacity:1;transform:translateZ(0) scale(.7)}100%{opacity:1;transform:translateZ(3px) scale(1)}}#stack{position:absolute;right:14px;bottom:10px;color:#82b9b1;font:800 12px ui-monospace,monospace;z-index:8}#noBack{position:absolute;left:13px;bottom:10px;color:#82b9b1;font-size:20px;z-index:8}
+#options{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}.option{border:3px solid #e4ecea;background:#fff;border-radius:15px;padding:7px;cursor:pointer;display:grid;gap:5px;justify-items:center;transition:.15s}.option:hover,.option:focus-visible{outline:none;border-color:#7dd4c8;transform:translateY(-2px)}.option.sel{border-color:var(--blue);box-shadow:0 0 0 4px #d8e8ff}.option.good{background:#eafff5;border-color:var(--good)}.option.bad{background:#fff0f3;border-color:var(--bad)}.key{width:26px;height:24px;border-radius:7px;background:#173039;color:#fff;display:grid;place-items:center;font-weight:900;box-shadow:0 3px 0 #081216}.mini{display:grid;grid-template-columns:repeat(8,1fr);width:92px;height:92px;background:var(--cream);border:2px solid var(--edge)}.cell{border:.5px solid #eadfb633;display:grid;place-items:center}.cell.a:after,.cell.b:after{content:"";width:7px;height:7px;border-radius:50%;background:var(--red)}.cell.b:after{border-radius:1px;background:var(--blue);transform:rotate(45deg)}
+#controls{display:flex;align-items:center;justify-content:center;gap:12px}.round{border:0;border-radius:50%;cursor:pointer;font:800 24px system-ui}.round:focus-visible{outline:4px solid #9fdcd3;outline-offset:2px}#replay{width:50px;height:50px;background:#e8f7f4;color:#147f75}#lock{width:66px;height:66px;background:var(--aqua);color:#fff;box-shadow:0 10px 24px -10px var(--aqua)}#lock:disabled{opacity:.25;cursor:not-allowed}#hotkeys{text-align:center;color:#70868a;font:700 12px ui-monospace,monospace}.kbd{display:inline-grid;place-items:center;height:22px;min-width:23px;padding:0 5px;border:1px solid #bfcfce;border-bottom-width:3px;border-radius:6px;background:#fff;color:#274047;margin:0 2px}
+#ghost{position:fixed;z-index:90;left:0;top:0;font-size:38px;opacity:0;pointer-events:none;transition:transform .48s cubic-bezier(.2,.8,.2,1),opacity .2s;filter:drop-shadow(0 3px 4px #0005)}#ghost.show{opacity:1}#ghost.tap{animation:tap .35s}@keyframes tap{50%{scale:.76}}
+#telemetry{width:330px;flex:0 0 330px;min-height:100vh;background:var(--tel);color:#d2f6ee;display:flex;flex-direction:column;font:13px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace}#telemetry h3{margin:0;padding:13px 15px;background:var(--tel2);color:#fff;font-size:12px;text-transform:uppercase;letter-spacing:.1em}
+#mountain{margin:12px 12px 4px;padding:10px;border:1px solid #26404b;border-radius:12px}.mountTop{display:flex;justify-content:space-between;color:#86aaa9;font-size:11px}.track{height:9px;background:#1f3740;margin-top:7px;border-radius:9px;overflow:hidden}.track i{display:block;height:100%;background:linear-gradient(90deg,#1db7a6,#ffd166,#ef476f);width:0;transition:.3s}
+#mlist{padding:8px 12px;display:grid;gap:7px}.mrow{display:grid;grid-template-columns:105px 1fr;gap:6px}.mid{color:#7fffcf;font-weight:800}.mval{color:#fff;text-align:right;overflow-wrap:anywhere}.mname{grid-column:1/3;color:#658e92;font-size:11px;margin-top:-4px}#logwrap{margin-top:auto;border-top:1px solid #203943}#logwrap b{display:block;padding:8px 12px 4px;color:#79a5a5;font-size:11px;letter-spacing:.08em}#log{height:220px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}#log div{padding:3px 0;border-bottom:1px dotted #1d343d}#log .t{color:#54777b}
+@media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;min-height:0;height:330px;flex:none}}@media(max-width:580px){#options{grid-template-columns:1fr 1fr}.mini{width:82px;height:82px}#rig{height:190px}}@media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="col"><div class="card">
-    <span class="pill" id="phasePill">DEMO</span>
-    <h1>Fold &amp; Punch <span style="color:var(--muted);font-weight:400">· SPA-PUNCH-01</span></h1>
-    <p class="sub">Fold the paper, punch a hole, then tap where the holes will be when it's unfolded.</p>
-    <div class="banner"><span class="icon" id="bIcon">👀</span><div id="bText"><b>Watch.</b> Fold, punch, unfold — see the two holes appear…</div></div>
-    <div id="stageWrap"><svg id="svg" viewBox="0 0 440 360"></svg><div class="hand" id="hand" style="display:none">👆</div></div>
-    <div class="controls">
-      <button id="foldV" class="ghost">⬌ Fold</button>
-      <button id="foldH" class="ghost">⬍ Fold</button>
-      <button id="predictBtn" style="display:none">Predict ▶</button>
-      <button id="lockBtn" style="display:none" disabled>🔒 Check</button>
-      <button id="nextBtn" class="ghost" style="display:none">Next ▶</button>
-      <span class="sub" id="live" style="margin-left:auto"></span>
-    </div>
-  </div></div>
-  <div class="side"><div class="tel">
-    <h2>◉ Live telemetry</h2>
-    <div class="m"><span class="k">M-POLY hole overlap</span><span class="v" id="mPoly">—</span></div>
-    <div class="m"><span class="k">M-ACC exact</span><span class="v" id="mAcc">—</span></div>
-    <div class="m"><span class="k">M-RT total</span><span class="v" id="mRt">—</span></div>
-    <div class="m"><span class="k">M-RTFIRST first-act</span><span class="v" id="mFirst">—</span></div>
-    <div class="m"><span class="k">M-REV mark changes</span><span class="v" id="mRev">0</span></div>
-    <div class="m"><span class="k">M-ERRTYPE last error</span><span class="v" id="mErr">—</span></div>
-    <div class="m"><span class="k">M-PROG folds·punch</span><span class="v" id="mProg">—</span></div>
-    <div class="m"><span class="k">M-DIFFREACH folds</span><span class="v" id="mDiff">—</span></div>
-    <div id="log"></div>
-  </div></div>
+<div id="wrap">
+  <div id="badge">SPA-PUNCH-01 · Fold &amp; Punch</div>
+  <div id="phasecue">👁️</div>
+  <main id="stagecard">
+    <div id="sequence"></div>
+    <div id="rig"><div id="paper"><div id="flap"></div><div class="punchMark"></div><div class="punchMark"></div></div><span id="noBack">▶│</span><span id="stack">1×</span></div>
+    <div id="options" aria-label="unfolded pattern choices"></div>
+    <div id="hotkeys"><span class="kbd">1</span><span class="kbd">2</span><span class="kbd">3</span><span class="kbd">4</span> · <span class="kbd">↵</span></div>
+    <div id="controls"><button id="replay" class="round" title="replay forward only" aria-label="replay folds forward">↻</button><button id="lock" class="round" aria-label="lock answer" title="lock answer" disabled>✓</button></div>
+  </main>
 </div>
+<aside id="telemetry">
+  <h3>Live telemetry · per-child</h3>
+  <div id="mountain"><div class="mountTop"><span>CHALLENGE MOUNTAIN</span><span id="mountText">1/5 · Δ 0.00</span></div><div class="track"><i id="mountFill"></i></div></div>
+  <div id="mlist"></div>
+  <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+</aside>
+<div id="ghost">👆</div>
 <script>
-(function(){
-  "use strict";
-  var SVGNS="http://www.w3.org/2000/svg",svg=document.getElementById("svg"),hand=document.getElementById("hand");
-  function beep(f,t){try{var A=beep.a=beep.a||new(window.AudioContext||window.webkitAudioContext)();var o=A.createOscillator(),g=A.createGain();o.frequency.value=f;o.connect(g);g.connect(A.destination);g.gain.value=.08;o.start();o.stop(A.currentTime+(t||.1));}catch(e){}}
-  var Tel={start:0,first:0,revs:0,logEl:document.getElementById("log"),
-    line:function(m,c){var d=document.createElement("div");var t=((performance.now()-Tel.start)/1000).toFixed(2);d.innerHTML='<span class="t">['+t+'s]</span> '+m;if(c)d.className=c;Tel.logEl.appendChild(d);Tel.logEl.scrollTop=Tel.logEl.scrollHeight;},
-    begin:function(l){Tel.start=performance.now();Tel.first=0;Tel.revs=0;Tel.line("▶ "+l);render();},
-    firstAct:function(w){if(!Tel.first){Tel.first=performance.now()-Tel.start;Tel.line("first action: "+w+" @"+Math.round(Tel.first)+"ms");render();}}};
-  function render(){document.getElementById("mFirst").textContent=Tel.first?Math.round(Tel.first)+" ms":"—";document.getElementById("mRev").textContent=Tel.revs;}
-  // ---- model ----
-  var G=4,pos=[],region={},punched={},predicted={},foldsDone=0,foldsNeeded=1,step="fold",phase="demo",interactive=false,punchesMax=1,punchCount=0;
-  function key(x,y){return x+","+y;}
-  function reset(){pos=[];for(var o=0;o<G*G;o++)pos.push({x:o%G,y:Math.floor(o/G)});region={x0:0,x1:G-1,y0:0,y1:G-1};punched={};predicted={};foldsDone=0;punchCount=0;}
-  function fold(axis){
-    if(axis==="V"){var w=region.x1-region.x0+1;if(w<2)return false;var p=region.x0+Math.floor(w/2);
-      pos.forEach(function(q){if(q.x>=p)q.x=2*p-1-q.x;});region.x1=p-1;}
-    else{var h=region.y1-region.y0+1;if(h<2)return false;var p2=region.y0+Math.floor(h/2);
-      pos.forEach(function(q){if(q.y>=p2)q.y=2*p2-1-q.y;});region.y1=p2-1;}
-    foldsDone++;return true;
-  }
-  function layerCount(x,y){var n=0;pos.forEach(function(q){if(q.x===x&&q.y===y)n++;});return n;}
-  function truthHoles(){var s={};for(var o=0;o<G*G;o++){if(punched[key(pos[o].x,pos[o].y)])s[key(o%G,Math.floor(o/G))]=1;}return s;}
-  // ---- geometry ----
-  var LX=30,LY=80,cell=40,RX=250,RY=80;
-  function regionW(){return region.x1-region.x0+1;}function regionH(){return region.y1-region.y0+1;}
-  function foldedScreen(x,y){var padX=(4*cell-regionW()*cell)/2,padY=(4*cell-regionH()*cell)/2;return {x:LX+padX+(x-region.x0)*cell,y:LY+padY+(y-region.y0)*cell};}
-  function origScreen(ox,oy){return {x:RX+ox*cell,y:RY+oy*cell};}
-  function rect(x,y,w,h,fill,stroke,sw,rx){var r=document.createElementNS(SVGNS,"rect");r.setAttribute("x",x);r.setAttribute("y",y);r.setAttribute("width",w);r.setAttribute("height",h);r.setAttribute("fill",fill);if(stroke){r.setAttribute("stroke",stroke);r.setAttribute("stroke-width",sw||1);}if(rx)r.setAttribute("rx",rx);svg.appendChild(r);return r;}
-  function circle(x,y,r,fill,stroke){var c=document.createElementNS(SVGNS,"circle");c.setAttribute("cx",x);c.setAttribute("cy",y);c.setAttribute("r",r);c.setAttribute("fill",fill);if(stroke){c.setAttribute("stroke",stroke);c.setAttribute("stroke-width",2);}svg.appendChild(c);return c;}
-  function label(x,y,s,col){var t=document.createElementNS(SVGNS,"text");t.setAttribute("x",x);t.setAttribute("y",y);t.setAttribute("fill",col||"#94a3b8");t.setAttribute("font-size","13");t.setAttribute("font-weight","700");t.textContent=s;svg.appendChild(t);return t;}
-  var revealMode=false;
-  function draw(){
-    svg.innerHTML="";
-    label(LX,LY-12,step==="predict"||revealMode?"FOLDED PAPER":"FOLD, THEN PUNCH");
-    // folded paper: draw region cells (top layer)
-    var pad=6;
-    for(var y=region.y0;y<=region.y1;y++)for(var x=region.x0;x<=region.x1;x++){var s=foldedScreen(x,y);
-      rect(s.x,s.y,cell,cell,"#fdf6e3","#cbd5e1",1);
-      var lc=layerCount(x,y);if(lc>1){label(s.x+4,s.y+14,lc+"×","#b45309");}
-    }
-    // fold outline shadow to hint stack
-    var padX=(4*cell-regionW()*cell)/2,padY=(4*cell-regionH()*cell)/2;
-    rect(LX+padX,LY+padY,regionW()*cell,regionH()*cell,"none","#a16207",2.5,4);
-    // punches on folded paper
-    for(var kk in punched){var xy=kk.split(",");var sc=foldedScreen(+xy[0],+xy[1]);circle(sc.x+cell/2,sc.y+cell/2,cell*0.22,"#0b1220");}
-    // right grid: prediction / reveal
-    label(RX,RY-12,revealMode?"UNFOLDED (truth)":"YOUR PREDICTION (tap cells)");
-    var truth=revealMode?truthHoles():null;
-    for(var oy=0;oy<G;oy++)for(var ox=0;ox<G;ox++){var os=origScreen(ox,oy);
-      rect(os.x,os.y,cell,cell,"#ffffff","#e2e8f0",1);
-      var pk=key(ox,oy),isPred=predicted[pk],isTruth=truth&&truth[pk];
-      if(revealMode){
-        if(isTruth&&isPred)circle(os.x+cell/2,os.y+cell/2,cell*0.22,"#16a34a");        // hit
-        else if(isTruth&&!isPred)circle(os.x+cell/2,os.y+cell/2,cell*0.22,"#dc2626");  // missed hole
-        else if(!isTruth&&isPred){circle(os.x+cell/2,os.y+cell/2,cell*0.18,"none","#f59e0b");var xx=document.createElementNS(SVGNS,"text");xx.setAttribute("x",os.x+cell/2);xx.setAttribute("y",os.y+cell/2+5);xx.setAttribute("text-anchor","middle");xx.setAttribute("fill","#f59e0b");xx.setAttribute("font-size","16");xx.textContent="×";svg.appendChild(xx);}
-      } else if(isPred){circle(os.x+cell/2,os.y+cell/2,cell*0.22,"#334155");}
-    }
-    // fold arrows hint
-    if(step==="fold"&&!revealMode){label(LX,LY+4*cell+26,"Folds left: "+(foldsNeeded-foldsDone),"#4f46e5");}
-    if(step==="punch"){label(LX,LY+4*cell+26,"Tap the paper to PUNCH ("+punchCount+"/"+punchesMax+")","#4f46e5");}
-    render();
-  }
-  function toSvg(e){var r=svg.getBoundingClientRect();return {x:(e.clientX-r.left)*(440/r.width),y:(e.clientY-r.top)*(360/r.height)};}
-  svg.addEventListener("pointerdown",function(e){
-    if(!interactive)return;var p=toSvg(e);
-    if(step==="punch"){ // hit folded region
-      for(var y=region.y0;y<=region.y1;y++)for(var x=region.x0;x<=region.x1;x++){var s=foldedScreen(x,y);
-        if(p.x>=s.x&&p.x<=s.x+cell&&p.y>=s.y&&p.y<=s.y+cell){Tel.firstAct("punch");punched[key(x,y)]=1;punchCount++;beep(300,.12);Tel.line("punched folded cell ("+x+","+y+") — "+layerCount(x,y)+" layers");
-          if(punchCount>=punchesMax){step="predict";document.getElementById("predictBtn").style.display="none";document.getElementById("lockBtn").style.display="";document.getElementById("lockBtn").disabled=true;document.getElementById("foldV").style.display="none";document.getElementById("foldH").style.display="none";setBanner("✏️","<b>Now predict.</b> Tap every cell on the right where a hole will appear when unfolded. Then Check.");}
-          draw();return;}}
-    } else if(step==="predict"){ // toggle prediction on right grid
-      for(var oy=0;oy<G;oy++)for(var ox=0;ox<G;ox++){var os=origScreen(ox,oy);
-        if(p.x>=os.x&&p.x<=os.x+cell&&p.y>=os.y&&p.y<=os.y+cell){Tel.firstAct("mark");var k=key(ox,oy);
-          if(predicted[k]){delete predicted[k];Tel.revs++;}else{predicted[k]=1;}
-          document.getElementById("lockBtn").disabled=Object.keys(predicted).length===0;beep(560,.05);draw();return;}}
-    }
-  });
-  // fold buttons
-  document.getElementById("foldV").onclick=function(){doFold("V");};
-  document.getElementById("foldH").onclick=function(){doFold("H");};
-  function doFold(axis){if(!interactive||step!=="fold")return;if(!fold(axis)){beep(200,.1);Tel.line("can't fold that way again","miss");return;}
-    Tel.firstAct("fold "+axis);beep(480,.08);Tel.line("folded "+(axis==="V"?"⬌":"⬍")+" (fold "+foldsDone+")");
-    if(foldsDone>=foldsNeeded){step="punch";document.getElementById("foldV").disabled=true;document.getElementById("foldH").disabled=true;setBanner("🥊","<b>Punch a hole.</b> Tap the folded paper to punch through all the layers.");}
-    draw();}
-  // ---- phases ----
-  var pill=document.getElementById("phasePill"),bIcon=document.getElementById("bIcon"),bText=document.getElementById("bText");
-  var predictBtn=document.getElementById("predictBtn"),lockBtn=document.getElementById("lockBtn"),nextBtn=document.getElementById("nextBtn");
-  function setBanner(i,h){bIcon.textContent=i;bText.innerHTML=h;}
-  function newItem(n){reset();foldsNeeded=n;step="fold";revealMode=false;punchesMax=1;
-    document.getElementById("foldV").style.display="";document.getElementById("foldH").style.display="";
-    document.getElementById("foldV").disabled=false;document.getElementById("foldH").disabled=false;
-    lockBtn.style.display="none";predictBtn.style.display="none";document.getElementById("mDiff").textContent=n+" folds";}
-  function startDemo(){
-    phase="demo";pill.textContent="DEMO";interactive=false;nextBtn.style.display="none";
-    document.getElementById("foldV").disabled=true;document.getElementById("foldH").disabled=true;
-    setBanner("👀","<b>Watch.</b> Fold once, punch a hole, then unfold — two holes appear, mirrored across the fold.");
-    newItem(1);draw();hand.style.display="";
-    setTimeout(function(){fold("V");beep(480,.08);draw();var s=foldedScreen(region.x0+0,region.y0+1);
-      var r=svg.getBoundingClientRect();hand.style.left=(r.left+(s.x+cell/2)*(r.width/440)-4)+"px";hand.style.top=(r.top+window.scrollY+(s.y+cell/2)*(r.height/360))+"px";},700);
-    setTimeout(function(){punched[key(region.x0,region.y0+1)]=1;beep(300,.12);draw();},1500);
-    setTimeout(function(){revealMode=true;var th=truthHoles();for(var k in th)predicted[k]=1;draw();beep(880);Tel.line("unfolded → holes at "+Object.keys(th).join(" "),"done");},2400);
-    setTimeout(function(){hand.style.display="none";startWarmup();},3600);
-  }
-  function startWarmup(){
-    phase="warmup";pill.textContent="WARM-UP";interactive=true;revealMode=false;
-    newItem(1);draw();Tel.begin("Warm-up — fold once, punch, predict (reveal after)");
-    setBanner("✋","<b>Practice.</b> Tap ⬌ or ⬍ to fold ONCE, punch the paper, then predict the holes. I'll unfold to show you.");
-    lockBtn.onclick=function(){if(Object.keys(predicted).length===0)return;
-      var truth=truthHoles();revealMode=true;draw();
-      var ok=sameSet(predicted,truth);
-      if(ok){beep(880);setBanner("✅","<b>Exactly right!</b> Holes mirror across each fold. Now a harder one — fold TWICE, no reveal until you commit.");}
-      else{beep(300);setBanner("↻","<b>Close — see the truth.</b> Green = you got it, red = missed hole, × = extra. Holes reflect across the fold line.");}
-      lockBtn.style.display="none";nextBtn.style.display="";nextBtn.textContent="Start scored ▶";nextBtn.onclick=startScored;};
-  }
-  function startScored(){
-    phase="scored";pill.textContent="SCORED 1/1";interactive=true;revealMode=false;nextBtn.style.display="none";
-    newItem(2);draw();Tel.begin("Scored — fold twice, punch, predict all holes");
-    setBanner("🎯","<b>Fold TWICE</b> (any two folds), punch once, then tap ALL cells that will have a hole when unfolded. Check when done.");
-    lockBtn.onclick=function(){if(Object.keys(predicted).length===0)return;
-      var rt=performance.now()-Tel.start;var truth=truthHoles();revealMode=true;draw();
-      var inter=0,uni={};for(var k in predicted)uni[k]=1;for(k in truth)uni[k]=1;for(k in truth)if(predicted[k])inter++;
-      var unionN=Object.keys(uni).length,truthN=Object.keys(truth).length,predN=Object.keys(predicted).length;
-      var jac=unionN?inter/unionN:0,exact=sameSet(predicted,truth);
-      document.getElementById("mPoly").textContent=Math.round(100*jac)+"% ("+inter+"/"+unionN+")";
-      document.getElementById("mAcc").textContent=exact?"1/1 (100%)":"0/1";
-      document.getElementById("mRt").textContent=Math.round(rt)+" ms";
-      document.getElementById("mProg").textContent=foldsDone+" folds · "+Object.keys(punched).length+" punch";
-      var et=exact?"—":(predN===truthN?"wrong reflection axis (systematic)":"lost a fold/layer ("+predN+" vs "+truthN+")");
-      document.getElementById("mErr").textContent=et;
-      Tel.line("CHECK — overlap "+inter+"/"+unionN+" (Jaccard "+Math.round(100*jac)+"%), "+(exact?"exact ✔":et),exact?"done":"miss");
-      finish(jac,exact,rt);
-    };
-  }
-  function sameSet(a,b){var ka=Object.keys(a),kb=Object.keys(b);if(ka.length!==kb.length)return false;for(var i=0;i<ka.length;i++)if(!b[ka[i]])return false;return true;}
-  function finish(jac,exact,rt){
-    phase="done";pill.textContent="DONE";interactive=false;lockBtn.style.display="none";
-    setBanner("🏁","<b>Overlap "+Math.round(100*jac)+"%.</b> Each fold doubles the reflections; graded hole-overlap (M-POLY) + error type (right count but wrong axis vs a lost fold) pull fine tail signal from one item.");
-    Tel.line("── summary ── M-POLY="+Math.round(100*jac)+"%  M-ACC="+(exact?1:0)+"/1  M-RT="+Math.round(rt)+"ms","done");
-    nextBtn.style.display="";nextBtn.textContent="↻ Run again";nextBtn.onclick=function(){location.reload();};
-  }
-  reset();draw();startDemo();
-})();
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0,ICON={L:'→│',R:'│←',T:'↓',B:'↑'},OPP={L:'R',R:'L',T:'B',B:'T'};
+const T={scored:0,correct:0,rts:[],first:0,revs:0,error:'—',poly:'—',progress:'—',maxSolved:0,level:1,startLevel:1,itemStart:0,replays:0,rapid:false,blur:false,lastActivity:performance.now()};
+let phase='demo',item=null,selected=-1,trial=0,locked=true,playing=false,animToken=0;
+function learnRate(){return T.scored?((T.maxSolved-T.startLevel)/T.scored).toFixed(2):'0.00';}
+function rtText(){if(!T.rts.length)return'—';return T.rapid||T.blur?'gated':`${T.rts.at(-1)} ms · μ ${mean(T.rts)}`;}
+const METERS=[
+ {id:'M-ACC',name:'Exact unfolded pattern',get:()=>T.scored?`${T.correct}/${T.scored} · ${Math.round(100*T.correct/T.scored)}%`:'—'},
+ {id:'M-POLY',name:'Live hole-pattern overlap',get:()=>T.poly},
+ {id:'M-RT',name:'Commit time, engagement-gated',get:rtText},
+ {id:'M-RTFIRST',name:'Time to first prediction',get:()=>T.first?`${Math.round(T.first)} ms`:'—'},
+ {id:'M-REV',name:'Prediction changes',get:()=>String(T.revs)},
+ {id:'M-ERRTYPE',name:'Last keyed pattern error',get:()=>T.error},
+ {id:'M-PROG',name:'Forward fold/punch progress',get:()=>T.progress},
+ {id:'M-DIFFREACH',name:'Hardest fold level solved',get:()=>`${T.maxSolved}/5 · Δ/trial ${learnRate()}`}
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{$('#v_'+m.id).textContent=m.get();});$('#mountFill').style.width=(T.level/5*100)+'%';$('#mountText').textContent=`${T.level}/5 · Δ ${learnRate()}`;}
+function log(msg){const d=document.createElement('div');d.innerHTML=`<span class="t">+${Math.round(Math.max(0,performance.now()-T.itemStart))}ms</span> ${msg}`;$('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;}
+function first(){if(!T.first){T.first=performance.now()-T.itemStart;log(`first prediction @ ${Math.round(T.first)}ms`);}}
+function activity(){T.lastActivity=performance.now();}addEventListener('pointerdown',activity);addEventListener('keydown',activity);document.addEventListener('visibilitychange',()=>{if(document.hidden&&phase==='scored')T.blur=true;});
+function gate(rt){T.rapid=rt<350||performance.now()-T.lastActivity>20000;if(T.rapid||T.blur)log(`RT gate: ${T.rapid?'rapid/idle':'blur'}`);}
+
+function foldModel(seq,punches){
+ const N=8,c=[];for(let y=0;y<N;y++)for(let x=0;x<N;x++)c.push({ox:x,oy:y,x,y});let r={x0:0,x1:7,y0:0,y1:7};
+ for(const op of seq){const w=r.x1-r.x0+1,h=r.y1-r.y0+1;if('LR'.includes(op)){if(w<2)return null;const p=r.x0+w/2;if(op==='L'){c.forEach(q=>{if(q.x<p)q.x=2*p-1-q.x});r.x0=p}else{c.forEach(q=>{if(q.x>=p)q.x=2*p-1-q.x});r.x1=p-1}}else{if(h<2)return null;const p=r.y0+h/2;if(op==='T'){c.forEach(q=>{if(q.y<p)q.y=2*p-1-q.y});r.y0=p}else{c.forEach(q=>{if(q.y>=p)q.y=2*p-1-q.y});r.y1=p-1}}}
+ const w=r.x1-r.x0+1,h=r.y1-r.y0+1,out=new Map();punches.forEach((u,i)=>{const px=r.x0+Math.round(u[0]*(w-1)),py=r.y0+Math.round(u[1]*(h-1));c.forEach(q=>{if(q.x===px&&q.y===py)out.set(`${q.ox},${q.oy}`,i)})});return out;
+}
+function allSeq(n,p=''){return n?['L','R','T','B'].flatMap(x=>allSeq(n-1,p+x)):[p];}
+function sig(m){return m?[...m].sort((a,b)=>a[0].localeCompare(b[0])).map(x=>x.join(':')).join('|'):'';}
+function addPattern(arr,seen,map,error){const s=sig(map);if(map&&s&&!seen.has(s)){seen.add(s);arr.push({map,error});}}
+function makeItem(level,seed,warm=false){
+ const folds=warm?1:[2,2,3,3,4][level-1],punches=(warm||level<4)?[[seed%2,0]]:[[0,0],[1,1]],valid=allSeq(folds).filter(s=>foldModel(s,punches));
+ const seq=valid[(seed*7+level*3)%valid.length],truth=foldModel(seq,punches),seen=new Set(),patterns=[];addPattern(patterns,seen,truth,'—');
+ addPattern(patterns,seen,foldModel(seq.slice(0,-1),punches),'lost last fold');addPattern(patterns,seen,foldModel(seq.slice(0,-1)+OPP[seq.at(-1)],punches),'wrong final direction');
+ addPattern(patterns,seen,foldModel(seq,punches.slice(0,1)),'lost punch');addPattern(patterns,seen,foldModel(seq,[...punches,[1,0]]),'extra reflection/punch');
+ for(const alt of valid){addPattern(patterns,seen,foldModel(alt,punches),'wrong fold axis/order');if(patterns.length>=4)break}
+ const four=patterns.slice(0,4),shift=seed%4,rot=[...four.slice(shift),...four.slice(0,shift)],correct=rot.findIndex(p=>sig(p.map)===sig(truth));return{level,folds,punches,seq,patterns:rot,correct,truth};
+}
+function sequenceView(){const s=$('#sequence');s.innerHTML=[...item.seq].map(op=>`<i class="foldchip ${op}">${ICON[op]}</i><span class="then">›</span>`).join('')+item.punches.map(()=>'<i class="punchChip">●</i>').join('');}
+function miniHTML(map){let h='<span class="mini">';for(let y=0;y<8;y++)for(let x=0;x<8;x++){const v=map.get(`${x},${y}`);h+=`<i class="cell ${v===0?'a':v===1?'b':''}"></i>`}return h+'</span>';}
+function renderItem(fresh=true){sequenceView();$('#options').innerHTML=item.patterns.map((p,i)=>`<button class="option" data-i="${i}" aria-label="choice ${i+1}"><span class="key">${i+1}</span>${miniHTML(p.map)}</button>`).join('');selected=-1;locked=true;$('#lock').disabled=true;$('#phasecue').textContent=phase==='demo'?'👁️':phase==='warmup'?'⭐':'🎯';
+ if(fresh){T.itemStart=performance.now();T.first=0;T.revs=0;T.poly='—';T.progress=`0/${item.folds} folds`;T.rapid=false;T.blur=false;T.lastActivity=performance.now();}resetRig();renderMeters();}
+function resetRig(){animToken++;const p=$('#paper');p.style.width='176px';p.style.height='176px';$('#flap').style.display='none';$$('.punchMark').forEach(x=>x.classList.remove('hit'));$('#stack').textContent='1×';}
+async function playForward(track=true){
+ if(playing)return;playing=true;locked=true;$('#lock').disabled=true;const token=++animToken,p=$('#paper'),flap=$('#flap');let w=176,h=176,layers=1;resetRig();const my=++animToken;
+ for(let i=0;i<item.seq.length;i++){if(my!==animToken){playing=false;return}const op=item.seq[i];flap.getAnimations().forEach(a=>a.cancel());flap.style.cssText='';flap.style.display='block';flap.style.background='#ffe98b';flap.style.border='2px solid #c98514';flap.style.zIndex='4';let frames;
+  if('LR'.includes(op)){flap.style.top='0';flap.style.width='50%';flap.style.height='100%';flap.style.left=op==='L'?'0':'50%';flap.style.transformOrigin=op==='L'?'right center':'left center';frames=[{transform:'rotateY(0)'},{transform:`rotateY(${op==='L'?-178:178}deg)`}]}else{flap.style.left='0';flap.style.width='100%';flap.style.height='50%';flap.style.top=op==='T'?'0':'50%';flap.style.transformOrigin=op==='T'?'center bottom':'center top';frames=[{transform:'rotateX(0)'},{transform:`rotateX(${op==='T'?178:-178}deg)`}]}
+  const a=flap.animate(frames,{duration:330,easing:'cubic-bezier(.2,.75,.2,1)',fill:'forwards'});try{await a.finished}catch(e){playing=false;return}flap.style.display='none';if('LR'.includes(op))w=Math.max(18,w/2);else h=Math.max(18,h/2);p.style.width=w+'px';p.style.height=h+'px';layers*=2;$('#stack').textContent=layers+'×';T.progress=`${i+1}/${item.folds} folds`;renderMeters();await sleep(70);
+ }
+ for(let i=0;i<item.punches.length;i++){if(my!==animToken){playing=false;return}const marks=$$('.punchMark'),m=marks[i%marks.length];m.style.left=`calc(${item.punches[i][0]?68:32}% - 12px)`;m.style.top=`calc(${item.punches[i][1]?68:32}% - 12px)`;m.classList.remove('hit');void m.offsetWidth;m.classList.add('hit');T.progress=`${item.folds}/${item.folds} folds · ${i+1}/${item.punches.length} punches`;renderMeters();await sleep(420)}
+ T.progress=`${item.folds} folds · ${item.punches.length} punch${item.punches.length>1?'es':''} · ?`;renderMeters();playing=false;locked=phase==='demo';$('#lock').disabled=selected<0||locked;$('#options').style.pointerEvents=phase==='demo'?'none':'auto';if(track)log(`forward replay ${T.replays} · no back-step`);
+}
+function jaccard(a,b){const A=new Set(a.keys()),B=new Set(b.keys()),u=new Set([...A,...B]);let n=0;A.forEach(x=>{if(B.has(x))n++});return u.size?n/u.size:0;}
+function choose(i,modality='tap'){if(locked||playing||i<0||i>3)return;first();if(selected>=0&&selected!==i)T.revs++;selected=i;$$('.option').forEach((o,k)=>o.classList.toggle('sel',k===i));T.poly=Math.round(100*jaccard(item.patterns[i].map,item.truth))+'% overlap';$('#lock').disabled=false;log(`prediction ${i+1} via ${modality}`);renderMeters();}
+async function submit(){if(locked||selected<0)return;locked=true;$('#lock').disabled=true;const rt=Math.round(performance.now()-T.itemStart),ok=selected===item.correct;$$('.option')[selected].classList.add(ok?'good':'bad');$$('.option')[item.correct].classList.add('good');
+ if(phase==='warmup'){log(`warm-up ${ok?'correct':'guided reveal'} · unscored`);$('#phasecue').textContent=ok?'✅':'↻';await sleep(900);startScored();return}
+ T.scored++;T.rts.push(rt);gate(rt);if(ok){T.correct++;T.error='—';T.maxSolved=Math.max(T.maxSolved,item.level);T.level=Math.min(5,T.level+1)}else{T.error=item.patterns[selected].error;T.level=Math.max(1,T.level-1)}
+ T.poly=Math.round(100*jaccard(item.patterns[selected].map,item.truth))+'% overlap';$('#phasecue').textContent=ok?'✅':'🔎';log(`LOCK ${ok?'exact':'miss '+T.error} · L${item.level} · ${rt}ms`);renderMeters();await sleep(1050);trial++;trial<6?startScored():finish();
+}
+function startWarmup(){phase='warmup';item=makeItem(1,2,true);renderItem(true);$('#options').style.pointerEvents='none';playForward(false);}
+function startScored(){phase='scored';item=makeItem(T.level,trial+5,false);renderItem(true);$('#options').style.pointerEvents='none';log(`scored ${trial+1}/6 · L${item.level} · ${item.folds} folds · ${item.punches.length} punch${item.punches.length>1?'es':''}`);playForward(false);}
+function finish(){phase='done';locked=true;$('#phasecue').textContent='🏆';$('#lock').disabled=true;$$('.option').forEach(o=>o.disabled=true);log(`DONE · ${T.correct}/${T.scored} · max L${T.maxSolved} · Δ ${learnRate()}`);renderMeters();}
+const ghost=$('#ghost');async function ghostTo(el){const r=el.getBoundingClientRect();ghost.style.transform=`translate(${r.left+r.width/2-10}px,${r.top+r.height/2-8}px)`;await sleep(480)}async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(350)}
+async function runDemo(){phase='demo';item=makeItem(1,0,true);renderItem(false);$('#options').style.pointerEvents='none';ghost.classList.add('show');await ghostTo($('#paper'));await playForward(false);const o=$$('.option')[item.correct];await ghostTo(o);await ghostTap();o.classList.add('sel','good');await sleep(420);ghost.classList.remove('show');startWarmup();}
+$('#options').addEventListener('click',e=>{const o=e.target.closest('.option');if(o)choose(+o.dataset.i,'tap')});$('#lock').addEventListener('click',submit);
+$('#replay').addEventListener('click',()=>{if(playing||phase==='demo'||phase==='done')return;T.replays++;T.progress='restarting → forward only';log('restart full sequence (forward only)');renderMeters();playForward(true)});
+addEventListener('keydown',e=>{if(e.repeat)return;if(/^[1-4]$/.test(e.key)){e.preventDefault();choose(+e.key-1,'key')}else if(e.key==='Enter'){e.preventDefault();submit()}});
+buildMeters();renderMeters();runDemo();
 </script>
 </body>
 </html>
