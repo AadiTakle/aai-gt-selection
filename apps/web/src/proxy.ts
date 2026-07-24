@@ -2,7 +2,18 @@ import type { Database } from '@gt-selection/db-types';
 import { createServerClient } from '@supabase/ssr';
 import { type NextRequest, NextResponse } from 'next/server';
 
+import { buildContentSecurityPolicy } from '@/lib/csp';
 import { getServerEnvironment } from '@/lib/env';
+
+// security headers applied to every response (CSP is computed per-request so it
+// can adapt to hosted-mode runtime env — see lib/csp.ts)
+function applySecurityHeaders(response: NextResponse) {
+  response.headers.set('Content-Security-Policy', buildContentSecurityPolicy());
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('X-Frame-Options', 'SAMEORIGIN');
+  return response;
+}
 
 export async function proxy(request: NextRequest) {
   const environment = getServerEnvironment();
@@ -34,7 +45,7 @@ export async function proxy(request: NextRequest) {
   );
 
   await supabase.auth.getClaims();
-  return response;
+  return applySecurityHeaders(response);
 }
 
 export const config = {
