@@ -22,7 +22,15 @@ body{
   align-items:center;gap:9px;
 }
 #badge{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#818aa8}
-#phasecue{height:36px;font-size:31px}
+#howto{max-width:650px;width:100%;background:#fff;border:1px solid #dfe4f1;border-left:5px solid var(--purple);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #323b77}
+#howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--purple)}
+#howto p{margin:0;font-size:14px;color:#454e70;line-height:1.5}
+#phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#efedff;color:var(--purple);border:2px solid #d3ceff;min-height:30px}
+#phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+#phasecue[data-phase="scored"]{background:var(--purple);color:#fff;border-color:var(--purple)}
+#phasecue[data-phase="done"]{background:#efedff;color:#4a3fb0;border-color:#d3ceff}
+#status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+#status.ok{color:var(--aqua)} #status.no{color:var(--rose)} #status.neutral{color:#818aa8}
 #stagecard{
   width:min(650px,100%);background:var(--paper);border-radius:26px;padding:16px;
   box-shadow:0 22px 55px -33px #323b77;display:flex;flex-direction:column;
@@ -52,7 +60,7 @@ body{
 #confidence.on{display:flex}
 .conf{
   width:75px;height:48px;border-radius:15px;border:2px solid var(--line);
-  background:#fff;font-size:24px;cursor:pointer;
+  background:#fff;font-size:13px;font-weight:800;cursor:pointer;
 }
 #tools{display:flex;gap:12px;align-items:center}
 #tools button{
@@ -101,17 +109,22 @@ button:focus-visible,.pair:focus-visible{outline:4px solid #158cff;outline-offse
 <body>
 <main id="wrap">
   <div id="badge">FLU-ODDPAIR-01 · Odd Pair Out</div>
-  <div id="phasecue">👁️</div>
+  <header id="howto">
+    <h1>How to use — Odd Pair Out</h1>
+    <p>Each row shows two shapes that change from left to right. Every row changes the same way except one — tap the odd pair out, then press the check (<b>✓</b>). You can also press number keys. It gets harder each time you are right.</p>
+  </header>
+  <div id="phasecue" data-phase="demo">Watch the example</div>
   <section id="stagecard">
     <div id="pairs"></div>
     <div id="confidence">
-      <button class="conf" data-value="1" aria-label="not sure">〰️</button>
-      <button class="conf" data-value="3" aria-label="sure">⭐</button>
+      <button class="conf" data-value="1" aria-label="not sure">Not sure</button>
+      <button class="conf" data-value="3" aria-label="sure">Sure</button>
     </div>
     <div id="tools">
       <button id="replay" aria-label="replay">↻</button>
       <button id="go" aria-label="check">✓</button>
     </div>
+    <div id="status" class="neutral">Watch the example, then try it yourself.</div>
   </section>
 </main>
 <aside id="telemetry">
@@ -123,7 +136,7 @@ button:focus-visible,.pair:focus-visible{outline:4px solid #158cff;outline-offse
   <div id="mlist"></div>
   <div id="logwrap"><b>EVENT LOG · KEYS 1–5 + ENTER</b><div id="log"></div></div>
 </aside>
-<div id="ghost">👆</div>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -177,6 +190,9 @@ const T={
   itemStart:Date.now(),firstAction:null,maxSolved:0,blurred:false
 };
 let phase='demo',level=1,scoredIndex=0,item=null,selected=-1,locked=true;
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');if(!el)return;el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 function meanValid(a){
   const valid=a.filter(x=>x.valid).map(x=>x.value);
   return valid.length?`${Math.round(valid.reduce((s,v)=>s+v,0)/valid.length)} ms`:'gated';
@@ -249,15 +265,16 @@ function check(){
     else T.errors.push(selected===item.lure?'surface-lure':'shared-pair');
     T.rts.push({value:rt,valid});T.firsts.push({value:T.firstAction||0,valid:firstValid});
   }
-  item.result=ok;log(`check #${selected+1} → ${ok?'✓':'✕'} · ${rt}ms${valid?'':' · gated'}`);
+  item.result=ok;setStatus(ok?'ok':'no',ok?'\u2713 Correct':'\u2717 Not quite - the odd pair is highlighted');log(`check #${selected+1} → ${ok?'✓':'✕'} · ${rt}ms${valid?'':' · gated'}`);
   $('#go').classList.remove('ready');renderMeters();
   const askConfidence=phase==='scored'&&scoredIndex%2===0;
-  if(askConfidence)setTimeout(()=>{$('#confidence').classList.add('on');phase='confidence';locked=false;},500);
+  if(askConfidence)setTimeout(()=>{$('#confidence').classList.add('on');phase='confidence';locked=false;setStatus('neutral','How sure are you?');},500);
   else setTimeout(advance,750);
 }
 function confidence(value){
   if(phase!=='confidence'||locked)return;
   T.confidence.push(`${value===3?'★':'~'}${item.result?'✓':'✕'}`);
+  setStatus('neutral','Thanks - moving on.');
   log(`confidence ${value}`);renderMeters();locked=true;$('#confidence').classList.remove('on');
   setTimeout(advance,350);
 }
@@ -271,15 +288,15 @@ function advance(){
 function start(kind){
   phase=kind;locked=false;T.itemStart=Date.now();T.firstAction=null;T.blurred=false;
   item=makeItem(kind==='warmup'?1:level);renderItem();
-  $('#phasecue').textContent=kind==='warmup'?'⭐':'🎯';
+  setCue(kind==='warmup'?'warmup':'scored',kind==='warmup'?'':(scoredIndex+1)+'/6');setStatus('neutral',kind==='warmup'?'Practice - this one is not scored.':'Find the pair that changes differently.');
   log(`— ${kind==='warmup'?'WARM-UP · UNSCORED':`SCORED ${scoredIndex+1}/6 · level ${level} · ${item.dims}D`} —`);
   renderMeters();
 }
 function startWarmup(){start('warmup');}
 function startScored(){start('scored');}
 function finish(){
-  phase='done';locked=true;$('#phasecue').textContent='🏆';
-  $('#stagecard').innerHTML='<div style="font-size:96px;padding:58px 0">🏆</div><button id="again" class="conf" aria-label="again">↻</button>';
+  phase='done';locked=true;setCue('done');setStatus('ok','\u2713 Done');
+  $('#stagecard').innerHTML='<div style="font-size:88px;padding:58px 0;color:var(--aqua);font-weight:900">\u2713</div><button id="again" class="conf" aria-label="again">↻</button>';
   $('#again').onclick=()=>location.reload();
   log(`— DONE · ${T.acc}/${T.n} · peak ${T.maxSolved} —`);
 }
@@ -290,7 +307,7 @@ async function ghostTo(el){
 }
 async function runDemo(){
   phase='demo';locked=true;T.itemStart=Date.now();item=makeItem(1,true);renderItem();
-  $('#phasecue').textContent='👁️';ghost.classList.add('show');log('wordless relation sweep');
+  setCue('demo');setStatus('neutral','Watch the example.');ghost.classList.add('show');log('wordless relation sweep');
   for(const row of $$('.pair')){
     await ghostTo(row.querySelectorAll('.cell')[0]);await ghostTo(row.querySelectorAll('.cell')[1]);
   }

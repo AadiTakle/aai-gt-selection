@@ -10,7 +10,15 @@
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#8a7a5c;text-transform:uppercase;font-weight:700}
-  #phasecue{font-size:34px;height:40px;line-height:40px}
+  #howto{max-width:600px;width:100%;background:#fff;border:1px solid #f2e4c8;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #8a6a2a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:#d9791f}
+  #howto p{margin:0;font-size:14px;color:#5a4a30;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#fdecd2;color:#d9791f;border:2px solid #ffd9a8;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:#d9791f;color:#fff;border-color:#d9791f}
+  #phasecue[data-phase="done"]{background:#ffedd8;color:#9a531f;border-color:#ffd9a8}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#a08a5e}
   #stagecard{background:var(--card);border-radius:26px;padding:24px;box-shadow:0 18px 50px -22px #8a6a2a55;display:flex;flex-direction:column;align-items:center;gap:16px;max-width:540px;width:100%}
   #grid{display:grid;grid-template-columns:repeat(3,72px);grid-template-rows:repeat(3,72px);gap:8px}
   .house{background:var(--house);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:30px;cursor:pointer;transition:.15s;box-shadow:inset 0 0 0 2px #dcc79a}
@@ -48,12 +56,17 @@
 <body>
   <div id="wrap">
     <div id="badge">WM-bind-01 · Home Again</div>
-    <div id="phasecue">👁️</div>
+    <header id="howto">
+      <h1>How to use — Home Again</h1>
+      <p>Watch which animal lives in each house, then the houses go empty. Tap an animal, then tap its house to send it home. Get them all right to move up a level.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
     <div id="stagecard">
       <div id="grid"></div>
       <div id="tray"></div>
       <div id="diffwrap"><div id="diffbar"><div id="difffill"></div></div><div id="difflabel">SET 2</div></div>
       <div id="controls"><button id="replay" title="replay demo">↻</button></div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
     </div>
   </div>
   <aside id="telemetry">
@@ -61,7 +74,7 @@
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost">👆<span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#ff9f43" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -95,7 +108,9 @@ function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textC
 let tStart=Date.now();
 function log(msg){const t=Date.now()-tStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
 function setDiff(){const pct=Math.min(100,Math.round((level-2)/6*100));$('#difffill').style.width=pct+'%';$('#difflabel').textContent='SET '+level;}
-function setCue(i){$('#phasecue').textContent=i;}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 
 /* ---------- ghost ---------- */
 const ghost=$('#ghost');function ghostShow(v){ghost.classList.toggle('show',v);}
@@ -125,7 +140,8 @@ function finishRound(){locked=true;let correctN=0;const entries=Object.keys(bind
   entries.forEach(h=>{const ok=placed[h]===binding[h];if(ok)correctN++;houseEl(h).classList.add(ok?'correct':'wrong');});
   const full=correctN===entries.length;
   T.totalItems+=entries.length;T.correctItems+=correctN;
-  if(phase==='warmup'){log(`warm-up ${full?'all correct':correctN+'/'+entries.length+' correct'} \u2014 UNSCORED`);setTimeout(()=>{phase='scored';nextScored();},1300);return;}
+  if(phase==='warmup'){setStatus(full?'ok':'no',full?'\u2713 All correct - practice':'Practice - '+correctN+'/'+entries.length+' correct');log(`warm-up ${full?'all correct':correctN+'/'+entries.length+' correct'} \u2014 UNSCORED`);setTimeout(()=>{phase='scored';nextScored();},1300);return;}
+  setStatus(full?'ok':'no',full?'\u2713 All correct':'\u2717 '+correctN+'/'+entries.length+' correct - the right houses are marked');
   T.scored++;T.accBySplit[T.scored%2].push(full?1:0);
   if(!full){let swap=false;entries.forEach(h=>{if(placed[h]&&placed[h]!==binding[h]&&Object.values(binding).includes(placed[h]))swap=true;});
     T.errTypes.push(swap?'swap':'misplace');$('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),450);}
@@ -133,17 +149,17 @@ function finishRound(){locked=true;let correctN=0;const entries=Object.keys(bind
   else{level=Math.max(2,level-1);log(`SCORED set ${entries.length} \u2192 ${correctN}/${entries.length} correct \u2192 set down to ${level}`);}
   renderMeters();setDiff();
   setTimeout(()=>{if(T.scored>=6)finish();else nextScored();},1300);}
-function nextScored(){setCue('\ud83c\udfaf');log(`\u2014 SCORED trial ${T.scored+1}: set size ${level} \u2014`);encode(level).then(()=>{locked=false;renderMeters();});}
-function startWarmup(){phase='warmup';setCue('\u2b50');log('\u2014 warm-up (unscored): remember each animal\u2019s house \u2014');encode(2).then(()=>{locked=false;renderMeters();});}
-function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;
+function nextScored(){setCue('scored',(T.scored+1)+'/6');setStatus('neutral','Tap an animal, then tap its house.');log(`\u2014 SCORED trial ${T.scored+1}: set size ${level} \u2014`);encode(level).then(()=>{locked=false;renderMeters();});}
+function startWarmup(){phase='warmup';setCue('warmup');setStatus('neutral','Practice - remember each animal\u2019s house.');log('\u2014 warm-up (unscored): remember each animal\u2019s house \u2014');encode(2).then(()=>{locked=false;renderMeters();});}
+function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;
   log(`\u2014 DONE \u00b7 bindings correct ${T.correctItems}/${T.totalItems} \u00b7 ceiling set ${maxLevel} \u2014`);}
-async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;
+async function runDemo(){phase='demo';setCue('demo');setStatus('neutral','Watch the example, then try it yourself.');locked=true;
   const houses=[0,4];const animals=['🐶','🐱'];binding={};houses.forEach((h,k)=>{binding[h]=animals[k];houseEl(h).textContent=animals[k];});
   log('ghost-hand demo (wordless, <10s)');await sleep(1000);houses.forEach(h=>houseEl(h).textContent='🏠');
   renderTray(animals);placed={};ghostShow(true);
   for(const h of houses){const a=binding[h];const te=trayEl(a);await ghostTo(te);await ghostTap();te.classList.add('sel');
     await ghostTo(houseEl(h));await ghostTap();houseEl(h).textContent=a;houseEl(h).classList.add('correct','filled');te.remove();}
-  await sleep(500);ghostShow(false);setCue('\u2705');await sleep(600);startWarmup();}
+  await sleep(500);ghostShow(false);setStatus('ok','\u2713 That\u2019s how it works');await sleep(600);startWarmup();}
 $('#grid').addEventListener('click',e=>{const h=e.target.closest('.house');if(h)placeAt(+h.dataset.i);});
 $('#tray').addEventListener('click',e=>{const a=e.target.closest('.animal');if(a)selectAnimal(a.dataset.a,a);});
 $('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});

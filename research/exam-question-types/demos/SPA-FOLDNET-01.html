@@ -7,7 +7,7 @@
 <style>
 :root{--ink:#2c3043;--indigo:#5267df;--rose:#ef6b8f;--gold:#f5ad32;--teal:#28ad9c;--good:#1aa56f;--bad:#e14a60;--tel:#111426;--tel2:#20243e}
 *{box-sizing:border-box}html,body{margin:0;min-height:100%}body{display:flex;background:linear-gradient(145deg,#fff6dd,#edf0ff);font:16px/1.35 system-ui,-apple-system,Segoe UI,sans-serif;color:var(--ink)}
-#wrap{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:10px;padding:18px}#badge{font-size:12px;font-weight:850;color:#7c7e98;letter-spacing:.09em;text-transform:uppercase}#phasecue{height:42px;font-size:34px}
+#wrap{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:10px;padding:18px}#badge{font-size:12px;font-weight:850;color:#7c7e98;letter-spacing:.09em;text-transform:uppercase}#howto{max-width:760px;width:100%;background:#fff;border:1px solid #e3e5f5;border-left:5px solid var(--indigo);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4e8b}#howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--indigo)}#howto p{margin:0;font-size:14px;color:#45496e;line-height:1.5}#phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eceeff;color:var(--indigo);border:2px solid #ced3ff;min-height:30px}#phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}#phasecue[data-phase="scored"]{background:var(--indigo);color:#fff;border-color:var(--indigo)}#phasecue[data-phase="done"]{background:#eceeff;color:#3a3f9c;border-color:#ced3ff}#status{min-height:22px;font-size:14px;font-weight:700;text-align:center}#status.ok{color:var(--good)}#status.no{color:var(--bad)}#status.neutral{color:#7d8098}
 #stagecard{width:min(760px,100%);background:#fff;border-radius:27px;padding:16px;display:grid;gap:13px;box-shadow:0 24px 60px -32px #4a4e8b}
 #work{display:grid;grid-template-columns:1fr 1fr;gap:12px}.panel{height:255px;border-radius:20px;overflow:hidden;position:relative}.netPanel{background:#fff9e8;border:2px solid #f0dba3;display:grid;place-items:center}.netPanel:before{content:"▱";position:absolute;top:9px;left:12px;color:#c19b43;font-size:20px}#netSvg{width:100%;height:100%}
 #foldStage{background:linear-gradient(160deg,#182040,#252c59);border:2px solid #343d72;perspective:800px;display:grid;place-items:center;touch-action:none;cursor:grab}#foldStage.drag{cursor:grabbing}#foldObject{position:relative;width:70px;height:70px;transform-style:preserve-3d}.foldFace{position:absolute;left:0;top:0;width:70px;height:70px;display:grid;place-items:center;color:#fff;font-weight:900;font-size:22px;border:2px solid #ffffffaa;backface-visibility:visible;transform-style:preserve-3d;box-shadow:inset 0 0 0 2px #0001}#solidCanvas{position:absolute;inset:0;width:100%;height:100%;opacity:0;pointer-events:none;transition:opacity .3s}#foldStage:after{content:"";position:absolute;bottom:18px;width:150px;height:17px;border-radius:50%;background:#090d1c;filter:blur(10px);opacity:.55}
@@ -24,7 +24,11 @@
 <body>
 <div id="wrap">
   <div id="badge">SPA-FOLDNET-01 · Fold-the-Net</div>
-  <div id="phasecue">👁️</div>
+  <header id="howto">
+    <h1>How to use — Fold-the-Net</h1>
+    <p>Watch the flat net fold into a solid — press the fold button (or F) to fold again, and drag the solid to turn it. Choose which 3D shape the net makes, then press the check (<b>✓</b>).</p>
+  </header>
+  <div id="phasecue" data-phase="demo">Watch the example</div>
   <main id="stagecard">
     <div id="work">
       <div class="panel netPanel"><svg id="netSvg" viewBox="0 0 360 260" aria-label="flat net"></svg></div>
@@ -33,6 +37,7 @@
     <div id="options" aria-label="three dimensional solid choices"></div>
     <div id="hotkeys"><span class="kbd">F</span> · <span class="kbd">1</span><span class="kbd">2</span><span class="kbd">3</span><span class="kbd">4</span> · <span class="kbd">I</span><span class="kbd">J</span><span class="kbd">K</span><span class="kbd">L</span> · <span class="kbd">↵</span></div>
     <div id="controls"><button id="foldBtn" class="round" title="fold replay" aria-label="fold net">↻</button><button id="lock" class="round" title="lock solid" aria-label="lock solid" disabled>✓</button></div>
+    <div id="status" class="neutral">Watch the example, then try it yourself.</div>
   </main>
 </div>
 <aside id="telemetry">
@@ -41,7 +46,7 @@
   <div id="mlist"></div>
   <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
 </aside>
-<div id="ghost">👆</div>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],sleep=ms=>new Promise(r=>setTimeout(r,ms)),ctx=$('#solidCanvas').getContext('2d');
@@ -67,6 +72,9 @@ const DIST={
 };
 const T={scored:0,correct:0,rts:[],first:0,revs:0,folds:0,orbits:0,error:'—',maxSolved:0,level:1,startLevel:1,itemStart:0,rapid:false,blur:false,lastActivity:performance.now()};
 let phase='demo',kind='cube',options=[],selected=-1,trial=0,locked=true,folding=false,folded=false,yaw=-.62,pitch=.4,drag=false,lx=0,ly=0;
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');if(!el)return;el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 function learnRate(){return T.scored?((T.maxSolved-T.startLevel)/T.scored).toFixed(2):'0.00';}
 function rtText(){if(!T.rts.length)return'—';return T.rapid||T.blur?'gated':`${T.rts.at(-1)} ms · μ ${mean(T.rts)}`;}
 const METERS=[
@@ -107,17 +115,17 @@ function panelDefs(k){if(k==='cube'||k==='rect')return[
 function regularClip(n){return'polygon('+Array.from({length:n},(_,i)=>`${50+48*Math.cos(-Math.PI/2+i*2*Math.PI/n)}% ${50+48*Math.sin(-Math.PI/2+i*2*Math.PI/n)}%`).join(',')+')';}
 function buildPanels(){const o=$('#foldObject');o.innerHTML='';panelDefs(kind).forEach((d,i)=>{const e=document.createElement('div');e.className='foldFace';e.dataset.flat=d[1];e.dataset.fold=d[2];e.style.transform=d[1];e.style.background=COLOR[i%COLOR.length];if(d[0]==='tri')e.style.clipPath='polygon(50% 0,100% 100%,0 100%)';if(d[0]==='rect'){e.style.width='52px';e.style.height='70px'}if(d[0]==='poly')e.style.clipPath=regularClip(kind==='tri'?3:kind==='pent'?5:6);e.textContent='◆●▲✚⬟✦'[i%6];o.appendChild(e)});o.style.transform='rotateX(0deg) rotateY(0deg)';$('#solidCanvas').style.opacity=0;folded=false;}
 function drawSolid(){ctx.clearRect(0,0,360,260);const g=ctx.createRadialGradient(180,120,10,180,130,190);g.addColorStop(0,'#344079');g.addColorStop(1,'#131936');ctx.fillStyle=g;ctx.fillRect(0,0,360,260);drawFaces(ctx,SHAPES[kind].solid.verts,SHAPES[kind].solid.faces,yaw,pitch,70,180,132);}
-function setItem(k,fresh=true){kind=k;drawNet(k);buildOptions();buildPanels();selected=-1;locked=phase==='demo';$('#lock').disabled=true;$('#phasecue').textContent=phase==='demo'?'👁️':phase==='warmup'?'⭐':'🎯';if(fresh){T.itemStart=performance.now();T.first=0;T.revs=0;T.folds=0;T.orbits=0;T.error='—';T.rapid=false;T.blur=false;T.lastActivity=performance.now()}renderMeters();}
+function setItem(k,fresh=true){kind=k;drawNet(k);buildOptions();buildPanels();selected=-1;locked=phase==='demo';$('#lock').disabled=true;setCue(phase,phase==='scored'?(trial+1)+'/6':'');setStatus('neutral',phase==='warmup'?'Practice - this one is not scored.':phase==='scored'?'Fold the net (or press F), then choose the solid.':'Watch the example.');if(fresh){T.itemStart=performance.now();T.first=0;T.revs=0;T.folds=0;T.orbits=0;T.error='—';T.rapid=false;T.blur=false;T.lastActivity=performance.now()}renderMeters();}
 async function foldReplay(track=true){if(folding)return;folding=true;if(track&&phase!=='demo'){first();T.folds++;log('fold scaffold replay');renderMeters()}buildPanels();const faces=$$('.foldFace'),animations=faces.map((e,i)=>e.animate([{transform:e.dataset.flat},{transform:e.dataset.fold}],{duration:850+i*55,easing:'cubic-bezier(.25,.75,.2,1)',fill:'forwards'}));await Promise.all(animations.map(a=>a.finished.catch(()=>{})));folded=true;drawSolid();$('#solidCanvas').style.opacity=1;const st=performance.now();while(performance.now()-st<650){yaw+=.018;drawSolid();await new Promise(requestAnimationFrame)}folding=false;}
 function choose(i,modality='tap'){if(locked||folding||i<0||i>3)return;first();if(selected>=0&&selected!==i)T.revs++;selected=i;$$('.option').forEach((o,k)=>o.classList.toggle('sel',k===i));$('#lock').disabled=false;log(`solid choice ${i+1} [${options[i]}] via ${modality}`);renderMeters();}
 function activity(){T.lastActivity=performance.now()}addEventListener('pointerdown',activity);addEventListener('keydown',activity);document.addEventListener('visibilitychange',()=>{if(document.hidden&&phase==='scored')T.blur=true});function gate(rt){T.rapid=rt<350||performance.now()-T.lastActivity>22000;if(T.rapid||T.blur)log(`RT gate: ${T.rapid?'rapid/idle':'blur'}`);}
 function errType(a,b){const A=SHAPES[a],B=SHAPES[b];if(A.faces===B.faces)return'right face-count / wrong face-shape';if(A.family===B.family)return'near family / wrong side-count';return'wrong solid family';}
 async function submit(){if(locked||selected<0||folding)return;locked=true;$('#lock').disabled=true;const rt=Math.round(performance.now()-T.itemStart),pick=options[selected],ok=pick===kind;$$('.option')[selected].classList.add(ok?'good':'bad');$$('.option')[options.indexOf(kind)].classList.add('good');
- if(phase==='warmup'){log(`warm-up ${ok?'correct':'guided reveal'} · unscored`);$('#phasecue').textContent=ok?'✅':'↻';if(!folded)await foldReplay(false);await sleep(700);startScored();return}
- T.scored++;T.rts.push(rt);gate(rt);if(ok){T.correct++;T.maxSolved=Math.max(T.maxSolved,T.level);T.level=Math.min(5,T.level+1);T.error='—'}else{T.level=Math.max(1,T.level-1);T.error=errType(pick,kind)}$('#phasecue').textContent=ok?'✅':'🔎';log(`LOCK ${ok?'correct':'miss '+T.error} · ${pick}→${kind} · L${T.level} · ${rt}ms`);renderMeters();await sleep(950);trial++;trial<6?startScored():finish();}
+ if(phase==='warmup'){log(`warm-up ${ok?'correct':'guided reveal'} · unscored`);setStatus(ok?'ok':'no',ok?'\u2713 Correct - practice':'\u2717 Not quite - the correct solid is shown (practice)');if(!folded)await foldReplay(false);await sleep(700);startScored();return}
+ T.scored++;T.rts.push(rt);gate(rt);if(ok){T.correct++;T.maxSolved=Math.max(T.maxSolved,T.level);T.level=Math.min(5,T.level+1);T.error='—'}else{T.level=Math.max(1,T.level-1);T.error=errType(pick,kind)}setStatus(ok?'ok':'no',ok?'\u2713 Correct':'\u2717 Not quite - the correct solid is shown');log(`LOCK ${ok?'correct':'miss '+T.error} · ${pick}→${kind} · L${T.level} · ${rt}ms`);renderMeters();await sleep(950);trial++;trial<6?startScored():finish();}
 function startWarmup(){phase='warmup';setItem('cube',true);locked=false;log('warm-up · unscored');}
 function startScored(){phase='scored';const choices=LIB[T.level],k=choices[(trial+T.level)%choices.length];setItem(k,true);locked=false;log(`scored ${trial+1}/6 · L${T.level} · net ${k}`);}
-function finish(){phase='done';locked=true;$('#phasecue').textContent='🏆';$('#lock').disabled=true;$$('.option').forEach(o=>o.disabled=true);log(`DONE · ${T.correct}/${T.scored} · max L${T.maxSolved} · Δ ${learnRate()}`);renderMeters();}
+function finish(){phase='done';locked=true;setCue('done');setStatus('ok','\u2713 Done');$('#lock').disabled=true;$$('.option').forEach(o=>o.disabled=true);log(`DONE · ${T.correct}/${T.scored} · max L${T.maxSolved} · Δ ${learnRate()}`);renderMeters();}
 const stage=$('#foldStage');stage.addEventListener('pointerdown',e=>{if(!folded||locked)return;drag=true;lx=e.clientX;ly=e.clientY;stage.classList.add('drag');stage.setPointerCapture(e.pointerId);first()});stage.addEventListener('pointermove',e=>{if(!drag)return;yaw+=(e.clientX-lx)*.008;pitch+=(e.clientY-ly)*.006;lx=e.clientX;ly=e.clientY;drawSolid()});function endDrag(){if(drag){drag=false;stage.classList.remove('drag');T.orbits++;log('orbit gesture');renderMeters()}}stage.addEventListener('pointerup',endDrag);stage.addEventListener('pointercancel',endDrag);
 const ghost=$('#ghost');async function ghostTo(el){const r=el.getBoundingClientRect();ghost.style.transform=`translate(${r.left+r.width/2-12}px,${r.top+r.height/2-10}px)`;await sleep(460)}async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(330)}
 async function runDemo(){phase='demo';setItem('cube',false);ghost.classList.add('show');await ghostTo($('#foldBtn'));await ghostTap();await foldReplay(false);const o=$$('.option')[options.indexOf('cube')];await ghostTo(o);await ghostTap();o.classList.add('sel','good');await sleep(350);ghost.classList.remove('show');startWarmup();}

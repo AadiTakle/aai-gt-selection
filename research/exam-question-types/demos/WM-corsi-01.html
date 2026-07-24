@@ -10,7 +10,15 @@
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:radial-gradient(circle at 30% 20%,var(--bg2),var(--bg1));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#8fa3d8;text-transform:uppercase;font-weight:700}
-  #phasecue{font-size:34px;height:40px;line-height:40px}
+  #howto{max-width:520px;width:100%;background:#16233b;border:1px solid #2c3f60;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #000}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#c8d6ff;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#1f3252;color:var(--accent);border:2px solid #2c3f60;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#3a2f14;color:#ffd166;border-color:#6b5a2a}
+  #phasecue[data-phase="scored"]{background:var(--accent);color:#20304e;border-color:var(--accent)}
+  #phasecue[data-phase="done"]{background:#1f3252;color:#7fffcf;border-color:#2c3f60}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8fa3d8}
   #stagecard{background:var(--card);border-radius:26px;padding:24px;box-shadow:0 18px 50px -22px #000;display:flex;flex-direction:column;align-items:center;gap:16px;max-width:520px;width:100%}
   #grid{display:grid;grid-template-columns:repeat(3,86px);grid-template-rows:repeat(3,86px);gap:10px}
   .tile{background:var(--tile);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:30px;cursor:default;transition:.15s;box-shadow:inset 0 0 0 2px #2c3f60;user-select:none}
@@ -48,7 +56,11 @@
 <body>
   <div id="wrap">
     <div id="badge">WM-corsi-01 · Firefly Trail</div>
-    <div id="phasecue">👁️</div>
+    <header id="howto">
+      <h1>How to use — Firefly Trail</h1>
+      <p>Watch the tiles light up one at a time, then tap them in the same order. Some rounds ask for the reverse order — the label above the grid tells you which. It checks on its own after your last tap. It gets harder each time you are right.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
     <div id="stagecard">
       <div id="modecue"></div>
       <div id="grid"></div>
@@ -56,6 +68,7 @@
       <div id="controls">
         <button id="replay" title="replay demo">↻</button>
       </div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
     </div>
   </div>
   <aside id="telemetry">
@@ -63,7 +76,7 @@
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost">👆<span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -75,7 +88,7 @@ const N=9;
 const tiles=[];for(let i=0;i<N;i++)tiles.push(i);
 
 /* ---------- grid render ---------- */
-function buildGrid(){const g=$('#grid');g.innerHTML='';for(let i=0;i<N;i++){const d=document.createElement('div');d.className='tile';d.dataset.i=i;d.textContent='✨';g.appendChild(d);}}
+function buildGrid(){const g=$('#grid');g.innerHTML='';for(let i=0;i<N;i++){const d=document.createElement('div');d.className='tile';d.dataset.i=i;d.textContent='';g.appendChild(d);}}
 function tileEl(i){return $('#grid').children[i];}
 function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
 
@@ -126,7 +139,8 @@ function onTap(i){if(locked||phase==='demo')return;const el=tileEl(i);
   if(tapCount>=curSeq.length)finishResponse();}
 function finishResponse(){locked=true;const tgt=target();const et=classify();const ok=et==='none';
   resp.forEach((i,k)=>{tileEl(i).classList.add(tgt[k]===i?'correct':'wrong');});
-  if(phase==='warmup'){log(`warm-up ${ok?'correct':'miss ('+et+')'} \u2014 UNSCORED`);setTimeout(()=>{phase='scored';nextScored();},1200);return;}
+  if(phase==='warmup'){setStatus(ok?'ok':'no',ok?'✓ Correct - practice':'✗ Not quite - practice');log(`warm-up ${ok?'correct':'miss ('+et+')'} \u2014 UNSCORED`);setTimeout(()=>{phase='scored';nextScored();},1200);return;}
+  setStatus(ok?'ok':'no',ok?'✓ Correct':'✗ Not quite - the correct tiles are outlined');
   T.scored++;T.trials++;const rt=Date.now()-seqEndTime;
   if(curMode==='backward')T.bckRT.push(rt);else T.fwdRT.push(rt);
   if(ok){T.correct++;maxLevel=Math.max(maxLevel,level);level=Math.min(9,level+1);log(`SCORED span ${curSeq.length} [${curMode}] \u2192 correct \u2714 \u2192 span up to ${level}`);}
@@ -136,20 +150,22 @@ function finishResponse(){locked=true;const tgt=target();const et=classify();con
 function nextScored(){locked=true;resetResp();curMode=(T.trials>=2 && T.trials%2===1)?'backward':'forward';
   curSeq=genSeq(level);$('#modecue').textContent=curMode==='backward'?'\u21c4 reverse order':'\u25b6 same order';
   setDiff();log(`\u2014 SCORED trial ${T.trials+1}: span ${level} [${curMode}] \u2014`);
-  setCue('\ud83c\udfaf');
+  setCue('scored',(T.trials+1)+'/8');setStatus('neutral',curMode==='backward'?'Watch, then tap in REVERSE order.':'Watch, then tap in the SAME order.');
   flashSeq(curSeq).then(()=>{seqEndTime=Date.now();locked=false;$$('.tile').forEach(t=>t.classList.add('active'));});}
-function setCue(i){$('#phasecue').textContent=i;}
-function startWarmup(){phase='warmup';setCue('\u2b50');resetResp();curMode='forward';curSeq=genSeq(3);$('#modecue').textContent='\u25b6 same order';
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+function startWarmup(){phase='warmup';setCue('warmup');setStatus('neutral','Practice - watch, then tap in order.');resetResp();curMode='forward';curSeq=genSeq(3);$('#modecue').textContent='\u25b6 same order';
   log('\u2014 warm-up (unscored): watch, then tap back in order \u2014');
   flashSeq(curSeq).then(()=>{seqEndTime=Date.now();locked=false;$$('.tile').forEach(t=>t.classList.add('active'));});}
-function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;$('#modecue').textContent='';
+function finish(){phase='done';setCue('done');setStatus('ok','✓ Done');locked=true;$('#modecue').textContent='';
   log(`\u2014 DONE \u00b7 correct ${T.correct}/${T.scored} \u00b7 ceiling span ${maxLevel} \u2014`);}
-async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;resetResp();
+async function runDemo(){phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;resetResp();
   const seq=[4,1,7];curSeq=seq;curMode='forward';$('#modecue').textContent='';
   log('ghost-hand demo (wordless, <10s)');
   await flashSeq(seq);await sleep(200);ghostShow(true);
   for(const i of seq){await ghostTo(tileEl(i));await ghostTap();tileEl(i).classList.add('correct');}
-  await sleep(500);ghostShow(false);setCue('\u2705');await sleep(600);startWarmup();}
+  await sleep(500);ghostShow(false);setStatus('neutral','Now you try.');await sleep(600);startWarmup();}
 buildGrid();
 $('#grid').addEventListener('click',e=>{const t=e.target.closest('.tile');if(t)onTap(+t.dataset.i);});
 $('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});

@@ -5,12 +5,14 @@ Every rebuilt/new demo is a **self-contained single-file** `demos/<type_id>.html
 the house pattern below and honor the type's change-spec in `CATEGORY_MAP.md` and
 the measurement framework in `METRIC_FRAMEWORK.md`.
 
-Gold-standard reference to imitate: `demos/FLU-GRIDCOPY-01.html`.
+Gold-standard references (updated no-emoji house pattern): `demos/FLU-MATRIX-01.html`
+(figural) and `demos/VER-RELPAIR-01.html` (verbal).
 
 ## 1. Required layout (two columns)
 
-- `#wrap` (left/main): `#badge` (`TYPE-ID · Name`), a phase cue (emoji), the
-  interactive stage, controls.
+- `#wrap` (left/main): `#badge` (`TYPE-ID · Name`), a `#howto` description panel
+  (§3b), a worded `#phasecue` badge (§3b), the interactive stage, controls, and a
+  `#status` line.
 - `#telemetry` (right, dark aside): `<h3>Live telemetry · per-child</h3>`, a
   `#mlist` of measurement rows, and an `#logwrap`/`#log` event log.
 - Responsive: stack columns under ~860px.
@@ -29,10 +31,50 @@ difficulty reached, etc.). No value may require a human judge or self-report.
 ## 3. Self-teach (mandatory, <10s, wordless)
 
 Phases: `demo → warmup → scored → done`.
-- `runDemo()`: a wordless **ghost-hand** (👆) animates one full correct solution.
+- `runDemo()`: a wordless **outline pointer** (inline SVG cursor, NOT the 👆
+  emoji) animates one full correct solution.
 - `startWarmup()`: ONE unscored warm-up trial with gentle feedback.
-- `startScored()`: scored items begin; `finish()` shows a done cue.
-- A replay (↻) button re-runs the demo. No written instructions anywhere.
+- `startScored()`: scored items begin; `finish()` shows the `Done` badge.
+- A replay (↻) button re-runs the demo.
+
+**Reading is a required baseline-literacy gate** (capability-to-benefit from a
+reading-based Timeback placement; per the admissions/Crystal direction — decision
+to be logged). Write the `#howto` and any on-stage text in clear, grade-appropriate
+language, and do NOT add audio narration or picture-only crutches that let a
+non-reader bypass the text. The pointer demo + warm-up still make the *mechanic*
+obvious, but the child must be able to read the instructions to take the item —
+that is intentional. (Applicable age bands are being raised to the reading floor;
+see the catalog `age_bands`.)
+
+## 3b. No emojis — words + common symbols only (house rule)
+
+Emojis read as vague. Do NOT use them for phase, feedback, pointer, or state, and
+avoid them for stimulus content. Use words plus common symbols.
+
+- **Top-of-page description (required on every demo).** A `#howto` panel:
+  `<h1>How to use — <Name></h1>` + one or two sentences saying exactly what the
+  child does and how to submit. This text is the child-facing baseline-literacy
+  gate (§3): keep it clear and grade-appropriate, but do not narrate it as audio.
+- **Worded phase badge.** `#phasecue` is a pill driven by `data-phase`, showing
+  words: `Watch the example` / `Warm-up · not scored` / `Scored n/N` / `Done`.
+- **`#status` feedback line.** After each answer show a symbol + a word:
+  `✓ Correct`, `✗ Not quite - the correct answer is highlighted`,
+  `Practice - not scored`. Classes: `ok` / `no` / `neutral`.
+- **Pointer = outline, not 👆.** Use an inline SVG cursor outline for the demo.
+- **Fine to use:** `✓` (correct), `✗`/`✕` (wrong), `↻` (replay), directional
+  arrows. Avoid decorative pictographs (e.g. 🌱🌳🏆🎯⭐👁️).
+- **Stimulus content.** Prefer geometric outlines/shapes and real words over
+  emoji pictures. Verbal types use words (the type's word mode); picture-based
+  content uses simple outline SVG art, not emoji. Do NOT add audio narration to
+  bypass reading (reading is required — §3).
+
+Reusable snippet (matches the two reference demos):
+
+```js
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+```
 
 ## 4. NEW: difficulty spectrum + escalation (adaptivity)
 
@@ -105,7 +147,10 @@ must render on double-click with no network access.
 - DO edit only your assigned `demos/<type_id>.html` file(s). Each is independent.
 - DO read the type's spec object (in `specs/types_<domain>.jsonl`) and
   `CATEGORY_MAP.md` change-spec before rebuilding.
+- DO follow §3b: a `#howto` description, a worded phase badge, a `#status` line,
+  and an outline pointer — NO emojis.
 - DON'T edit shared files, other demos, specs, measurements.json, or run git /
   build_types.py. DON'T touch apps/, packages/, supabase/, or other worktrees.
+- DON'T use emojis for phase/feedback/pointer/state; use ✓/✗/outlines + words.
 - Keep it working: open the file mentally / verify the JS has no syntax errors and
   the scored flow reaches `done`.

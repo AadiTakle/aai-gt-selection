@@ -23,7 +23,15 @@ body{
   align-items:center;gap:9px;
 }
 #badge{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#7d89a6}
-#phasecue{height:37px;font-size:31px}
+#howto{max-width:600px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--blue);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+#howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--blue)}
+#howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+#phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:var(--blue);border:2px solid #c9d0ff;min-height:30px}
+#phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+#phasecue[data-phase="scored"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+#phasecue[data-phase="done"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
+#status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+#status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
 #stagecard{
   width:min(760px,100%);background:var(--paper);border-radius:28px;padding:17px;
   box-shadow:0 24px 58px -35px #303b72;display:flex;flex-direction:column;
@@ -67,6 +75,8 @@ button:focus-visible,.token:focus-visible,.bin:focus-visible{outline:4px solid #
   transition:transform .45s cubic-bezier(.2,.7,.2,1),opacity .2s;filter:drop-shadow(0 4px 4px #0004);
 }
 #ghost.show{opacity:1}
+#ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--blue);opacity:0}
+#ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
 #telemetry{
   width:345px;flex:0 0 345px;min-height:100vh;background:var(--tel);
   color:#ccd8f5;display:flex;flex-direction:column;
@@ -99,13 +109,18 @@ button:focus-visible,.token:focus-visible,.bin:focus-visible{outline:4px solid #
 <body>
 <main id="wrap">
   <div id="badge">CX-check-01 · Check It Twice</div>
-  <div id="phasecue">👁️</div>
+  <header id="howto">
+    <h1>How to use — Check It Twice</h1>
+    <p>Some tiles are in the wrong group. Tap a tile to pick it up, then tap the correct group box (the one whose header pattern it matches) to move it. Tap the tile's check mark once you have reviewed it, then press the check (<b>✓</b>) to turn in. It gets harder each time you fix them all.</p>
+  </header>
+  <div id="phasecue" data-phase="demo">Watch the example</div>
   <section id="stagecard">
     <div id="bins"></div>
     <div id="tools">
       <button id="replay" aria-label="replay">↻</button>
       <button id="submit" aria-label="turn in">✓</button>
     </div>
+    <div id="status" class="neutral">Watch the example, then try it yourself.</div>
   </section>
 </main>
 <aside id="telemetry">
@@ -117,7 +132,7 @@ button:focus-visible,.token:focus-visible,.bin:focus-visible{outline:4px solid #
   <div id="mlist"></div>
   <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
 </aside>
-<div id="ghost">👆</div>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -137,6 +152,9 @@ const T={
 };
 let phase='demo',level=1,scoredIndex=0,item=null,selected=null,reviewed=new Set();
 let locked=true,blurStart=0,itemBlur=0;
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 function instantiate(template,seed){
   const map={},used=[];let next=0;
   return [...template].map(ch=>{
@@ -246,8 +264,9 @@ function submit(){
   item.tokens.forEach(t=>{
     const el=$(`.token[data-id="${t.id}"]`);if(el)el.classList.add(t.bin===t.truth?'good':'bad');
   });
-  if(phase==='warmup'){log('warm-up submit · UNSCORED');setTimeout(startScored,800);return;}
+  if(phase==='warmup'){setStatus('neutral','Practice - not scored.');log('warm-up submit · UNSCORED');setTimeout(startScored,800);return;}
   const result=scoreRound();item.result=result.perfect&&result.caughtAll;phase='between';
+  setStatus(item.result?'ok':'no',item.result?'✓ Correct':'✗ Not quite - the fixed tiles are highlighted');
   renderMeters();setTimeout(nextItem,900);
 }
 function nextItem(){
@@ -259,15 +278,17 @@ function nextItem(){
 function start(kind){
   phase=kind;locked=false;item=makeItem(kind==='warmup'?1:level);
   selected=null;reviewed=new Set();T.itemStart=Date.now();T.lastAction=Date.now();
-  itemBlur=0;blurStart=0;$('#phasecue').textContent=kind==='warmup'?'⭐':'🎯';
+  itemBlur=0;blurStart=0;
+  if(kind==='warmup'){setCue('warmup');setStatus('neutral','Practice - this one is not scored.');}
+  else{setCue('scored',(scoredIndex+1)+'/5');setStatus('neutral','Move any wrong tiles, review the rest, then turn in.');}
   renderBoard();log(`— ${kind==='warmup'?'WARM-UP · UNSCORED':`SCORED ${scoredIndex+1}/5 · level ${level}`} —`);
   renderMeters();
 }
 function startWarmup(){start('warmup');}
 function startScored(){start('scored');}
 function finish(){
-  phase='done';locked=true;$('#phasecue').textContent='🏆';
-  $('#stagecard').innerHTML='<div style="font-size:100px;padding:70px 0">🏁</div><button id="again" class="token" aria-label="again">↻</button>';
+  phase='done';locked=true;setCue('done');setStatus('ok','✓ Done');
+  $('#stagecard').innerHTML='<div style="font-size:34px;font-weight:800;padding:60px 0;color:var(--good)">✓ Done</div><button id="again" class="token" aria-label="again">↻</button>';
   $('#again').onclick=()=>location.reload();log(`— DONE · accuracy ${T.correct}/${T.total} · caught ${T.caught} —`);renderMeters();
 }
 const ghost=$('#ghost');
@@ -277,7 +298,7 @@ async function ghostTo(el){
 }
 async function runDemo(){
   phase='demo';locked=true;item=makeItem(1,true);selected=null;reviewed=new Set();
-  T.itemStart=Date.now();$('#phasecue').textContent='👁️';renderBoard();ghost.classList.add('show');
+  T.itemStart=Date.now();setCue('demo');setStatus('neutral','Watch the example.');renderBoard();ghost.classList.add('show');
   log('wordless abstract checking demo');
   const wrong=item.tokens.find(t=>t.bin!==t.truth);
   let el=$(`.token[data-id="${wrong.id}"]`);await ghostTo(el.querySelector('.check'));

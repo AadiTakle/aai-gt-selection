@@ -10,7 +10,15 @@
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:radial-gradient(circle at 30% 10%,var(--bg2),var(--bg1));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:12px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#8fd8ac;text-transform:uppercase;font-weight:700}
-  #phasecue{font-size:34px;height:40px;line-height:40px}
+  #howto{max-width:560px;width:100%;background:#fff;border:1px solid #cfeeda;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #000}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:#1f7a45}
+  #howto p{margin:0;font-size:14px;color:#2c4636;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#173a2a;color:#bfe9d1;border:2px solid #2c6b47;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:var(--accent);color:#08260f;border-color:var(--accent)}
+  #phasecue[data-phase="done"]{background:#bfe9d1;color:#08260f;border-color:#bfe9d1}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:#7fffcf} #status.no{color:var(--bad)} #status.neutral{color:#8fd8ac}
   #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #000;display:flex;flex-direction:column;align-items:center;gap:12px;max-width:560px;width:100%}
   #world{display:grid;gap:3px}
   .cell{width:52px;height:52px;background:var(--fog);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:24px;transition:.2s}
@@ -59,7 +67,11 @@
 <body>
   <div id="wrap">
     <div id="badge">GB-EXPLORE-01 · Explorer's Map</div>
-    <div id="phasecue">👁️</div>
+    <header id="howto">
+      <h1>How to use — Explorer's Map</h1>
+      <p>Use the arrow keys or the on-screen arrows to explore the map and find the landmarks. Then turn the dial to point back to each landmark, and pick the shorter route home to submit.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
     <div id="stagecard">
       <div id="world"></div>
       <div id="keys">
@@ -80,6 +92,7 @@
       </div>
       <div id="diffwrap"><div id="diffbar"><div id="difffill"></div></div><div id="difflabel">WORLD 5</div></div>
       <button class="round" id="replay" title="replay demo">↻</button>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
     </div>
   </div>
   <aside id="telemetry">
@@ -87,7 +100,7 @@
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost">👆<span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -139,7 +152,10 @@ function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textC
 let tStart=Date.now();
 function log(msg){const t=Date.now()-tStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
 function setDiff(){const pct=Math.min(100,Math.round((level-1)/5*100));$('#difffill').style.width=pct+'%';$('#difflabel').textContent='WORLD '+(4+level);}
-function setCue(i){$('#phasecue').textContent=i;}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+function roundCue(){setCue(curIsWarmup?'warmup':'scored',curIsWarmup?'':(T.rounds+1)+'/5');}
 
 /* ---------- ghost ---------- */
 const ghost=$('#ghost');function ghostShow(v){ghost.classList.toggle('show',v);}
@@ -155,13 +171,13 @@ function endExplore(){locked=true;const cov=Math.round(100*[...visited].length/(
   log(`exploration done${curIsWarmup?' (unscored)':''}: ${movesUsed} moves, coverage ${cov}%, landmarks ${foundLandmarks.length}/${roundLandmarks.length}`);
   renderMeters();cells.forEach(c=>c.revealed=false);const av=cells[idx(avatar.r,avatar.c)];renderWorld();
   setTimeout(startPointing,900);}
-function startPointing(){phase='point';pointIdx=0;setCue('\ud83e\udded');lmList=roundLandmarks.slice();nextPoint();}
+function startPointing(){phase='point';pointIdx=0;roundCue();setStatus('neutral','Turn the dial to point back to the landmark, then press the check.');lmList=roundLandmarks.slice();nextPoint();}
 function nextPoint(){if(pointIdx>=lmList.length){startRoute();return;}
   $('#compassWrap').style.display='flex';$('#target').textContent=lmList[pointIdx].icon+' ?';dialAngle=0;$('#needle').style.transform='translate(-50%,-100%) rotate(0deg)';locked=false;}
 function commitPoint(){if(locked)return;locked=true;const true_b=bearing(avatar,lmList[pointIdx]);let err=Math.abs(dialAngle-true_b);if(err>180)err=360-err;err=Math.round(err);
-  if(!curIsWarmup)T.viewErr.push(err);log(`pointed at ${lmList[pointIdx].icon}: error ${err}\u00b0${curIsWarmup?' (unscored)':''}`);renderMeters();pointIdx++;
+  if(!curIsWarmup)T.viewErr.push(err);log(`pointed at ${lmList[pointIdx].icon}: error ${err}\u00b0${curIsWarmup?' (unscored)':''}`);setStatus('neutral','Off by '+err+'\u00b0');renderMeters();pointIdx++;
   setTimeout(()=>{$('#compassWrap').style.display='none';nextPoint();},600);}
-function startRoute(){phase='route';setCue('\ud83c\udfe0');$('#routeWrap').style.display='flex';routeChoice=null;
+function startRoute(){phase='route';roundCue();setStatus('neutral','Pick the shorter route home, then press the check.');$('#routeWrap').style.display='flex';routeChoice=null;
   const homeR=(N/2)|0,homeC=(N/2)|0;const shortLen=Math.abs(avatar.r-homeR)+Math.abs(avatar.c-homeC);const longLen=shortLen+2+Math.floor(Math.random()*2);
   const order=Math.random()<0.5?[shortLen,longLen]:[longLen,shortLen];const correctIsA=order[0]===shortLen;
   $('#routeBtns').innerHTML='';order.forEach((len,i)=>{const card=document.createElement('div');card.className='routecard';card.dataset.i=i;card.dataset.correct=(i===0&&correctIsA)||(i===1&&!correctIsA)?'1':'0';
@@ -173,23 +189,24 @@ function chooseRoute(i){if(locked)return;$$('.routecard').forEach(c=>c.classList
 function confirmRoute(){if(locked||routeChoice===null)return;locked=true;const card=$$('.routecard')[routeChoice];const ok=card.dataset.correct==='1';
   if(!curIsWarmup){T.routeTotal++;if(ok)T.routeCorrect++;}
   log(`shortcut choice: ${ok?'correct':'wrong'}${curIsWarmup?' (unscored)':''}`);
+  setStatus(ok?'ok':'no',ok?'\u2713 Shorter route':'\u2717 Not quite - that was the longer route');
   $('#routeWrap').style.display='none';finishRound(ok);}
 function finishRound(routeOk){
-  if(curIsWarmup){log('\u2014 warm-up complete \u2014 UNSCORED \u2014');setTimeout(startScored,1200);return;}
+  if(curIsWarmup){setStatus('neutral','Practice done - now the scored rounds begin.');log('\u2014 warm-up complete \u2014 UNSCORED \u2014');setTimeout(startScored,1200);return;}
   T.rounds++;const avgErr=mean(T.viewErr.slice(-roundLandmarks.length));const good=avgErr<55&&routeOk;
   if(good){maxLevel=Math.max(maxLevel,level);level=Math.min(6,level+1);log(`ROUND result: strong \u2714 \u2192 world up to ${4+level}`);}
   else{level=Math.max(1,level-1);log(`ROUND result: needs work \u2192 world down to ${4+level}`);}
   setDiff();renderMeters();
   setTimeout(()=>{if(T.rounds>=5)finish();else startScored();},1200);}
-function startWorld(isWarmup){curIsWarmup=isWarmup;setCue('\ud83c\udfaf');const n=isWarmup?4:Math.min(7,4+level);const nl=isWarmup?1:Math.min(3,1+Math.floor(level/2));const ng=isWarmup||level<3?0:2;
+function startWorld(isWarmup){curIsWarmup=isWarmup;roundCue();setStatus('neutral',isWarmup?'Practice - not scored. Explore to find the landmark.':'Explore the map to find the landmarks.');const n=isWarmup?4:Math.min(7,4+level);const nl=isWarmup?1:Math.min(3,1+Math.floor(level/2));const ng=isWarmup||level<3?0:2;
   roundLandmarks=buildWorld(n,nl,ng);curLandmarks=roundLandmarks;phase='explore';firstMoveTime=0;exploreStart=Date.now();locked=false;
   log(`\u2014 ${isWarmup?'warm-up (unscored)':'SCORED'} world ${n}x${n}, ${nl} landmark(s)${ng?', '+ng+' gems (Gem Trail)':''} \u2014`);
   renderWorld();renderMeters();}
 function startWarmup(){phase='explorewarm';startWorld(true);}
 function startScored(){phase='explore';startWorld(false);}
-function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;$('#compassWrap').style.display='none';$('#routeWrap').style.display='none';
+function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;$('#compassWrap').style.display='none';$('#routeWrap').style.display='none';
   log(`\u2014 DONE \u00b7 mean angular error ${mean(T.viewErr)}\u00b0 \u00b7 shortcuts ${T.routeCorrect}/${T.routeTotal} \u00b7 ceiling world ${4+maxLevel} \u2014`);}
-async function runDemo(){phase='demo';demoActive=true;setCue('\ud83d\udc41\ufe0f');locked=true;
+async function runDemo(){phase='demo';demoActive=true;setCue('demo');setStatus('neutral','Watch the example.');locked=true;
   roundLandmarks=buildWorld(3,1,0);curLandmarks=roundLandmarks;renderWorld();log('ghost-hand demo (wordless, <10s)');
   ghostShow(true);await sleep(300);
   const lm=roundLandmarks[0];const dr=Math.sign(lm.r-avatar.r),dc=Math.sign(lm.c-avatar.c);
@@ -199,7 +216,7 @@ async function runDemo(){phase='demo';demoActive=true;setCue('\ud83d\udc41\ufe0f
   await sleep(300);cells.forEach(c=>c.revealed=false);renderWorld();
   $('#compassWrap').style.display='flex';$('#target').textContent=lm.icon+' ?';const b=bearing(avatar,lm);dialAngle=b;$('#needle').style.transform=`translate(-50%,-100%) rotate(${b}deg)`;
   await ghostTo($('#dial'));await ghostTap();await ghostTo($('#confirm'));await ghostTap();
-  $('#compassWrap').style.display='none';ghostShow(false);demoActive=false;setCue('\u2705');await sleep(500);startWarmup();}
+  $('#compassWrap').style.display='none';ghostShow(false);demoActive=false;setStatus('ok','\u2713 Example done - now you try');await sleep(500);startWarmup();}
 
 $('#kUp').addEventListener('click',()=>move(-1,0));$('#kDown').addEventListener('click',()=>move(1,0));
 $('#kLeft').addEventListener('click',()=>move(0,-1));$('#kRight').addEventListener('click',()=>move(0,1));

@@ -11,7 +11,15 @@
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:12px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
-  #phasecue{font-size:32px;height:38px}
+  #howto{max-width:520px;width:100%;background:#fff;border:1px solid #cfe9e4;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#e0f5f2;color:var(--accent);border:2px solid #b5e5df;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+  #phasecue[data-phase="done"]{background:#d3efe9;color:#0a6a61;border-color:#b5e5df}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
   #stagecard{background:var(--card);border-radius:24px;padding:26px 34px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:14px}
   #stage{position:relative}
   #grid{display:grid;gap:3px;background:#dfe6f7;padding:6px;border-radius:10px}
@@ -55,11 +63,16 @@
 <body>
   <div id="wrap">
     <div id="badge">SPA-PIPES-01 · Path Connect</div>
-    <div id="phasecue">👁️</div>
+    <header id="howto">
+      <h1>How to use — Path Connect</h1>
+      <p>Watch the pointer solve one example, then try one practice item (not scored). Tap each tile to rotate its pipe a quarter-turn, and connect a road from the car to the flag (passing through any gems). It finishes on its own when the road connects, and it gets harder each time.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
     <div id="stagecard">
       <div id="stage"><div id="grid"></div></div>
       <div id="row"><button id="replay" title="replay demo">↻</button></div>
       <div id="hint">tap a tile to rotate it 90° — connect the road from 🚙 to 🏁</div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
     </div>
   </div>
   <aside id="telemetry">
@@ -68,7 +81,7 @@
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost">👆<span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s);
@@ -234,10 +247,11 @@ function renderItem(item){
 function submit(){
   const rt=Date.now()-T.itemStart;
   locked=true;
-  if(phase==='warmup'){log('warm-up connected! — UNSCORED');setTimeout(nextPhase,1100);return;}
+  if(phase==='warmup'){setStatus('ok','\u2713 Connected - practice');log('warm-up connected! — UNSCORED');setTimeout(nextPhase,1100);return;}
   T.scored++;T.rts.push(rt);
   const efficient=rotClicks<=Math.ceil(cur.optimalRot*1.5)+1;
   if(efficient)T.exact++;
+  setStatus('ok',efficient?'\u2713 Connected!':'\u2713 Connected - fewer turns is better next time');
   T.levelSeries.push(level);T.maxLevel=efficient?Math.max(T.maxLevel,level):T.maxLevel;
   level=efficient?Math.min(level+1,LEVELS.length-1):Math.max(level-1,0);
   log(`SUBMIT lvl${cur.lvl+1} → CONNECTED${efficient?' EFFICIENT':' (many rotations)'} · ${effStr()} · rev ${T.revisions}`);
@@ -249,12 +263,15 @@ function nextPhase(){
   if(phase==='warmup'){scoredIndex=0;startScored();}
   else if(phase==='scored'){scoredIndex++;scoredIndex<6?startScored():finish();}
 }
-function startWarmup(){phase='warmup';locked=false;$('#phasecue').textContent='\u2b50';renderItem(genItem(0));log('— warm-up (unscored) —');}
-function startScored(){phase='scored';$('#phasecue').textContent='\ud83c\udfaf';renderItem(genItem(level));log(`— SCORED item ${scoredIndex+1}/6 · level ${level+1} · optimal ${cur.optimalRot} rotations —`);}
-function finish(){phase='done';$('#phasecue').textContent='\ud83c\udfc6';locked=true;log(`— DONE · connected ${T.exact}/${T.scored} · ceiling level ${T.maxLevel+1} —`);}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+function startWarmup(){phase='warmup';locked=false;setCue('warmup');setStatus('neutral','Practice - this one is not scored.');renderItem(genItem(0));log('— warm-up (unscored) —');}
+function startScored(){phase='scored';setCue('scored',(scoredIndex+1)+'/6');setStatus('neutral','Tap tiles to rotate the pipes and connect the road.');renderItem(genItem(level));log(`— SCORED item ${scoredIndex+1}/6 · level ${level+1} · optimal ${cur.optimalRot} rotations —`);}
+function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;log(`— DONE · connected ${T.exact}/${T.scored} · ceiling level ${T.maxLevel+1} —`);}
 
 async function runDemo(){
-  phase='demo';$('#phasecue').textContent='\ud83d\udc41\ufe0f';locked=true;
+  phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;
   const R=1,C=2,start=[0,0],goal=[0,1];
   const required=new Map([['0,0',new Set(['W','E'])],['0,1',new Set(['W','E'])]]);
   const tiles=[{r:0,c:0,dirs:rotSet(new Set(['W','E']),1),isPath:true},{r:0,c:1,dirs:new Set(['W','E']),isPath:true}];

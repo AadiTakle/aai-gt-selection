@@ -10,7 +10,15 @@
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:10px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
-  #phasecue{font-size:32px;height:38px;line-height:38px}
+  #howto{max-width:560px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:#5b6cff;border:2px solid #c9d0ff;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:#5b6cff;color:#fff;border-color:#5b6cff}
+  #phasecue[data-phase="done"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
   #stagecard{background:var(--card);border-radius:26px;padding:18px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:12px;max-width:560px;width:100%}
   #targetband{background:linear-gradient(160deg,#fff7e6,#eef2ff);border:3px solid #ffe0a3;border-radius:16px;padding:8px 14px;display:flex;flex-direction:column;align-items:center;gap:5px;width:100%}
   #targetband .lbl{font-size:13px;font-weight:800;color:#a9741a;letter-spacing:.02em}
@@ -61,13 +69,18 @@
 <body>
   <div id="wrap">
     <div id="badge">SPA-VIEW-01 · What Do They See</div>
-    <div id="phasecue">👁️</div>
+    <header id="howto">
+      <h1>How to use — What Do They See</h1>
+      <p>Different characters stand around the scene. The strip at the top shows what ONE of them sees, from left to right. Tap the viewer who would see that, then press the check (<b>✓</b>). You can also press number keys 1–6.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
     <div id="stagecard">
-      <div id="targetband"><div class="lbl">👀 THIS is the view (left ➜ right)</div><div id="target"></div></div>
+      <div id="targetband"><div class="lbl">THIS is the view (left ➜ right)</div><div id="target"></div></div>
       <div id="ask">Whose eyes see this? Tap the viewer.</div>
       <div id="stage"><div id="cam"><div id="ground"></div></div></div>
       <div id="controls"><button id="replay" title="replay demo">↻</button><button id="go" title="lock answer">✓</button></div>
       <div id="keys"><b>1–6</b> pick viewer · <b>Enter</b> lock · imagine standing in their shoes</div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
     </div>
   </div>
   <aside id="telemetry">
@@ -76,7 +89,7 @@
     <div id="diffwrap"><b>DIFFICULTY LADDER (M-DIFFREACH · M-LEARNRATE)</b><div id="diffmeter"></div></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost">👆<span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -196,27 +209,29 @@ function submit(){
   if(locked||sel===null)return;const rt=Date.now()-T.itemStart;first();
   const ok=sel===cur.target,err=classifyErr(sel);
   const aerr=Math.abs(angWrap(cur.viewers[sel].angDeg-cur.viewers[cur.target].angDeg));
-  if(phase==='warmup'){reveal(ok);locked=true;$('#go').classList.remove('ready');
+  if(phase==='warmup'){reveal(ok);locked=true;$('#go').classList.remove('ready');setStatus(ok?'ok':'no',ok?'\u2713 Correct - practice':'\u2717 Not quite - the correct viewer is highlighted (practice)');
     log(`warm-up: viewer ${sel+1} — ${ok?'right':'off '+aerr.toFixed(0)+'\u00b0'} · UNSCORED`);
     setTimeout(()=>{locked=false;scoredIdx=0;startScored();},1200);return;}
   T.scored++;T.rts.push(rt);T.firsts.push(T.firstAt);T.revs.push(T.rev);T.explores.push(T.sampled.size);T.angErrs.push(Math.round(aerr));
   if(ok)T.correct++,T.maxSolved=Math.max(T.maxSolved,level);
   T.lastErr=ok?'correct':err;T.seq.push({level,ok});
-  reveal(ok);locked=true;$('#go').classList.remove('ready');
+  reveal(ok);locked=true;$('#go').classList.remove('ready');setStatus(ok?'ok':'no',ok?'\u2713 Correct':'\u2717 Not quite - the correct viewer is highlighted');
   log(`SCORED #${scoredIdx+1} L${level}: ${cur.viewers.length} viewers, ${cur.objs.length} objs · pick ${sel+1} · ans ${cur.target+1} · ${ok?'CORRECT':'ERR['+err+'] '+aerr.toFixed(0)+'\u00b0'} · rev ${T.rev} · ${rt}ms`);
   const prev=level;level=ok?Math.min(level+1,MAXLEVEL):Math.max(level-1,1);
   log(ok?`escalate ${prev}\u2192${level}`:`back off ${prev}\u2192${level}`);renderMeters();
   setTimeout(nextScored,1400);
 }
 function nextScored(){locked=false;scoredIdx++;if(scoredIdx<SCORED_N)startScored();else finish();}
-function setCue(i){$('#phasecue').textContent=i;}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');if(!el)return;el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 function loadItem(sc){cur=sc;sel=null;T.rev=0;T.sampled=new Set();T.itemStart=Date.now();T.firstAt=0;renderScene(sc);renderTarget(sc);$('#go').classList.remove('ready');renderMeters();}
-function startWarmup(){phase='warmup';locked=false;setCue('\u2b50');level=1;loadItem(genView(1));log('— warm-up (unscored): tap the viewer who sees the strip —');}
-function startScored(){phase='scored';setCue('\ud83c\udfaf');loadItem(genView(level));log(`— SCORED item ${scoredIdx+1}/${SCORED_N} · level ${level} · ${cur.viewers.length} candidate viewers —`);}
-function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;$('#go').classList.remove('ready');log(`— DONE · correct ${T.correct}/${T.scored} (${pct()}%) · ceiling L${T.maxSolved} · mean |ang| ${mean(T.angErrs)}\u00b0 · ${learnStr()} —`);renderMeters();}
+function startWarmup(){phase='warmup';locked=false;setCue('warmup');setStatus('neutral','Practice - this one is not scored.');level=1;loadItem(genView(1));log('— warm-up (unscored): tap the viewer who sees the strip —');}
+function startScored(){phase='scored';setCue('scored',(scoredIdx+1)+'/'+SCORED_N);setStatus('neutral','Tap the viewer who sees the strip shown up top.');loadItem(genView(level));log(`— SCORED item ${scoredIdx+1}/${SCORED_N} · level ${level} · ${cur.viewers.length} candidate viewers —`);}
+function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;$('#go').classList.remove('ready');log(`— DONE · correct ${T.correct}/${T.scored} (${pct()}%) · ceiling L${T.maxSolved} · mean |ang| ${mean(T.angErrs)}\u00b0 · ${learnStr()} —`);renderMeters();}
 
 async function runDemo(){
-  phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;
+  phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;
   loadItem(genView(1));log('ghost-hand demo (wordless, <10s): match the view to the viewer');
   ghostShow(true);await sleep(300);
   await ghostTo($('#target'));await ghostTap();await sleep(250);

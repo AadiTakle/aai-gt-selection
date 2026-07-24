@@ -10,7 +10,15 @@
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
-  #phasecue{font-size:34px;height:40px;line-height:40px}
+  #howto{max-width:700px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:#5b6cff;border:2px solid #c9d0ff;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:#5b6cff;color:#fff;border-color:#5b6cff}
+  #phasecue[data-phase="done"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
   #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:stretch;gap:14px;max-width:700px;width:100%}
   .band{border-radius:16px;padding:14px 18px;display:flex;flex-direction:column;gap:8px;width:100%}
   #passageBand{background:linear-gradient(160deg,#eafaf1,#eef1ff);border:3px solid #bfe8cf;font-size:16px;line-height:1.7}
@@ -58,19 +66,24 @@
 <body>
   <div id="wrap">
     <div id="badge">VER-EVIDENCE-01 · Proof Hunt</div>
-    <div id="phasecue">👁️</div>
+    <header id="howto">
+      <h1>How to use — Proof Hunt</h1>
+      <p>Read the short story and the question. Tap the best answer, then tap the sentence in the story that proves it, and press the check (<b>✓</b>). You can also press number keys for the answer.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
     <div id="stagecard">
       <div id="passageBand" class="band"></div>
       <div id="qBand" class="band">
-        <div id="stepcue">🔍 pick the answer</div>
+        <div id="stepcue">Pick the answer</div>
         <div id="qText"></div>
         <div id="optsBand"></div>
       </div>
-      <div id="diffmeter">🌱<div id="diffbar"><i id="diffbarfill"></i></div>🌳</div>
+      <div id="diffmeter"><span>Easy</span><div id="diffbar"><i id="diffbarfill"></i></div><span>Hard</span></div>
       <div id="controls">
         <button class="rd" id="replay" title="replay demo">↻</button>
         <button class="rd" id="go" title="submit">✓</button>
       </div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
     </div>
   </div>
   <aside id="telemetry">
@@ -78,7 +91,7 @@
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost">👆<span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -128,7 +141,7 @@ function renderItem(item){cur=item;selAns=null;selEv=null;T.itemStart=Date.now()
   $('#passageBand').innerHTML=PASSAGES[item.p].map((s,i)=>`<span class="sent" data-i="${i}">${s}</span>`).join(' ');
   $('#qText').textContent=item.q;
   $('#optsBand').innerHTML=item.opts.map((o,i)=>`<div class="opt" data-i="${i}"><span class="hk">${i+1}</span>${o}</div>`).join('');
-  $('#stepcue').textContent='\ud83d\udd0d pick the answer, then tap the proof sentence';
+  $('#stepcue').textContent='Pick the answer, then tap the proof sentence';
   $('#go').classList.remove('ready');renderMeters();}
 function markFirstAction(){if(T.firstActionAt===null){T.firstActionAt=Date.now();T.firstRt.push(T.firstActionAt-T.itemStart);}}
 function selectAns(i){if(locked||!cur)return;markFirstAction();if(selAns!==null&&selAns!==i)T.revA++;selAns=i;
@@ -144,21 +157,24 @@ function errType(ansOk,evOk){if(ansOk&&evOk)return 'none (full credit)';if(!ansO
 function submit(){if(!$('#go').classList.contains('ready'))return;const rt=Date.now()-T.itemStart;
   const ansOk=selAns===cur.ans,evOk=selEv===cur.ev;const poly=(ansOk?0.5:0)+(evOk?0.5:0);
   feedback(ansOk,evOk);locked=true;$('#go').classList.remove('ready');
-  if(phase==='warmup'){log(`warm-up ${ansOk&&evOk?'full credit':'partial/none'} — UNSCORED`);setTimeout(nextPhase,1500);return;}
+  if(phase==='warmup'){setStatus(ansOk&&evOk?'ok':'no',ansOk&&evOk?'\u2713 Correct - practice':'\u2717 Not quite - the answer and proof are shown (practice)');log(`warm-up ${ansOk&&evOk?'full credit':'partial/none'} — UNSCORED`);setTimeout(nextPhase,1500);return;}
   T.scored++;T.polys.push(poly);T.rts.push(rt);if(ansOk&&evOk){T.full++;T.maxLevel=Math.max(T.maxLevel,level);
     const r=DEPTH_RANK[cur.depth];if(r>T.bestDepthRank){T.bestDepthRank=r;T.bestDepth=cur.depth;}}
   T.lastErr=errType(ansOk,evOk);
+  setStatus(ansOk&&evOk?'ok':'no',ansOk&&evOk?'\u2713 Correct':'\u2717 Not quite - the answer and proof are shown');
   log(`SUBMIT L${level} [${cur.depth}] \u2192 answer ${ansOk?'\u2713':'\u2717'}, evidence ${evOk?'\u2713':'\u2717'} · poly ${poly} · ${rt}ms`);
   level=(ansOk&&evOk)?Math.min(6,level+1):Math.max(1,level-1);
   renderMeters();setTimeout(nextPhase,1500);}
 const TOTAL_SCORED=6;let phase='demo',scoredIndex=0;
-function setCue(i){$('#phasecue').textContent=i;}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');if(!el)return;el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 function nextPhase(){locked=false;if(phase==='warmup'){scoredIndex=0;startScored();}
   else if(phase==='scored'){scoredIndex++;scoredIndex<TOTAL_SCORED?startScored():finish();}}
-function startWarmup(){phase='warmup';locked=false;setCue('\u2b50');level=1;renderItem(byLevel(1));log('— warm-up (unscored) —');}
-function startScored(){phase='scored';setCue('\ud83c\udfaf');renderItem(byLevel(level));log(`— SCORED item ${scoredIndex+1}/${TOTAL_SCORED} · level ${level} [${byLevel(level).depth}] —`);}
-function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;log(`— DONE · full credit ${T.full}/${T.scored} · ceiling L${T.maxLevel} —`);renderMeters();}
-async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;
+function startWarmup(){phase='warmup';locked=false;setCue('warmup');setStatus('neutral','Practice - this one is not scored.');level=1;renderItem(byLevel(1));log('— warm-up (unscored) —');}
+function startScored(){phase='scored';setCue('scored',(scoredIndex+1)+'/'+TOTAL_SCORED);setStatus('neutral','Pick the answer, then tap the sentence that proves it.');renderItem(byLevel(level));log(`— SCORED item ${scoredIndex+1}/${TOTAL_SCORED} · level ${level} [${byLevel(level).depth}] —`);}
+function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;log(`— DONE · full credit ${T.full}/${T.scored} · ceiling L${T.maxLevel} —`);renderMeters();}
+async function runDemo(){phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;
   const item=byLevel(1);renderItem(item);log('ghost-hand demo (wordless, <10s)');ghostShow(true);await sleep(300);
   const ansEl=$$('#optsBand .opt')[item.ans];await ghostTo(ansEl);await ghostTap();selectAns(item.ans);
   await sleep(200);const evEl=$$('#passageBand .sent')[item.ev];await ghostTo(evEl);await ghostTap();selectEv(item.ev);

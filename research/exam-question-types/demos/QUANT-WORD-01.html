@@ -18,7 +18,15 @@
   button{font:inherit;border:0;cursor:pointer}
   #wrap{flex:1;min-width:0;padding:18px;display:flex;flex-direction:column;align-items:center;gap:12px}
   #badge{font-size:12px;font-weight:800;letter-spacing:.1em;color:#758a83;text-transform:uppercase}
-  #phasecue{font-size:34px;height:40px}
+  #howto{width:min(820px,100%);background:#fff;border:1px solid #ecdfc2;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #405b4f}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:#9a6a12}
+  #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#fdf3dd;color:#9a6a12;border:2px solid #f0d79a;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+  #phasecue[data-phase="done"]{background:#f6ead0;color:#7a5a13;border-color:#f0d79a}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:var(--dim)}
   #stagecard{
     width:min(820px,100%);background:var(--paper);border-radius:30px;padding:20px;
     display:grid;gap:14px;box-shadow:0 25px 62px -35px #405b4f;border:1px solid #fff;
@@ -75,6 +83,8 @@
     transition:transform .44s cubic-bezier(.2,.7,.2,1),opacity .2s;filter:drop-shadow(0 3px 4px #0004);
   }
   #ghost.show{opacity:.95}#ghost.tap{animation:tap .34s}@keyframes tap{50%{scale:.78}}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
   #telemetry{
     width:355px;flex:0 0 355px;min-height:100vh;background:var(--tel);color:#c5d3dc;
     display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;
@@ -100,12 +110,17 @@
 <body>
 <main id="wrap">
   <div id="badge">QUANT-WORD-01 · Story Model</div>
-  <div id="phasecue">👁️</div>
+  <header id="howto">
+    <h1>How to use — Story Model</h1>
+    <p>Watch the short story play, then build a model of it: tap the bar pieces that match the story and tap the answer with the right number of dots. Press the check (<b>✓</b>) to submit; the pointer shows one example first. It gets harder each time you are right.</p>
+  </header>
+  <div id="phasecue" data-phase="demo">Watch the example</div>
   <section id="stagecard">
     <div id="story"><div id="scene"></div><div id="beats"></div><button id="replayStory" aria-label="replay story">▶</button></div>
     <div id="builder"><div id="palette"></div><div id="model"></div><div id="answers"></div></div>
     <div id="controls"><button class="round" id="replayDemo" aria-label="replay demonstration">↻</button><button id="go" aria-label="submit">✓</button></div>
     <div id="progress"></div>
+    <div id="status" class="neutral">Watch the example, then try it yourself.</div>
   </section>
 </main>
 <aside id="telemetry">
@@ -114,7 +129,7 @@
   <div id="mlist"></div>
   <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
 </aside>
-<div id="ghost">👆</div>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s);
@@ -215,12 +230,14 @@ function feedback(correct){
 async function submit(){
   if(locked||answer<0||!chosen.size)return;locked=true;const correct=exactModel()&&answer===cur.correct;renderBuilder();feedback(correct);
   if(phase==='warmup'){
+    setStatus('neutral',correct?'\u2713 Correct - practice':'\u2717 Not quite - the correct model is shown (practice)');
     log(`WARM-UP ${correct?'modeled':'corrective model'} · UNSCORED`);
     if(!correct){await sleep(420);chosen=new Set(cur.accepted[0]);answer=cur.correct;renderBuilder();feedback(true)}
     await sleep(750);startScored();return;
   }
   T.scored++;if(correct){T.correct++;T.maxSolved=Math.max(T.maxSolved,cur.level)}
   T.results.push(correct?'↑':'↓');T.level=clamp(T.level+(correct?1:-1),1,6);
+  setStatus(correct?'ok':'no',correct?'\u2713 Correct':'\u2717 Not quite - the correct answer is highlighted');
   $('#progress').children[scoredIndex].classList.add(correct?'ok':'no');
   log(`SUBMIT level ${cur.level} ${cur.label} → ${correct?'CORRECT MODEL':'MISS'} · ${T.poly} · ${T.plan}`);
   renderMeters();scoredIndex++;await sleep(900);scoredIndex<6?startScored():finish();
@@ -232,20 +249,23 @@ function reset(){
   Object.assign(T,{scored:0,correct:0,poly:'—',path:[],prog:[],plan:'—',level:1,startLevel:1,maxSolved:0,results:[],itemStart:0});
   scoredIndex=0;[...$('#progress').children].forEach(x=>x.className='');renderMeters();
 }
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 async function loadItem(item,cue){
   cur=item;chosen=new Set();answer=-1;T.path=[];T.prog=[];T.plan='—';T.poly='0% constraints';$('#builder').className='';
-  $('#phasecue').textContent=cue;await playStory(false);log(`${phase.toUpperCase()} · level ${cur.level} · ${cur.label}`);
+  setCue(cue);await playStory(false);log(`${phase.toUpperCase()} · level ${cur.level} · ${cur.label}`);
 }
 async function runDemo(){
-  animToken++;reset();phase='demo';await loadItem(DEMO,'👁️');$('#ghost').classList.add('show');log('ghost-hand demo · wordless');
+  animToken++;reset();phase='demo';await loadItem(DEMO,'demo');setStatus('neutral','Watch the example.');$('#ghost').classList.add('show');log('ghost-hand demo · wordless');
   for(const key of DEMO.accepted[0]){const piece=[...document.querySelectorAll('.piece')].find(x=>x.dataset.key===key);await ghostTo(piece);await ghostTap();choosePiece(key,true)}
   await ghostTo($('#answers').children[DEMO.correct]);await ghostTap();chooseAnswer(DEMO.correct,true);
   await ghostTo($('#go'));await ghostTap();locked=true;renderBuilder();feedback(true);
   await sleep(450);$('#ghost').classList.remove('show');startWarmup();
 }
-async function startWarmup(){phase='warmup';await loadItem(WARM,'⭐')}
-async function startScored(){phase='scored';await loadItem(ITEMS[T.level-1],'🎯');log(`SCORED ${scoredIndex+1}/6`)}
-function finish(){phase='done';locked=true;renderBuilder();$('#phasecue').textContent='🏆';log(`DONE · ${T.correct}/${T.scored} · peak ${T.maxSolved}`);renderMeters()}
+async function startWarmup(){phase='warmup';await loadItem(WARM,'warmup');setStatus('neutral','Practice - this one is not scored.')}
+async function startScored(){phase='scored';await loadItem(ITEMS[T.level-1],'scored');setCue('scored',(scoredIndex+1)+'/6');setStatus('neutral','Build the model, pick an answer, then press the check.');log(`SCORED ${scoredIndex+1}/6`)}
+function finish(){phase='done';locked=true;renderBuilder();setCue('done');setStatus('ok','\u2713 Done');log(`DONE · ${T.correct}/${T.scored} · peak ${T.maxSolved}`);renderMeters()}
 $('#palette').addEventListener('click',event=>{const piece=event.target.closest('.piece');if(piece)choosePiece(piece.dataset.key)});
 $('#answers').addEventListener('click',event=>{const answerButton=event.target.closest('.answer');if(answerButton)chooseAnswer(+answerButton.dataset.i)});
 $('#go').addEventListener('click',submit);

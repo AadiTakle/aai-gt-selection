@@ -7,13 +7,13 @@
 <style>
 :root{--ink:#26304a;--violet:#6d5dfc;--pink:#ef5da8;--cyan:#30c5d8;--good:#18a774;--bad:#e44f61;--tel:#101326;--tel2:#1b2040}
 *{box-sizing:border-box}html,body{margin:0;min-height:100%}body{display:flex;background:radial-gradient(circle at 12% 12%,#dffbff 0,transparent 30%),linear-gradient(145deg,#f3efff,#fff1f8);font:16px/1.35 system-ui,-apple-system,Segoe UI,sans-serif;color:var(--ink)}
-#wrap{flex:1;min-width:0;padding:18px;display:flex;flex-direction:column;align-items:center;gap:10px}#badge{font-size:12px;font-weight:850;letter-spacing:.09em;color:#77799a;text-transform:uppercase}#phasecue{font-size:34px;height:42px}
+#wrap{flex:1;min-width:0;padding:18px;display:flex;flex-direction:column;align-items:center;gap:10px}#badge{font-size:12px;font-weight:850;letter-spacing:.09em;color:#77799a;text-transform:uppercase}#howto{max-width:600px;width:100%;background:#fff;border:1px solid #ddd8ff;border-left:5px solid var(--violet);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #493d8c}#howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--violet)}#howto p{margin:0;font-size:14px;color:#474a6e;line-height:1.5}#phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#efedff;color:var(--violet);border:2px solid #d3ccff;min-height:30px}#phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}#phasecue[data-phase="scored"]{background:var(--violet);color:#fff;border-color:var(--violet)}#phasecue[data-phase="done"]{background:#eae7ff;color:#4b3fc0;border-color:#d3ccff}#status{min-height:22px;font-size:14px;font-weight:700;text-align:center}#status.ok{color:var(--good)}#status.no{color:var(--bad)}#status.neutral{color:#77799a}
 #stagecard{width:min(760px,100%);background:#fff;border-radius:27px;padding:16px;box-shadow:0 24px 60px -32px #493d8c;display:grid;gap:12px}
 #canvasWrap{position:relative;border-radius:20px;overflow:hidden;background:#11152c;border:2px solid #252c55}canvas{display:block;width:100%;height:auto;aspect-ratio:7/4}
 #match{height:10px;background:#e6e4f2;border-radius:10px;overflow:hidden}#match i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ef5da8,#ffd166,#18a774);transition:.12s}
 #sliders{display:grid;gap:9px}.control{display:grid;grid-template-columns:38px 1fr 92px;gap:10px;align-items:center;padding:7px 10px;border-radius:13px;background:#f5f4ff}.control.off{opacity:.28}.glyph{font-size:24px;text-align:center}.control input{width:100%;accent-color:var(--violet)}.keys{text-align:right;color:#7f82a3;font:700 11px ui-monospace,monospace}.kbd{display:inline-grid;place-items:center;min-width:22px;height:21px;padding:0 4px;background:#fff;border:1px solid #c7c7db;border-bottom-width:3px;border-radius:6px;color:#343755;margin:0 1px}
 #controls{display:flex;justify-content:center;align-items:center;gap:12px}.round{border:0;border-radius:50%;cursor:pointer;font:800 24px system-ui}.round:focus-visible{outline:4px solid #bcb5ff;outline-offset:2px}#replay{width:50px;height:50px;background:#efedff;color:#6354d9}#lock{width:66px;height:66px;color:#fff;background:var(--violet);box-shadow:0 10px 24px -10px var(--violet)}#lock:disabled{opacity:.26;cursor:not-allowed}#orbitKeys{text-align:center;color:#8587a4;font:700 11px ui-monospace,monospace}
-#ghost{position:fixed;left:0;top:0;z-index:90;font-size:38px;opacity:0;pointer-events:none;transition:transform .45s cubic-bezier(.2,.8,.2,1),opacity .2s;filter:drop-shadow(0 3px 4px #0006)}#ghost.show{opacity:1}#ghost.tap{animation:tap .34s}@keyframes tap{50%{scale:.76}}
+#ghost{position:fixed;left:0;top:0;z-index:90;opacity:0;pointer-events:none;transition:transform .45s cubic-bezier(.2,.8,.2,1),opacity .2s;filter:drop-shadow(0 3px 4px #0006)}#ghost.show{opacity:1}#ghost.tap{animation:tap .34s}@keyframes tap{50%{scale:.76}}#ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--violet);opacity:0}#ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
 #telemetry{width:340px;flex:0 0 340px;min-height:100vh;background:var(--tel);color:#d6dcff;display:flex;flex-direction:column;font:13px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace}#telemetry h3{margin:0;padding:13px 15px;background:var(--tel2);font-size:12px;color:#fff;text-transform:uppercase;letter-spacing:.1em}
 #mountain{margin:12px 12px 4px;padding:10px;border:1px solid #30375f;border-radius:12px}.mountTop{display:flex;justify-content:space-between;color:#8b94ca;font-size:11px}.track{height:9px;background:#252b4c;border-radius:9px;overflow:hidden;margin-top:7px}.track i{display:block;height:100%;width:0;background:linear-gradient(90deg,#30c5d8,#9c8cff,#ef5da8);transition:.3s}
 #mlist{padding:8px 12px;display:grid;gap:7px}.mrow{display:grid;grid-template-columns:107px 1fr;gap:6px}.mid{color:#7fffcf;font-weight:800}.mval{text-align:right;color:#fff;overflow-wrap:anywhere}.mname{grid-column:1/3;color:#747fb2;font-size:11px;margin-top:-4px}#logwrap{border-top:1px solid #292f52;margin-top:auto}#logwrap b{display:block;padding:8px 12px 4px;color:#818bc0;font-size:11px;letter-spacing:.08em}#log{height:210px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}#log div{padding:3px 0;border-bottom:1px dotted #252b4b}#log .t{color:#626c9f}
@@ -23,7 +23,11 @@
 <body>
 <div id="wrap">
   <div id="badge">SPA-XPLANE-01 · Place the Slice</div>
-  <div id="phasecue">👁️</div>
+  <header id="howto">
+    <h1>How to use — Place the Slice</h1>
+    <p>Move the sliders until the sliced shape matches the target outline, then press the check (<b>✓</b>) to lock it in. You can also use the keys shown on screen.</p>
+  </header>
+  <div id="phasecue" data-phase="demo">Watch the example</div>
   <main id="stagecard">
     <div id="canvasWrap"><canvas id="scene" width="700" height="400" aria-label="three dimensional solid and cutting plane"></canvas></div>
     <div id="match"><i></i></div>
@@ -34,6 +38,7 @@
     </div>
     <div id="orbitKeys"><span class="kbd">I</span><span class="kbd">J</span><span class="kbd">K</span><span class="kbd">L</span> ◇ <span class="kbd">↵</span></div>
     <div id="controls"><button id="replay" class="round" title="replay wordless example" aria-label="replay example">↻</button><button id="lock" class="round" title="lock plane" aria-label="lock plane">✓</button></div>
+    <div id="status" class="neutral">Watch the example, then try it yourself.</div>
   </main>
 </div>
 <aside id="telemetry">
@@ -42,7 +47,7 @@
   <div id="mlist"></div>
   <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
 </aside>
-<div id="ghost">👆</div>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#6d5dfc" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s),sleep=ms=>new Promise(r=>setTimeout(r,ms)),ctx=$('#scene').getContext('2d');
@@ -99,6 +104,9 @@ function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><s
 function renderMeters(){METERS.forEach(m=>{$('#v_'+m.id).textContent=m.get()});$('#mountFill').style.width=(T.level/5*100)+'%';$('#mountText').textContent=`${T.level}/5 · Δ ${learnRate()}`;}
 function log(msg){const d=document.createElement('div');d.innerHTML=`<span class="t">+${Math.round(Math.max(0,performance.now()-T.itemStart))}ms</span> ${msg}`;$('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;}
 function first(){if(!T.first){T.first=performance.now()-T.itemStart;log(`first plane move @ ${Math.round(T.first)}ms`)}}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 function score(){const v=vals(),tar=item.target,keys=['h','t','w'];let sum=0,n=0;keys.forEach((k,i)=>{if(item.dims[i]){sum+=(v[k]-tar[k])**2;n++}});const cur=section(SOLIDS[item.solid],planeFor(SOLIDS[item.solid],v.h,v.t,v.w)),goal=section(SOLIDS[item.solid],planeFor(SOLIDS[item.solid],tar.h,tar.t,tar.w)),sidePenalty=Math.abs(cur.length-goal.length)*9;return clamp(Math.round(100-Math.sqrt(sum/Math.max(1,n))*1.5-sidePenalty),0,100);}
 function draw(){
  const s=SOLIDS[item.solid],v=vals(),pl=planeFor(s,v.h,v.t,v.w),poly=section(s,pl),tpl=planeFor(s,item.target.h,item.target.t,item.target.w),target=section(s,tpl);ctx.clearRect(0,0,700,400);
@@ -108,7 +116,7 @@ function draw(){
  ctx.strokeStyle='#32395f';ctx.beginPath();ctx.moveTo(480,20);ctx.lineTo(480,380);ctx.stroke();drawIcon(target,tpl,590,112,'#ef5da8','◎');drawIcon(poly,pl,590,292,'#30c5d8','◇');
  T.poly=score();$('#match i').style.width=T.poly+'%';renderMeters();
 }
-function setItem(next,fresh=true){item=next;const keys=['height','tilt','twist'],vs=['h','t','w'];keys.forEach((id,i)=>{const el=$('#'+id);el.value=item.start[vs[i]];el.dataset.prior=el.value;el.disabled=!item.dims[i];$('#row'+vs[i].toUpperCase()).classList.toggle('off',!item.dims[i])});locked=phase==='demo';$('#lock').disabled=locked;$('#phasecue').textContent=phase==='demo'?'👁️':phase==='warmup'?'⭐':'🎯';
+function setItem(next,fresh=true){item=next;const keys=['height','tilt','twist'],vs=['h','t','w'];keys.forEach((id,i)=>{const el=$('#'+id);el.value=item.start[vs[i]];el.dataset.prior=el.value;el.disabled=!item.dims[i];$('#row'+vs[i].toUpperCase()).classList.toggle('off',!item.dims[i])});locked=phase==='demo';$('#lock').disabled=locked;setCue(phase,phase==='scored'?(trial+1)+'/6':'');
  if(fresh){T.itemStart=performance.now();T.first=0;T.revs=0;T.explore=new Set();T.path=[];T.moves=0;T.lastDir={h:0,t:0,w:0};T.error='—';T.rapid=false;T.blur=false;T.lastActivity=performance.now()}draw();}
 function track(k,oldVal,newVal,commit=false){if(phase==='demo'||locked)return;first();const d=Math.sign(newVal-oldVal);if(T.lastDir[k]&&d&&d!==T.lastDir[k])T.revs++;if(d)T.lastDir[k]=d;if(commit){T.moves++;const v=vals(),state=`${Math.round(v.h/10)}/${Math.round(v.t/10)}/${Math.round(v.w/10)}`;T.explore.add(state);T.path.push(state);log(`plane state ${state}`)}draw();}
 ['height','tilt','twist'].forEach((id,i)=>{const el=$('#'+id),k=['h','t','w'][i];el.addEventListener('input',()=>{const n=+el.value,prior=+(el.dataset.prior??n);track(k,prior,n,false);el.dataset.prior=n});el.addEventListener('change',()=>{const n=+el.value;track(k,n,n,true);el.dataset.prior=n})});
@@ -116,15 +124,15 @@ function activity(){T.lastActivity=performance.now()}addEventListener('pointerdo
 function gate(rt){T.rapid=rt<500||performance.now()-T.lastActivity>25000;if(T.rapid||T.blur)log(`RT gate: ${T.rapid?'rapid/idle':'blur'}`);}
 function errorType(){const v=vals(),tar=item.target,d={height:Math.abs(v.h-tar.h),tilt:Math.abs(v.t-tar.t),twist:Math.abs(v.w-tar.w)};return Object.entries(d).sort((a,b)=>b[1]-a[1])[0][0]+' mismatch';}
 async function submit(){if(locked||animating)return;locked=true;$('#lock').disabled=true;const rt=Math.round(performance.now()-T.itemStart),pct=score(),ok=pct>=91;
- if(phase==='warmup'){T.error=ok?'—':errorType();log(`warm-up ${ok?'matched':'guided reveal'} · ${pct}% · unscored`);$('#phasecue').textContent=ok?'✅':'↻';if(!ok)await animateToTarget(false);await sleep(650);startScored();return}
- T.scored++;T.rts.push(rt);gate(rt);if(ok){T.correct++;T.maxSolved=Math.max(T.maxSolved,item.level);T.level=Math.min(5,T.level+1);T.error='—'}else{T.level=Math.max(1,T.level-1);T.error=errorType()}$('#phasecue').textContent=ok?'✅':'🔎';log(`LOCK ${ok?'match':'miss '+T.error} · ${pct}% · L${item.level} · ${rt}ms`);renderMeters();await sleep(900);trial++;trial<6?startScored():finish();
+ if(phase==='warmup'){T.error=ok?'—':errorType();log(`warm-up ${ok?'matched':'guided reveal'} · ${pct}% · unscored`);setStatus('neutral',ok?'\u2713 Matched - practice':'Practice - watch the match fill in.');if(!ok)await animateToTarget(false);await sleep(650);startScored();return}
+ T.scored++;T.rts.push(rt);gate(rt);if(ok){T.correct++;T.maxSolved=Math.max(T.maxSolved,item.level);T.level=Math.min(5,T.level+1);T.error='—'}else{T.level=Math.max(1,T.level-1);T.error=errorType()}setStatus(ok?'ok':'no',ok?'\u2713 Correct':'\u2717 Not quite - '+T.error);log(`LOCK ${ok?'match':'miss '+T.error} · ${pct}% · L${item.level} · ${rt}ms`);renderMeters();await sleep(900);trial++;trial<6?startScored():finish();
 }
 async function animateToTarget(trackReplay=true){if(animating)return;animating=true;const from=vals(),to=item.target,start=performance.now(),dur=1450;while(true){const q=Math.min(1,(performance.now()-start)/dur),e=1-(1-q)**3;['h','t','w'].forEach((k,i)=>{$(['#height','#tilt','#twist'][i]).value=Math.round(from[k]+(to[k]-from[k])*e)});draw();if(q>=1)break;await new Promise(requestAnimationFrame)}['#height','#tilt','#twist'].forEach(s=>{$(s).dataset.prior=$(s).value});animating=false;if(trackReplay){T.moves++;T.explore.add('target-demo');log('wordless target replay');renderMeters()}}
-function startWarmup(){phase='warmup';const w={level:1,solid:'cube',target:{h:50,t:0,w:0},start:{h:50,t:70,w:0},dims:[0,1,0]};setItem(w,true);locked=false;$('#lock').disabled=false;log('warm-up · unscored');}
-function startScored(){phase='scored';const base=LIB[T.level-1],copy=JSON.parse(JSON.stringify(base));if(copy.dims[2])copy.target.w=(copy.target.w+trial*13)%88+6;setItem(copy,true);locked=false;$('#lock').disabled=false;log(`scored ${trial+1}/6 · L${item.level} · ${item.solid}`);}
-function finish(){phase='done';locked=true;$('#phasecue').textContent='🏆';$('#lock').disabled=true;log(`DONE · ${T.correct}/${T.scored} · max L${T.maxSolved} · Δ ${learnRate()}`);renderMeters();}
+function startWarmup(){phase='warmup';const w={level:1,solid:'cube',target:{h:50,t:0,w:0},start:{h:50,t:70,w:0},dims:[0,1,0]};setItem(w,true);setStatus('neutral','Practice - this one is not scored.');locked=false;$('#lock').disabled=false;log('warm-up · unscored');}
+function startScored(){phase='scored';const base=LIB[T.level-1],copy=JSON.parse(JSON.stringify(base));if(copy.dims[2])copy.target.w=(copy.target.w+trial*13)%88+6;setItem(copy,true);setStatus('neutral','Match the target outline, then press \u2713 to lock.');locked=false;$('#lock').disabled=false;log(`scored ${trial+1}/6 · L${item.level} · ${item.solid}`);}
+function finish(){phase='done';locked=true;setCue('done');setStatus('ok','\u2713 Done');$('#lock').disabled=true;log(`DONE · ${T.correct}/${T.scored} · max L${T.maxSolved} · Δ ${learnRate()}`);renderMeters();}
 const ghost=$('#ghost');async function ghostTo(el){const r=el.getBoundingClientRect();ghost.style.transform=`translate(${r.left+r.width/2-12}px,${r.top+r.height/2-10}px)`;await sleep(460)}async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(330)}
-async function runDemo(){phase='demo';setItem(LIB[3],false);ghost.classList.add('show');await ghostTo($('#tilt'));await animateToTarget(false);await ghostTo($('#lock'));await ghostTap();$('#phasecue').textContent='✨';await sleep(350);ghost.classList.remove('show');startWarmup();}
+async function runDemo(){phase='demo';setItem(LIB[3],false);setStatus('neutral','Watch the example, then try it yourself.');ghost.classList.add('show');await ghostTo($('#tilt'));await animateToTarget(false);await ghostTo($('#lock'));await ghostTap();setStatus('ok','\u2713 That\u2019s the idea');await sleep(350);ghost.classList.remove('show');startWarmup();}
 $('#lock').addEventListener('click',submit);$('#replay').addEventListener('click',()=>{if(animating||phase==='demo'||phase==='done')return;animateToTarget(true)});
 function nudge(id,d){const el=$('#'+id);if(el.disabled||locked)return;const old=+el.value;el.value=clamp(old+d,0,100);track({height:'h',tilt:'t',twist:'w'}[id],old,+el.value,true)}
 addEventListener('keydown',e=>{if(e.repeat)return;const k=e.key.toLowerCase();if(k==='w')nudge('height',8);else if(k==='s')nudge('height',-8);else if(k==='a')nudge('tilt',-8);else if(k==='d')nudge('tilt',8);else if(k==='q')nudge('twist',-8);else if(k==='e')nudge('twist',8);else if(k==='j'){yaw-=.12;draw()}else if(k==='l'){yaw+=.12;draw()}else if(k==='i'){pitch-=.1;draw()}else if(k==='k'){pitch+=.1;draw()}else if(e.key==='Enter')submit();else return;e.preventDefault()});

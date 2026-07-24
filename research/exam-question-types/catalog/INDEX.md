@@ -7,7 +7,7 @@
 | area | K-1 | 2-3 | 4-5 | 6-8 |
 |---|---|---|---|---|
 | fluid_reasoning | 6 | 15 | 15 | 15 |
-| verbal | 8 | 14 | 16 | 16 |
+| verbal | 4 | 14 | 16 | 16 |
 | quantitative | 6 | 12 | 11 | 11 |
 | spatial | 7 | 21 | 23 | 22 |
 
@@ -34,15 +34,15 @@
 
 ### verbal (16)
 - **CX-curious-02 — Question Quest** [2-3,4-5,6-8] · meas: M-QUERY,M-IDEAFLU,M-FLEX,M-ORIG,M-ENGAGE · [demo](demos/CX-curious-02.html)<br>Shown a strange, intriguing picture, the child asks as many questions about it as they can and guesses what caused it and what might happen next.
-- **CX-sjt-01 — What Would You Do?** [K-1,2-3,4-5,6-8] · meas: M-ACC,M-POLY,M-RT,M-PATH,M-EXPLORE,M-CONF · [demo](demos/CX-sjt-01.html)<br>A short animated scene shows a tricky social or school situation, and the child taps the character action they think works best (then sees what happens next).
+- **CX-sjt-01 — What Would You Do?** [2-3,4-5,6-8] · meas: M-ACC,M-POLY,M-RT,M-PATH,M-EXPLORE,M-CONF · [demo](demos/CX-sjt-01.html)<br>A short animated scene shows a tricky social or school situation, and the child taps the character action they think works best (then sees what happens next).
 - **GB-DEBATE-01 — Claim Duel** [4-5,6-8] · meas: M-ACC,M-POLY,M-PATH,M-RTFIRST,M-REV,M-LURETYPE,M-INFDEPTH · [demo](demos/GB-DEBATE-01.html)<br>The child props up a claim by dragging the strongest evidence cards to it and knocks down a rival claim by picking its weakest link.
 - **GB-FLAWFINDER-01 — Fib Finder** [2-3,4-5,6-8] · meas: M-ACC,M-INFDEPTH,M-RT,M-LURETYPE,M-ERRTYPE,M-HINT,M-POLY · [demo](demos/GB-FLAWFINDER-01.html)<br>The child listens to a short spoken reason-and-claim and taps the part that does not make sense or the step that does not follow.
 - **GB-WORDFORGE-01 — Word Forge** [2-3,4-5,6-8] · meas: M-ACC,M-RT,M-IDEAFLU,M-VOCABLVL,M-RTFIRST,M-FLEX,M-PERSIST · [demo](demos/GB-WORDFORGE-01.html)<br>The child taps letter tiles to build as many real words as they can before the sand timer runs out.
 - **GB-WORDLADDER-01 — Letter Climb** [4-5,6-8] · meas: M-ACC,M-RT,M-EFF,M-VOCABLVL,M-RTFIRST,M-PATH,M-PERSIST · [demo](demos/GB-WORDLADDER-01.html)<br>The child changes one letter at a time to climb from the start word to the goal word, each rung a real word.
 - **VER-BUILDIT-01 — Build-It Buddy** [K-1,2-3,4-5,6-8] · meas: M-ACC,M-POLY,M-ORALSPAN,M-PATH,M-DIFFREACH,M-REV · [demo](demos/VER-BUILDIT-01.html)<br>Listen to step-by-step spoken directions and build the picture by dragging, placing, and coloring the pieces so it matches what was described.
-- **VER-CLOZE-01 — Fill the Gap** [K-1,2-3,4-5,6-8] · meas: M-ACC,M-RT,M-RTFIRST,M-DIFFREACH,M-CONSIST,M-VOCABLVL,M-INFDEPTH · [demo](demos/VER-CLOZE-01.html)<br>Complete a sentence with the missing idea by picking the picture or word that best fills the gap.
-- **VER-EVIDENCE-01 — Proof Hunt** [K-1,2-3,4-5,6-8] · meas: M-ACC,M-POLY,M-RT,M-RTFIRST,M-INFDEPTH,M-PATH,M-ERRTYPE,M-REV · [demo](demos/VER-EVIDENCE-01.html)<br>Answer a question about a short story, then tap the exact part that proves your answer.
-- **VER-POLYSEME-01 — Two Meanings** [K-1,2-3,4-5,6-8] · meas: M-ACC,M-RT,M-RTFIRST,M-INFDEPTH,M-DIFFREACH,M-LURETYPE,M-VOCABLVL,M-ERRTYPE · [demo](demos/VER-POLYSEME-01.html)<br>Hear a word that has two meanings inside a spoken sentence, then tap the picture that shows the meaning the sentence points to.
+- **VER-CLOZE-01 — Fill the Gap** [2-3,4-5,6-8] · meas: M-ACC,M-RT,M-RTFIRST,M-DIFFREACH,M-CONSIST,M-VOCABLVL,M-INFDEPTH · [demo](demos/VER-CLOZE-01.html)<br>Complete a sentence with the missing idea by picking the picture or word that best fills the gap.
+- **VER-EVIDENCE-01 — Proof Hunt** [2-3,4-5,6-8] · meas: M-ACC,M-POLY,M-RT,M-RTFIRST,M-INFDEPTH,M-PATH,M-ERRTYPE,M-REV · [demo](demos/VER-EVIDENCE-01.html)<br>Answer a question about a short story, then tap the exact part that proves your answer.
+- **VER-POLYSEME-01 — Two Meanings** [2-3,4-5,6-8] · meas: M-ACC,M-RT,M-RTFIRST,M-INFDEPTH,M-DIFFREACH,M-LURETYPE,M-VOCABLVL,M-ERRTYPE · [demo](demos/VER-POLYSEME-01.html)<br>Hear a word that has two meanings inside a spoken sentence, then tap the picture that shows the meaning the sentence points to.
 - **VER-RELPAIR-01 — Relation Match** [K-1,2-3,4-5,6-8] · meas: M-ACC,M-RT,M-RTFIRST,M-DIFFREACH,M-ERRTYPE,M-EXPLORE,M-LURETYPE · [demo](demos/VER-RELPAIR-01.html)<br>See how one pair of words goes together, then pick the OTHER pair that goes together in the very same way.
 - **VER-SENSE-01 — Sentence Sense** [2-3,4-5,6-8] · meas: M-ACC,M-POLY,M-PATH,M-INFDEPTH,M-ERRTYPE,M-REV · [demo](demos/VER-SENSE-01.html)<br>Drag the scrambled word cards into order to build the sentence that makes sense - not the silly one that breaks the rules of the world.
 - **VER-SEQUENCE-01 — Story Order** [K-1,2-3,4-5,6-8] · meas: M-ACC,M-POLY,M-PATH,M-EFF,M-REV,M-RT,M-INFDEPTH · [demo](demos/VER-SEQUENCE-01.html)<br>Put the mixed-up parts of a story in the right order, then choose what happens next.

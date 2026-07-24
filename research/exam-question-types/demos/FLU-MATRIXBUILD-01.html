@@ -16,7 +16,15 @@
     background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:12px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
-  #phasecue{font-size:32px;height:38px;line-height:38px}
+  #howto{max-width:580px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:#5b6cff;border:2px solid #c9d0ff;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:#5b6cff;color:#fff;border-color:#5b6cff}
+  #phasecue[data-phase="done"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
   #stagecard{background:var(--card);border-radius:26px;padding:20px;box-shadow:0 18px 50px -22px #4a4a7a;
     display:flex;flex-direction:column;align-items:center;gap:16px;max-width:580px;width:100%}
   #machine{position:relative;padding:14px;border-radius:20px;background:linear-gradient(160deg,#dfe7ff,#eef1ff);border:3px solid #cfd8ff}
@@ -31,7 +39,7 @@
   @keyframes pop{0%{transform:scale(.6);opacity:.2}100%{transform:scale(1);opacity:1}}
   .pickers{display:flex;flex-direction:column;gap:10px;width:100%}
   .prow{display:flex;align-items:center;gap:10px;justify-content:center;flex-wrap:wrap}
-  .plabel{font-size:22px;width:34px;text-align:center}
+  .plabel{font-size:11px;min-width:52px;text-align:right;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#7a86a8}
   .pick{position:relative;background:#fff;border:3px solid #e2e8fb;border-radius:14px;min-width:56px;height:56px;padding:0 6px;
     display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.13s;-webkit-tap-highlight-color:transparent}
   .pick::after{content:attr(data-key);position:absolute;right:4px;bottom:3px;font:700 10px/1 ui-monospace,monospace;color:#8a93b5;text-transform:uppercase}
@@ -75,13 +83,17 @@
   @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:350px}}
   @media(max-width:560px){#wrap{padding:10px}#stagecard{padding:13px}#machine{padding:9px}
     .matrix{gap:5px;padding:6px}.cell{width:64px;height:64px}.cell svg{width:58px;height:58px}
-    .pickers{gap:7px}.prow{gap:6px}.plabel{width:26px}.pick{min-width:48px;height:50px}}
+    .pickers{gap:7px}.prow{gap:6px}.plabel{min-width:44px}.pick{min-width:48px;height:50px}}
 </style>
 </head>
 <body>
   <div id="wrap">
     <div id="badge">FLU-MATRIXBUILD-01 · Build the Tile</div>
-    <div id="phasecue">&#128065;&#65039;</div>
+    <header id="howto">
+      <h1>How to use — Build the Tile</h1>
+      <p>Watch the pointer build one example, then try one practice item (not scored). Build the missing tile by tapping one choice in each row (shape, color, and so on), then press the check (<b>&#10003;</b>) to submit. It gets harder each time you are right.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
     <div id="stagecard">
       <div id="machine">
         <div id="matrix" class="matrix"></div>
@@ -97,6 +109,7 @@
         <button id="replay" title="replay demo">&#8635;</button>
         <button id="go" title="submit">&#10003;</button>
       </div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
     </div>
   </div>
   <aside id="telemetry">
@@ -105,7 +118,7 @@
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost">&#128072;<span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
@@ -185,7 +198,9 @@ async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;g
 /* flow */
 let phase='demo',cur=null,sel=null,locked=true,scoredIndex=0,demoRun=0,hotkeys={};
 const TOTAL=6;
-function setCue(i){$('#phasecue').innerHTML=i;}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 function lights(on){$('#lights').classList.toggle('on',on);}
 function activeAttrs(item){return item.active;}
 function previewAttr(){return {shape:sel.shape||'kite',
@@ -202,16 +217,16 @@ function renderItem(item){cur=item;hotkeys={};sel={shape:null,color:item.active.
   for(let r=0;r<item.size;r++)for(let c=0;c<item.size;c++){const cell=document.createElement('div');cell.className='cell';
     if(r===item.size-1&&c===item.size-1){cell.classList.add('empty');cell.id='emptycell';}
     else cell.innerHTML=tileSVG(item.grid[r][c]);m.appendChild(cell);}
-  const rs=$('#rowShape');rs.innerHTML='<span class="plabel">&#9733;</span>';
+  const rs=$('#rowShape');rs.innerHTML='<span class="plabel">Shape</span>';
   item.shapeOpts.forEach((sh,i)=>addPick(rs,'shape',sh,tileSVG({shape:sh,color:'#42506f',count:1},44),'qwer'[i]));
   const rc=$('#rowColor');rc.innerHTML='';rc.style.display=item.active.includes('color')?'flex':'none';
-  if(item.active.includes('color')){rc.innerHTML='<span class="plabel">&#127912;</span>';
+  if(item.active.includes('color')){rc.innerHTML='<span class="plabel">Color</span>';
     item.colorOpts.forEach((co,i)=>addPick(rc,'color',co,`<div class="swatch" style="background:${PAL[co]}"></div>`,'asdf'[i]));}
   const rn=$('#rowCount');rn.innerHTML='';rn.style.display=item.active.includes('count')?'flex':'none';
-  if(item.active.includes('count')){rn.innerHTML='<span class="plabel">&#128290;</span>';
+  if(item.active.includes('count')){rn.innerHTML='<span class="plabel">Count</span>';
     item.countOpts.forEach((k,i)=>addPick(rn,'count',k,'<div class="cdots">'+Array.from({length:k}).map(()=>'<span class="cdot"></span>').join('')+'</div>','zxc'[i]));}
   const rr=$('#rowRot');rr.innerHTML='';rr.style.display=item.active.includes('rot')?'flex':'none';
-  if(item.active.includes('rot')){rr.innerHTML='<span class="plabel">&#8635;</span>';
+  if(item.active.includes('rot')){rr.innerHTML='<span class="plabel">Turn</span>';
     item.rotOpts.forEach((k,i)=>addPick(rr,'rot',k,tileSVG({shape:'kite',color:'#42506f',count:1,rot:k},44),'jkl'[i]));}
   lights(false);$('#go').classList.remove('ready');renderPreview();
   T.itemStart=Date.now();T.firstActed=false;T.firstLat=null;T.path=[];T.rev=0;T.blurThis=0;renderMeters();}
@@ -228,22 +243,23 @@ function score(){const attrs=activeAttrs(cur);let nc=0,wrong=[];
   return {nc,tot:attrs.length,wrong,correct:nc===attrs.length};}
 function reveal(){const cell=$('#emptycell');cell.classList.remove('empty');cell.classList.add('filled-anim');cell.innerHTML=tileSVG(cur.ans);}
 function submit(){if(!ready())return;const rt=Date.now()-T.itemStart;const s=score();
-  if(phase==='warmup'){reveal();lights(s.correct);log('warm-up '+(s.correct?'correct':'shown answer')+' — UNSCORED');locked=true;$('#go').classList.remove('ready');setTimeout(nextPhase,1000);return;}
+  if(phase==='warmup'){reveal();lights(s.correct);setStatus(s.correct?'ok':'no',s.correct?'\u2713 Correct - practice':'\u2717 Not quite - the answer is shown (practice)');log('warm-up '+(s.correct?'correct':'shown answer')+' — UNSCORED');locked=true;$('#go').classList.remove('ready');setTimeout(nextPhase,1000);return;}
   T.scored++;T.rts.push(rt);T.gates.push(gate(rt));T.polyLast=s.nc+' / '+s.tot+' attrs';T.ruleLast=s.nc+' / '+cur.nRules+' rules';
   if(s.correct){T.correct++;T.maxSolved=Math.max(T.maxSolved,cur.level);T.lastErr='none';reveal();lights(true);}
   else{T.lastErr='near-miss: '+s.wrong.join('+')+' rule';reveal();$('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),450);}
   T.level=Math.max(1,Math.min(6,T.level+(s.correct?1:-1)));
   locked=true;$('#go').classList.remove('ready');
+  setStatus(s.correct?'ok':'no',s.correct?'\u2713 Correct':'\u2717 Not quite - the correct tile is shown');
   log(`SUBMIT ${scoredIndex+1}/${TOTAL} · L${cur.level} ${cur.nRules} parts \u2192 ${s.correct?'CORRECT':'wrong ['+s.wrong.join('+')+']'} · POLY ${s.nc}/${s.tot} · ${last(T.gates).reason} · next L${T.level}`);
   renderMeters();setTimeout(nextPhase,1250);}
 function nextPhase(){if(phase==='warmup'){scoredIndex=0;T.level=1;startScored();}
   else if(phase==='scored'){scoredIndex++;scoredIndex<TOTAL?startScored():finish();}}
-function startWarmup(){phase='warmup';setCue('&#11088;');locked=false;renderItem(genItem(1));log('— warm-up · build one part · UNSCORED —');}
-function startScored(){phase='scored';setCue('&#127919;');locked=false;renderItem(genItem(T.level));
+function startWarmup(){phase='warmup';setCue('warmup');setStatus('neutral','Practice - this one is not scored.');locked=false;renderItem(genItem(1));log('— warm-up · build one part · UNSCORED —');}
+function startScored(){phase='scored';setCue('scored',(scoredIndex+1)+'/'+TOTAL);setStatus('neutral','Build the missing tile, then press the check.');locked=false;renderItem(genItem(T.level));
   log(`— SCORED ${scoredIndex+1}/${TOTAL} · L${cur.level} · ${cur.size}x${cur.size} · build ${cur.active.join('+')} —`);}
-function finish(){phase='done';setCue('&#127942;');locked=true;lights(true);
+function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;lights(true);
   log(`— DONE · accuracy ${T.correct}/${T.scored} · ceiling L${T.maxSolved} —`);}
-async function runDemo(){const token=++demoRun;phase='demo';setCue('&#128065;&#65039;');locked=true;
+async function runDemo(){const token=++demoRun;phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;
   const d=genItem(2);renderItem(d);log('ghost-hand demo · assemble the missing tile · <10s');
   ghostShow(true);await sleep(300);
   await ghostTo($('#emptycell'));await sleep(200);

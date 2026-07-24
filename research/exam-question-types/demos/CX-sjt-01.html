@@ -10,7 +10,15 @@
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#a09060;text-transform:uppercase;font-weight:700}
-  #phasecue{font-size:34px;height:40px;line-height:40px}
+  #howto{max-width:640px;width:100%;background:#fff;border:1px solid #ffe0c0;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #7a6a3a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#5a4a2a;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#fff2e3;color:#c06a2a;border:2px solid #ffd8b0;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+  #phasecue[data-phase="done"]{background:#e6f6ec;color:#2f8f57;border-color:#bfe6cc}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#a09060}
   #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #7a6a3a;display:flex;flex-direction:column;align-items:center;gap:16px;max-width:640px;width:100%}
   #scene{background:linear-gradient(160deg,#fff6ec,#eefaf2);border:3px solid #ffdcb0;border-radius:16px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:8px;width:100%}
   #sceneicon{font-size:52px}
@@ -46,7 +54,11 @@
 <body>
   <div id="wrap">
     <div id="badge">CX-sjt-01 · What Would You Do?</div>
-    <div id="phasecue">🤔</div>
+    <header id="howto">
+      <h1>How to use — What Would You Do?</h1>
+      <p>Read the short situation, then tap the choice that is the <b>best</b> thing to do. It picks as soon as you tap. Watch the example first, then try one practice round that is not scored.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
     <div id="stagecard">
       <div id="scene">
         <div id="sceneicon">🍱</div>
@@ -54,6 +66,7 @@
       </div>
       <div id="choices"></div>
       <div id="outcome"></div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
       <button id="replay" title="replay demo">↻</button>
     </div>
   </div>
@@ -62,7 +75,7 @@
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost">👆<span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -141,7 +154,8 @@ function onChoose(i){if(locked||phase==='demo'||phase==='done')return;
   $('#outcome').textContent=c.out;
   T.path.push(c.lb);
   log(`chose "${c.lb}" (score ${c.score}/3) \u2192 ${c.out}`);
-  if(phase==='warmup'){log('— UNSCORED —');setTimeout(nextPhase,1600);return;}
+  if(phase==='warmup'){setStatus('neutral','Practice - not scored.');log('— UNSCORED —');setTimeout(nextPhase,1600);return;}
+  setStatus(c.score===3?'ok':'no',c.score===3?'\u2713 Best choice':'\u2717 Not the best - a better choice is highlighted');
   T.scored++;T.polySum+=c.score;
   if(c.score===3){T.best++;if(rt<4000)T.confHits++;level=Math.min(6,level+1);}
   else{level=Math.max(1,level-1);}
@@ -149,17 +163,19 @@ function onChoose(i){if(locked||phase==='demo'||phase==='done')return;
 }
 
 /* ---------- flow ---------- */
-function setCue(i){$('#phasecue').textContent=i;}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 function newItem(l){cur=SCENARIOS[(Math.random()*SCENARIOS.length)|0];T.itemStart=Date.now();T.inspected=new Set();
   paintScene();paintChoices();locked=false;renderMeters();}
 function nextPhase(){locked=false;
   if(phase==='warmup'){startScored();}
   else if(phase==='scored'){T.roundIdx=(T.roundIdx||0)+1;T.roundIdx<6?startScored():finish();}
 }
-function startWarmup(){phase='warmup';setCue('\u2b50');newItem(1);log('— warm-up (unscored): tap the best thing the character could do —');}
-function startScored(){phase='scored';setCue('\ud83c\udfaf');newItem(level);log(`— SCORED scenario (level ${level}) —`);}
-function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;log(`— DONE \u00b7 best choice ${T.best}/${T.scored} \u00b7 max level ${maxLevel} —`);}
-async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;
+function startWarmup(){phase='warmup';setCue('warmup');setStatus('neutral','Practice - tap the best choice. Not scored.');newItem(1);log('— warm-up (unscored): tap the best thing the character could do —');}
+function startScored(){phase='scored';setCue('scored',((T.roundIdx||0)+1)+'/6');setStatus('neutral','Read it, then tap the best thing to do.');newItem(level);log(`— SCORED scenario (level ${level}) —`);}
+function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;log(`— DONE \u00b7 best choice ${T.best}/${T.scored} \u00b7 max level ${maxLevel} —`);}
+async function runDemo(){phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;
   cur=SCENARIOS[0];T.itemStart=Date.now();T.inspected=new Set();
   paintScene();paintChoices();log('ghost-hand demo (wordless, <10s)');ghostShow(true);await sleep(300);
   const bestIdx=cur.ch.findIndex(c=>c.score===3);

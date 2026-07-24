@@ -10,7 +10,15 @@
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#7a9a8a;text-transform:uppercase;font-weight:700}
-  #phasecue{font-size:34px;height:40px;line-height:40px}
+  #howto{max-width:640px;width:100%;background:#fff;border:1px solid #bfe8cf;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #3a7a5a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#33544a;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eafaf1;color:#1a8f5a;border:2px solid #bfe8cf;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+  #phasecue[data-phase="done"]{background:#eafaf1;color:#0e7f4b;border-color:#bfe8cf}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#7a9a8a}
   #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #3a7a5a;display:flex;flex-direction:column;align-items:center;gap:14px;max-width:640px;width:100%}
   #ladder{display:flex;flex-direction:column-reverse;gap:8px;align-items:center;min-height:80px}
   .rung{display:flex;gap:6px}
@@ -49,7 +57,11 @@
 <body>
   <div id="wrap">
     <div id="badge">GB-WORDLADDER-01 · Letter Climb</div>
-    <div id="phasecue">🪜</div>
+    <header id="howto">
+      <h1>How to use — Letter Climb</h1>
+      <p>Tap a letter in your word, then tap a new letter to change it and make a real word — one step at a time — until you reach the goal word at the top. Then press the check (<b>✓</b>) to submit.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
     <div id="stagecard">
       <div id="ladder"></div>
       <div id="current"></div>
@@ -58,6 +70,7 @@
         <button id="replay" title="replay demo">↻</button>
         <button id="go" title="lock rung">✓</button>
       </div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
     </div>
   </div>
   <aside id="telemetry">
@@ -65,7 +78,7 @@
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost">👆<span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s);
@@ -133,22 +146,26 @@ function onLetter(c){if(locked||phase==='demo'||phase==='done'||selIdx==null)ret
   if(cur.set.includes(cand)){
     curWord=cand;rungs.push(curWord);selIdx=null;T.path.push(curWord);
     paintLadder();paintCurrent();log(`rung: ${curWord}`);renderMeters();
-    if(curWord===cur.goal){$('#go').classList.add('ready');}
+    if(curWord===cur.goal){$('#go').classList.add('ready');setStatus('ok','\u2713 You reached the goal - press the check');}
+    else setStatus('neutral','Good - change one more letter to climb higher.');
   } else {
     T.invalid=(T.invalid||0)+1;
     $('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),400);
-    log(`\u2717 "${cand}" is not a word`);renderMeters();
+    setStatus('no',`\u2717 "${cand}" is not a real word`);log(`\u2717 "${cand}" is not a word`);renderMeters();
   }
 }
 
 /* ---------- flow ---------- */
-function setCue(i){$('#phasecue').textContent=i;}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 function newItem(l){const p=levelParams(l);cur=genLadder(p.len,p.minRungs);rungs=[cur.start];curWord=cur.start;selIdx=null;
   T.itemStart=Date.now();T.firstT=null;T.invalid=0;T.path=[cur.start];
   paintLadder();paintCurrent();$('#go').classList.remove('ready');renderMeters();}
 function submit(){const rt=Date.now()-T.itemStart;const reached=curWord===cur.goal;
   locked=true;$('#go').classList.remove('ready');
-  if(phase==='warmup'){log('warm-up '+(reached?'reached goal':'stopped')+' — UNSCORED');setTimeout(nextPhase,1100);return;}
+  if(phase==='warmup'){setStatus(reached?'ok':'neutral',reached?'\u2713 Reached the goal - practice':'Practice - not scored.');log('warm-up '+(reached?'reached goal':'stopped')+' — UNSCORED');setTimeout(nextPhase,1100);return;}
+  setStatus(reached?'ok':'no',reached?'\u2713 Reached the goal':'\u2717 Did not reach the goal');
   T.scored++;T.rts.push(rt);
   if(reached){T.exact++;const opt=cur.optPath.length-1;const used=rungs.length-1;T.eff.push(Math.round(100*opt/Math.max(opt,used)));level=Math.min(6,level+1);}
   else{level=Math.max(1,level-1);}
@@ -160,10 +177,10 @@ function nextPhase(){locked=false;
   if(phase==='warmup'){startScored();}
   else if(phase==='scored'){T.roundIdx=(T.roundIdx||0)+1;T.roundIdx<6?startScored():finish();}
 }
-function startWarmup(){phase='warmup';locked=false;setCue('\u2b50');newItem(1);log('— warm-up (unscored): change one letter to climb toward the goal —');}
-function startScored(){phase='scored';setCue('\ud83c\udfaf');newItem(level);log(`— SCORED ladder: ${cur.start}\u2192${cur.goal} (level ${level}) —`);}
-function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;log(`— DONE \u00b7 goals reached ${T.exact}/${T.scored} \u00b7 max level ${maxLevel} —`);}
-async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;
+function startWarmup(){phase='warmup';locked=false;setCue('warmup');setStatus('neutral','Practice - change one letter at a time to reach the goal word. Not scored.');newItem(1);log('— warm-up (unscored): change one letter to climb toward the goal —');}
+function startScored(){phase='scored';setCue('scored',((T.roundIdx||0)+1)+'/6');setStatus('neutral','Change one letter at a time to reach the goal word, then press the check.');newItem(level);log(`— SCORED ladder: ${cur.start}\u2192${cur.goal} (level ${level}) —`);}
+function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;log(`— DONE \u00b7 goals reached ${T.exact}/${T.scored} \u00b7 max level ${maxLevel} —`);}
+async function runDemo(){phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;
   cur={start:'CAT',goal:'COG',set:WORDS3};rungs=['CAT'];curWord='CAT';selIdx=null;T.itemStart=Date.now();
   paintLadder();paintCurrent();log('ghost-hand demo (wordless, <10s)');ghostShow(true);await sleep(300);
   const steps=[[1,'O'],[2,'G']];

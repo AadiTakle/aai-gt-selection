@@ -10,13 +10,21 @@
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
-  #phasecue{font-size:34px;height:40px;line-height:40px}
+  #howto{max-width:700px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:#5b6cff;border:2px solid #c9d0ff;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:#5b6cff;color:#fff;border-color:#5b6cff}
+  #phasecue[data-phase="done"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
   #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:14px;max-width:700px;width:100%}
   .band{border-radius:16px;padding:12px 16px;display:flex;flex-direction:column;gap:8px;align-items:center;width:100%}
   #demoBand{background:linear-gradient(160deg,#fff6e6,#fff0f6);border:3px solid #ffd9a0;font-size:12px}
   #demoRow{display:flex;gap:18px;align-items:center;font-size:26px}
   #demoRow .bin{display:flex;gap:6px;align-items:center;background:#fff;border-radius:10px;padding:4px 10px}
-  #robotBand{font-size:44px}
+  #robotBand{font-size:13px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#8a93b5}
   #cardBand{background:linear-gradient(160deg,#e8f0ff,#f2ecff);border:3px solid #cfd8ff}
   #curCard{font-size:44px;min-height:56px;display:flex;align-items:center;gap:10px}
   #curCard .wd{font-size:15px;font-weight:700;color:#5060a0}
@@ -60,9 +68,13 @@
 <body>
   <div id="wrap">
     <div id="badge">VER-SORTBOT-01 · Sorting Robot</div>
-    <div id="phasecue">👁️</div>
+    <header id="howto">
+      <h1>How to use — Sorting Robot</h1>
+      <p>Look at the cards the robot already sorted into IN and OUT to work out its secret rule. Then for each new card, tap IN (<b>✓</b>) or OUT (<b>✗</b>) - you can Peek for a free hint. It gets harder each round.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
     <div id="stagecard">
-      <div id="robotBand">🤖</div>
+      <div id="robotBand">Sorting Robot</div>
       <div id="demoBand" class="band">
         the robot already sorted these — figure out its secret rule
         <div id="demoRow"></div>
@@ -70,19 +82,20 @@
       <div id="cardBand" class="band">
         <div id="curCard"></div>
         <div id="guessRow">
-          <button class="guessBtn" id="guessIN"><span class="hk">I</span>IN ✅</button>
-          <button class="guessBtn" id="guessOUT"><span class="hk">O</span>OUT ❌</button>
+          <button class="guessBtn" id="guessIN"><span class="hk">I</span>IN ✓</button>
+          <button class="guessBtn" id="guessOUT"><span class="hk">O</span>OUT ✗</button>
         </div>
-        <button id="peekBtn">👀 peek (robot shows one for free)</button>
+        <button id="peekBtn">Peek (robot shows one for free)</button>
       </div>
       <div id="binsBand">
-        <div id="binIN" class="binbox"><span class="binLabel">IN ✅</span></div>
-        <div id="binOUT" class="binbox"><span class="binLabel">OUT ❌</span></div>
+        <div id="binIN" class="binbox"><span class="binLabel">IN ✓</span></div>
+        <div id="binOUT" class="binbox"><span class="binLabel">OUT ✗</span></div>
       </div>
-      <div id="diffmeter">🌱<div id="diffbar"><i id="diffbarfill"></i></div>🌳</div>
+      <div id="diffmeter"><span>Easy</span><div id="diffbar"><i id="diffbarfill"></i></div><span>Hard</span></div>
       <div id="controls">
         <button class="rd" id="replay" title="replay demo">↻</button>
       </div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
     </div>
   </div>
   <aside id="telemetry">
@@ -90,7 +103,7 @@
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost">👆<span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -138,7 +151,7 @@ let cur=null,pool=null,poolI=0,level=1,locked=false,triedCards=new Set();
 function shuffledPool(item){const p=item.pool.map((x,i)=>({...x,i}));for(let i=p.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[p[i],p[j]]=[p[j],p[i]];}return p;}
 function newRound(){cur=byLevel(level);pool=shuffledPool(cur);poolI=0;triedCards=new Set();T.streak=0;T.hyp='\u2014';T.explore=0;T.roundStart=Date.now();
   $('#demoRow').innerHTML=`<div class="bin"><span>IN</span>${cur.demoIN.map(d=>`<span title="${d.wd}">${d.ic}</span>`).join('')}</div><div class="bin"><span>OUT</span>${cur.demoOUT.map(d=>`<span title="${d.wd}">${d.ic}</span>`).join('')}</div>`;
-  $('#binIN').innerHTML='<span class="binLabel">IN \u2705</span>';$('#binOUT').innerHTML='<span class="binLabel">OUT \u274c</span>';
+  $('#binIN').innerHTML='<span class="binLabel">IN \u2713</span>';$('#binOUT').innerHTML='<span class="binLabel">OUT \u2717</span>';
   showNextCard();renderMeters();}
 function showNextCard(){if(poolI>=pool.length){finalizeRound();return;}
   const c=pool[poolI];T.itemStart=Date.now();
@@ -149,28 +162,33 @@ function guess(val){if(locked||poolI>=pool.length)return;const c=pool[poolI];con
   const correct=(val===c.in);T.total++;T.rts.push(rt);
   if(correct){T.correct++;T.streak++;if(T.streak>=2&&T.hyp==='\u2014')T.hyp=`${T.total} trials`;}
   else{T.streak=0;T.lastErr=(c.boundary?'boundary near-miss':'random misfile')+` (${c.wd})`;}
+  setStatus(correct?'ok':'no',correct?'\u2713 Right':'\u2717 The robot puts it '+(c.in?'IN':'OUT'));
   const targetBin=$(c.in?'#binIN':'#binOUT');const card=document.createElement('span');card.textContent=c.ic;card.title=c.wd;card.className=correct?'flashOK':'flashBad';
   targetBin.appendChild(card);
   log(`test "${c.wd}" \u2192 guessed ${val?'IN':'OUT'}, robot says ${c.in?'IN':'OUT'} ${correct?'\u2713':'\u2717'} \u00b7 ${rt}ms`);
   renderMeters();poolI++;setTimeout(showNextCard,550);}
 function peek(){if(locked||poolI>=pool.length)return;const c=pool[poolI];T.hints++;
   const targetBin=$(c.in?'#binIN':'#binOUT');const card=document.createElement('span');card.textContent=c.ic;card.title=c.wd;card.className='flashOK';targetBin.appendChild(card);
+  setStatus('neutral','Peek - the robot placed it '+(c.in?'IN':'OUT'));
   log(`peek: "${c.wd}" \u2192 robot places it ${c.in?'IN':'OUT'} for free (hint used)`);
   triedCards.add(c.i);T.explore=triedCards.size;renderMeters();poolI++;setTimeout(showNextCard,450);}
 function finalizeRound(){locked=true;const acc=T.total?T.correct/T.total:0;
-  if(phase==='warmup'){log(`warm-up round done: accuracy ${(acc*100)|0}% — UNSCORED`);setTimeout(nextPhase,1200);return;}
+  if(phase==='warmup'){setStatus('neutral','Practice round done - now the scored rounds.');log(`warm-up round done: accuracy ${(acc*100)|0}% — UNSCORED`);setTimeout(nextPhase,1200);return;}
   const success=acc>=0.7;if(success)T.maxLevel=Math.max(T.maxLevel,level);
+  setStatus(success?'ok':'no',success?'\u2713 Rule found!':'\u2717 Rule not found this time');
   log(`— ROUND L${level} [${cur.rule}] \u2192 acc ${(acc*100)|0}% \u00b7 ${success?'PASS':'FAIL'} —`);
   level=success?Math.min(6,level+1):Math.max(1,level-1);
   renderMeters();setTimeout(nextPhase,1100);}
 const TOTAL_SCORED=6;let phase='demo',scoredIndex=0;
-function setCue(i){$('#phasecue').textContent=i;}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 function nextPhase(){locked=false;if(phase==='warmup'){scoredIndex=0;startScored();}
   else if(phase==='scored'){scoredIndex++;scoredIndex<TOTAL_SCORED?startScored():finish();}}
-function startWarmup(){phase='warmup';locked=false;setCue('\u2b50');level=1;newRound();log('— warm-up (unscored) —');}
-function startScored(){phase='scored';setCue('\ud83c\udfaf');newRound();log(`— SCORED round ${scoredIndex+1}/${TOTAL_SCORED} · level ${level} —`);}
-function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;log(`— DONE · accuracy ${T.total?Math.round(100*T.correct/T.total):0}% · ceiling L${T.maxLevel} —`);renderMeters();}
-async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;level=1;newRound();
+function startWarmup(){phase='warmup';locked=false;setCue('warmup');setStatus('neutral','Practice - this round is not scored.');level=1;newRound();log('— warm-up (unscored) —');}
+function startScored(){phase='scored';setCue('scored',(scoredIndex+1)+'/'+TOTAL_SCORED);setStatus('neutral','Sort each card: is it IN or OUT?');newRound();log(`— SCORED round ${scoredIndex+1}/${TOTAL_SCORED} · level ${level} —`);}
+function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;log(`— DONE · accuracy ${T.total?Math.round(100*T.correct/T.total):0}% · ceiling L${T.maxLevel} —`);renderMeters();}
+async function runDemo(){phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;level=1;newRound();
   log('ghost-hand demo (wordless, <10s)');ghostShow(true);await sleep(300);
   const c=pool[0];const el=$(c.in?'#guessIN':'#guessOUT');await ghostTo(el);await ghostTap();locked=false;guess(c.in);locked=true;
   await sleep(650);ghostShow(false);await sleep(400);T.roundStart=Date.now();startWarmup();}

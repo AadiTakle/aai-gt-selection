@@ -10,7 +10,15 @@
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:12px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
-  #phasecue{font-size:34px;height:40px;line-height:40px}
+  #howto{max-width:600px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:#5b6cff;border:2px solid #c9d0ff;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:#5b6cff;color:#fff;border-color:#5b6cff}
+  #phasecue[data-phase="done"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
   #stagecard{background:var(--card);border-radius:26px;padding:20px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:12px;max-width:560px;width:100%}
   #stage{position:relative;border-radius:18px;background:radial-gradient(120% 120% at 50% 20%,#f3f7ff,#e5ebff);border:3px solid #d6ddff}
   canvas{display:block;border-radius:15px;touch-action:none}
@@ -24,6 +32,7 @@
   #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.1s infinite}
   @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
   #replay,#xray{width:48px;height:48px;background:#eef1ff;color:#5b6cff;font-size:20px}
+  #xray{width:auto;border-radius:14px;padding:0 12px;font-size:13px;font-weight:800}
   #xray.on{background:#ffe6fb;color:#c026a6}
   #xray[disabled]{opacity:.28;pointer-events:none}
   .rot{width:46px;height:46px;border-radius:14px;background:#eef1ff;color:#4757d6;font-size:22px}
@@ -56,13 +65,17 @@
 <body>
   <div id="wrap">
     <div id="badge">SPA-HIDDENCUBE-01 · X-Ray Cubes</div>
-    <div id="phasecue">👁️</div>
+    <header id="howto">
+      <h1>How to use — X-Ray Cubes</h1>
+      <p>Count <b>all</b> the cubes, including ones hidden behind others. Turn the stack with the arrows, set your number with <b>−</b> and <b>＋</b>, then press the check (<b>✓</b>). X-ray only helps during practice.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
     <div id="stagecard">
       <div id="stage"><canvas id="c" width="500" height="330"></canvas></div>
       <div id="controls">
         <button class="rot" id="rl" title="rotate left">⟲</button>
         <button class="rot" id="rr" title="rotate right">⟳</button>
-        <button id="xray" title="x-ray (practice only)">🩻</button>
+        <button id="xray" title="x-ray (practice only)">X-ray</button>
         <button id="replay" title="replay demo">↻</button>
       </div>
       <div id="stepbar">
@@ -72,6 +85,7 @@
         <button id="go" title="submit count">✓</button>
       </div>
       <div id="keys"><b>◀ ▶</b> turn · <b>▲ ▼</b> count · <b>X</b> x-ray · <b>Enter</b> submit</div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
     </div>
   </div>
   <aside id="telemetry">
@@ -80,7 +94,7 @@
     <div id="diffwrap"><b>DIFFICULTY LADDER (M-DIFFREACH · M-LEARNRATE)</b><div id="diffmeter"></div></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost">👆<span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s);
@@ -216,7 +230,9 @@ async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transf
 async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(430);}
 
 /* ---------- item lifecycle ---------- */
-function setCue(i){$('#phasecue').textContent=i;}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 function setCount(v){ans=clamp(v,0,32);$('#count').textContent=ans;}
 function loadItem(st){
   cur=st;stack=st;buildScene(st);xray=false;$('#xray').classList.remove('on');
@@ -238,6 +254,7 @@ function submit(){
   const ok=ans===cur.total,err=classifyErr(ans);
   if(phase==='warmup'){
     feedback(ok);locked=true;$('#go').classList.remove('ready');
+    setStatus('neutral',ok?'\u2713 Correct - practice':'\u2717 Not quite - practice (true count '+cur.total+')');
     log(`warm-up: answered ${ans} · true ${cur.total} (${cur.hidden} hidden) — ${ok?'right':'not yet'} · UNSCORED`);
     setTimeout(()=>{locked=false;scoredIdx=0;startScored();},1150);return;
   }
@@ -247,6 +264,7 @@ function submit(){
   T.lastErr=ok?'correct':err;
   T.seq.push({level,ok});
   feedback(ok);locked=true;$('#go').classList.remove('ready');
+  setStatus(ok?'ok':'no',ok?'\u2713 Correct':'\u2717 Not quite - the total was '+cur.total);
   log(`SCORED #${scoredIdx+1} L${level}: ans ${ans} · true ${cur.total} (vis ${cur.visible}, hidden ${cur.hidden}, bury ${cur.maxBury}) · ${ok?'EXACT':'ERR['+err+']'} · rot ${T.explore} · ${rt}ms`);
   const prev=level;level=ok?Math.min(level+1,MAXLEVEL):Math.max(level-1,1);
   if(ok)log(`escalate ${prev}\u2192${level}`);else log(`back off ${prev}\u2192${level}`);
@@ -254,13 +272,13 @@ function submit(){
   setTimeout(nextScored,1350);
 }
 function nextScored(){locked=false;scoredIdx++;if(scoredIdx<SCORED_N)startScored();else finish();}
-function startWarmup(){phase='warmup';locked=false;setCue('\u2b50');level=1;loadItem(genStack(1));log('— warm-up (unscored): count ALL cubes, hidden ones too. X-ray allowed —');}
-function startScored(){phase='scored';setCue('\ud83c\udfaf');loadItem(genStack(level));log(`— SCORED item ${scoredIdx+1}/${SCORED_N} · level ${level} (X-ray OFF) —`);}
-function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;$('#go').classList.remove('ready');$('#xray').disabled=true;
+function startWarmup(){phase='warmup';locked=false;setCue('warmup');setStatus('neutral','Practice - count every cube, hidden ones too.');level=1;loadItem(genStack(1));log('— warm-up (unscored): count ALL cubes, hidden ones too. X-ray allowed —');}
+function startScored(){phase='scored';setCue('scored',(scoredIdx+1)+'/'+SCORED_N);setStatus('neutral','Count every cube, including hidden ones, then submit.');loadItem(genStack(level));log(`— SCORED item ${scoredIdx+1}/${SCORED_N} · level ${level} (X-ray OFF) —`);}
+function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;$('#go').classList.remove('ready');$('#xray').disabled=true;
   log(`— DONE · exact ${T.exact}/${T.scored} (${pct()}%) · ceiling L${T.maxSolved} · ${learnStr()} —`);renderMeters();}
 
 async function runDemo(){
-  phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;xray=false;
+  phase='demo';setCue('demo');setStatus('neutral','Watch the example, then try it yourself.');locked=true;xray=false;
   const H=[[2,2],[2,3]];const st=Object.assign({H,R:2,C:2,level:1},analyze(H,2,2));
   loadItem(st);log('ghost-hand demo (wordless, <10s): hidden cubes count too');
   ghostShow(true);await sleep(300);

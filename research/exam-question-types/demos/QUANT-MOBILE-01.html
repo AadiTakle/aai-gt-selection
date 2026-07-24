@@ -27,7 +27,15 @@
     color:#7d86a5;font-size:12px;font-weight:800;letter-spacing:.1em;
     text-transform:uppercase;
   }
-  #phasecue{height:42px;font-size:34px}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#e9efff;color:var(--blue);border:2px solid #ccd7f2;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+  #phasecue[data-phase="done"]{background:#e7ecff;color:#3a49c8;border-color:#ccd7f2}
+  #howto{max-width:600px;width:100%;background:#fffdfb;border:1px solid #dce2f1;border-left:5px solid var(--blue);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #555b81}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--blue)}
+  #howto p{margin:0;font-size:14px;color:#465074;line-height:1.5}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#7d86a5}
   #stagecard{
     width:min(830px,100%);min-height:590px;padding:20px;border-radius:32px;
     background:rgba(255,253,251,.96);box-shadow:0 25px 62px -32px #555b81;
@@ -118,11 +126,13 @@
   .shake{animation:shake .4s}
   @keyframes shake{25%,75%{transform:translateX(-8px)}50%{transform:translateX(8px)}}
   #ghost{
-    position:fixed;left:0;top:0;z-index:90;font-size:42px;opacity:0;pointer-events:none;
+    position:fixed;left:0;top:0;z-index:90;opacity:0;pointer-events:none;
     filter:drop-shadow(0 3px 4px #0004);transition:transform .46s ease,opacity .2s;
   }
   #ghost.show{opacity:.94}#ghost.tap{animation:tap .34s}
   @keyframes tap{50%{scale:.78}}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--blue);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
   #telemetry{
     width:336px;flex:0 0 336px;background:var(--tel);color:#cbd6f8;
     display:flex;flex-direction:column;font:13px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace;
@@ -154,7 +164,11 @@
 <body>
 <main id="wrap">
   <div id="badge">QUANT-MOBILE-01 · Hanging Mobile</div>
-  <div id="phasecue">👁️</div>
+  <header id="howto">
+    <h1>How to use — Hanging Mobile</h1>
+    <p>Look at the hanging mobile. Tap the group of shapes that keeps every arm balanced, then press the check (<b>✓</b>) to submit.</p>
+  </header>
+  <div id="phasecue" data-phase="demo">Watch the example</div>
   <section id="stagecard">
     <div id="mobile">
       <div id="ceiling"></div><div id="rootcord"></div>
@@ -167,8 +181,9 @@
     <div id="options"></div>
     <div id="controls">
       <button id="replay" aria-label="Replay demonstration">↻</button>
-      <button id="go" aria-label="Check mobile">◆</button>
+      <button id="go" aria-label="Check mobile">✓</button>
     </div>
+    <div id="status" class="neutral">Watch the example, then try it yourself.</div>
   </section>
 </main>
 <aside id="telemetry">
@@ -180,7 +195,7 @@
   <div id="mlist"></div>
   <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
 </aside>
-<div id="ghost">👆</div>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5677cb" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s);
@@ -244,10 +259,11 @@ function submit(){
   if(locked||choice<0)return;
   const ok=!!cur.opts[choice].key;
   if(phase==='warmup'){
-    locked=true;feedback(ok);log(`warm-up ${ok?'balanced':'corrective cascade'} · UNSCORED`);
+    locked=true;feedback(ok);setStatus('neutral',ok?'\u2713 Balanced - practice':'Practice - the balanced answer is shown.');log(`warm-up ${ok?'balanced':'corrective cascade'} · UNSCORED`);
     if(!ok)setTimeout(()=>{choose(cur.opts.findIndex(o=>o.key),true);feedback(true);},440);
     setTimeout(startScored,1120);return;
   }
+  setStatus(ok?'ok':'no',ok?'\u2713 Correct':'\u2717 Not quite - the correct group is highlighted');
   locked=true;T.scored++;if(ok)T.correct++;
   T.lastPath=path.join(' → ');T.lastProg=prog.join(' → ')+'/'+cur.constraints;T.lastPlan=planfulness();
   if(ok)T.maxLevel=Math.max(T.maxLevel,level);
@@ -280,9 +296,12 @@ function log(msg){
   d.innerHTML=`<span class="t">${new Date().toLocaleTimeString([],{minute:'2-digit',second:'2-digit'})}</span> ${msg}`;
   $('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;
 }
-function startWarmup(){phase='warmup';locked=false;$('#phasecue').textContent='⭐';renderItem(WARM);log('warm-up · two arms · unscored');}
-function startScored(){phase='scored';locked=false;$('#phasecue').textContent='🎯';renderItem(ITEMS[level-1]);log(`item ${trial+1}/6 · level ${level} · ${cur.label}`);}
-function finish(){phase='done';locked=true;$('#phasecue').textContent='🏆';$('#go').classList.remove('ready');log(`DONE · ${T.correct}/${T.scored} · ceiling ${T.maxLevel}`);}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+function startWarmup(){phase='warmup';locked=false;setCue('warmup');setStatus('neutral','Practice - this one is not scored.');renderItem(WARM);log('warm-up · two arms · unscored');}
+function startScored(){phase='scored';locked=false;setCue('scored',(trial+1)+'/6');setStatus('neutral','Tap the group of shapes that balances every arm.');renderItem(ITEMS[level-1]);log(`item ${trial+1}/6 · level ${level} · ${cur.label}`);}
+function finish(){phase='done';locked=true;setCue('done');setStatus('ok','\u2713 Done');$('#go').classList.remove('ready');log(`DONE · ${T.correct}/${T.scored} · ceiling ${T.maxLevel}`);}
 const ghost=$('#ghost');
 function ghostShow(on){ghost.classList.toggle('show',on);}
 async function ghostTo(el){
@@ -292,7 +311,7 @@ async function ghostTo(el){
 }
 async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(330);}
 async function runDemo(){
-  phase='demo';locked=true;$('#phasecue').textContent='👁️';renderItem(DEMO);log('ghost-hand demo · wordless mobile cascade');
+  phase='demo';locked=true;setCue('demo');setStatus('neutral','Watch the example, then try it yourself.');renderItem(DEMO);log('ghost-hand demo · wordless mobile cascade');
   ghostShow(true);await sleep(250);await ghostTo($('#branches .side.left'));await ghostTo($('#branches .side.right'));
   const key=cur.opts.findIndex(o=>o.key);
   await ghostTo(document.querySelector(`.option[data-i="${key}"]`));await ghostTap();choose(key,true);

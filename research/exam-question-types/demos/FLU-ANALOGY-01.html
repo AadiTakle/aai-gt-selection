@@ -10,7 +10,15 @@
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
-  #phasecue{font-size:34px;height:40px;line-height:40px}
+  #howto{max-width:600px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:#5b6cff;border:2px solid #c9d0ff;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:#5b6cff;color:#fff;border-color:#5b6cff}
+  #phasecue[data-phase="done"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
   #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:16px;max-width:600px;width:100%}
   #analogy{display:flex;flex-direction:column;gap:12px;background:linear-gradient(160deg,#e8f7ff,#eef1ff);border:3px solid #cfe6ff;border-radius:18px;padding:16px}
   .arow{display:flex;gap:14px;align-items:center;justify-content:center}
@@ -29,7 +37,7 @@
   .opt.wrong{border-color:var(--bad);box-shadow:0 0 0 4px #ffd0d0}
   #conf{display:flex;gap:16px;align-items:center}
   #conf.hidden{display:none}
-  .cbtn{width:58px;height:58px;border-radius:16px;background:#eef1ff;font-size:26px;border:0;cursor:pointer;transition:.12s}
+  .cbtn{min-width:58px;height:44px;padding:0 16px;border-radius:14px;background:#eef1ff;color:var(--accent);font-size:14px;font-weight:800;border:0;cursor:pointer;transition:.12s}
   .cbtn.sel{box-shadow:0 0 0 4px #c9d0ff;transform:scale(1.06)}
   #controls{display:flex;gap:16px;align-items:center}
   button{font:inherit;border:0;cursor:pointer;border-radius:50%}
@@ -65,18 +73,23 @@
 <body>
   <div id="wrap">
     <div id="badge">FLU-ANALOGY-01 · Shape Morph</div>
-    <div id="phasecue">👁️</div>
+    <header id="howto">
+      <h1>How to use — Shape Morph</h1>
+      <p>The top-left shape changes into the top-right shape. Make the bottom shape change in the <b>same way</b>: tap the tile from the tray that belongs in the empty box, then press the check (<b>✓</b>) to submit. You can also press number keys 1–4. It gets harder each time you are right.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
     <div id="stagecard">
       <div id="analogy">
         <div class="arow"><div class="cell" id="Acell"></div><div class="arrow">➜</div><div class="cell" id="Bcell"></div></div>
         <div class="arow"><div class="cell" id="Ccell"></div><div class="arrow">➜</div><div class="cell empty" id="qslot"></div></div>
       </div>
       <div id="tray"></div>
-      <div id="conf" class="hidden"><button class="cbtn" data-c="sure">⭐</button><button class="cbtn" data-c="unsure">🤔</button></div>
+      <div id="conf" class="hidden"><button class="cbtn" data-c="sure">Sure</button><button class="cbtn" data-c="unsure">Unsure</button></div>
       <div id="controls">
         <button id="replay" title="replay demo">↻</button>
         <button id="go" title="submit">✓</button>
       </div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
     </div>
   </div>
   <aside id="telemetry">
@@ -85,7 +98,7 @@
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost">👆<span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -168,7 +181,9 @@ async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;g
 /* ---------- flow ---------- */
 let phase='demo',cur=null,staged=-1,locked=false,scoredIndex=0,demoRun=0;
 const TOTAL=6;
-function setCue(i){$('#phasecue').textContent=i;}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 function showConf(v){$('#conf').classList.toggle('hidden',!v);if(!v)$$('#conf .cbtn').forEach(b=>b.classList.remove('sel'));}
 function renderItem(item){cur=item;staged=-1;T.confThis=null;T.itemStart=Date.now();T.firstActed=false;T.firstLat=null;T.blurThis=0;
   $('#Acell').innerHTML=tileSVG(item.A);$('#Bcell').innerHTML=tileSVG(item.B);$('#Bcell').classList.add('morphing');setTimeout(()=>$('#Bcell').classList.remove('morphing'),800);
@@ -185,18 +200,19 @@ function feedback(correct){const opt=$$('#tray .opt')[staged];if(opt)opt.classLi
   if(!correct){$('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),450);const ci=cur.options.findIndex(o=>o.tag==='correct');$$('#tray .opt')[ci].classList.add('correct');}
   showConf(false);locked=true;$('#go').classList.remove('ready');}
 function submit(){if(staged===-1)return;const opt=cur.options[staged];const rt=Date.now()-T.itemStart;const correct=opt.tag==='correct';
-  if(phase==='warmup'){feedback(correct);log('warm-up '+(correct?'correct':'incorrect')+' — UNSCORED');setTimeout(nextPhase,950);return;}
+  if(phase==='warmup'){feedback(correct);setStatus(correct?'ok':'no',correct?'✓ Correct - practice':'✗ Not quite - the correct tile is highlighted (practice)');log('warm-up '+(correct?'correct':'incorrect')+' — UNSCORED');setTimeout(nextPhase,950);return;}
   T.scored++;T.rts.push(rt);T.gates.push(gate(rt));if(correct){T.correct++;T.maxSolved=Math.max(T.maxSolved,cur.level);}T.lastErr=errType(opt.tag);
   if(T.confThis==='sure'){T.sureN++;if(correct)T.sureC++;}else if(T.confThis==='unsure'){T.unsN++;if(correct)T.unsC++;}
   T.trail.push({level:cur.level,correct});T.level=Math.max(1,Math.min(6,T.level+(correct?1:-1)));
   feedback(correct);
+  setStatus(correct?'ok':'no',correct?'✓ Correct':'✗ Not quite - the correct tile is highlighted');
   log(`SUBMIT ${scoredIndex+1}/${TOTAL} · L${cur.level} ${cur.ts.join('+')} \u2192 ${correct?'CORRECT':'wrong ['+opt.tag+']'} · ${last(T.gates).reason} · next L${T.level}`);
   renderMeters();setTimeout(nextPhase,1200);}
 function nextPhase(){locked=false;if(phase==='warmup'){scoredIndex=0;T.level=1;startScored();}else if(phase==='scored'){scoredIndex++;scoredIndex<TOTAL?startScored():finish();}}
-function startWarmup(){phase='warmup';locked=false;setCue('\u2b50');renderItem(genAnalogy(1));log('— warm-up · one transform · UNSCORED —');}
-function startScored(){phase='scored';setCue('\ud83c\udfaf');renderItem(genAnalogy(T.level));log(`— SCORED ${scoredIndex+1}/${TOTAL} · L${cur.level} · ${cur.ts.length} co-transform(s) —`);}
-function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;log(`— DONE · accuracy ${T.correct}/${T.scored} · ${confStr()} —`);}
-async function runDemo(){const token=++demoRun;phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;
+function startWarmup(){phase='warmup';locked=false;setCue('warmup');setStatus('neutral','Practice - this one is not scored.');renderItem(genAnalogy(1));log('— warm-up · one transform · UNSCORED —');}
+function startScored(){phase='scored';setCue('scored',(scoredIndex+1)+'/'+TOTAL);setStatus('neutral','Tap the tile that completes the change.');renderItem(genAnalogy(T.level));log(`— SCORED ${scoredIndex+1}/${TOTAL} · L${cur.level} · ${cur.ts.length} co-transform(s) —`);}
+function finish(){phase='done';setCue('done');setStatus('ok','✓ Done');locked=true;log(`— DONE · accuracy ${T.correct}/${T.scored} · ${confStr()} —`);}
+async function runDemo(){const token=++demoRun;phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;
   const d=genAnalogy(1,{ts:['shrink'],shA:'star',shC:'kite'});renderItem(d);log('ghost-hand demo · wordless · <10s');
   const ci=d.options.findIndex(o=>o.tag==='correct');ghostShow(true);await sleep(300);
   await ghostTo($('#Acell'));await sleep(150);await ghostTo($('#Bcell'));await sleep(200);

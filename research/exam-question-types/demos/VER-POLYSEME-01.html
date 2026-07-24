@@ -10,7 +10,15 @@
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
-  #phasecue{font-size:34px;height:40px;line-height:40px}
+  #howto{max-width:600px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:#5b6cff;border:2px solid #c9d0ff;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:#5b6cff;color:#fff;border-color:#5b6cff}
+  #phasecue[data-phase="done"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
   #stagecard{background:var(--card);border-radius:26px;padding:24px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:18px;max-width:660px;width:100%}
   .band{border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;align-items:center;width:100%}
   #sentBand{background:linear-gradient(160deg,#e8f0ff,#f2ecff);border:3px solid #cfd8ff}
@@ -52,17 +60,21 @@
 <body>
   <div id="wrap">
     <div id="badge">VER-POLYSEME-01 · Two Meanings</div>
-    <div id="phasecue">👁️</div>
+    <header id="howto">
+      <h1>How to use — Two Meanings</h1>
+      <p>Read the sentence and notice how the <b>bold</b> word is used. Tap the picture that shows that meaning. It gets harder each time you are right.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
     <div id="stagecard">
       <div id="sentBand" class="band">
-        <button class="speak" id="speak" title="hear it">🔊</button>
         <div id="sentText"></div>
       </div>
       <div id="picGrid"></div>
-      <div id="diffmeter">🌱<div id="diffbar"><i id="diffbarfill"></i></div>🌳</div>
+      <div id="diffmeter">Easy<div id="diffbar"><i id="diffbarfill"></i></div>Hard</div>
       <div id="controls">
         <button class="rd" id="replay" title="replay demo">↻</button>
       </div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
     </div>
   </div>
   <aside id="telemetry">
@@ -70,13 +82,12 @@
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost">👆<span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0,last=a=>a[a.length-1];
-function say(text){try{if(!window.speechSynthesis)return;const u=new SpeechSynthesisUtterance(text);u.rate=0.95;speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){}}
 
 /* ---------- homograph bank, level 1 (dominant/obvious) -> 6 (subtle/subordinate) ---------- */
 const INF_RANK={'strong-literal':0,'moderate':1,'subtle-subordinate':2};
@@ -124,10 +135,10 @@ function pick(i){if(locked||!cur)return;markFirstAction();const chosen=opts[i];c
   const el=$$('#picGrid .pic')[i];el.classList.add(exact?'correct':'wrong');
   if(!exact){const correctEl=$$('#picGrid .pic')[opts.findIndex(o=>o.role==='correct')];correctEl.classList.add('correct');
     $('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),450);}
-  say(cur.sent);
   return {exact,role:chosen.role};}
 function submitAnswer(i){if(locked||!cur)return;const rt=Date.now()-T.itemStart;const res=pick(i);if(!res)return;locked=true;
-  if(phase==='warmup'){log('warm-up '+(res.exact?'correct':'try again — shown correct')+' — UNSCORED');setTimeout(nextPhase,1400);return;}
+  if(phase==='warmup'){setStatus(res.exact?'ok':'no',res.exact?'\u2713 Correct - practice':'\u2717 Not quite - the matching picture is highlighted (practice)');log('warm-up '+(res.exact?'correct':'try again — shown correct')+' — UNSCORED');setTimeout(nextPhase,1400);return;}
+  setStatus(res.exact?'ok':'no',res.exact?'\u2713 Correct':'\u2717 Not quite - the matching picture is highlighted');
   T.scored++;T.rts.push(rt);
   if(res.exact){T.exact++;T.maxLevel=Math.max(T.maxLevel,level);T.bestVocab=Math.max(T.bestVocab,cur.vocab);
     const r=INF_RANK[cur.inf];if(r>T.bestInfRank){T.bestInfRank=r;T.bestInf=cur.inf;}T.lastErr='none (correct)';}
@@ -136,20 +147,21 @@ function submitAnswer(i){if(locked||!cur)return;const rt=Date.now()-T.itemStart;
   level=res.exact?Math.min(6,level+1):Math.max(1,level-1);
   renderMeters();setTimeout(nextPhase,1400);}
 const TOTAL_SCORED=6;let phase='demo',scoredIndex=0;
-function setCue(i){$('#phasecue').textContent=i;}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 function nextPhase(){locked=false;if(phase==='warmup'){scoredIndex=0;startScored();}
   else if(phase==='scored'){scoredIndex++;scoredIndex<TOTAL_SCORED?startScored():finish();}}
-function startWarmup(){phase='warmup';locked=false;setCue('\u2b50');level=1;renderItem(byLevel(1));log('— warm-up (unscored) —');}
-function startScored(){phase='scored';setCue('\ud83c\udfaf');renderItem(byLevel(level));log(`— SCORED item ${scoredIndex+1}/${TOTAL_SCORED} · level ${level} —`);}
-function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;log(`— DONE · exact ${T.exact}/${T.scored} · ceiling L${T.maxLevel} —`);renderMeters();}
-async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;
+function startWarmup(){phase='warmup';locked=false;setCue('warmup');setStatus('neutral','Practice - this one is not scored.');level=1;renderItem(byLevel(1));log('— warm-up (unscored) —');}
+function startScored(){phase='scored';setCue('scored',(scoredIndex+1)+'/'+TOTAL_SCORED);setStatus('neutral','Tap the picture that matches the bold word.');renderItem(byLevel(level));log(`— SCORED item ${scoredIndex+1}/${TOTAL_SCORED} · level ${level} —`);}
+function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;log(`— DONE · exact ${T.exact}/${T.scored} · ceiling L${T.maxLevel} —`);renderMeters();}
+async function runDemo(){phase='demo';setCue('demo');setStatus('neutral','Watch the example, then try it yourself.');locked=true;
   const item=byLevel(1);renderItem(item);log('ghost-hand demo (wordless, <10s)');ghostShow(true);await sleep(300);
   const ci=opts.findIndex(o=>o.role==='correct');const el=$$('#picGrid .pic')[ci];await ghostTo(el);el.classList.add('ghosted');await ghostTap();
   pick(ci);await sleep(700);ghostShow(false);el.classList.remove('ghosted');await sleep(400);
   T.itemStart=Date.now();startWarmup();}
 $('#picGrid').addEventListener('click',e=>{const p=e.target.closest('.pic');if(p&&!locked&&phase!=='demo'&&phase!=='done')submitAnswer(+p.dataset.i);});
 document.addEventListener('keydown',e=>{if(locked||phase==='demo'||phase==='done')return;const n=+e.key;if(n>=1&&n<=4)submitAnswer(n-1);});
-$('#speak').addEventListener('click',()=>{if(cur)say(cur.sent);});
 $('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
 buildMeters();renderMeters();runDemo();
 </script>

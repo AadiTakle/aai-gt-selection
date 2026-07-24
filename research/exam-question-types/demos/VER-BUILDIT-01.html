@@ -10,7 +10,15 @@
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
-  #phasecue{font-size:34px;height:40px;line-height:40px}
+  #howto{max-width:640px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:#5b6cff;border:2px solid #c9d0ff;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:#5b6cff;color:#fff;border-color:#5b6cff}
+  #phasecue[data-phase="done"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
   #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:14px;max-width:680px;width:100%}
   #clues{display:flex;flex-direction:column;gap:6px;width:100%;background:linear-gradient(160deg,#eafaf1,#eef1ff);border:3px solid #bfe8cf;border-radius:16px;padding:12px 16px}
   .clue{font-size:19px;display:flex;gap:8px;align-items:center}
@@ -51,7 +59,11 @@
 <body>
   <div id="wrap">
     <div id="badge">VER-BUILDIT-01 · Build-It Buddy</div>
-    <div id="phasecue">🧩</div>
+    <header id="howto">
+      <h1>How to use — Build-It Buddy</h1>
+      <p>Read the clues about which friend owns which thing. Tap a grid cell to mark it: once for <b>✔</b> (yes), again for <b>✕</b> (no), again to clear. Put one <b>✔</b> in each row and column, then press the check (<b>✓</b>) to submit. It gets harder each time you are right.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
     <div id="stagecard">
       <div id="clues"></div>
       <div id="gridwrap"><table class="lgrid" id="grid"></table></div>
@@ -59,6 +71,7 @@
         <button id="replay" title="replay demo">↻</button>
         <button id="go" title="submit">✓</button>
       </div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
     </div>
   </div>
   <aside id="telemetry">
@@ -66,7 +79,7 @@
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost">👆<span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s);
@@ -105,7 +118,7 @@ function genRiddle(n,indirect){
   // one impossible/contradiction option clue — states a mapping that violates the one-to-one rule (never true, must be ignored)
   let bp,bt; do{bp=(Math.random()*n)|0; bt=(Math.random()*n)|0;}while(perm[bp]===bt);
   let bp2; do{bp2=(Math.random()*n)|0;}while(bp2===bp || perm[bp2]!==bt);
-  clues.push(`❌ Impossible: both ${people[bp]} and ${people[bp2]} cannot have the ${nameOf(bt)} — only one friend owns each thing.`);
+  clues.push(`✕ Impossible: both ${people[bp]} and ${people[bp2]} cannot have the ${nameOf(bt)} — only one friend owns each thing.`);
   return {n,people,things,perm,clues:shuffle(clues)};
 }
 
@@ -180,13 +193,16 @@ function feedback(exact){for(let p=0;p<cur.n;p++)for(let t=0;t<cur.n;t++){
 
 /* ---------- flow ---------- */
 let phase='demo',locked=false;
-function setCue(i){$('#phasecue').textContent=i;}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 function levelParams(l){const n=Math.min(3+Math.floor((l-1)/2),6);const indirect=l>=3;return {n,indirect};}
 function submit(){
   T.cellsRight=0;for(let p=0;p<cur.n;p++)if(grid[p][cur.perm[p]]===1)T.cellsRight++;
   const exact=T.cellsRight===cur.n && cur.perm.every((t,p)=>{for(let tt=0;tt<cur.n;tt++)if(tt!==t&&grid[p][tt]===1)return false;return true;});
   feedback(exact);locked=true;$('#go').classList.remove('ready');
-  if(phase==='warmup'){log('warm-up '+(exact?'solved':T.cellsRight+'/'+cur.n+' correct')+' — UNSCORED');setTimeout(nextPhase,1200);return;}
+  if(phase==='warmup'){setStatus(exact?'ok':'no',exact?'✓ Solved - practice':'✗ Not solved - practice');log('warm-up '+(exact?'solved':T.cellsRight+'/'+cur.n+' correct')+' — UNSCORED');setTimeout(nextPhase,1200);return;}
+  setStatus(exact?'ok':'no',exact?'✓ Correct':'✗ Not quite - green cells match, red cells do not');
   T.scored++;trialCount++;if(exact){T.exact++;if(firstCorrectTrial==null)firstCorrectTrial=trialCount;level++;}else{level=Math.max(1,level-1);}
   maxLevel=Math.max(maxLevel,exact?level-1+1:level);
   log(`SUBMIT ${cur.n}x${cur.n} [${cur.indirect?'indirect':'direct'}] \u2192 ${T.cellsRight}/${cur.n}${exact?' EXACT':''} \u2192 next level ${level}`);
@@ -196,10 +212,10 @@ function nextPhase(){locked=false;
   if(phase==='warmup'){scoredIdx=0;startScored();}
   else if(phase==='scored'){scoredIdx++;scoredIdx<6?startScored():finish();}
 }
-function startWarmup(){phase='warmup';setCue('\u2b50');const p=levelParams(1);renderItem(genRiddle(p.n,false));log('— warm-up (unscored): find who owns what —');}
-function startScored(){phase='scored';setCue('\ud83c\udfaf');const p=levelParams(level);renderItem(genRiddle(p.n,p.indirect));log(`— SCORED item ${scoredIdx+1}: ${p.n}x${p.n}, ${p.indirect?'indirect clues':'direct clues'} (level ${level}) —`);}
-function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;log(`— DONE · exact ${T.exact}/${T.scored} · max level ${maxLevel} —`);}
-async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;
+function startWarmup(){phase='warmup';setCue('warmup');setStatus('neutral','Practice - this one is not scored.');const p=levelParams(1);renderItem(genRiddle(p.n,false));log('— warm-up (unscored): find who owns what —');}
+function startScored(){phase='scored';setCue('scored',(scoredIdx+1)+'/6');setStatus('neutral','Use the clues to fill the grid, then submit.');const p=levelParams(level);renderItem(genRiddle(p.n,p.indirect));log(`— SCORED item ${scoredIdx+1}: ${p.n}x${p.n}, ${p.indirect?'indirect clues':'direct clues'} (level ${level}) —`);}
+function finish(){phase='done';setCue('done');setStatus('ok','✓ Done');locked=true;log(`— DONE · exact ${T.exact}/${T.scored} · max level ${maxLevel} —`);}
+async function runDemo(){phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;
   const item=genRiddle(3,false);renderItem(item);log('ghost-hand demo (wordless, <10s)');ghostShow(true);await sleep(300);
   for(let p=0;p<item.n;p++){await ghostTo(cellEl(p,item.perm[p]));await ghostTap();grid[p][item.perm[p]]=1;paintCell(p,item.perm[p]);}
   await sleep(300);await ghostTo($('#go'));await ghostTap();await sleep(300);ghostShow(false);await sleep(450);startWarmup();}

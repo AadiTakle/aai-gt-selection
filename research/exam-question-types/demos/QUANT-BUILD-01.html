@@ -18,7 +18,15 @@
   button{font:inherit;border:0;cursor:pointer}
   #wrap{flex:1;min-width:0;padding:18px;display:flex;flex-direction:column;align-items:center;gap:12px}
   #badge{font-size:12px;font-weight:800;letter-spacing:.1em;color:#74869b;text-transform:uppercase}
-  #phasecue{font-size:34px;height:40px}
+  #howto{max-width:min(800px,100%);width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #425267}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:#536ed8;border:2px solid #c9d0ff;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+  #phasecue[data-phase="done"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#778ca2}
   #stagecard{
     width:min(800px,100%);background:var(--paper);border-radius:30px;padding:21px;
     box-shadow:0 25px 62px -35px #425267;display:grid;gap:15px;border:1px solid #fff;
@@ -84,6 +92,8 @@
     transition:transform .45s cubic-bezier(.2,.7,.2,1),opacity .2s;filter:drop-shadow(0 3px 4px #0004);
   }
   #ghost.show{opacity:.95}#ghost.tap{animation:tap .34s}@keyframes tap{50%{scale:.78}}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
   #telemetry{
     width:350px;flex:0 0 350px;min-height:100vh;background:var(--tel);color:#c1d0df;
     display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;
@@ -109,12 +119,17 @@
 <body>
 <main id="wrap">
   <div id="badge">QUANT-BUILD-01 · Biggest Number</div>
-  <div id="phasecue">👁️</div>
+  <header id="howto">
+    <h1>How to use — Biggest Number</h1>
+    <p>Watch the pointer solve one example, then try one practice item (not scored). Swap the number cards to build the biggest number the goal asks for (or the smallest, when the goal shows a pit), and follow any rule cards shown. Press the check (<b>✓</b>) to submit. It gets harder each time you are right.</p>
+  </header>
+  <div id="phasecue" data-phase="demo">Watch the example</div>
   <section id="stagecard">
     <div id="landscape"><div id="goal">🏔️</div><div id="buildZone"></div><div id="towerGauge"><div id="towerFill"></div></div></div>
     <div id="rules"></div>
     <div id="controls"><button class="round" id="replay" aria-label="replay demonstration">↻</button><button id="go" aria-label="submit">✓</button></div>
     <div id="progress"></div>
+    <div id="status" class="neutral">Watch the example, then try it yourself.</div>
   </section>
 </main>
 <aside id="telemetry">
@@ -123,7 +138,7 @@
   <div id="mlist"></div>
   <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
 </aside>
-<div id="ghost">👆</div>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s);
@@ -243,6 +258,7 @@ function feedback(correct){
 async function submit(){
   if(locked)return;locked=true;const correct=same(arr,optimal);T.err=correct?'none':errorType();render();feedback(correct);
   if(phase==='warmup'){
+    setStatus('neutral',correct?'\u2713 Optimal - practice':'Practice - the best build is shown');
     log(`WARM-UP ${correct?'optimal':'corrective swap'} · UNSCORED`);
     if(!correct){await sleep(420);arr=optimal.slice();render();feedback(true)}
     await sleep(750);startScored();return;
@@ -250,6 +266,7 @@ async function submit(){
   T.scored++;if(correct){T.correct++;T.maxSolved=Math.max(T.maxSolved,cur.level)}
   if(T.plan==='—')T.plan=correct?'already optimal':'no construction';
   T.results.push(correct?'↑':'↓');T.level=clamp(T.level+(correct?1:-1),1,6);
+  setStatus(correct?'ok':'no',correct?'\u2713 Correct - best number':'\u2717 Not quite - a better number was possible');
   $('#progress').children[scoredIndex].classList.add(correct?'ok':'no');
   log(`SUBMIT level ${cur.level} → ${correct?'OPTIMUM':'MISS '+T.err} · ${T.eff}`);
   renderMeters();scoredIndex++;await sleep(900);scoredIndex<6?startScored():finish();
@@ -261,21 +278,24 @@ function reset(){
   Object.assign(T,{scored:0,correct:0,path:[],eff:'—',plan:'—',err:'—',level:1,startLevel:1,maxSolved:0,results:[],itemStart:0});
   scoredIndex=0;[...$('#progress').children].forEach(x=>x.className='');renderMeters();
 }
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 function loadItem(item,cue){
   cur={...item,digits:item.digits.slice(),initial:item.initial.slice()};arr=cur.initial.slice();optimal=solve(cur);
   selected=-1;firstMove='';locked=false;T.path=[];T.eff=`0 swaps / optimal ${minSwaps(cur.initial,optimal)}`;T.plan='—';T.err='—';T.itemStart=performance.now();
-  $('#phasecue').textContent=cue;$('#landscape').className='';render();log(`${phase.toUpperCase()} · level ${cur.level} · ${cur.label}`);
+  setCue(cue);$('#landscape').className='';render();log(`${phase.toUpperCase()} · level ${cur.level} · ${cur.label}`);
 }
 async function runDemo(){
-  reset();phase='demo';loadItem(DEMO,'👁️');$('#ghost').classList.add('show');log('ghost-hand demo · wordless');
+  reset();phase='demo';loadItem(DEMO,'demo');setStatus('neutral','Watch the example.');$('#ghost').classList.add('show');log('ghost-hand demo · wordless');
   await ghostTo($('#buildZone').children[0]);await ghostTap();selected=0;render();
   await ghostTo($('#buildZone').children[1]);await ghostTap();swap(0,1,true);
   await ghostTo($('#go'));await ghostTap();locked=true;render();feedback(true);
   await sleep(500);$('#ghost').classList.remove('show');startWarmup();
 }
-function startWarmup(){phase='warmup';loadItem(WARM,'⭐')}
-function startScored(){phase='scored';loadItem(ITEMS[T.level-1],'🎯');log(`SCORED ${scoredIndex+1}/6 · ${arr.length} places · ${(cur.unitDiv?1:0)+(cur.odd?1:0)+(cur.fixed?1:0)} constraints`)}
-function finish(){phase='done';locked=true;render();$('#phasecue').textContent='🏆';log(`DONE · ${T.correct}/${T.scored} · peak ${T.maxSolved}`);renderMeters()}
+function startWarmup(){phase='warmup';loadItem(WARM,'warmup');setStatus('neutral','Practice - this one is not scored.')}
+function startScored(){phase='scored';loadItem(ITEMS[T.level-1],'scored');setCue('scored',(scoredIndex+1)+'/6');setStatus('neutral','Swap the cards to reach the goal, then press the check.');log(`SCORED ${scoredIndex+1}/6 · ${arr.length} places · ${(cur.unitDiv?1:0)+(cur.odd?1:0)+(cur.fixed?1:0)} constraints`)}
+function finish(){phase='done';locked=true;render();setCue('done');setStatus('ok','\u2713 Done');log(`DONE · ${T.correct}/${T.scored} · peak ${T.maxSolved}`);renderMeters()}
 $('#buildZone').addEventListener('click',event=>{const slot=event.target.closest('.place');if(slot)choose(+slot.dataset.i)});
 $('#buildZone').addEventListener('dragstart',event=>{const slot=event.target.closest('.place');if(slot)event.dataTransfer.setData('text/plain',slot.dataset.i)});
 $('#buildZone').addEventListener('dragover',event=>{if(event.target.closest('.place'))event.preventDefault()});

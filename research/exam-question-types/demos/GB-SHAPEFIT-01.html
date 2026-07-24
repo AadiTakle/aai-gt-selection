@@ -11,7 +11,15 @@
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:12px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
-  #phasecue{font-size:32px;height:38px}
+  #howto{max-width:640px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:#5b6cff;border:2px solid #c9d0ff;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+  #phasecue[data-phase="done"]{background:#ede6fc;color:#6d3ecf;border-color:#d7c3fb}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
   #stagecard{background:var(--card);border-radius:24px;padding:20px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:14px;max-width:640px;width:100%}
   #grid{display:grid;gap:4px;background:#e5ddf6;padding:8px;border-radius:12px;touch-action:none}
   .cell{width:44px;height:44px;border-radius:8px;background:transparent}
@@ -53,7 +61,11 @@
 <body>
   <div id="wrap">
     <div id="badge">GB-SHAPEFIT-01 · Shape Smith</div>
-    <div id="phasecue">👁️</div>
+    <header id="howto">
+      <h1>How to use — Shape Smith</h1>
+      <p>Watch the pointer solve one example, then try one practice item (not scored). Drag each piece onto the outline (or tap a piece, then tap a square) to fill the whole shape with no gaps; use rotate (R) and flip (F) to turn pieces. Press done (<b>✓</b>) to submit. It gets harder each time you fill it exactly.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
     <div id="stagecard">
       <div id="grid"></div>
       <div id="tray"></div>
@@ -63,6 +75,7 @@
         <button id="flipbtn" title="flip (F)">⇋ flip</button>
         <button id="done" title="submit">✓ done</button>
       </div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
       <div class="hotkeys">hotkeys: R rotate · F flip · drag a piece onto the outline (or tap piece, then tap a cell)</div>
     </div>
   </div>
@@ -72,7 +85,7 @@
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost">👆<span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -242,6 +255,7 @@ function placePieceAt(pieceId,r,c){
   if(!cells){
     T.revisions++;
     log(`✗ piece #${piece.id+1} rejected at (${r+1},${c+1})`);
+    if(phase!=='demo')setStatus('no','\u2717 That piece does not fit there');
     $('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),400);
     return false;
   }
@@ -280,22 +294,25 @@ function submit(auto){
   if(phase==='demo')return;
   const rt=Date.now()-T.itemStart;locked=true;$('#done').classList.remove('ready');
   const exact=filled.size===cur.targetArea;
-  if(phase==='warmup'){log(auto?'warm-up complete — UNSCORED':`warm-up ${T.polyPct}% filled — UNSCORED`);setTimeout(nextPhase,1100);return;}
-  T.scored++;if(exact)T.exact++;T.rts.push(rt);
+  if(phase==='warmup'){setStatus('neutral',exact?'\u2713 Filled - practice':'Practice - not scored');log(auto?'warm-up complete — UNSCORED':`warm-up ${T.polyPct}% filled — UNSCORED`);setTimeout(nextPhase,1100);return;}
+  T.scored++;if(exact)T.exact++;T.rts.push(rt);setStatus(exact?'ok':'no',exact?'\u2713 Correct - shape filled':'\u2717 Not quite - fill every square');
   if(level>=T.maxLevel)T.hardMs=Math.max(T.hardMs,rt);
   T.levelSeries.push(level);T.maxLevel=exact?Math.max(T.maxLevel,level):T.maxLevel;
   level=exact?Math.min(level+1,LEVELS.length-1):Math.max(level-1,0);
   log(`SUBMIT lvl${cur.lvl+1} → ${filled.size}/${cur.targetArea} cells${exact?' EXACT':''} · ${optStr()} · rev ${T.revisions}`);
   renderMeters();setTimeout(nextPhase,1300);
 }
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 function nextPhase(){
   locked=false;
   if(phase==='warmup'){scoredIndex=0;startScored();}
   else if(phase==='scored'){scoredIndex++;scoredIndex<6?startScored():finish();}
 }
-function startWarmup(){phase='warmup';locked=false;$('#phasecue').textContent='\u2b50';renderItem(genItem(0));log('— warm-up (unscored) —');}
-function startScored(){phase='scored';$('#phasecue').textContent='\ud83c\udfaf';renderItem(genItem(level));log(`— SCORED item ${scoredIndex+1}/6 · level ${level+1} —`);}
-function finish(){phase='done';$('#phasecue').textContent='\ud83c\udfc6';locked=true;log(`— DONE · exact ${T.exact}/${T.scored} · ceiling level ${T.maxLevel+1} —`);}
+function startWarmup(){phase='warmup';locked=false;setCue('warmup');setStatus('neutral','Practice - this one is not scored.');renderItem(genItem(0));log('— warm-up (unscored) —');}
+function startScored(){phase='scored';setCue('scored',(scoredIndex+1)+'/6');setStatus('neutral','Fill the whole shape with the pieces, then press done.');renderItem(genItem(level));log(`— SCORED item ${scoredIndex+1}/6 · level ${level+1} —`);}
+function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;log(`— DONE · exact ${T.exact}/${T.scored} · ceiling level ${T.maxLevel+1} —`);}
 
 /* ---------- drag & drop ---------- */
 function gridCellFromPoint(x,y){
@@ -367,7 +384,7 @@ document.addEventListener('keydown',e=>{
 });
 
 async function runDemo(){
-  phase='demo';$('#phasecue').textContent='\ud83d\udc41\ufe0f';locked=true;
+  phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;
   const demoItem={R:3,C:3,lvl:-1,
     targetSet:new Set([key2(0,0),key2(0,1),key2(1,0),key2(1,1)]),targetArea:4,
     pieces:[{id:0,offsets:[[0,0],[1,0]],color:COLORS[0]},{id:1,offsets:[[0,0],[0,1]],color:COLORS[1]}],

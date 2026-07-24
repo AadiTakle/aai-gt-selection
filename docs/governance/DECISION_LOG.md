@@ -200,6 +200,19 @@ Each decision must include the requirements served, alternatives considered, evi
 - **Owner:** Team lead
 - **Relationship to prior decisions:** Operationalizes D-008’s review mechanics, D-010’s claim/remedy boundaries, and D-013’s account/application lifecycle; it does not change Track A policy, allocation, causal evaluation, or production authorization.
 
+### D-017 — Baseline reading literacy is a required capability for the in-house screener (reading barrier; no audio)
+
+- **Date:** 2026-07-24
+- **Status:** Proposed (awaiting team-lead ratification)
+- **Decision:** Treat baseline reading literacy as part of the capability the in-house adaptive screener requires, not as construct-irrelevant variance to be mitigated. All question-type instructions and stimuli are delivered as on-screen TEXT only — **never audio** — and a child who cannot read/understand the grade-appropriate text is intentionally screened out, on the rationale that the target program (reading-based, self-paced Timeback) would not have worked for a non-reader. K-1 is retained wherever a task can be conveyed in very simple, high-frequency words a beginning reader can interpret; the K-1 band is removed from types whose K-1 access previously depended on audio narration of language the child must comprehend (CX-sjt-01, VER-CLOZE-01, VER-EVIDENCE-01, VER-POLYSEME-01 → floor raised to grade 2). The barrier is hard: no audio, ELL, or 2e/dyslexia accommodations within the screener.
+- **Requirements served:** R5 (defensible capability-to-benefit standard), R11 (scalable/tunable screener).
+- **In tension with:** H4 (broaden who can demonstrate ability) and the charter's "capability, not privilege" / rights-before-research principles — a reading gate has foreseeable disparate impact by reading ability, which correlates with ELL status, SES, age, and disability (2e/dyslexia). Acceptable only if literacy is genuinely required to benefit from the program; must be stated, monitored for adverse impact, and never conflated with general ability.
+- **Alternatives considered:** (a) Keep the prior wordless/audio-supported design (reading as construct-irrelevant variance to minimize) — rejected per the reading-based-program rationale; (b) drop K-1 entirely — rejected in favor of retaining K-1 with very simple language where feasible; (c) provide audio/ELL/2e accommodations — rejected for the screener per the hard-barrier direction (accommodation/alternate-pathway deferred).
+- **Evidence:** E-071 (Crystal Martel stakeholder claim that Timeback requires baseline literacy, from the 2026-07-23 interview per team direction; the interview summary is not yet transcribed into the repo, so this is her belief/claim pending verification). No independent evidence yet establishes the specific literacy floor or that a reading gate does not exclude capable non-readers who could benefit.
+- **Consequences:** `research/exam-question-types/DEMO_REBUILD_GUIDE.md` §3/§3b updated (reading required, no audio); catalog specs updated (reading policy on all 66 types; K-1 removed from the 4 audio-dependent verbal-comprehension types); demos present instructions as text. Born-synthetic status unchanged (`synthetic_only=true`, `validated=false`). Does NOT establish a validated cut, an accommodations policy, or legal/fairness clearance; an adverse-impact/DIF review and an accommodations/alternate-pathway decision remain open follow-ups.
+- **Owner:** Proposed by product direction (session 2026-07-24); requires team-lead ratification.
+- **Governance note:** This log currently ends at D-014, but the exam workstream references D-015 (Timeback-fit target) and D-016 (adaptive screener) in `research/exam-question-types/METRIC_FRAMEWORK.md`; those entries are not yet transcribed here. This entry uses D-017 to avoid collision; transcribing D-015/D-016 and reconciling the canonical log are open governance tasks.
+
 ## Entry template
 
 ### D-XXX — Decision title

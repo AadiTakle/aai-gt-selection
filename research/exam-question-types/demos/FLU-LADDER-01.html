@@ -23,7 +23,15 @@ body{
   align-items:center;gap:9px;
 }
 #badge{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#818ba9}
-#phasecue{height:37px;font-size:31px}
+#howto{max-width:600px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--indigo);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+#howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--indigo)}
+#howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+#phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:var(--indigo);border:2px solid #c9d0ff;min-height:30px}
+#phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+#phasecue[data-phase="scored"]{background:var(--indigo);color:#fff;border-color:var(--indigo)}
+#phasecue[data-phase="done"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
+#status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+#status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
 #stagecard{
   width:min(700px,100%);background:var(--paper);border-radius:28px;padding:17px;
   box-shadow:0 24px 58px -35px #303a74;display:flex;flex-direction:column;
@@ -73,6 +81,8 @@ button:focus-visible,.rung:focus-visible{outline:4px solid #168dff;outline-offse
   transition:transform .45s cubic-bezier(.2,.7,.2,1),opacity .2s;filter:drop-shadow(0 4px 4px #0004);
 }
 #ghost.show{opacity:1}
+#ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--indigo);opacity:0}
+#ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
 #telemetry{
   width:335px;flex:0 0 335px;min-height:100vh;background:var(--tel);
   color:#cbd8ff;display:flex;flex-direction:column;
@@ -105,7 +115,11 @@ button:focus-visible,.rung:focus-visible{outline:4px solid #168dff;outline-offse
 <body>
 <main id="wrap">
   <div id="badge">FLU-LADDER-01 · Ranking Ladder</div>
-  <div id="phasecue">👁️</div>
+  <header id="howto">
+    <h1>How to use — Ranking Ladder</h1>
+    <p>Read the clues showing which animal ranks higher. Tap an animal, then tap a ladder rung to place it (rung 1 is the top); fill every rung, then press the check (<b>✓</b>) to submit. You can also use number keys for animals and Q–Y for rungs. It gets harder each time you are right.</p>
+  </header>
+  <div id="phasecue" data-phase="demo">Watch the example</div>
   <section id="stagecard">
     <div id="clues"></div>
     <div id="work">
@@ -116,6 +130,7 @@ button:focus-visible,.rung:focus-visible{outline:4px solid #168dff;outline-offse
       <button id="replay" aria-label="replay">↻</button>
       <button id="submit" aria-label="check ranking">✓</button>
     </div>
+    <div id="status" class="neutral">Watch the example, then try it yourself.</div>
   </section>
 </main>
 <aside id="telemetry">
@@ -127,12 +142,12 @@ button:focus-visible,.rung:focus-visible{outline:4px solid #168dff;outline-offse
   <div id="mlist"></div>
   <div id="logwrap"><b>EVENT LOG · 1–6 THEN Q–Y</b><div id="log"></div></div>
 </aside>
-<div id="ghost">👆</div>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-const MEDALS=['🥇','🥈','🥉','4','5','6'],RUNG_KEYS=['q','w','e','r','t','y'];
+const MEDALS=['1','2','3','4','5','6'],RUNG_KEYS=['q','w','e','r','t','y'];
 const PEOPLE=[
   {id:'rabbit',icon:'🐰',color:'#f2a8c2'},{id:'owl',icon:'🦉',color:'#9a72d8'},
   {id:'fox',icon:'🦊',color:'#ec8b4c'},{id:'turtle',icon:'🐢',color:'#49b887'},
@@ -143,6 +158,9 @@ const T={
   path:[],errors:[],maxSolved:0,itemStart:Date.now(),firstMove:null,blurred:false
 };
 let phase='demo',level=1,scoredIndex=0,item=null,seats=[],selected=null,locked=true,itemMoves=[];
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 function rotate(a,k){return a.slice(k).concat(a.slice(0,k));}
 function seededShuffle(a,seed){
   const out=[...a];for(let i=out.length-1;i>0;i--){const j=(seed*17+i*11)% (i+1);[out[i],out[j]]=[out[j],out[i]];}return out;
@@ -259,6 +277,8 @@ function submit(){
   if(seats.includes(null)||locked)return;
   locked=true;const exact=seats.every((id,i)=>id===item.order[i].id),rules=relationsSatisfied();
   $$('.rung').forEach((r,i)=>r.classList.add(seats[i]===item.order[i].id?'good':'bad'));
+  if(phase==='warmup')setStatus(exact?'ok':'no',exact?'✓ Correct - practice':'✗ Not quite - the green rungs are correct (practice)');
+  else setStatus(exact?'ok':'no',exact?'✓ Correct':'✗ Not quite - the green rungs are in the right spot');
   if(phase==='scored'){
     T.n++;if(exact){T.acc++;T.ruleMax=Math.max(T.ruleMax,item.n-1);}
     else{T.ruleMax=Math.max(T.ruleMax,rules);T.errors.push(errorType());}
@@ -277,15 +297,16 @@ function advance(){
 function start(kind){
   phase=kind;locked=false;T.itemStart=Date.now();T.firstMove=null;T.blurred=false;
   item=makeItem(kind==='warmup'?1:level);renderItem();
-  $('#phasecue').textContent=kind==='warmup'?'⭐':'🎯';
+  if(kind==='warmup'){setCue('warmup');setStatus('neutral','Practice - this one is not scored.');}
+  else{setCue('scored',(scoredIndex+1)+'/6');setStatus('neutral','Place every animal on the ladder, then submit.');}
   log(`— ${kind==='warmup'?'WARM-UP · UNSCORED':`SCORED ${scoredIndex+1}/6 · level ${level}`} —`);
   renderMeters();
 }
 function startWarmup(){start('warmup');}
 function startScored(){start('scored');}
 function finish(){
-  phase='done';locked=true;$('#phasecue').textContent='🏆';
-  $('#stagecard').innerHTML='<div style="font-size:98px;padding:58px 0">🏆</div><button id="again" class="chip" aria-label="again">↻</button>';
+  phase='done';locked=true;setCue('done');setStatus('ok','✓ Done');
+  $('#stagecard').innerHTML='<div style="font-size:34px;font-weight:800;padding:56px 0;color:var(--good)">✓ Done</div><button id="again" class="chip" aria-label="again">↻</button>';
   $('#again').onclick=()=>location.reload();log(`— DONE · exact ${T.acc}/${T.n} · peak ${T.maxSolved} —`);
 }
 const ghost=$('#ghost');
@@ -295,7 +316,7 @@ async function ghostTo(el){
 }
 async function runDemo(){
   phase='demo';locked=true;T.itemStart=Date.now();item=makeItem(1,true);renderItem();
-  $('#phasecue').textContent='👁️';ghost.classList.add('show');log('wordless transitive chain');
+  setCue('demo');setStatus('neutral','Watch the example.');ghost.classList.add('show');log('wordless transitive chain');
   for(const clue of $$('.clue')){await ghostTo(clue);clue.classList.add('hi');await sleep(170);clue.classList.remove('hi');}
   for(let i=0;i<item.order.length;i++){
     const chip=$(`.chip[data-id="${item.order[i].id}"]`),rung=$$('.rung')[i];

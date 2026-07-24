@@ -10,9 +10,17 @@
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#a08060;text-transform:uppercase;font-weight:700}
-  #phasecue{font-size:34px;height:40px;line-height:40px}
+  #howto{max-width:600px;width:100%;background:#fff;border:1px solid #ffdcb0;border-left:5px solid #c06a2a;border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #7a4a3a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:#c06a2a}
+  #howto p{margin:0;font-size:14px;color:#5a4a3a;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#ffe6d0;color:#c06a2a;border:2px solid #ffcfa6;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:#c06a2a;color:#fff;border-color:#c06a2a}
+  #phasecue[data-phase="done"]{background:#ffedd8;color:#9a531f;border-color:#ffcfa6}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#a08060}
   #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #7a4a3a;display:flex;flex-direction:column;align-items:center;gap:16px;max-width:640px;width:100%}
-  #speaker{font-size:44px}
+  #speaker{font-size:15px;font-weight:800;color:#a06a3a;letter-spacing:.02em}
   #cards{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
   .fcard{background:#fff8ee;border:3px solid #ffdcb0;border-radius:16px;padding:14px 16px;width:150px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:.15s}
   .fcard:hover{border-color:var(--accent);transform:translateY(-2px)}
@@ -25,6 +33,7 @@
   #controls{display:flex;gap:16px;align-items:center}
   button{font:inherit;border:0;cursor:pointer;border-radius:50%}
   #replay{width:50px;height:50px;background:#ffe6d0;color:#c06a2a;font-size:22px}
+  #hintbtn{width:auto;height:44px;padding:0 16px;font-size:14px;font-weight:800;border-radius:22px}
   .shake{animation:shake .4s}@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
   #ghost{position:fixed;left:0;top:0;font-size:40px;pointer-events:none;z-index:60;opacity:0;transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
   #ghost.show{opacity:.92}
@@ -46,14 +55,19 @@
 <body>
   <div id="wrap">
     <div id="badge">GB-FLAWFINDER-01 · Fib Finder</div>
-    <div id="phasecue">🕵️</div>
+    <header id="howto">
+      <h1>How to use — Fib Finder</h1>
+      <p>Read all the parts of the sentence. Tap the one part that <b>cannot be true</b>. Tap <b>Hint</b> if you get stuck.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
     <div id="stagecard">
-      <div id="speaker">🦉</div>
+      <div id="speaker">Which part can't be true?</div>
       <div id="cards"></div>
       <div id="controls">
         <button id="replay" title="replay">↻</button>
-        <button id="hintbtn" title="hint">💡</button>
+        <button id="hintbtn" title="hint">Hint</button>
       </div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
     </div>
   </div>
   <aside id="telemetry">
@@ -61,7 +75,7 @@
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost">👆<span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#ff6b6b" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -120,6 +134,7 @@ function onTap(id){if(locked||phase==='demo'||phase==='done')return;
   const rt=Date.now()-T.itemStart;const correct=id===cur.flaw;
   $$('#cards .fcard').forEach(el=>{const pid=+el.dataset.id;el.classList.add(pid===cur.flaw?'correct':(pid===id?'wrong':'dim'));});
   locked=true;
+  setStatus(correct?'ok':'no',phase==='warmup'?(correct?'\u2713 Correct - practice':'\u2717 Not quite - practice'):(correct?'\u2713 Correct':'\u2717 Not quite - the impossible part is highlighted'));
   if(!correct){$('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),400);T.lureHits++;
     T.errTypes[cur.type]=(T.errTypes[cur.type]||0)+1;}
   log(`tap "${cur.parts[id].lb}" \u2192 ${correct?'CORRECT flaw':'not the flaw'}${hintUsed?' (after hint)':''}`);
@@ -129,19 +144,21 @@ function onTap(id){if(locked||phase==='demo'||phase==='done')return;
 }
 
 /* ---------- flow ---------- */
-function setCue(i){$('#phasecue').textContent=i;}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 function newItem(l){cur=genItem(l);hintUsed=false;T.itemStart=Date.now();paintCards();locked=false;renderMeters();}
 function nextPhase(){locked=false;
   if(phase==='warmup'){startScored();}
   else if(phase==='scored'){T.roundIdx=(T.roundIdx||0)+1;T.roundIdx<6?startScored():finish();}
 }
-function startWarmup(){phase='warmup';setCue('\u2b50');newItem(1);log('— warm-up (unscored): tap the part that cannot be true —');}
-function startScored(){phase='scored';setCue('\ud83c\udfaf');newItem(level);log(`— SCORED item (level ${level}, ${level<=2?'absurdity':'logical gap'}) —`);}
-function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;log(`— DONE \u00b7 flaws found ${T.exact}/${T.scored} \u00b7 max level ${maxLevel} —`);}
+function startWarmup(){phase='warmup';setCue('warmup');setStatus('neutral','Practice - this one is not scored.');newItem(1);log('— warm-up (unscored): tap the part that cannot be true —');}
+function startScored(){phase='scored';setCue('scored',((T.roundIdx||0)+1)+'/6');setStatus('neutral','Tap the one part that cannot be true.');newItem(level);log(`— SCORED item (level ${level}, ${level<=2?'absurdity':'logical gap'}) —`);}
+function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;log(`— DONE \u00b7 flaws found ${T.exact}/${T.scored} \u00b7 max level ${maxLevel} —`);}
 function useHint(){if(locked||phase==='demo'||phase==='done'||hintUsed)return;hintUsed=true;T.hints++;
   const el=$(`.fcard[data-id="${cur.flaw}"]`);el.style.transform='scale(1.06)';el.style.borderColor='#ffb15e';
-  log('hint used: flawed card highlighted');renderMeters();}
-async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;
+  setStatus('neutral','Hint - look closely at the highlighted part.');log('hint used: flawed card highlighted');renderMeters();}
+async function runDemo(){phase='demo';setCue('demo');setStatus('neutral','Watch the example, then try it yourself.');locked=true;
   cur=ABSURD[0];paintCards();log('ghost-hand demo (wordless, <10s)');ghostShow(true);await sleep(300);
   await ghostTo($(`.fcard[data-id="${cur.flaw}"]`));await ghostTap();
   $$('#cards .fcard').forEach(el=>{const pid=+el.dataset.id;el.classList.add(pid===cur.flaw?'correct':'dim');});

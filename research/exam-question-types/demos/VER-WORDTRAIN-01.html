@@ -10,7 +10,15 @@
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
-  #phasecue{font-size:34px;height:40px;line-height:40px}
+  #howto{max-width:680px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:#5b6cff;border:2px solid #c9d0ff;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:#5b6cff;color:#fff;border-color:#5b6cff}
+  #phasecue[data-phase="done"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
   #stagecard{background:var(--card);border-radius:26px;padding:24px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:16px;max-width:680px;width:100%}
   .band{border-radius:16px;padding:14px 18px;display:flex;flex-direction:column;gap:10px;align-items:center;width:100%}
   #trackBand{background:linear-gradient(160deg,#eafaf1,#eef1ff);border:3px solid #bfe8cf;min-height:74px}
@@ -57,15 +65,20 @@
 <body>
   <div id="wrap">
     <div id="badge">VER-WORDTRAIN-01 · Word Train</div>
-    <div id="phasecue">👁️</div>
+    <header id="howto">
+      <h1>How to use — Word Train</h1>
+      <p>Some of the word cards belong together in one group. Tap the cards that belong (leave out the ones that do not) to add them to the train, then press the check (<b>✓</b>). You can also press number keys.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
     <div id="stagecard">
       <div id="trackBand" class="band"><div id="track"><span class="engine">🚂</span></div></div>
       <div id="poolBand" class="band"><div id="pool"></div></div>
-      <div id="diffmeter">🌱<div id="diffbar"><i id="diffbarfill"></i></div>🌳</div>
+      <div id="diffmeter"><span>Easy</span><div id="diffbar"><i id="diffbarfill"></i></div><span>Hard</span></div>
       <div id="controls">
         <button class="rd" id="replay" title="replay demo">↻</button>
         <button class="rd" id="go" title="submit">✓</button>
       </div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
     </div>
   </div>
   <aside id="telemetry">
@@ -73,7 +86,7 @@
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost">👆<span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -122,25 +135,28 @@ function renderItem(item){cur=item;pool=buildPool(item);added=[];T.itemStart=Dat
 function addCard(i){if(locked||!cur)return;const c=pool[i];const el=$$('#pool .card')[i];if(el.classList.contains('used'))return;
   T.taps++;T.path.push(c.wd);
   if(c.fit){el.classList.add('used');added.push(c);const car=document.createElement('span');car.className='car';car.innerHTML=`<span>${c.ic}</span>`;$('#track').appendChild(car);}
-  else{el.classList.add('wrongFlash');setTimeout(()=>el.classList.remove('wrongFlash'),380);added.push({...c,wrong:true});}
+  else{el.classList.add('wrongFlash');setTimeout(()=>el.classList.remove('wrongFlash'),380);added.push({...c,wrong:true});if(phase!=='demo')setStatus('no','\u2717 That word does not belong.');}
   $('#go').classList.toggle('ready',added.filter(a=>a.fit).length>0);
   renderMeters();}
 function finishRound(){if(!$('#go').classList.contains('ready'))return;locked=true;$('#go').classList.remove('ready');
   const correctIn=added.filter(a=>a.fit).length,wrongIn=added.filter(a=>!a.fit).length;
   const poly=Math.max(0,(correctIn-wrongIn))/cur.fit.length;const full=(correctIn===cur.fit.length&&wrongIn===0);
-  if(phase==='warmup'){log(`warm-up: ${correctIn}/${cur.fit.length} correct, ${wrongIn} wrong — UNSCORED`);setTimeout(nextPhase,1300);return;}
+  if(phase==='warmup'){setStatus(full?'ok':'no',full?'\u2713 Correct - practice':'\u2717 Some cars are wrong - practice');log(`warm-up: ${correctIn}/${cur.fit.length} correct, ${wrongIn} wrong — UNSCORED`);setTimeout(nextPhase,1300);return;}
   T.scored++;T.polys.push(poly);if(full){T.fullCredit++;T.maxLevel=Math.max(T.maxLevel,level);T.bestVocab=Math.max(T.bestVocab,cur.vocab);}
+  setStatus(full?'ok':'no',full?'\u2713 Correct':'\u2717 Not quite - only matching words belong');
   log(`ROUND L${level} [${cur.rel}] \u2192 ${correctIn}/${cur.fit.length} correct, ${wrongIn} wrong \u00b7 poly ${poly.toFixed(2)}${full?' FULL':''}`);
   level=full?Math.min(6,level+1):Math.max(1,level-1);
   renderMeters();setTimeout(nextPhase,1400);}
 const TOTAL_SCORED=6;let phase='demo',scoredIndex=0;
-function setCue(i){$('#phasecue').textContent=i;}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');if(!el)return;el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 function nextPhase(){locked=false;if(phase==='warmup'){scoredIndex=0;startScored();}
   else if(phase==='scored'){scoredIndex++;scoredIndex<TOTAL_SCORED?startScored():finish();}}
-function startWarmup(){phase='warmup';locked=false;setCue('\u2b50');level=1;renderItem(byLevel(1));log('— warm-up (unscored) —');}
-function startScored(){phase='scored';setCue('\ud83c\udfaf');renderItem(byLevel(level));log(`— SCORED round ${scoredIndex+1}/${TOTAL_SCORED} · level ${level} [${byLevel(level).rel}] —`);}
-function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;log(`— DONE · full-credit rounds ${T.fullCredit}/${T.scored} · ceiling L${T.maxLevel} —`);renderMeters();}
-async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;
+function startWarmup(){phase='warmup';locked=false;setCue('warmup');setStatus('neutral','Practice - this one is not scored.');level=1;renderItem(byLevel(1));log('— warm-up (unscored) —');}
+function startScored(){phase='scored';setCue('scored',(scoredIndex+1)+'/'+TOTAL_SCORED);setStatus('neutral','Tap only the words that belong, then press the check.');renderItem(byLevel(level));log(`— SCORED round ${scoredIndex+1}/${TOTAL_SCORED} · level ${level} [${byLevel(level).rel}] —`);}
+function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;log(`— DONE · full-credit rounds ${T.fullCredit}/${T.scored} · ceiling L${T.maxLevel} —`);renderMeters();}
+async function runDemo(){phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;
   const item=byLevel(1);renderItem(item);log('ghost-hand demo (wordless, <10s)');ghostShow(true);await sleep(300);
   for(let i=0;i<pool.length;i++){if(pool[i].fit){const el=$$('#pool .card')[i];await ghostTo(el);await ghostTap();addCard(i);await sleep(150);}}
   await sleep(300);await ghostTo($('#go'));await ghostTap();finishRound();

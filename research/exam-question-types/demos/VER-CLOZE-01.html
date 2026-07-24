@@ -10,14 +10,21 @@
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
-  #phasecue{font-size:34px;height:40px;line-height:40px}
+  #howto{max-width:660px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:#5b6cff;border:2px solid #c9d0ff;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:#5b6cff;color:#fff;border-color:#5b6cff}
+  #phasecue[data-phase="done"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
   #stagecard{background:var(--card);border-radius:26px;padding:24px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:18px;max-width:660px;width:100%}
   .band{border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;align-items:center;width:100%}
   #sentBand{background:linear-gradient(160deg,#e8f0ff,#f2ecff);border:3px solid #cfd8ff}
   #sentText{font-size:22px;text-align:center;line-height:1.6}
   #sentText .blank{display:inline-block;min-width:70px;padding:2px 10px;border-bottom:3px dashed var(--accent);color:var(--accent);font-weight:800;text-align:center}
   #sentText .filled{border-bottom:3px solid var(--good);color:var(--ink)}
-  .speak{border:0;background:#dfe6ff;color:#5b6cff;border-radius:50%;width:34px;height:34px;font-size:16px;cursor:pointer}
   #optsBand{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
   .opt{display:flex;flex-direction:column;align-items:center;gap:6px;background:#f4f6ff;border:3px solid #d7deff;border-radius:16px;padding:12px 16px;cursor:pointer;min-width:96px;transition:.12s;position:relative}
   .opt:hover{border-color:#b9c2ee;transform:translateY(-2px)}
@@ -54,17 +61,21 @@
 <body>
   <div id="wrap">
     <div id="badge">VER-CLOZE-01 · Fill the Gap</div>
-    <div id="phasecue">👁️</div>
+    <header id="howto">
+      <h1>How to use — Fill the Gap</h1>
+      <p>Watch the pointer solve one example, then try one practice item (not scored). Read the sentence and tap the word that best fills the blank. It gets harder each time you are right.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
     <div id="stagecard">
       <div id="sentBand" class="band">
-        <button class="speak" id="speak" title="hear it">🔊</button>
         <div id="sentText"></div>
       </div>
       <div id="optsBand"></div>
-      <div id="diffmeter">🌱<div id="diffbar"><i id="diffbarfill"></i></div>🌳</div>
+      <div id="diffmeter"><span>Easy</span><div id="diffbar"><i id="diffbarfill"></i></div><span>Hard</span></div>
       <div id="controls">
         <button class="rd" id="replay" title="replay demo">↻</button>
       </div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
     </div>
   </div>
   <aside id="telemetry">
@@ -72,13 +83,12 @@
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost">👆<span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0,last=a=>a[a.length-1];
-function say(text){try{if(!window.speechSynthesis)return;const u=new SpeechSynthesisUtterance(text);u.rate=0.95;speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){}}
 
 /* ---------- item bank (levels 1-6, 2 parallel forms per level) ---------- */
 const INF_RANK={local:0,global:1,'global-connotation':2,'global-logic':3};
@@ -141,7 +151,6 @@ let cur=null,level=1,locked=false;
 function renderItem(item,speakIt){cur=item;T.itemStart=Date.now();T.firstActionAt=null;
   $('#sentText').innerHTML=`${item.pre} <span class="blank" id="blankSpan">▢</span> ${item.post}`;
   $('#optsBand').innerHTML=item.opts.map((o,i)=>`<div class="opt" data-i="${i}"><span class="hk">${i+1}</span><span class="ic">${o.ic}</span><span class="wd">${o.wd}</span></div>`).join('');
-  if(speakIt)say(item.pre+' blank '+item.post);
   renderMeters();}
 function markFirstAction(){if(T.firstActionAt===null){T.firstActionAt=Date.now();T.firstRt.push(T.firstActionAt-T.itemStart);}}
 function pick(i,fromGhost){if(locked||!cur)return;markFirstAction();
@@ -151,11 +160,11 @@ function pick(i,fromGhost){if(locked||!cur)return;markFirstAction();
   $('#blankSpan').textContent=cur.opts[i].ic+' '+cur.opts[i].wd;$('#blankSpan').classList.add('filled');
   if(!exact){$('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),450);
     const c=$$('#optsBand .opt')[cur.correct];c.classList.add('correct');}
-  say(cur.pre+' '+cur.opts[cur.correct].wd+' '+cur.post);
   return exact;}
 function submitAnswer(i){if(locked||!cur)return;const rt=Date.now()-T.itemStart;const exact=pick(i);locked=true;
-  if(phase==='warmup'){log('warm-up '+(exact?'correct':'try again — shown correct')+' — UNSCORED');setTimeout(nextPhase,1300);return;}
+  if(phase==='warmup'){setStatus(exact?'ok':'no',exact?'\u2713 Correct - practice':'\u2717 Not quite - the correct word is highlighted (practice)');log('warm-up '+(exact?'correct':'try again — shown correct')+' — UNSCORED');setTimeout(nextPhase,1300);return;}
   T.scored++;T.rts.push(rt);if(exact)T.exact++;
+  setStatus(exact?'ok':'no',exact?'\u2713 Correct':'\u2717 Not quite - the correct word is highlighted');
   (T.levelHits[level]=T.levelHits[level]||[]).push(exact?1:0);
   if(exact){T.maxLevel=Math.max(T.maxLevel,level);T.bestVocab=Math.max(T.bestVocab,cur.vocab);
     const r=INF_RANK[cur.inf];if(r>T.bestInfRank){T.bestInfRank=r;T.bestInf=cur.inf;}}
@@ -166,12 +175,14 @@ function nextPhase(){locked=false;if(phase==='warmup'){scoredIndex=0;startScored
   else if(phase==='scored'){scoredIndex++;scoredIndex<TOTAL_SCORED?startScored():finish();}}
 const TOTAL_SCORED=6;
 let phase='demo',scoredIndex=0;
-function setCue(i){$('#phasecue').textContent=i;}
-function startWarmup(){phase='warmup';locked=false;setCue('\u2b50');level=1;renderItem(pickItem(1),false);log('— warm-up (unscored) —');}
-function startScored(){phase='scored';setCue('\ud83c\udfaf');T.startLevel=T.startLevel||level;renderItem(pickItem(level),false);
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+function startWarmup(){phase='warmup';locked=false;setCue('warmup');setStatus('neutral','Practice - this one is not scored.');level=1;renderItem(pickItem(1),false);log('— warm-up (unscored) —');}
+function startScored(){phase='scored';setCue('scored',(scoredIndex+1)+'/'+TOTAL_SCORED);setStatus('neutral','Read the sentence and tap the best word.');T.startLevel=T.startLevel||level;renderItem(pickItem(level),false);
   log(`— SCORED item ${scoredIndex+1}/${TOTAL_SCORED} · level ${level} —`);}
-function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;log(`— DONE · exact ${T.exact}/${T.scored} · ceiling L${T.maxLevel} —`);renderMeters();}
-async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;
+function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;log(`— DONE · exact ${T.exact}/${T.scored} · ceiling L${T.maxLevel} —`);renderMeters();}
+async function runDemo(){phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;
   const item=shuffled(BANK[1][0]);renderItem(item,false);log('ghost-hand demo (wordless, <10s)');
   ghostShow(true);await sleep(300);
   const opt=$$('#optsBand .opt')[item.correct];await ghostTo(opt);opt.classList.add('ghosted');await ghostTap();
@@ -179,7 +190,6 @@ async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;
   T.itemStart=Date.now();startWarmup();}
 $('#optsBand').addEventListener('click',e=>{const o=e.target.closest('.opt');if(o&&!locked&&phase!=='demo'&&phase!=='done')submitAnswer(+o.dataset.i);});
 document.addEventListener('keydown',e=>{if(locked||phase==='demo'||phase==='done')return;const n=+e.key;if(n>=1&&n<=3)submitAnswer(n-1);});
-$('#speak').addEventListener('click',()=>{if(cur)say(cur.pre+' blank '+cur.post);});
 $('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
 T.startLevel=1;
 buildMeters();renderMeters();runDemo();

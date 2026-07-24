@@ -23,7 +23,15 @@ body{
   align-items:center;gap:9px;
 }
 #badge{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#718f94}
-#phasecue{height:37px;font-size:31px}
+#howto{max-width:710px;width:100%;background:#fff;border:1px solid #d8ece9;border-left:5px solid var(--teal);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #234c55}
+#howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--teal)}
+#howto p{margin:0;font-size:14px;color:#3c5a55;line-height:1.5}
+#phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#e7f4f2;color:#1f716c;border:2px solid #bfe6e0;min-height:30px}
+#phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+#phasecue[data-phase="scored"]{background:#25aa9b;color:#fff;border-color:#25aa9b}
+#phasecue[data-phase="done"]{background:#e7f4f2;color:#1f716c;border-color:#bfe6e0}
+#status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+#status.ok{color:#1f9e6f} #status.no{color:var(--pink)} #status.neutral{color:#718f94}
 #stagecard{
   width:min(710px,100%);background:var(--paper);border-radius:30px;padding:18px;
   box-shadow:0 24px 58px -35px #234c55;display:flex;flex-direction:column;
@@ -108,7 +116,11 @@ button:focus-visible{outline:4px solid #168dff;outline-offset:2px}
 <body>
 <main id="wrap">
   <div id="badge">CX-diverge-01 · Brainstorm Blaster</div>
-  <div id="phasecue">👁️</div>
+  <header id="howto">
+    <h1>How to use — Brainstorm Blaster</h1>
+    <p>Look at the object shown and type as many different uses for it as you can — press Enter after each idea. When you have a few, press the check (<b>✓</b>) to go to the next object.</p>
+  </header>
+  <div id="phasecue" data-phase="demo">Watch the example</div>
   <section id="stagecard">
     <div id="promptCard">
       <span id="promptIcon">👟</span><span id="promptWord">shoe</span><span id="spark">✦✦✦</span>
@@ -122,6 +134,7 @@ button:focus-visible{outline:4px solid #168dff;outline-offset:2px}
       <button id="replay" aria-label="replay">↻</button>
       <button id="submit" aria-label="next prompt">✓</button>
     </div>
+    <div id="status" class="neutral">Watch the example, then try it yourself.</div>
   </section>
 </main>
 <aside id="telemetry">
@@ -133,7 +146,7 @@ button:focus-visible{outline:4px solid #168dff;outline-offset:2px}
   <div id="mlist"></div>
   <div id="logwrap"><b>EVENT LOG · TYPE + ENTER</b><div id="log"></div></div>
 </aside>
-<div id="ghost">👆</div>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s);
@@ -204,6 +217,9 @@ const T={
 };
 let phase='demo',level=1,scoredIndex=0,prompt=DEMO,current=[],currentCats=new Set();
 let required=2,locked=true;
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');if(!el)return;el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 function normalize(text){
   return text.toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\b(a|an|the|to|for|as)\b/g,' ').replace(/\s+/g,' ').trim();
 }
@@ -265,6 +281,7 @@ function addIdea(text,fromDemo=false){
   const scored=scoreText(text);
   if(isDuplicate(scored.norm)){
     $('#idea').style.borderColor='var(--pink)';setTimeout(()=>$('#idea').style.borderColor='',350);
+    if(!fromDemo)setStatus('no','\u2717 Too similar - try a different idea.');
     log(`near-duplicate ignored · "${text}"`);return false;
   }
   const words=text.split(/\s+/).filter(Boolean).length,entry={text,...scored,words,time:Date.now()-T.itemStart};
@@ -275,13 +292,14 @@ function addIdea(text,fromDemo=false){
   }
   bubble(text,entry.category,entry.originality>=92);
   $('#combo').textContent=currentCats.size>1?`✦ ${currentCats.size} kinds`:'';
+  if(!fromDemo)setStatus('neutral',`${current.length} idea${current.length===1?'':'s'} so far${current.length>=required?' - press the check when ready':''}`);
   log(`${phase==='scored'?'idea':'practice'} · "${text}" · ${entry.category} · orig ${entry.originality}`);
   $('#submit').classList.toggle('ready',current.length>=required);touch();return true;
 }
 function submit(){
   if(!$('#submit').classList.contains('ready')||locked)return;
   locked=true;touch();
-  if(phase==='warmup'){log('warm-up prompt · UNSCORED');setTimeout(startScored,650);return;}
+  if(phase==='warmup'){setStatus('neutral','Practice - not scored.');log('warm-up prompt · UNSCORED');setTimeout(startScored,650);return;}
   const success=current.length>=3&&currentCats.size>=2;
   log(`prompt auto-score · fluency ${current.length} · flexibility ${currentCats.size} · mean originality ${Math.round(current.reduce((s,x)=>s+x.originality,0)/current.length)}`);
   T.activeMs+=Date.now()-T.activeStart;prompt.result=success;phase='between';setTimeout(nextItem,700);
@@ -305,17 +323,17 @@ function resetPrompt(next,kind){
   $('#idea').focus();renderMeters();
 }
 function startWarmup(){
-  phase='warmup';resetPrompt(WARM,'warmup');$('#phasecue').textContent='⭐';
+  phase='warmup';resetPrompt(WARM,'warmup');setCue('warmup');setStatus('neutral','Practice - this one is not scored.');
   log('— WARM-UP · UNSCORED PROMPT —');
 }
 function startScored(){
-  phase='scored';T.activeStart=Date.now();resetPrompt(pickPrompt(),'scored');$('#phasecue').textContent='🎯';
+  phase='scored';T.activeStart=Date.now();resetPrompt(pickPrompt(),'scored');setCue('scored',(scoredIndex+1)+'/5');setStatus('neutral','Type different uses, then press the check.');
   log(`— SCORED ${scoredIndex+1}/5 · level ${level} · ${prompt.word} —`);
 }
 function finish(){
   if(phase==='scored'&&document.hasFocus())T.activeMs+=Date.now()-T.activeStart;
-  phase='done';locked=true;$('#phasecue').textContent='🏆';
-  $('#stagecard').innerHTML='<div style="font-size:100px;padding:70px 0">💡</div><button id="again" style="width:58px;height:50px;border:0;border-radius:16px;font-size:22px" aria-label="again">↻</button>';
+  phase='done';locked=true;setCue('done');setStatus('ok','\u2713 Done');
+  $('#stagecard').innerHTML='<div style="font-size:96px;padding:70px 0;color:#1f9e6f;font-weight:900">\u2713</div><button id="again" style="width:58px;height:50px;border:0;border-radius:16px;font-size:22px" aria-label="again">↻</button>';
   $('#again').onclick=()=>location.reload();
   log(`— DONE · fluency ${T.ideas} · flexibility ${T.categories.size} · originality ${originality()} —`);renderMeters();
 }
@@ -330,7 +348,7 @@ async function typeGhost(text){
 }
 async function runDemo(){
   phase='demo';locked=false;prompt=DEMO;current=[];currentCats=new Set();required=3;T.itemStart=Date.now();
-  $('#phasecue').textContent='👁️';$('#promptIcon').textContent=prompt.icon;$('#promptWord').textContent=prompt.word;
+  setCue('demo');setStatus('neutral','Watch the example.');$('#promptIcon').textContent=prompt.icon;$('#promptWord').textContent=prompt.word;
   $('#submit').classList.remove('ready');ghost.classList.add('show');log('wordless typed-idea demo');
   await ghostTo($('#idea'));await typeGhost('hammer');
   await ghostTo($('#idea'));await typeGhost('tiny boat');

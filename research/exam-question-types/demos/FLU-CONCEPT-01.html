@@ -26,7 +26,15 @@ body{
   color:#7e88a8;font-size:12px;font-weight:800;letter-spacing:.1em;
   text-transform:uppercase;
 }
-#phasecue{height:38px;font-size:32px}
+#howto{max-width:650px;width:100%;background:#fff;border:1px solid #dfe4f3;border-left:5px solid var(--violet);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #313a75}
+#howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--violet)}
+#howto p{margin:0;font-size:14px;color:#454e73;line-height:1.5}
+#phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#edf0ff;color:var(--violet);border:2px solid #cfd5ff;min-height:30px}
+#phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+#phasecue[data-phase="scored"]{background:var(--violet);color:#fff;border-color:var(--violet)}
+#phasecue[data-phase="done"]{background:#edf0ff;color:#3a3aa0;border-color:#cfd5ff}
+#status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+#status.ok{color:var(--mint)} #status.no{color:var(--coral)} #status.neutral{color:#8a93b5}
 #stagecard{
   width:min(650px,100%);background:var(--paper);border:1px solid #fff;
   border-radius:28px;padding:18px;box-shadow:0 24px 60px -35px #313a75;
@@ -73,7 +81,7 @@ body{
 #probeButtons{display:flex;gap:14px}
 .gateChoice{
   width:112px;height:70px;border-radius:18px;border:3px solid var(--line);
-  background:#fff;font-size:30px;cursor:pointer;
+  background:#fff;font-size:15px;font-weight:800;cursor:pointer;
 }
 .gateChoice:hover{border-color:var(--violet);transform:translateY(-2px)}
 #tools{display:flex;gap:10px;align-items:center}
@@ -84,6 +92,7 @@ body{
 #send,#know{width:76px!important;background:var(--violet)!important;color:#fff!important}
 #know{background:var(--gold)!important;color:#594000!important}
 #hint{background:#fff5cf!important;color:#9b7100!important}
+#hint,#know{font-size:13px!important}
 button:focus-visible{outline:4px solid #2a8fff;outline-offset:2px}
 #ghost{
   position:fixed;left:0;top:0;opacity:0;z-index:50;pointer-events:none;
@@ -122,11 +131,15 @@ button:focus-visible{outline:4px solid #2a8fff;outline-offset:2px}
 <body>
 <main id="wrap">
   <div id="badge">FLU-CONCEPT-01 · Mystery Gate</div>
-  <div id="phasecue">👁️</div>
+  <header id="howto">
+    <h1>How to use — Mystery Gate</h1>
+    <p>Build a figure with the pickers and press send (<b>➜</b>) to test it — figures that open the gate go to the <b>✓</b> tray, others to the <b>✕</b> tray. Work out the hidden rule, then press Test to say whether each new figure opens the gate.</p>
+  </header>
+  <div id="phasecue" data-phase="demo">Watch the example</div>
   <section id="stagecard">
     <div id="gateRow">
       <div id="preview"></div>
-      <div id="gate">🔒</div>
+      <div id="gate">?</div>
     </div>
     <div class="trays">
       <div class="tray" id="yesTray"><span class="trayMark">✓</span></div>
@@ -140,16 +153,17 @@ button:focus-visible{outline:4px solid #2a8fff;outline-offset:2px}
     <div id="probe">
       <div id="probeFig"></div>
       <div id="probeButtons">
-        <button class="gateChoice" id="openChoice" aria-label="opens">🚪✨</button>
-        <button class="gateChoice" id="shutChoice" aria-label="does not open">🚪✕</button>
+        <button class="gateChoice" id="openChoice" aria-label="opens">✓ Opens</button>
+        <button class="gateChoice" id="shutChoice" aria-label="does not open">✕ Stays shut</button>
       </div>
     </div>
     <div id="tools">
       <button id="replay" aria-label="replay">↻</button>
-      <button id="hint" aria-label="hint">💡</button>
+      <button id="hint" aria-label="hint">Hint</button>
       <button id="send" aria-label="send">➜</button>
-      <button id="know" aria-label="test the rule">🧠</button>
+      <button id="know" aria-label="test the rule">Test</button>
     </div>
+    <div id="status" class="neutral">Watch the example, then try it yourself.</div>
   </section>
 </main>
 <aside id="telemetry">
@@ -161,7 +175,7 @@ button:focus-visible{outline:4px solid #2a8fff;outline-offset:2px}
   <div id="mlist"></div>
   <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
 </aside>
-<div id="ghost">👆</div>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -204,6 +218,9 @@ const T={
 };
 let phase='demo',level=1,scoredIndex=0,rule=RULES[0],sel={shape:'triangle',color:'red',count:1};
 let roundTests=[],probes=[],probeIndex=0,probeCorrect=0,locked=false;
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');if(!el)return;el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 function consistentCount(tests){
   return RULES.filter(r=>tests.every(x=>r.test(x.f)===x.accept)).length;
 }
@@ -269,8 +286,8 @@ function showBuilder(){
   $('#send').style.display='';$('#know').style.display='';$('#hint').style.display='';
 }
 function flashGate(accept){
-  $('#gate').className=accept?'open':'shut';$('#gate').textContent=accept?'🔓':'⛔';
-  setTimeout(()=>{$('#gate').className='';$('#gate').textContent='🔒';},650);
+  $('#gate').className=accept?'open':'shut';$('#gate').textContent=accept?'\u2713':'\u2717';
+  setTimeout(()=>{$('#gate').className='';$('#gate').textContent='?';},650);
 }
 async function sendFigure(f,record=true){
   if(locked&&record)return;
@@ -288,7 +305,7 @@ async function sendFigure(f,record=true){
     }
     log(`test ${key(copy)} → ${accept?'OPEN':'BOUNCE'} · ${strategy}`);
   }
-  flashGate(accept);addTray(copy,accept);renderMeters();await sleep(420);
+  flashGate(accept);addTray(copy,accept);setStatus('neutral',accept?'That figure OPENS the gate.':'That figure does NOT open the gate.');renderMeters();await sleep(420);
 }
 function makeProbes(r){
   const yes=ALL.filter(r.test),no=ALL.filter(f=>!r.test(f));
@@ -304,7 +321,7 @@ function enterProbes(){
   probes=makeProbes(rule);probeIndex=0;probeCorrect=0;
   $('#palette').style.display='none';$('#preview').style.display='none';$('#gate').style.display='none';
   $('#send').style.display='none';$('#know').style.display='none';$('#hint').style.display='none';
-  $('#probe').classList.add('on');showProbe();
+  $('#probe').classList.add('on');setStatus('neutral','Does this figure open the gate?');showProbe();
 }
 function showProbe(){
   if(probeIndex>=probes.length){completeRound();return;}
@@ -316,6 +333,7 @@ function classify(opens){
   const truth=rule.test(probes[probeIndex]),ok=opens===truth;
   if(phase==='scored-probes'){T.n++;if(ok)T.acc++;}
   if(ok)probeCorrect++;
+  setStatus(ok?'ok':'no',ok?'\u2713 Correct':'\u2717 Not quite - watch the gate');
   log(`${opens?'OPEN':'BOUNCE'} → ${ok?'✓':'✕'}`);renderMeters();
   locked=true;$('#probeFig').style.outline=`5px solid ${ok?'var(--mint)':'var(--coral)'}`;
   setTimeout(()=>{locked=false;$('#probeFig').style.outline='';probeIndex++;showProbe();},500);
@@ -334,15 +352,15 @@ function beginRound(kind){
   rule=kind==='warmup'?RULES[0]:RULES[Math.max(0,level-1)];
   if(kind==='scored')T.optTarget+=rule.dims+1;
   sel={shape:'triangle',color:'red',count:1};refreshBuilder();
-  T.itemStart=Date.now();$('#phasecue').textContent=kind==='warmup'?'⭐':'🎯';
+  T.itemStart=Date.now();setCue(kind==='warmup'?'warmup':'scored',kind==='warmup'?'':(scoredIndex+1)+'/5');setStatus('neutral',kind==='warmup'?'Practice - this one is not scored.':'Build a figure and work out the rule.');
   log(`— ${kind==='warmup'?'WARM-UP · UNSCORED':`SCORED ${scoredIndex+1}/5 · level ${level}`} —`);
   renderMeters();
 }
 function startWarmup(){beginRound('warmup');}
 function startScored(){beginRound('scored');}
 function finish(){
-  phase='done';locked=true;$('#phasecue').textContent='🏆';
-  $('#stagecard').innerHTML='<div style="font-size:96px;padding:58px 0">🏆</div><button id="again" class="pick" aria-label="again">↻</button>';
+  phase='done';locked=true;setCue('done');setStatus('ok','\u2713 Done');
+  $('#stagecard').innerHTML='<div style="font-size:88px;padding:58px 0;color:var(--mint);font-weight:900">\u2713</div><button id="again" class="pick" aria-label="again">↻</button>';
   $('#again').onclick=()=>location.reload();
   log(`— DONE · probes ${T.acc}/${T.n} · highest solved ${T.maxSolved} —`);
 }
@@ -353,7 +371,7 @@ async function ghostTo(el){
 }
 async function runDemo(){
   phase='demo';locked=true;rule=RULES[0];roundTests=[];resetTrays();showBuilder();
-  $('#phasecue').textContent='👁️';T.itemStart=Date.now();ghost.classList.add('show');
+  setCue('demo');setStatus('neutral','Watch the example.');T.itemStart=Date.now();ghost.classList.add('show');
   sel={shape:'circle',color:'red',count:1};refreshBuilder();await ghostTo($('#preview'));
   await ghostTo($('#send'));await sendFigure(sel,false);
   sel={shape:'star',color:'blue',count:2};refreshBuilder();await ghostTo($('#preview'));

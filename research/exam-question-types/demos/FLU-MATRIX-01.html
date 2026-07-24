@@ -19,7 +19,15 @@
   }
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
-  #phasecue{font-size:34px;height:40px;line-height:40px;filter:saturate(1.2)}
+  #howto{max-width:600px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:#5b6cff;border:2px solid #c9d0ff;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:#5b6cff;color:#fff;border-color:#5b6cff}
+  #phasecue[data-phase="done"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
   #stagecard{
     background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #4a4a7a;
     display:flex;flex-direction:column;align-items:center;gap:18px;max-width:560px;width:100%;
@@ -96,7 +104,11 @@
 <body>
   <div id="wrap">
     <div id="badge">FLU-MATRIX-01 · Machine Matrix</div>
-    <div id="phasecue">👁️</div>
+    <header id="howto">
+      <h1>How to use — Machine Matrix</h1>
+      <p>Watch the pointer solve one example, then try one practice item (not scored). For each puzzle, tap the tile from the tray that completes the pattern in the empty cell, then press the check (<b>✓</b>) to submit. It gets harder each time you are right.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
     <div id="stagecard">
       <div id="machine">
         <div id="matrix" class="matrix"></div>
@@ -107,6 +119,7 @@
         <button id="replay" title="replay demo">↻</button>
         <button id="go" title="submit">✓</button>
       </div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
     </div>
   </div>
   <aside id="telemetry">
@@ -115,7 +128,7 @@
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost">👆<span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
@@ -209,7 +222,9 @@ async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;g
 /* ---------- flow ---------- */
 let phase='demo',cur=null,staged=-1,locked=false,scoredIndex=0,demoRun=0;
 const TOTAL=6;
-function setCue(i){$('#phasecue').textContent=i;}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 function lights(on){$('#lights').classList.toggle('on',on);}
 function disableTray(d){locked=d;}
 function renderItem(item){cur=item;const m=$('#matrix');m.style.gridTemplateColumns=`repeat(${item.size},1fr)`;m.innerHTML='';
@@ -232,22 +247,23 @@ function feedback(correct){const opt=$$('#tray .opt')[staged];if(opt)opt.classLi
     const ci=cur.options.findIndex(o=>o.tag==='correct');$$('#tray .opt')[ci].classList.add('correct');}
   disableTray(true);$('#go').classList.remove('ready');}
 function submit(){if(staged===-1)return;const opt=cur.options[staged];const rt=Date.now()-T.itemStart;const correct=opt.tag==='correct';
-  if(phase==='warmup'){feedback(correct);log('warm-up '+(correct?'correct':'incorrect')+' — UNSCORED');setTimeout(nextPhase,950);return;}
+  if(phase==='warmup'){feedback(correct);setStatus(correct?'ok':'no',correct?'\u2713 Correct - practice':'\u2717 Not quite - the correct tile is highlighted (practice)');log('warm-up '+(correct?'correct':'incorrect')+' — UNSCORED');setTimeout(nextPhase,950);return;}
   T.scored++;T.rts.push(rt);T.gates.push(gate(rt));
   if(correct){T.correct++;T.maxSolved=Math.max(T.maxSolved,cur.level);T.lastErr='none';}
   else T.lastErr=opt.tag.indexOf('rule:')===0?'near-miss ('+opt.tag.split(':')[1]+')':'random';
   T.level=Math.max(1,Math.min(6,T.level+(correct?1:-1)));
   feedback(correct);
+  setStatus(correct?'ok':'no',correct?'\u2713 Correct':'\u2717 Not quite - the correct tile is highlighted');
   log(`SUBMIT ${scoredIndex+1}/${TOTAL} · L${cur.level} ${cur.nRules} rules \u2192 ${correct?'CORRECT':'wrong ['+opt.tag+']'} · sat ${opt.rulesSat}/${cur.nRules} · ${last(T.gates).reason} · next L${T.level}`);
   renderMeters();setTimeout(nextPhase,1150);}
 function nextPhase(){if(phase==='warmup'){scoredIndex=0;T.level=1;startScored();}
   else if(phase==='scored'){scoredIndex++;scoredIndex<TOTAL?startScored():finish();}}
-function startWarmup(){phase='warmup';setCue('\u2b50');disableTray(false);renderItem(genItem(1));log('— warm-up · 2x2 · one rule · UNSCORED —');}
-function startScored(){phase='scored';setCue('\ud83c\udfaf');disableTray(false);renderItem(genItem(T.level));
+function startWarmup(){phase='warmup';setCue('warmup');setStatus('neutral','Practice - this one is not scored.');disableTray(false);renderItem(genItem(1));log('— warm-up · 2x2 · one rule · UNSCORED —');}
+function startScored(){phase='scored';setCue('scored',(scoredIndex+1)+'/'+TOTAL);setStatus('neutral','Tap the tile that completes the pattern.');disableTray(false);renderItem(genItem(T.level));
   log(`— SCORED ${scoredIndex+1}/${TOTAL} · L${cur.level} · ${cur.size}x${cur.size} · ${cur.nRules} rules —`);}
-function finish(){phase='done';setCue('\ud83c\udfc6');disableTray(true);lights(true);
+function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');disableTray(true);lights(true);
   log(`— DONE · accuracy ${T.correct}/${T.scored} · ceiling L${T.maxSolved} —`);}
-async function runDemo(){const token=++demoRun;phase='demo';setCue('\ud83d\udc41\ufe0f');disableTray(true);
+async function runDemo(){const token=++demoRun;phase='demo';setCue('demo');setStatus('neutral','Watch the example.');disableTray(true);
   const d=genItem(1);renderItem(d);log('ghost-hand demo · wordless · <10s');
   const ci=d.options.findIndex(o=>o.tag==='correct');
   ghostShow(true);await sleep(300);await ghostTo($('#matrix .cell.empty'));await sleep(250);

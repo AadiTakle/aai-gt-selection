@@ -10,10 +10,18 @@
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:radial-gradient(circle at 30% 10%,var(--bg2),var(--bg1));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#8fd8ac;text-transform:uppercase;font-weight:700}
-  #phasecue{font-size:34px;height:40px;line-height:40px}
+  #howto{max-width:560px;width:100%;background:#fff;border:1px solid #cfeeda;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #000}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:#1f7a45}
+  #howto p{margin:0;font-size:14px;color:#2c4636;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#173a29;color:#bfe9d1;border:2px solid #2c6b47;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:var(--accent);color:#08260f;border-color:var(--accent)}
+  #phasecue[data-phase="done"]{background:#bfe9d1;color:#08260f;border-color:#bfe9d1}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:#7fffcf} #status.no{color:var(--bad)} #status.neutral{color:#8fd8ac}
   #stagecard{background:var(--card);border-radius:26px;padding:24px;box-shadow:0 18px 50px -22px #000;display:flex;flex-direction:column;align-items:center;gap:16px;max-width:560px;width:100%}
   #road{display:flex;align-items:center;gap:10px;height:70px}
-  #gateIcon{font-size:34px}
+  #gateIcon{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8fd8ac;min-width:44px;text-align:center}
   #trail{display:flex;gap:6px;font-size:22px;min-width:180px;opacity:.6}
   #current{font-size:44px;width:60px;text-align:center}
   #checkpoint{display:none;flex-direction:column;align-items:center;gap:12px;width:100%}
@@ -52,9 +60,13 @@
 <body>
   <div id="wrap">
     <div id="badge">WM-gate-01 · Gatekeeper</div>
-    <div id="phasecue">👁️</div>
+    <header id="howto">
+      <h1>How to use — Gatekeeper</h1>
+      <p>Watch the creatures go past the gate. When the gate says STOP, tap the last few creatures you saw, in the same order (use undo to fix a tap). It gets harder - you must remember more each time.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
     <div id="stagecard">
-      <div id="road"><div id="trail"></div><div id="current"></div><div id="gateIcon">🚧</div></div>
+      <div id="road"><div id="trail"></div><div id="current"></div><div id="gateIcon">OPEN</div></div>
       <div id="checkpoint">
         <div id="slots"></div>
         <div id="palette"></div>
@@ -62,6 +74,7 @@
       </div>
       <div id="diffwrap"><div id="diffbar"><div id="difffill"></div></div><div id="difflabel">HOLD 2</div></div>
       <button class="round" id="replay" title="replay demo">↻</button>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
     </div>
   </div>
   <aside id="telemetry">
@@ -69,7 +82,7 @@
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost">👆<span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -100,7 +113,9 @@ function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textC
 let tStart=Date.now();
 function log(msg){const t=Date.now()-tStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
 function setDiff(){const pct=Math.min(100,Math.round((level-2)/4*100));$('#difffill').style.width=pct+'%';$('#difflabel').textContent='HOLD '+level;}
-function setCue(i){$('#phasecue').textContent=i;}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 
 /* ---------- ghost ---------- */
 const ghost=$('#ghost');function ghostShow(v){ghost.classList.toggle('show',v);}
@@ -118,28 +133,31 @@ function undo(){if(resp.length>0){resp.pop();T.revisions++;renderSlots();log('re
 
 /* ---------- streaming ---------- */
 async function streamStep(){const c=CREATURES[Math.floor(Math.random()*CREATURES.length)];$('#current').textContent=c;await sleep(140);history.push(c);renderTrail(history);await sleep(560);}
-async function doCheckpoint(){$('#gateIcon').textContent='\ud83d\udeab';$('#current').textContent='';$('#checkpoint').style.display='flex';
+async function doCheckpoint(){$('#gateIcon').textContent='STOP';$('#current').textContent='';$('#checkpoint').style.display='flex';
   resp=[];renderSlots();checkpointStart=Date.now();
   await new Promise(res=>{window._cpResolve=res;});
-  $('#checkpoint').style.display='none';$('#gateIcon').textContent='\ud83d\udea7';}
+  $('#checkpoint').style.display='none';$('#gateIcon').textContent='OPEN';}
 function submitCheckpoint(){const target=history.slice(-k);const rt=Date.now()-checkpointStart;
   let correctN=0;target.forEach((c,i)=>correctN+=(resp[i]===c?1:0));const exact=correctN===k;
   $$('.slot').forEach((s,i)=>s.classList.add(target[i]===resp[i]?'correct':'wrong'));
   if(!exact){$('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),450);}
-  if(isWarmupCP){log(`warm-up checkpoint ${exact?'exact':correctN+'/'+k+' correct'} \u2014 UNSCORED`);}
+  if(isWarmupCP){setStatus(exact?'ok':'no',exact?'\u2713 Correct - practice':'\u2717 Not quite - practice');log(`warm-up checkpoint ${exact?'exact':correctN+'/'+k+' correct'} \u2014 UNSCORED`);}
   else{T.scored++;T.rts.push(rt);T.poly=correctN+'/'+k;T.accSeq.push(exact?1:0);
-    if(exact){T.exact++;maxLevel=Math.max(maxLevel,level);level=Math.min(6,level+1);log(`SCORED checkpoint hold-${k} \u2192 EXACT \u2714 \u2192 hold up to ${level}`);}
+    if(exact){T.exact++;maxLevel=Math.max(maxLevel,level);level=Math.min(6,level+1);setStatus('ok','\u2713 Correct');log(`SCORED checkpoint hold-${k} \u2192 EXACT \u2714 \u2192 hold up to ${level}`);}
     else{let et='substitution';if(resp.length<k)et='omission';else{const sameSet=target.every(v=>resp.includes(v));if(sameSet)et='order';}
-      T.errTypes.push(et);level=Math.max(2,level-1);log(`SCORED checkpoint hold-${k} \u2192 ${correctN}/${k} correct (${et}) \u2192 hold down to ${level}`);}
+      T.errTypes.push(et);level=Math.max(2,level-1);setStatus('no','\u2717 Not quite - '+correctN+'/'+k+' correct');log(`SCORED checkpoint hold-${k} \u2192 ${correctN}/${k} correct (${et}) \u2192 hold down to ${level}`);}
     setDiff();}
   renderMeters();setTimeout(()=>{if(window._cpResolve){const r=window._cpResolve;window._cpResolve=null;r();}},1100);}
 async function runStream(totalScored){running=true;
+  setStatus('neutral','Watch the creatures go by.');
   for(let i=0;i<3;i++)await streamStep();
   let scoredDone=0,first=true;
   while(scoredDone<totalScored&&!stopFlag){
     const gap=3+Math.floor(Math.random()*3);
+    setStatus('neutral','Watch the creatures go by.');
     for(let i=0;i<gap;i++)await streamStep();
-    isWarmupCP=first;first=false;setCue(isWarmupCP?'\u2b50':'\ud83c\udfaf');
+    isWarmupCP=first;first=false;setCue(isWarmupCP?'warmup':'scored',isWarmupCP?'':(scoredDone+1)+'/6');
+    setStatus('neutral',isWarmupCP?'Practice - tap the last 2 creatures, in order.':'Tap the last '+level+' creatures, in order.');
     if(!isWarmupCP)log(`\u2014 SCORED checkpoint ${scoredDone+1}: hold last ${level} \u2014`);
     else log('\u2014 warm-up checkpoint (unscored): tap the last 2 in order \u2014');
     k=isWarmupCP?2:level;
@@ -147,18 +165,18 @@ async function runStream(totalScored){running=true;
     if(!isWarmupCP)scoredDone++;
   }
   running=false;finish();}
-function finish(){phase='done';setCue('\ud83c\udfc6');stopFlag=true;$('#gateIcon').textContent='\ud83c\udfc1';
+function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');stopFlag=true;$('#gateIcon').textContent='DONE';
   log(`\u2014 DONE \u00b7 exact ${T.exact}/${T.scored} \u00b7 ceiling hold ${maxLevel} \u2014`);}
 let phase='demo';
-async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');history=[];renderTrail(history);
+async function runDemo(){phase='demo';setCue('demo');setStatus('neutral','Watch the example.');history=[];renderTrail(history);
   log('ghost-hand demo (wordless, <10s)');
   for(let i=0;i<3;i++)await streamStep();
-  $('#gateIcon').textContent='\ud83d\udeab';$('#current').textContent='';$('#checkpoint').style.display='flex';
+  $('#gateIcon').textContent='STOP';$('#current').textContent='';$('#checkpoint').style.display='flex';
   k=2;resp=[];renderSlots();const target=history.slice(-2);
   ghostShow(true);
   for(const c of target){const el=$$('.pal').find(p=>p.dataset.c===c);await ghostTo(el);await ghostTap();resp.push(c);renderSlots();}
-  $$('.slot').forEach(s=>s.classList.add('correct'));await sleep(500);ghostShow(false);$('#checkpoint').style.display='none';$('#gateIcon').textContent='\ud83d\udea7';
-  setCue('\u2705');await sleep(500);startSession();}
+  $$('.slot').forEach(s=>s.classList.add('correct'));await sleep(500);ghostShow(false);$('#checkpoint').style.display='none';$('#gateIcon').textContent='OPEN';
+  setStatus('ok','\u2713 Example done - now you try');await sleep(500);startSession();}
 function startSession(){phase='scored';stopFlag=false;runStream(6);}
 $('#palette').addEventListener('click',e=>{const p=e.target.closest('.pal');if(p&&$('#checkpoint').style.display==='flex')pushCreature(p.dataset.c);});
 $('#undo').addEventListener('click',undo);

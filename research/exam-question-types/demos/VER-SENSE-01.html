@@ -10,7 +10,15 @@
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
-  #phasecue{font-size:34px;height:40px;line-height:40px}
+  #howto{max-width:700px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:#5b6cff;border:2px solid #c9d0ff;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:#5b6cff;color:#fff;border-color:#5b6cff}
+  #phasecue[data-phase="done"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
   #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:14px;max-width:700px;width:100%}
   .band{border-radius:16px;padding:12px 16px;display:flex;flex-direction:column;gap:8px;align-items:center;width:100%}
   #previewBand{background:linear-gradient(160deg,#e8f0ff,#f2ecff);border:3px solid #cfd8ff;font-size:22px;min-height:40px}
@@ -56,17 +64,22 @@
 <body>
   <div id="wrap">
     <div id="badge">VER-SENSE-01 · Sentence Sense</div>
-    <div id="phasecue">👁️</div>
+    <header id="howto">
+      <h1>How to use — Sentence Sense</h1>
+      <p>Pick one word from each row to build a sentence that <b>makes sense</b>, then press the check (<b>✓</b>). Find as many different sentences that make sense as you can before your tries run out.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
     <div id="stagecard">
       <div id="previewBand" class="band"><div id="preview">▢ ▢ ▢</div></div>
       <div id="slots"></div>
-      <div id="foundBand" class="band">✅ valid sentences found: <span id="foundCount">0</span><div id="foundList"></div></div>
+      <div id="foundBand" class="band">✓ valid sentences found: <span id="foundCount">0</span><div id="foundList"></div></div>
       <div id="attemptDots"></div>
-      <div id="diffmeter">🌱<div id="diffbar"><i id="diffbarfill"></i></div>🌳</div>
+      <div id="diffmeter"><span>Easy</span><div id="diffbar"><i id="diffbarfill"></i></div><span>Hard</span></div>
       <div id="controls">
         <button class="rd" id="replay" title="replay demo">↻</button>
         <button class="rd" id="go" title="submit">✓</button>
       </div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
     </div>
   </div>
   <aside id="telemetry">
@@ -74,7 +87,7 @@
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost">👆<span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -146,24 +159,28 @@ function submitAttempt(){if(!$('#go').classList.contains('ready')||locked)return
   const dot=$$('#attemptDots .adot')[attemptI];if(dot)dot.classList.add(valid&&!dup?'valid':'invalid');
   if(valid&&!dup){foundSet.add(key);T.roundFound=foundSet.size;T.sessionFound++;}
   T.lastErr=valid?(dup?'duplicate (already found)':'none (valid)'):'implausible combination';
+  setStatus(valid&&!dup?'ok':(dup?'neutral':'no'),valid?(dup?'Already found - try a different sentence':'\u2713 That sentence makes sense!'):'\u2717 That does not make sense - try another');
   log(`attempt ${attemptI+1}/${cur.attempts}: "${key}" \u2192 ${valid?(dup?'VALID (dup)':'VALID (new)'):'INVALID'}`);
   renderFound();renderMeters();
   attemptI++;sel={};$$('.chip').forEach(c=>c.classList.remove('sel'));updatePreview(cur);
   if(attemptI>=cur.attempts){locked=true;setTimeout(finalizeRound,900);}}
 function finalizeRound(){const success=foundSet.size>=cur.need;
-  if(phase==='warmup'){log(`warm-up round done: ${foundSet.size} valid found — UNSCORED`);setTimeout(nextPhase,1300);return;}
+  if(phase==='warmup'){setStatus('neutral','Practice round done - not scored.');log(`warm-up round done: ${foundSet.size} valid found — UNSCORED`);setTimeout(nextPhase,1300);return;}
+  setStatus(success?'ok':'no',success?`\u2713 Round passed - found ${foundSet.size}`:`\u2717 Found ${foundSet.size} of ${cur.need} needed`);
   if(success){T.maxLevel=Math.max(T.maxLevel,level);const r=INF_RANK[cur.inf];if(r>T.bestInfRank){T.bestInfRank=r;T.bestInf=cur.inf;}}
   log(`— ROUND L${level} [${cur.inf}] \u2192 ${foundSet.size}/${cur.need} needed \u00b7 ${success?'PASS':'FAIL'} —`);
   level=success?Math.min(6,level+1):Math.max(1,level-1);
   renderMeters();setTimeout(nextPhase,1000);}
 const TOTAL_SCORED=6;let phase='demo',scoredIndex=0;
-function setCue(i){$('#phasecue').textContent=i;}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 function nextPhase(){locked=false;if(phase==='warmup'){scoredIndex=0;startScored();}
   else if(phase==='scored'){scoredIndex++;scoredIndex<TOTAL_SCORED?startScored():finish();}}
-function startWarmup(){phase='warmup';locked=false;setCue('\u2b50');level=1;newRound();log('— warm-up (unscored) —');}
-function startScored(){phase='scored';setCue('\ud83c\udfaf');newRound();log(`— SCORED round ${scoredIndex+1}/${TOTAL_SCORED} · level ${level} —`);}
-function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;log(`— DONE · session valid sentences ${T.sessionFound} · ceiling L${T.maxLevel} —`);renderMeters();}
-async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;level=1;newRound();
+function startWarmup(){phase='warmup';locked=false;setCue('warmup');level=1;newRound();setStatus('neutral','Practice - build sentences that make sense. Not scored.');log('— warm-up (unscored) —');}
+function startScored(){phase='scored';setCue('scored',(scoredIndex+1)+'/'+TOTAL_SCORED);newRound();setStatus('neutral','Build sentences that make sense - find '+cur.need+' different ones.');log(`— SCORED round ${scoredIndex+1}/${TOTAL_SCORED} · level ${level} —`);}
+function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;log(`— DONE · session valid sentences ${T.sessionFound} · ceiling L${T.maxLevel} —`);renderMeters();}
+async function runDemo(){phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;level=1;newRound();
   log('ghost-hand demo (wordless, <10s)');ghostShow(true);await sleep(300);
   const demoSel={s:'dog',v:'chased',o:'mouse'};
   for(const k of ['s','v','o']){const el=$$(`.chip[data-key="${k}"][data-val="${demoSel[k]}"]`)[0];await ghostTo(el);await ghostTap();pickSlot(k,demoSel[k]);await sleep(150);}

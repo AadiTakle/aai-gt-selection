@@ -10,7 +10,15 @@
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#8a7ab5;text-transform:uppercase;font-weight:700}
-  #phasecue{font-size:34px;height:40px;line-height:40px}
+  #howto{max-width:600px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:#5b6cff;border:2px solid #c9d0ff;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:#5b6cff;color:#fff;border-color:#5b6cff}
+  #phasecue[data-phase="done"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
   #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #6a4a9a;display:flex;flex-direction:column;align-items:center;gap:16px;max-width:680px;width:100%}
   #scene{font-size:64px}
   #qcards{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
@@ -55,7 +63,11 @@
 <body>
   <div id="wrap">
     <div id="badge">CX-curious-02 · Question Quest</div>
-    <div id="phasecue">🔎</div>
+    <header id="howto">
+      <h1>How to use — Question Quest</h1>
+      <p>Look at the scene and tap the questions you would ask about it, then press the arrow (<b>➜</b>) to move on. On some rounds you instead tap the word that best matches the picture.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
     <div id="stagecard">
       <div id="scene">🌳</div>
       <div id="asked"></div>
@@ -68,6 +80,7 @@
         <button id="replay" title="replay demo">↻</button>
         <button id="go" title="next">➜</button>
       </div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
     </div>
   </div>
   <aside id="telemetry">
@@ -75,7 +88,7 @@
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost">👆<span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -157,13 +170,16 @@ function onAssoc(i){if(locked||phase==='demo'||phase==='done')return;
   const correct=curAssoc.opts[i][1];locked=true;
   $$('#qcards .qcard').forEach((el,idx)=>el.classList.add(curAssoc.opts[idx][1]?'rated-causal':(idx===i?'rated-label':'')));
   log(`emoji ${curAssoc.emoji} \u2192 "${curAssoc.opts[i][0]}" ${correct?'CORRECT':'not best match'}`);
+  setStatus(correct?'ok':'no',correct?'\u2713 Correct':'\u2717 Not quite - the best match is highlighted');
   if(phase==='warmup'){log('— UNSCORED —');setTimeout(nextPhase,1100);return;}
   T.scored++;if(correct){T.exact++;level=Math.min(6,level+1);}else{level=Math.max(1,level-1);}
   maxLevel=Math.max(maxLevel,level);renderMeters();setTimeout(nextPhase,1300);
 }
 
 /* ---------- flow ---------- */
-function setCue(i){$('#phasecue').textContent=i;}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 function newAskItem(l){mode='ask';$('#qcards').style.display='flex';$('#variant').style.display='none';$('#scene').style.display='block';
   curScene=SCENES[(Math.random()*SCENES.length)|0];askedIdx=[];T.itemStart=Date.now();
   paintScene();paintAsked();paintQCards();$('#go').classList.remove('ready');renderMeters();}
@@ -181,14 +197,14 @@ function nextPhase(){locked=false;
   else if(phase==='scored'){
     T.roundIdx=(T.roundIdx||0)+1;
     if(T.roundIdx>=6){finish();return;}
-    if(T.roundIdx%2===0){newAssocItem();phase='scored';setCue('\ud83c\udfaf');log('— SCORED: pick the word that matches the emoji —');}
+    if(T.roundIdx%2===0){newAssocItem();phase='scored';setCue('scored',((T.roundIdx||0)+1)+'/6');setStatus('neutral','Pick the word that best matches the picture.');log('— SCORED: pick the word that matches the emoji —');}
     else{startScored();}
   }
 }
-function startWarmup(){phase='warmup';locked=false;setCue('\u2b50');newAskItem(1);log('— warm-up (unscored): tap the questions you want to ask about the scene —');}
-function startScored(){phase='scored';setCue('\ud83c\udfaf');newAskItem(level);log(`— SCORED scene (level ${level}): ask your questions, then tap \u2192 —`);}
-function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;log(`— DONE \u00b7 ${ideaFlu()} questions asked \u00b7 emoji match ${T.exact}/${T.scored} \u00b7 max level ${maxLevel} —`);}
-async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;
+function startWarmup(){phase='warmup';locked=false;setCue('warmup');setStatus('neutral','Practice - not scored. Tap the questions you want to ask.');newAskItem(1);log('— warm-up (unscored): tap the questions you want to ask about the scene —');}
+function startScored(){phase='scored';setCue('scored',((T.roundIdx||0)+1)+'/6');setStatus('neutral','Ask your questions, then press the arrow.');newAskItem(level);log(`— SCORED scene (level ${level}): ask your questions, then tap \u2192 —`);}
+function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;log(`— DONE \u00b7 ${ideaFlu()} questions asked \u00b7 emoji match ${T.exact}/${T.scored} \u00b7 max level ${maxLevel} —`);}
+async function runDemo(){phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;
   curScene=SCENES[0];askedIdx=[];T.itemStart=Date.now();mode='ask';
   $('#qcards').style.display='flex';$('#variant').style.display='none';$('#scene').style.display='block';
   paintScene();paintAsked();paintQCards();log('ghost-hand demo (wordless, <10s)');ghostShow(true);await sleep(300);

@@ -26,7 +26,15 @@
     color:#72839e;font-size:12px;font-weight:800;letter-spacing:.1em;
     text-transform:uppercase;
   }
-  #phasecue{font-size:34px;height:42px}
+  #howto{width:min(720px,100%);background:#fff;border:1px solid #d9d2f2;border-left:5px solid var(--indigo);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #3c5377}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--indigo)}
+  #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eeeaff;color:var(--indigo);border:2px solid #cbc4f0;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:var(--indigo);color:#fff;border-color:var(--indigo)}
+  #phasecue[data-phase="done"]{background:#e7e3fb;color:#4b3fb0;border-color:#cbc4f0}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:var(--dim)}
   #stagecard{
     width:min(720px,100%);min-height:500px;border-radius:30px;padding:24px;
     background:rgba(251,255,255,.96);box-shadow:0 24px 60px -32px #3c5377;
@@ -97,6 +105,8 @@
   }
   #ghost.show{opacity:.94}#ghost.tap{animation:tap .34s}
   @keyframes tap{50%{scale:.78}}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--indigo);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
   #telemetry{
     width:326px;flex:0 0 326px;background:var(--tel);color:#c7d5fb;
     display:flex;flex-direction:column;font:13px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace;
@@ -128,7 +138,11 @@
 <body>
 <main id="wrap">
   <div id="badge">QUANT-MATRIX-01 · Number Web</div>
-  <div id="phasecue">👁️</div>
+  <header id="howto">
+    <h1>How to use — Number Web</h1>
+    <p>Watch the pointer solve one example, then try one practice item (not scored). Work out how the amounts in each row change, then tap the amount that belongs in the empty (dashed) cell and press submit (<b>◉</b>). It gets harder each time you are right.</p>
+  </header>
+  <div id="phasecue" data-phase="demo">Watch the example</div>
   <section id="stagecard">
     <div id="webshell">
       <div id="web"></div>
@@ -139,6 +153,7 @@
       <button id="replay" aria-label="Replay demonstration">↻</button>
       <button id="go" aria-label="Submit answer">◉</button>
     </div>
+    <div id="status" class="neutral">Watch the example, then try it yourself.</div>
   </section>
 </main>
 <aside id="telemetry">
@@ -150,7 +165,7 @@
   <div id="mlist"></div>
   <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
 </aside>
-<div id="ghost">👆</div>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s);
@@ -196,7 +211,7 @@ function submit(){
   if(locked||choice<0)return;
   const ok=cur.opts[choice]===cur.answer;
   if(phase==='warmup'){
-    locked=true;feedback(ok);log(`warm-up ${ok?'correct':'corrective trace'} · UNSCORED`);
+    locked=true;feedback(ok);setStatus('neutral',ok?'\u2713 Correct - practice':'\u2717 Not quite - the correct amount is shown (practice)');log(`warm-up ${ok?'correct':'corrective trace'} · UNSCORED`);
     if(!ok)setTimeout(()=>{choose(cur.opts.indexOf(cur.answer),true);feedback(true);},420);
     setTimeout(startScored,1050);return;
   }
@@ -204,7 +219,7 @@ function submit(){
   T.firsts.push(firstLatency);T.lastErr=ok?'—':cur.errs[choice]||'other';
   if(ok){T.ruleMax=Math.max(T.ruleMax,cur.rules);T.maxLevel=Math.max(T.maxLevel,level);}
   T.levels.push({trial:T.scored,level,ok});
-  feedback(ok);log(`SCORED ${T.scored}/6 · ${cur.size}x${cur.size} · L${level} · ${ok?'correct':'miss '+T.lastErr} · first ${firstLatency}ms`);
+  feedback(ok);setStatus(ok?'ok':'no',ok?'\u2713 Correct':'\u2717 Not quite - the correct amount is highlighted');log(`SCORED ${T.scored}/6 · ${cur.size}x${cur.size} · L${level} · ${ok?'correct':'miss '+T.lastErr} · first ${firstLatency}ms`);
   level=Math.max(1,Math.min(6,level+(ok?1:-1)));updateDifficulty();renderMeters();
   setTimeout(()=>{trial++;trial<6?startScored():finish();},920);
 }
@@ -231,9 +246,12 @@ function log(msg){
   d.innerHTML=`<span class="t">${new Date().toLocaleTimeString([],{minute:'2-digit',second:'2-digit'})}</span> ${msg}`;
   $('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;
 }
-function startWarmup(){phase='warmup';locked=false;$('#phasecue').textContent='⭐';renderItem(WARM);log('warm-up · single relation · unscored');}
-function startScored(){phase='scored';locked=false;$('#phasecue').textContent='🎯';renderItem(ITEMS[level-1]);log(`item ${trial+1}/6 · level ${level} · ${cur.rule}`);}
-function finish(){phase='done';locked=true;$('#phasecue').textContent='🏆';$('#go').classList.remove('ready');log(`DONE · ${T.correct}/${T.scored} · ceiling ${T.maxLevel}`);}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+function startWarmup(){phase='warmup';locked=false;setCue('warmup');setStatus('neutral','Practice - this one is not scored.');renderItem(WARM);log('warm-up · single relation · unscored');}
+function startScored(){phase='scored';locked=false;setCue('scored',(trial+1)+'/6');setStatus('neutral','Tap the amount for the empty cell, then press submit.');renderItem(ITEMS[level-1]);log(`item ${trial+1}/6 · level ${level} · ${cur.rule}`);}
+function finish(){phase='done';locked=true;setCue('done');setStatus('ok','\u2713 Done');$('#go').classList.remove('ready');log(`DONE · ${T.correct}/${T.scored} · ceiling ${T.maxLevel}`);}
 const ghost=$('#ghost');
 function ghostShow(on){ghost.classList.toggle('show',on);}
 async function ghostTo(el){
@@ -243,7 +261,7 @@ async function ghostTo(el){
 }
 async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(330);}
 async function runDemo(){
-  phase='demo';locked=true;$('#phasecue').textContent='👁️';renderItem(DEMO);log('ghost-hand demo · wordless relation trace');
+  phase='demo';locked=true;setCue('demo');setStatus('neutral','Watch the example.');renderItem(DEMO);log('ghost-hand demo · wordless relation trace');
   ghostShow(true);await sleep(240);
   const cells=$('#web').children;
   await ghostTo(cells[0]);await ghostTo(cells[1]);await ghostTo(cells[2]);

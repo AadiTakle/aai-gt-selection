@@ -10,7 +10,15 @@
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#7a93b5;text-transform:uppercase;font-weight:700}
-  #phasecue{font-size:34px;height:40px;line-height:40px}
+  #howto{max-width:600px;width:100%;background:#fff;border:1px solid #cfe4ff;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #2a5a8a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#33506e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#e6f3ff;color:#1c78c9;border:2px solid #bfe0ff;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+  #phasecue[data-phase="done"]{background:#e6f6ec;color:#1c8f57;border-color:#bfe6cc}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#7a93b5}
   #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #2a5a8a;display:flex;flex-direction:column;align-items:center;gap:18px;max-width:600px;width:100%}
   #stream{width:100%;height:160px;position:relative;background:linear-gradient(180deg,#eaf6ff,#f4fbff);border-radius:18px;border:3px solid #cfe4ff;overflow:hidden}
   .bubble{position:absolute;left:50%;transform:translateX(-50%);width:130px;height:60px;background:#fff;border:3px solid var(--accent);border-radius:30px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#1a3450;box-shadow:0 6px 16px -6px #2e9bff88;}
@@ -43,15 +51,20 @@
 <body>
   <div id="wrap">
     <div id="badge">WM-bubble-01 · Bubble Pop Memory</div>
-    <div id="phasecue">🫧</div>
+    <header id="howto">
+      <h1>How to use — Bubble Pop Memory</h1>
+      <p>Words float up one at a time. Tap SEEN (or press F) if the word already appeared earlier, or NEW (or press J) if it has not. Watch out for words that only look or sound similar.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
     <div id="stagecard">
       <div id="stream"></div>
       <div id="controls">
         <button id="replay" title="replay demo">↻</button>
-        <button id="newbtn" title="new (J)">🆕 NEW <span style="font-weight:400">(J)</span></button>
-        <button id="seenbtn" title="seen (F)">✅ SEEN <span style="font-weight:400">(F)</span></button>
+        <button id="newbtn" title="new (J)">NEW <span style="font-weight:400">(J)</span></button>
+        <button id="seenbtn" title="seen (F)">✓ SEEN <span style="font-weight:400">(F)</span></button>
       </div>
       <div id="hotkeys">Keys: F = seen before · J = new word</div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
     </div>
   </div>
   <aside id="telemetry">
@@ -59,7 +72,7 @@
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost">👆<span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s);
@@ -139,6 +152,7 @@ function respond(said){if(locked||phase==='demo'||phase==='done')return;
   const item=stream[idx];const rt=Date.now()-T.itemStart;
   const correct=said===item.isOld;
   curBubble.classList.add(correct?'flashg':'flashr');
+  setStatus(correct?'ok':'no',correct?'\u2713 Correct':'\u2717 Not quite');
   T.rts.push(rt);
   if(item.lure)T.updateCosts.push(rt);
   if(said && item.isOld)T.hits++; else if(said && !item.isOld)T.fa++;
@@ -164,15 +178,17 @@ function nextPhase(){locked=false;
   if(phase==='warmup'){startScored();}
   else if(phase==='scored'){T.roundIdx=(T.roundIdx||0)+1;T.roundIdx<5?startScored():finish();}
 }
-function setCue(i){$('#phasecue').textContent=i;}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 function newRound(l){const p=levelParams(l);stream=genStream(p.listLen,p.lureRate);idx=0;
   T.hits=0;T.miss=0;T.fa=0;T.cr=0;T.updateCosts=[];T.itemStart=Date.now();
   paintBubble(stream[0].w);$('#seenbtn').disabled=false;$('#newbtn').disabled=false;renderMeters();}
-function startWarmup(){phase='warmup';locked=false;setCue('\u2b50');newRound(1);log('— warm-up (unscored): tap SEEN if this word appeared before, NEW if not —');}
-function startScored(){phase='scored';setCue('\ud83c\udfaf');newRound(level);log(`— SCORED round: ${levelParams(level).listLen} words, level ${level} —`);}
-function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;$('#seenbtn').disabled=true;$('#newbtn').disabled=true;
+function startWarmup(){phase='warmup';locked=false;setCue('warmup');setStatus('neutral','Practice - tap SEEN or NEW for each word. Not scored.');newRound(1);log('— warm-up (unscored): tap SEEN if this word appeared before, NEW if not —');}
+function startScored(){phase='scored';setCue('scored',((T.roundIdx||0)+1)+'/5');setStatus('neutral','Tap SEEN if you have seen the word before, or NEW if not.');newRound(level);log(`— SCORED round: ${levelParams(level).listLen} words, level ${level} —`);}
+function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;$('#seenbtn').disabled=true;$('#newbtn').disabled=true;
   log(`— DONE \u00b7 d'=${dprimeCalc()} \u00b7 max level ${maxLevel} —`);}
-async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;
+async function runDemo(){phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;
   stream=[{w:'CAT',isOld:false},{w:'DOG',isOld:false},{w:'CAT',isOld:true}];idx=0;T.itemStart=Date.now();
   paintBubble(stream[0].w);log('ghost-hand demo (wordless, <10s)');ghostShow(true);await sleep(300);
   await ghostTo($('#newbtn'));await ghostTap();idx=1;paintBubble(stream[1].w);await sleep(250);

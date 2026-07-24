@@ -10,7 +10,15 @@
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:radial-gradient(circle at 25% 15%,var(--bg2),var(--bg1));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#b19be0;text-transform:uppercase;font-weight:700}
-  #phasecue{font-size:34px;height:40px;line-height:40px}
+  #howto{max-width:520px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #000}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:#7b57c8}
+  #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#241c4a;color:var(--accent);border:2px solid #3a2d68;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#3a2f16;color:#ffcf6b;border-color:#5a4a1e}
+  #phasecue[data-phase="scored"]{background:var(--accent);color:#1d1740;border-color:var(--accent)}
+  #phasecue[data-phase="done"]{background:#241c4a;color:var(--accent);border-color:#3a2d68}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#b7a3e6}
   #stagecard{background:var(--card);border-radius:26px;padding:24px;box-shadow:0 18px 50px -22px #000;display:flex;flex-direction:column;align-items:center;gap:16px;max-width:520px;width:100%}
   #cueSwatch{width:60px;height:60px;border-radius:50%;display:none;box-shadow:0 0 24px 6px #ffffff33}
   #grid{display:grid;grid-template-columns:repeat(4,68px);grid-template-rows:repeat(4,68px);gap:8px}
@@ -48,12 +56,17 @@
 <body>
   <div id="wrap">
     <div id="badge">GB-FILTER-01 · Star Filter</div>
-    <div id="phasecue">👁️</div>
+    <header id="howto">
+      <h1>How to use — Star Filter</h1>
+      <p>First you see a colour, then a grid of coloured stars appears and disappears. Tap every cell that held the cued colour, then press Done. It gets harder each time you are right.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
     <div id="stagecard">
       <div id="cueSwatch"></div>
       <div id="grid"></div>
       <button id="done">DONE</button>
       <div id="diffwrap"><div id="diffbar"><div id="difffill"></div></div><div id="difflabel">TARGETS 2</div></div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
       <button class="round" id="replay" title="replay demo">↻</button>
     </div>
   </div>
@@ -62,7 +75,7 @@
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost">👆<span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -105,7 +118,9 @@ function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textC
 let tStart=Date.now();
 function log(msg){const t=Date.now()-tStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
 function setDiff(){const pct=Math.min(100,Math.round((level-2)/5*100));$('#difffill').style.width=pct+'%';$('#difflabel').textContent='TARGETS '+level;}
-function setCue(i){$('#phasecue').textContent=i;}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');if(!el)return;el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 
 /* ---------- ghost ---------- */
 const ghost=$('#ghost');function ghostShow(v){ghost.classList.toggle('show',v);}
@@ -126,7 +141,7 @@ async function runTrial(nt,nd){clearGrid();sel=[];tapCount=0;
   distractCells.forEach(i=>{cellEl(i).textContent='\u2b50';cellEl(i).style.color=others[Math.floor(Math.random()*others.length)];});
   await sleep(900);
   [...targetCells,...distractCells].forEach(i=>{cellEl(i).textContent='';cellEl(i).style.color='';});
-  $$('.cell').forEach(c=>c.classList.add('pick'));submitStart=Date.now();$('#done').classList.add('ready');}
+  $$('.cell').forEach(c=>c.classList.add('pick'));submitStart=Date.now();$('#done').classList.add('ready');if(phase!=='demo')setStatus('neutral','Tap every star of the cued colour, then press Done.');}
 function toggleCell(i){if(locked||phase==='demo')return;const el=cellEl(i);const pos=sel.indexOf(i);
   if(pos!==-1){sel.splice(pos,1);el.classList.remove('sel');T.revisions++;log(`revise: deselect cell ${i+1}`);}else{sel.push(i);el.classList.add('sel');}
   tapCount++;renderMeters();}
@@ -136,18 +151,19 @@ function submit(){if(locked||phase==='demo'||!$('#done').classList.contains('rea
   const exact=hits===targetCells.length&&fas===0;
   sel.forEach(i=>cellEl(i).classList.add(tgtSet.has(i)?'correct':'wrong'));
   targetCells.forEach(i=>{if(!selSet.has(i))cellEl(i).classList.add('wrong');});
-  if(phase==='warmup'){log(`warm-up ${exact?'exact':'partial ('+hits+'/'+targetCells.length+')'} \u2014 UNSCORED`);setTimeout(()=>{phase='scored';nextScored();},1200);return;}
+  if(phase==='warmup'){setStatus(exact?'ok':'no',exact?'\u2713 Correct - practice':'\u2717 Not quite - matches are shown (practice)');log(`warm-up ${exact?'exact':'partial ('+hits+'/'+targetCells.length+')'} \u2014 UNSCORED`);setTimeout(()=>{phase='scored';nextScored();},1200);return;}
   T.scored++;T.rts.push(rt);T.hits+=hits;T.tgtCells+=targetCells.length;T.fas+=fas;T.nonTgtCells+=(NC-targetCells.length);
   T.extraTaps.push(Math.max(0,tapCount-targetCells.length));
   if(exact){T.exact++;maxLevel=Math.max(maxLevel,level);level=Math.min(7,level+1);log(`SCORED targets ${targetCells.length}/distractors ${distractCells.length} \u2192 EXACT \u2714 \u2192 targets up to ${level}`);}
   else{$('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),450);level=Math.max(2,level-1);log(`SCORED targets ${targetCells.length}/distractors ${distractCells.length} \u2192 ${hits}/${targetCells.length} hits, ${fas} false alarms \u2192 targets down to ${level}`);}
+  setStatus(exact?'ok':'no',exact?'\u2713 Correct':'\u2717 Not quite - correct cells are shown');
   setDiff();renderMeters();
   setTimeout(()=>{if(T.scored>=7)finish();else nextScored();},1300);}
-function nextScored(){setCue('\ud83c\udfaf');const nd=level+1;log(`\u2014 SCORED trial ${T.scored+1}: ${level} targets, ${nd} distractors \u2014`);runTrial(level,nd).then(renderMeters);}
-function startWarmup(){phase='warmup';setCue('\u2b50');log('\u2014 warm-up (unscored): hold only the cued colour \u2014');runTrial(1,1).then(renderMeters);}
-function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;clearGrid();$('#done').classList.remove('ready');
+function nextScored(){setCue('scored',(T.scored+1)+'/7');const nd=level+1;log(`\u2014 SCORED trial ${T.scored+1}: ${level} targets, ${nd} distractors \u2014`);runTrial(level,nd).then(renderMeters);}
+function startWarmup(){phase='warmup';setCue('warmup');log('\u2014 warm-up (unscored): hold only the cued colour \u2014');runTrial(1,1).then(renderMeters);}
+function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;clearGrid();$('#done').classList.remove('ready');
   log(`\u2014 DONE \u00b7 exact ${T.exact}/${T.scored} \u00b7 ceiling targets ${maxLevel} \u2014`);}
-async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;clearGrid();
+async function runDemo(){phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;clearGrid();
   log('ghost-hand demo (wordless, <10s)');
   targetColor='#5b9dff';$('#cueSwatch').style.display='block';$('#cueSwatch').style.background=targetColor;await sleep(700);$('#cueSwatch').style.display='none';
   targetCells=[5,10];distractCells=[2];
@@ -157,7 +173,7 @@ async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;c
   ghostShow(true);
   for(const i of targetCells){await ghostTo(cellEl(i));await ghostTap();cellEl(i).classList.add('correct');}
   await ghostTo($('#done'));await ghostTap();
-  await sleep(400);ghostShow(false);setCue('\u2705');await sleep(600);startWarmup();}
+  await sleep(400);ghostShow(false);setStatus('ok','\u2713 Got it - now you try.');await sleep(600);startWarmup();}
 $('#grid').addEventListener('click',e=>{const c=e.target.closest('.cell');if(c)toggleCell(+c.dataset.i);});
 $('#done').addEventListener('click',submit);
 $('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});

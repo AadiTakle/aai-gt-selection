@@ -24,7 +24,13 @@
   #badge{
     color:#718895;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
   }
-  #phasecue{height:40px;font-size:34px}
+  #howto{max-width:720px;width:100%;background:#fff;border:1px solid #dbe7ed;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #314b5d}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:#c07d1e}
+  #howto p{margin:0;font-size:14px;color:#3d5663;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#fff0da;color:#b06d10;border:2px solid #ffd9a6;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:var(--accent);color:#5a3800;border-color:var(--accent)}
+  #phasecue[data-phase="done"]{background:#fff0da;color:#b06d10;border-color:#ffd9a6}
   #stagecard{
     width:min(720px,100%);background:rgba(255,255,255,.9);border-radius:30px;
     box-shadow:0 24px 65px -35px #314b5d;padding:22px;display:grid;gap:16px;
@@ -68,11 +74,13 @@
   .round{
     width:48px;height:48px;border-radius:50%;background:#e7eef2;color:#617985;font-size:22px;
   }
-  #status{height:16px;display:flex;justify-content:center;gap:7px}
-  #status i{width:10px;height:10px;border-radius:50%;background:#d7e2e6}
-  #status i.on{background:var(--accent)}
-  #status i.ok{background:var(--good)}
-  #status i.no{background:var(--bad)}
+  #progress{height:16px;display:flex;justify-content:center;gap:7px}
+  #progress i{width:10px;height:10px;border-radius:50%;background:#d7e2e6}
+  #progress i.on{background:var(--accent)}
+  #progress i.ok{background:var(--good)}
+  #progress i.no{background:var(--bad)}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#7992a7}
   #ghost{
     position:fixed;left:0;top:0;z-index:50;font-size:40px;opacity:0;pointer-events:none;
     transition:transform .48s cubic-bezier(.2,.7,.2,1),opacity .2s;
@@ -117,7 +125,11 @@
 <body>
 <main id="wrap">
   <div id="badge">QUANT-DOTS-01 · More or Fewer</div>
-  <div id="phasecue">👁️</div>
+  <header id="howto">
+    <h1>How to use — More or Fewer</h1>
+    <p>Two groups of dots flash and then hide. Choose the side that had MORE dots — tap it, or press F for left and J for right. It gets harder each time you are right.</p>
+  </header>
+  <div id="phasecue" data-phase="demo">Watch the example</div>
   <section id="stagecard">
     <div id="sky">
       <div class="window" id="winL"><div class="cloud" id="cloudL"></div><div class="cover" id="coverL">◌</div></div>
@@ -127,8 +139,9 @@
       <button class="side" id="pickL" disabled aria-label="choose left">◀<span class="keycap">F</span></button>
       <button class="side" id="pickR" disabled aria-label="choose right">▶<span class="keycap">J</span></button>
     </div>
-    <div id="status"></div>
+    <div id="progress"></div>
     <div id="controls"><button class="round" id="replay" aria-label="replay demonstration">↻</button></div>
+    <div id="status" class="neutral">Watch the example, then try it yourself.</div>
   </section>
 </main>
 <aside id="telemetry">
@@ -140,7 +153,7 @@
   <div id="mlist"></div>
   <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
 </aside>
-<div id="ghost">👆</div>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s);
@@ -156,6 +169,9 @@ const LEVELS=[
   {ratio:.90,count:21,exposure:330}
 ];
 let phase='demo',current=null,trialToken=0,locked=true,scoredIndex=0;
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');if(!el)return;el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 const T={
   scored:0,correct:0,rts:[],eligibleRts:[],speedHits:0,
   left:0,right:0,bestRatio:0,maxSolved:0,level:1,startLevel:1,
@@ -172,7 +188,7 @@ const METERS=[
 function buildMeters(){
   $('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');
   $('#diffbar').innerHTML=LEVELS.map(()=>'<i></i>').join('');
-  $('#status').innerHTML=Array.from({length:6},()=>'<i></i>').join('');
+  $('#progress').innerHTML=Array.from({length:6},()=>'<i></i>').join('');
 }
 function renderMeters(){
   METERS.forEach(m=>$('#v_'+m.id).textContent=m.get());
@@ -256,7 +272,7 @@ async function choose(side,modality='tap'){
   const rt=Math.round(performance.now()-T.itemStart);
   const correct=side===current.moreSide;
   if(phase==='warmup'){
-    reveal(correct,side);log(`WARM-UP ${correct?'correct':'corrective reveal'} · UNSCORED`);
+    reveal(correct,side);setStatus(correct?'ok':'no',correct?'\u2713 Correct - practice':'\u2717 Not quite - the side with more is shown (practice)');log(`WARM-UP ${correct?'correct':'corrective reveal'} · UNSCORED`);
     await sleep(900);startScored();return;
   }
   T.scored++;T.rts.push(rt);T.rapid=rt<180;
@@ -267,8 +283,8 @@ async function choose(side,modality='tap'){
   if(eligible)T.eligibleRts.push(rt);
   if(correct){T.correct++;if(eligible)T.speedHits++;T.bestRatio=Math.max(T.bestRatio,current.small/current.large);T.maxSolved=Math.max(T.maxSolved,current.level);}
   T.results.push(correct?'↑':'↓');
-  const marker=$('#status').children[scoredIndex];marker.classList.add(correct?'ok':'no');
-  reveal(correct,side);
+  const marker=$('#progress').children[scoredIndex];marker.classList.add(correct?'ok':'no');
+  reveal(correct,side);setStatus(correct?'ok':'no',correct?'\u2713 Correct':'\u2717 Not quite - the side with more is shown');
   log(`${modality.toUpperCase()} ${side} → ${correct?'CORRECT':'MISS'} · ${rt}ms${T.rapid?' RAPID-GATED':''}${T.attentionLost?' BLUR-GATED':''}${T.drift?' DRIFT-GATED':''}`);
   T.level=clamp(T.level+(correct?1:-1),1,6);renderMeters();
   scoredIndex++;
@@ -287,29 +303,29 @@ async function ghostTap(){
 }
 function resetSession(){
   Object.assign(T,{scored:0,correct:0,rts:[],eligibleRts:[],speedHits:0,left:0,right:0,bestRatio:0,maxSolved:0,level:1,startLevel:1,itemStart:0,rapid:false,attentionLost:false,drift:false,results:[]});
-  scoredIndex=0;clearButtonFeedback();[...$('#status').children].forEach(x=>x.className='');renderMeters();
+  scoredIndex=0;clearButtonFeedback();[...$('#progress').children].forEach(x=>x.className='');renderMeters();
 }
 async function runDemo(){
-  resetSession();phase='demo';locked=true;$('#phasecue').textContent='👁️';log('ghost-hand demo · wordless');
+  resetSession();phase='demo';locked=true;setCue('demo');setStatus('neutral','Watch the example.');log('ghost-hand demo · wordless');
   const demo={level:1,large:8,small:3,moreSide:'R',condition:'equal-size',exposure:1050,largeSize:25,smallSize:25};
   await present(demo);locked=true;$('#ghost').classList.add('show');
   await ghostTo($('#pickR'));await ghostTap();reveal(true,'R');log('DEMO reveal · 8 over 3');
   await sleep(650);$('#ghost').classList.remove('show');startWarmup();
 }
 async function startWarmup(){
-  phase='warmup';locked=true;clearButtonFeedback();$('#phasecue').textContent='⭐';
+  phase='warmup';locked=true;clearButtonFeedback();setCue('warmup');setStatus('neutral','Practice - this one is not scored.');
   const item={level:1,large:9,small:3,moreSide:'L',condition:'area-balanced',exposure:950,largeSize:20,smallSize:Math.round(20*Math.sqrt(3)),};
   await present(item);log('warm-up ready · unscored');
 }
 async function startScored(){
-  phase='scored';locked=true;clearButtonFeedback();$('#phasecue').textContent='🎯';
-  [...$('#status').children].forEach((x,i)=>x.classList.toggle('on',i===scoredIndex));
+  phase='scored';locked=true;clearButtonFeedback();setCue('scored',(scoredIndex+1)+'/6');setStatus('neutral','Watch the dots, then choose the side with more.');
+  [...$('#progress').children].forEach((x,i)=>x.classList.toggle('on',i===scoredIndex));
   await present(makeItem(T.level));log(`SCORED ${scoredIndex+1}/6 · level ${T.level}`);
   renderMeters();
 }
 function finish(){
-  phase='done';locked=true;$('#phasecue').textContent='🏆';$('#pickL').disabled=true;$('#pickR').disabled=true;
-  [...$('#status').children].forEach(x=>x.classList.remove('on'));
+  phase='done';locked=true;setCue('done');setStatus('ok','\u2713 Done');$('#pickL').disabled=true;$('#pickR').disabled=true;
+  [...$('#progress').children].forEach(x=>x.classList.remove('on'));
   log(`DONE · ${T.correct}/${T.scored} · closest ${T.bestRatio.toFixed(2)}`);renderMeters();
 }
 $('#pickL').addEventListener('click',()=>choose('L','tap'));

@@ -18,7 +18,15 @@
   button{font:inherit;border:0;cursor:pointer}
   #wrap{flex:1;min-width:0;padding:18px;display:flex;flex-direction:column;align-items:center;gap:12px}
   #badge{font-size:12px;font-weight:800;letter-spacing:.1em;color:#977c65;text-transform:uppercase}
-  #phasecue{height:40px;font-size:34px}
+  #howto{max-width:760px;width:100%;background:var(--paper);border:1px solid #efe0c8;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #674d31}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:#b5761a}
+  #howto p{margin:0;font-size:14px;color:#5c4f43;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#fdeccc;color:#a86a10;border:2px solid #f3d39a;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:var(--accent);color:#5a3800;border-color:var(--accent)}
+  #phasecue[data-phase="done"]{background:#fdeccc;color:#a86a10;border-color:#f3d39a}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a7c6a}
   #stagecard{
     width:min(760px,100%);background:var(--paper);padding:22px;border-radius:30px;
     box-shadow:0 24px 58px -34px #674d31;display:grid;gap:16px;border:1px solid #fff;
@@ -68,11 +76,11 @@
     box-shadow:inset 0 -3px #d8c0a5;
   }
   .scoop.half{font-size:17px}.scoop:disabled{opacity:.25;cursor:default}
-  .lock{width:45px;text-align:center;font-size:22px}
+  .lock{width:45px;text-align:center;font-size:10px;font-weight:800;color:#a68863;text-transform:uppercase}
   #controls{display:flex;align-items:center;justify-content:center;gap:14px}
   .round{width:49px;height:49px;border-radius:50%;background:#f0e5d6;color:#765d49;font-size:22px}
   #go{
-    width:72px;height:72px;border-radius:50%;background:var(--accent);color:#fff;font-size:30px;
+    width:72px;height:72px;border-radius:50%;background:var(--accent);color:#fff;font:800 15px system-ui;
     box-shadow:0 12px 24px -12px #a26513;animation:pulse 1.1s infinite;
   }
   #go:disabled{opacity:.35;animation:none;cursor:default}
@@ -110,19 +118,24 @@
 <body>
 <main id="wrap">
   <div id="badge">QUANT-MIX-01 · Fair Share</div>
-  <div id="phasecue">👁️</div>
+  <header id="howto">
+    <h1>How to use — Fair Share</h1>
+    <p>The top bowl shows the mix to copy. Use the + and − buttons to add scoops to the bottom bowl until it matches, then press Taste. It gets harder each time you are right.</p>
+  </header>
+  <div id="phasecue" data-phase="demo">Watch the example</div>
   <section id="stagecard">
     <div id="lab">
       <div class="bowl" id="target"><div class="mixrow"><div class="kind">◆</div><div class="tokens" id="targetA"></div></div><div class="mixrow"><div class="kind">💧</div><div class="tokens" id="targetB"></div></div></div>
-      <div id="taste">👅<span>↔</span>👅</div>
+      <div id="taste">↔<span>same?</span></div>
       <div class="bowl" id="build"><div class="mixrow"><div class="kind">◆</div><div class="tokens" id="buildA"></div></div><div class="mixrow"><div class="kind">💧</div><div class="tokens" id="buildB"></div></div><div id="capacity"></div></div>
     </div>
     <div class="scoops">
-      <div class="scooprow" id="controlA"><button class="scoop" data-kind="A" data-delta="-1">−</button><button class="scoop" data-kind="A" data-delta="1">＋◆</button><button class="scoop half" data-kind="A" data-delta=".5">＋◐</button><span class="lock">🔒</span></div>
-      <div class="scooprow" id="controlB"><button class="scoop" data-kind="B" data-delta="-1">−</button><button class="scoop" data-kind="B" data-delta="1">＋💧</button><button class="scoop half" data-kind="B" data-delta=".5">＋◐</button><span class="lock">🔒</span></div>
+      <div class="scooprow" id="controlA"><button class="scoop" data-kind="A" data-delta="-1">−</button><button class="scoop" data-kind="A" data-delta="1">＋◆</button><button class="scoop half" data-kind="A" data-delta=".5">＋◐</button><span class="lock">locked</span></div>
+      <div class="scooprow" id="controlB"><button class="scoop" data-kind="B" data-delta="-1">−</button><button class="scoop" data-kind="B" data-delta="1">＋💧</button><button class="scoop half" data-kind="B" data-delta=".5">＋◐</button><span class="lock">locked</span></div>
     </div>
-    <div id="controls"><button class="round" id="replay" aria-label="replay demonstration">↻</button><button id="go" aria-label="taste">😋</button></div>
+    <div id="controls"><button class="round" id="replay" aria-label="replay demonstration">↻</button><button id="go" aria-label="taste">Taste</button></div>
     <div id="progress"></div>
+    <div id="status" class="neutral">Watch the example, then try it yourself.</div>
   </section>
 </main>
 <aside id="telemetry">
@@ -131,7 +144,7 @@
   <div id="mlist"></div>
   <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
 </aside>
-<div id="ghost">👆</div>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s);
@@ -149,6 +162,9 @@ const LEVELS=[
 const DEMO={level:1,base:[1,2],target:[2,4],init:[0,0],lock:[false,false],label:'demo'};
 const WARM={level:1,base:[1,2],target:[2,4],init:[2,3],lock:[true,false],label:'warm-up'};
 let phase='demo',cur=null,amount=[0,0],locked=true,scoredIndex=0;
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');if(!el)return;el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 const T={scored:0,correct:0,poly:'—',path:[],plan:'—',strategy:'—',level:1,startLevel:1,maxSolved:0,results:[],itemStart:0};
 const METERS=[
   {id:'M-ACC',name:'Exact equivalent mixture',get:()=>T.scored?`${T.correct}/${T.scored} · ${Math.round(100*T.correct/T.scored)}%`:'—'},
@@ -231,6 +247,7 @@ async function submit(){
   T.strategy=classify();T.plan=T.path.length<=optimalMoves()+1?'direct proportional adjustment':'repeated search';
   $('#build').classList.add(correct?'good':'bad');
   if(phase==='warmup'){
+    setStatus(correct?'ok':'no',correct?'\u2713 Same taste - practice':'\u2717 Not quite - the matching mix is shown (practice)');
     log(`WARM-UP ${correct?'same taste':'corrective full batch'} · UNSCORED`);
     if(!correct){await sleep(450);amount=cur.target.slice();render();$('#build').classList.add('good')}
     await sleep(750);startScored();return;
@@ -238,6 +255,7 @@ async function submit(){
   T.scored++;if(correct){T.correct++;T.maxSolved=Math.max(T.maxSolved,cur.level)}
   T.results.push(correct?'↑':'↓');T.level=clamp(T.level+(correct?1:-1),1,6);
   $('#progress').children[scoredIndex].classList.add(correct?'ok':'no');
+  setStatus(correct?'ok':'no',correct?'\u2713 Same taste!':'\u2717 Not the same taste');
   log(`TASTE level ${cur.level} → ${correct?'MATCH':'MISS'} · ${T.poly} · ${T.strategy}`);
   renderMeters();scoredIndex++;await sleep(900);scoredIndex<6?startScored():finish();
 }
@@ -252,20 +270,21 @@ function reset(){
   Object.assign(T,{scored:0,correct:0,poly:'—',path:[],plan:'—',strategy:'—',level:1,startLevel:1,maxSolved:0,results:[],itemStart:0});
   scoredIndex=0;[...$('#progress').children].forEach(x=>x.className='');renderMeters();
 }
-function loadItem(item,cue){
+function loadItem(item,phaseKey,extra){
   cur={...item,base:item.base.slice(),target:item.target.slice(),init:item.init.slice(),lock:item.lock.slice()};
   amount=cur.init.slice();T.path=[];T.poly='—';T.plan='—';T.strategy='—';locked=false;T.itemStart=performance.now();
-  $('#phasecue').textContent=cue;$('#build').className='bowl';render();log(`${phase.toUpperCase()} · level ${cur.level} · ${cur.label}`);
+  setCue(phaseKey,extra);setStatus('neutral',phaseKey==='warmup'?'Practice - this one is not scored.':phaseKey==='scored'?'Add scoops so the bottom bowl matches, then press Taste.':'Watch the example.');
+  $('#build').className='bowl';render();log(`${phase.toUpperCase()} · level ${cur.level} · ${cur.label}`);
 }
 async function runDemo(){
-  reset();phase='demo';loadItem(DEMO,'👁️');locked=false;$('#ghost').classList.add('show');log('ghost-hand demo · wordless');
+  reset();phase='demo';loadItem(DEMO,'demo');locked=false;$('#ghost').classList.add('show');log('ghost-hand demo · wordless');
   await ghostAdjust('A',2);await ghostAdjust('B',4);
   await ghostTo($('#go'));await ghostTap();$('#build').classList.add('good');
   await sleep(450);$('#ghost').classList.remove('show');startWarmup();
 }
-function startWarmup(){phase='warmup';loadItem(WARM,'⭐')}
-function startScored(){phase='scored';loadItem(LEVELS[T.level-1],'🎯');log(`SCORED ${scoredIndex+1}/6`)}
-function finish(){phase='done';locked=true;render();$('#phasecue').textContent='🏆';log(`DONE · ${T.correct}/${T.scored} · peak ${T.maxSolved}`);renderMeters()}
+function startWarmup(){phase='warmup';loadItem(WARM,'warmup')}
+function startScored(){phase='scored';loadItem(LEVELS[T.level-1],'scored',(scoredIndex+1)+'/6');log(`SCORED ${scoredIndex+1}/6`)}
+function finish(){phase='done';locked=true;render();setCue('done');setStatus('ok','\u2713 Done');log(`DONE · ${T.correct}/${T.scored} · peak ${T.maxSolved}`);renderMeters()}
 document.querySelector('.scoops').addEventListener('click',event=>{
   const button=event.target.closest('button[data-kind]');if(button)adjust(button.dataset.kind,+button.dataset.delta);
 });

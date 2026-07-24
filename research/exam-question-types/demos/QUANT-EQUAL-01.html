@@ -19,7 +19,15 @@
   button:focus-visible{outline:4px solid #566dd0;outline-offset:3px}
   #wrap{flex:1;min-width:0;padding:18px;display:flex;flex-direction:column;align-items:center;gap:12px}
   #badge{font-size:12px;font-weight:800;letter-spacing:.1em;color:#7d86a9;text-transform:uppercase}
-  #phasecue{font-size:34px;height:40px}
+  #howto{max-width:600px;width:100%;background:#fff;border:1px solid #d7d3f0;border-left:5px solid #6558c7;border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #454a80}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:#6558c7}
+  #howto p{margin:0;font-size:14px;color:#46507a;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eeebfb;color:#6558c7;border:2px solid #d2ccf3;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:#6558c7;color:#fff;border-color:#6558c7}
+  #phasecue[data-phase="done"]{background:#eae7fb;color:#4b3fa0;border-color:#d2ccf3}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#7d86a9}
   #stagecard{
     width:min(800px,100%);background:rgba(255,255,255,.94);border-radius:30px;padding:22px;
     display:grid;gap:17px;box-shadow:0 24px 60px -34px #454a80;border:1px solid #fff;
@@ -81,10 +89,12 @@
   #progress i{width:10px;height:10px;border-radius:50%;background:#dce1ef}
   #progress i.ok{background:var(--good)}#progress i.no{background:var(--bad)}
   #ghost{
-    position:fixed;left:0;top:0;z-index:60;font-size:40px;opacity:0;pointer-events:none;
+    position:fixed;left:0;top:0;z-index:60;opacity:0;pointer-events:none;
     transition:transform .47s cubic-bezier(.2,.7,.2,1),opacity .2s;filter:drop-shadow(0 3px 4px #0004);
   }
   #ghost.show{opacity:.95}#ghost.tap{animation:tap .35s}@keyframes tap{50%{scale:.78}}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid #6558c7;opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
   #telemetry{
     width:340px;flex:0 0 340px;min-height:100vh;background:var(--tel);color:#c3cce6;
     display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;
@@ -110,7 +120,11 @@
 <body>
 <main id="wrap">
   <div id="badge">QUANT-EQUAL-01 · Make It Equal</div>
-  <div id="phasecue">👁️</div>
+  <header id="howto">
+    <h1>How to use — Make It Equal</h1>
+    <p>Look at both sides of the bridge. Tap the tile that makes the two sides equal, then press the check (<b>✓</b>) to submit.</p>
+  </header>
+  <div id="phasecue" data-phase="demo">Watch the example</div>
   <section id="stagecard">
     <div id="bridge">
       <div class="side" id="leftSide"></div><div id="equals">=</div><div class="side" id="rightSide"></div><div id="beam"></div>
@@ -118,6 +132,7 @@
     <div id="answers"></div>
     <div id="controls"><button class="round" id="replay" aria-label="replay demonstration">↻</button><button id="go" aria-label="submit">✓</button></div>
     <div id="progress"></div>
+    <div id="status" class="neutral">Watch the example, then try it yourself.</div>
   </section>
 </main>
 <aside id="telemetry">
@@ -126,7 +141,7 @@
   <div id="mlist"></div>
   <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
 </aside>
-<div id="ghost">👆</div>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#6558c7" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s);
@@ -168,6 +183,9 @@ function log(message){
   const row=document.createElement('div');row.innerHTML=`<span class="t">+${elapsed}ms</span> ${message}`;
   $('#log').appendChild(row);$('#log').scrollTop=$('#log').scrollHeight;
 }
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 function quantityHTML(n){
   const dots=Array.from({length:n},()=>'<i></i>').join('');
   return `<div class="dots">${dots}</div><div class="bar"><i style="width:${Math.min(100,n*9)}%"></i></div>`;
@@ -207,10 +225,12 @@ function balanceFeedback(correct){
 async function submit(){
   if(locked||selected<0)return;locked=true;const correct=selected===cur.correct;render();balanceFeedback(correct);
   if(phase==='warmup'){
+    setStatus('neutral',correct?'\u2713 Balanced - practice':'Practice - the equal answer is shown.');
     log(`WARM-UP ${correct?'equal':'corrective balance'} · UNSCORED`);
     if(!correct){await sleep(450);selected=cur.correct;render();balanceFeedback(true)}
     await sleep(750);startScored();return;
   }
+  setStatus(correct?'ok':'no',correct?'\u2713 Correct':'\u2717 Not quite - the correct tile is highlighted');
   T.scored++;if(firstChoice===cur.correct)T.relational++;
   if(correct){T.correct++;T.maxSolved=Math.max(T.maxSolved,cur.level)}
   T.results.push(correct?'↑':'↓');T.level=clamp(T.level+(correct?1:-1),1,6);
@@ -225,21 +245,21 @@ function reset(){
   Object.assign(T,{scored:0,correct:0,eqrel:'—',relational:0,err:'—',revs:0,level:1,startLevel:1,maxSolved:0,results:[],itemStart:0});
   scoredIndex=0;[...$('#progress').children].forEach(x=>x.className='');renderMeters();
 }
-function loadItem(item,cue){
+function loadItem(item){
   cur=item;selected=-1;firstChoice=null;itemRevs=0;locked=false;T.eqrel='—';T.err='—';T.itemStart=performance.now();
-  $('#phasecue').textContent=cue;$('#equals').className='';$('#beam').style.transform='rotate(0deg)';render();
+  $('#equals').className='';$('#beam').style.transform='rotate(0deg)';render();
   log(`${phase.toUpperCase()} · level ${cur.level} · ${cur.label}`);
 }
 async function runDemo(){
-  reset();phase='demo';loadItem(DEMO,'👁️');$('#ghost').classList.add('show');log('ghost-hand demo · wordless');
+  reset();phase='demo';setCue('demo');setStatus('neutral','Watch the example, then try it yourself.');loadItem(DEMO);$('#ghost').classList.add('show');log('ghost-hand demo · wordless');
   await ghostTo($('#leftSide'));await ghostTo($('#rightSide'));
   await ghostTo($('#answers').children[DEMO.correct]);await ghostTap();pick(DEMO.correct,true);
   await ghostTo($('#go'));await ghostTap();locked=true;render();balanceFeedback(true);
   await sleep(500);$('#ghost').classList.remove('show');startWarmup();
 }
-function startWarmup(){phase='warmup';loadItem(WARM,'⭐')}
-function startScored(){phase='scored';loadItem(ITEMS[T.level-1],'🎯');log(`SCORED ${scoredIndex+1}/6`)}
-function finish(){phase='done';locked=true;render();$('#phasecue').textContent='🏆';log(`DONE · ${T.correct}/${T.scored} · relational-first ${T.relational}`);renderMeters()}
+function startWarmup(){phase='warmup';setCue('warmup');setStatus('neutral','Practice - this one is not scored.');loadItem(WARM)}
+function startScored(){phase='scored';setCue('scored',(scoredIndex+1)+'/6');setStatus('neutral','Tap the tile that makes both sides equal.');loadItem(ITEMS[T.level-1]);log(`SCORED ${scoredIndex+1}/6`)}
+function finish(){phase='done';locked=true;render();setCue('done');setStatus('ok','\u2713 Done');log(`DONE · ${T.correct}/${T.scored} · relational-first ${T.relational}`);renderMeters()}
 $('#answers').addEventListener('click',event=>{const button=event.target.closest('.candidate');if(button)pick(+button.dataset.i)});
 $('#go').addEventListener('click',submit);
 $('#replay').addEventListener('click',runDemo);

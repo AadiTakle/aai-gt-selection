@@ -11,7 +11,15 @@
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:12px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
-  #phasecue{font-size:32px;height:38px}
+  #howto{max-width:520px;width:100%;background:#fff;border:1px solid #d3e6d8;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #2a5a42}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#3a4a5e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#e6f6ec;color:#12a15f;border:2px solid #bfe6cc;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+  #phasecue[data-phase="done"]{background:#e6f6ec;color:#0e7f4b;border-color:#bfe6cc}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#7a9a8a}
   #stagecard{background:var(--card);border-radius:24px;padding:20px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:12px}
   #stage{position:relative}
   #grid{display:grid;gap:3px;background:#d5ead9;padding:6px;border-radius:12px;position:relative}
@@ -60,17 +68,22 @@
 <body>
   <div id="wrap">
     <div id="badge">GB-PATHFORGE-01 · Path Forge</div>
-    <div id="phasecue">👁️</div>
+    <header id="howto">
+      <h1>How to use — Path Forge</h1>
+      <p>Tap a road tile in the tray, then tap a cell to place it. Use rotate (R) to turn a tile so the road connects the house to the flag. When the road is joined, press GO to send the truck.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
     <div id="stagecard">
       <div id="stage"><div id="grid"></div></div>
       <div id="tray"></div>
       <div id="row">
         <button id="replay" title="replay demo">↻</button>
         <button id="rot" title="rotate (R)">⟳ rotate</button>
-        <button id="rem" title="remove (Del)">🗑 remove</button>
+        <button id="rem" title="remove (Del)">✕ remove</button>
         <button id="go">GO ▶</button>
       </div>
       <div class="hotkeys">hotkeys: R rotate selected tile · Delete removes it · tap tray tile then a cell to place</div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
     </div>
   </div>
   <aside id="telemetry">
@@ -79,7 +92,7 @@
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost">👆<span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s);
@@ -171,6 +184,9 @@ const ghost=$('#ghost');function ghostShow(v){ghost.classList.toggle('show',v);}
 function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
 async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(480);}
 async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(380);}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 
 /* ---------- render ---------- */
 function isHut(r,c){return r===cur.start[0]&&c===cur.start[1];}
@@ -283,12 +299,13 @@ async function pressGo(){
   log(`GO → courier reached ${pct}% of route${reachedGoal?' — FLAG REACHED':''}`);
   renderMeters();
   if(reachedGoal){await sleep(300);submit();}
-  else locked=false;
+  else{if(phase!=='demo')setStatus('neutral',`The truck reached ${pct}% of the way - connect the road all the way to the flag.`);locked=false;}
 }
 function submit(){
   const rt=Date.now()-T.itemStart;
   locked=true;
-  if(phase==='warmup'){log('warm-up road complete — UNSCORED');setTimeout(nextPhase,1100);return;}
+  if(phase==='warmup'){setStatus('ok','\u2713 Road complete - practice');log('warm-up road complete — UNSCORED');setTimeout(nextPhase,1100);return;}
+  setStatus('ok','\u2713 Road complete');
   T.scored++;T.rts.push(rt);T.exact++;
   if(level>=T.maxLevel)T.hardMs=Math.max(T.hardMs,rt);
   T.levelSeries.push(level);T.maxLevel=Math.max(T.maxLevel,level);
@@ -302,12 +319,12 @@ function nextPhase(){
   if(phase==='warmup'){scoredIndex=0;startScored();}
   else if(phase==='scored'){scoredIndex++;scoredIndex<6?startScored():finish();}
 }
-function startWarmup(){phase='warmup';locked=false;$('#phasecue').textContent='\u2b50';renderItem(genItem(0));log('— warm-up (unscored) —');}
-function startScored(){phase='scored';$('#phasecue').textContent='\ud83c\udfaf';renderItem(genItem(level));log(`— SCORED item ${scoredIndex+1}/6 · level ${level+1} · optimal ${cur.optimalTiles} tiles —`);}
-function finish(){phase='done';$('#phasecue').textContent='\ud83c\udfc6';locked=true;log(`— DONE · roads built ${T.exact}/${T.scored} · ceiling level ${T.maxLevel+1} —`);}
+function startWarmup(){phase='warmup';locked=false;setCue('warmup');setStatus('neutral','Practice - build a road from the house to the flag. Not scored.');renderItem(genItem(0));log('— warm-up (unscored) —');}
+function startScored(){phase='scored';setCue('scored',(scoredIndex+1)+'/6');setStatus('neutral','Place and rotate tiles to connect the house to the flag, then press GO.');renderItem(genItem(level));log(`— SCORED item ${scoredIndex+1}/6 · level ${level+1} · optimal ${cur.optimalTiles} tiles —`);}
+function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;log(`— DONE · roads built ${T.exact}/${T.scored} · ceiling level ${T.maxLevel+1} —`);}
 
 async function runDemo(){
-  phase='demo';$('#phasecue').textContent='\ud83d\udc41\ufe0f';locked=true;
+  phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;
   const R=1,C=3,start=[0,0],goal=[0,2];
   const path=[start,[0,1],goal];
   const required=new Map([['0,1',new Set(['W','E'])]]);

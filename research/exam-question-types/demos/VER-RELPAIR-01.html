@@ -10,14 +10,23 @@
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
-  #phasecue{font-size:34px;height:40px;line-height:40px}
+  #howto{max-width:660px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:#5b6cff;border:2px solid #c9d0ff;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:#5b6cff;color:#fff;border-color:#5b6cff}
+  #phasecue[data-phase="done"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
   #stagecard{background:var(--card);border-radius:26px;padding:24px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:18px;max-width:680px;width:100%}
   .band{border-radius:16px;padding:14px 18px;display:flex;flex-direction:column;gap:10px;align-items:center;width:100%}
   #keyBand{background:linear-gradient(160deg,#eafaf1,#eef1ff);border:3px solid #bfe8cf}
-  .pairRow{display:flex;align-items:center;gap:14px;font-size:34px}
+  .pairRow{display:flex;align-items:center;gap:14px;font-size:22px;font-weight:700}
+  .pairRow .word,.cand .word{padding:6px 12px;background:#fff;border:2px solid #dfe4fb;border-radius:10px}
   .pairRow .arrow{font-size:24px;color:#8ea0d6}
   #candGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;width:100%}
-  .cand{display:flex;align-items:center;justify-content:center;gap:10px;background:#f4f6ff;border:3px solid #d7deff;border-radius:16px;padding:12px 10px;cursor:pointer;font-size:28px;transition:.12s;position:relative}
+  .cand{display:flex;align-items:center;justify-content:center;gap:10px;background:#f4f6ff;border:3px solid #d7deff;border-radius:16px;padding:14px 10px;cursor:pointer;font-size:18px;font-weight:600;transition:.12s;position:relative}
   .cand:hover{border-color:#b9c2ee}
   .cand .hk{position:absolute;top:4px;left:6px;font-size:10px;color:#a7b0d8;font-weight:700}
   .cand.sel{border-color:var(--accent);background:#e7ecff;animation:pulse 1.1s infinite}
@@ -54,15 +63,20 @@
 <body>
   <div id="wrap">
     <div id="badge">VER-RELPAIR-01 · Relation Match</div>
-    <div id="phasecue">👁️</div>
+    <header id="howto">
+      <h1>How to use — Relation Match</h1>
+      <p>Look at how the top pair of words go together. Then tap the pair below that go together in the <b>same way</b> (not one that is merely related), and press the check (<b>✓</b>) to submit. You can also press number keys 1–4. It gets harder each time you are right.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
     <div id="stagecard">
       <div id="keyBand" class="band"><div class="pairRow" id="keyPair"></div></div>
       <div id="candGrid"></div>
-      <div id="diffmeter">🌱<div id="diffbar"><i id="diffbarfill"></i></div>🌳</div>
+      <div id="diffmeter"><span>Easy</span><div id="diffbar"><i id="diffbarfill"></i></div><span>Hard</span></div>
       <div id="controls">
         <button class="rd" id="replay" title="replay demo">↻</button>
         <button class="rd" id="go" title="submit">✓</button>
       </div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
     </div>
   </div>
   <aside id="telemetry">
@@ -70,7 +84,7 @@
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost">👆<span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -79,35 +93,35 @@ const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0,last=a=>a[a
 
 /* ---------- relation bank: level 1 (concrete) -> 6 (abstract) ---------- */
 const BANK=[
- {lvl:1,rel:'animal\u2192home',key:['\ud83d\udc26','\ud83e\udeba'],cands:[
-   {p:['\ud83d\udc1d','\ud83c\udf6f'],role:'correct'},
-   {p:['\ud83d\udc36','\ud83e\uddb4'],role:'associative-lure'},
-   {p:['\ud83d\udc31','\ud83d\udc1f'],role:'unrelated-foil'}]},
- {lvl:2,rel:'cause\u2192effect',key:['\ud83d\udd25','\ud83d\udca8'],cands:[
-   {p:['\ud83c\udf27\ufe0f','\ud83c\udf08'],role:'correct'},
-   {p:['\ud83c\udf4e','\ud83d\udc1b'],role:'associative-lure'},
-   {p:['\ud83d\udc04','\ud83e\udd5b'],role:'reversed-relation-lure'},
-   {p:['\ud83d\ude97','\ud83e\uddf1'],role:'unrelated-foil'}]},
- {lvl:3,rel:'tool\u2192function',key:['\u270d\ufe0f','\ud83d\udcdd'],cands:[
-   {p:['\ud83d\udd11','\ud83d\udd13'],role:'correct'},
-   {p:['\ud83d\udd28','\ud83d\udd29'],role:'associative-lure'},
-   {p:['\ud83d\udcf7','\ud83d\uddbc\ufe0f'],role:'reversed-relation-lure'},
-   {p:['\ud83c\udf7d\ufe0f','\ud83c\udf55'],role:'unrelated-foil'}]},
- {lvl:4,rel:'whole\u2192part',key:['\ud83c\udf33','\ud83c\udf42'],cands:[
-   {p:['\ud83d\udcd6','\ud83d\udcc4'],role:'correct'},
-   {p:['\ud83d\ude97','\u26fd'],role:'associative-lure'},
-   {p:['\ud83e\udd21','\ud83d\udc63'],role:'reversed-relation-lure'},
-   {p:['\ud83c\udf55','\ud83c\udf88'],role:'unrelated-foil'}]},
- {lvl:5,rel:'category\u2192member',key:['\ud83d\udc3e','\ud83e\udd81'],cands:[
-   {p:['\ud83c\udf4e','\ud83c\udf4c'],role:'correct'},
-   {p:['\ud83c\udf33','\ud83c\udf4e'],role:'associative-lure'},
-   {p:['\ud83e\udd81','\ud83d\udc3e'],role:'reversed-relation-lure'},
-   {p:['\ud83d\ude97','\ud83c\udf88'],role:'unrelated-foil'}]},
- {lvl:6,rel:'mild\u2192intense (degree)',key:['\ud83c\udf26\ufe0f','\u26c8\ufe0f'],cands:[
-   {p:['\ud83d\ude0a','\ud83d\ude02'],role:'correct'},
-   {p:['\ud83e\udd76','\ud83d\udd25'],role:'antonym-lure'},
-   {p:['\ud83d\udca7','\ud83c\udf0a'],role:'associative-lure'},
-   {p:['\ud83d\udc31','\ud83d\ude97'],role:'unrelated-foil'}]},
+ {lvl:1,rel:'animal \u2192 home',key:['bird','nest'],cands:[
+   {p:['bee','hive'],role:'correct'},
+   {p:['dog','bone'],role:'associative-lure'},
+   {p:['cat','fish'],role:'unrelated-foil'}]},
+ {lvl:2,rel:'cause \u2192 effect',key:['fire','smoke'],cands:[
+   {p:['rain','flood'],role:'correct'},
+   {p:['apple','worm'],role:'associative-lure'},
+   {p:['flood','rain'],role:'reversed-relation-lure'},
+   {p:['car','road'],role:'unrelated-foil'}]},
+ {lvl:3,rel:'tool \u2192 job',key:['pen','write'],cands:[
+   {p:['key','unlock'],role:'correct'},
+   {p:['hammer','nail'],role:'associative-lure'},
+   {p:['write','pen'],role:'reversed-relation-lure'},
+   {p:['plate','pizza'],role:'unrelated-foil'}]},
+ {lvl:4,rel:'whole \u2192 part',key:['tree','leaf'],cands:[
+   {p:['book','page'],role:'correct'},
+   {p:['car','fuel'],role:'associative-lure'},
+   {p:['leaf','tree'],role:'reversed-relation-lure'},
+   {p:['rain','balloon'],role:'unrelated-foil'}]},
+ {lvl:5,rel:'group \u2192 member',key:['animal','lion'],cands:[
+   {p:['fruit','apple'],role:'correct'},
+   {p:['tree','apple'],role:'associative-lure'},
+   {p:['lion','animal'],role:'reversed-relation-lure'},
+   {p:['car','balloon'],role:'unrelated-foil'}]},
+ {lvl:6,rel:'mild \u2192 strong',key:['warm','hot'],cands:[
+   {p:['happy','thrilled'],role:'correct'},
+   {p:['cold','hot'],role:'antonym-lure'},
+   {p:['water','wave'],role:'associative-lure'},
+   {p:['cat','car'],role:'unrelated-foil'}]},
 ];
 function byLevel(l){return BANK.find(b=>b.lvl===l);}
 function shuffledCands(item){const c=item.cands.map((x,i)=>({...x,i}));for(let i=c.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[c[i],c[j]]=[c[j],c[i]];}return c;}
@@ -135,8 +149,8 @@ async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;g
 /* ---------- render ---------- */
 let cur=null,cands=null,tentative=null,triedSet=null,level=1,locked=false;
 function renderItem(item){cur=item;cands=shuffledCands(item);tentative=null;triedSet=new Set();T.itemStart=Date.now();T.firstActionAt=null;
-  $('#keyPair').innerHTML=`<span>${item.key[0]}</span><span class="arrow">\u279c</span><span>${item.key[1]}</span>`;
-  $('#candGrid').innerHTML=cands.map((c,i)=>`<div class="cand" data-i="${i}"><span class="hk">${i+1}</span><span>${c.p[0]}</span><span class="ar">\u279c</span><span>${c.p[1]}</span></div>`).join('');
+  $('#keyPair').innerHTML=`<span class="word">${item.key[0]}</span><span class="arrow">\u279c</span><span class="word">${item.key[1]}</span>`;
+  $('#candGrid').innerHTML=cands.map((c,i)=>`<div class="cand" data-i="${i}"><span class="hk">${i+1}</span><span class="word">${c.p[0]}</span><span class="ar">\u279c</span><span class="word">${c.p[1]}</span></div>`).join('');
   $('#go').classList.remove('ready');renderMeters();}
 function markFirstAction(){if(T.firstActionAt===null){T.firstActionAt=Date.now();T.firstRt.push(T.firstActionAt-T.itemStart);}}
 function preview(i){if(locked||!cur)return;markFirstAction();tentative=i;triedSet.add(i);
@@ -147,21 +161,24 @@ function submit(){if(!$('#go').classList.contains('ready')||tentative===null)ret
   $$('#candGrid .cand').forEach((c,i)=>{if(cands[i].role==='correct')c.classList.add('correct');else if(i===tentative&&!exact)c.classList.add('wrong');});
   if(!exact){$('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),450);}
   locked=true;$('#go').classList.remove('ready');
-  if(phase==='warmup'){log('warm-up '+(exact?'correct':'try again — shown correct')+' — UNSCORED');setTimeout(nextPhase,1400);return;}
+  if(phase==='warmup'){setStatus(exact?'ok':'no',exact?'\u2713 Correct - practice':'\u2717 Not quite - the matching pair is highlighted (practice)');log('warm-up '+(exact?'correct':'try again — shown correct')+' — UNSCORED');setTimeout(nextPhase,1400);return;}
   T.scored++;T.rts.push(rt);T.exploreCounts.push(triedSet.size);
   if(exact){T.exact++;T.maxLevel=Math.max(T.maxLevel,level);T.lastErr='none (correct)';}
   else{T.lastErr=chosen.role;T.lastLure=chosen.role;}
+  setStatus(exact?'ok':'no',exact?'\u2713 Correct':'\u2717 Not quite - the matching pair is highlighted');
   log(`SUBMIT L${level} [${cur.rel}] \u2192 ${exact?'CORRECT':'WRONG ('+chosen.role+')'} · tried ${triedSet.size} · ${rt}ms`);
   level=exact?Math.min(6,level+1):Math.max(1,level-1);
   renderMeters();setTimeout(nextPhase,1400);}
 const TOTAL_SCORED=6;let phase='demo',scoredIndex=0;
-function setCue(i){$('#phasecue').textContent=i;}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 function nextPhase(){locked=false;if(phase==='warmup'){scoredIndex=0;startScored();}
   else if(phase==='scored'){scoredIndex++;scoredIndex<TOTAL_SCORED?startScored():finish();}}
-function startWarmup(){phase='warmup';locked=false;setCue('\u2b50');level=1;renderItem(byLevel(1));log('— warm-up (unscored) —');}
-function startScored(){phase='scored';setCue('\ud83c\udfaf');renderItem(byLevel(level));log(`— SCORED item ${scoredIndex+1}/${TOTAL_SCORED} · level ${level} [${byLevel(level).rel}] —`);}
-function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;log(`— DONE · exact ${T.exact}/${T.scored} · ceiling L${T.maxLevel} —`);renderMeters();}
-async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;
+function startWarmup(){phase='warmup';locked=false;setCue('warmup');setStatus('neutral','Practice - this one is not scored.');level=1;renderItem(byLevel(1));log('— warm-up (unscored) —');}
+function startScored(){phase='scored';setCue('scored',(scoredIndex+1)+'/'+TOTAL_SCORED);setStatus('neutral','Tap the pair that matches the relation.');renderItem(byLevel(level));log(`— SCORED item ${scoredIndex+1}/${TOTAL_SCORED} · level ${level} [${byLevel(level).rel}] —`);}
+function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;log(`— DONE · exact ${T.exact}/${T.scored} · ceiling L${T.maxLevel} —`);renderMeters();}
+async function runDemo(){phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;
   const item=byLevel(1);renderItem(item);log('ghost-hand demo (wordless, <10s)');ghostShow(true);await sleep(300);
   const wrongI=cands.findIndex(c=>c.role!=='correct');const wEl=$$('#candGrid .cand')[wrongI];await ghostTo(wEl);await ghostTap();
   const ci=cands.findIndex(c=>c.role==='correct');const cEl=$$('#candGrid .cand')[ci];await ghostTo(cEl);await ghostTap();preview(ci);

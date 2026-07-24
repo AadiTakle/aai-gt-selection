@@ -10,12 +10,20 @@
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
-  #phasecue{font-size:34px;height:40px;line-height:40px}
+  #howto{max-width:640px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:#5b6cff;border:2px solid #c9d0ff;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:#5b6cff;color:#fff;border-color:#5b6cff}
+  #phasecue[data-phase="done"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
   #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:14px;max-width:640px;width:100%}
   .band{border-radius:16px;padding:12px 16px;display:flex;flex-direction:column;gap:6px;align-items:center;width:100%}
   #worked{background:linear-gradient(160deg,#eafaf1,#eef1ff);border:3px solid #bfe8cf}
   #task{background:linear-gradient(160deg,#e8f0ff,#f2ecff);border:3px solid #cfd8ff}
-  .cue{font-size:22px}
+  .cue{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#7a86ab}
   .arow{display:flex;gap:16px;align-items:center;justify-content:center}
   .arrow{font-size:26px;color:#8ea0d6}
   .gridbox{display:grid;gap:4px;background:#c7d2f2;padding:6px;border-radius:10px}
@@ -50,20 +58,25 @@
 <body>
   <div id="wrap">
     <div id="badge">FLU-GRIDCOPY-01 · Copy the Change</div>
-    <div id="phasecue">👁️</div>
+    <header id="howto">
+      <h1>How to use — Copy the Change</h1>
+      <p>The top row shows how one grid changes into another. Tap squares in your grid so it changes the <b>same way</b>, then press the check (<b>✓</b>) to submit. It gets harder each time you are right.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
     <div id="stagecard">
       <div id="worked" class="band">
-        <div class="cue">📖</div>
+        <div class="cue">Example</div>
         <div class="arow"><div id="exIn" class="gridbox"></div><div class="arrow">➜</div><div id="exOut" class="gridbox"></div></div>
       </div>
       <div id="task" class="band">
-        <div class="cue">🖐️</div>
+        <div class="cue">Your turn</div>
         <div class="arow"><div id="nbefore" class="gridbox"></div><div class="arrow">➜</div><div id="editable" class="gridbox"></div></div>
       </div>
       <div id="controls">
         <button id="replay" title="replay demo">↻</button>
         <button id="go" title="submit">✓</button>
       </div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
     </div>
   </div>
   <aside id="telemetry">
@@ -71,7 +84,7 @@
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost">👆<span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -136,17 +149,19 @@ function feedback(exact){for(let r=0;r<cur.R;r++)for(let c=0;c<cur.C;c++){const 
 /* ---------- flow ---------- */
 let phase='demo',locked=false,scoredIndex=0;
 const scoredItems=[genItem(3,3,'reflectH'),genItem(4,4,'shiftDown')];
-function setCue(i){$('#phasecue').textContent=i;}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 function submit(){const tot=cur.R*cur.C;const matches=tot-hamming(editState,cur.targetOut);const exact=matches===tot;const rt=Date.now()-T.itemStart;T.poly=matches+'/'+tot;
-  if(phase==='warmup'){feedback(exact);log('warm-up '+(exact?'exact':matches+'/'+tot+' cells')+' — UNSCORED');locked=true;$('#go').classList.remove('ready');setTimeout(nextPhase,1050);return;}
-  T.scored++;T.rts.push(rt);if(exact)T.exact++;feedback(exact);locked=true;$('#go').classList.remove('ready');
+  if(phase==='warmup'){feedback(exact);setStatus(exact?'ok':'no',exact?'\u2713 Correct - practice':'\u2717 Not quite - green cells are right, red are wrong (practice)');log('warm-up '+(exact?'exact':matches+'/'+tot+' cells')+' — UNSCORED');locked=true;$('#go').classList.remove('ready');setTimeout(nextPhase,1050);return;}
+  T.scored++;T.rts.push(rt);if(exact)T.exact++;feedback(exact);setStatus(exact?'ok':'no',exact?'\u2713 Correct':'\u2717 Not quite - green cells are right, red are wrong');locked=true;$('#go').classList.remove('ready');
   log(`SUBMIT ${cur.R}x${cur.C} [${cur.t}] \u2192 ${matches}/${tot} cells${exact?' EXACT':''} · ${effStr()} · rev ${T.edits-Object.keys(T.touch).length}`);
   renderMeters();setTimeout(nextPhase,1300);}
 function nextPhase(){locked=false;if(phase==='warmup'){scoredIndex=0;startScored();}else if(phase==='scored'){scoredIndex++;scoredIndex<scoredItems.length?startScored():finish();}}
-function startWarmup(){phase='warmup';setCue('\u2b50');renderItem(genItem(1,3,'shiftRight'));log('— warm-up (unscored): apply the same change (shift right) —');}
-function startScored(){phase='scored';setCue('\ud83c\udfaf');renderItem(scoredItems[scoredIndex]);log(`— SCORED item ${scoredIndex+1}: ${cur.R}x${cur.C}, transform [${cur.t}] —`);}
-function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;log(`— DONE · exact ${T.exact}/${T.scored} —`);}
-async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;
+function startWarmup(){phase='warmup';setCue('warmup');setStatus('neutral','Practice - change your grid the same way, then press the check. Not scored.');renderItem(genItem(1,3,'shiftRight'));log('— warm-up (unscored): apply the same change (shift right) —');}
+function startScored(){phase='scored';setCue('scored',(scoredIndex+1)+'/'+scoredItems.length);setStatus('neutral','Make your grid change the same way, then press the check.');renderItem(scoredItems[scoredIndex]);log(`— SCORED item ${scoredIndex+1}: ${cur.R}x${cur.C}, transform [${cur.t}] —`);}
+function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;log(`— DONE · exact ${T.exact}/${T.scored} —`);}
+async function runDemo(){phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;
   const nb=[[1,0,0],[0,1,0],[0,0,0]];const item={R:3,C:3,t:'shiftRight',exIn:[[0,1,0],[0,0,0],[1,0,0]],exOut:apply([[0,1,0],[0,0,0],[1,0,0]],'shiftRight'),nbefore:nb,targetOut:apply(nb,'shiftRight')};
   renderItem(item);log('ghost-hand demo (wordless, <10s)');ghostShow(true);await sleep(300);
   await ghostTo($('#exIn'));await sleep(150);await ghostTo($('#exOut'));await sleep(250);

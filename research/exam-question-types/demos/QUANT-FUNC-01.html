@@ -26,7 +26,15 @@
     color:#877f79;font-size:12px;font-weight:800;letter-spacing:.1em;
     text-transform:uppercase;
   }
-  #phasecue{height:42px;font-size:34px}
+  #howto{max-width:800px;width:100%;background:#fffdf8;border:1px solid #f1dfbd;border-left:5px solid var(--teal);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #745742}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--teal)}
+  #howto p{margin:0;font-size:14px;color:#4a5266;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#e3f5f2;color:#1c7377;border:2px solid #b6dfd8;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:var(--teal);color:#fff;border-color:var(--teal)}
+  #phasecue[data-phase="done"]{background:#e6f6ec;color:#1c7f57;border-color:#bfe6cc}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#877f79}
   #stagecard{
     width:min(800px,100%);min-height:520px;padding:24px;border-radius:32px;
     background:rgba(255,253,248,.96);box-shadow:0 24px 60px -30px #745742;
@@ -102,6 +110,8 @@
   }
   #ghost.show{opacity:.94}#ghost.tap{animation:tap .34s}
   @keyframes tap{50%{scale:.78}}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--teal);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
   #telemetry{
     width:326px;flex:0 0 326px;background:var(--tel);color:#ced6ee;
     display:flex;flex-direction:column;font:13px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace;
@@ -133,7 +143,11 @@
 <body>
 <main id="wrap">
   <div id="badge">QUANT-FUNC-01 · Machine Rule</div>
-  <div id="phasecue">👁️</div>
+  <header id="howto">
+    <h1>How to use — Machine Rule</h1>
+    <p>Look at how the machine changes each input number into an output. Work out its rule, then tap the output tile that the machine would make for the new input and press play (<b>▶</b>). It gets harder each time you are right.</p>
+  </header>
+  <div id="phasecue" data-phase="demo">Watch the example</div>
   <section id="stagecard">
     <div id="examples"></div>
     <div class="challenge">
@@ -146,6 +160,7 @@
       <button id="replay" aria-label="Replay demonstration">↻</button>
       <button id="go" aria-label="Start machine">▶</button>
     </div>
+    <div id="status" class="neutral">Watch the example, then try it yourself.</div>
   </section>
 </main>
 <aside id="telemetry">
@@ -157,7 +172,7 @@
   <div id="mlist"></div>
   <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
 </aside>
-<div id="ghost">👆</div>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s);
@@ -207,11 +222,12 @@ function submit(){
   if(locked||choice<0)return;
   const ok=cur.opts[choice]===cur.answer;
   if(phase==='warmup'){
-    locked=true;feedback(ok);log(`warm-up ${ok?'correct':'corrective run'} · UNSCORED`);
+    locked=true;feedback(ok);setStatus(ok?'ok':'no',ok?'\u2713 Correct - practice':'\u2717 Not quite - the correct output is shown (practice)');log(`warm-up ${ok?'correct':'corrective run'} · UNSCORED`);
     if(!ok)setTimeout(()=>{choose(cur.opts.indexOf(cur.answer),true);feedback(true);},450);
     setTimeout(startScored,1100);return;
   }
   locked=true;T.scored++;if(ok)T.correct++;
+  setStatus(ok?'ok':'no',ok?'\u2713 Correct':'\u2717 Not quite - the correct output is highlighted');
   T.firsts.push(firstLatency);T.lastErr=ok?'—':cur.errs[choice]||'other';
   if(ok){T.ruleMax=Math.max(T.ruleMax,cur.rules);T.maxLevel=Math.max(T.maxLevel,level);}
   T.levels.push({trial:T.scored,level,ok});
@@ -242,9 +258,12 @@ function log(msg){
   d.innerHTML=`<span class="t">${new Date().toLocaleTimeString([],{minute:'2-digit',second:'2-digit'})}</span> ${msg}`;
   $('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;
 }
-function startWarmup(){phase='warmup';locked=false;$('#phasecue').textContent='⭐';renderItem(WARM);log('warm-up · visible one-step change · unscored');}
-function startScored(){phase='scored';locked=false;$('#phasecue').textContent='🎯';renderItem(ITEMS[level-1]);log(`item ${trial+1}/6 · level ${level} · ${cur.rule}`);}
-function finish(){phase='done';locked=true;$('#phasecue').textContent='🏆';$('#go').classList.remove('ready');log(`DONE · ${T.correct}/${T.scored} · ceiling ${T.maxLevel}`);}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+function startWarmup(){phase='warmup';locked=false;setCue('warmup');setStatus('neutral','Practice - pick the output the machine makes. Not scored.');renderItem(WARM);log('warm-up · visible one-step change · unscored');}
+function startScored(){phase='scored';locked=false;setCue('scored',(trial+1)+'/6');setStatus('neutral','Work out the machine rule, then tap the matching output and press play.');renderItem(ITEMS[level-1]);log(`item ${trial+1}/6 · level ${level} · ${cur.rule}`);}
+function finish(){phase='done';locked=true;setCue('done');setStatus('ok','\u2713 Done');$('#go').classList.remove('ready');log(`DONE · ${T.correct}/${T.scored} · ceiling ${T.maxLevel}`);}
 const ghost=$('#ghost');
 function ghostShow(on){ghost.classList.toggle('show',on);}
 async function ghostTo(el){
@@ -254,7 +273,7 @@ async function ghostTo(el){
 }
 async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(330);}
 async function runDemo(){
-  phase='demo';locked=true;$('#phasecue').textContent='👁️';renderItem(DEMO);log('ghost-hand demo · wordless machine run');
+  phase='demo';locked=true;setCue('demo');setStatus('neutral','Watch the example.');renderItem(DEMO);log('ghost-hand demo · wordless machine run');
   ghostShow(true);await sleep(230);
   const pairs=$('#examples').children;
   await ghostTo(pairs[0].children[0]);await ghostTo(pairs[0].children[2]);

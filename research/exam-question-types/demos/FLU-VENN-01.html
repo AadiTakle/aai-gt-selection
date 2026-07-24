@@ -12,7 +12,15 @@
     background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
-  #phasecue{font-size:34px;height:40px;line-height:40px}
+  #howto{max-width:600px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:#5b6cff;border:2px solid #c9d0ff;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:#5b6cff;color:#fff;border-color:#5b6cff}
+  #phasecue[data-phase="done"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
   #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #4a4a7a;
     display:flex;flex-direction:column;align-items:center;gap:16px;max-width:560px;width:100%}
   #rings{position:relative;width:380px;height:230px}
@@ -32,7 +40,7 @@
   .opt.wrong{border-color:var(--bad);box-shadow:0 0 0 4px #ffd0d0}
   #confrow{display:flex;gap:10px;height:44px;align-items:center;opacity:0;pointer-events:none;transition:.2s}
   #confrow.show{opacity:1;pointer-events:auto}
-  .conf{border:2px solid #d7deff;background:#fff;border-radius:12px;font-size:22px;width:52px;height:40px;cursor:pointer}
+  .conf{border:2px solid #d7deff;background:#fff;border-radius:12px;font:700 12px system-ui;padding:0 14px;height:40px;cursor:pointer;color:#5a6485}
   .conf.on{border-color:var(--accent);background:#eef0ff}
   #controls{display:flex;gap:16px;align-items:center}
   button{font:inherit;border:0;cursor:pointer;border-radius:50%}
@@ -71,7 +79,11 @@
 <body>
   <div id="wrap">
     <div id="badge">FLU-VENN-01 · Double Match</div>
-    <div id="phasecue">&#128065;</div>
+    <header id="howto">
+      <h1>How to use — Double Match</h1>
+      <p>The left circle shapes share one rule; the right circle shapes share another. From the tray, tap the shape that fits <b>both</b> rules (it belongs in the middle), then press the check (<b>✓</b>). You can also press number keys 1–4.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
     <div id="stagecard">
       <div id="rings">
         <svg width="380" height="230">
@@ -81,11 +93,12 @@
         <div id="overlaySlot"></div>
       </div>
       <div id="tray"></div>
-      <div id="confrow"><button class="conf" data-c="sure" title="I am sure">&#11088;</button><button class="conf" data-c="unsure" title="not sure">&#128075;</button></div>
+      <div id="confrow"><button class="conf" data-c="sure" title="I am sure">Sure</button><button class="conf" data-c="unsure" title="not sure">Not sure</button></div>
       <div id="controls">
         <button id="replay" title="replay demo">&#8635;</button>
         <button id="go" title="submit">&#10003;</button>
       </div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
     </div>
   </div>
   <aside id="telemetry">
@@ -94,7 +107,7 @@
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost">&#128070;<span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
@@ -176,7 +189,9 @@ async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;g
 let phase='demo',cur=null,staged=-1,locked=false,scoredIndex=0,confChoice=null,demoRun=0;
 const TOTAL=6;
 const LEXSLOT=[[75,72],[75,158]],REXSLOT=[[305,72],[305,158]];
-function setCue(i){$('#phasecue').innerHTML=i;}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 function placeEx(list,slots){list.forEach((f,i)=>{const d=document.createElement('div');d.className='ex';
   d.style.left=slots[i][0]+'px';d.style.top=slots[i][1]+'px';d.innerHTML=figSVG(f,46);$('#rings').appendChild(d);});}
 function renderItem(item){cur=item;confChoice=null;
@@ -198,23 +213,24 @@ function feedback(correct){const opt=$$('#tray .opt')[staged];if(opt)opt.classLi
     const ci=cur.options.findIndex(o=>o.tag==='correct');$$('#tray .opt')[ci].classList.add('correct');}
   locked=true;$('#go').classList.remove('ready');$('#confrow').classList.remove('show');}
 function submit(){if(staged===-1)return;const opt=cur.options[staged];const rt=Date.now()-T.itemStart;const correct=opt.tag==='correct';
-  if(phase==='warmup'){feedback(correct);log('warm-up '+(correct?'correct':'incorrect')+' — UNSCORED');setTimeout(nextPhase,1000);return;}
+  if(phase==='warmup'){feedback(correct);setStatus(correct?'ok':'no',correct?'\u2713 Correct - practice':'\u2717 Not quite - the correct answer is highlighted (practice)');log('warm-up '+(correct?'correct':'incorrect')+' — UNSCORED');setTimeout(nextPhase,1000);return;}
   T.scored++;T.rts.push(rt);T.gates.push(gate(rt));
   if(correct){T.correct++;T.maxSolved=Math.max(T.maxSolved,cur.level);T.lastErr='none';}else T.lastErr=opt.tag;
   T.lastRule=opt.rules+' / 2 attributes';
   if(confChoice){T.confN++;if((confChoice==='sure')===correct)T.confHits++;T.conf=confChoice;}
   else T.conf='(none)';
   T.level=Math.max(1,Math.min(6,T.level+(correct?1:-1)));feedback(correct);
+  setStatus(correct?'ok':'no',correct?'\u2713 Correct':'\u2717 Not quite - the correct answer is highlighted');
   log(`SUBMIT ${scoredIndex+1}/${TOTAL} · L${cur.level} ${cur.leftDim}+${cur.rightDim} \u2192 ${correct?'CORRECT':'wrong ['+opt.tag+']'} · ${opt.rules}/2 rules · ${last(T.gates).reason} · conf ${confChoice||'-'} · next L${T.level}`);
   renderMeters();setTimeout(nextPhase,1300);}
 function nextPhase(){locked=false;if(phase==='warmup'){scoredIndex=0;T.level=1;startScored();}
   else if(phase==='scored'){scoredIndex++;scoredIndex<TOTAL?startScored():finish();}}
-function startWarmup(){phase='warmup';setCue('&#11088;');locked=false;renderItem(genItem(1,['color','shape']));log('— warm-up · find the double match · UNSCORED —');}
-function startScored(){phase='scored';setCue('&#127919;');locked=false;renderItem(genItem(T.level));
+function startWarmup(){phase='warmup';setCue('warmup');setStatus('neutral','Practice - find the shape that fits both rules. Not scored.');locked=false;renderItem(genItem(1,['color','shape']));log('— warm-up · find the double match · UNSCORED —');}
+function startScored(){phase='scored';setCue('scored',(scoredIndex+1)+'/'+TOTAL);setStatus('neutral','Tap the shape that fits both rules.');locked=false;renderItem(genItem(T.level));
   log(`— SCORED ${scoredIndex+1}/${TOTAL} · L${cur.level} · two-feature intersection —`);}
-function finish(){phase='done';setCue('&#127942;');locked=true;
+function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;
   log(`— DONE · accuracy ${T.correct}/${T.scored} · confidence calibration ${T.confHits}/${T.confN} —`);}
-async function runDemo(){const token=++demoRun;phase='demo';setCue('&#128065;');locked=true;
+async function runDemo(){const token=++demoRun;phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;
   const d=genItem(1,['color','shape']);renderItem(d);
   log('ghost-hand demo · both-at-once · wordless · <10s');
   const ci=d.options.findIndex(o=>o.tag==='correct');

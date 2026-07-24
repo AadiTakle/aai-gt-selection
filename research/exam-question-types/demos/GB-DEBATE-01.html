@@ -10,7 +10,15 @@
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
-  #phasecue{font-size:34px;height:40px;line-height:40px}
+  #howto{max-width:600px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:#5b6cff;border:2px solid #c9d0ff;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:#5b6cff;color:#fff;border-color:#5b6cff}
+  #phasecue[data-phase="done"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
   #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:14px;max-width:680px;width:100%}
   #claimbox{background:linear-gradient(160deg,#e8f0ff,#f2ecff);border:3px solid #cfd8ff;border-radius:16px;padding:14px 18px;display:flex;flex-direction:column;align-items:center;gap:8px;width:100%}
   #claimtext{font-size:20px;font-weight:800;text-align:center}
@@ -52,22 +60,27 @@
 <body>
   <div id="wrap">
     <div id="badge">GB-DEBATE-01 · Claim Duel</div>
-    <div id="phasecue">⚔️</div>
+    <header id="howto">
+      <h1>How to use — Claim Duel</h1>
+      <p>Read the claim at the top. Tap the evidence cards that best support it and skip the weak or off-topic ones, then press the check (<b>✓</b>) to lock in. Then tap the one card that best answers the rival's argument. It gets harder each time you are right.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
     <div id="stagecard">
       <div id="claimbox">
-        <div class="ic">🛡️</div>
+        <div class="ic" style="font-size:12px;font-weight:800;letter-spacing:.1em;color:#5b6cff">CLAIM</div>
         <div id="claimtext"></div>
         <div id="strength"><div id="strengthfill"></div></div>
       </div>
       <div id="evidencepool"></div>
       <div id="rivalbox">
-        <div class="ic">⚡</div>
+        <div class="ic" style="font-size:12px;font-weight:800;letter-spacing:.1em;color:#a33">RIVAL SAYS</div>
         <div id="rivaltext"></div>
       </div>
       <div id="controls">
         <button id="replay" title="replay demo">↻</button>
         <button id="go" title="lock in">✓</button>
       </div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
     </div>
   </div>
   <aside id="telemetry">
@@ -75,7 +88,7 @@
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost">👆<span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -159,7 +172,9 @@ function onCard(id){if(locked||phase==='demo'||phase==='done')return;
 }
 
 /* ---------- flow ---------- */
-function setCue(i){$('#phasecue').textContent=i;}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 function newItem(l){cur=genItem(l);attached=[];stage='support';T.itemStart=Date.now();T.firstT=null;T.path=[];
   paintClaim();paintPool();paintStrength();$('#rivalbox').style.display='none';$('#go').classList.remove('ready');renderMeters();}
 function goSupport(){ // lock support, move to rebut
@@ -171,22 +186,23 @@ function goSupport(){ // lock support, move to rebut
   renderMeters();
   setTimeout(()=>{stage='rebut';$('#rivalbox').style.display='flex';$('#rivaltext').textContent=cur.rival;
     // re-render pool for rebuttal selection (fresh, all clickable)
-    attached=[];paintPool();log('— duel: pick the card that best rebuts the rival —');locked=false;},900);
+    attached=[];paintPool();if(phase!=='demo')setStatus('neutral','Now tap the one card that best beats the rival.');log('— duel: pick the card that best rebuts the rival —');locked=false;},900);
 }
 function finishItem(correct){locked=true;
-  if(phase==='warmup'){log('warm-up '+(correct?'correct rebuttal':'try again next time')+' — UNSCORED');setTimeout(nextPhase,1100);return;}
+  if(phase==='warmup'){setStatus(correct?'ok':'no',correct?'✓ Correct - practice':'✗ Not quite - practice');log('warm-up '+(correct?'correct rebuttal':'try again next time')+' — UNSCORED');setTimeout(nextPhase,1100);return;}
   T.scored++;if(correct){T.exact++;level=Math.min(6,level+1);}else{level=Math.max(1,level-1);}
   maxLevel=Math.max(maxLevel,level);
+  setStatus(correct?'ok':'no',correct?'✓ Correct':'✗ Not quite - a stronger card would beat the rival');
   renderMeters();setTimeout(nextPhase,1300);
 }
 function nextPhase(){locked=false;
   if(phase==='warmup'){startScored();}
   else if(phase==='scored'){T.roundIdx=(T.roundIdx||0)+1;T.roundIdx<6?startScored():finish();}
 }
-function startWarmup(){phase='warmup';setCue('\u2b50');newItem(1);log('— warm-up (unscored): attach the strongest evidence, then rebut the rival —');}
-function startScored(){phase='scored';setCue('\ud83c\udfaf');newItem(level);log(`— SCORED duel (level ${level}) —`);}
-function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;log(`— DONE \u00b7 rebuttals ${T.exact}/${T.scored} \u00b7 max level ${maxLevel} —`);}
-async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;
+function startWarmup(){phase='warmup';setCue('warmup');setStatus('neutral','Practice - this one is not scored.');newItem(1);log('— warm-up (unscored): attach the strongest evidence, then rebut the rival —');}
+function startScored(){phase='scored';setCue('scored',((T.roundIdx||0)+1)+'/6');setStatus('neutral','Tap the strongest evidence, then lock in.');newItem(level);log(`— SCORED duel (level ${level}) —`);}
+function finish(){phase='done';setCue('done');setStatus('ok','✓ Done');locked=true;log(`— DONE \u00b7 rebuttals ${T.exact}/${T.scored} \u00b7 max level ${maxLevel} —`);}
+async function runDemo(){phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;
   cur=genItem(1);attached=[];stage='support';T.itemStart=Date.now();
   paintClaim();paintPool();paintStrength();$('#rivalbox').style.display='none';
   log('ghost-hand demo (wordless, <10s)');ghostShow(true);await sleep(300);
