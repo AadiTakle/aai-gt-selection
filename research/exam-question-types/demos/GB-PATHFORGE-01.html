@@ -5,45 +5,56 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>GB-PATHFORGE-01 · Path Forge</title>
 <style>
-  :root{--bg1:#eafaf0;--bg2:#eef0ff;--ink:#26304a;--card:#fff;--accent:#12a15f;--good:#22b573;--bad:#ff6b6b;
+  :root{--bg1:#eafaf0;--bg2:#eef0ff;--ink:#26304a;--card:#fff;--accent:#12a15f;--good:#22b573;--bad:#ff6b6b;--pipe:#12a15f;--pipeoff:#c9e3d2;
     --tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
   *{box-sizing:border-box}html,body{margin:0;height:100%}
-  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);
-    background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:12px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
   #phasecue{font-size:32px;height:38px}
-  #stagecard{background:var(--card);border-radius:24px;padding:22px;box-shadow:0 18px 50px -22px #4a4a7a;
-    display:flex;flex-direction:column;align-items:center;gap:12px}
-  #instr{font-size:14px;color:#666;min-height:20px;text-align:center;max-width:420px}
-  #grid{display:grid;gap:4px;background:#d5ead9;padding:8px;border-radius:12px;position:relative}
-  .cell{width:60px;height:60px;border-radius:9px;background:#eef7f0;position:relative;cursor:pointer;-webkit-tap-highlight-color:transparent;
-    display:flex;align-items:center;justify-content:center;font-size:22px}
-  .road i{position:absolute;background:#c8a06a;border-radius:2px}
-  .cell.on i{background:#b98a4e}
-  #walker{position:absolute;font-size:26px;transition:left .3s,top .3s;pointer-events:none;z-index:5}
-  #tray{display:flex;gap:12px}
-  .tp{width:64px;height:56px;border-radius:12px;background:#eef7f0;border:3px solid #d3e6d8;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative}
+  #stagecard{background:var(--card);border-radius:24px;padding:20px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:12px}
+  #stage{position:relative}
+  #grid{display:grid;gap:3px;background:#d5ead9;padding:6px;border-radius:12px;position:relative}
+  .cell{width:48px;height:48px;background:#f3f8f4;border-radius:7px;position:relative;cursor:pointer}
+  .cell.blocked{background:#c8d0dd;cursor:default}
+  .cell.slot.sel{outline:3px solid var(--accent);outline-offset:-3px}
+  .cell .ic{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:22px;pointer-events:none}
+  .arm{position:absolute;background:var(--pipeoff);border-radius:3px}
+  .arm.on{background:var(--pipe)}
+  .arm.N{left:50%;top:0;width:9px;height:52%;transform:translateX(-50%)}
+  .arm.S{left:50%;bottom:0;width:9px;height:52%;transform:translateX(-50%)}
+  .arm.E{top:50%;right:0;height:9px;width:52%;transform:translateY(-50%)}
+  .arm.W{top:50%;left:0;height:9px;width:52%;transform:translateY(-50%)}
+  #courier{position:absolute;font-size:24px;transition:left .3s,top .3s;pointer-events:none;z-index:5}
+  #tray{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;min-height:64px;align-items:center}
+  .tp{width:56px;height:52px;border-radius:12px;background:#eef7f0;border:3px solid #d3e6d8;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative}
   .tp.sel{border-color:var(--accent);background:#dcf0e2}
-  #row{display:flex;gap:12px;align-items:center}
-  button{font:inherit;border:0;cursor:pointer;border-radius:12px}
-  #go{background:var(--accent);color:#fff;padding:10px 22px;font-weight:700;font-size:16px}
-  #replay{width:42px;height:42px;background:#eef1ff;color:#5b6cff;font-size:19px;border-radius:50%}
-  #ghost{position:fixed;left:0;top:0;font-size:32px;pointer-events:none;z-index:60;opacity:0;
-    transition:transform .45s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
-  #ghost.show{opacity:.92}
-  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;
-    font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  .tp .cnt{position:absolute;right:-4px;top:-4px;background:var(--accent);color:#fff;font-size:10px;border-radius:8px;padding:1px 5px;font-weight:700}
+  .tp svg{width:34px;height:34px}
+  #row{display:flex;gap:10px;align-items:center}
+  button{font:inherit;border:0;cursor:pointer;border-radius:12px;font-weight:700}
+  #rot{background:#eef7f0;color:var(--accent);padding:9px 16px}
+  #rot:disabled,#rem:disabled{opacity:.4;cursor:not-allowed}
+  #rem{background:#ffe9ec;color:#c0455a;padding:9px 14px}
+  #go{background:var(--accent);color:#fff;padding:10px 22px;font-size:16px}
+  #replay{width:44px;height:44px;background:#eef1ff;color:var(--accent);font-size:19px;border-radius:50%}
+  .hotkeys{font-size:11px;color:#a3aecb}
+  #ghost{position:fixed;left:0;top:0;font-size:38px;pointer-events:none;z-index:60;opacity:0;transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}#ghost .ring{position:absolute;left:-6px;top:-6px;width:26px;height:26px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
   #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
   #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
-  .mrow{display:grid;grid-template-columns:110px 1fr;gap:8px;align-items:baseline}
-  .mid{color:var(--tel-key);font-weight:700}.mval{color:#fff}
-  .mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  .mrow{display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}.mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #diffmeter{margin:0 12px 8px;background:#1b2340;border-radius:8px;padding:8px 10px}
+  #diffmeter .bar{height:8px;background:#232c4d;border-radius:6px;overflow:hidden;margin-top:6px}
+  #diffmeter .bar>i{display:block;height:100%;background:linear-gradient(90deg,#7fffcf,#12a15f);width:0%;transition:width .3s}
   #logwrap{border-top:1px solid #262f52;margin-top:auto}
   #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
-  #log{height:170px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
-  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}.t{color:#5f6f9e}
-  @media(max-width:880px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:260px}}
+  #log{height:190px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
 </style>
 </head>
 <body>
@@ -51,92 +62,289 @@
     <div id="badge">GB-PATHFORGE-01 · Path Forge</div>
     <div id="phasecue">👁️</div>
     <div id="stagecard">
-      <div id="instr"></div>
-      <div id="grid"><div id="walker">🚶</div></div>
+      <div id="stage"><div id="grid"></div></div>
       <div id="tray"></div>
-      <div id="row"><button id="go">🚶 GO</button><button id="replay" title="replay demo">↻</button></div>
+      <div id="row">
+        <button id="replay" title="replay demo">↻</button>
+        <button id="rot" title="rotate (R)">⟳ rotate</button>
+        <button id="rem" title="remove (Del)">🗑 remove</button>
+        <button id="go">GO ▶</button>
+      </div>
+      <div class="hotkeys">hotkeys: R rotate selected tile · Delete removes it · tap tray tile then a cell to place</div>
     </div>
   </div>
-  <aside id="telemetry"><h3>Live telemetry · per-child</h3><div id="mlist"></div>
-    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div></aside>
-  <div id="ghost">👆</div>
+  <aside id="telemetry">
+    <h3>Live telemetry · per-child</h3>
+    <div id="diffmeter">difficulty <span id="dlab">1/6</span><div class="bar"><i id="dbar"></i></div></div>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+  <div id="ghost">👆<span class="ring"></span></div>
 <script>
 'use strict';
-const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const $=s=>document.querySelector(s);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const OPP={L:'R',R:'L',U:'D',D:'U'},DELTA={L:[0,-1],R:[0,1],U:[-1,0],D:[1,0]};
-const DEF={straight:[['L','R'],['U','D']],curve:[['U','R'],['R','D'],['D','L'],['L','U']]};
-const SZ=64;
-const LEVELS={
- warm:{rows:1,cols:3,start:[0,0],goal:[0,2],opt:1,pre:{'0,0':{type:'straight',rot:0,fixed:1},'0,2':{type:'straight',rot:0,fixed:1}}},
- s1:{rows:3,cols:3,start:[0,0],goal:[2,2],opt:3,pre:{'0,0':{type:'curve',rot:1,fixed:1},'2,2':{type:'curve',rot:3,fixed:1}}}
-};
-const T={itemStart:0,placements:0,firstLat:null,firstActed:false,opt:0,runs:0,used:0,cells:null,scored:0,correct:0,reach:0};
-const METERS=[
- {id:'M-ACC',name:'Path built (scored)',get:()=>T.scored?`${T.correct}/${T.scored}`:'—'},
- {id:'M-EFF',name:'Tiles vs optimal',get:()=>T.opt&&T.used?`${T.opt}/${T.used}`:'—'},
- {id:'M-PATH',name:'Placements + rotations',get:()=>T.placements+''},
- {id:'M-RTFIRST',name:'First-tile latency (plan)',get:()=>T.firstLat==null?'—':T.firstLat+' ms'},
- {id:'M-REV',name:'Rotations of placed tiles',get:()=>T.rot||0},
- {id:'M-EXPLORE',name:'Distinct cells used',get:()=>T.cells?T.cells.size:0},
- {id:'M-PROG',name:'Route connected (GO)',get:()=>T.runs?(T.reach?'100%':'partial'):'—'},
- {id:'M-PERSIST',name:'Time-on-task (ms)',get:()=>T.itemStart?(Date.now()-T.itemStart):'—'},
-];
-function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('')}
-function renderMeters(){METERS.forEach(m=>{const e=$('#v_'+m.id);if(e)e.textContent=m.get()})}
-function log(msg){const t=T.itemStart?Date.now()-T.itemStart:0;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight}
-const ghost=$('#ghost');const gShow=v=>ghost.classList.toggle('show',v);
-function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}}
-async function gTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-6}px,${c.y-4}px)`;await sleep(430)}
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0,last=a=>a[a.length-1];
+const OPP={N:'S',S:'N',E:'W',W:'E'};const CW={N:'E',E:'S',S:'W',W:'N'};
+const ALL4=new Set(['N','E','S','W']);
+function rotSet(set,k){let s=new Set(set);for(let i=0;i<((k%4)+4)%4;i++)s=new Set([...s].map(d=>CW[d]));return s;}
+function neighborsOf(r,c,R,C){const out=[];if(r>0)out.push([r-1,c,'N']);if(r<R-1)out.push([r+1,c,'S']);if(c>0)out.push([r,c-1,'W']);if(c<C-1)out.push([r,c+1,'E']);return out;}
+function dirTo(from,to){if(to[0]<from[0])return'N';if(to[0]>from[0])return'S';if(to[1]<from[1])return'W';return'E';}
+const BASES={straight:['N','S'],bend:['N','E'],T:['N','E','S']};
+function tileSVG(dirs){
+  const on=d=>dirs.has(d)?'var(--pipe)':'var(--pipeoff)';
+  return `<svg viewBox="0 0 34 34"><rect x="14" y="0" width="6" height="15" fill="${on('N')}"/><rect x="14" y="19" width="6" height="15" fill="${on('S')}"/><rect x="0" y="14" width="15" height="6" fill="${on('W')}"/><rect x="19" y="14" width="15" height="6" fill="${on('E')}"/><circle cx="17" cy="17" r="6" fill="${dirs.size?'var(--pipe)':'var(--pipeoff)'}"/></svg>`;
+}
 
-let phase='demo',L=null,placed={},selType='straight',locked=false;
-const setCue=i=>$('#phasecue').textContent=i;
-function key(r,c){return r+','+c}
-function bars(op){const seg={L:'left:0;top:25px;width:32px;height:10px',R:'right:0;top:25px;width:32px;height:10px',U:'left:25px;top:0;width:10px;height:32px',D:'left:25px;bottom:0;width:10px;height:32px'};
-  const hub='left:23px;top:23px;width:14px;height:14px;border-radius:50%';
-  return `<i style="${hub}"></i>`+op.map(o=>`<i style="${seg[o]}"></i>`).join('')}
-function render(){const g=$('#grid');g.style.gridTemplateColumns=`repeat(${L.cols},60px)`;[...g.querySelectorAll('.cell')].forEach(x=>x.remove());
-  for(let r=0;r<L.rows;r++)for(let c=0;c<L.cols;c++){const d=document.createElement('div');d.className='cell';d.dataset.r=r;d.dataset.c=c;
-    const p=placed[key(r,c)];
-    if(p){d.classList.add('road','on');d.innerHTML=`<div style="position:absolute;inset:0">${bars(DEF[p.type][p.rot])}</div>`}
-    if(L.start[0]===r&&L.start[1]===c)d.insertAdjacentHTML('beforeend','<span style="position:absolute;top:-4px;left:-2px;font-size:16px">🏠</span>');
-    if(L.goal[0]===r&&L.goal[1]===c)d.insertAdjacentHTML('beforeend','<span style="position:absolute;bottom:-4px;right:-2px;font-size:16px">🚩</span>');
-    g.appendChild(d)}
-  placeWalker(false)}
-function placeWalker(anim){const w=$('#walker');w.style.transition=anim?'left .3s,top .3s':'none';w.style.left=(8+L.start[1]*SZ+18)+'px';w.style.top=(8+L.start[0]*SZ+16)+'px';if(!anim)requestAnimationFrame(()=>w.style.transition='left .3s,top .3s')}
-function moveWalker(r,c){const w=$('#walker');w.style.left=(8+c*SZ+18)+'px';w.style.top=(8+r*SZ+16)+'px'}
-function newLevel(spec){L=spec;placed={};for(const k in spec.pre)placed[k]={...spec.pre[k]};
-  T.itemStart=Date.now();T.placements=0;T.firstActed=false;T.firstLat=null;T.opt=spec.opt;T.runs=0;T.rot=0;T.reach=0;
-  T.used=Object.keys(placed).filter(k=>!placed[k].fixed).length;T.cells=new Set(Object.keys(placed).filter(k=>!placed[k].fixed));locked=false;render();renderMeters()}
-function onCell(r,c){if(locked)return;const k=key(r,c);const p=placed[k];
-  if(p&&p.fixed)return;
-  if(!T.firstActed){T.firstActed=true;T.firstLat=Date.now()-T.itemStart;log('first tile placed (after planning)')}
-  T.placements++;
-  if(p){p.rot=(p.rot+1)%DEF[p.type].length;T.rot++;log(`rotate ${p.type} at ${k}`)}
-  else{placed[k]={type:selType,rot:0};T.cells.add(k);log(`place ${selType} at ${k}`)}
-  T.used=Object.keys(placed).filter(x=>!placed[x].fixed).length;render();renderMeters()}
-function op(k){const p=placed[k];return p?DEF[p.type][p.rot]:null}
-function bfsPath(){const s=key(...L.start),gk=key(...L.goal);const prev={};prev[s]=null;const q=[L.start];const seen=new Set([s]);
-  while(q.length){const[r,c]=q.shift();for(const o of (op(r+','+c)||[])){const[dr,dc]=DELTA[o];const nr=r+dr,nc=c+dc;if(nr<0||nc<0||nr>=L.rows||nc>=L.cols)continue;const nk=key(nr,nc);if(seen.has(nk))continue;const nop=op(nk);if(nop&&nop.includes(OPP[o])){seen.add(nk);prev[nk]=[r,c];q.push([nr,nc])}}}
-  if(!seen.has(gk))return null;const path=[];let cur=L.goal;while(cur){path.unshift(cur);cur=prev[key(...cur)]}return path}
-async function go(){if(locked)return;T.runs++;const path=bfsPath();
-  if(path){T.reach=1;log('GO: road connected ('+path.length+' cells) — courier walking');for(const[r,c]of path){moveWalker(r,c);await sleep(320)}
-    locked=true;$('#walker').textContent='🎉';setCue(phase==='scored'?'🏆':'⭐');$('#instr').textContent='The courier reached the flag! 🎉';
-    if(phase==='scored'){T.scored++;T.correct++;log(`SOLVED · tiles ${T.used} (optimal ${T.opt}) · runs ${T.runs}`);renderMeters();setTimeout(()=>{$('#walker').textContent='🚶';finish()},1300)}
-    else{log('warm-up solved (unscored)');setTimeout(()=>{$('#walker').textContent='🚶';startScored()},1200)}}
-  else{T.reach=0;log('GO: road not connected yet — rotate/place tiles');renderMeters()}}
-function finish(){phase='done';locked=true;setCue('🏆');$('#instr').textContent='Done! Tidy route.'}
-function renderTray(){const t=$('#tray');t.innerHTML='';[['straight','↔'],['curve','⌐']].forEach(([ty])=>{const d=document.createElement('div');d.className='tp'+(selType===ty?' sel':'');d.dataset.ty=ty;
-  const op0=DEF[ty][ty==='curve'?1:0];d.innerHTML=`<div style="position:absolute;inset:6px" class="road on">${bars(op0)}</div>`;t.appendChild(d)})}
-function startWarmup(){phase='warmup';setCue('⭐');$('#instr').textContent='Warm-up: place one road tile in the gap, then GO. (unscored)';newLevel(LEVELS.warm);renderTray();log('— warm-up (unscored) —')}
-function startScored(){phase='scored';setCue('🎯');$('#instr').textContent='SCORED: connect 🏠 to 🚩. Tap tray, tap a cell to place; tap a tile to rotate. Then GO.';newLevel(LEVELS.s1);renderTray();log('— SCORED: forge the road with curves —')}
-async function runDemo(){phase='demo';setCue('👁️');$('#instr').textContent='';newLevel(LEVELS.warm);renderTray();log('ghost-hand demo (wordless, <10s)');gShow(true);await sleep(300);
-  const mid=$('.cell[data-r="0"][data-c="1"]');await gTo(mid);placed['0,1']={type:'straight',rot:0};T.cells.add('0,1');render();await sleep(300);
-  await gTo($('#go'));gShow(false);const path=bfsPath();for(const[r,c]of (path||[])){moveWalker(r,c);await sleep(300)}$('#walker').textContent='🎉';await sleep(800);$('#walker').textContent='🚶';$('#instr').textContent='';startWarmup()}
-$('#grid').addEventListener('click',e=>{const c=e.target.closest('.cell');if(c)onCell(+c.dataset.r,+c.dataset.c)});
-$('#tray').addEventListener('click',e=>{const t=e.target.closest('.tp');if(t){selType=t.dataset.ty;renderTray()}});
-$('#go').addEventListener('click',go);
-$('#replay').addEventListener('click',()=>{if(phase==='done')runDemo()});
+/* ---------- generation ---------- */
+function genPath(R,C,start,goal,blocked){
+  const key=p=>p[0]+','+p[1];
+  const visited=new Set([key(start)]);const path=[start];
+  function dfs(cur){
+    if(cur[0]===goal[0]&&cur[1]===goal[1])return true;
+    let nbs=neighborsOf(cur[0],cur[1],R,C).map(n=>[n[0],n[1]]).filter(n=>!visited.has(key(n))&&!blocked.has(key(n)));
+    nbs.sort((a,b)=>(Math.abs(a[0]-goal[0])+Math.abs(a[1]-goal[1]))-(Math.abs(b[0]-goal[0])+Math.abs(b[1]-goal[1])));
+    if(Math.random()<0.4)nbs.reverse();
+    for(const n of nbs){visited.add(key(n));path.push(n);if(dfs(n))return true;path.pop();visited.delete(key(n));}
+    return false;
+  }
+  dfs(start);
+  return path;
+}
+const LEVELS=[
+  {R:3,C:4,obstacles:0,surplus:1},
+  {R:4,C:4,obstacles:1,surplus:1},
+  {R:4,C:5,obstacles:2,surplus:1},
+  {R:5,C:5,obstacles:3,surplus:2},
+  {R:5,C:6,obstacles:4,surplus:2},
+  {R:6,C:6,obstacles:5,surplus:2},
+];
+function genItem(lvl){
+  const cfg=LEVELS[lvl];const R=cfg.R,C=cfg.C;
+  const start=[Math.floor(Math.random()*R),0],goal=[Math.floor(Math.random()*R),C-1];
+  const path=genPath(R,C,start,goal,new Set());
+  const pathKeySet=new Set(path.map(p=>p[0]+','+p[1]));
+  const required=new Map();
+  for(let i=1;i<path.length-1;i++){
+    const sides=new Set([dirTo(path[i],path[i-1]),dirTo(path[i],path[i+1])]);
+    required.set(path[i][0]+','+path[i][1],sides);
+  }
+  const nonPath=[];for(let r=0;r<R;r++)for(let c=0;c<C;c++){const k=r+','+c;if(!pathKeySet.has(k))nonPath.push([r,c]);}
+  const blocked=new Set();
+  for(let i=0;i<cfg.obstacles&&nonPath.length;i++){const idx=Math.floor(Math.random()*nonPath.length);blocked.add(nonPath.splice(idx,1)[0].join(','));}
+  let needStraight=0,needBend=0,optimalTiles=required.size;
+  required.forEach(sides=>{const[a,b]=[...sides];OPP[a]===b?needStraight++:needBend++;});
+  const tray=[];let tid=0;
+  for(let i=0;i<needStraight;i++)tray.push({id:tid++,kind:'straight'});
+  for(let i=0;i<needBend;i++)tray.push({id:tid++,kind:'bend'});
+  const kinds=['straight','bend','T'];
+  for(let i=0;i<cfg.surplus;i++)tray.push({id:tid++,kind:kinds[Math.floor(Math.random()*kinds.length)]});
+  tray.sort(()=>Math.random()-0.5);
+  return {R,C,start,goal,path,required,blocked,tray,optimalTiles,lvl};
+}
+
+/* ---------- state ---------- */
+let cur=null,phase='demo',locked=false,scoredIndex=0,level=0;
+let tray=[],placed=new Map(); // key -> {kind,dirs}
+let selTray=null,selPlaced=null,placements=0,touched=new Set(),clickSeq=[],runs=[];
+const T={scored:0,exact:0,rts:[],rtFirsts:[],revisions:0,itemStart:0,firstActed:false,maxLevel:0,levelSeries:[],hardMs:0};
+function placedKey(r,c){return r+','+c;}
+function effStr(){return cur?`${placements} placements / optimal ${cur.optimalTiles}`:'\u2014';}
+function pathStr(){return clickSeq.length?`${clickSeq.length}: ${clickSeq.slice(-5).join(' ')}`:'\u2014';}
+function progStr(){if(!runs.length)return'\u2014';const p=runs;const pick=p.length<=4?p:[p[0],p[(p.length/2)|0],last(p)];return pick.map(x=>x+'%').join('\u2192');}
+function learnRate(){if(T.levelSeries.length<2)return'\u2014';const gained=last(T.levelSeries)-T.levelSeries[0];return `${gained>=0?'+':''}${gained} lvl / ${T.levelSeries.length} trials`;}
+const METERS=[
+ {id:'M-ACC',name:'Item accuracy (road reaches flag)',get:()=>T.scored?`${T.exact}/${T.scored}  ${Math.round(100*T.exact/T.scored)}%`:'\u2014'},
+ {id:'M-EFF',name:'Efficiency vs optimal',get:()=>effStr()},
+ {id:'M-PATH',name:'Placement/rotate sequence',get:()=>pathStr()},
+ {id:'M-RTFIRST',name:'First-action latency',get:()=>T.rtFirsts.length?`${last(T.rtFirsts)} ms`:'\u2014'},
+ {id:'M-REV',name:'Revisions (re-place/re-rotate)',get:()=>T.revisions},
+ {id:'M-EXPLORE',name:'Exploration breadth',get:()=>touched.size+' cells touched'},
+ {id:'M-PROG',name:'Progress trajectory (route % per run)',get:()=>progStr()},
+ {id:'M-PERSIST',name:'Persistence on hard items',get:()=>T.hardMs?`${T.hardMs} ms`:'\u2014'},
+ {id:'M-LEARNRATE',name:'Within-session learning rate',get:()=>learnRate()},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});$('#dbar').style.width=(100*(level+1)/LEVELS.length)+'%';$('#dlab').textContent=(level+1)+'/'+LEVELS.length;}
+function log(msg){const t=Date.now()-T.itemStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+const ghost=$('#ghost');function ghostShow(v){ghost.classList.toggle('show',v);}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(480);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(380);}
+
+/* ---------- render ---------- */
+function isHut(r,c){return r===cur.start[0]&&c===cur.start[1];}
+function isFlag(r,c){return r===cur.goal[0]&&c===cur.goal[1];}
+function isBlocked(r,c){return cur.blocked.has(r+','+c);}
+function cellEl(r,c){return $(`.cell[data-r="${r}"][data-c="${c}"]`);}
+function renderGrid(){
+  const grid=$('#grid');grid.innerHTML='';
+  grid.style.gridTemplateColumns=`repeat(${cur.C},48px)`;
+  for(let r=0;r<cur.R;r++)for(let c=0;c<cur.C;c++){
+    const d=document.createElement('div');d.dataset.r=r;d.dataset.c=c;
+    d.className='cell'+(isBlocked(r,c)?' blocked':' slot')+((selPlaced&&selPlaced[0]===r&&selPlaced[1]===c)?' sel':'');
+    if(isHut(r,c)){const i=document.createElement('div');i.className='ic';i.textContent='🏠';d.appendChild(i);}
+    else if(isFlag(r,c)){const i=document.createElement('div');i.className='ic';i.textContent='🚩';d.appendChild(i);}
+    else if(isBlocked(r,c)){const i=document.createElement('div');i.className='ic';i.textContent='⛰️';d.appendChild(i);}
+    else {
+      const pl=placed.get(placedKey(r,c));
+      if(pl){
+        ['N','E','S','W'].forEach(dir=>{const a=document.createElement('div');a.className='arm '+dir+(pl.dirs.has(dir)?' on':'');d.appendChild(a);});
+      }
+    }
+    grid.appendChild(d);
+  }
+  const cour=document.createElement('div');cour.id='courier';cour.textContent='🚚';
+  cour.style.left=((cur.start[1])*51+10)+'px';cour.style.top=((cur.start[0])*51+10)+'px';
+  grid.appendChild(cour);
+}
+function renderTray(){
+  const t=$('#tray');t.innerHTML='';
+  const counts={};tray.forEach(p=>counts[p.kind]=(counts[p.kind]||0)+1);
+  const kinds=[...new Set(tray.map(p=>p.kind))];
+  kinds.forEach(kind=>{
+    const first=tray.find(p=>p.kind===kind);
+    const el=document.createElement('div');el.className='tp'+(selTray===kind?' sel':'');el.dataset.kind=kind;
+    el.innerHTML=tileSVG(new Set(BASES[kind]))+`<span class="cnt">${counts[kind]}</span>`;
+    t.appendChild(el);
+  });
+}
+function renderAll(){renderGrid();renderTray();renderMeters();updateBtns();}
+function updateBtns(){$('#rot').disabled=!selPlaced;$('#rem').disabled=!selPlaced;}
+
+/* ---------- gameplay ---------- */
+function markFirstAction(){if(!T.firstActed){T.firstActed=true;T.rtFirsts.push(Date.now()-T.itemStart);}}
+function cellDirs(cell){if(isHut(...cell)||isFlag(...cell))return ALL4;const pl=placed.get(placedKey(...cell));return pl?pl.dirs:new Set();}
+function bfsFromStart(){
+  const key=p=>p[0]+','+p[1];const seen=new Map([[key(cur.start),null]]);const q=[cur.start];let qi=0;
+  while(qi<q.length){
+    const cell=q[qi++];
+    for(const[nr,nc,dir] of neighborsOf(cell[0],cell[1],cur.R,cur.C)){
+      const nk=key([nr,nc]);if(seen.has(nk))continue;
+      if(cellDirs(cell).has(dir)&&cellDirs([nr,nc]).has(OPP[dir])){seen.set(nk,cell);q.push([nr,nc]);}
+    }
+  }
+  return seen;
+}
+function selectTray(kind){selTray=(selTray===kind)?null:kind;selPlaced=null;renderAll();}
+function selectPlaced(r,c){selPlaced=(selPlaced&&selPlaced[0]===r&&selPlaced[1]===c)?null:[r,c];selTray=null;renderAll();}
+function placeAt(r,c){
+  if(!selTray||isHut(r,c)||isFlag(r,c)||isBlocked(r,c)||placed.has(placedKey(r,c)))return;
+  markFirstAction();
+  const idx=tray.findIndex(p=>p.kind===selTray);if(idx<0)return;
+  const tile=tray.splice(idx,1)[0];
+  const dirs=rotSet(new Set(BASES[tile.kind]),Math.floor(Math.random()*4));
+  placed.set(placedKey(r,c),{kind:tile.kind,dirs});
+  placements++;clickSeq.push(`place@(${r+1},${c+1})`);
+  if(touched.has(placedKey(r,c)))T.revisions++;
+  touched.add(placedKey(r,c));
+  selTray=tray.some(p=>p.kind===tile.kind)?tile.kind:null;
+  log(`placed ${tile.kind} at (${r+1},${c+1})`);
+  renderAll();
+}
+function rotateSel(){
+  if(!selPlaced||locked)return;
+  const k=placedKey(...selPlaced);const pl=placed.get(k);if(!pl)return;
+  pl.dirs=rotSet(pl.dirs,1);
+  clickSeq.push(`rotate@(${selPlaced[0]+1},${selPlaced[1]+1})`);
+  if(touched.has(k))T.revisions++;touched.add(k);
+  log(`rotate at (${selPlaced[0]+1},${selPlaced[1]+1})`);
+  renderAll();
+}
+function removeSel(){
+  if(!selPlaced||locked)return;
+  const k=placedKey(...selPlaced);const pl=placed.get(k);if(!pl)return;
+  placed.delete(k);tray.push({id:Math.random(),kind:pl.kind});
+  T.revisions++;
+  log(`removed tile at (${selPlaced[0]+1},${selPlaced[1]+1}) — revision`);
+  selPlaced=null;renderAll();
+}
+function renderItem(item){
+  cur=item;tray=item.tray.slice();placed=new Map();selTray=null;selPlaced=null;placements=0;touched=new Set();clickSeq=[];runs=[];
+  T.revisions=0;T.itemStart=Date.now();T.firstActed=false;
+  renderAll();
+}
+async function pressGo(){
+  if(locked)return;
+  markFirstAction();
+  const seen=bfsFromStart();
+  const key=p=>p[0]+','+p[1];
+  let frontierIdx=0;
+  for(let i=0;i<cur.path.length;i++)if(seen.has(key(cur.path[i])))frontierIdx=i;
+  const frontier=cur.path[frontierIdx];
+  const route=[];let c2=frontier;
+  while(c2){route.push(c2);c2=seen.get(key(c2));}
+  route.reverse();
+  locked=true;
+  for(const p of route){$('#courier').style.left=(p[1]*51+10)+'px';$('#courier').style.top=(p[0]*51+10)+'px';await sleep(220);}
+  const pct=Math.round(100*frontierIdx/(cur.path.length-1));
+  runs.push(pct);
+  const reachedGoal=frontierIdx===cur.path.length-1;
+  log(`GO → courier reached ${pct}% of route${reachedGoal?' — FLAG REACHED':''}`);
+  renderMeters();
+  if(reachedGoal){await sleep(300);submit();}
+  else locked=false;
+}
+function submit(){
+  const rt=Date.now()-T.itemStart;
+  locked=true;
+  if(phase==='warmup'){log('warm-up road complete — UNSCORED');setTimeout(nextPhase,1100);return;}
+  T.scored++;T.rts.push(rt);T.exact++;
+  if(level>=T.maxLevel)T.hardMs=Math.max(T.hardMs,rt);
+  T.levelSeries.push(level);T.maxLevel=Math.max(T.maxLevel,level);
+  level=Math.min(level+1,LEVELS.length-1);
+  log(`SUBMIT lvl${cur.lvl+1} → ROAD COMPLETE · ${effStr()} · rev ${T.revisions}`);
+  renderMeters();
+  setTimeout(nextPhase,1300);
+}
+function nextPhase(){
+  locked=false;
+  if(phase==='warmup'){scoredIndex=0;startScored();}
+  else if(phase==='scored'){scoredIndex++;scoredIndex<6?startScored():finish();}
+}
+function startWarmup(){phase='warmup';locked=false;$('#phasecue').textContent='\u2b50';renderItem(genItem(0));log('— warm-up (unscored) —');}
+function startScored(){phase='scored';$('#phasecue').textContent='\ud83c\udfaf';renderItem(genItem(level));log(`— SCORED item ${scoredIndex+1}/6 · level ${level+1} · optimal ${cur.optimalTiles} tiles —`);}
+function finish(){phase='done';$('#phasecue').textContent='\ud83c\udfc6';locked=true;log(`— DONE · roads built ${T.exact}/${T.scored} · ceiling level ${T.maxLevel+1} —`);}
+
+async function runDemo(){
+  phase='demo';$('#phasecue').textContent='\ud83d\udc41\ufe0f';locked=true;
+  const R=1,C=3,start=[0,0],goal=[0,2];
+  const path=[start,[0,1],goal];
+  const required=new Map([['0,1',new Set(['W','E'])]]);
+  const item={R,C,start,goal,path,required,blocked:new Set(),tray:[{id:0,kind:'straight'}],optimalTiles:1,lvl:-1};
+  renderItem(item);log('ghost-hand demo (wordless, <10s)');ghostShow(true);await sleep(300);
+  selTray='straight';renderAll();
+  await ghostTo($('.tp[data-kind="straight"]'));await ghostTap();
+  await sleep(150);
+  await ghostTo(cellEl(0,1));await ghostTap();placeAt(0,1);
+  await sleep(200);
+  const k=placedKey(0,1);
+  if(!(placed.get(k).dirs.has('W')&&placed.get(k).dirs.has('E'))){
+    selectPlaced(0,1);
+    await ghostTo($('#rot'));await ghostTap();rotateSel();
+  }
+  await sleep(200);
+  await ghostTo($('#go'));await ghostTap();await pressGo();
+  await sleep(300);ghostShow(false);await sleep(400);startWarmup();
+}
+
+$('#grid').addEventListener('click',e=>{
+  const d=e.target.closest('.cell');if(!d||locked||phase==='demo'||phase==='done')return;
+  const r=+d.dataset.r,c=+d.dataset.c;
+  if(isBlocked(r,c)||isHut(r,c)||isFlag(r,c))return;
+  if(placed.has(placedKey(r,c)))selectPlaced(r,c);
+  else if(selTray)placeAt(r,c);
+});
+$('#tray').addEventListener('click',e=>{const d=e.target.closest('.tp');if(!d||locked||phase==='demo'||phase==='done')return;selectTray(d.dataset.kind);});
+$('#rot').addEventListener('click',()=>{if(!locked&&phase!=='demo'&&phase!=='done')rotateSel();});
+$('#rem').addEventListener('click',()=>{if(!locked&&phase!=='demo'&&phase!=='done')removeSel();});
+$('#go').addEventListener('click',()=>{if(!locked&&phase!=='demo'&&phase!=='done')pressGo();});
+$('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
+document.addEventListener('keydown',e=>{
+  if(locked||phase==='demo'||phase==='done')return;
+  if(e.key.toLowerCase()==='r')rotateSel();
+  else if(e.key==='Delete'||e.key==='Backspace')removeSel();
+});
 buildMeters();renderMeters();runDemo();
 </script>
 </body>
