@@ -518,3 +518,37 @@ Source: `docs/research/EVIDENCE_DOSSIER.md` (origin/dev) — an explicitly **unv
 - **Verification:** Underlying principle is standard (AERA/APA/NCME 2014 Standards 2.14–2.16; regression-to-mean). The specific numeric illustration comes from a **secondary summary (Gavin Publishers)** compiled in `docs/research/EVIDENCE_DOSSIER.md`. **Verdict: Tier C (secondary / illustrative).** **Use:** §1.2, cited as illustrative only.
 
 **Not incorporated (out of scope for this BrainLift):** C1 "Elite Illusion" RD (Abdulkadiroğlu, Angrist & Pathak 2014); C4 universal screening (Card & Giuliano 2016); C5–C7 lottery/charter/feasibility (Boston charters; federal charter-lottery N=2,330; Cheung & Slavin 2016 QED-vs-RCT). These defend the counterfactual/access thesis → `gt-school-counterfactual-brainlift/`.
+
+---
+
+## Section 9 — Learning-rate / dynamic-assessment (the "Timeback-fit" direction) — recat addendum (BrainLift §1.9)
+
+*Added for the RES-013 / D-015 re-orientation to support §1.9's DOK 1/2 facts on a learning-rate / dynamic-assessment screen. Verified via the search results and canonical knowledge this session.*
+
+### Koedinger, Carvalho, Liu & McLaughlin (2023) — "An astonishing regularity in student learning rate," *PNAS* 120(13):e2221311120
+- **Content:** iAFM over 1.3M practice observations / 27 datasets: students vary greatly in *initial* knowledge but are near-identical in *learning rate* (~2.5%/opportunity); replicated on >15,000 MATHia students (Simpson et al., 2024). Reads achievement gaps as opportunity gaps.
+- **1** High · **2** Large multi-dataset modeling (1.3M obs; replicated) · **3** Quantitative · **4** Independent.
+- **Verification:** Verified (DOI 10.1073/pnas.2221311120). **Verdict: Tier A.** **Use:** §1.9 load-bearing caveat — a "learns-faster" screen risks re-detecting prior knowledge unless opportunity is equalized; DOK3-g / Candidate 4.
+
+### Caffrey, Fuchs & Fuchs (2008) — "The predictive validity of dynamic assessment: A review," *Journal of Special Education* 41(4):254–270
+- **Content:** Review of 26 DA studies; incremental predictive validity over static measures ≈ r .12–.24 (real but modest).
+- **1** High · **2** Review (k=26) · **3** Quantitative · **4** Independent.
+- **Verification:** Verified (venue/vol/pages). **Verdict: Tier A.** **Use:** §1.9 — DA's modest incremental validity.
+
+### Sternberg & Grigorenko (2002) — *Dynamic Testing: The Nature and Measurement of Learning Potential*, Cambridge Univ. Press
+- **Content:** Canonical review of DA frameworks (learning-potential testing, testing-the-limits, graduated prompts); grounds DA in ZPD.
+- **1** High · **2** Book/review · **3** Mixed · **4** Independent.
+- **Verification:** Verified (already Tier B in the at-a-glance list). **Verdict: Tier B.** **Use:** §1.9 framework grounding.
+
+### Vygotsky (1978) — *Mind in Society*, Harvard Univ. Press
+- **Content:** Origin of the zone of proximal development; never operationalized a ZPD instrument (a caveat, not a method).
+- **Verdict: Tier B (foundational/old).** **Use:** §1.9 conceptual grounding for DA.
+
+### Dynamic-assessment reading systematic review (2022), *Reading and Writing*, DOI 10.1007/s11145-022-10312-3
+- **Content:** DA taps growth variance in reading unexplained by static tests, especially word-level; predictive-validity evidence for developing/diverse readers.
+- **1** Medium–High · **2** Systematic review · **3** Quantitative · **4** Independent.
+- **Verification:** Verified (DOI). **Verdict: Tier B (author not captured this session; venue+DOI confirmed).** **Use:** §1.9 growth-variance point.
+
+### Cronbach & Furby (1970) — "How should we measure 'change' — or should we?", *Psychological Bulletin* 74(1):68–80
+- **Content:** Classic caution: simple gain/difference scores can be unreliable and entangled with initial status.
+- **Verdict: Tier A (canonical).** **Use:** §1.9 bounding — a learning-rate index needs a reliability model + equal-opportunity design.
