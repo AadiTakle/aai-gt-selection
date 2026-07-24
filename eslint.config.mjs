@@ -1,4 +1,5 @@
 import eslint from '@eslint/js';
+import reactHooks from 'eslint-plugin-react-hooks';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
@@ -17,4 +18,10 @@ export default tseslint.config(
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
+  {
+    // Register the react-hooks plugin repo-wide so hook dependency directives in
+    // the web app resolve under the root lint (mirrors apps/web's Next config).
+    plugins: { 'react-hooks': reactHooks },
+    rules: { 'react-hooks/exhaustive-deps': 'warn' },
+  },
 );

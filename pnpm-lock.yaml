@@ -11,6 +11,12 @@ importers:
       '@eslint/js':
         specifier: 9.39.5
         version: 9.39.5
+      '@gt-selection/cat-engine':
+        specifier: workspace:*
+        version: link:packages/cat-engine
+      '@playwright/test':
+        specifier: 1.61.1
+        version: 1.61.1
       '@supabase/supabase-js':
         specifier: 2.110.7
         version: 2.110.7
@@ -20,6 +26,9 @@ importers:
       eslint:
         specifier: 9.39.5
         version: 9.39.5
+      eslint-plugin-react-hooks:
+        specifier: 7.1.1
+        version: 7.1.1(eslint@9.39.5)
       prettier:
         specifier: 3.9.5
         version: 3.9.5
