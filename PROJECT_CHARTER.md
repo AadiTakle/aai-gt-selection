@@ -2,9 +2,11 @@
 
 ## Mission
 
-Build a workable student-selection product that allows GT School to distinguish its program effect from the advantages students bring with them more credibly than its current selected-cohort reporting allows.
+Build a workable student-selection product with two complementary aims: (1) a scalable, tunable in-house **screener** that identifies applicants who are gifted *and* able to thrive and accelerate on GT School's Timeback learning platform, validated against GT's own data and with a cut GT owns; and (2) a **credible counterfactual** that lets GT School distinguish its program effect from the advantages students bring with them, more credibly than its current selected-cohort reporting allows.
 
-The project succeeds by making GT School's contribution testable. It does not need to prove a positive effect and must permit null or negative findings.
+Giftedness remains a core, necessary component of the target, but the criterion the screener predicts is fit — the ability to thrive and accelerate on the platform (some gifted students do not fit it; some students who accelerate on it would not clear a conventional gifted cutoff).
+
+The project succeeds by making GT School's contribution testable and by producing a defensible, operable selection decision. It does not need to prove a positive effect and must permit null or negative findings.
 
 ## Problem
 
@@ -18,15 +20,17 @@ GT School currently selects students using factors correlated with later success
 4. Measure growth from baseline with adequate upper-range precision.
 5. Make selection, evaluation, and claim boundaries auditable.
 6. Protect applicants and remain feasible under real school constraints.
+7. Identify applicants who are gifted and able to thrive and accelerate on the Timeback platform, validated against GT's existing signals (CogAT, MAP) and, where available, platform acceleration.
+8. Produce a screener operable algorithmically at applicant volumes in the thousands, exposing parameters and a cut that GT admissions tunes and owns, while preserving a human path for near-miss and behavioral (shadow-day) review.
 
 ## Non-goals
 
-- Predetermine a lottery, test, threshold, workflow, or technical stack.
-- Modify the Timeback learning platform.
+- Lock a final threshold or cut on GT's behalf (GT tunes and owns the cut), or dictate a technical stack.
+- Modify the Timeback learning platform (deeply understanding it is now a dependency, since the screener predicts fit to it).
 - Defend GT School or guarantee a positive result.
 - Prove long-term elite attainment during the capstone.
 - Solve gifted-education policy beyond this selection and evaluation problem.
-- Launch a production admissions system unless separately approved.
+- Operate a live production admissions system; a GT-tunable screener model and validation harness intended for GT-side integration is in scope (D-015), but running it in production is not, unless separately approved.
 
 ## Stakeholders
 

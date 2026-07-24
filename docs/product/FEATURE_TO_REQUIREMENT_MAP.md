@@ -4,7 +4,7 @@
 
 This living index gives contributors one development-facing map from every required product,
 technical, governance, security, operations, and future-evaluation feature to the project
-requirements it fulfills or advances. The current decomposition contains 99 mapped feature units.
+requirements it fulfills or advances. The current decomposition contains 105 mapped feature units.
 
 It is derived from, and remains subordinate to, the canonical documents in `AGENTS.md` and
 `PROJECT_CHARTER.md`. If this map conflicts with a higher-precedence document, follow the
@@ -64,6 +64,7 @@ Do not interpret:
 | R8 | Remain feasible under real GT constraints. | In progress | B-01–B-08 still gate policy, staffing, privacy, allocation, and evaluation feasibility. |
 | R9 | Protect students and families. | Partially specified | Synthetic safeguards exist; legal consent, production data rights, and live controls do not. |
 | R10 | Bound every conclusion. | Specified | End-to-end message and claim-register enforcement remain. |
+| R11 | Provide a scalable, tunable, GT-validated screening instrument (giftedness + Timeback-fit). | Building (D-016) | Born-synthetic adaptive test instrument under construction (AX-01–AX-06); IRT params synthetic/`validated=false`; GT-data validation is RES-012. |
 | H1 | Use broader, evidence-backed capability measures. | Specified pending validation | The Snapshot is specified; production anchors and validation are outstanding. |
 | H2 | Separate capability from family advantage. | Specified | Database prohibited-field invariance and operational monitoring remain. |
 | H3 | Prefer designs that address unobserved selection. | Deferred | No live offer randomization or quasi-experimental implementation exists. |
@@ -141,6 +142,19 @@ Canonical sources: `PROJECT_CHARTER.md`, `docs/product/project-requirements.md`,
 
 Primary sources: `docs/product/USER_STORY_FEATURE_MAP.md`,
 `docs/product/GT_ADMISSIONS_APPLICATION_MVP_PRD.md`, and the backend research implementation contracts.
+
+### Adaptive screening instrument (R11 / D-016)
+
+| ID | Feature | Requirements | Scope | Current status | Remaining work / dependency |
+|---|---|---|---|---|---|
+| AX-01 | Assessment/session/telemetry contracts (`packages/contracts`) + demo `postMessage` embedding protocol | R11, R5, R7, R9, R10 | MVP-bounded | In progress | Zod schemas for items, sessions, responses, telemetry events, and per-domain metrics; versioned and `synthetic_only`. |
+| AX-02 | IRT/CAT adaptive engine (`packages/cat-engine`) | R11, R5, H6 | MVP-bounded | In progress | 2PL/3PL information, EAP/MLE theta, max-information selection, engagement gate, SE/max-item stop, exposure control; unit-tested; params synthetic/`validated=false`. |
+| AX-03 | Item bank seeded from the question-type catalog with versioned IRT parameters | R11, R5, H1, H10 | MVP-bounded | In progress | `app.*` type/item tables; synthetic difficulty ladder per domain; catalog re-orientation is RES-013. |
+| AX-04 | Session/response/telemetry/metric data model + `api.*` RPCs + forced RLS | R11, R7, R9 | MVP-bounded | In progress | start/next/submit/finalize RPCs; append-only telemetry; derived per-domain θ/SE; pgTAP; regenerate db-types. |
+| AX-05 | Test-taker delivery surface (demo host + adaptive session runner + results) | R11, R5, H4, H9 | MVP-bounded | In progress | Next.js route embedding demos via the AX-01 contract; born-synthetic proctor-issued session tokens; no PII. |
+| AX-06 | Screener decision output (admit / defer / retry) with tunable cut and claim boundary | R11, R1, R5, R10 | MVP-bounded | In progress | Tunable GT-owned cut over per-domain θ + fit index; R10 boundary (screening ≠ program impact); validation is RES-012. |
+
+Primary sources: `docs/governance/DECISION_LOG.md` (D-016), `research/exam-question-types/`, and the `packages/cat-engine` + `apps/*` implementation.
 
 ### User surfaces
 
