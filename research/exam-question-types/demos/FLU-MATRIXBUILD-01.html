@@ -73,6 +73,9 @@
   button:focus-visible,.pick:focus-visible{outline:4px solid #ffbf69;outline-offset:3px}
   @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
   @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:350px}}
+  @media(max-width:560px){#wrap{padding:10px}#stagecard{padding:13px}#machine{padding:9px}
+    .matrix{gap:5px;padding:6px}.cell{width:64px;height:64px}.cell svg{width:58px;height:58px}
+    .pickers{gap:7px}.prow{gap:6px}.plabel{width:26px}.pick{min-width:48px;height:50px}}
 </style>
 </head>
 <body>
@@ -98,7 +101,7 @@
   </div>
   <aside id="telemetry">
     <h3>Live telemetry · per-child</h3>
-    <div id="difficulty"></div>
+    <div id="difficulty" data-tracks="M-DIFFREACH M-LEARNRATE"></div>
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
@@ -136,11 +139,14 @@ function tileSVG(a,box=72){const color=PAL[a.color]||a.color||'#9aa6c9';const n=
 /* item generation: rule x attribute grammar with per-attribute answer key */
 function levelRules(level){return level===1?1:level<4?2:level<6?3:4;}
 function genItem(level){const size=level===1?2:3,nRules=levelRules(level);
-  const active=['shape'];if(nRules>=2)active.push(level===3?'count':'color');if(nRules>=3&&!active.includes('count'))active.push('count');if(nRules>=4)active.push('rot');
+  const active=['shape'];
+  if(level===2||level===4||level===6)active.push('color');
+  if(level===3||level>=4)active.push('count');
+  if(level>=5)active.push('rot');
   const shapes=shuffle(SH).slice(0,size),colors=shuffle(COLORKEYS).slice(0,size),grid=[];
   for(let r=0;r<size;r++){grid.push([]);for(let c=0;c<size;c++)grid[r].push({
     shape:shapes[(r+c)%size],color:active.includes('color')?colors[r]:colors[0],
-    count:active.includes('count')?c+1:1,rot:active.includes('rot')?((r+c)%3)*120:0});}
+    count:active.includes('count')?c+1:1,rot:active.includes('rot')?((2*r+c)%3)*120:0});}
   const ans={...grid[size-1][size-1]};
   let shapeOpts=shapes.slice();for(const s of SH){if(shapeOpts.length>=4)break;if(!shapeOpts.includes(s))shapeOpts.push(s);}
   let colorOpts=colors.slice();for(const c of COLORKEYS){if(colorOpts.length>=4)break;if(!colorOpts.includes(c))colorOpts.push(c);}
@@ -162,7 +168,7 @@ const METERS=[
 ];
 function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>
   `<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
-function learnRate(){return T.scored?((T.maxSolved-1)/T.scored).toFixed(2):'0.00';}
+function learnRate(){return T.scored?(Math.max(0,T.maxSolved-1)/T.scored).toFixed(2):'0.00';}
 function renderDifficulty(){$('#difficulty').innerHTML=`<div class="dtop"><b>DIFFICULTY</b><span>${T.level}/6</span></div><div class="dtrack"><div class="dfill" style="width:${T.level/6*100}%"></div></div><div class="dsub"><span>reach ${T.maxSolved||'\u2014'}</span><span>learn ${learnRate()} lvl/trial</span></div>`;}
 function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});renderDifficulty();}
 function log(msg){const now=new Date(),t=Math.max(0,Date.now()-T.itemStart),d=document.createElement('div');

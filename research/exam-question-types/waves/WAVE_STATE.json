@@ -1,8 +1,8 @@
 {
   "phase": "recategorization-rebuild",
-  "recat_wave": 0,
-  "prev": "2e041bf (251 types, pre-recat base)",
-  "current": "54 kept types, 4 domains, 23% top-GT coverage (re-baselined)",
-  "note": "RES-013 recategorization: cut 251->54 keepers, 4 domains, greenfield quant, metric redesign, PS warrant, Phase-2 build fleet. See CATEGORY_MAP.md.",
-  "next": ["metric-framework", "ps-warrant", "quant-specs", "build-fleet"]
+  "status": "complete",
+  "recat_waves_run": 13,
+  "final": "66 types (fluid 15, verbal 16, quant 12, spatial 23), 63 measurements, 0 errors/warnings/gaps; 66 demos (0 missing, JS-validated); coverage re-baselined 52/160 (32% overall, 48% of coverable-domain items)",
+  "note": "RES-013 recategorization complete: 251->54 keepers + 12 greenfield quant, 4 domains, automated metric framework, PS warrant Rec B, full Phase-2 build fleet, breadth floor restored, app.html regenerated. See CATEGORY_MAP.md / METRIC_FRAMEWORK.md / PS_GAMEBASED_WARRANT.md / waves/RECAT_WAVE_FINAL.md.",
+  "next": "brainlift deep-research fallback (DOK1/2 + citations, PROPOSED DOK3/4 only)"
 }

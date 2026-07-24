@@ -78,6 +78,9 @@
   button:focus-visible,.opt:focus-visible{outline:4px solid #ffbf69;outline-offset:3px}
   @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
   @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:350px}}
+  @media(max-width:560px){#wrap{padding:10px}#stagecard{padding:13px}#machine{padding:9px}
+    #matrix{grid-template-columns:64px 18px 64px 18px 64px!important;gap:5px}.cell{width:64px;height:64px}
+    .cell svg{width:60px;height:60px}.op{width:18px;font-size:19px}.opt{width:66px;height:66px}.opt svg{width:60px;height:60px}}
 </style>
 </head>
 <body>
@@ -98,7 +101,7 @@
   </div>
   <aside id="telemetry">
     <h3>Live telemetry · per-child</h3>
-    <div id="difficulty"></div>
+    <div id="difficulty" data-tracks="M-DIFFREACH M-LEARNRATE"></div>
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
@@ -127,7 +130,7 @@ function samePanel(a,b){return a.length===b.length&&a.every((v,i)=>v===b[i]);}
 /* ---------- AIG: logical operator x layer grammar ---------- */
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){let j=(Math.random()*(i+1))|0;[a[i],a[j]]=[a[j],a[i]];}return a;}
 function mkMask(op,bits){const max=(1<<bits)-1;let a,b,c,g=0;do{a=1+(Math.random()*max|0);b=1+(Math.random()*max|0);c=applyOp(a,b,op);g++;}
-  while((!c||a===b||a===c||b===c||(op==='XOR'&&!(a&b)))&&g<200);return[a,b,c];}
+  while((!c||a===b||a===c||b===c||(op!=='AND'&&!(a&b)))&&g<200);return[a,b,c];}
 function levelConfig(level){if(level===1)return{bits:4,ops:['OR']};if(level===2)return{bits:9,ops:['OR']};
   if(level===3)return{bits:4,ops:['XOR']};if(level===4)return{bits:9,ops:['XOR']};
   if(level===5)return{bits:9,ops:['XOR','XOR']};return{bits:9,ops:['XOR','OR']};}
@@ -157,7 +160,7 @@ const METERS=[
 function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>
   `<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span>`
   +`<span class="mname">${m.name}</span></div>`).join('');}
-function learnRate(){return T.scored?((T.maxSolved-1)/T.scored).toFixed(2):'0.00';}
+function learnRate(){return T.scored?(Math.max(0,T.maxSolved-1)/T.scored).toFixed(2):'0.00';}
 function renderDifficulty(){$('#difficulty').innerHTML=`<div class="dtop"><b>DIFFICULTY</b><span>${T.level}/6</span></div><div class="dtrack"><div class="dfill" style="width:${T.level/6*100}%"></div></div><div class="dsub"><span>reach ${T.maxSolved||'\u2014'}</span><span>learn ${learnRate()} lvl/trial</span></div>`;}
 function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});renderDifficulty();}
 function log(msg){const now=new Date(),t=Math.max(0,Date.now()-T.itemStart),d=document.createElement('div');

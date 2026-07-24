@@ -41,6 +41,8 @@
   #beats{height:22px;display:flex;justify-content:center;gap:17px;margin-top:7px}
   #beats i{width:13px;height:13px;border-radius:50%;background:#cfddd9}
   #beats i.live{background:var(--accent);box-shadow:0 0 0 5px rgba(242,184,75,.2)}
+  #scrub{display:block;width:min(330px,70%);margin:2px auto 0;accent-color:var(--accent)}
+  #scrub:disabled{opacity:.35}
   #replayStory{
     position:absolute;right:12px;top:12px;width:42px;height:42px;border-radius:50%;
     background:#dfece8;color:#537173;font-size:20px;
@@ -105,7 +107,7 @@
   <div id="badge">QUANT-GRAPH-01 · Story Graph</div>
   <div id="phasecue">👁️</div>
   <section id="stagecard">
-    <div id="storyboard"><div id="scene"></div><div id="beats"></div><button id="replayStory" aria-label="replay story">▶</button></div>
+    <div id="storyboard"><div id="scene"></div><div id="beats"></div><input id="scrub" type="range" min="0" max="2" value="0" step="1" aria-label="move through story"><button id="replayStory" aria-label="replay story">▶</button></div>
     <div id="options"></div>
     <div id="controls"><button class="round" id="replayDemo" aria-label="replay demonstration">↻</button><button id="go" aria-label="submit">✓</button></div>
     <div id="progress"></div>
@@ -185,6 +187,7 @@ function renderOptions(){
 function blocks(count){return Array.from({length:count},()=>'<i class="block"></i>').join('')}
 function renderFrame(index){
   const beats=$('#beats').children;[...beats].forEach((x,i)=>x.classList.toggle('live',i===index));
+  $('#scrub').value=index;
   if(cur.kind==='two'){
     $('#scene').innerHTML=`<div class="rig"><div class="mark">▲</div><div class="tank">${blocks(cur.a[index])}</div></div><div class="rig b"><div class="mark">●</div><div class="tank">${blocks(cur.b[index])}</div></div>`;
     return;
@@ -197,8 +200,10 @@ function renderFrame(index){
 async function playStory(countReplay=true){
   const token=++animToken;locked=true;if(countReplay){replays++;T.path.push('▶');log('story replay');}
   const frames=cur.a.length;$('#beats').innerHTML=Array.from({length:frames},()=>'<i></i>').join('');
+  $('#scrub').max=frames-1;$('#scrub').disabled=true;
   for(let i=0;i<frames;i++){if(token!==animToken)return;renderFrame(i);await sleep(430)}
   if(token!==animToken)return;locked=false;
+  $('#scrub').disabled=false;
   [...document.querySelectorAll('.option')].forEach(x=>x.disabled=false);
   T.itemStart=performance.now();renderMeters();
 }
@@ -207,7 +212,7 @@ function pick(index,fromGhost=false){
   if(selected!==index){T.path.push(`g${index+1}`);selected=index}
   document.querySelectorAll('.option').forEach((x,i)=>x.classList.toggle('selected',i===index));
   const credit=cur.options[index].credit;T.poly=`${Math.round(credit*100)}% relations`;
-  T.err=cur.options[index].err;T.plan=replays?'replay-then-map':T.path.length===1?'direct temporal map':'visual revision';
+  T.err=cur.options[index].err;T.plan=T.path.some(x=>x.startsWith('↔'))?'scrub-then-map':replays?'replay-then-map':T.path.length===1?'direct temporal map':'visual revision';
   $('#go').classList.add('ready');renderMeters();if(!fromGhost)log(`select graph ${index+1} · partial ${Math.round(credit*100)}%`);
 }
 async function submit(){
@@ -246,6 +251,8 @@ function finish(){phase='done';locked=true;$('#phasecue').textContent='🏆';log
 $('#options').addEventListener('click',e=>{const button=e.target.closest('.option');if(button)pick(+button.dataset.i)});
 $('#go').addEventListener('click',submit);
 $('#replayStory').addEventListener('click',()=>{if(cur&&phase!=='demo'&&phase!=='done')playStory(true)});
+$('#scrub').addEventListener('input',event=>{if(cur&&!locked)renderFrame(+event.target.value)});
+$('#scrub').addEventListener('change',event=>{if(cur&&!locked){T.path.push(`↔${event.target.value}`);T.plan='scrub-then-map';log(`inspect beat ${+event.target.value+1}`);renderMeters()}});
 $('#replayDemo').addEventListener('click',runDemo);
 buildTelemetry();renderMeters();runDemo();
 </script>

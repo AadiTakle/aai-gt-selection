@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FLU-CARPET-01 · Pattern Carpet</title>
 <style>
-  :root{--bg1:#eef4ff;--bg2:#f7ecff;--ink:#26304a;--card:#ffffff;--accent:#5b6cff;
+  :root{--bg1:#eef4ff;--bg2:#f7ecff;--ink:#26304a;--card:#ffffff;--accent:#5b6cff;--carpet-cell:84px;
     --good:#22b573;--bad:#ff6b6b;--socket:#c9d3ef;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
   *{box-sizing:border-box}html,body{margin:0;height:100%}
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);
@@ -17,7 +17,7 @@
     display:flex;flex-direction:column;align-items:center;gap:18px;max-width:600px;width:100%}
   #loom{position:relative;padding:16px;border-radius:20px;background:linear-gradient(160deg,#e7f0ff,#f3eefe);border:3px solid #d3ddff}
   .carpet{display:grid;gap:8px;background:#c9d6f4;padding:8px;border-radius:14px}
-  .cell{background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;width:84px;height:84px}
+  .cell{background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;width:var(--carpet-cell);height:var(--carpet-cell)}
   .cell.empty{background:repeating-linear-gradient(45deg,#eef2ff,#eef2ff 8px,#e2e9ff 8px,#e2e9ff 16px);border:3px dashed var(--socket)}
   .cell.filled-anim{animation:pop .3s ease}
   @keyframes pop{0%{transform:scale(.6);opacity:.2}100%{transform:scale(1);opacity:1}}
@@ -59,6 +59,8 @@
   button:focus-visible,.opt:focus-visible{outline:4px solid #ffbf69;outline-offset:3px}
   @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
   @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:350px}}
+  @media(max-width:500px){:root{--carpet-cell:40px}#wrap{padding:10px}#stagecard{padding:12px}#loom{padding:8px}
+    .carpet{gap:5px;padding:6px}#carpet svg{width:100%;height:100%}.opt{width:64px;height:64px}.opt svg{width:58px;height:58px}}
 </style>
 </head>
 <body>
@@ -76,7 +78,7 @@
   </div>
   <aside id="telemetry">
     <h3>Live telemetry · per-child</h3>
-    <div id="difficulty"></div>
+    <div id="difficulty" data-tracks="M-DIFFREACH M-LEARNRATE"></div>
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
@@ -146,7 +148,7 @@ const METERS=[
 function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>
   `<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span>`
   +`<span class="mname">${m.name}</span></div>`).join('');}
-function learnRate(){return T.scored?((T.maxSolved-1)/T.scored).toFixed(2):'0.00';}
+function learnRate(){return T.scored?(Math.max(0,T.maxSolved-1)/T.scored).toFixed(2):'0.00';}
 function renderDifficulty(){$('#difficulty').innerHTML=`<div class="dtop"><b>DIFFICULTY</b><span>${T.level}/6</span></div><div class="dtrack"><div class="dfill" style="width:${T.level/6*100}%"></div></div><div class="dsub"><span>reach ${T.maxSolved||'\u2014'}</span><span>learn ${learnRate()} lvl/trial</span></div>`;}
 function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});renderDifficulty();}
 function log(msg){const now=new Date(),t=Math.max(0,Date.now()-T.itemStart),d=document.createElement('div');
@@ -165,7 +167,7 @@ let phase='demo',cur=null,staged=-1,locked=false,scoredIndex=0,pairBase=null,dem
 const TOTAL=6;
 function setCue(i){$('#phasecue').innerHTML=i;}
 function disableTray(d){locked=d;}
-function renderItem(item){cur=item;const g=$('#carpet');g.style.gridTemplateColumns=`repeat(${item.cols},84px)`;g.innerHTML='';
+function renderItem(item){cur=item;const g=$('#carpet');g.style.gridTemplateColumns=`repeat(${item.cols},var(--carpet-cell))`;g.innerHTML='';
   for(let r=0;r<item.rows;r++)for(let c=0;c<item.cols;c++){const cell=document.createElement('div');cell.className='cell';
     if(r===item.ansPos[0]&&c===item.ansPos[1]){cell.classList.add('empty');cell.id='emptycell';}
     else cell.innerHTML=attrSVG(item.cells[r][c]);g.appendChild(cell);}
@@ -187,7 +189,8 @@ function submit(){if(staged===-1)return;const opt=cur.options[staged];const rt=D
   T.scored++;T.rts.push(rt);T.gates.push(gate(rt));
   if(correct){T.correct++;T.maxSolved=Math.max(T.maxSolved,cur.level);T.lastErr='none';}else T.lastErr=opt.tag;
   if(scoredIndex%2===0)T.pairFirst=correct;
-  else{const pair=[T.pairFirst,correct];T.pairHistory.push(pair);T.level=Math.max(1,Math.min(6,T.level+(pair[0]&&pair[1]?2:-1)));T.pairFirst=null;}
+  else{const pair=[T.pairFirst,correct];T.pairHistory.push(pair);const jump=T.pairHistory.length===1?2:T.pairHistory.length===2?3:1;
+    T.level=Math.max(1,Math.min(6,T.level+(pair[0]&&pair[1]?jump:-1)));T.pairFirst=null;}
   feedback(correct);
   log(`SUBMIT ${scoredIndex+1}/${TOTAL} · L${cur.level} ${cur.mode}${scoredIndex%2?' twin':''} \u2192 ${correct?'CORRECT':'wrong ['+opt.tag+']'} · ${last(T.gates).reason}${scoredIndex%2?' · next L'+T.level:' · twin queued'}`);
   renderMeters();setTimeout(nextPhase,1200);}

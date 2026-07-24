@@ -64,6 +64,8 @@
   button:focus-visible,.opt:focus-visible{outline:4px solid #ffbf69;outline-offset:3px}
   @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
   @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:350px}}
+  @media(max-width:500px){#wrap{padding:10px}#stagecard{padding:12px}#rings{transform:scale(.62);margin:-43px -72px}
+    .opt{width:66px;height:66px}.opt svg{width:58px;height:58px}}
 </style>
 </head>
 <body>
@@ -88,7 +90,7 @@
   </div>
   <aside id="telemetry">
     <h3>Live telemetry · per-child</h3>
-    <div id="difficulty"></div>
+    <div id="difficulty" data-tracks="M-DIFFREACH M-LEARNRATE"></div>
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
@@ -156,7 +158,7 @@ const METERS=[
 function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>
   `<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span>`
   +`<span class="mname">${m.name}</span></div>`).join('');}
-function learnRate(){return T.scored?((T.maxSolved-1)/T.scored).toFixed(2):'0.00';}
+function learnRate(){return T.scored?(Math.max(0,T.maxSolved-1)/T.scored).toFixed(2):'0.00';}
 function renderDifficulty(){$('#difficulty').innerHTML=`<div class="dtop"><b>DIFFICULTY</b><span>${T.level}/6</span></div><div class="dtrack"><div class="dfill" style="width:${T.level/6*100}%"></div></div><div class="dsub"><span>reach ${T.maxSolved||'\u2014'}</span><span>learn ${learnRate()} lvl/trial</span></div>`;}
 function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});renderDifficulty();}
 function log(msg){const now=new Date(),t=Math.max(0,Date.now()-T.itemStart),d=document.createElement('div');
@@ -190,7 +192,7 @@ function onOpt(el){if(locked||phase==='demo'||phase==='done')return;const idx=+e
   staged=idx;$$('#tray .opt').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');
   fillOverlay(cur.options[idx].a);$('#confrow').classList.add('show');$('#go').classList.add('ready');renderMeters();}
 function onConf(el){if(phase==='demo'||phase==='done'||locked)return;confChoice=el.dataset.c;
-  $$('.conf').forEach(c=>c.classList.remove('on'));el.classList.add('on');log('confidence: '+confChoice);}
+  T.conf=confChoice;$$('.conf').forEach(c=>c.classList.remove('on'));el.classList.add('on');log('confidence: '+confChoice);renderMeters();}
 function feedback(correct){const opt=$$('#tray .opt')[staged];if(opt)opt.classList.add(correct?'correct':'wrong');
   if(!correct){$('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),450);
     const ci=cur.options.findIndex(o=>o.tag==='correct');$$('#tray .opt')[ci].classList.add('correct');}

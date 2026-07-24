@@ -3,8 +3,8 @@
 **North star:** 52/160 top-GT items have >=3 representing types (**32%**). types in catalog: 66.
 
 - >= 3 types: 52
-- 1-2 types: 41
-- 0 types: 67
+- 1-2 types: 47
+- 0 types: 61
 
 ## Most under-covered (construct, subconstruct) cells — target these next
 
