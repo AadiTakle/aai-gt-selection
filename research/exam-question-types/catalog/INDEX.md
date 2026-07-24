@@ -1,6 +1,6 @@
 # Question-Type Catalog — INDEX
 
-**54 types** across 3 areas. Measurements in registry: 62.
+**54 types** across 3 areas. Measurements in registry: 63.
 
 ## Coverage matrix (types applicable per area x band; target >=3)
 
@@ -20,7 +20,7 @@
 ## Types by area
 
 ### fluid_reasoning (15)
-- **CX-achieve-02 — Investigation Station** [2-3,4-5,6-8] · meas: M-RUBRIC,M-POLY,M-HYP,M-EXPLORE,M-PATH,M-PROG · [demo](demos/CX-achieve-02.html)<br>The child designs and runs a short hands-on investigation - like finding which ramp setting makes a ball roll farthest - and their testing strategy and conclusion are scored.
+- **CX-achieve-02 — Investigation Station** [2-3,4-5,6-8] · meas: M-PLANFUL,M-POLY,M-HYP,M-EXPLORE,M-PATH,M-PROG,M-LEARNRATE · [demo](demos/CX-achieve-02.html)<br>The child designs and runs a short hands-on investigation - like finding which ramp setting makes a ball roll farthest - and their testing strategy and conclusion are scored.
 - **CX-check-01 — Check It Twice** [K-1,2-3,4-5,6-8] · meas: M-PERSIST,M-REV,M-PATH,M-ERRTYPE,M-ACC,M-DRIFT,M-ENGAGE · [demo](demos/CX-check-01.html)<br>A robot sorted things in a hurry with a few mistakes; the child may turn it in right away or review and fix it first - whether they check is the measure.
 - **CX-diverge-01 — Brainstorm Blaster** [K-1,2-3,4-5,6-8] · meas: M-IDEAFLU,M-FLEX,M-ORIG,M-ELAB,M-PERSIST,M-ENGAGE · [demo](demos/CX-diverge-01.html)<br>The child rattles off as many different uses for a common object (or as many things in a category) as they can, and each idea pops onto the screen as a bubble.
 - **CX-figural-01 — Squiggle Studio** [K-1,2-3,4-5,6-8] · meas: M-IDEAFLU,M-ORIG,M-ELAB,M-PATH,M-PERSIST,M-ENGAGE · [demo](demos/CX-figural-01.html)<br>The child is shown an abstract squiggle or half-finished shape and turns it into as many different pictures as they can by drawing on top of it.
@@ -39,7 +39,7 @@
 ### verbal (16)
 - **CX-curious-02 — Question Quest** [2-3,4-5,6-8] · meas: M-QUERY,M-IDEAFLU,M-FLEX,M-ORIG,M-ENGAGE · [demo](demos/CX-curious-02.html)<br>Shown a strange, intriguing picture, the child asks as many questions about it as they can and guesses what caused it and what might happen next.
 - **CX-sjt-01 — What Would You Do?** [K-1,2-3,4-5,6-8] · meas: M-ACC,M-POLY,M-RT,M-PATH,M-EXPLORE,M-CONF · [demo](demos/CX-sjt-01.html)<br>A short animated scene shows a tricky social or school situation, and the child taps the character action they think works best (then sees what happens next).
-- **GB-DEBATE-01 — Claim Duel** [4-5,6-8] · meas: M-ACC,M-POLY,M-PATH,M-RTFIRST,M-REV,M-LURETYPE,M-RUBRIC · [demo](demos/GB-DEBATE-01.html)<br>The child props up a claim by dragging the strongest evidence cards to it and knocks down a rival claim by picking its weakest link.
+- **GB-DEBATE-01 — Claim Duel** [4-5,6-8] · meas: M-ACC,M-POLY,M-PATH,M-RTFIRST,M-REV,M-LURETYPE,M-INFDEPTH · [demo](demos/GB-DEBATE-01.html)<br>The child props up a claim by dragging the strongest evidence cards to it and knocks down a rival claim by picking its weakest link.
 - **GB-FLAWFINDER-01 — Fib Finder** [2-3,4-5,6-8] · meas: M-ACC,M-INFDEPTH,M-RT,M-LURETYPE,M-ERRTYPE,M-HINT,M-POLY · [demo](demos/GB-FLAWFINDER-01.html)<br>The child listens to a short spoken reason-and-claim and taps the part that does not make sense or the step that does not follow.
 - **GB-WORDFORGE-01 — Word Forge** [2-3,4-5,6-8] · meas: M-ACC,M-RT,M-IDEAFLU,M-VOCABLVL,M-RTFIRST,M-FLEX,M-PERSIST · [demo](demos/GB-WORDFORGE-01.html)<br>The child taps letter tiles to build as many real words as they can before the sand timer runs out.
 - **GB-WORDLADDER-01 — Letter Climb** [4-5,6-8] · meas: M-ACC,M-RT,M-EFF,M-VOCABLVL,M-RTFIRST,M-PATH,M-PERSIST · [demo](demos/GB-WORDLADDER-01.html)<br>The child changes one letter at a time to climb from the start word to the goal word, each rung a real word.

@@ -240,20 +240,28 @@
     "how_much_to_collect": "A single 3-5 minute free-allocation block yields a usable ratio; more blocks improve reliability."
   },
   {
-    "id": "M-RUBRIC",
-    "name": "Rubric-scored product quality",
-    "what": "Rubric-scored product quality",
-    "usefulness_tail": "Polytomous expert/consensual rating of an open product on originality, reasoning, and elaboration; captures authentic creative-productive giftedness (Renzulli Type III) that keyed items miss and adds ecological tail signal.",
-    "how_to_collect": "Score the stored product and reflection with an anchored rubric using multiple trained raters; report the mean and inter-rater reliability.",
-    "how_much_to_collect": ">=1 product per child; >=2 raters per product to establish inter-rater reliability."
+    "id": "M-LEARNRATE",
+    "name": "Within-session learning rate (Timeback-fit core)",
+    "what": "Rate of within-session improvement on a novel type: ceiling growth (max difficulty solved over trials) and/or trials-to-mastery after the first informative feedback, i.e. how fast the child climbs a difficulty ladder they had never seen before.",
+    "usefulness_tail": "This is the Timeback-fit target: identifying children who can ACCELERATE on a self-paced mastery platform. A steep within-session growth slope (fast trials-to-mastery, rapid ceiling climb) is a dynamic-assessment learning-potential signal that static accuracy misses, is less coachable than prior knowledge, and directly operationalizes 'can this child move faster than grade pace'. Fully automated from the escalation log; no human in the loop.",
+    "how_to_collect": "Log the child's max-difficulty-solved and accuracy trajectory across the escalation sequence within one type; fit the growth slope (difficulty or accuracy vs trial index) and/or trials-to-criterion after first correct feedback. Compare early vs late block performance.",
+    "how_much_to_collect": ">=8-12 escalating trials within a type so a growth slope is estimable; aggregate across types for a stable per-child learning-rate index."
   },
   {
-    "id": "M-CARELESS",
-    "name": "Careless / invalid self-report flag",
-    "what": "Careless / invalid self-report flag",
-    "usefulness_tail": "A validity index for self-report (straight-lining, too-fast responses, inconsistent reverse-coded pairs, infrequency-item failures, social-desirability lean) that gates non-cognitive self-report so faked or careless questionnaires do not distort tail decisions.",
-    "how_to_collect": "Log per-item response time and response variance, compare reverse-coded pairs for consistency, and check infrequency/attention items; combine into an invalidity score.",
-    "how_much_to_collect": "Whole questionnaire; requires several reverse-coded pairs and at least one infrequency item."
+    "id": "M-PLANFUL",
+    "name": "Planfulness / systematicity",
+    "what": "Whether the child's actions before committing are intentional and grounded (systematic search, testing a rule, ordered exploration) versus random/impulsive; e.g. Mystery Gate's intentional-vs-random-vs-grounded button-press signature or ordered vs scattered placements.",
+    "usefulness_tail": "Systematic, hypothesis-grounded strategy is a strong process marker of high ability that a right/wrong score hides; two children can both solve, but the planful one reveals more transferable reasoning capacity. Automated from the action log (order, informativeness, redundancy) with no human judgement.",
+    "how_to_collect": "From the M-PATH action log, score the fraction of actions that are informative/non-redundant and whether exploration follows a consistent systematic order; classify each solve as planful / grounded-trial-and-error / random.",
+    "how_much_to_collect": ">=1 open/interactive item with >=5 pre-commit actions; aggregate over >=3 such items for a stable systematicity index."
+  },
+  {
+    "id": "M-RAPIDGUESS",
+    "name": "Rapid-guessing / effort validity flag",
+    "what": "Per-response flag for non-effortful rapid guessing (response faster than a plausible solution-behavior floor for the item) and its session-level rate, used to gate speed and accuracy signals.",
+    "usefulness_tail": "Operationalizes the SPOV that speed is evidence only under active engagement: responses below the rapid-guess threshold are effort-invalid and excluded from theta and from any speed credit, preventing fast-but-disengaged responding from contaminating tail decisions (effort-moderated IRT).",
+    "how_to_collect": "Set a per-item response-time threshold (visual inspection / solution-behavior floor); flag responses below it as rapid guesses; compute the response-time effort (RTE) proportion per child and per item.",
+    "how_much_to_collect": "Every scored item; a session-level RTE proportion needs the whole session, with item-level thresholds calibrated from the response-time distribution."
   },
   {
     "id": "M-RULEID",
