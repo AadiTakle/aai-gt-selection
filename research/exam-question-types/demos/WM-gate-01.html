@@ -2,177 +2,168 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>WM-gate-01 — Gatekeeper (probed running span)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WM-gate-01 · Gatekeeper</title>
 <style>
-  :root{--bg:#0e1220;--panel:#171d33;--edge:#2a3358;--ink:#e9edff;--mut:#8b93c0;--accent:#5cc8ff;--good:#5ce39a;--bad:#ff6b8a;--warn:#ffd166;--tile:#232c4d;}
-  *{box-sizing:border-box}
-  body{margin:0;font:15px/1.45 system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);display:flex;min-height:100vh}
-  .main{flex:1;display:flex;flex-direction:column;align-items:center;padding:20px;gap:12px}
-  h1{font-size:19px;margin:.2rem 0}.sub{color:var(--mut);font-size:13px;margin:0;text-align:center;max-width:470px}
-  .badge{display:inline-block;padding:2px 9px;border-radius:99px;background:var(--panel);border:1px solid var(--edge);color:var(--warn);font-size:12px}
-  #stage{width:460px;min-height:220px;background:var(--panel);border:1px solid var(--edge);border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;gap:8px;position:relative;overflow:hidden}
-  #big{font-size:88px;transition:transform .1s,opacity .1s;opacity:0;transform:scale(.5)}
-  #big.show{opacity:1;transform:scale(1)}
-  #cue{font-size:26px;height:32px}
-  #gatebar{position:absolute;top:0;left:0;right:0;height:0;background:repeating-linear-gradient(45deg,#ffd166 0 12px,#3a2c00 12px 24px);transition:height .18s;z-index:5}
-  #gatebar.down{height:100%;opacity:.92}
-  .slots,.tray{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;z-index:6}
-  .slot{width:56px;height:56px;border-radius:12px;border:2px dashed var(--edge);display:flex;align-items:center;justify-content:center;font-size:34px;background:#141a30;cursor:pointer}
-  .slot.filled{border-style:solid;border-color:var(--accent);background:var(--tile)}
-  .slot.ok{border-color:var(--good)}.slot.no{border-color:var(--bad)}
-  .chip{width:54px;height:54px;border-radius:12px;border:1px solid var(--edge);background:#20284a;font-size:32px;cursor:pointer;display:flex;align-items:center;justify-content:center}
-  .chip:active{transform:scale(.94)}
-  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
-  button{font:inherit;padding:9px 15px;border-radius:10px;border:1px solid var(--edge);background:#20284a;color:var(--ink);cursor:pointer}
-  button.pri{background:var(--accent);color:#062033;border-color:transparent;font-weight:600}
-  button:disabled{opacity:.4;cursor:not-allowed}
-  .tel{width:320px;background:var(--panel);border-left:1px solid var(--edge);padding:14px 14px 40px;overflow:auto;font:12px/1.55 ui-monospace,Menlo,Consolas,monospace}
-  .tel h2{font:600 12px system-ui;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:14px 0 6px}
-  .kv{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted #2a3358;padding:2px 0}
-  .kv b{color:var(--accent);font-weight:600}.kv .m{color:var(--mut);font-size:10px}
-  .log{margin-top:6px;max-height:150px;overflow:auto;border:1px solid var(--edge);border-radius:8px;padding:6px;background:#10152a}
-  .log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  :root{--bg1:#132a1e;--bg2:#0c1e15;--ink:#e2f5ea;--card:#173a29;--accent:#5fd68a;--good:#22b573;--bad:#ff6b6b;--slot:#0e2a1c;--tel-bg:#0a0f1e;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:radial-gradient(circle at 30% 10%,var(--bg2),var(--bg1));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8fd8ac;text-transform:uppercase;font-weight:700}
+  #phasecue{font-size:34px;height:40px;line-height:40px}
+  #stagecard{background:var(--card);border-radius:26px;padding:24px;box-shadow:0 18px 50px -22px #000;display:flex;flex-direction:column;align-items:center;gap:16px;max-width:560px;width:100%}
+  #road{display:flex;align-items:center;gap:10px;height:70px}
+  #gateIcon{font-size:34px}
+  #trail{display:flex;gap:6px;font-size:22px;min-width:180px;opacity:.6}
+  #current{font-size:44px;width:60px;text-align:center}
+  #checkpoint{display:none;flex-direction:column;align-items:center;gap:12px;width:100%}
+  #slots{display:flex;gap:8px}
+  .slot{width:48px;height:48px;background:var(--slot);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:inset 0 0 0 2px #2c6b47}
+  .slot.correct{box-shadow:inset 0 0 0 3px var(--good)}
+  .slot.wrong{box-shadow:inset 0 0 0 3px var(--bad)}
+  #palette{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  .pal{width:48px;height:48px;background:#0e2a1c;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:26px;cursor:pointer;box-shadow:inset 0 0 0 2px #2c6b47}
+  .pal:hover{box-shadow:inset 0 0 0 2px var(--accent)}
+  #undo{font:inherit;border:0;cursor:pointer;border-radius:20px;background:#0e2a1c;color:#bfe9d1;padding:8px 18px}
+  #diffwrap{width:100%;max-width:340px}
+  #diffbar{height:8px;background:#173a29;border-radius:5px;overflow:hidden}
+  #difffill{height:100%;background:linear-gradient(90deg,#7fffcf,#5fd68a);width:20%;transition:.3s}
+  #difflabel{font-size:11px;color:#7183b8;text-align:center;margin-top:4px;letter-spacing:.05em}
+  button.round{font:inherit;border:0;cursor:pointer;border-radius:50%}
+  #replay{width:50px;height:50px;background:#173a29;color:var(--accent);font-size:22px}
+  .shake{animation:shake .4s}@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+  #ghost{position:fixed;left:0;top:0;font-size:40px;pointer-events:none;z-index:60;opacity:0;transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.4))}
+  #ghost.show{opacity:.95}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#141e38;text-transform:uppercase}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}
+  .mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #1c2745;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:210px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #1c2745}#log .t{color:#5f6f9e}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
 </style>
 </head>
 <body>
-<div class="main">
-  <div style="text-align:center">
-    <h1>🚧 Gatekeeper <span class="badge">Spot-check the last few</span></h1>
-    <p class="sub" id="task">Creatures walk through the gate. When the gate slams shut, tap the <b>last few</b> that just passed — then it opens again.</p>
+  <div id="wrap">
+    <div id="badge">WM-gate-01 · Gatekeeper</div>
+    <div id="phasecue">👁️</div>
+    <div id="stagecard">
+      <div id="road"><div id="trail"></div><div id="current"></div><div id="gateIcon">🚧</div></div>
+      <div id="checkpoint">
+        <div id="slots"></div>
+        <div id="palette"></div>
+        <button id="undo">⌫ undo</button>
+      </div>
+      <div id="diffwrap"><div id="diffbar"><div id="difffill"></div></div><div id="difflabel">HOLD 2</div></div>
+      <button class="round" id="replay" title="replay demo">↻</button>
+    </div>
   </div>
-  <div id="stage">
-    <div id="gatebar"></div>
-    <div id="big">🦊</div>
-    <div id="cue">👀</div>
-    <div class="slots" id="resp"></div>
-    <div class="tray" id="tray"></div>
-  </div>
-  <div class="row">
-    <button class="pri" id="go">▶ Watch how it works</button>
-    <button id="replay" disabled>↺ Replay demo</button>
-  </div>
-  <p class="sub" id="phasehint">A ghost hand shows you first — no reading needed.</p>
-</div>
-<aside class="tel" id="tel"></aside>
-
+  <aside id="telemetry">
+    <h3>Live telemetry · per-child</h3>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+  <div id="ghost">👆<span class="ring"></span></div>
 <script>
-"use strict";
-const $=s=>document.querySelector(s);
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const big=$("#big"),cue=$("#cue"),resp=$("#resp"),tray=$("#tray"),gatebar=$("#gatebar");
-const CREAT=["🦊","🐸","🐼","🦉","🐙","🦄"];
-let k=2;
-const T={phase:"idle",probes:0,k:2,correct:0,total:0,poly:[],rt:[],
-  intrusion:0,novelErr:0,recency:{},curve:{},driftEarly:[],driftLate:[],
-  blur:0,idleMax:0,log:[]};
-const mean=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
-const sd=a=>a.length<2?0:Math.sqrt(mean(a.map(x=>(x-mean(a))**2)));
-const cv=a=>{const m=mean(a);return m?sd(a)/m:0;};
-const rand=a=>a[Math.random()*a.length|0];
-function logE(s){T.log.unshift(`${(performance.now()/1000).toFixed(1)}s · ${s}`);if(T.log.length>60)T.log.pop();}
-window.addEventListener("blur",()=>{T.blur++;render();});
-function lapseRate(){if(T.rt.length<4)return 0;const b=[...T.rt].sort((x,y)=>x-y);const thr=b[Math.floor(b.length*0.75)]*1.5;
-  return Math.round(100*T.rt.filter(x=>x>thr).length/T.rt.length);}
-function render(){
-  const acc=T.total?Math.round(100*T.correct/T.total):0;
-  const poly=T.poly.length?Math.round(100*mean(T.poly)):0;
-  const cur=Object.entries(T.curve).sort().map(([kk,a])=>`k${kk}:${Math.round(100*mean(a))}%`).join("  ");
-  const rec=Object.entries(T.recency).sort().map(([p,a])=>`p${p}:${Math.round(100*mean(a))}%`).join(" ");
-  const drift=(T.driftEarly.length&&T.driftLate.length)?(Math.round(100*mean(T.driftLate))-Math.round(100*mean(T.driftEarly))):0;
-  $("#tel").innerHTML=`
-  <h2>Live telemetry · WM-gate-01</h2>
-  <div class="kv"><span>phase</span><b>${T.phase}</b></div>
-  <div class="kv"><span>probe window (k)</span><b>${k}</b></div>
-  <div class="kv"><span>probes answered</span><b>${T.probes}</b></div>
-  <h2>Accuracy</h2>
-  <div class="kv"><span>whole probe <span class="m">M-ACC</span></span><b>${acc}% <span class="m">(${T.correct}/${T.total})</span></b></div>
-  <div class="kv"><span>partial credit <span class="m">M-POLY</span></span><b>${poly}%</b></div>
-  <div class="kv"><span>recency by position <span class="m">M-POLY</span></span><b style="font-size:11px">${rec||"—"}</b></div>
-  <h2>Updating cost <span class="m">M-UPDATECOST</span></h2>
-  <div class="kv"><span>acc by load</span><b style="font-size:11px">${cur||"—"}</b></div>
-  <h2>Error type <span class="m">M-ERRTYPE</span></h2>
-  <div class="kv"><span>intrusion (older)</span><b>${T.intrusion}</b></div>
-  <div class="kv"><span>novel / order slip</span><b>${T.novelErr}</b></div>
-  <h2>Consistency & gating</h2>
-  <div class="kv"><span>response CV <span class="m">M-RTVAR</span></span><b>${cv(T.rt).toFixed(2)}</b></div>
-  <div class="kv"><span>lapse rate <span class="m">M-LAPSE</span></span><b>${lapseRate()}%</b></div>
-  <div class="kv"><span>drift late-early <span class="m">M-DRIFT</span></span><b>${drift>0?"+":""}${drift}%</b></div>
-  <div class="kv"><span>focus-loss events <span class="m">M-ENGAGE</span></span><b>${T.blur}</b></div>
-  <div class="log">${T.log.map(l=>`<div>${l}</div>`).join("")}</div>`;
-}
-render();
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0;
+const sd=a=>{if(a.length<2)return 0;const m=mean(a);return Math.round(Math.sqrt(a.reduce((s,v)=>s+(v-m)*(v-m),0)/a.length));};
+const last=a=>a[a.length-1];
+const CREATURES=['🐸','🐢','🐦','🦋','🐝','🐌'];
 
-function palette(){tray.innerHTML="";CREAT.forEach(e=>{const c=document.createElement("div");c.className="chip";c.textContent=e;tray.appendChild(c);});}
-function slots(n){resp.innerHTML="";for(let i=0;i<n;i++){const d=document.createElement("div");d.className="slot";resp.appendChild(d);}}
+/* ---------- telemetry ---------- */
+let level=2,maxLevel=0;
+const T={scored:0,exact:0,poly:'\u2014',rts:[],revisions:0,errTypes:[],blurMs:0,accSeq:[]};
+document.addEventListener('visibilitychange',()=>{if(document.hidden)T._blurStart=Date.now();else if(T._blurStart){T.blurMs+=Date.now()-T._blurStart;T._blurStart=0;}});
+function driftStr(){if(T.accSeq.length<4)return '\u2014';const h=Math.floor(T.accSeq.length/2);const early=mean(T.accSeq.slice(0,h)),late=mean(T.accSeq.slice(h));
+  const d=late-early;return `${Math.round(100*early)}%\u2192${Math.round(100*late)}% (${d>=0?'+':''}${Math.round(100*d)})`;}
+const METERS=[
+ {id:'M-ACC',name:'Checkpoint accuracy (exact)',get:()=>T.scored?`${T.exact}/${T.scored}  ${Math.round(100*T.exact/T.scored)}%`:'\u2014'},
+ {id:'M-POLY',name:'Partial credit (positions correct)',get:()=>T.poly},
+ {id:'M-UPDATECOST',name:'Updating cost (corrections/checkpoint)',get:()=>T.scored?`${(T.revisions/T.scored).toFixed(1)} avg`:'\u2014'},
+ {id:'M-ERRTYPE',name:'Error type on misses',get:()=>T.errTypes.length?last(T.errTypes):'\u2014'},
+ {id:'M-RTVAR',name:'Intra-individual RT variability',get:()=>T.rts.length>1?`${sd(T.rts)} ms SD`:'\u2014'},
+ {id:'M-LAPSE',name:'Lapse rate (slow checkpoints)',get:()=>T.rts.length?`${T.rts.filter(r=>r>6000).length}/${T.rts.length}`:'\u2014'},
+ {id:'M-DRIFT',name:'Performance drift (early\u2192late)',get:()=>driftStr()},
+ {id:'M-ENGAGE',name:'Engagement (off-task time)',get:()=>T.blurMs?`${T.blurMs} ms blurred`:'0 ms \u00b7 engaged'},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});}
+let tStart=Date.now();
+function log(msg){const t=Date.now()-tStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+function setDiff(){const pct=Math.min(100,Math.round((level-2)/4*100));$('#difffill').style.width=pct+'%';$('#difflabel').textContent='HOLD '+level;}
+function setCue(i){$('#phasecue').textContent=i;}
 
-async function probe(history,scored,idx){
-  gatebar.classList.add("down");cue.textContent="🚧";await sleep(260);
-  slots(k);palette();
-  const lastK=history.slice(-k);
-  const t0=performance.now();let last=t0,awaiting=true;
-  await new Promise(res=>{
-    tray.onclick=e=>{const c=e.target.closest(".chip");if(!c||!awaiting)return;
-      const s=resp.querySelector(".slot:not(.filled)");if(!s)return;
-      if(scored)T.rt.push(performance.now()-last);last=performance.now();
-      s.textContent=c.textContent;s.classList.add("filled");
-      if(![...resp.querySelectorAll(".slot")].some(x=>!x.classList.contains("filled"))){awaiting=false;res();}render();};
-  });
-  tray.onclick=null;
-  const ss=[...resp.querySelectorAll(".slot")];let nc=0;
-  ss.forEach((s,i)=>{const ok=s.textContent===lastK[i];
-    if(ok){nc++;s.classList.add("ok");}else{s.classList.add("no");
-      if(scored){history.slice(0,-k).includes(s.textContent)?T.intrusion++:T.novelErr++;}}
-    if(scored){(T.recency[i]=T.recency[i]||[]).push(ok?1:0);}});
-  const all=nc===k;cue.textContent=all?"✅":"↔️";
-  if(scored){T.total++;T.probes++;if(all)T.correct++;T.poly.push(nc/k);
-    (T.curve[k]=T.curve[k]||[]).push(nc/k);(idx<2?T.driftEarly:T.driftLate).push(all?1:0);
-    logE(`probe k${k}: ${nc}/${k}${all?" ✔":""}`);
-    k=all?Math.min(4,k+1):Math.max(2,k-1);T.k=k;}
-  render();await sleep(700);resp.innerHTML="";tray.innerHTML="";gatebar.classList.remove("down");cue.textContent="👀";
-  return all;
-}
+/* ---------- ghost ---------- */
+const ghost=$('#ghost');function ghostShow(v){ghost.classList.toggle('show',v);}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(480);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(400);}
 
-async function runStream(scored){
-  $("#go").disabled=true;$("#replay").disabled=true;
-  const len=10+(Math.random()*4|0);const hist=[];
-  const nProbes=3;const cand=[];for(let i=k+1;i<len;i++)cand.push(i);
-  const pset=new Set();while(pset.size<nProbes&&cand.length)pset.add(cand.splice(Math.random()*cand.length|0,1)[0]);
-  let pi=0;
-  for(let i=0;i<len;i++){
-    const e=rand(CREAT);hist.push(e);big.textContent=e;big.classList.add("show");await sleep(640);big.classList.remove("show");await sleep(150);
-    if(pset.has(i+1)&&hist.length>=k){$("#phasehint").textContent=scored?"Gate check! Tap the last "+k+" in order.":"Practice check — tap the last "+k+".";await probe(hist,scored,pi++);}
+/* ---------- palette / slots ---------- */
+function buildPalette(){$('#palette').innerHTML=CREATURES.map(c=>`<div class="pal" data-c="${c}">${c}</div>`).join('');}
+function renderTrail(history){$('#trail').textContent=history.slice(-4).join(' ');}
+let history=[],resp=[],k=2,checkpointStart=0,running=false,stopFlag=false,isWarmupCP=false;
+function renderSlots(){$('#slots').innerHTML='';for(let i=0;i<k;i++){const d=document.createElement('div');d.className='slot';d.textContent=resp[i]||'';$('#slots').appendChild(d);}}
+function pushCreature(c){if(resp.length<k){resp.push(c);renderSlots();if(resp.length===k)submitCheckpoint();}}
+function undo(){if(resp.length>0){resp.pop();T.revisions++;renderSlots();log('revise: undo last tap');renderMeters();}}
+
+/* ---------- streaming ---------- */
+async function streamStep(){const c=CREATURES[Math.floor(Math.random()*CREATURES.length)];$('#current').textContent=c;await sleep(140);history.push(c);renderTrail(history);await sleep(560);}
+async function doCheckpoint(){$('#gateIcon').textContent='\ud83d\udeab';$('#current').textContent='';$('#checkpoint').style.display='flex';
+  resp=[];renderSlots();checkpointStart=Date.now();
+  await new Promise(res=>{window._cpResolve=res;});
+  $('#checkpoint').style.display='none';$('#gateIcon').textContent='\ud83d\udea7';}
+function submitCheckpoint(){const target=history.slice(-k);const rt=Date.now()-checkpointStart;
+  let correctN=0;target.forEach((c,i)=>correctN+=(resp[i]===c?1:0));const exact=correctN===k;
+  $$('.slot').forEach((s,i)=>s.classList.add(target[i]===resp[i]?'correct':'wrong'));
+  if(!exact){$('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),450);}
+  if(isWarmupCP){log(`warm-up checkpoint ${exact?'exact':correctN+'/'+k+' correct'} \u2014 UNSCORED`);}
+  else{T.scored++;T.rts.push(rt);T.poly=correctN+'/'+k;T.accSeq.push(exact?1:0);
+    if(exact){T.exact++;maxLevel=Math.max(maxLevel,level);level=Math.min(6,level+1);log(`SCORED checkpoint hold-${k} \u2192 EXACT \u2714 \u2192 hold up to ${level}`);}
+    else{let et='substitution';if(resp.length<k)et='omission';else{const sameSet=target.every(v=>resp.includes(v));if(sameSet)et='order';}
+      T.errTypes.push(et);level=Math.max(2,level-1);log(`SCORED checkpoint hold-${k} \u2192 ${correctN}/${k} correct (${et}) \u2192 hold down to ${level}`);}
+    setDiff();}
+  renderMeters();setTimeout(()=>{if(window._cpResolve){const r=window._cpResolve;window._cpResolve=null;r();}},1100);}
+async function runStream(totalScored){running=true;
+  for(let i=0;i<3;i++)await streamStep();
+  let scoredDone=0,first=true;
+  while(scoredDone<totalScored&&!stopFlag){
+    const gap=3+Math.floor(Math.random()*3);
+    for(let i=0;i<gap;i++)await streamStep();
+    isWarmupCP=first;first=false;setCue(isWarmupCP?'\u2b50':'\ud83c\udfaf');
+    if(!isWarmupCP)log(`\u2014 SCORED checkpoint ${scoredDone+1}: hold last ${level} \u2014`);
+    else log('\u2014 warm-up checkpoint (unscored): tap the last 2 in order \u2014');
+    k=isWarmupCP?2:level;
+    await doCheckpoint();
+    if(!isWarmupCP)scoredDone++;
   }
-  big.textContent="";cue.textContent="🏁";
-  $("#go").disabled=false;$("#replay").disabled=false;
-}
-
-async function demo(){
-  if(T.phase==="demo")return;T.phase="demo";render();$("#go").disabled=true;$("#replay").disabled=true;
-  const kk=k;k=2;const seq=["🐸","🦉","🦊","🐼"];
-  for(const e of seq){big.textContent=e;big.classList.add("show");await sleep(560);big.classList.remove("show");await sleep(150);}
-  gatebar.classList.add("down");cue.textContent="🚧";await sleep(280);slots(2);palette();
-  const ghost=document.createElement("div");ghost.textContent="👆";
-  ghost.style.cssText="position:fixed;font-size:28px;z-index:20;transition:left .35s,top .35s;pointer-events:none";document.body.appendChild(ghost);
-  const lastK=seq.slice(-2);
-  for(let i=0;i<2;i++){const chip=[...tray.querySelectorAll(".chip")].find(c=>c.textContent===lastK[i]);
-    const s=resp.querySelector(".slot:not(.filled)");const r=chip.getBoundingClientRect();
-    ghost.style.left=(r.left+14)+"px";ghost.style.top=(r.top+8)+"px";await sleep(520);
-    s.textContent=chip.textContent;s.classList.add("filled","ok");await sleep(220);}
-  cue.textContent="✅";await sleep(650);ghost.remove();
-  k=kk;resp.innerHTML="";tray.innerHTML="";gatebar.classList.remove("down");T.phase="idle";
-  $("#go").disabled=false;$("#replay").disabled=false;
-  $("#go").textContent="▶ Try a practice run";$("#go").onclick=warmup;
-  $("#phasehint").textContent="Now you try — this practice run is NOT scored.";render();
-}
-async function warmup(){T.phase="warm-up (unscored)";render();await runStream(false);
-  T.phase="idle";$("#go").textContent="▶ Start scored run";$("#go").onclick=startScored;
-  $("#phasehint").textContent="This run counts. Checkpoints come without warning; the window grows when you're right.";render();}
-async function startScored(){T.phase="scored";render();$("#go").disabled=true;await runStream(true);await runStream(true);finish();}
-function finish(){T.phase="done";render();cue.textContent="🏁";$("#go").disabled=false;
-  $("#go").textContent="▶ Another run";$("#go").onclick=startScored;
-  $("#phasehint").textContent="Done. The recency gradient + acc-by-load slope across probes are the tail signals.";}
-$("#go").onclick=demo;$("#replay").onclick=demo;
+  running=false;finish();}
+function finish(){phase='done';setCue('\ud83c\udfc6');stopFlag=true;$('#gateIcon').textContent='\ud83c\udfc1';
+  log(`\u2014 DONE \u00b7 exact ${T.exact}/${T.scored} \u00b7 ceiling hold ${maxLevel} \u2014`);}
+let phase='demo';
+async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');history=[];renderTrail(history);
+  log('ghost-hand demo (wordless, <10s)');
+  for(let i=0;i<3;i++)await streamStep();
+  $('#gateIcon').textContent='\ud83d\udeab';$('#current').textContent='';$('#checkpoint').style.display='flex';
+  k=2;resp=[];renderSlots();const target=history.slice(-2);
+  ghostShow(true);
+  for(const c of target){const el=$$('.pal').find(p=>p.dataset.c===c);await ghostTo(el);await ghostTap();resp.push(c);renderSlots();}
+  $$('.slot').forEach(s=>s.classList.add('correct'));await sleep(500);ghostShow(false);$('#checkpoint').style.display='none';$('#gateIcon').textContent='\ud83d\udea7';
+  setCue('\u2705');await sleep(500);startSession();}
+function startSession(){phase='scored';stopFlag=false;runStream(6);}
+$('#palette').addEventListener('click',e=>{const p=e.target.closest('.pal');if(p&&$('#checkpoint').style.display==='flex')pushCreature(p.dataset.c);});
+$('#undo').addEventListener('click',undo);
+$('#replay').addEventListener('click',()=>{if(phase!=='demo'){stopFlag=true;setTimeout(()=>{stopFlag=false;runDemo();},50);}});
+buildPalette();buildMeters();renderMeters();setDiff();runDemo();
 </script>
 </body>
 </html>
