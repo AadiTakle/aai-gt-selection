@@ -9,7 +9,12 @@
 .hero {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, var(--gt-navy-dark) 0%, var(--gt-navy) 45%, var(--gt-blue) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--gt-navy-dark) 0%,
+    var(--gt-navy) 45%,
+    var(--gt-blue) 100%
+  );
   color: #eaf1f2;
   border-radius: var(--gt-radius-lg);
   padding: var(--gt-space-8) var(--gt-space-6);

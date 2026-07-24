@@ -16,13 +16,33 @@ describe('synthetic runtime environment', () => {
     ).toBeDefined();
   });
 
-  it('rejects a remote Supabase target', () => {
+  it('rejects a remote Supabase target by default', () => {
     expect(() =>
       validatePublicEnvironment({
         NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'publishable-key',
         NEXT_PUBLIC_SUPABASE_URL: 'https://project.supabase.co',
       }),
     ).toThrow(/non-loopback/i);
+  });
+
+  it('accepts an https cloud Supabase target only in hosted deploy mode', () => {
+    expect(
+      validatePublicEnvironment({
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'publishable-key',
+        NEXT_PUBLIC_SUPABASE_URL: 'https://project.supabase.co',
+        GT_DEPLOY_MODE: 'hosted',
+      }),
+    ).toBeDefined();
+  });
+
+  it('still refuses a plain-http remote target in hosted mode', () => {
+    expect(() =>
+      validatePublicEnvironment({
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'publishable-key',
+        NEXT_PUBLIC_SUPABASE_URL: 'http://project.supabase.co',
+        GT_DEPLOY_MODE: 'hosted',
+      }),
+    ).toThrow(/https/i);
   });
 
   it.each(['SUPABASE_SECRET_KEY', 'SUPABASE_SERVICE_ROLE_KEY'])(
