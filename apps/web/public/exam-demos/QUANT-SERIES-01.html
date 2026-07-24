@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QUANT-SERIES-01 · Pattern Steps</title>
+<style>
+  :root{
+    --sky:#e7f3ff;--haze:#f6edff;--ink:#263452;--card:#fffdf9;
+    --blue:#5476f2;--violet:#8f66db;--good:#27b879;--bad:#ef6575;
+    --tel:#10172c;--tel2:#1a2442;--mint:#7fffd4;--dim:#7888b9;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%}
+  body{
+    min-height:100vh;display:flex;color:var(--ink);
+    font:16px/1.35 ui-rounded,"Avenir Next",system-ui,sans-serif;
+    background:radial-gradient(circle at 18% 8%,#fff 0 5%,transparent 28%),
+      linear-gradient(145deg,var(--sky),var(--haze));
+  }
+  button{font:inherit}
+  #wrap{
+    flex:1;min-width:0;padding:18px;display:flex;flex-direction:column;
+    align-items:center;gap:12px;
+  }
+  #badge{
+    color:#7d88aa;font-size:12px;font-weight:800;letter-spacing:.09em;
+    text-transform:uppercase;
+  }
+  #phasecue{height:42px;font-size:34px;line-height:42px}
+  #stagecard{
+    width:min(780px,100%);min-height:480px;padding:24px;border-radius:30px;
+    background:rgba(255,253,249,.94);box-shadow:0 22px 60px -30px #46507e;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;
+  }
+  #trail{
+    width:100%;display:flex;align-items:center;justify-content:center;
+    gap:8px;flex-wrap:wrap;padding:18px 10px;
+  }
+  .step{
+    width:82px;height:96px;border-radius:44px 44px 22px 22px;
+    border:3px solid #d8e1fb;background:linear-gradient(#fff,#edf3ff);
+    display:grid;place-items:center;position:relative;
+    box-shadow:0 8px 0 #d6def3;transition:.2s;
+  }
+  .step:not(:last-child)::after{
+    content:"";position:absolute;right:-12px;width:12px;height:4px;
+    border-radius:4px;background:#c8d4f4;
+  }
+  .step.slot{
+    border-style:dashed;border-color:var(--violet);
+    background:#f7f0ff;box-shadow:0 8px 0 #dfd0f0;
+    animation:slotglow 1.4s ease-in-out infinite;
+  }
+  @keyframes slotglow{50%{box-shadow:0 8px 0 #dfd0f0,0 0 24px #b992e477}}
+  .qty{
+    max-width:70px;display:grid;grid-template-columns:repeat(4,13px);
+    gap:4px;align-content:center;justify-content:center;
+  }
+  .unit{width:13px;height:13px;border-radius:50%;background:var(--blue)}
+  .unit.star{border-radius:3px;background:var(--violet);transform:rotate(45deg)}
+  .unit.moon{border-radius:50% 50% 50% 4px;background:#e29443}
+  #answers{
+    display:flex;gap:12px;justify-content:center;flex-wrap:wrap;min-height:94px;
+  }
+  .answer{
+    width:92px;height:82px;border:3px solid #dce4f8;border-radius:22px;
+    background:#fff;display:grid;place-items:center;cursor:pointer;
+    box-shadow:0 7px 0 #d9e0f0;transition:transform .14s,border-color .14s;
+  }
+  .answer:hover,.answer:focus-visible{transform:translateY(-3px);outline:none;border-color:#93a8ee}
+  .answer.selected{border-color:var(--violet);transform:translateY(-4px);box-shadow:0 9px 0 #d8c9eb}
+  .answer.correct{border-color:var(--good);background:#eafff3}
+  .answer.wrong{border-color:var(--bad);background:#fff0f2}
+  #controls{display:flex;gap:18px;align-items:center}
+  #replay,#go{
+    border:0;border-radius:50%;cursor:pointer;display:grid;place-items:center;
+  }
+  #replay{width:50px;height:50px;color:var(--blue);background:#eaf0ff;font-size:24px}
+  #go{
+    width:74px;height:74px;background:linear-gradient(145deg,var(--blue),var(--violet));
+    color:#fff;font-size:31px;box-shadow:0 11px 26px -9px var(--blue);
+    opacity:.34;pointer-events:none;transition:.2s;
+  }
+  #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.15s infinite}
+  @keyframes pulse{50%{transform:scale(1.08)}}
+  .shake{animation:shake .42s}
+  @keyframes shake{25%,75%{transform:translateX(-8px)}50%{transform:translateX(8px)}}
+  #ghost{
+    position:fixed;left:0;top:0;z-index:80;font-size:42px;opacity:0;
+    pointer-events:none;filter:drop-shadow(0 3px 4px #0004);
+    transition:transform .48s cubic-bezier(.2,.8,.2,1),opacity .2s;
+  }
+  #ghost.show{opacity:.94}
+  #ghost.tap{animation:ghosttap .34s}
+  @keyframes ghosttap{50%{scale:.78}}
+  #telemetry{
+    width:326px;flex:0 0 326px;background:var(--tel);color:#c8d6ff;
+    display:flex;flex-direction:column;font:13px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  #telemetry h3{
+    margin:0;padding:13px 14px;background:var(--tel2);color:#fff;
+    font-size:12px;letter-spacing:.09em;text-transform:uppercase;
+  }
+  #difficulty{padding:11px 13px;border-bottom:1px solid #283454}
+  #difficulty .cap{display:flex;justify-content:space-between;color:#8ea0d3;font-size:11px}
+  #dbar{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-top:7px}
+  #dbar i{height:9px;border-radius:5px;background:#2b3658}
+  #dbar i.on{background:linear-gradient(90deg,#7fffd4,#8aa4ff)}
+  #mlist{padding:11px 12px;display:flex;flex-direction:column;gap:8px}
+  .mrow{display:grid;grid-template-columns:96px 1fr;gap:7px}
+  .mid{color:var(--mint);font-weight:800}.mval{color:#fff;text-align:right}
+  .mname{grid-column:1/3;color:var(--dim);font-size:11px}
+  #logwrap{border-top:1px solid #283454;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 3px;color:#8798ca;font-size:11px}
+  #log{height:190px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:3px 0;border-bottom:1px dotted #263250}
+  #log .t{color:#6475a8}
+  @media(max-width:860px){
+    body{flex-direction:column}#telemetry{width:100%;flex:none;min-height:340px}
+    #stagecard{min-height:430px}.step{width:68px;height:80px}.answer{width:78px}
+  }
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<main id="wrap">
+  <div id="badge">QUANT-SERIES-01 · Pattern Steps</div>
+  <div id="phasecue">👁️</div>
+  <section id="stagecard">
+    <div id="trail"></div>
+    <div id="answers"></div>
+    <div id="controls">
+      <button id="replay" aria-label="Replay demonstration">↻</button>
+      <button id="go" aria-label="Submit answer">✓</button>
+    </div>
+  </section>
+</main>
+<aside id="telemetry">
+  <h3>Live telemetry · per-child</h3>
+  <div id="difficulty">
+    <div class="cap"><span>DIFFICULTY</span><span id="dlabel">1 / 6</span></div>
+    <div id="dbar"></div>
+  </div>
+  <div id="mlist"></div>
+  <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+</aside>
+<div id="ghost">👆</div>
+<script src="embed-shim.js"></script>
+<script>
+'use strict';
+var __gtLevel=1,__gtResponded=false;
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const avg=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0;
+const ITEMS=[
+  {terms:[1,2,3,1,2],answer:{n:3},opts:[{n:2,e:'repeat-last'},{n:4,e:'wrong-cycle'},{n:3},{n:5,e:'random'}],rule:'ABC repeat',rules:1},
+  {terms:[2,4,6,8],answer:{n:10},opts:[{n:8,e:'repeat-last'},{n:9,e:'wrong-step'},{n:12,e:'double-step'},{n:10}],rule:'equal growth',rules:1},
+  {terms:[1,2,4,7],answer:{n:11},opts:[{n:10,e:'fixed-step'},{n:11},{n:9,e:'repeat-step'},{n:12,e:'overshoot'}],rule:'growing step',rules:2},
+  {terms:[2,5,4,7,6],answer:{n:9},opts:[{n:8,e:'single-rule-only'},{n:7,e:'repeat-last'},{n:9},{n:10,e:'wrong-step'}],rule:'alternating steps',rules:2},
+  {terms:[1,4,2,8,3],answer:{n:12},opts:[{n:4,e:'repeat-stream'},{n:12},{n:16,e:'doubling-only'},{n:6,e:'single-rule-only'}],rule:'interleaved growth',rules:2},
+  {terms:[{n:1,s:'moon'},{n:2,s:'star'},{n:3,s:'moon'},{n:5,s:'star'},{n:5,s:'moon'},{n:8,s:'star'}],
+   answer:{n:7,s:'moon'},opts:[{n:7,s:'star',e:'attribute-only'},{n:8,s:'moon',e:'single-stream'},{n:7,s:'moon'},{n:10,s:'moon',e:'wrong-gap'}],rule:'two streams + shape',rules:3}
+];
+const DEMO={terms:[1,2,3],answer:{n:4},opts:[{n:3,e:'repeat-last'},{n:5,e:'overshoot'},{n:4},{n:2,e:'reverse'}],rule:'grow one',rules:1};
+const WARM={terms:[2,4,2,4],answer:{n:2},opts:[{n:3,e:'wrong-repeat'},{n:4,e:'repeat-last'},{n:2},{n:5,e:'random'}],rule:'AB repeat',rules:1};
+let phase='demo',cur=null,choice=-1,locked=true,trial=0,level=1,itemStart=0,firstLatency=null;
+const T={scored:0,correct:0,firsts:[],lastErr:'—',ruleMax:0,maxLevel:0,levels:[]};
+function asTerm(v){return typeof v==='number'?{n:v,s:'dot'}:{n:v.n,s:v.s||'dot'};}
+function qtyHTML(v){
+  const q=asTerm(v);
+  return `<div class="qty">${Array.from({length:q.n},()=>`<i class="unit ${q.s}"></i>`).join('')}</div>`;
+}
+function same(a,b){a=asTerm(a);b=asTerm(b);return a.n===b.n&&a.s===b.s;}
+function renderItem(item){
+  cur=item;choice=-1;firstLatency=null;itemStart=performance.now();
+  $('#trail').innerHTML=item.terms.map(v=>`<div class="step">${qtyHTML(v)}</div>`).join('')+
+    '<div class="step slot" id="slot">?</div>';
+  $('#answers').innerHTML=item.opts.map((v,i)=>`<button class="answer" data-i="${i}" aria-label="Answer option">${qtyHTML(v)}</button>`).join('');
+  $('#go').classList.remove('ready');updateDifficulty();renderMeters();
+}
+function pick(i,ghosted=false){
+  if(locked&&!ghosted)return;
+  if(firstLatency===null){firstLatency=Math.round(performance.now()-itemStart);if(phase==='scored')GTExam.markFirstAction();}
+  choice=i;
+  document.querySelectorAll('.answer').forEach((b,k)=>b.classList.toggle('selected',k===i));
+  $('#slot').innerHTML=qtyHTML(cur.opts[i]);
+  $('#go').classList.add('ready');
+  if(!ghosted)log(`pick option ${i+1} · ${cur.opts[i].e||'key'}`);
+  if(phase==='scored')GTExam.telemetry('action',{option:i});
+  renderMeters();
+}
+function isCorrect(){return choice>=0&&same(cur.opts[choice],cur.answer);}
+function feedback(ok){
+  const b=document.querySelector(`.answer[data-i="${choice}"]`);
+  if(b)b.classList.add(ok?'correct':'wrong');
+  $('#slot').style.borderColor=ok?'var(--good)':'var(--bad)';
+  if(!ok){$('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),450);}
+}
+function submit(){
+  if(locked||choice<0)return;
+  const ok=isCorrect();
+  if(phase==='warmup'){
+    locked=true;feedback(ok);log(`warm-up ${ok?'correct':'corrective replay'} · UNSCORED`);
+    if(!ok)setTimeout(()=>{pick(cur.opts.findIndex(v=>same(v,cur.answer)),true);feedback(true);},430);
+    level=__gtLevel;setTimeout(startScored,1050);return;
+  }
+  locked=true;T.scored++;if(ok)T.correct++;
+  const rt=firstLatency;T.firsts.push(rt);
+  T.lastErr=ok?'—':cur.opts[choice].e||'other';
+  if(ok){T.ruleMax=Math.max(T.ruleMax,cur.rules);T.maxLevel=Math.max(T.maxLevel,level);}
+  T.levels.push({trial:T.scored,level,ok});feedback(ok);
+  log(`SCORED ${T.scored}/6 · L${level} · ${ok?'correct':'miss '+T.lastErr} · first ${rt}ms`);
+  if(!__gtResponded){__gtResponded=true;GTExam.respond({correct:ok,revisions:0,measurements:{'M-DIFFREACH':ok?level:0}});}
+  level=Math.max(1,Math.min(6,level+(ok?1:-1)));renderMeters();updateDifficulty();
+  setTimeout(()=>{trial++;trial<1?startScored():finish();},900);
+}
+function learnRate(){return T.scored?((Math.max(1,T.maxLevel)-1)/T.scored).toFixed(2)+' levels/trial':'—';}
+const METERS=[
+  {id:'M-ACC',name:'Item accuracy',get:()=>T.scored?`${T.correct}/${T.scored} · ${Math.round(100*T.correct/T.scored)}%`:'—'},
+  {id:'M-RTFIRST',name:'First-action latency',get:()=>firstLatency!==null?`${firstLatency} ms current${T.firsts.length?` · mean ${avg(T.firsts)}`:''}`:T.firsts.length?`${T.firsts.at(-1)} ms · mean ${avg(T.firsts)}`:'—'},
+  {id:'M-ERRTYPE',name:'Rule-keyed error type',get:()=>T.lastErr},
+  {id:'M-RULEID',name:'Rule dimensionality solved',get:()=>T.ruleMax?`${T.ruleMax} co-acting rule${T.ruleMax>1?'s':''}`:'—'},
+  {id:'M-DIFFREACH',name:'Maximum difficulty solved',get:()=>T.maxLevel?`level ${T.maxLevel} / 6`:'—'},
+  {id:'M-LEARNRATE',name:'Within-session ceiling growth',get:learnRate}
+];
+function buildMeters(){
+  $('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');
+  $('#dbar').innerHTML=Array.from({length:6},()=>'<i></i>').join('');
+}
+function renderMeters(){METERS.forEach(m=>{$('#v_'+m.id).textContent=m.get();});}
+function updateDifficulty(){
+  $('#dlabel').textContent=`${level} / 6`;
+  [...$('#dbar').children].forEach((x,i)=>x.classList.toggle('on',i<level));
+}
+function log(msg){
+  const d=document.createElement('div');
+  d.innerHTML=`<span class="t">${new Date().toLocaleTimeString([],{minute:'2-digit',second:'2-digit'})}</span> ${msg}`;
+  $('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;
+}
+function startWarmup(){phase='warmup';locked=false;$('#phasecue').textContent='⭐';renderItem(WARM);log('warm-up · unscored');}
+function startScored(){phase='scored';locked=false;$('#phasecue').textContent='🎯';renderItem(ITEMS[level-1]);GTExam.warmupDone();GTExam.startScored();GTExam.telemetry('item_shown',{difficulty:level,typeCode:'QUANT-SERIES-01'});log(`item ${trial+1}/6 · level ${level} · ${cur.rule}`);}
+function finish(){phase='done';locked=true;$('#phasecue').textContent='🏆';$('#go').classList.remove('ready');log(`DONE · ${T.correct}/${T.scored} · ceiling ${T.maxLevel}`);}
+const ghost=$('#ghost');
+function ghostShow(on){ghost.classList.toggle('show',on);}
+async function ghostTo(el){
+  const r=el.getBoundingClientRect();
+  ghost.style.transform=`translate(${r.left+r.width/2-12}px,${r.top+r.height/2-10}px)`;
+  await sleep(470);
+}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(330);}
+async function runDemo(){
+  phase='demo';locked=true;$('#phasecue').textContent='👁️';renderItem(DEMO);log('ghost-hand demo · wordless');
+  ghostShow(true);await sleep(250);
+  await ghostTo($('#trail').children[0]);await ghostTo($('#trail').children[2]);
+  const key=cur.opts.findIndex(v=>same(v,cur.answer));
+  await ghostTo(document.querySelector(`.answer[data-i="${key}"]`));await ghostTap();pick(key,true);
+  await ghostTo($('#go'));await ghostTap();feedback(true);await sleep(420);
+  ghostShow(false);startWarmup();
+}
+$('#answers').addEventListener('click',e=>{const b=e.target.closest('.answer');if(b)pick(+b.dataset.i);});
+$('#go').addEventListener('click',submit);
+$('#replay').addEventListener('click',()=>{if(phase!=='demo')location.reload();});
+buildMeters();renderMeters();
+window.__gtPhase=function(){return phase;};
+window.__gtAnswer=function(wantCorrect){if((phase!=='scored'&&phase!=='warmup')||locked||!cur)return false;var ci=cur.opts.findIndex(function(v){return same(v,cur.answer);});var idx=wantCorrect?ci:(ci+1)%cur.opts.length;pick(idx);submit();return true;};
+(function(){var started=false;function begin(lvl){if(started)return;started=true;__gtLevel=Math.max(1,Math.min(6,lvl||1));runDemo();}
+if(window.GTExam){GTExam.onInit(function(hostItem){begin(hostItem&&hostItem.difficultyLevel);});GTExam.ready();setTimeout(function(){begin(1);},800);}else{begin(1);}})();
+</script>
+</body>
+</html>
