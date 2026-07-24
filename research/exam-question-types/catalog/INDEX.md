@@ -1,6 +1,6 @@
 # Question-Type Catalog — INDEX
 
-**54 types** across 3 areas. Measurements in registry: 63.
+**66 types** across 4 areas. Measurements in registry: 63.
 
 ## Coverage matrix (types applicable per area x band; target >=3)
 
@@ -8,14 +8,10 @@
 |---|---|---|---|---|
 | fluid_reasoning | 6 | 15 | 15 | 15 |
 | verbal | 8 | 14 | 16 | 16 |
-| quantitative | **0** | **0** | **0** | **0** |
+| quantitative | 6 | 12 | 11 | 11 |
 | spatial | 7 | 21 | 23 | 22 |
 
-## GAPS (need more types) — target for next wave
-- quantitative / K-1: 0 (need 3 more)
-- quantitative / 2-3: 0 (need 3 more)
-- quantitative / 4-5: 0 (need 3 more)
-- quantitative / 6-8: 0 (need 3 more)
+## Coverage complete: every area x band has >=3 types.
 
 ## Types by area
 
@@ -53,6 +49,20 @@
 - **VER-SORTBOT-01 — Sorting Robot** [K-1,2-3,4-5,6-8] · meas: M-ACC,M-HYP,M-EXPLORE,M-HINT,M-ERRTYPE,M-DIFFREACH,M-RT · [demo](demos/VER-SORTBOT-01.html)<br>Watch a robot drop a few example pictures or words into its IN bin or OUT bin, figure out the hidden category rule, then sort new items IN or OUT yourself.
 - **VER-WORDTRAIN-01 — Word Train** [2-3,4-5,6-8] · meas: M-ACC,M-POLY,M-PATH,M-EFF,M-DIFFREACH,M-VOCABLVL · [demo](demos/VER-WORDTRAIN-01.html)<br>Drag the scrambled word cars onto the train track in the right order to build one correct, meaningful sentence.
 - **WM-bubble-01 — Bubble Pop Memory (n-back / dual n-back)** [2-3,4-5,6-8] · meas: M-ACC,M-DPRIME,M-FALSEALARM,M-UPDATECOST,M-RTVAR,M-DIFFREACH · [demo](demos/WM-bubble-01.html)<br>Bubbles float up one at a time showing a picture, and the child taps POP whenever the current bubble matches the one from n bubbles ago; a dual mode adds a sound channel.
+
+### quantitative (12)
+- **QUANT-BALANCE-01 — Balance Lab** [K-1,2-3,4-5,6-8] · meas: M-ACC,M-POLY,M-PATH,M-PLANFUL,M-ERRTYPE,M-DIFFREACH,M-LEARNRATE · [demo](demos/QUANT-BALANCE-01.html)<br>The child adds figure weights until both sides of a scale are exactly level.
+- **QUANT-BUILD-01 — Biggest Number** [K-1,2-3,4-5,6-8] · meas: M-ACC,M-PATH,M-EFF,M-PLANFUL,M-ERRTYPE,M-DIFFREACH,M-LEARNRATE · [demo](demos/QUANT-BUILD-01.html)<br>The child rearranges quantity tiles to build the biggest or smallest value that obeys the pictured rules.
+- **QUANT-DOTS-01 — More or Fewer** [K-1,2-3] · meas: M-ACC,M-WEBER,M-RT,M-SPEEDACC,M-CONSIST,M-DIFFREACH · [demo](demos/QUANT-DOTS-01.html)<br>The child taps the side that flashed more dots.
+- **QUANT-EQUAL-01 — Make It Equal** [2-3,4-5,6-8] · meas: M-ACC,M-EQREL,M-ERRTYPE,M-REV,M-DIFFREACH,M-LEARNRATE · [demo](demos/QUANT-EQUAL-01.html)<br>The child places the missing quantity that makes both sides of the equal sign match.
+- **QUANT-FUNC-01 — Machine Rule** [K-1,2-3,4-5,6-8] · meas: M-ACC,M-RTFIRST,M-ERRTYPE,M-RULEID,M-DIFFREACH,M-LEARNRATE · [demo](demos/QUANT-FUNC-01.html)<br>The child watches what a machine does to quantities and chooses what it will make next.
+- **QUANT-GRAPH-01 — Story Graph** [2-3,4-5,6-8] · meas: M-ACC,M-POLY,M-PATH,M-PLANFUL,M-ERRTYPE,M-DIFFREACH,M-LEARNRATE · [demo](demos/QUANT-GRAPH-01.html)<br>The child makes or chooses the graph that tells the same growing-quantity story as an animation.
+- **QUANT-MATRIX-01 — Number Web** [2-3,4-5,6-8] · meas: M-ACC,M-RTFIRST,M-ERRTYPE,M-RULEID,M-DIFFREACH,M-LEARNRATE · [demo](demos/QUANT-MATRIX-01.html)<br>The child finds the quantity tile that completes every connection in a number web.
+- **QUANT-MIX-01 — Fair Share** [2-3,4-5,6-8] · meas: M-ACC,M-POLY,M-PATH,M-PLANFUL,M-PROPSTRAT,M-DIFFREACH,M-LEARNRATE · [demo](demos/QUANT-MIX-01.html)<br>The child changes two ingredient amounts so the new mix keeps the same taste.
+- **QUANT-MOBILE-01 — Hanging Mobile** [2-3,4-5,6-8] · meas: M-ACC,M-POLY,M-PATH,M-PROG,M-PLANFUL,M-DIFFREACH,M-LEARNRATE · [demo](demos/QUANT-MOBILE-01.html)<br>The child completes a hanging mobile so every arm stays level at once.
+- **QUANT-NUMLINE-01 — Number Line Jump** [K-1,2-3,4-5,6-8] · meas: M-ACC,M-PAE,M-CONSIST,M-DIFFREACH,M-LEARNRATE · [demo](demos/QUANT-NUMLINE-01.html)<br>The child slides a jumper to the place on a line that matches a shown quantity.
+- **QUANT-SERIES-01 — Pattern Steps** [K-1,2-3,4-5,6-8] · meas: M-ACC,M-RTFIRST,M-ERRTYPE,M-RULEID,M-DIFFREACH,M-LEARNRATE · [demo](demos/QUANT-SERIES-01.html)<br>The child chooses the next quantity or figure that continues a stepping pattern.
+- **QUANT-WORD-01 — Story Model** [2-3,4-5,6-8] · meas: M-ACC,M-POLY,M-PATH,M-PROG,M-PLANFUL,M-DIFFREACH,M-LEARNRATE · [demo](demos/QUANT-WORD-01.html)<br>The child rebuilds a silent quantity story with objects or bars and uses the model to find what is missing.
 
 ### spatial (23)
 - **GB-EXPLORE-01 — Explorer's Map** [2-3,4-5,6-8] · meas: M-VIEWANG,M-EXPLORE,M-PATH,M-EFF,M-DIFFREACH,M-RTFIRST,M-REV · [demo](demos/GB-EXPLORE-01.html)<br>The child explores a foggy top-down world that reveals only what is nearby, then shows they built a map in their head by pointing back toward hidden landmarks and taking a shortcut they never walked.

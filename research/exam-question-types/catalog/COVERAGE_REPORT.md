@@ -1,14 +1,13 @@
 # Coverage report — top-GT item -> question-type representation
 
-**North star:** 38/160 top-GT items have >=3 representing types (**23%**). types in catalog: 54.
+**North star:** 52/160 top-GT items have >=3 representing types (**32%**). types in catalog: 66.
 
-- >= 3 types: 38
-- 1-2 types: 33
-- 0 types: 89
+- >= 3 types: 52
+- 1-2 types: 41
+- 0 types: 67
 
 ## Most under-covered (construct, subconstruct) cells — target these next
 
-- quantitative / word_problem_reasoning: 9 top-GT item(s) still < 3
 - spatial / mental_rotation: 6 top-GT item(s) still < 3
 - complementary / divergent_thinking: 5 top-GT item(s) still < 3
 - complementary / task_commitment: 4 top-GT item(s) still < 3
@@ -21,7 +20,6 @@
 - processing_speed / rapid_automatized_naming: 2 top-GT item(s) still < 3
 - quantitative / number_series: 2 top-GT item(s) still < 3
 - quantitative / pattern_completion: 2 top-GT item(s) still < 3
-- quantitative / number_sentence_building: 2 top-GT item(s) still < 3
 - spatial / paper_folding: 2 top-GT item(s) still < 3
 - spatial / form_board: 2 top-GT item(s) still < 3
 - spatial / block_design: 2 top-GT item(s) still < 3
@@ -48,3 +46,5 @@
 - game_based / cognitive_control_speed: 1 top-GT item(s) still < 3
 - game_based / inhibitory_control_attention: 1 top-GT item(s) still < 3
 - game_based / response_inhibition_impulse_control: 1 top-GT item(s) still < 3
+- game_based / empathy_emotion_recognition: 1 top-GT item(s) still < 3
+- game_based / creativity: 1 top-GT item(s) still < 3
