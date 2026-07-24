@@ -3,188 +3,317 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CX-figural-01 — Squiggle Studio</title>
+<title>CX-figural-01 · Squiggle Studio</title>
 <style>
-  :root{--bg:#1a1030;--card:#271846;--ink:#f7f0ff;--muted:#c3b0e8;--acc:#ff8fd0;--gold:#ffd35c;}
-  *{box-sizing:border-box}
-  body{margin:0;font:16px/1.4 system-ui,Segoe UI,Roboto,sans-serif;color:var(--ink);background:radial-gradient(circle at 20% 0%,#331e5c,#1a1030)}
-  header{padding:14px 20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-  header h1{font-size:18px;margin:0}
-  .badge{font-size:12px;color:var(--muted);border:1px solid #4a3573;padding:2px 8px;border-radius:999px}
-  .wrap{display:grid;grid-template-columns:1fr 330px;gap:16px;padding:0 20px 30px;max-width:1100px}
-  @media(max-width:820px){.wrap{grid-template-columns:1fr}}
-  .stage{background:var(--card);border-radius:18px;padding:16px;position:relative}
-  .phaseTag{position:absolute;top:12px;right:14px;font-size:12px;color:var(--gold);background:#3a2140;border:1px solid #6a4a5f;padding:3px 10px;border-radius:999px;z-index:3}
-  .prompt{text-align:center;color:var(--muted);min-height:22px;margin-bottom:8px}
-  .canvasWrap{position:relative;width:520px;max-width:100%;margin:0 auto}
-  canvas{width:100%;height:auto;background:#fdfbff;border-radius:14px;touch-action:none;display:block;cursor:crosshair}
-  .ghost{position:absolute;font-size:38px;pointer-events:none;z-index:5;transition:left .25s linear,top .25s linear;filter:drop-shadow(0 3px 5px rgba(0,0,0,.4))}
-  .tools{display:flex;gap:8px;justify-content:center;margin:10px 0;flex-wrap:wrap;align-items:center}
-  .swatch{width:26px;height:26px;border-radius:50%;cursor:pointer;border:3px solid transparent}
-  .swatch.on{border-color:#fff}
-  button{font:inherit;border:0;border-radius:12px;padding:9px 14px;cursor:pointer;font-weight:600}
-  .new{background:var(--acc);color:#3a0a28}
-  .ghost-btn{background:#3a2a52;color:#eaddff}
-  .labels{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:8px}
-  .labels div{font-size:26px;background:#fff;border:1px solid #d9c9f2;border-radius:10px;padding:3px 6px;cursor:pointer}
-  .labels input{font:inherit;padding:8px;border-radius:10px;border:2px solid #4a3573;background:#1c1236;color:var(--ink);width:150px}
-  .tele{background:#1c1236;border:1px solid #3d2b63;border-radius:18px;padding:14px;height:fit-content;position:sticky;top:12px}
-  .tele h3{margin:0 0 8px;font-size:14px;color:var(--gold);letter-spacing:.5px}
-  .metrics{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
-  .chip{font-size:12px;background:#271846;border:1px solid #4a3573;border-radius:8px;padding:4px 8px}
-  .chip b{color:var(--gold)}
-  .log{font:11px/1.5 ui-monospace,Menlo,Consolas,monospace;color:#d6c6f5;max-height:210px;overflow:auto;background:#150c29;border-radius:10px;padding:8px}
-  .log div{border-bottom:1px solid #241640;padding:1px 0}
-  .note{font-size:11px;color:var(--muted);margin-top:8px}
-  .gallery{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:8px}
-  .gallery img{width:56px;height:34px;border-radius:6px;border:1px solid #4a3573;object-fit:cover;background:#fff}
+:root{
+  --ink:#312743;--paper:#fffdfb;--plum:#8c56bf;--pink:#ed6faa;
+  --aqua:#43bda9;--gold:#efb846;--line:#e5dff0;--tel:#181126;
+  --tel2:#281b3d;--key:#8bffd8;--dim:#9b82b7;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{
+  min-height:100vh;display:flex;color:var(--ink);
+  font:16px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;
+  background:radial-gradient(circle at 12% 8%,#ffe3f1,transparent 27%),
+    linear-gradient(145deg,#f5efff,#eafcff 58%,#fff4dc);
+}
+#wrap{
+  flex:1;min-width:0;padding:17px;display:flex;flex-direction:column;
+  align-items:center;gap:9px;
+}
+#badge{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8a789f}
+#phasecue{height:37px;font-size:31px}
+#stagecard{
+  width:min(720px,100%);background:var(--paper);border-radius:30px;padding:17px;
+  box-shadow:0 24px 58px -35px #55366b;display:flex;flex-direction:column;
+  align-items:center;gap:11px;border:1px solid #fff;
+}
+#squiggleFrame{
+  width:100%;height:180px;border:3px solid #eadff1;border-radius:24px;
+  background:radial-gradient(circle at 50% 50%,#fff 0 45%,#fbf5ff);
+  display:grid;place-items:center;position:relative;overflow:hidden;
+}
+#squiggleFrame::before,#squiggleFrame::after{
+  content:"";position:absolute;width:32px;height:32px;border-color:#d7c6e4;border-style:solid;
+}
+#squiggleFrame::before{left:13px;top:13px;border-width:3px 0 0 3px}
+#squiggleFrame::after{right:13px;bottom:13px;border-width:0 3px 3px 0}
+#squiggle{width:min(430px,92%);height:155px}
+#squiggle path{
+  fill:none;stroke:#45364f;stroke-width:9;stroke-linecap:round;stroke-linejoin:round;
+  filter:drop-shadow(0 4px 0 #eadff1);
+}
+#options{width:100%;display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.option{
+  min-height:57px;border:2px solid var(--line);border-radius:15px;background:#fff;
+  color:var(--ink);cursor:pointer;padding:5px 7px;display:flex;align-items:center;
+  gap:7px;text-align:left;font:700 13px system-ui;transition:.14s;
+}
+.option .emo{font-size:25px}.option:hover{transform:translateY(-2px);border-color:#bda5d3}
+.option.sel{border-color:var(--plum);background:#f4eaff;opacity:.58}
+#ranked{
+  width:100%;min-height:66px;border:2px dashed #d7cae3;border-radius:17px;
+  background:#fbf8ff;padding:7px;display:flex;gap:7px;align-items:center;overflow:auto;
+}
+.rank{
+  min-width:132px;height:50px;border-radius:13px;background:#fff;border:2px solid #cfb9e1;
+  display:grid;grid-template-columns:24px 1fr 22px;align-items:center;padding:3px 5px;gap:3px;
+}
+.rankNo{width:23px;height:23px;border-radius:50%;background:var(--plum);color:#fff;display:grid;place-items:center;font:800 11px system-ui}
+.rankName{font-weight:800;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rankBtns{display:flex;flex-direction:column}
+.rankBtns button{border:0;background:transparent;color:var(--plum);font-size:12px;line-height:17px;cursor:pointer;padding:0}
+.emptyRank{width:100%;text-align:center;font-size:28px;color:#c8b8d7;letter-spacing:9px}
+#tools{display:flex;gap:11px}
+#tools button{
+  height:50px;border:0;border-radius:16px;cursor:pointer;font:800 21px system-ui;
+  background:#f0e8f8;color:var(--plum);
+}
+#replay{width:52px}#submit{width:85px;background:var(--plum)!important;color:#fff!important;opacity:.35;pointer-events:none}
+#submit.ready{opacity:1;pointer-events:auto;animation:pulse 1s infinite}
+@keyframes pulse{50%{transform:scale(1.06)}}
+button:focus-visible{outline:4px solid #168dff;outline-offset:2px}
+#ghost{
+  position:fixed;left:0;top:0;opacity:0;z-index:50;pointer-events:none;font-size:38px;
+  transition:transform .45s cubic-bezier(.2,.7,.2,1),opacity .2s;filter:drop-shadow(0 4px 4px #0004);
+}
+#ghost.show{opacity:1}
+#telemetry{
+  width:345px;flex:0 0 345px;min-height:100vh;background:var(--tel);
+  color:#e0d0ef;display:flex;flex-direction:column;
+  font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+#telemetry h3{
+  margin:0;padding:13px 14px;background:var(--tel2);color:#fff;
+  font:800 12px system-ui;letter-spacing:.1em;text-transform:uppercase;
+}
+#difficulty{padding:10px 13px;border-bottom:1px solid #3b2b4e}
+.diffTop{display:flex;justify-content:space-between;color:#b8a3ca}
+.diffTrack{height:8px;background:#382846;border-radius:8px;overflow:hidden;margin-top:6px}
+#diffFill{height:100%;width:20%;background:linear-gradient(90deg,#9b5ac9,#ed76b1,#66e0c5);transition:.3s}
+#mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+.mrow{display:grid;grid-template-columns:103px 1fr;gap:7px}
+.mid{color:var(--key);font-weight:800}.mval{color:#fff}
+.mname{grid-column:1/3;color:var(--dim);font-size:10px;margin-top:-3px}
+#logwrap{border-top:1px solid #3b2b4e;margin-top:auto}
+#logwrap b{display:block;padding:8px 12px 3px;color:#9c82b6;font-size:10px}
+#log{height:180px;overflow:auto;padding:0 12px 12px}
+#log div{border-bottom:1px dotted #3b2b4e;padding:3px 0}
+#log .t{color:#795f92}
+@media(max-width:860px){
+  body{flex-direction:column}#telemetry{width:100%;min-height:0;height:310px;flex:none}
+}
+@media(max-width:570px){#options{grid-template-columns:repeat(2,1fr)}#squiggleFrame{height:150px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition-duration:.01ms!important}}
 </style>
 </head>
 <body>
-<header>
-  <h1>🎨 Squiggle Studio</h1>
-  <span class="badge">CX-figural-01</span>
-  <span class="badge">bands: K–1 · 2–3 · 4–5 · 6–8</span>
-  <span class="badge">figural creativity</span>
-</header>
-<div class="wrap">
-  <div class="stage">
-    <div class="phaseTag" id="phaseTag">demo</div>
-    <div class="prompt" id="prompt">Watch…</div>
-    <div class="canvasWrap">
-      <canvas id="cv" width="520" height="300"></canvas>
-      <div class="ghost" id="ghost" style="display:none">✏️</div>
+<main id="wrap">
+  <div id="badge">CX-figural-01 · Squiggle Studio</div>
+  <div id="phasecue">👁️</div>
+  <section id="stagecard">
+    <div id="squiggleFrame"><svg id="squiggle" viewBox="0 0 320 160" aria-label="abstract squiggle"><path id="squigglePath"></path></svg></div>
+    <div id="options"></div>
+    <div id="ranked"></div>
+    <div id="tools">
+      <button id="replay" aria-label="replay">↻</button>
+      <button id="submit" aria-label="submit order">✓</button>
     </div>
-    <div class="tools" id="tools" style="display:none">
-      <span style="font-size:12px;color:var(--muted)">color:</span>
-      <span class="swatch on" style="background:#e8437a" data-c="#e8437a"></span>
-      <span class="swatch" style="background:#3aa0ff" data-c="#3aa0ff"></span>
-      <span class="swatch" style="background:#2fb673" data-c="#2fb673"></span>
-      <span class="swatch" style="background:#7b52d6" data-c="#7b52d6"></span>
-      <span class="swatch" style="background:#222" data-c="#222"></span>
-      <button class="ghost-btn" id="undo">↩ undo</button>
-      <button class="new" id="newIdea">✨ New idea (same squiggle)</button>
-    </div>
-    <div class="labels" id="labels" style="display:none"></div>
-    <div class="gallery" id="gallery"></div>
-    <div class="tools" id="finishRow" style="display:none">
-      <button class="ghost-btn" id="doneBtn">Done → results</button>
-    </div>
+  </section>
+</main>
+<aside id="telemetry">
+  <h3>Live telemetry · per-child</h3>
+  <div id="difficulty">
+    <div class="diffTop"><span>DIFFICULTY</span><span id="diffLabel">1 / 5</span></div>
+    <div class="diffTrack"><div id="diffFill"></div></div>
   </div>
-  <div class="tele">
-    <h3>LIVE TELEMETRY</h3>
-    <div class="metrics" id="metrics"></div>
-    <div class="log" id="log"></div>
-    <div class="note">M-IDEAFLU (distinct pictures from one squiggle), M-ELAB (strokes/detail), M-ORIG (rare labels), M-PATH (how far the base line is transformed), M-PERSIST (still creating late).</div>
-  </div>
-</div>
+  <div id="mlist"></div>
+  <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+</aside>
+<div id="ghost">👆</div>
 <script>
-const T={ev:[],m:{},t0:performance.now(),now(){return Math.round(performance.now()-this.t0)},
-  log(a,d){const t=this.now();this.ev.push(Object.assign({t,a},d||{}));const el=document.getElementById('log');
-    const line=document.createElement('div');line.textContent='+'+(t/1000).toFixed(2)+'s  '+a+(d?'  '+JSON.stringify(d):'');el.prepend(line);},
-  set(k,v){this.m[k]=v;this.render();},
-  render(){document.getElementById('metrics').innerHTML=Object.entries(this.m).map(([k,v])=>'<span class="chip"><b>'+k+'</b> '+v+'</span>').join('');}};
-const $=s=>document.querySelector(s);
-const cv=$('#cv'),ctx=cv.getContext('2d'),ghost=$('#ghost'),phaseTag=$('#phaseTag');
-let color='#e8437a',drawing=false,strokes=0,curStrokes=0,curInk=0,paths=[],interp=0,orig=0,scored=false,phaseStart=0;
-const COMMON=['snake','line','worm','squiggle','scribble','wave','string'];
-const LABELS=[['🐍','snake'],['😊','face'],['⛰️','mountain'],['🐟','fish'],['🚗','car'],['🌊','wave'],['🦋','butterfly'],['🌳','tree'],['👽','alien'],['🎈','balloon']];
-
-T.set('phase','demo');T.set('pictures_M-IDEAFLU',0);T.set('strokes_this_M-ELAB',0);T.set('total_strokes',0);T.set('rare_labels_M-ORIG',0);
-
-/* base squiggle */
-const BASE=[[80,180],[150,120],[210,200],[280,110],[350,190],[430,140]];
-function drawBase(){ctx.clearRect(0,0,cv.width,cv.height);ctx.lineCap='round';ctx.lineJoin='round';
-  ctx.strokeStyle='#b9a9d6';ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(BASE[0][0],BASE[0][1]);
-  for(let i=1;i<BASE.length;i++){const[x,y]=BASE[i],[px,py]=BASE[i-1];ctx.quadraticCurveTo(px+ (x-px)/2, py, x, y);}
-  ctx.stroke();curStrokes=0;curInk=0;paths=[];T.set('strokes_this_M-ELAB',0);}
-function pos(e){const r=cv.getBoundingClientRect(),sx=cv.width/r.width,sy=cv.height/r.height;
-  const p=e.touches?e.touches[0]:e;return[(p.clientX-r.left)*sx,(p.clientY-r.top)*sy];}
-function down(e){e.preventDefault();drawing=true;const[x,y]=pos(e);ctx.strokeStyle=color;ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(x,y);paths.push([x,y]);
-  if(scored&&!phaseStart)phaseStart=T.now();
-  if(scored&&curStrokes===0&&interp===0&&strokes===0)T.log('first_action');}
-function move(e){if(!drawing)return;e.preventDefault();const[x,y]=pos(e);const last=paths[paths.length-1];
-  curInk+=Math.hypot(x-last[0],y-last[1]);ctx.lineTo(x,y);ctx.stroke();paths.push([x,y]);}
-function up(){if(!drawing)return;drawing=false;strokes++;curStrokes++;
-  if(scored){T.set('strokes_this_M-ELAB',curStrokes);T.set('total_strokes',strokes);T.log('stroke',{n:curStrokes,ink:Math.round(curInk)});}}
-cv.addEventListener('pointerdown',down);cv.addEventListener('pointermove',move);
-window.addEventListener('pointerup',up);
-
-$('#tools').querySelectorAll('.swatch').forEach(s=>s.onclick=()=>{color=s.dataset.c;
-  $('#tools').querySelectorAll('.swatch').forEach(o=>o.classList.remove('on'));s.classList.add('on');});
-$('#undo').onclick=()=>{drawBase();T.log('undo_all');};
-
-/* labels */
-function showLabels(){const L=$('#labels');L.style.display='flex';L.innerHTML='';
-  LABELS.forEach(([e,name])=>{const d=document.createElement('div');d.textContent=e;d.title=name;d.onclick=()=>saveInterp(name);L.appendChild(d);});
-  const inp=document.createElement('input');inp.placeholder='or type…';inp.onkeydown=ev=>{if(ev.key==='Enter'&&inp.value.trim())saveInterp(inp.value.trim());};L.appendChild(inp);}
-function saveInterp(label){
-  if(curStrokes===0){T.log('label_no_drawing');return;}
-  interp++;const isOrig=!COMMON.includes(label.toLowerCase());if(isOrig)orig++;
-  const thumb=document.createElement('img');thumb.src=cv.toDataURL();$('#gallery').appendChild(thumb);
-  const late=(T.now()-phaseStart)>15000;
-  T.log('SAVE_PICTURE',{label,strokes:curStrokes,ink:Math.round(curInk),original:isOrig,late});
-  T.set('pictures_M-IDEAFLU',interp);T.set('rare_labels_M-ORIG',orig);
-  T.set('late_pictures_M-PERSIST',$('#gallery').querySelectorAll('img').length&&paths?T.m['late_pictures_M-PERSIST']||0:0);
-  const lateCount=(T.m['late_pictures_M-PERSIST']||0)+(late?1:0);T.set('late_pictures_M-PERSIST',lateCount);
-  $('#labels').style.display='none';drawBase();
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const ITEMS=[
+  {path:'M22 104 C58 20 93 137 132 72 S205 32 231 96 S278 132 300 55',options:[
+    ['🐍','snake','animal',.34,1],['🌊','ocean wave','nature',.28,1],['⛰️','mountain trail','place',.16,2],
+    ['💓','heartbeat','body',.11,2],['🐉','dragon tail','story',.05,3],['🎼','music melody','music',.08,2],
+    ['🛤️','winding railway','structure',.06,3],['🧵','giant zipper','object',.03,3]]},
+  {path:'M159 80 C159 34 223 35 225 82 C228 137 143 139 108 101 C66 54 121 17 184 27',options:[
+    ['🐌','snail shell','animal',.31,1],['🌪️','hurricane','nature',.22,1],['🍭','lollipop','object',.18,1],
+    ['🌌','galaxy','space',.11,2],['👂','listening ear','body',.08,2],['🐈','curled-up cat','animal',.06,3],
+    ['🗺️','tiny maze','structure',.05,3],['🌀','time portal','story',.025,3]]},
+  {path:'M25 126 Q158 12 296 126',options:[
+    ['🌈','rainbow','nature',.35,1],['🌉','bridge','structure',.25,1],['☂️','umbrella','object',.17,2],
+    ['🐋','whale back','animal',.10,2],['🚇','train tunnel','place',.07,2],['🪢','jump rope','play',.08,2],
+    ['🌙','moon doorway','story',.035,3],['🎻','violin bow','music',.045,3]]},
+  {path:'M20 122 L68 49 L112 118 L157 40 L205 123 L254 53 L301 116',options:[
+    ['⚡','lightning','nature',.26,1],['⛰️','mountain range','place',.30,1],['👑','royal crown','object',.18,2],
+    ['🦖','dinosaur back','animal',.10,2],['🪚','saw teeth','tool',.09,2],['🧊','cracked ice','nature',.06,3],
+    ['📡','alien signal','story',.025,3],['🎹','jagged music','music',.035,3]]},
+  {path:'M78 31 C205 22 234 112 170 130 C117 146 101 80 159 73 C225 66 283 97 295 132',options:[
+    ['🎣','fishing hook','tool',.29,1],['❔','question mark','symbol',.24,1],['🦢','swan neck','animal',.15,2],
+    ['🌱','curled sprout','nature',.12,2],['🐉','sleeping dragon','story',.055,3],['🛷','sled track','motion',.08,2],
+    ['☄️','comet journey','space',.04,3],['🎺','brass melody','music',.025,3]]}
+];
+const WARM={
+  path:'M30 119 C78 42 126 42 160 91 C196 143 245 129 292 48',
+  options:[['🛣️','road','place',.3,1],['🐍','snake','animal',.28,1],['🎀','ribbon','object',.18,2],
+    ['🌊','river','nature',.21,1],['🪄','magic trail','story',.05,3],['🎵','song','music',.08,2]]
+};
+const T={
+  fluency:0,origPoints:0,origWeight:0,elab:0,elabN:0,path:[],persistence:0,
+  blur:0,activeMs:0,activeStart:Date.now(),lastAction:Date.now(),maxSolved:0,itemStart:Date.now()
+};
+let phase='demo',level=1,scoredIndex=0,item=WARM,selected=[],required=2,locked=true,revisions=0;
+function originality(){
+  return T.origWeight?Math.round(T.origPoints/T.origWeight):0;
 }
-$('#newIdea').onclick=()=>{if(curStrokes>0){showLabels();}else{T.log('new_idea_empty');}};
-$('#doneBtn').onclick=finish;
-
-/* ---- ghost demo (programmatic drawing) ---- */
-function runGhost(){
-  drawBase();ghost.style.display='block';$('#prompt').textContent='Watch: one squiggle → many things…';
-  const wrap=$('.canvasWrap').getBoundingClientRect(),cr=cv.getBoundingClientRect();
-  const toScreen=(x,y)=>[(x*cr.width/cv.width)+(cr.left-wrap.left)-10,(y*cr.height/cv.height)+(cr.top-wrap.top)-30];
-  // transformation 1: snake -> add eye + tongue
-  const acts=[
-    ()=>{ctx.strokeStyle='#2fb673';ctx.lineWidth=4;ctx.beginPath();ctx.arc(80,180,10,0,7);ctx.stroke();hand(80,180);}, // head
-    ()=>{ctx.fillStyle='#222';ctx.beginPath();ctx.arc(78,176,2,0,7);ctx.fill();hand(78,176);},                        // eye
-    ()=>{ctx.strokeStyle='#e8437a';ctx.beginPath();ctx.moveTo(70,182);ctx.lineTo(58,178);ctx.stroke();hand(60,180);}, // tongue
-    ()=>{bubbleLabel('🐍 snake');},
-    ()=>{drawBase();$('#prompt').textContent='…again, something different…';},
-    ()=>{ctx.strokeStyle='#3aa0ff';ctx.lineWidth=4;ctx.beginPath();ctx.arc(255,150,70,0,7);ctx.stroke();hand(255,150);}, // face circle
-    ()=>{ctx.fillStyle='#222';ctx.beginPath();ctx.arc(230,140,4,0,7);ctx.fill();ctx.beginPath();ctx.arc(280,140,4,0,7);ctx.fill();hand(255,140);}, // eyes
-    ()=>{ctx.strokeStyle='#e8437a';ctx.beginPath();ctx.arc(255,160,30,0.2,2.9);ctx.stroke();hand(255,185);bubbleLabel('😊 face');},
-  ];
-  let i=0;const run=()=>{if(i>=acts.length){setTimeout(()=>{ghost.style.display='none';startWarm();},900);return;}
-    acts[i]();i++;setTimeout(run,900);};
-  function hand(x,y){const[sx,sy]=toScreen(x,y);ghost.style.left=sx+'px';ghost.style.top=sy+'px';}
-  setTimeout(run,500);
+function engage(){
+  const active=T.activeMs+(document.hasFocus()&&phase==='scored'?Date.now()-T.activeStart:0);
+  const idle=Math.max(0,Date.now()-T.lastAction-8000);
+  return `${Math.round(active/1000)}s active · ${T.blur} blur · ${Math.round(idle/1000)}s idle`;
 }
-function bubbleLabel(t){$('#prompt').textContent=t;}
-
-function startWarm(){
-  drawBase();scored=false;phaseTag.textContent='warm-up (practice)';
-  $('#prompt').textContent='Your turn (practice): draw the squiggle into anything!';
-  $('#tools').style.display='flex';
-  $('#finishRow').style.display='none';
-  T.set('phase','warm-up');T.log('phase_warmup');
-  // after first stroke, offer to start real
-  const iv=setInterval(()=>{if(strokes>0){clearInterval(iv);
-    $('#prompt').innerHTML='Nice! <button class="new" onclick="startItem()">Start the real one →</button>';}},300);
+const METERS=[
+  {id:'M-IDEAFLU',name:'Valid interpretations selected',get:()=>`${T.fluency}`},
+  {id:'M-ORIG',name:'Inverse-frequency score, rank-weighted',get:()=>T.origWeight?`${originality()} / 100`:'—'},
+  {id:'M-ELAB',name:'Specificity/detail proxy',get:()=>T.elabN?`${(T.elab/T.elabN).toFixed(2)} / 3`:'—'},
+  {id:'M-PATH',name:'Choice and ordering path',get:()=>T.path.length?T.path.slice(-7).join(' · '):'—'},
+  {id:'M-PERSIST',name:'Beyond-minimum choices and revisions',get:()=>`${T.persistence}`},
+  {id:'M-ENGAGE',name:'Active / blur / idle state',get:()=>engage()}
+];
+function buildMeters(){
+  $('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');
 }
-function startItem(){
-  scored=true;interp=0;orig=0;strokes=0;phaseStart=0;$('#gallery').innerHTML='';
-  drawBase();phaseTag.textContent='scored';
-  $('#prompt').innerHTML='<b>How many different things can this ONE squiggle become?</b> Draw one, tap ✨ New idea, repeat!';
-  $('#finishRow').style.display='flex';
-  T.set('phase','scored');T.set('pictures_M-IDEAFLU',0);T.set('total_strokes',0);T.set('rare_labels_M-ORIG',0);
-  T.log('phase_scored');
+function renderMeters(){
+  METERS.forEach(m=>{const el=$(`#v_${m.id}`);if(el)el.textContent=m.get();});
+  $('#diffLabel').textContent=`${level} / 5 · choose ${required}+`;
+  $('#diffFill').style.width=`${level*20}%`;
+}
+function log(message){
+  const d=document.createElement('div');
+  d.innerHTML=`<span class="t">+${Date.now()-T.itemStart}ms</span> ${message}`;
+  $('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;
+}
+function touch(){
+  T.lastAction=Date.now();if(phase==='scored')renderMeters();
+}
+function shownOptions(){
+  const count=Math.min(item.options.length,5+level);
+  return item.options.slice(0,count);
+}
+function renderItem(){
+  $('#squigglePath').setAttribute('d',item.path);
+  const visible=shownOptions();
+  $('#options').innerHTML=visible.map((o,i)=>`
+    <button class="option ${selected.includes(i)?'sel':''}" data-index="${i}">
+      <span class="emo">${o[0]}</span><span>${o[1]}</span>
+    </button>`).join('');
+  if(!selected.length){
+    $('#ranked').innerHTML='<div class="emptyRank">① ② ③</div>';
+  }else{
+    $('#ranked').innerHTML=selected.map((index,rank)=>{
+      const o=visible[index];
+      return `<div class="rank" data-rank="${rank}">
+        <span class="rankNo">${rank+1}</span><span class="rankName">${o[0]} ${o[1]}</span>
+        <span class="rankBtns"><button data-move="-1" aria-label="move earlier">▲</button><button data-move="1" aria-label="move later">▼</button></span>
+      </div>`;
+    }).join('');
+  }
+  $('#submit').classList.toggle('ready',selected.length>=required);
+}
+function choose(index){
+  if(!['warmup','scored'].includes(phase)||locked)return;
+  touch();const at=selected.indexOf(index);
+  if(at>=0){
+    selected.splice(at,1);revisions++;if(phase==='scored')T.persistence++;
+    log(`remove ${item.options[index][1]}`);
+  }else if(selected.length<4){
+    selected.push(index);if(phase==='scored'&&selected.length>required)T.persistence++;
+    log(`rank ${selected.length} ← ${item.options[index][1]}`);
+  }
+  renderItem();renderMeters();
+}
+function moveRank(rank,delta){
+  if(!['warmup','scored'].includes(phase)||locked)return;
+  const to=rank+delta;if(to<0||to>=selected.length)return;
+  [selected[rank],selected[to]]=[selected[to],selected[rank]];
+  revisions++;if(phase==='scored')T.persistence++;touch();
+  log(`reorder ${rank+1}↔${to+1}`);renderItem();renderMeters();
+}
+function scoreItem(){
+  const weights=[1,.8,.65,.5],cats=new Set();let op=0,ow=0,detail=0;
+  selected.forEach((index,rank)=>{
+    const o=item.options[index],w=weights[rank]||.4;
+    op+=(1-o[3])*100*w;ow+=w;detail+=o[4];cats.add(o[2]);
+  });
+  const itemOrig=Math.round(op/ow),flex=cats.size;
+  T.fluency+=selected.length;T.origPoints+=op;T.origWeight+=ow;T.elab+=detail;T.elabN+=selected.length;
+  T.path.push(`${scoredIndex+1}:${selected.map(i=>item.options[i][1].split(' ')[0]).join('>')}`);
+  log(`auto-score · ${selected.length} choices · ${flex} categories · originality ${itemOrig} · revisions ${revisions}`);
+  return {itemOrig,flex};
+}
+function submit(){
+  if(!$('#submit').classList.contains('ready')||locked)return;
+  locked=true;touch();$$('.option.sel').forEach((o,i)=>{o.style.borderColor=i%2?'var(--aqua)':'var(--gold)';});
+  if(phase==='warmup'){log('warm-up order · UNSCORED');setTimeout(startScored,650);return;}
+  const result=scoreItem(),success=result.flex>=Math.min(3,required)&&result.itemOrig>=48;
+  item.result=success;renderMeters();setTimeout(nextItem,750);
+}
+function nextItem(){
+  if(item.result){T.maxSolved=Math.max(T.maxSolved,level);level=Math.min(5,level+1);}
+  else level=Math.max(1,level-1);
+  scoredIndex++;renderMeters();
+  if(scoredIndex>=5)finish();else startScored();
+}
+function start(kind){
+  phase=kind;locked=false;T.itemStart=Date.now();T.lastAction=Date.now();
+  item=kind==='warmup'?WARM:ITEMS[scoredIndex%ITEMS.length];
+  required=kind==='warmup'?2:(level>=3?3:2);selected=[];revisions=0;
+  $('#phasecue').textContent=kind==='warmup'?'⭐':'🎯';renderItem();
+  log(`— ${kind==='warmup'?'WARM-UP · UNSCORED':`SCORED ${scoredIndex+1}/5 · level ${level}`} —`);
+  renderMeters();
+}
+function startWarmup(){start('warmup');}
+function startScored(){
+  if(scoredIndex===0&&T.activeMs===0)T.activeStart=Date.now();
+  start('scored');
 }
 function finish(){
-  if(curStrokes>0&&interp===0){saveInterp('untitled');}
-  T.log('SESSION_END',{pictures:interp,total_strokes:strokes,rare_labels:orig});
-  $('#tools').style.display='none';$('#finishRow').style.display='none';$('#labels').style.display='none';
-  $('#prompt').innerHTML='<b style="color:var(--gold);font-size:19px">Gallery complete! 🖼️</b> '+
-    '<div class="note">'+interp+' pictures · '+strokes+' strokes · '+orig+' rare interpretations. '+
-    'Reinterpreting one line many ways — and <i>transforming</i> it, not just tracing — is the figural-creativity signal a multiple-choice test cannot capture.</div>'+
-    '<div class="tools"><button class="new" onclick="location.reload()">↺ Play again</button></div>';
-  T.set('phase','done');
+  if(document.hasFocus())T.activeMs+=Date.now()-T.activeStart;
+  phase='done';locked=true;$('#phasecue').textContent='🏆';
+  $('#stagecard').innerHTML='<div style="font-size:100px;padding:70px 0">🖼️</div><button id="again" class="option" aria-label="again">↻</button>';
+  $('#again').onclick=()=>location.reload();log(`— DONE · ${T.fluency} interpretations · originality ${originality()} —`);renderMeters();
 }
-window.addEventListener('blur',()=>T.log('off_task_blur (M-ENGAGE)'));
-runGhost();
+const ghost=$('#ghost');
+function center(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){
+  const p=center(el);ghost.style.transform=`translate(${p.x-12}px,${p.y-8}px)`;await sleep(430);
+}
+async function runDemo(){
+  phase='demo';locked=true;item=WARM;level=1;required=2;selected=[];T.itemStart=Date.now();
+  $('#phasecue').textContent='👁️';renderItem();ghost.classList.add('show');log('wordless choose-and-order demo');
+  await ghostTo($$('.option')[0]);selected.push(0);renderItem();
+  await ghostTo($$('.option')[3]);selected.push(3);renderItem();
+  await ghostTo($('#ranked'));await ghostTo($('#submit'));$$('.option.sel').forEach(x=>x.style.borderColor='var(--aqua)');
+  await sleep(350);ghost.classList.remove('show');startWarmup();
+}
+$('#options').addEventListener('click',e=>{
+  const b=e.target.closest('.option');if(b)choose(+b.dataset.index);
+});
+$('#ranked').addEventListener('click',e=>{
+  const b=e.target.closest('[data-move]'),rank=e.target.closest('.rank');
+  if(b&&rank)moveRank(+rank.dataset.rank,+b.dataset.move);
+});
+$('#submit').addEventListener('click',submit);
+$('#replay').addEventListener('click',()=>{if(phase!=='demo')location.reload();});
+window.addEventListener('blur',()=>{
+  if(phase==='scored'){T.activeMs+=Date.now()-T.activeStart;T.blur++;log('blur');renderMeters();}
+});
+window.addEventListener('focus',()=>{if(phase==='scored'){T.activeStart=Date.now();T.lastAction=Date.now();}});
+buildMeters();renderMeters();runDemo();
 </script>
 </body>
 </html>
