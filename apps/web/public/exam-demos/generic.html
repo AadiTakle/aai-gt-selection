@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GT adaptive item</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        font-family: system-ui, sans-serif;
+        color: #0f172a;
+      }
+      #app {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1.25rem;
+        min-height: 100%;
+        padding: 1.5rem;
+        box-sizing: border-box;
+      }
+      .prompt {
+        font-size: 1.15rem;
+        font-weight: 600;
+        text-align: center;
+        margin: 0;
+      }
+      .prompt.ok {
+        color: #15803d;
+      }
+      .grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        justify-content: center;
+      }
+      .tile {
+        background: #f8fafc;
+        border: 3px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 1rem;
+        min-width: 96px;
+        min-height: 96px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: border-color 0.12s, transform 0.12s;
+      }
+      .tile:hover {
+        border-color: #c7d2fe;
+      }
+      .tile.sel {
+        border-color: #4f46e5;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(79, 70, 229, 0.18);
+      }
+      .shapes {
+        display: flex;
+        gap: 3px;
+        align-items: center;
+      }
+      .submit {
+        padding: 0.6rem 1.6rem;
+        border-radius: 10px;
+        border: none;
+        background: #4f46e5;
+        color: white;
+        font-size: 1rem;
+        cursor: pointer;
+      }
+      .submit:disabled {
+        background: #cbd5e1;
+        cursor: default;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"><p class="prompt">Loading…</p></div>
+    <script src="embed-shim.js"></script>
+    <script>
+      (function () {
+        var app = document.getElementById('app');
+        var PALETTE = {
+          blue: '#2563eb',
+          red: '#dc2626',
+          green: '#16a34a',
+          amber: '#d97706',
+          purple: '#7c3aed',
+          teal: '#0d9488',
+          pink: '#db2777',
+          slate: '#475569',
+        };
+        var SHAPES = ['circle', 'square', 'triangle', 'diamond', 'star', 'hexagon'];
+        var DOMAIN_PROMPT = {
+          fluid_reasoning: 'Tap the picture that does not belong.',
+          spatial: 'Tap the shape that is different from the others.',
+          quantitative: 'Tap the group that is different.',
+          verbal: 'Tap the one that does not match the others.',
+        };
+
+        function hash(s) {
+          var h = 1779033703 ^ s.length;
+          for (var i = 0; i < s.length; i++) {
+            h = Math.imul(h ^ s.charCodeAt(i), 3432918353);
+            h = (h << 13) | (h >>> 19);
+          }
+          return h >>> 0;
+        }
+        function rng(seed) {
+          var a = seed >>> 0;
+          return function () {
+            a = (a + 0x6d2b79f5) | 0;
+            var t = Math.imul(a ^ (a >>> 15), 1 | a);
+            t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+          };
+        }
+        function pick(r, arr) {
+          return arr[Math.floor(r() * arr.length)];
+        }
+
+        function shapeSvg(shape, color, rot) {
+          var body;
+          switch (shape) {
+            case 'square':
+              body = '<rect x="5" y="5" width="34" height="34" rx="3"/>';
+              break;
+            case 'triangle':
+              body = '<polygon points="22,5 39,39 5,39"/>';
+              break;
+            case 'diamond':
+              body = '<polygon points="22,4 40,22 22,40 4,22"/>';
+              break;
+            case 'hexagon':
+              body = '<polygon points="14,6 30,6 40,22 30,38 14,38 4,22"/>';
+              break;
+            case 'star':
+              body = '<polygon points="22,4 27,17 41,17 30,25 34,39 22,31 10,39 14,25 3,17 17,17"/>';
+              break;
+            default:
+              body = '<circle cx="22" cy="22" r="18"/>';
+          }
+          return (
+            '<svg width="34" height="34" viewBox="0 0 44 44" fill="' +
+            color +
+            '" style="transform:rotate(' +
+            (rot || 0) +
+            'deg)">' +
+            body +
+            '</svg>'
+          );
+        }
+
+        function tileHtml(tile) {
+          var inner = '';
+          for (var i = 0; i < tile.count; i++) inner += shapeSvg(tile.shape, tile.color, tile.rot);
+          return '<div class="shapes">' + inner + '</div>';
+        }
+
+        function buildPuzzle(item) {
+          var diff = item.difficultyLevel || 1;
+          var r = rng(hash(item.itemId + ':' + diff));
+          var tileCount = diff <= 3 ? 4 : diff <= 6 ? 5 : 6;
+          var colorKeys = Object.keys(PALETTE);
+          var base = {
+            shape: pick(r, SHAPES),
+            color: PALETTE[pick(r, colorKeys)],
+            count: 1 + Math.floor(r() * 3),
+            rot: 0,
+          };
+          var odd = { shape: base.shape, color: base.color, count: base.count, rot: 0 };
+          var otherShapes = SHAPES.filter(function (s) {
+            return s !== base.shape;
+          });
+          var otherColors = colorKeys
+            .map(function (k) {
+              return PALETTE[k];
+            })
+            .filter(function (c) {
+              return c !== base.color;
+            });
+          if (diff <= 2) {
+            odd.shape = pick(r, otherShapes);
+            odd.color = pick(r, otherColors);
+          } else if (diff <= 4) {
+            odd.color = pick(r, otherColors);
+          } else if (diff <= 6) {
+            if (Math.floor(r() * 2) === 0) odd.shape = pick(r, otherShapes);
+            else odd.count = base.count + 1;
+          } else {
+            if (Math.floor(r() * 2) === 0) odd.rot = 45;
+            else odd.count = base.count + 1;
+          }
+          var oddIndex = Math.floor(r() * tileCount);
+          var tiles = [];
+          for (var i = 0; i < tileCount; i++) tiles.push(i === oddIndex ? odd : base);
+          return { tiles: tiles, oddIndex: oddIndex };
+        }
+
+        var currentItem = null;
+
+        function renderPuzzle(item, puzzle, isWarmup) {
+          var prompt =
+            (isWarmup ? 'Warm-up: ' : '') +
+            (DOMAIN_PROMPT[item.domain] || 'Tap the one that does not belong.');
+          var html = '<p class="prompt">' + prompt + '</p><div class="grid">';
+          for (var i = 0; i < puzzle.tiles.length; i++) {
+            html += '<button class="tile" data-i="' + i + '">' + tileHtml(puzzle.tiles[i]) + '</button>';
+          }
+          html += '</div>';
+          if (!isWarmup) html += '<button id="submit" class="submit" disabled>Submit</button>';
+          app.innerHTML = html;
+
+          var selected = -1;
+          var revisions = 0;
+          var firstDone = false;
+          var tiles = app.querySelectorAll('.tile');
+          tiles.forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              if (!firstDone) {
+                GTExam.markFirstAction();
+                firstDone = true;
+              } else if (!isWarmup) {
+                revisions += 1;
+              }
+              if (isWarmup) {
+                app.innerHTML = '<p class="prompt ok">Nice! Now try the real ones.</p>';
+                setTimeout(startScored, 700);
+                return;
+              }
+              selected = parseInt(btn.getAttribute('data-i'), 10);
+              tiles.forEach(function (b) {
+                b.classList.remove('sel');
+              });
+              btn.classList.add('sel');
+              document.getElementById('submit').disabled = false;
+              GTExam.telemetry('action', { selected: selected });
+            });
+          });
+
+          if (!isWarmup) {
+            document.getElementById('submit').addEventListener('click', function () {
+              if (selected < 0) return;
+              GTExam.respond({ correct: selected === puzzle.oddIndex, revisions: revisions });
+            });
+          }
+        }
+
+        function startScored() {
+          GTExam.warmupDone();
+          GTExam.startScored();
+          GTExam.telemetry('item_shown', { difficulty: currentItem.difficultyLevel });
+          renderPuzzle(currentItem, buildPuzzle(currentItem), false);
+        }
+
+        GTExam.onInit(function (item) {
+          currentItem = item;
+          var warmup = {
+            tiles: [
+              { shape: 'circle', color: PALETTE.blue, count: 1, rot: 0 },
+              { shape: 'circle', color: PALETTE.blue, count: 1, rot: 0 },
+              { shape: 'star', color: PALETTE.red, count: 1, rot: 0 },
+            ],
+            oddIndex: 2,
+          };
+          renderPuzzle(item, warmup, true);
+        });
+        GTExam.ready();
+      })();
+    </script>
+  </body>
+</html>
