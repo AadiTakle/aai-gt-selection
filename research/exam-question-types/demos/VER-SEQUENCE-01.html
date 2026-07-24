@@ -3,243 +3,187 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>VER-SEQUENCE-01 - Story Order</title>
+<title>VER-SEQUENCE-01 · Story Order</title>
 <style>
-  :root{--bg:#0f1226;--panel:#181c3a;--card:#20264f;--ink:#f4f6ff;--mut:#9aa3d4;
-    --acc:#ffd23f;--good:#37d67a;--bad:#ff6b6b;--line:#2c3566;--brand:#7c8cff;}
-  *{box-sizing:border-box}
-  body{margin:0;font:16px/1.45 system-ui,Segoe UI,Roboto,sans-serif;color:var(--ink);min-height:100vh;
-    background:radial-gradient(1200px 600px at 20% -10%,#2a2f66 0,var(--bg) 55%)}
-  .wrap{display:flex;gap:18px;max-width:1180px;margin:0 auto;padding:18px;flex-wrap:wrap}
-  .main{flex:1 1 560px;min-width:340px}.side{flex:1 1 320px;min-width:300px}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px}
-  header.card{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-bottom:14px}
-  h1{font-size:18px;margin:0}.id{font:12px ui-monospace,Menlo,monospace;color:var(--mut)}
-  .pill{font:12px ui-monospace,monospace;padding:4px 10px;border-radius:999px;background:#12163a;border:1px solid var(--line);color:var(--acc)}
-  .steptag{font:12px ui-monospace,monospace;color:var(--brand);margin:2px 0 10px}
-  .track{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;min-height:130px;align-items:center}
-  .slot{position:relative;width:120px;height:120px;border-radius:16px;background:var(--card);border:2px solid var(--line);
-    display:grid;place-items:center;font-size:52px;cursor:pointer;transition:.12s;user-select:none}
-  .slot:hover{border-color:var(--brand)}
-  .slot .num{position:absolute;top:6px;left:8px;font:12px ui-monospace,monospace;color:var(--mut)}
-  .slot.sel{border-color:var(--acc);background:#2b2f5e;transform:translateY(-4px)}
-  .slot.demo-hit{border-color:var(--acc);transform:scale(1.05)}
-  .slot.ok{border-color:var(--good)}.slot.no{border-color:var(--bad)}
-  .slot.lock{pointer-events:none}
-  .arrow{font-size:22px;color:var(--mut)}
-  .film{filter:grayscale(.15)}
-  .pred{margin-top:16px}.q{font-weight:700;margin:6px 0 10px}
-  .choices{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  .choice{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:14px;font-size:17px;cursor:pointer;text-align:center;transition:.12s}
-  .choice:hover{border-color:var(--brand)}.choice.pick{border-color:var(--acc);background:#2b2f5e}
-  .choice.correct{border-color:var(--good);background:#1f5138}.choice.wrong{border-color:var(--bad);background:#5a2330}
-  .choice.demo-hit{border-color:var(--acc);transform:scale(1.04)}.choice.lock{pointer-events:none}
-  .feedback{min-height:26px;margin-top:12px;font-weight:700}
-  .row{display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap}
-  button.btn{border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:9px 16px;cursor:pointer;background:#242a56}
-  button.btn.primary{background:linear-gradient(160deg,var(--good),#1f9e5a);border:none;color:#04240f;font-weight:700}
-  button.btn:disabled{opacity:.4;cursor:not-allowed}
-  .note{font-size:12px;color:var(--mut);margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
-  .tallies{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 12px}
-  .t{background:#12163a;border:1px solid var(--line);border-radius:12px;padding:10px}
-  .t .k{font:11px ui-monospace,monospace;color:var(--mut)}.t .v{font-size:19px;font-weight:700}.t .m{font:10px ui-monospace,monospace;color:var(--brand)}
-  .log{height:220px;overflow:auto;background:#0c0f28;border:1px solid var(--line);border-radius:12px;padding:10px;font:12px/1.5 ui-monospace,Menlo,monospace}
-  .log div{white-space:pre-wrap;border-bottom:1px dashed #1c2350;padding:2px 0}.log .mid{color:var(--acc)}.log .tt{color:var(--mut)}
-  .hand{position:fixed;z-index:50;font-size:38px;pointer-events:none;opacity:0;filter:drop-shadow(0 3px 4px #0008);
-    transition:left .7s cubic-bezier(.5,.1,.3,1),top .7s cubic-bezier(.5,.1,.3,1),opacity .3s}
+  :root{--bg1:#eef4ff;--bg2:#f7ecff;--ink:#26304a;--card:#fff;--accent:#5b6cff;--good:#22b573;--bad:#ff6b6b;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
+  #phasecue{font-size:34px;height:40px;line-height:40px}
+  #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:14px;max-width:700px;width:100%}
+  .band{border-radius:16px;padding:14px 18px;display:flex;flex-direction:column;gap:10px;align-items:center;width:100%}
+  #trackBand{background:linear-gradient(160deg,#eafaf1,#eef1ff);border:3px solid #bfe8cf}
+  #slotRow{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+  .slot{width:56px;height:56px;background:#fff;border:3px dashed #bfe8cf;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:28px;position:relative}
+  .slot .num{position:absolute;top:-8px;left:-8px;background:#5b6cff;color:#fff;font-size:10px;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center}
+  .slot.filled{border-style:solid;cursor:pointer}
+  .slot.correct{border-color:var(--good);background:#eafaf1}
+  .slot.wrong{border-color:var(--bad);background:#fff0f0}
+  #trayBand{background:linear-gradient(160deg,#e8f0ff,#f2ecff);border:3px solid #cfd8ff}
+  #tray{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+  .card{display:flex;flex-direction:column;align-items:center;gap:2px;background:#f4f6ff;border:3px solid #d7deff;border-radius:14px;padding:10px 12px;cursor:pointer;font-size:26px;transition:.12s;position:relative;min-width:56px}
+  .card:hover{border-color:#b9c2ee;transform:translateY(-2px)}
+  .card .hk{position:absolute;top:2px;left:4px;font-size:9px;color:#a7b0d8;font-weight:700}
+  .card.used{opacity:0;pointer-events:none;width:0;padding:0;margin:0;overflow:hidden}
+  #nextBand{background:linear-gradient(160deg,#fff6e6,#fff0f6);border:3px solid #ffd9a0;display:none}
+  #nextLabel{font-size:13px;color:#c98a2b;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+  #nextOpts{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+  .nopt{background:#fff;border:3px solid #ffe0b0;border-radius:14px;padding:10px 14px;font-size:28px;cursor:pointer;position:relative}
+  .nopt .hk{position:absolute;top:2px;left:4px;font-size:9px;color:#c98a2b;font-weight:700}
+  .nopt.correct{border-color:var(--good);background:#eafaf1}
+  .nopt.wrong{border-color:var(--bad);background:#fff0f0}
+  #controls{display:flex;gap:16px;align-items:center}
+  button.rd{font:inherit;border:0;cursor:pointer;border-radius:50%}
+  #go{width:64px;height:64px;background:var(--accent);color:#fff;font-size:26px;box-shadow:0 10px 24px -8px var(--accent);opacity:.35;pointer-events:none;transition:.2s}
+  #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.1s infinite}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+  #replay{width:50px;height:50px;background:#eef1ff;color:#5b6cff;font-size:22px}
+  .shake{animation:shake .4s}@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+  #ghost{position:fixed;left:0;top:0;font-size:40px;pointer-events:none;z-index:60;opacity:0;transition:transform .55s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #diffmeter{width:100%;display:flex;align-items:center;gap:8px;font-size:11px;color:#8a93b5}
+  #diffbar{flex:1;height:8px;background:#e4e9ff;border-radius:6px;overflow:hidden}
+  #diffbar i{display:block;height:100%;background:linear-gradient(90deg,#5b6cff,#ff8fd0);width:0%;transition:.3s}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}
+  .mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:210px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="main">
-    <header class="card">
-      <div><h1>Story Order</h1><div class="id">VER-SEQUENCE-01 &middot; inference_reading_comprehension</div></div>
-      <span class="pill" id="phase">DEMO</span>
-    </header>
-    <div class="card">
-      <div class="steptag" id="steptag">Put the story in order</div>
-      <div class="track" id="track"></div>
-      <div class="pred" id="predbox" style="display:none">
-        <div class="q" id="q">What happens next?</div>
-        <div class="choices" id="choices"></div>
+  <div id="wrap">
+    <div id="badge">VER-SEQUENCE-01 · Story Order</div>
+    <div id="phasecue">👁️</div>
+    <div id="stagecard">
+      <div id="trackBand" class="band"><div id="slotRow"></div></div>
+      <div id="trayBand" class="band"><div id="tray"></div></div>
+      <div id="nextBand" class="band"><div id="nextLabel">what happens next?</div><div id="nextOpts"></div></div>
+      <div id="diffmeter">🌱<div id="diffbar"><i id="diffbarfill"></i></div>🌳</div>
+      <div id="controls">
+        <button class="rd" id="replay" title="replay demo">↻</button>
+        <button class="rd" id="go" title="submit">✓</button>
       </div>
-      <div class="feedback" id="fb"></div>
-      <div class="row">
-        <button class="btn" id="replay">&#8635; Replay demo</button>
-        <button class="btn primary" id="next" disabled>Next &rarr;</button>
-      </div>
-      <div class="note">Tap two cards to swap them until the little movie makes sense, then press Play and guess what
-        happens next. K-1 uses wordless picture panels; older bands use sentence strips (also carries sentence_arrangement).</div>
     </div>
   </div>
-  <aside class="side">
-    <div class="card">
-      <h1 style="font-size:15px;margin:0 0 8px">Live telemetry</h1>
-      <div class="tallies">
-        <div class="t"><div class="k">Fully correct</div><div class="v" id="v-acc">0/0</div><div class="m">M-ACC</div></div>
-        <div class="t"><div class="k">Graded score</div><div class="v" id="v-poly">&mdash;</div><div class="m">M-POLY</div></div>
-        <div class="t"><div class="k">Swaps (reorders)</div><div class="v" id="v-rev">0</div><div class="m">M-REV</div></div>
-        <div class="t"><div class="k">Efficiency vs optimal</div><div class="v" id="v-eff">&mdash;</div><div class="m">M-EFF</div></div>
-        <div class="t"><div class="k">Mean RT</div><div class="v" id="v-rt">&mdash;</div><div class="m">M-RT</div></div>
-        <div class="t"><div class="k">Inference depth</div><div class="v" id="v-depth">&mdash;</div><div class="m">M-INFDEPTH</div></div>
-        <div class="t" style="grid-column:1/3"><div class="k">Move sequence</div><div class="v" id="v-path" style="font-size:12px">&mdash;</div><div class="m">M-PATH</div></div>
-      </div>
-      <div class="log" id="log"></div>
-    </div>
+  <aside id="telemetry">
+    <h3>Live telemetry · per-child</h3>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-</div>
-<div class="hand" id="hand">&#128070;</div>
+  <div id="ghost">👆<span class="ring"></span></div>
 <script>
-"use strict";
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const $=s=>document.querySelector(s);
-const T0=performance.now();
-const DEPTHRANK={temporal:1,causal:2,global:3};
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0,last=a=>a[a.length-1];
 
-// parts[] listed in CORRECT order; scz = scrambled initial ids; predict has depth tag
-const DEMO={parts:["\uD83C\uDF31","\uD83D\uDCA7","\uD83C\uDF38"],scz:[2,0,1],depth:"causal",
-  predict:{q:"What happens next?",choices:[{e:"\uD83D\uDC1D a bee visits",correct:true},{e:"\u2744\uFE0F it snows"}]}};
-const WARMUP={parts:["\uD83D\uDECF\uFE0F","\uD83E\uDD5E","\uD83C\uDFEB"],scz:[1,2,0],depth:"temporal",
-  predict:{q:"What happens at school?",choices:[{e:"\uD83D\uDCDA they learn",correct:true},{e:"\uD83D\uDE34 they sleep in bed"}]}};
-const SCORED=[
-  {parts:["\uD83E\uDD5A","\uD83D\uDC24","\uD83D\uDC13"],scz:[2,0,1],depth:"causal",
-   predict:{q:"What comes next?",choices:[{e:"\uD83E\uDD5A it lays an egg",correct:true},{e:"\uD83D\uDE97 it drives a car"}]}},
-  {parts:["\u26C5","\uD83C\uDF27\uFE0F","\uD83C\uDF08"],scz:[1,2,0],depth:"causal",
-   predict:{q:"Why did the rainbow appear?",choices:[{e:"\uD83D\uDCA7 sun after rain",correct:true},{e:"\uD83C\uDF19 it was night"}]}},
-  {parts:["\uD83E\uDDCA","\uD83C\uDF7A","\uD83D\uDCA7","\uD83C\uDF31"],scz:[2,0,3,1],depth:"global",
-   predict:{q:"What is the whole story about?",choices:[{e:"\uD83C\uDF31 ice melts and grows a plant",correct:true},{e:"\uD83C\uDF82 a birthday party"}]}}
+/* ---------- story chain bank: level 1 (clear, 3 panels) -> 6 (vague cues, 6 panels) ---------- */
+const INF_RANK={'time-order':0,'causal-near':1,'causal-far':2};
+const BANK=[
+ {lvl:1,panels:['\ud83c\udf31','\ud83d\udca7','\ud83c\udf3c'],next:[{ic:'\ud83d\udc1d',ok:true},{ic:'\u2744\ufe0f'},{ic:'\ud83d\ude97'}],inf:'time-order'},
+ {lvl:2,panels:['\u23f0','\ud83e\udd63','\ud83c\udfeb'],next:[{ic:'\ud83d\udcda',ok:true},{ic:'\ud83c\udf19'},{ic:'\ud83c\udf55'}],inf:'time-order'},
+ {lvl:3,panels:['\ud83c\udf27\ufe0f','\ud83d\udca6','\u26bd','\ud83d\udc5f'],next:[{ic:'\ud83e\udde6',ok:true},{ic:'\u2600\ufe0f'},{ic:'\ud83c\udf82'}],inf:'causal-near'},
+ {lvl:4,panels:['\ud83c\udf31','\ud83c\udf3f','\ud83c\udf3c\u200d\ud83c\udf10','\ud83c\udf38'],next:[{ic:'\ud83e\udd8b',ok:true},{ic:'\ud83c\udf42'},{ic:'\ud83d\ude80'}],inf:'causal-near'},
+ {lvl:5,panels:['\ud83e\udd5a','\ud83e\udd5a\ud83d\udca5','\ud83d\udc23','\ud83c\udf7d\ufe0f','\ud83e\udd85'],next:[{ic:'\ud83d\udd4a\ufe0f',ok:true},{ic:'\ud83e\udd5a'},{ic:'\ud83c\udf0a'}],inf:'causal-far'},
+ {lvl:6,panels:['\u26c8\ufe0f','\ud83d\udca1','\ud83d\udd6f\ufe0f','\ud83d\udd26','\ud83d\udc6a','\ud83d\udcd6'],next:[{ic:'\u2600\ufe0f',ok:true},{ic:'\ud83c\udf89'},{ic:'\ud83d\udc1f'}],inf:'causal-far'},
 ];
+function byLevel(l){return BANK.find(b=>b.lvl===l);}
+function shuffledOrder(item){const idx=item.panels.map((_,i)=>i);for(let i=idx.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[idx[i],idx[j]]=[idx[j],idx[i]];}return idx;}
+function shuffledNext(item){const opts=item.next.map((o,i)=>({...o,origI:i}));for(let i=opts.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[opts[i],opts[j]]=[opts[j],opts[i]];}return opts;}
 
-let phase="demo",idx=0,cur=null,step="order";
-let slots=[],sel=null,swaps=0,path=[],tShown=0,predPick=null,locked=false,minSwaps=0;
-const results=[];let depthReached=0;
+/* ---------- telemetry ---------- */
+const T={scored:0,fullCredit:0,polys:[],path:[],placements:0,revisions:0,rts:[],maxLevel:1,bestInfRank:-1,bestInf:'\u2014',itemStart:0};
+const METERS=[
+ {id:'M-ACC',name:'Full-credit rounds (order + next)',get:()=>T.scored?`${T.fullCredit}/${T.scored}  ${Math.round(100*T.fullCredit/T.scored)}%`:'\u2014'},
+ {id:'M-POLY',name:'Partial credit per round',get:()=>T.polys.length?`${last(T.polys).toFixed(2)}  (mean ${(mean(T.polys.map(p=>p*100))/100).toFixed(2)})`:'\u2014'},
+ {id:'M-PATH',name:'Placement order (this round)',get:()=>T.path.length?T.path.slice(-8).join(' \u2192 '):'\u2014'},
+ {id:'M-EFF',name:'Placements vs optimal',get:()=>T.placements?`${T.placements} placed / ${cur?cur.panels.length:'-'} optimal (this round)`:'\u2014'},
+ {id:'M-REV',name:'Revisions (undos)',get:()=>`${T.revisions}`},
+ {id:'M-RT',name:'Response time — total',get:()=>T.rts.length?`${last(T.rts)} ms  (mean ${mean(T.rts)})`:'\u2014'},
+ {id:'M-INFDEPTH',name:"Deepest 'next' inference w/ full credit",get:()=>T.bestInf},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});$('#diffbarfill').style.width=(T.maxLevel/6*100)+'%';}
+function log(msg){const t=Date.now()-T.itemStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+const ghost=$('#ghost');function ghostShow(v){ghost.classList.toggle('show',v);}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(520);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(430);}
 
-function log(mid,msg){const el=document.createElement("div");const t=((performance.now()-T0)/1000).toFixed(2);
-  el.innerHTML=`<span class="tt">t+${t}s</span> <span class="mid">[${mid}]</span> ${msg}`;const b=$("#log");b.appendChild(el);b.scrollTop=b.scrollHeight;}
-function setPhase(p){phase=p;$("#phase").textContent=p.toUpperCase();}
-function minSwapsToSort(perm){const n=perm.length;const seen=Array(n).fill(false);let s=0;
-  for(let i=0;i<n;i++){if(seen[i])continue;let j=i,len=0;while(!seen[j]){seen[j]=true;j=perm[j];len++;}s+=len-1;}return s;}
-function render(item,{interactive=true}={}){
-  cur=item;step="order";sel=null;swaps=0;path=[];predPick=null;locked=false;
-  slots=item.scz.map(id=>({id,e:item.parts[id]}));
-  minSwaps=minSwapsToSort(item.scz.slice());
-  $("#fb").textContent="";$("#next").disabled=true;$("#predbox").style.display="none";
-  $("#steptag").textContent="Step 1 \u2014 tap two cards to swap until the story makes sense";
-  $("#v-rev").textContent="0";$("#v-eff").textContent="\u2014";$("#v-path").textContent="\u2014";
-  drawTrack(interactive);
-  const c=$("#choices");c.innerHTML="";
-  item.predict.choices.forEach((o,i)=>{const d=document.createElement("div");d.className="choice";d.dataset.i=i;d.textContent=o.e;
-    if(interactive)d.addEventListener("click",()=>pickPred(i,d));c.appendChild(d);});
-  $("#q").textContent=item.predict.q;
-  tShown=performance.now();
-}
-function drawTrack(interactive){
-  const tr=$("#track");tr.innerHTML="";
-  slots.forEach((s,i)=>{
-    if(i>0){const a=document.createElement("div");a.className="arrow";a.textContent="\u2192";tr.appendChild(a);}
-    const d=document.createElement("div");d.className="slot"+(sel===i?" sel":"");d.dataset.i=i;
-    d.innerHTML=`<span class="num">${i+1}</span>${s.e}`;
-    if(interactive)d.addEventListener("click",()=>tapSlot(i));
-    tr.appendChild(d);
-  });
-}
-function tapSlot(i){
-  if(locked||step!=="order")return;
-  if(sel===null){sel=i;drawTrack(true);return;}
-  if(sel===i){sel=null;drawTrack(true);return;}
-  const tmp=slots[sel];slots[sel]=slots[i];slots[i]=tmp;
-  swaps++;path.push([sel+1,i+1]);sel=null;drawTrack(true);
-  $("#v-rev").textContent=swaps;$("#v-path").textContent=path.map(p=>p[0]+"\u21C4"+p[1]).join(" ");
-  log("M-REV",`swap #${swaps}: positions ${path[path.length-1][0]}\u21C4${path[path.length-1][1]}`);
-  $("#next").disabled=false; // can press Play once they've touched it
-}
-function pickPred(i,el){if(locked||step!=="predict")return;[...document.querySelectorAll(".choice")].forEach(c=>c.classList.remove("pick"));el.classList.add("pick");predPick=i;$("#next").disabled=false;}
-function toPredict(){
-  step="predict";locked=false;$("#next").disabled=true;
-  [...document.querySelectorAll(".slot")].forEach(s=>s.classList.add("lock"));
-  // reveal order correctness lightly
-  const perfect=slots.every((s,i)=>s.id===i);
-  slots.forEach((s,i)=>{const el=[...document.querySelectorAll(".slot")][i];el.classList.add(s.id===i?"ok":"no");el.classList.add("film");});
-  $("#predbox").style.display="block";
-  $("#steptag").textContent="Step 2 \u2014 now predict what happens next";
-  $("#fb").textContent=perfect?"Nice ordering! Now guess the next frame.":"Order locked \u2014 now guess the next frame.";
-  $("#fb").style.color="var(--mut)";
-}
-function commit(){
-  locked=true;const rt=Math.round(performance.now()-tShown);
-  const concord=slots.reduce((a,_,i)=>i<slots.length-1&&slots[i].id<slots[i+1].id?a+1:a,0);
-  const perfect=slots.every((s,i)=>s.id===i);
-  const predCorrect=!!cur.predict.choices[predPick].correct;
-  const N=slots.length;
-  // reveal prediction
-  [...document.querySelectorAll(".choice")].forEach((c,i)=>{c.classList.add("lock");if(i===predPick)c.classList.add(predCorrect?"correct":"wrong");if(cur.predict.choices[i].correct&&!predCorrect)c.classList.add("correct");});
-  const poly=concord+(predCorrect?1:0);const polyMax=(N-1)+1;
-  const eff=swaps>0?Math.min(1,minSwaps/swaps):(perfect?1:0);
-  if(phase==="warmup"){log("M-ENGAGE",`warm-up (unscored): order ${perfect?"perfect":concord+"/"+(N-1)}, pred ${predCorrect?"ok":"no"}`);
-    $("#fb").textContent=perfect&&predCorrect?"\uD83C\uDFAC The movie plays!":"Good try \u2014 here's the idea.";$("#fb").style.color=perfect&&predCorrect?"var(--good)":"var(--mut)";$("#next").disabled=false;return;}
-  const full=perfect&&predCorrect;
-  results.push({full,poly,polyMax,rt,eff,depth:cur.depth,predCorrect});
-  log("M-ACC",`item ${idx+1}: ${full?"FULLY CORRECT":"partial"} (order ${perfect?"perfect":concord+"/"+(N-1)}, pred ${predCorrect?"\u2713":"\u2717"})`);
-  log("M-RT",`response time ${rt}ms`);
-  log("M-POLY",`graded score ${poly}/${polyMax} (${concord} ordered pairs + ${predCorrect?1:0} prediction)`);
-  log("M-EFF",`used ${swaps} swaps vs optimal ${minSwaps} -> efficiency ${(eff*100|0)}%`);
-  log("M-PATH",`swap sequence ${path.length?path.map(p=>p[0]+"\u21C4"+p[1]).join(" "):"(none)"}`);
-  if(full){depthReached=Math.max(depthReached,DEPTHRANK[cur.depth]||0);log("M-INFDEPTH",`solved '${cur.depth}' inference -> depth ${depthReached}`);}
-  $("#fb").textContent=full?"\u2605 The movie plays perfectly!":predCorrect?"Good prediction \u2014 order not quite right.":"Not quite.";
-  $("#fb").style.color=full?"var(--good)":"var(--bad)";
-  $("#v-eff").textContent=(eff*100|0)+"%";
-  update();$("#next").disabled=false;
-}
-function update(){
-  const n=results.length,f=results.filter(r=>r.full).length;$("#v-acc").textContent=`${f}/${n}`;
-  const p=results.reduce((a,b)=>a+b.poly,0),pm=results.reduce((a,b)=>a+b.polyMax,0);$("#v-poly").textContent=n?`${p}/${pm}`:"\u2014";
-  const rts=results.map(r=>r.rt);if(rts.length)$("#v-rt").textContent=Math.round(rts.reduce((a,b)=>a+b,0)/rts.length)+"ms";
-  const names=Object.entries(DEPTHRANK).find(([k,v])=>v===depthReached);$("#v-depth").textContent=depthReached?`L${depthReached} ${names?names[0]:""}`:"\u2014";
-}
-function ripple(x,y){const d=document.createElement("div");d.style.cssText=`position:fixed;left:${x-5}px;top:${y-5}px;width:10px;height:10px;border-radius:50%;background:var(--acc);z-index:49;pointer-events:none;opacity:.8;animation:rip .6s ease-out forwards`;document.body.appendChild(d);setTimeout(()=>d.remove(),620);}
-const st=document.createElement("style");st.textContent="@keyframes rip{to{transform:scale(9);opacity:0}}";document.head.appendChild(st);
-async function ghost(el){const hand=$("#hand");const r=el.getBoundingClientRect();hand.style.opacity="1";hand.style.left=(r.left+r.width/2-8)+"px";hand.style.top=(r.top+r.height/2)+"px";await sleep(700);el.classList.add("demo-hit");ripple(r.left+r.width/2,r.top+r.height/2);await sleep(360);el.classList.remove("demo-hit");}
-async function runDemo(){
-  setPhase("demo");$("#next").disabled=true;$("#replay").disabled=true;render(DEMO,{interactive:false});
-  log("M-ENGAGE","wordless ghost-hand demo start (<10s, no instructions)");
-  await sleep(500);
-  // demo scz=[2,0,1] -> swap pos1&pos2 then pos2&pos3 to reach [0,1,2]
-  const S=()=>[...document.querySelectorAll(".slot")];
-  await ghost(S()[0]);await ghost(S()[1]);
-  {const t=slots[0];slots[0]=slots[1];slots[1]=t;drawTrack(false);}
-  await sleep(250);
-  await ghost(S()[1]);await ghost(S()[2]);
-  {const t=slots[1];slots[1]=slots[2];slots[2]=t;drawTrack(false);}
-  await sleep(300);
-  S().forEach((el,i)=>el.classList.add("ok","film"));
-  $("#predbox").style.display="block";$("#steptag").textContent="Step 2 \u2014 now predict what happens next";
-  await sleep(300);
-  await ghost([...document.querySelectorAll(".choice")][0]);
-  [...document.querySelectorAll(".choice")][0].classList.add("pick");
-  $("#hand").style.opacity="0";await sleep(400);$("#replay").disabled=false;startWarmup();
-}
-function startWarmup(){setPhase("warmup");render(WARMUP,{interactive:true});$("#fb").textContent="Your turn - swap cards to fix the order.";$("#fb").style.color="var(--mut)";log("M-ENGAGE","unscored warm-up shown");}
-function startScored(){setPhase("scored");idx=0;render(SCORED[0],{interactive:true});log("M-ENGAGE","scoring begins (causal ordering + prediction; depth escalates)");}
-function next(){if(phase==="warmup"){startScored();return;}if(phase==="scored"){idx++;if(idx<SCORED.length)render(SCORED[idx],{interactive:true});else finish();}}
-function finish(){setPhase("done");$("#track").innerHTML="";$("#predbox").style.display="none";$("#steptag").textContent="";$("#next").disabled=true;
-  const p=results.reduce((a,b)=>a+b.poly,0),pm=results.reduce((a,b)=>a+b.polyMax,0);const names=Object.entries(DEPTHRANK).find(([k,v])=>v===depthReached);
-  $("#fb").innerHTML=`\uD83C\uDF89 Complete \u2014 graded score ${p}/${pm}, deepest inference: ${names?names[0]:"\u2014"}.`;$("#fb").style.color="var(--good)";
-  log("M-DRIFT","session end; per-item order/efficiency/prediction series available");}
-$("#next").addEventListener("click",()=>{
-  if(phase==="done")return;
-  if((phase==="scored"||phase==="warmup")&&!locked){
-    if(step==="order"){toPredict();return;}
-    if(step==="predict"&&predPick!=null){commit();return;}
-  }
-  next();
-});
-$("#replay").addEventListener("click",()=>{results.length=0;depthReached=0;$("#log").innerHTML="";$("#v-acc").textContent="0/0";$("#v-poly").textContent="\u2014";$("#v-rt").textContent="\u2014";$("#v-depth").textContent="\u2014";runDemo();});
-setInterval(()=>{const b=$("#next");if(phase==="done"){b.textContent="Done";return;}
-  if((phase==="scored"||phase==="warmup")&&!locked){
-    if(step==="order"){b.textContent="Play \u25B6";return;}
-    if(step==="predict"&&predPick!=null){b.textContent="Check \u2713";return;}}
-  b.textContent="Next \u2192";},150);
-update();runDemo();
+/* ---------- render ---------- */
+let cur=null,scramble=null,placed=[],chosenNext=null,level=1,locked=false,stage='order';
+function renderItem(item){cur=item;scramble=shuffledOrder(item);placed=[];chosenNext=null;stage='order';
+  T.itemStart=Date.now();T.path=[];T.placements=0;
+  $('#slotRow').innerHTML=item.panels.map((_,i)=>`<div class="slot" data-i="${i}"><span class="num">${i+1}</span></div>`).join('');
+  $('#tray').innerHTML=scramble.map((origI,i)=>`<div class="card" data-orig="${origI}" data-i="${i}"><span class="hk">${i+1}</span>${item.panels[origI]}</div>`).join('');
+  $('#nextBand').style.display='none';$('#go').classList.remove('ready');renderMeters();}
+function place(trayI){if(locked||stage!=='order')return;const cardEl=[...$$('#tray .card')].find(c=>+c.dataset.i===trayI&&!c.classList.contains('used'));if(!cardEl)return;
+  const origI=+cardEl.dataset.orig;const slotIdx=placed.length;placed.push(origI);T.placements++;T.path.push('P'+(origI+1));
+  cardEl.classList.add('used');
+  const slot=$$('#slotRow .slot')[slotIdx];slot.textContent=cur.panels[origI];slot.classList.add('filled');
+  const numSpan=document.createElement('span');numSpan.className='num';numSpan.textContent=slotIdx+1;slot.appendChild(numSpan);
+  if(placed.length===cur.panels.length){$('#go').classList.add('ready');}
+  renderMeters();}
+function undoLast(){if(locked||stage!=='order'||!placed.length)return;T.revisions++;
+  const origI=placed.pop();const slotIdx=placed.length;
+  const slot=$$('#slotRow .slot')[slotIdx];slot.textContent='';slot.classList.remove('filled');
+  const numSpan=document.createElement('span');numSpan.className='num';numSpan.textContent=slotIdx+1;slot.appendChild(numSpan);
+  const cardEl=[...$$('#tray .card')].find(c=>+c.dataset.orig===origI);if(cardEl)cardEl.classList.remove('used');
+  $('#go').classList.remove('ready');renderMeters();}
+function orderScore(){let correctPairs=0,total=0;for(let i=0;i<placed.length;i++)for(let j=i+1;j<placed.length;j++){total++;if(placed[i]<placed[j])correctPairs++;}return total?correctPairs/total:1;}
+function goOrder(){if(!$('#go').classList.contains('ready')||stage!=='order')return;
+  const exactOrder=placed.every((v,i)=>v===i);
+  $$('#slotRow .slot').forEach((s,i)=>s.classList.add(placed[i]===i?'correct':'wrong'));
+  if(!exactOrder){$('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),450);}
+  log(`order submitted \u2192 ${exactOrder?'EXACT':orderScore().toFixed(2)+' pair-score'} · ${T.placements} placements, ${T.revisions} revisions`);
+  stage='next';$('#go').classList.remove('ready');
+  const opts=shuffledNext(cur);
+  $('#nextOpts').innerHTML=opts.map((o,i)=>`<div class="nopt" data-i="${i}" data-ok="${o.ok?1:0}"><span class="hk">${i+1}</span>${o.ic}</div>`).join('');
+  $('#nextBand').style.display='flex';}
+function pickNext(i){if(locked||stage!=='next')return;chosenNext=i;const opt=$$('#nextOpts .nopt')[i];const ok=opt.dataset.ok==='1';
+  $$('#nextOpts .nopt').forEach((o,j)=>{if(o.dataset.ok==='1')o.classList.add('correct');else if(j===i&&!ok)o.classList.add('wrong');});
+  finalize(orderScore(),placed.every((v,i)=>v===i),ok);}
+function finalize(pairScore,exactOrder,nextOk){locked=true;const rt=Date.now()-T.itemStart;
+  const poly=pairScore*0.6+(nextOk?0.4:0);const full=exactOrder&&nextOk;
+  if(phase==='warmup'){log(`warm-up next-probe ${nextOk?'correct':'wrong'} — UNSCORED`);setTimeout(nextPhase,1300);return;}
+  T.scored++;T.polys.push(poly);T.rts.push(rt);
+  if(full){T.fullCredit++;T.maxLevel=Math.max(T.maxLevel,level);const r=INF_RANK[cur.inf];if(r>T.bestInfRank){T.bestInfRank=r;T.bestInf=cur.inf;}}
+  log(`ROUND L${level} \u2192 order ${exactOrder?'EXACT':pairScore.toFixed(2)}, next ${nextOk?'\u2713':'\u2717'} · poly ${poly.toFixed(2)}${full?' FULL':''} · ${rt}ms`);
+  level=full?Math.min(6,level+1):Math.max(1,level-1);
+  renderMeters();setTimeout(nextPhase,1500);}
+const TOTAL_SCORED=6;let phase='demo',scoredIndex=0;
+function setCue(i){$('#phasecue').textContent=i;}
+function nextPhase(){locked=false;if(phase==='warmup'){scoredIndex=0;startScored();}
+  else if(phase==='scored'){scoredIndex++;scoredIndex<TOTAL_SCORED?startScored():finish();}}
+function startWarmup(){phase='warmup';setCue('\u2b50');level=1;renderItem(byLevel(1));log('— warm-up (unscored) —');}
+function startScored(){phase='scored';setCue('\ud83c\udfaf');renderItem(byLevel(level));log(`— SCORED round ${scoredIndex+1}/${TOTAL_SCORED} · level ${level} —`);}
+function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;log(`— DONE · full-credit ${T.fullCredit}/${T.scored} · ceiling L${T.maxLevel} —`);renderMeters();}
+async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;
+  const item=byLevel(1);renderItem(item);log('ghost-hand demo (wordless, <10s)');ghostShow(true);await sleep(300);
+  for(let step=0;step<item.panels.length;step++){const trayEl=[...$$('#tray .card')].find(c=>+c.dataset.orig===step&&!c.classList.contains('used'));
+    await ghostTo(trayEl);await ghostTap();place(+trayEl.dataset.i);await sleep(150);}
+  await sleep(250);await ghostTo($('#go'));await ghostTap();goOrder();await sleep(400);
+  const ci=[...$$('#nextOpts .nopt')].findIndex(o=>o.dataset.ok==='1');const nEl=$$('#nextOpts .nopt')[ci];await ghostTo(nEl);await ghostTap();pickNext(ci);
+  await sleep(700);ghostShow(false);await sleep(400);T.itemStart=Date.now();startWarmup();}
+$('#tray').addEventListener('click',e=>{const c=e.target.closest('.card');if(c&&!locked&&phase!=='demo'&&phase!=='done')place(+c.dataset.i);});
+$('#slotRow').addEventListener('click',e=>{const s=e.target.closest('.slot.filled');if(s&&!locked&&phase!=='demo'&&phase!=='done'&&+s.dataset.i===placed.length-1)undoLast();});
+$('#nextOpts').addEventListener('click',e=>{const o=e.target.closest('.nopt');if(o&&!locked&&phase!=='demo'&&phase!=='done')pickNext(+o.dataset.i);});
+$('#go').addEventListener('click',goOrder);
+document.addEventListener('keydown',e=>{if(locked||phase==='demo'||phase==='done')return;const n=+e.key;
+  if(stage==='order'&&n>=1&&n<=6)place(n-1);if(stage==='next'&&n>=1&&n<=3)pickNext(n-1);if(e.key==='Enter'&&stage==='order')goOrder();
+  if(e.key==='Backspace')undoLast();});
+$('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
+buildMeters();renderMeters();runDemo();
 </script>
 </body>
 </html>

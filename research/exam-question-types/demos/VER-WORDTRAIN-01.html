@@ -2,129 +2,154 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>VER-WORDTRAIN-01 — Word Train (arrange scrambled words into a sentence)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VER-WORDTRAIN-01 · Word Train</title>
 <style>
-  :root{--bg:#0e1220;--panel:#171d33;--edge:#2a3358;--ink:#e9edff;--mut:#8b93c0;--accent:#5cc8ff;--good:#5ce39a;--bad:#ff6b8a;--warn:#ffd166}
-  *{box-sizing:border-box}
-  body{margin:0;font:15px/1.45 system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);display:flex;min-height:100vh}
-  .main{flex:1;display:flex;flex-direction:column;align-items:center;padding:20px;gap:14px}
-  h1{font-size:19px;margin:.2rem 0}.sub{color:var(--mut);font-size:13px;margin:0;text-align:center;max-width:480px}
-  .badge{display:inline-block;padding:2px 9px;border-radius:99px;background:var(--panel);border:1px solid var(--edge);color:var(--warn);font-size:12px}
-  #track{display:flex;gap:8px;min-height:60px;align-items:center;padding:8px 14px;border-radius:40px;background:#10152a;border:1px solid var(--edge)}
-  #track .eng{font-size:30px}
-  .slot{min-width:78px;height:44px;border-radius:10px;border:1px dashed var(--edge);display:flex;align-items:center;justify-content:center;color:var(--mut)}
-  .slot.filled{background:#20284a;border-style:solid;border-color:var(--accent);color:var(--ink);cursor:pointer}
-  .tray{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;min-height:44px}
-  .car{min-width:78px;height:44px;padding:0 12px;background:#20284a;border:2px solid var(--edge);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer}
-  .car:active{transform:scale(.96)}
-  #verdict{font-size:22px;height:30px}
-  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
-  button.ctl{font:inherit;padding:9px 15px;border-radius:10px;border:1px solid var(--edge);background:#20284a;color:var(--ink);cursor:pointer}
-  button.pri{background:var(--accent);color:#062033;border-color:transparent;font-weight:600}
-  button:disabled{opacity:.4;cursor:not-allowed}
-  .tel{width:320px;background:var(--panel);border-left:1px solid var(--edge);padding:14px 14px 40px;overflow:auto;font:12px/1.55 ui-monospace,Menlo,Consolas,monospace}
-  .tel h2{font:600 12px system-ui;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:14px 0 6px}
-  .kv{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted #2a3358;padding:2px 0}
-  .kv b{color:var(--accent);font-weight:600}.kv .m{color:var(--mut);font-size:10px}
-  .log{margin-top:6px;max-height:150px;overflow:auto;border:1px solid var(--edge);border-radius:8px;padding:6px;background:#10152a}
-  .log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  :root{--bg1:#eef4ff;--bg2:#f7ecff;--ink:#26304a;--card:#fff;--accent:#5b6cff;--good:#22b573;--bad:#ff6b6b;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
+  #phasecue{font-size:34px;height:40px;line-height:40px}
+  #stagecard{background:var(--card);border-radius:26px;padding:24px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:16px;max-width:680px;width:100%}
+  .band{border-radius:16px;padding:14px 18px;display:flex;flex-direction:column;gap:10px;align-items:center;width:100%}
+  #trackBand{background:linear-gradient(160deg,#eafaf1,#eef1ff);border:3px solid #bfe8cf;min-height:74px}
+  #track{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center;min-height:52px}
+  .engine{font-size:34px}
+  .car{background:#fff;border:3px solid var(--good);border-radius:12px;padding:6px 10px;font-size:26px;display:flex;flex-direction:column;align-items:center;animation:pop .25s}
+  @keyframes pop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+  #poolBand{background:linear-gradient(160deg,#e8f0ff,#f2ecff);border:3px solid #cfd8ff}
+  #pool{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+  .card{display:flex;flex-direction:column;align-items:center;gap:4px;background:#f4f6ff;border:3px solid #d7deff;border-radius:14px;padding:10px 12px;cursor:pointer;transition:.12s;position:relative;min-width:70px}
+  .card:hover{border-color:#b9c2ee;transform:translateY(-2px)}
+  .card .ic{font-size:28px}
+  .card .wd{font-size:11px;font-weight:700;color:#5060a0}
+  .card .hk{position:absolute;top:2px;left:4px;font-size:9px;color:#a7b0d8;font-weight:700}
+  .card.used{opacity:.25;pointer-events:none}
+  .card.wrongFlash{border-color:var(--bad);background:#fff0f0;animation:shake .35s}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%,75%{transform:translateX(-6px)}50%{transform:translateX(6px)}}
+  #controls{display:flex;gap:16px;align-items:center}
+  button.rd{font:inherit;border:0;cursor:pointer;border-radius:50%}
+  #go{width:64px;height:64px;background:var(--accent);color:#fff;font-size:26px;box-shadow:0 10px 24px -8px var(--accent);opacity:.35;pointer-events:none;transition:.2s}
+  #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.1s infinite}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+  #replay{width:50px;height:50px;background:#eef1ff;color:#5b6cff;font-size:22px}
+  #ghost{position:fixed;left:0;top:0;font-size:40px;pointer-events:none;z-index:60;opacity:0;transition:transform .55s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #diffmeter{width:100%;display:flex;align-items:center;gap:8px;font-size:11px;color:#8a93b5}
+  #diffbar{flex:1;height:8px;background:#e4e9ff;border-radius:6px;overflow:hidden}
+  #diffbar i{display:block;height:100%;background:linear-gradient(90deg,#5b6cff,#ff8fd0);width:0%;transition:.3s}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}
+  .mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:210px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
 </style>
 </head>
 <body>
-<div class="main">
-  <div style="text-align:center">
-    <h1>🚂 Word Train <span class="badge" id="blevel">band · 3 cars</span></h1>
-    <p class="sub">Tap the word cars in order to build one sentence that is written correctly. The train chugs away when the order is right!</p>
+  <div id="wrap">
+    <div id="badge">VER-WORDTRAIN-01 · Word Train</div>
+    <div id="phasecue">👁️</div>
+    <div id="stagecard">
+      <div id="trackBand" class="band"><div id="track"><span class="engine">🚂</span></div></div>
+      <div id="poolBand" class="band"><div id="pool"></div></div>
+      <div id="diffmeter">🌱<div id="diffbar"><i id="diffbarfill"></i></div>🌳</div>
+      <div id="controls">
+        <button class="rd" id="replay" title="replay demo">↻</button>
+        <button class="rd" id="go" title="submit">✓</button>
+      </div>
+    </div>
   </div>
-  <div id="track"><span class="eng">🚂</span></div>
-  <div class="tray" id="tray"></div>
-  <div id="verdict"></div>
-  <div class="row">
-    <button class="pri ctl" id="go">▶ Watch how it works</button>
-    <button class="ctl" id="replay" disabled>↺ Replay demo</button>
-    <button class="ctl" id="reset">↩ clear</button>
-  </div>
-  <p class="sub" id="phasehint">A ghost hand shows you first — no reading needed.</p>
-</div>
-<aside class="tel" id="tel"></aside>
+  <aside id="telemetry">
+    <h3>Live telemetry · per-child</h3>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+  <div id="ghost">👆<span class="ring"></span></div>
 <script>
-"use strict";
-const $=s=>document.querySelector(s);
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-// each item: words in CORRECT order; frequency band label (adaptive vocab leveling)
-const ITEMS=[
- {w:["the","dog","runs"],band:"common",lvl:1},
- {w:["the","cat","naps"],band:"common",lvl:1},
- {w:["the","happy","child","sings"],band:"common",lvl:2},
- {w:["the","clever","fox","hides","quickly"],band:"mid",lvl:3}];
-const track=$("#track"),tray=$("#tray"),verdict=$("#verdict");
-const T={phase:"idle",trial:0,acc:[0,0],polyNum:0,polyDen:0,moves:0,minMoves:0,maxlvl:0,band:"common",log:[]};
-function pct(p){return p[1]?Math.round(100*p[0]/p[1]):0}
-function pctPoly(){return T.polyDen?Math.round(100*T.polyNum/T.polyDen):0}
-function eff(){return T.minMoves?Math.round(100*T.minMoves/Math.max(T.moves,T.minMoves)):100}
-function logE(s){T.log.unshift(`${(performance.now()/1000).toFixed(1)}s · ${s}`);if(T.log.length>60)T.log.pop()}
-function render(){
-  $("#tel").innerHTML=`
-  <h2>Live telemetry · VER-WORDTRAIN-01</h2>
-  <div class="kv"><span>phase</span><b>${T.phase}</b></div>
-  <div class="kv"><span>sentences</span><b>${T.trial}</b></div>
-  <h2>Accuracy <span class="m">M-ACC</span></h2>
-  <div class="kv"><span>whole sentence correct</span><b>${pct(T.acc)}%</b></div>
-  <h2>Order partial-credit <span class="m">M-POLY</span></h2>
-  <div class="kv"><span>adjacent pairs correct</span><b>${pctPoly()}%</b></div>
-  <h2>Syntactic ceiling <span class="m">M-DIFFREACH</span></h2>
-  <div class="kv"><span>hardest structure ordered</span><b>lvl ${T.maxlvl}</b></div>
-  <h2>Vocab leveling <span class="m">M-VOCABLVL</span></h2>
-  <div class="kv"><span>frequency band</span><b>${T.band}</b></div>
-  <h2>Process</h2>
-  <div class="kv"><span>efficiency vs min <span class="m">M-EFF</span></span><b>${eff()}%</b></div>
-  <div class="kv"><span>placement path <span class="m">M-PATH</span></span><b>logged</b></div>
-  <div class="log">${T.log.map(l=>`<div>${l}</div>`).join("")}</div>`;
-}
-render();
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0,last=a=>a[a.length-1];
 
-let item=null,order=[],placed=[];
-function newItem(){item=ITEMS[T.trial%ITEMS.length];T.band=item.band;order=[];placed=item.w.map(()=>false);verdict.textContent="";
-  const shuf=item.w.map((_,i)=>i).sort(()=>Math.random()-0.5);
-  track.innerHTML='<span class="eng">🚂</span>';item.w.forEach(()=>{const s=document.createElement("div");s.className="slot";s.textContent="•";track.appendChild(s)});
-  tray.innerHTML="";shuf.forEach(i=>{const d=document.createElement("div");d.className="car";d.dataset.i=i;d.textContent=item.w[i];d.onpointerdown=()=>place(i,d);tray.appendChild(d)});
-  draw();}
-function draw(){const slots=[...track.querySelectorAll(".slot")];slots.forEach((s,k)=>{if(order[k]!=null){s.className="slot filled";s.textContent=item.w[order[k]];s.onpointerdown=()=>unplace(k);}else{s.className="slot";s.textContent="•";s.onpointerdown=null;}});}
-function place(i,el){if(placed[i]||order.length>=item.w.length)return;placed[i]=true;el.style.visibility="hidden";order.push(i);T.moves++;draw();if(order.length===item.w.length)check();}
-function unplace(k){const i=order[k];order.splice(k,1);placed[i]=false;[...tray.children].forEach(c=>{if(+c.dataset.i===i)c.style.visibility="visible"});draw();}
-function check(){
-  const correct=order.every((v,k)=>v===k);
-  let pairs=0;for(let k=0;k<order.length-1;k++)if(order[k]+1===order[k+1])pairs++;
-  if(T.phase==="scored"){T.trial++;T.acc[1]++;T.polyDen+=item.w.length-1;T.polyNum+=pairs;T.minMoves+=item.w.length;
-    if(correct){T.acc[0]++;T.maxlvl=Math.max(T.maxlvl,item.lvl);verdict.textContent="✅ 🚂💨";logE(`correct (lvl ${item.lvl}, ${item.band})`);}
-    else{verdict.textContent="❌ try order";logE(`${pairs}/${item.w.length-1} pairs correct`);}
-  } else verdict.textContent=correct?"✅ 🚂💨":"❌";
-  render();setTimeout(()=>{if(T.phase==="scored"||T.phase.startsWith("warm"))newItem();},850);
-}
-newItem();$("#reset").onclick=()=>newItem();
+/* ---------- chain-relation bank: level 1 (concrete taxonomic) -> 6 (abstract lexical) ---------- */
+const BANK=[
+ {lvl:1,rel:'animals',vocab:1,fit:[{ic:'\ud83d\udc36',wd:'dog'},{ic:'\ud83d\udc31',wd:'cat'},{ic:'\ud83d\udc26',wd:'bird'}],no:[{ic:'\ud83d\ude97',wd:'car'},{ic:'\ud83c\udf4e',wd:'apple'},{ic:'\ud83e\udea4',wd:'chair'}]},
+ {lvl:2,rel:'fruit',vocab:1,fit:[{ic:'\ud83c\udf4e',wd:'apple'},{ic:'\ud83c\udf4c',wd:'banana'},{ic:'\ud83c\udf47',wd:'grape'}],no:[{ic:'\ud83d\udc36',wd:'dog'},{ic:'\ud83d\ude97',wd:'car'},{ic:'\ud83e\udea4',wd:'chair'}]},
+ {lvl:3,rel:'things that are cold',vocab:2,fit:[{ic:'\ud83e\uddca',wd:'ice'},{ic:'\u2603\ufe0f',wd:'snowman'},{ic:'\ud83c\udf66',wd:'ice cream'}],no:[{ic:'\ud83d\udd25',wd:'fire'},{ic:'\u2600\ufe0f',wd:'sun'},{ic:'\ud83e\udea4',wd:'chair'}]},
+ {lvl:4,rel:'things you wear',vocab:3,fit:[{ic:'\ud83d\udc55',wd:'shirt'},{ic:'\ud83d\udc5f',wd:'shoe'},{ic:'\ud83c\udfa9',wd:'hat'}],no:[{ic:'\ud83c\udf4e',wd:'apple'},{ic:'\ud83d\ude97',wd:'car'},{ic:'\ud83c\udf33',wd:'tree'}]},
+ {lvl:5,rel:'things that can fly',vocab:4,fit:[{ic:'\ud83d\udc26',wd:'bird'},{ic:'\u2708\ufe0f',wd:'plane'},{ic:'\ud83e\ude81',wd:'kite'}],no:[{ic:'\ud83d\ude97',wd:'car'},{ic:'\ud83d\udc1f',wd:'fish'},{ic:'\ud83e\udea4',wd:'chair'}]},
+ {lvl:6,rel:'words that mean "happy"',vocab:6,fit:[{ic:'\ud83d\ude0a',wd:'glad'},{ic:'\ud83d\ude04',wd:'joyful'},{ic:'\ud83d\ude42',wd:'cheerful'}],no:[{ic:'\ud83d\ude22',wd:'sad'},{ic:'\ud83d\ude20',wd:'angry'},{ic:'\ud83d\ude34',wd:'tired'}]},
+];
+function byLevel(l){return BANK.find(b=>b.lvl===l);}
+function buildPool(item){const cards=[...item.fit.map(c=>({...c,fit:true})),...item.no.map(c=>({...c,fit:false}))];
+  for(let i=cards.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[cards[i],cards[j]]=[cards[j],cards[i]];}return cards;}
 
-async function demo(){
-  if(T.phase==="demo")return;T.phase="demo";render();$("#go").disabled=true;$("#replay").disabled=true;
-  T.trial=0;item=ITEMS[0];newItem();
-  const ghost=document.createElement("div");ghost.textContent="👆";ghost.style.cssText="position:fixed;font-size:30px;z-index:9;transition:left .45s,top .45s;opacity:0;pointer-events:none";document.body.appendChild(ghost);
-  await sleep(400);ghost.style.opacity="1";
-  for(const want of [0,1,2]){const el=[...tray.children].find(c=>+c.dataset.i===want&&c.style.visibility!=="hidden");const r=el.getBoundingClientRect();
-    ghost.style.left=(r.left+r.width/2-12)+"px";ghost.style.top=(r.top+6)+"px";await sleep(520);place(want,el);await sleep(220);}
-  await sleep(300);ghost.remove();T.phase="idle";$("#go").disabled=false;$("#replay").disabled=false;
-  $("#go").textContent="▶ Try a practice one";$("#go").onclick=warmup;
-  $("#phasehint").textContent="Tap words in order to make a sentence. Practice one (not scored).";newItem();render();
-}
-$("#go").onclick=demo;$("#replay").onclick=demo;
-function warmup(){T.phase="warm-up (unscored)";newItem();$("#phasehint").textContent="Not scored — build one, then start.";
-  $("#go").textContent="▶ Start scored game";$("#go").onclick=startScored;render();}
-function startScored(){T.phase="scored";T.trial=0;T.moves=0;T.minMoves=0;newItem();
-  $("#phasehint").textContent="These count. Sentences get longer as you succeed — the words are kept common so grammar is the challenge.";
-  $("#go").textContent="(playing…)";$("#go").disabled=true;$("#replay").disabled=true;
-  const iv=setInterval(()=>{$("#blevel").textContent=`band · ${item?item.w.length:3} cars`;
-    if(T.trial>=4){clearInterval(iv);T.phase="done";$("#go").disabled=false;$("#go").textContent="▶ Play again";$("#go").onclick=startScored;$("#replay").disabled=false;
-    $("#phasehint").textContent=`Done. Syntactic ceiling lvl ${T.maxlvl}; order partial-credit ${pctPoly()}%; efficiency ${eff()}%.`;render();}},450);
-  render();}
+/* ---------- telemetry ---------- */
+const T={scored:0,fullCredit:0,polys:[],path:[],taps:0,maxLevel:1,bestVocab:0,itemStart:0};
+function polyStr(){if(!T.polys.length)return '\u2014';return `${last(T.polys).toFixed(2)}  (mean ${mean(T.polys.map(p=>p*100))/100})`;}
+function effStr(){if(!T.taps)return '\u2014';return `${T.taps} taps this session / 3 optimal per item`;}
+const METERS=[
+ {id:'M-ACC',name:'Full-credit accuracy (all 3, no wrongs)',get:()=>T.scored?`${T.fullCredit}/${T.scored}  ${Math.round(100*T.fullCredit/T.scored)}%`:'\u2014'},
+ {id:'M-POLY',name:'Partial credit per round',get:()=>polyStr()},
+ {id:'M-PATH',name:'Tap order (card word chosen)',get:()=>T.path.length?T.path.slice(-6).join(' \u2192 '):'\u2014'},
+ {id:'M-EFF',name:'Taps vs optimal (3/round)',get:()=>effStr()},
+ {id:'M-DIFFREACH',name:'Ceiling / max level reached',get:()=>`L${T.maxLevel}/6`},
+ {id:'M-VOCABLVL',name:'Word frequency ceiling solved',get:()=>T.bestVocab?`L${T.bestVocab}/6`:'\u2014'},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});$('#diffbarfill').style.width=(T.maxLevel/6*100)+'%';}
+function log(msg){const t=Date.now()-T.itemStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+const ghost=$('#ghost');function ghostShow(v){ghost.classList.toggle('show',v);}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(520);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(430);}
+
+/* ---------- render ---------- */
+let cur=null,pool=null,added=[],level=1,locked=false;
+function renderItem(item){cur=item;pool=buildPool(item);added=[];T.itemStart=Date.now();
+  $('#track').innerHTML='<span class="engine">\ud83d\ude82</span>';
+  $('#pool').innerHTML=pool.map((c,i)=>`<div class="card" data-i="${i}"><span class="hk">${i+1}</span><span class="ic">${c.ic}</span><span class="wd">${c.wd}</span></div>`).join('');
+  $('#go').classList.toggle('ready',false);renderMeters();}
+function addCard(i){if(locked||!cur)return;const c=pool[i];const el=$$('#pool .card')[i];if(el.classList.contains('used'))return;
+  T.taps++;T.path.push(c.wd);
+  if(c.fit){el.classList.add('used');added.push(c);const car=document.createElement('span');car.className='car';car.innerHTML=`<span>${c.ic}</span>`;$('#track').appendChild(car);}
+  else{el.classList.add('wrongFlash');setTimeout(()=>el.classList.remove('wrongFlash'),380);added.push({...c,wrong:true});}
+  $('#go').classList.toggle('ready',added.filter(a=>a.fit).length>0);
+  renderMeters();}
+function finishRound(){if(!$('#go').classList.contains('ready'))return;locked=true;$('#go').classList.remove('ready');
+  const correctIn=added.filter(a=>a.fit).length,wrongIn=added.filter(a=>!a.fit).length;
+  const poly=Math.max(0,(correctIn-wrongIn))/cur.fit.length;const full=(correctIn===cur.fit.length&&wrongIn===0);
+  if(phase==='warmup'){log(`warm-up: ${correctIn}/${cur.fit.length} correct, ${wrongIn} wrong — UNSCORED`);setTimeout(nextPhase,1300);return;}
+  T.scored++;T.polys.push(poly);if(full){T.fullCredit++;T.maxLevel=Math.max(T.maxLevel,level);T.bestVocab=Math.max(T.bestVocab,cur.vocab);}
+  log(`ROUND L${level} [${cur.rel}] \u2192 ${correctIn}/${cur.fit.length} correct, ${wrongIn} wrong \u00b7 poly ${poly.toFixed(2)}${full?' FULL':''}`);
+  level=full?Math.min(6,level+1):Math.max(1,level-1);
+  renderMeters();setTimeout(nextPhase,1400);}
+const TOTAL_SCORED=6;let phase='demo',scoredIndex=0;
+function setCue(i){$('#phasecue').textContent=i;}
+function nextPhase(){locked=false;if(phase==='warmup'){scoredIndex=0;startScored();}
+  else if(phase==='scored'){scoredIndex++;scoredIndex<TOTAL_SCORED?startScored():finish();}}
+function startWarmup(){phase='warmup';setCue('\u2b50');level=1;renderItem(byLevel(1));log('— warm-up (unscored) —');}
+function startScored(){phase='scored';setCue('\ud83c\udfaf');renderItem(byLevel(level));log(`— SCORED round ${scoredIndex+1}/${TOTAL_SCORED} · level ${level} [${byLevel(level).rel}] —`);}
+function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;log(`— DONE · full-credit rounds ${T.fullCredit}/${T.scored} · ceiling L${T.maxLevel} —`);renderMeters();}
+async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;
+  const item=byLevel(1);renderItem(item);log('ghost-hand demo (wordless, <10s)');ghostShow(true);await sleep(300);
+  for(let i=0;i<pool.length;i++){if(pool[i].fit){const el=$$('#pool .card')[i];await ghostTo(el);await ghostTap();addCard(i);await sleep(150);}}
+  await sleep(300);await ghostTo($('#go'));await ghostTap();finishRound();
+  await sleep(700);ghostShow(false);await sleep(400);T.itemStart=Date.now();startWarmup();}
+$('#pool').addEventListener('click',e=>{const c=e.target.closest('.card');if(c&&!locked&&phase!=='demo'&&phase!=='done')addCard(+c.dataset.i);});
+$('#go').addEventListener('click',finishRound);
+document.addEventListener('keydown',e=>{if(locked||phase==='demo'||phase==='done')return;const n=+e.key;if(n>=1&&n<=6)addCard(n-1);if(e.key==='Enter')finishRound();});
+$('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
+buildMeters();renderMeters();runDemo();
 </script>
 </body>
 </html>

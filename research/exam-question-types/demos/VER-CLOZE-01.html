@@ -3,144 +3,186 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>VER-CLOZE-01 - Fill the Gap</title>
+<title>VER-CLOZE-01 · Fill the Gap</title>
 <style>
-  :root{--bg:#0f1226;--panel:#181c3a;--card:#20264f;--ink:#f4f6ff;--mut:#9aa3d4;--acc:#ffd23f;
-    --good:#37d67a;--bad:#ff6b6b;--line:#2c3566;--brand:#7c8cff}
-  *{box-sizing:border-box}
-  body{margin:0;font:16px/1.45 system-ui,Segoe UI,Roboto,sans-serif;color:var(--ink);min-height:100vh;
-    background:radial-gradient(1200px 600px at 20% -10%,#2a2f66 0,var(--bg) 55%)}
-  .wrap{display:flex;gap:18px;max-width:1180px;margin:0 auto;padding:18px;flex-wrap:wrap}
-  .main{flex:1 1 560px;min-width:340px}.side{flex:1 1 320px;min-width:300px}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px}
-  header.card{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-bottom:14px}
-  h1{font-size:18px;margin:0}.id{font:12px ui-monospace,monospace;color:var(--mut)}
-  .pill{font:12px ui-monospace,monospace;padding:4px 10px;border-radius:999px;background:#12163a;border:1px solid var(--line);color:var(--acc)}
-  .sentence{font-size:24px;line-height:1.7;background:#161a3d;border:1px solid var(--line);border-radius:16px;padding:18px;margin:4px 0 12px;text-align:center}
-  .blank{display:inline-grid;place-items:center;min-width:88px;height:44px;vertical-align:middle;border-bottom:3px dashed var(--brand);margin:0 4px;font-size:28px;color:var(--acc);font-weight:800}
-  .blank.filled{border-bottom-color:var(--good);animation:pop .35s}
-  @keyframes pop{0%{transform:scale(.6)}60%{transform:scale(1.18)}100%{transform:scale(1)}}
-  .promptbar{display:flex;align-items:center;gap:12px;margin:2px 0 12px}
-  .play{width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;font-size:22px;color:#fff;background:linear-gradient(160deg,var(--brand),#4d5bd6);box-shadow:0 6px 18px #0006}
-  .play.pulse{animation:pulse 1s infinite}@keyframes pulse{0%,100%{box-shadow:0 0 0 0 #7c8cff88}50%{box-shadow:0 0 0 14px #7c8cff00}}
-  .caption{font-size:13px;color:var(--mut)}
-  .opts{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-  .tile{background:var(--card);border:2px solid var(--line);border-radius:16px;min-height:80px;display:grid;place-items:center;font-size:40px;cursor:pointer;transition:transform .12s,border-color .15s,background .15s;user-select:none;text-align:center;padding:6px}
-  .tile.word{font-size:19px;font-weight:700}
-  .tile:hover{border-color:var(--brand)}.tile.pick{border-color:var(--acc);background:#2b2f5e}
-  .tile.correct{border-color:var(--good);background:#1f5138}.tile.wrong{border-color:var(--bad);background:#5a2330}
-  .tile.demo-hit{border-color:var(--acc);transform:scale(1.08)}.tile.lock{pointer-events:none}
-  .feedback{min-height:26px;margin-top:14px;font-weight:600}
-  .row{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
-  button.btn{border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:9px 16px;cursor:pointer;background:#242a56}
-  button.btn.primary{background:linear-gradient(160deg,var(--good),#1f9e5a);border:none;color:#04240f;font-weight:700}
-  button.btn:disabled{opacity:.4;cursor:not-allowed}
-  .tallies{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 12px}
-  .t{background:#12163a;border:1px solid var(--line);border-radius:12px;padding:10px}
-  .t .k{font:11px ui-monospace,monospace;color:var(--mut)}.t .v{font-size:19px;font-weight:700}.t .m{font:10px ui-monospace,monospace;color:var(--brand)}
-  .log{height:240px;overflow:auto;background:#0c0f28;border:1px solid var(--line);border-radius:12px;padding:10px;font:12px/1.5 ui-monospace,Menlo,monospace}
-  .log div{white-space:pre-wrap;border-bottom:1px dashed #1c2350;padding:2px 0}.log .mid{color:var(--acc)}.log .tt{color:var(--mut)}
-  .hand{position:fixed;z-index:50;font-size:38px;pointer-events:none;opacity:0;filter:drop-shadow(0 3px 4px #0008);transition:left .8s cubic-bezier(.5,.1,.3,1),top .8s cubic-bezier(.5,.1,.3,1),opacity .3s}
-  .ripple{position:fixed;z-index:49;width:10px;height:10px;border-radius:50%;background:var(--acc);pointer-events:none;opacity:.8;animation:rip .6s forwards}@keyframes rip{to{transform:scale(9);opacity:0}}
-  .note{font-size:12px;color:var(--mut);margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+  :root{--bg1:#eef4ff;--bg2:#f7ecff;--ink:#26304a;--card:#fff;--accent:#5b6cff;--good:#22b573;--bad:#ff6b6b;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
+  #phasecue{font-size:34px;height:40px;line-height:40px}
+  #stagecard{background:var(--card);border-radius:26px;padding:24px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:18px;max-width:660px;width:100%}
+  .band{border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;align-items:center;width:100%}
+  #sentBand{background:linear-gradient(160deg,#e8f0ff,#f2ecff);border:3px solid #cfd8ff}
+  #sentText{font-size:22px;text-align:center;line-height:1.6}
+  #sentText .blank{display:inline-block;min-width:70px;padding:2px 10px;border-bottom:3px dashed var(--accent);color:var(--accent);font-weight:800;text-align:center}
+  #sentText .filled{border-bottom:3px solid var(--good);color:var(--ink)}
+  .speak{border:0;background:#dfe6ff;color:#5b6cff;border-radius:50%;width:34px;height:34px;font-size:16px;cursor:pointer}
+  #optsBand{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+  .opt{display:flex;flex-direction:column;align-items:center;gap:6px;background:#f4f6ff;border:3px solid #d7deff;border-radius:16px;padding:12px 16px;cursor:pointer;min-width:96px;transition:.12s;position:relative}
+  .opt:hover{border-color:#b9c2ee;transform:translateY(-2px)}
+  .opt .ic{font-size:32px}
+  .opt .wd{font-size:14px;font-weight:700;color:#5060a0}
+  .opt .hk{position:absolute;top:4px;left:6px;font-size:10px;color:#a7b0d8;font-weight:700}
+  .opt.correct{border-color:var(--good);background:#eafaf1}
+  .opt.wrong{border-color:var(--bad);background:#fff0f0}
+  .opt.ghosted{outline:3px solid var(--accent)}
+  #controls{display:flex;gap:16px;align-items:center}
+  button.rd{font:inherit;border:0;cursor:pointer;border-radius:50%}
+  #replay{width:50px;height:50px;background:#eef1ff;color:#5b6cff;font-size:22px}
+  .shake{animation:shake .4s}@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+  #ghost{position:fixed;left:0;top:0;font-size:40px;pointer-events:none;z-index:60;opacity:0;transition:transform .55s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #diffmeter{width:100%;display:flex;align-items:center;gap:8px;font-size:11px;color:#8a93b5}
+  #diffbar{flex:1;height:8px;background:#e4e9ff;border-radius:6px;overflow:hidden}
+  #diffbar i{display:block;height:100%;background:linear-gradient(90deg,#5b6cff,#ff8fd0);width:0%;transition:.3s}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}
+  .mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:210px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="main">
-    <header class="card"><div><h1>Fill the Gap</h1><div class="id">VER-CLOZE-01 &middot; sentence_completion</div></div><span class="pill" id="phase">DEMO</span></header>
-    <div class="card">
-      <div class="sentence" id="sentence"></div>
-      <div class="promptbar"><button class="play" id="play">&#9654;</button><div class="caption" id="cap">Pick what best fills the gap.<br><span style="font-size:11px">(demo caption; production plays audio with a beep at the gap for young bands)</span></div></div>
-      <div class="opts" id="opts"></div>
-      <div class="feedback" id="fb"></div>
-      <div class="row"><button class="btn" id="replay">&#8635; Replay demo</button><button class="btn primary" id="next" disabled>Next &rarr;</button></div>
-      <div class="note">Young bands: audio sentence + picture options. Older bands: printed cloze where only whole-sentence context (not a local word) picks the answer; rare targets probe the vocabulary-in-context ceiling.</div>
+  <div id="wrap">
+    <div id="badge">VER-CLOZE-01 · Fill the Gap</div>
+    <div id="phasecue">👁️</div>
+    <div id="stagecard">
+      <div id="sentBand" class="band">
+        <button class="speak" id="speak" title="hear it">🔊</button>
+        <div id="sentText"></div>
+      </div>
+      <div id="optsBand"></div>
+      <div id="diffmeter">🌱<div id="diffbar"><i id="diffbarfill"></i></div>🌳</div>
+      <div id="controls">
+        <button class="rd" id="replay" title="replay demo">↻</button>
+      </div>
     </div>
   </div>
-  <aside class="side"><div class="card">
-    <h1 style="font-size:15px;margin:0 0 8px">Live telemetry</h1>
-    <div class="tallies">
-      <div class="t"><div class="k">Accuracy</div><div class="v" id="v-acc">0/0</div><div class="m">M-ACC</div></div>
-      <div class="t"><div class="k">1st-action lat.</div><div class="v" id="v-first">&mdash;</div><div class="m">M-RTFIRST</div></div>
-      <div class="t"><div class="k">Freq band / ceiling</div><div class="v" id="v-lvl">1</div><div class="m">M-VOCABLVL / M-DIFFREACH</div></div>
-      <div class="t"><div class="k">Context depth</div><div class="v" id="v-depth">0</div><div class="m">M-INFDEPTH</div></div>
-      <div class="t" style="grid-column:1/3"><div class="k">Parallel-item consistency</div><div class="v" id="v-consist" style="font-size:14px">&mdash;</div><div class="m">M-CONSIST</div></div>
-    </div>
-    <div class="log" id="log"></div>
-  </div></aside>
-</div>
-<div class="hand" id="hand">&#128070;</div>
+  <aside id="telemetry">
+    <h3>Live telemetry · per-child</h3>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+  <div id="ghost">👆<span class="ring"></span></div>
 <script>
-"use strict";
-const sleep=ms=>new Promise(r=>setTimeout(r,ms));const $=s=>document.querySelector(s);const T0=performance.now();
-// pre = text before blank, post = text after blank. opts: e(emoji) or w(word). depth: 2 local, 3 global. pair: matched-parallel id.
-const DEMO={pre:"The dog wants to",post:".",band:1,depth:2,opts:[{e:"🦴",correct:true},{e:"🚗",lure:"unrelated"},{e:"☁️",lure:"unrelated"}]};
-const WARMUP={pre:"I sleep in my",post:".",band:1,depth:2,opts:[{e:"🛏️",correct:true},{e:"🚗",lure:"unrelated"},{e:"🍎",lure:"unrelated"}]};
-const SCORED=[
-  {pre:"It was raining, so I opened my",post:".",band:3,depth:2,pair:"weather",opts:[{w:"umbrella",correct:true},{w:"banana",lure:"unrelated"},{w:"pencil",lure:"unrelated"},{w:"shoe",lure:"unrelated"}]},
-  {pre:"It was sunny, so I put on my",post:".",band:3,depth:2,pair:"weather",opts:[{w:"sunglasses",correct:true},{w:"umbrella",lure:"local"},{w:"gloves",lure:"reversal"},{w:"boots",lure:"unrelated"}]},
-  {pre:"The desert was so",post:"that the traveler drank all of his water.",band:5,depth:3,opts:[{w:"arid",correct:true},{w:"sandy",lure:"local"},{w:"cold",lure:"reversal"},{w:"happy",lure:"unrelated"}]},
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0,last=a=>a[a.length-1];
+function say(text){try{if(!window.speechSynthesis)return;const u=new SpeechSynthesisUtterance(text);u.rate=0.95;speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){}}
+
+/* ---------- item bank (levels 1-6, 2 parallel forms per level) ---------- */
+const INF_RANK={local:0,global:1,'global-connotation':2,'global-logic':3};
+const BANK={
+ 1:[
+  {pre:'The dog wants to',post:'.',opts:[{ic:'🦴',wd:'bone'},{ic:'🚗',wd:'car'},{ic:'☁️',wd:'cloud'}],correct:0,vocab:1,inf:'local'},
+  {pre:'The bird can',post:'.',opts:[{ic:'🕊️',wd:'fly'},{ic:'🐟',wd:'swim'},{ic:'🍔',wd:'eat lunch'}],correct:0,vocab:1,inf:'local'},
+ ],
+ 2:[
+  {pre:'She was thirsty, so she drank some',post:'.',opts:[{ic:'💧',wd:'water'},{ic:'🪨',wd:'rock'},{ic:'📚',wd:'book'}],correct:0,vocab:2,inf:'local'},
+  {pre:'It was raining, so he opened his',post:'.',opts:[{ic:'☂️',wd:'umbrella'},{ic:'🕶️',wd:'sunglasses'},{ic:'🎈',wd:'balloon'}],correct:0,vocab:2,inf:'local'},
+ ],
+ 3:[
+  {pre:'Although the soup was hot, she ate it because she was so',post:'.',opts:[{ic:'🍽️',wd:'hungry'},{ic:'😴',wd:'sleepy'},{ic:'🥶',wd:'cold'}],correct:0,vocab:3,inf:'global'},
+  {pre:'Even though he studied all night, he still felt',post:'about the test.',opts:[{ic:'😟',wd:'nervous'},{ic:'😃',wd:'confident'},{ic:'😴',wd:'sleepy'}],correct:0,vocab:3,inf:'global'},
+ ],
+ 4:[
+  {pre:"The critic's review was scathing, calling the film a total",post:'.',opts:[{ic:'💥',wd:'disaster'},{ic:'🌟',wd:'masterpiece'},{ic:'😐',wd:'average'}],correct:0,vocab:4,inf:'global-connotation'},
+  {pre:"Despite the coach's optimistic pep talk, the team's performance remained",post:'.',opts:[{ic:'📉',wd:'disappointing'},{ic:'📈',wd:'outstanding'},{ic:'😐',wd:'average'}],correct:0,vocab:4,inf:'global-connotation'},
+ ],
+ 5:[
+  {pre:"Far from being reckless, the pilot's decision to abort the landing was actually quite",post:'.',opts:[{ic:'🧠',wd:'prudent'},{ic:'😱',wd:'careless'},{ic:'🎲',wd:'risky'}],correct:0,vocab:5,inf:'global-logic'},
+  {pre:'Contrary to popular belief, the shy new student turned out to be remarkably',post:'.',opts:[{ic:'🗣️',wd:'outgoing'},{ic:'🤫',wd:'quiet'},{ic:'😢',wd:'sad'}],correct:0,vocab:5,inf:'global-logic'},
+ ],
+ 6:[
+  {pre:'Given the flawed methodology, it would be disingenuous to call the results anything but',post:'.',opts:[{ic:'❓',wd:'questionable'},{ic:'✅',wd:'conclusive'},{ic:'🎉',wd:'celebrated'}],correct:0,vocab:6,inf:'global-logic'},
+  {pre:'His so-called apology was so half-hearted that it only made her feel more',post:'.',opts:[{ic:'😤',wd:'unforgiving'},{ic:'😌',wd:'grateful'},{ic:'🥱',wd:'bored'}],correct:0,vocab:6,inf:'global-logic'},
+ ],
+};
+function shuffled(item){const idx=[0,1,2];for(let i=idx.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[idx[i],idx[j]]=[idx[j],idx[i]];}
+  return {...item,opts:idx.map(i=>item.opts[i]),correct:idx.indexOf(item.correct)};}
+function pickItem(level){const forms=BANK[level];return shuffled(forms[(Math.random()*forms.length)|0]);}
+
+/* ---------- telemetry state ---------- */
+const T={scored:0,exact:0,rts:[],firstRt:[],levelHits:{},maxLevel:1,bestVocab:0,bestInfRank:-1,bestInf:'\u2014',itemStart:0,firstActionAt:null,startLevel:1};
+function consistStr(){const keys=Object.keys(T.levelHits).filter(k=>T.levelHits[k].length>1);
+  if(!keys.length)return '\u2014';
+  let agree=0;keys.forEach(k=>{const a=T.levelHits[k];agree+=a.every(v=>v===a[0])?1:0;});
+  return `${agree}/${keys.length} levels agree`;}
+function learnRateStr(){if(!T.scored)return '\u2014';return `${((T.maxLevel-T.startLevel)/T.scored).toFixed(2)} lvl/trial`;}
+const METERS=[
+ {id:'M-ACC',name:'Item accuracy',get:()=>T.scored?`${T.exact}/${T.scored}  ${Math.round(100*T.exact/T.scored)}%`:'\u2014'},
+ {id:'M-RT',name:'Response time — total',get:()=>T.rts.length?`${last(T.rts)} ms  (mean ${mean(T.rts)})`:'\u2014'},
+ {id:'M-RTFIRST',name:'First-action latency',get:()=>T.firstRt.length?`${last(T.firstRt)} ms`:'\u2014'},
+ {id:'M-DIFFREACH',name:'Ceiling / max level reached',get:()=>`L${T.maxLevel}/6`},
+ {id:'M-CONSIST',name:'Cross-item consistency (matched levels)',get:()=>consistStr()},
+ {id:'M-VOCABLVL',name:'Lexical frequency ceiling solved',get:()=>T.bestVocab?`L${T.bestVocab}/6`:'\u2014'},
+ {id:'M-INFDEPTH',name:'Inference depth reached',get:()=>T.bestInf},
 ];
-let phase="demo",itemIdx=0,cur=null,tShown=0,tFirst=0,locked=false,ceiling=1,depthMax=0;
-const results=[];const pairResults={};
-function log(mid,msg){const el=document.createElement("div");const t=((performance.now()-T0)/1000).toFixed(2);el.innerHTML=`<span class="tt">t+${t}s</span> <span class="mid">[${mid}]</span> ${msg}`;const b=$("#log");b.appendChild(el);b.scrollTop=b.scrollHeight;}
-function speak(t){try{if(window.speechSynthesis){const u=new SpeechSynthesisUtterance(t);u.rate=.93;speechSynthesis.cancel();speechSynthesis.speak(u);}}catch(e){}}
-function setPhase(p){phase=p;$("#phase").textContent=p.toUpperCase();}
-function sentenceSpoken(item,fill){return item.pre+" "+(fill||"beep")+" "+item.post;}
-function renderSentence(item,fill){
-  $("#sentence").innerHTML=`${item.pre} <span class="blank${fill?" filled":""}" id="blank">${fill||"___"}</span> ${item.post}`;
-}
-function renderItem(item,{interactive=true}={}){
-  cur=item;locked=false;tFirst=0;
-  renderSentence(item,null);$("#fb").textContent="";$("#next").disabled=true;
-  const g=$("#opts");g.innerHTML="";g.style.gridTemplateColumns=`repeat(${item.opts.length},1fr)`;
-  item.opts.forEach((o,i)=>{const d=document.createElement("div");d.className="tile"+(o.w?" word":"");d.textContent=o.w||o.e;d.dataset.i=i;
-    if(interactive)d.addEventListener("click",()=>choose(i,d));g.appendChild(d);});
-  tShown=performance.now();speak(sentenceSpoken(item,null));
-}
-const tiles=()=>[...document.querySelectorAll("#opts .tile")];
-function choose(i,el){if(locked)return;const now=performance.now();
-  if(!tFirst){tFirst=now;log("M-RTFIRST",`first-action latency ${Math.round(tFirst-tShown)}ms`);}
-  tiles().forEach(t=>t.classList.remove("pick"));el.classList.add("pick");
-  renderSentence(cur,cur.opts[i].w||cur.opts[i].e);
-  $("#next").disabled=false;
-}
-function commit(){
-  const el=document.querySelector("#opts .tile.pick");if(!el)return;locked=true;
-  const i=+el.dataset.i;const rt=Math.round(performance.now()-tShown);const opt=cur.opts[i];const correct=!!opt.correct;
-  tiles().forEach(t=>t.classList.add("lock"));el.classList.add(correct?"correct":"wrong");
-  if(!correct)tiles()[cur.opts.findIndex(o=>o.correct)].classList.add("correct");
-  renderSentence(cur,(correct?opt:cur.opts[cur.opts.findIndex(o=>o.correct)]).w||cur.opts[cur.opts.findIndex(o=>o.correct)].e);
-  if(phase==="warmup"){log("M-ENGAGE",`warm-up (unscored) rt ${rt}ms`);$("#fb").textContent=correct?"Nice - it fits!":"See how it reads now.";$("#fb").style.color=correct?"var(--good)":"var(--mut)";$("#next").disabled=false;return;}
-  results.push({correct,rt,band:cur.band,depth:cur.depth,first:tFirst?Math.round(tFirst-tShown):0});
-  log("M-ACC",`item ${itemIdx+1}: ${correct?"CORRECT":"incorrect"} (freq band ${cur.band}, ${cur.depth===3?"global":"local"} context)`);log("M-RT",`response time ${rt}ms`);
-  if(correct){ceiling=Math.max(ceiling,cur.band);depthMax=Math.max(depthMax,cur.depth);log("M-VOCABLVL",`freq band ${cur.band} solved -> ceiling ${ceiling}`);log("M-DIFFREACH",`max difficulty: band ${ceiling}`);log("M-INFDEPTH",`context depth ${cur.depth} (${cur.depth===3?"whole-sentence/global":"local"}) -> max ${depthMax}`);}
-  else{const near=(opt.lure==="local"||opt.lure==="reversal");log("M-INFDEPTH",near?`chose local-fit lure - used local not global context`:`weak/unrelated error`);}
-  if(cur.pair){pairResults[cur.pair]=pairResults[cur.pair]||[];pairResults[cur.pair].push(correct);
-    if(pairResults[cur.pair].length===2){const[a,b]=pairResults[cur.pair];const consistent=(a===b);$("#v-consist").textContent=consistent?"consistent ✓":"inconsistent";log("M-CONSIST",`matched parallel pair '${cur.pair}': ${consistent?"consistent (tightens SE at cut)":"inconsistent (needs more items before a decision)"}`);}}
-  $("#fb").textContent=correct?"★ It fits!":"Not the best fit.";$("#fb").style.color=correct?"var(--good)":"var(--bad)";
-  updateTallies();$("#next").disabled=false;
-}
-function updateTallies(){const n=results.length,c=results.filter(r=>r.correct).length;$("#v-acc").textContent=`${c}/${n}`;
-  const firsts=results.map(r=>r.first).filter(Boolean);
-  if(firsts.length)$("#v-first").textContent=Math.round(firsts.reduce((a,b)=>a+b,0)/firsts.length)+"ms";
-  $("#v-lvl").textContent=ceiling;$("#v-depth").textContent=depthMax;}
-function ripple(x,y){const d=document.createElement("div");d.className="ripple";d.style.left=(x-5)+"px";d.style.top=(y-5)+"px";document.body.appendChild(d);setTimeout(()=>d.remove(),620);}
-async function ghostGlide(target){const hand=$("#hand");const pb=$("#play").getBoundingClientRect();hand.style.left=(pb.left+10)+"px";hand.style.top=(pb.top+20)+"px";hand.style.opacity="1";await sleep(60);
-  const r=target.getBoundingClientRect();hand.style.left=(r.left+r.width/2-8)+"px";hand.style.top=(r.top+r.height/2)+"px";await sleep(820);target.classList.add("demo-hit");ripple(r.left+r.width/2,r.top+r.height/2);await sleep(520);target.classList.remove("demo-hit");hand.style.opacity="0";}
-async function runDemo(){setPhase("demo");$("#next").disabled=true;$("#replay").disabled=true;renderItem(DEMO,{interactive:false});log("M-ENGAGE","wordless ghost-hand demo start (<10s, no instructions)");
-  await sleep(500);$("#play").classList.add("pulse");await sleep(900);await ghostGlide(tiles()[0]);tiles()[0].classList.add("correct");renderSentence(DEMO,DEMO.opts[0].e);$("#play").classList.remove("pulse");await sleep(500);$("#replay").disabled=false;startWarmup();}
-function startWarmup(){setPhase("warmup");renderItem(WARMUP,{interactive:true});$("#fb").textContent="Your turn - tap what fills the gap.";$("#fb").style.color="var(--mut)";log("M-ENGAGE","unscored warm-up shown");}
-function startScored(){setPhase("scored");itemIdx=0;renderItem(SCORED[0],{interactive:true});log("M-ENGAGE","scoring begins (parallel pair + rare-word global context)");}
-function next(){if(phase==="warmup"){startScored();return;}if(phase==="scored"){itemIdx++;if(itemIdx<SCORED.length)renderItem(SCORED[itemIdx],{interactive:true});else finish();}}
-function finish(){setPhase("done");$("#opts").innerHTML="";$("#next").disabled=true;$("#play").classList.remove("pulse");
-  const c=results.filter(r=>r.correct).length;$("#sentence").innerHTML="🎉 Great filling!";$("#fb").innerHTML=`Complete - ${c}/${results.length} correct, vocab ceiling band ${ceiling}, context depth ${depthMax}.`;$("#fb").style.color="var(--good)";}
-$("#play").addEventListener("click",()=>{if(cur)speak(sentenceSpoken(cur,document.querySelector(".tile.pick")?(cur.opts[+document.querySelector(".tile.pick").dataset.i].w||"this"):null));});
-$("#next").addEventListener("click",()=>{if((phase==="scored"||phase==="warmup")&&!locked&&document.querySelector("#opts .tile.pick")){commit();return;}next();});
-$("#replay").addEventListener("click",()=>{results.length=0;Object.keys(pairResults).forEach(k=>delete pairResults[k]);ceiling=1;depthMax=0;$("#v-consist").textContent="—";$("#log").innerHTML="";updateTallies();runDemo();});
-setInterval(()=>{const hasPick=!!document.querySelector("#opts .tile.pick");$("#next").textContent=((phase==="scored"||phase==="warmup")&&hasPick&&!locked)?"Check ✓":"Next →";},150);
-updateTallies();runDemo();
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});$('#diffbarfill').style.width=(T.maxLevel/6*100)+'%';}
+function log(msg){const t=Date.now()-T.itemStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+const ghost=$('#ghost');function ghostShow(v){ghost.classList.toggle('show',v);}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(520);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(430);}
+
+/* ---------- render ---------- */
+let cur=null,level=1,locked=false;
+function renderItem(item,speakIt){cur=item;T.itemStart=Date.now();T.firstActionAt=null;
+  $('#sentText').innerHTML=`${item.pre} <span class="blank" id="blankSpan">▢</span> ${item.post}`;
+  $('#optsBand').innerHTML=item.opts.map((o,i)=>`<div class="opt" data-i="${i}"><span class="hk">${i+1}</span><span class="ic">${o.ic}</span><span class="wd">${o.wd}</span></div>`).join('');
+  if(speakIt)say(item.pre+' blank '+item.post);
+  renderMeters();}
+function markFirstAction(){if(T.firstActionAt===null){T.firstActionAt=Date.now();T.firstRt.push(T.firstActionAt-T.itemStart);}}
+function pick(i,fromGhost){if(locked||!cur)return;markFirstAction();
+  const opt=$$('#optsBand .opt')[i];const exact=i===cur.correct;
+  $$('#optsBand .opt').forEach(o=>o.classList.remove('correct','wrong'));
+  opt.classList.add(exact?'correct':'wrong');
+  $('#blankSpan').textContent=cur.opts[i].ic+' '+cur.opts[i].wd;$('#blankSpan').classList.add('filled');
+  if(!exact){$('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),450);
+    const c=$$('#optsBand .opt')[cur.correct];c.classList.add('correct');}
+  say(cur.pre+' '+cur.opts[cur.correct].wd+' '+cur.post);
+  return exact;}
+function submitAnswer(i){if(locked||!cur)return;const rt=Date.now()-T.itemStart;const exact=pick(i);locked=true;
+  if(phase==='warmup'){log('warm-up '+(exact?'correct':'try again — shown correct')+' — UNSCORED');setTimeout(nextPhase,1300);return;}
+  T.scored++;T.rts.push(rt);if(exact)T.exact++;
+  (T.levelHits[level]=T.levelHits[level]||[]).push(exact?1:0);
+  if(exact){T.maxLevel=Math.max(T.maxLevel,level);T.bestVocab=Math.max(T.bestVocab,cur.vocab);
+    const r=INF_RANK[cur.inf];if(r>T.bestInfRank){T.bestInfRank=r;T.bestInf=cur.inf;}}
+  log(`SUBMIT L${level} "${cur.pre} [${cur.opts[i].wd}] ${cur.post}" \u2192 ${exact?'CORRECT':'WRONG (correct: '+cur.opts[cur.correct].wd+')'} · ${rt}ms`);
+  level=exact?Math.min(6,level+1):Math.max(1,level-1);
+  renderMeters();setTimeout(nextPhase,1400);}
+function nextPhase(){locked=false;if(phase==='warmup'){scoredIndex=0;startScored();}
+  else if(phase==='scored'){scoredIndex++;scoredIndex<TOTAL_SCORED?startScored():finish();}}
+const TOTAL_SCORED=6;
+let phase='demo',scoredIndex=0;
+function setCue(i){$('#phasecue').textContent=i;}
+function startWarmup(){phase='warmup';setCue('\u2b50');level=1;renderItem(pickItem(1),false);log('— warm-up (unscored) —');}
+function startScored(){phase='scored';setCue('\ud83c\udfaf');T.startLevel=T.startLevel||level;renderItem(pickItem(level),false);
+  log(`— SCORED item ${scoredIndex+1}/${TOTAL_SCORED} · level ${level} —`);}
+function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;log(`— DONE · exact ${T.exact}/${T.scored} · ceiling L${T.maxLevel} —`);renderMeters();}
+async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;
+  const item=shuffled(BANK[1][0]);renderItem(item,false);log('ghost-hand demo (wordless, <10s)');
+  ghostShow(true);await sleep(300);
+  const opt=$$('#optsBand .opt')[item.correct];await ghostTo(opt);opt.classList.add('ghosted');await ghostTap();
+  pick(item.correct);await sleep(700);ghostShow(false);opt.classList.remove('ghosted');await sleep(400);
+  T.itemStart=Date.now();startWarmup();}
+$('#optsBand').addEventListener('click',e=>{const o=e.target.closest('.opt');if(o&&!locked&&phase!=='demo'&&phase!=='done')submitAnswer(+o.dataset.i);});
+document.addEventListener('keydown',e=>{if(locked||phase==='demo'||phase==='done')return;const n=+e.key;if(n>=1&&n<=3)submitAnswer(n-1);});
+$('#speak').addEventListener('click',()=>{if(cur)say(cur.pre+' blank '+cur.post);});
+$('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
+T.startLevel=1;
+buildMeters();renderMeters();runDemo();
 </script>
 </body>
 </html>
