@@ -14,8 +14,9 @@ from collections import defaultdict, Counter
 HERE = os.path.dirname(os.path.abspath(__file__))
 CAT = os.path.join(HERE, "catalog")
 TARGET = 3
-AREAS = {"fluid_reasoning", "verbal", "quantitative", "spatial",
-         "working_memory", "processing_speed", "complementary"}
+# Four testable domains (working_memory/processing_speed are now cross-cutting
+# measurement signals, not areas). See CATEGORY_MAP.md.
+AREAS = {"fluid_reasoning", "verbal", "quantitative", "spatial"}
 
 
 def norm(s):

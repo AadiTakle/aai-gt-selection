@@ -12,10 +12,16 @@ gaming/burden), R5 (defensible capability standard).
 
 ## Areas (sections)
 
-Seven reasoning areas; **game-based mechanics are a cross-cutting delivery layer applied to
-all**, not a separate section:
-`fluid_reasoning`, `verbal`, `quantitative`, `spatial`, `working_memory`,
-`processing_speed`, `complementary`.
+**Four testable domains** (the recategorization — see `CATEGORY_MAP.md`):
+`fluid_reasoning`, `verbal`, `quantitative`, `spatial`.
+
+**Cross-cutting signals, not domains:**
+- **working_memory** — a measured signal; dedicated WM games live **under `spatial`**.
+- **processing_speed** — an engagement-gated efficiency signal (pending
+  `PS_GAMEBASED_WARRANT.md`); not a construct/area.
+- **game-based** — a delivery layer applied to any type, not a section.
+- **creativity/curiosity** — folded into `fluid_reasoning` or `verbal`, with
+  fully automated proxy scoring (no human judge).
 
 ## Hard coverage requirement
 
@@ -39,7 +45,7 @@ band**: `K-1`, `2-3`, `4-5`, `6-8`. (A single type may count for multiple bands.
 
 | field | meaning |
 |---|---|
-| `type_id` | `<AREA>-<SHORT>-NN`, e.g. `QUANT-IGRAPH-01` (AREA prefix: FLU, VER, QUANT, SPA, WM, PS, CX) |
+| `type_id` | `<PREFIX>-<SHORT>-NN`, e.g. `QUANT-IGRAPH-01`. Prefix is historical (FLU, VER, QUANT, SPA, WM, PS, GB, CX); after recategorization the **`areas` field**, not the prefix, defines the domain (a folded `GB-`/`WM-`/`CX-` type carries its construct's domain in `areas`). |
 | `name` | short human name |
 | `areas` | list of area keys this type serves (usually one) |
 | `topics_techniques_covered` | subconstructs/techniques from `TOPICS_BY_AREA.md` it can carry |

@@ -1,6 +1,8 @@
 {
-  "wave": 8,
-  "phase": "novelty-lean",
-  "prev": "9d0e604 (243 types, 100%/100%)",
-  "note": "Wave 8 lean novelty: 2 disjoint-shard agents, high-novelty bar (genuinely new mechanics only; add fewer/none if saturated). Continue while RUN exists."
+  "phase": "recategorization-rebuild",
+  "recat_wave": 0,
+  "prev": "2e041bf (251 types, pre-recat base)",
+  "current": "54 kept types, 4 domains, 23% top-GT coverage (re-baselined)",
+  "note": "RES-013 recategorization: cut 251->54 keepers, 4 domains, greenfield quant, metric redesign, PS warrant, Phase-2 build fleet. See CATEGORY_MAP.md.",
+  "next": ["metric-framework", "ps-warrant", "quant-specs", "build-fleet"]
 }

@@ -14,8 +14,10 @@ DEMOS = os.path.join(HERE, "demos")
 CAT = os.path.join(HERE, "catalog")
 MEAS_JSON = os.path.join(HERE, "measurements.json")
 
-AREAS = ["fluid_reasoning", "verbal", "quantitative", "spatial",
-         "working_memory", "processing_speed", "complementary"]
+# Four testable domains only. working_memory + processing_speed are now
+# cross-cutting MEASUREMENT tags, not areas (dedicated WM games live under
+# spatial). See CATEGORY_MAP.md. processing_speed is pending PS_GAMEBASED_WARRANT.md.
+AREAS = ["fluid_reasoning", "verbal", "quantitative", "spatial"]
 BANDS = ["K-1", "2-3", "4-5", "6-8"]
 REQ = ["type_id", "name", "areas", "topics_techniques_covered", "one_liner", "interaction",
        "self_teach", "learning_science", "measurements", "tail_precision_rationale",
