@@ -12,14 +12,14 @@ Use it to evaluate product concepts and PRD decisions:
 
 ## Core success statement
 
-The product must create a workable student-selection process that lets GT School estimate its contribution to student outcomes more credibly than its current selected-cohort reporting allows.
+The product must create a workable student-selection process that (a) produces a scalable, defensible screening decision identifying applicants who are gifted and able to thrive and accelerate on GT School's Timeback platform, and (b) lets GT School estimate its contribution to student outcomes more credibly than its current selected-cohort reporting allows.
 
 It must improve the distinction between:
 
 - **Selection effect:** Outcomes explained by who was admitted, family resources, prior achievement, motivation, or other pre-existing factors.
 - **Program effect:** Outcomes caused by participating in GT School's program.
 
-The product does not need to prove that GT School works. It must make the program's effect more credibly testable, including the possibility of a null or negative result.
+The product does not need to prove that GT School works. It must make the program's effect more credibly testable, including the possibility of a null or negative result. Giftedness is a necessary component of the screening target, but the criterion is fit — thriving and accelerating on the platform.
 
 ---
 
@@ -75,17 +75,18 @@ Selection inputs may predict future performance, but program impact must be eval
 - Prior achievement is treated as a starting condition or covariate, not proof of impact.
 - National-percentile standing alone is not presented as evidence that the program caused growth.
 
-### R5. Preserve a defensible capability standard
+### R5. Preserve a defensible capability-and-fit standard
 
-The selection process must identify students with a credible ability to benefit from the program. Broadening access cannot mean arbitrarily lowering the capability bar.
+The selection process must identify students with a credible ability to benefit from and accelerate on the program's Timeback platform. Capability includes giftedness as a necessary component but is judged by fit — the ability to thrive and accelerate on the platform. Broadening access cannot mean arbitrarily lowering the capability bar.
 
 Any selection measure used must have a defensible relationship to the capability it claims to measure. Weak, vague, or easily coached constructs cannot carry the admission decision without validation.
 
 **Evidence that this is met**
 
-- “Capability” is operationally defined.
-- Each decision-used measure has a stated purpose and validity rationale.
+- “Capability-and-fit” is operationally defined (giftedness plus the ability to thrive and accelerate on the platform).
+- Each decision-used measure has a stated purpose and validity rationale, validated against GT's existing signals (CogAT, MAP) and, where available, platform acceleration.
 - The process accounts for measurement error and boundary cases.
+- GT's current operational anchors — the multi-path CogAT/MAP rubric and the 85th-percentile MAP reading gate — are documented (D-015, E-071) as validation references, not as a locked cut.
 - Broad self-reported grit, motivation, or growth mindset is not used as a standalone proxy for capability.
 
 ### R6. Measure growth without a gifted-student ceiling
@@ -146,6 +147,18 @@ The product must distinguish among:
 - whether the program caused the change.
 
 Success on the first four cannot be presented as proof of the fifth.
+
+### R11. Provide a scalable, tunable, GT-validated screening instrument
+
+The selection product must include a screener that predicts giftedness and Timeback-fit and can drive the admission decision at real scale.
+
+**Evidence that this is met**
+
+- The screener targets giftedness *and* the ability to thrive and accelerate on the Timeback platform, not giftedness alone.
+- It is operable algorithmically at applicant volumes in the thousands, producing an admit / defer / "try again" decision without per-applicant human scoring.
+- Its parameters and cut are exposed for GT admissions to tune and own; the product does not lock a final cut on GT's behalf.
+- Its outputs are validated against GT's existing signals (CogAT, MAP) and, where available, Timeback acceleration, using GT-provided data (E-071, E-075).
+- A human path is preserved for near-miss cases and behavioral (shadow-day) review; R10's claim boundaries still apply — a reliable screener does not by itself establish program impact.
 
 ---
 
@@ -219,15 +232,15 @@ Prefer signals that are difficult to manipulate through coaching, family resourc
 The capstone does **not** inherently require:
 
 - an admission lottery, although randomization is the strongest option under the right conditions;
-- a specific test, threshold, composite formula, or number of measures;
+- a *locked* threshold, composite formula, or number of measures (the screener itself is now in scope per R11, but it is tunable and GT owns the cut);
 - a specific user interface, application flow, database, or technical stack;
 - modification of the Timeback learning platform;
 - proof of long-term elite attainment within the initial product or pilot;
 - proof that GT School produces a positive program effect;
-- replacing all cognitive testing;
-- selecting on motivation, grit, or conscientiousness;
+- replacing all cognitive testing (CogAT remains GT's most trusted single signal and a validation anchor — E-074);
+- selecting primarily on motivation, grit, or conscientiousness (bounded Track B artifacts may supplement, not carry, the decision);
 - solving gifted-education equity beyond what is necessary for credible selection and evaluation;
-- a production launch during the capstone.
+- operating a live production admissions system during the capstone (a GT-tunable screener model and validation harness intended for GT-side integration is in scope per D-015; live operation is not).
 
 ---
 

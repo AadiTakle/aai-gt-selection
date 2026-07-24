@@ -200,6 +200,19 @@ Each decision must include the requirements served, alternatives considered, evi
 - **Owner:** Team lead
 - **Relationship to prior decisions:** Operationalizes D-008’s review mechanics, D-010’s claim/remedy boundaries, and D-013’s account/application lifecycle; it does not change Track A policy, allocation, causal evaluation, or production authorization.
 
+### D-015 — Reframe the selection target to Timeback-fit (giftedness core) and adopt a scalable, tunable, GT-validated screener
+
+- **Date:** 2026-07-24
+- **Status:** Approved
+- **Decision:** Reframe the selection target from "identify giftedness" to "identify applicants who are gifted *and* able to thrive and accelerate on the Timeback platform," with giftedness a necessary but not sufficient component. Adopt a scalable, tunable, GT-validated screener as a first-class deliverable (new R11) and reframe R5 to a capability-and-fit standard. Retain the counterfactual/lottery design (R2; D-010) unchanged as the program-effect evaluation arm — the screener defines the capable/fit pool, the lottery measures program effect. Record GT's current operational anchors — the multi-path admission rubric (high CogAT; or two MAP screeners above the 95th percentile; or a blended CogAT+MAP aggregate above the 90th percentile; or a 99th-percentile composite waiver) and the 85th-percentile fall MAP reading gate with an ESL/exceptional-cognitive exception — as documented validation references, not a locked cut. The screener must run algorithmically at applicant volumes in the thousands (GT Anywhere at scale), with a human shadow-day retained for behavioral fit. North-star context: the "MIT-ready by 8th grade, ~100,000 students" leadership goal (expansion-dependent; current cohorts ~40-46 physical + ~300 virtual).
+- **Requirements served:** R1, R5, R8, R11; complements R2–R4, R6, R7, R9, R10; H1, H4, H10
+- **Alternatives considered:** Keep the giftedness-only target; target Timeback-fit only (dropping giftedness); keep the charter counterfactual-only and treat the screener as "not predetermined."
+- **Evidence:** E-071–E-077 (GT admissions-director interview, Crystal Martel, 2026-07-23, Otter transcripts pt.1/pt.2)
+- **Rationale:** The GT admissions director specified that the platform serves a specific learner profile: some gifted students do not thrive on Timeback (twice-exceptional, ESL, heavy-repetition needs, non-academic prodigies), while some students who are not conventionally "gifted" accelerate on it. Optimizing the screener for platform fit (with giftedness necessary) matches what GT actually selects for and what its data can validate, while the retained counterfactual keeps program-effect claims honest and non-circular (R4, R10).
+- **Consequences:** `PROJECT_CHARTER.md` (mission, goals, non-goals) and `docs/product/project-requirements.md` (core success, R5, new R11, non-requirements) are updated. Deferred, tracked follow-ups (not this pass): reframing the two brainlifts toward the Timeback-fit target (counterfactual brainlift 10K→100K figure and a forward note; reconciling the assessment-quality brainlift's Insight 14 "never a will-benefit prediction" — proposed to the author, not rewritten); designing the GT-data validation study (new-test vs CogAT/MAP overlap; Timeback-acceleration criterion); re-orienting the question-type catalog toward the Timeback-fit / learning-rate construct. Tracked as RES-012 and RES-013. Does not supersede D-008 (Track A/B), D-010 (two-stage evaluation), D-012 (platform), or D-014 (personas/journey).
+- **Owner:** Team lead
+- **Relationship to prior decisions:** Refines the charter mission and R5; retains D-008's Track A/Track B and D-010's evaluation design; does not change platform (D-012) or MVP persona/journey (D-014) decisions.
+
 ## Entry template
 
 ### D-XXX — Decision title
