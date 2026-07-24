@@ -40,8 +40,9 @@ Born-synthetic under **RES-013**.
     `M-MANIPCOST`, `M-UPDATECOST`, `M-BETWEENERR`, `M-SEARCHSTRAT`,
     `M-PROCACC`) collected mostly within the visuospatial WM games now under
     `spatial`. Reported as a profile signal, not a fifth score.
-  - **Processing speed** — see `PS_GAMEBASED_WARRANT.md`. Speed is an
-    **engagement-gated efficiency signal**, never a standalone domain (§3).
+  - **Processing speed** — `PS_GAMEBASED_WARRANT.md` **resolved to Rec B**: no
+    dedicated PS types/domain. Speed is an **engagement-gated efficiency
+    signal**, never a standalone domain (§3).
   - **Executive control** — inhibition/switching (`M-COMM`, `M-SSRT`,
     `M-CONGEFF`, `M-SWITCHCOST`, `M-PERSEV`, `M-POSTERR`) as a profile signal.
   - **Game-based delivery** — a wrapper, not a construct (warrant §Q2). Its

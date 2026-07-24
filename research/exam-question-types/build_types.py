@@ -16,7 +16,8 @@ MEAS_JSON = os.path.join(HERE, "measurements.json")
 
 # Four testable domains only. working_memory + processing_speed are now
 # cross-cutting MEASUREMENT tags, not areas (dedicated WM games live under
-# spatial). See CATEGORY_MAP.md. processing_speed is pending PS_GAMEBASED_WARRANT.md.
+# spatial). See CATEGORY_MAP.md. PS_GAMEBASED_WARRANT.md resolved to Rec B:
+# no dedicated processing_speed types/area; speed = engagement-gated measurement.
 AREAS = ["fluid_reasoning", "verbal", "quantitative", "spatial"]
 BANDS = ["K-1", "2-3", "4-5", "6-8"]
 REQ = ["type_id", "name", "areas", "topics_techniques_covered", "one_liner", "interaction",

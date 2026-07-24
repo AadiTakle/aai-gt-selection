@@ -26,10 +26,13 @@ and **D-016**. Born-synthetic research artifact under work-item **RES-013**.
 - **Working memory** — no longer an area. Dedicated WM games move **under
   `spatial`** (they are visuospatial span/updating tasks). WM load remains a
   *measured signal* (`M-WM-*`/updating measures) inside many types.
-- **Processing speed** — no longer an area. **Pending `PS_GAMEBASED_WARRANT.md`.**
-  Speed is a cross-cutting, engagement-gated efficiency signal
-  (`M-RT`/`M-COMBO`/`M-SPEEDACC` behind `M-ENGAGE`), not a construct. If the
-  warrant keeps a minimal probe it is folded into a domain with hotkeys.
+- **Processing speed** — no longer an area. **RESOLVED by
+  `PS_GAMEBASED_WARRANT.md` → Recommendation B:** cut all dedicated PS types;
+  speed is retained ONLY as a cross-cutting, engagement-gated efficiency signal
+  (`M-RT`/`M-COMBO`/`M-SPEEDACC` behind `M-ENGAGE`) plus consistency
+  (`M-RTVAR`/`M-LAPSE`), computed on the reasoning items the child already
+  answers. No PS domain, no PS types, no PS probe restored (clerical Gs is
+  low-g and carries an H4 equity risk a no-human screener cannot discount).
 - **Game-based** — a *delivery layer*, not a category. Every kept `GB-*` type
   folds into the domain of the construct it actually measures.
 - **Creativity / curiosity** (`CX-*`) — folds into `fluid_reasoning` (figural /
@@ -170,9 +173,11 @@ Marked evolving pending the director conversation. See `SPECS_QUANT.md`
 (→spatial) and `WM-bubble-01` (→verbal). Includes cut of `WM-cardswitch-01`
 Rule Swap ("better DCCS exist").
 
-**Processing-speed:** all `PS-*` cut now, **pending warrant**. If the warrant
-recommends keep-minimal, restore `PS-BLINK-06`, `PS-DEADLINE-01`,
-`PS-DECODE-03`, `PS-DIFFSPOT-01` from git and add hotkeys.
+**Processing-speed:** all `PS-*` cut. **Warrant resolved → Recommendation B:**
+keep them cut (`PS-BLINK-06`, `PS-DEADLINE-01`, `PS-DECODE-03`, `PS-DIFFSPOT-01`
+are textbook clerical/perceptual-speed tasks — the low-g, equity-exposed format
+the evidence warns against); do NOT restore. Speed lives on as engagement-gated
+measurements only.
 
 **Game-based cut (not folded):** every `GB-*` except the 7 folded keepers
 (`GB-WORDFORGE-01`, `GB-WORDLADDER-01`, `GB-DEBATE-01`, `GB-FLAWFINDER-01`

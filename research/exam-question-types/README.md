@@ -17,8 +17,8 @@ gaming/burden), R5 (defensible capability standard).
 
 **Cross-cutting signals, not domains:**
 - **working_memory** — a measured signal; dedicated WM games live **under `spatial`**.
-- **processing_speed** — an engagement-gated efficiency signal (pending
-  `PS_GAMEBASED_WARRANT.md`); not a construct/area.
+- **processing_speed** — an engagement-gated efficiency signal (per
+  `PS_GAMEBASED_WARRANT.md`, Rec B: no dedicated PS types); not a construct/area.
 - **game-based** — a delivery layer applied to any type, not a section.
 - **creativity/curiosity** — folded into `fluid_reasoning` or `verbal`, with
   fully automated proxy scoring (no human judge).
