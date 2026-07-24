@@ -3,14 +3,14 @@ import { notFound } from 'next/navigation';
 
 import { FamilyDashboard } from '@/components/family/family-dashboard';
 
-// Dev-only: the family dashboard with a canned "submitted" status so the
-// status card + mock payment/assessment gate can be seen without a backend.
+// Dev-only: the family dashboard for a fresh applicant who hasn't started yet —
+// draft status, phase 1 (application), so the preview begins at the very start.
 const PREVIEW_STATUS: StatusProjection = {
-  workflowStatus: 'awaiting_assessment',
-  displayLabelCode: 'STATUS_AWAITING_ASSESSMENT',
-  phase: 'assessment',
-  familyActionRequired: false,
-  nextActionCode: 'AWAIT_ASSESSMENT',
+  workflowStatus: 'application_draft',
+  displayLabelCode: 'STATUS_APPLICATION_DRAFT',
+  phase: 'application',
+  familyActionRequired: true,
+  nextActionCode: 'COMPLETE_APPLICATION',
   deadline: null,
   pendingReason: null,
   claimBoundaryCode: 'ELIGIBILITY_NOT_ADMISSION',
