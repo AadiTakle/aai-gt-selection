@@ -5,123 +5,176 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>GB-WORDLADDER-01 · Letter Climb</title>
 <style>
-  :root{--bg1:#fef3ea;--bg2:#eef1ff;--ink:#26304a;--card:#fff;--accent:#e07a4b;--good:#22b573;--bad:#ff6b6b;
-    --tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
-  *{box-sizing:border-box}html,body{margin:0;height:100%}
-  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);
-    background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
-  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:12px;min-width:0}
-  #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
-  #phasecue{font-size:32px;height:38px}
-  #stagecard{background:var(--card);border-radius:24px;padding:22px;box-shadow:0 18px 50px -22px #4a4a7a;
-    display:flex;flex-direction:column;align-items:center;gap:12px;width:460px;max-width:100%}
-  #instr{font-size:14px;color:#666;min-height:20px;text-align:center}
-  #goalrow{font-size:14px;color:#8a5a3a;font-weight:800}
-  #ladder{display:flex;flex-direction:column-reverse;gap:4px;align-items:center;min-height:40px}
-  .rung{display:flex;gap:5px}
-  .rung .lt{width:30px;height:30px;border-radius:5px;background:#f0d9c8;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;color:#8a5a3a}
-  #current{display:flex;gap:8px}
-  #current .lt{width:48px;height:48px;border-radius:9px;background:#fbe6d6;border:3px solid #f0c9ad;display:flex;align-items:center;
-    justify-content:center;font-weight:900;font-size:24px;color:#a5603a;cursor:pointer}
-  #current .lt.sel{border-color:var(--accent);background:#ffd9bf}
-  #current.shake{animation:sh .3s}@keyframes sh{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
-  #pad{display:grid;grid-template-columns:repeat(9,1fr);gap:4px;max-width:340px}
-  .key{height:30px;border-radius:6px;background:#eef1ff;border:2px solid #dbe1ff;font-weight:800;font-size:13px;cursor:pointer;color:#4a5578}
-  #fb{font-size:14px;min-height:18px;font-weight:700}
-  #replay{width:44px;height:44px;background:#eef1ff;color:#5b6cff;font-size:20px;border-radius:50%;border:0;cursor:pointer}
-  #ghost{position:fixed;left:0;top:0;font-size:34px;pointer-events:none;z-index:60;opacity:0;
-    transition:transform .45s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  :root{--bg1:#e6fff5;--bg2:#eaf6ff;--ink:#233a30;--card:#fff;--accent:#22b573;--good:#22b573;--bad:#ff6b6b;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#7a9a8a;text-transform:uppercase;font-weight:700}
+  #phasecue{font-size:34px;height:40px;line-height:40px}
+  #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #3a7a5a;display:flex;flex-direction:column;align-items:center;gap:14px;max-width:640px;width:100%}
+  #ladder{display:flex;flex-direction:column-reverse;gap:8px;align-items:center;min-height:80px}
+  .rung{display:flex;gap:6px}
+  .rung .l{width:38px;height:38px;background:#eafaf1;border:2px solid #bfe8cf;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#1a8f5a}
+  .rung.goal .l{background:#fff2e0;border-color:#ffcf9a;color:#c06a2a}
+  #current{display:flex;gap:6px}
+  .curtile{width:44px;height:44px;background:#f4f7ff;border:3px solid #cfd8ff;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;cursor:pointer}
+  .curtile.sel{outline:3px solid var(--accent)}
+  #alphabet{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;max-width:420px}
+  .letterbtn{width:32px;height:32px;background:#eef2ff;border-radius:7px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#5b6cff}
+  .letterbtn:hover{background:#dde4ff}
+  #controls{display:flex;gap:16px;align-items:center}
+  button{font:inherit;border:0;cursor:pointer;border-radius:50%}
+  #go{width:72px;height:72px;background:var(--accent);color:#fff;font-size:26px;box-shadow:0 10px 24px -8px var(--accent);opacity:.35;pointer-events:none;transition:.2s}
+  #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.1s infinite}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+  #replay{width:50px;height:50px;background:#eafaf1;color:#1a8f5a;font-size:22px}
+  .shake{animation:shake .4s}@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+  #ghost{position:fixed;left:0;top:0;font-size:40px;pointer-events:none;z-index:60;opacity:0;transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
   #ghost.show{opacity:.92}
-  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;
-    font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
   #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
   #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
-  .mrow{display:grid;grid-template-columns:118px 1fr;gap:8px;align-items:baseline}
-  .mid{color:var(--tel-key);font-weight:700}.mval{color:#fff}
-  .mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  .mrow{display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}
+  .mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
   #logwrap{border-top:1px solid #262f52;margin-top:auto}
   #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
-  #log{height:170px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
-  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}.t{color:#5f6f9e}
-  @media(max-width:900px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:250px}}
+  #log{height:210px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
 </style>
 </head>
 <body>
   <div id="wrap">
     <div id="badge">GB-WORDLADDER-01 · Letter Climb</div>
-    <div id="phasecue">👁️</div>
+    <div id="phasecue">🪜</div>
     <div id="stagecard">
-      <div id="instr"></div>
-      <div id="goalrow"></div>
       <div id="ladder"></div>
       <div id="current"></div>
-      <div id="pad"></div>
-      <div id="fb"></div>
-      <div><button id="replay" title="replay demo">↻</button></div>
+      <div id="alphabet"></div>
+      <div id="controls">
+        <button id="replay" title="replay demo">↻</button>
+        <button id="go" title="lock rung">✓</button>
+      </div>
     </div>
   </div>
-  <aside id="telemetry"><h3>Live telemetry · per-child</h3><div id="mlist"></div>
-    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div></aside>
-  <div id="ghost">👆</div>
+  <aside id="telemetry">
+    <h3>Live telemetry · per-child</h3>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+  <div id="ghost">👆<span class="ring"></span></div>
 <script>
 'use strict';
-const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const $=s=>document.querySelector(s);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):null;
-const WORDS=['CAT','COT','COG','DOG','DOT','COP','COB','COD','CON','DON','HOG','LOG','BOG','FOG','JOG','HOT','POT','ROT','NOT','LOT',
- 'BAT','HAT','RAT','MAT','SAT','PAT','FAT','CAP','MAP','TAP','GAP','LAP','NAP','RAP','CAR','BAR','CAN','MAN','FAN','PAN','RAN','TAN','BAN',
- 'PIG','DIG','BIG','FIG','WIG','PIT','BIT','SIT','FIT','KIT','PIN','WIN','BIN','FIN','DIN','SUN','RUN','BUN','FUN','GUN','NUN','BUG','DUG','HUG','JUG','MUG','RUG','TUG'];
-const DICT=new Set(WORDS);
-const RARE={'COG':2,'COB':2,'COD':2,'CON':2,'DON':2,'BOG':2,'FOG':2,'JOG':2,'NAP':2,'TAN':2,'FIG':2,'WIG':2,'DIN':2,'NUN':3,'JUG':2,'TUG':2};
-function band(w){return RARE[w]||1}
-function neighbors(w){const out=[];for(let i=0;i<w.length;i++)for(let ch=65;ch<=90;ch++){const c=String.fromCharCode(ch);if(c===w[i])continue;const n=w.slice(0,i)+c+w.slice(i+1);if(DICT.has(n))out.push(n)}return out}
-function bfs(a,b){if(a===b)return 0;const seen=new Set([a]),q=[[a,0]];while(q.length){const[w,d]=q.shift();for(const n of neighbors(w)){if(n===b)return d+1;if(!seen.has(n)){seen.add(n);q.push([n,d+1])}}}return Infinity}
-const LEVELS={warm:{start:'CAT',goal:'COT'},s1:{start:'CAT',goal:'DOG'}};
-const T={rts:[],firstLat:null,firstActed:false,opt:0,rungs:0,scored:0,correct:0,maxBand:1,path:[]};
-const METERS=[
- {id:'M-ACC',name:'Ladder reached goal',get:()=>T.scored?`${T.correct}/${T.scored}`:'—'},
- {id:'M-RT',name:'Step time (mean)',get:()=>mean(T.rts)==null?'—':mean(T.rts)+' ms'},
- {id:'M-EFF',name:'Rungs vs shortest',get:()=>T.opt?`${T.opt}/${T.rungs}`:'—'},
- {id:'M-VOCABLVL',name:'Rarest rung (band)',get:()=>T.maxBand?('band '+T.maxBand):'—'},
- {id:'M-RTFIRST',name:'First-change latency',get:()=>T.firstLat==null?'—':T.firstLat+' ms'},
- {id:'M-PATH',name:'Ladder',get:()=>T.path.length?T.path.join('→'):'—'},
- {id:'M-PERSIST',name:'Time-on-task (ms)',get:()=>startT?(Date.now()-startT):'—'},
-];
-function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('')}
-function renderMeters(){METERS.forEach(m=>{const e=$('#v_'+m.id);if(e)e.textContent=m.get()})}
-function log(msg){const d=document.createElement('div');d.innerHTML=`<span class="t">•</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight}
-const ghost=$('#ghost');const gShow=v=>ghost.classList.toggle('show',v);
-function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}}
-async function gTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-8}px,${c.y-6}px)`;await sleep(430)}
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0,last=a=>a[a.length-1];
+const ALPHA='ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
-let phase='demo',L=null,cur='',goal='',selPos=-1,locked=false,startT=0,stepT=0;
-const setCue=i=>$('#phasecue').textContent=i;
-function renderPad(){const p=$('#pad');p.innerHTML='';for(let i=65;i<=90;i++){const c=String.fromCharCode(i);p.insertAdjacentHTML('beforeend',`<button class="key" data-c="${c}">${c}</button>`)}}
-function renderCurrent(){const el=$('#current');el.innerHTML=cur.split('').map((ch,i)=>`<div class="lt${i===selPos?' sel':''}" data-i="${i}">${ch}</div>`).join('')}
-function renderLadder(){$('#ladder').innerHTML=T.path.map(w=>`<div class="rung">${w.split('').map(c=>`<div class="lt">${c}</div>`).join('')}</div>`).join('')}
-function newLevel(spec){L=spec;cur=spec.start;goal=spec.goal;selPos=-1;locked=false;startT=Date.now();stepT=Date.now();T.firstActed=false;T.firstLat=null;T.opt=bfs(spec.start,spec.goal);T.rungs=0;T.maxBand=band(spec.start);T.path=[spec.start];
-  $('#goalrow').textContent='Start '+spec.start+'  →  Goal '+spec.goal;renderCurrent();renderLadder();renderMeters()}
-function pick(i){if(locked)return;selPos=i;renderCurrent()}
-function setLetter(c){if(locked||selPos<0)return;const cand=cur.slice(0,selPos)+c+cur.slice(selPos+1);
-  if(cand===cur)return;
-  if(!T.firstActed){T.firstActed=true;T.firstLat=Date.now()-startT;log('first change (after planning)')}
-  if(!DICT.has(cand)){const el=$('#current');el.classList.add('shake');setTimeout(()=>el.classList.remove('shake'),300);log(cand+' is not a word');return}
-  const rt=Date.now()-stepT;stepT=Date.now();T.rts.push(rt);cur=cand;T.rungs++;T.path.push(cand);T.maxBand=Math.max(T.maxBand,band(cand));selPos=-1;
-  log('rung → '+cand+' (band '+band(cand)+')');renderCurrent();renderLadder();renderMeters();
-  if(cur===goal)solved()}
-function solved(){locked=true;setCue(phase==='scored'?'🏆':'⭐');$('#fb').textContent='Reached the goal! 🎉';$('#fb').style.color='var(--good)';
-  if(phase==='scored'){T.scored++;T.correct++;log(`SOLVED ${L.start}→${goal} · rungs ${T.rungs} (shortest ${T.opt}) · rarest band ${T.maxBand}`);renderMeters();setTimeout(finish,1500)}
-  else{log('warm-up solved (unscored)');setTimeout(startScored,1400)}}
-function finish(){phase='done';locked=true;setCue('🏆');$('#instr').textContent='Done! Nice climbing.'}
-function startWarmup(){phase='warmup';setCue('⭐');$('#instr').textContent='Warm-up: change ONE letter to reach the goal word. Tap a tile, then a letter. (unscored)';newLevel(LEVELS.warm);$('#fb').textContent=''}
-function startScored(){phase='scored';setCue('🎯');$('#instr').textContent='SCORED: climb from CAT to DOG, one letter at a time — each rung a real word. Fewest rungs wins.';newLevel(LEVELS.s1);$('#fb').textContent='';log('— SCORED CAT → DOG —')}
-async function runDemo(){phase='demo';setCue('👁️');$('#instr').textContent='';newLevel(LEVELS.warm);log('ghost-hand demo (wordless, <10s)');gShow(true);await sleep(400);
-  await gTo($('#current .lt[data-i="1"]'));selPos=1;renderCurrent();await sleep(300);await gTo($('.key[data-c="O"]'));gShow(false);
-  cur='COT';T.path=['CAT','COT'];renderCurrent();renderLadder();$('#fb').textContent='reached the goal! 🎉';$('#fb').style.color='var(--good)';await sleep(1100);$('#fb').textContent='';startWarmup()}
-$('#current').addEventListener('click',e=>{const t=e.target.closest('.lt');if(t)pick(+t.dataset.i)});
-$('#pad').addEventListener('click',e=>{const k=e.target.closest('.key');if(k)setLetter(k.dataset.c)});
-$('#replay').addEventListener('click',()=>{if(phase==='done')runDemo()});
-buildMeters();renderPad();renderMeters();runDemo();
+/* ---------- small embedded word bank + ladder generator (AIG) ---------- */
+const WORDS3=['CAT','COT','COG','DOG','DOT','DOE','TOE','TOP','TIP','TIN','TAN','TAP','CAP','CAR','CAN','MAN','MAT','MAP','SAP','SAT','SIT','SIN','FIN','FAN','FAT','BAT','BAG','BIG','PIG','PIN','PAN'];
+const WORDS4=['CARE','CORE','BORE','BORN','BARN','BARK','BACK','BACK','LACK','LICK','LICE','RICE','RIDE','RODE','ROSE','NOSE','NOTE','NODE','CODE','CORD','WORD','WORE','WIRE','FIRE','FIRM','FARM','FARE','FADE','FATE','GATE','LATE','LANE','LINE','WINE','VINE','DINE','DIME','TIME','LIME','LIKE'];
+function wordSet(len){return len===3?WORDS3:WORDS4;}
+function neighbors(w,set){const out=[];for(let i=0;i<w.length;i++)for(const c of ALPHA){if(c===w[i])continue;const cand=w.slice(0,i)+c+w.slice(i+1);if(set.includes(cand))out.push(cand);}return out;}
+function bfsPath(start,goal,set){const q=[[start]];const seen=new Set([start]);
+  while(q.length){const path=q.shift();const w=last(path);if(w===goal)return path;
+    for(const n of neighbors(w,set)){if(!seen.has(n)){seen.add(n);q.push([...path,n]);}}}
+  return null;}
+function genLadder(len,minRungs){const set=wordSet(len);let tries=0;
+  while(tries++<200){const start=set[(Math.random()*set.length)|0];const goal=set[(Math.random()*set.length)|0];
+    if(start===goal)continue;const path=bfsPath(start,goal,set);
+    if(path && path.length-1>=minRungs && path.length-1<=minRungs+2) return {start,goal,set,optPath:path};}
+  const start=set[0],goal=set[1]||set[0];const path=bfsPath(start,goal,set)||[start,goal];
+  return {start,goal,set,optPath:path};}
+function levelParams(l){const len=l<=2?3:4;const minRungs=l<=1?1:l<=3?2:3;return {len,minRungs};}
+
+/* ---------- state ---------- */
+let level=1,maxLevel=1,phase='demo',locked=true;
+let cur=null,rungs=[],curWord='',selIdx=null,T={rts:[],firstT:null,itemStart:0,path:[],scoredRounds:0,exact:0,scored:0,eff:[]};
+function accStr(){return T.scored?`${T.exact}/${T.scored}  ${Math.round(100*T.exact/T.scored)}%`:'\u2014';}
+function effStr(){return T.eff.length?`${mean(T.eff)}% of optimal`:'\u2014';}
+function vocabLvl(){return cur?`${cur.set.length} word neighbourhood @ len ${cur.start.length}`:'\u2014';}
+function rtFirstStr(){return T.firstT!=null?`${T.firstT} ms`:'\u2014';}
+function pathStr(){return T.path.length?T.path.join(' \u2192 '):'\u2014';}
+function persistStr(){return `${T.invalid||0} invalid rung tries`;}
+function learnRate(){return T.scoredRounds?`level ${maxLevel} reached in ${T.scoredRounds} rounds`:'\u2014';}
+const METERS=[
+ {id:'M-ACC',name:'Ladder accuracy (goal reached)',get:accStr},
+ {id:'M-RT',name:'Response time (round total)',get:()=>T.rts.length?`${last(T.rts)} ms  (mean ${mean(T.rts)})`:'\u2014'},
+ {id:'M-EFF',name:'Efficiency vs optimal rung count',get:effStr},
+ {id:'M-VOCABLVL',name:'Word-neighbourhood size used',get:vocabLvl},
+ {id:'M-RTFIRST',name:'Time to first rung change',get:rtFirstStr},
+ {id:'M-PATH',name:'Ladder path climbed',get:pathStr},
+ {id:'M-PERSIST',name:'Persistence (invalid rung tries)',get:persistStr},
+ {id:'M-DIFFREACH',name:'Difficulty reached (ladder length)',get:()=>`level ${maxLevel}`},
+ {id:'M-LEARNRATE',name:'Learning rate across escalation',get:learnRate},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});}
+function log(msg){const t=Date.now()-T.itemStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+const ghost=$('#ghost');function ghostShow(v){ghost.classList.toggle('show',v);}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(480);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(400);}
+
+/* ---------- render ---------- */
+function paintLadder(){$('#ladder').innerHTML=`<div class="rung goal">${cur.goal.split('').map(c=>`<div class="l">${c}</div>`).join('')}</div>`+
+  rungs.map(w=>`<div class="rung">${w.split('').map(c=>`<div class="l">${c}</div>`).join('')}</div>`).reverse().join('');}
+function paintCurrent(){$('#current').innerHTML=curWord.split('').map((c,i)=>`<div class="curtile${i===selIdx?' sel':''}" data-i="${i}">${c}</div>`).join('');
+  [...$('#current').children].forEach(el=>el.addEventListener('click',()=>{if(locked||phase==='demo'||phase==='done')return;selIdx=+el.dataset.i;paintCurrent();}));}
+function paintAlphabet(){$('#alphabet').innerHTML=ALPHA.map(c=>`<div class="letterbtn" data-c="${c}">${c}</div>`).join('');
+  [...$('#alphabet').children].forEach(el=>el.addEventListener('click',()=>onLetter(el.dataset.c)));}
+function onLetter(c){if(locked||phase==='demo'||phase==='done'||selIdx==null)return;
+  const cand=curWord.slice(0,selIdx)+c+curWord.slice(selIdx+1);
+  if(T.firstT==null)T.firstT=Date.now()-T.itemStart;
+  if(cand===curWord){return;}
+  if(cur.set.includes(cand)){
+    curWord=cand;rungs.push(curWord);selIdx=null;T.path.push(curWord);
+    paintLadder();paintCurrent();log(`rung: ${curWord}`);renderMeters();
+    if(curWord===cur.goal){$('#go').classList.add('ready');}
+  } else {
+    T.invalid=(T.invalid||0)+1;
+    $('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),400);
+    log(`\u2717 "${cand}" is not a word`);renderMeters();
+  }
+}
+
+/* ---------- flow ---------- */
+function setCue(i){$('#phasecue').textContent=i;}
+function newItem(l){const p=levelParams(l);cur=genLadder(p.len,p.minRungs);rungs=[cur.start];curWord=cur.start;selIdx=null;
+  T.itemStart=Date.now();T.firstT=null;T.invalid=0;T.path=[cur.start];
+  paintLadder();paintCurrent();$('#go').classList.remove('ready');renderMeters();}
+function submit(){const rt=Date.now()-T.itemStart;const reached=curWord===cur.goal;
+  locked=true;$('#go').classList.remove('ready');
+  if(phase==='warmup'){log('warm-up '+(reached?'reached goal':'stopped')+' — UNSCORED');setTimeout(nextPhase,1100);return;}
+  T.scored++;T.rts.push(rt);
+  if(reached){T.exact++;const opt=cur.optPath.length-1;const used=rungs.length-1;T.eff.push(Math.round(100*opt/Math.max(opt,used)));level=Math.min(6,level+1);}
+  else{level=Math.max(1,level-1);}
+  maxLevel=Math.max(maxLevel,level);T.scoredRounds++;
+  log(`SUBMIT ${cur.start}\u2192${cur.goal}: ${reached?'GOAL':'incomplete'} in ${rungs.length-1} rungs (optimal ${cur.optPath.length-1}) \u2192 next level ${level}`);
+  renderMeters();setTimeout(nextPhase,1300);
+}
+function nextPhase(){locked=false;
+  if(phase==='warmup'){startScored();}
+  else if(phase==='scored'){T.roundIdx=(T.roundIdx||0)+1;T.roundIdx<6?startScored():finish();}
+}
+function startWarmup(){phase='warmup';setCue('\u2b50');newItem(1);log('— warm-up (unscored): change one letter to climb toward the goal —');}
+function startScored(){phase='scored';setCue('\ud83c\udfaf');newItem(level);log(`— SCORED ladder: ${cur.start}\u2192${cur.goal} (level ${level}) —`);}
+function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;log(`— DONE \u00b7 goals reached ${T.exact}/${T.scored} \u00b7 max level ${maxLevel} —`);}
+async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;
+  cur={start:'CAT',goal:'COG',set:WORDS3};rungs=['CAT'];curWord='CAT';selIdx=null;T.itemStart=Date.now();
+  paintLadder();paintCurrent();log('ghost-hand demo (wordless, <10s)');ghostShow(true);await sleep(300);
+  const steps=[[1,'O'],[2,'G']];
+  for(const [idx,ch] of steps){
+    selIdx=idx;paintCurrent();await ghostTo($('#current').children[idx]);await ghostTap();
+    const btn=[...$('#alphabet').children].find(e=>e.dataset.c===ch);await ghostTo(btn);await ghostTap();onLetter(ch);await sleep(200);
+  }
+  await sleep(200);await ghostTo($('#go'));await ghostTap();await sleep(300);ghostShow(false);await sleep(450);startWarmup();}
+$('#go').addEventListener('click',()=>{if($('#go').classList.contains('ready'))submit();});
+$('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
+buildMeters();renderMeters();paintAlphabet();runDemo();
 </script>
 </body>
 </html>

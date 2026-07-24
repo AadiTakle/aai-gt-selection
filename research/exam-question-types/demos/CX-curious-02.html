@@ -2,199 +2,202 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CX-curious-02 — Question Quest</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CX-curious-02 · Question Quest</title>
 <style>
-  :root{--bg:#0c1a17;--card:#12271f;--ink:#eafff4;--muted:#8fc9b3;--acc:#4fe0a8;--gold:#ffd35c;--why:#ff9de0;}
-  *{box-sizing:border-box}
-  body{margin:0;font:16px/1.4 system-ui,Segoe UI,Roboto,sans-serif;color:var(--ink);background:radial-gradient(circle at 30% 0%,#183a2d,#0c1a17)}
-  header{padding:14px 20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-  header h1{font-size:18px;margin:0}
-  .badge{font-size:12px;color:var(--muted);border:1px solid #2c5a45;padding:2px 8px;border-radius:999px}
-  .wrap{display:grid;grid-template-columns:1fr 340px;gap:16px;padding:0 20px 30px;max-width:1100px}
-  @media(max-width:820px){.wrap{grid-template-columns:1fr}}
-  .stage{background:var(--card);border-radius:18px;padding:18px;min-height:470px;position:relative;overflow:hidden}
-  .phaseTag{position:absolute;top:12px;right:14px;font-size:12px;color:var(--gold);background:#3a3117;border:1px solid #6b5a1f;padding:3px 10px;border-radius:999px}
-  .scene{position:relative;height:150px;margin:4px auto;border-radius:14px;background:linear-gradient(#0a1512,#12271f);border:1px solid #2c5a45;display:flex;align-items:center;justify-content:center;gap:6px;font-size:60px;overflow:hidden}
-  .scene .hint{position:absolute;bottom:6px;left:0;right:0;text-align:center;font-size:12px;color:var(--gold);opacity:0;transition:opacity .5s}
-  .scene .hint.show{opacity:1}
-  .prompt{text-align:center;color:var(--muted);min-height:22px;margin:6px 0}
-  .starters{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:6px 0}
-  .starters button{background:#123024;color:#cffbe7;border:1px solid #2c5a45;padding:7px 11px;font-size:13px}
-  .starters button.deep{border-color:var(--why);color:var(--why)}
-  .starters button.on{background:var(--acc);color:#04231a}
-  .entry{display:flex;gap:8px;justify-content:center;margin:6px 0;flex-wrap:wrap}
-  input[type=text]{font:inherit;padding:10px 14px;border-radius:12px;border:2px solid #2c5a45;background:#0a1512;color:var(--ink);width:min(340px,70vw)}
-  button{font:inherit;border:0;border-radius:12px;padding:10px 16px;cursor:pointer;font-weight:600}
-  .add{background:var(--acc);color:#04231a}
-  .ghost-btn{background:#1d4535;color:#daffee}
-  .bubbles{display:flex;flex-direction:column;gap:5px;max-height:120px;overflow:auto;margin-top:6px}
-  .qb{font-size:13px;background:#0a1512;border:1px solid #2c5a45;border-radius:12px;padding:5px 10px}
-  .qb.deep{border-color:var(--why)}
-  .qb .d{font-size:10px;color:var(--muted);float:right}
-  .ghost{position:absolute;font-size:36px;pointer-events:none;transition:left .8s ease,top .8s ease;z-index:6;filter:drop-shadow(0 4px 6px rgba(0,0,0,.5))}
-  .tele{background:#0a1512;border:1px solid #244b3a;border-radius:18px;padding:14px;height:fit-content;position:sticky;top:12px}
-  .tele h3{margin:0 0 8px;font-size:14px;letter-spacing:.5px;color:var(--gold)}
-  .metrics{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
-  .chip{font-size:12px;background:#12271f;border:1px solid #2c5a45;border-radius:8px;padding:4px 8px}
-  .chip b{color:var(--gold)}
-  .log{font:11px/1.5 ui-monospace,Menlo,Consolas,monospace;color:#a9ecd0;max-height:200px;overflow:auto;background:#07120f;border-radius:10px;padding:8px}
-  .log div{border-bottom:1px solid #14281f;padding:1px 0}
-  .note{font-size:11px;color:var(--muted);margin-top:8px}
-  .cta{display:flex;gap:10px;justify-content:center;margin-top:8px}
+  :root{--bg1:#f3e6ff;--bg2:#e6f7ff;--ink:#332a4a;--card:#fff;--accent:#a35bff;--good:#22b573;--bad:#ff6b6b;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8a7ab5;text-transform:uppercase;font-weight:700}
+  #phasecue{font-size:34px;height:40px;line-height:40px}
+  #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #6a4a9a;display:flex;flex-direction:column;align-items:center;gap:16px;max-width:680px;width:100%}
+  #scene{font-size:64px}
+  #qcards{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+  .qcard{background:#f6effe;border:3px solid #e2cbfc;border-radius:14px;padding:10px 16px;font-size:16px;cursor:pointer;font-weight:700;color:#5a3a8a;transition:.15s}
+  .qcard:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .qcard.picked{opacity:.35;pointer-events:none}
+  .qcard.rated-causal{box-shadow:0 0 0 3px #22b57355}
+  .qcard.rated-label{box-shadow:0 0 0 3px #ffb15e55}
+  #variant{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+  .emocard{background:#eef8ff;border:3px solid #c9e6ff;border-radius:14px;padding:12px;width:110px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer}
+  .emocard:hover{border-color:var(--accent)}
+  .emocard .ic{font-size:32px}
+  .emocard.correct{border-color:var(--good);box-shadow:0 0 0 3px #22b57355}
+  .emocard.wrong{border-color:var(--bad);box-shadow:0 0 0 3px #ff6b6b55}
+  #emotarget{font-size:44px}
+  #asked{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:520px}
+  .askedchip{background:#f0e6ff;border-radius:10px;padding:3px 9px;font-size:12px;color:#6a4a9a}
+  #controls{display:flex;gap:16px;align-items:center}
+  button{font:inherit;border:0;cursor:pointer;border-radius:50%}
+  #go{width:60px;height:60px;background:var(--accent);color:#fff;font-size:22px;box-shadow:0 10px 24px -8px var(--accent);opacity:.35;pointer-events:none;transition:.2s}
+  #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.1s infinite}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+  #replay{width:50px;height:50px;background:#f6effe;color:#a35bff;font-size:22px}
+  #hintflash{font-size:26px;min-height:30px}
+  #ghost{position:fixed;left:0;top:0;font-size:40px;pointer-events:none;z-index:60;opacity:0;transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}
+  .mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:210px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
 </style>
 </head>
 <body>
-<header>
-  <h1>🔍 Question Quest</h1>
-  <span class="badge">CX-curious-02</span>
-  <span class="badge">bands: 2–3 · 4–5 · 6–8</span>
-  <span class="badge">curiosity · ask-and-guess</span>
-</header>
-<div class="wrap">
-  <div class="stage" id="stage">
-    <div class="phaseTag" id="phaseTag">demo</div>
-    <div class="scene" id="scene"><span id="sceneArt">🌳🚪✨</span><div class="hint" id="hint"></div></div>
-    <div class="prompt" id="prompt"></div>
-    <div class="starters" id="starters" style="display:none"></div>
-    <div class="entry" id="entry" style="display:none">
-      <input type="text" id="q" placeholder="finish your question…" autocomplete="off">
-      <button class="add" id="askBtn">Ask! →</button>
+  <div id="wrap">
+    <div id="badge">CX-curious-02 · Question Quest</div>
+    <div id="phasecue">🔎</div>
+    <div id="stagecard">
+      <div id="scene">🌳</div>
+      <div id="asked"></div>
+      <div id="qcards"></div>
+      <div id="variant" style="display:none">
+        <div id="emotarget"></div>
+      </div>
+      <div id="hintflash"></div>
+      <div id="controls">
+        <button id="replay" title="replay demo">↻</button>
+        <button id="go" title="next">➜</button>
+      </div>
     </div>
-    <div class="bubbles" id="bubbles"></div>
-    <div class="ghost" id="ghost" style="display:none">👆</div>
-    <div class="cta" id="cta"></div>
   </div>
-  <div class="tele">
-    <h3>LIVE TELEMETRY</h3>
-    <div class="metrics" id="metrics"></div>
-    <div class="log" id="log"></div>
-    <div class="note">M-QUERY (question count + depth) · M-IDEAFLU (guesses) · M-FLEX (kinds of guess) · M-ORIG (rare guesses) · M-ENGAGE. Depth: why/how/what-if score higher than what/who/where.</div>
-  </div>
-</div>
+  <aside id="telemetry">
+    <h3>Live telemetry · per-child</h3>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+  <div id="ghost">👆<span class="ring"></span></div>
 <script>
-const T={ev:[],m:{},t0:performance.now(),
-  now(){return Math.round(performance.now()-this.t0)},
-  log(a,d){const t=this.now();this.ev.push(Object.assign({t,a},d||{}));
-    const el=document.getElementById('log');const line=document.createElement('div');
-    line.textContent='+'+(t/1000).toFixed(2)+'s  '+a+(d?'  '+JSON.stringify(d):'');el.prepend(line);},
-  set(k,v){this.m[k]=v;this.render();},
-  render(){document.getElementById('metrics').innerHTML=
-    Object.entries(this.m).map(([k,v])=>'<span class="chip"><b>'+k+'</b> '+v+'</span>').join('');}};
-const $=s=>document.querySelector(s);
-const ghost=$('#ghost'),phaseTag=$('#phaseTag');
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0;
 
-/* starter cards: word, depth (1 surface, 2 causal, 3 hypothetical) */
-const STARTERS=[['Who','who ',1],['What','what ',1],['Where','where ',1],['Why','why ',2],['How','how ',2],['What if','what if ',3]];
-const SCENES={demo:{art:'🌳🚪✨',hints:['The door is warm to touch…']},
-  warm:{art:'🐈‍⬛🎈',hints:['The balloon never pops…']},
-  item:{art:'🌌🕳️💧',hints:['The puddle glows at night…','Tiny footprints lead away…','It hums a little tune…']}};
-/* guess categorization for the cause/consequence round */
-const GKW={magic:['magic','fairy','wizard','spell','portal','genie','ghost'],
-  nature:['water','rain','sun','plant','tree','glow','moon','star','mineral','chemical'],
-  animal:['animal','creature','bug','fish','frog','monster','alien','worm'],
-  machine:['robot','machine','battery','light','power','wire','engine','tech'],
-  people:['person','kid','scientist','someone','painted','spilled','dropped','made'],
-  accident:['accident','fell','broke','leak','melt','mistake']};
-function gcat(t){t=t.toLowerCase();for(const c in GKW){if(GKW[c].some(k=>t.includes(k)))return c;}return 'new-idea';}
-const GCOMMON=['water','light','someone','spilled','paint','magic'];
+/* ---------- Part A: ask-questions scenes (starter-card question bank, causal vs labeling) ---------- */
+const SCENES=[
+ {ic:'🌳🍂',lb:'a tree with no leaves in summer', qs:[
+   {t:'What is this?',depth:'label'},{t:'What color is it?',depth:'label'},
+   {t:'Why did the leaves fall in summer?',depth:'causal'},{t:'What if it never grows leaves again?',depth:'hypo'}]},
+ {ic:'🏠💨',lb:'a house with smoke but no fire truck', qs:[
+   {t:'What is that?',depth:'label'},{t:'Is it a chimney?',depth:'label'},
+   {t:'Why is there smoke but nobody looks worried?',depth:'causal'},{t:'What if the smoke means something is cooking?',depth:'hypo'}]},
+ {ic:'🐾❓',lb:'giant footprints on a tiny path', qs:[
+   {t:'What made those?',depth:'label'},{t:'How big are they?',depth:'label'},
+   {t:'Why are the prints bigger than the path?',depth:'causal'},{t:'What if a huge animal lives nearby?',depth:'hypo'}]},
+];
+function scoreDepth(d){return d==='causal'?2:d==='hypo'?2:1;}
+function levelParams(l){return {numQ: Math.min(3+Math.floor(l/2),4)};}
 
-let qs=[],depthSum=0,guesses=[],gkinds=new Set(),gorig=0,scored=false,mode='ask',hintIx=0;
+/* ---------- Part B: emoji -> word association variant (auto-scored, one best match) ---------- */
+const ASSOC=[
+ {emoji:'🌧️',opts:[['UMBRELLA',true],['SUNSHINE',false],['DESERT',false],['CAMPFIRE',false]]},
+ {emoji:'🐝',opts:[['HONEY',true],['SNOW',false],['ROCKET',false],['PILLOW',false]]},
+ {emoji:'📚',opts:[['LIBRARY',true],['OCEAN',false],['VOLCANO',false],['GUITAR',false]]},
+ {emoji:'🌙',opts:[['NIGHT',true],['BREAKFAST',false],['SUMMER',false],['KITCHEN',false]]},
+ {emoji:'🔥',opts:[['HOT',true],['FROZEN',false],['QUIET',false],['SOFT',false]]},
+];
 
-T.set('phase','demo');T.set('questions_M-QUERY',0);T.set('avgDepth',' — ');
-T.set('guesses_M-IDEAFLU',0);T.set('guessKinds_M-FLEX',0);T.set('rare_M-ORIG',0);
+/* ---------- state ---------- */
+let level=1,maxLevel=1,phase='demo',locked=true,mode='ask';
+let curScene=null,askedIdx=[],curAssoc=null,T={itemStart:0,queries:[],depthSum:0,orig:0,scored:0,exact:0,flexSet:new Set(),engageEvents:0};
+function queryStr(){return `${T.queries.length} asked (avg depth ${T.queries.length?(T.depthSum/T.queries.length).toFixed(1):0}/2)`;}
+function ideaFlu(){return T.queries.length;}
+function flexStr(){return `${T.flexSet.size} depth types used`;}
+function origStr(){return `${T.orig} causal/hypothetical (rare) picks`;}
+function engageStr(){return T.engageEvents===0?'focused (no idle/tab-out)':`${T.engageEvents} idle/blur events`;}
+function accStr(){return T.scored?`${T.exact}/${T.scored}  ${Math.round(100*T.exact/T.scored)}%`:'\u2014';}
+function learnRate(){return T.scored?`level ${maxLevel} after ${T.scored} trials`:'\u2014';}
+const METERS=[
+ {id:'M-QUERY',name:'Question count & depth',get:queryStr},
+ {id:'M-IDEAFLU',name:'Ideational fluency (questions/guesses)',get:ideaFlu},
+ {id:'M-FLEX',name:'Flexibility (depth-type variety)',get:flexStr},
+ {id:'M-ORIG',name:'Originality (deep-question rate)',get:origStr},
+ {id:'M-ENGAGE',name:'Engagement (idle/blur gate)',get:engageStr},
+ {id:'M-ACC',name:'Emoji\u2192word match accuracy',get:accStr},
+ {id:'M-DIFFREACH',name:'Difficulty reached',get:()=>`level ${maxLevel}`},
+ {id:'M-LEARNRATE',name:'Learning rate across trials',get:learnRate},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});}
+function log(msg){const t=Date.now()-T.itemStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+window.addEventListener('blur',()=>{if(phase!=='demo'&&phase!=='done'){T.engageEvents++;renderMeters();}});
+const ghost=$('#ghost');function ghostShow(v){ghost.classList.toggle('show',v);}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(480);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(400);}
 
-function setScene(s){$('#sceneArt').textContent=s.art;$('#hint').classList.remove('show');hintIx=0;}
-function revealHint(s){if(hintIx<s.hints.length){$('#hint').textContent='👀 '+s.hints[hintIx];$('#hint').classList.add('show');hintIx++;}}
-
-function addQuestion(text,depth){
-  text=text.trim();if(text.length<3)return;
-  const norm=text.toLowerCase();
-  if(qs.some(q=>q.norm===norm)){T.log('duplicate_ignored',{text});return;}
-  qs.push({text,norm,depth,t:T.now()});depthSum+=depth;
-  const b=document.createElement('div');b.className='qb'+(depth>=2?' deep':'');
-  b.innerHTML=text+'<span class="d">'+(depth>=3?'hypothetical':depth==2?'causal':'surface')+'</span>';
-  $('#bubbles').prepend(b);
-  if(scored){T.set('questions_M-QUERY',qs.length);T.set('avgDepth',(depthSum/qs.length).toFixed(2));
-    revealHint(SCENES.item);}
-  T.log(scored?'question (M-QUERY)':'warmup_question',{text,depth});
-}
-function addGuess(text){
-  text=text.trim();if(text.length<2)return;
-  const norm=text.toLowerCase();
-  if(guesses.some(g=>g.norm===norm)){T.log('duplicate_ignored',{text});return;}
-  const cat=gcat(text),rare=!GCOMMON.some(c=>norm.includes(c));
-  guesses.push({text,norm,cat,rare});const newK=!gkinds.has(cat);gkinds.add(cat);if(rare)gorig++;
-  const b=document.createElement('div');b.className='qb';b.style.borderColor=rare?'var(--gold)':'';
-  b.innerHTML=(rare?'⭐ ':'')+text+'<span class="d">'+cat+'</span>';$('#bubbles').prepend(b);
-  T.set('guesses_M-IDEAFLU',guesses.length);T.set('guessKinds_M-FLEX',gkinds.size);T.set('rare_M-ORIG',gorig);
-  if(newK)$('#prompt').innerHTML='<b style="color:var(--gold)">🔥 a new kind of guess!</b>';
-  T.log('guess',{text,kind:cat,rare});
+/* ---------- render: ask mode ---------- */
+function paintScene(){$('#scene').textContent=curScene.ic;}
+function paintAsked(){$('#asked').innerHTML=askedIdx.map(i=>`<span class="askedchip">${curScene.qs[i].t}</span>`).join('');}
+function paintQCards(){$('#qcards').innerHTML=curScene.qs.map((q,i)=>`<div class="qcard${askedIdx.includes(i)?' picked':''}" data-i="${i}">${q.t}</div>`).join('');
+  $$('#qcards .qcard').forEach(el=>el.addEventListener('click',()=>onAsk(+el.dataset.i)));}
+function onAsk(i){if(locked||phase==='demo'||phase==='done'||askedIdx.includes(i))return;
+  askedIdx.push(i);const q=curScene.qs[i];const d=scoreDepth(q.depth);
+  T.queries.push(q);T.depthSum+=d;T.flexSet.add(q.depth);if(d===2)T.orig++;
+  paintAsked();paintQCards();log(`asked: "${q.t}" (${q.depth})`);renderMeters();
+  $('#go').classList.add('ready');
+  const numQ=levelParams(level).numQ;
+  if(askedIdx.length>=numQ){$('#go').classList.add('ready');}
 }
 
-/* ---- flow ---- */
-function buildStarters(onAsk){
-  const wrap=$('#starters');wrap.innerHTML='';let picked='';
-  STARTERS.forEach(([w,stem,depth])=>{const b=document.createElement('button');
-    if(depth>=2)b.className='deep';b.textContent=w+'…';
-    b.onclick=()=>{picked=stem;const cur=$('#q').value.replace(/^(who|what if|what|where|why|how)\s*/i,'');
-      $('#q').value=stem+cur;$('#q').focus();
-      wrap.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
-      $('#q').dataset.depth=depth;T.log('starter_tap',{w});};
-    wrap.appendChild(b);});
-  const submit=()=>{let v=$('#q').value.trim();if(v.length<3)return;
-    let depth=+($('#q').dataset.depth||1);
-    const lv=v.toLowerCase();
-    if(lv.startsWith('what if'))depth=3;else if(lv.startsWith('why')||lv.startsWith('how'))depth=2;
-    addQuestion(v,depth);$('#q').value='';$('#q').dataset.depth='';wrap.querySelectorAll('button').forEach(x=>x.classList.remove('on'));onAsk();};
-  $('#askBtn').onclick=submit;
-  $('#q').onkeydown=e=>{if(e.key==='Enter')submit();};
-  $('#q').oninput=()=>{if(!$('#q').dataset.f){$('#q').dataset.f=1;T.log('first_keystroke');}};
+/* ---------- render: assoc variant ---------- */
+function paintAssoc(){$('#emotarget').textContent=curAssoc.emoji;
+  $('#qcards').innerHTML=curAssoc.opts.map((o,i)=>`<div class="qcard" data-i="${i}">${o[0]}</div>`).join('');
+  $$('#qcards .qcard').forEach(el=>el.addEventListener('click',()=>onAssoc(+el.dataset.i)));}
+function onAssoc(i){if(locked||phase==='demo'||phase==='done')return;
+  const correct=curAssoc.opts[i][1];locked=true;
+  $$('#qcards .qcard').forEach((el,idx)=>el.classList.add(curAssoc.opts[idx][1]?'rated-causal':(idx===i?'rated-label':'')));
+  log(`emoji ${curAssoc.emoji} \u2192 "${curAssoc.opts[i][0]}" ${correct?'CORRECT':'not best match'}`);
+  if(phase==='warmup'){log('— UNSCORED —');setTimeout(nextPhase,1100);return;}
+  T.scored++;if(correct){T.exact++;level=Math.min(6,level+1);}else{level=Math.max(1,level-1);}
+  maxLevel=Math.max(maxLevel,level);renderMeters();setTimeout(nextPhase,1300);
 }
-function runGhost(){
-  phaseTag.textContent='demo';setScene(SCENES.demo);ghost.style.display='block';
-  $('#prompt').textContent='Watch: ask questions about the mystery…';
-  const seq=[['why is the door glowing?',2],['what if I open it?',3]];
-  let i=0;ghost.style.left='50%';ghost.style.top='40%';
-  const step=()=>{if(i>=seq.length){ghost.style.display='none';setTimeout(startWarm,500);return;}
-    ghost.style.left=(30+i*22)+'%';ghost.style.top='62%';
-    setTimeout(()=>{addQuestion(seq[i][0],seq[i][1]);i++;setTimeout(step,1600);},700);};
-  setTimeout(step,700);
+
+/* ---------- flow ---------- */
+function setCue(i){$('#phasecue').textContent=i;}
+function newAskItem(l){mode='ask';$('#qcards').style.display='flex';$('#variant').style.display='none';$('#scene').style.display='block';
+  curScene=SCENES[(Math.random()*SCENES.length)|0];askedIdx=[];T.itemStart=Date.now();
+  paintScene();paintAsked();paintQCards();$('#go').classList.remove('ready');renderMeters();}
+function newAssocItem(){mode='assoc';$('#scene').style.display='none';$('#variant').style.display='flex';
+  curAssoc=ASSOC[(Math.random()*ASSOC.length)|0];T.itemStart=Date.now();
+  paintAssoc();locked=false;renderMeters();}
+function goNext(){ // lock ask item, log fluency for the round
+  if(mode!=='ask')return;
+  locked=true;$('#go').classList.remove('ready');
+  log(`round done: ${askedIdx.length} questions asked`);
+  setTimeout(nextPhase,900);
 }
-function startWarm(){
-  qs=[];depthSum=0;scored=false;$('#bubbles').innerHTML='';phaseTag.textContent='warm-up (practice)';
-  setScene(SCENES.warm);$('#prompt').textContent='Practice: ask 2 questions about this (not scored)';
-  $('#starters').style.display='flex';$('#entry').style.display='flex';
-  T.set('phase','warm-up');T.set('questions_M-QUERY',0);T.log('phase_warmup');
-  let n=0;buildStarters(()=>{n++;if(n>=2)$('#cta').innerHTML='<button class="add" onclick="startItem()">Ready → real mystery</button>';});
+function nextPhase(){locked=false;
+  if(phase==='warmup'){startScored();}
+  else if(phase==='scored'){
+    T.roundIdx=(T.roundIdx||0)+1;
+    if(T.roundIdx>=6){finish();return;}
+    if(T.roundIdx%2===0){newAssocItem();phase='scored';setCue('\ud83c\udfaf');log('— SCORED: pick the word that matches the emoji —');}
+    else{startScored();}
+  }
 }
-function startItem(){
-  qs=[];depthSum=0;guesses=[];gkinds=new Set();gorig=0;scored=true;mode='ask';
-  $('#bubbles').innerHTML='';$('#cta').innerHTML='';phaseTag.textContent='scored · ask';
-  setScene(SCENES.item);$('#prompt').innerHTML='<b>Ask everything you wonder about this!</b>';
-  T.set('phase','scored-ask');T.set('questions_M-QUERY',0);T.set('avgDepth',' — ');T.log('phase_scored_ask');
-  buildStarters(()=>{if(qs.length>=2)$('#cta').innerHTML='<button class="ghost-btn" onclick="startGuess()">Now guess why → </button>';});
-}
-function startGuess(){
-  mode='guess';phaseTag.textContent='scored · guess';$('#starters').style.display='none';
-  $('#prompt').innerHTML='<b>Guess: why did this happen? What happens next?</b> Many different ideas!';
-  $('#q').placeholder='a guess…';$('#cta').innerHTML='<button class="ghost-btn" onclick="finish()">Done → results</button>';
-  T.set('phase','scored-guess');T.log('phase_scored_guess');
-  const submit=()=>{const v=$('#q').value.trim();if(v){addGuess(v);$('#q').value='';}};
-  $('#askBtn').textContent='Guess! →';$('#askBtn').onclick=submit;$('#q').onkeydown=e=>{if(e.key==='Enter')submit();};
-}
-function finish(){
-  const avgD=qs.length?(depthSum/qs.length).toFixed(2):0;
-  T.log('SESSION_END',{questions:qs.length,avg_depth:+avgD,guesses:guesses.length,guess_kinds:gkinds.size,rare_guesses:gorig});
-  $('#prompt').innerHTML='<b style="color:var(--gold);font-size:20px">Great curiosity! 🎉</b>'+
-    '<div class="note">'+qs.length+' questions (avg depth '+avgD+') · '+guesses.length+' guesses across '+gkinds.size+
-    ' kinds · '+gorig+' rare. <b>Deep (why/how/what-if) questions</b> and <b>varied guesses</b> mark epistemic curiosity.</div>';
-  $('#entry').style.display='none';$('#starters').style.display='none';
-  $('#cta').innerHTML='<button class="add" onclick="location.reload()">↺ Play again</button>';
-  T.set('phase','done');
-}
-window.addEventListener('blur',()=>T.log('off_task_blur (M-ENGAGE)'));
-runGhost();
+function startWarmup(){phase='warmup';setCue('\u2b50');newAskItem(1);log('— warm-up (unscored): tap the questions you want to ask about the scene —');}
+function startScored(){phase='scored';setCue('\ud83c\udfaf');newAskItem(level);log(`— SCORED scene (level ${level}): ask your questions, then tap \u2192 —`);}
+function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;log(`— DONE \u00b7 ${ideaFlu()} questions asked \u00b7 emoji match ${T.exact}/${T.scored} \u00b7 max level ${maxLevel} —`);}
+async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;
+  curScene=SCENES[0];askedIdx=[];T.itemStart=Date.now();mode='ask';
+  $('#qcards').style.display='flex';$('#variant').style.display='none';$('#scene').style.display='block';
+  paintScene();paintAsked();paintQCards();log('ghost-hand demo (wordless, <10s)');ghostShow(true);await sleep(300);
+  await ghostTo($('.qcard[data-i="2"]'));await ghostTap();onAsk(2);await sleep(300);
+  await ghostTo($('.qcard[data-i="3"]'));await ghostTap();onAsk(3);await sleep(300);
+  await ghostTo($('#go'));await ghostTap();await sleep(300);ghostShow(false);await sleep(450);startWarmup();}
+$('#go').addEventListener('click',()=>{if($('#go').classList.contains('ready'))goNext();});
+$('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
+buildMeters();renderMeters();runDemo();
 </script>
 </body>
 </html>
