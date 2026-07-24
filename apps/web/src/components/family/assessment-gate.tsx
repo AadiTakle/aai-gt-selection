@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 
-import { EXAM_NAME } from '@/lib/exam/branding';
 import styles from './assessment-gate.module.css';
 
 /**
@@ -22,7 +21,7 @@ export function AssessmentGate({
     return (
       <div className={styles.card}>
         <p className={styles.kicker}>Next step</p>
-        <p className={styles.title}>{EXAM_NAME} assessment</p>
+        <p className={styles.title}>CogAT assessment</p>
         <p className={styles.note}>
           This opens as soon as your application is submitted. It is the required next step.
         </p>
@@ -36,7 +35,7 @@ export function AssessmentGate({
   return (
     <div className={`${styles.card} ${styles.cardInvite}`}>
       <p className={styles.kicker}>Your next step</p>
-      <p className={styles.title}>Take the {EXAM_NAME} assessment</p>
+      <p className={styles.title}>Take the CogAT assessment</p>
       <p className={styles.note}>
         This is the next step toward your eligibility result. Review the details and begin when
         you’re ready.

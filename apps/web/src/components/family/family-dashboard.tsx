@@ -2,8 +2,6 @@
 
 import type { StatusProjection, WorkflowStatus } from '@gt-selection/contracts';
 
-import { EXAM_NAME } from '@/lib/exam/branding';
-
 import { AssessmentGate } from './assessment-gate';
 import { SpiralRing } from './spiral-ring';
 import styles from './family-dashboard.module.css';
@@ -26,7 +24,7 @@ const STATUS_LABEL: Record<WorkflowStatus, string> = {
 
 const PHASE_STEPS = [
   { key: 'application', label: 'Application', detail: 'Family & student details' },
-  { key: 'assessment', label: `${EXAM_NAME} assessment`, detail: 'The required next step' },
+  { key: 'assessment', label: 'CogAT assessment', detail: 'The required next step' },
   { key: 'decision', label: 'Eligibility result', detail: 'Routed automatically' },
 ] as const;
 
@@ -67,7 +65,7 @@ export function FamilyDashboard({
     }
     switch (status.phase) {
       case 'assessment':
-        return `Next up: complete the ${EXAM_NAME} assessment when you’re ready.`;
+        return 'Next up: complete the CogAT assessment when you’re ready.';
       case 'snapshot':
         return 'Your talent snapshot is in progress.';
       case 'review':

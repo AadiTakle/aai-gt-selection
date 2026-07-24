@@ -11,12 +11,6 @@ importers:
       '@eslint/js':
         specifier: 9.39.5
         version: 9.39.5
-      '@gt-selection/cat-engine':
-        specifier: workspace:*
-        version: link:packages/cat-engine
-      '@playwright/test':
-        specifier: 1.61.1
-        version: 1.61.1
       '@supabase/supabase-js':
         specifier: 2.110.7
         version: 2.110.7
@@ -26,9 +20,6 @@ importers:
       eslint:
         specifier: 9.39.5
         version: 9.39.5
-      eslint-plugin-react-hooks:
-        specifier: 7.1.1
-        version: 7.1.1(eslint@9.39.5)
       prettier:
         specifier: 3.9.5
         version: 3.9.5
@@ -50,9 +41,6 @@ importers:
 
   apps/web:
     dependencies:
-      '@gt-selection/cat-engine':
-        specifier: workspace:*
-        version: link:../../packages/cat-engine
       '@gt-selection/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
@@ -111,22 +99,6 @@ importers:
       jsdom:
         specifier: 29.1.1
         version: 29.1.1(@noble/hashes@1.8.0)
-      typescript:
-        specifier: 5.9.3
-        version: 5.9.3
-      vitest:
-        specifier: 4.1.10
-        version: 4.1.10(@types/node@24.13.3)(@vitest/coverage-v8@4.1.10)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.1.5(@types/node@24.13.3)(esbuild@0.28.1)(tsx@4.23.1))
-
-  packages/cat-engine:
-    dependencies:
-      '@gt-selection/contracts':
-        specifier: workspace:*
-        version: link:../contracts
-    devDependencies:
-      '@vitest/coverage-v8':
-        specifier: 4.1.10
-        version: 4.1.10(vitest@4.1.10)
       typescript:
         specifier: 5.9.3
         version: 5.9.3

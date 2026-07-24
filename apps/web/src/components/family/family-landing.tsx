@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 
-import { EXAM_NAME } from '@/lib/exam/branding';
 import styles from './family-landing.module.css';
 
 const SPIRAL_PATHS = [
@@ -20,7 +19,7 @@ const JOURNEY = [
   },
   {
     n: '02',
-    label: `${EXAM_NAME} assessment`,
+    label: 'CogAT assessment',
     detail: 'The required next step, unlocked once your application is in.',
   },
   {

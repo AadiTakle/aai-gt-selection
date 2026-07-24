@@ -15,7 +15,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@gt-selection/cat-engine": "workspace:*",
     "@gt-selection/contracts": "workspace:*",
     "@gt-selection/db-types": "workspace:*",
     "@gt-selection/test-fixtures": "workspace:*",

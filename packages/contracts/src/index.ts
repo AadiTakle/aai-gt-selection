@@ -16,7 +16,6 @@ export type {
   RecordAssessmentVersionRequest,
   RecordAssessmentVersionResponse,
 } from './application';
-export * from './assessment-exam';
 export * from './correction';
 export * from './decision';
 export * from './errors';

@@ -15,14 +15,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      create_exam_participant: {
-        Args: {
-          p_age_band: string
-          p_correlation_id: string
-          p_pseudonym_code: string
-        }
-        Returns: Json
-      }
       get_application: {
         Args: { p_application_id: string; p_correlation_id: string }
         Returns: Json
@@ -31,27 +23,11 @@ export type Database = {
         Args: { p_application_id: string; p_correlation_id: string }
         Returns: Json
       }
-      get_exam_policy: {
-        Args: { p_correlation_id: string; p_policy_version: string }
-        Returns: Json
-      }
-      get_exam_session: {
-        Args: { p_correlation_id: string; p_session_id: string }
-        Returns: Json
-      }
       get_student_profile: {
         Args: { p_correlation_id: string; p_profile_id: string }
         Returns: Json
       }
       list_active_schools: { Args: { p_correlation_id: string }; Returns: Json }
-      list_exam_items: {
-        Args: {
-          p_age_band: string
-          p_correlation_id: string
-          p_policy_version: string
-        }
-        Returns: Json
-      }
       list_student_profiles: {
         Args: { p_correlation_id: string }
         Returns: Json
@@ -77,33 +53,12 @@ export type Database = {
         }
         Returns: Json
       }
-      start_exam_session: {
-        Args: {
-          p_correlation_id: string
-          p_idempotency_key: string
-          p_participant_id: string
-          p_policy_version: string
-        }
-        Returns: Json
-      }
       submit_application: {
         Args: {
           p_application_version_id: string
           p_correlation_id: string
           p_expected_version: number
           p_idempotency_key: string
-        }
-        Returns: Json
-      }
-      submit_exam_response: {
-        Args: {
-          p_abilities: Json
-          p_correlation_id: string
-          p_idempotency_key: string
-          p_outcome: Json
-          p_response: Json
-          p_session_id: string
-          p_telemetry: Json
         }
         Returns: Json
       }
