@@ -158,7 +158,7 @@ const TOTAL_SCORED=6;let phase='demo',scoredIndex=0;
 function setCue(i){$('#phasecue').textContent=i;}
 function nextPhase(){locked=false;if(phase==='warmup'){scoredIndex=0;startScored();}
   else if(phase==='scored'){scoredIndex++;scoredIndex<TOTAL_SCORED?startScored():finish();}}
-function startWarmup(){phase='warmup';setCue('\u2b50');level=1;renderItem(byLevel(1));log('— warm-up (unscored) —');}
+function startWarmup(){phase='warmup';locked=false;setCue('\u2b50');level=1;renderItem(byLevel(1));log('— warm-up (unscored) —');}
 function startScored(){phase='scored';setCue('\ud83c\udfaf');renderItem(byLevel(level));log(`— SCORED item ${scoredIndex+1}/${TOTAL_SCORED} · level ${level} [${byLevel(level).rel}] —`);}
 function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;log(`— DONE · exact ${T.exact}/${T.scored} · ceiling L${T.maxLevel} —`);renderMeters();}
 async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;

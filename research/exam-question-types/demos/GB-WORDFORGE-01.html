@@ -174,7 +174,7 @@ function nextPhase(){locked=false;
   if(phase==='warmup'){startScored();}
   else if(phase==='scored'){T.roundIdx=(T.roundIdx||0)+1;T.roundIdx<5?startScored():finish();}
 }
-function startWarmup(){phase='warmup';setCue('\u2b50');newRound(1,false);log('— warm-up (unscored): forge any real word, then tap ✓ —');
+function startWarmup(){phase='warmup';locked=false;setCue('\u2b50');newRound(1,false);log('— warm-up (unscored): forge any real word, then tap ✓ —');
   // unscored warmup ends after first valid word or 15s
   const chk=setInterval(()=>{if(found.size>0){clearInterval(chk);locked=true;log('warm-up word forged — UNSCORED');setTimeout(nextPhase,900);}},300);
   setTimeout(()=>{clearInterval(chk);if(phase==='warmup'){locked=true;log('warm-up time up — UNSCORED');nextPhase();}},15000);

@@ -193,7 +193,7 @@ function submit(){if(staged===-1)return;const opt=cur.options[staged];const rt=D
   log(`SUBMIT ${scoredIndex+1}/${TOTAL} · L${cur.level} ${cur.ts.join('+')} \u2192 ${correct?'CORRECT':'wrong ['+opt.tag+']'} · ${last(T.gates).reason} · next L${T.level}`);
   renderMeters();setTimeout(nextPhase,1200);}
 function nextPhase(){locked=false;if(phase==='warmup'){scoredIndex=0;T.level=1;startScored();}else if(phase==='scored'){scoredIndex++;scoredIndex<TOTAL?startScored():finish();}}
-function startWarmup(){phase='warmup';setCue('\u2b50');renderItem(genAnalogy(1));log('— warm-up · one transform · UNSCORED —');}
+function startWarmup(){phase='warmup';locked=false;setCue('\u2b50');renderItem(genAnalogy(1));log('— warm-up · one transform · UNSCORED —');}
 function startScored(){phase='scored';setCue('\ud83c\udfaf');renderItem(genAnalogy(T.level));log(`— SCORED ${scoredIndex+1}/${TOTAL} · L${cur.level} · ${cur.ts.length} co-transform(s) —`);}
 function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;log(`— DONE · accuracy ${T.correct}/${T.scored} · ${confStr()} —`);}
 async function runDemo(){const token=++demoRun;phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;

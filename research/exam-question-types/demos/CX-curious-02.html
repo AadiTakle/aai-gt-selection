@@ -185,7 +185,7 @@ function nextPhase(){locked=false;
     else{startScored();}
   }
 }
-function startWarmup(){phase='warmup';setCue('\u2b50');newAskItem(1);log('— warm-up (unscored): tap the questions you want to ask about the scene —');}
+function startWarmup(){phase='warmup';locked=false;setCue('\u2b50');newAskItem(1);log('— warm-up (unscored): tap the questions you want to ask about the scene —');}
 function startScored(){phase='scored';setCue('\ud83c\udfaf');newAskItem(level);log(`— SCORED scene (level ${level}): ask your questions, then tap \u2192 —`);}
 function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;log(`— DONE \u00b7 ${ideaFlu()} questions asked \u00b7 emoji match ${T.exact}/${T.scored} \u00b7 max level ${maxLevel} —`);}
 async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;

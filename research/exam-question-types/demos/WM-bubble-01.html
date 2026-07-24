@@ -168,7 +168,7 @@ function setCue(i){$('#phasecue').textContent=i;}
 function newRound(l){const p=levelParams(l);stream=genStream(p.listLen,p.lureRate);idx=0;
   T.hits=0;T.miss=0;T.fa=0;T.cr=0;T.updateCosts=[];T.itemStart=Date.now();
   paintBubble(stream[0].w);$('#seenbtn').disabled=false;$('#newbtn').disabled=false;renderMeters();}
-function startWarmup(){phase='warmup';setCue('\u2b50');newRound(1);log('— warm-up (unscored): tap SEEN if this word appeared before, NEW if not —');}
+function startWarmup(){phase='warmup';locked=false;setCue('\u2b50');newRound(1);log('— warm-up (unscored): tap SEEN if this word appeared before, NEW if not —');}
 function startScored(){phase='scored';setCue('\ud83c\udfaf');newRound(level);log(`— SCORED round: ${levelParams(level).listLen} words, level ${level} —`);}
 function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;$('#seenbtn').disabled=true;$('#newbtn').disabled=true;
   log(`— DONE \u00b7 d'=${dprimeCalc()} \u00b7 max level ${maxLevel} —`);}

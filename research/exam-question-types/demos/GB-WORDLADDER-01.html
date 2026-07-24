@@ -160,7 +160,7 @@ function nextPhase(){locked=false;
   if(phase==='warmup'){startScored();}
   else if(phase==='scored'){T.roundIdx=(T.roundIdx||0)+1;T.roundIdx<6?startScored():finish();}
 }
-function startWarmup(){phase='warmup';setCue('\u2b50');newItem(1);log('— warm-up (unscored): change one letter to climb toward the goal —');}
+function startWarmup(){phase='warmup';locked=false;setCue('\u2b50');newItem(1);log('— warm-up (unscored): change one letter to climb toward the goal —');}
 function startScored(){phase='scored';setCue('\ud83c\udfaf');newItem(level);log(`— SCORED ladder: ${cur.start}\u2192${cur.goal} (level ${level}) —`);}
 function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;log(`— DONE \u00b7 goals reached ${T.exact}/${T.scored} \u00b7 max level ${maxLevel} —`);}
 async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;

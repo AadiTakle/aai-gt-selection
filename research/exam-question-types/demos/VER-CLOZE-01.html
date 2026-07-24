@@ -167,7 +167,7 @@ function nextPhase(){locked=false;if(phase==='warmup'){scoredIndex=0;startScored
 const TOTAL_SCORED=6;
 let phase='demo',scoredIndex=0;
 function setCue(i){$('#phasecue').textContent=i;}
-function startWarmup(){phase='warmup';setCue('\u2b50');level=1;renderItem(pickItem(1),false);log('— warm-up (unscored) —');}
+function startWarmup(){phase='warmup';locked=false;setCue('\u2b50');level=1;renderItem(pickItem(1),false);log('— warm-up (unscored) —');}
 function startScored(){phase='scored';setCue('\ud83c\udfaf');T.startLevel=T.startLevel||level;renderItem(pickItem(level),false);
   log(`— SCORED item ${scoredIndex+1}/${TOTAL_SCORED} · level ${level} —`);}
 function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;log(`— DONE · exact ${T.exact}/${T.scored} · ceiling L${T.maxLevel} —`);renderMeters();}
