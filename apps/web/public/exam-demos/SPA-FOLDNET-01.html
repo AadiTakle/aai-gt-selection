@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SPA-FOLDNET-01 · Fold-the-Net</title>
+<style>
+:root{--ink:#2c3043;--indigo:#5267df;--rose:#ef6b8f;--gold:#f5ad32;--teal:#28ad9c;--good:#1aa56f;--bad:#e14a60;--tel:#111426;--tel2:#20243e}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%}body{display:flex;background:linear-gradient(145deg,#fff6dd,#edf0ff);font:16px/1.35 system-ui,-apple-system,Segoe UI,sans-serif;color:var(--ink)}
+#wrap{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:10px;padding:18px}#badge{font-size:12px;font-weight:850;color:#7c7e98;letter-spacing:.09em;text-transform:uppercase}#howto{max-width:760px;width:100%;background:#fff;border:1px solid #e3e5f5;border-left:5px solid var(--indigo);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4e8b}#howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--indigo)}#howto p{margin:0;font-size:14px;color:#45496e;line-height:1.5}#phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eceeff;color:var(--indigo);border:2px solid #ced3ff;min-height:30px}#phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}#phasecue[data-phase="scored"]{background:var(--indigo);color:#fff;border-color:var(--indigo)}#phasecue[data-phase="done"]{background:#eceeff;color:#3a3f9c;border-color:#ced3ff}#status{min-height:22px;font-size:14px;font-weight:700;text-align:center}#status.ok{color:var(--good)}#status.no{color:var(--bad)}#status.neutral{color:#7d8098}
+#stagecard{width:min(760px,100%);background:#fff;border-radius:27px;padding:16px;display:grid;gap:13px;box-shadow:0 24px 60px -32px #4a4e8b}
+#work{display:grid;grid-template-columns:1fr 1fr;gap:12px}.panel{height:255px;border-radius:20px;overflow:hidden;position:relative}.netPanel{background:#fff9e8;border:2px solid #f0dba3;display:grid;place-items:center}.netPanel:before{content:"▱";position:absolute;top:9px;left:12px;color:#c19b43;font-size:20px}#netSvg{width:100%;height:100%}
+#foldStage{background:linear-gradient(160deg,#182040,#252c59);border:2px solid #343d72;perspective:800px;display:grid;place-items:center;touch-action:none;cursor:grab}#foldStage.drag{cursor:grabbing}#foldObject{position:relative;width:70px;height:70px;transform-style:preserve-3d}.foldFace{position:absolute;left:0;top:0;width:70px;height:70px;display:grid;place-items:center;color:#fff;font-weight:900;font-size:22px;border:2px solid #ffffffaa;backface-visibility:visible;transform-style:preserve-3d;box-shadow:inset 0 0 0 2px #0001}#solidCanvas{position:absolute;inset:0;width:100%;height:100%;opacity:0;pointer-events:none;transition:opacity .3s}#foldStage:after{content:"";position:absolute;bottom:18px;width:150px;height:17px;border-radius:50%;background:#090d1c;filter:blur(10px);opacity:.55}
+#options{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}.option{border:3px solid #e6e6ef;background:#fff;border-radius:16px;padding:7px;display:grid;grid-template-columns:28px 1fr;align-items:center;min-height:104px;cursor:pointer;transition:.15s}.option:hover,.option:focus-visible{outline:none;transform:translateY(-2px);border-color:#aab3e9}.option.sel{border-color:var(--indigo);box-shadow:0 0 0 4px #e0e4ff}.option.good{border-color:var(--good);background:#ebfff6}.option.bad{border-color:var(--bad);background:#fff0f3}.key{width:26px;height:25px;border-radius:8px;background:#272d4d;color:#fff;display:grid;place-items:center;font-weight:900;box-shadow:0 3px 0 #111426}.solidIcon{width:100%;height:78px}
+#hotkeys{text-align:center;color:#7d8098;font:700 11px ui-monospace,monospace}.kbd{display:inline-grid;place-items:center;height:22px;min-width:23px;padding:0 5px;border:1px solid #c8c8d6;border-bottom-width:3px;border-radius:6px;background:#fff;color:#373b57;margin:0 2px}
+#controls{display:flex;justify-content:center;align-items:center;gap:12px}.round{border:0;border-radius:50%;cursor:pointer;font:800 24px system-ui}.round:focus-visible{outline:4px solid #b8c0f8;outline-offset:2px}#foldBtn{width:50px;height:50px;background:#eceeff;color:#4c5ac6}#lock{width:66px;height:66px;background:var(--indigo);color:#fff;box-shadow:0 10px 24px -10px var(--indigo)}#lock:disabled{opacity:.25;cursor:not-allowed}
+#ghost{position:fixed;left:0;top:0;z-index:90;font-size:38px;opacity:0;pointer-events:none;transition:transform .45s cubic-bezier(.2,.8,.2,1),opacity .2s;filter:drop-shadow(0 3px 4px #0006)}#ghost.show{opacity:1}#ghost.tap{animation:tap .34s}@keyframes tap{50%{scale:.76}}
+#telemetry{width:335px;flex:0 0 335px;min-height:100vh;background:var(--tel);color:#dcdfff;display:flex;flex-direction:column;font:13px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace}#telemetry h3{margin:0;padding:13px 15px;background:var(--tel2);color:#fff;font-size:12px;text-transform:uppercase;letter-spacing:.1em}
+#mountain{margin:12px 12px 4px;padding:10px;border:1px solid #343958;border-radius:12px}.mountTop{display:flex;justify-content:space-between;color:#9399c0;font-size:11px}.track{height:9px;margin-top:7px;border-radius:9px;overflow:hidden;background:#292e4a}.track i{display:block;height:100%;width:0;background:linear-gradient(90deg,#28ad9c,#5267df,#ef6b8f);transition:.3s}
+#mlist{padding:8px 12px;display:grid;gap:7px}.mrow{display:grid;grid-template-columns:106px 1fr;gap:6px}.mid{color:#7fffcf;font-weight:800}.mval{color:#fff;text-align:right;overflow-wrap:anywhere}.mname{grid-column:1/3;color:#7b82aa;font-size:11px;margin-top:-4px}#logwrap{border-top:1px solid #2b304e;margin-top:auto}#logwrap b{display:block;padding:8px 12px 4px;color:#888fb8;font-size:11px;letter-spacing:.08em}#log{height:220px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}#log div{padding:3px 0;border-bottom:1px dotted #272c48}#log .t{color:#666d98}
+@media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;min-height:0;height:325px;flex:none}}@media(max-width:600px){#work{grid-template-columns:1fr}.panel{height:205px}#options{grid-template-columns:1fr 1fr}.option{min-height:82px}.solidIcon{height:58px}}@media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="badge">SPA-FOLDNET-01 · Fold-the-Net</div>
+  <header id="howto">
+    <h1>How to use — Fold-the-Net</h1>
+    <p>Watch the flat net fold into a solid — press the fold button (or F) to fold again, and drag the solid to turn it. Choose which 3D shape the net makes, then press the check (<b>✓</b>).</p>
+  </header>
+  <div id="phasecue" data-phase="demo">Watch the example</div>
+  <main id="stagecard">
+    <div id="work">
+      <div class="panel netPanel"><svg id="netSvg" viewBox="0 0 360 260" aria-label="flat net"></svg></div>
+      <div class="panel" id="foldStage"><div id="foldObject"></div><canvas id="solidCanvas" width="360" height="260" aria-label="folded three dimensional solid"></canvas></div>
+    </div>
+    <div id="options" aria-label="three dimensional solid choices"></div>
+    <div id="hotkeys"><span class="kbd">F</span> · <span class="kbd">1</span><span class="kbd">2</span><span class="kbd">3</span><span class="kbd">4</span> · <span class="kbd">I</span><span class="kbd">J</span><span class="kbd">K</span><span class="kbd">L</span> · <span class="kbd">↵</span></div>
+    <div id="controls"><button id="foldBtn" class="round" title="fold replay" aria-label="fold net">↻</button><button id="lock" class="round" title="lock solid" aria-label="lock solid" disabled>✓</button></div>
+    <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+  </main>
+</div>
+<aside id="telemetry">
+  <h3>Live telemetry · per-child</h3>
+  <div id="mountain"><div class="mountTop"><span>CHALLENGE MOUNTAIN</span><span id="mountText">1/5 · Δ 0.00</span></div><div class="track"><i id="mountFill"></i></div></div>
+  <div id="mlist"></div>
+  <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+</aside>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],sleep=ms=>new Promise(r=>setTimeout(r,ms)),ctx=$('#solidCanvas').getContext('2d');
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0,V=(x,y,z)=>[x,y,z];
+// Minimal 3D: rotate (yaw,pitch) + orthographic project; painter's-algorithm faces.
+function proj(p,yaw,pit,s,cx,cy){const cy_=Math.cos(yaw),sy=Math.sin(yaw),cp=Math.cos(pit),sp=Math.sin(pit);let x=p[0]*cy_+p[2]*sy,z=-p[0]*sy+p[2]*cy_,y=p[1]*cp-z*sp;z=p[1]*sp+z*cp;return{x:cx+x*s,y:cy-y*s,z};}
+function drawFaces(c,verts,faces,yaw,pit,s,cx,cy){const P=verts.map(v=>proj(v,yaw,pit,s,cx,cy));faces.map(f=>({f,depth:f.idx.reduce((a,i)=>a+P[i].z,0)/f.idx.length})).sort((a,b)=>a.depth-b.depth).forEach(({f})=>{c.beginPath();f.idx.forEach((i,k)=>k?c.lineTo(P[i].x,P[i].y):c.moveTo(P[i].x,P[i].y));c.closePath();c.fillStyle=f.fill;c.fill();c.strokeStyle='#28304f';c.lineWidth=2;c.stroke()});}
+const COLOR=['#ef6b8f','#5267df','#28ad9c','#f5ad32','#9b6be8','#3eb7d3','#f07f4f','#62b86c'];
+function solid(verts,idx){return{verts,faces:idx.map((x,i)=>({idx:x,fill:COLOR[i%COLOR.length]}))};}
+function prism(n,rx=1,ry=1,z=.8){const verts=[];for(const zz of [-z,z])for(let i=0;i<n;i++){const a=-Math.PI/2+i*2*Math.PI/n;verts.push(V(rx*Math.cos(a),ry*Math.sin(a),zz))}const faces=[[...Array(n).keys()].reverse(),[...Array(n).keys()].map(i=>i+n)];for(let i=0;i<n;i++)faces.push([i,(i+1)%n,(i+1)%n+n,i+n]);return solid(verts,faces);}
+const SHAPES={
+ cube:{family:'box',faces:6,sig:'6 square',solid:prism(4,1,1,1)},
+ rect:{family:'box',faces:6,sig:'6 rectangle',solid:prism(4,1.35,.72,.82)},
+ tetra:{family:'pyramid',faces:4,sig:'4 triangle',solid:solid([V(0,1.2,0),V(-1,-.8,-.8),V(1,-.8,-.8),V(0,-.8,1.1)],[[0,1,2],[0,2,3],[0,3,1],[1,3,2]])},
+ pyramid:{family:'pyramid',faces:5,sig:'1 square 4 triangle',solid:solid([V(-1,-.8,-1),V(1,-.8,-1),V(1,-.8,1),V(-1,-.8,1),V(0,1.25,0)],[[0,1,2,3],[0,4,1],[1,4,2],[2,4,3],[3,4,0]])},
+ tri:{family:'prism',faces:5,sig:'2 triangle 3 rectangle',solid:prism(3,1.05,1,.9)},
+ pent:{family:'prism',faces:7,sig:'2 pentagon 5 rectangle',solid:prism(5,1,1,.82)},
+ hex:{family:'prism',faces:8,sig:'2 hexagon 6 rectangle',solid:prism(6,1,1,.82)}
+};
+const LIB={1:['cube'],2:['tetra','pyramid'],3:['tri'],4:['rect'],5:['pent','hex']};
+const DIST={
+ cube:['rect','pyramid','tri'],rect:['cube','tri','pyramid'],tetra:['pyramid','tri','cube'],pyramid:['tetra','tri','cube'],tri:['pyramid','rect','pent'],pent:['hex','tri','rect'],hex:['pent','tri','rect']
+};
+const T={scored:0,correct:0,rts:[],first:0,revs:0,folds:0,orbits:0,error:'—',maxSolved:0,level:1,startLevel:1,itemStart:0,rapid:false,blur:false,lastActivity:performance.now()};
+let phase='demo',kind='cube',options=[],selected=-1,trial=0,locked=true,folding=false,folded=false,yaw=-.62,pitch=.4,drag=false,lx=0,ly=0;
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');if(!el)return;el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+function learnRate(){return T.scored?((T.maxSolved-T.startLevel)/T.scored).toFixed(2):'0.00';}
+function rtText(){if(!T.rts.length)return'—';return T.rapid||T.blur?'gated':`${T.rts.at(-1)} ms · μ ${mean(T.rts)}`;}
+const METERS=[
+ {id:'M-ACC',name:'Exact net-to-solid accuracy',get:()=>T.scored?`${T.correct}/${T.scored} · ${Math.round(100*T.correct/T.scored)}%`:'—'},
+ {id:'M-RT',name:'Commit time, engagement-gated',get:rtText},
+ {id:'M-RTFIRST',name:'Time to first fold or choice',get:()=>T.first?`${Math.round(T.first)} ms`:'—'},
+ {id:'M-REV',name:'Solid-choice revisions',get:()=>String(T.revs)},
+ {id:'M-EXPLORE',name:'External fold and orbit use',get:()=>`${T.folds} folds · ${T.orbits} orbits`},
+ {id:'M-ERRTYPE',name:'Last topology near-miss',get:()=>T.error},
+ {id:'M-DIFFREACH',name:'Hardest net level solved',get:()=>`${T.maxSolved}/5 · Δ/trial ${learnRate()}`}
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{$('#v_'+m.id).textContent=m.get()});$('#mountFill').style.width=(T.level/5*100)+'%';$('#mountText').textContent=`${T.level}/5 · Δ ${learnRate()}`;}
+function log(msg){const d=document.createElement('div');d.innerHTML=`<span class="t">+${Math.round(Math.max(0,performance.now()-T.itemStart))}ms</span> ${msg}`;$('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;}
+function first(){if(!T.first){T.first=performance.now()-T.itemStart;log(`first action @ ${Math.round(T.first)}ms`)}}
+function svgEl(name,attrs){const e=document.createElementNS('http://www.w3.org/2000/svg',name);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));return e;}
+function rect(x,y,w,h,c,i){const r=svgEl('rect',{x,y,width:w,height:h,rx:3,fill:c,stroke:'#5f6171','stroke-width':2});if(i!=null){const t=svgEl('text',{x:x+w/2,y:y+h/2+6,'text-anchor':'middle','font-size':18,'font-weight':900,fill:'#fff'});t.textContent='◆●▲✚⬟✦'[i%6];$('#netSvg').append(r,t)}else $('#netSvg').append(r);}
+function poly(points,c,i){const p=svgEl('polygon',{points:points.map(x=>x.join(',')).join(' '),fill:c,stroke:'#5f6171','stroke-width':2});$('#netSvg').append(p);if(i!=null){const x=points.reduce((s,p)=>s+p[0],0)/points.length,y=points.reduce((s,p)=>s+p[1],0)/points.length,t=svgEl('text',{x,y:y+6,'text-anchor':'middle','font-size':17,'font-weight':900,fill:'#fff'});t.textContent='◆●▲✚⬟✦'[i%6];$('#netSvg').append(t)}}
+function drawNet(k){const s=$('#netSvg');s.innerHTML='';if(k==='cube'){const a=50,x=105,y=105;[[-1,0],[0,0],[1,0],[2,0],[0,-1],[0,1]].forEach((p,i)=>rect(x+p[0]*a,y+p[1]*a,a,a,COLOR[i],i))}
+ else if(k==='rect'){const widths=[64,38,64,38],h=48,x=78,y=106;let xx=x;widths.forEach((w,i)=>{rect(xx,y,w,h,COLOR[i],i);xx+=w});rect(x,y-38,64,38,COLOR[4],4);rect(x+64+38,y+h,64,38,COLOR[5],5)}
+ else if(k==='pyramid'){const x=145,y=95,a=70;rect(x,y,a,a,COLOR[0],0);poly([[x,y],[x+a,y],[x+a/2,y-62]],COLOR[1],1);poly([[x+a,y],[x+a,y+a],[x+a+62,y+a/2]],COLOR[2],2);poly([[x+a,y+a],[x,y+a],[x+a/2,y+a+62]],COLOR[3],3);poly([[x,y+a],[x,y],[x-62,y+a/2]],COLOR[4],4)}
+ else if(k==='tetra'){const h=66,cx=180,cy=130,tri=[[cx,cy-h],[cx-58,cy+34],[cx+58,cy+34]];poly(tri,COLOR[0],0);poly([[cx,cy-h],[cx-58,cy+34],[cx-116,cy-h]],COLOR[1],1);poly([[cx,cy-h],[cx+58,cy+34],[cx+116,cy-h]],COLOR[2],2);poly([[cx-58,cy+34],[cx+58,cy+34],[cx,cy+102]],COLOR[3],3)}
+ else{const n=k==='tri'?3:k==='pent'?5:6,w=k==='tri'?70:k==='pent'?48:41,h=65,x=(360-n*w)/2,y=98,r=w/(2*Math.sin(Math.PI/n));for(let i=0;i<n;i++)rect(x+i*w,y,w,h,COLOR[i],i);const ngon=(cx,cy)=>Array.from({length:n},(_,i)=>[cx+r*Math.cos(-Math.PI/2+i*2*Math.PI/n),cy+r*Math.sin(-Math.PI/2+i*2*Math.PI/n)]);poly(ngon(x+w/2,y-r),COLOR[n%8],n);poly(ngon(x+(n-1.5)*w,y+h+r),COLOR[(n+1)%8],n+1)}}
+function icon(k,color){const common=`fill="${color}bb" stroke="${color}" stroke-width="4" stroke-linejoin="round"`;let body='';
+ if(k==='cube')body=`<polygon points="24,28 54,12 82,29 52,46" ${common}/><polygon points="24,28 52,46 52,76 24,57" ${common}/><polygon points="52,46 82,29 82,59 52,76" ${common}/>`;
+ else if(k==='rect')body=`<polygon points="12,32 55,14 88,28 45,47" ${common}/><polygon points="12,32 45,47 45,72 12,58" ${common}/><polygon points="45,47 88,28 88,53 45,72" ${common}/>`;
+ else if(k==='tetra')body=`<polygon points="50,9 16,72 84,72" ${common}/><path d="M50 9L50 72M16 72L50 42L84 72" fill="none" stroke="#fff" stroke-width="2"/>`;
+ else if(k==='pyramid')body=`<polygon points="50,8 12,65 50,78 88,65" ${common}/><path d="M50 8L50 78M12 65L88 65" fill="none" stroke="#fff" stroke-width="2"/>`;
+ else{const n=k==='tri'?3:k==='pent'?5:6,pts=Array.from({length:n},(_,i)=>[31+22*Math.cos(-Math.PI/2+i*2*Math.PI/n),42+24*Math.sin(-Math.PI/2+i*2*Math.PI/n)]),pts2=pts.map(p=>[p[0]+31,p[1]-11]);body=`<polygon points="${pts.map(p=>p.join(',')).join(' ')}" ${common}/><polygon points="${pts2.map(p=>p.join(',')).join(' ')}" ${common}/>`+pts.map((p,i)=>`<line x1="${p[0]}" y1="${p[1]}" x2="${pts2[i][0]}" y2="${pts2[i][1]}" stroke="${color}" stroke-width="4"/>`).join('')}
+ return `<svg class="solidIcon" viewBox="0 0 100 86" aria-hidden="true">${body}</svg>`;}
+function buildOptions(){const raw=[kind,...DIST[kind]],shift=(trial+T.level)%4;options=[...raw.slice(shift),...raw.slice(0,shift)];$('#options').innerHTML=options.map((k,i)=>`<button class="option" data-i="${i}" aria-label="choice ${i+1}"><span class="key">${i+1}</span>${icon(k,COLOR[i])}</button>`).join('');}
+function panelDefs(k){if(k==='cube'||k==='rect')return[
+ ['square','translate3d(0,0,0)','translate3d(0,0,35px)'],['square','translate3d(70px,0,0)','translate3d(35px,0,0) rotateY(90deg)'],['square','translate3d(140px,0,0)','translate3d(0,0,-35px) rotateY(180deg)'],['square','translate3d(-70px,0,0)','translate3d(-35px,0,0) rotateY(-90deg)'],['square','translate3d(0,-70px,0)','translate3d(0,-35px,0) rotateX(90deg)'],['square','translate3d(0,70px,0)','translate3d(0,35px,0) rotateX(-90deg)']];
+ if(k==='pyramid')return[['square','translate3d(0,0,0)','translate3d(0,25px,0) rotateX(90deg)'],['tri','translate3d(0,-62px,0)','translate3d(0,-20px,22px) rotateX(55deg)'],['tri','translate3d(62px,0,0) rotateZ(90deg)','translate3d(20px,0,22px) rotateY(-55deg)'],['tri','translate3d(0,62px,0) rotateZ(180deg)','translate3d(0,20px,22px) rotateX(-55deg)'],['tri','translate3d(-62px,0,0) rotateZ(-90deg)','translate3d(-20px,0,22px) rotateY(55deg)']];
+ if(k==='tetra')return[['tri','translate3d(0,0,0)','translate3d(0,18px,0) rotateX(90deg)'],['tri','translate3d(-60px,-36px,0) rotateZ(-60deg)','translate3d(-18px,-8px,18px) rotateY(60deg)'],['tri','translate3d(60px,-36px,0) rotateZ(60deg)','translate3d(18px,-8px,18px) rotateY(-60deg)'],['tri','translate3d(0,70px,0) rotateZ(180deg)','translate3d(0,18px,18px) rotateX(-60deg)']];
+ const n=k==='tri'?3:k==='pent'?5:6,out=[];for(let i=0;i<n;i++)out.push(['rect',`translate3d(${(i-(n-1)/2)*52}px,0,0)`,`rotateY(${i*360/n}deg) translateZ(${n<5?25:40}px)`]);out.push(['poly','translate3d(-35px,-70px,0)','translate3d(0,-35px,0) rotateX(90deg)'],['poly','translate3d(35px,70px,0)','translate3d(0,35px,0) rotateX(90deg)']);return out;
+}
+function regularClip(n){return'polygon('+Array.from({length:n},(_,i)=>`${50+48*Math.cos(-Math.PI/2+i*2*Math.PI/n)}% ${50+48*Math.sin(-Math.PI/2+i*2*Math.PI/n)}%`).join(',')+')';}
+function buildPanels(){const o=$('#foldObject');o.innerHTML='';panelDefs(kind).forEach((d,i)=>{const e=document.createElement('div');e.className='foldFace';e.dataset.flat=d[1];e.dataset.fold=d[2];e.style.transform=d[1];e.style.background=COLOR[i%COLOR.length];if(d[0]==='tri')e.style.clipPath='polygon(50% 0,100% 100%,0 100%)';if(d[0]==='rect'){e.style.width='52px';e.style.height='70px'}if(d[0]==='poly')e.style.clipPath=regularClip(kind==='tri'?3:kind==='pent'?5:6);e.textContent='◆●▲✚⬟✦'[i%6];o.appendChild(e)});o.style.transform='rotateX(0deg) rotateY(0deg)';$('#solidCanvas').style.opacity=0;folded=false;}
+function drawSolid(){ctx.clearRect(0,0,360,260);const g=ctx.createRadialGradient(180,120,10,180,130,190);g.addColorStop(0,'#344079');g.addColorStop(1,'#131936');ctx.fillStyle=g;ctx.fillRect(0,0,360,260);drawFaces(ctx,SHAPES[kind].solid.verts,SHAPES[kind].solid.faces,yaw,pitch,70,180,132);}
+function setItem(k,fresh=true){kind=k;drawNet(k);buildOptions();buildPanels();selected=-1;locked=phase==='demo';$('#lock').disabled=true;setCue(phase,phase==='scored'?(trial+1)+'/6':'');setStatus('neutral',phase==='warmup'?'Practice - this one is not scored.':phase==='scored'?'Fold the net (or press F), then choose the solid.':'Watch the example.');if(fresh){T.itemStart=performance.now();T.first=0;T.revs=0;T.folds=0;T.orbits=0;T.error='—';T.rapid=false;T.blur=false;T.lastActivity=performance.now()}renderMeters();}
+async function foldReplay(track=true){if(folding)return;folding=true;if(track&&phase!=='demo'){first();T.folds++;log('fold scaffold replay');renderMeters()}buildPanels();const faces=$$('.foldFace'),animations=faces.map((e,i)=>e.animate([{transform:e.dataset.flat},{transform:e.dataset.fold}],{duration:850+i*55,easing:'cubic-bezier(.25,.75,.2,1)',fill:'forwards'}));await Promise.all(animations.map(a=>a.finished.catch(()=>{})));folded=true;drawSolid();$('#solidCanvas').style.opacity=1;const st=performance.now();while(performance.now()-st<650){yaw+=.018;drawSolid();await new Promise(requestAnimationFrame)}folding=false;}
+function choose(i,modality='tap'){if(locked||folding||i<0||i>3)return;first();if(selected>=0&&selected!==i)T.revs++;selected=i;$$('.option').forEach((o,k)=>o.classList.toggle('sel',k===i));$('#lock').disabled=false;log(`solid choice ${i+1} [${options[i]}] via ${modality}`);renderMeters();}
+function activity(){T.lastActivity=performance.now()}addEventListener('pointerdown',activity);addEventListener('keydown',activity);document.addEventListener('visibilitychange',()=>{if(document.hidden&&phase==='scored')T.blur=true});function gate(rt){T.rapid=rt<350||performance.now()-T.lastActivity>22000;if(T.rapid||T.blur)log(`RT gate: ${T.rapid?'rapid/idle':'blur'}`);}
+function errType(a,b){const A=SHAPES[a],B=SHAPES[b];if(A.faces===B.faces)return'right face-count / wrong face-shape';if(A.family===B.family)return'near family / wrong side-count';return'wrong solid family';}
+async function submit(){if(locked||selected<0||folding)return;locked=true;$('#lock').disabled=true;const rt=Math.round(performance.now()-T.itemStart),pick=options[selected],ok=pick===kind;$$('.option')[selected].classList.add(ok?'good':'bad');$$('.option')[options.indexOf(kind)].classList.add('good');
+ if(phase==='warmup'){log(`warm-up ${ok?'correct':'guided reveal'} · unscored`);setStatus(ok?'ok':'no',ok?'\u2713 Correct - practice':'\u2717 Not quite - the correct solid is shown (practice)');if(!folded)await foldReplay(false);await sleep(700);startScored();return}
+ T.scored++;T.rts.push(rt);gate(rt);if(ok){T.correct++;T.maxSolved=Math.max(T.maxSolved,T.level);T.level=Math.min(5,T.level+1);T.error='—'}else{T.level=Math.max(1,T.level-1);T.error=errType(pick,kind)}setStatus(ok?'ok':'no',ok?'\u2713 Correct':'\u2717 Not quite - the correct solid is shown');log(`LOCK ${ok?'correct':'miss '+T.error} · ${pick}→${kind} · L${T.level} · ${rt}ms`);renderMeters();await sleep(950);trial++;trial<6?startScored():finish();}
+function startWarmup(){phase='warmup';setItem('cube',true);locked=false;log('warm-up · unscored');}
+function startScored(){phase='scored';const choices=LIB[T.level],k=choices[(trial+T.level)%choices.length];setItem(k,true);locked=false;log(`scored ${trial+1}/6 · L${T.level} · net ${k}`);}
+function finish(){phase='done';locked=true;setCue('done');setStatus('ok','\u2713 Done');$('#lock').disabled=true;$$('.option').forEach(o=>o.disabled=true);log(`DONE · ${T.correct}/${T.scored} · max L${T.maxSolved} · Δ ${learnRate()}`);renderMeters();}
+const stage=$('#foldStage');stage.addEventListener('pointerdown',e=>{if(!folded||locked)return;drag=true;lx=e.clientX;ly=e.clientY;stage.classList.add('drag');stage.setPointerCapture(e.pointerId);first()});stage.addEventListener('pointermove',e=>{if(!drag)return;yaw+=(e.clientX-lx)*.008;pitch+=(e.clientY-ly)*.006;lx=e.clientX;ly=e.clientY;drawSolid()});function endDrag(){if(drag){drag=false;stage.classList.remove('drag');T.orbits++;log('orbit gesture');renderMeters()}}stage.addEventListener('pointerup',endDrag);stage.addEventListener('pointercancel',endDrag);
+const ghost=$('#ghost');async function ghostTo(el){const r=el.getBoundingClientRect();ghost.style.transform=`translate(${r.left+r.width/2-12}px,${r.top+r.height/2-10}px)`;await sleep(460)}async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(330)}
+async function runDemo(){phase='demo';setItem('cube',false);ghost.classList.add('show');await ghostTo($('#foldBtn'));await ghostTap();await foldReplay(false);const o=$$('.option')[options.indexOf('cube')];await ghostTo(o);await ghostTap();o.classList.add('sel','good');await sleep(350);ghost.classList.remove('show');startWarmup();}
+$('#options').addEventListener('click',e=>{const o=e.target.closest('.option');if(o)choose(+o.dataset.i,'tap')});$('#foldBtn').addEventListener('click',()=>{if(phase!=='done')foldReplay(true)});$('#lock').addEventListener('click',submit);
+addEventListener('keydown',e=>{if(e.repeat)return;const k=e.key.toLowerCase();if(/^[1-4]$/.test(e.key))choose(+e.key-1,'key');else if(e.key==='Enter')submit();else if(k==='f')foldReplay(true);else if(k==='j'&&folded){yaw-=.12;T.orbits++;drawSolid();renderMeters()}else if(k==='l'&&folded){yaw+=.12;T.orbits++;drawSolid();renderMeters()}else if(k==='i'&&folded){pitch-=.1;T.orbits++;drawSolid();renderMeters()}else if(k==='k'&&folded){pitch+=.1;T.orbits++;drawSolid();renderMeters()}else return;e.preventDefault()});
+buildMeters();setItem('cube',false);renderMeters();runDemo();
+</script>
+</body>
+</html>

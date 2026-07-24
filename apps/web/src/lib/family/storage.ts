@@ -39,7 +39,7 @@ export function storeApplication(value: StoredApplication): void {
  * (e.g. to the dashboard and back via "Review your application") keeps every
  * answer. The real flow persists through the backend adapter instead.
  */
-const PREVIEW_STATE_KEY = 'gt-synthetic-preview-wizard-state';
+export const PREVIEW_STATE_KEY = 'gt-synthetic-preview-wizard-state';
 
 export function readPreviewState<T>(): T | null {
   if (typeof window === 'undefined') return null;

@@ -19,6 +19,8 @@
 }
 
 .hero {
+  position: relative;
+  overflow: hidden;
   background: linear-gradient(
     135deg,
     var(--gt-navy-dark) 0%,
@@ -28,7 +30,22 @@
   color: #eaf1f2;
   border-radius: var(--gt-radius-lg);
   padding: var(--gt-space-6);
-  box-shadow: var(--gt-shadow-pop);
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url('/blueprint-lines.png') right center / cover no-repeat;
+  opacity: 0.16;
+  pointer-events: none;
+  mask-image: linear-gradient(90deg, transparent 0%, #000 45%, #000 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 45%, #000 100%);
+}
+
+.heroText {
+  position: relative;
+  z-index: 1;
 }
 
 .kicker {
@@ -60,7 +77,7 @@
   display: grid;
   grid-template-columns: 1.3fr 1fr;
   gap: var(--gt-space-5);
-  align-items: start;
+  align-items: stretch;
 }
 
 .detailCard,
@@ -87,14 +104,41 @@
   margin: 0;
 }
 
-.included {
-  margin: 0;
-  padding-left: 1.1rem;
-  color: var(--gt-ink-60);
-  font-size: 0.95rem;
+/* labeled key/value facts that fill the card height and balance the fee box */
+.facts {
+  margin: var(--gt-space-2) 0 0;
   display: flex;
   flex-direction: column;
-  gap: var(--gt-space-2);
+}
+
+.fact {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: var(--gt-space-4);
+  padding: var(--gt-space-3) 0;
+  border-top: 1px solid var(--gt-line);
+}
+
+.fact:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.factLabel {
+  font-family: var(--gt-font-utility);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gt-ember);
+  margin: 0;
+  padding-top: 2px;
+}
+
+.factValue {
+  font-size: 0.92rem;
+  color: var(--gt-ink);
+  line-height: 1.5;
+  margin: 0;
 }
 
 .feeAmount {
@@ -161,11 +205,81 @@
   gap: var(--gt-space-3);
 }
 
+/* ---- What it measures ---- */
+.measures {
+  background: var(--gt-card);
+  border-radius: var(--gt-radius-md);
+  padding: var(--gt-space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-2);
+}
+
+.sectionLede {
+  color: var(--gt-ink-60);
+  margin: 0 0 var(--gt-space-4);
+  font-size: 0.95rem;
+  max-width: 60ch;
+}
+
+.domainGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--gt-space-5);
+}
+
+.domain {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-2);
+  padding-top: var(--gt-space-3);
+  border-top: 2px solid var(--gt-ember);
+}
+
+.domainNum {
+  font-family: var(--gt-font-utility);
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  color: var(--gt-ember);
+  font-weight: 600;
+}
+
+.domainName {
+  font-family: var(--gt-font-display);
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--gt-ink);
+  margin: 0;
+}
+
+.domainDetail {
+  font-size: 0.85rem;
+  color: var(--gt-ink-60);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.boundary {
+  font-size: 0.78rem;
+  color: var(--gt-ink-40);
+  text-align: center;
+  margin: 0;
+  max-width: 68ch;
+  align-self: center;
+  line-height: 1.5;
+}
+
 @media (max-width: 860px) {
   .grid {
     grid-template-columns: 1fr;
   }
   .title {
     font-size: 1.9rem;
+  }
+  .domainGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .fact {
+    grid-template-columns: 84px 1fr;
   }
 }

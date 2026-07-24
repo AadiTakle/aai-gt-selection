@@ -9,6 +9,11 @@ const isDev = process.env.NODE_ENV !== 'production';
 // 'unsafe-eval' for Turbopack HMR.
 // TODO(D-012): move to a nonce-based script-src for production hardening.
 const scriptSrc = isDev ? "'self' 'unsafe-inline' 'unsafe-eval'" : "'self' 'unsafe-inline'";
+// The assessment portal embeds self-contained question demos (served from
+// /exam-demos/) in same-origin iframes, so we allow same-origin framing:
+// `frame-src 'self'` lets the app embed them, and `frame-ancestors 'self'`
+// (with X-Frame-Options SAMEORIGIN below) lets those demos be framed by us
+// while still blocking any cross-origin site from framing the app (clickjacking).
 const contentSecurityPolicy = [
   "default-src 'self'",
   `script-src ${scriptSrc}`,
@@ -16,7 +21,8 @@ const contentSecurityPolicy = [
   "img-src 'self' data:",
   "font-src 'self'",
   "connect-src 'self'",
-  "frame-ancestors 'none'",
+  "frame-src 'self'",
+  "frame-ancestors 'self'",
   "object-src 'none'",
   "base-uri 'self'",
 ].join('; ');
@@ -45,7 +51,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'X-Frame-Options',
-            value: 'DENY',
+            value: 'SAMEORIGIN',
           },
         ],
       },

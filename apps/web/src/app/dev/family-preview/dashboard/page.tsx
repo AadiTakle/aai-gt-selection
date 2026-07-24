@@ -1,27 +1,14 @@
-import type { StatusProjection } from '@gt-selection/contracts';
 import { notFound } from 'next/navigation';
 
-import { FamilyDashboard } from '@/components/family/family-dashboard';
+import { PreviewDashboard } from '@/components/family/preview-dashboard';
 
-// Dev-only: the family dashboard for a fresh applicant who hasn't started yet —
-// draft status, phase 1 (application), so the preview begins at the very start.
-const PREVIEW_STATUS: StatusProjection = {
-  workflowStatus: 'application_draft',
-  displayLabelCode: 'STATUS_APPLICATION_DRAFT',
-  phase: 'application',
-  familyActionRequired: true,
-  nextActionCode: 'COMPLETE_APPLICATION',
-  deadline: null,
-  pendingReason: null,
-  claimBoundaryCode: 'ELIGIBILITY_NOT_ADMISSION',
-};
-
+// Dev-only: the family dashboard, driven by the wizard state saved in
+// localStorage so submitting the application actually advances the dashboard
+// (draft → awaiting assessment) instead of showing a canned status.
 export default function FamilyDashboardPreview() {
   if (process.env.NODE_ENV === 'production') notFound();
   return (
-    <FamilyDashboard
-      studentName="Synthetic Rivera"
-      status={PREVIEW_STATUS}
+    <PreviewDashboard
       applyHref="/dev/family-preview/apply"
       assessmentHref="/dev/family-preview/assessment"
     />

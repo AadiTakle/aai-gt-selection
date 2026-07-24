@@ -13,15 +13,40 @@ import styles from './assessment-page.module.css';
  */
 
 const MOCK_FEE_USD = 75;
-const ASSESSMENT_PORTAL_URL = '#'; // placeholder — real CogAT portal wired later
 const UNLOCK_KEY = 'gt-synthetic-assessment-unlocked';
+
+/** The four reasoning domains the adaptive assessment measures. */
+const DOMAINS = [
+  {
+    name: 'Fluid reasoning',
+    detail: 'Spotting patterns and solving new problems without prior knowledge.',
+  },
+  {
+    name: 'Verbal reasoning',
+    detail: 'Understanding language, relationships between words, and meaning.',
+  },
+  {
+    name: 'Quantitative reasoning',
+    detail: 'Working with numbers, sequences, and mathematical relationships.',
+  },
+  {
+    name: 'Spatial reasoning',
+    detail: 'Picturing and mentally rotating shapes and figures in space.',
+  },
+] as const;
 
 function readUnlocked(): boolean {
   if (typeof window === 'undefined') return false;
   return window.sessionStorage.getItem(UNLOCK_KEY) === 'true';
 }
 
-export function AssessmentPage({ dashboardHref }: { dashboardHref: string }) {
+export function AssessmentPage({
+  dashboardHref,
+  examHref,
+}: {
+  dashboardHref: string;
+  examHref: string;
+}) {
   const [unlocked, setUnlocked] = useState(readUnlocked);
   const [paying, setPaying] = useState(false);
 
@@ -38,23 +63,44 @@ export function AssessmentPage({ dashboardHref }: { dashboardHref: string }) {
       </Link>
 
       <section className={styles.hero}>
-        <p className={styles.kicker}>Assessment</p>
-        <h1 className={styles.title}>CogAT assessment</h1>
-        <p className={styles.lede}>
-          The CogAT is the next step toward your eligibility result. Here’s what it includes and
-          what it costs before you begin.
-        </p>
+        <div className={styles.heroText}>
+          <p className={styles.kicker}>Assessment</p>
+          <h1 className={styles.title}>CogAT assessment</h1>
+          <p className={styles.lede}>
+            A short, adaptive reasoning session, and the next step toward your eligibility result.
+            Here’s what it measures, what to expect, and what it costs before you begin.
+          </p>
+        </div>
       </section>
 
       <div className={styles.grid}>
         <section className={styles.detailCard}>
-          <p className={styles.cardKicker}>What’s included</p>
-          <ul className={styles.included}>
-            <li>One scheduled CogAT assessment session</li>
-            <li>Automatic routing to your eligibility result</li>
-            <li>Family status updates throughout</li>
-            <li>A secure testing portal opened from this page</li>
-          </ul>
+          <p className={styles.cardKicker}>At a glance</p>
+          <dl className={styles.facts}>
+            <div className={styles.fact}>
+              <dt className={styles.factLabel}>Length</dt>
+              <dd className={styles.factValue}>About 10 minutes, in one sitting</dd>
+            </div>
+            <div className={styles.fact}>
+              <dt className={styles.factLabel}>Format</dt>
+              <dd className={styles.factValue}>
+                Adaptive. Questions get harder or easier with each answer, so the level always fits
+              </dd>
+            </div>
+            <div className={styles.fact}>
+              <dt className={styles.factLabel}>Preparation</dt>
+              <dd className={styles.factValue}>
+                None needed. It measures reasoning, not memorized facts
+              </dd>
+            </div>
+            <div className={styles.fact}>
+              <dt className={styles.factLabel}>Included</dt>
+              <dd className={styles.factValue}>
+                One session, a secure testing portal, live status updates, and automatic routing to
+                your eligibility result
+              </dd>
+            </div>
+          </dl>
         </section>
 
         <section className={styles.feeCard}>
@@ -64,9 +110,9 @@ export function AssessmentPage({ dashboardHref }: { dashboardHref: string }) {
 
           {unlocked ? (
             <>
-              <a className={styles.primary} href={ASSESSMENT_PORTAL_URL}>
+              <Link className={styles.primary} href={examHref}>
                 Open the assessment →
-              </a>
+              </Link>
               <p className={styles.readyNote}>Your assessment access is ready.</p>
             </>
           ) : paying ? (
@@ -85,6 +131,27 @@ export function AssessmentPage({ dashboardHref }: { dashboardHref: string }) {
           )}
         </section>
       </div>
+
+      <section className={styles.measures}>
+        <p className={styles.cardKicker}>What it measures</p>
+        <p className={styles.sectionLede}>
+          Four kinds of reasoning, scored independently so strengths in any area come through.
+        </p>
+        <div className={styles.domainGrid}>
+          {DOMAINS.map((d, i) => (
+            <div key={d.name} className={styles.domain}>
+              <span className={styles.domainNum}>{String(i + 1).padStart(2, '0')}</span>
+              <p className={styles.domainName}>{d.name}</p>
+              <p className={styles.domainDetail}>{d.detail}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <p className={styles.boundary}>
+        This is an eligibility screening only, not an IQ test, an enrollment offer, or an admission
+        decision. Results help route your family to the right next step.
+      </p>
     </div>
   );
 }

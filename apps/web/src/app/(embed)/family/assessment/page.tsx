@@ -3,5 +3,5 @@ import { requireRole } from '@/lib/auth';
 
 export default async function FamilyAssessmentPage() {
   await requireRole(['family']);
-  return <AssessmentPage dashboardHref="/family/dashboard" />;
+  return <AssessmentPage dashboardHref="/family/dashboard" examHref="/family/exam" />;
 }
