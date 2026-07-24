@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QUANT-FUNC-01 · Machine Rule</title>
+<style>
+  :root{
+    --cream:#fff4df;--aqua:#e3f8f4;--ink:#30364b;--card:#fffdf8;
+    --copper:#dc754f;--teal:#238d91;--yellow:#f5bd45;--good:#2db77c;--bad:#ef6372;
+    --tel:#121726;--tel2:#20263a;--key:#8ff4d8;--dim:#7f8aaa;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%}
+  body{
+    min-height:100vh;display:flex;color:var(--ink);
+    font:16px/1.35 ui-rounded,"Avenir Next",system-ui,sans-serif;
+    background:linear-gradient(140deg,var(--cream),var(--aqua));
+  }
+  button{font:inherit}
+  #wrap{
+    flex:1;min-width:0;padding:18px;display:flex;flex-direction:column;
+    align-items:center;gap:12px;
+  }
+  #badge{
+    color:#877f79;font-size:12px;font-weight:800;letter-spacing:.1em;
+    text-transform:uppercase;
+  }
+  #phasecue{height:42px;font-size:34px}
+  #stagecard{
+    width:min(800px,100%);min-height:520px;padding:24px;border-radius:32px;
+    background:rgba(255,253,248,.96);box-shadow:0 24px 60px -30px #745742;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+  }
+  #examples{width:100%;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  .pair,.challenge{
+    display:flex;align-items:center;justify-content:center;gap:9px;
+    padding:10px;border-radius:22px;background:#fff8eb;border:3px solid #f1dfbd;
+  }
+  .challenge{
+    width:min(510px,100%);padding:14px;background:#eafaf7;border-color:#b6dfd8;
+    position:relative;
+  }
+  .tray{
+    width:78px;height:72px;border-radius:17px;background:#fff;border:3px solid #e3dac6;
+    display:grid;place-items:center;box-shadow:0 5px 0 #eadfc8;
+  }
+  .tray.empty{
+    border-style:dashed;border-color:var(--teal);background:#f0fffc;
+    animation:emptyglow 1.35s infinite;
+  }
+  @keyframes emptyglow{50%{box-shadow:0 5px 0 #c9e6df,0 0 24px #4cb9ad66}}
+  .mini-machine{
+    width:58px;height:58px;border-radius:18px;background:linear-gradient(145deg,var(--copper),#c85b45);
+    color:#fff;display:grid;place-items:center;font-size:28px;border:3px solid #aa4c3b;
+    box-shadow:inset 0 0 0 3px #f29a70;
+  }
+  #machine{
+    width:112px;height:104px;border-radius:28px;background:linear-gradient(145deg,var(--copper),#b94f3e);
+    border:4px solid #9c4638;box-shadow:inset 0 0 0 5px #f09970,0 9px 0 #8c4035;
+    display:grid;place-items:center;color:#fff;font-size:47px;position:relative;
+  }
+  #machine::before,#machine::after{
+    content:"";position:absolute;width:22px;height:14px;top:44px;background:#9c4638;
+  }
+  #machine::before{left:-25px;border-radius:10px 0 0 10px}
+  #machine::after{right:-25px;border-radius:0 10px 10px 0}
+  #machine.spin{animation:rumble .55s}
+  #machine.spin span{display:block;animation:gear .55s linear}
+  @keyframes rumble{25%,75%{transform:translateY(-3px)}50%{transform:translateY(3px)}}
+  @keyframes gear{to{transform:rotate(180deg)}}
+  .quantity{
+    max-width:62px;display:grid;grid-template-columns:repeat(4,12px);
+    gap:3px;align-content:center;justify-content:center;
+  }
+  .piece{width:12px;height:12px;border-radius:50% 50% 5px 50%;background:var(--teal)}
+  .pair .piece{background:var(--copper)}
+  #choices{display:flex;gap:11px;justify-content:center;flex-wrap:wrap}
+  .choice{
+    width:88px;height:75px;border:3px solid #dfdfd1;border-radius:20px;background:#fff;
+    display:grid;place-items:center;cursor:pointer;box-shadow:0 6px 0 #ddd9ca;transition:.15s;
+  }
+  .choice:hover,.choice:focus-visible{outline:none;transform:translateY(-3px);border-color:#73bbb7}
+  .choice.selected{transform:translateY(-4px);border-color:var(--teal);box-shadow:0 8px 0 #b9ddd7}
+  .choice.correct{border-color:var(--good);background:#eafff4}
+  .choice.wrong{border-color:var(--bad);background:#fff0f2}
+  #controls{display:flex;gap:18px;align-items:center}
+  #replay,#go{border:0;border-radius:50%;cursor:pointer;display:grid;place-items:center}
+  #replay{width:50px;height:50px;color:var(--copper);background:#ffeadb;font-size:24px}
+  #go{
+    width:76px;height:76px;color:#fff;font-size:31px;background:var(--teal);
+    box-shadow:0 10px 0 #176f73,0 16px 28px -13px #176f73;
+    opacity:.34;pointer-events:none;
+  }
+  #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.1s infinite}
+  @keyframes pulse{50%{transform:scale(1.08)}}
+  .shake{animation:shake .4s}
+  @keyframes shake{25%,75%{transform:translateX(-8px)}50%{transform:translateX(8px)}}
+  #ghost{
+    position:fixed;left:0;top:0;z-index:90;font-size:42px;opacity:0;pointer-events:none;
+    filter:drop-shadow(0 3px 4px #0004);transition:transform .46s ease,opacity .2s;
+  }
+  #ghost.show{opacity:.94}#ghost.tap{animation:tap .34s}
+  @keyframes tap{50%{scale:.78}}
+  #telemetry{
+    width:326px;flex:0 0 326px;background:var(--tel);color:#ced6ee;
+    display:flex;flex-direction:column;font:13px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  #telemetry h3{
+    margin:0;padding:13px 14px;background:var(--tel2);color:#fff;
+    font-size:12px;letter-spacing:.09em;text-transform:uppercase;
+  }
+  #difficulty{padding:11px 13px;border-bottom:1px solid #2b334a}
+  .cap{display:flex;justify-content:space-between;color:#929dbc;font-size:11px}
+  #dbar{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-top:7px}
+  #dbar i{height:9px;border-radius:5px;background:#2b3349}
+  #dbar i.on{background:linear-gradient(90deg,#8ff4d8,#f5bd45)}
+  #mlist{padding:11px 12px;display:flex;flex-direction:column;gap:8px}
+  .mrow{display:grid;grid-template-columns:96px 1fr;gap:7px}
+  .mid{color:var(--key);font-weight:800}.mval{color:#fff;text-align:right}
+  .mname{grid-column:1/3;color:var(--dim);font-size:11px}
+  #logwrap{border-top:1px solid #2b334a;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 3px;color:#8e99b7;font-size:11px}
+  #log{height:190px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:3px 0;border-bottom:1px dotted #283047}#log .t{color:#687493}
+  @media(max-width:860px){
+    body{flex-direction:column}#telemetry{width:100%;flex:none;min-height:340px}
+    #stagecard{min-height:480px}.pair{padding:7px}.tray{width:67px;height:64px}
+  }
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<main id="wrap">
+  <div id="badge">QUANT-FUNC-01 · Machine Rule</div>
+  <div id="phasecue">👁️</div>
+  <section id="stagecard">
+    <div id="examples"></div>
+    <div class="challenge">
+      <div class="tray" id="input"></div>
+      <div id="machine"><span>⚙</span></div>
+      <div class="tray empty" id="output">?</div>
+    </div>
+    <div id="choices"></div>
+    <div id="controls">
+      <button id="replay" aria-label="Replay demonstration">↻</button>
+      <button id="go" aria-label="Start machine">▶</button>
+    </div>
+  </section>
+</main>
+<aside id="telemetry">
+  <h3>Live telemetry · per-child</h3>
+  <div id="difficulty">
+    <div class="cap"><span>DIFFICULTY</span><span id="dlabel">1 / 6</span></div>
+    <div id="dbar"></div>
+  </div>
+  <div id="mlist"></div>
+  <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+</aside>
+<div id="ghost">👆</div>
+<script src="embed-shim.js"></script>
+<script>
+'use strict';
+var __gtLevel=1,__gtResponded=false;
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0;
+const ITEMS=[
+  {pairs:[[1,2],[2,3]],input:3,answer:4,opts:[3,5,4,6],errs:['copy-input','add-two',null,'double'],rule:'add one',rules:1},
+  {pairs:[[2,4],[3,6]],input:4,answer:8,opts:[6,8,5,4],errs:['add-two',null,'add-one','copy-input'],rule:'duplicate',rules:1},
+  {pairs:[[5,3],[7,5],[8,6]],input:6,answer:4,opts:[8,5,4,3],errs:['reverse-rule','remove-one',null,'remove-three'],rule:'remove two',rules:1},
+  {pairs:[[1,3],[2,5],[3,7]],input:4,answer:9,opts:[8,9,7,5],errs:['double-only',null,'add-three','copy-last'],rule:'duplicate then one',rules:2},
+  {pairs:[[2,3],[4,4],[6,5]],input:8,answer:6,opts:[5,6,10,4],errs:['half-only',null,'add-two-only','reverse-stage'],rule:'split then add two',rules:2},
+  {pairs:[[1,2],[2,4],[3,4],[4,8]],input:5,answer:6,opts:[10,6,8,5],errs:['double-only',null,'copy-last-output','copy-input'],rule:'odd add / even duplicate',rules:2}
+];
+const DEMO={pairs:[[2,4],[3,6]],input:4,answer:8,opts:[6,8,4,9],errs:['add-two',null,'copy-input','overshoot'],rule:'duplicate',rules:1};
+const WARM={pairs:[[1,2],[2,3]],input:4,answer:5,opts:[4,6,5,8],errs:['copy-input','add-two',null,'double'],rule:'add one',rules:1};
+let phase='demo',cur=null,choice=-1,locked=true,trial=0,level=1,itemStart=0,firstLatency=null;
+const T={scored:0,correct:0,firsts:[],lastErr:'—',ruleMax:0,maxLevel:0,levels:[]};
+function quantity(n){return `<div class="quantity">${Array.from({length:n},()=>'<i class="piece"></i>').join('')}</div>`;}
+function pairHTML(pair){return `<div class="pair"><div class="tray">${quantity(pair[0])}</div><div class="mini-machine">⚙</div><div class="tray">${quantity(pair[1])}</div></div>`;}
+function renderItem(item){
+  cur=item;choice=-1;firstLatency=null;itemStart=performance.now();
+  $('#examples').innerHTML=item.pairs.map(pairHTML).join('');
+  $('#input').innerHTML=quantity(item.input);$('#output').textContent='?';
+  $('#choices').innerHTML=item.opts.map((n,i)=>`<button class="choice" data-i="${i}" aria-label="Output option">${quantity(n)}</button>`).join('');
+  $('#go').classList.remove('ready');updateDifficulty();renderMeters();
+}
+function choose(i,ghosted=false){
+  if(locked&&!ghosted)return;
+  if(firstLatency===null){firstLatency=Math.round(performance.now()-itemStart);if(phase==='scored')GTExam.markFirstAction();}
+  choice=i;
+  document.querySelectorAll('.choice').forEach((b,k)=>b.classList.toggle('selected',k===i));
+  $('#output').innerHTML=quantity(cur.opts[i]);$('#go').classList.add('ready');
+  if(!ghosted)log(`load output ${i+1} · ${cur.errs[i]||'key'}`);
+  if(phase==='scored')GTExam.telemetry('action',{option:i});
+  renderMeters();
+}
+function animateMachine(){
+  $('#machine').classList.remove('spin');void $('#machine').offsetWidth;$('#machine').classList.add('spin');
+}
+function feedback(ok){
+  animateMachine();
+  const b=document.querySelector(`.choice[data-i="${choice}"]`);
+  if(b)b.classList.add(ok?'correct':'wrong');
+  $('#output').style.borderColor=ok?'var(--good)':'var(--bad)';
+  if(!ok){$('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),430);}
+}
+function submit(){
+  if(locked||choice<0)return;
+  const ok=cur.opts[choice]===cur.answer;
+  if(phase==='warmup'){
+    locked=true;feedback(ok);log(`warm-up ${ok?'correct':'corrective run'} · UNSCORED`);
+    if(!ok)setTimeout(()=>{choose(cur.opts.indexOf(cur.answer),true);feedback(true);},450);
+    level=__gtLevel;setTimeout(startScored,1100);return;
+  }
+  locked=true;T.scored++;if(ok)T.correct++;
+  T.firsts.push(firstLatency);T.lastErr=ok?'—':cur.errs[choice]||'other';
+  if(ok){T.ruleMax=Math.max(T.ruleMax,cur.rules);T.maxLevel=Math.max(T.maxLevel,level);}
+  T.levels.push({trial:T.scored,level,ok});
+  feedback(ok);log(`SCORED ${T.scored}/6 · L${level} · ${ok?'correct':'miss '+T.lastErr} · first ${firstLatency}ms`);
+  if(!__gtResponded){__gtResponded=true;GTExam.respond({correct:ok,revisions:0,measurements:{'M-DIFFREACH':ok?level:0}});}
+  level=Math.max(1,Math.min(6,level+(ok?1:-1)));updateDifficulty();renderMeters();
+  setTimeout(()=>{trial++;trial<1?startScored():finish();},950);
+}
+function learnRate(){return T.scored?((Math.max(1,T.maxLevel)-1)/T.scored).toFixed(2)+' levels/trial':'—';}
+const METERS=[
+  {id:'M-ACC',name:'Item accuracy',get:()=>T.scored?`${T.correct}/${T.scored} · ${Math.round(100*T.correct/T.scored)}%`:'—'},
+  {id:'M-RTFIRST',name:'First-action latency',get:()=>firstLatency!==null?`${firstLatency} ms current${T.firsts.length?` · mean ${mean(T.firsts)}`:''}`:T.firsts.length?`${T.firsts.at(-1)} ms · mean ${mean(T.firsts)}`:'—'},
+  {id:'M-ERRTYPE',name:'Transformation-keyed error type',get:()=>T.lastErr},
+  {id:'M-RULEID',name:'Transformation stages solved',get:()=>T.ruleMax?`${T.ruleMax} stage${T.ruleMax>1?'s':''}`:'—'},
+  {id:'M-DIFFREACH',name:'Maximum machine difficulty solved',get:()=>T.maxLevel?`level ${T.maxLevel} / 6`:'—'},
+  {id:'M-LEARNRATE',name:'Within-session ceiling growth',get:learnRate}
+];
+function buildMeters(){
+  $('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');
+  $('#dbar').innerHTML=Array.from({length:6},()=>'<i></i>').join('');
+}
+function renderMeters(){METERS.forEach(m=>{$('#v_'+m.id).textContent=m.get();});}
+function updateDifficulty(){
+  $('#dlabel').textContent=`${level} / 6`;
+  [...$('#dbar').children].forEach((x,i)=>x.classList.toggle('on',i<level));
+}
+function log(msg){
+  const d=document.createElement('div');
+  d.innerHTML=`<span class="t">${new Date().toLocaleTimeString([],{minute:'2-digit',second:'2-digit'})}</span> ${msg}`;
+  $('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;
+}
+function startWarmup(){phase='warmup';locked=false;$('#phasecue').textContent='⭐';renderItem(WARM);log('warm-up · visible one-step change · unscored');}
+function startScored(){phase='scored';locked=false;$('#phasecue').textContent='🎯';renderItem(ITEMS[level-1]);GTExam.warmupDone();GTExam.startScored();GTExam.telemetry('item_shown',{difficulty:level,typeCode:'QUANT-FUNC-01'});log(`item ${trial+1}/6 · level ${level} · ${cur.rule}`);}
+function finish(){phase='done';locked=true;$('#phasecue').textContent='🏆';$('#go').classList.remove('ready');log(`DONE · ${T.correct}/${T.scored} · ceiling ${T.maxLevel}`);}
+const ghost=$('#ghost');
+function ghostShow(on){ghost.classList.toggle('show',on);}
+async function ghostTo(el){
+  const r=el.getBoundingClientRect();
+  ghost.style.transform=`translate(${r.left+r.width/2-12}px,${r.top+r.height/2-10}px)`;
+  await sleep(460);
+}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(330);}
+async function runDemo(){
+  phase='demo';locked=true;$('#phasecue').textContent='👁️';renderItem(DEMO);log('ghost-hand demo · wordless machine run');
+  ghostShow(true);await sleep(230);
+  const pairs=$('#examples').children;
+  await ghostTo(pairs[0].children[0]);await ghostTo(pairs[0].children[2]);
+  await ghostTo(pairs[1].children[0]);await ghostTo(pairs[1].children[2]);
+  await ghostTo($('#input'));
+  const key=cur.opts.indexOf(cur.answer);
+  await ghostTo(document.querySelector(`.choice[data-i="${key}"]`));await ghostTap();choose(key,true);
+  await ghostTo($('#go'));await ghostTap();feedback(true);await sleep(380);
+  ghostShow(false);startWarmup();
+}
+$('#choices').addEventListener('click',e=>{const b=e.target.closest('.choice');if(b)choose(+b.dataset.i);});
+$('#go').addEventListener('click',submit);
+$('#replay').addEventListener('click',()=>{if(phase!=='demo')location.reload();});
+buildMeters();renderMeters();
+window.__gtPhase=function(){return phase;};
+window.__gtAnswer=function(wantCorrect){if((phase!=='scored'&&phase!=='warmup')||locked||!cur)return false;var ci=cur.opts.indexOf(cur.answer);var idx=wantCorrect?ci:(ci+1)%cur.opts.length;choose(idx);submit();return true;};
+(function(){var started=false;function begin(lvl){if(started)return;started=true;__gtLevel=Math.max(1,Math.min(6,lvl||1));runDemo();}
+if(window.GTExam){GTExam.onInit(function(hostItem){begin(hostItem&&hostItem.difficultyLevel);});GTExam.ready();setTimeout(function(){begin(1);},800);}else{begin(1);}})();
+</script>
+</body>
+</html>

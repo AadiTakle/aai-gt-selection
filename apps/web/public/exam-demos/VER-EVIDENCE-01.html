@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VER-EVIDENCE-01 · Proof Hunt</title>
+<style>
+  :root{--bg1:#eef4ff;--bg2:#f7ecff;--ink:#26304a;--card:#fff;--accent:#5b6cff;--good:#22b573;--bad:#ff6b6b;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
+  #phasecue{font-size:34px;height:40px;line-height:40px}
+  #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:stretch;gap:14px;max-width:700px;width:100%}
+  .band{border-radius:16px;padding:14px 18px;display:flex;flex-direction:column;gap:8px;width:100%}
+  #passageBand{background:linear-gradient(160deg,#eafaf1,#eef1ff);border:3px solid #bfe8cf;font-size:16px;line-height:1.7}
+  #passageBand .sent{cursor:pointer;padding:2px 4px;border-radius:6px;transition:.12s}
+  #passageBand .sent:hover{background:#dfeeff}
+  #passageBand .sent.ev{background:#c8f3d8;box-shadow:inset 0 0 0 2px var(--good)}
+  #passageBand .sent.correctEv{box-shadow:inset 0 0 0 3px var(--good);background:#c8f3d8}
+  #passageBand .sent.wrongEv{box-shadow:inset 0 0 0 3px var(--bad);background:#ffe1e1}
+  #qBand{background:linear-gradient(160deg,#e8f0ff,#f2ecff);border:3px solid #cfd8ff;align-items:center}
+  #qText{font-size:19px;font-weight:700;text-align:center}
+  #optsBand{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+  .opt{display:flex;align-items:center;gap:6px;background:#f4f6ff;border:3px solid #d7deff;border-radius:14px;padding:10px 14px;cursor:pointer;font-size:14px;position:relative}
+  .opt .hk{font-size:10px;color:#a7b0d8;font-weight:700;position:absolute;top:2px;left:5px}
+  .opt.sel{border-color:var(--accent);background:#e7ecff}
+  .opt.correct{border-color:var(--good);background:#eafaf1}
+  .opt.wrong{border-color:var(--bad);background:#fff0f0}
+  #stepcue{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#8a93b5;text-align:center}
+  #controls{display:flex;gap:16px;align-items:center;justify-content:center}
+  button.rd{font:inherit;border:0;cursor:pointer;border-radius:50%}
+  #go{width:64px;height:64px;background:var(--accent);color:#fff;font-size:26px;box-shadow:0 10px 24px -8px var(--accent);opacity:.35;pointer-events:none;transition:.2s}
+  #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.1s infinite}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+  #replay{width:50px;height:50px;background:#eef1ff;color:#5b6cff;font-size:22px}
+  .shake{animation:shake .4s}@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+  #ghost{position:fixed;left:0;top:0;font-size:40px;pointer-events:none;z-index:60;opacity:0;transition:transform .55s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #diffmeter{width:100%;display:flex;align-items:center;gap:8px;font-size:11px;color:#8a93b5}
+  #diffbar{flex:1;height:8px;background:#e4e9ff;border-radius:6px;overflow:hidden}
+  #diffbar i{display:block;height:100%;background:linear-gradient(90deg,#5b6cff,#ff8fd0);width:0%;transition:.3s}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}
+  .mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:210px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">VER-EVIDENCE-01 · Proof Hunt</div>
+    <div id="phasecue">👁️</div>
+    <div id="stagecard">
+      <div id="passageBand" class="band"></div>
+      <div id="qBand" class="band">
+        <div id="stepcue">🔍 pick the answer</div>
+        <div id="qText"></div>
+        <div id="optsBand"></div>
+      </div>
+      <div id="diffmeter">🌱<div id="diffbar"><i id="diffbarfill"></i></div>🌳</div>
+      <div id="controls">
+        <button class="rd" id="replay" title="replay demo">↻</button>
+        <button class="rd" id="go" title="submit">✓</button>
+      </div>
+    </div>
+  </div>
+  <aside id="telemetry">
+    <h3>Live telemetry · per-child</h3>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+  <div id="ghost">👆<span class="ring"></span></div>
+<script src="embed-shim.js"></script>
+<script>
+'use strict';
+var __gtLevel=1,__gtResponded=false;
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0,last=a=>a[a.length-1];
+
+/* ---------- 2 reused passages, escalating depth items ---------- */
+const PASSAGES=[
+ ['Mia packed her backpack the night before the field trip.','She set two alarms so she would not oversleep.','In the morning, she was the first one ready by the door.','Her little brother was still eating breakfast when the bus honked outside.'],
+ ['The class planted sunflower seeds in small cups by the window.','Every day, Ben checked the soil and added a little water.','After two weeks, tiny green sprouts poked out of the dirt.',"Ben's plant grew taller than everyone else's by the end of the month."],
+];
+const DEPTH_RANK={literal:0,bridging:1,global:2};
+const ITEMS=[
+ {lvl:1,p:0,depth:'literal',q:'What did Mia do the night before the trip?',opts:['Packed her backpack','Ate a big breakfast','Missed the bus'],ans:0,ev:0,lure:3,lureType:'off-topic'},
+ {lvl:2,p:1,depth:'literal',q:'Where did the class plant the seeds?',opts:['In small cups by the window','In a garden outside','In a paper bag'],ans:0,ev:0,lure:2,lureType:'off-topic'},
+ {lvl:3,p:0,depth:'bridging',q:'How do we know Mia was well-prepared for the trip?',opts:['She was ready before anyone else','She ate breakfast quickly','She missed her alarm'],ans:0,ev:2,lure:3,lureType:'plausible-unsupported'},
+ {lvl:4,p:1,depth:'bridging',q:"Why did Ben's plant grow the tallest?",opts:['He took good care of it every day','The seeds were magic','His window was the only sunny one'],ans:0,ev:1,lure:2,lureType:'plausible-unsupported'},
+ {lvl:5,p:0,depth:'global',q:"What is probably true about Mia's personality?",opts:['She is responsible and organized','She is careless','She dislikes field trips'],ans:0,ev:1,lure:3,lureType:'plausible-unsupported'},
+ {lvl:6,p:1,depth:'global',q:'What is this passage mostly trying to show?',opts:['Taking care of something helps it grow','How to plant sunflowers','Ben dislikes gardening'],ans:0,ev:1,lure:0,lureType:'surface-match'},
+];
+function byLevel(l){return ITEMS.find(it=>it.lvl===l);}
+
+/* ---------- telemetry state ---------- */
+const T={scored:0,full:0,rts:[],firstRt:[],polys:[],path:[],revA:0,revE:0,maxLevel:1,bestDepthRank:-1,bestDepth:'\u2014',lastErr:'\u2014',itemStart:0,firstActionAt:null};
+function polyStr(){if(!T.polys.length)return '\u2014';return `${mean(T.polys)/100*1}`.slice(0,4)+`  (last ${T.polys[T.polys.length-1]})`;}
+const METERS=[
+ {id:'M-ACC',name:'Full-credit accuracy (answer+evidence)',get:()=>T.scored?`${T.full}/${T.scored}  ${Math.round(100*T.full/T.scored)}%`:'\u2014'},
+ {id:'M-POLY',name:'Partial credit (0 / 0.5 / 1 per item)',get:()=>T.polys.length?`${T.polys.join(', ')}`:'\u2014'},
+ {id:'M-RT',name:'Response time — total',get:()=>T.rts.length?`${last(T.rts)} ms  (mean ${mean(T.rts)})`:'\u2014'},
+ {id:'M-RTFIRST',name:'First-action latency',get:()=>T.firstRt.length?`${last(T.firstRt)} ms`:'\u2014'},
+ {id:'M-INFDEPTH',name:'Deepest inference w/ full credit',get:()=>T.bestDepth},
+ {id:'M-PATH',name:'Sentence-tap path',get:()=>T.path.length?T.path.slice(-6).join(' \u2192 '):'\u2014'},
+ {id:'M-ERRTYPE',name:'Last error type',get:()=>T.lastErr},
+ {id:'M-REV',name:'Revisions (answer+evidence changes)',get:()=>`${T.revA+T.revE}  (ans ${T.revA} / evid ${T.revE})`},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});$('#diffbarfill').style.width=(T.maxLevel/6*100)+'%';}
+function log(msg){const t=Date.now()-T.itemStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+const ghost=$('#ghost');function ghostShow(v){ghost.classList.toggle('show',v);}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(520);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(430);}
+
+/* ---------- render ---------- */
+let cur=null,selAns=null,selEv=null,locked=false,level=1;
+function renderItem(item){cur=item;selAns=null;selEv=null;T.itemStart=Date.now();T.firstActionAt=null;
+  $('#passageBand').innerHTML=PASSAGES[item.p].map((s,i)=>`<span class="sent" data-i="${i}">${s}</span>`).join(' ');
+  $('#qText').textContent=item.q;
+  $('#optsBand').innerHTML=item.opts.map((o,i)=>`<div class="opt" data-i="${i}"><span class="hk">${i+1}</span>${o}</div>`).join('');
+  $('#stepcue').textContent='\ud83d\udd0d pick the answer, then tap the proof sentence';
+  $('#go').classList.remove('ready');renderMeters();}
+function markFirstAction(){if(T.firstActionAt===null){T.firstActionAt=Date.now();T.firstRt.push(T.firstActionAt-T.itemStart);if(phase==='scored')GTExam.markFirstAction();}}
+function selectAns(i){if(locked||!cur)return;markFirstAction();if(selAns!==null&&selAns!==i)T.revA++;selAns=i;
+  $$('#optsBand .opt').forEach(o=>o.classList.toggle('sel',+o.dataset.i===i));if(phase==='scored')GTExam.telemetry('action',{answer:i});maybeReady();}
+function selectEv(i){if(locked||!cur)return;markFirstAction();if(selEv!==null&&selEv!==i)T.revE++;selEv=i;T.path.push(`S${i+1}`);
+  $$('#passageBand .sent').forEach(s=>s.classList.toggle('ev',+s.dataset.i===i));if(phase==='scored')GTExam.telemetry('action',{evidence:i});maybeReady();}
+function maybeReady(){$('#go').classList.toggle('ready',selAns!==null&&selEv!==null&&!locked);}
+function feedback(ansOk,evOk){$$('#optsBand .opt').forEach(o=>{const i=+o.dataset.i;if(i===cur.ans)o.classList.add('correct');else if(i===selAns)o.classList.add('wrong');});
+  $$('#passageBand .sent').forEach(s=>{const i=+s.dataset.i;if(i===cur.ev)s.classList.add('correctEv');else if(i===selEv)s.classList.add('wrongEv');});
+  if(!(ansOk&&evOk)){$('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),450);}}
+function errType(ansOk,evOk){if(ansOk&&evOk)return 'none (full credit)';if(!ansOk)return 'wrong answer';
+  if(selEv===cur.lure)return cur.lureType+' evidence';return 'off-topic evidence';}
+function submit(){if(!$('#go').classList.contains('ready'))return;const rt=Date.now()-T.itemStart;
+  const ansOk=selAns===cur.ans,evOk=selEv===cur.ev;const poly=(ansOk?0.5:0)+(evOk?0.5:0);
+  feedback(ansOk,evOk);locked=true;$('#go').classList.remove('ready');
+  if(phase==='warmup'){log(`warm-up ${ansOk&&evOk?'full credit':'partial/none'} — UNSCORED`);setTimeout(nextPhase,1500);return;}
+  T.scored++;T.polys.push(poly);T.rts.push(rt);if(ansOk&&evOk){T.full++;T.maxLevel=Math.max(T.maxLevel,level);
+    const r=DEPTH_RANK[cur.depth];if(r>T.bestDepthRank){T.bestDepthRank=r;T.bestDepth=cur.depth;}}
+  T.lastErr=errType(ansOk,evOk);
+  log(`SUBMIT L${level} [${cur.depth}] \u2192 answer ${ansOk?'\u2713':'\u2717'}, evidence ${evOk?'\u2713':'\u2717'} · poly ${poly} · ${rt}ms`);
+  if(!__gtResponded){__gtResponded=true;GTExam.respond({correct:ansOk&&evOk,revisions:T.revA+T.revE,measurements:{'M-DIFFREACH':(ansOk&&evOk)?level:0}});}
+  level=(ansOk&&evOk)?Math.min(6,level+1):Math.max(1,level-1);
+  renderMeters();setTimeout(nextPhase,1500);}
+const TOTAL_SCORED=1;let phase='demo',scoredIndex=0;
+function setCue(i){$('#phasecue').textContent=i;}
+function nextPhase(){locked=false;if(phase==='warmup'){scoredIndex=0;level=__gtLevel;startScored();}
+  else if(phase==='scored'){scoredIndex++;scoredIndex<TOTAL_SCORED?startScored():finish();}}
+function startWarmup(){phase='warmup';locked=false;setCue('\u2b50');level=1;renderItem(byLevel(1));log('— warm-up (unscored) —');}
+function startScored(){phase='scored';setCue('\ud83c\udfaf');renderItem(byLevel(level));GTExam.warmupDone();GTExam.startScored();GTExam.telemetry('item_shown',{difficulty:level,typeCode:'VER-EVIDENCE-01'});log(`— SCORED item ${scoredIndex+1}/${TOTAL_SCORED} · level ${level} [${byLevel(level).depth}] —`);}
+function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;log(`— DONE · full credit ${T.full}/${T.scored} · ceiling L${T.maxLevel} —`);renderMeters();}
+async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;
+  const item=byLevel(1);renderItem(item);log('ghost-hand demo (wordless, <10s)');ghostShow(true);await sleep(300);
+  const ansEl=$$('#optsBand .opt')[item.ans];await ghostTo(ansEl);await ghostTap();selectAns(item.ans);
+  await sleep(200);const evEl=$$('#passageBand .sent')[item.ev];await ghostTo(evEl);await ghostTap();selectEv(item.ev);
+  await sleep(250);await ghostTo($('#go'));await ghostTap();submit();
+  await sleep(700);ghostShow(false);await sleep(400);T.itemStart=Date.now();startWarmup();}
+$('#optsBand').addEventListener('click',e=>{const o=e.target.closest('.opt');if(o&&!locked&&phase!=='demo'&&phase!=='done')selectAns(+o.dataset.i);});
+$('#passageBand').addEventListener('click',e=>{const s=e.target.closest('.sent');if(s&&!locked&&phase!=='demo'&&phase!=='done')selectEv(+s.dataset.i);});
+document.addEventListener('keydown',e=>{if(locked||phase==='demo'||phase==='done')return;const n=+e.key;if(n>=1&&n<=3)selectAns(n-1);if(e.key==='Enter')submit();});
+$('#go').addEventListener('click',submit);
+$('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
+buildMeters();renderMeters();
+window.__gtPhase=function(){return phase;};
+window.__gtAnswer=function(wantCorrect){if((phase!=='scored'&&phase!=='warmup')||locked||!cur)return false;var a=wantCorrect?cur.ans:(cur.ans+1)%cur.opts.length;selectAns(a);selectEv(cur.ev);submit();return true;};
+(function(){var started=false;function begin(lvl){if(started)return;started=true;__gtLevel=Math.max(1,Math.min(6,lvl||1));runDemo();}
+if(window.GTExam){GTExam.onInit(function(hostItem){begin(hostItem&&hostItem.difficultyLevel);});GTExam.ready();setTimeout(function(){begin(1);},800);}else{begin(1);}})();
+</script>
+</body>
+</html>
