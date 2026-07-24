@@ -9,17 +9,29 @@ const isDev = process.env.NODE_ENV !== 'production';
 // 'unsafe-eval' for Turbopack HMR.
 // TODO(D-012): move to a nonce-based script-src for production hardening.
 const scriptSrc = isDev ? "'self' 'unsafe-inline' 'unsafe-eval'" : "'self' 'unsafe-inline'";
-const contentSecurityPolicy = [
+const baseCsp = [
   "default-src 'self'",
   `script-src ${scriptSrc}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data:",
   "font-src 'self'",
   "connect-src 'self'",
-  "frame-ancestors 'none'",
-  "object-src 'none'",
+  'object-src \'none\'',
   "base-uri 'self'",
-].join('; ');
+];
+
+// App pages are never framable. The born-synthetic exam demos under /exam-demos
+// are deliberately embeddable SAME-ORIGIN by the adaptive screening surface
+// (AX-01 embedding contract), so they relax frame-ancestors to 'self' only.
+const appCsp = [...baseCsp, "frame-ancestors 'none'"].join('; ');
+const examDemoCsp = [...baseCsp, "frame-ancestors 'self'"].join('; ');
+
+const securityHeaders = (csp: string, frameOptions: 'DENY' | 'SAMEORIGIN') => [
+  { key: 'Content-Security-Policy', value: csp },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'X-Frame-Options', value: frameOptions },
+];
 
 const nextConfig: NextConfig = {
   // Emit a minimal self-contained server bundle for container images
@@ -29,25 +41,14 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: '/:path*',
-        headers: [
-          {
-            key: 'Content-Security-Policy',
-            value: contentSecurityPolicy,
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'strict-origin-when-cross-origin',
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
-        ],
+        // Everything except the embeddable exam demos: strict, non-framable.
+        source: '/((?!exam-demos/).*)',
+        headers: securityHeaders(appCsp, 'DENY'),
+      },
+      {
+        // Same-origin-embeddable question-type demos (adaptive screening surface).
+        source: '/exam-demos/:path*',
+        headers: securityHeaders(examDemoCsp, 'SAMEORIGIN'),
       },
     ];
   },
