@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QUANT-DOTS-01 · More or Fewer</title>
+<style>
+  :root{
+    --sky:#edf6fb;--mist:#dce8ee;--ink:#243642;--paper:#fff;
+    --firefly:#26343b;--accent:#ffb347;--good:#27ae78;--bad:#e66767;
+    --tel:#101a24;--tel2:#182838;--key:#73f0c4;--dim:#7992a7;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%}
+  body{
+    display:flex;background:radial-gradient(circle at 35% 10%,#fff 0,var(--sky) 48%,#d9e9f1 100%);
+    color:var(--ink);font:16px/1.35 system-ui,-apple-system,Segoe UI,sans-serif;
+  }
+  button{font:inherit;border:0;cursor:pointer}
+  #wrap{
+    flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;
+    gap:12px;padding:18px;
+  }
+  #badge{
+    color:#718895;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  }
+  #phasecue{height:40px;font-size:34px}
+  #stagecard{
+    width:min(720px,100%);background:rgba(255,255,255,.9);border-radius:30px;
+    box-shadow:0 24px 65px -35px #314b5d;padding:22px;display:grid;gap:16px;
+    border:1px solid #fff;
+  }
+  #sky{
+    display:grid;grid-template-columns:1fr 1fr;gap:16px;position:relative;
+  }
+  .window{
+    min-height:238px;border-radius:26px;position:relative;overflow:hidden;
+    background:linear-gradient(#cfe7f0,#eef6f8);border:3px solid #fff;
+    box-shadow:inset 0 0 0 1px #c3d8e2;
+  }
+  .cloud{position:absolute;inset:0}
+  .dot{
+    position:absolute;border-radius:50%;background:var(--firefly);
+    box-shadow:0 0 0 2px rgba(255,255,255,.65),0 2px 7px rgba(22,48,58,.25);
+  }
+  .cover{
+    position:absolute;inset:0;display:grid;place-items:center;z-index:5;
+    background:repeating-linear-gradient(135deg,#dfe8eb 0,#dfe8eb 15px,#d5e1e5 15px,#d5e1e5 30px);
+    color:#9dafb7;font-size:56px;opacity:0;pointer-events:none;transition:opacity .16s;
+  }
+  .cover.closed{opacity:1}
+  .window.reveal{box-shadow:inset 0 0 0 5px var(--good),0 0 28px rgba(39,174,120,.35)}
+  .window.wrong{animation:shake .4s}
+  #answers{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .side{
+    height:82px;border-radius:22px;background:#e8f0f3;color:#617985;font-size:38px;
+    box-shadow:0 8px 18px -14px #28404d;transition:.18s;position:relative;
+  }
+  .side:not(:disabled):hover{transform:translateY(-2px);background:#dcebef}
+  .side:disabled{opacity:.38;cursor:default}
+  .side.correct{background:#d9f6e8;color:var(--good);transform:scale(1.03)}
+  .side.bad{background:#ffe1df;color:var(--bad)}
+  .keycap{
+    position:absolute;right:12px;bottom:9px;font:700 11px ui-monospace,monospace;
+    border:1px solid #b8cad1;border-bottom-width:3px;border-radius:6px;padding:2px 6px;
+  }
+  #controls{display:flex;justify-content:center;gap:12px}
+  .round{
+    width:48px;height:48px;border-radius:50%;background:#e7eef2;color:#617985;font-size:22px;
+  }
+  #status{height:16px;display:flex;justify-content:center;gap:7px}
+  #status i{width:10px;height:10px;border-radius:50%;background:#d7e2e6}
+  #status i.on{background:var(--accent)}
+  #status i.ok{background:var(--good)}
+  #status i.no{background:var(--bad)}
+  #ghost{
+    position:fixed;left:0;top:0;z-index:50;font-size:40px;opacity:0;pointer-events:none;
+    transition:transform .48s cubic-bezier(.2,.7,.2,1),opacity .2s;
+    filter:drop-shadow(0 4px 4px rgba(0,0,0,.25));
+  }
+  #ghost.show{opacity:.95}
+  #ghost.tap{animation:tap .4s}
+  @keyframes tap{50%{scale:.78}}
+  @keyframes shake{25%,75%{transform:translateX(-7px)}50%{transform:translateX(7px)}}
+  #telemetry{
+    width:330px;flex:0 0 330px;min-height:100vh;background:var(--tel);color:#bdd0df;
+    display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  #telemetry h3{
+    margin:0;padding:13px 14px;background:var(--tel2);color:#fff;
+    text-transform:uppercase;font-size:12px;letter-spacing:.09em;
+  }
+  #difficulty{padding:11px 13px;border-bottom:1px solid #263b4c}
+  #diffhead{display:flex;justify-content:space-between;color:#9eb6c8;font-size:11px}
+  #diffbar{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin:7px 0}
+  #diffbar i{height:8px;border-radius:9px;background:#2a4052}
+  #diffbar i.live{background:var(--accent)}
+  #dtrend{color:#6f879a;font-size:11px}
+  #mlist{padding:11px 13px;display:flex;flex-direction:column;gap:8px}
+  .mrow{display:grid;grid-template-columns:100px 1fr;gap:7px}
+  .mid{color:var(--key);font-weight:800}.mval{color:#fff}
+  .mname{grid-column:1/3;color:var(--dim);font-size:11px;margin-top:-4px}
+  #logwrap{margin-top:auto;border-top:1px solid #263b4c}
+  #logwrap b{display:block;padding:8px 12px 3px;color:#829caf;font-size:11px;letter-spacing:.08em}
+  #log{height:230px;overflow:auto;padding:2px 12px 12px;white-space:pre-wrap}
+  #log div{padding:3px 0;border-bottom:1px dotted #263746}
+  #log .t{color:#587185}
+  @media(max-width:860px){
+    body{flex-direction:column}#telemetry{width:100%;min-height:0;height:330px;flex:none}
+  }
+  @media(max-width:520px){
+    #wrap{padding:10px}.window{min-height:190px}#stagecard{padding:14px}#sky{gap:9px}
+  }
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<main id="wrap">
+  <div id="badge">QUANT-DOTS-01 · More or Fewer</div>
+  <div id="phasecue">👁️</div>
+  <section id="stagecard">
+    <div id="sky">
+      <div class="window" id="winL"><div class="cloud" id="cloudL"></div><div class="cover" id="coverL">◌</div></div>
+      <div class="window" id="winR"><div class="cloud" id="cloudR"></div><div class="cover" id="coverR">◌</div></div>
+    </div>
+    <div id="answers">
+      <button class="side" id="pickL" disabled aria-label="choose left">◀<span class="keycap">F</span></button>
+      <button class="side" id="pickR" disabled aria-label="choose right">▶<span class="keycap">J</span></button>
+    </div>
+    <div id="status"></div>
+    <div id="controls"><button class="round" id="replay" aria-label="replay demonstration">↻</button></div>
+  </section>
+</main>
+<aside id="telemetry">
+  <h3>Live telemetry · per-child</h3>
+  <div id="difficulty">
+    <div id="diffhead"><span>DIFFICULTY</span><span id="dlevel">1 / 6</span></div>
+    <div id="diffbar"></div><div id="dtrend">staircase · waiting</div>
+  </div>
+  <div id="mlist"></div>
+  <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+</aside>
+<div id="ghost">👆</div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0;
+const LEVELS=[
+  {ratio:.38,count:8,exposure:1000},
+  {ratio:.55,count:11,exposure:820},
+  {ratio:.68,count:13,exposure:680},
+  {ratio:.77,count:16,exposure:540},
+  {ratio:.84,count:19,exposure:430},
+  {ratio:.90,count:21,exposure:330}
+];
+let phase='demo',current=null,trialToken=0,locked=true,scoredIndex=0;
+const T={
+  scored:0,correct:0,rts:[],eligibleRts:[],speedHits:0,
+  left:0,right:0,bestRatio:0,maxSolved:0,level:1,startLevel:1,
+  itemStart:0,rapid:false,attentionLost:false,drift:false,results:[]
+};
+const METERS=[
+  {id:'M-ACC',name:'Cue-balanced comparison accuracy',get:()=>T.scored?`${T.correct}/${T.scored} · ${Math.round(100*T.correct/T.scored)}%`:'—'},
+  {id:'M-WEBER',name:'Adaptive ratio threshold estimate',get:()=>T.bestRatio?`w ≈ ${(1-T.bestRatio).toFixed(2)} · ratio ${T.bestRatio.toFixed(2)}`:'—'},
+  {id:'M-RT',name:'Decision time, engagement gated',get:()=>T.rts.length?(T.rapid||T.attentionLost||T.drift?'gated':`${T.rts.at(-1)} ms · mean ${mean(T.eligibleRts)}`):'—'},
+  {id:'M-SPEEDACC',name:'Accurate decisions with valid timing',get:()=>T.scored?`${T.speedHits}/${T.scored} valid · ${mean(T.eligibleRts)||'—'} ms`:'—'},
+  {id:'M-CONSIST',name:'Response consistency and side balance',get:()=>T.scored?`L${T.left} / R${T.right} · ${100-Math.round(100*Math.abs(T.left-T.right)/T.scored)} balance`:'—'},
+  {id:'M-DIFFREACH',name:'Closest cue-balanced ratio solved',get:()=>T.maxSolved?`level ${T.maxSolved} · ${LEVELS[T.maxSolved-1].ratio.toFixed(2)}`:'—'}
+];
+function buildMeters(){
+  $('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');
+  $('#diffbar').innerHTML=LEVELS.map(()=>'<i></i>').join('');
+  $('#status').innerHTML=Array.from({length:6},()=>'<i></i>').join('');
+}
+function renderMeters(){
+  METERS.forEach(m=>$('#v_'+m.id).textContent=m.get());
+  [...$('#diffbar').children].forEach((bar,i)=>bar.classList.toggle('live',i<T.level));
+  $('#dlevel').textContent=`${T.level} / 6`;
+  const gain=T.scored?((T.level-T.startLevel)/T.scored).toFixed(2):'—';
+  $('#dtrend').textContent=`staircase ${T.results.join('')||'·'} · climb ${gain}/trial`;
+}
+function log(message){
+  const elapsed=T.itemStart?Math.round(performance.now()-T.itemStart):0;
+  const row=document.createElement('div');
+  row.innerHTML=`<span class="t">+${elapsed}ms</span> ${message}`;
+  $('#log').appendChild(row);$('#log').scrollTop=$('#log').scrollHeight;
+}
+function seededShuffle(items,seed){
+  let x=seed+17;
+  for(let i=items.length-1;i>0;i--){
+    x=(x*9301+49297)%233280;
+    const j=Math.floor((x/233280)*(i+1));
+    [items[i],items[j]]=[items[j],items[i]];
+  }
+  return items;
+}
+function paintCloud(el,count,size,spread,seed){
+  el.innerHTML='';
+  const slots=[];
+  for(let r=0;r<5;r++)for(let c=0;c<6;c++)slots.push({x:8+c*16.6,y:9+r*19.5});
+  seededShuffle(slots,seed).slice(0,count).forEach((p,i)=>{
+    const dot=document.createElement('i');
+    dot.className='dot';
+    const jitter=spread?(i%3-1)*2:0;
+    dot.style.cssText=`width:${size}px;height:${size}px;left:calc(${p.x+jitter}% - ${size/2}px);top:calc(${p.y}% - ${size/2}px)`;
+    el.appendChild(dot);
+  });
+}
+function makeItem(level,forced){
+  if(forced)return forced;
+  const cfg=LEVELS[level-1];
+  const large=cfg.count+(scoredIndex%2);
+  const small=Math.max(2,Math.round(large*cfg.ratio));
+  const moreSide=(scoredIndex+level)%2?'L':'R';
+  const condition=['equal-size','area-balanced','hull-incongruent'][scoredIndex%3];
+  let largeSize=22,smallSize=22;
+  if(condition==='area-balanced')smallSize=Math.min(31,22*Math.sqrt(large/small));
+  return {level,large,small,moreSide,condition,exposure:cfg.exposure,largeSize,smallSize};
+}
+async function present(item){
+  const token=++trialToken;current=item;locked=true;T.attentionLost=false;T.rapid=false;
+  $('#winL').className='window';$('#winR').className='window';
+  const leftCount=item.moreSide==='L'?item.large:item.small;
+  const rightCount=item.moreSide==='R'?item.large:item.small;
+  const leftSize=item.moreSide==='L'?item.largeSize:item.smallSize;
+  const rightSize=item.moreSide==='R'?item.largeSize:item.smallSize;
+  paintCloud($('#cloudL'),leftCount,leftSize,item.condition==='hull-incongruent'&&item.moreSide==='R',item.level*31+scoredIndex);
+  paintCloud($('#cloudR'),rightCount,rightSize,item.condition==='hull-incongruent'&&item.moreSide==='L',item.level*47+scoredIndex);
+  $('#coverL').classList.remove('closed');$('#coverR').classList.remove('closed');
+  $('#pickL').disabled=true;$('#pickR').disabled=true;
+  await sleep(item.exposure);
+  if(token!==trialToken)return;
+  $('#coverL').classList.add('closed');$('#coverR').classList.add('closed');
+  T.itemStart=performance.now();locked=false;
+  $('#pickL').disabled=false;$('#pickR').disabled=false;
+  log(`FLASH two arrays · ratio ${(item.small/item.large).toFixed(2)} · ${item.condition}`);
+}
+function reveal(correct,chosen){
+  const rightWin=current.moreSide==='L'?$('#winL'):$('#winR');
+  rightWin.classList.add('reveal');
+  (current.moreSide==='L'?$('#coverL'):$('#coverR')).classList.remove('closed');
+  if(chosen&&chosen!==current.moreSide){
+    (chosen==='L'?$('#winL'):$('#winR')).classList.add('wrong');
+  }
+  (current.moreSide==='L'?$('#pickL'):$('#pickR')).classList.add('correct');
+  if(chosen&&chosen!==current.moreSide)(chosen==='L'?$('#pickL'):$('#pickR')).classList.add('bad');
+}
+function clearButtonFeedback(){
+  $('#pickL').className='side';$('#pickR').className='side';
+}
+async function choose(side,modality='tap'){
+  if(locked||phase==='demo'||phase==='done')return;
+  locked=true;$('#pickL').disabled=true;$('#pickR').disabled=true;
+  const rt=Math.round(performance.now()-T.itemStart);
+  const correct=side===current.moreSide;
+  if(phase==='warmup'){
+    reveal(correct,side);log(`WARM-UP ${correct?'correct':'corrective reveal'} · UNSCORED`);
+    await sleep(900);startScored();return;
+  }
+  T.scored++;T.rts.push(rt);T.rapid=rt<180;
+  if(side==='L')T.left++;else T.right++;
+  const early=mean(T.rts.slice(0,2)),late=mean(T.rts.slice(-2));
+  T.drift=T.rts.length>=5&&late>early*2.5;
+  const eligible=!T.rapid&&!T.attentionLost&&!T.drift;
+  if(eligible)T.eligibleRts.push(rt);
+  if(correct){T.correct++;if(eligible)T.speedHits++;T.bestRatio=Math.max(T.bestRatio,current.small/current.large);T.maxSolved=Math.max(T.maxSolved,current.level);}
+  T.results.push(correct?'↑':'↓');
+  const marker=$('#status').children[scoredIndex];marker.classList.add(correct?'ok':'no');
+  reveal(correct,side);
+  log(`${modality.toUpperCase()} ${side} → ${correct?'CORRECT':'MISS'} · ${rt}ms${T.rapid?' RAPID-GATED':''}${T.attentionLost?' BLUR-GATED':''}${T.drift?' DRIFT-GATED':''}`);
+  T.level=clamp(T.level+(correct?1:-1),1,6);renderMeters();
+  scoredIndex++;
+  await sleep(900);
+  scoredIndex<6?startScored():finish();
+}
+function center(el){
+  const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};
+}
+async function ghostTo(el){
+  const p=center(el);$('#ghost').style.transform=`translate(${p.x-10}px,${p.y-10}px)`;
+  await sleep(480);
+}
+async function ghostTap(){
+  $('#ghost').classList.remove('tap');void $('#ghost').offsetWidth;$('#ghost').classList.add('tap');await sleep(380);
+}
+function resetSession(){
+  Object.assign(T,{scored:0,correct:0,rts:[],eligibleRts:[],speedHits:0,left:0,right:0,bestRatio:0,maxSolved:0,level:1,startLevel:1,itemStart:0,rapid:false,attentionLost:false,drift:false,results:[]});
+  scoredIndex=0;clearButtonFeedback();[...$('#status').children].forEach(x=>x.className='');renderMeters();
+}
+async function runDemo(){
+  resetSession();phase='demo';locked=true;$('#phasecue').textContent='👁️';log('ghost-hand demo · wordless');
+  const demo={level:1,large:8,small:3,moreSide:'R',condition:'equal-size',exposure:1050,largeSize:25,smallSize:25};
+  await present(demo);locked=true;$('#ghost').classList.add('show');
+  await ghostTo($('#pickR'));await ghostTap();reveal(true,'R');log('DEMO reveal · 8 over 3');
+  await sleep(650);$('#ghost').classList.remove('show');startWarmup();
+}
+async function startWarmup(){
+  phase='warmup';locked=true;clearButtonFeedback();$('#phasecue').textContent='⭐';
+  const item={level:1,large:9,small:3,moreSide:'L',condition:'area-balanced',exposure:950,largeSize:20,smallSize:Math.round(20*Math.sqrt(3)),};
+  await present(item);log('warm-up ready · unscored');
+}
+async function startScored(){
+  phase='scored';locked=true;clearButtonFeedback();$('#phasecue').textContent='🎯';
+  [...$('#status').children].forEach((x,i)=>x.classList.toggle('on',i===scoredIndex));
+  await present(makeItem(T.level));log(`SCORED ${scoredIndex+1}/6 · level ${T.level}`);
+  renderMeters();
+}
+function finish(){
+  phase='done';locked=true;$('#phasecue').textContent='🏆';$('#pickL').disabled=true;$('#pickR').disabled=true;
+  [...$('#status').children].forEach(x=>x.classList.remove('on'));
+  log(`DONE · ${T.correct}/${T.scored} · closest ${T.bestRatio.toFixed(2)}`);renderMeters();
+}
+$('#pickL').addEventListener('click',()=>choose('L','tap'));
+$('#pickR').addEventListener('click',()=>choose('R','tap'));
+$('#replay').addEventListener('click',()=>{trialToken++;runDemo();});
+document.addEventListener('keydown',event=>{
+  if(event.key.toLowerCase()==='f')choose('L','key');
+  if(event.key.toLowerCase()==='j')choose('R','key');
+});
+window.addEventListener('blur',()=>{if(phase==='scored'&&!locked){T.attentionLost=true;log('attention blur · timing gated');renderMeters();}});
+buildMeters();renderMeters();runDemo();
+</script>
+</body>
+</html>

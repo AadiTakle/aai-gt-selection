@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QUANT-MIX-01 · Fair Share</title>
+<style>
+  :root{
+    --cream:#fff8e8;--paper:#fffdf8;--ink:#42372f;--berry:#b44769;--drop:#347fa5;
+    --accent:#f0a83c;--good:#2e9d70;--bad:#d65e63;--tel:#17191f;--tel2:#242831;
+    --key:#77f1c5;--dim:#868d9d;
+  }
+  *{box-sizing:border-box}html,body{margin:0;min-height:100%}
+  body{
+    display:flex;color:var(--ink);font:16px/1.35 system-ui,-apple-system,Segoe UI,sans-serif;
+    background:radial-gradient(circle at 30% 5%,#fff 0,#fff3d7 48%,#efdcc2 100%);
+  }
+  button{font:inherit;border:0;cursor:pointer}
+  #wrap{flex:1;min-width:0;padding:18px;display:flex;flex-direction:column;align-items:center;gap:12px}
+  #badge{font-size:12px;font-weight:800;letter-spacing:.1em;color:#977c65;text-transform:uppercase}
+  #phasecue{height:40px;font-size:34px}
+  #stagecard{
+    width:min(760px,100%);background:var(--paper);padding:22px;border-radius:30px;
+    box-shadow:0 24px 58px -34px #674d31;display:grid;gap:16px;border:1px solid #fff;
+  }
+  #lab{display:grid;grid-template-columns:1fr 70px 1fr;align-items:center;gap:12px}
+  .bowl{
+    min-height:255px;border:4px solid #805d43;border-top-color:#ad8260;border-radius:22px 22px 80px 80px;
+    background:linear-gradient(145deg,#fff,#f6e8d5);padding:18px 14px;display:flex;flex-direction:column;
+    justify-content:center;gap:17px;position:relative;transition:.2s;
+  }
+  .bowl::after{
+    content:"";position:absolute;left:14%;right:14%;bottom:-10px;height:13px;border-radius:50%;
+    background:#664a38;opacity:.28;
+  }
+  .bowl.good{box-shadow:0 0 0 6px #bcebd5,0 0 28px #62c79766}
+  .bowl.bad{animation:shake .4s;box-shadow:0 0 0 5px #f2b9b9}
+  .mixrow{min-height:72px;display:grid;grid-template-columns:42px 1fr;gap:9px;align-items:center}
+  .kind{font-size:29px;text-align:center;filter:drop-shadow(0 2px 1px #fff)}
+  .tokens{display:flex;flex-wrap:wrap;gap:7px;align-items:center;min-height:52px}
+  .token{display:inline-block;width:27px;height:27px;position:relative;flex:none}
+  .token.a{
+    background:var(--berry);border:2px solid #7c2947;border-radius:48% 52% 45% 55%;
+    background-image:radial-gradient(#fff8 1.5px,transparent 2px);background-size:7px 7px;
+    transform:rotate(12deg);
+  }
+  .token.b{
+    width:23px;height:30px;background:var(--drop);border:2px solid #23617f;
+    border-radius:65% 35% 65% 35%;transform:rotate(45deg);
+    background-image:repeating-linear-gradient(90deg,transparent 0 5px,#ffffff44 5px 8px);
+  }
+  .token.half.a{clip-path:inset(0 50% 0 0)}
+  .token.half.b{clip-path:inset(0 50% 0 0)}
+  #capacity{
+    position:absolute;left:18px;right:18px;bottom:16px;height:11px;
+    display:flex;gap:2px;align-items:stretch;
+  }
+  #capacity i{
+    flex:1;min-width:3px;border:1px solid #c9ad8f;border-radius:3px;background:#fff8;
+  }
+  #capacity i.filled{background:var(--accent);border-color:#c47b1c}
+  #taste{font-size:38px;text-align:center;display:grid;gap:8px;place-items:center}
+  #taste span{font-size:24px;color:#c7a879}
+  .scoops{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .scooprow{display:flex;align-items:center;justify-content:center;gap:6px}
+  .scoop{
+    width:45px;height:45px;border-radius:50%;background:#f1e4d3;color:#705844;font-size:21px;
+    box-shadow:inset 0 -3px #d8c0a5;
+  }
+  .scoop.half{font-size:17px}.scoop:disabled{opacity:.25;cursor:default}
+  .lock{width:45px;text-align:center;font-size:22px}
+  #controls{display:flex;align-items:center;justify-content:center;gap:14px}
+  .round{width:49px;height:49px;border-radius:50%;background:#f0e5d6;color:#765d49;font-size:22px}
+  #go{
+    width:72px;height:72px;border-radius:50%;background:var(--accent);color:#fff;font-size:30px;
+    box-shadow:0 12px 24px -12px #a26513;animation:pulse 1.1s infinite;
+  }
+  #go:disabled{opacity:.35;animation:none;cursor:default}
+  @keyframes pulse{50%{transform:scale(1.07)}}@keyframes shake{25%,75%{transform:translateX(-7px)}50%{transform:translateX(7px)}}
+  #progress{display:flex;justify-content:center;gap:7px;height:11px}
+  #progress i{width:10px;height:10px;border-radius:50%;background:#eadfce}
+  #progress i.ok{background:var(--good)}#progress i.no{background:var(--bad)}
+  #ghost{
+    position:fixed;left:0;top:0;z-index:60;font-size:40px;opacity:0;pointer-events:none;
+    transition:transform .43s cubic-bezier(.2,.7,.2,1),opacity .2s;filter:drop-shadow(0 3px 4px #0004);
+  }
+  #ghost.show{opacity:.95}#ghost.tap{animation:tap .32s}@keyframes tap{50%{scale:.78}}
+  #telemetry{
+    width:350px;flex:0 0 350px;min-height:100vh;background:var(--tel);color:#cdd1db;
+    display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  #telemetry h3{margin:0;padding:13px 14px;background:var(--tel2);color:#fff;font-size:12px;letter-spacing:.09em;text-transform:uppercase}
+  #difficulty{padding:10px 13px;border-bottom:1px solid #333944}
+  #diffhead{display:flex;justify-content:space-between;color:#a8aeba;font-size:11px}
+  #diffbar{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin:7px 0}
+  #diffbar i{height:8px;border-radius:8px;background:#343943}#diffbar i.live{background:var(--accent)}
+  #dtrend{font-size:11px;color:#7f8796}
+  #mlist{padding:11px 13px;display:flex;flex-direction:column;gap:8px}
+  .mrow{display:grid;grid-template-columns:106px 1fr;gap:7px}.mid{color:var(--key);font-weight:800}.mval{color:#fff}
+  .mname{grid-column:1/3;color:var(--dim);font-size:11px;margin-top:-4px}
+  #logwrap{margin-top:auto;border-top:1px solid #333944}
+  #logwrap b{display:block;padding:8px 12px 3px;color:#9097a5;font-size:11px;letter-spacing:.08em}
+  #log{height:225px;overflow:auto;padding:2px 12px 12px;white-space:pre-wrap}
+  #log div{padding:3px 0;border-bottom:1px dotted #30343e}#log .t{color:#69717f}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;min-height:0;height:350px;flex:none}}
+  @media(max-width:600px){#lab{grid-template-columns:1fr}#taste{display:none}.bowl{min-height:190px}.scoops{grid-template-columns:1fr}}
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<main id="wrap">
+  <div id="badge">QUANT-MIX-01 · Fair Share</div>
+  <div id="phasecue">👁️</div>
+  <section id="stagecard">
+    <div id="lab">
+      <div class="bowl" id="target"><div class="mixrow"><div class="kind">◆</div><div class="tokens" id="targetA"></div></div><div class="mixrow"><div class="kind">💧</div><div class="tokens" id="targetB"></div></div></div>
+      <div id="taste">👅<span>↔</span>👅</div>
+      <div class="bowl" id="build"><div class="mixrow"><div class="kind">◆</div><div class="tokens" id="buildA"></div></div><div class="mixrow"><div class="kind">💧</div><div class="tokens" id="buildB"></div></div><div id="capacity"></div></div>
+    </div>
+    <div class="scoops">
+      <div class="scooprow" id="controlA"><button class="scoop" data-kind="A" data-delta="-1">−</button><button class="scoop" data-kind="A" data-delta="1">＋◆</button><button class="scoop half" data-kind="A" data-delta=".5">＋◐</button><span class="lock">🔒</span></div>
+      <div class="scooprow" id="controlB"><button class="scoop" data-kind="B" data-delta="-1">−</button><button class="scoop" data-kind="B" data-delta="1">＋💧</button><button class="scoop half" data-kind="B" data-delta=".5">＋◐</button><span class="lock">🔒</span></div>
+    </div>
+    <div id="controls"><button class="round" id="replay" aria-label="replay demonstration">↻</button><button id="go" aria-label="taste">😋</button></div>
+    <div id="progress"></div>
+  </section>
+</main>
+<aside id="telemetry">
+  <h3>Live telemetry · per-child</h3>
+  <div id="difficulty"><div id="diffhead"><span>DIFFICULTY</span><span id="dlevel"></span></div><div id="diffbar"></div><div id="dtrend"></div></div>
+  <div id="mlist"></div>
+  <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+</aside>
+<div id="ghost">👆</div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+const close=(a,b)=>Math.abs(a-b)<.01;
+const LEVELS=[
+  {level:1,base:[1,2],target:[2,4],init:[1,2],lock:[false,false],label:'repeat one batch'},
+  {level:2,base:[2,3],target:[4,6],init:[4,3],lock:[true,false],label:'missing part'},
+  {level:3,base:[2,4],target:[1,2],init:[1,4],lock:[true,false],label:'shrink mix'},
+  {level:4,base:[2,3],target:[6,9],init:[6,7],lock:[true,false],label:'three batches'},
+  {level:5,base:[3,4],target:[4.5,6],init:[4,6],lock:[false,true],label:'half batch'},
+  {level:6,base:[1.5,2.5],target:[4.5,7.5],init:[4.5,6.5],lock:[true,false],label:'non-integer mix'}
+];
+const DEMO={level:1,base:[1,2],target:[2,4],init:[0,0],lock:[false,false],label:'demo'};
+const WARM={level:1,base:[1,2],target:[2,4],init:[2,3],lock:[true,false],label:'warm-up'};
+let phase='demo',cur=null,amount=[0,0],locked=true,scoredIndex=0;
+const T={scored:0,correct:0,poly:'—',path:[],plan:'—',strategy:'—',level:1,startLevel:1,maxSolved:0,results:[],itemStart:0};
+const METERS=[
+  {id:'M-ACC',name:'Exact equivalent mixture',get:()=>T.scored?`${T.correct}/${T.scored} · ${Math.round(100*T.correct/T.scored)}%`:'—'},
+  {id:'M-POLY',name:'Ingredients scaled correctly',get:()=>T.poly},
+  {id:'M-PATH',name:'Ingredient adjustment sequence',get:()=>T.path.length?T.path.slice(-9).join('→'):'—'},
+  {id:'M-PLANFUL',name:'Batch-first or anchored adjustment',get:()=>T.plan},
+  {id:'M-PROPSTRAT',name:'Multiplicative versus additive strategy',get:()=>T.strategy},
+  {id:'M-DIFFREACH',name:'Hardest scale and ratio solved',get:()=>T.maxSolved?`level ${T.maxSolved} · ${LEVELS[T.maxSolved-1].label}`:'—'},
+  {id:'M-LEARNRATE',name:'Adaptive level gain per item',get:()=>T.scored?`${((T.level-T.startLevel)/T.scored).toFixed(2)} level/trial`:'—'}
+];
+function buildTelemetry(){
+  $('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');
+  $('#diffbar').innerHTML=LEVELS.map(()=>'<i></i>').join('');
+  $('#progress').innerHTML=LEVELS.map(()=>'<i></i>').join('');
+}
+function renderMeters(){
+  METERS.forEach(m=>$('#v_'+m.id).textContent=m.get());
+  $('#dlevel').textContent=`${T.level} / 6 · ${LEVELS[T.level-1].label}`;
+  [...$('#diffbar').children].forEach((x,i)=>x.classList.toggle('live',i<T.level));
+  $('#dtrend').textContent=`path ${T.results.join('')||'·'} · success raises, miss lowers`;
+}
+function log(message){
+  const elapsed=T.itemStart?Math.round(performance.now()-T.itemStart):0;
+  const row=document.createElement('div');row.innerHTML=`<span class="t">+${elapsed}ms</span> ${message}`;
+  $('#log').appendChild(row);$('#log').scrollTop=$('#log').scrollHeight;
+}
+function tokenHTML(kind,count){
+  const full=Math.floor(count),half=!close(count,full);
+  return Array.from({length:full},()=>`<i class="token ${kind.toLowerCase()}"></i>`).join('')+(half?`<i class="token ${kind.toLowerCase()} half"></i>`:'');
+}
+function capacityHTML(){
+  const slots=Math.round((cur.target[0]+cur.target[1])*2);
+  const filled=Math.min(slots,Math.round((amount[0]+amount[1])*2));
+  return Array.from({length:slots},(_,i)=>`<i class="${i<filled?'filled':''}"></i>`).join('');
+}
+function livePartial(){
+  if(!cur)return '—';
+  const matched=(close(amount[0],cur.target[0])?1:0)+(close(amount[1],cur.target[1])?1:0);
+  return `${matched}/2 ingredients`;
+}
+function render(){
+  $('#targetA').innerHTML=tokenHTML('A',cur.base[0]);$('#targetB').innerHTML=tokenHTML('B',cur.base[1]);
+  $('#buildA').innerHTML=tokenHTML('A',amount[0]);$('#buildB').innerHTML=tokenHTML('B',amount[1]);
+  $('#capacity').innerHTML=capacityHTML();
+  ['A','B'].forEach((kind,index)=>{
+    const row=$('#control'+kind),isLocked=cur.lock[index];
+    row.querySelector('.lock').style.display=isLocked?'inline':'none';
+    row.querySelectorAll('button').forEach(button=>{
+      const half=button.classList.contains('half');
+      button.style.display=half&&cur.level<5?'none':'inline-block';
+      button.disabled=locked||isLocked;
+    });
+  });
+  T.poly=livePartial();renderMeters();
+}
+function adjust(kind,delta,ghost=false){
+  const index=kind==='A'?0:1;if(locked||cur.lock[index])return;
+  const next=clamp(Math.round((amount[index]+delta)*2)/2,0,12);
+  if(close(next,amount[index]))return;
+  amount[index]=next;T.path.push(`${kind}${delta>0?'+':'−'}${Math.abs(delta)}`);
+  if(!ghost)log(`scoop ${T.path.at(-1)} · now ${amount[0]}:${amount[1]}`);
+  render();
+}
+function classify(){
+  const exact=close(amount[0],cur.target[0])&&close(amount[1],cur.target[1]);
+  if(exact)return cur.lock.some(Boolean)?'multiplicative · anchored':'multiplicative · complete batches';
+  const addA=cur.base[0]+(cur.target[0]-cur.base[0]);
+  const sameDelta=cur.target[0]-cur.base[0];
+  const additiveB=cur.base[1]+sameDelta;
+  if(close(amount[0],addA)&&close(amount[1],additiveB))return 'additive · same change';
+  const ratioBase=cur.base[0]/cur.base[1],ratioNow=amount[1]?amount[0]/amount[1]:99;
+  if(Math.abs(ratioBase-ratioNow)<.04)return 'multiplicative · equivalent';
+  return 'one-component / uncoordinated';
+}
+function optimalMoves(){
+  return Math.ceil(Math.abs(cur.target[0]-cur.init[0]))+Math.ceil(Math.abs(cur.target[1]-cur.init[1]));
+}
+async function submit(){
+  if(locked)return;locked=true;render();const correct=close(amount[0],cur.target[0])&&close(amount[1],cur.target[1]);
+  T.strategy=classify();T.plan=T.path.length<=optimalMoves()+1?'direct proportional adjustment':'repeated search';
+  $('#build').classList.add(correct?'good':'bad');
+  if(phase==='warmup'){
+    log(`WARM-UP ${correct?'same taste':'corrective full batch'} · UNSCORED`);
+    if(!correct){await sleep(450);amount=cur.target.slice();render();$('#build').classList.add('good')}
+    await sleep(750);startScored();return;
+  }
+  T.scored++;if(correct){T.correct++;T.maxSolved=Math.max(T.maxSolved,cur.level)}
+  T.results.push(correct?'↑':'↓');T.level=clamp(T.level+(correct?1:-1),1,6);
+  $('#progress').children[scoredIndex].classList.add(correct?'ok':'no');
+  log(`TASTE level ${cur.level} → ${correct?'MATCH':'MISS'} · ${T.poly} · ${T.strategy}`);
+  renderMeters();scoredIndex++;await sleep(900);scoredIndex<6?startScored():finish();
+}
+function center(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}}
+async function ghostTo(el){const p=center(el);$('#ghost').style.transform=`translate(${p.x-10}px,${p.y-10}px)`;await sleep(360)}
+async function ghostTap(){$('#ghost').classList.remove('tap');void $('#ghost').offsetWidth;$('#ghost').classList.add('tap');await sleep(280)}
+async function ghostAdjust(kind,times){
+  const button=$(`#control${kind} button[data-delta="1"]`);
+  for(let i=0;i<times;i++){await ghostTo(button);await ghostTap();adjust(kind,1,true)}
+}
+function reset(){
+  Object.assign(T,{scored:0,correct:0,poly:'—',path:[],plan:'—',strategy:'—',level:1,startLevel:1,maxSolved:0,results:[],itemStart:0});
+  scoredIndex=0;[...$('#progress').children].forEach(x=>x.className='');renderMeters();
+}
+function loadItem(item,cue){
+  cur={...item,base:item.base.slice(),target:item.target.slice(),init:item.init.slice(),lock:item.lock.slice()};
+  amount=cur.init.slice();T.path=[];T.poly='—';T.plan='—';T.strategy='—';locked=false;T.itemStart=performance.now();
+  $('#phasecue').textContent=cue;$('#build').className='bowl';render();log(`${phase.toUpperCase()} · level ${cur.level} · ${cur.label}`);
+}
+async function runDemo(){
+  reset();phase='demo';loadItem(DEMO,'👁️');locked=false;$('#ghost').classList.add('show');log('ghost-hand demo · wordless');
+  await ghostAdjust('A',2);await ghostAdjust('B',4);
+  await ghostTo($('#go'));await ghostTap();$('#build').classList.add('good');
+  await sleep(450);$('#ghost').classList.remove('show');startWarmup();
+}
+function startWarmup(){phase='warmup';loadItem(WARM,'⭐')}
+function startScored(){phase='scored';loadItem(LEVELS[T.level-1],'🎯');log(`SCORED ${scoredIndex+1}/6`)}
+function finish(){phase='done';locked=true;render();$('#phasecue').textContent='🏆';log(`DONE · ${T.correct}/${T.scored} · peak ${T.maxSolved}`);renderMeters()}
+document.querySelector('.scoops').addEventListener('click',event=>{
+  const button=event.target.closest('button[data-kind]');if(button)adjust(button.dataset.kind,+button.dataset.delta);
+});
+$('#go').addEventListener('click',submit);
+$('#replay').addEventListener('click',runDemo);
+buildTelemetry();renderMeters();runDemo();
+</script>
+</body>
+</html>
