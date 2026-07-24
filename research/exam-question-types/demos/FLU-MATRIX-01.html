@@ -38,9 +38,10 @@
   .cell.filled-anim{animation:pop .3s ease}
   @keyframes pop{0%{transform:scale(.6);opacity:.2}100%{transform:scale(1);opacity:1}}
   #tray{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
-  .opt{background:#fff;border:3px solid #e2e8fb;border-radius:14px;width:84px;height:84px;
+  .opt{position:relative;background:#fff;border:3px solid #e2e8fb;border-radius:14px;width:84px;height:84px;
     display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s;
     -webkit-tap-highlight-color:transparent}
+  .opt::after{content:attr(data-key);position:absolute;right:5px;bottom:3px;font:700 11px/1 ui-monospace,monospace;color:#8a93b5}
   .opt:hover{transform:translateY(-3px);border-color:#c3ccf5}
   .opt.sel{border-color:var(--accent);box-shadow:0 0 0 4px #c9d0ff;transform:translateY(-3px)}
   .opt.correct{border-color:var(--good);box-shadow:0 0 0 4px #b4ecd0}
@@ -67,6 +68,9 @@
     display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
   #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;
     background:#1b2340;text-transform:uppercase}
+  #difficulty{margin:10px 12px 2px;padding:10px;border:1px solid #2c365d;border-radius:10px;background:#171e36}
+  .dtop{display:flex;justify-content:space-between;color:#fff}.dsub{display:flex;justify-content:space-between;color:var(--tel-dim);font-size:11px;margin-top:5px}
+  .dtrack{height:7px;background:#2a3458;border-radius:8px;margin-top:8px;overflow:hidden}.dfill{height:100%;background:linear-gradient(90deg,#7fffcf,#ffd479);transition:.25s}
   #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
   .mrow{display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:baseline}
   .mid{color:var(--tel-key);font-weight:700}
@@ -78,9 +82,11 @@
   #log{height:210px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
   #log div{padding:2px 0;border-bottom:1px dotted #232c4d}
   #log .t{color:#5f6f9e}
+  button:focus-visible,.opt:focus-visible{outline:4px solid #ffbf69;outline-offset:3px}
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
   @media(max-width:860px){
     body{flex-direction:column}
-    #telemetry{width:100%;flex:none;height:300px}
+    #telemetry{width:100%;flex:none;height:340px}
   }
 </style>
 </head>
@@ -102,6 +108,7 @@
   </div>
   <aside id="telemetry">
     <h3>Live telemetry · per-child</h3>
+    <div id="difficulty"></div>
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
@@ -114,64 +121,74 @@ const mean=a=>Math.round(a.reduce((x,y)=>x+y,0)/a.length);
 const last=a=>a[a.length-1];
 
 /* ---------- shape rendering ---------- */
-const PAL={red:'#e6194b',green:'#2ca25f',blue:'#4363d8',orange:'#f58231',purple:'#911eb4'};
+const PAL={coral:'#ef5b5b',teal:'#159f94',blue:'#4267d5',gold:'#e6a817',violet:'#8357c5',ink:'#33405f'};
 const COLORKEYS=Object.keys(PAL);
-const SH=['circle','square','triangle','diamond','star','hexagon'];
+const SH=['triangle','pentagon','hexagon','kite','drop','star'];
 function polyPts(cx,cy,r,n,rot){let p=[];for(let i=0;i<n;i++){let a=rot+i*2*Math.PI/n;p.push((cx+r*Math.cos(a)).toFixed(1)+','+(cy+r*Math.sin(a)).toFixed(1));}return p.join(' ');}
 function starPts(cx,cy,r,n){let p=[];for(let i=0;i<2*n;i++){let rr=i%2?r*0.45:r;let a=-Math.PI/2+i*Math.PI/n;p.push((cx+rr*Math.cos(a)).toFixed(1)+','+(cy+rr*Math.sin(a)).toFixed(1));}return p.join(' ');}
-function oneShape(shape,color,cx,cy,r){const f='fill="'+color+'"';
+function oneShape(shape,color,cx,cy,r){const f=`fill="${color}" stroke="#fff" stroke-width="1"`;
   switch(shape){
-    case 'circle':return `<circle cx="${cx}" cy="${cy}" r="${r}" ${f}/>`;
-    case 'square':return `<rect x="${cx-r}" y="${cy-r}" width="${2*r}" height="${2*r}" rx="3" ${f}/>`;
     case 'triangle':return `<polygon points="${polyPts(cx,cy,r,3,-Math.PI/2)}" ${f}/>`;
-    case 'diamond':return `<polygon points="${polyPts(cx,cy,r,4,-Math.PI/2)}" ${f}/>`;
+    case 'pentagon':return `<polygon points="${polyPts(cx,cy,r,5,-Math.PI/2)}" ${f}/>`;
     case 'hexagon':return `<polygon points="${polyPts(cx,cy,r,6,-Math.PI/2)}" ${f}/>`;
     case 'star':return `<polygon points="${starPts(cx,cy,r,5)}" ${f}/>`;
+    case 'kite':return `<polygon points="${cx},${cy-r} ${cx+r*.72},${cy-r*.05} ${cx},${cy+r} ${cx-r*.72},${cy-r*.05}" ${f}/>`;
+    case 'drop':return `<path d="M ${cx} ${cy-r} C ${cx+r*.85} ${cy-r*.15},${cx+r*.72} ${cy+r},${cx} ${cy+r} C ${cx-r*.72} ${cy+r},${cx-r*.85} ${cy-r*.15},${cx} ${cy-r}Z" ${f}/>`;
   } return '';}
 function tileSVG(a,box=80){const color=PAL[a.color]||a.color;const n=a.count||1;let inner='';
   if(n===1){inner=oneShape(a.shape,color,box/2,box/2,box*0.30);}
   else{const pos=n===2?[[.3,.5],[.7,.5]]:n===3?[[.24,.5],[.5,.5],[.76,.5]]:[[.3,.3],[.7,.3],[.3,.7],[.7,.7]];
     const r=box*(n>=4?.13:.15);pos.slice(0,n).forEach(p=>inner+=oneShape(a.shape,color,p[0]*box,p[1]*box,r));}
+  if(a.rot)inner=`<g transform="rotate(${a.rot} ${box/2} ${box/2})">${inner}</g>`;
   return `<svg width="${box}" height="${box}" viewBox="0 0 ${box} ${box}">${inner}</svg>`;}
 
 /* ---------- item generation (AIG: rule x attribute grammar) ---------- */
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){let j=(Math.random()*(i+1))|0;[a[i],a[j]]=[a[j],a[i]];}return a;}
-function sameA(a,b){return a.shape===b.shape&&a.color===b.color&&a.count===b.count;}
-function genItem(nRules,size){size=size||3;
-  const shapes=shuffle(SH).slice(0,size), colors=shuffle(COLORKEYS).slice(0,size), grid=[];
-  for(let r=0;r<size;r++){grid.push([]);for(let c=0;c<size;c++)grid[r].push({
-    shape:shapes[(r+c)%size], color:nRules>=2?colors[r]:colors[0], count:nRules>=3?c+1:1});}
-  const ans=grid[size-1][size-1];
-  const opts=[{attr:ans,tag:'correct',rulesSat:nRules}];
-  opts.push({attr:{...ans,shape:shapes.find(s=>s!==ans.shape)},tag:'rule:shape',rulesSat:nRules-1});
-  if(nRules>=2)opts.push({attr:{...ans,color:colors.find(c=>c!==ans.color)},tag:'rule:color',rulesSat:nRules-1});
-  if(nRules>=3)opts.push({attr:{...ans,count:ans.count===3?2:3},tag:'rule:count',rulesSat:nRules-1});
-  let guard=0;
-  while(opts.length<4&&guard++<20){let s2=SH[(SH.indexOf(ans.shape)+opts.length+1)%SH.length];
-    let a={...ans,shape:s2}; if(nRules>=2)a.color=colors.find(c=>c!==ans.color)||ans.color;
-    if(opts.some(o=>sameA(o.attr,a)))a.count=(a.count%3)+1;
-    if(opts.some(o=>sameA(o.attr,a)))continue;
-    opts.push({attr:a,tag:nRules>=2?'random':'rule:shape',rulesSat:nRules>=2?Math.max(0,nRules-2):nRules-1});}
-  return {size,nRules,grid,ans,options:shuffle(opts)};}
+function sameA(a,b){return a.shape===b.shape&&a.color===b.color&&a.count===b.count&&(a.rot||0)===(b.rot||0);}
+function levelRules(level){return level===1?1:level<4?2:level<6?3:4;}
+function genItem(level){const size=level===1?2:3,nRules=levelRules(level);
+  const shapes=shuffle(SH).slice(0,size),colors=shuffle(COLORKEYS).slice(0,size);
+  const active=['shape'];if(nRules>=2)active.push(level===3?'count':'color');if(nRules>=3&&!active.includes('count'))active.push('count');if(nRules>=4)active.push('rot');
+  const grid=[];for(let r=0;r<size;r++){grid.push([]);for(let c=0;c<size;c++)grid[r].push({
+    shape:shapes[(r+c)%size],
+    color:active.includes('color')?colors[r]:colors[0],
+    count:active.includes('count')?c+1:1,
+    rot:active.includes('rot')?((r+c)%3)*120:0
+  });}
+  const ans={...grid[size-1][size-1]},opts=[];
+  const add=(attr,tag,sat)=>{if(!opts.some(o=>sameA(o.attr,attr)))opts.push({attr,tag,rulesSat:sat});};
+  add(ans,'correct',nRules);
+  active.forEach(rule=>{const a={...ans};
+    if(rule==='shape')a.shape=shapes[(shapes.indexOf(ans.shape)+1)%shapes.length];
+    if(rule==='color')a.color=colors[(colors.indexOf(ans.color)+1)%colors.length];
+    if(rule==='count')a.count=ans.count===1?2:ans.count-1;
+    if(rule==='rot')a.rot=(ans.rot+120)%360;
+    add(a,'rule:'+rule,nRules-1);
+  });
+  let guard=0;while(opts.length<Math.max(4,Math.min(6,nRules+2))&&guard++<30){const a={...ans,shape:SH[(SH.indexOf(ans.shape)+guard)%SH.length],count:(ans.count%3)+1};add(a,'multi-rule',Math.max(0,nRules-2));}
+  return {level,size,nRules,active,grid,ans,options:shuffle(opts)};}
 
 /* ---------- telemetry ---------- */
-const T={scored:0,correct:0,rts:[],firstLat:null,revThis:0,lastErr:'\u2014',maxRules:0,lastRuleSat:'\u2014',
-  itemStart:0,firstActed:false};
+const T={scored:0,correct:0,rts:[],gates:[],firstLat:null,revThis:0,lastErr:'\u2014',maxSolved:0,
+  level:1,itemStart:0,firstActed:false,blurThis:0};
+function rtStr(){if(!T.rts.length)return '\u2014';const g=last(T.gates),rt=last(T.rts);return g.ok?`${rt} ms (mean ${mean(T.rts)})`:`gated · ${g.reason} · ${rt} ms`;}
 const METERS=[
  {id:'M-ACC',name:'Item accuracy (running)',get:()=>T.scored?`${T.correct}/${T.scored}  ${Math.round(100*T.correct/T.scored)}%`:'\u2014'},
- {id:'M-RT',name:'Response time — total',get:()=>T.rts.length?`${last(T.rts)} ms  (mean ${mean(T.rts)})`:'\u2014'},
+ {id:'M-RT',name:'Response time — engagement gated',get:()=>rtStr()},
  {id:'M-RTFIRST',name:'First-action latency (encode/plan)',get:()=>T.firstLat==null?'\u2014':T.firstLat+' ms'},
  {id:'M-REV',name:'Revisions / answer changes',get:()=>T.revThis+''},
  {id:'M-ERRTYPE',name:'Error type (per-rule near-miss)',get:()=>T.lastErr},
- {id:'M-DIFFREACH',name:'Max difficulty reached',get:()=>T.maxRules?T.maxRules+' co-acting rules':'\u2014'},
- {id:'M-RULEID',name:'Rule dimensionality solved',prop:true,get:()=>T.lastRuleSat},
+ {id:'M-DIFFREACH',name:'Max difficulty reached',get:()=>T.maxSolved?`L${T.maxSolved} · ${levelRules(T.maxSolved)} rules`:'\u2014'},
 ];
 function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>
-  `<div class="mrow"><span class="mid ${m.prop?'prop':''}">${m.id}</span><span class="mval" id="v_${m.id}"></span>`
-  +`<span class="mname">${m.name}${m.prop?' · PROPOSED':''}</span></div>`).join('');}
-function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});}
-function log(msg){const t=Date.now()-T.itemStart;const d=document.createElement('div');
-  d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+  `<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span>`
+  +`<span class="mname">${m.name}</span></div>`).join('');}
+function learnRate(){return T.scored?((T.maxSolved-1)/T.scored).toFixed(2):'0.00';}
+function renderDifficulty(){$('#difficulty').innerHTML=`<div class="dtop"><b>DIFFICULTY</b><span>${T.level}/6</span></div><div class="dtrack"><div class="dfill" style="width:${T.level/6*100}%"></div></div><div class="dsub"><span>reach ${T.maxSolved||'\u2014'}</span><span>learn ${learnRate()} lvl/trial</span></div>`;}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});renderDifficulty();}
+function log(msg){const now=new Date(),t=Math.max(0,Date.now()-T.itemStart),d=document.createElement('div');
+  d.innerHTML=`<span class="t">${now.toISOString().slice(11,23)} · +${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+function gate(rt){const rapid=rt<350,blur=T.blurThis>0,base=T.rts.length>2?mean(T.rts.slice(0,-1)):0,drift=base>0&&rt>base*2.4;return{ok:!rapid&&!blur&&!drift,reason:rapid?'rapid':blur?'blur':drift?'drift':'ok'};}
 
 /* ---------- ghost hand ---------- */
 const ghost=$('#ghost');
@@ -181,8 +198,8 @@ async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transf
 async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(520);}
 
 /* ---------- flow ---------- */
-let phase='demo',cur=null,staged=-1,locked=false,scoredIndex=0;
-const scoredItems=[genItem(2,3),genItem(3,3)];
+let phase='demo',cur=null,staged=-1,locked=false,scoredIndex=0,demoRun=0;
+const TOTAL=6;
 function setCue(i){$('#phasecue').textContent=i;}
 function lights(on){$('#lights').classList.toggle('on',on);}
 function disableTray(d){locked=d;}
@@ -191,9 +208,9 @@ function renderItem(item){cur=item;const m=$('#matrix');m.style.gridTemplateColu
     if(r===item.size-1&&c===item.size-1){cell.classList.add('empty');cell.id='emptycell';}
     else cell.innerHTML=tileSVG(item.grid[r][c]);m.appendChild(cell);}
   const tray=$('#tray');tray.innerHTML='';
-  item.options.forEach((o,i)=>{const b=document.createElement('div');b.className='opt';b.dataset.i=i;b.innerHTML=tileSVG(o.attr);tray.appendChild(b);});
+  item.options.forEach((o,i)=>{const b=document.createElement('button');b.className='opt';b.dataset.i=i;b.dataset.key=i+1;b.setAttribute('aria-label',`option ${i+1}`);b.innerHTML=tileSVG(o.attr);tray.appendChild(b);});
   lights(false);$('#go').classList.remove('ready');
-  staged=-1;T.itemStart=Date.now();T.firstActed=false;T.firstLat=null;T.revThis=0;renderMeters();}
+  staged=-1;T.itemStart=Date.now();T.firstActed=false;T.firstLat=null;T.revThis=0;T.blurThis=0;renderMeters();}
 function fillEmpty(attr){const cell=$('#emptycell');if(!cell)return;cell.classList.remove('empty');
   cell.classList.add('filled-anim');cell.innerHTML=tileSVG(attr);setTimeout(()=>cell.classList.remove('filled-anim'),300);}
 function onOpt(el){if(locked||phase==='demo'||phase==='done')return;const idx=+el.dataset.i;
@@ -207,31 +224,33 @@ function feedback(correct){const opt=$$('#tray .opt')[staged];if(opt)opt.classLi
   disableTray(true);$('#go').classList.remove('ready');}
 function submit(){if(staged===-1)return;const opt=cur.options[staged];const rt=Date.now()-T.itemStart;const correct=opt.tag==='correct';
   if(phase==='warmup'){feedback(correct);log('warm-up '+(correct?'correct':'incorrect')+' — UNSCORED');setTimeout(nextPhase,950);return;}
-  T.scored++;T.rts.push(rt);
-  if(correct){T.correct++;T.maxRules=Math.max(T.maxRules,cur.nRules);T.lastErr='none';}
+  T.scored++;T.rts.push(rt);T.gates.push(gate(rt));
+  if(correct){T.correct++;T.maxSolved=Math.max(T.maxSolved,cur.level);T.lastErr='none';}
   else T.lastErr=opt.tag.indexOf('rule:')===0?'near-miss ('+opt.tag.split(':')[1]+')':'random';
-  T.lastRuleSat=opt.rulesSat+' / '+cur.nRules+' rules';
+  T.level=Math.max(1,Math.min(6,T.level+(correct?1:-1)));
   feedback(correct);
-  log(`SUBMIT item ${scoredIndex+1} · nRules=${cur.nRules} \u2192 ${correct?'CORRECT':'wrong ['+opt.tag+']'} · RT ${rt}ms · firstLat ${T.firstLat}ms · rev ${T.revThis}`);
+  log(`SUBMIT ${scoredIndex+1}/${TOTAL} · L${cur.level} ${cur.nRules} rules \u2192 ${correct?'CORRECT':'wrong ['+opt.tag+']'} · sat ${opt.rulesSat}/${cur.nRules} · ${last(T.gates).reason} · next L${T.level}`);
   renderMeters();setTimeout(nextPhase,1150);}
-function nextPhase(){if(phase==='warmup'){scoredIndex=0;startScored();}
-  else if(phase==='scored'){scoredIndex++;scoredIndex<scoredItems.length?startScored():finish();}}
-function startWarmup(){phase='warmup';setCue('\u2b50');disableTray(false);renderItem(genItem(1,2));log('— warm-up (unscored): 2x2, one rule —');}
-function startScored(){phase='scored';setCue('\ud83c\udfaf');disableTray(false);renderItem(scoredItems[scoredIndex]);
-  log(`— SCORED item ${scoredIndex+1}: ${cur.size}x${cur.size}, ${cur.nRules} co-acting rules —`);}
+function nextPhase(){if(phase==='warmup'){scoredIndex=0;T.level=1;startScored();}
+  else if(phase==='scored'){scoredIndex++;scoredIndex<TOTAL?startScored():finish();}}
+function startWarmup(){phase='warmup';setCue('\u2b50');disableTray(false);renderItem(genItem(1));log('— warm-up · 2x2 · one rule · UNSCORED —');}
+function startScored(){phase='scored';setCue('\ud83c\udfaf');disableTray(false);renderItem(genItem(T.level));
+  log(`— SCORED ${scoredIndex+1}/${TOTAL} · L${cur.level} · ${cur.size}x${cur.size} · ${cur.nRules} rules —`);}
 function finish(){phase='done';setCue('\ud83c\udfc6');disableTray(true);lights(true);
-  log(`— DONE · accuracy ${T.correct}/${T.scored} · ceiling ${T.maxRules} rules —`);}
-async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');disableTray(true);
-  const d=genItem(1,2);renderItem(d);log('ghost-hand demo (wordless, <10s)');
+  log(`— DONE · accuracy ${T.correct}/${T.scored} · ceiling L${T.maxSolved} —`);}
+async function runDemo(){const token=++demoRun;phase='demo';setCue('\ud83d\udc41\ufe0f');disableTray(true);
+  const d=genItem(1);renderItem(d);log('ghost-hand demo · wordless · <10s');
   const ci=d.options.findIndex(o=>o.tag==='correct');
   ghostShow(true);await sleep(300);await ghostTo($('#matrix .cell.empty'));await sleep(250);
   await ghostTo($$('#tray .opt')[ci]);await ghostTap();
   $$('#tray .opt')[ci].classList.add('correct');fillEmpty(d.options[ci].attr);lights(true);
-  await sleep(500);await ghostTo($('#go'));await ghostTap();await sleep(350);ghostShow(false);await sleep(500);startWarmup();}
+  await sleep(500);await ghostTo($('#go'));await ghostTap();await sleep(350);ghostShow(false);await sleep(400);if(token===demoRun)startWarmup();}
 
 $('#tray').addEventListener('click',e=>{const o=e.target.closest('.opt');if(o)onOpt(o);});
 $('#go').addEventListener('click',()=>{if($('#go').classList.contains('ready'))submit();});
 $('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
+document.addEventListener('keydown',e=>{if(!locked&&phase!=='done'){if(/^[1-6]$/.test(e.key)){const o=$$('#tray .opt')[+e.key-1];if(o)onOpt(o);}if(e.key==='Enter'&&$('#go').classList.contains('ready'))submit();}});
+window.addEventListener('blur',()=>{if(phase==='scored'&&!locked){T.blurThis++;log('engagement · focus lost');renderMeters();}});
 buildMeters();renderMeters();runDemo();
 </script>
 </body>

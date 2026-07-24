@@ -23,8 +23,9 @@
   #overlaySlot.filled-anim{animation:pop .3s ease}
   @keyframes pop{0%{transform:translate(-26px,-26px) scale(.5);opacity:.2}100%{transform:translate(-26px,-26px) scale(1);opacity:1}}
   #tray{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
-  .opt{background:#fff;border:3px solid #e2e8fb;border-radius:14px;width:78px;height:78px;
+  .opt{position:relative;background:#fff;border:3px solid #e2e8fb;border-radius:14px;width:78px;height:78px;
     display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent}
+  .opt::after{content:attr(data-key);position:absolute;right:5px;bottom:3px;font:700 11px/1 ui-monospace,monospace;color:#8a93b5}
   .opt:hover{transform:translateY(-3px);border-color:#c3ccf5}
   .opt.sel{border-color:var(--accent);box-shadow:0 0 0 4px #c9d0ff;transform:translateY(-3px)}
   .opt.correct{border-color:var(--good);box-shadow:0 0 0 4px #b4ecd0}
@@ -49,6 +50,9 @@
   @keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
   #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
   #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #difficulty{margin:10px 12px 2px;padding:10px;border:1px solid #2c365d;border-radius:10px;background:#171e36}
+  .dtop{display:flex;justify-content:space-between;color:#fff}.dsub{display:flex;justify-content:space-between;color:var(--tel-dim);font-size:11px;margin-top:5px}
+  .dtrack{height:7px;background:#2a3458;border-radius:8px;margin-top:8px;overflow:hidden}.dfill{height:100%;background:linear-gradient(90deg,#7fffcf,#ffd479);transition:.25s}
   #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
   .mrow{display:grid;grid-template-columns:104px 1fr;gap:8px;align-items:baseline}
   .mid{color:var(--tel-key);font-weight:700}.mval{color:#fff}
@@ -57,7 +61,9 @@
   #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
   #log{height:190px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
   #log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
-  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
+  button:focus-visible,.opt:focus-visible{outline:4px solid #ffbf69;outline-offset:3px}
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:350px}}
 </style>
 </head>
 <body>
@@ -82,6 +88,7 @@
   </div>
   <aside id="telemetry">
     <h3>Live telemetry · per-child</h3>
+    <div id="difficulty"></div>
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
@@ -92,48 +99,55 @@ const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0;
 const last=a=>a[a.length-1];
-const PAL={red:'#e6194b',green:'#2ca25f',blue:'#4363d8',orange:'#f58231',purple:'#911eb4'};
-const COLORKEYS=Object.keys(PAL);const SH=['circle','square','triangle','diamond','star'];
+const PAL={coral:'#ef5b5b',teal:'#159f94',blue:'#4267d5',gold:'#e6a817',violet:'#8357c5'};
+const COLORKEYS=Object.keys(PAL),SH=['triangle','pentagon','kite','drop','star'];
+const DOM={shape:SH,color:COLORKEYS,fill:['solid','outline','hatch'],count:[1,2,3],rot:[0,90,180],mark:['top','middle','bottom']};
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){let j=(Math.random()*(i+1))|0;[a[i],a[j]]=[a[j],a[i]];}return a;}
 function pick(a){return a[(Math.random()*a.length)|0];}
 function polyPts(cx,cy,r,n,rot){let p=[];for(let i=0;i<n;i++){let a=rot+i*2*Math.PI/n;p.push((cx+r*Math.cos(a)).toFixed(1)+','+(cy+r*Math.sin(a)).toFixed(1));}return p.join(' ');}
 function starPts(cx,cy,r,n){let p=[];for(let i=0;i<2*n;i++){let rr=i%2?r*0.45:r;let a=-Math.PI/2+i*Math.PI/n;p.push((cx+rr*Math.cos(a)).toFixed(1)+','+(cy+rr*Math.sin(a)).toFixed(1));}return p.join(' ');}
-function oneShape(shape,color,cx,cy,r,filled){const f=filled?`fill="${color}"`:`fill="none" stroke="${color}" stroke-width="5"`;
+function oneShape(shape,color,cx,cy,r,fill){const f=fill==='solid'?`fill="${color}"`:fill==='outline'?`fill="none" stroke="${color}" stroke-width="4"`:`fill="${color}" fill-opacity=".28" stroke="${color}" stroke-width="3"`;
   switch(shape){
-    case 'circle':return `<circle cx="${cx}" cy="${cy}" r="${r}" ${f}/>`;
-    case 'square':return `<rect x="${cx-r}" y="${cy-r}" width="${2*r}" height="${2*r}" rx="3" ${f}/>`;
     case 'triangle':return `<polygon points="${polyPts(cx,cy,r,3,-Math.PI/2)}" ${f}/>`;
-    case 'diamond':return `<polygon points="${polyPts(cx,cy,r,4,-Math.PI/2)}" ${f}/>`;
+    case 'pentagon':return `<polygon points="${polyPts(cx,cy,r,5,-Math.PI/2)}" ${f}/>`;
     case 'star':return `<polygon points="${starPts(cx,cy,r,5)}" ${f}/>`;
+    case 'kite':return `<polygon points="${cx},${cy-r} ${cx+r*.72},${cy-r*.05} ${cx},${cy+r} ${cx-r*.72},${cy-r*.05}" ${f}/>`;
+    case 'drop':return `<path d="M ${cx} ${cy-r} C ${cx+r*.85} ${cy-r*.15},${cx+r*.72} ${cy+r},${cx} ${cy+r} C ${cx-r*.72} ${cy+r},${cx-r*.85} ${cy-r*.15},${cx} ${cy-r}Z" ${f}/>`;
   }return '';}
-function figSVG(f,box=64){return `<svg width="${box}" height="${box}" viewBox="0 0 ${box} ${box}">${oneShape(f.shape,PAL[f.color],box/2,box/2,box*0.30,f.fill===0)}</svg>`;}
+function figSVG(f,box=64){const n=f.count||1,pos=n===1?[.5]:n===2?[.32,.68]:[.22,.5,.78],r=box*(n===1?.29:.15);let inner='';
+  pos.forEach(x=>{inner+=oneShape(f.shape,PAL[f.color],x*box,box/2,r,f.fill);if(f.fill==='hatch')inner+=`<path d="M${x*box-r*.55} ${box/2+r*.3}L${x*box+r*.55} ${box/2-r*.3}" stroke="${PAL[f.color]}" stroke-width="2"/>`;});
+  const my=f.mark==='top'?box*.29:f.mark==='bottom'?box*.71:box*.5;inner+=`<circle cx="${box/2}" cy="${my}" r="${box*.035}" fill="#26304a"/>`;
+  if(f.rot)inner=`<g transform="rotate(${f.rot} ${box/2} ${box/2})">${inner}</g>`;
+  return `<svg width="${box}" height="${box}" viewBox="0 0 ${box} ${box}">${inner}</svg>`;}
 
-/* ---------- item generation: conjunctive membership (left feature AND right feature) ---------- */
-function differ(dim,val){return dim==='shape'?pick(SH.filter(x=>x!==val)):dim==='color'?pick(COLORKEYS.filter(x=>x!==val)):(val===0?1:0);}
-function base(){return {shape:'circle',color:'blue',fill:0};}
-function setD(f,dim,v){f={...f};f[dim]=v;return f;}
-function genItem(leftDim,leftVal,rightDim,rightVal){
-  // third (neutral) dim held constant so only the two ring features matter
-  const dims=['shape','color','fill'],third=dims.find(d=>d!==leftDim&&d!==rightDim);
-  const neutral=third==='fill'?0:third==='color'?'blue':'circle';
-  const mk=(l,r)=>{let f=base();f=setD(f,leftDim,l);f=setD(f,rightDim,r);f=setD(f,third,neutral);return f;};
-  const leftEx=[mk(leftVal,differ(rightDim,rightVal)),mk(leftVal,differ(rightDim,rightVal))];
-  const rightEx=[mk(differ(leftDim,leftVal),rightVal),mk(differ(leftDim,leftVal),rightVal)];
+/* ---------- AIG: exactly one two-feature intersection ---------- */
+const ALLDIMS=['shape','color','fill','count','rot','mark'];
+function config(level){return level===1?['color','shape']:level===2?['shape','fill']:level===3?['count','color']:
+  level===4?['rot','fill']:level===5?['mark','count']:['mark','rot'];}
+function alt(dim,val,i=0){const a=DOM[dim].filter(x=>x!==val);return a[i%a.length];}
+function base(){return {shape:'kite',color:'blue',fill:'solid',count:1,rot:0,mark:'middle'};}
+function genItem(level,forced){const dims=forced||config(level),leftDim=dims[0],rightDim=dims[1],leftVal=pick(DOM[leftDim]),rightVal=pick(DOM[rightDim]);
+  const neutral=base();ALLDIMS.forEach(d=>{if(d!==leftDim&&d!==rightDim)neutral[d]=pick(DOM[d]);});
+  const mk=(lv,rv)=>({...neutral,[leftDim]:lv,[rightDim]:rv});
+  const exemplar=(side,i)=>{const f={...neutral};ALLDIMS.forEach(d=>f[d]=DOM[d][(i+(side==='left'?0:1))%DOM[d].length]);
+    f[leftDim]=side==='left'?leftVal:alt(leftDim,leftVal,i);f[rightDim]=side==='right'?rightVal:alt(rightDim,rightVal,i);return f;};
   const opts=[
     {a:mk(leftVal,rightVal),tag:'correct',rules:2},
-    {a:mk(leftVal,differ(rightDim,rightVal)),tag:'attr:left-only',rules:1},
-    {a:mk(differ(leftDim,leftVal),rightVal),tag:'attr:right-only',rules:1},
-    {a:mk(differ(leftDim,leftVal),differ(rightDim,rightVal)),tag:'neither',rules:0},
+    {a:mk(leftVal,alt(rightDim,rightVal,0)),tag:'left-only',rules:1},
+    {a:mk(alt(leftDim,leftVal,0),rightVal),tag:'right-only',rules:1},
+    {a:mk(alt(leftDim,leftVal,1),alt(rightDim,rightVal,1)),tag:'neither',rules:0}
   ];
-  return {leftDim,leftVal,rightDim,rightVal,leftEx,rightEx,options:shuffle(opts)};
+  return {level,leftDim,leftVal,rightDim,rightVal,leftEx:[exemplar('left',0),exemplar('left',1)],
+    rightEx:[exemplar('right',0),exemplar('right',1)],options:shuffle(opts)};
 }
 
 /* ---------- telemetry ---------- */
-const T={scored:0,correct:0,rts:[],firstLat:null,lastErr:'\u2014',lastRule:'\u2014',conf:'\u2014',
-  confHits:0,confN:0,itemStart:0,firstActed:false};
+const T={scored:0,correct:0,rts:[],gates:[],firstLat:null,lastErr:'\u2014',lastRule:'\u2014',conf:'\u2014',
+  confHits:0,confN:0,level:1,maxSolved:0,itemStart:0,firstActed:false,blurThis:0};
+function rtStr(){if(!T.rts.length)return '\u2014';const g=last(T.gates),rt=last(T.rts);return g.ok?`${rt} ms (mean ${mean(T.rts)})`:`gated · ${g.reason} · ${rt} ms`;}
 const METERS=[
  {id:'M-ACC',name:'Item accuracy (running)',get:()=>T.scored?`${T.correct}/${T.scored}  ${Math.round(100*T.correct/T.scored)}%`:'\u2014'},
- {id:'M-RT',name:'Response time — total',get:()=>T.rts.length?`${last(T.rts)} ms  (mean ${mean(T.rts)})`:'\u2014'},
+ {id:'M-RT',name:'Response time — engagement gated',get:()=>rtStr()},
  {id:'M-RTFIRST',name:'First-action latency (induce both rules)',get:()=>T.firstLat==null?'\u2014':T.firstLat+' ms'},
  {id:'M-ERRTYPE',name:'Error type (single-attribute near-miss)',get:()=>T.lastErr},
  {id:'M-RULEID',name:'Rule dimensionality solved (attrs met)',get:()=>T.lastRule},
@@ -142,9 +156,12 @@ const METERS=[
 function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>
   `<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span>`
   +`<span class="mname">${m.name}</span></div>`).join('');}
-function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});}
-function log(msg){const t=Date.now()-T.itemStart;const d=document.createElement('div');
-  d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+function learnRate(){return T.scored?((T.maxSolved-1)/T.scored).toFixed(2):'0.00';}
+function renderDifficulty(){$('#difficulty').innerHTML=`<div class="dtop"><b>DIFFICULTY</b><span>${T.level}/6</span></div><div class="dtrack"><div class="dfill" style="width:${T.level/6*100}%"></div></div><div class="dsub"><span>reach ${T.maxSolved||'\u2014'}</span><span>learn ${learnRate()} lvl/trial</span></div>`;}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});renderDifficulty();}
+function log(msg){const now=new Date(),t=Math.max(0,Date.now()-T.itemStart),d=document.createElement('div');
+  d.innerHTML=`<span class="t">${now.toISOString().slice(11,23)} · +${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+function gate(rt){const rapid=rt<350,blur=T.blurThis>0,base=T.rts.length>2?mean(T.rts.slice(0,-1)):0,drift=base>0&&rt>base*2.5;return{ok:!rapid&&!blur&&!drift,reason:rapid?'rapid':blur?'blur':drift?'drift':'ok'};}
 
 /* ---------- ghost ---------- */
 const ghost=$('#ghost');
@@ -154,8 +171,8 @@ async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transf
 async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(480);}
 
 /* ---------- flow ---------- */
-let phase='demo',cur=null,staged=-1,locked=false,scoredIndex=0,confChoice=null;
-const scoredItems=[genItem('color','green','shape','star'),genItem('fill',0,'color','purple')];
+let phase='demo',cur=null,staged=-1,locked=false,scoredIndex=0,confChoice=null,demoRun=0;
+const TOTAL=6;
 const LEXSLOT=[[75,72],[75,158]],REXSLOT=[[305,72],[305,158]];
 function setCue(i){$('#phasecue').innerHTML=i;}
 function placeEx(list,slots){list.forEach((f,i)=>{const d=document.createElement('div');d.className='ex';
@@ -164,9 +181,9 @@ function renderItem(item){cur=item;confChoice=null;
   $$('#rings .ex').forEach(e=>e.remove());placeEx(item.leftEx,LEXSLOT);placeEx(item.rightEx,REXSLOT);
   const os=$('#overlaySlot');os.innerHTML='';os.style.borderStyle='dashed';
   const tray=$('#tray');tray.innerHTML='';
-  item.options.forEach((o,i)=>{const b=document.createElement('div');b.className='opt';b.dataset.i=i;b.innerHTML=figSVG(o.a);tray.appendChild(b);});
+  item.options.forEach((o,i)=>{const b=document.createElement('button');b.className='opt';b.dataset.i=i;b.dataset.key=i+1;b.setAttribute('aria-label',`option ${i+1}`);b.innerHTML=figSVG(o.a);tray.appendChild(b);});
   $('#confrow').classList.remove('show');$$('.conf').forEach(c=>c.classList.remove('on'));
-  $('#go').classList.remove('ready');staged=-1;T.itemStart=Date.now();T.firstActed=false;T.firstLat=null;renderMeters();}
+  $('#go').classList.remove('ready');staged=-1;T.itemStart=Date.now();T.firstActed=false;T.firstLat=null;T.blurThis=0;renderMeters();}
 function fillOverlay(f){const os=$('#overlaySlot');os.style.borderStyle='solid';os.classList.remove('filled-anim');void os.offsetWidth;os.classList.add('filled-anim');os.innerHTML=figSVG(f,46);}
 function onOpt(el){if(locked||phase==='demo'||phase==='done')return;const idx=+el.dataset.i;
   if(!T.firstActed){T.firstActed=true;T.firstLat=Date.now()-T.itemStart;log('first tap · option '+idx);}
@@ -180,36 +197,38 @@ function feedback(correct){const opt=$$('#tray .opt')[staged];if(opt)opt.classLi
   locked=true;$('#go').classList.remove('ready');$('#confrow').classList.remove('show');}
 function submit(){if(staged===-1)return;const opt=cur.options[staged];const rt=Date.now()-T.itemStart;const correct=opt.tag==='correct';
   if(phase==='warmup'){feedback(correct);log('warm-up '+(correct?'correct':'incorrect')+' — UNSCORED');setTimeout(nextPhase,1000);return;}
-  T.scored++;T.rts.push(rt);
-  if(correct){T.correct++;T.lastErr='none';}else T.lastErr=opt.tag;
+  T.scored++;T.rts.push(rt);T.gates.push(gate(rt));
+  if(correct){T.correct++;T.maxSolved=Math.max(T.maxSolved,cur.level);T.lastErr='none';}else T.lastErr=opt.tag;
   T.lastRule=opt.rules+' / 2 attributes';
   if(confChoice){T.confN++;if((confChoice==='sure')===correct)T.confHits++;T.conf=confChoice;}
   else T.conf='(none)';
-  feedback(correct);
-  log(`SUBMIT scored ${scoredIndex+1} · ${cur.leftDim}+${cur.rightDim} \u2192 ${correct?'CORRECT':'wrong ['+opt.tag+']'} · RT ${rt}ms · conf ${confChoice||'-'}`);
+  T.level=Math.max(1,Math.min(6,T.level+(correct?1:-1)));feedback(correct);
+  log(`SUBMIT ${scoredIndex+1}/${TOTAL} · L${cur.level} ${cur.leftDim}+${cur.rightDim} \u2192 ${correct?'CORRECT':'wrong ['+opt.tag+']'} · ${opt.rules}/2 rules · ${last(T.gates).reason} · conf ${confChoice||'-'} · next L${T.level}`);
   renderMeters();setTimeout(nextPhase,1300);}
-function nextPhase(){locked=false;if(phase==='warmup'){scoredIndex=0;startScored();}
-  else if(phase==='scored'){scoredIndex++;scoredIndex<scoredItems.length?startScored():finish();}}
-function startWarmup(){phase='warmup';setCue('&#11088;');locked=false;renderItem(genItem('color','red','shape','circle'));log('— warm-up (unscored): left=red, right=circle; pick the red circle —');}
-function startScored(){phase='scored';setCue('&#127919;');locked=false;renderItem(scoredItems[scoredIndex]);
-  log(`— SCORED item ${scoredIndex+1}: overlap = ${cur.leftDim} AND ${cur.rightDim} —`);}
+function nextPhase(){locked=false;if(phase==='warmup'){scoredIndex=0;T.level=1;startScored();}
+  else if(phase==='scored'){scoredIndex++;scoredIndex<TOTAL?startScored():finish();}}
+function startWarmup(){phase='warmup';setCue('&#11088;');locked=false;renderItem(genItem(1,['color','shape']));log('— warm-up · find the double match · UNSCORED —');}
+function startScored(){phase='scored';setCue('&#127919;');locked=false;renderItem(genItem(T.level));
+  log(`— SCORED ${scoredIndex+1}/${TOTAL} · L${cur.level} · two-feature intersection —`);}
 function finish(){phase='done';setCue('&#127942;');locked=true;
   log(`— DONE · accuracy ${T.correct}/${T.scored} · confidence calibration ${T.confHits}/${T.confN} —`);}
-async function runDemo(){phase='demo';setCue('&#128065;');locked=true;
-  const d=genItem('color','red','shape','circle');renderItem(d);
-  log('ghost-hand demo (wordless, <10s): left share one feature, right another; pick the both');
+async function runDemo(){const token=++demoRun;phase='demo';setCue('&#128065;');locked=true;
+  const d=genItem(1,['color','shape']);renderItem(d);
+  log('ghost-hand demo · both-at-once · wordless · <10s');
   const ci=d.options.findIndex(o=>o.tag==='correct');
   ghostShow(true);await sleep(250);
   const ex=$$('#rings .ex');await ghostTo(ex[0]);await ghostTo(ex[1]);await sleep(120);
   await ghostTo(ex[2]);await ghostTo(ex[3]);await sleep(150);
   await ghostTo($$('#tray .opt')[ci]);await ghostTap();
   $$('#tray .opt')[ci].classList.add('correct');fillOverlay(d.options[ci].a);
-  await sleep(500);await ghostTo($('#go'));await ghostTap();await sleep(350);ghostShow(false);await sleep(450);startWarmup();}
+  await sleep(500);await ghostTo($('#go'));await ghostTap();await sleep(350);ghostShow(false);await sleep(350);if(token===demoRun)startWarmup();}
 
 $('#tray').addEventListener('click',e=>{const o=e.target.closest('.opt');if(o)onOpt(o);});
 $('#confrow').addEventListener('click',e=>{const c=e.target.closest('.conf');if(c)onConf(c);});
 $('#go').addEventListener('click',()=>{if($('#go').classList.contains('ready'))submit();});
 $('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
+document.addEventListener('keydown',e=>{if(!locked&&phase!=='done'){if(/^[1-4]$/.test(e.key)){const o=$$('#tray .opt')[+e.key-1];if(o)onOpt(o);}if(e.key==='Enter'&&$('#go').classList.contains('ready'))submit();}});
+window.addEventListener('blur',()=>{if(phase==='scored'&&!locked){T.blurThis++;log('engagement · focus lost');renderMeters();}});
 buildMeters();renderMeters();runDemo();
 </script>
 </body>

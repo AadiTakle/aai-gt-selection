@@ -21,7 +21,8 @@
   @keyframes morph{0%{transform:scale(.5) rotate(-20deg);opacity:.2}100%{transform:scale(1) rotate(0);opacity:1}}
   .cell.filled-anim{animation:pop .3s ease}@keyframes pop{0%{transform:scale(.6);opacity:.2}100%{transform:scale(1);opacity:1}}
   #tray{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
-  .opt{background:#fff;border:3px solid #e2e8fb;border-radius:14px;width:84px;height:84px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent}
+  .opt{position:relative;background:#fff;border:3px solid #e2e8fb;border-radius:14px;width:84px;height:84px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent}
+  .opt::after{content:attr(data-key);position:absolute;right:5px;bottom:3px;font:700 11px/1 ui-monospace,monospace;color:#8a93b5}
   .opt:hover{transform:translateY(-3px);border-color:#c3ccf5}
   .opt.sel{border-color:var(--accent);box-shadow:0 0 0 4px #c9d0ff;transform:translateY(-3px)}
   .opt.correct{border-color:var(--good);box-shadow:0 0 0 4px #b4ecd0}
@@ -43,6 +44,9 @@
   #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
   #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
   #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #difficulty{margin:10px 12px 2px;padding:10px;border:1px solid #2c365d;border-radius:10px;background:#171e36}
+  .dtop{display:flex;justify-content:space-between;color:#fff}.dsub{display:flex;justify-content:space-between;color:var(--tel-dim);font-size:11px;margin-top:5px}
+  .dtrack{height:7px;background:#2a3458;border-radius:8px;margin-top:8px;overflow:hidden}.dfill{height:100%;width:0;background:linear-gradient(90deg,#7fffcf,#ffd479);transition:.25s}
   #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
   .mrow{display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:baseline}
   .mid{color:var(--tel-key);font-weight:700}.mid.prop{color:#ffd479}
@@ -51,7 +55,9 @@
   #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
   #log{height:210px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
   #log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
-  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
+  button:focus-visible,.opt:focus-visible{outline:4px solid #ffbf69;outline-offset:3px}
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:340px}}
 </style>
 </head>
 <body>
@@ -73,6 +79,7 @@
   </div>
   <aside id="telemetry">
     <h3>Live telemetry · per-child</h3>
+    <div id="difficulty"></div>
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
@@ -81,19 +88,20 @@
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const mean=a=>Math.round(a.reduce((x,y)=>x+y,0)/a.length),last=a=>a[a.length-1];
-const PAL={red:'#e6194b',green:'#2ca25f',blue:'#4363d8',orange:'#f58231',purple:'#911eb4'};
-const COLORKEYS=Object.keys(PAL),SH=['circle','square','triangle','diamond','star','hexagon'];
-const ROT=['triangle','diamond','star','hexagon'],TSET=['shrink','rotate','addcount','shade'];
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0,last=a=>a[a.length-1];
+const PAL={coral:'#ef5b5b',teal:'#159f94',blue:'#4267d5',gold:'#e6a817',violet:'#8357c5',ink:'#33405f'};
+const COLORKEYS=Object.keys(PAL),SH=['triangle','pentagon','hexagon','star','kite','drop'];
+const ROT=['triangle','pentagon','star','kite','drop'];
+const TSET=['shrink','rotate','addcount','shade','recolor'];
 function polyPts(cx,cy,r,n,rot){let p=[];for(let i=0;i<n;i++){let a=rot+i*2*Math.PI/n;p.push((cx+r*Math.cos(a)).toFixed(1)+','+(cy+r*Math.sin(a)).toFixed(1));}return p.join(' ');}
 function starPts(cx,cy,r,n){let p=[];for(let i=0;i<2*n;i++){let rr=i%2?r*0.45:r;let a=-Math.PI/2+i*Math.PI/n;p.push((cx+rr*Math.cos(a)).toFixed(1)+','+(cy+rr*Math.sin(a)).toFixed(1));}return p.join(' ');}
-function oneShape(shape,color,cx,cy,r,fill){const solid=fill!=='outline';const f=solid?`fill="${color}"`:`fill="none" stroke="${color}" stroke-width="4"`;switch(shape){
-  case 'circle':return `<circle cx="${cx}" cy="${cy}" r="${r}" ${f}/>`;
-  case 'square':return `<rect x="${cx-r}" y="${cy-r}" width="${2*r}" height="${2*r}" rx="3" ${f}/>`;
+function oneShape(shape,color,cx,cy,r,fill){const solid=fill!=='outline';const f=solid?`fill="${color}" stroke="#fff" stroke-width="1"`:`fill="none" stroke="${color}" stroke-width="4"`;switch(shape){
   case 'triangle':return `<polygon points="${polyPts(cx,cy,r,3,-Math.PI/2)}" ${f}/>`;
-  case 'diamond':return `<polygon points="${polyPts(cx,cy,r,4,-Math.PI/2)}" ${f}/>`;
+  case 'pentagon':return `<polygon points="${polyPts(cx,cy,r,5,-Math.PI/2)}" ${f}/>`;
   case 'hexagon':return `<polygon points="${polyPts(cx,cy,r,6,-Math.PI/2)}" ${f}/>`;
-  case 'star':return `<polygon points="${starPts(cx,cy,r,5)}" ${f}/>`;}return '';}
+  case 'star':return `<polygon points="${starPts(cx,cy,r,5)}" ${f}/>`;
+  case 'kite':return `<polygon points="${cx},${cy-r} ${cx+r*.72},${cy-r*.05} ${cx},${cy+r} ${cx-r*.72},${cy-r*.05}" ${f}/>`;
+  case 'drop':return `<path d="M ${cx} ${cy-r} C ${cx+r*.85} ${cy-r*.15},${cx+r*.72} ${cy+r},${cx} ${cy+r} C ${cx-r*.72} ${cy+r},${cx-r*.85} ${cy-r*.15},${cx} ${cy-r}Z" ${f}/>`;}return '';}
 function tileSVG(a,box=80){const color=PAL[a.color]||a.color,n=a.count||1,sc=a.size||1,rot=a.rot||0,fill=a.fill||'solid';let inner='';
   if(n===1)inner=oneShape(a.shape,color,box/2,box/2,box*0.30*sc,fill);
   else{const pos=n===2?[[.3,.5],[.7,.5]]:n===3?[[.24,.5],[.5,.5],[.76,.5]]:[[.3,.3],[.7,.3],[.3,.7],[.7,.7]];
@@ -106,88 +114,98 @@ function norm(a){return{shape:a.shape,color:a.color,count:a.count||1,size:a.size
 function eqAttr(a,b){a=norm(a);b=norm(b);return a.shape===b.shape&&a.color===b.color&&a.count===b.count&&Math.abs(a.size-b.size)<.01&&a.rot===b.rot&&a.fill===b.fill;}
 
 /* ---------- transform grammar (AIG) ---------- */
-function applyT(a,t){switch(t){
-  case 'shrink':a.size=Math.max(0.55,(a.size||1)*0.6);break;
-  case 'rotate':a.rot=((a.rot||0)+90)%360;break;
-  case 'addcount':a.count=Math.min(4,(a.count||1)+1);break;
-  case 'shade':a.fill=(a.fill==='outline')?'solid':'outline';break;}return a;}
+function applyT(a,t,dir=1){switch(t){
+  case 'shrink':a.size=dir>0?.62:1;break;
+  case 'rotate':a.rot=(((a.rot||0)+dir*72)%360+360)%360;break;
+  case 'addcount':a.count=Math.max(1,Math.min(4,(a.count||1)+dir));break;
+  case 'shade':a.fill=(a.fill==='outline')?'solid':'outline';break;
+  case 'recolor':{let i=COLORKEYS.indexOf(a.color);a.color=COLORKEYS[(i+dir+COLORKEYS.length)%COLORKEYS.length];break;}}
+  return a;}
 function applyTs(a,ts){ts.forEach(t=>a=applyT(a,t));return a;}
-function genAnalogy(nT,forced){const ts=forced?forced.ts:shuffle(TSET).slice(0,nT);
+function genAnalogy(level,forced){const nT=forced?forced.ts.length:level<3?1:level<5?2:level===5?3:4;
+  const ts=forced?forced.ts:shuffle(TSET).slice(0,nT);
   const pool=ts.includes('rotate')?ROT:SH;const cols=shuffle(COLORKEYS);
   const shA=forced?forced.shA:pool[(Math.random()*pool.length)|0];
   let shC=forced?forced.shC:pool[(Math.random()*pool.length)|0];let g0=0;while(shC===shA&&pool.length>1&&g0++<10)shC=pool[(Math.random()*pool.length)|0];
-  const A={shape:shA,color:cols[0],count:1,size:1,rot:0,fill:'solid'};
-  const C={shape:shC,color:cols[1],count:1,size:1,rot:0,fill:'solid'};
+  const A={shape:shA,color:cols[0],count:ts.includes('addcount')?1:1+(Math.random()*2|0),size:1,rot:0,fill:level>=4&&Math.random()<.5?'outline':'solid'};
+  const C={shape:shC,color:cols[2],count:ts.includes('addcount')?1:1+(Math.random()*2|0),size:1,rot:0,fill:A.fill};
   const B=applyTs(clone(A),ts),correct=applyTs(clone(C),ts);
-  const opts=[{attr:correct,tag:'correct'}];
-  const foils=[{attr:clone(C),tag:'literal'}];
-  const notTs=TSET.filter(t=>!ts.includes(t)&&(t!=='rotate'||ROT.includes(shC)));
-  if(notTs.length)foils.push({attr:applyT(clone(C),notTs[0]),tag:'wrong-attr'});
-  foils.push({attr:applyTs(clone(C),ts.concat(ts)),tag:'over'});
-  foils.forEach(f=>{if(opts.length<4&&!opts.some(o=>eqAttr(o.attr,f.attr)))opts.push(f);});
-  let g=0;while(opts.length<4&&g++<20){const f=clone(C);f.shape=SH[(SH.indexOf(shC)+opts.length+2)%SH.length];if(!opts.some(o=>eqAttr(o.attr,f.attr)))opts.push({attr:f,tag:'random'});}
-  return {ts,A,B,C,correct,options:shuffle(opts)};}
-function errType(tag){return tag==='literal'?'near-miss (no transform)':tag==='wrong-attr'?'near-miss (wrong transform)':tag==='over'?'near-miss (over-applied)':tag==='correct'?'none':'random';}
+  const opts=[];const add=(attr,tag,rules)=>{if(!opts.some(o=>eqAttr(o.attr,attr)))opts.push({attr,tag,rules});};
+  add(correct,'correct',ts.length);add(clone(C),'no-transform',0);
+  add(applyTs(clone(C),ts.slice(0,-1)),'missed:'+ts[ts.length-1],Math.max(0,ts.length-1));
+  const reverse=clone(C);applyT(reverse,ts[0],-1);applyTs(reverse,ts.slice(1));add(reverse,'reversed:'+ts[0],Math.max(0,ts.length-1));
+  const over=applyTs(clone(C),ts);applyT(over,ts[ts.length-1]);add(over,'over:'+ts[ts.length-1],Math.max(0,ts.length-1));
+  let g=0;while(opts.length<4&&g++<30){const f=clone(C);f.shape=SH[(SH.indexOf(shC)+g)%SH.length];add(f,'surface-shape',0);}
+  return {level,ts,A,B,C,correct,options:shuffle(opts.slice(0,4))};}
+function errType(tag){return tag==='correct'?'none':tag.replace(':',' ');}
 
 /* ---------- telemetry ---------- */
-const T={scored:0,correct:0,rts:[],firstLat:null,lastErr:'\u2014',itemStart:0,firstActed:false,confThis:null,sureC:0,sureN:0,unsC:0,unsN:0};
+const T={scored:0,correct:0,rts:[],gates:[],firstLat:null,lastErr:'\u2014',itemStart:0,firstActed:false,
+  confThis:null,sureC:0,sureN:0,unsC:0,unsN:0,level:1,maxSolved:0,trail:[],blurThis:0};
 function confStr(){return `last ${T.confThis||'\u2014'} · sure ${T.sureC}/${T.sureN} ok · unsure ${T.unsC}/${T.unsN} ok`;}
+function rtStr(){if(!T.rts.length)return '\u2014';const g=last(T.gates),rt=last(T.rts);return g.ok?`${rt} ms (mean ${mean(T.rts)})`:`gated · ${g.reason} · ${rt} ms`;}
 const METERS=[
  {id:'M-ACC',name:'Item accuracy (running)',get:()=>T.scored?`${T.correct}/${T.scored}  ${Math.round(100*T.correct/T.scored)}%`:'\u2014'},
- {id:'M-RT',name:'Response time — total',get:()=>T.rts.length?`${last(T.rts)} ms  (mean ${mean(T.rts)})`:'\u2014'},
+ {id:'M-RT',name:'Response time — engagement gated',get:()=>rtStr()},
  {id:'M-RTFIRST',name:'First-action latency (map before act)',get:()=>T.firstLat==null?'\u2014':T.firstLat+' ms'},
  {id:'M-ERRTYPE',name:'Error type (relational foil)',get:()=>T.lastErr},
  {id:'M-CONF',name:'Confidence / wager (calibration)',get:()=>confStr()},
 ];
 function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
-function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});}
-function log(msg){const t=Date.now()-T.itemStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+function learnRate(){return T.scored?((T.maxSolved-1)/T.scored).toFixed(2):'0.00';}
+function renderDifficulty(){$('#difficulty').innerHTML=`<div class="dtop"><b>DIFFICULTY</b><span>${T.level}/6</span></div><div class="dtrack"><div class="dfill" style="width:${T.level/6*100}%"></div></div><div class="dsub"><span>reach ${T.maxSolved||'\u2014'}</span><span>learn ${learnRate()} lvl/trial</span></div>`;}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});renderDifficulty();}
+function log(msg){const now=new Date(),t=Math.max(0,Date.now()-T.itemStart),d=document.createElement('div');d.innerHTML=`<span class="t">${now.toISOString().slice(11,23)} · +${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+function gate(rt){const rapid=rt<350,blur=T.blurThis>0,base=T.rts.length>2?mean(T.rts.slice(0,-1)):0,drift=base>0&&rt>base*2.4;return{ok:!rapid&&!blur&&!drift,reason:rapid?'rapid':blur?'blur':drift?'drift':'ok'};}
 const ghost=$('#ghost');function ghostShow(v){ghost.classList.toggle('show',v);}
 function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
 async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(700);}
 async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(480);}
 
 /* ---------- flow ---------- */
-let phase='demo',cur=null,staged=-1,locked=false,scoredIndex=0;
-const scoredItems=[genAnalogy(1),genAnalogy(2)];
+let phase='demo',cur=null,staged=-1,locked=false,scoredIndex=0,demoRun=0;
+const TOTAL=6;
 function setCue(i){$('#phasecue').textContent=i;}
 function showConf(v){$('#conf').classList.toggle('hidden',!v);if(!v)$$('#conf .cbtn').forEach(b=>b.classList.remove('sel'));}
-function renderItem(item){cur=item;staged=-1;T.confThis=null;T.itemStart=Date.now();T.firstActed=false;T.firstLat=null;
+function renderItem(item){cur=item;staged=-1;T.confThis=null;T.itemStart=Date.now();T.firstActed=false;T.firstLat=null;T.blurThis=0;
   $('#Acell').innerHTML=tileSVG(item.A);$('#Bcell').innerHTML=tileSVG(item.B);$('#Bcell').classList.add('morphing');setTimeout(()=>$('#Bcell').classList.remove('morphing'),800);
   $('#Ccell').innerHTML=tileSVG(item.C);const q=$('#qslot');q.className='cell empty';q.innerHTML='';
-  const tray=$('#tray');tray.innerHTML='';item.options.forEach((o,i)=>{const b=document.createElement('div');b.className='opt';b.dataset.i=i;b.innerHTML=tileSVG(o.attr);tray.appendChild(b);});
+  const tray=$('#tray');tray.innerHTML='';item.options.forEach((o,i)=>{const b=document.createElement('button');b.className='opt';b.dataset.i=i;b.dataset.key=i+1;b.setAttribute('aria-label',`option ${i+1}`);b.innerHTML=tileSVG(o.attr);tray.appendChild(b);});
   showConf(false);$('#go').classList.remove('ready');renderMeters();}
 function fillSlot(){const q=$('#qslot');if(staged<0)return;q.className='cell filled-anim';q.innerHTML=tileSVG(cur.options[staged].attr);setTimeout(()=>q.classList.remove('filled-anim'),300);}
 function onOpt(el){if(locked||phase==='demo'||phase==='done')return;const idx=+el.dataset.i;
   if(!T.firstActed){T.firstActed=true;T.firstLat=Date.now()-T.itemStart;log('first tap · option '+idx);}
   staged=idx;$$('#tray .opt').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');fillSlot();
-  if(phase==='scored')showConf(true);$('#go').classList.add('ready');}
+  if(phase==='scored')showConf(true);$('#go').classList.add('ready');renderMeters();}
 function onConf(c){if(phase!=='scored')return;T.confThis=c;$$('#conf .cbtn').forEach(b=>b.classList.toggle('sel',b.dataset.c===c));log('confidence wager: '+c);}
 function feedback(correct){const opt=$$('#tray .opt')[staged];if(opt)opt.classList.add(correct?'correct':'wrong');
   if(!correct){$('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),450);const ci=cur.options.findIndex(o=>o.tag==='correct');$$('#tray .opt')[ci].classList.add('correct');}
   showConf(false);locked=true;$('#go').classList.remove('ready');}
 function submit(){if(staged===-1)return;const opt=cur.options[staged];const rt=Date.now()-T.itemStart;const correct=opt.tag==='correct';
   if(phase==='warmup'){feedback(correct);log('warm-up '+(correct?'correct':'incorrect')+' — UNSCORED');setTimeout(nextPhase,950);return;}
-  T.scored++;T.rts.push(rt);if(correct)T.correct++;T.lastErr=errType(opt.tag);
+  T.scored++;T.rts.push(rt);T.gates.push(gate(rt));if(correct){T.correct++;T.maxSolved=Math.max(T.maxSolved,cur.level);}T.lastErr=errType(opt.tag);
   if(T.confThis==='sure'){T.sureN++;if(correct)T.sureC++;}else if(T.confThis==='unsure'){T.unsN++;if(correct)T.unsC++;}
+  T.trail.push({level:cur.level,correct});T.level=Math.max(1,Math.min(6,T.level+(correct?1:-1)));
   feedback(correct);
-  log(`SUBMIT item ${scoredIndex+1} (${cur.ts.join('+')}) \u2192 ${correct?'CORRECT':'wrong ['+opt.tag+']'} · RT ${rt}ms · conf ${T.confThis||'none'}`);
+  log(`SUBMIT ${scoredIndex+1}/${TOTAL} · L${cur.level} ${cur.ts.join('+')} \u2192 ${correct?'CORRECT':'wrong ['+opt.tag+']'} · ${last(T.gates).reason} · next L${T.level}`);
   renderMeters();setTimeout(nextPhase,1200);}
-function nextPhase(){locked=false;if(phase==='warmup'){scoredIndex=0;startScored();}else if(phase==='scored'){scoredIndex++;scoredIndex<scoredItems.length?startScored():finish();}}
-function startWarmup(){phase='warmup';setCue('\u2b50');renderItem(genAnalogy(1));log('— warm-up (unscored): one change —');}
-function startScored(){phase='scored';setCue('\ud83c\udfaf');renderItem(scoredItems[scoredIndex]);log(`— SCORED item ${scoredIndex+1}: ${cur.ts.length} transform(s) [${cur.ts.join('+')}] —`);}
+function nextPhase(){locked=false;if(phase==='warmup'){scoredIndex=0;T.level=1;startScored();}else if(phase==='scored'){scoredIndex++;scoredIndex<TOTAL?startScored():finish();}}
+function startWarmup(){phase='warmup';setCue('\u2b50');renderItem(genAnalogy(1));log('— warm-up · one transform · UNSCORED —');}
+function startScored(){phase='scored';setCue('\ud83c\udfaf');renderItem(genAnalogy(T.level));log(`— SCORED ${scoredIndex+1}/${TOTAL} · L${cur.level} · ${cur.ts.length} co-transform(s) —`);}
 function finish(){phase='done';setCue('\ud83c\udfc6');locked=true;log(`— DONE · accuracy ${T.correct}/${T.scored} · ${confStr()} —`);}
-async function runDemo(){phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;
-  const d=genAnalogy(1,{ts:['shrink'],shA:'circle',shC:'square'});renderItem(d);log('ghost-hand demo (wordless, <10s)');
+async function runDemo(){const token=++demoRun;phase='demo';setCue('\ud83d\udc41\ufe0f');locked=true;
+  const d=genAnalogy(1,{ts:['shrink'],shA:'star',shC:'kite'});renderItem(d);log('ghost-hand demo · wordless · <10s');
   const ci=d.options.findIndex(o=>o.tag==='correct');ghostShow(true);await sleep(300);
   await ghostTo($('#Acell'));await sleep(150);await ghostTo($('#Bcell'));await sleep(200);
   await ghostTo($('#Ccell'));await sleep(200);await ghostTo($$('#tray .opt')[ci]);await ghostTap();
   staged=ci;$$('#tray .opt')[ci].classList.add('correct','sel');fillSlot();
-  await sleep(500);await ghostTo($('#go'));await ghostTap();await sleep(350);ghostShow(false);await sleep(500);startWarmup();}
+  await sleep(500);await ghostTo($('#go'));await ghostTap();await sleep(350);ghostShow(false);await sleep(400);if(token===demoRun)startWarmup();}
 $('#tray').addEventListener('click',e=>{const o=e.target.closest('.opt');if(o)onOpt(o);});
 $('#conf').addEventListener('click',e=>{const b=e.target.closest('.cbtn');if(b)onConf(b.dataset.c);});
 $('#go').addEventListener('click',()=>{if($('#go').classList.contains('ready'))submit();});
 $('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
+document.addEventListener('keydown',e=>{if(!locked&&phase!=='done'){if(/^[1-4]$/.test(e.key)){const o=$$('#tray .opt')[+e.key-1];if(o)onOpt(o);}if(e.key==='Enter'&&$('#go').classList.contains('ready'))submit();}});
+window.addEventListener('blur',()=>{if(phase==='scored'&&!locked){T.blurThis++;log('engagement · focus lost');renderMeters();}});
 buildMeters();renderMeters();runDemo();
 </script>
 </body>

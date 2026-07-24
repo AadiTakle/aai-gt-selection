@@ -34,9 +34,10 @@
   .cell.filled-anim{animation:pop .3s ease}
   @keyframes pop{0%{transform:scale(.6);opacity:.2}100%{transform:scale(1);opacity:1}}
   #tray{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
-  .opt{background:#fff;border:3px solid #e2e8fb;border-radius:14px;width:84px;height:84px;
+  .opt{position:relative;background:#fff;border:3px solid #e2e8fb;border-radius:14px;width:84px;height:84px;
     display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s;
     -webkit-tap-highlight-color:transparent}
+  .opt::after{content:attr(data-key);position:absolute;right:5px;bottom:3px;font:700 11px/1 ui-monospace,monospace;color:#8a93b5}
   .opt:hover{transform:translateY(-3px);border-color:#c3ccf5}
   .opt.sel{border-color:var(--accent);box-shadow:0 0 0 4px #c9d0ff;transform:translateY(-3px)}
   .opt.correct{border-color:var(--good);box-shadow:0 0 0 4px #b4ecd0}
@@ -61,6 +62,9 @@
     display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
   #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;
     background:#1b2340;text-transform:uppercase}
+  #difficulty{margin:10px 12px 2px;padding:10px;border:1px solid #2c365d;border-radius:10px;background:#171e36}
+  .dtop{display:flex;justify-content:space-between;color:#fff}.dsub{display:flex;justify-content:space-between;color:var(--tel-dim);font-size:11px;margin-top:5px}
+  .dtrack{height:7px;background:#2a3458;border-radius:8px;margin-top:8px;overflow:hidden}.dfill{height:100%;background:linear-gradient(90deg,#7fffcf,#ffd479);transition:.25s}
   #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
   .mrow{display:grid;grid-template-columns:104px 1fr;gap:8px;align-items:baseline}
   .mid{color:var(--tel-key);font-weight:700}
@@ -71,7 +75,9 @@
   #log{height:200px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
   #log div{padding:2px 0;border-bottom:1px dotted #232c4d}
   #log .t{color:#5f6f9e}
-  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
+  button:focus-visible,.opt:focus-visible{outline:4px solid #ffbf69;outline-offset:3px}
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:350px}}
 </style>
 </head>
 <body>
@@ -92,6 +98,7 @@
   </div>
   <aside id="telemetry">
     <h3>Live telemetry · per-child</h3>
+    <div id="difficulty"></div>
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
@@ -103,55 +110,59 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0;
 const last=a=>a[a.length-1];
 
-/* ---------- panel (2x2 mark grid) rendering ---------- */
-const DOTC='#4363d8';
-function maskSVG(mask,color,box=82){
-  const pos=[[.3,.3],[.7,.3],[.3,.7],[.7,.7]];
+/* ---------- translucent one/two-layer panels ---------- */
+const LAYER=['#1ea7d8','#e05a9d'];
+function panelSVG(masks,bits=4,box=82){
+  const n=bits===4?2:3,pos=[];for(let r=0;r<n;r++)for(let c=0;c<n;c++)pos.push([(c+.5)/n,(r+.5)/n]);
   let inner=`<rect x="5" y="5" width="${box-10}" height="${box-10}" rx="10" fill="#f5f8ff" stroke="#dce4ff"/>`;
-  inner+=`<line x1="${box/2}" y1="12" x2="${box/2}" y2="${box-12}" stroke="#e7ecff"/>`;
-  inner+=`<line x1="12" y1="${box/2}" x2="${box-12}" y2="${box/2}" stroke="#e7ecff"/>`;
-  for(let i=0;i<4;i++) if(mask&(1<<i)) inner+=`<circle cx="${pos[i][0]*box}" cy="${pos[i][1]*box}" r="${box*0.13}" fill="${color}"/>`;
-  return `<svg width="${box}" height="${box}" viewBox="0 0 ${box} ${box}">${inner}</svg>`;
-}
+  for(let i=1;i<n;i++){const q=i*box/n;inner+=`<path d="M${q} 8V${box-8}M8 ${q}H${box-8}" stroke="#e5eaf8"/>`;}
+  masks.forEach((mask,ch)=>{for(let i=0;i<bits;i++)if(mask&(1<<i)){const x=pos[i][0]*box,y=pos[i][1]*box,s=box/(n*4.5);
+    inner+=ch===0?`<polygon points="${x},${y-s*1.5} ${x+s*1.4},${y} ${x},${y+s*1.5} ${x-s*1.4},${y}" fill="${LAYER[ch]}" fill-opacity=".72"/>`
+      :`<path d="M${x-s*1.5} ${y-s}H${x+s*1.5}V${y+s}H${x-s*1.5}Z" fill="${LAYER[ch]}" fill-opacity=".64" transform="rotate(45 ${x} ${y})"/>`;}}
+  );
+  return `<svg width="${box}" height="${box}" viewBox="0 0 ${box} ${box}">${inner}</svg>`;}
 function applyOp(a,b,op){return op==='OR'?(a|b):op==='XOR'?(a^b):(a&b);}
-const OPSYM={OR:'&#8746;',XOR:'&#8853;',AND:'&#8745;'};
-const RULELOAD={OR:1,AND:1,XOR:2};
+function samePanel(a,b){return a.length===b.length&&a.every((v,i)=>v===b[i]);}
 
-/* ---------- item generation (AIG: logical-combination grammar) ---------- */
+/* ---------- AIG: logical operator x layer grammar ---------- */
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){let j=(Math.random()*(i+1))|0;[a[i],a[j]]=[a[j],a[i]];}return a;}
-function mkRow(op){let a,b,c,guard=0;
-  do{a=1+((Math.random()*15)|0);b=1+((Math.random()*15)|0);c=applyOp(a,b,op);guard++;}
-  while((c===0||a===b||a===c||b===c)&&guard<60);
-  return {a,b,c};
-}
-function genItem(op){
-  const rows=[mkRow(op),mkRow(op),mkRow(op)];
-  const A=rows[2].a,B=rows[2].b,C=rows[2].c;
-  const cand=[{m:C,tag:'correct'}];
-  const push=(m,tag)=>{if(m!==0&&!cand.some(o=>o.m===m))cand.push({m,tag});};
-  push(A|B,'combo:union'); push(A&B,'combo:intersection'); push(A^B,'combo:xor');
-  push(A,'source:A'); push(B,'source:B');
-  let g=0; while(cand.length<4&&g++<30){push(1+((Math.random()*15)|0),'random');}
-  return {op,rows,options:shuffle(cand.slice(0,4)),ruleLoad:RULELOAD[op]};
-}
+function mkMask(op,bits){const max=(1<<bits)-1;let a,b,c,g=0;do{a=1+(Math.random()*max|0);b=1+(Math.random()*max|0);c=applyOp(a,b,op);g++;}
+  while((!c||a===b||a===c||b===c||(op==='XOR'&&!(a&b)))&&g<200);return[a,b,c];}
+function levelConfig(level){if(level===1)return{bits:4,ops:['OR']};if(level===2)return{bits:9,ops:['OR']};
+  if(level===3)return{bits:4,ops:['XOR']};if(level===4)return{bits:9,ops:['XOR']};
+  if(level===5)return{bits:9,ops:['XOR','XOR']};return{bits:9,ops:['XOR','OR']};}
+function genItem(level){const cfg=levelConfig(level),rows=[];
+  for(let r=0;r<3;r++){const a=[],b=[],c=[];cfg.ops.forEach(op=>{const m=mkMask(op,cfg.bits);a.push(m[0]);b.push(m[1]);c.push(m[2]);});rows.push({a,b,c});}
+  const A=rows[2].a,B=rows[2].b,C=rows[2].c,cand=[];
+  const add=(m,tag)=>{if(m.some(Boolean)&&!cand.some(o=>samePanel(o.m,m)))cand.push({m,tag,rulesSat:m.filter((v,i)=>v===C[i]).length});};
+  add(C,'correct',cfg.ops.length);
+  ['OR','XOR','AND'].forEach(op=>add(A.map((v,i)=>applyOp(v,B[i],op)),'used-'+op,0));
+  if(cfg.ops.length===2){const one=[C[0],applyOp(A[1],B[1],cfg.ops[1]==='OR'?'XOR':'OR')];add(one,'layer-2-rule',1);}
+  add(A,'dropped-B',0);add(B,'dropped-A',0);
+  let g=0,max=(1<<cfg.bits)-1;while(cand.length<4&&g++<40)add(A.map(()=>1+(Math.random()*max|0)),'random',0);
+  return {level,bits:cfg.bits,ops:cfg.ops,rows,options:shuffle(cand.slice(0,cfg.ops.length===2?5:4)),ruleLoad:cfg.ops.length+(cfg.ops.includes('XOR')?1:0)};}
 
 /* ---------- telemetry ---------- */
-const T={scored:0,correct:0,rts:[],firstLat:null,lastErr:'\u2014',maxLoad:0,lastRule:'\u2014',
-  itemStart:0,firstActed:false};
+const T={scored:0,correct:0,rts:[],gates:[],firstLat:null,lastErr:'\u2014',maxSolved:0,lastRule:'\u2014',
+  level:1,itemStart:0,firstActed:false,blurThis:0};
+function rtStr(){if(!T.rts.length)return '\u2014';const g=last(T.gates),rt=last(T.rts);return g.ok?`${rt} ms (mean ${mean(T.rts)})`:`gated · ${g.reason} · ${rt} ms`;}
 const METERS=[
  {id:'M-ACC',name:'Item accuracy (running)',get:()=>T.scored?`${T.correct}/${T.scored}  ${Math.round(100*T.correct/T.scored)}%`:'\u2014'},
- {id:'M-RT',name:'Response time — total',get:()=>T.rts.length?`${last(T.rts)} ms  (mean ${mean(T.rts)})`:'\u2014'},
+ {id:'M-RT',name:'Response time — engagement gated',get:()=>rtStr()},
  {id:'M-RTFIRST',name:'First-action latency (study rows first)',get:()=>T.firstLat==null?'\u2014':T.firstLat+' ms'},
  {id:'M-ERRTYPE',name:'Error type (combination-error key)',get:()=>T.lastErr},
  {id:'M-RULEID',name:'Rule dimensionality solved (logical load)',get:()=>T.lastRule},
- {id:'M-DIFFREACH',name:'Max difficulty reached (hardest op)',get:()=>T.maxLoad?T.maxLoad+' (1=OR/AND, 2=XOR)':'\u2014'},
+ {id:'M-DIFFREACH',name:'Max difficulty reached',get:()=>T.maxSolved?`L${T.maxSolved} · ${levelConfig(T.maxSolved).ops.length} layer(s)`:'\u2014'},
 ];
 function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>
   `<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span>`
   +`<span class="mname">${m.name}</span></div>`).join('');}
-function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});}
-function log(msg){const t=Date.now()-T.itemStart;const d=document.createElement('div');
-  d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+function learnRate(){return T.scored?((T.maxSolved-1)/T.scored).toFixed(2):'0.00';}
+function renderDifficulty(){$('#difficulty').innerHTML=`<div class="dtop"><b>DIFFICULTY</b><span>${T.level}/6</span></div><div class="dtrack"><div class="dfill" style="width:${T.level/6*100}%"></div></div><div class="dsub"><span>reach ${T.maxSolved||'\u2014'}</span><span>learn ${learnRate()} lvl/trial</span></div>`;}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});renderDifficulty();}
+function log(msg){const now=new Date(),t=Math.max(0,Date.now()-T.itemStart),d=document.createElement('div');
+  d.innerHTML=`<span class="t">${now.toISOString().slice(11,23)} · +${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+function gate(rt){const rapid=rt<400,blur=T.blurThis>0,base=T.rts.length>2?mean(T.rts.slice(0,-1)):0,drift=base>0&&rt>base*2.5;return{ok:!rapid&&!blur&&!drift,reason:rapid?'rapid':blur?'blur':drift?'drift':'ok'};}
 
 /* ---------- ghost hand ---------- */
 const ghost=$('#ghost');
@@ -161,27 +172,27 @@ async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transf
 async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(520);}
 
 /* ---------- flow ---------- */
-let phase='demo',cur=null,staged=-1,locked=false,scoredIndex=0;
-const scoredItems=[genItem('OR'),genItem('XOR')];
+let phase='demo',cur=null,staged=-1,locked=false,scoredIndex=0,demoRun=0;
+const TOTAL=6;
 function setCue(i){$('#phasecue').innerHTML=i;}
 function lights(on){$('#lights').classList.toggle('on',on);}
 function disableTray(d){locked=d;}
 function renderItem(item){cur=item;const m=$('#matrix');m.style.gridTemplateColumns='88px 26px 88px 26px 88px';m.innerHTML='';
   item.rows.forEach((row,ri)=>{
-    const cA=document.createElement('div');cA.className='cell';cA.innerHTML=maskSVG(row.a,DOTC);m.appendChild(cA);
-    const op1=document.createElement('div');op1.className='op';op1.innerHTML=OPSYM[item.op];m.appendChild(op1);
-    const cB=document.createElement('div');cB.className='cell';cB.innerHTML=maskSVG(row.b,DOTC);m.appendChild(cB);
-    const eq=document.createElement('div');eq.className='op';eq.innerHTML='=';m.appendChild(eq);
+    const cA=document.createElement('div');cA.className='cell';cA.innerHTML=panelSVG(row.a,item.bits);m.appendChild(cA);
+    const op1=document.createElement('div');op1.className='op';op1.innerHTML='&#10697;';m.appendChild(op1);
+    const cB=document.createElement('div');cB.className='cell';cB.innerHTML=panelSVG(row.b,item.bits);m.appendChild(cB);
+    const eq=document.createElement('div');eq.className='op';eq.innerHTML='&#10140;';m.appendChild(eq);
     const cC=document.createElement('div');cC.className='cell';
-    if(ri===2){cC.classList.add('empty');cC.id='emptycell';}else cC.innerHTML=maskSVG(row.c,DOTC);
+    if(ri===2){cC.classList.add('empty');cC.id='emptycell';}else cC.innerHTML=panelSVG(row.c,item.bits);
     m.appendChild(cC);
   });
   const tray=$('#tray');tray.innerHTML='';
-  item.options.forEach((o,i)=>{const b=document.createElement('div');b.className='opt';b.dataset.i=i;b.innerHTML=maskSVG(o.m,DOTC);tray.appendChild(b);});
+  item.options.forEach((o,i)=>{const b=document.createElement('button');b.className='opt';b.dataset.i=i;b.dataset.key=i+1;b.setAttribute('aria-label',`option ${i+1}`);b.innerHTML=panelSVG(o.m,item.bits);tray.appendChild(b);});
   lights(false);$('#go').classList.remove('ready');
-  staged=-1;T.itemStart=Date.now();T.firstActed=false;T.firstLat=null;renderMeters();}
+  staged=-1;T.itemStart=Date.now();T.firstActed=false;T.firstLat=null;T.blurThis=0;renderMeters();}
 function fillEmpty(mask){const cell=$('#emptycell');if(!cell)return;cell.classList.remove('empty');
-  cell.classList.add('filled-anim');cell.innerHTML=maskSVG(mask,DOTC);setTimeout(()=>cell.classList.remove('filled-anim'),300);}
+  cell.classList.add('filled-anim');cell.innerHTML=panelSVG(mask,cur.bits);setTimeout(()=>cell.classList.remove('filled-anim'),300);}
 function onOpt(el){if(locked||phase==='demo'||phase==='done')return;const idx=+el.dataset.i;
   if(!T.firstActed){T.firstActed=true;T.firstLat=Date.now()-T.itemStart;log('first tap · option '+idx);}
   staged=idx;$$('#tray .opt').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');
@@ -192,21 +203,23 @@ function feedback(correct){const opt=$$('#tray .opt')[staged];if(opt)opt.classLi
   disableTray(true);$('#go').classList.remove('ready');}
 function submit(){if(staged===-1)return;const opt=cur.options[staged];const rt=Date.now()-T.itemStart;const correct=opt.tag==='correct';
   if(phase==='warmup'){feedback(correct);log('warm-up '+(correct?'correct':'incorrect')+' — UNSCORED');setTimeout(nextPhase,950);return;}
-  T.scored++;T.rts.push(rt);
-  if(correct){T.correct++;T.maxLoad=Math.max(T.maxLoad,cur.ruleLoad);T.lastErr='none';T.lastRule=cur.ruleLoad+' / '+cur.ruleLoad+' satisfied';}
-  else{T.lastErr=opt.tag; T.lastRule='0 / '+cur.ruleLoad+' satisfied';}
+  T.scored++;T.rts.push(rt);T.gates.push(gate(rt));
+  if(correct){T.correct++;T.maxSolved=Math.max(T.maxSolved,cur.level);T.lastErr='none';}
+  else T.lastErr=opt.tag;
+  T.lastRule=opt.rulesSat+' / '+cur.ops.length+' layer-rule(s)';
+  T.level=Math.max(1,Math.min(6,T.level+(correct?1:-1)));
   feedback(correct);
-  log(`SUBMIT scored ${scoredIndex+1} · op=${cur.op} \u2192 ${correct?'CORRECT':'wrong ['+opt.tag+']'} · RT ${rt}ms · firstLat ${T.firstLat}ms`);
+  log(`SUBMIT ${scoredIndex+1}/${TOTAL} · L${cur.level} ${cur.ops.join('+')} \u2192 ${correct?'CORRECT':'wrong ['+opt.tag+']'} · sat ${opt.rulesSat}/${cur.ops.length} · ${last(T.gates).reason} · next L${T.level}`);
   renderMeters();setTimeout(nextPhase,1200);}
-function nextPhase(){if(phase==='warmup'){scoredIndex=0;startScored();}
-  else if(phase==='scored'){scoredIndex++;scoredIndex<scoredItems.length?startScored():finish();}}
-function startWarmup(){phase='warmup';setCue('&#11088;');disableTray(false);renderItem(genItem('OR'));log('— warm-up (unscored): OR / overlay —');}
-function startScored(){phase='scored';setCue('&#127919;');disableTray(false);renderItem(scoredItems[scoredIndex]);
-  log(`— SCORED item ${scoredIndex+1}: combine rule = ${cur.op} (load ${cur.ruleLoad}) —`);}
+function nextPhase(){if(phase==='warmup'){scoredIndex=0;T.level=1;startScored();}
+  else if(phase==='scored'){scoredIndex++;scoredIndex<TOTAL?startScored():finish();}}
+function startWarmup(){phase='warmup';setCue('&#11088;');disableTray(false);renderItem(genItem(1));log('— warm-up · transparent overlay · UNSCORED —');}
+function startScored(){phase='scored';setCue('&#127919;');disableTray(false);renderItem(genItem(T.level));
+  log(`— SCORED ${scoredIndex+1}/${TOTAL} · L${cur.level} · ${cur.bits===4?'2x2':'3x3'} · ${cur.ops.length} layer(s) —`);}
 function finish(){phase='done';setCue('&#127942;');disableTray(true);lights(true);
-  log(`— DONE · accuracy ${T.correct}/${T.scored} · ceiling load ${T.maxLoad} —`);}
-async function runDemo(){phase='demo';setCue('&#128065;');disableTray(true);
-  const d=genItem('OR');renderItem(d);log('ghost-hand demo (wordless, <10s): rows 1-2 teach the overlay rule');
+  log(`— DONE · accuracy ${T.correct}/${T.scored} · ceiling L${T.maxSolved} —`);}
+async function runDemo(){const token=++demoRun;phase='demo';setCue('&#128065;');disableTray(true);
+  const d=genItem(1);renderItem(d);log('ghost-hand demo · panels merge · wordless · <10s');
   const ci=d.options.findIndex(o=>o.tag==='correct');
   ghostShow(true);await sleep(300);
   const cells=$$('#matrix .cell');
@@ -214,11 +227,13 @@ async function runDemo(){phase='demo';setCue('&#128065;');disableTray(true);
   await ghostTo($('#matrix .cell.empty'));await sleep(220);
   await ghostTo($$('#tray .opt')[ci]);await ghostTap();
   $$('#tray .opt')[ci].classList.add('correct');fillEmpty(d.options[ci].m);lights(true);
-  await sleep(500);await ghostTo($('#go'));await ghostTap();await sleep(350);ghostShow(false);await sleep(450);startWarmup();}
+  await sleep(500);await ghostTo($('#go'));await ghostTap();await sleep(350);ghostShow(false);await sleep(350);if(token===demoRun)startWarmup();}
 
 $('#tray').addEventListener('click',e=>{const o=e.target.closest('.opt');if(o)onOpt(o);});
 $('#go').addEventListener('click',()=>{if($('#go').classList.contains('ready'))submit();});
 $('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
+document.addEventListener('keydown',e=>{if(!locked&&phase!=='done'){if(/^[1-5]$/.test(e.key)){const o=$$('#tray .opt')[+e.key-1];if(o)onOpt(o);}if(e.key==='Enter'&&$('#go').classList.contains('ready'))submit();}});
+window.addEventListener('blur',()=>{if(phase==='scored'&&!locked){T.blurThis++;log('engagement · focus lost');renderMeters();}});
 buildMeters();renderMeters();runDemo();
 </script>
 </body>
