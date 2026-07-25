@@ -78,6 +78,50 @@ function shuffle(arr, rng) {
   }
   return a;
 }
+/* ------------------------------------------------------------------ *
+ * KEY-POSITION BALANCE (E-073)
+ * Shuffling every item's options independently still leaves the correct key's
+ * POSITION uneven over a bank, and an uneven pseudo-guessing floor inflates
+ * low-ability accuracy (M-ACC) and makes raw accuracy non-comparable across
+ * types. The bank builder hands each item a target slot from a least-loaded
+ * allocator and the item seats its correct option there. The option SET, the
+ * distractors and the difficulty levers are untouched.
+ *
+ * Slots are allocated uniformly WITHIN each option-count stratum first and only
+ * then balanced across the whole bank. Option count is itself a difficulty
+ * lever, so balancing the pooled key counts alone would make the last slot of
+ * the rarer long items almost always correct — a larger exploit than the one
+ * being fixed.
+ * ------------------------------------------------------------------ */
+function makeSlotAllocator(maxSlots) {
+  const globalUse = new Array(maxSlots).fill(0);
+  const byOptionCount = new Map();
+  let tick = 0;
+  return (n) => {
+    if (!byOptionCount.has(n)) byOptionCount.set(n, new Array(n).fill(0));
+    const localUse = byOptionCount.get(n);
+    let best = tick % n;
+    for (let k = 1; k < n; k++) {
+      const i = (tick + k) % n;
+      if (localUse[i] < localUse[best] || (localUse[i] === localUse[best] && globalUse[i] < globalUse[best])) best = i;
+    }
+    tick++;
+    localUse[best]++;
+    globalUse[best]++;
+    return best;
+  };
+}
+// Seat the correct entry of an already-shuffled list at `slot`, leaving the
+// distractors in their shuffled relative order. `slot` is either a resolved
+// index or the allocator callback, which is handed this item's option count.
+function seatCorrect(list, isCorrect, slot) {
+  const ci = list.findIndex(isCorrect);
+  const at = typeof slot === 'function' ? slot(list.length) : slot;
+  if (ci < 0 || !Number.isInteger(at) || at < 0 || at >= list.length) return { list, slot: ci };
+  const rest = list.filter((_, i) => i !== ci);
+  return { list: [...rest.slice(0, at), list[ci], ...rest.slice(at)], slot: at };
+}
+
 // Deterministic UUID (v4 layout) derived from the seed, for a reproducible bank.
 function seededUuid(seed) {
   const rng = makeRng('uuid|' + seed);
@@ -228,9 +272,9 @@ function offPattern(answer, motifBase, colorBase, k) {
 
 /**
  * Generate ONE structured BankItem.
- * @param {{mode:'row'|'grid', attrs:string[], distractorSimilarity:number, seed:string}} lever
+ * @param {{mode:'row'|'grid', attrs:string[], distractorSimilarity:number, keyPosition:(number|Function), seed:string}} lever
  */
-export function genItem({ mode, attrs, distractorSimilarity, seed }) {
+export function genItem({ mode, attrs, distractorSimilarity, keyPosition, seed }) {
   const rng = makeRng(seed);
   const activeAttrs = attrs.slice();
   const motifBase = shuffle(MOTIFS, rng);
@@ -297,7 +341,8 @@ export function genItem({ mode, attrs, distractorSimilarity, seed }) {
     f();
   }
 
-  const shuffledPool = shuffle(pool, rng);
+  const seated = seatCorrect(shuffle(pool, rng), (o) => o.lure === 'correct', keyPosition);
+  const shuffledPool = seated.list;
 
   // Renderable options (safe subset): key + tile ONLY. No lure/answer leak.
   const options = shuffledPool.map((o, i) => ({ key: OPTION_KEYS[i], tile: o.tile }));
@@ -360,6 +405,7 @@ export function genItem({ mode, attrs, distractorSimilarity, seed }) {
         mode,
         attrs: activeAttrs.slice(),
         progressionCount: activeAttrs.length,
+        keyPosition: seated.slot, // resolved slot; replays the balanced key position
         // Full precision (not rounded): enables exact, reproducible regeneration.
         distractorSimilarity,
       },
@@ -393,6 +439,7 @@ export function ageBandsFor(difficulty) {
  * ================================================================== */
 export function buildBank({ perBin = 6 } = {}) {
   const items = [];
+  const keyPosition = makeSlotAllocator(OPTION_KEYS.length);
   for (let k = 1; k <= 20; k++) {
     const lo = Math.max(1, k - 0.45);
     const hi = Math.min(20, k + 0.45);
@@ -420,7 +467,7 @@ export function buildBank({ perBin = 6 } = {}) {
       const t = seg.tLo + (seg.tHi - seg.tLo) * ((li + 0.5) / nHits);
       const similarity = solveSimilarity(seg.mode, seg.attrs, t);
       const seed = `FLU-CARPET-01|bin=${k}|i=${i}|${seg.mode}:${seg.attrs.join('+')}`;
-      items.push(genItem({ mode: seg.mode, attrs: seg.attrs, distractorSimilarity: similarity, seed }));
+      items.push(genItem({ mode: seg.mode, attrs: seg.attrs, distractorSimilarity: similarity, keyPosition, seed }));
     }
   }
   return items;
