@@ -1,26 +1,29 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
-import { scoreSession } from '@/lib/exam/scoring';
+import { scoreExam, type ExamScore, type ScoredItem } from '@gt-selection/exam-scoring';
+
 import {
+  examAdaptiveTracePayloadSchema,
   examSessionInputSchema,
-  examTracePayloadSchema,
   summarize,
-  summarizeResults,
+  summarizeScored,
+  type ExamAdaptiveTracePayload,
   type ExamSessionRecord,
-  type ExamTraceRecord,
+  type ExamSummary,
 } from '@/lib/exam/types';
 
 /**
  * Screening-result persistence for the synthetic prototype.
  *
  * The ratified production target is Supabase/RDS (see D-012); that backend does
- * not run in this preview, so this route keeps a process-in-memory "table" so
- * the end-to-end flow (take the test → store the full trace → read it back) is
- * real and demonstrable. It RESETS whenever the server restarts.
+ * not run in this preview, so this route keeps a process-in-memory "table" so the
+ * end-to-end flow (take the test → store the full trace → read it back) is real
+ * and demonstrable. It RESETS whenever the server restarts.
  *
  * Accepts two shapes:
- *   - TRACE (current): full adaptive trace → server recomputes score/profile
- *     (authoritative + deterministic) and returns { ok, count, outcome, summary }.
+ *   - ADAPTIVE TRACE (current): items served + server-scored items → the server
+ *     recomputes the score/profile authoritatively with `@gt-selection/exam-scoring`
+ *     and returns { ok, count, outcome, summary }.
  *   - LEGACY: fixed battery of scraped per-item metrics → { ok, count, summary }.
  *
  *   GET /api/exam-results → { sessions } (newest first)
@@ -30,7 +33,11 @@ import {
  * (validated=false), never an admission decision.
  */
 
-type StoredSession = ExamTraceRecord | ExamSessionRecord;
+type AdaptiveTraceRecord = ExamAdaptiveTracePayload & {
+  outcome: ExamScore;
+  summary: ExamSummary;
+};
+type StoredSession = AdaptiveTraceRecord | ExamSessionRecord;
 
 // Module-level store. Persists for the life of the server process only.
 const sessions: StoredSession[] = [];
@@ -43,16 +50,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'INVALID_JSON' }, { status: 400 });
   }
 
-  // Prefer the rich trace shape; fall back to the legacy battery shape.
-  const trace = examTracePayloadSchema.safeParse(body);
+  // Prefer the rich adaptive trace; fall back to the legacy battery shape.
+  const trace = examAdaptiveTracePayloadSchema.safeParse(body);
   if (trace.success) {
-    const outcome = scoreSession({
-      gradeBand: trace.data.gradeBand,
-      results: trace.data.results,
-      servedItems: trace.data.itemsServed,
-    });
-    const summary = summarizeResults(trace.data.results);
-    const record: ExamTraceRecord = { ...trace.data, outcome, summary };
+    // Recompute the score server-side (authoritative, deterministic, reproducible).
+    const outcome = scoreExam(trace.data.scoredItems as unknown as ScoredItem[]);
+    const summary = summarizeScored(trace.data.scoredItems);
+    const record: AdaptiveTraceRecord = { ...trace.data, outcome, summary };
     sessions.unshift(record);
     return NextResponse.json({ ok: true, count: sessions.length, outcome, summary });
   }

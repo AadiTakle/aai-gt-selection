@@ -3,42 +3,79 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { EXAM_BANK, domainLabel } from '@/lib/exam/bank';
+import {
+  isDone,
+  nextItem,
+  nextType,
+  startState,
+  update,
+  type Area,
+  type Banks,
+  type ScoredItem as EngineScoredItem,
+  type ServedItem,
+  type SessionState,
+} from '@gt-selection/exam-engine';
+import {
+  DEFAULT_EXAM_POLICY,
+  scoreExam,
+  type ExamScore,
+  type ScoredItem as ScoringScoredItem,
+} from '@gt-selection/exam-scoring';
+
+import { EXAM_BANK, EXAM_DOMAINS, domainLabel } from '@/lib/exam/bank';
+import {
+  EXAM_ENGINE_OVERRIDES,
+  NATIVE_PROTOCOL_TYPES,
+  bandForTheta,
+  buildBanks,
+  demoPathFor,
+  fetchServedPool,
+  numericMetrics,
+  submitAnswer,
+} from '@/lib/exam/adaptive';
 import {
   GRADE_BANDS,
   GRADE_BAND_LABEL,
   syntheticId,
   type GradeBand,
-  type ItemResult,
-  type ScoredItem,
-  type ServedItem,
-  type SessionScore,
-  type TelemetryEvent,
 } from '@/lib/exam/contract';
-import { examEngine, type SessionState } from '@/lib/exam/engine';
 import { ExamHost, type InboundResult } from '@/lib/exam/messaging';
-import { DEFAULT_EXAM_POLICY, scoreSession } from '@/lib/exam/scoring';
 
 import styles from './exam-runner.module.css';
 
 /**
- * The test-taking portal — an ADAPTIVE, variable-length battery.
+ * The test-taking portal — an ADAPTIVE, variable-length battery on the REAL
+ * engine + scorer (BUILD_PLAN §1).
  *
- * Flow (BUILD_PLAN §1): pick a grade band → seed per-area difficulty →
- * engine.nextType → engine.nextItem → serve a demo in an iframe over the
- * postMessage protocol (host→demo init/start; demo→host ready/result/telemetry)
- * → NO correct/incorrect shown between items → engine.update → engine.isDone
- * loop → scorer → score + per-area profile screen → POST the full trace.
+ * Flow: pick a grade band → `startState` → fetch the served bank (no keys) →
+ * loop(`nextType` → `nextItem` → render the demo in an iframe over the
+ * postMessage protocol → collect the child's raw ItemResult → POST it to
+ * `/api/exam-submit` for SERVER correctness → `update` → `isDone`) → `scoreExam`
+ * → score + per-area profile screen → POST the full trace to `/api/exam-results`.
  *
- * Screening only — never an admission decision (results are validated=false).
- * The 8 legacy demos still self-render; a temporary bridge (legacy-bridge.ts)
- * translates their DOM into the protocol until they become pure renderers.
+ * No correct/incorrect is shown between items. Answer keys live server-side;
+ * results are a screening signal only (`validated=false`), never an admission
+ * decision.
  */
 
 const MAX_MS_PER_ITEM = 4 * 60 * 1000; // safety valve so a stuck item can't wedge the flow
 const RESULTS_KEY = 'gt-exam-results';
 
 type Phase = 'intro' | 'running' | 'saving' | 'done' | 'error';
+
+/** Per-item trace row: the raw result + the server-authoritative verdict. */
+interface TraceScoredItem {
+  itemId: string;
+  typeCode: string;
+  domain: Area;
+  response: unknown;
+  metrics: Record<string, number>;
+  telemetry: Record<string, unknown>[];
+  correct: boolean;
+  score: number;
+  difficulty: number;
+  skipped: boolean;
+}
 
 function pct(n: number | null | undefined): string {
   return n == null ? '—' : `${Math.round(n * 100)}%`;
@@ -57,128 +94,147 @@ export function ExamRunner({
   const [gradeBand, setGradeBand] = useState<GradeBand>(initialGradeBand ?? '4-5');
   const [current, setCurrent] = useState<ServedItem | null>(null);
   const [served, setServed] = useState<ServedItem[]>([]);
-  const [results, setResults] = useState<ItemResult[]>([]);
-  const [outcome, setOutcome] = useState<SessionScore | null>(null);
+  const [scoredCount, setScoredCount] = useState(0);
+  const [outcome, setOutcome] = useState<ExamScore | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const stateRef = useRef<SessionState | null>(null);
+  const banksRef = useRef<Banks | null>(null);
   const servedRef = useRef<ServedItem[]>([]);
-  const resultsRef = useRef<ItemResult[]>([]);
-  const telemetryRef = useRef<TelemetryEvent[]>([]);
+  const scoredRef = useRef<TraceScoredItem[]>([]);
+  const telemetryRef = useRef<Record<string, unknown>[]>([]);
   const processedRef = useRef<Set<string>>(new Set());
   const sessionRef = useRef({ sessionId: '', participantCode: '', startedAt: '' });
-  const handleResultRef = useRef<(item: ServedItem, inbound: InboundResult, skipped: boolean) => void>(
-    () => {},
-  );
+  const handleResultRef = useRef<
+    (item: ServedItem, inbound: InboundResult, skipped: boolean) => void
+  >(() => {});
 
-  // POST the completed trace, recompute score server-side, show the profile.
-  const finalize = useCallback(
-    async (servedItems: ServedItem[], itemResults: ItemResult[], telemetry: TelemetryEvent[]) => {
-      setPhase('saving');
-      const localOutcome = scoreSession(
-        { gradeBand, results: itemResults, servedItems },
-        DEFAULT_EXAM_POLICY,
-      );
-      const payload = {
-        sessionId: sessionRef.current.sessionId,
-        participantCode: sessionRef.current.participantCode,
-        studentName,
-        gradeBand,
-        startedAt: sessionRef.current.startedAt,
-        finishedAt: new Date().toISOString(),
-        itemsServed: servedItems,
-        results: itemResults,
-        telemetry,
-        score: localOutcome,
-        syntheticOnly: true as const,
-        validated: false as const,
-      };
+  // POST the completed trace; the server recomputes the score authoritatively.
+  const finalize = useCallback(async () => {
+    setPhase('saving');
+    const scored = scoredRef.current;
+    const localOutcome = scoreExam(scored as unknown as ScoringScoredItem[], DEFAULT_EXAM_POLICY);
+    const payload = {
+      sessionId: sessionRef.current.sessionId,
+      participantCode: sessionRef.current.participantCode,
+      studentName,
+      gradeBand,
+      startedAt: sessionRef.current.startedAt,
+      finishedAt: new Date().toISOString(),
+      itemsServed: servedRef.current,
+      scoredItems: scored,
+      telemetry: telemetryRef.current,
+      score: localOutcome,
+      syntheticOnly: true as const,
+      validated: false as const,
+    };
+    try {
+      const res = await fetch('/api/exam-results', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = (await res.json()) as { ok: boolean; outcome?: ExamScore };
+      if (!res.ok || !data.ok) throw new Error('SAVE_REJECTED');
+      const finalOutcome = data.outcome ?? localOutcome;
+      setOutcome(finalOutcome);
       try {
-        const res = await fetch('/api/exam-results', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        const data = (await res.json()) as { ok: boolean; outcome?: SessionScore };
-        if (!res.ok || !data.ok) throw new Error('SAVE_REJECTED');
-        const finalOutcome = data.outcome ?? localOutcome;
-        setOutcome(finalOutcome);
-        try {
-          window.localStorage.setItem(
-            RESULTS_KEY,
-            JSON.stringify({
-              sessionId: payload.sessionId,
-              finishedAt: payload.finishedAt,
-              outcome: finalOutcome,
-            }),
-          );
-        } catch {
-          // localStorage best-effort only
-        }
-        setPhase('done');
+        window.localStorage.setItem(
+          RESULTS_KEY,
+          JSON.stringify({
+            sessionId: payload.sessionId,
+            finishedAt: payload.finishedAt,
+            outcome: finalOutcome,
+          }),
+        );
       } catch {
-        setError('We could not save your session. Your answers are safe — please try again.');
-        setPhase('error');
+        // localStorage best-effort only
       }
-    },
-    [studentName, gradeBand],
-  );
+      setPhase('done');
+    } catch {
+      setError('We could not save your session. Your answers are safe — please try again.');
+      setPhase('error');
+    }
+  }, [studentName, gradeBand]);
 
   // Serve the next engine-selected item, or finalize when the battery is done.
   const serveNext = useCallback(
     (state: SessionState) => {
-      const done = examEngine.isDone(state);
-      const typeCode = done ? null : examEngine.nextType(state, EXAM_BANK);
-      if (!typeCode) {
-        void finalize(servedRef.current, resultsRef.current, telemetryRef.current);
+      const banks = banksRef.current;
+      if (!banks) {
+        void finalize();
         return;
       }
-      const item = examEngine.nextItem(state, typeCode, EXAM_BANK);
-      servedRef.current = [...servedRef.current, item];
-      setServed(servedRef.current);
-      setCurrent(item);
+      try {
+        const typeCode = nextType(state, banks);
+        if (!typeCode) {
+          void finalize();
+          return;
+        }
+        const item = nextItem(state, typeCode, banks);
+        servedRef.current = [...servedRef.current, item];
+        setServed(servedRef.current);
+        setCurrent(item);
+      } catch {
+        // Pool exhausted for the selected type — conclude with what we have.
+        void finalize();
+      }
     },
     [finalize],
   );
 
-  // Record one item's result (no correctness from the client) and advance.
+  // Record one item's result: server-verify correctness, then advance the engine.
   const handleResult = useCallback(
-    (item: ServedItem, inbound: InboundResult, skipped: boolean) => {
+    async (item: ServedItem, inbound: InboundResult, skipped: boolean) => {
       if (processedRef.current.has(item.itemId)) return;
       processedRef.current.add(item.itemId);
       const state = stateRef.current;
       if (!state) return;
 
-      const metrics = inbound.metrics ?? {};
-      const perItemTelemetry = telemetryRef.current.filter((e) => e.itemId === item.itemId);
-      const result: ItemResult = {
+      const clientMetrics = numericMetrics(inbound.metrics);
+      // A skip/timeout still contributes coverage so the battery can conclude.
+      if (skipped) {
+        clientMetrics['M-RT'] = MAX_MS_PER_ITEM;
+        clientMetrics['M-RTFIRST'] = MAX_MS_PER_ITEM;
+        clientMetrics['M-REV'] = 0;
+      }
+
+      const verdict = await submitAnswer(item.itemId, inbound.response, skipped);
+      const serverMetrics = verdict?.metrics ?? { 'M-ACC': 0, 'M-ERRTYPE': 0 };
+      const correct = verdict?.correct ?? false;
+      const score = verdict?.score ?? 0;
+      const difficulty = verdict?.difficulty ?? item.difficulty;
+
+      const perItemTelemetry = telemetryRef.current.filter((e) => e['itemId'] === item.itemId);
+      const scored: TraceScoredItem = {
         itemId: item.itemId,
         typeCode: item.typeCode,
         domain: item.domain,
-        response: inbound.response ?? { legacyAggregate: true },
-        metrics,
+        response: inbound.response ?? null,
+        metrics: { ...clientMetrics, ...serverMetrics },
         telemetry: perItemTelemetry,
+        correct,
+        score,
+        difficulty,
         skipped,
       };
-      resultsRef.current = [...resultsRef.current, result];
-      setResults(resultsRef.current);
+      scoredRef.current = [...scoredRef.current, scored];
+      setScoredCount(scoredRef.current.length);
 
-      // Correctness/score are derived here as a stand-in for server re-verification;
-      // for legacy demos M-ACC is the aggregate pass rate for the mini-battery.
-      const acc = metrics['M-ACC'];
-      const score = typeof acc === 'number' && Number.isFinite(acc) ? acc : 0;
-      const scored: ScoredItem = { ...result, correct: score >= 0.5, score, difficulty: item.difficulty };
-
-      const nextState = examEngine.update(state, scored);
+      const nextState = update(state, scored as unknown as EngineScoredItem);
       stateRef.current = nextState;
-      serveNext(nextState);
+
+      if (isDone(nextState)) void finalize();
+      else serveNext(nextState);
     },
-    [serveNext],
+    [serveNext, finalize],
   );
 
   useEffect(() => {
-    handleResultRef.current = handleResult;
+    handleResultRef.current = (item, inbound, skipped) => {
+      void handleResult(item, inbound, skipped);
+    };
   }, [handleResult]);
 
   // Bind the postMessage channel for the current item's iframe.
@@ -186,33 +242,38 @@ export function ExamRunner({
     if (phase !== 'running' || !current) return;
     const iframe = iframeRef.current;
     if (!iframe) return;
+    const item = current;
+    let initiated = false;
 
     const host = new ExamHost(iframe, {
       origin: window.location.origin,
-      onReady: () => {
-        host.init(current);
-        host.start();
-      },
-      onResult: (inbound) => handleResultRef.current(current, inbound, false),
+      onReady: () => sendInit(),
+      onResult: (inbound) => handleResultRef.current(item, inbound, false),
       onTelemetry: (event) => {
-        telemetryRef.current.push({ ...event, itemId: current.itemId });
+        telemetryRef.current.push({ ...event, itemId: item.itemId });
       },
     });
 
+    function sendInit() {
+      if (initiated) return;
+      initiated = true;
+      host.init(item);
+      host.start();
+    }
+
     const onLoad = () => {
-      // Legacy demos don't speak the protocol yet — inject the DOM→postMessage
-      // bridge (a real renderer sets window.__gtExamNativeProtocol and no-ops it).
-      host.installLegacyBridge();
+      // Refactored demos speak the protocol natively; only bridge a legacy demo.
+      if (!NATIVE_PROTOCOL_TYPES.has(item.typeCode)) host.installLegacyBridge();
+      sendInit();
     };
     iframe.addEventListener('load', onLoad);
-    if (iframe.contentDocument?.readyState === 'complete') host.installLegacyBridge();
+    if (iframe.contentDocument?.readyState === 'complete') onLoad();
 
     const timeout = window.setTimeout(() => {
-      handleResultRef.current(current, { response: { timedOut: true }, metrics: {} }, true);
+      handleResultRef.current(item, { response: { timedOut: true } }, true);
     }, MAX_MS_PER_ITEM);
 
-    const onSkip = () =>
-      handleResultRef.current(current, { response: { skipped: true }, metrics: {} }, true);
+    const onSkip = () => handleResultRef.current(item, { response: { skipped: true } }, true);
     window.addEventListener('gt-exam-skip', onSkip);
 
     return () => {
@@ -223,25 +284,34 @@ export function ExamRunner({
     };
   }, [phase, current]);
 
-  function start() {
-    const state = examEngine.startState(gradeBand);
-    stateRef.current = state;
-    sessionRef.current = {
-      sessionId: syntheticId('SESS'),
-      participantCode: syntheticId('PART'),
-      startedAt: new Date().toISOString(),
-    };
+  const start = useCallback(async () => {
+    setError(null);
+    setOutcome(null);
+    setCurrent(null);
     servedRef.current = [];
-    resultsRef.current = [];
+    scoredRef.current = [];
     telemetryRef.current = [];
     processedRef.current = new Set();
     setServed([]);
-    setResults([]);
-    setOutcome(null);
-    setError(null);
+    setScoredCount(0);
     setPhase('running');
-    serveNext(state);
-  }
+    try {
+      const pool = await fetchServedPool();
+      if (pool.length === 0) throw new Error('EMPTY_BANK');
+      banksRef.current = buildBanks(pool);
+      const state = startState(gradeBand, EXAM_ENGINE_OVERRIDES);
+      stateRef.current = state;
+      sessionRef.current = {
+        sessionId: syntheticId('SESS'),
+        participantCode: syntheticId('PART'),
+        startedAt: new Date().toISOString(),
+      };
+      serveNext(state);
+    } catch {
+      setError('We could not load the activities. Please try again.');
+      setPhase('error');
+    }
+  }, [gradeBand, serveNext]);
 
   // ---- intro ---------------------------------------------------------------
   if (phase === 'intro') {
@@ -274,7 +344,7 @@ export function ExamRunner({
               ))}
             </div>
 
-            <button type="button" className={styles.primary} onClick={start}>
+            <button type="button" className={styles.primary} onClick={() => void start()}>
               Start the assessment →
             </button>
             <Link className={styles.ghost} href={dashboardHref}>
@@ -292,6 +362,9 @@ export function ExamRunner({
 
   // ---- results (score + per-area profile) ----------------------------------
   if (phase === 'done' && outcome) {
+    const areaScores = EXAM_DOMAINS.map((area) => outcome.perArea[area]).filter(
+      (a): a is NonNullable<typeof a> => a != null,
+    );
     return (
       <div className={styles.wrap}>
         <section className={styles.hero}>
@@ -314,28 +387,29 @@ export function ExamRunner({
                 {outcome.composite.toFixed(1)}
                 <span className={styles.statSub}>/20</span>
               </p>
-              <p className={styles.frameNote}>{outcome.compositeBracketLabel}</p>
+              <p className={styles.frameNote}>{bandForTheta(outcome.composite)}</p>
             </div>
             <div>
               <p className={styles.cardKicker}>Activities answered</p>
-              <p className={styles.bigStat}>{results.length}</p>
+              <p className={styles.bigStat}>{scoredCount}</p>
             </div>
             <div>
               <p className={styles.cardKicker}>Grade band</p>
               <p className={styles.bigStat} style={{ fontSize: '1.4rem' }}>
-                {GRADE_BAND_LABEL[outcome.gradeBand]}
+                {GRADE_BAND_LABEL[gradeBand]}
               </p>
             </div>
           </div>
 
           <p className={styles.cardKicker}>By reasoning area (proficiency θ /20)</p>
           <div className={styles.domainBars}>
-            {outcome.perArea.map((area) => (
+            {areaScores.map((area) => (
               <div key={area.area} className={styles.domainBar}>
                 <div className={styles.domainBarHead}>
                   <span>{domainLabel(area.area)}</span>
                   <span className={styles.domainBarPct}>
-                    {area.proficiency.toFixed(1)} · {area.bracketLabel} · acc {pct(area.accuracy)}
+                    {area.proficiency.toFixed(1)} · {bandForTheta(area.proficiency)} · acc{' '}
+                    {pct(area.accuracy)}
                   </span>
                 </div>
                 <div className={styles.track}>
@@ -365,11 +439,21 @@ export function ExamRunner({
             </div>
             <div className={styles.profileItem}>
               <p className={styles.profileLabel}>Consistency</p>
-              <p className={styles.profileValue}>{pct(outcome.profile.consistency)}</p>
+              <p className={styles.profileValue}>
+                {outcome.profile.consistency.label}
+                {outcome.profile.consistency.normalized != null
+                  ? ` · ${pct(outcome.profile.consistency.normalized)}`
+                  : ''}
+              </p>
             </div>
             <div className={styles.profileItem}>
               <p className={styles.profileLabel}>Learning rate</p>
-              <p className={styles.profileValue}>{outcome.profile.learningRate.toFixed(2)}</p>
+              <p className={styles.profileValue}>
+                {outcome.profile.learningRate.label}
+                {outcome.profile.learningRate.normalized != null
+                  ? ` · ${pct(outcome.profile.learningRate.normalized)}`
+                  : ''}
+              </p>
             </div>
           </div>
         </section>
@@ -403,13 +487,7 @@ export function ExamRunner({
         <section className={styles.centered}>
           <h1 className={styles.title}>We hit a snag</h1>
           <p className={styles.lede}>{error}</p>
-          <button
-            type="button"
-            className={styles.primary}
-            onClick={() =>
-              void finalize(servedRef.current, resultsRef.current, telemetryRef.current)
-            }
-          >
+          <button type="button" className={styles.primary} onClick={() => void finalize()}>
             Try saving again
           </button>
           <Link className={styles.ghost} href={dashboardHref}>
@@ -421,16 +499,25 @@ export function ExamRunner({
   }
 
   // ---- running -------------------------------------------------------------
-  const answered = results.length;
   const meta = current ? EXAM_BANK.find((b) => b.typeCode === current.typeCode) : undefined;
+  if (!current) {
+    return (
+      <div className={styles.wrap}>
+        <section className={styles.centered}>
+          <div className={styles.spinner} aria-hidden="true" />
+          <p>Preparing your first activity…</p>
+        </section>
+      </div>
+    );
+  }
   return (
     <div className={styles.runWrap}>
       <header className={styles.runHead}>
         <div>
           <p className={styles.kicker}>
-            Question {answered + 1} · {current ? domainLabel(current.domain) : ''}
+            Question {scoredCount + 1} · {domainLabel(current.domain)}
           </p>
-          <p className={styles.runTitle}>{meta?.title}</p>
+          <p className={styles.runTitle}>{meta?.title ?? current.typeCode}</p>
         </div>
         <button
           type="button"
@@ -445,22 +532,20 @@ export function ExamRunner({
         {served.map((item, i) => (
           <span
             key={item.itemId}
-            className={`${styles.seg} ${i < answered ? styles.segDone : ''} ${
-              i === answered ? styles.segActive : ''
+            className={`${styles.seg} ${i < scoredCount ? styles.segDone : ''} ${
+              i === scoredCount ? styles.segActive : ''
             }`}
           />
         ))}
       </div>
 
-      {current ? (
-        <iframe
-          key={current.itemId}
-          ref={iframeRef}
-          title={`${meta?.title ?? current.typeCode} question`}
-          src={current.demoPath}
-          className={styles.frame}
-        />
-      ) : null}
+      <iframe
+        key={current.itemId}
+        ref={iframeRef}
+        title={`${meta?.title ?? current.typeCode} question`}
+        src={demoPathFor(current.typeCode)}
+        className={styles.frame}
+      />
 
       <p className={styles.frameNote}>
         {meta?.blurb} · Adaptive — the battery length adjusts to your answers. This is a synthetic

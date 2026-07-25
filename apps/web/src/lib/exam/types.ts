@@ -1,26 +1,27 @@
 import { z } from 'zod';
 
-import {
-  gradeBandSchema,
-  itemResultSchema,
-  servedItemSchema,
-  sessionScoreSchema,
-  telemetryEventSchema,
-  type ItemResult,
-} from './contract';
-
 /**
  * Shared shapes for a completed screening session and its stored record.
  *
  * Two shapes are supported:
  *  - LEGACY: a fixed-length battery whose per-item metrics were scraped from the
  *    demo DOM (kept for backward compatibility of the in-memory store/tests).
- *  - TRACE (current): the full adaptive trace — items served, raw answers +
- *    structured numeric metrics + telemetry, and the computed score/profile.
+ *  - ADAPTIVE TRACE (current): the full adaptive trace produced by the real
+ *    engine + server verification — items served (no keys), server-scored items
+ *    (raw response + numeric metrics + correctness/score/difficulty), telemetry,
+ *    and the client-computed score (the server recomputes it authoritatively with
+ *    `@gt-selection/exam-scoring`).
  *
  * Everything is born-synthetic (`syntheticOnly=true`, `validated=false`) and the
  * store is in-memory only (see the route). The ratified target is Supabase.
  */
+
+const examDomainSchema = z.enum(['fluid_reasoning', 'verbal', 'quantitative', 'spatial']);
+
+// ---------------------------------------------------------------------------
+// LEGACY shape (fixed battery of DOM-scraped metrics). Retained for the
+// in-memory store + existing tests.
+// ---------------------------------------------------------------------------
 
 export const metricMapSchema = z.record(z.string(), z.union([z.string(), z.number()]));
 
@@ -29,16 +30,12 @@ export const examItemResultSchema = z
     typeCode: z.string().min(1),
     domain: z.string().min(1),
     skipped: z.boolean(),
-    /** Raw + parsed metric values scraped from the demo (empty if unavailable). */
     metrics: metricMapSchema,
-    /** Convenience: parsed accuracy 0..1 (from M-ACC) when available. */
     accuracy: z.number().min(0).max(1).nullable(),
-    /** Convenience: max difficulty level reached (from M-DIFFREACH) when available. */
     difficultyReached: z.number().nonnegative().nullable(),
   })
   .strict();
 
-/** What the client sends on completion (summary is computed server-side). */
 export const examSessionInputSchema = z
   .object({
     sessionId: z.string().min(1),
@@ -62,7 +59,6 @@ export const examSummarySchema = z
   })
   .strict();
 
-/** The stored record = input + server-computed summary. */
 export const examSessionRecordSchema = examSessionInputSchema.extend({
   summary: examSummarySchema,
 });
@@ -103,61 +99,78 @@ export function summarize(items: ExamItemResult[]): ExamSummary {
 }
 
 // ---------------------------------------------------------------------------
-// TRACE shape (current adaptive runner) — the full session trace.
+// ADAPTIVE TRACE shape (current runner on the real engine + scorer).
+// Lenient by design: it is a storage + recompute envelope, not a re-validation
+// of the engine's internal types (telemetry shapes vary per demo). It still
+// enforces the security/born-synthetic invariants.
 // ---------------------------------------------------------------------------
 
-/** What the client POSTs on completion: the whole adaptive trace. */
-export const examTracePayloadSchema = z
+/** A served item as the browser saw it — never any answer/scoring/provenance. */
+export const servedItemTraceSchema = z
+  .object({
+    itemId: z.string().min(1),
+    typeCode: z.string().min(1),
+    domain: examDomainSchema,
+    difficulty: z.number(),
+    ageBands: z.array(z.string()),
+    content: z.record(z.string(), z.unknown()),
+    syntheticOnly: z.literal(true),
+    validated: z.literal(false),
+  })
+  .strip();
+
+/** A server-scored item: raw response + numeric metrics + server correctness. */
+export const scoredItemTraceSchema = z
+  .object({
+    itemId: z.string().min(1),
+    typeCode: z.string().min(1),
+    domain: examDomainSchema,
+    response: z.unknown().optional(),
+    metrics: z.record(z.string(), z.number()),
+    telemetry: z.array(z.unknown()).optional(),
+    correct: z.boolean(),
+    score: z.number(),
+    difficulty: z.number(),
+    skipped: z.boolean().optional(),
+  })
+  .strip();
+
+export const examAdaptiveTracePayloadSchema = z
   .object({
     sessionId: z.string().min(1),
     participantCode: z.string().regex(/^PART-SYN-[A-Z0-9-]+$/),
     studentName: z.string().min(1),
-    gradeBand: gradeBandSchema,
-    ageBand: z.string().min(1).optional(),
+    gradeBand: z.enum(['K-1', '2-3', '4-5', '6-8']),
     startedAt: z.string().min(1),
     finishedAt: z.string().min(1),
-    /** Items served (no answer/scoring — servedItemSchema). */
-    itemsServed: z.array(servedItemSchema).min(1),
-    /** Raw answers + structured metrics + per-item telemetry. */
-    results: z.array(itemResultSchema).min(1),
-    /** Flattened session telemetry (also carried per-item). */
-    telemetry: z.array(telemetryEventSchema),
-    /** Client-computed score/profile (the server recomputes authoritatively). */
-    score: sessionScoreSchema,
+    itemsServed: z.array(servedItemTraceSchema).min(1),
+    scoredItems: z.array(scoredItemTraceSchema).min(1),
+    telemetry: z.array(z.unknown()).default([]),
+    /** Client-computed score; echoed only. The server recomputes authoritatively. */
+    score: z.unknown().optional(),
     syntheticOnly: z.literal(true),
     validated: z.literal(false),
   })
-  .strict();
+  .strip();
 
-/** Stored trace record = payload + server-recomputed outcome + a legacy summary. */
-export const examTraceRecordSchema = examTracePayloadSchema.extend({
-  outcome: sessionScoreSchema,
-  summary: examSummarySchema,
-});
-
-export type ExamTracePayload = z.infer<typeof examTracePayloadSchema>;
-export type ExamTraceRecord = z.infer<typeof examTraceRecordSchema>;
+export type ServedItemTrace = z.infer<typeof servedItemTraceSchema>;
+export type ScoredItemTrace = z.infer<typeof scoredItemTraceSchema>;
+export type ExamAdaptiveTracePayload = z.infer<typeof examAdaptiveTracePayloadSchema>;
 
 /**
- * Server-side continuity summary derived from the rich trace (mirrors the legacy
- * `summarize` so old readers still work). Accuracy/difficulty come from the
- * structured numeric metrics (M-ACC, M-DIFFREACH), not DOM scraping.
+ * Continuity summary from the adaptive trace (mirrors the legacy `summarize` so
+ * old readers still work). Accuracy is the mean server `score`; difficulty reach
+ * is the mean difficulty of correctly-answered items.
  */
-export function summarizeResults(results: ItemResult[]): ExamSummary {
-  const answered = results.filter((i) => !i.skipped);
-  const accs = answered
-    .map((i) => i.metrics['M-ACC'])
-    .filter((a): a is number => typeof a === 'number' && Number.isFinite(a));
-  const diffs = answered
-    .map((i) => i.metrics['M-DIFFREACH'])
-    .filter((d): d is number => typeof d === 'number' && Number.isFinite(d));
+export function summarizeScored(items: readonly ScoredItemTrace[]): ExamSummary {
+  const answered = items.filter((i) => !i.skipped);
+  const accs = answered.map((i) => i.score);
+  const diffs = answered.filter((i) => i.correct).map((i) => i.difficulty);
 
   const perDomain: Record<string, { sum: number; n: number }> = {};
   for (const item of answered) {
-    const acc = item.metrics['M-ACC'];
-    if (typeof acc !== 'number' || !Number.isFinite(acc)) continue;
     const bucket = (perDomain[item.domain] ??= { sum: 0, n: 0 });
-    bucket.sum += acc;
+    bucket.sum += item.score;
     bucket.n += 1;
   }
   const perDomainAccuracy: Record<string, number> = {};
@@ -165,13 +178,13 @@ export function summarizeResults(results: ItemResult[]): ExamSummary {
     perDomainAccuracy[domain] = n > 0 ? sum / n : 0;
   }
 
-  const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
+  const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
 
   return {
-    overallAccuracy: avg(accs),
+    overallAccuracy: mean(accs),
     perDomainAccuracy,
-    meanDifficultyReached: avg(diffs),
+    meanDifficultyReached: mean(diffs),
     itemsAnswered: answered.length,
-    itemsSkipped: results.length - answered.length,
+    itemsSkipped: items.length - answered.length,
   };
 }

@@ -37,7 +37,7 @@
     background:linear-gradient(160deg,#dfe7ff,#eef1ff);border:3px solid #cfd8ff}
   #lights{display:flex;gap:8px;justify-content:center;margin-top:12px}
   #lights span{width:14px;height:14px;border-radius:50%;background:#cbd5f5;transition:.25s}
-  #lights.on span{background:var(--good);box-shadow:0 0 12px var(--good)}
+  #lights.recv span{background:var(--accent);box-shadow:0 0 10px var(--accent)}
   .matrix{display:grid;gap:8px;background:#c7d2f2;padding:8px;border-radius:14px}
   .cell{background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;
     width:92px;height:92px}
@@ -52,8 +52,6 @@
   .opt::after{content:attr(data-key);position:absolute;right:5px;bottom:3px;font:700 11px/1 ui-monospace,monospace;color:#8a93b5}
   .opt:hover{transform:translateY(-3px);border-color:#c3ccf5}
   .opt.sel{border-color:var(--accent);box-shadow:0 0 0 4px #c9d0ff;transform:translateY(-3px)}
-  .opt.correct{border-color:var(--good);box-shadow:0 0 0 4px #b4ecd0}
-  .opt.wrong{border-color:var(--bad);box-shadow:0 0 0 4px #ffd0d0}
   #controls{display:flex;gap:16px;align-items:center}
   button{font:inherit;border:0;cursor:pointer;border-radius:50%}
   #go{width:76px;height:76px;background:var(--accent);color:#fff;font-size:32px;
@@ -61,8 +59,6 @@
   #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.1s infinite}
   @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
   #replay{width:52px;height:52px;background:#eef1ff;color:#5b6cff;font-size:24px}
-  .shake{animation:shake .4s}
-  @keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
   /* ghost hand */
   #ghost{position:fixed;left:0;top:0;font-size:40px;pointer-events:none;z-index:60;opacity:0;
     transition:transform .7s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
@@ -79,15 +75,17 @@
   #difficulty{margin:10px 12px 2px;padding:10px;border:1px solid #2c365d;border-radius:10px;background:#171e36}
   .dtop{display:flex;justify-content:space-between;color:#fff}.dsub{display:flex;justify-content:space-between;color:var(--tel-dim);font-size:11px;margin-top:5px}
   .dtrack{height:7px;background:#2a3458;border-radius:8px;margin-top:8px;overflow:hidden}.dfill{height:100%;background:linear-gradient(90deg,#7fffcf,#ffd479);transition:.25s}
+  #mode{margin:6px 12px 0;font-size:11px;color:var(--tel-dim)}
+  #mode b{color:#ffd479}
   #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
-  .mrow{display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:baseline}
+  .mrow{display:grid;grid-template-columns:110px 1fr;gap:8px;align-items:baseline}
   .mid{color:var(--tel-key);font-weight:700}
   .mid.prop{color:#ffd479}
   .mval{color:#fff}
   .mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
   #logwrap{border-top:1px solid #262f52;margin-top:auto}
   #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
-  #log{height:210px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log{height:200px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
   #log div{padding:2px 0;border-bottom:1px dotted #232c4d}
   #log .t{color:#5f6f9e}
   button:focus-visible,.opt:focus-visible{outline:4px solid #ffbf69;outline-offset:3px}
@@ -106,9 +104,9 @@
     <div id="badge">FLU-MATRIX-01 · Machine Matrix</div>
     <header id="howto">
       <h1>How to use — Machine Matrix</h1>
-      <p>Watch the pointer solve one example, then try one practice item (not scored). For each puzzle, tap the tile from the tray that completes the pattern in the empty cell, then press the check (<b>✓</b>) to submit. It gets harder each time you are right.</p>
+      <p>Watch the pointer show you how, then take your turn. For each puzzle, tap the tile from the tray that completes the pattern in the empty cell, then press the check (<b>&#10003;</b>) to send your answer. The machine notes your answer and brings the next puzzle.</p>
     </header>
-    <div id="phasecue" data-phase="demo">Watch the example</div>
+    <div id="phasecue" data-phase="warmup">Get ready</div>
     <div id="stagecard">
       <div id="machine">
         <div id="matrix" class="matrix"></div>
@@ -116,29 +114,47 @@
       </div>
       <div id="tray"></div>
       <div id="controls">
-        <button id="replay" title="replay demo">↻</button>
-        <button id="go" title="submit">✓</button>
+        <button id="replay" title="show how again">&#8635;</button>
+        <button id="go" title="send answer">&#10003;</button>
       </div>
-      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+      <div id="status" class="neutral">Waiting for the next puzzle.</div>
     </div>
   </div>
   <aside id="telemetry">
-    <h3>Live telemetry · per-child</h3>
-    <div id="difficulty" data-tracks="M-DIFFREACH M-LEARNRATE"></div>
+    <h3>Live telemetry · per-child (display only)</h3>
+    <div id="difficulty" data-tracks="M-DIFFREACH M-RULEID"></div>
+    <div id="mode">Renderer computes process metrics locally; the <b>score is server-side</b>.</div>
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
   <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
+/* =====================================================================
+ * FLU-MATRIX-01 — PURE RENDERER
+ * Renders a SERVED item (item.content) and reports the child's RAW response
+ * + process telemetry. It NEVER self-generates items and NEVER shows
+ * correct/incorrect: the answer key + score live server-side (BUILD_PLAN §2).
+ *
+ * Embedding protocol (postMessage), source-tagged:
+ *   host -> demo : {source:'gt-exam-host', type:'init',  item:ServedItem}
+ *                  {source:'gt-exam-host', type:'start', tutorial?:bool}
+ *   demo -> host : {source:'gt-exam-demo', type:'ready'}
+ *                  {source:'gt-exam-demo', type:'result',    result:ItemResult}
+ *                  {source:'gt-exam-demo', type:'telemetry', event:TelemetryEvent}
+ *
+ * Standalone (double-click / no host): loads sample items from the bank JSONL
+ * (or an inline fallback if fetch is blocked on file://) so the file still runs
+ * for QA. Correctness is still never shown; emitted ItemResults are logged.
+ * ===================================================================== */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const mean=a=>Math.round(a.reduce((x,y)=>x+y,0)/a.length);
-const last=a=>a[a.length-1];
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0;
 
-/* ---------- shape rendering ---------- */
+const HOST_SRC='gt-exam-host', DEMO_SRC='gt-exam-demo';
+
+/* ---------- shape rendering (renderer-agnostic tiles: shape/color/count/rot) ---------- */
 const PAL={coral:'#ef5b5b',teal:'#159f94',blue:'#4267d5',gold:'#e6a817',violet:'#8357c5',ink:'#33405f'};
-const COLORKEYS=Object.keys(PAL);
 const SH=['triangle','pentagon','hexagon','kite','drop','star'];
 function polyPts(cx,cy,r,n,rot){let p=[];for(let i=0;i<n;i++){let a=rot+i*2*Math.PI/n;p.push((cx+r*Math.cos(a)).toFixed(1)+','+(cy+r*Math.sin(a)).toFixed(1));}return p.join(' ');}
 function starPts(cx,cy,r,n){let p=[];for(let i=0;i<2*n;i++){let rr=i%2?r*0.45:r;let a=-Math.PI/2+i*Math.PI/n;p.push((cx+rr*Math.cos(a)).toFixed(1)+','+(cy+rr*Math.sin(a)).toFixed(1));}return p.join(' ');}
@@ -158,125 +174,190 @@ function tileSVG(a,box=80){const color=PAL[a.color]||a.color;const n=a.count||1;
   if(a.rot)inner=`<g transform="rotate(${a.rot} ${box/2} ${box/2})">${inner}</g>`;
   return `<svg width="${box}" height="${box}" viewBox="0 0 ${box} ${box}">${inner}</svg>`;}
 
-/* ---------- item generation (AIG: rule x attribute grammar) ---------- */
-function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){let j=(Math.random()*(i+1))|0;[a[i],a[j]]=[a[j],a[i]];}return a;}
-function sameA(a,b){return a.shape===b.shape&&a.color===b.color&&a.count===b.count&&(a.rot||0)===(b.rot||0);}
-function levelRules(level){return level===1?1:level<4?2:level<6?3:4;}
-function genItem(level){const size=level===1?2:3,nRules=levelRules(level);
-  const shapes=shuffle(SH).slice(0,size),colors=shuffle(COLORKEYS).slice(0,size);
-  const active=['shape'];
-  if(level===2||level===4||level===6)active.push('color');
-  if(level===3||level>=4)active.push('count');
-  if(level>=5)active.push('rot');
-  const grid=[];for(let r=0;r<size;r++){grid.push([]);for(let c=0;c<size;c++)grid[r].push({
-    shape:shapes[(r+c)%size],
-    color:active.includes('color')?colors[r]:colors[0],
-    count:active.includes('count')?c+1:1,
-    rot:active.includes('rot')?((2*r+c)%3)*120:0
-  });}
-  const ans={...grid[size-1][size-1]},opts=[];
-  const add=(attr,tag,sat)=>{if(!opts.some(o=>sameA(o.attr,attr)))opts.push({attr,tag,rulesSat:sat});};
-  add(ans,'correct',nRules);
-  active.forEach(rule=>{const a={...ans};
-    if(rule==='shape')a.shape=shapes[(shapes.indexOf(ans.shape)+1)%shapes.length];
-    if(rule==='color')a.color=colors[(colors.indexOf(ans.color)+1)%colors.length];
-    if(rule==='count')a.count=ans.count===1?2:ans.count-1;
-    if(rule==='rot')a.rot=(ans.rot+120)%360;
-    add(a,'rule:'+rule,nRules-1);
-  });
-  let guard=0;while(opts.length<Math.max(4,Math.min(6,nRules+2))&&guard++<30){const a={...ans,shape:SH[(SH.indexOf(ans.shape)+guard)%SH.length]};
-    if(nRules>1&&active.includes('color'))a.color=colors[(colors.indexOf(ans.color)+1)%colors.length];
-    else if(nRules>1&&active.includes('count'))a.count=ans.count===1?2:ans.count-1;
-    add(a,nRules>1?'multi-rule':'rule:shape',Math.max(0,nRules-2));}
-  return {level,size,nRules,active,grid,ans,options:shuffle(opts)};}
+/* ---------- per-item state ---------- */
+let current=null;          // current ServedItem
+let interactive=false;     // interaction enabled?
+let submitted=false;       // already answered this item?
+let staged=null;           // currently staged option key
+let firstKey=null;         // first option key touched
+let selectionOrder=[];     // raw sequence of taps (keys)
+let itemStart=0;           // ms timestamp when the item became interactive
+let startTimer=null;       // fallback auto-start timer
+let itemTelemetry=[];      // TelemetryEvent[] for the current item
 
-/* ---------- telemetry ---------- */
-const T={scored:0,correct:0,rts:[],gates:[],firstLat:null,revThis:0,lastErr:'\u2014',maxSolved:0,
-  level:1,itemStart:0,firstActed:false,blurThis:0};
-function rtStr(){if(!T.rts.length)return '\u2014';const g=last(T.gates),rt=last(T.rts);return g.ok?`${rt} ms (mean ${mean(T.rts)})`:`gated · ${g.reason} · ${rt} ms`;}
+const M={rt:null,rts:[],firstLat:null,rev:0,blur:0}; // locally-computed process metrics
+
+/* ---------- embedding detection + emit ---------- */
+const embedded=(()=>{try{return window.parent&&window.parent!==window;}catch(_){return true;}})();
+let standalone=false, standaloneQueue=[], standaloneIdx=0, tutorialShown=false;
+function post(msg){if(!embedded)return;try{window.parent.postMessage(Object.assign({source:DEMO_SRC},msg),'*');}catch(_){}}
+
+/* ---------- telemetry panel (DISPLAY ONLY; key-free metrics) ---------- */
 const METERS=[
- {id:'M-ACC',name:'Item accuracy (running)',get:()=>T.scored?`${T.correct}/${T.scored}  ${Math.round(100*T.correct/T.scored)}%`:'\u2014'},
- {id:'M-RT',name:'Response time — engagement gated',get:()=>rtStr()},
- {id:'M-RTFIRST',name:'First-action latency (encode/plan)',get:()=>T.firstLat==null?'\u2014':T.firstLat+' ms'},
- {id:'M-REV',name:'Revisions / answer changes',get:()=>T.revThis+''},
- {id:'M-ERRTYPE',name:'Error type (per-rule near-miss)',get:()=>T.lastErr},
- {id:'M-DIFFREACH',name:'Max difficulty reached',get:()=>T.maxSolved?`L${T.maxSolved} · ${levelRules(T.maxSolved)} rules`:'\u2014'},
+ {id:'M-RT',name:'Response time — this item / mean',get:()=>M.rt==null?'\u2014':`${M.rt} ms${M.rts.length>1?` (mean ${mean(M.rts)})`:''}`},
+ {id:'M-RTFIRST',name:'First-action latency (encode / plan)',get:()=>M.firstLat==null?'\u2014':M.firstLat+' ms'},
+ {id:'M-REV',name:'Revisions / answer changes',get:()=>String(M.rev)},
+ {id:'M-ENGAGE',name:'Focus losses (tracked, not enforced)',get:()=>String(M.blur)},
+ {id:'M-RAPIDGUESS',name:'Rapid-guess flag (tracked, not enforced)',get:()=>M.rt==null?'\u2014':(M.rt<350?'1 · rapid':'0')},
 ];
 function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>
   `<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span>`
   +`<span class="mname">${m.name}</span></div>`).join('');}
-function learnRate(){return T.scored?(Math.max(0,T.maxSolved-1)/T.scored).toFixed(2):'0.00';}
-function renderDifficulty(){$('#difficulty').innerHTML=`<div class="dtop"><b>DIFFICULTY</b><span>${T.level}/6</span></div><div class="dtrack"><div class="dfill" style="width:${T.level/6*100}%"></div></div><div class="dsub"><span>reach ${T.maxSolved||'\u2014'}</span><span>learn ${learnRate()} lvl/trial</span></div>`;}
+function renderDifficulty(){const d=current?current.difficulty:null,r=current?current.content.ruleCount:null;
+  $('#difficulty').innerHTML=`<div class="dtop"><b>SERVED DIFFICULTY</b><span>${d==null?'\u2014':d.toFixed(1)}/20</span></div>`
+   +`<div class="dtrack"><div class="dfill" style="width:${d==null?0:Math.max(0,Math.min(100,d/20*100))}%"></div></div>`
+   +`<div class="dsub"><span>co-acting rules ${r==null?'\u2014':r}</span><span>score: server-side</span></div>`;}
 function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});renderDifficulty();}
-function log(msg){const now=new Date(),t=Math.max(0,Date.now()-T.itemStart),d=document.createElement('div');
+function log(msg){const now=new Date(),t=Math.max(0,Date.now()-(itemStart||Date.now())),d=document.createElement('div');
   d.innerHTML=`<span class="t">${now.toISOString().slice(11,23)} · +${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
-function gate(rt){const rapid=rt<350,blur=T.blurThis>0,base=T.rts.length>2?mean(T.rts.slice(0,-1)):0,drift=base>0&&rt>base*2.4;return{ok:!rapid&&!blur&&!drift,reason:rapid?'rapid':blur?'blur':drift?'drift':'ok'};}
 
-/* ---------- ghost hand ---------- */
+/* ---------- telemetry emit (stream to host + local log + per-item buffer) ---------- */
+function emitEvent(kind,extra){
+  const event=Object.assign({t:itemStart?Date.now()-itemStart:0,kind,itemId:current?current.itemId:null},extra||{});
+  itemTelemetry.push(event);
+  post({type:'telemetry',event});
+  log(`<b>${kind}</b>`+(extra&&Object.keys(extra).length?' · '+JSON.stringify(extra):''));
+}
+
+/* ---------- ghost hand: wordless GESTURE hint (never reveals the answer) ---------- */
 const ghost=$('#ghost');
 function ghostShow(v){ghost.classList.toggle('show',v);}
 function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
-async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(720);}
-async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(520);}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(700);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(500);}
+async function gestureHint(){
+  // Teaches the GESTURE only: look at the gap, reach the tray, tap, press check.
+  // It does NOT select any tile and does NOT indicate which option is correct.
+  const empty=$('#matrix .cell.empty'),tray=$('#tray'),go=$('#go');
+  ghostShow(true);await sleep(250);
+  await ghostTo(empty);await sleep(200);
+  await ghostTo(tray);await ghostTap();await sleep(150);
+  await ghostTo(go);await ghostTap();await sleep(200);
+  ghostShow(false);await sleep(300);
+}
 
-/* ---------- flow ---------- */
-let phase='demo',cur=null,staged=-1,locked=false,scoredIndex=0,demoRun=0;
-const TOTAL=6;
-const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
-function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
-function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
-function lights(on){$('#lights').classList.toggle('on',on);}
-function disableTray(d){locked=d;}
-function renderItem(item){cur=item;const m=$('#matrix');m.style.gridTemplateColumns=`repeat(${item.size},1fr)`;m.innerHTML='';
-  for(let r=0;r<item.size;r++)for(let c=0;c<item.size;c++){const cell=document.createElement('div');cell.className='cell';
-    if(r===item.size-1&&c===item.size-1){cell.classList.add('empty');cell.id='emptycell';}
-    else cell.innerHTML=tileSVG(item.grid[r][c]);m.appendChild(cell);}
+/* ---------- rendering the served item ---------- */
+function setCue(k,txt){const el=$('#phasecue');el.dataset.phase=k;el.textContent=txt;}
+function setStatus(kind,msg){const el=$('#status');el.className=kind;el.textContent=msg;}
+function fillEmpty(tile){const cell=$('#emptycell');if(!cell)return;cell.classList.remove('empty');
+  cell.classList.add('filled-anim');cell.innerHTML=tileSVG(tile);setTimeout(()=>cell.classList.remove('filled-anim'),300);}
+function renderServedItem(item){
+  current=item;submitted=false;interactive=false;staged=null;firstKey=null;selectionOrder=[];
+  M.rev=0;M.firstLat=null;M.blur=0;itemTelemetry=[];
+  const G=item.content.gridSize,cells=item.content.matrix.cells;
+  const m=$('#matrix');m.style.gridTemplateColumns=`repeat(${G},1fr)`;m.innerHTML='';
+  for(let r=0;r<G;r++)for(let c=0;c<G;c++){const cell=document.createElement('div');cell.className='cell';
+    const t=cells[r][c];
+    if(t===null){cell.classList.add('empty');cell.id='emptycell';}
+    else cell.innerHTML=tileSVG(t);
+    m.appendChild(cell);}
   const tray=$('#tray');tray.innerHTML='';
-  item.options.forEach((o,i)=>{const b=document.createElement('button');b.className='opt';b.dataset.i=i;b.dataset.key=i+1;b.setAttribute('aria-label',`option ${i+1}`);b.innerHTML=tileSVG(o.attr);tray.appendChild(b);});
-  lights(false);$('#go').classList.remove('ready');
-  staged=-1;T.itemStart=Date.now();T.firstActed=false;T.firstLat=null;T.revThis=0;T.blurThis=0;renderMeters();}
-function fillEmpty(attr){const cell=$('#emptycell');if(!cell)return;cell.classList.remove('empty');
-  cell.classList.add('filled-anim');cell.innerHTML=tileSVG(attr);setTimeout(()=>cell.classList.remove('filled-anim'),300);}
-function onOpt(el){if(locked||phase==='demo'||phase==='done')return;const idx=+el.dataset.i;
-  if(!T.firstActed){T.firstActed=true;T.firstLat=Date.now()-T.itemStart;log('first tap · option '+idx);}
-  if(staged!==-1&&staged!==idx){T.revThis++;log('changed choice '+staged+' \u2192 '+idx);}
-  staged=idx;$$('#tray .opt').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');
-  fillEmpty(cur.options[idx].attr);$('#go').classList.add('ready');renderMeters();}
-function feedback(correct){const opt=$$('#tray .opt')[staged];if(opt)opt.classList.add(correct?'correct':'wrong');
-  if(correct)lights(true);else{$('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),450);
-    const ci=cur.options.findIndex(o=>o.tag==='correct');$$('#tray .opt')[ci].classList.add('correct');}
-  disableTray(true);$('#go').classList.remove('ready');}
-function submit(){if(staged===-1)return;const opt=cur.options[staged];const rt=Date.now()-T.itemStart;const correct=opt.tag==='correct';
-  if(phase==='warmup'){feedback(correct);setStatus(correct?'ok':'no',correct?'\u2713 Correct - practice':'\u2717 Not quite - the correct tile is highlighted (practice)');log('warm-up '+(correct?'correct':'incorrect')+' — UNSCORED');setTimeout(nextPhase,950);return;}
-  T.scored++;T.rts.push(rt);T.gates.push(gate(rt));
-  if(correct){T.correct++;T.maxSolved=Math.max(T.maxSolved,cur.level);T.lastErr='none';}
-  else T.lastErr=opt.tag.indexOf('rule:')===0?'near-miss ('+opt.tag.split(':')[1]+')':'random';
-  T.level=Math.max(1,Math.min(6,T.level+(correct?1:-1)));
-  feedback(correct);
-  setStatus(correct?'ok':'no',correct?'\u2713 Correct':'\u2717 Not quite - the correct tile is highlighted');
-  log(`SUBMIT ${scoredIndex+1}/${TOTAL} · L${cur.level} ${cur.nRules} rules \u2192 ${correct?'CORRECT':'wrong ['+opt.tag+']'} · sat ${opt.rulesSat}/${cur.nRules} · ${last(T.gates).reason} · next L${T.level}`);
-  renderMeters();setTimeout(nextPhase,1150);}
-function nextPhase(){if(phase==='warmup'){scoredIndex=0;T.level=1;startScored();}
-  else if(phase==='scored'){scoredIndex++;scoredIndex<TOTAL?startScored():finish();}}
-function startWarmup(){phase='warmup';setCue('warmup');setStatus('neutral','Practice - this one is not scored.');disableTray(false);renderItem(genItem(1));log('— warm-up · 2x2 · one rule · UNSCORED —');}
-function startScored(){phase='scored';setCue('scored',(scoredIndex+1)+'/'+TOTAL);setStatus('neutral','Tap the tile that completes the pattern.');disableTray(false);renderItem(genItem(T.level));
-  log(`— SCORED ${scoredIndex+1}/${TOTAL} · L${cur.level} · ${cur.size}x${cur.size} · ${cur.nRules} rules —`);}
-function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');disableTray(true);lights(true);
-  log(`— DONE · accuracy ${T.correct}/${T.scored} · ceiling L${T.maxSolved} —`);}
-async function runDemo(){const token=++demoRun;phase='demo';setCue('demo');setStatus('neutral','Watch the example.');disableTray(true);
-  const d=genItem(1);renderItem(d);log('ghost-hand demo · wordless · <10s');
-  const ci=d.options.findIndex(o=>o.tag==='correct');
-  ghostShow(true);await sleep(300);await ghostTo($('#matrix .cell.empty'));await sleep(250);
-  await ghostTo($$('#tray .opt')[ci]);await ghostTap();
-  $$('#tray .opt')[ci].classList.add('correct');fillEmpty(d.options[ci].attr);lights(true);
-  await sleep(500);await ghostTo($('#go'));await ghostTap();await sleep(350);ghostShow(false);await sleep(400);if(token===demoRun)startWarmup();}
+  item.content.options.forEach((o,i)=>{const b=document.createElement('button');b.className='opt';
+    b.dataset.key=o.key;b.dataset.i=i;b.setAttribute('aria-label','option '+(i+1));b.innerHTML=tileSVG(o.tile);tray.appendChild(b);});
+  $('#lights').classList.remove('recv');$('#go').classList.remove('ready');
+  itemStart=Date.now();
+  renderMeters();
+  emitEvent('render',{gridSize:G,ruleCount:item.content.ruleCount,difficulty:item.difficulty,options:item.content.options.length});
+}
 
-$('#tray').addEventListener('click',e=>{const o=e.target.closest('.opt');if(o)onOpt(o);});
+/* ---------- interaction ---------- */
+function stageOption(el){
+  if(!interactive||submitted)return;
+  const key=el.dataset.key,idx=+el.dataset.i;
+  if(firstKey===null){firstKey=key;M.firstLat=Date.now()-itemStart;emitEvent('first_action',{key,latencyMs:M.firstLat});}
+  if(staged!==null&&staged!==key){M.rev++;emitEvent('change',{from:staged,to:key});}
+  staged=key;selectionOrder.push(key);
+  $$('#tray .opt').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');
+  fillEmpty(current.content.options[idx].tile);
+  $('#go').classList.add('ready');renderMeters();
+}
+function submit(){
+  if(!interactive||submitted||staged===null)return;
+  const rt=Date.now()-itemStart;
+  M.rt=rt;M.rts.push(rt);
+  submitted=true;interactive=false;$('#go').classList.remove('ready');$('#lights').classList.add('recv');
+  // NEUTRAL acknowledgment only — never correct/incorrect.
+  setCue('done','Answer sent');
+  setStatus('neutral',standalone?'Answer received. Loading the next puzzle.':'Answer received. Next puzzle coming up.');
+  emitEvent('submit',{selectedKey:staged,rtMs:rt});
+  const response={selectedKey:staged,firstSelectedKey:firstKey,selectionOrder:selectionOrder.slice(),changeCount:M.rev};
+  const metrics={'M-RT':rt,'M-RTFIRST':M.firstLat==null?rt:M.firstLat,'M-REV':M.rev,'M-ENGAGE':M.blur,'M-RAPIDGUESS':rt<350?1:0};
+  const result={itemId:current.itemId,typeCode:current.typeCode,domain:current.domain,response,metrics,telemetry:itemTelemetry.slice()};
+  post({type:'result',result});
+  log('RESULT emitted \u2192 '+JSON.stringify({response,metrics}));
+  renderMeters();
+  if(standalone)setTimeout(advanceStandalone,1150);
+}
+
+/* ---------- host-driven lifecycle ---------- */
+function onInit(item){
+  clearTimeout(startTimer);
+  if(!item||!item.content||!item.content.matrix){log('init ignored: malformed ServedItem');return;}
+  renderServedItem(item);
+  setCue('warmup','Get ready');
+  setStatus('neutral','Get ready for the puzzle.');
+  // Lenient: if the host never sends {type:'start'}, begin on our own shortly.
+  startTimer=setTimeout(()=>{if(!interactive&&!submitted)beginItem(false);},500);
+}
+async function beginItem(withTutorial){
+  if(interactive||submitted||!current)return;
+  if(withTutorial&&!tutorialShown){tutorialShown=true;await gestureHint();if(submitted)return;}
+  interactive=true;itemStart=Date.now();
+  setCue('scored','Your turn');
+  setStatus('neutral','Tap the tile that completes the pattern, then press the check.');
+  renderMeters();
+}
+function onHostMessage(e){
+  const d=e.data;if(!d||d.source!==HOST_SRC)return;
+  if(d.type==='init')onInit(d.item);
+  else if(d.type==='start'){clearTimeout(startTimer);beginItem(!!d.tutorial);}
+}
+
+/* ---------- standalone fallback (QA when there is no host) ---------- */
+function toServed(b){const{answer,scoring,provenance,...s}=b;return s;}
+async function loadBankSamples(){
+  try{
+    const res=await fetch('../banks/FLU-MATRIX-01.jsonl',{cache:'no-store'});
+    if(res.ok){
+      const all=(await res.text()).trim().split('\n').filter(Boolean).map(l=>JSON.parse(l)).map(toServed);
+      all.sort((a,b)=>a.difficulty-b.difficulty);
+      const N=Math.min(12,all.length),pick=[];
+      for(let i=0;i<N;i++)pick.push(all[N===1?0:Math.round(i*(all.length-1)/(N-1))]);
+      log('standalone: fetched '+all.length+' bank items; cycling '+pick.length+' across difficulty');
+      return pick;
+    }
+  }catch(_){/* file:// blocks fetch — use inline fallback */}
+  log('standalone: bank fetch unavailable (open via a local server for the full bank) — using inline samples');
+  return INLINE_SAMPLES.slice();
+}
+function playStandalone(){const item=standaloneQueue[standaloneIdx%standaloneQueue.length];onInit(item);beginItem(standaloneIdx===0);}
+function advanceStandalone(){standaloneIdx++;playStandalone();}
+async function bootstrapStandalone(){if(standalone)return;standalone=true;standaloneQueue=await loadBankSamples();standaloneIdx=0;playStandalone();}
+
+/* Inline served-item fallback (real items exported from the bank; answer stripped). */
+const INLINE_SAMPLES=[
+{"itemId":"98135cc3-5597-4306-badb-0e02cc647f10","typeCode":"FLU-MATRIX-01","domain":"fluid_reasoning","difficulty":1.11,"ageBands":["K-1"],"demoPath":"demos/FLU-MATRIX-01.html","content":{"typeCode":"FLU-MATRIX-01","gridSize":2,"activeRules":["shape"],"ruleCount":1,"matrix":{"rows":2,"cols":2,"cells":[[{"shape":"triangle","color":"teal","count":1,"rot":0},{"shape":"kite","color":"teal","count":1,"rot":0}],[{"shape":"kite","color":"teal","count":1,"rot":0},null]],"blank":{"row":1,"col":1}},"options":[{"key":"A","tile":{"shape":"triangle","color":"teal","count":1,"rot":0}},{"key":"B","tile":{"shape":"drop","color":"teal","count":1,"rot":0}},{"key":"C","tile":{"shape":"hexagon","color":"teal","count":1,"rot":0}},{"key":"D","tile":{"shape":"kite","color":"teal","count":1,"rot":0}}]},"syntheticOnly":true,"validated":false},
+{"itemId":"8c09c448-25a0-4493-87cd-92072c3c36bd","typeCode":"FLU-MATRIX-01","domain":"fluid_reasoning","difficulty":10.68,"ageBands":["4-5"],"demoPath":"demos/FLU-MATRIX-01.html","content":{"typeCode":"FLU-MATRIX-01","gridSize":3,"activeRules":["shape","color"],"ruleCount":2,"matrix":{"rows":3,"cols":3,"cells":[[{"shape":"triangle","color":"teal","count":1,"rot":0},{"shape":"drop","color":"teal","count":1,"rot":0},{"shape":"kite","color":"teal","count":1,"rot":0}],[{"shape":"drop","color":"coral","count":1,"rot":0},{"shape":"kite","color":"coral","count":1,"rot":0},{"shape":"triangle","color":"coral","count":1,"rot":0}],[{"shape":"kite","color":"violet","count":1,"rot":0},{"shape":"triangle","color":"violet","count":1,"rot":0},null]],"blank":{"row":2,"col":2}},"options":[{"key":"A","tile":{"shape":"triangle","color":"teal","count":1,"rot":0}},{"key":"B","tile":{"shape":"drop","color":"teal","count":1,"rot":0}},{"key":"C","tile":{"shape":"drop","color":"violet","count":1,"rot":0}},{"key":"D","tile":{"shape":"star","color":"violet","count":1,"rot":0}}]},"syntheticOnly":true,"validated":false},
+{"itemId":"267bbbc4-0f76-407c-a3f1-95dd090509e9","typeCode":"FLU-MATRIX-01","domain":"fluid_reasoning","difficulty":19.89,"ageBands":["6-8"],"demoPath":"demos/FLU-MATRIX-01.html","content":{"typeCode":"FLU-MATRIX-01","gridSize":3,"activeRules":["shape","color","count","rotation"],"ruleCount":4,"matrix":{"rows":3,"cols":3,"cells":[[{"shape":"kite","color":"blue","count":1,"rot":0},{"shape":"triangle","color":"blue","count":2,"rot":120},{"shape":"drop","color":"blue","count":3,"rot":240}],[{"shape":"triangle","color":"violet","count":1,"rot":240},{"shape":"drop","color":"violet","count":2,"rot":0},{"shape":"kite","color":"violet","count":3,"rot":120}],[{"shape":"drop","color":"ink","count":1,"rot":120},{"shape":"kite","color":"ink","count":2,"rot":240},null]],"blank":{"row":2,"col":2}},"options":[{"key":"A","tile":{"shape":"hexagon","color":"blue","count":3,"rot":0}},{"key":"B","tile":{"shape":"triangle","color":"ink","count":2,"rot":0}},{"key":"C","tile":{"shape":"triangle","color":"ink","count":3,"rot":0}},{"key":"D","tile":{"shape":"triangle","color":"blue","count":3,"rot":0}},{"key":"E","tile":{"shape":"triangle","color":"ink","count":3,"rot":120}},{"key":"F","tile":{"shape":"pentagon","color":"ink","count":3,"rot":0}}]},"syntheticOnly":true,"validated":false}
+];
+
+/* ---------- wiring ---------- */
+$('#tray').addEventListener('click',e=>{const o=e.target.closest('.opt');if(o)stageOption(o);});
 $('#go').addEventListener('click',()=>{if($('#go').classList.contains('ready'))submit();});
-$('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
-document.addEventListener('keydown',e=>{if(!locked&&phase!=='done'){if(/^[1-6]$/.test(e.key)){const o=$$('#tray .opt')[+e.key-1];if(o)onOpt(o);}if(e.key==='Enter'&&$('#go').classList.contains('ready'))submit();}});
-window.addEventListener('blur',()=>{if(phase==='scored'&&!locked){T.blurThis++;log('engagement · focus lost');renderMeters();}});
-buildMeters();renderMeters();runDemo();
+$('#replay').addEventListener('click',()=>{if(current&&!submitted)gestureHint();});
+document.addEventListener('keydown',e=>{
+  if(!interactive||submitted)return;
+  if(/^[1-9]$/.test(e.key)){const o=$$('#tray .opt')[+e.key-1];if(o)stageOption(o);}
+  else{const o=$$('#tray .opt').find(b=>b.dataset.key.toUpperCase()===e.key.toUpperCase());if(o)stageOption(o);}
+  if(e.key==='Enter'&&$('#go').classList.contains('ready'))submit();
+});
+window.addEventListener('blur',()=>{if(interactive&&!submitted){M.blur++;emitEvent('engagement',{reason:'blur'});renderMeters();}});
+
+buildMeters();renderMeters();
+window.addEventListener('message',onHostMessage);
+post({type:'ready'});
+if(!embedded){bootstrapStandalone();}
+else{setTimeout(()=>{if(!current)bootstrapStandalone();},1000);} // QA-safe if a host embeds but never inits
 </script>
 </body>
 </html>
