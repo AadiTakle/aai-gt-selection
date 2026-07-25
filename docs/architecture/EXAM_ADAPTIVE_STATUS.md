@@ -28,8 +28,15 @@ integer bucket while comfortably passing the real rule. All 44 banks currently p
 
 ### Open defects found this session
 
-00. **THE REPORTED SCORE IS NOT COMPUTED FROM THE VERIFIED TRACE (integrity-critical, fix in
-   flight on `feat/exam-score-input`; E-084).** `/api/exam-results` scores `scoreExam(body.scoredItems)`
+00. **RESOLVED 2026-07-25 — the reported score is now computed from the verified trace (E-084).**
+   `/api/exam-results` reads its scorer input from `app.exam_scorer_input_json` when the payload
+   carries an `examSessionId`, and has no fallback: an unreadable trace returns 503 and stores
+   nothing, because a persisted score is a claim the system cannot withdraw. A forged payload
+   claiming every item correct at difficulty 20 scored 20.0 before and scores the trace's own
+   value after. `pnpm exam:reconcile` now exits 0 on every session recorded since. The original
+   defect, kept for the record:
+
+   `/api/exam-results` scored `scoreExam(body.scoredItems)`
    — the trace the *client* posts — and never compares it to `app.exam_item_response`, which the
    server's own verifier wrote. On real session `3e03558f` the outcome claims spatial accuracy 0.651
    over 6 items while all 6 persisted spatial responses are `correct=false`; re-scoring the stored
@@ -203,6 +210,25 @@ pnpm --filter @gt-selection/web dev --port 3400
   session with 8 responses and 18 telemetry events whose recorded type codes match what the browser
   displayed. A full 22-item battery through the real route handlers persists 22 responses and 88
   telemetry events. What is NOT yet trustworthy on that run is the composite — see open defect 00.
+- **Full-stack state as of 2026-07-25, all verified against a database rebuilt from the committed
+  migrations** (`supabase db reset --local` applies all nine cleanly, including the lexicon's
+  apply-time hash guard, then `pnpm db:users`):
+
+  | evidence | result |
+  |---|---|
+  | per-type verifiers ported to plpgsql (D-027) | **30/30 served**; the 31st is the blocked `CX-achieve-02` |
+  | app tier vs database, `pnpm exam:verify:diff` | **2,268/2,268 cases agree** across all 63 served types, 0 pending |
+  | non-vacuous share of that | **360/1,080** per-type agreements are cases BOTH sides scored correct — 12 per type, so no type passes on "both said false" alone |
+  | pgTAP | **465 tests across 20 files, PASS** |
+  | complete battery driven in a real browser | **32 items, 0 stuck**, terminated on its own stop rule, no failing `/api/exam-*` call |
+  | that battery's trace | 32 responses, 72 telemetry events, composite 2.526 by `packages/exam-scoring` |
+  | `pnpm exam:reconcile` on it | **RECONCILED** — 32/32 verdicts reproduce, trace hash unchanged, composite recomputes to the stored digits |
+
+  One observation from that run worth following up rather than filing as a defect: the 32 items
+  drew on only **9 distinct types**. The child skipped every item, so the estimate pinned to the
+  floor and selection kept asking for the easiest items available, which few types stock. Whether
+  a floor-pinned or ceiling-pinned child should still see a wider spread of types is a selection
+  question, not a scoring one, and no requirement currently fixes it either way.
 - Check a persisted session: `pnpm exam:reconcile` (latest session), `pnpm exam:reconcile <uuid>`, or
   `--all`. It re-verifies every stored response against the database's own verifier, re-hashes the
   trace, and re-scores it through `packages/exam-scoring`, so it fails loudly when a recorded score
