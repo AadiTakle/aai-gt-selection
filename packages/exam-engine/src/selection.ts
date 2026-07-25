@@ -131,15 +131,20 @@ export function nextItem(state: SessionState, typeCode: TypeCode, banks: Banks):
   return toServedItem(best);
 }
 
-/** Ordering for item selection: age-band match, then closeness to target, then seeded id tie-break. */
-function itemIsBetter(a: BankItem, b: BankItem, target: number, state: SessionState): boolean {
-  const aMatch = a.ageBands.includes(state.gradeBand) ? 0 : 1;
-  const bMatch = b.ageBands.includes(state.gradeBand) ? 0 : 1;
-  if (aMatch !== bMatch) return aMatch < bMatch;
+/**
+ * Targeting cost of one candidate: distance from the estimate, plus `ageBandBias` scale points of
+ * penalty when the item is not tagged for the child's grade band.
+ */
+function targetingCost(item: BankItem, target: number, state: SessionState): number {
+  const penalty = item.ageBands.includes(state.gradeBand) ? 0 : state.config.ageBandBias;
+  return Math.abs(item.difficulty - target) + penalty;
+}
 
-  const aDist = Math.abs(a.difficulty - target);
-  const bDist = Math.abs(b.difficulty - target);
-  if (aDist !== bDist) return aDist < bDist;
+/** Ordering for item selection: lowest targeting cost, then seeded id tie-break. */
+function itemIsBetter(a: BankItem, b: BankItem, target: number, state: SessionState): boolean {
+  const aCost = targetingCost(a, target, state);
+  const bCost = targetingCost(b, target, state);
+  if (aCost !== bCost) return aCost < bCost;
 
   const aJit = hashUnit(state.config.seed, `item:${a.itemId}`);
   const bJit = hashUnit(state.config.seed, `item:${b.itemId}`);

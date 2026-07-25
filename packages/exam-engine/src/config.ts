@@ -118,10 +118,16 @@ export const CORE_METRICS: CoreMetricSpec[] = [
  * `minUpdate` asymptote of 0.25 is finer than the 0.4 fixed floor it replaces, so the tail of the
  * scale is measured MORE precisely, not less. Every one of these is a policy knob, not a constant:
  * see `docs/governance/DECISION_LOG.md` D-023.
+ *
+ * `ageBandBias` 0.5 prices the age-band content preference at half a difficulty point, so the band
+ * decides between comparably targeted items but cannot buy the 2-3 point targeting error that used
+ * to bias the estimate wherever the band's item supply ran out (D-025). Anything from 0 to 1.0
+ * holds the same accuracy; 1.5 and wider reopens the bias.
  */
 export const DEFAULT_CONFIG: EngineConfig = {
   seed: 0xc0ffee,
   difficultyWindow: 3,
+  ageBandBias: 0.5,
   accWindowSize: 10,
   estWindowSize: 10,
   minUpdate: 0.25,

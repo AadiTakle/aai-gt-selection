@@ -198,6 +198,13 @@ export interface EngineConfig {
   seed: number;
   /** ± difficulty window (in scale points) for item selection. */
   difficultyWindow: number;
+  /**
+   * How many scale points of targeting error the engine will accept to serve an age-band-matched
+   * item. Item selection ranks candidates by `|difficulty − estimate| + (band match ? 0 : bias)`,
+   * so `0` makes the age band a pure tie-break between equally well-targeted items and a very
+   * large value makes an age-band match override targeting entirely.
+   */
+  ageBandBias: number;
   /** Max length of the per-area recent-accuracy window. */
   accWindowSize: number;
   /** Max length of the per-area recent-estimate window (used for the stability check). */
