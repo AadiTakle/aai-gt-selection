@@ -5,57 +5,53 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>GB-SHAPEFIT-01 · Shape Smith</title>
 <style>
-  :root{--bg1:#f3eefe;--bg2:#eef4ff;--ink:#26304a;--card:#fff;--accent:#8b5cf6;--good:#22b573;--bad:#ff6b6b;
+  :root{--bg1:#eef4ff;--bg2:#f7ecff;--ink:#26304a;--card:#fff;--accent:#4f46e5;--good:#22b573;
     --tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
-  *{box-sizing:border-box}html,body{margin:0;height:100%}
+  *{box-sizing:border-box}html,body{margin:0;min-height:100%}
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
-  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:12px;min-width:0}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:10px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
   #howto{max-width:640px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
   #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
   #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
-  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:#5b6cff;border:2px solid #c9d0ff;min-height:30px}
-  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
-  #phasecue[data-phase="scored"]{background:var(--accent);color:#fff;border-color:var(--accent)}
-  #phasecue[data-phase="done"]{background:#ede6fc;color:#6d3ecf;border-color:#d7c3fb}
-  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
-  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
-  #stagecard{background:var(--card);border-radius:24px;padding:20px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:14px;max-width:640px;width:100%}
-  #grid{display:grid;gap:4px;background:#e5ddf6;padding:8px;border-radius:12px;touch-action:none}
-  .cell{width:44px;height:44px;border-radius:8px;background:transparent}
-  .cell.out{background:#faf7ff;box-shadow:inset 0 0 0 2px #e0d5f7}
-  .cell.filled{box-shadow:none}
-  #tray{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;min-height:70px;align-items:center;touch-action:none}
-  .tp{padding:6px;border-radius:10px;background:#f3eefe;border:3px solid #e0d5f7;cursor:grab;display:grid;gap:2px;position:relative}
-  .tp.sel{border-color:var(--accent);background:#e9defc;box-shadow:0 0 0 3px #d7c3fb}
-  .tp .pc{width:14px;height:14px;border-radius:3px;background:transparent}
-  .dragghost{position:fixed;pointer-events:none;z-index:80;display:grid;gap:2px;opacity:.85;transform:translate(-50%,-50%)}
-  .dragghost .pc{width:22px;height:22px;border-radius:4px}
-  #row{display:flex;gap:10px;align-items:center}
-  button{font:inherit;border:0;cursor:pointer;border-radius:12px;font-weight:700}
-  #rotbtn,#flipbtn{background:#f3eefe;color:var(--accent);padding:9px 14px}
-  #rotbtn:disabled,#flipbtn:disabled{opacity:.4;cursor:not-allowed}
-  #done{background:var(--accent);color:#fff;padding:10px 22px;font-size:16px;opacity:.5;pointer-events:none;transition:.2s}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:var(--accent);border:2px solid #d0d5fb;min-height:30px}
+  #phasecue[data-phase="waiting"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="locked"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+  #prompt{max-width:640px;width:100%;font-size:15px;font-weight:800;color:#33375a;text-align:center;min-height:20px}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}#status.ok{color:var(--good)}#status.neutral{color:#8a93b5}
+  #stagecard{background:var(--card);border-radius:24px;padding:20px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:14px;max-width:680px;width:100%}
+  #board{display:grid;gap:3px;background:#c9d3ef;padding:8px;border-radius:12px}
+  .cell{border-radius:6px;background:transparent}
+  .cell.out{background:#f3f5fc;box-shadow:inset 0 0 0 2px #d7deef;cursor:pointer}
+  .cell.filled{box-shadow:inset 0 0 0 2px rgba(255,255,255,.55);cursor:pointer}
+  #tray{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;min-height:60px;align-items:center}
+  .tp{padding:6px;border-radius:10px;background:#eef1ff;border:3px solid #d7deff;cursor:pointer}
+  .tp.sel{border-color:var(--accent);background:#e1e5ff;box-shadow:0 0 0 3px #c7cdfa}
+  .pgrid{display:grid;gap:2px}
+  .pc{width:13px;height:13px;border-radius:3px;background:transparent}
+  #row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+  button{font:inherit;border:0;cursor:pointer;border-radius:12px}
+  .op{background:#eef1ff;color:var(--accent);padding:9px 16px;font-weight:800;font-size:15px}
+  .op:disabled{opacity:.4;cursor:not-allowed}
+  #done{background:var(--accent);color:#fff;padding:10px 22px;font-weight:800;font-size:15px;opacity:.45;pointer-events:none;transition:.2s}
   #done.ready{opacity:1;pointer-events:auto}
-  #replay{width:44px;height:44px;background:#eef1ff;color:var(--accent);font-size:19px;border-radius:50%}
+  #replay{width:44px;height:44px;background:#eef1ff;color:var(--accent);font-size:18px;border-radius:50%}
   .shake{animation:shake .4s}@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
-  .hotkeys{font-size:11px;color:#a3aecb}
-  #ghost{position:fixed;left:0;top:0;font-size:38px;pointer-events:none;z-index:60;opacity:0;transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  .hotkeys{font-size:11px;color:#a3aecb;text-align:center}
+  #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:60;opacity:0;transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
   #ghost.show{opacity:.92}#ghost .ring{position:absolute;left:-6px;top:-6px;width:26px;height:26px;border-radius:50%;border:3px solid var(--accent);opacity:0}
   #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
-  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry{width:320px;flex:0 0 320px;min-height:100vh;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
   #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
-  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
-  .mrow{display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:baseline}
-  .mid{color:var(--tel-key);font-weight:700}.mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
-  #diffmeter{margin:0 12px 8px;background:#1b2340;border-radius:8px;padding:8px 10px}
-  #diffmeter .bar{height:8px;background:#232c4d;border-radius:6px;overflow:hidden;margin-top:6px}
-  #diffmeter .bar>i{display:block;height:100%;background:linear-gradient(90deg,#7fffcf,#8b5cf6);width:0%;transition:width .3s}
-  #logwrap{border-top:1px solid #262f52;margin-top:auto}
-  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
-  #log{height:190px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
-  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
-  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
+  #itemcard{margin:12px 12px 4px;padding:10px;border:1px solid #26315a;border-radius:12px}
+  .itemRow{display:flex;justify-content:space-between;color:#8da2d9;font-size:11px;padding:2px 0}.itemRow b{color:#cfd8ff}
+  #mlist{padding:8px 12px;display:grid;gap:7px}
+  .mrow{display:grid;grid-template-columns:104px 1fr;gap:6px}
+  .mid{color:var(--tel-key);font-weight:800}.mval{color:#fff;text-align:right;overflow-wrap:anywhere}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-4px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}#logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:190px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}#log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;min-height:0;height:300px}}
+  @media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
 </style>
 </head>
 <body>
@@ -63,351 +59,299 @@
     <div id="badge">GB-SHAPEFIT-01 · Shape Smith</div>
     <header id="howto">
       <h1>How to use — Shape Smith</h1>
-      <p>Watch the pointer solve one example, then try one practice item (not scored). Drag each piece onto the outline (or tap a piece, then tap a square) to fill the whole shape with no gaps; use rotate (R) and flip (F) to turn pieces. Press done (<b>✓</b>) to submit. It gets harder each time you fill it exactly.</p>
+      <p>Fill the whole outline with pieces from the tray. Tap a piece to pick it, tap turn (or flip, when it is offered) to change how it sits, then tap a square in the outline to drop it. Tap a piece you already dropped to take it back. Some tray pieces do not belong. Use as few turns and drops as you can, then press DONE.</p>
     </header>
-    <div id="phasecue" data-phase="demo">Watch the example</div>
+    <div id="phasecue" data-phase="waiting">Waiting for item</div>
+    <div id="prompt"></div>
     <div id="stagecard">
-      <div id="grid"></div>
+      <div id="board"></div>
       <div id="tray"></div>
       <div id="row">
-        <button id="replay" title="replay demo">↻</button>
-        <button id="rotbtn" title="rotate (R)">⟳ rotate</button>
-        <button id="flipbtn" title="flip (F)">⇋ flip</button>
-        <button id="done" title="submit">✓ done</button>
+        <button id="replay" title="show the controls again">&#8635;</button>
+        <button class="op" id="rotbtn" title="turn the piece a quarter turn (R)">&#8635; turn</button>
+        <button class="op" id="flipbtn" title="mirror the piece (F)">&#8646; flip</button>
+        <button id="done" title="submit">DONE</button>
       </div>
-      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
-      <div class="hotkeys">hotkeys: R rotate · F flip · drag a piece onto the outline (or tap piece, then tap a cell)</div>
+      <div class="hotkeys">R turns the picked piece &middot; F flips it &middot; tap a piece then tap a square &middot; tap a dropped piece to take it back &middot; Enter submits</div>
+      <div id="status" class="neutral">Waiting for an item from the host…</div>
     </div>
   </div>
   <aside id="telemetry">
     <h3>Live telemetry · per-child</h3>
-    <div id="diffmeter">difficulty <span id="dlab">1/6</span><div class="bar"><i id="dbar"></i></div></div>
+    <div id="itemcard">
+      <div class="itemRow"><span>ITEM</span><b id="i_id">—</b></div>
+      <div class="itemRow"><span>OUTLINE</span><b id="i_board">—</b></div>
+      <div class="itemRow"><span>FILL</span><b id="i_fill">—</b></div>
+      <div class="itemRow"><span>DIFFICULTY</span><b id="i_diff">—</b></div>
+    </div>
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="30" height="30" fill="#ffffff" stroke="#4f46e5" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
-const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
-const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0,last=a=>a[a.length-1];
-const COLORS=['#8b5cf6','#0891b2','#d97706','#be185d','#16a34a','#dc2626'];
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
-/* ---------- geometry ---------- */
-function key2(r,c){return r+','+c;}
-function neighbors2(r,c){return [[r-1,c],[r+1,c],[r,c-1],[r,c+1]];}
-function inBounds(r,c,R,C){return r>=0&&r<R&&c>=0&&c<C;}
-function normalize(cells){
-  const mr=Math.min(...cells.map(c=>c[0])),mc=Math.min(...cells.map(c=>c[1]));
-  return cells.map(c=>[c[0]-mr,c[1]-mc]).sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
-}
-function rotateOffsets(offs){return normalize(offs.map(([r,c])=>[c,-r]));}
-function flipOffsets(offs){return normalize(offs.map(([r,c])=>[r,-c]));}
-function genTargetCells(R,C,n){
-  const cells=new Set(),list=[];
-  const r0=(R/2)|0,c0=(C/2)|0;
-  cells.add(key2(r0,c0));list.push([r0,c0]);
-  let attempts=0;
-  while(cells.size<n&&attempts<3000){
-    attempts++;
-    const base=list[Math.floor(Math.random()*list.length)];
-    const nbs=neighbors2(...base).filter(p=>inBounds(p[0],p[1],R,C)&&!cells.has(key2(...p)));
-    if(!nbs.length)continue;
-    const pick=nbs[Math.floor(Math.random()*nbs.length)];
-    cells.add(key2(...pick));list.push(pick);
-  }
-  return list;
-}
-function partition(cellsArr,numPieces){
-  const cellSet=new Set(cellsArr.map(p=>key2(...p)));
-  const owner=new Map();
-  const shuffled=cellsArr.slice().sort(()=>Math.random()-0.5);
-  const regions=[];
-  for(let i=0;i<numPieces&&i<shuffled.length;i++){owner.set(key2(...shuffled[i]),i);regions.push([shuffled[i]]);}
-  let remaining=cellsArr.length-regions.length,guard=0;
-  while(remaining>0&&guard<8000){
-    guard++;
-    for(let p=0;p<regions.length&&remaining>0;p++){
-      const region=regions[p];const order=region.slice().sort(()=>Math.random()-0.5);
-      for(const cell of order){
-        const nbs=neighbors2(...cell).filter(n=>cellSet.has(key2(...n))&&!owner.has(key2(...n)));
-        if(nbs.length){const pick=nbs[Math.floor(Math.random()*nbs.length)];owner.set(key2(...pick),p);region.push(pick);remaining--;break;}
-      }
-    }
-  }
-  cellsArr.forEach(c=>{if(!owner.has(key2(...c)))owner.set(key2(...c),Math.floor(Math.random()*regions.length));});
-  const pieces=Array.from({length:regions.length},()=>[]);
-  cellsArr.forEach(c=>pieces[owner.get(key2(...c))].push(c));
-  return pieces.filter(p=>p.length>0);
-}
-function applyRandRotations(offs){let cur=offs;const n=Math.floor(Math.random()*4);for(let i=0;i<n;i++)cur=rotateOffsets(cur);if(Math.random()<0.5)cur=flipOffsets(cur);return cur;}
-const LEVELS=[
-  {R:3,C:3,numCells:5,numPieces:2},
-  {R:3,C:4,numCells:7,numPieces:2},
-  {R:4,C:4,numCells:9,numPieces:3},
-  {R:4,C:5,numCells:11,numPieces:3},
-  {R:5,C:5,numCells:13,numPieces:4},
-  {R:5,C:6,numCells:16,numPieces:5},
-];
-function genItem(lvl){
-  const cfg=LEVELS[lvl];
-  let cellsArr=[];
-  for(let t=0;t<25;t++){const c=genTargetCells(cfg.R,cfg.C,cfg.numCells);if(c.length>cellsArr.length)cellsArr=c;if(cellsArr.length>=cfg.numCells)break;}
-  const pieces=partition(cellsArr,cfg.numPieces).map(p=>normalize(p));
-  const trayPieces=pieces.map((offs,idx)=>({id:idx,offsets:applyRandRotations(offs),color:COLORS[idx%COLORS.length]}));
-  trayPieces.sort(()=>Math.random()-0.5);
-  const targetSet=new Set(cellsArr.map(c=>key2(...c)));
-  return {R:cfg.R,C:cfg.C,lvl,targetSet,targetArea:cellsArr.length,pieces:trayPieces,optimalPlacements:pieces.length};
-}
+/* ---- postMessage embedding contract (EXAM_ADAPTIVE_BUILD_PLAN.md §2) ----
+   host->demo : {source:'gt-exam-host', type:'init', item:ServedItem} , {type:'start'}
+   demo->host : {source:'gt-exam-demo', type:'ready'} , {type:'result', result:ItemResult} , {type:'telemetry', event}
+   PURE RENDERER. It draws ServedItem.content only; it never receives the cheapest assembly and
+   computes NO correctness. It emits the FULL ordered action log (select, turn, flip, drop,
+   take-back, misfit) plus a numeric metrics map. The server re-derives the minimum move cost
+   and scores M-EFF = optimalMoves / movesSpent. */
+const HOST='gt-exam-host',SELF='gt-exam-demo';
+const embedded=window.parent&&window.parent!==window;
+function post(type,extra){const msg=Object.assign({source:SELF,type},extra||{});if(embedded){try{window.parent.postMessage(msg,'*')}catch(e){}}}
+
+/* ---------- polyomino geometry (must match the generator's cost model) ---------- */
+function normalize(cells){const mr=Math.min(...cells.map(c=>c[0])),mc=Math.min(...cells.map(c=>c[1]));return cells.map(c=>[c[0]-mr,c[1]-mc]).sort((a,b)=>a[0]-b[0]||a[1]-b[1]);}
+function rotateCW(cells){return normalize(cells.map(([r,c])=>[c,-r]));}
+function flipH(cells){return normalize(cells.map(([r,c])=>[r,-c]));}
+const kk=(r,c)=>r+','+c;
 
 /* ---------- state ---------- */
-let cur=null,phase='demo',locked=false,scoredIndex=0,level=0,selectedId=null;
-let available=[],filled=new Set(),placements=new Map();
-let dragState=null;
-const T={scored:0,exact:0,rts:[],rtFirsts:[],path:[],revisions:0,polyPct:0,prog:[],itemStart:0,firstActed:false,maxLevel:0,levelSeries:[],hardMs:0,touched:new Set()};
-function optStr(){return cur?`${placements.size} placed / optimal ${cur.optimalPlacements}`:'\u2014';}
-function progStr(){if(!T.prog.length)return'\u2014';const p=T.prog;const pick=p.length<=4?p:[p[0],p[(p.length/2)|0],last(p)];return pick.join('\u2192')+'%';}
-function learnRate(){if(T.levelSeries.length<2)return'\u2014';const gained=last(T.levelSeries)-T.levelSeries[0];return `${gained>=0?'+':''}${gained} lvl / ${T.levelSeries.length} trials`;}
+let item=null,content=null,R=0,C=0,cell=40,targetSet=new Set(),targetArea=0,canFlip=false;
+let available=[],placed=new Map(),filled=new Set(),selectedId=null;
+let locked=true,started=false;
+const T={itemStart:0,first:0,presses:0,drops:0,pickups:0,misfits:0,handled:new Set(),rt:0,rapid:false,committed:false,lastActivity:performance.now(),events:[]};
+
+const PHASE={waiting:'Waiting for item',ready:'Ready',locked:'Answer submitted'};
+function setCue(k){const el=$('#phasecue');el.dataset.phase=k;el.textContent=PHASE[k];}
+function setStatus(cls,msg){const el=$('#status');el.className=cls;el.textContent=msg;}
+function nowRel(){return Math.max(0,performance.now()-(T.itemStart||performance.now()));}
+
+/* ---------- telemetry ---------- */
+function moveCost(){return T.presses+T.drops;}                 // the quantity the optimum bounds
+function planful(){const den=T.presses+T.drops+T.pickups+T.misfits;return den?Math.round(100*(T.presses+T.drops)/den):100;}
 const METERS=[
- {id:'M-ACC',name:'Item accuracy (exact fill)',get:()=>T.scored?`${T.exact}/${T.scored}  ${Math.round(100*T.exact/T.scored)}%`:'\u2014'},
- {id:'M-EFF',name:'Efficiency vs optimal',get:()=>optStr()},
- {id:'M-PATH',name:'Placement path',get:()=>T.path.length?`${T.path.length}: ${T.path.slice(-4).join(' ')}`:'\u2014'},
- {id:'M-RTFIRST',name:'First-action latency',get:()=>T.rtFirsts.length?`${last(T.rtFirsts)} ms`:'\u2014'},
- {id:'M-REV',name:'Revisions (re-place/undo)',get:()=>T.revisions},
- {id:'M-EXPLORE',name:'Exploration breadth',get:()=>T.touched.size+' cells/pieces touched'},
- {id:'M-PROG',name:'Progress trajectory (% filled)',get:()=>progStr()},
- {id:'M-PERSIST',name:'Persistence on hard items',get:()=>T.hardMs?`${T.hardMs} ms`:'\u2014'},
- {id:'M-LEARNRATE',name:'Within-session learning rate',get:()=>learnRate()},
+ {id:'M-RTFIRST',name:'Visualisation pause before the first move',get:()=>T.first?`${Math.round(T.first)} ms`:'—'},
+ {id:'M-RT',name:'Time to submit (engagement-gated)',get:()=>T.committed?`${T.rt} ms${T.rapid?' · gated':''}`:'—'},
+ {id:'M-PATH',name:'Move cost (turns + drops)',get:()=>`${moveCost()} (${T.presses} turns, ${T.drops} drops)`},
+ {id:'M-EFF',name:'Efficiency (optimum compared server-side)',get:()=>`${moveCost()} moves spent`},
+ {id:'M-PLANFUL',name:'Moves that were constructive',get:()=>`${planful()}%`},
+ {id:'M-REV',name:'Revisions (take-backs + misfits)',get:()=>String(T.pickups+T.misfits)},
+ {id:'M-EXPLORE',name:'Distinct pieces handled',get:()=>`${T.handled.size} of ${available.length+placed.size}`},
+ {id:'M-PERSIST',name:'Time invested on this item',get:()=>`${Math.round(nowRel())} ms`},
+ {id:'M-RAPIDGUESS',name:'Rapid/idle flag (tracked)',get:()=>T.committed?(T.rapid?'1':'0'):'—'},
 ];
 function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
-function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});$('#dbar').style.width=(100*(level+1)/LEVELS.length)+'%';$('#dlab').textContent=(level+1)+'/'+LEVELS.length;}
-function log(msg){const t=Date.now()-T.itemStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
-const ghost=$('#ghost');function ghostShow(v){ghost.classList.toggle('show',v);}
-function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
-async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(500);}
-async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(400);}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});$('#i_fill').textContent=`${filled.size}/${targetArea}`;}
+function log(msg){const d=document.createElement('div');d.innerHTML=`<span class="t">+${Math.round(nowRel())}ms</span> ${msg}`;$('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;}
+function emit(kind,data){const ev=Object.assign({t:Math.round(nowRel()),kind},data||{});T.events.push(ev);post('telemetry',{event:ev});return ev;}
+function firstAction(){if(!T.first&&started){T.first=performance.now()-T.itemStart;emit('first_action',{ms:Math.round(T.first)});log(`first move @ ${Math.round(T.first)}ms`);}}
+function activity(){T.lastActivity=performance.now();}
+addEventListener('pointerdown',activity);addEventListener('keydown',activity);
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&started&&!locked)emit('blur');});
 
 /* ---------- render ---------- */
-function cellFillColor(r,c){for(const[id,pl] of placements){if(pl.cells.some(cc=>cc[0]===r&&cc[1]===c))return pl.color;}return null;}
-function renderGrid(){
-  const grid=$('#grid');grid.innerHTML='';
-  grid.style.gridTemplateColumns=`repeat(${cur.C},1fr)`;
-  for(let r=0;r<cur.R;r++)for(let c=0;c<cur.C;c++){
+function colorAt(r,c){for(const[,pl]of placed){if(pl.cells.some(x=>x[0]===r&&x[1]===c))return pl.color;}return null;}
+function renderBoard(){
+  const b=$('#board');b.innerHTML='';
+  b.style.gridTemplateColumns=`repeat(${C},${cell}px)`;
+  b.style.gridTemplateRows=`repeat(${R},${cell}px)`;
+  for(let r=0;r<R;r++)for(let c=0;c<C;c++){
     const d=document.createElement('div');d.dataset.r=r;d.dataset.c=c;
-    const isOut=cur.targetSet.has(key2(r,c));
-    if(isOut){
-      const fc=cellFillColor(r,c);
-      d.className='cell'+(fc?' filled':' out');
-      if(fc)d.style.background=fc;
-    } else d.className='cell';
-    grid.appendChild(d);
+    if(targetSet.has(kk(r,c))){const col=colorAt(r,c);if(col){d.className='cell filled';d.style.background=col;}else d.className='cell out';}
+    else d.className='cell';
+    b.appendChild(d);
   }
 }
-function pieceBBox(offs){return{R:Math.max(...offs.map(o=>o[0]))+1,C:Math.max(...offs.map(o=>o[1]))+1};}
 function renderTray(){
-  const tray=$('#tray');tray.innerHTML='';
+  const t=$('#tray');t.innerHTML='';
   available.forEach(p=>{
-    const bb=pieceBBox(p.offsets);
+    const rows=Math.max(...p.cells.map(x=>x[0]))+1,cols=Math.max(...p.cells.map(x=>x[1]))+1;
     const el=document.createElement('div');el.className='tp'+(p.id===selectedId?' sel':'');el.dataset.id=p.id;
-    el.style.gridTemplateColumns=`repeat(${bb.C},14px)`;
-    for(let r=0;r<bb.R;r++)for(let c=0;c<bb.C;c++){
-      const on=p.offsets.some(o=>o[0]===r&&o[1]===c);
-      const sq=document.createElement('div');sq.className='pc';if(on)sq.style.background=p.color;
-      el.appendChild(sq);
+    const g=document.createElement('div');g.className='pgrid';g.style.gridTemplateColumns=`repeat(${cols},13px)`;
+    for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+      const sq=document.createElement('div');sq.className='pc';
+      if(p.cells.some(x=>x[0]===r&&x[1]===c))sq.style.background=p.color;
+      g.appendChild(sq);
     }
-    tray.appendChild(el);
+    el.appendChild(g);t.appendChild(el);
   });
-  $('#rotbtn').disabled=(selectedId===null);$('#flipbtn').disabled=(selectedId===null);
+  const none=(selectedId===null||locked);
+  $('#rotbtn').disabled=none;
+  $('#flipbtn').disabled=none||!canFlip;
 }
-function renderAll(){renderGrid();renderTray();renderMeters();}
+function renderAll(){renderBoard();renderTray();renderMeters();$('#done').classList.toggle('ready',started&&!locked);}
 
 /* ---------- gameplay ---------- */
-function selectPiece(id){selectedId=(selectedId===id)?null:id;renderTray();}
-function rotateSelected(){
-  if(selectedId===null)return;
-  const p=available.find(x=>x.id===selectedId);if(!p)return;
-  p.offsets=rotateOffsets(p.offsets);T.revisions++;T.touched.add('piece'+p.id);
-  log(`rotate piece #${p.id+1}`);renderAll();
+function selectPiece(id){
+  if(locked||!started)return;
+  firstAction();
+  selectedId=(selectedId===id)?null:id;
+  if(selectedId!==null)T.handled.add(selectedId);
+  emit('select',{id:selectedId});renderTray();
 }
-function flipSelected(){
-  if(selectedId===null)return;
+function reorient(op){
+  if(locked||!started||selectedId===null)return;
+  if(op==='flip'&&!canFlip)return;
+  firstAction();
   const p=available.find(x=>x.id===selectedId);if(!p)return;
-  p.offsets=flipOffsets(p.offsets);T.revisions++;T.touched.add('piece'+p.id);
-  log(`flip piece #${p.id+1}`);renderAll();
+  p.cells=op==='flip'?flipH(p.cells):rotateCW(p.cells);
+  T.presses++;emit(op,{id:p.id});log(`${op==='flip'?'flipped':'turned'} piece ${p.id}`);
+  renderAll();
 }
-function canPlace(piece,anchor){
-  const cells=piece.offsets.map(([r,c])=>[anchor[0]+r,anchor[1]+c]);
-  for(const[r,c] of cells){
-    if(!inBounds(r,c,cur.R,cur.C))return null;
-    const k=key2(r,c);
-    if(!cur.targetSet.has(k))return null;
-    if(filled.has(k))return null;
-  }
+function fitAt(piece,r,c){
+  const cells=piece.cells.map(([pr,pc])=>[r+pr,c+pc]);
+  for(const[cr,cc]of cells){if(!targetSet.has(kk(cr,cc)))return null;if(filled.has(kk(cr,cc)))return null;}
   return cells;
 }
-function markFirstAction(){if(!T.firstActed){T.firstActed=true;T.rtFirsts.push(Date.now()-T.itemStart);}}
-function placePieceAt(pieceId,r,c){
-  if(locked)return false;
-  markFirstAction();
-  const idx=available.findIndex(p=>p.id===pieceId);if(idx<0)return false;
-  const piece=available[idx];
-  const cells=canPlace(piece,[r,c]);
+function dropAt(r,c){
+  if(locked||!started||selectedId===null)return;
+  firstAction();
+  const i=available.findIndex(p=>p.id===selectedId);const piece=available[i];
+  // anchor the piece so its first cell lands on the tapped square
+  const cells=fitAt({cells:piece.cells.map(([pr,pc])=>[pr-piece.cells[0][0],pc-piece.cells[0][1]])},r,c);
   if(!cells){
-    T.revisions++;
-    log(`✗ piece #${piece.id+1} rejected at (${r+1},${c+1})`);
-    if(phase!=='demo')setStatus('no','\u2717 That piece does not fit there');
-    $('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),400);
-    return false;
+    T.misfits++;emit('misfit',{id:piece.id,at:[r,c]});log(`piece ${piece.id} does not fit there`);
+    setStatus('neutral','That piece does not fit there.');
+    $('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),380);
+    renderMeters();return;
   }
-  cells.forEach(cc=>filled.add(key2(...cc)));
-  placements.set(piece.id,{cells,color:piece.color});
-  T.path.push(`P${piece.id+1}@(${r+1},${c+1})`);
-  T.touched.add('piece'+piece.id);
-  available.splice(idx,1);selectedId=null;
-  T.polyPct=Math.round(100*filled.size/cur.targetArea);T.prog.push(T.polyPct);
-  log(`placed piece → ${filled.size}/${cur.targetArea} cells filled`);
-  renderAll();$('#done').classList.toggle('ready',phase!=='demo');
-  if(filled.size===cur.targetArea)submit(true);
-  return true;
+  cells.forEach(x=>filled.add(kk(x[0],x[1])));
+  placed.set(piece.id,{cells,color:piece.color,shape:piece.cells.map(x=>x.slice())});
+  available.splice(i,1);selectedId=null;T.drops++;
+  emit('drop',{id:piece.id,cells,filled:filled.size});
+  log(`dropped piece ${piece.id} \u2192 ${filled.size}/${targetArea} filled`);
+  setStatus('neutral',`${filled.size} of ${targetArea} squares filled.`);
+  renderAll();
 }
-function pickUpAt(r,c){
-  if(locked)return;
-  for(const[id,pl] of placements){
-    if(pl.cells.some(cc=>cc[0]===r&&cc[1]===c)){
-      pl.cells.forEach(cc=>filled.delete(key2(...cc)));
-      placements.delete(id);
-      available.push({id,offsets:normalize(pl.cells.map(cc=>[cc[0],cc[1]])),color:pl.color});
-      T.revisions++;T.polyPct=Math.round(100*filled.size/cur.targetArea);
-      log(`picked up piece #${id+1} — revision`);
-      renderAll();
-      return {id,color:pl.color};
+function takeBack(r,c){
+  if(locked||!started)return;
+  for(const[id,pl]of placed){
+    if(pl.cells.some(x=>x[0]===r&&x[1]===c)){
+      pl.cells.forEach(x=>filled.delete(kk(x[0],x[1])));
+      placed.delete(id);
+      available.push({id,cells:pl.shape,color:pl.color});
+      available.sort((a,b)=>a.id-b.id);
+      T.pickups++;emit('take_back',{id});log(`took piece ${id} back (revision)`);
+      renderAll();return;
     }
   }
-  return null;
 }
-function renderItem(item){
-  cur=item;filled=new Set();placements=new Map();available=item.pieces.slice();selectedId=null;
-  T.path=[];T.revisions=0;T.itemStart=Date.now();T.firstActed=false;T.polyPct=0;T.prog=[0];T.touched=new Set();
-  renderAll();$('#done').classList.toggle('ready',phase!=='demo');
-}
-function submit(auto){
-  if(phase==='demo')return;
-  const rt=Date.now()-T.itemStart;locked=true;$('#done').classList.remove('ready');
-  const exact=filled.size===cur.targetArea;
-  if(phase==='warmup'){setStatus('neutral',exact?'\u2713 Filled - practice':'Practice - not scored');log(auto?'warm-up complete — UNSCORED':`warm-up ${T.polyPct}% filled — UNSCORED`);setTimeout(nextPhase,1100);return;}
-  T.scored++;if(exact)T.exact++;T.rts.push(rt);setStatus(exact?'ok':'no',exact?'\u2713 Correct - shape filled':'\u2717 Not quite - fill every square');
-  if(level>=T.maxLevel)T.hardMs=Math.max(T.hardMs,rt);
-  T.levelSeries.push(level);T.maxLevel=exact?Math.max(T.maxLevel,level):T.maxLevel;
-  level=exact?Math.min(level+1,LEVELS.length-1):Math.max(level-1,0);
-  log(`SUBMIT lvl${cur.lvl+1} → ${filled.size}/${cur.targetArea} cells${exact?' EXACT':''} · ${optStr()} · rev ${T.revisions}`);
-  renderMeters();setTimeout(nextPhase,1300);
-}
-const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
-function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
-function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
-function nextPhase(){
-  locked=false;
-  if(phase==='warmup'){scoredIndex=0;startScored();}
-  else if(phase==='scored'){scoredIndex++;scoredIndex<6?startScored():finish();}
-}
-function startWarmup(){phase='warmup';locked=false;setCue('warmup');setStatus('neutral','Practice - this one is not scored.');renderItem(genItem(0));log('— warm-up (unscored) —');}
-function startScored(){phase='scored';setCue('scored',(scoredIndex+1)+'/6');setStatus('neutral','Fill the whole shape with the pieces, then press done.');renderItem(genItem(level));log(`— SCORED item ${scoredIndex+1}/6 · level ${level+1} —`);}
-function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;log(`— DONE · exact ${T.exact}/${T.scored} · ceiling level ${T.maxLevel+1} —`);}
 
-/* ---------- drag & drop ---------- */
-function gridCellFromPoint(x,y){
-  const el=document.elementFromPoint(x,y);
-  const cell=el&&el.closest?el.closest('#grid .cell'):null;
-  return cell;
+/* ---------- submit ---------- */
+function submit(){
+  if(locked||!started)return;
+  locked=true;$('#done').classList.remove('ready');
+  T.rt=Math.round(performance.now()-T.itemStart);T.committed=true;
+  const idle=performance.now()-T.lastActivity;T.rapid=T.rt<400||idle>25000;
+  const assembly=[...placed.entries()].map(([id,pl])=>({id,cells:pl.cells}));
+  const response={
+    mode:'fill_silhouette',
+    assembly,                                  // what the child left on the board
+    filledCount:filled.size,targetArea,
+    cost:{moves:moveCost(),turns:T.presses,drops:T.drops},
+    revisions:{takeBacks:T.pickups,misfits:T.misfits},
+    piecesHandled:[...T.handled],
+    actionLog:T.events.slice(),                // FULL ordered log of every select/turn/flip/drop
+    preFirstActionMs:Math.round(T.first),
+    msToCommit:T.rt,
+  };
+  const metrics={
+    'M-RT':T.rt,
+    'M-RTFIRST':Math.round(T.first),
+    'M-PATH':moveCost(),                       // server divides the optimum by this for M-EFF
+    'M-PLANFUL':planful(),
+    'M-REV':T.pickups+T.misfits,
+    'M-EXPLORE':T.handled.size,
+    'M-PERSIST':T.rt,
+    'M-RAPIDGUESS':T.rapid?1:0,
+  };
+  const result={itemId:item.itemId,typeCode:item.typeCode,domain:item.domain,response,metrics,telemetry:T.events.slice()};
+  emit('commit',{moves:moveCost(),filled:filled.size,targetArea});
+  setCue('locked');setStatus('ok','Answer submitted.');   // accept and advance — never correct/incorrect
+  log(`SUBMIT \u00b7 ${filled.size}/${targetArea} filled \u00b7 ${moveCost()} moves \u00b7 ${T.rt}ms`);
+  renderMeters();
+  post('result',{result});
+  if(!embedded)after();
 }
-function startDrag(pieceObj,fromTray,clientX,clientY){
-  const bb=pieceBBox(pieceObj.offsets);
-  const gh=document.createElement('div');gh.className='dragghost';gh.style.gridTemplateColumns=`repeat(${bb.C},22px)`;
-  for(let r=0;r<bb.R;r++)for(let c=0;c<bb.C;c++){
-    const on=pieceObj.offsets.some(o=>o[0]===r&&o[1]===c);
-    const sq=document.createElement('div');sq.className='pc';if(on)sq.style.background=pieceObj.color;
-    gh.appendChild(sq);
-  }
-  document.body.appendChild(gh);
-  gh.style.left=clientX+'px';gh.style.top=clientY+'px';
-  dragState={pieceObj,fromTray,gh};
+async function after(){await sleep(1400);nextSample();}
+
+/* ---------- ghost self-teach (points at the controls; never solves the outline) ---------- */
+const ghost=$('#ghost');
+async function ghostTo(el){if(!el)return;const r=el.getBoundingClientRect();ghost.style.transform=`translate(${r.left+r.width/2-9}px,${r.top+r.height/2-8}px)`;await sleep(460);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(340);}
+async function ghostScaffold(){
+  ghost.classList.add('show');await sleep(200);
+  await ghostTo($('#tray').children[0]);await ghostTap();
+  await ghostTo($('#rotbtn'));await ghostTap();
+  await ghostTo($('#board').children[0]);await ghostTap();
+  await ghostTo($('#done'));await ghostTap();
+  ghost.classList.remove('show');await sleep(150);
 }
-function moveDrag(clientX,clientY){if(dragState){dragState.gh.style.left=clientX+'px';dragState.gh.style.top=clientY+'px';}}
-let suppressClickUntil=0;
-function endDrag(clientX,clientY){
-  if(!dragState)return;
-  const{pieceObj,gh}=dragState;
-  gh.remove();dragState=null;suppressClickUntil=Date.now()+250;
-  const cell=gridCellFromPoint(clientX,clientY);
-  if(cell&&cell.classList.contains('out')){
-    if(!available.find(p=>p.id===pieceObj.id))available.push(pieceObj);
-    placePieceAt(pieceObj.id,+cell.dataset.r,+cell.dataset.c);
-  } else {
-    if(!available.find(p=>p.id===pieceObj.id)){available.push(pieceObj);renderAll();}
-  }
+
+/* ---------- item lifecycle ---------- */
+function loadItem(served){
+  item=served;content=served.content;
+  R=content.grid.R;C=content.grid.C;
+  targetSet=new Set(content.target.cells.map(x=>kk(x[0],x[1])));targetArea=content.target.area;
+  canFlip=!!(content.instructionSet&&content.instructionSet.ops.includes('flip'));
+  cell=Math.max(24,Math.min(44,Math.floor(400/Math.max(R,C))));
+  available=content.tray.map(t=>({id:t.id,cells:t.cells.map(c=>[c[0],c[1]]),color:t.color}));
+  placed=new Map();filled=new Set();selectedId=null;locked=true;started=false;
+  Object.assign(T,{itemStart:0,first:0,presses:0,drops:0,pickups:0,misfits:0,handled:new Set(),rt:0,rapid:false,committed:false,lastActivity:performance.now(),events:[]});
+  $('#flipbtn').style.display=canFlip?'':'none';
+  $('#prompt').textContent=content.question.prompt;
+  $('#i_id').textContent=(served.itemId||'—').slice(0,8);
+  $('#i_board').textContent=`${R}\u00d7${C} \u00b7 fill ${targetArea} \u00b7 ${content.tray.length} tray pieces${canFlip?' \u00b7 flip offered':''}`;
+  $('#i_diff').textContent=(served.difficulty!=null?Number(served.difficulty).toFixed(2):'—');
+  renderAll();
+  setCue('ready');setStatus('neutral','Pick a piece, then tap a square in the outline.');
+  $('#log').innerHTML='';log(`item ${(served.itemId||'').slice(0,8)} \u00b7 fill ${targetArea} \u00b7 ${content.tray.length} pieces`);
 }
-$('#tray').addEventListener('pointerdown',e=>{
-  if(locked||phase==='demo'||phase==='done')return;
-  const d=e.target.closest('.tp');if(!d)return;
-  const id=+d.dataset.id;const piece=available.find(p=>p.id===id);if(!piece)return;
-  markFirstAction();selectedId=id;renderTray();
-  startDrag(piece,true,e.clientX,e.clientY);
-});
-$('#grid').addEventListener('pointerdown',e=>{
-  if(locked||phase==='demo'||phase==='done')return;
-  const d=e.target.closest('.cell.filled');if(!d)return;
-  const picked=pickUpAt(+d.dataset.r,+d.dataset.c);
-  if(picked)startDrag({id:picked.id,offsets:available[available.length-1].offsets,color:picked.color},false,e.clientX,e.clientY);
-});
-window.addEventListener('pointermove',e=>{if(dragState)moveDrag(e.clientX,e.clientY);});
-window.addEventListener('pointerup',e=>{if(dragState)endDrag(e.clientX,e.clientY);});
-$('#grid').addEventListener('click',e=>{
-  if(dragState||Date.now()<suppressClickUntil)return;
-  const d=e.target.closest('.cell');if(!d||locked||phase==='demo'||phase==='done')return;
+async function startItem(){
+  if(!content)return;
+  started=true;T.itemStart=performance.now();emit('start');
+  locked=false;                                   // RELEASE the lock so drops and results register
+  renderAll();
+  setStatus('neutral','Pick a piece, turn it if you need to, then drop it in.');
+  if(content.scaffold&&content.scaffold.warmup)await ghostScaffold();
+}
+
+/* ---------- input ---------- */
+$('#board').addEventListener('click',e=>{
+  const d=e.target.closest('.cell');if(!d||locked)return;
   const r=+d.dataset.r,c=+d.dataset.c;
-  if(d.classList.contains('filled'))pickUpAt(r,c);
-  else if(d.classList.contains('out')&&selectedId!==null)placePieceAt(selectedId,r,c);
+  if(d.classList.contains('filled'))takeBack(r,c);
+  else if(d.classList.contains('out'))dropAt(r,c);
 });
-$('#tray').addEventListener('click',e=>{
-  if(dragState||Date.now()<suppressClickUntil)return;
-  const d=e.target.closest('.tp');if(!d||locked||phase==='demo'||phase==='done')return;
-  markFirstAction();selectPiece(+d.dataset.id);
-});
-$('#rotbtn').addEventListener('click',()=>{if(!locked&&phase!=='demo'&&phase!=='done')rotateSelected();});
-$('#flipbtn').addEventListener('click',()=>{if(!locked&&phase!=='demo'&&phase!=='done')flipSelected();});
-$('#done').addEventListener('click',()=>{if($('#done').classList.contains('ready'))submit(false);});
-$('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
-document.addEventListener('keydown',e=>{
-  if(locked||phase==='demo'||phase==='done')return;
-  const k=e.key.toLowerCase();
-  if(k==='r')rotateSelected();else if(k==='f')flipSelected();
+$('#tray').addEventListener('click',e=>{const d=e.target.closest('.tp');if(d)selectPiece(+d.dataset.id);});
+$('#rotbtn').addEventListener('click',()=>reorient('rotate'));
+$('#flipbtn').addEventListener('click',()=>reorient('flip'));
+$('#done').addEventListener('click',()=>{if($('#done').classList.contains('ready'))submit();});
+$('#replay').addEventListener('click',()=>{if(started&&!locked)ghostScaffold();});
+addEventListener('keydown',e=>{
+  if(e.repeat)return;const k=e.key.toLowerCase();
+  if(k==='r')reorient('rotate');
+  else if(k==='f')reorient('flip');
+  else if(e.key==='Enter'){if($('#done').classList.contains('ready'))submit();}
+  else return;
+  e.preventDefault();
 });
 
-async function runDemo(){
-  phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;
-  const demoItem={R:3,C:3,lvl:-1,
-    targetSet:new Set([key2(0,0),key2(0,1),key2(1,0),key2(1,1)]),targetArea:4,
-    pieces:[{id:0,offsets:[[0,0],[1,0]],color:COLORS[0]},{id:1,offsets:[[0,0],[0,1]],color:COLORS[1]}],
-    optimalPlacements:2};
-  renderItem(demoItem);log('ghost-hand demo (wordless, <10s)');ghostShow(true);await sleep(300);
-  selectedId=0;renderTray();
-  await ghostTo($('.tp[data-id="0"]'));await ghostTap();
-  await sleep(150);
-  await ghostTo($('#rotbtn'));await ghostTap();rotateSelected();
-  await sleep(150);
-  const cellAt=(r,c)=>$(`.cell[data-r="${r}"][data-c="${c}"]`);
-  await ghostTo(cellAt(0,0));await ghostTap();placePieceAt(0,0,0);
-  await sleep(250);
-  const nextId=available[0]?.id;
-  if(nextId!==undefined){selectedId=nextId;renderTray();
-    await ghostTo($(`.tp[data-id="${nextId}"]`));await ghostTap();
-    await sleep(150);
-    await ghostTo(cellAt(1,0));await ghostTap();placePieceAt(nextId,1,0);
-  }
-  await sleep(500);ghostShow(false);await sleep(400);startWarmup();
-}
+/* ---------- host message handling ---------- */
+let gotInit=false;
+addEventListener('message',e=>{const d=e.data;if(!d||d.source!==HOST)return;
+ if(d.type==='init'&&d.item){gotInit=true;loadItem(d.item);post('ready');}
+ else if(d.type==='start'){startItem();}
+});
 
-buildMeters();renderMeters();runDemo();
+/* ---------- standalone fallback (opens by double-click; no host present) ----------
+   Embeds real ServedItems produced by generators/GB-SHAPEFIT-01.mjs so the renderer and the
+   bank stay in sync. A ServedItem carries no answer, scoring or provenance. */
+const SAMPLES=[{"itemId":"015794ab-b4d8-4f7e-abe1-11c683c13719","typeCode":"GB-SHAPEFIT-01","domain":"spatial","difficulty":1.01,"ageBands":["2-3"],"demoPath":"demos/GB-SHAPEFIT-01.html","content":{"typeCode":"GB-SHAPEFIT-01","question":{"mode":"fill_silhouette","canFlip":false,"prompt":"Fill the whole outline with tray pieces. Turn a piece to make it fit. Some pieces do not belong. Use as few turns and drops as you can."},"grid":{"R":3,"C":4},"target":{"cells":[[0,2],[0,3],[1,3],[2,1],[2,2],[2,3]],"area":6},"tray":[{"id":0,"cells":[[0,1],[1,0],[1,1]],"color":"#4f46e5"},{"id":1,"cells":[[0,1],[1,0],[1,1],[1,2]],"color":"#0891b2"},{"id":2,"cells":[[0,0],[1,0],[2,0]],"color":"#d97706"}],"instructionSet":{"ops":["rotate"],"rotateStep":90,"flipAxis":"vertical"},"limits":{"maxMoves":36},"optionKind":"placement","scaffold":{"warmup":true}},"syntheticOnly":true,"validated":false},{"itemId":"0f0b56d8-cd1c-4688-bbac-7c2bdc0153b1","typeCode":"GB-SHAPEFIT-01","domain":"spatial","difficulty":5.73,"ageBands":["2-3"],"demoPath":"demos/GB-SHAPEFIT-01.html","content":{"typeCode":"GB-SHAPEFIT-01","question":{"mode":"fill_silhouette","canFlip":false,"prompt":"Fill the whole outline with tray pieces. Turn a piece to make it fit. Some pieces do not belong. Use as few turns and drops as you can."},"grid":{"R":5,"C":5},"target":{"cells":[[1,2],[1,4],[2,2],[2,3],[2,4],[3,1],[3,2],[3,3],[3,4],[4,2],[4,3],[4,4]],"area":12},"tray":[{"id":0,"cells":[[0,0],[0,1],[1,0],[1,1],[2,0]],"color":"#4f46e5"},{"id":1,"cells":[[0,0],[0,1],[1,1],[1,2]],"color":"#0891b2"},{"id":2,"cells":[[0,0],[1,0],[2,0],[2,1]],"color":"#d97706"},{"id":3,"cells":[[0,0],[0,1],[1,0],[2,0]],"color":"#be185d"},{"id":4,"cells":[[0,0],[1,0],[2,0]],"color":"#16a34a"}],"instructionSet":{"ops":["rotate"],"rotateStep":90,"flipAxis":"vertical"},"limits":{"maxMoves":60},"optionKind":"placement","scaffold":{"warmup":false}},"syntheticOnly":true,"validated":false},{"itemId":"c7839869-9125-46c3-905f-3c8786f827f5","typeCode":"GB-SHAPEFIT-01","domain":"spatial","difficulty":11.65,"ageBands":["4-5","6-8"],"demoPath":"demos/GB-SHAPEFIT-01.html","content":{"typeCode":"GB-SHAPEFIT-01","question":{"mode":"fill_silhouette","canFlip":true,"prompt":"Fill the whole outline with tray pieces. Turn or flip a piece to make it fit. Some pieces do not belong. Use as few turns and drops as you can."},"grid":{"R":6,"C":6},"target":{"cells":[[0,4],[1,4],[1,5],[2,3],[2,4],[2,5],[3,3],[3,4],[3,5],[4,1],[4,3],[4,4],[4,5],[5,0],[5,1],[5,2],[5,3],[5,4],[5,5]],"area":19},"tray":[{"id":0,"cells":[[0,1],[1,0],[1,1],[2,1]],"color":"#4f46e5"},{"id":1,"cells":[[0,0],[0,1],[0,2],[0,3],[0,4],[1,1],[1,3],[2,3]],"color":"#0891b2"},{"id":2,"cells":[[0,0]],"color":"#d97706"},{"id":3,"cells":[[0,0]],"color":"#be185d"},{"id":4,"cells":[[0,0]],"color":"#16a34a"},{"id":5,"cells":[[0,2],[1,1],[1,2],[2,2],[3,0],[3,1],[3,2],[3,3],[4,2]],"color":"#7c3aed"},{"id":6,"cells":[[0,0],[1,0],[2,0]],"color":"#dc2626"},{"id":7,"cells":[[0,2],[1,1],[1,2],[2,1],[2,2],[3,0],[3,1],[3,2]],"color":"#0d9488"}],"instructionSet":{"ops":["rotate","flip"],"rotateStep":90,"flipAxis":"vertical"},"limits":{"maxMoves":96},"optionKind":"placement","scaffold":{"warmup":false}},"syntheticOnly":true,"validated":false},{"itemId":"3669f587-e170-44c0-be2e-9e2de8f1af97","typeCode":"GB-SHAPEFIT-01","domain":"spatial","difficulty":18.77,"ageBands":["6-8"],"demoPath":"demos/GB-SHAPEFIT-01.html","content":{"typeCode":"GB-SHAPEFIT-01","question":{"mode":"fill_silhouette","canFlip":true,"prompt":"Fill the whole outline with tray pieces. Turn or flip a piece to make it fit. Some pieces do not belong. Use as few turns and drops as you can."},"grid":{"R":7,"C":8},"target":{"cells":[[0,0],[0,1],[0,2],[0,3],[0,4],[1,0],[1,1],[1,2],[1,3],[1,4],[1,5],[2,0],[2,1],[2,2],[2,3],[2,4],[3,0],[3,1],[3,2],[3,3],[3,4],[4,1],[4,2],[4,3],[5,0],[5,1]],"area":26},"tray":[{"id":0,"cells":[[0,1],[1,0],[1,1],[1,2],[2,1]],"color":"#4f46e5"},{"id":1,"cells":[[0,0],[0,1],[0,2]],"color":"#0891b2"},{"id":2,"cells":[[0,0],[0,1],[1,0],[2,0],[2,1]],"color":"#d97706"},{"id":3,"cells":[[0,0],[0,1],[0,2]],"color":"#be185d"},{"id":4,"cells":[[0,1],[1,0],[1,1],[1,2]],"color":"#16a34a"},{"id":5,"cells":[[0,2],[1,0],[1,1],[1,2]],"color":"#7c3aed"},{"id":6,"cells":[[0,0],[0,1],[1,1]],"color":"#dc2626"},{"id":7,"cells":[[0,0],[0,1],[1,0],[1,1]],"color":"#0d9488"},{"id":8,"cells":[[0,1],[1,0],[1,1],[1,2]],"color":"#ea580c"},{"id":9,"cells":[[0,1],[1,0],[1,1],[1,2],[2,0]],"color":"#2563eb"},{"id":10,"cells":[[0,1],[1,0],[1,1],[2,0]],"color":"#9333ea"}],"instructionSet":{"ops":["rotate","flip"],"rotateStep":90,"flipAxis":"vertical"},"limits":{"maxMoves":132},"optionKind":"placement","scaffold":{"warmup":false}},"syntheticOnly":true,"validated":false}];
+let sampleIdx=0;
+function nextSample(){if(!SAMPLES.length)return;loadItem(SAMPLES[sampleIdx%SAMPLES.length]);sampleIdx++;startItem();}
+
+/* ---------- boot ---------- */
+buildMeters();
+if(embedded)post('ready');
+setTimeout(()=>{if(!gotInit&&SAMPLES.length){
+  $('#howto').querySelector('p').insertAdjacentHTML('beforeend',' <b>(Standalone preview: cycling built-in sample items.)</b>');
+  nextSample();
+}},500);
 </script>
 </body>
 </html>
