@@ -116,9 +116,22 @@ integer bucket while comfortably passing the real rule. All 44 banks currently p
    The remaining 4 are blocked deliberately: `CX-achieve-02` (proven leak, E-076), `CX-diverge-01`
    and `CX-figural-01` (no deterministic correctness; judge-deferred per E-072), and `SPA-VIEW-01`
    (bank carries two scoring rules, in progress).
-4. **Execute Supabase** (`supabase start`, run migrations + pgTAP) and swap the in-memory results
-   store for the real `api.exam_*` RPCs. `apps/web` does not yet call the exam RPCs at all. One
-   source of truth is settled by D-019: the DB stores and verifies, `packages/exam-scoring` scores.
+4. ~~**Execute Supabase** and swap the in-memory results store for the real `api.exam_*` RPCs~~ —
+   **done (D-026).** `/api/exam-session` opens the session (`exam_create_participant` +
+   `exam_start_session`), `/api/exam-submit` writes each item (`exam_register_item` +
+   `exam_submit_response`), `/api/exam-results` stores the `packages/exam-scoring` outcome verbatim
+   (`exam_record_outcome`). Persistence is opt-in per environment and every write is best-effort, so
+   an unreachable database degrades to the previous in-memory behaviour rather than failing a
+   child's exam; the in-memory store stays as that fallback and as what the preview dashboard reads.
+   One additive migration (`20260725160000_exam_item_registration.sql`) was required, because
+   `app.exam_item` held only the seed migration's 80 placeholders, whose ids are disjoint from the
+   served banks, so no real item could be recorded at all. **Open defect it exposed:** the
+   database's key comparison and the app's 30 per-type verifiers grade the same response by
+   different rules and disagreed on 15 of 22 items in the recorded round trip, so recomputing from
+   `app.exam_scorer_input_json` yields 3.775 against a recorded composite of 7.434. Both verdicts
+   are now in the trace, and re-running the scorer over the `app_verdict` telemetry reproduces the
+   recorded score exactly; reconciling the two is a governance decision. See
+   `docs/architecture/EXAM_PERSISTENCE_NOTES.md`.
 5. **Open-ended / LLM-judged types** (Q2): track core metrics + participate in selection; defer full
    harvest/judge (M-ORIG/M-FLEX) — currently `model_judge_deferred` scores 0/inert. The invented
    norms behind M-ORIG/M-FLEX were removed; see E-072.

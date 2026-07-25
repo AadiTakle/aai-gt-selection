@@ -2,16 +2,26 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 
 import { findBankItem } from '@/lib/exam/bank-loader';
+import { persistItemResponse } from '@/lib/exam/persistence';
+import { EXAM_TYPE_REGISTRY } from '@/lib/exam/registry.generated';
 import { verify } from '@/lib/exam/verifiers';
 
 /**
- * Server-authoritative answer verification (BUILD_PLAN §2/§5).
+ * Server-authoritative answer verification (BUILD_PLAN §2/§5) and per-item trace
+ * persistence (BUILD_PLAN §6).
  *
  * The browser POSTs the child's RAW response for one served item. The answer key
  * lives only on the server (loaded here from the bank), so this route — never the
  * client — decides correctness. It returns the verdict plus the key-dependent
  * metrics (`M-ACC`, `M-ERRTYPE`, and `M-DIFFREACH` when correct) that the runner
  * merges into the `ScoredItem` for the engine + scorer.
+ *
+ * When the request carries an `examSessionId`, the same call also writes the item,
+ * the raw answer, the merged metric map, and the item's telemetry to Supabase
+ * through `api.exam_register_item` + `api.exam_submit_response`. That write is
+ * best-effort and happens after the verdict is computed, so a database problem can
+ * delay nothing and break nothing: the response shape is unchanged apart from an
+ * informational `persisted` flag.
  *
  * The response carries `correct` because the adaptive engine runs client-side and
  * must update on it — but the answer KEY itself is never sent, and the UI never
@@ -28,8 +38,19 @@ const submitSchema = z
     response: z.unknown(),
     /** True when the item was skipped / timed out (scored as incorrect). */
     skipped: z.boolean().optional(),
+    /** Supabase session id from `/api/exam-session`; absent = do not persist. */
+    examSessionId: z.uuid().optional(),
+    /** Metrics the demo emitted for this item (client-tracked, never correctness). */
+    clientMetrics: z.record(z.string(), z.number()).optional(),
+    /** This item's telemetry events, appended to the stored trace verbatim. */
+    telemetry: z.array(z.unknown()).optional(),
   })
   .strip();
+
+/** Metric ids the registry says this type emits, stored on the item's type row. */
+function registryMetrics(typeCode: string): string[] {
+  return EXAM_TYPE_REGISTRY.find((entry) => entry.typeCode === typeCode)?.metrics ?? [];
+}
 
 /**
  * Map a chosen-option lure class to a 0..1 error-quality signal (M-ERRTYPE,
@@ -120,6 +141,39 @@ export async function POST(request: NextRequest) {
   };
   if (correct) metrics['M-DIFFREACH'] = item.difficulty;
 
+  let persisted = false;
+  if (parsed.data.examSessionId) {
+    const clientTelemetry = parsed.data.telemetry ?? [];
+    const stored = await persistItemResponse({
+      examSessionId: parsed.data.examSessionId,
+      item,
+      metricIds: registryMetrics(item.typeCode),
+      rawAnswer: parsed.data.skipped ? { ...response, skipped: true } : response,
+      metrics: { ...(parsed.data.clientMetrics ?? {}), ...metrics },
+      // The verdict THIS route computed is appended to the append-only trace.
+      // `api.exam_submit_response` re-verifies with its own key comparison and
+      // writes that into `exam_item_response.correct/score`; for the 30 types
+      // graded here by a per-type verifier the two can differ, so the verdict the
+      // engine and scorer actually consumed is recorded explicitly rather than
+      // being silently replaced. See docs/architecture/EXAM_PERSISTENCE_NOTES.md.
+      telemetry: [
+        ...clientTelemetry,
+        {
+          kind: 'app_verdict',
+          seq: clientTelemetry.length,
+          tOffsetMs: 0,
+          correct,
+          score,
+          difficulty: item.difficulty,
+          metrics,
+          skipped: parsed.data.skipped === true,
+          verifier: 'apps/web/src/lib/exam/verifiers',
+        },
+      ],
+    });
+    persisted = stored != null;
+  }
+
   return NextResponse.json({
     ok: true,
     correct,
@@ -128,6 +182,7 @@ export async function POST(request: NextRequest) {
     domain: item.domain,
     typeCode: item.typeCode,
     metrics,
+    persisted,
     syntheticOnly: true as const,
     validated: false as const,
   });
