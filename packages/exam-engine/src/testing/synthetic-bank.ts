@@ -23,17 +23,19 @@ import {
   type SessionState,
 } from '../types';
 
-/** Metrics every synthetic type reports (the `scope: 'all'` core metrics). */
+/**
+ * Metrics every synthetic type reports: the `scope: 'all'` core metrics a RENDERER can actually
+ * produce for a single item. Session-level aggregates (`M-RTVAR`, `M-CONSIST`, `M-LEARNRATE`,
+ * `M-DIFFREACH`, `M-ROTSLOPE`) are deliberately absent — fabricating them here is what previously
+ * made this harness unable to detect an unsatisfiable stop rule. The engine derives them from the
+ * trace instead; see `derived.ts` and `real-bank.test.ts`.
+ */
 const ALL_SCOPE_METRICS: MetricId[] = [
   'M-ACC',
-  'M-DIFFREACH',
   'M-RT',
   'M-RTFIRST',
-  'M-RTVAR',
   'M-REV',
   'M-ERRTYPE',
-  'M-CONSIST',
-  'M-LEARNRATE',
   'M-ENGAGE',
   'M-RAPIDGUESS',
 ];
@@ -45,9 +47,14 @@ const TYPE_BLUEPRINTS: { typeCode: string; domain: Area; extra: MetricId[] }[] =
   { typeCode: 'VER-ANALOGY-02', domain: 'verbal', extra: ['M-VOCABLVL', 'M-LURETYPE'] },
   { typeCode: 'QUANT-SERIES-01', domain: 'quantitative', extra: ['M-PAE'] },
   { typeCode: 'QUANT-NUMLINE-02', domain: 'quantitative', extra: ['M-PAE'] },
-  { typeCode: 'SPA-FOLDNET-01', domain: 'spatial', extra: ['M-ROTSLOPE'] },
-  { typeCode: 'SPA-ROT-02', domain: 'spatial', extra: ['M-ROTSLOPE'] },
+  { typeCode: 'SPA-FOLDNET-01', domain: 'spatial', extra: [] },
+  /** Carries an angular disparity per item so the derived `M-ROTSLOPE` path is exercisable. */
+  { typeCode: 'SPA-ROT-02', domain: 'spatial', extra: [] },
 ];
+
+/** The synthetic type whose items carry an angular disparity (mirrors SPA-VIEW-01 / SPA-XSCAN-01). */
+const ROTATION_TYPE_CODE = 'SPA-ROT-02';
+const ROTATION_DISPARITIES = [0, 45, 90, 135, 180];
 
 const ALL_AGE_BANDS: AgeBand[] = ['K-1', '2-3', '4-5', '6-8', 'above-level'];
 
@@ -106,11 +113,24 @@ export function buildSyntheticBanks(options: SyntheticBankOptions = {}): Banks {
 /** A per-area "true ability" on the 1..20 scale for the simulated responder. */
 export type TrueTheta = Record<Area, number>;
 
+/**
+ * Value for a per-item observed metric. Only metrics a renderer really emits reach this, so a
+ * stable placeholder is honest for the ones with no modelled meaning here — unlike a fabricated
+ * value for a session-level aggregate, which would paper over missing coverage.
+ */
 function metricValue(metricId: MetricId, difficulty: number, score: number, errType: number): number {
   if (metricId === 'M-ACC') return score;
   if (metricId === 'M-ERRTYPE') return errType;
-  if (metricId === 'M-DIFFREACH') return difficulty;
-  return 1; // presence is what matters for coverage; value is a stable placeholder
+  if (metricId === 'M-RT') return Math.round(900 + 60 * difficulty + (score >= 0.5 ? 0 : 250));
+  if (metricId === 'M-RTFIRST') return Math.round(320 + 20 * difficulty);
+  return 1;
+}
+
+/** Angular disparity for a rotation-type item, derived deterministically from its difficulty. */
+function disparityFor(item: { typeCode: string; difficulty: number }): number | null {
+  if (item.typeCode !== ROTATION_TYPE_CODE) return null;
+  const index = Math.round(item.difficulty * 2) % ROTATION_DISPARITIES.length;
+  return ROTATION_DISPARITIES[index] as number;
 }
 
 /**
@@ -132,6 +152,8 @@ export function respondSynthetically(served: ServedItem, banks: Banks, trueTheta
     }
   }
 
+  const disparity = disparityFor(served);
+
   return {
     itemId: served.itemId,
     typeCode: served.typeCode,
@@ -142,6 +164,7 @@ export function respondSynthetically(served: ServedItem, banks: Banks, trueTheta
     correct,
     score,
     difficulty: served.difficulty,
+    ...(disparity === null ? {} : { stimulus: { angularDisparityDeg: disparity } }),
   };
 }
 

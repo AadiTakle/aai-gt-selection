@@ -39,6 +39,19 @@ export interface ItemAnswer {
   correctKey: string;
 }
 
+/**
+ * Server-supplied stimulus parameters that a derived aggregate needs but a renderer cannot
+ * report. These live on the bank item's server-only `answer` block, so the browser never sees
+ * them; the server attaches them to the `ScoredItem` it hands back.
+ */
+export interface ItemStimulus {
+  /**
+   * Target angular disparity in degrees, for banks that set `answer.angularDisparityDeg`
+   * (currently `SPA-VIEW-01` and `SPA-XSCAN-01`). Input to the `M-ROTSLOPE` fit.
+   */
+  angularDisparityDeg?: number;
+}
+
 /** Server-only scoring mode declaration. */
 export interface ItemScoring {
   mode: 'deterministic_key' | 'computed_solver' | 'proxy_bank' | 'model_judge_deferred';
@@ -94,6 +107,8 @@ export interface ScoredItem extends ItemResult {
   correct: boolean;
   score: number;
   difficulty: number;
+  /** Optional server-only stimulus parameters for derived aggregates (see {@link ItemStimulus}). */
+  stimulus?: ItemStimulus;
 }
 
 /** A registered question type (metadata used for selection). */
@@ -114,14 +129,67 @@ export interface Banks {
 /** Where a metric can be collected, used to decide which areas must cover it. */
 export type MetricScope = 'all' | Area | 'interactive' | 'open_ended';
 
+/**
+ * How a metric's samples arrive.
+ *
+ * - `observed`: a renderer genuinely reports a value for a single item, so a sample is one
+ *   emission and coverage is a count of emissions.
+ * - `derived`: a session-level aggregate the engine fits from the accumulated per-item trace
+ *   (an RT variance, a consistency rate, a growth slope). One item cannot carry a value for it,
+ *   so counting emissions would be a category error; adequacy is a condition on the derivation's
+ *   INPUTS instead — see `derived.ts`.
+ */
+export type MetricKind = 'observed' | 'derived';
+
+/**
+ * The population a metric's `minSamples` is counted over.
+ *
+ * - `per_area`: construct-bound; the minimum must be met separately in every applicable area.
+ * - `session`: person-level; the minimum is met across the whole session. Response-time signals
+ *   describe one child's RT distribution, not one area's, and `MEASUREMENTS.md` states their
+ *   "how much" per child rather than per construct.
+ */
+export type MetricAdequacyScope = 'per_area' | 'session';
+
 /** A core-metric registry entry (§4). */
 export interface CoreMetricSpec {
   id: MetricId;
   scope: MetricScope;
-  /** Minimum samples (per applicable area) required before the stop rule is satisfied. */
+  /**
+   * Minimum samples required before the stop rule is satisfied, counted over `adequacy`. For a
+   * `derived` metric this is the minimum count of the derivation's inputs, not of emissions.
+   */
   minSamples: number;
   /** Whether shortfall blocks `isDone`. Tracked-inert metrics (enforced=false) only bias selection. */
   enforced: boolean;
+  /** Defaults to `observed`. */
+  kind?: MetricKind;
+  /** Defaults to `per_area`. */
+  adequacy?: MetricAdequacyScope;
+  /**
+   * Number of wired types known to supply this metric in each applicable area, when that number
+   * is low enough to be a real coverage risk. Purely documentary: it records a fragility that
+   * `auditMetricSupply` re-checks against the live banks so it cannot rot silently.
+   */
+  supplyNote?: string;
+}
+
+/**
+ * One item's contribution to the per-area trace, retained so session-level aggregates can be
+ * DERIVED rather than emitted. Everything here comes straight off the `ScoredItem`, so the trace
+ * is reproducible by replaying stored results through `update` (BUILD_PLAN §5) — no derived
+ * value depends on live in-memory state that is never persisted.
+ */
+export interface ItemObservation {
+  itemId: ItemId;
+  typeCode: TypeCode;
+  difficulty: number;
+  score: number;
+  correct: boolean;
+  /** Response time in ms when the item reported `M-RT`; `null` otherwise. */
+  rtMs: number | null;
+  /** Target angular disparity in degrees when the server supplied one; `null` otherwise. */
+  angularDisparityDeg: number | null;
 }
 
 /** Tunable, deterministic engine configuration (carried in state to keep functions pure). */
@@ -156,6 +224,14 @@ export interface EngineConfig {
   stabilityDrift: number;
   /** Hard safety cap on total items served. */
   hardItemCap: number;
+  /**
+   * Max difficulty gap (in scale points) for two items in an area to count as a matched parallel
+   * pair for `M-CONSIST`. Bank difficulty is the design-estimated b, so "same b" is approximated
+   * by difficulty proximity rather than by AIG clone lineage (provisional; validated=false).
+   */
+  consistencyPairTolerance: number;
+  /** Distinct angular disparities required before an `M-ROTSLOPE` fit is considered adequate. */
+  rotationMinDistinctDisparities: number;
   /** The core-metric registry (§4). */
   coreMetrics: CoreMetricSpec[];
 }
@@ -171,8 +247,10 @@ export interface AreaState {
   accWindow: number[];
   /** Recent difficulty estimates, most-recent last, capped to `estWindowSize` (stability signal). */
   estWindow: number[];
-  /** Count of samples collected per metric id in this area. */
+  /** Count of samples collected per metric id in this area (`observed` metrics only). */
   metricCounts: Record<MetricId, number>;
+  /** Full ordered per-item trace for this area; the input to every derived aggregate. */
+  trace: ItemObservation[];
 }
 
 /** Full session state threaded through the pure engine functions. */

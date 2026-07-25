@@ -45,6 +45,19 @@ export interface ItemResult {
 }
 
 /**
+ * Server-supplied stimulus parameters a session-level aggregate needs but a renderer cannot
+ * report. They live on the bank item's server-only `answer` block, so the browser never sees
+ * them; the server attaches them to the result it stores.
+ */
+export interface ItemStimulus {
+  /**
+   * Target angular disparity in degrees, for banks that record it (`SPA-VIEW-01`,
+   * `SPA-XSCAN-01`). The regressor for the `M-ROTSLOPE` fit.
+   */
+  readonly angularDisparityDeg?: number;
+}
+
+/**
  * Server-verified item result (BUILD_PLAN §2: `ItemResult + {correct, score, difficulty}`).
  * This is the sole per-item input to the deterministic scorer.
  */
@@ -55,6 +68,8 @@ export interface ScoredItem extends ItemResult {
   readonly score: number;
   /** Design-estimated item difficulty, float in [1, 20]. */
   readonly difficulty: number;
+  /** Optional server-only stimulus parameters for derived aggregates ({@link ItemStimulus}). */
+  readonly stimulus?: ItemStimulus;
 }
 
 /** Coarse band label for profile signals. */

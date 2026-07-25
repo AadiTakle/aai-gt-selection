@@ -15,6 +15,7 @@
  * `(items, policy)`: no clock, no randomness, no I/O — so a stored trace plus a
  * frozen policy id reproduces the score exactly.
  */
+import { DERIVED_METRIC_IDS, deriveAggregateMetrics } from './derived-metrics';
 import type { MetricId } from './metric-ids';
 import type { ExamPolicy, MetricWeight } from './policy';
 import { DEFAULT_EXAM_POLICY } from './policy';
@@ -97,11 +98,12 @@ function aggregateArea(
   }
   const accuracy = accDen > 0 ? clamp(accNum / accDen, 0, 1) : 0;
 
-  // Collect raw metric values per id.
+  // Collect raw metric values per id. Session-level aggregates are skipped: they are fitted from
+  // the trace below, and averaging a per-item emission of one would be meaningless.
   const rawValues = new Map<string, number[]>();
   for (const item of items) {
     for (const [id, value] of Object.entries(item.metrics)) {
-      if (!isFiniteNumber(value)) continue;
+      if (!isFiniteNumber(value) || DERIVED_METRIC_IDS.has(id)) continue;
       const bucket = rawValues.get(id);
       if (bucket) bucket.push(value);
       else rawValues.set(id, [value]);
@@ -113,6 +115,14 @@ function aggregateArea(
   for (const [id, values] of rawValues) {
     coverage.set(id, values.length);
     aggregated.set(id, MAX_AGGREGATED_METRICS.has(id) ? Math.max(...values) : mean(values));
+  }
+
+  // Session-level aggregates fitted from this area's trace (RT variability, cross-item
+  // consistency, within-session growth, mental-rotation slope). Only those with enough inputs
+  // appear; the rest are simply absent from the within-bracket average.
+  for (const [id, value] of deriveAggregateMetrics(items, scaleMin, scaleMax)) {
+    aggregated.set(id, value);
+    coverage.set(id, items.length);
   }
 
   // M-DIFFREACH: fold in a ceiling derived from the hardest correct item, so it

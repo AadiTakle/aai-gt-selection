@@ -8,10 +8,13 @@
  * - {@link scoreExam} — pure `(items, policy) → ExamScore` scorer.
  * - {@link DEFAULT_EXAM_POLICY} — tunable defaults (weights, bracket edges, area weights).
  * - Metric registry — basic-core set (§4) + all other measurements tracked-inert.
+ * - Session-level aggregates fitted from the trace (RT variability, consistency, growth,
+ *   rotation slope), which no renderer can emit per item.
  * - Local types mirroring the BUILD_PLAN item/result/scoring contract.
  */
 export * from './metric-ids';
 export * from './types';
 export * from './metric-registry';
 export * from './policy';
+export * from './derived-metrics';
 export * from './scorer';

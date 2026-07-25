@@ -36,6 +36,14 @@ export interface MetricSpec {
   readonly influences: readonly MetricInfluence[];
   /** true when this metric drives the engine stop rule (M-CONSIST). */
   readonly drivesStopRule?: boolean;
+  /**
+   * true when this metric is a SESSION-LEVEL AGGREGATE fitted from the stored trace rather than
+   * emitted per item by a renderer. A single item cannot carry a variance, a consistency rate or
+   * a slope, so `minSamples` for these counts the inputs to the fit, and treating them as
+   * per-item emissions makes the engine stop rule unsatisfiable. See `derived-metrics.ts` and
+   * `@gt-selection/exam-engine`'s `derived.ts`.
+   */
+  readonly derivedFromTrace?: boolean;
   /** true when this metric feeds the output profile (M-LEARNRATE, M-RTVAR). */
   readonly contributesToProfile?: boolean;
   /** true for gate metrics that are tracked now but NOT enforced yet (M-ENGAGE, M-RAPIDGUESS). */
@@ -65,8 +73,9 @@ export const BASIC_CORE_METRICS: readonly MetricSpec[] = [
     tier: 'basic_core',
     minSamples: 6,
     influences: ['select', 'score'],
+    derivedFromTrace: true,
     rationale:
-      'Ceiling via adaptive escalation to failure; the sharpest single tail statistic (float 1-20) and the primary within-bracket driver (MEASUREMENTS M-DIFFREACH).',
+      'Ceiling via adaptive escalation to failure; the sharpest single tail statistic (float 1-20) and the primary within-bracket driver (MEASUREMENTS M-DIFFREACH). Derived: it is the max difficulty solved across the trace, and server verification only attaches it on a correct answer, so counting emissions would never converge for a struggling child. `minSamples` = scored items in the area.',
   },
   {
     id: 'M-RT',
@@ -96,8 +105,9 @@ export const BASIC_CORE_METRICS: readonly MetricSpec[] = [
     minSamples: 20,
     influences: ['score'],
     contributesToProfile: true,
+    derivedFromTrace: true,
     rationale:
-      'Its INVERSE is the consistency signal that positions within the bracket; low RT variability tracks g better than peak speed (MEASUREMENTS M-RTVAR: >=20-30 samples; never reward raw speed).',
+      'Its INVERSE is the consistency signal that positions within the bracket; low RT variability tracks g better than peak speed (MEASUREMENTS M-RTVAR: >=20-30 samples; never reward raw speed). Derived: a variance needs an RT series, so `minSamples` = response times collected, counted per child rather than per area.',
   },
   {
     id: 'M-REV',
@@ -127,8 +137,9 @@ export const BASIC_CORE_METRICS: readonly MetricSpec[] = [
     minSamples: 3,
     influences: ['score'],
     drivesStopRule: true,
+    derivedFromTrace: true,
     rationale:
-      'Shrinks the conditional SE at the cut and drives the engine stop rule; inconsistent responders near the cut get more items (MEASUREMENTS M-CONSIST: >=3 matched parallel pairs).',
+      'Shrinks the conditional SE at the cut and drives the engine stop rule; inconsistent responders near the cut get more items (MEASUREMENTS M-CONSIST: >=3 matched parallel pairs). Derived: consistency exists only ACROSS items, so `minSamples` = matched difficulty-paired items in the area, not emissions. Only 6 of 66 catalog types declare it, so counting emissions stalled every area.',
   },
   {
     id: 'M-LEARNRATE',
@@ -138,8 +149,9 @@ export const BASIC_CORE_METRICS: readonly MetricSpec[] = [
     minSamples: 8,
     influences: ['score'],
     contributesToProfile: true,
+    derivedFromTrace: true,
     rationale:
-      'Timeback-fit core: within-session ceiling growth / trials-to-mastery on a novel type (dynamic-assessment learning potential). A SCREENING HYPOTHESIS, not a will-benefit claim (MEASUREMENTS M-LEARNRATE: >=8-12 escalating trials).',
+      'Timeback-fit core: within-session ceiling growth / trials-to-mastery on a novel type (dynamic-assessment learning potential). A SCREENING HYPOTHESIS, not a will-benefit claim (MEASUREMENTS M-LEARNRATE: >=8-12 escalating trials). Derived: a growth slope needs a trial series, so `minSamples` = scored items in the area. Zero verbal and zero spatial catalog types declare it, so counting emissions made those areas permanently uncoverable.',
   },
   {
     id: 'M-PATH',
@@ -240,8 +252,9 @@ export const BASIC_CORE_METRICS: readonly MetricSpec[] = [
     tier: 'basic_core',
     minSamples: 12,
     influences: ['score'],
+    derivedFromTrace: true,
     rationale:
-      'Shepard-Metzler chronometric signature; a shallow slope at high accuracy is a rate-of-transformation measure; spatial-only, LOWER is better (MEASUREMENTS M-ROTSLOPE: >=12 trials across >=3 disparities).',
+      'Shepard-Metzler chronometric signature; a shallow slope at high accuracy is a rate-of-transformation measure; spatial-only, LOWER is better (MEASUREMENTS M-ROTSLOPE: >=12 trials across >=3 disparities). Derived: it is a regression of correct-trial RT on the item angular disparity that SPA-VIEW-01/SPA-XSCAN-01 record. Scored where fittable, but NOT enforced by the engine stop rule: no catalog type declares it and no proportionate spatial block reaches 12 disparity trials.',
   },
   {
     id: 'M-IDEAFLU',

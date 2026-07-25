@@ -8,8 +8,9 @@
 // Engine functions
 export { startState } from './state';
 export { nextType, nextItem, toServedItem } from './selection';
-export { update, difficultyDelta } from './update';
+export { update, difficultyDelta, toObservation } from './update';
 export { isDone, areaMetricsCovered, areaEstimateStable, coverageIsEven } from './done';
+export { replaySession } from './replay';
 
 // Configuration and registries
 export {
@@ -27,13 +28,34 @@ export {
 // Coverage helpers (used by selection + stop rule; exported for integration/inspection)
 export {
   scopeAppliesToArea,
+  metricKind,
+  metricAdequacyScope,
   enforcedMetricsForArea,
+  enforcedSessionMetrics,
   metricCount,
+  sessionTrace,
+  metricSamplesInArea,
+  metricSamplesInSession,
+  metricAdequateInArea,
+  sessionMetricsCovered,
   enforcedShortfallCount,
   underCoveredWeights,
   typeHasUnseenItem,
   availableTypesByArea,
+  auditMetricSupply,
 } from './coverage';
+export type { MetricSupply } from './coverage';
+
+// Derived (session-level aggregate) core metrics
+export {
+  DERIVED_METRIC_IDS,
+  responseTimes,
+  matchedPairCount,
+  rotationTrials,
+  distinctDisparities,
+  derivedMetricAdequate,
+  derivedInputCount,
+} from './derived';
 
 // Deterministic randomness + stats
 export { mulberry32, hashUnit } from './rng';
@@ -71,14 +93,18 @@ export type {
   ItemAnswer,
   ItemScoring,
   ItemProvenance,
+  ItemStimulus,
   BankItem,
   ServedItem,
   TelemetryEvent,
   ItemResult,
+  ItemObservation,
   ScoredItem,
   QuestionType,
   Banks,
   MetricScope,
+  MetricKind,
+  MetricAdequacyScope,
   CoreMetricSpec,
   EngineConfig,
   AreaState,

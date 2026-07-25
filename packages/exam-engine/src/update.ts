@@ -1,6 +1,7 @@
 import { DIFFICULTY_MAX, DIFFICULTY_MIN, DIFFICULTY_RANGE } from './config';
+import { DERIVED_METRIC_IDS } from './derived';
 import { clamp, pushWindow } from './stats';
-import type { Area, AreaState, ScoredItem, SessionState } from './types';
+import type { Area, AreaState, ItemObservation, ScoredItem, SessionState } from './types';
 
 /**
  * Compute the signed difficulty delta for a scored item.
@@ -34,12 +35,32 @@ export function difficultyDelta(
   return -magnitude;
 }
 
+function finiteOrNull(value: number | undefined): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+/** Reduce a scored item to the fields every derived aggregate needs. */
+export function toObservation(scored: ScoredItem): ItemObservation {
+  return {
+    itemId: scored.itemId,
+    typeCode: scored.typeCode,
+    difficulty: scored.difficulty,
+    score: clamp(scored.score, 0, 1),
+    correct: scored.correct,
+    rtMs: finiteOrNull(scored.metrics['M-RT']),
+    angularDisparityDeg: finiteOrNull(scored.stimulus?.angularDisparityDeg),
+  };
+}
+
 function nextAreaState(prev: AreaState, scored: ScoredItem, config: SessionState['config']): AreaState {
   const delta = difficultyDelta(prev.difficulty, scored, config);
   const difficulty = clamp(prev.difficulty + delta, DIFFICULTY_MIN, DIFFICULTY_MAX);
 
   const metricCounts: Record<string, number> = { ...prev.metricCounts };
   for (const metricId of Object.keys(scored.metrics)) {
+    // A derived metric's coverage comes from the trace, never from an emission. Counting a stray
+    // emission would let one item stand in for a whole series and re-open the coverage gap.
+    if (DERIVED_METRIC_IDS.has(metricId)) continue;
     metricCounts[metricId] = (metricCounts[metricId] ?? 0) + 1;
   }
 
@@ -53,6 +74,7 @@ function nextAreaState(prev: AreaState, scored: ScoredItem, config: SessionState
     accWindow: pushWindow(prev.accWindow, clamp(scored.score, 0, 1), config.accWindowSize),
     estWindow: pushWindow(prev.estWindow, difficulty, config.estWindowSize),
     metricCounts,
+    trace: [...prev.trace, toObservation(scored)],
   };
 }
 
