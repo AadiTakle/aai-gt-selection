@@ -234,10 +234,18 @@ select ok(
 
 -- --- 2. Resolution order -----------------------------------------------------------
 
+-- The registry grows one row per ported type, in each batch's own additive migration, so a
+-- literal row count would fail every time another batch lands and would have to be edited by
+-- two workers at once. What this file owns is the FOUNDATION's four; the per-batch parity
+-- assertions live with their batch (for example 124 for the nine moderate types).
 select is(
-  (select count(*)::integer from app.exam_verifier_registry),
+  (
+    select count(*)::integer
+    from app.exam_verifier_registry
+    where type_code in ('FLU-CONCEPT-01', 'VER-EVIDENCE-01', 'QUANT-MIX-01', 'SPA-XPLANE-01')
+  ),
   4,
-  'four per-type verifiers are registered — the port is deliberately partial'
+  'the foundation''s four per-type verifiers are registered'
 );                                                                                      -- 9
 select is(
   app.exam_verify_response('00000000-0000-4000-8000-0000000e0001', '{}'::jsonb) ->> 'verifier',

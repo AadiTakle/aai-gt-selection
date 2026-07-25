@@ -144,6 +144,10 @@ function asRecord(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
+function list(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
 function keyedResponses(item: RawBankItem): Responses {
   const key = item.answer?.correctKey;
   if (typeof key === 'number') {
@@ -199,6 +203,124 @@ const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {
       // Same angle of cut, a different height: the bank's own `cut_too_low`/`cut_too_high`
       // near-miss family, not a malformed response.
       wrong: { plane: { ...plane, h: h >= 50 ? h - 40 : h + 40 } },
+    };
+  },
+
+  'CX-check-01': (item) => {
+    const trueBin = asRecord(item.answer.trueBin) ?? {};
+    const binKeys = list(item.content.bins)
+      .map((entry) => (asRecord(entry) ?? {}).key)
+      .filter((k): k is string => typeof k === 'string');
+    // Move the tile the sorter planted a slip on into a third place: still wrong, and it
+    // drives M-ERRTYPE's "caught" count to zero rather than leaving it at one.
+    const slipped = asRecord(list(item.answer.plantedErrors)[0]) ?? {};
+    const target = typeof slipped.tokenId === 'string' ? slipped.tokenId : Object.keys(trueBin)[0];
+    const wrong = { ...trueBin };
+    if (target !== undefined) {
+      const other = binKeys.find((k) => k !== trueBin[target]);
+      if (other !== undefined) wrong[target] = other;
+    }
+    return { correct: { finalPlacement: trueBin }, wrong: { finalPlacement: wrong } };
+  },
+
+  'FLU-MATRIXBUILD-01': (item) => {
+    const canonical = asRecord(item.answer.canonical) ?? {};
+    const wrong: Record<string, unknown> = { ...canonical };
+    const first = Object.keys(canonical)[0];
+    if (first !== undefined) {
+      const value = canonical[first];
+      wrong[first] = typeof value === 'number' ? value + 1 : `${String(value)}~no`;
+    }
+    return { correct: { constructed: canonical }, wrong: { constructed: wrong } };
+  },
+
+  'VER-SENSE-01': (item) => {
+    const order = String(item.answer.correctKey)
+      .split(',')
+      .map((part) => Number(part));
+    // One adjacent pair swapped: the bank's `near_order` foil, which is also the response
+    // that separates adjacent-pair credit from positional overlap.
+    const wrong = [...order];
+    if (wrong.length >= 2) [wrong[0], wrong[1]] = [wrong[1] as number, wrong[0] as number];
+    return { correct: { order }, wrong: { order: wrong } };
+  },
+
+  'GB-WORDFORGE-01': (item) => {
+    const words = list(item.answer.validWords)
+      .map((entry) => (asRecord(entry) ?? {}).word)
+      .filter((w): w is string => typeof w === 'string');
+    const target =
+      typeof item.answer.referenceTarget === 'number' ? item.answer.referenceTarget : 0;
+    return {
+      correct: { submissions: words },
+      // One word short of the threshold plus a nonword: full credit is a threshold here, so
+      // this is the case that proves the port is not just checking "produced a word".
+      wrong: { submissions: [...words.slice(0, Math.max(0, target - 1)), 'ZZZQX'] },
+    };
+  },
+
+  'GB-TRACK-01': (item) => {
+    const canonical = asRecord(item.answer.canonicalSolution) ?? {};
+    const slots = list(canonical.targetSlots).filter((s): s is number => typeof s === 'number');
+    const jarCount = typeof item.content.jarCount === 'number' ? item.content.jarCount : 0;
+    const decoy = [...Array(jarCount).keys()].find((slot) => !slots.includes(slot));
+    return {
+      correct: { selectedSlots: slots, taps: slots.length },
+      // The bank's `start_position_error` shape: one target dropped, one never-lit jar added,
+      // which keeps M-PROG partial instead of zero.
+      wrong: {
+        selectedSlots: decoy === undefined ? slots.slice(1) : [...slots.slice(1), decoy],
+        taps: slots.length + 1,
+      },
+    };
+  },
+
+  'SPA-SCENE-01': (item) => {
+    const order = list(item.answer.correctOrder).filter((v): v is number => typeof v === 'number');
+    const nearestId = item.answer.nearestId;
+    return {
+      // The egocentric left-right reversal is the foil every item ships, and it is the only
+      // wrong answer that lights M-MIRRORFA.
+      correct: { order, nearestId },
+      wrong: { order: [...order].reverse(), nearestId },
+    };
+  },
+
+  'SPA-MAZE-01': (item) => {
+    const path = list(item.answer.optimalPath);
+    return {
+      correct: { path },
+      // Stops one cell short of the goal: an `incomplete` route, still a legal walk, so the
+      // port has to reject it on the goal test rather than on a malformed-input guard.
+      wrong: { path: path.slice(0, Math.max(1, path.length - 1)) },
+    };
+  },
+
+  'GB-ROBOPATH-01': (item) => {
+    const canonical = asRecord(item.answer.canonicalSolution) ?? {};
+    const program = list(canonical.program);
+    return {
+      correct: { program },
+      // One step too many: either it bumps (the run aborts with NO metrics) or it overshoots
+      // the door (wrong, with M-EFF). Both asymmetries have to survive the port.
+      wrong: { program: [...program, { cmd: 'F', reps: 1 }] },
+    };
+  },
+
+  'GB-EXPLORE-01': (item) => {
+    const path = list(item.answer.optimalPath);
+    const actions = path.slice(1).map((to) => ({ kind: 'move', to }));
+    const home = list(item.content.home);
+    const pointings = list(item.content.landmarks).map((entry) => ({
+      landmarkId: (asRecord(entry) ?? {}).id,
+      standCell: home,
+      // A raw dial angle, not the true bearing: M-VIEWANG is a circular mean error, so a
+      // non-zero one is what actually exercises the atan2 parity the inventory flags.
+      angleDeg: 12.5,
+    }));
+    return {
+      correct: { actions, pointings },
+      wrong: { actions: actions.slice(0, Math.max(0, actions.length - 1)), pointings },
     };
   },
 };
