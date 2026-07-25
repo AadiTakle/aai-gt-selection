@@ -6,11 +6,16 @@
  * authority on per-item correctness. Both were written down before anything checked them.
  * This does the checking, on a real session rather than on synthesised cases:
  *
- *   1. RE-VERIFY — every stored response is re-graded by `app.exam_verify_response`, and the
- *      verdict is compared to the `correct` the app tier recorded at submit time. A
- *      disagreement means the two tiers do not agree about that child's answer, which is the
- *      defect D-027 exists to close. Ported and generic tiers are reported separately, so a
- *      session that happens to serve only generic types cannot look like proof of the port.
+ *   1. RE-VERIFY — every stored response is re-graded by `app.exam_verify_response` and compared
+ *      to the `correct` stored beside it. Note what this does and does not prove: that column is
+ *      written by `api.exam_record_response`, which calls the same dispatcher, so this compares
+ *      the database against ITSELF ACROSS TIME. It catches a trace whose recorded verdict the
+ *      current dispatcher no longer reproduces — which is what happens to every session recorded
+ *      while a type was still unported, since the dispatcher fell back to the keyed default and
+ *      rejected constructed responses (E-081). It CANNOT see an app-tier/database divergence;
+ *      only `pnpm exam:verify:diff` compares the two implementations. Ported and generic tiers
+ *      are reported separately, so a session that served only generic types cannot look like
+ *      proof of the port.
  *   2. RE-HASH — `app.exam_scorer_input_hash` is recomputed and compared to the hash stored
  *      on the outcome. A mismatch means the trace has drifted since it was scored.
  *   3. RE-SCORE — the stored scorer input is fed back through `scoreExam` from
