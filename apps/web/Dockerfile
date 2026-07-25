@@ -15,22 +15,30 @@ ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 RUN corepack enable
 
-# ---- deps: install the whole workspace with a frozen lockfile ----
-FROM base AS deps
-WORKDIR /repo
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
-COPY apps/web/package.json apps/web/package.json
-COPY packages/contracts/package.json packages/contracts/package.json
-COPY packages/db-types/package.json packages/db-types/package.json
-COPY packages/test-fixtures/package.json packages/test-fixtures/package.json
-RUN pnpm install --frozen-lockfile
-
-# ---- build: compile the Next.js standalone bundle ----
+# ---- build: install the full workspace and compile the standalone bundle ----
+# We install in the same stage we build in so pnpm's per-package node_modules
+# symlink farm stays intact. A previous multi-stage split copied only the root
+# and apps/web node_modules, which left workspace packages (e.g.
+# packages/contracts) unable to resolve their own deps like `zod` at build time.
+# The final `runner` stage copies only Next's traced standalone output, so this
+# fuller build stage does not bloat the shipped image.
 FROM base AS build
 WORKDIR /repo
-COPY --from=deps /repo/node_modules ./node_modules
-COPY --from=deps /repo/apps/web/node_modules ./apps/web/node_modules
 COPY . .
+RUN pnpm install --frozen-lockfile
+
+# `NEXT_PUBLIC_*` values are inlined into the CLIENT bundle at build time (see
+# apps/web/src/lib/supabase/browser.ts), so the hosted Supabase target must be
+# present now, not just in the runtime env. GT_DEPLOY_MODE=hosted lets the
+# env guard (src/lib/env.ts) accept a non-loopback https Supabase URL here.
+ARG GT_DEPLOY_MODE=hosted
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+ARG NEXT_PUBLIC_GT_RETURN_URL
+ENV GT_DEPLOY_MODE=$GT_DEPLOY_MODE \
+    NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL \
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY \
+    NEXT_PUBLIC_GT_RETURN_URL=$NEXT_PUBLIC_GT_RETURN_URL
 RUN pnpm --filter @gt-selection/web build
 
 # ---- runner: slim runtime image ----
