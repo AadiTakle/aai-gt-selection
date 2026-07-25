@@ -45,9 +45,17 @@ interface ResponseRow {
   ported: boolean;
 }
 
+/** One entry of the outcome's `area_scores`, which is a JSON ARRAY of `AreaScore`, not a map. */
+interface StoredArea {
+  area: string;
+  proficiency: number;
+  accuracy: number;
+  bracket: number;
+}
+
 interface OutcomeRow {
   composite_score: number;
-  area_scores: Record<string, number> | null;
+  area_scores: StoredArea[] | null;
   profile: unknown;
   scorer_input_hash: string | null;
   scorer_input_count: number;
@@ -110,11 +118,11 @@ async function reconcile(client: Client, sessionId: string): Promise<boolean> {
        from app.exam_session_outcome where session_id = $1`,
     [sessionId],
   );
-  if (outcome.rows.length === 0) {
+  const stored = outcome.rows[0];
+  if (!stored) {
     console.log(`${sessionId}  NO OUTCOME — session was never scored`);
     return false;
   }
-  const stored = outcome.rows[0];
 
   /* 1. re-verify every response through the database ---------------------- */
   const responses = await client.query<ResponseRow>(
@@ -156,14 +164,27 @@ async function reconcile(client: Client, sessionId: string): Promise<boolean> {
   const compositeOk = Math.abs(rescored.composite - stored.composite_score) <= SCORE_EPSILON;
   const countOk = items.length === stored.scorer_input_count;
 
-  const storedAreas = stored.area_scores ?? {};
-  const rescoredAreas = rescored.perArea as unknown as Record<string, { score?: number } | number>;
+  const storedAreas = stored.area_scores ?? [];
+  const rescoredAreas = rescored.perArea as Record<string, StoredArea | undefined>;
   const areaDiffs: string[] = [];
-  for (const [area, value] of Object.entries(storedAreas)) {
-    const other = rescoredAreas[area];
-    const got = typeof other === 'number' ? other : other?.score;
-    if (got === undefined || Math.abs(got - value) > SCORE_EPSILON) {
-      areaDiffs.push(`${area}: stored=${value} rescored=${got ?? 'absent'}`);
+  for (const area of storedAreas) {
+    const got = rescoredAreas[area.area];
+    if (!got) {
+      areaDiffs.push(`${area.area}: absent from the recomputed score`);
+      continue;
+    }
+    // Compare the two numbers that decide the outcome — the bracket driver and the
+    // proficiency inside it — plus the bracket itself, which is ordinal and exact.
+    if (Math.abs(got.proficiency - area.proficiency) > SCORE_EPSILON) {
+      areaDiffs.push(
+        `${area.area}: proficiency stored=${area.proficiency} rescored=${got.proficiency}`,
+      );
+    }
+    if (Math.abs(got.accuracy - area.accuracy) > SCORE_EPSILON) {
+      areaDiffs.push(`${area.area}: accuracy stored=${area.accuracy} rescored=${got.accuracy}`);
+    }
+    if (got.bracket !== area.bracket) {
+      areaDiffs.push(`${area.area}: bracket stored=${area.bracket} rescored=${got.bracket}`);
     }
   }
   const profileOk = sameProfile(stored.profile, rescored.profile);
