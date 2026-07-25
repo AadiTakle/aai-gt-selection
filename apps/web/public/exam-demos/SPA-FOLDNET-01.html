@@ -173,7 +173,7 @@ function loadItem(served){
   setCue('ready');setStatus('neutral','Fold the net, inspect the solid, then choose a tile.');
   $('#log').innerHTML='';log(`item ${(served.itemId||'').slice(0,8)} · ${content.question.mode} · ${kind}`);renderMeters();
 }
-async function startItem(){if(!content)return;started=true;T.itemStart=performance.now();emit('start');
+async function startItem(){if(!content)return;started=true;locked=false;T.itemStart=performance.now();emit('start');
   if(content.scaffold&&content.scaffold.autoFold){await ghostFold();}
 }
 async function submit(){if(locked||selected<0||folding||!started)return;locked=true;$('#lock').disabled=true;$$('.option').forEach(o=>o.disabled=true);
