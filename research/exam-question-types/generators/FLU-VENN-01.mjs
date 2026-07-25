@@ -68,6 +68,50 @@ function mulberry32(a) {
 function makeRng(seed) {
   return mulberry32(xmur3(seed)());
 }
+/* ------------------------------------------------------------------ *
+ * KEY-POSITION BALANCE (E-073)
+ * Shuffling every item's options independently still leaves the correct key's
+ * POSITION uneven over a bank, and an uneven pseudo-guessing floor inflates
+ * low-ability accuracy (M-ACC) and makes raw accuracy non-comparable across
+ * types. The bank builder hands each item a target slot from a least-loaded
+ * allocator and the item seats its correct option there. The option SET, the
+ * distractors and the difficulty levers are untouched.
+ *
+ * Slots are allocated uniformly WITHIN each option-count stratum first and only
+ * then balanced across the whole bank. Option count is itself a difficulty
+ * lever, so balancing the pooled key counts alone would make the last slot of
+ * the rarer long items almost always correct — a larger exploit than the one
+ * being fixed.
+ * ------------------------------------------------------------------ */
+function makeSlotAllocator(maxSlots) {
+  const globalUse = new Array(maxSlots).fill(0);
+  const byOptionCount = new Map();
+  let tick = 0;
+  return (n) => {
+    if (!byOptionCount.has(n)) byOptionCount.set(n, new Array(n).fill(0));
+    const localUse = byOptionCount.get(n);
+    let best = tick % n;
+    for (let k = 1; k < n; k++) {
+      const i = (tick + k) % n;
+      if (localUse[i] < localUse[best] || (localUse[i] === localUse[best] && globalUse[i] < globalUse[best])) best = i;
+    }
+    tick++;
+    localUse[best]++;
+    globalUse[best]++;
+    return best;
+  };
+}
+// Seat the correct entry of an already-shuffled list at `slot`, leaving the
+// distractors in their shuffled relative order. `slot` is either a resolved
+// index or the allocator callback, which is handed this item's option count.
+function seatCorrect(list, isCorrect, slot) {
+  const ci = list.findIndex(isCorrect);
+  const at = typeof slot === 'function' ? slot(list.length) : slot;
+  if (ci < 0 || !Number.isInteger(at) || at < 0 || at >= list.length) return { list, slot: ci };
+  const rest = list.filter((_, i) => i !== ci);
+  return { list: [...rest.slice(0, at), list[ci], ...rest.slice(at)], slot: at };
+}
+
 function seededUuid(seed) {
   const rng = makeRng('uuid|' + seed);
   const hex = [];
@@ -154,9 +198,9 @@ function makeExemplars(dim, val, otherDim, otherVal, neutral, count) {
 
 /**
  * Generate ONE structured BankItem.
- * @param {{leftDim,rightDim,exemplarCount,optionCount,distractorSimilarity,seed}} lever
+ * @param {{leftDim,rightDim,exemplarCount,optionCount,distractorSimilarity,keyPosition,seed}} lever
  */
-export function genItem({ leftDim, rightDim, exemplarCount, optionCount, distractorSimilarity, seed }) {
+export function genItem({ leftDim, rightDim, exemplarCount, optionCount, distractorSimilarity, keyPosition, seed }) {
   const rng = makeRng(seed);
   const leftVal = DOM[leftDim][Math.floor(rng() * DOM[leftDim].length)];
   const rightVal = DOM[rightDim][Math.floor(rng() * DOM[rightDim].length)];
@@ -217,7 +261,8 @@ export function genItem({ leftDim, rightDim, exemplarCount, optionCount, distrac
     const j = Math.floor(rng() * (i + 1));
     [order[i], order[j]] = [order[j], order[i]];
   }
-  const shuffled = order.map((i) => pool[i]).slice(0, optionCount);
+  const seated = seatCorrect(order.map((i) => pool[i]).slice(0, optionCount), (o) => o.lure === 'correct', keyPosition);
+  const shuffled = seated.list;
 
   const options = shuffled.map((o, i) => ({ key: OPTION_KEYS[i], figure: o.fig }));
   let correctKey = null;
@@ -272,6 +317,7 @@ export function genItem({ leftDim, rightDim, exemplarCount, optionCount, distrac
         rightDim,
         exemplarCount,
         optionCount,
+        keyPosition: seated.slot, // resolved slot; replays the balanced key position
         // Full precision (not rounded): enables exact, reproducible regeneration.
         distractorSimilarity,
       },
@@ -303,6 +349,7 @@ export function ageBandsFor(difficulty) {
  * ================================================================== */
 export function buildBank({ perBin = 6 } = {}) {
   const items = [];
+  const keyPosition = makeSlotAllocator(OPTION_KEYS.length);
   for (let k = 1; k <= 20; k++) {
     const lo = Math.max(1, k - 0.45);
     const hi = Math.min(20, k + 0.45);
@@ -335,7 +382,7 @@ export function buildBank({ perBin = 6 } = {}) {
       const t = seg.tLo + (seg.tHi - seg.tLo) * ((li + 0.5) / nHits);
       const similarity = solveSimilarity(seg.dims, seg.ex, seg.oc, t);
       const seed = `FLU-VENN-01|bin=${k}|i=${i}|D${seg.dims.join('+')}|E${seg.ex}|O${seg.oc}`;
-      items.push(genItem({ leftDim: seg.dims[0], rightDim: seg.dims[1], exemplarCount: seg.ex, optionCount: seg.oc, distractorSimilarity: similarity, seed }));
+      items.push(genItem({ leftDim: seg.dims[0], rightDim: seg.dims[1], exemplarCount: seg.ex, optionCount: seg.oc, distractorSimilarity: similarity, keyPosition, seed }));
     }
   }
   return items;
