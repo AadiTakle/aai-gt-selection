@@ -1,6 +1,6 @@
 import 'server-only';
 
-import type { ExamScore } from '@gt-selection/exam-scoring';
+import type { ExamScore, ScoredItem } from '@gt-selection/exam-scoring';
 import { createClient } from '@supabase/supabase-js';
 
 import { getServerEnvironment } from '@/lib/env';
@@ -326,10 +326,60 @@ export async function persistItemResponse(input: {
   };
 }
 
+/** The canonical scorer input as the DATABASE derived it from the stored trace. */
+export interface StoredScorerInput {
+  /** `app.exam_scorer_input_json`: the `ScoredItem[]` the scorer consumes, in order. */
+  items: ScoredItem[];
+  /** `app.exam_scorer_input_hash` over the same array, at read time. */
+  inputHash: string;
+  /** True when this session already carries an outcome row. */
+  outcomeRecorded: boolean;
+}
+
+/**
+ * Read the scorer input the DATABASE built from its own verified rows (E-084).
+ *
+ * This is the input `scoreExam` must be handed for a persisted session. The
+ * alternative — scoring the `scoredItems` array the browser posted — produces a
+ * number that is not derivable from anything the server verified, and hands a
+ * scripted client whatever score it claims. `api.exam_get_scoring_inputs`
+ * enforces ownership, so a caller can only read the input of a session it owns.
+ *
+ * Returns `null` on any failure, INCLUDING an empty trace: a session with no
+ * stored responses has nothing to score, and the caller must not substitute the
+ * request body for it.
+ */
+export async function fetchStoredScorerInput(
+  examSessionId: string,
+): Promise<StoredScorerInput | null> {
+  const inputs = await callRpc<{
+    items: ScoredItem[] | null;
+    itemCount: number;
+    inputHash: string;
+    outcomeRecorded: boolean;
+  }>('exam_get_scoring_inputs', {
+    p_session_id: examSessionId,
+    p_correlation_id: correlationId(),
+  });
+  if (!inputs) return null;
+
+  const { items, inputHash, outcomeRecorded } = inputs.data;
+  if (!Array.isArray(items) || items.length === 0) {
+    console.warn(
+      `[exam-persistence] session ${examSessionId} has no stored responses; refusing to score.`,
+    );
+    return null;
+  }
+  return { items, inputHash, outcomeRecorded };
+}
+
 /**
  * Store the `packages/exam-scoring` outcome VERBATIM and close the session. The
  * database records a sha256 of the canonical scorer input it derives from the
  * stored trace, so the score can later be recomputed and checked against it.
+ *
+ * The caller must have scored `fetchStoredScorerInput`'s items, not a
+ * client-supplied trace, or that hash certifies nothing (E-084).
  */
 export async function persistOutcome(input: {
   examSessionId: string;

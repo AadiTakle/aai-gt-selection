@@ -11,7 +11,7 @@ decision **D-019**. Everything below is born-synthetic (`synthetic_only = true`,
 |---|---|---|
 | Battery starts | `POST /api/exam-session` | `api.exam_create_participant`, `api.exam_start_session` |
 | Each answered item | `POST /api/exam-submit` | `api.exam_register_item`, `api.exam_submit_response` |
-| Battery ends | `POST /api/exam-results` | `api.exam_record_outcome` |
+| Battery ends | `POST /api/exam-results` | `api.exam_get_scoring_inputs`, `api.exam_record_outcome` |
 
 All three run server-side in `apps/web/src/lib/exam/persistence.ts`. The browser never
 holds a proctor session and never reaches an `api.exam_*` RPC.
@@ -40,7 +40,11 @@ Unchanged by this work:
   `api.exam_record_outcome` (`scorer_source = 'packages/exam-scoring'`). The demoted
   `app.exam_compute_outcome` is never called, so no second outcome competes.
 - The database keeps the keys and verifies each response inside
-  `app.exam_score_response`.
+  `app.exam_verify_response` (D-027; `app.exam_score_response` is demoted).
+- **The database also decides WHICH ITEMS the scorer is handed.** For a persisted session
+  the scorer input is read back from `app.exam_scorer_input_json` through
+  `api.exam_get_scoring_inputs`; the `scoredItems` array in the request body is never
+  scored. See §4.
 
 ## 3. Degradation
 
@@ -48,11 +52,59 @@ Persistence is off unless explicitly enabled, and every write is best-effort. A 
 config, an unreachable database, a rejected RPC, or a slow one (8-second timeout) is
 logged with a `[exam-persistence]` prefix and returns `null`/`false`. `/api/exam-session`
 answers `examSessionId: null`, the runner keeps that null, and the battery proceeds
-exactly as it did before this change — in memory, unpersisted. No route's status code or
-contract changes; the only visible difference is an informational `persisted` flag.
-Covered by `apps/web/src/lib/exam/persistence.test.ts`.
+exactly as it did before this change — in memory, unpersisted. The only visible
+difference is an informational `persisted` flag, plus a `scoreSource` of
+`client-trace-unverified` on the result, which says in the response what the number is
+worth. Covered by `apps/web/src/lib/exam/persistence.test.ts`.
 
-## 4. The open defect: two verdicts per item, and only one of them is in the scored columns
+**One exception, and it is deliberate.** A payload that carries an `examSessionId` while
+persistence is configured is asserting a database session, and its score is READ from
+that session. If the read fails, `/api/exam-results` answers `503
+SCORER_INPUT_UNAVAILABLE`, stores nothing, and returns no score. Degrading to the request
+body there would put back exactly the defect §4 records, and unlike a failed write a
+stored score cannot be withdrawn. The trace itself is already safe in the database, so a
+session that hits this can be scored later from the rows it holds.
+
+## 4. Two verdicts per item, and the score used to read the wrong one
+
+**Resolved 2026-07-25 for every session recorded from now on; the history below is what
+was measured on the way there and is kept because the numbers in it are cited elsewhere.**
+
+Two separate things were wrong, and closing the first exposed the second.
+
+1. **The two tiers graded differently** (E-081, closed partially by D-027). The rest of
+   this section is that story.
+2. **The score never read the database's verdicts at all** (E-084). `/api/exam-results`
+   scored `scoreExam(trace.data.scoredItems)`, where `trace` is the parsed REQUEST BODY.
+   So the `claim_boundary` stamped on every outcome row — "recomputable from the stored
+   trace via `app.exam_scorer_input_json`" — was false, and a scripted client that posted
+   `scoredItems` claiming `correct: true` at high `difficulty` was handed the score it
+   asked for. Verifying answers in the database bought nothing while the scorer never
+   read the verdicts.
+
+The fix for (2) is one rule: **when the payload carries an `examSessionId`, the scorer
+input is read from the database**, through `api.exam_get_scoring_inputs`, and that is what
+is scored, returned to the browser, and stored. There is no fallback to the request body
+(§3). Re-running the same seeded 22-item battery across the change:
+
+```
+composite the client trace would have produced (pre-fix): 7.467904132453549
+composite from app.exam_scorer_input_json     (post-fix): 6.421120506722555
+```
+
+The whole of that gap is one item: the app tier and the database still disagree on
+`GB-PATHFORGE-01` (1 of 22), which is the residual (1) above. The database's verdict is
+the authority per D-027 and is now the one that scores. Expect corrected composites to be
+lower; that is the point, not a regression.
+
+The gate is `pnpm exam:reconcile`, which re-verifies every stored response, re-hashes the
+trace, and re-scores it, then compares composite, per-area proficiency/accuracy/bracket
+and profile to the outcome row. It exits 0 on sessions recorded after the fix and
+non-zero on every session recorded before it. Note that it compares the database against
+itself: it cannot see an app-tier/database verdict disagreement, so it is not a substitute
+for `pnpm exam:verify:diff`.
+
+### History (E-081/D-026/D-027)
 
 **`app.exam_score_response` and the app's per-type verifiers grade the same response by
 different rules, and they disagree often.**
@@ -78,16 +130,17 @@ called 4 correct; the verifiers called 11 correct, and the two sets barely overl
 Because `api.exam_submit_response` writes its own verdict into
 `exam_item_response.correct`, `.score`, and `metrics['M-ACC']`, and because
 `app.exam_scorer_input_json` projects exactly those columns, **re-running `scoreExam`
-over the database's canonical scorer input does not reproduce the recorded score**:
+over the database's canonical scorer input did not reproduce the recorded score**:
 
 ```
 composite recorded (packages/exam-scoring)      : 7.43376016008243
 composite recomputed from exam_scorer_input_json: 3.774707062976571
 ```
 
-That breaks the audit path D-019 built (`scorer_input_hash` → recompute → compare). The
-hash itself is fine — it still matches the stored trace — but what it hashes is not the
-input the recorded score came from.
+That broke the audit path D-019 built (`scorer_input_hash` → recompute → compare). The
+hash itself is fine — it still matches the stored trace — but what it hashed was not the
+input the recorded score came from. That last clause is what E-084 turned out to be: the
+hash certifies the trace, and nothing certified that the score came from it.
 
 **Closed by D-027, partially.** The owner ratified porting the per-type verifiers into plpgsql so
 the database is the single authority on per-item correctness. `app.exam_verify_response` now
@@ -107,14 +160,19 @@ in the Next.js server tier since the runner was wired, which the decision's auth
 recorded as `apps/web` not calling the exam RPCs at all.
 
 **Mitigated so nothing is silent.** `/api/exam-submit` appends an `app_verdict` telemetry
-event per item carrying the verdict and metric map the engine and scorer actually
-consumed. The trace therefore holds both verdicts, explicitly labelled, and the recorded
-score is exactly reproducible from the database:
+event per item carrying the verdict and metric map the ENGINE consumed. The trace
+therefore holds both verdicts, explicitly labelled:
 
 ```
 composite recorded                              : 7.43376016008243
 composite recomputed from app_verdict telemetry : 7.43376016008243   (difference 0.000000)
 ```
+
+That equality is the pre-fix reading: it says the recorded score came from the app tier's
+verdicts. Post-fix the recorded score comes from `app.exam_scorer_input_json`, so it is
+the `app_verdict` recomputation that is now expected to differ, by exactly the items the
+two tiers still grade differently. The engine's own inputs are unchanged — the engine
+runs during the battery and can only use the verdict `/api/exam-submit` returns.
 
 ## 5. Other gaps, reported not fixed
 
@@ -149,8 +207,18 @@ export GT_EXAM_PERSISTENCE_ENABLED=true
 export GT_EXAM_PROCTOR_EMAIL=admissions@example.test
 export GT_EXAM_PROCTOR_PASSWORD=...            # the pnpm db:users fixture password
 pnpm --filter @gt-selection/web test:integration
+pnpm exam:reconcile                            # the session that run just recorded
 ```
 
 `apps/web/src/lib/exam/persistence.integration.test.ts` drives the real route handlers,
 the real engine, the real banks, and the real verifiers, then reads the session back
-through `api.exam_get_session_state` and `api.exam_get_outcome`.
+through `api.exam_get_session_state`, `api.exam_get_scoring_inputs` and
+`api.exam_get_outcome`. It also runs the forgery directly: a second, deliberately
+all-wrong session is posted with a `scoredItems` array claiming every item correct at
+difficulty 20, and the returned and stored composites are asserted to equal the database
+trace's (2.2) rather than the forged payload's (20.0).
+
+`pnpm exam:reconcile` is the standing gate and takes a session id, `--all`, or nothing
+(the most recently started scored session). It exits non-zero on any session recorded
+before the E-084 fix, including `3e03558f`; those rows are left as recorded rather than
+rewritten, because "this composite is not reproducible" is the finding.

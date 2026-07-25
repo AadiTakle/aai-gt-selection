@@ -81,9 +81,32 @@ function assertLocal(url: string): void {
   }
 }
 
-/** Deep-compare two profiles by canonical JSON; the profile is data, not a float. */
+/**
+ * Serialise with OBJECT KEYS SORTED, so a jsonb round trip compares equal.
+ *
+ * Postgres normalises jsonb object keys by length then bytewise, so the stored
+ * profile comes back as `{strengths, consistency, rankedAreas, …}` while the
+ * scorer emits `{strengths, relativeWeaknesses, rankedAreas, …}`. Array order is
+ * left alone: `rankedAreas` is an ordering and a change in it is a real change.
+ */
+function canonical(value: unknown): string {
+  const sortKeys = (node: unknown): unknown => {
+    if (Array.isArray(node)) return node.map(sortKeys);
+    if (node && typeof node === 'object') {
+      return Object.fromEntries(
+        Object.entries(node as Record<string, unknown>)
+          .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
+          .map(([key, entry]) => [key, sortKeys(entry)]),
+      );
+    }
+    return node;
+  };
+  return JSON.stringify(sortKeys(value ?? null));
+}
+
+/** Deep-compare two profiles by content; the profile is data, not a float. */
 function sameProfile(a: unknown, b: unknown): boolean {
-  return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+  return canonical(a) === canonical(b);
 }
 
 async function sessionIds(client: Client): Promise<string[]> {
@@ -207,7 +230,12 @@ async function reconcile(client: Client, sessionId: string): Promise<boolean> {
       (countOk ? '' : ` — COUNT MISMATCH, outcome recorded ${stored.scorer_input_count}`),
   );
   if (areaDiffs.length > 0) console.log(`  areas      ${areaDiffs.join('\n             ')}`);
-  if (!profileOk) console.log('  profile    DIFFERS from the stored profile');
+  if (!profileOk) {
+    console.log(
+      `  profile    DIFFERS from the stored profile\n             stored   ${canonical(stored.profile)}` +
+        `\n             rescored ${canonical(rescored.profile)}`,
+    );
+  }
   return ok;
 }
 

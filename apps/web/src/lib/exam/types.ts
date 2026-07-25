@@ -163,11 +163,25 @@ export type ScoredItemTrace = z.infer<typeof scoredItemTraceSchema>;
 export type ExamAdaptiveTracePayload = z.infer<typeof examAdaptiveTracePayloadSchema>;
 
 /**
+ * The fields the continuity summary reads. Both a posted `ScoredItemTrace` and
+ * the canonical `ScoredItem[]` the database derives from the stored trace
+ * (`app.exam_scorer_input_json`) satisfy it, so the summary can be computed from
+ * whichever of the two is authoritative.
+ */
+export interface SummarizableItem {
+  readonly domain: string;
+  readonly score: number;
+  readonly correct: boolean;
+  readonly difficulty: number;
+  readonly skipped?: boolean | undefined;
+}
+
+/**
  * Continuity summary from the adaptive trace (mirrors the legacy `summarize` so
  * old readers still work). Accuracy is the mean server `score`; difficulty reach
  * is the mean difficulty of correctly-answered items.
  */
-export function summarizeScored(items: readonly ScoredItemTrace[]): ExamSummary {
+export function summarizeScored(items: readonly SummarizableItem[]): ExamSummary {
   const answered = items.filter((i) => !i.skipped);
   const accs = answered.map((i) => i.score);
   const diffs = answered.filter((i) => i.correct).map((i) => i.difficulty);
