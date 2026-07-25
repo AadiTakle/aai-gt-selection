@@ -14,20 +14,32 @@
  *   3.  Rendered text <-> deep structure: the numerals printed in the story are a
  *       BIJECTION onto the declared quantities, the question prints no numeral,
  *       and storyText is exactly the sentences plus the question.
- *   4.  INDEPENDENT RE-DERIVATION: evaluate content.math.steps over
- *       content.math.quantities, take the value at content.math.answerStep, and
+ *   4.  INDEPENDENT RE-DERIVATION: evaluate answer.math.steps over
+ *       answer.math.quantities, take the value at answer.math.answerStep, and
  *       require that exactly one option carries it and that option is correctKey.
+ *       (`answer` is server-only, so reading it here costs the browser nothing.)
  *   5.  Distractor diagnostics: every lure is in the taxonomy, and every lure's
  *       stored derivation is re-evaluated here and must reproduce that option's
  *       value exactly (so M-LURETYPE / M-ERRTYPE labels are earned, not asserted).
  *   6.  Irrelevant information: quantities no step references are counted and
  *       must match the recorded lever.
- *   7.  No key leak: `content` carries no correctness marker, no answer value
- *       field, and options expose only {key, value}.
+ *   7.  NO KEY LEAK, in two independent senses, both applied to the SERVED
+ *       projection (BankItem minus answer/scoring/provenance — everything the
+ *       browser gets):
+ *         (a) NAMED  — no answer-revealing field name at any depth in `content`,
+ *             and `content` is a closed shape so a new field is a leak by default.
+ *         (b) COMPUTABLE — `content` carries no evaluable operation tree, formula,
+ *             operand table or stored target, so the key cannot be recomputed from
+ *             the ServedItem. A generic tree-evaluating attack is actually RUN
+ *             against every served item here and must find nothing to evaluate.
+ *       Also checks that the correct key's position is close to uniform across the
+ *       bank (a positional/statistical leak).
  *   8.  Reading gate (D-017): the reading load recomputed from the text matches
  *       the recorded load and stays inside the caps for the item's LOWEST band.
- *   9.  Band density: >=5 items per integer difficulty bin 1..20 AND per +/-1 pt
- *       band, spanning the floor and the ceiling.
+ *   9.  Band density: the CONTRACT rule is a SLIDING WINDOW two points wide —
+ *       for every point k in 1..20, items with |difficulty - k| <= 1 number >= 5.
+ *       The per-integer-bin count is a stricter one-point-wide bin, reported for
+ *       information only. Difficulty must span the floor and the ceiling.
  *   10. Ladder sanity: reasoning steps and relational depth actually rise with
  *       difficulty (difficulty is not being carried by arithmetic size).
  *
@@ -66,12 +78,16 @@ const LEAK_TOKENS = [
   'correct', 'answer', 'solution', 'lure', 'misconception', 'rationale',
   'distractor', 'derivation', 'verdict', 'score',
 ];
-// `math.answerStep` names WHICH step ends the computation; it carries no value
-// and the renderer never reads it, so it is the one sanctioned exception.
-const LEAK_ALLOW_PATHS = new Set(['content.math.answerStep']);
+// Structural names that would make `content` computable rather than merely
+// descriptive: an operation tree, a formula, an operand table, a target value.
+const COMPUTABLE_TOKENS = [
+  'step', 'operation', 'operand', 'expr', 'formula', 'equation', 'quantit',
+  'target', 'optimal', 'responsefn', 'responsefunction', 'generator', 'model',
+];
 // `content` is a closed shape: an unexpected field is a leak until proven safe.
 const CONTENT_KEYS = ['typeCode', 'presentation', 'prompt', 'storyText', 'storySentences',
-  'question', 'math', 'options', 'readingLoad'];
+  'question', 'options', 'readingLoad'];
+const ANSWER_KEYS = ['correctKey', 'math', 'distractorRationales'];
 const MATH_KEYS = ['schema', 'unknownPosition', 'stepCount', 'relationalDepth',
   'quantities', 'operations', 'steps', 'answerStep'];
 const READING_KEYS = ['sentences', 'words', 'maxWordLength', 'band'];
@@ -136,18 +152,62 @@ function measureReading(sentences) {
   };
 }
 
-// Recursive scan of `content` for anything that would name the correct option.
+// Recursive scan of `content` for a field that NAMES the correct option, or that
+// would make the stimulus computable rather than merely descriptive.
 function scanForLeaks(node, path, id) {
   if (node === null || typeof node !== 'object') return;
   if (Array.isArray(node)) { node.forEach((v, i) => scanForLeaks(v, `${path}[${i}]`, id)); return; }
   for (const [k, v] of Object.entries(node)) {
     const here = `${path}.${k}`;
     const lower = k.toLowerCase();
-    if (!LEAK_ALLOW_PATHS.has(here) && LEAK_TOKENS.some((t) => lower.includes(t))) {
-      fail(id, `content leaks answer field "${here}"`);
+    if (LEAK_TOKENS.some((t) => lower.includes(t))) fail(id, `content leaks answer field "${here}"`);
+    if (COMPUTABLE_TOKENS.some((t) => lower.includes(t))) {
+      fail(id, `content carries computable structure at "${here}" — the key may be derivable from the ServedItem`);
     }
     scanForLeaks(v, here, id);
   }
+}
+
+// The SERVED projection: exactly what reaches the browser (BUILD_PLAN §2).
+function toServed(item) {
+  const { answer, scoring, provenance, ...served } = item;
+  return served;
+}
+
+// A generic client-side attack. It hunts anywhere in the served item for a list of
+// objects shaped like arithmetic steps ({op,a,b}) plus an operand table, evaluates
+// the tree, and reports a unique matching option. On a safe item it finds nothing
+// to evaluate; on the pre-fix bank (operation tree in content.math) it recovered
+// 220/220 keys. Returns the key it recovered, or null.
+function attackServedItem(served) {
+  const found = [];
+  (function walk(node) {
+    if (!node || typeof node !== 'object') return;
+    if (Array.isArray(node)) {
+      if (node.length && node.every((s) => s && typeof s === 'object' && OPS.has(s.op) && s.a && s.b)) found.push(node);
+      node.forEach(walk);
+      return;
+    }
+    Object.values(node).forEach(walk);
+  })(served);
+  if (!found.length) return null;
+  const vals = {};
+  (function collect(node) {
+    if (!node || typeof node !== 'object') return;
+    if (Array.isArray(node)) { node.forEach(collect); return; }
+    if (typeof node.id === 'string' && isInt(node.value)) vals[node.id] = node.value;
+    Object.values(node).forEach(collect);
+  })(served);
+  for (const steps of found) {
+    const run = evaluate(vals, steps, { allowLiterals: true });
+    if (run.error) continue;
+    const opts = (served.content && served.content.options) || [];
+    for (const st of steps) {
+      const hits = opts.filter((o) => o.value === run.vals[st.id]).map((o) => o.key);
+      if (hits.length === 1) return hits[0];
+    }
+  }
+  return null;
 }
 function assertExactKeys(obj, want, label, id) {
   if (!obj || typeof obj !== 'object') return;
@@ -172,6 +232,8 @@ const seenStories = new Set();
 const lureCounts = {};
 const schemaCounts = {};
 let resolvedCorrect = 0;
+let servedUnsolvable = 0;
+const keyPositions = { A: 0, B: 0, C: 0, D: 0 };
 
 for (const it of items) {
   const id = (it && it.itemId) || '(no id)';
@@ -203,11 +265,18 @@ for (const it of items) {
   if (c.presentation !== 'text') fail(id, `content.presentation must be "text" (D-017 reading gate), got ${c.presentation}`);
   if (typeof c.prompt !== 'string' || !c.prompt) fail(id, 'content.prompt missing');
 
-  // --- 7. no key leak: closed shape + name scan ---
+  // --- 7a. no key leak: closed shape + name/structure scan of `content` ---
   assertExactKeys(c, CONTENT_KEYS, 'content', id);
-  assertExactKeys(c.math, MATH_KEYS, 'content.math', id);
   assertExactKeys(c.readingLoad, READING_KEYS, 'content.readingLoad', id);
+  assertExactKeys(it.answer, ANSWER_KEYS, 'answer', id);
+  assertExactKeys(it.answer && it.answer.math, MATH_KEYS, 'answer.math', id);
   scanForLeaks(c, 'content', id);
+
+  // --- 7b. no key leak: run the client-side attack on the SERVED projection ---
+  const recovered = attackServedItem(toServed(it));
+  if (recovered !== null) {
+    fail(id, `served item is client-solvable: a generic tree-evaluating attack recovered key ${recovered}`);
+  } else servedUnsolvable++;
 
   // --- text integrity ---
   if (!Array.isArray(c.storySentences) || c.storySentences.length < 2) fail(id, 'content.storySentences too short');
@@ -219,9 +288,9 @@ for (const it of items) {
   if (seenStories.has(c.storyText)) fail(id, 'duplicate story text in the bank');
   seenStories.add(c.storyText);
 
-  // --- math skeleton ---
-  const m = c.math;
-  if (!m || typeof m !== 'object') { fail(id, 'content.math missing'); continue; }
+  // --- math skeleton (server-only, under `answer`) ---
+  const m = (it.answer || {}).math;
+  if (!m || typeof m !== 'object') { fail(id, 'answer.math missing'); continue; }
   if (typeof m.schema !== 'string' || !m.schema) fail(id, 'math.schema missing');
   schemaCounts[m.schema] = (schemaCounts[m.schema] || 0) + 1;
   if (typeof m.unknownPosition !== 'string') fail(id, 'math.unknownPosition missing');
@@ -281,6 +350,7 @@ for (const it of items) {
   const matching = opts.filter((o) => o.value === derived).map((o) => o.key);
   if (matching.length !== 1) fail(id, `re-derived answer ${derived} matches ${matching.length} options (want exactly 1)`);
   const ans = it.answer || {};
+  if (keyPositions[ans.correctKey] !== undefined) keyPositions[ans.correctKey]++;
   if (matching.length === 1) {
     if (matching[0] !== ans.correctKey) fail(id, `solver key ${matching[0]} != stored correctKey ${ans.correctKey}`);
     else resolvedCorrect++;
@@ -360,19 +430,33 @@ for (const d of diffs) {
   if (k >= 1 && k <= 20) binCounts[k - 1]++;
   for (let kk = 1; kk <= 20; kk++) if (Math.abs(d - kk) <= 1.0) bandCounts[kk - 1]++;
 }
-binCounts.forEach((n, i) => { if (n < MIN_PER_BAND) fail('coverage', `integer bin k=${i + 1} has ${n} items (<${MIN_PER_BAND})`); });
-bandCounts.forEach((n, i) => { if (n < MIN_PER_BAND) fail('coverage', `+/-1pt band around k=${i + 1} has ${n} items (<${MIN_PER_BAND})`); });
+// The CONTRACT rule is the sliding +/-1pt window. binCounts is the stricter
+// one-point-wide bin and is reported, not enforced.
+bandCounts.forEach((n, i) => {
+  if (n < MIN_PER_BAND) fail('coverage', `+/-1pt sliding window around k=${i + 1} has ${n} items (<${MIN_PER_BAND})`);
+});
+
+/* ---- 7c. Positional / statistical key leak across the bank ---- */
+// If the correct option sat disproportionately at one position, a client could beat
+// chance without reading anything. Expect ~25% each; allow 18%..32%.
+const keyed = Object.values(keyPositions).reduce((s, n) => s + n, 0);
+for (const [k, n] of Object.entries(keyPositions)) {
+  const share = keyed ? n / keyed : 0;
+  if (keyed >= 40 && (share < 0.18 || share > 0.32)) {
+    fail('coverage', `correct key sits at position ${k} on ${round2(share * 100)}% of items (want ~25%) — positional leak`);
+  }
+}
 
 /* ---- 10. Ladder sanity: structure, not arithmetic size, carries difficulty ---- */
 const low = items.filter((it) => it.difficulty < 5);
 const high = items.filter((it) => it.difficulty >= 16);
 const mid = items.filter((it) => it.difficulty >= 9 && it.difficulty < 13);
 const meanBy = (arr, f) => (arr.length ? arr.reduce((s, x) => s + f(x), 0) / arr.length : 0);
-const stepsLow = meanBy(low, (it) => it.content.math.stepCount);
-const stepsMid = meanBy(mid, (it) => it.content.math.stepCount);
-const stepsHigh = meanBy(high, (it) => it.content.math.stepCount);
-const depthLow = meanBy(low, (it) => it.content.math.relationalDepth);
-const depthHigh = meanBy(high, (it) => it.content.math.relationalDepth);
+const stepsLow = meanBy(low, (it) => it.answer.math.stepCount);
+const stepsMid = meanBy(mid, (it) => it.answer.math.stepCount);
+const stepsHigh = meanBy(high, (it) => it.answer.math.stepCount);
+const depthLow = meanBy(low, (it) => it.answer.math.relationalDepth);
+const depthHigh = meanBy(high, (it) => it.answer.math.relationalDepth);
 if (!(stepsHigh > stepsMid && stepsMid > stepsLow)) {
   fail('ladder', `mean reasoning steps do not rise across the ladder (low ${round2(stepsLow)}, mid ${round2(stepsMid)}, high ${round2(stepsHigh)})`);
 }
@@ -384,17 +468,19 @@ const irrHigh = high.filter((it) => it.provenance.levers.irrelevantCount > 0).le
 if (!(irrHigh >= irrLow)) fail('ladder', 'irrelevant information does not become more common with difficulty');
 // The arithmetic itself must NOT be what gets harder: the biggest operand at the
 // ceiling may not be dramatically larger than at the floor.
-const maxOperand = (it) => Math.max(...it.content.math.quantities.map((q) => q.value));
+const maxOperand = (it) => Math.max(...it.answer.math.quantities.map((q) => q.value));
 const opLow = meanBy(low, maxOperand), opHigh = meanBy(high, maxOperand);
 if (opHigh > opLow * 3) fail('ladder', `operand size grew ${round2(opHigh / opLow)}x from floor to ceiling — difficulty is leaking into arithmetic magnitude`);
 
 /* ---- Report ---- */
 console.log(`QUANT-WORD-01 bank check: ${items.length} items`);
 console.log(`answers independently re-derived and matched: ${resolvedCorrect}/${items.length}`);
+console.log(`served items where the client-side attack found nothing to evaluate: ${servedUnsolvable}/${items.length}`);
+console.log('correct-key position spread: ' + JSON.stringify(keyPositions) + ' (want ~25% each)');
 console.log(`difficulty span: ${round2(min)} .. ${round2(max)}`);
-console.log('per integer bin (k:n):  ' + binCounts.map((n, i) => `${String(i + 1).padStart(2)}:${n}`).join(' '));
-console.log('per +/-1pt band (k:n):  ' + bandCounts.map((n, i) => `${String(i + 1).padStart(2)}:${n}`).join(' '));
-console.log(`min per integer bin: ${Math.min(...binCounts)} | min per +/-1pt band: ${Math.min(...bandCounts)}`);
+console.log('+/-1pt sliding window (CONTRACT, k:n): ' + bandCounts.map((n, i) => `${String(i + 1).padStart(2)}:${n}`).join(' '));
+console.log('per integer bin (informational, k:n):  ' + binCounts.map((n, i) => `${String(i + 1).padStart(2)}:${n}`).join(' '));
+console.log(`min per +/-1pt window: ${Math.min(...bandCounts)} (contract >=${MIN_PER_BAND}) | min per integer bin: ${Math.min(...binCounts)}`);
 console.log('mean reasoning steps  low/mid/high: '
   + `${round2(stepsLow)} / ${round2(stepsMid)} / ${round2(stepsHigh)}`);
 console.log('mean relational depth low/high:     ' + `${round2(depthLow)} / ${round2(depthHigh)}`);
@@ -409,6 +495,7 @@ if (failures.length) {
   if (failures.length > 40) console.error(`  ... and ${failures.length - 40} more`);
   process.exit(1);
 }
-console.log('\nPASS - every answer re-derived from the item\'s own math fields, every lure recomputed,'
-  + ' text matches structure, no key leak, reading load inside band caps,'
-  + ' and >=5 items per integer bin and per +/-1 pt band across 1..20.');
+console.log('\nPASS - every answer re-derived from the item\'s own server-side math fields, every lure recomputed,'
+  + ' text matches structure, no named or computable key leak in the served projection,'
+  + ' reading load inside band caps,'
+  + ' and >=5 items in every +/-1 pt sliding window across 1..20.');
