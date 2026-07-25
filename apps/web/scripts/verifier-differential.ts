@@ -161,8 +161,7 @@ function numbers(value: unknown): number[] {
     : [];
 }
 
-const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {
-  'FLU-CONCEPT-01': (item) => {
+const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {'FLU-CONCEPT-01': (item) => {
     const verdicts = Array.isArray(item.answer.probeVerdicts) ? item.answer.probeVerdicts : [];
     const answers = verdicts.map((entry) => {
       const record = asRecord(entry) ?? {};
@@ -178,9 +177,7 @@ const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {
         tests,
       },
     };
-  },
-
-  'VER-EVIDENCE-01': (item) => {
+  },'VER-EVIDENCE-01': (item) => {
     const [answerKey = '', evidenceKey = ''] = String(item.answer.correctKey).split('+');
     return {
       // A wrong option with the right sentence: the weighted-partial-credit path, which is
@@ -188,16 +185,12 @@ const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {
       correct: { answerKey, evidenceKey },
       wrong: { answerKey: `${answerKey}~no`, evidenceKey },
     };
-  },
-
-  'QUANT-MIX-01': (item) => {
+  },'QUANT-MIX-01': (item) => {
     const counts = asRecord(item.answer.correctCounts) ?? {};
     const a = typeof counts.A === 'number' ? counts.A : 0;
     const b = typeof counts.B === 'number' ? counts.B : 0;
     return { correct: { counts: { A: a, B: b } }, wrong: { counts: { A: a, B: b + 1 } } };
-  },
-
-  'SPA-XPLANE-01': (item) => {
+  },'SPA-XPLANE-01': (item) => {
     const plane = asRecord(item.answer.correctPlane) ?? {};
     const h = typeof plane.h === 'number' ? plane.h : 0;
     return {
@@ -206,9 +199,7 @@ const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {
       // near-miss family, not a malformed response.
       wrong: { plane: { ...plane, h: h >= 50 ? h - 40 : h + 40 } },
     };
-  },
-
-  'CX-curious-02': (item) => {
+  },'CX-curious-02': (item) => {
     const key = String(item.answer.correctKey ?? '');
     const offered = (Array.isArray(item.content.gapOptions) ? item.content.gapOptions : [])
       .map((option) => asRecord(option)?.id)
@@ -218,9 +209,7 @@ const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {
       correct: { gapKey: key },
       wrong: { gapKey: offered.find((id) => id !== key) ?? `${key}~no` },
     };
-  },
-
-  'GB-DEBATE-01': (item) => {
+  },'GB-DEBATE-01': (item) => {
     const key = asRecord(item.answer.correctKey) ?? {};
     const support = String(key.support ?? '');
     const rebut = String(key.rebut ?? '');
@@ -230,9 +219,7 @@ const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {
       // the endpoints — that partial signal is the reason the type carries the metric.
       wrong: { supportKey: support, rebutKey: `${rebut}~no` },
     };
-  },
-
-  'SPA-VIEW-01': (item) => {
+  },'SPA-VIEW-01': (item) => {
     const heading = item.answer.correctHeadingDeg;
     if (item.content.optionKind === 'heading_dial' || typeof heading === 'number') {
       const target = typeof heading === 'number' ? heading : 0;
@@ -252,9 +239,7 @@ const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {
       // case M-MIRRORFA exists to report.
       wrong: { selectedKey: typeof mirror === 'string' ? mirror : `${key}~no` },
     };
-  },
-
-  'SPA-HIDDENCUBE-01': (item) => {
+  },'SPA-HIDDENCUBE-01': (item) => {
     const total =
       typeof item.answer.correctCount === 'number'
         ? item.answer.correctCount
@@ -265,9 +250,7 @@ const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {
       correct: { count: total, finalYawDeg: yaw },
       wrong: { count: total - 1, finalYawDeg: yaw },
     };
-  },
-
-  'GB-FILTER-01': (item) => {
+  },'GB-FILTER-01': (item) => {
     const targets = Array.isArray(item.answer.targets)
       ? (item.answer.targets as [number, number][])
       : [];
@@ -293,18 +276,14 @@ const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {
         taps: targets.length,
       },
     };
-  },
-
-  'WM-corsi-01': (item) => {
+  },'WM-corsi-01': (item) => {
     const expected = numbers(item.answer.expectedSequence);
     return {
       correct: { tappedCells: expected, tapCount: expected.length },
       // The trail replayed in the other direction: the bank's own `direction_error` lure.
       wrong: { tappedCells: [...expected].reverse(), tapCount: expected.length },
     };
-  },
-
-  'WM-bind-01': (item) => {
+  },'WM-bind-01': (item) => {
     const bindings = asRecord(item.answer.bindings) ?? {};
     const ids = Object.keys(bindings);
     const swapped: Record<string, unknown> = { ...bindings };
@@ -317,9 +296,7 @@ const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {
       swapped[ids[0]!] = -1;
     }
     return { correct: { placements: bindings }, wrong: { placements: swapped } };
-  },
-
-  'WM-gridflash-01': (item) => {
+  },'WM-gridflash-01': (item) => {
     const phase = asRecord(item.content.responsePhase) ?? {};
     if (phase.mode === 'select_set') {
       const expected = numbers(item.answer.expectedCells);
@@ -343,9 +320,7 @@ const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {
       correct: { shell: 'two_choice', selectedKey: key },
       wrong: { shell: 'two_choice', selectedKey: key === 'SAME' ? 'CHANGED' : 'SAME' },
     };
-  },
-
-  'WM-bubble-01': (item) => {
+  },'WM-bubble-01': (item) => {
     // `answer.correctKey` is the target steps per channel, "w:2,7|s:3". The verifier
     // re-derives them from the stream instead, so driving the response off the key keeps the
     // two sides independent.
@@ -366,6 +341,115 @@ const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {
       correct: { pops, stepsShown: streamLength, completed: true },
       // One target missed: the hit rate falls, the false-alarm rate does not.
       wrong: { pops: pops.slice(1), stepsShown: streamLength, completed: true },
+    };
+  },
+'CX-check-01': (item) => {
+    const trueBin = asRecord(item.answer.trueBin) ?? {};
+    const binKeys = list(item.content.bins)
+      .map((entry) => (asRecord(entry) ?? {}).key)
+      .filter((k): k is string => typeof k === 'string');
+    // Move the tile the sorter planted a slip on into a third place: still wrong, and it
+    // drives M-ERRTYPE's "caught" count to zero rather than leaving it at one.
+    const slipped = asRecord(list(item.answer.plantedErrors)[0]) ?? {};
+    const target = typeof slipped.tokenId === 'string' ? slipped.tokenId : Object.keys(trueBin)[0];
+    const wrong = { ...trueBin };
+    if (target !== undefined) {
+      const other = binKeys.find((k) => k !== trueBin[target]);
+      if (other !== undefined) wrong[target] = other;
+    }
+    return { correct: { finalPlacement: trueBin }, wrong: { finalPlacement: wrong } };
+  },
+'FLU-MATRIXBUILD-01': (item) => {
+    const canonical = asRecord(item.answer.canonical) ?? {};
+    const wrong: Record<string, unknown> = { ...canonical };
+    const first = Object.keys(canonical)[0];
+    if (first !== undefined) {
+      const value = canonical[first];
+      wrong[first] = typeof value === 'number' ? value + 1 : `${String(value)}~no`;
+    }
+    return { correct: { constructed: canonical }, wrong: { constructed: wrong } };
+  },
+'VER-SENSE-01': (item) => {
+    const order = String(item.answer.correctKey)
+      .split(',')
+      .map((part) => Number(part));
+    // One adjacent pair swapped: the bank's `near_order` foil, which is also the response
+    // that separates adjacent-pair credit from positional overlap.
+    const wrong = [...order];
+    if (wrong.length >= 2) [wrong[0], wrong[1]] = [wrong[1] as number, wrong[0] as number];
+    return { correct: { order }, wrong: { order: wrong } };
+  },
+'GB-WORDFORGE-01': (item) => {
+    const words = list(item.answer.validWords)
+      .map((entry) => (asRecord(entry) ?? {}).word)
+      .filter((w): w is string => typeof w === 'string');
+    const target =
+      typeof item.answer.referenceTarget === 'number' ? item.answer.referenceTarget : 0;
+    return {
+      correct: { submissions: words },
+      // One word short of the threshold plus a nonword: full credit is a threshold here, so
+      // this is the case that proves the port is not just checking "produced a word".
+      wrong: { submissions: [...words.slice(0, Math.max(0, target - 1)), 'ZZZQX'] },
+    };
+  },
+'GB-TRACK-01': (item) => {
+    const canonical = asRecord(item.answer.canonicalSolution) ?? {};
+    const slots = list(canonical.targetSlots).filter((s): s is number => typeof s === 'number');
+    const jarCount = typeof item.content.jarCount === 'number' ? item.content.jarCount : 0;
+    const decoy = [...Array(jarCount).keys()].find((slot) => !slots.includes(slot));
+    return {
+      correct: { selectedSlots: slots, taps: slots.length },
+      // The bank's `start_position_error` shape: one target dropped, one never-lit jar added,
+      // which keeps M-PROG partial instead of zero.
+      wrong: {
+        selectedSlots: decoy === undefined ? slots.slice(1) : [...slots.slice(1), decoy],
+        taps: slots.length + 1,
+      },
+    };
+  },
+'SPA-SCENE-01': (item) => {
+    const order = list(item.answer.correctOrder).filter((v): v is number => typeof v === 'number');
+    const nearestId = item.answer.nearestId;
+    return {
+      // The egocentric left-right reversal is the foil every item ships, and it is the only
+      // wrong answer that lights M-MIRRORFA.
+      correct: { order, nearestId },
+      wrong: { order: [...order].reverse(), nearestId },
+    };
+  },
+'SPA-MAZE-01': (item) => {
+    const path = list(item.answer.optimalPath);
+    return {
+      correct: { path },
+      // Stops one cell short of the goal: an `incomplete` route, still a legal walk, so the
+      // port has to reject it on the goal test rather than on a malformed-input guard.
+      wrong: { path: path.slice(0, Math.max(1, path.length - 1)) },
+    };
+  },
+'GB-ROBOPATH-01': (item) => {
+    const canonical = asRecord(item.answer.canonicalSolution) ?? {};
+    const program = list(canonical.program);
+    return {
+      correct: { program },
+      // One step too many: either it bumps (the run aborts with NO metrics) or it overshoots
+      // the door (wrong, with M-EFF). Both asymmetries have to survive the port.
+      wrong: { program: [...program, { cmd: 'F', reps: 1 }] },
+    };
+  },
+'GB-EXPLORE-01': (item) => {
+    const path = list(item.answer.optimalPath);
+    const actions = path.slice(1).map((to) => ({ kind: 'move', to }));
+    const home = list(item.content.home);
+    const pointings = list(item.content.landmarks).map((entry) => ({
+      landmarkId: (asRecord(entry) ?? {}).id,
+      standCell: home,
+      // A raw dial angle, not the true bearing: M-VIEWANG is a circular mean error, so a
+      // non-zero one is what actually exercises the atan2 parity the inventory flags.
+      angleDeg: 12.5,
+    }));
+    return {
+      correct: { actions, pointings },
+      wrong: { actions: actions.slice(0, Math.max(0, actions.length - 1)), pointings },
     };
   },
 };
