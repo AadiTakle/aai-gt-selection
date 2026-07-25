@@ -21,7 +21,7 @@ begin;
 
 set local search_path = extensions, public, pg_catalog;
 
-select plan(29);
+select plan(30);
 
 grant usage on schema extensions to api_executor, authenticated;
 
@@ -234,17 +234,38 @@ select ok(
 
 -- --- 2. Resolution order -----------------------------------------------------------
 
--- Scoped to the four this migration ships rather than counting the whole table: the
--- remaining ports land in their own additive migrations, so a global count here would make
--- every later batch edit a test that is not theirs.
+-- The registry GROWS as the remaining per-type verifiers land, one additive migration each,
+-- so a fixed row count would fail every future batch rather than catch a defect. What must
+-- hold at every point in the port is that the four this migration registered are still there
+-- and that every registered name resolves to a real (jsonb, jsonb) -> jsonb function — a row
+-- pointing at nothing would make the dispatcher raise mid-submission.
 select is(
   (
-    select count(*)::integer from app.exam_verifier_registry
-    where type_code in ('FLU-CONCEPT-01', 'VER-EVIDENCE-01', 'QUANT-MIX-01', 'SPA-XPLANE-01')
+    select array_agg(type_code order by type_code)::text
+    from app.exam_verifier_registry
+    where type_code in
+      ('FLU-CONCEPT-01', 'VER-EVIDENCE-01', 'QUANT-MIX-01', 'SPA-XPLANE-01')
   ),
-  4,
-  'the four foundation per-type verifiers are registered'
+  '{FLU-CONCEPT-01,QUANT-MIX-01,SPA-XPLANE-01,VER-EVIDENCE-01}',
+  'the four per-type verifiers this migration registered are still registered'
 );                                                                                      -- 9
+select is(
+  (
+    select count(*)::integer
+    from app.exam_verifier_registry r
+    where not exists (
+      select 1
+      from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'app'
+        and p.proname = r.verifier_fn
+        and p.pronargs = 2
+        and p.prorettype = 'jsonb'::regtype
+    )
+  ),
+  0,
+  'every registry row names a real app-schema verifier, so dispatch can never dangle'
+);                                                                                      -- 9b
 select is(
   app.exam_verify_response('00000000-0000-4000-8000-0000000e0001', '{}'::jsonb) ->> 'verifier',
   'exam_verify_concept',

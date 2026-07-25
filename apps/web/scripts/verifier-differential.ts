@@ -456,6 +456,104 @@ const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {'F
       wrong: { actions: actions.slice(0, Math.max(0, actions.length - 1)), pointings },
     };
   },
+
+  'FLU-GRIDCOPY-01': (item) => {
+    const target = (item.answer.targetGrid as number[][] | undefined) ?? [];
+    return {
+      correct: { finalGrid: target },
+      // One cell of the derived target flipped, so the search still has to run and M-POLY
+      // lands just short of 1 rather than at 0.
+      wrong: {
+        finalGrid: target.map((row, r) =>
+          row.map((value, c) => (r === 0 && c === 0 ? (value === 0 ? 1 : 0) : value)),
+        ),
+      },
+    };
+  },
+
+  'WM-gate-01': (item) => {
+    const probes = (item.answer.probes as { probeIndex: number; expectedKeys: string[] }[]) ?? [];
+    const answered = probes.map((p) => ({ probeIndex: p.probeIndex, keys: [...p.expectedKeys] }));
+    return {
+      correct: { probes: answered },
+      // The first checkpoint answered in the wrong ORDER: the contents survived, the gating
+      // did not, which is the type's own `order_reversal` lure and moves the OLS slope.
+      wrong: {
+        probes: answered.map((p, i) =>
+          i === 0
+            ? {
+                probeIndex: p.probeIndex,
+                keys: p.keys.length > 1 ? [...p.keys].reverse() : ['~no'],
+              }
+            : p,
+        ),
+      },
+    };
+  },
+
+  'SPA-PUNCH-01': (item) => {
+    const cells = (item.answer.trueCells as { x: number; y: number }[] | undefined) ?? [];
+    return {
+      correct: { markedCells: cells.map((cell) => [cell.x, cell.y]) },
+      // The pattern reflected in the leading diagonal: the chirality slip the type reports as
+      // M-MIRRORFA, so the mirror branch is exercised rather than only the overlap.
+      wrong: { markedCells: cells.map((cell) => [cell.y, cell.x]) },
+    };
+  },
+
+  'SPA-TANGRAM-01': (item) => {
+    const solution = (item.answer.referenceSolution as unknown[] | undefined) ?? [];
+    return {
+      // A legal-but-incomplete cover: still inside the outline, still non-overlapping, so
+      // the verdict turns on coverage and M-POLY reports how much was covered.
+      correct: { placements: solution },
+      wrong: { placements: solution.slice(0, -1) },
+    };
+  },
+
+  'GB-SHAPEFIT-01': (item) => {
+    const canonical = asRecord(item.answer.canonicalSolution) ?? {};
+    const placements = (canonical.placements as unknown[] | undefined) ?? [];
+    const cost = asRecord(item.answer.cost) ?? {};
+    return {
+      correct: { assembly: placements, cost: { moves: cost.moves } },
+      wrong: { assembly: placements.slice(0, -1), cost: { moves: cost.moves } },
+    };
+  },
+
+  'SPA-PIPES-01': (item) => {
+    const clockwise: Record<string, string> = { N: 'E', E: 'S', S: 'W', W: 'N' };
+    const orients =
+      (item.answer.solutionOrients as { r: number; c: number; dirs: string[] }[] | undefined) ?? [];
+    return {
+      correct: { finalOrients: orients },
+      // One tile turned one quarter too far: a legal rotation of the served tile that breaks
+      // the road, so the rotation check passes and the flood decides.
+      wrong: {
+        finalOrients: orients.map((tile, i) =>
+          i === 0 ? { ...tile, dirs: tile.dirs.map((d) => clockwise[d] ?? d) } : tile,
+        ),
+      },
+    };
+  },
+
+  'GB-PATHFORGE-01': (item) => {
+    const board = (item.answer.tileSpec as unknown[] | undefined) ?? [];
+    return {
+      correct: { finalBoard: board },
+      wrong: { finalBoard: board.slice(1) },
+    };
+  },
+
+  'GB-WORDLADDER-01': (item) => {
+    const path = (item.answer.optimalPath as string[] | undefined) ?? [];
+    return {
+      correct: { path },
+      // The goal word climbed twice: start and goal still land, every rung is still a word,
+      // and the last step changes no letter at all.
+      wrong: { path: [...path, path[path.length - 1] ?? ''] },
+    };
+  },
 };
 
 function responsesFor(item: RawBankItem): Responses {
