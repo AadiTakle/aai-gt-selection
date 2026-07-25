@@ -110,7 +110,7 @@ for (const it of items) {
   if (!isNum(c.setSize) || c.setSize < 2 || c.setSize > 8) fail(id, `setSize out of 2..8 (${c.setSize})`);
   if (g !== gridSizeForSet(c.setSize)) fail(id, `grid ${g}x${g} does not match the field size for setSize ${c.setSize}`);
   if (!['change_detection', 'recognition'].includes(c.shell)) fail(id, `bad shell (${c.shell})`);
-  if (!['distinct', 'confusable'].includes(c.lureProfile)) fail(id, `bad lureProfile (${c.lureProfile})`);
+  if (!['distinct', 'confusable'].includes(c.identitySet)) fail(id, `bad identitySet (${c.identitySet})`);
 
   const p = c.presentation || {};
   if (p.simultaneous !== true) fail(id, 'presentation.simultaneous must be true for this type');
@@ -223,7 +223,7 @@ for (const it of items) {
   }
   const derived = round2(difficultyFromLevers(lev.setSize, lev.shell, lev.confusable, lev.pressure));
   if (Math.abs(derived - it.difficulty) > 0.01) fail(id, `difficulty ${it.difficulty} != derived-from-levers ${derived}`);
-  if (lev.setSize !== c.setSize || lev.shell !== c.shell || lev.confusable !== (c.lureProfile === 'confusable'))
+  if (lev.setSize !== c.setSize || lev.shell !== c.shell || lev.confusable !== (c.identitySet === 'confusable'))
     fail(id, 'provenance.levers disagree with content (difficulty is not explainable from the item)');
 }
 
@@ -437,7 +437,7 @@ for (let k = 1; k <= 20; k++) if (binCounts[k - 1] === 0) fail('coverage', `inte
 {
   const bySet = new Map();
   for (const it of items) {
-    if (it.content.shell !== 'change_detection' || it.content.lureProfile !== 'distinct') continue;
+    if (it.content.shell !== 'change_detection' || it.content.identitySet !== 'distinct') continue;
     const arr = bySet.get(it.content.setSize) || [];
     arr.push(it.difficulty);
     bySet.set(it.content.setSize, arr);

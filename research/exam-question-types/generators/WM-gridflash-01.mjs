@@ -267,7 +267,7 @@ export function genItem({ setSize, shell, confusable, pressure, changeTrial, see
         grid: { rows: gridSize, cols: gridSize, cellCount: gridSize * gridSize },
         setSize,
         shell,
-        lureProfile: confusable ? 'confusable' : 'distinct',
+        identitySet: confusable ? 'confusable' : 'distinct',
         // PRESENTATION PHASE ONLY (sealed before the test display opens).
         presentation,
         // RESPONSE PHASE ONLY. The probe is what the test legitimately shows; the
@@ -380,7 +380,7 @@ export function genItem({ setSize, shell, confusable, pressure, changeTrial, see
       grid: { rows: gridSize, cols: gridSize, cellCount: gridSize * gridSize },
       setSize,
       shell,
-      lureProfile: confusable ? 'confusable' : 'distinct',
+      identitySet: confusable ? 'confusable' : 'distinct',
       presentation,
       // RESPONSE PHASE ONLY: how many cells to tap, and nothing about which.
       responsePhase: {
