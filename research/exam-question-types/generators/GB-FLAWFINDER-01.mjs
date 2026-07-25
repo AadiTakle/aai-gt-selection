@@ -33,6 +33,26 @@
 // original premises), which removes the "the answer is always the last card"
 // cue that a naive generator produces.
 //
+// KEY-POSITION BALANCE (E-073)
+// ----------------------------
+// Authoring the flaw where the argument wanted it still left the key badly
+// non-uniform: 70/120 items keyed card 3, so tapping the third card scored
+// 58.3% with no reasoning at all. The flaw is now placed by an explicit
+// balanced plan instead of by authoring accident. WHICH statement is flawed
+// never changes; only WHERE it is presented does. The non-flaw statements keep
+// their authored relative order, which is already a valid topological order of
+// the derivation graph, so inserting the flaw at any position preserves every
+// invariant the checker enforces (backward-only derivations, no derived step
+// leaning on the flaw).
+//
+// Balance is exact within each item SHAPE, not across the bank as a whole: a
+// 3-card item can never key card 4. With 72 three-card and 48 four-card items,
+// perfectly uniform placement gives 36/36/36/12 across s1..s4 — a 30.0% modal
+// key, which is exactly the chance floor for this mix (72*(1/3) + 48*(1/4)).
+// No arrangement beats that without making some card position rarer than
+// chance inside its own item shape, which would just trade one guessable cue
+// for another.
+//
 // Contract sources (this worktree):
 //   docs/architecture/EXAM_ADAPTIVE_BUILD_PLAN.md  §2 item/result contract, §0 difficulty ramp
 //   research/exam-question-types/catalog/master_types.jsonl  GB-DEBATE/FLAWFINDER specs
@@ -285,6 +305,24 @@ function uuidFrom(str) {
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-5${h.slice(13, 16)}-${variant}${h.slice(17, 20)}-${h.slice(20, 32)}`;
 }
 
+function hashNum(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function shuffleInPlace(a, rnd) {
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
 const PER_BAND = 6;
 
 // 20 bands x 6 items. Offsets keep round(difficulty) === band and stay in [1,20].
@@ -332,9 +370,73 @@ function lureFor(entry, idx, flawIdx) {
 }
 
 // ---------------------------------------------------------------------------
+// Key-position balance (E-073).
+// ---------------------------------------------------------------------------
+
+// One target card position per entry. Entries are grouped by statement count,
+// because a 3-card item cannot key card 4; inside a group the positions are
+// dealt out in blocks of one full cycle, so every consecutive run of n items
+// uses each position exactly once. That makes the plan exactly balanced overall
+// AND spread across the difficulty ramp, rather than balanced in aggregate but
+// clustered (all of card 1 in the easy tiers, say). Each cycle is shuffled from
+// a fixed seed so the sequence is reproducible without being a bare 1,2,3,1,2,3.
+export function keyPositionPlan(entries) {
+  const groups = new Map();
+  entries.forEach((e, i) => {
+    const n = e.s.length;
+    if (!groups.has(n)) groups.set(n, []);
+    groups.get(n).push(i);
+  });
+
+  const plan = new Array(entries.length);
+  for (const [n, entryIndices] of [...groups.entries()].sort((a, b) => a[0] - b[0])) {
+    const rnd = mulberry32(hashNum(`${TYPE_CODE}:keypos:${n}`));
+    let cycle = [];
+    entryIndices.forEach((entryIndex, k) => {
+      if (k % n === 0) cycle = shuffleInPlace(Array.from({ length: n }, (_, i) => i), rnd);
+      plan[entryIndex] = cycle[k % n];
+    });
+  }
+  return plan;
+}
+
+// Presentation order as source indices into `entry.s`, with the flawed
+// statement moved to `target`. The other statements keep their authored
+// relative order, which is already topologically sound (a derived step only
+// ever cites earlier statements, and never the flaw), so the derivation graph
+// survives any target position unchanged.
+export function presentationOrder(entry, target) {
+  const flawIdx = flawIndexOf(entry);
+  const order = entry.s.map((_, i) => i).filter((i) => i !== flawIdx);
+  order.splice(target, 0, flawIdx);
+  return order;
+}
+
+// Re-express an authored entry in presentation order: statement texts, marks,
+// derivation indices and per-index lure overrides all follow the permutation.
+function layOut(entry, target) {
+  const order = presentationOrder(entry, target);
+  const posOf = new Map(order.map((src, pos) => [src, pos]));
+  const laid = {
+    ...entry,
+    s: order.map((src) => entry.s[src]),
+    m: order.map((src) => {
+      const mk = entry.m[src];
+      return Array.isArray(mk) ? mk.map((j) => posOf.get(j)).sort((a, b) => a - b) : mk;
+    }),
+  };
+  if (entry.lu) {
+    laid.lu = {};
+    for (const [src, lure] of Object.entries(entry.lu)) laid.lu[posOf.get(Number(src))] = lure;
+  }
+  return laid;
+}
+
+// ---------------------------------------------------------------------------
 // Build one BankItem.
 // ---------------------------------------------------------------------------
-function buildItem(entry, index) {
+function buildItem(authored, index, target) {
+  const entry = layOut(authored, target);
   const itemId = uuidFrom(`${TYPE_CODE}:${index}`);
   const difficulty = difficultyFor(index);
   const promptKind = promptKindOf(entry);
@@ -428,7 +530,8 @@ export function formMatchesFlawLevel(entry) {
 }
 
 export function buildBank() {
-  return ENTRIES.map((e, i) => buildItem(e, i));
+  const plan = keyPositionPlan(ENTRIES);
+  return ENTRIES.map((e, i) => buildItem(e, i, plan[i]));
 }
 
 // ---------------------------------------------------------------------------
