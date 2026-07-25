@@ -288,6 +288,37 @@ function rivalRules(rule, varyDims) {
 }
 const verdictString = (rule, probes) => probes.map((p) => (ruleAccepts(rule, p.figure) ? 'Y' : 'N')).join('');
 
+/* ------------------------------------------------------------------ *
+ * KEY BALANCE (E-073)
+ * The key here is the three-probe verdict string, and the reachable key space
+ * is the six patterns that mix both verdicts. Left alone the grammar collapses
+ * onto the three "exactly one accept" patterns, because a rule that accepts
+ * only a narrow slice of the palette usually admits just one accepting probe
+ * outside it. That hands a test-taker who always answers the modal pattern a
+ * pseudo-guessing advantage, which inflates low-ability accuracy (M-ACC).
+ *
+ * The fix is not a permutation: the bank builder passes the six patterns in
+ * least-used-first order, and the item re-draws its rule until the probe pool
+ * can supply the top choice's accept-count, then lays the probes out so the
+ * accepts fall on that pattern's slots. Configs that constrain every varying
+ * dimension but one admit exactly ONE accepting probe outside the palette, so
+ * they can never serve a two-accept pattern; those fall back to the best
+ * reachable pattern in the same order and the builder re-balances against what
+ * the item actually realised.
+ * ------------------------------------------------------------------ */
+export const VERDICT_PATTERNS = ['YNN', 'NYN', 'NNY', 'YYN', 'YNY', 'NYY'];
+const acceptCount = (pattern) => [...pattern].filter((c) => c === 'Y').length;
+
+function layOutProbes(figures, rule, pattern) {
+  let seq = figures;
+  if (pattern) {
+    const yes = figures.filter((f) => ruleAccepts(rule, f));
+    const no = figures.filter((f) => !ruleAccepts(rule, f));
+    if (yes.length === acceptCount(pattern)) seq = [...pattern].map((c) => (c === 'Y' ? yes.shift() : no.shift()));
+  }
+  return seq.map((figure, i) => ({ key: PROBE_KEYS[i], figure }));
+}
+
 // Greedy disambiguation target: how many well-chosen tests are enough to DECIDE the
 // three probes (the child never has to pin the rule down further than that). A
 // heuristic upper bound on the true minimum, used as the M-EFF denominator and as
@@ -314,9 +345,9 @@ export function greedyTestsToDecide(rule, probes, space, hyps) {
 
 /**
  * Generate ONE structured BankItem.
- * @param {{varyDims,form,ruleDims,feedbackMode,budgetTightness,seed}} lever
+ * @param {{varyDims,form,ruleDims,feedbackMode,budgetTightness,keyPattern,seed}} lever
  */
-export function genItem({ varyDims, form, ruleDims, feedbackMode, budgetTightness, seed }) {
+export function genItem({ varyDims, form, ruleDims, feedbackMode, budgetTightness, keyPattern, seed }) {
   const rng = makeRng(seed);
   const fixed = {};
   for (const d of DIMS) if (!varyDims.includes(d)) fixed[d] = PALETTE[d][0];
@@ -325,9 +356,14 @@ export function genItem({ varyDims, form, ruleDims, feedbackMode, budgetTightnes
   const outside = outsidePaletteSpace(varyDims, fixed);
   const hyps = hypothesisSpace(varyDims, Math.min(3, Math.max(1, varyDims.length - 1)));
 
+  const preference = (Array.isArray(keyPattern) ? keyPattern : []).filter((p) => VERDICT_PATTERNS.includes(p));
   let built = null;
   let bestSoFar = null;
-  for (let attempt = 0; attempt < 80 && !built; attempt++) {
+  // Two passes: the first insists on the top-preference verdict pattern, the
+  // second settles for the best reachable one so a config whose rules cannot
+  // supply that accept-count still yields an item rather than throwing.
+  for (let attempt = 0; attempt < 160 && !built; attempt++) {
+    const strict = attempt < 80;
     const rule = makeRule(form, ruleDims, rng);
     const accepted = space.filter((f) => ruleAccepts(rule, f));
     if (!accepted.length || accepted.length === space.length) continue; // must split the space
@@ -337,20 +373,32 @@ export function genItem({ varyDims, form, ruleDims, feedbackMode, budgetTightnes
     const yes = pool.filter((f) => ruleAccepts(rule, f));
     const no = pool.filter((f) => !ruleAccepts(rule, f));
     if (!yes.length || !no.length) continue;
-    // 1 or 2 accepting probes, drawn from the seed so the verdict strings stay
-    // balanced across the bank (a fixed accept-count would be guessable).
-    const wantYes = rng() < 0.5 ? 1 : 2;
-    const chosen = [...yes.slice(0, Math.min(wantYes, yes.length))];
-    for (const f of no) {
-      if (chosen.length >= 3) break;
-      chosen.push(f);
+    // 1 or 2 accepting probes. The requested pattern fixes the count; without a
+    // preference list it is drawn from the seed, as before.
+    const reachable = (p) => yes.length >= acceptCount(p) && no.length >= 3 - acceptCount(p);
+    let wanted = null;
+    if (preference.length) {
+      wanted = strict ? (reachable(preference[0]) ? preference[0] : null) : (preference.find(reachable) ?? null);
+      if (!wanted) continue; // this rule cannot serve the request; draw another
     }
-    for (const f of yes) {
-      if (chosen.length >= 3) break;
-      if (!chosen.includes(f)) chosen.push(f);
+    let chosen;
+    if (wanted) {
+      const wantYes = acceptCount(wanted);
+      chosen = [...yes.slice(0, wantYes), ...no.slice(0, 3 - wantYes)];
+    } else {
+      const wantYes = rng() < 0.5 ? 1 : 2;
+      chosen = [...yes.slice(0, Math.min(wantYes, yes.length))];
+      for (const f of no) {
+        if (chosen.length >= 3) break;
+        chosen.push(f);
+      }
+      for (const f of yes) {
+        if (chosen.length >= 3) break;
+        if (!chosen.includes(f)) chosen.push(f);
+      }
+      if (chosen.length !== 3) continue;
     }
-    if (chosen.length !== 3) continue;
-    const probes = shuffle(chosen, rng).map((figure, i) => ({ key: PROBE_KEYS[i], figure }));
+    const probes = layOutProbes(shuffle(chosen, rng), rule, wanted);
     if (!probes.some((p) => ruleAccepts(rule, p.figure)) || !probes.some((p) => !ruleAccepts(rule, p.figure))) continue;
 
     // IDENTIFIABILITY: every hypothesis consistent with the accept-set over the
@@ -433,6 +481,7 @@ export function genItem({ varyDims, form, ruleDims, feedbackMode, budgetTightnes
         form,
         ruleDims: ruleDims.slice(),
         feedbackMode,
+        keyPattern: preference.slice(), // verdict patterns in least-used-first order at build time
         // Full precision (not rounded): enables exact, reproducible regeneration.
         budgetTightness,
       },
@@ -465,6 +514,10 @@ export function ageBandsFor(difficulty) {
  * ================================================================== */
 export function buildBank({ perBin = 6 } = {}) {
   const items = [];
+  // Offer the verdict patterns least-used-first, then re-balance against the
+  // pattern the item actually realised (not every config can serve every one).
+  const keyUse = new Map(VERDICT_PATTERNS.map((p) => [p, 0]));
+  const patternPreference = () => VERDICT_PATTERNS.slice().sort((a, b) => keyUse.get(a) - keyUse.get(b));
   for (let k = 1; k <= 20; k++) {
     const lo = Math.max(1, k - 0.45);
     const hi = Math.min(20, k + 0.45);
@@ -490,7 +543,9 @@ export function buildBank({ perBin = 6 } = {}) {
       const tightness = solveTightness(seg.cfg, t);
       const c = seg.cfg;
       const seed = `FLU-CONCEPT-01|bin=${k}|i=${i}|V${c.varyDims.join('-')}|${c.form}|R${c.ruleDims.join('-')}|${c.feedbackMode}`;
-      items.push(genItem({ ...c, budgetTightness: tightness, seed }));
+      const item = genItem({ ...c, budgetTightness: tightness, keyPattern: patternPreference(), seed });
+      keyUse.set(item.answer.correctKey, (keyUse.get(item.answer.correctKey) ?? 0) + 1);
+      items.push(item);
     }
   }
   return items;

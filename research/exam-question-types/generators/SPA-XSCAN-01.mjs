@@ -65,6 +65,50 @@ function shuffle(arr, rng) {
   }
   return a;
 }
+/* ------------------------------------------------------------------ *
+ * KEY-POSITION BALANCE (E-073)
+ * Shuffling every item's candidates independently still leaves the correct
+ * key's POSITION uneven over the bank, and an uneven pseudo-guessing floor
+ * inflates low-ability accuracy (M-ACC) and makes raw accuracy non-comparable
+ * across types. The bank builder hands each item a target slot and the item
+ * seats its correct candidate there. The candidate SET, the foils and the
+ * difficulty levers are untouched.
+ *
+ * Slots are allocated uniformly WITHIN each candidate-count stratum first and
+ * only then balanced across the whole bank. Candidate count is itself a
+ * difficulty lever, so balancing the pooled key counts alone would make the
+ * last slot of the longer items almost always correct — a larger exploit than
+ * the one being fixed.
+ * ------------------------------------------------------------------ */
+function makeSlotAllocator(maxSlots) {
+  const globalUse = new Array(maxSlots).fill(0);
+  const byOptionCount = new Map();
+  let tick = 0;
+  return (n) => {
+    if (!byOptionCount.has(n)) byOptionCount.set(n, new Array(n).fill(0));
+    const localUse = byOptionCount.get(n);
+    let best = tick % n;
+    for (let k = 1; k < n; k++) {
+      const i = (tick + k) % n;
+      if (localUse[i] < localUse[best] || (localUse[i] === localUse[best] && globalUse[i] < globalUse[best])) best = i;
+    }
+    tick++;
+    localUse[best]++;
+    globalUse[best]++;
+    return best;
+  };
+}
+// Seat the correct entry of an already-shuffled list at `slot`, leaving the
+// foils in their shuffled relative order. `slot` is either a resolved index or
+// the allocator callback, which is handed this item's candidate count.
+function seatCorrect(list, isCorrect, slot) {
+  const ci = list.findIndex(isCorrect);
+  const at = typeof slot === 'function' ? slot(list.length) : slot;
+  if (ci < 0 || !Number.isInteger(at) || at < 0 || at >= list.length) return { list, slot: ci };
+  const rest = list.filter((_, i) => i !== ci);
+  return { list: [...rest.slice(0, at), list[ci], ...rest.slice(at)], slot: at };
+}
+
 function seededUuid(seed) {
   const rng = makeRng('uuid|' + seed);
   const hex = [];
@@ -418,13 +462,18 @@ export function ageBandsFor(difficulty) {
 /* ================================================================== *
  * ITEM BUILDER
  * ================================================================== */
-export function genItem({ complexity, nCand, sliceCount, lureSimilarity, seed }) {
+export function genItem({ complexity, nCand, sliceCount, lureSimilarity, keyPosition, seed }) {
   const rng = makeRng(seed);
   const correct = FAMILY[complexity](rng);
   const slices = sampleStack(correct, sliceCount);
 
   const foils = buildDistractors(correct, nCand - 1, lureSimilarity, sliceCount, rng);
-  const pool = shuffle([{ solid: correct, lure: 'correct', note: 'its slice stack reproduces every shown cross-section' }, ...foils], rng);
+  const seated = seatCorrect(
+    shuffle([{ solid: correct, lure: 'correct', note: 'its slice stack reproduces every shown cross-section' }, ...foils], rng),
+    (p) => p.lure === 'correct',
+    keyPosition,
+  );
+  const pool = seated.list;
 
   const options = pool.map((p, i) => ({ key: OPT_KEYS[i], solid: p.solid }));
   let correctKey = null;
@@ -495,7 +544,7 @@ export function genItem({ complexity, nCand, sliceCount, lureSimilarity, seed })
       generator: 'grammar',
       generatorRef: GENERATOR_REF,
       seed,
-      levers: { complexity, nCand, sliceCount, lureSimilarity },
+      levers: { complexity, nCand, sliceCount, lureSimilarity, keyPosition: seated.slot },
     },
     syntheticOnly: true,
     validated: false,
@@ -516,6 +565,7 @@ for (const complexity of Object.keys(COMPLEXITY))
 
 export function buildBank({ perBin = 7 } = {}) {
   const items = [];
+  const keyPosition = makeSlotAllocator(OPT_KEYS.length);
   for (let k = 1; k <= 20; k++) {
     const lo = Math.max(1, k - 0.44);
     const hi = Math.min(20, k + 0.44);
@@ -538,7 +588,7 @@ export function buildBank({ perBin = 7 } = {}) {
       const t = s.tLo + (s.tHi - s.tLo) * ((li + 0.5) / hits[si]);
       const sim = solveSimilarity(s.complexity, s.nCand, s.sliceCount, t);
       const seed = `${TYPE_CODE}|bin=${k}|i=${i}|${s.complexity}|C${s.nCand}|S${s.sliceCount}`;
-      items.push(genItem({ complexity: s.complexity, nCand: s.nCand, sliceCount: s.sliceCount, lureSimilarity: sim, seed }));
+      items.push(genItem({ complexity: s.complexity, nCand: s.nCand, sliceCount: s.sliceCount, lureSimilarity: sim, keyPosition, seed }));
     }
   }
   return items;

@@ -135,6 +135,7 @@ for (const it of items) {
       gridSize: lev.gridSize,
       activeRules: lev.activeRules,
       distractorSimilarity: lev.distractorSimilarity,
+      keyPosition: lev.keyPosition,
       seed: it.provenance.seed,
     });
     if (!deepEq(regen, it)) fail(id, 'item is NOT reproducible from its provenance (grammar drift)');

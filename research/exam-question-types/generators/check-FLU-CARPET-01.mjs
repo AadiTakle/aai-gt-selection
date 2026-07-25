@@ -165,7 +165,7 @@ for (const it of items) {
   // 4. Reproducibility: regenerate from provenance and deep-compare.
   const lev = (it.provenance && it.provenance.levers) || {};
   try {
-    const regen = genItem({ mode: lev.mode, attrs: lev.attrs, distractorSimilarity: lev.distractorSimilarity, seed: it.provenance.seed });
+    const regen = genItem({ mode: lev.mode, attrs: lev.attrs, distractorSimilarity: lev.distractorSimilarity, keyPosition: lev.keyPosition, seed: it.provenance.seed });
     if (!deepEq(regen, it)) fail(id, 'item is NOT reproducible from its provenance (grammar drift)');
   } catch (e) {
     fail(id, `regeneration threw: ${e.message}`);

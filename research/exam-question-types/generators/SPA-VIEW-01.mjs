@@ -71,6 +71,51 @@ function shuffle(arr, rng) {
   }
   return a;
 }
+/* ------------------------------------------------------------------ *
+ * KEY-POSITION BALANCE (E-073)
+ * Shuffling every item's station keys independently still leaves the correct
+ * key's POSITION uneven over the bank, and an uneven pseudo-guessing floor
+ * inflates low-ability accuracy (M-ACC) and makes raw accuracy non-comparable
+ * across types. The bank builder hands each match_viewpoint item a target slot
+ * and the item seats the acting station's key there. The scene, the lures and
+ * the difficulty levers are untouched. point_heading items answer on a dial,
+ * not by picking an option, so they take no slot.
+ *
+ * Slots are allocated uniformly WITHIN each viewpoint-count stratum first and
+ * only then balanced across the whole bank. Viewpoint count is itself a
+ * difficulty lever, so balancing the pooled key counts alone would make the
+ * last slot of the crowded scenes almost always correct — a larger exploit
+ * than the one being fixed.
+ * ------------------------------------------------------------------ */
+function makeSlotAllocator(maxSlots) {
+  const globalUse = new Array(maxSlots).fill(0);
+  const byOptionCount = new Map();
+  let tick = 0;
+  return (n) => {
+    if (!byOptionCount.has(n)) byOptionCount.set(n, new Array(n).fill(0));
+    const localUse = byOptionCount.get(n);
+    let best = tick % n;
+    for (let k = 1; k < n; k++) {
+      const i = (tick + k) % n;
+      if (localUse[i] < localUse[best] || (localUse[i] === localUse[best] && globalUse[i] < globalUse[best])) best = i;
+    }
+    tick++;
+    localUse[best]++;
+    globalUse[best]++;
+    return best;
+  };
+}
+// Seat the correct entry of an already-shuffled list at `slot`, leaving the
+// others in their shuffled relative order. `slot` is either a resolved index or
+// the allocator callback, which is handed this item's option count.
+function seatCorrect(list, isCorrect, slot) {
+  const ci = list.findIndex(isCorrect);
+  const at = typeof slot === 'function' ? slot(list.length) : slot;
+  if (ci < 0 || !Number.isInteger(at) || at < 0 || at >= list.length) return { list, slot: ci };
+  const rest = list.filter((_, i) => i !== ci);
+  return { list: [...rest.slice(0, at), list[ci], ...rest.slice(at)], slot: at };
+}
+
 function seededUuid(seed) {
   const rng = makeRng('uuid|' + seed);
   const hex = [];
@@ -295,7 +340,7 @@ const HEADING_LURE_NOTES = {
   opposite: 'pointing directly away from the target: the facing direction was inverted',
 };
 
-function buildMatchItem({ nObjects, nViewpoints, offsetDeg, tight, seed }) {
+function buildMatchItem({ nObjects, nViewpoints, offsetDeg, tight, keyPosition, seed }) {
   const rng = makeRng(seed);
   const scene = buildScene({ nObjects, nViewpoints, offsetDeg, tight, rng });
   if (!scene) return null;
@@ -303,8 +348,11 @@ function buildMatchItem({ nObjects, nViewpoints, offsetDeg, tight, seed }) {
   const target = 0; // station 0 is the acting viewpoint by construction
   const targetOrder = orders[target];
 
-  // Assign display keys in a shuffled order so position never leaks the key.
-  const perm = shuffle(stations.map((_, i) => i), rng);
+  // Assign display keys in a shuffled order so position never leaks the key,
+  // then seat the acting station on its allocated slot so the key position is
+  // balanced across the bank as well as within the item.
+  const seated = seatCorrect(shuffle(stations.map((_, i) => i), rng), (i) => i === target, keyPosition);
+  const perm = seated.list;
   const keyOf = new Array(stations.length);
   perm.forEach((stationIdx, slot) => { keyOf[stationIdx] = OPT_KEYS[slot]; });
 
@@ -355,6 +403,7 @@ function buildMatchItem({ nObjects, nViewpoints, offsetDeg, tight, seed }) {
     mode: 'match_viewpoint',
     scene,
     keyOf,
+    keySlot: seated.slot,
     content: {
       typeCode: TYPE_CODE,
       question: {
@@ -476,12 +525,12 @@ function buildHeadingItem({ nObjects, nViewpoints, offsetDeg, tight, seed }) {
   };
 }
 
-export function genItem({ mode, nObjects, nViewpoints, offsetDeg, tight, seed }) {
+export function genItem({ mode, nObjects, nViewpoints, offsetDeg, tight, keyPosition, seed }) {
   let built = null;
   for (let retry = 0; retry < 12 && !built; retry++) {
     const s = retry ? `${seed}|r${retry}` : seed;
     built = mode === 'match_viewpoint'
-      ? buildMatchItem({ nObjects, nViewpoints, offsetDeg, tight, seed: s })
+      ? buildMatchItem({ nObjects, nViewpoints, offsetDeg, tight, keyPosition, seed: s })
       : buildHeadingItem({ nObjects, nViewpoints, offsetDeg, tight, seed: s });
   }
   if (!built) throw new Error(`could not realise scene for ${JSON.stringify({ mode, nObjects, nViewpoints, offsetDeg, tight })}`);
@@ -500,7 +549,7 @@ export function genItem({ mode, nObjects, nViewpoints, offsetDeg, tight, seed })
       generator: 'grammar',
       generatorRef: GENERATOR_REF,
       seed,
-      levers: { mode, nObjects, nViewpoints, offsetDeg, tight },
+      levers: { mode, nObjects, nViewpoints, offsetDeg, tight, keyPosition: built.keySlot ?? null },
     },
     syntheticOnly: true,
     validated: false,
@@ -526,6 +575,7 @@ for (const mode of ['match_viewpoint', 'point_heading'])
 
 export function buildBank({ perBin = 7 } = {}) {
   const items = [];
+  const keyPosition = makeSlotAllocator(OPT_KEYS.length);
   for (let k = 1; k <= 20; k++) {
     const lo = Math.max(1, k - 0.44);
     const hi = Math.min(20, k + 0.44);
@@ -549,7 +599,7 @@ export function buildBank({ perBin = 7 } = {}) {
       const t = s.tLo + (s.tHi - s.tLo) * ((li + 0.5) / hits[si]);
       const tight = solveTightness(s.mode, s.nObjects, s.nViewpoints, s.offsetDeg, t);
       const seed = `${TYPE_CODE}|bin=${k}|i=${i}|${s.mode}|O${s.nObjects}V${s.nViewpoints}D${s.offsetDeg}`;
-      items.push(genItem({ ...s, tight, seed }));
+      items.push(genItem({ ...s, tight, keyPosition, seed }));
     }
   }
   return items;

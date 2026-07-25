@@ -54,6 +54,47 @@ function shuffle(rng, arr) {
   return a;
 }
 // Deterministic RFC-4122-shaped uuid (v4 layout) from a seed string.
+// ---------------------------------------------------------------------------
+// KEY-POSITION BALANCE (E-073)
+// Shuffling every item's options independently still leaves the correct key's
+// POSITION uneven over the bank: the ramp shows 2 options at the floor and 6 at
+// the ceiling, so the head slots collect the surplus and the modal key beats
+// chance. An uneven pseudo-guessing floor inflates low-ability accuracy
+// (M-ACC), so the bank allocates each item a target slot from a least-loaded
+// counter and the item seats its correct option there. The option SET, the
+// lures and the difficulty profile are untouched.
+//
+// Slots are allocated uniformly WITHIN each option-count stratum first and only
+// then balanced across the whole bank. Option count is itself a difficulty
+// lever, so balancing the pooled key counts alone would make the last slot of
+// the rarer long items almost always correct — a larger exploit than the one
+// being fixed.
+// ---------------------------------------------------------------------------
+function makeSlotAllocator(maxSlots) {
+  const globalUse = new Array(maxSlots).fill(0);
+  const byOptionCount = new Map();
+  let tick = 0;
+  return (n) => {
+    if (!byOptionCount.has(n)) byOptionCount.set(n, new Array(n).fill(0));
+    const localUse = byOptionCount.get(n);
+    let best = tick % n;
+    for (let k = 1; k < n; k++) {
+      const i = (tick + k) % n;
+      if (localUse[i] < localUse[best] || (localUse[i] === localUse[best] && globalUse[i] < globalUse[best])) best = i;
+    }
+    tick++; localUse[best]++; globalUse[best]++; return best;
+  };
+}
+// Seat the correct entry of an already-shuffled list at the allocated slot,
+// leaving the distractors in their shuffled relative order.
+function seatCorrect(list, isCorrect, slotFor) {
+  const ci = list.findIndex(isCorrect);
+  const at = slotFor(list.length);
+  if (ci < 0 || at < 0 || at >= list.length) return list;
+  const rest = list.filter((_, i) => i !== ci);
+  return [...rest.slice(0, at), list[ci], ...rest.slice(at)];
+}
+
 function seededUuid(seedStr) {
   const b = new Uint8Array(16);
   let h = hashStr(seedStr);
@@ -333,7 +374,7 @@ function eligibleMarkedFaces(kind, mode, model) {
 // ---------------------------------------------------------------------------
 // Build one item.
 // ---------------------------------------------------------------------------
-function buildItem(L, idx) {
+function buildItem(L, idx, slotFor) {
   const seed = `${TYPE_CODE}|L${L}|#${idx}|${BASE_SEED}`;
   const rng = makeRng(seed);
   const prof = PROFILES[L];
@@ -359,7 +400,7 @@ function buildItem(L, idx) {
     relation = 'net_to_solid';
     const nOpts = Math.min(prof.nOpts, 1 + SOLID_DIST[kind].length);
     const lures = shuffle(rng, SOLID_DIST[kind]).slice(0, nOpts - 1);
-    const raw = shuffle(rng, [kind, ...lures]);
+    const raw = seatCorrect(shuffle(rng, [kind, ...lures]), k => k === kind, slotFor);
     options = raw.map((k, i) => ({ key: OPT_KEYS[i], kind: k }));
     correctFaceId = null;
     const correct = options.find(o => o.kind === kind);
@@ -375,7 +416,7 @@ function buildItem(L, idx) {
       const nOpts = Math.min(prof.nOpts, 1 + adjacent.length + others.length);
       const distPool = [...shuffle(rng, adjacent).map(f => ({ f, lure: 'adjacent_near_miss' })),
       ...shuffle(rng, others).map(f => ({ f, lure: 'nonadjacent_confusion' }))].slice(0, nOpts - 1);
-      const chosen = shuffle(rng, [{ f: correctFaceId, lure: 'correct' }, ...distPool]);
+      const chosen = seatCorrect(shuffle(rng, [{ f: correctFaceId, lure: 'correct' }, ...distPool]), c => c.lure === 'correct', slotFor);
       options = chosen.map((c, i) => ({ key: OPT_KEYS[i], faceId: c.f, color: colorOf[c.f], symbol: faceStyle === 'symbol' ? symbolOf[c.f] : '' }));
       distractorRationales = chosen.map(c => c.lure);
       correctKey = chosen.map((c, i) => ({ c, key: OPT_KEYS[i] })).find(o => o.c.f === correctFaceId).key;
@@ -385,7 +426,7 @@ function buildItem(L, idx) {
       const nonAdj = faces.filter(f => f !== markedFaceId && !model.adjacency[markedFaceId].includes(f));
       const nOpts = Math.min(prof.nOpts, 1 + nonAdj.length);
       const distPool = shuffle(rng, nonAdj).slice(0, nOpts - 1).map(f => ({ f, lure: model.opposite[markedFaceId] === f ? 'opposite_confusion' : 'nonadjacent_confusion' }));
-      const chosen = shuffle(rng, [{ f: correctFaceId, lure: 'correct' }, ...distPool]);
+      const chosen = seatCorrect(shuffle(rng, [{ f: correctFaceId, lure: 'correct' }, ...distPool]), c => c.lure === 'correct', slotFor);
       options = chosen.map((c, i) => ({ key: OPT_KEYS[i], faceId: c.f, color: colorOf[c.f], symbol: faceStyle === 'symbol' ? symbolOf[c.f] : '' }));
       distractorRationales = chosen.map(c => c.lure);
       correctKey = chosen.map((c, i) => ({ c, key: OPT_KEYS[i] })).find(o => o.c.f === correctFaceId).key;
@@ -423,7 +464,8 @@ function buildItem(L, idx) {
 
 function generate() {
   const items = [];
-  for (let L = 1; L <= 20; L++) for (let i = 0; i < ITEMS_PER_LEVEL; i++) items.push(buildItem(L, i));
+  const slotFor = makeSlotAllocator(7); // OPT_KEYS A..G
+  for (let L = 1; L <= 20; L++) for (let i = 0; i < ITEMS_PER_LEVEL; i++) items.push(buildItem(L, i, slotFor));
   return items;
 }
 
