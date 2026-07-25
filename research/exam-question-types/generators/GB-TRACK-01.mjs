@@ -272,7 +272,7 @@ function buildItem(L, idx) {
       swapsPerPhase: Math.min(cfg.swaps, Math.floor(n / 2)),
       phases: motion.phases,             // explicit script: disjoint slot-swap pairs per phase
     },
-    distractors: { bugs: genBugs(rng, cfg.bugs, motion.phases.length) },
+    clutterBugs: { bugs: genBugs(rng, cfg.bugs, motion.phases.length) },
     limits: { maxTaps: maxTapsFor(n) },
     responseUntimed: true,               // renderer must not impose a response deadline
     optionKind: 'slot_set',

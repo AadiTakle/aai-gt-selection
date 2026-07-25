@@ -41,6 +41,16 @@ const GENERATOR_REF = 'VER-CLOZE-01/authored-pools@v1';
 //   associate       = thematic/topical pull, does not correctly complete the gap
 const LURE_CLASSES = new Set(['correct', 'local_fit', 'global_mismatch', 'associate']);
 
+// Rationale text carried on answer.distractorRationales. These live under `answer`
+// and never under `content`: a per-option label that marks one option 'correct' is
+// the answer key, because ServedItem strips only answer/scoring/provenance.
+const LURE_WHY = {
+  correct: 'the word the whole sentence requires',
+  local_fit: 'reads naturally right beside the blank but contradicts the sentence as a whole',
+  global_mismatch: 'the wrong meaning for the sentence as a whole',
+  associate: 'pulled in by topic association without completing the gap',
+};
+
 // The local_fit "collocation trap" is only introduced once sentences carry a
 // whole-sentence logic (contrast/causal). Below this band the gap is a simple
 // local completion (gapType 'local_fit'); at/above it the gap is 'global_fit'.
@@ -260,9 +270,12 @@ function buildItem(entry, index) {
   }
 
   const shuffled = seededShuffle(opts, hashNum(itemId));
-  const options = shuffled.map((o) => ({ token: tok(o.token), fit: o.fit }));
-  const correctKey = shuffled.findIndex((o) => o.fit === 'correct');
-  const distractorRationales = shuffled.map((o) => o.fit);
+  const options = shuffled.map((o) => ({ token: tok(o.token) }));
+  const lures = shuffled.map((o) => o.fit);
+  const correctKey = lures.indexOf('correct');
+  const distractorRationales = Object.fromEntries(
+    lures.map((lure, i) => [String(i), { lure, why: LURE_WHY[lure] }]),
+  );
 
   return {
     itemId,
@@ -288,7 +301,7 @@ function buildItem(entry, index) {
       generatorRef: GENERATOR_REF,
       seed: String(index),
       promptHash: createHash('sha1').update(JSON.stringify(entry)).digest('hex').slice(0, 16),
-      validator: itemValidatorVerdicts(entry, options, correctKey, difficulty),
+      validator: itemValidatorVerdicts(entry, options, lures, difficulty),
     },
     syntheticOnly: true,
     validated: false,
@@ -296,11 +309,11 @@ function buildItem(entry, index) {
 }
 
 // Design-time self-check verdicts recorded on each item (still validated:false overall).
-function itemValidatorVerdicts(entry, options, correctKey, difficulty) {
-  const correctCount = options.filter((o) => o.fit === 'correct').length;
-  const distractors = options.filter((o) => o.fit !== 'correct').map((o) => o.fit);
+function itemValidatorVerdicts(entry, options, lures, difficulty) {
+  const correctCount = lures.filter((l) => l === 'correct').length;
+  const distractors = lures.filter((l) => l !== 'correct');
   const distinctLures = new Set(distractors).size === distractors.length;
-  const luresValid = options.every((o) => LURE_CLASSES.has(o.fit));
+  const luresValid = lures.every((l) => LURE_CLASSES.has(l));
   const optionWords = options.map((o) => o.token.text);
   const words = [...frameWords(entry.frame), ...optionWords];
   const k1 = difficulty < 4;
@@ -358,26 +371,40 @@ export function validateItems(items) {
       return;
     }
     opts.forEach((o, oi) => {
-      if (!LURE_CLASSES.has(o.fit)) errors.push(`${where}: option[${oi}] bad lure ${o.fit}`);
       if (!o.token || typeof o.token.text !== 'string' || !o.token.text) {
         errors.push(`${where}: option[${oi}] token must have text`);
       }
+      // A per-option lure label inside content marks the correct option and is
+      // therefore the answer key; ServedItem keeps content intact.
+      for (const leak of ['fit', 'lure', 'role', 'correct']) {
+        if (Object.prototype.hasOwnProperty.call(o, leak)) {
+          errors.push(`${where}: content.options[${oi}].${leak} leaks the answer key — it belongs in answer.distractorRationales`);
+        }
+      }
     });
-    const correctCount = opts.filter((o) => o.fit === 'correct').length;
-    if (correctCount !== 1) errors.push(`${where}: exactly one 'correct' option required (found ${correctCount})`);
-    const distractors = opts.filter((o) => o.fit !== 'correct').map((o) => o.fit);
-    if (new Set(distractors).size !== distractors.length) errors.push(`${where}: duplicate distractor lure classes`);
     const optWords = opts.map((o) => o.token && o.token.text ? o.token.text.toLowerCase() : '');
     if (new Set(optWords).size !== optWords.length) errors.push(`${where}: duplicate option words`);
 
     const ak = it.answer;
+    const rats = ak && ak.distractorRationales;
     if (!ak || typeof ak.correctKey !== 'number') errors.push(`${where}: answer.correctKey missing`);
-    else if (!opts[ak.correctKey] || opts[ak.correctKey].fit !== 'correct') errors.push(`${where}: correctKey ${ak.correctKey} does not point to the 'correct' option`);
-    if (!Array.isArray(ak && ak.distractorRationales) || ak.distractorRationales.length !== opts.length) {
-      errors.push(`${where}: distractorRationales must align to options length`);
-    } else if (ak.distractorRationales.some((r, ri) => r !== opts[ri].fit)) {
-      errors.push(`${where}: distractorRationales must equal options lure order`);
+    if (!rats || typeof rats !== 'object' || Array.isArray(rats)) {
+      errors.push(`${where}: distractorRationales must be an object keyed by option index, not a positional array`);
+      return;
     }
+    if (Object.keys(rats).length !== opts.length) {
+      errors.push(`${where}: distractorRationales must cover every option`);
+      return;
+    }
+    const lures = opts.map((_, oi) => rats[String(oi)] && rats[String(oi)].lure);
+    lures.forEach((l, oi) => {
+      if (!LURE_CLASSES.has(l)) errors.push(`${where}: option[${oi}] bad lure ${l}`);
+    });
+    const correctCount = lures.filter((l) => l === 'correct').length;
+    if (correctCount !== 1) errors.push(`${where}: exactly one 'correct' option required (found ${correctCount})`);
+    if (lures[ak.correctKey] !== 'correct') errors.push(`${where}: correctKey ${ak.correctKey} does not point to the 'correct' option`);
+    const distractors = lures.filter((l) => l !== 'correct');
+    if (new Set(distractors).size !== distractors.length) errors.push(`${where}: duplicate distractor lure classes`);
 
     // Reading gate for K-1 items.
     if (Array.isArray(it.ageBands) && it.ageBands.includes('K-1')) {
