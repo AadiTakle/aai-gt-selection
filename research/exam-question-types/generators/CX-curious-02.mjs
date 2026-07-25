@@ -423,6 +423,41 @@ function seededShuffle(arr, seed) {
   return a;
 }
 
+// ---------------------------------------------------------------------------
+// KEY-POSITION BALANCE (E-073)
+// Slots are allocated uniformly WITHIN each option-count stratum first and only
+// then balanced across the whole bank. The number of gap options is itself the
+// variant's difficulty lever (3 / 4 / 5), so balancing the pooled key counts
+// alone would make the last slot of the rarer 5-option items almost always the
+// gap — a larger exploit than the one being fixed.
+// ---------------------------------------------------------------------------
+function makeSlotAllocator(maxSlots) {
+  const globalUse = new Array(maxSlots).fill(0);
+  const byOptionCount = new Map();
+  let tick = 0;
+  return (n) => {
+    if (!byOptionCount.has(n)) byOptionCount.set(n, new Array(n).fill(0));
+    const localUse = byOptionCount.get(n);
+    let best = tick % n;
+    for (let k = 1; k < n; k++) {
+      const i = (tick + k) % n;
+      if (localUse[i] < localUse[best] || (localUse[i] === localUse[best] && globalUse[i] < globalUse[best])) best = i;
+    }
+    tick++; localUse[best]++; globalUse[best]++; return best;
+  };
+}
+// Seat the gap entry of an already-shuffled pool at the allocated slot, leaving
+// the stated distractors in their shuffled relative order. The support/lure/
+// evidence-line metadata travels on the entries themselves, so the evidence
+// model follows the permutation instead of being re-assigned by position.
+function seatCorrect(list, isCorrect, slotFor) {
+  const ci = list.findIndex(isCorrect);
+  const at = slotFor(list.length);
+  if (ci < 0 || at < 0 || at >= list.length) return { list, slot: ci };
+  const rest = list.filter((_, i) => i !== ci);
+  return { list: [...rest.slice(0, at), list[ci], ...rest.slice(at)], slot: at };
+}
+
 const PER_BAND = 6;
 export function difficultyFor(index) {
   const band = Math.floor(index / PER_BAND) + 1;
@@ -460,7 +495,7 @@ export function focusWordsFor(lines) {
 // ---------------------------------------------------------------------------
 // Build one BankItem: scene at variant v.
 // ---------------------------------------------------------------------------
-function buildItem(scene, sceneIdx, variant, index) {
+function buildItem(scene, sceneIdx, variant, index, slotFor) {
   const itemId = uuidFrom(`${TYPE_CODE}:${sceneIdx}:${variant}`);
   const difficulty = difficultyFor(index);
 
@@ -476,9 +511,10 @@ function buildItem(scene, sceneIdx, variant, index) {
       kind: null,
     })),
   ];
-  const shuffled = seededShuffle(pool, hashNum(itemId + ':gap'));
+  const seated = seatCorrect(seededShuffle(pool, hashNum(itemId + ':gap')), (o) => o.support === 'unknown', slotFor);
+  const shuffled = seated.list;
   const gapOptions = shuffled.map((o, i) => ({ id: `g${i + 1}`, text: o.text }));
-  const correctKey = gapOptions[shuffled.findIndex((o) => o.support === 'unknown')].id;
+  const correctKey = gapOptions[seated.slot].id;
 
   const rationales = {};
   shuffled.forEach((o, i) => {
@@ -546,6 +582,7 @@ function buildItem(scene, sceneIdx, variant, index) {
       sceneIndex: sceneIdx,
       variant,
       contentHash: createHash('sha1').update(JSON.stringify([scene, variant])).digest('hex').slice(0, 16),
+      levers: { optionCount: gapOptions.length, keyPosition: seated.slot },
       validatorVerdicts: [
         { check: 'single_satisfiability', status: pool.filter((o) => o.support === 'unknown').length === 1 ? 'pass' : 'fail' },
         { check: 'no_audio', status: 'pass', detail: 'D-017: scene delivered as on-screen text' },
@@ -559,10 +596,11 @@ function buildItem(scene, sceneIdx, variant, index) {
 }
 
 export function buildBank() {
+  const slotFor = makeSlotAllocator(1 + Math.max(...VARIANT_DISTRACTORS));
   const items = [];
   for (let v = 0; v < 3; v++) {
     for (let s = 0; s < SCENES.length; s++) {
-      items.push(buildItem(SCENES[s], s, v, v * SCENES.length + s));
+      items.push(buildItem(SCENES[s], s, v, v * SCENES.length + s, slotFor));
     }
   }
   return items;

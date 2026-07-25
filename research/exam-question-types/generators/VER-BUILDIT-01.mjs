@@ -260,6 +260,42 @@ function seededShuffle(arr, seed) {
   return a;
 }
 
+// ---------------------------------------------------------------------------
+// KEY-POSITION BALANCE (E-073)
+// Slots are allocated uniformly WITHIN each option-count stratum first and only
+// then balanced across the whole bank. Option count is itself a difficulty
+// lever (the reversed_relation board only appears from band 5, and only when the
+// scene has an opposite slot pair), so balancing the pooled key counts alone
+// would make the last slot of the rarer long items almost always correct — a
+// larger exploit than the one being fixed.
+// ---------------------------------------------------------------------------
+function makeSlotAllocator(maxSlots) {
+  const globalUse = new Array(maxSlots).fill(0);
+  const byOptionCount = new Map();
+  let tick = 0;
+  return (n) => {
+    if (!byOptionCount.has(n)) byOptionCount.set(n, new Array(n).fill(0));
+    const localUse = byOptionCount.get(n);
+    let best = tick % n;
+    for (let k = 1; k < n; k++) {
+      const i = (tick + k) % n;
+      if (localUse[i] < localUse[best] || (localUse[i] === localUse[best] && globalUse[i] < globalUse[best])) best = i;
+    }
+    tick++; localUse[best]++; globalUse[best]++; return best;
+  };
+}
+// Seat the correct entry of an already-shuffled list at the allocated slot,
+// leaving the distractors in their shuffled relative order. Because the lure
+// labels travel on the entries themselves, the taxonomy follows the permutation
+// instead of being re-assigned by position.
+function seatCorrect(list, isCorrect, slotFor) {
+  const ci = list.findIndex(isCorrect);
+  const at = slotFor(list.length);
+  if (ci < 0 || at < 0 || at >= list.length) return { list, slot: ci };
+  const rest = list.filter((_, i) => i !== ci);
+  return { list: [...rest.slice(0, at), list[ci], ...rest.slice(at)], slot: at };
+}
+
 // Difficulty grid: 20 bands x 5 items = 100.
 function difficultyFor(index) {
   const band = Math.floor(index / 5) + 1;
@@ -347,7 +383,7 @@ function globalMismatchScene(scene, avoid, seed) {
 // ---------------------------------------------------------------------------
 // Build one BankItem from an authored board.
 // ---------------------------------------------------------------------------
-function buildItem(entry, index) {
+function buildItem(entry, index, slotFor) {
   const itemId = uuidFrom(`${TYPE_CODE}:${index}`);
   const difficulty = difficultyFor(index);
   const band = Math.floor(index / 5) + 1;
@@ -368,10 +404,10 @@ function buildItem(entry, index) {
   const global = globalMismatchScene(scene, avoid, hashNum(itemId + ':g'));
   opts.push({ scene: global, lure: 'global_mismatch' });
 
-  const shuffled = seededShuffle(opts, hashNum(itemId + ':opts'));
-  const lures = shuffled.map((o) => o.lure); // server-side only; never enters `content`
-  const options = shuffled.map((o) => ({ placements: o.scene.map((p) => ({ slot: p.slot, piece: p.piece })) }));
-  const correctKey = lures.indexOf('correct');
+  const seated = seatCorrect(seededShuffle(opts, hashNum(itemId + ':opts')), (o) => o.lure === 'correct', slotFor);
+  const lures = seated.list.map((o) => o.lure); // server-side only; never enters `content`
+  const options = seated.list.map((o) => ({ placements: o.scene.map((p) => ({ slot: p.slot, piece: p.piece })) }));
+  const correctKey = seated.slot;
   const distractorRationales = rationalesByOption(lures);
 
   const content = {
@@ -399,6 +435,7 @@ function buildItem(entry, index) {
       generatorRef: GENERATOR_REF,
       seed: String(index),
       promptHash: createHash('sha1').update(JSON.stringify(entry)).digest('hex').slice(0, 16),
+      levers: { optionCount: options.length, keyPosition: seated.slot },
       validator: itemValidatorVerdicts(entry, content, lures, difficulty, directions),
     },
     syntheticOnly: true,
@@ -433,7 +470,8 @@ function itemValidatorVerdicts(entry, content, lures, difficulty, directions) {
 }
 
 export function buildBank() {
-  return ENTRIES.map((e, i) => buildItem(e, i));
+  const slotFor = makeSlotAllocator(4);
+  return ENTRIES.map((e, i) => buildItem(e, i, slotFor));
 }
 
 // ---------------------------------------------------------------------------

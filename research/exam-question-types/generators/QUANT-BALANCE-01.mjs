@@ -74,6 +74,42 @@ class Rng {
 }
 
 /* ------------------------------------------------------------------ *
+ * KEY-POSITION BALANCE (E-073)
+ * Slots are allocated uniformly WITHIN each option-count stratum first and only
+ * then balanced across the whole bank. Option count is itself a difficulty
+ * lever elsewhere in the catalog, so balancing the pooled key counts alone
+ * would make the last slot of the rarer long items almost always correct — a
+ * larger exploit than the one being fixed. This type serves a fixed 4 options,
+ * so it is a single stratum, but the allocator keeps the invariant explicit.
+ * ------------------------------------------------------------------ */
+function makeSlotAllocator(maxSlots) {
+  const globalUse = new Array(maxSlots).fill(0);
+  const byOptionCount = new Map();
+  let tick = 0;
+  return (n) => {
+    if (!byOptionCount.has(n)) byOptionCount.set(n, new Array(n).fill(0));
+    const localUse = byOptionCount.get(n);
+    let best = tick % n;
+    for (let k = 1; k < n; k++) {
+      const i = (tick + k) % n;
+      if (localUse[i] < localUse[best] || (localUse[i] === localUse[best] && globalUse[i] < globalUse[best])) best = i;
+    }
+    tick++; localUse[best]++; globalUse[best]++; return best;
+  };
+}
+/* Seat the correct load of an already-shuffled list at the allocated slot,
+ * leaving the distractors in their shuffled relative order. The lure and
+ * misconception labels travel on the entries themselves, so they follow the
+ * permutation instead of being re-assigned by position. */
+function seatCorrect(list, isCorrect, slotFor) {
+  const ci = list.findIndex(isCorrect);
+  const at = slotFor(list.length);
+  if (ci < 0 || at < 0 || at >= list.length) return { list, slot: ci };
+  const rest = list.filter((_, i) => i !== ci);
+  return { list: [...rest.slice(0, at), list[ci], ...rest.slice(at)], slot: at };
+}
+
+/* ------------------------------------------------------------------ *
  * Weight solver — Gaussian elimination over the equivalence equations.
  * equations: [{coef:number[nVars], rhs:number}]; returns integer weight map
  * or null if the system is inconsistent, under-determined, or non-integer/
@@ -257,7 +293,7 @@ function ageBandsFor(target) {
   return ['6-8'];
 }
 
-function buildItem(masterSeed, target, ordinal) {
+function buildItem(masterSeed, target, ordinal, slotFor) {
   const MAX_TRIES = 900;
   for (let attempt = 0; attempt < MAX_TRIES; attempt++) {
     const seed = `${masterSeed}:${TYPE_CODE}:d${target}:i${ordinal}:a${attempt}`;
@@ -269,29 +305,44 @@ function buildItem(masterSeed, target, ordinal) {
 
     // options: correct + 3 distractors, shuffled; keys by final position
     const optDefs = rng.shuffle([{ load: correct.load, _correct: true }, ...distract.map((d) => ({ load: d.load, lure: d.lure, misconception: d.misconception }))]);
-    const options = optDefs.map((o, i) => ({ key: OPTION_KEYS[i], load: o.load }));
-    const correctKey = OPTION_KEYS[optDefs.findIndex((o) => o._correct)];
-    const distractorRationales = {};
-    optDefs.forEach((o, i) => { if (!o._correct) distractorRationales[OPTION_KEYS[i]] = { lure: o.lure, misconception: o.misconception }; });
 
-    const content = {
+    const contentBase = {
       typeCode: TYPE_CODE,
       display: 'shapes',
       attributes: ['weight'],
       shapes,
       examples,                                     // equivalence scales (reveal weights; renderer-agnostic)
       target: leftLoad,                             // left pan load to match
+    };
+
+    // Both gates are order-independent, so they are run BEFORE a key slot is
+    // allocated: a rejected attempt must not consume one, or the balanced
+    // allocation would drift with the rejection pattern.
+    const provisional = optDefs.map((o, i) => ({ key: OPTION_KEYS[i], load: o.load }));
+
+    // UNIQUE-balance gate (independent solver over served content; no key access)
+    const pre = analyzeBalance({ ...contentBase, options: provisional });
+    if (!pre.unique || pre.correctKey !== OPTION_KEYS[optDefs.findIndex((o) => o._correct)]) continue;
+
+    // options distinct as multisets
+    const sigs = new Set(provisional.map((o) => loadSig(o.load)));
+    if (sigs.size !== provisional.length) continue;
+
+    // Gates passed — seat the correct load at the balanced slot. Seating is a
+    // permutation of the same option set, so uniqueness is preserved and the
+    // solver below re-derives the key at its new position.
+    const seated = seatCorrect(optDefs, (o) => o._correct, slotFor);
+    const options = seated.list.map((o, i) => ({ key: OPTION_KEYS[i], load: o.load }));
+    const correctKey = OPTION_KEYS[seated.slot];
+    const distractorRationales = {};
+    seated.list.forEach((o, i) => { if (!o._correct) distractorRationales[OPTION_KEYS[i]] = { lure: o.lure, misconception: o.misconception }; });
+
+    const content = {
+      ...contentBase,
       options,                                       // 4 candidate right-pan loads (weights NOT served)
       prompt: 'Choose the group of shapes that balances the left pan.',
     };
-
-    // UNIQUE-balance gate (independent solver over served content; no key access)
     const verdict = analyzeBalance(content);
-    if (!verdict.unique || verdict.correctKey !== correctKey) continue;
-
-    // options distinct as multisets
-    const sigs = new Set(options.map((o) => loadSig(o.load)));
-    if (sigs.size !== options.length) continue;
 
     const jitter = (rng.next() - 0.5) * 0.84;
     const difficulty = Math.min(20, Math.max(1, Math.round((target + jitter) * 100) / 100));
@@ -310,6 +361,7 @@ function buildItem(masterSeed, target, ordinal) {
         generatorRef: GENERATOR_REF,
         seed,
         ruleFamily: meta.family,
+        levers: { optionCount: options.length, keyPosition: seated.slot },
         ruleSpec: { ...meta, weights, targetWeight: verdict.targetWeight, difficultyRung: target, aboveLevel: target >= 16 },
         validator: [
           { check: 'unique_answer', status: 'pass', detail: `determined weights ${JSON.stringify(weights)}; target=${verdict.targetWeight}; one balancing option (${correctKey})` },
@@ -381,10 +433,11 @@ function main() {
 
   const items = [];
   const perTargetCount = {};
+  const slotFor = makeSlotAllocator(OPTION_KEYS.length);
   for (let target = 1; target <= 20; target++) {
     let made = 0;
     for (let ordinal = 0; ordinal < perTarget; ordinal++) {
-      const it = buildItem(masterSeed, target, ordinal);
+      const it = buildItem(masterSeed, target, ordinal, slotFor);
       if (it) { items.push(it); made++; }
     }
     perTargetCount[target] = made;
