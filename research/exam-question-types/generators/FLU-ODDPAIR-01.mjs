@@ -62,6 +62,50 @@ function mulberry32(a) {
 function makeRng(seed) {
   return mulberry32(xmur3(seed)());
 }
+/* ------------------------------------------------------------------ *
+ * KEY-POSITION BALANCE (E-073)
+ * Drawing the odd row's index per item independently still leaves the correct
+ * key's POSITION uneven over a bank, and an uneven pseudo-guessing floor
+ * inflates low-ability accuracy (M-ACC) and makes raw accuracy non-comparable
+ * across types. The bank builder hands each item a target slot from a
+ * least-loaded allocator and the item re-seats its odd pair there. The pairs
+ * themselves, the surface lure and the difficulty levers are untouched.
+ *
+ * Slots are allocated uniformly WITHIN each option-count stratum first and only
+ * then balanced across the whole bank. Option count is itself a difficulty
+ * lever, so balancing the pooled key counts alone would make the last slot of
+ * the rarer long items almost always correct — a larger exploit than the one
+ * being fixed.
+ * ------------------------------------------------------------------ */
+function makeSlotAllocator(maxSlots) {
+  const globalUse = new Array(maxSlots).fill(0);
+  const byOptionCount = new Map();
+  let tick = 0;
+  return (n) => {
+    if (!byOptionCount.has(n)) byOptionCount.set(n, new Array(n).fill(0));
+    const localUse = byOptionCount.get(n);
+    let best = tick % n;
+    for (let k = 1; k < n; k++) {
+      const i = (tick + k) % n;
+      if (localUse[i] < localUse[best] || (localUse[i] === localUse[best] && globalUse[i] < globalUse[best])) best = i;
+    }
+    tick++;
+    localUse[best]++;
+    globalUse[best]++;
+    return best;
+  };
+}
+// Seat the correct entry at `slot`, leaving the others in their original
+// relative order. `slot` is either a resolved index or the allocator callback,
+// which is handed this item's option count.
+function seatCorrect(list, isCorrect, slot) {
+  const ci = list.findIndex(isCorrect);
+  const at = typeof slot === 'function' ? slot(list.length) : slot;
+  if (ci < 0 || !Number.isInteger(at) || at < 0 || at >= list.length) return { list, slot: ci };
+  const rest = list.filter((_, i) => i !== ci);
+  return { list: [...rest.slice(0, at), list[ci], ...rest.slice(at)], slot: at };
+}
+
 function seededUuid(seed) {
   const rng = makeRng('uuid|' + seed);
   const hex = [];
@@ -172,9 +216,9 @@ function seededBaseFig(rng, ops, i) {
 
 /**
  * Generate ONE structured BankItem.
- * @param {{ops:string[], rowCount:number, contrastDim:string, foilPull:number, seed:string}} lever
+ * @param {{ops:string[], rowCount:number, contrastDim:string, foilPull:number, keyPosition:(number|Function), seed:string}} lever
  */
-export function genItem({ ops, rowCount, contrastDim, foilPull, seed }) {
+export function genItem({ ops, rowCount, contrastDim, foilPull, keyPosition, seed }) {
   const rng = makeRng(seed);
   const nDims = ops.length;
 
@@ -206,18 +250,24 @@ export function genItem({ ops, rowCount, contrastDim, foilPull, seed }) {
     rows[lureIndex] = { left: lureLeft, right: transformFig(lureLeft, ops, sharedDirs) };
   }
 
+  // Re-seat the odd pair at the allocated display slot; the pairs themselves and
+  // their relative order are unchanged, only which slot the odd one occupies.
+  const seated = seatCorrect(rows.map((r, i) => ({ ...r, odd: i === oddIndex })), (r) => r.odd, keyPosition);
+  const display = seated.list;
+  const oddSlot = seated.slot;
+
   // Renderable rows/options (safe subset): key + left + right ONLY.
-  const options = rows.map((r, i) => ({ key: OPTION_KEYS[i], left: normFig(r.left), right: normFig(r.right) }));
-  const correctKey = OPTION_KEYS[oddIndex];
+  const options = display.map((r, i) => ({ key: OPTION_KEYS[i], left: normFig(r.left), right: normFig(r.right) }));
+  const correctKey = OPTION_KEYS[oddSlot];
 
   // Post-hoc surface-lure coding: among SHARED pairs, the one whose right figure most
   // resembles the odd pair's right figure is the surface lure (matches demo semantics).
-  const oddRight = rows[oddIndex].right;
+  const oddRight = display[oddSlot].right;
   let bestLure = -1;
   let bestScore = -1;
   for (let i = 0; i < rowCount; i++) {
-    if (i === oddIndex) continue;
-    const s = surfaceOverlap(rows[i].right, oddRight);
+    if (i === oddSlot) continue;
+    const s = surfaceOverlap(display[i].right, oddRight);
     if (s > bestScore) {
       bestScore = s;
       bestLure = i;
@@ -227,7 +277,7 @@ export function genItem({ ops, rowCount, contrastDim, foilPull, seed }) {
   const distractorRationales = {};
   for (let i = 0; i < rowCount; i++) {
     const key = OPTION_KEYS[i];
-    if (i === oddIndex) {
+    if (i === oddSlot) {
       distractorRationales[key] = { lure: 'correct', deviation: contrastDim, note: `the odd pair: applies the contrasting ${contrastDim} transform (breaks the shared rule)` };
     } else if (i === bestLure) {
       distractorRationales[key] = { lure: 'surface_lure', note: `applies the shared transform, but its result most resembles the odd pair (surface foil)` };
@@ -266,6 +316,7 @@ export function genItem({ ops, rowCount, contrastDim, foilPull, seed }) {
         dims: nDims,
         rowCount,
         contrastDim,
+        keyPosition: seated.slot, // resolved slot; replays the balanced key position
         // Full precision (not rounded): enables exact, reproducible regeneration.
         foilPull,
       },
@@ -296,6 +347,7 @@ export function ageBandsFor(difficulty) {
  * ================================================================== */
 export function buildBank({ perBin = 6 } = {}) {
   const items = [];
+  const keyPosition = makeSlotAllocator(OPTION_KEYS.length);
   for (let k = 1; k <= 20; k++) {
     const lo = Math.max(1, k - 0.45);
     const hi = Math.min(20, k + 0.45);
@@ -326,7 +378,7 @@ export function buildBank({ perBin = 6 } = {}) {
       // Rotate the contrast dimension across the op-set for variety.
       const contrastDim = seg.ops[i % seg.ops.length];
       const seed = `FLU-ODDPAIR-01|bin=${k}|i=${i}|O${seg.ops.join('+')}|R${seg.rowCount}|c${contrastDim}`;
-      items.push(genItem({ ops: seg.ops, rowCount: seg.rowCount, contrastDim, foilPull, seed }));
+      items.push(genItem({ ops: seg.ops, rowCount: seg.rowCount, contrastDim, foilPull, keyPosition, seed }));
     }
   }
   return items;
