@@ -13,7 +13,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_CONFIG } from './config';
+import { DEFAULT_CONFIG, DIFFICULTY_MAX, DIFFICULTY_MIN } from './config';
 import {
   auditMetricSupply,
   enforcedMetricsForArea,
@@ -48,6 +48,39 @@ const WIDE_SPREAD: TrueTheta = {
   quantitative: 11,
   spatial: 5,
 };
+
+/**
+ * The ability matrix the battery has to converge on. Every profile starts from a grade-band seed
+ * and must reach its planted ability: at the seed, far above it (the screener's target
+ * population), far below it, and the two degenerate responders that pin at a scale bound.
+ */
+const CONVERGENCE_PROFILES: readonly { name: string; band: AgeBand; theta: TrueTheta }[] = [
+  { name: 'at the grade-band seed', band: '4-5', theta: { fluid_reasoning: 11, verbal: 11, quantitative: 11, spatial: 11 } },
+  { name: 'gifted, far above seed', band: '4-5', theta: { fluid_reasoning: 18, verbal: 16, quantitative: 17, spatial: 15 } },
+  { name: 'struggling, far below seed', band: '4-5', theta: { fluid_reasoning: 5, verbal: 4, quantitative: 6, spatial: 3 } },
+  // Off-scale abilities: the responder is correct on every item / wrong on every item, so the
+  // estimate should travel to the relevant bound and stop there rather than oscillate.
+  { name: 'all-correct responder', band: '4-5', theta: { fluid_reasoning: 99, verbal: 99, quantitative: 99, spatial: 99 } },
+  { name: 'all-wrong responder', band: '4-5', theta: { fluid_reasoning: -99, verbal: -99, quantitative: -99, spatial: -99 } },
+  { name: 'mixed spread', band: '4-5', theta: WIDE_SPREAD },
+  // The mirror of the gifted case: an above-level seed of 18 with ability near the bottom third.
+  { name: 'above-level seed, low ability', band: 'above-level', theta: { fluid_reasoning: 8, verbal: 7, quantitative: 9, spatial: 6 } },
+];
+
+/**
+ * Largest battery any profile may need. Sits below `hardItemCap` (60) with headroom, so a
+ * regression shows up as a failed budget rather than as a silent slide into the safety cap. The
+ * product target is a battery inside ~45 minutes of child time; item count is the proxy the engine
+ * controls.
+ */
+const CONVERGENCE_BUDGET = 48;
+
+/**
+ * How far a settled per-area estimate may sit from the planted ability. Roughly two `minUpdate`
+ * steps: converging fast onto the wrong number is worse than converging slowly onto the right one,
+ * so speed and accuracy are asserted together.
+ */
+const ESTIMATE_TOLERANCE = 1.5;
 
 /**
  * First item count at which every enforced core metric has adequate data, ignoring the separate
@@ -140,9 +173,15 @@ describe('stop rule against the real banks', () => {
   });
 
   it('varies its length with the child, rather than being a fixed number of questions', () => {
-    const near = runRealBankSession('4-5', BAND_MATCHED, { hardItemCap: 400 }, real);
-    const far = runRealBankSession('4-5', WIDE_SPREAD, { hardItemCap: 400 }, real);
-    expect(far.state.itemsServed).toBeGreaterThan(near.state.itemsServed);
+    const lengths = new Set(
+      CONVERGENCE_PROFILES.map(
+        ({ band, theta }) => runRealBankSession(band, theta, { hardItemCap: 400 }, real).state.itemsServed,
+      ),
+    );
+    expect(
+      lengths.size,
+      'every ability profile produced the same battery length, so it is fixed-length',
+    ).toBeGreaterThan(1);
   });
 
   it('recovers the true ability ordering from real items', () => {
@@ -199,27 +238,97 @@ describe('metric supply audit', () => {
   });
 });
 
-describe('known limitation: convergence distance, not metric coverage, now sets the length', () => {
-  it('a far-from-seed child still needs more items than the safety cap', () => {
-    // Core-metric coverage completes early for every profile (asserted above). What remains is
-    // the estimate-stability arm: item selection targets the current estimate, so the "surprise"
-    // term in `difficultyDelta` stays ~0 and the estimate only ever moves at the `minUpdate`
-    // floor of 0.4/item. A child seeded 6-7 points from their true ability therefore cannot
-    // settle within 60 items. That is a separate defect in the difficulty-update/selection
-    // interaction, NOT the coverage defect fixed here; changing it would alter every score, so
-    // it is escalated rather than retuned. This test pins the behaviour so the escalation is
-    // visible and cannot be mistaken for a coverage problem.
-    const gifted: TrueTheta = {
-      fluid_reasoning: 18,
-      verbal: 16,
-      quantitative: 17,
-      spatial: 15,
-    };
-    const { state, trace } = runRealBankSession('4-5', gifted, { hardItemCap: 400 }, real);
+describe('convergence from a distant seed (D-021)', () => {
+  /*
+   * Before the decaying step schedule, item selection targeted the current estimate, so the
+   * "surprise" term in `difficultyDelta` stayed ~0 and the estimate only ever moved at its fixed
+   * 0.4/item floor. Climbing the 7 points from a '4-5' seed of 11 to a true 18 took ~18 items of
+   * pure climbing per area, and the gifted profile ran 83 items — past the 60-item safety cap —
+   * without the estimate settling. These tests hold BOTH halves of the fix: every profile
+   * concludes on the stop rule inside the cap, AND lands on the planted ability. A future change
+   * cannot trade accuracy for speed without failing here.
+   */
 
-    expect(metricCoverageCompleteAt('4-5', trace) as number).toBeLessThan(
-      DEFAULT_CONFIG.hardItemCap,
-    );
-    expect(state.itemsServed).toBeGreaterThan(DEFAULT_CONFIG.hardItemCap);
+  it.each(CONVERGENCE_PROFILES)(
+    'concludes on the stop rule, inside the safety cap: $name',
+    ({ band, theta }) => {
+      // The cap is lifted so an overrun can happen and BE SEEN; the assertion is that it does not.
+      // Running at the real cap would silently convert an overrun into a pass, which is exactly
+      // how the 83-item battery hid.
+      const { state, done, exhausted } = runRealBankSession(band, theta, { hardItemCap: 400 }, real);
+
+      expect(exhausted, 'ran out of servable items instead of concluding').toBe(false);
+      expect(done).toBe(true);
+      expect(
+        state.itemsServed,
+        'the battery would have reached the hard cap, so this child cannot be measured',
+      ).toBeLessThan(DEFAULT_CONFIG.hardItemCap);
+      expect(
+        state.itemsServed,
+        'battery length regressed past the convergence budget',
+      ).toBeLessThanOrEqual(CONVERGENCE_BUDGET);
+    },
+  );
+
+  it.each(CONVERGENCE_PROFILES)(
+    'recovers the planted ability, not just a fast number: $name',
+    ({ band, theta }) => {
+      const { state } = runRealBankSession(band, theta, { hardItemCap: 400 }, real);
+
+      for (const area of AREAS) {
+        const estimate = state.areas[area].difficulty;
+        const truth = theta[area];
+        if (truth > DIFFICULTY_MAX) {
+          // Ability beyond anything the bank can present: the estimate should pin at the ceiling.
+          expect(estimate, `${area} did not reach the scale ceiling`).toBe(DIFFICULTY_MAX);
+        } else if (truth < DIFFICULTY_MIN) {
+          expect(estimate, `${area} did not reach the scale floor`).toBe(DIFFICULTY_MIN);
+        } else {
+          expect(
+            Math.abs(estimate - truth),
+            `${area} settled at ${estimate.toFixed(2)} for a planted ability of ${truth}`,
+          ).toBeLessThanOrEqual(ESTIMATE_TOLERANCE);
+        }
+      }
+    },
+  );
+
+  it('reaches identical estimates on a repeated run (deterministic and pure)', () => {
+    for (const { name, band, theta } of CONVERGENCE_PROFILES) {
+      const first = runRealBankSession(band, theta, { hardItemCap: 400 }, real);
+      const second = runRealBankSession(band, theta, { hardItemCap: 400 }, real);
+
+      expect(second.state.itemsServed, name).toBe(first.state.itemsServed);
+      expect(second.trace.map((s) => s.itemId), name).toEqual(first.trace.map((s) => s.itemId));
+      for (const area of AREAS) {
+        expect(second.state.areas[area].difficulty, `${name}/${area}`).toBe(
+          first.state.areas[area].difficulty,
+        );
+      }
+    }
+  });
+
+  it('rebuilds identical estimates by replaying the stored trace', () => {
+    // The schedule is indexed by direction reversals read off the per-area trace, so it has to
+    // rebuild exactly from stored results: the score must be recomputable from the trace alone.
+    for (const { name, band, theta } of CONVERGENCE_PROFILES) {
+      const live = runRealBankSession(band, theta, { hardItemCap: 400 }, real);
+      const replayed = replaySession(band, live.trace, { hardItemCap: 400 });
+      for (const area of AREAS) {
+        expect(replayed.areas[area].difficulty, `${name}/${area}`).toBe(
+          live.state.areas[area].difficulty,
+        );
+      }
+    }
+  });
+
+  it('still completes core-metric coverage for the gifted profile', () => {
+    // Convergence got faster; the coverage bar did not move. Coverage, not the estimate, is now
+    // what sets the floor on battery length.
+    const gifted = CONVERGENCE_PROFILES[1] as (typeof CONVERGENCE_PROFILES)[number];
+    const { trace } = runRealBankSession(gifted.band, gifted.theta, { hardItemCap: 400 }, real);
+    const completeAt = metricCoverageCompleteAt(gifted.band, trace);
+    expect(completeAt).not.toBeNull();
+    expect(completeAt as number).toBeLessThan(DEFAULT_CONFIG.hardItemCap);
   });
 });

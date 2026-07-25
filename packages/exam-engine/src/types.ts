@@ -202,10 +202,36 @@ export interface EngineConfig {
   accWindowSize: number;
   /** Max length of the per-area recent-estimate window (used for the stability check). */
   estWindowSize: number;
-  /** Minimum per-update magnitude (the gradual floor). */
+  /**
+   * Minimum per-update magnitude, and the asymptote the step schedule decays toward. This is the
+   * finest resolution the estimate can ever be moved at, so it sets the precision available at
+   * the tail of the scale.
+   */
   minUpdate: number;
-  /** Maximum per-update magnitude (the gradual ceiling). */
+  /** Absolute ceiling on any single update magnitude, after the schedule and surprise. */
   maxUpdate: number;
+  /**
+   * Step magnitude before the schedule has decayed at all — the burn-in stride used while the
+   * estimate is still travelling toward the child's ability region. Must be >= `minUpdate`.
+   */
+  initialStep: number;
+  /**
+   * Exponent α of the `1 / m^α` decay applied to the step schedule, where `m` counts the
+   * direction reversals that have accumulated in the area. Larger α settles faster and travels
+   * more slowly.
+   */
+  stepDecayExponent: number;
+  /**
+   * Direction reversals ignored before the schedule starts decaying. Keeps a single lucky guess
+   * or careless slip from ending the burn-in stride prematurely.
+   */
+  stepBurnInReversals: number;
+  /**
+   * How much "surprise" (a harder-than-estimate item right, or an easier-than-estimate one wrong)
+   * amplifies the scheduled step. `0` disables the term; `1` lets a maximally surprising response
+   * double the step, before `maxUpdate` clamps it.
+   */
+  surpriseGain: number;
   /** How strongly `M-ERRTYPE` near-miss softens a wrong-answer step (0..1). */
   nearMissSoften: number;
   /** Allowed (max - min) items-seen gap across areas for coverage to count as "even". */
