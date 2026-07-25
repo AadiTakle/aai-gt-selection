@@ -42,7 +42,7 @@ import { createHash } from 'node:crypto';
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
-import { serializeBank } from './item-shape.mjs';
+import { lureLabel, serializeBank } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK_PATH = join(__dirname, '..', 'banks', 'VER-EVIDENCE-01.jsonl');
@@ -805,9 +805,14 @@ export function validateItems(items) {
     else if (claiming[0] !== ansKey) errors.push(`${where}: answer key ${ansKey} != derived ${claiming[0]}`);
 
     const rats = it.answer.distractorRationales;
-    const correctOpts = Object.entries(rats).filter(([, r]) => r.lure === 'correct');
+    // serializeBank rewrites each rationale's `lure` into the D-020
+    // lureClass/lureDetail pair, so read the label through lureLabel: `.lure`
+    // is undefined for every entry parsed back off disk. Both full-credit
+    // selections coarsen to lureClass 'correct', and only the evidence one
+    // keeps a lureDetail, so the label still separates the two parts.
+    const correctOpts = Object.entries(rats).filter(([, r]) => lureLabel(r) === 'correct');
     if (correctOpts.length !== 1) errors.push(`${where}: ${correctOpts.length} options labelled correct`);
-    const correctEv = Object.entries(rats).filter(([, r]) => r.lure === 'evidence-correct');
+    const correctEv = Object.entries(rats).filter(([, r]) => lureLabel(r) === 'evidence-correct');
     if (correctEv.length !== 1) errors.push(`${where}: ${correctEv.length} sentences labelled evidence-correct`);
     if (!it.content.options.every((o) => rats[o.key]) || !it.content.passage.sentences.every((s) => rats[s.key])) {
       errors.push(`${where}: rationales do not cover every selectable key`);

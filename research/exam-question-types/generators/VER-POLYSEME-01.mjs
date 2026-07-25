@@ -38,7 +38,7 @@ import { createHash } from 'node:crypto';
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
-import { serializeBank } from './item-shape.mjs';
+import { lureLabel, serializeBank } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK_PATH = join(__dirname, '..', 'banks', 'VER-POLYSEME-01.jsonl');
@@ -414,7 +414,10 @@ export function validateItems(items) {
       const expected = opts.map((_, i) => String(i));
       if (Object.keys(rats).length !== opts.length) errors.push(`${where}: distractorRationales has ${Object.keys(rats).length} entries for ${opts.length} options`);
       if (expected.some((k) => !(k in rats))) errors.push(`${where}: distractorRationales must key every option index ${expected.join(',')}`);
-      const lures = expected.map((k) => rats[k] && rats[k].lure);
+      // serializeBank rewrites each rationale's `lure` into the D-020
+      // lureClass/lureDetail pair, so read the label through lureLabel: `.lure`
+      // is undefined for every entry parsed back off disk.
+      const lures = expected.map((k) => lureLabel(rats[k]));
       lures.forEach((l, li) => {
         if (!LURE_CLASSES.has(l)) errors.push(`${where}: option[${li}] bad lure ${l}`);
         if (typeof (rats[String(li)] || {}).why !== 'string') errors.push(`${where}: option[${li}] rationale has no diagnostic text`);
