@@ -4,8 +4,39 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>VER-CLOZE-01 · Fill the Gap</title>
+<!--
+  VER-CLOZE-01 (Fill the Gap) — PURE RENDERER.
+
+  This demo no longer invents its own items or holds an answer key. It renders a
+  ServedItem's `content` and reports the child's raw response + process telemetry.
+  Scoring (correct/incorrect, lure class) is SERVER-authoritative and is NOT shown
+  here (build plan: no correct/incorrect mid-test; key stays server-side).
+
+  House style: word-based only. No pictures, no emoji — reading the sentence IS the
+  task (reading gate, D-017).
+
+  Embedding protocol (postMessage; source-tagged gt-exam-host / gt-exam-demo):
+    host -> demo : {source:'gt-exam-host', type:'init',  item: ServedItem}
+                   {source:'gt-exam-host', type:'start'}
+    demo -> host : {source:'gt-exam-demo', type:'ready'}
+                   {source:'gt-exam-demo', type:'telemetry', event: TelemetryEvent}
+                   {source:'gt-exam-demo', type:'result',    result: ItemResult}
+
+  ServedItem = { itemId, typeCode, domain, difficulty, ageBands?, content }
+    content  = { sentenceFrame:"…___…", options:[{token:{text}}], gapType?,
+                 targetFrequencyBand?, syntacticComplexity? }
+    (NOTE: options carry NO fit/answer — the key is server-side)
+
+  ItemResult = { itemId, typeCode, domain,
+                 response:{selectedIndex, selectedToken, triedIndices, selectionOrder, optionCount, inputModality},
+                 metrics:{'M-RT','M-RTFIRST','M-REV','M-EXPLORE'},   // client-computable only
+                 telemetry:[TelemetryEvent] }
+
+  Standalone fallback: opened by double-click (no host), it plays a few built-in
+  sample ServedItems locally and logs the emitted results/telemetry on-page.
+-->
 <style>
-  :root{--bg1:#eef4ff;--bg2:#f7ecff;--ink:#26304a;--card:#fff;--accent:#5b6cff;--good:#22b573;--bad:#ff6b6b;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  :root{--bg1:#eef4ff;--bg2:#f7ecff;--ink:#26304a;--card:#fff;--accent:#5b6cff;--good:#22b573;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
   *{box-sizing:border-box} html,body{margin:0;height:100%}
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
@@ -14,48 +45,49 @@
   #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
   #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
   #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:#5b6cff;border:2px solid #c9d0ff;min-height:30px}
-  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
-  #phasecue[data-phase="scored"]{background:#5b6cff;color:#fff;border-color:#5b6cff}
-  #phasecue[data-phase="done"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
+  #phasecue[data-phase="ready"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="answer"]{background:#eef1ff;color:#5b6cff;border-color:#c9d0ff}
+  #phasecue[data-phase="done"]{background:#5b6cff;color:#fff;border-color:#5b6cff}
+  #phasecue[data-phase="demo"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
   #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
-  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
-  #stagecard{background:var(--card);border-radius:26px;padding:24px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:18px;max-width:660px;width:100%}
+  #status.ok{color:var(--good)} #status.neutral{color:#8a93b5}
+  #stagecard{background:var(--card);border-radius:26px;padding:24px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:18px;max-width:680px;width:100%}
   .band{border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;align-items:center;width:100%}
-  #sentBand{background:linear-gradient(160deg,#e8f0ff,#f2ecff);border:3px solid #cfd8ff}
-  #sentText{font-size:22px;text-align:center;line-height:1.6}
-  #sentText .blank{display:inline-block;min-width:70px;padding:2px 10px;border-bottom:3px dashed var(--accent);color:var(--accent);font-weight:800;text-align:center}
-  #sentText .filled{border-bottom:3px solid var(--good);color:var(--ink)}
-  #optsBand{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
-  .opt{display:flex;flex-direction:column;align-items:center;gap:6px;background:#f4f6ff;border:3px solid #d7deff;border-radius:16px;padding:12px 16px;cursor:pointer;min-width:96px;transition:.12s;position:relative}
-  .opt:hover{border-color:#b9c2ee;transform:translateY(-2px)}
-  .opt .ic{font-size:32px}
-  .opt .wd{font-size:14px;font-weight:700;color:#5060a0}
-  .opt .hk{position:absolute;top:4px;left:6px;font-size:10px;color:#a7b0d8;font-weight:700}
-  .opt.correct{border-color:var(--good);background:#eafaf1}
-  .opt.wrong{border-color:var(--bad);background:#fff0f0}
-  .opt.ghosted{outline:3px solid var(--accent)}
+  #sentBand{background:linear-gradient(160deg,#eafaf1,#eef1ff);border:3px solid #bfe8cf}
+  #sentText{font-size:22px;text-align:center;line-height:1.7;font-weight:600}
+  #sentText .blank{display:inline-block;min-width:84px;padding:2px 12px;border-bottom:3px dashed var(--accent);color:var(--accent);font-weight:800;text-align:center}
+  #sentText .blank.filled{border-bottom:3px solid var(--accent);color:var(--ink)}
+  #candGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;width:100%}
+  .cand{display:flex;align-items:center;justify-content:center;gap:10px;background:#f4f6ff;border:3px solid #d7deff;border-radius:16px;padding:16px 12px;cursor:pointer;font-size:18px;font-weight:700;transition:.12s;position:relative;color:#3f4a6e}
+  .cand:hover{border-color:#b9c2ee}
+  .cand .hk{position:absolute;top:4px;left:6px;font-size:10px;color:#a7b0d8;font-weight:700}
+  .cand.sel{border-color:var(--accent);background:#e7ecff;animation:pulse 1.1s infinite}
+  .cand.locked{cursor:default;opacity:.9}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
   #controls{display:flex;gap:16px;align-items:center}
   button.rd{font:inherit;border:0;cursor:pointer;border-radius:50%}
+  #go{width:64px;height:64px;background:var(--accent);color:#fff;font-size:26px;box-shadow:0 10px 24px -8px var(--accent);opacity:.35;pointer-events:none;transition:.2s}
+  #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.1s infinite}
   #replay{width:50px;height:50px;background:#eef1ff;color:#5b6cff;font-size:22px}
-  .shake{animation:shake .4s}@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
-  #ghost{position:fixed;left:0;top:0;font-size:40px;pointer-events:none;z-index:60;opacity:0;transition:transform .55s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:60;opacity:0;transition:transform .55s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
   #ghost.show{opacity:.92}
-  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
-  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
   #diffmeter{width:100%;display:flex;align-items:center;gap:8px;font-size:11px;color:#8a93b5}
   #diffbar{flex:1;height:8px;background:#e4e9ff;border-radius:6px;overflow:hidden}
   #diffbar i{display:block;height:100%;background:linear-gradient(90deg,#5b6cff,#ff8fd0);width:0%;transition:.3s}
+  #diffval{min-width:96px;text-align:right;font-weight:700;color:#6b76a8}
   #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
   #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #chan{padding:6px 14px;font-size:11px;color:var(--tel-dim);border-bottom:1px solid #262f52}
+  #chan b{color:var(--tel-key)}
   #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
-  .mrow{display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:baseline}
+  .mrow{display:grid;grid-template-columns:110px 1fr;gap:8px;align-items:baseline}
   .mid{color:var(--tel-key);font-weight:700}
   .mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
   #logwrap{border-top:1px solid #262f52;margin-top:auto}
   #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
-  #log{height:210px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log{height:200px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
   #log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
-  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:320px}}
 </style>
 </head>
 <body>
@@ -63,136 +95,214 @@
     <div id="badge">VER-CLOZE-01 · Fill the Gap</div>
     <header id="howto">
       <h1>How to use — Fill the Gap</h1>
-      <p>Watch the pointer solve one example, then try one practice item (not scored). Read the sentence and tap the word that best fills the blank. It gets harder each time you are right.</p>
+      <p>Read the whole sentence. Then tap the word that best fills the blank so the <b>whole sentence</b> makes sense (not just the words next to the blank), and press the check (<b>&#10003;</b>) to submit. You can also press number keys 1&ndash;4.</p>
     </header>
-    <div id="phasecue" data-phase="demo">Watch the example</div>
+    <div id="phasecue" data-phase="ready">Ready</div>
     <div id="stagecard">
-      <div id="sentBand" class="band">
-        <div id="sentText"></div>
-      </div>
-      <div id="optsBand"></div>
-      <div id="diffmeter"><span>Easy</span><div id="diffbar"><i id="diffbarfill"></i></div><span>Hard</span></div>
+      <div id="sentBand" class="band"><div id="sentText"></div></div>
+      <div id="candGrid"></div>
+      <div id="diffmeter"><span>Easy</span><div id="diffbar"><i id="diffbarfill"></i></div><span>Hard</span><span id="diffval">level &mdash; / 20</span></div>
       <div id="controls">
-        <button class="rd" id="replay" title="replay demo">↻</button>
+        <button class="rd" id="replay" title="replay how-to">&#8635;</button>
+        <button class="rd" id="go" title="submit">&#10003;</button>
       </div>
-      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+      <div id="status" class="neutral">Waiting for the first item&hellip;</div>
     </div>
   </div>
   <aside id="telemetry">
     <h3>Live telemetry · per-child</h3>
+    <div id="chan">channel: <b id="chanval">standalone</b> &middot; source-tag <b>gt-exam-demo</b></div>
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0,last=a=>a[a.length-1];
 
-/* ---------- item bank (levels 1-6, 2 parallel forms per level) ---------- */
-const INF_RANK={local:0,global:1,'global-connotation':2,'global-logic':3};
-const BANK={
- 1:[
-  {pre:'The dog wants to',post:'.',opts:[{ic:'🦴',wd:'bone'},{ic:'🚗',wd:'car'},{ic:'☁️',wd:'cloud'}],correct:0,vocab:1,inf:'local'},
-  {pre:'The bird can',post:'.',opts:[{ic:'🕊️',wd:'fly'},{ic:'🐟',wd:'swim'},{ic:'🍔',wd:'eat lunch'}],correct:0,vocab:1,inf:'local'},
- ],
- 2:[
-  {pre:'She was thirsty, so she drank some',post:'.',opts:[{ic:'💧',wd:'water'},{ic:'🪨',wd:'rock'},{ic:'📚',wd:'book'}],correct:0,vocab:2,inf:'local'},
-  {pre:'It was raining, so he opened his',post:'.',opts:[{ic:'☂️',wd:'umbrella'},{ic:'🕶️',wd:'sunglasses'},{ic:'🎈',wd:'balloon'}],correct:0,vocab:2,inf:'local'},
- ],
- 3:[
-  {pre:'Although the soup was hot, she ate it because she was so',post:'.',opts:[{ic:'🍽️',wd:'hungry'},{ic:'😴',wd:'sleepy'},{ic:'🥶',wd:'cold'}],correct:0,vocab:3,inf:'global'},
-  {pre:'Even though he studied all night, he still felt',post:'about the test.',opts:[{ic:'😟',wd:'nervous'},{ic:'😃',wd:'confident'},{ic:'😴',wd:'sleepy'}],correct:0,vocab:3,inf:'global'},
- ],
- 4:[
-  {pre:"The critic's review was scathing, calling the film a total",post:'.',opts:[{ic:'💥',wd:'disaster'},{ic:'🌟',wd:'masterpiece'},{ic:'😐',wd:'average'}],correct:0,vocab:4,inf:'global-connotation'},
-  {pre:"Despite the coach's optimistic pep talk, the team's performance remained",post:'.',opts:[{ic:'📉',wd:'disappointing'},{ic:'📈',wd:'outstanding'},{ic:'😐',wd:'average'}],correct:0,vocab:4,inf:'global-connotation'},
- ],
- 5:[
-  {pre:"Far from being reckless, the pilot's decision to abort the landing was actually quite",post:'.',opts:[{ic:'🧠',wd:'prudent'},{ic:'😱',wd:'careless'},{ic:'🎲',wd:'risky'}],correct:0,vocab:5,inf:'global-logic'},
-  {pre:'Contrary to popular belief, the shy new student turned out to be remarkably',post:'.',opts:[{ic:'🗣️',wd:'outgoing'},{ic:'🤫',wd:'quiet'},{ic:'😢',wd:'sad'}],correct:0,vocab:5,inf:'global-logic'},
- ],
- 6:[
-  {pre:'Given the flawed methodology, it would be disingenuous to call the results anything but',post:'.',opts:[{ic:'❓',wd:'questionable'},{ic:'✅',wd:'conclusive'},{ic:'🎉',wd:'celebrated'}],correct:0,vocab:6,inf:'global-logic'},
-  {pre:'His so-called apology was so half-hearted that it only made her feel more',post:'.',opts:[{ic:'😤',wd:'unforgiving'},{ic:'😌',wd:'grateful'},{ic:'🥱',wd:'bored'}],correct:0,vocab:6,inf:'global-logic'},
- ],
-};
-function shuffled(item){const idx=[0,1,2];for(let i=idx.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[idx[i],idx[j]]=[idx[j],idx[i]];}
-  return {...item,opts:idx.map(i=>item.opts[i]),correct:idx.indexOf(item.correct)};}
-function pickItem(level){const forms=BANK[level];return shuffled(forms[(Math.random()*forms.length)|0]);}
+/* ---------------- embedding channel (postMessage) ---------------- */
+const SRC_HOST='gt-exam-host', SRC_DEMO='gt-exam-demo';
+const embedded = !!(window.parent && window.parent!==window);
+let hostSeen=false;
+function post(type, payload){
+  const msg=Object.assign({source:SRC_DEMO,type},payload||{});
+  if(embedded){ try{ window.parent.postMessage(msg,'*'); }catch(e){} }
+}
 
-/* ---------- telemetry state ---------- */
-const T={scored:0,exact:0,rts:[],firstRt:[],levelHits:{},maxLevel:1,bestVocab:0,bestInfRank:-1,bestInf:'\u2014',itemStart:0,firstActionAt:null,startLevel:1};
-function consistStr(){const keys=Object.keys(T.levelHits).filter(k=>T.levelHits[k].length>1);
-  if(!keys.length)return '\u2014';
-  let agree=0;keys.forEach(k=>{const a=T.levelHits[k];agree+=a.every(v=>v===a[0])?1:0;});
-  return `${agree}/${keys.length} levels agree`;}
-function learnRateStr(){if(!T.scored)return '\u2014';return `${((T.maxLevel-T.startLevel)/T.scored).toFixed(2)} lvl/trial`;}
+/* ---------------- session accumulators (telemetry panel) ---------------- */
+const T={rts:[],firstRt:[],revs:[],explore:[]};
 const METERS=[
- {id:'M-ACC',name:'Item accuracy',get:()=>T.scored?`${T.exact}/${T.scored}  ${Math.round(100*T.exact/T.scored)}%`:'\u2014'},
  {id:'M-RT',name:'Response time — total',get:()=>T.rts.length?`${last(T.rts)} ms  (mean ${mean(T.rts)})`:'\u2014'},
  {id:'M-RTFIRST',name:'First-action latency',get:()=>T.firstRt.length?`${last(T.firstRt)} ms`:'\u2014'},
- {id:'M-DIFFREACH',name:'Ceiling / max level reached',get:()=>`L${T.maxLevel}/6`},
- {id:'M-CONSIST',name:'Cross-item consistency (matched levels)',get:()=>consistStr()},
- {id:'M-VOCABLVL',name:'Lexical frequency ceiling solved',get:()=>T.bestVocab?`L${T.bestVocab}/6`:'\u2014'},
- {id:'M-INFDEPTH',name:'Inference depth reached',get:()=>T.bestInf},
+ {id:'M-REV',name:'Revisions before submit',get:()=>T.revs.length?`${last(T.revs)}`:'\u2014'},
+ {id:'M-EXPLORE',name:'Words sampled',get:()=>T.explore.length?`${last(T.explore)} of ${options.length||'\u2014'}`:'\u2014'},
+ {id:'M-ACC',name:'Accuracy — scored server-side',get:()=>'server-side'},
+ {id:'M-LURETYPE',name:'Lure chosen — scored server-side',get:()=>'server-side'},
+ {id:'M-VOCABLVL',name:'Lexical ceiling — scored server-side',get:()=>'server-side'},
 ];
 function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
-function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});$('#diffbarfill').style.width=(T.maxLevel/6*100)+'%';}
-function log(msg){const t=Date.now()-T.itemStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
-const ghost=$('#ghost');function ghostShow(v){ghost.classList.toggle('show',v);}
-function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
-async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(520);}
-async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(430);}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});}
+function log(msg){const t=itemStart?Date.now()-itemStart:0;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
 
-/* ---------- render ---------- */
-let cur=null,level=1,locked=false;
-function renderItem(item,speakIt){cur=item;T.itemStart=Date.now();T.firstActionAt=null;
-  $('#sentText').innerHTML=`${item.pre} <span class="blank" id="blankSpan">▢</span> ${item.post}`;
-  $('#optsBand').innerHTML=item.opts.map((o,i)=>`<div class="opt" data-i="${i}"><span class="hk">${i+1}</span><span class="ic">${o.ic}</span><span class="wd">${o.wd}</span></div>`).join('');
-  renderMeters();}
-function markFirstAction(){if(T.firstActionAt===null){T.firstActionAt=Date.now();T.firstRt.push(T.firstActionAt-T.itemStart);}}
-function pick(i,fromGhost){if(locked||!cur)return;markFirstAction();
-  const opt=$$('#optsBand .opt')[i];const exact=i===cur.correct;
-  $$('#optsBand .opt').forEach(o=>o.classList.remove('correct','wrong'));
-  opt.classList.add(exact?'correct':'wrong');
-  $('#blankSpan').textContent=cur.opts[i].ic+' '+cur.opts[i].wd;$('#blankSpan').classList.add('filled');
-  if(!exact){$('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),450);
-    const c=$$('#optsBand .opt')[cur.correct];c.classList.add('correct');}
-  return exact;}
-function submitAnswer(i){if(locked||!cur)return;const rt=Date.now()-T.itemStart;const exact=pick(i);locked=true;
-  if(phase==='warmup'){setStatus(exact?'ok':'no',exact?'\u2713 Correct - practice':'\u2717 Not quite - the correct word is highlighted (practice)');log('warm-up '+(exact?'correct':'try again — shown correct')+' — UNSCORED');setTimeout(nextPhase,1300);return;}
-  T.scored++;T.rts.push(rt);if(exact)T.exact++;
-  setStatus(exact?'ok':'no',exact?'\u2713 Correct':'\u2717 Not quite - the correct word is highlighted');
-  (T.levelHits[level]=T.levelHits[level]||[]).push(exact?1:0);
-  if(exact){T.maxLevel=Math.max(T.maxLevel,level);T.bestVocab=Math.max(T.bestVocab,cur.vocab);
-    const r=INF_RANK[cur.inf];if(r>T.bestInfRank){T.bestInfRank=r;T.bestInf=cur.inf;}}
-  log(`SUBMIT L${level} "${cur.pre} [${cur.opts[i].wd}] ${cur.post}" \u2192 ${exact?'CORRECT':'WRONG (correct: '+cur.opts[cur.correct].wd+')'} · ${rt}ms`);
-  level=exact?Math.min(6,level+1):Math.max(1,level-1);
-  renderMeters();setTimeout(nextPhase,1400);}
-function nextPhase(){locked=false;if(phase==='warmup'){scoredIndex=0;startScored();}
-  else if(phase==='scored'){scoredIndex++;scoredIndex<TOTAL_SCORED?startScored():finish();}}
-const TOTAL_SCORED=6;
-let phase='demo',scoredIndex=0;
-const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+/* ---------------- phase + status (worded, no emoji) ---------------- */
+const PHASE={ready:'Ready',demo:'How it works',answer:'Your turn',done:'Answer sent'};
 function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
 function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
-function startWarmup(){phase='warmup';locked=false;setCue('warmup');setStatus('neutral','Practice - this one is not scored.');level=1;renderItem(pickItem(1),false);log('— warm-up (unscored) —');}
-function startScored(){phase='scored';setCue('scored',(scoredIndex+1)+'/'+TOTAL_SCORED);setStatus('neutral','Read the sentence and tap the best word.');T.startLevel=T.startLevel||level;renderItem(pickItem(level),false);
-  log(`— SCORED item ${scoredIndex+1}/${TOTAL_SCORED} · level ${level} —`);}
-function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;log(`— DONE · exact ${T.exact}/${T.scored} · ceiling L${T.maxLevel} —`);renderMeters();}
-async function runDemo(){phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;
-  const item=shuffled(BANK[1][0]);renderItem(item,false);log('ghost-hand demo (wordless, <10s)');
-  ghostShow(true);await sleep(300);
-  const opt=$$('#optsBand .opt')[item.correct];await ghostTo(opt);opt.classList.add('ghosted');await ghostTap();
-  pick(item.correct);await sleep(700);ghostShow(false);opt.classList.remove('ghosted');await sleep(400);
-  T.itemStart=Date.now();startWarmup();}
-$('#optsBand').addEventListener('click',e=>{const o=e.target.closest('.opt');if(o&&!locked&&phase!=='demo'&&phase!=='done')submitAnswer(+o.dataset.i);});
-document.addEventListener('keydown',e=>{if(locked||phase==='demo'||phase==='done')return;const n=+e.key;if(n>=1&&n<=3)submitAnswer(n-1);});
-$('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
-T.startLevel=1;
-buildMeters();renderMeters();runDemo();
+
+/* ---------------- item state ---------------- */
+let item=null, options=[], selected=null, order=[], tried=null, changes=0,
+    itemStart=0, firstAt=null, locked=true, inputModality='tap', telemetryLog=[];
+
+function esc(s){return String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function tokenText(o){return (o&&o.token&&o.token.text)!=null?o.token.text:(o&&o.text!=null?o.text:'?');}
+function frameHTML(frame,fillWord){
+  const safe=esc(frame||'');
+  const blank=fillWord!=null
+    ? `<span class="blank filled" id="blankSpan">${esc(fillWord)}</span>`
+    : `<span class="blank" id="blankSpan">?</span>`;
+  return safe.replace(/___/, blank);
+}
+function difficultyOf(it){const d=(it&&it.difficulty!=null)?it.difficulty:(it&&it.difficultyLevel!=null?it.difficultyLevel:0);return +d||0;}
+
+function recordEv(ev){ev.t=itemStart?Date.now()-itemStart:0;telemetryLog.push(ev);post('telemetry',{event:ev});}
+
+/* ---------------- render a served item ---------------- */
+function setItem(served){
+  item=served;
+  const c=(served&&served.content)||{};
+  options=(c.options||[]).map((o)=>({token:{text:tokenText(o)}}));
+  selected=null;order=[];tried=new Set();changes=0;firstAt=null;telemetryLog=[];itemStart=Date.now();locked=false;
+  $('#sentText').innerHTML=frameHTML(c.sentenceFrame,null);
+  $('#candGrid').innerHTML=options.map((o,i)=>`<div class="cand" data-i="${i}"><span class="hk">${i+1}</span><span class="word">${esc(o.token.text)}</span></div>`).join('');
+  const d=difficultyOf(served);
+  $('#diffbarfill').style.width=Math.max(0,Math.min(100,d/20*100))+'%';
+  $('#diffval').textContent='level '+(Math.round(d*10)/10)+' / 20';
+  $('#go').classList.remove('ready');
+  setCue('answer');
+  setStatus('neutral','Read the whole sentence, tap the best word, then press the check.');
+  log(`INIT item ${served&&served.itemId?served.itemId:'(no id)'} · "${(c.sentenceFrame||'')}" · ${options.length} options · level ${Math.round(d*10)/10}`);
+  recordEv({kind:'shown',itemId:served&&served.itemId,difficulty:d,optionCount:options.length});
+  renderMeters();
+}
+
+function markFirst(i){
+  if(firstAt===null){firstAt=Date.now();const fr=firstAt-itemStart;T.firstRt.push(fr);recordEv({kind:'first_action',index:i,rt:fr});}
+}
+function select(i,modality){
+  if(locked||!item||i<0||i>=options.length)return;
+  inputModality=modality||'tap';
+  markFirst(i);
+  if(selected!==null&&selected!==i){changes++;recordEv({kind:'change',from:selected,to:i});}
+  selected=i;tried.add(i);order.push(i);
+  $$('#candGrid .cand').forEach(c=>c.classList.toggle('sel',+c.dataset.i===i));
+  const c=(item&&item.content)||{};
+  $('#sentText').innerHTML=frameHTML(c.sentenceFrame,options[i].token.text);
+  $('#go').classList.add('ready');
+  recordEv({kind:'select',index:i,via:inputModality});
+  renderMeters();
+}
+function submit(){
+  if(locked||selected===null||!$('#go').classList.contains('ready'))return;
+  locked=true;
+  const rt=Date.now()-itemStart;
+  const firstRt=firstAt!==null?(firstAt-itemStart):rt;
+  const chosen=options[selected];
+  T.rts.push(rt);T.revs.push(changes);T.explore.push(tried.size);
+  recordEv({kind:'submit',index:selected,rt});
+  const result={
+    itemId:item.itemId,
+    typeCode:item.typeCode||'VER-CLOZE-01',
+    domain:item.domain||'verbal',
+    response:{
+      selectedIndex:selected,
+      selectedToken:chosen.token,
+      triedIndices:[...tried],
+      selectionOrder:order.slice(),
+      optionCount:options.length,
+      inputModality
+    },
+    metrics:{'M-RT':rt,'M-RTFIRST':firstRt,'M-REV':changes,'M-EXPLORE':tried.size},
+    telemetry:telemetryLog.slice()
+  };
+  post('result',{result});
+  // NO correct/incorrect shown — key is server-side.
+  setCue('done');
+  setStatus('ok','Answer sent. '+(embedded?'Waiting for the next item\u2026':'Loading the next example\u2026'));
+  $('#go').classList.remove('ready');
+  $$('#candGrid .cand').forEach(c=>c.classList.add('locked'));
+  log(`RESULT selected #${selected} (${chosen.token.text}) · ${rt}ms · revisions ${changes} · sampled ${tried.size}`);
+  if(!embedded){ setTimeout(nextStandalone,1500); }
+  renderMeters();
+}
+
+/* ---------------- wordless how-to pointer (no answer revealed) ---------------- */
+const ghost=$('#ghost');
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(500);}
+async function runHowto(){
+  if(!item)return;
+  const wasLocked=locked;locked=true;setCue('demo');
+  setStatus('neutral','Read the whole sentence, then read each choice, then press the check.');
+  ghost.classList.add('show');await sleep(250);
+  await ghostTo($('#sentText'));
+  for(const el of $$('#candGrid .cand')){await ghostTo(el);}
+  await ghostTo($('#go'));
+  await sleep(200);ghost.classList.remove('show');await sleep(250);
+  setCue('answer');setStatus('neutral','Your turn. Tap the best word, then press the check.');
+  locked=false;
+}
+
+/* ---------------- standalone fallback (double-click, no host) ---------------- */
+// Built-in sample ServedItems (content only; options carry NO fit — key is server-side).
+const SAMPLES=[
+  {itemId:'sample-cloze-easy',typeCode:'VER-CLOZE-01',domain:'verbal',difficulty:1,ageBands:['K-1'],
+   content:{sentenceFrame:'The dog can ___.',gapType:'local_fit',
+     options:[{token:{text:'bone'}},{token:{text:'run'}},{token:{text:'blue'}}],targetFrequencyBand:6}},
+  {itemId:'sample-cloze-mid',typeCode:'VER-CLOZE-01',domain:'verbal',difficulty:10.2,ageBands:['4-5'],
+   content:{sentenceFrame:'The room was messy, but after an hour it looked ___.',gapType:'global_fit',
+     options:[{token:{text:'dirty'}},{token:{text:'tidy'}},{token:{text:'noisy'}},{token:{text:'broom'}}],targetFrequencyBand:4}},
+  {itemId:'sample-cloze-hard',typeCode:'VER-CLOZE-01',domain:'verbal',difficulty:20,ageBands:['6-8'],
+   content:{sentenceFrame:'Far from being verbose, her acceptance speech was strikingly ___.',gapType:'global_fit',
+     options:[{token:{text:'wordy'}},{token:{text:'terse'}},{token:{text:'podium'}},{token:{text:'fragrant'}}],targetFrequencyBand:1}}
+];
+let sIdx=0;
+function startStandalone(){$('#chanval').textContent='standalone (no host)';sIdx=0;nextStandalone(true);}
+function nextStandalone(first){
+  if(sIdx>=SAMPLES.length){setCue('done');setStatus('ok','Demo complete. Press \u21bb or reload to run the examples again.');locked=true;return;}
+  const s=SAMPLES[sIdx++];
+  setItem(s);
+  setCue('answer','\u00b7 example '+sIdx+'/'+SAMPLES.length);
+  if(first){runHowto();}
+}
+
+/* ---------------- host message handling ---------------- */
+window.addEventListener('message',e=>{
+  const d=e.data;if(!d||d.source!==SRC_HOST)return;
+  if(d.type==='init'&&d.item){hostSeen=true;$('#chanval').textContent='host-embedded';setItem(d.item);}
+  else if(d.type==='start'){if(item){itemStart=Date.now();locked=false;setStatus('neutral','Your turn. Tap the best word, then press the check.');}}
+});
+
+/* ---------------- input ---------------- */
+$('#candGrid').addEventListener('click',e=>{const c=e.target.closest('.cand');if(c&&!locked)select(+c.dataset.i,'tap');});
+$('#go').addEventListener('click',submit);
+document.addEventListener('keydown',e=>{
+  if(locked)return;
+  const n=+e.key;if(n>=1&&n<=options.length)select(n-1,'key');
+  if(e.key==='Enter')submit();
+});
+$('#replay').addEventListener('click',()=>{if(item)runHowto();});
+
+/* ---------------- boot ---------------- */
+buildMeters();renderMeters();
+post('ready',{});
+if(!embedded){
+  startStandalone();
+}else{
+  setCue('ready');setStatus('neutral','Ready. Waiting for the first item from the host\u2026');
+  setTimeout(()=>{if(!hostSeen&&!item)startStandalone();},1200);
+}
 </script>
 </body>
 </html>
