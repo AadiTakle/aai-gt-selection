@@ -276,7 +276,7 @@ function applyPatches(code, src) {
 // bank inspection
 // ---------------------------------------------------------------------------
 
-function inspectBank(file) {
+function inspectBank(file, typeCode) {
   const lines = readFileSync(file, 'utf8').split('\n');
   const items = [];
   let malformed = 0;
@@ -313,8 +313,16 @@ function inspectBank(file) {
     return { error: 'bank has a non born-synthetic item (syntheticOnly must be true)' };
   }
 
+  // More than one scoring rule in a bank is safe ONLY behind a per-type
+  // verifier. The generic verifiers are resolved once per type from
+  // `bank.scoringRule`, so on a mixed bank they would grade one response shell
+  // with the other shell's rule and mark correct children wrong. A per-type
+  // verifier is resolved per type but DISPATCHES PER ITEM, on the item's own
+  // shape, so each shell is graded by its own rule (SPA-VIEW-01 carries a keyed
+  // "which viewpoint" shell and a tolerance-scored heading-dial shell).
   const scoringRules = [...new Set(items.map((i) => i.scoring?.rule ?? null))];
-  if (scoringRules.length !== 1) {
+  const perItemDispatch = perTypeVerifierCodes().has(typeCode);
+  if (scoringRules.length !== 1 && !perItemDispatch) {
     return { error: `bank mixes scoring rules: ${scoringRules.join(', ')}` };
   }
 
@@ -326,7 +334,9 @@ function inspectBank(file) {
     difficultyMin: Math.min(...difficulties),
     difficultyMax: Math.max(...difficulties),
     keyKinds: [...new Set(items.map((i) => typeof i.answer.correctKey))].sort(),
-    scoringRule: scoringRules[0],
+    // Null on a mixed bank: there is no one rule for the type, and only the
+    // per-type verifier that allowed the mix can say which rule an item takes.
+    scoringRule: scoringRules.length === 1 ? scoringRules[0] : null,
   };
 }
 
@@ -387,7 +397,7 @@ function collect() {
       continue;
     }
 
-    const bank = inspectBank(path.join(BANKS_DIR, `${code}.jsonl`));
+    const bank = inspectBank(path.join(BANKS_DIR, `${code}.jsonl`), code);
     if (bank.error) {
       blocked.push({ code, reason: `bank: ${bank.error}` });
       continue;
