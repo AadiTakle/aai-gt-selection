@@ -28,6 +28,7 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { genItem, difficultyFromLevers, paceMsFromPressure } from './WM-corsi-01.mjs';
+import { lureLabel, normalizeBankItem } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/WM-corsi-01.jsonl');
@@ -157,10 +158,10 @@ for (const it of items) {
   // reconstruct from the re-derived target (not from generator internals).
   const rats = ans.distractorRationales || {};
   if (!rats.correct || !deepEq(rats.correct.sequence, expected)) fail(id, 'distractorRationales.correct != expected sequence');
-  if (rats.correct && rats.correct.lure !== 'correct') fail(id, 'the "correct" entry is not labelled lure:"correct"');
+  if (rats.correct && lureLabel(rats.correct) !== 'correct') fail(id, 'the "correct" entry is not labelled lure:"correct"');
   const lureSigs = new Set();
   for (const [k, r] of Object.entries(rats)) {
-    if (!r || typeof r.lure !== 'string' || !Array.isArray(r.sequence) || typeof r.note !== 'string')
+    if (!r || typeof lureLabel(r) !== 'string' || !Array.isArray(r.sequence) || typeof r.note !== 'string')
       fail(id, `lure "${k}" malformed`);
     const sig = JSON.stringify(r.sequence);
     if (lureSigs.has(sig)) fail(id, `lure "${k}" duplicates another lure's sequence`);
@@ -189,13 +190,13 @@ for (const it of items) {
 
   // --- 6. Reproducibility + difficulty derivation.
   try {
-    const regen = genItem({
+    const regen = normalizeBankItem(genItem({
       span: lev.span,
       mode: lev.mode,
       gridSize: lev.gridSize,
       pacePressure: lev.pacePressure,
       seed: it.provenance.seed,
-    });
+    }));
     if (!deepEq(regen, it)) fail(id, 'item is NOT reproducible from its provenance (grammar drift)');
   } catch (e) {
     fail(id, `regeneration threw: ${e.message}`);

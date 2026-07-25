@@ -28,6 +28,7 @@
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { serializeBank } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT = resolve(__dirname, '../banks/SPA-VIEW-01.jsonl');
@@ -564,7 +565,7 @@ function isMain() {
 if (isMain()) {
   const items = buildBank({ perBin: Number(process.env.PER_BIN || 7) });
   mkdirSync(dirname(OUT), { recursive: true });
-  writeFileSync(OUT, items.map((it) => JSON.stringify(it)).join('\n') + '\n');
+  writeFileSync(OUT, serializeBank(items));
 
   const bins = Array.from({ length: 20 }, () => 0);
   let min = Infinity;

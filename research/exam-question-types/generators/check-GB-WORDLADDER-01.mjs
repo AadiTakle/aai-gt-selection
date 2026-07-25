@@ -228,7 +228,7 @@ for (const it of items) {
     fail(id, 'answer.equivalence.rule must be any_shortest_valid_ladder (alternate optimal routes must be credited)');
   }
   if (!a.equivalence || a.equivalence.lexiconHash !== lexiconHash()) fail(id, 'answer.equivalence.lexiconHash is stale');
-  if (!Array.isArray(a.distractorRationales) || !a.distractorRationales.some((r) => r.kind === 'optimal')) {
+  if (!Object.keys(a.distractorRationales || {}).includes('optimal')) {
     fail(id, 'answer.distractorRationales must document the response taxonomy');
   }
 

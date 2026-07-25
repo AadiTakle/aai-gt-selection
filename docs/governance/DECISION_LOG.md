@@ -240,6 +240,30 @@ Each decision must include the requirements served, alternatives considered, evi
 - **Owner:** Proposed by the backend workstream (session 2026-07-25); requires team-lead ratification.
 - **Relationship to prior decisions:** Implements the ownership already stated in BUILD_PLAN §3/§5/§6 and acts on the recommendation recorded in `supabase/EXAM_BACKEND_STATUS.md` §6. Does not supersede D-017 or any prior decision, and does not change the platform bindings ratified in D-012.
 
+### D-020 — Reconcile the question banks with the canonical item contract; lure taxonomy becomes two fields
+
+- **Date:** 2026-07-25
+- **Status:** Proposed
+- **Decision:** Where the 63 generated banks and `packages/contracts` disagreed on item shape, the contract is widened when the banks' convention is better and the banks are migrated when they are wrong. Specifically: (a) `questionTypeCodeSchema` accepts a mixed-case middle segment; (b) `answer.distractorRationales` becomes a record keyed by the selectable element's own id, not an array aligned to option order; (c) the lure taxonomy is split into a **required coarse `lureClass`** drawn from the existing nine-value enum and an **optional free-form `lureDetail`** carrying the type's own label; (d) `answer`, `scoring`, and `provenance` accept type-specific fields instead of being closed objects. A permanent conformance test (`packages/contracts/src/bank-conformance.test.ts`) parses every bank on every `pnpm -r test` run.
+- **Requirements served:** R5, R7, R10
+- **Alternatives considered:** (1) Migrate all banks to the contract's array-of-enum rationales — rejected: several types have selectable elements that are not positional options at all (`VER-EVIDENCE-01` keys passage sentences, `WM-bubble-01` keys per-lane n-back steps), and server-side M-ERRTYPE must look up a chosen lure by key once options are shuffled. (2) Widen `lureClassSchema` to admit all 219 domain labels — rejected: M-ERRTYPE and M-LURETYPE are counts over buckets and become uncomputable with an open vocabulary. (3) Keep only the coarse enum and discard the domain labels — rejected: it throws away the diagnosis the labels exist to carry. (4) Rename the 11 mixed-case catalog types — rejected as churn against the established vocabulary in specs, demos, banks, and docs.
+- **Evidence:** E-074 (0/63 `bankItemSchema`, 14/63 `servedItemSchema`, measured 2026-07-25).
+- **Rationale:** The banks encoded a de-facto schema that was, on the contested fields, better designed than the contract; the contract encoded assumptions no generator followed. Neither side was automatically right, so each field was decided on its merits. The two-field lure model is the only resolution that keeps the metrics computable and the diagnosis intact at the same time.
+- **Consequences:** All 63 banks were regenerated as a pure shape migration — item counts, difficulties, content, and correct answers are byte-identical. `answer`, `scoring`, and `provenance` are now open objects; this does not weaken the security boundary, because `servedItemSchema` omits all three wholesale, and a test asserts it. Nine labels have no honest coarse home and are recorded as `distractor_other` with the gap named explicitly in `NO_HONEST_COARSE_CLASS`: non-responses (`abandoned`, `empty_response`, `no_response`, `guess`), conforming foils in find-the-odd-one-out tasks (`correct_placement`, `shared_pair`, `sound_given`, `sound_step`), and one developmental representation bias (`representation`). A further family — correct-but-inefficient responses (`complete_detour`, `solved_verbose`, …) — is bucketed as `local_fit` on the reading "planned locally rather than globally", which is defensible but is not what the enum was written for.
+- **Owner:** Proposed by the contracts workstream (session 2026-07-25); requires team-lead ratification.
+
+### D-021 — `demoPath` is a required bank field and an optional contract field
+
+- **Date:** 2026-07-25
+- **Status:** Proposed
+- **Decision:** `demoPath` is added to `bankItemSchema` as **optional** and is now present on every item in every bank; `EXAM_ITEM_SCHEMA_SPEC.md` §6.1 continues to require it, and `audit_banks.mjs` moves it from `OPTIONAL_ITEM_KEYS` to `REQUIRED_ITEM_KEYS`.
+- **Requirements served:** R7, R8
+- **Alternatives considered:** Drop `demoPath` from the spec and the banks, and let each host resolve `typeCode` to a renderer. Rejected: 38 demo pages already embed served-item samples carrying it, and `apps/web`'s hand-maintained eight-type `typeCode -> path` map is evidence of what that costs at 66 types, not evidence the field is unnecessary.
+- **Evidence:** E-074 (49 banks carried it, 14 did not; `.strict()` rejected all 49).
+- **Rationale:** This resolves the three-way conflict the auditor documented and explicitly left to a governance decision. Optional in the contract because a host may legitimately override the path — `apps/web` serves from `/exam-demos/` — and because engine- and test-constructed items should not have to invent one. Required in the banks because a generated item with no renderer is incomplete.
+- **Consequences:** 14 generators now emit `demos/<typeCode>.html`. The value is bank-relative and advisory; hosts that resolve their own path are unaffected. Since the value is fully derivable from `typeCode`, it carries no independent information today — its purpose is to let a future item version point at a different renderer without a client-side registry change.
+- **Owner:** Proposed by the contracts workstream (session 2026-07-25); requires team-lead ratification.
+
 ## Entry template
 
 ### D-XXX — Decision title

@@ -134,7 +134,7 @@ for (const it of items) {
   } else fail(id, 'answer.solutionOrients missing');
 
   for (const g of (c.gems || [])) if (!onPath.has(g[0] + ',' + g[1])) fail(id, `gem ${g} not on corridor`);
-  if (!Array.isArray(ans.distractorRationales) || ans.distractorRationales.length === 0) fail(id, 'distractorRationales (response taxonomy) missing');
+  if (Object.keys(ans.distractorRationales || {}).length === 0) fail(id, 'distractorRationales (response taxonomy) missing');
 }
 
 // ---- 4. Coverage ----

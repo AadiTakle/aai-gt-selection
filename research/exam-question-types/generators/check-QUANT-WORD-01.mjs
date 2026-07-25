@@ -37,6 +37,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { lureLabel } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/QUANT-WORD-01.jsonl');
@@ -296,8 +297,8 @@ for (const it of items) {
   for (const k of nonCorrect) {
     const r = rats[k];
     if (!r) continue;
-    if (!LURE_CLASSES.has(r.lure)) { fail(id, `option ${k} has unknown lure "${r.lure}"`); continue; }
-    lureCounts[r.lure] = (lureCounts[r.lure] || 0) + 1;
+    if (!LURE_CLASSES.has(lureLabel(r))) { fail(id, `option ${k} has unknown lure "${lureLabel(r)}"`); continue; }
+    lureCounts[lureLabel(r)] = (lureCounts[lureLabel(r)] || 0) + 1;
     if (typeof r.misconception !== 'string' || !r.misconception) fail(id, `option ${k} lure has no misconception label`);
     const d = r.derivation;
     if (!d || !Array.isArray(d.steps) || !d.value) { fail(id, `option ${k} lure has no recomputable derivation`); continue; }
@@ -306,10 +307,10 @@ for (const it of items) {
     const dv = readOperand(dr.vals, d.value, true);
     const optVal = (opts.find((o) => o.key === k) || {}).value;
     if (dv === null || dv === undefined) fail(id, `option ${k} derivation value operand unresolved`);
-    else if (dv !== optVal) fail(id, `option ${k} lure "${r.lure}" recomputes to ${dv} but the option shows ${optVal}`);
+    else if (dv !== optVal) fail(id, `option ${k} lure "${lureLabel(r)}" recomputes to ${dv} but the option shows ${optVal}`);
     if (optVal === derived) fail(id, `option ${k} is labelled a distractor but equals the correct value`);
     // the irrelevant lure must actually reference an unused quantity
-    if (r.lure === 'used_the_irrelevant_number') {
+    if (lureLabel(r) === 'used_the_irrelevant_number') {
       const usedInLure = new Set();
       for (const st of d.steps) for (const side of ['a', 'b']) if (st[side] && st[side].q) usedInLure.add(st[side].q);
       const usedInMath = new Set();

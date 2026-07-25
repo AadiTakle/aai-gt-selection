@@ -22,6 +22,7 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { LEXICON, buildItem, LURE_CLASSES } from './VER-SENSE-01.mjs';
+import { lureLabel, normalizeBankItem } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/VER-SENSE-01.jsonl');
@@ -226,7 +227,7 @@ for (const it of items) {
   const rats = it.answer.distractorRationales || {};
   let correctLabels = 0;
   for (const [key, r] of Object.entries(rats)) {
-    if (!LURE_CLASSES.has(r.lure)) { fail(id, `unknown lure class "${r.lure}"`); continue; }
+    if (!LURE_CLASSES.has(lureLabel(r))) { fail(id, `unknown lure class "${lureLabel(r)}"`); continue; }
     const idxs = key.split(',').map(Number);
     if (idxs.length !== cards.length || new Set(idxs).size !== cards.length || idxs.some((i) => !(i >= 0 && i < cards.length))) {
       fail(id, `rationale key "${key}" is not a permutation of the cards`);
@@ -234,23 +235,23 @@ for (const it of items) {
     }
     const order = idxs.map((i) => cards[i]);
     const kind = classify(order);
-    if (r.lure === 'correct') {
+    if (lureLabel(r) === 'correct') {
       correctLabels++;
       if (kind !== 'sensible') fail(id, `key "${key}" labelled correct but the model says ${kind}`);
-    } else if (r.lure === 'grammatical-but-absurd') {
+    } else if (lureLabel(r) === 'grammatical-but-absurd') {
       if (kind !== 'absurd') fail(id, `"${order.join(' ')}" labelled grammatical-but-absurd but the model says ${kind}`);
     } else if (kind !== 'ungrammatical') {
-      fail(id, `"${order.join(' ')}" labelled ${r.lure} but it does parse (${kind})`);
+      fail(id, `"${order.join(' ')}" labelled ${lureLabel(r)} but it does parse (${kind})`);
     }
     if (typeof r.why !== 'string' || r.why.length < 8) fail(id, `rationale "${key}" has no usable diagnostic text`);
   }
   if (correctLabels !== 1) fail(id, `${correctLabels} rationales labelled correct (need exactly 1)`);
-  if (!Object.values(rats).some((r) => r.lure === 'grammatical-but-absurd')) fail(id, 'no grammatical-but-absurd lure recorded (M-LURETYPE)');
+  if (!Object.values(rats).some((r) => lureLabel(r) === 'grammatical-but-absurd')) fail(id, 'no grammatical-but-absurd lure recorded (M-LURETYPE)');
   if (Object.keys(rats).length < 3) fail(id, `only ${Object.keys(rats).length} labelled orderings (want the answer + >=2 lures)`);
 
   // ---- reproducibility ----
   try {
-    const regen = buildItem(Number(it.provenance.seed));
+    const regen = normalizeBankItem(buildItem(Number(it.provenance.seed)));
     if (!deepEq(regen, it)) fail(id, 'item is NOT reproducible from provenance.seed (generator drift)');
   } catch (e) { fail(id, `regeneration threw: ${e.message}`); }
   if (Math.round(it.difficulty) !== it.provenance.levers.band) fail(id, 'round(difficulty) != recorded band');

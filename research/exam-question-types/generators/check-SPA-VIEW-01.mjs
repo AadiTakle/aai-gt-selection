@@ -28,6 +28,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { lureLabel } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/SPA-VIEW-01.jsonl');
@@ -204,19 +205,19 @@ for (const it of items) {
     const rats = ans.distractorRationales || {};
     if (Object.keys(rats).length !== stations.length || !stKeys.every((k) => k in rats))
       fail(id, 'distractorRationales do not cover every station');
-    const correctRats = Object.keys(rats).filter((k) => rats[k].lure === 'correct');
+    const correctRats = Object.keys(rats).filter((k) => lureLabel(rats[k]) === 'correct');
     if (correctRats.length !== 1 || correctRats[0] !== ans.correctKey) fail(id, 'exactly one "correct" rationale must be the correctKey');
 
     const correctStation = stations.find((s) => s.key === ans.correctKey);
     const reverseStrip = strip.slice().reverse().join('>');
     for (const s of stations) {
       const r = rats[s.key];
-      if (!r || typeof r.lure !== 'string') { fail(id, `station ${s.key} has no lure label`); continue; }
+      if (!r || typeof lureLabel(r) !== 'string') { fail(id, `station ${s.key} has no lure label`); continue; }
       if (typeof r.note !== 'string' || r.note.length < 8) fail(id, `station ${s.key} lure has no rationale note`);
       if (s.key === ans.correctKey) continue;
       const off = round2(angGap(s.headingDeg, correctStation.headingDeg));
       if (Math.abs(r.viewpointOffsetDeg - off) > 0.02) fail(id, `station ${s.key} records offset ${r.viewpointOffsetDeg}, measured ${off}`);
-      if (r.lure === 'mirror_reversal') {
+      if (lureLabel(r) === 'mirror_reversal') {
         if (orders[s.key].join('>') !== reverseStrip) fail(id, `station ${s.key} is labelled a mirror but does not see the reversed strip`);
         if (r.chirality !== 'left_right_reversed') fail(id, `mirror foil ${s.key} does not record chirality`);
       } else if (orders[s.key].join('>') === reverseStrip && objects.length >= 2) {
@@ -225,7 +226,7 @@ for (const it of items) {
     }
     if (ans.mirrorFoilKey) {
       mirrorItems++;
-      if (rats[ans.mirrorFoilKey] === undefined || rats[ans.mirrorFoilKey].lure !== 'mirror_reversal')
+      if (rats[ans.mirrorFoilKey] === undefined || lureLabel(rats[ans.mirrorFoilKey]) !== 'mirror_reversal')
         fail(id, 'mirrorFoilKey does not point at the mirror lure');
       if (ans.chiralityRelevant !== true) fail(id, 'mirrorFoilKey present but chiralityRelevant is not true');
     } else if (ans.chiralityRelevant !== false) fail(id, 'chiralityRelevant must be false when no exact reversal exists');

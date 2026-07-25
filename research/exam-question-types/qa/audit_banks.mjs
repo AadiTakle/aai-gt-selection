@@ -52,13 +52,14 @@ const WINDOW_GRID_STEP = 0.05;
 const DIFFICULTY_MIN = 1;
 const DIFFICULTY_MAX = 20;
 
-/** BankItem keys. `demoPath` is optional — see AUDIT_BANKS.md "Known conflict". */
+/** BankItem keys. `demoPath` became required under D-021 — see AUDIT_BANKS.md. */
 const REQUIRED_ITEM_KEYS = [
   'itemId',
   'typeCode',
   'domain',
   'difficulty',
   'ageBands',
+  'demoPath',
   'content',
   'answer',
   'scoring',
@@ -66,13 +67,15 @@ const REQUIRED_ITEM_KEYS = [
   'syntheticOnly',
   'validated',
 ];
-const OPTIONAL_ITEM_KEYS = ['demoPath'];
+const OPTIONAL_ITEM_KEYS = [];
 
 const DOMAINS = ['fluid_reasoning', 'verbal', 'quantitative', 'spatial'];
 const AGE_BANDS = ['K-1', '2-3', '4-5', '6-8'];
 const SCORING_MODES = ['deterministic_key', 'computed_solver', 'proxy_bank', 'model_judge_deferred'];
 const GENERATOR_KINDS = ['grammar', 'llm', 'human'];
-const TYPE_CODE_RE = /^[A-Z]+-[A-Z0-9]+-\d+$/;
+// Mixed-case middle segment: 11 catalog type_ids use a lowercase mnemonic
+// (`WM-bind-01`, `CX-achieve-02`, …). Matches contracts `questionTypeCodeSchema`.
+const TYPE_CODE_RE = /^[A-Z]+-[A-Za-z0-9]+-\d+$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 /** Answer-key vocabulary (contracts `lureClassSchema`) — must not reach `content`. */
@@ -582,18 +585,25 @@ function resolveOptions(item) {
   return { kind: 'none', reason };
 }
 
-/** Pull a lure label for the option at `index`/`key`, from wherever this bank puts it. */
+/**
+ * Pull the most specific lure label for the option at `index`/`key`.
+ *
+ * Canonically that is `lureDetail` falling back to `lureClass` (D-020). The
+ * pre-D-020 `lure`/`kind`/bare-string forms are still read so this auditor can
+ * be pointed at an unmigrated bank without crashing.
+ */
 function lureLabelFor(item, resolved, index) {
   const key = resolved.keys[index];
   const dr = item?.answer?.distractorRationales;
+  const labelOf = (entry) => entry.lureDetail ?? entry.lureClass ?? entry.lure ?? entry.kind ?? null;
   if (Array.isArray(dr)) {
     const entry = dr[index];
     if (typeof entry === 'string') return entry;
-    if (entry && typeof entry === 'object') return entry.lure ?? entry.kind ?? entry.lureClass ?? null;
+    if (entry && typeof entry === 'object') return labelOf(entry);
   } else if (dr && typeof dr === 'object') {
     const entry = dr[String(key)];
     if (typeof entry === 'string') return entry;
-    if (entry && typeof entry === 'object') return entry.lure ?? entry.kind ?? entry.lureClass ?? null;
+    if (entry && typeof entry === 'object') return labelOf(entry);
   }
   const opt = resolved.options[index];
   if (opt && typeof opt === 'object') {
@@ -961,8 +971,12 @@ function checkDuplicates(items) {
 /**
  * Never regenerate in place — 13 agents have live working trees. Each generator
  * resolves its output as `<generatorDir>/../banks/<TYPE>.jsonl`, so copying the
- * single generator file into `<sandbox>/generators/` and creating an empty
+ * generators into `<sandbox>/generators/` and creating an empty
  * `<sandbox>/banks/` redirects the write without the generator knowing.
+ *
+ * The whole directory is copied, not just `<TYPE>.mjs`: generators import
+ * shared modules from it (`item-shape.mjs`, `lexicon-child-en.mjs`), and a lone
+ * file cannot resolve them. Only `<TYPE>.mjs` is ever executed.
  *
  * The sandbox root must be a realpath: several generators gate `main()` on
  * `resolve(process.argv[1]) === fileURLToPath(import.meta.url)`, which fails
@@ -975,9 +989,8 @@ function checkDeterminism(typeCode, bankPath, generatorsDir, sandboxRoot) {
   }
 
   const sandbox = join(sandboxRoot, typeCode);
-  mkdirSync(join(sandbox, 'generators'), { recursive: true });
   mkdirSync(join(sandbox, 'banks'), { recursive: true });
-  cpSync(generatorPath, join(sandbox, 'generators', `${typeCode}.mjs`));
+  cpSync(generatorsDir, join(sandbox, 'generators'), { recursive: true });
 
   const run = spawnSync(process.execPath, [join(sandbox, 'generators', `${typeCode}.mjs`)], {
     encoding: 'utf8',
@@ -1206,6 +1219,7 @@ function printConsistency(results) {
     'answer.distractorRationales is absent': [],
   };
   const offVocab = new Map();
+  const detailVocab = new Set();
 
   for (const r of results) {
     const items = r.items;
@@ -1227,29 +1241,35 @@ function printConsistency(results) {
       groups['answer.distractorRationales is an object keyed by option key'].push(r.typeCode);
     } else groups['answer.distractorRationales is absent'].push(r.typeCode);
 
-    // Lure labels outside the contracts lureClassSchema enum.
-    const labels = new Set();
+    // `lureClass` must stay inside the contracts enum or M-ERRTYPE cannot
+    // bucket it. `lureDetail` is deliberately open (D-020) and is only counted.
+    const off = new Set();
     for (const item of items) {
-      const res = resolveOptions(item);
-      if (res.kind === 'none') continue;
-      res.options.forEach((_, i) => {
-        const l = lureLabelFor(item, res, i);
-        if (typeof l === 'string') labels.add(l);
-      });
+      for (const entry of Object.values(item?.answer?.distractorRationales ?? {})) {
+        if (!entry || typeof entry !== 'object') continue;
+        const coarse = entry.lureClass;
+        if (typeof coarse !== 'string' || !LURE_VOCAB.has(coarse.toLowerCase())) {
+          off.add(String(coarse));
+        }
+        if (typeof entry.lureDetail === 'string') detailVocab.add(entry.lureDetail);
+      }
     }
-    const off = [...labels].filter((l) => !LURE_VOCAB.has(l.toLowerCase()));
-    if (off.length) offVocab.set(r.typeCode, off.sort());
+    if (off.size) offVocab.set(r.typeCode, [...off].sort());
   }
 
   console.log('');
-  console.log('== Cross-bank consistency (how the per-type checkers disagree) ==');
+  console.log('== Cross-bank consistency (where the per-type conventions stand) ==');
   for (const [label, types] of Object.entries(groups)) {
     if (!types.length) continue;
     console.log(`  ${label} — ${types.length}: ${types.join(', ')}`);
   }
+  console.log(
+    `  answer.distractorRationales[*].lureDetail vocabulary — ${detailVocab.size} label(s) across all banks. ` +
+      'Open by design (D-020): the coarse lureClass keeps M-ERRTYPE computable, lureDetail keeps the diagnosis.',
+  );
   if (offVocab.size) {
     console.log(
-      `  lure labels outside the contracts lureClassSchema enum — ${offVocab.size} type(s). Server-side ` +
+      `  lureClass values outside the contracts lureClassSchema enum — ${offVocab.size} type(s). Server-side ` +
         'M-ERRTYPE / M-LURETYPE cannot bucket these:',
     );
     for (const [type, labels] of offVocab) console.log(`      ${type}: ${sample(labels, 6).join(', ')}`);

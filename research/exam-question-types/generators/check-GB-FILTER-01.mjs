@@ -150,7 +150,7 @@ for (const it of items) {
   if (!ans.equivalence || ans.equivalence.rule !== 'set_equality') fail(id, 'answer.equivalence (accepted-equivalence rule) missing');
   if (typeof ans.scoringRule !== 'string' || !ans.scoringRule.length) fail(id, 'answer.scoringRule missing');
   if (!ans.metricSpec || !ans.metricSpec['M-EFF']) fail(id, 'answer.metricSpec missing M-EFF derivation');
-  if (!Array.isArray(ans.distractorRationales) || ans.distractorRationales.length === 0) fail(id, 'response taxonomy missing');
+  if (Object.keys(ans.distractorRationales || {}).length === 0) fail(id, 'response taxonomy missing');
 }
 
 // ---- 4. Coverage ----

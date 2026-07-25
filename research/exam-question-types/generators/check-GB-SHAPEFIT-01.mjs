@@ -253,7 +253,7 @@ for (const it of items) {
     if (err) fail(id, err);
   }
   if (!a.acceptedEquivalence || typeof a.acceptedEquivalence.rule !== 'string') fail(id, 'answer.acceptedEquivalence.rule missing');
-  if (!Array.isArray(a.distractorRationales) || !a.distractorRationales.length) fail(id, 'distractorRationales (response taxonomy) missing');
+  if (!Object.keys(a.distractorRationales || {}).length) fail(id, 'distractorRationales (response taxonomy) missing');
 
   const lv = it.provenance.levers || {};
   if (lv.level) {

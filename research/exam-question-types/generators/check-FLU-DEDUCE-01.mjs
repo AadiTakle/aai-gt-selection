@@ -20,6 +20,7 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { genItem } from './FLU-DEDUCE-01.mjs';
+import { lureLabel, normalizeBankItem } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/FLU-DEDUCE-01.jsonl');
@@ -162,18 +163,18 @@ for (const it of items) {
   const ratKeys = Object.keys(rats);
   if (ratKeys.length !== keys.length || !keys.every((k) => ratKeys.includes(k)))
     fail(id, 'distractorRationales do not cover every candidate key');
-  const correctRats = ratKeys.filter((k) => rats[k] && rats[k].lure === 'correct');
+  const correctRats = ratKeys.filter((k) => rats[k] && lureLabel(rats[k]) === 'correct');
   if (correctRats.length !== 1) fail(id, `expected exactly 1 "correct" rationale, got ${correctRats.length}`);
   else if (correctRats[0] !== ans.correctKey) fail(id, 'the "correct" rationale key != correctKey');
   for (const k of ratKeys) {
     const r = rats[k] || {};
-    if (!ALLOWED_LURES.includes(r.lure)) fail(id, `unknown lure label "${r.lure}" on ${k}`);
+    if (!ALLOWED_LURES.includes(lureLabel(r))) fail(id, `unknown lure label "${lureLabel(r)}" on ${k}`);
     const cand = cands.find((o) => o.key === k);
     if (!cand) continue;
     const trueViolations = clues.filter((cl) => !holds(cl, cand.figure)).map((cl) => cl.clueId);
     if (!deepEq((r.cluesViolated || []).slice().sort(), trueViolations.slice().sort()))
       fail(id, `rationale ${k} lists ${JSON.stringify(r.cluesViolated)} but solver finds ${JSON.stringify(trueViolations)}`);
-    if (r.lure === 'negation_trap' && !(trueViolations.length === 1 && clues.find((cl) => cl.clueId === trueViolations[0]).form === 'not'))
+    if (lureLabel(r) === 'negation_trap' && !(trueViolations.length === 1 && clues.find((cl) => cl.clueId === trueViolations[0]).form === 'not'))
       fail(id, `${k} tagged negation_trap but is not a single negated-clue near-miss`);
   }
 
@@ -182,7 +183,7 @@ for (const it of items) {
   const derived = round2(difficultyOf(lev));
   if (Math.abs(derived - it.difficulty) > 0.01) fail(id, `difficulty ${it.difficulty} != derived-from-levers ${derived}`);
   try {
-    const regen = genItem({ ...lev, seed: it.provenance.seed });
+    const regen = normalizeBankItem(genItem({ ...lev, seed: it.provenance.seed }));
     if (!deepEq(regen, it)) fail(id, 'item is NOT reproducible from its provenance (grammar drift)');
   } catch (e) {
     fail(id, `regeneration threw: ${e.message}`);

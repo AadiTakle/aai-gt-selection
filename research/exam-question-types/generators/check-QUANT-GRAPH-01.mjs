@@ -27,6 +27,7 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildItem } from './QUANT-GRAPH-01.mjs';
+import { lureLabel, normalizeBankItem } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/QUANT-GRAPH-01.jsonl');
@@ -181,7 +182,7 @@ for (const it of items) {
   for (const k of wrongKeys) {
     const r = rats[k];
     if (!r) { fail(id, `missing rationale for ${k}`); continue; }
-    if (!ALLOWED_LURES.includes(r.lure)) fail(id, `unknown lure "${r.lure}" on ${k}`);
+    if (!ALLOWED_LURES.includes(lureLabel(r))) fail(id, `unknown lure "${lureLabel(r)}" on ${k}`);
     if (typeof r.misconception !== 'string' || !r.misconception) fail(id, `rationale ${k} missing misconception`);
     const foil = opts.find((o) => o.key === k).series;
     if (sameSeries(foil, derived)) fail(id, `foil ${k} is actually the correct graph`);
@@ -217,7 +218,7 @@ for (const it of items) {
   if (!Number.isInteger(seedRung) || !Number.isInteger(ordinal)) fail(id, `cannot parse rung/ordinal from seed (${it.provenance.seed})`);
   else {
     try {
-      const regen = buildItem(masterSeed, seedRung, ordinal);
+      const regen = normalizeBankItem(buildItem(masterSeed, seedRung, ordinal));
       if (!regen) fail(id, 'regeneration produced null');
       else if (!deepEq(regen, it)) fail(id, 'item is NOT reproducible from its provenance (grammar drift)');
     } catch (e) { fail(id, `regeneration threw: ${e.message}`); }
@@ -243,7 +244,7 @@ bandCounts.forEach((n, i) => { if (n < MIN_PER_BAND) fail('coverage', `+/-1pt ba
 const relations = new Set(items.map((it) => it.content.question));
 for (const q of QUESTIONS) if (!relations.has(q)) fail('coverage', `no items ask the "${q}" graph relation`);
 const lureKinds = new Set();
-for (const it of items) for (const r of Object.values(it.answer.distractorRationales)) lureKinds.add(r.lure);
+for (const it of items) for (const r of Object.values(it.answer.distractorRationales)) lureKinds.add(lureLabel(r));
 if (lureKinds.size < 6) fail('coverage', `only ${lureKinds.size} lure kinds across the bank (M-ERRTYPE needs breadth)`);
 
 /* ---- Report ---- */

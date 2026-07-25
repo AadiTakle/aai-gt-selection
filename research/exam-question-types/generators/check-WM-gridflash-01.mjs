@@ -30,6 +30,7 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { genItem, difficultyFromLevers, exposureMsFromPressure, retentionDelayFromPressure, gridSizeForSet } from './WM-gridflash-01.mjs';
+import { lureLabel, normalizeBankItem } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/WM-gridflash-01.jsonl');
@@ -170,10 +171,10 @@ for (const it of items) {
     else {
       const correctSide = derivedKey;
       const wrongSide = derivedKey === 'SAME' ? 'CHANGED' : 'SAME';
-      if (rats[correctSide].lure !== 'correct') fail(id, `option ${correctSide} should be labelled lure:"correct"`);
+      if (lureLabel(rats[correctSide]) !== 'correct') fail(id, `option ${correctSide} should be labelled lure:"correct"`);
       const wantedLure = derivedKey === 'CHANGED' ? 'miss' : 'false_alarm';
-      if (rats[wrongSide].lure !== wantedLure)
-        fail(id, `option ${wrongSide} should be labelled "${wantedLure}" on a ${ans.trialType} trial (got ${rats[wrongSide].lure})`);
+      if (lureLabel(rats[wrongSide]) !== wantedLure)
+        fail(id, `option ${wrongSide} should be labelled "${wantedLure}" on a ${ans.trialType} trial (got ${lureLabel(rats[wrongSide])})`);
     }
     if (!it.scoring.spec.sdtCategory) fail(id, 'change_detection solver must define the signal-detection category');
     // The ORIGINAL colour must not be reachable from the response phase.
@@ -192,7 +193,7 @@ for (const it of items) {
     if (!rats.correct || !deepEq(rats.correct.cells, lit)) fail(id, 'distractorRationales.correct != the lit set');
     const sigs = new Set();
     for (const [k, r] of Object.entries(rats)) {
-      if (!r || typeof r.lure !== 'string' || !Array.isArray(r.cells) || typeof r.note !== 'string') fail(id, `lure "${k}" malformed`);
+      if (!r || typeof lureLabel(r) !== 'string' || !Array.isArray(r.cells) || typeof r.note !== 'string') fail(id, `lure "${k}" malformed`);
       const sig = JSON.stringify(r.cells);
       if (sigs.has(sig)) fail(id, `lure "${k}" duplicates another lure's cell set`);
       sigs.add(sig);
@@ -213,10 +214,10 @@ for (const it of items) {
 
   // --- 6. Reproducibility + difficulty derivation.
   try {
-    const regen = genItem({
+    const regen = normalizeBankItem(genItem({
       setSize: lev.setSize, shell: lev.shell, confusable: lev.confusable,
       pressure: lev.pressure, changeTrial: lev.changeTrial, seed: it.provenance.seed,
-    });
+    }));
     if (!deepEq(regen, it)) fail(id, 'item is NOT reproducible from its provenance (grammar drift)');
   } catch (e) {
     fail(id, `regeneration threw: ${e.message}`);

@@ -28,6 +28,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { normalizeBankItem } from './item-shape.mjs';
 import {
   genItem,
   difficultyFromLevers,
@@ -225,14 +226,14 @@ for (const it of items) {
 
   // -- 6. reproducibility + difficulty derives from levers --
   try {
-    const regen = genItem({
+    const regen = normalizeBankItem(genItem({
       modeIndex: lev.modeIndex,
       abstractness: lev.abstractness,
       constraintCount: lev.constraintCount,
       subjectIndex: lev.subjectIndex,
       windowTightness: lev.windowTightness,
       seed: it.provenance.seed,
-    });
+    }));
     if (!deepEq(regen, it)) fail(id, 'item is NOT reproducible from its provenance (grammar drift)');
   } catch (e) {
     fail(id, `regeneration threw: ${e.message}`);

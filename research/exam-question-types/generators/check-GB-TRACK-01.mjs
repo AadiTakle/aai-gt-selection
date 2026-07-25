@@ -186,7 +186,7 @@ for (const it of items) {
   if (movedTargets.length !== c.initialTargets.length) fail(id, `${c.initialTargets.length - movedTargets.length} firefly jar(s) never move during the trial`);
   if (!a.cost || a.cost.taps !== c.initialTargets.length) fail(id, 'answer.cost.taps != the number of fireflies (optimal tap economy)');
   if (!a.acceptedEquivalence || typeof a.acceptedEquivalence.rule !== 'string') fail(id, 'answer.acceptedEquivalence.rule missing');
-  if (!Array.isArray(a.distractorRationales) || !a.distractorRationales.length) fail(id, 'distractorRationales (response taxonomy) missing');
+  if (!Object.keys(a.distractorRationales || {}).length) fail(id, 'distractorRationales (response taxonomy) missing');
   wellPosed++;
 
   // --- the renderer must animate exactly this motion ---

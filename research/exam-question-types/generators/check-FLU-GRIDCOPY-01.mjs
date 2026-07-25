@@ -23,6 +23,7 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { genItem } from './FLU-GRIDCOPY-01.mjs';
+import { lureLabel, normalizeBankItem } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/FLU-GRIDCOPY-01.jsonl');
@@ -221,7 +222,7 @@ for (const it of items) {
     if (key === ans.correctKey) fail(id, 'a distractor equals the correct answer');
     const grid = key.split('/').map((row) => row.split('').map(Number));
     if (!okGrid(grid)) fail(id, `distractor key "${key}" is not a valid grid`);
-    if (!ALLOWED_LURES.includes(r.lure)) fail(id, `unknown lure label "${r.lure}"`);
+    if (!ALLOWED_LURES.includes(lureLabel(r))) fail(id, `unknown lure label "${lureLabel(r)}"`);
     if (typeof r.note !== 'string' || !r.note.length) fail(id, 'distractor missing rationale note');
   }
 
@@ -230,7 +231,7 @@ for (const it of items) {
   const derived = round2(difficultyOf(lev));
   if (Math.abs(derived - it.difficulty) > 0.01) fail(id, `difficulty ${it.difficulty} != derived-from-levers ${derived}`);
   try {
-    const regen = genItem({ ...lev, seed: it.provenance.seed });
+    const regen = normalizeBankItem(genItem({ ...lev, seed: it.provenance.seed }));
     if (!deepEq(regen, it)) fail(id, 'item is NOT reproducible from its provenance (grammar drift)');
   } catch (e) {
     fail(id, `regeneration threw: ${e.message}`);

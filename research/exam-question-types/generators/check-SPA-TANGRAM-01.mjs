@@ -127,7 +127,7 @@ for (const it of items) {
   const cover = solveCover(c.target.cells.map(k3), c.tray);
   if (!cover) fail(id, 'independent exact-cover solver found NO tiling of the target from the tray');
 
-  if (!Array.isArray(ans.distractorRationales) || ans.distractorRationales.length === 0) fail(id, 'distractorRationales (response taxonomy) missing');
+  if (Object.keys(ans.distractorRationales || {}).length === 0) fail(id, 'distractorRationales (response taxonomy) missing');
 }
 
 // ---- 4. Coverage ----

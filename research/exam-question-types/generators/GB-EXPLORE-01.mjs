@@ -36,6 +36,7 @@
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { serializeBank } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT = resolve(__dirname, '../banks/GB-EXPLORE-01.jsonl');
@@ -380,7 +381,7 @@ function main() {
   const doVerify = process.argv.includes('--verify');
   const items = generate();
   mkdirSync(dirname(OUT), { recursive: true });
-  writeFileSync(OUT, items.map(it => JSON.stringify(it)).join('\n') + '\n');
+  writeFileSync(OUT, serializeBank(items));
   console.log(`[${TYPE_CODE}] wrote ${items.length} items -> ${OUT}`);
   const byLm = {}; for (const it of items) { const n = it.content.landmarks.length; byLm[n] = (byLm[n] || 0) + 1; }
   console.log(`[${TYPE_CODE}] landmarks:`, JSON.stringify(byLm));

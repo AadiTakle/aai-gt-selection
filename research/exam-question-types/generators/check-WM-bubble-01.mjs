@@ -19,6 +19,7 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildItem, targetsOf, LURE_CLASSES, BAND_LEVERS } from './WM-bubble-01.mjs';
+import { lureLabel, normalizeBankItem } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/WM-bubble-01.jsonl');
@@ -144,11 +145,11 @@ for (const it of items) {
       const r = rats[k];
       ratKeyCount++;
       if (!r) { fail(id, `missing lure label for step ${k} (M-LURETYPE incomplete)`); return; }
-      if (!LURE_CLASSES.has(r.lure)) fail(id, `step ${k}: unknown lure class "${r.lure}"`);
+      if (!LURE_CLASSES.has(lureLabel(r))) fail(id, `step ${k}: unknown lure class "${lureLabel(r)}"`);
       const expect = labelAt(ch.stream, c.n, i);
-      if (r.lure !== expect) fail(id, `step ${k}: label "${r.lure}" != independently derived "${expect}"`);
-      if (r.lure === 'correct' && !derivedTargets.includes(i)) fail(id, `step ${k}: labelled correct but is not a target`);
-      if (r.lure !== 'correct' && derivedTargets.includes(i)) fail(id, `step ${k}: target not labelled correct`);
+      if (lureLabel(r) !== expect) fail(id, `step ${k}: label "${lureLabel(r)}" != independently derived "${expect}"`);
+      if (lureLabel(r) === 'correct' && !derivedTargets.includes(i)) fail(id, `step ${k}: labelled correct but is not a target`);
+      if (lureLabel(r) !== 'correct' && derivedTargets.includes(i)) fail(id, `step ${k}: target not labelled correct`);
     });
     // A lure-free block above band 2 would make false alarms uninterpretable.
     if (it.difficulty >= 3) {
@@ -161,7 +162,7 @@ for (const it of items) {
   // ---- 5. reproducibility ----
   const lev = (it.provenance || {}).levers || {};
   try {
-    const regen = buildItem(lev.band, lev.slot);
+    const regen = normalizeBankItem(buildItem(lev.band, lev.slot));
     if (!deepEq(regen, it)) fail(id, 'item is NOT reproducible from provenance.levers (generator drift)');
   } catch (e) { fail(id, `regeneration threw: ${e.message}`); }
   const bandLev = BAND_LEVERS[lev.band];

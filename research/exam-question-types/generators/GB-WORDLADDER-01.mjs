@@ -40,6 +40,7 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { LEXICON_ID, wordsOfLength, bandOf, lexiconHash } from './lexicon-child-en.mjs';
+import { serializeBank } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT = resolve(__dirname, '../banks/GB-WORDLADDER-01.jsonl');
@@ -484,7 +485,7 @@ function main() {
   }
 
   mkdirSync(dirname(OUT), { recursive: true });
-  writeFileSync(OUT, items.map(it => JSON.stringify(it)).join('\n') + '\n');
+  writeFileSync(OUT, serializeBank(items));
   console.log(`[${TYPE_CODE}] wrote ${items.length} items -> ${OUT}`);
   console.log(`[${TYPE_CODE}] lexicon ${LEXICON_ID} hash=${lexiconHash()}`);
   console.log(`[${TYPE_CODE}] solvable by BFS: ${solvable}/${items.length}`);

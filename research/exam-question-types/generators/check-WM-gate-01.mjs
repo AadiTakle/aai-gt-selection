@@ -31,6 +31,7 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { genItem, difficultyFromLevers, paceMsFromPressure, probeCountFromPressure } from './WM-gate-01.mjs';
+import { lureLabel, normalizeBankItem } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/WM-gate-01.jsonl');
@@ -266,11 +267,11 @@ for (const it of items) {
   for (const d of derived) {
     const key = `p${d.probeIndex}.correct`;
     if (!rats[key] || !deepEq(rats[key].keys, d.keys)) fail(id, `${key} != the re-derived answer for that checkpoint`);
-    if (rats[key] && rats[key].lure !== 'correct') fail(id, `${key} is not labelled lure:"correct"`);
+    if (rats[key] && lureLabel(rats[key]) !== 'correct') fail(id, `${key} is not labelled lure:"correct"`);
     const others = Object.entries(rats).filter(([k]) => k.startsWith(`p${d.probeIndex}.`) && k !== key);
     if (!others.length) fail(id, `probe ${d.probeIndex} has no named lure besides "correct"`);
     for (const [k, r] of others) {
-      if (!r || typeof r.lure !== 'string' || !Array.isArray(r.keys) || typeof r.note !== 'string') fail(id, `lure "${k}" malformed`);
+      if (!r || typeof lureLabel(r) !== 'string' || !Array.isArray(r.keys) || typeof r.note !== 'string') fail(id, `lure "${k}" malformed`);
       if (deepEq(r.keys, d.keys)) fail(id, `lure "${k}" is actually the correct answer`);
       if (r.probeIndex !== d.probeIndex) fail(id, `lure "${k}" is filed under the wrong checkpoint`);
     }
@@ -278,7 +279,7 @@ for (const it of items) {
 
   // --- 6. Reproducibility + difficulty derivation.
   try {
-    const regen = genItem({ kMax: lev.kMax, shell: lev.shell, paletteSize: lev.paletteSize, pressure: lev.pressure, seed: it.provenance.seed });
+    const regen = normalizeBankItem(genItem({ kMax: lev.kMax, shell: lev.shell, paletteSize: lev.paletteSize, pressure: lev.pressure, seed: it.provenance.seed }));
     if (!deepEq(regen, it)) fail(id, 'item is NOT reproducible from its provenance (grammar drift)');
   } catch (e) {
     fail(id, `regeneration threw: ${e.message}`);

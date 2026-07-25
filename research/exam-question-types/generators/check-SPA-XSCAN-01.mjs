@@ -25,6 +25,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { lureLabel } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/SPA-XSCAN-01.jsonl');
@@ -236,12 +237,12 @@ for (const it of items) {
   const ratKeys = Object.keys(rats);
   if (ratKeys.length !== optKeys.length || !optKeys.every((k) => ratKeys.includes(k)))
     fail(id, 'distractorRationales do not cover every option key');
-  const correctRats = ratKeys.filter((k) => rats[k] && rats[k].lure === 'correct');
+  const correctRats = ratKeys.filter((k) => rats[k] && lureLabel(rats[k]) === 'correct');
   if (correctRats.length !== 1) fail(id, `expected exactly 1 "correct" rationale, got ${correctRats.length}`);
   else if (correctRats[0] !== ans.correctKey) fail(id, 'the "correct" rationale key != correctKey');
   for (const k of ratKeys) {
     const r = rats[k];
-    if (!r || typeof r.lure !== 'string' || !r.lure) fail(id, `option ${k} has no diagnostic lure label`);
+    if (!r || typeof lureLabel(r) !== 'string' || !lureLabel(r)) fail(id, `option ${k} has no diagnostic lure label`);
     if (typeof r.note !== 'string' || r.note.length < 8) fail(id, `option ${k} lure has no rationale note`);
     const o = opts.find((x) => x.key === k);
     if (!o) continue;

@@ -26,6 +26,7 @@
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { serializeBank } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -473,7 +474,7 @@ if (isMain()) {
   const items = buildBank({ perBin });
   const outPath = resolve(__dirname, '../banks/WM-bind-01.jsonl');
   mkdirSync(dirname(outPath), { recursive: true });
-  writeFileSync(outPath, items.map((it) => JSON.stringify(it)).join('\n') + '\n');
+  writeFileSync(outPath, serializeBank(items));
 
   const bins = Array.from({ length: 20 }, () => 0);
   let min = Infinity;

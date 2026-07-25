@@ -22,6 +22,7 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildItem, SCHEMAS, DEPTH_RANK, OPTION_LURES, EVIDENCE_LURES } from './VER-EVIDENCE-01.mjs';
+import { lureLabel, normalizeBankItem } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/VER-EVIDENCE-01.jsonl');
@@ -177,24 +178,24 @@ for (const it of items) {
   for (const [k, r] of Object.entries(rats)) {
     const isOption = opts.some((o) => o.key === k);
     if (isOption) {
-      if (!OPTION_LURES.has(r.lure)) fail(id, `option ${k}: unknown lure "${r.lure}"`);
+      if (!OPTION_LURES.has(lureLabel(r))) fail(id, `option ${k}: unknown lure "${lureLabel(r)}"`);
       if (r.part !== 'answer') fail(id, `option ${k}: rationale part should be 'answer'`);
-      if (r.lure === 'correct') { nCorrect++; if (k !== ansKey) fail(id, `option ${k} labelled correct but the key is ${ansKey}`); }
-      if (r.lure === 'surface-text-match') {
+      if (lureLabel(r) === 'correct') { nCorrect++; if (k !== ansKey) fail(id, `option ${k} labelled correct but the key is ${ansKey}`); }
+      if (lureLabel(r) === 'surface-text-match') {
         const passageWords = new Set(sents.flatMap((s) => words(s.text)));
         const optWords = words((opts.find((o) => o.key === k) || {}).text || '');
         if (!optWords.some((w) => passageWords.has(w))) fail(id, `option ${k} labelled surface-text-match but shares no wording with the passage`);
       }
     } else {
-      if (!EVIDENCE_LURES.has(r.lure)) fail(id, `sentence ${k}: unknown lure "${r.lure}"`);
+      if (!EVIDENCE_LURES.has(lureLabel(r))) fail(id, `sentence ${k}: unknown lure "${lureLabel(r)}"`);
       if (r.part !== 'evidence') fail(id, `sentence ${k}: rationale part should be 'evidence'`);
-      if (r.lure === 'evidence-correct') { nEvidence++; if (k !== evKey) fail(id, `sentence ${k} labelled evidence-correct but the key is ${evKey}`); }
+      if (lureLabel(r) === 'evidence-correct') { nEvidence++; if (k !== evKey) fail(id, `sentence ${k} labelled evidence-correct but the key is ${evKey}`); }
     }
     if (typeof r.why !== 'string' || r.why.length < 8) fail(id, `rationale ${k} has no usable diagnostic text`);
   }
   if (nCorrect !== 1) fail(id, `${nCorrect} options labelled correct (need exactly 1)`);
   if (nEvidence !== 1) fail(id, `${nEvidence} sentences labelled evidence-correct (need exactly 1)`);
-  if (!Object.entries(rats).some(([, r]) => r.lure === 'plausible-but-unsupported-evidence')) {
+  if (!Object.entries(rats).some(([, r]) => lureLabel(r) === 'plausible-but-unsupported-evidence')) {
     fail(id, 'no strong evidence lure recorded — the evidence step has no near-miss');
   }
   if (!it.scoring.creditWeights || it.scoring.creditWeights.answer + it.scoring.creditWeights.evidence !== 1) {
@@ -203,7 +204,7 @@ for (const it of items) {
 
   // ---- reproducibility ----
   try {
-    const regen = buildItem(Number(it.provenance.seed));
+    const regen = normalizeBankItem(buildItem(Number(it.provenance.seed)));
     if (!deepEq(regen, it)) fail(id, 'item is NOT reproducible from provenance.seed (generator drift)');
   } catch (e) { fail(id, `regeneration threw: ${e.message}`); }
   if (Math.round(it.difficulty) !== it.provenance.levers.band) fail(id, 'round(difficulty) != recorded band');

@@ -54,6 +54,7 @@ import { createHash } from 'node:crypto';
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
+import { serializeBank } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK_PATH = join(__dirname, '..', 'banks', 'GB-FLAWFINDER-01.jsonl');
@@ -474,7 +475,7 @@ function readBankFromDisk() {
 
 function writeBank(items) {
   mkdirSync(dirname(BANK_PATH), { recursive: true });
-  writeFileSync(BANK_PATH, items.map((it) => JSON.stringify(it)).join('\n') + '\n', 'utf8');
+  writeFileSync(BANK_PATH, serializeBank(items), 'utf8');
 }
 
 function printCoverage(report) {

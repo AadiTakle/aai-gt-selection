@@ -19,6 +19,7 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildItem, solveOptimum, feasible, valueOf } from './QUANT-BUILD-01.mjs';
+import { normalizeBankItem } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/QUANT-BUILD-01.jsonl');
@@ -110,7 +111,7 @@ for (const it of items) {
   const ordinal = parseInt((parts[3] || '').replace(/^i/, ''), 10);
   if (!Number.isInteger(rung) || !Number.isInteger(ordinal)) fail(id, 'cannot parse rung/ordinal from seed');
   else {
-    try { const regen = buildItem(masterSeed, rung, ordinal); if (!regen) fail(id, 'regeneration produced null'); else if (!deepEq(regen, it)) fail(id, 'item NOT reproducible from provenance (grammar drift)'); }
+    try { const regen = normalizeBankItem(buildItem(masterSeed, rung, ordinal)); if (!regen) fail(id, 'regeneration produced null'); else if (!deepEq(regen, it)) fail(id, 'item NOT reproducible from provenance (grammar drift)'); }
     catch (e) { fail(id, `regeneration threw: ${e.message}`); }
   }
 }

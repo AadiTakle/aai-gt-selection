@@ -25,6 +25,7 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { genItem, difficultyFromLevers, encodeMsFromPressure, retentionDelayFromPressure } from './WM-bind-01.mjs';
+import { lureLabel, normalizeBankItem } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/WM-bind-01.jsonl');
@@ -181,10 +182,10 @@ for (const it of items) {
   // Named lures: real, distinct, wrong binding maps, re-derived from the replay.
   const rats = ans.distractorRationales || {};
   if (!rats.correct || !mapEq(rats.correct.bindings, reBindings)) fail(id, 'distractorRationales.correct != re-derived bindings');
-  if (rats.correct && rats.correct.lure !== 'correct') fail(id, 'the "correct" entry is not labelled lure:"correct"');
+  if (rats.correct && lureLabel(rats.correct) !== 'correct') fail(id, 'the "correct" entry is not labelled lure:"correct"');
   const sigs = new Set();
   for (const [k, r] of Object.entries(rats)) {
-    if (!r || typeof r.lure !== 'string' || !r.bindings || typeof r.note !== 'string') fail(id, `lure "${k}" malformed`);
+    if (!r || typeof lureLabel(r) !== 'string' || !r.bindings || typeof r.note !== 'string') fail(id, `lure "${k}" malformed`);
     const sig = canon(r.bindings);
     if (sigs.has(sig)) fail(id, `lure "${k}" duplicates another lure's binding map`);
     sigs.add(sig);
@@ -231,9 +232,9 @@ for (const it of items) {
 
   // --- 6. Reproducibility + difficulty derivation.
   try {
-    const regen = genItem({
+    const regen = normalizeBankItem(genItem({
       setSize: lev.setSize, gridSize: lev.gridSize, confusable: lev.confusable, pressure: lev.pressure, seed: it.provenance.seed,
-    });
+    }));
     if (!deepEq(regen, it)) fail(id, 'item is NOT reproducible from its provenance (grammar drift)');
   } catch (e) {
     fail(id, `regeneration threw: ${e.message}`);
