@@ -1,13 +1,19 @@
 # Adaptive Exam Backend — Execution & Verification Status
 
-**Verified 2026-07-24 (worktree `gt-selection-ex-backend`, branch `feat/exam-backend`, base `e57454c`).**
+**Verified 2026-07-24 (worktree `gt-selection-ex-backend`, branch `feat/exam-backend`, base `e57454c`);
+amended 2026-07-25 with the ownership split (§8, D-018).**
 
 This records the first *actual execution* of the adaptive-screener migrations. They were
 written in the previous session but never run; the pgTAP suite was never executed. Everything
 below is a real result from the running local stack, not a design intention.
 
 Serves **R11**. Born-synthetic throughout (`synthetic_only = true`, `validated = false`);
-decision **D-017** remains *Proposed*.
+decisions **D-017** and **D-018** both remain *Proposed*.
+
+> **Reading order note (2026-07-25):** §1–§5 are the 2026-07-24 execution record and are left as
+> written. §6 was a *recommendation*; it has since been implemented as **§8**, which is the
+> current description of how selection, scoring, and storage are divided. Where §6 and §8 differ,
+> §8 is the live behaviour.
 
 ---
 
@@ -230,6 +236,10 @@ No hand-editing is needed. The diff is deterministic and additive.
 
 ## 6. Open design question: ONE source of truth for selection and scoring
 
+> **Superseded 2026-07-25.** This section is the original recommendation, kept as written for the
+> reasoning behind it. It was **implemented** as decision **D-018** (still *Proposed*, still
+> awaiting team-lead ratification) — see **§8** for what actually changed and what was measured.
+
 **This is a recommendation, not a ratified decision. It requires sign-off before anyone acts on
 it, and nothing in `packages/` was changed.**
 
@@ -302,22 +312,27 @@ coherent alternative and the choice is the team's, not mine.
 
 ## 7. Still unreconciled
 
-1. **`pnpm db:types:check` fails** until the `packages/` owner regenerates (§5). Purely additive.
-2. **Single source of truth is unresolved** (§6). Recommendation recorded; no code changed. The
-   app still uses the TS packages and does not call these RPCs at all yet.
+1. ~~**`pnpm db:types:check` fails** until the `packages/` owner regenerates (§5).~~
+   **Partly resolved 2026-07-25.** `packages/db-types/src/database.generated.ts` has been
+   regenerated (purely additive: all 9 `exam_*` RPCs, +65 lines, nothing removed or changed).
+   `db:types:check` still exits non-zero, but **no longer because of type drift** — see §8.6 for
+   the real cause, which is a pnpm warning polluting the check's stdout and originates in
+   `packages/exam-engine/package.json`.
+2. ~~**Single source of truth is unresolved** (§6).~~ **Resolved 2026-07-25 by D-018** — see §8.
+   The database no longer computes a competing outcome, and the stop rule has moved to
+   `packages/exam-engine` where BUILD_PLAN §3 puts it. `apps/web` still does not call these RPCs;
+   the wiring handoff is §8.4.
 3. **The superseded `1200xx` schema is gone from the shared local database** (§1). The
    `gt-selection-adaptive-exam` worktree will conflict if it re-applies.
-4. **The variable-length battery is effectively fixed-length under the shipped default policy.**
-   The stop rule is `attempts >= minItemsPerArea AND (attempts >= maxItemsPerArea OR |delta| <=
-   stableDelta)`. Seeded defaults are `stepSize = 0.8`, `stableDelta = 0.5`, so `|delta|` is 0.8 on
-   a correct answer (more when the item is above the area estimate) and 0.8 on a wrong answer —
-   dropping to 0.4 only when `M-ERRTYPE = 1` (a near miss). The convergence branch is therefore
-   nearly unreachable, and in practice every area runs to `maxItemsPerArea = 8`, i.e. 32 items,
-   capped at `maxItems = 40`. This contradicts BUILD_PLAN §0's "keep asking until there is adequate
-   data." It is a **policy-tuning** issue, not a schema bug — `exam_policy.config` is data — so I
-   did not unilaterally retune it. Either `stableDelta` must exceed `stepSize`, or the stop rule
-   should key off metric coverage and estimate stability (`M-CONSIST`/SE) rather than the magnitude
-   of the last step, which is what §3 actually specifies.
+4. ~~**The variable-length battery is effectively fixed-length under the shipped default
+   policy.**~~ **Resolved 2026-07-25 by D-018** — see §8.2. The diagnosis stands exactly as
+   written: with seeded `stepSize = 0.8` and `stableDelta = 0.5`, `|delta|` was 0.8 on a correct
+   answer and 0.8 on a wrong one (0.4 only on a near miss), so the convergence branch was nearly
+   unreachable and every area ran to `maxItemsPerArea = 8`. Rather than retune a knob, the stop
+   rule was removed from the database entirely, because BUILD_PLAN §3 assigns it to
+   `packages/exam-engine` (metric coverage, `minItemsPerArea`, even spread, estimate stability).
+   `stableDelta`, `minItemsPerArea`, and `maxItemsPerArea` are now dead and have been deleted from
+   the shipped policy; `stepSize` stays because it is still live.
 5. **`model_judge_deferred` items always score 0** and are inert by design (BUILD_PLAN §0 defers the
    judge). Harmless while no such items are seeded; must not be seeded into a live battery until the
    judge exists, or it will depress scores.
@@ -334,6 +349,207 @@ coherent alternative and the choice is the team's, not mine.
 
 ---
 
+---
+
+## 8. The ownership split (2026-07-25, decision D-018, *Proposed*)
+
+**One migration: `supabase/migrations/20260725050000_exam_outcome_ownership.sql`.** It implements
+the §6 recommendation. D-018 in `docs/governance/DECISION_LOG.md` records the decision, the
+alternative, and the reversal; this section records what actually changed and what was measured.
+
+### 8.1 Why a new migration rather than editing the applied ones
+
+The three `202607241300xx` migrations are already applied and recorded in
+`supabase_migrations.schema_migrations` on the shared local instance. Editing an applied file
+desynchronises the ledger from the files, and the only supported way back is `supabase db reset`
+— which §1 explains is unsafe here because one Postgres instance is shared with the teammate's
+running app. A forward migration is the only change that applies cleanly to a database that is
+already live, so that is what this is. **No reset was run; `pnpm db:users` did not need re-running.**
+
+### 8.2 What changed
+
+| | Before | After |
+|---|---|---|
+| Final score | `api.exam_submit_response` auto-called `app.exam_compute_outcome` when its stop rule fired | Nothing auto-computes. `api.exam_record_outcome` stores the `packages/exam-scoring` output **verbatim** |
+| Stop rule | `attempts >= minItemsPerArea and (attempts >= maxItemsPerArea or abs(delta) <= stableDelta)` — convergence branch nearly unreachable | Removed. `packages/exam-engine` owns it (BUILD_PLAN §3). The DB keeps only a runaway guard |
+| Item cap | `maxItems = 40`, indistinguishable from a stop rule | `hardItemCap = 120`, commented as a **safety cap, not a stop decision**, and set above the engine's own cap of 60 so it can never truncate a legitimate battery |
+| Per-area `done` | Set by the DB stop rule | Always `false`; reserved for the engine |
+| Session end | DB closed the session when its rule fired | The app closes it by recording an outcome; the DB force-closes only at the safety cap |
+| Answer keys / verification / trace | DB-owned | **Unchanged** — still DB-owned |
+
+`app.exam_compute_outcome` and the difficulty-stepping logic were **demoted, not deleted**. The
+stepping still runs, because it is the bookkeeping behind the in-database *fallback* selection in
+`api.exam_get_next_item`; that function is now commented as a fallback that must not be mixed with
+engine-driven selection in one session.
+
+**Dead knobs removed** from `exam_policy.config` for `exam-syn-v1`: `minItemsPerArea`,
+`maxItemsPerArea`, `stableDelta`, `maxItems`. Each was read *only* by the deleted stop rule.
+`stepSize = 0.8` **stays** — it is genuinely still live. No live-but-broken rule is left behind.
+
+### 8.3 Storing a score the database did not compute — the audit trail
+
+This is the real risk the split introduces, and it is mitigated inside the same migration rather
+than deferred. `app.exam_session_outcome` gains `outcome_raw` (the verbatim `ExamScore`),
+`scorer_source`, `scorer_version`, `scoring_policy_id`, `scorer_input_hash`, and
+`scorer_input_count`. The typed columns are a projection for querying; `outcome_raw` is the record.
+
+`app.exam_scorer_input_json(session_id)` renders the stored trace as exactly the `ScoredItem[]`
+that `scoreExam` consumes, in administration order. `app.exam_scorer_input_hash(session_id)`
+sha256s its canonical `jsonb::text`. The database computes that hash **itself** at record time —
+it is never client-supplied — so a stored score can always be recomputed from the trace and
+checked. Test 122 assertion 30 re-derives the hash after recording and proves it still matches.
+
+Two further guards: an outcome is refused if the session has no stored responses
+(`PT409 SESSION_HAS_NO_RESPONSES` — an unauditable score cannot be stored), and refused if the
+payload is not `syntheticOnly` (`PT400 SYNTHETIC_ONLY_REQUIRED`).
+
+### 8.4 RPC surface a caller must use
+
+Two RPCs added; one changed its response payload. Signatures, exactly:
+
+```
+api.exam_get_scoring_inputs(p_session_id uuid, p_correlation_id uuid) -> jsonb
+api.exam_record_outcome(
+  p_session_id      uuid,
+  p_outcome         jsonb,   -- the packages/exam-scoring ExamScore, verbatim
+  p_scoring_policy_id text,  -- ^[A-Za-z0-9._-]{1,120}$ (e.g. the ExamPolicy id)
+  p_scorer_version  text,    -- nullable; ^[A-Za-z0-9._+-]{1,120}$
+  p_idempotency_key uuid,
+  p_correlation_id  uuid
+) -> jsonb
+```
+
+`api.exam_submit_response` keeps its 7-argument signature. Its `data` object changed:
+`done` and `outcome` are **gone**; `itemsAdministered`, `hardItemCap`, `hardCapReached`, and
+`stopRuleOwner` are new. `scored` and `session` are unchanged. **`hardCapReached` is not a
+completion signal** — it means the runaway guard fired and something went wrong.
+
+The loop the app must now run:
+
+1. `api.exam_start_session` → session.
+2. Ask **`packages/exam-engine`** for the next item; serve it (or use `api.exam_get_next_item`
+   as a DB-only fallback, never both in one session).
+3. `api.exam_submit_response` → server-verified `correct`/`score`/`metrics`. Feed that into
+   `engine.update`. Stop looping when **`engine.isDone`** says so — not when the database says so.
+4. `api.exam_get_scoring_inputs` → the canonical `items` array and its `inputHash`.
+5. `scoreExam(items, policy)` in `packages/exam-scoring`.
+6. `api.exam_record_outcome(sessionId, examScore, policy.id, scorerVersion, idempotencyKey,
+   correlationId)`. This writes the outcome **and** closes the session.
+7. `api.exam_get_outcome` / `api.exam_get_session_state` read it back; both now return
+   `scorerOutput` (verbatim), `scoredBy`, `scorerInputHash`, and `scorerInputCount`.
+
+Error codes on step 6: `PT409 OUTCOME_ALREADY_RECORDED` (write-once), `PT409
+SESSION_HAS_NO_RESPONSES`, `PT400 SYNTHETIC_ONLY_REQUIRED`, `PT400 VALIDATION_FAILED`,
+`PT404 RESOURCE_NOT_FOUND` (including another operator's session), plus the standard
+`PT409 IDEMPOTENCY_KEY_REUSED`. Replaying the identical request with the same idempotency key
+returns the original payload with `meta.idempotentReplay = true`.
+
+`api.exam_get_outcome`'s `data.complete` now means *an outcome has been recorded*, never *the
+database scored it*. It stays `false` for the whole battery.
+
+### 8.5 Verification (real output, 2026-07-25)
+
+```
+$ pnpm db:test
+... 120_exam_adaptive_backend.test.sql ........... ok
+... 121_exam_answer_key_firewall.test.sql ........ ok
+... 122_exam_outcome_ownership.test.sql .......... ok
+All tests successful.
+Files=15, Tests=306,  1 wallclock secs
+Result: PASS
+```
+
+**306 assertions across 15 files, 0 failures**, up from 274 across 14. The +32:
+
+- **`122_exam_outcome_ownership.test.sql` — new, 30 assertions.** Proves the demotion (the
+  reference scorer still exists, carries a `DEMOTED` comment, and **no `api` RPC body mentions
+  it**), that submitting responses creates a trace and **zero** outcome rows, that an externally
+  computed outcome round-trips exactly, that the recorded hash re-derives from the trace, and the
+  ownership/born-synthetic/write-once/idempotency guards.
+- **`120_exam_adaptive_backend.test.sql` — 44 → 46.** Two added for the new RPCs; the
+  SECURITY DEFINER / owner / `search_path` posture counts went 7 → 9. Three changed meaning
+  rather than being deleted: assertion 38 now asserts the *safety cap* fired rather than a stop
+  rule, and 39/40 now assert that submitting responses produces **no** outcome — the exact
+  inversion of the old behaviour.
+- **`121_exam_answer_key_firewall.test.sql` — 26/26, unchanged and still passing.** The
+  answer-key firewall is untouched by this change: key custody and `app.exam_score_response`
+  stay in the database, which is the whole point of splitting here rather than moving
+  verification into the app tier. Only its fixture policy was edited, to drop the dead knobs.
+
+**Non-vacuity.** Both headline assertions were checked with negative controls, in rolled-back
+transactions:
+
+```
+# perturb the expected verbatim value:
+not ok 20 - the externally computed outcome round-trips EXACTLY (stored verbatim, not re-derived)
+#   have: ... "composite": 12.5 ...
+#   want: ... "composite": 99 ...
+
+# insert an outcome row during the battery (i.e. simulate the old auto-compute):
+not ok 15 - submitting responses creates NO outcome row — the competing score is gone
+#   have: 1
+#   want: 0
+```
+
+```
+$ pnpm db:lint
+Linting schema: app / api / public
+No schema errors found
+{"results":[],"message":"db lint"}
+```
+
+Clean at every level, not just errors.
+
+### 8.6 `db:types` — regenerated; `db:types:check` blocked by something else
+
+`pnpm db:types` was run with Node 24.18.0 on PATH. The diff to
+`packages/db-types/src/database.generated.ts` is **purely additive**: +65 lines covering all nine
+`exam_*` RPCs (the seven from §5 plus `exam_get_scoring_inputs` and `exam_record_outcome`);
+nothing removed or altered.
+
+`pnpm db:types:check` still exits 1, and it is worth being precise about why, because it is **not**
+type drift and **not** the Node version:
+
+```
+$ pnpm exec supabase gen types typescript --local --schema api   # stdout, first line
+packages/exam-engine                     |  WARN  The field "pnpm.onlyBuiltDependencies" was
+found in .../packages/exam-engine/package.json. This will not take effect. You should configure
+"pnpm.onlyBuiltDependencies" at the root of the workspace instead.
+```
+
+`scripts/check-generated-types.ts` compares the committed file byte-for-byte against the **stdout**
+of a spawned `pnpm exec supabase gen types`. pnpm prepends that warning to stdout, so the
+comparison can never match. Strip the 340-character warning and the committed file matches the
+generated output exactly (verified). The fix is one line in
+`packages/exam-engine/package.json` — move `pnpm.onlyBuiltDependencies` to the workspace root, or
+make the check tolerate a pnpm banner — and both files are outside this workstream's edit scope.
+
+### 8.7 How to reverse this
+
+Nothing was dropped, so reversal is additive. See D-018 for the ratified wording; operationally:
+
+1. Re-add `if v_hard_cap_reached then v_outcome := app.exam_compute_outcome(p_session_id); end if;`
+   to `api.exam_submit_response` (or restore the original `v_session_done` variable and rule).
+   `app.exam_compute_outcome` is intact and its comment names this call site.
+2. Restore `minItemsPerArea`, `maxItemsPerArea`, and `stableDelta` to `app.exam_policy.config` —
+   and set `stableDelta` **above** `stepSize`, or the convergence branch is unreachable again.
+3. Optionally revoke `api.exam_record_outcome` from `authenticated`.
+
+Reverting `20260725050000_exam_outcome_ownership.sql` wholesale also works, at the cost of the
+outcome audit columns.
+
+### 8.8 Still open after this change
+
+- The engine-versus-database convergence behaviour has **not** been simulated against the real
+  banks. That an engine-driven battery finishes well below the 120-item guard is a design
+  expectation, not a measurement.
+- `apps/web` does not call any of these RPCs yet (§8.4 is the handoff).
+- The in-database fallback selection in `api.exam_get_next_item` still diverges from the engine's
+  seeded-RNG selection. Demoting it in a comment is not the same as reconciling it; if the two are
+  ever mixed in one session they will produce different traces from identical state.
+
+---
+
 ## Reproducing this verification
 
 From a worktree on `feat/exam-backend`, with the shared stack already running:
@@ -342,10 +558,11 @@ From a worktree on `feat/exam-backend`, with the shared stack already running:
 supabase status                       # confirm the local stack is up
 docker exec -i supabase_db_gt-selection-capstone psql -U postgres -d postgres \
   --single-transaction -v ON_ERROR_STOP=1 -f - < supabase/tools/reconcile_local_exam_schema.sql
-supabase migration up --local         # applies 20260724130000/130100/130200
-supabase test db --local              # expect: Files=14, Tests=274, Result: PASS
+supabase migration up --local         # applies 20260724130000/130100/130200 + 20260725050000
+supabase test db --local              # expect: Files=15, Tests=306, Result: PASS
 supabase db lint --local --schema app,api,public --fail-on error   # expect: No schema errors found
 ```
 
-Note that the repo's `pnpm db:*` scripts require `node_modules`, which this worktree does not have;
-the commands above call the Supabase CLI directly and are equivalent.
+The 2026-07-24 run used the Supabase CLI directly because this worktree had no `node_modules`.
+The 2026-07-25 run installed them (`pnpm install --frozen-lockfile`, Node 24.18.0) and used the
+`pnpm db:*` scripts, which are equivalent.
