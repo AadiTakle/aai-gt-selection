@@ -28,6 +28,20 @@ integer bucket while comfortably passing the real rule. All 44 banks currently p
 
 ### Open defects found this session
 
+0. **THE SCORE DOES NOT SEPARATE ABILITY (product-critical, option in flight on
+   `feat/exam-score-ability`).** Now that the engine converges (D-023), a matched adaptive battery
+   holds every child near the same accuracy by construction, so accuracy no longer carries the
+   ability signal — difficulty reached does. The scorer still brackets on accuracy. Simulated over
+   the real banks at true abilities 3→19, the composite spans only 2.26→11.04, never nears the top
+   of the scale for a maximally able child, and separates true ability 11 from 15 by 0.26 points
+   (6.33 vs 6.59). The engine's own per-area estimates track truth to within ~1.0 the whole way, so
+   **the information is in the trace and the scorer is discarding it.** For a giftedness screener
+   this is the product failing at its one job. The two-stage shape the owner specified (a bracket,
+   then metric refinement inside it) is not the problem and is preserved by the proposed fix; only
+   the bracketing statistic changes. Needs an owner decision because it alters a ratified contract
+   and every reported number — being prepared as a non-default policy mode so nothing is ratified
+   silently.
+
 1. **ANSWER-KEY LEAK (security-critical, fix in flight on `feat/exam-leak-fix`).** Six verbal banks
    put a `lure` label on every option *inside `content`*, with the correct option labelled
    `"lure": "correct"`. Since `ServedItem = BankItem minus {answer, scoring, provenance}`, `content`
