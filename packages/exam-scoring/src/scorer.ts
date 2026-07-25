@@ -2,8 +2,12 @@
  * Deterministic exam scorer (BUILD_PLAN §5).
  *
  * Pipeline, per reasoning area:
- *   1. BRACKET BY ACCURACY  — (difficulty-weighted) accuracy → an ordinal
- *      bracket that fixes a θ span on the [1, 20] scale.
+ *   1. BRACKET — a single ordinal statistic fixes a θ span on the [1, 20]
+ *      scale. Which statistic is `policy.bracketing.mode`:
+ *        - `accuracy` (default): (difficulty-weighted) accuracy over the items
+ *          served, against each bracket's `accuracyMin`.
+ *        - `ability`: the difficulty-adjusted ability fitted from the trace
+ *          (`ability.ts`), against each bracket's θ span.
  *   2. POSITION WITHIN BRACKET — a deterministic weighted average of the
  *      within-bracket metrics (M-DIFFREACH, consistency = inverse M-RTVAR,
  *      M-LEARNRATE, M-ERRTYPE, and any present process/domain metrics) → a
@@ -11,14 +15,18 @@
  *   3. Combine areas into a composite and derive a profile (strengths,
  *      learning rate, consistency).
  *
+ * The two stages are the product-specified shape and both modes keep it: the
+ * bracketing statistic never positions, and the metrics never bracket.
+ *
  * There is NO admit/defer/retry decision. `scoreExam` is a PURE function of
  * `(items, policy)`: no clock, no randomness, no I/O — so a stored trace plus a
  * frozen policy id reproduces the score exactly.
  */
+import { type AbilityFitOptions, deriveAbilityEstimate } from './ability';
 import { DERIVED_METRIC_IDS, deriveAggregateMetrics } from './derived-metrics';
 import type { MetricId } from './metric-ids';
-import type { ExamPolicy, MetricWeight } from './policy';
-import { DEFAULT_EXAM_POLICY } from './policy';
+import type { BracketingMode, ExamPolicy, MetricWeight } from './policy';
+import { DEFAULT_ABILITY_BRACKETING, DEFAULT_EXAM_POLICY } from './policy';
 import {
   type Area,
   type AreaScore,
@@ -69,12 +77,32 @@ function isFiniteNumber(v: unknown): v is number {
 interface AreaAggregate {
   readonly area: Area;
   readonly items: readonly ScoredItem[];
-  /** (Difficulty-weighted) accuracy in [0, 1] used for bracketing. */
+  /** (Difficulty-weighted) accuracy in [0, 1]. Always computed and always reported. */
   readonly accuracy: number;
+  /**
+   * Difficulty-adjusted ability on the [1, 20] scale. Only fitted under `mode: 'ability'`, so the
+   * default path is byte-for-byte the code it always was.
+   */
+  readonly ability: number | null;
   /** Metric id → single aggregated value used for scoring. */
   readonly aggregated: ReadonlyMap<string, number>;
   /** Metric id → number of items that reported it (coverage, informational). */
   readonly coverage: ReadonlyMap<string, number>;
+}
+
+/** `mode` is optional on the policy so that pre-existing policy objects keep their behaviour. */
+function bracketingMode(policy: ExamPolicy): BracketingMode {
+  return policy.bracketing.mode ?? 'accuracy';
+}
+
+function abilityFitOptions(policy: ExamPolicy): AbilityFitOptions {
+  const ability = policy.bracketing.ability ?? DEFAULT_ABILITY_BRACKETING;
+  return {
+    slope: ability.slope,
+    priorSd: ability.priorSd,
+    min: policy.scale.min,
+    max: policy.scale.max,
+  };
 }
 
 const MAX_AGGREGATED_METRICS: ReadonlySet<string> = new Set(['M-DIFFREACH']);
@@ -97,6 +125,13 @@ function aggregateArea(
     accDen += weight;
   }
   const accuracy = accDen > 0 ? clamp(accNum / accDen, 0, 1) : 0;
+
+  // Ability (the alternative bracket driver, D-024). Fitted from the same per-item difficulty and
+  // score the accuracy term reads — no engine state is consulted.
+  const ability =
+    bracketingMode(policy) === 'ability'
+      ? deriveAbilityEstimate(items, abilityFitOptions(policy))
+      : null;
 
   // Collect raw metric values per id. Session-level aggregates are skipped: they are fitted from
   // the trace below, and averaging a per-item emission of one would be meaningless.
@@ -141,28 +176,48 @@ function aggregateArea(
     );
   }
 
-  return { area, items, accuracy, aggregated, coverage };
+  return { area, items, accuracy, ability, aggregated, coverage };
 }
 
 // ---------------------------------------------------------------------------
 // bracketing + within-bracket positioning
 // ---------------------------------------------------------------------------
 
+/**
+ * Stage 1: one ordinal statistic → one bracket.
+ *
+ * `accuracy` mode walks the brackets by their accuracy floors; `ability` mode walks them by their
+ * θ spans, so an area lands in the bracket that contains its fitted ability. Both take the
+ * HIGHEST bracket the statistic clears, and both fall back to the lowest bracket when it clears
+ * none — so a policy whose lowest floor is above the statistic behaves the same either way.
+ *
+ * `ability` falls back to the accuracy rule when the fit returned `null` (an area with no items,
+ * or a degenerate scale/slope). That is a defined-behaviour fallback, not a blend: the two
+ * statistics never both contribute to one bracket.
+ */
 function pickBracket(
-  accuracy: number,
+  agg: AreaAggregate,
   policy: ExamPolicy,
 ): {
   index: number;
   min: number;
   max: number;
 } {
-  const brackets = [...policy.bracketing.brackets].sort((a, b) => a.accuracyMin - b.accuracyMin);
+  const useAbility = bracketingMode(policy) === 'ability' && agg.ability !== null;
+
+  const brackets = [...policy.bracketing.brackets].sort((a, b) =>
+    useAbility ? a.theta.min - b.theta.min : a.accuracyMin - b.accuracyMin,
+  );
   if (brackets.length === 0) {
     return { index: 0, min: policy.scale.min, max: policy.scale.max };
   }
+
   let chosen = brackets[0]!;
   for (const bracket of brackets) {
-    if (accuracy >= bracket.accuracyMin) chosen = bracket;
+    const cleared = useAbility
+      ? (agg.ability as number) >= bracket.theta.min
+      : agg.accuracy >= bracket.accuracyMin;
+    if (cleared) chosen = bracket;
   }
   return { index: chosen.index, min: chosen.theta.min, max: chosen.theta.max };
 }
@@ -207,7 +262,7 @@ function positionWithinBracket(agg: AreaAggregate, policy: ExamPolicy): Position
 }
 
 function scoreArea(agg: AreaAggregate, policy: ExamPolicy): AreaScore {
-  const bracket = pickBracket(agg.accuracy, policy);
+  const bracket = pickBracket(agg, policy);
   const { position, contributions } = positionWithinBracket(agg, policy);
   const proficiency = clamp(
     bracket.min + position * (bracket.max - bracket.min),
@@ -221,6 +276,8 @@ function scoreArea(agg: AreaAggregate, policy: ExamPolicy): AreaScore {
     bracket: bracket.index,
     bracketRange: [bracket.min, bracket.max],
     accuracy: agg.accuracy,
+    // Present only under ability bracketing, so the default output shape is unchanged.
+    ...(agg.ability === null ? {} : { abilityEstimate: agg.ability }),
     positionWithinBracket: position,
     itemsScored: agg.items.length,
     contributions,

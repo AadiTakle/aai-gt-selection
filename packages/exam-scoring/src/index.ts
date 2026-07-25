@@ -17,4 +17,5 @@ export * from './types';
 export * from './metric-registry';
 export * from './policy';
 export * from './derived-metrics';
+export * from './ability';
 export * from './scorer';
