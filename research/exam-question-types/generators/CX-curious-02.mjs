@@ -258,7 +258,7 @@ const SCENES = [
     l: ['Inside an old railway tunnel there is a small garden.', 'Lamps hang from the roof above the plants.'],
     s: [['There is a garden in a tunnel.', 0, ['garden', 'tunnel']], ['The tunnel is old.', 0, ['old', 'tunnel']],
       ['Lamps hang above the plants.', 1, ['Lamps', 'hang', 'plants']], ['The garden is small.', 0, ['small', 'garden']]],
-    u: [['A café serves soup nearby.', ['soup'], 'absent_topic'], ['The plants are dying.', ['dying'], 'unstated_property'], ['The lamps let the plants grow.', ['grow'], 'unstated_cause']],
+    u: [['A cafe serves soup nearby.', ['soup'], 'absent_topic'], ['The plants are dying.', ['dying'], 'unstated_property'], ['The lamps let the plants grow.', ['grow'], 'unstated_cause']],
   },
   {
     n: 'The piano in the rain',
@@ -377,7 +377,7 @@ const SCENES = [
     l: ['Every shelf in the library is packed except the top one.', 'The top shelf has been dusted and is quite bare.'],
     s: [['Most shelves are packed.', 0, ['shelf', 'packed']], ['The top shelf is bare.', 1, ['top', 'shelf', 'bare']],
       ['The top shelf has been dusted.', 1, ['dusted']], ['This is a library.', 0, ['library']]],
-    u: [['A café sits by the door.', ['café'], 'absent_topic'], ['The top shelf is broken.', ['broken'], 'unstated_property'], ['Those books are being repaired.', ['repaired'], 'unstated_cause']],
+    u: [['A cafe sits by the door.', ['cafe'], 'absent_topic'], ['The top shelf is broken.', ['broken'], 'unstated_property'], ['Those books are being repaired.', ['repaired'], 'unstated_cause']],
   },
   {
     n: 'The path under the water',
@@ -446,7 +446,7 @@ export const MAX_LINE_CHARS_LOW = 64;
 
 // Tap-helper nouns for composing questions; derived from the scene text so the
 // helper words can never introduce information the scene does not contain.
-const STOPWORDS = new Set(['the', 'and', 'that', 'with', 'from', 'into', 'this', 'there', 'have', 'been', 'they', 'them', '其', 'each', 'only', 'every', 'much', 'more', 'most', 'some', 'none', 'past', 'over', 'under', 'just', 'about', 'other', 'still', 'their', 'which', 'stands', 'sits']);
+const STOPWORDS = new Set(['the', 'and', 'that', 'with', 'from', 'into', 'this', 'there', 'have', 'been', 'they', 'them', 'each', 'only', 'every', 'much', 'more', 'most', 'some', 'none', 'past', 'over', 'under', 'just', 'about', 'other', 'still', 'their', 'which', 'stands', 'sits']);
 export function focusWordsFor(lines) {
   const seen = [];
   for (const line of lines) {

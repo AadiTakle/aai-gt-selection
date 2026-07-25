@@ -217,6 +217,15 @@ function ideaCount(){
   return seen.size;
 }
 function depthTiers(){const s=new Set();for(const q of questions)if(q.depth)s.add(q.depth);return s;}
+/* A child who types "Why does it glow?" has asked a causal question just as
+   much as one who tapped the Why card, so recover the depth tier from the
+   leading words too. Longest starter first, so "What if" beats "What". */
+function depthFromText(text){
+  const t=' '+text.toLowerCase().replace(/[^a-z ]/g,' ').replace(/\s+/g,' ').trim();
+  const byLen=starters.slice().sort((a,b)=>b.word.length-a.word.length);
+  for(const s of byLen){if(t.startsWith(' '+s.word.toLowerCase()+' '))return s;}
+  return null;
+}
 function planfulness(){
   const pre=actionLog.filter(a=>a.kind!=='submit');
   if(!pre.length)return 0;
@@ -309,9 +318,17 @@ function addEntry(){
   markFirst();
   if(round==='ask'){
     const s=starters.find(x=>x.id===activeStarter);
-    const typed=!s||!text.toLowerCase().startsWith(s.word.toLowerCase());
-    questions.push({text,starterId:typed?null:activeStarter,depth:typed?null:s.depth,typed,t:Date.now()-itemStart});
-    recordAction('add_question',{text});recordEv({kind:'question',text,starterId:typed?null:activeStarter});
+    const usedCard=!!s&&text.toLowerCase().startsWith(s.word.toLowerCase());
+    const from=usedCard?s:depthFromText(text);
+    questions.push({
+      text,
+      starterId:usedCard?activeStarter:null,
+      depth:from?from.depth:null,
+      depthSource:usedCard?'starter_card':(from?'typed_stem':'unclassified'),
+      typed:!usedCard,
+      t:Date.now()-itemStart
+    });
+    recordAction('add_question',{text});recordEv({kind:'question',text,starterId:usedCard?activeStarter:null,depth:from?from.depth:null});
     log(`question: "${text}"`);
   }else{
     const kind=guessIdx===0?'cause':'next';
