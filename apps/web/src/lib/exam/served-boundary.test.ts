@@ -76,6 +76,22 @@ describe('published demo assets', () => {
     }
   });
 
+  /**
+   * D-017 makes reading a required capability and prohibits audio narration, so
+   * no shipped text may tell a child to listen to something that will never
+   * play. Three catalog one-liners survived the audio removal and reached the
+   * generated registry, instructing the child to "hear" a spoken sentence.
+   */
+  it('promises no audio in any child-facing blurb', () => {
+    const audioWording =
+      /\b(hear|hears|heard|listen|listens|spoken|read[- ]aloud|narrat\w*|voice-?over)\b/i;
+    for (const type of EXAM_TYPE_REGISTRY) {
+      expect(type.blurb, `${type.typeCode} blurb promises audio: "${type.blurb}"`).not.toMatch(
+        audioWording,
+      );
+    }
+  });
+
   it('never publishes the raw banks', () => {
     // Some demos fetch `../banks/<CODE>.jsonl` as a standalone fallback. That
     // path resolves to /banks/ from /exam-demos/, so publishing the banks would

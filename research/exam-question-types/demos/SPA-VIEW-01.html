@@ -311,7 +311,9 @@ function submit(){
      stationsSampled:[...sampled],changeCount:M.rev};
   const metrics={'M-RT':rt,'M-RTFIRST':M.firstLat==null?rt:M.firstLat,'M-REV':M.rev,
    'M-EXPLORE':shell==='point_heading'?dialZones.size:sampled.size,'M-ENGAGE':M.blur,'M-RAPIDGUESS':rt<400?1:0};
-  if(shell==='point_heading')metrics['M-VIEWANGRAW']=dialDeg; // signed error needs the key: server-side
+  // The raw dial angle is not a metric and is not registered as one; it already
+  // travels as response.headingDeg, from which the server derives M-VIEWANG
+  // using the target heading it never sends to the client.
   emitEvent('submit',Object.assign({rtMs:rt},shell==='point_heading'?{headingDeg:dialDeg}:{selectedKey:staged}));
   post({type:'result',result:{itemId:current.itemId,typeCode:current.typeCode,domain:current.domain,
    response,metrics,telemetry:itemTelemetry.slice()}});
