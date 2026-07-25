@@ -41,7 +41,7 @@ import { createHash } from 'node:crypto';
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
-import { serializeBank } from './item-shape.mjs';
+import { lureLabel, serializeBank } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK_PATH = join(__dirname, '..', 'banks', 'VER-SENSE-01.jsonl');
@@ -720,13 +720,17 @@ export function validateItems(items) {
     if (key.map((i) => cards[i]).join(' ') !== it.provenance.derivation.trueOrder.join(' ')) {
       errors.push(`${where}: correctKey does not spell the authored sentence`);
     }
-    const correctCount = Object.values(it.answer.distractorRationales).filter((r) => r.lure === 'correct').length;
+    // serializeBank rewrites each rationale's `lure` into the D-020
+    // lureClass/lureDetail pair, so read the label through lureLabel: `.lure`
+    // is undefined for every entry parsed back off disk.
+    const labels = Object.values(it.answer.distractorRationales).map(lureLabel);
+    const correctCount = labels.filter((l) => l === 'correct').length;
     if (correctCount !== 1) errors.push(`${where}: ${correctCount} rationales labelled correct`);
-    if (!Object.values(it.answer.distractorRationales).some((r) => r.lure === 'grammatical-but-absurd')) {
+    if (!labels.some((l) => l === 'grammatical-but-absurd')) {
       errors.push(`${where}: no grammatical-but-absurd rationale recorded (M-LURETYPE)`);
     }
-    for (const r of Object.values(it.answer.distractorRationales)) {
-      if (!LURE_CLASSES.has(r.lure)) errors.push(`${where}: unknown lure class ${r.lure}`);
+    for (const l of labels) {
+      if (!LURE_CLASSES.has(l)) errors.push(`${where}: unknown lure class ${l}`);
     }
   });
 

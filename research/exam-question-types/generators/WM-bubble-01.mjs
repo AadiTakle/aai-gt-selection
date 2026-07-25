@@ -33,7 +33,7 @@ import { createHash } from 'node:crypto';
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
-import { serializeBank } from './item-shape.mjs';
+import { lureLabel, serializeBank } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK_PATH = join(__dirname, '..', 'banks', 'WM-bubble-01.jsonl');
@@ -370,9 +370,13 @@ export function validateItems(items) {
       ch.stream.forEach((_, i) => {
         const k = `${ch.id}:${i}`;
         const r = it.answer.distractorRationales[k];
+        // serializeBank rewrites each rationale's `lure` into the D-020
+        // lureClass/lureDetail pair, so read the label through lureLabel:
+        // `.lure` is undefined for every entry parsed back off disk.
+        const label = lureLabel(r);
         if (!r) errors.push(`${where}: missing rationale ${k}`);
-        else if (r.lure !== lureLabelAt(ch.stream, c.n, i)) errors.push(`${where}: rationale ${k} lure mismatch`);
-        else if (!LURE_CLASSES.has(r.lure)) errors.push(`${where}: rationale ${k} unknown lure class`);
+        else if (label !== lureLabelAt(ch.stream, c.n, i)) errors.push(`${where}: rationale ${k} lure mismatch`);
+        else if (!LURE_CLASSES.has(label)) errors.push(`${where}: rationale ${k} unknown lure class`);
       });
     }
   });
