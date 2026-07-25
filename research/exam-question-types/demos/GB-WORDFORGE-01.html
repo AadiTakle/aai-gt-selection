@@ -5,55 +5,80 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>GB-WORDFORGE-01 · Word Forge</title>
 <style>
-  :root{--bg1:#fff3e6;--bg2:#ffe9f2;--ink:#3a2a1a;--card:#fff;--accent:#ff8a3d;--good:#22b573;--bad:#ff6b6b;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
-  *{box-sizing:border-box} html,body{margin:0;height:100%}
-  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
-  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
+  :root{--bg1:#fff3e6;--bg2:#ffe9f2;--ink:#3a2a1a;--card:#fff;--accent:#ff8a3d;--good:#22b573;--bad:#ff6b6b;
+    --tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box} html,body{margin:0;min-height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:12px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#a08060;text-transform:uppercase;font-weight:700}
-  #howto{max-width:600px;width:100%;background:#fff;border:1px solid #ffd9a8;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #7a5a3a}
+  #howto{max-width:640px;width:100%;background:#fff;border:1px solid #ffd9a8;border-left:5px solid var(--accent);
+    border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #7a5a3a}
   #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
   #howto p{margin:0;font-size:14px;color:#5a4a3a;line-height:1.5}
-  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#ffe9d0;color:#d9701f;border:2px solid #ffcfa6;min-height:30px}
-  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
-  #phasecue[data-phase="scored"]{background:var(--accent);color:#fff;border-color:var(--accent)}
-  #phasecue[data-phase="done"]{background:#ffedd8;color:#9a531f;border-color:#ffcfa6}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;
+    text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#ffe9d0;color:#d9701f;
+    border:2px solid #ffcfa6;min-height:30px}
+  #phasecue[data-phase="waiting"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="forging"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+  #phasecue[data-phase="sent"]{background:#ffedd8;color:#9a531f;border-color:#ffcfa6}
+  #prompt{max-width:640px;width:100%;text-align:center;font-size:15px;font-weight:700;color:#7a4a1a;min-height:22px}
   #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
   #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#a08060}
-  #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #7a5a3a;display:flex;flex-direction:column;align-items:center;gap:16px;max-width:640px;width:100%}
-  #timerbar{width:100%;height:10px;background:#ffe0c2;border-radius:6px;overflow:hidden}
+  #stagecard{background:var(--card);border-radius:26px;padding:20px;box-shadow:0 18px 50px -22px #7a5a3a;
+    display:flex;flex-direction:column;align-items:center;gap:14px;max-width:640px;width:100%}
+  #timerwrap{width:100%;display:flex;align-items:center;gap:10px}
+  #timerbar{flex:1;height:10px;background:#ffe0c2;border-radius:6px;overflow:hidden}
   #timerfill{height:100%;background:linear-gradient(90deg,#ffb15e,#ff8a3d);width:100%;transition:width .2s linear}
+  #timertext{font:700 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:#b8702c;min-width:44px;text-align:right}
   #rack{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
-  .tile{width:46px;height:46px;background:#ffd9a8;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;cursor:pointer;box-shadow:0 4px 0 #e0a860;user-select:none}
-  .tile.used{opacity:.35;cursor:default;box-shadow:none;transform:translateY(3px)}
-  #slot{display:flex;gap:6px;min-height:52px;align-items:center;justify-content:center;background:#fff6ec;border:3px dashed #ffcf9a;border-radius:14px;padding:6px 14px;min-width:220px}
-  .slotletter{width:40px;height:40px;background:#fff;border:2px solid #ffb15e;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800}
-  #shelf{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;min-height:36px}
-  .gem{padding:6px 12px;border-radius:14px;font-size:15px;font-weight:700;color:#fff;background:linear-gradient(135deg,#22b573,#1a8f5a)}
-  .gem.rare{background:linear-gradient(135deg,#b06bff,#7a3dff)}
-  .gem.long{background:linear-gradient(135deg,#ff6bb0,#ff3d8a)}
-  #controls{display:flex;gap:16px;align-items:center}
-  button{font:inherit;border:0;cursor:pointer;border-radius:50%}
-  #enter{width:72px;height:72px;background:var(--accent);color:#fff;font-size:26px;box-shadow:0 10px 24px -8px var(--accent);opacity:.35;pointer-events:none;transition:.2s}
-  #enter.ready{opacity:1;pointer-events:auto;animation:pulse 1.1s infinite}
-  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
-  #clear{width:50px;height:50px;background:#ffe6d0;color:#c06a2a;font-size:20px}
-  #replay{width:50px;height:50px;background:#ffe6d0;color:#c06a2a;font-size:22px}
-  .shake{animation:shake .4s}@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
-  #ghost{position:fixed;left:0;top:0;font-size:40px;pointer-events:none;z-index:60;opacity:0;transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  .tile{width:48px;height:48px;background:#ffd9a8;border-radius:11px;display:flex;align-items:center;
+    justify-content:center;font-size:23px;font-weight:800;cursor:pointer;box-shadow:0 4px 0 #e0a860;
+    user-select:none;-webkit-tap-highlight-color:transparent;transition:.12s}
+  .tile.used{opacity:.32;cursor:default;box-shadow:none;transform:translateY(3px)}
+  #rack.off .tile{opacity:.4;cursor:default}
+  #slot{display:flex;gap:6px;min-height:54px;align-items:center;justify-content:center;background:#fff6ec;
+    border:3px dashed #ffcf9a;border-radius:14px;padding:6px 14px;min-width:240px}
+  #slot .hint{font-size:13px;color:#c49a70;font-weight:600}
+  .slotletter{width:40px;height:40px;background:#fff;border:2px solid #ffb15e;border-radius:9px;display:flex;
+    align-items:center;justify-content:center;font-size:20px;font-weight:800}
+  #shelf{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;min-height:34px;max-width:560px}
+  .forged{padding:5px 11px;border-radius:12px;font-size:14px;font-weight:700;color:#5a4a3a;
+    background:#fff1e0;border:1px solid #ffd2a6}
+  #controls{display:flex;gap:14px;align-items:center}
+  button{font:inherit;border:0;cursor:pointer;border-radius:50%;background:#ffe6d0;color:#c06a2a}
+  #enter{width:72px;height:72px;background:var(--accent);color:#fff;font-size:26px;
+    box-shadow:0 10px 24px -8px var(--accent);opacity:.35;pointer-events:none;transition:.2s}
+  #enter.ready{opacity:1;pointer-events:auto}
+  #clear,#replay{width:50px;height:50px;font-size:21px}
+  #finish{border-radius:12px;padding:10px 18px;font-size:14px;font-weight:800;background:#fff1e0;color:#a3561d}
+  .hotkeys{font-size:11px;color:#bfa084}
+  #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:60;opacity:0;
+    transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
   #ghost.show{opacity:.92}
-  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
-  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
-  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;
+    border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}
+  @keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;
+    flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
   #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
-  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
-  .mrow{display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:baseline}
+  #itemcard{margin:12px 12px 4px;padding:10px;border:1px solid #263056;border-radius:12px}
+  .itemRow{display:flex;justify-content:space-between;color:#9399c0;font-size:11px;padding:2px 0}
+  .itemRow b{color:#cfd3ff}
+  #mode{margin:6px 12px 0;font-size:11px;color:var(--tel-dim)}#mode b{color:#ffd479}
+  #mlist{padding:8px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:104px 1fr;gap:8px;align-items:baseline}
   .mid{color:var(--tel-key);font-weight:700}
-  .mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  .mval{color:#fff;text-align:right;overflow-wrap:anywhere}
+  .mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
   #logwrap{border-top:1px solid #262f52;margin-top:auto}
   #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
-  #log{height:210px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log{height:160px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
   #log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
-  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
+  button:focus-visible,.tile:focus-visible{outline:4px solid #ffbf69;outline-offset:3px}
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:320px}}
 </style>
 </head>
 <body>
@@ -61,154 +86,341 @@
     <div id="badge">GB-WORDFORGE-01 · Word Forge</div>
     <header id="howto">
       <h1>How to use — Word Forge</h1>
-      <p>Tap letters to build a real word, then press the check (<b>✓</b>) to keep it. Make as many words as you can before time runs out — tap <b>⌫</b> to clear.</p>
+      <p>Tap letter tiles to spell a word into the slot, then press the check (<b>&#10003;</b>) to forge it
+      and start the next one. Build as many real words as you can before the timer runs out. A tile can be
+      used again in a different word. Use clear (<b>&#9003;</b>) to empty the slot, or DONE to finish early.</p>
     </header>
-    <div id="phasecue" data-phase="demo">Watch the example</div>
+    <div id="phasecue" data-phase="waiting">Waiting for item</div>
+    <div id="prompt"></div>
     <div id="stagecard">
-      <div id="timerbar"><div id="timerfill"></div></div>
-      <div id="rack"></div>
-      <div id="slot"></div>
+      <div id="timerwrap"><div id="timerbar"><div id="timerfill"></div></div><div id="timertext">&mdash;</div></div>
+      <div id="rack" class="off"></div>
+      <div id="slot"><span class="hint">Tap tiles to spell a word</span></div>
       <div id="shelf"></div>
       <div id="controls">
-        <button id="replay" title="replay demo">↻</button>
-        <button id="clear" title="clear">⌫</button>
-        <button id="enter" title="enter">✓</button>
+        <button id="replay" title="show how again">&#8635;</button>
+        <button id="clear" title="clear the slot">&#9003;</button>
+        <button id="enter" title="forge this word">&#10003;</button>
+        <button id="finish" title="finish this round">DONE</button>
       </div>
-      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+      <div class="hotkeys">type letters on the keyboard &middot; backspace clears &middot; enter forges the word</div>
+      <div id="status" class="neutral">Waiting for an item from the host.</div>
     </div>
   </div>
   <aside id="telemetry">
-    <h3>Live telemetry · per-child</h3>
+    <h3>Live telemetry · per-child (display only)</h3>
+    <div id="itemcard">
+      <div class="itemRow"><span>ITEM</span><b id="i_id">&mdash;</b></div>
+      <div class="itemRow"><span>RACK · MIN LENGTH</span><b id="i_rack">&mdash;</b></div>
+      <div class="itemRow"><span>WORDS FORGED</span><b id="i_words">&mdash;</b></div>
+      <div class="itemRow"><span>SERVED DIFFICULTY</span><b id="i_diff">&mdash;</b></div>
+    </div>
+    <div id="mode">No lexicon ships to the browser. Which words count, and how many were
+      available, are <b>judged server-side</b>; this panel shows production and process signals only.</div>
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
   <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#ff8a3d" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
+/* =====================================================================
+ * GB-WORDFORGE-01 — PURE RENDERER
+ *
+ * Renders a SERVED item (item.content: rack, minWordLength, timeBudgetSec) and reports the
+ * child's RAW production log plus process telemetry. It NEVER generates its own rack and it
+ * NEVER shows correct/incorrect.
+ *
+ * The subtle part for this type: the renderer has NO LEXICON. For a word game, "that is a real
+ * word" IS the answer key, so a shake-on-invalid animation would leak the key on every entry.
+ * Every submission is therefore accepted onto the shelf and written to the attempt log exactly
+ * as typed; the server intersects the log with the rack-derivable word set to compute M-ACC,
+ * M-IDEAFLU, M-VOCABLVL and M-EFF (BUILD_PLAN §2, scoring.mode = 'computed_solver').
+ * M-IDEAFLU reported here is the plain count of DISTINCT SUBMISSIONS — an upper bound the
+ * server replaces with the validated count.
+ *
+ * Embedding protocol (postMessage), source-tagged:
+ *   host -> demo : {source:'gt-exam-host', type:'init',  item:ServedItem}
+ *                  {source:'gt-exam-host', type:'start', tutorial?:bool}
+ *   demo -> host : {source:'gt-exam-demo', type:'ready'}
+ *                  {source:'gt-exam-demo', type:'result',    result:ItemResult}
+ *                  {source:'gt-exam-demo', type:'telemetry', event:TelemetryEvent}
+ *
+ * Standalone (double-click / no host): fetches the bank JSONL if the page is served, else
+ * falls back to inline ServedItems, so the file still runs with no build step and no network.
+ * ===================================================================== */
 const $=s=>document.querySelector(s);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0,last=a=>a[a.length-1];
 
-/* ---------- lexicon (small embedded word bank, frequency-tagged) ---------- */
-const LEXICON=[
- ['CAT',1],['DOG',1],['SUN',1],['RUN',1],['HAT',1],['BAT',1],['RAT',1],['TAN',1],['ANT',1],['NAP',1],
- ['CATS',2],['STAR',2],['ARTS',2],['RATS',2],['TARS',2],['CARS',2],['SCAR',2],['ARCS',2],
- ['STARE',3],['RATES',3],['TEARS',3],['STEAR',0],['TASER',3],['CRATE',3],['TRACE',3],['REACT',3],
- ['CARTS',3],['TRACT',4],['ACTOR',3],['CANTO',4],
-];
-const VALID=new Set(LEXICON.map(w=>w[0]));
-function freqBand(w){const e=LEXICON.find(x=>x[0]===w);return e?e[1]:1;}
-const RACKS={
- 1:'CATSRN', // easy: cat/rat/tan/ant/nap-ish letters (short high-freq)
- 2:'CARSTNE', // medium: adds vocab for star/arts/tears
- 3:'CARSTEIO', // adds actor/canto potential
-};
-function rackFor(level){const key=Math.min(3,Math.max(1,level));return RACKS[key];}
-function timeBudget(level){return Math.max(28,50-level*5);}
+const HOST='gt-exam-host', SELF='gt-exam-demo';
+const embedded=(()=>{try{return window.parent&&window.parent!==window;}catch(_){return true;}})();
+function post(type,extra){if(!embedded)return;try{window.parent.postMessage(Object.assign({source:SELF,type},extra||{}),'*');}catch(_){}}
 
-/* ---------- state ---------- */
-let level=1,maxLevel=1,phase='demo',locked=true;
-let tiles=[],slot=[],usedIdx=new Set(),found=new Set();
-let T={words:[],rt0:0,firstWordT:null,lens:new Set(),roots:new Set(),errs:0,timerId:null,timeLeft:0,itemStart:0,scoredRounds:0,levels:[]};
-function idealFlu(){return T.words.length;}
-function vocabLvl(){if(!T.words.length)return '\u2014';const best=Math.max(...T.words.map(w=>freqBand(w.w)));return ['common','uncommon','rare','very rare'][best]||'common';}
-function rtFirstStr(){return T.firstWordT!=null?`${T.firstWordT} ms`:'\u2014';}
-function flexStr(){return `${T.lens.size} lengths / ${T.roots.size} stems`;}
-function persistStr(){return `${T.errs} invalid tries logged`;}
-function accStr(){return T.words.length+T.errs?`${T.words.length}/${T.words.length+T.errs}`:'\u2014';}
-function learnRate(){return T.scoredRounds?`+${(maxLevel-1)} levels / ${T.scoredRounds} rounds`:'\u2014';}
+/* ---------- per-item state ---------- */
+let item=null,content=null,rack=[],minLen=3,budgetMs=60000;
+let slot=[];              // [{tileIndex, letter}] currently being spelled
+let usedTiles=new Set();  // tile indices consumed by the word in the slot
+let forged=[];            // ordered submissions, exactly as entered
+let locked=true;          // released the moment interaction starts (see startItem)
+let started=false, submitted=false, dirtyBuild=false;
+let timerId=null, endsAt=0;
+const T={t0:0,first:null,clears:0,rt:0,blur:0,cleanBuilds:0,events:[],log:[],lastActivity:0};
+
+/* ---------- worded phase + status (never correct/incorrect) ---------- */
+const PHASE={waiting:'Waiting for item',hint:'Watch the pointer',ready:'Your turn',forging:'Forging',sent:'Words sent'};
+function setCue(k){const el=$('#phasecue');el.dataset.phase=k;el.textContent=PHASE[k];}
+function setStatus(cls,msg){const el=$('#status');el.className=cls;el.textContent=msg;}
+
+/* ---------- telemetry (process + production only; nothing needs a key) ---------- */
+function nowRel(){return Math.max(0,performance.now()-(T.t0||performance.now()));}
+function distinctCount(){return new Set(forged.map(f=>f.word)).size;}
+function distinctLengths(){return new Set(forged.map(f=>f.word.length)).size;}
+function planful(){return forged.length?Math.round(100*T.cleanBuilds/forged.length):0;}
+function latePush(){const cut=budgetMs*(2/3);return forged.filter(f=>f.t>=cut).length;}
 const METERS=[
- {id:'M-ACC',name:'Valid-word rate (valid / all tries)',get:accStr},
- {id:'M-RT',name:'Response time (round total)',get:()=>T.itemStart?`${Date.now()-T.itemStart} ms`:'\u2014'},
- {id:'M-IDEAFLU',name:'Ideational fluency (distinct valid words)',get:idealFlu},
- {id:'M-VOCABLVL',name:'Vocabulary level (rarest word band)',get:vocabLvl},
- {id:'M-RTFIRST',name:'Time to first valid word',get:rtFirstStr},
- {id:'M-FLEX',name:'Flexibility (length/stem variety)',get:flexStr},
- {id:'M-PERSIST',name:'Persistence (invalid attempts)',get:persistStr},
- {id:'M-DIFFREACH',name:'Difficulty reached (rack level)',get:()=>`level ${maxLevel}`},
- {id:'M-LEARNRATE',name:'Learning rate across rounds',get:learnRate},
+ {id:'M-IDEAFLU',name:'Distinct words produced (server validates)',get:()=>String(distinctCount())},
+ {id:'M-PATH',name:'Total entries submitted',get:()=>String(forged.length)},
+ {id:'M-RTFIRST',name:'Time to first word (lexical access)',get:()=>T.first==null?'\u2014':Math.round(T.first)+' ms'},
+ {id:'M-RT',name:'Time used this round',get:()=>T.rt?T.rt+' ms':Math.round(nowRel())+' ms'},
+ {id:'M-PLANFUL',name:'Words built without a clear (%)',get:()=>forged.length?planful()+'%':'\u2014'},
+ {id:'M-REV',name:'Slot clears (revisions)',get:()=>String(T.clears)},
+ {id:'M-PERSIST',name:'Entries in the final third of the round',get:()=>String(latePush())},
+ {id:'M-ENGAGE',name:'Focus losses (tracked, not enforced)',get:()=>String(T.blur)},
+ {id:'M-RAPIDGUESS',name:'Rapid-response flag (tracked)',get:()=>T.rt?(T.first!=null&&T.first<400?'1 \u00b7 rapid':'0'):'\u2014'},
 ];
-function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
-function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});}
-function log(msg){const t=Date.now()-T.itemStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
-const ghost=$('#ghost');function ghostShow(v){ghost.classList.toggle('show',v);}
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>
+  `<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span>`
+  +`<span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});
+  $('#i_words').textContent=`${distinctCount()} distinct / ${forged.length} sent`;}
+function log(msg){const d=document.createElement('div');
+  d.innerHTML=`<span class="t">+${Math.round(nowRel())}ms</span> ${msg}`;
+  const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+function emit(kind,data){const ev=Object.assign({t:Math.round(nowRel()),kind,itemId:item?item.itemId:null},data||{});
+  T.events.push(ev);post('telemetry',{event:ev});}
+
+/* ---------- rendering ---------- */
+function paintRack(){
+  $('#rack').innerHTML=rack.map((c,i)=>
+    `<span class="tile${usedTiles.has(i)?' used':''}" data-i="${i}" tabindex="0">${c}</span>`).join('');
+}
+function paintSlot(){
+  $('#slot').innerHTML=slot.length
+    ? slot.map(s=>`<span class="slotletter">${s.letter}</span>`).join('')
+    : '<span class="hint">Tap tiles to spell a word</span>';
+  $('#enter').classList.toggle('ready',!locked&&!submitted&&slot.length>0);
+}
+function paintShelf(){
+  // Neutral chips only. No rarity colouring, no length bonus, no validity styling — any of
+  // those would tell the child whether the word counted.
+  $('#shelf').innerHTML=forged.map(f=>`<span class="forged">${f.word}</span>`).join('');
+}
+function paintTimer(){
+  if(!started||submitted){return;}
+  const leftMs=Math.max(0,endsAt-performance.now());
+  $('#timerfill').style.width=(100*leftMs/budgetMs)+'%';
+  $('#timertext').textContent=Math.ceil(leftMs/1000)+'s';
+  if(leftMs<=0){clearInterval(timerId);timerId=null;finishRound('timer');}
+}
+
+/* ---------- interaction: every entry is accepted and logged, judged later ---------- */
+function noteFirst(){if(T.first==null&&started){T.first=performance.now()-T.t0;emit('first_action',{ms:Math.round(T.first)});}}
+function tapTile(i){
+  if(locked||submitted||usedTiles.has(i))return;
+  noteFirst();
+  usedTiles.add(i);slot.push({tileIndex:i,letter:rack[i]});
+  emit('tile',{index:i,letter:rack[i]});
+  setCue('forging');
+  paintRack();paintSlot();
+}
+function clearSlot(manual){
+  if(locked||submitted)return;
+  if(manual&&slot.length){T.clears++;dirtyBuild=true;emit('clear',{letters:slot.length});log('slot cleared');}
+  usedTiles.clear();slot=[];
+  paintRack();paintSlot();renderMeters();
+}
+function forgeWord(){
+  if(locked||submitted||!slot.length)return;
+  const word=slot.map(s=>s.letter).join('');
+  const t=Math.round(nowRel());
+  forged.push({word,t,tiles:slot.map(s=>s.tileIndex)});
+  if(!dirtyBuild)T.cleanBuilds++;
+  dirtyBuild=false;
+  T.log.push({t,kind:'submit',word,tiles:slot.map(s=>s.tileIndex)});
+  usedTiles.clear();slot=[];
+  // NEUTRAL acknowledgement only. The renderer has no lexicon and makes no judgement.
+  setStatus('neutral',`Added "${word}". Keep going.`);
+  emit('word',{word,index:forged.length-1});
+  log(`entry ${forged.length}: ${word}`);
+  paintRack();paintSlot();paintShelf();renderMeters();
+}
+function finishRound(endedBy){
+  if(submitted||!started)return;
+  submitted=true;locked=true;
+  clearInterval(timerId);timerId=null;
+  T.rt=Math.round(performance.now()-T.t0);
+  $('#rack').classList.add('off');$('#enter').classList.remove('ready');
+  $('#timerfill').style.width='0%';$('#timertext').textContent='0s';
+  setCue('sent');
+  setStatus('neutral','Words sent. Next puzzle coming up.');   // never correct/incorrect
+  const response={
+    submissions:forged.slice(),          // the FULL ordered production log, exactly as entered
+    attemptLog:T.log.slice(),            // same log with clears interleaved, in order
+    entryCount:forged.length,
+    distinctSubmissions:distinctCount(),
+    clearCount:T.clears,
+    msToFirstWord:T.first==null?null:Math.round(T.first),
+    msUsed:T.rt,
+    endedBy,                             // 'timer' | 'child'
+    focusLosses:T.blur,
+  };
+  const metrics={
+    'M-IDEAFLU':distinctCount(),         // unvalidated production count; server replaces it
+    'M-PATH':forged.length,
+    'M-RT':T.rt,
+    'M-RTFIRST':T.first==null?T.rt:Math.round(T.first),
+    'M-PLANFUL':planful(),
+    'M-REV':T.clears,
+    'M-PERSIST':latePush(),
+    'M-FLEX':distinctLengths(),
+    'M-ENGAGE':T.blur,
+    'M-RAPIDGUESS':(T.first!=null&&T.first<400)?1:0,
+  };
+  const result={itemId:item.itemId,typeCode:item.typeCode,domain:item.domain,response,metrics,telemetry:T.events.slice()};
+  emit('submit',{entries:forged.length,endedBy,msUsed:T.rt});
+  post('result',{result});
+  log(`RESULT emitted \u2192 ${JSON.stringify({entries:forged.length,endedBy,metrics})}`);
+  renderMeters();
+  if(standalone)setTimeout(advanceStandalone,1600);
+}
+
+/* ---------- ghost pointer: teaches the GESTURE, never a word ---------- */
+const ghost=$('#ghost');
+function ghostShow(v){ghost.classList.toggle('show',v);}
 function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
-async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(480);}
-async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(400);}
-
-/* ---------- render ---------- */
-function paintRack(){$('#rack').innerHTML='';tiles.forEach((ch,i)=>{const d=document.createElement('div');d.className='tile'+(usedIdx.has(i)?' used':'');d.textContent=ch;d.dataset.i=i;
-  if(!usedIdx.has(i))d.addEventListener('click',()=>tapTile(i));$('#rack').appendChild(d);});}
-function tileEl(i){return $('#rack').children[i];}
-function paintSlot(){$('#slot').innerHTML=slot.map(ch=>`<div class="slotletter">${ch}</div>`).join('');}
-function paintShelf(){$('#shelf').innerHTML=[...found].map(w=>{const cls=w.length>=5?'gem long':freqBand(w)>=3?'gem rare':'gem';return `<span class="${cls}">${w}</span>`;}).join('');}
-function tapTile(i){if(locked||phase==='demo'||phase==='done')return;
-  usedIdx.add(i);slot.push(tiles[i]);paintRack();paintSlot();$('#enter').classList.toggle('ready',slot.length>=2);}
-function clearSlot(){usedIdx.clear();slot=[];paintRack();paintSlot();$('#enter').classList.remove('ready');}
-function submitWord(){const w=slot.join('');
-  if(w.length>=2 && VALID.has(w) && !found.has(w)){
-    found.add(w);T.words.push({w});T.lens.add(w.length);T.roots.add(w.slice(0,2));
-    if(T.firstWordT==null)T.firstWordT=Date.now()-T.itemStart;
-    setStatus('ok','\u2713 "'+w+'" — nice!');
-    log(`+ "${w}" valid \u2192 gem (${freqBand(w)>=3?'rare':'common'})`);
-    paintShelf();clearSlot();renderMeters();
-  } else {
-    T.errs++;setStatus('no','\u2717 "'+(w||'(empty)')+'" is not a word - try again');log(`\u2717 "${w||'(empty)'}" invalid`);
-    $('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),400);
-    clearSlot();renderMeters();
-  }
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(460);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(360);}
+async function gestureHint(){
+  // Points at the rack, the slot and the check. It spells nothing and taps no tile, so it
+  // cannot hand the child a word.
+  ghostShow(true);await sleep(250);
+  await ghostTo($('#rack .tile'));await ghostTap();
+  await ghostTo($('#slot'));await sleep(150);
+  await ghostTo($('#enter'));await ghostTap();
+  ghostShow(false);await sleep(250);
 }
-function startTimer(seconds,onDone){T.timeLeft=seconds;const total=seconds;
+
+/* ---------- item lifecycle ---------- */
+let startTimer=null,hintShown=false;
+function loadItem(served){
+  item=served;content=served.content;
+  rack=content.rack.slice();minLen=content.minWordLength;
+  budgetMs=Math.max(5,Number(content.timeBudgetSec)||60)*1000;
+  slot=[];usedTiles=new Set();forged=[];
+  locked=true;started=false;submitted=false;dirtyBuild=false;
+  clearInterval(timerId);timerId=null;
+  Object.assign(T,{t0:0,first:null,clears:0,rt:0,blur:0,cleanBuilds:0,events:[],log:[],lastActivity:performance.now()});
+  $('#rack').classList.add('off');
+  paintRack();paintSlot();paintShelf();
+  $('#prompt').textContent=content.prompt||'';
   $('#timerfill').style.width='100%';
-  clearInterval(T.timerId);
-  T.timerId=setInterval(()=>{T.timeLeft-=0.2;const pct=Math.max(0,100*T.timeLeft/total);$('#timerfill').style.width=pct+'%';
-    if(T.timeLeft<=0){clearInterval(T.timerId);onDone();}},200);
+  $('#timertext').textContent=Math.round(budgetMs/1000)+'s';
+  $('#i_id').textContent=(served.itemId||'\u2014').slice(0,8);
+  $('#i_rack').textContent=`${rack.join('')} \u00b7 ${minLen}+`;
+  $('#i_diff').textContent=served.difficulty==null?'\u2014':Number(served.difficulty).toFixed(2)+'/20';
+  $('#log').innerHTML='';
+  setCue('waiting');setStatus('neutral','Get ready.');
+  log(`item ${(served.itemId||'').slice(0,8)} \u00b7 rack ${rack.join('')} \u00b7 min ${minLen} \u00b7 ${Math.round(budgetMs/1000)}s`);
+  renderMeters();
+  clearTimeout(startTimer);
+  // Lenient: begin on our own if the host never sends {type:'start'}.
+  startTimer=setTimeout(()=>{if(!started&&!submitted)startItem(!!(content.scaffold&&content.scaffold.warmup));},500);
+}
+async function startItem(withHint){
+  if(started||submitted||!content)return;
+  started=true;T.t0=performance.now();T.lastActivity=performance.now();
+  emit('start',{});
+  if(withHint&&!hintShown){
+    hintShown=true;
+    setCue('hint');setStatus('neutral','Watch the pointer, then take your turn. The timer starts after this.');
+    await gestureHint();
+    if(submitted)return;
+  }
+  // Release the interaction lock HERE. Setting `locked` on load and forgetting to clear it is
+  // exactly the bug that silently blocked result emission in the old SPA-FOLDNET-01 renderer.
+  locked=false;
+  $('#rack').classList.remove('off');
+  endsAt=performance.now()+budgetMs;
+  T.t0=performance.now();
+  clearInterval(timerId);timerId=setInterval(paintTimer,200);
+  setCue('ready');
+  setStatus('neutral',`Spell a word with the tiles, then press the check. Words need ${minLen} letters or more.`);
+  paintSlot();renderMeters();
 }
 
-/* ---------- flow ---------- */
-const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
-function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
-function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
-function newRound(level_,scored){
-  tiles=rackFor(level_).split('');usedIdx.clear();slot=[];found=new Set();
-  T.firstWordT=null;T.itemStart=Date.now();
-  paintRack();paintSlot();paintShelf();$('#enter').classList.remove('ready');
-  const secs=timeBudget(level_);
-  if(scored) startTimer(secs, ()=>endScoredRound());
-  renderMeters();
+/* ---------- input ---------- */
+$('#rack').addEventListener('click',e=>{const t=e.target.closest('.tile');if(t)tapTile(+t.dataset.i);});
+$('#clear').addEventListener('click',()=>clearSlot(true));
+$('#enter').addEventListener('click',()=>{if($('#enter').classList.contains('ready'))forgeWord();});
+$('#finish').addEventListener('click',()=>finishRound('child'));
+$('#replay').addEventListener('click',()=>{if(started&&!submitted)gestureHint();});
+addEventListener('keydown',e=>{
+  T.lastActivity=performance.now();
+  if(locked||submitted)return;
+  if(e.key==='Backspace'){e.preventDefault();clearSlot(true);return;}
+  if(e.key==='Enter'){e.preventDefault();forgeWord();return;}
+  if(/^[a-zA-Z]$/.test(e.key)){
+    e.preventDefault();
+    const ch=e.key.toUpperCase();
+    const i=rack.findIndex((c,idx)=>c===ch&&!usedTiles.has(idx));
+    if(i>=0)tapTile(i);
+    else setStatus('neutral',`No "${ch}" tile is free. Pick another letter.`);
+  }
+});
+addEventListener('pointerdown',()=>{T.lastActivity=performance.now();});
+addEventListener('blur',()=>{if(started&&!submitted){T.blur++;emit('engagement',{reason:'blur'});renderMeters();}});
+
+/* ---------- host messages ---------- */
+let gotInit=false;
+addEventListener('message',e=>{
+  const d=e.data;if(!d||d.source!==HOST)return;
+  if(d.type==='init'&&d.item){gotInit=true;loadItem(d.item);post('ready');}
+  else if(d.type==='start'){clearTimeout(startTimer);startItem(!!d.tutorial);}
+});
+
+/* ---------- standalone fallback (no host present) ----------
+   Real ServedItems exported from banks/GB-WORDFORGE-01.jsonl. A ServedItem carries no answer,
+   no scoring and no provenance, so nothing here reveals which words the rack affords. */
+const INLINE_SAMPLES=[{"itemId":"163aefe4-f173-4d85-825d-310d584c20f5","typeCode":"GB-WORDFORGE-01","domain":"verbal","difficulty":1,"ageBands":["K-1"],"demoPath":"demos/GB-WORDFORGE-01.html","content":{"typeCode":"GB-WORDFORGE-01","presentation":"word","prompt":"Build as many real words as you can before time runs out. Each word must use 3 letters or more. You may use a tile again in a different word.","rack":["T","G","E","A","R"],"rackSize":5,"minWordLength":3,"timeBudgetSec":75,"tileReuseAcrossWords":true,"tileReuseWithinWord":false,"scaffold":{"warmup":true}},"syntheticOnly":true,"validated":false},{"itemId":"6243aba6-f43e-4436-8044-e337ee2f551e","typeCode":"GB-WORDFORGE-01","domain":"verbal","difficulty":6.69,"ageBands":["2-3"],"demoPath":"demos/GB-WORDFORGE-01.html","content":{"typeCode":"GB-WORDFORGE-01","presentation":"word","prompt":"Build as many real words as you can before time runs out. Each word must use 4 letters or more. You may use a tile again in a different word.","rack":["E","M","R","H","O","T"],"rackSize":6,"minWordLength":4,"timeBudgetSec":62,"tileReuseAcrossWords":true,"tileReuseWithinWord":false,"scaffold":{"warmup":false}},"syntheticOnly":true,"validated":false},{"itemId":"04f2a42e-3241-4bc0-8b6e-9ec3dcc2d01b","typeCode":"GB-WORDFORGE-01","domain":"verbal","difficulty":12.83,"ageBands":["6-8"],"demoPath":"demos/GB-WORDFORGE-01.html","content":{"typeCode":"GB-WORDFORGE-01","presentation":"word","prompt":"Build as many real words as you can before time runs out. Each word must use 5 letters or more. You may use a tile again in a different word.","rack":["E","R","C","P","A","T","E","I"],"rackSize":8,"minWordLength":5,"timeBudgetSec":54,"tileReuseAcrossWords":true,"tileReuseWithinWord":false,"scaffold":{"warmup":false}},"syntheticOnly":true,"validated":false},{"itemId":"c968d337-ca9d-4cbb-94da-5975c984cb86","typeCode":"GB-WORDFORGE-01","domain":"verbal","difficulty":20,"ageBands":["6-8"],"demoPath":"demos/GB-WORDFORGE-01.html","content":{"typeCode":"GB-WORDFORGE-01","presentation":"word","prompt":"Build as many real words as you can before time runs out. Each word must use 5 letters or more. You may use a tile again in a different word.","rack":["G","U","E","D","R","E","L","P"],"rackSize":8,"minWordLength":5,"timeBudgetSec":40,"tileReuseAcrossWords":true,"tileReuseWithinWord":false,"scaffold":{"warmup":false}},"syntheticOnly":true,"validated":false}];
+let standalone=false,queue=[],qi=0;
+function toServed(b){const{answer,scoring,provenance,...s}=b;return s;}
+async function loadSamples(){
+  try{
+    const res=await fetch('../banks/GB-WORDFORGE-01.jsonl',{cache:'no-store'});
+    if(res.ok){
+      const all=(await res.text()).trim().split('\n').filter(Boolean).map(l=>JSON.parse(l)).map(toServed);
+      all.sort((a,b)=>a.difficulty-b.difficulty);
+      const N=Math.min(8,all.length),pick=[];
+      for(let i=0;i<N;i++)pick.push(all[N===1?0:Math.round(i*(all.length-1)/(N-1))]);
+      log('standalone: fetched '+all.length+' bank items; cycling '+pick.length+' across the ramp');
+      return pick;
+    }
+  }catch(_){/* file:// blocks fetch — inline samples below */}
+  log('standalone: bank fetch unavailable (serve the folder for the full bank) — using inline samples');
+  return INLINE_SAMPLES.slice();
 }
-function endScoredRound(){locked=true;
-  const gained=found.size;
-  T.scoredRounds++;
-  if(gained>=2){level=Math.min(3,level+1);} else if(gained===0){level=Math.max(1,level-1);}
-  maxLevel=Math.max(maxLevel,level);
-  log(`— ROUND END: ${gained} words forged \u2192 next level ${level} —`);
-  renderMeters();
-  setTimeout(nextPhase,1400);
+function playStandalone(){loadItem(queue[qi%queue.length]);}
+function advanceStandalone(){qi++;playStandalone();}
+async function bootstrapStandalone(){
+  if(standalone)return;standalone=true;
+  $('#howto').querySelector('p').insertAdjacentHTML('beforeend',' <b>(Standalone preview: cycling built-in sample items.)</b>');
+  queue=await loadSamples();qi=0;playStandalone();
 }
-function nextPhase(){locked=false;
-  if(phase==='warmup'){startScored();}
-  else if(phase==='scored'){T.roundIdx=(T.roundIdx||0)+1;T.roundIdx<5?startScored():finish();}
-}
-function startWarmup(){phase='warmup';locked=false;setCue('warmup');setStatus('neutral','Practice - build any real word, then press \u2713.');newRound(1,false);log('— warm-up (unscored): forge any real word, then tap ✓ —');
-  // unscored warmup ends after first valid word or 15s
-  const chk=setInterval(()=>{if(found.size>0){clearInterval(chk);locked=true;log('warm-up word forged — UNSCORED');setTimeout(nextPhase,900);}},300);
-  setTimeout(()=>{clearInterval(chk);if(phase==='warmup'){locked=true;log('warm-up time up — UNSCORED');nextPhase();}},15000);
-}
-function startScored(){phase='scored';locked=false;setCue('scored',((T.roundIdx||0)+1)+'/5');setStatus('neutral','Build as many real words as you can before time runs out.');newRound(level,true);log(`— SCORED round: rack level ${level}, ${timeBudget(level)}s —`);}
-function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;clearInterval(T.timerId);log(`— DONE · ${idealFlu()} words forged · max level ${maxLevel} —`);}
-async function runDemo(){phase='demo';setCue('demo');setStatus('neutral','Watch the example, then try it yourself.');locked=true;
-  tiles='CATS'.split('');usedIdx.clear();slot=[];found=new Set();T.itemStart=Date.now();
-  paintRack();paintSlot();paintShelf();log('ghost-hand demo (wordless, <10s)');ghostShow(true);await sleep(300);
-  for(const ch of ['C','A','T']){const i=tiles.findIndex((c,idx)=>c===ch&&!usedIdx.has(idx));await ghostTo(tileEl(i));await ghostTap();tapTile(i);}
-  await sleep(150);await ghostTo($('#enter'));await ghostTap();submitWord();await sleep(500);
-  const i=tiles.findIndex((c,idx)=>c==='S'&&!usedIdx.has(idx));await ghostTo(tileEl(i));await ghostTap();tapTile(i);
-  await sleep(150);await ghostTo($('#enter'));await ghostTap();submitWord();await sleep(400);
-  ghostShow(false);await sleep(400);startWarmup();}
-$('#enter').addEventListener('click',()=>{if($('#enter').classList.contains('ready'))submitWord();});
-$('#clear').addEventListener('click',()=>{if(!locked&&phase!=='demo'&&phase!=='done')clearSlot();});
-$('#replay').addEventListener('click',()=>{if(phase!=='demo'){clearInterval(T.timerId);runDemo();}});
-buildMeters();renderMeters();runDemo();
+
+/* ---------- boot ---------- */
+buildMeters();renderMeters();
+post('ready');
+if(!embedded)bootstrapStandalone();
+else setTimeout(()=>{if(!gotInit)bootstrapStandalone();},1000);   // QA-safe if a host embeds but never inits
 </script>
 </body>
 </html>
