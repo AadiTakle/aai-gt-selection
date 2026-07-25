@@ -1,9 +1,56 @@
-# Adaptive Exam — Session 1 Status & Resume Note
+# Adaptive Exam — Status & Resume Note
 
-**Paused 2026-07-24 ~9:30pm.** Kickoff session of the overnight loop. All work lives on
-**`feat/exam-integration`** (off dev `326c9fa`) and its child `feat/exam-*` worktrees.
+**Session 2 in progress (overnight loop resumed 2026-07-24 ~11:40pm).** All work lives on
+**`feat/exam-integration`** and its child `feat/exam-*` worktrees.
 Contract: `docs/architecture/EXAM_ADAPTIVE_BUILD_PLAN.md`. Born-synthetic throughout
 (`synthetic_only=true`, `validated=false`); D-017 remains **Proposed**.
+
+## Session 2 — current state
+
+- **Banks: 44 of 66 types, 5,080 items.** 22 types still unbanked; workers in flight.
+- **`origin/dev` merged in** (teammate's guest-login / hosted-mode / CSP work). Clean merge,
+  `web build` green.
+- **Supabase executed at last.** Migrations applied without a destructive reset; pgTAP is
+  **274/274 across 14 files**, including the previously-unrun 44 exam assertions and a new
+  26-assertion answer-key firewall test that was validated against a deliberate leak.
+- **`db:types:check` unbroken.** It was never real type drift: `packages/exam-engine` carried a
+  stray `pnpm.onlyBuiltDependencies` block, which pnpm honours only at the workspace root, so it
+  did nothing but print a WARN to stdout — and the drift check compares command stdout byte-for-byte
+  against the committed file. Removed.
+
+### Difficulty-coverage rule — stated once, precisely
+
+The rule is a **sliding window two points wide**: for every point `x` in 1..20, the number of items
+with `abs(difficulty - x) <= 1` must be **>= 5**. This is **not** "5 items per integer bucket" — an
+integer bucket is one point wide and strictly harder to satisfy. Several banks sit at 2–3 per
+integer bucket while comfortably passing the real rule. All 44 banks currently pass, worst case 5
+(`SPA-MAZE-01`, at the top of its range). Use `research/exam-question-types/qa/audit_banks.mjs`.
+
+### Open defects found this session
+
+1. **ANSWER-KEY LEAK (security-critical, fix in flight on `feat/exam-leak-fix`).** Six verbal banks
+   put a `lure` label on every option *inside `content`*, with the correct option labelled
+   `"lure": "correct"`. Since `ServedItem = BankItem minus {answer, scoring, provenance}`, `content`
+   ships to the browser, so the answer was readable by any client. Affected: `VER-RELPAIR-01`,
+   `VER-BUILDIT-01`, `VER-POLYSEME-01`, `VER-SEQUENCE-01`, `VER-SORTBOT-01`, `VER-WORDTRAIN-01`.
+   Their `answer.distractorRationales` is also a positional array containing `"correct"`, instead of
+   the contract's keyed object. **Related gap:** `/api/exam-items` strips only *top-level*
+   `answer`/`scoring`/`provenance` and does not sanitise inside `content` — add defence in depth at
+   that boundary regardless of the bank fix.
+2. **15 banked types have no independent checker** — every wave-1/wave-3 type predates the
+   `check-<TYPE>.mjs` discipline, so their answer keys are only as trustworthy as the generator that
+   wrote them: `QUANT-BALANCE-01`, `QUANT-FUNC-01`, `QUANT-MATRIX-01`, `QUANT-SERIES-01`,
+   `SPA-FOLDNET-01`, `SPA-MAZE-01`, `SPA-ROLL-01`, `SPA-SHADOW-01`, `VER-BUILDIT-01`,
+   `VER-CLOZE-01`, `VER-POLYSEME-01`, `VER-RELPAIR-01`, `VER-SEQUENCE-01`, `VER-SORTBOT-01`,
+   `VER-WORDTRAIN-01`. The other 29 checkers all pass.
+3. **The SQL stop rule is broken and is the wrong owner.** `abs(delta) <= stableDelta` with seeded
+   `stepSize 0.8` > `stableDelta 0.5` makes convergence nearly unreachable, silently turning the
+   REQUIRED variable-length battery into a fixed 8-items-per-area one. Note `packages/exam-engine`
+   is *not* affected — it already keys off coverage and estimate stability per §3. Reconciliation in
+   flight: the DB keeps keys/verification/trace, `packages/exam-scoring` owns final scoring.
+4. **`QUANT-GRAPH-01` narrowed to tap-to-choose.** Its spec also describes dragging points and
+   sliding an equality marker, which needs a partial-credit solver that does not exist yet. Expect
+   the same gap on other constructive types.
 
 ## Done this session (all merged into `feat/exam-integration`, validation build green)
 
