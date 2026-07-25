@@ -97,12 +97,12 @@ const REVERSED_FROM_BAND = 5;
 //   (2) syntactic complexity (simple SVO -> modifiers/prep phrase -> relative/embedded clauses)
 //   (3) word frequency       (freq 6-7 K vocabulary -> freq 1 rare/academic) — leveled, NOT the driver
 // Every sentence is authored so ONLY the true order is grammatical + meaningful (its reverse
-// and scrambles are not), keeping the key defensible. K-1 / low-difficulty items use only
+// and scrambles are not), keeping the key defensible. The lowest-difficulty items use only
 // very simple, high-frequency, short words (reading gate, D-017).
 // Each entry: { words: string[] (true order, all distinct), freq }.
 // ---------------------------------------------------------------------------
 const ENTRIES = [
-  // ---- Tier 1: bands 1-4 (K-1) — 3 cars, simple SVO/SV, tiny high-frequency words ----
+  // ---- Tier 1: bands 1-4 (floor of 2-3) — 3 cars, simple SVO/SV, tiny high-frequency words ----
   { words: ['the', 'dog', 'barks'], freq: 6 },
   { words: ['a', 'cat', 'naps'], freq: 6 },
   { words: ['birds', 'can', 'fly'], freq: 6 },
@@ -289,12 +289,18 @@ function difficultyFor(index) {
   const d = Math.min(20, Math.max(1, band + offsets[pos]));
   return Math.round(d * 100) / 100;
 }
+// D-017 raised this type's floor to grade 2, so the catalog declares only
+// [2-3, 4-5, 6-8]. The bottom of the ramp (difficulty < 4) is the easy end of the
+// 2-3 band, not a K-1 band of its own.
 function ageBandsFor(d) {
-  if (d < 4) return ['K-1'];
   if (d < 8) return ['2-3'];
   if (d < 12) return ['4-5'];
   return ['6-8'];
 }
+// Reading gate (D-017). No item carries K-1 any more, but the gate still has to run
+// on the bottom of the ramp: those are the items the weakest reader in the lowest
+// declared band meets first, so they stay short and high-frequency.
+const READING_GATE_MAX_DIFFICULTY = 4;
 const MAX_WORD_LEN_K1 = 8;
 const MIN_FREQ_K1 = 5;
 
@@ -503,12 +509,13 @@ export function validateItems(items) {
       }
     }
 
-    if (Array.isArray(it.ageBands) && it.ageBands.includes('K-1')) {
+    // Reading gate at the floor of the ramp (D-017).
+    if (typeof d === 'number' && d < READING_GATE_MAX_DIFFICULTY) {
       const words = cards.map((e) => e.text);
       const tooLong = words.filter((w) => w.length > MAX_WORD_LEN_K1);
-      if (tooLong.length) errors.push(`${where}: K-1 reading gate — words too long: ${tooLong.join(', ')}`);
+      if (tooLong.length) errors.push(`${where}: reading gate — words too long: ${tooLong.join(', ')}`);
       if (typeof c.frequencyBand === 'number' && c.frequencyBand < MIN_FREQ_K1) {
-        errors.push(`${where}: K-1 reading gate — frequencyBand ${c.frequencyBand} < ${MIN_FREQ_K1}`);
+        errors.push(`${where}: reading gate — frequencyBand ${c.frequencyBand} < ${MIN_FREQ_K1}`);
       }
     }
   });

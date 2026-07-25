@@ -311,9 +311,9 @@ function makeDistractors(rng, ctx) {
 /* ------------------------------------------------------------------ *
  * Assemble a single verified BankItem for a target difficulty rung
  * ------------------------------------------------------------------ */
+// The catalog declares only [2-3, 4-5, 6-8] for this type, so rungs 1-4 are the easy
+// floor of the 2-3 band rather than a K-1 band of their own.
 function ageBandsFor(target) {
-  if (target <= 3) return ['K-1'];
-  if (target === 4) return ['K-1', '2-3'];
   if (target <= 7) return ['2-3'];
   if (target === 8) return ['2-3', '4-5'];
   if (target <= 11) return ['4-5'];

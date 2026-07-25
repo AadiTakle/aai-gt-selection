@@ -15,7 +15,7 @@
 //   4. The accepted-equivalence rule is present and names the lexicon the solver must use.
 //   5. LEAK: `content` carries no word list, no answer set and no lexicon, so the renderer
 //      cannot decide locally whether a submitted string is a word.
-//   6. Reading gate (D-017): K-1 racks are small and afford plenty of band >= 6 words.
+//   6. Reading gate (D-017): floor-of-ramp racks are small and afford plenty of band >= 6 words.
 //   7. Density: difficulty spans 1..20 with >= 5 items in every integer bucket 1..19 (and in
 //      every +/-1 pt band), per BUILD_PLAN §0.
 //
@@ -33,6 +33,9 @@ const DOMAIN = 'verbal';
 const ALLOWED_BANDS = ['K-1', '2-3', '4-5', '6-8'];
 const MIN_PER_BUCKET = 5;
 const MIN_FORGEABLE = 5;      // below this the fluency count stops being a continuous signal
+// D-017 raised this type's floor to grade 2, so no item carries K-1 any more; the
+// reading gate keys off the floor of the difficulty ramp instead of the band.
+const READING_GATE_MAX_LEVEL = 4;
 const K1_MIN_COMMON_WORDS = 6;
 const K1_MAX_RACK = 6;
 
@@ -196,10 +199,10 @@ for (const it of items) {
   }
 
   // ---- 6. reading gate (D-017) ----
-  if (it.ageBands.includes('K-1')) {
-    if (c.rack.length > K1_MAX_RACK) fail(id, `K-1 reading gate: ${c.rack.length}-tile rack`);
+  if (isNum(it.difficulty) && Math.round(it.difficulty) <= READING_GATE_MAX_LEVEL) {
+    if (c.rack.length > K1_MAX_RACK) fail(id, `floor reading gate: ${c.rack.length}-tile rack`);
     const common = derived.filter((v) => v.band >= 6).length;
-    if (common < K1_MIN_COMMON_WORDS) fail(id, `K-1 reading gate: only ${common} band>=6 words available (need >= ${K1_MIN_COMMON_WORDS})`);
+    if (common < K1_MIN_COMMON_WORDS) fail(id, `floor reading gate: only ${common} band>=6 words available (need >= ${K1_MIN_COMMON_WORDS})`);
   }
 }
 

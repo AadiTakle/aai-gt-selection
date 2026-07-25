@@ -25,8 +25,8 @@
 //   (2) minimum ladder length  1 -> 7 rungs (BFS distance)
 //   (3) branching factor       mean neighbourhood size along the optimal path (lower = harder)
 //   (4) lexical rarity         rarest vocabulary band on the optimal path (rarer = harder)
-// Word length + rarity also carry the D-017 reading gate: the K-1 rungs of the ramp are
-// three-letter, high-frequency words a beginning reader can decode.
+// Word length + rarity also carry the D-017 reading gate: the floor rungs of the ramp are
+// three-letter, high-frequency words the weakest reader in the declared band can decode.
 //
 // Governance: born-synthetic. syntheticOnly:true, validated:false. The 1..20 difficulty is a
 // design rung, NOT calibrated IRT, and no live child data was used (RES-012/RES-013).
@@ -219,15 +219,13 @@ const PROFILES = {
 
 // BUILD_PLAN §0 grade mapping. Levels 17-20 are the "above-level / clearly gifted" tail;
 // the AgeBand vocabulary tops out at 6-8, so the tail is tagged 6-8 and flagged in provenance.
+// The catalog declares only [4-5, 6-8] for this type, so levels 1-12 all sit in the
+// 4-5 band: levels 1-8 are its easy floor rather than bands of their own.
 function ageBandsForLevel(L) {
-  if (L <= 4) return ['K-1'];
-  if (L <= 8) return ['2-3'];
   if (L <= 12) return ['4-5'];
   return ['6-8'];
 }
 function targetLabelForLevel(L) {
-  if (L <= 4) return 'K-1';
-  if (L <= 8) return 'grades 2-3';
   if (L <= 12) return 'grades 4-5';
   if (L <= 16) return 'grades 6-8';
   return 'above-level';

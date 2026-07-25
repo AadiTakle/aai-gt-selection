@@ -41,6 +41,9 @@ const OPTION_KEYS = ["picture"];
 const CONTRACT_KEYS = ['itemId', 'typeCode', 'domain', 'difficulty', 'ageBands', 'demoPath',
   'content', 'answer', 'scoring', 'provenance', 'syntheticOnly', 'validated'];
 const MIN_WINDOW_DENSITY = 5;
+// Reading gate (D-017). This type's floor is grade 2, so no item carries K-1 any
+// more; the gate keys off the floor of the difficulty ramp instead of the band.
+const READING_GATE_MAX_DIFFICULTY = 4;
 const MAX_WORD_LEN_K1 = 8;
 const MIN_FREQ_K1 = 5;
 
@@ -140,12 +143,12 @@ for (const it of items) {
     if (lures[ak.correctKey] !== 'correct') fail(id, `correctKey ${ak.correctKey} does not point at the 'correct' lure`);
   }
 
-  // ---- 8. K-1 reading gate (D-017) ----
-  if (Array.isArray(it.ageBands) && it.ageBands.includes('K-1')) {
+  // ---- 8. reading gate at the floor of the ramp (D-017) ----
+  if (isNum(it.difficulty) && it.difficulty < READING_GATE_MAX_DIFFICULTY) {
     const words = [...String(c.sentence || '').toLowerCase().replace(/[^a-z\s]/g, ' ').split(/\s+/).filter(Boolean), ...opts.flatMap((o) => String((o.picture || {}).text || '').toLowerCase().split(/\s+/))];
     const tooLong = words.filter((w) => w && w.length > MAX_WORD_LEN_K1);
-    if (tooLong.length) fail(id, `K-1 reading gate — words too long: ${tooLong.join(', ')}`);
-    if (isNum(c.frequencyBand) && c.frequencyBand < MIN_FREQ_K1) fail(id, `K-1 reading gate — frequencyBand ${c.frequencyBand} < ${MIN_FREQ_K1}`);
+    if (tooLong.length) fail(id, `reading gate — words too long: ${tooLong.join(', ')}`);
+    if (isNum(c.frequencyBand) && c.frequencyBand < MIN_FREQ_K1) fail(id, `reading gate — frequencyBand ${c.frequencyBand} < ${MIN_FREQ_K1}`);
   }
 }
 

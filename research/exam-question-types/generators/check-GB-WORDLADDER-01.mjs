@@ -17,7 +17,7 @@
 //      shortest-ladder count matches an independent DAG count.
 //   5. LEAK: `content` carries no solution field, and nothing in `content` lets a renderer
 //      decide word validity locally (no lexicon, no word list, no neighbour set).
-//   6. Reading gate (D-017): K-1 items use three-letter words whose whole optimal path sits
+//   6. Reading gate (D-017): floor-of-ramp items use three-letter words whose whole optimal path sits
 //      at vocabulary band >= 5.
 //   7. Density: difficulty spans 1..20 with >= 5 items in every integer bucket 1..19 (and in
 //      every +/-1 pt band), per BUILD_PLAN §0.
@@ -36,7 +36,10 @@ const DOMAIN = 'verbal';
 const ALLOWED_BANDS = ['K-1', '2-3', '4-5', '6-8'];
 const MIN_PER_BUCKET = 5;
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-const K1_MIN_BAND = 5;      // matches the K-1 reading gate used by the other verbal generators
+// D-017 / catalog: this type declares only [4-5, 6-8], so no item carries K-1 any
+// more; the reading gate keys off the floor of the difficulty ramp instead of the band.
+const READING_GATE_MAX_LEVEL = 4;
+const K1_MIN_BAND = 5;      // matches the floor reading gate used by the other verbal generators
 const K1_MAX_WORD_LEN = 3;
 
 const failures = [];
@@ -238,10 +241,10 @@ for (const it of items) {
   if (a.pathVocab && a.pathVocab.rarestBand !== Math.min(...bands)) fail(id, 'answer.pathVocab.rarestBand disagrees with the lexicon');
 
   // ---- 6. reading gate (D-017) ----
-  if (it.ageBands.includes('K-1')) {
-    if (len > K1_MAX_WORD_LEN) fail(id, `K-1 reading gate: ${len}-letter words`);
+  if (isNum(it.difficulty) && Math.round(it.difficulty) <= READING_GATE_MAX_LEVEL) {
+    if (len > K1_MAX_WORD_LEN) fail(id, `floor reading gate: ${len}-letter words`);
     const worst = Math.min(...bands);
-    if (worst < K1_MIN_BAND) fail(id, `K-1 reading gate: path contains a band-${worst} word (need >= ${K1_MIN_BAND})`);
+    if (worst < K1_MIN_BAND) fail(id, `floor reading gate: path contains a band-${worst} word (need >= ${K1_MIN_BAND})`);
   }
 }
 

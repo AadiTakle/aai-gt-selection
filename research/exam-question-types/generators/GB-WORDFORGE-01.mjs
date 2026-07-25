@@ -155,22 +155,25 @@ const EIGHTH_TILE_POOL = ['A', 'E', 'I', 'O', 'U', 'R', 'S', 'T', 'L', 'N', 'D',
 
 // BUILD_PLAN §0 grade mapping (levels 17-20 are the above-level tail; the AgeBand vocabulary
 // tops out at 6-8, so the tail is tagged 6-8 and flagged in provenance).
+// D-017 raised this type's floor to grade 2, so the catalog declares only
+// [2-3, 4-5, 6-8] and levels 1-4 are the easy end of the 2-3 band, not a K-1 band.
 function ageBandsForLevel(L) {
-  if (L <= 4) return ['K-1'];
   if (L <= 8) return ['2-3'];
   if (L <= 12) return ['4-5'];
   return ['6-8'];
 }
 function targetLabelForLevel(L) {
-  if (L <= 4) return 'K-1';
   if (L <= 8) return 'grades 2-3';
   if (L <= 12) return 'grades 4-5';
   if (L <= 16) return 'grades 6-8';
   return 'above-level';
 }
 
-// D-017 reading gate at the bottom of the ramp: a K-1 rack must actually be forgeable by a
-// beginning reader — plenty of very common words available, nothing exotic required to score.
+// D-017 reading gate at the bottom of the ramp: the floor racks must actually be forgeable
+// by the weakest reader in the lowest declared band — plenty of very common words available,
+// nothing exotic required to score. Keyed off the ramp level, not the age band: the band no
+// longer marks the floor now that K-1 is gone, but the floor still has to be decodable.
+const READING_GATE_MAX_LEVEL = 4;
 const K1_MIN_COMMON_WORDS = 6;   // words at band >= 6
 const K1_MIN_MEAN_BAND = 4.8;
 const K1_MAX_RACK = 6;
@@ -248,7 +251,7 @@ export function generate() {
   for (let L = 1; L <= 20; L++) {
     const prof = PROFILES[L];
     let pool = candidateRacks(prof.rackSize, prof.minLen, prof.count);
-    if (ageBandsForLevel(L).includes('K-1')) {
+    if (L <= READING_GATE_MAX_LEVEL) {
       pool = pool.filter((c) => c.stats.commonWords >= K1_MIN_COMMON_WORDS
         && c.stats.meanBand >= K1_MIN_MEAN_BAND
         && c.letters.length <= K1_MAX_RACK);

@@ -96,7 +96,7 @@ function assertContentClean(content, where) {
 //   (1) meaning dominance     (target the dominant meaning -> the SUBORDINATE meaning)
 //   (2) context-bias strength (strong -> weak biasing sentence)
 //   (3) word frequency        (freq 6-7 common homographs -> freq 1 rare / heteronyms)
-// K-1 / low-difficulty items use only very simple, high-frequency, short words (reading gate, D-017).
+// The lowest-difficulty items use only very simple, high-frequency, short words (reading gate, D-017).
 //
 // Each entry: { w, s, correct, other, assoc, unrel, freq, tgt, bias }
 //   w       = the homograph (shown; also appears IN the sentence, emphasized in CAPS)
@@ -110,7 +110,7 @@ function assertContentClean(content, where) {
 //   bias    = context-bias strength: 'strong' | 'moderate' | 'weak'    (difficulty note)
 // ---------------------------------------------------------------------------
 const ENTRIES = [
-  // ---- Tier 1: bands 1-4 (K-1) — very common homographs, strong context, tiny words ----
+  // ---- Tier 1: bands 1-4 (floor of 2-3) — very common homographs, strong context, tiny words ----
   { w: 'bat', s: 'The BAT flew out of the dark cave at night.', correct: 'a small animal that can fly', other: 'a wooden bat to hit a ball', assoc: 'a dark rocky cave', unrel: 'a bowl of warm soup', freq: 6, tgt: 'subordinate', bias: 'strong' },
   { w: 'duck', s: 'The DUCK swam on the pond with her babies.', correct: 'a bird that swims on water', other: 'a boy ducking down to hide', assoc: 'a calm blue pond', unrel: 'a red toy car', freq: 6, tgt: 'dominant', bias: 'strong' },
   { w: 'bark', s: 'The dog began to BARK at the mail truck.', correct: 'a dog barking with its mouth open', other: 'the rough bark on a tree trunk', assoc: 'a red mail truck', unrel: 'a slice of cake', freq: 6, tgt: 'dominant', bias: 'strong' },
@@ -261,12 +261,18 @@ function difficultyFor(index) {
   const d = Math.min(20, Math.max(1, band + offsets[pos]));
   return Math.round(d * 100) / 100;
 }
+// D-017 raised this type's floor to grade 2, so the catalog declares only
+// [2-3, 4-5, 6-8]. The bottom of the ramp (difficulty < 4) is the easy end of the
+// 2-3 band, not a K-1 band of its own.
 function ageBandsFor(d) {
-  if (d < 4) return ['K-1'];
   if (d < 8) return ['2-3'];
   if (d < 12) return ['4-5'];
   return ['6-8'];
 }
+// Reading gate (D-017). No item carries K-1 any more, but the gate still has to run
+// on the bottom of the ramp: those are the items the weakest reader in the lowest
+// declared band meets first, so they stay short and high-frequency.
+const READING_GATE_MAX_DIFFICULTY = 4;
 const MAX_WORD_LEN_K1 = 8;
 const MIN_FREQ_K1 = 5;
 
@@ -422,12 +428,13 @@ export function validateItems(items) {
       }
     }
 
-    if (Array.isArray(it.ageBands) && it.ageBands.includes('K-1')) {
+    // Reading gate at the floor of the ramp (D-017).
+    if (typeof d === 'number' && d < READING_GATE_MAX_DIFFICULTY) {
       const words = wordsOf([c.sentence, c.word, ...opts.map((o) => (o.picture && o.picture.text) || '')]);
       const tooLong = words.filter((w) => w.length > MAX_WORD_LEN_K1);
-      if (tooLong.length) errors.push(`${where}: K-1 reading gate — words too long: ${tooLong.join(', ')}`);
+      if (tooLong.length) errors.push(`${where}: reading gate — words too long: ${tooLong.join(', ')}`);
       if (typeof c.frequencyBand === 'number' && c.frequencyBand < MIN_FREQ_K1) {
-        errors.push(`${where}: K-1 reading gate — frequencyBand ${c.frequencyBand} < ${MIN_FREQ_K1}`);
+        errors.push(`${where}: reading gate — frequencyBand ${c.frequencyBand} < ${MIN_FREQ_K1}`);
       }
     }
   });
