@@ -28,6 +28,22 @@ integer bucket while comfortably passing the real rule. All 44 banks currently p
 
 ### Open defects found this session
 
+00. **THE REPORTED SCORE IS NOT COMPUTED FROM THE VERIFIED TRACE (integrity-critical, fix in
+   flight on `feat/exam-score-input`; E-084).** `/api/exam-results` scores `scoreExam(body.scoredItems)`
+   — the trace the *client* posts — and never compares it to `app.exam_item_response`, which the
+   server's own verifier wrote. On real session `3e03558f` the outcome claims spatial accuracy 0.651
+   over 6 items while all 6 persisted spatial responses are `correct=false`; re-scoring the stored
+   trace gives composite **3.737** against the recorded **7.468**. The `scorer_input_hash` matches on
+   re-hash, which is the trap — it is computed from the database, so it certifies the trace has not
+   drifted and says nothing about whether the score came from it. This voids the reproducibility
+   claim stamped on every outcome row, and it is the cheating vector D-027 closed, one tier higher:
+   a client posting `correct: true` at high difficulty is handed the score it asked for. New gate
+   `pnpm exam:reconcile` re-verifies, re-hashes and re-scores a persisted session and exits non-zero
+   on the mismatch. **Every composite recorded before this is fixed is unreproducible**, including
+   the 7.434 in E-081 and the figures in `EXAM_PERSISTENCE_NOTES.md` §4. `/api/exam-submit` is not
+   affected: it takes difficulty from the server bank item, the verdict from the server verifier, and
+   spreads server metrics after `clientMetrics`, so the per-item trace is trustworthy.
+
 0. **THE SCORE DOES NOT SEPARATE ABILITY (product-critical, option in flight on
    `feat/exam-score-ability`).** Now that the engine converges (D-023), a matched adaptive battery
    holds every child near the same accuracy by construction, so accuracy no longer carries the
@@ -169,5 +185,27 @@ integer bucket while comfortably passing the real rule. All 44 banks currently p
   `gt-selection-ex-*` are kept for continuation; clean them up only when the whole task is done.
 - Run the app: `pnpm install` then `pnpm --filter web dev`; take the battery at `/dev/family-preview/exam`
   (or `/family/assessment`).
+- Run it **with the backend connected** — persistence is off unless the environment says otherwise,
+  and without it a battery leaves no trace:
+
+```
+supabase start && pnpm db:users
+set -a && source apps/web/.env.local && set +a     # the integration configs do not read .env.local
+export GT_EXAM_PERSISTENCE_ENABLED=true
+export GT_EXAM_PROCTOR_EMAIL=admissions@example.test
+export GT_EXAM_PROCTOR_PASSWORD='Synthetic-Only-2026!'   # the pnpm db:users fixture password
+pnpm --filter @gt-selection/web dev --port 3400
+```
+
+  Verified live on 2026-07-25 against that setup: a battery driven through the browser UI at
+  `/dev/family-preview/exam` served 8 items with **0 stuck** on the waiting placeholder (the D-027
+  handshake fix holding outside the test harness), no failed `/api/exam-*` call, and persisted a
+  session with 8 responses and 18 telemetry events whose recorded type codes match what the browser
+  displayed. A full 22-item battery through the real route handlers persists 22 responses and 88
+  telemetry events. What is NOT yet trustworthy on that run is the composite — see open defect 00.
+- Check a persisted session: `pnpm exam:reconcile` (latest session), `pnpm exam:reconcile <uuid>`, or
+  `--all`. It re-verifies every stored response against the database's own verifier, re-hashes the
+  trace, and re-scores it through `packages/exam-scoring`, so it fails loudly when a recorded score
+  cannot be derived from the evidence stored beside it.
 - Regenerate/extend a bank: `node research/exam-question-types/generators/<TYPE>.mjs`; validate with the
   matching `check-<TYPE>.mjs`.
