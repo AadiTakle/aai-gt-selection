@@ -37,13 +37,18 @@
  *
  * KEY SAFETY
  * ----------
- * `content` carries the rendered story AND the structured math skeleton (operands,
- * operation tree, step count) exactly as required by the build task, so a checker
- * can recompute the answer independently. `content` never names, flags, orders or
- * labels the correct option, and never stores the answer VALUE. The operation tree
- * is nonetheless *solvable*, so a deployment that does not trust the client should
- * strip `content.math.steps` when projecting BankItem -> ServedItem; the field
- * `provenance.servedStripHint` records that. Scoring stays server-authoritative.
+ * `ServedItem = BankItem minus { answer, scoring, provenance }` (BUILD_PLAN §2), so
+ * EVERYTHING in `content` reaches the browser. `content` therefore carries only what
+ * the renderer draws: the story text, the question, the four option values and the
+ * reading-load metadata. The solvable math skeleton (quantities, operation tree,
+ * answer step) lives in `answer.math`, which is stripped before serving.
+ *
+ * This is deliberate. An earlier revision kept the operation tree in `content.math`
+ * on the grounds that it named no answer and stored no answer VALUE — but the tree
+ * is *evaluable*, so any client could recompute the key without reading the story.
+ * Absence of answer-ish field NAMES is not key safety; non-derivability is. The
+ * checker loses nothing: it reads the full BankItem from the bank file, so it still
+ * re-derives every answer from `answer.math` without trusting `answer.correctKey`.
  *
  * Usage:  node QUANT-WORD-01.mjs [--seed=<str>] [--per=<n>] [--out=<path>]
  * Default: seed "quant-word-01-v1", 11 items per rung x 20 rungs -> 220 items.
@@ -1081,8 +1086,9 @@ function buildItem(masterSeed, rung, ordinal, seenStories) {
     const jitter = (rng.next() - 0.5) * 0.84;
     const difficulty = Math.min(20, Math.max(1, Math.round((rung + jitter) * 100) / 100));
 
-    // content: rendered text + structured skeleton. NOTHING here names, flags,
-    // orders or labels the correct option, and the answer value is never stored.
+    // content = the ServedItem payload: exactly what the renderer draws. It holds
+    // no operation tree, no operand table and no answer value, so the key cannot be
+    // derived from it — the child must build the situation model from the prose.
     const content = {
       typeCode: TYPE_CODE,
       presentation: 'text',                       // D-017: on-screen text, never audio
@@ -1090,18 +1096,22 @@ function buildItem(masterSeed, rung, ordinal, seenStories) {
       storyText,
       storySentences: sentences.slice(),
       question,
-      math: {
-        schema: base.schema,
-        unknownPosition: base.unknownPosition,
-        stepCount: g.steps.length,
-        relationalDepth: base.relationalDepth + extrasCount,
-        quantities: g.quantities.map((q) => ({ id: q.id, value: q.value })),
-        operations: g.steps.map((s) => s.op),
-        steps: g.steps.map((s) => ({ id: s.id, op: s.op, a: s.a, b: s.b })),
-        answerStep,
-      },
       options,
       readingLoad: { ...reading, band: bands[0] },
+    };
+
+    // Server-only solvable skeleton. Lives under `answer` so it is stripped from the
+    // ServedItem, while the validator (which reads whole BankItems) still recomputes
+    // every key from it independently.
+    const math = {
+      schema: base.schema,
+      unknownPosition: base.unknownPosition,
+      stepCount: g.steps.length,
+      relationalDepth: base.relationalDepth + extrasCount,
+      quantities: g.quantities.map((q) => ({ id: q.id, value: q.value })),
+      operations: g.steps.map((s) => s.op),
+      steps: g.steps.map((s) => ({ id: s.id, op: s.op, a: s.a, b: s.b })),
+      answerStep,
     };
 
     seenStories.add(storyText);
@@ -1113,7 +1123,7 @@ function buildItem(masterSeed, rung, ordinal, seenStories) {
       ageBands: bands,
       demoPath: DEMO_PATH,
       content,
-      answer: { correctKey, distractorRationales },
+      answer: { correctKey, math, distractorRationales },
       scoring: { mode: 'deterministic_key' },
       provenance: {
         generator: 'grammar',
@@ -1133,12 +1143,14 @@ function buildItem(masterSeed, rung, ordinal, seenStories) {
           surface: { object: su.obj.p, container: su.cont.p, actors: su.names.slice(0, 2) },
         },
         quantityRoles: g.quantities.map((q) => ({ id: q.id, role: q.role, label: q.label })),
-        servedStripHint: ['content.math.steps'],
         validator: [
           { check: 'unique_answer', status: 'pass', detail: 'operation tree evaluates to exactly one value' },
           { check: 'key_matches_solver', status: 'pass' },
           { check: 'text_matches_structure', status: 'pass', detail: 'printed numerals == declared quantities' },
-          { check: 'no_key_leak', status: 'pass', detail: 'content stores no answer value or option label' },
+          {
+            check: 'no_key_leak', status: 'pass',
+            detail: 'content names no answer field AND carries no operation tree, so the key is not derivable from the ServedItem',
+          },
           { check: 'lure_taxonomy_ok', status: 'pass' },
           {
             check: 'reading_load_ok', status: 'pass',
@@ -1177,12 +1189,19 @@ function main() {
 
   writeFileSync(outPath, items.map((it) => JSON.stringify(it)).join('\n') + '\n', 'utf8');
 
+  // Density contract: a SLIDING WINDOW two points wide. For every point k in 1..20,
+  // the items within +/-1.0 of k must number >= 5. (The per-integer-bin count below
+  // is a stricter one-point-wide bin, reported for information only.)
   const bins = Array.from({ length: 20 }, () => 0);
-  for (const it of items) bins[Math.round(it.difficulty) - 1]++;
+  const bands = Array.from({ length: 20 }, () => 0);
+  for (const it of items) {
+    bins[Math.round(it.difficulty) - 1]++;
+    for (let k = 1; k <= 20; k++) if (Math.abs(it.difficulty - k) <= 1.0) bands[k - 1]++;
+  }
   const schemas = {}, lures = {}, stepHist = {};
   for (const it of items) {
     schemas[it.provenance.schema] = (schemas[it.provenance.schema] || 0) + 1;
-    stepHist[it.content.math.stepCount] = (stepHist[it.content.math.stepCount] || 0) + 1;
+    stepHist[it.answer.math.stepCount] = (stepHist[it.answer.math.stepCount] || 0) + 1;
     for (const r of Object.values(it.answer.distractorRationales)) lures[r.lure] = (lures[r.lure] || 0) + 1;
   }
 
@@ -1190,20 +1209,22 @@ function main() {
   console.log(`items: ${items.length}  (target ${perRung}/rung x 20 rungs)`);
   console.log('\nrung -> made:');
   console.log('  ' + Array.from({ length: 20 }, (_, i) => `${i + 1}:${perRungCount[i + 1]}`).join('  '));
-  console.log('\ninteger difficulty bins (need >=5):');
+  console.log('\n+/-1pt sliding window (CONTRACT, need >=5):');
+  console.log('  ' + bands.map((n, i) => `${i + 1}:${n}`).join('  '));
+  console.log('\ninteger difficulty bins (informational, stricter):');
   console.log('  ' + bins.map((n, i) => `${i + 1}:${n}`).join('  '));
   console.log('\nschemas: ' + JSON.stringify(schemas));
   console.log('step counts: ' + JSON.stringify(stepHist));
   console.log('lure classes: ' + JSON.stringify(lures));
   console.log('unique story texts: ' + seenStories.size);
 
-  const thin = bins.map((n, i) => ({ k: i + 1, n })).filter((b) => b.n < 5);
+  const thin = bands.map((n, i) => ({ k: i + 1, n })).filter((b) => b.n < 5);
   if (thin.length) {
-    console.log(`\nFAIL thin bins (<5): ${thin.map((b) => `${b.k}:${b.n}`).join(', ')}`);
+    console.log(`\nFAIL thin +/-1pt windows (<5): ${thin.map((b) => `${b.k}:${b.n}`).join(', ')}`);
     process.exitCode = 1;
     return;
   }
-  console.log('\nOK: every integer difficulty bin 1..20 holds >=5 items. Run check-QUANT-WORD-01.mjs to validate.');
+  console.log('\nOK: every +/-1pt window around 1..20 holds >=5 items. Run check-QUANT-WORD-01.mjs to validate.');
 }
 
 main();
