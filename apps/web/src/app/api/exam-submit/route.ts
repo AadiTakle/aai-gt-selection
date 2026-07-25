@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 
-import { findBankItem, type RawBankItem } from '@/lib/exam/bank-loader';
-import { verify, type Verdict } from '@/lib/exam/verifiers';
+import { findBankItem } from '@/lib/exam/bank-loader';
+import { verify } from '@/lib/exam/verifiers';
 
 /**
  * Server-authoritative answer verification (BUILD_PLAN §2/§5).
