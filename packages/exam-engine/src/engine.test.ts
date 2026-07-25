@@ -6,12 +6,13 @@ import { NoAvailableItemError, UnknownTypeError } from './errors';
 import { nextItem, nextType } from './selection';
 import { startState } from './state';
 import { buildSyntheticBanks, respondSynthetically, type TrueTheta } from './testing/synthetic-bank';
-import { difficultyDelta, update } from './update';
+import { difficultyDelta, directionReversals, stepSize, update } from './update';
 import {
   AREAS,
   type AgeBand,
   type BankItem,
   type Banks,
+  type ItemObservation,
   type ScoredItem,
   type ServedItem,
 } from './types';
@@ -60,43 +61,184 @@ describe('startState', () => {
   });
 });
 
+/** An area whose trace produced `reversals` direction changes, for step-schedule assertions. */
+function areaWith(difficulty: number, correctness: readonly boolean[]) {
+  return {
+    difficulty,
+    trace: correctness.map<ItemObservation>((correct, i) => ({
+      itemId: `I${i}`,
+      typeCode: 'T',
+      difficulty,
+      score: correct ? 1 : 0,
+      correct,
+      rtMs: null,
+      angularDisparityDeg: null,
+    })),
+  };
+}
+
+describe('stepSize', () => {
+  const cfg = DEFAULT_CONFIG;
+
+  it('starts at initialStep and decays monotonically toward minUpdate', () => {
+    expect(stepSize(0, cfg)).toBeCloseTo(cfg.initialStep, 10);
+
+    let previous = stepSize(0, cfg);
+    for (let reversals = 1; reversals <= 40; reversals++) {
+      const step = stepSize(reversals, cfg);
+      expect(step).toBeLessThan(previous);
+      expect(step).toBeGreaterThanOrEqual(cfg.minUpdate);
+      previous = step;
+    }
+    expect(stepSize(1000, cfg)).toBeCloseTo(cfg.minUpdate, 2);
+  });
+
+  it('crosses the widest seed-to-ability gap the screener must handle inside a few items', () => {
+    // A '4-5' child seeded at 11 whose true ability is 18: while responses stay one-sided there
+    // are no reversals, so the estimate travels at initialStep and covers 7 points in 4 items.
+    const perItem = stepSize(0, cfg);
+    expect(Math.ceil(7 / perItem)).toBeLessThanOrEqual(4);
+  });
+
+  it('holds the full stride for stepBurnInReversals reversals before decaying', () => {
+    const patient = { ...cfg, stepBurnInReversals: 2 };
+    expect(stepSize(0, patient)).toBeCloseTo(cfg.initialStep, 10);
+    expect(stepSize(2, patient)).toBeCloseTo(cfg.initialStep, 10);
+    expect(stepSize(3, patient)).toBeLessThan(cfg.initialStep);
+  });
+
+  it('decays faster for a larger exponent', () => {
+    const slow = stepSize(4, { ...cfg, stepDecayExponent: 0.5 });
+    const fast = stepSize(4, { ...cfg, stepDecayExponent: 2 });
+    expect(fast).toBeLessThan(slow);
+  });
+});
+
+describe('directionReversals', () => {
+  it('counts every place the response direction flips', () => {
+    expect(directionReversals(areaWith(11, []).trace)).toBe(0);
+    expect(directionReversals(areaWith(11, [true, true, true]).trace)).toBe(0);
+    expect(directionReversals(areaWith(11, [true, false, true, false]).trace)).toBe(3);
+    expect(directionReversals(areaWith(11, [true, true, false, false, true]).trace)).toBe(2);
+  });
+});
+
 describe('difficultyDelta', () => {
   const cfg = DEFAULT_CONFIG;
 
-  it('stays within the gradual ±0.4..1.0 band', () => {
+  it('stays within the [minUpdate, maxUpdate] band', () => {
     const samples: ScoredItem['metrics'][] = [{ 'M-ERRTYPE': 0 }, { 'M-ERRTYPE': 1 }];
+    const histories = [[], [true, false, true, false], [true, true, true]] as boolean[][];
     for (const metrics of samples) {
-      for (const est of [1, 5, 10, 15, 20]) {
-        for (const difficulty of [1, 5, 10, 15, 20]) {
-          for (const score of [1, 0]) {
-            const delta = difficultyDelta(est, { score, difficulty, metrics }, cfg);
-            expect(Math.abs(delta)).toBeGreaterThanOrEqual(cfg.minUpdate - 1e-9);
-            expect(Math.abs(delta)).toBeLessThanOrEqual(cfg.maxUpdate + 1e-9);
+      for (const history of histories) {
+        for (const est of [1, 5, 10, 15, 20]) {
+          for (const difficulty of [1, 5, 10, 15, 20]) {
+            for (const score of [1, 0]) {
+              const delta = difficultyDelta(
+                areaWith(est, history),
+                { score, difficulty, metrics },
+                cfg,
+              );
+              expect(Math.abs(delta)).toBeGreaterThanOrEqual(cfg.minUpdate - 1e-9);
+              expect(Math.abs(delta)).toBeLessThanOrEqual(cfg.maxUpdate + 1e-9);
+            }
           }
         }
       }
     }
   });
 
+  it('moves at the full stride while the estimate is still travelling one-sidedly', () => {
+    const climbing = difficultyDelta(
+      areaWith(11, [true, true, true]),
+      { score: 1, difficulty: 11, metrics: {} },
+      cfg,
+    );
+    expect(climbing).toBeCloseTo(cfg.initialStep, 10);
+  });
+
+  it('shrinks the step at the reversal that produces it, not one item later', () => {
+    const history = [true, true, true];
+    const reversing = difficultyDelta(
+      areaWith(11, history),
+      { score: 0, difficulty: 11, metrics: {} },
+      cfg,
+    );
+    expect(Math.abs(reversing)).toBeCloseTo(stepSize(1, cfg), 10);
+    expect(Math.abs(reversing)).toBeLessThan(cfg.initialStep);
+  });
+
+  it('keeps shrinking as reversals accumulate, so a settled area moves finely', () => {
+    const alternating = (n: number) => Array.from({ length: n }, (_, i) => i % 2 === 0);
+    const stepAfter = (n: number) =>
+      Math.abs(
+        difficultyDelta(areaWith(11, alternating(n)), { score: 1, difficulty: 11, metrics: {} }, cfg),
+      );
+
+    expect(stepAfter(8)).toBeLessThan(stepAfter(2));
+    // Finer than the fixed 0.4 floor this schedule replaced: tail precision improves, not degrades.
+    expect(stepAfter(16)).toBeLessThan(0.4);
+  });
+
   it('raises the estimate more for a hard item answered correctly than an easy one', () => {
-    const hardRight = difficultyDelta(3, { score: 1, difficulty: 18, metrics: {} }, cfg);
-    const easyRight = difficultyDelta(10, { score: 1, difficulty: 2, metrics: {} }, cfg);
+    const hardRight = difficultyDelta(areaWith(3, []), { score: 1, difficulty: 18, metrics: {} }, cfg);
+    const easyRight = difficultyDelta(areaWith(10, []), { score: 1, difficulty: 2, metrics: {} }, cfg);
     expect(hardRight).toBeGreaterThan(0);
     expect(easyRight).toBeGreaterThan(0);
     expect(hardRight).toBeGreaterThan(easyRight);
   });
 
   it('lowers the estimate more for an easy item answered wrong than a hard one', () => {
-    const easyWrong = difficultyDelta(15, { score: 0, difficulty: 3, metrics: {} }, cfg);
-    const hardWrong = difficultyDelta(3, { score: 0, difficulty: 18, metrics: {} }, cfg);
+    const easyWrong = difficultyDelta(areaWith(15, []), { score: 0, difficulty: 3, metrics: {} }, cfg);
+    const hardWrong = difficultyDelta(areaWith(3, []), { score: 0, difficulty: 18, metrics: {} }, cfg);
     expect(easyWrong).toBeLessThan(0);
     expect(hardWrong).toBeLessThan(0);
     expect(easyWrong).toBeLessThan(hardWrong); // more negative
   });
 
+  it('reduces to the pre-D-021 fixed-step rule when the schedule is flattened', () => {
+    // Setting `initialStep` equal to `minUpdate` removes the decay, and a `surpriseGain` of 1.5
+    // makes surprise span 0.4..1.0 — exactly `magnitude = 0.4 + 0.6 * surprise`. The schedule
+    // therefore GENERALISES the old rule rather than replacing it, which is the reversal path
+    // recorded in the decision log: no code needs to be reverted to restore the old behaviour.
+    const legacy = { ...cfg, minUpdate: 0.4, maxUpdate: 1.0, initialStep: 0.4, surpriseGain: 1.5 };
+    const history = [true, false, true, false, true];
+
+    for (const est of [1, 5, 11, 15, 20]) {
+      for (const difficulty of [1, 5, 11, 15, 20]) {
+        for (const nearMiss of [0, 0.5, 1]) {
+          for (const score of [1, 0]) {
+            const surprise = Math.min(
+              1,
+              Math.max(0, (score >= 0.5 ? difficulty - est : est - difficulty) / 19),
+            );
+            const raw = 0.4 + 0.6 * surprise;
+            const expected =
+              score >= 0.5 ? raw : -(0.4 + (raw - 0.4) * (1 - cfg.nearMissSoften * nearMiss));
+
+            const delta = difficultyDelta(
+              areaWith(est, history),
+              { score, difficulty, metrics: { 'M-ERRTYPE': nearMiss } },
+              legacy,
+            );
+            expect(delta).toBeCloseTo(expected, 10);
+          }
+        }
+      }
+    }
+  });
+
   it('softens the downward step for an M-ERRTYPE near-miss', () => {
-    const randomMiss = difficultyDelta(15, { score: 0, difficulty: 3, metrics: { 'M-ERRTYPE': 0 } }, cfg);
-    const nearMiss = difficultyDelta(15, { score: 0, difficulty: 3, metrics: { 'M-ERRTYPE': 1 } }, cfg);
+    const randomMiss = difficultyDelta(
+      areaWith(15, []),
+      { score: 0, difficulty: 3, metrics: { 'M-ERRTYPE': 0 } },
+      cfg,
+    );
+    const nearMiss = difficultyDelta(
+      areaWith(15, []),
+      { score: 0, difficulty: 3, metrics: { 'M-ERRTYPE': 1 } },
+      cfg,
+    );
     expect(nearMiss).toBeLessThan(0);
     expect(nearMiss).toBeGreaterThan(randomMiss); // less negative = softened
   });

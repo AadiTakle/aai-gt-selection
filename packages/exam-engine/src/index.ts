@@ -8,7 +8,13 @@
 // Engine functions
 export { startState } from './state';
 export { nextType, nextItem, toServedItem } from './selection';
-export { update, difficultyDelta, toObservation } from './update';
+export {
+  update,
+  difficultyDelta,
+  directionReversals,
+  stepSize,
+  toObservation,
+} from './update';
 export { isDone, areaMetricsCovered, areaEstimateStable, coverageIsEven } from './done';
 export { replaySession } from './replay';
 

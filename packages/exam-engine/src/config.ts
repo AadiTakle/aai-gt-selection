@@ -108,14 +108,28 @@ export const CORE_METRICS: CoreMetricSpec[] = [
   { id: 'M-IDEAFLU', scope: 'open_ended', minSamples: 3, enforced: false, kind: 'observed' },
 ];
 
-/** Default, tunable engine configuration. */
+/**
+ * Default, tunable engine configuration.
+ *
+ * Step-schedule defaults (`initialStep`, `minUpdate`, `stepDecayExponent`, `stepBurnInReversals`,
+ * `surpriseGain`) are sized against the 1..20 difficulty scale and the grade-band seeds above:
+ * `initialStep` 2.0 crosses the widest seed-to-ability gap the screener must handle (a '4-5'
+ * child seeded at 11 whose true ability is 18, or 1) inside about four items per area, while the
+ * `minUpdate` asymptote of 0.25 is finer than the 0.4 fixed floor it replaces, so the tail of the
+ * scale is measured MORE precisely, not less. Every one of these is a policy knob, not a constant:
+ * see `docs/governance/DECISION_LOG.md` D-021.
+ */
 export const DEFAULT_CONFIG: EngineConfig = {
   seed: 0xc0ffee,
   difficultyWindow: 3,
   accWindowSize: 10,
   estWindowSize: 10,
-  minUpdate: 0.4,
-  maxUpdate: 1.0,
+  minUpdate: 0.25,
+  maxUpdate: 3.0,
+  initialStep: 2.0,
+  stepDecayExponent: 1.0,
+  stepBurnInReversals: 0,
+  surpriseGain: 1.0,
   nearMissSoften: 0.5,
   evenSpreadTolerance: 2,
   minItemsPerArea: 6,
