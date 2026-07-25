@@ -86,20 +86,22 @@ integer bucket while comfortably passing the real rule. All 44 banks currently p
 ## Remaining (overnight-loop backlog)
 
 1. ~~**Scale banks to the remaining 50 types**~~ — **done.** All 66 types have a bank.
-2. ~~**Wire the additional banked types into the app**~~ — **done, partially.** `scripts/sync-exam-demos.mjs`
+2. ~~**Wire the additional banked types into the app**~~ — **done.** `scripts/sync-exam-demos.mjs`
    (`pnpm exam:sync`) now generates `apps/web/src/lib/exam/registry.generated.ts` from the banks and
    demos on disk, and is the single source for the served pool, the submit dispatch, and the runner's
-   metadata. **33 of 66 types are served** (fluid 8 · verbal 9 · quantitative 11 · spatial 5).
+   metadata. **62 of 66 types are served** (fluid 12 · verbal 16 · quantitative 12 · spatial 22).
    Adding a bank plus a protocol-compliant demo and re-running the sync is all a new type needs.
-3. **Write the 32 missing server verifiers — the one thing blocking full coverage.** The sync refuses
-   to wire a type whose response no verifier can grade, because serving one would score every child 0
-   and drag the adaptive difficulty estimate down. All 32 blocked types are blocked for exactly this
-   reason; none is blocked on the postMessage protocol. They are constructed-response tasks (a maze
-   path, a pipe-rotation state, a tangram placement set, an n-back tap stream) whose banks already
-   ship a reference solution to validate a verifier against. Add them to
+3. ~~**Write the missing server verifiers**~~ — **done.** 30 per-type verifiers now live in
    `apps/web/src/lib/exam/verifiers/{fluid,verbal,quantitative,spatial}.ts`, keyed by `typeCode`.
-   Where several solutions are valid, `correct` must mean "a valid solution" with efficiency in a
-   metric — grading against the stored optimum would mark correct children wrong.
+   Where several solutions are valid, `correct` means "a valid solution" with efficiency carried in a
+   metric, because grading against the stored optimum would mark correct children wrong.
+   Two independent gates decide servability, and they must stay independent: a type is served only if
+   it has a verifier **and** is absent from `research/exam-question-types/qa/NOT_SERVABLE.json`.
+   Writing a verifier for a type makes it gradeable, not safe — conflating the two silently put the
+   leaking `CX-achieve-02` into the served registry once (E-077).
+   The remaining 4 are blocked deliberately: `CX-achieve-02` (proven leak, E-076), `CX-diverge-01`
+   and `CX-figural-01` (no deterministic correctness; judge-deferred per E-072), and `SPA-VIEW-01`
+   (bank carries two scoring rules, in progress).
 4. **Execute Supabase** (`supabase start`, run migrations + pgTAP) and swap the in-memory results
    store for the real `api.exam_*` RPCs. `apps/web` does not yet call the exam RPCs at all. One
    source of truth is settled by D-019: the DB stores and verifies, `packages/exam-scoring` scores.
