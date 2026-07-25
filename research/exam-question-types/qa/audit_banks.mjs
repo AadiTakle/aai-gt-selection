@@ -72,7 +72,11 @@ const DOMAINS = ['fluid_reasoning', 'verbal', 'quantitative', 'spatial'];
 const AGE_BANDS = ['K-1', '2-3', '4-5', '6-8'];
 const SCORING_MODES = ['deterministic_key', 'computed_solver', 'proxy_bank', 'model_judge_deferred'];
 const GENERATOR_KINDS = ['grammar', 'llm', 'human'];
-const TYPE_CODE_RE = /^[A-Z]+-[A-Z0-9]+-\d+$/;
+// The middle segment is lowercase in a legitimate minority of the roster
+// (CX-sjt-01, WM-bind-01, WM-gridflash-01, ...), so it must not be [A-Z0-9] only:
+// that rejected every item of those banks and was the single largest source of
+// schema FAILs in this audit.
+const TYPE_CODE_RE = /^[A-Z]+-[A-Za-z0-9]+-\d+$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 /** Answer-key vocabulary (contracts `lureClassSchema`) — must not reach `content`. */
@@ -552,13 +556,26 @@ function resolveOptions(item) {
   const content = item?.content;
   if (!content || typeof content !== 'object') return { kind: 'none', reason: 'content is not an object' };
 
-  const isKeyedArray = (v) =>
-    Array.isArray(v) && v.length >= 2 && v.every((e) => e && typeof e === 'object' && !Array.isArray(e) && 'key' in e);
+  // Banks name the option's key field `key` or `id` interchangeably. Treating an
+  // `{id, text}` option list as positional made every string key ("a1") look
+  // like it matched no option, and made the lure lookup miss, which in turn
+  // produced a false "every distractor carries the same lure label" verdict on
+  // banks that do carry distinct lure classes.
+  //
+  // `id` only counts inside `content.options`. Elsewhere it is far too loose:
+  // many types carry unrelated `{id, ...}` arrays of pieces, nodes or jars, and
+  // accepting those as an option list makes a legitimate `correctKey` look like
+  // it matches no option.
+  const keyFieldOf = (e, allowId) => (e && typeof e === 'object' && !Array.isArray(e)
+    ? ('key' in e ? 'key' : allowId && 'id' in e ? 'id' : null)
+    : null);
+  const isKeyedArray = (v, allowId = false) =>
+    Array.isArray(v) && v.length >= 2 && v.every((e) => keyFieldOf(e, allowId) !== null);
   const isObjectArray = (v) =>
     Array.isArray(v) && v.length >= 2 && v.every((e) => e && typeof e === 'object' && !Array.isArray(e));
 
-  if (isKeyedArray(content.options)) {
-    return { kind: 'keyed', field: 'options', options: content.options, keys: content.options.map((o) => o.key) };
+  if (isKeyedArray(content.options, true)) {
+    return { kind: 'keyed', field: 'options', options: content.options, keys: content.options.map((o) => o[keyFieldOf(o, true)]) };
   }
   if (isObjectArray(content.options)) {
     return {
@@ -571,7 +588,7 @@ function resolveOptions(item) {
   for (const [name, value] of Object.entries(content)) {
     if (name === 'options') continue;
     if (isKeyedArray(value)) {
-      return { kind: 'keyed', field: name, options: value, keys: value.map((o) => o.key) };
+      return { kind: 'keyed', field: name, options: value, keys: value.map((o) => o[keyFieldOf(o, false)]) };
     }
   }
   const reason = content.response
