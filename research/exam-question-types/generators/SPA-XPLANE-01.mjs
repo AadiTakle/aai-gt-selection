@@ -139,6 +139,17 @@ export const SOLIDS = {
     verts: [V(0, 1.3, 0), V(0, -1.3, 0), V(1, 0, 0), V(0, 0, 1), V(-1, 0, 0), V(0, 0, -1)],
     faces: [[0, 2, 3], [0, 3, 4], [0, 4, 5], [0, 5, 2], [1, 3, 2], [1, 4, 3], [1, 5, 4], [1, 2, 5]],
   },
+  // A tent: square base tapering to a ridge EDGE rather than to an apex. Its
+  // horizontal sections are rectangles that narrow with height, so it is a
+  // simple tapering solid — which is the scarce resource for this type, since
+  // `dof === 1` items may only use solids whose section changes at zero tilt.
+  // With just `pyramid` and `tetra` the simple/dof1 class could reach at most
+  // 30 distinct (solid, height) stimuli while the bank asks it for 24, and the
+  // accept-fraction budget rules out enough of those to force duplicates.
+  wedge: {
+    verts: [V(-1, -1, -1), V(1, -1, -1), V(1, -1, 1), V(-1, -1, 1), V(-1, 1, 0), V(1, 1, 0)],
+    faces: [[0, 1, 2, 3], [0, 1, 5, 4], [3, 2, 5, 4], [0, 4, 3], [1, 2, 5]],
+  },
   // A cube with one corner truncated: the cross-section family changes with
   // height, which is what makes the top band genuinely hard.
   cutcube: {
@@ -149,7 +160,7 @@ export const SOLIDS = {
 };
 // Solids whose cross-section changes with height even at zero tilt: required
 // when the height slider is the only active control.
-const TAPERING = ['pyramid', 'tetra', 'frustum4', 'octa', 'cutcube'];
+const TAPERING = ['pyramid', 'tetra', 'wedge', 'frustum4', 'octa', 'cutcube'];
 
 /* ---- vector helpers ---- */
 const add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
@@ -294,13 +305,38 @@ const sub2 = (a, b) => [a[0] - b[0], a[1] - b[1]];
  * ================================================================== */
 export const COMPLEXITY = { simple: 0.0, prism: 1.2, complex: 2.2, composite: 3.4 };
 export const CLASS_SOLIDS = {
-  simple: ['cube', 'pyramid', 'tetra'],
+  simple: ['cube', 'pyramid', 'tetra', 'wedge'],
   prism: ['prism3', 'prism5', 'frustum4'],
   complex: ['prism6', 'octa', 'obliquePrism'],
   composite: ['cutcube'],
 };
 const DOF_TERM = { 1: 0.0, 2: 1.6, 3: 3.0 };
 const OBLIQUITY_TERM = 2.4; // scaled by tiltLever/100
+// WHY DIFFICULTY IS NOT A FUNCTION OF THE SERVED CONTENT ALONE
+// ------------------------------------------------------------
+// `tight` moves difficulty by up to TIGHT_SPAN raw points (~6.1 of the 1..20
+// scale) and is the one lever that leaves NO trace in `content`: it sets
+// `answer.shapeToleranceRms`, which is server-only because publishing the
+// accept band would hand the child the pass criterion. So two items can show
+// the same solid and the same target outline and still sit points apart.
+//
+// That spread is real, not noise. `toleranceFor` runs from 0.30 down to 0.04 in
+// the units of `shapeDistance`; at the tight end the child must land the cut
+// face within about an eighth of the slack the easy end allows, on a control
+// grid whose steps are fixed. "Match tolerance" is one of this type's four
+// declared difficulty levers (master_types.jsonl SPA-XPLANE-01) precisely
+// because precision-of-construction is the thing that scales after solid,
+// degrees of freedom and obliquity have been spent.
+//
+// What is NOT acceptable is two items whose ONLY difference is that hidden
+// lever: to the child they are the same task, so the adaptive engine would be
+// choosing between them on something it cannot see. That is what the
+// `claimed` stimulus gate in `genItem` prevents — every item in the bank shows
+// a distinct (solid, active controls, target outline) stimulus, so tolerance
+// always modulates difficulty on top of a visible difference rather than
+// instead of one. `check-SPA-XPLANE-01.mjs` re-derives difficulty from the
+// recorded levers, which is why this stays a lever model rather than becoming
+// a function of the realised cut.
 const TIGHT_SPAN = 4.2;
 
 const rawScore = (complexity, dof, tiltLever, tight) =>
@@ -380,7 +416,26 @@ function outsideHeight(solid, target, outline, tol, dir) {
   return null;
 }
 
-export function genItem({ complexity, dof, tiltLever, tight, seed }) {
+/**
+ * Identity of the STIMULUS the child actually sees: which solid, which controls
+ * are live, and the outline they have to produce. Deliberately keyed on the
+ * OUTLINE rather than on the keyed plane — through a prismatic stretch of a
+ * solid, sliding the plane along its own normal cuts a congruent face, so
+ * `wedge` at height 40 and `wedge` at height 45 under a full tilt set the child
+ * exactly the same triangle. Keying on the plane misses that; keying on the
+ * outline is the identity the child experiences.
+ */
+const stimulusKey = (solidId, dof, outline) => `${solidId}|dof${dof}|${JSON.stringify(outline)}`;
+
+/**
+ * `claimed` is an optional Set of stimulus keys already used by the bank. A
+ * candidate whose key is present is skipped, and the skip is free: the combo
+ * order was fixed by a single shuffle before the loop, so passing over a
+ * candidate consumes no random draw and cannot shift what a later item picks,
+ * and it is tested before the sweep budget is charged so it cannot starve the
+ * search either. The loop is a walk over a finite combo list, so it terminates.
+ */
+export function genItem({ complexity, dof, tiltLever, tight, seed, claimed }) {
   const rng = makeRng(seed);
   const tol = toleranceFor(tight);
   const provisionalD = round2(difficultyFromLevers(complexity, dof, tiltLever, tight));
@@ -413,6 +468,7 @@ export function genItem({ complexity, dof, tiltLever, tight, seed }) {
       if (Math.hypot(...sub(poly[i], poly[(i + 1) % poly.length])) < 0.06) degenerate = true;
     if (degenerate) continue;
     const outline = outlineOf(poly, pl);
+    if (claimed && claimed.has(stimulusKey(name, dof, outline))) continue;
     sweeps++;
     const sweep = acceptSweep(solid, dof, target, outline, tol);
     if (sweep.pass === 0 || sweep.fraction > maxFrac) continue;
@@ -423,9 +479,10 @@ export function genItem({ complexity, dof, tiltLever, tight, seed }) {
     chosen = { name, solid, target, poly, outline, sweep };
     break;
   }
-  if (!chosen) throw new Error(`no target plane satisfies the accept budget for ${JSON.stringify({ complexity, dof, tiltLever, tight: round4(tight) })}`);
+  if (!chosen) throw new Error(`no unclaimed target plane satisfies the accept budget for ${JSON.stringify({ complexity, dof, tiltLever, tight: round4(tight) })}`);
 
   const { name, solid, target, outline, sweep } = chosen;
+  if (claimed) claimed.add(stimulusKey(name, dof, outline));
 
   // Chirality: is a mirror image of this cut face rejected? (M-MIRRORFA)
   const mirrorDistance = round6(shapeDistance(outline, reflectOutline(outline)));
@@ -595,6 +652,9 @@ for (const complexity of Object.keys(COMPLEXITY))
 
 export function buildBank({ perBin = 7 } = {}) {
   const items = [];
+  // One stimulus per item, bank-wide: see the note on TIGHT_SPAN for why a
+  // per-item tolerance is allowed to vary but a repeated stimulus is not.
+  const claimed = new Set();
   for (let k = 1; k <= 20; k++) {
     const lo = Math.max(1, k - 0.44);
     const hi = Math.min(20, k + 0.44);
@@ -617,7 +677,7 @@ export function buildBank({ perBin = 7 } = {}) {
       const t = s.tLo + (s.tHi - s.tLo) * ((li + 0.5) / hits[si]);
       const tight = solveTight(s.complexity, s.dof, s.tiltLever, t);
       const seed = `${TYPE_CODE}|bin=${k}|i=${i}|${s.complexity}|DOF${s.dof}|T${s.tiltLever}`;
-      items.push(genItem({ complexity: s.complexity, dof: s.dof, tiltLever: s.tiltLever, tight, seed }));
+      items.push(genItem({ complexity: s.complexity, dof: s.dof, tiltLever: s.tiltLever, tight, seed, claimed }));
     }
   }
   return items;
