@@ -55,22 +55,12 @@ const VALID_AGE_BANDS = new Set(['K-1', '2-3', '4-5', '6-8', 'above-level']);
  * silently shipping an unpatched demo — that is the signal to delete the entry
  * because upstream fixed it.
  */
-const COMPAT_PATCHES = {
-  // startItem() sets `started=true` but never clears `locked`, which `loadItem()`
-  // set to true. Both choose() and submit() early-return while `locked`, so an
-  // embedded FOLDNET item can never be answered: the child cannot select a face
-  // and the demo never emits {type:'result'}. The host then force-skips the item
-  // on its 4-minute timeout. Matches the open QA note in EXAM_ADAPTIVE_STATUS.md
-  // ("re-verify the FOLDNET renderer `locked`-state"); the sibling spatial demos
-  // (e.g. SPA-MAZE-01) already unlock correctly in startItem().
-  'SPA-FOLDNET-01': [
-    {
-      reason: 'startItem() never clears `locked`, so the item can never be answered',
-      find: 'async function startItem(){if(!content)return;started=true;',
-      replace: 'async function startItem(){if(!content)return;started=true;locked=false;',
-    },
-  ],
-};
+// Per-type source patches applied at copy time, for demos this workstream must
+// not edit at the source. Empty by design: a patch here is a latent divergence
+// between what ships and what the demo author sees, so fix the demo instead
+// wherever ownership allows. (SPA-FOLDNET-01's `locked` bug was patched here
+// first and is now fixed at the source.)
+const COMPAT_PATCHES = {};
 
 /** Short, child-facing blurbs for the types that have a curated one. */
 const CURATED_BLURBS = {

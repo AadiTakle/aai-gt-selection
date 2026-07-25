@@ -85,18 +85,35 @@ integer bucket while comfortably passing the real rule. All 44 banks currently p
 
 ## Remaining (overnight-loop backlog)
 
-1. **Scale banks to the remaining 50 types** (same generator+bank+renderer pattern per domain).
-2. **Wire the additional banked types into the app** (copy renderer demos to `public/exam-demos/`,
-   include their banks in the served pool + submit verifier). Expand `EXAM_BANK`/served pool beyond 4.
-3. **Execute Supabase** (`supabase start`, run migrations + pgTAP) and swap the in-memory results
-   store for the real `api.exam_*` RPCs. Reconcile **one source of truth** for selection/scoring:
-   in-DB (backend) vs `packages/exam-engine`+`exam-scoring` (currently used by the app).
-4. **Open-ended / LLM-judged types** (Q2): track core metrics + participate in selection; defer full
-   harvest/judge (M-ORIG/M-FLEX) — currently `model_judge_deferred` scores 0/inert.
-5. **QA:** re-verify the FOLDNET renderer `locked`-state on the wired app (spatial-2 fixed this in its
-   own demos; confirm FLU/VER/QUANT/SPA-FOLDNET all complete + emit results in-browser, ideally via
-   Playwright — not installed this session).
-6. **Deferred by decision:** engagement-gate enforcement, age-band battery adaptation, wiring the
+1. ~~**Scale banks to the remaining 50 types**~~ — **done.** All 66 types have a bank.
+2. ~~**Wire the additional banked types into the app**~~ — **done, partially.** `scripts/sync-exam-demos.mjs`
+   (`pnpm exam:sync`) now generates `apps/web/src/lib/exam/registry.generated.ts` from the banks and
+   demos on disk, and is the single source for the served pool, the submit dispatch, and the runner's
+   metadata. **33 of 66 types are served** (fluid 8 · verbal 9 · quantitative 11 · spatial 5).
+   Adding a bank plus a protocol-compliant demo and re-running the sync is all a new type needs.
+3. **Write the 32 missing server verifiers — the one thing blocking full coverage.** The sync refuses
+   to wire a type whose response no verifier can grade, because serving one would score every child 0
+   and drag the adaptive difficulty estimate down. All 32 blocked types are blocked for exactly this
+   reason; none is blocked on the postMessage protocol. They are constructed-response tasks (a maze
+   path, a pipe-rotation state, a tangram placement set, an n-back tap stream) whose banks already
+   ship a reference solution to validate a verifier against. Add them to
+   `apps/web/src/lib/exam/verifiers/{fluid,verbal,quantitative,spatial}.ts`, keyed by `typeCode`.
+   Where several solutions are valid, `correct` must mean "a valid solution" with efficiency in a
+   metric — grading against the stored optimum would mark correct children wrong.
+4. **Execute Supabase** (`supabase start`, run migrations + pgTAP) and swap the in-memory results
+   store for the real `api.exam_*` RPCs. `apps/web` does not yet call the exam RPCs at all. One
+   source of truth is settled by D-019: the DB stores and verifies, `packages/exam-scoring` scores.
+5. **Open-ended / LLM-judged types** (Q2): track core metrics + participate in selection; defer full
+   harvest/judge (M-ORIG/M-FLEX) — currently `model_judge_deferred` scores 0/inert. The invented
+   norms behind M-ORIG/M-FLEX were removed; see E-072.
+6. ~~**QA: the FOLDNET `locked`-state**~~ — **resolved, and it was live.** `startItem()` set
+   `started=true` but never cleared the `locked` that `loadItem()` set, and both `choose()` and
+   `submit()` early-return while locked, so every embedded FOLDNET item silently burned the runner's
+   4-minute timeout and was force-skipped. Fixed at the source. A headless Chromium battery now runs
+   end to end (16 items, 10 types, all 4 areas) with zero CSP violations.
+7. **Coverage gap:** no wired spatial bank targets K-1, so the youngest children are always served
+   spatial items off-band. Needs bank content; pinned by a test so no new gap appears silently.
+8. **Deferred by decision:** engagement-gate enforcement, age-band battery adaptation, wiring the
    tunable `ExamPolicy` to an admin portal, and the **`feat/exam-integration → dev` merge** (hold
    until the teammate's in-flight deploy settles, then resolve conflicts).
 
