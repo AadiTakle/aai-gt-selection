@@ -70,6 +70,13 @@
   @media(max-width:500px){:root{--carpet-cell:64px}#wrap{padding:10px}#stagecard{padding:12px}#loom{padding:8px}
     .carpet{gap:5px;padding:6px}.cell svg{width:58px;height:58px}.opt{width:64px;height:64px}.opt svg{width:58px;height:58px}}
 </style>
+<style>html[data-gt-telemetry="off"] #telemetry{display:none}</style>
+<script>/* D-028 — the researcher telemetry panel is presentational only. Embedded in the
+   child-facing screener it is hidden: naming the behavioural metrics to the child can
+   change the behaviour being measured. `?telemetry=1` restores it for a live
+   demonstration, and standalone (opened directly) is unchanged. Sampling, metric
+   computation and the {type:'telemetry'} postMessage stream are untouched. */
+(function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
 </head>
 <body>
   <div id="wrap">
