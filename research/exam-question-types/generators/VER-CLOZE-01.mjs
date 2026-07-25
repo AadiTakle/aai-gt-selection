@@ -26,7 +26,7 @@ import { createHash } from 'node:crypto';
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
-import { serializeBank } from './item-shape.mjs';
+import { lureLabel, serializeBank } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK_PATH = join(__dirname, '..', 'banks', 'VER-CLOZE-01.jsonl');
@@ -403,7 +403,11 @@ export function validateItems(items) {
       errors.push(`${where}: distractorRationales must cover every option`);
       return;
     }
-    const lures = opts.map((_, oi) => rats[String(oi)] && rats[String(oi)].lure);
+    // Read through lureLabel: serializeBank rewrites each rationale's `lure`
+    // into the D-020 lureClass/lureDetail pair on the way to disk, so reading
+    // `.lure` here made every option of the committed bank look unlabelled and
+    // this validator could never pass against the file it validates.
+    const lures = opts.map((_, oi) => lureLabel(rats[String(oi)] || {}));
     lures.forEach((l, oi) => {
       if (!LURE_CLASSES.has(l)) errors.push(`${where}: option[${oi}] bad lure ${l}`);
     });
