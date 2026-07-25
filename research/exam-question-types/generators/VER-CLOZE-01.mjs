@@ -63,7 +63,7 @@ const GLOBAL_FIT_FROM_BAND = 5;
 //   (1) sentence logic     (single clause -> causal/contrast -> logical reversal)
 //   (2) word frequency     (freq 7 = very common / K vocabulary -> freq 1 = rare/academic)
 //   (3) lure subtlety      (unrelated word -> topical associate -> local-collocation trap)
-// K-1 / low-difficulty items use only very simple, high-frequency words (reading gate, D-017).
+// The lowest-difficulty items use only very simple, high-frequency words (reading gate, D-017).
 //
 // Each entry: { frame, correct, global, assoc, local?, freq }
 //   frame   = sentence shown to the child; the gap is marked with "___"
@@ -75,7 +75,7 @@ const GLOBAL_FIT_FROM_BAND = 5;
 // syntacticComplexity is derived from the band (1..5) at build time.
 // ---------------------------------------------------------------------------
 const ENTRIES = [
-  // ---- Tier 1: bands 1-4 (K-1) — one clause, universal, very high-frequency ----
+  // ---- Tier 1: bands 1-4 (floor of 2-3) — one clause, universal, very high-frequency ----
   { frame: 'The dog can ___.',        correct: 'run',   global: 'blue',  assoc: 'bone',   freq: 6 },
   { frame: 'The bird can ___.',       correct: 'fly',   global: 'cook',  assoc: 'nest',   freq: 6 },
   { frame: 'The fish can ___.',       correct: 'swim',  global: 'sing',  assoc: 'pond',   freq: 6 },
@@ -227,14 +227,20 @@ function difficultyFor(index) {
   const d = Math.min(20, Math.max(1, band + offsets[pos]));
   return Math.round(d * 100) / 100;
 }
+// D-017 raised this type's floor to grade 2, so the catalog declares only
+// [2-3, 4-5, 6-8]. The bottom of the ramp (difficulty < 4) is the easy end of the
+// 2-3 band, not a K-1 band of its own.
 function ageBandsFor(d) {
-  if (d < 4) return ['K-1'];
   if (d < 8) return ['2-3'];
   if (d < 12) return ['4-5'];
   return ['6-8']; // 12..16 grade band; 16..20 = same band administered above-level
 }
-const MAX_WORD_LEN_K1 = 8; // reading-gate length ceiling for the K-1 band
-const MIN_FREQ_K1 = 5;     // reading-gate frequency floor for the K-1 band
+// Reading gate (D-017). No item carries K-1 any more, but the gate still has to run
+// on the bottom of the ramp: those are the items the weakest reader in the lowest
+// declared band meets first, so they stay short and high-frequency.
+const READING_GATE_MAX_DIFFICULTY = 4;
+const MAX_WORD_LEN_K1 = 8; // reading-gate length ceiling at the floor of the ramp
+const MIN_FREQ_K1 = 5;     // reading-gate frequency floor at the floor of the ramp
 
 // Words in the sentence frame we do NOT reading-gate (function words / the gap marker).
 const STOP_WORDS = new Set(['the', 'a', 'an', 'i', 'we', 'he', 'she', 'it', 'they', 'you',
@@ -317,8 +323,8 @@ function itemValidatorVerdicts(entry, options, lures, difficulty) {
   const luresValid = lures.every((l) => LURE_CLASSES.has(l));
   const optionWords = options.map((o) => o.token.text);
   const words = [...frameWords(entry.frame), ...optionWords];
-  const k1 = difficulty < 4;
-  const readingOk = !k1 || (words.every((w) => w.length <= MAX_WORD_LEN_K1) && entry.freq >= MIN_FREQ_K1);
+  const atFloor = difficulty < READING_GATE_MAX_DIFFICULTY;
+  const readingOk = !atFloor || (words.every((w) => w.length <= MAX_WORD_LEN_K1) && entry.freq >= MIN_FREQ_K1);
   const uniqueOptions = new Set(optionWords.map((w) => w.toLowerCase())).size === optionWords.length;
   return [
     { check: 'unique_answer', status: correctCount === 1 && uniqueOptions ? 'pass' : 'fail' },
@@ -407,13 +413,13 @@ export function validateItems(items) {
     const distractors = lures.filter((l) => l !== 'correct');
     if (new Set(distractors).size !== distractors.length) errors.push(`${where}: duplicate distractor lure classes`);
 
-    // Reading gate for K-1 items.
-    if (Array.isArray(it.ageBands) && it.ageBands.includes('K-1')) {
+    // Reading gate at the floor of the ramp (D-017).
+    if (typeof d === 'number' && d < READING_GATE_MAX_DIFFICULTY) {
       const words = [...frameWords(c.sentenceFrame), ...opts.map((o) => o.token.text)];
       const tooLong = words.filter((w) => w.length > MAX_WORD_LEN_K1);
-      if (tooLong.length) errors.push(`${where}: K-1 reading gate — words too long: ${tooLong.join(', ')}`);
+      if (tooLong.length) errors.push(`${where}: reading gate — words too long: ${tooLong.join(', ')}`);
       if (typeof c.targetFrequencyBand === 'number' && c.targetFrequencyBand < MIN_FREQ_K1) {
-        errors.push(`${where}: K-1 reading gate — targetFrequencyBand ${c.targetFrequencyBand} < ${MIN_FREQ_K1}`);
+        errors.push(`${where}: reading gate — targetFrequencyBand ${c.targetFrequencyBand} < ${MIN_FREQ_K1}`);
       }
     }
   });

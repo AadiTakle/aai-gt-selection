@@ -188,11 +188,13 @@ const PROFILES = {
 const ITEMS_PER_LEVEL = 5;
 const OPT_KEYS = ['A', 'B', 'C', 'D', 'E', 'F'];
 
+// The catalog declares only [K-1, 2-3, 4-5] for this type, so 4-5 is its ceiling band.
+// Levels 8-20 (including the above-level 17-20 tail) are administered to 4-5 rather
+// than spilling into an undeclared 6-8 band.
 function ageBandsForLevel(L) {
   if (L <= 3) return ['2-3'];
   if (L <= 7) return ['2-3', '4-5'];
-  if (L <= 12) return ['4-5', '6-8'];
-  return ['6-8'];
+  return ['4-5'];
 }
 
 // Distinct-signature fold-sequence pool for a given (folds, punches).
