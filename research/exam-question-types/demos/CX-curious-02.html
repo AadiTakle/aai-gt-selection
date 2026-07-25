@@ -4,60 +4,117 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CX-curious-02 · Question Quest</title>
+<!--
+  CX-curious-02 (Question Quest) — PURE RENDERER.
+
+  Renders a ServedItem's `content` and reports the child's raw response plus
+  process telemetry. It holds no answer key and computes no correctness.
+
+  WHAT CHANGED FROM THE OLD SELF-CONTAINED DEMO
+  ---------------------------------------------
+  * The scene was an emoji pictogram and the second round was an emoji-to-word
+    matching game. Both are gone: the scene is described in plain text and the
+    keyed round now asks which statement the scene does NOT tell us. Emoji are
+    against the house style, and an emoji stimulus would also let a non-reader
+    bypass the reading gate.
+  * The demo no longer owns a scene bank, no longer rates question depth as
+    good or bad on screen, and no longer shows any correct/incorrect feedback.
+
+  Three rounds:
+    1. ASK    — open. Build questions from starter cards or type freely.
+                Nothing is right or wrong; the count and the depth mix are
+                recorded, the originality judgement is DEFERRED.
+    2. GUESS  — open. Guess why it happened and what happens next. Deferred.
+    3. GAP    — keyed. Which statement do we NOT know from the scene?
+                Scored server-side; nothing is shown here.
+
+  Embedding protocol (postMessage; source-tagged gt-exam-host / gt-exam-demo):
+    host -> demo : {source:'gt-exam-host', type:'init',  item: ServedItem}
+                   {source:'gt-exam-host', type:'start'}
+    demo -> host : {source:'gt-exam-demo', type:'ready'}
+                   {source:'gt-exam-demo', type:'telemetry', event: TelemetryEvent}
+                   {source:'gt-exam-demo', type:'result',    result: ItemResult}
+
+  ServedItem.content = { scene:{title,lines}, askPrompt, starters:[{id,word,depth}],
+                         focusWords, guessPrompts, gapQuestion,
+                         gapOptions:[{id,text}], variant }
+
+  ItemResult.response = { questions:[{text,starterId,depth,typed,t}],
+                          causeGuesses:[...], nextGuesses:[...],
+                          gapKey, inspectedIds, actionLog, askRt, guessRt, gapRt,
+                          gapOptionCount, inputModality }
+  ItemResult.metrics  = { M-RT, M-RTFIRST, M-REV, M-EXPLORE, M-PATH, M-PLANFUL,
+                          M-IDEAFLU, M-QUERY, M-FLEX }
+
+  The free text and the ordered action log are the substrate the deferred judge
+  reads. M-ORIG stays deferred: rarity cannot be judged client-side.
+
+  Standalone fallback: opened by double-click it plays built-in sample items.
+-->
 <style>
-  :root{--bg1:#f3e6ff;--bg2:#e6f7ff;--ink:#332a4a;--card:#fff;--accent:#a35bff;--good:#22b573;--bad:#ff6b6b;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  :root{--bg1:#f3e6ff;--bg2:#e6f7ff;--ink:#332a4a;--card:#fff;--accent:#8a4bd6;--good:#22b573;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
   *{box-sizing:border-box} html,body{margin:0;height:100%}
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#8a7ab5;text-transform:uppercase;font-weight:700}
-  #howto{max-width:600px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+  #howto{max-width:700px;width:100%;background:#fff;border:1px solid #e6dcfb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a3a7a}
   #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
-  #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
-  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:#5b6cff;border:2px solid #c9d0ff;min-height:30px}
-  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
-  #phasecue[data-phase="scored"]{background:#5b6cff;color:#fff;border-color:#5b6cff}
-  #phasecue[data-phase="done"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
+  #howto p{margin:0;font-size:14px;color:#4a3f66;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#f2e9ff;color:var(--accent);border:2px solid #ddc9fb;min-height:30px}
+  #phasecue[data-phase="ready"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="gap"]{background:#e9f2ff;color:#3a5ac8;border-color:#c9d8ff}
+  #phasecue[data-phase="done"]{background:var(--accent);color:#fff;border-color:var(--accent)}
   #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
-  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
-  #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #6a4a9a;display:flex;flex-direction:column;align-items:center;gap:16px;max-width:680px;width:100%}
-  #scene{font-size:64px}
-  #qcards{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
-  .qcard{background:#f6effe;border:3px solid #e2cbfc;border-radius:14px;padding:10px 16px;font-size:16px;cursor:pointer;font-weight:700;color:#5a3a8a;transition:.15s}
-  .qcard:hover{border-color:var(--accent);transform:translateY(-2px)}
-  .qcard.picked{opacity:.35;pointer-events:none}
-  .qcard.rated-causal{box-shadow:0 0 0 3px #22b57355}
-  .qcard.rated-label{box-shadow:0 0 0 3px #ffb15e55}
-  #variant{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
-  .emocard{background:#eef8ff;border:3px solid #c9e6ff;border-radius:14px;padding:12px;width:110px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer}
-  .emocard:hover{border-color:var(--accent)}
-  .emocard .ic{font-size:32px}
-  .emocard.correct{border-color:var(--good);box-shadow:0 0 0 3px #22b57355}
-  .emocard.wrong{border-color:var(--bad);box-shadow:0 0 0 3px #ff6b6b55}
-  #emotarget{font-size:44px}
-  #asked{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:520px}
-  .askedchip{background:#f0e6ff;border-radius:10px;padding:3px 9px;font-size:12px;color:#6a4a9a}
-  #controls{display:flex;gap:16px;align-items:center}
-  button{font:inherit;border:0;cursor:pointer;border-radius:50%}
-  #go{width:60px;height:60px;background:var(--accent);color:#fff;font-size:22px;box-shadow:0 10px 24px -8px var(--accent);opacity:.35;pointer-events:none;transition:.2s}
+  #status.ok{color:var(--good)} #status.neutral{color:#8a7ab5}
+  #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #6a4a9a;display:flex;flex-direction:column;align-items:center;gap:14px;max-width:720px;width:100%}
+  #scene{background:linear-gradient(160deg,#f7f0ff,#eef7ff);border:3px solid #e0d0fb;border-radius:16px;padding:14px 18px;width:100%}
+  #scenetitle{font-size:11px;font-weight:800;letter-spacing:.1em;color:var(--accent);text-transform:uppercase}
+  #scenelines{margin:6px 0 0;padding-left:18px;font-size:17px;line-height:1.55}
+  #prompt{font-size:15px;font-weight:700;color:#4a3f66;background:#faf7ff;border:2px solid #e6dcfb;border-radius:12px;padding:10px 14px;width:100%}
+  .row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;width:100%}
+  button.chip{font:inherit;font-size:14px;font-weight:700;background:#f6effe;border:2px solid #e2cbfc;border-radius:12px;padding:8px 14px;color:#5a3a8a;cursor:pointer}
+  button.chip:hover{border-color:var(--accent)}
+  button.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  button.word{font:inherit;font-size:13px;font-weight:600;background:#eef7ff;border:2px solid #cfe2fb;border-radius:12px;padding:6px 11px;color:#31527f;cursor:pointer}
+  #composer{display:flex;gap:8px;width:100%}
+  #qtext{flex:1;font:inherit;font-size:16px;padding:10px 12px;border:2px solid #e2cbfc;border-radius:12px;background:#fff;color:inherit}
+  #qtext:focus{outline:none;border-color:var(--accent)}
+  button.add{font:inherit;font-weight:800;background:var(--accent);color:#fff;border:0;border-radius:12px;padding:10px 18px;cursor:pointer}
+  #asked{display:flex;flex-direction:column;gap:6px;width:100%}
+  .chipline{display:flex;align-items:center;gap:8px;background:#f7f2ff;border:2px solid #e6dcfb;border-radius:10px;padding:6px 10px;font-size:14px}
+  .chipline .tag{font-size:10px;font-weight:800;letter-spacing:.06em;color:#8a7ab5;text-transform:uppercase}
+  .chipline .x{margin-left:auto;font:inherit;font-weight:800;border:0;background:none;color:#a08cc0;cursor:pointer}
+  #gapcards{display:flex;flex-direction:column;gap:9px;width:100%}
+  .gcard{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;background:#f7f9ff;border:3px solid #dfe4fb;border-radius:14px;padding:11px 13px;cursor:pointer;text-align:left;font:inherit;color:inherit;width:100%}
+  .gcard:hover{border-color:#3a5ac8}
+  .gcard .hk{font-size:11px;font-weight:800;color:#a7b0d8;background:#fff;border:2px solid #dfe4fb;border-radius:8px;padding:2px 7px}
+  .gcard.sel{border-color:#3a5ac8;background:#eaf0ff;box-shadow:0 0 0 3px #3a5ac833}
+  #controls{display:flex;gap:14px;align-items:center}
+  button.rd{font:inherit;border:0;cursor:pointer;border-radius:50%}
+  #go{width:64px;height:64px;background:var(--accent);color:#fff;font-size:26px;box-shadow:0 10px 24px -8px var(--accent);opacity:.35;pointer-events:none;transition:.2s}
   #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.1s infinite}
-  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
-  #replay{width:50px;height:50px;background:#f6effe;color:#a35bff;font-size:22px}
-  #hintflash{font-size:26px;min-height:30px}
-  #ghost{position:fixed;left:0;top:0;font-size:40px;pointer-events:none;z-index:60;opacity:0;transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+  #replay{width:50px;height:50px;background:#f6effe;color:var(--accent);font-size:22px}
+  #diffmeter{width:100%;display:flex;align-items:center;gap:8px;font-size:11px;color:#8a7ab5}
+  #diffbar{flex:1;height:8px;background:#eee2ff;border-radius:6px;overflow:hidden}
+  #diffbar i{display:block;height:100%;background:linear-gradient(90deg,#8a4bd6,#4bb6d6);width:0%;transition:.3s}
+  #diffval{min-width:96px;text-align:right;font-weight:700;color:#6b5a9a}
+  #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:60;opacity:0;transition:transform .55s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
   #ghost.show{opacity:.92}
-  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
-  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
-  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry{width:330px;flex:0 0 330px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
   #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #chan{padding:6px 14px;font-size:11px;color:var(--tel-dim);border-bottom:1px solid #262f52}
+  #chan b{color:var(--tel-key)}
   #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
-  .mrow{display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:baseline}
+  .mrow{display:grid;grid-template-columns:110px 1fr;gap:8px;align-items:baseline}
   .mid{color:var(--tel-key);font-weight:700}
   .mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
   #logwrap{border-top:1px solid #262f52;margin-top:auto}
   #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
-  #log{height:210px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log{height:180px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
   #log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
-  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
+  .hide{display:none !important}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:320px}}
 </style>
 </head>
 <body>
@@ -65,155 +122,406 @@
     <div id="badge">CX-curious-02 · Question Quest</div>
     <header id="howto">
       <h1>How to use — Question Quest</h1>
-      <p>Look at the scene and tap the questions you would ask about it, then press the arrow (<b>➜</b>) to move on. On some rounds you instead tap the word that best matches the picture.</p>
+      <p>Read the scene, then ask as many questions about it as you like. Tap a starter word such as <b>Why</b> or <b>What if</b>, finish the question in the box, and press <b>Add</b>. No question is wrong. Then write your guesses. Last, you answer one question about the scene and press the check (<b>&#10003;</b>).</p>
     </header>
-    <div id="phasecue" data-phase="demo">Watch the example</div>
+    <div id="phasecue" data-phase="ready">Ready</div>
     <div id="stagecard">
-      <div id="scene">🌳</div>
+      <div id="scene"><div id="scenetitle"></div><ul id="scenelines"></ul></div>
+      <div id="prompt"></div>
+
+      <div id="askui">
+        <div class="row" id="starters"></div>
+        <div class="row" id="words"></div>
+        <div id="composer"><input id="qtext" type="text" autocomplete="off" placeholder="Finish your question here"><button class="add" id="addbtn">Add</button></div>
+      </div>
+
       <div id="asked"></div>
-      <div id="qcards"></div>
-      <div id="variant" style="display:none">
-        <div id="emotarget"></div>
-      </div>
-      <div id="hintflash"></div>
+      <div id="gapcards" class="hide"></div>
+
+      <div id="diffmeter"><span>Easy</span><div id="diffbar"><i id="diffbarfill"></i></div><span>Hard</span><span id="diffval">level &mdash; / 20</span></div>
       <div id="controls">
-        <button id="replay" title="replay demo">↻</button>
-        <button id="go" title="next">➜</button>
+        <button class="rd" id="replay" title="replay how-to">&#8635;</button>
+        <button class="rd" id="go" title="next">&#10003;</button>
       </div>
-      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+      <div id="status" class="neutral">Waiting for the first item&hellip;</div>
     </div>
   </div>
   <aside id="telemetry">
     <h3>Live telemetry · per-child</h3>
+    <div id="chan">channel: <b id="chanval">standalone</b> &middot; source-tag <b>gt-exam-demo</b></div>
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#8a4bd6" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0;
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0,last=a=>a[a.length-1];
 
-/* ---------- Part A: ask-questions scenes (starter-card question bank, causal vs labeling) ---------- */
-const SCENES=[
- {ic:'🌳🍂',lb:'a tree with no leaves in summer', qs:[
-   {t:'What is this?',depth:'label'},{t:'What color is it?',depth:'label'},
-   {t:'Why did the leaves fall in summer?',depth:'causal'},{t:'What if it never grows leaves again?',depth:'hypo'}]},
- {ic:'🏠💨',lb:'a house with smoke but no fire truck', qs:[
-   {t:'What is that?',depth:'label'},{t:'Is it a chimney?',depth:'label'},
-   {t:'Why is there smoke but nobody looks worried?',depth:'causal'},{t:'What if the smoke means something is cooking?',depth:'hypo'}]},
- {ic:'🐾❓',lb:'giant footprints on a tiny path', qs:[
-   {t:'What made those?',depth:'label'},{t:'How big are they?',depth:'label'},
-   {t:'Why are the prints bigger than the path?',depth:'causal'},{t:'What if a huge animal lives nearby?',depth:'hypo'}]},
-];
-function scoreDepth(d){return d==='causal'?2:d==='hypo'?2:1;}
-function levelParams(l){return {numQ: Math.min(3+Math.floor(l/2),4)};}
+/* ---------------- embedding channel (postMessage) ---------------- */
+const SRC_HOST='gt-exam-host',SRC_DEMO='gt-exam-demo';
+const embedded=!!(window.parent&&window.parent!==window);
+let hostSeen=false;
+function post(type,payload){
+  const msg=Object.assign({source:SRC_DEMO,type},payload||{});
+  if(embedded){try{window.parent.postMessage(msg,'*');}catch(e){}}
+}
 
-/* ---------- Part B: emoji -> word association variant (auto-scored, one best match) ---------- */
-const ASSOC=[
- {emoji:'🌧️',opts:[['UMBRELLA',true],['SUNSHINE',false],['DESERT',false],['CAMPFIRE',false]]},
- {emoji:'🐝',opts:[['HONEY',true],['SNOW',false],['ROCKET',false],['PILLOW',false]]},
- {emoji:'📚',opts:[['LIBRARY',true],['OCEAN',false],['VOLCANO',false],['GUITAR',false]]},
- {emoji:'🌙',opts:[['NIGHT',true],['BREAKFAST',false],['SUMMER',false],['KITCHEN',false]]},
- {emoji:'🔥',opts:[['HOT',true],['FROZEN',false],['QUIET',false],['SOFT',false]]},
-];
-
-/* ---------- state ---------- */
-let level=1,maxLevel=1,phase='demo',locked=true,mode='ask';
-let curScene=null,askedIdx=[],curAssoc=null,T={itemStart:0,queries:[],depthSum:0,orig:0,scored:0,exact:0,flexSet:new Set(),engageEvents:0};
-function queryStr(){return `${T.queries.length} asked (avg depth ${T.queries.length?(T.depthSum/T.queries.length).toFixed(1):0}/2)`;}
-function ideaFlu(){return T.queries.length;}
-function flexStr(){return `${T.flexSet.size} depth types used`;}
-function origStr(){return `${T.orig} causal/hypothetical (rare) picks`;}
-function engageStr(){return T.engageEvents===0?'focused (no idle/tab-out)':`${T.engageEvents} idle/blur events`;}
-function accStr(){return T.scored?`${T.exact}/${T.scored}  ${Math.round(100*T.exact/T.scored)}%`:'\u2014';}
-function learnRate(){return T.scored?`level ${maxLevel} after ${T.scored} trials`:'\u2014';}
+/* ---------------- session accumulators ---------------- */
+const T={rts:[],firstRt:[],revs:[],explore:[],path:[],planful:[],ideaflu:[],query:[],flex:[]};
 const METERS=[
- {id:'M-QUERY',name:'Question count & depth',get:queryStr},
- {id:'M-IDEAFLU',name:'Ideational fluency (questions/guesses)',get:ideaFlu},
- {id:'M-FLEX',name:'Flexibility (depth-type variety)',get:flexStr},
- {id:'M-ORIG',name:'Originality (deep-question rate)',get:origStr},
- {id:'M-ENGAGE',name:'Engagement (idle/blur gate)',get:engageStr},
- {id:'M-ACC',name:'Emoji\u2192word match accuracy',get:accStr},
- {id:'M-DIFFREACH',name:'Difficulty reached',get:()=>`level ${maxLevel}`},
- {id:'M-LEARNRATE',name:'Learning rate across trials',get:learnRate},
+ {id:'M-RT',name:'Response time — all rounds',get:()=>T.rts.length?`${last(T.rts)} ms  (mean ${mean(T.rts)})`:'\u2014'},
+ {id:'M-RTFIRST',name:'Time to first question or tap',get:()=>T.firstRt.length?`${last(T.firstRt)} ms`:'\u2014'},
+ {id:'M-REV',name:'Revisions (removed / changed)',get:()=>T.revs.length?`${last(T.revs)}`:'\u2014'},
+ {id:'M-EXPLORE',name:'Distinct controls and options engaged',get:()=>T.explore.length?`${last(T.explore)}`:'\u2014'},
+ {id:'M-PATH',name:'Ordered action-log length',get:()=>T.path.length?`${last(T.path)} actions`:'\u2014'},
+ {id:'M-PLANFUL',name:'Planfulness (non-redundant action share)',get:()=>T.planful.length?last(T.planful).toFixed(3):'\u2014'},
+ {id:'M-IDEAFLU',name:'Distinct ideas produced — questions + guesses',get:()=>`${ideaCount()}`},
+ {id:'M-QUERY',name:'Questions asked (count, live)',get:()=>`${questions.length} asked`},
+ {id:'M-FLEX',name:'Depth tiers used (label / causal / what-if)',get:()=>`${depthTiers().size} of 3`},
+ {id:'M-ORIG',name:'Originality — judge deferred',get:()=>'judge deferred'},
+ {id:'M-ACC',name:'Gap question — scored server-side',get:()=>'server-side'},
+ {id:'M-ENGAGE',name:'Off-task blur events (tracked)',get:()=>`${blurEvents}`},
 ];
 function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
 function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});}
-function log(msg){const t=Date.now()-T.itemStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
-window.addEventListener('blur',()=>{if(phase!=='demo'&&phase!=='done'){T.engageEvents++;renderMeters();}});
-const ghost=$('#ghost');function ghostShow(v){ghost.classList.toggle('show',v);}
-function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
-async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(480);}
-async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(400);}
+function log(msg){const t=itemStart?Date.now()-itemStart:0;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
 
-/* ---------- render: ask mode ---------- */
-function paintScene(){$('#scene').textContent=curScene.ic;}
-function paintAsked(){$('#asked').innerHTML=askedIdx.map(i=>`<span class="askedchip">${curScene.qs[i].t}</span>`).join('');}
-function paintQCards(){$('#qcards').innerHTML=curScene.qs.map((q,i)=>`<div class="qcard${askedIdx.includes(i)?' picked':''}" data-i="${i}">${q.t}</div>`).join('');
-  $$('#qcards .qcard').forEach(el=>el.addEventListener('click',()=>onAsk(+el.dataset.i)));}
-function onAsk(i){if(locked||phase==='demo'||phase==='done'||askedIdx.includes(i))return;
-  askedIdx.push(i);const q=curScene.qs[i];const d=scoreDepth(q.depth);
-  T.queries.push(q);T.depthSum+=d;T.flexSet.add(q.depth);if(d===2)T.orig++;
-  paintAsked();paintQCards();log(`asked: "${q.t}" (${q.depth})`);renderMeters();
-  $('#go').classList.add('ready');
-  const numQ=levelParams(level).numQ;
-  if(askedIdx.length>=numQ){$('#go').classList.add('ready');}
-}
-
-/* ---------- render: assoc variant ---------- */
-function paintAssoc(){$('#emotarget').textContent=curAssoc.emoji;
-  $('#qcards').innerHTML=curAssoc.opts.map((o,i)=>`<div class="qcard" data-i="${i}">${o[0]}</div>`).join('');
-  $$('#qcards .qcard').forEach(el=>el.addEventListener('click',()=>onAssoc(+el.dataset.i)));}
-function onAssoc(i){if(locked||phase==='demo'||phase==='done')return;
-  const correct=curAssoc.opts[i][1];locked=true;
-  $$('#qcards .qcard').forEach((el,idx)=>el.classList.add(curAssoc.opts[idx][1]?'rated-causal':(idx===i?'rated-label':'')));
-  log(`emoji ${curAssoc.emoji} \u2192 "${curAssoc.opts[i][0]}" ${correct?'CORRECT':'not best match'}`);
-  setStatus(correct?'ok':'no',correct?'\u2713 Correct':'\u2717 Not quite - the best match is highlighted');
-  if(phase==='warmup'){log('— UNSCORED —');setTimeout(nextPhase,1100);return;}
-  T.scored++;if(correct){T.exact++;level=Math.min(6,level+1);}else{level=Math.max(1,level-1);}
-  maxLevel=Math.max(maxLevel,level);renderMeters();setTimeout(nextPhase,1300);
-}
-
-/* ---------- flow ---------- */
-const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+/* ---------------- phase + status ---------------- */
+const PHASE={ready:'Ready',demo:'How it works',ask:'Ask your questions',guess:'Your guesses',gap:'One last question',done:'Answers sent'};
 function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
 function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
-function newAskItem(l){mode='ask';$('#qcards').style.display='flex';$('#variant').style.display='none';$('#scene').style.display='block';
-  curScene=SCENES[(Math.random()*SCENES.length)|0];askedIdx=[];T.itemStart=Date.now();
-  paintScene();paintAsked();paintQCards();$('#go').classList.remove('ready');renderMeters();}
-function newAssocItem(){mode='assoc';$('#scene').style.display='none';$('#variant').style.display='flex';
-  curAssoc=ASSOC[(Math.random()*ASSOC.length)|0];T.itemStart=Date.now();
-  paintAssoc();locked=false;renderMeters();}
-function goNext(){ // lock ask item, log fluency for the round
-  if(mode!=='ask')return;
-  locked=true;$('#go').classList.remove('ready');
-  log(`round done: ${askedIdx.length} questions asked`);
-  setTimeout(nextPhase,900);
+
+/* ---------------- item state ---------------- */
+let item=null,round='ask',guessIdx=0,
+    starters=[],focusWords=[],guessPrompts=[],gapOptions=[],
+    questions=[],guesses=[],activeStarter=null,gapSel=null,
+    inspected=null,changes=0,blurEvents=0,
+    itemStart=0,roundStart=0,firstAt=null,askRt=0,guessRt=0,gapRt=0,
+    locked=true,inputModality='tap',actionLog=[],telemetryLog=[];
+
+function escapeHtml(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function difficultyOf(it){const d=(it&&it.difficulty!=null)?it.difficulty:0;return +d||0;}
+function recordEv(ev){ev.t=itemStart?Date.now()-itemStart:0;telemetryLog.push(ev);post('telemetry',{event:ev});}
+function recordAction(kind,extra){
+  const a=Object.assign({t:itemStart?Date.now()-itemStart:0,round,kind},extra||{});
+  actionLog.push(a);return a;
 }
-function nextPhase(){locked=false;
-  if(phase==='warmup'){startScored();}
-  else if(phase==='scored'){
-    T.roundIdx=(T.roundIdx||0)+1;
-    if(T.roundIdx>=6){finish();return;}
-    if(T.roundIdx%2===0){newAssocItem();phase='scored';setCue('scored',((T.roundIdx||0)+1)+'/6');setStatus('neutral','Pick the word that best matches the picture.');log('— SCORED: pick the word that matches the emoji —');}
-    else{startScored();}
+function norm(s){return s.toLowerCase().replace(/[^a-z0-9 ]/g,'').replace(/\s+/g,' ').trim();}
+function ideaCount(){
+  const seen=new Set();
+  for(const q of questions)seen.add('q:'+norm(q.text));
+  for(const g of guesses)seen.add('g:'+norm(g.text));
+  seen.delete('q:');seen.delete('g:');
+  return seen.size;
+}
+function depthTiers(){const s=new Set();for(const q of questions)if(q.depth)s.add(q.depth);return s;}
+/* A child who types "Why does it glow?" has asked a causal question just as
+   much as one who tapped the Why card, so recover the depth tier from the
+   leading words too. Longest starter first, so "What if" beats "What". */
+function depthFromText(text){
+  const t=' '+text.toLowerCase().replace(/[^a-z ]/g,' ').replace(/\s+/g,' ').trim();
+  const byLen=starters.slice().sort((a,b)=>b.word.length-a.word.length);
+  for(const s of byLen){if(t.startsWith(' '+s.word.toLowerCase()+' '))return s;}
+  return null;
+}
+function planfulness(){
+  const pre=actionLog.filter(a=>a.kind!=='submit');
+  if(!pre.length)return 0;
+  const seen=new Set();let informative=0;
+  for(const a of pre){const k=a.round+':'+a.kind+':'+(a.id||norm(a.text||''));if(!seen.has(k)){seen.add(k);informative++;}}
+  return Math.round(1000*informative/pre.length)/1000;
+}
+
+window.addEventListener('blur',()=>{if(item&&!locked){blurEvents++;recordAction('blur',{});renderMeters();}});
+
+/* ---------------- rendering ---------------- */
+function paintScene(c){
+  $('#scenetitle').textContent=(c.scene&&c.scene.title)||'Scene';
+  $('#scenelines').innerHTML=((c.scene&&c.scene.lines)||[]).map(l=>`<li>${escapeHtml(l)}</li>`).join('');
+}
+function paintStarters(){
+  $('#starters').innerHTML=starters.map(s=>`<button type="button" class="chip${activeStarter===s.id?' on':''}" data-starter="${s.id}">${escapeHtml(s.word)}&hellip;</button>`).join('');
+  $('#words').innerHTML=focusWords.map(w=>`<button type="button" class="word" data-word="${escapeHtml(w)}">${escapeHtml(w)}</button>`).join('');
+}
+function paintList(){
+  const rows=[];
+  questions.forEach((q,i)=>rows.push(`<div class="chipline"><span class="tag">question</span><span>${escapeHtml(q.text)}</span><button type="button" class="x" data-del="q${i}" title="remove">&#10005;</button></div>`));
+  guesses.forEach((g,i)=>rows.push(`<div class="chipline"><span class="tag">${escapeHtml(g.kind)}</span><span>${escapeHtml(g.text)}</span><button type="button" class="x" data-del="g${i}" title="remove">&#10005;</button></div>`));
+  $('#asked').innerHTML=rows.join('');
+}
+function paintGap(){
+  $('#gapcards').innerHTML=gapOptions.map((o,i)=>
+    `<button type="button" class="gcard${gapSel===o.id?' sel':''}" data-i="${i}"><span class="hk">${i+1}</span><span>${escapeHtml(o.text)}</span></button>`).join('');
+}
+function refreshGo(){
+  const ready=round==='gap'?gapSel!==null:true;
+  $('#go').classList.toggle('ready',!locked&&ready);
+}
+
+function setItem(served){
+  item=served;
+  const c=(served&&served.content)||{};
+  starters=(c.starters||[]).map(s=>({id:s.id,word:s.word,depth:s.depth}));
+  focusWords=(c.focusWords||[]).slice();
+  guessPrompts=(c.guessPrompts||[]).slice();
+  gapOptions=(c.gapOptions||[]).map(o=>({id:o.id,text:o.text}));
+  questions=[];guesses=[];activeStarter=null;gapSel=null;guessIdx=0;
+  inspected=new Set();changes=0;blurEvents=0;
+  actionLog=[];telemetryLog=[];itemStart=Date.now();roundStart=itemStart;firstAt=null;
+  askRt=0;guessRt=0;gapRt=0;round='ask';locked=false;
+  paintScene(c);
+  $('#prompt').textContent=c.askPrompt||'Ask as many questions about this scene as you like.';
+  $('#askui').classList.remove('hide');
+  $('#gapcards').classList.add('hide');
+  $('#qtext').value='';$('#qtext').placeholder='Finish your question here';
+  paintStarters();paintList();
+  const d=difficultyOf(served);
+  $('#diffbarfill').style.width=Math.max(0,Math.min(100,d/20*100))+'%';
+  $('#diffval').textContent='level '+(Math.round(d*10)/10)+' / 20';
+  setCue('ask');
+  setStatus('neutral','Ask anything you want about the scene, then press the check to go on.');
+  refreshGo();
+  log(`INIT item ${served&&served.itemId?served.itemId:'(no id)'} \u00b7 ${starters.length} starters \u00b7 ${gapOptions.length} gap options \u00b7 level ${Math.round(d*10)/10}`);
+  recordEv({kind:'shown',itemId:served&&served.itemId,difficulty:d,gapOptionCount:gapOptions.length});
+  renderMeters();
+}
+
+function markFirst(){
+  if(firstAt===null){firstAt=Date.now();const fr=firstAt-itemStart;T.firstRt.push(fr);recordEv({kind:'first_action',rt:fr});}
+}
+function touch(id){if(!inspected.has(id)){inspected.add(id);renderMeters();}}
+
+function pickStarter(sid){
+  if(locked)return;
+  markFirst();touch('starter:'+sid);
+  const s=starters.find(x=>x.id===sid);if(!s)return;
+  activeStarter=sid;
+  const box=$('#qtext');
+  box.value=s.word+' ';box.focus();
+  recordAction('starter',{id:sid});recordEv({kind:'starter',id:sid,depth:s.depth});
+  paintStarters();renderMeters();
+}
+function pickWord(w){
+  if(locked)return;
+  markFirst();touch('word:'+w);
+  const box=$('#qtext');
+  box.value=(box.value+' '+w).replace(/\s+/g,' ').trimStart();box.focus();
+  recordAction('word',{id:w});renderMeters();
+}
+function addEntry(){
+  if(locked)return;
+  const box=$('#qtext');
+  const text=box.value.trim();
+  if(!text)return;
+  markFirst();
+  if(round==='ask'){
+    const s=starters.find(x=>x.id===activeStarter);
+    const usedCard=!!s&&text.toLowerCase().startsWith(s.word.toLowerCase());
+    const from=usedCard?s:depthFromText(text);
+    questions.push({
+      text,
+      starterId:usedCard?activeStarter:null,
+      depth:from?from.depth:null,
+      depthSource:usedCard?'starter_card':(from?'typed_stem':'unclassified'),
+      typed:!usedCard,
+      t:Date.now()-itemStart
+    });
+    recordAction('add_question',{text});recordEv({kind:'question',text,starterId:usedCard?activeStarter:null,depth:from?from.depth:null});
+    log(`question: "${text}"`);
+  }else{
+    const kind=guessIdx===0?'cause':'next';
+    guesses.push({kind,prompt:guessPrompts[guessIdx]||'',text,t:Date.now()-itemStart});
+    recordAction('add_guess',{text,id:kind});recordEv({kind:'guess',which:kind,text});
+    log(`guess (${kind}): "${text}"`);
   }
+  box.value='';activeStarter=null;
+  paintStarters();paintList();renderMeters();
 }
-function startWarmup(){phase='warmup';locked=false;setCue('warmup');setStatus('neutral','Practice - not scored. Tap the questions you want to ask.');newAskItem(1);log('— warm-up (unscored): tap the questions you want to ask about the scene —');}
-function startScored(){phase='scored';setCue('scored',((T.roundIdx||0)+1)+'/6');setStatus('neutral','Ask your questions, then press the arrow.');newAskItem(level);log(`— SCORED scene (level ${level}): ask your questions, then tap \u2192 —`);}
-function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;log(`— DONE \u00b7 ${ideaFlu()} questions asked \u00b7 emoji match ${T.exact}/${T.scored} \u00b7 max level ${maxLevel} —`);}
-async function runDemo(){phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;
-  curScene=SCENES[0];askedIdx=[];T.itemStart=Date.now();mode='ask';
-  $('#qcards').style.display='flex';$('#variant').style.display='none';$('#scene').style.display='block';
-  paintScene();paintAsked();paintQCards();log('ghost-hand demo (wordless, <10s)');ghostShow(true);await sleep(300);
-  await ghostTo($('.qcard[data-i="2"]'));await ghostTap();onAsk(2);await sleep(300);
-  await ghostTo($('.qcard[data-i="3"]'));await ghostTap();onAsk(3);await sleep(300);
-  await ghostTo($('#go'));await ghostTap();await sleep(300);ghostShow(false);await sleep(450);startWarmup();}
-$('#go').addEventListener('click',()=>{if($('#go').classList.contains('ready'))goNext();});
-$('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
-buildMeters();renderMeters();runDemo();
+function removeEntry(tag){
+  if(locked)return;
+  const i=+tag.slice(1);
+  if(tag[0]==='q'&&questions[i]){recordAction('remove_question',{text:questions[i].text});questions.splice(i,1);}
+  else if(tag[0]==='g'&&guesses[i]){recordAction('remove_guess',{text:guesses[i].text});guesses.splice(i,1);}
+  changes++;paintList();renderMeters();
+}
+function selectGap(i,modality){
+  if(locked||round!=='gap'||i<0||i>=gapOptions.length)return;
+  inputModality=modality||'tap';
+  markFirst();touch('gap:'+gapOptions[i].id);
+  if(gapSel!==null&&gapSel!==gapOptions[i].id){changes++;recordAction('change_gap',{from:gapSel,to:gapOptions[i].id});}
+  gapSel=gapOptions[i].id;
+  recordAction('select_gap',{id:gapSel,via:inputModality});
+  recordEv({kind:'select_gap',id:gapSel,via:inputModality});
+  paintGap();refreshGo();renderMeters();
+}
+
+/* ---------------- round flow ---------------- */
+function advance(){
+  if(locked||!item)return;
+  if(round==='ask'){
+    askRt=Date.now()-roundStart;roundStart=Date.now();
+    recordAction('round_done',{id:'ask',rt:askRt});
+    log(`ask round done: ${questions.length} questions`);
+    round='guess';guessIdx=0;
+    $('#starters').innerHTML='';$('#words').innerHTML='';
+    $('#prompt').textContent=guessPrompts[0]||'Why do you think this happened?';
+    $('#qtext').placeholder='Type a guess and press Add';
+    setCue('guess','1 of 2');
+    setStatus('neutral','Write as many guesses as you like, then press the check.');
+    refreshGo();renderMeters();
+    return;
+  }
+  if(round==='guess'){
+    if(guessIdx===0){
+      guessIdx=1;
+      $('#prompt').textContent=guessPrompts[1]||'What do you think happens next?';
+      setCue('guess','2 of 2');
+      recordAction('round_done',{id:'guess_cause'});
+      refreshGo();return;
+    }
+    guessRt=Date.now()-roundStart;roundStart=Date.now();
+    recordAction('round_done',{id:'guess',rt:guessRt});
+    log(`guess round done: ${guesses.length} guesses`);
+    round='gap';
+    $('#askui').classList.add('hide');
+    $('#gapcards').classList.remove('hide');
+    $('#prompt').textContent=(item.content&&item.content.gapQuestion)||'Which one of these do we NOT know from the scene?';
+    paintGap();
+    setCue('gap');
+    setStatus('neutral','Read the scene again, then tap one answer and press the check.');
+    refreshGo();renderMeters();
+    return;
+  }
+  // gap round -> emit
+  if(gapSel===null)return;
+  locked=true;
+  gapRt=Date.now()-roundStart;
+  const rt=Date.now()-itemStart;
+  recordAction('submit',{id:gapSel,rt:gapRt});
+  const planful=planfulness();
+  T.rts.push(rt);T.revs.push(changes);T.explore.push(inspected.size);
+  T.path.push(actionLog.length);T.planful.push(planful);
+  T.ideaflu.push(ideaCount());T.query.push(questions.length);T.flex.push(depthTiers().size);
+  const result={
+    itemId:item.itemId,
+    typeCode:item.typeCode||'CX-curious-02',
+    domain:item.domain||'verbal',
+    response:{
+      questions:questions.slice(),
+      causeGuesses:guesses.filter(g=>g.kind==='cause'),
+      nextGuesses:guesses.filter(g=>g.kind==='next'),
+      gapKey:gapSel,
+      inspectedIds:[...inspected],
+      actionLog:actionLog.slice(),
+      askRt,guessRt,gapRt,
+      gapOptionCount:gapOptions.length,
+      inputModality
+    },
+    metrics:{
+      'M-RT':rt,'M-RTFIRST':firstAt!==null?(firstAt-itemStart):rt,'M-REV':changes,
+      'M-EXPLORE':inspected.size,'M-PATH':actionLog.length,'M-PLANFUL':planful,
+      'M-IDEAFLU':ideaCount(),'M-QUERY':questions.length,'M-FLEX':depthTiers().size,
+      'M-ENGAGE':blurEvents
+    },
+    telemetry:telemetryLog.slice()
+  };
+  post('result',{result});
+  // NO correct/incorrect shown — the key is server-side, and no question or
+  // guess is ever marked right or wrong at all.
+  setCue('done');
+  setStatus('ok','Answers sent. '+(embedded?'Waiting for the next scene\u2026':'Loading the next example\u2026'));
+  $('#go').classList.remove('ready');
+  log(`RESULT gap=${gapSel} \u00b7 ${rt}ms \u00b7 questions ${questions.length} \u00b7 guesses ${guesses.length} \u00b7 ideas ${ideaCount()} \u00b7 actions ${actionLog.length} \u00b7 planful ${planful}`);
+  if(!embedded)setTimeout(nextStandalone,1800);
+  renderMeters();
+}
+
+/* ---------------- wordless how-to pointer (reveals no answer) ---------------- */
+const ghost=$('#ghost');
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(460);}
+async function runHowto(){
+  if(!item)return;
+  locked=true;setCue('demo');
+  setStatus('neutral','Read the scene, tap a starter word, finish the question, then press Add.');
+  ghost.classList.add('show');await sleep(250);
+  await ghostTo($('#scene'));
+  const first=$('#starters .chip');if(first)await ghostTo(first);
+  await ghostTo($('#qtext'));
+  await ghostTo($('#addbtn'));
+  await ghostTo($('#go'));
+  await sleep(200);ghost.classList.remove('show');await sleep(250);
+  setCue('ask');setStatus('neutral','Your turn. Ask anything you want about the scene.');
+  locked=false; // KNOWN BUG GUARD: always release the lock when interaction resumes
+  refreshGo();
+}
+
+/* ---------------- standalone fallback ---------------- */
+const SAMPLES=[
+ {itemId:'sample-curious-easy',typeCode:'CX-curious-02',domain:'verbal',difficulty:2,ageBands:['2-3'],
+  content:{scene:{title:'The door in the tree',lines:['A small door is set into the trunk of a big tree.','The handle on the door is shiny.']},
+   askPrompt:'Ask as many questions about this scene as you like. There are no wrong questions.',
+   starters:[{id:'q_who',word:'Who',depth:1},{id:'q_what',word:'What',depth:1},{id:'q_where',word:'Where',depth:1},{id:'q_when',word:'When',depth:1},{id:'q_why',word:'Why',depth:2}],
+   focusWords:['small','door','trunk','tree','handle','shiny'],
+   guessPrompts:['Why do you think this happened?','What do you think happens next?'],
+   gapQuestion:'Which one of these do we NOT know from the scene?',
+   gapOptions:[{id:'g1',text:'The door is small.'},{id:'g2',text:'A cat lives in the field.'},{id:'g3',text:'The door is in a tree.'}],
+   variant:0}},
+ {itemId:'sample-curious-hard',typeCode:'CX-curious-02',domain:'verbal',difficulty:19,ageBands:['6-8'],
+  content:{scene:{title:'The path under the water',lines:['A line of flat stones runs just under the river surface.','From the bank the stones cannot be seen at all.']},
+   askPrompt:'Ask as many questions about this scene as you like. There are no wrong questions.',
+   starters:[{id:'q_who',word:'Who',depth:1},{id:'q_what',word:'What',depth:1},{id:'q_where',word:'Where',depth:1},{id:'q_when',word:'When',depth:1},{id:'q_why',word:'Why',depth:2},{id:'q_how',word:'How',depth:2},{id:'q_whatif',word:'What if',depth:3}],
+   focusWords:['line','flat','stones','runs','just','under'],
+   guessPrompts:['Why do you think this happened?','What do you think happens next?'],
+   gapQuestion:'Which one of these do we NOT know from the scene?',
+   gapOptions:[{id:'g1',text:'The stones are flat.'},{id:'g2',text:'The path was built to stay hidden.'},{id:'g3',text:'The stones are under the surface.'},{id:'g4',text:'The stones cannot be seen from the bank.'},{id:'g5',text:'There is a river.'}],
+   variant:2}},
+];
+let sIdx=0;
+function startStandalone(){$('#chanval').textContent='standalone (no host)';sIdx=0;nextStandalone(true);}
+function nextStandalone(first){
+  if(sIdx>=SAMPLES.length){setCue('done');setStatus('ok','Demo complete. Press \u21bb or reload to run the examples again.');locked=true;return;}
+  const s=SAMPLES[sIdx++];
+  setItem(s);
+  setCue('ask','\u00b7 example '+sIdx+'/'+SAMPLES.length);
+  if(first)runHowto();
+}
+
+/* ---------------- host message handling ---------------- */
+window.addEventListener('message',e=>{
+  const d=e.data;if(!d||d.source!==SRC_HOST)return;
+  if(d.type==='init'&&d.item){hostSeen=true;$('#chanval').textContent='host-embedded';setItem(d.item);}
+  else if(d.type==='start'){if(item){itemStart=Date.now();roundStart=itemStart;locked=false;refreshGo();setStatus('neutral','Your turn. Ask anything you want about the scene.');}}
+});
+
+/* ---------------- input ---------------- */
+$('#starters').addEventListener('click',e=>{const b=e.target.closest('[data-starter]');if(b)pickStarter(b.dataset.starter);});
+$('#words').addEventListener('click',e=>{const b=e.target.closest('[data-word]');if(b)pickWord(b.dataset.word);});
+$('#addbtn').addEventListener('click',addEntry);
+$('#qtext').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addEntry();}});
+$('#asked').addEventListener('click',e=>{const b=e.target.closest('[data-del]');if(b)removeEntry(b.dataset.del);});
+$('#gapcards').addEventListener('click',e=>{const b=e.target.closest('.gcard');if(b)selectGap(+b.dataset.i,'tap');});
+$('#gapcards').addEventListener('pointerover',e=>{const b=e.target.closest('.gcard');if(b&&!locked)touch('gap:'+gapOptions[+b.dataset.i].id);});
+$('#go').addEventListener('click',advance);
+document.addEventListener('keydown',e=>{
+  if(locked||round!=='gap')return;
+  if(document.activeElement&&document.activeElement.id==='qtext')return;
+  const n=+e.key;if(n>=1&&n<=gapOptions.length)selectGap(n-1,'key');
+  if(e.key==='Enter')advance();
+});
+$('#replay').addEventListener('click',()=>{if(item)runHowto();});
+
+/* ---------------- boot ---------------- */
+buildMeters();renderMeters();
+post('ready',{});
+if(!embedded){
+  startStandalone();
+}else{
+  setCue('ready');setStatus('neutral','Ready. Waiting for the first scene from the host\u2026');
+  setTimeout(()=>{if(!hostSeen&&!item)startStandalone();},1200);
+}
 </script>
 </body>
 </html>
