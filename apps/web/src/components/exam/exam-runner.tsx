@@ -56,6 +56,7 @@ import styles from './exam-runner.module.css';
  */
 
 const MAX_MS_PER_ITEM = 4 * 60 * 1000; // safety valve so a stuck item can't wedge the flow
+const READY_FALLBACK_MS = 500; // how long to wait for a demo's `ready` before initing anyway
 const RESULTS_KEY = 'gt-exam-results';
 
 type Phase = 'intro' | 'running' | 'saving' | 'done' | 'error';
@@ -274,10 +275,16 @@ export function ExamRunner({
     if (!iframe) return;
     const item = current;
     let initiated = false;
+    let readySeen = false;
+    let readyFallback: number | undefined;
 
     const host = new ExamHost(iframe, {
       origin: window.location.origin,
-      onReady: () => sendInit(),
+      onReady: () => {
+        readySeen = true;
+        if (readyFallback !== undefined) window.clearTimeout(readyFallback);
+        sendInit();
+      },
       onResult: (inbound) => handleResultRef.current(item, inbound, false),
       onTelemetry: (event) => {
         telemetryRef.current.push({ ...event, itemId: item.itemId });
@@ -294,7 +301,16 @@ export function ExamRunner({
     const onLoad = () => {
       // Refactored demos speak the protocol natively; only bridge a legacy demo.
       if (!NATIVE_PROTOCOL_TYPES.has(item.typeCode)) host.installLegacyBridge();
-      sendInit();
+      // `load` fires when the document is parsed, which can precede the demo
+      // installing its own `message` listener — an init sent then is dropped and
+      // the demo waits forever. `ready` is the demo's signal that it is
+      // listening, so prefer it and only fall back for a demo that never sends
+      // one (the legacy self-rendering set).
+      if (readyFallback === undefined) {
+        readyFallback = window.setTimeout(() => {
+          if (!readySeen) sendInit();
+        }, READY_FALLBACK_MS);
+      }
     };
     iframe.addEventListener('load', onLoad);
     if (iframe.contentDocument?.readyState === 'complete') onLoad();
@@ -310,6 +326,7 @@ export function ExamRunner({
       host.dispose();
       iframe.removeEventListener('load', onLoad);
       window.clearTimeout(timeout);
+      if (readyFallback !== undefined) window.clearTimeout(readyFallback);
       window.removeEventListener('gt-exam-skip', onSkip);
     };
   }, [phase, current]);
