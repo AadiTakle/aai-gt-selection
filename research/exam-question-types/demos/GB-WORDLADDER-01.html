@@ -409,8 +409,7 @@ async function bootstrapStandalone(){
 /* ---------- boot ---------- */
 buildMeters();renderMeters();
 post('ready');
-if(!embedded)bootstrapStandalone();
-else setTimeout(()=>{if(!gotInit)bootstrapStandalone();},1000);   // QA-safe if a host embeds but never inits
+if(!embedded)bootstrapStandalone();   // embedded: wait indefinitely for host init; self-bootstrapping would race it
 </script>
 </body>
 </html>

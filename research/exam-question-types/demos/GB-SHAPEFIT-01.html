@@ -348,7 +348,7 @@ function nextSample(){if(!SAMPLES.length)return;loadItem(SAMPLES[sampleIdx%SAMPL
 /* ---------- boot ---------- */
 buildMeters();
 if(embedded)post('ready');
-setTimeout(()=>{if(!gotInit&&SAMPLES.length){
+setTimeout(()=>{if(!gotInit&&!embedded&&SAMPLES.length){
   $('#howto').querySelector('p').insertAdjacentHTML('beforeend',' <b>(Standalone preview: cycling built-in sample items.)</b>');
   nextSample();
 }},500);

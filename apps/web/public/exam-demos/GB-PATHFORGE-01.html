@@ -407,7 +407,7 @@ const INLINE_SAMPLES=[
 /* ---------- boot ---------- */
 buildMeters();renderMeters();
 if(embedded)post('ready');
-setTimeout(()=>{if(!gotInit){
+setTimeout(()=>{if(!gotInit&&!embedded){
   $('#howto').querySelector('p').insertAdjacentHTML('beforeend',' <b>(Standalone preview: cycling bank items.)</b>');
   bootstrapStandalone();
 }},500);

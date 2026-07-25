@@ -235,7 +235,7 @@ function nextSample(){loadItem(SAMPLES[sampleIdx%SAMPLES.length]);sampleIdx++;st
 /* ---------- boot ---------- */
 buildMeters();renderMeters();
 if(embedded)post('ready');
-setTimeout(()=>{if(!gotInit){ // no host -> run standalone
+setTimeout(()=>{if(!gotInit&&!embedded){ // no host -> run standalone
   $('#howto').querySelector('p').insertAdjacentHTML('beforeend',' <b>(Standalone preview: cycling built-in sample items.)</b>');
   nextSample();
 }},500);
