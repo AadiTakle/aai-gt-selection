@@ -3,17 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>VER-CLOZE-01 · Fill the Gap</title>
+<title>VER-SORTBOT-01 · Sorting Robot</title>
 <!--
-  VER-CLOZE-01 (Fill the Gap) — PURE RENDERER.
+  VER-SORTBOT-01 (Sorting Robot) — PURE RENDERER.
 
   This demo no longer invents its own items or holds an answer key. It renders a
   ServedItem's `content` and reports the child's raw response + process telemetry.
-  Scoring (correct/incorrect, lure class) is SERVER-authoritative and is NOT shown
-  here (build plan: no correct/incorrect mid-test; key stays server-side).
+  Scoring (correct/incorrect) is SERVER-authoritative and is NOT shown here
+  (build plan: no correct/incorrect mid-test; key stays server-side). The hidden
+  `rule` is also server-side and is NEVER rendered (that would give the answer away).
 
-  House style: word-based only. No pictures, no emoji — reading the sentence IS the
-  task (reading gate, D-017).
+  Mechanic: the robot has already sorted a few words into IN and OUT by a secret
+  rule. The child works out the rule, then taps the ONE new word that also goes IN,
+  and submits. Single select -> deterministic key on the server.
+
+  House style: word-based only. No pictures, no emoji — reading the words IS the task.
 
   Embedding protocol (postMessage; source-tagged gt-exam-host / gt-exam-demo):
     host -> demo : {source:'gt-exam-host', type:'init',  item: ServedItem}
@@ -23,25 +27,24 @@
                    {source:'gt-exam-demo', type:'result',    result: ItemResult}
 
   ServedItem = { itemId, typeCode, domain, difficulty, ageBands?, content }
-    content  = { sentenceFrame:"…___…", options:[{token:{text}}], gapType?,
-                 targetFrequencyBand?, syntacticComplexity? }
-    (NOTE: options carry NO fit/answer — the key is server-side)
+    content  = { prompt?, examplesIn:[{text}], examplesOut:[{text}], options:[{token:{text}}], frequencyBand? }
+    (NOTE: options carry NO lure/answer, and `rule` is not part of the served subset)
 
   ItemResult = { itemId, typeCode, domain,
                  response:{selectedIndex, selectedToken, triedIndices, selectionOrder, optionCount, inputModality},
-                 metrics:{'M-RT','M-RTFIRST','M-REV','M-EXPLORE'},   // client-computable only
+                 metrics:{'M-RT','M-RTFIRST','M-REV','M-EXPLORE'},
                  telemetry:[TelemetryEvent] }
 
   Standalone fallback: opened by double-click (no host), it plays a few built-in
   sample ServedItems locally and logs the emitted results/telemetry on-page.
 -->
 <style>
-  :root{--bg1:#eef4ff;--bg2:#f7ecff;--ink:#26304a;--card:#fff;--accent:#5b6cff;--good:#22b573;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  :root{--bg1:#eef4ff;--bg2:#f7ecff;--ink:#26304a;--card:#fff;--accent:#5b6cff;--good:#22b573;--out:#c76b8e;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
   *{box-sizing:border-box} html,body{margin:0;height:100%}
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
-  #howto{max-width:660px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+  #howto{max-width:680px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
   #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
   #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
   #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:#5b6cff;border:2px solid #c9d0ff;min-height:30px}
@@ -51,12 +54,20 @@
   #phasecue[data-phase="demo"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
   #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
   #status.ok{color:var(--good)} #status.neutral{color:#8a93b5}
-  #stagecard{background:var(--card);border-radius:26px;padding:24px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:18px;max-width:680px;width:100%}
-  .band{border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;align-items:center;width:100%}
-  #sentBand{background:linear-gradient(160deg,#eafaf1,#eef1ff);border:3px solid #bfe8cf}
-  #sentText{font-size:22px;text-align:center;line-height:1.7;font-weight:600}
-  #sentText .blank{display:inline-block;min-width:84px;padding:2px 12px;border-bottom:3px dashed var(--accent);color:var(--accent);font-weight:800;text-align:center}
-  #sentText .blank.filled{border-bottom:3px solid var(--accent);color:var(--ink)}
+  #stagecard{background:var(--card);border-radius:26px;padding:24px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:16px;max-width:700px;width:100%}
+  #robotLine{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#8a93b5}
+  #binsBand{display:flex;gap:16px;width:100%}
+  .bin{flex:1;border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px;align-items:center;min-height:96px}
+  .bin .lab{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+  #binIn{background:linear-gradient(160deg,#eafaf1,#eef7f1);border:3px solid #bfe8cf}
+  #binIn .lab{color:#3f9b6b}
+  #binOut{background:linear-gradient(160deg,#fdeef3,#fbeef5);border:3px solid #ecc4d4}
+  #binOut .lab{color:#b45f7f}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+  .chip{background:#fff;border:2px solid #dfe4fb;border-radius:10px;padding:6px 12px;font-size:15px;font-weight:700;color:#3f4a6e}
+  #binIn .chip{border-color:#bfe8cf}
+  #binOut .chip{border-color:#ecc4d4}
+  #promptLine{font-size:15px;font-weight:700;color:#42506e;text-align:center}
   #candGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;width:100%}
   .cand{display:flex;align-items:center;justify-content:center;gap:10px;background:#f4f6ff;border:3px solid #d7deff;border-radius:16px;padding:16px 12px;cursor:pointer;font-size:18px;font-weight:700;transition:.12s;position:relative;color:#3f4a6e}
   .cand:hover{border-color:#b9c2ee}
@@ -92,14 +103,19 @@
 </head>
 <body>
   <div id="wrap">
-    <div id="badge">VER-CLOZE-01 · Fill the Gap</div>
+    <div id="badge">VER-SORTBOT-01 · Sorting Robot</div>
     <header id="howto">
-      <h1>How to use — Fill the Gap</h1>
-      <p>Read the whole sentence. Then tap the word that best fills the blank so the <b>whole sentence</b> makes sense (not just the words next to the blank), and press the check (<b>&#10003;</b>) to submit. You can also press number keys 1&ndash;4.</p>
+      <h1>How to use — Sorting Robot</h1>
+      <p>The robot already sorted some words into <b>IN</b> and <b>OUT</b> using a secret rule. Work out the rule, then tap the one word below that also belongs <b>IN</b>, and press the check (<b>&#10003;</b>). You can also press number keys 1&ndash;4.</p>
     </header>
     <div id="phasecue" data-phase="ready">Ready</div>
     <div id="stagecard">
-      <div id="sentBand" class="band"><div id="sentText"></div></div>
+      <div id="robotLine">The robot sorted these</div>
+      <div id="binsBand">
+        <div id="binIn" class="bin"><span class="lab">IN</span><div class="chips" id="inChips"></div></div>
+        <div id="binOut" class="bin"><span class="lab">OUT</span><div class="chips" id="outChips"></div></div>
+      </div>
+      <div id="promptLine"></div>
       <div id="candGrid"></div>
       <div id="diffmeter"><span>Easy</span><div id="diffbar"><i id="diffbarfill"></i></div><span>Hard</span><span id="diffval">level &mdash; / 20</span></div>
       <div id="controls">
@@ -139,7 +155,7 @@ const METERS=[
  {id:'M-REV',name:'Revisions before submit',get:()=>T.revs.length?`${last(T.revs)}`:'\u2014'},
  {id:'M-EXPLORE',name:'Words sampled',get:()=>T.explore.length?`${last(T.explore)} of ${options.length||'\u2014'}`:'\u2014'},
  {id:'M-ACC',name:'Accuracy — scored server-side',get:()=>'server-side'},
- {id:'M-LURETYPE',name:'Lure chosen — scored server-side',get:()=>'server-side'},
+ {id:'M-ERRTYPE',name:'Miss type — scored server-side',get:()=>'server-side'},
  {id:'M-VOCABLVL',name:'Lexical ceiling — scored server-side',get:()=>'server-side'},
 ];
 function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
@@ -157,15 +173,7 @@ let item=null, options=[], selected=null, order=[], tried=null, changes=0,
 
 function esc(s){return String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
 function tokenText(o){return (o&&o.token&&o.token.text)!=null?o.token.text:(o&&o.text!=null?o.text:'?');}
-function frameHTML(frame,fillWord){
-  const safe=esc(frame||'');
-  const blank=fillWord!=null
-    ? `<span class="blank filled" id="blankSpan">${esc(fillWord)}</span>`
-    : `<span class="blank" id="blankSpan">?</span>`;
-  return safe.replace(/___/, blank);
-}
 function difficultyOf(it){const d=(it&&it.difficulty!=null)?it.difficulty:(it&&it.difficultyLevel!=null?it.difficultyLevel:0);return +d||0;}
-
 function recordEv(ev){ev.t=itemStart?Date.now()-itemStart:0;telemetryLog.push(ev);post('telemetry',{event:ev});}
 
 /* ---------------- render a served item ---------------- */
@@ -174,15 +182,19 @@ function setItem(served){
   const c=(served&&served.content)||{};
   options=(c.options||[]).map((o)=>({token:{text:tokenText(o)}}));
   selected=null;order=[];tried=new Set();changes=0;firstAt=null;telemetryLog=[];itemStart=Date.now();locked=false;
-  $('#sentText').innerHTML=frameHTML(c.sentenceFrame,null);
+  const inList=(c.examplesIn||[]).map((t)=>tokenText(t));
+  const outList=(c.examplesOut||[]).map((t)=>tokenText(t));
+  $('#inChips').innerHTML=inList.map((w)=>`<span class="chip">${esc(w)}</span>`).join('');
+  $('#outChips').innerHTML=outList.map((w)=>`<span class="chip">${esc(w)}</span>`).join('');
+  $('#promptLine').textContent=c.prompt||'Which new word also goes IN?';
   $('#candGrid').innerHTML=options.map((o,i)=>`<div class="cand" data-i="${i}"><span class="hk">${i+1}</span><span class="word">${esc(o.token.text)}</span></div>`).join('');
   const d=difficultyOf(served);
   $('#diffbarfill').style.width=Math.max(0,Math.min(100,d/20*100))+'%';
   $('#diffval').textContent='level '+(Math.round(d*10)/10)+' / 20';
   $('#go').classList.remove('ready');
   setCue('answer');
-  setStatus('neutral','Read the whole sentence, tap the best word, then press the check.');
-  log(`INIT item ${served&&served.itemId?served.itemId:'(no id)'} · "${(c.sentenceFrame||'')}" · ${options.length} options · level ${Math.round(d*10)/10}`);
+  setStatus('neutral','Work out the robot\u2019s rule, tap the word that goes IN, then press the check.');
+  log(`INIT item ${served&&served.itemId?served.itemId:'(no id)'} · IN[${inList.join(',')}] OUT[${outList.join(',')}] · ${options.length} options · level ${Math.round(d*10)/10}`);
   recordEv({kind:'shown',itemId:served&&served.itemId,difficulty:d,optionCount:options.length});
   renderMeters();
 }
@@ -197,8 +209,6 @@ function select(i,modality){
   if(selected!==null&&selected!==i){changes++;recordEv({kind:'change',from:selected,to:i});}
   selected=i;tried.add(i);order.push(i);
   $$('#candGrid .cand').forEach(c=>c.classList.toggle('sel',+c.dataset.i===i));
-  const c=(item&&item.content)||{};
-  $('#sentText').innerHTML=frameHTML(c.sentenceFrame,options[i].token.text);
   $('#go').classList.add('ready');
   recordEv({kind:'select',index:i,via:inputModality});
   renderMeters();
@@ -213,7 +223,7 @@ function submit(){
   recordEv({kind:'submit',index:selected,rt});
   const result={
     itemId:item.itemId,
-    typeCode:item.typeCode||'VER-CLOZE-01',
+    typeCode:item.typeCode||'VER-SORTBOT-01',
     domain:item.domain||'verbal',
     response:{
       selectedIndex:selected,
@@ -244,28 +254,31 @@ async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transf
 async function runHowto(){
   if(!item)return;
   const wasLocked=locked;locked=true;setCue('demo');
-  setStatus('neutral','Read the whole sentence, then read each choice, then press the check.');
+  setStatus('neutral','Read the IN and OUT words, then read each choice, then press the check.');
   ghost.classList.add('show');await sleep(250);
-  await ghostTo($('#sentText'));
+  await ghostTo($('#binIn'));await ghostTo($('#binOut'));
   for(const el of $$('#candGrid .cand')){await ghostTo(el);}
   await ghostTo($('#go'));
   await sleep(200);ghost.classList.remove('show');await sleep(250);
-  setCue('answer');setStatus('neutral','Your turn. Tap the best word, then press the check.');
+  setCue('answer');setStatus('neutral','Your turn. Tap the word that goes IN, then press the check.');
   locked=false;
 }
 
 /* ---------------- standalone fallback (double-click, no host) ---------------- */
-// Built-in sample ServedItems (content only; options carry NO fit — key is server-side).
+// Built-in sample ServedItems (content only; options carry NO lure, and no rule field).
 const SAMPLES=[
-  {itemId:'sample-cloze-easy',typeCode:'VER-CLOZE-01',domain:'verbal',difficulty:1,ageBands:['K-1'],
-   content:{sentenceFrame:'The dog can ___.',gapType:'local_fit',
-     options:[{token:{text:'bone'}},{token:{text:'run'}},{token:{text:'blue'}}],targetFrequencyBand:6}},
-  {itemId:'sample-cloze-mid',typeCode:'VER-CLOZE-01',domain:'verbal',difficulty:10.2,ageBands:['4-5'],
-   content:{sentenceFrame:'The room was messy, but after an hour it looked ___.',gapType:'global_fit',
-     options:[{token:{text:'dirty'}},{token:{text:'tidy'}},{token:{text:'noisy'}},{token:{text:'broom'}}],targetFrequencyBand:4}},
-  {itemId:'sample-cloze-hard',typeCode:'VER-CLOZE-01',domain:'verbal',difficulty:20,ageBands:['6-8'],
-   content:{sentenceFrame:'Far from being verbose, her acceptance speech was strikingly ___.',gapType:'global_fit',
-     options:[{token:{text:'wordy'}},{token:{text:'terse'}},{token:{text:'podium'}},{token:{text:'fragrant'}}],targetFrequencyBand:1}}
+  {itemId:'sample-sortbot-easy',typeCode:'VER-SORTBOT-01',domain:'verbal',difficulty:1,ageBands:['K-1'],
+   content:{prompt:'The robot sorted these words. Tap the new word that also goes IN.',
+     examplesIn:[{text:'dog'},{text:'cat'}],examplesOut:[{text:'car'}],
+     options:[{token:{text:'bone'}},{token:{text:'cow'}},{token:{text:'chair'}}],frequencyBand:6}},
+  {itemId:'sample-sortbot-mid',typeCode:'VER-SORTBOT-01',domain:'verbal',difficulty:5.2,ageBands:['2-3'],
+   content:{prompt:'The robot sorted these words. Tap the new word that also goes IN.',
+     examplesIn:[{text:'trout'},{text:'shark'}],examplesOut:[{text:'crab'}],
+     options:[{token:{text:'whale'}},{token:{text:'lamp'}},{token:{text:'swim'}},{token:{text:'tuna'}}],frequencyBand:4}},
+  {itemId:'sample-sortbot-hard',typeCode:'VER-SORTBOT-01',domain:'verbal',difficulty:20,ageBands:['6-8'],
+   content:{prompt:'The robot sorted these words. Tap the new word that also goes IN.',
+     examplesIn:[{text:'timber'},{text:'wind'}],examplesOut:[{text:'coal'}],
+     options:[{token:{text:'uranium'}},{token:{text:'solar'}},{token:{text:'green'}},{token:{text:'quartz'}}],frequencyBand:1}}
 ];
 let sIdx=0;
 function startStandalone(){$('#chanval').textContent='standalone (no host)';sIdx=0;nextStandalone(true);}
@@ -281,7 +294,7 @@ function nextStandalone(first){
 window.addEventListener('message',e=>{
   const d=e.data;if(!d||d.source!==SRC_HOST)return;
   if(d.type==='init'&&d.item){hostSeen=true;$('#chanval').textContent='host-embedded';setItem(d.item);}
-  else if(d.type==='start'){if(item){itemStart=Date.now();locked=false;setStatus('neutral','Your turn. Tap the best word, then press the check.');}}
+  else if(d.type==='start'){if(item){itemStart=Date.now();locked=false;setStatus('neutral','Your turn. Tap the word that goes IN, then press the check.');}}
 });
 
 /* ---------------- input ---------------- */
