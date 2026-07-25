@@ -29,8 +29,9 @@
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildItem } from './QUANT-MOBILE-01.mjs';
+import { buildBank } from './QUANT-MOBILE-01.mjs';
 import { lureLabel, normalizeBankItem } from './item-shape.mjs';
+import { contentKey } from './variety.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/QUANT-MOBILE-01.jsonl');
@@ -289,18 +290,38 @@ for (const it of items) {
     fail(id, `above-level item is not structurally hard (beams ${beams.length}, unequal arms ${unequal})`);
   if (it.difficulty <= 4 && unequal > 0) fail(id, 'floor item should use equal arms only');
 
-  // ---- 7. Reproducibility from provenance ----
+  // ---- 7. Seed shape (the byte-for-byte regeneration is check 7b, below) ----
   const parts = String(it.provenance.seed).split(':');   // master:TYPE:d<rung>:i<ordinal>:a<attempt>
   const rung = parseInt((parts[2] || '').replace(/^d/, ''), 10);
   const ordinal = parseInt((parts[3] || '').replace(/^i/, ''), 10);
   if (!Number.isInteger(rung) || !Number.isInteger(ordinal)) fail(id, `cannot parse rung/ordinal from seed (${it.provenance.seed})`);
-  else {
-    try {
-      const regen = normalizeBankItem(buildItem(parts[0], rung, ordinal));
-      if (!regen) fail(id, 'regeneration produced null');
-      else if (!deepEq(regen, it)) fail(id, 'item is NOT reproducible from its provenance (grammar drift)');
-    } catch (e) { fail(id, `regeneration threw: ${e.message}`); }
-  }
+  else if (rung !== lev.difficultyRung) fail(id, `seed rung d${rung} != levers.difficultyRung ${lev.difficultyRung}`);
+}
+
+/* ---------------------------------------------------------------- *
+ * 7b. Reproducibility: the WHOLE bank, in order. The generator refuses to
+ * hang the same mobile twice, so an item depends on the ones emitted before
+ * it; rebuilding end to end also pins order and count.
+ * ---------------------------------------------------------------- */
+if (items.length) {
+  const masterSeed = String(items[0].provenance?.seed || '').split(':')[0];
+  const perRung = 1 + Math.max(...items.map((it) => parseInt((String(it.provenance.seed).split(':')[3] || '').replace(/^i/, ''), 10) || 0));
+  try {
+    const regen = buildBank(masterSeed, perRung).items.map(normalizeBankItem);
+    if (regen.length !== items.length) fail('repro', `regenerated ${regen.length} items, bank has ${items.length}`);
+    items.forEach((it, i) => {
+      if (!regen[i]) fail(it.itemId, 'regeneration produced nothing at this position');
+      else if (!deepEq(regen[i], it)) fail(it.itemId, `item ${i + 1} is NOT reproducible from its provenance (grammar drift)`);
+    });
+  } catch (e) { fail('repro', `regeneration threw: ${e.message}`); }
+}
+
+/* ---- 7c. No item hangs another item's mobile ---- */
+const seenContent = new Map();
+for (const it of items) {
+  const k = contentKey(it.content);
+  if (seenContent.has(k)) fail(it.itemId, `content is byte-identical to ${seenContent.get(k)} — the bank is smaller than it looks`);
+  else seenContent.set(k, it.itemId);
 }
 
 /* ---------------------------------------------------------------- *

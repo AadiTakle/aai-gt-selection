@@ -26,8 +26,9 @@
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildItem } from './QUANT-GRAPH-01.mjs';
+import { buildBank } from './QUANT-GRAPH-01.mjs';
 import { lureLabel, normalizeBankItem } from './item-shape.mjs';
+import { contentKey } from './variety.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/QUANT-GRAPH-01.jsonl');
@@ -210,19 +211,38 @@ for (const it of items) {
   if (rung >= 16 && Math.max(...tracks.flatMap((t) => t.values)) > LEVEL_CAP)
     fail(id, `rung ${rung} leans on bigger numbers rather than a deeper relation`);
 
-  // --- 6. reproducibility from provenance ---
+  // --- 6. seed shape (the byte-for-byte regeneration is check 6b, below) ---
   const parts = it.provenance.seed.split(':');   // masterSeed:TYPE:d<rung>:i<ordinal>:a<attempt>
-  const masterSeed = parts[0];
   const seedRung = parseInt((parts[2] || '').replace(/^d/, ''), 10);
   const ordinal = parseInt((parts[3] || '').replace(/^i/, ''), 10);
   if (!Number.isInteger(seedRung) || !Number.isInteger(ordinal)) fail(id, `cannot parse rung/ordinal from seed (${it.provenance.seed})`);
-  else {
-    try {
-      const regen = normalizeBankItem(buildItem(masterSeed, seedRung, ordinal));
-      if (!regen) fail(id, 'regeneration produced null');
-      else if (!deepEq(regen, it)) fail(id, 'item is NOT reproducible from its provenance (grammar drift)');
-    } catch (e) { fail(id, `regeneration threw: ${e.message}`); }
-  }
+  else if (seedRung !== rung) fail(id, `seed rung d${seedRung} != levers.difficultyRung ${rung}`);
+}
+
+/* ---- 6b. Reproducibility: the WHOLE bank, in order ----
+ * The generator refuses to repeat a story, so an item depends on the ones
+ * emitted before it and cannot be regenerated on its own. Rebuilding the bank
+ * end to end and comparing line by line is the stronger statement anyway: it
+ * pins order and count as well as content. */
+if (items.length) {
+  const masterSeed = (items[0].provenance?.seed || '').split(':')[0];
+  const perRung = 1 + Math.max(...items.map((it) => parseInt((it.provenance.seed.split(':')[3] || '').replace(/^i/, ''), 10) || 0));
+  try {
+    const regen = buildBank(masterSeed, perRung).items.map(normalizeBankItem);
+    if (regen.length !== items.length) fail('repro', `regenerated ${regen.length} items, bank has ${items.length}`);
+    items.forEach((it, i) => {
+      if (!regen[i]) fail(it.itemId, 'regeneration produced nothing at this position');
+      else if (!deepEq(regen[i], it)) fail(it.itemId, `item ${i + 1} is NOT reproducible from its provenance (grammar drift)`);
+    });
+  } catch (e) { fail('repro', `regeneration threw: ${e.message}`); }
+}
+
+/* ---- 6c. No item repeats another item's question ---- */
+const seenContent = new Map();
+for (const it of items) {
+  const k = contentKey(it.content);
+  if (seenContent.has(k)) fail(it.itemId, `content is byte-identical to ${seenContent.get(k)} — the bank is smaller than it looks`);
+  else seenContent.set(k, it.itemId);
 }
 
 /* ---- 7. Coverage ---- */

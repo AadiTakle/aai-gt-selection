@@ -350,7 +350,7 @@ export const EXAM_TYPE_REGISTRY: readonly ExamRegistryEntry[] = [
     blurb: 'The child rearranges quantity tiles to build the biggest or smallest value that obeys the pictured rules.',
     ageBands: ['2-3', '4-5', '6-8', 'K-1'],
     itemCount: 120,
-    difficultyMin: 1.16,
+    difficultyMin: 1,
     difficultyMax: 20,
     verifier: 'constructed_value',
     metrics: ['M-ENGAGE', 'M-PATH', 'M-RAPIDGUESS', 'M-RT', 'M-RTFIRST'],

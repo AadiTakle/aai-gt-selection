@@ -25,6 +25,7 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeBank } from './item-shape.mjs';
+import { VarietyLedger, contentKey } from './variety.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT = resolve(__dirname, '../banks/SPA-PICKFOLD-01.jsonl');
@@ -208,28 +209,54 @@ function distinctSeqPool(folds, punches) {
 }
 
 // ---------------------------------------------------------------------------
-// Build one item.
+// Build one item. ATTEMPTS is a bounded retry budget: a retry re-seeds and
+// deals a different candidate set / key, which is how the item escapes a
+// question the bank has already asked. Level 1 offers 2 candidates out of a
+// 12-question pool, so five items there used to collide by chance.
 // ---------------------------------------------------------------------------
-function buildItem(L, idx, slotFor) {
-  const seed = `${TYPE_CODE}|L${L}|#${idx}|${BASE_SEED}`;
-  const rng = makeRng(seed);
+const ATTEMPTS = 24;
+
+function buildItem(L, idx, slotFor, ledger) {
   const prof = PROFILES[L];
   const punches = prof.punches;
 
   const pool = distinctSeqPool(prof.folds, punches);
   const nOpts = Math.min(prof.nOpts, pool.length);
-  const chosen = shuffle(rng, pool).slice(0, nOpts);          // distinct signatures => distinct patterns
-  const correctEntry = chosen[Math.floor(rng() * chosen.length)];
-  const correctSeq = correctEntry.seq;
+
+  let pick = null;
+  for (let attempt = 0; attempt < ATTEMPTS && !pick; attempt++) {
+    const seed = attempt === 0
+      ? `${TYPE_CODE}|L${L}|#${idx}|${BASE_SEED}`
+      : `${TYPE_CODE}|L${L}|#${idx}|r${attempt}|${BASE_SEED}`;
+    const rng = makeRng(seed);
+    const chosen = shuffle(rng, pool).slice(0, nOpts);        // distinct signatures => distinct patterns
+    const correctSeq = chosen[Math.floor(rng() * chosen.length)].seq;
+    const shuffled = shuffle(rng, chosen);
+    const target = patternCells(correctSeq, punches);         // the unfolded cut pattern shown to the child
+
+    // Variety gate, BEFORE seatCorrect: the ledger's key ignores option order,
+    // so its verdict is the same before and after seating and a rejected
+    // attempt never consumes a key slot (which would skew the key balance the
+    // allocator exists to protect).
+    const draft = {
+      punches: punches.map(p => [p[0], p[1]]),
+      target: { cells: target },
+      options: shuffled.map((e, i) => ({ key: OPT_KEYS[i], seq: [...e.seq] })),
+    };
+    if (attempt < ATTEMPTS - 1 && !ledger.wants(draft)) continue;
+    ledger.add(draft);
+    pick = { seed, rng, shuffled, correctSeq, target };
+  }
+
+  const { seed, rng, shuffled, correctSeq, target } = pick;
 
   // Options in a shuffled order; the correct option is seated on its allocated slot.
-  const ordered = seatCorrect(shuffle(rng, chosen), e => e.seq === correctSeq, slotFor);
+  const ordered = seatCorrect(shuffled, e => e.seq === correctSeq, slotFor);
   const options = ordered.map((e, i) => ({ key: OPT_KEYS[i], seq: [...e.seq] }));
   const correctKey = options.find(o => o.seq.join('') === correctSeq).key;
   const distractorRationales = options.map(o =>
     o.seq.join('') === correctSeq ? 'correct' : errType(o.seq, correctSeq));
 
-  const target = patternCells(correctSeq, punches);            // the unfolded cut pattern shown to the child
   const difficulty = Math.round((Math.min(20, Math.max(1, L + (rng() * 0.7 - 0.35)))) * 100) / 100;
 
   const content = {
@@ -269,7 +296,8 @@ function buildItem(L, idx, slotFor) {
 function generate() {
   const items = [];
   const slotFor = makeSlotAllocator(OPT_KEYS.length);
-  for (let L = 1; L <= 20; L++) for (let i = 0; i < ITEMS_PER_LEVEL; i++) items.push(buildItem(L, i, slotFor));
+  const ledger = new VarietyLedger();      // one ledger for the whole bank: no level may reuse another's question
+  for (let L = 1; L <= 20; L++) for (let i = 0; i < ITEMS_PER_LEVEL; i++) items.push(buildItem(L, i, slotFor, ledger));
   return items;
 }
 
@@ -291,6 +319,14 @@ function verify(items) {
   let ok = 0, bad = 0; const problems = [];
   const bands = {}; for (let L = 1; L <= 20; L++) bands[L] = 0;
   const seenIds = new Set();
+  // The retry budget is bounded, so a question could in principle still
+  // repeat. Fail loudly rather than shipping a bank smaller than it looks.
+  const seenContent = new Map();
+  for (const it of items) {
+    const ck = contentKey(it.content);
+    if (seenContent.has(ck)) problems.push(`${it.itemId}: content is byte-identical to ${seenContent.get(ck)}`);
+    else seenContent.set(ck, it.itemId);
+  }
   for (const it of items) {
     const req = ['itemId', 'typeCode', 'domain', 'difficulty', 'ageBands', 'content', 'answer', 'scoring', 'provenance', 'syntheticOnly', 'validated'];
     for (const k of req) if (!(k in it)) problems.push(`${it.itemId}: missing ${k}`);

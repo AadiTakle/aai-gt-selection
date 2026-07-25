@@ -36,9 +36,11 @@ import { writeFileSync, readFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeBank } from './item-shape.mjs';
+import { VarietyLedger } from './variety.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const TYPE_CODE = 'QUANT-GRAPH-01';
+export const ITEMS_PER_RUNG = 7;
 const DOMAIN = 'quantitative';
 const DEMO_PATH = 'demos/QUANT-GRAPH-01.html';
 const GENERATOR_REF = 'QUANT-GRAPH-01-grammar@1';
@@ -119,12 +121,22 @@ function levelsFromSteps(start, steps, cap) {
   }
   return out;
 }
-function amountStory(rng, shape, beats, cap = LEVEL_CAP) {
+// `stepChoices` / `startMax` widen the steady-climb floor (rungs 1 and 3),
+// where the default 2 step sizes x 3 starting levels is fewer distinct stories
+// than the rung has items to fill.
+function amountStory(rng, shape, beats, cap = LEVEL_CAP, opts = {}) {
   const n = beats - 1;
+  const stepChoices = opts.stepChoices || [1, 2];
   let steps;
   switch (shape) {
-    case 'up_steady': { const k = rng.int(1, 2); steps = Array.from({ length: n }, () => k); break; }
-    case 'up_varied': steps = Array.from({ length: n }, () => rng.int(1, 3)); break;
+    case 'up_steady': { const k = rng.pick(stepChoices); steps = Array.from({ length: n }, () => k); break; }
+    case 'up_varied': {
+      steps = Array.from({ length: n }, () => rng.int(1, 3));
+      // A "varied" climb that happens to draw one step size IS a steady climb,
+      // and would collide with the steady rung one rung below.
+      if (steps.every((s) => s === steps[0])) return null;
+      break;
+    }
     case 'with_flat': {
       steps = Array.from({ length: n }, () => rng.int(0, 2));
       if (!steps.includes(0)) steps[rng.int(0, n - 1)] = 0;
@@ -140,14 +152,19 @@ function amountStory(rng, shape, beats, cap = LEVEL_CAP) {
     case 'decelerate': { let k = rng.int(2, 3); steps = Array.from({ length: n }, () => Math.max(0, k--)); break; }
     default: return null;
   }
-  const start = shape === 'turn' ? rng.int(1, 3) : rng.int(0, 2);
+  const start = shape === 'turn' ? rng.int(1, 3) : rng.int(0, opts.startMax ?? 2);
   return levelsFromSteps(start, steps, cap);
 }
-function rateStory(rng, shape, beats) {
+function rateStory(rng, shape, beats, opts = {}) {
   let rates;
   switch (shape) {
-    case 'flat_rate': { const k = rng.int(1, 3); rates = Array.from({ length: beats }, () => k); break; }
-    case 'varied_rate': rates = Array.from({ length: beats }, () => rng.int(1, RATE_CAP)); break;
+    case 'flat_rate': { const k = rng.int(1, opts.rateMax ?? 3); rates = Array.from({ length: beats }, () => k); break; }
+    case 'varied_rate': {
+      rates = Array.from({ length: beats }, () => rng.int(1, RATE_CAP));
+      // Same reason as up_varied: a constant "varied" rate is the flat rung.
+      if (rates.every((r) => r === rates[0])) return null;
+      break;
+    }
     case 'rate_with_pause': {
       rates = Array.from({ length: beats }, () => rng.int(1, RATE_CAP));
       rates[rng.int(1, beats - 2)] = 0;
@@ -165,11 +182,16 @@ function rateStory(rng, shape, beats) {
  * The QUESTION deepens first (read the data -> between -> beyond), then the
  * story gains beats, turning points and changing rates, then foils tighten.
  * ------------------------------------------------------------------ */
+// `story` collects the knobs that only widen a rung's stimulus space; they do
+// not move a difficulty lever. Rungs 1, 3 and 13 carry them because the levers
+// alone leave those rungs with fewer distinct stories than they have items:
+// rung 1 and 3 had 6 steady climbs each and rung 13 had 3 constant-rate
+// stories, against 7 items per rung.
 function configFor(rng, d) {
   const table = {
-    1: { question: 'amount', mode: 'bars', beats: 3, shape: 'up_steady', options: 3, proximity: 'far' },
+    1: { question: 'amount', mode: 'bars', beats: 3, shape: 'up_steady', options: 3, proximity: 'far', story: { stepChoices: [1, 2, 3], startMax: 5 } },
     2: { question: 'amount', mode: 'bars', beats: 3, shape: 'up_varied', options: 3, proximity: 'far' },
-    3: { question: 'amount', mode: 'bars', beats: 4, shape: 'up_steady', options: 3, proximity: 'far' },
+    3: { question: 'amount', mode: 'bars', beats: 4, shape: 'up_steady', options: 3, proximity: 'far', story: { stepChoices: [1, 2, 3], startMax: 4 } },
     4: { question: 'amount', mode: 'bars', beats: 4, shape: 'up_varied', options: 3, proximity: 'medium' },
     5: { question: 'amount', mode: 'line', beats: 4, shape: 'up_varied', options: 3, proximity: 'medium' },
     6: { question: 'amount', mode: 'line', beats: 4, shape: 'with_flat', options: 4, proximity: 'medium' },
@@ -179,7 +201,7 @@ function configFor(rng, d) {
     10: { question: 'compare', mode: 'twoline', beats: 4, shape: 'up_varied', shapeB: 'up_steady', options: 4, proximity: 'medium' },
     11: { question: 'compare', mode: 'twoline', beats: 5, shape: 'with_flat', shapeB: 'up_varied', options: 4, proximity: 'near' },
     12: { question: 'compare', mode: 'twoline', beats: 5, shape: 'accelerate', shapeB: 'decelerate', options: 4, proximity: 'near' },
-    13: { question: 'total', mode: 'line', beats: 3, shape: 'flat_rate', options: 3, proximity: 'medium' },
+    13: { question: 'total', mode: 'line', beats: [3, 5], shape: 'flat_rate', options: 3, proximity: 'medium', story: { rateMax: RATE_CAP } },
     14: { question: 'total', mode: 'line', beats: 4, shape: 'varied_rate', options: 4, proximity: 'medium' },
     15: { question: 'total', mode: 'line', beats: 4, shape: 'rate_with_pause', options: 4, proximity: 'near' },
     16: { question: 'total', mode: 'line', beats: 5, shape: 'rate_with_pause', options: 4, proximity: 'near' },
@@ -190,6 +212,7 @@ function configFor(rng, d) {
   };
   const cfg = { ...table[d] };
   cfg.rung = d;
+  if (Array.isArray(cfg.beats)) cfg.beats = rng.int(cfg.beats[0], cfg.beats[1]);
   if (cfg.question === 'compare') cfg.shapeB = rng.pick([cfg.shapeB, 'up_varied', 'turn']);
   return cfg;
 }
@@ -311,8 +334,9 @@ const PROMPTS = {
 /* ------------------------------------------------------------------ *
  * Assemble a single verified BankItem for a target difficulty rung
  * ------------------------------------------------------------------ */
-export function buildItem(masterSeed, target, ordinal) {
+export function buildItem(masterSeed, target, ordinal, ledger = new VarietyLedger()) {
   const MAX_TRIES = 900;
+  const STRICT_TRIES = 400;    // budget spent insisting on a story the bank has not told yet
   for (let attempt = 0; attempt < MAX_TRIES; attempt++) {
     const seed = `${masterSeed}:${TYPE_CODE}:d${target}:i${ordinal}:a${attempt}`;
     const rng = new Rng(seed);
@@ -321,11 +345,11 @@ export function buildItem(masterSeed, target, ordinal) {
     // ---- latent story (animation frames and the keyed graph share this data) ----
     const tracks = [];
     if (cfg.question === 'total') {
-      const rates = rateStory(rng, cfg.shape, cfg.beats);
+      const rates = rateStory(rng, cfg.shape, cfg.beats, cfg.story);
       if (!rates) continue;
       tracks.push({ id: 'A', kind: 'rate', icon: 'drops', values: rates });
     } else {
-      const levels = amountStory(rng, cfg.shape, cfg.beats);
+      const levels = amountStory(rng, cfg.shape, cfg.beats, LEVEL_CAP, cfg.story);
       if (!levels) continue;
       tracks.push({ id: 'A', kind: 'amount', icon: 'tank', values: levels });
       if (cfg.question === 'compare') {
@@ -397,6 +421,12 @@ export function buildItem(masterSeed, target, ordinal) {
     const carriers = options.filter((o) => sameSeries(o.series, recovered));
     if (carriers.length !== 1 || carriers[0].key !== correctKey) continue;
 
+    // Variety gate. The ledger's key ignores option order, so a rejected
+    // attempt has to change the story, not the seating — and acceptance stays
+    // independent of which slot the key landed in.
+    if (!ledger.wants(content, attempt < STRICT_TRIES)) continue;
+    ledger.add(content);
+
     return {
       itemId: rng.uuid(),
       typeCode: TYPE_CODE,
@@ -435,6 +465,26 @@ export function buildItem(masterSeed, target, ordinal) {
     };
   }
   return null;
+}
+
+/**
+ * The whole bank, in emission order. One variety ledger spans every rung, so
+ * two rungs cannot tell the same story either. The checker regenerates through
+ * this same entry point, which is what keeps the committed bank byte-exact.
+ */
+export function buildBank(masterSeed, perTarget = ITEMS_PER_RUNG) {
+  const ledger = new VarietyLedger();
+  const items = [];
+  const perTargetCount = {};
+  for (let target = 1; target <= 20; target++) {
+    let made = 0;
+    for (let ordinal = 0; ordinal < perTarget; ordinal++) {
+      const it = buildItem(masterSeed, target, ordinal, ledger);
+      if (it) { items.push(it); made++; }
+    }
+    perTargetCount[target] = made;
+  }
+  return { items, perTargetCount };
 }
 
 /* ------------------------------------------------------------------ *
@@ -481,20 +531,11 @@ function main() {
     const m = a.match(/^--([^=]+)=(.*)$/); return m ? [m[1], m[2]] : [a.replace(/^--/, ''), true];
   }));
   const masterSeed = args.seed || 'quant-graph-01-v1';
-  const perTarget = parseInt(args.per || '7', 10);
+  const perTarget = parseInt(args.per || String(ITEMS_PER_RUNG), 10);
   const outPath = resolve(HERE, args.out || '../banks/QUANT-GRAPH-01.jsonl');
   mkdirSync(dirname(outPath), { recursive: true });
 
-  const items = [];
-  const perTargetCount = {};
-  for (let target = 1; target <= 20; target++) {
-    let made = 0;
-    for (let ordinal = 0; ordinal < perTarget; ordinal++) {
-      const it = buildItem(masterSeed, target, ordinal);
-      if (it) { items.push(it); made++; }
-    }
-    perTargetCount[target] = made;
-  }
+  const { items, perTargetCount } = buildBank(masterSeed, perTarget);
 
   writeFileSync(outPath, serializeBank(items), 'utf8');
   const v = verifyBank(outPath);
