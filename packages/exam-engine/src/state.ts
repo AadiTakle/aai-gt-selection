@@ -1,11 +1,16 @@
 import { DEFAULT_CONFIG, GRADE_BAND_SEED } from './config';
+import { DERIVED_METRIC_IDS } from './derived';
 import { clamp } from './stats';
 import { AREAS, type AgeBand, type Area, type AreaState, type EngineConfig, type SessionState } from './types';
 import { DIFFICULTY_MAX, DIFFICULTY_MIN } from './config';
 
 function emptyMetricCounts(config: EngineConfig): Record<string, number> {
   const counts: Record<string, number> = {};
-  for (const m of config.coreMetrics) counts[m.id] = 0;
+  // Derived metrics are absent on purpose: their coverage lives in the trace, and a zero here
+  // would read as "collected none" rather than "not counted this way".
+  for (const m of config.coreMetrics) {
+    if (!DERIVED_METRIC_IDS.has(m.id)) counts[m.id] = 0;
+  }
   return counts;
 }
 
@@ -17,6 +22,7 @@ function seedAreaState(area: Area, seedDifficulty: number, config: EngineConfig)
     accWindow: [],
     estWindow: [seedDifficulty],
     metricCounts: emptyMetricCounts(config),
+    trace: [],
   };
 }
 

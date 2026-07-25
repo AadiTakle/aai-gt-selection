@@ -147,32 +147,48 @@ describe('scoreExam — metrics position within the bracket', () => {
   });
 
   it('higher consistency (lower M-RTVAR) → higher score in the SAME bracket', () => {
-    const base = { n: 6, correct: 4, difficulty: 10 } as const;
-    const inconsistent = scoreExam(
-      area('spatial', { ...base, metrics: { 'M-DIFFREACH': 12, 'M-RTVAR': 0.8 } }),
-    );
-    const consistent = scoreExam(
-      area('spatial', { ...base, metrics: { 'M-DIFFREACH': 12, 'M-RTVAR': 0.1 } }),
-    );
+    // M-RTVAR is DERIVED from the response-time series, so the two traces differ only in how
+    // spread their RTs are. Identical difficulty and correctness ⇒ identical bracket.
+    const trace = (cv: number): ScoredItem[] =>
+      Array.from({ length: 24 }, (_, i) =>
+        mkItem({
+          domain: 'spatial',
+          difficulty: 10,
+          correct: true,
+          metrics: { 'M-DIFFREACH': 12, 'M-RT': 1000 * (1 + (i % 2 === 0 ? -cv : cv)) },
+        }),
+      );
 
-    const inc = inconsistent.perArea.spatial!;
-    const con = consistent.perArea.spatial!;
+    const inc = scoreExam(trace(0.8)).perArea.spatial!;
+    const con = scoreExam(trace(0.1)).perArea.spatial!;
     expect(con.bracket).toBe(inc.bracket);
     expect(con.proficiency).toBeGreaterThan(inc.proficiency);
   });
 
   it('higher M-LEARNRATE → higher score in the SAME bracket', () => {
-    const base = { n: 8, correct: 5, difficulty: 10 } as const;
-    const slow = scoreExam(area('verbal', { ...base, metrics: { 'M-LEARNRATE': 0.1 } }));
-    const fast = scoreExam(area('verbal', { ...base, metrics: { 'M-LEARNRATE': 0.9 } }));
-    expect(fast.perArea.verbal!.bracket).toBe(slow.perArea.verbal!.bracket);
-    expect(fast.perArea.verbal!.proficiency).toBeGreaterThan(slow.perArea.verbal!.proficiency);
+    // M-LEARNRATE is DERIVED as within-session ceiling growth, so the two traces hold the same
+    // items (hence the same accuracy and bracket) and differ only in ORDER: one climbs the
+    // difficulty ramp across the session, the other slides down it.
+    const difficulties = [8, 9, 10, 11, 12, 13, 14, 15];
+    const build = (order: number[]): ScoredItem[] =>
+      order.map((difficulty) => mkItem({ domain: 'verbal', difficulty, correct: true }));
+
+    const climbing = scoreExam(build(difficulties)).perArea.verbal!;
+    const declining = scoreExam(build([...difficulties].reverse())).perArea.verbal!;
+
+    expect(climbing.bracket).toBe(declining.bracket);
+    expect(climbing.accuracy).toBeCloseTo(declining.accuracy, 10);
+    expect(climbing.proficiency).toBeGreaterThan(declining.proficiency);
   });
 
   it('falls back to the policy default position when no weighted metrics are present', () => {
-    // All wrong ⇒ bracket 0 [1,4]; no scoring metrics ⇒ position = defaultPosition (0.5).
-    const result = scoreExam(area('fluid_reasoning', { n: 6, correct: 0 }));
-    const a = result.perArea.fluid_reasoning!;
+    // All wrong ⇒ bracket 0 [1,4] and no ceiling. Difficulties are spread more than the matched-
+    // pair tolerance apart and the trace is shorter than the growth minimum, so no aggregate is
+    // derivable either ⇒ position = defaultPosition (0.5).
+    const spread = [2, 5, 8, 11, 14, 17].map((difficulty) =>
+      mkItem({ domain: 'fluid_reasoning', difficulty, correct: false }),
+    );
+    const a = scoreExam(spread).perArea.fluid_reasoning!;
     expect(a.contributions).toHaveLength(0);
     expect(a.positionWithinBracket).toBeCloseTo(DEFAULT_EXAM_POLICY.position.defaultPosition, 10);
     expect(a.proficiency).toBeCloseTo(1 + 0.5 * (4 - 1), 10);
@@ -217,21 +233,28 @@ describe('scoreExam — composite & profile', () => {
   });
 
   it('reports learning-rate and consistency profile signals with band labels', () => {
-    const result = scoreExam(
-      area('fluid_reasoning', {
-        n: 10,
-        correct: 6,
-        metrics: { 'M-LEARNRATE': 0.85, 'M-RTVAR': 0.1 },
+    // Both signals are derived from the trace: a ceiling that climbs 5 → 14 across the session,
+    // and a tight response-time series (CV 0.05).
+    const items = Array.from({ length: 20 }, (_, i) =>
+      mkItem({
+        domain: 'fluid_reasoning',
+        difficulty: i < 10 ? 5 : 14,
+        correct: true,
+        metrics: { 'M-RT': i % 2 === 0 ? 950 : 1050 },
       }),
     );
-    expect(result.profile.learningRate.raw).toBeCloseTo(0.85, 6);
+
+    const result = scoreExam(items);
+    expect(result.profile.learningRate.raw).toBeCloseTo(0.5 + 9 / 38, 6);
     expect(result.profile.learningRate.label).toBe('high');
     // Low RT variability ⇒ high consistency.
+    expect(result.profile.consistency.raw).toBeCloseTo(0.05, 6);
     expect(result.profile.consistency.label).toBe('high');
     expect(result.profile.consistency.normalized).toBeGreaterThan(0.7);
   });
 
-  it('marks profile signals unknown when the metric is absent', () => {
+  it('marks profile signals unknown when the trace cannot support the fit', () => {
+    // Six items is below both the growth minimum and the RT-series minimum.
     const result = scoreExam(area('quantitative', { n: 6, correct: 3 }));
     expect(result.profile.learningRate.raw).toBeNull();
     expect(result.profile.learningRate.label).toBe('unknown');
@@ -245,12 +268,15 @@ describe('scoreExam — composite & profile', () => {
 
 describe('scoreExam — policy is tunable', () => {
   it('reweighting a metric changes the score (reproducibly)', () => {
-    const items = area('fluid_reasoning', {
-      n: 6,
-      correct: 4,
-      difficulty: 10,
-      metrics: { 'M-DIFFREACH': 11, 'M-LEARNRATE': 0.9 },
-    });
+    // A climbing trace so the derived M-LEARNRATE is genuinely high.
+    const items = Array.from({ length: 10 }, (_, i) =>
+      mkItem({
+        domain: 'fluid_reasoning',
+        difficulty: 6 + i,
+        correct: true,
+        metrics: { 'M-DIFFREACH': 11 },
+      }),
+    );
 
     const defaultScore = scoreExam(items);
 

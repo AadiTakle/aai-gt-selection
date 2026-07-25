@@ -1,12 +1,16 @@
-import { enforcedMetricsForArea, metricCount } from './coverage';
+import { enforcedMetricsForArea, metricAdequateInArea, sessionMetricsCovered } from './coverage';
 import { lastN, mean, sd } from './stats';
 import { AREAS, type Area, type SessionState } from './types';
 
-/** Every enforced core metric applicable to the area has met its `minSamples`. */
+/**
+ * Every enforced core metric that gates this AREA has adequate data: enough emissions for an
+ * `observed` metric, enough derivation inputs for a `derived` one. Session-scope metrics (the
+ * per-child response-time family) are checked once by `sessionMetricsCovered`, not per area.
+ */
 export function areaMetricsCovered(area: Area, state: SessionState): boolean {
   const areaState = state.areas[area];
-  return enforcedMetricsForArea(area, state.config).every(
-    (m) => metricCount(areaState, m.id) >= m.minSamples,
+  return enforcedMetricsForArea(area, state.config).every((m) =>
+    metricAdequateInArea(m, areaState, state.config),
   );
 }
 
@@ -38,14 +42,19 @@ export function coverageIsEven(state: SessionState): boolean {
 }
 
 /**
- * The stop rule (BUILD_PLAN §3). `true` when there is adequate data to conclude a score:
- * every enforced core metric has `≥ minSamples` in each applicable area, area coverage is even,
- * and each area's estimate is stable. A hard item cap is the safety stop.
+ * The stop rule (BUILD_PLAN §3). `true` when there is adequate data to conclude a score: area
+ * coverage is even, every enforced per-child metric has met its session-wide minimum, and in
+ * every area each enforced core metric has adequate data and the estimate has settled.
+ *
+ * The hard item cap is a safety net for a runaway session, NOT the normal exit. If a session
+ * routinely ends on the cap the battery has silently become fixed-length and the stop rule is
+ * unsatisfiable — see `real-bank.test.ts`, which asserts against exactly that.
  */
 export function isDone(state: SessionState): boolean {
   if (state.itemsServed >= state.config.hardItemCap) return true;
 
   if (!coverageIsEven(state)) return false;
+  if (!sessionMetricsCovered(state)) return false;
   for (const area of AREAS) {
     if (!areaMetricsCovered(area, state)) return false;
     if (!areaEstimateStable(area, state)) return false;

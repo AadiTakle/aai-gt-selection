@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
+import {
+  enforcedMetricsForArea,
+  enforcedSessionMetrics,
+  metricAdequateInArea,
+  metricSamplesInSession,
+} from './coverage';
 import { runSyntheticSession, type TrueTheta } from './testing/synthetic-bank';
 import { AREAS, type Area } from './types';
 
@@ -41,15 +47,22 @@ describe('adaptive session simulation', () => {
       state.config.evenSpreadTolerance,
     );
 
-    // Every enforced core metric applicable to an area met its minimum sample count.
+    // Every enforced per-area core metric has adequate data (emissions for an observed metric,
+    // derivation inputs for a derived one).
     for (const area of AREAS) {
-      const areaState = state.areas[area];
-      for (const metric of state.config.coreMetrics) {
-        const applies = metric.scope === 'all' || metric.scope === area;
-        if (metric.enforced && applies) {
-          expect(areaState.metricCounts[metric.id] ?? 0).toBeGreaterThanOrEqual(metric.minSamples);
-        }
+      for (const metric of enforcedMetricsForArea(area, state.config)) {
+        expect(
+          metricAdequateInArea(metric, state.areas[area], state.config),
+          `${area} lacks adequate data for ${metric.id}`,
+        ).toBe(true);
       }
+    }
+
+    // Every enforced per-child metric met its session-wide minimum.
+    for (const metric of enforcedSessionMetrics(state.config)) {
+      expect(metricSamplesInSession(metric, state), metric.id).toBeGreaterThanOrEqual(
+        metric.minSamples,
+      );
     }
   });
 
