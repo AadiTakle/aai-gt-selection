@@ -207,15 +207,17 @@ const KEY_LAYOUTS = 8;      // trial key placements per candidate world
 // never leak how long the optimal program is. Always far above the optimum (asserted).
 export function maxProgramTokensFor(R, C) { return 4 * R * C; }
 
-// Age-band targeting hint from the difficulty rung (declared bands: K-1 | 2-3 | 4-5 | 6-8).
+// Age-band targeting hint from the difficulty rung. This type declares only 2-3 | 4-5 | 6-8 in
+// catalog/master_types.jsonl, so the BUILD_PLAN ladder's bottom rungs target the lowest
+// declared band rather than inventing K-1: the D-017 reading gate raises an age floor, it
+// never lowers one. Boundary overlap is a targeting hint, not a hard cut.
 export function ageBandsFor(difficulty) {
   const bands = [];
   const add = (b) => { if (!bands.includes(b)) bands.push(b); };
-  if (difficulty < 4.5) add('K-1');
-  if (difficulty >= 3.5 && difficulty < 8.5) add('2-3');
+  if (difficulty < 8.5) add('2-3');
   if (difficulty >= 7.5 && difficulty < 12.5) add('4-5');
   if (difficulty >= 11.5) add('6-8');
-  if (bands.length === 0) add(difficulty < 3 ? 'K-1' : '6-8');
+  if (bands.length === 0) add(difficulty < 8 ? '2-3' : '6-8');
   return bands;
 }
 

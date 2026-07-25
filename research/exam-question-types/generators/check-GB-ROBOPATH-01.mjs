@@ -33,7 +33,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/GB-ROBOPATH-01.jsonl');
-const ALLOWED_BANDS = ['K-1', '2-3', '4-5', '6-8'];
+const ALLOWED_BANDS = ['2-3', '4-5', '6-8'];   // exactly this type's declared catalog age_bands
 const MIN_PER_BAND = 5;
 const REQUIRED_KEYS = ['itemId', 'typeCode', 'domain', 'difficulty', 'ageBands', 'demoPath', 'content', 'answer', 'scoring', 'provenance', 'syntheticOnly', 'validated'];
 

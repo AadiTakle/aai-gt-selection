@@ -5,53 +5,50 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>GB-TRACK-01 · Firefly Jars</title>
 <style>
-  :root{--bg1:#0b1a2b;--bg2:#071019;--ink:#dcecff;--card:#122238;--accent:#ffd166;--good:#22b573;--bad:#ff6b6b;--jar:#1c3350;--tel-bg:#0a0f1e;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
-  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  :root{--bg1:#0b1a2b;--bg2:#071019;--ink:#dcecff;--card:#122238;--accent:#ffd166;--good:#22b573;--jar:#1c3350;
+    --tel-bg:#0a0f1e;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box}html,body{margin:0;min-height:100%}
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:radial-gradient(circle at 70% 10%,var(--bg2),var(--bg1));display:flex;min-height:100%}
-  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:10px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#8fa3d8;text-transform:uppercase;font-weight:700}
-  #howto{max-width:560px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #000}
+  #howto{max-width:600px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #000}
   #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:#b07d00}
   #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
-  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#1c3350;color:#ffd166;border:2px solid #2c4a70;min-height:30px}
-  #phasecue[data-phase="warmup"]{background:#3a2f16;color:#ffcf6b;border-color:#5a4a1e}
-  #phasecue[data-phase="scored"]{background:var(--accent);color:#12233d;border-color:var(--accent)}
-  #phasecue[data-phase="done"]{background:#1c3350;color:#ffd166;border-color:#2c4a70}
-  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
-  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8fa3d8}
-  #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #000;display:flex;flex-direction:column;align-items:center;gap:14px;max-width:560px;width:100%}
-  #stage{position:relative;width:460px;height:260px;background:#0a1622;border-radius:16px;overflow:hidden}
-  .jar{position:absolute;width:64px;height:64px;background:var(--jar);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:28px;transition:left .6s ease,top .6s ease;box-shadow:inset 0 0 0 2px #2c4a70;cursor:default}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#1c3350;color:var(--accent);border:2px solid #2c4a70;min-height:30px}
+  #phasecue[data-phase="waiting"]{background:#3a2f16;color:#ffcf6b;border-color:#5a4a1e}
+  #phasecue[data-phase="moving"]{background:#1c3350;color:#8fa3d8;border-color:#2c4a70}
+  #phasecue[data-phase="respond"]{background:var(--accent);color:#12233d;border-color:var(--accent)}
+  #phasecue[data-phase="locked"]{background:#1c3350;color:var(--accent);border-color:#2c4a70}
+  #prompt{max-width:600px;width:100%;font-size:15px;font-weight:800;color:#cfe0ff;text-align:center;min-height:20px}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}#status.ok{color:var(--good)}#status.neutral{color:#8fa3d8}
+  #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #000;display:flex;flex-direction:column;align-items:center;gap:14px}
+  #stage{position:relative;width:520px;height:300px;background:#0a1622;border-radius:16px;overflow:hidden}
+  .jar{position:absolute;width:58px;height:58px;border-radius:14px;background:var(--jar);box-shadow:inset 0 0 0 2px #2c4a70;display:flex;align-items:center;justify-content:center;cursor:default}
   .jar.pick{cursor:pointer}
-  .jar.glow{box-shadow:0 0 22px 6px #ffd16699,inset 0 0 0 2px #ffd166}
+  .jar.pick:hover{box-shadow:inset 0 0 0 2px #7fa8e0}
+  .jar.glow{box-shadow:0 0 20px 5px rgba(255,209,102,.6),inset 0 0 0 2px var(--accent)}
   .jar.sel{box-shadow:inset 0 0 0 4px #fff}
-  .jar.correct{box-shadow:inset 0 0 0 4px var(--good)}
-  .jar.wrong{box-shadow:inset 0 0 0 4px var(--bad)}
-  .bug{position:absolute;font-size:20px;pointer-events:none;transition:left 1.4s linear,top 1.4s linear}
-  #done{font:inherit;border:0;cursor:pointer;border-radius:20px;background:var(--accent);color:#12233d;font-weight:700;padding:10px 26px;opacity:.4;pointer-events:none;transition:.2s}
+  .jar .tag{position:absolute;bottom:-15px;font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:#fff;font-weight:800}
+  .bug{position:absolute;pointer-events:none;opacity:.85}
+  #done{background:var(--accent);color:#12233d;font-weight:800;padding:10px 26px;font-size:15px;border:0;border-radius:14px;cursor:pointer;opacity:.4;pointer-events:none;transition:.2s}
   #done.ready{opacity:1;pointer-events:auto}
-  #diffwrap{width:100%;max-width:340px}
-  #diffbar{height:8px;background:#1c3350;border-radius:5px;overflow:hidden}
-  #difffill{height:100%;background:linear-gradient(90deg,#7fffcf,#ffd166);width:20%;transition:.3s}
-  #difflabel{font-size:11px;color:#7183b8;text-align:center;margin-top:4px;letter-spacing:.05em}
-  button.round{font:inherit;border:0;cursor:pointer;border-radius:50%}
-  #replay{width:50px;height:50px;background:#1c3350;color:var(--accent);font-size:22px}
-  .shake{animation:shake .4s}@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
-  #ghost{position:fixed;left:0;top:0;font-size:40px;pointer-events:none;z-index:60;opacity:0;transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.4))}
-  #ghost.show{opacity:.95}
-  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #row{display:flex;gap:10px;align-items:center}
+  #replay{width:44px;height:44px;background:#1c3350;color:var(--accent);font-size:18px;border:0;border-radius:50%;cursor:pointer}
+  .hotkeys{font-size:11px;color:#5f7196;text-align:center}
+  #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:60;opacity:0;transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.4))}
+  #ghost.show{opacity:.95}#ghost .ring{position:absolute;left:-6px;top:-6px;width:26px;height:26px;border-radius:50%;border:3px solid var(--accent);opacity:0}
   #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
-  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry{width:320px;flex:0 0 320px;min-height:100vh;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
   #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#141e38;text-transform:uppercase}
-  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
-  .mrow{display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:baseline}
-  .mid{color:var(--tel-key);font-weight:700}
-  .mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
-  #logwrap{border-top:1px solid #1c2745;margin-top:auto}
-  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
-  #log{height:210px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
-  #log div{padding:2px 0;border-bottom:1px dotted #1c2745}#log .t{color:#5f6f9e}
-  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
+  #itemcard{margin:12px 12px 4px;padding:10px;border:1px solid #1c2745;border-radius:12px}
+  .itemRow{display:flex;justify-content:space-between;color:#8da2d9;font-size:11px;padding:2px 0}.itemRow b{color:#cfd8ff}
+  #mlist{padding:8px 12px;display:grid;gap:7px}
+  .mrow{display:grid;grid-template-columns:110px 1fr;gap:6px}
+  .mid{color:var(--tel-key);font-weight:800}.mval{color:#fff;text-align:right;overflow-wrap:anywhere}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-4px}
+  #logwrap{border-top:1px solid #1c2745;margin-top:auto}#logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:180px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}#log div{padding:2px 0;border-bottom:1px dotted #1c2745}#log .t{color:#5f6f9e}
+  @media(max-width:900px){body{flex-direction:column}#telemetry{width:100%;flex:none;min-height:0;height:300px}#stage{width:100%;max-width:520px}}
+  @media(prefers-reduced-motion:reduce){.bug{display:none}}
 </style>
 </head>
 <body>
@@ -59,128 +56,298 @@
     <div id="badge">GB-TRACK-01 · Firefly Jars</div>
     <header id="howto">
       <h1>How to use — Firefly Jars</h1>
-      <p>Watch which jar or jars glow, then keep your eyes on them as the jars swap places. When they stop, tap the jars that were glowing and press Done. It gets harder each time you are right.</p>
+      <p>Some jars light up because a firefly flew in. The lids close and the jars slide around and swap places. You cannot tap while they are moving. When they stop, tap every jar you think still holds a firefly (tap again to unpick it) and press DONE. There is no clock — take as long as you need.</p>
     </header>
-    <div id="phasecue" data-phase="demo">Watch the example</div>
+    <div id="phasecue" data-phase="waiting">Waiting for item</div>
+    <div id="prompt"></div>
     <div id="stagecard">
       <div id="stage"></div>
-      <button id="done">DONE</button>
-      <div id="diffwrap"><div id="diffbar"><div id="difffill"></div></div><div id="difflabel">FIREFLIES 2</div></div>
-      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
-      <button class="round" id="replay" title="replay demo">↻</button>
+      <div id="row">
+        <button id="replay" title="show the controls again">&#8635;</button>
+        <button id="done">DONE</button>
+      </div>
+      <div class="hotkeys">tap a jar to pick it &middot; tap it again to unpick &middot; Enter submits</div>
+      <div id="status" class="neutral">Waiting for an item from the host…</div>
     </div>
   </div>
   <aside id="telemetry">
     <h3>Live telemetry · per-child</h3>
+    <div id="itemcard">
+      <div class="itemRow"><span>ITEM</span><b id="i_id">—</b></div>
+      <div class="itemRow"><span>LOAD</span><b id="i_load">—</b></div>
+      <div class="itemRow"><span>PICKED</span><b id="i_picked">—</b></div>
+      <div class="itemRow"><span>DIFFICULTY</span><b id="i_diff">—</b></div>
+    </div>
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="30" height="30" fill="#ffffff" stroke="#b07d00" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
-const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
-const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0;
-const last=a=>a[a.length-1];
-function zScore(p){p=Math.min(0.995,Math.max(0.005,p));const a1=-3.969683028665376e+01,a2=2.209460984245205e+02,a3=-2.759285104469687e+02,a4=1.383577518672690e+02,a5=-3.066479806614716e+01,a6=2.506628277459239e+00;
-  const b1=-5.447609879822406e+01,b2=1.615858368580409e+02,b3=-1.556989798598866e+02,b4=6.680131188771972e+01,b5=-1.328068155288572e+01;
-  const c1=-7.784894002430293e-03,c2=-3.223964580411365e-01,c3=-2.400758277161838e+00,c4=-2.549732539343734e+00,c5=4.374664141464968e+00,c6=2.938163982698783e+00;
-  const d1=7.784695709041462e-03,d2=3.224671290700398e-01,d3=2.445134137142996e+00,d4=3.754408661907416e+00;
-  const plow=0.02425;let q,r;
-  if(p<plow){q=Math.sqrt(-2*Math.log(p));return(((((c1*q+c2)*q+c3)*q+c4)*q+c5)*q+c6)/((((d1*q+d2)*q+d3)*q+d4)*q+1);}
-  else if(p<=1-plow){q=p-0.5;r=q*q;return(((((a1*r+a2)*r+a3)*r+a4)*r+a5)*r+a6)*q/(((((b1*r+b2)*r+b3)*r+b4)*r+b5)*r+1);}
-  q=Math.sqrt(-2*Math.log(1-p));return -(((((c1*q+c2)*q+c3)*q+c4)*q+c5)*q+c6)/((((d1*q+d2)*q+d3)*q+d4)*q+1);}
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
-const SLOTS=[{x:30,y:30},{x:200,y:20},{x:370,y:30},{x:30,y:170},{x:200,y:180},{x:370,y:170}];
-const NJ=SLOTS.length;
-function stageEl(){return $('#stage');}
-function jarEl(i){return stageEl().children[i];}
-function buildJars(){stageEl().querySelectorAll('.jar').forEach(e=>e.remove());for(let i=0;i<NJ;i++){const d=document.createElement('div');d.className='jar';d.dataset.i=i;d.textContent='\ud83e\uddf4';stageEl().appendChild(d);}}
-function placeJars(slotOf){for(let i=0;i<NJ;i++){const s=SLOTS[slotOf[i]];const el=jarEl(i);el.style.left=s.x+'px';el.style.top=s.y+'px';}}
-function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+/* ---- postMessage embedding contract (EXAM_ADAPTIVE_BUILD_PLAN.md §2) ----
+   host->demo : {source:'gt-exam-host', type:'init', item:ServedItem} , {type:'start'}
+   demo->host : {source:'gt-exam-demo', type:'ready'} , {type:'result', result:ItemResult} , {type:'telemetry', event}
+   PURE RENDERER. It animates ServedItem.content.motion only; it never receives which slots end
+   up holding fireflies and computes NO correctness. It emits the FULL ordered tap log plus a
+   numeric metrics map and the motion digest, so the server can confirm the child watched
+   exactly the scripted motion before scoring the slot set. */
+const HOST='gt-exam-host',SELF='gt-exam-demo';
+const embedded=window.parent&&window.parent!==window;
+function post(type,extra){const msg=Object.assign({source:SELF,type},extra||{});if(embedded){try{window.parent.postMessage(msg,'*')}catch(e){}}}
+
+/* REPLAY_START - byte-identical to replayMotion() in generators/GB-TRACK-01.mjs and
+   generators/check-GB-TRACK-01.mjs. The checker EXTRACTS this block and asserts it produces
+   the same trajectory and digest as its own copy, so the motion the child sees and the motion
+   the scorer replays are provably the same. */
+function replayMotion(content) {
+  const n = content.jarCount;
+  const slotOfJar = [];
+  for (let j = 0; j < n; j++) slotOfJar.push(j);
+  const trace = [slotOfJar.join(',')];
+  for (const phase of content.motion.phases) {
+    for (const pair of phase.swaps) {
+      let ja = -1, jb = -1;
+      for (let j = 0; j < n; j++) { if (slotOfJar[j] === pair[0]) ja = j; if (slotOfJar[j] === pair[1]) jb = j; }
+      if (ja < 0 || jb < 0) continue;
+      const t = slotOfJar[ja]; slotOfJar[ja] = slotOfJar[jb]; slotOfJar[jb] = t;
+    }
+    trace.push(slotOfJar.join(','));
+  }
+  let h = 2166136261 >>> 0;
+  const s = trace.join(';');
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return { slotOfJar: slotOfJar, trace: trace, digest: (h >>> 0).toString(16) };
+}
+/* REPLAY_END */
+
+/* ---------- state ---------- */
+let item=null,content=null,N=0,slots=[],targets=[],replay=null,slotOfJar=[];
+let selected=new Set(),locked=true,started=false,moving=false;
+const T={itemStart:0,unlockAt:0,first:0,taps:0,picks:0,deselects:0,touched:new Set(),rt:0,rapid:false,committed:false,blurMs:0,blurStart:0,lastActivity:performance.now(),events:[]};
+
+const PHASE={waiting:'Waiting for item',watch:'Watch the fireflies',moving:'Jars moving · tap locked',respond:'Tap the firefly jars',locked:'Answer submitted'};
+function setCue(k){const el=$('#phasecue');el.dataset.phase=(k==='moving'||k==='watch')?'moving':(k==='respond'?'respond':(k==='locked'?'locked':'waiting'));el.textContent=PHASE[k];}
+function setStatus(cls,msg){const el=$('#status');el.className=cls;el.textContent=msg;}
+function nowRel(){return Math.max(0,performance.now()-(T.itemStart||performance.now()));}
 
 /* ---------- telemetry ---------- */
-let level=1,maxLevel=0;
-const T={scored:0,exact:0,hits:0,tgtN:0,fas:0,nonTgtN:0,rts:[],revisions:0,extraTaps:[],blurMs:0};
-document.addEventListener('visibilitychange',()=>{if(document.hidden)T._blurStart=Date.now();else if(T._blurStart){T.blurMs+=Date.now()-T._blurStart;T._blurStart=0;}});
-function dprime(){if(!T.tgtN||!T.nonTgtN)return '\u2014';const hr=T.hits/T.tgtN,far=T.fas/T.nonTgtN;const d=zScore(hr)-zScore(far);return isFinite(d)?d.toFixed(2):'\u2014';}
+function effPct(){return T.taps?Math.min(100,Math.round(100*targets.length/T.taps)):0;}
+function planful(){return T.taps?Math.round(100*(T.taps-T.deselects)/T.taps):100;}
 const METERS=[
- {id:'M-ACC',name:'Item accuracy (exact set match)',get:()=>T.scored?`${T.exact}/${T.scored}  ${Math.round(100*T.exact/T.scored)}%`:'\u2014'},
- {id:'M-RT',name:'Response time (submit)',get:()=>T.rts.length?`${last(T.rts)} ms (mean ${mean(T.rts)})`:'\u2014'},
- {id:'M-DPRIME',name:'Signal-detection sensitivity (d\u2032)',get:()=>dprime()},
- {id:'M-UPDATECOST',name:'Updating cost (extra taps)',get:()=>T.extraTaps.length?`${mean(T.extraTaps)} extra/trial`:'\u2014'},
- {id:'M-FALSEALARM',name:'False-alarm rate',get:()=>T.nonTgtN?`${T.fas}/${T.nonTgtN}  ${Math.round(100*T.fas/T.nonTgtN)}%`:'\u2014'},
- {id:'M-SPAN',name:'Current firefly count',get:()=>`${level+1}`},
- {id:'M-REV',name:'Revisions (deselections)',get:()=>`${T.revisions}`},
- {id:'M-ENGAGE',name:'Engagement (off-task time)',get:()=>T.blurMs?`${T.blurMs} ms blurred`:'0 ms \u00b7 engaged'},
+ {id:'M-RTFIRST',name:'Latency from prompt to first tap',get:()=>T.first?`${Math.round(T.first)} ms`:'—'},
+ {id:'M-RT',name:'Response time (untimed, tracked only)',get:()=>T.committed?`${T.rt} ms`:'—'},
+ {id:'M-PATH',name:'Taps made (ordered log emitted)',get:()=>String(T.taps)},
+ {id:'M-EFF',name:'Tap economy vs the announced count',get:()=>T.taps?`${effPct()}% (${T.taps} taps / ${targets.length} needed)`:'—'},
+ {id:'M-PLANFUL',name:'Taps that were not undone',get:()=>`${planful()}%`},
+ {id:'M-REV',name:'Revisions (unpicks)',get:()=>String(T.deselects)},
+ {id:'M-EXPLORE',name:'Distinct jars touched',get:()=>`${T.touched.size} of ${N}`},
+ {id:'M-SPAN',name:'Tracking load carried this trial',get:()=>`${targets.length} fireflies · ${content?content.motion.phases.length:0} phases`},
+ {id:'M-ENGAGE',name:'Engagement (off-task time)',get:()=>`${Math.round(T.blurMs)} ms blurred`},
+ {id:'M-RAPIDGUESS',name:'Rapid/idle flag (tracked)',get:()=>T.committed?(T.rapid?'1':'0'):'—'},
 ];
 function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
-function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});}
-let tStart=Date.now();
-function log(msg){const t=Date.now()-tStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
-function setDiff(){const pct=Math.min(100,Math.round((level-1)/4*100));$('#difffill').style.width=pct+'%';$('#difflabel').textContent='FIREFLIES '+(level+1);}
-const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
-function setCue(k,extra){const el=$('#phasecue');if(!el)return;el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
-function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});$('#i_picked').textContent=`${selected.size}/${targets.length}`;}
+function log(msg){const d=document.createElement('div');d.innerHTML=`<span class="t">+${Math.round(nowRel())}ms</span> ${msg}`;$('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;}
+function emit(kind,data){const ev=Object.assign({t:Math.round(nowRel()),kind},data||{});T.events.push(ev);post('telemetry',{event:ev});return ev;}
+function activity(){T.lastActivity=performance.now();}
+addEventListener('pointerdown',activity);addEventListener('keydown',activity);
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){T.blurStart=performance.now();if(started)emit('blur');}
+  else if(T.blurStart){T.blurMs+=performance.now()-T.blurStart;T.blurStart=0;}
+});
 
-/* ---------- ghost ---------- */
-const ghost=$('#ghost');function ghostShow(v){ghost.classList.toggle('show',v);}
-async function ghostTo(el){const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(480);}
-async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(400);}
+/* ---------- render ---------- */
+function jarSvg(){return '<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#7fa8e0" stroke-width="1.8" stroke-linejoin="round"><path d="M9 3 H15 V6 H9 Z"/><path d="M7 6 H17 V20 A1 1 0 0 1 16 21 H8 A1 1 0 0 1 7 20 Z"/></svg>';}
+function flySvg(){return '<svg viewBox="0 0 24 24" width="18" height="18" fill="#ffd166" stroke="#a97b00" stroke-width="1.2"><circle cx="12" cy="13" r="4"/><path d="M9 9 L6 5 M15 9 L18 5" stroke="#ffd166" fill="none"/></svg>';}
+function bugSvg(){return '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#6f86b5" stroke-width="1.6"><ellipse cx="12" cy="13" rx="4" ry="6"/><path d="M12 7 V3 M8 10 L4 8 M16 10 L20 8"/></svg>';}
+function buildJars(){
+  const st=$('#stage');st.innerHTML='';
+  for(let j=0;j<N;j++){
+    const d=document.createElement('div');d.className='jar';d.dataset.jar=j;
+    d.innerHTML=jarSvg();
+    st.appendChild(d);
+  }
+  placeJars(0);
+}
+function placeJars(ms){
+  const st=$('#stage');
+  for(let j=0;j<N;j++){
+    const el=st.children[j];if(!el)continue;
+    const s=slots[slotOfJar[j]];
+    el.style.transition=ms?`left ${ms}ms ease-in-out, top ${ms}ms ease-in-out`:'none';
+    el.style.left=s.x+'px';el.style.top=s.y+'px';
+  }
+}
+function paintSelection(){
+  const st=$('#stage');
+  for(let j=0;j<N;j++){
+    const el=st.children[j];if(!el)continue;
+    const slot=slotOfJar[j];
+    el.classList.toggle('sel',selected.has(slot));
+    const tag=el.querySelector('.tag');
+    if(selected.has(slot)&&!tag){const t=document.createElement('span');t.className='tag';t.textContent='chosen';el.appendChild(t);}
+    else if(!selected.has(slot)&&tag)tag.remove();
+  }
+}
+function spawnBug(b){
+  const st=$('#stage');
+  const d=document.createElement('div');d.className='bug';d.innerHTML=bugSvg();
+  d.style.left=(b.fromLeft?-24:544)+'px';d.style.top=b.y0+'px';
+  d.style.transition='left 1700ms linear, top 1700ms linear';
+  st.appendChild(d);
+  setTimeout(()=>{d.style.left=(b.fromLeft?544:-24)+'px';d.style.top=b.y1+'px';},20);
+  setTimeout(()=>d.remove(),1900);
+}
 
-/* ---------- bugs (visual distractors, no scoring) ---------- */
-function spawnBug(){const b=document.createElement('div');b.className='bug';b.textContent='\ud83d\udc1b';
-  const y0=20+Math.random()*220;b.style.left='-20px';b.style.top=y0+'px';stageEl().appendChild(b);
-  requestAnimationFrame(()=>{b.style.left='480px';b.style.top=(20+Math.random()*220)+'px';});
-  setTimeout(()=>b.remove(),1500);}
+/* ---------- trial ---------- */
+async function runMotion(){
+  moving=true;locked=true;                                   // input LOCKED for the whole motion
+  setCue('watch');setStatus('neutral',content.question.prompt);
+  const st=$('#stage');
+  targets.forEach(j=>{const el=st.children[j];el.classList.add('glow');el.insertAdjacentHTML('beforeend',flySvg());});
+  emit('glow_on',{jars:targets.slice()});
+  await sleep(content.motion.glowMs);
+  targets.forEach(j=>{const el=st.children[j];el.classList.remove('glow');const f=el.querySelector('svg:nth-of-type(2)');if(f)f.remove();});
+  emit('lids_closed');
+  setCue('moving');setStatus('neutral','The jars are moving. You cannot tap yet.');
+  await sleep(260);
+  const bugs=(content.distractors&&content.distractors.bugs)||[];
+  const ms=content.motion.phaseMs;
+  for(let p=0;p<content.motion.phases.length;p++){
+    bugs.filter(b=>b.atPhase===p).forEach(spawnBug);
+    slotOfJar=replay.trace[p+1].split(',').map(Number);      // straight from the shared replay
+    placeJars(ms);
+    emit('phase',{index:p,swaps:content.motion.phases[p].swaps});
+    await sleep(ms);
+  }
+  moving=false;
+  // RELEASE the lock at the response prompt (the motion phase is the only locked phase).
+  locked=false;
+  T.unlockAt=performance.now();
+  $$('#stage .jar').forEach(el=>el.classList.add('pick'));
+  $('#done').classList.add('ready');
+  setCue('respond');setStatus('neutral',content.question.responsePrompt);
+  emit('response_unlocked',{atMs:Math.round(nowRel())});
+  log('motion finished - tapping unlocked (no time limit)');
+  renderMeters();
+}
+function toggleJar(jarEl){
+  if(locked||moving||!started)return;
+  const j=+jarEl.dataset.jar;const slot=slotOfJar[j];
+  if(!T.first){T.first=performance.now()-T.unlockAt;emit('first_tap',{ms:Math.round(T.first)});}
+  T.taps++;T.touched.add(slot);
+  if(selected.has(slot)){selected.delete(slot);T.deselects++;emit('unpick',{slot});log(`unpicked jar at slot ${slot+1} (revision)`);}
+  else{
+    if(selected.size>=content.limits.maxTaps)return;
+    selected.add(slot);T.picks++;emit('pick',{slot});log(`picked jar at slot ${slot+1}`);
+  }
+  paintSelection();renderMeters();
+}
+function submit(){
+  if(locked||moving||!started)return;
+  locked=true;$('#done').classList.remove('ready');
+  $$('#stage .jar').forEach(el=>el.classList.remove('pick'));
+  T.rt=Math.round(performance.now()-T.unlockAt);T.committed=true;
+  const idle=performance.now()-T.lastActivity;T.rapid=T.rt<350||idle>30000;
+  const chosen=[...selected].sort((a,b)=>a-b);
+  const response={
+    mode:'track_targets',
+    selectedSlots:chosen,                       // a SET; tap order does not matter to the key
+    announcedTargetCount:targets.length,
+    taps:T.taps,deselects:T.deselects,
+    motionDigest:replay.digest,                 // proves which motion the child actually watched
+    phasesWatched:content.motion.phases.length,
+    actionLog:T.events.slice(),                 // FULL ordered log: glow, every phase, every tap
+    latencyToFirstTapMs:Math.round(T.first),
+    msToCommit:T.rt,
+  };
+  const metrics={
+    'M-RT':T.rt,
+    'M-RTFIRST':Math.round(T.first),
+    'M-PATH':T.taps,
+    'M-EFF':effPct(),                           // tap economy, NOT speed
+    'M-PLANFUL':planful(),
+    'M-REV':T.deselects,
+    'M-EXPLORE':T.touched.size,
+    'M-SPAN':targets.length,
+    'M-ENGAGE':Math.round(T.blurMs),
+    'M-RAPIDGUESS':T.rapid?1:0,
+  };
+  const result={itemId:item.itemId,typeCode:item.typeCode,domain:item.domain,response,metrics,telemetry:T.events.slice()};
+  emit('commit',{selected:chosen,taps:T.taps});
+  setCue('locked');setStatus('ok','Answer submitted.');   // accept and advance — never correct/incorrect
+  log(`SUBMIT \u00b7 ${chosen.length} jar(s) picked \u00b7 ${T.taps} taps \u00b7 ${T.rt}ms`);
+  renderMeters();
+  post('result',{result});
+  if(!embedded)after();
+}
+async function after(){await sleep(1400);nextSample();}
 
-/* ---------- trial logic ---------- */
-let phase='demo',locked=true,targetJars=[],slotOf=[],sel=[],tapCount=0,submitStart=0;
-function pickTargets(n){const pool=[];for(let i=0;i<NJ;i++)pool.push(i);const out=[];for(let k=0;k<n;k++){const idx=Math.floor(Math.random()*pool.length);out.push(pool.splice(idx,1)[0]);}return out;}
-async function runTrial(nt,swaps,bugs){slotOf=[...Array(NJ).keys()];placeJars(slotOf);sel=[];tapCount=0;
-  targetJars=pickTargets(nt);targetJars.forEach(i=>jarEl(i).classList.add('glow'));
-  await sleep(750);targetJars.forEach(i=>jarEl(i).classList.remove('glow'));
-  for(let b=0;b<bugs;b++)spawnBug();
-  for(let s=0;s<swaps;s++){const a=Math.floor(Math.random()*NJ);let c=Math.floor(Math.random()*NJ);while(c===a)c=Math.floor(Math.random()*NJ);
-    let jarA=-1,jarB=-1;for(let i=0;i<NJ;i++){if(slotOf[i]===a)jarA=i;if(slotOf[i]===c)jarB=i;}
-    const tmp=slotOf[jarA];slotOf[jarA]=slotOf[jarB];slotOf[jarB]=tmp;placeJars(slotOf);
-    if(Math.random()<0.4)spawnBug();
-    await sleep(700);}
-  $$('.jar').forEach(j=>j.classList.add('pick'));submitStart=Date.now();$('#done').classList.add('ready');if(phase!=='demo')setStatus('neutral','Tap the jars that were glowing, then press Done.');}
-function toggleJar(i){if(locked||phase==='demo')return;const el=jarEl(i);const pos=sel.indexOf(i);
-  if(pos!==-1){sel.splice(pos,1);el.classList.remove('sel');T.revisions++;log(`revise: deselect jar ${i+1}`);}else{sel.push(i);el.classList.add('sel');}
-  tapCount++;renderMeters();}
-function submit(){if(locked||phase==='demo'||!$('#done').classList.contains('ready'))return;locked=true;$('#done').classList.remove('ready');$$('.jar').forEach(j=>j.classList.remove('pick'));
-  const rt=Date.now()-submitStart;const tgtSet=new Set(targetJars);const selSet=new Set(sel);
-  const hits=targetJars.filter(i=>selSet.has(i)).length;const fas=sel.filter(i=>!tgtSet.has(i)).length;
-  const exact=hits===targetJars.length&&fas===0;
-  sel.forEach(i=>jarEl(i).classList.add(tgtSet.has(i)?'correct':'wrong'));
-  targetJars.forEach(i=>{if(!selSet.has(i))jarEl(i).classList.add('wrong');});
-  if(phase==='warmup'){setStatus(exact?'ok':'no',exact?'\u2713 Correct - practice':'\u2717 Not quite - the glowing jars are shown (practice)');log(`warm-up ${exact?'exact':'partial ('+hits+'/'+targetJars.length+')'} \u2014 UNSCORED`);setTimeout(()=>{phase='scored';nextScored();},1200);return;}
-  T.scored++;T.rts.push(rt);T.hits+=hits;T.tgtN+=targetJars.length;T.fas+=fas;T.nonTgtN+=(NJ-targetJars.length);
-  T.extraTaps.push(Math.max(0,tapCount-targetJars.length));
-  if(exact){T.exact++;maxLevel=Math.max(maxLevel,level);level=Math.min(4,level+1);log(`SCORED fireflies ${targetJars.length} \u2192 EXACT \u2714 \u2192 fireflies up to ${level+1}`);}
-  else{$('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),450);level=Math.max(1,level-1);log(`SCORED fireflies ${targetJars.length} \u2192 ${hits}/${targetJars.length} hits, ${fas} false alarms \u2192 fireflies down to ${level+1}`);}
-  setStatus(exact?'ok':'no',exact?'\u2713 Correct':'\u2717 Not quite - the glowing jars are shown');
-  setDiff();renderMeters();
-  setTimeout(()=>{if(T.scored>=6)finish();else nextScored();},1300);}
-function nextScored(){setCue('scored',(T.scored+1)+'/6');const nt=level+1,swaps=2+level,bugs=1+Math.floor(level/2);
-  log(`\u2014 SCORED trial ${T.scored+1}: ${nt} firefly jar(s), ${swaps} swaps, ${bugs} distractor bug(s) \u2014`);
-  runTrial(nt,swaps,bugs).then(renderMeters);}
-function startWarmup(){phase='warmup';setCue('warmup');log('\u2014 warm-up (unscored): follow the glowing jar through one swap \u2014');runTrial(1,1,0).then(renderMeters);}
-function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;$$('.jar').forEach(j=>j.classList.remove('pick'));$('#done').classList.remove('ready');
-  log(`\u2014 DONE \u00b7 exact ${T.exact}/${T.scored} \u00b7 ceiling fireflies ${maxLevel+1} \u2014`);}
-async function runDemo(){phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;
-  slotOf=[...Array(NJ).keys()];placeJars(slotOf);log('ghost-hand demo (wordless, <10s)');
-  targetJars=[0];jarEl(0).classList.add('glow');await sleep(750);jarEl(0).classList.remove('glow');
-  let jarA=0,jarB=1;const tmp=slotOf[jarA];slotOf[jarA]=slotOf[jarB];slotOf[jarB]=tmp;placeJars(slotOf);await sleep(700);
-  ghostShow(true);await ghostTo(jarEl(0));await ghostTap();jarEl(0).classList.add('correct');
+/* ---------- ghost self-teach (points at the controls; never reveals a firefly jar) ---------- */
+const ghost=$('#ghost');
+async function ghostTo(el){if(!el)return;const r=el.getBoundingClientRect();ghost.style.transform=`translate(${r.left+r.width/2-9}px,${r.top+r.height/2-8}px)`;await sleep(460);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(340);}
+async function ghostScaffold(){
+  ghost.classList.add('show');await sleep(200);
+  await ghostTo($('#stage').children[0]);await ghostTap();
   await ghostTo($('#done'));await ghostTap();
-  await sleep(400);ghostShow(false);setStatus('ok','\u2713 Got it - now you try.');await sleep(600);startWarmup();}
-stageEl().addEventListener('click',e=>{const j=e.target.closest('.jar');if(j)toggleJar(+j.dataset.i);});
-$('#done').addEventListener('click',submit);
-$('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
-buildJars();buildMeters();renderMeters();setDiff();runDemo();
+  ghost.classList.remove('show');await sleep(150);
+}
+
+/* ---------- item lifecycle ---------- */
+function loadItem(served){
+  item=served;content=served.content;
+  N=content.jarCount;slots=content.slots;targets=content.initialTargets.slice();
+  replay=replayMotion(content);
+  slotOfJar=replay.trace[0].split(',').map(Number);
+  selected=new Set();locked=true;started=false;moving=false;
+  Object.assign(T,{itemStart:0,unlockAt:0,first:0,taps:0,picks:0,deselects:0,touched:new Set(),rt:0,rapid:false,committed:false,blurMs:0,blurStart:0,lastActivity:performance.now(),events:[]});
+  buildJars();
+  $('#done').classList.remove('ready');
+  $('#prompt').textContent=content.question.prompt;
+  $('#i_id').textContent=(served.itemId||'—').slice(0,8);
+  $('#i_load').textContent=`${N} jars \u00b7 ${targets.length} fireflies \u00b7 ${content.motion.phases.length}\u00d7${content.motion.swapsPerPhase} swaps`;
+  $('#i_diff').textContent=(served.difficulty!=null?Number(served.difficulty).toFixed(2):'—');
+  setCue('waiting');setStatus('neutral','Get ready to watch the jars.');
+  $('#log').innerHTML='';log(`item ${(served.itemId||'').slice(0,8)} \u00b7 ${targets.length} fireflies \u00b7 digest ${replay.digest}`);
+  renderMeters();
+}
+async function startItem(){
+  if(!content)return;
+  started=true;T.itemStart=performance.now();emit('start',{motionDigest:replay.digest});
+  if(content.scaffold&&content.scaffold.warmup)await ghostScaffold();
+  await runMotion();
+}
+
+/* ---------- input ---------- */
+$('#stage').addEventListener('click',e=>{const j=e.target.closest('.jar');if(j)toggleJar(j);});
+$('#done').addEventListener('click',()=>{if($('#done').classList.contains('ready'))submit();});
+$('#replay').addEventListener('click',()=>{if(started&&!locked&&!moving)ghostScaffold();});
+addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();if($('#done').classList.contains('ready'))submit();}});
+
+/* ---------- host message handling ---------- */
+let gotInit=false;
+addEventListener('message',e=>{const d=e.data;if(!d||d.source!==HOST)return;
+ if(d.type==='init'&&d.item){gotInit=true;loadItem(d.item);post('ready');}
+ else if(d.type==='start'){startItem();}
+});
+
+/* ---------- standalone fallback (opens by double-click; no host present) ----------
+   Embeds real ServedItems produced by generators/GB-TRACK-01.mjs so the renderer and the bank
+   stay in sync. A ServedItem carries no answer, scoring or provenance. */
+const SAMPLES=[{"itemId":"85836a06-3f27-4557-bd49-15250351398f","typeCode":"GB-TRACK-01","domain":"spatial","difficulty":1.07,"ageBands":["2-3"],"demoPath":"demos/GB-TRACK-01.html","content":{"typeCode":"GB-TRACK-01","question":{"mode":"track_targets","targetCount":1,"prompt":"Watch the 1 jar that light up. Keep your eyes on it while the jars slide around.","responsePrompt":"Tap the 1 jar that holds a firefly, then press DONE. Take as long as you need."},"jarCount":4,"slots":[{"x":0,"y":121},{"x":154,"y":121},{"x":308,"y":121},{"x":462,"y":121}],"initialTargets":[0],"motion":{"seed":"GB-TRACK-01|L1|#0|20260724","glowMs":1400,"phaseMs":1000,"phaseCount":2,"swapsPerPhase":1,"phases":[{"swaps":[[0,2]]},{"swaps":[[2,1]]}]},"distractors":{"bugs":[]},"limits":{"maxTaps":16},"responseUntimed":true,"optionKind":"slot_set","scaffold":{"warmup":true}},"syntheticOnly":true,"validated":false},{"itemId":"94ed6ad7-e305-4827-a0ca-1b8fdbda4d99","typeCode":"GB-TRACK-01","domain":"spatial","difficulty":5.69,"ageBands":["2-3"],"demoPath":"demos/GB-TRACK-01.html","content":{"typeCode":"GB-TRACK-01","question":{"mode":"track_targets","targetCount":2,"prompt":"Watch the 2 jars that light up. Keep your eyes on them while the jars slide around.","responsePrompt":"Tap the 2 jars that hold a firefly, then press DONE. Take as long as you need."},"jarCount":6,"slots":[{"x":0,"y":10},{"x":231,"y":10},{"x":462,"y":10},{"x":0,"y":232},{"x":231,"y":232},{"x":462,"y":232}],"initialTargets":[2,3],"motion":{"seed":"GB-TRACK-01|L6|#0|20260724","glowMs":1400,"phaseMs":880,"phaseCount":6,"swapsPerPhase":2,"phases":[{"swaps":[[3,5],[4,0]]},{"swaps":[[2,4],[0,3]]},{"swaps":[[4,1],[0,3]]},{"swaps":[[5,4],[1,0]]},{"swaps":[[0,4],[3,2]]},{"swaps":[[0,1],[4,3]]}]},"distractors":{"bugs":[{"atPhase":3,"y0":134,"y1":47,"fromLeft":true},{"atPhase":5,"y0":204,"y1":150,"fromLeft":false}]},"limits":{"maxTaps":24},"responseUntimed":true,"optionKind":"slot_set","scaffold":{"warmup":false}},"syntheticOnly":true,"validated":false},{"itemId":"0b959a8a-40ac-492e-8b8f-e4e96b465ba6","typeCode":"GB-TRACK-01","domain":"spatial","difficulty":12.23,"ageBands":["4-5","6-8"],"demoPath":"demos/GB-TRACK-01.html","content":{"typeCode":"GB-TRACK-01","question":{"mode":"track_targets","targetCount":4,"prompt":"Watch the 4 jars that light up. Keep your eyes on them while the jars slide around.","responsePrompt":"Tap the 4 jars that hold a firefly, then press DONE. Take as long as you need."},"jarCount":9,"slots":[{"x":0,"y":10},{"x":116,"y":10},{"x":231,"y":10},{"x":347,"y":10},{"x":462,"y":10},{"x":0,"y":232},{"x":116,"y":232},{"x":231,"y":232},{"x":347,"y":232}],"initialTargets":[4,6,7,8],"motion":{"seed":"GB-TRACK-01|L12|#0|20260724","glowMs":1400,"phaseMs":760,"phaseCount":10,"swapsPerPhase":3,"phases":[{"swaps":[[8,4],[5,7],[1,3]]},{"swaps":[[8,4],[7,1],[6,0]]},{"swaps":[[1,6],[3,2],[0,5]]},{"swaps":[[4,8],[0,1],[7,5]]},{"swaps":[[8,2],[3,1],[7,4]]},{"swaps":[[2,1],[3,8],[5,7]]},{"swaps":[[8,3],[7,0],[4,1]]},{"swaps":[[1,7],[8,0],[3,2]]},{"swaps":[[2,4],[8,7],[1,3]]},{"swaps":[[5,8],[4,2],[7,3]]}]},"distractors":{"bugs":[{"atPhase":1,"y0":87,"y1":48,"fromLeft":true},{"atPhase":4,"y0":86,"y1":186,"fromLeft":true},{"atPhase":6,"y0":31,"y1":85,"fromLeft":false}]},"limits":{"maxTaps":36},"responseUntimed":true,"optionKind":"slot_set","scaffold":{"warmup":false}},"syntheticOnly":true,"validated":false},{"itemId":"3f7056c1-6b17-4aee-a15c-712727ba3104","typeCode":"GB-TRACK-01","domain":"spatial","difficulty":19.09,"ageBands":["6-8"],"demoPath":"demos/GB-TRACK-01.html","content":{"typeCode":"GB-TRACK-01","question":{"mode":"track_targets","targetCount":6,"prompt":"Watch the 6 jars that light up. Keep your eyes on them while the jars slide around.","responsePrompt":"Tap the 6 jars that hold a firefly, then press DONE. Take as long as you need."},"jarCount":13,"slots":[{"x":0,"y":10},{"x":116,"y":10},{"x":231,"y":10},{"x":347,"y":10},{"x":462,"y":10},{"x":0,"y":121},{"x":116,"y":121},{"x":231,"y":121},{"x":347,"y":121},{"x":462,"y":121},{"x":0,"y":232},{"x":116,"y":232},{"x":231,"y":232}],"initialTargets":[0,1,5,6,7,12],"motion":{"seed":"GB-TRACK-01|L19|#0|20260724","glowMs":1400,"phaseMs":600,"phaseCount":17,"swapsPerPhase":4,"phases":[{"swaps":[[0,8],[5,10],[4,7],[6,12]]},{"swaps":[[1,9],[10,3],[7,11],[5,6]]},{"swaps":[[8,1],[3,6],[12,10],[9,5]]},{"swaps":[[6,12],[10,8],[7,9],[4,2]]},{"swaps":[[7,4],[8,0],[10,6],[5,3]]},{"swaps":[[0,5],[6,10],[3,12],[9,1]]},{"swaps":[[12,8],[0,1],[7,2],[10,3]]},{"swaps":[[9,7],[3,2],[6,5],[8,0]]},{"swaps":[[5,10],[9,2],[1,7],[6,3]]},{"swaps":[[3,5],[2,4],[1,6],[0,11]]},{"swaps":[[5,9],[3,11],[12,6],[4,7]]},{"swaps":[[11,10],[1,0],[7,5],[9,3]]},{"swaps":[[5,8],[9,7],[1,6],[4,0]]},{"swaps":[[8,6],[12,1],[9,11],[4,5]]},{"swaps":[[6,10],[0,7],[8,1],[11,2]]},{"swaps":[[3,9],[0,11],[4,12],[2,1]]},{"swaps":[[10,4],[3,8],[12,11],[5,7]]}]},"distractors":{"bugs":[{"atPhase":0,"y0":245,"y1":38,"fromLeft":true},{"atPhase":5,"y0":98,"y1":67,"fromLeft":false},{"atPhase":7,"y0":21,"y1":63,"fromLeft":true},{"atPhase":13,"y0":32,"y1":240,"fromLeft":false},{"atPhase":15,"y0":189,"y1":110,"fromLeft":false}]},"limits":{"maxTaps":52},"responseUntimed":true,"optionKind":"slot_set","scaffold":{"warmup":false}},"syntheticOnly":true,"validated":false}];
+let sampleIdx=0;
+function nextSample(){if(!SAMPLES.length)return;loadItem(SAMPLES[sampleIdx%SAMPLES.length]);sampleIdx++;startItem();}
+
+/* ---------- boot ---------- */
+buildMeters();
+if(embedded)post('ready');
+setTimeout(()=>{if(!gotInit&&SAMPLES.length){
+  $('#howto').querySelector('p').insertAdjacentHTML('beforeend',' <b>(Standalone preview: cycling built-in sample items.)</b>');
+  nextSample();
+}},500);
 </script>
 </body>
 </html>
