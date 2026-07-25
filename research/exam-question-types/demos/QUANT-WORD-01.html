@@ -6,9 +6,8 @@
 <title>QUANT-WORD-01 · Story Model</title>
 <style>
   :root{
-    --paper:#fffdf7;--ink:#2e3a43;--scene:#eaf5ee;--model:#eef1f8;--one:#e07255;--two:#3f83a9;
-    --accent:#efb43f;--good:#2c9f70;--bad:#d85c65;--tel:#121a22;--tel2:#1d2933;
-    --key:#74efc5;--dim:#788f9e;
+    --paper:#fffdf7;--ink:#2e3a43;--accent:#efb43f;--accent2:#3f83a9;
+    --good:#2c9f70;--bad:#d85c65;--tel:#121a22;--tel2:#1d2933;--key:#74efc5;--dim:#788f9e;
   }
   *{box-sizing:border-box}html,body{margin:0;min-height:100%}
   body{
@@ -22,88 +21,77 @@
   #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:#9a6a12}
   #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
   #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#fdf3dd;color:#9a6a12;border:2px solid #f0d79a;min-height:30px}
-  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
   #phasecue[data-phase="scored"]{background:var(--accent);color:#fff;border-color:var(--accent)}
   #phasecue[data-phase="done"]{background:#f6ead0;color:#7a5a13;border-color:#f0d79a}
   #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
   #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:var(--dim)}
   #stagecard{
-    width:min(820px,100%);background:var(--paper);border-radius:30px;padding:20px;
-    display:grid;gap:14px;box-shadow:0 25px 62px -35px #405b4f;border:1px solid #fff;
+    width:min(820px,100%);background:var(--paper);border-radius:28px;padding:22px;
+    display:grid;gap:16px;box-shadow:0 25px 62px -35px #405b4f;border:1px solid #fff;
   }
   #story{
-    min-height:190px;border-radius:23px;background:linear-gradient(#e7f5ed,#f8fbf6);
-    border:2px solid #d1e4d9;position:relative;padding:17px;display:flex;flex-direction:column;justify-content:center;
+    border-radius:20px;background:linear-gradient(#e9f6ef,#f9fbf7);border:2px solid #d1e4d9;
+    padding:18px 20px;font-size:19px;line-height:1.75;
   }
-  #scene{min-height:120px;display:flex;align-items:center;justify-content:center;gap:24px;flex-wrap:wrap}
-  .sceneRow{min-width:105px;min-height:65px;border-radius:18px;background:#ffffffbb;padding:11px;display:flex;flex-wrap:wrap;gap:7px;align-content:center;justify-content:center}
-  .object{width:25px;height:25px;border-radius:50%;background:var(--one);border:2px solid #a74838;box-shadow:inset 0 -3px #0002}
-  .sceneRow:nth-child(even) .object{background:var(--two);border-color:#2b607e;border-radius:5px;background-image:repeating-linear-gradient(45deg,transparent 0 4px,#fff5 4px 7px)}
-  .object.away{opacity:.25;transform:translateY(-12px)}
-  .action{font-size:34px;color:#789084}
-  .bin{min-width:77px;min-height:70px;border:3px solid #91a89b;border-top:0;border-radius:0 0 20px 20px;padding:8px;display:flex;flex-wrap:wrap;align-content:end;justify-content:center;gap:4px}
-  .mystery{width:76px;height:76px;border:4px dashed var(--accent);border-radius:20px;display:grid;place-items:center;font-size:35px;background:#fff9e9}
-  #beats{display:flex;justify-content:center;gap:14px;height:16px;margin-top:7px}
-  #beats i{width:11px;height:11px;border-radius:50%;background:#cadbd1}#beats i.live{background:var(--accent);box-shadow:0 0 0 5px #efb43f33}
-  #replayStory{position:absolute;right:12px;top:12px;width:42px;height:42px;border-radius:50%;background:#dbeae1;color:#587266;font-size:20px}
-  #builder{border-radius:22px;background:var(--model);border:2px solid #d9dfeb;padding:13px;display:grid;gap:11px}
-  #palette{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
-  .piece{
-    min-width:65px;height:58px;border-radius:13px;background:#fff;border:3px solid transparent;padding:7px;
-    display:flex;align-items:center;justify-content:center;transition:.15s;
+  #story p{margin:0 0 6px}
+  #story p:last-child{margin-bottom:0}
+  #question{margin-top:10px;padding-top:10px;border-top:2px dashed #cbdfd3;font-weight:800;font-size:19px}
+  .num{
+    display:inline-block;min-width:30px;padding:1px 8px;margin:0 1px;border-radius:8px;font:inherit;font-weight:800;
+    background:#fff;border:2px solid #cddcd3;color:#2b4b60;line-height:1.3;
   }
-  .piece:hover:not(:disabled){transform:translateY(-2px)}.piece.chosen{border-color:var(--accent);background:#fff8e6}
-  .miniBar{height:25px;border:2px solid #a94839;border-radius:7px;background:repeating-linear-gradient(90deg,var(--one) 0 12px,#f09b83 12px 14px);position:relative}
-  .miniBar.blue{border-color:#2d6685;background:repeating-linear-gradient(90deg,var(--two) 0 12px,#7eb4d0 12px 14px)}
-  .miniBar::after{content:"";position:absolute;inset:5px;background:radial-gradient(circle,#fff 0 2px,transparent 3px);background-size:13px 13px}
-  #model{
-    min-height:80px;border:3px dashed #aeb9cd;border-radius:16px;background:#fff;display:flex;
-    align-items:center;justify-content:center;gap:7px;flex-wrap:wrap;padding:10px;
+  .num:hover:not(:disabled){border-color:var(--accent2)}
+  .num.marked{background:#dcecf6;border-color:var(--accent2);color:#134a6a}
+  .num:disabled{cursor:default;opacity:.85}
+  #modelwrap{border-radius:16px;background:#eef1f8;border:2px solid #d9dfeb;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:56px}
+  #modellabel{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#65748f}
+  .chip{background:#fff;border:2px solid var(--accent2);color:#134a6a;border-radius:9px;padding:3px 10px;font-weight:800}
+  #modelempty{color:var(--dim);font-size:14px}
+  #answers{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
+  .answer{
+    position:relative;min-width:96px;padding:14px 10px;border-radius:16px;background:#fff;border:3px solid #e3e9e5;
+    font-size:26px;font-weight:800;color:#2e3a43;transition:.15s;-webkit-tap-highlight-color:transparent;
   }
-  .modelPiece{height:38px;border-radius:9px;background:repeating-linear-gradient(90deg,var(--one) 0 15px,#f09b83 15px 18px);border:2px solid #a94839}
-  .modelPiece:nth-child(even){background:repeating-linear-gradient(90deg,var(--two) 0 15px,#7eb4d0 15px 18px);border-color:#2d6685}
-  #answers{display:flex;justify-content:center;gap:9px;flex-wrap:wrap}
-  .answer{width:75px;min-height:67px;border-radius:15px;background:#fff;border:3px solid transparent;display:grid;place-items:center}
-  .answer.selected{border-color:var(--accent);background:#fff8e7}.answer.correct{border-color:var(--good);background:#e4f8ef}.answer.wrong{border-color:var(--bad);background:#ffe9ec}
-  .answerDots{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;max-width:54px}.answerDots i{width:10px;height:10px;border-radius:50%;background:#596b7b}
-  #controls{display:flex;justify-content:center;align-items:center;gap:14px}
-  .round{width:49px;height:49px;border-radius:50%;background:#e5ebe7;color:#607569;font-size:22px}
+  .answer::after{content:attr(data-key);position:absolute;right:7px;bottom:4px;font:700 11px/1 ui-monospace,monospace;color:#9aa8b2}
+  .answer:hover:not(:disabled){transform:translateY(-2px);border-color:#cdd8d1}
+  .answer.sel{border-color:var(--accent);box-shadow:0 0 0 4px #efb43f44;transform:translateY(-2px)}
+  .answer:disabled{opacity:.6}
+  #controls{display:flex;justify-content:center;align-items:center;gap:16px}
+  #reread{width:52px;height:52px;border-radius:50%;background:#e5ebe7;color:#607569;font-size:22px}
   #go{
-    width:70px;height:70px;border-radius:50%;background:var(--accent);color:#fff;font-size:30px;
-    box-shadow:0 12px 25px -12px #9f731b;opacity:.35;pointer-events:none;
+    width:72px;height:72px;border-radius:50%;background:var(--accent);color:#fff;font-size:30px;
+    box-shadow:0 12px 25px -12px #9f731b;opacity:.35;pointer-events:none;transition:.2s;
   }
   #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.05s infinite}
-  @keyframes pulse{50%{transform:scale(1.07)}}@keyframes shake{25%,75%{transform:translateX(-7px)}50%{transform:translateX(7px)}}
-  #builder.good{box-shadow:0 0 0 5px #78cba655}#builder.bad{animation:shake .4s;box-shadow:0 0 0 4px #e59aa155}
-  #progress{display:flex;justify-content:center;gap:7px;height:11px}
-  #progress i{width:10px;height:10px;border-radius:50%;background:#d9e1de}
-  #progress i.ok{background:var(--good)}#progress i.no{background:var(--bad)}
-  #ghost{
-    position:fixed;left:0;top:0;z-index:60;font-size:40px;opacity:0;pointer-events:none;
-    transition:transform .44s cubic-bezier(.2,.7,.2,1),opacity .2s;filter:drop-shadow(0 3px 4px #0004);
-  }
-  #ghost.show{opacity:.95}#ghost.tap{animation:tap .34s}@keyframes tap{50%{scale:.78}}
+  @keyframes pulse{50%{transform:scale(1.06)}}
+  #ghost{position:fixed;left:0;top:0;z-index:60;opacity:0;pointer-events:none;
+    transition:transform .6s cubic-bezier(.3,.6,.2,1),opacity .25s;filter:drop-shadow(0 3px 4px #0004)}
+  #ghost.show{opacity:.95}
   #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
-  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #ghost.tap .ring{animation:tapring .5s ease-out}
+  @keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
   #telemetry{
-    width:355px;flex:0 0 355px;min-height:100vh;background:var(--tel);color:#c5d3dc;
+    width:340px;flex:0 0 340px;min-height:100vh;background:var(--tel);color:#c5d3dc;
     display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;
   }
   #telemetry h3{margin:0;padding:13px 14px;background:var(--tel2);color:#fff;font-size:12px;letter-spacing:.09em;text-transform:uppercase}
-  #difficulty{padding:10px 13px;border-bottom:1px solid #2c3c48}
-  #diffhead{display:flex;justify-content:space-between;color:#a1b3bf;font-size:11px}
-  #diffbar{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin:7px 0}
-  #diffbar i{height:8px;border-radius:8px;background:#2c404c}#diffbar i.live{background:var(--accent)}
-  #dtrend{font-size:11px;color:#748997}
+  #difficulty{margin:10px 12px 2px;padding:10px;border:1px solid #2c3c48;border-radius:10px;background:#171e36}
+  .dtop{display:flex;justify-content:space-between;color:#fff}
+  .dsub{display:flex;justify-content:space-between;color:var(--dim);font-size:11px;margin-top:5px}
+  .dtrack{height:7px;background:#2a3458;border-radius:8px;margin-top:8px;overflow:hidden}
+  .dfill{height:100%;background:linear-gradient(90deg,#74efc5,#ffd479);transition:.25s}
+  #mode{margin:8px 12px 0;font-size:11px;color:var(--dim)}#mode b{color:#ffd479}
   #mlist{padding:11px 13px;display:flex;flex-direction:column;gap:8px}
-  .mrow{display:grid;grid-template-columns:105px 1fr;gap:7px}.mid{color:var(--key);font-weight:800}.mval{color:#fff}
+  .mrow{display:grid;grid-template-columns:112px 1fr;gap:7px;align-items:baseline}
+  .mid{color:var(--key);font-weight:800}.mid.srv{color:#ffd479}.mval{color:#fff}
   .mname{grid-column:1/3;color:var(--dim);font-size:11px;margin-top:-4px}
   #logwrap{margin-top:auto;border-top:1px solid #2c3c48}
   #logwrap b{display:block;padding:8px 12px 3px;color:#879ca9;font-size:11px;letter-spacing:.08em}
-  #log{height:225px;overflow:auto;padding:2px 12px 12px;white-space:pre-wrap}
+  #log{height:210px;overflow:auto;padding:2px 12px 12px;white-space:pre-wrap}
   #log div{padding:3px 0;border-bottom:1px dotted #293943}#log .t{color:#5c7382}
-  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;min-height:0;height:355px;flex:none}}
-  @media(max-width:580px){#stagecard{padding:12px}.sceneRow{min-width:75px}.piece{min-width:54px}#story{min-height:170px}}
+  button:focus-visible{outline:4px solid #ffbf69;outline-offset:3px}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;min-height:0;height:340px;flex:none}}
+  @media(max-width:580px){#stagecard{padding:14px}#story{font-size:17px}.answer{min-width:74px;font-size:22px}}
   @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
 </head>
@@ -112,166 +100,329 @@
   <div id="badge">QUANT-WORD-01 · Story Model</div>
   <header id="howto">
     <h1>How to use — Story Model</h1>
-    <p>Watch the short story play, then build a model of it: tap the bar pieces that match the story and tap the answer with the right number of dots. Press the check (<b>✓</b>) to submit; the pointer shows one example first. It gets harder each time you are right.</p>
+    <p>Read the story, then read the question under the line. Tap the numbers in the story that you will use — that is your model. Then tap the answer you worked out and press the check (<b>&#10003;</b>) to send it. Press <b>&#8635;</b> to read the story again. Not every number in a story is needed.</p>
   </header>
-  <div id="phasecue" data-phase="demo">Watch the example</div>
+  <div id="phasecue" data-phase="warmup">Get ready</div>
   <section id="stagecard">
-    <div id="story"><div id="scene"></div><div id="beats"></div><button id="replayStory" aria-label="replay story">▶</button></div>
-    <div id="builder"><div id="palette"></div><div id="model"></div><div id="answers"></div></div>
-    <div id="controls"><button class="round" id="replayDemo" aria-label="replay demonstration">↻</button><button id="go" aria-label="submit">✓</button></div>
-    <div id="progress"></div>
-    <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+    <div id="story"><p id="storybody"></p><div id="question"></div></div>
+    <div id="modelwrap">
+      <span id="modellabel">Numbers I will use</span>
+      <span id="modelempty">none marked yet</span>
+      <span id="modelchips"></span>
+    </div>
+    <div id="answers"></div>
+    <div id="controls">
+      <button id="reread" title="read the story again" aria-label="read the story again">&#8635;</button>
+      <button id="go" title="send answer" aria-label="send answer">&#10003;</button>
+    </div>
+    <div id="status" class="neutral">Waiting for the next story.</div>
   </section>
 </main>
 <aside id="telemetry">
-  <h3>Live telemetry · per-child</h3>
-  <div id="difficulty"><div id="diffhead"><span>DIFFICULTY</span><span id="dlevel"></span></div><div id="diffbar"></div><div id="dtrend"></div></div>
+  <h3>Live telemetry · per-child (display only)</h3>
+  <div id="difficulty" data-tracks="M-DIFFREACH"></div>
+  <div id="mode">Renderer emits the raw response and process metrics; <b>correctness and the score are server-side</b>.</div>
   <div id="mlist"></div>
   <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
 </aside>
-<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#3f83a9" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
-const $=s=>document.querySelector(s);
-const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
-const p=(key,units,blue=false)=>({key,units,blue});
-const a=(n,err='none')=>({n,err});
-const ITEMS=[
-  {level:1,label:'join',frames:[{rows:[2],action:'➕'},{rows:[2,3],action:'➜'},{rows:[5],unknown:true}],pieces:[p('two',2),p('three',3,true),p('four',4),p('five',5,true)],accepted:[['two','three']],answers:[a(4,'one-short'),a(5),a(6,'one-extra')],correct:1},
-  {level:2,label:'separate',frames:[{rows:[7],action:'➖'},{rows:[4],away:3,action:'➜'},{rows:[4],unknown:true}],pieces:[p('start7',7),p('away3',3,true),p('stay4',4),p('away2',2,true)],accepted:[['start7','away3'],['stay4','away3']],answers:[a(3,'removed-not-left'),a(4),a(10,'joined')],correct:1},
-  {level:3,label:'compare',frames:[{rows:[7,4],action:'↔'},{rows:[4,3],action:'➜'},{rows:[3],unknown:true}],pieces:[p('long7',7),p('short4',4,true),p('gap3',3),p('sum11',11,true)],accepted:[['long7','short4'],['short4','gap3']],answers:[a(11,'sum-not-gap'),a(4,'shorter-set'),a(3)],correct:2},
-  {level:4,label:'equal groups',frames:[{groups:[2],action:'➕'},{groups:[2,2],action:'➕'},{groups:[2,2,2],unknown:true}],pieces:[p('g1',2),p('g2',2,true),p('g3',2),p('extra',3,true)],accepted:[['g1','g2','g3']],answers:[a(3,'group-count'),a(5,'one-short'),a(6)],correct:2},
-  {level:5,label:'two-step',frames:[{rows:[4],action:'➕'},{rows:[7],action:'➖'},{rows:[5],unknown:true}],pieces:[p('start4',4),p('join3',3,true),p('leave2',2),p('after7',7,true)],accepted:[['start4','join3','leave2'],['after7','leave2']],answers:[a(9,'joined-only'),a(5),a(2,'last-action-only')],correct:1},
-  {level:6,label:'share and remainder',frames:[{rows:[11],action:'↘'},{groups:[3,3,3],away:2,action:'↔'},{groups:[3,3,3],unknown:true}],pieces:[p('all11',11),p('groups9',9,true),p('gA',3),p('gB',3,true),p('gC',3),p('rem2',2,true)],accepted:[['all11','groups9'],['gA','gB','gC','rem2']],answers:[a(3,'group-size'),a(2),a(9,'shared-total')],correct:1}
-];
-const DEMO={level:1,label:'demo',frames:[{rows:[2],action:'➕'},{rows:[2,3],action:'➜'},{rows:[5],unknown:true}],pieces:[p('two',2),p('three',3,true),p('four',4)],accepted:[['two','three']],answers:[a(4,'one-short'),a(5),a(6,'one-extra')],correct:1};
-const WARM={level:1,label:'warm-up',frames:[{rows:[1],action:'➕'},{rows:[1,2],action:'➜'},{rows:[3],unknown:true}],pieces:[p('one',1),p('two',2,true),p('three',3)],accepted:[['one','two']],answers:[a(2,'part-only'),a(3),a(4,'one-extra')],correct:1};
-let phase='demo',cur=null,chosen=new Set(),answer=-1,locked=true,animToken=0,scoredIndex=0;
-const T={scored:0,correct:0,poly:'—',path:[],prog:[],plan:'—',level:1,startLevel:1,maxSolved:0,results:[],itemStart:0};
+/* =====================================================================
+ * QUANT-WORD-01 — PURE RENDERER
+ * Renders a SERVED item (item.content) and reports the child's RAW response plus
+ * process telemetry. It NEVER self-generates items, NEVER evaluates the story's
+ * mathematics, and NEVER shows correct/incorrect: the answer key and the score
+ * live server-side (BUILD_PLAN §2).
+ *
+ * It reads ONLY content.storySentences / content.question / content.options /
+ * content.readingLoad. content.math is a server/validator field and is
+ * deliberately ignored here even when a host forwards it.
+ *
+ * Embedding protocol (postMessage), source-tagged:
+ *   host -> demo : {source:'gt-exam-host', type:'init',  item:ServedItem}
+ *                  {source:'gt-exam-host', type:'start', tutorial?:bool}
+ *   demo -> host : {source:'gt-exam-demo', type:'ready'}
+ *                  {source:'gt-exam-demo', type:'result',    result:ItemResult}
+ *                  {source:'gt-exam-demo', type:'telemetry', event:TelemetryEvent}
+ *
+ * D-017: the stimulus is on-screen TEXT only. There is no audio narration and no
+ * picture substitute — reading the story at the target band is the gate.
+ *
+ * Standalone (double-click / no host): loads samples from the bank JSONL, or an
+ * inline fallback when file:// blocks fetch, so the file still runs for QA.
+ * ===================================================================== */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0;
+const esc=s=>String(s).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+
+const HOST_SRC='gt-exam-host', DEMO_SRC='gt-exam-demo';
+
+/* ---------- per-item state ---------- */
+let current=null;          // current ServedItem
+let interactive=false;     // interaction enabled? (released by beginItem)
+let submitted=false;       // already answered this item?
+let staged=null;           // currently staged option key
+let firstKey=null;         // first option key touched
+let selectionOrder=[];     // raw sequence of option taps
+let marked=[];             // model: story-number tokens the child marked, in order
+let markActions=0;         // total mark/unmark actions (model-building effort)
+let numberTokens=[];       // every numeral printed in the story
+let itemStart=0;           // ms timestamp when the item became interactive
+let startTimer=null;       // fallback auto-start timer
+let itemTelemetry=[];      // TelemetryEvent[] for the current item
+
+const M={rt:null,rts:[],firstLat:null,rev:0,blur:0,rereads:0};
+
+/* ---------- embedding detection + emit ---------- */
+const embedded=(()=>{try{return window.parent&&window.parent!==window;}catch(_){return true;}})();
+let standalone=false, standaloneQueue=[], standaloneIdx=0, tutorialShown=false;
+function post(msg){if(!embedded)return;try{window.parent.postMessage(Object.assign({source:DEMO_SRC},msg),'*');}catch(_){}}
+
+/* ---------- derived process metrics (key-free; no correctness anywhere) ---------- */
+function modelProgress(){return numberTokens.length?marked.length/numberTokens.length:0;}
+function planful(){return (marked.length>0 && firstKey===null)||M.plannedFirst?1:0;}
 const METERS=[
-  {id:'M-ACC',name:'Valid model plus unique answer',get:()=>T.scored?`${T.correct}/${T.scored} · ${Math.round(100*T.correct/T.scored)}%`:'—'},
-  {id:'M-POLY',name:'Entities, relations, and answer captured',get:()=>T.poly},
-  {id:'M-PATH',name:'Model-piece and answer sequence',get:()=>T.path.length?T.path.slice(-10).join('→'):'—'},
-  {id:'M-PROG',name:'Model completion trajectory',get:()=>T.prog.length?T.prog.join('→')+'%':'—'},
-  {id:'M-PLANFUL',name:'Situation-model versus answer-first path',get:()=>T.plan},
-  {id:'M-DIFFREACH',name:'Deepest visual story structure solved',get:()=>T.maxSolved?`level ${T.maxSolved} · ${ITEMS[T.maxSolved-1].label}`:'—'},
-  {id:'M-LEARNRATE',name:'Adaptive level gain per item',get:()=>T.scored?`${((T.level-T.startLevel)/T.scored).toFixed(2)} level/trial`:'—'}
+ {id:'M-PATH',name:'Model actions (numbers marked / unmarked)',get:()=>String(markActions)},
+ {id:'M-PROG',name:'Share of story numbers taken into the model',get:()=>numberTokens.length?Math.round(modelProgress()*100)+'%':'\u2014'},
+ {id:'M-PLANFUL',name:'Modelled before answering (1) or answered first (0)',get:()=>String(planful())},
+ {id:'M-RT',name:'Response time — this item / mean',get:()=>M.rt==null?'\u2014':`${M.rt} ms${M.rts.length>1?` (mean ${mean(M.rts)})`:''}`},
+ {id:'M-RTFIRST',name:'First-action latency (read / encode)',get:()=>M.firstLat==null?'\u2014':M.firstLat+' ms'},
+ {id:'M-REV',name:'Answer changes',get:()=>String(M.rev)},
+ {id:'M-ENGAGE',name:'Focus losses (tracked, not enforced)',get:()=>String(M.blur)},
+ {id:'M-RAPIDGUESS',name:'Rapid-guess flag (tracked, not enforced)',get:()=>M.rt==null?'\u2014':(M.rt<900?'1 · rapid':'0')},
+ {id:'M-ACC',name:'Accuracy — scored server-side from the key',get:()=>'server-side',srv:true},
+ {id:'M-POLY',name:'Partial model credit — scored server-side',get:()=>'server-side',srv:true},
+ {id:'M-DIFFREACH',name:'Deepest structure solved — server-side',get:()=>'server-side',srv:true},
+ {id:'M-LEARNRATE',name:'Within-session growth — server-side',get:()=>'server-side',srv:true},
 ];
-function buildTelemetry(){
-  $('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');
-  $('#diffbar').innerHTML=ITEMS.map(()=>'<i></i>').join('');
-  $('#progress').innerHTML=ITEMS.map(()=>'<i></i>').join('');
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>
+  `<div class="mrow"><span class="mid${m.srv?' srv':''}">${m.id}</span><span class="mval" id="v_${m.id}"></span>`
+  +`<span class="mname">${m.name}</span></div>`).join('');}
+function renderDifficulty(){
+  const d=current?current.difficulty:null;
+  const rl=current&&current.content.readingLoad?current.content.readingLoad:null;
+  $('#difficulty').innerHTML=`<div class="dtop"><b>SERVED DIFFICULTY</b><span>${d==null?'\u2014':d.toFixed(1)}/20</span></div>`
+   +`<div class="dtrack"><div class="dfill" style="width:${d==null?0:Math.max(0,Math.min(100,d/20*100))}%"></div></div>`
+   +`<div class="dsub"><span>band ${rl?rl.band:'\u2014'} · ${rl?rl.words:'\u2014'} words</span><span>key: server-side</span></div>`;}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});renderDifficulty();}
+function log(msg){const now=new Date(),t=Math.max(0,Date.now()-(itemStart||Date.now())),d=document.createElement('div');
+  d.innerHTML=`<span class="t">${now.toISOString().slice(11,23)} · +${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+
+function emitEvent(kind,extra){
+  const event=Object.assign({t:itemStart?Date.now()-itemStart:0,kind,itemId:current?current.itemId:null},extra||{});
+  itemTelemetry.push(event);
+  post({type:'telemetry',event});
+  log(`<b>${kind}</b>`+(extra&&Object.keys(extra).length?' · '+JSON.stringify(extra):''));
 }
-function renderMeters(){
-  METERS.forEach(m=>$('#v_'+m.id).textContent=m.get());
-  $('#dlevel').textContent=`${T.level} / 6 · ${ITEMS[T.level-1].label}`;
-  [...$('#diffbar').children].forEach((x,i)=>x.classList.toggle('live',i<T.level));
-  $('#dtrend').textContent=`path ${T.results.join('')||'·'} · success raises, miss lowers`;
+
+/* ---------- outline pointer: teaches the GESTURE, never the answer ---------- */
+const ghost=$('#ghost');
+function ghostShow(v){ghost.classList.toggle('show',v);}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(620);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(430);}
+async function gestureHint(){
+  // Reads across the story, points at the number strip, then at the answer row and
+  // the check. It marks nothing and selects nothing, so no answer is revealed.
+  ghostShow(true);await sleep(220);
+  await ghostTo($('#storybody'));await sleep(160);
+  await ghostTo($('#question'));await sleep(160);
+  await ghostTo($('#modelwrap'));await ghostTap();await sleep(140);
+  await ghostTo($('#answers'));await ghostTap();await sleep(140);
+  await ghostTo($('#go'));await ghostTap();await sleep(180);
+  ghostShow(false);await sleep(240);
 }
-function log(message){
-  const elapsed=T.itemStart?Math.round(performance.now()-T.itemStart):0;
-  const row=document.createElement('div');row.innerHTML=`<span class="t">+${elapsed}ms</span> ${message}`;
-  $('#log').appendChild(row);$('#log').scrollTop=$('#log').scrollHeight;
+
+/* ---------- rendering the served item ---------- */
+function setCue(k,txt){const el=$('#phasecue');el.dataset.phase=k;el.textContent=txt;}
+function setStatus(kind,msg){const el=$('#status');el.className=kind;el.textContent=msg;}
+
+function renderStory(sentences,question){
+  numberTokens=[];
+  const html=sentences.map(sentence=>{
+    const parts=String(sentence).split(/(\d+)/);
+    return '<p>'+parts.map(part=>{
+      if(!/^\d+$/.test(part))return esc(part);
+      const idx=numberTokens.length;
+      numberTokens.push(Number(part));
+      return `<button class="num" data-idx="${idx}" data-val="${part}" aria-label="number ${part}">${part}</button>`;
+    }).join('')+'</p>';
+  }).join('');
+  $('#storybody').outerHTML=`<div id="storybody">${html}</div>`;
+  $('#question').textContent=question;
 }
-function objects(count,away=false){return Array.from({length:count},()=>`<i class="object${away?' away':''}"></i>`).join('')}
-function renderFrame(frame){
-  let html='';
-  if(frame.groups)html=frame.groups.map(count=>`<div class="bin">${objects(count)}</div>`).join('');
-  else html=(frame.rows||[]).map(count=>`<div class="sceneRow">${objects(count)}</div>`).join('');
-  if(frame.away)html+=`<span class="action">↗</span><div class="sceneRow">${objects(frame.away,true)}</div>`;
-  if(frame.action)html+=`<span class="action">${frame.action}</span>`;
-  if(frame.unknown)html+='<div class="mystery">?</div>';
-  $('#scene').innerHTML=html;
+function renderModel(){
+  const chips=marked.map(i=>`<span class="chip">${numberTokens[i]}</span>`).join(' ');
+  $('#modelchips').innerHTML=chips;
+  $('#modelempty').style.display=marked.length?'none':'';
 }
-async function playStory(replay=true){
-  const token=++animToken;locked=true;if(replay){T.path.push('▶');log('story replay')}
-  $('#beats').innerHTML=cur.frames.map(()=>'<i></i>').join('');renderBuilder();
-  for(let i=0;i<cur.frames.length;i++){
-    if(token!==animToken)return;[...$('#beats').children].forEach((x,j)=>x.classList.toggle('live',i===j));
-    renderFrame(cur.frames[i]);await sleep(430);
-  }
-  if(token!==animToken)return;locked=false;T.itemStart=performance.now();renderBuilder();
+function renderServedItem(item){
+  current=item;submitted=false;interactive=false;staged=null;firstKey=null;
+  selectionOrder=[];marked=[];markActions=0;itemTelemetry=[];
+  M.rev=0;M.firstLat=null;M.blur=0;M.rereads=0;M.plannedFirst=false;
+  const c=item.content;
+  renderStory(c.storySentences||[],c.question||'');
+  renderModel();
+  const box=$('#answers');box.innerHTML='';
+  (c.options||[]).forEach((o,i)=>{
+    const b=document.createElement('button');
+    b.className='answer';b.dataset.key=o.key;b.dataset.i=i;b.dataset.value=o.value;
+    b.setAttribute('aria-label','answer '+o.value);
+    b.textContent=o.value;box.appendChild(b);
+  });
+  $('#go').classList.remove('ready');
+  setNumbersEnabled(false);setAnswersEnabled(false);
+  itemStart=Date.now();
+  renderMeters();
+  emitEvent('render',{difficulty:item.difficulty,options:(c.options||[]).length,
+    storyNumbers:numberTokens.length,sentences:(c.storySentences||[]).length,
+    words:c.readingLoad?c.readingLoad.words:null});
 }
-function miniBar(piece,model=false){
-  const width=clamp(piece.units*(model?15:10),24,model?175:115);
-  return `<span class="${model?'modelPiece':'miniBar'}${piece.blue&&!model?' blue':''}" style="width:${width}px"></span>`;
+function setNumbersEnabled(on){$$('.num').forEach(b=>{b.disabled=!on;});}
+function setAnswersEnabled(on){$$('.answer').forEach(b=>{b.disabled=!on;});}
+
+/* ---------- interaction ---------- */
+function toggleNumber(el){
+  if(!interactive||submitted)return;
+  const idx=+el.dataset.idx;
+  const at=marked.indexOf(idx);
+  if(at>=0){marked.splice(at,1);el.classList.remove('marked');}
+  else{marked.push(idx);el.classList.add('marked');}
+  markActions++;
+  if(firstKey===null&&M.firstLat===null){M.firstLat=Date.now()-itemStart;M.plannedFirst=true;emitEvent('first_action',{via:'mark',latencyMs:M.firstLat});}
+  emitEvent('model',{action:at>=0?'unmark':'mark',value:numberTokens[idx],marked:marked.length});
+  renderModel();renderMeters();
 }
-function answerDots(n){return `<span class="answerDots">${Array.from({length:n},()=>'<i></i>').join('')}</span>`}
-function bestModelRatio(){
-  return Math.max(...cur.accepted.map(set=>set.filter(key=>chosen.has(key)).length/Math.max(set.length,chosen.size,1)));
+function stageOption(el){
+  if(!interactive||submitted)return;
+  const key=el.dataset.key;
+  if(M.firstLat===null){M.firstLat=Date.now()-itemStart;emitEvent('first_action',{via:'answer',latencyMs:M.firstLat});}
+  if(staged!==null&&staged!==key){M.rev++;emitEvent('change',{from:staged,to:key});}
+  if(firstKey===null)firstKey=key;
+  staged=key;selectionOrder.push(key);
+  $$('.answer').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');
+  $('#go').classList.add('ready');
+  renderMeters();
 }
-function exactModel(){return cur.accepted.some(set=>set.length===chosen.size&&set.every(key=>chosen.has(key)))}
-function updatePartial(record=false){
-  const points=Math.round((bestModelRatio()*3+(answer===cur.correct?1:0))/4*100);
-  T.poly=`${points}% constraints`;
-  if(record&&(T.prog.at(-1)!==points))T.prog.push(points);
+function submit(){
+  if(!interactive||submitted||staged===null)return;
+  const rt=Date.now()-itemStart;
+  M.rt=rt;M.rts.push(rt);
+  submitted=true;interactive=false;
+  $('#go').classList.remove('ready');setNumbersEnabled(false);setAnswersEnabled(false);
+  // NEUTRAL acknowledgment only — never correct/incorrect.
+  setCue('done','Answer sent');
+  setStatus('neutral',standalone?'Answer received. Loading the next story.':'Answer received. Next story coming up.');
+  emitEvent('submit',{selectedKey:staged,rtMs:rt,markedCount:marked.length});
+  const response={
+    selectedKey:staged,
+    selectedValue:Number($(`.answer[data-key="${staged}"]`).dataset.value),
+    firstSelectedKey:firstKey,
+    selectionOrder:selectionOrder.slice(),
+    markedNumbers:marked.map(i=>numberTokens[i]),
+    markOrder:marked.slice(),
+    storyNumbers:numberTokens.slice(),
+    markActions,rereads:M.rereads,changeCount:M.rev,
+  };
+  const metrics={
+    'M-RT':rt,
+    'M-RTFIRST':M.firstLat==null?rt:M.firstLat,
+    'M-REV':M.rev,
+    'M-ENGAGE':M.blur,
+    'M-RAPIDGUESS':rt<900?1:0,
+    'M-PATH':markActions,
+    'M-PROG':Math.round(modelProgress()*100)/100,
+    'M-PLANFUL':planful(),
+  };
+  const result={itemId:current.itemId,typeCode:current.typeCode,domain:current.domain,
+    response,metrics,telemetry:itemTelemetry.slice()};
+  post({type:'result',result});
+  log('RESULT emitted \u2192 '+JSON.stringify({response,metrics}));
+  renderMeters();
+  if(standalone)setTimeout(advanceStandalone,1300);
 }
-function renderBuilder(){
-  $('#palette').innerHTML=cur.pieces.map(piece=>`<button class="piece${chosen.has(piece.key)?' chosen':''}" data-key="${piece.key}" ${locked?'disabled':''}>${miniBar(piece)}</button>`).join('');
-  $('#model').innerHTML=cur.pieces.filter(piece=>chosen.has(piece.key)).map(piece=>miniBar(piece,true)).join('');
-  $('#answers').innerHTML=cur.answers.map((option,i)=>`<button class="answer${answer===i?' selected':''}" data-i="${i}" ${locked?'disabled':''}>${answerDots(option.n)}</button>`).join('');
-  $('#go').classList.toggle('ready',!locked&&chosen.size>0&&answer>=0);updatePartial(false);renderMeters();
+
+/* ---------- host-driven lifecycle ---------- */
+function onInit(item){
+  clearTimeout(startTimer);
+  if(!item||!item.content||!Array.isArray(item.content.storySentences)){log('init ignored: malformed ServedItem');return;}
+  renderServedItem(item);
+  setCue('warmup','Get ready');
+  setStatus('neutral','Get ready to read the story.');
+  // Lenient: if the host never sends {type:'start'}, begin shortly on our own.
+  startTimer=setTimeout(()=>{if(!interactive&&!submitted)beginItem(false);},500);
 }
-function choosePiece(key,ghost=false){
-  if(locked)return;
-  if(chosen.has(key)){chosen.delete(key);T.path.push('−'+key);T.plan='revised model'}
-  else{chosen.add(key);T.path.push('+'+key);if(T.path.length===1)T.plan='model-before-answer'}
-  updatePartial(true);renderBuilder();if(!ghost)log(`model ${T.path.at(-1)} · ${T.poly}`);
+async function beginItem(withTutorial){
+  if(interactive||submitted||!current)return;
+  if(withTutorial&&!tutorialShown){tutorialShown=true;await gestureHint();if(submitted)return;}
+  // The interaction lock is RELEASED here — every path that shows an item ends
+  // in beginItem, so the lock can never survive into the answering phase.
+  interactive=true;itemStart=Date.now();
+  setNumbersEnabled(true);setAnswersEnabled(true);
+  setCue('scored','Your turn');
+  setStatus('neutral','Mark the numbers you will use, tap your answer, then press the check.');
+  renderMeters();
 }
-function chooseAnswer(index,ghost=false){
-  if(locked)return;answer=index;T.path.push('a'+cur.answers[index].n);
-  if(T.plan==='—')T.plan='answer-first';updatePartial(true);renderBuilder();if(!ghost)log(`answer tile ${cur.answers[index].n} · ${T.poly}`);
+function onHostMessage(e){
+  const d=e.data;if(!d||d.source!==HOST_SRC)return;
+  if(d.type==='init')onInit(d.item);
+  else if(d.type==='start'){clearTimeout(startTimer);beginItem(!!d.tutorial);}
 }
-function feedback(correct){
-  $('#builder').className=correct?'good':'bad';
-  document.querySelectorAll('.answer').forEach((x,i)=>{if(i===cur.correct)x.classList.add('correct');if(i===answer&&!correct)x.classList.add('wrong')});
+
+/* ---------- standalone fallback (QA when there is no host) ---------- */
+function toServed(b){const{answer,scoring,provenance,...s}=b;return s;}
+async function loadBankSamples(){
+  try{
+    const res=await fetch('../banks/QUANT-WORD-01.jsonl',{cache:'no-store'});
+    if(res.ok){
+      const all=(await res.text()).trim().split('\n').filter(Boolean).map(l=>JSON.parse(l)).map(toServed);
+      all.sort((a,b)=>a.difficulty-b.difficulty);
+      const N=Math.min(12,all.length),pick=[];
+      for(let i=0;i<N;i++)pick.push(all[N===1?0:Math.round(i*(all.length-1)/(N-1))]);
+      log('standalone: fetched '+all.length+' bank items; cycling '+pick.length+' across difficulty');
+      return pick;
+    }
+  }catch(_){/* file:// blocks fetch — use the inline fallback */}
+  log('standalone: bank fetch unavailable (open via a local server for the full bank) — using inline samples');
+  return INLINE_SAMPLES.slice();
 }
-async function submit(){
-  if(locked||answer<0||!chosen.size)return;locked=true;const correct=exactModel()&&answer===cur.correct;renderBuilder();feedback(correct);
-  if(phase==='warmup'){
-    setStatus('neutral',correct?'\u2713 Correct - practice':'\u2717 Not quite - the correct model is shown (practice)');
-    log(`WARM-UP ${correct?'modeled':'corrective model'} · UNSCORED`);
-    if(!correct){await sleep(420);chosen=new Set(cur.accepted[0]);answer=cur.correct;renderBuilder();feedback(true)}
-    await sleep(750);startScored();return;
-  }
-  T.scored++;if(correct){T.correct++;T.maxSolved=Math.max(T.maxSolved,cur.level)}
-  T.results.push(correct?'↑':'↓');T.level=clamp(T.level+(correct?1:-1),1,6);
-  setStatus(correct?'ok':'no',correct?'\u2713 Correct':'\u2717 Not quite - the correct answer is highlighted');
-  $('#progress').children[scoredIndex].classList.add(correct?'ok':'no');
-  log(`SUBMIT level ${cur.level} ${cur.label} → ${correct?'CORRECT MODEL':'MISS'} · ${T.poly} · ${T.plan}`);
-  renderMeters();scoredIndex++;await sleep(900);scoredIndex<6?startScored():finish();
-}
-function center(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}}
-async function ghostTo(el){const p=center(el);$('#ghost').style.transform=`translate(${p.x-10}px,${p.y-10}px)`;await sleep(430)}
-async function ghostTap(){$('#ghost').classList.remove('tap');void $('#ghost').offsetWidth;$('#ghost').classList.add('tap');await sleep(320)}
-function reset(){
-  Object.assign(T,{scored:0,correct:0,poly:'—',path:[],prog:[],plan:'—',level:1,startLevel:1,maxSolved:0,results:[],itemStart:0});
-  scoredIndex=0;[...$('#progress').children].forEach(x=>x.className='');renderMeters();
-}
-const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
-function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
-function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
-async function loadItem(item,cue){
-  cur=item;chosen=new Set();answer=-1;T.path=[];T.prog=[];T.plan='—';T.poly='0% constraints';$('#builder').className='';
-  setCue(cue);await playStory(false);log(`${phase.toUpperCase()} · level ${cur.level} · ${cur.label}`);
-}
-async function runDemo(){
-  animToken++;reset();phase='demo';await loadItem(DEMO,'demo');setStatus('neutral','Watch the example.');$('#ghost').classList.add('show');log('ghost-hand demo · wordless');
-  for(const key of DEMO.accepted[0]){const piece=[...document.querySelectorAll('.piece')].find(x=>x.dataset.key===key);await ghostTo(piece);await ghostTap();choosePiece(key,true)}
-  await ghostTo($('#answers').children[DEMO.correct]);await ghostTap();chooseAnswer(DEMO.correct,true);
-  await ghostTo($('#go'));await ghostTap();locked=true;renderBuilder();feedback(true);
-  await sleep(450);$('#ghost').classList.remove('show');startWarmup();
-}
-async function startWarmup(){phase='warmup';await loadItem(WARM,'warmup');setStatus('neutral','Practice - this one is not scored.')}
-async function startScored(){phase='scored';await loadItem(ITEMS[T.level-1],'scored');setCue('scored',(scoredIndex+1)+'/6');setStatus('neutral','Build the model, pick an answer, then press the check.');log(`SCORED ${scoredIndex+1}/6`)}
-function finish(){phase='done';locked=true;renderBuilder();setCue('done');setStatus('ok','\u2713 Done');log(`DONE · ${T.correct}/${T.scored} · peak ${T.maxSolved}`);renderMeters()}
-$('#palette').addEventListener('click',event=>{const piece=event.target.closest('.piece');if(piece)choosePiece(piece.dataset.key)});
-$('#answers').addEventListener('click',event=>{const answerButton=event.target.closest('.answer');if(answerButton)chooseAnswer(+answerButton.dataset.i)});
-$('#go').addEventListener('click',submit);
-$('#replayStory').addEventListener('click',()=>{if(cur&&phase!=='demo'&&phase!=='done')playStory(true)});
-$('#replayDemo').addEventListener('click',runDemo);
-buildTelemetry();renderMeters();runDemo();
+function playStandalone(){const item=standaloneQueue[standaloneIdx%standaloneQueue.length];onInit(item);beginItem(standaloneIdx===0);}
+function advanceStandalone(){standaloneIdx++;playStandalone();}
+async function bootstrapStandalone(){if(standalone)return;standalone=true;standaloneQueue=await loadBankSamples();standaloneIdx=0;playStandalone();}
+
+/* Inline served-item fallback (real bank rows with answer/scoring/provenance stripped). */
+const INLINE_SAMPLES=[
+{"itemId":"c36c1054-ecf4-4284-9442-b0258220d63a","typeCode":"QUANT-WORD-01","domain":"quantitative","difficulty":2,"ageBands":["2-3"],"demoPath":"demos/QUANT-WORD-01.html","content":{"typeCode":"QUANT-WORD-01","presentation":"text","prompt":"Read the story. Then choose the number that answers the question.","storyText":"At the lake, Rosa has 7 seeds. Rosa makes 5 more seeds. How many seeds does Rosa have in all?","storySentences":["At the lake, Rosa has 7 seeds.","Rosa makes 5 more seeds."],"question":"How many seeds does Rosa have in all?","math":{"schema":"join_result","unknownPosition":"result","stepCount":1,"relationalDepth":1,"quantities":[{"id":"q1","value":7},{"id":"q2","value":5}],"operations":["add"],"steps":[{"id":"s1","op":"add","a":{"q":"q1"},"b":{"q":"q2"}}],"answerStep":"s1"},"options":[{"key":"A","value":17},{"key":"B","value":2},{"key":"C","value":12},{"key":"D","value":13}],"readingLoad":{"sentences":3,"words":20,"maxWordLength":5,"band":"2-3"}},"syntheticOnly":true,"validated":false},
+{"itemId":"be0dc1c7-7a89-422f-8413-7700c66c85a0","typeCode":"QUANT-WORD-01","domain":"quantitative","difficulty":9.06,"ageBands":["4-5"],"demoPath":"demos/QUANT-WORD-01.html","content":{"typeCode":"QUANT-WORD-01","presentation":"text","prompt":"Read the story. Then choose the number that answers the question.","storyText":"Jade fills 2 cups with bracelets. Each cup holds 5 bracelets. How many bracelets does Jade have in all?","storySentences":["Jade fills 2 cups with bracelets.","Each cup holds 5 bracelets."],"question":"How many bracelets does Jade have in all?","math":{"schema":"equal_groups_product","unknownPosition":"result","stepCount":1,"relationalDepth":2,"quantities":[{"id":"q1","value":2},{"id":"q2","value":5}],"operations":["mul"],"steps":[{"id":"s1","op":"mul","a":{"q":"q1"},"b":{"q":"q2"}}],"answerStep":"s1"},"options":[{"key":"A","value":2},{"key":"B","value":10},{"key":"C","value":7},{"key":"D","value":11}],"readingLoad":{"sentences":3,"words":19,"maxWordLength":9,"band":"4-5"}},"syntheticOnly":true,"validated":false},
+{"itemId":"c09c9243-8a18-4816-b1a6-aaac5df44db6","typeCode":"QUANT-WORD-01","domain":"quantitative","difficulty":17.07,"ageBands":["6-8"],"demoPath":"demos/QUANT-WORD-01.html","content":{"typeCode":"QUANT-WORD-01","presentation":"text","prompt":"Read the story. Then choose the number that answers the question.","storyText":"Leo fills 4 boxes with tiles. Each box holds 6 tiles. Later, Leo gives 7 tiles to Dev. Next, Leo buys 10 more tiles. Dev has 3 kites at home. How many tiles does Leo have now?","storySentences":["Leo fills 4 boxes with tiles.","Each box holds 6 tiles.","Later, Leo gives 7 tiles to Dev.","Next, Leo buys 10 more tiles.","Dev has 3 kites at home."],"question":"How many tiles does Leo have now?","math":{"schema":"equal_groups_product","unknownPosition":"result","stepCount":3,"relationalDepth":4,"quantities":[{"id":"q1","value":4},{"id":"q2","value":6},{"id":"q3","value":7},{"id":"q4","value":10},{"id":"q5","value":3}],"operations":["mul","sub","add"],"steps":[{"id":"s1","op":"mul","a":{"q":"q1"},"b":{"q":"q2"}},{"id":"s2","op":"sub","a":{"s":"s1"},"b":{"q":"q3"}},{"id":"s3","op":"add","a":{"s":"s2"},"b":{"q":"q4"}}],"answerStep":"s3"},"options":[{"key":"A","value":7},{"key":"B","value":17},{"key":"C","value":27},{"key":"D","value":20}],"readingLoad":{"sentences":6,"words":37,"maxWordLength":5,"band":"6-8"}},"syntheticOnly":true,"validated":false}
+];
+
+/* ---------- wiring ---------- */
+$('#story').addEventListener('click',e=>{const n=e.target.closest('.num');if(n)toggleNumber(n);});
+$('#answers').addEventListener('click',e=>{const o=e.target.closest('.answer');if(o&&!o.disabled)stageOption(o);});
+$('#go').addEventListener('click',()=>{if($('#go').classList.contains('ready'))submit();});
+$('#reread').addEventListener('click',()=>{
+  if(!current||submitted)return;
+  M.rereads++;emitEvent('reread',{count:M.rereads});
+  const s=$('#story');s.style.transition='none';s.style.background='#fff6dd';
+  setTimeout(()=>{s.style.transition='background .5s';s.style.background='';},260);
+  if(!interactive&&!submitted)gestureHint();
+});
+document.addEventListener('keydown',e=>{
+  if(!interactive||submitted)return;
+  if(e.key==='Enter'){if($('#go').classList.contains('ready'))submit();return;}
+  if(/^[1-9]$/.test(e.key)){const o=$$('.answer')[+e.key-1];if(o)stageOption(o);return;}
+  const o=$$('.answer').find(b=>b.dataset.key.toUpperCase()===e.key.toUpperCase());if(o)stageOption(o);
+});
+window.addEventListener('blur',()=>{if(interactive&&!submitted){M.blur++;emitEvent('engagement',{reason:'blur'});renderMeters();}});
+
+buildMeters();renderMeters();
+window.addEventListener('message',onHostMessage);
+post({type:'ready'});
+if(!embedded){bootstrapStandalone();}
+else{setTimeout(()=>{if(!current)bootstrapStandalone();},1000);} // QA-safe if a host embeds but never inits
 </script>
 </body>
 </html>
