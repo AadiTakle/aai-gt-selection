@@ -58,6 +58,10 @@ export type Database = {
         }
         Returns: Json
       }
+      exam_register_item: {
+        Args: { p_correlation_id: string; p_item: Json }
+        Returns: Json
+      }
       exam_start_session: {
         Args: {
           p_correlation_id: string

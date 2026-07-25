@@ -32,14 +32,10 @@ import {
   fetchServedItem,
   fetchServedPool,
   numericMetrics,
+  openExamSession,
   submitAnswer,
 } from '@/lib/exam/adaptive';
-import {
-  GRADE_BANDS,
-  GRADE_BAND_LABEL,
-  syntheticId,
-  type GradeBand,
-} from '@/lib/exam/contract';
+import { GRADE_BANDS, GRADE_BAND_LABEL, syntheticId, type GradeBand } from '@/lib/exam/contract';
 import { ExamHost, type InboundResult } from '@/lib/exam/messaging';
 
 import styles from './exam-runner.module.css';
@@ -106,7 +102,13 @@ export function ExamRunner({
   const scoredRef = useRef<TraceScoredItem[]>([]);
   const telemetryRef = useRef<Record<string, unknown>[]>([]);
   const processedRef = useRef<Set<string>>(new Set());
-  const sessionRef = useRef({ sessionId: '', participantCode: '', startedAt: '' });
+  const sessionRef = useRef<{
+    sessionId: string;
+    participantCode: string;
+    startedAt: string;
+    /** Supabase `app.exam_session.session_id`; null when running unpersisted. */
+    examSessionId: string | null;
+  }>({ sessionId: '', participantCode: '', startedAt: '', examSessionId: null });
   const handleResultRef = useRef<
     (item: ServedItem, inbound: InboundResult, skipped: boolean) => void
   >(() => {});
@@ -118,6 +120,9 @@ export function ExamRunner({
     const localOutcome = scoreExam(scored as unknown as ScoringScoredItem[], DEFAULT_EXAM_POLICY);
     const payload = {
       sessionId: sessionRef.current.sessionId,
+      ...(sessionRef.current.examSessionId
+        ? { examSessionId: sessionRef.current.examSessionId }
+        : {}),
       participantCode: sessionRef.current.participantCode,
       studentName,
       gradeBand,
@@ -215,13 +220,23 @@ export function ExamRunner({
         clientMetrics['M-REV'] = 0;
       }
 
-      const verdict = await submitAnswer(item.itemId, inbound.response, skipped);
+      // Collected before the round trip so the same events are both persisted
+      // with the response and kept on the in-memory trace.
+      const perItemTelemetry = telemetryRef.current.filter((e) => e['itemId'] === item.itemId);
+
+      const verdict = await submitAnswer({
+        itemId: item.itemId,
+        response: inbound.response,
+        skipped,
+        examSessionId: sessionRef.current.examSessionId,
+        clientMetrics,
+        telemetry: perItemTelemetry,
+      });
       const serverMetrics = verdict?.metrics ?? { 'M-ACC': 0, 'M-ERRTYPE': 0 };
       const correct = verdict?.correct ?? false;
       const score = verdict?.score ?? 0;
       const difficulty = verdict?.difficulty ?? item.difficulty;
 
-      const perItemTelemetry = telemetryRef.current.filter((e) => e['itemId'] === item.itemId);
       const scored: TraceScoredItem = {
         itemId: item.itemId,
         typeCode: item.typeCode,
@@ -316,11 +331,16 @@ export function ExamRunner({
       banksRef.current = buildBanks(pool);
       const state = startState(gradeBand, EXAM_ENGINE_OVERRIDES);
       stateRef.current = state;
+      const participantCode = syntheticId('PART');
       sessionRef.current = {
         sessionId: syntheticId('SESS'),
-        participantCode: syntheticId('PART'),
+        participantCode,
         startedAt: new Date().toISOString(),
+        examSessionId: null,
       };
+      // Best-effort: a null id simply means this battery is not traced to the
+      // database. It must never stop the child from starting.
+      sessionRef.current.examSessionId = await openExamSession(participantCode, gradeBand);
       serveNext(state);
     } catch {
       setError('We could not load the activities. Please try again.');

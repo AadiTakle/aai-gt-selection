@@ -138,6 +138,11 @@ export const scoredItemTraceSchema = z
 export const examAdaptiveTracePayloadSchema = z
   .object({
     sessionId: z.string().min(1),
+    /**
+     * The Supabase `app.exam_session.session_id` this trace was recorded against,
+     * when persistence was available. Absent means the session ran unpersisted.
+     */
+    examSessionId: z.uuid().optional(),
     participantCode: z.string().regex(/^PART-SYN-[A-Z0-9-]+$/),
     studentName: z.string().min(1),
     gradeBand: z.enum(['K-1', '2-3', '4-5', '6-8']),

@@ -207,20 +207,60 @@ export interface ServerVerdict {
 }
 
 /**
- * POST the child's raw response to the server, which verifies it against the
- * (server-only) answer key and returns correctness + key-dependent metrics.
- * Returns `null` on failure so the runner can fall back gracefully.
+ * Open a persisted Supabase session for this battery. Returns `null` when
+ * persistence is not configured or the write path is unavailable — the runner
+ * then runs exactly as before, unpersisted.
  */
-export async function submitAnswer(
-  itemId: string,
-  response: unknown,
-  skipped: boolean,
-): Promise<ServerVerdict | null> {
+export async function openExamSession(
+  participantCode: string,
+  gradeBand: string,
+): Promise<string | null> {
+  try {
+    const res = await fetch('/api/exam-session', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ participantCode, gradeBand }),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { ok?: boolean; examSessionId?: unknown };
+    return data.ok && typeof data.examSessionId === 'string' ? data.examSessionId : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Everything the submit route needs to both verify and trace one item. */
+export interface SubmitAnswerInput {
+  itemId: string;
+  response: unknown;
+  skipped: boolean;
+  /** Supabase session id; omit to verify without persisting. */
+  examSessionId?: string | null;
+  /** Metrics the demo emitted for this item. */
+  clientMetrics?: Record<string, number>;
+  /** This item's telemetry events. */
+  telemetry?: readonly unknown[];
+}
+
+/**
+ * POST the child's raw response to the server, which verifies it against the
+ * (server-only) answer key, appends the item to the stored trace when a session
+ * id is supplied, and returns correctness + key-dependent metrics. Returns `null`
+ * on failure so the runner can fall back gracefully.
+ */
+export async function submitAnswer(input: SubmitAnswerInput): Promise<ServerVerdict | null> {
   try {
     const res = await fetch('/api/exam-submit', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ itemId, response, skipped }),
+      body: JSON.stringify({
+        itemId: input.itemId,
+        response: input.response,
+        skipped: input.skipped,
+        ...(input.examSessionId ? { examSessionId: input.examSessionId } : {}),
+        ...(input.clientMetrics ? { clientMetrics: input.clientMetrics } : {}),
+        ...(input.telemetry ? { telemetry: input.telemetry } : {}),
+      }),
     });
     if (!res.ok) return null;
     const data = (await res.json()) as Record<string, unknown>;
