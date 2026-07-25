@@ -126,7 +126,6 @@ declare
   v_composite numeric;
   v_profile jsonb;
   v_claim text;
-  v_existing jsonb;
 begin
   v_actor := app.current_user_id();
 
