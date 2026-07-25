@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FLU-MATRIXBUILD-01 · Build the Tile</title>
+<style>
+  :root{
+    --bg1:#eef4ff; --bg2:#f7ecff; --ink:#26304a; --card:#ffffff;
+    --accent:#5b6cff; --good:#22b573; --bad:#ff6b6b; --socket:#c9d3ef;
+    --tel-bg:#11162a; --tel-ink:#c8d6ff; --tel-key:#7fffcf; --tel-dim:#7183b8;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:12px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
+  #howto{max-width:600px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:#5b6cff;border:2px solid #c9d0ff;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:#5b6cff;color:#fff;border-color:#5b6cff}
+  #phasecue[data-phase="done"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
+  #stagecard{background:var(--card);border-radius:26px;padding:20px;box-shadow:0 18px 50px -22px #4a4a7a;
+    display:flex;flex-direction:column;align-items:center;gap:16px;max-width:600px;width:100%}
+  #taskline{font-size:14px;color:#42506e;text-align:center;max-width:520px;line-height:1.45}
+  #machine{position:relative;padding:14px;border-radius:20px;background:linear-gradient(160deg,#dfe7ff,#eef1ff);border:3px solid #cfd8ff}
+  #lights{display:flex;gap:8px;justify-content:center;margin-top:10px}
+  #lights span{width:13px;height:13px;border-radius:50%;background:#cbd5f5;transition:.25s}
+  #lights.recv span{background:var(--accent);box-shadow:0 0 12px var(--accent)}
+  .matrix{display:grid;gap:8px;background:#c7d2f2;padding:8px;border-radius:14px}
+  .cell{background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;width:84px;height:84px}
+  .cell.empty{background:repeating-linear-gradient(45deg,#eef2ff,#eef2ff 8px,#e2e9ff 8px,#e2e9ff 16px);border:3px dashed var(--socket)}
+  .cell.preview{border:3px solid var(--accent);background:#fff}
+  .cell.filled-anim{animation:pop .3s ease}
+  @keyframes pop{0%{transform:scale(.6);opacity:.2}100%{transform:scale(1);opacity:1}}
+  .pickers{display:flex;flex-direction:column;gap:10px;width:100%}
+  .prow{display:flex;align-items:center;gap:8px;justify-content:center;flex-wrap:wrap}
+  .plabel{font-size:11px;min-width:58px;text-align:right;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#7a86a8}
+  .pick{position:relative;background:#fff;border:3px solid #e2e8fb;border-radius:14px;min-width:58px;min-height:58px;padding:4px 7px 14px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;transition:.13s;-webkit-tap-highlight-color:transparent}
+  .pick::after{content:attr(data-hotkey);position:absolute;right:5px;bottom:2px;font:700 10px/1 ui-monospace,monospace;color:#8a93b5;text-transform:uppercase}
+  .pick:hover{transform:translateY(-2px);border-color:#c3ccf5}
+  .pick.sel{border-color:var(--accent);box-shadow:0 0 0 4px #c9d0ff}
+  .pname{font-size:10px;font-weight:700;color:#5d6a8c;letter-spacing:.02em}
+  .swatch{width:30px;height:30px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 2px #d8def2}
+  .cdots{display:flex;gap:3px;flex-wrap:wrap;max-width:52px;justify-content:center}
+  .cdot{width:10px;height:10px;border-radius:50%;background:#42506f}
+  #controls{display:flex;gap:16px;align-items:center}
+  button{font:inherit;border:0;cursor:pointer;border-radius:50%}
+  #go{width:72px;height:72px;background:var(--accent);color:#fff;font-size:30px;box-shadow:0 10px 24px -8px var(--accent);opacity:.35;pointer-events:none;transition:.2s}
+  #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.1s infinite}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+  #replay{width:50px;height:50px;background:#eef1ff;color:#5b6cff;font-size:22px}
+  #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:60;opacity:0;
+    transition:transform .7s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}
+  @keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #telemetry{width:330px;flex:0 0 330px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;
+    font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #difficulty{margin:10px 12px 2px;padding:10px;border:1px solid #2c365d;border-radius:10px;background:#171e36}
+  .dtop{display:flex;justify-content:space-between;color:#fff}
+  .dsub{display:flex;justify-content:space-between;color:var(--tel-dim);font-size:11px;margin-top:5px}
+  .dtrack{height:7px;background:#2a3458;border-radius:8px;margin-top:8px;overflow:hidden}
+  .dfill{height:100%;background:linear-gradient(90deg,#7fffcf,#ffd479);transition:.25s}
+  #mode{margin:6px 12px 0;font-size:11px;color:var(--tel-dim)}
+  #mode b{color:#ffd479}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:110px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}
+  .mid.srv{color:#ffd479}
+  .mval{color:#fff}
+  .mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:190px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}
+  #log .t{color:#5f6f9e}
+  button:focus-visible,.pick:focus-visible{outline:4px solid #ffbf69;outline-offset:3px}
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:350px}}
+  @media(max-width:560px){#wrap{padding:10px}#stagecard{padding:13px}#machine{padding:9px}
+    .matrix{gap:5px;padding:6px}.cell{width:64px;height:64px}.cell svg{width:58px;height:58px}
+    .pickers{gap:7px}.prow{gap:6px}.plabel{min-width:46px}.pick{min-width:50px;min-height:52px}}
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">FLU-MATRIXBUILD-01 · Build the Tile</div>
+    <header id="howto">
+      <h1>How to use — Build the Tile</h1>
+      <p>One cell of the grid is empty. Build the tile that belongs there: tap one choice in each row of buttons below (shape, color, how many). Your tile appears in the empty cell as you build it, and you can change any choice. When it looks right, press the check (<b>&#10003;</b>) to send it. The machine takes your tile and brings the next grid.</p>
+    </header>
+    <div id="phasecue" data-phase="warmup">Get ready</div>
+    <div id="stagecard">
+      <div id="taskline">Get ready for the next grid.</div>
+      <div id="machine">
+        <div id="matrix" class="matrix"></div>
+        <div id="lights"><span></span><span></span><span></span><span></span><span></span></div>
+      </div>
+      <div class="pickers" id="pickers"></div>
+      <div id="controls">
+        <button id="replay" title="show how again">&#8635;</button>
+        <button id="go" title="send answer">&#10003;</button>
+      </div>
+      <div id="status" class="neutral">Waiting for the next grid.</div>
+    </div>
+  </div>
+  <aside id="telemetry">
+    <h3>Live telemetry · per-child (display only)</h3>
+    <div id="difficulty" data-tracks="M-DIFFREACH M-RULEID"></div>
+    <div id="mode">Renderer computes process metrics locally; <b>accuracy and partial credit are server-side</b>.</div>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+/* =====================================================================
+ * FLU-MATRIXBUILD-01 — PURE RENDERER
+ * Renders a SERVED item (item.content) and reports the child's RAW constructed
+ * tile + process telemetry. It NEVER self-generates items, NEVER derives the
+ * matrix rule, and NEVER shows correct/incorrect: the answer key, the solver and
+ * the per-attribute partial credit live server-side (BUILD_PLAN §2).
+ *
+ * Embedding protocol (postMessage), source-tagged:
+ *   host -> demo : {source:'gt-exam-host', type:'init',  item:ServedItem}
+ *                  {source:'gt-exam-host', type:'start', tutorial?:bool}
+ *   demo -> host : {source:'gt-exam-demo', type:'ready'}
+ *                  {source:'gt-exam-demo', type:'result',    result:ItemResult}
+ *                  {source:'gt-exam-demo', type:'telemetry', event:TelemetryEvent}
+ *
+ * Standalone (double-click / no host): loads sample items from the bank JSONL
+ * (or an inline fallback if fetch is blocked on file://) so the file still runs
+ * for QA. Correctness is still never shown; emitted ItemResults are logged.
+ *
+ * Reading is a required baseline-literacy gate (D-017): all instructions are
+ * on-screen TEXT. There is no audio narration anywhere in this file.
+ * ===================================================================== */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0;
+
+const HOST_SRC='gt-exam-host', DEMO_SRC='gt-exam-demo';
+
+/* ---------- tile rendering (renderer-agnostic values: shape/color/count) ----------
+ * Each color token carries a hue AND a distinct outline dash, and every color
+ * button is labelled with its name, so no item can be decided by hue alone
+ * (construct-irrelevant risk: color vision). */
+const PAL={
+  coral :{hex:'#ef5b5b',dash:''},
+  teal  :{hex:'#159f94',dash:'7 4'},
+  blue  :{hex:'#4267d5',dash:'2 4'},
+  gold  :{hex:'#e6a817',dash:'12 4 2 4'},
+  violet:{hex:'#8357c5',dash:'1 5'},
+  ink   :{hex:'#33405f',dash:'5 4'}
+};
+const ATTR_LABEL={shape:'Shape',color:'Color',count:'How many'};
+const HOTKEYS={shape:'qwertyu',color:'asdfghj',count:'zxcvbn'};
+
+function polyPts(cx,cy,r,n,rot){let p=[];for(let i=0;i<n;i++){let a=rot+i*2*Math.PI/n;p.push((cx+r*Math.cos(a)).toFixed(1)+','+(cy+r*Math.sin(a)).toFixed(1));}return p.join(' ');}
+function starPts(cx,cy,r,n){let p=[];for(let i=0;i<2*n;i++){let rr=i%2?r*0.45:r;let a=-Math.PI/2+i*Math.PI/n;p.push((cx+rr*Math.cos(a)).toFixed(1)+','+(cy+rr*Math.sin(a)).toFixed(1));}return p.join(' ');}
+function oneShape(shape,fill,stroke,dash,cx,cy,r){
+  const f=`fill="${fill}" stroke="${stroke}" stroke-width="${Math.max(1.2,r*0.14)}" stroke-dasharray="${dash}" stroke-linejoin="round"`;
+  switch(shape){
+    case 'circle':return `<circle cx="${cx}" cy="${cy}" r="${r}" ${f}/>`;
+    case 'square':return `<rect x="${cx-r*.82}" y="${cy-r*.82}" width="${r*1.64}" height="${r*1.64}" rx="${r*.14}" ${f}/>`;
+    case 'triangle':return `<polygon points="${polyPts(cx,cy,r,3,-Math.PI/2)}" ${f}/>`;
+    case 'pentagon':return `<polygon points="${polyPts(cx,cy,r,5,-Math.PI/2)}" ${f}/>`;
+    case 'hexagon':return `<polygon points="${polyPts(cx,cy,r,6,-Math.PI/2)}" ${f}/>`;
+    case 'star':return `<polygon points="${starPts(cx,cy,r,5)}" ${f}/>`;
+    case 'kite':return `<polygon points="${cx},${cy-r} ${cx+r*.72},${cy-r*.05} ${cx},${cy+r} ${cx-r*.72},${cy-r*.05}" ${f}/>`;
+    case 'drop':return `<path d="M ${cx} ${cy-r} C ${cx+r*.85} ${cy-r*.15},${cx+r*.72} ${cy+r},${cx} ${cy+r} C ${cx-r*.72} ${cy+r},${cx-r*.85} ${cy-r*.15},${cx} ${cy-r}Z" ${f}/>`;
+    case 'cross':{const a=r*.36,b=r*.95;return `<polygon points="${cx-a},${cy-b} ${cx+a},${cy-b} ${cx+a},${cy-a} ${cx+b},${cy-a} ${cx+b},${cy+a} ${cx+a},${cy+a} ${cx+a},${cy+b} ${cx-a},${cy+b} ${cx-a},${cy+a} ${cx-b},${cy+a} ${cx-b},${cy-a} ${cx-a},${cy-a}" ${f}/>`;}
+  }
+  return '';
+}
+const COUNT_POS={
+  1:[[.5,.5]],2:[[.3,.5],[.7,.5]],3:[[.24,.5],[.5,.5],[.76,.5]],
+  4:[[.3,.3],[.7,.3],[.3,.7],[.7,.7]],5:[[.27,.28],[.73,.28],[.5,.5],[.27,.72],[.73,.72]]
+};
+function tileSVG(t,box=72){
+  if(!t||!t.shape)return '';
+  const pal=PAL[t.color]||{hex:t.color||'#9aa6c9',dash:''};
+  const n=Math.max(1,Math.min(5,t.count||1));
+  const pos=COUNT_POS[n];
+  const r=box*(n===1?.30:n<=3?.145:.125);
+  let inner='';
+  pos.forEach(p=>inner+=oneShape(t.shape,pal.hex,'#ffffff',pal.dash,p[0]*box,p[1]*box,r));
+  return `<svg width="${box}" height="${box}" viewBox="0 0 ${box} ${box}">${inner}</svg>`;
+}
+
+/* ---------- per-item state ---------- */
+let current=null;          // current ServedItem
+let interactive=false;     // interaction enabled?
+let starting=false;        // begin-item in flight (gesture hint playing)
+let submitted=false;       // already answered this item?
+let built={};              // attribute -> chosen value
+let builtKeys={};          // attribute -> chosen option key
+let pickSequence=[];       // raw ordered taps
+let firstAttr=null;        // first attribute touched
+let itemStart=0;           // ms timestamp when the item became interactive
+let startTimer=null;       // fallback auto-start timer
+let itemTelemetry=[];      // TelemetryEvent[] for the current item
+let hotkeyMap={};
+
+const M={rt:null,rts:[],firstLat:null,rev:0,blur:0,switches:0}; // locally-computed process metrics
+
+/* ---------- embedding detection + emit ---------- */
+const embedded=(()=>{try{return window.parent&&window.parent!==window;}catch(_){return true;}})();
+let standalone=false, standaloneQueue=[], standaloneIdx=0, tutorialShown=false;
+function post(msg){if(!embedded)return;try{window.parent.postMessage(Object.assign({source:DEMO_SRC},msg),'*');}catch(_){}}
+
+/* ---------- derived process metrics (NO correctness anywhere) ---------- */
+function attrCount(){return current?current.content.constructedAttributes.length:0;}
+function planful(){const k=attrCount();if(k<2)return 1;return Math.round(100*(k-1)/Math.max(k-1,M.switches))/100;}
+function efficiency(){const k=attrCount();if(!pickSequence.length)return 0;return Math.round(100*k/pickSequence.length)/100;}
+
+/* ---------- telemetry panel (DISPLAY ONLY; key-free) ---------- */
+const METERS=[
+ {id:'M-ACC',srv:true,name:'Item accuracy (all attributes right)',get:()=>'server-side'},
+ {id:'M-POLY',srv:true,name:'Partial credit (attributes correct)',get:()=>'server-side'},
+ {id:'M-ERRTYPE',srv:true,name:'Which attribute-rule was missed',get:()=>'server-side'},
+ {id:'M-RULEID',srv:true,name:'Relational complexity satisfied',get:()=>'server-side'},
+ {id:'M-RT',name:'Response time — this item / mean',get:()=>M.rt==null?'\u2014':`${M.rt} ms${M.rts.length>1?` (mean ${mean(M.rts)})`:''}`},
+ {id:'M-RTFIRST',name:'First-action latency (encode / plan)',get:()=>M.firstLat==null?'\u2014':M.firstLat+' ms'},
+ {id:'M-REV',name:'Revisions / attribute changes',get:()=>String(M.rev)},
+ {id:'M-PATH',name:'Attribute switches while building',get:()=>String(M.switches)},
+ {id:'M-PLANFUL',name:'Systematic vs jumping between attributes',get:()=>current?planful().toFixed(2):'\u2014'},
+ {id:'M-EFF',name:'Taps vs optimal (1.00 = no wasted tap)',get:()=>pickSequence.length?efficiency().toFixed(2):'\u2014'},
+ {id:'M-ENGAGE',name:'Focus losses (tracked, not enforced)',get:()=>String(M.blur)},
+ {id:'M-RAPIDGUESS',name:'Rapid-response flag (tracked, not enforced)',get:()=>M.rt==null?'\u2014':(M.rt<400*Math.max(1,attrCount())?'1 · rapid':'0')},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>
+  `<div class="mrow"><span class="mid${m.srv?' srv':''}">${m.id}</span><span class="mval" id="v_${m.id}"></span>`
+  +`<span class="mname">${m.name}</span></div>`).join('');}
+function renderDifficulty(){
+  const d=current?current.difficulty:null, k=current?current.content.constructedAttributes.length:null;
+  $('#difficulty').innerHTML=`<div class="dtop"><b>SERVED DIFFICULTY</b><span>${d==null?'\u2014':d.toFixed(1)}/20</span></div>`
+   +`<div class="dtrack"><div class="dfill" style="width:${d==null?0:Math.max(0,Math.min(100,d/20*100))}%"></div></div>`
+   +`<div class="dsub"><span>attributes to build ${k==null?'\u2014':k}</span><span>score: server-side</span></div>`;}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});renderDifficulty();}
+function log(msg){const now=new Date(),t=Math.max(0,Date.now()-(itemStart||Date.now())),d=document.createElement('div');
+  d.innerHTML=`<span class="t">${now.toISOString().slice(11,23)} · +${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+
+/* ---------- telemetry emit (stream to host + local log + per-item buffer) ---------- */
+function emitEvent(kind,extra){
+  const event=Object.assign({t:itemStart?Date.now()-itemStart:0,kind,itemId:current?current.itemId:null},extra||{});
+  itemTelemetry.push(event);
+  post({type:'telemetry',event});
+  log(`<b>${kind}</b>`+(extra&&Object.keys(extra).length?' · '+JSON.stringify(extra):''));
+}
+
+/* ---------- ghost hand: wordless GESTURE hint (never reveals the answer) ---------- */
+const ghost=$('#ghost');
+function ghostShow(v){ghost.classList.toggle('show',v);}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(650);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(450);}
+async function gestureHint(){
+  // Teaches the GESTURE only: look at the empty cell, sweep its row and column,
+  // reach each picker row, tap, press check. It never selects a value and never
+  // indicates which value is correct.
+  const empty=$('#emptycell'),cells=$$('#matrix .cell'),go=$('#go');
+  const G=current?current.content.gridSize:2;
+  ghostShow(true);await sleep(220);
+  await ghostTo(empty);await sleep(150);
+  await ghostTo(cells[(G-1)*G]);            // sweep along the blank's row
+  await ghostTo(cells[G-1]);                // sweep along the blank's column
+  for(const row of $$('.prow')){await ghostTo(row.querySelector('.plabel')||row);await ghostTap();}
+  await ghostTo(go);await ghostTap();await sleep(180);
+  ghostShow(false);await sleep(250);
+}
+
+/* ---------- rendering the served item ---------- */
+function setCue(k,txt){const el=$('#phasecue');el.dataset.phase=k;el.textContent=txt;}
+function setStatus(kind,msg){const el=$('#status');el.className=kind;el.textContent=msg;}
+function previewTile(){
+  const fixed=current.content.fixedAttributes||{};
+  return {shape:built.shape!=null?built.shape:fixed.shape,
+          color:built.color!=null?built.color:(fixed.color||'ink'),
+          count:built.count!=null?built.count:(fixed.count||1)};
+}
+function renderPreview(){
+  const cell=$('#emptycell');if(!cell)return;
+  const t=previewTile();
+  if(!t.shape){cell.classList.add('empty');cell.classList.remove('preview');cell.innerHTML='';return;}
+  cell.classList.remove('empty');cell.classList.add('preview');cell.innerHTML=tileSVG(t);
+}
+function optionFace(attr,value){
+  if(attr==='shape')return tileSVG({shape:value,color:'ink',count:1},42)+`<span class="pname">${value}</span>`;
+  if(attr==='color')return `<div class="swatch" style="background:${(PAL[value]||{}).hex||value}"></div><span class="pname">${value}</span>`;
+  const n=Math.max(1,Math.min(5,value));
+  return '<div class="cdots">'+Array.from({length:n}).map(()=>'<span class="cdot"></span>').join('')+`</div><span class="pname">${value}</span>`;
+}
+function renderServedItem(item){
+  current=item;submitted=false;interactive=false;built={};builtKeys={};pickSequence=[];firstAttr=null;
+  M.rev=0;M.firstLat=null;M.blur=0;M.switches=0;itemTelemetry=[];hotkeyMap={};
+  const c=item.content,G=c.gridSize,cells=c.matrix.cells;
+  $('#taskline').textContent=c.prompt||'';
+  const m=$('#matrix');m.style.gridTemplateColumns=`repeat(${G},1fr)`;m.innerHTML='';
+  for(let r=0;r<G;r++)for(let cc=0;cc<G;cc++){
+    const cell=document.createElement('div');cell.className='cell';
+    const t=cells[r][cc];
+    if(t===null){cell.classList.add('empty');cell.id='emptycell';}
+    else cell.innerHTML=tileSVG(t);
+    m.appendChild(cell);
+  }
+  const host=$('#pickers');host.innerHTML='';
+  c.pickers.forEach(p=>{
+    const row=document.createElement('div');row.className='prow';row.dataset.attr=p.attribute;
+    const lab=document.createElement('span');lab.className='plabel';lab.textContent=ATTR_LABEL[p.attribute]||p.attribute;
+    row.appendChild(lab);
+    p.options.forEach((o,i)=>{
+      const b=document.createElement('button');b.className='pick';
+      b.dataset.attr=p.attribute;b.dataset.key=o.key;b.dataset.value=String(o.value);
+      const hk=(HOTKEYS[p.attribute]||'')[i]||'';
+      if(hk){b.dataset.hotkey=hk;hotkeyMap[hk]=b;}
+      b.setAttribute('aria-label',`${p.attribute} ${o.value}`);
+      b.innerHTML=optionFace(p.attribute,o.value);
+      row.appendChild(b);
+    });
+    host.appendChild(row);
+  });
+  $('#lights').classList.remove('recv');$('#go').classList.remove('ready');
+  renderPreview();
+  itemStart=Date.now();
+  renderMeters();
+  emitEvent('render',{gridSize:G,attributes:c.constructedAttributes.slice(),difficulty:item.difficulty,
+    options:c.pickers.map(p=>p.options.length)});
+}
+
+/* ---------- interaction ---------- */
+function ready(){return current&&current.content.constructedAttributes.every(a=>built[a]!=null);}
+function pickValue(el){
+  if(!interactive||submitted)return;
+  const attr=el.dataset.attr,key=el.dataset.key;
+  const picker=current.content.pickers.find(p=>p.attribute===attr);
+  const opt=picker.options.find(o=>o.key===key);
+  if(!opt)return;
+  const t=Date.now()-itemStart;
+  if(firstAttr===null){firstAttr=attr;M.firstLat=t;emitEvent('first_action',{attribute:attr,latencyMs:t});}
+  const prev=pickSequence.length?pickSequence[pickSequence.length-1].attribute:null;
+  if(prev!==null&&prev!==attr)M.switches++;
+  if(built[attr]!=null&&built[attr]!==opt.value){M.rev++;emitEvent('change',{attribute:attr,from:builtKeys[attr],to:key});}
+  built[attr]=opt.value;builtKeys[attr]=key;
+  pickSequence.push({attribute:attr,key,value:opt.value,t});
+  $$(`.pick[data-attr="${attr}"]`).forEach(p=>p.classList.toggle('sel',p.dataset.key===key));
+  renderPreview();
+  $('#go').classList.toggle('ready',ready());
+  renderMeters();
+}
+function submit(){
+  if(!interactive||submitted||!ready())return;
+  const rt=Date.now()-itemStart;
+  M.rt=rt;M.rts.push(rt);
+  submitted=true;interactive=false;$('#go').classList.remove('ready');$('#lights').classList.add('recv');
+  const cell=$('#emptycell');if(cell){cell.classList.add('filled-anim');setTimeout(()=>cell.classList.remove('filled-anim'),300);}
+  // NEUTRAL acknowledgment only — never correct/incorrect.
+  setCue('done','Tile sent');
+  setStatus('neutral',standalone?'Tile received. Loading the next grid.':'Tile received. Next grid coming up.');
+  emitEvent('submit',{attributes:Object.keys(built),rtMs:rt});
+  const response={
+    constructed:Object.assign({},built),
+    optionKeys:Object.assign({},builtKeys),
+    attributeOrder:pickSequence.map(p=>p.attribute).filter((a,i,arr)=>i===0||arr[i-1]!==a),
+    pickSequence:pickSequence.slice(),
+    changeCount:M.rev
+  };
+  const metrics={
+    'M-RT':rt,'M-RTFIRST':M.firstLat==null?rt:M.firstLat,'M-REV':M.rev,'M-PATH':M.switches,
+    'M-PLANFUL':planful(),'M-EFF':efficiency(),'M-ENGAGE':M.blur,
+    'M-RAPIDGUESS':rt<400*Math.max(1,attrCount())?1:0
+  };
+  const result={itemId:current.itemId,typeCode:current.typeCode,domain:current.domain,response,metrics,telemetry:itemTelemetry.slice()};
+  post({type:'result',result});
+  log('RESULT emitted \u2192 '+JSON.stringify({response:{constructed:response.constructed},metrics}));
+  renderMeters();
+  if(standalone)setTimeout(advanceStandalone,1150);
+}
+
+/* ---------- host-driven lifecycle ---------- */
+function onInit(item){
+  clearTimeout(startTimer);
+  if(!item||!item.content||!item.content.matrix||!item.content.pickers){log('init ignored: malformed ServedItem');return;}
+  renderServedItem(item);
+  setCue('warmup','Get ready');
+  setStatus('neutral','Get ready for the grid.');
+  // Lenient: if the host never sends {type:'start'}, begin on our own shortly.
+  startTimer=setTimeout(()=>{if(!interactive&&!submitted)beginItem(false);},500);
+}
+async function beginItem(withTutorial){
+  // `starting` + the cleared fallback timer keep the gesture hint from racing a
+  // second begin; interaction is ALWAYS enabled at the end of this function.
+  if(interactive||submitted||starting||!current)return;
+  starting=true;clearTimeout(startTimer);
+  if(withTutorial&&!tutorialShown){tutorialShown=true;await gestureHint();if(submitted){starting=false;return;}}
+  starting=false;interactive=true;itemStart=Date.now();
+  setCue('scored','Your turn');
+  setStatus('neutral','Build the missing tile, then press the check.');
+  renderMeters();
+}
+function onHostMessage(e){
+  const d=e.data;if(!d||d.source!==HOST_SRC)return;
+  if(d.type==='init')onInit(d.item);
+  else if(d.type==='start'){clearTimeout(startTimer);beginItem(!!d.tutorial);}
+}
+
+/* ---------- standalone fallback (QA when there is no host) ---------- */
+function toServed(b){const{answer,scoring,provenance,...s}=b;return s;}
+async function loadBankSamples(){
+  try{
+    const res=await fetch('../banks/FLU-MATRIXBUILD-01.jsonl',{cache:'no-store'});
+    if(res.ok){
+      const all=(await res.text()).trim().split('\n').filter(Boolean).map(l=>JSON.parse(l)).map(toServed);
+      all.sort((a,b)=>a.difficulty-b.difficulty);
+      const N=Math.min(12,all.length),pick=[];
+      for(let i=0;i<N;i++)pick.push(all[N===1?0:Math.round(i*(all.length-1)/(N-1))]);
+      log('standalone: fetched '+all.length+' bank items; cycling '+pick.length+' across difficulty');
+      return pick;
+    }
+  }catch(_){/* file:// blocks fetch — use inline fallback */}
+  log('standalone: bank fetch unavailable (open via a local server for the full bank) — using inline samples');
+  return INLINE_SAMPLES.slice();
+}
+function playStandalone(){const item=standaloneQueue[standaloneIdx%standaloneQueue.length];onInit(item);beginItem(standaloneIdx===0);}
+function advanceStandalone(){standaloneIdx++;playStandalone();}
+async function bootstrapStandalone(){if(standalone)return;standalone=true;standaloneQueue=await loadBankSamples();standaloneIdx=0;playStandalone();}
+
+/* Inline served-item fallback (real items exported from the bank; answer stripped). */
+const INLINE_SAMPLES=[
+{"itemId":"66efe646-cfc4-43d8-b1d6-672419e7aed0","typeCode":"FLU-MATRIXBUILD-01","domain":"fluid_reasoning","difficulty":1.23,"ageBands":["2-3"],"demoPath":"demos/FLU-MATRIXBUILD-01.html","content":{"typeCode":"FLU-MATRIXBUILD-01","prompt":"Build the missing tile. Choose the shape so the empty cell follows the same pattern as its row and its column, then press the check.","gridSize":2,"constructedAttributes":["shape"],"fixedAttributes":{"color":"ink","count":1},"matrix":{"rows":2,"cols":2,"cells":[[{"shape":"circle","color":"ink","count":1},{"shape":"circle","color":"ink","count":1}],[{"shape":"hexagon","color":"ink","count":1},null]],"blank":{"row":1,"col":1}},"pickers":[{"attribute":"shape","options":[{"key":"S1","value":"hexagon"},{"key":"S2","value":"triangle"},{"key":"S3","value":"square"}]}],"countRange":null,"responseSpec":{"kind":"constructed_tile","attributes":["shape"]}},"syntheticOnly":true,"validated":false},
+{"itemId":"f6161b5e-85a7-408c-be74-5cf772cfbf54","typeCode":"FLU-MATRIXBUILD-01","domain":"fluid_reasoning","difficulty":9.7,"ageBands":["4-5"],"demoPath":"demos/FLU-MATRIXBUILD-01.html","content":{"typeCode":"FLU-MATRIXBUILD-01","prompt":"Build the missing tile. Choose the shape and the color so the empty cell follows the same pattern as its row and its column, then press the check.","gridSize":2,"constructedAttributes":["shape","color"],"fixedAttributes":{"count":1},"matrix":{"rows":2,"cols":2,"cells":[[{"shape":"kite","color":"teal","count":1},{"shape":"kite","color":"violet","count":1}],[{"shape":"cross","color":"violet","count":1},null]],"blank":{"row":1,"col":1}},"pickers":[{"attribute":"shape","options":[{"key":"S1","value":"cross"},{"key":"S2","value":"star"},{"key":"S3","value":"hexagon"},{"key":"S4","value":"kite"},{"key":"S5","value":"drop"},{"key":"S6","value":"pentagon"}]},{"attribute":"color","options":[{"key":"C1","value":"gold"},{"key":"C2","value":"teal"},{"key":"C3","value":"ink"},{"key":"C4","value":"coral"},{"key":"C5","value":"violet"},{"key":"C6","value":"blue"}]}],"countRange":null,"responseSpec":{"kind":"constructed_tile","attributes":["shape","color"]}},"syntheticOnly":true,"validated":false},
+{"itemId":"629a12e0-48d5-4450-9af6-4fabc88316b8","typeCode":"FLU-MATRIXBUILD-01","domain":"fluid_reasoning","difficulty":19.77,"ageBands":["6-8"],"demoPath":"demos/FLU-MATRIXBUILD-01.html","content":{"typeCode":"FLU-MATRIXBUILD-01","prompt":"Build the missing tile. Choose the shape, the color and how many so the empty cell follows the same pattern as its row and its column, then press the check.","gridSize":3,"constructedAttributes":["shape","color","count"],"fixedAttributes":{},"matrix":{"rows":3,"cols":3,"cells":[[{"shape":"kite","color":"gold","count":4},{"shape":"drop","color":"teal","count":2},{"shape":"pentagon","color":"violet","count":2}],[{"shape":"kite","color":"teal","count":3},{"shape":"drop","color":"violet","count":1},{"shape":"pentagon","color":"gold","count":2}],[{"shape":"kite","color":"violet","count":5},{"shape":"drop","color":"gold","count":1},null]],"blank":{"row":2,"col":2}},"pickers":[{"attribute":"shape","options":[{"key":"S1","value":"star"},{"key":"S2","value":"kite"},{"key":"S3","value":"pentagon"},{"key":"S4","value":"hexagon"},{"key":"S5","value":"drop"},{"key":"S6","value":"cross"}]},{"attribute":"color","options":[{"key":"C1","value":"violet"},{"key":"C2","value":"gold"},{"key":"C3","value":"coral"},{"key":"C4","value":"blue"},{"key":"C5","value":"teal"},{"key":"C6","value":"ink"}]},{"attribute":"count","options":[{"key":"N1","value":3},{"key":"N2","value":1},{"key":"N3","value":4},{"key":"N4","value":2},{"key":"N5","value":5}]}],"countRange":{"min":1,"max":5},"responseSpec":{"kind":"constructed_tile","attributes":["shape","color","count"]}},"syntheticOnly":true,"validated":false}
+];
+
+/* ---------- wiring ---------- */
+$('#pickers').addEventListener('click',e=>{const p=e.target.closest('.pick');if(p)pickValue(p);});
+$('#go').addEventListener('click',()=>{if($('#go').classList.contains('ready'))submit();});
+$('#replay').addEventListener('click',()=>{if(current&&!submitted)gestureHint();});
+document.addEventListener('keydown',e=>{
+  if(!interactive||submitted)return;
+  const k=e.key.toLowerCase();
+  if(hotkeyMap[k]){pickValue(hotkeyMap[k]);return;}
+  if(e.key==='Enter'&&$('#go').classList.contains('ready'))submit();
+});
+window.addEventListener('blur',()=>{if(interactive&&!submitted){M.blur++;emitEvent('engagement',{reason:'blur'});renderMeters();}});
+
+buildMeters();renderMeters();
+window.addEventListener('message',onHostMessage);
+post({type:'ready'});
+if(!embedded){bootstrapStandalone();}
+else{setTimeout(()=>{if(!current)bootstrapStandalone();},1000);} // QA-safe if a host embeds but never inits
+</script>
+</body>
+</html>

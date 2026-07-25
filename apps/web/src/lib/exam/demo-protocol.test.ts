@@ -318,6 +318,26 @@ describe('published demos speak the embedding protocol', () => {
     'QUANT-BUILD-01', // needs a two-card swap that yields the constrained optimum
     'SPA-ROLL-01', // commit unlocks only after the roll animation completes
     'SPA-SHADOW-01', // commit unlocks only after the light source is sampled
+    // Constructed-response types wired once their server verifiers landed. Each
+    // needs an artefact built over many ordered interactions, which a scripted
+    // click sweep cannot produce. These have stronger evidence than the driver
+    // could give anyway: the verifier suites round-trip a real emitted response
+    // for every item of each bank through `verify()`, in both directions.
+    'WM-corsi-01', // must reproduce a cell sequence shown on a timed schedule
+    'WM-bind-01', // must place each creature in the house it was bound to
+    'WM-gridflash-01', // response follows a flash exposure the driver cannot wait out
+    'WM-gate-01', // several checkpoints per item, each with its own k-back window
+    'WM-bubble-01', // n-back over a running stream; a click sweep pops arbitrarily
+    'VER-SENSE-01', // must order word cards into the one grammatical permutation
+    'FLU-CONCEPT-01', // must run probes against the gate before a verdict is offered
+    'CX-curious-02', // must pick a question, which is gated behind reading the scene
+    'GB-DEBATE-01', // two independent decisions per item, support and rebut
+    'GB-FILTER-01', // must select exactly the cued set, not merely click cells
+    'GB-PATHFORGE-01', // must lay a connected road within the tile budget
+    'GB-TRACK-01', // must track moving targets through swap phases
+    'SPA-MAZE-01', // must walk a legal path to the goal collecting every gem
+    'SPA-PUNCH-01', // must mark the unfolded hole set
+    'SPA-XPLANE-01', // must dial a cutting plane to a quantised setting
   ]);
 
   for (const type of EXAM_TYPE_REGISTRY) {

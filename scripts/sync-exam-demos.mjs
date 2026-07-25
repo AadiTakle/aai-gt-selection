@@ -147,7 +147,11 @@ function extractResponseFields(src) {
  * Keep in sync with the verifier switch in
  * `apps/web/src/app/api/exam-submit/route.ts`.
  */
-function classifyVerifier(bank, responseFields) {
+function classifyVerifier(typeCode, bank, responseFields) {
+  // A per-type verifier outranks the generic rules: it exists precisely because
+  // the type's constructed response (a maze path, an n-back tap stream, a
+  // tangram cover) carries no option key for them to read.
+  if (perTypeVerifierCodes().has(typeCode)) return 'per_type';
   switch (bank.scoringRule) {
     // |placedRatio - answer.targetRatio| <= answer.tolerance
     case 'placement_tolerance':
@@ -160,6 +164,65 @@ function classifyVerifier(bank, responseFields) {
   }
   if (responseFields.has('selectedKey') || responseFields.has('selectedIndex')) return 'keyed';
   return null;
+}
+
+/**
+ * Types that must never be served even though everything else about them checks
+ * out: they have a bank, a compliant demo, and a passing per-type checker, but a
+ * proven defect that would corrupt scoring. `CX-achieve-02` ships its outcome
+ * model to the client, so argmax recovers the key on every item without running
+ * a single trial — and because the exploit runs no trials, the process metrics
+ * read it as efficient insight rather than cheating.
+ *
+ * This gate is deliberately separate from the verifier gate. Writing a verifier
+ * for a leaking type makes it *gradeable*, not *safe*, and without this check the
+ * type silently starts being served the moment someone adds one.
+ */
+const NOT_SERVABLE_FILE = path.join(ROOT, 'research/exam-question-types/qa/NOT_SERVABLE.json');
+function notServableCodes() {
+  const file = NOT_SERVABLE_FILE;
+  if (!existsSync(file)) return new Map();
+  const parsed = JSON.parse(readFileSync(file, 'utf8'));
+  return new Map((parsed.blocked ?? []).map((b) => [b.typeCode, b.reason]));
+}
+
+const NOT_SERVABLE = notServableCodes();
+
+/**
+ * Type codes that have a dedicated verifier in
+ * `apps/web/src/lib/exam/verifiers/{fluid,verbal,quantitative,spatial}.ts`.
+ *
+ * Read from the source rather than imported because this script is plain ESM
+ * and the registry is TypeScript. That makes the registry the single source of
+ * truth without a build step, at the cost of depending on the domain files'
+ * registration style — so this throws if a domain file yields no entries, which
+ * is what a style drift would look like.
+ */
+let verifierCodeCache = null;
+function perTypeVerifierCodes() {
+  if (verifierCodeCache) return verifierCodeCache;
+  const codes = new Set();
+  for (const domain of ['fluid', 'verbal', 'quantitative', 'spatial']) {
+    const file = path.join(ROOT, 'apps/web/src/lib/exam/verifiers', `${domain}.ts`);
+    const src = readFileSync(file, 'utf8');
+    const body = src.slice(src.indexOf(`${domain}Verifiers`));
+    const found = [...body.matchAll(/^\s*'([A-Za-z]+-[A-Za-z0-9]+-\d+)':/gm)].map((m) => m[1]);
+    if (found.length === 0) {
+      throw new Error(
+        `${domain}.ts registered no verifiers. If the registration style changed, ` +
+          `update perTypeVerifierCodes() in scripts/sync-exam-demos.mjs — otherwise every ` +
+          `type in that domain silently stops being served.`,
+      );
+    }
+    for (const code of found) codes.add(code);
+  }
+  verifierCodeCache = codes;
+  return codes;
+}
+
+/** Whether a type can be graded server-side at all. The servability gate. */
+export function isVerifiable(typeCode, bank, responseFields) {
+  return classifyVerifier(typeCode, bank, responseFields) !== null;
 }
 
 /** BUILD_PLAN §2 embedding-protocol conformance for one demo's source. */
@@ -350,8 +413,14 @@ function collect() {
       continue;
     }
 
+    const notServable = NOT_SERVABLE.get(code);
+    if (notServable) {
+      blocked.push({ code, reason: `blocked by qa/NOT_SERVABLE.json: ${notServable}` });
+      continue;
+    }
+
     const responseFields = extractResponseFields(rawSrc);
-    const verifier = classifyVerifier(bank, responseFields);
+    const verifier = classifyVerifier(code, bank, responseFields);
     if (!verifier) {
       blocked.push({
         code,
@@ -448,7 +517,7 @@ export type ExamRegistryDomain = 'fluid_reasoning' | 'verbal' | 'quantitative' |
  * Which server-side verifier in \`/api/exam-submit\` grades this type. A type with
  * no verifier is never wired — it would score every child 0.
  */
-export type ExamVerifier = 'keyed' | 'placement_tolerance' | 'constructed_value';
+export type ExamVerifier = 'keyed' | 'placement_tolerance' | 'constructed_value' | 'per_type';
 
 export interface ExamRegistryEntry {
   typeCode: string;

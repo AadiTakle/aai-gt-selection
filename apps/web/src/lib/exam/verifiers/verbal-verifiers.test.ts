@@ -512,13 +512,15 @@ describe('VER-SENSE-01 — word-card ordering', () => {
     const item = pick(
       bank,
       (i) =>
-        Object.values(i.answer.distractorRationales as Record<string, { lure: string }>).some(
-          (r) => r.lure === 'grammatical-but-absurd',
+        Object.values(i.answer.distractorRationales as Record<string, { lureClass: string; lureDetail?: string }>).some(
+          (r) => (r.lureDetail ?? r.lureClass) === 'grammatical-but-absurd',
         ),
       'an item with an absurd lure',
     );
-    const rationales = item.answer.distractorRationales as Record<string, { lure: string }>;
-    const absurdKey = Object.entries(rationales).find(([, r]) => r.lure === 'grammatical-but-absurd')![0];
+    const rationales = item.answer.distractorRationales as Record<string, { lureClass: string; lureDetail?: string }>;
+    const absurdKey = Object.entries(rationales).find(
+      ([, r]) => (r.lureDetail ?? r.lureClass) === 'grammatical-but-absurd',
+    )![0];
     const verdict = verify(item, { order: absurdKey.split(',').map(Number), complete: true });
     expect(verdict.correct).toBe(false);
   });

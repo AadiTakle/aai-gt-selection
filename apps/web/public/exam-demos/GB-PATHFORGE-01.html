@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GB-PATHFORGE-01 · Path Forge</title>
+<style>
+  :root{--bg1:#eafaf0;--bg2:#eef0ff;--ink:#26304a;--card:#fff;--accent:#12a15f;--good:#22b573;
+    --pipe:#12a15f;--pipeoff:#cfe4d6;--block:#95a2b8;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box}html,body{margin:0;min-height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:10px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
+  #howto{max-width:600px;width:100%;background:#fff;border:1px solid #d3e6d8;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #2a5a42}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#3a4a5e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#e6f6ec;color:var(--accent);border:2px solid #bfe6cc;min-height:30px}
+  #phasecue[data-phase="waiting"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="sent"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+  #prompt{max-width:600px;width:100%;font-size:16px;font-weight:800;color:#274a37;text-align:center;min-height:22px}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.neutral{color:#7a9a8a}
+  #stagecard{background:var(--card);border-radius:24px;padding:18px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:12px}
+  #board{position:relative;display:grid;gap:2px;background:#d5ead9;padding:5px;border-radius:12px}
+  .cell{background:#f3f8f4;border-radius:5px;position:relative;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .cell.blocked{background:var(--block);cursor:default}
+  .cell.endpoint{background:#e4f2ea;cursor:default}
+  .cell.sel{outline:3px solid #0d7e4a;outline-offset:-3px}
+  .cell.walked{background:#cdeedd}
+  .cell svg{display:block}
+  #courier{position:absolute;width:14px;height:14px;border-radius:50%;background:#0d7e4a;box-shadow:0 0 0 3px #fff;transition:left .16s linear,top .16s linear;pointer-events:none;z-index:4;transform:translate(-50%,-50%)}
+  #tray{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;align-items:center}
+  .tp{width:58px;height:54px;border-radius:12px;background:#eef7f0;border:3px solid #d3e6d8;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;gap:1px}
+  .tp.sel{border-color:var(--accent);background:#dcf0e2}
+  .tp span{font-size:9px;letter-spacing:.06em;color:#4a6b58;font-weight:700}
+  #row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+  button{font:inherit;border:0;cursor:pointer;border-radius:12px;font-weight:700}
+  #rot{background:#eef7f0;color:var(--accent);padding:9px 16px}
+  #rem{background:#ffe9ec;color:#c0455a;padding:9px 14px}
+  #go{background:var(--accent);color:#fff;padding:10px 24px;font-size:16px;opacity:.4;pointer-events:none;transition:.2s}
+  #go.ready{opacity:1;pointer-events:auto}
+  #replay{width:44px;height:44px;background:#eef1ff;color:var(--accent);font-size:19px;border-radius:50%}
+  #budget{font-size:13px;font-weight:700;color:#4a6b58;letter-spacing:.04em}
+  .hotkeys{font-size:11px;color:#a3aecb;text-align:center}
+  .shake{animation:shake .35s}@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+  #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:60;opacity:0;transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}#ghost .ring{position:absolute;left:-6px;top:-6px;width:26px;height:26px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #telemetry{width:330px;flex:0 0 330px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #itemcard{margin:12px 12px 4px;padding:10px;border:1px solid #263056;border-radius:12px}
+  .itemRow{display:flex;justify-content:space-between;color:#9399c0;font-size:11px;padding:2px 0}.itemRow b{color:#cfd3ff}
+  #mode{margin:4px 12px 0;font-size:11px;color:var(--tel-dim)}#mode b{color:#ffd479}
+  #mlist{padding:8px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:108px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}.mid.srv{color:#ffd479}
+  .mval{color:#fff;text-align:right;overflow-wrap:anywhere}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:150px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
+  @media(max-width:900px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
+  @media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">GB-PATHFORGE-01 · Path Forge</div>
+    <header id="howto">
+      <h1>How to use — Path Forge</h1>
+      <p>Pick a road tile from the tray, then tap an empty square to drop it. Tap a tile you already placed to turn it, or press remove to take it away. Join the hut to the flag, drive over every coin, and use as few tiles as you can. Press GO when you are finished.</p>
+    </header>
+    <div id="phasecue" data-phase="waiting">Waiting for item</div>
+    <div id="prompt"></div>
+    <div id="stagecard">
+      <div id="board"></div>
+      <div id="budget"></div>
+      <div id="tray"></div>
+      <div id="row">
+        <button id="replay" title="show the controls again">&#8635;</button>
+        <button id="rot">&#8635; turn</button>
+        <button id="rem">&#10005; remove</button>
+        <button id="go">GO</button>
+      </div>
+      <div class="hotkeys">keys: 1 2 3 pick a tile &middot; R turns the chosen tile &middot; Delete removes it &middot; Enter presses GO</div>
+      <div id="status" class="neutral">Waiting for an item from the host.</div>
+    </div>
+  </div>
+  <aside id="telemetry">
+    <h3>Live telemetry &middot; per-child</h3>
+    <div id="itemcard">
+      <div class="itemRow"><span>ITEM</span><b id="i_id">&mdash;</b></div>
+      <div class="itemRow"><span>BOARD</span><b id="i_board">&mdash;</b></div>
+      <div class="itemRow"><span>TILES &middot; BUDGET</span><b id="i_prog">&mdash;</b></div>
+      <div class="itemRow"><span>DIFFICULTY</span><b id="i_diff">&mdash;</b></div>
+    </div>
+    <div id="mode">Renderer emits the raw action log and process metrics; <b>correctness and M-EFF are server-side</b>.</div>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#12a15f" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+/* =====================================================================
+ * GB-PATHFORGE-01 — PURE RENDERER
+ * Renders a SERVED item (item.content = one board configuration) and reports the
+ * child's RAW ordered action log plus key-free process metrics. It NEVER generates
+ * its own boards, NEVER receives the optimum, and NEVER shows correct/incorrect:
+ * the answer key and the score live server-side (BUILD_PLAN §2).
+ *
+ * Embedding protocol (postMessage), source-tagged:
+ *   host -> demo : {source:'gt-exam-host', type:'init',  item:ServedItem}
+ *                  {source:'gt-exam-host', type:'start', tutorial?:bool}
+ *   demo -> host : {source:'gt-exam-demo', type:'ready'}
+ *                  {source:'gt-exam-demo', type:'result',    result:ItemResult}
+ *                  {source:'gt-exam-demo', type:'telemetry', event:TelemetryEvent}
+ *
+ * Interactive metrics (contract §4): M-PATH, M-PLANFUL and M-EXPLORE are computed here
+ * from the action log; M-EFF is SERVER-derived because the renderer is never told the
+ * optimal tile count — it emits response.cost.actual and the server divides
+ * (answer.metricSpec['M-EFF']).
+ *
+ * Standalone (double-click / plain static server): cycles real ServedItems from the bank
+ * so the file still runs for QA. No build step, no network assets.
+ * ===================================================================== */
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const HOST='gt-exam-host',SELF='gt-exam-demo';
+const embedded=(()=>{try{return window.parent&&window.parent!==window;}catch(_){return true;}})();
+function post(type,extra){if(!embedded)return;try{window.parent.postMessage(Object.assign({source:SELF,type},extra||{}),'*');}catch(_){}}
+
+/* ---------- tile algebra ---------- */
+const CW={N:'E',E:'S',S:'W',W:'N'},OPP={N:'S',S:'N',E:'W',W:'E'},ORDER=['N','E','S','W'];
+const BASE={straight:['N','S'],curve:['N','E'],tee:['N','E','S']};
+const LABEL={straight:'STRAIGHT',curve:'BEND',tee:'TEE'};
+const canon=a=>[...new Set(a)].sort((x,y)=>ORDER.indexOf(x)-ORDER.indexOf(y));
+function rot(dirs,k){let s=dirs.slice();for(let i=0;i<((k%4)+4)%4;i++)s=s.map(d=>CW[d]);return canon(s);}
+function dirBetween(a,b){if(b[0]<a[0])return'N';if(b[0]>a[0])return'S';if(b[1]<a[1])return'W';return'E';}
+function tileSVG(dirs,px){
+  const on=d=>dirs.includes(d)?'var(--pipe)':'var(--pipeoff)',w=Math.max(4,Math.round(px*0.2)),h=px/2;
+  const m=(px-w)/2;
+  return `<svg width="${px}" height="${px}" viewBox="0 0 ${px} ${px}">`
+    +`<rect x="${m}" y="0" width="${w}" height="${h}" fill="${on('N')}"/>`
+    +`<rect x="${m}" y="${h}" width="${w}" height="${h}" fill="${on('S')}"/>`
+    +`<rect x="0" y="${m}" width="${h}" height="${w}" fill="${on('W')}"/>`
+    +`<rect x="${h}" y="${m}" width="${h}" height="${w}" fill="${on('E')}"/>`
+    +`<circle cx="${px/2}" cy="${px/2}" r="${w*0.8}" fill="var(--pipe)"/></svg>`;
+}
+function hutSVG(px){const s=px*0.72,o=(px-s)/2;return `<svg width="${px}" height="${px}" viewBox="0 0 ${px} ${px}"><path d="M${o} ${o+s*0.45} L${px/2} ${o} L${o+s} ${o+s*0.45} L${o+s} ${o+s} L${o} ${o+s} Z" fill="none" stroke="#0d7e4a" stroke-width="2.5" stroke-linejoin="round"/></svg>`;}
+function flagSVG(px){const s=px*0.72,o=(px-s)/2;return `<svg width="${px}" height="${px}" viewBox="0 0 ${px} ${px}"><path d="M${o+s*0.2} ${o} L${o+s*0.2} ${o+s}" stroke="#0d7e4a" stroke-width="2.5" stroke-linecap="round"/><path d="M${o+s*0.2} ${o} L${o+s} ${o+s*0.28} L${o+s*0.2} ${o+s*0.56} Z" fill="none" stroke="#0d7e4a" stroke-width="2.5" stroke-linejoin="round"/></svg>`;}
+function coinSVG(px){const r=px*0.24;return `<svg width="${px}" height="${px}" viewBox="0 0 ${px} ${px}"><circle cx="${px/2}" cy="${px/2}" r="${r}" fill="none" stroke="#b8860b" stroke-width="2.5"/><circle cx="${px/2}" cy="${px/2}" r="${r*0.42}" fill="none" stroke="#b8860b" stroke-width="2"/></svg>`;}
+
+/* ---------- per-item state ---------- */
+let item=null,content=null,R=0,C=0,px=44;
+let blocked=new Set(),coins=new Set(),startK='',goalK='';
+let placed=new Map();          // "r,c" -> {shape, dirs}
+let trayShape=null,selCell=null;
+let started=false,locked=true,submitted=false;
+const T={itemStart:0,first:null,actions:[],events:[],touched:new Set(),rotations:0,removals:0,places:0,blocks:0,blur:0,rt:null};
+
+const PHASE={waiting:'Waiting for item',ready:'Your turn',sent:'Answer sent'};
+function setCue(k){const el=$('#phasecue');el.dataset.phase=k;el.textContent=PHASE[k];}
+function setStatus(cls,msg){const el=$('#status');el.className=cls;el.textContent=msg;}
+function nowRel(){return T.itemStart?Math.round(performance.now()-T.itemStart):0;}
+function log(msg){const d=document.createElement('div');d.innerHTML=`<span class="t">+${nowRel()}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+function emit(kind,data){const ev=Object.assign({t:nowRel(),kind,itemId:item?item.itemId:null},data||{});T.events.push(ev);post('telemetry',{event:ev});}
+function act(kind,data){
+  const a=Object.assign({t:nowRel(),kind},data||{});
+  if(T.first===null&&kind!=='go'){T.first=a.t;emit('first_action',{ms:a.t,kind});}
+  T.actions.push(a);emit(kind,data);
+}
+
+/* ---------- metrics (key-free; correctness and efficiency stay server-side) ---------- */
+function placeableCells(){return R*C-blocked.size-2;}
+function revisitRate(){return T.actions.length?(T.rotations+T.removals)/T.actions.length:0;}
+function planWindow(){return (content&&content.metricParams&&content.metricParams.planWindowMs)||4000;}
+function mPlanful(){const lat=T.first==null?0:T.first;return Math.round((0.5*Math.min(1,lat/planWindow())+0.5*(1-revisitRate()))*100)/100;}
+function mExplore(){const n=placeableCells();return n>0?Math.round(T.touched.size/n*100)/100:0;}
+const METERS=[
+ {id:'M-PATH',name:'Actions logged (strategy signature)',get:()=>String(T.actions.length)},
+ {id:'M-PLANFUL',name:'Planful: pause before first move + low churn',get:()=>T.actions.length?mPlanful().toFixed(2):'\u2014'},
+ {id:'M-EXPLORE',name:'Board breadth (cells touched / placeable)',get:()=>mExplore().toFixed(2)},
+ {id:'M-REV',name:'Revisions (turns + removals)',get:()=>`${T.rotations} + ${T.removals}`},
+ {id:'M-RTFIRST',name:'Latency before the first action',get:()=>T.first==null?'\u2014':T.first+' ms'},
+ {id:'M-RT',name:'Time to GO',get:()=>T.rt==null?'\u2014':T.rt+' ms'},
+ {id:'M-ENGAGE',name:'Focus losses (tracked, not enforced)',get:()=>String(T.blur)},
+ {id:'M-EFF',name:'Efficiency vs optimum (server-derived)',get:()=>`tiles used ${placed.size} \u00b7 server`,srv:true},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid${m.srv?' srv':''}">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});
+  $('#i_prog').textContent=content?`${placed.size} / ${content.tileBudget}`:'\u2014';
+  $('#budget').textContent=content?`tiles placed ${placed.size} of ${content.tileBudget}`:'';}
+
+/* ---------- board rendering ---------- */
+const k=(r,c)=>r+','+c;
+function cellEl(r,c){return $(`#board .cell[data-r="${r}"][data-c="${c}"]`);}
+function renderBoard(){
+  const b=$('#board');
+  b.style.gridTemplateColumns=`repeat(${C},${px}px)`;
+  b.style.gridTemplateRows=`repeat(${R},${px}px)`;
+  b.innerHTML='';
+  for(let r=0;r<R;r++)for(let c=0;c<C;c++){
+    const d=document.createElement('div');d.className='cell';d.dataset.r=r;d.dataset.c=c;
+    const key=k(r,c);
+    if(blocked.has(key))d.classList.add('blocked');
+    if(key===startK||key===goalK)d.classList.add('endpoint');
+    if(key===selCell)d.classList.add('sel');
+    if(key===startK)d.innerHTML=hutSVG(px);
+    else if(key===goalK)d.innerHTML=flagSVG(px);
+    else if(placed.has(key))d.innerHTML=tileSVG(placed.get(key).dirs,px);
+    else if(coins.has(key))d.innerHTML=coinSVG(px);
+    b.appendChild(d);
+  }
+  const cour=document.createElement('div');cour.id='courier';cour.style.display='none';b.appendChild(cour);
+}
+function renderTray(){
+  $('#tray').innerHTML=(content.tray||[]).map((s,i)=>
+    `<div class="tp${s===trayShape?' sel':''}" data-shape="${s}"><span>${i+1}</span>${tileSVG(BASE[s],30)}<span>${LABEL[s]||s}</span></div>`).join('');
+}
+
+/* ---------- interaction ---------- */
+function bump(el){if(el){el.classList.add('shake');setTimeout(()=>el.classList.remove('shake'),350);}}
+function chooseShape(s){if(locked||submitted)return;trayShape=s;act('select_shape',{shape:s});renderTray();renderMeters();log(`chose ${LABEL[s]||s}`);}
+function tapCell(r,c){
+  if(locked||submitted)return;
+  const key=k(r,c);
+  T.touched.add(key);
+  if(blocked.has(key)||key===startK||key===goalK){T.blocks++;act('blocked',{cell:[r,c]});bump($('#board'));renderMeters();return;}
+  if(placed.has(key)){
+    if(selCell===key){rotateSelected();return;}
+    selCell=key;act('select_tile',{cell:[r,c]});renderBoard();renderMeters();return;
+  }
+  if(!trayShape){setStatus('neutral','Pick a road tile from the tray first.');return;}
+  if(placed.size>=content.tileBudget){T.blocks++;act('budget_block',{cell:[r,c]});bump($('#budget'));setStatus('neutral','No tiles left. Remove one to place another.');renderMeters();return;}
+  placed.set(key,{shape:trayShape,dirs:BASE[trayShape].slice()});
+  selCell=key;T.places++;act('place',{cell:[r,c],shape:trayShape});
+  renderBoard();renderMeters();log(`placed ${LABEL[trayShape]} at (${r+1},${c+1})`);
+}
+function rotateSelected(){
+  if(locked||submitted||!selCell||!placed.has(selCell))return;
+  const t=placed.get(selCell);t.dirs=rot(t.dirs,1);T.rotations++;
+  const p=selCell.split(',').map(Number);
+  T.touched.add(selCell);act('rotate',{cell:p,dirs:t.dirs.slice()});
+  renderBoard();renderMeters();log(`turned the tile at (${p[0]+1},${p[1]+1})`);
+}
+function removeSelected(){
+  if(locked||submitted||!selCell||!placed.has(selCell))return;
+  const p=selCell.split(',').map(Number);
+  placed.delete(selCell);T.removals++;act('remove',{cell:p});selCell=null;
+  renderBoard();renderMeters();log(`removed the tile at (${p[0]+1},${p[1]+1})`);
+}
+
+/* ---------- neutral courier walk (shows the road that was built; NO verdict) ---------- */
+function roadFromStart(){
+  const seen=new Set([startK]),order=[startK],q=[startK.split(',').map(Number)];
+  for(let qi=0;qi<q.length;qi++){
+    const [r,c]=q[qi],here=k(r,c);
+    const arms=(here===startK||here===goalK)?['N','E','S','W']:(placed.get(here)||{dirs:[]}).dirs;
+    const nb=[[r-1,c,'N'],[r+1,c,'S'],[r,c-1,'W'],[r,c+1,'E']];
+    for(const [nr,nc,d] of nb){
+      if(nr<0||nr>=R||nc<0||nc>=C)continue;
+      const nk=k(nr,nc);if(seen.has(nk))continue;
+      if(!arms.includes(d))continue;
+      const there=(nk===goalK||nk===startK)?['N','E','S','W']:(placed.get(nk)||{dirs:[]}).dirs;
+      if(!there.includes(OPP[d]))continue;
+      seen.add(nk);order.push(nk);q.push([nr,nc]);
+    }
+  }
+  return order;
+}
+async function walkCourier(){
+  const road=roadFromStart();
+  const cour=$('#courier');if(!cour)return;
+  cour.style.display='block';
+  for(const key of road){
+    const [r,c]=key.split(',').map(Number);
+    const el=cellEl(r,c);if(el)el.classList.add('walked');
+    cour.style.left=(c*(px+2)+px/2+5)+'px';cour.style.top=(r*(px+2)+px/2+5)+'px';
+    await sleep(90);
+  }
+}
+
+/* ---------- submit ---------- */
+async function submit(){
+  if(locked||submitted||!started)return;
+  submitted=true;locked=true;$('#go').classList.remove('ready');
+  T.rt=nowRel();act('go',{tiles:placed.size});
+  setCue('sent');
+  setStatus('neutral','Answer sent. The next puzzle is coming up.');   // never a win/lose state
+  await walkCourier();
+  const board=[...placed.entries()].map(([key,t])=>{const p=key.split(',').map(Number);return {r:p[0],c:p[1],shape:t.shape,dirs:t.dirs.slice()};})
+    .sort((a,b)=>a.r-b.r||a.c-b.c);
+  const response={
+    actions:T.actions.slice(),                 // FULL ordered action log
+    finalBoard:board,
+    cost:{actual:placed.size,unit:'tiles',budget:content.tileBudget},
+    firstActionLatencyMs:T.first==null?T.rt:T.first,
+    placements:T.places,rotations:T.rotations,removals:T.removals,blockedTries:T.blocks,
+    cellsTouched:[...T.touched],
+    msToCommit:T.rt,
+  };
+  const metrics={'M-PATH':T.actions.length,'M-PLANFUL':mPlanful(),'M-EXPLORE':mExplore(),
+    'M-REV':T.rotations+T.removals,'M-RT':T.rt,'M-RTFIRST':T.first==null?T.rt:T.first,
+    'M-ENGAGE':T.blur,'M-RAPIDGUESS':T.rt<350?1:0};
+  post('result',{result:{itemId:item.itemId,typeCode:item.typeCode,domain:item.domain,response,metrics,telemetry:T.events.slice()}});
+  log(`RESULT emitted \u00b7 ${placed.size} tiles \u00b7 ${T.actions.length} actions \u00b7 ${T.rt}ms`);
+  renderMeters();
+  if(!embedded)setTimeout(nextSample,1400);
+}
+
+/* ---------- wordless pointer scaffold (controls only; never solves the board) ---------- */
+const ghost=$('#ghost');
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(460);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(360);}
+async function scaffold(){
+  ghost.classList.add('show');await sleep(200);
+  await ghostTo($('#tray .tp'));await ghostTap();
+  await ghostTo($('#rot'));await ghostTap();
+  await ghostTo($('#go'));await ghostTap();
+  ghost.classList.remove('show');await sleep(150);
+}
+
+/* ---------- item lifecycle ---------- */
+function loadItem(served){
+  item=served;content=served.content;
+  R=content.grid.R;C=content.grid.C;
+  px=Math.max(26,Math.min(46,Math.floor(520/Math.max(R,C))));
+  blocked=new Set((content.blocked||[]).map(b=>k(b[0],b[1])));
+  coins=new Set((content.coins||[]).map(g=>k(g[0],g[1])));
+  startK=k(content.start[0],content.start[1]);goalK=k(content.goal[0],content.goal[1]);
+  placed=new Map();selCell=null;trayShape=(content.tray&&content.tray[0])||null;
+  started=false;locked=true;submitted=false;
+  T.itemStart=0;T.first=null;T.actions=[];T.events=[];T.touched=new Set();
+  T.rotations=0;T.removals=0;T.places=0;T.blocks=0;T.blur=0;T.rt=null;
+  renderBoard();renderTray();
+  $('#prompt').textContent=content.question.prompt;
+  $('#go').classList.remove('ready');
+  $('#i_id').textContent=(served.itemId||'\u2014').slice(0,8);
+  $('#i_board').textContent=`${R}x${C} \u00b7 ${coins.size} coin${coins.size===1?'':'s'} \u00b7 ${blocked.size} blocked`;
+  $('#i_diff').textContent=(served.difficulty!=null?Number(served.difficulty).toFixed(2):'\u2014');
+  setCue('waiting');setStatus('neutral','Get ready.');
+  $('#log').innerHTML='';log(`item ${(served.itemId||'').slice(0,8)} \u00b7 ${R}x${C} \u00b7 budget ${content.tileBudget}`);
+  renderMeters();
+}
+async function startItem(withScaffold){
+  if(!content||started)return;
+  started=true;T.itemStart=performance.now();emit('start',{});
+  if(withScaffold||(content.scaffold&&content.scaffold.warmup))await scaffold();
+  locked=false;                                  // interaction unlocked BEFORE any input can arrive
+  $('#go').classList.add('ready');
+  setCue('ready');setStatus('neutral','Build the road, then press GO.');
+  renderMeters();
+}
+
+/* ---------- input wiring ---------- */
+$('#board').addEventListener('click',e=>{const d=e.target.closest('.cell');if(d)tapCell(+d.dataset.r,+d.dataset.c);});
+$('#tray').addEventListener('click',e=>{const t=e.target.closest('.tp');if(t)chooseShape(t.dataset.shape);});
+$('#rot').addEventListener('click',rotateSelected);
+$('#rem').addEventListener('click',removeSelected);
+$('#go').addEventListener('click',()=>{if($('#go').classList.contains('ready'))submit();});
+$('#replay').addEventListener('click',()=>{if(started&&!submitted)scaffold();});
+addEventListener('keydown',e=>{
+  if(/^[1-9]$/.test(e.key)){const t=$$('#tray .tp')[+e.key-1];if(t){e.preventDefault();chooseShape(t.dataset.shape);}}
+  else if(e.key==='r'||e.key==='R'){e.preventDefault();rotateSelected();}
+  else if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();removeSelected();}
+  else if(e.key==='Enter'){e.preventDefault();if($('#go').classList.contains('ready'))submit();}
+});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&started&&!submitted){T.blur++;emit('engagement',{reason:'hidden'});renderMeters();}});
+
+/* ---------- host messages ---------- */
+let gotInit=false;
+addEventListener('message',e=>{const d=e.data;if(!d||d.source!==HOST)return;
+  if(d.type==='init'&&d.item){gotInit=true;loadItem(d.item);post('ready');}
+  else if(d.type==='start'){startItem(!!d.tutorial);}
+});
+
+/* ---------- standalone fallback (no host): cycle real bank items ---------- */
+function toServed(b){const{answer,scoring,provenance,...s}=b;return s;}
+let queue=[],qIdx=0;
+async function loadQueue(){
+  try{
+    const res=await fetch('../banks/GB-PATHFORGE-01.jsonl',{cache:'no-store'});
+    if(res.ok){
+      const all=(await res.text()).trim().split('\n').filter(Boolean).map(l=>JSON.parse(l)).map(toServed);
+      all.sort((a,b)=>a.difficulty-b.difficulty);
+      const N=Math.min(8,all.length),pick=[];
+      for(let i=0;i<N;i++)pick.push(all[N===1?0:Math.round(i*(all.length-1)/(N-1))]);
+      log(`standalone: fetched ${all.length} bank items; cycling ${pick.length} across difficulty`);
+      return pick;
+    }
+  }catch(_){/* file:// blocks fetch - use the inline samples */}
+  log('standalone: bank fetch unavailable (serve the folder over http for the full bank) - using inline samples');
+  return INLINE_SAMPLES.slice();
+}
+function nextSample(){if(!queue.length)return;loadItem(queue[qIdx%queue.length]);qIdx++;startItem(qIdx===1);}
+async function bootstrapStandalone(){queue=await loadQueue();qIdx=0;nextSample();}
+
+/* Inline ServedItem fallback (real bank rows with answer/scoring/provenance stripped). */
+const INLINE_SAMPLES=[
+{"itemId":"48f46d19-46b7-4802-a75f-a30968d79d74","typeCode":"GB-PATHFORGE-01","domain":"spatial","difficulty":1,"ageBands":["2-3"],"demoPath":"demos/GB-PATHFORGE-01.html","content":{"typeCode":"GB-PATHFORGE-01","question":{"mode":"forge_road","prompt":"Place and turn road tiles to join the hut to the flag. Use as few tiles as you can, then press GO.","unit":"tiles"},"grid":{"R":4,"C":4},"start":[1,1],"goal":[3,2],"blocked":[],"coins":[],"tray":["straight","curve"],"tileBudget":7,"optionKind":"tile_placements","metricParams":{"planWindowMs":4000},"scaffold":{"warmup":true}},"syntheticOnly":true,"validated":false},
+{"itemId":"e6e6512d-ec5f-460b-9016-66f228824398","typeCode":"GB-PATHFORGE-01","domain":"spatial","difficulty":7.15,"ageBands":["2-3","4-5"],"demoPath":"demos/GB-PATHFORGE-01.html","content":{"typeCode":"GB-PATHFORGE-01","question":{"mode":"forge_road","prompt":"Place and turn road tiles to join the hut to the flag, going over all 1 coin. Use as few tiles as you can, then press GO.","unit":"tiles"},"grid":{"R":6,"C":7},"start":[4,0],"goal":[5,5],"blocked":[[0,1],[0,2],[1,2],[3,3],[4,1],[4,3]],"coins":[[3,5]],"tray":["straight","curve","tee"],"tileBudget":12,"optionKind":"tile_placements","metricParams":{"planWindowMs":4000},"scaffold":{"warmup":false}},"syntheticOnly":true,"validated":false},
+{"itemId":"1b2441d4-52f4-4ecc-81d2-caaf3234b5eb","typeCode":"GB-PATHFORGE-01","domain":"spatial","difficulty":13.92,"ageBands":["6-8"],"demoPath":"demos/GB-PATHFORGE-01.html","content":{"typeCode":"GB-PATHFORGE-01","question":{"mode":"forge_road","prompt":"Place and turn road tiles to join the hut to the flag, going over all 3 coins. Use as few tiles as you can, then press GO.","unit":"tiles"},"grid":{"R":9,"C":9},"start":[2,0],"goal":[5,7],"blocked":[[1,0],[1,2],[1,7],[1,8],[2,1],[3,4],[3,7],[3,8],[4,3],[4,4],[4,6],[5,4],[5,8],[6,2],[6,5],[6,8],[8,3],[8,7]],"coins":[[5,1],[5,2],[8,0]],"tray":["straight","curve","tee"],"tileBudget":21,"optionKind":"tile_placements","metricParams":{"planWindowMs":4000},"scaffold":{"warmup":false}},"syntheticOnly":true,"validated":false},
+{"itemId":"dab23e7f-ae94-4a8d-bf45-d27b1c00e27f","typeCode":"GB-PATHFORGE-01","domain":"spatial","difficulty":20,"ageBands":["6-8"],"demoPath":"demos/GB-PATHFORGE-01.html","content":{"typeCode":"GB-PATHFORGE-01","question":{"mode":"forge_road","prompt":"Place and turn road tiles to join the hut to the flag, going over all 3 coins. Use as few tiles as you can, then press GO.","unit":"tiles"},"grid":{"R":11,"C":11},"start":[4,3],"goal":[8,7],"blocked":[[0,5],[0,9],[0,10],[1,7],[3,2],[3,4],[3,5],[3,6],[3,9],[4,1],[4,8],[4,9],[5,5],[5,7],[5,10],[6,1],[6,3],[6,5],[6,7],[7,0],[7,3],[7,6],[8,4],[8,9],[9,0],[9,1],[9,6],[9,9],[10,0],[10,1],[10,4],[10,5],[10,8]],"coins":[[0,6],[2,10],[8,3]],"tray":["straight","curve","tee"],"tileBudget":34,"optionKind":"tile_placements","metricParams":{"planWindowMs":4000},"scaffold":{"warmup":false}},"syntheticOnly":true,"validated":false}
+];
+
+/* ---------- boot ---------- */
+buildMeters();renderMeters();
+if(embedded)post('ready');
+setTimeout(()=>{if(!gotInit){
+  $('#howto').querySelector('p').insertAdjacentHTML('beforeend',' <b>(Standalone preview: cycling bank items.)</b>');
+  bootstrapStandalone();
+}},500);
+</script>
+</body>
+</html>

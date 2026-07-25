@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WM-gate-01 · Gatekeeper</title>
+<style>
+  :root{--bg1:#f3f6ff;--bg2:#eaf7f2;--ink:#26304a;--card:#fff;--accent:#5b6cff;--stop:#e8534f;--good:#22b573;--bad:#ff6b6b;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
+  #howto{max-width:620px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:var(--accent);border:2px solid #c9d0ff;min-height:30px}
+  #phasecue[data-phase="watch"]{background:#e6f6ef;color:#158055;border-color:#b6e3d0}
+  #phasecue[data-phase="scored"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+  #phasecue[data-phase="done"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center;max-width:460px}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
+  #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:14px;max-width:600px;width:100%}
+  #road{position:relative;width:100%;height:120px;border-radius:18px;background:linear-gradient(180deg,#eef2ff,#e3ecff);border:3px solid #d3ddff;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  #current{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:78px;justify-content:center}
+  #current small{font-size:11px;color:#68769c;letter-spacing:.04em}
+  #current .num{font:800 34px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:#33405f}
+  #gateIcon{position:absolute;right:12px;top:10px;font-size:12px;font-weight:800;letter-spacing:.1em;padding:5px 12px;border-radius:999px;background:#dff3e8;color:#158055;border:2px solid #b6e3d0}
+  #gateIcon.stop{background:#ffe6e5;color:var(--stop);border-color:#ffc4c2}
+  #progress{font-size:12px;color:#8a93b5;letter-spacing:.05em;min-height:16px}
+  #checkpoint{width:100%;display:none;flex-direction:column;align-items:center;gap:12px;padding:14px;border-radius:18px;background:#fff7f7;border:2px dashed #ffc4c2}
+  #checkpoint.open{display:flex}
+  #cpprompt{font-size:14px;font-weight:700;color:#a33;text-align:center}
+  #slots{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  .slot{width:66px;height:66px;border-radius:14px;background:#fff;border:2px dashed #e0c4c4;display:flex;align-items:center;justify-content:center;
+    font:700 12px/1.1 system-ui;color:#b09; text-align:center}
+  .slot.filled{border-style:solid;border-color:var(--accent);background:#f4f6ff}
+  #palette{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  .ptok{background:#fff;border:2px solid #e2e8fb;border-radius:14px;padding:6px 8px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;
+    min-width:66px;transition:.12s;-webkit-tap-highlight-color:transparent}
+  .ptok small{font-size:10px;color:#68769c;letter-spacing:.03em}
+  .ptok .val{font:800 20px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:#33405f;padding:6px 2px}
+  .ptok:hover{border-color:var(--accent);transform:translateY(-2px)}
+  #undo{border-radius:12px;background:#eef1ff;color:var(--accent);padding:8px 16px;font-weight:700;font-size:13px}
+  #diffwrap{width:100%;max-width:340px}
+  #diffbar{height:8px;background:#e3e8fb;border-radius:5px;overflow:hidden}
+  #difffill{height:100%;background:linear-gradient(90deg,#7fffcf,#5b6cff);width:0%;transition:.3s}
+  #difflabel{font-size:11px;color:#8a93b5;text-align:center;margin-top:4px;letter-spacing:.05em}
+  #controls{display:flex;gap:16px;align-items:center}
+  button{font:inherit;border:0;cursor:pointer}
+  #replay{width:48px;height:48px;border-radius:50%;background:#eef1ff;color:var(--accent);font-size:21px}
+  #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:60;opacity:0;transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.95}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #served{margin:10px 12px 2px;padding:10px;border:1px solid #2c365d;border-radius:10px;background:#171e36}
+  .dtop{display:flex;justify-content:space-between;color:#fff}
+  .dsub{display:flex;justify-content:space-between;color:var(--tel-dim);font-size:11px;margin-top:5px}
+  .dtrack{height:7px;background:#2a3458;border-radius:8px;margin-top:8px;overflow:hidden}
+  .dfill{height:100%;background:linear-gradient(90deg,#7fffcf,#ffd479);transition:.25s}
+  #mode{margin:6px 12px 0;font-size:11px;color:var(--tel-dim)}#mode b{color:#ffd479}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:118px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}.mid.srv{color:#ffd479}
+  .mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:200px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
+  button:focus-visible,.ptok:focus-visible{outline:4px solid #ffbf69;outline-offset:3px}
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:320px}}
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">WM-gate-01 &middot; Gatekeeper</div>
+    <header id="howto">
+      <h1>How to use &mdash; Gatekeeper</h1>
+      <p>Watch what goes past the gate. At surprise checkpoints the gate says <b>STOP</b> and asks you a question about what just went by &mdash; answer it by tapping, using <b>undo</b> to fix a tap. The parade then keeps going and stops again later, so stay ready the whole way through. Take as long as you need at each checkpoint.</p>
+    </header>
+    <div id="phasecue" data-phase="warmup">Get ready</div>
+    <div id="stagecard">
+      <div id="road"><div id="current"></div><div id="gateIcon">OPEN</div></div>
+      <div id="progress"></div>
+      <div id="checkpoint">
+        <div id="cpprompt"></div>
+        <div id="slots"></div>
+        <div id="palette"></div>
+        <button id="undo">&#9003; undo</button>
+      </div>
+      <div id="diffwrap"><div id="diffbar"><div id="difffill"></div></div><div id="difflabel">SERVED ITEM</div></div>
+      <div id="controls"><button id="replay" title="show how again">&#8635;</button></div>
+      <div id="status" class="neutral">Waiting for the next round.</div>
+    </div>
+  </div>
+  <aside id="telemetry">
+    <h3>Live telemetry &middot; per-child (display only)</h3>
+    <div id="served" data-tracks="M-DIFFREACH M-SPAN"></div>
+    <div id="mode">Renderer computes process metrics locally; <b>updating accuracy is server-side</b>.</div>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+/* =====================================================================
+ * WM-gate-01 — PURE RENDERER (running memory / continuous updating)
+ * Renders a SERVED item and reports the child's RAW checkpoint answers plus
+ * process telemetry. It NEVER decides correctness: the key and the multi-probe
+ * partial-credit solver are server-side (BUILD_PLAN §2).
+ *
+ * RUNNING-MEMORY PHASE SEPARATION (harder than a span task):
+ *   The stream must keep running BETWEEN checkpoints, so it can never be handed
+ *   to the checkpoint UI.
+ *   - A SEALED stream player owns the whole schedule in a closure.
+ *   - sealPresentation() runs as soon as the player is built — before the first
+ *     checkpoint — deleting content.presentation from the local served copy.
+ *   - The checkpoint UI reads only `responseView` (per-probe tap count, palette,
+ *     asked colours) and RELEASES the lock at each gate close (@lock-release),
+ *     re-locking when the parade resumes. Checkpoints are untimed.
+ *
+ * Embedding protocol (postMessage), source-tagged:
+ *   host -> demo : {source:'gt-exam-host', type:'init',  item:ServedItem}
+ *                  {source:'gt-exam-host', type:'start', tutorial?:bool}
+ *   demo -> host : {source:'gt-exam-demo', type:'ready'}
+ *                  {source:'gt-exam-demo', type:'result',    result:ItemResult}
+ *                  {source:'gt-exam-demo', type:'telemetry', event:TelemetryEvent}
+ * ===================================================================== */
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
+const sd=a=>{if(a.length<2)return 0;const m=mean(a);return Math.sqrt(a.reduce((s,v)=>s+(v-m)*(v-m),0)/a.length);};
+function slope(ys){ // OLS slope of ys against position (key-free drift signal)
+  const n=ys.length;if(n<2)return 0;
+  const mx=(n-1)/2,my=mean(ys);let num=0,den=0;
+  for(let i=0;i<n;i++){num+=(i-mx)*(ys[i]-my);den+=(i-mx)*(i-mx);}
+  return den?num/den:0;
+}
+const HOST_SRC='gt-exam-host',DEMO_SRC='gt-exam-demo';
+
+/* ---------- creature drawing (outline SVG; no emoji) ---------- */
+const PAL={coral:'#ef5b5b',teal:'#159f94',blue:'#4267d5',gold:'#e6a817'};
+function bodyPath(shape,c){
+  switch(shape){
+    case 'cat':return `<circle cx="24" cy="27" r="13" ${c}/><polygon points="13,19 15,7 25,15" ${c}/><polygon points="35,19 33,7 23,15" ${c}/>`;
+    case 'bird':return `<path d="M24 8 C36 14,36 32,24 40 C12 32,12 14,24 8Z" ${c}/><polygon points="24,20 40,25 24,29" ${c}/>`;
+    case 'fish':return `<ellipse cx="26" cy="24" rx="14" ry="9" ${c}/><polygon points="12,24 3,15 3,33" ${c}/>`;
+    case 'bug':return `<ellipse cx="24" cy="24" rx="10" ry="14" ${c}/><path d="M14 16 L5 11 M14 24 L4 24 M14 32 L5 37 M34 16 L43 11 M34 24 L44 24 M34 32 L43 37" fill="none" stroke="#26304a" stroke-width="2.4"/>`;
+    case 'rabbit':return `<circle cx="24" cy="30" r="12" ${c}/><ellipse cx="18" cy="11" rx="4" ry="10" ${c}/><ellipse cx="30" cy="11" rx="4" ry="10" ${c}/>`;
+    case 'bear':return `<circle cx="24" cy="27" r="13" ${c}/><circle cx="13" cy="13" r="6" ${c}/><circle cx="35" cy="13" r="6" ${c}/>`;
+    case 'frog':return `<ellipse cx="24" cy="30" rx="16" ry="11" ${c}/><circle cx="16" cy="15" r="7" ${c}/><circle cx="32" cy="15" r="7" ${c}/>`;
+    case 'turtle':return `<polygon points="24,9 38,17 38,33 24,41 10,33 10,17" ${c}/><circle cx="24" cy="6" r="5" ${c}/>`;
+    default:return `<rect x="9" y="11" width="30" height="26" rx="12" ${c}/>`;
+  }
+}
+function tokenSVG(tk,box){
+  const c=`fill="${PAL[tk.hue]||'#888'}" stroke="#26304a" stroke-width="2" stroke-linejoin="round"`;
+  return `<svg width="${box}" height="${box}" viewBox="0 0 48 48" aria-label="${tk.label||tk.key}">${bodyPath(tk.shape,c)}</svg>`;
+}
+
+/* ---------- per-item state ---------- */
+let current=null,player=null,responseView=null;
+let locked=true,submitted=false,finished=false;
+let probeView=null;              // the checkpoint currently open
+let probeAnswers=[];             // one record per answered checkpoint
+let taps=[],tapTimes=[],undoCount=0,probeOpenAt=0;
+let stageStart=0,itemTelemetry=[],blurCount=0,eventsSeen=0;
+
+const embedded=(()=>{try{return window.parent&&window.parent!==window;}catch(_){return true;}})();
+let standalone=false,standaloneQueue=[],standaloneIdx=0,tutorialShown=false,startTimer=null;
+function post(msg){if(!embedded)return;try{window.parent.postMessage(Object.assign({source:DEMO_SRC},msg),'*');}catch(_){}}
+
+/* ---------- telemetry panel (DISPLAY ONLY; key-free values) ---------- */
+const fmtMs=v=>v==null?'\u2014':Math.round(v)+' ms';
+const durations=()=>probeAnswers.map(p=>p.durationMs);
+const firstTaps=()=>probeAnswers.map(p=>p.firstTapMs);
+const METERS=[
+ {id:'M-SPAN',srv:false,name:'Widest window asked (load, not performance)',get:()=>responseView?String(responseView.kMax):'\u2014'},
+ {id:'M-DIFFREACH',srv:false,name:'Served difficulty rung (1-20)',get:()=>current?current.difficulty.toFixed(2):'\u2014'},
+ {id:'M-RT',srv:false,name:'Mean checkpoint duration',get:()=>durations().length?fmtMs(mean(durations())):'\u2014'},
+ {id:'M-RTFIRST',srv:false,name:'Mean first tap after the gate closes',get:()=>firstTaps().length?fmtMs(mean(firstTaps())):'\u2014'},
+ {id:'M-RTVAR',srv:false,name:'Checkpoint-to-checkpoint variability (SD)',get:()=>durations().length>1?fmtMs(sd(durations())):'\u2014'},
+ {id:'M-DRIFT',srv:false,name:'Slowing across checkpoints (ms per checkpoint)',get:()=>durations().length>1?fmtMs(slope(durations())):'\u2014'},
+ {id:'M-LAPSE',srv:false,name:'Very slow checkpoints (>12s)',get:()=>String(durations().filter(d=>d>12000).length)},
+ {id:'M-REV',srv:false,name:'Revisions (undo taps)',get:()=>String(undoCount)},
+ {id:'M-ACC',srv:true,name:'Checkpoint accuracy — needs the key',get:()=>'server-side'},
+ {id:'M-POLY',srv:true,name:'Partial credit per checkpoint — needs the key',get:()=>'server-side'},
+ {id:'M-UPDATECOST',srv:true,name:'Accuracy-by-k slope — needs the key',get:()=>'server-side'},
+ {id:'M-ERRTYPE',srv:true,name:'Intrusion vs stale window — needs the key',get:()=>'server-side'},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>
+  `<div class="mrow"><span class="mid${m.srv?' srv':''}">${m.id}</span><span class="mval" id="v_${m.id}"></span>`
+  +`<span class="mname">${m.name}</span></div>`).join('');}
+function renderServedPanel(){const d=current?current.difficulty:null;
+  $('#served').innerHTML=`<div class="dtop"><b>SERVED DIFFICULTY</b><span>${d==null?'\u2014':d.toFixed(1)}/20</span></div>`
+   +`<div class="dtrack"><div class="dfill" style="width:${d==null?0:Math.max(0,Math.min(100,d/20*100))}%"></div></div>`
+   +`<div class="dsub"><span>${responseView?(responseView.shellLabel+' \u00b7 hold '+responseView.kMax):'\u2014'}</span><span>score: server-side</span></div>`;}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});renderServedPanel();}
+function log(msg){const t=stageStart?Date.now()-stageStart:0,d=document.createElement('div');
+  d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+function emitEvent(kind,extra){
+  const ev=Object.assign({t:stageStart?Date.now()-stageStart:0,kind,itemId:current?current.itemId:null},extra||{});
+  itemTelemetry.push(ev);post({type:'telemetry',event:ev});
+  log(`<b>${kind}</b>`+(extra&&Object.keys(extra).length?' \u00b7 '+JSON.stringify(extra):''));}
+
+const PHASE={warmup:'Get ready',watch:'Parade moving',scored:'Checkpoint',done:'Answers sent'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+function setGate(open){const g=$('#gateIcon');g.classList.toggle('stop',!open);g.textContent=open?'OPEN':'STOP';}
+
+/* ---------- ghost pointer: teaches the GESTURE only ---------- */
+const ghost=$('#ghost');
+function ghostShow(v){ghost.classList.toggle('show',v);}
+async function ghostTo(el){if(!el)return;const r=el.getBoundingClientRect();
+  ghost.style.transform=`translate(${r.left+r.width/2-10}px,${r.top+r.height/2-8}px)`;await sleep(500);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(400);}
+async function gestureHint(){
+  // Runs BEFORE the parade starts, so it cannot disclose anything about it.
+  ghostShow(true);await sleep(220);
+  await ghostTo($('#road'));await sleep(160);
+  await ghostTo($('#gateIcon'));await sleep(160);
+  await ghostTo($('#checkpoint'));await ghostTap();
+  ghostShow(false);await sleep(240);
+}
+
+/* =====================================================================
+ * PRESENTATION PHASE — sealed stream player.
+ * The player owns the schedule in a closure and yields control at each gate
+ * close, resuming only when the checkpoint promise resolves.
+ * ===================================================================== */
+function makeStreamPlayer(pres,hooks){
+  const queue=pres.events.slice();
+  const stops=new Map(pres.probes.map(p=>[p.afterEventIndex,p]));
+  let cancelled=false;
+  return {
+    cancel(){cancelled=true;},
+    async run(){
+      emitEvent('stream_start',{paceMs:pres.paceMs,length:queue.length,checkpoints:stops.size});
+      await sleep(pres.leadInMs);
+      for(const ev of queue){
+        if(cancelled)return;
+        hooks.showEvent(ev);
+        await sleep(pres.dwellMs);
+        if(cancelled)return;
+        hooks.clearEvent();
+        await sleep(Math.max(0,pres.paceMs-pres.dwellMs));
+        const stop=stops.get(ev.index);
+        if(stop){
+          if(cancelled)return;
+          hooks.gateClosing();
+          await sleep(pres.gatePanelMs);
+          if(cancelled)return;
+          await hooks.openCheckpoint(stop.probeIndex);
+          if(cancelled)return;
+          hooks.gateOpening();
+        }
+      }
+      hooks.streamDone();
+    },
+  };
+}
+/* Drop every handle on the parade as soon as the player owns it — BEFORE the
+ * first checkpoint, because the parade has to keep running between checkpoints
+ * and must never be reachable from the checkpoint UI. */
+function sealPresentation(){
+  if(current&&current.content&&current.content.presentation)delete current.content.presentation;
+  emitEvent('presentation_sealed',{reachable:current&&current.content&&!!current.content.presentation});
+}
+
+/* ---------- hooks the player calls (outside the response region) ---------- */
+let checkpointResolve=null;
+const hooks={
+  showEvent(ev){
+    eventsSeen++;
+    const el=$('#current');
+    if(ev.display!=null){el.innerHTML=`<div class="num">${ev.display}</div>`;}
+    else{const tk=(responseView.tokenByKey||{})[ev.tokenKey]||{shape:'blob',hue:'teal',label:ev.tokenKey};
+      el.innerHTML=tokenSVG(tk,74)+`<small>${tk.label||''}</small>`;}
+    $('#progress').textContent=`${eventsSeen} past the gate \u00b7 ${probeAnswers.length} of ${responseView.probeCount} checkpoints done`;
+    emitEvent('stream_item',{position:eventsSeen});
+  },
+  clearEvent(){$('#current').innerHTML='';},
+  gateClosing(){setGate(false);setStatus('neutral','The gate is closing.');},
+  gateOpening(){setGate(true);setCue('watch');setStatus('neutral','The parade is moving again. Keep watching.');},
+  openCheckpoint(probeIndex){return new Promise(res=>{checkpointResolve=res;openProbe(probeIndex);});},
+  onProbeAnswered(record){
+    probeAnswers.push(record);
+    emitEvent('checkpoint_answered',{probeIndex:record.probeIndex,taps:record.keys.length,durationMs:Math.round(record.durationMs)});
+    closeProbePanel();
+    renderMeters();
+    const res=checkpointResolve;checkpointResolve=null;
+    if(res)res();
+  },
+  streamDone(){finished=true;submitResponse();},
+};
+
+/* ---------- item lifecycle ---------- */
+function renderServedItem(item){
+  current=JSON.parse(JSON.stringify(item)); // sealing mutates the local copy only
+  submitted=false;finished=false;locked=true;probeView=null;probeAnswers=[];taps=[];tapTimes=[];
+  undoCount=0;eventsSeen=0;itemTelemetry=[];blurCount=0;player=null;checkpointResolve=null;
+  const c=current.content;
+  const byKey={};(c.palette||[]).forEach(tk=>{byKey[tk.key]=tk;});
+  const planByIndex={};(c.responsePhase.probePlan||[]).forEach(p=>{planByIndex[p.probeIndex]=p;});
+  responseView={
+    shell:c.shell,
+    shellLabel:c.shell==='numeric_running'?'running total':c.shell==='keep_track'?'keep track':'last few',
+    kMax:c.kMax,
+    probeCount:c.probeCount,
+    planByIndex,
+    tokenByKey:byKey,
+    undo:c.responsePhase.undoEnabled!==false,
+    untimed:c.responsePhase.untimed!==false,
+  };
+  $('#current').innerHTML='';$('#progress').textContent='';
+  closeProbePanel();setGate(true);
+  stageStart=Date.now();
+  renderMeters();
+  emitEvent('render',{difficulty:current.difficulty,shell:c.shell,kMax:c.kMax,probeCount:c.probeCount,streamLength:c.streamLength});
+}
+async function beginItem(withTutorial){
+  if(!current||submitted)return;
+  if(withTutorial&&!tutorialShown){tutorialShown=true;await gestureHint();if(submitted)return;}
+  const pres=current.content.presentation;
+  if(!pres){log('begin ignored: the parade is already sealed');return;}
+  locked=true;
+  setCue('watch');
+  setStatus('neutral','Watch what goes past the gate.');
+  player=makeStreamPlayer(pres,hooks);
+  sealPresentation(); // the player owns it now; nothing else may reach it
+  await player.run();
+}
+
+/* @response-phase:begin */
+/* RESPONSE PHASE. The checkpoint panel reads `responseView.planByIndex` (how
+ * many taps, which palette, which colours are asked) and the child's own taps.
+ * The parade itself is unreachable from here. Checkpoints are UNTIMED. */
+function openProbe(probeIndex){
+  const plan=responseView&&responseView.planByIndex[probeIndex];
+  if(!plan||submitted)return;
+  probeView={probeIndex,expectedCount:plan.expectedCount,options:plan.options.slice(),prompt:plan.prompt};
+  taps=[];tapTimes=[];
+  probeOpenAt=Date.now();
+  /* @lock-release — the lock held while the parade moves MUST clear here, or the
+   * child can never answer the checkpoint and no result is ever emitted. */
+  locked=false;
+  $('#checkpoint').classList.add('open');
+  $('#cpprompt').textContent=probeView.prompt;
+  drawSlots();drawPalette();
+  setCue('scored',`${probeIndex} of ${responseView.probeCount}`);
+  setStatus('neutral',probeView.prompt);
+  emitEvent('checkpoint_open',{probeIndex,expectedCount:probeView.expectedCount,untimed:responseView.untimed});
+  renderMeters();
+}
+function drawSlots(){
+  const s=$('#slots');s.innerHTML='';
+  for(let i=0;i<probeView.expectedCount;i++){
+    const d=document.createElement('div');
+    d.className='slot'+(taps[i]?' filled':'');
+    const tk=taps[i]?responseView.tokenByKey[taps[i]]:null;
+    if(taps[i])d.innerHTML=tk?tokenSVG(tk,44):`<span>${labelFor(taps[i])}</span>`;
+    else d.textContent=String(i+1);
+    s.appendChild(d);
+  }
+}
+function labelFor(key){
+  const o=probeView.options.find(x=>x.key===key);
+  return o?o.label:key;
+}
+function drawPalette(){
+  const p=$('#palette');p.innerHTML='';
+  probeView.options.forEach(o=>{
+    const b=document.createElement('button');
+    b.className='ptok';b.dataset.key=o.key;
+    const tk=responseView.tokenByKey[o.key];
+    b.innerHTML=tk?tokenSVG(tk,40)+`<small>${o.label}</small>`:`<span class="val">${o.label}</span>`;
+    p.appendChild(b);
+  });
+}
+function onPaletteTap(key){
+  if(locked||submitted||!probeView)return;
+  if(taps.length>=probeView.expectedCount)return;
+  const at=Date.now()-probeOpenAt;
+  taps.push(key);tapTimes.push(at);
+  drawSlots();
+  emitEvent('checkpoint_tap',{probeIndex:probeView.probeIndex,position:taps.length,key,atMs:at});
+  if(taps.length>=probeView.expectedCount)setTimeout(finishProbe,240);
+}
+function onUndo(){
+  if(locked||submitted||!probeView||!responseView.undo)return;
+  if(!taps.length)return;
+  const key=taps.pop();tapTimes.pop();undoCount++;
+  drawSlots();renderMeters();
+  emitEvent('checkpoint_undo',{probeIndex:probeView.probeIndex,key,atMs:Date.now()-probeOpenAt});
+}
+function finishProbe(){
+  if(locked||submitted||!probeView)return;
+  if(taps.length<probeView.expectedCount)return;
+  locked=true; // re-locked while the parade moves again
+  const record={
+    probeIndex:probeView.probeIndex,
+    keys:taps.slice(),                    // RAW ordered answer; the server scores it
+    expectedCount:probeView.expectedCount,
+    tapOffsetsMs:tapTimes.slice(),
+    firstTapMs:tapTimes[0],
+    durationMs:Date.now()-probeOpenAt,
+    undos:undoCount,
+  };
+  probeView=null;
+  hooks.onProbeAnswered(record);
+}
+function closeProbePanel(){
+  const cp=$('#checkpoint');if(cp)cp.classList.remove('open');
+  const s=$('#slots');if(s)s.innerHTML='';
+  const p=$('#palette');if(p)p.innerHTML='';
+  const q=$('#cpprompt');if(q)q.textContent='';
+}
+function submitResponse(){
+  if(submitted||!responseView)return;
+  if(!probeAnswers.length)return;
+  submitted=true;locked=true;
+  setCue('done');
+  // NEUTRAL acknowledgment only — never correct/incorrect (BUILD_PLAN §0).
+  setStatus('neutral','All checkpoints answered. Next round coming up.');
+  setGate(true);
+  const durs=probeAnswers.map(p=>p.durationMs);
+  const firsts=probeAnswers.map(p=>p.firstTapMs);
+  const response={
+    shell:responseView.shell,
+    probes:probeAnswers.map(p=>({probeIndex:p.probeIndex,keys:p.keys.slice(),expectedCount:p.expectedCount,
+      tapOffsetsMs:p.tapOffsetsMs.slice(),durationMs:Math.round(p.durationMs)})),
+    probeCount:probeAnswers.length,
+    unitsSubmitted:probeAnswers.reduce((s,p)=>s+p.keys.length,0),
+    revisions:undoCount,
+  };
+  const metrics={
+    'M-SPAN':responseView.kMax,
+    'M-DIFFREACH':current.difficulty,
+    'M-RT':Math.round(mean(durs)),
+    'M-RTFIRST':Math.round(mean(firsts)),
+    'M-RTVAR':Math.round(sd(durs)),
+    'M-DRIFT':Math.round(slope(durs)),
+    'M-LAPSE':durs.filter(d=>d>12000).length,
+    'M-REV':undoCount,
+    'M-ENGAGE':blurCount,
+    'M-RAPIDGUESS':firsts.filter(f=>f<250).length,
+  };
+  emitEvent('submit',{checkpoints:response.probeCount,units:response.unitsSubmitted});
+  const result={itemId:current.itemId,typeCode:current.typeCode,domain:current.domain,response,metrics,telemetry:itemTelemetry.slice()};
+  post({type:'result',result});
+  log('RESULT emitted \u2192 '+JSON.stringify({response,metrics}));
+  renderMeters();
+  if(standalone)setTimeout(advanceStandalone,1500);
+}
+/* @response-phase:end */
+
+/* ---------- host-driven lifecycle ---------- */
+function onInit(item){
+  clearTimeout(startTimer);
+  if(!item||!item.content||!item.content.presentation||!item.content.responsePhase){log('init ignored: malformed ServedItem');return;}
+  renderServedItem(item);
+  setCue('warmup');
+  setStatus('neutral','Get ready. The parade is about to start.');
+  startTimer=setTimeout(()=>{if(!submitted&&current&&current.content.presentation)beginItem(false);},600);
+}
+function onHostMessage(e){
+  const d=e.data;if(!d||d.source!==HOST_SRC)return;
+  if(d.type==='init')onInit(d.item);
+  else if(d.type==='start'){clearTimeout(startTimer);beginItem(!!d.tutorial);}
+}
+
+/* ---------- standalone fallback (QA when there is no host) ---------- */
+function toServed(b){const{answer,scoring,provenance,...s}=b;return s;}
+async function loadBankSamples(){
+  try{
+    const res=await fetch('../banks/WM-gate-01.jsonl',{cache:'no-store'});
+    if(res.ok){
+      const all=(await res.text()).trim().split('\n').filter(Boolean).map(l=>JSON.parse(l)).map(toServed);
+      all.sort((a,b)=>a.difficulty-b.difficulty);
+      const N=Math.min(8,all.length),pick=[];
+      for(let i=0;i<N;i++)pick.push(all[N===1?0:Math.round(i*(all.length-1)/(N-1))]);
+      log('standalone: fetched '+all.length+' bank items; cycling '+pick.length+' across difficulty');
+      return pick;
+    }
+  }catch(_){/* file:// blocks fetch — use the inline fallback */}
+  log('standalone: bank fetch unavailable (open via a local server for the full bank) \u2014 using inline samples');
+  return INLINE_SAMPLES.slice();
+}
+function playStandalone(){const item=standaloneQueue[standaloneIdx%standaloneQueue.length];onInit(item);
+  setTimeout(()=>beginItem(standaloneIdx===0),300);}
+function advanceStandalone(){standaloneIdx++;playStandalone();}
+async function bootstrapStandalone(){if(standalone)return;standalone=true;standaloneQueue=await loadBankSamples();standaloneIdx=0;playStandalone();}
+
+/* Inline served-item fallback (a real bank item with answer/scoring stripped). */
+const INLINE_SAMPLES=[
+{"itemId":"b27e5751-b0d7-4264-8efc-cb339555e786","typeCode":"WM-gate-01","domain":"spatial","difficulty":1.04,"ageBands":["2-3"],"demoPath":"demos/WM-gate-01.html","content":{"typeCode":"WM-gate-01","shell":"creature_lastk","kMax":2,"paletteSize":4,"probeCount":3,"streamLength":13,"palette":[{"key":"t1","shape":"cat","hue":"coral","family":"coral","label":"Red Cat"},{"key":"t2","shape":"bird","hue":"coral","family":"coral","label":"Red Bird"},{"key":"t3","shape":"fish","hue":"teal","family":"teal","label":"Green Fish"},{"key":"t4","shape":"bug","hue":"teal","family":"teal","label":"Green Bug"}],"presentation":{"leadInMs":900,"paceMs":1293,"dwellMs":879,"gatePanelMs":600,"events":[{"index":0,"tokenKey":"t2","atMs":900,"dwellMs":879},{"index":1,"tokenKey":"t4","atMs":2193,"dwellMs":879},{"index":2,"tokenKey":"t1","atMs":3486,"dwellMs":879},{"index":3,"tokenKey":"t2","atMs":4779,"dwellMs":879},{"index":4,"tokenKey":"t4","atMs":6672,"dwellMs":879},{"index":5,"tokenKey":"t3","atMs":7965,"dwellMs":879},{"index":6,"tokenKey":"t1","atMs":9258,"dwellMs":879},{"index":7,"tokenKey":"t2","atMs":10551,"dwellMs":879},{"index":8,"tokenKey":"t3","atMs":11844,"dwellMs":879},{"index":9,"tokenKey":"t1","atMs":13737,"dwellMs":879},{"index":10,"tokenKey":"t4","atMs":15030,"dwellMs":879},{"index":11,"tokenKey":"t3","atMs":16323,"dwellMs":879},{"index":12,"tokenKey":"t2","atMs":17616,"dwellMs":879}],"probes":[{"probeIndex":1,"afterEventIndex":3,"k":2,"gateClosesAtMs":6072,"opensAtMs":6672},{"probeIndex":2,"afterEventIndex":8,"k":2,"gateClosesAtMs":13137,"opensAtMs":13737},{"probeIndex":3,"afterEventIndex":12,"k":2,"gateClosesAtMs":18909,"opensAtMs":19509}]},"responsePhase":{"prompt":"When the gate says STOP, answer the checkpoint. Then the parade keeps going.","probePlan":[{"probeIndex":1,"expectedCount":2,"prompt":"Tap the last 2 creatures that went past, in the same order.","options":[{"key":"t1","label":"Red Cat"},{"key":"t2","label":"Red Bird"},{"key":"t3","label":"Green Fish"},{"key":"t4","label":"Green Bug"}]},{"probeIndex":2,"expectedCount":2,"prompt":"Tap the last 2 creatures that went past, in the same order.","options":[{"key":"t1","label":"Red Cat"},{"key":"t2","label":"Red Bird"},{"key":"t3","label":"Green Fish"},{"key":"t4","label":"Green Bug"}]},{"probeIndex":3,"expectedCount":2,"prompt":"Tap the last 2 creatures that went past, in the same order.","options":[{"key":"t1","label":"Red Cat"},{"key":"t2","label":"Red Bird"},{"key":"t3","label":"Green Fish"},{"key":"t4","label":"Green Bug"}]}],"undoEnabled":true,"untimed":true,"latencyAnchor":"probe_open"},"instructions":{"howto":"Creatures go past the gate. When the gate says STOP, tap the last few creatures you saw, in the same order. Use undo to fix a tap. The parade then keeps going, so stay ready.","readingGate":"D-017: on-screen text only, never audio."}},"syntheticOnly":true,"validated":false},
+{"itemId":"999f4d30-9d9a-437a-a469-ba6325299d08","typeCode":"WM-gate-01","domain":"spatial","difficulty":19.96,"ageBands":["6-8"],"demoPath":"demos/WM-gate-01.html","content":{"typeCode":"WM-gate-01","shell":"numeric_running","kMax":5,"paletteSize":8,"probeCount":5,"streamLength":22,"palette":[],"presentation":{"leadInMs":900,"paceMs":557,"dwellMs":379,"gatePanelMs":600,"events":[{"index":0,"kind":"set","value":5,"display":"START 5","atMs":900,"dwellMs":379},{"index":1,"kind":"add","value":4,"display":"+ 4","atMs":1457,"dwellMs":379},{"index":2,"kind":"add","value":4,"display":"+ 4","atMs":2014,"dwellMs":379},{"index":3,"kind":"add","value":3,"display":"+ 3","atMs":2571,"dwellMs":379},{"index":4,"kind":"add","value":2,"display":"+ 2","atMs":3128,"dwellMs":379},{"index":5,"kind":"add","value":2,"display":"+ 2","atMs":4285,"dwellMs":379},{"index":6,"kind":"add","value":2,"display":"+ 2","atMs":4842,"dwellMs":379},{"index":7,"kind":"add","value":4,"display":"+ 4","atMs":5399,"dwellMs":379},{"index":8,"kind":"add","value":3,"display":"+ 3","atMs":5956,"dwellMs":379},{"index":9,"kind":"add","value":3,"display":"+ 3","atMs":7113,"dwellMs":379},{"index":10,"kind":"add","value":1,"display":"+ 1","atMs":7670,"dwellMs":379},{"index":11,"kind":"add","value":4,"display":"+ 4","atMs":8227,"dwellMs":379},{"index":12,"kind":"add","value":3,"display":"+ 3","atMs":8784,"dwellMs":379},{"index":13,"kind":"add","value":1,"display":"+ 1","atMs":9341,"dwellMs":379},{"index":14,"kind":"add","value":3,"display":"+ 3","atMs":9898,"dwellMs":379},{"index":15,"kind":"add","value":1,"display":"+ 1","atMs":11055,"dwellMs":379},{"index":16,"kind":"add","value":4,"display":"+ 4","atMs":11612,"dwellMs":379},{"index":17,"kind":"add","value":2,"display":"+ 2","atMs":12169,"dwellMs":379},{"index":18,"kind":"add","value":2,"display":"+ 2","atMs":13326,"dwellMs":379},{"index":19,"kind":"add","value":1,"display":"+ 1","atMs":13883,"dwellMs":379},{"index":20,"kind":"add","value":3,"display":"+ 3","atMs":14440,"dwellMs":379},{"index":21,"kind":"add","value":3,"display":"+ 3","atMs":14997,"dwellMs":379}],"probes":[{"probeIndex":1,"afterEventIndex":4,"k":3,"gateClosesAtMs":3685,"opensAtMs":4285},{"probeIndex":2,"afterEventIndex":8,"k":4,"gateClosesAtMs":6513,"opensAtMs":7113},{"probeIndex":3,"afterEventIndex":14,"k":5,"gateClosesAtMs":10455,"opensAtMs":11055},{"probeIndex":4,"afterEventIndex":17,"k":3,"gateClosesAtMs":12726,"opensAtMs":13326},{"probeIndex":5,"afterEventIndex":21,"k":4,"gateClosesAtMs":15554,"opensAtMs":16154}]},"responsePhase":{"prompt":"When the gate says STOP, answer the checkpoint. Then the parade keeps going.","probePlan":[{"probeIndex":1,"expectedCount":1,"prompt":"What is the total right now?","options":[{"key":"v13","label":"13"},{"key":"v16","label":"16"},{"key":"v17","label":"17"},{"key":"v18","label":"18"},{"key":"v19","label":"19"}]},{"probeIndex":2,"expectedCount":1,"prompt":"What is the total right now?","options":[{"key":"v24","label":"24"},{"key":"v26","label":"26"},{"key":"v28","label":"28"},{"key":"v29","label":"29"},{"key":"v30","label":"30"}]},{"probeIndex":3,"expectedCount":1,"prompt":"What is the total right now?","options":[{"key":"v39","label":"39"},{"key":"v41","label":"41"},{"key":"v43","label":"43"},{"key":"v44","label":"44"},{"key":"v45","label":"45"}]},{"probeIndex":4,"expectedCount":1,"prompt":"What is the total right now?","options":[{"key":"v46","label":"46"},{"key":"v49","label":"49"},{"key":"v50","label":"50"},{"key":"v51","label":"51"},{"key":"v52","label":"52"}]},{"probeIndex":5,"expectedCount":1,"prompt":"What is the total right now?","options":[{"key":"v55","label":"55"},{"key":"v57","label":"57"},{"key":"v59","label":"59"},{"key":"v60","label":"60"},{"key":"v61","label":"61"}]}],"undoEnabled":true,"untimed":true,"latencyAnchor":"probe_open"},"instructions":{"howto":"Numbers go past the gate and add up. When the gate says STOP, tap the total right now. The parade then keeps going, so keep adding.","readingGate":"D-017: on-screen text only, never audio."}},"syntheticOnly":true,"validated":false}
+];
+
+/* ---------- wiring ---------- */
+$('#palette').addEventListener('click',e=>{const b=e.target.closest('.ptok');if(b)onPaletteTap(b.dataset.key);});
+$('#undo').addEventListener('click',onUndo);
+$('#replay').addEventListener('click',()=>{if(!submitted)gestureHint();});
+window.addEventListener('blur',()=>{if(!submitted){blurCount++;emitEvent('engagement',{reason:'blur'});renderMeters();}});
+
+buildMeters();renderMeters();
+window.addEventListener('message',onHostMessage);
+post({type:'ready'});
+if(!embedded){bootstrapStandalone();}
+else{setTimeout(()=>{if(!current)bootstrapStandalone();},1200);}
+</script>
+</body>
+</html>

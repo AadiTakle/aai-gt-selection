@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WM-bind-01 · Home Again</title>
+<style>
+  :root{--bg1:#fff6e6;--bg2:#eef8ff;--ink:#3a2e1f;--card:#fff;--accent:#ff9f43;--good:#22b573;--bad:#ff6b6b;--house:#f2e4c8;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8a7a5c;text-transform:uppercase;font-weight:700}
+  #howto{max-width:600px;width:100%;background:#fff;border:1px solid #f2e4c8;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #8a6a2a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:#d9791f}
+  #howto p{margin:0;font-size:14px;color:#5a4a30;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#fdecd2;color:#d9791f;border:2px solid #ffd9a8;min-height:30px}
+  #phasecue[data-phase="watch"]{background:#e6f3ff;color:#1f6fb2;border-color:#b9dcff}
+  #phasecue[data-phase="scored"]{background:#d9791f;color:#fff;border-color:#d9791f}
+  #phasecue[data-phase="done"]{background:#ffedd8;color:#9a531f;border-color:#ffd9a8}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center;max-width:440px}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#a08a5e}
+  #stagecard{background:var(--card);border-radius:26px;padding:24px;box-shadow:0 18px 50px -22px #8a6a2a55;display:flex;flex-direction:column;align-items:center;gap:16px;max-width:560px;width:100%}
+  #grid{display:grid;gap:8px}
+  .house{background:var(--house);border-radius:14px;display:flex;align-items:center;justify-content:center;
+    cursor:default;transition:box-shadow .12s,background .12s,transform .12s;box-shadow:inset 0 0 0 2px #dcc79a;position:relative;
+    -webkit-tap-highlight-color:transparent}
+  .house::after{content:attr(data-label);position:absolute;right:4px;bottom:2px;font:700 9px/1 ui-monospace,monospace;color:#bdac86}
+  .house.active{cursor:pointer}
+  .house.active:hover{box-shadow:inset 0 0 0 3px var(--accent)}
+  .house.filled{background:#ffe9c2}
+  .house.lit{background:#fff3d6;box-shadow:inset 0 0 0 3px var(--accent),0 0 20px 4px #ff9f4355;transform:scale(1.04)}
+  .house.target{box-shadow:inset 0 0 0 3px #8ec5ff}
+  #tray{display:flex;gap:10px;min-height:64px;flex-wrap:wrap;justify-content:center;align-items:center}
+  .animal{background:#fff;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    padding:4px 6px;cursor:pointer;box-shadow:0 4px 10px -4px #0003;transition:.12s;-webkit-tap-highlight-color:transparent}
+  .animal small{font-size:10px;color:#8a7a5c;letter-spacing:.04em}
+  .animal.sel{box-shadow:0 0 0 3px var(--accent)}
+  .animal.placed{opacity:.25;pointer-events:none}
+  #placecount{font-size:13px;color:#a08a5e;letter-spacing:.05em;min-height:18px}
+  #diffwrap{width:100%;max-width:340px}
+  #diffbar{height:8px;background:#eee0c4;border-radius:5px;overflow:hidden}
+  #difffill{height:100%;background:linear-gradient(90deg,#ffbf69,#ff9f43);width:0%;transition:.3s}
+  #difflabel{font-size:11px;color:#a08a5e;text-align:center;margin-top:4px;letter-spacing:.05em}
+  #controls{display:flex;gap:16px;align-items:center}
+  button{font:inherit;border:0;cursor:pointer;border-radius:50%}
+  #replay{width:50px;height:50px;background:#fdecd2;color:var(--accent);font-size:22px}
+  #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:60;opacity:0;transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.3))}
+  #ghost.show{opacity:.95}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #served{margin:10px 12px 2px;padding:10px;border:1px solid #2c365d;border-radius:10px;background:#171e36}
+  .dtop{display:flex;justify-content:space-between;color:#fff}
+  .dsub{display:flex;justify-content:space-between;color:var(--tel-dim);font-size:11px;margin-top:5px}
+  .dtrack{height:7px;background:#2a3458;border-radius:8px;margin-top:8px;overflow:hidden}
+  .dfill{height:100%;background:linear-gradient(90deg,#7fffcf,#ffd479);transition:.25s}
+  #mode{margin:6px 12px 0;font-size:11px;color:var(--tel-dim)}#mode b{color:#ffd479}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:112px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}.mid.srv{color:#ffd479}
+  .mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:200px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
+  button:focus-visible,.animal:focus-visible,.house:focus-visible{outline:4px solid #ffbf69;outline-offset:3px}
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:320px}}
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">WM-bind-01 &middot; Home Again</div>
+    <header id="howto">
+      <h1>How to use &mdash; Home Again</h1>
+      <p>Watch which creature goes into which house. Then the creatures come out and mix up. Tap a creature, then tap the house it came from. Tap a full house to send that creature back to the tray if you change your mind. Take as long as you need &mdash; this is not a speed test.</p>
+    </header>
+    <div id="phasecue" data-phase="warmup">Get ready</div>
+    <div id="stagecard">
+      <div id="grid"></div>
+      <div id="tray"></div>
+      <div id="placecount"></div>
+      <div id="diffwrap"><div id="diffbar"><div id="difffill"></div></div><div id="difflabel">SERVED ITEM</div></div>
+      <div id="controls"><button id="replay" title="show how again">&#8635;</button></div>
+      <div id="status" class="neutral">Waiting for the next round.</div>
+    </div>
+  </div>
+  <aside id="telemetry">
+    <h3>Live telemetry &middot; per-child (display only)</h3>
+    <div id="served" data-tracks="M-DIFFREACH M-SPAN"></div>
+    <div id="mode">Renderer computes process metrics locally; <b>binding accuracy is server-side</b>.</div>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#ff9f43" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+/* =====================================================================
+ * WM-bind-01 — PURE RENDERER (object-location binding)
+ * Renders a SERVED item and reports the child's RAW creature->house placements
+ * plus process telemetry. It NEVER invents an item and NEVER shows
+ * correct/incorrect: the binding key and the partial-credit solver are
+ * server-side (BUILD_PLAN §2).
+ *
+ * BINDING-TASK PHASE SEPARATION:
+ *   The encoding display IS the answer, so the phases are separated structurally.
+ *   - PRESENTATION: a sealed player closes over content.presentation and shows
+ *     each creature inside its house. Input is LOCKED.
+ *   - sealPresentation(): drops the player AND deletes content.presentation from
+ *     the local served copy.
+ *   - RESPONSE: the marked region reads only `responseView`, which holds the
+ *     creature IDENTITIES (the tray must draw them) and never a cell, row or
+ *     col. It RELEASES the lock at the recall prompt (see @lock-release).
+ *
+ * Embedding protocol (postMessage), source-tagged:
+ *   host -> demo : {source:'gt-exam-host', type:'init',  item:ServedItem}
+ *                  {source:'gt-exam-host', type:'start', tutorial?:bool}
+ *   demo -> host : {source:'gt-exam-demo', type:'ready'}
+ *                  {source:'gt-exam-demo', type:'result',    result:ItemResult}
+ *                  {source:'gt-exam-demo', type:'telemetry', event:TelemetryEvent}
+ * ===================================================================== */
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
+const sd=a=>{if(a.length<2)return 0;const m=mean(a);return Math.sqrt(a.reduce((s,v)=>s+(v-m)*(v-m),0)/a.length);};
+const HOST_SRC='gt-exam-host',DEMO_SRC='gt-exam-demo';
+
+/* ---------- creature drawing (outline SVG; no emoji) ---------- */
+const PAL={coral:'#ef5b5b',teal:'#159f94',blue:'#4267d5',gold:'#e6a817',violet:'#8357c5',ink:'#33405f',moss:'#4f8f3a',plum:'#b5417a',
+  aqua1:'#7fd4c8',aqua2:'#74cbc3',aqua3:'#69c2be',aqua4:'#5eb9b9',aqua5:'#53b0b4',aqua6:'#48a7af',aqua7:'#3d9eaa',aqua8:'#3295a5'};
+function bodyPath(shape,c){
+  switch(shape){
+    case 'cat':return `<circle cx="24" cy="27" r="13" ${c}/><polygon points="13,19 15,7 25,15" ${c}/><polygon points="35,19 33,7 23,15" ${c}/>`;
+    case 'bird':return `<path d="M24 8 C36 14,36 32,24 40 C12 32,12 14,24 8Z" ${c}/><polygon points="24,20 40,25 24,29" ${c}/>`;
+    case 'fish':return `<ellipse cx="26" cy="24" rx="14" ry="9" ${c}/><polygon points="12,24 3,15 3,33" ${c}/>`;
+    case 'bug':return `<ellipse cx="24" cy="24" rx="10" ry="14" ${c}/><path d="M14 16 L5 11 M14 24 L4 24 M14 32 L5 37 M34 16 L43 11 M34 24 L44 24 M34 32 L43 37" fill="none" stroke="#3a2e1f" stroke-width="2.4"/>`;
+    case 'rabbit':return `<circle cx="24" cy="30" r="12" ${c}/><ellipse cx="18" cy="11" rx="4" ry="10" ${c}/><ellipse cx="30" cy="11" rx="4" ry="10" ${c}/>`;
+    case 'bear':return `<circle cx="24" cy="27" r="13" ${c}/><circle cx="13" cy="13" r="6" ${c}/><circle cx="35" cy="13" r="6" ${c}/>`;
+    case 'frog':return `<ellipse cx="24" cy="30" rx="16" ry="11" ${c}/><circle cx="16" cy="15" r="7" ${c}/><circle cx="32" cy="15" r="7" ${c}/>`;
+    case 'turtle':return `<polygon points="24,9 38,17 38,33 24,41 10,33 10,17" ${c}/><circle cx="24" cy="6" r="5" ${c}/>`;
+    default:return `<rect x="9" y="11" width="30" height="26" rx="12" ${c}/>`;
+  }
+}
+function markOverlay(mark){
+  if(mark==='dots')return `<circle cx="19" cy="24" r="2.6" fill="#fff"/><circle cx="27" cy="20" r="2.6" fill="#fff"/><circle cx="27" cy="29" r="2.6" fill="#fff"/>`;
+  if(mark==='stripes')return `<path d="M16 19 L32 19 M16 27 L32 27" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+  if(mark==='ring')return `<circle cx="24" cy="24" r="8" fill="none" stroke="#fff" stroke-width="3"/>`;
+  return '';
+}
+function creatureSVG(cr,box){
+  const fill=PAL[cr.hue]||'#888';
+  const c=`fill="${fill}" stroke="#3a2e1f" stroke-width="2" stroke-linejoin="round"`;
+  return `<svg width="${box}" height="${box}" viewBox="0 0 48 48" aria-label="creature ${cr.id}">${bodyPath(cr.shape,c)}${markOverlay(cr.mark)}</svg>`;
+}
+
+/* ---------- per-item state ---------- */
+let current=null,presenter=null,responseView=null;
+let locked=true,submitted=false;
+let placements={};            // creatureId -> cell (raw child response)
+let placementLog=[];          // ordered {creatureId, cell, atMs}
+let revisions=0,selected=null;
+let recallOpenAt=0,stageStart=0,itemTelemetry=[],blurCount=0;
+let gridCols=3;
+
+const embedded=(()=>{try{return window.parent&&window.parent!==window;}catch(_){return true;}})();
+let standalone=false,standaloneQueue=[],standaloneIdx=0,tutorialShown=false,startTimer=null;
+function post(msg){if(!embedded)return;try{window.parent.postMessage(Object.assign({source:DEMO_SRC},msg),'*');}catch(_){}}
+
+/* ---------- telemetry panel (DISPLAY ONLY; key-free values) ---------- */
+const fmtMs=v=>v==null?'\u2014':Math.round(v)+' ms';
+const times=()=>placementLog.map(p=>p.atMs);
+const gaps=()=>{const t=times(),g=[];for(let i=1;i<t.length;i++)g.push(t[i]-t[i-1]);return g;};
+const METERS=[
+ {id:'M-SPAN',srv:false,name:'Bindings presented (load, not performance)',get:()=>responseView?String(responseView.setSize):'\u2014'},
+ {id:'M-DIFFREACH',srv:false,name:'Served difficulty rung (1-20)',get:()=>current?current.difficulty.toFixed(2):'\u2014'},
+ {id:'M-RTFIRST',srv:false,name:'First placement after the recall prompt',get:()=>fmtMs(times().length?times()[0]:null)},
+ {id:'M-RT',srv:false,name:'Recall duration (prompt to last placement)',get:()=>fmtMs(times().length?times()[times().length-1]:null)},
+ {id:'M-RTVAR',srv:false,name:'Inter-placement interval variability (SD)',get:()=>times().length>2?fmtMs(sd(gaps())):'\u2014'},
+ {id:'M-LAPSE',srv:false,name:'Slow placements (>5s gap)',get:()=>String(gaps().filter(g=>g>5000).length)},
+ {id:'M-REV',srv:false,name:'Revisions (creature sent back to the tray)',get:()=>String(revisions)},
+ {id:'M-PATH',srv:false,name:'Placement path length across the grid',get:()=>String(pathLength())},
+ {id:'M-ACC',srv:true,name:'Binding accuracy — needs the key',get:()=>'server-side'},
+ {id:'M-ERRTYPE',srv:true,name:'Swap vs lost-location — needs the key',get:()=>'server-side'},
+ {id:'M-CONSIST',srv:true,name:'Consistency across matched set sizes — server-side',get:()=>'server-side'},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>
+  `<div class="mrow"><span class="mid${m.srv?' srv':''}">${m.id}</span><span class="mval" id="v_${m.id}"></span>`
+  +`<span class="mname">${m.name}</span></div>`).join('');}
+function renderServedPanel(){const d=current?current.difficulty:null;
+  $('#served').innerHTML=`<div class="dtop"><b>SERVED DIFFICULTY</b><span>${d==null?'\u2014':d.toFixed(1)}/20</span></div>`
+   +`<div class="dtrack"><div class="dfill" style="width:${d==null?0:Math.max(0,Math.min(100,d/20*100))}%"></div></div>`
+   +`<div class="dsub"><span>${responseView?(responseView.setSize+' bindings \u00b7 '+responseView.identitySet):'\u2014'}</span><span>score: server-side</span></div>`;}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});renderServedPanel();}
+function log(msg){const t=stageStart?Date.now()-stageStart:0,d=document.createElement('div');
+  d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+function emitEvent(kind,extra){
+  const event=Object.assign({t:stageStart?Date.now()-stageStart:0,kind,itemId:current?current.itemId:null},extra||{});
+  itemTelemetry.push(event);post({type:'telemetry',event});
+  log(`<b>${kind}</b>`+(extra&&Object.keys(extra).length?' \u00b7 '+JSON.stringify(extra):''));}
+
+const PHASE={warmup:'Get ready',watch:'Watch the houses',hold:'Hold it in mind',scored:'Your turn',done:'Answer sent'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k==='hold'?'watch':k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+
+/* ---------- grid ---------- */
+function buildGrid(rows,cols){gridCols=cols;const g=$('#grid');
+  const size=cols>=4?62:76;
+  g.style.gridTemplateColumns=`repeat(${cols},${size}px)`;g.style.gridTemplateRows=`repeat(${rows},${size}px)`;
+  g.innerHTML='';
+  for(let i=0;i<rows*cols;i++){const d=document.createElement('div');d.className='house';d.dataset.i=i;
+    d.dataset.label='r'+(Math.floor(i/cols)+1)+'c'+((i%cols)+1);g.appendChild(d);}}
+function houseEl(i){return $('#grid').children[i];}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+
+/* ---------- ghost pointer: teaches the GESTURE only ---------- */
+const ghost=$('#ghost');
+function ghostShow(v){ghost.classList.toggle('show',v);}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(520);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(400);}
+async function gestureHint(){
+  // Runs BEFORE the creatures are shown, so it cannot disclose any binding.
+  const tray=$('#tray'),g=$('#grid');if(!g.children.length)return;
+  ghostShow(true);await sleep(220);
+  await ghostTo(tray);await ghostTap();
+  await ghostTo(g.children[0]);await ghostTap();
+  ghostShow(false);await sleep(240);
+}
+
+/* =====================================================================
+ * PRESENTATION PHASE — sealed player over the encoding schedule.
+ * ===================================================================== */
+function makePlayer(pres,creatureById){
+  const steps=pres.schedule.slice().sort((a,b)=>a.onsetMs-b.onsetMs);
+  let cancelled=false;
+  return {
+    cancel(){cancelled=true;},
+    async play(){
+      const t0=Date.now();
+      emitEvent('presentation_start',{encodeMsPerItem:pres.encodeMsPerItem,retentionDelayMs:pres.retentionDelayMs,steps:steps.length});
+      for(const s of steps){
+        if(cancelled)return;
+        const wait=s.onsetMs-(Date.now()-t0);
+        if(wait>0)await sleep(wait);
+        if(cancelled)return;
+        const el=houseEl(s.cell);
+        if(el){el.classList.add('lit');el.innerHTML=creatureSVG(creatureById[s.creatureId],gridCols>=4?46:56);}
+        emitEvent('encode_on',{step:s.step,creatureId:s.creatureId,cell:s.cell,scheduledMs:s.onsetMs,actualMs:Date.now()-t0});
+        await sleep(Math.max(0,s.offsetMs-s.onsetMs));
+        if(el){el.classList.remove('lit');el.innerHTML='';}
+        emitEvent('encode_off',{step:s.step,scheduledMs:s.offsetMs,actualMs:Date.now()-t0});
+      }
+      if(pres.retentionDelayMs>0){
+        setCue('hold');
+        setStatus('neutral','Hold the houses in your mind.');
+        emitEvent('retention_start',{delayMs:pres.retentionDelayMs});
+        await sleep(pres.retentionDelayMs);
+      }
+      await sleep(Math.max(0,pres.recallOpensAtMs-pres.presentationEndMs-pres.retentionDelayMs));
+      emitEvent('presentation_end',{scheduledMs:pres.presentationEndMs,actualMs:Date.now()-t0});
+    },
+  };
+}
+/* Drop every handle on the encoding display before recall opens. */
+function sealPresentation(){
+  if(presenter){presenter.cancel();presenter=null;}
+  if(current&&current.content&&current.content.presentation)delete current.content.presentation;
+  $$('#grid .house').forEach(h=>{h.innerHTML='';h.classList.remove('lit');});
+  emitEvent('presentation_sealed',{reachable:current&&current.content&&!!current.content.presentation});
+}
+
+/* ---------- item lifecycle ---------- */
+function renderServedItem(item){
+  current=JSON.parse(JSON.stringify(item)); // sealing mutates the local copy only
+  submitted=false;locked=true;placements={};placementLog=[];revisions=0;selected=null;
+  recallOpenAt=0;itemTelemetry=[];blurCount=0;presenter=null;
+  const c=current.content;
+  buildGrid(c.grid.rows,c.grid.cols);
+  const byId={};c.creatures.forEach(cr=>{byId[cr.id]=cr;});
+  responseView={
+    setSize:c.responsePhase.placementsRequired,
+    prompt:c.responsePhase.prompt,
+    trayOrder:c.responsePhase.trayOrder.slice(),
+    creatureById:byId,                 // identities only: no cell/row/col exists here
+    reassign:c.responsePhase.reassignEnabled!==false,
+    untimed:c.responsePhase.untimed!==false,
+    identitySet:c.identitySet,
+  };
+  $('#tray').innerHTML='';
+  $('#placecount').textContent='';
+  stageStart=Date.now();
+  renderMeters();
+  emitEvent('render',{difficulty:current.difficulty,setSize:responseView.setSize,identitySet:c.identitySet,grid:c.grid.rows+'x'+c.grid.cols});
+}
+async function beginItem(withTutorial){
+  if(!current||submitted)return;
+  if(withTutorial&&!tutorialShown){tutorialShown=true;await gestureHint();if(submitted)return;}
+  const pres=current.content.presentation;
+  if(!pres){log('begin ignored: presentation already sealed');return;}
+  locked=true;
+  setCue('watch');
+  setStatus('neutral','Watch which creature goes into which house. Do not tap yet.');
+  presenter=makePlayer(pres,responseView.creatureById);
+  await presenter.play();
+  sealPresentation();
+  openRecall();
+}
+
+/* @response-phase:begin */
+/* RESPONSE PHASE. Reads `responseView` only: set size, prompt, tray order and
+ * the creature identity tokens the tray must draw. No location information of
+ * any kind is reachable from here. Recall is UNTIMED. */
+function openRecall(){
+  if(!responseView||submitted)return;
+  recallOpenAt=Date.now();
+  /* @lock-release — the lock held during the watch phase MUST clear here, or the
+   * child can never place a creature and no result is ever emitted. */
+  locked=false;
+  drawTray();
+  $$('#grid .house').forEach(h=>h.classList.add('active'));
+  setCue('scored');
+  setStatus('neutral',responseView.prompt);
+  updatePlaceCount();
+  emitEvent('recall_open',{placementsRequired:responseView.setSize,untimed:responseView.untimed});
+  renderMeters();
+}
+function drawTray(){
+  const tray=$('#tray');tray.innerHTML='';
+  responseView.trayOrder.forEach(cid=>{
+    const cr=responseView.creatureById[cid];if(!cr)return;
+    const b=document.createElement('button');
+    b.className='animal'+(placements[cid]!=null?' placed':'')+(selected===cid?' sel':'');
+    b.dataset.cid=cid;
+    b.innerHTML=creatureSVG(cr,44)+(cr.label?`<small>${cr.label}</small>`:'');
+    tray.appendChild(b);
+  });
+}
+function paintHouses(){
+  $$('#grid .house').forEach(h=>{h.classList.remove('filled','target');h.innerHTML='';});
+  Object.keys(placements).forEach(cid=>{
+    const el=houseEl(placements[cid]);
+    if(el){el.classList.add('filled');el.innerHTML=creatureSVG(responseView.creatureById[cid],gridCols>=4?42:52);}
+  });
+  if(selected!=null)$$('#grid .house').forEach(h=>{if(!h.classList.contains('filled'))h.classList.add('target');});
+}
+function updatePlaceCount(){
+  if(!responseView)return;
+  $('#placecount').textContent=`${Object.keys(placements).length} of ${responseView.setSize} creatures are home`;
+}
+function onCreatureTap(cid){
+  if(locked||submitted||!responseView)return;
+  if(placements[cid]!=null)return;
+  selected=selected===cid?null:cid;
+  drawTray();paintHouses();
+  emitEvent('select_creature',{creatureId:cid,atMs:Date.now()-recallOpenAt});
+}
+function onHouseTap(cell){
+  if(locked||submitted||!responseView)return;
+  const at=Date.now()-recallOpenAt;
+  const occupant=Object.keys(placements).find(k=>placements[k]===cell);
+  if(occupant!=null){
+    if(!responseView.reassign)return;
+    delete placements[occupant];revisions++;
+    placementLog=placementLog.filter(p=>p.creatureId!==occupant);
+    selected=occupant;
+    emitEvent('unplace',{creatureId:occupant,cell,atMs:at});
+  }else{
+    if(selected==null){setStatus('neutral','Tap a creature first, then tap its house.');return;}
+    placements[selected]=cell;
+    placementLog.push({creatureId:selected,cell,atMs:at});
+    emitEvent('place',{creatureId:selected,cell,atMs:at,index:placementLog.length});
+    selected=null;
+  }
+  drawTray();paintHouses();updatePlaceCount();renderMeters();
+  if(Object.keys(placements).length>=responseView.setSize)setTimeout(submitResponse,260);
+}
+function submitResponse(){
+  if(locked||submitted||!responseView)return;
+  if(Object.keys(placements).length===0)return;
+  submitted=true;locked=true;selected=null;
+  $$('#grid .house').forEach(h=>h.classList.remove('active','target'));
+  const t=times();
+  const total=t[t.length-1];
+  // NEUTRAL acknowledgment only — never correct/incorrect (BUILD_PLAN §0).
+  setCue('done');
+  setStatus('neutral','Answer received. Next round coming up.');
+  const response={
+    placements:Object.assign({},placements), // RAW creature -> house map; the server scores it
+    placementOrder:placementLog.slice(),
+    placementCount:Object.keys(placements).length,
+    placementsRequired:responseView.setSize,
+    revisions,
+  };
+  const metrics={
+    'M-SPAN':responseView.setSize,
+    'M-DIFFREACH':current.difficulty,
+    'M-RT':Math.round(total),
+    'M-RTFIRST':Math.round(t[0]),
+    'M-RTVAR':Math.round(sd(gaps())),
+    'M-LAPSE':gaps().filter(x=>x>5000).length,
+    'M-REV':revisions,
+    'M-PATH':pathLength(),
+    'M-ENGAGE':blurCount,
+    'M-RAPIDGUESS':t[0]<300?1:0,
+    'M-PLANFUL':total>0?Math.round((t[0]/total)*1000)/1000:0,
+  };
+  emitEvent('submit',{placed:response.placementCount,recallMs:Math.round(total)});
+  const result={itemId:current.itemId,typeCode:current.typeCode,domain:current.domain,response,metrics,telemetry:itemTelemetry.slice()};
+  post({type:'result',result});
+  log('RESULT emitted \u2192 '+JSON.stringify({response,metrics}));
+  renderMeters();
+  if(standalone)setTimeout(advanceStandalone,1400);
+}
+// Chebyshev distance walked between successive placements: a strategy signature.
+function pathLength(){
+  let d=0;
+  for(let i=1;i<placementLog.length;i++){
+    const a=placementLog[i-1].cell,b=placementLog[i].cell;
+    d+=Math.max(Math.abs(Math.floor(a/gridCols)-Math.floor(b/gridCols)),Math.abs((a%gridCols)-(b%gridCols)));
+  }
+  return d;
+}
+/* @response-phase:end */
+
+/* ---------- host-driven lifecycle ---------- */
+function onInit(item){
+  clearTimeout(startTimer);
+  if(!item||!item.content||!item.content.presentation||!item.content.responsePhase){log('init ignored: malformed ServedItem');return;}
+  renderServedItem(item);
+  setCue('warmup');
+  setStatus('neutral','Get ready. The creatures will show you their houses.');
+  startTimer=setTimeout(()=>{if(locked&&!submitted&&current&&current.content.presentation)beginItem(false);},600);
+}
+function onHostMessage(e){
+  const d=e.data;if(!d||d.source!==HOST_SRC)return;
+  if(d.type==='init')onInit(d.item);
+  else if(d.type==='start'){clearTimeout(startTimer);beginItem(!!d.tutorial);}
+}
+
+/* ---------- standalone fallback (QA when there is no host) ---------- */
+function toServed(b){const{answer,scoring,provenance,...s}=b;return s;}
+async function loadBankSamples(){
+  try{
+    const res=await fetch('../banks/WM-bind-01.jsonl',{cache:'no-store'});
+    if(res.ok){
+      const all=(await res.text()).trim().split('\n').filter(Boolean).map(l=>JSON.parse(l)).map(toServed);
+      all.sort((a,b)=>a.difficulty-b.difficulty);
+      const N=Math.min(10,all.length),pick=[];
+      for(let i=0;i<N;i++)pick.push(all[N===1?0:Math.round(i*(all.length-1)/(N-1))]);
+      log('standalone: fetched '+all.length+' bank items; cycling '+pick.length+' across difficulty');
+      return pick;
+    }
+  }catch(_){/* file:// blocks fetch — use the inline fallback */}
+  log('standalone: bank fetch unavailable (open via a local server for the full bank) \u2014 using inline samples');
+  return INLINE_SAMPLES.slice();
+}
+function playStandalone(){const item=standaloneQueue[standaloneIdx%standaloneQueue.length];onInit(item);
+  setTimeout(()=>beginItem(standaloneIdx===0),300);}
+function advanceStandalone(){standaloneIdx++;playStandalone();}
+async function bootstrapStandalone(){if(standalone)return;standalone=true;standaloneQueue=await loadBankSamples();standaloneIdx=0;playStandalone();}
+
+/* Inline served-item fallback (real bank items with answer/scoring stripped). */
+const INLINE_SAMPLES=[
+{"itemId":"e1f97146-d117-4658-a813-827d5cb2a9a4","typeCode":"WM-bind-01","domain":"spatial","difficulty":1.04,"ageBands":["K-1"],"demoPath":"demos/WM-bind-01.html","content":{"typeCode":"WM-bind-01","grid":{"rows":3,"cols":3,"cellCount":9},"setSize":2,"identitySet":"distinct","creatures":[{"id":"c1","shape":"fish","hue":"blue","mark":"plain","label":"Fish"},{"id":"c2","shape":"bear","hue":"moss","mark":"plain","label":"Bear"}],"presentation":{"leadInMs":900,"encodeMsPerItem":1390,"gapMs":220,"retentionDelayMs":29,"schedule":[{"step":1,"creatureId":"c1","cell":3,"row":1,"col":0,"onsetMs":900,"offsetMs":2290},{"step":2,"creatureId":"c2","cell":4,"row":1,"col":1,"onsetMs":2510,"offsetMs":3900}],"presentationEndMs":3900,"recallOpensAtMs":4379},"responsePhase":{"prompt":"Tap a creature, then tap the house it came from. Put them all back.","placementsRequired":2,"trayOrder":["c1","c2"],"reassignEnabled":true,"untimed":true,"latencyAnchor":"recall_open"},"instructions":{"howto":"Watch which creature goes into which house. The creatures then come out and mix up. Tap a creature, then tap its own house to send it home. You can move one again if you change your mind. Take as long as you need.","readingGate":"D-017: on-screen text only, never audio."}},"syntheticOnly":true,"validated":false},
+{"itemId":"16e389e2-2235-4df2-bf5a-14d93855bfc7","typeCode":"WM-bind-01","domain":"spatial","difficulty":10.57,"ageBands":["4-5"],"demoPath":"demos/WM-bind-01.html","content":{"typeCode":"WM-bind-01","grid":{"rows":3,"cols":3,"cellCount":9},"setSize":4,"identitySet":"confusable","creatures":[{"id":"c1","shape":"blob","hue":"aqua2","mark":"plain","label":null},{"id":"c2","shape":"blob","hue":"aqua1","mark":"dots","label":null},{"id":"c3","shape":"blob","hue":"aqua3","mark":"stripes","label":null},{"id":"c4","shape":"blob","hue":"aqua4","mark":"ring","label":null}],"presentation":{"leadInMs":900,"encodeMsPerItem":506,"gapMs":220,"retentionDelayMs":2583,"schedule":[{"step":1,"creatureId":"c2","cell":7,"row":2,"col":1,"onsetMs":900,"offsetMs":1406},{"step":2,"creatureId":"c1","cell":5,"row":1,"col":2,"onsetMs":1626,"offsetMs":2132},{"step":3,"creatureId":"c4","cell":6,"row":2,"col":0,"onsetMs":2352,"offsetMs":2858},{"step":4,"creatureId":"c3","cell":4,"row":1,"col":1,"onsetMs":3078,"offsetMs":3584}],"presentationEndMs":3584,"recallOpensAtMs":6617},"responsePhase":{"prompt":"Tap a creature, then tap the house it came from. Put them all back.","placementsRequired":4,"trayOrder":["c4","c1","c2","c3"],"reassignEnabled":true,"untimed":true,"latencyAnchor":"recall_open"},"instructions":{"howto":"Watch which creature goes into which house. The creatures then come out and mix up. Tap a creature, then tap its own house to send it home. You can move one again if you change your mind. Take as long as you need.","readingGate":"D-017: on-screen text only, never audio."}},"syntheticOnly":true,"validated":false},
+{"itemId":"ccc6e842-fc40-43dd-966d-079241bb1b4f","typeCode":"WM-bind-01","domain":"spatial","difficulty":19.96,"ageBands":["6-8"],"demoPath":"demos/WM-bind-01.html","content":{"typeCode":"WM-bind-01","grid":{"rows":4,"cols":4,"cellCount":16},"setSize":8,"identitySet":"confusable","creatures":[{"id":"c1","shape":"blob","hue":"aqua5","mark":"plain","label":null},{"id":"c2","shape":"blob","hue":"aqua8","mark":"dots","label":null},{"id":"c3","shape":"blob","hue":"aqua3","mark":"stripes","label":null},{"id":"c4","shape":"blob","hue":"aqua1","mark":"ring","label":null},{"id":"c5","shape":"blob","hue":"aqua6","mark":"plain","label":null},{"id":"c6","shape":"blob","hue":"aqua4","mark":"dots","label":null},{"id":"c7","shape":"blob","hue":"aqua2","mark":"stripes","label":null},{"id":"c8","shape":"blob","hue":"aqua7","mark":"ring","label":null}],"presentation":{"leadInMs":900,"encodeMsPerItem":510,"gapMs":220,"retentionDelayMs":2571,"schedule":[{"step":1,"creatureId":"c3","cell":5,"row":1,"col":1,"onsetMs":900,"offsetMs":1410},{"step":2,"creatureId":"c5","cell":9,"row":2,"col":1,"onsetMs":1630,"offsetMs":2140},{"step":3,"creatureId":"c6","cell":15,"row":3,"col":3,"onsetMs":2360,"offsetMs":2870},{"step":4,"creatureId":"c8","cell":10,"row":2,"col":2,"onsetMs":3090,"offsetMs":3600},{"step":5,"creatureId":"c4","cell":4,"row":1,"col":0,"onsetMs":3820,"offsetMs":4330},{"step":6,"creatureId":"c2","cell":14,"row":3,"col":2,"onsetMs":4550,"offsetMs":5060},{"step":7,"creatureId":"c7","cell":12,"row":3,"col":0,"onsetMs":5280,"offsetMs":5790},{"step":8,"creatureId":"c1","cell":13,"row":3,"col":1,"onsetMs":6010,"offsetMs":6520}],"presentationEndMs":6520,"recallOpensAtMs":9541},"responsePhase":{"prompt":"Tap a creature, then tap the house it came from. Put them all back.","placementsRequired":8,"trayOrder":["c2","c3","c7","c1","c8","c5","c4","c6"],"reassignEnabled":true,"untimed":true,"latencyAnchor":"recall_open"},"instructions":{"howto":"Watch which creature goes into which house. The creatures then come out and mix up. Tap a creature, then tap its own house to send it home. You can move one again if you change your mind. Take as long as you need.","readingGate":"D-017: on-screen text only, never audio."}},"syntheticOnly":true,"validated":false}
+];
+
+/* ---------- wiring ---------- */
+$('#tray').addEventListener('click',e=>{const a=e.target.closest('.animal');if(a)onCreatureTap(a.dataset.cid);});
+$('#grid').addEventListener('click',e=>{const h=e.target.closest('.house');if(h)onHouseTap(+h.dataset.i);});
+$('#replay').addEventListener('click',()=>{if(!submitted)gestureHint();});
+window.addEventListener('blur',()=>{if(!submitted){blurCount++;emitEvent('engagement',{reason:'blur'});renderMeters();}});
+
+buildGrid(3,3);buildMeters();renderMeters();
+window.addEventListener('message',onHostMessage);
+post({type:'ready'});
+if(!embedded){bootstrapStandalone();}
+else{setTimeout(()=>{if(!current)bootstrapStandalone();},1200);}
+</script>
+</body>
+</html>

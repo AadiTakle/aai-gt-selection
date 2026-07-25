@@ -335,9 +335,13 @@ describe('SPA-PIPES-01', () => {
  * SPA-PUNCH-01
  * ------------------------------------------------------------------ */
 
+/** Most specific label on a rationale, matching lureLabel() in item-shape.mjs. */
+const lureOf = (l: { lureClass: string; lureDetail?: string }) => l.lureDetail ?? l.lureClass;
+
 interface PunchLure {
   key: string;
-  lure: string;
+  lureClass: string;
+  lureDetail?: string;
   signature: string;
 }
 
@@ -362,8 +366,8 @@ describe('SPA-PUNCH-01', () => {
 
   it('rejects every named lure hole pattern, with partial credit for the overlap', () => {
     for (const item of items) {
-      for (const lure of item.answer.distractorRationales as PunchLure[]) {
-        if (lure.lure === 'correct') continue;
+      for (const lure of Object.values(item.answer.distractorRationales as Record<string, PunchLure>)) {
+        if (lureOf(lure) === 'correct') continue;
         const verdict = grade(item, { markedCells: cellsFromSignature(lure.signature) });
         expect(verdict.correct, `${item.itemId} ${lure.key}`).toBe(false);
         expect(verdict.metrics?.['M-POLY']).toBeLessThan(1);
@@ -373,10 +377,10 @@ describe('SPA-PUNCH-01', () => {
 
   it('flags a whole-pattern mirror as a mirror false alarm', () => {
     const item = items.find((i) =>
-      (i.answer.distractorRationales as PunchLure[]).some((l) => l.lure === 'mirrored_whole_pattern'),
+      Object.values(i.answer.distractorRationales as Record<string, PunchLure>).some((l) => lureOf(l) === 'mirrored_whole_pattern'),
     )!;
-    const mirror = (item.answer.distractorRationales as PunchLure[]).find(
-      (l) => l.lure === 'mirrored_whole_pattern',
+    const mirror = Object.values(item.answer.distractorRationales as Record<string, PunchLure>).find(
+      (l) => lureOf(l) === 'mirrored_whole_pattern',
     )!;
     const verdict = grade(item, { markedCells: cellsFromSignature(mirror.signature) });
     expect(verdict.correct).toBe(false);
@@ -398,7 +402,8 @@ describe('SPA-PUNCH-01', () => {
 
 interface SceneLure {
   key: string;
-  lure: string;
+  lureClass: string;
+  lureDetail?: string;
   chirality: string;
   order: number[];
 }
@@ -420,7 +425,7 @@ describe('SPA-SCENE-01', () => {
 
   it('rejects the egocentric left-right reversal and flags it as a mirror', () => {
     for (const item of items) {
-      const mirror = (item.answer.distractorRationales as SceneLure[]).find(
+      const mirror = Object.values(item.answer.distractorRationales as Record<string, SceneLure>).find(
         (l) => l.chirality === 'mirror',
       )!;
       const verdict = grade(item, { order: mirror.order, nearestId: item.answer.nearestId });
