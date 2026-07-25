@@ -27,6 +27,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { lureLabel } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/SPA-PUNCH-01.jsonl');
@@ -192,9 +193,9 @@ for (const it of items) {
   if (re.cells.length < 2) fail(id, 'fewer than 2 holes: no reflection is being tested');
 
   // 5. Lure table.
-  const rats = ans.distractorRationales || [];
-  if (!Array.isArray(rats) || rats.length < 2) fail(id, `lure table too small (${rats.length})`);
-  const correct = rats.filter((x) => x && x.lure === 'correct');
+  const rats = Object.values(ans.distractorRationales || {});
+  if (rats.length < 2) fail(id, `lure table too small (${rats.length})`);
+  const correct = rats.filter((x) => x && lureLabel(x) === 'correct');
   if (correct.length !== 1) fail(id, `expected exactly 1 'correct' lure, got ${correct.length}`);
   else if (correct[0].signature !== ans.correctKey) fail(id, "'correct' lure signature != correctKey");
   const keys = rats.map((x) => x && x.key);
@@ -202,7 +203,7 @@ for (const it of items) {
   const sigs = rats.map((x) => x && x.signature);
   if (new Set(sigs).size !== sigs.length) fail(id, 'lure signatures not unique');
   for (const f of rats) {
-    if (typeof f.lure !== 'string' || !f.lure) { fail(id, 'lure label missing'); continue; }
+    if (typeof lureLabel(f) !== 'string' || !lureLabel(f)) { fail(id, 'lure label missing'); continue; }
     if (typeof f.chirality !== 'string') { fail(id, 'lure chirality missing'); continue; }
     const der = f.derivation || {};
     let got = null;
@@ -210,8 +211,8 @@ for (const it of items) {
     else if (der.kind === 'punch_cells_only') got = sigOf(re.punchCells.map(p => ({ x: p[0], y: p[1] })));
     else if (der.kind === 'mirror_sheet') got = sigOf(re.cells.map(cc => REFLECTIONS[der.axis](n, cc)));
     else fail(id, `unknown lure derivation kind (${der.kind})`);
-    if (got !== null && got !== f.signature) fail(id, `lure ${f.key} (${f.lure}) does not re-derive to its signature`);
-    if (f.lure !== 'correct' && f.signature === ans.correctKey) fail(id, `lure ${f.key} equals the key`);
+    if (got !== null && got !== f.signature) fail(id, `lure ${f.key} (${lureLabel(f)}) does not re-derive to its signature`);
+    if (lureLabel(f) !== 'correct' && f.signature === ans.correctKey) fail(id, `lure ${f.key} equals the key`);
     const chir = chiralityOf(n, re.cells, f.signature);
     if (chir !== f.chirality) fail(id, `lure ${f.key} chirality ${f.chirality} != recomputed ${chir}`);
   }

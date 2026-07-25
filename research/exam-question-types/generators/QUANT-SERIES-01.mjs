@@ -29,6 +29,7 @@
 import { writeFileSync, readFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { serializeBank } from './item-shape.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const TYPE_CODE = 'QUANT-SERIES-01';
@@ -540,7 +541,7 @@ function main() {
     perTargetCount[target] = made;
   }
 
-  const jsonl = items.map((it) => JSON.stringify(it)).join('\n') + '\n';
+  const jsonl = serializeBank(items);
   writeFileSync(outPath, jsonl, 'utf8');
 
   const v = verifyBank(outPath);

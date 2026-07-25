@@ -57,6 +57,7 @@
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { serializeBank } from './item-shape.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const TYPE_CODE = 'QUANT-WORD-01';
@@ -1187,7 +1188,7 @@ function main() {
     perRungCount[rung] = made;
   }
 
-  writeFileSync(outPath, items.map((it) => JSON.stringify(it)).join('\n') + '\n', 'utf8');
+  writeFileSync(outPath, serializeBank(items), 'utf8');
 
   // Density contract: a SLIDING WINDOW two points wide. For every point k in 1..20,
   // the items within +/-1.0 of k must number >= 5. (The per-integer-bin count below

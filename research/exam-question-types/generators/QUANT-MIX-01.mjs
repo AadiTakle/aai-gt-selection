@@ -44,6 +44,7 @@
 import { writeFileSync, readFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { serializeBank } from './item-shape.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const TYPE_CODE = 'QUANT-MIX-01';
@@ -400,7 +401,7 @@ function verifyBank(path) {
     const zones = it.answer.distractorRationales || {};
     if (Object.keys(zones).length < 3) problems.push(`${it.itemId}: fewer than 3 misconception zones`);
     for (const [name, z] of Object.entries(zones)) {
-      if (!z.lure || !z.misconception) problems.push(`${it.itemId}: zone ${name} missing lure/misconception`);
+      if (!z.lureClass || !z.misconception) problems.push(`${it.itemId}: zone ${name} missing lureClass/misconception`);
       if (isEquivalent(it.content, z.counts)) problems.push(`${it.itemId}: zone ${name} is actually correct`);
     }
   });
@@ -438,7 +439,7 @@ function main() {
     perRungCount[rung] = made;
   }
 
-  writeFileSync(outPath, items.map((it) => JSON.stringify(it)).join('\n') + '\n', 'utf8');
+  writeFileSync(outPath, serializeBank(items), 'utf8');
   const v = verifyBank(outPath);
 
   console.log(`\nQUANT-MIX-01 bank written: ${outPath}`);

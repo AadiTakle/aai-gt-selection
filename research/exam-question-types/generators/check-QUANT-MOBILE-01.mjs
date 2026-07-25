@@ -30,6 +30,7 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildItem } from './QUANT-MOBILE-01.mjs';
+import { lureLabel, normalizeBankItem } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/QUANT-MOBILE-01.jsonl');
@@ -271,7 +272,7 @@ for (const it of items) {
     const r = rats[k];
     if (!r) fail(id, `no rationale for distractor ${k}`);
     else {
-      if (typeof r.lure !== 'string' || !r.lure) fail(id, `distractor ${k} has no lure label (M-LURETYPE)`);
+      if (typeof lureLabel(r) !== 'string' || !lureLabel(r)) fail(id, `distractor ${k} has no lure label (M-LURETYPE)`);
       if (typeof r.misconception !== 'string' || !r.misconception) fail(id, `distractor ${k} has no misconception label (M-ERRTYPE)`);
     }
   }
@@ -295,7 +296,7 @@ for (const it of items) {
   if (!Number.isInteger(rung) || !Number.isInteger(ordinal)) fail(id, `cannot parse rung/ordinal from seed (${it.provenance.seed})`);
   else {
     try {
-      const regen = buildItem(parts[0], rung, ordinal);
+      const regen = normalizeBankItem(buildItem(parts[0], rung, ordinal));
       if (!regen) fail(id, 'regeneration produced null');
       else if (!deepEq(regen, it)) fail(id, 'item is NOT reproducible from its provenance (grammar drift)');
     } catch (e) { fail(id, `regeneration threw: ${e.message}`); }

@@ -28,6 +28,7 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildBank } from './VER-SEQUENCE-01.mjs';
+import { lureLabel, serializeBank } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/VER-SEQUENCE-01.jsonl');
@@ -129,7 +130,7 @@ for (const it of items) {
   } else {
     const expected = opts.map((_, i) => String(i));
     if (!deepEq(Object.keys(rats).sort(), expected.slice().sort())) fail(id, `distractorRationales keys ${Object.keys(rats)} != option indices ${expected}`);
-    const lures = expected.map((k) => (rats[k] || {}).lure);
+    const lures = expected.map((k) => lureLabel(rats[k] || {}));
     lures.forEach((l, li) => {
       if (!LURE_CLASSES.has(l)) fail(id, `option[${li}] lure "${l}" outside the declared taxonomy`);
       if (typeof (rats[String(li)] || {}).why !== 'string' || rats[String(li)].why.length < 8) fail(id, `option[${li}] rationale has no usable diagnostic text (M-LURETYPE)`);
@@ -204,7 +205,7 @@ for (const d of diffs) { const k = Math.round(d); if (k >= 1 && k <= 20) bins[k 
 
 // ---- 7. byte-level reproducibility ----
 {
-  const regen = buildBank().map((it) => JSON.stringify(it)).join('\n') + '\n';
+  const regen = serializeBank(buildBank());
   if (regen !== raw) fail('repro', 'committed JSONL does not byte-match the generator output (run the generator and commit the result)');
 }
 

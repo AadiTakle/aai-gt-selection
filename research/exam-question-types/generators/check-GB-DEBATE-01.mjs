@@ -32,6 +32,7 @@ import {
   buildBank, TYPE_CODE, DOMAIN, ALLOWED_AGE_BANDS, SUPPORT_LURES, REBUT_LURES,
   MAX_WORD_LEN_LOW, MAX_CARD_CHARS_LOW,
 } from './GB-DEBATE-01.mjs';
+import { lureLabel, normalizeBankItem } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/GB-DEBATE-01.jsonl');
@@ -96,16 +97,18 @@ function checkPool(id, label, options, model, key, rationales, allowedLures, fla
   // lure taxonomy
   const ratKeys = Object.keys(rationales || {});
   if (ratKeys.length !== ids.length || !ids.every((k) => ratKeys.includes(k))) fail(id, `${label}: rationales do not cover every option`);
-  const corrects = ratKeys.filter((k) => rationales[k] && rationales[k].lure === 'correct');
+  const corrects = ratKeys.filter((k) => rationales[k] && lureLabel(rationales[k]) === 'correct');
   if (corrects.length !== 1) fail(id, `${label}: expected exactly 1 "correct" rationale, got ${corrects.length}`);
   else if (corrects[0] !== key) fail(id, `${label}: the "correct" rationale is not the key`);
   for (const k of ratKeys) {
     const r = rationales[k];
-    if (!r || !allowedLures.has(r.lure)) fail(id, `${label}: rationale ${k} has unknown lure "${r && r.lure}"`);
+    if (!r || !allowedLures.has(lureLabel(r))) fail(id, `${label}: rationale ${k} has unknown lure "${r && lureLabel(r)}"`);
     if (!r || typeof r.why !== 'string' || r.why.length < 10) fail(id, `${label}: rationale ${k} has no diagnostic explanation`);
     // the model and the rationale must agree on the lure class
     const m = model.find((x) => x.id === k);
-    if (m && m.lure !== (r && r.lure)) fail(id, `${label}: lure disagreement on ${k} (${m.lure} vs ${r && r.lure})`);
+    // `model` holds the generator's raw cards, which still carry `lure`; only
+    // the committed rationale has been through the normalizer.
+    if (m && m.lure !== (r && lureLabel(r))) fail(id, `${label}: lure disagreement on ${k} (${m.lure} vs ${r && lureLabel(r)})`);
   }
   return texts;
 }
@@ -211,7 +214,7 @@ for (const [claim, group] of byClaim) {
 }
 
 // ---- 8. reproducibility ----
-const rebuilt = buildBank();
+const rebuilt = buildBank().map(normalizeBankItem);
 if (rebuilt.length !== items.length) fail('repro', `fresh build has ${rebuilt.length} items, disk has ${items.length}`);
 else {
   for (let i = 0; i < items.length; i++) {

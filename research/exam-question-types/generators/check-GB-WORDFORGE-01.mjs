@@ -191,7 +191,7 @@ for (const it of items) {
   if (!a.equivalence || a.equivalence.lexiconHash !== lexiconHash()) fail(id, 'answer.equivalence.lexiconHash is stale');
   if (!a.equivalence || a.equivalence.minWordLength !== c.minWordLength) fail(id, 'answer.equivalence.minWordLength disagrees with content');
   if (!a.equivalence || a.equivalence.rackMultiset.slice().sort().join('') !== rk) fail(id, 'answer.equivalence.rackMultiset disagrees with content.rack');
-  if (!Array.isArray(a.distractorRationales) || !a.distractorRationales.some((r) => r.kind === 'valid_word')) {
+  if (!Object.keys(a.distractorRationales || {}).includes('valid_word')) {
     fail(id, 'answer.distractorRationales must document the response taxonomy');
   }
 

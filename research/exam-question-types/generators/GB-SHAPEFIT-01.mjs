@@ -33,6 +33,7 @@
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { serializeBank } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT = resolve(__dirname, '../banks/GB-SHAPEFIT-01.jsonl');
@@ -522,7 +523,7 @@ function main() {
   const t0 = Date.now();
   const items = generate();
   mkdirSync(dirname(OUT), { recursive: true });
-  writeFileSync(OUT, items.map(it => JSON.stringify(it)).join('\n') + '\n');
+  writeFileSync(OUT, serializeBank(items));
   console.log(`[${TYPE_CODE}] wrote ${items.length} items -> ${OUT} (${Date.now() - t0} ms)`);
   const areas = items.map(it => it.content.target.area);
   const moves = items.map(it => it.answer.cost.moves);

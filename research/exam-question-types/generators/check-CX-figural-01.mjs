@@ -27,6 +27,7 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { genItem, allConfigs, CONSTRAINTS } from './CX-figural-01.mjs';
+import { normalizeBankItem } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/CX-figural-01.jsonl');
@@ -226,14 +227,14 @@ for (const it of items) {
 
   /* ---- 5. reproducibility from provenance ---- */
   try {
-    const regen = genItem({
+    const regen = normalizeBankItem(genItem({
       baseLines: lev.baseLines,
       constraint: lev.constraint,
       ideaTargetMin: lev.ideaTargetMin,
       timeWindowSec: lev.timeWindowSec,
       ambiguity: lev.ambiguity,
       seed: it.provenance.seed,
-    });
+    }));
     if (!deepEq(regen, it)) fail(id, 'item is NOT reproducible from its provenance (grammar drift)');
   } catch (e) {
     fail(id, `regeneration threw: ${e.message}`);

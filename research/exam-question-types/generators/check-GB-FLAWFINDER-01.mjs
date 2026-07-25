@@ -24,6 +24,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { lureLabel, normalizeBankItem } from './item-shape.mjs';
 import {
   buildBank, TYPE_CODE, DOMAIN, ALLOWED_AGE_BANDS, SOUND_FORMS, BROKEN_FORMS,
   LURE_CLASSES, MAX_WORD_LEN_LOW, MAX_STATEMENT_CHARS_LOW,
@@ -177,12 +178,12 @@ for (const it of items) {
   if (ratKeys.length !== sids.length || !sids.every((k) => ratKeys.includes(k))) {
     fail(id, 'distractorRationales do not cover every statement');
   }
-  const correctRats = ratKeys.filter((k) => rats[k] && rats[k].lure === 'correct');
+  const correctRats = ratKeys.filter((k) => rats[k] && lureLabel(rats[k]) === 'correct');
   if (correctRats.length !== 1) fail(id, `expected exactly 1 "correct" rationale, got ${correctRats.length}`);
   else if (correctRats[0] !== ans.correctKey) fail(id, 'the "correct" rationale is not the correctKey');
   for (const k of ratKeys) {
     const r = rats[k];
-    if (!r || !LURE_CLASSES.has(r.lure)) fail(id, `rationale ${k} has unknown lure "${r && r.lure}"`);
+    if (!r || !LURE_CLASSES.has(lureLabel(r))) fail(id, `rationale ${k} has unknown lure "${r && lureLabel(r)}"`);
     if (!r || typeof r.why !== 'string' || r.why.length < 10) fail(id, `rationale ${k} has no diagnostic explanation`);
   }
 
@@ -226,7 +227,7 @@ const rebuilt = buildBank();
 if (rebuilt.length !== items.length) fail('repro', `fresh build has ${rebuilt.length} items, disk has ${items.length}`);
 else {
   for (let i = 0; i < items.length; i++) {
-    if (JSON.stringify(rebuilt[i]) !== JSON.stringify(items[i])) {
+    if (JSON.stringify(normalizeBankItem(rebuilt[i])) !== JSON.stringify(items[i])) {
       fail('repro', `item ${i} (${items[i].itemId}) differs from a fresh build`);
       break;
     }

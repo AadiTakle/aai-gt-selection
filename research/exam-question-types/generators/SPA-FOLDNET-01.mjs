@@ -22,6 +22,7 @@
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { serializeBank } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT = resolve(__dirname, '../banks/SPA-FOLDNET-01.jsonl');
@@ -523,7 +524,7 @@ function main() {
   const doVerify = process.argv.includes('--verify');
   const items = generate();
   mkdirSync(dirname(OUT), { recursive: true });
-  writeFileSync(OUT, items.map(it => JSON.stringify(it)).join('\n') + '\n');
+  writeFileSync(OUT, serializeBank(items));
   console.log(`[SPA-FOLDNET-01] wrote ${items.length} items -> ${OUT}`);
   const byMode = {}; for (const it of items) byMode[it.content.question.mode] = (byMode[it.content.question.mode] || 0) + 1;
   console.log('[SPA-FOLDNET-01] modes:', JSON.stringify(byMode));

@@ -30,6 +30,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { lureLabel } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/SPA-SCENE-01.jsonl');
@@ -163,9 +164,9 @@ for (const it of items) {
   }
   if (d.angularDisparityDeg !== disp) fail(id, 'diagnostics.angularDisparityDeg != view.angularDisparityDeg');
 
-  const rats = ans.distractorRationales || [];
-  if (!Array.isArray(rats) || rats.length < 2) fail(id, `lure table too small (${rats.length})`);
-  const correct = rats.filter(x => x && x.lure === 'correct');
+  const rats = Object.values(ans.distractorRationales || {});
+  if (rats.length < 2) fail(id, `lure table too small (${rats.length})`);
+  const correct = rats.filter(x => x && lureLabel(x) === 'correct');
   if (correct.length !== 1) fail(id, `expected exactly 1 'correct' lure, got ${correct.length}`);
   else if (correct[0].orderKey !== ans.correctKey) fail(id, "'correct' lure order != correctKey");
   const keys = rats.map(x => x && x.key);
@@ -177,12 +178,12 @@ for (const it of items) {
   if (!mirror) fail(id, 'no mirror (left-right reversal) foil recorded');
   else { mirrorItems++; if (mirror.orderKey !== reversed) fail(id, 'the mirror foil is not the exact reversal'); }
   for (const f of rats) {
-    if (typeof f.lure !== 'string' || !f.lure) { fail(id, 'lure label missing'); continue; }
+    if (typeof lureLabel(f) !== 'string' || !lureLabel(f)) { fail(id, 'lure label missing'); continue; }
     if (keyOf(f.order || []) !== f.orderKey) fail(id, `lure ${f.key} order/orderKey mismatch`);
     if (new Set(f.order || []).size !== objects.length) fail(id, `lure ${f.key} is not a permutation`);
     const wantChir = f.orderKey === ans.correctKey ? 'same' : (f.orderKey === reversed ? 'mirror' : 'same');
     if (f.chirality !== wantChir) fail(id, `lure ${f.key} chirality ${f.chirality} != recomputed ${wantChir}`);
-    if (f.lure !== 'correct' && f.orderKey === ans.correctKey) fail(id, `lure ${f.key} equals the key`);
+    if (lureLabel(f) !== 'correct' && f.orderKey === ans.correctKey) fail(id, `lure ${f.key} equals the key`);
     const der = f.derivation || {};
     let got = null;
     if (der.kind === 'line_of_sight') got = keyOf(re);
@@ -199,7 +200,7 @@ for (const it of items) {
       got = keyOf(s);
     } else if (der.kind === 'stated_permutation') got = keyOf(der.order || []);
     else fail(id, `unknown lure derivation kind (${der.kind})`);
-    if (got !== null && got !== f.orderKey) fail(id, `lure ${f.key} (${f.lure}) does not re-derive to its order`);
+    if (got !== null && got !== f.orderKey) fail(id, `lure ${f.key} (${lureLabel(f)}) does not re-derive to its order`);
   }
 }
 

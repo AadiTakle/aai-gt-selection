@@ -197,7 +197,7 @@ for (const it of items) {
   // 3d. answer metadata used by the server-side scorer.
   if (!ans.equivalence || ans.equivalence.rule !== 'any_minimal_road') fail(id, 'answer.equivalence (accepted-equivalence rule) missing');
   if (!ans.metricSpec || !ans.metricSpec['M-EFF']) fail(id, 'answer.metricSpec missing M-EFF derivation');
-  if (!Array.isArray(ans.distractorRationales) || ans.distractorRationales.length === 0) fail(id, 'response taxonomy missing');
+  if (Object.keys(ans.distractorRationales || {}).length === 0) fail(id, 'response taxonomy missing');
 }
 
 // ---- 4. Coverage ----

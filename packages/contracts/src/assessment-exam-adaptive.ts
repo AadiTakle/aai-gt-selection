@@ -24,11 +24,18 @@ export const examDomainSchema = z.enum(['fluid_reasoning', 'verbal', 'quantitati
 /** Age/grade bands used to seed the start difficulty and bias selection. */
 export const ageBandSchema = z.enum(['K-1', '2-3', '4-5', '6-8']);
 
-/** Question-type code from the 66-type catalog, e.g. `FLU-MATRIX-01`. */
+/**
+ * Question-type code from the 66-type catalog, e.g. `FLU-MATRIX-01`.
+ *
+ * The middle segment is mixed-case on purpose: 11 of the 66 catalog `type_id`s
+ * (`WM-bind-01`, `CX-achieve-02`, …) use a lowercase mnemonic, and
+ * `catalog/master_types.jsonl` is the established vocabulary across specs,
+ * demos, banks, and docs (D-020, E-074).
+ */
 export const questionTypeCodeSchema = z
   .string()
   .trim()
-  .regex(/^[A-Z]+-[A-Z0-9]+-\d+$/);
+  .regex(/^[A-Z]+-[A-Za-z0-9]+-\d+$/);
 
 /**
  * The ~20 measurement ids that make up the basic-core metric set (BUILD_PLAN
@@ -78,8 +85,15 @@ export const metricCountMapSchema = z.partialRecord(metricIdSchema, z.int().nonn
 // --- Answer key, scoring, provenance (bank/server-only) -----------------------
 
 /**
- * Distractor lure taxonomy (EXAM_ITEM_SCHEMA_SPEC §6.3). Tags each option so
- * `M-ERRTYPE` / `M-LURETYPE` / `M-RULEID` are computable server-side.
+ * COARSE distractor lure taxonomy (EXAM_ITEM_SCHEMA_SPEC §6.3). Deliberately
+ * small and closed so `M-ERRTYPE` / `M-LURETYPE` / `M-RULEID` stay computable
+ * server-side: every selectable element buckets into exactly one of these.
+ *
+ * It is not expressive enough to name what a type actually diagnoses — 219
+ * distinct domain labels exist across the 63 banks — so the fine-grained label
+ * lives beside it in `lureDetail` (D-020, E-074). Widening this enum would make
+ * the metrics uncomputable; dropping the domain label would make diagnosis
+ * useless. Both are kept, at different grain.
  */
 export const lureClassSchema = z.enum([
   'correct',
@@ -94,17 +108,68 @@ export const lureClassSchema = z.enum([
 ]);
 
 /**
+ * Why one selectable element is right or wrong (EXAM_ITEM_SCHEMA_SPEC §6.3).
+ *
+ * Open-ended: per-type diagnostic fields (`note`, `misconception`,
+ * `derivation`, …) pass through untouched. This object is reachable only
+ * through `answer`, which `servedItemSchema` omits, so it never reaches the
+ * browser.
+ */
+export const distractorRationaleSchema = z.looseObject({
+  /** Bucketable coarse class. Required so M-ERRTYPE/M-LURETYPE stay computable. */
+  lureClass: lureClassSchema,
+  /**
+   * The type's own fine-grained label (`off_pattern`, `mis_binding_swap`, …).
+   * Present only when it says more than `lureClass` does.
+   */
+  lureDetail: z.string().min(1).optional(),
+});
+
+/**
+ * Per-element lure map, keyed by the element's own identifier (D-020).
+ *
+ * Keyed rather than positional because the selectable elements are frequently
+ * not positional options: `VER-EVIDENCE-01` keys passage sentences,
+ * `WM-bubble-01` keys per-lane n-back steps, `SPA-PUNCH-01` keys fold
+ * signatures. Server-side M-ERRTYPE also has to answer "which lure did this
+ * child choose" by key, which a position-aligned array cannot do once options
+ * are shuffled per session.
+ */
+export const distractorRationaleMapSchema = z.record(z.string().min(1), distractorRationaleSchema);
+
+/**
+ * Rationales for a type that asks for more than one decision per item, grouped
+ * by decision. `GB-DEBATE-01` asks the child to pick both a supporting and a
+ * rebutting card, so it keys one rationale map per decision and its
+ * `correctKey` is correspondingly `{support, rebut}` rather than a single key.
+ */
+export const groupedDistractorRationaleMapSchema = z.record(
+  z.string().min(1),
+  distractorRationaleMapSchema,
+);
+
+/** Either shape: one decision per item, or one rationale map per decision. */
+export const anyDistractorRationaleMapSchema = z.union([
+  distractorRationaleMapSchema,
+  groupedDistractorRationaleMapSchema,
+]);
+
+/**
  * Server-only answer key (BUILD_PLAN §2). `correctKey` stays untyped for now
  * (index | key | set | canonical solution); its typed per-type shape lands
  * with the item-content registry (EXAM_ITEM_SCHEMA_SPEC §6.2-§6.3, future work).
+ *
+ * Open-ended for the same reason: a question type's ground truth is
+ * type-specific (`optimalPath`, `bindings`, `acceptedEquivalence`, …) and the
+ * typed per-type registry does not exist yet. Safe to leave open because
+ * `servedItemSchema` omits `answer` wholesale — nothing here can reach the
+ * browser by being unlisted.
  */
-export const answerKeySchema = z
-  .object({
-    correctKey: z.unknown(),
-    /** Per-option lure class, aligned to the served option order. */
-    distractorRationales: z.array(lureClassSchema).optional(),
-  })
-  .strict();
+export const answerKeySchema = z.looseObject({
+  correctKey: z.unknown(),
+  /** Per-element lure classes, keyed by element id (or by decision, then element). */
+  distractorRationales: anyDistractorRationaleMapSchema.optional(),
+});
 
 /** Server-authoritative scoring mode (BUILD_PLAN §2; detail in SPEC §6.4). */
 export const scoringModeSchema = z.enum([
@@ -114,27 +179,38 @@ export const scoringModeSchema = z.enum([
   'model_judge_deferred',
 ]);
 
-export const scoringSchema = z.object({ mode: scoringModeSchema }).strict();
+/**
+ * Server-authoritative scoring mode (BUILD_PLAN §2; detail in SPEC §6.4).
+ *
+ * Open-ended beyond `mode`: `computed_solver` types carry the solver id,
+ * tolerance, and partial-credit rule the server needs, and those differ per
+ * type. Server-only — `servedItemSchema` omits `scoring`.
+ */
+export const scoringSchema = z.looseObject({ mode: scoringModeSchema });
 
 /** One validator/QA verdict recorded at generation time (SPEC §6.5). */
-export const validatorVerdictSchema = z
-  .object({
-    check: z.string().min(1),
-    status: z.enum(['pass', 'fail', 'warn', 'skipped']),
-  })
-  .strict();
+export const validatorVerdictSchema = z.looseObject({
+  check: z.string().min(1),
+  status: z.enum(['pass', 'fail', 'warn', 'skipped']),
+});
 
-/** How an item was made (BUILD_PLAN §2). Reproducibility + audit trail. */
-export const provenanceSchema = z
-  .object({
-    generator: z.enum(['grammar', 'llm', 'human']),
-    /** Grammar reproducibility. */
-    seed: z.string().optional(),
-    /** LLM model id / prompt-hash reference. */
-    model: z.string().optional(),
-    validatorVerdicts: z.array(validatorVerdictSchema).optional(),
-  })
-  .strict();
+/**
+ * How an item was made (BUILD_PLAN §2). Reproducibility + audit trail.
+ *
+ * Open-ended: every generator records its own difficulty levers, rule spec,
+ * and lexicon hashes, which is the point of a provenance record. Server-only —
+ * `servedItemSchema` omits `provenance`.
+ */
+export const provenanceSchema = z.looseObject({
+  generator: z.enum(['grammar', 'llm', 'human']),
+  /** Path of the script/prompt that emitted the item, repo-relative. */
+  generatorRef: z.string().min(1).optional(),
+  /** Grammar reproducibility. */
+  seed: z.string().optional(),
+  /** LLM model id / prompt-hash reference. */
+  model: z.string().optional(),
+  validatorVerdicts: z.array(validatorVerdictSchema).optional(),
+});
 
 // --- Items --------------------------------------------------------------------
 
@@ -153,6 +229,13 @@ export const bankItemSchema = z
     difficulty: difficultyScoreSchema,
     /** Targeting hint for selection (age-band preference). */
     ageBands: z.array(ageBandSchema).min(1),
+    /**
+     * Which renderer presents this item, e.g. `demos/FLU-MATRIX-01.html`
+     * (SPEC §6.1). Bank-relative and advisory: a host may resolve the type to
+     * its own renderer instead. Optional here so engine- and test-constructed
+     * items need not invent one; the research banks all carry it (D-021).
+     */
+    demoPath: z.string().min(1).optional(),
     /** Renderer-agnostic stimulus/config; typed per-type registry is future work. */
     content: z.record(z.string(), z.unknown()),
     /** SERVER-ONLY. */
@@ -504,6 +587,8 @@ export type DifficultyScore = z.infer<typeof difficultyScoreSchema>;
 export type MetricMap = z.infer<typeof metricMapSchema>;
 export type MetricCountMap = z.infer<typeof metricCountMapSchema>;
 export type LureClass = z.infer<typeof lureClassSchema>;
+export type DistractorRationale = z.infer<typeof distractorRationaleSchema>;
+export type DistractorRationaleMap = z.infer<typeof distractorRationaleMapSchema>;
 export type AnswerKey = z.infer<typeof answerKeySchema>;
 export type ScoringMode = z.infer<typeof scoringModeSchema>;
 export type Scoring = z.infer<typeof scoringSchema>;

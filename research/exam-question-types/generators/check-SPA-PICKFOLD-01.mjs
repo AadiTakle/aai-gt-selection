@@ -18,6 +18,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { lureLabel } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/SPA-PICKFOLD-01.jsonl');
@@ -140,9 +141,9 @@ for (const it of items) {
 
   const ans = it.answer || {};
   if (!keys.includes(ans.correctKey)) fail(id, `correctKey "${ans.correctKey}" not an option key`);
-  const rats = ans.distractorRationales || [];
-  if (!Array.isArray(rats) || rats.length !== opts.length) fail(id, 'distractorRationales length != options');
-  else if (rats.filter((r) => r === 'correct').length !== 1) fail(id, 'expected exactly 1 "correct" rationale');
+  const rats = ans.distractorRationales || {};
+  if (Object.keys(rats).length !== opts.length) fail(id, 'distractorRationales do not cover every option');
+  else if (Object.values(rats).filter((r) => lureLabel(r) === 'correct').length !== 1) fail(id, 'expected exactly 1 "correct" rationale');
 
   // Independent recompute: reverse-unfold each option; exactly one must match the target.
   const tgt = targetSignature(c.target.cells);

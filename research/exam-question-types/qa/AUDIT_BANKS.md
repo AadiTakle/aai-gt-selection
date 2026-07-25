@@ -95,33 +95,38 @@ explained, not a relaxed rule.
 Every item must have exactly the BankItem keys, with correct types:
 
 `itemId` (valid uuid, unique within the bank), `typeCode` (matches the file and
-`^[A-Z]+-[A-Z0-9]+-\d+$`), `domain` (one of `fluid_reasoning`, `verbal`,
+`^[A-Z]+-[A-Za-z0-9]+-\d+$`), `domain` (one of `fluid_reasoning`, `verbal`,
 `quantitative`, `spatial`), `difficulty` (finite float within `1..20`),
 `ageBands` (non-empty, values from `K-1`/`2-3`/`4-5`/`6-8`, no duplicates),
-`content` (non-empty object), `answer` (object with `correctKey`), `scoring`
-(known mode), `provenance` (known generator kind), `syntheticOnly === true`,
-`validated === false`.
+`demoPath` (non-empty string), `content` (non-empty object), `answer` (object
+with `correctKey`), `scoring` (known mode), `provenance` (known generator kind),
+`syntheticOnly === true`, `validated === false`.
 
 Any missing required key, any unrecognised extra key, and any bad value is a
 FAIL, reported with the key name and how many items are affected.
 
-#### Known conflict: `demoPath`
+The `typeCode` pattern allows a mixed-case middle segment because 11 catalog
+`type_id`s use a lowercase mnemonic (`WM-bind-01`, `CX-achieve-02`). It matches
+`questionTypeCodeSchema` in `packages/contracts` exactly; if one changes, change
+the other.
 
-`demoPath` is treated as **optional**, and its absence is a WARN rather than a
-FAIL. This is a genuine unresolved conflict in the repo, not a lenient reading:
+#### Resolved: `demoPath` (was a known conflict)
 
-- `docs/architecture/EXAM_ITEM_SCHEMA_SPEC.md` §6.1 lists
-  `demoPath: z.string().min(1)` as a required field.
-- `packages/contracts/src/assessment-exam-adaptive.ts` `bankItemSchema` is
-  `.strict()` and **omits `demoPath` entirely**, which means an item that
-  carries it fails the canonical contract.
+`demoPath` is **required**. It used to be optional here because the repo
+genuinely disagreed with itself — `EXAM_ITEM_SCHEMA_SPEC.md` §6.1 required it,
+`bankItemSchema` was `.strict()` and omitted it, and 49 banks carried it while
+14 did not — and the auditor had no authority to pick a side.
 
-The two cannot both be satisfied. 16 landed banks carry `demoPath` and 14 do
-not. Failing either group would be asserting a resolution the auditor has no
-authority to make, so it reports the split (per bank, and in the cross-bank
-consistency section) and leaves the decision to a governance entry. Once that
-decision exists, move `demoPath` between `REQUIRED_ITEM_KEYS` and
-`OPTIONAL_ITEM_KEYS` at the top of the script.
+D-021 picked one: the contract accepts `demoPath` as optional, the banks all
+carry it, and the spec keeps requiring it. All three sources now agree and the
+auditor enforces the bank half.
+
+This check and the canonical contract are two different guarantees and both are
+worth keeping. This one reads the research tree with a hand-written rule set;
+`packages/contracts/src/bank-conformance.test.ts` parses every bank against the
+real Zod schemas on every `pnpm -r test`. The contract test is what stops the
+banks and the contract drifting apart again; this script is what catches quality
+problems a schema cannot see.
 
 ### 3. Answer-key leakage (security-critical)
 
@@ -169,10 +174,12 @@ For pick-one items:
 
 - **FAIL** — `answer.correctKey` matches **no** option in `content`.
 - **FAIL** — `answer.correctKey` matches **more than one** option.
-- **FAIL** — a non-correct option has **no lure label**. Labels are read from
-  `answer.distractorRationales` (object keyed by option key, or array aligned
-  to option order) or from the option's own `lure`/`fit` field, because
-  different types use different conventions.
+- **FAIL** — a non-correct option has **no lure label**. The label is read from
+  `answer.distractorRationales[<option key>]`, preferring `lureDetail` and
+  falling back to `lureClass` (D-020). The pre-D-020 forms (`lure`, `kind`, a
+  bare string, an array aligned to option order) are still read so the auditor
+  can be pointed at an unmigrated bank, and the option's own `lure`/`fit` field
+  remains a last resort.
 - **FAIL** — the bank's entire distractor vocabulary is a single label. Such a
   bank is not diagnostic: `M-ERRTYPE` / `M-LURETYPE` cannot distinguish
   anything.
@@ -229,12 +236,17 @@ Where `generators/<TYPE>.mjs` exists, the bank should be reproducible from it.
 
 **Banks are never regenerated in place.** Other agents have live working trees
 and an in-place rewrite would collide with them. Instead, the auditor copies
-the single generator file into a throwaway sandbox laid out as
-`<sandbox>/generators/<TYPE>.mjs` with an empty `<sandbox>/banks/`. Every
-generator resolves its output as `<generatorDir>/../banks/<TYPE>.jsonl`, so the
-write lands in the sandbox without the generator needing to support an output
-flag — which matters, because only 9 of the 30 accept `--out`. The sandbox is
-deleted afterwards.
+`generators/` into a throwaway sandbox alongside an empty `<sandbox>/banks/`.
+Every generator resolves its output as `<generatorDir>/../banks/<TYPE>.jsonl`,
+so the write lands in the sandbox without the generator needing to support an
+output flag — which matters, because only 9 of the 30 accept `--out`. The
+sandbox is deleted afterwards.
+
+The whole directory is copied rather than the single `<TYPE>.mjs`, because
+generators import shared modules from it (`item-shape.mjs`,
+`lexicon-child-en.mjs`) and a lone file cannot resolve them. Only `<TYPE>.mjs`
+is executed. Copying one file is what made `GB-WORDFORGE-01` and
+`GB-WORDLADDER-01` report "not verifiable" — they were reproducible all along.
 
 The sandbox root is resolved through `realpathSync`. Several generators gate
 `main()` on `resolve(process.argv[1]) === fileURLToPath(import.meta.url)`,
@@ -280,18 +292,22 @@ reconciling those types.
 
 ## Cross-bank consistency section
 
-After the per-bank details the report prints how the per-type checkers have
-diverged. None of these are item defects on their own — they are the reason a
-single cross-bank definition was needed, and they are what anything consuming
-all 66 banks will have to code around:
+After the per-bank details the report prints where the per-type conventions
+stand. None of these are item defects on their own — they are what anything
+consuming all 66 banks has to code around, and the report is the regression
+guard against the shapes diverging again:
 
-- which banks carry `demoPath` and which do not;
+- which banks carry `demoPath` and which do not (should now be all of them,
+  D-021);
 - whether `answer.correctKey` names an option key, a positional index, or a
-  computed solution value;
-- whether `answer.distractorRationales` is an object keyed by option key or an
-  array aligned to option order;
-- lure labels used outside the contracts `lureClassSchema` enum, which
-  server-side `M-ERRTYPE` / `M-LURETYPE` cannot bucket.
+  computed solution value — still genuinely three conventions;
+- whether `answer.distractorRationales` is keyed or an array (should now be
+  keyed everywhere, D-020);
+- the size of the `lureDetail` vocabulary, which is open **by design**;
+- `lureClass` values outside the contracts `lureClassSchema` enum, which
+  server-side `M-ERRTYPE` / `M-LURETYPE` cannot bucket. This is the line that
+  used to flag the fine-grained labels; after D-020 only the coarse field is
+  held to the enum.
 
 ## Adding a check
 

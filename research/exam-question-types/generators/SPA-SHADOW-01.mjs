@@ -23,6 +23,7 @@
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { serializeBank } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT = resolve(__dirname, '../banks/SPA-SHADOW-01.jsonl');
@@ -297,7 +298,7 @@ function main() {
   const doVerify = process.argv.includes('--verify');
   const items = generate();
   mkdirSync(dirname(OUT), { recursive: true });
-  writeFileSync(OUT, items.map(it => JSON.stringify(it)).join('\n') + '\n');
+  writeFileSync(OUT, serializeBank(items));
   console.log(`[${TYPE_CODE}] wrote ${items.length} items -> ${OUT}`);
   const byLight = {}; for (const it of items) byLight[it.content.question.light] = (byLight[it.content.question.light] || 0) + 1;
   console.log(`[${TYPE_CODE}] light:`, JSON.stringify(byLight));

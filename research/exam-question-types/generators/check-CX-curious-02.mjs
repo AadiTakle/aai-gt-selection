@@ -30,6 +30,7 @@ import {
   buildBank, TYPE_CODE, DOMAIN, ALLOWED_AGE_BANDS, GAP_LURES, STARTERS,
   MAX_WORD_LEN_LOW, MAX_LINE_CHARS_LOW, lineContains,
 } from './CX-curious-02.mjs';
+import { lureLabel, normalizeBankItem } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/CX-curious-02.jsonl');
@@ -153,12 +154,12 @@ for (const it of items) {
   const ratKeys = Object.keys(rats);
   const oids = (opts || []).map((o) => o.id);
   if (ratKeys.length !== oids.length || !oids.every((k) => ratKeys.includes(k))) fail(id, 'rationales do not cover every option');
-  const corrects = ratKeys.filter((k) => rats[k] && rats[k].lure === 'correct');
+  const corrects = ratKeys.filter((k) => rats[k] && lureLabel(rats[k]) === 'correct');
   if (corrects.length !== 1) fail(id, `expected exactly 1 "correct" rationale, got ${corrects.length}`);
   else if (corrects[0] !== ans.correctKey) fail(id, 'the "correct" rationale is not the key');
   for (const k of ratKeys) {
     const r = rats[k];
-    if (!r || !GAP_LURES.has(r.lure)) fail(id, `rationale ${k} has unknown lure "${r && r.lure}"`);
+    if (!r || !GAP_LURES.has(lureLabel(r))) fail(id, `rationale ${k} has unknown lure "${r && lureLabel(r)}"`);
     if (!r || typeof r.why !== 'string' || r.why.length < 10) fail(id, `rationale ${k} has no diagnostic explanation`);
   }
 
@@ -217,7 +218,7 @@ if (items.length && keyFirst / items.length > 0.45) fail('anti-cue', `the gap is
 if (items.length && keyLongest / items.length > 0.6) fail('anti-cue', `the gap is the longest option in ${keyLongest}/${items.length} items`);
 
 // ---- 8. reproducibility ----
-const rebuilt = buildBank();
+const rebuilt = buildBank().map(normalizeBankItem);
 if (rebuilt.length !== items.length) fail('repro', `fresh build has ${rebuilt.length} items, disk has ${items.length}`);
 else {
   for (let i = 0; i < items.length; i++) {

@@ -251,7 +251,7 @@ for (const it of items) {
     if (!rep.ok) fail(id, `canonical program does not solve the world: ${rep.why}`);
   }
   if (!a.acceptedEquivalence || typeof a.acceptedEquivalence.rule !== 'string') fail(id, 'answer.acceptedEquivalence.rule missing');
-  if (!Array.isArray(a.distractorRationales) || a.distractorRationales.length === 0) fail(id, 'distractorRationales (response taxonomy) missing');
+  if (Object.keys(a.distractorRationales || {}).length === 0) fail(id, 'distractorRationales (response taxonomy) missing');
 
   const lvl = it.provenance.levers && it.provenance.levers.level;
   if (lvl) { if (!depthByLevel.has(lvl)) depthByLevel.set(lvl, []); depthByLevel.get(lvl).push(optA); }

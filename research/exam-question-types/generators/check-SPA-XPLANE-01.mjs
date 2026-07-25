@@ -33,6 +33,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { lureLabel } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/SPA-XPLANE-01.jsonl');
@@ -312,7 +313,7 @@ for (const it of items) {
 
   // --- 5. every named error placement must be rejected, chirality recorded ---
   const rats = ans.distractorRationales || {};
-  if (!rats.PLANE || rats.PLANE.lure !== 'correct') fail(id, 'no "correct" rationale for the keyed plane');
+  if (!rats.PLANE || lureLabel(rats.PLANE) !== 'correct') fail(id, 'no "correct" rationale for the keyed plane');
   if (ans.correctKey !== 'PLANE') fail(id, `correctKey must be PLANE, got ${ans.correctKey}`);
   const lureKeys = Object.keys(rats).filter((k) => k !== 'PLANE');
   if (lureKeys.length < 2) fail(id, `only ${lureKeys.length} diagnostic error placements`);

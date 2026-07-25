@@ -19,6 +19,7 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildItem, derivePlacement, drawnMarkRatios } from './QUANT-NUMLINE-01.mjs';
+import { normalizeBankItem } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/QUANT-NUMLINE-01.jsonl');
@@ -115,7 +116,7 @@ for (const it of items) {
   if (!Number.isInteger(rung) || !Number.isInteger(ordinal)) fail(id, `cannot parse rung/ordinal from seed (${it.provenance.seed})`);
   else {
     try {
-      const regen = buildItem(masterSeed, rung, ordinal);
+      const regen = normalizeBankItem(buildItem(masterSeed, rung, ordinal));
       if (!regen) fail(id, 'regeneration produced null');
       else if (!deepEq(regen, it)) fail(id, 'item is NOT reproducible from its provenance (grammar drift)');
     } catch (e) { fail(id, `regeneration threw: ${e.message}`); }

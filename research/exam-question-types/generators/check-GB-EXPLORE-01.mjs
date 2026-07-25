@@ -209,7 +209,7 @@ for (const it of items) {
   if (!ans.equivalence || ans.equivalence.rule !== 'any_minimal_tour') fail(id, 'answer.equivalence (accepted-equivalence rule) missing');
   if (typeof ans.bearingRule !== 'string' || !ans.bearingRule.length) fail(id, 'answer.bearingRule missing (M-VIEWANG not computable server-side)');
   if (!ans.metricSpec || !ans.metricSpec['M-EFF']) fail(id, 'answer.metricSpec missing M-EFF derivation');
-  if (!Array.isArray(ans.distractorRationales) || ans.distractorRationales.length === 0) fail(id, 'response taxonomy missing');
+  if (Object.keys(ans.distractorRationales || {}).length === 0) fail(id, 'response taxonomy missing');
 }
 
 // ---- 4. Coverage ----

@@ -22,6 +22,7 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { genItem, difficultyFromLevers, TEMPLATE_POOL } from './CX-check-01.mjs';
+import { lureLabel, normalizeBankItem } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/CX-check-01.jsonl');
@@ -204,21 +205,21 @@ for (const it of items) {
     // rationales cover every tile and mark exactly the planted ones
     const rats = ans.distractorRationales || {};
     if (Object.keys(rats).length !== tokens.length) fail(id, 'distractorRationales do not cover every tile');
-    const markedPlanted = Object.keys(rats).filter((k) => rats[k] && rats[k].lure === 'planted_error').sort();
+    const markedPlanted = Object.keys(rats).filter((k) => rats[k] && lureLabel(rats[k]) === 'planted_error').sort();
     if (!deepEq(markedPlanted, solvedPlanted)) fail(id, 'rationale planted set != solved planted set');
   }
 
   // -- 5. reproducibility + difficulty derives from levers --
   const lev = (it.provenance && it.provenance.levers) || {};
   try {
-    const regen = genItem({
+    const regen = normalizeBankItem(genItem({
       tokenCount: lev.tokenCount,
       binCount: lev.binCount,
       patternLength: lev.patternLength,
       plantedErrors: lev.plantedErrors,
       subtlety: lev.subtlety,
       seed: it.provenance.seed,
-    });
+    }));
     if (!deepEq(regen, it)) fail(id, 'item is NOT reproducible from its provenance (grammar drift)');
   } catch (e) {
     fail(id, `regeneration threw: ${e.message}`);

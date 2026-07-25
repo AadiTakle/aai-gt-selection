@@ -29,6 +29,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { lureLabel } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/SPA-HIDDENCUBE-01.jsonl');
@@ -154,19 +155,19 @@ for (const it of items) {
   if (rc.total > (c.response ? c.response.max : 0)) fail(id, `total ${rc.total} exceeds the stepper max`);
 
   // 5. Lure table (M-ERRTYPE).
-  const rats = ans.distractorRationales || [];
-  if (!Array.isArray(rats) || rats.length < 2) fail(id, `distractorRationales too few (${rats.length})`);
-  const correctRats = rats.filter((x) => x && x.lure === 'correct');
+  const rats = Object.values(ans.distractorRationales || {});
+  if (rats.length < 2) fail(id, `distractorRationales too few (${rats.length})`);
+  const correctRats = rats.filter((x) => x && lureLabel(x) === 'correct');
   if (correctRats.length !== 1) fail(id, `expected exactly 1 'correct' lure, got ${correctRats.length}`);
   else if (correctRats[0].value !== rc.total) fail(id, `'correct' lure value ${correctRats[0].value} != total ${rc.total}`);
   const vals = rats.map((x) => x && x.value);
   if (new Set(vals).size !== vals.length) fail(id, 'lure values not unique');
   for (const x of rats) {
     if (!isNum(x.value) || x.value < 0 || x.value > c.response.max) fail(id, `lure value out of stepper range (${x.value})`);
-    if (typeof x.lure !== 'string' || !x.lure) fail(id, 'lure label missing');
+    if (typeof lureLabel(x) !== 'string' || !lureLabel(x)) fail(id, 'lure label missing');
     if (typeof x.chirality !== 'string') fail(id, 'lure chirality field missing');
   }
-  const visLure = rats.find((x) => x.lure === 'visible_only_undercount');
+  const visLure = rats.find((x) => lureLabel(x) === 'visible_only_undercount');
   if (rc.visible !== rc.total && !visLure) fail(id, 'missing visible_only_undercount lure');
   if (visLure && visLure.value !== rc.visible) fail(id, `visible_only lure ${visLure.value} != recomputed visible ${rc.visible}`);
   if (!isNum(d.angularDisparityDeg)) fail(id, 'diagnostics.angularDisparityDeg missing (M-ROTSLOPE)');

@@ -26,6 +26,7 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { genItem } from './FLU-CONCEPT-01.mjs';
+import { lureLabel, normalizeBankItem } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/FLU-CONCEPT-01.jsonl');
@@ -246,7 +247,7 @@ for (const it of items) {
     const vs = [4, 2, 1].map((bit) => (m & bit ? 'Y' : 'N')).join('');
     if (vs === ans.correctKey) continue;
     if (!rats[vs]) fail(id, `no rationale for rival verdict string ${vs}`);
-    else if (!ALLOWED_LURES.includes(rats[vs].lure)) fail(id, `unknown lure label "${rats[vs].lure}"`);
+    else if (!ALLOWED_LURES.includes(lureLabel(rats[vs]))) fail(id, `unknown lure label "${lureLabel(rats[vs])}"`);
   }
   if (rats[ans.correctKey]) fail(id, 'the correct verdict string is listed as a distractor');
 
@@ -255,7 +256,7 @@ for (const it of items) {
   const derived = round2(difficultyOf(lev));
   if (Math.abs(derived - it.difficulty) > 0.01) fail(id, `difficulty ${it.difficulty} != derived-from-levers ${derived}`);
   try {
-    const regen = genItem({ ...lev, seed: it.provenance.seed });
+    const regen = normalizeBankItem(genItem({ ...lev, seed: it.provenance.seed }));
     if (!deepEq(regen, it)) fail(id, 'item is NOT reproducible from its provenance (grammar drift)');
   } catch (e) {
     fail(id, `regeneration threw: ${e.message}`);

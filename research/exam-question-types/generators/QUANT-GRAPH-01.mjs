@@ -35,6 +35,7 @@
 import { writeFileSync, readFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { serializeBank } from './item-shape.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const TYPE_CODE = 'QUANT-GRAPH-01';
@@ -495,7 +496,7 @@ function main() {
     perTargetCount[target] = made;
   }
 
-  writeFileSync(outPath, items.map((it) => JSON.stringify(it)).join('\n') + '\n', 'utf8');
+  writeFileSync(outPath, serializeBank(items), 'utf8');
   const v = verifyBank(outPath);
 
   console.log(`\nQUANT-GRAPH-01 bank written: ${outPath}`);

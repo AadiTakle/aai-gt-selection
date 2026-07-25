@@ -15,6 +15,7 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { genItem, difficultyFromLevers, COLORS, FILLS } from './FLU-ANALOGY-01.mjs';
+import { lureLabel, normalizeBankItem } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/FLU-ANALOGY-01.jsonl');
@@ -113,7 +114,7 @@ for (const it of items) {
   const ratKeys = Object.keys(rats);
   if (ratKeys.length !== keys.length || !keys.every((k) => ratKeys.includes(k)))
     fail(id, 'distractorRationales do not cover every option key');
-  const correctRats = ratKeys.filter((k) => rats[k] && rats[k].lure === 'correct');
+  const correctRats = ratKeys.filter((k) => rats[k] && lureLabel(rats[k]) === 'correct');
   if (correctRats.length !== 1) fail(id, `expected exactly 1 "correct" rationale, got ${correctRats.length}`);
   else if (correctRats[0] !== ans.correctKey) fail(id, 'the "correct" rationale key != correctKey');
 
@@ -129,7 +130,7 @@ for (const it of items) {
   // 4. Reproducibility: regenerate from provenance and deep-compare.
   const lev = (it.provenance && it.provenance.levers) || {};
   try {
-    const regen = genItem({ transforms: lev.transforms, distractorSimilarity: lev.distractorSimilarity, seed: it.provenance.seed });
+    const regen = normalizeBankItem(genItem({ transforms: lev.transforms, distractorSimilarity: lev.distractorSimilarity, seed: it.provenance.seed }));
     if (!deepEq(regen, it)) fail(id, 'item is NOT reproducible from its provenance (grammar drift)');
   } catch (e) {
     fail(id, `regeneration threw: ${e.message}`);

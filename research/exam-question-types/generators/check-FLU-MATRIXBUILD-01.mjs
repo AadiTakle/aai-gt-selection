@@ -27,6 +27,7 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { genItem, allConfigs } from './FLU-MATRIXBUILD-01.mjs';
+import { lureLabel, normalizeBankItem } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/FLU-MATRIXBUILD-01.jsonl');
@@ -311,24 +312,24 @@ for (const it of items) {
     fail(id, 'distractorRationales do not cover every picker option key');
   for (const k of ratKeys) {
     const r = rats[k];
-    if (!r || !ALLOWED_LURES.includes(r.lure)) fail(id, `option ${k} has an unknown lure (${r && r.lure})`);
+    if (!r || !ALLOWED_LURES.includes(lureLabel(r))) fail(id, `option ${k} has an unknown lure (${r && lureLabel(r)})`);
     if (!r || !attrs.includes(r.attribute)) fail(id, `option ${k} rationale names a non-constructed attribute`);
   }
   for (const attr of attrs) {
-    const corr = ratKeys.filter((k) => rats[k].attribute === attr && rats[k].lure === 'correct');
+    const corr = ratKeys.filter((k) => rats[k].attribute === attr && lureLabel(rats[k]) === 'correct');
     if (corr.length !== 1) fail(id, `${attr}: expected exactly 1 "correct" rationale, got ${corr.length}`);
   }
 
   // ---- 6. reproducibility from provenance ----
   const lev = (it.provenance && it.provenance.levers) || {};
   try {
-    const regen = genItem({
+    const regen = normalizeBankItem(genItem({
       gridSize: lev.gridSize,
       attrRules: lev.attrRules,
       countMax: lev.countMax,
       perceptualLoad: lev.perceptualLoad,
       seed: it.provenance.seed,
-    });
+    }));
     if (!deepEq(regen, it)) fail(id, 'item is NOT reproducible from its provenance (grammar drift)');
   } catch (e) {
     fail(id, `regeneration threw: ${e.message}`);

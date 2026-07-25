@@ -32,6 +32,7 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildItem } from './QUANT-MIX-01.mjs';
+import { lureLabel, normalizeBankItem } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/QUANT-MIX-01.jsonl');
@@ -210,7 +211,7 @@ for (const it of items) {
   for (const name of zoneNames) {
     const z = zones[name];
     zoneHist[z && z.misconception] = (zoneHist[z && z.misconception] || 0) + 1;
-    if (!z || typeof z.lure !== 'string' || !z.lure) fail(id, `zone ${name} has no lure label (M-LURETYPE)`);
+    if (!z || typeof lureLabel(z) !== 'string' || !lureLabel(z)) fail(id, `zone ${name} has no lure label (M-LURETYPE)`);
     if (!z || typeof z.misconception !== 'string' || !z.misconception) fail(id, `zone ${name} has no misconception label (M-ERRTYPE)`);
     if (!z || !z.counts || !Number.isInteger(z.counts.A) || !Number.isInteger(z.counts.B)) { fail(id, `zone ${name} has no integer counts`); continue; }
     if (z.counts.A < 1 || z.counts.B < 1 || z.counts.A > MAX_ROW_TOKENS || z.counts.B > MAX_ROW_TOKENS) fail(id, `zone ${name} is not reachable within the scoops`);
@@ -236,7 +237,7 @@ for (const it of items) {
   if (!Number.isInteger(rung) || !Number.isInteger(ordinal)) fail(id, `cannot parse rung/ordinal from seed (${it.provenance.seed})`);
   else {
     try {
-      const regen = buildItem(parts[0], rung, ordinal);
+      const regen = normalizeBankItem(buildItem(parts[0], rung, ordinal));
       if (!regen) fail(id, 'regeneration produced null');
       else if (!deepEq(regen, it)) fail(id, 'item is NOT reproducible from its provenance (grammar drift)');
     } catch (e) { fail(id, `regeneration threw: ${e.message}`); }
