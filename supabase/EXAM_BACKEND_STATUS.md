@@ -543,7 +543,23 @@ outcome audit columns.
 - The engine-versus-database convergence behaviour has **not** been simulated against the real
   banks. That an engine-driven battery finishes well below the 120-item guard is a design
   expectation, not a measurement.
-- `apps/web` does not call any of these RPCs yet (§8.4 is the handoff).
+- `apps/web` does not call any of these RPCs yet (§8.4 is the handoff). Verified on
+  `feat/exam-integration` at merge time: a search of `apps/web/src` for `exam_start_session`,
+  `exam_get_next_item`, `exam_submit_response`, `exam_get_scoring_inputs`, and
+  `exam_record_outcome` returns zero hits across 111 files. Two consequences worth stating
+  plainly, because neither is visible from inside `supabase/`:
+  1. **The D-019 payload change breaks no caller today.** Removing `done` and `outcome` from
+     `api.exam_submit_response` is safe to merge precisely because nothing calls it.
+  2. **Answer verification is currently implemented twice, in two tiers.** The app verifies
+     responses in `apps/web/src/app/api/exam-submit/route.ts` by reading the bank JSONL
+     server-side, while `app.exam_score_response` verifies against the server-only key in
+     Postgres. This is the same duplicate-authority defect D-019 removed *within* the
+     database, now present *across* tiers — and it means the answer-key firewall that
+     `121_exam_answer_key_firewall.test.sql` protects with 26 assertions is not actually in
+     the request path. The firewall is correct and tested; it is simply unused. Wiring the
+     app to these RPCs is therefore not just a persistence task, it is what makes the tested
+     security boundary real. Until then, key custody rests on the Next route, which has no
+     equivalent test suite.
 - The in-database fallback selection in `api.exam_get_next_item` still diverges from the engine's
   seeded-RNG selection. Demoting it in a comment is not the same as reconciling it; if the two are
   ever mixed in one session they will produce different traces from identical state.
