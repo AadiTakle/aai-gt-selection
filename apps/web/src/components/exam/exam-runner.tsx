@@ -3,95 +3,96 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { EXAM_BANK, EXAM_DOMAINS, domainLabel, type ExamBankItem } from '@/lib/exam/bank';
-import { accuracyFrom, difficultyFrom, isDemoDone, readMetrics } from '@/lib/exam/harvest';
-import type { ExamItemResult, ExamSummary } from '@/lib/exam/types';
+import { EXAM_BANK, domainLabel } from '@/lib/exam/bank';
+import {
+  GRADE_BANDS,
+  GRADE_BAND_LABEL,
+  syntheticId,
+  type GradeBand,
+  type ItemResult,
+  type ScoredItem,
+  type ServedItem,
+  type SessionScore,
+  type TelemetryEvent,
+} from '@/lib/exam/contract';
+import { examEngine, type SessionState } from '@/lib/exam/engine';
+import { ExamHost, type InboundResult } from '@/lib/exam/messaging';
+import { DEFAULT_EXAM_POLICY, scoreSession } from '@/lib/exam/scoring';
 
 import styles from './exam-runner.module.css';
 
 /**
- * The test-taking portal. Sequences the 8-item battery in a same-origin iframe,
- * harvests each demo's on-screen metrics when it finishes, and posts the whole
- * session to /api/exam-results. A child sees one question at a time with a clear
- * progress header; the collected scores land server-side and in localStorage so
- * the dashboard can reflect completion.
+ * The test-taking portal — an ADAPTIVE, variable-length battery.
+ *
+ * Flow (BUILD_PLAN §1): pick a grade band → seed per-area difficulty →
+ * engine.nextType → engine.nextItem → serve a demo in an iframe over the
+ * postMessage protocol (host→demo init/start; demo→host ready/result/telemetry)
+ * → NO correct/incorrect shown between items → engine.update → engine.isDone
+ * loop → scorer → score + per-area profile screen → POST the full trace.
  *
  * Screening only — never an admission decision (results are validated=false).
+ * The 8 legacy demos still self-render; a temporary bridge (legacy-bridge.ts)
+ * translates their DOM into the protocol until they become pure renderers.
  */
 
-const AGE_BAND = '4-5';
 const MAX_MS_PER_ITEM = 4 * 60 * 1000; // safety valve so a stuck item can't wedge the flow
-const POLL_MS = 400;
 const RESULTS_KEY = 'gt-exam-results';
 
 type Phase = 'intro' | 'running' | 'saving' | 'done' | 'error';
 
-function randomParticipant(): string {
-  // born-synthetic, PII-free participant code
-  return `PART-SYN-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-}
-
-function pct(n: number | null): string {
+function pct(n: number | null | undefined): string {
   return n == null ? '—' : `${Math.round(n * 100)}%`;
 }
 
 export function ExamRunner({
   studentName,
   dashboardHref,
+  gradeBand: initialGradeBand,
 }: {
   studentName: string;
   dashboardHref: string;
+  gradeBand?: GradeBand;
 }) {
   const [phase, setPhase] = useState<Phase>('intro');
-  const [index, setIndex] = useState(0);
-  const [results, setResults] = useState<ExamItemResult[]>([]);
-  const [summary, setSummary] = useState<ExamSummary | null>(null);
+  const [gradeBand, setGradeBand] = useState<GradeBand>(initialGradeBand ?? '4-5');
+  const [current, setCurrent] = useState<ServedItem | null>(null);
+  const [served, setServed] = useState<ServedItem[]>([]);
+  const [results, setResults] = useState<ItemResult[]>([]);
+  const [outcome, setOutcome] = useState<SessionScore | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
-  const sessionRef = useRef({
-    sessionId: '',
-    participantCode: '',
-    startedAt: '',
-  });
-  const advancingRef = useRef(false);
-  // hold the latest finalize() so recordAndAdvance can call it without a cycle
-  const finalizeRef = useRef<(items: ExamItemResult[]) => void>(() => {});
-
-  const current: ExamBankItem | undefined = EXAM_BANK[index];
-
-  // Record one item's harvested result and move to the next (or finish).
-  const recordAndAdvance = useCallback(
-    (item: ExamBankItem, result: Omit<ExamItemResult, 'typeCode' | 'domain'>) => {
-      if (advancingRef.current) return;
-      advancingRef.current = true;
-      setResults((prev) => {
-        const next = [...prev, { typeCode: item.typeCode, domain: item.domain, ...result }];
-        if (next.length >= EXAM_BANK.length) {
-          finalizeRef.current(next);
-        } else {
-          setIndex(next.length);
-          advancingRef.current = false;
-        }
-        return next;
-      });
-    },
-    [],
+  const stateRef = useRef<SessionState | null>(null);
+  const servedRef = useRef<ServedItem[]>([]);
+  const resultsRef = useRef<ItemResult[]>([]);
+  const telemetryRef = useRef<TelemetryEvent[]>([]);
+  const processedRef = useRef<Set<string>>(new Set());
+  const sessionRef = useRef({ sessionId: '', participantCode: '', startedAt: '' });
+  const handleResultRef = useRef<(item: ServedItem, inbound: InboundResult, skipped: boolean) => void>(
+    () => {},
   );
 
-  // POST the completed session, mirror to localStorage, show results.
+  // POST the completed trace, recompute score server-side, show the profile.
   const finalize = useCallback(
-    async (items: ExamItemResult[]) => {
+    async (servedItems: ServedItem[], itemResults: ItemResult[], telemetry: TelemetryEvent[]) => {
       setPhase('saving');
+      const localOutcome = scoreSession(
+        { gradeBand, results: itemResults, servedItems },
+        DEFAULT_EXAM_POLICY,
+      );
       const payload = {
         sessionId: sessionRef.current.sessionId,
         participantCode: sessionRef.current.participantCode,
         studentName,
-        ageBand: AGE_BAND,
+        gradeBand,
         startedAt: sessionRef.current.startedAt,
         finishedAt: new Date().toISOString(),
-        items,
+        itemsServed: servedItems,
+        results: itemResults,
+        telemetry,
+        score: localOutcome,
         syntheticOnly: true as const,
+        validated: false as const,
       };
       try {
         const res = await fetch('/api/exam-results', {
@@ -99,16 +100,17 @@ export function ExamRunner({
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify(payload),
         });
-        const data = (await res.json()) as { ok: boolean; summary?: ExamSummary };
-        if (!res.ok || !data.ok || !data.summary) throw new Error('SAVE_REJECTED');
-        setSummary(data.summary);
+        const data = (await res.json()) as { ok: boolean; outcome?: SessionScore };
+        if (!res.ok || !data.ok) throw new Error('SAVE_REJECTED');
+        const finalOutcome = data.outcome ?? localOutcome;
+        setOutcome(finalOutcome);
         try {
           window.localStorage.setItem(
             RESULTS_KEY,
             JSON.stringify({
               sessionId: payload.sessionId,
               finishedAt: payload.finishedAt,
-              summary: data.summary,
+              outcome: finalOutcome,
             }),
           );
         } catch {
@@ -120,65 +122,125 @@ export function ExamRunner({
         setPhase('error');
       }
     },
-    [studentName],
+    [studentName, gradeBand],
   );
-  useEffect(() => {
-    finalizeRef.current = (items) => void finalize(items);
-  }, [finalize]);
 
-  // Poll the current same-origin demo until it reports "done", then harvest.
+  // Serve the next engine-selected item, or finalize when the battery is done.
+  const serveNext = useCallback(
+    (state: SessionState) => {
+      const done = examEngine.isDone(state);
+      const typeCode = done ? null : examEngine.nextType(state, EXAM_BANK);
+      if (!typeCode) {
+        void finalize(servedRef.current, resultsRef.current, telemetryRef.current);
+        return;
+      }
+      const item = examEngine.nextItem(state, typeCode, EXAM_BANK);
+      servedRef.current = [...servedRef.current, item];
+      setServed(servedRef.current);
+      setCurrent(item);
+    },
+    [finalize],
+  );
+
+  // Record one item's result (no correctness from the client) and advance.
+  const handleResult = useCallback(
+    (item: ServedItem, inbound: InboundResult, skipped: boolean) => {
+      if (processedRef.current.has(item.itemId)) return;
+      processedRef.current.add(item.itemId);
+      const state = stateRef.current;
+      if (!state) return;
+
+      const metrics = inbound.metrics ?? {};
+      const perItemTelemetry = telemetryRef.current.filter((e) => e.itemId === item.itemId);
+      const result: ItemResult = {
+        itemId: item.itemId,
+        typeCode: item.typeCode,
+        domain: item.domain,
+        response: inbound.response ?? { legacyAggregate: true },
+        metrics,
+        telemetry: perItemTelemetry,
+        skipped,
+      };
+      resultsRef.current = [...resultsRef.current, result];
+      setResults(resultsRef.current);
+
+      // Correctness/score are derived here as a stand-in for server re-verification;
+      // for legacy demos M-ACC is the aggregate pass rate for the mini-battery.
+      const acc = metrics['M-ACC'];
+      const score = typeof acc === 'number' && Number.isFinite(acc) ? acc : 0;
+      const scored: ScoredItem = { ...result, correct: score >= 0.5, score, difficulty: item.difficulty };
+
+      const nextState = examEngine.update(state, scored);
+      stateRef.current = nextState;
+      serveNext(nextState);
+    },
+    [serveNext],
+  );
+
+  useEffect(() => {
+    handleResultRef.current = handleResult;
+  }, [handleResult]);
+
+  // Bind the postMessage channel for the current item's iframe.
   useEffect(() => {
     if (phase !== 'running' || !current) return;
-    advancingRef.current = false;
-    const startedItemAt = Date.now();
-    let stopped = false;
+    const iframe = iframeRef.current;
+    if (!iframe) return;
 
-    const finishItem = (skipped: boolean) => {
-      if (stopped) return;
-      stopped = true;
-      const doc = iframeRef.current?.contentDocument;
-      const metrics = doc ? readMetrics(doc) : {};
-      recordAndAdvance(current, {
-        skipped,
-        metrics,
-        accuracy: accuracyFrom(metrics),
-        difficultyReached: difficultyFrom(metrics),
-      });
+    const host = new ExamHost(iframe, {
+      origin: window.location.origin,
+      onReady: () => {
+        host.init(current);
+        host.start();
+      },
+      onResult: (inbound) => handleResultRef.current(current, inbound, false),
+      onTelemetry: (event) => {
+        telemetryRef.current.push({ ...event, itemId: current.itemId });
+      },
+    });
+
+    const onLoad = () => {
+      // Legacy demos don't speak the protocol yet — inject the DOM→postMessage
+      // bridge (a real renderer sets window.__gtExamNativeProtocol and no-ops it).
+      host.installLegacyBridge();
     };
+    iframe.addEventListener('load', onLoad);
+    if (iframe.contentDocument?.readyState === 'complete') host.installLegacyBridge();
 
-    const timer = window.setInterval(() => {
-      const doc = iframeRef.current?.contentDocument;
-      if (doc && isDemoDone(doc)) {
-        window.clearInterval(timer);
-        finishItem(false);
-      } else if (Date.now() - startedItemAt > MAX_MS_PER_ITEM) {
-        window.clearInterval(timer);
-        finishItem(true); // timed out → record what we can, mark skipped
-      }
-    }, POLL_MS);
+    const timeout = window.setTimeout(() => {
+      handleResultRef.current(current, { response: { timedOut: true }, metrics: {} }, true);
+    }, MAX_MS_PER_ITEM);
 
-    // expose a manual skip via a custom event dispatched by the Skip button
-    const onSkip = () => {
-      window.clearInterval(timer);
-      finishItem(true);
-    };
+    const onSkip = () =>
+      handleResultRef.current(current, { response: { skipped: true }, metrics: {} }, true);
     window.addEventListener('gt-exam-skip', onSkip);
 
     return () => {
-      window.clearInterval(timer);
+      host.dispose();
+      iframe.removeEventListener('load', onLoad);
+      window.clearTimeout(timeout);
       window.removeEventListener('gt-exam-skip', onSkip);
     };
-  }, [phase, current, recordAndAdvance]);
+  }, [phase, current]);
 
   function start() {
+    const state = examEngine.startState(gradeBand);
+    stateRef.current = state;
     sessionRef.current = {
-      sessionId: randomParticipant().replace('PART', 'SESS'),
-      participantCode: randomParticipant(),
+      sessionId: syntheticId('SESS'),
+      participantCode: syntheticId('PART'),
       startedAt: new Date().toISOString(),
     };
+    servedRef.current = [];
+    resultsRef.current = [];
+    telemetryRef.current = [];
+    processedRef.current = new Set();
+    setServed([]);
     setResults([]);
-    setIndex(0);
+    setOutcome(null);
+    setError(null);
     setPhase('running');
+    serveNext(state);
   }
 
   // ---- intro ---------------------------------------------------------------
@@ -190,10 +252,28 @@ export function ExamRunner({
             <p className={styles.kicker}>Adaptive screening</p>
             <h1 className={styles.title}>Ready to begin, {studentName}?</h1>
             <p className={styles.lede}>
-              You’ll see {EXAM_BANK.length} short activities across four kinds of thinking. Each one
-              shows you how it works first, with a practice round that doesn’t count. Questions get
-              harder or easier as you go, so the level always fits. Take your time.
+              This is a short, adaptive session across four kinds of thinking. It starts at your
+              grade level, then gets harder or easier as you go — so the level always fits. There is
+              no fixed number of questions; it stops once we have enough to see your strengths.
             </p>
+
+            <p className={styles.cardKicker}>Choose your grade</p>
+            <div className={styles.gradeGrid} role="group" aria-label="Grade band">
+              {GRADE_BANDS.map((band) => (
+                <button
+                  key={band}
+                  type="button"
+                  className={`${styles.gradeOption} ${
+                    band === gradeBand ? styles.gradeOptionActive : ''
+                  }`}
+                  aria-pressed={band === gradeBand}
+                  onClick={() => setGradeBand(band)}
+                >
+                  {GRADE_BAND_LABEL[band]}
+                </button>
+              ))}
+            </div>
+
             <button type="button" className={styles.primary} onClick={start}>
               Start the assessment →
             </button>
@@ -210,8 +290,8 @@ export function ExamRunner({
     );
   }
 
-  // ---- results -------------------------------------------------------------
-  if (phase === 'done' && summary) {
+  // ---- results (score + per-area profile) ----------------------------------
+  if (phase === 'done' && outcome) {
     return (
       <div className={styles.wrap}>
         <section className={styles.hero}>
@@ -219,8 +299,9 @@ export function ExamRunner({
             <p className={styles.kicker}>Screening complete</p>
             <h1 className={styles.title}>Nice work, {studentName}.</h1>
             <p className={styles.lede}>
-              Every activity is done and your session has been saved. Here’s a synthetic summary of
-              what we saw. A person reviews these signals before any next step.
+              Every activity is done and your session has been saved. Here’s a synthetic profile of
+              what we saw across the four reasoning areas. A person reviews these signals before any
+              next step.
             </p>
           </div>
         </section>
@@ -228,43 +309,68 @@ export function ExamRunner({
         <section className={styles.summaryCard}>
           <div className={styles.summaryTop}>
             <div>
-              <p className={styles.cardKicker}>Overall accuracy</p>
-              <p className={styles.bigStat}>{pct(summary.overallAccuracy)}</p>
+              <p className={styles.cardKicker}>Composite proficiency</p>
+              <p className={styles.bigStat}>
+                {outcome.composite.toFixed(1)}
+                <span className={styles.statSub}>/20</span>
+              </p>
+              <p className={styles.frameNote}>{outcome.compositeBracketLabel}</p>
             </div>
             <div>
               <p className={styles.cardKicker}>Activities answered</p>
-              <p className={styles.bigStat}>
-                {summary.itemsAnswered}
-                <span className={styles.statSub}>/{EXAM_BANK.length}</span>
-              </p>
+              <p className={styles.bigStat}>{results.length}</p>
             </div>
             <div>
-              <p className={styles.cardKicker}>Avg. difficulty reached</p>
-              <p className={styles.bigStat}>
-                {summary.meanDifficultyReached == null
-                  ? '—'
-                  : summary.meanDifficultyReached.toFixed(1)}
-                <span className={styles.statSub}>/6</span>
+              <p className={styles.cardKicker}>Grade band</p>
+              <p className={styles.bigStat} style={{ fontSize: '1.4rem' }}>
+                {GRADE_BAND_LABEL[outcome.gradeBand]}
               </p>
             </div>
           </div>
 
-          <p className={styles.cardKicker}>By reasoning area</p>
+          <p className={styles.cardKicker}>By reasoning area (proficiency θ /20)</p>
           <div className={styles.domainBars}>
-            {EXAM_DOMAINS.map((d) => {
-              const acc = summary.perDomainAccuracy[d];
-              return (
-                <div key={d} className={styles.domainBar}>
-                  <div className={styles.domainBarHead}>
-                    <span>{domainLabel(d)}</span>
-                    <span className={styles.domainBarPct}>{acc == null ? '—' : pct(acc)}</span>
-                  </div>
-                  <div className={styles.track}>
-                    <div className={styles.fill} style={{ width: `${(acc ?? 0) * 100}%` }} />
-                  </div>
+            {outcome.perArea.map((area) => (
+              <div key={area.area} className={styles.domainBar}>
+                <div className={styles.domainBarHead}>
+                  <span>{domainLabel(area.area)}</span>
+                  <span className={styles.domainBarPct}>
+                    {area.proficiency.toFixed(1)} · {area.bracketLabel} · acc {pct(area.accuracy)}
+                  </span>
                 </div>
-              );
-            })}
+                <div className={styles.track}>
+                  <div
+                    className={styles.fill}
+                    style={{ width: `${(area.proficiency / 20) * 100}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className={styles.profileGrid}>
+            <div className={styles.profileItem}>
+              <p className={styles.profileLabel}>Strengths</p>
+              <div className={styles.chips}>
+                {outcome.profile.strengths.length ? (
+                  outcome.profile.strengths.map((s) => (
+                    <span key={s} className={styles.chip}>
+                      {domainLabel(s)}
+                    </span>
+                  ))
+                ) : (
+                  <span className={styles.chip}>Even profile</span>
+                )}
+              </div>
+            </div>
+            <div className={styles.profileItem}>
+              <p className={styles.profileLabel}>Consistency</p>
+              <p className={styles.profileValue}>{pct(outcome.profile.consistency)}</p>
+            </div>
+            <div className={styles.profileItem}>
+              <p className={styles.profileLabel}>Learning rate</p>
+              <p className={styles.profileValue}>{outcome.profile.learningRate.toFixed(2)}</p>
+            </div>
           </div>
         </section>
 
@@ -272,7 +378,8 @@ export function ExamRunner({
           Return to portal →
         </Link>
         <p className={styles.boundary}>
-          Synthetic screening result (validated=false). A screen indicates likely fit; it is not an
+          Synthetic screening result (validated=false). Accuracy sets each area’s bracket; other
+          metrics position the score within it. A screen indicates likely fit; it is not an
           admission decision and is not evidence of program impact.
         </p>
       </div>
@@ -285,7 +392,7 @@ export function ExamRunner({
       <div className={styles.wrap}>
         <section className={styles.centered}>
           <div className={styles.spinner} aria-hidden="true" />
-          <p>Saving your session…</p>
+          <p>Scoring your session…</p>
         </section>
       </div>
     );
@@ -296,7 +403,13 @@ export function ExamRunner({
         <section className={styles.centered}>
           <h1 className={styles.title}>We hit a snag</h1>
           <p className={styles.lede}>{error}</p>
-          <button type="button" className={styles.primary} onClick={() => void finalize(results)}>
+          <button
+            type="button"
+            className={styles.primary}
+            onClick={() =>
+              void finalize(servedRef.current, resultsRef.current, telemetryRef.current)
+            }
+          >
             Try saving again
           </button>
           <Link className={styles.ghost} href={dashboardHref}>
@@ -309,15 +422,15 @@ export function ExamRunner({
 
   // ---- running -------------------------------------------------------------
   const answered = results.length;
+  const meta = current ? EXAM_BANK.find((b) => b.typeCode === current.typeCode) : undefined;
   return (
     <div className={styles.runWrap}>
       <header className={styles.runHead}>
         <div>
           <p className={styles.kicker}>
-            Question {answered + 1} of {EXAM_BANK.length} ·{' '}
-            {current ? domainLabel(current.domain) : ''}
+            Question {answered + 1} · {current ? domainLabel(current.domain) : ''}
           </p>
-          <p className={styles.runTitle}>{current?.title}</p>
+          <p className={styles.runTitle}>{meta?.title}</p>
         </div>
         <button
           type="button"
@@ -329,9 +442,9 @@ export function ExamRunner({
       </header>
 
       <div className={styles.progress} aria-hidden="true">
-        {EXAM_BANK.map((item, i) => (
+        {served.map((item, i) => (
           <span
-            key={item.typeCode}
+            key={item.itemId}
             className={`${styles.seg} ${i < answered ? styles.segDone : ''} ${
               i === answered ? styles.segActive : ''
             }`}
@@ -341,17 +454,17 @@ export function ExamRunner({
 
       {current ? (
         <iframe
-          key={current.typeCode}
+          key={current.itemId}
           ref={iframeRef}
-          title={`${current.title} question`}
+          title={`${meta?.title ?? current.typeCode} question`}
           src={current.demoPath}
           className={styles.frame}
         />
       ) : null}
 
       <p className={styles.frameNote}>
-        {current?.blurb} · Difficulty adjusts to each answer. This is a synthetic screening
-        activity.
+        {meta?.blurb} · Adaptive — the battery length adjusts to your answers. This is a synthetic
+        screening activity; results are not shown between questions.
       </p>
     </div>
   );
