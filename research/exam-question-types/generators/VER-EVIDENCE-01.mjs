@@ -817,7 +817,18 @@ export function validateItems(items) {
     if (!it.content.options.every((o) => rats[o.key]) || !it.content.passage.sentences.every((s) => rats[s.key])) {
       errors.push(`${where}: rationales do not cover every selectable key`);
     }
-    if (JSON.stringify(it.content).includes('"lure"')) errors.push(`${where}: content leaks lure data`);
+    // Match every spelling the label has had. This firewall was written against
+    // the pre-D-020 `"lure"` field, and D-020 renamed it to lureClass/lureDetail
+    // — neither of which contains the substring `"lure"` including its closing
+    // quote. So the one check standing between a rationale and the client could
+    // no longer fail, and passed for that reason rather than because content
+    // was clean.
+    const leakedLabels = ['"lure"', '"lureClass"', '"lureDetail"', '"kind"'].filter((field) =>
+      JSON.stringify(it.content).includes(field),
+    );
+    if (leakedLabels.length) {
+      errors.push(`${where}: content leaks lure data (${leakedLabels.join(', ')})`);
+    }
   });
 
   const short = Object.entries(bins).filter(([b, n]) => Number(b) <= 19 && n < 5);
