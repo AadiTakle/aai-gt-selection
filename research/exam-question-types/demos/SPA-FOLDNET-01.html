@@ -20,6 +20,13 @@
 #mlist{padding:8px 12px;display:grid;gap:7px}.mrow{display:grid;grid-template-columns:112px 1fr;gap:6px}.mid{color:#7fffcf;font-weight:800}.mval{color:#fff;text-align:right;overflow-wrap:anywhere}.mname{grid-column:1/3;color:#7b82aa;font-size:11px;margin-top:-4px}#logwrap{border-top:1px solid #2b304e;margin-top:auto}#logwrap b{display:block;padding:8px 12px 4px;color:#888fb8;font-size:11px;letter-spacing:.08em}#log{height:200px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}#log div{padding:3px 0;border-bottom:1px dotted #272c48}#log .t{color:#666d98}
 @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;min-height:0;height:325px;flex:none}}@media(max-width:600px){#work{grid-template-columns:1fr}.panel{height:205px}#options{grid-template-columns:1fr 1fr}.option{min-height:82px}.solidIcon{height:58px}.swatch{height:56px}}@media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
 </style>
+<style>html[data-gt-telemetry="off"] #telemetry{display:none}</style>
+<script>/* D-028 — the researcher telemetry panel is presentational only. Embedded in the
+   child-facing screener it is hidden: naming the behavioural metrics to the child can
+   change the behaviour being measured. `?telemetry=1` restores it for a live
+   demonstration, and standalone (opened directly) is unchanged. Sampling, metric
+   computation and the {type:'telemetry'} postMessage stream are untouched. */
+(function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
 </head>
 <body>
 <div id="wrap">
