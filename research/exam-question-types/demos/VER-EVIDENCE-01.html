@@ -4,90 +4,135 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>VER-EVIDENCE-01 · Proof Hunt</title>
+<!--
+  VER-EVIDENCE-01 (Proof Hunt) — PURE RENDERER.
+
+  This demo no longer holds its own passages, questions or answer key. It renders a
+  ServedItem's `content` (passage split into tappable sentences, question, options)
+  and reports the child's two-part raw selection plus process telemetry. Whether the
+  answer and the cited sentence are right — and the partial credit between them — is
+  SERVER-authoritative and is never computed or shown here.
+
+  Embedding protocol (postMessage; source-tagged gt-exam-host / gt-exam-demo):
+    host -> demo : {source:'gt-exam-host', type:'init',  item: ServedItem}
+                   {source:'gt-exam-host', type:'start'}
+    demo -> host : {source:'gt-exam-demo', type:'ready'}
+                   {source:'gt-exam-demo', type:'telemetry', event: TelemetryEvent}
+                   {source:'gt-exam-demo', type:'result',    result: ItemResult}
+
+  ServedItem = { itemId, typeCode, domain, difficulty, ageBands?, content }
+    content = { passage:{title, sentences:[{key,text}]}, question:{text},
+                options:[{key,text}], evidenceMode, evidencePrompt, vocabularyLevel }
+    (NOTE: options and sentences carry text only — no lure class, no key.)
+
+  ItemResult = { itemId, typeCode, domain,
+                 response:{answerKey, evidenceKey, answerChanges, evidenceChanges,
+                           sentenceTapPath, optionsSeen, inputModality},
+                 metrics:{'M-RT','M-RTFIRST','M-REV','M-PATH','M-VOCABLVL'},
+                 telemetry:[TelemetryEvent] }
+
+  D-017: reading is a required baseline-literacy gate. This type previously reached
+  K-1 through a narrated story with comic panels; that is prohibited, so the floor is
+  grade 2 and the passage is on-screen TEXT at every band. This file contains no
+  playback control of any kind and no picture-panel evidence mode.
+
+  Standalone fallback: opened by double-click (no host), it plays built-in sample
+  ServedItems locally and logs the emitted results/telemetry on-page.
+-->
 <style>
-  :root{--bg1:#eef4ff;--bg2:#f7ecff;--ink:#26304a;--card:#fff;--accent:#5b6cff;--good:#22b573;--bad:#ff6b6b;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  :root{--bg1:#eef4ff;--bg2:#f7ecff;--ink:#26304a;--card:#fff;--accent:#5b6cff;--good:#22b573;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
   *{box-sizing:border-box} html,body{margin:0;height:100%}
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
-  #howto{max-width:700px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+  #howto{max-width:720px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
   #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
   #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
   #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:#5b6cff;border:2px solid #c9d0ff;min-height:30px}
-  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
-  #phasecue[data-phase="scored"]{background:#5b6cff;color:#fff;border-color:#5b6cff}
-  #phasecue[data-phase="done"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
+  #phasecue[data-phase="ready"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="answer"]{background:#eef1ff;color:#5b6cff;border-color:#c9d0ff}
+  #phasecue[data-phase="proof"]{background:#eafaf1;color:#1c8f57;border-color:#bfe8cf}
+  #phasecue[data-phase="demo"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
+  #phasecue[data-phase="done"]{background:#5b6cff;color:#fff;border-color:#5b6cff}
   #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
-  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
-  #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:stretch;gap:14px;max-width:700px;width:100%}
+  #status.ok{color:var(--good)} #status.neutral{color:#8a93b5}
+  #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:stretch;gap:14px;max-width:720px;width:100%}
   .band{border-radius:16px;padding:14px 18px;display:flex;flex-direction:column;gap:8px;width:100%}
-  #passageBand{background:linear-gradient(160deg,#eafaf1,#eef1ff);border:3px solid #bfe8cf;font-size:16px;line-height:1.7}
-  #passageBand .sent{cursor:pointer;padding:2px 4px;border-radius:6px;transition:.12s}
-  #passageBand .sent:hover{background:#dfeeff}
-  #passageBand .sent.ev{background:#c8f3d8;box-shadow:inset 0 0 0 2px var(--good)}
-  #passageBand .sent.correctEv{box-shadow:inset 0 0 0 3px var(--good);background:#c8f3d8}
-  #passageBand .sent.wrongEv{box-shadow:inset 0 0 0 3px var(--bad);background:#ffe1e1}
+  #passageBand{background:linear-gradient(160deg,#eafaf1,#eef1ff);border:3px solid #bfe8cf;font-size:16px;line-height:1.85}
+  #passageTitle{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#6f8ba0;font-weight:800}
+  #passageText .sent{cursor:pointer;padding:3px 5px;border-radius:6px;transition:.12s;border:2px solid transparent}
+  #passageText .sent:hover{background:#dfeeff}
+  #passageText .sent.ev{background:#c8f3d8;border-color:var(--good)}
+  #passageText.locked .sent{cursor:default}
   #qBand{background:linear-gradient(160deg,#e8f0ff,#f2ecff);border:3px solid #cfd8ff;align-items:center}
-  #qText{font-size:19px;font-weight:700;text-align:center}
-  #optsBand{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
-  .opt{display:flex;align-items:center;gap:6px;background:#f4f6ff;border:3px solid #d7deff;border-radius:14px;padding:10px 14px;cursor:pointer;font-size:14px;position:relative}
-  .opt .hk{font-size:10px;color:#a7b0d8;font-weight:700;position:absolute;top:2px;left:5px}
+  #stepcue{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#8a93b5;text-align:center;font-weight:800}
+  #qText{font-size:18px;font-weight:700;text-align:center}
+  #optsBand{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+  .opt{display:flex;align-items:center;gap:6px;background:#f4f6ff;border:3px solid #d7deff;border-radius:14px;padding:10px 14px 10px 22px;cursor:pointer;font-size:14px;position:relative;max-width:330px}
+  .opt .hk{font-size:10px;color:#a7b0d8;font-weight:700;position:absolute;top:3px;left:6px}
   .opt.sel{border-color:var(--accent);background:#e7ecff}
-  .opt.correct{border-color:var(--good);background:#eafaf1}
-  .opt.wrong{border-color:var(--bad);background:#fff0f0}
-  #stepcue{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#8a93b5;text-align:center}
+  .opt.locked{cursor:default;opacity:.9}
+  #picks{display:flex;gap:12px;justify-content:center;font-size:12px;color:#6b76a8;flex-wrap:wrap}
+  #picks span b{color:#3a4a70}
+  #diffmeter{width:100%;display:flex;align-items:center;gap:8px;font-size:11px;color:#8a93b5}
+  #diffbar{flex:1;height:8px;background:#e4e9ff;border-radius:6px;overflow:hidden}
+  #diffbar i{display:block;height:100%;background:linear-gradient(90deg,#5b6cff,#ff8fd0);width:0%;transition:.3s}
+  #diffval{min-width:96px;text-align:right;font-weight:700;color:#6b76a8}
   #controls{display:flex;gap:16px;align-items:center;justify-content:center}
   button.rd{font:inherit;border:0;cursor:pointer;border-radius:50%}
   #go{width:64px;height:64px;background:var(--accent);color:#fff;font-size:26px;box-shadow:0 10px 24px -8px var(--accent);opacity:.35;pointer-events:none;transition:.2s}
   #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.1s infinite}
-  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
   #replay{width:50px;height:50px;background:#eef1ff;color:#5b6cff;font-size:22px}
-  .shake{animation:shake .4s}@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
-  #ghost{position:fixed;left:0;top:0;font-size:40px;pointer-events:none;z-index:60;opacity:0;transition:transform .55s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:60;opacity:0;transition:transform .55s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
   #ghost.show{opacity:.92}
   #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
   #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
-  #diffmeter{width:100%;display:flex;align-items:center;gap:8px;font-size:11px;color:#8a93b5}
-  #diffbar{flex:1;height:8px;background:#e4e9ff;border-radius:6px;overflow:hidden}
-  #diffbar i{display:block;height:100%;background:linear-gradient(90deg,#5b6cff,#ff8fd0);width:0%;transition:.3s}
   #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
   #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #chan{padding:6px 14px;font-size:11px;color:var(--tel-dim);border-bottom:1px solid #262f52}
+  #chan b{color:var(--tel-key)}
   #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
-  .mrow{display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:baseline}
+  .mrow{display:grid;grid-template-columns:110px 1fr;gap:8px;align-items:baseline}
   .mid{color:var(--tel-key);font-weight:700}
   .mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
   #logwrap{border-top:1px solid #262f52;margin-top:auto}
   #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
-  #log{height:210px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log{height:190px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
   #log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
-  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:320px}}
 </style>
 </head>
 <body>
   <div id="wrap">
-    <div id="badge">VER-EVIDENCE-01 · Proof Hunt</div>
+    <div id="badge">VER-EVIDENCE-01 &middot; Proof Hunt</div>
     <header id="howto">
-      <h1>How to use — Proof Hunt</h1>
-      <p>Read the short story and the question. Tap the best answer, then tap the sentence in the story that proves it, and press the check (<b>✓</b>). You can also press number keys for the answer.</p>
+      <h1>How to use &mdash; Proof Hunt</h1>
+      <p>Read the story, then read the question. First tap the best answer (or press its number key). Then tap the one sentence in the story that <b>proves</b> your answer &mdash; it turns green, and tapping another sentence moves the proof. When you have both, press the check (<b>&#10003;</b>). You need the right answer <b>and</b> the right proof.</p>
     </header>
-    <div id="phasecue" data-phase="demo">Watch the example</div>
+    <div id="phasecue" data-phase="ready">Ready</div>
     <div id="stagecard">
-      <div id="passageBand" class="band"></div>
+      <div id="passageBand" class="band">
+        <div id="passageTitle"></div>
+        <div id="passageText"></div>
+      </div>
       <div id="qBand" class="band">
-        <div id="stepcue">Pick the answer</div>
+        <div id="stepcue">Step 1 &mdash; pick the answer</div>
         <div id="qText"></div>
         <div id="optsBand"></div>
       </div>
-      <div id="diffmeter"><span>Easy</span><div id="diffbar"><i id="diffbarfill"></i></div><span>Hard</span></div>
+      <div id="picks"><span>Answer: <b id="pickAns">not chosen</b></span><span>Proof: <b id="pickEv">not chosen</b></span></div>
+      <div id="diffmeter"><span>Easy</span><div id="diffbar"><i id="diffbarfill"></i></div><span>Hard</span><span id="diffval">level &mdash; / 20</span></div>
       <div id="controls">
-        <button class="rd" id="replay" title="replay demo">↻</button>
-        <button class="rd" id="go" title="submit">✓</button>
+        <button class="rd" id="replay" title="replay how-to">&#8635;</button>
+        <button class="rd" id="go" title="submit">&#10003;</button>
       </div>
-      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+      <div id="status" class="neutral">Waiting for the first item&hellip;</div>
     </div>
   </div>
   <aside id="telemetry">
-    <h3>Live telemetry · per-child</h3>
+    <h3>Live telemetry &middot; per-child</h3>
+    <div id="chan">channel: <b id="chanval">standalone</b> &middot; source-tag <b>gt-exam-demo</b></div>
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
@@ -96,96 +141,238 @@
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0,last=a=>a[a.length-1];
 
-/* ---------- 2 reused passages, escalating depth items ---------- */
-const PASSAGES=[
- ['Mia packed her backpack the night before the field trip.','She set two alarms so she would not oversleep.','In the morning, she was the first one ready by the door.','Her little brother was still eating breakfast when the bus honked outside.'],
- ['The class planted sunflower seeds in small cups by the window.','Every day, Ben checked the soil and added a little water.','After two weeks, tiny green sprouts poked out of the dirt.',"Ben's plant grew taller than everyone else's by the end of the month."],
-];
-const DEPTH_RANK={literal:0,bridging:1,global:2};
-const ITEMS=[
- {lvl:1,p:0,depth:'literal',q:'What did Mia do the night before the trip?',opts:['Packed her backpack','Ate a big breakfast','Missed the bus'],ans:0,ev:0,lure:3,lureType:'off-topic'},
- {lvl:2,p:1,depth:'literal',q:'Where did the class plant the seeds?',opts:['In small cups by the window','In a garden outside','In a paper bag'],ans:0,ev:0,lure:2,lureType:'off-topic'},
- {lvl:3,p:0,depth:'bridging',q:'How do we know Mia was well-prepared for the trip?',opts:['She was ready before anyone else','She ate breakfast quickly','She missed her alarm'],ans:0,ev:2,lure:3,lureType:'plausible-unsupported'},
- {lvl:4,p:1,depth:'bridging',q:"Why did Ben's plant grow the tallest?",opts:['He took good care of it every day','The seeds were magic','His window was the only sunny one'],ans:0,ev:1,lure:2,lureType:'plausible-unsupported'},
- {lvl:5,p:0,depth:'global',q:"What is probably true about Mia's personality?",opts:['She is responsible and organized','She is careless','She dislikes field trips'],ans:0,ev:1,lure:3,lureType:'plausible-unsupported'},
- {lvl:6,p:1,depth:'global',q:'What is this passage mostly trying to show?',opts:['Taking care of something helps it grow','How to plant sunflowers','Ben dislikes gardening'],ans:0,ev:1,lure:0,lureType:'surface-match'},
-];
-function byLevel(l){return ITEMS.find(it=>it.lvl===l);}
+/* ---------------- embedding channel (postMessage) ---------------- */
+const SRC_HOST='gt-exam-host', SRC_DEMO='gt-exam-demo';
+const embedded=!!(window.parent&&window.parent!==window);
+let hostSeen=false;
+function post(type,payload){
+  const msg=Object.assign({source:SRC_DEMO,type},payload||{});
+  if(embedded){try{window.parent.postMessage(msg,'*');}catch(e){}}
+}
 
-/* ---------- telemetry state ---------- */
-const T={scored:0,full:0,rts:[],firstRt:[],polys:[],path:[],revA:0,revE:0,maxLevel:1,bestDepthRank:-1,bestDepth:'\u2014',lastErr:'\u2014',itemStart:0,firstActionAt:null};
-function polyStr(){if(!T.polys.length)return '\u2014';return `${mean(T.polys)/100*1}`.slice(0,4)+`  (last ${T.polys[T.polys.length-1]})`;}
+/* ---------------- item state ---------------- */
+let item=null,content=null,options=[],sentences=[],
+    selAns=null,selEv=null,ansChanges=0,evChanges=0,tapPath=[],optionsSeen=new Set(),
+    itemStart=0,firstAt=null,telemetryLog=[],locked=true,resultSent=false,inputModality='tap';
+
+function recordEv(ev){ev.t=itemStart?Date.now()-itemStart:0;telemetryLog.push(ev);post('telemetry',{event:ev});}
+function log(msg){const t=itemStart?Date.now()-itemStart:0;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+
+/* ---------------- phase + status (worded, no emoji) ---------------- */
+const PHASE={ready:'Ready',demo:'How it works',answer:'Step 1 &mdash; answer',proof:'Step 2 &mdash; proof',done:'Answer sent'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.innerHTML=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+
+/* ---------------- telemetry meters ---------------- */
 const METERS=[
- {id:'M-ACC',name:'Full-credit accuracy (answer+evidence)',get:()=>T.scored?`${T.full}/${T.scored}  ${Math.round(100*T.full/T.scored)}%`:'\u2014'},
- {id:'M-POLY',name:'Partial credit (0 / 0.5 / 1 per item)',get:()=>T.polys.length?`${T.polys.join(', ')}`:'\u2014'},
- {id:'M-RT',name:'Response time — total',get:()=>T.rts.length?`${last(T.rts)} ms  (mean ${mean(T.rts)})`:'\u2014'},
- {id:'M-RTFIRST',name:'First-action latency',get:()=>T.firstRt.length?`${last(T.firstRt)} ms`:'\u2014'},
- {id:'M-INFDEPTH',name:'Deepest inference w/ full credit',get:()=>T.bestDepth},
- {id:'M-PATH',name:'Sentence-tap path',get:()=>T.path.length?T.path.slice(-6).join(' \u2192 '):'\u2014'},
- {id:'M-ERRTYPE',name:'Last error type',get:()=>T.lastErr},
- {id:'M-REV',name:'Revisions (answer+evidence changes)',get:()=>`${T.revA+T.revE}  (ans ${T.revA} / evid ${T.revE})`},
+ {id:'M-ACC',name:'Full credit (answer + proof) — server-side',get:()=>'server-side'},
+ {id:'M-POLY',name:'Partial credit 0 / 0.5 / 1 — server-side',get:()=>'server-side'},
+ {id:'M-INFDEPTH',name:'Deepest inference proved — server-side',get:()=>'server-side'},
+ {id:'M-ERRTYPE',name:'Lure class chosen — server-side',get:()=>'server-side'},
+ {id:'M-RT',name:'Time on this item',get:()=>itemStart?`${Date.now()-itemStart} ms`:'\u2014'},
+ {id:'M-RTFIRST',name:'First-action latency',get:()=>firstAt?`${firstAt-itemStart} ms`:'\u2014'},
+ {id:'M-PATH',name:'Sentences tapped, in order',get:()=>tapPath.length?tapPath.slice(-6).join(' \u2192 '):'\u2014'},
+ {id:'M-REV',name:'Revisions (answer / proof changes)',get:()=>`${ansChanges+evChanges}  (ans ${ansChanges} / proof ${evChanges})`},
+ {id:'M-VOCABLVL',name:'Lexical level of this passage',get:()=>content&&content.vocabularyLevel?`band ${content.vocabularyLevel} / 7`:'\u2014'},
+ {id:'M-LURETYPE',name:'Lure profile — labelled server-side',get:()=>'server-side'},
 ];
 function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
-function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});$('#diffbarfill').style.width=(T.maxLevel/6*100)+'%';}
-function log(msg){const t=Date.now()-T.itemStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
-const ghost=$('#ghost');function ghostShow(v){ghost.classList.toggle('show',v);}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});}
+
+/* ---------------- rendering ---------------- */
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function difficultyOf(it){const d=(it&&it.difficulty!=null)?it.difficulty:0;return +d||0;}
+
+function setItem(served){
+  item=served;content=(served&&served.content)||{};
+  options=(content.options||[]).slice();
+  sentences=((content.passage&&content.passage.sentences)||[]).slice();
+  selAns=null;selEv=null;ansChanges=0;evChanges=0;tapPath=[];optionsSeen=new Set();
+  itemStart=Date.now();firstAt=null;telemetryLog=[];resultSent=false;locked=false;
+  $('#passageTitle').textContent=(content.passage&&content.passage.title)||'';
+  $('#passageText').classList.remove('locked');
+  $('#passageText').innerHTML=sentences.map(s=>`<span class="sent" data-key="${s.key}">${esc(s.text)}</span>`).join(' ');
+  $('#qText').textContent=(content.question&&content.question.text)||'';
+  $('#optsBand').innerHTML=options.map((o,i)=>`<div class="opt" data-key="${o.key}"><span class="hk">${i+1}</span>${esc(o.text)}</div>`).join('');
+  $('#stepcue').textContent='Step 1 \u2014 pick the answer';
+  $('#pickAns').textContent='not chosen';$('#pickEv').textContent='not chosen';
+  const d=difficultyOf(served);
+  $('#diffbarfill').style.width=Math.max(0,Math.min(100,d/20*100))+'%';
+  $('#diffval').textContent='level '+(Math.round(d*10)/10)+' / 20';
+  $('#go').classList.remove('ready');
+  setCue('answer');
+  setStatus('neutral','Read the story, then choose the answer. After that, tap the sentence that proves it.');
+  log(`INIT item ${served&&served.itemId?served.itemId:'(no id)'} \u00b7 ${sentences.length} sentences \u00b7 ${options.length} options \u00b7 lexical band ${content.vocabularyLevel} \u00b7 level ${Math.round(d*10)/10}`);
+  recordEv({kind:'shown',itemId:served&&served.itemId,sentenceCount:sentences.length,optionCount:options.length});
+  renderMeters();
+}
+
+function markFirst(){if(firstAt===null){firstAt=Date.now();recordEv({kind:'first_action',rt:firstAt-itemStart});}}
+function selectAnswer(key,via){
+  if(locked||!options.some(o=>o.key===key))return;
+  markFirst();inputModality=via;
+  if(selAns!==null&&selAns!==key){ansChanges++;recordEv({kind:'answer_change',from:selAns,to:key});}
+  selAns=key;optionsSeen.add(key);
+  $$('#optsBand .opt').forEach(o=>o.classList.toggle('sel',o.dataset.key===key));
+  $('#pickAns').textContent=key;
+  $('#stepcue').textContent='Step 2 \u2014 tap the sentence that proves it';
+  setCue('proof');
+  recordEv({kind:'select_answer',key,via});
+  log(`answer ${key} chosen`);
+  maybeReady();renderMeters();
+}
+function selectEvidence(key,via){
+  if(locked||!sentences.some(s=>s.key===key))return;
+  markFirst();inputModality=via;
+  if(selEv!==null&&selEv!==key){evChanges++;recordEv({kind:'evidence_change',from:selEv,to:key});}
+  selEv=key;tapPath.push(key);
+  $$('#passageText .sent').forEach(s=>s.classList.toggle('ev',s.dataset.key===key));
+  $('#pickEv').textContent=key;
+  recordEv({kind:'select_evidence',key,via});
+  log(`proof ${key} chosen`);
+  maybeReady();renderMeters();
+}
+function maybeReady(){
+  const ready=selAns!==null&&selEv!==null&&!locked;
+  $('#go').classList.toggle('ready',ready);
+  if(ready)setStatus('neutral','Both parts chosen. Press the check to send, or change either one first.');
+}
+
+function submit(){
+  if(locked||resultSent||!$('#go').classList.contains('ready'))return;
+  locked=true;resultSent=true;
+  const rt=Date.now()-itemStart;
+  recordEv({kind:'submit',answerKey:selAns,evidenceKey:selEv,rt});
+  const result={
+    itemId:item&&item.itemId,
+    typeCode:(item&&item.typeCode)||'VER-EVIDENCE-01',
+    domain:(item&&item.domain)||'verbal',
+    response:{
+      answerKey:selAns,
+      evidenceKey:selEv,
+      answerChanges:ansChanges,
+      evidenceChanges:evChanges,
+      sentenceTapPath:tapPath.slice(),
+      optionsSeen:[...optionsSeen],
+      inputModality
+    },
+    metrics:{
+      'M-RT':rt,
+      'M-RTFIRST':firstAt!==null?firstAt-itemStart:rt,
+      'M-REV':ansChanges+evChanges,
+      'M-PATH':tapPath.length,
+      'M-VOCABLVL':content.vocabularyLevel||0
+    },
+    telemetry:telemetryLog.slice()
+  };
+  post('result',{result});
+  // NO correct/incorrect shown — the key, the partial credit and the lure taxonomy
+  // are all server-side.
+  setCue('done');
+  setStatus('ok','Answer and proof sent. '+(embedded?'Waiting for the next item\u2026':'Loading the next example\u2026'));
+  $('#go').classList.remove('ready');
+  $('#passageText').classList.add('locked');
+  $$('#optsBand .opt').forEach(o=>o.classList.add('locked'));
+  log(`RESULT answer ${selAns} \u00b7 proof ${selEv} \u00b7 ${rt}ms \u00b7 revisions ${ansChanges+evChanges}`);
+  renderMeters();
+  if(!embedded)setTimeout(nextStandalone,1800);
+}
+
+/* ---------------- wordless how-to pointer (reveals no key) ---------------- */
+const ghost=$('#ghost');
 function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
 async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(520);}
-async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(430);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(340);}
+async function runHowto(){
+  if(!content)return;
+  const wasLocked=locked;locked=true;
+  setCue('demo');
+  setStatus('neutral','The pointer shows the motion: read the story, tap an answer, then tap a sentence as the proof, then press the check.');
+  ghost.classList.add('show');
+  await ghostTo($('#passageText'));
+  await ghostTo(document.querySelector('#optsBand .opt'));await ghostTap();
+  await ghostTo(document.querySelector('#passageText .sent'));await ghostTap();
+  await ghostTo($('#go'));await ghostTap();
+  ghost.classList.remove('show');await sleep(200);
+  locked=wasLocked;
+  setCue(selAns===null?'answer':'proof');
+  setStatus('neutral','Your turn. Choose the answer, then tap the sentence that proves it.');
+  maybeReady();
+}
 
-/* ---------- render ---------- */
-let cur=null,selAns=null,selEv=null,locked=false,level=1;
-function renderItem(item){cur=item;selAns=null;selEv=null;T.itemStart=Date.now();T.firstActionAt=null;
-  $('#passageBand').innerHTML=PASSAGES[item.p].map((s,i)=>`<span class="sent" data-i="${i}">${s}</span>`).join(' ');
-  $('#qText').textContent=item.q;
-  $('#optsBand').innerHTML=item.opts.map((o,i)=>`<div class="opt" data-i="${i}"><span class="hk">${i+1}</span>${o}</div>`).join('');
-  $('#stepcue').textContent='Pick the answer, then tap the proof sentence';
-  $('#go').classList.remove('ready');renderMeters();}
-function markFirstAction(){if(T.firstActionAt===null){T.firstActionAt=Date.now();T.firstRt.push(T.firstActionAt-T.itemStart);}}
-function selectAns(i){if(locked||!cur)return;markFirstAction();if(selAns!==null&&selAns!==i)T.revA++;selAns=i;
-  $$('#optsBand .opt').forEach(o=>o.classList.toggle('sel',+o.dataset.i===i));maybeReady();}
-function selectEv(i){if(locked||!cur)return;markFirstAction();if(selEv!==null&&selEv!==i)T.revE++;selEv=i;T.path.push(`S${i+1}`);
-  $$('#passageBand .sent').forEach(s=>s.classList.toggle('ev',+s.dataset.i===i));maybeReady();}
-function maybeReady(){$('#go').classList.toggle('ready',selAns!==null&&selEv!==null&&!locked);}
-function feedback(ansOk,evOk){$$('#optsBand .opt').forEach(o=>{const i=+o.dataset.i;if(i===cur.ans)o.classList.add('correct');else if(i===selAns)o.classList.add('wrong');});
-  $$('#passageBand .sent').forEach(s=>{const i=+s.dataset.i;if(i===cur.ev)s.classList.add('correctEv');else if(i===selEv)s.classList.add('wrongEv');});
-  if(!(ansOk&&evOk)){$('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),450);}}
-function errType(ansOk,evOk){if(ansOk&&evOk)return 'none (full credit)';if(!ansOk)return 'wrong answer';
-  if(selEv===cur.lure)return cur.lureType+' evidence';return 'off-topic evidence';}
-function submit(){if(!$('#go').classList.contains('ready'))return;const rt=Date.now()-T.itemStart;
-  const ansOk=selAns===cur.ans,evOk=selEv===cur.ev;const poly=(ansOk?0.5:0)+(evOk?0.5:0);
-  feedback(ansOk,evOk);locked=true;$('#go').classList.remove('ready');
-  if(phase==='warmup'){setStatus(ansOk&&evOk?'ok':'no',ansOk&&evOk?'\u2713 Correct - practice':'\u2717 Not quite - the answer and proof are shown (practice)');log(`warm-up ${ansOk&&evOk?'full credit':'partial/none'} — UNSCORED`);setTimeout(nextPhase,1500);return;}
-  T.scored++;T.polys.push(poly);T.rts.push(rt);if(ansOk&&evOk){T.full++;T.maxLevel=Math.max(T.maxLevel,level);
-    const r=DEPTH_RANK[cur.depth];if(r>T.bestDepthRank){T.bestDepthRank=r;T.bestDepth=cur.depth;}}
-  T.lastErr=errType(ansOk,evOk);
-  setStatus(ansOk&&evOk?'ok':'no',ansOk&&evOk?'\u2713 Correct':'\u2717 Not quite - the answer and proof are shown');
-  log(`SUBMIT L${level} [${cur.depth}] \u2192 answer ${ansOk?'\u2713':'\u2717'}, evidence ${evOk?'\u2713':'\u2717'} · poly ${poly} · ${rt}ms`);
-  level=(ansOk&&evOk)?Math.min(6,level+1):Math.max(1,level-1);
-  renderMeters();setTimeout(nextPhase,1500);}
-const TOTAL_SCORED=6;let phase='demo',scoredIndex=0;
-const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
-function setCue(k,extra){const el=$('#phasecue');if(!el)return;el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
-function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
-function nextPhase(){locked=false;if(phase==='warmup'){scoredIndex=0;startScored();}
-  else if(phase==='scored'){scoredIndex++;scoredIndex<TOTAL_SCORED?startScored():finish();}}
-function startWarmup(){phase='warmup';locked=false;setCue('warmup');setStatus('neutral','Practice - this one is not scored.');level=1;renderItem(byLevel(1));log('— warm-up (unscored) —');}
-function startScored(){phase='scored';setCue('scored',(scoredIndex+1)+'/'+TOTAL_SCORED);setStatus('neutral','Pick the answer, then tap the sentence that proves it.');renderItem(byLevel(level));log(`— SCORED item ${scoredIndex+1}/${TOTAL_SCORED} · level ${level} [${byLevel(level).depth}] —`);}
-function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;log(`— DONE · full credit ${T.full}/${T.scored} · ceiling L${T.maxLevel} —`);renderMeters();}
-async function runDemo(){phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;
-  const item=byLevel(1);renderItem(item);log('ghost-hand demo (wordless, <10s)');ghostShow(true);await sleep(300);
-  const ansEl=$$('#optsBand .opt')[item.ans];await ghostTo(ansEl);await ghostTap();selectAns(item.ans);
-  await sleep(200);const evEl=$$('#passageBand .sent')[item.ev];await ghostTo(evEl);await ghostTap();selectEv(item.ev);
-  await sleep(250);await ghostTo($('#go'));await ghostTap();submit();
-  await sleep(700);ghostShow(false);await sleep(400);T.itemStart=Date.now();startWarmup();}
-$('#optsBand').addEventListener('click',e=>{const o=e.target.closest('.opt');if(o&&!locked&&phase!=='demo'&&phase!=='done')selectAns(+o.dataset.i);});
-$('#passageBand').addEventListener('click',e=>{const s=e.target.closest('.sent');if(s&&!locked&&phase!=='demo'&&phase!=='done')selectEv(+s.dataset.i);});
-document.addEventListener('keydown',e=>{if(locked||phase==='demo'||phase==='done')return;const n=+e.key;if(n>=1&&n<=3)selectAns(n-1);if(e.key==='Enter')submit();});
+/* ---------------- input ---------------- */
+$('#optsBand').addEventListener('click',e=>{const o=e.target.closest('.opt');if(o)selectAnswer(o.dataset.key,'tap');});
+$('#passageText').addEventListener('click',e=>{const s=e.target.closest('.sent');if(s)selectEvidence(s.dataset.key,'tap');});
+document.addEventListener('keydown',e=>{
+  if(locked)return;
+  const n=+e.key;
+  if(n>=1&&n<=options.length)selectAnswer(options[n-1].key,'key');
+  if(e.key==='Enter')submit();
+});
 $('#go').addEventListener('click',submit);
-$('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
-buildMeters();renderMeters();runDemo();
+$('#replay').addEventListener('click',()=>{if(content)runHowto();});
+
+/* ---------------- standalone fallback (double-click, no host) ---------------- */
+const SAMPLES=[
+ {itemId:'sample-evidence-easy',typeCode:'VER-EVIDENCE-01',domain:'verbal',difficulty:1,ageBands:['2-3'],
+  content:{passage:{title:'The Field Trip',sentences:[
+    {key:'s1',text:'Mia packed her bag the night before the trip.'},
+    {key:'s2',text:'She set two clocks so she would not sleep late.'},
+    {key:'s3',text:'In the morning she was the first one waiting at the door.'},
+    {key:'s4',text:'Her brother was still eating when the bus honked outside.'}]},
+   question:{text:'What did Mia do the night before the trip?'},
+   options:[{key:'A',text:'She missed the bus.'},{key:'B',text:'She packed her bag.'},{key:'C',text:'She ate a big meal.'}],
+   evidenceMode:'single_sentence',evidencePrompt:'Now tap the sentence in the story that proves your answer.',vocabularyLevel:7}},
+ {itemId:'sample-evidence-mid',typeCode:'VER-EVIDENCE-01',domain:'verbal',difficulty:10.5,ageBands:['4-5'],
+  content:{passage:{title:'The Window Garden',sentences:[
+    {key:'s1',text:'Each child in the class planted three seeds in a paper cup.'},
+    {key:'s2',text:'Nadia checked the soil every morning and added a little water.'},
+    {key:'s3',text:'After two weeks, green shoots pushed out of the dirt.'},
+    {key:'s4',text:'Nadia\u2019s plant was the tallest one on the shelf by the end of the month.'},
+    {key:'s5',text:'One cup at the back of the shelf was never watered and stayed bare.'}]},
+   question:{text:'Why did Nadia\u2019s plant grow so well?'},
+   options:[{key:'A',text:'Her cup was made of paper.'},{key:'B',text:'She looked after it every day.'},{key:'C',text:'Her seeds were bigger.'},{key:'D',text:'She planted more seeds than the others.'}],
+   evidenceMode:'single_sentence',evidencePrompt:'Now tap the sentence in the story that proves your answer.',vocabularyLevel:6}},
+ {itemId:'sample-evidence-hard',typeCode:'VER-EVIDENCE-01',domain:'verbal',difficulty:19.5,ageBands:['6-8'],
+  content:{passage:{title:'Counting the Migration',sentences:[
+    {key:'s1',text:'Volunteers have counted the birds crossing one headland every September since 1968.'},
+    {key:'s2',text:'The method has never changed: two observers, four hours after dawn, tallies on paper.'},
+    {key:'s3',text:'Better equipment would raise the numbers, which is exactly why it has been refused.'},
+    {key:'s4',text:'A count is useful only if this year can be set beside 1968 without adjustment.'},
+    {key:'s5',text:'The tallies show one species down by four fifths and another up by half.'},
+    {key:'s6',text:'Neither trend would be visible in any single year\u2019s sheet.'}]},
+   question:{text:'Why does the writer open with the year 1968?'},
+   options:[{key:'A',text:'To show the volunteers are elderly.'},{key:'B',text:'To date the equipment being used.'},{key:'C',text:'To establish how long the unbroken record runs.'},{key:'D',text:'To explain when migration was discovered.'}],
+   evidenceMode:'single_sentence',evidencePrompt:'Now tap the sentence in the story that proves your answer.',vocabularyLevel:1}}
+];
+let sIdx=0;
+function startStandalone(){$('#chanval').textContent='standalone (no host)';sIdx=0;nextStandalone(true);}
+async function nextStandalone(first){
+  if(sIdx>=SAMPLES.length){setCue('done');setStatus('ok','Demo complete. Press \u21bb or reload to run the examples again.');locked=true;return;}
+  const s=SAMPLES[sIdx++];
+  setItem(s);
+  setCue('answer','\u00b7 example '+sIdx+'/'+SAMPLES.length);
+  if(first)await runHowto();
+}
+
+/* ---------------- host message handling ---------------- */
+window.addEventListener('message',e=>{
+  const d=e.data;if(!d||d.source!==SRC_HOST)return;
+  if(d.type==='init'&&d.item){hostSeen=true;$('#chanval').textContent='host-embedded';setItem(d.item);}
+  else if(d.type==='start'){if(content&&!resultSent){itemStart=Date.now();locked=false;setStatus('neutral','Your turn. Choose the answer, then tap the sentence that proves it.');maybeReady();}}
+});
+
+/* ---------------- boot ---------------- */
+buildMeters();renderMeters();
+setInterval(()=>{if(!locked)renderMeters();},1000);
+post('ready',{});
+if(!embedded){
+  startStandalone();
+}else{
+  setCue('ready');setStatus('neutral','Ready. Waiting for the first item from the host\u2026');
+  setTimeout(()=>{if(!hostSeen&&!content)startStandalone();},1200);
+}
 </script>
 </body>
 </html>
