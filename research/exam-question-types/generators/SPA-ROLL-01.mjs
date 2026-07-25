@@ -54,6 +54,47 @@ function shuffle(rng, arr) {
   for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
   return a;
 }
+// ---------------------------------------------------------------------------
+// KEY-POSITION BALANCE (E-073)
+// Shuffling every item's options independently still leaves the correct key's
+// POSITION uneven over the bank: the ramp shows 3 options at the floor and 6 at
+// the ceiling, so the head slots collect the surplus and the modal key beats
+// chance. An uneven pseudo-guessing floor inflates low-ability accuracy
+// (M-ACC), so the bank allocates each item a target slot from a least-loaded
+// counter and the item seats its correct option there. The option SET, the
+// lures and the difficulty profile are untouched.
+//
+// Slots are allocated uniformly WITHIN each option-count stratum first and only
+// then balanced across the whole bank. Option count is itself a difficulty
+// lever, so balancing the pooled key counts alone would make the last slot of
+// the rarer long items almost always correct — a larger exploit than the one
+// being fixed.
+// ---------------------------------------------------------------------------
+function makeSlotAllocator(maxSlots) {
+  const globalUse = new Array(maxSlots).fill(0);
+  const byOptionCount = new Map();
+  let tick = 0;
+  return (n) => {
+    if (!byOptionCount.has(n)) byOptionCount.set(n, new Array(n).fill(0));
+    const localUse = byOptionCount.get(n);
+    let best = tick % n;
+    for (let k = 1; k < n; k++) {
+      const i = (tick + k) % n;
+      if (localUse[i] < localUse[best] || (localUse[i] === localUse[best] && globalUse[i] < globalUse[best])) best = i;
+    }
+    tick++; localUse[best]++; globalUse[best]++; return best;
+  };
+}
+// Seat the correct entry of an already-shuffled list at the allocated slot,
+// leaving the distractors in their shuffled relative order.
+function seatCorrect(list, isCorrect, slotFor) {
+  const ci = list.findIndex(isCorrect);
+  const at = slotFor(list.length);
+  if (ci < 0 || at < 0 || at >= list.length) return list;
+  const rest = list.filter((_, i) => i !== ci);
+  return [...rest.slice(0, at), list[ci], ...rest.slice(at)];
+}
+
 function seededUuid(seedStr) {
   const b = new Uint8Array(16);
   let h = hashStr(seedStr);
@@ -170,7 +211,7 @@ const ADJ = {
 // ---------------------------------------------------------------------------
 // Build one item.
 // ---------------------------------------------------------------------------
-function buildOptions(paint, finalKey, startKey, prof, rng) {
+function buildOptions(paint, finalKey, startKey, prof, rng, slotFor) {
   const correctSym = paint[finalKey].sym;
   const seenSlots = new Set([finalKey]);
   const distractors = [];
@@ -183,14 +224,14 @@ function buildOptions(paint, finalKey, startKey, prof, rng) {
   addSlot(OPP[finalKey], 'opposite');       // the face opposite the landing face
   for (const s of shuffle(rng, ADJ[finalKey])) addSlot(s, 'near_miss'); // faces adjacent to the answer
   for (const s of shuffle(rng, KEYS)) addSlot(s, 'random');             // anything else remaining
-  const chosen = shuffle(rng, [{ slot: finalKey, lure: 'correct' }, ...distractors]);
+  const chosen = seatCorrect(shuffle(rng, [{ slot: finalKey, lure: 'correct' }, ...distractors]), c => c.lure === 'correct', slotFor);
   const options = chosen.map((c, i) => ({ key: OPT_KEYS[i], sym: paint[c.slot].sym, color: paint[c.slot].col }));
   const distractorRationales = chosen.map(c => c.lure);
   const correctKey = chosen.map((c, i) => ({ c, key: OPT_KEYS[i] })).find(o => o.c.slot === finalKey).key;
   return { options, distractorRationales, correctKey, correctSym };
 }
 
-function buildItem(L, idx) {
+function buildItem(L, idx, slotFor) {
   const seed = `${TYPE_CODE}|L${L}|#${idx}|${BASE_SEED}`;
   const rng = makeRng(seed);
   const prof = PROFILES[L];
@@ -202,7 +243,7 @@ function buildItem(L, idx) {
     finalKey = landingSlotMatrix(path.dirs, prof.ask);
     if (finalKey !== startKey) break;   // the asked face must actually change
   }
-  const { options, distractorRationales, correctKey, correctSym } = buildOptions(paint, finalKey, startKey, prof, rng);
+  const { options, distractorRationales, correctKey, correctSym } = buildOptions(paint, finalKey, startKey, prof, rng, slotFor);
   const difficulty = Math.round((Math.min(20, Math.max(1, L + (rng() * 0.7 - 0.35)))) * 100) / 100;
 
   const content = {
@@ -233,7 +274,8 @@ function buildItem(L, idx) {
 
 function generate() {
   const items = [];
-  for (let L = 1; L <= 20; L++) for (let i = 0; i < ITEMS_PER_LEVEL; i++) items.push(buildItem(L, i));
+  const slotFor = makeSlotAllocator(OPT_KEYS.length);
+  for (let L = 1; L <= 20; L++) for (let i = 0; i < ITEMS_PER_LEVEL; i++) items.push(buildItem(L, i, slotFor));
   return items;
 }
 
