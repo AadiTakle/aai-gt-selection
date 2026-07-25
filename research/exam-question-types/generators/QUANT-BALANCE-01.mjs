@@ -32,6 +32,7 @@ import { writeFileSync, readFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeBank } from './item-shape.mjs';
+import { VarietyLedger, contentKey } from './variety.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const TYPE_CODE = 'QUANT-BALANCE-01';
@@ -224,13 +225,18 @@ function genBalance(rng, cfg) {
   const correct = correctPool[0];
 
   // ---- distractors: never weight T; each keyed to a named misconception ----
+  // Every candidate that satisfies a role is equally good at playing it (the
+  // roles are weight predicates, not proximity rankings), so the role is filled
+  // by a seeded draw rather than by "first in sort order". Taking the first
+  // match made the option set a pure function of the target weight, which is
+  // why the single-shape floor rungs could only ever pose one question.
   const used = new Set([correct.sig]);
   const distract = [];
   const take = (pred, lure, misconception) => {
     if (distract.length >= 3) return;
     const cands = all.filter((p) => !used.has(p.sig) && p.weight !== T && pred(p))
       .sort((a, b) => a.pieces - b.pieces || a.sig.localeCompare(b.sig));
-    if (cands.length) { const c = cands[0]; used.add(c.sig); distract.push({ ...c, lure, misconception }); }
+    if (cands.length) { const c = rng.pick(cands); used.add(c.sig); distract.push({ ...c, lure, misconception }); }
   };
   if (shapes.length >= 2) take((p) => p.pieces === correct.pieces, 'surface_match', 'matched_count_not_weight');
   take((p) => p.weight === T - 1 || p.weight === T + 1, 'near_order', 'off_by_one_weight');
@@ -257,11 +263,18 @@ function genBalance(rng, cfg) {
  * Low rungs = a single unit shape (pure count/object-groups); higher rungs add
  * shape types, substitution chains, larger loads, and near-weight lures.
  * ------------------------------------------------------------------ */
+// Rungs 1-3 hold a single shape type, so there are no equivalences to exploit
+// and the whole item is "which pile weighs the same as this one". Their only
+// free parameters are the target size and which piles are offered: at
+// target 2 / maxPieces 4, rung 1 had exactly ONE possible item for its six.
+// Widening the target range and the pile pool (with the seeded distractor
+// draw in genBalance) is what gives the counting floor real variety; the
+// shape count, and therefore the reasoning demanded, is untouched.
 function configFor(rng, d) {
   const table = {
-    1: () => ({ shapeCount: 1, targetMin: 2, targetMax: 2, maxPieces: 4, substitute: false, proximity: 'far' }),
-    2: () => ({ shapeCount: 1, targetMin: 3, targetMax: 4, maxPieces: 5, substitute: false, proximity: 'far' }),
-    3: () => ({ shapeCount: 1, targetMin: 4, targetMax: 5, maxPieces: 6, substitute: false, proximity: 'medium' }),
+    1: () => ({ shapeCount: 1, targetMin: 2, targetMax: 3, maxPieces: 6, substitute: false, proximity: 'far' }),
+    2: () => ({ shapeCount: 1, targetMin: 3, targetMax: 5, maxPieces: 6, substitute: false, proximity: 'far' }),
+    3: () => ({ shapeCount: 1, targetMin: 4, targetMax: 6, maxPieces: 6, substitute: false, proximity: 'medium' }),
     4: () => ({ shapeCount: 2, targetMin: 2, targetMax: 3, maxPieces: 4, substitute: false, proximity: 'medium' }),
     5: () => ({ shapeCount: 2, targetMin: 2, targetMax: 3, maxPieces: 4, substitute: true, proximity: 'medium' }),
     6: () => ({ shapeCount: 2, targetMin: 2, targetMax: 3, maxPieces: 5, substitute: true, proximity: 'near' }),
@@ -294,7 +307,7 @@ function ageBandsFor(target) {
   return ['6-8'];
 }
 
-function buildItem(masterSeed, target, ordinal, slotFor) {
+function buildItem(masterSeed, target, ordinal, slotFor, ledger) {
   const MAX_TRIES = 900;
   for (let attempt = 0; attempt < MAX_TRIES; attempt++) {
     const seed = `${masterSeed}:${TYPE_CODE}:d${target}:i${ordinal}:a${attempt}`;
@@ -329,6 +342,13 @@ function buildItem(masterSeed, target, ordinal, slotFor) {
     const sigs = new Set(provisional.map((o) => loadSig(o.load)));
     if (sigs.size !== provisional.length) continue;
 
+    // Variety gate: the bank must not pose this puzzle twice. It reads the
+    // draft, whose option ORDER is still the raw shuffle, but the ledger's key
+    // ignores option order — so its verdict is the same before and after
+    // seating, and it belongs here with the other order-independent gates,
+    // ahead of the slot allocator. A rejected attempt consumes no slot.
+    if (!ledger.wants({ ...contentBase, options: provisional })) continue;
+
     // Gates passed — seat the correct load at the balanced slot. Seating is a
     // permutation of the same option set, so uniqueness is preserved and the
     // solver below re-derives the key at its new position.
@@ -344,6 +364,7 @@ function buildItem(masterSeed, target, ordinal, slotFor) {
       prompt: 'Choose the group of shapes that balances the left pan.',
     };
     const verdict = analyzeBalance(content);
+    ledger.add(content);
 
     const jitter = (rng.next() - 0.5) * 0.84;
     const difficulty = Math.min(20, Math.max(1, Math.round((target + jitter) * 100) / 100));
@@ -410,6 +431,16 @@ function verifyBank(path) {
     else if (verdict.correctKey !== it.answer.correctKey) problems.push(`${it.itemId}: solver key != keyed answer`);
   });
 
+  // The variety gate runs BEFORE key-slot allocation, so it can only refuse an
+  // attempt, never re-seat one. That leaves this as the place where a residual
+  // duplicate has to be caught loudly rather than shipped.
+  const seenContent = new Map();
+  for (const it of items) {
+    const k = contentKey(it.content);
+    if (seenContent.has(k)) problems.push(`${it.itemId}: content is byte-identical to ${seenContent.get(k)}`);
+    else seenContent.set(k, it.itemId);
+  }
+
   const bands = {};
   const rounded = {};
   for (let p = 1; p <= 20; p++) bands[p] = 0;
@@ -435,10 +466,11 @@ function main() {
   const items = [];
   const perTargetCount = {};
   const slotFor = makeSlotAllocator(OPTION_KEYS.length);
+  const ledger = new VarietyLedger();      // one ledger for the whole bank: no rung may repeat another
   for (let target = 1; target <= 20; target++) {
     let made = 0;
     for (let ordinal = 0; ordinal < perTarget; ordinal++) {
-      const it = buildItem(masterSeed, target, ordinal, slotFor);
+      const it = buildItem(masterSeed, target, ordinal, slotFor, ledger);
       if (it) { items.push(it); made++; }
     }
     perTargetCount[target] = made;

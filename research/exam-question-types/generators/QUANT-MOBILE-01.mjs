@@ -44,9 +44,11 @@ import { writeFileSync, readFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeBank } from './item-shape.mjs';
+import { VarietyLedger } from './variety.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const TYPE_CODE = 'QUANT-MOBILE-01';
+export const ITEMS_PER_RUNG = 6;
 const DOMAIN = 'quantitative';
 const GENERATOR_REF = 'QUANT-MOBILE-01-grammar@1';
 const DEMO_PATH = 'demos/QUANT-MOBILE-01.html';
@@ -408,10 +410,18 @@ function genMobile(rng, cfg) {
  * ------------------------------------------------------------------ */
 const A12 = [[1, 2], [2, 1]];
 const A123 = [[1, 2], [2, 1], [2, 3], [3, 2]];
+// Rungs 1 and 2 are a single equal-armed beam holding one figure type, so the
+// only thing that can differ between two items is the load on the beam and
+// which hook is empty: `scaleMax` loads x 2 hooks is the ENTIRE stimulus space
+// for the rung. At scaleMax 3 rung 1 had exactly 6 possible items for its 6
+// items, and rung 2's 10 were a superset of them. Both now run to the largest
+// load the 6-figure counting cap allows, so the floor has more questions than
+// it has slots to fill. (Rung 2 ends up carrying a heavier load than rung 3;
+// rung 3's lever is the second beam, not the size of the load.)
 function configFor(d) {
   const table = {
-    1: { beams: 1, maxDepth: 1, shapeCount: 1, unequal: 0, armPool: A12, holeUnequal: false, substitute: false, deepHole: false, maxPieces: 5, maxLeafWeight: 4, scaleMax: 3 },
-    2: { beams: 1, maxDepth: 1, shapeCount: 1, unequal: 0, armPool: A12, holeUnequal: false, substitute: false, deepHole: false, maxPieces: 6, maxLeafWeight: 5, scaleMax: 5 },
+    1: { beams: 1, maxDepth: 1, shapeCount: 1, unequal: 0, armPool: A12, holeUnequal: false, substitute: false, deepHole: false, maxPieces: 5, maxLeafWeight: 4, scaleMax: 4 },
+    2: { beams: 1, maxDepth: 1, shapeCount: 1, unequal: 0, armPool: A12, holeUnequal: false, substitute: false, deepHole: false, maxPieces: 6, maxLeafWeight: 6, scaleMax: 6 },
     3: { beams: 2, maxDepth: 2, shapeCount: 1, unequal: 0, armPool: A12, holeUnequal: false, substitute: false, deepHole: false, maxPieces: 4, maxLeafWeight: 6, scaleMax: 3 },
     4: { beams: 2, maxDepth: 2, shapeCount: 2, unequal: 0, armPool: A12, holeUnequal: false, substitute: false, deepHole: false, maxPieces: 4, maxLeafWeight: 8, scaleMax: 3 },
     5: { beams: 2, maxDepth: 2, shapeCount: 2, unequal: 0, armPool: A12, holeUnequal: false, substitute: true, deepHole: false, maxPieces: 4, maxLeafWeight: 9, scaleMax: 3 },
@@ -449,8 +459,9 @@ function ageBandsFor(rung) {
 }
 
 /* ------------------------------------------------------------------ */
-export function buildItem(masterSeed, rung, ordinal) {
+export function buildItem(masterSeed, rung, ordinal, ledger = new VarietyLedger()) {
   const MAX_TRIES = 1200;
+  const STRICT_TRIES = 600;    // budget spent insisting on a mobile the bank has not hung yet
   for (let attempt = 0; attempt < MAX_TRIES; attempt++) {
     const seed = `${masterSeed}:${TYPE_CODE}:d${rung}:i${ordinal}:a${attempt}`;
     const rng = new Rng(seed);
@@ -489,6 +500,11 @@ export function buildItem(masterSeed, rung, ordinal) {
     const sigs = new Set(options.map((o) => clusterSig(o.cluster)));
     if (sigs.size !== options.length) continue;
 
+    // Variety gate. Order-insensitive, so a rejected attempt has to change the
+    // mobile rather than reshuffle the four candidate clusters.
+    if (!ledger.wants(content, attempt < STRICT_TRIES)) continue;
+    ledger.add(content);
+
     const jitter = (rng.next() - 0.5) * 0.84;
     const difficulty = Math.min(20, Math.max(1, Math.round((rung + jitter) * 100) / 100));
 
@@ -526,6 +542,25 @@ export function buildItem(masterSeed, rung, ordinal) {
     };
   }
   return null;
+}
+
+/**
+ * The whole bank, in emission order. One variety ledger spans every rung; the
+ * checker regenerates through this same entry point.
+ */
+export function buildBank(masterSeed, perRung = ITEMS_PER_RUNG) {
+  const ledger = new VarietyLedger();
+  const items = [];
+  const perRungCount = {};
+  for (let rung = 1; rung <= 20; rung++) {
+    let made = 0;
+    for (let ordinal = 0; ordinal < perRung; ordinal++) {
+      const it = buildItem(masterSeed, rung, ordinal, ledger);
+      if (it) { items.push(it); made++; }
+    }
+    perRungCount[rung] = made;
+  }
+  return { items, perRungCount };
 }
 
 /* ------------------------------------------------------------------ *
@@ -589,21 +624,12 @@ function main() {
     const m = a.match(/^--([^=]+)=(.*)$/); return m ? [m[1], m[2]] : [a.replace(/^--/, ''), true];
   }));
   const masterSeed = args.seed || 'quant-mobile-01-v1';
-  const perRung = parseInt(args.per || '6', 10);
+  const perRung = parseInt(args.per || String(ITEMS_PER_RUNG), 10);
   const outPath = resolve(HERE, args.out || '../banks/QUANT-MOBILE-01.jsonl');
 
   mkdirSync(dirname(outPath), { recursive: true });
 
-  const items = [];
-  const perRungCount = {};
-  for (let rung = 1; rung <= 20; rung++) {
-    let made = 0;
-    for (let ordinal = 0; ordinal < perRung; ordinal++) {
-      const it = buildItem(masterSeed, rung, ordinal);
-      if (it) { items.push(it); made++; }
-    }
-    perRungCount[rung] = made;
-  }
+  const { items, perRungCount } = buildBank(masterSeed, perRung);
 
   writeFileSync(outPath, serializeBank(items), 'utf8');
   const v = verifyBank(outPath);

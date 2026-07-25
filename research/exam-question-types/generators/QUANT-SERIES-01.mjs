@@ -30,6 +30,7 @@ import { writeFileSync, readFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeBank } from './item-shape.mjs';
+import { VarietyLedger } from './variety.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const TYPE_CODE = 'QUANT-SERIES-01';
@@ -282,8 +283,12 @@ function configFor(rng, d) {
     2: () => ({ ...dots, gen: genRepeat, period: 2, valMax: 5, len: rng.int(4, 5), proximity: 'far' }),
     3: () => ({ ...dots, gen: genRepeat, period: 3, valMax: 5, len: rng.int(5, 6), proximity: 'medium' }),
     4: () => ({ ...dots, gen: genAdditive, step: 1, len: 4, startMax: 4, proximity: 'far' }),
-    5: () => ({ ...dots, gen: genAdditive, step: 2, len: 4, startMax: 3, proximity: 'medium' }),
-    6: () => ({ ...dots, gen: genAdditive, step: rng.pick([2, 3]), len: rng.pick([3, 4]), startMax: 3, proximity: 'medium' }),
+    // Rungs 5 and 6 count in dots, so DOT_CAP is what really bounds them: at
+    // startMax 3 rung 5 had three possible sequences (+2 from 1, 2 or 3) for
+    // six items. Running the start up to the cap widens both without touching
+    // the step size, which is the lever the ramp actually turns here.
+    5: () => ({ ...dots, gen: genAdditive, step: 2, len: rng.int(3, 5), startMax: 6, proximity: 'medium' }),
+    6: () => ({ ...dots, gen: genAdditive, step: rng.pick([2, 3]), len: rng.int(3, 4), startMax: 6, proximity: 'medium' }),
     7: () => ({ ...num, gen: genAdditive, step: rng.pick([3, 4]), len: rng.int(4, 5), startMax: 6, proximity: 'medium' }),
     8: () => ({ ...num, gen: genAdditive, step: rng.pick([4, 5, 6]), len: 4, startMax: 9, proximity: 'near' }),
     9: () => ({ ...num, gen: genMultiplicative, ratio: 2, len: 4, startMax: 3, proximity: 'medium' }),
@@ -382,8 +387,9 @@ function ageBandsFor(target) {
   return ['6-8'];
 }
 
-function buildItem(masterSeed, target, ordinal) {
+function buildItem(masterSeed, target, ordinal, ledger) {
   const MAX_TRIES = 600;
+  const STRICT_TRIES = 300;    // budget spent insisting on a sequence the bank has not shown yet
   for (let attempt = 0; attempt < MAX_TRIES; attempt++) {
     const seed = `${masterSeed}:${TYPE_CODE}:d${target}:i${ordinal}:a${attempt}`;
     const rng = new Rng(seed);
@@ -436,6 +442,12 @@ function buildItem(masterSeed, target, ordinal) {
       options,                                       // option set as data (no lure tags -> served safely)
       prompt: 'Choose the step that comes next.',
     };
+
+    // Variety gate. Order-insensitive, so a rejected attempt has to change the
+    // sequence rather than re-deal the same four options; and because the gate
+    // cannot see option order it does not move the correct key around.
+    if (!ledger.wants(content, attempt < STRICT_TRIES)) continue;
+    ledger.add(content);
 
     return {
       itemId: rng.uuid(),
@@ -532,10 +544,11 @@ function main() {
 
   const items = [];
   const perTargetCount = {};
+  const ledger = new VarietyLedger();      // one ledger for the whole bank: no rung may repeat another
   for (let target = 1; target <= 20; target++) {
     let made = 0;
     for (let ordinal = 0; ordinal < perTarget; ordinal++) {
-      const it = buildItem(masterSeed, target, ordinal);
+      const it = buildItem(masterSeed, target, ordinal, ledger);
       if (it) { items.push(it); made++; }
     }
     perTargetCount[target] = made;

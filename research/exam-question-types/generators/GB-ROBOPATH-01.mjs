@@ -35,6 +35,7 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeBank } from './item-shape.mjs';
+import { VarietyLedger, contentKey } from './variety.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT = resolve(__dirname, '../banks/GB-ROBOPATH-01.jsonl');
@@ -288,26 +289,50 @@ function genCandidate(rng, cfg) {
   return best;
 }
 
-function buildItem(L, idx) {
-  const seed = `${TYPE_CODE}|L${L}|#${idx}|${BASE_SEED}`;
-  const rng = makeRng(seed);
+// One world for (level, index). ATTEMPTS is a bounded retry budget: a retry
+// re-seeds and draws a fresh batch of candidate worlds, which is how the item
+// escapes a world the bank has already posed.
+const ATTEMPTS = 24;
+
+function buildItem(L, idx, ledger) {
   const cfg = LEVELS[L];
+  let chosen = null;
 
-  let best = null, bestGap = Infinity;
-  for (let t = 0; t < CANDIDATES; t++) {
-    const cand = genCandidate(rng, cfg);
-    if (!cand) continue;
-    const gap = Math.abs(cand.opt.actions - cfg.targetActions);
-    if (gap < bestGap) { best = cand; bestGap = gap; if (gap === 0) break; }
-  }
-  if (!best) {                                             // guaranteed fallback: open corridor
-    const R = cfg.R, C = cfg.C;
-    const start = { r: 0, c: 0, h: 'E' }, door = [R - 1, C - 1];
-    const wallSet = new Set();
-    const opt = solveOptimal(R, C, wallSet, start, [], door, cfg.maxReps);
-    best = { R, C, start, door, keys: [], walls: [], wallSet, opt };
+  for (let attempt = 0; attempt < ATTEMPTS && !chosen; attempt++) {
+    const seed = attempt === 0
+      ? `${TYPE_CODE}|L${L}|#${idx}|${BASE_SEED}`
+      : `${TYPE_CODE}|L${L}|#${idx}|r${attempt}|${BASE_SEED}`;
+    const rng = makeRng(seed);
+
+    // Every candidate whose optimum sits the same distance from the level's
+    // target depth is equally on-ramp; keeping the FIRST of them made the
+    // small worlds (level 1 has 3x3, no walls, no keys) collapse onto a
+    // handful of layouts. Reservoir-sample among the ties instead: the depth
+    // ramp is unchanged, the realised variety is not.
+    let best = null, bestGap = Infinity, tied = 0;
+    for (let t = 0; t < CANDIDATES; t++) {
+      const cand = genCandidate(rng, cfg);
+      if (!cand) continue;
+      const gap = Math.abs(cand.opt.actions - cfg.targetActions);
+      if (gap < bestGap) { best = cand; bestGap = gap; tied = 1; }
+      else if (gap === bestGap && rng() * ++tied < 1) best = cand;
+    }
+    if (!best) {                                           // guaranteed fallback: open corridor
+      const R = cfg.R, C = cfg.C;
+      const start = { r: 0, c: 0, h: 'E' }, door = [R - 1, C - 1];
+      const wallSet = new Set();
+      const opt = solveOptimal(R, C, wallSet, start, [], door, cfg.maxReps);
+      best = { R, C, start, door, keys: [], walls: [], wallSet, opt };
+    }
+    // The world IS the content here (there are no options to reshuffle), so
+    // the ledger is consulted on the world before the item is dressed up.
+    const worldSketch = { grid: { R: best.R, C: best.C }, walls: best.walls, start: best.start, door: best.door, keys: best.keys };
+    if (attempt < ATTEMPTS - 1 && !ledger.wants(worldSketch)) continue;
+    ledger.add(worldSketch);
+    chosen = { best, rng, seed };
   }
 
+  const { best, rng, seed } = chosen;
   const { R, C, start, door, keys, walls, opt } = best;
   const repeatEnabled = cfg.maxReps > 1;
   const difficulty = round2(Math.min(20, Math.max(1, L + (rng() * 0.7 - 0.35))));
@@ -381,7 +406,8 @@ function buildItem(L, idx) {
 
 function generate() {
   const items = [];
-  for (let L = 1; L <= 20; L++) for (let i = 0; i < ITEMS_PER_LEVEL; i++) items.push(buildItem(L, i));
+  const ledger = new VarietyLedger();      // one ledger for the whole bank: no level may reuse another's world
+  for (let L = 1; L <= 20; L++) for (let i = 0; i < ITEMS_PER_LEVEL; i++) items.push(buildItem(L, i, ledger));
   return items;
 }
 
@@ -392,6 +418,14 @@ function verify(items) {
   let ok = 0, bad = 0; const problems = [];
   const bands = {}; for (let L = 1; L <= 20; L++) bands[L] = 0;
   const seenIds = new Set();
+  // The retry budget is bounded, so a world could in principle still repeat.
+  // Fail loudly here rather than shipping a bank that is smaller than it looks.
+  const seenContent = new Map();
+  for (const it of items) {
+    const ck = contentKey(it.content);
+    if (seenContent.has(ck)) problems.push(`${it.itemId}: content is byte-identical to ${seenContent.get(ck)}`);
+    else seenContent.set(ck, it.itemId);
+  }
   for (const it of items) {
     const req = ['itemId', 'typeCode', 'domain', 'difficulty', 'ageBands', 'demoPath', 'content', 'answer', 'scoring', 'provenance', 'syntheticOnly', 'validated'];
     for (const k of req) if (!(k in it)) problems.push(`${it.itemId}: missing ${k}`);

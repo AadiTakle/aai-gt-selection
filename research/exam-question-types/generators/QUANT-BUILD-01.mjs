@@ -37,9 +37,11 @@ import { writeFileSync, readFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeBank } from './item-shape.mjs';
+import { VarietyLedger } from './variety.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const TYPE_CODE = 'QUANT-BUILD-01';
+export const ITEMS_PER_RUNG = 6;
 const DOMAIN = 'quantitative';
 const GENERATOR_REF = 'QUANT-BUILD-01-grammar@1';
 
@@ -209,8 +211,9 @@ function misconstructions(cards, goal, constraints, optimalValue) {
 /* ------------------------------------------------------------------ *
  * Assemble one verified BankItem for a difficulty rung
  * ------------------------------------------------------------------ */
-export function buildItem(masterSeed, target, ordinal) {
+export function buildItem(masterSeed, target, ordinal, ledger = new VarietyLedger()) {
   const MAX_TRIES = 800;
+  const STRICT_TRIES = 400;    // budget spent insisting on a card/rule set the bank has not used yet
   const cfg = RUNGS[target];
 
   for (let attempt = 0; attempt < MAX_TRIES; attempt++) {
@@ -264,6 +267,12 @@ export function buildItem(masterSeed, target, ordinal) {
         : 'Arrange the cards to build the smallest number that follows the rules.',
     };
 
+    // Variety gate. Rungs 1 and 2 are configured identically (two dot cards,
+    // build the biggest), so without a bank-wide ledger the same card pair can
+    // be dealt twice — inside one rung, or once at each of the two.
+    if (!ledger.wants(content, attempt < STRICT_TRIES)) continue;
+    ledger.add(content);
+
     return {
       itemId: rng.uuid(),
       typeCode: TYPE_CODE,
@@ -312,6 +321,25 @@ export function buildItem(masterSeed, target, ordinal) {
   return null;
 }
 
+/**
+ * The whole bank, in emission order. One variety ledger spans every rung; the
+ * checker regenerates through this same entry point.
+ */
+export function buildBank(masterSeed, perTarget = ITEMS_PER_RUNG) {
+  const ledger = new VarietyLedger();
+  const items = [];
+  const perTargetCount = {};
+  for (let target = 1; target <= 20; target++) {
+    let made = 0;
+    for (let ordinal = 0; ordinal < perTarget; ordinal++) {
+      const it = buildItem(masterSeed, target, ordinal, ledger);
+      if (it) { items.push(it); made++; }
+    }
+    perTargetCount[target] = made;
+  }
+  return { items, perTargetCount };
+}
+
 /* ------------------------------------------------------------------ *
  * Post-write verification
  * ------------------------------------------------------------------ */
@@ -350,21 +378,12 @@ function main() {
     const m = a.match(/^--([^=]+)=(.*)$/); return m ? [m[1], m[2]] : [a.replace(/^--/, ''), true];
   }));
   const masterSeed = args.seed || 'quant-build-01-v1';
-  const perTarget = parseInt(args.per || '6', 10);
+  const perTarget = parseInt(args.per || String(ITEMS_PER_RUNG), 10);
   const outPath = resolve(HERE, args.out || '../banks/QUANT-BUILD-01.jsonl');
 
   mkdirSync(dirname(outPath), { recursive: true });
 
-  const items = [];
-  const perTargetCount = {};
-  for (let target = 1; target <= 20; target++) {
-    let made = 0;
-    for (let ordinal = 0; ordinal < perTarget; ordinal++) {
-      const it = buildItem(masterSeed, target, ordinal);
-      if (it) { items.push(it); made++; }
-    }
-    perTargetCount[target] = made;
-  }
+  const { items, perTargetCount } = buildBank(masterSeed, perTarget);
 
   const jsonl = serializeBank(items);
   writeFileSync(outPath, jsonl, 'utf8');
