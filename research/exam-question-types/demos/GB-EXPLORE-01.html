@@ -5,63 +5,61 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>GB-EXPLORE-01 · Explorer's Map</title>
 <style>
-  :root{--bg1:#0e2417;--bg2:#123024;--ink:#e4f5ec;--card:#173a2a;--accent:#5fd68a;--good:#22b573;--bad:#ff6b6b;--fog:#0a1911;--tile:#20503a;--tel-bg:#0a0f1e;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
-  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  :root{--bg1:#0e2417;--bg2:#123024;--ink:#e4f5ec;--card:#173a2a;--accent:#5fd68a;--good:#7fffcf;
+    --fog:#0a1911;--tile:#20503a;--wall:#0c1d14;--tel-bg:#0a0f1e;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box}html,body{margin:0;min-height:100%}
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:radial-gradient(circle at 30% 10%,var(--bg2),var(--bg1));display:flex;min-height:100%}
-  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:12px;min-width:0}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:10px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#8fd8ac;text-transform:uppercase;font-weight:700}
-  #howto{max-width:560px;width:100%;background:#fff;border:1px solid #cfeeda;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #000}
+  #howto{max-width:600px;width:100%;background:#fff;border:1px solid #cfeeda;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #000}
   #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:#1f7a45}
   #howto p{margin:0;font-size:14px;color:#2c4636;line-height:1.5}
   #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#173a2a;color:#bfe9d1;border:2px solid #2c6b47;min-height:30px}
-  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
-  #phasecue[data-phase="scored"]{background:var(--accent);color:#08260f;border-color:var(--accent)}
-  #phasecue[data-phase="done"]{background:#bfe9d1;color:#08260f;border-color:#bfe9d1}
+  #phasecue[data-phase="waiting"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="sent"]{background:var(--accent);color:#08260f;border-color:var(--accent)}
+  #prompt{max-width:600px;width:100%;font-size:15px;font-weight:700;color:#cdeedd;text-align:center;min-height:20px}
   #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
-  #status.ok{color:#7fffcf} #status.no{color:var(--bad)} #status.neutral{color:#8fd8ac}
-  #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #000;display:flex;flex-direction:column;align-items:center;gap:12px;max-width:560px;width:100%}
-  #world{display:grid;gap:3px}
-  .cell{width:52px;height:52px;background:var(--fog);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:24px;transition:.2s}
-  .cell.revealed{background:var(--tile)}
-  .cell.avatar{box-shadow:inset 0 0 0 3px #fff}
-  #keys{display:grid;grid-template-columns:repeat(3,40px);grid-template-rows:repeat(2,36px);gap:3px;justify-items:center;align-items:center}
-  .keycap{background:#20503a;color:#bfe9d1;border-radius:6px;width:36px;height:32px;display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;user-select:none}
+  #status.ok{color:var(--good)} #status.neutral{color:#8fd8ac}
+  #stagecard{background:var(--card);border-radius:24px;padding:18px;box-shadow:0 18px 50px -22px #000;display:flex;flex-direction:column;align-items:center;gap:12px}
+  #world{display:grid;gap:2px}
+  .cell{background:var(--fog);border-radius:5px;display:flex;align-items:center;justify-content:center;
+    font:700 8px/1 ui-monospace,Menlo,monospace;letter-spacing:.02em;color:#0a1911;transition:background .15s}
+  .cell.seen{background:var(--tile);color:#dff6e8}
+  .cell.wall{background:var(--wall);box-shadow:inset 0 0 0 2px #2a4636}
+  .cell.wall.seen{background:#123122}
+  .cell.here{box-shadow:inset 0 0 0 3px #fff}
+  .cell.home{color:#ffe08a}
+  #pad{display:grid;grid-template-columns:repeat(3,44px);grid-template-rows:repeat(2,40px);gap:4px;justify-items:center}
   #kUp{grid-column:2;grid-row:1}#kLeft{grid-column:1;grid-row:2}#kDown{grid-column:2;grid-row:2}#kRight{grid-column:3;grid-row:2}
-  #budget{font-size:12px;color:#8fd8ac;letter-spacing:.05em}
-  #compassWrap{display:none;flex-direction:column;align-items:center;gap:10px}
-  #target{font-size:32px}
+  .keycap{background:#20503a;color:#cdeedd;border-radius:8px;width:42px;height:38px;display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;user-select:none;border:0;font-weight:700}
+  #meta{font-size:12px;color:#8fd8ac;letter-spacing:.04em;text-align:center}
+  #compass{display:none;flex-direction:column;align-items:center;gap:8px}
+  #target{font-size:15px;font-weight:800;letter-spacing:.08em;color:#ffe08a}
   #dial{width:150px;height:150px;border-radius:50%;background:#0e2417;box-shadow:inset 0 0 0 3px #2c6b47;position:relative;cursor:grab;touch-action:none}
-  #needle{position:absolute;left:50%;top:50%;width:4px;height:64px;background:var(--accent);transform-origin:50% 100%;transform:translate(-50%,-100%) rotate(0deg);border-radius:3px}
-  #confirm{margin-top:4px}
-  #routeWrap{display:none;flex-direction:column;align-items:center;gap:10px}
-  #routeBtns{display:flex;gap:16px}
-  .routecard{background:#0e2417;border-radius:12px;padding:8px;cursor:pointer;box-shadow:inset 0 0 0 2px #2c6b47}
-  .routecard.chosen{box-shadow:inset 0 0 0 3px var(--accent)}
-  .minigrid{display:grid;gap:2px}
-  .mc{width:14px;height:14px;background:#173a2a;border-radius:3px}
-  .mc.path{background:var(--accent)}
-  #diffwrap{width:100%;max-width:320px}
-  #diffbar{height:8px;background:#173a2a;border-radius:5px;overflow:hidden}
-  #difffill{height:100%;background:linear-gradient(90deg,#5fd68a,#bfe9d1);width:14%;transition:.3s}
-  #difflabel{font-size:11px;color:#7183b8;text-align:center;margin-top:4px;letter-spacing:.05em}
-  button.round{font:inherit;border:0;cursor:pointer;border-radius:50%}
-  #replay{width:50px;height:50px;background:#173a2a;color:var(--accent);font-size:22px}
-  button.pill{font:inherit;border:0;cursor:pointer;border-radius:20px;background:var(--accent);color:#08260f;font-weight:700;padding:8px 20px}
-  #ghost{position:fixed;left:0;top:0;font-size:40px;pointer-events:none;z-index:60;opacity:0;transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.4))}
-  #ghost.show{opacity:.95}
-  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #dial .mark{position:absolute;left:50%;top:6px;transform:translateX(-50%);font-size:10px;color:#6fb98e;letter-spacing:.1em}
+  #needle{position:absolute;left:50%;top:50%;width:5px;height:62px;background:var(--accent);transform-origin:50% 100%;transform:translate(-50%,-100%) rotate(0deg);border-radius:3px}
+  button.pill{font:inherit;border:0;cursor:pointer;border-radius:20px;background:var(--accent);color:#08260f;font-weight:700;padding:9px 22px}
+  button.round{font:inherit;border:0;cursor:pointer;border-radius:50%;width:44px;height:44px;background:#173a2a;color:var(--accent);font-size:19px}
+  #row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:center}
+  .hotkeys{font-size:11px;color:#6fb98e;text-align:center}
+  #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:60;opacity:0;transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s}
+  #ghost.show{opacity:.95}#ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
   #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
-  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry{width:330px;flex:0 0 330px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
   #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#141e38;text-transform:uppercase}
-  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
-  .mrow{display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:baseline}
-  .mid{color:var(--tel-key);font-weight:700}
-  .mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #itemcard{margin:12px 12px 4px;padding:10px;border:1px solid #1c2745;border-radius:12px}
+  .itemRow{display:flex;justify-content:space-between;color:#9399c0;font-size:11px;padding:2px 0}.itemRow b{color:#cfd3ff}
+  #mode{margin:4px 12px 0;font-size:11px;color:var(--tel-dim)}#mode b{color:#ffd479}
+  #mlist{padding:8px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:108px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}.mid.srv{color:#ffd479}
+  .mval{color:#fff;text-align:right;overflow-wrap:anywhere}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
   #logwrap{border-top:1px solid #1c2745;margin-top:auto}
   #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
-  #log{height:200px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log{height:150px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
   #log div{padding:2px 0;border-bottom:1px dotted #1c2745}#log .t{color:#5f6f9e}
-  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
+  @media(max-width:900px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
+  @media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
 </style>
 </head>
 <body>
@@ -69,171 +67,371 @@
     <div id="badge">GB-EXPLORE-01 · Explorer's Map</div>
     <header id="howto">
       <h1>How to use — Explorer's Map</h1>
-      <p>Use the arrow keys or the on-screen arrows to explore the map and find the landmarks. Then turn the dial to point back to each landmark, and pick the shorter route home to submit.</p>
+      <p>Use the arrow keys or the arrow buttons to walk around the foggy map. The fog lifts only near you, so walk until you have found every named landmark. Then the fog comes back: turn the dial to point at the landmark that is named on screen and press the check. Last, walk home again through the fog by the shortest way you can.</p>
     </header>
-    <div id="phasecue" data-phase="demo">Watch the example</div>
+    <div id="phasecue" data-phase="waiting">Waiting for item</div>
+    <div id="prompt"></div>
     <div id="stagecard">
       <div id="world"></div>
-      <div id="keys">
-        <div class="keycap" id="kUp">↑</div>
-        <div class="keycap" id="kLeft">←</div>
-        <div class="keycap" id="kDown">↓</div>
-        <div class="keycap" id="kRight">→</div>
+      <div id="meta"></div>
+      <div id="pad">
+        <button class="keycap" id="kUp">&#8593;</button>
+        <button class="keycap" id="kLeft">&#8592;</button>
+        <button class="keycap" id="kDown">&#8595;</button>
+        <button class="keycap" id="kRight">&#8594;</button>
       </div>
-      <div id="budget"></div>
-      <div id="compassWrap">
+      <div id="compass">
         <div id="target"></div>
-        <div id="dial"><div id="needle"></div></div>
-        <button class="pill" id="confirm">✓</button>
+        <div id="dial"><div class="mark">N</div><div id="needle"></div></div>
+        <button class="pill" id="confirm">&#10003; point</button>
       </div>
-      <div id="routeWrap">
-        <div id="routeBtns"></div>
-        <button class="pill" id="routeConfirm">✓</button>
+      <div id="row">
+        <button class="round" id="replay" title="show the controls again">&#8635;</button>
+        <button class="pill" id="done">DONE</button>
       </div>
-      <div id="diffwrap"><div id="diffbar"><div id="difffill"></div></div><div id="difflabel">WORLD 5</div></div>
-      <button class="round" id="replay" title="replay demo">↻</button>
-      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+      <div class="hotkeys">keys: arrows walk &middot; while pointing, left/right turn the dial and Enter confirms</div>
+      <div id="status" class="neutral">Waiting for an item from the host.</div>
     </div>
   </div>
   <aside id="telemetry">
-    <h3>Live telemetry · per-child</h3>
+    <h3>Live telemetry &middot; per-child</h3>
+    <div id="itemcard">
+      <div class="itemRow"><span>ITEM</span><b id="i_id">&mdash;</b></div>
+      <div class="itemRow"><span>WORLD</span><b id="i_world">&mdash;</b></div>
+      <div class="itemRow"><span>FOUND &middot; MOVES</span><b id="i_prog">&mdash;</b></div>
+      <div class="itemRow"><span>DIFFICULTY</span><b id="i_diff">&mdash;</b></div>
+    </div>
+    <div id="mode">Renderer emits the raw action log and process metrics; <b>M-EFF and M-VIEWANG are server-side</b>.</div>
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5fd68a" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
+/* =====================================================================
+ * GB-EXPLORE-01 — PURE RENDERER
+ * Renders a SERVED item (item.content = one fogged world) and reports the child's RAW
+ * ordered action log plus key-free process metrics. It NEVER generates its own worlds,
+ * NEVER receives the optimal tour, and NEVER shows correct/incorrect — not even an
+ * angular error — because the key and the score live server-side (BUILD_PLAN §2).
+ *
+ * Embedding protocol (postMessage), source-tagged:
+ *   host -> demo : {source:'gt-exam-host', type:'init',  item:ServedItem}
+ *                  {source:'gt-exam-host', type:'start', tutorial?:bool}
+ *   demo -> host : {source:'gt-exam-demo', type:'ready'}
+ *                  {source:'gt-exam-demo', type:'result',    result:ItemResult}
+ *                  {source:'gt-exam-demo', type:'telemetry', event:TelemetryEvent}
+ *
+ * Interactive metrics (contract §4): M-PATH, M-PLANFUL and M-EXPLORE are computed here from
+ * the action log. M-EFF (travel vs the optimal tour) and M-VIEWANG (pointing error) are
+ * SERVER-derived: the renderer emits response.cost.actual and the raw dial angles with the
+ * cell the child stood on, and the server applies answer.metricSpec / answer.bearingRule.
+ *
+ * Standalone (double-click / plain static server): cycles real ServedItems from the bank.
+ * ===================================================================== */
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0;
-const last=a=>a[a.length-1];
-const LMK=['🌳','⛲','🍄'];
+const HOST='gt-exam-host',SELF='gt-exam-demo';
+const embedded=(()=>{try{return window.parent&&window.parent!==window;}catch(_){return true;}})();
+function post(type,extra){if(!embedded)return;try{window.parent.postMessage(Object.assign({source:SELF,type},extra||{}),'*');}catch(_){}}
 
-/* ---------- world ---------- */
-let N=5,cells=[],avatar={r:0,c:0},visited=new Set(),foundLandmarks=[],gems=[],gemsCollected=0,moveBudget=0,movesUsed=0;
-function idx(r,c){return r*N+c;}
-function inBounds(r,c){return r>=0&&r<N&&c>=0&&c<N;}
-function buildWorld(n,nl,ng){N=n;cells=Array.from({length:N*N},()=>({type:'empty',revealed:false}));
-  avatar={r:(N/2)|0,c:(N/2)|0};visited=new Set([idx(avatar.r,avatar.c)]);foundLandmarks=[];gemsCollected=0;movesUsed=0;
-  const used=new Set([idx(avatar.r,avatar.c)]);
-  const lms=[];for(let k=0;k<nl;k++){let p;do{p={r:Math.floor(Math.random()*N),c:Math.floor(Math.random()*N)};}while(used.has(idx(p.r,p.c)));used.add(idx(p.r,p.c));cells[idx(p.r,p.c)]={type:'landmark',icon:LMK[k%LMK.length],revealed:false};lms.push({...p,icon:LMK[k%LMK.length]});}
-  gems=[];for(let k=0;k<ng;k++){let p;do{p={r:Math.floor(Math.random()*N),c:Math.floor(Math.random()*N)};}while(used.has(idx(p.r,p.c)));used.add(idx(p.r,p.c));cells[idx(p.r,p.c)]={type:'gem',revealed:false};gems.push(p);}
-  moveBudget=N*3;reveal(avatar.r,avatar.c);return lms;}
-function reveal(r,c){for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){const rr=r+dr,cc=c+dc;if(inBounds(rr,cc))cells[idx(rr,cc)].revealed=true;}}
-let curLandmarks=[];
-function renderWorld(){const w=$('#world');w.style.gridTemplateColumns=`repeat(${N},52px)`;w.innerHTML='';
-  for(let r=0;r<N;r++)for(let c=0;c<N;c++){const cell=cells[idx(r,c)];const d=document.createElement('div');d.className='cell'+(cell.revealed?' revealed':'')+((r===avatar.r&&c===avatar.c)?' avatar':'');
-    let icon='';if(r===avatar.r&&c===avatar.c)icon='🧭';else if(cell.revealed&&cell.type==='landmark')icon=cell.icon;else if(cell.revealed&&cell.type==='gem')icon='💎';
-    d.textContent=icon;w.appendChild(d);}
-  $('#budget').textContent=`moves left: ${Math.max(0,moveBudget-movesUsed)}${gems.length?` · gems ${gemsCollected}/${gems.length}`:''}`;}
-function move(dr,dc){if(locked||phase!=='explore')return;const nr=avatar.r+dr,nc=avatar.c+dc;if(!inBounds(nr,nc))return;
-  if(!firstMoveTime){firstMoveTime=Date.now();if(!curIsWarmup)T.rtFirst.push(firstMoveTime-exploreStart);}
-  avatar={r:nr,c:nc};movesUsed++;const k=idx(nr,nc);if(visited.has(k)&&!curIsWarmup)T.revisions++;visited.add(k);reveal(nr,nc);
-  const cell=cells[k];if(cell.type==='landmark'&&!foundLandmarks.includes(k)){foundLandmarks.push(k);log(`found landmark ${cell.icon}`);}
-  if(cell.type==='gem'){cell.type='empty';gemsCollected++;log('collected gem 💎');}
-  renderWorld();renderMeters();
-  if(!demoActive&&(foundLandmarks.length>=curLandmarks.length||movesUsed>=moveBudget))endExplore();}
+/* ---------- per-item state ---------- */
+let item=null,content=null,R=0,C=0,px=34;
+let walls=new Set(),lm=[],lmByCell=new Map(),home=[0,0];
+let at=[0,0],seen=new Set(),visited=new Set(),found=new Set();
+let phase='waiting';            // waiting | explore | point | shortcut | sent
+let locked=true,started=false,submitted=false;
+let pointIdx=0,dialAngle=0,dragging=false,pointings=[],pointStart=0;
+const T={itemStart:0,first:null,actions:[],events:[],moves:0,shortMoves:0,revisits:0,blocks:0,blur:0,rt:null};
 
-/* ---------- telemetry ---------- */
-let level=1,maxLevel=0;
-const T={rounds:0,viewErr:[],exploreCov:[],pathLens:[],eff:[],rtFirst:[],revisions:0,routeCorrect:0,routeTotal:0};
-function optimalMoves(lms,start){let cur={...start},total=0,rem=lms.slice();while(rem.length){let bi=0,bd=1e9;rem.forEach((p,i)=>{const d=Math.abs(p.r-cur.r)+Math.abs(p.c-cur.c);if(d<bd){bd=d;bi=i;}});total+=bd;cur=rem[bi];rem.splice(bi,1);}return total;}
+const PHASE={waiting:'Waiting for item',explore:'Explore',point:'Point at the landmark',shortcut:'Walk home',sent:'Answer sent'};
+function setCue(k){const el=$('#phasecue');el.dataset.phase=(k==='sent'||k==='waiting')?k:'ready';el.textContent=PHASE[k];}
+function setStatus(cls,msg){const el=$('#status');el.className=cls;el.textContent=msg;}
+function nowRel(){return T.itemStart?Math.round(performance.now()-T.itemStart):0;}
+function log(msg){const d=document.createElement('div');d.innerHTML=`<span class="t">+${nowRel()}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+function emit(kind,data){const ev=Object.assign({t:nowRel(),kind,itemId:item?item.itemId:null},data||{});T.events.push(ev);post('telemetry',{event:ev});}
+function act(kind,data){
+  const a=Object.assign({t:nowRel(),kind},data||{});
+  if(T.first===null&&kind!=='done'){T.first=a.t;emit('first_action',{ms:a.t,kind});}
+  T.actions.push(a);emit(kind,data);
+}
+const k=(r,c)=>r+','+c;
+
+/* ---------- metrics (key-free) ---------- */
+function passableCount(){return R*C-walls.size;}
+function totalMoves(){return T.moves+T.shortMoves;}
+function revisitRate(){return totalMoves()?T.revisits/totalMoves():0;}
+function planWindow(){return (content&&content.metricParams&&content.metricParams.planWindowMs)||4000;}
+function mPlanful(){const lat=T.first==null?0:T.first;return Math.round((0.5*Math.min(1,lat/planWindow())+0.5*(1-revisitRate()))*100)/100;}
+function mExplore(){const n=passableCount();return n>0?Math.round(visited.size/n*100)/100:0;}
 const METERS=[
- {id:'M-VIEWANG',name:'Perspective-taking angular error',get:()=>T.viewErr.length?`${last(T.viewErr)}\u00b0 (mean ${mean(T.viewErr)}\u00b0)`:'\u2014'},
- {id:'M-EXPLORE',name:'Exploration coverage',get:()=>T.exploreCov.length?`${last(T.exploreCov)}%`:'\u2014'},
- {id:'M-PATH',name:'Path length (moves)',get:()=>T.pathLens.length?`${last(T.pathLens)} moves`:'\u2014'},
- {id:'M-EFF',name:'Efficiency vs optimal path',get:()=>T.eff.length?`${last(T.eff)}%`:'\u2014'},
- {id:'M-DIFFREACH',name:'Ceiling / max difficulty reached',get:()=>maxLevel?`world ${maxLevel}`:'\u2014'},
- {id:'M-RTFIRST',name:'First-action latency',get:()=>T.rtFirst.length?`${last(T.rtFirst)} ms`:'\u2014'},
- {id:'M-REV',name:'Revisions (revisited tiles)',get:()=>`${T.revisions}`},
+ {id:'M-PATH',name:'Actions logged (strategy signature)',get:()=>String(T.actions.length)},
+ {id:'M-EXPLORE',name:'World breadth (cells entered / passable)',get:()=>mExplore().toFixed(2)},
+ {id:'M-PLANFUL',name:'Planful: pause before first move + few revisits',get:()=>T.actions.length?mPlanful().toFixed(2):'\u2014'},
+ {id:'M-REV',name:'Revisited cells',get:()=>String(T.revisits)},
+ {id:'M-RTFIRST',name:'Latency before the first move',get:()=>T.first==null?'\u2014':T.first+' ms'},
+ {id:'M-RT',name:'Time to DONE',get:()=>T.rt==null?'\u2014':T.rt+' ms'},
+ {id:'M-ENGAGE',name:'Focus losses (tracked, not enforced)',get:()=>String(T.blur)},
+ {id:'M-EFF',name:'Travel vs optimal tour (server-derived)',get:()=>`${totalMoves()} moves \u00b7 server`,srv:true},
+ {id:'M-VIEWANG',name:'Pointing error (server-derived)',get:()=>`${pointings.length} angle(s) \u00b7 server`,srv:true},
 ];
-function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
-function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});}
-let tStart=Date.now();
-function log(msg){const t=Date.now()-tStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
-function setDiff(){const pct=Math.min(100,Math.round((level-1)/5*100));$('#difffill').style.width=pct+'%';$('#difflabel').textContent='WORLD '+(4+level);}
-const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
-function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
-function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
-function roundCue(){setCue(curIsWarmup?'warmup':'scored',curIsWarmup?'':(T.rounds+1)+'/5');}
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid${m.srv?' srv':''}">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});
+  $('#i_prog').textContent=content?`${found.size}/${lm.length} \u00b7 ${totalMoves()}`:'\u2014';
+  $('#meta').textContent=content?(phase==='shortcut'
+    ? `walking home \u00b7 steps left ${Math.max(0,content.shortcutBudget-T.shortMoves)}`
+    : `landmarks found ${found.size} of ${lm.length} \u00b7 moves left ${Math.max(0,content.moveBudget-T.moves)}`):'';}
 
-/* ---------- ghost ---------- */
-const ghost=$('#ghost');function ghostShow(v){ghost.classList.toggle('show',v);}
+/* ---------- world rendering ---------- */
+function renderWorld(){
+  const w=$('#world');
+  w.style.gridTemplateColumns=`repeat(${C},${px}px)`;
+  w.style.gridTemplateRows=`repeat(${R},${px}px)`;
+  w.innerHTML='';
+  const fogOnly=(phase==='point'||phase==='shortcut'||phase==='sent');
+  for(let r=0;r<R;r++)for(let c=0;c<C;c++){
+    const key=k(r,c),d=document.createElement('div');
+    d.className='cell';d.dataset.r=r;d.dataset.c=c;
+    const visible=!fogOnly&&seen.has(key);
+    if(visible){
+      d.classList.add('seen');
+      if(walls.has(key))d.classList.add('wall');
+      else if(key===k(home[0],home[1])){d.classList.add('home');d.textContent='HOME';}
+      else if(lmByCell.has(key))d.textContent=lmByCell.get(key).label;
+    }
+    if(r===at[0]&&c===at[1])d.classList.add('here');
+    w.appendChild(d);
+  }
+}
+
+/* ---------- movement ---------- */
+function passable(r,c){return r>=0&&r<R&&c>=0&&c<C&&!walls.has(k(r,c));}
+function step(dr,dc){
+  if(locked||submitted)return;
+  if(phase!=='explore'&&phase!=='shortcut')return;
+  const nr=at[0]+dr,nc=at[1]+dc;
+  if(!passable(nr,nc)){T.blocks++;act('blocked',{to:[nr,nc],phase});renderMeters();return;}
+  const key=k(nr,nc);
+  if(visited.has(key))T.revisits++;
+  at=[nr,nc];visited.add(key);
+  if(phase==='explore'){
+    T.moves++;reveal();
+    if(lmByCell.has(key)&&!found.has(key)){found.add(key);act('landmark_found',{id:lmByCell.get(key).id,cell:[nr,nc]});log(`found ${lmByCell.get(key).label}`);}
+    else act('move',{to:[nr,nc]});
+  }else{
+    T.shortMoves++;act('shortcut_move',{to:[nr,nc]});
+  }
+  renderWorld();renderMeters();
+  if(phase==='explore'&&(found.size>=lm.length||T.moves>=content.moveBudget))endExplore();
+  else if(phase==='shortcut'&&(key===k(home[0],home[1])||T.shortMoves>=content.shortcutBudget))submit();
+}
+function reveal(){
+  const rad=content.fogRadius||1;
+  for(let dr=-rad;dr<=rad;dr++)for(let dc=-rad;dc<=rad;dc++){
+    const rr=at[0]+dr,cc=at[1]+dc;
+    if(rr>=0&&rr<R&&cc>=0&&cc<C)seen.add(k(rr,cc));
+  }
+}
+
+/* ---------- phase transitions ---------- */
+function endExplore(){
+  act('explore_end',{found:found.size,moves:T.moves});
+  phase='point';pointIdx=0;
+  renderWorld();setCue('point');
+  setStatus('neutral','The fog is back. Turn the dial to point at the landmark named below, then press the check.');
+  nextPoint();
+}
+function nextPoint(){
+  const ids=(content.pointing||[]);
+  if(pointIdx>=ids.length){startShortcut();return;}
+  const l=lm.find(x=>x.id===ids[pointIdx]);
+  $('#compass').style.display='flex';
+  $('#target').textContent='POINT TO: '+(l?l.label:ids[pointIdx]);
+  dialAngle=0;$('#needle').style.transform='translate(-50%,-100%) rotate(0deg)';
+  pointStart=performance.now();
+  act('point_prompt',{id:ids[pointIdx],standCell:at.slice()});
+}
+function commitPoint(){
+  if(locked||submitted||phase!=='point')return;
+  const ids=content.pointing||[];
+  if(pointIdx>=ids.length)return;
+  const rec={landmarkId:ids[pointIdx],standCell:at.slice(),angleDeg:Math.round(dialAngle*10)/10,msToCommit:Math.round(performance.now()-pointStart)};
+  pointings.push(rec);
+  act('point_commit',rec);                                  // raw angle only - NO error shown
+  log(`pointed for ${rec.landmarkId} at ${rec.angleDeg}\u00b0`);
+  pointIdx++;renderMeters();
+  setStatus('neutral','Angle sent. Next.');
+  setTimeout(()=>{$('#compass').style.display='none';nextPoint();},350);
+}
+function startShortcut(){
+  $('#compass').style.display='none';
+  phase='shortcut';
+  act('shortcut_start',{standCell:at.slice()});
+  setCue('shortcut');
+  setStatus('neutral','Now walk back home through the fog. Press DONE if you want to stop.');
+  renderWorld();renderMeters();
+}
+
+/* ---------- submit ---------- */
+function submit(){
+  if(submitted||!started)return;
+  submitted=true;locked=true;phase='sent';
+  T.rt=nowRel();act('done',{});
+  setCue('sent');
+  setStatus('neutral','Answer sent. The next map is coming up.');   // never a win/lose state
+  renderWorld();
+  const response={
+    actions:T.actions.slice(),                       // FULL ordered action log
+    pointings:pointings.slice(),                     // raw dial angles + the cell stood on
+    cost:{actual:totalMoves(),unit:'moves',exploreMoves:T.moves,shortcutMoves:T.shortMoves},
+    firstActionLatencyMs:T.first==null?T.rt:T.first,
+    landmarksFound:found.size,landmarksTotal:lm.length,
+    cellsVisited:[...visited],revisits:T.revisits,blockedTries:T.blocks,
+    endCell:at.slice(),reachedHome:k(at[0],at[1])===k(home[0],home[1]),
+    msToCommit:T.rt,
+  };
+  const metrics={'M-PATH':T.actions.length,'M-EXPLORE':mExplore(),'M-PLANFUL':mPlanful(),
+    'M-REV':T.revisits,'M-RT':T.rt,'M-RTFIRST':T.first==null?T.rt:T.first,
+    'M-ENGAGE':T.blur,'M-RAPIDGUESS':T.rt<350?1:0};
+  post('result',{result:{itemId:item.itemId,typeCode:item.typeCode,domain:item.domain,response,metrics,telemetry:T.events.slice()}});
+  log(`RESULT emitted \u00b7 ${totalMoves()} moves \u00b7 ${pointings.length} angles \u00b7 ${T.actions.length} actions`);
+  renderMeters();
+  if(!embedded)setTimeout(nextSample,1500);
+}
+
+/* ---------- wordless pointer scaffold (controls only; never walks a solution) ---------- */
+const ghost=$('#ghost');
 function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
-async function ghostTo(el){const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(480);}
-async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(400);}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(440);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(340);}
+async function scaffold(){
+  ghost.classList.add('show');await sleep(200);
+  await ghostTo($('#kRight'));await ghostTap();
+  await ghostTo($('#kDown'));await ghostTap();
+  await ghostTo($('#done'));await ghostTap();
+  ghost.classList.remove('show');await sleep(150);
+}
 
-/* ---------- flow ---------- */
-let phase='demo',locked=true,exploreStart=0,firstMoveTime=0,lmList=[],pointIdx=0,dialAngle=0,dragging=false,routeChoice=null,roundLandmarks=[],curIsWarmup=false,demoActive=false;
-function bearing(from,to){const dx=to.c-from.c,dy=from.r-to.r;let a=Math.atan2(dx,dy)*180/Math.PI;if(a<0)a+=360;return a;}
-function endExplore(){locked=true;const cov=Math.round(100*[...visited].length/(N*N));const opt=Math.max(1,optimalMoves(roundLandmarks,{r:(N/2)|0,c:(N/2)|0}));const effPct=Math.min(100,Math.round(100*opt/Math.max(movesUsed,opt)));
-  if(!curIsWarmup){T.exploreCov.push(cov);T.pathLens.push(movesUsed);T.eff.push(effPct);}
-  log(`exploration done${curIsWarmup?' (unscored)':''}: ${movesUsed} moves, coverage ${cov}%, landmarks ${foundLandmarks.length}/${roundLandmarks.length}`);
-  renderMeters();cells.forEach(c=>c.revealed=false);const av=cells[idx(avatar.r,avatar.c)];renderWorld();
-  setTimeout(startPointing,900);}
-function startPointing(){phase='point';pointIdx=0;roundCue();setStatus('neutral','Turn the dial to point back to the landmark, then press the check.');lmList=roundLandmarks.slice();nextPoint();}
-function nextPoint(){if(pointIdx>=lmList.length){startRoute();return;}
-  $('#compassWrap').style.display='flex';$('#target').textContent=lmList[pointIdx].icon+' ?';dialAngle=0;$('#needle').style.transform='translate(-50%,-100%) rotate(0deg)';locked=false;}
-function commitPoint(){if(locked)return;locked=true;const true_b=bearing(avatar,lmList[pointIdx]);let err=Math.abs(dialAngle-true_b);if(err>180)err=360-err;err=Math.round(err);
-  if(!curIsWarmup)T.viewErr.push(err);log(`pointed at ${lmList[pointIdx].icon}: error ${err}\u00b0${curIsWarmup?' (unscored)':''}`);setStatus('neutral','Off by '+err+'\u00b0');renderMeters();pointIdx++;
-  setTimeout(()=>{$('#compassWrap').style.display='none';nextPoint();},600);}
-function startRoute(){phase='route';roundCue();setStatus('neutral','Pick the shorter route home, then press the check.');$('#routeWrap').style.display='flex';routeChoice=null;
-  const homeR=(N/2)|0,homeC=(N/2)|0;const shortLen=Math.abs(avatar.r-homeR)+Math.abs(avatar.c-homeC);const longLen=shortLen+2+Math.floor(Math.random()*2);
-  const order=Math.random()<0.5?[shortLen,longLen]:[longLen,shortLen];const correctIsA=order[0]===shortLen;
-  $('#routeBtns').innerHTML='';order.forEach((len,i)=>{const card=document.createElement('div');card.className='routecard';card.dataset.i=i;card.dataset.correct=(i===0&&correctIsA)||(i===1&&!correctIsA)?'1':'0';
-    const mg=document.createElement('div');mg.className='minigrid';mg.style.gridTemplateColumns=`repeat(${len+1},14px)`;
-    for(let k=0;k<=len;k++){const mc=document.createElement('div');mc.className='mc path';mg.appendChild(mc);}
-    card.appendChild(mg);$('#routeBtns').appendChild(card);});
-  locked=false;}
-function chooseRoute(i){if(locked)return;$$('.routecard').forEach(c=>c.classList.remove('chosen'));const card=$$('.routecard')[i];card.classList.add('chosen');routeChoice=i;}
-function confirmRoute(){if(locked||routeChoice===null)return;locked=true;const card=$$('.routecard')[routeChoice];const ok=card.dataset.correct==='1';
-  if(!curIsWarmup){T.routeTotal++;if(ok)T.routeCorrect++;}
-  log(`shortcut choice: ${ok?'correct':'wrong'}${curIsWarmup?' (unscored)':''}`);
-  setStatus(ok?'ok':'no',ok?'\u2713 Shorter route':'\u2717 Not quite - that was the longer route');
-  $('#routeWrap').style.display='none';finishRound(ok);}
-function finishRound(routeOk){
-  if(curIsWarmup){setStatus('neutral','Practice done - now the scored rounds begin.');log('\u2014 warm-up complete \u2014 UNSCORED \u2014');setTimeout(startScored,1200);return;}
-  T.rounds++;const avgErr=mean(T.viewErr.slice(-roundLandmarks.length));const good=avgErr<55&&routeOk;
-  if(good){maxLevel=Math.max(maxLevel,level);level=Math.min(6,level+1);log(`ROUND result: strong \u2714 \u2192 world up to ${4+level}`);}
-  else{level=Math.max(1,level-1);log(`ROUND result: needs work \u2192 world down to ${4+level}`);}
-  setDiff();renderMeters();
-  setTimeout(()=>{if(T.rounds>=5)finish();else startScored();},1200);}
-function startWorld(isWarmup){curIsWarmup=isWarmup;roundCue();setStatus('neutral',isWarmup?'Practice - not scored. Explore to find the landmark.':'Explore the map to find the landmarks.');const n=isWarmup?4:Math.min(7,4+level);const nl=isWarmup?1:Math.min(3,1+Math.floor(level/2));const ng=isWarmup||level<3?0:2;
-  roundLandmarks=buildWorld(n,nl,ng);curLandmarks=roundLandmarks;phase='explore';firstMoveTime=0;exploreStart=Date.now();locked=false;
-  log(`\u2014 ${isWarmup?'warm-up (unscored)':'SCORED'} world ${n}x${n}, ${nl} landmark(s)${ng?', '+ng+' gems (Gem Trail)':''} \u2014`);
-  renderWorld();renderMeters();}
-function startWarmup(){phase='explorewarm';startWorld(true);}
-function startScored(){phase='explore';startWorld(false);}
-function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;$('#compassWrap').style.display='none';$('#routeWrap').style.display='none';
-  log(`\u2014 DONE \u00b7 mean angular error ${mean(T.viewErr)}\u00b0 \u00b7 shortcuts ${T.routeCorrect}/${T.routeTotal} \u00b7 ceiling world ${4+maxLevel} \u2014`);}
-async function runDemo(){phase='demo';demoActive=true;setCue('demo');setStatus('neutral','Watch the example.');locked=true;
-  roundLandmarks=buildWorld(3,1,0);curLandmarks=roundLandmarks;renderWorld();log('ghost-hand demo (wordless, <10s)');
-  ghostShow(true);await sleep(300);
-  const lm=roundLandmarks[0];const dr=Math.sign(lm.r-avatar.r),dc=Math.sign(lm.c-avatar.c);
-  phase='explore';locked=false;curIsWarmup=true;
-  while(avatar.r!==lm.r){move(dr,0);await sleep(260);}while(avatar.c!==lm.c){move(0,dc);await sleep(260);}
-  phase='demo';locked=true;
-  await sleep(300);cells.forEach(c=>c.revealed=false);renderWorld();
-  $('#compassWrap').style.display='flex';$('#target').textContent=lm.icon+' ?';const b=bearing(avatar,lm);dialAngle=b;$('#needle').style.transform=`translate(-50%,-100%) rotate(${b}deg)`;
-  await ghostTo($('#dial'));await ghostTap();await ghostTo($('#confirm'));await ghostTap();
-  $('#compassWrap').style.display='none';ghostShow(false);demoActive=false;setStatus('ok','\u2713 Example done - now you try');await sleep(500);startWarmup();}
+/* ---------- item lifecycle ---------- */
+function loadItem(served){
+  item=served;content=served.content;
+  R=content.grid.R;C=content.grid.C;
+  px=Math.max(20,Math.min(38,Math.floor(480/Math.max(R,C))));
+  walls=new Set((content.blocked||[]).map(b=>k(b[0],b[1])));
+  lm=(content.landmarks||[]).slice();
+  lmByCell=new Map(lm.map(l=>[k(l.r,l.c),l]));
+  home=content.home.slice();at=home.slice();
+  seen=new Set();visited=new Set([k(at[0],at[1])]);found=new Set();
+  pointIdx=0;pointings=[];dialAngle=0;
+  phase='waiting';started=false;locked=true;submitted=false;
+  T.itemStart=0;T.first=null;T.actions=[];T.events=[];T.moves=0;T.shortMoves=0;T.revisits=0;T.blocks=0;T.blur=0;T.rt=null;
+  $('#compass').style.display='none';
+  renderWorld();
+  $('#prompt').textContent=content.question.prompt;
+  $('#i_id').textContent=(served.itemId||'\u2014').slice(0,8);
+  $('#i_world').textContent=`${R}x${C} \u00b7 ${lm.length} landmark${lm.length===1?'':'s'} \u00b7 fog ${content.fogRadius}`;
+  $('#i_diff').textContent=(served.difficulty!=null?Number(served.difficulty).toFixed(2):'\u2014');
+  setCue('waiting');setStatus('neutral','Get ready.');
+  $('#log').innerHTML='';log(`item ${(served.itemId||'').slice(0,8)} \u00b7 ${R}x${C} \u00b7 budget ${content.moveBudget}`);
+  renderMeters();
+}
+async function startItem(withScaffold){
+  if(!content||started)return;
+  started=true;T.itemStart=performance.now();emit('start',{});
+  phase='explore';reveal();renderWorld();
+  if(withScaffold||(content.scaffold&&content.scaffold.warmup))await scaffold();
+  locked=false;                                  // interaction unlocked BEFORE any input can arrive
+  setCue('explore');
+  setStatus('neutral','Walk around and find every landmark.');
+  renderMeters();
+}
 
-$('#kUp').addEventListener('click',()=>move(-1,0));$('#kDown').addEventListener('click',()=>move(1,0));
-$('#kLeft').addEventListener('click',()=>move(0,-1));$('#kRight').addEventListener('click',()=>move(0,1));
-window.addEventListener('keydown',e=>{if(e.key==='ArrowUp')move(-1,0);else if(e.key==='ArrowDown')move(1,0);else if(e.key==='ArrowLeft')move(0,-1);else if(e.key==='ArrowRight')move(0,1);});
-const dial=$('#dial');
-function angleFromEvent(e){const r=dial.getBoundingClientRect();const cx=r.left+r.width/2,cy=r.top+r.height/2;const x=(e.touches?e.touches[0].clientX:e.clientX)-cx,y=(e.touches?e.touches[0].clientY:e.clientY)-cy;
-  let a=Math.atan2(x,-y)*180/Math.PI;if(a<0)a+=360;return a;}
-function dialStart(e){if(locked)return;dragging=true;dialAngle=angleFromEvent(e);$('#needle').style.transform=`translate(-50%,-100%) rotate(${dialAngle}deg)`;}
-function dialMove(e){if(!dragging)return;dialAngle=angleFromEvent(e);$('#needle').style.transform=`translate(-50%,-100%) rotate(${dialAngle}deg)`;}
-function dialEnd(){dragging=false;}
-dial.addEventListener('mousedown',dialStart);window.addEventListener('mousemove',dialMove);window.addEventListener('mouseup',dialEnd);
-dial.addEventListener('touchstart',dialStart);window.addEventListener('touchmove',dialMove);window.addEventListener('touchend',dialEnd);
+/* ---------- dial ---------- */
+function setNeedle(a){dialAngle=(a%360+360)%360;$('#needle').style.transform=`translate(-50%,-100%) rotate(${dialAngle}deg)`;}
+function angleFromEvent(e){
+  const d=$('#dial'),r=d.getBoundingClientRect();
+  const cx=r.left+r.width/2,cy=r.top+r.height/2;
+  const pt=e.touches&&e.touches[0]?e.touches[0]:e;
+  let a=Math.atan2(pt.clientX-cx,-(pt.clientY-cy))*180/Math.PI;
+  return (a%360+360)%360;
+}
+
+/* ---------- input wiring ---------- */
+$('#kUp').addEventListener('click',()=>step(-1,0));
+$('#kDown').addEventListener('click',()=>step(1,0));
+$('#kLeft').addEventListener('click',()=>step(0,-1));
+$('#kRight').addEventListener('click',()=>step(0,1));
 $('#confirm').addEventListener('click',commitPoint);
-$('#routeBtns').addEventListener('click',e=>{const c=e.target.closest('.routecard');if(c)chooseRoute(+c.dataset.i);});
-$('#routeConfirm').addEventListener('click',confirmRoute);
-$('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
-buildMeters();renderMeters();setDiff();runDemo();
+$('#done').addEventListener('click',()=>{if(started&&!submitted)submit();});
+$('#replay').addEventListener('click',()=>{if(started&&!submitted)scaffold();});
+(function(){
+  const d=$('#dial');
+  const down=e=>{if(locked||phase!=='point')return;dragging=true;setNeedle(angleFromEvent(e));e.preventDefault();};
+  const move=e=>{if(!dragging)return;setNeedle(angleFromEvent(e));};
+  const up=()=>{dragging=false;};
+  d.addEventListener('mousedown',down);d.addEventListener('touchstart',down,{passive:false});
+  addEventListener('mousemove',move);addEventListener('touchmove',move);
+  addEventListener('mouseup',up);addEventListener('touchend',up);
+})();
+addEventListener('keydown',e=>{
+  if(locked||submitted)return;
+  if(phase==='point'){
+    if(e.key==='ArrowLeft'){e.preventDefault();setNeedle(dialAngle-5);}
+    else if(e.key==='ArrowRight'){e.preventDefault();setNeedle(dialAngle+5);}
+    else if(e.key==='Enter'){e.preventDefault();commitPoint();}
+    return;
+  }
+  if(e.key==='ArrowUp'){e.preventDefault();step(-1,0);}
+  else if(e.key==='ArrowDown'){e.preventDefault();step(1,0);}
+  else if(e.key==='ArrowLeft'){e.preventDefault();step(0,-1);}
+  else if(e.key==='ArrowRight'){e.preventDefault();step(0,1);}
+  else if(e.key==='Enter'){e.preventDefault();submit();}
+});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&started&&!submitted){T.blur++;emit('engagement',{reason:'hidden'});renderMeters();}});
+
+/* ---------- host messages ---------- */
+let gotInit=false;
+addEventListener('message',e=>{const d=e.data;if(!d||d.source!==HOST)return;
+  if(d.type==='init'&&d.item){gotInit=true;loadItem(d.item);post('ready');}
+  else if(d.type==='start'){startItem(!!d.tutorial);}
+});
+
+/* ---------- standalone fallback (no host): cycle real bank items ---------- */
+function toServed(b){const{answer,scoring,provenance,...s}=b;return s;}
+let queue=[],qIdx=0;
+async function loadQueue(){
+  try{
+    const res=await fetch('../banks/GB-EXPLORE-01.jsonl',{cache:'no-store'});
+    if(res.ok){
+      const all=(await res.text()).trim().split('\n').filter(Boolean).map(l=>JSON.parse(l)).map(toServed);
+      all.sort((a,b)=>a.difficulty-b.difficulty);
+      const N=Math.min(8,all.length),pick=[];
+      for(let i=0;i<N;i++)pick.push(all[N===1?0:Math.round(i*(all.length-1)/(N-1))]);
+      log(`standalone: fetched ${all.length} bank items; cycling ${pick.length} across difficulty`);
+      return pick;
+    }
+  }catch(_){/* file:// blocks fetch - use the inline samples */}
+  log('standalone: bank fetch unavailable (serve the folder over http for the full bank) - using inline samples');
+  return INLINE_SAMPLES.slice();
+}
+function nextSample(){if(!queue.length)return;loadItem(queue[qIdx%queue.length]);qIdx++;startItem(qIdx===1);}
+async function bootstrapStandalone(){queue=await loadQueue();qIdx=0;nextSample();}
+
+/* Inline ServedItem fallback (real bank rows with answer/scoring/provenance stripped). */
+const INLINE_SAMPLES=[
+{"itemId":"f3827cdb-5cca-4d11-a886-d4fd264167b8","typeCode":"GB-EXPLORE-01","domain":"spatial","difficulty":1,"ageBands":["2-3"],"demoPath":"demos/GB-EXPLORE-01.html","content":{"typeCode":"GB-EXPLORE-01","question":{"mode":"explore_point_shortcut","prompt":"Walk around the foggy map and find all 1 landmark. Then turn the dial to point at each named landmark, and walk back home the shortest way you can.","unit":"moves"},"grid":{"R":4,"C":4},"home":[0,3],"blocked":[],"landmarks":[{"id":"L1","label":"TREE","r":2,"c":2}],"fogRadius":2,"moveBudget":12,"shortcutBudget":10,"pointing":["L1"],"optionKind":"exploration_actions","metricParams":{"planWindowMs":4000},"scaffold":{"warmup":true}},"syntheticOnly":true,"validated":false},
+{"itemId":"667f4440-f6fb-4b24-b8ea-8224a5486eb8","typeCode":"GB-EXPLORE-01","domain":"spatial","difficulty":6.82,"ageBands":["2-3","4-5"],"demoPath":"demos/GB-EXPLORE-01.html","content":{"typeCode":"GB-EXPLORE-01","question":{"mode":"explore_point_shortcut","prompt":"Walk around the foggy map and find all 3 landmarks. Then turn the dial to point at each named landmark, and walk back home the shortest way you can.","unit":"moves"},"grid":{"R":7,"C":7},"home":[0,2],"blocked":[[0,4],[1,2],[3,0],[3,2],[3,3],[5,0]],"landmarks":[{"id":"L1","label":"TREE","r":2,"c":3},{"id":"L2","label":"WELL","r":2,"c":1},{"id":"L3","label":"ROCK","r":6,"c":4}],"fogRadius":2,"moveBudget":16,"shortcutBudget":14,"pointing":["L1","L2"],"optionKind":"exploration_actions","metricParams":{"planWindowMs":4000},"scaffold":{"warmup":false}},"syntheticOnly":true,"validated":false},
+{"itemId":"d77d96f3-ecab-4b75-b350-e86b6e4d02c2","typeCode":"GB-EXPLORE-01","domain":"spatial","difficulty":13.83,"ageBands":["6-8"],"demoPath":"demos/GB-EXPLORE-01.html","content":{"typeCode":"GB-EXPLORE-01","question":{"mode":"explore_point_shortcut","prompt":"Walk around the foggy map and find all 4 landmarks. Then turn the dial to point at each named landmark, and walk back home the shortest way you can.","unit":"moves"},"grid":{"R":9,"C":9},"home":[1,5],"blocked":[[0,4],[2,1],[2,2],[3,4],[4,0],[4,1],[4,2],[4,4],[4,7],[5,4],[5,6],[6,2],[7,5],[8,0],[8,3],[8,6]],"landmarks":[{"id":"L1","label":"TREE","r":0,"c":8},{"id":"L2","label":"WELL","r":7,"c":0},{"id":"L3","label":"ROCK","r":1,"c":2},{"id":"L4","label":"POND","r":7,"c":1}],"fogRadius":1,"moveBudget":25,"shortcutBudget":15,"pointing":["L1","L2","L3"],"optionKind":"exploration_actions","metricParams":{"planWindowMs":4000},"scaffold":{"warmup":false}},"syntheticOnly":true,"validated":false},
+{"itemId":"515fbcf2-f634-4307-9d6d-1189dda65ddc","typeCode":"GB-EXPLORE-01","domain":"spatial","difficulty":20,"ageBands":["6-8"],"demoPath":"demos/GB-EXPLORE-01.html","content":{"typeCode":"GB-EXPLORE-01","question":{"mode":"explore_point_shortcut","prompt":"Walk around the foggy map and find all 5 landmarks. Then turn the dial to point at each named landmark, and walk back home the shortest way you can.","unit":"moves"},"grid":{"R":11,"C":11},"home":[4,0],"blocked":[[0,7],[0,10],[1,5],[2,1],[2,5],[3,0],[3,7],[4,4],[4,6],[4,8],[5,0],[5,2],[5,4],[5,10],[6,3],[6,5],[6,8],[6,9],[7,4],[7,7],[7,8],[7,9],[8,1],[8,3],[8,7],[8,8],[9,5],[9,7],[10,1],[10,3],[10,4],[10,10]],"landmarks":[{"id":"L1","label":"TREE","r":6,"c":10},{"id":"L2","label":"WELL","r":0,"c":9},{"id":"L3","label":"ROCK","r":7,"c":2},{"id":"L4","label":"POND","r":0,"c":3},{"id":"L5","label":"GATE","r":8,"c":10}],"fogRadius":1,"moveBudget":47,"shortcutBudget":26,"pointing":["L1","L2","L3","L4"],"optionKind":"exploration_actions","metricParams":{"planWindowMs":4000},"scaffold":{"warmup":false}},"syntheticOnly":true,"validated":false}
+];
+
+/* ---------- boot ---------- */
+buildMeters();renderMeters();
+if(embedded)post('ready');
+setTimeout(()=>{if(!gotInit){
+  $('#howto').querySelector('p').insertAdjacentHTML('beforeend',' <b>(Standalone preview: cycling bank items.)</b>');
+  bootstrapStandalone();
+}},500);
 </script>
 </body>
 </html>
