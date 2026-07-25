@@ -9,6 +9,8 @@ import type {
   ServedItem,
 } from '@gt-selection/exam-engine';
 
+import { EXAM_TYPE_REGISTRY } from './registry.generated';
+
 /**
  * Client-side wiring helpers for the adaptive runner.
  *
@@ -18,34 +20,92 @@ import type {
  * display helpers. Nothing here holds an answer key.
  */
 
-/** The four refactored demos speak the postMessage protocol natively (no bridge). */
-export const NATIVE_PROTOCOL_TYPES: ReadonlySet<string> = new Set([
-  'FLU-MATRIX-01',
-  'VER-RELPAIR-01',
-  'QUANT-SERIES-01',
-  'SPA-FOLDNET-01',
-]);
-
-/** Metrics this vertical actually produces (client demo + server verification). */
-const TYPE_METRICS = ['M-ACC', 'M-DIFFREACH', 'M-RT', 'M-RTFIRST', 'M-REV', 'M-ERRTYPE'];
+/**
+ * Every wired demo is a pure postMessage renderer — the sync script refuses to
+ * publish one that does not handle `init`/`start` and emit a source-tagged
+ * `result` — so the legacy DOM bridge is never needed for a registry type.
+ */
+export const NATIVE_PROTOCOL_TYPES: ReadonlySet<string> = new Set(
+  EXAM_TYPE_REGISTRY.map((t) => t.typeCode),
+);
 
 /**
- * Stop-rule metrics enforced for THIS vertical. The engine's default registry also
- * enforces domain metrics (M-RULEID/M-VOCABLVL/M-PAE/M-ROTSLOPE …) and RT-variance
- * metrics the current four demos do not yet emit; enforcing those would stall the
- * battery at the hard item cap. We keep the real engine and only tune its (tunable)
- * config to the metrics collected now (born-synthetic; `validated=false`). As banks
- * + demos emit more metrics, drop these overrides toward the package defaults.
+ * Metrics `/api/exam-submit` attaches to EVERY scored item regardless of type, so
+ * they are always safe to enforce in the stop rule. `M-DIFFREACH` is deliberately
+ * absent: the server only emits it when the answer is CORRECT, so enforcing it
+ * would hang the battery for a child who answers everything wrong.
  */
-const VERTICAL_CORE_METRICS: CoreMetricSpec[] = [
-  { id: 'M-ACC', scope: 'all', minSamples: 4, enforced: true },
-  { id: 'M-ERRTYPE', scope: 'all', minSamples: 3, enforced: true },
-  { id: 'M-RT', scope: 'all', minSamples: 4, enforced: true },
-  { id: 'M-RTFIRST', scope: 'all', minSamples: 4, enforced: true },
-  { id: 'M-REV', scope: 'all', minSamples: 3, enforced: true },
-  // Collected but non-blocking (bias selection only).
-  { id: 'M-DIFFREACH', scope: 'all', minSamples: 3, enforced: false },
-];
+const SERVER_GUARANTEED_METRICS = ['M-ACC', 'M-ERRTYPE'] as const;
+
+/** Minimum samples per enforced core metric, per area. */
+const MIN_SAMPLES: Record<string, number> = {
+  'M-ACC': 4,
+  'M-ERRTYPE': 3,
+  'M-RT': 4,
+  'M-RTFIRST': 4,
+  'M-REV': 3,
+};
+
+/** Client-emitted metrics we WANT to gate the stop rule on, where every type supplies them. */
+const CANDIDATE_CLIENT_METRICS = ['M-RT', 'M-RTFIRST', 'M-REV'] as const;
+
+const AREAS: Area[] = ['fluid_reasoning', 'verbal', 'quantitative', 'spatial'];
+
+/** Metric ids the registry says a type puts on its ItemResult. */
+function registryMetrics(typeCode: string): string[] {
+  return EXAM_TYPE_REGISTRY.find((t) => t.typeCode === typeCode)?.metrics ?? [];
+}
+
+/**
+ * Build the stop-rule metric registry FROM the wired types, per area.
+ *
+ * The stop rule requires every *enforced* metric to reach `minSamples` in every
+ * area. A metric that some wired type never emits therefore cannot be enforced
+ * blindly: with a large type pool the engine can keep picking that type and the
+ * count never advances, so `isDone` stays false until the hard item cap — a
+ * 40-item battery that looks like a hang. (Concretely: QUANT-BUILD-01 reports
+ * `M-PATH` instead of `M-REV`, so `M-REV` is not enforceable for the
+ * quantitative area.)
+ *
+ * So a client metric is enforced for an area only when EVERY wired type in that
+ * area emits it, and is otherwise demoted to tracked — still biasing selection
+ * toward coverage, never able to block completion. Server-guaranteed metrics are
+ * always enforced. This keeps the stop rule satisfiable by construction as the
+ * remaining types land.
+ */
+export function buildCoreMetrics(
+  registry: readonly { typeCode: string; domain: Area; metrics: string[] }[] = EXAM_TYPE_REGISTRY,
+): CoreMetricSpec[] {
+  const specs: CoreMetricSpec[] = SERVER_GUARANTEED_METRICS.map((id) => ({
+    id,
+    scope: 'all' as const,
+    minSamples: MIN_SAMPLES[id] ?? 3,
+    enforced: true,
+  }));
+
+  for (const metric of CANDIDATE_CLIENT_METRICS) {
+    for (const area of AREAS) {
+      const typesInArea = registry.filter((t) => t.domain === area);
+      if (typesInArea.length === 0) continue;
+      specs.push({
+        id: metric,
+        scope: area,
+        minSamples: MIN_SAMPLES[metric] ?? 3,
+        enforced: typesInArea.every((t) => t.metrics.includes(metric)),
+      });
+    }
+  }
+
+  // Collected but never blocking: biases selection toward coverage variety only.
+  specs.push({ id: 'M-DIFFREACH', scope: 'all', minSamples: 3, enforced: false });
+  specs.push({ id: 'M-EXPLORE', scope: 'all', minSamples: 3, enforced: false });
+  specs.push({ id: 'M-PATH', scope: 'all', minSamples: 3, enforced: false });
+  specs.push({ id: 'M-ENGAGE', scope: 'all', minSamples: 3, enforced: false });
+  specs.push({ id: 'M-RAPIDGUESS', scope: 'all', minSamples: 3, enforced: false });
+  specs.push({ id: 'M-PAE', scope: 'quantitative', minSamples: 3, enforced: false });
+
+  return specs;
+}
 
 /**
  * Deterministic engine config for the adaptive battery. Variable length: keep
@@ -53,7 +113,7 @@ const VERTICAL_CORE_METRICS: CoreMetricSpec[] = [
  * enough samples, bounded by a hard safety cap.
  */
 export const EXAM_ENGINE_OVERRIDES: Partial<EngineConfig> = {
-  coreMetrics: VERTICAL_CORE_METRICS,
+  coreMetrics: buildCoreMetrics(),
   minItemsPerArea: 4,
   evenSpreadTolerance: 1,
   stabilityWindow: 4,
@@ -88,7 +148,13 @@ export function buildBanks(served: readonly ServedItem[]): Banks {
   for (const [typeCode, items] of byType) {
     const domain: Area = items[0]!.domain;
     const ageBands: AgeBand[] = Array.from(new Set(items.flatMap((i) => i.ageBands)));
-    types.push({ typeCode, domain, ageBands, metrics: [...TYPE_METRICS] });
+    // Per-type metrics from the registry (what the demo really emits) plus the
+    // ones the server attaches to every scored item, so metric-coverage
+    // selection reflects what each type actually contributes.
+    const metrics = Array.from(
+      new Set([...registryMetrics(typeCode), ...SERVER_GUARANTEED_METRICS, 'M-DIFFREACH']),
+    );
+    types.push({ typeCode, domain, ageBands, metrics });
   }
 
   return { types, items: served as unknown as BankItem[] };
@@ -105,13 +171,29 @@ export function numericMetrics(bag: unknown): Record<string, number> {
   return out;
 }
 
-/** Fetch the full served-item pool (no answer keys) for the engine to select over. */
+/**
+ * Fetch the selection INDEX (no answer keys, and no `content`) for the engine to
+ * select over. Content is fetched per item by {@link fetchServedItem} — the full
+ * pool's stimulus JSON is several megabytes across the wired banks and grows with
+ * every type added.
+ */
 export async function fetchServedPool(): Promise<ServedItem[]> {
-  const res = await fetch('/api/exam-items', { cache: 'no-store' });
+  const res = await fetch('/api/exam-items?index=1', { cache: 'no-store' });
   if (!res.ok) throw new Error('ITEMS_FETCH_FAILED');
   const data = (await res.json()) as { ok?: boolean; items?: unknown };
   if (!data.ok || !Array.isArray(data.items)) throw new Error('ITEMS_FETCH_FAILED');
   return data.items as ServedItem[];
+}
+
+/** Fetch one served item WITH its stimulus content (still key-free) for rendering. */
+export async function fetchServedItem(itemId: string): Promise<ServedItem> {
+  const res = await fetch(`/api/exam-items?itemId=${encodeURIComponent(itemId)}`, {
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error('ITEM_FETCH_FAILED');
+  const data = (await res.json()) as { ok?: boolean; item?: unknown };
+  if (!data.ok || !data.item) throw new Error('ITEM_FETCH_FAILED');
+  return data.item as ServedItem;
 }
 
 /** Server-authoritative verdict for one answered item. */

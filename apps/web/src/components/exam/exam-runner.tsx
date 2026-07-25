@@ -22,13 +22,14 @@ import {
   type ScoredItem as ScoringScoredItem,
 } from '@gt-selection/exam-scoring';
 
-import { EXAM_BANK, EXAM_DOMAINS, domainLabel } from '@/lib/exam/bank';
+import { EXAM_BANK_BY_CODE, EXAM_DOMAINS, domainLabel } from '@/lib/exam/bank';
 import {
   EXAM_ENGINE_OVERRIDES,
   NATIVE_PROTOCOL_TYPES,
   bandForTheta,
   buildBanks,
   demoPathFor,
+  fetchServedItem,
   fetchServedPool,
   numericMetrics,
   submitAnswer,
@@ -159,6 +160,8 @@ export function ExamRunner({
   }, [studentName, gradeBand]);
 
   // Serve the next engine-selected item, or finalize when the battery is done.
+  // The engine selects over the key-free, content-free index; the chosen item's
+  // stimulus is fetched just before it is rendered.
   const serveNext = useCallback(
     (state: SessionState) => {
       const banks = banksRef.current;
@@ -166,20 +169,32 @@ export function ExamRunner({
         void finalize();
         return;
       }
+      let selected: ServedItem;
       try {
         const typeCode = nextType(state, banks);
         if (!typeCode) {
           void finalize();
           return;
         }
-        const item = nextItem(state, typeCode, banks);
-        servedRef.current = [...servedRef.current, item];
-        setServed(servedRef.current);
-        setCurrent(item);
+        selected = nextItem(state, typeCode, banks);
       } catch {
         // Pool exhausted for the selected type — conclude with what we have.
         void finalize();
+        return;
       }
+
+      void (async () => {
+        let item = selected;
+        try {
+          item = await fetchServedItem(selected.itemId);
+        } catch {
+          // Fall back to the index entry; the demo will show an empty stimulus
+          // and the item can still be skipped rather than wedging the battery.
+        }
+        servedRef.current = [...servedRef.current, item];
+        setServed(servedRef.current);
+        setCurrent(item);
+      })();
     },
     [finalize],
   );
@@ -499,7 +514,7 @@ export function ExamRunner({
   }
 
   // ---- running -------------------------------------------------------------
-  const meta = current ? EXAM_BANK.find((b) => b.typeCode === current.typeCode) : undefined;
+  const meta = current ? EXAM_BANK_BY_CODE.get(current.typeCode) : undefined;
   if (!current) {
     return (
       <div className={styles.wrap}>

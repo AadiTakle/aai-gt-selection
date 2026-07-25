@@ -9,11 +9,13 @@ import type { WizardState } from '@/lib/family/wizard-types';
 import { ExamRunner } from './exam-runner';
 
 /**
- * Dev-only wrapper: reads the synthetic student name from the saved wizard state
- * (same source the preview dashboard uses) and hands it to the exam runner. Uses
+ * Shared entry wrapper for the adaptive screener, used by BOTH the authenticated
+ * `/family/exam` route and the unauthenticated `/dev/family-preview/exam` one, so
+ * the two never diverge. Reads the synthetic student name from the saved wizard
+ * state (same source the dashboard uses) and hands it to the exam runner. Uses
  * useSyncExternalStore so the server render and first client render agree (no
- * hydration mismatch), then reflects the stored name once mounted. No
- * backend/auth in preview; results still POST to /api/exam-results.
+ * hydration mismatch), then reflects the stored name once mounted. Results POST
+ * to /api/exam-results either way.
  */
 
 function subscribe(onChange: () => void) {
