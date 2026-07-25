@@ -48,9 +48,7 @@ export function FamilyLanding({
       <section className={styles.hero}>
         <div className={styles.heroText}>
           <p className={styles.eyebrow}>Family application portal · Fall 2027</p>
-          <h1 className={styles.title}>
-            School reimagined, for gifted kids who love to learn.
-          </h1>
+          <h1 className={styles.title}>School reimagined, for gifted kids who love to learn.</h1>
           <p className={styles.intro}>
             Begin your family’s application. It takes only a few focused minutes, everything saves
             as you go, and you can pick up right where you left off.

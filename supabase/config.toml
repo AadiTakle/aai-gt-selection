@@ -173,7 +173,10 @@ enable_refresh_token_rotation = true
 # Requires enable_refresh_token_rotation = true.
 refresh_token_reuse_interval = 10
 # Allow/disallow new user signups to your project.
-enable_signup = false
+# Enabled so the self-service family "Create account" flow can be exercised
+# locally; new signups are assigned the family role by the auth.users trigger in
+# 20260724070000_family_self_signup_role.sql (never staff).
+enable_signup = true
 # Allow/disallow anonymous sign-ins to your project.
 enable_anonymous_sign_ins = false
 # Allow/disallow testing manual linking of accounts

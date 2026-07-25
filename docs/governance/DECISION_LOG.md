@@ -213,6 +213,17 @@ Each decision must include the requirements served, alternatives considered, evi
 - **Owner:** Proposed by product direction (session 2026-07-24); requires team-lead ratification.
 - **Governance note:** This log currently ends at D-014, but the exam workstream references D-015 (Timeback-fit target) and D-016 (adaptive screener) in `research/exam-question-types/METRIC_FRAMEWORK.md`; those entries are not yet transcribed here. This entry uses D-017 to avoid collision; transcribing D-015/D-016 and reconciling the canonical log are open governance tasks.
 
+### D-018 — Interim hosted deploy on Supabase Cloud behind an explicit opt-in flag
+
+- **Date:** 2026-07-24
+- **Status:** Proposed (awaiting team-lead ratification) — records an interim divergence from D-012's end-state, not a replacement for it.
+- **Decision:** To get a working hosted deployment sooner than the full D-012 rebind allows, permit running the Next.js portal against **Supabase Cloud** (auth + Postgres RPC) in production, gated behind an explicit **`GT_DEPLOY_MODE=hosted`** runtime flag. Default behavior is unchanged and remains fail-closed (loopback-only Supabase, `NODE_ENV` dev/test, local synthetic adapter pinned to `:65421`). Hosted mode only relaxes the non-loopback URL guard (requiring https) and widens CSP `connect-src` to the Supabase origin; it does **not** relax the ban on service-role/secret keys in the app runtime. Hosting target remains ECS Fargate per D-012 (`apps/web/Dockerfile`, `infra/`, `.github/workflows/deploy.yml`).
+- **Requirements served:** operational (get a reviewable live environment); does not alter any product requirement.
+- **In tension with:** D-012, which ratifies the end-state as `pg`/Aurora + Cognito (not Supabase). This is an explicitly-temporary bridge; the Supabase→pg/Cognito rebind remains the tracked follow-up and is NOT superseded.
+- **Alternatives considered:** (a) block all deploy until the full D-012 rebind lands — rejected as too slow for MVP demonstration; (b) silently loosen the env guards — rejected (safety-critical guards must stay default-on and opt-in must be explicit and logged).
+- **Consequences:** `apps/web/src/lib/env.ts` gains `isHostedDeploy` + hosted branch (with tests); `next.config.ts` CSP `connect-src` is hosted-aware; `docs/DEPLOYMENT_RUNBOOK.md` and `infra/README.md` updated; `.github/workflows/deploy.yml` added (dormant until deploy secrets exist). Data remains born-synthetic until a separate decision authorizes real applicant data. No production account is authorized by this entry alone.
+- **Owner:** Proposed by product direction (session 2026-07-24); requires team-lead ratification before pointing hosted mode at a real project.
+
 ## Entry template
 
 ### D-XXX — Decision title
