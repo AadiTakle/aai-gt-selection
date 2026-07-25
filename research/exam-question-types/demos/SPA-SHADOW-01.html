@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SPA-SHADOW-01 · Shadow Play</title>
 <style>
-  :root{--bg1:#eef4ff;--bg2:#f7ecff;--ink:#26304a;--card:#fff;--accent:#5b6cff;--good:#22b573;--bad:#ff6b6b;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
-  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  :root{--bg1:#eef4ff;--bg2:#f7ecff;--ink:#26304a;--card:#fff;--accent:#5b6cff;--good:#22b573;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box} html,body{margin:0;min-height:100%}
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:10px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
@@ -14,20 +14,21 @@
   #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
   #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
   #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:#5b6cff;border:2px solid #c9d0ff;min-height:30px}
-  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
-  #phasecue[data-phase="scored"]{background:#5b6cff;color:#fff;border-color:#5b6cff}
-  #phasecue[data-phase="done"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
+  #phasecue[data-phase="waiting"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="ready"]{background:#eef1ff;color:#5b6cff;border-color:#c9d0ff}
+  #phasecue[data-phase="locked"]{background:#5b6cff;color:#fff;border-color:#5b6cff}
+  #prompt{max-width:560px;width:100%;font-size:16px;font-weight:800;color:#33375a;text-align:center;min-height:22px}
   #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
-  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
+  #status.ok{color:var(--good)} #status.neutral{color:#8a93b5}
   #stagecard{background:var(--card);border-radius:26px;padding:18px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:12px;max-width:560px;width:100%}
   #lightbar{display:flex;align-items:center;gap:8px;font-weight:800;color:#a9741a;font-size:15px;background:linear-gradient(160deg,#fff7e6,#eef2ff);border:3px solid #ffe0a3;border-radius:14px;padding:6px 14px}
   #lightbar .em{font-size:12px;font-weight:800;letter-spacing:.05em;background:#ffe0a3;color:#8a5a12;border-radius:6px;padding:2px 8px}
-  #stage{position:relative;border-radius:18px;background:radial-gradient(120% 120% at 30% 15%,#f3f7ff,#e5ebff);border:3px solid #d6ddff}
+  #stage{position:relative;border-radius:18px;background:radial-gradient(120% 120% at 30% 15%,#f3f7ff,#e5ebff);border:3px solid #d6ddff;touch-action:none;cursor:grab}
+  #stage.drag{cursor:grabbing}
   canvas{display:block;border-radius:15px}
   #preview{position:absolute;right:12px;bottom:12px;background:rgba(20,26,46,.9);border-radius:12px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:4px;transition:opacity .25s}
   #preview.hide{opacity:0;pointer-events:none}
   #preview .pl{font-size:10px;color:#9fb0e6;letter-spacing:.08em}
-  #ask{font-weight:800;color:#4a4a7a;font-size:15px}
   #options{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
   .optwrap{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
   .optwrap .num{font-weight:800;color:#7f8cc4;font-size:13px}
@@ -37,8 +38,7 @@
   .sc.on{background:#3a4568}
   #preview .sc{width:11px;height:11px;background:#2a3556}#preview .sc.on{background:#ffd479}
   .optwrap.sel .sil{outline:4px solid var(--accent);outline-offset:2px}
-  .optwrap.correct .sil{outline:5px solid var(--good)}.optwrap.wrong .sil{outline:5px solid var(--bad)}
-  .optwrap[disabled]{pointer-events:none}
+  .optwrap[disabled]{pointer-events:none;opacity:.85}
   #controls{display:flex;gap:12px;align-items:center}
   button{font:inherit;border:0;cursor:pointer;border-radius:50%}
   #peek{width:46px;height:46px;background:#fff0d6;color:#a9741a;font-size:12px;font-weight:800}
@@ -48,26 +48,24 @@
   #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.1s infinite}
   @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
   #keys{font-size:12px;color:#8a93b5;text-align:center}#keys b{color:#5566b0}
-  .shake{animation:shake .4s}@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
   #ghost{position:fixed;left:0;top:0;font-size:38px;pointer-events:none;z-index:60;opacity:0;transition:transform .55s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
   #ghost.show{opacity:.92}
   #ghost .ring{position:absolute;left:-6px;top:-4px;width:26px;height:26px;border-radius:50%;border:3px solid var(--accent);opacity:0}
   #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
   #telemetry{width:326px;flex:0 0 326px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
   #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
-  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:6px}
-  .mrow{display:grid;grid-template-columns:104px 1fr;gap:8px;align-items:baseline}
+  #itemcard{margin:12px 12px 4px;padding:10px;border:1px solid #263056;border-radius:12px}
+  .itemRow{display:flex;justify-content:space-between;color:#9399c0;font-size:11px;padding:2px 0}.itemRow b{color:#cfd3ff}
+  #mlist{padding:8px 12px;display:flex;flex-direction:column;gap:6px}
+  .mrow{display:grid;grid-template-columns:110px 1fr;gap:8px;align-items:baseline}
   .mid{color:var(--tel-key);font-weight:700}
-  .mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
-  #diffwrap{padding:4px 12px 8px;border-top:1px solid #262f52}
-  #diffwrap b{display:block;color:#8ea0d6;font-size:11px;letter-spacing:.08em;padding:6px 0}
-  #diffmeter{display:flex;gap:3px}.seg{flex:1;height:13px;border-radius:3px;background:#222c4d}
-  .seg.done{background:#3350d9}.seg.cur{background:#7fffcf}.seg.ceil{box-shadow:inset 0 0 0 2px #ffd479}
+  .mval{color:#fff;text-align:right;overflow-wrap:anywhere}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
   #logwrap{border-top:1px solid #262f52;margin-top:auto}
   #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
-  #log{height:132px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log{height:150px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
   #log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
   @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:280px}}
+  @media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
 </style>
 </head>
 <body>
@@ -75,26 +73,31 @@
     <div id="badge">SPA-SHADOW-01 · Shadow Play</div>
     <header id="howto">
       <h1>How to use — Shadow Play</h1>
-      <p>Look at the 3-D block shape and read where the light comes from. Tap the flat shadow it would throw, then press the check (<b>✓</b>) to submit. Number keys 1–4 pick a shadow; during practice you may press P to peek. It gets harder each time you are right.</p>
+      <p>Look at the 3-D block shape and read where the light comes from. Drag the block to turn it. Tap the flat shadow it would throw, then press the check to submit. Number keys 1–5 pick a shadow; on practice items you may press P to peek.</p>
     </header>
-    <div id="phasecue" data-phase="demo">Watch the example</div>
+    <div id="phasecue" data-phase="waiting">Waiting for item</div>
+    <div id="prompt"></div>
     <div id="stagecard">
       <div id="lightbar"><span class="em" id="lightem">TOP</span><span id="lightlabel">Light from above — shadow on the floor</span></div>
       <div id="stage">
         <canvas id="c" width="440" height="300"></canvas>
         <div id="preview" class="hide"><div class="pl">SHADOW</div><div id="prevgrid"></div></div>
       </div>
-      <div id="ask">Which shadow does the light throw?</div>
-      <div id="options"></div>
-      <div id="controls"><button id="peek" title="peek shadow (practice only)">peek</button><button id="replay" title="replay demo">↻</button><button id="go" title="lock answer">✓</button></div>
-      <div id="keys"><b>1–4</b> pick shadow · <b>P</b> peek · <b>Enter</b> lock</div>
-      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+      <div id="options" aria-label="answer choices"></div>
+      <div id="controls"><button id="peek" title="peek shadow (practice only)">peek</button><button id="replay" title="replay scaffold">↻</button><button id="go" title="lock answer" aria-label="lock answer">✓</button></div>
+      <div id="keys"><b>1–5</b> pick shadow · <b>P</b> peek · <b>Enter</b> lock</div>
+      <div id="status" class="neutral">Waiting for an item from the host…</div>
     </div>
   </div>
   <aside id="telemetry">
     <h3>Live telemetry · per-child</h3>
+    <div id="itemcard">
+      <div class="itemRow"><span>ITEM</span><b id="i_id">—</b></div>
+      <div class="itemRow"><span>LIGHT</span><b id="i_light">—</b></div>
+      <div class="itemRow"><span>OBJECT</span><b id="i_obj">—</b></div>
+      <div class="itemRow"><span>DIFFICULTY</span><b id="i_diff">—</b></div>
+    </div>
     <div id="mlist"></div>
-    <div id="diffwrap"><b>DIFFICULTY LADDER (M-DIFFREACH · M-LEARNRATE)</b><div id="diffmeter"></div></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
   <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
@@ -102,10 +105,15 @@
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0;
-const last=a=>a[a.length-1];
-const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+
+/* ---- postMessage embedding contract (EXAM_ADAPTIVE_BUILD_PLAN.md §2) ----
+   host->demo : {source:'gt-exam-host', type:'init', item:ServedItem} , {type:'start'}
+   demo->host : {source:'gt-exam-demo', type:'ready'} , {type:'result', result:ItemResult} , {type:'telemetry', event}
+   The demo renders ServedItem.content only. It NEVER receives or shows the answer key,
+   and it emits the child's raw response + numeric metrics + telemetry — no correctness. */
+const HOST='gt-exam-host', SELF='gt-exam-demo';
+const embedded=window.parent&&window.parent!==window;
+function post(type,extra){const msg=Object.assign({source:SELF,type},extra||{});if(embedded){try{window.parent.postMessage(msg,'*')}catch(e){}}}
 
 /* ---------- minimal 3D (parallel projection) ---------- */
 function proj(p,yaw,pit,s,cx,cy){
@@ -116,63 +124,7 @@ function proj(p,yaw,pit,s,cx,cy){
 const LIGHT=[0.35,0.84,0.42];
 function faceShade(n){const d=Math.max(0,n[0]*LIGHT[0]+n[1]*LIGHT[1]+n[2]*LIGHT[2]);return 0.5+0.5*d;}
 function shade(rgb,f){return `rgb(${Math.round(rgb[0]*f)},${Math.round(rgb[1]*f)},${Math.round(rgb[2]*f)})`;}
-
-/* ---------- object + shadow generation ---------- */
 const K=(x,y,z)=>x+','+y+','+z;
-function shadowParams(L){return {dim:clamp(2+Math.floor(L/2),2,4),cells:clamp(3+Math.floor(L*1.2),3,12),nOpt:clamp(3+Math.floor(L/2),3,4),distinct:L>=3};}
-function genBlob(dim,cells){
-  const vox=new Set();const sx=Math.floor(Math.random()*dim),sz=Math.floor(Math.random()*dim);
-  vox.add(K(sx,0,sz));
-  let guard=0;
-  while(vox.size<cells&&guard++<800){
-    const arr=[...vox];const [x,y,z]=arr[Math.floor(Math.random()*arr.length)].split(',').map(Number);
-    const dirs=shuffle([[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]]);let added=false;
-    for(const [dx,dy,dz] of dirs){const nx=x+dx,ny=y+dy,nz=z+dz;if(nx>=0&&nx<dim&&ny>=0&&ny<dim&&nz>=0&&nz<dim&&!vox.has(K(nx,ny,nz))){vox.add(K(nx,ny,nz));added=true;break;}}
-    if(!added&&vox.size>=3&&guard>cells*4)break;
-  }
-  return vox;
-}
-function crop(g){let r0=g.length,r1=-1,c0=g[0].length,c1=-1;for(let r=0;r<g.length;r++)for(let c=0;c<g[0].length;c++)if(g[r][c]){r0=Math.min(r0,r);r1=Math.max(r1,r);c0=Math.min(c0,c);c1=Math.max(c1,c);}if(r1<0)return [[false]];const out=[];for(let r=r0;r<=r1;r++){const row=[];for(let c=c0;c<=c1;c++)row.push(g[r][c]);out.push(row);}return out;}
-function project(vox,axis,dim){
-  const g=[];
-  if(axis==='top'){for(let z=0;z<dim;z++){const row=[];for(let x=0;x<dim;x++){let on=false;for(let y=0;y<dim;y++)if(vox.has(K(x,y,z)))on=true;row.push(on);}g.push(row);}}
-  else if(axis==='front'){for(let y=dim-1;y>=0;y--){const row=[];for(let x=0;x<dim;x++){let on=false;for(let z=0;z<dim;z++)if(vox.has(K(x,y,z)))on=true;row.push(on);}g.push(row);}}
-  else{for(let y=dim-1;y>=0;y--){const row=[];for(let z=0;z<dim;z++){let on=false;for(let x=0;x<dim;x++)if(vox.has(K(x,y,z)))on=true;row.push(on);}g.push(row);}}
-  return crop(g);
-}
-function bkey(b){return b.length+'x'+b[0].length+':'+b.map(r=>r.map(v=>v?1:0).join('')).join('|');}
-function toggleOne(b){
-  const h=b.length,w=b[0].length;const pad=b.map(r=>[false,...r,false]);pad.unshift(new Array(w+2).fill(false));pad.push(new Array(w+2).fill(false));
-  const r=Math.floor(Math.random()*(h+2)),c=Math.floor(Math.random()*(w+2));pad[r][c]=!pad[r][c];
-  const cr=crop(pad);let cnt=0;cr.forEach(row=>row.forEach(v=>{if(v)cnt++;}));return cnt>0?cr:null;
-}
-const LIGHTS={top:{em:'TOP',lbl:'Light from above — shadow on the floor'},front:{em:'FRONT',lbl:'Light from the front — toward you'},side:{em:'SIDE',lbl:'Light from the side'}};
-function genObject(L){
-  const P=shadowParams(L);
-  let vox=null,shadows=null;
-  for(let t=0;t<300;t++){
-    vox=genBlob(P.dim,P.cells);
-    const s={top:project(vox,'top',P.dim),front:project(vox,'front',P.dim),side:project(vox,'side',P.dim)};
-    if(!P.distinct){shadows=s;break;}
-    const k=[bkey(s.top),bkey(s.front),bkey(s.side)];
-    if(new Set(k).size===3){shadows=s;break;}
-    shadows=s;
-  }
-  const axis=['top','front','side'][Math.floor(Math.random()*3)];
-  const opts=buildOptions(shadows,axis,P);
-  return {level:L,params:P,vox,shadows,axis,options:opts,correctIdx:opts.findIndex(o=>o.tag==='correct')};
-}
-function buildOptions(shadows,axis,P){
-  const correct=shadows[axis];const seen=new Set([bkey(correct)]);const opts=[{bits:correct,tag:'correct'}];
-  for(const ax of ['top','front','side']){if(ax===axis)continue;const b=shadows[ax];if(!seen.has(bkey(b))){seen.add(bkey(b));opts.push({bits:b,tag:'wrongdir'});}}
-  let guard=0;while(opts.length<P.nOpt&&guard++<80){const b=toggleOne(correct);if(b&&!seen.has(bkey(b))){seen.add(bkey(b));opts.push({bits:b,tag:'nearmiss'});}}
-  guard=0;while(opts.length<Math.max(3,P.nOpt)&&guard++<80){const b=toggleOne(shadows[['top','front','side'].find(a=>a!==axis)]||correct);if(b&&!seen.has(bkey(b))){seen.add(bkey(b));opts.push({bits:b,tag:'random'});}}
-  return shuffle(opts.slice(0,Math.max(3,Math.min(P.nOpt,opts.length))));
-}
-
-/* ---------- render object ---------- */
-const cv=$('#c'),ctx=cv.getContext('2d');
-const yaw=-0.72,pit=0.5;let obj=null;
 function buildScene(vox,dim){
   const arr=[...vox].map(s=>s.split(',').map(Number));
   let maxY=0;arr.forEach(([x,y,z])=>{if(y>maxY)maxY=y;});
@@ -184,130 +136,170 @@ function buildScene(vox,dim){
   });
   return {verts,faces};
 }
+
+/* ---------- state ---------- */
+let item=null,content=null,dim=3,vox=new Set(),light='top',options=[];
+let selected=-1,locked=true,started=false;
+let yaw=-0.72,pitch=0.5,drag=false,lx=0,ly=0;
+const T={itemStart:0,first:0,revs:0,rotates:0,peeks:0,rt:0,rapid:false,blur:false,committed:false,sampled:new Set(),lastActivity:performance.now(),events:[]};
+
+const cv=$('#c'),ctx=cv.getContext('2d');
+const PHASE={waiting:'Waiting for item',ready:'Ready',locked:'Answer locked'};
+function setCue(k){const el=$('#phasecue');el.dataset.phase=k;el.textContent=PHASE[k];}
+function setStatus(cls,msg){const el=$('#status');el.className=cls;el.textContent=msg;}
+const LIGHTS={top:{em:'TOP',label:'Light from above — shadow on the floor'},front:{em:'FRONT',label:'Light from the front — shadow behind'},side:{em:'SIDE',label:'Light from the side — shadow on the wall'}};
+
+/* ---------- telemetry ---------- */
+function nowRel(){return Math.max(0,performance.now()-(T.itemStart||performance.now()));}
+const METERS=[
+ {id:'M-RTFIRST',name:'Time to first action',get:()=>T.first?`${Math.round(T.first)} ms`:'—'},
+ {id:'M-RT',name:'Commit time (engagement-gated)',get:()=>T.committed?`${T.rt} ms${T.rapid?' · gated':''}`:'—'},
+ {id:'M-REV',name:'Answer revisions',get:()=>String(T.revs)},
+ {id:'M-EXPLORE',name:'Shadows sampled · rotates · peeks',get:()=>`${T.sampled.size} · ${T.rotates} · ${T.peeks}`},
+ {id:'M-RAPIDGUESS',name:'Rapid/idle flag (tracked)',get:()=>T.committed?(T.rapid?'1':'0'):'—'},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});}
+function log(msg){const d=document.createElement('div');d.innerHTML=`<span class="t">+${Math.round(nowRel())}ms</span> ${msg}`;$('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;}
+function emit(kindEv,data){const ev=Object.assign({t:Math.round(nowRel()),kind:kindEv},data||{});T.events.push(ev);post('telemetry',{event:ev});}
+function first(){if(!T.first&&started){T.first=performance.now()-T.itemStart;emit('first_action',{ms:Math.round(T.first)});log(`first action @ ${Math.round(T.first)}ms`);renderMeters();}}
+function activity(){T.lastActivity=performance.now();}
+addEventListener('pointerdown',activity);addEventListener('keydown',activity);
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&started&&!locked){T.blur=true;emit('blur');}});
+
+/* ---------- render object + options ---------- */
 function drawObject(){
   ctx.clearRect(0,0,cv.width,cv.height);
-  const sc=buildScene(obj.vox,obj.params.dim);
-  const p0=sc.verts.map(v=>proj(v,yaw,pit,1,0,0));
+  const sc=buildScene(vox,dim);
+  const p0=sc.verts.map(v=>proj(v,yaw,pitch,1,0,0));
   let mnx=1e9,mxx=-1e9,mny=1e9,mxy=-1e9;p0.forEach(p=>{mnx=Math.min(mnx,p.x);mxx=Math.max(mxx,p.x);mny=Math.min(mny,p.y);mxy=Math.max(mxy,p.y);});
   const area=cv.width*0.62;
   const scale=Math.min(area/((mxx-mnx)||1),(cv.height-70)/((mxy-mny)||1),58);
   const cx=cv.width*0.36-((mnx+mxx)/2)*scale,cy=cv.height/2-((mny+mxy)/2)*scale+8;
-  ctx.save();ctx.globalAlpha=.45;ctx.fillStyle='#c7d2f2';ctx.beginPath();ctx.ellipse(cv.width*0.36,cv.height-30,scale*obj.params.dim*0.8,scale*0.5,0,0,7);ctx.fill();ctx.restore();
-  const P=sc.verts.map(v=>proj(v,yaw,pit,scale,cx,cy));
+  ctx.save();ctx.globalAlpha=.45;ctx.fillStyle='#c7d2f2';ctx.beginPath();ctx.ellipse(cv.width*0.36,cv.height-30,scale*dim*0.8,scale*0.5,0,0,7);ctx.fill();ctx.restore();
+  const P=sc.verts.map(v=>proj(v,yaw,pitch,scale,cx,cy));
   sc.faces.map((f,k)=>({k,d:f.idx.reduce((a,i)=>a+P[i].z,0)/f.idx.length})).sort((a,b)=>a.d-b.d).forEach(({k})=>{
     const f=sc.faces[k];ctx.beginPath();f.idx.forEach((i,j)=>{const p=P[i];j?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y);});ctx.closePath();
     ctx.fillStyle=shade([224,138,60],faceShade(f.n));ctx.fill();ctx.lineWidth=1.4;ctx.strokeStyle='#7a4a1e';ctx.stroke();
   });
-  // wall hint on right
   ctx.save();ctx.globalAlpha=.5;ctx.strokeStyle='#b7c2e8';ctx.setLineDash([5,4]);ctx.strokeRect(cv.width*0.72,26,cv.width*0.24,cv.height-58);ctx.setLineDash([]);ctx.restore();
 }
-function silDom(bits,cls){const h=bits.length,w=bits[0].length;let s=`<div class="sil"${cls?' ':''} style="grid-template-columns:repeat(${w},1fr)">`;for(let r=0;r<h;r++)for(let c=0;c<w;c++)s+=`<div class="sc${bits[r][c]?' on':''}"></div>`;return s+'</div>';}
-function renderOptions(o){
-  $('#options').innerHTML=o.options.map((opt,i)=>`<div class="optwrap" data-i="${i}"><span class="num">${i+1}</span>${silDom(opt.bits)}</div>`).join('');
-  $$('.optwrap').forEach(w=>w.onclick=()=>selectOpt(+w.dataset.i));
+function silDom(bits){const h=bits.length,w=bits[0].length;let s=`<div class="sil" style="grid-template-columns:repeat(${w},1fr)">`;for(let r=0;r<h;r++)for(let c=0;c<w;c++)s+=`<div class="sc${bits[r][c]?' on':''}"></div>`;return s+'</div>';}
+function renderOptions(){
+  $('#options').innerHTML=options.map((opt,i)=>`<div class="optwrap" data-i="${i}" aria-label="choice ${opt.key}"><span class="num">${opt.key}</span>${silDom(opt.bits)}</div>`).join('');
+  $$('.optwrap').forEach(w=>w.onclick=()=>choose(+w.dataset.i,'tap'));
 }
-function renderPreview(){$('#prevgrid').innerHTML=silDom(obj.shadows[obj.axis].map(r=>r.slice()));}
-function setLight(){$('#lightem').textContent=LIGHTS[obj.axis].em;$('#lightlabel').textContent=LIGHTS[obj.axis].lbl;}
-
-/* ---------- telemetry ---------- */
-const T={scored:0,correct:0,rts:[],firsts:[],revs:[],explores:[],confCor:[],confWrong:[],errN:0,errS:0,errR:0,lastErr:'\u2014',lastConf:'\u2014',
-  itemStart:0,firstAt:0,rev:0,peeks:0,sampled:new Set(),seq:[],startLevel:1,maxSolved:0};
-let level=1,obj0=null,phase='demo',locked=false,scoredIdx=0,sel=null;const SCORED_N=6,MAXLEVEL=8;
-function first(){if(!T.firstAt)T.firstAt=Date.now()-T.itemStart;}
-function pct(){return T.scored?Math.round(100*T.correct/T.scored):0;}
-function confValue(){return clamp(1-0.25*T.rev-0.15*T.peeks,0,1);}
-function learnStr(){if(!T.seq.length)return '\u2014';const g=T.maxSolved-T.startLevel,r=(g/T.scored).toFixed(2);const tr=T.seq.map(s=>'L'+s.level+(s.ok?'\u2713':'\u2717'));const sh=tr.length<=5?tr:[tr[0],'\u2026',last(tr)];return `${g>=0?'+':''}${r} lvl/trial [${sh.join(' ')}]`;}
-function calGap(){if(!T.confCor.length||!T.confWrong.length)return '\u2014';const mc=T.confCor.reduce((a,b)=>a+b,0)/T.confCor.length,mw=T.confWrong.reduce((a,b)=>a+b,0)/T.confWrong.length;const g=mc-mw;return `${g>=0?'+':''}${Math.round(g*100)}`;}
-const METERS=[
- {id:'M-ACC',name:'Item accuracy (right shadow)',get:()=>T.scored?`${T.correct}/${T.scored}  ${pct()}%`:'\u2014'},
- {id:'M-RT',name:'Response time — total',get:()=>T.rts.length?`${last(T.rts)} ms (mean ${mean(T.rts)})`:'\u2014'},
- {id:'M-RTFIRST',name:'First-action latency',get:()=>T.firsts.length?`${last(T.firsts)} ms (med ${mean(T.firsts)})`:'\u2014'},
- {id:'M-REV',name:'Answer changes before lock',get:()=>T.revs.length?`${last(T.revs)} (mean ${mean(T.revs)})`:`${T.rev}`},
- {id:'M-EXPLORE',name:'Shadows sampled · shadow peeks',get:()=>`${T.sampled.size} sampled · ${T.peeks} peek`},
- {id:'M-CONF',name:'Behavioral confidence · calibration',get:()=>`${T.lastConf} · cal ${calGap()}`},
- {id:'M-ERRTYPE',name:'Error type (dir/collapse/rnd)',get:()=>`${T.lastErr}  ·  sys${T.errS} near${T.errN} rnd${T.errR}`},
- {id:'M-DIFFREACH',name:'Ceiling — max object level solved',get:()=>`L${T.maxSolved} / at L${level}`},
- {id:'M-LEARNRATE',name:'Within-session learning rate',get:()=>learnStr()},
-];
-function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
-function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});renderDiff();}
-function renderDiff(){let h='';for(let i=1;i<=MAXLEVEL;i++){let c='seg';if(i<=T.maxSolved)c+=' done';if(i===level)c+=' cur';if(i===T.maxSolved&&T.maxSolved>0)c+=' ceil';h+=`<div class="${c}"></div>`;}$('#diffmeter').innerHTML=h;}
-function log(msg){const t=Date.now()-T.itemStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
-
-/* ---------- ghost ---------- */
-const ghost=$('#ghost');
-function ghostShow(v){ghost.classList.toggle('show',v);}
-function centerOf(el){const r=el.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};}
-async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-9}px,${c.y-6}px)`;await sleep(520);}
-async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(430);}
+// peek = scaffold hint: re-project the object along the light axis (derived geometry, practice items only).
+function projectShadow(){
+  const g=[];
+  if(light==='top'){for(let z=0;z<dim;z++){const row=[];for(let x=0;x<dim;x++){let on=false;for(let y=0;y<dim;y++)if(vox.has(K(x,y,z)))on=true;row.push(on?1:0);}g.push(row);}}
+  else if(light==='front'){for(let y=dim-1;y>=0;y--){const row=[];for(let x=0;x<dim;x++){let on=false;for(let z=0;z<dim;z++)if(vox.has(K(x,y,z)))on=true;row.push(on?1:0);}g.push(row);}}
+  else{for(let y=dim-1;y>=0;y--){const row=[];for(let z=0;z<dim;z++){let on=false;for(let x=0;x<dim;x++)if(vox.has(K(x,y,z)))on=true;row.push(on?1:0);}g.push(row);}}
+  let r0=g.length,r1=-1,c0=g[0].length,c1=-1;for(let r=0;r<g.length;r++)for(let c=0;c<g[0].length;c++)if(g[r][c]){r0=Math.min(r0,r);r1=Math.max(r1,r);c0=Math.min(c0,c);c1=Math.max(c1,c);}
+  const out=[];for(let r=r0;r<=r1;r++){const row=[];for(let c=c0;c<=c1;c++)row.push(g[r][c]);out.push(row);}return out.length?out:[[0]];
+}
+function renderPreview(){$('#prevgrid').innerHTML=silDom(projectShadow());}
+function setLight(){$('#lightem').textContent=LIGHTS[light].em;$('#lightlabel').textContent=LIGHTS[light].label;}
+let peekAllowed=false;
+function togglePeek(force){
+  if(!peekAllowed){$('#preview').classList.add('hide');return;}
+  const pv=$('#preview');const show=force!==undefined?force:pv.classList.contains('hide');
+  pv.classList.toggle('hide',!show);
+  if(show){first();T.peeks++;emit('peek');log('peek shadow (practice)');renderMeters();}
+}
 
 /* ---------- answer + flow ---------- */
-function selectOpt(i){
-  if(locked||phase==='demo'||phase==='done')return;
-  first();if(sel!==null&&sel!==i)T.rev++;if(!T.sampled.has(i))T.sampled.add(i);
-  sel=i;$$('.optwrap').forEach(w=>w.classList.toggle('sel',+w.dataset.i===i));
-  $('#go').classList.add('ready');log(`sample shadow ${i+1}`+(T.rev?` (change #${T.rev})`:''));renderMeters();
+function choose(i,modality){
+  if(locked||i<0||i>=options.length)return;
+  first();if(selected>=0&&selected!==i)T.revs++;if(!T.sampled.has(i))T.sampled.add(i);
+  selected=i;$$('.optwrap').forEach((w,k)=>w.classList.toggle('sel',k===i));
+  $('#go').classList.add('ready');emit('select',{key:options[i].key,index:i,modality});log(`choose ${options[i].key} via ${modality}`);renderMeters();
 }
-function reveal(ok){$$('.optwrap').forEach((w,i)=>{w.setAttribute('disabled','');if(i===obj.correctIdx)w.classList.add('correct');else if(i===sel&&!ok)w.classList.add('wrong');});if(!ok){$('#stage').classList.add('shake');setTimeout(()=>$('#stage').classList.remove('shake'),450);}}
-function classifyErr(i){const tag=obj.options[i].tag;if(tag==='correct')return null;if(tag==='wrongdir')return 'systematic:wrong-direction';if(tag==='nearmiss')return 'near-miss:feature-collapse';return 'random';}
 function submit(){
-  if(locked||sel===null)return;const rt=Date.now()-T.itemStart;first();
-  const ok=sel===obj.correctIdx,err=classifyErr(sel),conf=confValue();
-  T.lastConf=Math.round(conf*100)+'%';
-  if(phase==='warmup'){reveal(ok);locked=true;$('#go').classList.remove('ready');
-    setStatus(ok?'ok':'no',ok?'✓ Correct - practice':'✗ Not quite - the correct shadow is highlighted (practice)');
-    log(`warm-up: shadow ${sel+1} — ${ok?'right':'not yet'} · UNSCORED`);
-    setTimeout(()=>{locked=false;scoredIdx=0;startScored();},1200);return;}
-  T.scored++;T.rts.push(rt);T.firsts.push(T.firstAt);T.revs.push(T.rev);T.explores.push(T.sampled.size);
-  if(ok){T.correct++;T.maxSolved=Math.max(T.maxSolved,level);T.confCor.push(conf);}
-  else{T.confWrong.push(conf);if(err==='near-miss:feature-collapse')T.errN++;else if(err&&err.indexOf('systematic')===0)T.errS++;else T.errR++;}
-  T.lastErr=ok?'correct':err;T.seq.push({level,ok});
-  reveal(ok);locked=true;$('#go').classList.remove('ready');
-  setStatus(ok?'ok':'no',ok?'✓ Correct':'✗ Not quite - the correct shadow is highlighted');
-  log(`SCORED #${scoredIdx+1} L${level}: light ${obj.axis} · pick ${sel+1} · ${ok?'CORRECT':'ERR['+err+']'} · conf ${T.lastConf} · rev ${T.rev} · ${rt}ms`);
-  const prev=level;level=ok?Math.min(level+1,MAXLEVEL):Math.max(level-1,1);
-  log(ok?`escalate ${prev}\u2192${level}`:`back off ${prev}\u2192${level}`);renderMeters();
-  setTimeout(nextScored,1400);
+  if(locked||selected<0||!started)return;
+  locked=true;$('#go').classList.remove('ready');$$('.optwrap').forEach(w=>w.setAttribute('disabled',''));$('#peek').disabled=true;
+  T.rt=Math.round(performance.now()-T.itemStart);T.committed=true;
+  const idle=performance.now()-T.lastActivity;T.rapid=T.rt<350||idle>22000;
+  const response={selectedKey:options[selected].key,selectedIndex:selected,light,sampled:T.sampled.size,rotates:T.rotates,peeks:T.peeks,revisions:T.revs,msToCommit:T.rt};
+  const metrics={'M-RT':T.rt,'M-RTFIRST':Math.round(T.first),'M-REV':T.revs,'M-EXPLORE':T.sampled.size+T.rotates+T.peeks,'M-RAPIDGUESS':T.rapid?1:0};
+  const result={itemId:item.itemId,typeCode:item.typeCode,domain:item.domain,response,metrics,telemetry:T.events.slice()};
+  emit('commit',{key:response.selectedKey});
+  setCue('locked');setStatus('ok','Answer locked.');   // never reveal correct/incorrect
+  log(`LOCK ${response.selectedKey} · ${T.rt}ms · rev${T.revs} · ${T.sampled.size} sampled`);renderMeters();
+  post('result',{result});
+  if(!embedded){cycleNext();}   // standalone: rotate to the next sample
 }
-function nextScored(){locked=false;scoredIdx++;if(scoredIdx<SCORED_N)startScored();else finish();}
-const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
-function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
-function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
-function togglePeek(force){
-  const allow=(phase==='demo'||phase==='warmup');$('#peek').disabled=!allow;
-  const pv=$('#preview');const show=force!==undefined?force:pv.classList.contains('hide');
-  if(!allow){pv.classList.add('hide');return;}
-  pv.classList.toggle('hide',!show);
-  if(show){T.peeks++;if(phase!=='demo')log('peek shadow (practice) — M-EXPLORE');renderMeters();}
-}
-function loadItem(o){obj=o;sel=null;T.rev=0;T.peeks=0;T.sampled=new Set();T.itemStart=Date.now();T.firstAt=0;
-  setLight();drawObject();renderOptions(o);renderPreview();$('#preview').classList.add('hide');
-  $('#peek').disabled=(phase==='scored'||phase==='done');$('#go').classList.remove('ready');renderMeters();}
-function startWarmup(){phase='warmup';locked=false;setCue('warmup');setStatus('neutral','Practice - not scored. You may peek.');level=1;loadItem(genObject(1));log('— warm-up (unscored): pick the shadow. Peek is allowed —');}
-function startScored(){phase='scored';setCue('scored',(scoredIdx+1)+'/'+SCORED_N);setStatus('neutral','Pick the shadow the light throws, then submit.');loadItem(genObject(level));log(`— SCORED item ${scoredIdx+1}/${SCORED_N} · level ${level} · light from ${obj.axis} (peek OFF) —`);}
-function finish(){phase='done';setCue('done');setStatus('ok','✓ Done');locked=true;$('#go').classList.remove('ready');$('#peek').disabled=true;log(`— DONE · correct ${T.correct}/${T.scored} (${pct()}%) · ceiling L${T.maxSolved} · calib ${calGap()} · ${learnStr()} —`);renderMeters();}
+async function cycleNext(){await sleep(1100);nextSample();}
 
-async function runDemo(){
-  phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;
-  loadItem(genObject(2));log('ghost-hand demo (wordless, <10s): the light throws a flat shadow');
-  ghostShow(true);await sleep(300);
-  await ghostTo($('#peek'));await ghostTap();togglePeek(true);await sleep(750);
-  const w=$$('.optwrap')[obj.correctIdx];
-  await ghostTo(w);await ghostTap();togglePeek(false);selectOpt(obj.correctIdx);await sleep(400);
-  await ghostTo($('#go'));await ghostTap();await sleep(250);
-  ghostShow(false);await sleep(350);startWarmup();
+/* ---------- orbit (drag to rotate the block) ---------- */
+const stage=$('#stage');
+stage.addEventListener('pointerdown',e=>{if(locked)return;drag=true;lx=e.clientX;ly=e.clientY;stage.classList.add('drag');stage.setPointerCapture(e.pointerId);first();});
+stage.addEventListener('pointermove',e=>{if(!drag)return;yaw+=(e.clientX-lx)*.01;pitch+=(e.clientY-ly)*.008;pitch=Math.max(-1.2,Math.min(1.2,pitch));lx=e.clientX;ly=e.clientY;drawObject();});
+function endDrag(){if(drag){drag=false;stage.classList.remove('drag');T.rotates++;emit('rotate');log('rotate object');renderMeters();}}
+stage.addEventListener('pointerup',endDrag);stage.addEventListener('pointercancel',endDrag);
+
+/* ---------- ghost self-teach (shows the shadow scaffold; never picks an option) ---------- */
+const ghost=$('#ghost');
+function ghostShow(v){ghost.classList.toggle('show',v);}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-9}px,${c.y-6}px)`;await sleep(500);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(420);}
+async function ghostScaffold(){if(!peekAllowed)return;ghostShow(true);await sleep(250);await ghostTo($('#peek'));await ghostTap();togglePeek(true);await sleep(900);togglePeek(false);ghostShow(false);}
+
+/* ---------- item lifecycle ---------- */
+function loadItem(served){
+  item=served;content=served.content;dim=content.object.dim;light=content.question.light;options=content.options;
+  vox=new Set(content.object.voxels.map(v=>K(v[0],v[1],v[2])));
+  selected=-1;locked=true;started=false;yaw=-0.72;pitch=0.5;
+  Object.assign(T,{itemStart:0,first:0,revs:0,rotates:0,peeks:0,rt:0,rapid:false,blur:false,committed:false,sampled:new Set(),lastActivity:performance.now(),events:[]});
+  peekAllowed=!!(content.scaffold&&content.scaffold.peek);
+  setLight();drawObject();renderOptions();renderPreview();$('#preview').classList.add('hide');
+  $('#prompt').textContent=content.question.prompt;
+  $('#go').classList.remove('ready');$$('.optwrap').forEach(w=>w.removeAttribute('disabled'));$('#peek').disabled=!peekAllowed;
+  $('#i_id').textContent=(served.itemId||'—').slice(0,8);
+  $('#i_light').textContent=light;
+  $('#i_obj').textContent=`dim ${dim} · ${content.object.voxels.length} cells · ${options.length} opts`;
+  $('#i_diff').textContent=(served.difficulty!=null?Number(served.difficulty).toFixed(2):'—');
+  setCue('ready');setStatus('neutral','Turn the block, read the light, then pick a shadow.');
+  $('#log').innerHTML='';log(`item ${(served.itemId||'').slice(0,8)} · light ${light} · dim ${dim}`);renderMeters();
+}
+async function startItem(){if(!content)return;started=true;T.itemStart=performance.now();emit('start');
+  if(peekAllowed)await ghostScaffold();
+  locked=false;setStatus('neutral','Turn the block, read the light, then pick a shadow.');   // interactive now
 }
 
+/* ---------- input ---------- */
 $('#peek').onclick=()=>togglePeek();
+$('#replay').onclick=()=>{if(!locked)ghostScaffold();};
 $('#go').onclick=()=>{if($('#go').classList.contains('ready'))submit();};
-$('#replay').onclick=()=>{if(phase!=='demo')runDemo();};
-window.addEventListener('keydown',e=>{
-  if(phase==='demo'||phase==='done')return;
-  if(e.key>='1'&&e.key<='9'){const i=+e.key-1;if(obj&&i<obj.options.length)selectOpt(i);}
-  else if(e.key==='p'||e.key==='P'){togglePeek();}
-  else if(e.key==='Enter'){if($('#go').classList.contains('ready'))submit();e.preventDefault();}
+addEventListener('keydown',e=>{if(e.repeat)return;const k=e.key.toLowerCase();
+ if(/^[1-9]$/.test(e.key)){choose(+e.key-1,'key');}
+ else if(e.key==='Enter'){submit();}
+ else if(k==='p'){togglePeek();}
+ else return;e.preventDefault();
 });
-buildMeters();renderMeters();runDemo();
+
+/* ---------- host message handling ---------- */
+let gotInit=false;
+addEventListener('message',e=>{const d=e.data;if(!d||d.source!==HOST)return;
+ if(d.type==='init'&&d.item){gotInit=true;loadItem(d.item);post('ready');}
+ else if(d.type==='start'){startItem();}
+});
+
+/* ---------- standalone fallback (opens by double-click; no host present) ----------
+   Embeds real ServedItems produced by generators/SPA-SHADOW-01.mjs so the renderer
+   and the bank stay in sync. Answer keys are NOT present in a ServedItem. */
+const SAMPLES=[{"itemId":"16fa5be4-bd61-49a6-8dee-370975bcae4f","typeCode":"SPA-SHADOW-01","domain":"spatial","difficulty":1,"ageBands":["2-3"],"content":{"typeCode":"SPA-SHADOW-01","question":{"mode":"cast_shadow","light":"top","lightEm":"TOP","prompt":"Which shadow does the top light throw?","lightLabel":"Light from above - shadow on the floor"},"object":{"dim":2,"voxels":[[0,0,0],[1,0,0],[1,0,1]]},"optionKind":"silhouette","options":[{"key":"A","bits":[[1,1],[0,1],[0,1]],"rows":3,"cols":2},{"key":"B","bits":[[1,1],[0,1]],"rows":2,"cols":2},{"key":"C","bits":[[1,0],[0,1]],"rows":2,"cols":2}],"scaffold":{"peek":true,"warmup":true}},"syntheticOnly":true,"validated":false},{"itemId":"d78bae6b-c09c-4eab-b429-7e683519137e","typeCode":"SPA-SHADOW-01","domain":"spatial","difficulty":7.01,"ageBands":["2-3","4-5"],"content":{"typeCode":"SPA-SHADOW-01","question":{"mode":"cast_shadow","light":"side","lightEm":"SIDE","prompt":"Which shadow does the side light throw?","lightLabel":"Light from the side - shadow on the wall"},"object":{"dim":3,"voxels":[[0,0,0],[0,0,1],[0,1,0],[0,1,1],[1,0,0],[1,0,1],[2,0,0]]},"optionKind":"silhouette","options":[{"key":"A","bits":[[1,0,0],[1,1,1]],"rows":2,"cols":3},{"key":"B","bits":[[1,1,1],[1,1,0]],"rows":2,"cols":3},{"key":"C","bits":[[1,1],[1,1]],"rows":2,"cols":2},{"key":"D","bits":[[1,1],[1,0]],"rows":2,"cols":2}],"scaffold":{"peek":false,"warmup":false}},"syntheticOnly":true,"validated":false},{"itemId":"8b0e1980-34ee-41aa-b063-fc68f77e20ad","typeCode":"SPA-SHADOW-01","domain":"spatial","difficulty":12.94,"ageBands":["6-8"],"content":{"typeCode":"SPA-SHADOW-01","question":{"mode":"cast_shadow","light":"top","lightEm":"TOP","prompt":"Which shadow does the top light throw?","lightLabel":"Light from above - shadow on the floor"},"object":{"dim":4,"voxels":[[0,0,0],[1,0,0],[1,0,1],[1,0,2],[1,1,1],[2,0,0],[2,0,1],[2,0,2],[2,0,3],[2,1,0],[2,1,1],[3,0,0],[3,0,1]]},"optionKind":"silhouette","options":[{"key":"A","bits":[[1,1,0,0],[1,1,1,1]],"rows":2,"cols":4},{"key":"B","bits":[[0,0,0,0,1],[1,1,1,1,0],[0,1,1,1,0],[0,1,1,0,0],[0,0,1,0,0]],"rows":5,"cols":5},{"key":"C","bits":[[1,1,1,1],[0,1,1,1],[0,1,1,1],[0,0,1,0]],"rows":4,"cols":4},{"key":"D","bits":[[0,1,1,0],[1,1,1,1]],"rows":2,"cols":4},{"key":"E","bits":[[1,1,1,1],[0,1,1,1],[0,1,1,0],[0,0,1,0]],"rows":4,"cols":4}],"scaffold":{"peek":false,"warmup":false}},"syntheticOnly":true,"validated":false},{"itemId":"8c090fcc-076a-4b21-a66e-46ae596b0bf3","typeCode":"SPA-SHADOW-01","domain":"spatial","difficulty":18.99,"ageBands":["6-8"],"content":{"typeCode":"SPA-SHADOW-01","question":{"mode":"cast_shadow","light":"front","lightEm":"FRONT","prompt":"Which shadow does the front light throw?","lightLabel":"Light from the front - shadow behind"},"object":{"dim":4,"voxels":[[0,0,1],[0,0,3],[0,1,1],[0,1,2],[0,1,3],[0,2,1],[0,2,2],[0,2,3],[1,0,3],[1,1,1],[1,1,2],[1,1,3],[1,2,3],[2,0,2],[2,0,3],[2,1,2],[2,1,3],[3,0,2],[3,0,3]]},"optionKind":"silhouette","options":[{"key":"A","bits":[[1,1,0,0],[1,1,1,0],[1,1,1,1]],"rows":3,"cols":4},{"key":"B","bits":[[1,1,0,0],[1,1,1,1],[1,1,1,1]],"rows":3,"cols":4},{"key":"C","bits":[[1,1,1,0,0],[0,1,1,1,0],[0,1,1,1,1]],"rows":3,"cols":5},{"key":"D","bits":[[1,1,1],[1,1,1],[1,1,1]],"rows":3,"cols":3},{"key":"E","bits":[[0,0,1,0],[1,1,0,0],[1,1,1,0],[1,1,1,1]],"rows":4,"cols":4}],"scaffold":{"peek":false,"warmup":false}},"syntheticOnly":true,"validated":false}];
+let sampleIdx=0;
+function nextSample(){loadItem(SAMPLES[sampleIdx%SAMPLES.length]);sampleIdx++;startItem();}
+
+/* ---------- boot ---------- */
+buildMeters();renderMeters();
+if(embedded)post('ready');
+setTimeout(()=>{if(!gotInit){
+  $('#howto').querySelector('p').insertAdjacentHTML('beforeend',' <b>(Standalone preview: cycling built-in sample items.)</b>');
+  nextSample();
+}},500);
 </script>
 </body>
 </html>
