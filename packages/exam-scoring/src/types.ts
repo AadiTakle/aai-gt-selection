@@ -96,8 +96,16 @@ export interface AreaScore {
   readonly bracket: number;
   /** The [min, max] θ span of the chosen bracket. */
   readonly bracketRange: readonly [number, number];
-  /** (Difficulty-weighted) accuracy used to pick the bracket, in [0, 1]. */
+  /**
+   * (Difficulty-weighted) accuracy over the area's items, in [0, 1]. Always reported; it picks
+   * the bracket only under `bracketing.mode: 'accuracy'` (the default).
+   */
   readonly accuracy: number;
+  /**
+   * Difficulty-adjusted ability fitted from the trace, on the [1, 20] scale. Present ONLY under
+   * `bracketing.mode: 'ability'`, where it is the statistic that picked the bracket.
+   */
+  readonly abilityEstimate?: number;
   /** Position within the bracket, in [0, 1] (0 = bracket floor, 1 = bracket ceiling). */
   readonly positionWithinBracket: number;
   /** Number of scored items in this area. */

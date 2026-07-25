@@ -19,6 +19,7 @@
     "db:types": "supabase gen types typescript --local --schema api > packages/db-types/src/database.generated.ts",
     "db:types:check": "tsx scripts/check-generated-types.ts",
     "db:users": "tsx scripts/create-local-auth-users.ts",
+    "exam:bracketing": "tsx scripts/exam-bracketing-comparison.ts",
     "exam:sync": "node scripts/sync-exam-demos.mjs",
     "exam:sync:check": "node scripts/sync-exam-demos.mjs --check",
     "format": "prettier --write .",
