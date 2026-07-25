@@ -20,7 +20,9 @@ Contract: `docs/architecture/EXAM_ADAPTIVE_BUILD_PLAN.md`. Born-synthetic throug
   8-table `app` schema (float difficulty, server-only keys, structured metrics, full telemetry
   trace, outcome), 7 `api.exam_*` SECURITY DEFINER RPCs, forced RLS, born-synthetic seed. **Not
   executed** (no `supabase start`), pgTAP unrun.
-- **Banks + renderer demos — 16 of 66 types** (≥5 items per ±1pt band across difficulty 1–20;
+- **Banks + renderer demos — 25 of 66 types** (wave 1 = the 16 below; wave 3 added FLU-CARPET/LADDER/STACK
+  plus two more each in verbal/quant/spatial — a 3rd type per those three domains was in-flight at the
+  9:30 stop and its `feat/exam-bank-*-3` branch can be merged at resume) (≥5 items per ±1pt band across difficulty 1–20;
   deterministic keys re-verified; demos are pure postMessage renderers, no correct/incorrect shown):
   - fluid: FLU-MATRIX-01, FLU-ANALOGY-01, FLU-ODDPAIR-01, FLU-VENN-01
   - verbal: VER-RELPAIR-01, VER-CLOZE-01, VER-SEQUENCE-01, VER-SORTBOT-01
