@@ -18,12 +18,9 @@ body{
   background:radial-gradient(circle at 12% 8%,#e6ffe9,transparent 27%),
     linear-gradient(145deg,#e7f8ff,#f6f5e9 58%,#fff0db);
 }
-#wrap{
-  flex:1;min-width:0;padding:17px;display:flex;flex-direction:column;
-  align-items:center;gap:9px;
-}
+#wrap{flex:1;min-width:0;padding:17px;display:flex;flex-direction:column;align-items:center;gap:9px}
 #badge{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#708f9b}
-#howto{max-width:720px;width:100%;background:#fff;border:1px solid #d7e5e7;border-left:5px solid var(--blue);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #24465a}
+#howto{max-width:760px;width:100%;background:#fff;border:1px solid #d7e5e7;border-left:5px solid var(--blue);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #24465a}
 #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--blue)}
 #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
 #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#e8f3f7;color:#278fc2;border:2px solid #bfe0ec;min-height:30px}
@@ -31,118 +28,94 @@ body{
 #phasecue[data-phase="scored"]{background:var(--blue);color:#fff;border-color:var(--blue)}
 #phasecue[data-phase="done"]{background:#e6f6ec;color:#2f8f57;border-color:#bfe6cc}
 #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
-#status.ok{color:var(--lime)} #status.no{color:var(--red)} #status.neutral{color:#8a93b5}
+#status.ok{color:var(--lime)} #status.no{color:var(--red)} #status.neutral{color:#607b87}
 #stagecard{
-  width:min(720px,100%);background:var(--paper);border-radius:28px;padding:17px;
+  width:min(760px,100%);background:var(--paper);border-radius:28px;padding:17px;
   box-shadow:0 24px 58px -35px #24465a;display:flex;flex-direction:column;
-  align-items:center;gap:11px;border:1px solid #fff;
+  align-items:center;gap:12px;border:1px solid #fff;
 }
-#screen{
-  width:100%;height:205px;border-radius:20px;background:linear-gradient(#dff5fc 0 55%,#d4e7d6 55%);
-  border:8px solid #193441;position:relative;overflow:hidden;box-shadow:inset 0 0 0 2px #40616e;
+#question{font:800 18px/1.3 system-ui;text-align:center;color:#173143}
+#bench{width:100%;border-radius:18px;background:linear-gradient(#eef9fd,#e3f1e6);border:3px solid #cfe3ea;padding:13px}
+#benchTop{display:flex;justify-content:space-between;align-items:baseline;font:700 12px ui-monospace,monospace;color:#4d7180;letter-spacing:.06em;text-transform:uppercase}
+#readout{font:900 30px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:#173143}
+#readout span{font-size:14px;color:#5d8393;font-weight:700}
+#bartrack{height:16px;border-radius:9px;background:#fff;border:2px solid #cfe3ea;margin-top:9px;overflow:hidden}
+#barfill{height:100%;width:0;background:linear-gradient(90deg,#68c2e6,#50bd78);transition:width .45s cubic-bezier(.2,.7,.2,1)}
+#benchNote{margin-top:7px;font-size:12px;color:#5d8393}
+#controls{width:100%;display:flex;flex-direction:column;gap:8px}
+.factorRow{display:grid;grid-template-columns:104px 1fr;gap:9px;align-items:center}
+.factorName{font:800 13px system-ui;color:#3b5c69;text-align:right}
+.levelSet{display:flex;flex-wrap:wrap;gap:6px}
+.level{
+  min-width:78px;padding:9px 12px;border:2px solid var(--line);border-radius:12px;background:#fff;
+  color:var(--ink);cursor:pointer;font:700 14px system-ui;transition:.14s;
 }
-#rec{
-  position:absolute;top:10px;left:12px;font:800 10px ui-monospace;color:#253d47;
-  display:flex;gap:6px;align-items:center;z-index:5;
+.level:hover{transform:translateY(-2px);border-color:#a8cfdc}
+.level.on{background:#d8f4e3;border-color:var(--lime);box-shadow:inset 0 0 0 2px var(--lime)}
+#tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+#tools button{height:48px;border:0;border-radius:15px;cursor:pointer;font:800 15px system-ui;background:#e8f3f7;color:var(--blue);padding:0 18px}
+#run{background:var(--blue)!important;color:#fff!important}
+#run[disabled]{opacity:.35;cursor:default}
+#open{background:var(--lime)!important;color:#09351d!important;display:none}
+#replay{padding:0 15px;font-size:19px}
+#budget{font:700 12px ui-monospace,monospace;color:#5d8393}
+#trials{width:100%;display:flex;gap:6px;overflow-x:auto;padding:2px 1px;min-height:8px}
+.trial{min-width:132px;border-radius:12px;border:2px solid var(--line);background:#f7faf8;padding:6px 8px;font:11px/1.3 ui-monospace,monospace;color:#3b5c69}
+.trial.controlled{border-color:var(--lime)}
+.trial b{font-size:13px;color:#173143}
+#conclusion{display:none;width:100%;flex-direction:column;gap:10px;border-top:2px dashed #cfe3ea;padding-top:12px}
+#conclusion.on{display:flex}
+.subq{font:800 14px system-ui;color:#2c4d5b}
+#setups{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:8px}
+.setup{
+  border:3px solid var(--line);border-radius:15px;background:#fff;cursor:pointer;padding:10px;
+  font:700 13px/1.45 system-ui;color:var(--ink);text-align:left;
 }
-#rec::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--red);animation:blink 1s infinite}
-@keyframes blink{50%{opacity:.3}}
-.corner{position:absolute;width:24px;height:24px;border-color:#fff;border-style:solid;opacity:.72;z-index:4}
-.tl{left:12px;top:30px;border-width:3px 0 0 3px}.tr{right:12px;top:30px;border-width:3px 3px 0 0}
-.bl{left:12px;bottom:22px;border-width:0 0 3px 3px}.br{right:12px;bottom:22px;border-width:0 3px 3px 0}
-#ramp{
-  position:absolute;left:27px;bottom:43px;width:105px;height:10px;background:#278fc2;
-  border:2px solid #17668c;border-radius:5px;transform-origin:left center;transform:rotate(-18deg);
-}
-#ramp::before{
-  content:"";position:absolute;width:8px;height:58px;left:3px;top:2px;background:#667a82;
-  transform:rotate(18deg);transform-origin:top;border-radius:3px;
-}
-#ball{
-  position:absolute;left:112px;bottom:46px;width:29px;height:29px;border-radius:50%;
-  background:radial-gradient(circle at 34% 27%,#fff 0 8%,#f39d3c 10% 48%,#a9512b 50%);
-  border:2px solid #7b3d25;z-index:3;
-}
-#track{
-  position:absolute;left:70px;right:18px;bottom:37px;height:9px;border-radius:6px;
-  background:repeating-linear-gradient(90deg,#789583 0 2px,#bdd2c0 2px 30px);
-}
-#marker{
-  position:absolute;left:112px;bottom:28px;width:3px;height:37px;background:var(--orange);
-  opacity:0;transition:left .2s,opacity .2s;
-}
-#distance{
-  position:absolute;right:16px;top:12px;background:#173443dd;color:#fff;
-  border-radius:11px;padding:5px 9px;font:800 17px ui-monospace;
-}
-#scan{
-  position:absolute;left:0;right:0;top:-30%;height:35%;
-  background:linear-gradient(transparent,#fff4,transparent);animation:scan 2.4s linear infinite;pointer-events:none;
-}
-@keyframes scan{to{top:110%}}
-#playbar{position:absolute;left:14px;right:14px;bottom:8px;height:6px;border-radius:6px;background:#ffffff55;overflow:hidden}
-#playfill{height:100%;width:0;background:#fff;transition:width .9s linear}
-#controls{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
-.controlGroup{display:flex;gap:5px;padding:5px;border:2px solid var(--line);border-radius:15px;background:#f3f8f7}
-.choice{
-  width:55px;height:45px;border:0;border-radius:11px;background:#fff;color:var(--ink);
-  cursor:pointer;font:800 23px system-ui;transition:.14s;
-}
-.choice:hover{transform:translateY(-2px)}.choice.on{background:#d8f4e3;box-shadow:inset 0 0 0 3px var(--lime)}
-#trials{width:100%;min-height:54px;display:flex;gap:6px;overflow:auto;padding:3px 1px}
-.trial{
-  min-width:112px;border-radius:12px;border:2px solid var(--line);background:#f7faf8;
-  padding:5px 7px;font:11px/1.25 ui-monospace,monospace;
-}
-.trial.controlled{border-color:var(--lime)}.trial.random{border-color:var(--red)}
-#conclusion{display:none;grid-template-columns:repeat(2,1fr);gap:9px;width:100%}
-#conclusion.on{display:grid}
-.answer{
-  min-height:60px;border:3px solid var(--line);border-radius:15px;background:#fff;
-  cursor:pointer;font-size:21px;display:flex;justify-content:center;align-items:center;gap:12px;
-}
-.answer:hover{border-color:var(--blue);transform:translateY(-2px)}
-#tools{display:flex;gap:10px}
-#tools button{
-  height:50px;border:0;border-radius:16px;cursor:pointer;font:800 21px system-ui;
-  background:#e8f3f7;color:var(--blue);
-}
-#replay{width:52px}#run{width:84px;background:var(--blue)!important;color:#fff!important}
-#conclude{width:63px;background:var(--lime)!important;color:#09351d!important;display:none}
-button:focus-visible{outline:4px solid #168dff;outline-offset:2px}
+.setup:hover{border-color:var(--blue)}
+.setup.sel{border-color:var(--blue);box-shadow:0 0 0 3px #cfe7f2}
+.setup .k{display:block;font:800 11px ui-monospace,monospace;color:#8aa7b3;margin-bottom:3px}
+#factors{display:flex;flex-wrap:wrap;gap:8px}
+.fpick{border:3px solid var(--line);border-radius:13px;background:#fff;cursor:pointer;padding:9px 14px;font:700 14px system-ui;color:var(--ink)}
+.fpick.sel{border-color:var(--blue);box-shadow:0 0 0 3px #cfe7f2}
+#reason{width:100%;min-height:74px;border:3px solid var(--line);border-radius:15px;padding:10px 12px;font:16px/1.4 system-ui;color:var(--ink);resize:vertical;background:#fff}
+#reason:focus{outline:none;border-color:var(--blue)}
+#send{height:52px;border:0;border-radius:16px;cursor:pointer;font:800 20px system-ui;background:var(--lime);color:#09351d;opacity:.35;pointer-events:none}
+#send.ready{opacity:1;pointer-events:auto}
+button:focus-visible,textarea:focus-visible{outline:4px solid #168dff;outline-offset:2px}
 #ghost{
-  position:fixed;left:0;top:0;opacity:0;z-index:50;pointer-events:none;font-size:38px;
-  transition:transform .45s cubic-bezier(.2,.7,.2,1),opacity .2s;filter:drop-shadow(0 4px 4px #0004);
+  position:fixed;left:0;top:0;opacity:0;z-index:50;pointer-events:none;
+  transition:transform .55s cubic-bezier(.4,.1,.2,1),opacity .25s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25));
 }
-#ghost.show{opacity:1}
+#ghost.show{opacity:.94}
 #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--blue);opacity:0}
-#ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+#ghost.tap .ring{animation:tapring .5s ease-out}
+@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
 #telemetry{
   width:345px;flex:0 0 345px;min-height:100vh;background:var(--tel);
   color:#c8e3eb;display:flex;flex-direction:column;
   font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;
 }
-#telemetry h3{
-  margin:0;padding:13px 14px;background:var(--tel2);color:#fff;
-  font:800 12px system-ui;letter-spacing:.1em;text-transform:uppercase;
-}
-#difficulty{padding:10px 13px;border-bottom:1px solid #25414f}
-.diffTop{display:flex;justify-content:space-between;color:#9bb8c5}
-.diffTrack{height:8px;background:#203744;border-radius:8px;overflow:hidden;margin-top:6px}
-#diffFill{height:100%;width:20%;background:linear-gradient(90deg,#2691c7,#68dd91);transition:.3s}
+#telemetry h3{margin:0;padding:13px 14px;background:var(--tel2);color:#fff;font:800 12px system-ui;letter-spacing:.1em;text-transform:uppercase}
+#difficulty{margin:10px 12px 2px;padding:10px;border:1px solid #25414f;border-radius:10px;background:#12222c}
+.dtop{display:flex;justify-content:space-between;color:#fff}
+.dsub{display:flex;justify-content:space-between;color:var(--dim);font-size:11px;margin-top:5px}
+.dtrack{height:7px;background:#203744;border-radius:8px;margin-top:8px;overflow:hidden}
+.dfill{height:100%;background:linear-gradient(90deg,#78ffd0,#ffd479);transition:.25s}
+#mode{margin:6px 12px 0;font-size:11px;color:var(--dim)}
+#mode b{color:#ffd479}
 #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
-.mrow{display:grid;grid-template-columns:103px 1fr;gap:7px}
-.mid{color:var(--key);font-weight:800}.mval{color:#fff}
+.mrow{display:grid;grid-template-columns:105px 1fr;gap:7px;align-items:baseline}
+.mid{color:var(--key);font-weight:800}
+.mid.def{color:#ffd479}
+.mval{color:#fff;word-break:break-word}
 .mname{grid-column:1/3;color:var(--dim);font-size:10px;margin-top:-3px}
 #logwrap{border-top:1px solid #25414f;margin-top:auto}
-#logwrap b{display:block;padding:8px 12px 3px;color:#7898a7;font-size:10px}
-#log{height:175px;overflow:auto;padding:0 12px 12px}
+#logwrap b{display:block;padding:8px 12px 3px;color:#7898a7;font-size:10px;letter-spacing:.08em}
+#log{height:180px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
 #log div{border-bottom:1px dotted #25414f;padding:3px 0}
 #log .t{color:#507587}
-@media(max-width:860px){
-  body{flex-direction:column}#telemetry{width:100%;min-height:0;height:315px;flex:none}
-}
-@media(max-width:500px){#screen{height:180px}.choice{width:47px}#conclusion{grid-template-columns:1fr}}
+@media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;min-height:0;height:330px;flex:none}}
+@media(max-width:520px){.factorRow{grid-template-columns:1fr}.factorName{text-align:left}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition-duration:.01ms!important}}
 </style>
 </head>
@@ -151,270 +124,442 @@ button:focus-visible{outline:4px solid #168dff;outline-offset:2px}
   <div id="badge">CX-achieve-02 · Investigation Station</div>
   <header id="howto">
     <h1>How to use — Investigation Station</h1>
-    <p>Change one setting at a time and press play (<b>▶</b>) to test how far the ball rolls. After a few tries, press the check (<b>✓</b>) and tap the setup you think rolls the ball the farthest.</p>
+    <p>Pick the settings on the bench, then press <b>Run test</b> to see what happens. Test as many
+    times as you like. Changing only one setting between tests is the way to find out what each one
+    does. When you are ready, press <b>Record what I found</b>, choose the setup you think is best,
+    and write how you know.</p>
   </header>
-  <div id="phasecue" data-phase="demo">Watch the example</div>
+  <div id="phasecue" data-phase="warmup">Get ready</div>
   <section id="stagecard">
-    <div id="screen">
-      <div id="rec">LIVE · 00:00</div><i class="corner tl"></i><i class="corner tr"></i>
-      <i class="corner bl"></i><i class="corner br"></i>
-      <div id="track"></div><div id="ramp"></div><div id="ball"></div>
-      <div id="marker"></div><div id="distance">— cm</div><div id="scan"></div>
-      <div id="playbar"><div id="playfill"></div></div>
+    <div id="question">Waiting for the bench.</div>
+    <div id="bench">
+      <div id="benchTop"><span id="outLabel">Result</span><span id="trialCount">0 tests</span></div>
+      <div id="readout">&mdash; <span id="outUnit"></span></div>
+      <div id="bartrack"><div id="barfill"></div></div>
+      <div id="benchNote">Press Run test to see a result.</div>
     </div>
-    <div id="controls">
-      <div class="controlGroup" data-variable="ramp">
-        <button class="choice" data-value="0" aria-label="low ramp">╱</button>
-        <button class="choice" data-value="1" aria-label="medium ramp">⟋</button>
-        <button class="choice" data-value="2" aria-label="high ramp">⧍</button>
-      </div>
-      <div class="controlGroup" data-variable="surface">
-        <button class="choice" data-value="0" aria-label="bumpy surface">▒</button>
-        <button class="choice" data-value="1" aria-label="rough surface">≋</button>
-        <button class="choice" data-value="2" aria-label="smooth surface">━</button>
-      </div>
-      <div class="controlGroup" data-variable="ball">
-        <button class="choice" data-value="0" aria-label="heavy ball">●</button>
-        <button class="choice" data-value="1" aria-label="light ball">○</button>
-      </div>
+    <div id="controls"></div>
+    <div id="tools">
+      <button id="replay" title="show how again">&#8635;</button>
+      <button id="run">Run test</button>
+      <button id="open">Record what I found</button>
+      <span id="budget"></span>
     </div>
     <div id="trials"></div>
-    <div id="conclusion"></div>
-    <div id="tools">
-      <button id="replay" aria-label="replay">↻</button>
-      <button id="run" aria-label="run trial">▶</button>
-      <button id="conclude" aria-label="conclude">✓</button>
+    <div id="conclusion">
+      <div class="subq" id="setupQ"></div>
+      <div id="setups"></div>
+      <div id="factorBlock" style="display:none">
+        <div class="subq" id="factorQ"></div>
+        <div id="factors"></div>
+      </div>
+      <div class="subq" id="reasonQ"></div>
+      <textarea id="reason" maxlength="400" aria-label="write how you know"></textarea>
+      <button id="send" title="send what I found">&#10003; Send</button>
     </div>
-    <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+    <div id="status" class="neutral">Waiting for the bench.</div>
   </section>
 </main>
 <aside id="telemetry">
-  <h3>Live telemetry · per-child</h3>
-  <div id="difficulty">
-    <div class="diffTop"><span>DIFFICULTY</span><span id="diffLabel">1 / 5</span></div>
-    <div class="diffTrack"><div id="diffFill"></div></div>
-  </div>
+  <h3>Live telemetry · per-child (display only)</h3>
+  <div id="difficulty" data-tracks="M-DIFFREACH"></div>
+  <div id="mode">Renderer computes process metrics locally; the <b>score is server-side</b>. Rubric dimensions are <b>judge-deferred</b>.</div>
   <div id="mlist"></div>
   <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
 </aside>
-<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#278fc2" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
-const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
-const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-const ICONS={ramp:['╱','⟋','⧍'],surface:['▒','≋','━'],ball:['●','○']};
-const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
-function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
-function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
-const T={
-  plan:{grounded:0,intentional:0,random:0},controlled:0,transitions:0,
-  explore:new Set(),path:[],progress:[],poly:0,polyMax:0,roundScores:[],
-  levels:[],itemStart:Date.now(),maxSolved:0
-};
-let phase='demo',level=1,scoredIndex=0,setting={ramp:1,surface:1,ball:0};
-let model=null,trials=[],locked=true,roundControlled=0,roundTransitions=0;
-function setupKey(s){return `${s.ramp}${s.surface}${s.ball}`;}
-function setupIcons(s){return `${ICONS.ramp[s.ramp]} ${ICONS.surface[s.surface]} ${ICONS.ball[s.ball]}`;}
-function allSetups(){
-  const a=[];for(let ramp=0;ramp<3;ramp++)for(let surface=0;surface<3;surface++)for(let ball=0;ball<2;ball++)a.push({ramp,surface,ball});
+/* =====================================================================
+ * CX-achieve-02 — PURE RENDERER
+ * Renders a SERVED item (item.content: a science-bench sandbox configuration)
+ * and reports the child's RAW action sequence + numeric process metrics. It
+ * NEVER self-generates items, NEVER shows correct/incorrect, and computes NO
+ * correctness: the conclusion key, the factor ranking and the deferred
+ * reasoning rubric all live server-side (BUILD_PLAN §2).
+ *
+ * Embedding protocol (postMessage), source-tagged:
+ *   host -> demo : {source:'gt-exam-host', type:'init',  item:ServedItem}
+ *                  {source:'gt-exam-host', type:'start', tutorial?:bool}
+ *   demo -> host : {source:'gt-exam-demo', type:'ready'}
+ *                  {source:'gt-exam-demo', type:'result',    result:ItemResult}
+ *                  {source:'gt-exam-demo', type:'telemetry', event:TelemetryEvent}
+ *
+ * The emitted `response` carries the FULL trial/action sequence: that log is the
+ * substrate the deferred rubric judge will read, together with `reasonText`.
+ *
+ * Reading is a required baseline-literacy gate (D-017): on-screen TEXT only.
+ * There is no audio and no text-to-speech anywhere in this file.
+ *
+ * Standalone (double-click / no host): loads sample items from the bank JSONL
+ * (or an inline fallback if fetch is blocked on file://) so the file still runs
+ * for QA. Correctness is still never shown.
+ * ===================================================================== */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const HOST_SRC='gt-exam-host', DEMO_SRC='gt-exam-demo';
+const NOISE_PATTERN=[0,1,-1,1,0,-1,-1,1];
+
+/* ---------- bench model (STIMULUS: shipped in content.apparatus) ---------- */
+function expectedFor(app,factors,setting){
+  let v=app.base;
+  for(const f of factors)v+=app.weights[f.id][setting[f.id]];
+  const it=app.interaction;
+  if(it&&setting[it.factorA]===it.levelA&&setting[it.factorB]===it.levelB)v+=it.bonus;
+  return v;
+}
+function readingFor(app,factors,setting,trialSlot){
+  const P=[3,5,7,11];let h=0;
+  factors.forEach((f,i)=>{h+=(setting[f.id]+1)*P[i%P.length];});
+  h+=trialSlot*7;
+  return Math.max(1,expectedFor(app,factors,setting)+NOISE_PATTERN[h%NOISE_PATTERN.length]*app.noiseAmp);
+}
+function benchCeiling(app,factors){
+  let v=app.base;
+  for(const f of factors)v+=Math.max(...app.weights[f.id]);
+  if(app.interaction)v+=app.interaction.bonus;
+  return v+app.noiseAmp;
+}
+const settingKey=(factors,s)=>factors.map(f=>`${f.id}=${s[f.id]}`).join(',');
+const settingWords=(factors,s)=>factors.map(f=>`${f.label}: ${f.levels[s[f.id]].label}`).join(' · ');
+
+/* ---------- per-item state ---------- */
+let current=null;            // current ServedItem
+let interactive=false;       // interaction enabled? (released in beginItem)
+let submitted=false;         // already sent this item?
+let setting={};              // staged bench setting
+let trials=[];               // [{n, setting, key, reading, tMs, changedFactors}]
+let slotCount={};            // settingKey -> how many times run (drives the wobble)
+let actions=[];              // raw action sequence (the judge substrate)
+let itemTelemetry=[];        // TelemetryEvent[] for the current item
+let itemStart=0, firstLat=null, startTimer=null;
+let pickedSetup=null, pickedFactor=null, revisions=0, progressEvents=0, bestSeen=-Infinity;
+let blurs=0;
+
+/* ---------- embedding detection + emit ---------- */
+const embedded=(()=>{try{return window.parent&&window.parent!==window;}catch(_){return true;}})();
+let standalone=false, standaloneQueue=[], standaloneIdx=0, tutorialShown=false;
+function post(msg){if(!embedded)return;try{window.parent.postMessage(Object.assign({source:DEMO_SRC},msg),'*');}catch(_){}}
+
+/* ---------- deterministic process metrics (numeric, key-free) ---------- */
+function distinctSettings(){return new Set(trials.map(t=>t.key)).size;}
+// M-PLANFUL: control-of-variables. Share of consecutive trials that changed
+// exactly one factor. This is the deterministic scientific-reasoning signal.
+function controlledRate(){
+  if(trials.length<2)return 0;
+  let one=0;
+  for(let i=1;i<trials.length;i++)if(trials[i].changedFactors.length===1)one++;
+  return Math.round(100*one/(trials.length-1));
+}
+// M-HYP: share of trials that form a controlled pair with ANY earlier trial
+// (an informative, disambiguating test), not just with the immediately previous one.
+function informativeRate(){
+  if(!trials.length)return 0;
+  let inf=1; // the baseline trial is informative by definition
+  for(let i=1;i<trials.length;i++){
+    const a=trials[i].setting;
+    const pair=trials.slice(0,i).some(p=>{
+      let d=0;for(const f of current.content.factors)if(p.setting[f.id]!==a[f.id])d++;
+      return d===1;
+    });
+    if(pair)inf++;
+  }
+  return Math.round(100*inf/trials.length);
+}
+function nonRedundancy(){return trials.length?Math.round(100*distinctSettings()/trials.length):0;}
+
+const METERS=[
+ {id:'M-PLANFUL',def:false,name:'Control of variables — one factor changed per test',get:()=>trials.length<2?'\u2014':controlledRate()+'%'},
+ {id:'M-HYP',def:false,name:'Informative (disambiguating) tests',get:()=>trials.length?informativeRate()+'%':'\u2014'},
+ {id:'M-EXPLORE',def:false,name:'Distinct setups investigated',get:()=>String(distinctSettings())},
+ {id:'M-IDEAFLU',def:false,name:'Auto count of distinct tests run',get:()=>String(distinctSettings())},
+ {id:'M-PATH',def:false,name:'Logged actions (full sequence emitted)',get:()=>String(actions.length)},
+ {id:'M-EFF',def:false,name:'Non-redundant tests / tests run',get:()=>trials.length?nonRedundancy()+'%':'\u2014'},
+ {id:'M-PROG',def:false,name:'Times the running best improved',get:()=>String(progressEvents)},
+ {id:'M-RT',def:false,name:'Time to send (ms)',get:()=>submitted?String(lastRt):'\u2014'},
+ {id:'M-RTFIRST',def:false,name:'First-action latency (encode / plan)',get:()=>firstLat==null?'\u2014':firstLat+' ms'},
+ {id:'M-REV',def:false,name:'Conclusion changes before sending',get:()=>String(revisions)},
+ {id:'M-ENGAGE',def:false,name:'Focus losses (tracked, not enforced)',get:()=>String(blurs)},
+ {id:'M-POLY',def:true,name:'Partial credit — scored server-side from the key',get:()=>'server-side'},
+ {id:'M-LEARNRATE',def:true,name:'Across-item growth — server-side over the session',get:()=>'server-side'},
+ {id:'M-RUBRIC-DEFERRED',def:true,name:'Reasoning rubric — LLM/human judge deferred',get:()=>'deferred'},
+];
+let lastRt=0;
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>
+  `<div class="mrow"><span class="mid${m.def?' def':''}">${m.id}</span><span class="mval" id="v_${m.id}"></span>`
+  +`<span class="mname">${m.name}</span></div>`).join('');}
+function renderDifficulty(){
+  const d=current?current.difficulty:null,c=current?current.content:null;
+  $('#difficulty').innerHTML=`<div class="dtop"><b>SERVED DIFFICULTY</b><span>${d==null?'\u2014':d.toFixed(1)}/20</span></div>`
+   +`<div class="dtrack"><div class="dfill" style="width:${d==null?0:Math.max(0,Math.min(100,d/20*100))}%"></div></div>`
+   +`<div class="dsub"><span>${c?c.factors.length+' factors \u00b7 depth '+c.conclusion.depth:'\u2014'}</span><span>score: server-side</span></div>`;}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});renderDifficulty();}
+function log(msg){const t=Math.max(0,Date.now()-(itemStart||Date.now())),d=document.createElement('div');
+  d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+
+/* ---------- telemetry emit (stream to host + local log + per-item buffer) ---------- */
+function emitEvent(kind,extra){
+  const event=Object.assign({t:itemStart?Date.now()-itemStart:0,kind,itemId:current?current.itemId:null},extra||{});
+  itemTelemetry.push(event);
+  post({type:'telemetry',event});
+  log(`<b>${kind}</b>`+(extra&&Object.keys(extra).length?' \u00b7 '+JSON.stringify(extra):''));
+}
+function recordAction(kind,extra){
+  const a=Object.assign({t:itemStart?Date.now()-itemStart:0,kind},extra||{});
+  actions.push(a);
+  if(firstLat===null){firstLat=a.t;emitEvent('first_action',{kind,latencyMs:firstLat});}
   return a;
 }
-function makeModel(lvl,index){
-  const lightWins=(index+lvl)%2===0;
-  return {
-    base:24,ramp:[0,10+lvl*2,22+lvl*3],surface:[-7-lvl,0,8+lvl],
-    ball:lightWins?[0,5+lvl]:[5+lvl,0],interaction:lvl>=4?5+lvl:0,
-    noise:lvl>=3?lvl-2:0
-  };
-}
-function expected(s){
-  return model.base+model.ramp[s.ramp]+model.surface[s.surface]+model.ball[s.ball]+
-    (s.ramp===2&&s.surface===2?model.interaction:0);
-}
-function outcome(s,trialNo){
-  const pattern=[-1,1,0,2,-2,1],hash=s.ramp*5+s.surface*3+s.ball+trialNo;
-  return Math.max(4,Math.round(expected(s)+pattern[hash%pattern.length]*model.noise));
-}
-function bestSetup(){
-  return allSetups().reduce((best,s)=>expected(s)>expected(best)?s:best,allSetups()[0]);
-}
-function differences(a,b){return (a.ramp!==b.ramp)+(a.surface!==b.surface)+(a.ball!==b.ball);}
-function renderControls(){
-  $$('.controlGroup').forEach(group=>group.querySelectorAll('.choice').forEach(b=>{
-    b.classList.toggle('on',setting[group.dataset.variable]===+b.dataset.value);
-  }));
-  $('#ramp').style.transform=`rotate(${-10-setting.ramp*12}deg)`;
-  $('#ball').style.filter=setting.ball?'brightness(1.18) saturate(.8)':'none';
-}
-function planText(){
-  const p=T.plan,total=p.grounded+p.intentional+p.random;
-  return total?`G${p.grounded} · I${p.intentional} · R${p.random}`:'—';
-}
-function hypText(){return T.transitions?`${T.controlled}/${T.transitions} · ${Math.round(100*T.controlled/T.transitions)}%`:'—';}
-function polyText(){return T.polyMax?`${T.poly}/${T.polyMax} · ${Math.round(100*T.poly/T.polyMax)}%`:'—';}
-function learning(){
-  if(T.roundScores.length<2)return '—';
-  const slope=(T.roundScores.at(-1)-T.roundScores[0])/(T.roundScores.length-1);
-  const levelGain=(T.levels.at(-1)-T.levels[0])/(T.levels.length-1||1);
-  return `${levelGain>=0?'+':''}${levelGain.toFixed(2)} level/item · ${slope>=0?'+':''}${slope.toFixed(2)} poly`;
-}
-const METERS=[
-  {id:'M-PLANFUL',name:'Grounded / intentional / random trials',get:()=>planText()},
-  {id:'M-POLY',name:'Conclusion attributes correct',get:()=>polyText()},
-  {id:'M-HYP',name:'One-variable controlled comparisons',get:()=>hypText()},
-  {id:'M-EXPLORE',name:'Distinct setups investigated',get:()=>`${T.explore.size}`},
-  {id:'M-PATH',name:'Full test sequence',get:()=>T.path.length?T.path.slice(-8).join(' '):'—'},
-  {id:'M-PROG',name:'Best-to-optimum trajectory',get:()=>T.progress.length?T.progress.slice(-8).join('→')+'%':'—'},
-  {id:'M-LEARNRATE',name:'Improvement across investigations',get:()=>learning()}
-];
-function buildMeters(){
-  $('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');
-}
-function renderMeters(){
-  METERS.forEach(m=>{const el=$(`#v_${m.id}`);if(el)el.textContent=m.get();});
-  $('#diffLabel').textContent=`${level} / 5 · peak ${T.maxSolved}`;
-  $('#diffFill').style.width=`${level*20}%`;
-}
-function log(message){
-  const d=document.createElement('div');
-  d.innerHTML=`<span class="t">+${Date.now()-T.itemStart}ms</span> ${message}`;
-  $('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;
-}
-async function animateBall(cm){
-  locked=true;$('#marker').style.opacity='0';$('#distance').textContent='…';
-  $('#playfill').style.transition='none';$('#playfill').style.width='0';void $('#playfill').offsetWidth;
-  $('#playfill').style.transition='width .9s linear';$('#playfill').style.width='100%';
-  const screen=$('#screen'),available=Math.max(180,screen.clientWidth-165);
-  const pct=Math.min(.96,.16+cm/115*.76),destination=80+available*pct;
-  const ball=$('#ball');ball.style.left='112px';
-  const animation=ball.animate(
-    [{left:'112px',transform:'rotate(0deg) translateY(0)'},{left:`${destination}px`,transform:'rotate(620deg) translateY(-2px)'}],
-    {duration:900,easing:'cubic-bezier(.18,.68,.25,1)',fill:'forwards'}
-  );
-  try{await animation.finished;}catch(_){}
-  ball.style.left=`${destination}px`;ball.style.transform='rotate(620deg)';
-  $('#marker').style.left=`${destination+13}px`;$('#marker').style.opacity='1';
-  $('#distance').textContent=`${cm} cm`;locked=false;
-}
-function classifyStrategy(previous,current){
-  if(!previous)return 'intentional';
-  const changed=differences(previous.setup,current),sameBest=trials.length?
-    differences(current,trials.reduce((a,b)=>a.cm>b.cm?a:b).setup)<=1:false;
-  if(changed===1&&sameBest)return 'grounded';
-  if(changed===1||changed===0&&model.noise>0)return 'intentional';
-  return 'random';
-}
-async function runTrial(record=true){
-  if(locked||!['warmup','scored','demo'].includes(phase))return;
-  const current={...setting},cm=outcome(current,trials.length);
-  await animateBall(cm);
-  if(phase==='demo'){log(`demo ${setupIcons(current)} → ${cm}cm`);return;}
-  if(phase==='warmup'){
-    log(`warm-up trial ${setupIcons(current)} → ${cm}cm · UNSCORED`);
-    locked=true;setTimeout(startScored,700);return;
-  }
-  const previous=trials.at(-1),changed=previous?differences(previous.setup,current):null;
-  const strategy=classifyStrategy(previous,current);
-  if(previous){T.transitions++;roundTransitions++;if(changed===1){T.controlled++;roundControlled++;}}
-  T.plan[strategy]++;T.explore.add(setupKey(current));
-  const trial={setup:current,cm,changed,strategy};trials.push(trial);
-  const optimum=expected(bestSetup()),bestSeen=Math.max(...trials.map(x=>x.cm));
-  const progress=Math.min(100,Math.round(100*bestSeen/optimum));
-  T.progress.push(progress);T.path.push(`${setupKey(current)}:${cm}`);
-  const card=document.createElement('div');card.className=`trial ${strategy==='random'?'random':changed===1?'controlled':''}`;
-  card.innerHTML=`<b>${setupIcons(current)}</b><br>${cm} cm · ${strategy[0].toUpperCase()}`;
-  $('#trials').prepend(card);
-  log(`trial ${setupKey(current)} → ${cm}cm · Δ${changed??0} · ${strategy}`);
-  if(trials.length>=3)$('#conclude').style.display='';
-  renderMeters();
-}
-function conclusionOptions(){
-  const best=bestSetup(),options=[best];
-  const variants=[
-    {...best,ramp:(best.ramp+2)%3},{...best,surface:(best.surface+2)%3},{...best,ball:1-best.ball},
-    {...best,ramp:1,surface:1}
-  ];
-  variants.forEach(v=>{if(options.length<4&&!options.some(x=>setupKey(x)===setupKey(v)))options.push(v);});
-  return options.sort((a,b)=>(setupKey(a).charCodeAt(0)+scoredIndex)%3-(setupKey(b).charCodeAt(0)+scoredIndex)%3);
-}
-function showConclusion(){
-  if(phase!=='scored'||trials.length<3||locked)return;
-  phase='conclusion';$('#controls').style.display='none';$('#run').style.display='none';$('#conclude').style.display='none';
-  const host=$('#conclusion');host.classList.add('on');host.innerHTML=conclusionOptions().map(s=>`
-    <button class="answer" data-key="${setupKey(s)}" aria-label="setup ${setupKey(s)}">
-      <span>${ICONS.ramp[s.ramp]}</span><span>${ICONS.surface[s.surface]}</span><span>${ICONS.ball[s.ball]}</span>
-    </button>`).join('');
-  setStatus('neutral','Tap the setup you think sends the ball farthest.');
-  log('conclusion choices');
-}
-function chooseConclusion(key){
-  if(phase!=='conclusion'||locked)return;
-  locked=true;const chosen=allSetups().find(s=>setupKey(s)===key),best=bestSetup();
-  const points=3-differences(chosen,best),exact=points===3;
-  T.poly+=points;T.polyMax+=3;T.roundScores.push(points);T.levels.push(level);
-  $$('.answer').forEach(b=>{
-    if(b.dataset.key===setupKey(best))b.style.borderColor='var(--lime)';
-    else if(b.dataset.key===key)b.style.borderColor='var(--red)';
-  });
-  setStatus(exact?'ok':'no',exact?'\u2713 Correct - that is the best setup':'\u2717 Not quite - the best setup is highlighted');
-  const controlledRate=roundTransitions?roundControlled/roundTransitions:0;
-  itemResult=exact&&controlledRate>=.5;
-  log(`conclusion ${key} → ${points}/3 · target ${setupKey(best)} · controlled ${Math.round(100*controlledRate)}%`);
-  renderMeters();setTimeout(nextItem,850);
-}
-let itemResult=false;
-function nextItem(){
-  if(itemResult){T.maxSolved=Math.max(T.maxSolved,level);level=Math.min(5,level+1);}
-  else level=Math.max(1,level-1);
-  scoredIndex++;renderMeters();
-  if(scoredIndex>=5)finish();else startScored();
-}
-function resetStage(){
-  trials=[];roundControlled=0;roundTransitions=0;setting={ramp:1,surface:1,ball:0};
-  $('#trials').innerHTML='';$('#conclusion').classList.remove('on');$('#conclusion').innerHTML='';
-  $('#controls').style.display='flex';$('#run').style.display='';$('#conclude').style.display='none';
-  $('#distance').textContent='— cm';$('#marker').style.opacity='0';renderControls();
-}
-function startWarmup(){
-  phase='warmup';locked=false;model=makeModel(1,0);resetStage();T.itemStart=Date.now();
-  setCue('warmup');setStatus('neutral','Practice - run a trial to see how it works. Not scored.');log('— WARM-UP · ONE UNSCORED TRIAL —');renderMeters();
-}
-function startScored(){
-  phase='scored';locked=false;model=makeModel(level,scoredIndex);resetStage();T.itemStart=Date.now();itemResult=false;
-  setCue('scored',(scoredIndex+1)+'/5');setStatus('neutral','Change one thing at a time, then choose the best setup.');log(`— SCORED ${scoredIndex+1}/5 · level ${level} · noise ${model.noise} —`);renderMeters();
-}
-function finish(){
-  phase='done';locked=true;setCue('done');
-  $('#stagecard').innerHTML='<div style="font-size:34px;font-weight:800;padding:64px 0;color:var(--blue)">\u2713 Done</div><button id="again" class="choice" aria-label="play again" title="play again">\u21bb</button>';
-  $('#again').onclick=()=>location.reload();log(`— DONE · poly ${T.poly}/${T.polyMax} · peak ${T.maxSolved} —`);
-}
+
+/* ---------- ghost hand: wordless GESTURE hint (never reveals the answer) ---------- */
 const ghost=$('#ghost');
-function center(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
-async function ghostTo(el){
-  const p=center(el);ghost.style.transform=`translate(${p.x-12}px,${p.y-8}px)`;await sleep(380);
+function ghostShow(v){ghost.classList.toggle('show',v);}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(560);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(450);}
+async function gestureHint(){
+  // Teaches the GESTURE only: touch a setting, press Run, touch another setting,
+  // press Run again, then open the record panel. It never runs a real trial and
+  // never indicates which setup wins.
+  const rows=$$('.factorRow .level');
+  ghostShow(true);await sleep(250);
+  await ghostTo(rows[0]);await ghostTap();
+  await ghostTo($('#run'));await ghostTap();
+  await ghostTo(rows[1]||rows[0]);await ghostTap();
+  await ghostTo($('#run'));await ghostTap();
+  await ghostTo($('#open'));await sleep(200);
+  ghostShow(false);await sleep(250);
 }
-async function runDemo(){
-  phase='demo';locked=false;model=makeModel(1,0);resetStage();T.itemStart=Date.now();
-  setCue('demo');setStatus('neutral','Watch the example.');ghost.classList.add('show');log('wordless video-style controlled comparison');
-  setting={ramp:0,surface:1,ball:0};renderControls();await ghostTo($(`.choice[data-value="0"]`));
-  await ghostTo($('#run'));await runTrial(false);await sleep(220);
-  setting={ramp:2,surface:1,ball:0};renderControls();
-  const high=$('.controlGroup[data-variable="ramp"] .choice[data-value="2"]');await ghostTo(high);
-  await ghostTo($('#run'));await runTrial(false);await sleep(300);
-  ghost.classList.remove('show');startWarmup();
+
+/* ---------- rendering the served item ---------- */
+function setCue(k,txt){const el=$('#phasecue');el.dataset.phase=k;el.textContent=txt;}
+function setStatus(kind,msg){const el=$('#status');el.className=kind;el.textContent=msg;}
+
+function renderControls(){
+  const c=current.content;
+  $('#controls').innerHTML=c.factors.map(f=>
+    `<div class="factorRow"><div class="factorName">${f.label}</div><div class="levelSet">`
+    +f.levels.map(l=>`<button class="level${setting[f.id]===l.value?' on':''}" data-f="${f.id}" data-v="${l.value}">${l.label}</button>`).join('')
+    +`</div></div>`).join('');
 }
-$('#controls').addEventListener('click',e=>{
-  const b=e.target.closest('.choice');if(!b||locked||!['warmup','scored'].includes(phase))return;
-  const variable=b.parentElement.dataset.variable;setting[variable]=+b.dataset.value;
-  renderControls();log(`set ${variable}=${b.dataset.value}`);
-});
-$('#run').addEventListener('click',()=>runTrial(true));
-$('#conclude').addEventListener('click',showConclusion);
-$('#conclusion').addEventListener('click',e=>{
-  const b=e.target.closest('.answer');if(b)chooseConclusion(b.dataset.key);
-});
-$('#replay').addEventListener('click',()=>{if(phase!=='demo')location.reload();});
-buildMeters();renderMeters();runDemo();
+function renderTrials(){
+  $('#trials').innerHTML=trials.slice().reverse().map(t=>
+    `<div class="trial${t.changedFactors.length===1?' controlled':''}"><b>${t.reading} ${current.content.scenario.outcomeUnit}</b><br>${settingWords(current.content.factors,t.setting)}</div>`).join('');
+  $('#trialCount').textContent=trials.length+(trials.length===1?' test':' tests');
+  const left=current.content.trialBudget-trials.length;
+  $('#budget').textContent=left>0?left+' tests left':'no tests left';
+  $('#run').disabled=!interactive||submitted||left<=0;
+}
+function renderConclusionPanel(){
+  const c=current.content,con=c.conclusion;
+  $('#setupQ').textContent=con.settingQuestion;
+  $('#setups').innerHTML=con.options.map(o=>
+    `<button class="setup${pickedSetup===o.key?' sel':''}" data-k="${o.key}"><span class="k">Setup ${o.key}</span>${settingWords(c.factors,o.setting)}</button>`).join('');
+  if(con.askFactorPick){
+    $('#factorBlock').style.display='';
+    $('#factorQ').textContent=con.factorQuestion;
+    $('#factors').innerHTML=con.factorOptions.map(f=>
+      `<button class="fpick${pickedFactor===f.key?' sel':''}" data-fk="${f.key}">${f.label}</button>`).join('');
+  }else $('#factorBlock').style.display='none';
+  $('#reasonQ').textContent=con.reasonPrompt+(con.reasonRequired?' (needed)':' (you may leave this blank)');
+  $('#send').classList.toggle('ready',canSend());
+}
+function canSend(){
+  const con=current.content.conclusion;
+  if(!pickedSetup)return false;
+  if(con.askFactorPick&&!pickedFactor)return false;
+  if(con.reasonRequired&&$('#reason').value.trim().length<3)return false;
+  return true;
+}
+function renderServedItem(item){
+  current=item;submitted=false;interactive=false;
+  trials=[];slotCount={};actions=[];itemTelemetry=[];
+  firstLat=null;pickedSetup=null;pickedFactor=null;revisions=0;progressEvents=0;bestSeen=-Infinity;
+  const c=item.content;
+  setting={};c.factors.forEach(f=>{setting[f.id]=0;});
+  $('#question').textContent=c.scenario.question;
+  $('#outLabel').textContent=c.scenario.outcomeLabel;
+  $('#outUnit').textContent=c.scenario.outcomeUnit;
+  $('#readout').innerHTML=`&mdash; <span id="outUnit">${c.scenario.outcomeUnit}</span>`;
+  $('#barfill').style.width='0';
+  $('#benchNote').textContent='Press Run test to see a result.';
+  $('#conclusion').classList.remove('on');
+  $('#open').style.display='none';
+  $('#reason').value='';
+  renderControls();renderTrials();
+  itemStart=Date.now();
+  renderMeters();
+  emitEvent('render',{factors:c.factors.length,levels:c.factors[0].levels.length,depth:c.conclusion.depth,
+    noiseAmp:c.apparatus.noiseAmp,difficulty:item.difficulty,trialBudget:c.trialBudget});
+}
+
+/* ---------- interaction ---------- */
+function setLevel(fid,value){
+  if(!interactive||submitted)return;
+  if(setting[fid]===value)return;
+  setting[fid]=value;
+  recordAction('set',{factor:fid,level:value});
+  renderControls();renderMeters();
+  emitEvent('set',{factor:fid,level:value});
+}
+function runTrial(){
+  if(!interactive||submitted)return;
+  const c=current.content;
+  if(trials.length>=c.trialBudget)return;
+  const snap={...setting},key=settingKey(c.factors,snap);
+  const slot=slotCount[key]||0;slotCount[key]=slot+1;
+  const reading=readingFor(c.apparatus,c.factors,snap,slot);
+  const prev=trials[trials.length-1];
+  const changed=prev?c.factors.filter(f=>prev.setting[f.id]!==snap[f.id]).map(f=>f.id):[];
+  const t={n:trials.length+1,setting:snap,key,reading,tMs:Date.now()-itemStart,changedFactors:changed,repeatOf:slot};
+  trials.push(t);
+  if(reading>bestSeen){if(bestSeen>-Infinity)progressEvents++;bestSeen=reading;}
+  recordAction('run',{n:t.n,setting:snap,reading,changedFactors:changed});
+  // Neutral readout only: a number, never a verdict.
+  $('#readout').innerHTML=`${reading} <span>${c.scenario.outcomeUnit}</span>`;
+  const ceil=benchCeiling(c.apparatus,c.factors);
+  $('#barfill').style.width=Math.max(4,Math.min(100,100*reading/ceil))+'%';
+  $('#benchNote').textContent=changed.length===1
+    ?'You changed one setting since the last test.'
+    :(changed.length===0&&trials.length>1?'Same setup as the last test.':'Ready for the next test.');
+  renderTrials();renderMeters();
+  emitEvent('trial',{n:t.n,reading,changedCount:changed.length});
+  if(trials.length>=c.minTrialsBeforeConclusion){
+    $('#open').style.display='';
+    if(!$('#conclusion').classList.contains('on'))
+      setStatus('neutral','Keep testing, or press Record what I found when you are ready.');
+  }
+}
+function openConclusion(){
+  if(!interactive||submitted)return;
+  $('#conclusion').classList.add('on');
+  renderConclusionPanel();
+  recordAction('open_conclusion',{afterTrials:trials.length});
+  emitEvent('open_conclusion',{afterTrials:trials.length});
+  setStatus('neutral','Choose the setup you think is best, then send it.');
+  $('#setups').scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+function pickSetup(k){
+  if(!interactive||submitted)return;
+  if(pickedSetup!==null&&pickedSetup!==k){revisions++;emitEvent('change',{what:'setup',from:pickedSetup,to:k});}
+  pickedSetup=k;recordAction('pick_setup',{key:k});renderConclusionPanel();renderMeters();
+}
+function pickFactor(k){
+  if(!interactive||submitted)return;
+  if(pickedFactor!==null&&pickedFactor!==k){revisions++;emitEvent('change',{what:'factor',from:pickedFactor,to:k});}
+  pickedFactor=k;recordAction('pick_factor',{key:k});renderConclusionPanel();renderMeters();
+}
+function send(){
+  if(!interactive||submitted||!canSend())return;
+  const rt=Date.now()-itemStart;
+  lastRt=rt;submitted=true;interactive=false;
+  const reasonText=$('#reason').value.trim();
+  recordAction('send',{setup:pickedSetup,factor:pickedFactor,reasonChars:reasonText.length});
+  $('#send').classList.remove('ready');
+  // NEUTRAL acknowledgment only — never correct/incorrect.
+  setCue('done','Recorded');
+  setStatus('neutral',standalone?'What you found was recorded. Loading the next bench.':'What you found was recorded. Next task coming up.');
+  emitEvent('submit',{rtMs:rt,trials:trials.length,reasonChars:reasonText.length});
+
+  const response={
+    // Raw substrate for the deferred rubric judge + the deterministic sub-keys.
+    conclusionKey:pickedSetup,
+    factorPick:pickedFactor,
+    reasonText,
+    trialCount:trials.length,
+    distinctSettings:distinctSettings(),
+    trials:trials.map(t=>({n:t.n,setting:t.setting,reading:t.reading,tMs:t.tMs,changedFactors:t.changedFactors,repeatOf:t.repeatOf})),
+    actions:actions.slice()
+  };
+  const metrics={
+    'M-RT':rt,
+    'M-RTFIRST':firstLat==null?rt:firstLat,
+    'M-REV':revisions,
+    'M-EXPLORE':distinctSettings(),
+    'M-IDEAFLU':distinctSettings(),
+    'M-PATH':actions.length,
+    'M-PLANFUL':controlledRate(),
+    'M-HYP':informativeRate(),
+    'M-EFF':nonRedundancy(),
+    'M-PROG':progressEvents,
+    'M-ENGAGE':blurs,
+    'M-RAPIDGUESS':(rt<3000||trials.length<2)?1:0
+  };
+  const result={itemId:current.itemId,typeCode:current.typeCode,domain:current.domain,response,metrics,telemetry:itemTelemetry.slice()};
+  post({type:'result',result});
+  log('RESULT emitted \u2192 '+JSON.stringify({metrics}));
+  renderMeters();
+  if(standalone)setTimeout(advanceStandalone,1400);
+}
+
+/* ---------- host-driven lifecycle ---------- */
+function onInit(item){
+  clearTimeout(startTimer);
+  if(!item||!item.content||!item.content.factors||!item.content.apparatus){log('init ignored: malformed ServedItem');return;}
+  renderServedItem(item);
+  setCue('warmup','Get ready');
+  setStatus('neutral','Get ready for the bench.');
+  // Lenient: if the host never sends {type:'start'}, begin on our own shortly.
+  startTimer=setTimeout(()=>{if(!interactive&&!submitted)beginItem(false);},500);
+}
+async function beginItem(withTutorial){
+  if(interactive||submitted||!current)return;
+  if(withTutorial&&!tutorialShown){tutorialShown=true;await gestureHint();if(submitted)return;}
+  interactive=true;itemStart=Date.now();
+  setCue('scored','Your turn');
+  setStatus('neutral','Pick settings and press Run test. Change one setting at a time to see what it does.');
+  renderTrials();renderMeters();
+}
+function onHostMessage(e){
+  const d=e.data;if(!d||d.source!==HOST_SRC)return;
+  if(d.type==='init')onInit(d.item);
+  else if(d.type==='start'){clearTimeout(startTimer);beginItem(!!d.tutorial);}
+}
+
+/* ---------- standalone fallback (QA when there is no host) ---------- */
+function toServed(b){const{answer,scoring,provenance,...s}=b;return s;}
+async function loadBankSamples(){
+  try{
+    const res=await fetch('../banks/CX-achieve-02.jsonl',{cache:'no-store'});
+    if(res.ok){
+      const all=(await res.text()).trim().split('\n').filter(Boolean).map(l=>JSON.parse(l)).map(toServed);
+      all.sort((a,b)=>a.difficulty-b.difficulty);
+      const N=Math.min(8,all.length),pick=[];
+      for(let i=0;i<N;i++)pick.push(all[N===1?0:Math.round(i*(all.length-1)/(N-1))]);
+      log('standalone: fetched '+all.length+' bank items; cycling '+pick.length+' across difficulty');
+      return pick;
+    }
+  }catch(_){/* file:// blocks fetch — use inline fallback */}
+  log('standalone: bank fetch unavailable (open via a local server for the full bank) — using inline samples');
+  return INLINE_SAMPLES.slice();
+}
+function playStandalone(){const item=standaloneQueue[standaloneIdx%standaloneQueue.length];onInit(item);beginItem(standaloneIdx===0);}
+function advanceStandalone(){standaloneIdx++;playStandalone();}
+async function bootstrapStandalone(){if(standalone)return;standalone=true;standaloneQueue=await loadBankSamples();standaloneIdx=0;playStandalone();}
+
+/* Inline served-item fallback (real items exported from the bank; answer stripped). */
+const INLINE_SAMPLES=[
+{"itemId":"15911734-15f8-42ed-8510-252b54a158e4","typeCode":"CX-achieve-02","domain":"fluid_reasoning","difficulty":1.04,"ageBands":["2-3"],"demoPath":"demos/CX-achieve-02.html","content":{"typeCode":"CX-achieve-02","scenario":{"id":"plant_grow","title":"Grow Bench","question":"Which setup makes the plant grow the tallest?","outcomeLabel":"Plant height","outcomeUnit":"mm","direction":"max"},"factors":[{"id":"light","label":"Light","levels":[{"value":0,"label":"Dim"},{"value":1,"label":"Medium"}]},{"id":"water","label":"Water","levels":[{"value":0,"label":"A little"},{"value":1,"label":"Some"}]}],"apparatus":{"base":21,"weights":{"light":[0,3],"water":[0,9]},"interaction":null,"noiseAmp":0,"readingFloor":1},"trialBudget":8,"minTrialsBeforeConclusion":2,"conclusion":{"depth":1,"settingQuestion":"Which setup makes the plant grow the tallest?","options":[{"key":"A","setting":{"light":0,"water":1}},{"key":"B","setting":{"light":1,"water":0}},{"key":"C","setting":{"light":0,"water":0}},{"key":"D","setting":{"light":1,"water":1}}],"askFactorPick":false,"factorQuestion":"Which one setting changed the result the most?","factorOptions":[{"key":"light","label":"Light"},{"key":"water","label":"Water"}],"askReason":true,"reasonRequired":false,"reasonPrompt":"Write how you know. Say which tests you ran and what they showed.","reasonMaxChars":400},"instructions":{"howto":"Pick the settings, then press Run to test them. Test as many times as you like, then press the check to record what you found."}},"syntheticOnly":true,"validated":false},
+{"itemId":"4689f2b0-5e5e-4b32-8b8e-b61d9063dbc0","typeCode":"CX-achieve-02","domain":"fluid_reasoning","difficulty":10.65,"ageBands":["4-5"],"demoPath":"demos/CX-achieve-02.html","content":{"typeCode":"CX-achieve-02","scenario":{"id":"boat_sail","title":"Sail Bench","question":"Which setup makes the boat sail the farthest?","outcomeLabel":"Sail distance","outcomeUnit":"cm","direction":"max"},"factors":[{"id":"sail","label":"Sail","levels":[{"value":0,"label":"Small"},{"value":1,"label":"Medium"}]},{"id":"hull","label":"Hull","levels":[{"value":0,"label":"Wide"},{"value":1,"label":"Middle"}]},{"id":"load","label":"Load","levels":[{"value":0,"label":"Heavy"},{"value":1,"label":"Medium"}]}],"apparatus":{"base":29,"weights":{"sail":[9,0],"hull":[0,36],"load":[27,0]},"interaction":{"factorA":"sail","levelA":1,"factorB":"hull","levelB":1,"bonus":18},"noiseAmp":6,"readingFloor":1},"trialBudget":10,"minTrialsBeforeConclusion":2,"conclusion":{"depth":1,"settingQuestion":"Which setup makes the boat sail the farthest?","options":[{"key":"A","setting":{"sail":1,"hull":0,"load":1}},{"key":"B","setting":{"sail":1,"hull":1,"load":0}},{"key":"C","setting":{"sail":1,"hull":1,"load":1}},{"key":"D","setting":{"sail":1,"hull":0,"load":0}},{"key":"E","setting":{"sail":0,"hull":1,"load":0}}],"askFactorPick":false,"factorQuestion":"Which one setting changed the result the most?","factorOptions":[{"key":"sail","label":"Sail"},{"key":"hull","label":"Hull"},{"key":"load","label":"Load"}],"askReason":true,"reasonRequired":false,"reasonPrompt":"Write how you know. Say which tests you ran and what they showed.","reasonMaxChars":400},"instructions":{"howto":"Pick the settings, then press Run to test them. Test as many times as you like, then press the check to record what you found."}},"syntheticOnly":true,"validated":false},
+{"itemId":"ad8a20f7-ea89-4f56-98f9-dc71ba151c9a","typeCode":"CX-achieve-02","domain":"fluid_reasoning","difficulty":19.96,"ageBands":["6-8"],"demoPath":"demos/CX-achieve-02.html","content":{"typeCode":"CX-achieve-02","scenario":{"id":"plant_grow","title":"Grow Bench","question":"Which setup makes the plant grow the tallest?","outcomeLabel":"Plant height","outcomeUnit":"mm","direction":"max"},"factors":[{"id":"light","label":"Light","levels":[{"value":0,"label":"Dim"},{"value":1,"label":"Medium"},{"value":2,"label":"Bright"}]},{"id":"water","label":"Water","levels":[{"value":0,"label":"A little"},{"value":1,"label":"Some"},{"value":2,"label":"A lot"}]},{"id":"soil","label":"Soil","levels":[{"value":0,"label":"Sandy"},{"value":1,"label":"Mixed"},{"value":2,"label":"Rich"}]},{"id":"pot","label":"Pot","levels":[{"value":0,"label":"Small"},{"value":1,"label":"Medium"},{"value":2,"label":"Big"}]}],"apparatus":{"base":20,"weights":{"light":[72,0,36],"water":[0,27,54],"soil":[9,0,18],"pot":[0,36,18]},"interaction":{"factorA":"light","levelA":2,"factorB":"water","levelB":2,"bonus":45},"noiseAmp":6,"readingFloor":1},"trialBudget":20,"minTrialsBeforeConclusion":2,"conclusion":{"depth":3,"settingQuestion":"Which setup makes the plant grow the tallest?","options":[{"key":"A","setting":{"light":2,"water":2,"soil":2,"pot":2}},{"key":"B","setting":{"light":2,"water":0,"soil":2,"pot":1}},{"key":"C","setting":{"light":0,"water":2,"soil":2,"pot":1}},{"key":"D","setting":{"light":2,"water":2,"soil":0,"pot":1}},{"key":"E","setting":{"light":2,"water":2,"soil":2,"pot":1}}],"askFactorPick":true,"factorQuestion":"Which one setting changed the result the most?","factorOptions":[{"key":"light","label":"Light"},{"key":"water","label":"Water"},{"key":"soil","label":"Soil"},{"key":"pot","label":"Pot"}],"askReason":true,"reasonRequired":true,"reasonPrompt":"Write how you know. Say which tests you ran and what they showed.","reasonMaxChars":400},"instructions":{"howto":"Pick the settings, then press Run to test them. Test as many times as you like, then press the check to record what you found."}},"syntheticOnly":true,"validated":false}
+];
+
+/* ---------- wiring ---------- */
+$('#controls').addEventListener('click',e=>{const b=e.target.closest('.level');if(b)setLevel(b.dataset.f,+b.dataset.v);});
+$('#run').addEventListener('click',runTrial);
+$('#open').addEventListener('click',openConclusion);
+$('#setups').addEventListener('click',e=>{const b=e.target.closest('.setup');if(b)pickSetup(b.dataset.k);});
+$('#factors').addEventListener('click',e=>{const b=e.target.closest('.fpick');if(b)pickFactor(b.dataset.fk);});
+$('#reason').addEventListener('input',()=>{if(interactive&&!submitted){$('#send').classList.toggle('ready',canSend());}});
+$('#send').addEventListener('click',send);
+$('#replay').addEventListener('click',()=>{if(current&&!submitted)gestureHint();});
+window.addEventListener('blur',()=>{if(interactive&&!submitted){blurs++;emitEvent('engagement',{reason:'blur'});renderMeters();}});
+
+buildMeters();renderMeters();
+window.addEventListener('message',onHostMessage);
+post({type:'ready'});
+if(!embedded){bootstrapStandalone();}
+else{setTimeout(()=>{if(!current)bootstrapStandalone();},1000);} // QA-safe if a host embeds but never inits
 </script>
 </body>
 </html>
