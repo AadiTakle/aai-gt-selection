@@ -33,6 +33,28 @@
 // outright, while at the hardest variant the distractors are chosen to be the
 // options that satisfy the most requirements while still breaking one.
 //
+// KEY-POSITION BALANCE (E-073)
+// ----------------------------
+// Seeding the option shuffle per item made each item look fair but left the
+// bank as a whole lopsided: 38/120 items keyed a2, so always tapping the
+// second option scored 31.7% against a 20.0% uniform baseline (+11.7pt). The
+// correct option is now dealt to an explicitly balanced position within each
+// variant, and the distractors fill the remaining slots in the same seeded
+// order as before. WHICH option is correct never changes; only where it sits
+// does, and the satisfies/violates tags, rationales and poly scores are all
+// derived from the arranged list, so they follow the permutation exactly.
+//
+// Balance is exact within each variant, which is as far as it can go: variant
+// 0 has 3 options, so it can never key a4 or a5. Uniform placement gives
+// 14/13/13 (v0), 10 each (v1) and 8 each (v2), i.e. 32/31/31/18/8 across
+// a1..a5. That 26.7% modal reads as +6.7pt against the 100/5 = 20% baseline,
+// but that baseline is not reachable by ANY fair arrangement: with 40 items at
+// each of 3, 4 and 5 options, true chance for a constant-position guesser is
+// (1/3 + 1/4 + 1/5)/3 = 26.1%. The bank now sits within 0.6pt of that floor.
+// Forcing the printed metric under +5pt would mean keying a4/a5 more often
+// than chance, which hands the same advantage back to "always tap the last
+// option". See the handoff note for the arithmetic.
+//
 // D-017: CX-sjt-01 previously reached K-1 through voiced animation. Audio is
 // prohibited and reading is a required baseline-literacy gate, so the floor is
 // grade 2-3, scenarios are on-screen text, and there are no pictured choices.
@@ -645,6 +667,24 @@ function seededShuffle(arr, seed) {
   return a;
 }
 
+// One target option position per item in a variant (E-073). Positions are
+// dealt out in cycles of `slots`, so every consecutive run of `slots` items
+// uses each position exactly once: the plan is balanced overall AND spread
+// across the difficulty ramp instead of clustering. Each cycle is shuffled
+// from a fixed seed so the sequence is reproducible without being a bare
+// 1,2,3,1,2,3. When `count` is not a whole number of cycles the remainder
+// falls where the last partial cycle puts it.
+export function keyPositionPlan(count, slots, seedKey) {
+  const rnd = mulberry32(hashNum(seedKey));
+  const plan = [];
+  let cycle = [];
+  for (let i = 0; i < count; i++) {
+    if (i % slots === 0) cycle = seededShuffle(Array.from({ length: slots }, (_, j) => j), Math.floor(rnd() * 2 ** 32));
+    plan.push(cycle[i % slots]);
+  }
+  return plan;
+}
+
 const PER_BAND = 6;
 export function difficultyFor(index) {
   const band = Math.floor(index / PER_BAND) + 1;
@@ -669,7 +709,7 @@ export const MAX_TEXT_CHARS_LOW = 80;
 // ---------------------------------------------------------------------------
 // Build one BankItem: scenario at variant v.
 // ---------------------------------------------------------------------------
-function buildItem(sc, scIdx, variant, index) {
+function buildItem(sc, scIdx, variant, index, keyPos) {
   const itemId = uuidFrom(`${TYPE_CODE}:${scIdx}:${variant}`);
   const difficulty = difficultyFor(index);
 
@@ -694,8 +734,14 @@ function buildItem(sc, scIdx, variant, index) {
     .slice(0, need)
     .map((e) => e.d);
 
-  const pool = [best, ...ranked];
-  const shuffled = seededShuffle(pool, hashNum(itemId + ':opt'));
+  // The key goes to its planned slot; the distractors keep the seeded order
+  // they have always had and fill the rest.
+  if (!Number.isInteger(keyPos) || keyPos < 0 || keyPos > need) {
+    throw new Error(`${TYPE_CODE} scenario ${scIdx} variant ${variant}: key position ${keyPos} outside 0..${need}`);
+  }
+  const spread = seededShuffle(ranked, hashNum(itemId + ':opt'));
+  const shuffled = [];
+  for (let i = 0, d = 0; i <= need; i++) shuffled.push(i === keyPos ? best : spread[d++]);
   const options = shuffled.map((o, i) => ({ id: `a${i + 1}`, text: o.text }));
 
   const qualifying = shuffled
@@ -783,8 +829,9 @@ function buildItem(sc, scIdx, variant, index) {
 export function buildBank() {
   const items = [];
   for (let v = 0; v < 3; v++) {
+    const plan = keyPositionPlan(SCENARIOS.length, OPTION_COUNT[v], `${TYPE_CODE}:keypos:v${v}`);
     for (let s = 0; s < SCENARIOS.length; s++) {
-      items.push(buildItem(SCENARIOS[s], s, v, v * SCENARIOS.length + s));
+      items.push(buildItem(SCENARIOS[s], s, v, v * SCENARIOS.length + s, plan[s]));
     }
   }
   return items;
