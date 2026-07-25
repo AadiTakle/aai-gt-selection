@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FLU-ODDPAIR-01 · Odd Pair Out</title>
+<style>
+:root{
+  --ink:#27314b;--paper:#fffefa;--purple:#6657dc;--aqua:#3cbfa8;
+  --rose:#ef6a72;--sun:#f5bd3f;--line:#dfe4f1;--tel:#111729;
+  --tel2:#1a223b;--key:#82ffd2;--dim:#7f8db5;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{
+  min-height:100vh;display:flex;color:var(--ink);
+  font:16px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;
+  background:linear-gradient(135deg,#eef8ff,#f5efff 52%,#fff6de);
+}
+#wrap{
+  flex:1;min-width:0;padding:17px;display:flex;flex-direction:column;
+  align-items:center;gap:9px;
+}
+#badge{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#818aa8}
+#howto{max-width:650px;width:100%;background:#fff;border:1px solid #dfe4f1;border-left:5px solid var(--purple);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #323b77}
+#howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--purple)}
+#howto p{margin:0;font-size:14px;color:#454e70;line-height:1.5}
+#phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#efedff;color:var(--purple);border:2px solid #d3ceff;min-height:30px}
+#phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+#phasecue[data-phase="scored"]{background:var(--purple);color:#fff;border-color:var(--purple)}
+#phasecue[data-phase="done"]{background:#efedff;color:#4a3fb0;border-color:#d3ceff}
+#status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+#status.ok{color:var(--aqua)} #status.no{color:var(--rose)} #status.neutral{color:#818aa8}
+#stagecard{
+  width:min(650px,100%);background:var(--paper);border-radius:26px;padding:16px;
+  box-shadow:0 22px 55px -33px #323b77;display:flex;flex-direction:column;
+  align-items:center;gap:10px;border:1px solid #fff;
+}
+#pairs{width:100%;display:grid;gap:8px}
+.pair{
+  width:100%;display:grid;grid-template-columns:30px 1fr 36px 1fr;
+  align-items:center;gap:7px;padding:7px 10px;border-radius:17px;
+  border:3px solid #edf0f7;background:#fafbff;cursor:pointer;
+  transition:transform .14s,border-color .14s,background .14s;
+}
+.pair:hover{transform:translateX(3px);border-color:#cbd2e7}
+.pair.sel{border-color:var(--purple);background:#f1efff;box-shadow:0 0 0 3px #ddd9ff}
+.pair.good{border-color:var(--aqua);background:#e9faf5}
+.pair.bad{border-color:var(--rose);background:#fff0ef}
+.hotkey{
+  width:25px;height:25px;border-radius:8px;background:#e8ebf5;color:#687393;
+  display:grid;place-items:center;font:800 12px ui-monospace,monospace;
+}
+.cell{
+  height:72px;border-radius:13px;background:#fff;border:1px solid #e4e8f3;
+  display:grid;place-items:center;overflow:hidden;box-shadow:0 5px 12px -12px #29335a;
+}
+.arrow{font-size:25px;color:#9ca7ca;text-align:center}
+#confidence{display:none;gap:12px;align-items:center}
+#confidence.on{display:flex}
+.conf{
+  width:75px;height:48px;border-radius:15px;border:2px solid var(--line);
+  background:#fff;font-size:13px;font-weight:800;cursor:pointer;
+}
+#tools{display:flex;gap:12px;align-items:center}
+#tools button{
+  border:0;cursor:pointer;border-radius:16px;font:800 21px system-ui;
+  height:50px;background:#edf0ff;color:var(--purple);
+}
+#replay{width:51px}
+#go{width:84px;background:var(--purple)!important;color:#fff!important;opacity:.35;pointer-events:none}
+#go.ready{opacity:1;pointer-events:auto;animation:pulse 1s infinite}
+@keyframes pulse{50%{transform:scale(1.06)}}
+button:focus-visible,.pair:focus-visible{outline:4px solid #158cff;outline-offset:2px}
+#ghost{
+  position:fixed;left:0;top:0;opacity:0;z-index:50;pointer-events:none;font-size:38px;
+  transition:transform .45s cubic-bezier(.2,.7,.2,1),opacity .2s;filter:drop-shadow(0 4px 4px #0004);
+}
+#ghost.show{opacity:1}
+#telemetry{
+  width:330px;flex:0 0 330px;min-height:100vh;background:var(--tel);
+  color:#cbd8ff;display:flex;flex-direction:column;
+  font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+#telemetry h3{
+  margin:0;padding:13px 14px;background:var(--tel2);color:#fff;
+  font:800 12px system-ui;letter-spacing:.1em;text-transform:uppercase;
+}
+#difficulty{padding:10px 13px;border-bottom:1px solid #29324f}
+.diffTop{display:flex;justify-content:space-between;color:#a7b4d8}
+.diffTrack{height:8px;background:#27304b;border-radius:8px;overflow:hidden;margin-top:6px}
+#diffFill{height:100%;width:20%;background:linear-gradient(90deg,#6f61ff,#64e7bf);transition:.3s}
+#mlist{padding:11px 12px;display:flex;flex-direction:column;gap:8px}
+.mrow{display:grid;grid-template-columns:96px 1fr;gap:7px}
+.mid{color:var(--key);font-weight:800}.mval{color:#fff}
+.mname{grid-column:1/3;color:var(--dim);font-size:10px;margin-top:-3px}
+#logwrap{border-top:1px solid #29324f;margin-top:auto}
+#logwrap b{display:block;padding:8px 12px 3px;color:#8190b8;font-size:10px}
+#log{height:195px;overflow:auto;padding:0 12px 12px}
+#log div{border-bottom:1px dotted #29324f;padding:3px 0}
+#log .t{color:#6272a1}
+@media(max-width:860px){
+  body{flex-direction:column}#telemetry{width:100%;min-height:0;height:300px;flex:none}
+}
+@media(max-width:470px){.cell{height:59px}.pair{grid-template-columns:24px 1fr 28px 1fr;padding:5px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<main id="wrap">
+  <div id="badge">FLU-ODDPAIR-01 · Odd Pair Out</div>
+  <header id="howto">
+    <h1>How to use — Odd Pair Out</h1>
+    <p>Each row shows two shapes that change from left to right. Every row changes the same way except one — tap the odd pair out, then press the check (<b>✓</b>). You can also press number keys. It gets harder each time you are right.</p>
+  </header>
+  <div id="phasecue" data-phase="demo">Watch the example</div>
+  <section id="stagecard">
+    <div id="pairs"></div>
+    <div id="confidence">
+      <button class="conf" data-value="1" aria-label="not sure">Not sure</button>
+      <button class="conf" data-value="3" aria-label="sure">Sure</button>
+    </div>
+    <div id="tools">
+      <button id="replay" aria-label="replay">↻</button>
+      <button id="go" aria-label="check">✓</button>
+    </div>
+    <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+  </section>
+</main>
+<aside id="telemetry">
+  <h3>Live telemetry · per-child</h3>
+  <div id="difficulty">
+    <div class="diffTop"><span>DIFFICULTY</span><span id="diffLabel">1 / 5</span></div>
+    <div class="diffTrack"><div id="diffFill"></div></div>
+  </div>
+  <div id="mlist"></div>
+  <div id="logwrap"><b>EVENT LOG · KEYS 1–5 + ENTER</b><div id="log"></div></div>
+</aside>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const COLORS=['#e45361','#3574d4','#2caf7c','#e0a61d','#855bd7'];
+const SHAPES=['arrow','bolt','flag','kite','chevron'];
+const LEVELS={
+  1:{shared:['grow'],odd:['shrink'],dims:1},
+  2:{shared:['turnR'],odd:['turnL'],dims:1},
+  3:{shared:['add'],odd:['remove'],dims:1},
+  4:{shared:['turnR','grow'],odd:['turnR','shrink'],dims:2},
+  5:{shared:['turnR','add','recolor1'],odd:['turnL','add','recolor1'],dims:3}
+};
+function pathFor(shape){
+  if(shape==='arrow')return '<polygon points="-22,-9 3,-9 3,-19 25,0 3,19 3,9 -22,9"/>';
+  if(shape==='bolt')return '<polygon points="-8,-24 14,-24 3,-5 18,-5 -12,25 -3,5 -18,5"/>';
+  if(shape==='flag')return '<path d="M-18 24V-24H20L8-8 20 7H-13V24Z"/>';
+  if(shape==='kite')return '<path d="M0-25L20-3 0 20-20-3ZM0 20L13 30" stroke="currentColor" stroke-width="4"/>';
+  return '<path d="M-22-16L2 0-22 16M2-16L26 0 2 16" fill="none" stroke="currentColor" stroke-width="10"/>';
+}
+function figure(f){
+  const scale=[.72,.92,1.16][f.size];
+  const paint=f.fill?'fill="currentColor" stroke="currentColor"':
+    'fill="#fff" stroke="currentColor" stroke-width="4"';
+  let dots='';for(let i=0;i<f.dots;i++)dots+=`<circle cx="${18-i*11}" cy="25" r="3.3" fill="#26314b"/>`;
+  return `<svg width="74" height="68" viewBox="0 0 74 68" aria-hidden="true">
+    <g style="color:${COLORS[f.color]}" transform="translate(37 32) rotate(${f.rot}) scale(${scale})" ${paint}>${pathFor(f.shape)}</g>${dots}
+  </svg>`;
+}
+function base(i,level){
+  return {
+    shape:SHAPES[i],color:(i+level)%COLORS.length,size:1,
+    rot:[0,45,90,135,180][(i+level)%5],dots:1,fill:(i+level)%2
+  };
+}
+function apply(source,ops){
+  const f={...source};
+  ops.forEach(op=>{
+    if(op==='grow')f.size=2;
+    if(op==='shrink')f.size=0;
+    if(op==='turnR')f.rot=(f.rot+90)%360;
+    if(op==='turnL')f.rot=(f.rot+270)%360;
+    if(op==='add')f.dots=Math.min(3,f.dots+1);
+    if(op==='remove')f.dots=Math.max(0,f.dots-1);
+    if(op==='recolor1')f.color=(f.color+1)%COLORS.length;
+  });
+  return f;
+}
+const T={
+  n:0,acc:0,rts:[],firsts:[],ruleMax:0,errors:[],confidence:[],
+  itemStart:Date.now(),firstAction:null,maxSolved:0,blurred:false
+};
+let phase='demo',level=1,scoredIndex=0,item=null,selected=-1,locked=true;
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');if(!el)return;el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+function meanValid(a){
+  const valid=a.filter(x=>x.valid).map(x=>x.value);
+  return valid.length?`${Math.round(valid.reduce((s,v)=>s+v,0)/valid.length)} ms`:'gated';
+}
+function errorText(){
+  if(!T.errors.length)return 'none';
+  const c={};T.errors.forEach(x=>c[x]=(c[x]||0)+1);
+  return Object.entries(c).map(([k,v])=>`${k}:${v}`).join(' ');
+}
+const METERS=[
+  {id:'M-ACC',name:'Odd-relation accuracy',get:()=>T.n?`${T.acc}/${T.n} · ${Math.round(100*T.acc/T.n)}%`:'—'},
+  {id:'M-RT',name:'Response time, engagement-gated',get:()=>T.rts.length?meanValid(T.rts):'—'},
+  {id:'M-RTFIRST',name:'First-choice latency, gated',get:()=>T.firsts.length?meanValid(T.firsts):'—'},
+  {id:'M-RULEID',name:'Max relational dimensions solved',get:()=>T.ruleMax||'—'},
+  {id:'M-ERRTYPE',name:'Surface-lure versus shared-pair errors',get:()=>errorText()},
+  {id:'M-CONF',name:'Confidence × accuracy calibration',get:()=>T.confidence.length?T.confidence.slice(-6).join(' '):'—'}
+];
+function buildMeters(){
+  $('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');
+}
+function renderMeters(){
+  METERS.forEach(m=>{const el=$(`#v_${m.id}`);if(el)el.textContent=m.get();});
+  $('#diffLabel').textContent=`${level} / 5 · peak ${T.maxSolved}`;
+  $('#diffFill').style.width=`${level*20}%`;
+}
+function log(message){
+  const d=document.createElement('div');
+  d.innerHTML=`<span class="t">+${Date.now()-T.itemStart}ms</span> ${message}`;
+  $('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;
+}
+function makeItem(lvl,demo=false){
+  const spec=LEVELS[lvl],count=lvl>=3?5:4;
+  const oddIndex=demo?count-1:(scoredIndex*2+lvl)%count;
+  const rows=[];
+  for(let i=0;i<count;i++){
+    const left=base(i,lvl),odd=i===oddIndex;
+    rows.push({left,right:apply(left,odd?spec.odd:spec.shared),odd});
+  }
+  let lure=-1,best=-1;
+  const target=rows[oddIndex].right;
+  rows.forEach((r,i)=>{
+    if(i===oddIndex)return;
+    const score=(r.right.color===target.color)+(r.right.rot===target.rot)+(r.right.size===target.size);
+    if(score>best){best=score;lure=i;}
+  });
+  return {rows,oddIndex,lure,dims:spec.dims,level:lvl};
+}
+function renderItem(){
+  $('#pairs').innerHTML=item.rows.map((r,i)=>`
+    <button class="pair" data-index="${i}" aria-label="pair ${i+1}">
+      <span class="hotkey">${i+1}</span><span class="cell">${figure(r.left)}</span>
+      <span class="arrow">➜</span><span class="cell">${figure(r.right)}</span>
+    </button>`).join('');
+  selected=-1;$('#go').classList.remove('ready');$('#confidence').classList.remove('on');
+}
+function selectPair(index,modality='tap'){
+  if(!['warmup','scored'].includes(phase)||locked||index>=item.rows.length)return;
+  if(T.firstAction===null)T.firstAction=Date.now()-T.itemStart;
+  selected=index;$$('.pair').forEach((p,i)=>p.classList.toggle('sel',i===index));
+  $('#go').classList.add('ready');log(`${modality} select #${index+1}`);
+}
+function check(){
+  if(selected<0||locked)return;
+  locked=true;const rt=Date.now()-T.itemStart,ok=selected===item.oddIndex;
+  const valid=!T.blurred&&rt>=450,firstValid=!T.blurred&&T.firstAction>=250;
+  $$('.pair')[selected].classList.add(ok?'good':'bad');
+  if(!ok)$$('.pair')[item.oddIndex].classList.add('good');
+  if(phase==='scored'){
+    T.n++;if(ok){T.acc++;T.ruleMax=Math.max(T.ruleMax,item.dims);}
+    else T.errors.push(selected===item.lure?'surface-lure':'shared-pair');
+    T.rts.push({value:rt,valid});T.firsts.push({value:T.firstAction||0,valid:firstValid});
+  }
+  item.result=ok;setStatus(ok?'ok':'no',ok?'\u2713 Correct':'\u2717 Not quite - the odd pair is highlighted');log(`check #${selected+1} → ${ok?'✓':'✕'} · ${rt}ms${valid?'':' · gated'}`);
+  $('#go').classList.remove('ready');renderMeters();
+  const askConfidence=phase==='scored'&&scoredIndex%2===0;
+  if(askConfidence)setTimeout(()=>{$('#confidence').classList.add('on');phase='confidence';locked=false;setStatus('neutral','How sure are you?');},500);
+  else setTimeout(advance,750);
+}
+function confidence(value){
+  if(phase!=='confidence'||locked)return;
+  T.confidence.push(`${value===3?'★':'~'}${item.result?'✓':'✕'}`);
+  setStatus('neutral','Thanks - moving on.');
+  log(`confidence ${value}`);renderMeters();locked=true;$('#confidence').classList.remove('on');
+  setTimeout(advance,350);
+}
+function advance(){
+  if(phase==='warmup'){startScored();return;}
+  if(item.result){T.maxSolved=Math.max(T.maxSolved,level);level=Math.min(5,level+1);}
+  else level=Math.max(1,level-1);
+  scoredIndex++;renderMeters();
+  if(scoredIndex>=6)finish();else startScored();
+}
+function start(kind){
+  phase=kind;locked=false;T.itemStart=Date.now();T.firstAction=null;T.blurred=false;
+  item=makeItem(kind==='warmup'?1:level);renderItem();
+  setCue(kind==='warmup'?'warmup':'scored',kind==='warmup'?'':(scoredIndex+1)+'/6');setStatus('neutral',kind==='warmup'?'Practice - this one is not scored.':'Find the pair that changes differently.');
+  log(`— ${kind==='warmup'?'WARM-UP · UNSCORED':`SCORED ${scoredIndex+1}/6 · level ${level} · ${item.dims}D`} —`);
+  renderMeters();
+}
+function startWarmup(){start('warmup');}
+function startScored(){start('scored');}
+function finish(){
+  phase='done';locked=true;setCue('done');setStatus('ok','\u2713 Done');
+  $('#stagecard').innerHTML='<div style="font-size:88px;padding:58px 0;color:var(--aqua);font-weight:900">\u2713</div><button id="again" class="conf" aria-label="again">↻</button>';
+  $('#again').onclick=()=>location.reload();
+  log(`— DONE · ${T.acc}/${T.n} · peak ${T.maxSolved} —`);
+}
+const ghost=$('#ghost');
+function center(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){
+  const p=center(el);ghost.style.transform=`translate(${p.x-11}px,${p.y-8}px)`;await sleep(390);
+}
+async function runDemo(){
+  phase='demo';locked=true;T.itemStart=Date.now();item=makeItem(1,true);renderItem();
+  setCue('demo');setStatus('neutral','Watch the example.');ghost.classList.add('show');log('wordless relation sweep');
+  for(const row of $$('.pair')){
+    await ghostTo(row.querySelectorAll('.cell')[0]);await ghostTo(row.querySelectorAll('.cell')[1]);
+  }
+  await ghostTo($$('.pair')[item.oddIndex]);$$('.pair')[item.oddIndex].classList.add('sel');
+  await sleep(300);$$('.pair')[item.oddIndex].classList.add('good');
+  await sleep(350);ghost.classList.remove('show');startWarmup();
+}
+$('#pairs').addEventListener('click',e=>{
+  const p=e.target.closest('.pair');if(p)selectPair(+p.dataset.index,'tap');
+});
+$('#go').addEventListener('click',check);
+$('#confidence').addEventListener('click',e=>{
+  const b=e.target.closest('.conf');if(b)confidence(+b.dataset.value);
+});
+$('#replay').addEventListener('click',()=>{if(phase!=='demo')location.reload();});
+window.addEventListener('keydown',e=>{
+  if(/^[1-5]$/.test(e.key))selectPair(+e.key-1,'key');
+  if(e.key==='Enter'&&$('#go').classList.contains('ready'))check();
+});
+window.addEventListener('blur',()=>{
+  if(['warmup','scored'].includes(phase)){T.blurred=true;log('blur → timing gated');}
+});
+buildMeters();renderMeters();runDemo();
+</script>
+</body>
+</html>

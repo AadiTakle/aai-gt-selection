@@ -11,11 +11,12 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.join(directory, 'src'),
+      'server-only': path.join(directory, 'vitest.server-only.ts'),
     },
   },
   test: {
     environment: 'jsdom',
-    exclude: ['e2e/**', 'node_modules/**', '.next/**'],
+    exclude: ['e2e/**', 'src/**/*.integration.test.ts', 'node_modules/**', '.next/**'],
     setupFiles: ['./vitest.setup.ts'],
   },
 });

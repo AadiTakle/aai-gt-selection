@@ -3,6 +3,15 @@
 Synthetic, critic-ready prototype for a GT School admissions pathway that preserves Track A,
 adds a structured Track B eligibility route, and keeps future allocation/evaluation separate.
 
+> **Platform: AWS with PostgreSQL (D-012).** The target platform is AWS managed services —
+> Amazon Aurora Serverless v2 (PostgreSQL), Amazon Cognito, Amazon S3, ECS Fargate, RDS Proxy,
+> and Secrets Manager, provisioned with Terraform — keeping PostgreSQL as the database engine
+> (see `docs/governance/DECISION_LOG.md` D-012, which supersedes the prior Supabase choice in D-009, and
+> `docs/architecture/ARCHITECTURE_PLAN.md`). The **functional code migration** from the current Supabase
+> dev stack to the AWS bindings is a tracked follow-up; the `supabase/` layout and `pnpm db:*`
+> commands documented below still describe how the prototype runs **today**, until that
+> migration lands.
+
 ## Repository status
 
 The monorepo scaffold was introduced in two phases:
@@ -11,8 +20,9 @@ The monorepo scaffold was introduced in two phases:
 2. **Phase B:** architecture-aligned Next.js, shared contracts, local Supabase, tests, and CI
    boundaries.
 
-No live child data, hosted Supabase project, production credentials, allocation system, or
-causal-analysis service is authorized.
+No live child data, production AWS account (or hosted Supabase project), production credentials,
+allocation system, or causal-analysis service is authorized. Development uses a dedicated dev
+AWS account with synthetic data only.
 
 ## Prerequisites
 
@@ -31,7 +41,7 @@ packages/test-fixtures           @gt-selection/test-fixtures
 supabase/                        local Supabase boundary
 ```
 
-The accepted architecture is documented in `docs/ARCHITECTURE_PLAN.md`. Framework-independent
+The accepted architecture is documented in `docs/architecture/ARCHITECTURE_PLAN.md`. Framework-independent
 contracts and fixtures remain outside the Next.js package; app-only clients and wrappers stay
 inside `apps/web`.
 

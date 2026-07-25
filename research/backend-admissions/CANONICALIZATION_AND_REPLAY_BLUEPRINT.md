@@ -1,8 +1,10 @@
 # Canonicalization, Hashing, and Replay Blueprint
 
+> **Platform (D-012):** PostgreSQL retained; platform moved Supabase→AWS (Aurora/Cognito/S3/RDS Proxy/Secrets Manager). RLS, definer RPCs, immutable versioning, hash-chained audit, and deterministic replay are unchanged; only bindings change. Canonical mapping: docs/governance/DECISION_LOG.md D-012.
+
 ## Status
 
-Candidate v1 for the local synthetic backend. No replay implementation or test
+Candidate v1 for the dev synthetic backend. No replay implementation or test
 has run. Exact replay claims remain prohibited until the merge-blocking vectors
 and cold-replay tests pass.
 
@@ -372,8 +374,9 @@ replay(run):
 8. `CC-01`: Vote/third, abstention/replacement, double finalization,
    correction/finalization, and double-correction races yield one valid
    transition.
-9. `DBOWN-01`: Owner, executor, authenticated, service-role, and superuser
-   bypass behavior is explicitly tested/reported.
+9. `DBOWN-01`: Owner, executor, authenticated, the CI/operator elevated
+   principal, and superuser bypass behavior is explicitly tested/reported
+   (no RLS-bypassing credential exists in the app runtime).
 
 ## Official Sources
 

@@ -183,6 +183,12 @@ jobs:
       - name: Create local synthetic Auth users
         run: pnpm db:users
 
+      - name: Run authenticated onboarding action integration
+        env:
+          GT_LOCAL_SYNTHETIC_ADAPTER_ENABLED: 'true'
+          GT_LOCAL_SYNTHETIC_PROJECT_ID: gt-selection-capstone
+        run: pnpm --filter @gt-selection/web test:integration
+
       - name: Build web application
         run: pnpm build
 

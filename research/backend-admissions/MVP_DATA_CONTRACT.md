@@ -1,5 +1,7 @@
 # Minimum Synthetic MVP Data Contract
 
+> **Platform (D-012):** PostgreSQL retained; platform moved Supabase→AWS (Aurora/Cognito/S3/RDS Proxy/Secrets Manager). RLS, definer RPCs, immutable versioning, hash-chained audit, and deterministic replay are unchanged; only bindings change. Canonical mapping: docs/governance/DECISION_LOG.md D-012.
+
 ## Two-Week Implementation Cut
 
 Implement only:
@@ -519,7 +521,7 @@ secrets, and query strings are prohibited from audit records.
 - Decision service: run/replay
 - Auditor: read/replay only
 
-Forced RLS on exposed tables. No client service key.
+Forced RLS on exposed tables. No RLS-bypassing credential in the app runtime.
 
 ## Excluded
 

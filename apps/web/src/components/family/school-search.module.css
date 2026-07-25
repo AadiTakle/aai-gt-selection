@@ -1,0 +1,139 @@
+.wrap {
+  position: relative;
+  grid-column: 1 / -1;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: var(--gt-space-4);
+}
+
+.stateField,
+.searchField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-2);
+}
+
+.label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--gt-ink);
+}
+
+.chosen {
+  color: var(--gt-ember);
+  font-weight: 500;
+}
+
+.control {
+  appearance: none;
+  width: 100%;
+  background: #fcfbf8;
+  border: 1.5px solid var(--gt-line-strong);
+  border-radius: var(--gt-radius-sm);
+  padding: 0.7rem 0.8rem;
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--gt-ink);
+}
+
+.control:focus {
+  outline: none;
+  border-color: var(--gt-ember);
+  background: #fff;
+  box-shadow: 0 0 0 3.5px rgba(228, 139, 83, 0.16);
+}
+
+.control:disabled {
+  background: #f1ede6;
+  color: var(--gt-ink-40);
+  cursor: not-allowed;
+}
+
+.selectWrap {
+  position: relative;
+}
+
+.selectWrap::after {
+  content: '';
+  position: absolute;
+  right: 0.9rem;
+  top: 50%;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 2px solid var(--gt-ink-40);
+  border-bottom: 2px solid var(--gt-ink-40);
+  transform: translateY(-70%) rotate(45deg);
+  pointer-events: none;
+}
+
+.results {
+  position: absolute;
+  z-index: 20;
+  left: 0;
+  right: 0;
+  top: calc(100% - var(--gt-space-3));
+  background: #fff;
+  border: 1px solid var(--gt-line-strong);
+  border-radius: var(--gt-radius-sm);
+  box-shadow: var(--gt-shadow-pop);
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.hintRow {
+  padding: var(--gt-space-3) var(--gt-space-4);
+  font-size: 0.85rem;
+  color: var(--gt-ink-40);
+}
+
+.resultRow {
+  all: unset;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.6rem var(--gt-space-4);
+  cursor: pointer;
+  border-bottom: 1px solid var(--gt-line);
+}
+
+.resultRow:hover,
+.resultRow:focus-visible {
+  background: var(--gt-gold-lightest);
+}
+
+.resultName {
+  font-weight: 500;
+  color: var(--gt-ink);
+  font-size: 0.92rem;
+}
+
+.resultMeta {
+  font-size: 0.78rem;
+  color: var(--gt-ink-60);
+}
+
+.otherRow {
+  color: var(--gt-blue);
+  font-weight: 600;
+}
+
+.otherRow:hover {
+  background: rgba(0, 79, 113, 0.06);
+}
+
+.source {
+  font-size: 0.72rem;
+  color: var(--gt-ink-40);
+  margin: var(--gt-space-2) 0 0;
+}
+
+@media (max-width: 720px) {
+  .row {
+    grid-template-columns: 1fr;
+  }
+}

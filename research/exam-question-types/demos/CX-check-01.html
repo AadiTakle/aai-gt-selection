@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CX-check-01 · Check It Twice</title>
+<style>
+:root{
+  --ink:#243046;--paper:#fffef9;--blue:#477bd3;--cyan:#45b8b2;
+  --good:#35b87b;--bad:#e96670;--gold:#efb83f;--line:#dce3ef;
+  --tel:#101728;--tel2:#19233b;--key:#80ffd0;--dim:#7f8db7;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{
+  min-height:100vh;display:flex;color:var(--ink);
+  font:16px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;
+  background:radial-gradient(circle at 13% 7%,#dff7ff,transparent 27%),
+    linear-gradient(145deg,#edf4ff,#f4efff 58%,#fff4dc);
+}
+#wrap{
+  flex:1;min-width:0;padding:17px;display:flex;flex-direction:column;
+  align-items:center;gap:9px;
+}
+#badge{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#7d89a6}
+#howto{max-width:600px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--blue);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+#howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--blue)}
+#howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+#phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:var(--blue);border:2px solid #c9d0ff;min-height:30px}
+#phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+#phasecue[data-phase="scored"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+#phasecue[data-phase="done"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
+#status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+#status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
+#stagecard{
+  width:min(760px,100%);background:var(--paper);border-radius:28px;padding:17px;
+  box-shadow:0 24px 58px -35px #303b72;display:flex;flex-direction:column;
+  align-items:center;gap:12px;border:1px solid #fff;
+}
+#bins{width:100%;display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.bin{
+  min-height:208px;border:2px solid var(--line);border-radius:18px;background:#f8faff;
+  padding:7px;cursor:pointer;transition:.14s;
+}
+.bin:hover{border-color:#a9b6d3;background:#f2f7ff}
+.binHeader{
+  height:43px;border-radius:11px;background:#e8eefb;display:grid;place-items:center;
+  color:#415a8c;font:900 22px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  margin-bottom:7px;letter-spacing:.12em;
+}
+.tokens{display:flex;flex-wrap:wrap;align-content:flex-start;gap:6px;justify-content:center}
+.token{
+  min-width:76px;height:54px;border:3px solid #e1e6ef;border-radius:13px;background:#fff;
+  display:grid;grid-template-columns:1fr 23px;align-items:center;padding-left:8px;
+  font:900 17px/1 ui-monospace,SFMono-Regular,Menlo,monospace;cursor:pointer;
+  transition:.14s;position:relative;
+}
+.token:hover{transform:translateY(-2px)}.token.sel{border-color:var(--blue);box-shadow:0 0 0 3px #dce6ff}
+.token.reviewed{border-color:var(--good)}.token.good{background:#e9faf3;border-color:var(--good)}
+.token.bad{background:#fff0ef;border-color:var(--bad)}
+.check{
+  width:21px;height:31px;border:0;border-left:1px solid #e2e6ef;background:transparent;
+  color:#a4aec1;font-size:14px;cursor:pointer;padding:0;
+}
+.reviewed .check{color:var(--good);font-weight:900}
+#tools{display:flex;gap:11px}
+#tools button{
+  height:50px;border:0;border-radius:16px;cursor:pointer;font:800 21px system-ui;
+  background:#ebf0fb;color:var(--blue);
+}
+#replay{width:52px}#submit{min-width:88px;background:var(--good)!important;color:#082d1d!important}
+button:focus-visible,.token:focus-visible,.bin:focus-visible{outline:4px solid #168dff;outline-offset:2px}
+#ghost{
+  position:fixed;left:0;top:0;opacity:0;z-index:50;pointer-events:none;font-size:38px;
+  transition:transform .45s cubic-bezier(.2,.7,.2,1),opacity .2s;filter:drop-shadow(0 4px 4px #0004);
+}
+#ghost.show{opacity:1}
+#ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--blue);opacity:0}
+#ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+#telemetry{
+  width:345px;flex:0 0 345px;min-height:100vh;background:var(--tel);
+  color:#ccd8f5;display:flex;flex-direction:column;
+  font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+#telemetry h3{
+  margin:0;padding:13px 14px;background:var(--tel2);color:#fff;
+  font:800 12px system-ui;letter-spacing:.1em;text-transform:uppercase;
+}
+#difficulty{padding:10px 13px;border-bottom:1px solid #29324f}
+.diffTop{display:flex;justify-content:space-between;color:#a8b5d9}
+.diffTrack{height:8px;background:#28314c;border-radius:8px;overflow:hidden;margin-top:6px}
+#diffFill{height:100%;width:20%;background:linear-gradient(90deg,#4d7ddd,#63e4be);transition:.3s}
+#mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+.mrow{display:grid;grid-template-columns:103px 1fr;gap:7px}
+.mid{color:var(--key);font-weight:800}.mval{color:#fff}
+.mname{grid-column:1/3;color:var(--dim);font-size:10px;margin-top:-3px}
+#logwrap{border-top:1px solid #29324f;margin-top:auto}
+#logwrap b{display:block;padding:8px 12px 3px;color:#8190b8;font-size:10px}
+#log{height:185px;overflow:auto;padding:0 12px 12px}
+#log div{border-bottom:1px dotted #29324f;padding:3px 0}
+#log .t{color:#6272a1}
+@media(max-width:860px){
+  body{flex-direction:column}#telemetry{width:100%;min-height:0;height:310px;flex:none}
+}
+@media(max-width:590px){#bins{grid-template-columns:1fr}.bin{min-height:115px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<main id="wrap">
+  <div id="badge">CX-check-01 · Check It Twice</div>
+  <header id="howto">
+    <h1>How to use — Check It Twice</h1>
+    <p>Some tiles are in the wrong group. Tap a tile to pick it up, then tap the correct group box (the one whose header pattern it matches) to move it. Tap the tile's check mark once you have reviewed it, then press the check (<b>✓</b>) to turn in. It gets harder each time you fix them all.</p>
+  </header>
+  <div id="phasecue" data-phase="demo">Watch the example</div>
+  <section id="stagecard">
+    <div id="bins"></div>
+    <div id="tools">
+      <button id="replay" aria-label="replay">↻</button>
+      <button id="submit" aria-label="turn in">✓</button>
+    </div>
+    <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+  </section>
+</main>
+<aside id="telemetry">
+  <h3>Live telemetry · per-child</h3>
+  <div id="difficulty">
+    <div class="diffTop"><span>DIFFICULTY</span><span id="diffLabel">1 / 5</span></div>
+    <div class="diffTrack"><div id="diffFill"></div></div>
+  </div>
+  <div id="mlist"></div>
+  <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+</aside>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const LETTERS='KMRSTVWXZQNPDFGH';
+const TEMPLATE_LEVELS={
+  1:['ABA','AAB','ABB'],
+  2:['ABA','AAB','ABB','AAA'],
+  3:['ABA','AAB','ABB','ABC'],
+  4:['ABBA','AABB','ABAB','ABCD'],
+  5:['ABCBA','AABBC','ABACA','ABCDE']
+};
+const T={
+  reviewTimes:[],revisions:0,path:[],caught:0,missed:0,over:0,
+  correct:0,total:0,coverage:[],blur:0,activeTotal:0,elapsedTotal:0,
+  itemStart:Date.now(),lastAction:Date.now(),maxSolved:0
+};
+let phase='demo',level=1,scoredIndex=0,item=null,selected=null,reviewed=new Set();
+let locked=true,blurStart=0,itemBlur=0;
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+function instantiate(template,seed){
+  const map={},used=[];let next=0;
+  return [...template].map(ch=>{
+    if(!map[ch]){
+      let letter=LETTERS[(seed+next*5)%LETTERS.length];
+      while(used.includes(letter)){next++;letter=LETTERS[(seed+next*5)%LETTERS.length];}
+      map[ch]=letter;used.push(letter);next++;
+    }
+    return map[ch];
+  }).join('');
+}
+function makeItem(lvl,demo=false){
+  const templates=TEMPLATE_LEVELS[lvl],seed=demo?1:scoredIndex*7+lvl;
+  const count=templates.length*2+(lvl>=3?1:0),tokens=[];
+  for(let i=0;i<count;i++){
+    const truth=i%templates.length,text=instantiate(templates[truth],seed+i*3);
+    tokens.push({id:i,text,truth,bin:truth,startBin:truth});
+  }
+  const errorCount=demo?1:Math.min(3,1+Math.floor((lvl+1)/2)),planted=[];
+  for(let e=0;e<errorCount;e++){
+    let index=(seed+e*3)%tokens.length;while(planted.includes(index))index=(index+1)%tokens.length;
+    planted.push(index);tokens[index].bin=(tokens[index].truth+1+e) % templates.length;tokens[index].startBin=tokens[index].bin;
+  }
+  return {templates,tokens,planted,level:lvl};
+}
+function renderBoard(){
+  $('#bins').style.gridTemplateColumns=`repeat(${Math.min(4,item.templates.length)},1fr)`;
+  $('#bins').innerHTML=item.templates.map((template,bin)=>`
+    <section class="bin" data-bin="${bin}" tabindex="0" aria-label="group ${template}">
+      <div class="binHeader">${template}</div>
+      <div class="tokens">${item.tokens.filter(t=>t.bin===bin).map(t=>`
+        <div class="token ${selected===t.id?'sel':''} ${reviewed.has(t.id)?'reviewed':''}" data-id="${t.id}" tabindex="0">
+          <span>${t.text}</span><button class="check" data-check="${t.id}" aria-label="check ${t.text}">✓</button>
+        </div>`).join('')}</div>
+    </section>`).join('');
+}
+function touch(){T.lastAction=Date.now();renderMeters();}
+function selectToken(id){
+  if(!['warmup','scored'].includes(phase)||locked)return;
+  selected=selected===id?null:id;touch();log(`select ${item.tokens[id].text}`);renderBoard();
+}
+function checkToken(id){
+  if(!['warmup','scored'].includes(phase)||locked)return;
+  reviewed.add(id);if(phase==='scored')T.path.push(`✓${item.tokens[id].text}`);
+  touch();log(`check ${item.tokens[id].text}`);renderBoard();
+}
+function moveSelected(bin){
+  if(selected===null||!['warmup','scored'].includes(phase)||locked)return;
+  const token=item.tokens[selected];if(token.bin===bin){checkToken(selected);return;}
+  const from=token.bin;token.bin=bin;reviewed.add(token.id);
+  if(phase==='scored'){T.revisions++;T.path.push(`${token.text}:${item.templates[from]}→${item.templates[bin]}`);}
+  log(`move ${token.text} · ${item.templates[from]}→${item.templates[bin]}`);
+  selected=null;touch();renderBoard();
+}
+function average(a){return a.length?Math.round(a.reduce((s,v)=>s+v,0)/a.length):0;}
+function drift(){
+  if(T.coverage.length<2)return '—';
+  const delta=T.coverage.at(-1)-T.coverage[0],time=T.reviewTimes.at(-1)-T.reviewTimes[0];
+  return `${delta>=0?'+':''}${Math.round(delta)}pp coverage · ${time>=0?'+':''}${Math.round(time/100)/10}s`;
+}
+function engagement(){
+  const elapsed=T.elapsedTotal+(phase==='scored'?Date.now()-T.itemStart:0);
+  const active=T.activeTotal+(phase==='scored'?Date.now()-T.itemStart-itemBlur-(blurStart?Date.now()-blurStart:0):0);
+  const idle=Math.max(0,Date.now()-T.lastAction-8000);
+  return `${elapsed?Math.round(100*active/elapsed):100}% active · ${T.blur} blur · ${Math.round(idle/1000)}s idle`;
+}
+const METERS=[
+  {id:'M-PERSIST',name:'Active review time before submit',get:()=>T.reviewTimes.length?`${average(T.reviewTimes)} ms mean`:'—'},
+  {id:'M-REV',name:'Category moves and corrections',get:()=>`${T.revisions}`},
+  {id:'M-PATH',name:'Review and correction sequence',get:()=>T.path.length?T.path.slice(-8).join(' · '):'—'},
+  {id:'M-ERRTYPE',name:'Planted caught / missed / over-moved',get:()=>`caught ${T.caught} · missed ${T.missed} · over ${T.over}`},
+  {id:'M-ACC',name:'Final token accuracy',get:()=>T.total?`${T.correct}/${T.total} · ${Math.round(100*T.correct/T.total)}%`:'—'},
+  {id:'M-DRIFT',name:'Checking persistence across rounds',get:()=>drift()},
+  {id:'M-ENGAGE',name:'Active review versus blur and idle',get:()=>engagement()}
+];
+function buildMeters(){
+  $('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');
+}
+function renderMeters(){
+  METERS.forEach(m=>{const el=$(`#v_${m.id}`);if(el)el.textContent=m.get();});
+  $('#diffLabel').textContent=`${level} / 5 · ${item?item.tokens.length:6} tokens`;
+  $('#diffFill').style.width=`${level*20}%`;
+}
+function log(message){
+  const d=document.createElement('div');
+  d.innerHTML=`<span class="t">+${Date.now()-T.itemStart}ms</span> ${message}`;
+  $('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;
+}
+function scoreRound(){
+  const elapsed=Date.now()-T.itemStart,active=Math.max(0,elapsed-itemBlur-(blurStart?Date.now()-blurStart:0));
+  let correct=0,caught=0,missed=0,over=0;
+  item.tokens.forEach(t=>{
+    const ok=t.bin===t.truth;if(ok)correct++;
+    const planted=t.startBin!==t.truth;
+    if(planted&&ok)caught++;if(planted&&!ok)missed++;if(!planted&&!ok)over++;
+  });
+  const coverage=Math.round(100*reviewed.size/item.tokens.length);
+  T.reviewTimes.push(active);T.coverage.push(coverage);T.caught+=caught;T.missed+=missed;T.over+=over;
+  T.correct+=correct;T.total+=item.tokens.length;T.activeTotal+=active;T.elapsedTotal+=elapsed;
+  const reviewIds=[...reviewed],systematic=reviewIds.length<2||reviewIds.every((id,i)=>i===0||Math.abs(id-reviewIds[i-1])<=1);
+  log(`auto-score · ${correct}/${item.tokens.length} · reviewed ${coverage}% · caught ${caught}/${item.planted.length} · systematic ${systematic}`);
+  return {perfect:correct===item.tokens.length,caughtAll:caught===item.planted.length};
+}
+function submit(){
+  if(!['warmup','scored'].includes(phase)||locked)return;
+  locked=true;touch();
+  item.tokens.forEach(t=>{
+    const el=$(`.token[data-id="${t.id}"]`);if(el)el.classList.add(t.bin===t.truth?'good':'bad');
+  });
+  if(phase==='warmup'){setStatus('neutral','Practice - not scored.');log('warm-up submit · UNSCORED');setTimeout(startScored,800);return;}
+  const result=scoreRound();item.result=result.perfect&&result.caughtAll;phase='between';
+  setStatus(item.result?'ok':'no',item.result?'✓ Correct':'✗ Not quite - the fixed tiles are highlighted');
+  renderMeters();setTimeout(nextItem,900);
+}
+function nextItem(){
+  if(item.result){T.maxSolved=Math.max(T.maxSolved,level);level=Math.min(5,level+1);}
+  else level=Math.max(1,level-1);
+  scoredIndex++;renderMeters();
+  if(scoredIndex>=5)finish();else startScored();
+}
+function start(kind){
+  phase=kind;locked=false;item=makeItem(kind==='warmup'?1:level);
+  selected=null;reviewed=new Set();T.itemStart=Date.now();T.lastAction=Date.now();
+  itemBlur=0;blurStart=0;
+  if(kind==='warmup'){setCue('warmup');setStatus('neutral','Practice - this one is not scored.');}
+  else{setCue('scored',(scoredIndex+1)+'/5');setStatus('neutral','Move any wrong tiles, review the rest, then turn in.');}
+  renderBoard();log(`— ${kind==='warmup'?'WARM-UP · UNSCORED':`SCORED ${scoredIndex+1}/5 · level ${level}`} —`);
+  renderMeters();
+}
+function startWarmup(){start('warmup');}
+function startScored(){start('scored');}
+function finish(){
+  phase='done';locked=true;setCue('done');setStatus('ok','✓ Done');
+  $('#stagecard').innerHTML='<div style="font-size:34px;font-weight:800;padding:60px 0;color:var(--good)">✓ Done</div><button id="again" class="token" aria-label="again">↻</button>';
+  $('#again').onclick=()=>location.reload();log(`— DONE · accuracy ${T.correct}/${T.total} · caught ${T.caught} —`);renderMeters();
+}
+const ghost=$('#ghost');
+function center(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){
+  const p=center(el);ghost.style.transform=`translate(${p.x-12}px,${p.y-8}px)`;await sleep(430);
+}
+async function runDemo(){
+  phase='demo';locked=true;item=makeItem(1,true);selected=null;reviewed=new Set();
+  T.itemStart=Date.now();setCue('demo');setStatus('neutral','Watch the example.');renderBoard();ghost.classList.add('show');
+  log('wordless abstract checking demo');
+  const wrong=item.tokens.find(t=>t.bin!==t.truth);
+  let el=$(`.token[data-id="${wrong.id}"]`);await ghostTo(el.querySelector('.check'));
+  reviewed.add(wrong.id);renderBoard();el=$(`.token[data-id="${wrong.id}"]`);
+  await ghostTo(el);selected=wrong.id;renderBoard();
+  await ghostTo($(`.bin[data-bin="${wrong.truth}"]`));wrong.bin=wrong.truth;selected=null;renderBoard();
+  await ghostTo($('#submit'));wrongElGood();await sleep(350);ghost.classList.remove('show');startWarmup();
+}
+function wrongElGood(){
+  const wrong=item.tokens.find(t=>t.startBin!==t.truth),el=$(`.token[data-id="${wrong.id}"]`);
+  if(el)el.classList.add('good');
+}
+$('#bins').addEventListener('click',e=>{
+  const check=e.target.closest('[data-check]');if(check){e.stopPropagation();checkToken(+check.dataset.check);return;}
+  const token=e.target.closest('.token');if(token){e.stopPropagation();selectToken(+token.dataset.id);return;}
+  const bin=e.target.closest('.bin');if(bin)moveSelected(+bin.dataset.bin);
+});
+$('#bins').addEventListener('keydown',e=>{
+  if(e.key!=='Enter'&&e.key!==' ')return;
+  const token=e.target.closest('.token'),bin=e.target.closest('.bin');
+  if(token)selectToken(+token.dataset.id);else if(bin)moveSelected(+bin.dataset.bin);
+});
+$('#submit').addEventListener('click',submit);
+$('#replay').addEventListener('click',()=>{if(phase!=='demo')location.reload();});
+window.addEventListener('blur',()=>{
+  if(phase==='scored'&&!blurStart){blurStart=Date.now();T.blur++;log('blur');}
+});
+window.addEventListener('focus',()=>{
+  if(phase==='scored'&&blurStart){itemBlur+=Date.now()-blurStart;blurStart=0;T.lastAction=Date.now();}
+});
+buildMeters();renderMeters();runDemo();
+</script>
+</body>
+</html>

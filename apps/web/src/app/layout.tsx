@@ -1,23 +1,49 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 
-import { SyntheticPrototypeBanner } from '@/components/synthetic-prototype-banner';
+import { SessionControls } from '@/components/auth/session-controls';
+import { GtLogo } from '@/components/gt-logo';
+import { bodyFont, displayFont, utilityFont } from '@/lib/fonts';
 import '@/styles/globals.css';
 
 export const metadata: Metadata = {
-  description: 'Synthetic GT admissions application architecture shell.',
-  title: 'GT Admissions Prototype',
+  description: 'GT School family admissions application.',
+  title: 'GT School Admissions',
 };
+
+const GT_WEBSITE = 'https://gt.school';
+
+function returnUrl(): string {
+  const configured = process.env.NEXT_PUBLIC_GT_RETURN_URL;
+  // fall back to the real GT site when the env is unset or a local placeholder
+  if (!configured || configured.includes('127.0.0.1') || configured.includes('localhost')) {
+    return GT_WEBSITE;
+  }
+  return configured;
+}
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en">
+    <html
+      lang="en"
+      className={`${displayFont.variable} ${bodyFont.variable} ${utilityFont.variable}`}
+    >
       <body>
-        <SyntheticPrototypeBanner />
         <div className="app-shell">
           <header className="app-header">
-            <strong>GT Admissions Prototype</strong>
-            <a href={process.env.NEXT_PUBLIC_GT_RETURN_URL ?? '/'}>Return to GT website</a>
+            <a
+              className="gt-brand-link"
+              href={returnUrl()}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Visit the GT School website"
+            >
+              <GtLogo height={28} />
+            </a>
+            <span className="app-header-right">
+              <strong>GT School Admissions Portal</strong>
+              <SessionControls />
+            </span>
           </header>
           <main>{children}</main>
         </div>

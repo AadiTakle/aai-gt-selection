@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WM-corsi-01 · Firefly Trail</title>
+<style>
+  :root{--bg1:#0d1b2e;--bg2:#132743;--ink:#dbe6ff;--card:#16233b;--accent:#ffd166;--good:#22b573;--bad:#ff6b6b;--tile:#1f3252;--tel-bg:#0a0f1e;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:radial-gradient(circle at 30% 20%,var(--bg2),var(--bg1));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8fa3d8;text-transform:uppercase;font-weight:700}
+  #howto{max-width:520px;width:100%;background:#16233b;border:1px solid #2c3f60;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #000}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#c8d6ff;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#1f3252;color:var(--accent);border:2px solid #2c3f60;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#3a2f14;color:#ffd166;border-color:#6b5a2a}
+  #phasecue[data-phase="scored"]{background:var(--accent);color:#20304e;border-color:var(--accent)}
+  #phasecue[data-phase="done"]{background:#1f3252;color:#7fffcf;border-color:#2c3f60}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8fa3d8}
+  #stagecard{background:var(--card);border-radius:26px;padding:24px;box-shadow:0 18px 50px -22px #000;display:flex;flex-direction:column;align-items:center;gap:16px;max-width:520px;width:100%}
+  #grid{display:grid;grid-template-columns:repeat(3,86px);grid-template-rows:repeat(3,86px);gap:10px}
+  .tile{background:var(--tile);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:30px;cursor:default;transition:.15s;box-shadow:inset 0 0 0 2px #2c3f60;user-select:none}
+  .tile.active{cursor:pointer}
+  .tile.flash{background:var(--accent);box-shadow:0 0 24px 6px #ffd16688;transform:scale(1.05)}
+  .tile.sel{box-shadow:inset 0 0 0 3px #7fffcf}
+  .tile.correct{box-shadow:inset 0 0 0 4px var(--good)}
+  .tile.wrong{box-shadow:inset 0 0 0 4px var(--bad)}
+  #modecue{font-size:13px;color:#8fa3d8;letter-spacing:.06em;text-transform:uppercase;height:16px}
+  #diffwrap{width:100%;max-width:340px}
+  #diffbar{height:8px;background:#1f3252;border-radius:5px;overflow:hidden}
+  #difffill{height:100%;background:linear-gradient(90deg,#7fffcf,#ffd166);width:20%;transition:.3s}
+  #difflabel{font-size:11px;color:#7183b8;text-align:center;margin-top:4px;letter-spacing:.05em}
+  #controls{display:flex;gap:16px;align-items:center}
+  button{font:inherit;border:0;cursor:pointer;border-radius:50%}
+  #replay{width:50px;height:50px;background:#1f3252;color:var(--accent);font-size:22px}
+  .shake{animation:shake .4s}@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+  #ghost{position:fixed;left:0;top:0;font-size:40px;pointer-events:none;z-index:60;opacity:0;transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.4))}
+  #ghost.show{opacity:.95}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#141e38;text-transform:uppercase}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}
+  .mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #1c2745;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:210px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #1c2745}#log .t{color:#5f6f9e}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">WM-corsi-01 · Firefly Trail</div>
+    <header id="howto">
+      <h1>How to use — Firefly Trail</h1>
+      <p>Watch the tiles light up one at a time, then tap them in the same order. Some rounds ask for the reverse order — the label above the grid tells you which. It checks on its own after your last tap. It gets harder each time you are right.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
+    <div id="stagecard">
+      <div id="modecue"></div>
+      <div id="grid"></div>
+      <div id="diffwrap"><div id="diffbar"><div id="difffill"></div></div><div id="difflabel">SPAN 3</div></div>
+      <div id="controls">
+        <button id="replay" title="replay demo">↻</button>
+      </div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+    </div>
+  </div>
+  <aside id="telemetry">
+    <h3>Live telemetry · per-child</h3>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0;
+const sd=a=>{if(a.length<2)return 0;const m=mean(a);return Math.round(Math.sqrt(a.reduce((s,v)=>s+(v-m)*(v-m),0)/a.length));};
+const last=a=>a[a.length-1];
+const N=9;
+const tiles=[];for(let i=0;i<N;i++)tiles.push(i);
+
+/* ---------- grid render ---------- */
+function buildGrid(){const g=$('#grid');g.innerHTML='';for(let i=0;i<N;i++){const d=document.createElement('div');d.className='tile';d.dataset.i=i;d.textContent='';g.appendChild(d);}}
+function tileEl(i){return $('#grid').children[i];}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+
+/* ---------- state / telemetry ---------- */
+let phase='demo',locked=true,level=3,maxLevel=0;
+const T={scored:0,correct:0,rtFirst:[],lapse:0,revisions:0,errTypes:[],fwdRT:[],bckRT:[],trials:0};
+function lapseRate(){return T.rtFirst.length?Math.round(100*T.lapse/T.rtFirst.length):0;}
+function manipCost(){if(!T.fwdRT.length||!T.bckRT.length)return '\u2014';return `${mean(T.bckRT)-mean(T.fwdRT)} ms (back \u2212 fwd)`;}
+const METERS=[
+ {id:'M-DIFFREACH',name:'Ceiling / max difficulty reached',get:()=>maxLevel?`span ${maxLevel}`:'\u2014'},
+ {id:'M-ACC',name:'Item accuracy',get:()=>T.scored?`${T.correct}/${T.scored}  ${Math.round(100*T.correct/T.scored)}%`:'\u2014'},
+ {id:'M-RTFIRST',name:'First-action latency',get:()=>T.rtFirst.length?`${last(T.rtFirst)} ms (mean ${mean(T.rtFirst)})`:'\u2014'},
+ {id:'M-RTVAR',name:'Intra-individual RT variability',get:()=>T.rtFirst.length>1?`${sd(T.rtFirst)} ms SD`:'\u2014'},
+ {id:'M-LAPSE',name:'Lapse rate (slow trials)',get:()=>T.rtFirst.length?`${T.lapse}/${T.rtFirst.length} (${lapseRate()}%)`:'\u2014'},
+ {id:'M-ERRTYPE',name:'Error type on misses',get:()=>T.errTypes.length?last(T.errTypes):'\u2014'},
+ {id:'M-REV',name:'Revisions (re-tapped tiles)',get:()=>`${T.revisions}`},
+ {id:'M-SPAN',name:'Current span level',get:()=>`${level}`},
+ {id:'M-MANIPCOST',name:'Manipulation cost (backward \u2212 forward RT)',get:()=>manipCost()},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});}
+let tStart=Date.now();
+function log(msg){const t=Date.now()-tStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+function setDiff(){const pct=Math.min(100,Math.round((level-2)/7*100));$('#difffill').style.width=pct+'%';$('#difflabel').textContent='SPAN '+level;}
+
+/* ---------- ghost ---------- */
+const ghost=$('#ghost');function ghostShow(v){ghost.classList.toggle('show',v);}
+async function ghostTo(el){const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(500);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(420);}
+
+/* ---------- sequence logic ---------- */
+function genSeq(n){const pool=tiles.slice();const seq=[];for(let k=0;k<n;k++){const idx=Math.floor(Math.random()*pool.length);seq.push(pool.splice(idx,1)[0]);}return seq;}
+async function flashSeq(seq){for(const i of seq){const el=tileEl(i);el.classList.add('flash');await sleep(430);el.classList.remove('flash');await sleep(180);}}
+let curSeq=[],curMode='forward',resp=[],tapCount=0,firstTapTime=0,seqEndTime=0;
+function target(){return curMode==='backward'?curSeq.slice().reverse():curSeq;}
+function resetResp(){resp=[];tapCount=0;firstTapTime=0;$$('.tile').forEach(t=>t.classList.remove('sel','correct','wrong'));}
+function classify(){const tgt=target();if(resp.length!==tgt.length)return 'omission';
+  const sameSet=tgt.every(v=>resp.includes(v))&&resp.every(v=>tgt.includes(v));
+  if(!sameSet)return 'tile';
+  for(let k=0;k<tgt.length;k++)if(tgt[k]!==resp[k])return 'order';
+  return 'none';}
+function onTap(i){if(locked||phase==='demo')return;const el=tileEl(i);
+  if(!firstTapTime){firstTapTime=Date.now();T.rtFirst.push(firstTapTime-seqEndTime);if(firstTapTime-seqEndTime>4000)T.lapse++;}
+  const pos=resp.indexOf(i);
+  if(pos!==-1){resp.splice(pos,1);el.classList.remove('sel');T.revisions++;log(`revise: deselect tile ${i+1}`);}
+  else{resp.push(i);el.classList.add('sel');}
+  tapCount++;renderMeters();
+  if(tapCount>=curSeq.length)finishResponse();}
+function finishResponse(){locked=true;const tgt=target();const et=classify();const ok=et==='none';
+  resp.forEach((i,k)=>{tileEl(i).classList.add(tgt[k]===i?'correct':'wrong');});
+  if(phase==='warmup'){setStatus(ok?'ok':'no',ok?'✓ Correct - practice':'✗ Not quite - practice');log(`warm-up ${ok?'correct':'miss ('+et+')'} \u2014 UNSCORED`);setTimeout(()=>{phase='scored';nextScored();},1200);return;}
+  setStatus(ok?'ok':'no',ok?'✓ Correct':'✗ Not quite - the correct tiles are outlined');
+  T.scored++;T.trials++;const rt=Date.now()-seqEndTime;
+  if(curMode==='backward')T.bckRT.push(rt);else T.fwdRT.push(rt);
+  if(ok){T.correct++;maxLevel=Math.max(maxLevel,level);level=Math.min(9,level+1);log(`SCORED span ${curSeq.length} [${curMode}] \u2192 correct \u2714 \u2192 span up to ${level}`);}
+  else{T.errTypes.push(et);level=Math.max(2,level-1);if(!ok)$('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),450);log(`SCORED span ${curSeq.length} [${curMode}] \u2192 miss (${et}) \u2192 span down to ${level}`);}
+  setDiff();renderMeters();
+  setTimeout(()=>{if(T.trials>=8)finish();else nextScored();},1200);}
+function nextScored(){locked=true;resetResp();curMode=(T.trials>=2 && T.trials%2===1)?'backward':'forward';
+  curSeq=genSeq(level);$('#modecue').textContent=curMode==='backward'?'\u21c4 reverse order':'\u25b6 same order';
+  setDiff();log(`\u2014 SCORED trial ${T.trials+1}: span ${level} [${curMode}] \u2014`);
+  setCue('scored',(T.trials+1)+'/8');setStatus('neutral',curMode==='backward'?'Watch, then tap in REVERSE order.':'Watch, then tap in the SAME order.');
+  flashSeq(curSeq).then(()=>{seqEndTime=Date.now();locked=false;$$('.tile').forEach(t=>t.classList.add('active'));});}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+function startWarmup(){phase='warmup';setCue('warmup');setStatus('neutral','Practice - watch, then tap in order.');resetResp();curMode='forward';curSeq=genSeq(3);$('#modecue').textContent='\u25b6 same order';
+  log('\u2014 warm-up (unscored): watch, then tap back in order \u2014');
+  flashSeq(curSeq).then(()=>{seqEndTime=Date.now();locked=false;$$('.tile').forEach(t=>t.classList.add('active'));});}
+function finish(){phase='done';setCue('done');setStatus('ok','✓ Done');locked=true;$('#modecue').textContent='';
+  log(`\u2014 DONE \u00b7 correct ${T.correct}/${T.scored} \u00b7 ceiling span ${maxLevel} \u2014`);}
+async function runDemo(){phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;resetResp();
+  const seq=[4,1,7];curSeq=seq;curMode='forward';$('#modecue').textContent='';
+  log('ghost-hand demo (wordless, <10s)');
+  await flashSeq(seq);await sleep(200);ghostShow(true);
+  for(const i of seq){await ghostTo(tileEl(i));await ghostTap();tileEl(i).classList.add('correct');}
+  await sleep(500);ghostShow(false);setStatus('neutral','Now you try.');await sleep(600);startWarmup();}
+buildGrid();
+$('#grid').addEventListener('click',e=>{const t=e.target.closest('.tile');if(t)onTap(+t.dataset.i);});
+$('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
+buildMeters();renderMeters();setDiff();runDemo();
+</script>
+</body>
+</html>

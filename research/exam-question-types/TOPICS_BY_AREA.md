@@ -1,0 +1,443 @@
+# Topics & Techniques by Area (Step 1 — derived from the committed qbank)
+
+Source: 318 qbank rows across 8 constructs. For each area below, the fleet must produce question TYPES whose combined content coverage spans every subconstruct/technique listed. Subconstruct = topic; item_format examples = techniques already catalogued.
+
+## Fluid / Nonverbal Reasoning  (`fluid_reasoning`) — 39 catalogued items
+- **figural_matrix** (14):
+    - 3x3 array of geometric shapes with the bottom-right cell missing; pick which of 6 options best completes the pattern
+    - Raven-like 3x3 matrix with one missing cell; select the option consistent with the relational rules running across rows and columns
+    - incomplete 3x3 matrix of abstract colored shapes; identify relationships (shape, color, size, position) and choose the completing tile from distractor
+    - procedurally generated 3x3 RPM-style matrix with structured rules (constant, progression, arithmetic, distribute-three) across attributes; pick the mi
+    - procedurally generated matrix where relations (progression, XOR, OR, AND, consistent union) act on attributes (size, color, position, number); choose 
+    - matrix-completion items produced from a cognitive model that sets number of rules, abstraction level, and perceptual features to hit a target difficul
+- **nonverbal_deduction** (5):
+    - a partly-filled grid must contain each shape once per row and column; deduce which shape must occupy the target cell from the row and column constrain
+    - given a spatial condition (e.g. a dot inside the circle but outside the square), choose which of several designs allows that condition (secure CFIT co
+    - the child picks the picture where a simple spatial rule holds (e.g. the star is above the box AND inside the ring)
+    - a 2x2 grid where each row and column must show each of two shapes once; the child places the shape that must go in the empty cell
+    - a 3x3 shape grid where each shape appears once per row and column; deduce the shape forced into the target cell (child Latin-square version)
+- **figure_classification** (4):
+    - three figures share a hidden property; from the options pick the figure that belongs with the set (secure format, described only)
+    - four figures generated to share one attribute value (e.g. same number of sides); pick the fifth figure that also fits the rule
+    - three pictures belong together (e.g. all things that fly); the child picks the fourth picture that belongs with them
+    - pick the figure that shares BOTH generated attributes (e.g. the same shape count and the same fill) with the target set of three
+- **figure_series** (4):
+    - a sequence of figures changes by a consistent rule across the row; pick the figure that continues the sequence (secure NNAT serial-reasoning format, d
+    - an incomplete progressive sequence of figures; choose the option that best continues the series (secure CFIT format, described only)
+    - a row of figures follows a progression on one or more attributes (size up, fixed-step rotation, increasing count); pick the next figure
+    - a simple repeating or growing picture pattern (AB AB, or +1 dot each step); the child picks what comes next
+- **figure_analogy** (4):
+    - A is to B as C is to ? using geometric shapes; infer the transformation from A to B and apply it to C (secure NNAT format, described only)
+    - figural analogy: two figures related by a rule, then a third figure with options; pick the figure completing the analogy (ICAR figural-analogies item 
+    - simple A:B::C:? with one clear change (e.g. big to small) using shapes; pick the matching result for C
+    - A:B::C:? with two shapes changing by one combined rule (size and shade); choose the figure that completes the analogy
+- **odd_one_out** (4):
+    - five figures shown; select the one figure that does not belong with the others (secure CFIT classification format, described only)
+    - several figures share a generated rule except one; pick the figure that breaks the rule
+    - four pictures where three share an obvious property and one does not; the child taps the one that is different
+    - four shapes where three follow a simple rule (all have three sides) and one does not; the child taps the odd shape
+- **visual_rule_discovery** (4):
+    - two sets of six figures; the left six all satisfy a hidden rule and the right six violate it - discover which rule distinguishes the sets
+    - a few input-to-output grid examples demonstrate a transformation rule; infer the rule and construct the output grid for a new input
+    - two labeled bins each show a few example figures; the child places new figures into the bin whose secret rule they match
+    - one worked example shows a small grid changing (e.g. all shapes shift right); the child applies the same change to a new grid by tapping cells
+
+## Verbal Reasoning  (`verbal`) — 38 catalogued items
+- **inference_reading_comprehension** (10):
+    - Read a literary passage; answer inference/interpretation questions (MCQ plus short constructed response)
+    - Read informational text; integrate and infer across the text (MCQ plus short constructed response)
+    - Multi-source reading unit (e.g., Rapa Nui): classify statements fact vs opinion, locate and evaluate information
+    - Read a short passage; answer inference and author's-purpose questions (MCQ plus technology-enhanced)
+    - Read a passage; answer inference/main-idea MCQ plus a constructed 'writing to sources' response
+    - Determine the meaning of a word from passage context (meaning vocabulary measured within reading)
+- **antonyms_synonyms** (7):
+    - Given a target word, choose its opposite (antonym) from options
+    - Verbal-comprehension factor markers: produce/select opposites (Opposites Test) and choose the synonym of a target (Vocabulary Test)
+    - Choose the word closest in meaning to an underlined word AS USED in the passage
+    - Vocabulary (define a spoken/printed word) and Similarities (explain how two words are alike); young levels use picture prompts
+    - Choose the word most similar in meaning to the target; distractors matched on frequency
+    - Determine the meaning or shade of a word as used in a grade-4 passage
+- **verbal_analogy** (5):
+    - A is to B as C is to ? - pick the word that completes the analogy (4 options)
+    - 2x2 picture matrix (top pair related); child picks the picture that completes the bottom pair; prompt read aloud
+    - Public-domain verbal-reasoning item (word relationships/analogy); choose the best completion
+    - Content-loaded partial analogy across humanities/science/math (A : B :: C : ?), 4 options
+    - Printed or oral analogy using frequency-leveled words to bridge pre-reader picture analogies and older verbal analogies
+- **following_oral_directions** (5):
+    - Examiner reads a direction aloud; child marks/points to the picture that satisfies ALL stated conditions
+    - Hear a short spoken scenario; infer the answer and choose the matching picture (aural reasoning)
+    - Game where the child does the OPPOSITE of a spoken command (head/toes, knees/shoulders); HTKS-R adds a verbal say-the-opposite section
+    - Listen to a spoken passage/instructions, then answer questions requiring you to follow and comprehend the oral information
+    - Spoken multi-condition direction acting on a picture grid (e.g., 'tap the star that is above the small tree')
+- **sentence_completion** (3):
+    - Examiner reads a sentence/question aloud with a missing idea; child selects the picture that best completes/answers it
+    - Fill-in-the-blank sentence; choose the word(s) that best complete it
+    - Select the word/phrase that best fills a blank using surrounding passage context (context clues)
+- **verbal_classification** (3):
+    - Given three words that go together, pick the fourth word that belongs in the same group
+    - Three pictures share a property; child picks the additional picture that belongs (prompt read aloud)
+    - Pick the word that does NOT belong; all words drawn from a frequency-controlled list
+- **verbal_absurdities** (2):
+    - Hear/read a short scenario containing an impossibility; identify what is foolish and explain why
+    - Show a picture containing an impossibility; child names or points to what is silly (prompt read aloud)
+- **receptive_vocabulary** (2):
+    - Examiner says a word; child points to the one of four pictures that shows it (receptive vocabulary)
+    - Audio word presented; child chooses which of four pictures best matches; computer-adaptive
+- **sentence_arrangement** (1):
+    - Given scrambled words, form or identify the correct meaningful sentence
+
+## Quantitative Reasoning  (`quantitative`) — 40 catalogued items
+- **word_problem_reasoning** (11):
+    - model two growing quantities and find where they are equal (PISA Apples)
+    - short constructed response: solve and explain a numeric result
+    - multi-step open-response math problem (grade 4)
+    - multi-step quantitative reasoning problem (grades 6-8)
+    - nonroutine logic or number puzzle (grades 3-4)
+    - multi-constraint reasoning sample (grades 5-6)
+- **number_sense_magnitude** (6):
+    - interpret the value of a point marked on a number line
+    - decompose a multi-digit number by place value and reason about its structure
+    - place a point or fraction at the correct location on a number line
+    - number-line estimation: locate a target number on a bounded line
+    - approximate number system dot-comparison: choose the array with more dots
+    - Numeration: identify, compare, round, and represent whole and rational numbers
+- **number_series** (5):
+    - infer the rule of a number sequence and supply the next term
+    - continue an early pictorial pattern or quantity sequence
+    - Number Series: find the beads/number that continue an ordered numeric series
+    - Number Series: determine the missing number in a sequence (Gf/RQ)
+    - released 'complete the number pattern' sequence item (grade 4)
+- **pattern_completion** (4):
+    - 'number machine' input-output task: infer the transformation rule and give the output
+    - generalize a growing figural-number pattern to the nth case and justify the relationship
+    - reason across figural and numeric representations of a pattern (step pattern / number cubes)
+    - extend a repeating or growing pattern and state the rule
+- **quantitative_comparison** (4):
+    - compare two magnitudes and judge greater / less / equal
+    - quantitative-comparison format: greater / less / equal / cannot be determined
+    - symbolic magnitude comparison: choose the larger of two numbers
+    - compare or order numbers, fractions, or decimals (greater / less / equal)
+- **number_sentence_building** (3):
+    - enter values to make a relation true or balance both sides of an equation
+    - mathematical-equivalence items (meaning of the equal sign, e.g. 3+4=_+5)
+    - Number Puzzles: choose the value that balances both sides / solves for the missing part
+- **number_properties_reasoning** (1):
+    - reason about number properties (even/odd, factors) or how to create the largest result
+- **number_analogies** (1):
+    - Number Analogies: infer the quantitative relation in a 2x2 and complete it
+- **numeric_matrix** (1):
+    - Number Matrices: find the missing number that satisfies a matrix of relations
+- **balance_equivalence** (1):
+    - Figure Weights: choose the weight(s) that keep a balance scale in equilibrium
+- **arithmetic_reasoning** (1):
+    - Arithmetic: mentally reason through spoken worded quantitative problems
+- **quantitative_reasoning_mixed** (1):
+    - Quantitative Reasoning: verbal and nonverbal number problems and patterns
+- **proportional_reasoning** (1):
+    - ratio/rate unit reasoning (e.g., exchange rate, best-buy comparison)
+
+## Spatial Reasoning  (`spatial`) — 40 catalogued items
+- **mental_rotation** (8):
+    - pick which of 4 options is a pure rotation (not a mirror image) of a target 3D cube (Shepard-Metzler) figure
+    - a worked example shows an object rotated a given way; pick the option that applies the same rotation to a new 3D object (isometric drawings)
+    - two 3D block figures shown at varying angular disparity; decide same vs different (mirror) as fast as possible
+    - a familiar animal shape appears rotated in the picture plane; child decides if it is the same animal or a flipped (mirror) version
+    - a target shape or letter is shown; pick the option that is only turned (not flipped) to match it
+    - card-rotation and cube-comparison items: decide whether pairs of 2D cards or drawn cubes are rotations of the same object
+- **spatial_visualization** (7):
+    - surface development: given a flat unfolded net with marked edges, pick the 3D solid it forms or match corresponding faces
+    - incumbent aptitude format: given a 2D pattern with fold lines, pick which 3D object it folds into
+    - interactive net folding: child drags the flaps of a flat net to fold it up into a cube or box and matches a target
+    - simple pictorial: which closed box is made from this flat cardboard net (single correct solid among 4)
+    - incumbent contrast: a 2x2 figural matrix where the student picks the figure completing the analogy
+    - incumbent contrast: given three figures that share a property, pick the figure that belongs with the set
+- **form_board** (6):
+    - form board: shown an outline figure and several shaded pieces, pick which pieces fit together to fill the outline
+    - two separate pieces are shown; child points to which of 4 whole shapes the pieces make when slid together
+    - match-to-sample: child recreates a target 2D arrangement of geometric shapes using loose foam pieces
+    - 3D assembly: child reproduces a model built from interlocking blocks using a matching set of loose blocks
+    - incumbent proprietary format: select which several puzzle pieces combine to complete a target shape, done mentally under time
+    - tangram-style: child drags several small shapes to fill a target silhouette (multiple pieces, some need rotating)
+- **paper_folding** (5):
+    - a sheet is folded several times then a hole is punched; pick how the holes are arranged when the paper is unfolded
+    - a green and purple sheet shows a dotted fold line and an arrow; child picks which of 4 pictures shows the paper after that single fold
+    - two-fold version: child predicts the paper shape and edges after two sequential folds shown with dotted lines and arrows
+    - incumbent CogAT format: a paper is shown folded and cut or punched, then the student selects how it looks unfolded
+    - advanced multi-fold with multiple asymmetric punches and an oblique fold; choose the exact unfolded hole pattern
+- **mazes_route_planning** (4):
+    - trace a continuous path from start to exit through a printed maze without crossing walls or backtracking
+    - denser maze with many blind alleys; the learner must plan the route before moving to avoid dead-ends
+    - very simple maze: guide a friendly character from start to a single goal along one clear path with few turns
+    - grid route-planning: find the shortest path that visits required targets and reaches the exit in the fewest steps
+- **perspective_taking** (4):
+    - given a map array of objects, imagine standing at one object facing a second and indicate the direction to a third
+    - worked example on a small scene: point on a response dial to the target as seen from an imagined heading in the array
+    - road-map task: following a route with turns, the child decides at each turn whether it is a left or a right
+    - a doll or robot sits on one side of a small scene; child picks the picture showing what the doll sees from its side
+- **cross_sections** (4):
+    - a 3D solid is shown intersected by a cutting plane; pick the 2D shape of the resulting cross-section
+    - interactive: learner drags a cutting plane through a rotating 3D solid, then selects the exposed cross-section
+    - IRT-calibrated short form: fewer items chosen to span difficulty, each asking for the cross-section of a solid
+    - concrete version: a familiar object (apple, loaf, clay cylinder) is cut; child picks the shape of the cut face
+- **block_design** (2):
+    - incumbent proprietary format: arrange red-and-white blocks to reproduce a 2D design under a time limit with speed bonuses
+    - reproduce a colored pattern card using colored cubes (faces are single colors or a diagonal two-color split)
+
+## Working Memory / Executive Function  (`working_memory`) — 42 catalogued items
+- **n_back** (3):
+    - A stream of letters appears one at a time; child presses when the current letter matches the one shown 2 items earlier (2-back), continuously updating
+    - On a touch screen, pictures appear one at a time; child taps whenever the current picture is the same as the one immediately before (1-back), a young-
+    - Item type - a gamified child 2-back where a parade of picture characters passes and the child flags any character matching the one from two-ago
+- **set_shifting_dccs** (3):
+    - Child sorts bivalent cards (e.g., red rabbits, blue boats) first by one rule (color), then is told to switch to the other rule (shape); post-switch so
+    - Item type - the border/advanced DCCS where a border cue on each card signals which rule applies trial-by-trial, forcing rapid cue-driven switching for
+    - Item type - a computerized DCCS where the child matches a series of picture pairs to a target, switching the matching rule (shape vs color) as instruc
+- **running_memory_span** (2):
+    - A list of items streams at a fixed rate and stops unpredictably; child must report the last few (n) items in order, forcing continuous updating of a r
+    - Item type - any streamed sequence of unknown length where only the last-n must be recalled; presentation rate is tuned to force active updating (slow)
+- **inhibition_go_nogo** (2):
+    - Frequent go stimuli require a fast tap while rare no-go stimuli require withholding the response; the high go rate builds a prepotent response that mu
+    - Item type - a parametric go/no-go where no-go probability and stimulus pacing are systematically varied to titrate inhibitory load across a wide abili
+- **inhibition_flanker** (2):
+    - A central target arrow is flanked by arrows pointing the same (congruent) or opposite (incongruent) way; child responds to the center only, suppressin
+    - Item type - a child fish-flanker where the child indicates the direction of the central fish while ignoring flanking fish; a standardized version span
+- **set_shifting_task_switch** (2):
+    - On each trial a number-letter pair appears; the child does the letter task (vowel/consonant) or number task (odd/even) depending on position, alternat
+    - A cue before each trial tells the child which of two tasks to perform on the upcoming stimulus, so switches occur unpredictably and cue-encoding time 
+- **forward_digit_span** (1):
+    - Child hears a short spoken sequence of single digits and taps the numbers back on screen in the same order; sequence length auto-increases after two c
+- **backward_digit_span** (1):
+    - Child hears a digit sequence and must reproduce it in reverse order by tapping numbers, exercising manipulation rather than storage alone
+- **forward_span_list_sorting** (1):
+    - Pictures of animals (and foods) are shown and named one at a time; child says them back ordered from smallest to largest in real life - storage plus s
+- **digit_span_forward_backward_sequencing** (1):
+    - Examiner reads number strings; child repeats them verbatim (forward), reversed (backward), and re-ordered ascending (sequencing), yielding three proce
+- **visuospatial_span_corsi_forward** (1):
+    - Blocks on screen light up one-by-one in a sequence; child taps the same blocks back in the same order; span grows after correct repeats (Corsi block-t
+- **visuospatial_span_corsi_backward** (1):
+    - Blocks light up in sequence; child must tap them in reverse order, adding spatial manipulation to storage (backward Corsi)
+- **visuospatial_span_picture_recognition** (1):
+    - One or more pictures are shown briefly on a stimulus page; child then selects them (in order when possible) from a larger response array - a recogniti
+- **spatial_working_memory_self_ordered_search** (1):
+    - Colored boxes are searched by touch to find hidden tokens; the child must not revisit a box already found empty or one that already yielded a token - 
+- **dual_n_back** (1):
+    - Two simultaneous streams (a moving square position and a spoken letter); child responds separately when either stream matches n items back - dual-moda
+- **complex_span_operation** (1):
+    - Alternating processing and storage - child verifies a simple math equation, then sees a letter to remember; after several cycles, recalls the letters 
+- **complex_span_symmetry** (1):
+    - Child judges whether a pattern is symmetrical (processing), then must remember a highlighted square location (storage); after several cycles, taps the
+- **complex_span_rotation** (1):
+    - Child performs a mental-rotation judgment (processing) then remembers an arrow direction and length (storage); recalls the arrow sequence after severa
+- **complex_span_reading** (1):
+    - Item type - child judges whether each sentence makes sense (processing), then holds a to-be-remembered word/letter (storage); recalls the set in order
+- **complex_span_counting** (1):
+    - Item type (child complex span) - child counts target shapes on each card (processing) and remembers each count; after several cards, recalls the count
+- **memory_updating_keep_track** (1):
+    - Child is given a few categories (e.g., animals, foods) then sees a stream of words; at the end must report the most recent exemplar seen for each cate
+- **memory_updating_numeric** (1):
+    - A small grid of digits is shown, then a series of arithmetic operations (e.g., +2) is applied to specific cells; child must track and report each cell
+- **memory_updating_symbol_counter** (1):
+    - Symbols appear one at a time; child must keep separate running counts of two or more target symbols and report the tallies on demand (symbol-counter)
+- **inhibition_stroop** (1):
+    - Color words are printed in mismatched ink colors; child must name/select the ink color while suppressing the automatic urge to read the word
+- **inhibition_numerical_stroop** (1):
+    - Pairs of digits differ in numeric value and physical size; child must judge one dimension (e.g., which is numerically larger) while ignoring the confl
+- **inhibition_stroop_day_night** (1):
+    - Child must say night to a sun picture and day to a moon picture - a Stroop-like task requiring inhibition of the obvious semantic response, designed f
+- **inhibition_stop_signal** (1):
+    - Item type - child responds quickly to a go stimulus, but on a minority of trials a stop signal appears after a variable delay and the already-initiate
+- **inhibition_statue_motor** (1):
+    - Item type - across timed subtests the child names shapes/directions against a prepotent response (Inhibition) and holds a body position with eyes clos
+- **inhibition_switching_color_word** (1):
+    - Item type - a timed color-word interference test with an inhibition condition (name the ink color) and an inhibition/switching condition (alternate be
+- **set_shifting_card_sort** (1):
+    - Item type - child sorts cards to piles by an unstated rule (color, shape, or number), discovering the rule from feedback; the rule changes without war
+- **set_shifting_intra_extra_dimensional** (1):
+    - Item type - child learns which stimulus feature is rewarded and must shift within a dimension (intra-dimensional) and later across dimensions (extra-d
+- **ef_integrated_opposites** (1):
+    - Child plays a game of doing the opposite of a spoken command (touch your head when told toes), with new rules added and switched, integrating working 
+- **ef_integrated_battery** (1):
+    - Item type - a tablet-delivered executive-function battery combining working-memory, inhibition, set-shifting, and fluency tasks into a single composit
+- **working_memory_battery_child** (1):
+    - Item type - a fully automated child battery separating verbal and visuospatial short-term memory from verbal and visuospatial working memory across mu
+
+## Processing Speed  (`processing_speed`) — 40 catalogued items
+- **visual_matching** (7):
+    - child sees two side-by-side patterns and taps a smiley (same) or frowny (different) face as fast as possible for about 90 seconds
+    - decide if two simple figures are the same or different when they differ by one feature (a color or an added dot) and tap YES or NO quickly
+    - decide whether two number strings (3, 6, or 9 digits) are identical or different and complete as many as possible in 45 seconds per set
+    - same/not-same judgement on two visual patterns that may differ by color, by adding/removing an element, or (for older children) one-versus-many, using
+    - in each row of six numbers, find and mark the two that are identical, completing as many rows as possible within a 3-minute limit (early rows use smal
+    - locate and draw a line through the two identical letter clusters in a row of six, working as fast as possible for 3 minutes (orthographic perceptual s
+- **cancellation** (6):
+    - cross out or tap every target letter (for example every letter d) hidden in rows of similar letters, as fast and accurately as possible
+    - scan 14 timed rows and mark every letter d that carries exactly two marks while ignoring d's with other numbers of marks and all p's
+    - scan one random and one structured array of pictures and mark the target objects (for example the animals) within a time limit
+    - locate and circle a specific repeated pair of pictures as quickly as possible for 3 minutes, ignoring all other pictures
+    - mobile cancellation: tap all targets in each row before it advances; the app auto-scores hits, false alarms and a concentration-performance index
+    - tap every apple hidden among other fruits across the screen as fast as you can (a child-friendly cancellation sweep)
+- **coding_digit_symbol** (6):
+    - using a key that pairs each digit 1-9 with a symbol, write the symbol under each digit as fast as possible for 90-120 seconds
+    - copy the symbol that corresponds to each geometric shape or number using a printed key, working as fast as possible within the time limit
+    - on-screen DSST: a 1-9 symbol key sits at the top and the child taps the symbol matching each presented digit; score is correct matches in 120 seconds
+    - match each picture (star, cat, sun) to its partner shape using a small two-row key, tapping as many correct pairs as possible before time runs out
+    - given a symbol-digit key, the child says aloud the digit that matches each symbol as fast as possible (a motor-reduced, spoken coding task)
+    - scrolling digit-symbol substitution with keyboard or touch input; scores the number of correct matches and the average time per correct match
+- **symbol_search** (5):
+    - scan a search group of symbols and mark whether either target symbol is present, moving row by row against the clock
+    - look at one target shape, then tap YES if it appears in the row of shapes and NO if it does not, going as fast as you can
+    - arcade spot-the-target: tap every shape that matches the target as it slides across the screen before the timer runs out
+    - visual search: find the target among distractors; response time and accuracy scale with set size and target-distractor similarity
+    - arcade tap-the-target with a visible accuracy meter: the combo builds only on correct AND fast taps and breaks on any false alarm, so speed is rewarde
+- **rapid_automatized_naming** (5):
+    - name aloud, left to right, a grid of familiar repeated objects (ball, dog, star) as fast as possible; score is total naming time and errors
+    - name a grid of repeated color patches (red, blue, green, black) as fast as possible; a pre-literacy naming-speed measure for children who do not yet k
+    - name a grid of repeated letters (rapid letter naming) as fast as possible; the alphanumeric RAN most strongly linked to reading fluency
+    - name a grid of repeated digits (rapid digit naming) as fast as possible; score is completion time and errors
+    - contrast serial (full-grid) rapid naming, which requires sustained scanning and eye-movements, against discrete single-item naming; the serial format 
+- **choice_reaction_time** (5):
+    - four on-screen boxes; press the key matching whichever box lights up; response time rises with the number of choices (Hick's law)
+    - tap the left or the right target depending on which side a friendly animal appears; a fast, low-reading two-choice reaction task
+    - choice reaction time across 1, 2, 4 and 8 alternatives; the slope of RT against log2(number of choices) indexes information-processing rate
+    - open-source choice reaction time task with a configurable number of alternatives and inter-stimulus interval
+    - derive intra-individual RT variability (SD and the slow-tail tau) and lapse frequency from any speeded block; per the worst-performance rule, a child'
+- **simple_reaction_time** (3):
+    - press the button the instant a single shape or light appears; repeated over many trials; record mean and (critically) the variability of response time
+    - standardized simple reaction time: one stimulus, one response, many trials; the task records mean RT and, importantly, the standard deviation of RT
+    - arcade whack-it: tap the critter the moment it pops up; combo rewards fast AND correct hits while tapping an empty hole breaks the combo
+- **inspection_time** (3):
+    - two vertical lines of different length joined by a bar (a Pi-figure) flash briefly and are then masked; report which side (left or right) was longer; 
+    - two towers flash on screen then vanish behind a mask; the child taps the taller tower afterward at their leisure; accuracy at very short exposures is 
+    - backward-masked brief discrimination (which of two stimuli was longer or different) presented as a motor-free index of perceptual intake speed
+
+## Complementary / Non-Cognitive  (`complementary`) — 34 catalogued items
+- **task_commitment** (9):
+    - Academic Diligence Task: student freely allocates time between tedious-but-beneficial math practice and available distractions (games/videos); score =
+    - delay-of-gratification wait task: child can take a small reward now or wait to earn a larger one; score = wait time / choice to delay
+    - behavioral persistence probe: child works on a challenging (near-unsolvable) puzzle with an easy 'stop' option always available; score = time-on-task 
+    - Short Grit Scale (Grit-S): 8 self-report statements on perseverance of effort and consistency of interest (e.g., 'I finish whatever I begin'), 5-point
+    - Grit-S informant (teacher/parent) report: rater completes the 8 grit items about a specific child in third person, 5-point Likert
+    - self-initiated 'passion project' showcase with a structured reflection on goals, obstacles, and persistence (Renzulli Type III style demonstrated comm
+- **divergent_thinking** (7):
+    - Alternative Uses Task: name as many different uses as you can for a common object (e.g., a brick); scored for fluency, flexibility, originality, elabo
+    - picture-prompted alternate uses for younger children: child sees a familiar object (paper plate) and says as many different uses as possible; scored f
+    - Instances task: 'name all the round things you can think of' (or things that make noise); scored for fluency and category flexibility
+    - Similarities task: list as many ways as possible that two unlike things (e.g., an apple and an orange) are alike; scored for fluency, flexibility, ori
+    - standardized verbal creativity battery: ask-and-guess, product improvement, unusual uses, and 'just suppose' word tasks scored on fluency, flexibility
+    - Consensual Assessment Technique: independent expert judges rate a child's actual creative product (story, invention, drawing) for creativity without a
+- **curiosity** (4):
+    - IPIP curiosity/inquisitiveness self-report items (e.g., 'I love to learn new things', 'I ask a lot of questions'), 5-point accuracy scale
+    - uncertainty-preference behavioral curiosity task: child repeatedly chooses whether to explore certain vs uncertain options; score = threshold of desir
+    - epistemic-curiosity self-report (Joyous Exploration / Interest-type items adapted from the 5DCR and Epistemic Curiosity Inventory), e.g., 'I enjoy fig
+    - observed question-asking / exploration during a novel 'mystery box' activity: count and quality of information-seeking questions and exploratory actio
+- **conscientiousness** (3):
+    - IPIP Conscientiousness self-report items from the Self-Discipline and Achievement-Striving facets (e.g., 'I get chores done right away'), 5-point accu
+    - IPIP items converted to third person so a teacher or parent rates the child's conscientiousness (e.g., 'This student gets work done right away'), 5-po
+    - parent/teacher report of early conscientiousness/effortful control for pre-readers: adult rates observable habits (finishes tasks, follows through, re
+- **intrinsic_motivation** (3):
+    - Intrinsic Motivation Inventory (IMI) Interest/Enjoyment subscale: self-report about a specific learning activity (e.g., 'I enjoyed doing this activity
+    - free-choice behavioral measure: after a task's requirement ends, observe whether/how long the child keeps doing it during unstructured free time (no r
+    - IMI Interest/Enjoyment adapted for pre-readers: child responds to spoken items with a pictorial (smiley-face) scale about an activity they just did
+- **situational_judgment** (3):
+    - situational judgment test: child reads/hears a short social scenario and selects the most effective response option (emotion understanding/management 
+    - situational judgment test for task-approach/conscientiousness: 'your project is hard and boring - what do you do?' with options reflecting persistence
+    - animated/gamified situational judgment for young learners: an audiovisual scenario plays and the child taps the character action they think is best (c
+- **demonstrated_achievement** (3):
+    - portfolio of student work collected over time with student reflections on each piece; reviewed against a giftedness rubric for depth, originality, and
+    - performance/authentic task scored by rubric: child designs and carries out a short investigation or open-ended product, rated on reasoning, originalit
+    - structured 'tell me about what you made' interview: young child describes a self-chosen creation; scored for elaboration, originality of thinking, and
+- **figural_creativity** (2):
+    - Pattern/Line Meanings: child views an abstract shape or line and names/draws all the things it could be; scored for fluency and originality of interpr
+    - standardized figural creativity battery: picture construction, picture completion, and repeated-lines drawing tasks scored on fluency, originality, ab
+
+## Game-Based (cross-cutting delivery layer)  (`game_based`) — 45 catalogued items
+- **fluid_reasoning:problem_solving** (2):
+    - tower-defense strategy level (Use Your Brainz, a modified Plants vs Zombies 2): place/upgrade units under resource limits; 32 in-game indicators mappe
+    - first-person 3D physics-puzzle rooms (Portal-style): use portals/levers/momentum to reach an exit; each room is a novel constraint-satisfaction proble
+- **fluid_reasoning:systems_causal_reasoning** (1):
+    - 2D physics sandbox: child draws ramps, levers, springboards and pendulums to guide a ball to a balloon; stealth-scored from solution efficiency, use o
+- **fluid_reasoning:systems_reasoning** (1):
+    - city/ecosystem simulation (SimCityEDU: Pollution Challenge): reduce pollution while keeping jobs/power; player manipulates interacting variables and r
+- **fluid_reasoning:inductive_reasoning** (1):
+    - logic-puzzle sorting game (Zoombinis-style): infer hidden rules to route characters past gatekeepers by attribute combinations; implicit computational
+- **fluid_reasoning:matrix_induction** (1):
+    - figural-matrix puzzle embedded in a quest: complete a 2x2/3x3 pattern to power a machine/unlock a door; distractors generated by automatic item genera
+- **fluid_reasoning:mechanical_systems_reasoning** (1):
+    - contraption/Rube-Goldberg builder: assemble gears, belts, ramps and switches so a chain reaction achieves a goal; open sandbox scored on solution corr
+- **spatial:mental_rotation** (1):
+    - mental-rotation arcade: a target 3D block figure appears; child taps which of several rotated candidates matches (vs a mirror foil); speed+accuracy sc
+- **spatial:mental_rotation_visualization** (1):
+    - falling-block packing game (Tetris-like): rotate and place descending tetromino/polyomino pieces to fill rows; in-game mental rotation and spatial pla
+- **spatial:spatial_visualization_construction** (1):
+    - copy-the-structure block construction (Minecraft-style): reproduce a shown 3D model in a voxel world, or build to spec from an orthographic blueprint;
+- **spatial:paper_folding_visualization** (1):
+    - fold-the-net mini-game: mentally fold a flat net into a 3D box/shape and tap the correct folded result, or predict where punched holes land after fold
+- **spatial:spatial_navigation** (1):
+    - first-person virtual maze/collectathon (Virtual Spatial Navigation Assessment): explore a 3D building/outdoor world, collect gems, and return to start
+- **spatial:construction_creativity** (1):
+    - user-generated-content build-and-share precedent (Roblox/Minecraft platforms): open 3D construction and simple scripting; documented links to spatial 
+- **working_memory:updating** (1):
+    - n-back creature game: a stream of animals/positions appears; tap when the current item matches the one n steps back; n adapts to keep accuracy near ta
+- **working_memory:spatial_span** (1):
+    - light-up sequence game (Simon/Corsi-style spatial span): watch a sequence of tiles/creatures light up, then tap them back in order (forward and backwa
+- **working_memory:manipulation** (1):
+    - sort-and-recall game (List Sorting style): a set of items (animals of different sizes, foods) is shown/named, then the child must report them back in 
+- **working_memory:selective_filtering** (1):
+    - filter-and-remember game (ACE Filter-style): remember only the target-colored shapes while ignoring distractors, then report their orientation/positio
+- **working_memory:updating_binding** (1):
+    - running-memory cooking/order game: customers give orders that update; child must serve the last k items in the current order, binding item-to-slot as 
+- **processing_speed:cognitive_control_speed** (1):
+    - multitask drive-and-respond game (NeuroRacer-style): steer a vehicle on a winding road while responding only to specific signs; single-task and dual-t
+- **processing_speed:perceptual_speed** (1):
+    - speeded same/different game (Pattern Comparison style): two figures flash; tap 'same' or 'different' as fast as possible for as many trials as possibl
+- **processing_speed:sustained_attention_vigilance** (1):
+    - target-detection vigilance game (continuous-performance/TOVA-style): respond to frequent targets and withhold to rare non-targets (or vice versa) over
+- **processing_speed:symbol_coding** (1):
+    - decode-the-message game (symbol-substitution/coding style): use a shown symbol-to-key legend to translate as many symbols as possible before time runs
+- **complementary:inhibitory_control_attention** (1):
+    - flanker fish game: tap the direction the center fish faces while flanking fish point the same (congruent) or opposite (incongruent) way; congruency ef
+- **complementary:cognitive_flexibility_set_shifting** (1):
+    - card-sort switch game (Dimensional Change Card Sort style): sort cards by color, then the rule switches to shape (then mixed); switch cost, accuracy a
+- **complementary:planning_lookahead** (1):
+    - crystal-mover puzzle (Tower of London/Hanoi style): rearrange colored balls/crystals across pegs to match a goal in the fewest moves within a move lim
+- **complementary:response_inhibition_impulse_control** (1):
+    - go/no-go stop game: tap fast for 'go' targets but withhold on rare 'stop' signals (or stop-signal variant with a delayed cue); commission errors, RT, 
+- **complementary:social_emotional_competence** (1):
+    - branching social scenarios (Zoo U-style stealth SEL): navigate school-like situations (join a game at recess, resolve a conflict) by choosing actions;
+- **complementary:empathy_emotion_recognition** (1):
+    - narrative emotion-reading game (Crystals of Kaydor-style): as a robot on an alien world, identify and gauge the intensity of facial emotions to comple
+- **complementary:persistence_grit** (1):
+    - stealth persistence measure: within any puzzle game, embed some very hard/unsolvable items and log time-on-task, retries after failure, and voluntary 
+- **complementary:creativity** (1):
+    - open-ended sandbox creativity probe: score solution originality and fluency in a design/physics sandbox (e.g., number of distinct working solutions, u
+- **complementary:risk_decision_making** (1):
+    - balloon-pump decision game (BART-style, as in pymetrics): pump a balloon to bank points but a pop loses the round's points; risk tolerance, learning, 
+- **quantitative:approximate_number_system** (1):
+    - dot-comparison herd game (Panamath-style ANS): two arrays of animals/dots flash; tap the more numerous set; ratio (Weber fraction) adapts; perceptual 
+- **quantitative:numerical_magnitude_number_line** (1):
+    - number-line placement / linear-board race: drag a numeral to its position on a 0-10/0-100/0-1000 line, or advance a token on a linear board by countin
+- **quantitative:symbolic_magnitude_arithmetic** (1):
+    - adaptive number game (The Number Race-style): choose the larger quantity across nonsymbolic, spoken, and written formats, then move along a racetrack;
+- **quantitative:place_value_composition** (1):
+    - build-the-number puzzle: compose target quantities from base-ten blocks (ones/tens/hundreds) or coins, and decompose/regroup to solve; efficiency of g
+- **verbal:receptive_vocabulary** (1):
+    - find-the-word quest (Picture Vocabulary style): hear a spoken word and tap the matching picture from four options; difficulty scales by word frequency
+- **verbal:listening_comprehension_inference** (1):
+    - interactive story-quest: an audio/animated narrative pauses for choices and comprehension/inference probes (who wanted what, why, what happens next); 
+- **verbal:verbal_reasoning_argumentation** (1):
+    - argument-battle game (Argubot Academy style): build claims and match evidence to support positions, then 'battle' opposing arguments; quality of claim
+- **verbal:orthographic_lexical_access** (1):
+    - word-building/anagram treasure game: form as many valid words as possible from given letters, or spell target words, under a time budget; word count/l
+- **cross_cutting:stealth_assessment_evidence_model** (1):
+    - PRECEDENT/METHOD: stealth assessment via Evidence-Centered Design - embed competency, evidence, and task models with Bayesian-network scoring so gamep
+- **cross_cutting:gamified_cognitive_assessment** (1):
+    - PRECEDENT/REVIEW: systematic review of 33 studies / 31 gamified cognitive tasks - documents that working memory and executive function are the most co
+- **cross_cutting:executive_function_battery** (1):
+    - PRECEDENT/INSTRUMENT: Adaptive Cognitive Evaluation (ACE) - a mobile, adaptive battery of 15 game-like tasks (flanker, Stroop, task-switch, filter/WM,
+- **cross_cutting:cognition_battery** (1):
+    - PRECEDENT/INSTRUMENT: NIH Toolbox Cognition Battery - tablet-delivered, partly adaptive tasks covering executive function, attention, working memory, 
+- **processing_speed:attention_control** (1):
+    - PRECEDENT/PRODUCT: EndeavorRx (AKL-T01, from Project EVO/NeuroRacer lineage) - an adaptive perceptual-motor navigate-and-target game; FDA-cleared to i
+- **cross_cutting:commercial_cognitive_training** (1):
+    - PRECEDENT/PRODUCT: commercial cognitive-training game suites (Lumosity, Peak, CogniFit) - mini-games mapped to memory, attention, speed, flexibility, 
+

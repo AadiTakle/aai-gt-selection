@@ -36,6 +36,34 @@ export const statusProjectionSchema = z
   })
   .strict();
 
+export const pendingItemOwnerRoleSchema = z.enum([
+  'family',
+  'admissions',
+  'access_steward',
+  'decision_service',
+]);
+
+export const pendingItemRouteCodeSchema = z.enum([
+  'assessment_correction',
+  'family_evidence_correction',
+  'additional_blind_review',
+  'internal_accessibility_route',
+  'policy_configuration',
+]);
+
+export const pendingItemSchema = z
+  .object({
+    pendingItemId: z.uuid(),
+    reason: pendingReasonSchema,
+    ownerRole: pendingItemOwnerRoleSchema,
+    dueAt: z.iso.datetime({ offset: true }),
+    routeCode: pendingItemRouteCodeSchema,
+    state: z.enum(['open', 'escalated', 'resolved']),
+    syntheticOnly: z.literal(true),
+  })
+  .strict();
+
 export type PendingReason = z.infer<typeof pendingReasonSchema>;
 export type WorkflowStatus = z.infer<typeof workflowStatusSchema>;
 export type StatusProjection = z.infer<typeof statusProjectionSchema>;
+export type PendingItem = z.infer<typeof pendingItemSchema>;

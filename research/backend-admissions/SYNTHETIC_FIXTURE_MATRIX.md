@@ -196,7 +196,7 @@ invariance applies only when the mutated fields are excluded metadata.
 | PX-02 | Expired export | Unavailable |
 | CN-01 | Synthetic choice grant/refusal/withdrawal | Admissions invariant |
 | CN-02 | Evaluation/export access | Fail closed |
-| LC-01 | Non-loopback/public tunnel/remote project | Startup fails |
+| LC-01 | Not in the designated dev AWS account, or untagged/non-synthetic/production resource (formerly: non-loopback/public tunnel/remote project) | Startup fails |
 
 ## Replay and Concurrency
 

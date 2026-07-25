@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SPA-TANGRAM-01 · Shape-Fill Form Board</title>
+<style>
+  :root{--bg1:#eef4ff;--bg2:#f7ecff;--ink:#26304a;--card:#fff;--accent:#4f46e5;--good:#22b573;--bad:#ff6b6b;
+    --tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box}html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:12px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
+  #howto{max-width:660px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:var(--accent);border:2px solid #d0d5fb;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+  #phasecue[data-phase="done"]{background:#e6e7fc;color:#3b34b8;border-color:#d0d5fb}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
+  #stagecard{background:var(--card);border-radius:24px;padding:20px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:14px;max-width:660px;width:100%}
+  #boards{display:flex;gap:16px;justify-content:center;align-items:flex-start}
+  .volwrap{perspective:1100px}
+  .board{display:grid;gap:4px;background:#c9d3ef;padding:8px;border-radius:12px;transition:transform .3s}
+  .board.layerB{transform:rotateX(10deg) translateY(-4px);opacity:.94;background:#b7c2e6}
+  .cell{width:44px;height:44px;border-radius:8px;background:transparent}
+  .cell.out{background:#f3f5fc;box-shadow:inset 0 0 0 2px #d7deef;cursor:pointer}
+  .cell.out:hover{box-shadow:inset 0 0 0 2px var(--accent)}
+  .cell.filled{box-shadow:none;cursor:pointer}
+  .boardlbl{font-size:10px;text-align:center;color:#8a93b5;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+  #tray{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;min-height:70px;align-items:center}
+  .tp{padding:6px;border-radius:10px;background:#eef1ff;border:3px solid #d7deff;cursor:pointer;display:grid;gap:2px;position:relative}
+  .tp.sel{border-color:var(--accent);background:#e1e5ff;box-shadow:0 0 0 3px #c7cdfa}
+  .tp .pc{width:14px;height:14px;border-radius:3px;background:transparent}
+  #row{display:flex;gap:12px;align-items:center}
+  button{font:inherit;border:0;cursor:pointer;border-radius:12px}
+  #rotbtn{background:#eef1ff;color:#4f46e5;padding:9px 16px;font-weight:700;font-size:15px}
+  #rotbtn:disabled{opacity:.4;cursor:not-allowed}
+  #done{background:var(--accent);color:#fff;padding:10px 22px;font-weight:700;font-size:16px;opacity:.5;pointer-events:none;transition:.2s}
+  #done.ready{opacity:1;pointer-events:auto}
+  #replay{width:44px;height:44px;background:#eef1ff;color:#4f46e5;font-size:19px;border-radius:50%}
+  .shake{animation:shake .4s}@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
+  .hotkeys{font-size:11px;color:#a3aecb}
+  #ghost{position:fixed;left:0;top:0;font-size:38px;pointer-events:none;z-index:60;opacity:0;transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}#ghost .ring{position:absolute;left:-6px;top:-6px;width:26px;height:26px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}.mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #diffmeter{margin:0 12px 8px;background:#1b2340;border-radius:8px;padding:8px 10px}
+  #diffmeter .bar{height:8px;background:#232c4d;border-radius:6px;overflow:hidden;margin-top:6px}
+  #diffmeter .bar>i{display:block;height:100%;background:linear-gradient(90deg,#7fffcf,#4f46e5);width:0%;transition:width .3s}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:190px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">SPA-TANGRAM-01 · Shape-Fill Form Board</div>
+    <header id="howto">
+      <h1>How to use — Shape-Fill Form Board</h1>
+      <p>Watch the pointer solve one example, then try one practice item (not scored). Tap a tray piece, then tap a square to place it (use rotate (R) to turn it) and fill the whole board with no gaps - some tray pieces are extra and will not fit. Press done (<b>✓</b>) to submit. It gets harder each time you fill it exactly.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
+    <div id="stagecard">
+      <div id="boards"></div>
+      <div id="tray"></div>
+      <div id="row">
+        <button id="replay" title="replay demo">↻</button>
+        <button id="rotbtn" title="rotate (R)">⟳ rotate</button>
+        <button id="done" title="submit">✓ done</button>
+      </div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+      <div class="hotkeys">hotkeys: R rotate · click piece then click outline cell</div>
+    </div>
+  </div>
+  <aside id="telemetry">
+    <h3>Live telemetry · per-child</h3>
+    <div id="diffmeter">difficulty <span id="dlab">1/6</span><div class="bar"><i id="dbar"></i></div></div>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0,last=a=>a[a.length-1];
+const COLORS=['#4f46e5','#0891b2','#d97706','#be185d','#16a34a','#7c3aed','#dc2626','#0d9488'];
+
+/* ---------- geometry helpers ---------- */
+function key3(l,r,c){return l+','+r+','+c;}
+function neighborsAll(l,r,c){return [[l,r-1,c],[l,r+1,c],[l,r,c-1],[l,r,c+1],[l-1,r,c],[l+1,r,c]];}
+function inBounds(l,r,c,L,R,C){return l>=0&&l<L&&r>=0&&r<R&&c>=0&&c<C;}
+function normalize(cells){
+  const ml=Math.min(...cells.map(c=>c[0])),mr=Math.min(...cells.map(c=>c[1])),mc=Math.min(...cells.map(c=>c[2]));
+  return cells.map(c=>[c[0]-ml,c[1]-mr,c[2]-mc]).sort((a,b)=>a[0]-b[0]||a[1]-b[1]||a[2]-b[2]);
+}
+function shapeKey(offs){return offs.map(o=>o.join(',')).join('|');}
+function rotateOffsets(offs){return normalize(offs.map(([l,r,c])=>[l,c,-r]));}
+function allRotationKeys(offs){let cur=offs,keys=new Set();for(let i=0;i<4;i++){keys.add(shapeKey(cur));cur=rotateOffsets(cur);}return keys;}
+function applyRandRotations(offs){let cur=offs;const n=Math.floor(Math.random()*4);for(let i=0;i<n;i++)cur=rotateOffsets(cur);return cur;}
+
+function genTargetCells(R,C,L,n){
+  const cells=new Set(),list=[];
+  const l0=0,r0=(R/2)|0,c0=(C/2)|0;
+  cells.add(key3(l0,r0,c0));list.push([l0,r0,c0]);
+  let attempts=0;
+  while(cells.size<n&&attempts<3000){
+    attempts++;
+    const base=list[Math.floor(Math.random()*list.length)];
+    const nbs=neighborsAll(...base).filter(p=>inBounds(p[0],p[1],p[2],L,R,C)&&!cells.has(key3(...p)));
+    if(!nbs.length)continue;
+    const pick=nbs[Math.floor(Math.random()*nbs.length)];
+    cells.add(key3(...pick));list.push(pick);
+  }
+  return list;
+}
+function partition(cellsArr,numPieces){
+  const cellSet=new Set(cellsArr.map(p=>key3(...p)));
+  const owner=new Map();
+  const shuffled=cellsArr.slice().sort(()=>Math.random()-0.5);
+  const regions=[];
+  for(let i=0;i<numPieces&&i<shuffled.length;i++){owner.set(key3(...shuffled[i]),i);regions.push([shuffled[i]]);}
+  let remaining=cellsArr.length-regions.length,guard=0;
+  while(remaining>0&&guard<8000){
+    guard++;
+    for(let p=0;p<regions.length&&remaining>0;p++){
+      const region=regions[p];
+      const order=region.slice().sort(()=>Math.random()-0.5);
+      for(const cell of order){
+        const nbs=neighborsAll(...cell).filter(n=>cellSet.has(key3(...n))&&!owner.has(key3(...n)));
+        if(nbs.length){const pick=nbs[Math.floor(Math.random()*nbs.length)];owner.set(key3(...pick),p);region.push(pick);remaining--;break;}
+      }
+    }
+  }
+  cellsArr.forEach(c=>{if(!owner.has(key3(...c)))owner.set(key3(...c),Math.floor(Math.random()*regions.length));});
+  const pieces=Array.from({length:regions.length},()=>[]);
+  cellsArr.forEach(c=>pieces[owner.get(key3(...c))].push(c));
+  return pieces.filter(p=>p.length>0);
+}
+function genPolyomino(area){
+  const cells=[[0,0,0]],set=new Set(['0,0,0']);
+  let guard=0;
+  while(cells.length<area&&guard<200){
+    guard++;
+    const base=cells[Math.floor(Math.random()*cells.length)];
+    const nbs=neighborsAll(...base).filter(([l,r,c])=>l===0&&!set.has(key3(l,r,c)));
+    if(!nbs.length)continue;
+    const pick=nbs[Math.floor(Math.random()*nbs.length)];
+    cells.push(pick);set.add(key3(...pick));
+  }
+  return normalize(cells);
+}
+function genHerring(realPieces){
+  for(let tries=0;tries<50;tries++){
+    const area=2+Math.floor(Math.random()*3);
+    const p=genPolyomino(area);
+    const k=shapeKey(p);
+    let dup=false;
+    for(const rp of realPieces){if(allRotationKeys(rp).has(k)){dup=true;break;}}
+    if(!dup)return p;
+  }
+  return genPolyomino(2);
+}
+const LEVELS=[
+  {R:3,C:4,numCells:6,numPieces:2,numHerr:1,is3D:false},
+  {R:4,C:4,numCells:8,numPieces:3,numHerr:1,is3D:false},
+  {R:4,C:5,numCells:10,numPieces:3,numHerr:2,is3D:false},
+  {R:5,C:5,numCells:11,numPieces:4,numHerr:2,is3D:false},
+  {R:5,C:5,numCells:13,numPieces:4,numHerr:3,is3D:false},
+  {R:4,C:4,numCells:12,numPieces:4,numHerr:2,is3D:true},
+];
+function genItem(lvl){
+  const cfg=LEVELS[lvl];
+  const L=cfg.is3D?2:1;
+  let cellsArr=[];
+  for(let t=0;t<25;t++){const c=genTargetCells(cfg.R,cfg.C,L,cfg.numCells);if(c.length>cellsArr.length)cellsArr=c;if(cellsArr.length>=cfg.numCells)break;}
+  const pieces=partition(cellsArr,cfg.numPieces).map(p=>normalize(p));
+  const herrings=[];for(let i=0;i<cfg.numHerr;i++)herrings.push(genHerring(pieces));
+  const combined=[...pieces.map(p=>({real:true,offsets:p})),...herrings.map(p=>({real:false,offsets:p}))];
+  combined.sort(()=>Math.random()-0.5);
+  const trayPieces=combined.map((p,idx)=>({id:idx,real:p.real,offsets:applyRandRotations(p.offsets),color:COLORS[idx%COLORS.length]}));
+  const targetSet=new Set(cellsArr.map(c=>key3(...c)));
+  return {R:cfg.R,C:cfg.C,L,is3D:cfg.is3D,lvl,targetSet,targetArea:cellsArr.length,pieces:trayPieces,optimalPlacements:pieces.length};
+}
+
+/* ---------- state ---------- */
+let cur=null,phase='demo',locked=false,scoredIndex=0,level=0,selectedId=null;
+let available=[],filled=new Set(),placements=new Map();
+const T={scored:0,exact:0,rts:[],rtFirsts:[],path:[],revisions:0,polyPct:0,prog:[],itemStart:0,firstActed:false,maxLevel:0,levelSeries:[]};
+function optStr(){return cur?`${placements.size} placed / optimal ${cur.optimalPlacements}`:'\u2014';}
+function progStr(){if(!T.prog.length)return '\u2014';const p=T.prog;const pick=p.length<=4?p:[p[0],p[(p.length/2)|0],last(p)];return pick.join('\u2192')+'%';}
+function learnRate(){if(T.levelSeries.length<2)return '\u2014';const gained=last(T.levelSeries)-T.levelSeries[0];return `${gained>=0?'+':''}${gained} lvl / ${T.levelSeries.length} trials`;}
+const METERS=[
+ {id:'M-ACC',name:'Item accuracy (exact tiling)',get:()=>T.scored?`${T.exact}/${T.scored}  ${Math.round(100*T.exact/T.scored)}%`:'\u2014'},
+ {id:'M-POLY',name:'Partial credit (area filled)',get:()=>cur?`${filled.size}/${cur.targetArea} (${T.polyPct}%)`:'\u2014'},
+ {id:'M-RT',name:'Response time — total',get:()=>T.rts.length?`${last(T.rts)} ms (mean ${mean(T.rts)})`:'\u2014'},
+ {id:'M-RTFIRST',name:'First-action latency',get:()=>T.rtFirsts.length?`${last(T.rtFirsts)} ms`:'\u2014'},
+ {id:'M-REV',name:'Revisions (re-place/undo)',get:()=>T.revisions},
+ {id:'M-PATH',name:'Placement path',get:()=>T.path.length?`${T.path.length}: ${T.path.slice(-4).join(' ')}`:'\u2014'},
+ {id:'M-EFF',name:'Efficiency vs optimal',get:()=>optStr()},
+ {id:'M-PROG',name:'Progress trajectory (% filled)',get:()=>progStr()},
+ {id:'M-DIFFREACH',name:'Ceiling / max level reached',get:()=>T.maxLevel+1+'/'+LEVELS.length},
+ {id:'M-LEARNRATE',name:'Within-session learning rate',get:()=>learnRate()},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});$('#dbar').style.width=(100*(level+1)/LEVELS.length)+'%';$('#dlab').textContent=(level+1)+'/'+LEVELS.length;}
+function log(msg){const t=Date.now()-T.itemStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+const ghost=$('#ghost');function ghostShow(v){ghost.classList.toggle('show',v);}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(520);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(420);}
+
+/* ---------- render ---------- */
+function cellFillColor(l,r,c){const k=key3(l,r,c);for(const[id,pl]of placements){if(pl.cells.some(cc=>cc[0]===l&&cc[1]===r&&cc[2]===c))return pl.color;}return null;}
+function renderBoards(){
+  const wrap=$('#boards');wrap.innerHTML='';
+  const layerCount=cur.L;
+  for(let l=0;l<layerCount;l++){
+    const outer=document.createElement('div');
+    if(layerCount>1){const lbl=document.createElement('div');lbl.className='boardlbl';lbl.textContent=l===0?'Front layer':'Back layer';outer.appendChild(lbl);}
+    const vol=document.createElement('div');vol.className='volwrap';
+    const board=document.createElement('div');board.className='board'+(l===1?' layerB':'');
+    board.style.gridTemplateColumns=`repeat(${cur.C},1fr)`;
+    for(let r=0;r<cur.R;r++)for(let c=0;c<cur.C;c++){
+      const d=document.createElement('div');
+      const k=key3(l,r,c);
+      const isOut=cur.targetSet.has(k);
+      d.dataset.l=l;d.dataset.r=r;d.dataset.c=c;
+      if(isOut){
+        d.className='cell out';
+        const fillC=cellFillColor(l,r,c);
+        if(fillC){d.className='cell filled';d.style.background=fillC;}
+      } else d.className='cell';
+      board.appendChild(d);
+    }
+    vol.appendChild(board);outer.appendChild(vol);wrap.appendChild(outer);
+  }
+}
+function pieceBBox(offs){const R=Math.max(...offs.map(o=>o[1]))+1,C=Math.max(...offs.map(o=>o[2]))+1,L=Math.max(...offs.map(o=>o[0]))+1;return{R,C,L};}
+function renderTray(){
+  const tray=$('#tray');tray.innerHTML='';
+  available.forEach(p=>{
+    const bb=pieceBBox(p.offsets);
+    const el=document.createElement('div');el.className='tp'+(p.id===selectedId?' sel':'');el.dataset.id=p.id;
+    el.style.gridTemplateColumns=`repeat(${bb.C},14px)`;
+    for(let l=0;l<bb.L;l++)for(let r=0;r<bb.R;r++)for(let c=0;c<bb.C;c++){
+      const on=p.offsets.some(o=>o[0]===l&&o[1]===r&&o[2]===c);
+      const sq=document.createElement('div');sq.className='pc';if(on)sq.style.background=p.color;
+      el.appendChild(sq);
+    }
+    tray.appendChild(el);
+  });
+  $('#rotbtn').disabled=(selectedId===null);
+}
+function renderAll(){renderBoards();renderTray();renderMeters();}
+
+/* ---------- gameplay ---------- */
+function selectPiece(id){selectedId=(selectedId===id)?null:id;renderTray();}
+function rotateSelected(){
+  if(selectedId===null)return;
+  const p=available.find(x=>x.id===selectedId);if(!p)return;
+  p.offsets=rotateOffsets(p.offsets);
+  T.revisions++; // counts as a manipulation action
+  log(`rotate piece #${p.id+1}`);
+  renderAll();
+}
+function canPlace(piece,anchor){
+  const cells=piece.offsets.map(([l,r,c])=>[anchor[0]+l,anchor[1]+r,anchor[2]+c]);
+  for(const[l,r,c]of cells){
+    if(!inBounds(l,r,c,cur.L,cur.R,cur.C))return null;
+    const k=key3(l,r,c);
+    if(!cur.targetSet.has(k))return null;
+    if(filled.has(k))return null;
+  }
+  return cells;
+}
+function markFirstAction(){if(!T.firstActed){T.firstActed=true;T.rtFirsts.push(Date.now()-T.itemStart);}}
+function tryPlaceAt(l,r,c){
+  if(selectedId===null||locked)return;
+  markFirstAction();
+  const idx=available.findIndex(p=>p.id===selectedId);
+  const piece=available[idx];
+  const cells=canPlace(piece,[l,r,c]);
+  if(!cells){
+    T.revisions++;
+    log(`✗ piece #${piece.id+1} rejected at (${r+1},${c+1}${cur.is3D?','+(l+1):''})`);
+    if(phase!=='demo')setStatus('no','\u2717 That piece does not fit there');
+    $('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),400);
+    return;
+  }
+  cells.forEach(cc=>filled.add(key3(...cc)));
+  placements.set(piece.id,{cells,color:piece.color,real:piece.real});
+  T.path.push(`P${piece.id+1}@(${r+1},${c+1})`);
+  available.splice(idx,1);
+  selectedId=null;
+  T.polyPct=Math.round(100*filled.size/cur.targetArea);
+  T.prog.push(T.polyPct);
+  log(`placed piece → ${filled.size}/${cur.targetArea} cells filled`);
+  renderAll();
+  $('#done').classList.toggle('ready',phase!=='demo');
+  if(filled.size===cur.targetArea)submit(true);
+}
+function pickUpAt(l,r,c){
+  if(locked)return;
+  const k=key3(l,r,c);
+  for(const[id,pl]of placements){
+    if(pl.cells.some(cc=>cc[0]===l&&cc[1]===r&&cc[2]===c)){
+      pl.cells.forEach(cc=>filled.delete(key3(...cc)));
+      placements.delete(id);
+      const orig=cur.pieces.find(p=>p.id===id);
+      available.push({id,real:pl.real,offsets:normalize(pl.cells.map(cc=>[cc[0],cc[1],cc[2]])),color:pl.color});
+      T.revisions++;
+      T.polyPct=Math.round(100*filled.size/cur.targetArea);
+      log(`picked up piece #${id+1} — revision`);
+      renderAll();
+      return;
+    }
+  }
+}
+function renderItem(item){
+  cur=item;filled=new Set();placements=new Map();available=item.pieces.slice();selectedId=null;
+  T.path=[];T.revisions=0;T.itemStart=Date.now();T.firstActed=false;T.polyPct=0;T.prog=[0];
+  renderAll();$('#done').classList.toggle('ready',phase!=='demo');
+}
+function submit(auto){
+  if(phase==='demo')return;
+  const rt=Date.now()-T.itemStart;
+  const exact=filled.size===cur.targetArea;
+  locked=true;$('#done').classList.remove('ready');
+  if(phase==='warmup'){
+    setStatus('neutral',exact?'\u2713 Filled - practice':'Practice - not scored');
+    log(auto?'warm-up complete — UNSCORED':`warm-up ${T.polyPct}% filled — UNSCORED`);
+    setTimeout(nextPhase,1100);return;
+  }
+  T.scored++;T.rts.push(rt);
+  if(exact)T.exact++;
+  setStatus(exact?'ok':'no',exact?'\u2713 Correct - board filled':'\u2717 Not quite - fill every square');
+  T.levelSeries.push(level);
+  T.maxLevel=exact?Math.max(T.maxLevel,level):T.maxLevel;
+  level=exact?Math.min(level+1,LEVELS.length-1):Math.max(level-1,0);
+  log(`SUBMIT lvl${cur.lvl+1} → ${filled.size}/${cur.targetArea} cells${exact?' EXACT':''} · ${optStr()} · rev ${T.revisions}`);
+  renderMeters();
+  setTimeout(nextPhase,1300);
+}
+function nextPhase(){
+  locked=false;
+  if(phase==='warmup'){scoredIndex=0;startScored();}
+  else if(phase==='scored'){scoredIndex++;scoredIndex<6?startScored():finish();}
+}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+function startWarmup(){phase='warmup';locked=false;setCue('warmup');setStatus('neutral','Practice - this one is not scored.');renderItem(genItem(0));log('— warm-up (unscored) —');}
+function startScored(){phase='scored';setCue('scored',(scoredIndex+1)+'/6');setStatus('neutral','Fill the whole board with the pieces, then press done.');renderItem(genItem(level));log(`— SCORED item ${scoredIndex+1}/6 · level ${level+1}${cur.is3D?' · 3D volume':''} —`);}
+function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;log(`— DONE · exact ${T.exact}/${T.scored} · ceiling level ${T.maxLevel+1} —`);}
+
+async function runDemo(){
+  phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;
+  const demoItem={R:3,C:3,L:1,is3D:false,lvl:-1,
+    targetSet:new Set([key3(0,0,0),key3(0,0,1),key3(0,1,0),key3(0,1,1)]),targetArea:4,
+    pieces:[
+      {id:0,real:true,offsets:[[0,0,0],[0,1,0]],color:COLORS[0]},
+      {id:1,real:true,offsets:[[0,0,0],[0,0,1]],color:COLORS[1]},
+    ],optimalPlacements:2};
+  renderItem(demoItem);log('ghost-hand demo (wordless, <10s)');ghostShow(true);await sleep(300);
+  selectedId=0;renderTray();
+  await ghostTo($('.tp[data-id="0"]'));await ghostTap();
+  await sleep(150);
+  await ghostTo($('#rotbtn'));await ghostTap();rotateSelected();
+  await sleep(150);
+  const cellAt=(r,c)=>$(`.cell[data-l="0"][data-r="${r}"][data-c="${c}"]`);
+  await ghostTo(cellAt(0,0));await ghostTap();tryPlaceAt(0,0,0);
+  await sleep(250);
+  selectedId=available[0]?.id;renderTray();
+  await ghostTo($('.tp[data-id]'));await ghostTap();
+  await sleep(150);
+  await ghostTo(cellAt(1,0));await ghostTap();tryPlaceAt(0,1,0);
+  await sleep(500);ghostShow(false);await sleep(400);startWarmup();
+}
+
+$('#boards').addEventListener('click',e=>{
+  const d=e.target.closest('.cell');if(!d||locked||phase==='demo'||phase==='done')return;
+  const l=+d.dataset.l,r=+d.dataset.r,c=+d.dataset.c;
+  if(d.classList.contains('filled'))pickUpAt(l,r,c);
+  else if(d.classList.contains('out'))tryPlaceAt(l,r,c);
+});
+$('#tray').addEventListener('click',e=>{
+  const d=e.target.closest('.tp');if(!d||locked||phase==='demo'||phase==='done')return;
+  markFirstAction();selectPiece(+d.dataset.id);
+});
+$('#rotbtn').addEventListener('click',()=>{if(!locked&&phase!=='demo'&&phase!=='done')rotateSelected();});
+$('#done').addEventListener('click',()=>{if($('#done').classList.contains('ready'))submit(false);});
+$('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
+document.addEventListener('keydown',e=>{
+  if(locked||phase==='demo'||phase==='done')return;
+  if(e.key.toLowerCase()==='r')rotateSelected();
+});
+buildMeters();renderMeters();runDemo();
+</script>
+</body>
+</html>

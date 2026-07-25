@@ -7,18 +7,24 @@ These instructions apply to every human or AI contributor working in this projec
 Read in this order before proposing or changing product behavior:
 
 1. `PROJECT_CHARTER.md`
-2. `docs/project-requirements.md`
-3. `docs/DEVELOPMENT_RUBRIC.md`
-4. `docs/TRACEABILITY_MATRIX.md`
-5. `docs/ASSUMPTIONS_AND_EVIDENCE.md`
-6. `docs/DECISION_LOG.md`
-7. `docs/SCOPE_EXCEPTION_LOG.md`
+2. `docs/product/project-requirements.md`
+3. `docs/governance/DEVELOPMENT_RUBRIC.md`
+4. `docs/product/TRACEABILITY_MATRIX.md`
+5. `docs/product/FEATURE_TO_REQUIREMENT_MAP.md`
+6. `docs/research/ASSUMPTIONS_AND_EVIDENCE.md`
+7. `docs/governance/DECISION_LOG.md`
+8. `docs/governance/SCOPE_EXCEPTION_LOG.md`
+
+Use `docs/product/FEATURE_TO_REQUIREMENT_MAP.md` as the development index for feature
+IDs, requirement mappings, scope, current implementation status, blockers, and
+remaining work. It is a derived implementation aid and cannot override a
+higher-precedence canonical requirement or ratified decision.
 
 When relevant, also read:
 
-- `docs/CONCEPT_OPTIONS.md` before concept selection;
-- `docs/CRITIC_REVIEW_CHECKLIST.md` before approval or completion; and
-- `docs/METRICS_AND_GUARDRAILS_LIBRARY.md` before choosing metrics.
+- `docs/product/CONCEPT_OPTIONS.md` before concept selection;
+- `docs/governance/CRITIC_REVIEW_CHECKLIST.md` before approval or completion; and
+- `docs/research/METRICS_AND_GUARDRAILS_LIBRARY.md` before choosing metrics.
 
 These are reference libraries, not approved product direction.
 

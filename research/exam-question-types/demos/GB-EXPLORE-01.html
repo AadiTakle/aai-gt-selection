@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GB-EXPLORE-01 · Explorer's Map</title>
+<style>
+  :root{--bg1:#0e2417;--bg2:#123024;--ink:#e4f5ec;--card:#173a2a;--accent:#5fd68a;--good:#22b573;--bad:#ff6b6b;--fog:#0a1911;--tile:#20503a;--tel-bg:#0a0f1e;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:radial-gradient(circle at 30% 10%,var(--bg2),var(--bg1));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:12px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8fd8ac;text-transform:uppercase;font-weight:700}
+  #howto{max-width:560px;width:100%;background:#fff;border:1px solid #cfeeda;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #000}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:#1f7a45}
+  #howto p{margin:0;font-size:14px;color:#2c4636;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#173a2a;color:#bfe9d1;border:2px solid #2c6b47;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:var(--accent);color:#08260f;border-color:var(--accent)}
+  #phasecue[data-phase="done"]{background:#bfe9d1;color:#08260f;border-color:#bfe9d1}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:#7fffcf} #status.no{color:var(--bad)} #status.neutral{color:#8fd8ac}
+  #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #000;display:flex;flex-direction:column;align-items:center;gap:12px;max-width:560px;width:100%}
+  #world{display:grid;gap:3px}
+  .cell{width:52px;height:52px;background:var(--fog);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:24px;transition:.2s}
+  .cell.revealed{background:var(--tile)}
+  .cell.avatar{box-shadow:inset 0 0 0 3px #fff}
+  #keys{display:grid;grid-template-columns:repeat(3,40px);grid-template-rows:repeat(2,36px);gap:3px;justify-items:center;align-items:center}
+  .keycap{background:#20503a;color:#bfe9d1;border-radius:6px;width:36px;height:32px;display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;user-select:none}
+  #kUp{grid-column:2;grid-row:1}#kLeft{grid-column:1;grid-row:2}#kDown{grid-column:2;grid-row:2}#kRight{grid-column:3;grid-row:2}
+  #budget{font-size:12px;color:#8fd8ac;letter-spacing:.05em}
+  #compassWrap{display:none;flex-direction:column;align-items:center;gap:10px}
+  #target{font-size:32px}
+  #dial{width:150px;height:150px;border-radius:50%;background:#0e2417;box-shadow:inset 0 0 0 3px #2c6b47;position:relative;cursor:grab;touch-action:none}
+  #needle{position:absolute;left:50%;top:50%;width:4px;height:64px;background:var(--accent);transform-origin:50% 100%;transform:translate(-50%,-100%) rotate(0deg);border-radius:3px}
+  #confirm{margin-top:4px}
+  #routeWrap{display:none;flex-direction:column;align-items:center;gap:10px}
+  #routeBtns{display:flex;gap:16px}
+  .routecard{background:#0e2417;border-radius:12px;padding:8px;cursor:pointer;box-shadow:inset 0 0 0 2px #2c6b47}
+  .routecard.chosen{box-shadow:inset 0 0 0 3px var(--accent)}
+  .minigrid{display:grid;gap:2px}
+  .mc{width:14px;height:14px;background:#173a2a;border-radius:3px}
+  .mc.path{background:var(--accent)}
+  #diffwrap{width:100%;max-width:320px}
+  #diffbar{height:8px;background:#173a2a;border-radius:5px;overflow:hidden}
+  #difffill{height:100%;background:linear-gradient(90deg,#5fd68a,#bfe9d1);width:14%;transition:.3s}
+  #difflabel{font-size:11px;color:#7183b8;text-align:center;margin-top:4px;letter-spacing:.05em}
+  button.round{font:inherit;border:0;cursor:pointer;border-radius:50%}
+  #replay{width:50px;height:50px;background:#173a2a;color:var(--accent);font-size:22px}
+  button.pill{font:inherit;border:0;cursor:pointer;border-radius:20px;background:var(--accent);color:#08260f;font-weight:700;padding:8px 20px}
+  #ghost{position:fixed;left:0;top:0;font-size:40px;pointer-events:none;z-index:60;opacity:0;transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.4))}
+  #ghost.show{opacity:.95}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#141e38;text-transform:uppercase}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}
+  .mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #1c2745;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:200px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #1c2745}#log .t{color:#5f6f9e}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">GB-EXPLORE-01 · Explorer's Map</div>
+    <header id="howto">
+      <h1>How to use — Explorer's Map</h1>
+      <p>Use the arrow keys or the on-screen arrows to explore the map and find the landmarks. Then turn the dial to point back to each landmark, and pick the shorter route home to submit.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
+    <div id="stagecard">
+      <div id="world"></div>
+      <div id="keys">
+        <div class="keycap" id="kUp">↑</div>
+        <div class="keycap" id="kLeft">←</div>
+        <div class="keycap" id="kDown">↓</div>
+        <div class="keycap" id="kRight">→</div>
+      </div>
+      <div id="budget"></div>
+      <div id="compassWrap">
+        <div id="target"></div>
+        <div id="dial"><div id="needle"></div></div>
+        <button class="pill" id="confirm">✓</button>
+      </div>
+      <div id="routeWrap">
+        <div id="routeBtns"></div>
+        <button class="pill" id="routeConfirm">✓</button>
+      </div>
+      <div id="diffwrap"><div id="diffbar"><div id="difffill"></div></div><div id="difflabel">WORLD 5</div></div>
+      <button class="round" id="replay" title="replay demo">↻</button>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+    </div>
+  </div>
+  <aside id="telemetry">
+    <h3>Live telemetry · per-child</h3>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0;
+const last=a=>a[a.length-1];
+const LMK=['🌳','⛲','🍄'];
+
+/* ---------- world ---------- */
+let N=5,cells=[],avatar={r:0,c:0},visited=new Set(),foundLandmarks=[],gems=[],gemsCollected=0,moveBudget=0,movesUsed=0;
+function idx(r,c){return r*N+c;}
+function inBounds(r,c){return r>=0&&r<N&&c>=0&&c<N;}
+function buildWorld(n,nl,ng){N=n;cells=Array.from({length:N*N},()=>({type:'empty',revealed:false}));
+  avatar={r:(N/2)|0,c:(N/2)|0};visited=new Set([idx(avatar.r,avatar.c)]);foundLandmarks=[];gemsCollected=0;movesUsed=0;
+  const used=new Set([idx(avatar.r,avatar.c)]);
+  const lms=[];for(let k=0;k<nl;k++){let p;do{p={r:Math.floor(Math.random()*N),c:Math.floor(Math.random()*N)};}while(used.has(idx(p.r,p.c)));used.add(idx(p.r,p.c));cells[idx(p.r,p.c)]={type:'landmark',icon:LMK[k%LMK.length],revealed:false};lms.push({...p,icon:LMK[k%LMK.length]});}
+  gems=[];for(let k=0;k<ng;k++){let p;do{p={r:Math.floor(Math.random()*N),c:Math.floor(Math.random()*N)};}while(used.has(idx(p.r,p.c)));used.add(idx(p.r,p.c));cells[idx(p.r,p.c)]={type:'gem',revealed:false};gems.push(p);}
+  moveBudget=N*3;reveal(avatar.r,avatar.c);return lms;}
+function reveal(r,c){for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){const rr=r+dr,cc=c+dc;if(inBounds(rr,cc))cells[idx(rr,cc)].revealed=true;}}
+let curLandmarks=[];
+function renderWorld(){const w=$('#world');w.style.gridTemplateColumns=`repeat(${N},52px)`;w.innerHTML='';
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++){const cell=cells[idx(r,c)];const d=document.createElement('div');d.className='cell'+(cell.revealed?' revealed':'')+((r===avatar.r&&c===avatar.c)?' avatar':'');
+    let icon='';if(r===avatar.r&&c===avatar.c)icon='🧭';else if(cell.revealed&&cell.type==='landmark')icon=cell.icon;else if(cell.revealed&&cell.type==='gem')icon='💎';
+    d.textContent=icon;w.appendChild(d);}
+  $('#budget').textContent=`moves left: ${Math.max(0,moveBudget-movesUsed)}${gems.length?` · gems ${gemsCollected}/${gems.length}`:''}`;}
+function move(dr,dc){if(locked||phase!=='explore')return;const nr=avatar.r+dr,nc=avatar.c+dc;if(!inBounds(nr,nc))return;
+  if(!firstMoveTime){firstMoveTime=Date.now();if(!curIsWarmup)T.rtFirst.push(firstMoveTime-exploreStart);}
+  avatar={r:nr,c:nc};movesUsed++;const k=idx(nr,nc);if(visited.has(k)&&!curIsWarmup)T.revisions++;visited.add(k);reveal(nr,nc);
+  const cell=cells[k];if(cell.type==='landmark'&&!foundLandmarks.includes(k)){foundLandmarks.push(k);log(`found landmark ${cell.icon}`);}
+  if(cell.type==='gem'){cell.type='empty';gemsCollected++;log('collected gem 💎');}
+  renderWorld();renderMeters();
+  if(!demoActive&&(foundLandmarks.length>=curLandmarks.length||movesUsed>=moveBudget))endExplore();}
+
+/* ---------- telemetry ---------- */
+let level=1,maxLevel=0;
+const T={rounds:0,viewErr:[],exploreCov:[],pathLens:[],eff:[],rtFirst:[],revisions:0,routeCorrect:0,routeTotal:0};
+function optimalMoves(lms,start){let cur={...start},total=0,rem=lms.slice();while(rem.length){let bi=0,bd=1e9;rem.forEach((p,i)=>{const d=Math.abs(p.r-cur.r)+Math.abs(p.c-cur.c);if(d<bd){bd=d;bi=i;}});total+=bd;cur=rem[bi];rem.splice(bi,1);}return total;}
+const METERS=[
+ {id:'M-VIEWANG',name:'Perspective-taking angular error',get:()=>T.viewErr.length?`${last(T.viewErr)}\u00b0 (mean ${mean(T.viewErr)}\u00b0)`:'\u2014'},
+ {id:'M-EXPLORE',name:'Exploration coverage',get:()=>T.exploreCov.length?`${last(T.exploreCov)}%`:'\u2014'},
+ {id:'M-PATH',name:'Path length (moves)',get:()=>T.pathLens.length?`${last(T.pathLens)} moves`:'\u2014'},
+ {id:'M-EFF',name:'Efficiency vs optimal path',get:()=>T.eff.length?`${last(T.eff)}%`:'\u2014'},
+ {id:'M-DIFFREACH',name:'Ceiling / max difficulty reached',get:()=>maxLevel?`world ${maxLevel}`:'\u2014'},
+ {id:'M-RTFIRST',name:'First-action latency',get:()=>T.rtFirst.length?`${last(T.rtFirst)} ms`:'\u2014'},
+ {id:'M-REV',name:'Revisions (revisited tiles)',get:()=>`${T.revisions}`},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});}
+let tStart=Date.now();
+function log(msg){const t=Date.now()-tStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+function setDiff(){const pct=Math.min(100,Math.round((level-1)/5*100));$('#difffill').style.width=pct+'%';$('#difflabel').textContent='WORLD '+(4+level);}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+function roundCue(){setCue(curIsWarmup?'warmup':'scored',curIsWarmup?'':(T.rounds+1)+'/5');}
+
+/* ---------- ghost ---------- */
+const ghost=$('#ghost');function ghostShow(v){ghost.classList.toggle('show',v);}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(480);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(400);}
+
+/* ---------- flow ---------- */
+let phase='demo',locked=true,exploreStart=0,firstMoveTime=0,lmList=[],pointIdx=0,dialAngle=0,dragging=false,routeChoice=null,roundLandmarks=[],curIsWarmup=false,demoActive=false;
+function bearing(from,to){const dx=to.c-from.c,dy=from.r-to.r;let a=Math.atan2(dx,dy)*180/Math.PI;if(a<0)a+=360;return a;}
+function endExplore(){locked=true;const cov=Math.round(100*[...visited].length/(N*N));const opt=Math.max(1,optimalMoves(roundLandmarks,{r:(N/2)|0,c:(N/2)|0}));const effPct=Math.min(100,Math.round(100*opt/Math.max(movesUsed,opt)));
+  if(!curIsWarmup){T.exploreCov.push(cov);T.pathLens.push(movesUsed);T.eff.push(effPct);}
+  log(`exploration done${curIsWarmup?' (unscored)':''}: ${movesUsed} moves, coverage ${cov}%, landmarks ${foundLandmarks.length}/${roundLandmarks.length}`);
+  renderMeters();cells.forEach(c=>c.revealed=false);const av=cells[idx(avatar.r,avatar.c)];renderWorld();
+  setTimeout(startPointing,900);}
+function startPointing(){phase='point';pointIdx=0;roundCue();setStatus('neutral','Turn the dial to point back to the landmark, then press the check.');lmList=roundLandmarks.slice();nextPoint();}
+function nextPoint(){if(pointIdx>=lmList.length){startRoute();return;}
+  $('#compassWrap').style.display='flex';$('#target').textContent=lmList[pointIdx].icon+' ?';dialAngle=0;$('#needle').style.transform='translate(-50%,-100%) rotate(0deg)';locked=false;}
+function commitPoint(){if(locked)return;locked=true;const true_b=bearing(avatar,lmList[pointIdx]);let err=Math.abs(dialAngle-true_b);if(err>180)err=360-err;err=Math.round(err);
+  if(!curIsWarmup)T.viewErr.push(err);log(`pointed at ${lmList[pointIdx].icon}: error ${err}\u00b0${curIsWarmup?' (unscored)':''}`);setStatus('neutral','Off by '+err+'\u00b0');renderMeters();pointIdx++;
+  setTimeout(()=>{$('#compassWrap').style.display='none';nextPoint();},600);}
+function startRoute(){phase='route';roundCue();setStatus('neutral','Pick the shorter route home, then press the check.');$('#routeWrap').style.display='flex';routeChoice=null;
+  const homeR=(N/2)|0,homeC=(N/2)|0;const shortLen=Math.abs(avatar.r-homeR)+Math.abs(avatar.c-homeC);const longLen=shortLen+2+Math.floor(Math.random()*2);
+  const order=Math.random()<0.5?[shortLen,longLen]:[longLen,shortLen];const correctIsA=order[0]===shortLen;
+  $('#routeBtns').innerHTML='';order.forEach((len,i)=>{const card=document.createElement('div');card.className='routecard';card.dataset.i=i;card.dataset.correct=(i===0&&correctIsA)||(i===1&&!correctIsA)?'1':'0';
+    const mg=document.createElement('div');mg.className='minigrid';mg.style.gridTemplateColumns=`repeat(${len+1},14px)`;
+    for(let k=0;k<=len;k++){const mc=document.createElement('div');mc.className='mc path';mg.appendChild(mc);}
+    card.appendChild(mg);$('#routeBtns').appendChild(card);});
+  locked=false;}
+function chooseRoute(i){if(locked)return;$$('.routecard').forEach(c=>c.classList.remove('chosen'));const card=$$('.routecard')[i];card.classList.add('chosen');routeChoice=i;}
+function confirmRoute(){if(locked||routeChoice===null)return;locked=true;const card=$$('.routecard')[routeChoice];const ok=card.dataset.correct==='1';
+  if(!curIsWarmup){T.routeTotal++;if(ok)T.routeCorrect++;}
+  log(`shortcut choice: ${ok?'correct':'wrong'}${curIsWarmup?' (unscored)':''}`);
+  setStatus(ok?'ok':'no',ok?'\u2713 Shorter route':'\u2717 Not quite - that was the longer route');
+  $('#routeWrap').style.display='none';finishRound(ok);}
+function finishRound(routeOk){
+  if(curIsWarmup){setStatus('neutral','Practice done - now the scored rounds begin.');log('\u2014 warm-up complete \u2014 UNSCORED \u2014');setTimeout(startScored,1200);return;}
+  T.rounds++;const avgErr=mean(T.viewErr.slice(-roundLandmarks.length));const good=avgErr<55&&routeOk;
+  if(good){maxLevel=Math.max(maxLevel,level);level=Math.min(6,level+1);log(`ROUND result: strong \u2714 \u2192 world up to ${4+level}`);}
+  else{level=Math.max(1,level-1);log(`ROUND result: needs work \u2192 world down to ${4+level}`);}
+  setDiff();renderMeters();
+  setTimeout(()=>{if(T.rounds>=5)finish();else startScored();},1200);}
+function startWorld(isWarmup){curIsWarmup=isWarmup;roundCue();setStatus('neutral',isWarmup?'Practice - not scored. Explore to find the landmark.':'Explore the map to find the landmarks.');const n=isWarmup?4:Math.min(7,4+level);const nl=isWarmup?1:Math.min(3,1+Math.floor(level/2));const ng=isWarmup||level<3?0:2;
+  roundLandmarks=buildWorld(n,nl,ng);curLandmarks=roundLandmarks;phase='explore';firstMoveTime=0;exploreStart=Date.now();locked=false;
+  log(`\u2014 ${isWarmup?'warm-up (unscored)':'SCORED'} world ${n}x${n}, ${nl} landmark(s)${ng?', '+ng+' gems (Gem Trail)':''} \u2014`);
+  renderWorld();renderMeters();}
+function startWarmup(){phase='explorewarm';startWorld(true);}
+function startScored(){phase='explore';startWorld(false);}
+function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;$('#compassWrap').style.display='none';$('#routeWrap').style.display='none';
+  log(`\u2014 DONE \u00b7 mean angular error ${mean(T.viewErr)}\u00b0 \u00b7 shortcuts ${T.routeCorrect}/${T.routeTotal} \u00b7 ceiling world ${4+maxLevel} \u2014`);}
+async function runDemo(){phase='demo';demoActive=true;setCue('demo');setStatus('neutral','Watch the example.');locked=true;
+  roundLandmarks=buildWorld(3,1,0);curLandmarks=roundLandmarks;renderWorld();log('ghost-hand demo (wordless, <10s)');
+  ghostShow(true);await sleep(300);
+  const lm=roundLandmarks[0];const dr=Math.sign(lm.r-avatar.r),dc=Math.sign(lm.c-avatar.c);
+  phase='explore';locked=false;curIsWarmup=true;
+  while(avatar.r!==lm.r){move(dr,0);await sleep(260);}while(avatar.c!==lm.c){move(0,dc);await sleep(260);}
+  phase='demo';locked=true;
+  await sleep(300);cells.forEach(c=>c.revealed=false);renderWorld();
+  $('#compassWrap').style.display='flex';$('#target').textContent=lm.icon+' ?';const b=bearing(avatar,lm);dialAngle=b;$('#needle').style.transform=`translate(-50%,-100%) rotate(${b}deg)`;
+  await ghostTo($('#dial'));await ghostTap();await ghostTo($('#confirm'));await ghostTap();
+  $('#compassWrap').style.display='none';ghostShow(false);demoActive=false;setStatus('ok','\u2713 Example done - now you try');await sleep(500);startWarmup();}
+
+$('#kUp').addEventListener('click',()=>move(-1,0));$('#kDown').addEventListener('click',()=>move(1,0));
+$('#kLeft').addEventListener('click',()=>move(0,-1));$('#kRight').addEventListener('click',()=>move(0,1));
+window.addEventListener('keydown',e=>{if(e.key==='ArrowUp')move(-1,0);else if(e.key==='ArrowDown')move(1,0);else if(e.key==='ArrowLeft')move(0,-1);else if(e.key==='ArrowRight')move(0,1);});
+const dial=$('#dial');
+function angleFromEvent(e){const r=dial.getBoundingClientRect();const cx=r.left+r.width/2,cy=r.top+r.height/2;const x=(e.touches?e.touches[0].clientX:e.clientX)-cx,y=(e.touches?e.touches[0].clientY:e.clientY)-cy;
+  let a=Math.atan2(x,-y)*180/Math.PI;if(a<0)a+=360;return a;}
+function dialStart(e){if(locked)return;dragging=true;dialAngle=angleFromEvent(e);$('#needle').style.transform=`translate(-50%,-100%) rotate(${dialAngle}deg)`;}
+function dialMove(e){if(!dragging)return;dialAngle=angleFromEvent(e);$('#needle').style.transform=`translate(-50%,-100%) rotate(${dialAngle}deg)`;}
+function dialEnd(){dragging=false;}
+dial.addEventListener('mousedown',dialStart);window.addEventListener('mousemove',dialMove);window.addEventListener('mouseup',dialEnd);
+dial.addEventListener('touchstart',dialStart);window.addEventListener('touchmove',dialMove);window.addEventListener('touchend',dialEnd);
+$('#confirm').addEventListener('click',commitPoint);
+$('#routeBtns').addEventListener('click',e=>{const c=e.target.closest('.routecard');if(c)chooseRoute(+c.dataset.i);});
+$('#routeConfirm').addEventListener('click',confirmRoute);
+$('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
+buildMeters();renderMeters();setDiff();runDemo();
+</script>
+</body>
+</html>

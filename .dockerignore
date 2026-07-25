@@ -1,0 +1,15 @@
+**/node_modules
+**/.next
+**/dist
+**/coverage
+.git
+.github
+**/*.log
+design-demo
+graphify-out
+infra
+supabase/.branches
+supabase/.temp
+**/.DS_Store
+**/playwright-report
+**/test-results

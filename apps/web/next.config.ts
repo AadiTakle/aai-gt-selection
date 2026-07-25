@@ -1,6 +1,17 @@
 import type { NextConfig } from 'next';
 
+import { buildContentSecurityPolicy } from './src/lib/csp';
+
+// Static baseline CSP for responses the proxy does not run on (e.g. static
+// files under /exam-demos/, /_next assets excluded by the proxy matcher). The
+// proxy recomputes and overrides this per-request for pages so hosted-mode
+// connect-src reflects runtime env — see src/lib/csp.ts and src/proxy.ts.
+const staticContentSecurityPolicy = buildContentSecurityPolicy();
+
 const nextConfig: NextConfig = {
+  // Emit a minimal self-contained server bundle for container images
+  // (Amazon ECS Fargate target per D-012). No effect on local dev.
+  output: 'standalone',
   poweredByHeader: false,
   async headers() {
     return [
@@ -9,7 +20,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'",
+            value: staticContentSecurityPolicy,
           },
           {
             key: 'Referrer-Policy',
@@ -21,7 +32,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'X-Frame-Options',
-            value: 'DENY',
+            value: 'SAMEORIGIN',
           },
         ],
       },

@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QUANT-EQUAL-01 · Make It Equal</title>
+<style>
+  :root{
+    --sky:#edf3ff;--paper:#fff;--ink:#2e3852;--left:#6558c7;--right:#de6f72;
+    --accent:#f2b84b;--good:#2fa77a;--bad:#d95867;--tel:#111626;--tel2:#1c2540;
+    --key:#78f1ca;--dim:#7b89b2;
+  }
+  *{box-sizing:border-box}html,body{margin:0;min-height:100%}
+  body{
+    display:flex;color:var(--ink);font:16px/1.35 system-ui,-apple-system,Segoe UI,sans-serif;
+    background:linear-gradient(150deg,#e7efff,#f8ebf1);
+  }
+  button{font:inherit;border:0;cursor:pointer}
+  button:focus-visible{outline:4px solid #566dd0;outline-offset:3px}
+  #wrap{flex:1;min-width:0;padding:18px;display:flex;flex-direction:column;align-items:center;gap:12px}
+  #badge{font-size:12px;font-weight:800;letter-spacing:.1em;color:#7d86a9;text-transform:uppercase}
+  #howto{max-width:600px;width:100%;background:#fff;border:1px solid #d7d3f0;border-left:5px solid #6558c7;border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #454a80}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:#6558c7}
+  #howto p{margin:0;font-size:14px;color:#46507a;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eeebfb;color:#6558c7;border:2px solid #d2ccf3;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:#6558c7;color:#fff;border-color:#6558c7}
+  #phasecue[data-phase="done"]{background:#eae7fb;color:#4b3fa0;border-color:#d2ccf3}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#7d86a9}
+  #stagecard{
+    width:min(800px,100%);background:rgba(255,255,255,.94);border-radius:30px;padding:22px;
+    display:grid;gap:17px;box-shadow:0 24px 60px -34px #454a80;border:1px solid #fff;
+  }
+  #bridge{
+    min-height:245px;background:linear-gradient(#eaf3ff 0 62%,#d7e6f5 62% 100%);
+    border-radius:24px;position:relative;padding:34px 18px 52px;display:grid;
+    grid-template-columns:1fr 78px 1fr;gap:8px;align-items:center;overflow:hidden;
+  }
+  #bridge::before,#bridge::after{
+    content:"";position:absolute;bottom:-22px;width:32%;height:90px;background:#a7b5ca;border-radius:50% 50% 0 0;
+  }
+  #bridge::before{left:-4%}#bridge::after{right:-4%}
+  .side{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;z-index:2}
+  .op{font-size:26px;color:#8792ae;font-weight:700}
+  .qty,.slot{
+    width:75px;min-height:88px;border-radius:16px;background:#fff;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:7px;padding:8px;box-shadow:0 8px 18px -14px #25304e;
+  }
+  #leftSide .qty{border:3px solid #c9c4f1}#rightSide .qty{border:3px solid #f2c6c8}
+  .slot{border:3px dashed var(--accent);background:#fffaf0;font-size:35px;color:#d7a743}
+  .slot.filled{border-style:solid}
+  .dots{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;max-width:55px}
+  .dots i{width:11px;height:11px;border-radius:50%;background:var(--left);box-shadow:inset 0 -2px #0002}
+  #rightSide .dots i,.candidate .dots i{background:var(--right);background-image:repeating-linear-gradient(45deg,transparent 0 3px,#fff5 3px 5px)}
+  .bar{width:54px;height:8px;border-radius:6px;background:#e1e5ef;overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--left);border-radius:6px}
+  #rightSide .bar i,.candidate .bar i{background:var(--right)}
+  #equals{
+    width:74px;height:74px;border-radius:50%;background:#fff;color:#7d86a1;font:bold 45px/74px Georgia,serif;
+    text-align:center;z-index:3;box-shadow:0 8px 25px -15px #29324f;transition:.25s;
+  }
+  #equals.good{background:#dff8eb;color:var(--good);box-shadow:0 0 0 8px #8edab855}
+  #equals.bad{background:#ffe8eb;color:var(--bad)}
+  #beam{
+    position:absolute;left:20%;right:20%;bottom:45px;height:9px;background:#73839d;border-radius:9px;
+    transform-origin:center;transition:transform .45s;z-index:1;
+  }
+  #beam::after{content:"";position:absolute;left:calc(50% - 7px);top:5px;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:35px solid #66778f}
+  #answers{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .candidate{
+    min-height:92px;border-radius:17px;background:#f2f4fa;border:3px solid transparent;
+    display:grid;place-items:center;padding:7px;transition:.16s;
+  }
+  .candidate:hover:not(:disabled){transform:translateY(-2px)}
+  .candidate.selected{border-color:var(--accent);background:#fff8e6}
+  .candidate.correct{border-color:var(--good);background:#e4f8ef}
+  .candidate.wrong{border-color:var(--bad);background:#ffe9ed}
+  .candidate:disabled{cursor:default}
+  #controls{display:flex;justify-content:center;align-items:center;gap:14px}
+  .round{width:49px;height:49px;border-radius:50%;background:#e9edf7;color:#697493;font-size:22px}
+  #go{
+    width:70px;height:70px;border-radius:50%;background:var(--accent);color:#fff;font-size:30px;
+    box-shadow:0 12px 25px -12px #956d18;opacity:.35;pointer-events:none;
+  }
+  #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.05s infinite}
+  @keyframes pulse{50%{transform:scale(1.07)}}
+  #progress{display:flex;justify-content:center;gap:7px;height:11px}
+  #progress i{width:10px;height:10px;border-radius:50%;background:#dce1ef}
+  #progress i.ok{background:var(--good)}#progress i.no{background:var(--bad)}
+  #ghost{
+    position:fixed;left:0;top:0;z-index:60;opacity:0;pointer-events:none;
+    transition:transform .47s cubic-bezier(.2,.7,.2,1),opacity .2s;filter:drop-shadow(0 3px 4px #0004);
+  }
+  #ghost.show{opacity:.95}#ghost.tap{animation:tap .35s}@keyframes tap{50%{scale:.78}}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid #6558c7;opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #telemetry{
+    width:340px;flex:0 0 340px;min-height:100vh;background:var(--tel);color:#c3cce6;
+    display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  #telemetry h3{margin:0;padding:13px 14px;background:var(--tel2);color:#fff;font-size:12px;letter-spacing:.09em;text-transform:uppercase}
+  #difficulty{padding:10px 13px;border-bottom:1px solid #2a3455}
+  #diffhead{display:flex;justify-content:space-between;color:#a7b2d2;font-size:11px}
+  #diffbar{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin:7px 0}
+  #diffbar i{height:8px;border-radius:8px;background:#2b3658}#diffbar i.live{background:var(--accent)}
+  #dtrend{font-size:11px;color:#7885a9}
+  #mlist{padding:11px 13px;display:flex;flex-direction:column;gap:8px}
+  .mrow{display:grid;grid-template-columns:102px 1fr;gap:7px}.mid{color:var(--key);font-weight:800}.mval{color:#fff}
+  .mname{grid-column:1/3;color:var(--dim);font-size:11px;margin-top:-4px}
+  #logwrap{margin-top:auto;border-top:1px solid #2a3455}
+  #logwrap b{display:block;padding:8px 12px 3px;color:#8997bd;font-size:11px;letter-spacing:.08em}
+  #log{height:225px;overflow:auto;padding:2px 12px 12px;white-space:pre-wrap}
+  #log div{padding:3px 0;border-bottom:1px dotted #293250}#log .t{color:#5e6d95}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;min-height:0;height:340px;flex:none}}
+  @media(max-width:620px){#bridge{grid-template-columns:1fr 55px 1fr;padding-inline:8px}.qty,.slot{width:58px}.dots{max-width:44px}#answers{grid-template-columns:repeat(2,1fr)}}
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<main id="wrap">
+  <div id="badge">QUANT-EQUAL-01 · Make It Equal</div>
+  <header id="howto">
+    <h1>How to use — Make It Equal</h1>
+    <p>Look at both sides of the bridge. Tap the tile that makes the two sides equal, then press the check (<b>✓</b>) to submit.</p>
+  </header>
+  <div id="phasecue" data-phase="demo">Watch the example</div>
+  <section id="stagecard">
+    <div id="bridge">
+      <div class="side" id="leftSide"></div><div id="equals">=</div><div class="side" id="rightSide"></div><div id="beam"></div>
+    </div>
+    <div id="answers"></div>
+    <div id="controls"><button class="round" id="replay" aria-label="replay demonstration">↻</button><button id="go" aria-label="submit">✓</button></div>
+    <div id="progress"></div>
+    <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+  </section>
+</main>
+<aside id="telemetry">
+  <h3>Live telemetry · per-child</h3>
+  <div id="difficulty"><div id="diffhead"><span>DIFFICULTY</span><span id="dlevel"></span></div><div id="diffbar"></div><div id="dtrend"></div></div>
+  <div id="mlist"></div>
+  <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+</aside>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#6558c7" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+const ITEMS=[
+  {level:1,label:'non-canonical',left:[{n:3,s:1},{n:4,s:1}],right:[{slot:1,s:1},{n:5,s:1}],target:2,options:[{n:7,err:'left-total'},{n:2,err:'none'},{n:5,err:'copy-neighbor'},{n:12,err:'total-all'}],correct:1},
+  {level:2,label:'unknown-first',left:[{slot:1,s:1},{n:3,s:1}],right:[{n:5,s:1},{n:4,s:1}],target:6,options:[{n:9,err:'right-total'},{n:3,err:'difference-only'},{n:6,err:'none'},{n:12,err:'total-all'}],correct:2},
+  {level:3,label:'part-whole',left:[{n:8,s:1}],right:[{n:3,s:1},{slot:1,s:1}],target:5,options:[{n:8,err:'answer-after-equals'},{n:11,err:'total-all'},{n:3,err:'copy-part'},{n:5,err:'none'}],correct:3},
+  {level:4,label:'compensation',left:[{n:6,s:1},{slot:1,s:1}],right:[{n:4,s:1},{n:5,s:1}],target:3,options:[{n:10,err:'sum-left-visible'},{n:3,err:'none'},{n:9,err:'right-total'},{n:6,err:'copy-left'}],correct:1},
+  {level:5,label:'repeated groups',left:[{n:3,s:1},{n:3,s:1}],right:[{slot:1,s:1},{n:1,s:1}],target:5,options:[{n:6,err:'left-total'},{n:2,err:'difference-parts'},{n:5,err:'none'},{n:7,err:'total-all'}],correct:2},
+  {level:6,label:'both-side actions',left:[{n:9,s:1},{n:2,s:-1}],right:[{slot:1,s:1},{n:3,s:1}],target:4,options:[{n:7,err:'left-total'},{n:10,err:'inverse-direction'},{n:4,err:'none'},{n:14,err:'total-all'}],correct:2}
+];
+const DEMO={level:1,label:'demo',left:[{n:3,s:1},{n:4,s:1}],right:[{n:2,s:1},{slot:1,s:1}],target:5,options:[{n:7,err:'left-total'},{n:3,err:'copy-part'},{n:5,err:'none'},{n:9,err:'total-all'}],correct:2};
+const WARM={level:1,label:'warm-up',left:[{n:2,s:1},{n:3,s:1}],right:[{slot:1,s:1},{n:1,s:1}],target:4,options:[{n:5,err:'left-total'},{n:4,err:'none'},{n:6,err:'total-all'},{n:2,err:'copy-part'}],correct:1};
+let phase='demo',cur=null,selected=-1,firstChoice=null,locked=true,scoredIndex=0,itemRevs=0;
+const T={scored:0,correct:0,eqrel:'—',relational:0,err:'—',revs:0,level:1,startLevel:1,maxSolved:0,results:[],itemStart:0};
+const METERS=[
+  {id:'M-ACC',name:'Exact relational equivalence',get:()=>T.scored?`${T.correct}/${T.scored} · ${Math.round(100*T.correct/T.scored)}%`:'—'},
+  {id:'M-EQREL',name:'First-choice equality interpretation',get:()=>T.scored?`${T.eqrel} · relational ${T.relational}/${T.scored}`:T.eqrel},
+  {id:'M-ERRTYPE',name:'Operational or relational signature',get:()=>T.err},
+  {id:'M-REV',name:'Candidate swaps before commit',get:()=>`${itemRevs} item · ${T.revs} total`},
+  {id:'M-DIFFREACH',name:'Deepest equivalence structure solved',get:()=>T.maxSolved?`level ${T.maxSolved} · ${ITEMS[T.maxSolved-1].label}`:'—'},
+  {id:'M-LEARNRATE',name:'Adaptive level gain per item',get:()=>T.scored?`${((T.level-T.startLevel)/T.scored).toFixed(2)} level/trial`:'—'}
+];
+function buildTelemetry(){
+  $('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');
+  $('#diffbar').innerHTML=ITEMS.map(()=>'<i></i>').join('');
+  $('#progress').innerHTML=ITEMS.map(()=>'<i></i>').join('');
+}
+function renderMeters(){
+  METERS.forEach(m=>$('#v_'+m.id).textContent=m.get());
+  $('#dlevel').textContent=`${T.level} / 6 · ${ITEMS[T.level-1].label}`;
+  [...$('#diffbar').children].forEach((x,i)=>x.classList.toggle('live',i<T.level));
+  $('#dtrend').textContent=`path ${T.results.join('')||'·'} · success raises, miss lowers`;
+}
+function log(message){
+  const elapsed=T.itemStart?Math.round(performance.now()-T.itemStart):0;
+  const row=document.createElement('div');row.innerHTML=`<span class="t">+${elapsed}ms</span> ${message}`;
+  $('#log').appendChild(row);$('#log').scrollTop=$('#log').scrollHeight;
+}
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+function quantityHTML(n){
+  const dots=Array.from({length:n},()=>'<i></i>').join('');
+  return `<div class="dots">${dots}</div><div class="bar"><i style="width:${Math.min(100,n*9)}%"></i></div>`;
+}
+function sideTotal(terms,value=0){return terms.reduce((sum,t)=>sum+(t.slot?value:t.n)*t.s,0)}
+function sideHTML(terms){
+  return terms.map((term,index)=>{
+    const op=index?`<span class="op">${term.s>0?'＋':'−'}</span>`:'';
+    if(term.slot)return `${op}<div class="slot${selected>=0?' filled':''}" id="snap">${selected>=0?quantityHTML(cur.options[selected].n):'◇'}</div>`;
+    return `${op}<div class="qty">${quantityHTML(term.n)}</div>`;
+  }).join('');
+}
+function render(){
+  $('#leftSide').innerHTML=sideHTML(cur.left);$('#rightSide').innerHTML=sideHTML(cur.right);
+  $('#answers').innerHTML=cur.options.map((o,i)=>`<button class="candidate${selected===i?' selected':''}" data-i="${i}" ${locked?'disabled':''}>${quantityHTML(o.n)}</button>`).join('');
+  $('#go').classList.toggle('ready',selected>=0&&!locked);
+  renderMeters();
+}
+function interpretation(option){
+  if(option.err==='none')return 'relational';
+  if(option.err==='total-all')return 'operational · total-all';
+  if(option.err.includes('total')||option.err==='answer-after-equals')return 'operational · answer-producing';
+  return 'part/side confusion';
+}
+function pick(index,ghost=false){
+  if(locked||phase==='done')return;
+  if(selected>=0&&selected!==index){itemRevs++;T.revs++}
+  selected=index;if(firstChoice===null){firstChoice=index;T.eqrel=interpretation(cur.options[index])}
+  T.err=cur.options[index].err;render();if(!ghost)log(`choose tile ${cur.options[index].n} · ${T.eqrel}`);
+}
+function balanceFeedback(correct){
+  const left=sideTotal(cur.left,cur.options[selected].n),right=sideTotal(cur.right,cur.options[selected].n);
+  $('#beam').style.transform=`rotate(${clamp((right-left)*3,-10,10)}deg)`;
+  $('#equals').className=correct?'good':'bad';
+  document.querySelectorAll('.candidate').forEach((x,i)=>{if(i===cur.correct)x.classList.add('correct');if(i===selected&&!correct)x.classList.add('wrong')});
+}
+async function submit(){
+  if(locked||selected<0)return;locked=true;const correct=selected===cur.correct;render();balanceFeedback(correct);
+  if(phase==='warmup'){
+    setStatus('neutral',correct?'\u2713 Balanced - practice':'Practice - the equal answer is shown.');
+    log(`WARM-UP ${correct?'equal':'corrective balance'} · UNSCORED`);
+    if(!correct){await sleep(450);selected=cur.correct;render();balanceFeedback(true)}
+    await sleep(750);startScored();return;
+  }
+  setStatus(correct?'ok':'no',correct?'\u2713 Correct':'\u2717 Not quite - the correct tile is highlighted');
+  T.scored++;if(firstChoice===cur.correct)T.relational++;
+  if(correct){T.correct++;T.maxSolved=Math.max(T.maxSolved,cur.level)}
+  T.results.push(correct?'↑':'↓');T.level=clamp(T.level+(correct?1:-1),1,6);
+  $('#progress').children[scoredIndex].classList.add(correct?'ok':'no');
+  log(`SUBMIT level ${cur.level} → ${correct?'EQUAL':'MISS '+T.err} · first ${T.eqrel} · rev ${itemRevs}`);
+  renderMeters();scoredIndex++;await sleep(900);scoredIndex<6?startScored():finish();
+}
+function center(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}}
+async function ghostTo(el){const p=center(el);$('#ghost').style.transform=`translate(${p.x-10}px,${p.y-10}px)`;await sleep(460)}
+async function ghostTap(){$('#ghost').classList.remove('tap');void $('#ghost').offsetWidth;$('#ghost').classList.add('tap');await sleep(340)}
+function reset(){
+  Object.assign(T,{scored:0,correct:0,eqrel:'—',relational:0,err:'—',revs:0,level:1,startLevel:1,maxSolved:0,results:[],itemStart:0});
+  scoredIndex=0;[...$('#progress').children].forEach(x=>x.className='');renderMeters();
+}
+function loadItem(item){
+  cur=item;selected=-1;firstChoice=null;itemRevs=0;locked=false;T.eqrel='—';T.err='—';T.itemStart=performance.now();
+  $('#equals').className='';$('#beam').style.transform='rotate(0deg)';render();
+  log(`${phase.toUpperCase()} · level ${cur.level} · ${cur.label}`);
+}
+async function runDemo(){
+  reset();phase='demo';setCue('demo');setStatus('neutral','Watch the example, then try it yourself.');loadItem(DEMO);$('#ghost').classList.add('show');log('ghost-hand demo · wordless');
+  await ghostTo($('#leftSide'));await ghostTo($('#rightSide'));
+  await ghostTo($('#answers').children[DEMO.correct]);await ghostTap();pick(DEMO.correct,true);
+  await ghostTo($('#go'));await ghostTap();locked=true;render();balanceFeedback(true);
+  await sleep(500);$('#ghost').classList.remove('show');startWarmup();
+}
+function startWarmup(){phase='warmup';setCue('warmup');setStatus('neutral','Practice - this one is not scored.');loadItem(WARM)}
+function startScored(){phase='scored';setCue('scored',(scoredIndex+1)+'/6');setStatus('neutral','Tap the tile that makes both sides equal.');loadItem(ITEMS[T.level-1]);log(`SCORED ${scoredIndex+1}/6`)}
+function finish(){phase='done';locked=true;render();setCue('done');setStatus('ok','\u2713 Done');log(`DONE · ${T.correct}/${T.scored} · relational-first ${T.relational}`);renderMeters()}
+$('#answers').addEventListener('click',event=>{const button=event.target.closest('.candidate');if(button)pick(+button.dataset.i)});
+$('#go').addEventListener('click',submit);
+$('#replay').addEventListener('click',runDemo);
+buildTelemetry();renderMeters();runDemo();
+</script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+KEEP RUNNING.
+
+While this file exists, the overnight question-type fleet keeps generating new waves.
+To STOP the run cleanly: delete this file (or message the agent "stop").
+The orchestrator checks for this file on every wake and winds down when it is gone.

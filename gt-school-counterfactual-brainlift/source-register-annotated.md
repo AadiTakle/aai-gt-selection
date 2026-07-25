@@ -158,9 +158,10 @@ Each entry ends with a **Verdict** (tier) and **Use in brainlift**.
 - **Verdict: Tier A.** **Use:** 3.1. Exact SD coefficients not verified to the digit; the null is.
 
 ### Bui, S., Craig, S., & Imberman, S. (2014) — "Is Gifted Education a Bright Idea?" *AEJ: Economic Policy*, 6(3), 30–62
-- **Content:** RD at gifted-eligibility cutoffs + magnet lottery; near-zero achievement gains for marginal admits (only science gains in lottery arm). Closest analog to the gt.school setting.
-- **1:** High. **2:** ~14,000+ students. **3:** Quantitative. **4:** Independent.
-- **Verdict: Tier A.** **Use:** 3.1 (the benchmark gt.school must beat). Note subtitle drift (published "…on Students"; NBER WP 17089 "…on Achievement").
+- **Content:** Final AEA article with two distinct designs. The fuzzy RD reconstructs distance to a three-dimensional eligibility surface built from achievement, NNAT, grades, recommendations, and contextual points. Crossing the boundary raised peer achievement ~0.27–0.32 SD and added ~1.25 advanced classes, with a reportedly deeper/project-based curriculum, yet preferred 2SLS effects after ~1.5 years were −0.037 math, +0.049 reading, −0.015 language, +0.003 social studies, and −0.025 science (SEs ~0.07–0.08); positive effects above roughly 0.11–0.18 SD were ruled out by subject. A separate lottery compared premier magnets with neighborhood gifted services: 542 applicants, 394 offers, preferred first stage ~0.47, +0.281 SD science, and nulls elsewhere; differential-attrition bounds included zero for science.
+- **Additional facts:** Universal fifth-grade evaluation did not remove later self-selection: magnet applicants were ~1 SD above average gifted students, whiter, and less disadvantaged. Eligibility increased district retention ~4.9 pp from a 76% baseline. Raw-score distributions showed substantial upper-tail headroom. The authors identify compensatory parent tutoring/enrichment and reduced relative rank/instruction targeted above the margin as possible explanations, not measured mechanisms.
+- **1:** Very High. **2:** RD outcomes ~4,018–4,025 by subject plus 542 lottery entrants; local estimands. **3:** Quantitative. **4:** Independent.
+- **Verdict: Tier A.** **Use:** 3.1/3.7/3.8. It is the closest causal analogue to GT, but the RD is local and short-run, while the magnet lottery estimates intensity over ordinary gifted services rather than gifted versus no gifted. The final PDF corrects the prior overbroad "better peers, same curriculum" description. Note subtitle drift (published "…on Students"; NBER WP 17089 "…on Achievement").
 
 ### Card, D., & Giuliano, L. (2016) — "Universal screening…," *PNAS*, 113(48), 13678–13683
 - **Content:** Universal screening raised disadvantaged gifted ID +174% / Hispanic +118% / Black +74%, no change to standards.
@@ -359,14 +360,15 @@ Sources that are in the brainlift or research but must **not** be treated as ind
 
 ## Section 9 — Deep-research additions (design, intervention evidence, motivation measurement)
 
-*Added from a fan-out/adversarial-verification research pass (105 agents; 23 confirmed claims, 2 refuted, 1 empty angle). These fill the two thinnest parts of the brainlift: how to build the counterfactual, and the intervention's own evidence base. Not yet folded into the brainlift body — pending review.*
+*Added from a fan-out/adversarial-verification research pass (105 agents; 23 confirmed claims, 2 refuted, 1 empty angle). These fill the two thinnest parts of the brainlift: how to build the counterfactual, and the intervention's own evidence base. The confirmed design and intervention findings are now incorporated into the BrainLift body; this section retains the source-level audit trail.*
 
 ### Lottery / waitlist causal designs (the deliverable's backbone)
 
 #### Angrist, Dynarski, Kane, Pathak & Walters (2012) — "Who Benefits from KIPP?" *Journal of Policy Analysis and Management*, 31(4), 837–860 (NBER w15740)
-- **Content:** Uses KIPP Lynn's oversubscribed admission **lottery as an instrument (2SLS)**: ~0.35 SD/yr math, ~0.12 reading. Effect *larger* for students starting behind (interaction −0.111, SE .041); moves students out of the lowest tier. Within the applicant pool OLS ≈ 2SLS (minor selection among applicants).
-- **1 Credibility:** Very High — Angrist (2021 Nobel, IV/LATE), Pathak (Clark Medal). **2:** Single-school lottery, N≈856 for the tier analysis. **3:** Quantitative. **4:** Independent.
-- **Verdict: Tier A.** **Use:** the model design for the deliverable (Category 3); the "behind students gain most" interaction supports Category 4 / the motivation thesis — with the honest bound that catch-up is *partial*.
+- **Content:** Uses four KIPP Lynn oversubscription lotteries as an offer instrument for cumulative attendance. Final journal version: 629 raw applicants, 446 matched randomized applicants, and 833 stacked student-test observations in preferred models (not 833 independent students); 67.9% offered and 52.5% attended. Preferred first stage ≈1.22 KIPP years; offer ITT/reduced form ≈+0.430 SD math / +0.164 ELA; attendance-IV/LATE ≈+0.352 math / +0.133 ELA per year.
+- **Heterogeneity:** Effects were larger for lower-baseline, LEP, and SPED applicants; baseline interactions were −0.111 math and −0.167 ELA, and ELA gains concentrated in the bottom baseline quartile. Statewide administrative testing retained ~85% of expected non-offered outcomes and sensitivity analysis could not explain the large math effect.
+- **1 Credibility:** Very High — Angrist (2021 Nobel, IV/LATE), Pathak (Clark Medal). **2:** Single school and voluntary low-income urban applicant pool; complete "No Excuses" package. **3:** Quantitative. **4:** Independent.
+- **Verdict: Tier A.** **Use:** 3.9 model design and the benefit-heterogeneity hypothesis. Transfer the offer/attendance distinction and attrition discipline, not the effect size or population result, to gifted Track B.
 
 #### Tuttle et al. (2013) — "KIPP Middle Schools: Impacts on Achievement and Other Outcomes," Mathematica Policy Research (ED540912)
 - **Content:** Multi-site lottery ITT: math **0.13 SD (yr1) → 0.24 SD (yr2)**, significant; reading positive but not significant. States most schools "do not have enough lottery participants," restricting the lottery arm to ~10 schools — the null reading result reflects **underpowering, not zero**.
@@ -396,9 +398,9 @@ Sources that are in the brainlift or research but must **not** be treated as ind
 - **Verdict: Tier B (author COI).** **Use:** the 2-sigma correction (see Category 4.4 flag below).
 
 #### Kulik & Fletcher (2016) *RER* 86(1); Ma, Adesope, Nesbit & Liu (2014) *J. Educ. Psych.* 106(4); Steenbergen-Hu & Cooper (2014) college ITS meta
-- **Content:** ITS median ≈0.66 SD over conventional instruction (Kulik & Fletcher, 50 evals); g≈0.42/0.57/0.35 by counterfactual (Ma et al., 107 ES, N=14,321); college g≈0.32–0.37.
+- **Content:** ITS median ≈0.66 SD over conventional instruction (Kulik & Fletcher, 50 evaluations), but the average was ~0.73 on locally developed tests versus ~0.13 on standardized tests; outcome alignment materially changes the apparent effect. Ma et al. report g≈0.42/0.57/0.35 by counterfactual (107 ES, N=14,321); college estimates are g≈0.32–0.37.
 - **1:** High. **2:** Meta-analyses. **3:** Quantitative. **4:** Independent.
-- **Verdict: Tier A.** **Use:** shows ITS effects are **wildly counterfactual-dependent** — the comparison group dominates the number (Category 5 caveat).
+- **Verdict: Tier A.** **Use:** shows ITS effects are both counterfactual- and outcome-dependent; local/aligned performance cannot be substituted for independent standardized learning (3.8/5.7).
 
 #### Leite et al. (2025) — US K-12 ITS meta-analysis, arXiv 2511.04997 (g = 0.271)
 - **1:** Medium (unknown team). **2:** 18 studies, 77 ES. **3:** Quantitative. **4:** Independent.
@@ -440,17 +442,17 @@ Sources that are in the brainlift or research but must **not** be treated as ind
 
 ## Section 10 — Program effect net of selection for high-ability students (the SMPY rebuttal)
 
-*The direct answer to "can any study attribute growth to a program rather than to pre-existing ability?" These are the causal (RD) studies that isolate a program effect for high-ability students — the piece SMPY structurally cannot supply. Not yet in the brainlift; proposed as new subcategory 3.7.*
+*The direct answer to "can any study attribute growth to a program rather than to pre-existing ability?" These are the causal (RD) studies that isolate a program effect for high-ability students — the piece SMPY structurally cannot supply. These findings are incorporated in BrainLift subcategory 3.7.*
 
 ### Card, D., & Giuliano, L. (2016) — "Can Tracking Raise the Test Scores of High-Ability Minority Students?" *American Economic Review*, 106(10), 2783–2816
-- **Content:** Rank-based **RD** (n=4,144) on a separate high-achiever classroom entered by *achievement* rank. Full sample +0.29 SD reading / +0.28 math; **Black & Hispanic high-achievers +0.5–0.7 SD** (Black-only +0.65/+0.69); white/advantaged ≈ 0; persists to 6th grade (~0.2σ); no spillovers. Mechanism: differentiated curriculum + higher expectations for underserved high-achievers, not just better peers.
+- **Content:** Rank-based **fuzzy RD** (n=4,144) on a separate high-achiever classroom entered by *achievement* rank. Principal local treatment-on-treated estimates are approximately +0.27 SD combined reading/math, +0.29 reading, and +0.34 math; Black & Hispanic complier effects are approximately +0.4–0.5 SD in additional analyses. Math gains persisted into fifth grade and science outcomes improved. Mechanism: differentiated curriculum + higher expectations for underserved high-achievers, not just better peers.
 - **1 Credibility:** Very High (Card, Nobel laureate). **2:** Large RD sample. **3:** Quantitative. **4:** Independent.
-- **Verdict: Tier A.** **Use:** the single strongest "program raises achievement for high-ability students, net of selection" result — and the effect is concentrated in the *underserved*, directly supporting the motivation/underserved-inversion thesis. Proposed for new 3.7. (District anonymized in the AER text; widely identified as Broward County, FL.)
+- **Verdict: Tier A.** **Use:** the single strongest "program raises achievement for high-ability students, net of selection" result — and the effect is concentrated in the *underserved*, directly supporting the motivation/underserved-inversion thesis. Incorporated in 3.7. (District anonymized in the AER text; widely identified as Broward County, FL.)
 
 ### Booij, A. S., Haan, F., & Plug, E. (2016) — "Enriching Students Pays Off…," IZA DP 9757
 - **Content:** **Fuzzy RD** at a gifted-program aptitude cutoff (N=3,127, selective Dutch school): GPA +0.38 SD math / +0.30 language / +0.44 other; persists into university field choice. Authors: effects "comparable to what Card and Giuliano find for high achievers, but not for gifted students."
 - **1 Credibility:** High (Plug is an established labor economist). **2:** N=3,127, multi-cohort RD. **3:** Quantitative. **4:** Independent. (Working paper, not yet journal-published at the DP stage — verify final publication.)
-- **Verdict: Tier A/B (working paper).** **Use:** second clean causal "gifted program works" result; the differentiated-instruction mechanism. Proposed for 3.7.
+- **Verdict: Tier A/B (working paper).** **Use:** second clean causal "gifted program works" result; the differentiated-instruction mechanism. Incorporated in 3.7.
 
 ### Booij, Haan & Plug (2017) — "Can Gifted and Talented Education Raise the Academic Achievement of All High-Achieving Students?" IZA DP 10836
 - **Content:** DiD + RD across three schools (~2,400 students): ~+0.2 SD GPA near the cutoff, with gains *growing* with distance above the cutoff (inframarginal students benefit more).
@@ -547,7 +549,7 @@ This **partly challenges** the pure "select on motivation" framing: ability keep
 
 ### 12A — Identification designs, ranked by how well they neutralize *unobserved* selection (motivation)
 
-- **Admission lottery (ITT / 2SLS) — the only design that neutralizes motivation.** Angrist, Imbens & Rubin (1996), "Identification of Causal Effects Using Instrumental Variables," *JASA* 91(434), 444–455 (IV/LATE canonical). Applied: Abdulkadiroğlu, Angrist, Dynarski, Kane & Pathak (2011), "Accountability and Flexibility... Boston's Charters and Pilots," *QJE* 126(2), 699–748. **1** Very High **2** Foundational + large application **3** Quantitative **4** Independent. **Tier A.** **Use:** the top of the design hierarchy; random offer balances *observed and unobserved* traits (incl. motivation) — identifies a LATE for compliers/applicants only (external-validity caveat).
+- **Admission lottery (ITT / 2SLS) — cleanest currently specified design for Track B.** Angrist, Imbens & Rubin (1996), "Identification of Causal Effects Using Instrumental Variables," *JASA* 91(434), 444–455 (IV/LATE canonical). Applied: Abdulkadiroğlu, Angrist, Dynarski, Kane & Pathak (2011), "Accountability and Flexibility... Boston's Charters and Pilots," *QJE* 126(2), 699–748. **1** Very High **2** Foundational + large application **3** Quantitative **4** Independent. **Tier A.** **Use:** random offer balances observed and unobserved traits (including motivation) in expectation within the randomized pool; attendance 2SLS identifies a LATE for compliers/applicants under additional assumptions. Valid protected-cutoff RD remains a credible local quasi-experimental alternative.
 - **Regression discontinuity + its manipulation test.** McCrary (2008), "Manipulation of the running variable... a density test," *J. Econometrics* 142(2), 698–714; Imbens & Lemieux (2008) practice guide (also in 3.2). **1** Very High **2** Methods canon **3** Quantitative **4** Independent. **Tier A.** **Use:** neutralizes unobserved confounders *only locally at the cutoff* and *only if no manipulation* (McCrary density test is the check); silent on inframarginal top students.
 - **Difference-in-differences / comparative interrupted time series.** Somers, Zhu, Jacob & Bloom (2013, MDRC) and Jacob, Somers, Zhu & Bloom (2016), "The Validity of the CITS Design...," *Evaluation Review* 40(3), 167–198. **1** High (MDRC/Bloom) **2** Methods validation **3** Quantitative **4** Independent. **Tier A/B.** **Use:** requires **parallel trends** (CITS needs ≥4 pre-points); fails if gifted students are on a *different* unobserved growth trajectory — a real risk here.
 - **Synthetic control.** Abadie, Diamond & Hainmueller (2010), *JASA* 105(490), 493–505. **1** Very High **2** Method paper **3** Quantitative **4** Independent. **Tier A.** **Use:** for a single aggregate unit (one school); needs a long pre-period + credible donor pool; individual-level motivation not the direct confound but time-varying shocks remain.
@@ -577,10 +579,64 @@ This **partly challenges** the pure "select on motivation" framing: ability keep
 - **What Works Clearinghouse Handbook v5.0 (2022).** **Tier A (official standard).** Load-bearing thresholds: only a **low-attrition RCT** earns "meets standards *without* reservations"; QEDs cap at "*with* reservations" and must show **baseline equivalence** — **≤0.05 SD** (no adjustment) / **0.05–0.25 SD** (must adjust) / **>0.25 SD** (fails). The 0.25 cap traces to Ho, Imai, King & Stuart (2007), *Political Analysis* 15(3). Attrition example: 13% overall → max 6.1pp (cautious) / 10.8pp (optimistic) differential. **Use:** the concrete bar the pre-registered design must clear.
 - **ITT vs. CACE/LATE.** ITT (analyze by assignment) is the conservative estimand; per-protocol/as-treated **break randomization and reintroduce selection**; CACE/LATE (2SLS) recovers the complier effect under exclusion + monotonicity. **Tier A.**
 - **Pre-registration.** Nosek, Ebersole, DeHaven & Mellor (2018), "The preregistration revolution," *PNAS* 115(11), 2600–2606; OSF (~25-item) / AsPredicted (9-item); Registered Reports (Chambers, *Cortex*, 2013, with pre-data peer review + in-principle acceptance). Evidence: Kaplan & Irvin (2015), *PLoS ONE* — significant-result rate in large NHLBI trials fell **57% → 8%** after prospective registration was required (**correlational, not causal — flagged**). **Tier A/B.** **Use:** the credibility scaffolding a skeptic expects.
-- **Isolating motivation specifically.** Only random assignment zeroes the selection-bias term (Angrist & Pischke, *Mostly Harmless Econometrics* 2009; Rosenbaum & Rubin 1983); a baseline effort/persistence proxy (e.g., PERC, Section 9) as a covariate controls only the *measured* slice and improves precision, not bias removal. **Placebo/falsification tests** — Eggers, Tuñón & Dafoe, "Placebo Tests for Causal Inference" — run the analysis on a pre-treatment covariate or an outcome the program can't affect; a nonzero "effect" signals residual selection. **Caveat:** balance/placebo tests are power-limited and can misfire. **Tier A/B.**
+- **Isolating motivation specifically.** Random assignment directly zeroes the selection-bias term in expectation within the randomized pool (Angrist & Pischke, *Mostly Harmless Econometrics* 2009; Rosenbaum & Rubin 1983); valid RD can identify a local effect under continuity/no-manipulation assumptions. A baseline effort/persistence proxy (e.g., PERC, Section 9) as a covariate controls only the measured slice and improves precision, not bias removal. **Placebo/falsification tests** — Eggers, Tuñón & Dafoe, "Placebo Tests for Causal Inference" — run the analysis on a pre-treatment covariate or an outcome the program cannot affect; a nonzero "effect" signals residual selection. **Caveat:** balance/placebo tests are power-limited and can misfire. **Tier A/B.**
 
 ### Verification flags (Section 12)
 Solidly verified: Angrist-Imbens-Rubin, McCrary, Abadie et al., Oster, VanderWeele-Ding, CFR ($250k), Betebenner, Koedel-Betts, Assouline-Lupkowski-Shoplik, WWC thresholds (0.05/0.25 SD; 13%→6.1/10.8pp), Ho et al. (0.25 origin), Nosek et al., Kaplan-Irvin (57%→8%). **Check before load-bearing use:** Rothstein exact pages; Lord (1967) exact pages; Resch & Isenberg venue/year; Lupkowski-Shoplik (2025) journal name; the NWEA "RIT 245 effective ceiling" figure (secondary source); Rosenbaum (2002) Ch. 4 page range. Kaplan-Irvin is **correlational** — do not state preregistration *causes* the drop.
+
+---
+
+## Section 13 — Operational comparator: SSP's qualified-pool lottery
+
+### SSP International (2026) — official evaluation and application materials
+- **Content:** SSP's official process is holistic/contextual review to identify students "who have the most to gain from and contribute to" the program, followed by parent permission, student assent, and lottery assignment to invitation or waitlist. The waitlist is the comparison group. SSP reported 720 participants across 13 campuses/20 sections in 2026, but publishes neither its applicant count nor qualified-pool size; ~10,000/~1,000 figures remain unverified.
+- **Study:** Abt Global conducts 60-minute pre/post surveys under Abt's own IRB. Participants are paid and can withdraw after the study begins without losing a seat. Before the lottery, however, study consent is an eligibility condition: refusal removes the applicant from both program and waitlist. No public preregistration, protocol, power analysis, lottery-pool N, or comparison-arm N was located.
+- **1:** High for official process facts; not evidence of impact. **2:** One current program; outcomes not yet published. **3:** Operational/qualitative. **4:** Direct stake — SSP sponsors and describes its own evaluation.
+- **Verdict: Tier B (institutional primary / prior art).** **Use:** 3.10 existence proof for the operating pattern, with strict limits: it does not establish GT demand, feasibility, effect, or ethical adequacy.
+
+### SSP scale context — official announcement, IRS filings, AP/*Science* coverage
+- **Content:** SSP expanded to 720 participants after a roughly $200 million 2023 bequest; pre-bequest annual spending was around $2 million. Genuine scarcity plus exceptional resources enabled the evaluation.
+- **1:** High for financial/participant facts. **2:** Official/IRS/press. **3:** Quantitative context. **4:** Independent filings/press plus institutional reporting.
+- **Verdict: Tier B.** **Use:** R8 feasibility boundary only. Do not transfer SSP's resources or oversubscription to GT.
+
+### Jenkins, S. P. (2023) — "Offering Lottery Entry as an Incentive for Research Participation Compromises Informed Consent," *Ethics & Human Research*
+- **Content:** Argues that lottery entry as the gateway/incentive for research participation challenges coercion-free informed consent because applicants may not know their odds and small probabilities are difficult to evaluate. The paper predates and does not name SSP, but addresses the same mechanism.
+- **1:** High. **2:** Peer-reviewed bioethics analysis. **3:** Normative/analytical. **4:** Independent.
+- **Verdict: Tier A for the ethics principle; transfer must be labeled.** **Use:** 3.10/R9 reason to separate research choice from ordinary admission rights.
+
+### "The Opportunity Cost of Compulsory Research Participation" (2020), *Science and Engineering Ethics*
+- **Content:** Characterizes pools with costly refusal alternatives or penalties as objectively coercive, unlike participation that can be declined without cost.
+- **1:** High. **2:** Peer-reviewed ethics analysis. **3:** Analytical. **4:** Independent.
+- **Verdict: Tier A/B.** **Use:** corroborates the applicant-rights critique; it is an analogy, not an SSP-specific finding.
+
+---
+
+## Section 14 — Durable, transferable, and independent learning
+
+### Kirschner, P. (2026) — "Alpha School May Be Efficient. But Is It Education?" (Substack)
+- **Content:** AI-assisted synthesis of critiques by Robert Pondiscio, Jared Cooney Horvath, and Dylan Kane. Distinguishes fast software-aligned progress from retention, transfer, unaided performance, coherent knowledge, and broad educational quality; questions whether stronger monitoring replaces human judgment.
+- **1:** Medium as an education scholar/commentator. **2:** Secondary essay with no original empirical study. **3:** Qualitative synthesis. **4:** Independent critical POV; explicitly ChatGPT-assisted.
+- **Verdict: Tier C (critic framing).** **Use:** names the outcome-validity question in 5.7. Do not use as empirical proof.
+
+### Kulik & Fletcher (2016) — intelligent-tutoring outcome alignment
+- **Content:** In 50 controlled evaluations, median ITS effect was 0.66 SD; average effects were ~0.73 on locally developed tests and ~0.13 on standardized tests.
+- **1:** High. **2:** Meta-analysis. **3:** Quantitative. **4:** Independent.
+- **Verdict: Tier A.** **Use:** local/aligned performance can materially overstate independent standardized effects.
+
+### Bastani et al. (2025) — "Generative AI without guardrails can harm learning," *PNAS*
+- **Content:** Field experiment with nearly 1,000 high-school math students. GPT Base raised assisted-practice grades 48% but lowered later unaided grades 17% relative to control; teacher-informed hint-based GPT Tutor raised assisted grades 127% and largely mitigated the unaided harm.
+- **1:** High. **2:** Randomized field study. **3:** Quantitative. **4:** Independent.
+- **Verdict: Tier A.** **Use:** demonstrates that assisted performance and independent learning can move in opposite directions. Transfer to Timeback is conceptual, not product-specific.
+
+### Bailey, Duncan, Odgers & Yu (2017) — "Persistence and Fadeout in the Impacts of Child and Adolescent Interventions"
+- **Content:** Reviews common intervention fadeout and distinguishes three persistence pathways: malleable/fundamental skills unlikely to develop anyway, timely opportunity-opening effects, and sustaining environments.
+- **1:** High. **2:** Peer-reviewed framework/review. **3:** Mixed. **4:** Independent.
+- **Verdict: Tier A.** **Use:** immediate outcome change does not establish persistence; delayed follow-up requires its own estimand.
+
+### GT School privacy policy (April 2026)
+- **Content:** Publicly describes possible collection of screenshots/continuous screen recording, mouse/keyboard activity, microphone/system audio, webcam recording, and precise geolocation.
+- **1:** High for what the policy states. **2:** Institutional policy. **3:** Qualitative. **4:** Direct stake.
+- **Verdict: Tier B for policy facts, not harm.** **Use:** monitoring/fidelity context in 5.7. Do not infer that every category is used in every workflow or that collection causes educational harm.
 
 ---
 

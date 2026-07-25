@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FLU-STACK-01 · Stack the Panel</title>
+<style>
+  :root{
+    --bg1:#eef4ff; --bg2:#f7ecff; --ink:#26304a; --card:#ffffff;
+    --accent:#5b6cff; --good:#22b573; --bad:#ff6b6b; --socket:#c9d3ef;
+    --tel-bg:#11162a; --tel-ink:#c8d6ff; --tel-key:#7fffcf; --tel-dim:#7183b8;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
+  #howto{max-width:600px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:#5b6cff;border:2px solid #c9d0ff;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:#5b6cff;color:#fff;border-color:#5b6cff}
+  #phasecue[data-phase="done"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
+  #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #4a4a7a;
+    display:flex;flex-direction:column;align-items:center;gap:18px;max-width:560px;width:100%}
+  #machine{position:relative;padding:16px;border-radius:20px;
+    background:linear-gradient(160deg,#dfe7ff,#eef1ff);border:3px solid #cfd8ff}
+  #lights{display:flex;gap:8px;justify-content:center;margin-top:12px}
+  #lights span{width:14px;height:14px;border-radius:50%;background:#cbd5f5;transition:.25s}
+  #lights.on span{background:var(--good);box-shadow:0 0 12px var(--good)}
+  .matrix{display:grid;gap:8px;background:#c7d2f2;padding:8px;border-radius:14px}
+  .rowlab{display:grid;gap:8px}
+  .cell{background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    width:88px;height:88px;position:relative}
+  .op{display:flex;align-items:center;justify-content:center;font-size:26px;color:#8a93b5;font-weight:700;width:26px}
+  .cell.empty{background:repeating-linear-gradient(45deg,#eef2ff,#eef2ff 8px,#e2e9ff 8px,#e2e9ff 16px);
+    border:3px dashed var(--socket)}
+  .cell.filled-anim{animation:pop .3s ease}
+  @keyframes pop{0%{transform:scale(.6);opacity:.2}100%{transform:scale(1);opacity:1}}
+  #tray{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+  .opt{position:relative;background:#fff;border:3px solid #e2e8fb;border-radius:14px;width:84px;height:84px;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s;
+    -webkit-tap-highlight-color:transparent}
+  .opt::after{content:attr(data-key);position:absolute;right:5px;bottom:3px;font:700 11px/1 ui-monospace,monospace;color:#8a93b5}
+  .opt:hover{transform:translateY(-3px);border-color:#c3ccf5}
+  .opt.sel{border-color:var(--accent);box-shadow:0 0 0 4px #c9d0ff;transform:translateY(-3px)}
+  .opt.correct{border-color:var(--good);box-shadow:0 0 0 4px #b4ecd0}
+  .opt.wrong{border-color:var(--bad);box-shadow:0 0 0 4px #ffd0d0}
+  #controls{display:flex;gap:16px;align-items:center}
+  button{font:inherit;border:0;cursor:pointer;border-radius:50%}
+  #go{width:76px;height:76px;background:var(--accent);color:#fff;font-size:32px;
+    box-shadow:0 10px 24px -8px var(--accent);opacity:.35;pointer-events:none;transition:.2s}
+  #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.1s infinite}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+  #replay{width:52px;height:52px;background:#eef1ff;color:#5b6cff;font-size:24px}
+  .shake{animation:shake .4s}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+  #ghost{position:fixed;left:0;top:0;font-size:40px;pointer-events:none;z-index:60;opacity:0;
+    transition:transform .7s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;
+    border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}
+  @keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);
+    display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;
+    background:#1b2340;text-transform:uppercase}
+  #difficulty{margin:10px 12px 2px;padding:10px;border:1px solid #2c365d;border-radius:10px;background:#171e36}
+  .dtop{display:flex;justify-content:space-between;color:#fff}.dsub{display:flex;justify-content:space-between;color:var(--tel-dim);font-size:11px;margin-top:5px}
+  .dtrack{height:7px;background:#2a3458;border-radius:8px;margin-top:8px;overflow:hidden}.dfill{height:100%;background:linear-gradient(90deg,#7fffcf,#ffd479);transition:.25s}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:104px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}
+  .mval{color:#fff}
+  .mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:200px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}
+  #log .t{color:#5f6f9e}
+  button:focus-visible,.opt:focus-visible{outline:4px solid #ffbf69;outline-offset:3px}
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:350px}}
+  @media(max-width:560px){#wrap{padding:10px}#stagecard{padding:13px}#machine{padding:9px}
+    #matrix{grid-template-columns:64px 18px 64px 18px 64px!important;gap:5px}.cell{width:64px;height:64px}
+    .cell svg{width:60px;height:60px}.op{width:18px;font-size:19px}.opt{width:66px;height:66px}.opt svg{width:60px;height:60px}}
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">FLU-STACK-01 · Stack the Panel</div>
+    <header id="howto">
+      <h1>How to use — Stack the Panel</h1>
+      <p>See how the two panels in each row combine to make the third. Tap the tile from the tray that finishes the last row, then press the check (<b>✓</b>). It gets harder each time you are right.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
+    <div id="stagecard">
+      <div id="machine">
+        <div id="matrix" class="matrix"></div>
+        <div id="lights"><span></span><span></span><span></span><span></span><span></span></div>
+      </div>
+      <div id="tray"></div>
+      <div id="controls">
+        <button id="replay" title="replay demo">&#8635;</button>
+        <button id="go" title="submit">&#10003;</button>
+      </div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+    </div>
+  </div>
+  <aside id="telemetry">
+    <h3>Live telemetry · per-child</h3>
+    <div id="difficulty" data-tracks="M-DIFFREACH M-LEARNRATE"></div>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0;
+const last=a=>a[a.length-1];
+
+/* ---------- translucent one/two-layer panels ---------- */
+const LAYER=['#1ea7d8','#e05a9d'];
+function panelSVG(masks,bits=4,box=82){
+  const n=bits===4?2:3,pos=[];for(let r=0;r<n;r++)for(let c=0;c<n;c++)pos.push([(c+.5)/n,(r+.5)/n]);
+  let inner=`<rect x="5" y="5" width="${box-10}" height="${box-10}" rx="10" fill="#f5f8ff" stroke="#dce4ff"/>`;
+  for(let i=1;i<n;i++){const q=i*box/n;inner+=`<path d="M${q} 8V${box-8}M8 ${q}H${box-8}" stroke="#e5eaf8"/>`;}
+  masks.forEach((mask,ch)=>{for(let i=0;i<bits;i++)if(mask&(1<<i)){const x=pos[i][0]*box,y=pos[i][1]*box,s=box/(n*4.5);
+    inner+=ch===0?`<polygon points="${x},${y-s*1.5} ${x+s*1.4},${y} ${x},${y+s*1.5} ${x-s*1.4},${y}" fill="${LAYER[ch]}" fill-opacity=".72"/>`
+      :`<path d="M${x-s*1.5} ${y-s}H${x+s*1.5}V${y+s}H${x-s*1.5}Z" fill="${LAYER[ch]}" fill-opacity=".64" transform="rotate(45 ${x} ${y})"/>`;}}
+  );
+  return `<svg width="${box}" height="${box}" viewBox="0 0 ${box} ${box}">${inner}</svg>`;}
+function applyOp(a,b,op){return op==='OR'?(a|b):op==='XOR'?(a^b):(a&b);}
+function samePanel(a,b){return a.length===b.length&&a.every((v,i)=>v===b[i]);}
+
+/* ---------- AIG: logical operator x layer grammar ---------- */
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){let j=(Math.random()*(i+1))|0;[a[i],a[j]]=[a[j],a[i]];}return a;}
+function mkMask(op,bits){const max=(1<<bits)-1;let a,b,c,g=0;do{a=1+(Math.random()*max|0);b=1+(Math.random()*max|0);c=applyOp(a,b,op);g++;}
+  while((!c||a===b||a===c||b===c||(op!=='AND'&&!(a&b)))&&g<200);return[a,b,c];}
+function levelConfig(level){if(level===1)return{bits:4,ops:['OR']};if(level===2)return{bits:9,ops:['OR']};
+  if(level===3)return{bits:4,ops:['XOR']};if(level===4)return{bits:9,ops:['XOR']};
+  if(level===5)return{bits:9,ops:['XOR','XOR']};return{bits:9,ops:['XOR','OR']};}
+function genItem(level){const cfg=levelConfig(level),rows=[];
+  for(let r=0;r<3;r++){const a=[],b=[],c=[];cfg.ops.forEach(op=>{const m=mkMask(op,cfg.bits);a.push(m[0]);b.push(m[1]);c.push(m[2]);});rows.push({a,b,c});}
+  const A=rows[2].a,B=rows[2].b,C=rows[2].c,cand=[];
+  const add=(m,tag)=>{if(m.some(Boolean)&&!cand.some(o=>samePanel(o.m,m)))cand.push({m,tag,rulesSat:m.filter((v,i)=>v===C[i]).length});};
+  add(C,'correct',cfg.ops.length);
+  ['OR','XOR','AND'].forEach(op=>add(A.map((v,i)=>applyOp(v,B[i],op)),'used-'+op,0));
+  if(cfg.ops.length===2){const one=[C[0],applyOp(A[1],B[1],cfg.ops[1]==='OR'?'XOR':'OR')];add(one,'layer-2-rule',1);}
+  add(A,'dropped-B',0);add(B,'dropped-A',0);
+  let g=0,max=(1<<cfg.bits)-1;while(cand.length<4&&g++<40)add(A.map(()=>1+(Math.random()*max|0)),'random',0);
+  return {level,bits:cfg.bits,ops:cfg.ops,rows,options:shuffle(cand.slice(0,cfg.ops.length===2?5:4)),ruleLoad:cfg.ops.length+(cfg.ops.includes('XOR')?1:0)};}
+
+/* ---------- telemetry ---------- */
+const T={scored:0,correct:0,rts:[],gates:[],firstLat:null,lastErr:'\u2014',maxSolved:0,lastRule:'\u2014',
+  level:1,itemStart:0,firstActed:false,blurThis:0};
+function rtStr(){if(!T.rts.length)return '\u2014';const g=last(T.gates),rt=last(T.rts);return g.ok?`${rt} ms (mean ${mean(T.rts)})`:`gated · ${g.reason} · ${rt} ms`;}
+const METERS=[
+ {id:'M-ACC',name:'Item accuracy (running)',get:()=>T.scored?`${T.correct}/${T.scored}  ${Math.round(100*T.correct/T.scored)}%`:'\u2014'},
+ {id:'M-RT',name:'Response time — engagement gated',get:()=>rtStr()},
+ {id:'M-RTFIRST',name:'First-action latency (study rows first)',get:()=>T.firstLat==null?'\u2014':T.firstLat+' ms'},
+ {id:'M-ERRTYPE',name:'Error type (combination-error key)',get:()=>T.lastErr},
+ {id:'M-RULEID',name:'Rule dimensionality solved (logical load)',get:()=>T.lastRule},
+ {id:'M-DIFFREACH',name:'Max difficulty reached',get:()=>T.maxSolved?`L${T.maxSolved} · ${levelConfig(T.maxSolved).ops.length} layer(s)`:'\u2014'},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>
+  `<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span>`
+  +`<span class="mname">${m.name}</span></div>`).join('');}
+function learnRate(){return T.scored?(Math.max(0,T.maxSolved-1)/T.scored).toFixed(2):'0.00';}
+function renderDifficulty(){$('#difficulty').innerHTML=`<div class="dtop"><b>DIFFICULTY</b><span>${T.level}/6</span></div><div class="dtrack"><div class="dfill" style="width:${T.level/6*100}%"></div></div><div class="dsub"><span>reach ${T.maxSolved||'\u2014'}</span><span>learn ${learnRate()} lvl/trial</span></div>`;}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});renderDifficulty();}
+function log(msg){const now=new Date(),t=Math.max(0,Date.now()-T.itemStart),d=document.createElement('div');
+  d.innerHTML=`<span class="t">${now.toISOString().slice(11,23)} · +${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+function gate(rt){const rapid=rt<400,blur=T.blurThis>0,base=T.rts.length>2?mean(T.rts.slice(0,-1)):0,drift=base>0&&rt>base*2.5;return{ok:!rapid&&!blur&&!drift,reason:rapid?'rapid':blur?'blur':drift?'drift':'ok'};}
+
+/* ---------- ghost hand ---------- */
+const ghost=$('#ghost');
+function ghostShow(v){ghost.classList.toggle('show',v);}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(720);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(520);}
+
+/* ---------- flow ---------- */
+let phase='demo',cur=null,staged=-1,locked=false,scoredIndex=0,demoRun=0;
+const TOTAL=6;
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+function lights(on){$('#lights').classList.toggle('on',on);}
+function disableTray(d){locked=d;}
+function renderItem(item){cur=item;const m=$('#matrix');m.style.gridTemplateColumns='88px 26px 88px 26px 88px';m.innerHTML='';
+  item.rows.forEach((row,ri)=>{
+    const cA=document.createElement('div');cA.className='cell';cA.innerHTML=panelSVG(row.a,item.bits);m.appendChild(cA);
+    const op1=document.createElement('div');op1.className='op';op1.innerHTML='&#10697;';m.appendChild(op1);
+    const cB=document.createElement('div');cB.className='cell';cB.innerHTML=panelSVG(row.b,item.bits);m.appendChild(cB);
+    const eq=document.createElement('div');eq.className='op';eq.innerHTML='&#10140;';m.appendChild(eq);
+    const cC=document.createElement('div');cC.className='cell';
+    if(ri===2){cC.classList.add('empty');cC.id='emptycell';}else cC.innerHTML=panelSVG(row.c,item.bits);
+    m.appendChild(cC);
+  });
+  const tray=$('#tray');tray.innerHTML='';
+  item.options.forEach((o,i)=>{const b=document.createElement('button');b.className='opt';b.dataset.i=i;b.dataset.key=i+1;b.setAttribute('aria-label',`option ${i+1}`);b.innerHTML=panelSVG(o.m,item.bits);tray.appendChild(b);});
+  lights(false);$('#go').classList.remove('ready');
+  staged=-1;T.itemStart=Date.now();T.firstActed=false;T.firstLat=null;T.blurThis=0;renderMeters();}
+function fillEmpty(mask){const cell=$('#emptycell');if(!cell)return;cell.classList.remove('empty');
+  cell.classList.add('filled-anim');cell.innerHTML=panelSVG(mask,cur.bits);setTimeout(()=>cell.classList.remove('filled-anim'),300);}
+function onOpt(el){if(locked||phase==='demo'||phase==='done')return;const idx=+el.dataset.i;
+  if(!T.firstActed){T.firstActed=true;T.firstLat=Date.now()-T.itemStart;log('first tap · option '+idx);}
+  staged=idx;$$('#tray .opt').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');
+  fillEmpty(cur.options[idx].m);$('#go').classList.add('ready');renderMeters();}
+function feedback(correct){const opt=$$('#tray .opt')[staged];if(opt)opt.classList.add(correct?'correct':'wrong');
+  if(correct)lights(true);else{$('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),450);
+    const ci=cur.options.findIndex(o=>o.tag==='correct');$$('#tray .opt')[ci].classList.add('correct');}
+  disableTray(true);$('#go').classList.remove('ready');}
+function submit(){if(staged===-1)return;const opt=cur.options[staged];const rt=Date.now()-T.itemStart;const correct=opt.tag==='correct';
+  if(phase==='warmup'){feedback(correct);setStatus(correct?'ok':'no',correct?'\u2713 Correct - practice':'\u2717 Not quite - the correct tile is highlighted (practice)');log('warm-up '+(correct?'correct':'incorrect')+' — UNSCORED');setTimeout(nextPhase,950);return;}
+  T.scored++;T.rts.push(rt);T.gates.push(gate(rt));
+  if(correct){T.correct++;T.maxSolved=Math.max(T.maxSolved,cur.level);T.lastErr='none';}
+  else T.lastErr=opt.tag;
+  T.lastRule=opt.rulesSat+' / '+cur.ops.length+' layer-rule(s)';
+  T.level=Math.max(1,Math.min(6,T.level+(correct?1:-1)));
+  feedback(correct);
+  setStatus(correct?'ok':'no',correct?'\u2713 Correct':'\u2717 Not quite - the correct tile is highlighted');
+  log(`SUBMIT ${scoredIndex+1}/${TOTAL} · L${cur.level} ${cur.ops.join('+')} \u2192 ${correct?'CORRECT':'wrong ['+opt.tag+']'} · sat ${opt.rulesSat}/${cur.ops.length} · ${last(T.gates).reason} · next L${T.level}`);
+  renderMeters();setTimeout(nextPhase,1200);}
+function nextPhase(){if(phase==='warmup'){scoredIndex=0;T.level=1;startScored();}
+  else if(phase==='scored'){scoredIndex++;scoredIndex<TOTAL?startScored():finish();}}
+function startWarmup(){phase='warmup';setCue('warmup');setStatus('neutral','Practice - this one is not scored.');disableTray(false);renderItem(genItem(1));log('— warm-up · transparent overlay · UNSCORED —');}
+function startScored(){phase='scored';setCue('scored',(scoredIndex+1)+'/'+TOTAL);setStatus('neutral','Tap the tile that finishes the last row.');disableTray(false);renderItem(genItem(T.level));
+  log(`— SCORED ${scoredIndex+1}/${TOTAL} · L${cur.level} · ${cur.bits===4?'2x2':'3x3'} · ${cur.ops.length} layer(s) —`);}
+function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');disableTray(true);lights(true);
+  log(`— DONE · accuracy ${T.correct}/${T.scored} · ceiling L${T.maxSolved} —`);}
+async function runDemo(){const token=++demoRun;phase='demo';setCue('demo');setStatus('neutral','Watch the example.');disableTray(true);
+  const d=genItem(1);renderItem(d);log('ghost-hand demo · panels merge · wordless · <10s');
+  const ci=d.options.findIndex(o=>o.tag==='correct');
+  ghostShow(true);await sleep(300);
+  const cells=$$('#matrix .cell');
+  await ghostTo(cells[6]);await sleep(180);await ghostTo(cells[7]);await sleep(180);
+  await ghostTo($('#matrix .cell.empty'));await sleep(220);
+  await ghostTo($$('#tray .opt')[ci]);await ghostTap();
+  $$('#tray .opt')[ci].classList.add('correct');fillEmpty(d.options[ci].m);lights(true);
+  await sleep(500);await ghostTo($('#go'));await ghostTap();await sleep(350);ghostShow(false);await sleep(350);if(token===demoRun)startWarmup();}
+
+$('#tray').addEventListener('click',e=>{const o=e.target.closest('.opt');if(o)onOpt(o);});
+$('#go').addEventListener('click',()=>{if($('#go').classList.contains('ready'))submit();});
+$('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
+document.addEventListener('keydown',e=>{if(!locked&&phase!=='done'){if(/^[1-5]$/.test(e.key)){const o=$$('#tray .opt')[+e.key-1];if(o)onOpt(o);}if(e.key==='Enter'&&$('#go').classList.contains('ready'))submit();}});
+window.addEventListener('blur',()=>{if(phase==='scored'&&!locked){T.blurThis++;log('engagement · focus lost');renderMeters();}});
+buildMeters();renderMeters();runDemo();
+</script>
+</body>
+</html>

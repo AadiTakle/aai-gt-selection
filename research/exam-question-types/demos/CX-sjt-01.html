@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CX-sjt-01 · What Would You Do?</title>
+<style>
+  :root{--bg1:#fff0e6;--bg2:#e6fff0;--ink:#2a3a2a;--card:#fff;--accent:#ff9a3d;--good:#22b573;--bad:#ff6b6b;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#a09060;text-transform:uppercase;font-weight:700}
+  #howto{max-width:640px;width:100%;background:#fff;border:1px solid #ffe0c0;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #7a6a3a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#5a4a2a;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#fff2e3;color:#c06a2a;border:2px solid #ffd8b0;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+  #phasecue[data-phase="done"]{background:#e6f6ec;color:#2f8f57;border-color:#bfe6cc}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#a09060}
+  #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #7a6a3a;display:flex;flex-direction:column;align-items:center;gap:16px;max-width:640px;width:100%}
+  #scene{background:linear-gradient(160deg,#fff6ec,#eefaf2);border:3px solid #ffdcb0;border-radius:16px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:8px;width:100%}
+  #sceneicon{font-size:52px}
+  #scenetext{font-size:17px;text-align:center;font-weight:600;color:#5a4a2a}
+  #choices{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+  .choice{background:#fff;border:3px solid #ffe0c0;border-radius:14px;padding:12px 14px;width:150px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:.15s}
+  .choice:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .choice .ic{font-size:32px}
+  .choice .lb{font-size:13px;text-align:center;color:#5a4a2a}
+  .choice.best{border-color:var(--good);box-shadow:0 0 0 3px #22b57355}
+  .choice.ok{border-color:#ffb15e;box-shadow:0 0 0 3px #ffb15e55}
+  .choice.poor{border-color:var(--bad);box-shadow:0 0 0 3px #ff6b6b55}
+  .choice.dim{opacity:.4;pointer-events:none}
+  #outcome{font-size:16px;text-align:center;min-height:24px;color:#3a5a3a;font-weight:700}
+  #replay{width:50px;height:50px;background:#fff2e0;color:#c06a2a;font-size:22px;border:0;border-radius:50%;cursor:pointer}
+  #ghost{position:fixed;left:0;top:0;font-size:40px;pointer-events:none;z-index:60;opacity:0;transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}
+  .mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:210px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">CX-sjt-01 · What Would You Do?</div>
+    <header id="howto">
+      <h1>How to use — What Would You Do?</h1>
+      <p>Read the short situation, then tap the choice that is the <b>best</b> thing to do. It picks as soon as you tap. Watch the example first, then try one practice round that is not scored.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
+    <div id="stagecard">
+      <div id="scene">
+        <div id="sceneicon">🍱</div>
+        <div id="scenetext"></div>
+      </div>
+      <div id="choices"></div>
+      <div id="outcome"></div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+      <button id="replay" title="replay demo">↻</button>
+    </div>
+  </div>
+  <aside id="telemetry">
+    <h3>Live telemetry · per-child</h3>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0,last=a=>a[a.length-1];
+
+/* ---------- scenario bank keyed to expert-consensus effectiveness (auto-scored, no human judge) ---------- */
+/* score: 3=best,2=ok,1=poor. difficulty = subtlety between best and ok (closer scores = harder) */
+const SCENARIOS=[
+ {ic:'🍱',text:'A classmate drops their lunch tray in the cafeteria.', ch:[
+   {ic:'🤝',lb:'Help pick it up',score:3,out:'They smile and say thanks — a new friend!'},
+   {ic:'😂',lb:'Laugh with others',score:1,out:'They feel embarrassed and walk away sad.'},
+   {ic:'🚶',lb:'Walk away',score:2,out:'Nothing bad happens, but no one helped.'},
+ ]},
+ {ic:'📚',text:'Your project is hard and a little boring.', ch:[
+   {ic:'💪',lb:'Keep trying, take a short break',score:3,out:'You finish it and feel proud.'},
+   {ic:'😩',lb:'Give up and stop',score:1,out:'The project stays unfinished.'},
+   {ic:'🙋',lb:'Ask a teacher for a hint',score:2,out:'You get help but did not try alone first.'},
+ ]},
+ {ic:'🧩',text:'Two friends both want the same puzzle piece.', ch:[
+   {ic:'🔀',lb:'Suggest taking turns',score:3,out:'Both friends agree and keep playing happily.'},
+   {ic:'✊',lb:'Grab it first for yourself',score:1,out:'Your friend gets upset and stops playing.'},
+   {ic:'🙅',lb:'Tell an adult right away',score:2,out:'It gets solved, but friends did not solve it together.'},
+ ]},
+ {ic:'🎨',text:'You made a mistake on your art project.', ch:[
+   {ic:'🖌️',lb:'Fix it calmly and keep going',score:3,out:'The art turns out great in the end.'},
+   {ic:'😭',lb:'Cry and throw it away',score:1,out:'You lose all your hard work.'},
+   {ic:'🤷',lb:'Ask someone else to fix it',score:2,out:'It gets fixed, but you did not practice fixing it yourself.'},
+ ]},
+ {ic:'⏰',text:'You are running late and forgot your homework at home.', ch:[
+   {ic:'🗣️',lb:'Tell the teacher honestly right away',score:3,out:'The teacher appreciates your honesty and helps you plan.'},
+   {ic:'🤫',lb:'Hide it and hope no one notices',score:1,out:'The teacher finds out later and trust is broken.'},
+   {ic:'😰',lb:'Panic and blame a friend',score:2,out:'It causes confusion and does not solve the problem.'},
+ ]},
+];
+function levelParams(l){return {closeGap:l>=3};} // at higher levels the ok/best gap narrows conceptually (handled via UI framing)
+
+/* ---------- state ---------- */
+let level=1,maxLevel=1,phase='demo',locked=true;
+let cur=null,T={itemStart:0,scored:0,best:0,polySum:0,path:[],inspected:new Set(),firstT:null,confHits:0,rts:[]};
+function accStr(){return T.scored?`${T.best}/${T.scored}  ${Math.round(100*T.best/T.scored)}%`:'\u2014';}
+function polyStr(){return T.scored?`${T.polySum}/${T.scored*3} pts (partial credit)`:'\u2014';}
+function pathStr(){return T.path.length?T.path.slice(-4).join(' \u2192 '):'\u2014';}
+function exploreStr(){return `${T.inspected.size} option(s) hovered before choosing`;}
+function confStr(){return T.scored?`${T.confHits}/${T.scored} best-picked-fastest (calibrated)`:'\u2014';}
+function rtStr(){return T.rts.length?`${last(T.rts)} ms (mean ${mean(T.rts)})`:'\u2014';}
+function learnRate(){return T.scored?`level ${maxLevel} after ${T.scored} scenarios`:'\u2014';}
+const METERS=[
+ {id:'M-ACC',name:'Best-action accuracy (auto-keyed)',get:accStr},
+ {id:'M-POLY',name:'Partial credit (effectiveness score)',get:polyStr},
+ {id:'M-RT',name:'Decision time',get:rtStr},
+ {id:'M-PATH',name:'Choice path across scenarios',get:pathStr},
+ {id:'M-EXPLORE',name:'Options inspected before choosing',get:exploreStr},
+ {id:'M-CONF',name:'Calibration (fast when best chosen)',get:confStr},
+ {id:'M-DIFFREACH',name:'Difficulty reached',get:()=>`level ${maxLevel}`},
+ {id:'M-LEARNRATE',name:'Learning rate across scenarios',get:learnRate},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});}
+function log(msg){const t=Date.now()-T.itemStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+const ghost=$('#ghost');function ghostShow(v){ghost.classList.toggle('show',v);}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(480);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(400);}
+
+/* ---------- render ---------- */
+function paintScene(){$('#sceneicon').textContent=cur.ic;$('#scenetext').textContent=cur.text;$('#outcome').textContent='';}
+function paintChoices(){$('#choices').innerHTML=cur.ch.map((c,i)=>`<div class="choice" data-i="${i}"><div class="ic">${c.ic}</div><div class="lb">${c.lb}</div></div>`).join('');
+  $$('#choices .choice').forEach(el=>{
+    el.addEventListener('mouseenter',()=>{if(!locked&&phase!=='demo'&&phase!=='done')T.inspected.add(+el.dataset.i);});
+    el.addEventListener('click',()=>onChoose(+el.dataset.i));
+  });}
+function onChoose(i){if(locked||phase==='demo'||phase==='done')return;
+  const rt=Date.now()-T.itemStart;const c=cur.ch[i];locked=true;T.rts.push(rt);
+  $$('#choices .choice').forEach((el,idx)=>{const s=cur.ch[idx].score;el.classList.add(s===3?'best':s===2?'ok':'poor');if(idx!==i)el.classList.add('dim');});
+  $('#outcome').textContent=c.out;
+  T.path.push(c.lb);
+  log(`chose "${c.lb}" (score ${c.score}/3) \u2192 ${c.out}`);
+  if(phase==='warmup'){setStatus('neutral','Practice - not scored.');log('— UNSCORED —');setTimeout(nextPhase,1600);return;}
+  setStatus(c.score===3?'ok':'no',c.score===3?'\u2713 Best choice':'\u2717 Not the best - a better choice is highlighted');
+  T.scored++;T.polySum+=c.score;
+  if(c.score===3){T.best++;if(rt<4000)T.confHits++;level=Math.min(6,level+1);}
+  else{level=Math.max(1,level-1);}
+  maxLevel=Math.max(maxLevel,level);renderMeters();setTimeout(nextPhase,1700);
+}
+
+/* ---------- flow ---------- */
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+function newItem(l){cur=SCENARIOS[(Math.random()*SCENARIOS.length)|0];T.itemStart=Date.now();T.inspected=new Set();
+  paintScene();paintChoices();locked=false;renderMeters();}
+function nextPhase(){locked=false;
+  if(phase==='warmup'){startScored();}
+  else if(phase==='scored'){T.roundIdx=(T.roundIdx||0)+1;T.roundIdx<6?startScored():finish();}
+}
+function startWarmup(){phase='warmup';setCue('warmup');setStatus('neutral','Practice - tap the best choice. Not scored.');newItem(1);log('— warm-up (unscored): tap the best thing the character could do —');}
+function startScored(){phase='scored';setCue('scored',((T.roundIdx||0)+1)+'/6');setStatus('neutral','Read it, then tap the best thing to do.');newItem(level);log(`— SCORED scenario (level ${level}) —`);}
+function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;log(`— DONE \u00b7 best choice ${T.best}/${T.scored} \u00b7 max level ${maxLevel} —`);}
+async function runDemo(){phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;
+  cur=SCENARIOS[0];T.itemStart=Date.now();T.inspected=new Set();
+  paintScene();paintChoices();log('ghost-hand demo (wordless, <10s)');ghostShow(true);await sleep(300);
+  const bestIdx=cur.ch.findIndex(c=>c.score===3);
+  await ghostTo($(`.choice[data-i="${bestIdx}"]`));await ghostTap();onChoose(bestIdx);
+  await sleep(1400);ghostShow(false);await sleep(300);startWarmup();}
+$('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
+buildMeters();renderMeters();runDemo();
+</script>
+</body>
+</html>
