@@ -4,41 +4,97 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>WM-bubble-01 · Bubble Pop Memory</title>
+<!--
+  WM-bubble-01 (Bubble Pop Memory, n-back) — PURE RENDERER.
+
+  This demo no longer invents its own stream and holds no answer key. It renders a
+  ServedItem's `content` (the bubble stream(s), n, and pace) and reports the child's
+  raw pops + process telemetry. Which steps were matches, hits/false alarms and d'
+  are SERVER-authoritative and are never computed or shown here.
+
+  Embedding protocol (postMessage; source-tagged gt-exam-host / gt-exam-demo):
+    host -> demo : {source:'gt-exam-host', type:'init',  item: ServedItem}
+                   {source:'gt-exam-host', type:'start'}
+    demo -> host : {source:'gt-exam-demo', type:'ready'}
+                   {source:'gt-exam-demo', type:'telemetry', event: TelemetryEvent}
+                   {source:'gt-exam-demo', type:'result',    result: ItemResult}
+
+  ServedItem = { itemId, typeCode, domain, difficulty, ageBands?, content }
+    content = { n, paceMs, responseWindowMs, streamLength, leadInSteps,
+                vocabularyLevel, prompt,
+                channels:[{id,label,kind,popLabel,hotkey,stream:[string]}] }
+    (NOTE: content carries no target list — the key is server-side.)
+
+  ItemResult = { itemId, typeCode, domain,
+                 response:{pops:[{channel,stepIndex,rtMs,via}], stepsShown, channelIds,
+                           releasedAtStep, completed},
+                 metrics:{'M-RT','M-RTFIRST','M-RTVAR','M-REV','M-ENGAGE','M-RAPIDGUESS'},
+                 telemetry:[TelemetryEvent] }
+
+  LOCK / RELEASE DISCIPLINE (deliberate — this is the SPA-FOLDNET-01 class of bug):
+    * `inputLocked` is set ONLY by lockInput(reason) and cleared ONLY by releaseInput(reason);
+      both log the transition, so a stuck lock is visible in the event log.
+    * Input is locked through the lead-in (the first n bubbles, where no n-back item
+      exists yet) and RELEASED the moment the first decidable bubble appears.
+    * emitResult() is NEVER gated on the lock. The block always ends by releasing the
+      lock and emitting exactly once (`resultSent` guard), and a watchdog fires the
+      emission if the stream animation is ever interrupted.
+
+  D-017: reading is a required baseline-literacy gate. All instructions and stimuli
+  are on-screen TEXT. There is no audio channel, no tone, and no speech synthesis —
+  the spec's "dual visual + auditory" mode is delivered as WORD + LETTER print channels.
+
+  Standalone fallback: opened by double-click (no host), it plays built-in sample
+  ServedItems locally and logs the emitted results/telemetry on-page.
+-->
 <style>
-  :root{--bg1:#e6f3ff;--bg2:#eaf9ff;--ink:#1a3450;--card:#fff;--accent:#2e9bff;--good:#22b573;--bad:#ff6b6b;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  :root{--bg1:#e6f3ff;--bg2:#eaf9ff;--ink:#1a3450;--card:#fff;--accent:#2e9bff;--good:#22b573;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
   *{box-sizing:border-box} html,body{margin:0;height:100%}
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
   #badge{font-size:12px;letter-spacing:.08em;color:#7a93b5;text-transform:uppercase;font-weight:700}
-  #howto{max-width:600px;width:100%;background:#fff;border:1px solid #cfe4ff;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #2a5a8a}
+  #howto{max-width:640px;width:100%;background:#fff;border:1px solid #cfe4ff;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #2a5a8a}
   #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
   #howto p{margin:0;font-size:14px;color:#33506e;line-height:1.5}
   #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#e6f3ff;color:#1c78c9;border:2px solid #bfe0ff;min-height:30px}
-  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
-  #phasecue[data-phase="scored"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+  #phasecue[data-phase="ready"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="watch"]{background:#eef1ff;color:#3a49c8;border-color:#c9d0ff}
+  #phasecue[data-phase="respond"]{background:var(--accent);color:#fff;border-color:var(--accent)}
   #phasecue[data-phase="done"]{background:#e6f6ec;color:#1c8f57;border-color:#bfe6cc}
   #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
-  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#7a93b5}
-  #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #2a5a8a;display:flex;flex-direction:column;align-items:center;gap:18px;max-width:600px;width:100%}
-  #stream{width:100%;height:160px;position:relative;background:linear-gradient(180deg,#eaf6ff,#f4fbff);border-radius:18px;border:3px solid #cfe4ff;overflow:hidden}
-  .bubble{position:absolute;left:50%;transform:translateX(-50%);width:130px;height:60px;background:#fff;border:3px solid var(--accent);border-radius:30px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#1a3450;box-shadow:0 6px 16px -6px #2e9bff88;}
-  #controls{display:flex;gap:20px;align-items:center}
-  button{font:inherit;border:0;cursor:pointer;border-radius:16px;padding:14px 26px;font-size:18px;font-weight:800}
-  #seenbtn{background:var(--good);color:#fff}
-  #newbtn{background:#eef1ff;color:#5b6cff}
-  #seenbtn:disabled,#newbtn:disabled{opacity:.35;pointer-events:none}
+  #status.ok{color:var(--good)} #status.neutral{color:#7a93b5} #status.hold{color:#a9791b}
+  #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #2a5a8a;display:flex;flex-direction:column;align-items:center;gap:16px;max-width:640px;width:100%}
+  #rule{font-size:15px;font-weight:700;color:#33506e;text-align:center}
+  #lanes{display:flex;gap:14px;width:100%;justify-content:center}
+  .lane{flex:1;max-width:280px;display:flex;flex-direction:column;align-items:center;gap:8px}
+  .laneName{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#7a93b5;font-weight:800}
+  .tank{width:100%;height:150px;position:relative;background:linear-gradient(180deg,#eaf6ff,#f4fbff);border-radius:18px;border:3px solid #cfe4ff;overflow:hidden}
+  .bubble{position:absolute;left:50%;bottom:44px;transform:translateX(-50%);min-width:130px;padding:0 14px;height:58px;background:#fff;border:3px solid var(--accent);border-radius:30px;display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:800;letter-spacing:.02em;color:#1a3450;box-shadow:0 6px 16px -6px #2e9bff88;animation:rise .45s ease-out}
+  @keyframes rise{from{bottom:6px;opacity:.2}to{bottom:44px;opacity:1}}
+  .tank.locked{filter:grayscale(.35) opacity(.85)}
+  .popbtn{font:inherit;border:0;cursor:pointer;border-radius:16px;padding:12px 20px;font-size:17px;font-weight:800;background:var(--accent);color:#fff;width:100%}
+  .popbtn:disabled{opacity:.3;pointer-events:none}
+  .popbtn.hit{animation:tapflash .3s}
+  @keyframes tapflash{0%{transform:scale(1)}45%{transform:scale(.94)}100%{transform:scale(1)}}
+  #progressbar{width:100%;height:8px;background:#e4eeff;border-radius:6px;overflow:hidden}
+  #progressbar i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#2e9bff,#7fd6ff);transition:.2s}
+  #controls{display:flex;gap:16px;align-items:center}
+  #replay{width:46px;height:46px;background:#eaf6ff;color:#2e9bff;font-size:20px;border-radius:50%;border:0;cursor:pointer;font-family:inherit}
   #hotkeys{font-size:12px;color:#7a93b5}
-  #replay{width:44px;height:44px;background:#eaf6ff;color:#2e9bff;font-size:20px;border-radius:50%;padding:0}
-  .flashg{animation:flashg .4s}@keyframes flashg{0%{background:#d3f5e0}100%{background:transparent}}
-  .flashr{animation:flashr .4s}@keyframes flashr{0%{background:#ffd9d9}100%{background:transparent}}
-  #ghost{position:fixed;left:0;top:0;font-size:40px;pointer-events:none;z-index:60;opacity:0;transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #diffmeter{width:100%;display:flex;align-items:center;gap:8px;font-size:11px;color:#7a93b5}
+  #diffbar{flex:1;height:8px;background:#e4eeff;border-radius:6px;overflow:hidden}
+  #diffbar i{display:block;height:100%;background:linear-gradient(90deg,#2e9bff,#ff8fd0);width:0%;transition:.3s}
+  #diffval{min-width:96px;text-align:right;font-weight:700;color:#5f7ba8}
+  #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:60;opacity:0;transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
   #ghost.show{opacity:.92}
   #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
   #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
   #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
   #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #chan{padding:6px 14px;font-size:11px;color:var(--tel-dim);border-bottom:1px solid #262f52}
+  #chan b{color:var(--tel-key)}
   #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
-  .mrow{display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:baseline}
+  .mrow{display:grid;grid-template-columns:120px 1fr;gap:8px;align-items:baseline}
   .mid{color:var(--tel-key);font-weight:700}
   .mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
   #logwrap{border-top:1px solid #262f52;margin-top:auto}
@@ -50,156 +106,308 @@
 </head>
 <body>
   <div id="wrap">
-    <div id="badge">WM-bubble-01 · Bubble Pop Memory</div>
+    <div id="badge">WM-bubble-01 &middot; Bubble Pop Memory</div>
     <header id="howto">
-      <h1>How to use — Bubble Pop Memory</h1>
-      <p>Words float up one at a time. Tap SEEN (or press F) if the word already appeared earlier, or NEW (or press J) if it has not. Watch out for words that only look or sound similar.</p>
+      <h1>How to use &mdash; Bubble Pop Memory</h1>
+      <p>Bubbles rise one at a time with a word inside. Tap <b>POP</b> (or press its key) only when the word in the bubble is the <b>same as the word n bubbles ago</b> &mdash; the rule line below the card tells you what n is right now. The first few bubbles are a warm-up: the buttons stay off until enough bubbles have gone by for a match to be possible. If a second lane appears, watch both and use each lane's own POP button.</p>
     </header>
-    <div id="phasecue" data-phase="demo">Watch the example</div>
+    <div id="phasecue" data-phase="ready">Ready</div>
     <div id="stagecard">
-      <div id="stream"></div>
+      <div id="rule">Waiting for the first block&hellip;</div>
+      <div id="lanes"></div>
+      <div id="progressbar"><i id="progressfill"></i></div>
+      <div id="hotkeys">Keys: F = pop the word lane &middot; J = pop the letter lane</div>
+      <div id="diffmeter"><span>Easy</span><div id="diffbar"><i id="diffbarfill"></i></div><span>Hard</span><span id="diffval">level &mdash; / 20</span></div>
       <div id="controls">
-        <button id="replay" title="replay demo">↻</button>
-        <button id="newbtn" title="new (J)">NEW <span style="font-weight:400">(J)</span></button>
-        <button id="seenbtn" title="seen (F)">✓ SEEN <span style="font-weight:400">(F)</span></button>
+        <button id="replay" title="replay how-to">&#8635;</button>
       </div>
-      <div id="hotkeys">Keys: F = seen before · J = new word</div>
-      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+      <div id="status" class="neutral">Waiting for the first block&hellip;</div>
     </div>
   </div>
   <aside id="telemetry">
-    <h3>Live telemetry · per-child</h3>
+    <h3>Live telemetry &middot; per-child</h3>
+    <div id="chan">channel: <b id="chanval">standalone</b> &middot; source-tag <b>gt-exam-demo</b></div>
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#2e9bff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
-const $=s=>document.querySelector(s);
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0,last=a=>a[a.length-1],sd=a=>{if(a.length<2)return 0;const m=mean(a);return Math.round(Math.sqrt(a.reduce((s,x)=>s+(x-m)**2,0)/a.length));};
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0;
+const sd=a=>{if(a.length<2)return 0;const m=mean(a);return Math.round(Math.sqrt(a.reduce((s,x)=>s+(x-m)**2,0)/a.length));};
+const RAPID_MS=220; // a pop faster than this is reflex, not recognition
 
-/* ---------- small embedded word bank + lure-similar near-neighbours ---------- */
-const WORDS=['CAT','DOG','SUN','MOON','TREE','FISH','BIRD','STAR','LAMP','DESK','BOOK','CHAIR','APPLE','GRAPE','MOUSE','HOUSE','CLOUD','RIVER','TABLE','PLANT','SHEEP','HORSE','TIGER','ROBOT','PENCIL'];
-const LURES={'CAT':'COT','DOG':'DOT','SUN':'RUN','MOON':'NOON','TREE':'THREE','FISH':'DISH','BIRD':'BIRD ','STAR':'SCAR','LAMP':'LAMB','DESK':'DISK','BOOK':'LOOK','CHAIR':'CHAIN','APPLE':'AMPLE','GRAPE':'GRACE','MOUSE':'HOUSE','HOUSE':'MOUSE','CLOUD':'CROWD','RIVER':'RIDER','TABLE':'CABLE','PLANT':'PLANK','SHEEP':'SHEET','HORSE':'HOUSE','TIGER':'TIMER','ROBOT':'ROBIN','PENCIL':'PENCEL'};
-function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[a[i],a[j]]=[a[j],a[i]];}return a;}
-// Build a stream: some repeats (targets = SEEN), some brand-new words, and lure-similar near-neighbours of seen words (hard "new" foils).
-function genStream(listLen,lureRate){
-  const vocab=shuffle(WORDS);
-  const stream=[];const seenSoFar=new Set();
-  for(let i=0;i<listLen;i++){
-    const repeatChance=i>3 && Math.random()<0.38;
-    if(repeatChance && seenSoFar.size){
-      const seenArr=[...seenSoFar];const w=seenArr[(Math.random()*seenArr.length)|0];
-      stream.push({w,isOld:true});
-    } else if(Math.random()<lureRate && seenSoFar.size){
-      const seenArr=[...seenSoFar];const base=seenArr[(Math.random()*seenArr.length)|0];
-      stream.push({w:LURES[base]||base+'S',isOld:false,lure:true});
-    } else {
-      const fresh=vocab.find(w=>!seenSoFar.has(w) && !stream.some(s=>s.w===w));
-      const w=fresh||vocab[(Math.random()*vocab.length)|0];
-      stream.push({w,isOld:false});seenSoFar.add(w);
-    }
-  }
-  return stream;
+/* ---------------- embedding channel (postMessage) ---------------- */
+const SRC_HOST='gt-exam-host', SRC_DEMO='gt-exam-demo';
+const embedded=!!(window.parent&&window.parent!==window);
+let hostSeen=false;
+function post(type,payload){
+  const msg=Object.assign({source:SRC_DEMO,type},payload||{});
+  if(embedded){try{window.parent.postMessage(msg,'*');}catch(e){}}
 }
-function levelParams(l){return {listLen:Math.min(10+l*2,26), lureRate:Math.min(0.15+l*0.06,0.5)};}
 
-/* ---------- state ---------- */
-let level=1,maxLevel=1,phase='demo',locked=true;
-let stream=[],idx=0,T={hits:0,miss:0,fa:0,cr:0,rts:[],itemStart:0,seenSet:new Set(),scoredRounds:0,exact:0,scored:0,updateCosts:[]};
-function dprimeCalc(){
-  const hitRate=Math.min(0.99,Math.max(0.01,T.hits/Math.max(1,T.hits+T.miss)));
-  const faRate=Math.min(0.99,Math.max(0.01,T.fa/Math.max(1,T.fa+T.cr)));
-  const z=p=>{ // inverse normal approx (Abramowitz-Stegun rational approx)
-    const a1=-3.969683028665376e+01,a2=2.209460984245205e+02,a3=-2.759285104469687e+02,a4=1.383577518672690e+02,a5=-3.066479806614716e+01,a6=2.506628277459239e+00;
-    const b1=-5.447609879822406e+01,b2=1.615858368580409e+02,b3=-1.556989798598866e+02,b4=6.680131188771972e+01,b5=-1.328068155288572e+01;
-    const c1=-7.784894002430293e-03,c2=-3.223964580411365e-01,c3=-2.400758277161838e+00,c4=-2.549732539343734e+00,c5=4.374664141464968e+00,c6=2.938163982698783e+00;
-    const d1=7.784695709041462e-03,d2=3.224671290700398e-01,d3=2.445134137142996e+00,d4=3.754408661907416e+00;
-    const plow=0.02425;
-    if(p<plow){const q=Math.sqrt(-2*Math.log(p));return (((((c1*q+c2)*q+c3)*q+c4)*q+c5)*q+c6)/((((d1*q+d2)*q+d3)*q+d4)*q+1);}
-    if(p>1-plow){const q=Math.sqrt(-2*Math.log(1-p));return -(((((c1*q+c2)*q+c3)*q+c4)*q+c5)*q+c6)/((((d1*q+d2)*q+d3)*q+d4)*q+1);}
-    const q=p-0.5,r=q*q;return (((((a1*r+a2)*r+a3)*r+a4)*r+a5)*r+a6)*q/(((((b1*r+b2)*r+b3)*r+b4)*r+b5)*r+1);
-  };
-  return (z(hitRate)-z(faRate)).toFixed(2);
+/* ---------------- item + block state ---------------- */
+let item=null,content=null,stepIndex=-1,blockStart=0,firstPopAt=null,
+    pops=[],popLatencies=[],blurCount=0,rapidPops=0,inputLocked=true,
+    releasedAtStep=null,resultSent=false,telemetryLog=[],running=false,
+    watchdog=null,lastPhaseWasDemo=false;
+const SESSION={rts:[],pops:[],blocks:0,maxLevel:0};
+
+function recordEv(ev){ev.t=blockStart?Date.now()-blockStart:0;telemetryLog.push(ev);post('telemetry',{event:ev});}
+function log(msg){const t=blockStart?Date.now()-blockStart:0;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+
+/* ---------------- phase + status (worded, no emoji) ---------------- */
+const PHASE={ready:'Ready',watch:'Watch &mdash; buttons off',respond:'Your turn &mdash; pop the matches',done:'Block sent'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.innerHTML=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+
+/* ---------------- LOCK / RELEASE (single owner of `inputLocked`) ----------------
+   Every transition is logged. Nothing else in this file assigns to inputLocked, and
+   emitResult() never consults it — a stuck lock can delay a pop, never a result. */
+function lockInput(reason){
+  if(inputLocked===true&&reason!=='init')return;
+  inputLocked=true;
+  $$('.popbtn').forEach(b=>{b.disabled=true;});
+  $$('.tank').forEach(t=>t.classList.add('locked'));
+  log(`INPUT LOCKED (${reason})`);
+  recordEv({kind:'input_locked',reason,step:stepIndex});
 }
-function accStr(){return T.scored?`${T.exact}/${T.scored}  ${Math.round(100*T.exact/T.scored)}%`:'\u2014';}
-function faStr(){return `${T.fa} false alarms`;}
-function updateCostStr(){return T.updateCosts.length?`${mean(T.updateCosts)} ms`:'\u2014';}
-function rtvarStr(){return T.rts.length>1?`sd ${sd(T.rts)} ms`:'\u2014';}
-function learnRate(){return T.scoredRounds?`n reached ${maxLevel} in ${T.scoredRounds} rounds`:'\u2014';}
+function releaseInput(reason){
+  if(inputLocked===false)return;
+  inputLocked=false;
+  releasedAtStep=stepIndex;
+  $$('.popbtn').forEach(b=>{b.disabled=false;});
+  $$('.tank').forEach(t=>t.classList.remove('locked'));
+  log(`INPUT RELEASED (${reason}) at step ${stepIndex+1}`);
+  recordEv({kind:'input_released',reason,step:stepIndex});
+}
+
+/* ---------------- telemetry meters ---------------- */
 const METERS=[
- {id:'M-ACC',name:'Recognition accuracy',get:accStr},
- {id:'M-DPRIME',name:"Sensitivity (d')",get:dprimeCalc},
- {id:'M-FALSEALARM',name:'False alarms (new marked seen)',get:faStr},
- {id:'M-UPDATECOST',name:'Update cost (RT after lure)',get:updateCostStr},
- {id:'M-RTVAR',name:'Response-time variability',get:rtvarStr},
- {id:'M-DIFFREACH',name:'Difficulty reached (list length)',get:()=>`level ${maxLevel}`},
- {id:'M-LEARNRATE',name:'Learning rate across rounds',get:learnRate},
+ {id:'M-ACC',name:'Hit accuracy — scored server-side',get:()=>'server-side'},
+ {id:'M-DPRIME',name:"Sensitivity (d') — scored server-side",get:()=>'server-side'},
+ {id:'M-FALSEALARM',name:'False alarms — scored server-side',get:()=>'server-side'},
+ {id:'M-UPDATECOST',name:'Pop latency after each bubble onset',get:()=>popLatencies.length?`${mean(popLatencies)} ms mean`:'\u2014'},
+ {id:'M-RTVAR',name:'Pop-latency variability',get:()=>popLatencies.length>1?`sd ${sd(popLatencies)} ms`:'\u2014'},
+ {id:'M-DIFFREACH',name:'Hardest block presented (level / n)',get:()=>SESSION.maxLevel?`level ${SESSION.maxLevel} · n=${content?content.n:'\u2014'}`:'\u2014'},
+ {id:'M-RT',name:'Block duration',get:()=>SESSION.rts.length?`${SESSION.rts[SESSION.rts.length-1]} ms`:'\u2014'},
+ {id:'M-RTFIRST',name:'First-pop latency',get:()=>firstPopAt!==null?`${firstPopAt-blockStart} ms`:'\u2014'},
+ {id:'M-ENGAGE',name:'Window blur events (tracked, not enforced)',get:()=>`${blurCount}`},
+ {id:'M-RAPIDGUESS',name:'Pops faster than '+RAPID_MS+' ms',get:()=>`${rapidPops}`},
+ {id:'M-VOCABLVL',name:'Lexical level of this block',get:()=>content&&content.vocabularyLevel?`band ${content.vocabularyLevel} / 7`:'\u2014'},
+ {id:'M-LURETYPE',name:'Lure profile — labelled server-side',get:()=>'server-side'},
 ];
 function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
 function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});}
-function log(msg){const t=Date.now()-T.itemStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
-const ghost=$('#ghost');function ghostShow(v){ghost.classList.toggle('show',v);}
+
+/* ---------------- rendering ---------------- */
+function laneHTML(ch,i){
+  return `<div class="lane" data-ch="${ch.id}">
+    <div class="laneName">${ch.label||('Lane '+(i+1))}</div>
+    <div class="tank locked" id="tank_${ch.id}"></div>
+    <button class="popbtn" data-ch="${ch.id}" disabled>${ch.popLabel||'POP'}${ch.hotkey?` <span style="font-weight:400">(${ch.hotkey})</span>`:''}</button>
+  </div>`;
+}
+function paintBubble(chId,text){
+  const tank=$('#tank_'+chId);if(!tank)return;
+  tank.innerHTML='';
+  const b=document.createElement('div');b.className='bubble';b.textContent=text;tank.appendChild(b);
+}
+function difficultyOf(it){const d=(it&&it.difficulty!=null)?it.difficulty:0;return +d||0;}
+
+function setItem(served){
+  clearTimeout(watchdog);
+  item=served;content=(served&&served.content)||{};
+  stepIndex=-1;blockStart=Date.now();firstPopAt=null;pops=[];popLatencies=[];
+  rapidPops=0;releasedAtStep=null;resultSent=false;telemetryLog=[];running=false;
+  const chans=content.channels||[];
+  $('#lanes').innerHTML=chans.map(laneHTML).join('');
+  $('#rule').textContent=content.prompt||`Tap POP when the bubble matches the one ${content.n} back.`;
+  $('#hotkeys').textContent='Keys: '+chans.map(c=>`${c.hotkey||'?'} = ${(c.label||c.id).toLowerCase()} lane`).join(' \u00b7 ');
+  const d=difficultyOf(served);
+  SESSION.maxLevel=Math.max(SESSION.maxLevel,Math.round(d*10)/10);
+  $('#diffbarfill').style.width=Math.max(0,Math.min(100,d/20*100))+'%';
+  $('#diffval').textContent='level '+(Math.round(d*10)/10)+' / 20';
+  $('#progressfill').style.width='0%';
+  inputLocked=false;lockInput('init'); // force a logged lock at item load
+  setCue('ready');
+  setStatus('neutral',`This block is ${content.n}-back. Press start / wait for the first bubbles.`);
+  log(`INIT item ${served&&served.itemId?served.itemId:'(no id)'} \u00b7 n=${content.n} \u00b7 ${content.streamLength} bubbles \u00b7 ${chans.length} lane(s) \u00b7 pace ${content.paceMs}ms \u00b7 level ${Math.round(d*10)/10}`);
+  recordEv({kind:'shown',itemId:served&&served.itemId,n:content.n,streamLength:content.streamLength,channels:chans.map(c=>c.id)});
+  renderMeters();
+}
+
+/* ---------------- the block ---------------- */
+async function runBlock(){
+  if(!content||running)return;
+  running=true;blockStart=Date.now();
+  const chans=content.channels||[];
+  const len=content.streamLength||(chans[0]&&chans[0].stream.length)||0;
+  const lead=content.leadInSteps!=null?content.leadInSteps:content.n;
+  const pace=content.paceMs||1800;
+  setCue('watch');
+  setStatus('hold',`Watch the first ${lead} bubble${lead===1?'':'s'} \u2014 the buttons turn on when a match becomes possible.`);
+  // Watchdog: whatever happens to the animation, the block still reports.
+  watchdog=setTimeout(()=>{if(!resultSent){log('WATCHDOG fired \u2014 emitting result');finishBlock(false);}},pace*(len+3)+4000);
+
+  for(let i=0;i<len;i++){
+    if(!running)return;
+    stepIndex=i;
+    chans.forEach(ch=>paintBubble(ch.id,ch.stream[i]));
+    $('#progressfill').style.width=Math.round((i+1)/len*100)+'%';
+    recordEv({kind:'bubble',step:i});
+    // RELEASE at the first decidable bubble (the recall prompt for an n-back).
+    if(i===lead&&inputLocked){
+      releaseInput('lead-in complete');
+      setCue('respond');
+      setStatus('neutral','Now you can pop. Tap POP only when the bubble matches the one '+content.n+' back.');
+    }
+    await sleep(pace);
+  }
+  finishBlock(true);
+}
+
+function pop(chId,via){
+  if(!content)return;
+  const now=Date.now();
+  if(inputLocked){
+    // Not scored as a response: the lead-in has no defensible pop. Logged only.
+    recordEv({kind:'pop_blocked',channel:chId,step:stepIndex,via});
+    log(`pop ignored (input locked, step ${stepIndex+1})`);
+    return;
+  }
+  const stepStart=blockStart+(stepIndex)*(content.paceMs||1800);
+  const rt=Math.max(0,now-stepStart);
+  if(firstPopAt===null)firstPopAt=now;
+  if(rt<RAPID_MS)rapidPops++;
+  popLatencies.push(rt);
+  pops.push({channel:chId,stepIndex,rtMs:rt,via});
+  const btn=document.querySelector(`.popbtn[data-ch="${chId}"]`);
+  if(btn){btn.classList.remove('hit');void btn.offsetWidth;btn.classList.add('hit');}
+  recordEv({kind:'pop',channel:chId,step:stepIndex,rt,via});
+  log(`POP lane ${chId} at bubble ${stepIndex+1} (+${rt}ms)`); // NO correct/incorrect shown
+  renderMeters();
+}
+
+function finishBlock(completed){
+  if(resultSent)return;
+  clearTimeout(watchdog);
+  running=false;
+  lockInput('block complete');
+  resultSent=true;
+  const rt=Date.now()-blockStart;
+  SESSION.rts.push(rt);SESSION.blocks++;
+  const result={
+    itemId:item&&item.itemId,
+    typeCode:(item&&item.typeCode)||'WM-bubble-01',
+    domain:(item&&item.domain)||'verbal',
+    response:{
+      pops:pops.slice(),
+      stepsShown:stepIndex+1,
+      channelIds:(content.channels||[]).map(c=>c.id),
+      releasedAtStep,
+      completed:!!completed
+    },
+    metrics:{
+      'M-RT':rt,
+      'M-RTFIRST':firstPopAt!==null?firstPopAt-blockStart:rt,
+      'M-RTVAR':sd(popLatencies),
+      'M-UPDATECOST':mean(popLatencies),
+      'M-REV':0,
+      'M-ENGAGE':blurCount,
+      'M-RAPIDGUESS':rapidPops,
+      'M-VOCABLVL':content.vocabularyLevel||0
+    },
+    telemetry:telemetryLog.slice()
+  };
+  post('result',{result});
+  setCue('done');
+  setStatus('ok','Block sent. '+(embedded?'Waiting for the next block\u2026':'Loading the next example\u2026'));
+  log(`RESULT ${pops.length} pop(s) over ${stepIndex+1} bubbles \u00b7 ${rt}ms \u00b7 released at step ${releasedAtStep!==null?releasedAtStep+1:'\u2014'}`);
+  renderMeters();
+  if(!embedded)setTimeout(nextStandalone,1600);
+}
+
+/* ---------------- wordless how-to pointer (reveals no key) ---------------- */
+const ghost=$('#ghost');
 function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
 async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(450);}
-async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(380);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(360);}
+async function runHowto(){
+  if(!content||running)return;
+  lastPhaseWasDemo=true;
+  lockInput('how-to');
+  setCue('watch');
+  setStatus('neutral','Example: two bubbles rise, then the same word comes back \u2014 that is when POP is used.');
+  const ch=(content.channels||[])[0];if(!ch)return;
+  const sample=['SUN','MOON','SUN'];
+  ghost.classList.add('show');
+  for(let i=0;i<sample.length;i++){paintBubble(ch.id,sample[i]);await sleep(520);}
+  await ghostTo(document.querySelector('.popbtn'));await ghostTap();
+  await sleep(250);ghost.classList.remove('show');
+  setStatus('neutral','Your turn next. The buttons turn on once enough bubbles have gone by.');
+  lastPhaseWasDemo=false;
+}
 
-/* ---------- render ---------- */
-let curBubble=null,wasLureBefore=false;
-function paintBubble(w){$('#stream').innerHTML='';const b=document.createElement('div');b.className='bubble';b.style.bottom='50px';b.textContent=w;$('#stream').appendChild(b);curBubble=b;}
-function respond(said){if(locked||phase==='demo'||phase==='done')return;
-  const item=stream[idx];const rt=Date.now()-T.itemStart;
-  const correct=said===item.isOld;
-  curBubble.classList.add(correct?'flashg':'flashr');
-  setStatus(correct?'ok':'no',correct?'\u2713 Correct':'\u2717 Not quite');
-  T.rts.push(rt);
-  if(item.lure)T.updateCosts.push(rt);
-  if(said && item.isOld)T.hits++; else if(said && !item.isOld)T.fa++;
-  else if(!said && item.isOld)T.miss++; else T.cr++;
-  log(`"${item.w}"${item.isOld?' (OLD)':item.lure?' (LURE-new)':' (new)'} \u2192 ${said?'SEEN':'NEW'} ${correct?'\u2713':'\u2717'}`);
-  advance();
+/* ---------------- standalone fallback (double-click, no host) ---------------- */
+const SAMPLES=[
+ {itemId:'sample-wm-easy',typeCode:'WM-bubble-01',domain:'verbal',difficulty:2,ageBands:['2-3'],
+  content:{n:1,paceMs:1200,responseWindowMs:1200,streamLength:10,leadInSteps:1,vocabularyLevel:7,
+   prompt:'Tap POP when the bubble is the same as the one 1 bubble ago.',
+   channels:[{id:'w',label:'Word',kind:'word',popLabel:'POP WORD',hotkey:'F',
+     stream:['SUN','CAT','CAT','DOG','BALL','BALL','TREE','FISH','FISH','HAT']}]}},
+ {itemId:'sample-wm-mid',typeCode:'WM-bubble-01',domain:'verbal',difficulty:10,ageBands:['4-5'],
+  content:{n:3,paceMs:1000,responseWindowMs:1000,streamLength:12,leadInSteps:3,vocabularyLevel:4,
+   prompt:'Tap POP when the bubble is the same as the one 3 bubbles ago.',
+   channels:[{id:'w',label:'Word',kind:'word',popLabel:'POP WORD',hotkey:'F',
+     stream:['CANYON','SUMMIT','TUNDRA','CANYON','GEYSER','TUNDRA','BASIN','GEYSER','MARSH','BASIN','RIDGE','MARSH']}]}},
+ {itemId:'sample-wm-dual',typeCode:'WM-bubble-01',domain:'verbal',difficulty:17,ageBands:['6-8'],
+  content:{n:4,paceMs:950,responseWindowMs:950,streamLength:12,leadInSteps:4,vocabularyLevel:2,
+   prompt:'Tap POP when the bubble is the same as the one 4 bubbles ago.',
+   channels:[
+    {id:'w',label:'Word',kind:'word',popLabel:'POP WORD',hotkey:'F',
+     stream:['ZEPHYR','ISTHMUS','ATOLL','KARST','ZEPHYR','SHOAL','ATOLL','MESA','TARN','SHOAL','BUTTE','MESA']},
+    {id:'l',label:'Letter',kind:'letter',popLabel:'POP LETTER',hotkey:'J',
+     stream:['B','K','R','T','M','K','P','T','S','M','H','Z']}]}}
+];
+let sIdx=0;
+function startStandalone(){$('#chanval').textContent='standalone (no host)';sIdx=0;nextStandalone(true);}
+async function nextStandalone(first){
+  if(sIdx>=SAMPLES.length){setCue('done');setStatus('ok','Demo complete. Press \u21bb or reload to run the examples again.');lockInput('samples exhausted');return;}
+  const s=SAMPLES[sIdx++];
+  setItem(s);
+  if(first){await runHowto();await sleep(400);}
+  runBlock();
 }
-function advance(){locked=true;idx++;
-  if(idx>=stream.length){finishRound();return;}
-  setTimeout(()=>{T.itemStart=Date.now();paintBubble(stream[idx].w);locked=false;},350);
+
+/* ---------------- host message handling ---------------- */
+window.addEventListener('message',e=>{
+  const d=e.data;if(!d||d.source!==SRC_HOST)return;
+  if(d.type==='init'&&d.item){hostSeen=true;$('#chanval').textContent='host-embedded';setItem(d.item);}
+  else if(d.type==='start'){if(content&&!running&&!resultSent)runBlock();}
+});
+
+/* ---------------- input ---------------- */
+$('#lanes').addEventListener('click',e=>{const b=e.target.closest('.popbtn');if(b)pop(b.dataset.ch,'tap');});
+document.addEventListener('keydown',e=>{
+  const k=e.key.toUpperCase();
+  const ch=(content&&content.channels||[]).find(c=>(c.hotkey||'').toUpperCase()===k);
+  if(ch)pop(ch.id,'key');
+});
+window.addEventListener('blur',()=>{blurCount++;recordEv({kind:'blur'});renderMeters();});
+$('#replay').addEventListener('click',()=>{if(content&&!running)runHowto();});
+
+/* ---------------- boot ---------------- */
+buildMeters();renderMeters();
+post('ready',{});
+if(!embedded){
+  startStandalone();
+}else{
+  setCue('ready');setStatus('neutral','Ready. Waiting for the first block from the host\u2026');
+  setTimeout(()=>{if(!hostSeen&&!content)startStandalone();},1200);
 }
-function finishRound(){locked=true;
-  const roundExact = T.fa===0 && T.miss===0; // simplistic per-round exactness proxy
-  if(phase==='warmup'){log('— warm-up round complete — UNSCORED —');setTimeout(nextPhase,1000);return;}
-  T.scored++;T.scoredRounds++;
-  const dp=parseFloat(dprimeCalc());
-  if(dp>=1.2){T.exact++;level=Math.min(8,level+1);}else if(dp<0.5){level=Math.max(1,level-1);}
-  maxLevel=Math.max(maxLevel,level);
-  log(`— ROUND END: hits ${T.hits} miss ${T.miss} FA ${T.fa} CR ${T.cr} \u00b7 d'=${dp} \u2192 next level ${level} —`);
-  renderMeters();setTimeout(nextPhase,1400);
-}
-function nextPhase(){locked=false;
-  if(phase==='warmup'){startScored();}
-  else if(phase==='scored'){T.roundIdx=(T.roundIdx||0)+1;T.roundIdx<5?startScored():finish();}
-}
-const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
-function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
-function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
-function newRound(l){const p=levelParams(l);stream=genStream(p.listLen,p.lureRate);idx=0;
-  T.hits=0;T.miss=0;T.fa=0;T.cr=0;T.updateCosts=[];T.itemStart=Date.now();
-  paintBubble(stream[0].w);$('#seenbtn').disabled=false;$('#newbtn').disabled=false;renderMeters();}
-function startWarmup(){phase='warmup';locked=false;setCue('warmup');setStatus('neutral','Practice - tap SEEN or NEW for each word. Not scored.');newRound(1);log('— warm-up (unscored): tap SEEN if this word appeared before, NEW if not —');}
-function startScored(){phase='scored';setCue('scored',((T.roundIdx||0)+1)+'/5');setStatus('neutral','Tap SEEN if you have seen the word before, or NEW if not.');newRound(level);log(`— SCORED round: ${levelParams(level).listLen} words, level ${level} —`);}
-function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;$('#seenbtn').disabled=true;$('#newbtn').disabled=true;
-  log(`— DONE \u00b7 d'=${dprimeCalc()} \u00b7 max level ${maxLevel} —`);}
-async function runDemo(){phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;
-  stream=[{w:'CAT',isOld:false},{w:'DOG',isOld:false},{w:'CAT',isOld:true}];idx=0;T.itemStart=Date.now();
-  paintBubble(stream[0].w);log('ghost-hand demo (wordless, <10s)');ghostShow(true);await sleep(300);
-  await ghostTo($('#newbtn'));await ghostTap();idx=1;paintBubble(stream[1].w);await sleep(250);
-  await ghostTo($('#newbtn'));await ghostTap();idx=2;paintBubble(stream[2].w);await sleep(250);
-  await ghostTo($('#seenbtn'));await ghostTap();await sleep(300);ghostShow(false);await sleep(400);startWarmup();}
-$('#seenbtn').addEventListener('click',()=>respond(true));
-$('#newbtn').addEventListener('click',()=>respond(false));
-$('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
-document.addEventListener('keydown',e=>{if(phase==='demo'||phase==='done'||locked)return;
-  if(e.key.toLowerCase()==='f')respond(true); else if(e.key.toLowerCase()==='j')respond(false);});
-buildMeters();renderMeters();runDemo();
 </script>
 </body>
 </html>
