@@ -155,6 +155,10 @@ function keyedResponses(item: RawBankItem): Responses {
   };
 }
 
+function list(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
 function numbers(value: unknown): number[] {
   return Array.isArray(value)
     ? value.filter((entry): entry is number => typeof entry === 'number')
