@@ -196,7 +196,7 @@ describe('difficultyDelta', () => {
     expect(easyWrong).toBeLessThan(hardWrong); // more negative
   });
 
-  it('reduces to the pre-D-021 fixed-step rule when the schedule is flattened', () => {
+  it('reduces to the pre-D-023 fixed-step rule when the schedule is flattened', () => {
     // Setting `initialStep` equal to `minUpdate` removes the decay, and a `surpriseGain` of 1.5
     // makes surprise span 0.4..1.0 — exactly `magnitude = 0.4 + 0.6 * surprise`. The schedule
     // therefore GENERALISES the old rule rather than replacing it, which is the reversal path

@@ -238,7 +238,7 @@ describe('metric supply audit', () => {
   });
 });
 
-describe('convergence from a distant seed (D-021)', () => {
+describe('convergence from a distant seed (D-023)', () => {
   /*
    * Before the decaying step schedule, item selection targeted the current estimate, so the
    * "surprise" term in `difficultyDelta` stayed ~0 and the estimate only ever moved at its fixed

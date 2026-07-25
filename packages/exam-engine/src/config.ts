@@ -117,7 +117,7 @@ export const CORE_METRICS: CoreMetricSpec[] = [
  * child seeded at 11 whose true ability is 18, or 1) inside about four items per area, while the
  * `minUpdate` asymptote of 0.25 is finer than the 0.4 fixed floor it replaces, so the tail of the
  * scale is measured MORE precisely, not less. Every one of these is a policy knob, not a constant:
- * see `docs/governance/DECISION_LOG.md` D-021.
+ * see `docs/governance/DECISION_LOG.md` D-023.
  */
 export const DEFAULT_CONFIG: EngineConfig = {
   seed: 0xc0ffee,
