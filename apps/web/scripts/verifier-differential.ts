@@ -155,6 +155,12 @@ function keyedResponses(item: RawBankItem): Responses {
   };
 }
 
+function numbers(value: unknown): number[] {
+  return Array.isArray(value)
+    ? value.filter((entry): entry is number => typeof entry === 'number')
+    : [];
+}
+
 const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {
   'FLU-CONCEPT-01': (item) => {
     const verdicts = Array.isArray(item.answer.probeVerdicts) ? item.answer.probeVerdicts : [];
@@ -199,6 +205,167 @@ const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {
       // Same angle of cut, a different height: the bank's own `cut_too_low`/`cut_too_high`
       // near-miss family, not a malformed response.
       wrong: { plane: { ...plane, h: h >= 50 ? h - 40 : h + 40 } },
+    };
+  },
+
+  'CX-curious-02': (item) => {
+    const key = String(item.answer.correctKey ?? '');
+    const offered = (Array.isArray(item.content.gapOptions) ? item.content.gapOptions : [])
+      .map((option) => asRecord(option)?.id)
+      .filter((id): id is string => typeof id === 'string');
+    // An option the scene states outright, which is the discrimination the type is about.
+    return {
+      correct: { gapKey: key },
+      wrong: { gapKey: offered.find((id) => id !== key) ?? `${key}~no` },
+    };
+  },
+
+  'GB-DEBATE-01': (item) => {
+    const key = asRecord(item.answer.correctKey) ?? {};
+    const support = String(key.support ?? '');
+    const rebut = String(key.rebut ?? '');
+    return {
+      correct: { supportKey: support, rebutKey: rebut },
+      // One of two decisions lands, so M-PROG is compared on its 0.5 rung and not only at
+      // the endpoints — that partial signal is the reason the type carries the metric.
+      wrong: { supportKey: support, rebutKey: `${rebut}~no` },
+    };
+  },
+
+  'SPA-VIEW-01': (item) => {
+    const heading = item.answer.correctHeadingDeg;
+    if (item.content.optionKind === 'heading_dial' || typeof heading === 'number') {
+      const target = typeof heading === 'number' ? heading : 0;
+      const tolerance = typeof item.answer.toleranceDeg === 'number' ? item.answer.toleranceDeg : 0;
+      return {
+        correct: { headingDeg: target },
+        // Half a turn past the target and outside the band. It also drives the dial across
+        // the +/-180 seam, so the circular comparison is what the two sides must agree on.
+        wrong: { headingDeg: target + 180 + tolerance + 1 },
+      };
+    }
+    const key = String(item.answer.correctKey ?? '');
+    const mirror = item.answer.mirrorFoilKey;
+    return {
+      correct: { selectedKey: key },
+      // The station that sees the strip exactly reversed, where the bank names one: the
+      // case M-MIRRORFA exists to report.
+      wrong: { selectedKey: typeof mirror === 'string' ? mirror : `${key}~no` },
+    };
+  },
+
+  'SPA-HIDDENCUBE-01': (item) => {
+    const total =
+      typeof item.answer.correctCount === 'number'
+        ? item.answer.correctCount
+        : Number(item.answer.correctKey);
+    const view = asRecord(item.content.view) ?? {};
+    const yaw = typeof view.yawDeg === 'number' ? view.yawDeg : 0;
+    return {
+      correct: { count: total, finalYawDeg: yaw },
+      wrong: { count: total - 1, finalYawDeg: yaw },
+    };
+  },
+
+  'GB-FILTER-01': (item) => {
+    const targets = Array.isArray(item.answer.targets)
+      ? (item.answer.targets as [number, number][])
+      : [];
+    const grid = asRecord(item.content.grid) ?? {};
+    const rows = typeof grid.R === 'number' ? grid.R : 0;
+    const cols = typeof grid.C === 'number' ? grid.C : 0;
+    const lit = new Set(targets.map(([r, c]) => `${r},${c}`));
+    let dark: [number, number] | undefined;
+    for (let r = 0; r < rows && dark === undefined; r++) {
+      for (let c = 0; c < cols; c++) {
+        if (!lit.has(`${r},${c}`)) {
+          dark = [r, c];
+          break;
+        }
+      }
+    }
+    return {
+      correct: { selectedCells: targets, taps: targets.length },
+      // One target traded for one distractor: a miss AND a false alarm in one response, so
+      // M-PROG and M-FALSEALARM are both non-trivial on the comparison.
+      wrong: {
+        selectedCells: [...targets.slice(1), ...(dark === undefined ? [] : [dark])],
+        taps: targets.length,
+      },
+    };
+  },
+
+  'WM-corsi-01': (item) => {
+    const expected = numbers(item.answer.expectedSequence);
+    return {
+      correct: { tappedCells: expected, tapCount: expected.length },
+      // The trail replayed in the other direction: the bank's own `direction_error` lure.
+      wrong: { tappedCells: [...expected].reverse(), tapCount: expected.length },
+    };
+  },
+
+  'WM-bind-01': (item) => {
+    const bindings = asRecord(item.answer.bindings) ?? {};
+    const ids = Object.keys(bindings);
+    const swapped: Record<string, unknown> = { ...bindings };
+    if (ids.length >= 2) {
+      // The confusable-pair swap: both houses were held, the association was not, so
+      // M-POLY has to report partial credit rather than zero.
+      swapped[ids[0]!] = bindings[ids[1]!];
+      swapped[ids[1]!] = bindings[ids[0]!];
+    } else if (ids.length === 1) {
+      swapped[ids[0]!] = -1;
+    }
+    return { correct: { placements: bindings }, wrong: { placements: swapped } };
+  },
+
+  'WM-gridflash-01': (item) => {
+    const phase = asRecord(item.content.responsePhase) ?? {};
+    if (phase.mode === 'select_set') {
+      const expected = numbers(item.answer.expectedCells);
+      const grid = asRecord(item.content.grid) ?? {};
+      const cellCount = typeof grid.cellCount === 'number' ? grid.cellCount : 0;
+      const dark = Array.from({ length: cellCount }, (_, cell) => cell).find(
+        (cell) => !expected.includes(cell),
+      );
+      return {
+        correct: { shell: 'select_set', selectedCells: expected },
+        // One lit cell swapped for a dark one, which moves the hit channel and the
+        // false-alarm channel in opposite directions — the split the type exists to keep.
+        wrong: {
+          shell: 'select_set',
+          selectedCells: [...expected.slice(1), ...(dark === undefined ? [] : [dark])],
+        },
+      };
+    }
+    const key = String(item.answer.correctKey ?? '');
+    return {
+      correct: { shell: 'two_choice', selectedKey: key },
+      wrong: { shell: 'two_choice', selectedKey: key === 'SAME' ? 'CHANGED' : 'SAME' },
+    };
+  },
+
+  'WM-bubble-01': (item) => {
+    // `answer.correctKey` is the target steps per channel, "w:2,7|s:3". The verifier
+    // re-derives them from the stream instead, so driving the response off the key keeps the
+    // two sides independent.
+    const streamLength =
+      typeof (item.content as { streamLength?: unknown }).streamLength === 'number'
+        ? (item.content as { streamLength: number }).streamLength
+        : 0;
+    const pops: { channel: string; stepIndex: number }[] = [];
+    for (const part of String(item.answer.correctKey ?? '').split('|')) {
+      const [channel, steps] = part.split(':');
+      if (!channel || !steps) continue;
+      for (const step of steps.split(',')) {
+        const stepIndex = Number(step);
+        if (Number.isInteger(stepIndex)) pops.push({ channel, stepIndex });
+      }
+    }
+    return {
+      correct: { pops, stepsShown: streamLength, completed: true },
+      // One target missed: the hit rate falls, the false-alarm rate does not.
+      wrong: { pops: pops.slice(1), stepsShown: streamLength, completed: true },
     };
   },
 };

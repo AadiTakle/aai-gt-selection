@@ -234,10 +234,16 @@ select ok(
 
 -- --- 2. Resolution order -----------------------------------------------------------
 
+-- Scoped to the four this migration ships rather than counting the whole table: the
+-- remaining ports land in their own additive migrations, so a global count here would make
+-- every later batch edit a test that is not theirs.
 select is(
-  (select count(*)::integer from app.exam_verifier_registry),
+  (
+    select count(*)::integer from app.exam_verifier_registry
+    where type_code in ('FLU-CONCEPT-01', 'VER-EVIDENCE-01', 'QUANT-MIX-01', 'SPA-XPLANE-01')
+  ),
   4,
-  'four per-type verifiers are registered — the port is deliberately partial'
+  'the four foundation per-type verifiers are registered'
 );                                                                                      -- 9
 select is(
   app.exam_verify_response('00000000-0000-4000-8000-0000000e0001', '{}'::jsonb) ->> 'verifier',
