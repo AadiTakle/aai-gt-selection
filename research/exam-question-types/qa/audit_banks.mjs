@@ -586,10 +586,23 @@ function resolveOptions(item) {
       keys: content.options.map((_, i) => i),
     };
   }
-  for (const [name, value] of Object.entries(content)) {
-    if (name === 'options') continue;
-    if (isKeyedArray(value)) {
-      return { kind: 'keyed', field: name, options: value, keys: value.map((o) => o[keyFieldOf(o, false)]) };
+  // Fallback: some types name their option list something other than `options`.
+  // This scan is a heuristic, so it must corroborate itself against the key
+  // before it is trusted. A constructed-response type carries no option list but
+  // often does carry some other keyed array (trials, gates, checkpoints), and
+  // picking that up made its composite `correctKey` — "t2:b0|t1:b1|…", "YNN" —
+  // look like a key naming no option, reporting 120/120 items of a perfectly
+  // sound bank as broken. If the located array does not contain the key, the
+  // scan simply failed to find an option list; that is not evidence of a bad key.
+  const correctKey = item?.answer?.correctKey;
+  if (correctKey !== undefined && !(correctKey && typeof correctKey === 'object')) {
+    for (const [name, value] of Object.entries(content)) {
+      if (name === 'options') continue;
+      if (!isKeyedArray(value)) continue;
+      const keys = value.map((o) => o[keyFieldOf(o, false)]);
+      if (keys.some((k) => k === correctKey)) {
+        return { kind: 'keyed', field: name, options: value, keys };
+      }
     }
   }
   const reason = content.response
@@ -598,6 +611,29 @@ function resolveOptions(item) {
       ? `interactive response (content.optionKind = ${JSON.stringify(content.optionKind)})`
       : 'no enumerable option set in content';
   return { kind: 'none', reason };
+}
+
+/**
+ * The part of a compound key that names an option in the resolved option list.
+ *
+ * A type may ask for more than one decision per item and join them into a single
+ * key. `VER-EVIDENCE-01` asks the child to answer *and* cite the sentence that
+ * supports the answer, keying it `"B+s1"` and declaring the split in
+ * `scoring.keyParts` with half credit each. Comparing the whole compound against
+ * the answer options alone reported every such item as naming no option.
+ *
+ * Only splits when the item itself declares a multi-part key, so a genuinely
+ * malformed single-part key is still caught.
+ */
+function compositeKeyPart(item, correctKey, resolved) {
+  const parts = item?.scoring?.keyParts;
+  if (!Array.isArray(parts) || parts.length < 2) return correctKey;
+  if (typeof correctKey !== 'string' || !correctKey.includes('+')) return correctKey;
+  const known = new Set(resolved.keys.map((k) => String(k)));
+  const segments = correctKey.split('+');
+  const naming = segments.filter((s) => known.has(s));
+  // Ambiguous or unmatched: hand back the original so the check still reports it.
+  return naming.length === 1 ? naming[0] : correctKey;
 }
 
 /**
@@ -647,7 +683,7 @@ function checkKeySanity(items) {
     }
     pickOne += 1;
     const id = item.itemId ?? `item ${i + 1}`;
-    const correctKey = item?.answer?.correctKey;
+    const correctKey = compositeKeyPart(item, item?.answer?.correctKey, resolved);
 
     let matches = [];
     if (resolved.kind === 'indexed') {
