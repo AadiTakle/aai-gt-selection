@@ -47,6 +47,45 @@ const GENERATOR_REF = 'VER-BUILDIT-01/authored-boards@v1';
 //   global_mismatch   = the pieces are scrambled across the slots (no directive followed)
 const LURE_CLASSES = new Set(['correct', 'rule_violation', 'reversed_relation', 'global_mismatch']);
 
+// Lure labels are ANSWER-REVEALING and must never appear under `content`: the browser
+// receives ServedItem = BankItem minus {answer, scoring, provenance} (build plan §2), so a
+// per-option `lure` field hands over the key. The taxonomy still has to survive the move —
+// M-LURETYPE and M-ERRTYPE score on which lure the child selected — so it lives in
+// answer.distractorRationales, keyed by the option index the child actually sees.
+const LURE_WHY = {
+  correct: 'the one arrangement that follows every building step',
+  rule_violation: 'one directive broken — a single piece swapped for a near-miss',
+  reversed_relation: 'two opposite slots swapped — the spatial relation applied backwards',
+  global_mismatch: 'pieces cycled across slots — the directives largely ignored',
+};
+
+// Keys are stringified option indices so a rationale can never be read positionally.
+function rationalesByOption(lures) {
+  const out = {};
+  lures.forEach((lure, i) => { out[String(i)] = { lure, why: LURE_WHY[lure] }; });
+  return out;
+}
+
+// Any key under `content` that would identify the correct option.
+// Re-asserted independently by check-VER-BUILDIT-01.mjs.
+const LEAK_KEY = /^(lure|lures|misconception|correct|iscorrect|is_correct|correctkey|key|answer|answers|solution|solver|rationale|rationales|distractorrationales|fit|why|note|explanation|errortype|error_type|truth|verdict)$/i;
+
+function assertContentClean(content, where) {
+  const errors = [];
+  (function walk(node, path) {
+    if (!node || typeof node !== 'object') return;
+    if (Array.isArray(node)) { node.forEach((v, i) => walk(v, `${path}[${i}]`)); return; }
+    for (const [k, v] of Object.entries(node)) {
+      if (LEAK_KEY.test(k)) errors.push(`${where}: content leaks an answer-revealing key at ${path}.${k}`);
+      if (typeof v === 'string' && v.trim().toLowerCase() === 'correct') {
+        errors.push(`${where}: content carries the literal value "correct" at ${path}.${k}`);
+      }
+      walk(v, `${path}.${k}`);
+    }
+  })(content, 'content');
+  return errors;
+}
+
 // The reversed-relation trap needs >=3 placements incl. an opposite pair; add it once the
 // build is non-trivial (matches the "embedded conditions adapt up" staircase in the spec).
 const REVERSED_FROM_BAND = 5;
@@ -330,9 +369,20 @@ function buildItem(entry, index) {
   opts.push({ scene: global, lure: 'global_mismatch' });
 
   const shuffled = seededShuffle(opts, hashNum(itemId + ':opts'));
-  const options = shuffled.map((o) => ({ placements: o.scene.map((p) => ({ slot: p.slot, piece: p.piece })), lure: o.lure }));
-  const correctKey = shuffled.findIndex((o) => o.lure === 'correct');
-  const distractorRationales = shuffled.map((o) => o.lure);
+  const lures = shuffled.map((o) => o.lure); // server-side only; never enters `content`
+  const options = shuffled.map((o) => ({ placements: o.scene.map((p) => ({ slot: p.slot, piece: p.piece })) }));
+  const correctKey = lures.indexOf('correct');
+  const distractorRationales = rationalesByOption(lures);
+
+  const content = {
+    typeCode: TYPE_CODE,
+    presentation: 'word', // D-017: printed text only (no audio); reading the directions IS the task
+    prompt: 'Read the building steps. Tap the picture that follows every step.',
+    directions,
+    options,               // each option is a full arrangement of slot->piece placements
+    pieceCount: board.length,
+    frequencyBand: entry.freq,
+  };
 
   return {
     itemId,
@@ -341,15 +391,7 @@ function buildItem(entry, index) {
     difficulty,
     ageBands: ageBandsFor(difficulty),
     demoPath: DEMO_PATH,
-    content: {
-      typeCode: TYPE_CODE,
-      presentation: 'word', // D-017: printed text only (no audio); reading the directions IS the task
-      prompt: 'Read the building steps. Tap the picture that follows every step.',
-      directions,
-      options,               // each option is a full arrangement of slot->piece placements
-      pieceCount: board.length,
-      frequencyBand: entry.freq,
-    },
+    content,
     answer: { correctKey, distractorRationales },
     scoring: { mode: 'deterministic_key' },
     provenance: {
@@ -357,19 +399,20 @@ function buildItem(entry, index) {
       generatorRef: GENERATOR_REF,
       seed: String(index),
       promptHash: createHash('sha1').update(JSON.stringify(entry)).digest('hex').slice(0, 16),
-      validator: itemValidatorVerdicts(entry, options, correctKey, difficulty, directions),
+      validator: itemValidatorVerdicts(entry, content, lures, difficulty, directions),
     },
     syntheticOnly: true,
     validated: false,
   };
 }
 
-function itemValidatorVerdicts(entry, options, correctKey, difficulty, directions) {
+function itemValidatorVerdicts(entry, content, lures, difficulty, directions) {
+  const options = content.options;
   const n = entry.b.length;
-  const correctCount = options.filter((o) => o.lure === 'correct').length;
-  const distractors = options.filter((o) => o.lure !== 'correct').map((o) => o.lure);
+  const correctCount = lures.filter((l) => l === 'correct').length;
+  const distractors = lures.filter((l) => l !== 'correct');
   const distinctLures = new Set(distractors).size === distractors.length;
-  const luresValid = options.every((o) => LURE_CLASSES.has(o.lure));
+  const luresValid = lures.every((l) => LURE_CLASSES.has(l));
   const sceneSigs = options.map((o) => o.placements.map((p) => `${p.slot}=${p.piece}`).join('|'));
   const distinctScenes = new Set(sceneSigs).size === options.length;
   const wellFormed = options.every((o) => Array.isArray(o.placements) && o.placements.length === n
@@ -382,6 +425,7 @@ function itemValidatorVerdicts(entry, options, correctKey, difficulty, direction
   return [
     { check: 'unique_answer', status: correctCount === 1 && distinctScenes && wellFormed && altClean ? 'pass' : 'fail', detail: 'exactly one arrangement follows every step' },
     { check: 'lure_taxonomy_ok', status: distinctLures && luresValid ? 'pass' : 'fail' },
+    { check: 'served_subset_clean', status: assertContentClean(content, 'item').length === 0 ? 'pass' : 'fail', detail: 'no answer-revealing key reachable from content' },
     { check: 'reading_load_ok', status: readingOk ? 'pass' : 'warn' },
     { check: 'frequency_band_ok', status: 'pass', detail: `Zipf band ${entry.freq}` },
     { check: 'bias_screen_ok', status: 'pass', detail: 'synthetic self-screen; universal shapes/colors/objects' },
@@ -431,7 +475,6 @@ export function validateItems(items) {
     }
     const n = dirs.length;
     opts.forEach((o, oi) => {
-      if (!LURE_CLASSES.has(o.lure)) errors.push(`${where}: option[${oi}] bad lure ${o.lure}`);
       if (!Array.isArray(o.placements) || o.placements.length !== n) {
         errors.push(`${where}: option[${oi}] placements must have ${n} entries`);
         return;
@@ -443,24 +486,37 @@ export function validateItems(items) {
         }
       });
     });
-    const correctCount = opts.filter((o) => o.lure === 'correct').length;
-    if (correctCount !== 1) errors.push(`${where}: exactly one 'correct' option required (found ${correctCount})`);
-    const distractors = opts.filter((o) => o.lure !== 'correct').map((o) => o.lure);
-    if (new Set(distractors).size !== distractors.length) errors.push(`${where}: duplicate distractor lure classes`);
     const sceneSigs = opts.map((o) => (Array.isArray(o.placements) ? o.placements.map((p) => `${p.slot}=${p.piece}`).join('|') : '?'));
     if (new Set(sceneSigs).size !== sceneSigs.length) errors.push(`${where}: duplicate arrangements across options`);
 
+    // Served-subset firewall: nothing under content may identify the correct option.
+    errors.push(...assertContentClean(c, where));
+
     const ak = it.answer;
     if (!ak || typeof ak.correctKey !== 'number') errors.push(`${where}: answer.correctKey missing`);
-    else if (!opts[ak.correctKey] || opts[ak.correctKey].lure !== 'correct') errors.push(`${where}: correctKey ${ak.correctKey} does not point to the 'correct' option`);
-    if (!Array.isArray(ak && ak.distractorRationales) || ak.distractorRationales.length !== opts.length) {
-      errors.push(`${where}: distractorRationales must align to options length`);
-    } else if (ak.distractorRationales.some((r, ri) => r !== opts[ri].lure)) {
-      errors.push(`${where}: distractorRationales must equal options lure order`);
+    const rats = ak && ak.distractorRationales;
+    if (!rats || typeof rats !== 'object' || Array.isArray(rats)) {
+      errors.push(`${where}: answer.distractorRationales must be an object keyed by option index (a positional array re-creates the leak)`);
+    } else {
+      const expected = opts.map((_, i) => String(i));
+      if (Object.keys(rats).length !== opts.length) errors.push(`${where}: distractorRationales has ${Object.keys(rats).length} entries for ${opts.length} options`);
+      if (expected.some((k) => !(k in rats))) errors.push(`${where}: distractorRationales must key every option index ${expected.join(',')}`);
+      const lures = expected.map((k) => rats[k] && rats[k].lure);
+      lures.forEach((l, li) => {
+        if (!LURE_CLASSES.has(l)) errors.push(`${where}: option[${li}] bad lure ${l}`);
+        if (typeof (rats[String(li)] || {}).why !== 'string') errors.push(`${where}: option[${li}] rationale has no diagnostic text`);
+      });
+      const correctCount = lures.filter((l) => l === 'correct').length;
+      if (correctCount !== 1) errors.push(`${where}: exactly one 'correct' lure required (found ${correctCount})`);
+      const distractors = lures.filter((l) => l !== 'correct');
+      if (new Set(distractors).size !== distractors.length) errors.push(`${where}: duplicate distractor lure classes`);
+      if (ak && typeof ak.correctKey === 'number' && lures[ak.correctKey] !== 'correct') {
+        errors.push(`${where}: correctKey ${ak.correctKey} does not point to the 'correct' lure`);
+      }
     }
 
     if (Array.isArray(it.ageBands) && it.ageBands.includes('K-1')) {
-      const correctOpt = opts.find((o) => o.lure === 'correct');
+      const correctOpt = opts[(it.answer || {}).correctKey];
       const pieceWords = correctOpt ? correctOpt.placements.flatMap((p) => [...String(p.piece).split(' '), ...String(SLOT_LABEL[p.slot] || p.slot).split('-')]) : [];
       const words = [...directionWords(dirs), ...pieceWords];
       const tooLong = words.filter((w) => w.length > MAX_WORD_LEN_K1);

@@ -46,6 +46,45 @@ const GENERATOR_REF = 'VER-SORTBOT-01/authored-pools@v1';
 //   global_mismatch = clearly unrelated / plainly OUT
 const LURE_CLASSES = new Set(['correct', 'surface_match', 'associate', 'global_mismatch']);
 
+// Lure labels are ANSWER-REVEALING and must never appear under `content`: the browser
+// receives ServedItem = BankItem minus {answer, scoring, provenance} (build plan §2), so a
+// per-option `lure` field hands over the key. The taxonomy still has to survive the move —
+// M-LURETYPE and M-ERRTYPE score on which lure the child selected — so it lives in
+// answer.distractorRationales, keyed by the option index the child actually sees.
+const LURE_WHY = {
+  correct: 'a genuine member of the hidden category',
+  surface_match: 'shares a surface feature with the IN examples but breaks the rule',
+  associate: 'thematically linked to the category but not a member',
+  global_mismatch: 'clearly unrelated — plainly OUT',
+};
+
+// Keys are stringified option indices so a rationale can never be read positionally.
+function rationalesByOption(lures) {
+  const out = {};
+  lures.forEach((lure, i) => { out[String(i)] = { lure, why: LURE_WHY[lure] }; });
+  return out;
+}
+
+// Any key under `content` that would identify the correct option or hand over the hidden
+// rule (inferring that rule IS the task). Re-asserted independently by check-VER-SORTBOT-01.mjs.
+const LEAK_KEY = /^(lure|lures|misconception|correct|iscorrect|is_correct|correctkey|key|answer|answers|solution|solver|rule|rules|category|rationale|rationales|distractorrationales|fit|why|note|explanation|errortype|error_type|truth|verdict)$/i;
+
+function assertContentClean(content, where) {
+  const errors = [];
+  (function walk(node, path) {
+    if (!node || typeof node !== 'object') return;
+    if (Array.isArray(node)) { node.forEach((v, i) => walk(v, `${path}[${i}]`)); return; }
+    for (const [k, v] of Object.entries(node)) {
+      if (LEAK_KEY.test(k)) errors.push(`${where}: content leaks an answer-revealing key at ${path}.${k}`);
+      if (typeof v === 'string' && v.trim().toLowerCase() === 'correct') {
+        errors.push(`${where}: content carries the literal value "correct" at ${path}.${k}`);
+      }
+      walk(v, `${path}.${k}`);
+    }
+  })(content, 'content');
+  return errors;
+}
+
 // The subtle boundary near-miss (surface_match) is only introduced once the rule
 // is non-trivial. Below this band the choice is correct vs associate vs unrelated.
 const SURFACE_FROM_BAND = 5;
@@ -248,9 +287,22 @@ function buildItem(entry, index) {
   }
 
   const shuffled = seededShuffle(opts, hashNum(itemId));
-  const options = shuffled.map((o) => ({ token: tok(o.token), lure: o.lure }));
-  const correctKey = shuffled.findIndex((o) => o.lure === 'correct');
-  const distractorRationales = shuffled.map((o) => o.lure);
+  const lures = shuffled.map((o) => o.lure); // server-side only; never enters `content`
+  const options = shuffled.map((o) => ({ token: tok(o.token) }));
+  const correctKey = lures.indexOf('correct');
+  const distractorRationales = rationalesByOption(lures);
+
+  // The hidden rule is the thing the child must infer, so it cannot ride along in `content`.
+  // It lives in provenance.derivation, matching the VER-SENSE-01 precedent for solver data.
+  const content = {
+    typeCode: TYPE_CODE,
+    presentation: 'word', // D-017: text only; reading the words IS the task
+    prompt: 'The robot sorted these words. Tap the new word that also goes IN.',
+    examplesIn: entry.in.map(tok),
+    examplesOut: entry.out.map(tok),
+    options,
+    frequencyBand: entry.freq,
+  };
 
   return {
     itemId,
@@ -259,16 +311,7 @@ function buildItem(entry, index) {
     difficulty,
     ageBands: ageBandsFor(difficulty),
     demoPath: DEMO_PATH,
-    content: {
-      typeCode: TYPE_CODE,
-      presentation: 'word', // D-017: text only; reading the words IS the task
-      prompt: 'The robot sorted these words. Tap the new word that also goes IN.',
-      rule: entry.rule,     // SERVER-SIDE ONLY — the renderable subset omits this (never shown)
-      examplesIn: entry.in.map(tok),
-      examplesOut: entry.out.map(tok),
-      options,
-      frequencyBand: entry.freq,
-    },
+    content,
     answer: { correctKey, distractorRationales },
     scoring: { mode: 'deterministic_key' },
     provenance: {
@@ -276,18 +319,20 @@ function buildItem(entry, index) {
       generatorRef: GENERATOR_REF,
       seed: String(index),
       promptHash: createHash('sha1').update(JSON.stringify(entry)).digest('hex').slice(0, 16),
-      validator: itemValidatorVerdicts(entry, options, correctKey, difficulty),
+      derivation: { rule: entry.rule },
+      validator: itemValidatorVerdicts(entry, content, lures, difficulty),
     },
     syntheticOnly: true,
     validated: false,
   };
 }
 
-function itemValidatorVerdicts(entry, options, correctKey, difficulty) {
-  const correctCount = options.filter((o) => o.lure === 'correct').length;
-  const distractors = options.filter((o) => o.lure !== 'correct').map((o) => o.lure);
+function itemValidatorVerdicts(entry, content, lures, difficulty) {
+  const options = content.options;
+  const correctCount = lures.filter((l) => l === 'correct').length;
+  const distractors = lures.filter((l) => l !== 'correct');
   const distinctLures = new Set(distractors).size === distractors.length;
-  const luresValid = options.every((o) => LURE_CLASSES.has(o.lure));
+  const luresValid = lures.every((l) => LURE_CLASSES.has(l));
   const shownWords = [...entry.in, ...entry.out, ...options.map((o) => o.token.text)];
   const optionWords = options.map((o) => o.token.text.toLowerCase());
   const uniqueOptions = new Set(optionWords).size === optionWords.length;
@@ -295,9 +340,11 @@ function itemValidatorVerdicts(entry, options, correctKey, difficulty) {
   const keyNotInOut = !entry.out.map((w) => w.toLowerCase()).includes(entry.correct.toLowerCase());
   const k1 = difficulty < 4;
   const readingOk = !k1 || (shownWords.every((w) => w.length <= MAX_WORD_LEN_K1) && entry.freq >= MIN_FREQ_K1);
+  const leaks = assertContentClean(content, 'item');
   return [
     { check: 'unique_answer', status: correctCount === 1 && uniqueOptions && keyNotInOut ? 'pass' : 'fail' },
     { check: 'lure_taxonomy_ok', status: distinctLures && luresValid ? 'pass' : 'fail' },
+    { check: 'served_subset_clean', status: leaks.length === 0 ? 'pass' : 'fail', detail: leaks.length ? leaks.join('; ') : 'no answer-revealing key (incl. the hidden rule) reachable from content' },
     { check: 'reading_load_ok', status: readingOk ? 'pass' : 'warn' },
     { check: 'frequency_band_ok', status: 'pass', detail: `Zipf band ${entry.freq}` },
     { check: 'bias_screen_ok', status: 'pass', detail: 'synthetic self-screen; universal categories' },
@@ -335,7 +382,8 @@ export function validateItems(items) {
 
     const c = it.content;
     if (!c) { errors.push(`${where}: missing content`); return; }
-    if (typeof c.rule !== 'string' || !c.rule) errors.push(`${where}: content.rule (server-side) missing`);
+    const rule = it.provenance && it.provenance.derivation && it.provenance.derivation.rule;
+    if (typeof rule !== 'string' || !rule) errors.push(`${where}: provenance.derivation.rule (server-side) missing`);
     const inOk = Array.isArray(c.examplesIn) && c.examplesIn.length >= 2 && c.examplesIn.every((t) => t && t.text);
     const outOk = Array.isArray(c.examplesOut) && c.examplesOut.length >= 1 && c.examplesOut.every((t) => t && t.text);
     if (!inOk) errors.push(`${where}: examplesIn must be >=2 tokens with text`);
@@ -346,31 +394,43 @@ export function validateItems(items) {
       return;
     }
     opts.forEach((o, oi) => {
-      if (!LURE_CLASSES.has(o.lure)) errors.push(`${where}: option[${oi}] bad lure ${o.lure}`);
       if (!o.token || typeof o.token.text !== 'string' || !o.token.text) {
         errors.push(`${where}: option[${oi}] token must have text`);
       }
     });
-    const correctCount = opts.filter((o) => o.lure === 'correct').length;
-    if (correctCount !== 1) errors.push(`${where}: exactly one 'correct' option required (found ${correctCount})`);
-    const distractors = opts.filter((o) => o.lure !== 'correct').map((o) => o.lure);
-    if (new Set(distractors).size !== distractors.length) errors.push(`${where}: duplicate distractor lure classes`);
     const optWords = opts.map((o) => (o.token && o.token.text ? o.token.text.toLowerCase() : ''));
     if (new Set(optWords).size !== optWords.length) errors.push(`${where}: duplicate option words`);
-    // The keyed member must not also be a shown OUT example.
-    if (outOk) {
-      const outSet = new Set(c.examplesOut.map((t) => t.text.toLowerCase()));
-      const correctOpt = opts.find((o) => o.lure === 'correct');
-      if (correctOpt && outSet.has(correctOpt.token.text.toLowerCase())) errors.push(`${where}: correct option also appears in examplesOut`);
-    }
+
+    // Served-subset firewall: nothing under content may identify the correct option.
+    errors.push(...assertContentClean(c, where));
 
     const ak = it.answer;
     if (!ak || typeof ak.correctKey !== 'number') errors.push(`${where}: answer.correctKey missing`);
-    else if (!opts[ak.correctKey] || opts[ak.correctKey].lure !== 'correct') errors.push(`${where}: correctKey ${ak.correctKey} does not point to the 'correct' option`);
-    if (!Array.isArray(ak && ak.distractorRationales) || ak.distractorRationales.length !== opts.length) {
-      errors.push(`${where}: distractorRationales must align to options length`);
-    } else if (ak.distractorRationales.some((r, ri) => r !== opts[ri].lure)) {
-      errors.push(`${where}: distractorRationales must equal options lure order`);
+    const rats = ak && ak.distractorRationales;
+    if (!rats || typeof rats !== 'object' || Array.isArray(rats)) {
+      errors.push(`${where}: answer.distractorRationales must be an object keyed by option index (a positional array re-creates the leak)`);
+    } else {
+      const expected = opts.map((_, i) => String(i));
+      if (Object.keys(rats).length !== opts.length) errors.push(`${where}: distractorRationales has ${Object.keys(rats).length} entries for ${opts.length} options`);
+      if (expected.some((k) => !(k in rats))) errors.push(`${where}: distractorRationales must key every option index ${expected.join(',')}`);
+      const lures = expected.map((k) => rats[k] && rats[k].lure);
+      lures.forEach((l, li) => {
+        if (!LURE_CLASSES.has(l)) errors.push(`${where}: option[${li}] bad lure ${l}`);
+        if (typeof (rats[String(li)] || {}).why !== 'string') errors.push(`${where}: option[${li}] rationale has no diagnostic text`);
+      });
+      const correctCount = lures.filter((l) => l === 'correct').length;
+      if (correctCount !== 1) errors.push(`${where}: exactly one 'correct' lure required (found ${correctCount})`);
+      const distractors = lures.filter((l) => l !== 'correct');
+      if (new Set(distractors).size !== distractors.length) errors.push(`${where}: duplicate distractor lure classes`);
+      if (ak && typeof ak.correctKey === 'number') {
+        if (lures[ak.correctKey] !== 'correct') errors.push(`${where}: correctKey ${ak.correctKey} does not point to the 'correct' lure`);
+        // The keyed member must not also be a shown OUT example.
+        const correctOpt = opts[ak.correctKey];
+        if (outOk && correctOpt && correctOpt.token) {
+          const outSet = new Set(c.examplesOut.map((t) => t.text.toLowerCase()));
+          if (outSet.has(correctOpt.token.text.toLowerCase())) errors.push(`${where}: correct option also appears in examplesOut`);
+        }
+      }
     }
 
     if (Array.isArray(it.ageBands) && it.ageBands.includes('K-1')) {

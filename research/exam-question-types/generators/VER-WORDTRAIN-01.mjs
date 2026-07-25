@@ -47,6 +47,45 @@ const GENERATOR_REF = 'VER-WORDTRAIN-01/authored-sentences@v1';
 //   global_mismatch   = an incoherent scramble
 const LURE_CLASSES = new Set(['correct', 'near_order', 'reversed_relation', 'global_mismatch']);
 
+// Lure labels are ANSWER-REVEALING and must never appear under `content`: the browser
+// receives ServedItem = BankItem minus {answer, scoring, provenance} (build plan §2), so a
+// per-option `lure` field hands over the key. The taxonomy still has to survive the move —
+// M-LURETYPE and M-ERRTYPE score on which lure the child selected — so it lives in
+// answer.distractorRationales, keyed by the option index the child actually sees.
+const LURE_WHY = {
+  correct: 'the one ordering that builds a grammatical, meaningful sentence',
+  near_order: 'one adjacent pair swapped — an off-by-one miss of the true order',
+  reversed_relation: 'the sentence run backwards',
+  global_mismatch: 'an ordering that ignores the syntax entirely',
+};
+
+// Keys are stringified option indices so a rationale can never be read positionally.
+function rationalesByOption(lures) {
+  const out = {};
+  lures.forEach((lure, i) => { out[String(i)] = { lure, why: LURE_WHY[lure] }; });
+  return out;
+}
+
+// Any key under `content` that would identify the correct option.
+// Re-asserted independently by check-VER-WORDTRAIN-01.mjs.
+const LEAK_KEY = /^(lure|lures|misconception|correct|iscorrect|is_correct|correctkey|key|answer|answers|solution|solver|trueorder|rationale|rationales|distractorrationales|fit|why|note|explanation|errortype|error_type|truth|verdict)$/i;
+
+function assertContentClean(content, where) {
+  const errors = [];
+  (function walk(node, path) {
+    if (!node || typeof node !== 'object') return;
+    if (Array.isArray(node)) { node.forEach((v, i) => walk(v, `${path}[${i}]`)); return; }
+    for (const [k, v] of Object.entries(node)) {
+      if (LEAK_KEY.test(k)) errors.push(`${where}: content leaks an answer-revealing key at ${path}.${k}`);
+      if (typeof v === 'string' && v.trim().toLowerCase() === 'correct') {
+        errors.push(`${where}: content carries the literal value "correct" at ${path}.${k}`);
+      }
+      walk(v, `${path}.${k}`);
+    }
+  })(content, 'content');
+  return errors;
+}
+
 // The full-reverse trap is only added once the ordering is non-trivial (>=4 cars).
 const REVERSED_FROM_BAND = 5;
 
@@ -281,9 +320,21 @@ function buildItem(entry, index) {
   if (band >= REVERSED_FROM_BAND) opts.push({ order: reversed, lure: 'reversed_relation' });
 
   const shuffled = seededShuffle(opts, hashNum(itemId + ':opts'));
-  const options = shuffled.map((o) => ({ order: o.order.slice(), lure: o.lure }));
-  const correctKey = shuffled.findIndex((o) => o.lure === 'correct');
-  const distractorRationales = shuffled.map((o) => o.lure);
+  const lures = shuffled.map((o) => o.lure); // server-side only; never enters `content`
+  const options = shuffled.map((o) => ({ order: o.order.slice() }));
+  const correctKey = lures.indexOf('correct');
+  const distractorRationales = rationalesByOption(lures);
+
+  const content = {
+    typeCode: TYPE_CODE,
+    presentation: 'word', // D-017: printed word cars (no audio); reading them IS the task
+    prompt: 'Put the word cars in order to build one sentence.',
+    cards,                // displayed (scrambled) order; labeled 1..n in the renderer
+    cardCount: n,
+    options,              // each option is an ordering of display indices
+    frequencyBand: entry.freq,
+    syntacticComplexity,
+  };
 
   return {
     itemId,
@@ -292,16 +343,7 @@ function buildItem(entry, index) {
     difficulty,
     ageBands: ageBandsFor(difficulty),
     demoPath: DEMO_PATH,
-    content: {
-      typeCode: TYPE_CODE,
-      presentation: 'word', // D-017: printed word cars (no audio); reading them IS the task
-      prompt: 'Put the word cars in order to build one sentence.',
-      cards,                // displayed (scrambled) order; labeled 1..n in the renderer
-      cardCount: n,
-      options,              // each option is an ordering of display indices
-      frequencyBand: entry.freq,
-      syntacticComplexity,
-    },
+    content,
     answer: { correctKey, distractorRationales },
     scoring: { mode: 'deterministic_key' },
     provenance: {
@@ -309,7 +351,7 @@ function buildItem(entry, index) {
       generatorRef: GENERATOR_REF,
       seed: String(index),
       promptHash: createHash('sha1').update(JSON.stringify(entry)).digest('hex').slice(0, 16),
-      validator: itemValidatorVerdicts(entry, options, correctKey, difficulty, correct, cards),
+      validator: itemValidatorVerdicts(entry, content, lures, correctKey, difficulty, correct, cards),
     },
     syntheticOnly: true,
     validated: false,
@@ -318,12 +360,13 @@ function buildItem(entry, index) {
 
 function renderOrder(order, cards) { return order.map((i) => cards[i] && cards[i].text).join(' '); }
 
-function itemValidatorVerdicts(entry, options, correctKey, difficulty, correct, cards) {
+function itemValidatorVerdicts(entry, content, lures, correctKey, difficulty, correct, cards) {
+  const options = content.options;
   const n = entry.words.length;
-  const correctCount = options.filter((o) => o.lure === 'correct').length;
-  const distractors = options.filter((o) => o.lure !== 'correct').map((o) => o.lure);
+  const correctCount = lures.filter((l) => l === 'correct').length;
+  const distractors = lures.filter((l) => l !== 'correct');
   const distinctLures = new Set(distractors).size === distractors.length;
-  const luresValid = options.every((o) => LURE_CLASSES.has(o.lure));
+  const luresValid = lures.every((l) => LURE_CLASSES.has(l));
   const validPerms = options.every((o) => Array.isArray(o.order) && o.order.length === n
     && new Set(o.order).size === n && o.order.every((v) => v >= 0 && v < n));
   const rendered = options.map((o) => renderOrder(o.order, cards));
@@ -336,6 +379,7 @@ function itemValidatorVerdicts(entry, options, correctKey, difficulty, correct, 
     { check: 'unique_answer', status: correctCount === 1 && distinctRendered && keyPointsCorrect && distinctWords ? 'pass' : 'fail', detail: 'only the true order is grammatical + meaningful' },
     { check: 'key_matches_solver', status: keyPointsCorrect && validPerms ? 'pass' : 'fail', detail: 'sentence order = authored word order' },
     { check: 'lure_taxonomy_ok', status: distinctLures && luresValid ? 'pass' : 'fail' },
+    { check: 'served_subset_clean', status: assertContentClean(content, 'item').length === 0 ? 'pass' : 'fail', detail: 'no answer-revealing key reachable from content' },
     { check: 'reading_load_ok', status: readingOk ? 'pass' : 'warn' },
     { check: 'frequency_band_ok', status: 'pass', detail: `Zipf band ${entry.freq}; frequency leveled so syntax carries difficulty` },
     { check: 'bias_screen_ok', status: 'pass', detail: 'synthetic self-screen; ELL-neutral frames' },
@@ -386,27 +430,39 @@ export function validateItems(items) {
       return;
     }
     opts.forEach((o, oi) => {
-      if (!LURE_CLASSES.has(o.lure)) errors.push(`${where}: option[${oi}] bad lure ${o.lure}`);
       if (!Array.isArray(o.order) || o.order.length !== n || new Set(o.order).size !== n || o.order.some((v) => v < 0 || v >= n)) {
         errors.push(`${where}: option[${oi}] order must be a permutation of 0..${n - 1}`);
       }
     });
-    const correctCount = opts.filter((o) => o.lure === 'correct').length;
-    if (correctCount !== 1) errors.push(`${where}: exactly one 'correct' option required (found ${correctCount})`);
-    const distractors = opts.filter((o) => o.lure !== 'correct').map((o) => o.lure);
-    if (new Set(distractors).size !== distractors.length) errors.push(`${where}: duplicate distractor lure classes`);
     const orderKeys = opts.map((o) => (Array.isArray(o.order) ? o.order.join(',') : '?'));
     if (new Set(orderKeys).size !== orderKeys.length) errors.push(`${where}: duplicate orderings across options`);
     const rendered = opts.map((o) => (Array.isArray(o.order) ? o.order.map((i) => cards[i] && cards[i].text).join(' ') : '?'));
     if (new Set(rendered).size !== rendered.length) errors.push(`${where}: two options render the same sentence`);
 
+    // Served-subset firewall: nothing under content may identify the correct option.
+    errors.push(...assertContentClean(c, where));
+
     const ak = it.answer;
     if (!ak || typeof ak.correctKey !== 'number') errors.push(`${where}: answer.correctKey missing`);
-    else if (!opts[ak.correctKey] || opts[ak.correctKey].lure !== 'correct') errors.push(`${where}: correctKey ${ak.correctKey} does not point to the 'correct' option`);
-    if (!Array.isArray(ak && ak.distractorRationales) || ak.distractorRationales.length !== opts.length) {
-      errors.push(`${where}: distractorRationales must align to options length`);
-    } else if (ak.distractorRationales.some((r, ri) => r !== opts[ri].lure)) {
-      errors.push(`${where}: distractorRationales must equal options lure order`);
+    const rats = ak && ak.distractorRationales;
+    if (!rats || typeof rats !== 'object' || Array.isArray(rats)) {
+      errors.push(`${where}: answer.distractorRationales must be an object keyed by option index (a positional array re-creates the leak)`);
+    } else {
+      const expected = opts.map((_, i) => String(i));
+      if (Object.keys(rats).length !== opts.length) errors.push(`${where}: distractorRationales has ${Object.keys(rats).length} entries for ${opts.length} options`);
+      if (expected.some((k) => !(k in rats))) errors.push(`${where}: distractorRationales must key every option index ${expected.join(',')}`);
+      const lures = expected.map((k) => rats[k] && rats[k].lure);
+      lures.forEach((l, li) => {
+        if (!LURE_CLASSES.has(l)) errors.push(`${where}: option[${li}] bad lure ${l}`);
+        if (typeof (rats[String(li)] || {}).why !== 'string') errors.push(`${where}: option[${li}] rationale has no diagnostic text`);
+      });
+      const correctCount = lures.filter((l) => l === 'correct').length;
+      if (correctCount !== 1) errors.push(`${where}: exactly one 'correct' lure required (found ${correctCount})`);
+      const distractors = lures.filter((l) => l !== 'correct');
+      if (new Set(distractors).size !== distractors.length) errors.push(`${where}: duplicate distractor lure classes`);
+      if (ak && typeof ak.correctKey === 'number' && lures[ak.correctKey] !== 'correct') {
+        errors.push(`${where}: correctKey ${ak.correctKey} does not point to the 'correct' lure`);
+      }
     }
 
     if (Array.isArray(it.ageBands) && it.ageBands.includes('K-1')) {
