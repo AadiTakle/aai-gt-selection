@@ -263,7 +263,10 @@ function loadItem(served){
   setCue('ready');setStatus('neutral','Turn the block, read the light, then pick a shadow.');
   $('#log').innerHTML='';log(`item ${(served.itemId||'').slice(0,8)} · light ${light} · dim ${dim}`);renderMeters();
 }
-async function startItem(){if(!content)return;started=true;T.itemStart=performance.now();emit('start');if(peekAllowed)await ghostScaffold();}
+async function startItem(){if(!content)return;started=true;T.itemStart=performance.now();emit('start');
+  if(peekAllowed)await ghostScaffold();
+  locked=false;setStatus('neutral','Turn the block, read the light, then pick a shadow.');   // interactive now
+}
 
 /* ---------- input ---------- */
 $('#peek').onclick=()=>togglePeek();
