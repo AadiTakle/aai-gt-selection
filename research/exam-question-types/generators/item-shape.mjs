@@ -352,7 +352,12 @@ export const NO_HONEST_COARSE_CLASS = Object.freeze({
  */
 export function lureLabel(entry) {
   if (!entry || typeof entry !== 'object') return undefined;
-  return entry.lureDetail ?? entry.lureClass;
+  // The pre-D-020 `lure`/`kind` spellings are still read, because a generator
+  // validates its bank at two points: in memory before `serializeBank` has
+  // normalised anything, and again after parsing it back off disk. Reading only
+  // the normalised pair made every in-memory entry look unlabelled, which is
+  // what broke ten generators' self-validation.
+  return entry.lureDetail ?? entry.lureClass ?? entry.lure ?? entry.kind;
 }
 
 /** Coarse class for a fine-grained label. Throws on an unregistered label. */
