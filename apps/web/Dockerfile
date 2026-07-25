@@ -2,11 +2,12 @@
 # Container image for the GT admissions family portal (Next.js).
 # Target platform per decision D-012: Amazon ECS Fargate behind CloudFront + ALB.
 #
-# NOTE: the app currently fail-closes on non-loopback databases and on
-# NODE_ENV=production (see apps/web/src/lib/env.ts and instrumentation.ts). This
-# image builds and runs against the local synthetic stack only. Relaxing those
-# guards for a real environment is a separate, reviewed governance change under
-# D-012 — see infra/README.md.
+# NOTE: by default the app fail-closes on non-loopback databases; GT_DEPLOY_MODE=hosted
+# (set below and at build time) is the D-012 interim opt-in that lets it target the
+# cloud synthetic Supabase project. The data layer remains synthetic-only
+# (app.bind_local_synthetic_principal requires synthetic_only=true) and elevated
+# service-role keys are still forbidden at runtime — see apps/web/src/lib/env.ts
+# and infra/README.md.
 #
 # Build from the repository ROOT:  docker build -f apps/web/Dockerfile -t gt-web .
 
@@ -47,6 +48,15 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
+# Hosted synthetic backend opt-in (server-side only — NOT NEXT_PUBLIC, so never
+# inlined into the client bundle). GT_DEPLOY_MODE=hosted lets the env guard accept
+# the cloud Supabase target at runtime; the two GT_LOCAL_SYNTHETIC_* vars satisfy
+# hostedSyntheticAdapterSchema in src/lib/env.ts so the onboarding server actions
+# bind against the cloud project. The synthetic-only guarantee is enforced at the
+# data layer (app.bind_local_synthetic_principal requires synthetic_only=true).
+ENV GT_DEPLOY_MODE=hosted
+ENV GT_LOCAL_SYNTHETIC_ADAPTER_ENABLED=true
+ENV GT_LOCAL_SYNTHETIC_PROJECT_ID=gt-selection-capstone
 RUN addgroup --system --gid 1001 nodejs \
   && adduser --system --uid 1001 nextjs
 

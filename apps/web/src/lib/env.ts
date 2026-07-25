@@ -55,6 +55,19 @@ const localSyntheticAdapterSchema = z
   })
   .strict();
 
+// Hosted synthetic backend: same explicit opt-in (adapter enabled + designated
+// project) but permits NODE_ENV=production, since a real host runs the built app
+// in production mode. The cloud Supabase target is still bounded by
+// validatePublicEnvironment (https + hosted mode) and the elevated-key ban, and
+// the data layer stays synthetic-only via the DB's bind_synthetic_principal().
+const hostedSyntheticAdapterSchema = z
+  .object({
+    GT_LOCAL_SYNTHETIC_ADAPTER_ENABLED: z.literal('true'),
+    GT_LOCAL_SYNTHETIC_PROJECT_ID: z.literal('gt-selection-capstone'),
+    NODE_ENV: z.enum(['development', 'test', 'production']),
+  })
+  .strict();
+
 export function validatePublicEnvironment(input: Record<string, string | undefined>) {
   return publicEnvironmentSchema.parse({
     NEXT_PUBLIC_GT_RETURN_URL: input.NEXT_PUBLIC_GT_RETURN_URL,
@@ -87,6 +100,24 @@ export function validateLocalSyntheticAdapterEnvironment(
 ) {
   assertNoElevatedRuntimeKeys(input);
   const publicEnvironment = validatePublicEnvironment(input);
+
+  // Hosted deploy: bind the synthetic adapter to the cloud Supabase target.
+  // validatePublicEnvironment already enforced https + hosted mode above; the
+  // synthetic-only guarantee is upheld at the data layer (bind_synthetic_principal
+  // requires synthetic_only=true + a family/staff role) rather than by pinning the
+  // loopback port here.
+  if (isHostedDeploy(input)) {
+    const adapterEnvironment = hostedSyntheticAdapterSchema.parse({
+      GT_LOCAL_SYNTHETIC_ADAPTER_ENABLED: input.GT_LOCAL_SYNTHETIC_ADAPTER_ENABLED,
+      GT_LOCAL_SYNTHETIC_PROJECT_ID: input.GT_LOCAL_SYNTHETIC_PROJECT_ID,
+      NODE_ENV: input.NODE_ENV,
+    });
+    return {
+      ...publicEnvironment,
+      ...adapterEnvironment,
+    };
+  }
+
   const adapterEnvironment = localSyntheticAdapterSchema.parse({
     GT_LOCAL_SYNTHETIC_ADAPTER_ENABLED: input.GT_LOCAL_SYNTHETIC_ADAPTER_ENABLED,
     GT_LOCAL_SYNTHETIC_PROJECT_ID: input.GT_LOCAL_SYNTHETIC_PROJECT_ID,

@@ -64,6 +64,32 @@ describe('synthetic runtime environment', () => {
     ).toBeDefined();
   });
 
+  it('binds the synthetic adapter to a cloud target in hosted deploy mode', () => {
+    expect(
+      validateLocalSyntheticAdapterEnvironment({
+        GT_DEPLOY_MODE: 'hosted',
+        GT_LOCAL_SYNTHETIC_ADAPTER_ENABLED: 'true',
+        GT_LOCAL_SYNTHETIC_PROJECT_ID: 'gt-selection-capstone',
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'cloud-publishable-key',
+        NEXT_PUBLIC_SUPABASE_URL: 'https://project.supabase.co',
+        NODE_ENV: 'production',
+      }),
+    ).toBeDefined();
+  });
+
+  it('still requires the synthetic opt-in in hosted deploy mode', () => {
+    expect(() =>
+      validateLocalSyntheticAdapterEnvironment({
+        GT_DEPLOY_MODE: 'hosted',
+        GT_LOCAL_SYNTHETIC_ADAPTER_ENABLED: undefined,
+        GT_LOCAL_SYNTHETIC_PROJECT_ID: 'gt-selection-capstone',
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'cloud-publishable-key',
+        NEXT_PUBLIC_SUPABASE_URL: 'https://project.supabase.co',
+        NODE_ENV: 'production',
+      }),
+    ).toThrow();
+  });
+
   it.each([
     {
       GT_LOCAL_SYNTHETIC_ADAPTER_ENABLED: undefined,
