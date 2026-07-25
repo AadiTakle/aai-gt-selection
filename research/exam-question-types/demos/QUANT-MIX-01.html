@@ -7,8 +7,8 @@
 <style>
   :root{
     --cream:#fff8e8;--paper:#fffdf8;--ink:#42372f;--berry:#b44769;--drop:#347fa5;
-    --accent:#f0a83c;--good:#2e9d70;--bad:#d65e63;--tel:#17191f;--tel2:#242831;
-    --key:#77f1c5;--dim:#868d9d;
+    --leaf:#3f8b5c;--pebble:#7a6a92;--accent:#f0a83c;--good:#2e9d70;--bad:#d65e63;
+    --tel:#17191f;--tel2:#242831;--key:#77f1c5;--dim:#868d9d;
   }
   *{box-sizing:border-box}html,body{margin:0;min-height:100%}
   body{
@@ -22,96 +22,80 @@
   #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:#b5761a}
   #howto p{margin:0;font-size:14px;color:#5c4f43;line-height:1.5}
   #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#fdeccc;color:#a86a10;border:2px solid #f3d39a;min-height:30px}
-  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
-  #phasecue[data-phase="scored"]{background:var(--accent);color:#5a3800;border-color:var(--accent)}
-  #phasecue[data-phase="done"]{background:#fdeccc;color:#a86a10;border-color:#f3d39a}
-  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
-  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a7c6a}
+  #phasecue[data-phase="answer"]{background:var(--accent);color:#5a3800;border-color:var(--accent)}
+  #phasecue[data-phase="sent"]{background:#fdeccc;color:#a86a10;border-color:#f3d39a}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center;color:#8a7c6a}
   #stagecard{
-    width:min(760px,100%);background:var(--paper);padding:22px;border-radius:30px;
-    box-shadow:0 24px 58px -34px #674d31;display:grid;gap:16px;border:1px solid #fff;
+    width:min(780px,100%);background:var(--paper);padding:20px;border-radius:30px;
+    box-shadow:0 24px 58px -34px #674d31;display:grid;gap:14px;border:1px solid #fff;
   }
-  #lab{display:grid;grid-template-columns:1fr 70px 1fr;align-items:center;gap:12px}
+  #lab{display:grid;grid-template-columns:1fr 64px 1fr;align-items:stretch;gap:10px}
   .bowl{
-    min-height:255px;border:4px solid #805d43;border-top-color:#ad8260;border-radius:22px 22px 80px 80px;
-    background:linear-gradient(145deg,#fff,#f6e8d5);padding:18px 14px;display:flex;flex-direction:column;
-    justify-content:center;gap:17px;position:relative;transition:.2s;
+    border:4px solid #805d43;border-top-color:#ad8260;border-radius:22px 22px 74px 74px;
+    background:linear-gradient(145deg,#fff,#f6e8d5);padding:14px 12px 18px;display:flex;
+    flex-direction:column;justify-content:center;gap:10px;position:relative;min-height:210px;
   }
-  .bowl::after{
-    content:"";position:absolute;left:14%;right:14%;bottom:-10px;height:13px;border-radius:50%;
-    background:#664a38;opacity:.28;
-  }
-  .bowl.good{box-shadow:0 0 0 6px #bcebd5,0 0 28px #62c79766}
-  .bowl.bad{animation:shake .4s;box-shadow:0 0 0 5px #f2b9b9}
-  .mixrow{min-height:72px;display:grid;grid-template-columns:42px 1fr;gap:9px;align-items:center}
-  .kind{font-size:29px;text-align:center;filter:drop-shadow(0 2px 1px #fff)}
-  .tokens{display:flex;flex-wrap:wrap;gap:7px;align-items:center;min-height:52px}
-  .token{display:inline-block;width:27px;height:27px;position:relative;flex:none}
-  .token.a{
-    background:var(--berry);border:2px solid #7c2947;border-radius:48% 52% 45% 55%;
-    background-image:radial-gradient(#fff8 1.5px,transparent 2px);background-size:7px 7px;
-    transform:rotate(12deg);
-  }
-  .token.b{
-    width:23px;height:30px;background:var(--drop);border:2px solid #23617f;
-    border-radius:65% 35% 65% 35%;transform:rotate(45deg);
-    background-image:repeating-linear-gradient(90deg,transparent 0 5px,#ffffff44 5px 8px);
-  }
-  .token.half.a{clip-path:inset(0 50% 0 0)}
-  .token.half.b{clip-path:inset(0 50% 0 0)}
-  #capacity{
-    position:absolute;left:18px;right:18px;bottom:16px;height:11px;
-    display:flex;gap:2px;align-items:stretch;
-  }
-  #capacity i{
-    flex:1;min-width:3px;border:1px solid #c9ad8f;border-radius:3px;background:#fff8;
-  }
+  .bowlcap{position:absolute;top:-11px;left:14px;background:var(--paper);padding:0 8px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#a3866a}
+  .mixrow{min-height:60px;display:grid;grid-template-columns:36px 1fr;gap:10px;align-items:center}
+  /* the row legend must never be mistaken for a countable token */
+  .rowicon{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;
+    background:#f3e7d4;border:1px dashed #d3bb99;opacity:.75}
+  .tokens{display:flex;flex-wrap:wrap;gap:5px;align-items:center;min-height:44px;
+    border-left:2px dotted #e2cfae;padding-left:9px}
+  .tokens .grp{display:flex;gap:4px;padding:3px 5px;border:1px dashed #d8c3a4;border-radius:9px;background:#fffdf6}
+  .rowtag{grid-column:2;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#a3866a;margin-top:-6px}
+  #arrow{display:grid;place-items:center;color:#c7a879;font-size:13px;font-weight:800;text-align:center;line-height:1.3}
+  #capacity{margin-top:4px;display:flex;gap:2px;align-items:stretch;height:12px}
+  #capacity i{flex:1;min-width:3px;border:1px solid #c9ad8f;border-radius:3px;background:#fff8}
   #capacity i.filled{background:var(--accent);border-color:#c47b1c}
-  #taste{font-size:38px;text-align:center;display:grid;gap:8px;place-items:center}
-  #taste span{font-size:24px;color:#c7a879}
-  .scoops{display:grid;grid-template-columns:1fr 1fr;gap:9px}
-  .scooprow{display:flex;align-items:center;justify-content:center;gap:6px}
+  #capacity i.over{background:#e2b3b3;border-color:#c07070}
+  .scoops{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .scooprow{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap}
   .scoop{
-    width:45px;height:45px;border-radius:50%;background:#f1e4d3;color:#705844;font-size:21px;
-    box-shadow:inset 0 -3px #d8c0a5;
+    min-width:44px;height:44px;padding:0 10px;border-radius:22px;background:#f1e4d3;color:#705844;
+    font-size:17px;font-weight:800;box-shadow:inset 0 -3px #d8c0a5;
   }
-  .scoop.half{font-size:17px}.scoop:disabled{opacity:.25;cursor:default}
-  .lock{width:45px;text-align:center;font-size:10px;font-weight:800;color:#a68863;text-transform:uppercase}
+  .scoop.batch{font-size:13px}
+  .scoop:disabled{opacity:.28;cursor:default}
+  .lockmark{font-size:11px;font-weight:800;color:#a68863;text-transform:uppercase;letter-spacing:.05em}
   #controls{display:flex;align-items:center;justify-content:center;gap:14px}
-  .round{width:49px;height:49px;border-radius:50%;background:#f0e5d6;color:#765d49;font-size:22px}
+  .round{width:48px;height:48px;border-radius:50%;background:#f0e5d6;color:#765d49;font-size:22px}
   #go{
-    width:72px;height:72px;border-radius:50%;background:var(--accent);color:#fff;font:800 15px system-ui;
-    box-shadow:0 12px 24px -12px #a26513;animation:pulse 1.1s infinite;
+    min-width:104px;height:60px;border-radius:30px;background:var(--accent);color:#fff;font:800 16px system-ui;
+    box-shadow:0 12px 24px -12px #a26513;opacity:.35;pointer-events:none;transition:.2s;
   }
-  #go:disabled{opacity:.35;animation:none;cursor:default}
-  @keyframes pulse{50%{transform:scale(1.07)}}@keyframes shake{25%,75%{transform:translateX(-7px)}50%{transform:translateX(7px)}}
-  #progress{display:flex;justify-content:center;gap:7px;height:11px}
-  #progress i{width:10px;height:10px;border-radius:50%;background:#eadfce}
-  #progress i.ok{background:var(--good)}#progress i.no{background:var(--bad)}
+  #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.15s infinite}
+  @keyframes pulse{50%{transform:scale(1.05)}}
   #ghost{
-    position:fixed;left:0;top:0;z-index:60;font-size:40px;opacity:0;pointer-events:none;
-    transition:transform .43s cubic-bezier(.2,.7,.2,1),opacity .2s;filter:drop-shadow(0 3px 4px #0004);
+    position:fixed;left:0;top:0;z-index:60;opacity:0;pointer-events:none;
+    transition:transform .46s cubic-bezier(.2,.7,.2,1),opacity .2s;filter:drop-shadow(0 3px 4px #0004);
   }
-  #ghost.show{opacity:.95}#ghost.tap{animation:tap .32s}@keyframes tap{50%{scale:.78}}
+  #ghost.show{opacity:.95}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}
+  @keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
   #telemetry{
-    width:350px;flex:0 0 350px;min-height:100vh;background:var(--tel);color:#cdd1db;
+    width:344px;flex:0 0 344px;min-height:100vh;background:var(--tel);color:#cdd1db;
     display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;
   }
   #telemetry h3{margin:0;padding:13px 14px;background:var(--tel2);color:#fff;font-size:12px;letter-spacing:.09em;text-transform:uppercase}
   #difficulty{padding:10px 13px;border-bottom:1px solid #333944}
-  #diffhead{display:flex;justify-content:space-between;color:#a8aeba;font-size:11px}
-  #diffbar{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin:7px 0}
-  #diffbar i{height:8px;border-radius:8px;background:#343943}#diffbar i.live{background:var(--accent)}
-  #dtrend{font-size:11px;color:#7f8796}
+  .cap{display:flex;justify-content:space-between;color:#a8aeba;font-size:11px}
+  #dbar{display:grid;grid-template-columns:repeat(20,1fr);gap:2px;margin:7px 0}
+  #dbar i{height:8px;border-radius:3px;background:#343943}#dbar i.on{background:linear-gradient(90deg,#77f1c5,var(--accent))}
+  #mode{padding:8px 13px 0;font-size:11px;color:var(--dim)}#mode b{color:#ffd479}
   #mlist{padding:11px 13px;display:flex;flex-direction:column;gap:8px}
-  .mrow{display:grid;grid-template-columns:106px 1fr;gap:7px}.mid{color:var(--key);font-weight:800}.mval{color:#fff}
+  .mrow{display:grid;grid-template-columns:104px 1fr;gap:7px}
+  .mid{color:var(--key);font-weight:800}.mid.srv{color:#7f8796}
+  .mval{color:#fff;text-align:right}
   .mname{grid-column:1/3;color:var(--dim);font-size:11px;margin-top:-4px}
   #logwrap{margin-top:auto;border-top:1px solid #333944}
   #logwrap b{display:block;padding:8px 12px 3px;color:#9097a5;font-size:11px;letter-spacing:.08em}
-  #log{height:225px;overflow:auto;padding:2px 12px 12px;white-space:pre-wrap}
+  #log{height:200px;overflow:auto;padding:2px 12px 12px;white-space:pre-wrap}
   #log div{padding:3px 0;border-bottom:1px dotted #30343e}#log .t{color:#69717f}
+  button:focus-visible{outline:4px solid #ffbf69;outline-offset:3px}
   @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;min-height:0;height:350px;flex:none}}
-  @media(max-width:600px){#lab{grid-template-columns:1fr}#taste{display:none}.bowl{min-height:190px}.scoops{grid-template-columns:1fr}}
+  @media(max-width:600px){#lab{grid-template-columns:1fr}#arrow{display:none}.scoops{grid-template-columns:1fr}}
   @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
 </head>
@@ -120,177 +104,397 @@
   <div id="badge">QUANT-MIX-01 · Fair Share</div>
   <header id="howto">
     <h1>How to use — Fair Share</h1>
-    <p>The top bowl shows the mix to copy. Use the + and − buttons to add scoops to the bottom bowl until it matches, then press Taste. It gets harder each time you are right.</p>
+    <p>The first bowl shows the mix to copy. Use the buttons under the second bowl to add or take away scoops until it would taste exactly the same, then press <b>Taste</b> to send your answer. A row marked <b>given</b> is already filled in and cannot be changed.</p>
   </header>
-  <div id="phasecue" data-phase="demo">Watch the example</div>
+  <div id="phasecue" data-phase="waiting">Get ready</div>
   <section id="stagecard">
     <div id="lab">
-      <div class="bowl" id="target"><div class="mixrow"><div class="kind">◆</div><div class="tokens" id="targetA"></div></div><div class="mixrow"><div class="kind">💧</div><div class="tokens" id="targetB"></div></div></div>
-      <div id="taste">↔<span>same?</span></div>
-      <div class="bowl" id="build"><div class="mixrow"><div class="kind">◆</div><div class="tokens" id="buildA"></div></div><div class="mixrow"><div class="kind">💧</div><div class="tokens" id="buildB"></div></div><div id="capacity"></div></div>
+      <div class="bowl" id="target">
+        <span class="bowlcap">Mix to copy</span>
+        <div class="mixrow"><div class="rowicon" id="tIconA"></div><div class="tokens" id="targetA"></div></div>
+        <div class="mixrow"><div class="rowicon" id="tIconB"></div><div class="tokens" id="targetB"></div></div>
+      </div>
+      <div id="arrow">same<br>taste<br>&#8594;</div>
+      <div class="bowl" id="build">
+        <span class="bowlcap">Your bowl</span>
+        <div class="mixrow"><div class="rowicon" id="bIconA"></div><div class="tokens" id="buildA"></div><div class="rowtag" id="tagA"></div></div>
+        <div class="mixrow"><div class="rowicon" id="bIconB"></div><div class="tokens" id="buildB"></div><div class="rowtag" id="tagB"></div></div>
+        <div id="capacity"></div>
+      </div>
     </div>
     <div class="scoops">
-      <div class="scooprow" id="controlA"><button class="scoop" data-kind="A" data-delta="-1">−</button><button class="scoop" data-kind="A" data-delta="1">＋◆</button><button class="scoop half" data-kind="A" data-delta=".5">＋◐</button><span class="lock">locked</span></div>
-      <div class="scooprow" id="controlB"><button class="scoop" data-kind="B" data-delta="-1">−</button><button class="scoop" data-kind="B" data-delta="1">＋💧</button><button class="scoop half" data-kind="B" data-delta=".5">＋◐</button><span class="lock">locked</span></div>
+      <div class="scooprow" id="controlA"></div>
+      <div class="scooprow" id="controlB"></div>
     </div>
-    <div id="controls"><button class="round" id="replay" aria-label="replay demonstration">↻</button><button id="go" aria-label="taste">Taste</button></div>
-    <div id="progress"></div>
-    <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+    <div id="controls">
+      <button class="round" id="replay" aria-label="Show how to answer again">&#8635;</button>
+      <button id="go" aria-label="Send answer">Taste</button>
+    </div>
+    <div id="status">Get ready for the bowls.</div>
   </section>
 </main>
 <aside id="telemetry">
-  <h3>Live telemetry · per-child</h3>
-  <div id="difficulty"><div id="diffhead"><span>DIFFICULTY</span><span id="dlevel"></span></div><div id="diffbar"></div><div id="dtrend"></div></div>
+  <h3>Live telemetry · per-child (display only)</h3>
+  <div id="difficulty">
+    <div class="cap"><span>SERVED DIFFICULTY</span><span id="dlabel">— / 20</span></div>
+    <div id="dbar"></div>
+    <div class="cap"><span id="dstruct">—</span><span>score: server-side</span></div>
+  </div>
+  <div id="mode">Renderer reports raw scoop counts + process metrics; <b>correctness is never computed or shown here</b>.</div>
   <div id="mlist"></div>
   <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
 </aside>
-<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#b5761a" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
-const $=s=>document.querySelector(s);
-const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
-const close=(a,b)=>Math.abs(a-b)<.01;
-const LEVELS=[
-  {level:1,base:[1,2],target:[2,4],init:[1,2],lock:[false,false],label:'repeat one batch'},
-  {level:2,base:[2,3],target:[4,6],init:[4,3],lock:[true,false],label:'missing part'},
-  {level:3,base:[2,4],target:[1,2],init:[1,4],lock:[true,false],label:'shrink mix'},
-  {level:4,base:[2,3],target:[6,9],init:[6,7],lock:[true,false],label:'three batches'},
-  {level:5,base:[3,4],target:[4.5,6],init:[4,6],lock:[false,true],label:'half batch'},
-  {level:6,base:[1.5,2.5],target:[4.5,7.5],init:[4.5,6.5],lock:[true,false],label:'non-integer mix'}
-];
-const DEMO={level:1,base:[1,2],target:[2,4],init:[0,0],lock:[false,false],label:'demo'};
-const WARM={level:1,base:[1,2],target:[2,4],init:[2,3],lock:[true,false],label:'warm-up'};
-let phase='demo',cur=null,amount=[0,0],locked=true,scoredIndex=0;
-const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
-function setCue(k,extra){const el=$('#phasecue');if(!el)return;el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
-function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
-const T={scored:0,correct:0,poly:'—',path:[],plan:'—',strategy:'—',level:1,startLevel:1,maxSolved:0,results:[],itemStart:0};
+/* =====================================================================
+ * QUANT-MIX-01 — PURE RENDERER
+ * Renders a SERVED item (item.content: a target mixture + a bowl to build)
+ * and reports the child's RAW constructed counts plus process telemetry. It
+ * NEVER self-generates items, never receives the answer key, and NEVER shows
+ * correct/incorrect: the equivalence check lives server-side (BUILD_PLAN §2,
+ * scoring.mode 'computed_solver').
+ *
+ * Embedding protocol (postMessage), source-tagged:
+ *   host -> demo : {source:'gt-exam-host', type:'init',  item:ServedItem}
+ *                  {source:'gt-exam-host', type:'start', tutorial?:bool}
+ *   demo -> host : {source:'gt-exam-demo', type:'ready'}
+ *                  {source:'gt-exam-demo', type:'result',    result:ItemResult}
+ *                  {source:'gt-exam-demo', type:'telemetry', event:TelemetryEvent}
+ *
+ * M-PAE (the quant core metric) is the continuous concentration error between
+ * the built bowl and the visible target bowl. It is computed here and sent with
+ * the result, but it is deliberately NOT displayed on screen: for a ratio
+ * construction an error of 0 would be equivalent to saying "correct", and no
+ * demo may reveal correctness mid-test.
+ *
+ * Standalone (double-click / no host): loads served items from the bank JSONL,
+ * or an inline fallback when file:// blocks fetch, so the file still runs for QA.
+ *
+ * Reading is a REQUIRED baseline-literacy gate (D-017): all instructions are
+ * on-screen TEXT. There is no audio narration anywhere in this file.
+ * ===================================================================== */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const HOST_SRC='gt-exam-host', DEMO_SRC='gt-exam-demo';
+
+/* ---------- ingredient art (shape + texture + colour; never colour alone) ---------- */
+const TOKEN={
+  berry:{fill:'#f3c8d6',stroke:'#b44769'},
+  drop:{fill:'#c9e4f2',stroke:'#347fa5'},
+  leaf:{fill:'#cdeed8',stroke:'#3f8b5c'},
+  pebble:{fill:'#ded8ea',stroke:'#7a6a92'},
+};
+function tokenPath(kind){
+  if(kind==='drop')return '<path d="M11 2 C16 8,17 12,11 19 C5 12,6 8,11 2 Z"/><path d="M8.5 9.5 h5 M8.5 13 h5" stroke-width="1.1" fill="none"/>';
+  if(kind==='leaf')return '<path d="M3 18 C4 8,11 3,19 3 C19 11,13 18,3 18 Z"/><path d="M4.5 17 L17 4.5" stroke-width="1.1" fill="none"/>';
+  if(kind==='pebble')return '<path d="M4 12 C4 6,9 3,13 4 C18 5,19 10,17 14 C15 18,6 18,4 12 Z"/><circle cx="9" cy="10" r="1.1" stroke="none"/><circle cx="13" cy="12.5" r="1.1" stroke="none"/>';
+  return '<circle cx="11" cy="11.5" r="7.5"/><circle cx="8.5" cy="9.5" r="1.1" stroke="none"/><circle cx="12.5" cy="12.5" r="1.1" stroke="none"/><path d="M11 4 L11 1.5" stroke-width="1.4" fill="none"/>';
+}
+function tokenSVG(kind,size){
+  const c=TOKEN[kind]||{fill:'#eee',stroke:'#777'};
+  return `<svg width="${size}" height="${size}" viewBox="0 0 22 22" aria-hidden="true">`
+    +`<g fill="${c.fill}" stroke="${c.stroke}" stroke-width="1.6" stroke-linejoin="round">${tokenPath(kind)}</g></svg>`;
+}
+function rowHTML(kind,count,grouped){
+  const one=tokenSVG(kind,22);
+  if(!grouped||count<=5)return one.repeat(Math.max(0,count));
+  let out='',left=count;
+  while(left>0){const n=Math.min(5,left);out+=`<span class="grp">${one.repeat(n)}</span>`;left-=n;}
+  return out;
+}
+
+/* ---------- per-item state ---------- */
+let current=null;
+let interactive=false;      // released by start() / the auto-start fallback
+let submitted=false;
+let counts={A:0,B:0};
+let moves=[];               // raw adjustment log
+let batchMoves=0, stepMoves=0, revisions=0, lastDir=null, lastRow=null;
+let itemStart=0, firstLatency=null, startTimer=null;
+let itemTelemetry=[];
+let blurCount=0, focusedMs=0, focusTs=0, isFocused=true;
+let lastRt=null;
+
+/* ---------- embedding + emit ---------- */
+const embedded=(()=>{try{return window.parent&&window.parent!==window;}catch(_){return true;}})();
+let standalone=false, queue=[], queueIdx=0, tutorialShown=false;
+function post(msg){if(!embedded)return;try{window.parent.postMessage(Object.assign({source:DEMO_SRC},msg),'*');}catch(_){}}
+
+/* ---------- metrics (numeric, key-free) ---------- */
+function tickFocus(){const t=Date.now();if(isFocused)focusedMs+=t-focusTs;focusTs=t;}
+function elapsed(){return itemStart?Date.now()-itemStart:0;}
+function total(){return counts.A+counts.B;}
+function strength(a,b){return a+b>0?a/(a+b):null;}
+// M-PAE: continuous concentration error against the VISIBLE target bowl.
+function pae(){
+  if(!current)return 1;
+  const t=current.content.targetBowl;
+  const c=strength(counts.A,counts.B);
+  return c==null?1:Math.round(Math.abs(c-strength(t.A,t.B))*1e4)/1e4;
+}
+function planfulShare(){
+  const t=lastRt!=null?lastRt:elapsed();
+  if(firstLatency==null||t<=0)return 0;
+  return Math.round(Math.min(1,firstLatency/t)*1000)/1000;
+}
+// M-PROPSTRAT: share of adjustments made as whole visible batches rather than
+// single scoops — unitising versus one-at-a-time counting. Needs no key.
+function propStrat(){
+  const n=batchMoves+stepMoves;
+  return n?Math.round((batchMoves/n)*1000)/1000:0;
+}
+function engageShare(){
+  tickFocus();
+  const t=Math.max(1,elapsed());
+  return Math.round(Math.min(1,focusedMs/t)*1000)/1000;
+}
+function metricsNow(){
+  const rt=lastRt!=null?lastRt:elapsed();
+  return {
+    'M-RT':rt,
+    'M-RTFIRST':firstLatency==null?0:firstLatency,
+    'M-REV':revisions,
+    'M-PATH':moves.length,
+    'M-PLANFUL':planfulShare(),
+    'M-PROPSTRAT':propStrat(),
+    'M-PAE':pae(),
+    'M-ENGAGE':engageShare(),
+    'M-RAPIDGUESS':submitted&&rt<1200?1:0,
+  };
+}
 const METERS=[
-  {id:'M-ACC',name:'Exact equivalent mixture',get:()=>T.scored?`${T.correct}/${T.scored} · ${Math.round(100*T.correct/T.scored)}%`:'—'},
-  {id:'M-POLY',name:'Ingredients scaled correctly',get:()=>T.poly},
-  {id:'M-PATH',name:'Ingredient adjustment sequence',get:()=>T.path.length?T.path.slice(-9).join('→'):'—'},
-  {id:'M-PLANFUL',name:'Batch-first or anchored adjustment',get:()=>T.plan},
-  {id:'M-PROPSTRAT',name:'Multiplicative versus additive strategy',get:()=>T.strategy},
-  {id:'M-DIFFREACH',name:'Hardest scale and ratio solved',get:()=>T.maxSolved?`level ${T.maxSolved} · ${LEVELS[T.maxSolved-1].label}`:'—'},
-  {id:'M-LEARNRATE',name:'Adaptive level gain per item',get:()=>T.scored?`${((T.level-T.startLevel)/T.scored).toFixed(2)} level/trial`:'—'}
+  {id:'M-RT',name:'Response time (ms)',get:()=>String(lastRt!=null?lastRt:elapsed())},
+  {id:'M-RTFIRST',name:'First-scoop latency (ms)',get:()=>firstLatency==null?'\u2014':String(firstLatency)},
+  {id:'M-REV',name:'Direction reversals while building',get:()=>String(revisions)},
+  {id:'M-PATH',name:'Scoop adjustments made',get:()=>String(moves.length)},
+  {id:'M-PLANFUL',name:'Share of time spent planning first',get:()=>firstLatency==null?'\u2014':planfulShare().toFixed(2)},
+  {id:'M-PROPSTRAT',name:'Whole-batch (unitised) share of moves',get:()=>(batchMoves+stepMoves)?propStrat().toFixed(2):'\u2014'},
+  {id:'M-ENGAGE',name:'Focused fraction (tracked)',get:()=>engageShare().toFixed(2)},
+  {id:'M-RAPIDGUESS',name:'Rapid-guess flag (tracked)',get:()=>lastRt==null?'\u2014':(lastRt<1200?'1 · rapid':'0')},
+  // sent with the result, never shown: a concentration error of 0 would reveal correctness
+  {id:'M-PAE',name:'Concentration error — sent, not shown',get:()=>submitted?'sent':'\u2014'},
+  {id:'M-ACC',name:'Accuracy — needs the key',server:true},
+  {id:'M-POLY',name:'Ingredients scaled right — needs the key',server:true},
+  {id:'M-DIFFREACH',name:'Difficulty reached — needs the session',server:true},
+  {id:'M-LEARNRATE',name:'Within-session growth — needs the session',server:true},
 ];
-function buildTelemetry(){
-  $('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');
-  $('#diffbar').innerHTML=LEVELS.map(()=>'<i></i>').join('');
-  $('#progress').innerHTML=LEVELS.map(()=>'<i></i>').join('');
+function buildMeters(){
+  $('#mlist').innerHTML=METERS.map(m=>
+    `<div class="mrow"><span class="mid${m.server?' srv':''}">${m.id}</span>`
+    +`<span class="mval" id="v_${m.id}">${m.server?'server':'\u2014'}</span>`
+    +`<span class="mname">${m.name}</span></div>`).join('');
+  $('#dbar').innerHTML=Array.from({length:20},()=>'<i></i>').join('');
 }
 function renderMeters(){
-  METERS.forEach(m=>$('#v_'+m.id).textContent=m.get());
-  $('#dlevel').textContent=`${T.level} / 6 · ${LEVELS[T.level-1].label}`;
-  [...$('#diffbar').children].forEach((x,i)=>x.classList.toggle('live',i<T.level));
-  $('#dtrend').textContent=`path ${T.results.join('')||'·'} · success raises, miss lowers`;
+  METERS.forEach(m=>{if(m.server)return;const el=$('#v_'+m.id);if(el)el.textContent=m.get();});
+  const d=current?Number(current.difficulty):null;
+  $('#dlabel').textContent=(d==null?'\u2014':d.toFixed(1))+' / 20';
+  [...$('#dbar').children].forEach((el,i)=>el.classList.toggle('on',d!=null&&i<Math.round(d)));
+  if(current){
+    const c=current.content;
+    $('#dstruct').textContent=c.constraint.kind==='fixed_total'
+      ?`fill to ${c.constraint.total} · both rows`:`given row ${c.constraint.row}`;
+  }else $('#dstruct').textContent='\u2014';
 }
-function log(message){
-  const elapsed=T.itemStart?Math.round(performance.now()-T.itemStart):0;
-  const row=document.createElement('div');row.innerHTML=`<span class="t">+${elapsed}ms</span> ${message}`;
-  $('#log').appendChild(row);$('#log').scrollTop=$('#log').scrollHeight;
+function log(msg){
+  const d=document.createElement('div');
+  d.innerHTML=`<span class="t">${new Date().toISOString().slice(11,19)} · +${elapsed()}ms</span> ${msg}`;
+  const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;
 }
-function tokenHTML(kind,count){
-  const full=Math.floor(count),half=!close(count,full);
-  return Array.from({length:full},()=>`<i class="token ${kind.toLowerCase()}"></i>`).join('')+(half?`<i class="token ${kind.toLowerCase()} half"></i>`:'');
+function emitEvent(kind,extra){
+  const event=Object.assign({t:elapsed(),kind,itemId:current?current.itemId:null},extra||{});
+  itemTelemetry.push(event);
+  post({type:'telemetry',event});
+  log(`<b>${kind}</b>`+(extra&&Object.keys(extra).length?' · '+JSON.stringify(extra):''));
 }
-function capacityHTML(){
-  const slots=Math.round((cur.target[0]+cur.target[1])*2);
-  const filled=Math.min(slots,Math.round((amount[0]+amount[1])*2));
-  return Array.from({length:slots},(_,i)=>`<i class="${i<filled?'filled':''}"></i>`).join('');
+function setCue(k,txt){const el=$('#phasecue');el.dataset.phase=k;el.textContent=txt;}
+function setStatus(msg){$('#status').textContent=msg;}
+
+/* ---------- rendering ---------- */
+const isLocked=(row)=>!!current&&current.content.locked.includes(row);
+function renderBowls(){
+  const c=current.content, grouped=c.display==='grouped';
+  const kindA=c.ingredients[0].token, kindB=c.ingredients[1].token;
+  $('#tIconA').innerHTML=tokenSVG(kindA,26);$('#tIconB').innerHTML=tokenSVG(kindB,26);
+  $('#bIconA').innerHTML=tokenSVG(kindA,26);$('#bIconB').innerHTML=tokenSVG(kindB,26);
+  $('#targetA').innerHTML=rowHTML(kindA,c.targetBowl.A,grouped);
+  $('#targetB').innerHTML=rowHTML(kindB,c.targetBowl.B,grouped);
+  $('#buildA').innerHTML=rowHTML(kindA,counts.A,grouped);
+  $('#buildB').innerHTML=rowHTML(kindB,counts.B,grouped);
+  $('#tagA').textContent=isLocked('A')?'given':'';
+  $('#tagB').textContent=isLocked('B')?'given':'';
+  // capacity meter (fixed_total only) — shows the line to fill, not the answer
+  if(c.constraint.kind==='fixed_total'){
+    const slots=c.constraint.total, filled=total();
+    $('#capacity').innerHTML=Array.from({length:slots},(_,i)=>
+      `<i class="${i<filled?(filled>slots?'over':'filled'):''}"></i>`).join('');
+  }else $('#capacity').innerHTML='';
+  renderControls();
+  $('#go').classList.toggle('ready',interactive&&!submitted&&total()>0);
+  renderMeters();
 }
-function livePartial(){
-  if(!cur)return '—';
-  const matched=(close(amount[0],cur.target[0])?1:0)+(close(amount[1],cur.target[1])?1:0);
-  return `${matched}/2 ingredients`;
-}
-function render(){
-  $('#targetA').innerHTML=tokenHTML('A',cur.base[0]);$('#targetB').innerHTML=tokenHTML('B',cur.base[1]);
-  $('#buildA').innerHTML=tokenHTML('A',amount[0]);$('#buildB').innerHTML=tokenHTML('B',amount[1]);
-  $('#capacity').innerHTML=capacityHTML();
-  ['A','B'].forEach((kind,index)=>{
-    const row=$('#control'+kind),isLocked=cur.lock[index];
-    row.querySelector('.lock').style.display=isLocked?'inline':'none';
-    row.querySelectorAll('button').forEach(button=>{
-      const half=button.classList.contains('half');
-      button.style.display=half&&cur.level<5?'none':'inline-block';
-      button.disabled=locked||isLocked;
-    });
+function renderControls(){
+  const c=current.content;
+  ['A','B'].forEach(row=>{
+    const el=$('#control'+row), locked=isLocked(row), batch=c.limits.batch[row];
+    const kind=c.ingredients[row==='A'?0:1].token;
+    if(locked){
+      el.innerHTML=`<span class="lockmark">row ${row} given: ${counts[row]} ${kind}</span>`;
+      return;
+    }
+    const dis=(!interactive||submitted)?'disabled':'';
+    el.innerHTML=
+      `<button class="scoop" data-row="${row}" data-delta="-1" ${dis} aria-label="one less ${kind}">&#8722;</button>`
+      +`<button class="scoop" data-row="${row}" data-delta="1" ${dis} aria-label="one more ${kind}">+ ${tokenSVG(kind,18)}</button>`
+      +`<button class="scoop batch" data-row="${row}" data-delta="${batch}" ${dis} aria-label="add ${batch} ${kind}">+ ${batch} ${tokenSVG(kind,16)}</button>`
+      +`<button class="scoop batch" data-row="${row}" data-delta="${-batch}" ${dis} aria-label="remove ${batch} ${kind}">&#8722; ${batch}</button>`;
   });
-  T.poly=livePartial();renderMeters();
 }
-function adjust(kind,delta,ghost=false){
-  const index=kind==='A'?0:1;if(locked||cur.lock[index])return;
-  const next=clamp(Math.round((amount[index]+delta)*2)/2,0,12);
-  if(close(next,amount[index]))return;
-  amount[index]=next;T.path.push(`${kind}${delta>0?'+':'−'}${Math.abs(delta)}`);
-  if(!ghost)log(`scoop ${T.path.at(-1)} · now ${amount[0]}:${amount[1]}`);
-  render();
+
+/* ---------- interaction ---------- */
+function adjust(row,delta,source){
+  if(!interactive||submitted||!current)return;
+  if(isLocked(row))return;
+  const max=current.content.limits.maxPerIngredient;
+  const next=Math.max(0,Math.min(max,counts[row]+delta));
+  if(next===counts[row])return;
+  if(firstLatency===null){firstLatency=elapsed();emitEvent('first_action',{row,delta,latencyMs:firstLatency});}
+  const dir=delta>0?1:-1;
+  if(lastRow===row&&lastDir!==null&&dir!==lastDir){revisions++;emitEvent('revise',{row,to:next});}
+  lastDir=dir;lastRow=row;
+  if(Math.abs(delta)===1)stepMoves++;else batchMoves++;
+  counts[row]=next;
+  moves.push({t:elapsed(),row,delta,to:next,source:source||'tap'});
+  renderBowls();
 }
-function classify(){
-  const exact=close(amount[0],cur.target[0])&&close(amount[1],cur.target[1]);
-  if(exact)return cur.lock.some(Boolean)?'multiplicative · anchored':'multiplicative · complete batches';
-  const addA=cur.base[0]+(cur.target[0]-cur.base[0]);
-  const sameDelta=cur.target[0]-cur.base[0];
-  const additiveB=cur.base[1]+sameDelta;
-  if(close(amount[0],addA)&&close(amount[1],additiveB))return 'additive · same change';
-  const ratioBase=cur.base[0]/cur.base[1],ratioNow=amount[1]?amount[0]/amount[1]:99;
-  if(Math.abs(ratioBase-ratioNow)<.04)return 'multiplicative · equivalent';
-  return 'one-component / uncoordinated';
+function submit(){
+  if(!interactive||submitted||total()<=0)return;
+  lastRt=elapsed();
+  submitted=true;interactive=false;
+  $('#go').classList.remove('ready');
+  setCue('sent','Answer sent');
+  setStatus('Answer sent. The next bowls are coming.');    // NEUTRAL: no correctness
+  emitEvent('submit',{counts:{...counts},rtMs:lastRt});
+  const response={
+    kind:'constructed_counts',
+    counts:{...counts},
+    total:total(),
+    moves:moves.slice(),
+    batchMoves,stepMoves,reversals:revisions,
+  };
+  const result={itemId:current.itemId,typeCode:current.typeCode,domain:current.domain,
+    response,metrics:metricsNow(),telemetry:itemTelemetry.slice()};
+  post({type:'result',result});
+  log('RESULT emitted \u2192 '+JSON.stringify({counts:response.counts,moves:moves.length}));
+  renderControls();renderMeters();
+  if(standalone)setTimeout(advanceStandalone,1350);
 }
-function optimalMoves(){
-  return Math.ceil(Math.abs(cur.target[0]-cur.init[0]))+Math.ceil(Math.abs(cur.target[1]-cur.init[1]));
+
+/* ---------- pointer hint: teaches the GESTURE, never the answer ---------- */
+const ghost=$('#ghost');
+function ghostShow(v){ghost.classList.toggle('show',v);}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(480);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(360);}
+async function gestureHint(){
+  ghostShow(true);await sleep(200);
+  await ghostTo($('#target'));await sleep(140);
+  await ghostTo($('#controlA'));await ghostTap();
+  await ghostTo($('#controlB'));await ghostTap();
+  await ghostTo($('#go'));await ghostTap();await sleep(140);
+  ghostShow(false);await sleep(200);
 }
-async function submit(){
-  if(locked)return;locked=true;render();const correct=close(amount[0],cur.target[0])&&close(amount[1],cur.target[1]);
-  T.strategy=classify();T.plan=T.path.length<=optimalMoves()+1?'direct proportional adjustment':'repeated search';
-  $('#build').classList.add(correct?'good':'bad');
-  if(phase==='warmup'){
-    setStatus(correct?'ok':'no',correct?'\u2713 Same taste - practice':'\u2717 Not quite - the matching mix is shown (practice)');
-    log(`WARM-UP ${correct?'same taste':'corrective full batch'} · UNSCORED`);
-    if(!correct){await sleep(450);amount=cur.target.slice();render();$('#build').classList.add('good')}
-    await sleep(750);startScored();return;
-  }
-  T.scored++;if(correct){T.correct++;T.maxSolved=Math.max(T.maxSolved,cur.level)}
-  T.results.push(correct?'↑':'↓');T.level=clamp(T.level+(correct?1:-1),1,6);
-  $('#progress').children[scoredIndex].classList.add(correct?'ok':'no');
-  setStatus(correct?'ok':'no',correct?'\u2713 Same taste!':'\u2717 Not the same taste');
-  log(`TASTE level ${cur.level} → ${correct?'MATCH':'MISS'} · ${T.poly} · ${T.strategy}`);
-  renderMeters();scoredIndex++;await sleep(900);scoredIndex<6?startScored():finish();
+
+/* ---------- host-driven lifecycle ---------- */
+function renderServedItem(item){
+  current=item;submitted=false;interactive=false;
+  counts={A:item.content.workBowl.A,B:item.content.workBowl.B};
+  moves=[];batchMoves=0;stepMoves=0;revisions=0;lastDir=null;lastRow=null;
+  firstLatency=null;lastRt=null;itemTelemetry=[];
+  blurCount=0;focusedMs=0;focusTs=Date.now();isFocused=(document.visibilityState!=='hidden');
+  itemStart=Date.now();
+  renderBowls();
+  emitEvent('render',{difficulty:item.difficulty,display:item.content.display,
+    constraint:item.content.constraint.kind,start:{...counts}});
 }
-function center(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}}
-async function ghostTo(el){const p=center(el);$('#ghost').style.transform=`translate(${p.x-10}px,${p.y-10}px)`;await sleep(360)}
-async function ghostTap(){$('#ghost').classList.remove('tap');void $('#ghost').offsetWidth;$('#ghost').classList.add('tap');await sleep(280)}
-async function ghostAdjust(kind,times){
-  const button=$(`#control${kind} button[data-delta="1"]`);
-  for(let i=0;i<times;i++){await ghostTo(button);await ghostTap();adjust(kind,1,true)}
+function onInit(item){
+  clearTimeout(startTimer);
+  if(!item||!item.content||!item.content.targetBowl){log('init ignored: malformed ServedItem');return;}
+  renderServedItem(item);
+  setCue('waiting','Get ready');
+  setStatus('Look at the mix in the first bowl.');
+  // Lenient: if the host never sends {type:'start'}, release interaction anyway
+  // (a demo that stays locked can never emit a result).
+  startTimer=setTimeout(()=>{if(!interactive&&!submitted)beginItem(false);},500);
 }
-function reset(){
-  Object.assign(T,{scored:0,correct:0,poly:'—',path:[],plan:'—',strategy:'—',level:1,startLevel:1,maxSolved:0,results:[],itemStart:0});
-  scoredIndex=0;[...$('#progress').children].forEach(x=>x.className='');renderMeters();
+async function beginItem(withTutorial){
+  if(interactive||submitted||!current)return;
+  if(withTutorial&&!tutorialShown){tutorialShown=true;await gestureHint();if(submitted)return;}
+  interactive=true;itemStart=Date.now();focusTs=Date.now();
+  setCue('answer','Your turn');
+  setStatus(current.content.prompt);
+  emitEvent('start',{});
+  renderBowls();
 }
-function loadItem(item,phaseKey,extra){
-  cur={...item,base:item.base.slice(),target:item.target.slice(),init:item.init.slice(),lock:item.lock.slice()};
-  amount=cur.init.slice();T.path=[];T.poly='—';T.plan='—';T.strategy='—';locked=false;T.itemStart=performance.now();
-  setCue(phaseKey,extra);setStatus('neutral',phaseKey==='warmup'?'Practice - this one is not scored.':phaseKey==='scored'?'Add scoops so the bottom bowl matches, then press Taste.':'Watch the example.');
-  $('#build').className='bowl';render();log(`${phase.toUpperCase()} · level ${cur.level} · ${cur.label}`);
-}
-async function runDemo(){
-  reset();phase='demo';loadItem(DEMO,'demo');locked=false;$('#ghost').classList.add('show');log('ghost-hand demo · wordless');
-  await ghostAdjust('A',2);await ghostAdjust('B',4);
-  await ghostTo($('#go'));await ghostTap();$('#build').classList.add('good');
-  await sleep(450);$('#ghost').classList.remove('show');startWarmup();
-}
-function startWarmup(){phase='warmup';loadItem(WARM,'warmup')}
-function startScored(){phase='scored';loadItem(LEVELS[T.level-1],'scored',(scoredIndex+1)+'/6');log(`SCORED ${scoredIndex+1}/6`)}
-function finish(){phase='done';locked=true;render();setCue('done');setStatus('ok','\u2713 Done');log(`DONE · ${T.correct}/${T.scored} · peak ${T.maxSolved}`);renderMeters()}
-document.querySelector('.scoops').addEventListener('click',event=>{
-  const button=event.target.closest('button[data-kind]');if(button)adjust(button.dataset.kind,+button.dataset.delta);
+window.addEventListener('message',e=>{
+  const d=e.data;if(!d||d.source!==HOST_SRC)return;
+  if(d.type==='init')onInit(d.item);
+  else if(d.type==='start'){clearTimeout(startTimer);beginItem(!!d.tutorial);}
 });
-$('#go').addEventListener('click',submit);
-$('#replay').addEventListener('click',runDemo);
-buildTelemetry();renderMeters();runDemo();
+
+/* ---------- standalone fallback (QA when there is no host) ---------- */
+function toServed(b){const{answer,scoring,provenance,...s}=b;return s;}
+async function loadBankSamples(){
+  try{
+    const res=await fetch('../banks/QUANT-MIX-01.jsonl',{cache:'no-store'});
+    if(res.ok){
+      const all=(await res.text()).trim().split('\n').filter(Boolean).map(l=>JSON.parse(l)).map(toServed);
+      all.sort((a,b)=>a.difficulty-b.difficulty);
+      const N=Math.min(12,all.length),pick=[];
+      for(let i=0;i<N;i++)pick.push(all[N===1?0:Math.round(i*(all.length-1)/(N-1))]);
+      log('standalone: fetched '+all.length+' bank items; cycling '+pick.length+' across difficulty');
+      return pick;
+    }
+  }catch(_){/* file:// blocks fetch — fall through */}
+  log('standalone: bank fetch unavailable (serve the folder for the full bank) — using inline samples');
+  return INLINE_SAMPLES.slice();
+}
+function playStandalone(){onInit(queue[queueIdx%queue.length]);beginItem(queueIdx===0);}
+function advanceStandalone(){queueIdx++;playStandalone();}
+async function bootstrapStandalone(){if(standalone)return;standalone=true;queue=await loadBankSamples();queueIdx=0;playStandalone();}
+
+/* Inline served items (exported from the bank; answer/scoring/provenance stripped). */
+const INLINE_SAMPLES=[
+{"itemId":"817966a8-acd8-4034-8664-6376cca32401","typeCode":"QUANT-MIX-01","domain":"quantitative","difficulty":1.31,"ageBands":["2-3"],"demoPath":"demos/QUANT-MIX-01.html","content":{"typeCode":"QUANT-MIX-01","display":"tokens","ingredients":[{"id":"A","token":"berry"},{"id":"B","token":"drop"}],"targetBowl":{"A":1,"B":2},"workBowl":{"A":2,"B":0},"locked":["A"],"constraint":{"kind":"given_row","row":"A"},"limits":{"maxPerIngredient":24,"step":1,"batch":{"A":1,"B":2}},"response":{"kind":"constructed_counts","ingredients":["A","B"]},"prompt":"Add scoops to the second bowl so it tastes the same as the first bowl, then press Taste."},"syntheticOnly":true,"validated":false},
+{"itemId":"42ef8ea9-2ff5-403b-92c6-d825da24be51","typeCode":"QUANT-MIX-01","domain":"quantitative","difficulty":7.23,"ageBands":["2-3"],"demoPath":"demos/QUANT-MIX-01.html","content":{"typeCode":"QUANT-MIX-01","display":"tokens","ingredients":[{"id":"A","token":"berry"},{"id":"B","token":"drop"}],"targetBowl":{"A":3,"B":2},"workBowl":{"A":0,"B":0},"locked":[],"constraint":{"kind":"fixed_total","total":10},"limits":{"maxPerIngredient":24,"step":1,"batch":{"A":3,"B":2}},"response":{"kind":"constructed_counts","ingredients":["A","B"]},"prompt":"Fill the second bowl to the line so it tastes the same as the first bowl, then press Taste."},"syntheticOnly":true,"validated":false},
+{"itemId":"bbd58dda-3c0e-4a15-9501-f111d4c80965","typeCode":"QUANT-MIX-01","domain":"quantitative","difficulty":13.04,"ageBands":["6-8"],"demoPath":"demos/QUANT-MIX-01.html","content":{"typeCode":"QUANT-MIX-01","display":"tokens","ingredients":[{"id":"A","token":"berry"},{"id":"B","token":"drop"}],"targetBowl":{"A":6,"B":9},"workBowl":{"A":0,"B":0},"locked":[],"constraint":{"kind":"fixed_total","total":10},"limits":{"maxPerIngredient":24,"step":1,"batch":{"A":6,"B":9}},"response":{"kind":"constructed_counts","ingredients":["A","B"]},"prompt":"Fill the second bowl to the line so it tastes the same as the first bowl, then press Taste."},"syntheticOnly":true,"validated":false},
+{"itemId":"972a2907-2b60-4938-a953-a286684e3ce7","typeCode":"QUANT-MIX-01","domain":"quantitative","difficulty":19.83,"ageBands":["6-8"],"demoPath":"demos/QUANT-MIX-01.html","content":{"typeCode":"QUANT-MIX-01","display":"grouped","ingredients":[{"id":"A","token":"leaf"},{"id":"B","token":"pebble"}],"targetBowl":{"A":6,"B":10},"workBowl":{"A":10,"B":14},"locked":[],"constraint":{"kind":"fixed_total","total":24},"limits":{"maxPerIngredient":24,"step":1,"batch":{"A":6,"B":10}},"response":{"kind":"constructed_counts","ingredients":["A","B"]},"prompt":"Fill the second bowl to the line so it tastes the same as the first bowl, then press Taste."},"syntheticOnly":true,"validated":false}
+];
+
+/* ---------- wiring ---------- */
+$('.scoops')&&$('.scoops').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-row]');if(b)adjust(b.dataset.row,+b.dataset.delta,'tap');
+});
+$('#go').addEventListener('click',()=>{if($('#go').classList.contains('ready'))submit();});
+$('#replay').addEventListener('click',()=>{if(current&&!submitted)gestureHint();});
+let keyRow='A';
+document.addEventListener('keydown',e=>{
+  if(!interactive||submitted)return;
+  if(e.key==='1'){keyRow='A';return;}
+  if(e.key==='2'){keyRow='B';return;}
+  if(e.key==='+'||e.key==='='||e.key==='ArrowUp'){adjust(keyRow,1,'key');return;}
+  if(e.key==='-'||e.key==='_'||e.key==='ArrowDown'){adjust(keyRow,-1,'key');return;}
+  if(e.key==='Enter'&&$('#go').classList.contains('ready'))submit();
+});
+window.addEventListener('blur',()=>{tickFocus();if(isFocused&&interactive&&!submitted){blurCount++;isFocused=false;emitEvent('engagement',{reason:'blur',blurCount});renderMeters();}});
+window.addEventListener('focus',()=>{tickFocus();isFocused=true;});
+document.addEventListener('visibilitychange',()=>{tickFocus();isFocused=document.visibilityState!=='hidden';});
+
+buildMeters();renderMeters();
+post({type:'ready'});
+if(!embedded){bootstrapStandalone();}
+else{setTimeout(()=>{if(!current)bootstrapStandalone();},1000);}  // QA-safe if a host embeds but never inits
 </script>
 </body>
 </html>
