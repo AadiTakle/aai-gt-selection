@@ -154,11 +154,23 @@ function mulberry32(seed: number): () => number {
   };
 }
 
+/** What `/api/exam-results` answered, which is what the child's screen shows. */
+interface ReportedResult {
+  ok: boolean;
+  persisted: boolean;
+  scoreSource: string;
+  scorerInputHash?: string;
+  itemsScored?: number;
+  outcome: { composite: number };
+}
+
 interface RunResult {
   examSessionId: string;
   scoredItems: ScoredItem[];
   telemetryCount: number;
-  composite: number;
+  /** Composite of the CLIENT-side trace — what the runner computed before posting. */
+  clientComposite: number;
+  reported: { composite: number; scoreSource: string; itemsScored: number | undefined };
   persistedItems: number;
 }
 
@@ -287,7 +299,7 @@ async function runBattery(): Promise<RunResult> {
       validated: false,
     }),
   );
-  const resultsBody = (await resultsResponse.json()) as { ok: boolean; persisted: boolean };
+  const resultsBody = (await resultsResponse.json()) as ReportedResult;
   expect(resultsBody.ok).toBe(true);
   expect(resultsBody.persisted).toBe(true);
 
@@ -295,7 +307,12 @@ async function runBattery(): Promise<RunResult> {
     examSessionId,
     scoredItems,
     telemetryCount,
-    composite: outcome.composite,
+    clientComposite: outcome.composite,
+    reported: {
+      composite: resultsBody.outcome.composite,
+      scoreSource: resultsBody.scoreSource,
+      itemsScored: resultsBody.itemsScored,
+    },
     persistedItems,
   };
 }
@@ -380,8 +397,8 @@ describe('adaptive exam trace round trip', () => {
     // D-019: the demoted app.exam_compute_outcome must not be the source.
     expect(outcome.data.outcome.scoredBy).toBe('packages/exam-scoring');
     expect(outcome.data.outcome.scoringPolicyId).toBe(DEFAULT_EXAM_POLICY.id);
-    expect(outcome.data.outcome.scorerOutput.composite).toBeCloseTo(run.composite, 6);
-    expect(Number(outcome.data.outcome.compositeScore)).toBeCloseTo(run.composite, 6);
+    expect(outcome.data.outcome.scorerOutput.composite).toBeCloseTo(run.reported.composite, 6);
+    expect(Number(outcome.data.outcome.compositeScore)).toBeCloseTo(run.reported.composite, 6);
     expect(outcome.data.outcome.scorerInputCount).toBe(run.scoredItems.length);
     expect(outcome.data.outcome.scorerOutput.syntheticOnly).toBe(true);
   });
@@ -425,6 +442,21 @@ describe('adaptive exam trace round trip', () => {
     }
   });
 
+  it('scores the database trace, not the trace the request body carries', async () => {
+    const { data, error } = await proctor.rpc('exam_get_scoring_inputs', {
+      p_session_id: run.examSessionId,
+      p_correlation_id: crypto.randomUUID(),
+    });
+    expect(error).toBeNull();
+    const inputs = (data as { data: { items: ScoredItem[] } }).data;
+
+    // The number the child was shown and the number the row holds are both this one.
+    const fromDatabase = scoreExam(inputs.items, DEFAULT_EXAM_POLICY);
+    expect(run.reported.composite).toBeCloseTo(fromDatabase.composite, 9);
+    expect(run.reported.scoreSource).toBe('database-trace');
+    expect(run.reported.itemsScored).toBe(inputs.items.length);
+  });
+
   it('never lets the served side of the trace carry an answer key', async () => {
     const { data } = await proctor.rpc('exam_get_next_item', {
       p_session_id: run.examSessionId,
@@ -433,5 +465,204 @@ describe('adaptive exam trace round trip', () => {
     const payload = JSON.stringify(data);
     expect(payload).not.toContain('answer_key');
     expect(payload).not.toContain('correctKey');
+  });
+});
+
+/**
+ * THE FORGERY (E-084).
+ *
+ * `/api/exam-results` used to score the `scoredItems` array in the request body,
+ * so a scripted client could claim every item correct at maximum difficulty and
+ * be handed the score it asked for, while the trace the server verified sat in
+ * `app.exam_item_response` disagreeing with it. Verifying answers in the database
+ * bought nothing while the scorer never read the verdicts.
+ *
+ * This drives that exact attack against a real session whose persisted responses
+ * are all wrong, and pins three things: the forged payload WOULD have scored far
+ * higher (so the attack is real, not neutralised by the scale), the number
+ * returned to the browser is the database's, and the number written to
+ * `app.exam_session_outcome` is the database's too.
+ */
+describe('a forged scoredItems payload cannot move the score', () => {
+  /** Nothing accepts this, so every verifier and every DB verdict returns wrong. */
+  const UNANSWERABLE = { selectedKey: '__forged_never_a_key__' };
+
+  let sessionId: string;
+  const itemsAnswered: { itemId: string; typeCode: string; domain: string; difficulty: number }[] =
+    [];
+
+  beforeAll(async () => {
+    const login = await proctor.auth.signInWithPassword({
+      email: process.env.GT_EXAM_PROCTOR_EMAIL ?? 'admissions@example.test',
+      password: process.env.GT_EXAM_PROCTOR_PASSWORD ?? '',
+    });
+    if (login.error) throw login.error;
+
+    const participantCode = 'PART-SYN-FORGERY';
+    const opened = await examSession(
+      post('http://127.0.0.1:3000/api/exam-session', { participantCode, gradeBand: '4-5' }),
+    );
+    const openedBody = (await opened.json()) as { examSessionId: string | null };
+    if (!openedBody.examSessionId) {
+      throw new Error('The exam session was not persisted; is GT_EXAM_PERSISTENCE_ENABLED set?');
+    }
+    sessionId = openedBody.examSessionId;
+
+    // Two items in each of the four areas, so every area the scorer knows about
+    // is represented and the composite is not an artefact of one missing domain.
+    const index = await getServedIndex();
+    const chosen = (['fluid_reasoning', 'verbal', 'quantitative', 'spatial'] as const).flatMap(
+      (domain) => index.filter((item) => item.domain === domain).slice(0, 2),
+    );
+    expect(chosen).toHaveLength(8);
+
+    for (const item of chosen) {
+      const submitted = await examSubmit(
+        post('http://127.0.0.1:3000/api/exam-submit', {
+          itemId: item.itemId,
+          response: UNANSWERABLE,
+          skipped: false,
+          examSessionId: sessionId,
+          clientMetrics: { 'M-RT': 5000 },
+          telemetry: [],
+        }),
+      );
+      const verdict = (await submitted.json()) as {
+        correct: boolean;
+        persisted: boolean;
+        difficulty: number;
+        domain: string;
+        typeCode: string;
+      };
+      // The premise of the test: the stored trace really is all wrong.
+      expect(verdict.correct).toBe(false);
+      expect(verdict.persisted).toBe(true);
+      itemsAnswered.push({
+        itemId: item.itemId,
+        typeCode: verdict.typeCode,
+        domain: verdict.domain,
+        difficulty: verdict.difficulty,
+      });
+    }
+  }, 120_000);
+
+  it('returns and stores the database composite, not the forged one', async () => {
+    const forged = itemsAnswered.map((item) => ({
+      itemId: item.itemId,
+      typeCode: item.typeCode,
+      domain: item.domain,
+      response: { selectedKey: 'A' },
+      // Every metric the scorer positions on, claimed at its best value.
+      metrics: { 'M-ACC': 1, 'M-DIFFREACH': 20, 'M-RT': 900, 'M-ERRTYPE': 1, 'M-REV': 0 },
+      telemetry: [],
+      correct: true,
+      score: 1,
+      difficulty: 20,
+    }));
+
+    const { data: before } = await proctor.rpc('exam_get_scoring_inputs', {
+      p_session_id: sessionId,
+      p_correlation_id: crypto.randomUUID(),
+    });
+    const stored = (before as { data: { items: ScoredItem[] } }).data.items;
+    const honest = scoreExam(stored, DEFAULT_EXAM_POLICY);
+    const claimed = scoreExam(forged as unknown as ScoredItem[], DEFAULT_EXAM_POLICY);
+
+    // Without this the test could pass vacuously on a scale that ignores the trace.
+    expect(claimed.composite).toBeGreaterThan(honest.composite + 1);
+
+    const response = await examResults(
+      post('http://127.0.0.1:3000/api/exam-results', {
+        sessionId: 'SESS-SYN-FORGERY',
+        examSessionId: sessionId,
+        participantCode: 'PART-SYN-FORGERY',
+        studentName: 'Synthetic Forgery Child',
+        gradeBand: '4-5',
+        startedAt: new Date(Date.now() - 600_000).toISOString(),
+        finishedAt: new Date().toISOString(),
+        itemsServed: forged.map((item) => ({
+          itemId: item.itemId,
+          typeCode: item.typeCode,
+          domain: item.domain,
+          difficulty: 20,
+          ageBands: ['4-5'],
+          content: {},
+          syntheticOnly: true,
+          validated: false,
+        })),
+        scoredItems: forged,
+        telemetry: [],
+        score: claimed,
+        syntheticOnly: true,
+        validated: false,
+      }),
+    );
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as ReportedResult;
+
+    // 1. What the browser is told.
+    expect(body.ok).toBe(true);
+    expect(body.scoreSource).toBe('database-trace');
+    expect(body.itemsScored).toBe(stored.length);
+    expect(body.outcome.composite).toBeCloseTo(honest.composite, 9);
+    expect(body.outcome.composite).not.toBeCloseTo(claimed.composite, 3);
+
+    // 2. What the database keeps.
+    expect(body.persisted).toBe(true);
+    const { data: recorded } = await proctor.rpc('exam_get_outcome', {
+      p_session_id: sessionId,
+      p_correlation_id: crypto.randomUUID(),
+    });
+    const outcome = (
+      recorded as { data: { outcome: { compositeScore: number; scorerInputHash: string } } }
+    ).data.outcome;
+    expect(Number(outcome.compositeScore)).toBeCloseTo(honest.composite, 9);
+    expect(outcome.scorerInputHash).toBe(body.scorerInputHash);
+  });
+
+  it('refuses to score a session whose stored trace it cannot read', async () => {
+    // A session id the proctor does not own is indistinguishable from a broken
+    // read, and both must fail rather than fall back to the request body.
+    const response = await examResults(
+      post('http://127.0.0.1:3000/api/exam-results', {
+        sessionId: 'SESS-SYN-NOSUCH',
+        examSessionId: '00000000-0000-4000-8000-0000000f0001',
+        participantCode: 'PART-SYN-NOSUCH',
+        studentName: 'Synthetic Absent Child',
+        gradeBand: '4-5',
+        startedAt: new Date(Date.now() - 600_000).toISOString(),
+        finishedAt: new Date().toISOString(),
+        itemsServed: [
+          {
+            itemId: '00000000-0000-4000-8000-0000000f0002',
+            typeCode: 'FLU-MATRIX-01',
+            domain: 'fluid_reasoning',
+            difficulty: 20,
+            ageBands: ['4-5'],
+            content: {},
+            syntheticOnly: true,
+            validated: false,
+          },
+        ],
+        scoredItems: [
+          {
+            itemId: '00000000-0000-4000-8000-0000000f0002',
+            typeCode: 'FLU-MATRIX-01',
+            domain: 'fluid_reasoning',
+            metrics: { 'M-ACC': 1, 'M-DIFFREACH': 20 },
+            correct: true,
+            score: 1,
+            difficulty: 20,
+          },
+        ],
+        telemetry: [],
+        syntheticOnly: true,
+        validated: false,
+      }),
+    );
+    expect(response.status).toBe(503);
+    const body = (await response.json()) as { ok: boolean; error: string };
+    expect(body.ok).toBe(false);
+    expect(body.error).toBe('SCORER_INPUT_UNAVAILABLE');
   });
 });
