@@ -9,7 +9,7 @@ import { spatialVerifiers } from './spatial';
 import type { Verdict } from './types';
 
 /**
- * Round-trip tests for the seven spatial verifiers.
+ * Round-trip tests for the eight spatial verifiers.
  *
  * Every case loads a REAL bank item and feeds it the bank's own reference
  * solution as the child's response — the reference exists precisely so the
@@ -52,7 +52,7 @@ const MALFORMED: Record<string, unknown>[] = [
 ];
 
 describe('spatial verifiers — registry', () => {
-  it('registers exactly the seven in-scope spatial types', () => {
+  it('registers exactly the eight in-scope spatial types', () => {
     expect(Object.keys(spatialVerifiers).sort()).toEqual([
       'SPA-HIDDENCUBE-01',
       'SPA-MAZE-01',
@@ -60,6 +60,7 @@ describe('spatial verifiers — registry', () => {
       'SPA-PUNCH-01',
       'SPA-SCENE-01',
       'SPA-TANGRAM-01',
+      'SPA-VIEW-01',
       'SPA-XPLANE-01',
     ]);
   });
@@ -604,6 +605,167 @@ const shapeKeyOfCover = (cover: Placement[]) =>
     .map((p) => `${p.id}:${p.cells.map(k3).sort().join('|')}`)
     .sort()
     .join('/');
+
+/* ------------------------------------------------------------------ *
+ * SPA-VIEW-01 — two response shells share one bank
+ * ------------------------------------------------------------------ */
+
+interface ViewStation {
+  key: string;
+  x: number;
+  y: number;
+  headingDeg: number;
+}
+interface ViewScene {
+  objects: { id: string; x: number; y: number }[];
+  stations: ViewStation[];
+}
+interface ViewPointing {
+  fromStationKey: string;
+  targetObjectId: string;
+}
+interface HeadingLure {
+  lureClass: string;
+  headingDeg?: number;
+}
+
+/** Signed degrees folded into (-180, 180], as the bank's rule specifies. */
+function wrap180(deg: number): number {
+  let d = ((deg + 180) % 360) - 180;
+  if (d <= -180) d += 360;
+  return d;
+}
+
+const headingKey = (item: RawBankItem) => item.answer.correctHeadingDeg as number;
+const toleranceOf = (item: RawBankItem) => item.answer.toleranceDeg as number;
+
+describe('SPA-VIEW-01', () => {
+  const items = loadBank('SPA-VIEW-01');
+  const keyedItems = items.filter((i) => i.content.optionKind === 'viewpoint');
+  const headingItems = items.filter((i) => i.content.optionKind === 'heading_dial');
+
+  it('carries both shells, each with its own scoring rule', () => {
+    // The premise of the per-type verifier: one bank, two rules. If the bank
+    // ever collapses to one shell, the mixed-rule allowance in
+    // scripts/sync-exam-demos.mjs is no longer earning its keep.
+    expect(keyedItems.length).toBeGreaterThan(0);
+    expect(headingItems.length).toBeGreaterThan(0);
+    expect(keyedItems.length + headingItems.length).toBe(items.length);
+    for (const item of keyedItems) expect(item.scoring?.rule, item.itemId).toBeUndefined();
+    for (const item of headingItems) expect(typeof item.scoring?.rule, item.itemId).toBe('string');
+  });
+
+  it('accepts the keyed station on every match_viewpoint item', () => {
+    for (const item of keyedItems) {
+      const verdict = grade(item, {
+        mode: 'match_viewpoint',
+        selectedKey: item.answer.correctKey,
+      });
+      expect(verdict.correct, item.itemId).toBe(true);
+      expect(verdict.metrics?.['M-VIEWANG'], item.itemId).toBeUndefined();
+    }
+  });
+
+  it('accepts the keyed heading on every point_heading item, at zero error', () => {
+    for (const item of headingItems) {
+      const verdict = grade(item, { mode: 'point_heading', headingDeg: headingKey(item) });
+      expect(verdict.correct, item.itemId).toBe(true);
+      expect(verdict.metrics?.['M-VIEWANG'], item.itemId).toBe(0);
+    }
+  });
+
+  it('rejects a wrong station and flags the mirrored viewpoint', () => {
+    for (const item of keyedItems) {
+      const mirror = item.answer.mirrorFoilKey;
+      if (typeof mirror !== 'string') continue;
+      const mirrored = grade(item, { mode: 'match_viewpoint', selectedKey: mirror });
+      expect(mirrored.correct, item.itemId).toBe(false);
+      expect(mirrored.metrics?.['M-MIRRORFA'], item.itemId).toBe(1);
+
+      const others = (item.content.options as { key: string }[])
+        .map((o) => o.key)
+        .filter((key) => key !== item.answer.correctKey && key !== mirror);
+      for (const key of others) {
+        const verdict = grade(item, { mode: 'match_viewpoint', selectedKey: key });
+        expect(verdict.correct, `${item.itemId} ${key}`).toBe(false);
+        expect(verdict.metrics?.['M-MIRRORFA'], `${item.itemId} ${key}`).toBe(0);
+      }
+    }
+  });
+
+  it('rejects every named heading lure', () => {
+    for (const item of headingItems) {
+      const lures = item.answer.distractorRationales as Record<string, HeadingLure>;
+      for (const [key, lure] of Object.entries(lures)) {
+        if (lure.lureClass === 'correct' || typeof lure.headingDeg !== 'number') continue;
+        const verdict = grade(item, { mode: 'point_heading', headingDeg: lure.headingDeg });
+        expect(verdict.correct, `${item.itemId} ${key}`).toBe(false);
+      }
+    }
+  });
+
+  it('accepts a heading just inside the item tolerance and rejects one just outside', () => {
+    for (const item of headingItems) {
+      const target = headingKey(item);
+      const tolerance = toleranceOf(item);
+      for (const side of [1, -1]) {
+        const inside = grade(item, { headingDeg: target + side * (tolerance - 0.01) });
+        expect(inside.correct, `${item.itemId} inside ${side}`).toBe(true);
+        expect(inside.metrics?.['M-VIEWANG'], item.itemId).toBeCloseTo(
+          side * (tolerance - 0.01),
+          6,
+        );
+
+        const outside = grade(item, { headingDeg: target + side * (tolerance + 0.01) });
+        expect(outside.correct, `${item.itemId} outside ${side}`).toBe(false);
+      }
+    }
+  });
+
+  it('measures the heading error circularly, across the dial seam', () => {
+    // 175 deg vs -175 deg is 10 deg apart on a dial and 350 deg apart on a
+    // number line. Grading it linearly would fail a child who answered within
+    // a few degrees of the target, purely because the answer straddles ±180.
+    const item = headingItems.find((i) => toleranceOf(i) > 10)!;
+    const seamed: RawBankItem = {
+      ...item,
+      answer: { ...item.answer, correctHeadingDeg: 175 },
+    };
+    expect(Math.abs(-175 - 175)).toBe(350);
+
+    const verdict = grade(seamed, { mode: 'point_heading', headingDeg: -175 });
+    expect(verdict.correct).toBe(true);
+    expect(verdict.metrics?.['M-VIEWANG']).toBeCloseTo(10, 6);
+
+    expect(grade(seamed, { headingDeg: 175 - 360 }).correct).toBe(true);
+    expect(grade(seamed, { headingDeg: -100 }).correct).toBe(false);
+    expect(grade(seamed, { headingDeg: -175 + toleranceOf(item) }).metrics?.['M-VIEWANG']).toBeCloseTo(
+      10 + toleranceOf(item),
+      6,
+    );
+  });
+
+  it('dispatches on the item, so neither shell can be graded by the other rule', () => {
+    const keyed = keyedItems[0]!;
+    const pointing = headingItems[0]!;
+    expect(grade(keyed, { headingDeg: 0 }).correct).toBe(false);
+    expect(grade(pointing, { selectedKey: pointing.answer.correctKey }).correct).toBe(false);
+  });
+
+  it('grades against a heading key the served scene actually implies', () => {
+    // The key is server-only, so nothing else checks it: re-derive the bearing
+    // from the station to the target, relative to that station's own facing.
+    for (const item of headingItems) {
+      const scene = item.content.scene as ViewScene;
+      const pointing = item.content.pointing as ViewPointing;
+      const station = scene.stations.find((s) => s.key === pointing.fromStationKey)!;
+      const target = scene.objects.find((o) => o.id === pointing.targetObjectId)!;
+      const bearing = (Math.atan2(target.y - station.y, target.x - station.x) * 180) / Math.PI;
+      const derived = wrap180(station.headingDeg - bearing);
+      expect(Math.abs(wrap180(derived - headingKey(item))), item.itemId).toBeLessThan(0.01);
+    }
+  });
+});
 
 /* ------------------------------------------------------------------ *
  * SPA-XPLANE-01

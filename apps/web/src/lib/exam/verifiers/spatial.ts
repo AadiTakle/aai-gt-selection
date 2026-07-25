@@ -1,3 +1,4 @@
+import type { RawBankItem } from '../bank-loader';
 import { num, type Verifier } from './types';
 
 /**
@@ -1007,6 +1008,60 @@ const verifyXPlane: Verifier = (item, response) => {
   return { correct, metrics };
 };
 
+/* ================================================================== *
+ * SPA-VIEW-01 — see the scene from where the other person stands
+ * ================================================================== */
+
+/**
+ * Whether this item is the heading shell. Read off the ITEM, not the type code:
+ * one bank carries both shells, so the shell has to be decided per item.
+ * `content.optionKind` is the shell the renderer switched on; the stored heading
+ * key is the corroborating server-side signal, and either alone is enough.
+ */
+function isHeadingItem(item: RawBankItem): boolean {
+  return item.content.optionKind === 'heading_dial' || num(item.answer.correctHeadingDeg) !== null;
+}
+
+/**
+ * One bank, two response shells, so this verifier dispatches per item:
+ *
+ *   match_viewpoint (`optionKind: 'viewpoint'`, `scoring.mode:
+ *     'deterministic_key'`) — the child taps the station whose left-to-right
+ *     view is the strip, and `response.selectedKey` is graded against
+ *     `answer.correctKey`. `M-MIRRORFA` flags `answer.mirrorFoilKey`, the
+ *     station that sees the strip exactly reversed.
+ *
+ *   point_heading (`optionKind: 'heading_dial'`, `scoring.rule` the signed-error
+ *     rule) — the child turns a dial, and `response.headingDeg` is correct iff
+ *     it is within `answer.toleranceDeg` of `answer.correctHeadingDeg`. Both are
+ *     server-only, which is why the demo can report the raw dial angle but never
+ *     the error: `M-VIEWANG`, the bank's own partial-credit metric, is the
+ *     signed error in degrees and can only be computed here.
+ *
+ * The heading comparison is CIRCULAR (`wrap180`): a 350° answer is 20° from a
+ * 10° target, not 340°. Grading it linearly would fail correct children whose
+ * answer straddles the dial's ±180° seam.
+ */
+const verifyView: Verifier = (item, response) => {
+  if (isHeadingItem(item)) {
+    const heading = num(response.headingDeg);
+    const target = num(item.answer.correctHeadingDeg);
+    const tolerance = num(item.answer.toleranceDeg);
+    if (heading === null || target === null || tolerance === null) return { correct: false };
+    const error = wrap180(heading - target);
+    return { correct: Math.abs(error) <= tolerance, metrics: { 'M-VIEWANG': error } };
+  }
+
+  const selectedKey = typeof response.selectedKey === 'string' ? response.selectedKey : null;
+  const correctKey = item.answer.correctKey;
+  const mirrorFoil =
+    typeof item.answer.mirrorFoilKey === 'string' ? item.answer.mirrorFoilKey : null;
+  const metrics: Record<string, number> =
+    mirrorFoil === null ? {} : { 'M-MIRRORFA': selectedKey === mirrorFoil ? 1 : 0 };
+  if (selectedKey === null || typeof correctKey !== 'string') return { correct: false, metrics };
+  return { correct: selectedKey === correctKey, metrics };
+};
+
 /* ================================================================== */
 
 export const spatialVerifiers: Record<string, Verifier> = {
@@ -1016,5 +1071,6 @@ export const spatialVerifiers: Record<string, Verifier> = {
   'SPA-PUNCH-01': verifyPunch,
   'SPA-SCENE-01': verifyScene,
   'SPA-TANGRAM-01': verifyTangram,
+  'SPA-VIEW-01': verifyView,
   'SPA-XPLANE-01': verifyXPlane,
 };

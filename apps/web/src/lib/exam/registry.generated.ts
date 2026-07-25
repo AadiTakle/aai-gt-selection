@@ -11,7 +11,7 @@
 //   - the server-side answer verifier (/api/exam-submit)
 //   - the runner's type metadata + demo paths
 //
-// Wired: 62 types (fluid_reasoning 12 · quantitative 12 · spatial 22 · verbal 16).
+// Wired: 63 types (fluid_reasoning 12 · quantitative 12 · spatial 23 · verbal 16).
 // Adding a bank + compliant demo and re-running the sync is all it takes.
 
 export type ExamRegistryDomain = 'fluid_reasoning' | 'verbal' | 'quantitative' | 'spatial';
@@ -596,6 +596,18 @@ export const EXAM_TYPE_REGISTRY: readonly ExamRegistryEntry[] = [
     metrics: ['M-EXPLORE', 'M-RAPIDGUESS', 'M-REV', 'M-RT', 'M-RTFIRST'],
   },
   {
+    typeCode: 'SPA-VIEW-01',
+    domain: 'spatial',
+    title: 'What Do They See',
+    blurb: 'The child figures out what a character sees from where it stands, by moving the character or pointing a dial toward a target from the character\'s viewpoint.',
+    ageBands: ['2-3', '4-5', '6-8'],
+    itemCount: 140,
+    difficultyMin: 1.03,
+    difficultyMax: 19.97,
+    verifier: 'per_type',
+    metrics: ['M-ENGAGE', 'M-EXPLORE', 'M-RAPIDGUESS', 'M-REV', 'M-RT', 'M-RTFIRST'],
+  },
+  {
     typeCode: 'SPA-XPLANE-01',
     domain: 'spatial',
     title: 'Place the Slice',
@@ -794,7 +806,6 @@ export const EXAM_BLOCKED_TYPES: readonly { typeCode: string; reason: string }[]
   { typeCode: 'CX-achieve-02', reason: 'blocked by qa/NOT_SERVABLE.json: Proven answer leak: content.apparatus ships the closed-form outcome model (base, per-level weights, interaction bonus). Evaluating it over content.conclusion.options and taking the argmax recovers the correct key on 120/120 items WITHOUT running a single trial.' },
   { typeCode: 'CX-diverge-01', reason: 'no server verifier: constructed response {actions, endedBy, entryAttempts, ideas, n, normalized, removedIdeas, tMs, text, windowSec, words} with scoring.rule=none carries no option key, so /api/exam-submit cannot decide correctness. Needs a bespoke scorer that re-derives the solution from response + content (the bank already ships the reference solution to validate it against).' },
   { typeCode: 'CX-figural-01', reason: 'no server verifier: constructed response {category, endedBy, endedMs, ideaCount, ideas, index, inkLength, label, pointCount, startedMs, strokeCount, strokes} with scoring.rule=none carries no option key, so /api/exam-submit cannot decide correctness. Needs a bespoke scorer that re-derives the solution from response + content (the bank already ships the reference solution to validate it against).' },
-  { typeCode: 'SPA-VIEW-01', reason: 'bank: bank mixes scoring rules: , let e = wrap180(response.headingDeg - answer.correctHeadingDeg); correct iff abs(e) <= answer.toleranceDeg. M-VIEWANG = e (signed degrees). Responses are quantised to content.pointing.dialStepDeg, so the check is exact and reproducible.' },
 ] as const;
 
 /** Every wired type code, in registry (alphabetical) order. */
