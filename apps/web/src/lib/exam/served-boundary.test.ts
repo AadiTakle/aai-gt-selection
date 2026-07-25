@@ -62,10 +62,17 @@ describe('served item projection', () => {
 
 describe('published demo assets', () => {
   it('publishes no answer key in any demo file', () => {
+    // Only an object-key occurrence is data. Several demos name these fields
+    // inside a defensive regex that strips correctness signals out of a
+    // host-supplied item, so a bare-token check flags the safeguard itself.
+    // Keep this in step with keyLeakReport() in scripts/sync-exam-demos.mjs.
+    const asDataKey = (field: string) => new RegExp(`["']?${field}["']?\\s*:`);
     for (const file of readdirSync(PUBLIC_DEMOS)) {
       const src = readFileSync(join(PUBLIC_DEMOS, file), 'utf8');
-      expect(src, `${file} correctKey`).not.toContain('correctKey');
-      expect(src, `${file} distractorRationales`).not.toContain('distractorRationales');
+      expect(src, `${file} correctKey`).not.toMatch(asDataKey('correctKey'));
+      expect(src, `${file} distractorRationales`).not.toMatch(
+        asDataKey('distractorRationales'),
+      );
     }
   });
 

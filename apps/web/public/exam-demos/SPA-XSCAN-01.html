@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SPA-XSCAN-01 · Scan Stacker</title>
+<style>
+:root{--ink:#1f3045;--cyan:#18bfe5;--blue:#4361ee;--orange:#ff8b3d;--good:#19a873;--bad:#e4485c;--tel:#0a1425;--tel2:#122440}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%}body{display:flex;background:linear-gradient(145deg,#e8f8ff,#fff2df);font:16px/1.35 system-ui,-apple-system,Segoe UI,sans-serif;color:var(--ink)}
+#wrap{flex:1;min-width:0;padding:18px;display:flex;flex-direction:column;align-items:center;gap:10px}
+#badge{font-size:12px;font-weight:850;letter-spacing:.09em;color:#758497;text-transform:uppercase}
+#howto{width:min(750px,100%);background:#fff;border:1px solid #d6e6ef;border-left:5px solid var(--cyan);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #1c5577}
+#howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:#118ba6}#howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+#phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#e6f8fc;color:#118ba6;border:2px solid #b8eaf7;min-height:30px}
+#phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}#phasecue[data-phase="scored"]{background:var(--cyan);color:#fff;border-color:var(--cyan)}#phasecue[data-phase="done"]{background:#e6f7ef;color:#12805a;border-color:#bfe6d6}
+#status{min-height:22px;font-size:14px;font-weight:700;text-align:center}#status.ok{color:var(--good)}#status.no{color:var(--bad)}#status.neutral{color:#758497}
+#stagecard{width:min(750px,100%);background:#fff;border-radius:27px;padding:16px;box-shadow:0 24px 60px -32px #1c5577;display:grid;gap:13px}
+#scanwrap{background:#071628;border:2px solid #193858;border-radius:20px;overflow:hidden}#scan{display:block;width:100%;height:auto;aspect-ratio:7/4}
+#scanControl{position:relative;padding:8px 10px;background:#eafaff;border:2px solid #b8eaf7;border-radius:15px;display:grid;grid-template-columns:30px 1fr 30px;align-items:center;gap:8px}
+.scanIcon{font:800 18px/1 ui-monospace,monospace;text-align:center;color:#118ba6}#slider{width:100%;accent-color:var(--cyan);height:28px}
+#options{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:9px}
+.option{border:3px solid #e1e8ef;background:#fff;border-radius:16px;padding:6px;display:grid;gap:2px;justify-items:center;cursor:pointer;transition:.15s}
+.option:hover,.option:focus-visible{outline:none;transform:translateY(-2px);border-color:#83cfe2}.option.sel{border-color:var(--blue);box-shadow:0 0 0 4px #dbe4ff}
+.option canvas{width:100%;height:auto;aspect-ratio:1/1;border-radius:11px;background:#0d1e33}
+.key{width:26px;height:24px;border-radius:8px;background:#172b42;color:#fff;font:900 13px system-ui;display:grid;place-items:center;box-shadow:0 3px 0 #081321}
+#hotkeys{text-align:center;color:#728497;font:700 11px ui-monospace,monospace}
+.kbd{display:inline-grid;place-items:center;height:22px;min-width:23px;padding:0 5px;border:1px solid #c4ced7;border-bottom-width:3px;border-radius:6px;background:#fff;color:#2c4154;margin:0 2px}
+#controls{display:flex;justify-content:center;align-items:center;gap:12px}
+.round{border:0;border-radius:50%;cursor:pointer;font:800 24px system-ui}.round:focus-visible{outline:4px solid #aee8f5;outline-offset:2px}
+#replay{width:50px;height:50px;background:#e6f8fc;color:#148ca6}
+#lock{width:66px;height:66px;background:var(--cyan);color:#fff;box-shadow:0 10px 24px -10px #0d92b1;opacity:.28;pointer-events:none;transition:.2s}#lock.ready{opacity:1;pointer-events:auto}
+#ghost{position:fixed;left:0;top:0;z-index:90;opacity:0;pointer-events:none;transition:transform .45s cubic-bezier(.2,.8,.2,1),opacity .2s;filter:drop-shadow(0 3px 4px #0006)}#ghost.show{opacity:1}
+#ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--cyan);opacity:0}#ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+#telemetry{width:335px;flex:0 0 335px;min-height:100vh;background:var(--tel);color:#d5ecff;display:flex;flex-direction:column;font:13px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace}
+#telemetry h3{margin:0;padding:13px 15px;background:var(--tel2);color:#fff;font-size:12px;text-transform:uppercase;letter-spacing:.1em}
+#difficulty{margin:12px 12px 4px;padding:10px;border:1px solid #25415f;border-radius:12px}
+.dtop{display:flex;justify-content:space-between;color:#fff;font-size:11px}.dsub{display:flex;justify-content:space-between;color:#81a1c3;font-size:11px;margin-top:6px}
+.track{height:9px;background:#1b3550;border-radius:9px;overflow:hidden;margin-top:7px}.track i{display:block;height:100%;background:linear-gradient(90deg,#18bfe5,#4361ee,#ef5da8);transition:.3s}
+#mode{margin:6px 12px 0;font-size:11px;color:#6b8bad}#mode b{color:#ffd479}
+#mlist{padding:8px 12px;display:grid;gap:7px}.mrow{display:grid;grid-template-columns:112px 1fr;gap:6px}.mid{color:#7fffcf;font-weight:800}.mid.srv{color:#ffd479}
+.mval{color:#fff;text-align:right;overflow-wrap:anywhere}.mname{grid-column:1/3;color:#6b8bad;font-size:11px;margin-top:-4px}
+#logwrap{border-top:1px solid #1f3854;margin-top:auto}#logwrap b{display:block;padding:8px 12px 4px;color:#7698bb;font-size:11px;letter-spacing:.08em}
+#log{height:200px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}#log div{padding:3px 0;border-bottom:1px dotted #1c334d}#log .t{color:#56799d}
+@media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;min-height:0;height:330px;flex:none}}
+@media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="badge">SPA-XSCAN-01 · Scan Stacker</div>
+  <header id="howto">
+    <h1>How to use — Scan Stacker</h1>
+    <p>A hidden solid has been scanned from bottom to top. Slide the scanner (or press the left and right arrow keys) to look at each flat slice it makes. Then tap the solid below that would make all of those slices, and press the check (<b>&#10003;</b>) to send your answer. You can also press the number keys.</p>
+  </header>
+  <div id="phasecue" data-phase="warmup">Get ready</div>
+  <main id="stagecard">
+    <div id="scanwrap"><canvas id="scan" width="700" height="400" aria-label="cross-section of the hidden solid at the scanned height"></canvas></div>
+    <div id="scanControl"><span class="scanIcon">&#9665;</span><input id="slider" type="range" min="0" max="1" step="1" value="0" aria-label="scan height"><span class="scanIcon">&#9655;</span></div>
+    <div id="options" aria-label="candidate solids"></div>
+    <div id="hotkeys"><span class="kbd">&#8592;</span><span class="kbd">&#8594;</span> scan &#183; <span class="kbd">1</span>&#8230;<span class="kbd">6</span> pick &#183; <span class="kbd">&#8629;</span> send</div>
+    <div id="controls"><button id="replay" class="round" title="replay the scan sweep" aria-label="replay the scan sweep">&#8635;</button><button id="lock" class="round" title="send answer" aria-label="send answer">&#10003;</button></div>
+    <div id="status" class="neutral">Waiting for the next scan.</div>
+  </main>
+</div>
+<aside id="telemetry">
+  <h3>Live telemetry · per-child (display only)</h3>
+  <div id="difficulty"></div>
+  <div id="mode">Renderer reports raw actions only; <b>correctness and the score are server-side</b>.</div>
+  <div id="mlist"></div>
+  <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+</aside>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#18bfe5" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+/* =====================================================================
+ * SPA-XSCAN-01 — PURE RENDERER
+ * Renders a SERVED item (item.content) and reports the child's RAW response
+ * plus process telemetry. It NEVER self-generates items and NEVER shows
+ * correct/incorrect: the answer key and the score live server-side
+ * (EXAM_ADAPTIVE_BUILD_PLAN.md §2).
+ *
+ * Embedding protocol (postMessage), source-tagged:
+ *   host -> demo : {source:'gt-exam-host', type:'init',  item:ServedItem}
+ *                  {source:'gt-exam-host', type:'start', tutorial?:bool}
+ *   demo -> host : {source:'gt-exam-demo', type:'ready'}
+ *                  {source:'gt-exam-demo', type:'result',    result:ItemResult}
+ *                  {source:'gt-exam-demo', type:'telemetry', event:TelemetryEvent}
+ *
+ * Standalone (double-click / no host): loads sample items from the bank JSONL,
+ * or an inline fallback when fetch is blocked on file://, so the file still
+ * runs for QA with no build step and no external assets.
+ *
+ * Reading is a required baseline-literacy gate (D-017): all instructions and
+ * stimuli are on-screen TEXT. There is no audio narration.
+ * ===================================================================== */
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0;
+const HOST_SRC='gt-exam-host',DEMO_SRC='gt-exam-demo';
+
+/* ---------- Minimal 3D: rotate (yaw,pitch) + orthographic project; painter's-algorithm faces. ---------- */
+function proj(p,yaw,pit,s,cx,cy){const cy_=Math.cos(yaw),sy=Math.sin(yaw),cp=Math.cos(pit),sp=Math.sin(pit);let x=p[0]*cy_+p[2]*sy,z=-p[0]*sy+p[2]*cy_,y=p[1]*cp-z*sp;z=p[1]*sp+z*cp;return{x:cx+x*s,y:cy-y*s,z};}
+function drawFaces(c,verts,faces,yaw,pit,s,cx,cy){const P=verts.map(v=>proj(v,yaw,pit,s,cx,cy));
+  faces.map(f=>({f,depth:f.idx.reduce((a,i)=>a+P[i].z,0)/f.idx.length})).sort((a,b)=>a.depth-b.depth)
+    .forEach(({f})=>{c.beginPath();f.idx.forEach((i,k)=>k?c.lineTo(P[i].x,P[i].y):c.moveTo(P[i].x,P[i].y));c.closePath();
+      c.fillStyle=f.fill;c.fill();c.strokeStyle='#274662';c.lineWidth=1.2;c.stroke();});}
+
+/* ---------- axial-stack geometry (content.options[].solid) ---------- */
+const LATHE=24;
+function radiusAt(g,y){
+  if(g.arc){const d=y-g.arc.yc;return Math.sqrt(Math.max(0,g.arc.R*g.arc.R-d*d));}
+  const u=(y-g.y0)/(g.y1-g.y0);return g.r0+(g.r1-g.r0)*u+(g.curv||0)*4*u*(1-u);
+}
+const LAT=['#56c9e8','#3fa8cf','#2f8fb5','#68d5f0'],CAP='#8ce2f2';
+function meshOf(solid){
+  const verts=[],faces=[];
+  solid.segments.forEach((g,si)=>{
+    const n=g.sides>=3?g.sides:LATHE,steps=(g.arc||g.curv)?12:1,base=(g.sides>=3?(g.rotDeg||0):0)*Math.PI/180;
+    let prev=null;
+    for(let i=0;i<=steps;i++){
+      const y=g.y0+(g.y1-g.y0)*i/steps,r=Math.max(0.001,radiusAt(g,y)),ring=[];
+      for(let k=0;k<n;k++){const a=base+k*2*Math.PI/n;ring.push(verts.push([r*Math.cos(a),y,r*Math.sin(a)])-1);}
+      if(prev){for(let k=0;k<n;k++){const k2=(k+1)%n;faces.push({idx:[prev[k],prev[k2],ring[k2],ring[k]],fill:LAT[(k+si)%LAT.length]});}}
+      else faces.push({idx:ring.slice().reverse(),fill:CAP});
+      if(i===steps)faces.push({idx:ring.slice(),fill:CAP});
+      prev=ring;
+    }
+  });
+  return{verts,faces};
+}
+function drawSolid(cv,solid,yawDeg,pitDeg){
+  const c=cv.getContext('2d'),W=cv.width,H=cv.height;c.clearRect(0,0,W,H);
+  const g=c.createLinearGradient(0,0,0,H);g.addColorStop(0,'#12314c');g.addColorStop(1,'#08172a');c.fillStyle=g;c.fillRect(0,0,W,H);
+  const m=meshOf(solid);drawFaces(c,m.verts,m.faces,yawDeg*Math.PI/180,pitDeg*Math.PI/180,W*0.31,W/2,H*0.52);
+}
+/* ---------- the scan window: draw ONE cross-section (pure data from content.scan) ---------- */
+function drawScan(){
+  const c=$('#scan').getContext('2d'),W=700,H=400;c.clearRect(0,0,W,H);
+  const g=c.createRadialGradient(300,180,20,300,200,420);g.addColorStop(0,'#173c58');g.addColorStop(1,'#06101e');c.fillStyle=g;c.fillRect(0,0,W,H);
+  c.strokeStyle='#18334a';c.lineWidth=1;
+  for(let x=20;x<560;x+=35){c.beginPath();c.moveTo(x,15);c.lineTo(x,385);c.stroke();}
+  for(let y=15;y<395;y+=35){c.beginPath();c.moveTo(10,y);c.lineTo(560,y);c.stroke();}
+  if(!current)return;
+  const sl=current.content.scan.slices[scanIdx],S=150,cx=290,cy=200;
+  const sec=sl.section,pts=[];
+  if(sec.sides===0){for(let k=0;k<96;k++){const a=k*2*Math.PI/96;pts.push([cx+sec.r*S*Math.cos(a),cy+sec.r*S*Math.sin(a)]);}}
+  else{const b=sec.rotDeg*Math.PI/180;for(let k=0;k<sec.sides;k++){const a=b+k*2*Math.PI/sec.sides;pts.push([cx+sec.r*S*Math.cos(a),cy+sec.r*S*Math.sin(a)]);}}
+  c.beginPath();pts.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.closePath();
+  c.fillStyle='#1fe0dd66';c.fill();c.strokeStyle='#b8ffff';c.lineWidth=5;c.stroke();
+  c.fillStyle='#ffffff';c.beginPath();c.arc(cx,cy,4,0,7);c.fill();
+  // height column: which slice of the stack is on screen
+  const N=current.content.scan.slices.length,colX=630,top=40,bot=360;
+  c.strokeStyle='#2b4f6e';c.lineWidth=3;c.beginPath();c.moveTo(colX,top);c.lineTo(colX,bot);c.stroke();
+  for(let i=0;i<N;i++){const y=bot-(bot-top)*current.content.scan.slices[i].t;
+    c.beginPath();c.arc(colX,y,i===scanIdx?9:5,0,7);c.fillStyle=i===scanIdx?'#ff8b3d':'#2b4f6e';c.fill();}
+  c.fillStyle='#8fb6d6';c.font='600 15px system-ui';c.textAlign='center';
+  c.fillText('top',colX,top-14);c.fillText('bottom',colX,bot+26);
+  c.textAlign='left';c.fillStyle='#cfe9ff';c.font='700 17px system-ui';
+  c.fillText('Slice '+(scanIdx+1)+' of '+N,30,42);
+  if(current.content.scan.showHeightScale){c.fillStyle='#7fa9c9';c.font='600 14px system-ui';
+    c.fillText('height '+Math.round(current.content.scan.slices[scanIdx].t*100)+'% up the solid',30,66);}
+}
+
+/* ---------- per-item state ---------- */
+let current=null,interactive=false,submitted=false;
+let staged=null,firstKey=null,selectionOrder=[],scanIdx=0;
+let itemStart=0,startTimer=null,itemTelemetry=[];
+const M={rt:null,rts:[],firstLat:null,rev:0,blur:0,scrubs:0,replays:0,seen:new Set()};
+
+const embedded=(()=>{try{return window.parent&&window.parent!==window;}catch(_){return true;}})();
+let standalone=false,standaloneQueue=[],standaloneIdx=0,tutorialShown=false;
+function post(msg){if(!embedded)return;try{window.parent.postMessage(Object.assign({source:DEMO_SRC},msg),'*');}catch(_){}}
+
+/* ---------- telemetry panel (DISPLAY ONLY; key-free) ---------- */
+const SERVER='server-side';
+const METERS=[
+ {id:'M-ACC',srv:1,name:'Choice accuracy (scored server-side)',get:()=>SERVER},
+ {id:'M-POLY',srv:1,name:'Slice-stack overlap of the pick (server-side)',get:()=>SERVER},
+ {id:'M-RT',name:'Commit time — this item / mean',get:()=>M.rt==null?'\u2014':`${M.rt} ms${M.rts.length>1?` (mean ${mean(M.rts)})`:''}`},
+ {id:'M-RTFIRST',name:'First-action latency (encode / plan)',get:()=>M.firstLat==null?'\u2014':M.firstLat+' ms'},
+ {id:'M-REV',name:'Answer changes before sending',get:()=>String(M.rev)},
+ {id:'M-EXPLORE',name:'Scan moves / distinct slices viewed',get:()=>`${M.scrubs} moves · ${M.seen.size} slices`},
+ {id:'M-ERRTYPE',srv:1,name:'Near-miss lure type (server-side)',get:()=>SERVER},
+ {id:'M-DIFFREACH',srv:1,name:'Ceiling reached (server-side)',get:()=>SERVER},
+ {id:'M-ENGAGE',name:'Focus losses (tracked, not enforced)',get:()=>String(M.blur)},
+ {id:'M-RAPIDGUESS',name:'Rapid-guess flag (tracked, not enforced)',get:()=>M.rt==null?'\u2014':(M.rt<400?'1 · rapid':'0')},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>
+ `<div class="mrow"><span class="mid${m.srv?' srv':''}">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderDifficulty(){const d=current?current.difficulty:null,c=current?current.content:null;
+ $('#difficulty').innerHTML=`<div class="dtop"><b>SERVED DIFFICULTY</b><span>${d==null?'\u2014':d.toFixed(1)}/20</span></div>`
+  +`<div class="track"><i style="width:${d==null?0:clamp(d/20*100,0,100)}%"></i></div>`
+  +`<div class="dsub"><span>${c?c.scan.sliceCount+' slices · '+c.options.length+' candidates':'\u2014'}</span><span>${current?current.ageBands.join(' / '):''}</span></div>`;}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});renderDifficulty();}
+function log(msg){const t=Math.max(0,Date.now()-(itemStart||Date.now())),d=document.createElement('div');
+ d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+function emitEvent(kind,extra){const event=Object.assign({t:itemStart?Date.now()-itemStart:0,kind,itemId:current?current.itemId:null},extra||{});
+ itemTelemetry.push(event);post({type:'telemetry',event});log(`<b>${kind}</b>`+(extra&&Object.keys(extra).length?' · '+JSON.stringify(extra):''));}
+
+/* ---------- ghost hand: teaches the GESTURE only, never the answer ---------- */
+const ghost=$('#ghost');
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(560);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(420);}
+async function gestureHint(){
+ ghost.classList.add('show');await sleep(200);
+ await ghostTo($('#slider'));await sweep();
+ await ghostTo($('#options'));await ghostTap();await sleep(120);
+ await ghostTo($('#lock'));await ghostTap();await sleep(180);
+ ghost.classList.remove('show');await sleep(200);
+}
+async function sweep(){if(!current)return;const N=current.content.scan.slices.length;
+ for(let i=0;i<N;i++){setScan(i,false);await sleep(190);}setScan(0,false);}
+
+/* ---------- rendering the served item ---------- */
+function setCue(k,txt){const el=$('#phasecue');el.dataset.phase=k;el.textContent=txt;}
+function setStatus(kind,msg){const el=$('#status');el.className=kind;el.textContent=msg;}
+function setScan(i,track){
+ const N=current.content.scan.slices.length;scanIdx=clamp(i,0,N-1);
+ $('#slider').value=String(scanIdx);M.seen.add(scanIdx);
+ if(track){M.scrubs++;markFirst('scan');emitEvent('scan',{slice:scanIdx});}
+ drawScan();renderMeters();
+}
+function renderServedItem(item){
+ current=item;submitted=false;interactive=false;staged=null;firstKey=null;selectionOrder=[];
+ M.rev=0;M.firstLat=null;M.blur=0;M.scrubs=0;M.replays=0;M.seen=new Set();itemTelemetry=[];
+ const c=item.content,N=c.scan.slices.length;
+ $('#slider').max=String(N-1);$('#slider').value='0';scanIdx=0;M.seen.add(0);
+ const box=$('#options');box.innerHTML='';
+ c.options.forEach((o,i)=>{
+  const b=document.createElement('button');b.className='option';b.dataset.key=o.key;b.type='button';
+  b.setAttribute('aria-label','candidate solid '+(i+1));
+  const cv=document.createElement('canvas');cv.width=220;cv.height=220;
+  const tag=document.createElement('span');tag.className='key';tag.textContent=String(i+1);
+  b.appendChild(cv);b.appendChild(tag);box.appendChild(b);
+  drawSolid(cv,o.solid,(c.display&&c.display.candidateYawDeg)||0,(c.display&&c.display.candidatePitchDeg)||22);
+ });
+ $('#lock').classList.remove('ready');
+ itemStart=Date.now();drawScan();renderMeters();
+ emitEvent('render',{slices:N,candidates:c.options.length,difficulty:item.difficulty});
+}
+
+/* ---------- interaction ---------- */
+function markFirst(what){if(M.firstLat===null){M.firstLat=Date.now()-itemStart;emitEvent('first_action',{what,latencyMs:M.firstLat});}}
+function stageOption(el){
+ if(!interactive||submitted)return;
+ const key=el.dataset.key;markFirst('pick');
+ if(firstKey===null)firstKey=key;
+ if(staged!==null&&staged!==key){M.rev++;emitEvent('change',{from:staged,to:key});}
+ staged=key;selectionOrder.push(key);
+ $$('#options .option').forEach(o=>o.classList.toggle('sel',o.dataset.key===key));
+ $('#lock').classList.add('ready');renderMeters();
+}
+function submit(){
+ if(!interactive||submitted||staged===null)return;
+ const rt=Date.now()-itemStart;M.rt=rt;M.rts.push(rt);
+ submitted=true;interactive=false;$('#lock').classList.remove('ready');
+ setCue('done','Answer sent');
+ setStatus('neutral','Answer received. Next scan coming up.');
+ emitEvent('submit',{selectedKey:staged,rtMs:rt});
+ const response={selectedKey:staged,firstSelectedKey:firstKey,selectionOrder:selectionOrder.slice(),
+  changeCount:M.rev,scanMoves:M.scrubs,slicesViewed:[...M.seen].sort((a,b)=>a-b),replays:M.replays};
+ const metrics={'M-RT':rt,'M-RTFIRST':M.firstLat==null?rt:M.firstLat,'M-REV':M.rev,
+  'M-EXPLORE':M.seen.size,'M-EXPLOREMOVES':M.scrubs,'M-ENGAGE':M.blur,'M-RAPIDGUESS':rt<400?1:0};
+ post({type:'result',result:{itemId:current.itemId,typeCode:current.typeCode,domain:current.domain,
+  response,metrics,telemetry:itemTelemetry.slice()}});
+ log('RESULT emitted \u2192 '+JSON.stringify({response,metrics}));
+ renderMeters();
+ if(standalone)setTimeout(advanceStandalone,1200);
+}
+
+/* ---------- host-driven lifecycle ---------- */
+function onInit(item){
+ clearTimeout(startTimer);
+ if(!item||!item.content||!item.content.scan||!item.content.options){log('init ignored: malformed ServedItem');return;}
+ renderServedItem(item);
+ setCue('warmup','Get ready');setStatus('neutral','Get ready for the scan.');
+ startTimer=setTimeout(()=>{if(!interactive&&!submitted)beginItem(false);},500);
+}
+async function beginItem(withTutorial){
+ if(interactive||submitted||!current)return;
+ if(withTutorial&&!tutorialShown){tutorialShown=true;await gestureHint();if(submitted)return;}
+ interactive=true;itemStart=Date.now();
+ setCue('scored','Your turn');
+ setStatus('neutral','Slide to see every slice, tap the solid that makes them, then press the check.');
+ renderMeters();
+}
+function onHostMessage(e){const d=e.data;if(!d||d.source!==HOST_SRC)return;
+ if(d.type==='init')onInit(d.item);
+ else if(d.type==='start'){clearTimeout(startTimer);beginItem(!!d.tutorial);}}
+
+/* ---------- standalone fallback (QA when there is no host) ---------- */
+function toServed(b){const{answer,scoring,provenance,...s}=b;return s;}
+async function loadBankSamples(){
+ try{
+  const res=await fetch('../banks/SPA-XSCAN-01.jsonl',{cache:'no-store'});
+  if(res.ok){
+   const all=(await res.text()).trim().split('\n').filter(Boolean).map(l=>JSON.parse(l)).map(toServed);
+   all.sort((a,b)=>a.difficulty-b.difficulty);
+   const N=Math.min(10,all.length),pick=[];
+   for(let i=0;i<N;i++)pick.push(all[N===1?0:Math.round(i*(all.length-1)/(N-1))]);
+   log('standalone: fetched '+all.length+' bank items; cycling '+pick.length+' across difficulty');
+   return pick;
+  }
+ }catch(_){/* file:// blocks fetch — fall back to the inline samples */}
+ log('standalone: bank fetch unavailable (serve the folder for the full bank) — using inline samples');
+ return INLINE_SAMPLES.slice();
+}
+function playStandalone(){onInit(standaloneQueue[standaloneIdx%standaloneQueue.length]);beginItem(standaloneIdx===0);}
+function advanceStandalone(){standaloneIdx++;playStandalone();}
+async function bootstrapStandalone(){if(standalone)return;standalone=true;standaloneQueue=await loadBankSamples();standaloneIdx=0;playStandalone();}
+
+/* Inline served-item fallback (real bank rows with the answer stripped). */
+const INLINE_SAMPLES=[
+{"itemId":"4c2da6d8-a90f-42e5-956e-96b20b425fd3","typeCode":"SPA-XSCAN-01","domain":"spatial","difficulty":1.22,"ageBands":["4-5"],"demoPath":"demos/SPA-XSCAN-01.html","content":{"typeCode":"SPA-XSCAN-01","question":{"mode":"pick_solid","prompt":"Scan up and down through the hidden solid. Which solid makes these slices?"},"scan":{"axis":"y","axisRange":[-1,1],"sliceCount":9,"showHeightScale":true,"slices":[{"t":0.0556,"section":{"sides":0,"r":0.7986,"rotDeg":0}},{"t":0.1667,"section":{"sides":0,"r":0.7986,"rotDeg":0}},{"t":0.2778,"section":{"sides":0,"r":0.7986,"rotDeg":0}},{"t":0.3889,"section":{"sides":0,"r":0.7986,"rotDeg":0}},{"t":0.5,"section":{"sides":0,"r":0.7986,"rotDeg":0}},{"t":0.6111,"section":{"sides":0,"r":0.7986,"rotDeg":0}},{"t":0.7222,"section":{"sides":0,"r":0.7986,"rotDeg":0}},{"t":0.8333,"section":{"sides":0,"r":0.7986,"rotDeg":0}},{"t":0.9444,"section":{"sides":0,"r":0.7986,"rotDeg":0}}]},"optionKind":"axial_stack_solid","options":[{"key":"A","solid":{"axis":"y","axisRange":[-1,1],"segments":[{"y0":-1,"y1":1,"sides":4,"rotDeg":0,"r0":0.7986,"r1":0.7986}]}},{"key":"B","solid":{"axis":"y","axisRange":[-1,1],"segments":[{"y0":-1,"y1":1,"sides":0,"rotDeg":0,"r0":0.7986,"r1":0.7986}]}}],"display":{"candidateYawDeg":60,"candidatePitchDeg":22},"scaffold":{"warmup":true,"replayHint":true}},"syntheticOnly":true,"validated":false},
+{"itemId":"fe570fd0-ea04-4b19-b765-39f1155f8f23","typeCode":"SPA-XSCAN-01","domain":"spatial","difficulty":10.77,"ageBands":["4-5","6-8"],"demoPath":"demos/SPA-XSCAN-01.html","content":{"typeCode":"SPA-XSCAN-01","question":{"mode":"pick_solid","prompt":"Scan up and down through the hidden solid. Which solid makes these slices?"},"scan":{"axis":"y","axisRange":[-1,1],"sliceCount":5,"showHeightScale":false,"slices":[{"t":0.1,"section":{"sides":0,"r":0.8015,"rotDeg":0}},{"t":0.3,"section":{"sides":0,"r":0.63,"rotDeg":0}},{"t":0.5,"section":{"sides":0,"r":0.4586,"rotDeg":0}},{"t":0.7,"section":{"sides":0,"r":0.2872,"rotDeg":0}},{"t":0.9,"section":{"sides":0,"r":0.1157,"rotDeg":0}}]},"optionKind":"axial_stack_solid","options":[{"key":"A","solid":{"axis":"y","axisRange":[-1,1],"segments":[{"y0":-1,"y1":1,"sides":0,"rotDeg":0,"r0":0.8872,"r1":0.03,"curv":0.28}]}},{"key":"B","solid":{"axis":"y","axisRange":[-1,1],"segments":[{"y0":-1,"y1":1,"sides":0,"rotDeg":0,"r0":0.03,"r1":0.8872}]}},{"key":"C","solid":{"axis":"y","axisRange":[-1,1],"segments":[{"y0":-1,"y1":1,"sides":0,"rotDeg":0,"r0":0.8872,"r1":0.03}]}}],"display":{"candidateYawDeg":0,"candidatePitchDeg":22},"scaffold":{"warmup":false,"replayHint":false}},"syntheticOnly":true,"validated":false},
+{"itemId":"9e2f1547-8b4a-446c-9fe2-039a8f977f1a","typeCode":"SPA-XSCAN-01","domain":"spatial","difficulty":19.91,"ageBands":["6-8"],"demoPath":"demos/SPA-XSCAN-01.html","content":{"typeCode":"SPA-XSCAN-01","question":{"mode":"pick_solid","prompt":"Scan up and down through the hidden solid. Which solid makes these slices?"},"scan":{"axis":"y","axisRange":[-1,1],"sliceCount":5,"showHeightScale":false,"slices":[{"t":0.1,"section":{"sides":0,"r":0.1645,"rotDeg":0}},{"t":0.3,"section":{"sides":0,"r":0.4335,"rotDeg":0}},{"t":0.5,"section":{"sides":0,"r":0.7025,"rotDeg":0}},{"t":0.7,"section":{"sides":6,"r":0.7697,"rotDeg":30}},{"t":0.9,"section":{"sides":6,"r":0.7697,"rotDeg":30}}]},"optionKind":"axial_stack_solid","options":[{"key":"A","solid":{"axis":"y","axisRange":[-1,1],"segments":[{"y0":-1,"y1":0.1,"sides":0,"rotDeg":0,"r0":0.03,"r1":0.7697},{"y0":0.1,"y1":1,"sides":6,"rotDeg":30,"r0":0.7697,"r1":0.7697}]}},{"key":"B","solid":{"axis":"y","axisRange":[-1,1],"segments":[{"y0":-1,"y1":-0.1,"sides":6,"rotDeg":30,"r0":0.7697,"r1":0.7697},{"y0":-0.1,"y1":1,"sides":0,"rotDeg":0,"r0":0.7697,"r1":0.03}]}},{"key":"C","solid":{"axis":"y","axisRange":[-1,1],"segments":[{"y0":-1,"y1":0.1,"sides":0,"rotDeg":0,"r0":0.03,"r1":0.7697,"curv":-0.28},{"y0":0.1,"y1":1,"sides":6,"rotDeg":30,"r0":0.7697,"r1":0.7697,"curv":0.28}]}},{"key":"D","solid":{"axis":"y","axisRange":[-1,1],"segments":[{"y0":-1,"y1":0.1,"sides":5,"rotDeg":0,"r0":0.03,"r1":0.7697},{"y0":0.1,"y1":1,"sides":7,"rotDeg":30,"r0":0.7697,"r1":0.7697}]}},{"key":"E","solid":{"axis":"y","axisRange":[-1,1],"segments":[{"y0":-1,"y1":0.1,"sides":0,"rotDeg":9,"r0":0.03,"r1":0.7697},{"y0":0.1,"y1":1,"sides":6,"rotDeg":39,"r0":0.7697,"r1":0.7697}]}},{"key":"F","solid":{"axis":"y","axisRange":[-1,1],"segments":[{"y0":-1,"y1":0.1,"sides":0,"rotDeg":0,"r0":0.7697,"r1":0.03},{"y0":0.1,"y1":1,"sides":6,"rotDeg":30,"r0":0.7697,"r1":0.7697}]}}],"display":{"candidateYawDeg":45,"candidatePitchDeg":22},"scaffold":{"warmup":false,"replayHint":false}},"syntheticOnly":true,"validated":false}
+];
+
+/* ---------- wiring ---------- */
+$('#options').addEventListener('click',e=>{const o=e.target.closest('.option');if(o)stageOption(o);});
+$('#slider').addEventListener('input',()=>{if(!interactive||submitted)return;setScan(+$('#slider').value,true);});
+$('#lock').addEventListener('click',()=>{if($('#lock').classList.contains('ready'))submit();});
+$('#replay').addEventListener('click',async()=>{if(!interactive||submitted)return;M.replays++;markFirst('replay');emitEvent('replay_sweep',{});await sweep();});
+document.addEventListener('keydown',e=>{
+ if(!interactive||submitted)return;
+ if(/^[1-9]$/.test(e.key)){const o=$$('#options .option')[+e.key-1];if(o)stageOption(o);}
+ else if(e.key==='ArrowLeft'){setScan(scanIdx-1,true);e.preventDefault();}
+ else if(e.key==='ArrowRight'){setScan(scanIdx+1,true);e.preventDefault();}
+ else if(e.key==='Enter'&&$('#lock').classList.contains('ready'))submit();
+});
+window.addEventListener('blur',()=>{if(interactive&&!submitted){M.blur++;emitEvent('engagement',{reason:'blur'});renderMeters();}});
+
+buildMeters();renderMeters();drawScan();
+window.addEventListener('message',onHostMessage);
+post({type:'ready'});
+if(!embedded)bootstrapStandalone();
+else setTimeout(()=>{if(!current)bootstrapStandalone();},1000); // QA-safe if a host embeds but never inits
+</script>
+</body>
+</html>

@@ -188,8 +188,12 @@ function protocolReport(src) {
 /** A published demo must never carry a key. ServedItem is content-only. */
 function keyLeakReport(src) {
   const leaks = [];
-  if (/correctKey/.test(src)) leaks.push('correctKey');
-  if (/distractorRationales/.test(src)) leaks.push('distractorRationales');
+  // Only an object-key occurrence (`"correctKey":`) is data. A bare mention is
+  // not: several demos name these fields inside a defensive regex that strips
+  // correctness signals out of a host-supplied item, so matching the bare token
+  // flags the safeguard as the very thing it prevents.
+  if (/["']?correctKey["']?\s*:/.test(src)) leaks.push('correctKey');
+  if (/["']?distractorRationales["']?\s*:/.test(src)) leaks.push('distractorRationales');
   // `answer`/`scoring`/`provenance` appear legitimately in the demos' own
   // strip-to-ServedItem destructuring and in CSS class names, so only a
   // structured key literal counts as a leak.

@@ -11,7 +11,7 @@
 //   - the server-side answer verifier (/api/exam-submit)
 //   - the runner's type metadata + demo paths
 //
-// Wired: 25 types (fluid_reasoning 7 · quantitative 7 · spatial 4 · verbal 7).
+// Wired: 33 types (fluid_reasoning 8 · quantitative 11 · spatial 5 · verbal 9).
 // Adding a bank + compliant demo and re-running the sync is all it takes.
 
 export type ExamRegistryDomain = 'fluid_reasoning' | 'verbal' | 'quantitative' | 'spatial';
@@ -44,6 +44,18 @@ export interface ExamRegistryEntry {
 
 export const EXAM_TYPE_REGISTRY: readonly ExamRegistryEntry[] = [
   {
+    typeCode: 'CX-sjt-01',
+    domain: 'verbal',
+    title: 'What Would You Do?',
+    blurb: 'A short animated scene shows a tricky social or school situation, and the child taps the character action they think works best (then sees what happens next).',
+    ageBands: ['2-3', '4-5', '6-8'],
+    itemCount: 120,
+    difficultyMin: 1,
+    difficultyMax: 20,
+    verifier: 'keyed',
+    metrics: ['M-EXPLORE', 'M-IDEAFLU', 'M-PATH', 'M-PLANFUL', 'M-REV', 'M-RT', 'M-RTFIRST'],
+  },
+  {
     typeCode: 'FLU-ANALOGY-01',
     domain: 'fluid_reasoning',
     title: 'Shape Morph',
@@ -66,6 +78,18 @@ export const EXAM_TYPE_REGISTRY: readonly ExamRegistryEntry[] = [
     difficultyMax: 19.96,
     verifier: 'keyed',
     metrics: ['M-ENGAGE', 'M-RAPIDGUESS', 'M-REV', 'M-RT', 'M-RTFIRST'],
+  },
+  {
+    typeCode: 'FLU-DEDUCE-01',
+    domain: 'fluid_reasoning',
+    title: 'Clue Detective',
+    blurb: 'A lineup of figures hides one culprit; clue cards flip over one at a time and the child crosses out every figure a clue rules out until only the answer is left.',
+    ageBands: ['2-3', '4-5', '6-8'],
+    itemCount: 120,
+    difficultyMin: 1.04,
+    difficultyMax: 19.93,
+    verifier: 'keyed',
+    metrics: ['M-EFF', 'M-ENGAGE', 'M-PATH', 'M-RAPIDGUESS', 'M-REV', 'M-RT', 'M-RTFIRST'],
   },
   {
     typeCode: 'FLU-LADDER-01',
@@ -128,6 +152,18 @@ export const EXAM_TYPE_REGISTRY: readonly ExamRegistryEntry[] = [
     metrics: ['M-ENGAGE', 'M-RAPIDGUESS', 'M-REV', 'M-RT', 'M-RTFIRST'],
   },
   {
+    typeCode: 'GB-FLAWFINDER-01',
+    domain: 'verbal',
+    title: 'Fib Finder',
+    blurb: 'The child listens to a short spoken reason-and-claim and taps the part that does not make sense or the step that does not follow.',
+    ageBands: ['2-3', '4-5', '6-8'],
+    itemCount: 120,
+    difficultyMin: 1,
+    difficultyMax: 20,
+    verifier: 'keyed',
+    metrics: ['M-EXPLORE', 'M-HINT', 'M-IDEAFLU', 'M-PATH', 'M-PLANFUL', 'M-REV', 'M-RT', 'M-RTFIRST'],
+  },
+  {
     typeCode: 'QUANT-BALANCE-01',
     domain: 'quantitative',
     title: 'Balance Lab',
@@ -164,6 +200,18 @@ export const EXAM_TYPE_REGISTRY: readonly ExamRegistryEntry[] = [
     metrics: ['M-ENGAGE', 'M-RAPIDGUESS', 'M-REV', 'M-RT', 'M-RTFIRST'],
   },
   {
+    typeCode: 'QUANT-EQUAL-01',
+    domain: 'quantitative',
+    title: 'Make It Equal',
+    blurb: 'The child places the missing quantity that makes both sides of the equal sign match.',
+    ageBands: ['2-3', '4-5', '6-8'],
+    itemCount: 140,
+    difficultyMin: 1,
+    difficultyMax: 20,
+    verifier: 'keyed',
+    metrics: ['M-ENGAGE', 'M-RAPIDGUESS', 'M-REV', 'M-RT', 'M-RTFIRST'],
+  },
+  {
     typeCode: 'QUANT-FUNC-01',
     domain: 'quantitative',
     title: 'Machine Rule',
@@ -176,6 +224,18 @@ export const EXAM_TYPE_REGISTRY: readonly ExamRegistryEntry[] = [
     metrics: ['M-ENGAGE', 'M-RAPIDGUESS', 'M-REV', 'M-RT', 'M-RTFIRST'],
   },
   {
+    typeCode: 'QUANT-GRAPH-01',
+    domain: 'quantitative',
+    title: 'Story Graph',
+    blurb: 'The child makes or chooses the graph that tells the same growing-quantity story as an animation.',
+    ageBands: ['2-3', '4-5', '6-8'],
+    itemCount: 140,
+    difficultyMin: 1,
+    difficultyMax: 20,
+    verifier: 'keyed',
+    metrics: ['M-ENGAGE', 'M-PATH', 'M-PLANFUL', 'M-RAPIDGUESS', 'M-REV', 'M-RT', 'M-RTFIRST'],
+  },
+  {
     typeCode: 'QUANT-MATRIX-01',
     domain: 'quantitative',
     title: 'Number Web',
@@ -186,6 +246,18 @@ export const EXAM_TYPE_REGISTRY: readonly ExamRegistryEntry[] = [
     difficultyMax: 20,
     verifier: 'keyed',
     metrics: ['M-ENGAGE', 'M-RAPIDGUESS', 'M-REV', 'M-RT', 'M-RTFIRST'],
+  },
+  {
+    typeCode: 'QUANT-MOBILE-01',
+    domain: 'quantitative',
+    title: 'Hanging Mobile',
+    blurb: 'The child completes a hanging mobile so every arm stays level at once.',
+    ageBands: ['2-3', '4-5', '6-8'],
+    itemCount: 120,
+    difficultyMin: 1,
+    difficultyMax: 20,
+    verifier: 'keyed',
+    metrics: ['M-ENGAGE', 'M-PATH', 'M-PLANFUL', 'M-RAPIDGUESS', 'M-REV', 'M-RT', 'M-RTFIRST'],
   },
   {
     typeCode: 'QUANT-NUMLINE-01',
@@ -210,6 +282,18 @@ export const EXAM_TYPE_REGISTRY: readonly ExamRegistryEntry[] = [
     difficultyMax: 20,
     verifier: 'keyed',
     metrics: ['M-ENGAGE', 'M-RAPIDGUESS', 'M-REV', 'M-RT', 'M-RTFIRST'],
+  },
+  {
+    typeCode: 'QUANT-WORD-01',
+    domain: 'quantitative',
+    title: 'Story Model',
+    blurb: 'The child rebuilds a silent quantity story with objects or bars and uses the model to find what is missing.',
+    ageBands: ['2-3', '4-5', '6-8'],
+    itemCount: 220,
+    difficultyMin: 1,
+    difficultyMax: 20,
+    verifier: 'keyed',
+    metrics: ['M-ENGAGE', 'M-PATH', 'M-PLANFUL', 'M-PROG', 'M-RAPIDGUESS', 'M-REV', 'M-RT', 'M-RTFIRST'],
   },
   {
     typeCode: 'SPA-FOLDNET-01',
@@ -258,6 +342,18 @@ export const EXAM_TYPE_REGISTRY: readonly ExamRegistryEntry[] = [
     difficultyMax: 20,
     verifier: 'keyed',
     metrics: ['M-EXPLORE', 'M-RAPIDGUESS', 'M-REV', 'M-RT', 'M-RTFIRST'],
+  },
+  {
+    typeCode: 'SPA-XSCAN-01',
+    domain: 'spatial',
+    title: 'Scan Stacker',
+    blurb: 'The child scrubs through a stack of 2D cross-section slices (like a medical scan) and works out which 3D solid would produce them.',
+    ageBands: ['4-5', '6-8'],
+    itemCount: 140,
+    difficultyMin: 1.03,
+    difficultyMax: 19.97,
+    verifier: 'keyed',
+    metrics: ['M-ENGAGE', 'M-EXPLORE', 'M-EXPLOREMOVES', 'M-RAPIDGUESS', 'M-REV', 'M-RT', 'M-RTFIRST'],
   },
   {
     typeCode: 'VER-BUILDIT-01',
@@ -347,9 +443,39 @@ export const EXAM_TYPE_REGISTRY: readonly ExamRegistryEntry[] = [
 
 /** Types with a bank but no servable demo, and why. */
 export const EXAM_BLOCKED_TYPES: readonly { typeCode: string; reason: string }[] = [
+  { typeCode: 'CX-achieve-02', reason: 'no server verifier: constructed response {actions, changedFactors, conclusionKey, distinctSettings, factorPick, n, reading, reasonText, repeatOf, setting, tMs, trialCount, trials} with scoring.rule=none carries no option key, so /api/exam-submit cannot decide correctness. Needs a bespoke scorer that re-derives the solution from response + content (the bank already ships the reference solution to validate it against).' },
+  { typeCode: 'CX-check-01', reason: 'no server verifier: constructed response {actions, finalPlacement, inspectSequence, moves, reviewCoveragePct, reviewedTokens, servedPlacement, submittedAtMs} with scoring.rule=none carries no option key, so /api/exam-submit cannot decide correctness. Needs a bespoke scorer that re-derives the solution from response + content (the bank already ships the reference solution to validate it against).' },
+  { typeCode: 'CX-curious-02', reason: 'no server verifier: constructed response {actionLog, askRt, causeGuesses, depth, gapKey, gapOptionCount, gapRt, guessRt, inputModality, inspectedIds, nextGuesses, questions, t, text} with scoring.rule=none carries no option key, so /api/exam-submit cannot decide correctness. Needs a bespoke scorer that re-derives the solution from response + content (the bank already ships the reference solution to validate it against).' },
+  { typeCode: 'CX-diverge-01', reason: 'no server verifier: constructed response {actions, endedBy, entryAttempts, ideas, n, normalized, removedIdeas, tMs, text, windowSec, words} with scoring.rule=none carries no option key, so /api/exam-submit cannot decide correctness. Needs a bespoke scorer that re-derives the solution from response + content (the bank already ships the reference solution to validate it against).' },
+  { typeCode: 'CX-figural-01', reason: 'no server verifier: constructed response {category, endedBy, endedMs, ideaCount, ideas, index, inkLength, label, pointCount, startedMs, strokeCount, strokes} with scoring.rule=none carries no option key, so /api/exam-submit cannot decide correctness. Needs a bespoke scorer that re-derives the solution from response + content (the bank already ships the reference solution to validate it against).' },
+  { typeCode: 'FLU-CONCEPT-01', reason: 'no server verifier: constructed response {answerKeyString, builderChanges, distinctTests, figure, hintCount, opened, pattern, probeAnswers, tMs, testCount, tests} with scoring.rule=none carries no option key, so /api/exam-submit cannot decide correctness. Needs a bespoke scorer that re-derives the solution from response + content (the bank already ships the reference solution to validate it against).' },
+  { typeCode: 'FLU-GRIDCOPY-01', reason: 'no server verifier: constructed response {distinctCellsEdited, editCount, editSequence, finalGrid, finalGridKey, undoCount} with scoring.rule=none carries no option key, so /api/exam-submit cannot decide correctness. Needs a bespoke scorer that re-derives the solution from response + content (the bank already ships the reference solution to validate it against).' },
+  { typeCode: 'FLU-MATRIXBUILD-01', reason: 'no server verifier: constructed response {attributeOrder, changeCount, constructed, i, optionKeys, pickSequence} with scoring.rule=none carries no option key, so /api/exam-submit cannot decide correctness. Needs a bespoke scorer that re-derives the solution from response + content (the bank already ships the reference solution to validate it against).' },
+  { typeCode: 'GB-DEBATE-01', reason: 'no server verifier: constructed response {actionLog, caseIds, caseOrder, inputModality, inspectedIds, rebutKey, rebutOptionCount, rebutRt, supportKey, supportOptionCount, supportRt} with scoring.rule=none carries no option key, so /api/exam-submit cannot decide correctness. Needs a bespoke scorer that re-derives the solution from response + content (the bank already ships the reference solution to validate it against).' },
+  { typeCode: 'GB-EXPLORE-01', reason: 'no server verifier: constructed response {actions, actual, blockedTries, cellsVisited, cost, endCell, exploreMoves, firstActionLatencyMs, landmarksFound, landmarksTotal, msToCommit, pointings, reachedHome, revisits, shortcutMoves, unit} with scoring.rule=none carries no option key, so /api/exam-submit cannot decide correctness. Needs a bespoke scorer that re-derives the solution from response + content (the bank already ships the reference solution to validate it against).' },
+  { typeCode: 'GB-FILTER-01', reason: 'no server verifier: constructed response {actions, actual, cellsTouched, cost, deselects, firstActionLatencyMs, msToCommit, selectedCells, taps, unit} with scoring.rule=none carries no option key, so /api/exam-submit cannot decide correctness. Needs a bespoke scorer that re-derives the solution from response + content (the bank already ships the reference solution to validate it against).' },
+  { typeCode: 'GB-PATHFORGE-01', reason: 'no server verifier: constructed response {actions, actual, blockedTries, budget, cellsTouched, cost, finalBoard, firstActionLatencyMs, msToCommit, placements, removals, rotations, unit} with scoring.rule=none carries no option key, so /api/exam-submit cannot decide correctness. Needs a bespoke scorer that re-derives the solution from response + content (the bank already ships the reference solution to validate it against).' },
+  { typeCode: 'GB-ROBOPATH-01', reason: 'no server verifier: constructed response {actionLog, actionSeq, actions, cmd, cost, distinctCellsVisited, edit, edits, log, mode, msToCommit, preFirstActionMs, program, reps, reruns, runs, tokens, tokensAdded} with scoring.rule=none carries no option key, so /api/exam-submit cannot decide correctness. Needs a bespoke scorer that re-derives the solution from response + content (the bank already ships the reference solution to validate it against).' },
+  { typeCode: 'GB-SHAPEFIT-01', reason: 'no server verifier: constructed response {actionLog, assembly, cost, drops, filledCount, misfits, mode, moves, msToCommit, piecesHandled, preFirstActionMs, revisions, takeBacks, targetArea, turns} with scoring.rule=none carries no option key, so /api/exam-submit cannot decide correctness. Needs a bespoke scorer that re-derives the solution from response + content (the bank already ships the reference solution to validate it against).' },
+  { typeCode: 'GB-TRACK-01', reason: 'no server verifier: constructed response {actionLog, announcedTargetCount, deselects, glow, latencyToFirstTapMs, log, mode, motionDigest, msToCommit, phase, phasesWatched, selectedSlots, taps} with scoring.rule=none carries no option key, so /api/exam-submit cannot decide correctness. Needs a bespoke scorer that re-derives the solution from response + content (the bank already ships the reference solution to validate it against).' },
+  { typeCode: 'GB-WORDFORGE-01', reason: 'no server verifier: constructed response {attemptLog, clearCount, distinctSubmissions, endedBy, entryCount, focusLosses, interleaved, log, msToFirstWord, msUsed, submissions} with scoring.rule=none carries no option key, so /api/exam-submit cannot decide correctness. Needs a bespoke scorer that re-derives the solution from response + content (the bank already ships the reference solution to validate it against).' },
+  { typeCode: 'GB-WORDLADDER-01', reason: 'no server verifier: constructed response {attemptLog, commitCount, focusLosses, ladder, msToFirstRung, msToSubmit, order, path, rungsSubmitted, undo, undoCount} with scoring.rule=none carries no option key, so /api/exam-submit cannot decide correctness. Needs a bespoke scorer that re-derives the solution from response + content (the bank already ships the reference solution to validate it against).' },
+  { typeCode: 'QUANT-MIX-01', reason: 'no server verifier: constructed response {batchMoves, counts, kind, moves, reversals, total} with scoring.rule=ratio_equivalence_with_constraint carries no option key, so /api/exam-submit cannot decide correctness. Needs a bespoke scorer that re-derives the solution from response + content (the bank already ships the reference solution to validate it against).' },
+  { typeCode: 'SPA-HIDDENCUBE-01', reason: 'no server verifier: constructed response {changeCount, count, finalYawDeg, inspectNudges} with scoring.rule=none carries no option key, so /api/exam-submit cannot decide correctness. Needs a bespoke scorer that re-derives the solution from response + content (the bank already ships the reference solution to validate it against).' },
   { typeCode: 'SPA-MAZE-01', reason: 'no server verifier: constructed response {backtracks, blockedTries, gemsCollected, gemsTotal, moves, msToCommit, path, reachedGoal, steps} with scoring.rule=none carries no option key, so /api/exam-submit cannot decide correctness. Needs a bespoke scorer that re-derives the solution from response + content (the bank already ships the reference solution to validate it against).' },
   { typeCode: 'SPA-PIPES-01', reason: 'no server verifier: constructed response {connected, finalOrients, mode, msToCommit, rotations, touchedTiles} with scoring.rule=none carries no option key, so /api/exam-submit cannot decide correctness. Needs a bespoke scorer that re-derives the solution from response + content (the bank already ships the reference solution to validate it against).' },
+  { typeCode: 'SPA-PUNCH-01', reason: 'no server verifier: constructed response {changeCount, foldsWatched, markedCells, replays} with scoring.rule=none carries no option key, so /api/exam-submit cannot decide correctness. Needs a bespoke scorer that re-derives the solution from response + content (the bank already ships the reference solution to validate it against).' },
+  { typeCode: 'SPA-SCENE-01', reason: 'no server verifier: constructed response {changeCount, nearestId, order} with scoring.rule=none carries no option key, so /api/exam-submit cannot decide correctness. Needs a bespoke scorer that re-derives the solution from response + content (the bank already ships the reference solution to validate it against).' },
   { typeCode: 'SPA-TANGRAM-01', reason: 'no server verifier: constructed response {auto, filledCount, mode, msToCommit, placements, placementsMade, revisions, rotations, targetArea, usedPieceIds} with scoring.rule=none carries no option key, so /api/exam-submit cannot decide correctness. Needs a bespoke scorer that re-derives the solution from response + content (the bank already ships the reference solution to validate it against).' },
+  { typeCode: 'SPA-VIEW-01', reason: 'bank: bank mixes scoring rules: , let e = wrap180(response.headingDeg - answer.correctHeadingDeg); correct iff abs(e) <= answer.toleranceDeg. M-VIEWANG = e (signed degrees). Responses are quantised to content.pointing.dialStepDeg, so the check is exact and reproducible.' },
+  { typeCode: 'SPA-XPLANE-01', reason: 'no server verifier: constructed response {distinctStates, mode, moves, plane, reversals, startPlane} with scoring.rule=p = planeFor(content.solid, response.plane.h, response.plane.t, response.plane.w) using content.planeModel; o = outlineOf(section(content.solid, p), p); correct iff o.length === answer.vertexCount AND shapeDistance(o, answer.targetSignature) <= answer.shapeToleranceRms. shapeDistance minimises RMS vertex distance over cyclic shifts after the closed-form Procrustes rotation; it is scale- and chirality-sensitive, so a mirror image of the target is rejected. Responses are quantised to content.controls.step, so the accepted set is finite and the verdict is exactly reproducible. carries no option key, so /api/exam-submit cannot decide correctness. Needs a bespoke scorer that re-derives the solution from response + content (the bank already ships the reference solution to validate it against).' },
+  { typeCode: 'VER-EVIDENCE-01', reason: 'no server verifier: constructed response {answerChanges, answerKey, evidenceChanges, evidenceKey, inputModality, optionsSeen, sentenceTapPath} with scoring.rule=none carries no option key, so /api/exam-submit cannot decide correctness. Needs a bespoke scorer that re-derives the solution from response + content (the bank already ships the reference solution to validate it against).' },
+  { typeCode: 'VER-SENSE-01', reason: 'no server verifier: constructed response {complete, indices, inputModality, order, placements, removals, sentence} with scoring.rule=none carries no option key, so /api/exam-submit cannot decide correctness. Needs a bespoke scorer that re-derives the solution from response + content (the bank already ships the reference solution to validate it against).' },
+  { typeCode: 'WM-bind-01', reason: 'no server verifier: constructed response {placementCount, placementOrder, placements, placementsRequired, revisions} with scoring.rule=none carries no option key, so /api/exam-submit cannot decide correctness. Needs a bespoke scorer that re-derives the solution from response + content (the bank already ships the reference solution to validate it against).' },
+  { typeCode: 'WM-bubble-01', reason: 'no server verifier: constructed response {channel, channelIds, completed, pops, releasedAtStep, rtMs, stepsShown} with scoring.rule=none carries no option key, so /api/exam-submit cannot decide correctness. Needs a bespoke scorer that re-derives the solution from response + content (the bank already ships the reference solution to validate it against).' },
+  { typeCode: 'WM-corsi-01', reason: 'no server verifier: constructed response {expectedTapCount, revisions, tapCount, tapOffsetsMs, tappedCells} with scoring.rule=none carries no option key, so /api/exam-submit cannot decide correctness. Needs a bespoke scorer that re-derives the solution from response + content (the bank already ships the reference solution to validate it against).' },
+  { typeCode: 'WM-gate-01', reason: 'no server verifier: constructed response {durationMs, expectedCount, keys, probeCount, probeIndex, probes, revisions, shell, tapOffsetsMs, unitsSubmitted} with scoring.rule=none carries no option key, so /api/exam-submit cannot decide correctness. Needs a bespoke scorer that re-derives the solution from response + content (the bank already ships the reference solution to validate it against).' },
+  { typeCode: 'WM-gridflash-01', reason: 'no server verifier: constructed response {} with scoring.rule=none carries no option key, so /api/exam-submit cannot decide correctness. Needs a bespoke scorer that re-derives the solution from response + content (the bank already ships the reference solution to validate it against).' },
 ] as const;
 
 /** Every wired type code, in registry (alphabetical) order. */

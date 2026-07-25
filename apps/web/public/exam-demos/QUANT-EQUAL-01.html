@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QUANT-EQUAL-01 · Make It Equal (renderer)</title>
+<style>
+  :root{
+    --sky:#edf3ff;--paper:#fff;--ink:#2e3852;--left:#6558c7;--right:#de6f72;
+    --accent:#f2b84b;--dim:#7b89b2;--tel:#111626;--tel2:#1c2540;--key:#78f1ca;
+  }
+  *{box-sizing:border-box}html,body{margin:0;min-height:100%}
+  body{
+    display:flex;color:var(--ink);font:16px/1.35 system-ui,-apple-system,Segoe UI,sans-serif;
+    background:linear-gradient(150deg,#e7efff,#f8ebf1);
+  }
+  button{font:inherit;border:0;cursor:pointer}
+  button:focus-visible{outline:4px solid #566dd0;outline-offset:3px}
+  #wrap{flex:1;min-width:0;padding:18px;display:flex;flex-direction:column;align-items:center;gap:12px}
+  #badge{font-size:12px;font-weight:800;letter-spacing:.1em;color:#7d86a9;text-transform:uppercase}
+  #howto{max-width:min(760px,100%);width:100%;background:#fff;border:1px solid #d7d3f0;border-left:5px solid var(--left);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #454a80}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--left)}
+  #howto p{margin:0;font-size:14px;color:#46507a;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eeebfb;color:var(--left);border:2px solid #d2ccf3;min-height:30px}
+  #phasecue[data-phase="waiting"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="answer"]{background:var(--left);color:#fff;border-color:var(--left)}
+  #phasecue[data-phase="sent"]{background:#eae7fb;color:#4b3fa0;border-color:#d2ccf3}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center;color:#7d86a9}
+  #stagecard{
+    width:min(800px,100%);background:rgba(255,255,255,.94);border-radius:30px;padding:22px;
+    display:grid;gap:16px;box-shadow:0 24px 60px -34px #454a80;border:1px solid #fff;
+  }
+  #prompt{text-align:center;font-size:15px;font-weight:700;color:#46507a}
+  #bridge{
+    min-height:210px;background:linear-gradient(#eaf3ff 0 62%,#d7e6f5 62% 100%);
+    border-radius:24px;position:relative;padding:26px 14px 54px;display:grid;
+    grid-template-columns:1fr 74px 1fr;gap:6px;align-items:center;overflow:hidden;
+  }
+  #bridge::before,#bridge::after{content:"";position:absolute;bottom:-22px;width:32%;height:90px;background:#a7b5ca;border-radius:50% 50% 0 0}
+  #bridge::before{left:-4%}#bridge::after{right:-4%}
+  #beam{position:absolute;left:20%;right:20%;bottom:44px;height:9px;background:#73839d;border-radius:9px;z-index:1}
+  #beam::after{content:"";position:absolute;left:calc(50% - 7px);top:5px;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:34px solid #66778f}
+  .side{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;z-index:2}
+  .op{font-size:24px;color:#7987a5;font-weight:800;padding:0 2px}
+  .qty,.slot{
+    min-width:66px;min-height:84px;border-radius:16px;background:#fff;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:6px;padding:8px 7px;box-shadow:0 8px 18px -14px #25304e;
+  }
+  #leftSide .qty{border:3px solid #c9c4f1}#rightSide .qty{border:3px solid #f2c6c8}
+  .numeral{font:800 26px/1 ui-rounded,system-ui,sans-serif;color:#3a4467}
+  .dots{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;max-width:52px}
+  .dots i{width:11px;height:11px;border-radius:50%;background:var(--left);box-shadow:inset 0 -2px #0002}
+  #rightSide .dots i,.tile .dots i{background:var(--right);background-image:repeating-linear-gradient(45deg,transparent 0 3px,#fff5 3px 5px)}
+  .bar{width:50px;height:8px;border-radius:6px;background:#e6e9f2;overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--left);border-radius:6px}
+  #rightSide .bar i,.tile .bar i{background:var(--right)}
+  .group{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px;border-radius:18px;border:3px dashed #b9c2de;background:#f7f9ff}
+  .group .caption{font-size:11px;font-weight:800;letter-spacing:.04em;color:#6b769b;text-transform:uppercase}
+  .group .members{display:flex;gap:5px}
+  .group .qty,.group .slot{min-width:52px;min-height:66px;padding:6px 4px}
+  .slot{border:3px dashed var(--accent);background:#fffaf0;font-size:30px;color:#d7a743;font-weight:800}
+  .slot.filled{border-style:solid;color:#3a4467;font-size:inherit;font-weight:inherit}
+  #equals{
+    width:70px;height:70px;border-radius:50%;background:#fff;color:#6d7893;font:bold 42px/70px Georgia,serif;
+    text-align:center;z-index:3;box-shadow:0 8px 25px -15px #29324f;
+  }
+  #tray{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:10px}
+  .tile{
+    position:relative;min-height:92px;border-radius:17px;background:#f2f4fa;border:3px solid transparent;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:8px;transition:.16s;
+  }
+  .tile::after{content:attr(data-key);position:absolute;right:7px;bottom:4px;font:800 11px/1 ui-monospace,monospace;color:#98a1bd}
+  .tile:not(:disabled):hover{transform:translateY(-2px);border-color:#dcd7f4}
+  .tile.selected{border-color:var(--accent);background:#fff8e6}
+  .tile:disabled{cursor:default;opacity:.85}
+  #controls{display:flex;justify-content:center;align-items:center;gap:14px}
+  .round{width:49px;height:49px;border-radius:50%;background:#e9edf7;color:#697493;font-size:22px}
+  #go{
+    width:70px;height:70px;border-radius:50%;background:var(--accent);color:#fff;font-size:30px;
+    box-shadow:0 12px 25px -12px #956d18;opacity:.35;pointer-events:none;
+  }
+  #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.05s infinite}
+  #go:disabled{opacity:.35;animation:none;pointer-events:none}
+  @keyframes pulse{50%{transform:scale(1.07)}}
+  #ghost{
+    position:fixed;left:0;top:0;z-index:60;opacity:0;pointer-events:none;
+    transition:transform .47s cubic-bezier(.2,.7,.2,1),opacity .2s;filter:drop-shadow(0 3px 4px #0004);
+  }
+  #ghost.show{opacity:.95}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--left);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #telemetry{
+    width:340px;flex:0 0 340px;min-height:100vh;background:var(--tel);color:#c3cce6;
+    display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  #telemetry h3{margin:0;padding:13px 14px;background:var(--tel2);color:#fff;font-size:12px;letter-spacing:.09em;text-transform:uppercase}
+  #difficulty{padding:10px 13px;border-bottom:1px solid #2a3455}
+  #diffhead{display:flex;justify-content:space-between;color:#a7b2d2;font-size:11px}
+  #diffbar{display:grid;grid-template-columns:repeat(20,1fr);gap:2px;margin:7px 0}
+  #diffbar i{height:9px;border-radius:3px;background:#2b3658}#diffbar i.on{background:linear-gradient(90deg,#78f1ca,#ffd479)}
+  #dsub{font-size:11px;color:#7885a9}
+  #mlist{padding:11px 13px;display:flex;flex-direction:column;gap:8px}
+  .mrow{display:grid;grid-template-columns:104px 1fr;gap:7px}
+  .mid{color:var(--key);font-weight:800}.mid.srv{color:#ffd479}
+  .mval{color:#fff;text-align:right}
+  .mname{grid-column:1/3;color:var(--dim);font-size:11px;margin-top:-4px}
+  #logwrap{margin-top:auto;border-top:1px solid #2a3455}
+  #logwrap b{display:block;padding:8px 12px 3px;color:#8997bd;font-size:11px;letter-spacing:.08em}
+  #log{height:210px;overflow:auto;padding:2px 12px 12px;white-space:pre-wrap}
+  #log div{padding:3px 0;border-bottom:1px dotted #293250}#log .t{color:#5e6d95}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;min-height:0;height:340px;flex:none}}
+  @media(max-width:620px){#bridge{grid-template-columns:1fr 52px 1fr;padding-inline:6px}.qty,.slot{min-width:54px}.dots{max-width:42px}#equals{width:50px;height:50px;font-size:30px;line-height:50px}}
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<main id="wrap">
+  <div id="badge">QUANT-EQUAL-01 · Make It Equal</div>
+  <header id="howto">
+    <h1>How to use — Make It Equal</h1>
+    <p>Look at both sides of the equal sign. Tap the tile that makes the two sides hold the same amount, then press the check (<b>&#10003;</b>) to send it. If there is more than one box, every box gets the same tile. You can change your pick before you send it.</p>
+  </header>
+  <div id="phasecue" data-phase="waiting">Loading</div>
+  <section id="stagecard">
+    <div id="prompt"></div>
+    <div id="bridge">
+      <div class="side" id="leftSide"></div><div id="equals">=</div><div class="side" id="rightSide"></div><div id="beam"></div>
+    </div>
+    <div id="tray"></div>
+    <div id="controls">
+      <button class="round" id="replay" aria-label="show how to answer again" title="show how to answer again">&#8635;</button>
+      <button id="go" aria-label="send answer" title="send answer" disabled>&#10003;</button>
+    </div>
+    <div id="status">Waiting for an item.</div>
+  </section>
+</main>
+<aside id="telemetry">
+  <h3>Live telemetry · per-child (display only)</h3>
+  <div id="difficulty">
+    <div id="diffhead"><span>ITEM DIFFICULTY (design rung)</span><span id="dlevel">— / 20</span></div>
+    <div id="diffbar"></div>
+    <div id="dsub">structure served by the host · score: server-side</div>
+  </div>
+  <div id="mlist"></div>
+  <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+</aside>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#6558c7" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+/* =====================================================================
+ * QUANT-EQUAL-01 — PURE RENDERER
+ * Renders a SERVED item (item.content: two signed term lists around the equal
+ * sign, one or more boxes holding the same unknown, plus quantity tiles) and
+ * reports the child's RAW choice + process telemetry. It NEVER self-generates
+ * items, NEVER solves the equation, and NEVER shows correct/incorrect: the key
+ * and the score live server-side (EXAM_ADAPTIVE_BUILD_PLAN.md §2).
+ *
+ * The balance beam behind the equation is STATIC scenery. Tilting it toward the
+ * chosen tile would leak correctness, so it never reacts to a selection.
+ *
+ * Embedding protocol (postMessage), source-tagged:
+ *   host -> demo : {source:'gt-exam-host', type:'init',  item:ServedItem}
+ *                  {source:'gt-exam-host', type:'start', tutorial?:bool}
+ *   demo -> host : {source:'gt-exam-demo', type:'ready'}
+ *                  {source:'gt-exam-demo', type:'result',    result:ItemResult}
+ *                  {source:'gt-exam-demo', type:'telemetry', event:TelemetryEvent}
+ *
+ * Standalone (double-click / no host): loads spread samples from the bank JSONL,
+ * or bundled inline served items when file:// blocks fetch, so the file still
+ * runs for QA. Correctness is still never shown.
+ * ===================================================================== */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const clock=()=>performance.now();
+const SRC_HOST='gt-exam-host', SRC_DEMO='gt-exam-demo';
+const EMBEDDED=(()=>{try{return !!(window.parent&&window.parent!==window);}catch(_){return true;}})();
+const RAPID_MS=600;
+
+/* ---------------- per-item state ---------------- */
+let item=null;              // current ServedItem
+let interactive=false;      // interaction enabled (released by begin(); see the
+                            // SPA-FOLDNET-01 bug where a load-time lock was never cleared)
+let submitted=false;
+let selectedKey=null, firstKey=null, selectionOrder=[], changeCount=0;
+let renderT0=0, firstLatency=null, submitMs=0, startFallback=null;
+let telemetryLog=[];
+let focusedMs=0, focusTs=clock(), isFocused=(document.visibilityState!=='hidden'), blurCount=0;
+
+/* ---------------- quantity rendering ---------------- */
+function dotsHTML(n){return `<div class="dots">${Array.from({length:Math.min(n,24)},()=>'<i></i>').join('')}</div>`;}
+function barHTML(n){return `<div class="bar"><i style="width:${Math.max(6,Math.min(100,n*7))}%"></i></div>`;}
+function quantityHTML(n,display){
+  if(display==='dots')return dotsHTML(n);
+  if(display==='dots_bar')return dotsHTML(n)+barHTML(n);
+  if(display==='numeral_bar')return `<span class="numeral">${n}</span>`+barHTML(n);
+  return `<span class="numeral">${n}</span>`;
+}
+function slotBodyHTML(display){
+  if(selectedKey===null)return '?';
+  const opt=item.content.options.find(o=>o.key===selectedKey);
+  return quantityHTML(opt.value,display);
+}
+function boxHTML(term,display){
+  if(term.kind==='slot')return `<div class="slot${selectedKey!==null?' filled':''}">${slotBodyHTML(display)}</div>`;
+  return `<div class="qty">${quantityHTML(term.value,display)}</div>`;
+}
+function termHTML(term,index,display){
+  const reps=term.times||1;
+  const op=index===0?(term.op==='-'?'<span class="op">&minus;</span>':''):`<span class="op">${term.op==='-'?'&minus;':'+'}</span>`;
+  if(reps===1)return op+boxHTML(term,display);
+  const members=Array.from({length:reps},()=>boxHTML(term,display)).join('');
+  return `${op}<div class="group"><span class="caption">${reps} groups of</span><div class="members">${members}</div></div>`;
+}
+function sideHTML(side,display){return side.map((t,i)=>termHTML(t,i,display)).join('');}
+
+/* ---------------- render ---------------- */
+function render(){
+  const c=item.content, d=c.display;
+  $('#prompt').textContent=c.prompt||'Put a tile in the box so both sides have the same amount.';
+  $('#leftSide').innerHTML=sideHTML(c.left,d);
+  $('#rightSide').innerHTML=sideHTML(c.right,d);
+  $('#tray').innerHTML=c.options.map(o=>
+    `<button class="tile${selectedKey===o.key?' selected':''}" data-key="${o.key}" ${interactive&&!submitted?'':'disabled'}>${quantityHTML(o.value,d)}</button>`
+  ).join('');
+  const ready=interactive&&!submitted&&selectedKey!==null;
+  $('#go').disabled=!ready;
+  $('#go').classList.toggle('ready',ready);
+  const dd=Number(item.difficulty)||0;
+  $('#dlevel').textContent=`${dd?dd.toFixed(1):'—'} / 20`;
+  $('#diffbar').innerHTML=Array.from({length:20},(_,i)=>`<i class="${i<Math.round(dd)?'on':''}"></i>`).join('');
+  $('#dsub').textContent=`${c.layout==='canonical'?'canonical':'non-canonical'} · boxes ${c.slotCount} · ${c.display} · score: server-side`;
+  renderMeters();
+}
+
+/* ---------------- metrics + telemetry (numeric only, no correctness) ---------------- */
+function tickFocus(){const t=clock();if(isFocused)focusedMs+=t-focusTs;focusTs=t;}
+function metricsNow(){
+  tickFocus();
+  const elapsed=Math.max(1,Math.round(clock()-renderT0));
+  const rt=submitted?submitMs:elapsed;
+  return {
+    'M-RT':rt,
+    'M-RTFIRST':firstLatency==null?0:Math.round(firstLatency),
+    'M-REV':changeCount,
+    'M-ENGAGE':Math.round(1000*Math.min(1,focusedMs/elapsed))/1000,
+    'M-RAPIDGUESS':submitted&&submitMs<RAPID_MS?1:0,
+  };
+}
+const METERS=[
+  {id:'M-RT',name:'Total response time (ms)'},
+  {id:'M-RTFIRST',name:'First-tile latency — encode / plan (ms)'},
+  {id:'M-REV',name:'Tile changes before commit'},
+  {id:'M-ENGAGE',name:'Focused fraction (tracked, not enforced)'},
+  {id:'M-RAPIDGUESS',name:'Rapid-guess flag (tracked, not enforced)'},
+];
+const SERVER_METERS=[
+  {id:'M-ACC',name:'Relational equivalence correct'},
+  {id:'M-EQREL',name:'First-choice equality interpretation'},
+  {id:'M-ERRTYPE',name:'Lure taxonomy of the chosen tile'},
+  {id:'M-DIFFREACH',name:'Deepest structure solved'},
+  {id:'M-LEARNRATE',name:'Within-session growth'},
+];
+function buildMeters(){
+  $('#mlist').innerHTML=
+    METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}">—</span><span class="mname">${m.name}</span></div>`).join('')
+    +SERVER_METERS.map(m=>`<div class="mrow"><span class="mid srv">${m.id}</span><span class="mval">server-side</span><span class="mname">${m.name} · needs the key</span></div>`).join('');
+}
+function renderMeters(){const m=metricsNow();METERS.forEach(x=>{const el=$('#v_'+x.id);if(el)el.textContent=(x.id==='M-RTFIRST'&&firstLatency==null)?'—':String(m[x.id]);});}
+function log(msg){
+  const d=document.createElement('div');
+  d.innerHTML=`<span class="t">+${renderT0?Math.round(clock()-renderT0):0}ms</span> ${msg}`;
+  $('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;
+}
+function post(msg){if(!EMBEDDED)return;try{window.parent.postMessage(Object.assign({source:SRC_DEMO},msg),'*');}catch(_){}}
+function emitEvent(kind,extra){
+  const event=Object.assign({t:renderT0?Math.round(clock()-renderT0):0,kind,itemId:item?item.itemId:null},extra||{});
+  telemetryLog.push(event);post({type:'telemetry',event});
+  log(`<b>${kind}</b>`+(extra&&Object.keys(extra).length?' · '+JSON.stringify(extra):''));
+}
+
+/* ---------------- outline-pointer gesture hint (never reveals the key) ---------------- */
+const ghost=$('#ghost');
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const p=centerOf(el);ghost.style.transform=`translate(${p.x-10}px,${p.y-10}px)`;await sleep(470);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(340);}
+async function gestureHint(){
+  // Teaches the GESTURE only: read both sides, reach the tray, tap a tile, send.
+  // It never selects a tile and never indicates which quantity balances.
+  ghost.classList.add('show');await sleep(220);
+  await ghostTo($('#leftSide'));await ghostTo($('#rightSide'));
+  await ghostTo($('#tray'));await ghostTap();
+  await ghostTo($('#go'));await ghostTap();
+  ghost.classList.remove('show');await sleep(200);
+}
+
+/* ---------------- interaction ---------------- */
+function chooseTile(key){
+  if(!interactive||submitted||!item)return;
+  if(firstKey===null){firstKey=key;firstLatency=clock()-renderT0;emitEvent('first_action',{key,latencyMs:Math.round(firstLatency)});}
+  else if(selectedKey!==null&&selectedKey!==key){changeCount++;emitEvent('change',{from:selectedKey,to:key});}
+  selectedKey=key;selectionOrder.push(key);
+  render();
+}
+function submit(){
+  if(!interactive||submitted||selectedKey===null)return;
+  submitted=true;interactive=false;submitMs=Math.round(clock()-renderT0);
+  render();
+  emitEvent('submit',{selectedKey,rtMs:submitMs});
+  setCue('sent','Answer sent');
+  setStatus('Answer sent. Waiting for the next item.');
+  const chosen=item.content.options.find(o=>o.key===selectedKey);
+  const result={
+    itemId:item.itemId,typeCode:item.typeCode||'QUANT-EQUAL-01',domain:item.domain||'quantitative',
+    response:{
+      kind:'choice',
+      selectedKey,
+      selectedValue:chosen?chosen.value:null,
+      firstSelectedKey:firstKey,
+      selectionOrder:selectionOrder.slice(),
+      changeCount,
+    },
+    metrics:metricsNow(),
+    telemetry:telemetryLog.slice(),
+  };
+  post({type:'result',result});
+  log('RESULT sent · '+JSON.stringify({response:result.response,metrics:result.metrics}));
+  if(!EMBEDDED)setTimeout(standaloneAdvance,1300);
+}
+
+/* ---------------- cue / status ---------------- */
+function setCue(k,txt){const el=$('#phasecue');el.dataset.phase=k;el.textContent=txt;}
+function setStatus(msg){$('#status').textContent=msg;}
+
+/* ---------------- lifecycle ---------------- */
+function loadItem(served){
+  clearTimeout(startFallback);
+  if(!served||!served.content||!Array.isArray(served.content.left)||!Array.isArray(served.content.options)){
+    log('init ignored: malformed ServedItem');return;
+  }
+  item=served;
+  interactive=false;submitted=false;
+  selectedKey=null;firstKey=null;selectionOrder=[];changeCount=0;
+  firstLatency=null;submitMs=0;telemetryLog=[];
+  focusedMs=0;focusTs=clock();isFocused=(document.visibilityState!=='hidden');blurCount=0;
+  renderT0=clock();
+  render();
+  setCue('waiting','Get ready');
+  setStatus('Read both sides of the equal sign.');
+  emitEvent('render',{difficulty:item.difficulty,layout:item.content.layout,slotCount:item.content.slotCount,options:item.content.options.length});
+  // Lenient: if the host never sends {type:'start'}, release the lock ourselves.
+  startFallback=setTimeout(()=>{if(!interactive&&!submitted)begin(false);},500);
+}
+async function begin(withTutorial){
+  if(!item||submitted||interactive)return;
+  clearTimeout(startFallback);
+  if(withTutorial&&!begin._taught){begin._taught=true;await gestureHint();if(submitted)return;}
+  interactive=true;renderT0=clock();
+  setCue('answer','Your turn');
+  setStatus('Tap the tile that makes both sides the same, then press the check.');
+  emitEvent('start');
+  render();
+}
+window.addEventListener('message',e=>{
+  const d=e.data;if(!d||d.source!==SRC_HOST)return;
+  if(d.type==='init')loadItem(d.item);
+  else if(d.type==='start'){clearTimeout(startFallback);begin(!!d.tutorial);}
+});
+
+/* ---------------- engagement tracking ---------------- */
+function onFocus(){tickFocus();isFocused=true;}
+function onBlur(){tickFocus();if(isFocused&&interactive&&!submitted){blurCount++;emitEvent('engagement',{reason:'blur',blurCount});}isFocused=false;}
+window.addEventListener('focus',onFocus);window.addEventListener('blur',onBlur);
+document.addEventListener('visibilitychange',()=>{document.visibilityState==='hidden'?onBlur():onFocus();});
+
+/* ---------------- input wiring ---------------- */
+$('#tray').addEventListener('click',e=>{const b=e.target.closest('.tile');if(b&&!b.disabled)chooseTile(b.dataset.key);});
+$('#go').addEventListener('click',submit);
+$('#replay').addEventListener('click',()=>{if(item&&!submitted)gestureHint();});
+document.addEventListener('keydown',e=>{
+  if(!interactive||submitted)return;
+  if(e.key==='Enter'&&selectedKey!==null){submit();return;}
+  const tiles=$$('#tray .tile');
+  if(/^[1-9]$/.test(e.key)){const t=tiles[+e.key-1];if(t)chooseTile(t.dataset.key);return;}
+  const t=tiles.find(x=>x.dataset.key.toUpperCase()===e.key.toUpperCase());
+  if(t)chooseTile(t.dataset.key);
+});
+
+/* ---------------- standalone fallback (double-click QA) ---------------- */
+const INLINE_SAMPLES=[
+{"itemId":"sample-floor","typeCode":"QUANT-EQUAL-01","domain":"quantitative","difficulty":1.4,"ageBands":["2-3"],"demoPath":"demos/QUANT-EQUAL-01.html","content":{"typeCode":"QUANT-EQUAL-01","prompt":"Put a tile in the box so both sides have the same amount.","display":"dots","layout":"canonical","slotSide":"right","slotCount":1,"left":[{"kind":"num","op":"+","value":2,"times":1},{"kind":"num","op":"+","value":4,"times":1}],"right":[{"kind":"slot","op":"+","times":1}],"options":[{"key":"A","value":6},{"key":"B","value":8},{"key":"C","value":2},{"key":"D","value":4}]},"syntheticOnly":true,"validated":false},
+{"itemId":"sample-mid","typeCode":"QUANT-EQUAL-01","domain":"quantitative","difficulty":9.2,"ageBands":["4-5"],"demoPath":"demos/QUANT-EQUAL-01.html","content":{"typeCode":"QUANT-EQUAL-01","prompt":"Put a tile in the box so both sides have the same amount.","display":"numeral_bar","layout":"non_canonical","slotSide":"right","slotCount":1,"left":[{"kind":"num","op":"+","value":14,"times":1},{"kind":"num","op":"-","value":5,"times":1}],"right":[{"kind":"slot","op":"+","times":1},{"kind":"num","op":"+","value":7,"times":1}],"options":[{"key":"A","value":3},{"key":"B","value":7},{"key":"C","value":2},{"key":"D","value":9},{"key":"E","value":26}]},"syntheticOnly":true,"validated":false},
+{"itemId":"sample-ceiling","typeCode":"QUANT-EQUAL-01","domain":"quantitative","difficulty":19.6,"ageBands":["6-8"],"demoPath":"demos/QUANT-EQUAL-01.html","content":{"typeCode":"QUANT-EQUAL-01","prompt":"Put a tile in the boxes so both sides have the same amount. Every box gets the same tile.","display":"numeral","layout":"non_canonical","slotSide":"both","slotCount":6,"left":[{"kind":"slot","op":"+","times":4},{"kind":"num","op":"+","value":4,"times":1}],"right":[{"kind":"slot","op":"+","times":2},{"kind":"num","op":"+","value":2,"times":2},{"kind":"num","op":"+","value":8,"times":1}],"options":[{"key":"A","value":2},{"key":"B","value":5},{"key":"C","value":12},{"key":"D","value":4},{"key":"E","value":16},{"key":"F","value":8}]},"syntheticOnly":true,"validated":false}
+];
+let queue=[], queueIx=0;
+function toServed(b){const{answer,scoring,provenance,...served}=b;return served;}
+async function loadBankSamples(){
+  try{
+    const res=await fetch('../banks/QUANT-EQUAL-01.jsonl',{cache:'no-store'});
+    if(res.ok){
+      const all=(await res.text()).trim().split('\n').filter(Boolean).map(l=>JSON.parse(l)).map(toServed);
+      all.sort((a,b)=>a.difficulty-b.difficulty);
+      const N=Math.min(12,all.length),pick=[];
+      for(let i=0;i<N;i++)pick.push(all[N===1?0:Math.round(i*(all.length-1)/(N-1))]);
+      log(`standalone: fetched ${all.length} bank items; cycling ${pick.length} across difficulty`);
+      return pick;
+    }
+  }catch(_){/* file:// blocks fetch */}
+  log('standalone: bank fetch unavailable (serve the folder over http for the full bank) — using inline samples');
+  return INLINE_SAMPLES.slice();
+}
+function standaloneAdvance(){queueIx=(queueIx+1)%queue.length;loadItem(queue[queueIx]);begin(false);}
+async function bootstrapStandalone(){queue=await loadBankSamples();queueIx=0;loadItem(queue[0]);begin(true);}
+
+/* ---------------- boot ---------------- */
+buildMeters();
+post({type:'ready'});
+if(EMBEDDED){setCue('waiting','Waiting for host');log('ready · awaiting host init');setTimeout(()=>{if(!item)bootstrapStandalone();},1200);}
+else{log('standalone · no host detected');bootstrapStandalone();}
+</script>
+</body>
+</html>

@@ -287,9 +287,23 @@ function nextStandalone(first){
 }
 
 /* ---------------- host message handling ---------------- */
+// A host-supplied ServedItem must carry NO correctness signal (build plan §2:
+// ServedItem = BankItem minus answer/scoring/provenance). If one ever arrives, strip it
+// and say so loudly rather than silently rendering a leaked key.
+const LEAKY=/^(lure|lures|misconception|correct|isCorrect|correctKey|answer|answers|solution|rationale|rationales|distractorRationales|fit|rule)$/i;
+function refuseAnswerSignal(served){
+  const hits=[];
+  (function w(n,p){
+    if(!n||typeof n!=='object')return;
+    if(Array.isArray(n)){n.forEach((v,i)=>w(v,p+'['+i+']'));return;}
+    for(const k of Object.keys(n)){ if(LEAKY.test(k)){hits.push(p+'.'+k);delete n[k];} else w(n[k],p+'.'+k); }
+  })(served&&served.content,'content');
+  if(hits.length)log('WARNING host sent answer-revealing field(s) '+hits.join(', ')+' — stripped, never used');
+  return served;
+}
 window.addEventListener('message',e=>{
   const d=e.data;if(!d||d.source!==SRC_HOST)return;
-  if(d.type==='init'&&d.item){hostSeen=true;$('#chanval').textContent='host-embedded';setItem(d.item);}
+  if(d.type==='init'&&d.item){hostSeen=true;$('#chanval').textContent='host-embedded';setItem(refuseAnswerSignal(d.item));}
   else if(d.type==='start'){if(item){itemStart=Date.now();locked=false;setStatus('neutral','Your turn. Tap the picture that fits the sentence, then press the check.');}}
 });
 

@@ -85,8 +85,15 @@ const OPTION_SELECTOR =
   '[data-key],[data-i],[data-idx],[data-opt],[data-index],[data-cell],[data-tile]';
 const SUBMIT_SELECTOR =
   '#go,#lock,#submit,#check,#confirm,#done,#commit,.go,.submit,.lock,[data-go]';
-/** Controls that unlock submission (watch the roll, fold the net, step the path). */
-const PRIME_SELECTOR = '#play,#foldBtn,#step,#replay';
+/**
+ * Controls that unlock submission (watch the roll, fold the net, step the path).
+ * Some are staged rather than one-shot: FLU-DEDUCE-01 reveals one clue per press
+ * of `#nextclue` and refuses to submit until every clue is showing, so a driver
+ * that clicks each control once never reaches an answerable state.
+ */
+const PRIME_SELECTOR = '#play,#foldBtn,#step,#replay,#nextclue,#reveal';
+/** Max presses per prime control, for the staged ones. */
+const PRIME_PRESSES = 8;
 
 interface DemoRun {
   ready: boolean;
@@ -217,8 +224,10 @@ async function driveDemo(
       // animation-gated: watch the roll / fold the net first
       async () => {
         for (const el of doc.querySelectorAll(PRIME_SELECTOR)) {
-          click(el);
-          await sleep(800);
+          for (let press = 0; press < PRIME_PRESSES; press++) {
+            click(el);
+            await sleep(press === 0 ? 800 : 80);
+          }
         }
         await sleep(400);
         for (const option of options().slice(0, 14)) {
