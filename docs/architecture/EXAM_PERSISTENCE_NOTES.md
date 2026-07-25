@@ -89,7 +89,15 @@ That breaks the audit path D-019 built (`scorer_input_hash` → recompute → co
 hash itself is fine — it still matches the stored trace — but what it hashes is not the
 input the recorded score came from.
 
-**Not fixed here, deliberately.** The brief pins the database as the verifier ("the
+**Closed by D-027, partially.** The owner ratified porting the per-type verifiers into plpgsql so
+the database is the single authority on per-item correctness. `app.exam_verify_response` now
+dispatches per-type → `scoring.rule` generic → keyed, `api.exam_submit_response` verifies through
+it, and `app.exam_score_response` is demoted rather than deleted. Agreement with the app tier over
+2,268 real cases rises from 1,659 to 1,989; 4 of 31 per-type verifiers and 3 of 3 generic ones are
+ported, and the rest are inventoried in `EXAM_VERIFIER_PORT_INVENTORY.md`. The paragraph below is
+the state as of D-026 and is kept because it is what was measured then.
+
+**Not fixed at the time, deliberately.** The brief pins the database as the verifier ("the
 database stores and verifies"), and making the two agree means either porting 30 typed
 verifiers into plpgsql or moving verification authority to the application tier, which
 D-019 considered and rejected as alternative (c). Either is a governance decision, not a

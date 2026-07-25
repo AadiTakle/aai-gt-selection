@@ -253,12 +253,16 @@ select ok(
   'served item leaks NO answer key or scoring solution'
 );                                                                                              -- 34
 
+-- `selectedKey`, not `key`: D-027 moved verification to app.exam_verify_response, whose keyed
+-- verifier is a port of the app tier's verifyKeyed and reads the two fields the runner
+-- actually sends (`selectedKey`, `selectedIndex`). The demoted app.exam_score_response also
+-- accepted `key`, which no client has ever sent.
 select set_config(
   'test.exam_s1',
   api.exam_submit_response(
     current_setting('test.exam_session')::uuid,
     '00000000-0000-4000-8000-0000000a0001',
-    '{"key":"B"}'::jsonb,
+    '{"selectedKey":"B"}'::jsonb,
     '{"M-RT":4200,"M-ERRTYPE":0}'::jsonb,
     '[{"kind":"focus","tOffsetMs":10,"seq":0,"payload":{}}]'::jsonb,
     '00000000-0000-4000-8000-00000000c101',
@@ -282,7 +286,7 @@ select set_config(
   api.exam_submit_response(
     current_setting('test.exam_session')::uuid,
     '00000000-0000-4000-8000-0000000a0002',
-    '{"key":"Z"}'::jsonb,
+    '{"selectedKey":"Z"}'::jsonb,
     '{"M-RT":8000}'::jsonb,
     null,
     '00000000-0000-4000-8000-00000000c103',

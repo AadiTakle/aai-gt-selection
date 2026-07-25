@@ -132,6 +132,23 @@ integer bucket while comfortably passing the real rule. All 44 banks currently p
    are now in the trace, and re-running the scorer over the `app_verdict` telemetry reproduces the
    recorded score exactly; reconciling the two is a governance decision. See
    `docs/architecture/EXAM_PERSISTENCE_NOTES.md`.
+4b. **Verifier port to plpgsql — PARTIAL, 4 of 31 done (D-027, `feat/exam-verify-plpgsql`).** The
+   owner ratified closing 4's open defect by making the database the single authority on per-item
+   correctness, on the anti-cheat grounds that a verifier inside a schema no client role can reach
+   cannot leak a key or be bypassed. `app.exam_verify_response` now dispatches — registered
+   per-type verifier, then the generic named by the item's server-only `scoring.rule`, then keyed —
+   and `api.exam_submit_response` verifies through it; `app.exam_score_response` is demoted, not
+   deleted. Landed: the dispatcher, **3 of 3** generic verifiers, and **4 of 31** per-type
+   verifiers (`FLU-CONCEPT-01`, `VER-EVIDENCE-01`, `QUANT-MIX-01`, `SPA-XPLANE-01` — one per
+   domain, each the awkward shape in its domain). Agreement with the app tier over 2,268 real cases
+   rises from 1,659 to 1,989; every generic and every ported type agrees on every case, and all
+   279 remaining disagreements are the 26 unported per-type verifiers. **Remaining work, inventory
+   and difficulty ratings:** `docs/architecture/EXAM_VERIFIER_PORT_INVENTORY.md`, which also splits
+   the 27 into batches for parallel workers. **Two are not straightforwardly portable:**
+   `GB-WORDLADDER-01` judges a rung against a 4,000-word child lexicon read off disk, which is not
+   a field of `app.exam_item` and needs an owner decision (inventory §6); `CX-achieve-02` must stay
+   unported while its E-076 leak keeps it blocked. Coverage is reported by `pnpm exam:verify:diff`,
+   which prints a per-type table and marks every unported type PENDING rather than passing it.
 5. **Open-ended / LLM-judged types** (Q2): track core metrics + participate in selection; defer full
    harvest/judge (M-ORIG/M-FLEX) — currently `model_judge_deferred` scores 0/inert. The invented
    norms behind M-ORIG/M-FLEX were removed; see E-072.
