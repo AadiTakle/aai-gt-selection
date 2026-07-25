@@ -27,7 +27,7 @@ const MIN_PER_BUCKET = 5;
 const CONTRACT_KEYS = ['itemId', 'typeCode', 'domain', 'difficulty', 'ageBands', 'demoPath',
   'content', 'answer', 'scoring', 'provenance', 'syntheticOnly', 'validated'];
 const LEAK_NAMES = /^(answer|answers|correct|correctkey|iscorrect|key|keys|target|targets|istarget|lure|lures|rationale|rationales|distractorrationales|solution|solver)$/i;
-const AUDIO_NAMES = /(audio|speech|speak|utterance|tts|sound|chime|tone|narrat|voice|listen)/i;
+const AUDIO_NAMES = /(\baudio|\bspeech|\bspeak|\butterance|\btts\b|\bsound\b|\bchime|\btones?\b|\bnarrat|\bvoice|\blisten)/i;
 
 const failures = [];
 const fail = (id, msg) => failures.push(`[${id}] ${msg}`);
