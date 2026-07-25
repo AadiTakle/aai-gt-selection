@@ -32,11 +32,8 @@ values (
     'policyVersion', 'exam-syn-fw',
     'domains', jsonb_build_array('fluid_reasoning'),
     'gradeStart', jsonb_build_object('K-1', 2.5, '2-3', 6, '4-5', 10, '6-8', 14),
-    'minItemsPerArea', 1,
-    'maxItemsPerArea', 2,
-    'maxItems', 2,
+    'hardItemCap', 2,
     'stepSize', 0.8,
-    'stableDelta', 0.5,
     'areaWeights', jsonb_build_object('fluid_reasoning', 1),
     'syntheticOnly', true,
     'validated', false

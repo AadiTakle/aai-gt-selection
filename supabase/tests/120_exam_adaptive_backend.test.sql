@@ -1,13 +1,17 @@
 -- Adaptive K-8 screener backend: schema shape + RLS firewall + RPC posture + a
 -- deterministic server-authoritative roundtrip smoke (create -> start -> next ->
--- submit x2 -> outcome). Verifies float difficulty, the metric map, the served-item
--- answer-key firewall, and that outcomes carry no admit/defer/retry decision.
+-- submit x2). Verifies float difficulty, the metric map, the served-item answer-key
+-- firewall, and that outcomes carry no admit/defer/retry decision.
+--
+-- Since D-018 the roundtrip stops at the trace: submitting responses records the
+-- trace and does NOT produce an outcome. Outcome recording and the ownership split
+-- are proven in 122_exam_outcome_ownership.test.sql.
 
 begin;
 
 set local search_path = extensions, public, pg_catalog;
 
-select plan(44);
+select plan(46);
 
 -- Test-only access so RPCs (SECURITY DEFINER, owned by api_executor) can reach pgcrypto.
 grant usage on schema extensions to api_executor, authenticated;
@@ -20,11 +24,10 @@ values (
     'policyVersion', 'exam-syn-test',
     'domains', jsonb_build_array('fluid_reasoning'),
     'gradeStart', jsonb_build_object('K-1', 2.5, '2-3', 6, '4-5', 10, '6-8', 14),
-    'minItemsPerArea', 1,
-    'maxItemsPerArea', 2,
-    'maxItems', 2,
+    -- Hard safety cap only (runaway guard). The battery stop rule lives in
+    -- packages/exam-engine (BUILD_PLAN §3), not here.
+    'hardItemCap', 2,
     'stepSize', 0.8,
-    'stableDelta', 0.5,
     'areaWeights', jsonb_build_object('fluid_reasoning', 1),
     'syntheticOnly', true,
     'validated', false
@@ -147,12 +150,13 @@ select is(
     where n.nspname = 'api'
       and p.proname in (
         'exam_create_participant', 'exam_list_items', 'exam_start_session',
-        'exam_get_next_item', 'exam_submit_response', 'exam_get_session_state', 'exam_get_outcome'
+        'exam_get_next_item', 'exam_submit_response', 'exam_get_session_state', 'exam_get_outcome',
+        'exam_get_scoring_inputs', 'exam_record_outcome'
       )
       and p.prosecdef
   ),
-  7,
-  'all 7 exam RPCs are SECURITY DEFINER'
+  9,
+  'all 9 exam RPCs are SECURITY DEFINER'
 );                                                                                              -- 27
 select is(
   (
@@ -162,12 +166,13 @@ select is(
     where n.nspname = 'api'
       and p.proname in (
         'exam_create_participant', 'exam_list_items', 'exam_start_session',
-        'exam_get_next_item', 'exam_submit_response', 'exam_get_session_state', 'exam_get_outcome'
+        'exam_get_next_item', 'exam_submit_response', 'exam_get_session_state', 'exam_get_outcome',
+        'exam_get_scoring_inputs', 'exam_record_outcome'
       )
       and r.rolname = 'api_executor'
   ),
-  7,
-  'all 7 exam RPCs have the constrained executor owner'
+  9,
+  'all 9 exam RPCs have the constrained executor owner'
 );                                                                                              -- 28
 select is(
   (
@@ -176,12 +181,13 @@ select is(
     where n.nspname = 'api'
       and p.proname in (
         'exam_create_participant', 'exam_list_items', 'exam_start_session',
-        'exam_get_next_item', 'exam_submit_response', 'exam_get_session_state', 'exam_get_outcome'
+        'exam_get_next_item', 'exam_submit_response', 'exam_get_session_state', 'exam_get_outcome',
+        'exam_get_scoring_inputs', 'exam_record_outcome'
       )
       and p.proconfig @> array['search_path=pg_catalog, extensions']
   ),
-  7,
-  'all 7 exam RPCs pin a safe search path'
+  9,
+  'all 9 exam RPCs pin a safe search path'
 );                                                                                              -- 29
 
 -- --- Server-authoritative roundtrip smoke -----------------------------------------
@@ -290,9 +296,9 @@ select is(
   'submit_response marks a wrong answer incorrect server-side'
 );                                                                                              -- 37
 select is(
-  (current_setting('test.exam_s2')::jsonb) #>> '{data,done}',
+  (current_setting('test.exam_s2')::jsonb) #>> '{data,hardCapReached}',
   'true',
-  'variable-length battery stops when the policy stop rule fires'
+  'the hard safety cap force-closes a runaway session (a guard, not the stop rule)'
 );                                                                                              -- 38
 
 select set_config(
@@ -305,12 +311,13 @@ select set_config(
 );
 select is(
   (current_setting('test.exam_out')::jsonb) #>> '{data,complete}',
-  'true',
-  'get_outcome reports completion once the session ends'
+  'false',
+  'submitting responses produces NO outcome — the database no longer scores (BUILD_PLAN §5)'
 );                                                                                              -- 39
-select ok(
-  (current_setting('test.exam_out')::jsonb) #> '{data,outcome,areaScores}' is not null,
-  'outcome exposes a per-area score/profile (deterministic, reproducible)'
+select is(
+  jsonb_typeof((current_setting('test.exam_out')::jsonb) #> '{data,outcome}'),
+  'null',
+  'get_outcome stays empty until an externally computed outcome is recorded'
 );                                                                                              -- 40
 
 select set_config(
@@ -358,6 +365,13 @@ select throws_ok(
 );                                                                                              -- 44
 
 reset role;
+
+-- --- Ownership-split RPC surface (D-018) ------------------------------------------
+select ok(to_regprocedure('api.exam_get_scoring_inputs(uuid,uuid)') is not null,
+  'get_scoring_inputs RPC is explicit');                                                        -- 45
+select ok(
+  to_regprocedure('api.exam_record_outcome(uuid,jsonb,text,text,uuid,uuid)') is not null,
+  'record_outcome RPC is explicit');                                                            -- 46
 
 select * from finish();
 

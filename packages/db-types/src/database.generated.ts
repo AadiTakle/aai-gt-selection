@@ -31,6 +31,10 @@ export type Database = {
         Args: { p_correlation_id: string; p_session_id: string }
         Returns: Json
       }
+      exam_get_scoring_inputs: {
+        Args: { p_correlation_id: string; p_session_id: string }
+        Returns: Json
+      }
       exam_get_session_state: {
         Args: { p_correlation_id: string; p_session_id: string }
         Returns: Json
@@ -40,6 +44,17 @@ export type Database = {
           p_age_band: string
           p_correlation_id: string
           p_policy_version: string
+        }
+        Returns: Json
+      }
+      exam_record_outcome: {
+        Args: {
+          p_correlation_id: string
+          p_idempotency_key: string
+          p_outcome: Json
+          p_scorer_version: string
+          p_scoring_policy_id: string
+          p_session_id: string
         }
         Returns: Json
       }
