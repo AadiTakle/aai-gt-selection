@@ -83,6 +83,29 @@ const CONVERGENCE_BUDGET = 48;
 const ESTIMATE_TOLERANCE = 1.5;
 
 /**
+ * Every integer ability the sweep below plants, with the same value in all four areas. The named
+ * profiles pick seven interesting points; this covers the scale so an accuracy hole cannot hide in
+ * the gaps between them (D-025). The bounds are the first and last integers strictly inside the
+ * 1..20 scale, since the two scale bounds are the degenerate responders already covered above.
+ */
+const ABILITY_SWEEP: readonly number[] = Array.from({ length: 18 }, (_, i) => i + 2);
+
+/**
+ * `ageBandBias` values either side of the default, used to show the sweep passes across a plateau
+ * rather than at one lucky setting (D-025).
+ */
+const AGE_BAND_BIAS_PERTURBATIONS: readonly number[] = [0, 0.25, 0.75, 1];
+
+function equalAbility(ability: number): TrueTheta {
+  return {
+    fluid_reasoning: ability,
+    verbal: ability,
+    quantitative: ability,
+    spatial: ability,
+  };
+}
+
+/**
  * First item count at which every enforced core metric has adequate data, ignoring the separate
  * estimate-stability arm of the stop rule. Recomputed by replaying the stored trace, which also
  * exercises the §5 requirement that adequacy is reproducible from the trace alone.
@@ -331,4 +354,86 @@ describe('convergence from a distant seed (D-023)', () => {
     expect(completeAt).not.toBeNull();
     expect(completeAt as number).toBeLessThan(DEFAULT_CONFIG.hardItemCap);
   });
+});
+
+describe('convergence across the whole ability scale (D-025)', () => {
+  /*
+   * `CONVERGENCE_PROFILES` above asserts accuracy at seven hand-picked abilities, and every one of
+   * them passed while five integer abilities — 5, 7, 12, 13, 14 — sat outside the tolerance, the
+   * worst by 2.67 points. The hole was in item selection: `nextItem` ranked an age-band match ahead
+   * of closeness to the estimate, and almost every wired type's '4-5' items stop around difficulty
+   * 12-13. An area whose estimate left that range was then served items 2-3 points off target for
+   * the rest of the session, and `difficultyDelta` reads direction off correctness alone, so a
+   * correct answer on an item well BELOW the estimate still raised it by a full step. That ratchets
+   * upward in the 12-14 region and downward around 5-7, which is exactly where the breaches were.
+   *
+   * Sweeping every integer ability instead of a shortlist is what closes that class of gap, so this
+   * block must keep sweeping even if the tolerance or the fix changes.
+   */
+  const sweep = new Map(
+    ABILITY_SWEEP.map((ability) => [
+      ability,
+      runRealBankSession('4-5', equalAbility(ability), { hardItemCap: 400 }, real),
+    ]),
+  );
+
+  const runFor = (ability: number): RealSessionResult =>
+    sweep.get(ability) as RealSessionResult;
+
+  it.each(ABILITY_SWEEP)('recovers a planted ability of %i in every area', (ability) => {
+    const { state } = runFor(ability);
+    for (const area of AREAS) {
+      expect(
+        Math.abs(state.areas[area].difficulty - ability),
+        `${area} settled at ${state.areas[area].difficulty.toFixed(2)} for a planted ability of ${ability}`,
+      ).toBeLessThanOrEqual(ESTIMATE_TOLERANCE);
+    }
+  });
+
+  it.each(ABILITY_SWEEP)('concludes on the stop rule inside the budget at ability %i', (ability) => {
+    const { state, done, exhausted } = runFor(ability);
+    expect(exhausted, 'ran out of servable items instead of concluding').toBe(false);
+    expect(done).toBe(true);
+    expect(
+      state.itemsServed,
+      'battery length regressed past the convergence budget',
+    ).toBeLessThanOrEqual(CONVERGENCE_BUDGET);
+  });
+
+  it('rebuilds every swept estimate by replaying its stored trace', () => {
+    for (const ability of ABILITY_SWEEP) {
+      const live = runFor(ability);
+      const replayed = replaySession('4-5', live.trace, { hardItemCap: 400 });
+      for (const area of AREAS) {
+        expect(replayed.areas[area].difficulty, `ability ${ability} / ${area}`).toBe(
+          live.state.areas[area].difficulty,
+        );
+      }
+    }
+  });
+
+  it.each(AGE_BAND_BIAS_PERTURBATIONS)(
+    'is not on a knife edge: the sweep still lands with ageBandBias %s',
+    (ageBandBias) => {
+      // The default (0.5) sits inside a plateau, not on a lucky point. Outside it the fix decays
+      // smoothly rather than snapping: 1.5 reopens one breach, and anything wider than the
+      // selection window reopens all five.
+      const breaches: string[] = [];
+      for (const ability of ABILITY_SWEEP) {
+        const { state } = runRealBankSession(
+          '4-5',
+          equalAbility(ability),
+          { hardItemCap: 400, ageBandBias },
+          real,
+        );
+        for (const area of AREAS) {
+          const error = Math.abs(state.areas[area].difficulty - ability);
+          if (error > ESTIMATE_TOLERANCE) {
+            breaches.push(`ability ${ability} / ${area} off by ${error.toFixed(2)}`);
+          }
+        }
+      }
+      expect(breaches).toEqual([]);
+    },
+  );
 });

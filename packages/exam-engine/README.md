@@ -20,7 +20,9 @@ gradeBand ─► startState ─► nextType ─► nextItem ─► ServedItem
 - `nextType(state, banks)` — pick the next question type for even area spread + core-metric
   coverage, preferring types whose `ageBands` include the current band. Returns `null` when done.
 - `nextItem(state, typeCode, banks)` — choose the unseen bank item whose difficulty is closest to
-  the current area difficulty (respects `±difficultyWindow`; prefers age-band match).
+  the current area difficulty (respects `±difficultyWindow`). An item outside the child's grade
+  band pays an `ageBandBias` penalty in scale points, so the age band breaks ties between
+  comparably targeted items but does not override targeting (D-025).
 - `update(state, scored)` — move the area difficulty by `direction × magnitude` (gradual `±0.4..1.0`,
   `M-ERRTYPE` near-miss softens wrong answers), clamp `1..20`, update the accuracy/estimate windows
   and metric counts.

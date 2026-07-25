@@ -334,6 +334,53 @@ describe('nextItem', () => {
     expect(second.itemId).toBe('T#9');
   });
 
+  /*
+   * D-025. Age-band tagging used to outrank targeting outright, so an area whose estimate had
+   * moved past the band's item supply was served items 2-3 points off target for the rest of the
+   * session. `ageBandBias` prices that preference in scale points instead.
+   */
+  const biasBanks: Banks = {
+    types: [{ typeCode: 'T', domain: 'fluid_reasoning', ageBands: ['4-5'], metrics: ['M-ACC'] }],
+    items: ([
+      [11, ['4-5'] as AgeBand[]], // on target for a '4-5' seed, but tagged for an older band below
+      [11, ['6-8'] as AgeBand[]],
+      [9, ['4-5'] as AgeBand[]],
+    ] as [number, AgeBand[]][]).map<BankItem>(([difficulty, ageBands], i) => ({
+      itemId: `B${i}`,
+      typeCode: 'T',
+      domain: 'fluid_reasoning',
+      difficulty,
+      ageBands,
+      content: {},
+      answer: { correctKey: 'A' },
+      scoring: { mode: 'deterministic_key' },
+      provenance: { generator: 'grammar' },
+      syntheticOnly: true,
+      validated: false,
+    })),
+  };
+
+  it('prefers the better-targeted item over an age-band match at the default bias', () => {
+    // Estimate 11; the off-band item sits on it, the band-matched one is 2 points away.
+    const state = startState('4-5', { ageBandBias: DEFAULT_CONFIG.ageBandBias });
+    const items = biasBanks.items.filter((it) => it.itemId !== 'B0'); // drop the on-target match
+    expect(nextItem(state, 'T', { ...biasBanks, items }).itemId).toBe('B1');
+  });
+
+  it('breaks a targeting tie toward the age-band match', () => {
+    const state = startState('4-5');
+    const items = biasBanks.items.filter((it) => it.difficulty === 11);
+    expect(nextItem(state, 'T', { ...biasBanks, items }).itemId).toBe('B0');
+  });
+
+  it('lets a large bias restore the pre-D-025 rule, where the band always wins', () => {
+    // The knob generalises the rule it replaces rather than replacing it: any bias wider than the
+    // selection window reproduces "age-band match first, closeness second" exactly.
+    const state = startState('4-5', { ageBandBias: 1000 });
+    const items = biasBanks.items.filter((it) => it.itemId !== 'B0');
+    expect(nextItem(state, 'T', { ...biasBanks, items }).itemId).toBe('B2');
+  });
+
   it('throws when the type is unknown or exhausted', () => {
     let state = startState('4-5');
     expect(() => nextItem(state, 'NOPE', tinyBanks)).toThrow(UnknownTypeError);
