@@ -24,6 +24,7 @@ import {
   wizardReducer,
 } from '@/lib/family/wizard-reducer';
 import { STEP_ORDER, type WizardState } from '@/lib/family/wizard-types';
+import { isStaleServerActionError, reloadForStaleServerAction } from '@/lib/stale-action-reload';
 
 import { LockedReview } from './locked-review';
 import { PageFade } from './page-fade';
@@ -83,8 +84,25 @@ export function ApplyWizard({ preview = false, basePath = '/family' }: ApplyWiza
   // once submitted, show the locked read-only review until the family chooses
   // to make edits (which re-opens the editable wizard)
   const [editing, setEditing] = useState(false);
+  // hold the first paint until the resume check resolves, so a submitted
+  // application opens straight into the locked view instead of flashing the
+  // editable form and then swapping. preview has nothing to resume from the
+  // backend, so it renders immediately.
+  const [resumeChecked, setResumeChecked] = useState(preview);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
   const inFlight = useRef(false);
+  // Authoritative, synchronously-updated versions for optimistic concurrency.
+  // React state lags (batched updates + passive effects), so autosave and submit
+  // coordinate through this ref rather than `state.meta` — reading a stale
+  // expectedVersion from the render closure is what caused STALE_VERSION on
+  // submit. Updated in place the instant the server confirms each save, and
+  // reset on resume/hydrate.
+  const versionsRef = useRef({
+    profileVersion: state.meta.profileVersion,
+    studentProfileVersionId: state.meta.studentProfileVersionId,
+    applicationVersion: state.meta.applicationVersion,
+    applicationVersionId: state.meta.applicationVersionId,
+  });
 
   const overall = useMemo(() => overallProgress(state), [state]);
   const doneCount = STEP_ORDER.filter((step) => isSectionComplete(state, step)).length;
@@ -103,19 +121,19 @@ export function ApplyWizard({ preview = false, basePath = '/family' }: ApplyWiza
       inFlight.current = true;
       dispatch({ type: 'setSaveState', saveState: 'saving' });
       try {
-        let profileVersionId = snapshot.meta.studentProfileVersionId;
-        let profileVersion = snapshot.meta.profileVersion;
-
-        // 1) ensure a saved profile version exists / is current
+        // 1) ensure a saved profile version exists / is current. expectedVersion
+        // comes from the ref (server-confirmed), never the possibly-stale snapshot.
         const profileResult = await saveStudentProfileAction({
           profileId: snapshot.meta.profileId,
           profile: toStudentProfileContent(snapshot),
-          expectedVersion: profileVersion,
+          expectedVersion: versionsRef.current.profileVersion,
           idempotencyKey: newUuid(),
           correlationId: snapshot.meta.correlationId,
         });
-        profileVersionId = profileResult.data.profile.profileVersionId;
-        profileVersion = profileResult.data.profile.version;
+        const profileVersionId = profileResult.data.profile.profileVersionId;
+        const profileVersion = profileResult.data.profile.version;
+        versionsRef.current.profileVersion = profileVersion;
+        versionsRef.current.studentProfileVersionId = profileVersionId;
         dispatch({
           type: 'profileSaved',
           profileVersion,
@@ -127,10 +145,13 @@ export function ApplyWizard({ preview = false, basePath = '/family' }: ApplyWiza
           applicationId: snapshot.meta.applicationId,
           studentProfileVersionId: profileVersionId,
           draft: toApplicationDraft(snapshot, { includeFinalSubmission: false }),
-          expectedVersion: snapshot.meta.applicationVersion,
+          expectedVersion: versionsRef.current.applicationVersion,
           idempotencyKey: newUuid(),
           correlationId: snapshot.meta.correlationId,
         });
+        versionsRef.current.applicationVersion = draftResult.data.application.version;
+        versionsRef.current.applicationVersionId =
+          draftResult.data.application.applicationVersionId;
         dispatch({
           type: 'draftSaved',
           applicationVersion: draftResult.data.application.version,
@@ -144,6 +165,11 @@ export function ApplyWizard({ preview = false, basePath = '/family' }: ApplyWiza
         dispatch({ type: 'setSaveState', saveState: 'saved' });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'SAVE_FAILED';
+        // tab left open across a deploy: reload to pick up the fresh bundle
+        if (isStaleServerActionError(message)) {
+          reloadForStaleServerAction();
+          return;
+        }
         dispatch({ type: 'setSaveState', saveState: 'error', error: message });
       } finally {
         inFlight.current = false;
@@ -172,27 +198,38 @@ export function ApplyWizard({ preview = false, basePath = '/family' }: ApplyWiza
   useEffect(() => {
     if (resumeTried.current || preview) return;
     resumeTried.current = true;
-    const stored = readStoredApplication();
-    if (!stored) return;
     void (async () => {
-      try {
-        const result = await getApplicationAction({
-          applicationId: stored.applicationId,
-          correlationId: state.meta.correlationId,
-        });
-        const hydrated = hydrateWizardState(
-          createInitialWizardState({
-            profileId: stored.profileId,
+      const stored = readStoredApplication();
+      if (stored) {
+        try {
+          const result = await getApplicationAction({
             applicationId: stored.applicationId,
             correlationId: state.meta.correlationId,
-          }),
-          result.data.profile,
-          result.data.application,
-        );
-        dispatch({ type: 'hydrate', state: hydrated });
-      } catch {
-        // no resumable application (e.g. fresh id) — keep the empty form
+          });
+          const hydrated = hydrateWizardState(
+            createInitialWizardState({
+              profileId: stored.profileId,
+              applicationId: stored.applicationId,
+              correlationId: state.meta.correlationId,
+            }),
+            result.data.profile,
+            result.data.application,
+          );
+          dispatch({ type: 'hydrate', state: hydrated });
+          // keep the concurrency ref in step with the resumed versions
+          versionsRef.current = {
+            profileVersion: hydrated.meta.profileVersion,
+            studentProfileVersionId: hydrated.meta.studentProfileVersionId,
+            applicationVersion: hydrated.meta.applicationVersion,
+            applicationVersionId: hydrated.meta.applicationVersionId,
+          };
+        } catch {
+          // no resumable application (e.g. fresh id) — keep the empty form
+        }
       }
+      // reveal the resolved view (locked or editable) only now that we know —
+      // for a fresh applicant with nothing stored this resolves immediately
+      setResumeChecked(true);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -217,22 +254,65 @@ export function ApplyWizard({ preview = false, basePath = '/family' }: ApplyWiza
       router.push(dashboardHref);
       return;
     }
+    // Drop any queued autosave so it can't race the inline save below, and wait
+    // out an autosave that is mid-flight (it owns `inFlight`).
+    debouncedSave.cancel();
+    while (inFlight.current) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    inFlight.current = true;
+    // Read the freshest state now that any in-flight autosave has settled. The
+    // versions come from `versionsRef` (server-confirmed, updated synchronously),
+    // never the render closure: a just-finished autosave advances them via
+    // dispatch, but this function closed over the older `state`, so trusting
+    // `state.meta.*` sent a stale expectedVersion → STALE_VERSION (surfaced as
+    // the generic Server Components render error).
+    const snapshot = lastSnapshot.current;
     try {
+      // Persist the profile inline and use the version id it returns. Submit must
+      // NOT trust a debounced autosave's id/version: completing the last field and
+      // submitting within the 1.2s debounce (or after an autosave error) left them
+      // stale/missing, so the draft save bound to a version the backend couldn't
+      // resolve (RESOURCE_NOT_FOUND) or rejected as STALE_VERSION.
+      const profileResult = await saveStudentProfileAction({
+        profileId: snapshot.meta.profileId,
+        profile: toStudentProfileContent(snapshot),
+        expectedVersion: versionsRef.current.profileVersion,
+        idempotencyKey: newUuid(),
+        correlationId: snapshot.meta.correlationId,
+      });
+      const profileVersionId = profileResult.data.profile.profileVersionId;
+      versionsRef.current.profileVersion = profileResult.data.profile.version;
+      versionsRef.current.studentProfileVersionId = profileVersionId;
+      dispatch({
+        type: 'profileSaved',
+        profileVersion: profileResult.data.profile.version,
+        studentProfileVersionId: profileVersionId,
+      });
+
       // save the final submission block as a draft, then submit that version
       const draftResult = await saveApplicationDraftAction({
-        applicationId: state.meta.applicationId,
-        studentProfileVersionId: state.meta.studentProfileVersionId!,
-        draft: toApplicationDraft(state, { includeFinalSubmission: true }),
-        expectedVersion: state.meta.applicationVersion,
+        applicationId: snapshot.meta.applicationId,
+        studentProfileVersionId: profileVersionId,
+        draft: toApplicationDraft(snapshot, { includeFinalSubmission: true }),
+        expectedVersion: versionsRef.current.applicationVersion,
         idempotencyKey: newUuid(),
-        correlationId: state.meta.correlationId,
+        correlationId: snapshot.meta.correlationId,
       });
+      versionsRef.current.applicationVersion = draftResult.data.application.version;
+      versionsRef.current.applicationVersionId = draftResult.data.application.applicationVersionId;
       const versionId = draftResult.data.application.applicationVersionId;
       await submitApplicationAction({
         applicationVersionId: versionId,
         expectedVersion: draftResult.data.application.version,
         idempotencyKey: newUuid(),
-        correlationId: state.meta.correlationId,
+        correlationId: snapshot.meta.correlationId,
+      });
+      // persist the ids so a reload can rehydrate the locked view even when no
+      // autosave ever succeeded (submit owns the save in the race case)
+      storeApplication({
+        profileId: snapshot.meta.profileId,
+        applicationId: snapshot.meta.applicationId,
       });
       dispatch({ type: 'submitted' });
       setEditing(false);
@@ -243,8 +323,15 @@ export function ApplyWizard({ preview = false, basePath = '/family' }: ApplyWiza
         router.push(dashboardHref);
         return;
       }
+      // tab left open across a deploy: reload to pick up the fresh bundle, then
+      // the family can re-submit against matching action ids
+      if (isStaleServerActionError(message)) {
+        reloadForStaleServerAction();
+        return;
+      }
       setSubmitError(message);
     } finally {
+      inFlight.current = false;
       setSubmitting(false);
     }
   }
@@ -257,6 +344,18 @@ export function ApplyWizard({ preview = false, basePath = '/family' }: ApplyWiza
     FINANCIAL_INTAKE: <StepFinancialIntake state={state} dispatch={dispatch} />,
     REVIEW_SIGNATURE: <StepReviewSignature state={state} dispatch={dispatch} />,
   } as const;
+
+  // wait out the resume check before deciding what to render — this is what
+  // prevents the editable form from flashing ahead of the locked view.
+  if (!resumeChecked) {
+    return (
+      <PageFade key="loading">
+        <div className={styles.loading} role="status" aria-live="polite">
+          Loading your application…
+        </div>
+      </PageFade>
+    );
+  }
 
   // after submission, show the locked read-only answers until "Make edits".
   // key the fade wrapper so switching views cross-fades instead of hard-cutting.
@@ -278,9 +377,14 @@ export function ApplyWizard({ preview = false, basePath = '/family' }: ApplyWiza
               GT<span className={styles.school}> SCHOOL</span>
             </span>
           </div>
-          <a className={styles.backToPortal} href={dashboardHref}>
-            ← Back to portal
-          </a>
+          {/* Only offer an exit once every section is complete — an application
+              viewed from the portal should always be fully filled out, so we
+              don't let anyone leave the wizard mid-way. */}
+          {doneCount === STEP_ORDER.length ? (
+            <a className={styles.backToPortal} href={dashboardHref}>
+              ← Back to portal
+            </a>
+          ) : null}
           <nav className={styles.nav} aria-label="Application sections">
             {STEP_META.map((meta, index) => {
               const done = isSectionComplete(state, meta.code);
@@ -314,8 +418,8 @@ export function ApplyWizard({ preview = false, basePath = '/family' }: ApplyWiza
           <p className={styles.eyebrow}>Family application · Fall 2027</p>
           <h1 className={styles.title}>Let’s complete your application</h1>
           <p className={styles.intro}>
-            Everything saves as you go. Scroll through each section — you can jump back anytime from
-            the left.
+            Everything saves as you go. Scroll through each section, and jump back anytime from the
+            left.
           </p>
           {state.saveState === 'error' ? (
             <p className={styles.saveError} role="status">

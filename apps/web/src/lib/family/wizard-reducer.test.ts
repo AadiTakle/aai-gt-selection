@@ -1,6 +1,11 @@
+import {
+  syntheticApplicationDraft,
+  syntheticStudentProfile,
+  syntheticTrackBApplication,
+} from '@gt-selection/test-fixtures';
 import { describe, expect, it } from 'vitest';
 
-import { createInitialWizardState, wizardReducer } from './wizard-reducer';
+import { createInitialWizardState, hydrateWizardState, wizardReducer } from './wizard-reducer';
 
 function seed() {
   return createInitialWizardState({
@@ -38,6 +43,48 @@ describe('wizardReducer', () => {
     });
     expect(next.meta.applicationVersion).toBe(3);
     expect(next.meta.applicationVersionId).toBe('55555555-5555-4555-8555-555555555555');
+  });
+
+  it('hydrates the submitted flag from the application state so a reload stays locked', () => {
+    // a submitted application must resume into the read-only LockedReview, not
+    // the editable wizard
+    const submitted = hydrateWizardState(
+      seed(),
+      syntheticStudentProfile,
+      syntheticTrackBApplication,
+    );
+    expect(submitted.submitted).toBe(true);
+
+    const draft = hydrateWizardState(seed(), syntheticStudentProfile, syntheticApplicationDraft);
+    expect(draft.submitted).toBe(false);
+  });
+
+  it('rehydrates the signature from a submitted application so Make edits keeps it', () => {
+    // finalSubmission carries the signature; the family shouldn't have to re-sign
+    const state = hydrateWizardState(seed(), syntheticStudentProfile, syntheticTrackBApplication);
+    const fs = syntheticTrackBApplication.finalSubmission;
+    expect(state.signature.accuracyAcknowledged).toBe(fs.accuracyAcknowledged);
+    expect(state.signature.referralSourceCode).toBe(fs.referralSourceCode);
+    // signature name is stripped of the synthetic prefix for display
+    expect(state.signature.signatureName).toBe('Guardian One');
+  });
+
+  it('round-trips a verbatim guardian name through hydrate', () => {
+    const profileWithGuardian = {
+      ...syntheticStudentProfile,
+      household: { ...syntheticStudentProfile.household, guardianName: 'Jordan Rivera' },
+    };
+    const state = hydrateWizardState(seed(), profileWithGuardian, syntheticApplicationDraft);
+    // real name, stored verbatim — no prefix strip
+    expect(state.household.guardianName).toBe('Jordan Rivera');
+
+    // absent guardian name hydrates to an empty string (back-compat)
+    const noGuardian = hydrateWizardState(
+      seed(),
+      syntheticStudentProfile,
+      syntheticApplicationDraft,
+    );
+    expect(noGuardian.household.guardianName).toBe('');
   });
 
   it('records save errors', () => {

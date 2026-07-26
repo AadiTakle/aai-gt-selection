@@ -40,6 +40,7 @@ export function createInitialWizardState(seed: {
   return {
     student: { name: '', dateOfBirth: '', genderCode: '' },
     household: {
+      guardianName: '',
       guardianRelationshipCode: '',
       address: { ...EMPTY_ADDRESS },
       hasPriorGtRelative: false,
@@ -108,6 +109,9 @@ export function hydrateWizardState(
   hydrated.meta.studentProfileVersionId = profile.profileVersionId;
   hydrated.meta.applicationVersion = application.version;
   hydrated.meta.applicationVersionId = application.applicationVersionId;
+  // a submitted application must resume into the locked read-only view, not the
+  // editable form — the backend is the source of truth for submitted-ness
+  hydrated.submitted = application.state === 'submitted';
 
   hydrated.student = {
     name: fromSyntheticName(profile.student.fullName),
@@ -116,6 +120,9 @@ export function hydrateWizardState(
   };
   const addr = profile.household.primaryAddress;
   hydrated.household = {
+    // guardian name is stored verbatim (real value, not born-synthetic), so it
+    // rehydrates as-is — no fromSyntheticName strip
+    guardianName: profile.household.guardianName ?? '',
     guardianRelationshipCode: profile.household.guardianRelationshipCode,
     address: {
       street1: fromSyntheticName(addr.line1),
@@ -183,6 +190,17 @@ export function hydrateWizardState(
       annualHouseholdIncomeDollars: (fi.annualHouseholdIncomeMinor / 100).toString(),
       currencyCode: fi.currencyCode,
       householdMemberCount: fi.householdMemberCount,
+    };
+  }
+  // restore the signature from the submitted final-submission block so "Make
+  // edits" → re-submit doesn't force the family to re-sign. The name is stored
+  // born-synthetic, so strip the prefix for display.
+  if (application.finalSubmission) {
+    const fs = application.finalSubmission;
+    hydrated.signature = {
+      accuracyAcknowledged: fs.accuracyAcknowledged,
+      referralSourceCode: fs.referralSourceCode,
+      signatureName: fromSyntheticName(fs.signatureName),
     };
   }
   return hydrated;

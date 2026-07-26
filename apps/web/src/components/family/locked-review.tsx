@@ -85,6 +85,7 @@ export function LockedReview({
 
       <section className={styles.card}>
         <div className={styles.lockBar}>Family &amp; language</div>
+        <Row label="Parent / guardian" value={household.guardianName} />
         <Row
           label="Relationship"
           value={labelForCode(RELATIONSHIPS, household.guardianRelationshipCode)}
