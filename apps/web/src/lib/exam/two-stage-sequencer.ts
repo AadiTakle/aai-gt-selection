@@ -19,18 +19,22 @@ import type { ExamItemResult } from './types';
  *   cleanly BELOW their limit with difficulty minimised. Insight 2: to find the
  *   limit, do NOT ramp-to-failure (that inflates rapid-guessing, anxiety, and
  *   effort loss) — BRACKET it and close in from both sides. So Phase 1 runs the
- *   single-select accuracy pool and, per domain, binary-searches the difficulty
- *   rungs: start moderate, then move toward the midpoint of the known-correct /
- *   known-incorrect bracket. It stops a domain on a precision rule (the bracket
- *   can't be narrowed further with the remaining items) OR a per-domain item cap,
- *   whichever comes first, and records the estimated per-domain level.
+ *   pool of items tagged `stage: 'standing'` and, per domain, binary-searches the
+ *   difficulty rungs: start moderate, then move toward the midpoint of the
+ *   known-correct / known-incorrect bracket. It stops a domain on a precision rule
+ *   (the bracket can't be narrowed further with the remaining items) OR a
+ *   per-domain item cap, whichever comes first, and records the estimated level.
  *
  *   Phase 2 — LEARNING-RATE (effort). Insight 3: desirable difficulty hurts a
  *   standing estimate but is exactly what surfaces learning-rate. Once every
- *   domain's Phase-1 estimate is fixed, Phase 2 presents the effort/interactive
- *   (embedded-demo) task whose difficulty rung is NEAREST that estimate — hard
- *   enough to struggle, still learnable — where engagement/telemetry, not a
- *   single right/wrong, is the signal. It stops on a per-domain Phase-2 cap.
+ *   domain's Phase-1 estimate is fixed, Phase 2 presents the item tagged
+ *   `stage: 'effort'` whose difficulty rung is NEAREST that estimate — hard enough
+ *   to struggle, still learnable — where engagement/telemetry, not a single
+ *   right/wrong, is the signal. It stops on a per-domain Phase-2 cap.
+ *
+ * Regimes are split by the explicit STAGE TAG, not by `renderKind`: every item in
+ * the two-stage bank renders as the same `embedded-demo`, and what a type measures
+ * (standing vs effort) is independent of how it renders.
  *
  * Purity: `next()` is a pure function of the context (bank + what has been
  * presented + results so far), exactly like `FixedSequencer`. It keeps NO hidden
@@ -149,12 +153,30 @@ function zipPresented(
   return presentedItems.map((item, i) => ({ item, result: results[i] }));
 }
 
+/**
+ * Regime membership is decided by the explicit {@link ExamStage} tag on each item
+ * — a property of WHAT the item measures — NOT by `renderKind` (all two-stage
+ * items render as the same `embedded-demo`). This is the whole point of the
+ * stage-tag refactor: standing vs effort is a construct decision, not a rendering
+ * one.
+ */
 function isStanding(item: BankItem): boolean {
-  return item.renderKind === 'single-select';
+  return item.stage === 'standing';
 }
 function isEffort(item: BankItem): boolean {
-  return item.renderKind === 'embedded-demo';
+  return item.stage === 'effort';
 }
+
+/**
+ * A STANDING probe counts as "cleared" (raises the correct floor) when its
+ * harvested accuracy is at or above this threshold, and as "missed" (lowers the
+ * incorrect ceiling) below it. Standing items are self-scoring embedded demos that
+ * report fractional M-ACC rather than a single keyed right/wrong, so the bracket
+ * needs a legible cut instead of exact 1/0. 0.5 = "cleared at least half" — an
+ * honest, uncalibrated stand-in (validated=false), consistent with the ordinal-rung
+ * framing. It reduces to the old behaviour for exactly-1 / exactly-0 accuracy.
+ */
+const STANDING_CORRECT_THRESHOLD = 0.5;
 
 /** Distinct domains present in a pool, in canonical rotation order (then any extras). */
 function orderedDomains(pool: readonly BankItem[]): ExamDomain[] {
@@ -254,12 +276,12 @@ function computeStanding(
     presented += 1;
     const acc = rec.result?.accuracy ?? null;
     const rung = rec.item.difficultyLevel;
-    if (acc === 1) {
+    if (acc != null && acc >= STANDING_CORRECT_THRESHOLD) {
       floorCorrect = floorCorrect == null ? rung : Math.max(floorCorrect, rung);
-    } else if (acc === 0) {
+    } else if (acc != null) {
       ceilingIncorrect = ceilingIncorrect == null ? rung : Math.min(ceilingIncorrect, rung);
     }
-    // skipped / unscored → no bound update (but it still counts toward the cap)
+    // skipped / unscored (null accuracy) → no bound update (but still counts toward the cap)
   }
 
   const estimate =

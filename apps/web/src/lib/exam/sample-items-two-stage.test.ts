@@ -9,6 +9,7 @@ import {
 
 const bank = syntheticTwoStageBank();
 const DOMAINS = ['fluid_reasoning', 'verbal', 'quantitative', 'spatial'] as const;
+const DEMO_PATH = /^\/exam-demos\/[A-Za-z0-9-]+\.html$/;
 
 describe('two-stage synthetic bank — schema + provenance', () => {
   it('every item validates against the canonical bank item schema', () => {
@@ -28,18 +29,30 @@ describe('two-stage synthetic bank — schema + provenance', () => {
     expect(new Set(bank.map((i) => i.itemId)).size).toBe(bank.length);
     expect(new Set(bank.map((i) => i.typeCode)).size).toBe(bank.length);
   });
+
+  it('splits the regimes by the STAGE TAG, not by renderKind (every item is embedded-demo)', () => {
+    for (const item of bank) {
+      expect(item.renderKind).toBe('embedded-demo');
+      expect(item.stage === 'standing' || item.stage === 'effort').toBe(true);
+    }
+    expect(TWO_STAGE_STANDING_ITEMS.every((i) => i.stage === 'standing')).toBe(true);
+    expect(TWO_STAGE_EFFORT_ITEMS.every((i) => i.stage === 'effort')).toBe(true);
+  });
+
+  it('uses REAL catalog type codes whose demoPath is derived from the type code', () => {
+    for (const item of bank) {
+      // e.g. FLU-MATRIX-01, CX-figural-01, GB-WORDFORGE-01, QUANT-DOTS-01
+      expect(item.typeCode).toMatch(/^[A-Z]+-[A-Za-z0-9]+-\d+$/);
+      expect(item.demoPath).toBe(`/exam-demos/${item.typeCode}.html`);
+    }
+  });
 });
 
 describe('two-stage synthetic bank — Phase-1 standing pool', () => {
-  it('is all single-select accuracy items', () => {
-    for (const item of TWO_STAGE_STANDING_ITEMS) expect(item.renderKind).toBe('single-select');
-  });
-
-  it('has exactly one keyed-correct option per item', () => {
+  it('is entirely tagged stage:"standing" and rendered as embedded-demo', () => {
     for (const item of TWO_STAGE_STANDING_ITEMS) {
-      const key = item.answer.correctIndex;
-      expect(typeof key).toBe('number');
-      expect(item.content.options[key!]).toBeDefined();
+      expect(item.stage).toBe('standing');
+      expect(item.renderKind).toBe('embedded-demo');
     }
   });
 
@@ -52,11 +65,20 @@ describe('two-stage synthetic bank — Phase-1 standing pool', () => {
       expect(new Set(rungs).size).toBe(rungs.length);
     }
   });
+
+  it('points every standing item at a real /exam-demos runtime path', () => {
+    for (const item of TWO_STAGE_STANDING_ITEMS) {
+      expect(item.demoPath).toMatch(DEMO_PATH);
+    }
+  });
 });
 
 describe('two-stage synthetic bank — Phase-2 effort pool', () => {
-  it('is all embedded-demo interactive items', () => {
-    for (const item of TWO_STAGE_EFFORT_ITEMS) expect(item.renderKind).toBe('embedded-demo');
+  it('is entirely tagged stage:"effort" and rendered as embedded-demo', () => {
+    for (const item of TWO_STAGE_EFFORT_ITEMS) {
+      expect(item.stage).toBe('effort');
+      expect(item.renderKind).toBe('embedded-demo');
+    }
   });
 
   it('offers a spread of rungs per domain so targeting is meaningful', () => {
@@ -70,10 +92,7 @@ describe('two-stage synthetic bank — Phase-2 effort pool', () => {
 
   it('points every effort item at a real /exam-demos runtime path', () => {
     for (const item of TWO_STAGE_EFFORT_ITEMS) {
-      expect(item.renderKind).toBe('embedded-demo');
-      if (item.renderKind === 'embedded-demo') {
-        expect(item.demoPath).toMatch(/^\/exam-demos\/[A-Z0-9-]+\.html$/);
-      }
+      expect(item.demoPath).toMatch(DEMO_PATH);
     }
   });
 });

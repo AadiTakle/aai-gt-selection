@@ -9,24 +9,27 @@ import { planFromResults, TwoStageSequencer } from './two-stage-sequencer';
 const bank = syntheticTwoStageBank();
 
 /**
- * A synthetic "player + child" for the pure shell loop. Standing (single-select)
- * items are answered correctly iff the item's rung is at/below the domain ceiling,
- * so the bracket must localise each ceiling. Effort (embedded-demo) items report
- * self-scored telemetry, never a routing signal for Phase 2.
+ * A synthetic "player + child" for the pure shell loop. Every two-stage item now
+ * renders as a self-scoring embedded-demo, so we branch on the STAGE TAG, not
+ * `renderKind`. STANDING items report a keyed-style M-ACC (100% iff the item's rung
+ * is at/below the domain ceiling), so the bracket must localise each ceiling.
+ * EFFORT items report self-scored process telemetry that is never a routing signal.
  */
 function childWithCeilings(ceilings: Partial<Record<ExamDomain, number>>) {
   return (_served: unknown, item: BankItem): PlayerOutcome => {
-    if (item.renderKind === 'single-select') {
+    if (item.stage === 'standing') {
       const ceiling = ceilings[item.domain] ?? 0;
       const correct = item.difficultyLevel <= ceiling;
-      const key = item.answer.correctIndex!;
-      const optionCount = item.content.options.length;
-      const selectedIndex = correct ? key : (key + 1) % optionCount;
-      return { response: { selectedIndex }, telemetry: {}, responseTimeMs: 800, skipped: false };
+      return {
+        response: null,
+        telemetry: { 'M-ACC': correct ? '1/1  100%' : '0/1  0%' },
+        responseTimeMs: 800,
+        skipped: false,
+      };
     }
     return {
       response: null,
-      telemetry: { 'M-ACC': '3/6  50%', 'M-DIFFREACH': 'L7 · 2 rules', 'M-EFFORT': 'engaged' },
+      telemetry: { 'M-ACC': '3/6  50%', 'M-DIFFREACH': 'L7 · 2 rules', 'M-LEARNRATE': '+2 rungs' },
       responseTimeMs: 4200,
       skipped: false,
     };
@@ -34,22 +37,18 @@ function childWithCeilings(ceilings: Partial<Record<ExamDomain, number>>) {
 }
 
 function alwaysCorrect(_served: unknown, item: BankItem): PlayerOutcome {
-  if (item.renderKind === 'single-select') {
-    return {
-      response: { selectedIndex: item.answer.correctIndex! },
-      telemetry: {},
-      responseTimeMs: 700,
-      skipped: false,
-    };
+  if (item.stage === 'standing') {
+    return { response: null, telemetry: { 'M-ACC': '1/1  100%' }, responseTimeMs: 700, skipped: false };
   }
   return { response: null, telemetry: { 'M-ACC': '6/6 100%' }, responseTimeMs: 3000, skipped: false };
 }
 
+// Standing rungs per domain are 2/6/10/14. Child is correct iff rung <= ceiling.
 const CEILINGS: Partial<Record<ExamDomain, number>> = {
-  fluid_reasoning: 8, // correct 2,5,8 → floor 8, ceiling 11 → estimate 9.5
-  verbal: 5, // correct 2,5 → floor 5, ceiling 8 → estimate 6.5
-  quantitative: 11, // correct 2,5,8,11 → floor 11, ceiling 14 → estimate 12.5
-  spatial: 2, // correct 2 → floor 2, ceiling 5 → estimate 3.5
+  fluid_reasoning: 10, // correct 2,6,10 → floor 10, ceiling 14 → estimate 12
+  verbal: 6, // correct 2,6 → floor 6, ceiling 10 → estimate 8
+  quantitative: 14, // correct 2,6,10,14 → floor 14, no ceiling → estimate 14
+  spatial: 3, // correct 2 → floor 2, ceiling 6 → estimate 4
 };
 
 describe('TwoStageSequencer — interface conformance', () => {
@@ -65,8 +64,9 @@ describe('TwoStageSequencer — interface conformance', () => {
     const a = seq.next({ bank, presentedItemIds: [], results: [] });
     const b = seq.next({ bank, presentedItemIds: [], results: [] });
     expect(a?.itemId).toBe(b?.itemId);
-    // First probe is a STANDING item at a moderate rung, never an effort item.
-    expect(a?.renderKind).toBe('single-select');
+    // First probe is a STANDING-tagged item at a moderate rung, never an effort item.
+    expect(a?.stage).toBe('standing');
+    expect(a?.renderKind).toBe('embedded-demo');
   });
 });
 
@@ -102,23 +102,23 @@ describe('TwoStageSequencer — bracketing standing estimate (Insight 2, close i
   const byDomain = new Map(plan.standings.map((s) => [s.domain, s]));
 
   it('localises each domain ceiling by bracketing (not ramp-to-failure)', () => {
-    expect(byDomain.get('fluid_reasoning')?.estimate).toBe(9.5);
-    expect(byDomain.get('verbal')?.estimate).toBe(6.5);
-    expect(byDomain.get('quantitative')?.estimate).toBe(12.5);
-    expect(byDomain.get('spatial')?.estimate).toBe(3.5);
+    expect(byDomain.get('fluid_reasoning')?.estimate).toBe(12);
+    expect(byDomain.get('verbal')?.estimate).toBe(8);
+    expect(byDomain.get('quantitative')?.estimate).toBe(14);
+    expect(byDomain.get('spatial')?.estimate).toBe(4);
   });
 
   it('records the correct floor/ceiling bounds per domain', () => {
-    expect(byDomain.get('fluid_reasoning')).toMatchObject({ floorCorrect: 8, ceilingIncorrect: 11 });
-    expect(byDomain.get('spatial')).toMatchObject({ floorCorrect: 2, ceilingIncorrect: 5 });
+    expect(byDomain.get('fluid_reasoning')).toMatchObject({ floorCorrect: 10, ceilingIncorrect: 14 });
+    expect(byDomain.get('spatial')).toMatchObject({ floorCorrect: 2, ceilingIncorrect: 6 });
   });
 
   it('never presents two-sided-bracket domains more than needed (precision stop, under the cap)', () => {
-    // fluid/verbal localise in 2 probes; quant/spatial in 3 — all < cap (4).
-    expect(byDomain.get('fluid_reasoning')?.presented).toBe(2);
+    // verbal/spatial localise in 2 probes; fluid/quant in 3 — all < cap (4).
+    expect(byDomain.get('fluid_reasoning')?.presented).toBe(3);
     expect(byDomain.get('verbal')?.presented).toBe(2);
     expect(byDomain.get('quantitative')?.presented).toBe(3);
-    expect(byDomain.get('spatial')?.presented).toBe(3);
+    expect(byDomain.get('spatial')?.presented).toBe(2);
     for (const s of plan.standings) expect(s.stopReason).toBe('bracketed');
   });
 });
@@ -130,22 +130,23 @@ describe('TwoStageSequencer — ability-targeted effort routing (Insight 3, desi
   const placementByDomain = new Map(plan.placements.map((p) => [p.domain, p]));
 
   it('places each Phase-2 effort task at the rung nearest the Phase-1 estimate', () => {
-    // estimate 9.5 → nearest of {4,8,12} = 8; 6.5 → 8; 12.5 → 12; 3.5 → 4.
-    expect(placementByDomain.get('fluid_reasoning')?.chosenRung).toBe(8);
+    // estimate 12 → nearest of {4,8,12} = 12; 8 → 8; 14 → 12; 4 → 4.
+    expect(placementByDomain.get('fluid_reasoning')?.chosenRung).toBe(12);
     expect(placementByDomain.get('verbal')?.chosenRung).toBe(8);
     expect(placementByDomain.get('quantitative')?.chosenRung).toBe(12);
     expect(placementByDomain.get('spatial')?.chosenRung).toBe(4);
   });
 
   it('carries the targeted estimate on each placement (legible calibration)', () => {
-    expect(placementByDomain.get('quantitative')?.estimate).toBe(12.5);
-    expect(placementByDomain.get('spatial')?.estimate).toBe(3.5);
+    expect(placementByDomain.get('quantitative')?.estimate).toBe(14);
+    expect(placementByDomain.get('spatial')?.estimate).toBe(4);
   });
 
-  it('only ever presents effort items whose renderKind is embedded-demo', () => {
+  it('only ever presents effort items tagged stage:"effort"', () => {
     const effort = plan.presented.filter((p) => p.phase === 'learning-rate');
     for (const e of effort) {
       const item = bank.find((b) => b.itemId === e.itemId)!;
+      expect(item.stage).toBe('effort');
       expect(item.renderKind).toBe('embedded-demo');
     }
   });
@@ -160,8 +161,8 @@ describe('TwoStageSequencer — stop rules', () => {
       expect(s.presented).toBe(2);
       expect(s.stopReason).toBe('cap');
     }
-    // An always-correct child pushes the floor up; after 2 probes the floor is rung 11.
-    expect(plan.standings.every((s) => s.floorCorrect === 11)).toBe(true);
+    // An always-correct child pushes the floor up; after 2 probes (6→10) the floor is rung 10.
+    expect(plan.standings.every((s) => s.floorCorrect === 10)).toBe(true);
   });
 
   it('honours a larger Phase-2 cap per domain', () => {

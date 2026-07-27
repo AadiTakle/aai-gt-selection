@@ -318,7 +318,11 @@ export function TwoStageExam() {
   const currentStanding = currentItem
     ? plan.standings.find((s) => s.domain === currentItem.domain)
     : undefined;
-  const isEffortNow = currentItem?.renderKind === 'embedded-demo';
+  // Route the running-view label by the STAGE TAG, not renderKind (every item now
+  // renders as the same embedded-demo). Fall back to the plan's current phase.
+  const isEffortNow = currentItem
+    ? currentItem.stage === 'effort'
+    : runningPhase === 'learning-rate';
 
   return (
     <div className={shell.runWrap}>

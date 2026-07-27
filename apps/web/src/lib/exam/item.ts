@@ -50,6 +50,18 @@ export type LureClass = z.infer<typeof lureClassSchema>;
 export const renderKindSchema = z.enum(['single-select', 'embedded-demo']);
 export type RenderKind = z.infer<typeof renderKindSchema>;
 
+/**
+ * Stage tag for the proposed two-regime ("two-stage") screener structure. It marks
+ * WHAT an item measures — a child's current STANDING (accuracy/ceiling under low
+ * load) vs their LEARNING-RATE under desirable difficulty (EFFORT) — which is a
+ * property of the construct, NOT of how the item renders. It is deliberately
+ * distinct from {@link renderKindSchema}: two items can share a `renderKind` yet
+ * belong to different stages. Optional because only the two-stage bank + its
+ * pluggable sequencer route on it; the fixed-order demo bank leaves it unset.
+ */
+export const examStageSchema = z.enum(['standing', 'effort']);
+export type ExamStage = z.infer<typeof examStageSchema>;
+
 // --- Single-select typed content (author/bank side incl. lure tags) ----------
 
 export const singleSelectOptionSchema = z
@@ -146,6 +158,12 @@ const bankItemBase = {
   blurb: z.string().min(1),
   /** Ordinal design rung — NOT calibrated difficulty (spec §6.6). */
   difficultyLevel: z.number().int().min(1).max(20),
+  /**
+   * Optional two-regime stage tag (standing vs effort). Set by the two-stage
+   * bank so its sequencer can route by WHAT the item measures instead of by
+   * `renderKind`; unset for banks that do not use the two-stage structure.
+   */
+  stage: examStageSchema.optional(),
   syntheticOnly: z.literal(true),
   validated: z.literal(false),
 };
@@ -193,6 +211,8 @@ export interface ServedSingleSelect {
   title: string;
   blurb: string;
   difficultyLevel: number;
+  /** Two-regime stage tag, carried through so a two-stage UI can label the phase. */
+  stage?: ExamStage;
   content: SingleSelectRenderable;
 }
 
@@ -204,6 +224,8 @@ export interface ServedEmbeddedDemo {
   title: string;
   blurb: string;
   difficultyLevel: number;
+  /** Two-regime stage tag, carried through so a two-stage UI can label the phase. */
+  stage?: ExamStage;
   demoPath: string;
 }
 
@@ -222,6 +244,7 @@ export function toServedItem(item: BankItem): ServedItem {
     title: item.title,
     blurb: item.blurb,
     difficultyLevel: item.difficultyLevel,
+    ...(item.stage !== undefined ? { stage: item.stage } : {}),
   };
   if (item.renderKind === 'single-select') {
     return {
