@@ -19,3 +19,5 @@ export * from './rte';
 export * from './item-scoring';
 export * from './result';
 export * from './replay';
+export * from './lambda/event';
+export * from './lambda/handler';

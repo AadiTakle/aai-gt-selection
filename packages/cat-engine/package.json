@@ -8,6 +8,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
+    "invoke:local": "tsx src/lambda/invoke-local.ts",
     "lint": "eslint src",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
