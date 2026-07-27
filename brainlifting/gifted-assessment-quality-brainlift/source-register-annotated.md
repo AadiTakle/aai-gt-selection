@@ -484,7 +484,7 @@ Each entry ends with **Verification**, a **Verdict** (tier), and **Use in brainl
 
 ## Section 11 — Incorporated from the dev evidence dossier (measurement-quality subset)
 
-Source: `docs/research/EVIDENCE_DOSSIER.md` (origin/dev) — an explicitly **unvetted, overnight-scraped** evidence pile for the admissions/lottery thesis (claims C1–C8). Only the **measurement-quality** items (C2/C3/C8) are curated into this BrainLift; the **selection / lottery / counterfactual** items (C1, C4–C7) defend the access/causal thesis and belong in `gt-school-counterfactual-brainlift/`, not here.
+Source: an unvetted, overnight-scraped secondary evidence compilation — an explicitly **unvetted, overnight-scraped** evidence pile for the admissions/lottery thesis (claims C1–C8). Only the **measurement-quality** items (C2/C3/C8) are curated into this BrainLift; the **selection / lottery / counterfactual** items (C1, C4–C7) defend the access/causal thesis and belong in the gt-school-counterfactual BrainLift, not here.
 
 **Citation correction issued:** the dossier attributes the N=320 / 44%-doctorate SMPY figures to "Kell, Lubinski & Benbow, 2014, *Psychological Science* 25(12):2217–2232." That is a mis-citation — those figures are **Kell, Lubinski & Benbow (2013), *Psychological Science* 24(5):648–659, DOI 10.1177/0956797612457784** (verified via SAGE + PubMed 23531483). The within-top-1% quartile gradient traces to **Lubinski (2016), "From Terman to Today."**
 
@@ -506,7 +506,7 @@ Source: `docs/research/EVIDENCE_DOSSIER.md` (origin/dev) — an explicitly **unv
 ### College Board (2023) — *Total Group SAT Suite of Assessments Annual Report*
 - **Content:** Mean SAT total 891 (lowest census-tract income quintile) → 1148 (highest); 257-pt gap; "met both benchmarks" 15% → 63%.
 - **1** High (issuer) · **2** National cohort · **3** Quantitative · **4** Issuer (College Board).
-- **Verification:** Verified this session against the primary report. **Verdict: Tier A for the statistic — but the SAT is an *achievement* test, not an ability screen; used only to illustrate that scores track family income (H2).** **Use:** §1.2.
+- **Verification:** Verified this session against the primary report. **Verdict: Tier A for the statistic — but the SAT is an *achievement* test, not an ability screen; used only to illustrate that scores track family income.** **Use:** §1.2.
 
 ### NWEA MAP — 2025 Growth norms / Growth-and-norms documentation
 - **Content:** ~13.8M-student 2025 norms; expected RIT growth compresses in upper grades (≈6 RIT gr 5–6 vs. ≈4 gr 7–8) → conditional growth percentiles are the appropriate high-ceiling metric.
@@ -515,6 +515,6 @@ Source: `docs/research/EVIDENCE_DOSSIER.md` (origin/dev) — an explicitly **unv
 
 ### SEM-at-the-cutoff illustration (±3–5 IQ points; asymmetric error at a 130 cut; reliability lowest in young children)
 - **Content:** Concrete confidence-band / asymmetric-misclassification numbers used to illustrate why a single hard cutoff misfires at the gifted boundary.
-- **Verification:** Underlying principle is standard (AERA/APA/NCME 2014 Standards 2.14–2.16; regression-to-mean). The specific numeric illustration comes from a **secondary summary (Gavin Publishers)** compiled in `docs/research/EVIDENCE_DOSSIER.md`. **Verdict: Tier C (secondary / illustrative).** **Use:** §1.2, cited as illustrative only.
+- **Verification:** Underlying principle is standard (AERA/APA/NCME 2014 Standards 2.14–2.16; regression-to-mean). The specific numeric illustration comes from a **secondary summary (Gavin Publishers)** compiled. **Verdict: Tier C (secondary / illustrative).** **Use:** §1.2, cited as illustrative only.
 
-**Not incorporated (out of scope for this BrainLift):** C1 "Elite Illusion" RD (Abdulkadiroğlu, Angrist & Pathak 2014); C4 universal screening (Card & Giuliano 2016); C5–C7 lottery/charter/feasibility (Boston charters; federal charter-lottery N=2,330; Cheung & Slavin 2016 QED-vs-RCT). These defend the counterfactual/access thesis → `gt-school-counterfactual-brainlift/`.
+**Not incorporated (out of scope for this BrainLift):** C1 "Elite Illusion" RD (Abdulkadiroğlu, Angrist & Pathak 2014); C4 universal screening (Card & Giuliano 2016); C5–C7 lottery/charter/feasibility (Boston charters; federal charter-lottery N=2,330; Cheung & Slavin 2016 QED-vs-RCT). These defend the counterfactual/access thesis → the gt-school-counterfactual BrainLift.
