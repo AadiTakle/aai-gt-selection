@@ -2,7 +2,7 @@
 
 **Generated:** 2026-07-27 (early AM), by the overnight agent, for morning review.
 **Baseline:** `dev` @ `2bc1fe8` (*"Merge feat/governance-lambda-decision into dev — D-019 + E-072"*). `origin/dev` and local `dev` are in sync (0/0).
-**Status of this document:** Navigational aid only. It records **reasoned inferences** from `git log`/`git diff` metadata and worker hand-off notes. It does **not** independently re-run the branches' test suites, so per-branch "tests present" means test files exist in the tree, not that they were re-executed tonight. Nothing here is a governance ratification.
+**Status of this document:** Navigational aid only. Most of it records **reasoned inferences** from `git log`/`git diff` metadata and worker hand-off notes; where I say "tests present" for the older/larger branches it means test files exist, not that they were re-executed tonight. **Exceptions that ARE verified:** the §3.B governance-ID conflict (diffed against the actual `DECISION_LOG.md`/`ASSUMPTIONS_AND_EVIDENCE.md` on the branches) and the green build/test results for the branches I built tonight (§8). Nothing here is a governance ratification — the conflict resolutions in §3.B need your sign-off.
 
 > **Purpose:** You asked me to keep producing reviewable work on branches overnight. Over multiple autonomous turns this produced *many* exam branches across several generations. Reviewing them cold is confusing, so this file is the map: what exists, how the pieces relate, what's safe, what's risky, what's only stored locally, and a recommended order to look at things.
 
@@ -12,13 +12,11 @@
 
 1. **There are three generations of exam work.** They overlap heavily (each has "scoring", "item bank", "adaptive backend"). Do **not** try to merge them all — pick a spine and harvest from the rest.
 2. **Recommended spine = Generation A** (the 5 clean, structure-agnostic packages freshly based on the current `dev` tip and already pushed to `origin`). They merge cleanly because they share `dev`'s base.
-3. **Generation B (`feat/exam-integration`, 232 commits)** is the most *complete* system — a real Supabase adaptive backend with 30/30 server-side answer verifiers — but it sits on a **3-day-old base** and carries **ungoverned decisions** (D-024/025/027/028) and evidence (E-083/084/090/091/092) that are not yet in `dev`'s governance docs. Treat it as a rich quarry to cherry-pick/rebase, **not** a straight merge.
+3. **Generation B (`feat/exam-integration`, 232 commits)** is the most *complete* system — a real Supabase adaptive backend with 30/30 server-side answer verifiers — but it sits on a **3-day-old base** and its governance line diverged from `dev`. **Two IDs genuinely collide** — `D-019` and `E-072` each mean *different things* on `dev` vs this branch — and `dev` is **missing `D-015`/`D-016`** entirely. See §3.B for the verified, ready-to-apply reconciliation. Treat Gen B as a rich quarry to cherry-pick/rebase, **not** a straight merge.
 4. **The biggest single decision for you:** there are **four parallel item/scoring models** in flight (see §4). Someone has to pick one canonical contract before these branches can converge. Two branches (`feat/exam-converge`, `feat/exam-contract-reconcile`) are unpushed attempts at exactly this.
 5. **Several high-value branches are LOCAL-ONLY (never pushed).** If a worktree is pruned the *worktree* disappears but the branch ref survives in `.git`; still, I recommend pushing the keepers (see §6) so they're backed up before you start rebasing.
-6. **Still running / just launched by me tonight (held on their own branches, not merged):**
-   - GT brand refactor of `apps/web` → `feat/gt-brand-frontend` (in progress).
-   - D-019 Lambda handler wrapper around the clean scoring engine → `feat/exam-scoring-lambda` (launched; the one clearly-missing, non-duplicative required piece).
-   - This guide → `feat/overnight-review-guide`.
+6. **New branches I produced tonight (held on their own branches, not merged) — see §8 for status:**
+   - `feat/overnight-review-guide` (this guide) · `feat/exam-scoring-lambda` (D-019 handler, ✅ green) · `feat/gt-brand-frontend` (brand refactor, ✅ green) · `feat/exam-genA-integration-probe` (spine composability probe, in progress).
 
 ---
 
@@ -66,19 +64,25 @@ Base `b485567`, 8 behind `dev`.
 
 **Component families that fed Gen B (mostly already merged into `exam-integration` via its merge commits):** `feat/exam-bank*` (14), `feat/exam-verify*` (8), `feat/exam-key-balance*` (3), `feat/exam-dupes*` (2), plus `exam-overshoot`, `exam-standalone-guard`, `exam-persist`, `exam-score-input`, `exam-score-ability`, `exam-validators`, `exam-init-handshake`, `exam-agebands`, `exam-leak-fix`, `exam-stoprule`, `exam-wire`, `exam-spaview`. Treat these as **history** — don't review individually; they live inside `exam-integration`.
 
-**Ungoverned governance on Gen B (must land in `dev`'s docs when you promote any of it):**
-- **Decisions:** D-024 (difficulty-adjusted ability as non-default bracket driver), D-025 (price age-band item preference in scale points), D-027 (database is the single authority on per-item correctness), D-028 (hide per-child telemetry from the test-taker).
-- **Evidence:** E-083 (item handshake), E-084 (score the *verified* trace, not the client-posted one — logged as a top defect then fixed), E-090/E-091/E-092 (per-type verifier ports + server-only lexicon).
-- These are referenced in commit messages on the branch; confirm they exist in the branch's `DECISION_LOG.md`/`ASSUMPTIONS_AND_EVIDENCE.md` copies and forward-port them.
+**Governance ID conflicts on Gen B — VERIFIED by diffing the actual `docs/governance/DECISION_LOG.md` and `docs/research/ASSUMPTIONS_AND_EVIDENCE.md` on `feat/exam-integration` vs `dev` (not just commit messages).** This is more serious than "add some entries" — there are two genuine **ID collisions** created because the Gen-B governance line (authored 2026-07-24/25) was never merged to `dev`, and tonight's `dev` work reused two of its IDs:
+
+| ID | On `dev` (canonical, merged) | On `feat/exam-integration` (unmerged) | Resolution needed |
+|----|------------------------------|----------------------------------------|-------------------|
+| **D-019** | "Add one AWS Lambda for exam scoring & deterministic replay" (2026-07-26) | "One source of truth for screener selection and scoring: the DB stores, the TS packages decide" (2026-07-25) | **Collision.** Keep `dev`'s D-019 (merged); renumber Gen-B's to the next free ID (e.g. **D-029**) on merge. |
+| **E-072** | "The project must incorporate at least one AWS Lambda function…" (tonight) | "Statistical originality (M-ORIG)/flexibility (M-FLEX) can't be computed without a per-prompt norm bank…" (2026-07-25) | **Collision.** Keep `dev`'s E-072; renumber Gen-B's to the next free ID (e.g. **E-093**) on merge. |
+
+- **Forward-port cleanly (no collision — `dev` doesn't use these IDs):** decisions **D-020, D-021, D-022, D-023, D-024, D-025, D-026, D-027, D-028**; evidence **E-073…E-084, E-090, E-091, E-092**. (These entries already exist verbatim on the branch's governance files; promoting Gen-B carries them along.)
+- **Missing from `dev` entirely:** **D-015** ("Reframe selection target to Timeback-fit…") and **D-016** ("Build the R11 screener as a born-synthetic adaptive test sub-application"). `dev`'s `DECISION_LOG.md` jumps D-014 → D-017. Both entries exist on `feat/adaptive-exam-app`; D-015 also on `feat/interview-scope-update`. These should be transcribed into `dev` regardless of the Gen-B decision, because R11/product already reference them.
+- **Net:** only **2 IDs actually collide** (D-019, E-072); everything else is additive. A ready-to-apply reconciliation is small and mechanical, but it's a **governance ratification** — your call, not mine.
 
 ### 3.C Generation C — earlier, mostly superseded
 
 | Branch | Ahead/Behind | Pushed | Keep for | Recommendation |
 |--------|--------------|--------|----------|----------------|
-| `feat/adaptive-exam-app` | 6/47 | ❌ local | AX-01..05 contract+engine+DB+surface; **D-016 adaptive-screener governance** | Harvest the D-016 gov commit (`eef1d28`) if not already in `dev`; otherwise archive |
+| `feat/adaptive-exam-app` | 6/47 | ❌ local | AX-01..05 contract+engine+DB+surface; **holds the D-015 + D-016 entries that `dev` is missing** | **Harvest D-015 + D-016** into `dev`'s `DECISION_LOG.md` (verified absent from `dev`); then archive the code (superseded by A+B) |
 | `feat/exam-backend` / `feat/exam-engine` / `feat/exam-frontend` | 62/2/2 ahead, 12 behind | ❌ local | earliest portal wiring | Superseded by A+B; archive |
 | `feat/exam-item-bank-research` | 2/64 | ❌ local | categorized K-8 catalog (318 rows) | Harvest the catalog data if useful, then archive (old base deletes newer `dev` files) |
-| `feat/interview-scope-update` | 1/59 | ❌ local | D-015 Timeback-fit + R11 screener reframe | Likely already in `dev` via the brainlift re-separation merge (`0a1921a`); verify then archive |
+| `feat/interview-scope-update` | 1/59 | ❌ local | also carries the **D-015** entry (Timeback-fit + R11 screener reframe) | **Correction:** D-015 is **not** yet in `dev` (verified — `dev` skips D-015/D-016). This branch or `adaptive-exam-app` is the source to transcribe from; then archive |
 | `feat/exam-item-schema-spec` | 0 ahead | ✅ origin | schema spec | Already in `dev` (`d11b2d3`); nothing to merge |
 
 > ⚠️ **Old-base hazard:** Gen C branches show huge *deletions* in `git diff dev..<branch>` only because they predate files `dev` now has (research shards, brainlift consolidation, migrations). **Never** straight-`merge` them into `dev` — you'd clobber newer work. Cherry-pick the specific signal commit instead.
@@ -108,8 +112,8 @@ Plus Gen B's Supabase schema is a **fifth** representation (the database's own t
 2. **Resolve §4 model choice** (pick canonical contract). This unblocks everything else.
 3. **Merge Gen A into `dev`** in dependency order: `exam-data-model` → `exam-item-bank` → `exam-scoring-engine` → `exam-session-shell` → `exam-validation-harness`. Reconcile the `apps/web/src/lib/exam` vs `packages` overlap during the session-shell merge.
 4. **Fold in `feat/exam-scoring-lambda`** (my launched branch) once `exam-scoring-engine` is in — it's a thin handler over `cat-engine`, realizing D-019 in-repo (no deploy).
-5. **Then decide Gen B.** Either (a) rebase `exam-integration` onto the new `dev` (large, but it's the real backend), or (b) cherry-pick its verifier/RPC layer onto the Gen A contracts. **Forward-port D-024/025/027/028 + E-083/84/90/91/92 into governance either way.**
-6. **Harvest Gen C** (D-016 gov, catalog data) then delete the dead branches to de-clutter.
+5. **Then decide Gen B.** Either (a) rebase `exam-integration` onto the new `dev` (large, but it's the real backend), or (b) cherry-pick its verifier/RPC layer onto the Gen A contracts. **Either way, apply the §3.B governance reconciliation:** renumber Gen-B's `D-019`→`D-029` and `E-072`→`E-093` (they collide with `dev`), then forward-port `D-020…D-028` and `E-073…E-092`.
+6. **Harvest Gen C first:** transcribe **D-015 + D-016 into `dev`** (verified missing) and grab the catalog data, then delete the dead branches to de-clutter.
 7. **Brand:** review `feat/gt-brand-frontend` independently (visual layer; low coupling to the above).
 
 ---
@@ -129,16 +133,17 @@ I did **not** push these tonight — pushing another contributor's/older-generat
 
 - **Spine vs backend:** adopt Gen A clean packages as the foundation and port Gen B's Supabase backend onto them (my recommendation), or promote Gen B and back-fit the clean packages?
 - **Canonical model (§4):** which of the 4–5 representations is the source of truth?
-- **Governance forward-port:** ratify D-016 and D-024/025/027/028 (currently only on branches) into `dev`'s `DECISION_LOG.md`?
+- **Governance ID collisions (§3.B):** ratify the resolution — keep `dev`'s `D-019`/`E-072`, renumber Gen-B's colliding pair, forward-port `D-020…D-028`/`E-073…E-092`, and transcribe the missing `D-015`/`D-016`? (All verified against the branch files; needs your sign-off.)
 - **Branch hygiene:** OK to delete the ~30 superseded component branches (`exam-bank*`, `exam-verify*`, etc.) after harvesting?
 
 ---
 
 ## 8. What I did tonight (all on their own branches, nothing merged to shared branches)
 
-- **This guide** — `feat/overnight-review-guide` (docs only).
-- **D-019 Lambda handler** — `feat/exam-scoring-lambda`, based on `feat/exam-scoring-engine`: a thin, event-invoked handler wrapping `cat-engine`'s scoring/replay as a portable pure function + local invoke harness + test, **no cloud deploy** (Terraform/IAM remain the dormant follow-ups D-019 already describes).
-- **GT brand refactor** — `feat/gt-brand-frontend` (launched earlier; visual refactor of `apps/web` per the GT brand skill).
+- **This guide** — `feat/overnight-review-guide` (docs only). Includes the **verified** governance-conflict analysis in §3.B.
+- **D-019 Lambda handler** — `feat/exam-scoring-lambda` (based on `feat/exam-scoring-engine`): a thin, event-invoked handler wrapping `cat-engine`'s scoring/replay as a portable pure function + local invoke harness + tests + README, **no cloud deploy**. ✅ Verified: **75/75 tests, typecheck + lint clean**, local invoke returns a valid fingerprint. Pushed.
+- **GT brand refactor** — `feat/gt-brand-frontend`: GT School brand applied across all `apps/web` surfaces (self-hosted fonts, token layer, chamfered CTAs). ✅ Verified: **64/64 web tests, typecheck + lint + `next build` clean**. One deliberate deviation flagged (kept the wizard's navy sidebar as a branded panel). Pushed.
+- **Gen-A integration probe** — `feat/exam-genA-integration-probe`: merges the 5 spine branches into one tree, runs the full suite, and reports whether they compose (and whether the §4 four-model overlap actually collides). Writes `docs/OVERNIGHT_GENA_INTEGRATION_PROBE.md`. In progress at time of writing — check that branch/report for the result.
 
 None of these touch `main`/`staging`/`dev`. Everything is held for your review.
 
