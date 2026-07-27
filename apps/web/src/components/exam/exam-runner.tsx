@@ -1,35 +1,29 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useMemo } from 'react';
 
-import { EXAM_BANK, EXAM_DOMAINS, domainLabel, type ExamBankItem } from '@/lib/exam/bank';
-import { accuracyFrom, difficultyFrom, isDemoDone, readMetrics } from '@/lib/exam/harvest';
-import type { ExamItemResult, ExamSummary } from '@/lib/exam/types';
+import { EXAM_DOMAINS, domainLabel, embeddedDemoBank } from '@/lib/exam/bank';
+import { FixedSequencer } from '@/lib/exam/sequencer';
 
+import { ItemPlayer } from './item-player';
+import { requestExamSkip } from './player-events';
+import { useExamSession } from './use-exam-session';
 import styles from './exam-runner.module.css';
 
 /**
- * The test-taking portal. Sequences the 8-item battery in a same-origin iframe,
- * harvests each demo's on-screen metrics when it finishes, and posts the whole
- * session to /api/exam-results. A child sees one question at a time with a clear
- * progress header; the collected scores land server-side and in localStorage so
- * the dashboard can reflect completion.
+ * The test-taking portal. It now drives the reusable session shell
+ * (`useExamSession`) over the legacy iframe battery with a swappable
+ * {@link FixedSequencer}, presenting each item through the generic {@link ItemPlayer}
+ * and posting the whole session to /api/exam-results. Behavior is unchanged from
+ * the original hard-coded runner — the sequencing structure is now a one-line
+ * strategy swap, not baked into this component.
  *
  * Screening only — never an admission decision (results are validated=false).
  */
 
 const AGE_BAND = '4-5';
-const MAX_MS_PER_ITEM = 4 * 60 * 1000; // safety valve so a stuck item can't wedge the flow
-const POLL_MS = 400;
 const RESULTS_KEY = 'gt-exam-results';
-
-type Phase = 'intro' | 'running' | 'saving' | 'done' | 'error';
-
-function randomParticipant(): string {
-  // born-synthetic, PII-free participant code
-  return `PART-SYN-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-}
 
 function pct(n: number | null): string {
   return n == null ? '—' : `${Math.round(n * 100)}%`;
@@ -42,144 +36,28 @@ export function ExamRunner({
   studentName: string;
   dashboardHref: string;
 }) {
-  const [phase, setPhase] = useState<Phase>('intro');
-  const [index, setIndex] = useState(0);
-  const [results, setResults] = useState<ExamItemResult[]>([]);
-  const [summary, setSummary] = useState<ExamSummary | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const bank = useMemo(() => embeddedDemoBank(), []);
+  // Swap this single line to change the sequencing STRUCTURE (e.g. an approved
+  // adaptive/two-stage strategy) without touching the shell, player, or items.
+  const sequencer = useMemo(() => new FixedSequencer(), []);
 
-  const iframeRef = useRef<HTMLIFrameElement | null>(null);
-  const sessionRef = useRef({
-    sessionId: '',
-    participantCode: '',
-    startedAt: '',
+  const {
+    phase,
+    currentItem,
+    answeredCount,
+    totalPlanned,
+    summary,
+    error,
+    start,
+    handleOutcome,
+    retry,
+  } = useExamSession({
+    bank,
+    sequencer,
+    studentName,
+    ageBand: AGE_BAND,
+    resultsStorageKey: RESULTS_KEY,
   });
-  const advancingRef = useRef(false);
-  // hold the latest finalize() so recordAndAdvance can call it without a cycle
-  const finalizeRef = useRef<(items: ExamItemResult[]) => void>(() => {});
-
-  const current: ExamBankItem | undefined = EXAM_BANK[index];
-
-  // Record one item's harvested result and move to the next (or finish).
-  const recordAndAdvance = useCallback(
-    (item: ExamBankItem, result: Omit<ExamItemResult, 'typeCode' | 'domain'>) => {
-      if (advancingRef.current) return;
-      advancingRef.current = true;
-      setResults((prev) => {
-        const next = [...prev, { typeCode: item.typeCode, domain: item.domain, ...result }];
-        if (next.length >= EXAM_BANK.length) {
-          finalizeRef.current(next);
-        } else {
-          setIndex(next.length);
-          advancingRef.current = false;
-        }
-        return next;
-      });
-    },
-    [],
-  );
-
-  // POST the completed session, mirror to localStorage, show results.
-  const finalize = useCallback(
-    async (items: ExamItemResult[]) => {
-      setPhase('saving');
-      const payload = {
-        sessionId: sessionRef.current.sessionId,
-        participantCode: sessionRef.current.participantCode,
-        studentName,
-        ageBand: AGE_BAND,
-        startedAt: sessionRef.current.startedAt,
-        finishedAt: new Date().toISOString(),
-        items,
-        syntheticOnly: true as const,
-      };
-      try {
-        const res = await fetch('/api/exam-results', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        const data = (await res.json()) as { ok: boolean; summary?: ExamSummary };
-        if (!res.ok || !data.ok || !data.summary) throw new Error('SAVE_REJECTED');
-        setSummary(data.summary);
-        try {
-          window.localStorage.setItem(
-            RESULTS_KEY,
-            JSON.stringify({
-              sessionId: payload.sessionId,
-              finishedAt: payload.finishedAt,
-              summary: data.summary,
-            }),
-          );
-        } catch {
-          // localStorage best-effort only
-        }
-        setPhase('done');
-      } catch {
-        setError('We could not save your session. Your answers are safe — please try again.');
-        setPhase('error');
-      }
-    },
-    [studentName],
-  );
-  useEffect(() => {
-    finalizeRef.current = (items) => void finalize(items);
-  }, [finalize]);
-
-  // Poll the current same-origin demo until it reports "done", then harvest.
-  useEffect(() => {
-    if (phase !== 'running' || !current) return;
-    advancingRef.current = false;
-    const startedItemAt = Date.now();
-    let stopped = false;
-
-    const finishItem = (skipped: boolean) => {
-      if (stopped) return;
-      stopped = true;
-      const doc = iframeRef.current?.contentDocument;
-      const metrics = doc ? readMetrics(doc) : {};
-      recordAndAdvance(current, {
-        skipped,
-        metrics,
-        accuracy: accuracyFrom(metrics),
-        difficultyReached: difficultyFrom(metrics),
-      });
-    };
-
-    const timer = window.setInterval(() => {
-      const doc = iframeRef.current?.contentDocument;
-      if (doc && isDemoDone(doc)) {
-        window.clearInterval(timer);
-        finishItem(false);
-      } else if (Date.now() - startedItemAt > MAX_MS_PER_ITEM) {
-        window.clearInterval(timer);
-        finishItem(true); // timed out → record what we can, mark skipped
-      }
-    }, POLL_MS);
-
-    // expose a manual skip via a custom event dispatched by the Skip button
-    const onSkip = () => {
-      window.clearInterval(timer);
-      finishItem(true);
-    };
-    window.addEventListener('gt-exam-skip', onSkip);
-
-    return () => {
-      window.clearInterval(timer);
-      window.removeEventListener('gt-exam-skip', onSkip);
-    };
-  }, [phase, current, recordAndAdvance]);
-
-  function start() {
-    sessionRef.current = {
-      sessionId: randomParticipant().replace('PART', 'SESS'),
-      participantCode: randomParticipant(),
-      startedAt: new Date().toISOString(),
-    };
-    setResults([]);
-    setIndex(0);
-    setPhase('running');
-  }
 
   // ---- intro ---------------------------------------------------------------
   if (phase === 'intro') {
@@ -190,7 +68,7 @@ export function ExamRunner({
             <p className={styles.kicker}>Adaptive screening</p>
             <h1 className={styles.title}>Ready to begin, {studentName}?</h1>
             <p className={styles.lede}>
-              You’ll see {EXAM_BANK.length} short activities across four kinds of thinking. Each one
+              You’ll see {totalPlanned} short activities across four kinds of thinking. Each one
               shows you how it works first, with a practice round that doesn’t count. Questions get
               harder or easier as you go, so the level always fits. Take your time.
             </p>
@@ -235,7 +113,7 @@ export function ExamRunner({
               <p className={styles.cardKicker}>Activities answered</p>
               <p className={styles.bigStat}>
                 {summary.itemsAnswered}
-                <span className={styles.statSub}>/{EXAM_BANK.length}</span>
+                <span className={styles.statSub}>/{totalPlanned}</span>
               </p>
             </div>
             <div>
@@ -296,7 +174,7 @@ export function ExamRunner({
         <section className={styles.centered}>
           <h1 className={styles.title}>We hit a snag</h1>
           <p className={styles.lede}>{error}</p>
-          <button type="button" className={styles.primary} onClick={() => void finalize(results)}>
+          <button type="button" className={styles.primary} onClick={retry}>
             Try saving again
           </button>
           <Link className={styles.ghost} href={dashboardHref}>
@@ -308,49 +186,38 @@ export function ExamRunner({
   }
 
   // ---- running -------------------------------------------------------------
-  const answered = results.length;
   return (
     <div className={styles.runWrap}>
       <header className={styles.runHead}>
         <div>
           <p className={styles.kicker}>
-            Question {answered + 1} of {EXAM_BANK.length} ·{' '}
-            {current ? domainLabel(current.domain) : ''}
+            Question {answeredCount + 1} of {totalPlanned} ·{' '}
+            {currentItem ? domainLabel(currentItem.domain) : ''}
           </p>
-          <p className={styles.runTitle}>{current?.title}</p>
+          <p className={styles.runTitle}>{currentItem?.title}</p>
         </div>
-        <button
-          type="button"
-          className={styles.skip}
-          onClick={() => window.dispatchEvent(new Event('gt-exam-skip'))}
-        >
+        <button type="button" className={styles.skip} onClick={() => requestExamSkip()}>
           Skip this one →
         </button>
       </header>
 
       <div className={styles.progress} aria-hidden="true">
-        {EXAM_BANK.map((item, i) => (
+        {Array.from({ length: totalPlanned }, (_, i) => (
           <span
-            key={item.typeCode}
-            className={`${styles.seg} ${i < answered ? styles.segDone : ''} ${
-              i === answered ? styles.segActive : ''
+            key={i}
+            className={`${styles.seg} ${i < answeredCount ? styles.segDone : ''} ${
+              i === answeredCount ? styles.segActive : ''
             }`}
           />
         ))}
       </div>
 
-      {current ? (
-        <iframe
-          key={current.typeCode}
-          ref={iframeRef}
-          title={`${current.title} question`}
-          src={current.demoPath}
-          className={styles.frame}
-        />
+      {currentItem ? (
+        <ItemPlayer item={currentItem} onComplete={handleOutcome} frameClassName={styles.frame} />
       ) : null}
 
       <p className={styles.frameNote}>
-        {current?.blurb} · Difficulty adjusts to each answer. This is a synthetic screening
+        {currentItem?.blurb} · Difficulty adjusts to each answer. This is a synthetic screening
         activity.
       </p>
     </div>
