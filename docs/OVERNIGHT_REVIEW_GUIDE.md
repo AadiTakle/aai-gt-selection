@@ -8,6 +8,24 @@
 
 ---
 
+## 0. Fastest path this morning (if you have 15 minutes)
+
+1. **See the deliverable Crystal asked for — run the proposed-structure demo:**
+   ```bash
+   git switch feat/exam-two-stage-demo && pnpm install && pnpm --filter @gt-selection/web dev
+   # open http://127.0.0.1:3000/dev/exam-two-stage   (fixed-order baseline: /dev/exam-shell)
+   ```
+   Then skim `docs/OVERNIGHT_TWO_STAGE_DEMO.md` on that branch for the click-through + honest "what's synthetic."
+2. **Make the 3 decisions that unblock everything (details in §4, §3.B, §7):**
+   - **Spine:** adopt the 5 Gen-A packages as the foundation? (Probe says they merge clean + go green: 303/303.)
+   - **Canonical model:** accept `feat/exam-model-reconcile`'s "`@gt-selection/contracts` is the owner" wiring? (Green, +5 tests.)
+   - **Governance:** ratify the §3.B ID-collision fix (`D-019`/`E-072`) + transcribe the missing `D-015`/`D-016`.
+3. **Everything else** (the big `exam-integration` backend, Gen-C, branch cleanup) is mapped below and can wait.
+
+> All tonight's work is on review branches; **nothing is merged** to `main`/`staging`/`dev`.
+
+---
+
 ## 1. TL;DR — read this first
 
 1. **There are three generations of exam work.** They overlap heavily (each has "scoring", "item bank", "adaptive backend"). Do **not** try to merge them all — pick a spine and harvest from the rest.
@@ -152,7 +170,7 @@ I did **not** push these tonight — pushing another contributor's/older-generat
 - **GT brand refactor** — `feat/gt-brand-frontend`: GT School brand applied across all `apps/web` surfaces (self-hosted fonts, token layer, chamfered CTAs). ✅ Verified: **64/64 web tests, typecheck + lint + `next build` clean**. One deliberate deviation flagged (kept the wizard's navy sidebar as a branded panel). Pushed.
 - **Gen-A integration probe** — `feat/exam-genA-integration-probe`: merged the 5 spine branches into one tree and ran the full suite. ✅ Result: **zero merge conflicts, clean install, 6/6 typecheck, 303/303 tests, per-package lint clean.** Verdict: Gen-A is a defensible spine but is currently unwired (see §4). Full write-up in `docs/OVERNIGHT_GENA_INTEGRATION_PROBE.md` on that branch. Throwaway/do-not-merge.
 - **Model reconciliation (proposal)** — `feat/exam-model-reconcile` (based on the green probe tree, 9 files, 3 checkpoints): domain enum **3→1 owner + re-exports**, exam producers importing `@gt-selection/contracts` **0→2**, **+3 workspace-dep edges**, new type-only `contracts/item-bank → cat-engine` scoring adapter (+test). ✅ **308 tests (+5, 0 regressions), 6/6 typecheck, lint clean.** Deliberately deferred with documented reasons (in `docs/OVERNIGHT_MODEL_RECONCILE_REPORT.md`): keeping `cat-engine` Zod-free (Lambda payload), the `renderKind` item/session merge (behavior change), `lureClassSchema` (needs a browser-safe item-bank subpath), and `db-types`/migrations (out of scope). A reviewable proposal for the canonical-model choice — not merged, not a ratified decision.
-- **Two-regime structure demo (proposal)** — `feat/exam-two-stage-demo` (based on the reconcile tree): a clickable, born-synthetic prototype of the **proposed** two-regime structure (Phase 1 accuracy/standing → Phase 2 effort/learning-rate at a calibrated difficulty) as a *pluggable* `TwoStageSequencer`, so Crystal can actually click through the proposed test flow. Heavily labeled as an unapproved, pluggable proposal; `FixedSequencer` stays the agnostic default. Serves Crystal's "demo of the custom test structure" ask. Write-up in `docs/OVERNIGHT_TWO_STAGE_DEMO.md`. *In progress at time of writing — check that branch.*
+- **Two-regime structure demo (proposal)** — `feat/exam-two-stage-demo` (based on the reconcile tree, additive-only, 9 files): a clickable, born-synthetic prototype of the **proposed** two-regime structure (Phase 1 accuracy/**standing** with two-sided bracketing → Phase 2 **effort/learning-rate** placed at a difficulty calibrated to the Phase-1 estimate) as a *pluggable* `TwoStageSequencer`. ✅ **334 tests (+26), 6/6 typecheck, lint clean, `next build` compiles.** Reachable at **`/dev/exam-two-stage`**; `FixedSequencer` stays the agnostic default at `/dev/exam-shell`. Heavily labeled unapproved/pluggable; maps to BrainLift Insights 1/2/3. Full stakeholder walkthrough + honest "what's synthetic" in `docs/OVERNIGHT_TWO_STAGE_DEMO.md`. Serves Crystal's "demo of the custom test structure" ask.
 - **Bonus finding (pre-existing `dev` lint debt):** root `pnpm lint` fails with **23 errors that already exist on `dev`** — 1 in `apps/web/src/…/family/apply-wizard.tsx`, 22 in `scripts/configure-cloud-auth-email.mjs` — unrelated to any exam work. A small, separate cleanup opportunity (note: `apply-wizard.tsx` is also touched by the brand branch, and `configure-cloud-auth-email.mjs` is deleted by some Gen-C branches, so fix it in coordination with those).
 
 None of these touch `main`/`staging`/`dev`. Everything is held for your review.
