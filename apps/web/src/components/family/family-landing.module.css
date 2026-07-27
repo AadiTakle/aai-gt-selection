@@ -5,18 +5,18 @@
   padding-top: var(--gt-space-4);
 }
 
-/* navy hero with the blueprint linework — same language as the dashboard */
+/* navy field with the blueprint linework — same language as the dashboard */
 .hero {
   position: relative;
   overflow: hidden;
   background: linear-gradient(
     135deg,
-    var(--gt-navy-dark) 0%,
+    var(--gt-dark-navy) 0%,
     var(--gt-navy) 45%,
-    var(--gt-blue) 100%
+    var(--gt-blue-dark) 100%
   );
-  color: #eaf1f2;
-  border-radius: var(--gt-radius-lg);
+  color: var(--gt-near-white);
+  border-radius: var(--radius-lg);
   padding: var(--gt-space-8) var(--gt-space-6);
   display: flex;
   align-items: center;
@@ -42,26 +42,27 @@
 }
 
 .eyebrow {
-  font-size: 0.7rem;
-  letter-spacing: 0.16em;
+  font-family: var(--font-utility);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--gt-ember-hi);
+  color: var(--gt-gold-light);
   font-weight: 600;
   margin: 0;
 }
 
 .title {
-  font-family: var(--gt-font-display);
+  font-family: var(--font-display);
   font-size: clamp(2rem, 4vw, 3rem);
-  font-weight: 500;
-  letter-spacing: -0.02em;
-  line-height: 1.06;
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
   margin: var(--gt-space-3) 0 var(--gt-space-4);
-  color: #fff;
+  color: var(--gt-near-white);
 }
 
 .intro {
-  color: #cfe0e5;
+  color: rgb(251 251 251 / 0.82);
   font-size: 1.05rem;
   line-height: 1.55;
   margin: 0;
@@ -76,40 +77,68 @@
   margin-top: var(--gt-space-5);
 }
 
+/* Secondary button (Gold fill, Dark Navy label) — the CTA sits on the navy
+   hero, and it carries the single chamfer for this screen. */
 .primary {
-  background: var(--gt-ember);
-  color: #fff;
-  padding: 0.9rem 1.6rem;
-  border-radius: 11px;
-  font-weight: 600;
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 13px 18px;
+  color: var(--color-accent-ink);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-md);
+  font-family: var(--font-utility);
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   text-decoration: none;
-  box-shadow: 0 10px 24px rgba(228, 139, 83, 0.32);
-  transition: background 0.16s;
+  cursor: pointer;
 }
 
-.primary:hover {
-  background: #d97e45;
+.primary::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: var(--color-accent);
+  border-radius: var(--radius-md);
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - var(--cut-br)),
+    calc(100% - var(--cut-br)) 100%,
+    0 100%
+  );
+  transition: background 150ms ease;
 }
 
-.primary:focus-visible {
-  outline: 2px solid var(--gt-ember-hi);
-  outline-offset: 3px;
+.primary:hover::before {
+  background: var(--gt-gold-deep);
 }
 
 .secondary {
-  color: #eaf1f2;
-  font-weight: 600;
-  text-decoration: none;
-  border-bottom: 1.5px solid rgba(234, 241, 242, 0.4);
-  padding-bottom: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--gt-near-white);
+  font-family: var(--font-utility);
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
 }
 
 .secondary:hover {
-  border-color: var(--gt-ember-hi);
   color: #fff;
 }
 
-/* the GT spiral centerpiece, ringed with an ember glow */
+/* the GT spiral centerpiece, on a restrained warm halo */
 .heroMark {
   position: relative;
   z-index: 1;
@@ -125,7 +154,7 @@
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(228, 139, 83, 0.28), transparent 68%);
+  background: radial-gradient(circle, rgb(228 139 83 / 0.22), transparent 68%);
 }
 
 .spiral {
@@ -140,7 +169,7 @@
 }
 
 .spiral path {
-  fill: #fff;
+  fill: var(--gt-near-white);
 }
 
 /* three-phase "what to expect" preview */
@@ -151,8 +180,9 @@
 }
 
 .jStep {
-  background: var(--gt-card);
-  border-radius: var(--gt-radius-md);
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
   padding: var(--gt-space-5);
   display: flex;
   flex-direction: column;
@@ -160,31 +190,32 @@
 }
 
 .jNum {
-  font-family: var(--gt-font-utility);
-  font-size: 0.8rem;
-  letter-spacing: 0.1em;
-  color: var(--gt-ember);
+  font-family: var(--font-utility);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  color: var(--gt-blue);
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .jLabel {
-  font-family: var(--gt-font-display);
+  font-family: var(--font-display);
   font-size: 1.15rem;
-  font-weight: 500;
+  font-weight: 300;
   margin: 0;
-  color: var(--gt-ink);
+  color: var(--color-ink);
 }
 
 .jDetail {
   font-size: 0.9rem;
-  color: var(--gt-ink-60);
+  color: var(--color-ink-soft);
   margin: 0;
   line-height: 1.5;
 }
 
 .boundary {
   font-size: 0.78rem;
-  color: var(--gt-ink-40);
+  color: var(--color-muted);
   margin: 0;
   text-align: center;
 }

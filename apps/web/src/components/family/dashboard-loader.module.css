@@ -1,6 +1,6 @@
 .state {
   padding: var(--gt-space-7) 0;
-  color: var(--gt-ink-60);
+  color: var(--color-ink-soft);
   display: flex;
   flex-direction: column;
   gap: var(--gt-space-3);
@@ -8,11 +8,12 @@
 }
 
 .link {
-  color: var(--gt-ember);
-  font-weight: 600;
+  color: var(--gt-blue);
+  font-weight: 620;
   text-decoration: none;
 }
 
 .link:hover {
   text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
