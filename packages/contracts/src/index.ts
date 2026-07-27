@@ -1,4 +1,5 @@
 export * from './api-envelope';
+export * from './assessment-exam';
 export {
   assessmentInputSchema,
   assessmentRoutingSchema,
