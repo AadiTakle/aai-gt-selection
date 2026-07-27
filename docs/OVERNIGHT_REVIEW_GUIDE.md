@@ -13,14 +13,16 @@
 1. **See the deliverable Crystal asked for — run the proposed-structure demo:**
    ```bash
    git switch feat/exam-two-stage-demo && pnpm install
-   # ⚠️ REQUIRED: the app proxy validates Supabase env on EVERY route, so without these
-   # two vars every page (incl. this synthetic demo) returns HTTP 500. Loopback
-   # placeholders are fine — the demo needs no real backend and the session-save API
-   # gracefully falls back to a locally-computed summary if nothing is listening:
-   NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 \
-   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=demo-anon-key \
+   # ⚠️ REQUIRED: the proxy validates Supabase env on EVERY route (apps/web proxy.ts →
+   # lib/env.ts), so with these unset every page — incl. this synthetic demo — 500s.
+   # QUICK demo path = loopback placeholders (no real backend; the session-save API
+   # gracefully falls back to a locally-computed summary):
+   NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:65421 \
+   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=demo-placeholder-key \
    pnpm --filter @gt-selection/web dev
    # open http://127.0.0.1:3000/dev/exam-two-stage   (fixed-order baseline: /dev/exam-shell)
+   # (Full backend that persists saves: `cp .env.example .env.local && pnpm db:start`,
+   #  which prints+fills the real key — heavier; not needed just to see the structure.)
    ```
    Then skim `docs/OVERNIGHT_TWO_STAGE_DEMO.md` on that branch for the click-through + honest "what's synthetic." Runtime QA (branch `feat/exam-two-stage-demo-shots`) confirms a clean end-to-end run + has screenshots.
 2. **Make the 3 decisions that unblock everything (details in §4, §3.B, §7):**
@@ -179,7 +181,7 @@ I did **not** push these tonight — pushing another contributor's/older-generat
 - **Model reconciliation (proposal)** — `feat/exam-model-reconcile` (based on the green probe tree, 9 files, 3 checkpoints): domain enum **3→1 owner + re-exports**, exam producers importing `@gt-selection/contracts` **0→2**, **+3 workspace-dep edges**, new type-only `contracts/item-bank → cat-engine` scoring adapter (+test). ✅ **308 tests (+5, 0 regressions), 6/6 typecheck, lint clean.** Deliberately deferred with documented reasons (in `docs/OVERNIGHT_MODEL_RECONCILE_REPORT.md`): keeping `cat-engine` Zod-free (Lambda payload), the `renderKind` item/session merge (behavior change), `lureClassSchema` (needs a browser-safe item-bank subpath), and `db-types`/migrations (out of scope). A reviewable proposal for the canonical-model choice — not merged, not a ratified decision.
 - **Two-regime structure demo (proposal)** — `feat/exam-two-stage-demo` (based on the reconcile tree, additive-only, 9 files): a clickable, born-synthetic prototype of the **proposed** two-regime structure (Phase 1 accuracy/**standing** with two-sided bracketing → Phase 2 **effort/learning-rate** placed at a difficulty calibrated to the Phase-1 estimate) as a *pluggable* `TwoStageSequencer`. ✅ **334 tests (+26), 6/6 typecheck, lint clean, `next build` compiles.** Reachable at **`/dev/exam-two-stage`**; `FixedSequencer` stays the agnostic default at `/dev/exam-shell`. Heavily labeled unapproved/pluggable; maps to BrainLift Insights 1/2/3. Full stakeholder walkthrough + honest "what's synthetic" in `docs/OVERNIGHT_TWO_STAGE_DEMO.md`. Serves Crystal's "demo of the custom test structure" ask.
 - **Demo runtime QA + screenshots** — `feat/exam-two-stage-demo-shots` (based on the demo branch, docs + 7 PNGs only): drove the full click-through in headless Chromium. ✅ **Clean end-to-end** — no console/hydration errors, `POST /api/exam-results → 200`, and the no-API graceful fallback renders a local summary. Screenshots in `docs/demo-screenshots/two-stage/`; QA notes appended to the demo doc.
-- **⚠️ Demo-blocker finding (documented, NOT silently patched):** with `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` unset, `apps/web/src/proxy.ts` → `getServerEnvironment()` (in `lib/env.ts`) throws a `ZodError` and **every route 500s**, including the dev-only demo (the proxy matcher doesn't exempt `/dev/*`). Mitigation = the loopback placeholders in §0's run block. **Recommended follow-up (your call, security-adjacent):** either add those vars to a committed `.env.local.example` with the run steps, or short-circuit env validation / matcher for `/dev/*` so the synthetic demo runs standalone. I did not change the proxy because it's a deliberate fail-closed guard.
+- **⚠️ Demo-blocker finding (documented, NOT silently patched):** with `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` unset, `apps/web/src/proxy.ts` → `getServerEnvironment()` (in `lib/env.ts`) throws a `ZodError` and **every route 500s**, including the dev-only demo (the proxy matcher doesn't exempt `/dev/*`). Mitigation = the loopback placeholders in §0's run block. Note a root `./.env.example` already exists, but its `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` is **empty** (env.ts requires non-empty; the real key is printed by `pnpm db:start`), so copying it verbatim still 500s and the full path needs the local DB stack. **Recommended follow-up (your call, security-adjacent):** either (a) exempt `/dev/*` from the proxy matcher so the synthetic demo runs with no Supabase env, or (b) document a "quick demo" env stanza (the §0 placeholders). I did **not** change the proxy — it's a deliberate fail-closed guard against pointing at a real backend by accident.
 - **Bonus finding (pre-existing `dev` lint debt):** root `pnpm lint` fails with **23 errors that already exist on `dev`** — 1 in `apps/web/src/…/family/apply-wizard.tsx`, 22 in `scripts/configure-cloud-auth-email.mjs` — unrelated to any exam work. A small, separate cleanup opportunity (note: `apply-wizard.tsx` is also touched by the brand branch, and `configure-cloud-auth-email.mjs` is deleted by some Gen-C branches, so fix it in coordination with those).
 
 None of these touch `main`/`staging`/`dev`. Everything is held for your review.
