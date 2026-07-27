@@ -1,3 +1,4 @@
+import { examDomainSchema, type ExamDomain } from '@gt-selection/contracts';
 import { z } from 'zod';
 
 /**
@@ -23,13 +24,13 @@ import { z } from 'zod';
  * pluggable per the structure-agnostic constraint.
  */
 
-export const examDomainSchema = z.enum([
-  'fluid_reasoning',
-  'verbal',
-  'quantitative',
-  'spatial',
-]);
-export type ExamDomain = z.infer<typeof examDomainSchema>;
+/**
+ * Domain enum: re-exported from the canonical `@gt-selection/contracts` owner
+ * instead of redeclaring, so the four-domain taxonomy has a single source of
+ * truth across contracts, item-bank, and this UI-local model.
+ */
+export { examDomainSchema };
+export type { ExamDomain };
 
 /** Distractor lure taxonomy — a subset of EXAM_ITEM_SCHEMA_SPEC §6.3. Server-only. */
 export const lureClassSchema = z.enum([

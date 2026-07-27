@@ -1,16 +1,21 @@
+import { examDomainSchema, type ExamDomain } from '@gt-selection/contracts';
 import { z } from 'zod';
 
-import { TYPE_CODES, VALID_DOMAINS } from './generated/type-registry.generated';
+import { TYPE_CODES } from './generated/type-registry.generated';
 export type { QuestionTypeCode, Domain } from './generated/type-registry.generated';
 export { TYPE_CODES, VALID_DOMAINS } from './generated/type-registry.generated';
 
 /**
- * The four testable domains. Working memory / processing speed are cross-cutting
- * signals, not domains (see research/exam-question-types/CATEGORY_MAP.md); WM
- * types are folded under `spatial` via their `areas` field in master_types.jsonl.
+ * The four testable domains. The SINGLE canonical enum lives in
+ * `@gt-selection/contracts` (`examDomainSchema`); item-bank re-exports it rather
+ * than redeclaring, so the workspace has one owner. The generated `Domain` /
+ * `VALID_DOMAINS` (derived from master_types.jsonl under a SHA guard) remain the
+ * catalog's own derivation and carry the identical four values; a bank item's
+ * `domain` is validated by the canonical schema (`bank-item.ts`). Working memory
+ * / processing speed remain cross-cutting signals folded under `spatial`.
  */
-export const examDomainSchema = z.enum(VALID_DOMAINS);
-export type ExamDomain = z.infer<typeof examDomainSchema>;
+export { examDomainSchema };
+export type { ExamDomain };
 
 /**
  * Age bands. `K-8` is a wildcard band (spans all grades) used by a few

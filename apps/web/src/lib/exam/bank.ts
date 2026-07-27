@@ -9,9 +9,10 @@
  * Titles/one-liners are from the catalog's `master_types.jsonl`.
  */
 
-import type { BankEmbeddedDemo } from './item';
+import type { BankEmbeddedDemo, ExamDomain } from './item';
 
-export type ExamDomain = 'fluid_reasoning' | 'verbal' | 'quantitative' | 'spatial';
+/** Re-exported from the canonical `@gt-selection/contracts` owner (via `./item`). */
+export type { ExamDomain };
 
 export interface ExamBankItem {
   typeCode: string;
