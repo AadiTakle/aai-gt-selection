@@ -91,6 +91,8 @@ Base `b485567`, 8 behind `dev`.
 
 ## 4. The central decision: four parallel item/scoring models
 
+> ✅ **VERIFIED by the `feat/exam-genA-integration-probe` run** (see `docs/OVERNIGHT_GENA_INTEGRATION_PROBE.md`): merging all 5 Gen-A branches off `dev@2bc1fe8` produced **zero conflicts**, a clean `pnpm install`, **6/6 typecheck**, and **303/303 tests passing**, with per-package lint clean. So Gen-A *is* a defensible spine. **But the tree is green only because the slices never meet in the same module:** **0** of the exam producers import the canonical `@gt-selection/contracts` exam contract (its only consumer is the data-model branch's own fixtures), `item-bank`/`cat-engine` are imported by nothing outside themselves, and the 4-domain enum is redeclared in **≥5 places**. It's "five spines side by side, not one." Encouragingly, the probe judged unifying them to be **pure wiring, not a product decision** — every slice already cites the same `EXAM_ITEM_SCHEMA_SPEC.md`.
+
 These currently coexist. They must converge on **one** canonical contract before the exam stack is coherent:
 
 1. `packages/contracts/src/assessment-exam.ts` (Gen A `exam-data-model`) — 591-LOC Zod contract + db-types + fixtures.
@@ -102,7 +104,12 @@ Plus Gen B's Supabase schema is a **fifth** representation (the database's own t
 
 `feat/exam-converge` (173 commits) and `feat/exam-contract-reconcile` (134) are unpushed prior attempts at this reconciliation on the Gen B base — worth reading before you redo the work, but they're on the old base so their *code* may not apply cleanly to Gen A.
 
-**Suggested convergence rule (proposal, not a decision):** make `packages/contracts` the single source of truth for item/response/session shapes; have `item-bank`, `cat-engine`, the session shell, and the Supabase migration all *import from* or *conform to* it. This is a clean-up task, not new features.
+**Smallest path to a true single-contract spine (from the probe, wiring-only):**
+1. Make `@gt-selection/contracts` the sole owner of the domain enum + item + session/response types; have `item-bank` and `apps/web` re-export/consume them and **drop the duplicate `apps/web/src/lib/exam` defs + `sample-items.ts`**.
+2. Add a thin `contracts → cat-engine` scoring adapter.
+3. Add `item-bank` and `cat-engine` as workspace deps of `apps/web`.
+
+I've started this on **`feat/exam-model-reconcile`** (based on the green probe tree) as a reviewable proposal — see §8. It is a proposal for your review, not a ratified canonical-model choice.
 
 ---
 
@@ -143,7 +150,9 @@ I did **not** push these tonight — pushing another contributor's/older-generat
 - **This guide** — `feat/overnight-review-guide` (docs only). Includes the **verified** governance-conflict analysis in §3.B.
 - **D-019 Lambda handler** — `feat/exam-scoring-lambda` (based on `feat/exam-scoring-engine`): a thin, event-invoked handler wrapping `cat-engine`'s scoring/replay as a portable pure function + local invoke harness + tests + README, **no cloud deploy**. ✅ Verified: **75/75 tests, typecheck + lint clean**, local invoke returns a valid fingerprint. Pushed.
 - **GT brand refactor** — `feat/gt-brand-frontend`: GT School brand applied across all `apps/web` surfaces (self-hosted fonts, token layer, chamfered CTAs). ✅ Verified: **64/64 web tests, typecheck + lint + `next build` clean**. One deliberate deviation flagged (kept the wizard's navy sidebar as a branded panel). Pushed.
-- **Gen-A integration probe** — `feat/exam-genA-integration-probe`: merges the 5 spine branches into one tree, runs the full suite, and reports whether they compose (and whether the §4 four-model overlap actually collides). Writes `docs/OVERNIGHT_GENA_INTEGRATION_PROBE.md`. In progress at time of writing — check that branch/report for the result.
+- **Gen-A integration probe** — `feat/exam-genA-integration-probe`: merged the 5 spine branches into one tree and ran the full suite. ✅ Result: **zero merge conflicts, clean install, 6/6 typecheck, 303/303 tests, per-package lint clean.** Verdict: Gen-A is a defensible spine but is currently unwired (see §4). Full write-up in `docs/OVERNIGHT_GENA_INTEGRATION_PROBE.md` on that branch. Throwaway/do-not-merge.
+- **Model reconciliation (proposal)** — `feat/exam-model-reconcile` (based on the green probe tree): wires the 5 slices onto `@gt-selection/contracts` per §4's wiring plan (canonical enum/types, scoring adapter, workspace deps, drop duplicate `apps/web/src/lib/exam` defs) while keeping the suite green. A reviewable proposal for the canonical-model choice — not merged, not a ratified decision.
+- **Bonus finding (pre-existing `dev` lint debt):** root `pnpm lint` fails with **23 errors that already exist on `dev`** — 1 in `apps/web/src/…/family/apply-wizard.tsx`, 22 in `scripts/configure-cloud-auth-email.mjs` — unrelated to any exam work. A small, separate cleanup opportunity (note: `apply-wizard.tsx` is also touched by the brand branch, and `configure-cloud-auth-email.mjs` is deleted by some Gen-C branches, so fix it in coordination with those).
 
 None of these touch `main`/`staging`/`dev`. Everything is held for your review.
 
