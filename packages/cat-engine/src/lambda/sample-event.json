@@ -1,0 +1,58 @@
+{
+  "mode": "score",
+  "input": {
+    "seed": "sample-session-0001",
+    "confidenceIterations": 50,
+    "policy": {
+      "policyVersion": "sample-policy-v1",
+      "fitWeights": { "fluid_reasoning": 1, "verbal": 1 },
+      "learningRateWeight": 0.1,
+      "consistencyWeight": 0.1,
+      "admitCut": 0.5,
+      "retryCut": -0.5,
+      "priorMean": 0,
+      "priorSd": 1,
+      "minEngagementRate": 0.8
+    },
+    "items": [
+      {
+        "itemId": "fluid_reasoning-0",
+        "domain": "fluid_reasoning",
+        "irt": { "a": 1.2, "b": -0.5, "c": 0, "model": "2PL" },
+        "difficultyLevel": 1,
+        "answerKey": "A",
+        "rapidGuessThresholdMs": 800
+      },
+      {
+        "itemId": "fluid_reasoning-1",
+        "domain": "fluid_reasoning",
+        "irt": { "a": 1.3, "b": 0.5, "c": 0, "model": "2PL" },
+        "difficultyLevel": 2,
+        "answerKey": "A",
+        "rapidGuessThresholdMs": 800
+      },
+      {
+        "itemId": "verbal-0",
+        "domain": "verbal",
+        "irt": { "a": 1.1, "b": -0.5, "c": 0, "model": "2PL" },
+        "difficultyLevel": 1,
+        "answerKey": "A",
+        "rapidGuessThresholdMs": 800
+      },
+      {
+        "itemId": "verbal-1",
+        "domain": "verbal",
+        "irt": { "a": 1.4, "b": 0.5, "c": 0, "model": "2PL" },
+        "difficultyLevel": 2,
+        "answerKey": "A",
+        "rapidGuessThresholdMs": 800
+      }
+    ],
+    "log": [
+      { "itemId": "fluid_reasoning-0", "order": 1, "rtMs": 2500, "answer": "A" },
+      { "itemId": "fluid_reasoning-1", "order": 2, "rtMs": 2800, "answer": "A" },
+      { "itemId": "verbal-0", "order": 3, "rtMs": 2600, "answer": "A" },
+      { "itemId": "verbal-1", "order": 4, "rtMs": 3000, "answer": "B" }
+    ]
+  }
+}

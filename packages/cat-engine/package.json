@@ -1,0 +1,22 @@
+{
+  "name": "@gt-selection/cat-engine",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Structure-agnostic, portable, pure exam scoring + deterministic-replay engine (no web/DB dependencies). Intended AWS Lambda payload for D-019. Synthetic-only.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "invoke:local": "tsx src/lambda/invoke-local.ts",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "4.1.10",
+    "typescript": "5.9.3",
+    "vitest": "4.1.10"
+  }
+}
