@@ -224,6 +224,19 @@ Each decision must include the requirements served, alternatives considered, evi
 - **Consequences:** `apps/web/src/lib/env.ts` gains `isHostedDeploy` + hosted branch (with tests); `next.config.ts` CSP `connect-src` is hosted-aware; `docs/DEPLOYMENT_RUNBOOK.md` and `infra/README.md` updated; `.github/workflows/deploy.yml` added (dormant until deploy secrets exist). Data remains born-synthetic until a separate decision authorizes real applicant data. No production account is authorized by this entry alone.
 - **Owner:** Proposed by product direction (session 2026-07-24); requires team-lead ratification before pointing hosted mode at a real project.
 
+### D-019 — Add one AWS Lambda for exam scoring & deterministic replay
+
+- **Date:** 2026-07-26
+- **Status:** Proposed (awaiting team-lead ratification)
+- **Decision:** Satisfy the project's external "use at least one AWS Lambda" constraint by deploying the exam **scoring + deterministic-replay engine** as an event-invoked, re-invokable Lambda. On session completion the app invokes the Lambda with the session's response log; the Lambda holds the server-side answer keys, IRT/scoring primitives, a pinned item-parameter snapshot, and the session seed, and returns the score/classification; re-invoking it with the same inputs reproduces the result bit-for-bit. This is **additive to D-012**: Next.js on ECS Fargate, the in-database `SECURITY DEFINER` RPC write surface, Aurora/PostgreSQL, forced RLS, and immutable versioning are unchanged, and the RPC write surface is **not** moved to Lambda (D-012 deferred that; its rationale stands).
+- **Requirements served:** R7 (the versioned Lambda is the deterministic canonical-replay / audit unit D-012 already requires), R1 (produces the selection-relevant score), H10 (isolates the keyed scoring engine and answer keys from the web/app tier). Also satisfies the external "≥1 Lambda" project constraint (E-072).
+- **Alternatives considered:** (a) telemetry-ingestion Lambda (append-only audit/RT stream); (b) async report/summary generator Lambda writing to S3; (c) scheduled DIF/equity-monitoring Lambda (EventBridge); (d) API-Gateway + Lambda RPC layer — rejected because it contradicts D-012's in-database definer-RPC design; (e) no Lambda — rejected because the constraint requires at least one.
+- **Evidence:** E-072 (the ≥1-Lambda constraint); D-011/D-012 (replay design + AWS platform); `docs/architecture/ARCHITECTURE_PLAN.md` §3, §8.
+- **Rationale:** Scoring is a pure, stateless, event-driven compute — a natural Lambda rather than a forced insertion into the always-on web tier. Packaging it as a versioned Lambda directly realizes D-012's deterministic-replay invariant, isolates answer keys (anti-gaming), and is **structure-agnostic** — it scores whatever the sequencer produced — so it survives whether the proposed adaptive/two-stage test structure is accepted or modified.
+- **Consequences:** `docs/architecture/ARCHITECTURE_PLAN.md` §3 gains a serverless-compute row; the exam scoring/replay engine is built as a portable pure function (overnight-plan WS4/WS5) so it runs identically in local dev and in Lambda; Terraform, IAM, and invocation wiring are dormant follow-ups until deploy. Remains born-synthetic (`synthetic_only=true`, `validated=false`, D-006); no live child data or production account is authorized by this entry.
+- **Owner:** Proposed by product direction (session 2026-07-26); requires team-lead ratification.
+- **Relationship to prior decisions:** Augments D-012 (AWS platform) and relies on the replay design in D-011/D-012; supersedes nothing.
+
 ## Entry template
 
 ### D-XXX — Decision title

@@ -165,6 +165,7 @@ Per PRD § Tech Stack and `PROVISIONAL_IMPLEMENTATION_CONTRACT.md:10-24`:
 | Package manager | pnpm 10 | Committed lockfile (supply-chain gate) |
 | Web framework | Next.js (App Router) + TypeScript | SSR-first; **no CDN/ISR caching of authed pages** |
 | Hosting / delivery | Container on **Amazon ECS Fargate**, fronted by **CloudFront + ALB** | Container is cloud-portable |
+| Serverless compute | **AWS Lambda** — exam scoring + deterministic-replay engine, event-invoked (D-019) | Additive to Fargate; the versioned Lambda is the R7 deterministic-replay unit, holds server-side keys + pinned params + seed; structure-agnostic (scores whatever the sequencer produced) |
 | DB / platform | **Amazon Aurora Serverless v2 (PostgreSQL-compatible)** | Standard PostgreSQL — RLS/RPCs/replay unchanged; dev account only, no production account |
 | Auth / identity | **Amazon Cognito** user pool | JWT carries a `custom:user_role` claim (admin-controlled); identity is the `sub` claim |
 | DB client | **`pg` (node-postgres)** via **Amazon RDS Proxy**, request-scoped, one txn/request | Verify the Cognito JWT server-side, then `SET LOCAL app.user_id`/`app.user_role`; connect as a non-`BYPASSRLS` role; never authorize from a cookie alone |
