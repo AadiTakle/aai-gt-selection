@@ -2,7 +2,7 @@
 
 ## Provenance and source-completeness
 
-This ledger is a complete merger of the original `gifted-assessment-quality-brainlift/source-register-annotated.md` and `gt-school-counterfactual-brainlift/source-register-annotated.md`, preserving every original source entry, including weak, vendor, opinion, contested, and verification-gap entries. Sources appearing in both registers remain in both provenance branches rather than being silently deduplicated; this makes both original uses auditable. Additive material is explicitly marked: first the unvetted `origin/dev:docs/research/EVIDENCE_DOSSIER.md`, then the 2026-07-22 integration from `gifted-assessment-quality-brainlift/test-effectiveness-metrics-research.md`, `docs/research/IN_HOUSE_COGNITIVE_TEST_RESEARCH.md`, and `docs/research/COGNITIVE_TEST_DESIGN_GUIDE.md`. Original verification, inference, vendor, and COI labels are preserved and never upgraded merely because a source was integrated.
+This ledger is a complete merger of the original gifted-assessment-quality and gt-school-counterfactual BrainLift source registers, preserving every original source entry, including weak, vendor, opinion, contested, and verification-gap entries. Sources appearing in both registers remain in both provenance branches rather than being silently deduplicated; this makes both original uses auditable. Additive material is explicitly marked: first the unvetted an unvetted, overnight-scraped secondary evidence compilation, then the 2026-07-22 integration from the test-effectiveness metrics research, in-house cognitive-test research notes, and cognitive-test design-guide notes. Original verification, inference, vendor, and COI labels are preserved and never upgraded merely because a source was integrated.
 
 **Completeness confirmation:** all entries from both original registers are represented verbatim below, including Tier A/B/C classifications, author stakes/COIs, URLs/DOIs, corrections, and verification flags. This document does not convert dossier claims into verified facts.
 
@@ -538,7 +538,7 @@ Each entry ends with **Verification**, a **Verdict** (tier), and **Use in brainl
 
 ## Section 11 — Incorporated from the dev evidence dossier (measurement-quality subset)
 
-Source: `docs/research/EVIDENCE_DOSSIER.md` (origin/dev) — an explicitly **unvetted, overnight-scraped** evidence pile for the admissions/lottery thesis (claims C1–C8). Only the **measurement-quality** items (C2/C3/C8) are curated into this BrainLift; the **selection / lottery / counterfactual** items (C1, C4–C7) defend the access/causal thesis and belong in `gt-school-counterfactual-brainlift/`, not here.
+Source: an unvetted, overnight-scraped secondary evidence compilation — an explicitly **unvetted, overnight-scraped** evidence pile for the admissions/lottery thesis (claims C1–C8). Only the **measurement-quality** items (C2/C3/C8) are curated into this BrainLift; the **selection / lottery / counterfactual** items (C1, C4–C7) defend the access/causal thesis and belong in the gt-school-counterfactual BrainLift, not here.
 
 **Citation correction issued:** the dossier attributes the N=320 / 44%-doctorate SMPY figures to "Kell, Lubinski & Benbow, 2014, *Psychological Science* 25(12):2217–2232." That is a mis-citation — those figures are **Kell, Lubinski & Benbow (2013), *Psychological Science* 24(5):648–659, DOI 10.1177/0956797612457784** (verified via SAGE + PubMed 23531483). The within-top-1% quartile gradient traces to **Lubinski (2016), "From Terman to Today."**
 
@@ -560,7 +560,7 @@ Source: `docs/research/EVIDENCE_DOSSIER.md` (origin/dev) — an explicitly **unv
 ### College Board (2023) — *Total Group SAT Suite of Assessments Annual Report*
 - **Content:** Mean SAT total 891 (lowest census-tract income quintile) → 1148 (highest); 257-pt gap; "met both benchmarks" 15% → 63%.
 - **1** High (issuer) · **2** National cohort · **3** Quantitative · **4** Issuer (College Board).
-- **Verification:** Verified this session against the primary report. **Verdict: Tier A for the statistic — but the SAT is an *achievement* test, not an ability screen; used only to illustrate that scores track family income (H2).** **Use:** §1.2.
+- **Verification:** Verified this session against the primary report. **Verdict: Tier A for the statistic — but the SAT is an *achievement* test, not an ability screen; used only to illustrate that scores track family income.** **Use:** §1.2.
 
 ### NWEA MAP — 2025 Growth norms / Growth-and-norms documentation
 - **Content:** ~13.8M-student 2025 norms; expected RIT growth compresses in upper grades (≈6 RIT gr 5–6 vs. ≈4 gr 7–8) → conditional growth percentiles are the appropriate high-ceiling metric.
@@ -569,9 +569,9 @@ Source: `docs/research/EVIDENCE_DOSSIER.md` (origin/dev) — an explicitly **unv
 
 ### SEM-at-the-cutoff illustration (±3–5 IQ points; asymmetric error at a 130 cut; reliability lowest in young children)
 - **Content:** Concrete confidence-band / asymmetric-misclassification numbers used to illustrate why a single hard cutoff misfires at the gifted boundary.
-- **Verification:** Underlying principle is standard (AERA/APA/NCME 2014 Standards 2.14–2.16; regression-to-mean). The specific numeric illustration comes from a **secondary summary (Gavin Publishers)** compiled in `docs/research/EVIDENCE_DOSSIER.md`. **Verdict: Tier C (secondary / illustrative).** **Use:** §1.2, cited as illustrative only.
+- **Verification:** Underlying principle is standard (AERA/APA/NCME 2014 Standards 2.14–2.16; regression-to-mean). The specific numeric illustration comes from a **secondary summary (Gavin Publishers)** compiled. **Verdict: Tier C (secondary / illustrative).** **Use:** §1.2, cited as illustrative only.
 
-**Not incorporated (out of scope for this BrainLift):** C1 "Elite Illusion" RD (Abdulkadiroğlu, Angrist & Pathak 2014); C4 universal screening (Card & Giuliano 2016); C5–C7 lottery/charter/feasibility (Boston charters; federal charter-lottery N=2,330; Cheung & Slavin 2016 QED-vs-RCT). These defend the counterfactual/access thesis → `gt-school-counterfactual-brainlift/`.
+**Not incorporated (out of scope for this BrainLift):** C1 "Elite Illusion" RD (Abdulkadiroğlu, Angrist & Pathak 2014); C4 universal screening (Card & Giuliano 2016); C5–C7 lottery/charter/feasibility (Boston charters; federal charter-lottery N=2,330; Cheung & Slavin 2016 QED-vs-RCT). These defend the counterfactual/access thesis → the gt-school-counterfactual BrainLift.
 
 
 ---
@@ -1177,12 +1177,12 @@ Solidly verified: Angrist-Imbens-Rubin, McCrary, Abadie et al., Oster, VanderWee
 ### SSP scale context — official announcement, IRS filings, AP/*Science* coverage
 - **Content:** SSP expanded to 720 participants after a roughly $200 million 2023 bequest; pre-bequest annual spending was around $2 million. Genuine scarcity plus exceptional resources enabled the evaluation.
 - **1:** High for financial/participant facts. **2:** Official/IRS/press. **3:** Quantitative context. **4:** Independent filings/press plus institutional reporting.
-- **Verdict: Tier B.** **Use:** R8 feasibility boundary only. Do not transfer SSP's resources or oversubscription to GT.
+- **Verdict: Tier B.** **Use:** feasibility boundary only. Do not transfer SSP's resources or oversubscription to GT.
 
 ### Jenkins, S. P. (2023) — "Offering Lottery Entry as an Incentive for Research Participation Compromises Informed Consent," *Ethics & Human Research*
 - **Content:** Argues that lottery entry as the gateway/incentive for research participation challenges coercion-free informed consent because applicants may not know their odds and small probabilities are difficult to evaluate. The paper predates and does not name SSP, but addresses the same mechanism.
 - **1:** High. **2:** Peer-reviewed bioethics analysis. **3:** Normative/analytical. **4:** Independent.
-- **Verdict: Tier A for the ethics principle; transfer must be labeled.** **Use:** 3.10/R9 reason to separate research choice from ordinary admission rights.
+- **Verdict: Tier A for the ethics principle; transfer must be labeled.** **Use:** the ethics reason (3.10) to separate research choice from ordinary admission rights.
 
 ### "The Opportunity Cost of Compulsory Research Participation" (2020), *Science and Engineering Ethics*
 - **Content:** Characterizes pools with costly refusal alternatives or penalties as objectively coercive, unlike participation that can be declined without cost.
@@ -1231,7 +1231,7 @@ Solidly verified: Angrist-Imbens-Rubin, McCrary, Abadie et al., Oster, VanderWee
 
 ## Additive dossier provenance (unvetted; labels retained)
 
-`origin/dev:docs/research/EVIDENCE_DOSSIER.md` was used as an additive lead source only. Its C1–C8 items are represented in the BrainLift only with their existing `[VERIFIED]`, `[PRESS]`, `[ESTIMATE]`, `[INFERENCE]`, or `[UNVERIFIED]` labels. The dossier's citation errors are not propagated: Kell/Lubinski/Benbow N=320/44% is 2013, and its CogAT current-form tail claims remain `[UNVERIFIED]`. No dossier item upgrades a source's tier or verification status in either provenance branch.
+an unvetted, overnight-scraped secondary evidence compilation was used as an additive lead source only. Its C1–C8 items are represented in the BrainLift only with their existing `[VERIFIED]`, `[PRESS]`, `[ESTIMATE]`, `[INFERENCE]`, or `[UNVERIFIED]` labels. The dossier's citation errors are not propagated: Kell/Lubinski/Benbow N=320/44% is 2013, and its CogAT current-form tail claims remain `[UNVERIFIED]`. No dossier item upgrades a source's tier or verification status in either provenance branch.
 
 ---
 

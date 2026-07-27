@@ -8,7 +8,7 @@ export default tseslint.config(
       '**/.next/**',
       'docs/**',
       'graphify-out/**',
-      'gt-school-counterfactual-brainlift/**',
+      'brainlifting/**',
       'node_modules/**',
       'packages/db-types/src/database.generated.ts',
       'research/**',

@@ -1,7 +1,7 @@
 .cursor/
 docs/
 graphify-out/
-gt-school-counterfactual-brainlift/
+brainlifting/
 node_modules/
 research/
 *.md

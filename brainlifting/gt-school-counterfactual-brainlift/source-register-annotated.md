@@ -597,12 +597,12 @@ Solidly verified: Angrist-Imbens-Rubin, McCrary, Abadie et al., Oster, VanderWee
 ### SSP scale context — official announcement, IRS filings, AP/*Science* coverage
 - **Content:** SSP expanded to 720 participants after a roughly $200 million 2023 bequest; pre-bequest annual spending was around $2 million. Genuine scarcity plus exceptional resources enabled the evaluation.
 - **1:** High for financial/participant facts. **2:** Official/IRS/press. **3:** Quantitative context. **4:** Independent filings/press plus institutional reporting.
-- **Verdict: Tier B.** **Use:** R8 feasibility boundary only. Do not transfer SSP's resources or oversubscription to GT.
+- **Verdict: Tier B.** **Use:** feasibility boundary only. Do not transfer SSP's resources or oversubscription to GT.
 
 ### Jenkins, S. P. (2023) — "Offering Lottery Entry as an Incentive for Research Participation Compromises Informed Consent," *Ethics & Human Research*
 - **Content:** Argues that lottery entry as the gateway/incentive for research participation challenges coercion-free informed consent because applicants may not know their odds and small probabilities are difficult to evaluate. The paper predates and does not name SSP, but addresses the same mechanism.
 - **1:** High. **2:** Peer-reviewed bioethics analysis. **3:** Normative/analytical. **4:** Independent.
-- **Verdict: Tier A for the ethics principle; transfer must be labeled.** **Use:** 3.10/R9 reason to separate research choice from ordinary admission rights.
+- **Verdict: Tier A for the ethics principle; transfer must be labeled.** **Use:** the ethics reason (3.10) to separate research choice from ordinary admission rights.
 
 ### "The Opportunity Cost of Compulsory Research Participation" (2020), *Science and Engineering Ethics*
 - **Content:** Characterizes pools with costly refusal alternatives or penalties as objectively coercive, unlike participation that can be declined without cost.
