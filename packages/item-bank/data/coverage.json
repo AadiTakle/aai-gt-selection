@@ -1,0 +1,116 @@
+{
+  "totals": {
+    "models": 66,
+    "materializedItems": 257
+  },
+  "materializedTypeCount": 9,
+  "byDomain": {
+    "fluid_reasoning": 70,
+    "quantitative": 96,
+    "spatial": 76,
+    "verbal": 15
+  },
+  "byType": {
+    "FLU-ANALOGY-01": 30,
+    "FLU-MATRIX-01": 40,
+    "QUANT-FUNC-01": 48,
+    "QUANT-SERIES-01": 48,
+    "SPA-MAZE-01": 40,
+    "SPA-ROLL-01": 36,
+    "VER-CLOZE-01": 5,
+    "VER-RELPAIR-01": 6,
+    "VER-SENSE-01": 4
+  },
+  "byScoring": {
+    "deterministic_key": 213,
+    "computed_solver": 44
+  },
+  "typeBreadth": {
+    "fluid_reasoning": {
+      "K-1": 6,
+      "2-3": 15,
+      "4-5": 15,
+      "6-8": 15
+    },
+    "verbal": {
+      "K-1": 4,
+      "2-3": 14,
+      "4-5": 16,
+      "6-8": 16
+    },
+    "quantitative": {
+      "K-1": 6,
+      "2-3": 12,
+      "4-5": 11,
+      "6-8": 11
+    },
+    "spatial": {
+      "K-1": 7,
+      "2-3": 21,
+      "4-5": 23,
+      "6-8": 22
+    }
+  },
+  "materializedItemsGrid": {
+    "fluid_reasoning": {
+      "K-1": 10,
+      "2-3": 20,
+      "4-5": 20,
+      "6-8": 20
+    },
+    "verbal": {
+      "K-1": 1,
+      "2-3": 8,
+      "4-5": 5,
+      "6-8": 1
+    },
+    "quantitative": {
+      "K-1": 24,
+      "2-3": 24,
+      "4-5": 24,
+      "6-8": 24
+    },
+    "spatial": {
+      "K-1": 10,
+      "2-3": 22,
+      "4-5": 22,
+      "6-8": 22
+    }
+  },
+  "duplicates": {
+    "groups": 10,
+    "redundantItems": 13
+  },
+  "breadthGaps": [],
+  "spatial": {
+    "types": 23,
+    "materializedTypes": [
+      "SPA-MAZE-01",
+      "SPA-ROLL-01"
+    ],
+    "modelOnlyTypes": [
+      "GB-EXPLORE-01",
+      "GB-FILTER-01",
+      "GB-PATHFORGE-01",
+      "GB-ROBOPATH-01",
+      "GB-SHAPEFIT-01",
+      "GB-TRACK-01",
+      "SPA-FOLDNET-01",
+      "SPA-HIDDENCUBE-01",
+      "SPA-PICKFOLD-01",
+      "SPA-PIPES-01",
+      "SPA-PUNCH-01",
+      "SPA-SCENE-01",
+      "SPA-SHADOW-01",
+      "SPA-TANGRAM-01",
+      "SPA-VIEW-01",
+      "SPA-XPLANE-01",
+      "SPA-XSCAN-01",
+      "WM-bind-01",
+      "WM-corsi-01",
+      "WM-gate-01",
+      "WM-gridflash-01"
+    ]
+  },
+  "modelOnlyTypeCount": 57
+}
