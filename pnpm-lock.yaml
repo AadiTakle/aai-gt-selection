@@ -41,12 +41,18 @@ importers:
 
   apps/web:
     dependencies:
+      '@gt-selection/cat-engine':
+        specifier: workspace:*
+        version: link:../../packages/cat-engine
       '@gt-selection/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
       '@gt-selection/db-types':
         specifier: workspace:*
         version: link:../../packages/db-types
+      '@gt-selection/item-bank':
+        specifier: workspace:*
+        version: link:../../packages/item-bank
       '@gt-selection/test-fixtures':
         specifier: workspace:*
         version: link:../../packages/test-fixtures
