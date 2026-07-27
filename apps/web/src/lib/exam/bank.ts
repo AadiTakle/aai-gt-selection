@@ -9,6 +9,8 @@
  * Titles/one-liners are from the catalog's `master_types.jsonl`.
  */
 
+import type { BankEmbeddedDemo } from './item';
+
 export type ExamDomain = 'fluid_reasoning' | 'verbal' | 'quantitative' | 'spatial';
 
 export interface ExamBankItem {
@@ -94,4 +96,25 @@ export const EXAM_BANK: ExamBankItem[] = [
 
 export function domainLabel(domain: string): string {
   return DOMAIN_LABEL[domain as ExamDomain] ?? domain.replace('_', ' ');
+}
+
+/**
+ * Adapt the legacy iframe battery to the generic bank-item model so it can run
+ * through the session shell + player like any other item type. These demos
+ * self-adapt and self-score in-frame, so `difficultyLevel` is a placeholder (the
+ * reached difficulty is harvested from the demo's `M-DIFFREACH`, not this field).
+ */
+export function embeddedDemoBank(): BankEmbeddedDemo[] {
+  return EXAM_BANK.map((item) => ({
+    renderKind: 'embedded-demo',
+    itemId: item.typeCode,
+    typeCode: item.typeCode,
+    domain: item.domain,
+    title: item.title,
+    blurb: item.blurb,
+    difficultyLevel: 1,
+    demoPath: item.demoPath,
+    syntheticOnly: true,
+    validated: false,
+  }));
 }
