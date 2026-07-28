@@ -50,6 +50,7 @@ export function sectionRatios(state: WizardState): Record<OnboardingStepCode, nu
 
   // 4. Household & language
   const langReq = [
+    state.household.guardianName,
     state.household.guardianRelationshipCode,
     state.household.address.street1,
     state.household.address.city,

@@ -164,6 +164,20 @@ validator check it, and lets the renderer trust it.
 
 ### 6.3 Answer key + distractor taxonomy (server-only)
 
+The taxonomy is **two fields at two grains** (D-020). A closed nine-value
+`lureClass` keeps `M-ERRTYPE` / `M-LURETYPE` / `M-RULEID` computable — they are
+counts over buckets, so the vocabulary cannot be open. An optional free-form
+`lureDetail` carries the type's own label, because 219 distinct labels are in
+use across the banks and a coarse bucket cannot tell `cut_too_high` from
+`cut_too_low`. Every label's coarse mapping lives in
+`research/exam-question-types/generators/item-shape.mjs`; an unregistered label
+is a hard error at generation time.
+
+The map is **keyed by each selectable element's own identifier**, not aligned to
+option order: many types have no positional options (`VER-EVIDENCE-01` keys
+passage sentences, `WM-bubble-01` keys per-lane n-back steps), and the server
+must resolve a child's choice to a lure by key once options are shuffled.
+
 ```ts
 export const lureClassSchema = z.enum([
   'correct',
@@ -177,16 +191,26 @@ export const lureClassSchema = z.enum([
   'distractor_other',
 ]);
 
-export const answerKeySchema = z.object({
-  // Selection items: index/set into content.options.
-  correctIndex: z.int().nonnegative().optional(),
-  correctSet: z.array(z.int().nonnegative()).optional(),
-  // Constructed/interactive items: a canonical solution the solver checks against.
-  canonicalSolution: z.unknown().optional(),
-  // Per-option lure class, aligned to content.options order (feeds M-LURETYPE).
-  distractorRationales: z.array(lureClassSchema).optional(),
-}).strict();
+export const distractorRationaleSchema = z.looseObject({
+  lureClass: lureClassSchema,               // required, bucketable (M-LURETYPE)
+  lureDetail: z.string().min(1).optional(), // the type's own label
+  // Per-type diagnostics (note, misconception, derivation, …) pass through.
+});
+
+export const answerKeySchema = z.looseObject({
+  // index | option key | set | computed solution, per type.
+  correctKey: z.unknown(),
+  // Keyed by the selectable element's id, NOT by option position.
+  distractorRationales: z.record(z.string().min(1), distractorRationaleSchema).optional(),
+  // Per-type ground truth (optimalPath, bindings, acceptedEquivalence, …)
+  // passes through until the typed §6.2 registry exists.
+});
 ```
+
+Open-ended objects are safe here only because `servedItemSchema` omits `answer`,
+`scoring`, and `provenance` wholesale — nothing can reach the browser by being
+unlisted. `packages/contracts/src/bank-conformance.test.ts` asserts both that
+every bank parses and that the served projection still excludes all three.
 
 ### 6.4 Scoring contract
 

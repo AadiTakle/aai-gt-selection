@@ -15,6 +15,75 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      exam_create_participant: {
+        Args: {
+          p_age_band: string
+          p_correlation_id: string
+          p_pseudonym_code: string
+        }
+        Returns: Json
+      }
+      exam_get_next_item: {
+        Args: { p_correlation_id: string; p_session_id: string }
+        Returns: Json
+      }
+      exam_get_outcome: {
+        Args: { p_correlation_id: string; p_session_id: string }
+        Returns: Json
+      }
+      exam_get_scoring_inputs: {
+        Args: { p_correlation_id: string; p_session_id: string }
+        Returns: Json
+      }
+      exam_get_session_state: {
+        Args: { p_correlation_id: string; p_session_id: string }
+        Returns: Json
+      }
+      exam_list_items: {
+        Args: {
+          p_age_band: string
+          p_correlation_id: string
+          p_policy_version: string
+        }
+        Returns: Json
+      }
+      exam_record_outcome: {
+        Args: {
+          p_correlation_id: string
+          p_idempotency_key: string
+          p_outcome: Json
+          p_scorer_version: string
+          p_scoring_policy_id: string
+          p_session_id: string
+        }
+        Returns: Json
+      }
+      exam_register_item: {
+        Args: { p_correlation_id: string; p_item: Json }
+        Returns: Json
+      }
+      exam_start_session: {
+        Args: {
+          p_correlation_id: string
+          p_grade_band: string
+          p_idempotency_key: string
+          p_participant_id: string
+          p_policy_version: string
+        }
+        Returns: Json
+      }
+      exam_submit_response: {
+        Args: {
+          p_correlation_id: string
+          p_idempotency_key: string
+          p_item_id: string
+          p_metrics: Json
+          p_raw_answer: Json
+          p_session_id: string
+          p_telemetry: Json
+        }
+        Returns: Json
+      }
       get_application: {
         Args: { p_application_id: string; p_correlation_id: string }
         Returns: Json

@@ -18,12 +18,9 @@ body{
   background:radial-gradient(circle at 13% 8%,#d8fff2,transparent 27%),
     linear-gradient(145deg,#e7fbff,#f5f7e9 58%,#fff0dc);
 }
-#wrap{
-  flex:1;min-width:0;padding:17px;display:flex;flex-direction:column;
-  align-items:center;gap:9px;
-}
+#wrap{flex:1;min-width:0;padding:17px;display:flex;flex-direction:column;align-items:center;gap:9px}
 #badge{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#718f94}
-#howto{max-width:710px;width:100%;background:#fff;border:1px solid #d8ece9;border-left:5px solid var(--teal);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #234c55}
+#howto{max-width:720px;width:100%;background:#fff;border:1px solid #d8ece9;border-left:5px solid var(--teal);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #234c55}
 #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--teal)}
 #howto p{margin:0;font-size:14px;color:#3c5a55;line-height:1.5}
 #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#e7f4f2;color:#1f716c;border:2px solid #bfe6e0;min-height:30px}
@@ -31,344 +28,473 @@ body{
 #phasecue[data-phase="scored"]{background:#25aa9b;color:#fff;border-color:#25aa9b}
 #phasecue[data-phase="done"]{background:#e7f4f2;color:#1f716c;border-color:#bfe6e0}
 #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
-#status.ok{color:#1f9e6f} #status.no{color:var(--pink)} #status.neutral{color:#718f94}
+#status.ok{color:#1f9e6f} #status.no{color:var(--pink)} #status.neutral{color:#5c7d82}
 #stagecard{
-  width:min(710px,100%);background:var(--paper);border-radius:30px;padding:18px;
+  width:min(720px,100%);background:var(--paper);border-radius:30px;padding:18px;
   box-shadow:0 24px 58px -35px #234c55;display:flex;flex-direction:column;
   align-items:center;gap:12px;border:1px solid #fff;overflow:hidden;
 }
 #promptCard{
-  width:100%;min-height:112px;border:3px solid #d8ece9;border-radius:23px;
-  background:radial-gradient(circle at 50% 40%,#fff 0 20%,#e9faf7);
-  display:flex;justify-content:center;align-items:center;gap:18px;position:relative;
+  width:100%;border:3px solid #d8ece9;border-radius:23px;
+  background:radial-gradient(circle at 50% 30%,#fff 0 25%,#e9faf7);
+  padding:16px 18px;display:flex;gap:14px;align-items:flex-start;position:relative;
 }
-#promptIcon{font-size:62px;filter:drop-shadow(0 5px 0 #cfe8e4)}
-#promptWord{font:900 30px/1.05 ui-rounded,"Arial Rounded MT Bold",system-ui;color:#1f716c}
-#spark{position:absolute;right:18px;top:12px;font-size:23px;letter-spacing:4px;color:var(--gold)}
-#entry{width:100%;display:grid;grid-template-columns:1fr 58px;gap:8px}
+#promptMark{flex:0 0 44px;margin-top:2px}
+#promptText{flex:1;min-width:0}
+#promptHead{font:900 22px/1.25 ui-rounded,"Arial Rounded MT Bold",system-ui;color:#1f716c}
+#promptNote{margin-top:6px;font-size:13px;color:#4f7a76}
+#rules{margin:8px 0 0;padding-left:18px;font-size:13px;color:#8a5b18}
+#rules li{margin-top:2px}
+#timerWrap{position:absolute;right:14px;top:12px;text-align:right}
+#timer{font:900 19px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:#4f7a76}
+#timertrack{width:74px;height:6px;border-radius:6px;background:#d8ece9;margin-top:5px;overflow:hidden}
+#timerfill{height:100%;width:100%;background:linear-gradient(90deg,#25aa9b,#efb63d);transition:width 1s linear}
+#entry{width:100%;display:grid;grid-template-columns:1fr 62px;gap:8px}
 #idea{
   width:100%;height:54px;border:3px solid #cfe3e1;border-radius:17px;background:#fff;
   color:var(--ink);padding:8px 15px;font:700 17px system-ui;outline:none;
 }
 #idea:focus{border-color:var(--teal);box-shadow:0 0 0 4px #d9f6f0}
-#add{
-  border:0;border-radius:17px;background:var(--teal);color:#fff;cursor:pointer;
-  font:900 23px system-ui;
-}
+#idea[disabled]{background:#f2f6f5;color:#8aa6a3}
+#add{border:0;border-radius:17px;background:var(--teal);color:#fff;cursor:pointer;font:900 15px system-ui}
+#add[disabled]{opacity:.35;cursor:default}
 #field{
-  width:100%;height:206px;border-top:2px dashed #c9dedb;position:relative;
-  overflow:hidden;background:linear-gradient(transparent,#f3fbf8);border-radius:0 0 18px 18px;
+  width:100%;height:150px;border-top:2px dashed #c9dedb;position:relative;
+  overflow:hidden;background:linear-gradient(transparent,#f3fbf8);
 }
 .bubble{
-  position:absolute;bottom:-44px;max-width:190px;padding:7px 12px;border-radius:20px;
+  position:absolute;bottom:-40px;max-width:200px;padding:7px 12px;border-radius:20px;
   border:2px solid var(--teal);background:#fff;color:var(--ink);
   font:700 13px system-ui;animation:rise 8s linear forwards;box-shadow:0 7px 15px -12px #173d44;
 }
-.bubble.rare{border-color:var(--gold);background:#fff9df}
-.bubble .cat{display:block;text-align:center;color:#66918e;font:800 9px ui-monospace,monospace;text-transform:uppercase}
-@keyframes rise{0%{transform:translateY(0);opacity:0}8%{opacity:1}75%{opacity:1}100%{transform:translateY(-225px);opacity:.25}}
-#combo{
-  position:absolute;left:12px;bottom:8px;color:#d78c13;font:900 17px system-ui;z-index:3;
+@keyframes rise{0%{transform:translateY(0);opacity:0}8%{opacity:1}75%{opacity:1}100%{transform:translateY(-175px);opacity:.2}}
+#chips{width:100%;display:flex;flex-wrap:wrap;gap:6px;min-height:8px}
+.chip{
+  display:inline-flex;align-items:center;gap:7px;border:2px solid #cfe3e1;border-radius:14px;
+  background:#fff;padding:5px 6px 5px 11px;font:700 13px system-ui;color:var(--ink);
 }
-#tools{display:flex;gap:11px}
-#tools button{
-  height:50px;border:0;border-radius:16px;cursor:pointer;font:800 21px system-ui;
-  background:#e7f4f2;color:var(--teal);
-}
-#replay{width:52px}#submit{width:86px;background:var(--blue)!important;color:#fff!important;opacity:.35;pointer-events:none}
-#submit.ready{opacity:1;pointer-events:auto;animation:pulse 1s infinite}
-@keyframes pulse{50%{transform:scale(1.06)}}
-button:focus-visible{outline:4px solid #168dff;outline-offset:2px}
+.chip button{border:0;background:#eef6f4;color:#5c7d82;border-radius:9px;width:22px;height:22px;cursor:pointer;font:800 12px system-ui}
+#count{font:700 12px ui-monospace,monospace;color:#5c7d82}
+#tools{display:flex;gap:11px;align-items:center;flex-wrap:wrap;justify-content:center}
+#tools button{height:50px;border:0;border-radius:16px;cursor:pointer;font:800 16px system-ui;background:#e7f4f2;color:var(--teal);padding:0 18px}
+#replay{padding:0 15px;font-size:19px}
+#send{background:var(--blue)!important;color:#fff!important;opacity:.35;pointer-events:none}
+#send.ready{opacity:1;pointer-events:auto}
+button:focus-visible,input:focus-visible{outline:4px solid #168dff;outline-offset:2px}
 #ghost{
-  position:fixed;left:0;top:0;opacity:0;z-index:50;pointer-events:none;font-size:38px;
-  transition:transform .42s cubic-bezier(.2,.7,.2,1),opacity .2s;filter:drop-shadow(0 4px 4px #0004);
+  position:fixed;left:0;top:0;opacity:0;z-index:50;pointer-events:none;
+  transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .25s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25));
 }
-#ghost.show{opacity:1}
+#ghost.show{opacity:.94}
+#ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--teal);opacity:0}
+#ghost.tap .ring{animation:tapring .5s ease-out}
+@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
 #telemetry{
   width:345px;flex:0 0 345px;min-height:100vh;background:var(--tel);
   color:#c7e4e7;display:flex;flex-direction:column;
   font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;
 }
-#telemetry h3{
-  margin:0;padding:13px 14px;background:var(--tel2);color:#fff;
-  font:800 12px system-ui;letter-spacing:.1em;text-transform:uppercase;
-}
-#difficulty{padding:10px 13px;border-bottom:1px solid #25414a}
-.diffTop{display:flex;justify-content:space-between;color:#9ebbc1}
-.diffTrack{height:8px;background:#203941;border-radius:8px;overflow:hidden;margin-top:6px}
-#diffFill{height:100%;width:20%;background:linear-gradient(90deg,#25aa9b,#51e0bd,#efbd47);transition:.3s}
-#mlist{padding:10px 12px;display:flex;flex-direction:column;gap:8px}
-.mrow{display:grid;grid-template-columns:103px 1fr;gap:7px}
-.mid{color:var(--key);font-weight:800}.mval{color:#fff}
+#telemetry h3{margin:0;padding:13px 14px;background:var(--tel2);color:#fff;font:800 12px system-ui;letter-spacing:.1em;text-transform:uppercase}
+#difficulty{margin:10px 12px 2px;padding:10px;border:1px solid #25414a;border-radius:10px;background:#122630}
+.dtop{display:flex;justify-content:space-between;color:#fff}
+.dsub{display:flex;justify-content:space-between;color:var(--dim);font-size:11px;margin-top:5px}
+.dtrack{height:7px;background:#203941;border-radius:8px;margin-top:8px;overflow:hidden}
+.dfill{height:100%;background:linear-gradient(90deg,#78ffd0,#efbd47);transition:.25s}
+#mode{margin:6px 12px 0;font-size:11px;color:var(--dim)}
+#mode b{color:#efbd47}
+#mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+.mrow{display:grid;grid-template-columns:105px 1fr;gap:7px;align-items:baseline}
+.mid{color:var(--key);font-weight:800}
+.mid.def{color:#efbd47}
+.mval{color:#fff;word-break:break-word}
 .mname{grid-column:1/3;color:var(--dim);font-size:10px;margin-top:-3px}
 #logwrap{border-top:1px solid #25414a;margin-top:auto}
-#logwrap b{display:block;padding:8px 12px 3px;color:#7899a1;font-size:10px}
-#log{height:185px;overflow:auto;padding:0 12px 12px}
+#logwrap b{display:block;padding:8px 12px 3px;color:#7899a1;font-size:10px;letter-spacing:.08em}
+#log{height:175px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
 #log div{border-bottom:1px dotted #25414a;padding:3px 0}
 #log .t{color:#50757d}
-@media(max-width:860px){
-  body{flex-direction:column}#telemetry{width:100%;min-height:0;height:310px;flex:none}
-}
-@media(max-width:480px){#promptIcon{font-size:48px}#promptWord{font-size:24px}#field{height:180px}}
+@media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;min-height:0;height:320px;flex:none}}
+@media(max-width:480px){#promptHead{font-size:18px}#field{height:120px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition-duration:.01ms!important}}
 </style>
+<style>html[data-gt-telemetry="off"] #telemetry{display:none}</style>
+<script>/* D-028 — the researcher telemetry panel is presentational only. Embedded in the
+   child-facing screener it is hidden: naming the behavioural metrics to the child can
+   change the behaviour being measured. `?telemetry=1` restores it for a live
+   demonstration, and standalone (opened directly) is unchanged. Sampling, metric
+   computation and the {type:'telemetry'} postMessage stream are untouched. */
+(function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
 </head>
 <body>
 <main id="wrap">
   <div id="badge">CX-diverge-01 · Brainstorm Blaster</div>
   <header id="howto">
     <h1>How to use — Brainstorm Blaster</h1>
-    <p>Look at the object shown and type as many different uses for it as you can — press Enter after each idea. When you have a few, press the check (<b>✓</b>) to go to the next object.</p>
+    <p>Read the question, then type one idea and press Enter. Each idea pops up as a bubble. Keep
+    adding as many different ideas as you can before the time runs out, or press <b>Send</b> when you
+    are finished. No idea is ever wrong. If a rule is listed under the question, follow it.</p>
   </header>
-  <div id="phasecue" data-phase="demo">Watch the example</div>
+  <div id="phasecue" data-phase="warmup">Get ready</div>
   <section id="stagecard">
     <div id="promptCard">
-      <span id="promptIcon">👟</span><span id="promptWord">shoe</span><span id="spark">✦✦✦</span>
+      <svg id="promptMark" viewBox="0 0 40 40" width="44" height="44" fill="none" stroke="#25aa9b" stroke-width="2.2" stroke-linecap="round">
+        <circle cx="20" cy="16" r="9"></circle><path d="M16 27h8M17 31h6"></path>
+        <path d="M20 3v3M31 8l-2 2M37 19h-3M9 10L7 8M6 19H3"></path>
+      </svg>
+      <div id="promptText">
+        <div id="promptHead">Waiting for the prompt.</div>
+        <div id="promptNote"></div>
+        <ul id="rules"></ul>
+      </div>
+      <div id="timerWrap"><div id="timer">&mdash;</div><div id="timertrack"><div id="timerfill"></div></div></div>
     </div>
     <div id="entry">
-      <input id="idea" type="text" autocomplete="off" placeholder="…" aria-label="idea">
-      <button id="add" aria-label="add idea">↵</button>
+      <input id="idea" type="text" autocomplete="off" maxlength="60" placeholder="type one idea, then press Enter" aria-label="your idea" disabled>
+      <button id="add" disabled>Add</button>
     </div>
-    <div id="field"><div id="combo"></div></div>
+    <div id="field"></div>
+    <div id="chips"></div>
     <div id="tools">
-      <button id="replay" aria-label="replay">↻</button>
-      <button id="submit" aria-label="next prompt">✓</button>
+      <button id="replay" title="show how again">&#8635;</button>
+      <button id="send">&#10003; Send</button>
+      <span id="count"></span>
     </div>
-    <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+    <div id="status" class="neutral">Waiting for the prompt.</div>
   </section>
 </main>
 <aside id="telemetry">
-  <h3>Live telemetry · per-child</h3>
-  <div id="difficulty">
-    <div class="diffTop"><span>DIFFICULTY</span><span id="diffLabel">1 / 5</span></div>
-    <div class="diffTrack"><div id="diffFill"></div></div>
-  </div>
+  <h3>Live telemetry · per-child (display only)</h3>
+  <div id="difficulty" data-tracks="M-DIFFREACH"></div>
+  <div id="mode">Fluency is a <b>plain auto count</b>. Flexibility and originality need a norm bank and a clusterer: <b>judge-deferred</b>, not computed here.</div>
   <div id="mlist"></div>
-  <div id="logwrap"><b>EVENT LOG · TYPE + ENTER</b><div id="log"></div></div>
+  <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
 </aside>
-<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#25aa9b" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
-const $=s=>document.querySelector(s);
-const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-const PROMPTS={
-  1:[
-    {icon:'📎',word:'paperclip',bank:[
-      ['hold paper|clip paper','organize',.44],['hook|fish','tool',.12],['necklace|bracelet|jewelry','art',.08],
-      ['reset|phone slot|unlock','technology',.035],['zipper','repair',.06],['tiny sculpture|shape','art',.045]]},
-    {icon:'🥤',word:'cup',bank:[
-      ['drink|water','food',.46],['plant|flower pot','nature',.18],['scoop|dig','tool',.11],
-      ['drum|music','music',.06],['tower|stack','play',.08],['bug home|tiny house','story',.035]]}
-  ],
-  2:[
-    {icon:'▣',word:'cardboard box',bank:[
-      ['store|storage|hold things','organize',.40],['fort|castle','play',.18],['robot|costume','story',.10],
-      ['planter|plant','nature',.08],['drum|instrument','music',.055],['sled|slide','motion',.035]]},
-    {icon:'〰',word:'string',bank:[
-      ['tie|fasten','tool',.38],['bracelet|necklace','art',.17],['jump rope|game','play',.13],
-      ['map|trail|line','symbol',.06],['guitar|instrument','music',.05],['trap|alarm','invention',.025]]}
-  ],
-  3:[
-    {icon:'▧',word:'blanket',bank:[
-      ['warm|cover|sleep','comfort',.43],['tent|fort','play',.18],['cape|costume','story',.11],
-      ['picnic|ground','outdoors',.09],['carry|sling','tool',.05],['movie screen|shadow show','art',.025]]},
-    {icon:'▰',word:'brick',bank:[
-      ['build|wall|house','build',.42],['weight|hold down','tool',.16],['doorstop','home',.12],
-      ['paint|stamp','art',.07],['heat|warm','science',.05],['tiny stage|toy city','story',.025]]}
-  ],
-  4:[
-    {icon:'◯',word:'circle',bank:[
-      ['wheel|roll','motion',.28],['sun|moon|planet','nature',.20],['face|head','body',.16],
-      ['target|game','play',.10],['portal|window','story',.045],['signal|code|map','symbol',.035]]},
-    {icon:'0',word:'zero',bank:[
-      ['nothing|none','number',.35],['circle|shape','shape',.25],['start|reset','time',.10],
-      ['portal|door','story',.045],['balance|middle','system',.04],['secret code|placeholder','symbol',.03]]}
-  ],
-  5:[
-    {icon:'∿',word:'silence',bank:[
-      ['rest|sleep|calm','wellbeing',.25],['pause|music','music',.16],['secret|hide','story',.12],
-      ['think|idea space','mind',.10],['warning|signal','communication',.055],['blank canvas|room for sound','metaphor',.025]]},
-    {icon:'◒',word:'shadow',bank:[
-      ['shade|cool','nature',.24],['puppet|show','story',.18],['clock|tell time','time',.11],
-      ['trace|draw','art',.10],['measure|height','science',.055],['secret message|double','communication',.03]]}
-  ]
-};
-const WARM={icon:'🥄',word:'spoon',bank:[
-  ['eat|soup','food',.46],['stir|mix','tool',.28],['mirror|reflect','science',.07],
-  ['drum|music','music',.08],['catapult|launch','play',.04],['tiny boat','story',.035]
-]};
-const DEMO={icon:'👟',word:'shoe',bank:[
-  ['hammer','tool',.10],['boat','story',.04],['flower pot|plant','nature',.08]
-]};
-const GENERIC={
-  tool:['cut','dig','hold','open','fix','carry','lift','scrape','hammer','hook'],
-  art:['draw','paint','decorate','sculpt','jewelry','design','pattern'],
-  play:['game','toy','race','throw','spin','play','fort'],
-  story:['magic','alien','dragon','tiny','pretend','portal','monster'],
-  nature:['plant','animal','water','sun','garden','bird','tree'],
-  music:['music','sound','drum','song','instrument'],
-  build:['build','bridge','tower','wall','connect'],
-  science:['measure','experiment','heat','light','signal']
-};
-const T={
-  ideas:0,categories:new Set(),origSum:0,origN:0,words:0,persist:0,
-  blur:0,activeMs:0,activeStart:Date.now(),lastAction:Date.now(),
-  itemStart:Date.now(),maxSolved:0
-};
-let phase='demo',level=1,scoredIndex=0,prompt=DEMO,current=[],currentCats=new Set();
-let required=2,locked=true;
-const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
-function setCue(k,extra){const el=$('#phasecue');if(!el)return;el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
-function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
-function normalize(text){
-  return text.toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\b(a|an|the|to|for|as)\b/g,' ').replace(/\s+/g,' ').trim();
+/* =====================================================================
+ * CX-diverge-01 — PURE RENDERER
+ * Renders a SERVED item (item.content: an open divergent-production prompt) and
+ * reports the child's RAW idea list + timing + numeric process metrics. It NEVER
+ * self-generates prompts and NEVER marks an idea right or wrong.
+ *
+ * WHAT THIS FILE DELIBERATELY DOES NOT DO: it does not score originality or
+ * flexibility. The previous version shipped a hand-written response-frequency
+ * table and a keyword-to-category map; those look like norms but are not, so
+ * they are removed. M-FLEX and M-ORIG are judge-deferred (METRIC_FRAMEWORK §4).
+ * M-IDEAFLU is emitted as a PLAIN AUTO COUNT using the same normalize+exact
+ * dedupe rule the generator and validator use, so client and server agree.
+ *
+ * Embedding protocol (postMessage), source-tagged:
+ *   host -> demo : {source:'gt-exam-host', type:'init',  item:ServedItem}
+ *                  {source:'gt-exam-host', type:'start', tutorial?:bool}
+ *   demo -> host : {source:'gt-exam-demo', type:'ready'}
+ *                  {source:'gt-exam-demo', type:'result',    result:ItemResult}
+ *                  {source:'gt-exam-demo', type:'telemetry', event:TelemetryEvent}
+ *
+ * Reading is a required baseline-literacy gate (D-017): on-screen TEXT only.
+ * There is no audio and no text-to-speech anywhere in this file.
+ *
+ * Standalone (double-click / no host): loads sample items from the bank JSONL
+ * (or an inline fallback if fetch is blocked on file://) so the file still runs
+ * for QA.
+ * ===================================================================== */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const HOST_SRC='gt-exam-host', DEMO_SRC='gt-exam-demo';
+
+/* ---------- the auto-count rule (identical to generators/CX-diverge-01.mjs) ---------- */
+function normalizeIdea(text){
+  return String(text).toLowerCase()
+    .replace(/[^a-z0-9]+/g,' ')
+    .replace(/^(a|an|the)\s+/,'')
+    .replace(/\s+/g,' ')
+    .trim();
 }
-function jaccard(a,b){
-  const A=new Set(a.split(' ')),B=new Set(b.split(' ')),both=[...A].filter(x=>B.has(x)).length;
-  return both/Math.max(1,new Set([...A,...B]).size);
+
+/* ---------- per-item state ---------- */
+let current=null;          // current ServedItem
+let interactive=false;     // interaction enabled? (released in beginItem)
+let submitted=false;       // already sent this item?
+let ideas=[];              // [{n, text, norm, words, tMs}]
+let removed=[];            // [{text, tMs}]
+let attempts=0;            // every entry attempt, including rejected duplicates
+let actions=[];            // raw action sequence
+let itemTelemetry=[];
+let itemStart=0, firstLat=null, startTimer=null, tickTimer=null, lastRt=0;
+let blurs=0;
+
+/* ---------- embedding detection + emit ---------- */
+const embedded=(()=>{try{return window.parent&&window.parent!==window;}catch(_){return true;}})();
+let standalone=false, standaloneQueue=[], standaloneIdx=0, tutorialShown=false;
+function post(msg){if(!embedded)return;try{window.parent.postMessage(Object.assign({source:DEMO_SRC},msg),'*');}catch(_){}}
+
+/* ---------- deterministic process metrics (numeric, judgement-free) ---------- */
+function distinctCount(){return new Set(ideas.map(i=>i.norm)).size;}
+function meanWords(){return ideas.length?Math.round(100*ideas.reduce((s,i)=>s+i.words,0)/ideas.length)/100:0;}
+// M-PERSIST: ideas produced in the final third of the window — the child who
+// keeps generating after the obvious answers are gone.
+function lateIdeas(){
+  if(!current)return 0;
+  const cut=current.content.timeWindowSec*1000*2/3;
+  return ideas.filter(i=>i.tMs>=cut).length;
 }
-function scoreText(text){
-  const norm=normalize(text);let hit=null;
-  for(const entry of prompt.bank){
-    if(entry[0].split('|').some(term=>norm.includes(term))){hit={category:entry[1],frequency:entry[2]};break;}
-  }
-  if(!hit){
-    let category='other';
-    for(const [cat,terms] of Object.entries(GENERIC)){
-      if(terms.some(term=>norm.includes(term))){category=cat;break;}
-    }
-    hit={category,frequency:category==='other'?.12:.07};
-  }
-  return {norm,category:hit.category,frequency:hit.frequency,originality:Math.round((1-hit.frequency)*100)};
+function secondsLeft(){
+  if(!current||!itemStart)return null;
+  return Math.max(0,current.content.timeWindowSec-Math.floor((Date.now()-itemStart)/1000));
 }
-function isDuplicate(norm){return current.some(x=>x.norm===norm||jaccard(x.norm,norm)>.82);}
-function originality(){return T.origN?Math.round(T.origSum/T.origN):0;}
-function engagement(){
-  const active=T.activeMs+(document.hasFocus()&&phase==='scored'?Date.now()-T.activeStart:0);
-  const idle=Math.max(0,Date.now()-T.lastAction-8000);
-  return `${Math.round(active/1000)}s active · ${T.blur} blur · ${Math.round(idle/1000)}s idle`;
-}
+
 const METERS=[
-  {id:'M-IDEAFLU',name:'Distinct valid ideas',get:()=>`${T.ideas}`},
-  {id:'M-FLEX',name:'Distinct semantic categories',get:()=>`${T.categories.size}`},
-  {id:'M-ORIG',name:'Mean inverse response-bank frequency',get:()=>T.origN?`${originality()} / 100`:'—'},
-  {id:'M-ELAB',name:'Mean words per idea',get:()=>T.ideas?`${(T.words/T.ideas).toFixed(1)}`:'—'},
-  {id:'M-PERSIST',name:'Ideas beyond first two / after 15s',get:()=>`${T.persist}`},
-  {id:'M-ENGAGE',name:'Active / blur / idle state',get:()=>engagement()}
+ {id:'M-IDEAFLU',def:false,name:'Distinct ideas — plain auto count (exact dedupe)',get:()=>String(distinctCount())},
+ {id:'M-ELAB',def:false,name:'Mean words per idea (surface count)',get:()=>ideas.length?meanWords().toFixed(2):'\u2014'},
+ {id:'M-PERSIST',def:false,name:'Ideas produced in the final third of the window',get:()=>String(lateIdeas())},
+ {id:'M-EXPLORE',def:false,name:'Entry attempts (duplicates included)',get:()=>String(attempts)},
+ {id:'M-REV',def:false,name:'Ideas removed before sending',get:()=>String(removed.length)},
+ {id:'M-PATH',def:false,name:'Logged actions (full sequence emitted)',get:()=>String(actions.length)},
+ {id:'M-RT',def:false,name:'Time to send (ms)',get:()=>submitted?String(lastRt):'\u2014'},
+ {id:'M-RTFIRST',def:false,name:'Latency to the first idea',get:()=>firstLat==null?'\u2014':firstLat+' ms'},
+ {id:'M-ENGAGE',def:false,name:'Focus losses (tracked, not enforced)',get:()=>String(blurs)},
+ {id:'M-FLEX',def:true,name:'Category flexibility — clusterer NOT built',get:()=>'deferred'},
+ {id:'M-ORIG',def:true,name:'Statistical originality — norm bank NOT built',get:()=>'deferred'},
 ];
-function buildMeters(){
-  $('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');
-}
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>
+  `<div class="mrow"><span class="mid${m.def?' def':''}">${m.id}</span><span class="mval" id="v_${m.id}"></span>`
+  +`<span class="mname">${m.name}</span></div>`).join('');}
+function renderDifficulty(){
+  const d=current?current.difficulty:null,c=current?current.content:null;
+  $('#difficulty').innerHTML=`<div class="dtop"><b>SERVED DIFFICULTY</b><span>${d==null?'\u2014':d.toFixed(1)}/20</span></div>`
+   +`<div class="dtrack"><div class="dfill" style="width:${d==null?0:Math.max(0,Math.min(100,d/20*100))}%"></div></div>`
+   +`<div class="dsub"><span>${c?c.prompt.mode.replace(/_/g,' ')+' \u00b7 '+c.constraints.length+' rules':'\u2014'}</span><span>score: server-side</span></div>`;}
 function renderMeters(){
-  METERS.forEach(m=>{const el=$(`#v_${m.id}`);if(el)el.textContent=m.get();});
-  $('#diffLabel').textContent=`${level} / 5 · ${required}+ ideas`;
-  $('#diffFill').style.width=`${level*20}%`;
+  METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});
+  renderDifficulty();
+  $('#count').textContent=ideas.length?`${distinctCount()} idea${distinctCount()===1?'':'s'} so far`:'';
 }
-function log(message){
-  const d=document.createElement('div');
-  d.innerHTML=`<span class="t">+${Date.now()-T.itemStart}ms</span> ${message}`;
-  $('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;
+function log(msg){const t=Math.max(0,Date.now()-(itemStart||Date.now())),d=document.createElement('div');
+  d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+
+function emitEvent(kind,extra){
+  const event=Object.assign({t:itemStart?Date.now()-itemStart:0,kind,itemId:current?current.itemId:null},extra||{});
+  itemTelemetry.push(event);
+  post({type:'telemetry',event});
+  log(`<b>${kind}</b>`+(extra&&Object.keys(extra).length?' \u00b7 '+JSON.stringify(extra):''));
 }
-function bubble(text,category,rare){
-  const b=document.createElement('div');b.className=`bubble ${rare?'rare':''}`;
-  b.style.left=`${5+(current.length*23)%68}%`;
-  b.innerHTML=`${rare?'✦ ':''}${text}<span class="cat">${category}</span>`;
+function recordAction(kind,extra){
+  const a=Object.assign({t:itemStart?Date.now()-itemStart:0,kind},extra||{});
+  actions.push(a);
+  return a;
+}
+
+/* ---------- ghost hand: wordless GESTURE hint ---------- */
+const ghost=$('#ghost');
+function ghostShow(v){ghost.classList.toggle('show',v);}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(520);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(430);}
+async function gestureHint(){
+  // Teaches the GESTURE only: type in the box, press Add, repeat, then Send.
+  // It never types an example idea, so it cannot seed the child's ideation.
+  ghostShow(true);await sleep(250);
+  await ghostTo($('#idea'));await ghostTap();
+  await ghostTo($('#add'));await ghostTap();
+  await ghostTo($('#idea'));await ghostTap();
+  await ghostTo($('#add'));await ghostTap();
+  await ghostTo($('#send'));await sleep(200);
+  ghostShow(false);await sleep(250);
+}
+
+/* ---------- rendering the served item ---------- */
+function setCue(k,txt){const el=$('#phasecue');el.dataset.phase=k;el.textContent=txt;}
+function setStatus(kind,msg){const el=$('#status');el.className=kind;el.textContent=msg;}
+
+function renderChips(){
+  $('#chips').innerHTML=ideas.map(i=>
+    `<span class="chip">${escapeHtml(i.text)}<button data-rm="${i.n}" aria-label="remove ${escapeHtml(i.text)}">&#10005;</button></span>`).join('');
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
+function bubble(text){
+  const b=document.createElement('div');b.className='bubble';
+  b.style.left=`${5+(ideas.length*23)%68}%`;
+  b.textContent=text;
   $('#field').appendChild(b);setTimeout(()=>b.remove(),8100);
 }
-function touch(){T.lastAction=Date.now();renderMeters();}
-function addIdea(text,fromDemo=false){
-  text=text.trim();if(!text||locked&&!fromDemo)return false;
-  const scored=scoreText(text);
-  if(isDuplicate(scored.norm)){
-    $('#idea').style.borderColor='var(--pink)';setTimeout(()=>$('#idea').style.borderColor='',350);
-    if(!fromDemo)setStatus('no','\u2717 Too similar - try a different idea.');
-    log(`near-duplicate ignored · "${text}"`);return false;
+function renderTimer(){
+  const left=secondsLeft();
+  if(left==null){$('#timer').textContent='\u2014';return;}
+  const total=current.content.timeWindowSec;
+  $('#timer').textContent=`${left}s`;
+  $('#timerfill').style.width=Math.max(0,Math.min(100,100*left/total))+'%';
+}
+function renderServedItem(item){
+  current=item;submitted=false;interactive=false;
+  ideas=[];removed=[];attempts=0;actions=[];itemTelemetry=[];firstLat=null;blurs=0;
+  clearInterval(tickTimer);
+  const c=item.content;
+  $('#promptHead').textContent=c.prompt.headline;
+  $('#promptNote').textContent=c.prompt.note;
+  $('#rules').innerHTML=c.constraints.map(x=>`<li>${escapeHtml(x.text)}</li>`).join('');
+  $('#idea').value='';$('#idea').disabled=true;$('#idea').maxLength=c.ideaMaxChars;
+  $('#add').disabled=true;
+  $('#send').classList.remove('ready');
+  $('#field').innerHTML='';
+  renderChips();
+  itemStart=Date.now();
+  renderTimer();renderMeters();
+  emitEvent('render',{mode:c.prompt.mode,constraints:c.constraints.length,windowSec:c.timeWindowSec,difficulty:item.difficulty});
+}
+
+/* ---------- interaction ---------- */
+function addIdea(){
+  if(!interactive||submitted)return;
+  const text=$('#idea').value.trim();
+  if(!text)return;
+  attempts++;
+  const norm=normalizeIdea(text);
+  if(!norm){$('#idea').value='';return;}
+  if(firstLat===null){firstLat=Date.now()-itemStart;emitEvent('first_action',{kind:'idea',latencyMs:firstLat});}
+  if(ideas.some(i=>i.norm===norm)){
+    // Mechanical duplicate notice — NOT a correctness verdict. Nothing is wrong.
+    recordAction('duplicate',{text});
+    setStatus('neutral','You already added that one. Try a different idea.');
+    $('#idea').select();
+    emitEvent('duplicate',{});
+    renderMeters();
+    return;
   }
-  const words=text.split(/\s+/).filter(Boolean).length,entry={text,...scored,words,time:Date.now()-T.itemStart};
-  current.push(entry);currentCats.add(entry.category);
-  if(phase==='scored'){
-    T.ideas++;T.categories.add(entry.category);T.origSum+=entry.originality;T.origN++;T.words+=words;
-    if(current.length>2||entry.time>15000)T.persist++;
-  }
-  bubble(text,entry.category,entry.originality>=92);
-  $('#combo').textContent=currentCats.size>1?`✦ ${currentCats.size} kinds`:'';
-  if(!fromDemo)setStatus('neutral',`${current.length} idea${current.length===1?'':'s'} so far${current.length>=required?' - press the check when ready':''}`);
-  log(`${phase==='scored'?'idea':'practice'} · "${text}" · ${entry.category} · orig ${entry.originality}`);
-  $('#submit').classList.toggle('ready',current.length>=required);touch();return true;
+  const entry={n:ideas.length+1,text,norm,words:norm.split(' ').filter(Boolean).length,tMs:Date.now()-itemStart};
+  ideas.push(entry);
+  recordAction('idea',{n:entry.n,text,words:entry.words});
+  bubble(text);renderChips();
+  $('#idea').value='';$('#idea').focus();
+  $('#send').classList.toggle('ready',ideas.length>=current.content.minIdeasToSend);
+  setStatus('neutral',`${ideas.length} idea${ideas.length===1?'':'s'} so far. Keep going, or press Send.`);
+  emitEvent('idea',{n:entry.n,words:entry.words});
+  renderMeters();
 }
-function submit(){
-  if(!$('#submit').classList.contains('ready')||locked)return;
-  locked=true;touch();
-  if(phase==='warmup'){setStatus('neutral','Practice - not scored.');log('warm-up prompt · UNSCORED');setTimeout(startScored,650);return;}
-  const success=current.length>=3&&currentCats.size>=2;
-  log(`prompt auto-score · fluency ${current.length} · flexibility ${currentCats.size} · mean originality ${Math.round(current.reduce((s,x)=>s+x.originality,0)/current.length)}`);
-  T.activeMs+=Date.now()-T.activeStart;prompt.result=success;phase='between';setTimeout(nextItem,700);
+function removeIdea(n){
+  if(!interactive||submitted)return;
+  const idx=ideas.findIndex(i=>i.n===n);
+  if(idx<0)return;
+  const [gone]=ideas.splice(idx,1);
+  removed.push({text:gone.text,tMs:Date.now()-itemStart});
+  recordAction('remove',{text:gone.text});
+  renderChips();
+  $('#send').classList.toggle('ready',ideas.length>=current.content.minIdeasToSend);
+  emitEvent('remove',{});
+  renderMeters();
 }
-function nextItem(){
-  if(prompt.result){T.maxSolved=Math.max(T.maxSolved,level);level=Math.min(5,level+1);}
-  else level=Math.max(1,level-1);
-  scoredIndex++;renderMeters();
-  if(scoredIndex>=5)finish();else startScored();
+function tick(){
+  if(!interactive||submitted)return;
+  renderTimer();
+  if(secondsLeft()===0)send('timeout');
 }
-function pickPrompt(){
-  const list=PROMPTS[level],index=(scoredIndex+level)%list.length;
-  return list[index];
+function send(endedBy){
+  if(!interactive||submitted)return;
+  if(endedBy!=='timeout'&&ideas.length<current.content.minIdeasToSend)return;
+  const rt=Date.now()-itemStart;
+  lastRt=rt;submitted=true;interactive=false;
+  clearInterval(tickTimer);
+  $('#idea').disabled=true;$('#add').disabled=true;$('#send').classList.remove('ready');
+  recordAction('send',{endedBy,ideas:ideas.length});
+  // NEUTRAL acknowledgment only — no idea is ever marked right or wrong.
+  setCue('done','Sent');
+  setStatus('neutral',standalone?'Your ideas were sent. Loading the next prompt.':'Your ideas were sent. Next prompt coming up.');
+  emitEvent('submit',{rtMs:rt,ideas:ideas.length,endedBy});
+
+  const response={
+    // Raw substrate for the deferred flexibility / originality / rubric judge.
+    ideas:ideas.map(i=>({n:i.n,text:i.text,normalized:i.norm,words:i.words,tMs:i.tMs})),
+    removedIdeas:removed.slice(),
+    entryAttempts:attempts,
+    windowSec:current.content.timeWindowSec,
+    endedBy,
+    actions:actions.slice()
+  };
+  const metrics={
+    'M-IDEAFLU':distinctCount(),
+    'M-ELAB':meanWords(),
+    'M-PERSIST':lateIdeas(),
+    'M-EXPLORE':attempts,
+    'M-REV':removed.length,
+    'M-PATH':actions.length,
+    'M-RT':rt,
+    'M-RTFIRST':firstLat==null?rt:firstLat,
+    'M-ENGAGE':blurs,
+    'M-RAPIDGUESS':(rt<5000&&distinctCount()<2)?1:0
+  };
+  const result={itemId:current.itemId,typeCode:current.typeCode,domain:current.domain,response,metrics,telemetry:itemTelemetry.slice()};
+  post({type:'result',result});
+  log('RESULT emitted \u2192 '+JSON.stringify({metrics}));
+  renderMeters();
+  if(standalone)setTimeout(advanceStandalone,1400);
 }
-function resetPrompt(next,kind){
-  prompt=next;current=[];currentCats=new Set();locked=false;T.itemStart=Date.now();T.lastAction=Date.now();
-  required=kind==='warmup'?2:(level>=4?3:2);
-  $('#promptIcon').textContent=prompt.icon;$('#promptWord').textContent=prompt.word;
-  $('#idea').value='';$('#field').querySelectorAll('.bubble').forEach(x=>x.remove());
-  $('#combo').textContent='';$('#submit').classList.remove('ready');$('#idea').disabled=false;
-  $('#idea').focus();renderMeters();
+
+/* ---------- host-driven lifecycle ---------- */
+function onInit(item){
+  clearTimeout(startTimer);
+  if(!item||!item.content||!item.content.prompt){log('init ignored: malformed ServedItem');return;}
+  renderServedItem(item);
+  setCue('warmup','Get ready');
+  setStatus('neutral','Get ready to think of ideas.');
+  startTimer=setTimeout(()=>{if(!interactive&&!submitted)beginItem(false);},500);
 }
-function startWarmup(){
-  phase='warmup';resetPrompt(WARM,'warmup');setCue('warmup');setStatus('neutral','Practice - this one is not scored.');
-  log('— WARM-UP · UNSCORED PROMPT —');
+async function beginItem(withTutorial){
+  if(interactive||submitted||!current)return;
+  if(withTutorial&&!tutorialShown){tutorialShown=true;await gestureHint();if(submitted)return;}
+  interactive=true;itemStart=Date.now();
+  $('#idea').disabled=false;$('#add').disabled=false;$('#idea').focus();
+  setCue('scored','Your turn');
+  setStatus('neutral','Type an idea and press Enter. Different kinds of idea count more than repeats.');
+  clearInterval(tickTimer);tickTimer=setInterval(tick,250);
+  renderTimer();renderMeters();
 }
-function startScored(){
-  phase='scored';T.activeStart=Date.now();resetPrompt(pickPrompt(),'scored');setCue('scored',(scoredIndex+1)+'/5');setStatus('neutral','Type different uses, then press the check.');
-  log(`— SCORED ${scoredIndex+1}/5 · level ${level} · ${prompt.word} —`);
+function onHostMessage(e){
+  const d=e.data;if(!d||d.source!==HOST_SRC)return;
+  if(d.type==='init')onInit(d.item);
+  else if(d.type==='start'){clearTimeout(startTimer);beginItem(!!d.tutorial);}
 }
-function finish(){
-  if(phase==='scored'&&document.hasFocus())T.activeMs+=Date.now()-T.activeStart;
-  phase='done';locked=true;setCue('done');setStatus('ok','\u2713 Done');
-  $('#stagecard').innerHTML='<div style="font-size:96px;padding:70px 0;color:#1f9e6f;font-weight:900">\u2713</div><button id="again" style="width:58px;height:50px;border:0;border-radius:16px;font-size:22px" aria-label="again">↻</button>';
-  $('#again').onclick=()=>location.reload();
-  log(`— DONE · fluency ${T.ideas} · flexibility ${T.categories.size} · originality ${originality()} —`);renderMeters();
+
+/* ---------- standalone fallback (QA when there is no host) ---------- */
+function toServed(b){const{answer,scoring,provenance,...s}=b;return s;}
+async function loadBankSamples(){
+  try{
+    const res=await fetch('../banks/CX-diverge-01.jsonl',{cache:'no-store'});
+    if(res.ok){
+      const all=(await res.text()).trim().split('\n').filter(Boolean).map(l=>JSON.parse(l)).map(toServed);
+      all.sort((a,b)=>a.difficulty-b.difficulty);
+      const N=Math.min(8,all.length),pick=[];
+      for(let i=0;i<N;i++)pick.push(all[N===1?0:Math.round(i*(all.length-1)/(N-1))]);
+      log('standalone: fetched '+all.length+' bank items; cycling '+pick.length+' across difficulty');
+      return pick;
+    }
+  }catch(_){/* file:// blocks fetch — use inline fallback */}
+  log('standalone: bank fetch unavailable (open via a local server for the full bank) — using inline samples');
+  return INLINE_SAMPLES.slice();
 }
-const ghost=$('#ghost');
-function center(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
-async function ghostTo(el){
-  const p=center(el);ghost.style.transform=`translate(${p.x-12}px,${p.y-8}px)`;await sleep(350);
-}
-async function typeGhost(text){
-  $('#idea').value='';for(const ch of text){$('#idea').value+=ch;await sleep(35);}
-  await sleep(120);addIdea(text,true);$('#idea').value='';
-}
-async function runDemo(){
-  phase='demo';locked=false;prompt=DEMO;current=[];currentCats=new Set();required=3;T.itemStart=Date.now();
-  setCue('demo');setStatus('neutral','Watch the example.');$('#promptIcon').textContent=prompt.icon;$('#promptWord').textContent=prompt.word;
-  $('#submit').classList.remove('ready');ghost.classList.add('show');log('wordless typed-idea demo');
-  await ghostTo($('#idea'));await typeGhost('hammer');
-  await ghostTo($('#idea'));await typeGhost('tiny boat');
-  await ghostTo($('#idea'));await typeGhost('flower pot');
-  await ghostTo($('#submit'));await sleep(250);ghost.classList.remove('show');startWarmup();
-}
-function enterIdea(){
-  if(!['warmup','scored'].includes(phase)||locked)return;
-  const value=$('#idea').value;if(addIdea(value))$('#idea').value='';
-}
-$('#add').addEventListener('click',enterIdea);
-$('#idea').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();enterIdea();}});
-$('#idea').addEventListener('input',touch);
-$('#submit').addEventListener('click',submit);
-$('#replay').addEventListener('click',()=>{if(phase!=='demo')location.reload();});
-window.addEventListener('blur',()=>{
-  if(phase==='scored'){T.activeMs+=Date.now()-T.activeStart;T.blur++;log('blur');renderMeters();}
-});
-window.addEventListener('focus',()=>{if(phase==='scored'){T.activeStart=Date.now();T.lastAction=Date.now();}});
-buildMeters();renderMeters();runDemo();
+function playStandalone(){const item=standaloneQueue[standaloneIdx%standaloneQueue.length];onInit(item);beginItem(standaloneIdx===0);}
+function advanceStandalone(){standaloneIdx++;playStandalone();}
+async function bootstrapStandalone(){if(standalone)return;standalone=true;standaloneQueue=await loadBankSamples();standaloneIdx=0;playStandalone();}
+
+/* Inline served-item fallback (real items exported from the bank; answer stripped). */
+const INLINE_SAMPLES=[
+{"itemId":"ce44993c-e3eb-4861-80d5-22068a0426e4","typeCode":"CX-diverge-01","domain":"fluid_reasoning","difficulty":1.04,"ageBands":["K-1"],"demoPath":"demos/CX-diverge-01.html","content":{"typeCode":"CX-diverge-01","prompt":{"mode":"alternate_uses","subject":"a cup","subjectB":null,"headline":"How many different ways could you use a cup?","note":"There is no wrong answer. Try to think of ideas that are different from each other."},"constraints":[],"timeWindowSec":149,"minIdeasToSend":1,"responseMode":"text","ideaMaxChars":60,"instructions":{"howto":"Type one idea and press Enter. Keep adding ideas until the time runs out or you press Send."}},"syntheticOnly":true,"validated":false},
+{"itemId":"0073cd63-561e-4efd-b374-c94f442c4f44","typeCode":"CX-diverge-01","domain":"fluid_reasoning","difficulty":10.59,"ageBands":["4-5"],"demoPath":"demos/CX-diverge-01.html","content":{"typeCode":"CX-diverge-01","prompt":{"mode":"alternate_uses","subject":"a wheel","subjectB":null,"headline":"How many different ways could you use a wheel?","note":"There is no wrong answer. Try to think of ideas that are different from each other."},"constraints":[{"id":"not_normal_use","text":"No idea may be the way it is normally used."}],"timeWindowSec":61,"minIdeasToSend":1,"responseMode":"text","ideaMaxChars":60,"instructions":{"howto":"Type one idea and press Enter. Keep adding ideas until the time runs out or you press Send."}},"syntheticOnly":true,"validated":false},
+{"itemId":"b2a608b8-4d72-4742-a504-f4c8cb3df9ce","typeCode":"CX-diverge-01","domain":"fluid_reasoning","difficulty":19.96,"ageBands":["6-8"],"demoPath":"demos/CX-diverge-01.html","content":{"typeCode":"CX-diverge-01","prompt":{"mode":"similarities","subject":"a promise","subjectB":"a bridge","headline":"How are a promise and a bridge alike? Name as many ways as you can.","note":"There is no wrong answer. Try to think of ideas that are different from each other."},"constraints":[{"id":"not_normal_use","text":"No idea may be the way it is normally used."},{"id":"no_repeat_start","text":"No two ideas may start with the same word."}],"timeWindowSec":61,"minIdeasToSend":1,"responseMode":"text","ideaMaxChars":60,"instructions":{"howto":"Type one idea and press Enter. Keep adding ideas until the time runs out or you press Send."}},"syntheticOnly":true,"validated":false}
+];
+
+/* ---------- wiring ---------- */
+$('#add').addEventListener('click',addIdea);
+$('#idea').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addIdea();}});
+$('#chips').addEventListener('click',e=>{const b=e.target.closest('[data-rm]');if(b)removeIdea(+b.dataset.rm);});
+$('#send').addEventListener('click',()=>send('submit'));
+$('#replay').addEventListener('click',()=>{if(current&&!submitted)gestureHint();});
+window.addEventListener('blur',()=>{if(interactive&&!submitted){blurs++;emitEvent('engagement',{reason:'blur'});renderMeters();}});
+
+buildMeters();renderMeters();
+window.addEventListener('message',onHostMessage);
+post({type:'ready'});
+if(!embedded){bootstrapStandalone();}
+else{setTimeout(()=>{if(!current)bootstrapStandalone();},1000);} // QA-safe if a host embeds but never inits
 </script>
 </body>
 </html>

@@ -16,6 +16,7 @@ export type {
   RecordAssessmentVersionRequest,
   RecordAssessmentVersionResponse,
 } from './application';
+export * from './assessment-exam-adaptive';
 export * from './correction';
 export * from './decision';
 export * from './errors';

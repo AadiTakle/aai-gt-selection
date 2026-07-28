@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 
 import { SessionControls } from '@/components/auth/session-controls';
 import { GtLogo } from '@/components/gt-logo';
+import { StaleActionReloadGuard } from '@/components/stale-action-reload-guard';
 import { bodyFont, displayFont, utilityFont } from '@/lib/fonts';
 import '@/styles/globals.css';
 
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
       className={`${displayFont.variable} ${bodyFont.variable} ${utilityFont.variable}`}
     >
       <body>
+        <StaleActionReloadGuard />
         <div className="app-shell">
           <header className="app-header">
             <a

@@ -116,11 +116,17 @@ export function StepEducationalBackground({ state, dispatch }: StepProps) {
           })
         }
       />
-      {school.selectionKind === 'directory' && school.name ? (
+      {school.name ? (
         <div className={styles.colFull}>
           <p className={styles.autofill}>
-            <strong>{school.name}</strong> · {school.address.city},{' '}
-            {stateLabel(school.address.stateCode)}
+            <strong>{school.name}</strong>
+            {school.address.city ? (
+              <>
+                {' '}
+                · {school.address.city}
+                {school.address.stateCode ? `, ${stateLabel(school.address.stateCode)}` : ''}
+              </>
+            ) : null}
           </p>
         </div>
       ) : null}
@@ -276,6 +282,12 @@ export function StepHouseholdLanguage({ state, dispatch }: StepProps) {
       <div className={styles.card}>
         <p className={styles.cardTitle}>Guardian &amp; household</p>
         <div className={styles.grid}>
+          <TextField
+            label="Parent / guardian name"
+            value={household.guardianName}
+            onChange={(v) => dispatch({ type: 'setHousehold', patch: { guardianName: v } })}
+            required
+          />
           <SyntheticSelect
             label="Your relationship to the child"
             options={RELATIONSHIPS}

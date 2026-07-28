@@ -51,7 +51,12 @@ export const syntheticAddressSchema = z
       .max(100)
       .regex(/^Synthetic(?:\s|$)/),
     regionCode: syntheticCodeSchema.refine((value) => value.startsWith('SYN_REGION_')),
-    postalCode: z.literal('00000'),
+    // Real ZIP persisted verbatim (governance carve-out from born-synthetic —
+    // legacy '00000' still validates). line1/city/regionCode stay synthetic.
+    postalCode: z
+      .string()
+      .trim()
+      .regex(/^\d{5}(-\d{4})?$/),
     countryCode: z.literal('US'),
   })
   .strict();
@@ -105,6 +110,10 @@ export const homeLanguageSurveySchema = z
 
 export const householdProfileSchema = z
   .object({
+    // real parent/guardian name, stored verbatim (governance carve-out from
+    // born-synthetic). Optional for back-compat with profiles saved before this
+    // field existed.
+    guardianName: z.string().trim().min(1).max(120).optional(),
     guardianRelationshipCode: syntheticCodeSchema.refine((value) =>
       value.startsWith('SYN_RELATIONSHIP_'),
     ),
