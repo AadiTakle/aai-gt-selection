@@ -242,6 +242,25 @@ on `dev` and `eslint-plugin-react-hooks` is absent from `dev`'s manifests too, s
 **inherited**. `[V]` for the file provenance and plugin absence; `[I]` that `dev` therefore also
 fails this rule, since I did not execute ESLint on a `dev` checkout.
 
+> **Addendum, 2026-07-28, added on merge into `feat/test-structure-revamp` (not by the verifying
+> author).** Both lint claims above reproduce exactly — 17 tracked-file errors, 16 in
+> `scripts/sync-exam-demos.mjs` and 1 in `apply-wizard.tsx` — once the verifier's own leftover
+> `tmp-verification/*.mjs` probes are excluded; with those included the raw count is 33 and
+> `format:check` reports 35 files rather than 32. `[V]`
+>
+> The `[I]` above is now **settled, and the conclusion changes.** The identical config gap was hit
+> and fixed on the Gen-A lineage earlier the same night (`764589d`): the root `eslint .` pass gives
+> `scripts/**` no Node globals, and it also lints `apps/web` with a config that registers no React
+> plugins, which is what makes the `apply-wizard.tsx` disable comment report as a missing rule.
+> Copying that single config file into this worktree and re-running drops Gen-B's tracked-file lint
+> errors from **17 to 1**. `[V]`
+>
+> So "lint FAIL" is accurate as a measurement but misleading as a judgement of Gen-B: **16 of the 17
+> errors are a shared repo-level ESLint configuration gap that is already fixed on the other
+> lineage, not Gen-B code quality.** Exactly one is a genuine defect in Gen-B's own new file —
+> `sync-exam-demos.mjs:621:31`, `'html' is defined but never used`. The formatting failure below is
+> unaffected by this and stands as written.
+
 **Formatting is the gate that actually blocks.** `pnpm verify` runs `format:check` **first**, so on
 this branch the repo's own aggregate verification fails immediately. All 32 offending tracked files
 are Gen-B's: 12 under `packages/exam-engine/src`, 2 under `packages/exam-scoring/src`, 15 under
