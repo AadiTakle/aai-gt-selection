@@ -1,7 +1,7 @@
 .card {
-  background: var(--gt-card);
-  border-radius: var(--gt-radius-md);
-  box-shadow: var(--gt-shadow-card);
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
   padding: var(--gt-space-5);
   display: flex;
   flex-direction: column;
@@ -9,39 +9,41 @@
 }
 
 .cardInvite {
-  background: var(--gt-card);
+  background: var(--color-panel);
 }
 
 .cardReady {
-  background: var(--gt-card);
+  background: var(--color-panel);
 }
 
 .kicker {
-  font-size: 0.7rem;
-  letter-spacing: 0.16em;
+  font-family: var(--font-utility);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--gt-ember);
+  color: var(--gt-blue);
   font-weight: 600;
   margin: 0;
 }
 
 .title {
-  font-family: var(--gt-font-display);
+  font-family: var(--font-display);
   font-size: 1.3rem;
-  font-weight: 500;
+  font-weight: 300;
+  color: var(--color-ink);
   margin: 0;
 }
 
 .note {
   font-size: 0.9rem;
-  color: var(--gt-ink-60);
+  color: var(--color-ink-soft);
   margin: 0;
 }
 
 .included {
   margin: 0;
   padding-left: 1.1rem;
-  color: var(--gt-ink-60);
+  color: var(--color-ink-soft);
   font-size: 0.85rem;
   display: flex;
   flex-direction: column;
@@ -53,59 +55,82 @@
   align-items: baseline;
   justify-content: space-between;
   padding: var(--gt-space-3) 0;
-  border-top: 1px solid var(--gt-line);
-  border-bottom: 1px solid var(--gt-line);
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .feeLabel {
   font-size: 0.9rem;
-  color: var(--gt-ink-60);
+  color: var(--color-ink-soft);
   font-weight: 500;
 }
 
 .feeAmount {
-  font-family: var(--gt-font-display);
+  font-family: var(--font-display);
   font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--gt-ink);
+  font-weight: 300;
+  color: var(--color-ink);
 }
 
+/* Primary action for this screen (the dashboard's single chamfer). */
 .primary {
   all: unset;
+  position: relative;
+  isolation: isolate;
   cursor: pointer;
-  background: var(--gt-ember);
-  color: #fff;
-  padding: 0.9rem 1.3rem;
-  border-radius: 11px;
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 13px 18px;
+  color: var(--gt-near-white);
+  font-family: var(--font-utility);
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   text-align: center;
-  box-shadow: 0 8px 20px rgba(228, 139, 83, 0.32);
-  transition: background 0.16s;
 }
 
-.primary:hover {
-  background: #d97e45;
+.primary::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: var(--color-primary);
+  border-radius: var(--radius-md);
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - var(--cut-br)),
+    calc(100% - var(--cut-br)) 100%,
+    0 100%
+  );
+  transition: background 150ms ease;
 }
 
-.primary:focus-visible {
-  outline: 2px solid var(--gt-petrol);
-  outline-offset: 2px;
+.primary:hover::before {
+  background: var(--color-primary-hover);
 }
 
 .ghost {
   all: unset;
   cursor: pointer;
-  color: var(--gt-ink-60);
-  padding: 0.9rem 1.1rem;
-  border-radius: 11px;
-  border: 1.5px solid var(--gt-line-strong);
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-ink);
+  padding: 0.75rem 1.1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-strong);
+  font-family: var(--font-body);
+  font-weight: 500;
   text-align: center;
 }
 
 .ghost:hover {
-  color: var(--gt-ink);
-  border-color: var(--gt-ink-40);
+  background: var(--color-surface);
+  border-color: var(--color-primary);
 }
 
 .payRow {
@@ -115,11 +140,13 @@
 }
 
 .lockedBtn {
-  padding: 0.9rem 1.3rem;
-  border-radius: 11px;
-  background: #eee9df;
-  color: var(--gt-ink-40);
-  font-weight: 600;
+  padding: 0.85rem 1.3rem;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-muted);
+  font-family: var(--font-body);
+  font-weight: 500;
   text-align: center;
   cursor: not-allowed;
 }

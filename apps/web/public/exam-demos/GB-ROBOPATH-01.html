@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GB-ROBOPATH-01 · Path Coder</title>
+<style>
+  :root{--bg1:#eef0ff;--bg2:#e9fbff;--ink:#26304a;--card:#fff;--accent:#5b6cff;--good:#22b573;--bad:#ff6b6b;
+    --tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box}html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:12px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
+  #howto{max-width:600px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:#5b6cff;border:2px solid #c9d0ff;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:#5b6cff;color:#fff;border-color:#5b6cff}
+  #phasecue[data-phase="done"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
+  #stagecard{background:var(--card);border-radius:24px;padding:20px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:12px}
+  #grid{display:grid;gap:3px;background:#dfe3f7;padding:6px;border-radius:12px;position:relative}
+  .c{width:50px;height:50px;border-radius:8px;background:#f4f5fd;display:flex;align-items:center;justify-content:center;font-size:22px}
+  .c.wall{background:#3b4a63}
+  #bot{position:absolute;font-size:26px;transition:left .28s,top .28s,transform .22s;pointer-events:none;z-index:5}
+  #bot.bump{animation:bump .3s}
+  @keyframes bump{0%,100%{filter:none}50%{filter:drop-shadow(0 0 6px #ff6b6b)}}
+  #strip{display:flex;gap:5px;min-height:50px;background:#f0f2ff;border-radius:10px;padding:6px 8px;flex-wrap:wrap;max-width:400px;justify-content:center;align-items:center}
+  .step{width:38px;height:38px;border-radius:9px;background:#dfe4ff;display:flex;align-items:center;justify-content:center;font-size:19px;cursor:pointer;position:relative}
+  .step .badge{position:absolute;right:-4px;bottom:-4px;background:var(--accent);color:#fff;font-size:9px;border-radius:7px;padding:1px 4px;font-weight:700}
+  #pal{display:flex;gap:10px;align-items:center}
+  .pb{width:54px;height:48px;border-radius:12px;background:#eef1ff;border:3px solid #d7deff;font-size:22px;cursor:pointer}
+  #loopbtn{background:#fff4de;border-color:#ffdf9e;color:#a66a00;font-weight:700;font-size:13px;width:auto;padding:0 12px}
+  #loopbtn.on{background:#ffdf9e;box-shadow:0 0 0 3px #ffcf7a}
+  #row{display:flex;gap:12px;align-items:center}
+  button{font:inherit;border:0;cursor:pointer;border-radius:12px}
+  #run{background:var(--accent);color:#fff;padding:9px 20px;font-weight:700;font-size:16px}
+  #clr{background:#ffe9ec;color:#c0455a;padding:9px 14px;font-weight:700}
+  #replay{width:44px;height:44px;background:#eef1ff;color:var(--accent);font-size:19px;border-radius:50%}
+  .hotkeys{font-size:11px;color:#a3aecb}
+  #ghost{position:fixed;left:0;top:0;font-size:38px;pointer-events:none;z-index:60;opacity:0;transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}#ghost .ring{position:absolute;left:-6px;top:-6px;width:26px;height:26px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}.mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #diffmeter{margin:0 12px 8px;background:#1b2340;border-radius:8px;padding:8px 10px}
+  #diffmeter .bar{height:8px;background:#232c4d;border-radius:6px;overflow:hidden;margin-top:6px}
+  #diffmeter .bar>i{display:block;height:100%;background:linear-gradient(90deg,#7fffcf,#5b6cff);width:0%;transition:width .3s}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:190px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">GB-ROBOPATH-01 · Path Coder</div>
+    <header id="howto">
+      <h1>How to use — Path Coder</h1>
+      <p>Program the robot to reach the door and pick up any keys along the way. Tap the move buttons (forward, turn left, turn right) to build the program, tap "loop" before a move to repeat it, then press RUN. You can also use the F, A, and D keys and Enter. It gets harder each time you succeed.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
+    <div id="stagecard">
+      <div id="grid"></div>
+      <div id="strip"></div>
+      <div id="pal">
+        <button class="pb" data-t="F" title="forward">⬆️</button>
+        <button class="pb" data-t="L" title="turn left">↺</button>
+        <button class="pb" data-t="R" title="turn right">↻</button>
+        <button id="loopbtn" title="loop the next command">loop</button>
+      </div>
+      <div id="row">
+        <button id="replay" title="replay demo">↻</button>
+        <button id="clr">clear</button>
+        <button id="run">RUN ▶</button>
+      </div>
+      <div class="hotkeys">hotkeys: F forward · A turn-left · D turn-right · Enter to RUN</div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+    </div>
+  </div>
+  <aside id="telemetry">
+    <h3>Live telemetry · per-child</h3>
+    <div id="diffmeter">difficulty <span id="dlab">1/6</span><div class="bar"><i id="dbar"></i></div></div>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0,last=a=>a[a.length-1];
+const HEAD=['N','E','S','W'];const DELTA={N:[-1,0],E:[0,1],S:[1,0],W:[0,-1]};
+const ROTCSS={N:0,E:90,S:180,W:270};
+function permute(arr){if(arr.length<=1)return[arr];const res=[];arr.forEach((v,i)=>{const rest=arr.slice(0,i).concat(arr.slice(i+1));permute(rest).forEach(p=>res.push([v,...p]));});return res;}
+
+/* ---------- turtle BFS for optimal program length ---------- */
+function turtleBFS(R,C,walls,startState,targetCell){
+  const key=s=>s.r+','+s.c+','+s.h;
+  const dist=new Map([[key(startState),0]]);
+  const q=[startState];let qi=0;
+  while(qi<q.length){
+    const s=q[qi++];
+    if(s.r===targetCell[0]&&s.c===targetCell[1])return{dist:dist.get(key(s)),state:s};
+    const[dr,dc]=DELTA[s.h];const nr=s.r+dr,nc=s.c+dc;
+    const nbrs=[];
+    if(nr>=0&&nr<R&&nc>=0&&nc<C&&!walls.has(nr+','+nc))nbrs.push({r:nr,c:nc,h:s.h});
+    const hi=HEAD.indexOf(s.h);
+    nbrs.push({r:s.r,c:s.c,h:HEAD[(hi+1)%4]});
+    nbrs.push({r:s.r,c:s.c,h:HEAD[(hi+3)%4]});
+    for(const nb of nbrs){const k=key(nb);if(!dist.has(k)){dist.set(k,dist.get(key(s))+1);q.push(nb);}}
+  }
+  return null;
+}
+function optimalLen(R,C,walls,start,targets,door){
+  const all=[...targets,door];
+  if(!targets.length){const r=turtleBFS(R,C,walls,start,door);return r?r.dist:Infinity;}
+  let best=Infinity;
+  permute(targets).forEach(order=>{
+    let total=0,state=start,ok=true;
+    for(const g of order){const r=turtleBFS(R,C,walls,state,g);if(!r){ok=false;return;}total+=r.dist;state=r.state;}
+    const r2=turtleBFS(R,C,walls,state,door);if(!r2){ok=false;return;}total+=r2.dist;
+    if(ok)best=Math.min(best,total);
+  });
+  return best;
+}
+
+/* ---------- generation ---------- */
+const LEVELS=[
+  {R:3,C:3,keys:0,walls:0,loops:false},
+  {R:4,C:4,keys:0,walls:1,loops:false},
+  {R:4,C:5,keys:1,walls:2,loops:false},
+  {R:5,C:5,keys:1,walls:3,loops:true},
+  {R:5,C:6,keys:2,walls:4,loops:true},
+  {R:6,C:6,keys:2,walls:5,loops:true},
+];
+function genItem(lvl){
+  const cfg=LEVELS[lvl];const R=cfg.R,C=cfg.C;
+  for(let attempt=0;attempt<8;attempt++){
+    const start={r:Math.floor(Math.random()*R),c:0,h:HEAD[Math.floor(Math.random()*4)]};
+    const door=[Math.floor(Math.random()*R),C-1];
+    const cellsFree=[];for(let r=0;r<R;r++)for(let c=0;c<C;c++)if(!(r===start.r&&c===start.c)&&!(r===door[0]&&c===door[1]))cellsFree.push([r,c]);
+    const shuffled=cellsFree.slice().sort(()=>Math.random()-0.5);
+    const walls=new Set();for(let i=0;i<cfg.walls&&i<shuffled.length;i++)walls.add(shuffled[i].join(','));
+    const remain=shuffled.slice(cfg.walls).filter(p=>!walls.has(p.join(',')));
+    const keys=[];for(let i=0;i<cfg.keys&&i<remain.length;i++)keys.push(remain[i]);
+    const optimal=optimalLen(R,C,walls,start,keys,door);
+    if(optimal<Infinity)return {R,C,start,door,keys,walls,optimal,lvl};
+  }
+  return {R,C,start:{r:0,c:0,h:'E'},door:[R-1,C-1],keys:[],walls:new Set(),optimal:(R-1)+(C-1),lvl};
+}
+
+/* ---------- state ---------- */
+let cur=null,phase='demo',locked=false,scoredIndex=0,level=0;
+let program=[],loopArm=1,runs=0,hasEdited=false,firstRunClean=true;
+let clickSeq=[],touched=new Set();
+const T={scored:0,exact:0,rts:[],rtFirsts:[],revisions:0,itemStart:0,firstActed:false,maxLevel:0,levelSeries:[],hardMs:0,planfulSolves:0};
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+function progLen(){return program.reduce((a,s)=>a+s.reps,0);}
+function effStr(){return cur?`${progLen()} commands / optimal ${cur.optimal}`:'\u2014';}
+function pathStr(){return clickSeq.length?`${clickSeq.length}: ${clickSeq.slice(-6).join(' ')}`:'\u2014';}
+function progressList(){return window.__runsProg||[];}
+function progStr(){const p=progressList();if(!p.length)return'\u2014';const pick=p.length<=4?p:[p[0],p[(p.length/2)|0],last(p)];return pick.map(x=>x+'%').join('\u2192');}
+function learnRate(){if(T.levelSeries.length<2)return'\u2014';const gained=last(T.levelSeries)-T.levelSeries[0];return `${gained>=0?'+':''}${gained} lvl / ${T.levelSeries.length} trials`;}
+const METERS=[
+ {id:'M-ACC',name:'Item accuracy (door reached w/ keys)',get:()=>T.scored?`${T.exact}/${T.scored}  ${Math.round(100*T.exact/T.scored)}%`:'\u2014'},
+ {id:'M-EFF',name:'Efficiency vs optimal',get:()=>effStr()},
+ {id:'M-RTFIRST',name:'Planning latency (before 1st tile)',get:()=>T.rtFirsts.length?`${last(T.rtFirsts)} ms`:'\u2014'},
+ {id:'M-PATH',name:'Program build sequence',get:()=>pathStr()},
+ {id:'M-REV',name:'Revisions (edits before a run)',get:()=>T.revisions},
+ {id:'M-EXPLORE',name:'Exploration (cells visited)',get:()=>touched.size+' cells'},
+ {id:'M-PROG',name:'Progress trajectory (route % per run)',get:()=>progStr()},
+ {id:'M-PERSIST',name:'Persistence on hard items',get:()=>T.hardMs?`${T.hardMs} ms`:'\u2014'},
+ {id:'M-PLANFUL',name:'Planful (solved first run, no edits)',get:()=>T.scored?`${T.planfulSolves}/${T.scored}`:'\u2014'},
+ {id:'M-LEARNRATE',name:'Within-session learning rate',get:()=>learnRate()},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});$('#dbar').style.width=(100*(level+1)/LEVELS.length)+'%';$('#dlab').textContent=(level+1)+'/'+LEVELS.length;}
+function log(msg){const t=Date.now()-T.itemStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+const ghost=$('#ghost');function ghostShow(v){ghost.classList.toggle('show',v);}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(480);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(380);}
+
+/* ---------- render ---------- */
+let botState=null,keysLeft=[];
+function isWall(r,c){return cur.walls.has(r+','+c);}
+function isDoor(r,c){return r===cur.door[0]&&c===cur.door[1];}
+function isKey(r,c){return keysLeft.some(k=>k[0]===r&&k[1]===c);}
+function renderGrid(){
+  const grid=$('#grid');grid.innerHTML='';
+  grid.style.gridTemplateColumns=`repeat(${cur.C},50px)`;
+  for(let r=0;r<cur.R;r++)for(let c=0;c<cur.C;c++){
+    const d=document.createElement('div');d.className='c'+(isWall(r,c)?' wall':'');
+    if(isDoor(r,c))d.textContent='🚪';else if(isKey(r,c))d.textContent='🔑';
+    grid.appendChild(d);
+  }
+  const bot=document.createElement('div');bot.id='bot';bot.textContent='🤖';
+  bot.style.left=(botState.c*53+12)+'px';bot.style.top=(botState.r*53+8)+'px';
+  bot.style.transform=`rotate(${ROTCSS[botState.h]}deg)`;
+  grid.appendChild(bot);
+}
+function renderStrip(){
+  const s=$('#strip');s.innerHTML='';
+  program.forEach((st,i)=>{
+    const el=document.createElement('div');el.className='step';el.dataset.i=i;
+    el.textContent=st.type==='F'?'⬆️':st.type==='L'?'↺':'↻';
+    if(st.reps>1){const b=document.createElement('span');b.className='badge';b.textContent='×'+st.reps;el.appendChild(b);}
+    s.appendChild(el);
+  });
+}
+function renderAll(){renderGrid();renderStrip();renderMeters();$('#loopbtn').classList.toggle('on',loopArm>1);}
+
+/* ---------- gameplay ---------- */
+function markFirstAction(){if(!T.firstActed){T.firstActed=true;T.rtFirsts.push(Date.now()-T.itemStart);}}
+function addCmd(type){
+  if(locked)return;
+  markFirstAction();hasEdited=true;
+  program.push({type,reps:loopArm});
+  clickSeq.push(type+(loopArm>1?'x'+loopArm:''));
+  loopArm=1;
+  log(`+ ${type==='F'?'forward':type==='L'?'turn-left':'turn-right'}${program[program.length-1].reps>1?' ×'+program[program.length-1].reps:''}`);
+  renderAll();
+}
+function toggleLoop(){if(locked)return;loopArm=loopArm>=3?1:loopArm+1;renderAll();}
+function removeStep(i){
+  if(locked)return;
+  program.splice(i,1);T.revisions++;hasEdited=true;
+  log('removed a step — revision');
+  renderAll();
+}
+function clearProgram(){if(locked||!program.length)return;program=[];T.revisions++;hasEdited=true;log('cleared program — revision');renderAll();}
+function renderItem(item){
+  cur=item;program=[];loopArm=1;runs=0;hasEdited=false;firstRunClean=true;clickSeq=[];touched=new Set();
+  botState={r:item.start.r,c:item.start.c,h:item.start.h};keysLeft=item.keys.slice();
+  T.revisions=0;T.itemStart=Date.now();T.firstActed=false;
+  renderAll();
+}
+async function execProgram(){
+  const seq=[];program.forEach(st=>{for(let i=0;i<st.reps;i++)seq.push(st.type);});
+  let bumped=false;
+  for(const cmd of seq){
+    if(cmd==='L'){const hi=HEAD.indexOf(botState.h);botState.h=HEAD[(hi+3)%4];}
+    else if(cmd==='R'){const hi=HEAD.indexOf(botState.h);botState.h=HEAD[(hi+1)%4];}
+    else{
+      const[dr,dc]=DELTA[botState.h];const nr=botState.r+dr,nc=botState.c+dc;
+      if(nr<0||nr>=cur.R||nc<0||nc>=cur.C||isWall(nr,nc)){bumped=true;$('#bot').classList.add('bump');await sleep(350);$('#bot').classList.remove('bump');break;}
+      botState.r=nr;botState.c=nc;
+      touched.add(nr+','+nc);
+      keysLeft=keysLeft.filter(k=>!(k[0]===nr&&k[1]===nc));
+    }
+    renderGrid();
+    await sleep(260);
+  }
+  return !bumped;
+}
+async function pressRun(){
+  if(locked||!program.length)return;
+  markFirstAction();
+  locked=true;runs++;
+  botState={r:cur.start.r,c:cur.start.c,h:cur.start.h};keysLeft=cur.keys.slice();
+  renderGrid();await sleep(200);
+  const clean=await execProgram();
+  const atDoor=botState.r===cur.door[0]&&botState.c===cur.door[1];
+  const success=clean&&atDoor&&keysLeft.length===0;
+  const totalTargets=cur.keys.length+1;
+  const got=(cur.keys.length-keysLeft.length)+(atDoor?1:0);
+  const pct=Math.round(100*got/totalTargets);
+  window.__runsProg=(window.__runsProg||[]);window.__runsProg.push(pct);
+  log(`RUN #${runs} → ${success?'SUCCESS':`${pct}% (keys ${cur.keys.length-keysLeft.length}/${cur.keys.length}${atDoor?', reached door':''})`}`);
+  if(phase!=='demo')setStatus(success?'ok':'no',success?'✓ Reached the goal!':`✗ Not yet - ${pct}% of the way. Edit and run again.`);
+  renderMeters();
+  if(success){await sleep(300);submit(runs===1&&T.revisions===0);}
+  else locked=false;
+}
+function submit(planful){
+  const rt=Date.now()-T.itemStart;
+  locked=true;
+  if(phase==='warmup'){log('warm-up program complete — UNSCORED');setTimeout(nextPhase,1100);return;}
+  T.scored++;T.rts.push(rt);T.exact++;
+  if(planful)T.planfulSolves++;
+  if(level>=T.maxLevel)T.hardMs=Math.max(T.hardMs,rt);
+  T.levelSeries.push(level);T.maxLevel=Math.max(T.maxLevel,level);
+  level=Math.min(level+1,LEVELS.length-1);
+  log(`SUBMIT lvl${cur.lvl+1} → SUCCESS · ${effStr()} · runs ${runs} · rev ${T.revisions}`);
+  renderMeters();
+  setTimeout(nextPhase,1300);
+}
+function nextPhase(){
+  locked=false;
+  if(phase==='warmup'){scoredIndex=0;window.__runsProg=[];startScored();}
+  else if(phase==='scored'){scoredIndex++;window.__runsProg=[];scoredIndex<6?startScored():finish();}
+}
+function startWarmup(){phase='warmup';locked=false;setCue('warmup');setStatus('neutral','Practice - this one is not scored.');renderItem(genItem(0));log('— warm-up (unscored) —');}
+function startScored(){phase='scored';setCue('scored',(scoredIndex+1)+'/6');setStatus('neutral','Build a program to reach the goal, then press RUN.');renderItem(genItem(level));log(`— SCORED item ${scoredIndex+1}/6 · level ${level+1} · optimal ${cur.optimal} commands —`);}
+function finish(){phase='done';setCue('done');setStatus('ok','✓ Done');locked=true;log(`— DONE · solved ${T.exact}/${T.scored} · planful ${T.planfulSolves}/${T.scored} · ceiling level ${T.maxLevel+1} —`);}
+
+async function runDemo(){
+  phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;
+  const item={R:1,C:3,start:{r:0,c:0,h:'E'},door:[0,2],keys:[],walls:new Set(),optimal:2,lvl:-1};
+  renderItem(item);log('ghost-hand demo (wordless, <10s)');ghostShow(true);await sleep(300);
+  await ghostTo($('.pb[data-t="F"]'));await ghostTap();addCmd('F');
+  await sleep(120);
+  await ghostTo($('.pb[data-t="F"]'));await ghostTap();addCmd('F');
+  await sleep(200);
+  await ghostTo($('#run'));await ghostTap();await pressRun();
+  await sleep(300);ghostShow(false);await sleep(300);startWarmup();
+}
+
+$('#pal').addEventListener('click',e=>{
+  const loop=e.target.closest('#loopbtn');if(loop){if(!locked&&phase!=='demo'&&phase!=='done')toggleLoop();return;}
+  const d=e.target.closest('.pb');if(!d||locked||phase==='demo'||phase==='done')return;addCmd(d.dataset.t);
+});
+$('#strip').addEventListener('click',e=>{const d=e.target.closest('.step');if(!d||locked||phase==='demo'||phase==='done')return;removeStep(+d.dataset.i);});
+$('#clr').addEventListener('click',()=>{if(!locked&&phase!=='demo'&&phase!=='done')clearProgram();});
+$('#run').addEventListener('click',()=>{if(!locked&&phase!=='demo'&&phase!=='done')pressRun();});
+$('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
+document.addEventListener('keydown',e=>{
+  if(locked||phase==='demo'||phase==='done')return;
+  const k=e.key.toLowerCase();
+  if(k==='f')addCmd('F');else if(k==='a')addCmd('L');else if(k==='d')addCmd('R');else if(e.key==='Enter')pressRun();
+});
+buildMeters();renderMeters();window.__runsProg=[];runDemo();
+</script>
+</body>
+</html>

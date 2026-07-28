@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VER-SORTBOT-01 · Sorting Robot</title>
+<style>
+  :root{--bg1:#eef4ff;--bg2:#f7ecff;--ink:#26304a;--card:#fff;--accent:#5b6cff;--good:#22b573;--bad:#ff6b6b;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
+  #howto{max-width:700px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:#5b6cff;border:2px solid #c9d0ff;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:#5b6cff;color:#fff;border-color:#5b6cff}
+  #phasecue[data-phase="done"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
+  #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:14px;max-width:700px;width:100%}
+  .band{border-radius:16px;padding:12px 16px;display:flex;flex-direction:column;gap:8px;align-items:center;width:100%}
+  #demoBand{background:linear-gradient(160deg,#fff6e6,#fff0f6);border:3px solid #ffd9a0;font-size:12px}
+  #demoRow{display:flex;gap:18px;align-items:center;font-size:26px}
+  #demoRow .bin{display:flex;gap:6px;align-items:center;background:#fff;border-radius:10px;padding:4px 10px}
+  #robotBand{font-size:13px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#8a93b5}
+  #cardBand{background:linear-gradient(160deg,#e8f0ff,#f2ecff);border:3px solid #cfd8ff}
+  #curCard{font-size:44px;min-height:56px;display:flex;align-items:center;gap:10px}
+  #curCard .wd{font-size:15px;font-weight:700;color:#5060a0}
+  #guessRow{display:flex;gap:16px}
+  .guessBtn{font:inherit;border:3px solid #d7deff;background:#f4f6ff;border-radius:16px;padding:10px 22px;font-size:16px;font-weight:800;cursor:pointer;position:relative}
+  .guessBtn .hk{position:absolute;top:-8px;left:6px;font-size:9px;color:#a7b0d8;background:#fff;padding:0 3px;border-radius:4px}
+  #guessIN{color:var(--good);border-color:var(--good)}
+  #guessOUT{color:var(--bad);border-color:var(--bad)}
+  #binsBand{display:flex;gap:24px;width:100%;justify-content:center}
+  .binbox{flex:1;min-height:70px;border-radius:14px;padding:8px;display:flex;flex-wrap:wrap;gap:6px;align-content:flex-start;font-size:22px}
+  #binIN{background:#eafaf1;border:3px solid var(--good)}
+  #binOUT{background:#fff0f0;border:3px solid var(--bad)}
+  .binLabel{font-size:10px;font-weight:800;letter-spacing:.06em;width:100%;text-align:center}
+  #peekBtn{font:inherit;border:0;background:#fff3d6;color:#a67c00;border-radius:12px;padding:6px 14px;font-size:12px;cursor:pointer}
+  .flashOK{animation:pop .3s}.flashBad{animation:shake .35s}
+  @keyframes pop{from{transform:scale(.5)}to{transform:scale(1)}}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%,75%{transform:translateX(-6px)}50%{transform:translateX(6px)}}
+  #controls{display:flex;gap:16px;align-items:center}
+  button.rd{font:inherit;border:0;cursor:pointer;border-radius:50%}
+  #replay{width:50px;height:50px;background:#eef1ff;color:#5b6cff;font-size:22px}
+  #ghost{position:fixed;left:0;top:0;font-size:40px;pointer-events:none;z-index:60;opacity:0;transition:transform .55s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #diffmeter{width:100%;display:flex;align-items:center;gap:8px;font-size:11px;color:#8a93b5}
+  #diffbar{flex:1;height:8px;background:#e4e9ff;border-radius:6px;overflow:hidden}
+  #diffbar i{display:block;height:100%;background:linear-gradient(90deg,#5b6cff,#ff8fd0);width:0%;transition:.3s}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}
+  .mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:210px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">VER-SORTBOT-01 · Sorting Robot</div>
+    <header id="howto">
+      <h1>How to use — Sorting Robot</h1>
+      <p>Look at the cards the robot already sorted into IN and OUT to work out its secret rule. Then for each new card, tap IN (<b>✓</b>) or OUT (<b>✗</b>) - you can Peek for a free hint. It gets harder each round.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
+    <div id="stagecard">
+      <div id="robotBand">Sorting Robot</div>
+      <div id="demoBand" class="band">
+        the robot already sorted these — figure out its secret rule
+        <div id="demoRow"></div>
+      </div>
+      <div id="cardBand" class="band">
+        <div id="curCard"></div>
+        <div id="guessRow">
+          <button class="guessBtn" id="guessIN"><span class="hk">I</span>IN ✓</button>
+          <button class="guessBtn" id="guessOUT"><span class="hk">O</span>OUT ✗</button>
+        </div>
+        <button id="peekBtn">Peek (robot shows one for free)</button>
+      </div>
+      <div id="binsBand">
+        <div id="binIN" class="binbox"><span class="binLabel">IN ✓</span></div>
+        <div id="binOUT" class="binbox"><span class="binLabel">OUT ✗</span></div>
+      </div>
+      <div id="diffmeter"><span>Easy</span><div id="diffbar"><i id="diffbarfill"></i></div><span>Hard</span></div>
+      <div id="controls">
+        <button class="rd" id="replay" title="replay demo">↻</button>
+      </div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+    </div>
+  </div>
+  <aside id="telemetry">
+    <h3>Live telemetry · per-child</h3>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0,last=a=>a[a.length-1];
+
+/* ---------- hidden-rule rounds: level 1 (taxonomic) -> 6 (abstract/cross-domain) ---------- */
+const BANK=[
+ {lvl:1,rule:'animals',kind:'taxonomic',demoIN:[{ic:'\ud83d\udc36',wd:'dog'},{ic:'\ud83d\udc31',wd:'cat'}],demoOUT:[{ic:'\ud83d\ude97',wd:'car'}],
+  pool:[{ic:'\ud83d\udc26',wd:'bird',in:true},{ic:'\ud83d\udc1f',wd:'fish',in:true},{ic:'\ud83c\udf4e',wd:'apple',in:false},{ic:'\ud83e\udea4',wd:'chair',in:false},{ic:'\ud83d\udc2e',wd:'cow',in:true},{ic:'\ud83c\udf88',wd:'balloon',in:false}]},
+ {lvl:2,rule:'round things',kind:'perceptual',demoIN:[{ic:'\u26bd',wd:'ball'},{ic:'\ud83c\udf4a',wd:'orange'}],demoOUT:[{ic:'\ud83d\udcd0',wd:'ruler'}],
+  pool:[{ic:'\ud83c\udf69',wd:'donut',in:true},{ic:'\ud83c\udf88',wd:'balloon',in:true},{ic:'\ud83d\udcd6',wd:'book',in:false},{ic:'\ud83c\udf15',wd:'moon',in:true},{ic:'\u270f\ufe0f',wd:'pencil',in:false},{ic:'\ud83d\udeaa',wd:'door',in:false}]},
+ {lvl:3,rule:'things that are cold',kind:'perceptual',demoIN:[{ic:'\ud83e\uddca',wd:'ice'},{ic:'\u2603\ufe0f',wd:'snowman'}],demoOUT:[{ic:'\ud83d\udd25',wd:'fire'}],
+  pool:[{ic:'\ud83c\udf66',wd:'ice cream',in:true},{ic:'\u2744\ufe0f',wd:'snowflake',in:true},{ic:'\u2600\ufe0f',wd:'sun',in:false},{ic:'\ud83c\udf0b',wd:'volcano',in:false},{ic:'\ud83e\udda7',wd:'scarf',in:false,boundary:true},{ic:'\ud83c\udf67',wd:'popsicle',in:true}]},
+ {lvl:4,rule:'things you can eat',kind:'functional',demoIN:[{ic:'\ud83c\udf4e',wd:'apple'},{ic:'\ud83c\udf5e',wd:'bread'}],demoOUT:[{ic:'\ud83e\udea4',wd:'chair'}],
+  pool:[{ic:'\ud83c\udf4c',wd:'banana',in:true},{ic:'\ud83e\uddc0',wd:'cheese',in:true},{ic:'\u26bd',wd:'ball',in:false},{ic:'\ud83d\ude97',wd:'car',in:false},{ic:'\ud83e\udd55',wd:'carrot',in:true},{ic:'\ud83d\udcda',wd:'book',in:false}]},
+ {lvl:5,rule:'words that mean "big"',kind:'abstract-lexical',demoIN:[{ic:'\ud83d\udd24',wd:'huge'},{ic:'\ud83d\udd24',wd:'giant'}],demoOUT:[{ic:'\ud83d\udd24',wd:'tiny'}],
+  pool:[{ic:'\ud83d\udd24',wd:'enormous',in:true},{ic:'\ud83d\udd24',wd:'massive',in:true},{ic:'\ud83d\udd24',wd:'small',in:false},{ic:'\ud83d\udd24',wd:'gigantic',in:true},{ic:'\ud83d\udd24',wd:'mini',in:false,boundary:true},{ic:'\ud83d\udd24',wd:'petite',in:false}]},
+ {lvl:6,rule:'things found in the sky',kind:'functional cross-domain',demoIN:[{ic:'\u2601\ufe0f',wd:'cloud'},{ic:'\ud83c\udf19',wd:'moon'}],demoOUT:[{ic:'\ud83d\udc1f',wd:'fish'}],
+  pool:[{ic:'\u2708\ufe0f',wd:'plane',in:true},{ic:'\u2b50',wd:'star',in:true},{ic:'\ud83e\ude81',wd:'kite',in:true},{ic:'\ud83c\udf08',wd:'rainbow',in:true},{ic:'\ud83c\udf88',wd:'balloon',in:true,boundary:true},{ic:'\ud83e\udea4',wd:'chair',in:false}]},
+];
+function byLevel(l){return BANK.find(b=>b.lvl===l);}
+
+/* ---------- telemetry ---------- */
+const T={correct:0,total:0,rts:[],maxLevel:1,hyp:'\u2014',explore:0,hints:0,lastErr:'\u2014',itemStart:0,roundStart:0,streak:0,hypTrials:null};
+const METERS=[
+ {id:'M-ACC',name:'Guess accuracy',get:()=>T.total?`${T.correct}/${T.total}  ${Math.round(100*T.correct/T.total)}%`:'\u2014'},
+ {id:'M-HYP',name:'Trials to lock the rule (streak of 2)',get:()=>T.hyp},
+ {id:'M-EXPLORE',name:'Distinct cards tested (this round)',get:()=>`${T.explore}`},
+ {id:'M-HINT',name:'Peeks used',get:()=>`${T.hints}`},
+ {id:'M-ERRTYPE',name:'Last miss type',get:()=>T.lastErr},
+ {id:'M-DIFFREACH',name:'Ceiling / max level reached',get:()=>`L${T.maxLevel}/6`},
+ {id:'M-RT',name:'Response time — total',get:()=>T.rts.length?`${last(T.rts)} ms  (mean ${mean(T.rts)})`:'\u2014'},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});$('#diffbarfill').style.width=(T.maxLevel/6*100)+'%';}
+function log(msg){const t=Date.now()-T.roundStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+const ghost=$('#ghost');function ghostShow(v){ghost.classList.toggle('show',v);}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(520);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(430);}
+
+/* ---------- render ---------- */
+let cur=null,pool=null,poolI=0,level=1,locked=false,triedCards=new Set();
+function shuffledPool(item){const p=item.pool.map((x,i)=>({...x,i}));for(let i=p.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[p[i],p[j]]=[p[j],p[i]];}return p;}
+function newRound(){cur=byLevel(level);pool=shuffledPool(cur);poolI=0;triedCards=new Set();T.streak=0;T.hyp='\u2014';T.explore=0;T.roundStart=Date.now();
+  $('#demoRow').innerHTML=`<div class="bin"><span>IN</span>${cur.demoIN.map(d=>`<span title="${d.wd}">${d.ic}</span>`).join('')}</div><div class="bin"><span>OUT</span>${cur.demoOUT.map(d=>`<span title="${d.wd}">${d.ic}</span>`).join('')}</div>`;
+  $('#binIN').innerHTML='<span class="binLabel">IN \u2713</span>';$('#binOUT').innerHTML='<span class="binLabel">OUT \u2717</span>';
+  showNextCard();renderMeters();}
+function showNextCard(){if(poolI>=pool.length){finalizeRound();return;}
+  const c=pool[poolI];T.itemStart=Date.now();
+  $('#curCard').innerHTML=`<span>${c.ic}</span><span class="wd">${c.wd}</span>`;
+  $('#guessIN').disabled=false;$('#guessOUT').disabled=false;}
+function guess(val){if(locked||poolI>=pool.length)return;const c=pool[poolI];const rt=Date.now()-T.itemStart;
+  triedCards.add(c.i);T.explore=triedCards.size;
+  const correct=(val===c.in);T.total++;T.rts.push(rt);
+  if(correct){T.correct++;T.streak++;if(T.streak>=2&&T.hyp==='\u2014')T.hyp=`${T.total} trials`;}
+  else{T.streak=0;T.lastErr=(c.boundary?'boundary near-miss':'random misfile')+` (${c.wd})`;}
+  setStatus(correct?'ok':'no',correct?'\u2713 Right':'\u2717 The robot puts it '+(c.in?'IN':'OUT'));
+  const targetBin=$(c.in?'#binIN':'#binOUT');const card=document.createElement('span');card.textContent=c.ic;card.title=c.wd;card.className=correct?'flashOK':'flashBad';
+  targetBin.appendChild(card);
+  log(`test "${c.wd}" \u2192 guessed ${val?'IN':'OUT'}, robot says ${c.in?'IN':'OUT'} ${correct?'\u2713':'\u2717'} \u00b7 ${rt}ms`);
+  renderMeters();poolI++;setTimeout(showNextCard,550);}
+function peek(){if(locked||poolI>=pool.length)return;const c=pool[poolI];T.hints++;
+  const targetBin=$(c.in?'#binIN':'#binOUT');const card=document.createElement('span');card.textContent=c.ic;card.title=c.wd;card.className='flashOK';targetBin.appendChild(card);
+  setStatus('neutral','Peek - the robot placed it '+(c.in?'IN':'OUT'));
+  log(`peek: "${c.wd}" \u2192 robot places it ${c.in?'IN':'OUT'} for free (hint used)`);
+  triedCards.add(c.i);T.explore=triedCards.size;renderMeters();poolI++;setTimeout(showNextCard,450);}
+function finalizeRound(){locked=true;const acc=T.total?T.correct/T.total:0;
+  if(phase==='warmup'){setStatus('neutral','Practice round done - now the scored rounds.');log(`warm-up round done: accuracy ${(acc*100)|0}% — UNSCORED`);setTimeout(nextPhase,1200);return;}
+  const success=acc>=0.7;if(success)T.maxLevel=Math.max(T.maxLevel,level);
+  setStatus(success?'ok':'no',success?'\u2713 Rule found!':'\u2717 Rule not found this time');
+  log(`— ROUND L${level} [${cur.rule}] \u2192 acc ${(acc*100)|0}% \u00b7 ${success?'PASS':'FAIL'} —`);
+  level=success?Math.min(6,level+1):Math.max(1,level-1);
+  renderMeters();setTimeout(nextPhase,1100);}
+const TOTAL_SCORED=6;let phase='demo',scoredIndex=0;
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+function nextPhase(){locked=false;if(phase==='warmup'){scoredIndex=0;startScored();}
+  else if(phase==='scored'){scoredIndex++;scoredIndex<TOTAL_SCORED?startScored():finish();}}
+function startWarmup(){phase='warmup';locked=false;setCue('warmup');setStatus('neutral','Practice - this round is not scored.');level=1;newRound();log('— warm-up (unscored) —');}
+function startScored(){phase='scored';setCue('scored',(scoredIndex+1)+'/'+TOTAL_SCORED);setStatus('neutral','Sort each card: is it IN or OUT?');newRound();log(`— SCORED round ${scoredIndex+1}/${TOTAL_SCORED} · level ${level} —`);}
+function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;log(`— DONE · accuracy ${T.total?Math.round(100*T.correct/T.total):0}% · ceiling L${T.maxLevel} —`);renderMeters();}
+async function runDemo(){phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;level=1;newRound();
+  log('ghost-hand demo (wordless, <10s)');ghostShow(true);await sleep(300);
+  const c=pool[0];const el=$(c.in?'#guessIN':'#guessOUT');await ghostTo(el);await ghostTap();locked=false;guess(c.in);locked=true;
+  await sleep(650);ghostShow(false);await sleep(400);T.roundStart=Date.now();startWarmup();}
+$('#guessIN').addEventListener('click',()=>{if(!locked&&phase!=='demo'&&phase!=='done')guess(true);});
+$('#guessOUT').addEventListener('click',()=>{if(!locked&&phase!=='demo'&&phase!=='done')guess(false);});
+$('#peekBtn').addEventListener('click',()=>{if(!locked&&phase!=='demo'&&phase!=='done')peek();});
+document.addEventListener('keydown',e=>{if(locked||phase==='demo'||phase==='done')return;const k=e.key.toLowerCase();if(k==='i')guess(true);if(k==='o')guess(false);});
+$('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
+buildMeters();renderMeters();runDemo();
+</script>
+</body>
+</html>

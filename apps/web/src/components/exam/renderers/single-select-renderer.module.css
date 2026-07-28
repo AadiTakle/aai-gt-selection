@@ -1,0 +1,230 @@
+/* Native single-select item renderer, on the GT School brand token layer.
+   White panel lifted off the warm paper; the stimulus and the selected option
+   take warm tints; Gold is a surface and never carries the label. */
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-4);
+  width: 100%;
+  padding: var(--gt-space-6);
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+/* Below the serif's legibility floor, so this is Inter Tight 620, not Literata. */
+.prompt {
+  margin: 0;
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: 1.1rem;
+  font-weight: 620;
+  line-height: 1.35;
+}
+
+/* 1.4rem clears the floor, so the stimulus is the one place the display serif
+   appears here. Warm tint, not a cool grey: the brand has no cool tints. */
+.stimulus {
+  margin: 0;
+  padding: var(--gt-space-4);
+  color: var(--color-primary);
+  background: var(--color-surface);
+  border: 1px dashed var(--gt-gold-light);
+  border-radius: var(--radius-md);
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  line-height: 1.5;
+}
+
+.options {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--gt-space-3);
+}
+
+/* Outlined control: Grey border on the white panel. */
+.option {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--gt-space-3);
+  padding: 0.85rem 1rem;
+  color: var(--color-ink);
+  background: var(--color-panel);
+  border: 2px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease;
+}
+
+/* Motion conveys state, not decoration — colour and border carry hover, and the
+   option no longer lifts on the y-axis. */
+.option:hover {
+  background: var(--color-surface);
+  border-color: var(--color-primary);
+}
+
+.option:focus-visible {
+  outline: 0.1875rem solid var(--color-focus);
+  outline-offset: 0.125rem;
+}
+
+/* Selected: warm fill plus a Gold border, so the state survives without colour. */
+.optionSelected {
+  background: var(--color-surface-strong);
+  border-color: var(--gt-gold);
+}
+
+.optionSelected:hover {
+  background: var(--color-surface-selected);
+  border-color: var(--gt-gold-deep);
+}
+
+.optionKey {
+  flex: none;
+  width: 1.6rem;
+  height: 1.6rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-ink);
+  background: var(--color-surface-strong);
+  border-radius: var(--radius-xs);
+  font-family: var(--font-utility);
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Text on Gold is Dark Navy (7.4:1). White on Gold measures 2.6:1 and fails. */
+.optionSelected .optionKey {
+  color: var(--color-accent-ink);
+  background: var(--gt-gold);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--gt-space-4);
+  margin-top: var(--gt-space-2);
+}
+
+/* The one primary action in view, so it takes the one chamfer on this screen.
+   Gold field, Dark Navy label — matching the shell's own primary button. The
+   cut lives on a ::before layer so it never clips the focus outline. */
+.submit {
+  all: unset;
+  position: relative;
+  isolation: isolate;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.6rem;
+  color: var(--color-accent-ink);
+  font-family: var(--font-utility);
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.submit::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: var(--color-accent);
+  border-radius: var(--radius-md);
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - var(--cut-br)),
+    calc(100% - var(--cut-br)) 100%,
+    0 100%
+  );
+  transition: background 150ms ease;
+}
+
+/* Hover keeps the Gold field and adds a Navy ring rather than deepening to Gold
+   Deep: Dark Navy on Gold Deep measures 4.38:1, under the 4.5:1 floor for a
+   label at this size, while Dark Navy on Gold holds 7.4:1. */
+.submit:hover::before {
+  background: var(--color-accent);
+  box-shadow: inset 0 0 0 2px var(--color-primary);
+}
+
+.submit:focus-visible {
+  outline: 0.1875rem solid var(--color-focus);
+  outline-offset: 0.125rem;
+}
+
+/* Unavailable: the quietest rung of the ordinal ramp — outlined grey, no fill,
+   no chamfer. Reads clearly quieter than the Gold state while the label stays
+   legible at 6.1:1, rather than being dimmed under an opacity that would put it
+   below the contrast floor. */
+.submitDisabled {
+  cursor: default;
+  pointer-events: none;
+  color: var(--color-ink-soft);
+}
+
+.submitDisabled::before {
+  background: transparent;
+  border: 1px solid var(--color-border-strong);
+  clip-path: none;
+}
+
+.skip {
+  all: unset;
+  cursor: pointer;
+  padding: 0.5rem 0.75rem;
+  color: var(--color-muted);
+  border-radius: var(--radius-md);
+  font-family: var(--font-utility);
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition:
+    color 150ms ease,
+    background 150ms ease;
+}
+
+.skip:hover {
+  color: var(--color-primary);
+  background: var(--color-surface);
+}
+
+.skip:focus-visible {
+  outline: 0.1875rem solid var(--color-focus);
+  outline-offset: 0.125rem;
+}
+
+.hint {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.78rem;
+}
+
+@media (max-width: 560px) {
+  .options {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .option,
+  .skip,
+  .submit::before {
+    transition: none;
+  }
+}

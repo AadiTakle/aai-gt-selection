@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GB-WORDLADDER-01 · Letter Climb</title>
+<style>
+  :root{--bg1:#e6fff5;--bg2:#eaf6ff;--ink:#233a30;--card:#fff;--accent:#22b573;--good:#22b573;--bad:#ff6b6b;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#7a9a8a;text-transform:uppercase;font-weight:700}
+  #howto{max-width:640px;width:100%;background:#fff;border:1px solid #bfe8cf;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #3a7a5a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#33544a;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eafaf1;color:#1a8f5a;border:2px solid #bfe8cf;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="scored"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+  #phasecue[data-phase="done"]{background:#eafaf1;color:#0e7f4b;border-color:#bfe8cf}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#7a9a8a}
+  #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #3a7a5a;display:flex;flex-direction:column;align-items:center;gap:14px;max-width:640px;width:100%}
+  #ladder{display:flex;flex-direction:column-reverse;gap:8px;align-items:center;min-height:80px}
+  .rung{display:flex;gap:6px}
+  .rung .l{width:38px;height:38px;background:#eafaf1;border:2px solid #bfe8cf;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#1a8f5a}
+  .rung.goal .l{background:#fff2e0;border-color:#ffcf9a;color:#c06a2a}
+  #current{display:flex;gap:6px}
+  .curtile{width:44px;height:44px;background:#f4f7ff;border:3px solid #cfd8ff;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;cursor:pointer}
+  .curtile.sel{outline:3px solid var(--accent)}
+  #alphabet{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;max-width:420px}
+  .letterbtn{width:32px;height:32px;background:#eef2ff;border-radius:7px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#5b6cff}
+  .letterbtn:hover{background:#dde4ff}
+  #controls{display:flex;gap:16px;align-items:center}
+  button{font:inherit;border:0;cursor:pointer;border-radius:50%}
+  #go{width:72px;height:72px;background:var(--accent);color:#fff;font-size:26px;box-shadow:0 10px 24px -8px var(--accent);opacity:.35;pointer-events:none;transition:.2s}
+  #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.1s infinite}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+  #replay{width:50px;height:50px;background:#eafaf1;color:#1a8f5a;font-size:22px}
+  .shake{animation:shake .4s}@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+  #ghost{position:fixed;left:0;top:0;font-size:40px;pointer-events:none;z-index:60;opacity:0;transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}
+  .mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #262f52;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #log{height:210px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">GB-WORDLADDER-01 · Letter Climb</div>
+    <header id="howto">
+      <h1>How to use — Letter Climb</h1>
+      <p>Tap a letter in your word, then tap a new letter to change it and make a real word — one step at a time — until you reach the goal word at the top. Then press the check (<b>✓</b>) to submit.</p>
+    </header>
+    <div id="phasecue" data-phase="demo">Watch the example</div>
+    <div id="stagecard">
+      <div id="ladder"></div>
+      <div id="current"></div>
+      <div id="alphabet"></div>
+      <div id="controls">
+        <button id="replay" title="replay demo">↻</button>
+        <button id="go" title="lock rung">✓</button>
+      </div>
+      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+    </div>
+  </div>
+  <aside id="telemetry">
+    <h3>Live telemetry · per-child</h3>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0,last=a=>a[a.length-1];
+const ALPHA='ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+
+/* ---------- small embedded word bank + ladder generator (AIG) ---------- */
+const WORDS3=['CAT','COT','COG','DOG','DOT','DOE','TOE','TOP','TIP','TIN','TAN','TAP','CAP','CAR','CAN','MAN','MAT','MAP','SAP','SAT','SIT','SIN','FIN','FAN','FAT','BAT','BAG','BIG','PIG','PIN','PAN'];
+const WORDS4=['CARE','CORE','BORE','BORN','BARN','BARK','BACK','BACK','LACK','LICK','LICE','RICE','RIDE','RODE','ROSE','NOSE','NOTE','NODE','CODE','CORD','WORD','WORE','WIRE','FIRE','FIRM','FARM','FARE','FADE','FATE','GATE','LATE','LANE','LINE','WINE','VINE','DINE','DIME','TIME','LIME','LIKE'];
+function wordSet(len){return len===3?WORDS3:WORDS4;}
+function neighbors(w,set){const out=[];for(let i=0;i<w.length;i++)for(const c of ALPHA){if(c===w[i])continue;const cand=w.slice(0,i)+c+w.slice(i+1);if(set.includes(cand))out.push(cand);}return out;}
+function bfsPath(start,goal,set){const q=[[start]];const seen=new Set([start]);
+  while(q.length){const path=q.shift();const w=last(path);if(w===goal)return path;
+    for(const n of neighbors(w,set)){if(!seen.has(n)){seen.add(n);q.push([...path,n]);}}}
+  return null;}
+function genLadder(len,minRungs){const set=wordSet(len);let tries=0;
+  while(tries++<200){const start=set[(Math.random()*set.length)|0];const goal=set[(Math.random()*set.length)|0];
+    if(start===goal)continue;const path=bfsPath(start,goal,set);
+    if(path && path.length-1>=minRungs && path.length-1<=minRungs+2) return {start,goal,set,optPath:path};}
+  const start=set[0],goal=set[1]||set[0];const path=bfsPath(start,goal,set)||[start,goal];
+  return {start,goal,set,optPath:path};}
+function levelParams(l){const len=l<=2?3:4;const minRungs=l<=1?1:l<=3?2:3;return {len,minRungs};}
+
+/* ---------- state ---------- */
+let level=1,maxLevel=1,phase='demo',locked=true;
+let cur=null,rungs=[],curWord='',selIdx=null,T={rts:[],firstT:null,itemStart:0,path:[],scoredRounds:0,exact:0,scored:0,eff:[]};
+function accStr(){return T.scored?`${T.exact}/${T.scored}  ${Math.round(100*T.exact/T.scored)}%`:'\u2014';}
+function effStr(){return T.eff.length?`${mean(T.eff)}% of optimal`:'\u2014';}
+function vocabLvl(){return cur?`${cur.set.length} word neighbourhood @ len ${cur.start.length}`:'\u2014';}
+function rtFirstStr(){return T.firstT!=null?`${T.firstT} ms`:'\u2014';}
+function pathStr(){return T.path.length?T.path.join(' \u2192 '):'\u2014';}
+function persistStr(){return `${T.invalid||0} invalid rung tries`;}
+function learnRate(){return T.scoredRounds?`level ${maxLevel} reached in ${T.scoredRounds} rounds`:'\u2014';}
+const METERS=[
+ {id:'M-ACC',name:'Ladder accuracy (goal reached)',get:accStr},
+ {id:'M-RT',name:'Response time (round total)',get:()=>T.rts.length?`${last(T.rts)} ms  (mean ${mean(T.rts)})`:'\u2014'},
+ {id:'M-EFF',name:'Efficiency vs optimal rung count',get:effStr},
+ {id:'M-VOCABLVL',name:'Word-neighbourhood size used',get:vocabLvl},
+ {id:'M-RTFIRST',name:'Time to first rung change',get:rtFirstStr},
+ {id:'M-PATH',name:'Ladder path climbed',get:pathStr},
+ {id:'M-PERSIST',name:'Persistence (invalid rung tries)',get:persistStr},
+ {id:'M-DIFFREACH',name:'Difficulty reached (ladder length)',get:()=>`level ${maxLevel}`},
+ {id:'M-LEARNRATE',name:'Learning rate across escalation',get:learnRate},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});}
+function log(msg){const t=Date.now()-T.itemStart;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+const ghost=$('#ghost');function ghostShow(v){ghost.classList.toggle('show',v);}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(480);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(400);}
+
+/* ---------- render ---------- */
+function paintLadder(){$('#ladder').innerHTML=`<div class="rung goal">${cur.goal.split('').map(c=>`<div class="l">${c}</div>`).join('')}</div>`+
+  rungs.map(w=>`<div class="rung">${w.split('').map(c=>`<div class="l">${c}</div>`).join('')}</div>`).reverse().join('');}
+function paintCurrent(){$('#current').innerHTML=curWord.split('').map((c,i)=>`<div class="curtile${i===selIdx?' sel':''}" data-i="${i}">${c}</div>`).join('');
+  [...$('#current').children].forEach(el=>el.addEventListener('click',()=>{if(locked||phase==='demo'||phase==='done')return;selIdx=+el.dataset.i;paintCurrent();}));}
+function paintAlphabet(){$('#alphabet').innerHTML=ALPHA.map(c=>`<div class="letterbtn" data-c="${c}">${c}</div>`).join('');
+  [...$('#alphabet').children].forEach(el=>el.addEventListener('click',()=>onLetter(el.dataset.c)));}
+function onLetter(c){if(locked||phase==='demo'||phase==='done'||selIdx==null)return;
+  const cand=curWord.slice(0,selIdx)+c+curWord.slice(selIdx+1);
+  if(T.firstT==null)T.firstT=Date.now()-T.itemStart;
+  if(cand===curWord){return;}
+  if(cur.set.includes(cand)){
+    curWord=cand;rungs.push(curWord);selIdx=null;T.path.push(curWord);
+    paintLadder();paintCurrent();log(`rung: ${curWord}`);renderMeters();
+    if(curWord===cur.goal){$('#go').classList.add('ready');setStatus('ok','\u2713 You reached the goal - press the check');}
+    else setStatus('neutral','Good - change one more letter to climb higher.');
+  } else {
+    T.invalid=(T.invalid||0)+1;
+    $('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),400);
+    setStatus('no',`\u2717 "${cand}" is not a real word`);log(`\u2717 "${cand}" is not a word`);renderMeters();
+  }
+}
+
+/* ---------- flow ---------- */
+const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+function newItem(l){const p=levelParams(l);cur=genLadder(p.len,p.minRungs);rungs=[cur.start];curWord=cur.start;selIdx=null;
+  T.itemStart=Date.now();T.firstT=null;T.invalid=0;T.path=[cur.start];
+  paintLadder();paintCurrent();$('#go').classList.remove('ready');renderMeters();}
+function submit(){const rt=Date.now()-T.itemStart;const reached=curWord===cur.goal;
+  locked=true;$('#go').classList.remove('ready');
+  if(phase==='warmup'){setStatus(reached?'ok':'neutral',reached?'\u2713 Reached the goal - practice':'Practice - not scored.');log('warm-up '+(reached?'reached goal':'stopped')+' — UNSCORED');setTimeout(nextPhase,1100);return;}
+  setStatus(reached?'ok':'no',reached?'\u2713 Reached the goal':'\u2717 Did not reach the goal');
+  T.scored++;T.rts.push(rt);
+  if(reached){T.exact++;const opt=cur.optPath.length-1;const used=rungs.length-1;T.eff.push(Math.round(100*opt/Math.max(opt,used)));level=Math.min(6,level+1);}
+  else{level=Math.max(1,level-1);}
+  maxLevel=Math.max(maxLevel,level);T.scoredRounds++;
+  log(`SUBMIT ${cur.start}\u2192${cur.goal}: ${reached?'GOAL':'incomplete'} in ${rungs.length-1} rungs (optimal ${cur.optPath.length-1}) \u2192 next level ${level}`);
+  renderMeters();setTimeout(nextPhase,1300);
+}
+function nextPhase(){locked=false;
+  if(phase==='warmup'){startScored();}
+  else if(phase==='scored'){T.roundIdx=(T.roundIdx||0)+1;T.roundIdx<6?startScored():finish();}
+}
+function startWarmup(){phase='warmup';locked=false;setCue('warmup');setStatus('neutral','Practice - change one letter at a time to reach the goal word. Not scored.');newItem(1);log('— warm-up (unscored): change one letter to climb toward the goal —');}
+function startScored(){phase='scored';setCue('scored',((T.roundIdx||0)+1)+'/6');setStatus('neutral','Change one letter at a time to reach the goal word, then press the check.');newItem(level);log(`— SCORED ladder: ${cur.start}\u2192${cur.goal} (level ${level}) —`);}
+function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;log(`— DONE \u00b7 goals reached ${T.exact}/${T.scored} \u00b7 max level ${maxLevel} —`);}
+async function runDemo(){phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;
+  cur={start:'CAT',goal:'COG',set:WORDS3};rungs=['CAT'];curWord='CAT';selIdx=null;T.itemStart=Date.now();
+  paintLadder();paintCurrent();log('ghost-hand demo (wordless, <10s)');ghostShow(true);await sleep(300);
+  const steps=[[1,'O'],[2,'G']];
+  for(const [idx,ch] of steps){
+    selIdx=idx;paintCurrent();await ghostTo($('#current').children[idx]);await ghostTap();
+    const btn=[...$('#alphabet').children].find(e=>e.dataset.c===ch);await ghostTo(btn);await ghostTap();onLetter(ch);await sleep(200);
+  }
+  await sleep(200);await ghostTo($('#go'));await ghostTap();await sleep(300);ghostShow(false);await sleep(450);startWarmup();}
+$('#go').addEventListener('click',()=>{if($('#go').classList.contains('ready'))submit();});
+$('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
+buildMeters();renderMeters();paintAlphabet();runDemo();
+</script>
+</body>
+</html>

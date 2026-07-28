@@ -19,6 +19,17 @@ export const examItemResultSchema = z
     accuracy: z.number().min(0).max(1).nullable(),
     /** Convenience: max difficulty level reached (from M-DIFFREACH) when available. */
     difficultyReached: z.number().nonnegative().nullable(),
+    /**
+     * Per-item response time in ms (present → response), captured by the player.
+     * Optional for back-compat with pre-shell records.
+     */
+    responseTimeMs: z.number().nonnegative().nullable().optional(),
+    /**
+     * The child's RAW response (e.g. { selectedIndex } for a selection item).
+     * Null/absent for embedded-demo items that self-score in-frame. Optional for
+     * back-compat. Scoring is server-authoritative from this, never a client verdict.
+     */
+    response: z.unknown().optional(),
   })
   .strict();
 

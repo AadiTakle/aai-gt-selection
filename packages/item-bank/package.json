@@ -1,0 +1,28 @@
+{
+  "name": "@gt-selection/item-bank",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "gen:registry": "tsx scripts/gen-type-registry.ts",
+    "build:bank": "tsx scripts/build-bank.ts",
+    "qa": "tsx scripts/qa-report.ts",
+    "generate": "tsx scripts/gen-type-registry.ts && tsx scripts/build-bank.ts && tsx scripts/qa-report.ts",
+    "lint": "eslint src scripts",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@gt-selection/contracts": "workspace:*",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "tsx": "4.23.1",
+    "typescript": "5.9.3",
+    "vitest": "4.1.10"
+  }
+}
