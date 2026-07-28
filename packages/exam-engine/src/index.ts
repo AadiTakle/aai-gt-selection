@@ -18,6 +18,17 @@ export {
 export { isDone, areaMetricsCovered, areaEstimateStable, coverageIsEven } from './done';
 export { replaySession } from './replay';
 
+// Novel-block administration (the learning-rate regime). Administration only: the projection that
+// picks the target difficulty, the fit and the readout all live in `@gt-selection/exam-scoring`.
+export {
+  RECOMMENDED_NOVEL_BLOCK_LENGTH,
+  novelItems,
+  poolSupportsBlock,
+  blockReadiness,
+  selectNextNovelItem,
+} from './learning-block';
+export type { BlockReadiness, BlockUnavailableReason } from './learning-block';
+
 // Configuration and registries
 export {
   DEFAULT_CONFIG,
@@ -92,6 +103,7 @@ export {
 export type {
   Area,
   AgeBand,
+  ExamStage,
   MetricId,
   ItemId,
   TypeCode,

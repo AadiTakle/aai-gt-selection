@@ -103,6 +103,7 @@ export function toObservation(scored: ScoredItem): ItemObservation {
     correct: scored.correct,
     rtMs: finiteOrNull(scored.metrics['M-RT']),
     angularDisparityDeg: finiteOrNull(scored.stimulus?.angularDisparityDeg),
+    stage: scored.stage ?? 'standing',
   };
 }
 

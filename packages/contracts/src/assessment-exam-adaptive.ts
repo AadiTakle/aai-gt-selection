@@ -302,13 +302,33 @@ export const itemResultSchema = z
   .strict();
 
 /**
+ * Which regime an item was served under.
+ *
+ * - `standing`: locating where the child already performs (two-sided bracketing per area).
+ * - `learning`: the novel block, held at a difficulty derived from the standing estimate so the
+ *   climb across trials is the signal rather than the search for the child's level.
+ *
+ * The distinction has to be recorded per item because a within-session growth statistic computed
+ * over a mixed trace cannot be interpreted: under bracketing the ceiling also rises as the search
+ * converges on the child, so "difficulty solved went up" is produced both by learning and by the
+ * estimate arriving. Only a trace that says which items were which can separate them.
+ */
+export const examStageSchema = z.enum(['standing', 'learning']);
+
+/**
  * Server-added scoring on top of an `ItemResult` (BUILD_PLAN §2): correctness,
  * a [0,1] score, and the item's difficulty (for the ability update).
+ *
+ * `stage` is server-added rather than part of `itemResultSchema` on purpose: the host decides
+ * which regime it served an item under, so accepting it from the browser would let a client
+ * relabel its own trace and move items into or out of the learning-rate fit.
  */
 export const scoredItemSchema = itemResultSchema.extend({
   correct: z.boolean(),
   score: z.number().min(0).max(1),
   difficulty: difficultyScoreSchema,
+  /** Defaults to `standing` so pre-Phase-2 traces stay valid and replay unchanged. */
+  stage: examStageSchema.default('standing'),
 });
 
 // --- Demo embedding protocol (postMessage; BUILD_PLAN §2) ---------------------
@@ -563,7 +583,14 @@ export const BASIC_CORE_METRICS: readonly CoreMetricSpec[] = [
   { id: 'M-REV', scope: 'all', minSamples: 8, influences: ['score'] },
   { id: 'M-ERRTYPE', scope: 'all', minSamples: 6, influences: ['select', 'score'] },
   { id: 'M-CONSIST', scope: 'all', minSamples: 10, influences: ['select', 'score'] },
-  { id: 'M-LEARNRATE', scope: 'all', minSamples: 6, influences: ['score'] },
+  /*
+   * 30, not 6: the rate is fitted over a dedicated novel block rather than counted per area, and
+   * simulated recovery at single-digit trial counts is indistinguishable from zero. `influences` is
+   * `track` rather than `score` because the fitted rate is a labelled hypothesis and is
+   * deliberately not part of the scored decision. See `learning-rate-readout.ts` in
+   * `@gt-selection/exam-scoring`.
+   */
+  { id: 'M-LEARNRATE', scope: 'all', minSamples: 30, influences: ['track'] },
   { id: 'M-PATH', scope: 'interactive', minSamples: 3, influences: ['score'] },
   { id: 'M-EFF', scope: 'interactive', minSamples: 3, influences: ['score'] },
   { id: 'M-PLANFUL', scope: 'interactive', minSamples: 3, influences: ['score'] },
@@ -599,6 +626,7 @@ export type ServedItem = z.infer<typeof servedItemSchema>;
 export type TelemetryEventKind = z.infer<typeof telemetryEventKindSchema>;
 export type TelemetryEvent = z.infer<typeof telemetryEventSchema>;
 export type ItemResult = z.infer<typeof itemResultSchema>;
+export type ExamStage = z.infer<typeof examStageSchema>;
 export type ScoredItem = z.infer<typeof scoredItemSchema>;
 export type HostMessage = z.infer<typeof hostMessageSchema>;
 export type DemoMessage = z.infer<typeof demoMessageSchema>;
