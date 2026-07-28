@@ -28,6 +28,7 @@ function completeState(): WizardState {
     genderCode: 'SYN_GENDER_FEMALE',
   };
   state.household = {
+    guardianName: 'Jordan Rivera',
     guardianRelationshipCode: 'SYN_RELATIONSHIP_PARENT',
     address: {
       street1: 'Maple Way 12',
@@ -96,7 +97,9 @@ describe('draft-mapper produces contract-valid payloads', () => {
     expect(parsed.success).toBe(true);
     // the visible "Synthetic" prefix is applied to names
     expect(profile.student.fullName.startsWith('Synthetic')).toBe(true);
-    expect(profile.household.primaryAddress.postalCode).toBe('00000');
+    // real ZIP persists verbatim (governance carve-out); guardian name too
+    expect(profile.household.primaryAddress.postalCode).toBe('50613');
+    expect(profile.household.guardianName).toBe('Jordan Rivera');
   });
 
   it('maps a complete state to a schema-valid application draft', () => {

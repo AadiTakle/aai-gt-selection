@@ -17,6 +17,8 @@ import type {
   SubmitApplicationResponse,
 } from '@gt-selection/contracts';
 
+import type { SaveExamSessionAdapterInput, SaveExamSessionResponse } from '@/lib/exam/types';
+
 export interface OnboardingService {
   saveStudentProfile(request: SaveStudentProfileRequest): Promise<SaveStudentProfileResponse>;
   getStudentProfile(request: GetStudentProfileRequest): Promise<GetStudentProfileResponse>;
@@ -26,4 +28,5 @@ export interface OnboardingService {
   getApplication(request: GetApplicationRequest): Promise<GetApplicationResponse>;
   submitApplication(request: SubmitApplicationRequest): Promise<SubmitApplicationResponse>;
   getApplicationStatus(request: GetApplicationStatusRequest): Promise<GetApplicationStatusResponse>;
+  saveExamSession(request: SaveExamSessionAdapterInput): Promise<SaveExamSessionResponse>;
 }

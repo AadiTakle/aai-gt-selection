@@ -293,3 +293,33 @@
     padding: var(--gt-space-5) var(--gt-space-4) var(--gt-space-8);
   }
 }
+
+/* Momentary hold while the resume check runs, so a submitted application lands
+   directly on the locked view. Quiet on purpose — it should barely register. */
+.loading {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: var(--gt-space-6);
+  color: var(--gt-navy);
+  font-family: var(--gt-font-utility);
+  font-size: 0.82rem;
+  letter-spacing: 0.05em;
+  opacity: 0.55;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .loading {
+    animation: loadingPulse 1.4s ease-in-out infinite;
+  }
+}
+
+@keyframes loadingPulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}

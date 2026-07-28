@@ -27,6 +27,7 @@ import {
   getLocalSyntheticAdapterEnvironment,
   validateLocalSyntheticAdapterEnvironment,
 } from '@/lib/env';
+import { saveExamSessionResponseSchema } from '@/lib/exam/types';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 import type { OnboardingService } from './service';
@@ -47,7 +48,8 @@ type LocalRpcName =
   | 'save_application_draft'
   | 'get_application'
   | 'submit_application'
-  | 'get_application_status';
+  | 'get_application_status'
+  | 'save_exam_session';
 
 interface LocalRpcError {
   code?: string;
@@ -227,6 +229,21 @@ export function createLocalSyntheticOnboardingAdapter({
           p_correlation_id: request.correlationId,
         },
         getApplicationStatusResponseSchema,
+      );
+    },
+    async saveExamSession(input) {
+      // `input.session` already carries the server-computed summary and the
+      // born-synthetic student name (the action does that transform).
+      return invokeRpc(
+        client,
+        'save_exam_session',
+        {
+          p_session: toJson(input.session),
+          p_application_id: input.applicationId,
+          p_idempotency_key: input.idempotencyKey,
+          p_correlation_id: input.correlationId,
+        },
+        saveExamSessionResponseSchema,
       );
     },
   };

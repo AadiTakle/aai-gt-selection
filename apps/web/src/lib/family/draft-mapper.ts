@@ -45,7 +45,9 @@ function toAddress(fields: AddressFields): SyntheticAddress {
     line2: fields.street2.trim() ? toSyntheticName(fields.street2) : null,
     city: toSyntheticName(fields.city),
     regionCode: fields.stateCode,
-    postalCode: SYNTHETIC_POSTAL_CODE,
+    // real ZIP persisted verbatim; blank falls back to the synthetic sentinel so
+    // the (relaxed) contract/DB still validate
+    postalCode: fields.zip.trim() || SYNTHETIC_POSTAL_CODE,
     countryCode: SYNTHETIC_COUNTRY_CODE,
   };
 }
@@ -61,6 +63,8 @@ export function toStudentProfileContent(state: WizardState): StudentProfileConte
       genderVocabularyVersion: 'GENDER-SYN-V1',
     },
     household: {
+      // stored verbatim (real name) — NOT run through toSyntheticName
+      ...(household.guardianName.trim() ? { guardianName: household.guardianName.trim() } : {}),
       guardianRelationshipCode: household.guardianRelationshipCode,
       primaryAddress: toAddress(household.address),
       hasPriorGtRelative: household.hasPriorGtRelative,

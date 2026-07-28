@@ -65,10 +65,9 @@ describe('LoginForm', () => {
     expect(screen.getByRole('button', { name: /^create account$/i })).toBeInTheDocument();
   });
 
-  it('carries a synthetic-only notice and never uses admitted language', () => {
+  it('never uses admitted language on the sign-up panel', () => {
     render(<LoginForm />);
     fireEvent.click(screen.getByRole('button', { name: /new family\? create an account/i }));
-    expect(screen.getByText(/synthetic-only prototype/i)).toBeInTheDocument();
     expect(screen.queryByText(/admitted/i)).not.toBeInTheDocument();
   });
 

@@ -3,6 +3,13 @@
 Everything below is **live on the hosted deploy** and merged to `main`. This doc is the
 "what works / what's unfinished" for tonight's demo with Aadi.
 
+> **Update (post-demo prep, branch `local/finish-demo-items` — NOT deployed yet):**
+> The unfinished items below have now been *implemented and staged locally*. Nothing has been
+> pushed, no cloud DB or Auth config has been changed, and the live site is **unchanged** so
+> Aadi's demo is unaffected. The live URL still runs the client-only preview described here.
+> See **"Staged fixes (deploy later)"** near the bottom for what changed and the runbook to
+> ship it when we're ready.
+
 ## Live URL
 
 **https://azkxhfwkvm.us-east-1.awsapprunner.com**
@@ -44,11 +51,12 @@ just isn't persisted server-side (it's per-browser). That's intended, not a bug.
 
 ## Unfinished / known limitations (put here on purpose)
 
-1. **Hosted family data is not persisted server-side.** It's localStorage-per-browser. A
-   real cloud backend for onboarding was explicitly **not** built (it would mean writing
-   applicant data to a cloud DB and loosening the born-synthetic / no-real-PII guarantees).
-   Decision: deferred. If we ever want live persistence, that's a scoped re-architecture of
-   the onboarding adapter + RPCs to accept cloud-issued JWTs, bounded to `synthetic_only`.
+1. **Hosted family data is not persisted server-side.** _(Fixed locally — pending deploy.)_
+   On the live site today it's still localStorage-per-browser. The real cloud-persistence path
+   is now built on `local/finish-demo-items`: the env guard accepts hosted mode and the DB
+   `bind_local_synthetic_principal()` accepts the cloud Supabase issuer — both still bounded to
+   `synthetic_only=true` + a known role, so real (non-synthetic) principals are still rejected.
+   Takes effect after the deploy-later runbook (migration apply + rebuild/redeploy).
 
 2. **Self-service sign-up email confirmation is degraded.** The "Create account" flow works
    and the server-side family-role trigger is applied, but:
@@ -58,18 +66,60 @@ just isn't persisted server-side (it's per-browser). That's intended, not a bug.
      user. Built-in Supabase email is heavily rate-limited (~a few/hr).
    - **For the demo, use "Continue as guest"** instead of sign-up. Sign-up + real email is
      the follow-up once SMTP is sorted (real deliverable address + configured SMTP).
+   - _Prep staged:_ `scripts/configure-cloud-auth-email.mjs` (dry-run by default) applies either
+     `MODE=autoconfirm` (sign-up with no email round-trip — token only) or `MODE=smtp` (real
+     confirmation + magic link — needs SMTP creds from any provider you control). Deferred:
+     needs a fresh `sbp_` management token and, for SMTP mode, provider credentials.
 
 3. **Magic-link sign-in** is correctly configured (site URL + callback allow-listed) but
    only works with a real deliverable email + SMTP — same email limitation as above.
 
-4. **`GET /api/health` returns 503 on cloud** (pre-existing, unrelated to this work). The
-   route probes bare `<SUPABASE_URL>/rest/v1/`, which Supabase now rejects for
-   publishable/anon keys. The app itself is healthy (App Runner TCP health check passes,
-   pages serve 200). Fix = point the check at `/auth/v1/health` or a real table; needs a
-   rebuild. Don't hit `/api/health` during the demo.
+4. **`GET /api/health` returns 503 on cloud** _(Fixed locally — pending deploy.)_ The route
+   now probes `<SUPABASE_URL>/auth/v1/health` (returns 200 with a plain apikey header) instead
+   of bare `/rest/v1/` (which Supabase rejects for publishable/anon keys). Takes effect after a
+   rebuild. Until then, don't hit `/api/health` during the demo.
 
 5. **App Runner ≠ D-012's ECS Fargate target.** Interim hosting choice (managed HTTPS, no
    VPC/ALB). Documented divergence, not silent.
+
+## Staged fixes (deploy later) — branch `local/finish-demo-items`
+
+All local, nothing pushed, live site untouched. What changed:
+
+- **`apps/web/src/lib/env.ts`** — `validateLocalSyntheticAdapterEnvironment` now has a hosted
+  branch: in `GT_DEPLOY_MODE=hosted` it accepts the cloud https Supabase URL + `NODE_ENV=production`
+  while still requiring the synthetic opt-in (`GT_LOCAL_SYNTHETIC_ADAPTER_ENABLED=true`,
+  `GT_LOCAL_SYNTHETIC_PROJECT_ID=gt-selection-capstone`) and still banning elevated keys. The
+  loopback path is unchanged. +2 unit tests.
+- **`supabase/migrations/20260724080000_hosted_synthetic_principal.sql`** — `CREATE OR REPLACE`
+  of `app.bind_local_synthetic_principal()` widening the accepted JWT issuer from loopback-only to
+  *also* a Supabase-hosted issuer (`https://<ref>.supabase.co/auth/v1`). Function body is otherwise
+  byte-identical; `synthetic_only=true` + role checks are unchanged.
+- **`apps/web/src/app/(embed)/family/{apply,dashboard}/page.tsx`** — reverted the hosted client-only
+  preview branches back to the real backend (`<ApplyWizard />`, `<DashboardLoader />`).
+  `.../family/exam/page.tsx` stays `<PreviewExam>` (the exam has no real backend).
+- **`apps/web/Dockerfile`** — runner stage now sets `GT_DEPLOY_MODE=hosted` +
+  `GT_LOCAL_SYNTHETIC_ADAPTER_ENABLED=true` + `GT_LOCAL_SYNTHETIC_PROJECT_ID=gt-selection-capstone`
+  (server-side only; not `NEXT_PUBLIC`) so the deployed image binds the cloud project.
+- **`apps/web/src/app/api/health/route.ts`** — probes `/auth/v1/health` (see item #4).
+- **`scripts/configure-cloud-auth-email.mjs`** — deferred email config helper (see items #2/#3).
+
+Verified locally: web `tsc`/eslint/prettier clean, **64/64** web tests. The issuer regex was
+verified with an accept/reject matrix. **Not** verified: full pgTAP against local Supabase — this
+machine has no container runtime (Docker/podman/colima all absent), so the DB stack can't start.
+Run `pnpm db:reset && pnpm db:test` once Docker is available, or exercise it during the cloud apply.
+
+### Deploy-later runbook (when we choose to ship — this DOES touch cloud)
+
+1. **Apply the migration to cloud** (the only new DB change):
+   `supabase db push` against the cloud project, or run
+   `supabase/migrations/20260724080000_hosted_synthetic_principal.sql` via the pooler
+   (`create or replace` — safe to re-run; preserves grants).
+2. **(Optional) email:** run `scripts/configure-cloud-auth-email.mjs` with a fresh `sbp_` token —
+   `MODE=autoconfirm` (token only) or `MODE=smtp` (+ provider creds). Rotate the token after.
+3. **Rebuild + redeploy** via the recipe below (the new pages + Dockerfile env are baked at build).
+4. **Smoke test:** guest login → apply → **Sign & submit** persists (no "Server Components render"
+   error) → dashboard shows the saved status; `GET /api/health` returns 200.
 
 ## Rebuild / redeploy recipe (if you need to push a change before the demo)
 
@@ -82,6 +132,7 @@ just isn't persisted server-side (it's per-browser). That's intended, not a bug.
 
 ## Status of this change
 
-- Committed to `dev` and merged to `main` (both pushed).
-- 62/62 web tests pass; tsc + lint + prettier clean.
-- Build #8 built and deploying to App Runner as of this doc.
+- **Demo build:** committed to `dev`, merged to `main`, Build #8 live on App Runner (client-only).
+- **Finish-items work:** staged on `local/finish-demo-items` only — **not pushed, not deployed**.
+  Live site unchanged. 64/64 web tests; tsc + lint + prettier clean. Ship via the deploy-later
+  runbook above when Aadi's demo is done.
