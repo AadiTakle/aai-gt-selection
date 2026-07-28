@@ -109,8 +109,12 @@
   transition: background 150ms ease;
 }
 
+/* Hover keeps the Gold field and adds a Navy ring rather than deepening to Gold
+   Deep: Dark Navy on Gold Deep measures 4.38:1, under the 4.5:1 floor for a
+   label at this size, while Dark Navy on Gold holds 7.4:1. */
 .primary:hover::before {
-  background: var(--gt-gold-deep);
+  background: var(--color-accent);
+  box-shadow: inset 0 0 0 2px var(--color-primary);
 }
 
 .ghost {

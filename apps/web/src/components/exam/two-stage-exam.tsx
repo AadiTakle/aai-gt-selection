@@ -223,9 +223,12 @@ export function TwoStageExam() {
           </p>
         </section>
 
-        {/* Engine θ — ADDITIVE. Everything above is computed exactly as before. */}
-        <section className={shell.summaryCard}>
-          <p className={shell.cardKicker}>
+        {/* Engine θ — ADDITIVE. Everything above is computed exactly as before.
+            Its own recessed surface (not the white summaryCard the primary
+            results sit on) so it reads as a technical annex; the caution kicker
+            inside it is styled UP, not down. */}
+        <section className={styles.engineAside}>
+          <p className={styles.engineKicker}>
             Engine-computed θ · cat-engine EAP · PROVISIONAL, UNCALIBRATED parameters
           </p>
           <table className={styles.baselineTable}>

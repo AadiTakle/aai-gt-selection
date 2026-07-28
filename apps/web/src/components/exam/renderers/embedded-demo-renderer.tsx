@@ -7,6 +7,7 @@ import type { ServedEmbeddedDemo } from '@/lib/exam/item';
 import type { PlayerOutcome } from '@/lib/exam/session';
 
 import { EXAM_SKIP_EVENT } from '../player-events';
+import styles from './embedded-demo-renderer.module.css';
 
 const MAX_MS_PER_ITEM = 4 * 60 * 1000; // safety valve so a stuck item can't wedge the flow
 const POLL_MS = 400;
@@ -74,7 +75,9 @@ export function EmbeddedDemoRenderer({
       ref={iframeRef}
       title={`${item.title} question`}
       src={item.demoPath}
-      className={className}
+      // A host class replaces the default outright rather than layering over it,
+      // so the two never fight over border/radius/height in the cascade.
+      className={className ?? styles.frame}
     />
   );
 }

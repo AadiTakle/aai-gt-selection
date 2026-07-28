@@ -48,6 +48,12 @@
   --color-success: #146c43; /* semantic ready/success, ~5.3 on white */
   --color-danger: #a4442f; /* semantic error, passes on light surfaces */
 
+  /* Per-item identity accents that carry TEXT on a warm tint. Both hexes come
+     from the brand's verified "warm and cool accents on tinted surfaces" table,
+     so a warm accent never has to be Gold-as-ink. */
+  --color-accent-cool-ink: #14384a; /* 10.4 on gold-lightest */
+  --color-accent-warm-ink: #6f4526; /* 6.9 on gold-lightest */
+
   /* Shape */
   --radius-xs: 0.25rem; /* 4px — compact tags */
   --radius-md: 0.5rem; /* 8px — default */

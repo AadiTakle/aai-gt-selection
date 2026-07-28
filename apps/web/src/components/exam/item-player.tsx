@@ -18,7 +18,11 @@ import { SingleSelectRenderer } from './renderers/single-select-renderer';
 export interface ItemPlayerProps {
   item: ServedItem;
   onComplete: (outcome: PlayerOutcome) => void;
-  /** Optional class for the embedded-demo iframe, so hosts can match their layout. */
+  /**
+   * Optional class for the embedded-demo iframe, so hosts can match their
+   * layout. Omitting it is safe: the renderer falls back to its own branded
+   * frame rather than an unstyled iframe.
+   */
   frameClassName?: string | undefined;
 }
 
