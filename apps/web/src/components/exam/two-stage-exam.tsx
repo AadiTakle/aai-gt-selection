@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 
 import { domainLabel } from '@/lib/exam/bank';
+import { estimateDemoTheta } from '@/lib/exam/cat-scoring';
 import { syntheticTwoStageBank } from '@/lib/exam/sample-items-two-stage';
 import {
   planFromResults,
@@ -25,11 +26,22 @@ import styles from './two-stage-exam.module.css';
  * Phase 2 places an effort/interactive task at the difficulty nearest that
  * standing (learning-rate). Nothing here is calibrated or validated; it never
  * makes an admission or ability decision.
+ *
+ * The summary additionally shows a cat-engine EAP/MLE θ over the same responses
+ * (`lib/exam/cat-scoring.ts`). That panel is ADDITIVE: it is labelled as
+ * engine-computed from provisional, uncalibrated parameters, and it changes
+ * neither the sequencing nor any previously reported number on this screen.
  */
 
 function fmtLevel(n: number | null): string {
   if (n == null) return '—';
   return `L${Number.isInteger(n) ? n : n.toFixed(1)}`;
+}
+
+/** θ / SE from the engine. Two decimals; “—” when nothing effort-valid was scored. */
+function fmtTheta(n: number | null): string {
+  if (n == null) return '—';
+  return n.toFixed(2);
 }
 
 function standingValue(s: DomainStanding): string {
@@ -94,6 +106,9 @@ export function TwoStageExam() {
   // Pure reconstruction of the phase plan from results (the shell hides the
   // presented-id list); drives both the live regime indicator and the summary.
   const plan = useMemo(() => planFromResults(bank, results), [bank, results]);
+  // ADDITIVE read-out: the same results, additionally scored by cat-engine's
+  // EAP/MLE theta. It feeds nothing above — not sequencing, not the summary.
+  const engine = useMemo(() => estimateDemoTheta(bank, results), [bank, results]);
   const resultByType = useMemo(
     () => new Map(results.map((r) => [r.typeCode, r])),
     [results],
@@ -205,6 +220,55 @@ export function TwoStageExam() {
             The estimate is the midpoint of the highest rung answered correctly (floor) and the
             lowest answered incorrectly (ceiling) — the bracket closed in from both sides. Ordinal
             “L” rungs are a design scale, not calibrated ability.
+          </p>
+        </section>
+
+        {/* Engine θ — ADDITIVE. Everything above is computed exactly as before. */}
+        <section className={shell.summaryCard}>
+          <p className={shell.cardKicker}>
+            Engine-computed θ · cat-engine EAP · PROVISIONAL, UNCALIBRATED parameters
+          </p>
+          <table className={styles.baselineTable}>
+            <thead>
+              <tr>
+                <th>Reasoning area</th>
+                <th>θ (EAP)</th>
+                <th>SE</th>
+                <th>Responses used</th>
+              </tr>
+            </thead>
+            <tbody>
+              {engine.perDomain.map((d) => (
+                <tr key={d.domain}>
+                  <td>{domainLabel(d.domain)}</td>
+                  <td className={styles.mono}>{fmtTheta(d.theta)}</td>
+                  <td className={styles.mono}>{fmtTheta(d.se)}</td>
+                  <td className={styles.mono}>
+                    {d.itemsEffortValid}/{d.itemsScored}
+                  </td>
+                </tr>
+              ))}
+              <tr>
+                <td>Whole session</td>
+                <td className={styles.mono}>{fmtTheta(engine.eap.theta)}</td>
+                <td className={styles.mono}>{fmtTheta(engine.eap.se)}</td>
+                <td className={styles.mono}>
+                  {engine.itemsEffortValid}/{engine.itemsScored}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <p className={styles.legend}>
+            This row block is <strong>new information, added alongside</strong> the standing
+            baseline above — nothing above was recomputed or relabelled. θ is produced by{' '}
+            <span className={styles.mono}>@gt-selection/cat-engine</span> (EAP over a normal prior;
+            MLE cross-check {fmtTheta(engine.mle.theta)}) from the Phase-1 standing responses that
+            passed its rapid-guess effort gate. The item parameters behind it are{' '}
+            <strong>PROVISIONAL and UNCALIBRATED</strong>: a = 1 and b = (rung − 10) / 4, derived
+            from each item’s ordinal design rung because nothing in this synthetic bank has been
+            calibrated (validated=false). θ is therefore a wiring demonstration, not an ability
+            measure, not a screening score, and never an admission or eligibility decision. The
+            bracketed “L” estimates above remain the demo’s reported standing result.
           </p>
         </section>
 
