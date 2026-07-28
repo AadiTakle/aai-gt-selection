@@ -22,6 +22,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint . && pnpm -r --if-present run lint",
+    "persona-sim": "tsx scripts/persona-sim/run-recovery.ts",
+    "persona-sim:typecheck": "tsc -p scripts/persona-sim/tsconfig.json",
     "security:scan": "tsx scripts/check-security-boundaries.ts",
     "typecheck": "tsc --showConfig -p tsconfig.base.json > /dev/null && pnpm -r --if-present run typecheck",
     "test": "pnpm -r --if-present run test",
