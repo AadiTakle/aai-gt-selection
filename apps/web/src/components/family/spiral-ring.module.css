@@ -10,13 +10,12 @@
 }
 
 .track {
-  stroke: rgba(255, 255, 255, 0.16);
+  stroke: rgb(255 255 255 / 0.16);
 }
 
 .fill {
-  stroke: var(--gt-ember);
+  stroke: var(--gt-gold);
   transition: stroke-dashoffset 0.9s var(--gt-ease);
-  filter: drop-shadow(0 0 6px rgba(228, 139, 83, 0.5));
 }
 
 .spiral {
@@ -35,7 +34,7 @@
 }
 
 .spiral path {
-  fill: #fff;
+  fill: var(--gt-near-white);
 }
 
 .centerLabel {
@@ -44,8 +43,9 @@
   left: 0;
   right: 0;
   text-align: center;
-  font-family: var(--gt-font-display);
-  font-weight: 500;
+  font-family: var(--font-body);
+  font-weight: 620;
+  font-variant-numeric: tabular-nums;
   font-size: 0.95rem;
-  color: #fff;
+  color: var(--gt-near-white);
 }
