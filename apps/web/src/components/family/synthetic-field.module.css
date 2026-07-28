@@ -5,51 +5,52 @@
 }
 
 .label {
+  font-family: var(--font-body);
   font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--gt-ink);
+  font-weight: 620;
+  color: var(--color-ink);
 }
 
 .req {
-  color: var(--gt-ember);
+  color: var(--color-danger);
 }
 
 .opt {
-  color: var(--gt-ink-40);
+  color: var(--color-muted);
   font-weight: 400;
   font-size: 0.75rem;
 }
 
 .hint {
   font-size: 0.75rem;
-  color: var(--gt-ink-40);
+  color: var(--color-muted);
 }
 
 .control {
   appearance: none;
   width: 100%;
-  background: #fcfbf8;
-  border: 1.5px solid var(--gt-line-strong);
-  border-radius: var(--gt-radius-sm);
+  background: var(--color-panel);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
   padding: 0.7rem 0.8rem;
   font: inherit;
   font-size: 0.95rem;
-  color: var(--gt-ink);
+  color: var(--color-ink);
   transition:
-    border-color 0.16s,
-    box-shadow 0.16s,
-    background 0.16s;
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background 150ms ease;
 }
 
 .control:hover {
-  border-color: var(--gt-ink-40);
+  border-color: var(--color-muted);
 }
 
 .control:focus {
   outline: none;
-  border-color: var(--gt-ember);
-  background: #fff;
-  box-shadow: 0 0 0 3.5px rgba(228, 139, 83, 0.16);
+  border-color: var(--color-focus);
+  background: var(--color-panel);
+  box-shadow: 0 0 0 3px rgb(0 79 113 / 0.16);
 }
 
 .selectWrap {
@@ -63,8 +64,8 @@
   top: 50%;
   width: 0.5rem;
   height: 0.5rem;
-  border-right: 2px solid var(--gt-ink-40);
-  border-bottom: 2px solid var(--gt-ink-40);
+  border-right: 2px solid var(--color-muted);
+  border-bottom: 2px solid var(--color-muted);
   transform: translateY(-70%) rotate(45deg);
   pointer-events: none;
 }
@@ -80,14 +81,15 @@
 
 .toggleLegend {
   font-size: 0.9rem;
-  color: var(--gt-ink);
+  color: var(--color-ink);
   font-weight: 500;
 }
 
 .segmented {
   display: inline-flex;
-  background: #f0ece3;
-  border-radius: 11px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   padding: 3px;
   gap: 3px;
 }
@@ -95,33 +97,35 @@
 .segmented button {
   all: unset;
   padding: 0.5rem 1.4rem;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
   font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--gt-ink-60);
+  font-weight: 620;
+  color: var(--color-ink-soft);
   cursor: pointer;
-  transition: all 0.16s;
+  transition:
+    background 150ms ease,
+    color 150ms ease;
 }
 
 .segmented button:hover {
-  color: var(--gt-ink);
+  color: var(--color-ink);
 }
 
 .segmented button:focus-visible {
-  outline: 2px solid var(--gt-ember);
-  outline-offset: 2px;
+  outline: 0.1875rem solid var(--color-focus);
+  outline-offset: 0.125rem;
 }
 
-/* the chosen option is clearly highlighted in ember.
+/* Selected option: Navy fill, Near White label (white on Gold would fail).
    Scoped under .segmented so it outranks `.segmented button { all: unset }`. */
 .segmented button.segActive {
-  background: var(--gt-ember);
-  color: #fff;
-  box-shadow: 0 2px 6px rgba(228, 139, 83, 0.4);
+  background: var(--color-primary);
+  color: var(--gt-near-white);
 }
 
 .segmented button.segActive:hover {
-  color: #fff;
+  color: var(--gt-near-white);
 }
 
 .chips {
@@ -135,30 +139,34 @@
   display: inline-flex;
   align-items: center;
   padding: 0.5rem 0.9rem;
-  border-radius: 999px;
-  border: 1.5px solid var(--gt-line-strong);
-  background: #fcfbf8;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-panel);
+  font-family: var(--font-body);
   font-size: 0.82rem;
   font-weight: 500;
-  color: var(--gt-ink-60);
+  color: var(--color-ink-soft);
   cursor: pointer;
-  transition: all 0.15s;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
 }
 
 .chip:hover {
-  border-color: var(--gt-ember);
-  color: var(--gt-ink);
+  border-color: var(--color-primary);
+  color: var(--color-ink);
 }
 
 .chip:focus-visible {
-  outline: 2px solid var(--gt-ember);
-  outline-offset: 2px;
+  outline: 0.1875rem solid var(--color-focus);
+  outline-offset: 0.125rem;
 }
 
 .chipActive {
-  border-color: var(--gt-ember);
-  background: rgba(228, 139, 83, 0.1);
-  color: #8a4a1c;
+  border-color: var(--gt-gold-light);
+  background: var(--color-surface);
+  color: #6f4526;
 }
 
 .reveal {
@@ -183,8 +191,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--gt-space-4);
-  background: rgba(0, 42, 58, 0.03);
-  border-radius: var(--gt-radius-sm);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
   padding: var(--gt-space-4);
 }
 

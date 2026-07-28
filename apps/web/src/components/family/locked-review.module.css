@@ -9,15 +9,17 @@
 
 .back {
   color: var(--gt-blue);
-  font-family: var(--gt-font-utility);
+  font-family: var(--font-utility);
   font-size: 0.8rem;
+  font-weight: 500;
   letter-spacing: 0.04em;
+  text-transform: uppercase;
   text-decoration: none;
   align-self: flex-start;
 }
 
 .back:hover {
-  color: var(--gt-ember);
+  color: var(--color-primary);
 }
 
 .head {
@@ -29,65 +31,87 @@
 }
 
 .kicker {
-  font-family: var(--gt-font-utility);
+  font-family: var(--font-utility);
   font-size: 0.72rem;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--gt-ember);
+  color: var(--gt-blue);
   margin: 0;
 }
 
 .title {
-  font-family: var(--gt-font-display);
+  font-family: var(--font-display);
   font-size: 2rem;
-  font-weight: 500;
+  font-weight: 300;
   letter-spacing: -0.02em;
   margin: var(--gt-space-2) 0 var(--gt-space-2);
+  color: var(--color-ink);
 }
 
 .intro {
-  color: var(--gt-ink-60);
+  color: var(--color-ink-soft);
   margin: 0;
   max-width: 52ch;
 }
 
+/* Primary action for this screen: Navy fill, Near White label, the one chamfer. */
 .editBtn {
   all: unset;
   flex: none;
   cursor: pointer;
-  background: var(--gt-ember);
-  color: #fff;
-  padding: 0.7rem 1.2rem;
-  border-radius: 11px;
-  font-weight: 600;
-  box-shadow: 0 8px 20px rgba(228, 139, 83, 0.28);
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 11px 16px;
+  color: var(--gt-near-white);
+  font-family: var(--font-utility);
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
-.editBtn:hover {
-  background: #d97e45;
+.editBtn::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: var(--color-primary);
+  border-radius: var(--radius-md);
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - var(--cut-br)),
+    calc(100% - var(--cut-br)) 100%,
+    0 100%
+  );
+  transition: background 150ms ease;
 }
 
-.editBtn:focus-visible {
-  outline: 2px solid var(--gt-navy);
-  outline-offset: 2px;
+.editBtn:hover::before {
+  background: var(--color-primary-hover);
 }
 
 /* locked cards: muted, no editable affordance */
 .card {
-  background: var(--gt-card);
-  border-radius: var(--gt-radius-md);
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
   padding: var(--gt-space-4) var(--gt-space-5) var(--gt-space-5);
   display: flex;
   flex-direction: column;
 }
 
 .lockBar {
-  font-family: var(--gt-font-display);
+  font-family: var(--font-body);
   font-size: 1.05rem;
-  color: var(--gt-navy);
+  font-weight: 620;
+  color: var(--color-ink);
   padding-bottom: var(--gt-space-3);
   margin-bottom: var(--gt-space-2);
-  border-bottom: 1px solid var(--gt-line);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .row {
@@ -98,26 +122,26 @@
 }
 
 .rowLabel {
-  color: var(--gt-ink-60);
+  color: var(--color-ink-soft);
   font-size: 0.9rem;
 }
 
 .rowValue {
-  color: var(--gt-ink);
+  color: var(--color-ink);
   font-size: 0.95rem;
   font-weight: 500;
 }
 
 .privateNote {
   font-size: 0.78rem;
-  color: var(--gt-ink-40);
+  color: var(--color-muted);
   font-style: italic;
   margin: var(--gt-space-3) 0 0;
 }
 
 .boundary {
   font-size: 0.78rem;
-  color: var(--gt-ink-40);
+  color: var(--color-muted);
   text-align: center;
   margin: var(--gt-space-2) 0 0;
 }

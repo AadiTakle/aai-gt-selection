@@ -18,11 +18,11 @@
 }
 
 .track {
-  stroke: rgba(255, 255, 255, 0.14);
+  stroke: rgb(255 255 255 / 0.14);
 }
 
 .fill {
-  stroke: var(--gt-ember);
+  stroke: var(--gt-gold);
   transition: stroke-dashoffset 0.8s var(--gt-ease);
 }
 
@@ -40,25 +40,26 @@
 }
 
 .spiral path {
-  fill: var(--gt-ember-hi);
+  fill: var(--gt-gold-light);
   transition: fill 0.5s;
 }
 
 .complete .spiral path {
-  fill: #fff;
+  fill: var(--gt-near-white);
 }
 
 .meta .pct {
-  font-family: var(--gt-font-display);
+  font-family: var(--font-body);
   font-size: 1.35rem;
-  font-weight: 500;
-  color: #fff;
+  font-weight: 620;
+  font-variant-numeric: tabular-nums;
+  color: var(--gt-near-white);
   line-height: 1;
 }
 
 .caption {
   font-size: 0.72rem;
-  color: var(--gt-petrol-50);
+  color: var(--color-on-navy-soft);
   margin-top: var(--gt-space-1);
   max-width: 150px;
 }

@@ -7,13 +7,14 @@
 }
 
 .label {
+  font-family: var(--font-body);
   font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--gt-ink);
+  font-weight: 620;
+  color: var(--color-ink);
 }
 
 .opt {
-  color: var(--gt-ink-40);
+  color: var(--color-muted);
   font-weight: 400;
   font-size: 0.72rem;
 }
@@ -21,20 +22,22 @@
 .control {
   appearance: none;
   width: 100%;
-  background: #fcfbf8;
-  border: 1.5px solid var(--gt-line-strong);
-  border-radius: var(--gt-radius-sm);
+  background: var(--color-panel);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
   padding: 0.7rem 0.8rem;
   font: inherit;
   font-size: 0.95rem;
-  color: var(--gt-ink);
+  color: var(--color-ink);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .control:focus {
   outline: none;
-  border-color: var(--gt-ember);
-  background: #fff;
-  box-shadow: 0 0 0 3.5px rgba(228, 139, 83, 0.16);
+  border-color: var(--color-focus);
+  box-shadow: 0 0 0 3px rgb(0 79 113 / 0.16);
 }
 
 .results {
@@ -44,9 +47,9 @@
   right: 0;
   top: 100%;
   margin-top: 4px;
-  background: #fff;
-  border: 1px solid var(--gt-line-strong);
-  border-radius: var(--gt-radius-sm);
+  background: var(--color-panel);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
   box-shadow: var(--gt-shadow-pop);
   max-height: 280px;
   overflow-y: auto;
@@ -60,11 +63,11 @@
   padding: 0.6rem var(--gt-space-4);
   cursor: pointer;
   font-size: 0.9rem;
-  color: var(--gt-ink);
-  border-bottom: 1px solid var(--gt-line);
+  color: var(--color-ink);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .resultRow:hover,
 .resultRow:focus-visible {
-  background: var(--gt-gold-lightest);
+  background: var(--color-surface);
 }
