@@ -200,3 +200,106 @@ interfaces were **not** modified. No governance/canonical docs were edited.
 - **Governance.** If this structure is ever pursued, it needs a `DECISION_LOG`
   entry and `TRACEABILITY_MATRIX` / `FEATURE_TO_REQUIREMENT_MAP` updates — **not**
   done here by design (this is an unapproved proposal).
+
+## 9. Screenshots & runtime QA
+
+> Added by a runtime-QA + screenshots pass on branch
+> `feat/exam-two-stage-demo-shots` (a docs/images-only branch off
+> `feat/exam-two-stage-demo`). This pass made **no** `.ts` / `.tsx` / component /
+> logic changes — only this section and the PNGs under
+> `docs/demo-screenshots/two-stage/`. It drove the demo through a headless
+> Chromium (Playwright) using only the app's own affordances (option buttons, the
+> **Submit answer** button, and the built-in `gt-exam-skip` window event).
+
+### Runtime-QA verdict — clean (with one environment caveat)
+
+**The proposed-structure demo runs end-to-end at runtime, not just at build.**
+With the required public env present, a full intro → Phase 1 → Phase 2 → summary
+click-through produced:
+
+- **No** browser-console errors or warnings, **no** React hydration warnings,
+  **no** uncaught exceptions / unhandled rejections, and **no** failed network
+  requests during the click-through.
+- `POST /api/exam-results → 200`; the summary rendered from the **server-scored**
+  result (session phase `done`).
+- Clean dev-server stderr for the whole run — every `GET /dev/exam-two-stage`,
+  `GET /dev/exam-shell`, `GET /api/session`, and the `POST /api/exam-results`
+  returned `200`. The only stray log line was the pnpm *"Unsupported engine"*
+  Node-version WARN, which is unrelated to the demo.
+
+**Graceful no-API path — confirmed.** In a second pass with `/api/exam-results`
+blocked at the network layer, the finalize `fetch` failed and the shell fell back
+to a **locally computed** summary (session phase `error`) that still renders the
+full two-regime view, shows the note *"We could not save your session to the
+server; showing a local summary,"* and offers a **Try scoring again** button. The
+only console message was the expected `net::ERR_FAILED` for the deliberately
+blocked request. The demo never dead-ends (screenshot 07).
+
+### Finding for review (NOT fixed here): documented run steps are insufficient
+
+**Verified finding.** Following §2's run steps verbatim in a fresh worktree
+(`pnpm install` → `pnpm --filter @gt-selection/web dev` → open the route) returns
+**HTTP 500 on every route**, including this dev-only, no-auth demo. Root cause:
+the global request proxy (`apps/web/src/proxy.ts`) calls `getServerEnvironment()`
+on every matched request, and `apps/web/src/lib/env.ts` requires
+`NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`; when they are
+unset the proxy throws a `ZodError` before any page renders. The proxy `matcher`
+excludes only static assets/images, so `/dev/*` is **not** exempt.
+
+Per the no-code-changes constraint this was **left as a finding, not fixed**. To
+complete the QA the two vars were supplied as environment/config only (loopback
+placeholders from `.env.example`, no real backend), e.g. via a git-ignored
+`.env.local` or an inline prefix:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:65421 \
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<any-non-empty-string> \
+pnpm --filter @gt-selection/web dev
+```
+
+Suggested follow-up (separate, approved change): either add this env prerequisite
+to §2, or let the proxy short-circuit env validation for dev-only `/dev/*` routes
+so the synthetic demo runs with zero backend config.
+
+### Test-harness note (not an app issue)
+
+Phase 1 was answered normally (the keyed-correct option each time). Of the four
+Phase-2 interactive tasks, three self-scored to completion under the generic
+driver and **harvested real telemetry** (accuracy, response-time, first-action
+latency — visible in screenshot 05); the fourth (Spatial *Rolling Cube*) needs
+multi-step "rolling" input the generic driver does not emulate, so it was advanced
+via the app's own **Skip** affordance and is correctly logged as `skipped` in the
+per-item audit. This is a limitation of the automation, not of the demo.
+
+### Screenshots
+
+Full-page captures (1200-wide, downscaled to 900-wide PNGs) in
+`docs/demo-screenshots/two-stage/`.
+
+![Intro: PROPOSAL banner, two-regime explanation, Phase 1 -> Phase 2 chip](demo-screenshots/two-stage/01-intro.png)
+
+*01 — Intro: the "PROPOSED · UNAPPROVED · NOT MERGED" banner, the two-regime explanation, the `Phase 1 → Phase 2` chip, and the Start button.*
+
+![Phase 1 standing, first item, per-domain bracketing strip probing](demo-screenshots/two-stage/02-phase1-standing-first.png)
+
+*02 — Phase 1 · Standing: the first item (opens at the median rung) with the per-domain bracketing strip showing "probing…" for all four areas.*
+
+![Phase 1 standing mid-run, bracketing strip showing per-domain probes](demo-screenshots/two-stage/03-phase1-standing-progress.png)
+
+*03 — Phase 1 · Standing: mid-run, the strip now shows each area closing in from both sides (e.g. "probing ~L11", "probing ~L8").*
+
+![Phase 2 learning-rate: calibration callout and interactive task](demo-screenshots/two-stage/04-phase2-learning-rate.png)
+
+*04 — Phase 2 · Learning-rate: the "placed at L12 · targeting standing L14" calibration callout, the now-localised standing strip, and the live interactive task with its telemetry panel.*
+
+![Summary: standing baseline, calibration cards, per-item audit](demo-screenshots/two-stage/05-summary.png)
+
+*05 — Summary: the per-domain standing baseline with `[floor…ceiling]`, the four Phase-2 calibration cards (standing L14 → effort L12) with harvested telemetry, and the ordered per-item standing/effort audit.*
+
+![Fixed-order baseline demo at /dev/exam-shell](demo-screenshots/two-stage/06-exam-shell-fixed-baseline.png)
+
+*06 — Contrast: the unchanged fixed-order baseline at `/dev/exam-shell`.*
+
+![Graceful no-API local summary with save-failure note](demo-screenshots/two-stage/07-graceful-no-api-summary.png)
+
+*07 — Graceful no-API path: with `/api/exam-results` blocked, the summary still renders locally (phase `error`) with the "could not save … showing a local summary" note and a Try-again button.*
