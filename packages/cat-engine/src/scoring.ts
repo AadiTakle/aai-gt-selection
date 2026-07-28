@@ -91,7 +91,7 @@ export function computeFitIndex(
 
 /** Tunable, GT-owned band decision from the fit index. NOT an admission decision (R10). */
 export function decisionFromFit(fitIndex: number, policy: ScoringPolicy): ScreenDecision {
-  if (fitIndex >= policy.admitCut) return 'admit';
-  if (fitIndex < policy.retryCut) return 'retry';
-  return 'defer';
+  if (fitIndex >= policy.advanceCut) return 'advance';
+  if (fitIndex < policy.retryFloor) return 'retry';
+  return 'hold';
 }

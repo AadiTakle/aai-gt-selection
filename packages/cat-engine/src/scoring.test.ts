@@ -29,8 +29,8 @@ const policy = (over: Partial<ScoringPolicy> = {}): ScoringPolicy => ({
   fitWeights: { a: 1, b: 1 },
   learningRateWeight: 0,
   consistencyWeight: 0,
-  admitCut: 1,
-  retryCut: -1,
+  advanceCut: 1,
+  retryFloor: -1,
   ...over,
 });
 
@@ -105,12 +105,23 @@ describe('computeFitIndex', () => {
 });
 
 describe('decisionFromFit', () => {
-  it('bands the fit index into admit / defer / retry', () => {
-    const p = policy({ admitCut: 1, retryCut: -1 });
-    expect(decisionFromFit(1.5, p)).toBe('admit');
-    expect(decisionFromFit(1, p)).toBe('admit'); // admitCut is inclusive
-    expect(decisionFromFit(0, p)).toBe('defer');
-    expect(decisionFromFit(-1, p)).toBe('defer'); // retryCut is exclusive (strictly below)
+  it('bands the fit index into advance / hold / retry', () => {
+    const p = policy({ advanceCut: 1, retryFloor: -1 });
+    expect(decisionFromFit(1.5, p)).toBe('advance');
+    expect(decisionFromFit(1, p)).toBe('advance'); // advanceCut is inclusive
+    expect(decisionFromFit(0, p)).toBe('hold');
+    expect(decisionFromFit(-1, p)).toBe('hold'); // retryFloor is exclusive (strictly below)
     expect(decisionFromFit(-1.5, p)).toBe('retry');
+  });
+
+  it('never emits a value the contracts screening schema rejects', () => {
+    // contracts `screenDecisionSchema` = ['advance','hold','retry'] and REJECTS
+    // the salvaged 'admit' spelling (R10). The engine cannot import that schema,
+    // so this pins the vocabulary the two must agree on.
+    const p = policy({ advanceCut: 1, retryFloor: -1 });
+    const allowed = ['advance', 'hold', 'retry'];
+    for (const fit of [-3, -1.5, -1, -0.5, 0, 0.5, 1, 1.5, 3]) {
+      expect(allowed).toContain(decisionFromFit(fit, p));
+    }
   });
 });

@@ -14,8 +14,8 @@ const policy: ScoringPolicy = {
   fitWeights: { fluid_reasoning: 1 },
   learningRateWeight: 0,
   consistencyWeight: 0,
-  admitCut: 1,
-  retryCut: -1,
+  advanceCut: 1,
+  retryFloor: -1,
 };
 
 const item = (over: Partial<ItemParameters> & Pick<ItemParameters, 'itemId'>): ItemParameters => ({
