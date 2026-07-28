@@ -10,8 +10,8 @@ const policy: ScoringPolicy = {
   fitWeights: { fluid_reasoning: 1, verbal: 1 },
   learningRateWeight: 0.1,
   consistencyWeight: 0.1,
-  admitCut: 0.4,
-  retryCut: -0.4,
+  advanceCut: 0.4,
+  retryFloor: -0.4,
   minEngagementRate: 0.8,
 };
 
@@ -71,8 +71,8 @@ describe('compositeTheta', () => {
 describe('decisionConfidence', () => {
   it('is deterministic in [0,1] for a fixed seed', () => {
     const scored = scoreItems(engagedLog(), buildParams());
-    const c1 = decisionConfidence(scored, ['fluid_reasoning', 'verbal'], policy, 'admit', 'seed-x', 100);
-    const c2 = decisionConfidence(scored, ['fluid_reasoning', 'verbal'], policy, 'admit', 'seed-x', 100);
+    const c1 = decisionConfidence(scored, ['fluid_reasoning', 'verbal'], policy, 'advance', 'seed-x', 100);
+    const c2 = decisionConfidence(scored, ['fluid_reasoning', 'verbal'], policy, 'advance', 'seed-x', 100);
     expect(c1).toBe(c2);
     expect(c1).toBeGreaterThanOrEqual(0);
     expect(c1).toBeLessThanOrEqual(1);

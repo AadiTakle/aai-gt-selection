@@ -8,8 +8,8 @@
       "fitWeights": { "fluid_reasoning": 1, "verbal": 1 },
       "learningRateWeight": 0.1,
       "consistencyWeight": 0.1,
-      "admitCut": 0.5,
-      "retryCut": -0.5,
+      "advanceCut": 0.5,
+      "retryFloor": -0.5,
       "priorMean": 0,
       "priorSd": 1,
       "minEngagementRate": 0.8

@@ -54,8 +54,15 @@ export interface ThetaEstimate {
 /**
  * Three-band screening classification: generic above-cut / uncertain /
  * below-cut. NOT an admission decision (R10).
+ *
+ * The vocabulary is `advance|hold|retry`, matching
+ * `@gt-selection/contracts` `screenDecisionSchema`. The engine cannot import
+ * that schema (it stays dependency-free for Lambda), so the two must be kept
+ * aligned by hand: contracts REJECTS the salvaged `admit|defer|retry` spelling
+ * precisely to avoid an admission-claim smell, and a value this engine emits
+ * has to survive that schema.
  */
-export type ScreenDecision = 'admit' | 'defer' | 'retry';
+export type ScreenDecision = 'advance' | 'hold' | 'retry';
 
 /**
  * Tunable, GT-owned scoring policy. Contains ONLY scoring knobs — no adaptive
@@ -69,10 +76,10 @@ export interface ScoringPolicy {
   learningRateWeight: number;
   /** Weight on the mean RT consistency (M-RTVAR / M-CONSIST). */
   consistencyWeight: number;
-  /** Fit-index value at or above which the decision is `admit`. */
-  admitCut: number;
+  /** Fit-index value at or above which the decision is `advance`. */
+  advanceCut: number;
   /** Fit-index value below which the decision is `retry`. */
-  retryCut: number;
+  retryFloor: number;
   /** EAP prior mean (defaults to 0). */
   priorMean?: number;
   /** EAP prior SD (defaults to 1). */

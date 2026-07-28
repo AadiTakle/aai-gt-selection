@@ -142,8 +142,8 @@ describe('cat-adapter: end-to-end into the real engine (no math change)', () => 
     fitWeights: { fluid_reasoning: 1 },
     learningRateWeight: 0,
     consistencyWeight: 0,
-    admitCut: 0.5,
-    retryCut: -0.5,
+    advanceCut: 0.5,
+    retryFloor: -0.5,
   };
 
   it('maps a contract log + items and scores them through runScoring', () => {
