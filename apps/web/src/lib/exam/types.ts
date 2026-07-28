@@ -1,4 +1,3 @@
-import { apiSuccessSchema } from '@gt-selection/contracts';
 import { z } from 'zod';
 
 /**
@@ -64,50 +63,11 @@ export const examSessionRecordSchema = examSessionInputSchema.extend({
   summary: examSummarySchema,
 });
 
-/**
- * Durable-save request (family portal → server action). The client sends the
- * raw session plus an optional application to link it to; the server computes
- * the authoritative summary and enforces born-synthetic naming before storing.
- */
-export const saveExamSessionRequestSchema = z
-  .object({
-    /** The application this screening belongs to, when the family has one. */
-    applicationId: z.uuid().nullable(),
-    session: examSessionInputSchema,
-    idempotencyKey: z.uuid(),
-    correlationId: z.uuid(),
-  })
-  .strict();
-
-export const saveExamSessionResponseDataSchema = z
-  .object({
-    examSessionId: z.uuid(),
-    createdAt: z.string().min(1),
-    summary: examSummarySchema,
-  })
-  .strict();
-
-export const saveExamSessionResponseSchema = apiSuccessSchema(saveExamSessionResponseDataSchema);
-
 export type MetricMap = z.infer<typeof metricMapSchema>;
 export type ExamItemResult = z.infer<typeof examItemResultSchema>;
 export type ExamSessionInput = z.infer<typeof examSessionInputSchema>;
 export type ExamSummary = z.infer<typeof examSummarySchema>;
 export type ExamSessionRecord = z.infer<typeof examSessionRecordSchema>;
-export type SaveExamSessionRequest = z.infer<typeof saveExamSessionRequestSchema>;
-export type SaveExamSessionResponse = z.infer<typeof saveExamSessionResponseSchema>;
-
-/**
- * What the adapter hands to the RPC: the stored record (raw session + the
- * server-computed summary, born-synthetic student name) plus the application to
- * link and the idempotency/correlation ids.
- */
-export type SaveExamSessionAdapterInput = {
-  applicationId: string | null;
-  session: ExamSessionRecord;
-  idempotencyKey: string;
-  correlationId: string;
-};
 
 /** Compute the session summary from per-item results (server-authoritative). */
 export function summarize(items: ExamItemResult[]): ExamSummary {
