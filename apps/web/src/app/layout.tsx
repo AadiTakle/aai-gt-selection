@@ -1,14 +1,10 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 
-// GT School type system, self-hosted locally as packages (no remote stylesheet):
-// Literata (display) + Inter Tight (body) + Inconsolata (utility marks).
-import '@fontsource-variable/literata';
-import '@fontsource-variable/inter-tight';
-import '@fontsource-variable/inconsolata';
-
 import { SessionControls } from '@/components/auth/session-controls';
 import { GtLogo } from '@/components/gt-logo';
+import { StaleActionReloadGuard } from '@/components/stale-action-reload-guard';
+import { bodyFont, displayFont, utilityFont } from '@/lib/fonts';
 import '@/styles/globals.css';
 
 export const metadata: Metadata = {
@@ -29,8 +25,12 @@ function returnUrl(): string {
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en">
+    <html
+      lang="en"
+      className={`${displayFont.variable} ${bodyFont.variable} ${utilityFont.variable}`}
+    >
       <body>
+        <StaleActionReloadGuard />
         <div className="app-shell">
           <header className="app-header">
             <a

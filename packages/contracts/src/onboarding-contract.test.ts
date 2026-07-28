@@ -230,6 +230,8 @@ describe('Milestone A onboarding contracts', () => {
         },
       }).success,
     ).toBe(false);
+    // real ZIP now persists verbatim (governance carve-out); a malformed ZIP
+    // still fails
     expect(
       studentProfileContentSchema.safeParse({
         ...completeProfile,
@@ -240,6 +242,37 @@ describe('Milestone A onboarding contracts', () => {
             postalCode: '78701',
           },
         },
+      }).success,
+    ).toBe(true);
+    expect(
+      studentProfileContentSchema.safeParse({
+        ...completeProfile,
+        household: {
+          ...completeProfile.household,
+          primaryAddress: {
+            ...syntheticAddress,
+            postalCode: 'ABCDE',
+          },
+        },
+      }).success,
+    ).toBe(false);
+  });
+
+  it('accepts an optional verbatim guardian name but rejects an empty one', () => {
+    // guardianName is a real name stored verbatim (no "Synthetic" prefix)
+    expect(
+      studentProfileContentSchema.safeParse({
+        ...completeProfile,
+        household: { ...completeProfile.household, guardianName: 'Jordan Rivera' },
+      }).success,
+    ).toBe(true);
+    // optional: absent is fine (back-compat)
+    expect(studentProfileContentSchema.safeParse(completeProfile).success).toBe(true);
+    // present-but-empty is rejected (min length 1)
+    expect(
+      studentProfileContentSchema.safeParse({
+        ...completeProfile,
+        household: { ...completeProfile.household, guardianName: '' },
       }).success,
     ).toBe(false);
   });

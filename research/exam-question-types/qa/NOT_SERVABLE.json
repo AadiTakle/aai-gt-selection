@@ -1,0 +1,18 @@
+{
+  "$comment": "Types that have a bank but MUST NOT be served to a test-taker yet. The servable-type registry consumed by apps/web is required to exclude every typeCode listed here. Removing an entry requires the stated condition to be met, not merely a passing checker: each of these has a per-type checker that PASSES while the defect below is present, which is why the block list exists separately.",
+  "generatedBy": "manual — integration review, 2026-07-25",
+  "blocked": [
+    {
+      "typeCode": "CX-achieve-02",
+      "reason": "Proven answer leak: content.apparatus ships the closed-form outcome model (base, per-level weights, interaction bonus). Evaluating it over content.conclusion.options and taking the argmax recovers the correct key on 120/120 items WITHOUT running a single trial.",
+      "whyNotAlreadyFixed": "The renderer computes every trial reading locally from content.apparatus (demos/CX-achieve-02.html readingFor()), so the model cannot simply move to `answer` without giving the demo another way to resolve a trial. The fixed postMessage protocol has no host-to-demo trial-oracle channel.",
+      "processMetricsDoNotCatchIt": "The exploit runs zero trials, so M-PLANFUL and M-EFF have nothing to observe. A taker who answers correctly after no experimentation reads as efficient and insightful — the metrics point the wrong way.",
+      "unblockRequires": "Either (a) a host-mediated trial oracle so readings come from the server per trial and apparatus moves to `answer`, or (b) a ratified decision to score this type on experimentation process only, dropping the keyed 'which setting is best' conclusion.",
+      "evidence": "E-076; research/exam-question-types/qa/leak_scan.mjs reports RESPONSE-MODEL ATTACK 120/120 (100.0%)"
+    }
+  ],
+  "notBlockedButKnownComputable": {
+    "$comment": "These are computable from stimulus by construction and are NOT blocked — the derivation is the intended cognitive task and the renderer cannot function without the data. Recorded as E-075. Do not 'fix' these by moving fields; the mitigation is proctoring plus process telemetry.",
+    "typeCodes": ["GB-TRACK-01", "FLU-CONCEPT-01", "SPA-XPLANE-01"]
+  }
+}

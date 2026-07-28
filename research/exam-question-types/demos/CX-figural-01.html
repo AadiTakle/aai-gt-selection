@@ -18,12 +18,9 @@ body{
   background:radial-gradient(circle at 12% 8%,#ffe3f1,transparent 27%),
     linear-gradient(145deg,#f5efff,#eafcff 58%,#fff4dc);
 }
-#wrap{
-  flex:1;min-width:0;padding:17px;display:flex;flex-direction:column;
-  align-items:center;gap:9px;
-}
+#wrap{flex:1;min-width:0;padding:17px;display:flex;flex-direction:column;align-items:center;gap:9px}
 #badge{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8a789f}
-#howto{max-width:600px;width:100%;background:#fff;border:1px solid #eadff1;border-left:5px solid var(--plum);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #55366b}
+#howto{max-width:620px;width:100%;background:#fff;border:1px solid #eadff1;border-left:5px solid var(--plum);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #55366b}
 #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--plum)}
 #howto p{margin:0;font-size:14px;color:#5a4a6e;line-height:1.5}
 #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#f4eaff;color:var(--plum);border:2px solid #e0d0ef;min-height:30px}
@@ -33,308 +30,474 @@ body{
 #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
 #status.ok{color:#22b573} #status.no{color:#ec6670} #status.neutral{color:#8a789f}
 #stagecard{
-  width:min(720px,100%);background:var(--paper);border-radius:30px;padding:17px;
-  box-shadow:0 24px 58px -35px #55366b;display:flex;flex-direction:column;
-  align-items:center;gap:11px;border:1px solid #fff;
+  width:min(640px,100%);background:var(--paper);border-radius:28px;padding:16px;
+  box-shadow:0 24px 58px -35px #55366b;display:flex;flex-direction:column;align-items:center;gap:10px;border:1px solid #fff;
 }
-#squiggleFrame{
-  width:100%;height:180px;border:3px solid #eadff1;border-radius:24px;
-  background:radial-gradient(circle at 50% 50%,#fff 0 45%,#fbf5ff);
-  display:grid;place-items:center;position:relative;overflow:hidden;
+#taskline{font-size:14px;color:#5a4a6e;text-align:center;line-height:1.45;max-width:540px}
+#clock{font:800 13px ui-monospace,SFMono-Regular,Menlo,monospace;color:#7a5f96;letter-spacing:.04em}
+#studio{
+  width:100%;border:3px solid #eadff1;border-radius:22px;background:#fff;
+  position:relative;overflow:hidden;touch-action:none;
 }
-#squiggleFrame::before,#squiggleFrame::after{
-  content:"";position:absolute;width:32px;height:32px;border-color:#d7c6e4;border-style:solid;
+#pad{display:block;width:100%;height:auto;cursor:crosshair;touch-action:none}
+#tools{display:flex;gap:9px;flex-wrap:wrap;justify-content:center;align-items:center}
+.tool{
+  height:46px;padding:0 16px;border:0;border-radius:14px;cursor:pointer;
+  font:800 14px system-ui;background:#f0e8f8;color:var(--plum);
 }
-#squiggleFrame::before{left:13px;top:13px;border-width:3px 0 0 3px}
-#squiggleFrame::after{right:13px;bottom:13px;border-width:0 3px 3px 0}
-#squiggle{width:min(430px,92%);height:155px}
-#squiggle path{
-  fill:none;stroke:#45364f;stroke-width:9;stroke-linecap:round;stroke-linejoin:round;
-  filter:drop-shadow(0 4px 0 #eadff1);
-}
-#options{width:100%;display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
-.option{
-  min-height:57px;border:2px solid var(--line);border-radius:15px;background:#fff;
-  color:var(--ink);cursor:pointer;padding:5px 7px;display:flex;align-items:center;
-  gap:7px;text-align:left;font:700 13px system-ui;transition:.14s;
-}
-.option .emo{font-size:25px}.option:hover{transform:translateY(-2px);border-color:#bda5d3}
-.option.sel{border-color:var(--plum);background:#f4eaff;opacity:.58}
-#ranked{
-  width:100%;min-height:66px;border:2px dashed #d7cae3;border-radius:17px;
-  background:#fbf8ff;padding:7px;display:flex;gap:7px;align-items:center;overflow:auto;
-}
-.rank{
-  min-width:132px;height:50px;border-radius:13px;background:#fff;border:2px solid #cfb9e1;
-  display:grid;grid-template-columns:24px 1fr 22px;align-items:center;padding:3px 5px;gap:3px;
-}
-.rankNo{width:23px;height:23px;border-radius:50%;background:var(--plum);color:#fff;display:grid;place-items:center;font:800 11px system-ui}
-.rankName{font-weight:800;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rankBtns{display:flex;flex-direction:column}
-.rankBtns button{border:0;background:transparent;color:var(--plum);font-size:12px;line-height:17px;cursor:pointer;padding:0}
-.emptyRank{width:100%;text-align:center;font-size:28px;color:#c8b8d7;letter-spacing:9px}
-#tools{display:flex;gap:11px}
-#tools button{
-  height:50px;border:0;border-radius:16px;cursor:pointer;font:800 21px system-ui;
-  background:#f0e8f8;color:var(--plum);
-}
-#replay{width:52px}#submit{width:85px;background:var(--plum)!important;color:#fff!important;opacity:.35;pointer-events:none}
-#submit.ready{opacity:1;pointer-events:auto;animation:pulse 1s infinite}
-@keyframes pulse{50%{transform:scale(1.06)}}
-button:focus-visible{outline:4px solid #168dff;outline-offset:2px}
-#ghost{
-  position:fixed;left:0;top:0;opacity:0;z-index:50;pointer-events:none;
-  transition:transform .45s cubic-bezier(.2,.7,.2,1),opacity .2s;filter:drop-shadow(0 4px 4px #0004);
-}
+.tool:disabled{opacity:.4;cursor:default}
+#submit{background:var(--plum);color:#fff;min-width:74px;font-size:20px;opacity:.4;pointer-events:none}
+#submit.ready{opacity:1;pointer-events:auto}
+#replay{width:50px;padding:0;font-size:20px}
+#namer{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center;width:100%}
+#namer label{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#8a789f}
+#label{flex:1;min-width:180px;max-width:280px;height:40px;border:2px solid var(--line);border-radius:12px;padding:0 11px;font:600 14px system-ui;color:var(--ink)}
+#chips{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.chip{border:2px solid var(--line);background:#fff;border-radius:999px;padding:5px 11px;font:700 12px system-ui;color:#6a5a80;cursor:pointer}
+.chip.sel{border-color:var(--plum);background:#f7f0ff;color:var(--plum)}
+#gallery{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;min-height:26px;width:100%}
+.saved{background:#f7f0ff;border:2px solid #e0d0ef;border-radius:10px;padding:4px 10px;font:700 12px system-ui;color:var(--plum)}
+button:focus-visible,input:focus-visible,.chip:focus-visible{outline:4px solid #168dff;outline-offset:2px}
+#ghost{position:fixed;left:0;top:0;opacity:0;z-index:50;pointer-events:none;
+  transition:transform .5s cubic-bezier(.2,.7,.2,1),opacity .2s;filter:drop-shadow(0 4px 4px #0004)}
 #ghost.show{opacity:1}
 #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--plum);opacity:0}
 #ghost.tap .ring{animation:tapring .5s ease-out}
 @keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
-#telemetry{
-  width:345px;flex:0 0 345px;min-height:100vh;background:var(--tel);
-  color:#e0d0ef;display:flex;flex-direction:column;
-  font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;
-}
-#telemetry h3{
-  margin:0;padding:13px 14px;background:var(--tel2);color:#fff;
-  font:800 12px system-ui;letter-spacing:.1em;text-transform:uppercase;
-}
+#telemetry{width:345px;flex:0 0 345px;min-height:100vh;background:var(--tel);color:#e0d0ef;display:flex;flex-direction:column;
+  font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+#telemetry h3{margin:0;padding:13px 14px;background:var(--tel2);color:#fff;font:800 12px system-ui;letter-spacing:.1em;text-transform:uppercase}
 #difficulty{padding:10px 13px;border-bottom:1px solid #3b2b4e}
-.diffTop{display:flex;justify-content:space-between;color:#b8a3ca}
+.diffTop{display:flex;justify-content:space-between;color:#fff}
+.diffSub{display:flex;justify-content:space-between;color:var(--dim);font-size:10px;margin-top:5px}
 .diffTrack{height:8px;background:#382846;border-radius:8px;overflow:hidden;margin-top:6px}
-#diffFill{height:100%;width:20%;background:linear-gradient(90deg,#9b5ac9,#ed76b1,#66e0c5);transition:.3s}
+.diffFill{height:100%;background:linear-gradient(90deg,#9b5ac9,#ed76b1,#66e0c5);transition:.3s}
+#mode{padding:8px 13px 0;font-size:10px;color:var(--dim)}
+#mode b{color:var(--gold)}
 #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
-.mrow{display:grid;grid-template-columns:103px 1fr;gap:7px}
-.mid{color:var(--key);font-weight:800}.mval{color:#fff}
+.mrow{display:grid;grid-template-columns:106px 1fr;gap:7px}
+.mid{color:var(--key);font-weight:800}
+.mid.deferred{color:var(--gold)}
+.mval{color:#fff}
 .mname{grid-column:1/3;color:var(--dim);font-size:10px;margin-top:-3px}
 #logwrap{border-top:1px solid #3b2b4e;margin-top:auto}
 #logwrap b{display:block;padding:8px 12px 3px;color:#9c82b6;font-size:10px}
-#log{height:180px;overflow:auto;padding:0 12px 12px}
+#log{height:180px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
 #log div{border-bottom:1px dotted #3b2b4e;padding:3px 0}
 #log .t{color:#795f92}
-@media(max-width:860px){
-  body{flex-direction:column}#telemetry{width:100%;min-height:0;height:310px;flex:none}
-}
-@media(max-width:570px){#options{grid-template-columns:repeat(2,1fr)}#squiggleFrame{height:150px}}
+@media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;min-height:0;height:320px;flex:none}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition-duration:.01ms!important}}
 </style>
+<style>html[data-gt-telemetry="off"] #telemetry{display:none}</style>
+<script>/* D-028 — the researcher telemetry panel is presentational only. Embedded in the
+   child-facing screener it is hidden: naming the behavioural metrics to the child can
+   change the behaviour being measured. `?telemetry=1` restores it for a live
+   demonstration, and standalone (opened directly) is unchanged. Sampling, metric
+   computation and the {type:'telemetry'} postMessage stream are untouched. */
+(function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
 </head>
 <body>
 <main id="wrap">
   <div id="badge">CX-figural-01 · Squiggle Studio</div>
   <header id="howto">
     <h1>How to use — Squiggle Studio</h1>
-    <p>Look at the squiggle, then tap every picture it could be. Put your favorite idea first, and press the check (<b>✓</b>) to submit — try to think of as many as you can.</p>
+    <p>A line is already on the paper. Draw on top of it with your finger or the mouse to turn it into a picture, then type or tap what it is. Press <b>New idea</b> to get the same line again and make something completely different. Press the check (<b>&#10003;</b>) when you are finished. Nothing here is right or wrong — the studio only keeps what you made.</p>
   </header>
-  <div id="phasecue" data-phase="demo">Watch the example</div>
+  <div id="phasecue" data-phase="warmup">Get ready</div>
   <section id="stagecard">
-    <div id="squiggleFrame"><svg id="squiggle" viewBox="0 0 320 160" aria-label="abstract squiggle"><path id="squigglePath"></path></svg></div>
-    <div id="options"></div>
-    <div id="ranked"></div>
-    <div id="tools">
-      <button id="replay" aria-label="replay">↻</button>
-      <button id="submit" aria-label="submit order">✓</button>
+    <div id="taskline">Get ready for the next line.</div>
+    <div id="clock">Time left: --:--</div>
+    <div id="studio"><canvas id="pad" width="960" height="480"></canvas></div>
+    <div id="namer">
+      <label for="label">Name it</label>
+      <input id="label" type="text" maxlength="40" autocomplete="off" spellcheck="false" placeholder="what did you make?">
     </div>
-    <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+    <div id="chips"></div>
+    <div id="tools">
+      <button id="replay" class="tool" title="show how again">&#8635;</button>
+      <button id="undo" class="tool">Undo</button>
+      <button id="clear" class="tool">Start over</button>
+      <button id="newidea" class="tool">New idea</button>
+      <button id="submit" class="tool" title="finish">&#10003;</button>
+    </div>
+    <div id="gallery"></div>
+    <div id="status" class="neutral">Waiting for the next line.</div>
   </section>
 </main>
 <aside id="telemetry">
-  <h3>Live telemetry · per-child</h3>
-  <div id="difficulty">
-    <div class="diffTop"><span>DIFFICULTY</span><span id="diffLabel">1 / 5</span></div>
-    <div class="diffTrack"><div id="diffFill"></div></div>
-  </div>
+  <h3>Live telemetry · per-child (display only)</h3>
+  <div id="difficulty" data-tracks="M-DIFFREACH M-IDEAFLU"></div>
+  <div id="mode">Renderer counts process signals only. <b>Originality is never scored here</b> — the drawings are stored for a later expert panel.</div>
   <div id="mlist"></div>
   <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
 </aside>
 <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#8c56bf" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
-const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
-const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-const ITEMS=[
-  {path:'M22 104 C58 20 93 137 132 72 S205 32 231 96 S278 132 300 55',options:[
-    ['🐍','snake','animal',.34,1],['🌊','ocean wave','nature',.28,1],['⛰️','mountain trail','place',.16,2],
-    ['💓','heartbeat','body',.11,2],['🐉','dragon tail','story',.05,3],['🎼','music melody','music',.08,2],
-    ['🛤️','winding railway','structure',.06,3],['🧵','giant zipper','object',.03,3]]},
-  {path:'M159 80 C159 34 223 35 225 82 C228 137 143 139 108 101 C66 54 121 17 184 27',options:[
-    ['🐌','snail shell','animal',.31,1],['🌪️','hurricane','nature',.22,1],['🍭','lollipop','object',.18,1],
-    ['🌌','galaxy','space',.11,2],['👂','listening ear','body',.08,2],['🐈','curled-up cat','animal',.06,3],
-    ['🗺️','tiny maze','structure',.05,3],['🌀','time portal','story',.025,3]]},
-  {path:'M25 126 Q158 12 296 126',options:[
-    ['🌈','rainbow','nature',.35,1],['🌉','bridge','structure',.25,1],['☂️','umbrella','object',.17,2],
-    ['🐋','whale back','animal',.10,2],['🚇','train tunnel','place',.07,2],['🪢','jump rope','play',.08,2],
-    ['🌙','moon doorway','story',.035,3],['🎻','violin bow','music',.045,3]]},
-  {path:'M20 122 L68 49 L112 118 L157 40 L205 123 L254 53 L301 116',options:[
-    ['⚡','lightning','nature',.26,1],['⛰️','mountain range','place',.30,1],['👑','royal crown','object',.18,2],
-    ['🦖','dinosaur back','animal',.10,2],['🪚','saw teeth','tool',.09,2],['🧊','cracked ice','nature',.06,3],
-    ['📡','alien signal','story',.025,3],['🎹','jagged music','music',.035,3]]},
-  {path:'M78 31 C205 22 234 112 170 130 C117 146 101 80 159 73 C225 66 283 97 295 132',options:[
-    ['🎣','fishing hook','tool',.29,1],['❔','question mark','symbol',.24,1],['🦢','swan neck','animal',.15,2],
-    ['🌱','curled sprout','nature',.12,2],['🐉','sleeping dragon','story',.055,3],['🛷','sled track','motion',.08,2],
-    ['☄️','comet journey','space',.04,3],['🎺','brass melody','music',.025,3]]}
-];
-const WARM={
-  path:'M30 119 C78 42 126 42 160 91 C196 143 245 129 292 48',
-  options:[['🛣️','road','place',.3,1],['🐍','snake','animal',.28,1],['🎀','ribbon','object',.18,2],
-    ['🌊','river','nature',.21,1],['🪄','magic trail','story',.05,3],['🎵','song','music',.08,2]]
-};
-const T={
-  fluency:0,origPoints:0,origWeight:0,elab:0,elabN:0,path:[],persistence:0,
-  blur:0,activeMs:0,activeStart:Date.now(),lastAction:Date.now(),maxSolved:0,itemStart:Date.now()
-};
-let phase='demo',level=1,scoredIndex=0,item=WARM,selected=[],required=2,locked=true,revisions=0;
-const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
-function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
-function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
-function originality(){
-  return T.origWeight?Math.round(T.origPoints/T.origWeight):0;
+/* =====================================================================
+ * CX-figural-01 — PURE RENDERER
+ * Renders a SERVED squiggle (item.content.stimulus) and reports the child's RAW
+ * drawings + process telemetry. It NEVER self-generates stimuli, NEVER shows a
+ * verdict, and NEVER scores originality: this type is scoring.mode
+ * 'model_judge_deferred', so the drawings are stored as artifacts for a later
+ * consensual-assessment panel. The only numbers this file produces are counts,
+ * ratios and timings (BUILD_PLAN §2/§4).
+ *
+ * Embedding protocol (postMessage), source-tagged:
+ *   host -> demo : {source:'gt-exam-host', type:'init',  item:ServedItem}
+ *                  {source:'gt-exam-host', type:'start', tutorial?:bool}
+ *   demo -> host : {source:'gt-exam-demo', type:'ready'}
+ *                  {source:'gt-exam-demo', type:'result',    result:ItemResult}
+ *                  {source:'gt-exam-demo', type:'telemetry', event:TelemetryEvent}
+ *
+ * Standalone (double-click / no host): loads sample items from the bank JSONL
+ * (or an inline fallback if fetch is blocked on file://) so the file still runs.
+ *
+ * Reading is a required baseline-literacy gate (D-017): all instructions are
+ * on-screen TEXT. There is no audio narration anywhere in this file.
+ * ===================================================================== */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const HOST_SRC='gt-exam-host', DEMO_SRC='gt-exam-demo';
+const TRANSFORM_PX=14;   // distance from the base line beyond which ink counts as transformation
+const SCALE=3;           // canvas pixels per stimulus unit (canvas is 960x480 for a 320x160 stimulus)
+
+/* ---------- per-item state ---------- */
+let current=null;        // current ServedItem
+let interactive=false;   // interaction enabled?
+let starting=false;      // begin-item in flight (gesture hint playing)
+let submitted=false;     // already finished this item?
+let ideas=[];            // completed drawings for this item
+let strokesNow=[];       // strokes of the drawing in progress
+let drawing=null;        // stroke being drawn
+let category=null;       // tapped category chip
+let itemStart=0, firstInkAt=null, ideaStartedAt=0;
+let undoCount=0, blurCount=0;
+let itemTelemetry=[], startTimer=null, tick=null, deadline=0;
+
+/* ---------- embedding detection + emit ---------- */
+const embedded=(()=>{try{return window.parent&&window.parent!==window;}catch(_){return true;}})();
+let standalone=false, standaloneQueue=[], standaloneIdx=0, tutorialShown=false;
+function post(msg){if(!embedded)return;try{window.parent.postMessage(Object.assign({source:DEMO_SRC},msg),'*');}catch(_){}}
+
+/* ---------- geometry helpers (all measures come from the emitted points) ---------- */
+function pointSegDist(p,a,b){
+  const vx=b[0]-a[0],vy=b[1]-a[1],wx=p[0]-a[0],wy=p[1]-a[1];
+  const len=vx*vx+vy*vy;
+  const t=len?Math.max(0,Math.min(1,(wx*vx+wy*vy)/len)):0;
+  return Math.hypot(wx-t*vx,wy-t*vy);
 }
-function engage(){
-  const active=T.activeMs+(document.hasFocus()&&phase==='scored'?Date.now()-T.activeStart:0);
-  const idle=Math.max(0,Date.now()-T.lastAction-8000);
-  return `${Math.round(active/1000)}s active · ${T.blur} blur · ${Math.round(idle/1000)}s idle`;
+function distToBase(p){
+  if(!current)return Infinity;
+  let best=Infinity;
+  for(const s of current.content.stimulus.strokes)
+    for(let i=1;i<s.points.length;i++)best=Math.min(best,pointSegDist(p,s.points[i-1],s.points[i]));
+  return best;
 }
+function strokeLength(pts){let s=0;for(let i=1;i<pts.length;i++)s+=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);return s;}
+
+/* ---------- process metrics (counts / ratios / timings — never a verdict) ---------- */
+function allIdeas(){
+  const live=strokesNow.length?[{label:$('#label').value.trim(),category,strokes:strokesNow,startedMs:ideaStartedAt-itemStart,endedMs:Date.now()-itemStart}]:[];
+  return ideas.concat(live);
+}
+function ideaFluency(){return allIdeas().length;}
+function elaboration(){
+  const all=allIdeas();
+  if(!all.length)return 0;
+  return Math.round(100*all.reduce((s,i)=>s+i.strokes.length,0)/all.length)/100;
+}
+function transformation(){
+  let far=0,total=0;
+  for(const idea of allIdeas())for(const st of idea.strokes)for(const p of st){total++;if(distToBase(p)>TRANSFORM_PX)far++;}
+  return total?Math.round(100*far/total)/100:0;
+}
+function persistence(){
+  if(!current)return 0;
+  const win=current.content.timeWindowSec*1000;
+  return allIdeas().filter(i=>i.startedMs>win*2/3).length;
+}
+
+/* ---------- telemetry panel (DISPLAY ONLY) ---------- */
 const METERS=[
-  {id:'M-IDEAFLU',name:'Valid interpretations selected',get:()=>`${T.fluency}`},
-  {id:'M-ORIG',name:'Inverse-frequency score, rank-weighted',get:()=>T.origWeight?`${originality()} / 100`:'—'},
-  {id:'M-ELAB',name:'Specificity/detail proxy',get:()=>T.elabN?`${(T.elab/T.elabN).toFixed(2)} / 3`:'—'},
-  {id:'M-PATH',name:'Choice and ordering path',get:()=>T.path.length?T.path.slice(-7).join(' · '):'—'},
-  {id:'M-PERSIST',name:'Beyond-minimum choices and revisions',get:()=>`${T.persistence}`},
-  {id:'M-ENGAGE',name:'Active / blur / idle state',get:()=>engage()}
+ {id:'M-IDEAFLU',name:'Different pictures made (count)',get:()=>String(ideaFluency())},
+ {id:'M-ORIG',deferred:true,name:'Originality — deferred to an expert panel',get:()=>'deferred'},
+ {id:'M-ELAB',name:'Strokes per picture (elaboration)',get:()=>allIdeas().length?elaboration().toFixed(2):'\u2014'},
+ {id:'M-PATH',name:'Ink away from the given line (transformation)',get:()=>allIdeas().length?transformation().toFixed(2):'\u2014'},
+ {id:'M-PERSIST',name:'Pictures started in the last third',get:()=>String(persistence())},
+ {id:'M-ENGAGE',name:'Focus losses (tracked, not enforced)',get:()=>String(blurCount)},
+ {id:'M-RT',name:'Time on this item',get:()=>itemStart?Math.round((Date.now()-itemStart)/100)/10+' s':'\u2014'},
+ {id:'M-RTFIRST',name:'Latency to the first stroke',get:()=>firstInkAt==null?'\u2014':firstInkAt+' ms'},
+ {id:'M-REV',name:'Undo / start-over presses',get:()=>String(undoCount)},
 ];
-function buildMeters(){
-  $('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>
+  `<div class="mrow"><span class="mid${m.deferred?' deferred':''}">${m.id}</span><span class="mval" id="v_${m.id}"></span>`
+  +`<span class="mname">${m.name}</span></div>`).join('');}
+function renderDifficulty(){
+  const d=current?current.difficulty:null, n=current?current.content.ideaTargetMin:null;
+  $('#difficulty').innerHTML=`<div class="diffTop"><b>SERVED DEMAND</b><span>${d==null?'\u2014':d.toFixed(1)}/20</span></div>`
+   +`<div class="diffTrack"><div class="diffFill" style="width:${d==null?0:Math.max(0,Math.min(100,d/20*100))}%"></div></div>`
+   +`<div class="diffSub"><span>ideas asked for ${n==null?'\u2014':n}</span><span>no accuracy: open production</span></div>`;}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});renderDifficulty();}
+function log(msg){const now=new Date(),t=Math.max(0,Date.now()-(itemStart||Date.now())),d=document.createElement('div');
+  d.innerHTML=`<span class="t">${now.toISOString().slice(11,23)} · +${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+function emitEvent(kind,extra){
+  const event=Object.assign({t:itemStart?Date.now()-itemStart:0,kind,itemId:current?current.itemId:null},extra||{});
+  itemTelemetry.push(event);
+  post({type:'telemetry',event});
+  log(`<b>${kind}</b>`+(extra&&Object.keys(extra).length?' · '+JSON.stringify(extra):''));
 }
-function renderMeters(){
-  METERS.forEach(m=>{const el=$(`#v_${m.id}`);if(el)el.textContent=m.get();});
-  $('#diffLabel').textContent=`${level} / 5 · choose ${required}+`;
-  $('#diffFill').style.width=`${level*20}%`;
-}
-function log(message){
-  const d=document.createElement('div');
-  d.innerHTML=`<span class="t">+${Date.now()-T.itemStart}ms</span> ${message}`;
-  $('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;
-}
-function touch(){
-  T.lastAction=Date.now();if(phase==='scored')renderMeters();
-}
-function shownOptions(){
-  const count=Math.min(item.options.length,5+level);
-  return item.options.slice(0,count);
-}
-function renderItem(){
-  $('#squigglePath').setAttribute('d',item.path);
-  const visible=shownOptions();
-  $('#options').innerHTML=visible.map((o,i)=>`
-    <button class="option ${selected.includes(i)?'sel':''}" data-index="${i}">
-      <span class="emo">${o[0]}</span><span>${o[1]}</span>
-    </button>`).join('');
-  if(!selected.length){
-    $('#ranked').innerHTML='<div class="emptyRank">① ② ③</div>';
-  }else{
-    $('#ranked').innerHTML=selected.map((index,rank)=>{
-      const o=visible[index];
-      return `<div class="rank" data-rank="${rank}">
-        <span class="rankNo">${rank+1}</span><span class="rankName">${o[0]} ${o[1]}</span>
-        <span class="rankBtns"><button data-move="-1" aria-label="move earlier">▲</button><button data-move="1" aria-label="move later">▼</button></span>
-      </div>`;
-    }).join('');
+
+/* ---------- canvas ---------- */
+const pad=$('#pad'), ctx=pad.getContext('2d');
+function paint(){
+  ctx.clearRect(0,0,pad.width,pad.height);
+  ctx.lineCap='round';ctx.lineJoin='round';
+  if(current){
+    ctx.strokeStyle='#45364f';ctx.lineWidth=8*SCALE/3;
+    for(const s of current.content.stimulus.strokes){
+      ctx.beginPath();
+      s.points.forEach((p,i)=>i?ctx.lineTo(p[0]*SCALE,p[1]*SCALE):ctx.moveTo(p[0]*SCALE,p[1]*SCALE));
+      ctx.stroke();
+    }
   }
-  $('#submit').classList.toggle('ready',selected.length>=required);
-}
-function choose(index){
-  if(!['warmup','scored'].includes(phase)||locked)return;
-  touch();const at=selected.indexOf(index);
-  if(at>=0){
-    selected.splice(at,1);revisions++;if(phase==='scored')T.persistence++;
-    log(`remove ${item.options[index][1]}`);
-  }else if(selected.length<4){
-    selected.push(index);if(phase==='scored'&&selected.length>required)T.persistence++;
-    log(`rank ${selected.length} ← ${item.options[index][1]}`);
+  ctx.strokeStyle='#8c56bf';ctx.lineWidth=5*SCALE/3;
+  for(const st of strokesNow){
+    ctx.beginPath();
+    st.forEach((p,i)=>i?ctx.lineTo(p[0]*SCALE,p[1]*SCALE):ctx.moveTo(p[0]*SCALE,p[1]*SCALE));
+    if(st.length===1)ctx.lineTo(st[0][0]*SCALE+0.6,st[0][1]*SCALE+0.6);
+    ctx.stroke();
   }
-  renderItem();renderMeters();
 }
-function moveRank(rank,delta){
-  if(!['warmup','scored'].includes(phase)||locked)return;
-  const to=rank+delta;if(to<0||to>=selected.length)return;
-  [selected[rank],selected[to]]=[selected[to],selected[rank]];
-  revisions++;if(phase==='scored')T.persistence++;touch();
-  log(`reorder ${rank+1}↔${to+1}`);renderItem();renderMeters();
+function toStimulus(e){
+  const r=pad.getBoundingClientRect();
+  const vb=current?current.content.stimulus.viewBox:{width:320,height:160};
+  return [Math.round(((e.clientX-r.left)/r.width)*vb.width*10)/10,
+          Math.round(((e.clientY-r.top)/r.height)*vb.height*10)/10];
 }
-function scoreItem(){
-  const weights=[1,.8,.65,.5],cats=new Set();let op=0,ow=0,detail=0;
-  selected.forEach((index,rank)=>{
-    const o=item.options[index],w=weights[rank]||.4;
-    op+=(1-o[3])*100*w;ow+=w;detail+=o[4];cats.add(o[2]);
+function penDown(e){
+  if(!interactive||submitted)return;
+  pad.setPointerCapture&&pad.setPointerCapture(e.pointerId);
+  drawing=[toStimulus(e)];strokesNow.push(drawing);
+  if(firstInkAt===null){firstInkAt=Date.now()-itemStart;emitEvent('first_action',{latencyMs:firstInkAt});}
+  paint();
+}
+function penMove(e){
+  if(!drawing)return;
+  const p=toStimulus(e),last=drawing[drawing.length-1];
+  if(Math.hypot(p[0]-last[0],p[1]-last[1])<1.2)return;
+  drawing.push(p);paint();
+}
+function penUp(){
+  if(!drawing)return;
+  const pts=drawing;drawing=null;
+  emitEvent('stroke',{points:pts.length,lengthPx:Math.round(strokeLength(pts)),offBase:Math.round(distToBase(pts[pts.length-1]))});
+  refreshControls();renderMeters();
+}
+
+/* ---------- ideas ---------- */
+function refreshControls(){
+  const has=strokesNow.length>0;
+  $('#undo').disabled=!has||!interactive;
+  $('#clear').disabled=!has||!interactive;
+  $('#newidea').disabled=!has||!interactive;
+  // The check is always live once drawing is enabled: a child who has nothing more
+  // to make must be able to move on rather than wait out the clock.
+  $('#submit').classList.toggle('ready',interactive&&!submitted);
+  $('#gallery').innerHTML=ideas.map((i,n)=>`<span class="saved">${n+1}. ${i.label||i.category||'picture'}</span>`).join('');
+}
+function commitIdea(reason){
+  if(!strokesNow.length)return false;
+  ideas.push({
+    index:ideas.length+1,
+    label:$('#label').value.trim(),
+    category,
+    strokes:strokesNow.map(s=>s.map(p=>p.slice())),
+    strokeCount:strokesNow.length,
+    pointCount:strokesNow.reduce((s,x)=>s+x.length,0),
+    inkLength:Math.round(strokesNow.reduce((s,x)=>s+strokeLength(x),0)),
+    startedMs:ideaStartedAt-itemStart,
+    endedMs:Date.now()-itemStart
   });
-  const itemOrig=Math.round(op/ow),flex=cats.size;
-  T.fluency+=selected.length;T.origPoints+=op;T.origWeight+=ow;T.elab+=detail;T.elabN+=selected.length;
-  T.path.push(`${scoredIndex+1}:${selected.map(i=>item.options[i][1].split(' ')[0]).join('>')}`);
-  log(`auto-score · ${selected.length} choices · ${flex} categories · originality ${itemOrig} · revisions ${revisions}`);
-  return {itemOrig,flex};
+  emitEvent('idea_committed',{index:ideas.length,strokes:ideas[ideas.length-1].strokeCount,reason});
+  strokesNow=[];drawing=null;category=null;
+  $('#label').value='';$$('.chip').forEach(c=>c.classList.remove('sel'));
+  ideaStartedAt=Date.now();
+  paint();refreshControls();renderMeters();
+  return true;
 }
-function submit(){
-  if(!$('#submit').classList.contains('ready')||locked)return;
-  locked=true;touch();$$('.option.sel').forEach((o,i)=>{o.style.borderColor=i%2?'var(--aqua)':'var(--gold)';});
-  if(phase==='warmup'){setStatus('neutral','Practice - not scored.');log('warm-up order · UNSCORED');setTimeout(startScored,650);return;}
-  const result=scoreItem(),success=result.flex>=Math.min(3,required)&&result.itemOrig>=48;
-  setStatus('ok','✓ Ideas recorded');item.result=success;renderMeters();setTimeout(nextItem,750);
+
+/* ---------- lifecycle ---------- */
+function setCue(k,txt){const el=$('#phasecue');el.dataset.phase=k;el.textContent=txt;}
+function setStatus(kind,msg){const el=$('#status');el.className=kind;el.textContent=msg;}
+function clockText(msLeft){
+  const s=Math.max(0,Math.round(msLeft/1000));
+  return `Time left: ${String(Math.floor(s/60))}:${String(s%60).padStart(2,'0')}`;
 }
-function nextItem(){
-  if(item.result){T.maxSolved=Math.max(T.maxSolved,level);level=Math.min(5,level+1);}
-  else level=Math.max(1,level-1);
-  scoredIndex++;renderMeters();
-  if(scoredIndex>=5)finish();else startScored();
+function startClock(){
+  clearInterval(tick);
+  deadline=Date.now()+current.content.timeWindowSec*1000;
+  $('#clock').textContent=clockText(deadline-Date.now());
+  tick=setInterval(()=>{
+    const left=deadline-Date.now();
+    $('#clock').textContent=clockText(left);
+    if(interactive&&!submitted)renderMeters();
+    if(left<=0){clearInterval(tick);if(!submitted&&interactive){emitEvent('time_up',{});finish('time_up');}}
+  },500);
 }
-function start(kind){
-  phase=kind;locked=false;T.itemStart=Date.now();T.lastAction=Date.now();
-  item=kind==='warmup'?WARM:ITEMS[scoredIndex%ITEMS.length];
-  required=kind==='warmup'?2:(level>=3?3:2);selected=[];revisions=0;
-  setCue(kind,kind==='scored'?(scoredIndex+1)+'/5':'');
-  setStatus('neutral',kind==='warmup'?'Practice - this one is not scored.':'Pick '+required+' or more, put your favorite first, then submit.');
-  renderItem();
-  log(`— ${kind==='warmup'?'WARM-UP · UNSCORED':`SCORED ${scoredIndex+1}/5 · level ${level}`} —`);
-  renderMeters();
+function renderServedItem(item){
+  current=item;submitted=false;interactive=false;
+  ideas=[];strokesNow=[];drawing=null;category=null;
+  firstInkAt=null;undoCount=0;blurCount=0;itemTelemetry=[];
+  const c=item.content;
+  $('#taskline').textContent=c.prompt||'';
+  $('#label').value='';
+  $('#chips').innerHTML=(c.labelCategories||[]).map(w=>`<button class="chip" data-word="${w}">${w}</button>`).join('');
+  const vb=c.stimulus.viewBox;
+  pad.width=vb.width*SCALE;pad.height=vb.height*SCALE;
+  itemStart=Date.now();ideaStartedAt=Date.now();
+  paint();refreshControls();renderMeters();
+  $('#clock').textContent=clockText(c.timeWindowSec*1000);
+  emitEvent('render',{baseLines:c.stimulus.baseLineCount,constraint:c.constraint&&c.constraint.id,
+    ideaTargetMin:c.ideaTargetMin,timeWindowSec:c.timeWindowSec,difficulty:item.difficulty});
 }
-function startWarmup(){start('warmup');}
-function startScored(){
-  if(scoredIndex===0&&T.activeMs===0)T.activeStart=Date.now();
-  start('scored');
+function finish(reason){
+  if(submitted||!current)return;
+  commitIdea(reason);
+  const rt=Date.now()-itemStart;
+  submitted=true;interactive=false;clearInterval(tick);
+  setCue('done','Work sent');
+  setStatus('neutral',standalone?'Your pictures are saved. Loading the next line.':'Your pictures are saved. Next line coming up.');
+  const response={
+    ideas:ideas.map(i=>({index:i.index,label:i.label,category:i.category,strokes:i.strokes,
+      strokeCount:i.strokeCount,pointCount:i.pointCount,inkLength:i.inkLength,
+      startedMs:i.startedMs,endedMs:i.endedMs})),
+    ideaCount:ideas.length,
+    endedBy:reason
+  };
+  const metrics={
+    'M-IDEAFLU':ideas.length,
+    'M-ELAB':elaboration(),
+    'M-PATH':transformation(),
+    'M-PERSIST':persistence(),
+    'M-ENGAGE':blurCount,
+    'M-RT':rt,
+    'M-RTFIRST':firstInkAt==null?rt:firstInkAt,
+    'M-REV':undoCount,
+    'M-RAPIDGUESS':(ideas.length===0||rt<5000)?1:0
+  };
+  const result={itemId:current.itemId,typeCode:current.typeCode,domain:current.domain,response,metrics,telemetry:itemTelemetry.slice()};
+  post({type:'result',result});
+  emitEvent('submit',{ideas:ideas.length,rtMs:rt,reason});
+  log('RESULT emitted \u2192 '+JSON.stringify({ideaCount:response.ideaCount,metrics}));
+  refreshControls();renderMeters();
+  if(standalone)setTimeout(advanceStandalone,1400);
 }
-function finish(){
-  if(document.hasFocus())T.activeMs+=Date.now()-T.activeStart;
-  phase='done';locked=true;setCue('done');
-  $('#stagecard').innerHTML='<div style="font-size:20px;font-weight:800;color:var(--plum);padding:56px 0;text-align:center">All done — nice thinking!</div><button id="again" class="option" style="justify-content:center" aria-label="play again">↻ Play again</button><div id="status" class="ok">✓ Done</div>';
-  $('#again').onclick=()=>location.reload();log(`— DONE · ${T.fluency} interpretations · originality ${originality()} —`);renderMeters();
+function onInit(item){
+  clearTimeout(startTimer);clearInterval(tick);
+  if(!item||!item.content||!item.content.stimulus||!item.content.stimulus.strokes){log('init ignored: malformed ServedItem');return;}
+  renderServedItem(item);
+  setCue('warmup','Get ready');
+  setStatus('neutral','Get ready to draw.');
+  startTimer=setTimeout(()=>{if(!interactive&&!submitted)beginItem(false);},500);
 }
+async function beginItem(withTutorial){
+  // `starting` + the cleared fallback timer keep the gesture hint from racing a
+  // second begin; drawing is ALWAYS enabled at the end of this function.
+  if(interactive||submitted||starting||!current)return;
+  starting=true;clearTimeout(startTimer);
+  if(withTutorial&&!tutorialShown){tutorialShown=true;await gestureHint();if(submitted){starting=false;return;}}
+  starting=false;interactive=true;itemStart=Date.now();ideaStartedAt=Date.now();
+  setCue('scored','Your turn');
+  setStatus('neutral','Draw on the line, name what you made, then press New idea or the check.');
+  startClock();refreshControls();renderMeters();
+}
+function onHostMessage(e){
+  const d=e.data;if(!d||d.source!==HOST_SRC)return;
+  if(d.type==='init')onInit(d.item);
+  else if(d.type==='start'){clearTimeout(startTimer);beginItem(!!d.tutorial);}
+}
+
+/* ---------- ghost hand: wordless GESTURE hint ----------
+ * It traces a drawing motion, then points at New idea and the check. It never
+ * completes the squiggle into a recognisable object: showing an example picture
+ * would anchor the child's interpretations and contaminate the deferred
+ * originality rating. */
 const ghost=$('#ghost');
-function center(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
-async function ghostTo(el){
-  const p=center(el);ghost.style.transform=`translate(${p.x-12}px,${p.y-8}px)`;await sleep(430);
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-12}px,${c.y-8}px)`;await sleep(480);}
+async function ghostAt(x,y){ghost.style.transform=`translate(${x-12}px,${y-8}px)`;await sleep(230);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(420);}
+async function gestureHint(){
+  const r=pad.getBoundingClientRect();
+  ghost.classList.add('show');
+  await ghostAt(r.left+r.width*0.2,r.top+r.height*0.7);
+  for(const f of [0.35,0.5,0.65,0.8])await ghostAt(r.left+r.width*f,r.top+r.height*(f<0.6?0.35:0.6));
+  await ghostTo($('#label'));await ghostTap();
+  await ghostTo($('#newidea'));await ghostTap();
+  await ghostTo($('#submit'));await ghostTap();
+  ghost.classList.remove('show');await sleep(220);
 }
-async function runDemo(){
-  phase='demo';locked=true;item=WARM;level=1;required=2;selected=[];T.itemStart=Date.now();
-  setCue('demo');setStatus('neutral','Watch the example, then try it yourself.');renderItem();ghost.classList.add('show');log('wordless choose-and-order demo');
-  await ghostTo($$('.option')[0]);selected.push(0);renderItem();
-  await ghostTo($$('.option')[3]);selected.push(3);renderItem();
-  await ghostTo($('#ranked'));await ghostTo($('#submit'));$$('.option.sel').forEach(x=>x.style.borderColor='var(--aqua)');
-  await sleep(350);ghost.classList.remove('show');startWarmup();
+
+/* ---------- standalone fallback (QA when there is no host) ---------- */
+function toServed(b){const{answer,scoring,provenance,...s}=b;return s;}
+async function loadBankSamples(){
+  try{
+    const res=await fetch('../banks/CX-figural-01.jsonl',{cache:'no-store'});
+    if(res.ok){
+      const all=(await res.text()).trim().split('\n').filter(Boolean).map(l=>JSON.parse(l)).map(toServed);
+      all.sort((a,b)=>a.difficulty-b.difficulty);
+      const N=Math.min(8,all.length),pick=[];
+      for(let i=0;i<N;i++)pick.push(all[N===1?0:Math.round(i*(all.length-1)/(N-1))]);
+      log('standalone: fetched '+all.length+' bank items; cycling '+pick.length+' across demand');
+      return pick;
+    }
+  }catch(_){/* file:// blocks fetch — use inline fallback */}
+  log('standalone: bank fetch unavailable (open via a local server for the full bank) — using inline samples');
+  return INLINE_SAMPLES.slice();
 }
-$('#options').addEventListener('click',e=>{
-  const b=e.target.closest('.option');if(b)choose(+b.dataset.index);
+function playStandalone(){const item=standaloneQueue[standaloneIdx%standaloneQueue.length];onInit(item);beginItem(standaloneIdx===0);}
+function advanceStandalone(){standaloneIdx++;playStandalone();}
+async function bootstrapStandalone(){if(standalone)return;standalone=true;standaloneQueue=await loadBankSamples();standaloneIdx=0;playStandalone();}
+
+/* Inline served-item fallback (real items exported from the bank; answer stripped). */
+const INLINE_SAMPLES=[
+{"itemId":"ac072a63-a1af-4da6-af97-372f9549f929","typeCode":"CX-figural-01","domain":"fluid_reasoning","difficulty":1.04,"ageBands":["K-1"],"demoPath":"demos/CX-figural-01.html","content":{"typeCode":"CX-figural-01","prompt":"Draw on the line to turn it into a picture. When you are happy with it, press the check to send it.","constraint":{"id":"open","text":"Draw on the line to turn it into a picture."},"stimulus":{"viewBox":{"width":320,"height":160},"baseLineCount":1,"strokes":[{"id":"base-1","points":[[22,79.8],[32.6,75.1],[46.8,68.1],[63.6,59.7],[82.4,50.8],[102.2,42.4],[122.3,35.2],[141.8,30.2],[160,28.3],[178.2,30.2],[197.7,35.1],[217.8,42.3],[237.6,50.7],[256.4,59.6],[273.2,68],[287.4,74.9],[298,79.6]]}]},"ideaTargetMin":1,"timeWindowSec":180,"labelCategories":["animal","plant","person","machine","place","weather","something else"],"responseSpec":{"kind":"open_figural_production","artifactPerIdea":["strokes","label"],"minIdeas":1}},"syntheticOnly":true,"validated":false},
+{"itemId":"af86a560-e252-4bae-9cf9-990e4687bae2","typeCode":"CX-figural-01","domain":"fluid_reasoning","difficulty":10.56,"ageBands":["4-5"],"demoPath":"demos/CX-figural-01.html","content":{"typeCode":"CX-figural-01","prompt":"Draw on the line to turn it into a picture. Then press New idea to get the same line again and make something different. Try to make at least 3 different pictures.","constraint":{"id":"open","text":"Draw on the line to turn it into a picture."},"stimulus":{"viewBox":{"width":320,"height":160},"baseLineCount":1,"strokes":[{"id":"base-1","points":[[29.8,47.7],[33.2,48.2],[37.7,49.1],[42.9,50.1],[48.8,51.2],[55.1,51.9],[61.6,52.2],[68,51.8],[74.2,50.4],[80.3,47.4],[86.8,42.5],[93.4,36.5],[100.1,30.3],[106.7,24.4],[113.2,19.8],[119.4,17.1],[125.2,17.1],[130.5,20.8],[135.4,27.7],[140,36.8],[144.4,47],[148.9,57.2],[153.4,66.2],[158.1,73],[163.2,76.4],[168.9,75.8],[174.9,71.9],[181.2,65.8],[187.6,58.5],[193.8,51.1],[199.9,44.6],[205.5,40.1],[210.5,38.7],[214.8,40.4],[218.7,44.5],[222.2,50.3],[225.4,57.2],[228.4,64.5],[231.4,71.5],[234.2,77.7],[237.2,82.4],[240.1,86.1],[242.8,89.6],[245.4,92.7],[247.9,95.3],[250.4,97.3],[253,98.6],[255.7,99],[258.6,98.5],[261.9,96.4],[265.6,92.7],[269.5,87.9],[273.5,82.5],[277.2,77],[280.6,71.8],[283.5,67.5],[285.6,64.6]]}]},"ideaTargetMin":3,"timeWindowSec":60,"labelCategories":["animal","plant","person","machine","place","weather","something else"],"responseSpec":{"kind":"open_figural_production","artifactPerIdea":["strokes","label"],"minIdeas":3}},"syntheticOnly":true,"validated":false},
+{"itemId":"26fda846-a49f-4d0d-9f39-1dd0981f8ea2","typeCode":"CX-figural-01","domain":"fluid_reasoning","difficulty":19.96,"ageBands":["6-8"],"demoPath":"demos/CX-figural-01.html","content":{"typeCode":"CX-figural-01","prompt":"Make one drawing that shows two different things at the same time. Then press New idea to get the same line again and make something different. Try to make at least 4 different pictures.","constraint":{"id":"dual_image","text":"Make one drawing that shows two different things at the same time."},"stimulus":{"viewBox":{"width":320,"height":160},"baseLineCount":3,"strokes":[{"id":"base-1","points":[[35.1,50],[38.2,47.3],[42.4,43.3],[47.5,38.6],[53.1,33.5],[58.8,28.6],[64.3,24.2],[69.3,20.9],[73.3,19.1],[76.2,19.2],[78.1,20.8],[79.3,23.6],[80.4,26.9],[81.8,30.2],[83.8,33.1],[86.9,35.1],[91.4,35.7],[98,34.6],[106.3,32.4],[115.7,29.3],[125.8,25.8],[135.9,22.1],[145.5,18.6],[154,15.6],[160.9,13.5],[166,12.1],[169.8,11.2],[172.8,10.5],[175.1,10.1],[177.1,10],[179.2,10.1],[181.7,10.4],[184.8,10.8],[188.7,11.5],[193,12.5],[197.5,13.8],[202.2,15.3],[206.8,16.8],[211.1,18.3],[215,19.6],[218.3,20.7],[220.7,21.5],[222.4,22.1],[223.5,22.5],[224.4,22.9],[225.4,23.3],[226.8,23.9],[228.9,24.7],[232.1,25.8],[236.6,27.3],[242.4,29.2],[249.1,31.4],[256,33.6],[262.9,35.9],[269.2,37.9],[274.5,39.7],[278.3,40.9]]},{"id":"base-2","points":[[22,62],[23.4,61.2],[25.1,59.8],[27,58.2],[29.3,56.5],[31.9,55.1],[35,54.1],[38.5,53.9],[42.5,54.6],[47.3,56.8],[53,60.3],[59.4,64.7],[66,69.5],[72.7,74.2],[79.1,78.4],[84.8,81.5],[89.7,83.2],[93.2,83.2],[95.5,82],[97.1,80],[98.5,77.3],[100.1,74.3],[102.4,71.1],[105.9,68.2],[111,65.7],[118,63.1],[126.6,60.1],[136.3,56.9],[146.7,53.8],[157.5,51.1],[168.2,49],[178.3,47.8],[187.6,47.8],[196.7,49.4],[206.2,52.6],[215.8,56.8],[225,61.6],[233.5,66.5],[240.7,71],[246.3,74.5],[249.9,76.7],[250.4,77.3],[247.8,76.5],[243.1,75],[237.5,73],[231.9,71],[227.5,69.4],[225.2,68.6],[226.3,69],[231.2,70.9],[239.2,73.9],[249.3,77.7],[260.7,81.9],[272.2,86.1],[282.9,90.1],[291.8,93.4],[298,95.7]]},{"id":"base-3","points":[[35.3,122.4],[37.6,123],[40.3,123.9],[43.6,124.9],[47.3,126],[51.5,127.1],[56.1,128],[61.1,128.7],[66.6,129.1],[72.8,129.3],[79.9,129.4],[87.7,129.5],[95.8,129.3],[103.9,128.9],[111.7,128.1],[118.9,126.9],[125.2,125.1],[130.5,122.4],[135,118.7],[138.9,114.3],[142.5,109.6],[146.1,105.1],[149.7,101.1],[153.7,98],[158.4,96.2],[163.9,96.1],[170.1,97.3],[176.8,99.4],[183.5,102],[190.1,104.8],[196.1,107.2],[201.3,109],[205.2,109.6],[207.7,108.7],[208.8,106.7],[209,103.9],[208.7,100.8],[208.3,97.9],[208.2,95.6],[208.8,94.3],[210.6,94.6],[213.6,96.7],[217.4,100.5],[221.9,105.5],[226.8,111],[231.8,116.5],[236.7,121.5],[241.2,125.4],[245.1,127.7],[248.6,128.2],[252,127.4],[255.2,125.7],[258.2,123.4],[260.9,120.8],[263.2,118.3],[265.3,116.3],[266.9,115]]}]},"ideaTargetMin":4,"timeWindowSec":120,"labelCategories":["animal","plant","person","machine","place","weather","something else"],"responseSpec":{"kind":"open_figural_production","artifactPerIdea":["strokes","label"],"minIdeas":4}},"syntheticOnly":true,"validated":false}
+];
+
+/* ---------- wiring ---------- */
+pad.addEventListener('pointerdown',penDown);
+pad.addEventListener('pointermove',penMove);
+pad.addEventListener('pointerup',penUp);
+pad.addEventListener('pointercancel',penUp);
+pad.addEventListener('pointerleave',penUp);
+$('#undo').addEventListener('click',()=>{
+  if(!interactive||submitted||!strokesNow.length)return;
+  strokesNow.pop();undoCount++;emitEvent('undo',{strokesLeft:strokesNow.length});paint();refreshControls();renderMeters();
 });
-$('#ranked').addEventListener('click',e=>{
-  const b=e.target.closest('[data-move]'),rank=e.target.closest('.rank');
-  if(b&&rank)moveRank(+rank.dataset.rank,+b.dataset.move);
+$('#clear').addEventListener('click',()=>{
+  if(!interactive||submitted||!strokesNow.length)return;
+  strokesNow=[];undoCount++;emitEvent('clear',{});paint();refreshControls();renderMeters();
 });
-$('#submit').addEventListener('click',submit);
-$('#replay').addEventListener('click',()=>{if(phase!=='demo')location.reload();});
-window.addEventListener('blur',()=>{
-  if(phase==='scored'){T.activeMs+=Date.now()-T.activeStart;T.blur++;log('blur');renderMeters();}
+$('#newidea').addEventListener('click',()=>{if(interactive&&!submitted&&commitIdea('new_idea'))setStatus('neutral','Same line again — make something different.');});
+$('#submit').addEventListener('click',()=>{if($('#submit').classList.contains('ready'))finish('child_finished');});
+$('#replay').addEventListener('click',()=>{if(current&&!submitted)gestureHint();});
+$('#chips').addEventListener('click',e=>{
+  const c=e.target.closest('.chip');if(!c||!interactive||submitted)return;
+  category=c.dataset.word;$$('.chip').forEach(x=>x.classList.toggle('sel',x===c));
+  if(!$('#label').value.trim())$('#label').value=category;
+  emitEvent('label_category',{category});renderMeters();
 });
-window.addEventListener('focus',()=>{if(phase==='scored'){T.activeStart=Date.now();T.lastAction=Date.now();}});
-buildMeters();renderMeters();runDemo();
+$('#label').addEventListener('change',()=>{if(interactive&&!submitted)emitEvent('label_typed',{chars:$('#label').value.trim().length});});
+window.addEventListener('blur',()=>{if(interactive&&!submitted){blurCount++;emitEvent('engagement',{reason:'blur'});renderMeters();}});
+
+buildMeters();renderMeters();refreshControls();
+window.addEventListener('message',onHostMessage);
+post({type:'ready'});
+if(!embedded){bootstrapStandalone();}
+else{setTimeout(()=>{if(!current)bootstrapStandalone();},1000);} // QA-safe if a host embeds but never inits
 </script>
 </body>
 </html>

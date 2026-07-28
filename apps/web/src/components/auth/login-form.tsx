@@ -270,10 +270,6 @@ export function LoginForm({ redirectTo }: { redirectTo?: string | undefined }) {
         </form>
       ) : (
         <form className={styles.form} onSubmit={signUp}>
-          <p className={styles.notice} role="note">
-            Synthetic-only prototype — please don’t enter real personal information. Use a throwaway
-            email you can receive mail at (for example <code>you+gt@gmail.com</code>).
-          </p>
           <label className={styles.label}>
             Email
             <input

@@ -24,7 +24,7 @@
   #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #4a4a7a;
     display:flex;flex-direction:column;align-items:center;gap:16px;max-width:560px;width:100%}
   #rings{position:relative;width:380px;height:230px}
-  #rings svg{position:absolute;left:0;top:0}
+  #rings svg.rings{position:absolute;left:0;top:0}
   .ex{position:absolute;width:46px;height:46px;transform:translate(-23px,-23px)}
   #overlaySlot{position:absolute;left:190px;top:115px;width:52px;height:52px;transform:translate(-26px,-26px);
     border-radius:50%;border:3px dashed var(--socket);background:rgba(255,255,255,.6);display:flex;align-items:center;justify-content:center}
@@ -36,20 +36,12 @@
   .opt::after{content:attr(data-key);position:absolute;right:5px;bottom:3px;font:700 11px/1 ui-monospace,monospace;color:#8a93b5}
   .opt:hover{transform:translateY(-3px);border-color:#c3ccf5}
   .opt.sel{border-color:var(--accent);box-shadow:0 0 0 4px #c9d0ff;transform:translateY(-3px)}
-  .opt.correct{border-color:var(--good);box-shadow:0 0 0 4px #b4ecd0}
-  .opt.wrong{border-color:var(--bad);box-shadow:0 0 0 4px #ffd0d0}
-  #confrow{display:flex;gap:10px;height:44px;align-items:center;opacity:0;pointer-events:none;transition:.2s}
-  #confrow.show{opacity:1;pointer-events:auto}
-  .conf{border:2px solid #d7deff;background:#fff;border-radius:12px;font:700 12px system-ui;padding:0 14px;height:40px;cursor:pointer;color:#5a6485}
-  .conf.on{border-color:var(--accent);background:#eef0ff}
   #controls{display:flex;gap:16px;align-items:center}
   button{font:inherit;border:0;cursor:pointer;border-radius:50%}
   #go{width:72px;height:72px;background:var(--accent);color:#fff;font-size:30px;box-shadow:0 10px 24px -8px var(--accent);opacity:.35;pointer-events:none;transition:.2s}
   #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.1s infinite}
   @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
   #replay{width:50px;height:50px;background:#eef1ff;color:#5b6cff;font-size:23px}
-  .shake{animation:shake .4s}
-  @keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
   #ghost{position:fixed;left:0;top:0;font-size:40px;pointer-events:none;z-index:60;opacity:0;
     transition:transform .7s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
   #ghost.show{opacity:.92}
@@ -60,7 +52,8 @@
   #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
   #difficulty{margin:10px 12px 2px;padding:10px;border:1px solid #2c365d;border-radius:10px;background:#171e36}
   .dtop{display:flex;justify-content:space-between;color:#fff}.dsub{display:flex;justify-content:space-between;color:var(--tel-dim);font-size:11px;margin-top:5px}
-  .dtrack{height:7px;background:#2a3458;border-radius:8px;margin-top:8px;overflow:hidden}.dfill{height:100%;background:linear-gradient(90deg,#7fffcf,#ffd479);transition:.25s}
+  .dtrack{height:7px;background:#2a3458;border-radius:8px;margin-top:8px;overflow:hidden}.dfill{height:100%;width:0;background:linear-gradient(90deg,#7fffcf,#ffd479);transition:.25s}
+  #mode{margin:6px 12px 0;font-size:11px;color:var(--tel-dim)}#mode b{color:#ffd479}
   #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
   .mrow{display:grid;grid-template-columns:104px 1fr;gap:8px;align-items:baseline}
   .mid{color:var(--tel-key);font-weight:700}.mval{color:#fff}
@@ -75,50 +68,75 @@
   @media(max-width:500px){#wrap{padding:10px}#stagecard{padding:12px}#rings{transform:scale(.62);margin:-43px -72px}
     .opt{width:66px;height:66px}.opt svg{width:58px;height:58px}}
 </style>
+<style>html[data-gt-telemetry="off"] #telemetry{display:none}</style>
+<script>/* D-028 — the researcher telemetry panel is presentational only. Embedded in the
+   child-facing screener it is hidden: naming the behavioural metrics to the child can
+   change the behaviour being measured. `?telemetry=1` restores it for a live
+   demonstration, and standalone (opened directly) is unchanged. Sampling, metric
+   computation and the {type:'telemetry'} postMessage stream are untouched. */
+(function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
 </head>
 <body>
   <div id="wrap">
     <div id="badge">FLU-VENN-01 · Double Match</div>
     <header id="howto">
-      <h1>How to use — Double Match</h1>
-      <p>The left circle shapes share one rule; the right circle shapes share another. From the tray, tap the shape that fits <b>both</b> rules (it belongs in the middle), then press the check (<b>✓</b>). You can also press number keys 1–4.</p>
+      <h1>How to use &mdash; Double Match</h1>
+      <p>The left circle shapes share one rule; the right circle shapes share another. From the tray, tap the shape that fits <b>both</b> rules (it belongs in the middle), then press the check (<b>&#10003;</b>) to send your answer. You can also press number keys 1&ndash;6.</p>
     </header>
-    <div id="phasecue" data-phase="demo">Watch the example</div>
+    <div id="phasecue" data-phase="warmup">Get ready</div>
     <div id="stagecard">
       <div id="rings">
-        <svg width="380" height="230">
+        <svg class="rings" width="380" height="230">
           <circle cx="150" cy="115" r="102" fill="rgba(91,108,255,.10)" stroke="#8f9cf0" stroke-width="3"/>
           <circle cx="230" cy="115" r="102" fill="rgba(34,181,115,.10)" stroke="#57c79a" stroke-width="3"/>
         </svg>
         <div id="overlaySlot"></div>
       </div>
       <div id="tray"></div>
-      <div id="confrow"><button class="conf" data-c="sure" title="I am sure">Sure</button><button class="conf" data-c="unsure" title="not sure">Not sure</button></div>
       <div id="controls">
-        <button id="replay" title="replay demo">&#8635;</button>
-        <button id="go" title="submit">&#10003;</button>
+        <button id="replay" title="show how again">&#8635;</button>
+        <button id="go" title="send answer">&#10003;</button>
       </div>
-      <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+      <div id="status" class="neutral">Waiting for the next puzzle.</div>
     </div>
   </div>
   <aside id="telemetry">
-    <h3>Live telemetry · per-child</h3>
-    <div id="difficulty" data-tracks="M-DIFFREACH M-LEARNRATE"></div>
+    <h3>Live telemetry · per-child (display only)</h3>
+    <div id="difficulty" data-tracks="M-DIFFREACH M-RULEID"></div>
+    <div id="mode">Renderer computes process metrics locally; the <b>score is server-side</b>.</div>
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
   <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
+/* =====================================================================
+ * FLU-VENN-01 — PURE RENDERER
+ * Renders a SERVED item (item.content) and reports the child's RAW response
+ * + process telemetry. It NEVER self-generates items and NEVER shows
+ * correct/incorrect: the answer key + score live server-side (BUILD_PLAN §2).
+ * The served content does NOT contain the rule dims/values, so the child must
+ * still induce both rules from the ring exemplars.
+ *
+ * Embedding protocol (postMessage), source-tagged:
+ *   host -> demo : {source:'gt-exam-host', type:'init',  item:ServedItem}
+ *                  {source:'gt-exam-host', type:'start', tutorial?:bool}
+ *   demo -> host : {source:'gt-exam-demo', type:'ready'}
+ *                  {source:'gt-exam-demo', type:'result',    result:ItemResult}
+ *                  {source:'gt-exam-demo', type:'telemetry', event:TelemetryEvent}
+ *
+ * Standalone (double-click / no host): loads sample items from the bank JSONL
+ * (or an inline fallback if fetch is blocked on file://). Correctness is still
+ * never shown; emitted ItemResults are logged.
+ * ===================================================================== */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0;
-const last=a=>a[a.length-1];
+
+const HOST_SRC='gt-exam-host', DEMO_SRC='gt-exam-demo';
+
+/* ---------- figure rendering (renderer-agnostic: shape/color/fill/count/rot/mark) ---------- */
 const PAL={coral:'#ef5b5b',teal:'#159f94',blue:'#4267d5',gold:'#e6a817',violet:'#8357c5'};
-const COLORKEYS=Object.keys(PAL),SH=['triangle','pentagon','kite','drop','star'];
-const DOM={shape:SH,color:COLORKEYS,fill:['solid','outline','hatch'],count:[1,2,3],rot:[0,90,180],mark:['top','middle','bottom']};
-function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){let j=(Math.random()*(i+1))|0;[a[i],a[j]]=[a[j],a[i]];}return a;}
-function pick(a){return a[(Math.random()*a.length)|0];}
 function polyPts(cx,cy,r,n,rot){let p=[];for(let i=0;i<n;i++){let a=rot+i*2*Math.PI/n;p.push((cx+r*Math.cos(a)).toFixed(1)+','+(cy+r*Math.sin(a)).toFixed(1));}return p.join(' ');}
 function starPts(cx,cy,r,n){let p=[];for(let i=0;i<2*n;i++){let rr=i%2?r*0.45:r;let a=-Math.PI/2+i*Math.PI/n;p.push((cx+rr*Math.cos(a)).toFixed(1)+','+(cy+rr*Math.sin(a)).toFixed(1));}return p.join(' ');}
 function oneShape(shape,color,cx,cy,r,fill){const f=fill==='solid'?`fill="${color}"`:fill==='outline'?`fill="none" stroke="${color}" stroke-width="4"`:`fill="${color}" fill-opacity=".28" stroke="${color}" stroke-width="3"`;
@@ -130,124 +148,194 @@ function oneShape(shape,color,cx,cy,r,fill){const f=fill==='solid'?`fill="${colo
     case 'drop':return `<path d="M ${cx} ${cy-r} C ${cx+r*.85} ${cy-r*.15},${cx+r*.72} ${cy+r},${cx} ${cy+r} C ${cx-r*.72} ${cy+r},${cx-r*.85} ${cy-r*.15},${cx} ${cy-r}Z" ${f}/>`;
   }return '';}
 function figSVG(f,box=64){const n=f.count||1,pos=n===1?[.5]:n===2?[.32,.68]:[.22,.5,.78],r=box*(n===1?.29:.15);let inner='';
-  pos.forEach(x=>{inner+=oneShape(f.shape,PAL[f.color],x*box,box/2,r,f.fill);if(f.fill==='hatch')inner+=`<path d="M${x*box-r*.55} ${box/2+r*.3}L${x*box+r*.55} ${box/2-r*.3}" stroke="${PAL[f.color]}" stroke-width="2"/>`;});
+  pos.forEach(x=>{inner+=oneShape(f.shape,PAL[f.color],x*box,box/2,r,f.fill);
+    if(f.fill==='hatch')inner+=`<path d="M${x*box-r*.55} ${box/2+r*.3}L${x*box+r*.55} ${box/2-r*.3}" stroke="${PAL[f.color]}" stroke-width="2"/>`;});
   const my=f.mark==='top'?box*.29:f.mark==='bottom'?box*.71:box*.5;inner+=`<circle cx="${box/2}" cy="${my}" r="${box*.035}" fill="#26304a"/>`;
   if(f.rot)inner=`<g transform="rotate(${f.rot} ${box/2} ${box/2})">${inner}</g>`;
   return `<svg width="${box}" height="${box}" viewBox="0 0 ${box} ${box}">${inner}</svg>`;}
 
-/* ---------- AIG: exactly one two-feature intersection ---------- */
-const ALLDIMS=['shape','color','fill','count','rot','mark'];
-function config(level){return level===1?['color','shape']:level===2?['shape','fill']:level===3?['count','color']:
-  level===4?['rot','fill']:level===5?['mark','count']:['mark','rot'];}
-function alt(dim,val,i=0){const a=DOM[dim].filter(x=>x!==val);return a[i%a.length];}
-function base(){return {shape:'kite',color:'blue',fill:'solid',count:1,rot:0,mark:'middle'};}
-function genItem(level,forced){const dims=forced||config(level),leftDim=dims[0],rightDim=dims[1],leftVal=pick(DOM[leftDim]),rightVal=pick(DOM[rightDim]);
-  const neutral=base();ALLDIMS.forEach(d=>{if(d!==leftDim&&d!==rightDim)neutral[d]=pick(DOM[d]);});
-  const mk=(lv,rv)=>({...neutral,[leftDim]:lv,[rightDim]:rv});
-  const exemplar=(side,i)=>{const f={...neutral};ALLDIMS.forEach(d=>f[d]=DOM[d][(i+(side==='left'?0:1))%DOM[d].length]);
-    f[leftDim]=side==='left'?leftVal:alt(leftDim,leftVal,i);f[rightDim]=side==='right'?rightVal:alt(rightDim,rightVal,i);return f;};
-  const opts=[
-    {a:mk(leftVal,rightVal),tag:'correct',rules:2},
-    {a:mk(leftVal,alt(rightDim,rightVal,0)),tag:'left-only',rules:1},
-    {a:mk(alt(leftDim,leftVal,0),rightVal),tag:'right-only',rules:1},
-    {a:mk(alt(leftDim,leftVal,1),alt(rightDim,rightVal,1)),tag:'neither',rules:0}
-  ];
-  return {level,leftDim,leftVal,rightDim,rightVal,leftEx:[exemplar('left',0),exemplar('left',1)],
-    rightEx:[exemplar('right',0),exemplar('right',1)],options:shuffle(opts)};
-}
+/* ---------- per-item state ---------- */
+let current=null;
+let interactive=false;
+let submitted=false;
+let staged=null;
+let firstKey=null;
+let selectionOrder=[];
+let itemStart=0;
+let startTimer=null;
+let itemTelemetry=[];
+const M={rt:null,rts:[],firstLat:null,rev:0,blur:0};
 
-/* ---------- telemetry ---------- */
-const T={scored:0,correct:0,rts:[],gates:[],firstLat:null,lastErr:'\u2014',lastRule:'\u2014',conf:'\u2014',
-  confHits:0,confN:0,level:1,maxSolved:0,itemStart:0,firstActed:false,blurThis:0};
-function rtStr(){if(!T.rts.length)return '\u2014';const g=last(T.gates),rt=last(T.rts);return g.ok?`${rt} ms (mean ${mean(T.rts)})`:`gated · ${g.reason} · ${rt} ms`;}
+/* ---------- embedding detection + emit ---------- */
+const embedded=(()=>{try{return window.parent&&window.parent!==window;}catch(_){return true;}})();
+let standalone=false, standaloneQueue=[], standaloneIdx=0, tutorialShown=false;
+function post(msg){if(!embedded)return;try{window.parent.postMessage(Object.assign({source:DEMO_SRC},msg),'*');}catch(_){}}
+
+/* ---------- telemetry panel (DISPLAY ONLY; key-free metrics) ---------- */
 const METERS=[
- {id:'M-ACC',name:'Item accuracy (running)',get:()=>T.scored?`${T.correct}/${T.scored}  ${Math.round(100*T.correct/T.scored)}%`:'\u2014'},
- {id:'M-RT',name:'Response time — engagement gated',get:()=>rtStr()},
- {id:'M-RTFIRST',name:'First-action latency (induce both rules)',get:()=>T.firstLat==null?'\u2014':T.firstLat+' ms'},
- {id:'M-ERRTYPE',name:'Error type (single-attribute near-miss)',get:()=>T.lastErr},
- {id:'M-RULEID',name:'Rule dimensionality solved (attrs met)',get:()=>T.lastRule},
- {id:'M-CONF',name:'Confidence & calibration',get:()=>T.conf+(T.confN?`  · cal ${T.confHits}/${T.confN}`:'')},
+ {id:'M-RT',name:'Response time — this item / mean',get:()=>M.rt==null?'\u2014':`${M.rt} ms${M.rts.length>1?` (mean ${mean(M.rts)})`:''}`},
+ {id:'M-RTFIRST',name:'First-action latency (induce both rules)',get:()=>M.firstLat==null?'\u2014':M.firstLat+' ms'},
+ {id:'M-REV',name:'Revisions / answer changes',get:()=>String(M.rev)},
+ {id:'M-ENGAGE',name:'Focus losses (tracked, not enforced)',get:()=>String(M.blur)},
+ {id:'M-RAPIDGUESS',name:'Rapid-guess flag (tracked, not enforced)',get:()=>M.rt==null?'\u2014':(M.rt<350?'1 · rapid':'0')},
 ];
 function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>
   `<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span>`
   +`<span class="mname">${m.name}</span></div>`).join('');}
-function learnRate(){return T.scored?(Math.max(0,T.maxSolved-1)/T.scored).toFixed(2):'0.00';}
-function renderDifficulty(){$('#difficulty').innerHTML=`<div class="dtop"><b>DIFFICULTY</b><span>${T.level}/6</span></div><div class="dtrack"><div class="dfill" style="width:${T.level/6*100}%"></div></div><div class="dsub"><span>reach ${T.maxSolved||'\u2014'}</span><span>learn ${learnRate()} lvl/trial</span></div>`;}
+function renderDifficulty(){const d=current?current.difficulty:null,ex=current?current.content.exemplarCount:null;
+  $('#difficulty').innerHTML=`<div class="dtop"><b>SERVED DIFFICULTY</b><span>${d==null?'\u2014':d.toFixed(1)}/20</span></div>`
+   +`<div class="dtrack"><div class="dfill" style="width:${d==null?0:Math.max(0,Math.min(100,d/20*100))}%"></div></div>`
+   +`<div class="dsub"><span>conjunction · 2 rules · ${ex==null?'\u2014':ex} exemplars</span><span>score: server-side</span></div>`;}
 function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});renderDifficulty();}
-function log(msg){const now=new Date(),t=Math.max(0,Date.now()-T.itemStart),d=document.createElement('div');
+function log(msg){const now=new Date(),t=Math.max(0,Date.now()-(itemStart||Date.now())),d=document.createElement('div');
   d.innerHTML=`<span class="t">${now.toISOString().slice(11,23)} · +${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
-function gate(rt){const rapid=rt<350,blur=T.blurThis>0,base=T.rts.length>2?mean(T.rts.slice(0,-1)):0,drift=base>0&&rt>base*2.5;return{ok:!rapid&&!blur&&!drift,reason:rapid?'rapid':blur?'blur':drift?'drift':'ok'};}
 
-/* ---------- ghost ---------- */
+function emitEvent(kind,extra){
+  const event=Object.assign({t:itemStart?Date.now()-itemStart:0,kind,itemId:current?current.itemId:null},extra||{});
+  itemTelemetry.push(event);
+  post({type:'telemetry',event});
+  log(`<b>${kind}</b>`+(extra&&Object.keys(extra).length?' · '+JSON.stringify(extra):''));
+}
+
+/* ---------- ghost hand: wordless GESTURE hint (never reveals which candidate fits both) ---------- */
 const ghost=$('#ghost');
 function ghostShow(v){ghost.classList.toggle('show',v);}
 function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
-async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(680);}
-async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(480);}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(650);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(470);}
+async function gestureHint(){
+  // Teaches the GESTURE only: scan each ring's members, then tap a candidate and press check.
+  // It does NOT select any candidate and does NOT indicate which one fits both rings.
+  const ex=$$('#rings .ex'),tray=$('#tray'),go=$('#go');
+  ghostShow(true);await sleep(220);
+  for(const e of ex){await ghostTo(e);}
+  await sleep(120);await ghostTo(tray);await ghostTap();
+  await ghostTo($('#overlaySlot'));await sleep(120);
+  await ghostTo(go);await ghostTap();await sleep(200);
+  ghostShow(false);await sleep(250);
+}
 
-/* ---------- flow ---------- */
-let phase='demo',cur=null,staged=-1,locked=false,scoredIndex=0,confChoice=null,demoRun=0;
-const TOTAL=6;
-const LEXSLOT=[[75,72],[75,158]],REXSLOT=[[305,72],[305,158]];
-const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
-function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
-function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
-function placeEx(list,slots){list.forEach((f,i)=>{const d=document.createElement('div');d.className='ex';
-  d.style.left=slots[i][0]+'px';d.style.top=slots[i][1]+'px';d.innerHTML=figSVG(f,46);$('#rings').appendChild(d);});}
-function renderItem(item){cur=item;confChoice=null;
-  $$('#rings .ex').forEach(e=>e.remove());placeEx(item.leftEx,LEXSLOT);placeEx(item.rightEx,REXSLOT);
+/* ---------- rendering the served item ---------- */
+function setCue(k,txt){const el=$('#phasecue');el.dataset.phase=k;el.textContent=txt;}
+function setStatus(kind,msg){const el=$('#status');el.className=kind;el.textContent=msg;}
+function ringSlots(count,side){const x=side==='left'?96:284;
+  const ys=count>=3?[66,116,166]:count===2?[84,148]:[116];return ys.slice(0,count).map(y=>[x,y]);}
+function placeEx(list,side){const slots=ringSlots(list.length,side);
+  list.forEach((f,i)=>{const d=document.createElement('div');d.className='ex';
+    d.style.left=slots[i][0]+'px';d.style.top=slots[i][1]+'px';d.innerHTML=figSVG(f,46);$('#rings').appendChild(d);});}
+function fillOverlay(f){const os=$('#overlaySlot');os.style.borderStyle='solid';os.classList.remove('filled-anim');void os.offsetWidth;os.classList.add('filled-anim');os.innerHTML=figSVG(f,46);}
+function renderServedItem(item){
+  current=item;submitted=false;interactive=false;staged=null;firstKey=null;selectionOrder=[];
+  M.rev=0;M.firstLat=null;M.blur=0;itemTelemetry=[];
+  const c=item.content;
+  $$('#rings .ex').forEach(e=>e.remove());
+  placeEx(c.leftExemplars,'left');placeEx(c.rightExemplars,'right');
   const os=$('#overlaySlot');os.innerHTML='';os.style.borderStyle='dashed';
   const tray=$('#tray');tray.innerHTML='';
-  item.options.forEach((o,i)=>{const b=document.createElement('button');b.className='opt';b.dataset.i=i;b.dataset.key=i+1;b.setAttribute('aria-label',`option ${i+1}`);b.innerHTML=figSVG(o.a);tray.appendChild(b);});
-  $('#confrow').classList.remove('show');$$('.conf').forEach(c=>c.classList.remove('on'));
-  $('#go').classList.remove('ready');staged=-1;T.itemStart=Date.now();T.firstActed=false;T.firstLat=null;T.blurThis=0;renderMeters();}
-function fillOverlay(f){const os=$('#overlaySlot');os.style.borderStyle='solid';os.classList.remove('filled-anim');void os.offsetWidth;os.classList.add('filled-anim');os.innerHTML=figSVG(f,46);}
-function onOpt(el){if(locked||phase==='demo'||phase==='done')return;const idx=+el.dataset.i;
-  if(!T.firstActed){T.firstActed=true;T.firstLat=Date.now()-T.itemStart;log('first tap · option '+idx);}
-  staged=idx;$$('#tray .opt').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');
-  fillOverlay(cur.options[idx].a);$('#confrow').classList.add('show');$('#go').classList.add('ready');renderMeters();}
-function onConf(el){if(phase==='demo'||phase==='done'||locked)return;confChoice=el.dataset.c;
-  T.conf=confChoice;$$('.conf').forEach(c=>c.classList.remove('on'));el.classList.add('on');log('confidence: '+confChoice);renderMeters();}
-function feedback(correct){const opt=$$('#tray .opt')[staged];if(opt)opt.classList.add(correct?'correct':'wrong');
-  if(!correct){$('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),450);
-    const ci=cur.options.findIndex(o=>o.tag==='correct');$$('#tray .opt')[ci].classList.add('correct');}
-  locked=true;$('#go').classList.remove('ready');$('#confrow').classList.remove('show');}
-function submit(){if(staged===-1)return;const opt=cur.options[staged];const rt=Date.now()-T.itemStart;const correct=opt.tag==='correct';
-  if(phase==='warmup'){feedback(correct);setStatus(correct?'ok':'no',correct?'\u2713 Correct - practice':'\u2717 Not quite - the correct answer is highlighted (practice)');log('warm-up '+(correct?'correct':'incorrect')+' — UNSCORED');setTimeout(nextPhase,1000);return;}
-  T.scored++;T.rts.push(rt);T.gates.push(gate(rt));
-  if(correct){T.correct++;T.maxSolved=Math.max(T.maxSolved,cur.level);T.lastErr='none';}else T.lastErr=opt.tag;
-  T.lastRule=opt.rules+' / 2 attributes';
-  if(confChoice){T.confN++;if((confChoice==='sure')===correct)T.confHits++;T.conf=confChoice;}
-  else T.conf='(none)';
-  T.level=Math.max(1,Math.min(6,T.level+(correct?1:-1)));feedback(correct);
-  setStatus(correct?'ok':'no',correct?'\u2713 Correct':'\u2717 Not quite - the correct answer is highlighted');
-  log(`SUBMIT ${scoredIndex+1}/${TOTAL} · L${cur.level} ${cur.leftDim}+${cur.rightDim} \u2192 ${correct?'CORRECT':'wrong ['+opt.tag+']'} · ${opt.rules}/2 rules · ${last(T.gates).reason} · conf ${confChoice||'-'} · next L${T.level}`);
-  renderMeters();setTimeout(nextPhase,1300);}
-function nextPhase(){locked=false;if(phase==='warmup'){scoredIndex=0;T.level=1;startScored();}
-  else if(phase==='scored'){scoredIndex++;scoredIndex<TOTAL?startScored():finish();}}
-function startWarmup(){phase='warmup';setCue('warmup');setStatus('neutral','Practice - find the shape that fits both rules. Not scored.');locked=false;renderItem(genItem(1,['color','shape']));log('— warm-up · find the double match · UNSCORED —');}
-function startScored(){phase='scored';setCue('scored',(scoredIndex+1)+'/'+TOTAL);setStatus('neutral','Tap the shape that fits both rules.');locked=false;renderItem(genItem(T.level));
-  log(`— SCORED ${scoredIndex+1}/${TOTAL} · L${cur.level} · two-feature intersection —`);}
-function finish(){phase='done';setCue('done');setStatus('ok','\u2713 Done');locked=true;
-  log(`— DONE · accuracy ${T.correct}/${T.scored} · confidence calibration ${T.confHits}/${T.confN} —`);}
-async function runDemo(){const token=++demoRun;phase='demo';setCue('demo');setStatus('neutral','Watch the example.');locked=true;
-  const d=genItem(1,['color','shape']);renderItem(d);
-  log('ghost-hand demo · both-at-once · wordless · <10s');
-  const ci=d.options.findIndex(o=>o.tag==='correct');
-  ghostShow(true);await sleep(250);
-  const ex=$$('#rings .ex');await ghostTo(ex[0]);await ghostTo(ex[1]);await sleep(120);
-  await ghostTo(ex[2]);await ghostTo(ex[3]);await sleep(150);
-  await ghostTo($$('#tray .opt')[ci]);await ghostTap();
-  $$('#tray .opt')[ci].classList.add('correct');fillOverlay(d.options[ci].a);
-  await sleep(500);await ghostTo($('#go'));await ghostTap();await sleep(350);ghostShow(false);await sleep(350);if(token===demoRun)startWarmup();}
+  c.options.forEach((o,i)=>{const b=document.createElement('button');b.className='opt';
+    b.dataset.key=o.key;b.dataset.i=i;b.setAttribute('aria-label','option '+(i+1));b.innerHTML=figSVG(o.figure);tray.appendChild(b);});
+  $('#go').classList.remove('ready');
+  itemStart=Date.now();
+  renderMeters();
+  emitEvent('render',{exemplarCount:c.exemplarCount,options:c.options.length,difficulty:item.difficulty});
+}
 
-$('#tray').addEventListener('click',e=>{const o=e.target.closest('.opt');if(o)onOpt(o);});
-$('#confrow').addEventListener('click',e=>{const c=e.target.closest('.conf');if(c)onConf(c);});
+/* ---------- interaction ---------- */
+function stageOption(el){
+  if(!interactive||submitted)return;
+  const key=el.dataset.key,idx=+el.dataset.i;
+  if(firstKey===null){firstKey=key;M.firstLat=Date.now()-itemStart;emitEvent('first_action',{key,latencyMs:M.firstLat});}
+  if(staged!==null&&staged!==key){M.rev++;emitEvent('change',{from:staged,to:key});}
+  staged=key;selectionOrder.push(key);
+  $$('#tray .opt').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');
+  fillOverlay(current.content.options[idx].figure);
+  $('#go').classList.add('ready');renderMeters();
+}
+function submit(){
+  if(!interactive||submitted||staged===null)return;
+  const rt=Date.now()-itemStart;
+  M.rt=rt;M.rts.push(rt);
+  submitted=true;interactive=false;$('#go').classList.remove('ready');
+  setCue('done','Answer sent');
+  setStatus('neutral',standalone?'Answer received. Loading the next puzzle.':'Answer received. Next puzzle coming up.');
+  emitEvent('submit',{selectedKey:staged,rtMs:rt});
+  const response={selectedKey:staged,firstSelectedKey:firstKey,selectionOrder:selectionOrder.slice(),changeCount:M.rev};
+  const metrics={'M-RT':rt,'M-RTFIRST':M.firstLat==null?rt:M.firstLat,'M-REV':M.rev,'M-ENGAGE':M.blur,'M-RAPIDGUESS':rt<350?1:0};
+  const result={itemId:current.itemId,typeCode:current.typeCode,domain:current.domain,response,metrics,telemetry:itemTelemetry.slice()};
+  post({type:'result',result});
+  log('RESULT emitted \u2192 '+JSON.stringify({response,metrics}));
+  renderMeters();
+  if(standalone)setTimeout(advanceStandalone,1150);
+}
+
+/* ---------- host-driven lifecycle ---------- */
+function onInit(item){
+  clearTimeout(startTimer);
+  if(!item||!item.content||!Array.isArray(item.content.options)||!Array.isArray(item.content.leftExemplars)){log('init ignored: malformed ServedItem');return;}
+  renderServedItem(item);
+  setCue('warmup','Get ready');
+  setStatus('neutral','Get ready for the puzzle.');
+  startTimer=setTimeout(()=>{if(!interactive&&!submitted)beginItem(false);},500);
+}
+async function beginItem(withTutorial){
+  if(interactive||submitted||!current)return;
+  if(withTutorial&&!tutorialShown){tutorialShown=true;await gestureHint();if(submitted)return;}
+  interactive=true;itemStart=Date.now();
+  setCue('scored','Your turn');
+  setStatus('neutral','Tap the shape that fits both rules, then press the check.');
+  renderMeters();
+}
+function onHostMessage(e){
+  const d=e.data;if(!d||d.source!==HOST_SRC)return;
+  if(d.type==='init')onInit(d.item);
+  else if(d.type==='start'){clearTimeout(startTimer);beginItem(!!d.tutorial);}
+}
+
+/* ---------- standalone fallback (QA when there is no host) ---------- */
+function toServed(b){const{answer,scoring,provenance,...s}=b;return s;}
+async function loadBankSamples(){
+  try{
+    const res=await fetch('../banks/FLU-VENN-01.jsonl',{cache:'no-store'});
+    if(res.ok){
+      const all=(await res.text()).trim().split('\n').filter(Boolean).map(l=>JSON.parse(l)).map(toServed);
+      all.sort((a,b)=>a.difficulty-b.difficulty);
+      const N=Math.min(12,all.length),pick=[];
+      for(let i=0;i<N;i++)pick.push(all[N===1?0:Math.round(i*(all.length-1)/(N-1))]);
+      log('standalone: fetched '+all.length+' bank items; cycling '+pick.length+' across difficulty');
+      return pick;
+    }
+  }catch(_){/* file:// blocks fetch — use inline fallback */}
+  log('standalone: bank fetch unavailable (open via a local server for the full bank) — using inline samples');
+  return INLINE_SAMPLES.slice();
+}
+function playStandalone(){const item=standaloneQueue[standaloneIdx%standaloneQueue.length];onInit(item);beginItem(standaloneIdx===0);}
+function advanceStandalone(){standaloneIdx++;playStandalone();}
+async function bootstrapStandalone(){if(standalone)return;standalone=true;standaloneQueue=await loadBankSamples();standaloneIdx=0;playStandalone();}
+
+/* Inline served-item fallback (real items exported from the bank; answer stripped). */
+const INLINE_SAMPLES=[
+{"itemId":"04cc17d8-e29e-4f36-a1cd-7cdce517a4e2","typeCode":"FLU-VENN-01","domain":"fluid_reasoning","difficulty":1.04,"ageBands":["2-3"],"demoPath":"demos/FLU-VENN-01.html","content":{"typeCode":"FLU-VENN-01","ruleCount":2,"exemplarCount":3,"optionCount":4,"leftExemplars":[{"shape":"pentagon","color":"teal","fill":"outline","count":3,"rot":90,"mark":"top"},{"shape":"pentagon","color":"blue","fill":"hatch","count":1,"rot":180,"mark":"middle"},{"shape":"pentagon","color":"gold","fill":"solid","count":2,"rot":0,"mark":"bottom"}],"rightExemplars":[{"shape":"triangle","color":"coral","fill":"outline","count":3,"rot":90,"mark":"top"},{"shape":"kite","color":"coral","fill":"hatch","count":1,"rot":180,"mark":"middle"},{"shape":"drop","color":"coral","fill":"solid","count":2,"rot":0,"mark":"bottom"}],"options":[{"key":"A","figure":{"shape":"pentagon","color":"coral","fill":"outline","count":3,"rot":180,"mark":"middle"}},{"key":"B","figure":{"shape":"triangle","color":"teal","fill":"outline","count":3,"rot":180,"mark":"middle"}},{"key":"C","figure":{"shape":"triangle","color":"blue","fill":"outline","count":3,"rot":180,"mark":"middle"}},{"key":"D","figure":{"shape":"triangle","color":"gold","fill":"outline","count":3,"rot":180,"mark":"middle"}}]},"syntheticOnly":true,"validated":false},
+{"itemId":"d9e9498e-b425-4354-a751-83f2966bbd3a","typeCode":"FLU-VENN-01","domain":"fluid_reasoning","difficulty":10.62,"ageBands":["4-5"],"demoPath":"demos/FLU-VENN-01.html","content":{"typeCode":"FLU-VENN-01","ruleCount":2,"exemplarCount":3,"optionCount":4,"leftExemplars":[{"shape":"pentagon","color":"gold","fill":"outline","count":1,"rot":0,"mark":"middle"},{"shape":"kite","color":"gold","fill":"hatch","count":2,"rot":180,"mark":"bottom"},{"shape":"drop","color":"gold","fill":"solid","count":3,"rot":0,"mark":"top"}],"rightExemplars":[{"shape":"pentagon","color":"coral","fill":"outline","count":1,"rot":90,"mark":"middle"},{"shape":"kite","color":"teal","fill":"hatch","count":2,"rot":90,"mark":"bottom"},{"shape":"drop","color":"blue","fill":"solid","count":3,"rot":90,"mark":"top"}],"options":[{"key":"A","figure":{"shape":"triangle","color":"coral","fill":"hatch","count":1,"rot":90,"mark":"bottom"}},{"key":"B","figure":{"shape":"triangle","color":"gold","fill":"hatch","count":1,"rot":180,"mark":"bottom"}},{"key":"C","figure":{"shape":"triangle","color":"gold","fill":"hatch","count":1,"rot":90,"mark":"bottom"}},{"key":"D","figure":{"shape":"triangle","color":"gold","fill":"hatch","count":1,"rot":0,"mark":"bottom"}}]},"syntheticOnly":true,"validated":false},
+{"itemId":"15c401e4-8cd5-496a-91ba-3c1fbb517c07","typeCode":"FLU-VENN-01","domain":"fluid_reasoning","difficulty":19.96,"ageBands":["6-8"],"demoPath":"demos/FLU-VENN-01.html","content":{"typeCode":"FLU-VENN-01","ruleCount":2,"exemplarCount":2,"optionCount":6,"leftExemplars":[{"shape":"pentagon","color":"blue","fill":"hatch","count":1,"rot":0,"mark":"middle"},{"shape":"kite","color":"gold","fill":"solid","count":2,"rot":0,"mark":"bottom"}],"rightExemplars":[{"shape":"pentagon","color":"blue","fill":"hatch","count":1,"rot":90,"mark":"top"},{"shape":"kite","color":"gold","fill":"solid","count":2,"rot":180,"mark":"top"}],"options":[{"key":"A","figure":{"shape":"drop","color":"blue","fill":"hatch","count":3,"rot":0,"mark":"top"}},{"key":"B","figure":{"shape":"drop","color":"blue","fill":"hatch","count":3,"rot":0,"mark":"bottom"}},{"key":"C","figure":{"shape":"drop","color":"blue","fill":"hatch","count":3,"rot":0,"mark":"middle"}},{"key":"D","figure":{"shape":"drop","color":"blue","fill":"hatch","count":3,"rot":180,"mark":"top"}},{"key":"E","figure":{"shape":"drop","color":"blue","fill":"hatch","count":3,"rot":90,"mark":"top"}},{"key":"F","figure":{"shape":"drop","color":"blue","fill":"hatch","count":3,"rot":90,"mark":"middle"}}]},"syntheticOnly":true,"validated":false}
+];
+
+/* ---------- wiring ---------- */
+$('#tray').addEventListener('click',e=>{const o=e.target.closest('.opt');if(o)stageOption(o);});
 $('#go').addEventListener('click',()=>{if($('#go').classList.contains('ready'))submit();});
-$('#replay').addEventListener('click',()=>{if(phase!=='demo')runDemo();});
-document.addEventListener('keydown',e=>{if(!locked&&phase!=='done'){if(/^[1-4]$/.test(e.key)){const o=$$('#tray .opt')[+e.key-1];if(o)onOpt(o);}if(e.key==='Enter'&&$('#go').classList.contains('ready'))submit();}});
-window.addEventListener('blur',()=>{if(phase==='scored'&&!locked){T.blurThis++;log('engagement · focus lost');renderMeters();}});
-buildMeters();renderMeters();runDemo();
+$('#replay').addEventListener('click',()=>{if(current&&!submitted)gestureHint();});
+document.addEventListener('keydown',e=>{
+  if(!interactive||submitted)return;
+  if(/^[1-9]$/.test(e.key)){const o=$$('#tray .opt')[+e.key-1];if(o)stageOption(o);}
+  else{const o=$$('#tray .opt').find(b=>b.dataset.key.toUpperCase()===e.key.toUpperCase());if(o)stageOption(o);}
+  if(e.key==='Enter'&&$('#go').classList.contains('ready'))submit();
+});
+window.addEventListener('blur',()=>{if(interactive&&!submitted){M.blur++;emitEvent('engagement',{reason:'blur'});renderMeters();}});
+
+buildMeters();renderMeters();
+window.addEventListener('message',onHostMessage);
+post({type:'ready'});
+if(!embedded){bootstrapStandalone();}
+else{setTimeout(()=>{if(!current)bootstrapStandalone();},1000);}
 </script>
 </body>
 </html>

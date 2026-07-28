@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>QUANT-GRAPH-01 · Story Graph</title>
+<title>QUANT-GRAPH-01 · Story Graph (renderer)</title>
 <style>
   :root{
-    --paper:#fffdf7;--canvas:#eef7f4;--ink:#24343a;--grid:#c9dbd7;
-    --a:#e05d45;--b:#3478a8;--accent:#f2b84b;--good:#2d9b6f;--bad:#d95b67;
-    --tel:#111b24;--tel2:#1a2a35;--key:#74f0ca;--dim:#7892a3;
+    --paper:#fffdf7;--ink:#24343a;--grid:#c9dbd7;
+    --a:#e05d45;--b:#3478a8;--accent:#f2b84b;--dim:#7892a3;
+    --tel:#111b24;--tel2:#1a2a35;--key:#74f0ca;
   }
   *{box-sizing:border-box}html,body{margin:0;min-height:100%}
   body{
@@ -16,62 +16,65 @@
     background:linear-gradient(145deg,#e7f3ef,#f7efe0);
   }
   button{font:inherit;border:0;cursor:pointer}
+  button:focus-visible{outline:4px solid #2f7f9a;outline-offset:3px}
   #wrap{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:12px;padding:18px}
   #badge{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#758b89}
-  #howto{max-width:620px;width:100%;background:#fff;border:1px solid #e6ece8;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #304c49}
+  #howto{max-width:min(760px,100%);width:100%;background:#fff;border:1px solid #e6ece8;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #304c49}
   #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:#a87619}
   #howto p{margin:0;font-size:14px;color:#3c5257;line-height:1.5}
   #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#fdf3dc;color:#a87619;border:2px solid #f2d9a0;min-height:30px}
-  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
-  #phasecue[data-phase="scored"]{background:var(--accent);color:#fff;border-color:var(--accent)}
-  #phasecue[data-phase="done"]{background:#e5f7ef;color:#2d7d5b;border-color:#bfe6d4}
-  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
-  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
+  #phasecue[data-phase="waiting"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="answer"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+  #phasecue[data-phase="sent"]{background:#e5f7ef;color:#2d7d5b;border-color:#bfe6d4}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center;color:#5d7580}
   #stagecard{
-    width:min(760px,100%);background:var(--paper);border-radius:28px;padding:20px;
-    box-shadow:0 25px 60px -35px #304c49;display:grid;gap:15px;border:1px solid #fff;
+    width:min(780px,100%);background:var(--paper);border-radius:28px;padding:20px;
+    box-shadow:0 25px 60px -35px #304c49;display:grid;gap:14px;border:1px solid #fff;
   }
+  #prompt{text-align:center;font-size:15px;font-weight:700;color:#3c5257}
   #storyboard{
-    min-height:190px;border-radius:22px;background:linear-gradient(#eaf6f4,#f8fbf7);
-    border:2px solid #d6e6e2;position:relative;overflow:hidden;padding:14px;
+    border-radius:22px;background:linear-gradient(#eaf6f4,#f8fbf7);
+    border:2px solid #d6e6e2;position:relative;overflow:hidden;padding:14px;display:grid;gap:8px;
   }
-  #scene{height:132px;display:flex;align-items:flex-end;justify-content:center;gap:38px}
-  .rig{height:124px;min-width:100px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center}
+  #scene{min-height:150px;display:flex;align-items:flex-end;justify-content:center;gap:34px}
+  .rig{display:flex;flex-direction:column;align-items:center;gap:6px}
+  .rig .tag{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#5d7580}
   .tank{
-    width:74px;height:110px;border:4px solid #617c80;border-top-width:2px;border-radius:8px 8px 16px 16px;
+    width:74px;height:132px;border:4px solid #617c80;border-top-width:2px;border-radius:8px 8px 16px 16px;
     display:flex;flex-direction:column-reverse;padding:4px;gap:2px;background:rgba(255,255,255,.7);
   }
-  .block{height:10px;border-radius:3px;background:var(--a);box-shadow:inset 0 -2px rgba(0,0,0,.08)}
-  .rig.b .block{background:var(--b);background-image:repeating-linear-gradient(45deg,transparent 0 5px,rgba(255,255,255,.28) 5px 8px)}
-  .rig .mark{font-size:26px;height:30px}
-  .rateStrip{align-self:center;display:flex;gap:5px;min-width:92px;justify-content:center;align-items:flex-end}
-  .drop{width:15px;height:22px;border-radius:60% 40% 60% 40%;background:var(--a);transform:rotate(45deg)}
-  #beats{height:22px;display:flex;justify-content:center;gap:17px;margin-top:7px}
+  .block{height:9px;border-radius:3px;background:var(--a);box-shadow:inset 0 -2px rgba(0,0,0,.08)}
+  .rig.two .block{background:var(--b);background-image:repeating-linear-gradient(45deg,transparent 0 5px,rgba(255,255,255,.35) 5px 8px)}
+  .rateBox{display:flex;flex-direction:column;align-items:center;gap:8px;min-height:132px;justify-content:center}
+  .drops{display:flex;gap:8px;min-height:34px;align-items:center}
+  .drop{width:18px;height:26px;border-radius:60% 40% 60% 40%;background:var(--a);transform:rotate(45deg)}
+  .drops.none{font-size:13px;font-weight:700;color:#7f979f}
+  #beatline{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap}
+  #beats{display:flex;gap:12px}
   #beats i{width:13px;height:13px;border-radius:50%;background:#cfddd9}
-  #beats i.live{background:var(--accent);box-shadow:0 0 0 5px rgba(242,184,75,.2)}
-  #scrub{display:block;width:min(330px,70%);margin:2px auto 0;accent-color:var(--accent)}
-  #scrub:disabled{opacity:.35}
-  #replayStory{
-    position:absolute;right:12px;top:12px;width:42px;height:42px;border-radius:50%;
-    background:#dfece8;color:#537173;font-size:20px;
-  }
-  #options{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  #beats i.live{background:var(--accent);box-shadow:0 0 0 5px rgba(242,184,75,.22)}
+  #beatlabel{font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#5d7580}
+  #storycontrols{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap}
+  #playStory{padding:8px 16px;border-radius:999px;background:#dfece8;color:#3c6067;font-weight:800;font-size:13px}
+  #scrub{width:min(320px,70%);accent-color:var(--accent)}
+  #options{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
   .option{
-    min-height:140px;border-radius:18px;background:#f4f7f4;border:3px solid transparent;
-    display:grid;place-items:center;padding:6px;transition:.16s;
+    position:relative;border-radius:18px;background:#f4f7f4;border:3px solid transparent;
+    display:grid;place-items:center;padding:8px;transition:.16s;
   }
+  .option::after{content:attr(data-key);position:absolute;right:9px;top:7px;font:800 11px/1 ui-monospace,monospace;color:#8ba3a8}
   .option:not(:disabled):hover{transform:translateY(-2px);border-color:#d6e4df}
   .option.selected{border-color:var(--accent);background:#fff8e8}
-  .option.correct{border-color:var(--good);background:#e5f7ef}
-  .option.wrong{border-color:var(--bad);background:#ffecef}
-  .option:disabled{cursor:default}
-  .graph{width:100%;height:120px}
+  .option:disabled{cursor:default;opacity:.9}
+  .graph{width:100%;height:130px}
   .axis{stroke:#657d80;stroke-width:3;stroke-linecap:round}
   .guide{stroke:var(--grid);stroke-width:1;stroke-dasharray:3 4}
-  .pathA{fill:none;stroke:var(--a);stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
-  .pathB{fill:none;stroke:var(--b);stroke-width:5;stroke-dasharray:8 5;stroke-linecap:round;stroke-linejoin:round}
-  .pointA{fill:var(--paper);stroke:var(--a);stroke-width:3}
-  .barA{fill:var(--a);rx:3}.barB{fill:var(--b);rx:3}
+  .axislabel{font:600 8px system-ui,sans-serif;fill:#6d868c}
+  .pathA{fill:none;stroke:var(--a);stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+  .pathB{fill:none;stroke:var(--b);stroke-width:4;stroke-dasharray:9 5;stroke-linecap:round;stroke-linejoin:round}
+  .dotA{fill:#fffdf7;stroke:var(--a);stroke-width:2.5}
+  .dotB{fill:var(--b);stroke:#fffdf7;stroke-width:1.5}
+  .barA{fill:var(--a)}
   #controls{display:flex;justify-content:center;gap:14px;align-items:center}
   .round{width:49px;height:49px;border-radius:50%;background:#e8efec;color:#547175;font-size:22px}
   #go{
@@ -79,15 +82,13 @@
     box-shadow:0 12px 25px -12px #a87619;opacity:.35;pointer-events:none;
   }
   #go.ready{opacity:1;pointer-events:auto;animation:pulse 1s infinite}
+  #go:disabled{opacity:.35;animation:none;pointer-events:none}
   @keyframes pulse{50%{transform:scale(1.07)}}
-  #progress{display:flex;justify-content:center;gap:7px;height:11px}
-  #progress i{width:10px;height:10px;border-radius:50%;background:#d9e5e1}
-  #progress i.ok{background:var(--good)}#progress i.no{background:var(--bad)}
   #ghost{
-    position:fixed;left:0;top:0;z-index:60;font-size:40px;opacity:0;pointer-events:none;
+    position:fixed;left:0;top:0;z-index:60;opacity:0;pointer-events:none;
     transition:transform .5s cubic-bezier(.2,.7,.2,1),opacity .2s;filter:drop-shadow(0 3px 4px #0004);
   }
-  #ghost.show{opacity:.95}#ghost.tap{animation:tap .38s}@keyframes tap{50%{scale:.78}}
+  #ghost.show{opacity:.95}
   #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
   #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
   #telemetry{
@@ -97,184 +98,398 @@
   #telemetry h3{margin:0;padding:13px 14px;background:var(--tel2);color:#fff;font-size:12px;letter-spacing:.09em;text-transform:uppercase}
   #difficulty{padding:10px 13px;border-bottom:1px solid #29404d}
   #diffhead{display:flex;justify-content:space-between;color:#9cb3c0;font-size:11px}
-  #diffbar{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin:7px 0}
-  #diffbar i{height:8px;border-radius:8px;background:#2a414e}#diffbar i.live{background:var(--accent)}
-  #dtrend{font-size:11px;color:#718a99}
+  #diffbar{display:grid;grid-template-columns:repeat(20,1fr);gap:2px;margin:7px 0}
+  #diffbar i{height:9px;border-radius:3px;background:#2a414e}#diffbar i.on{background:linear-gradient(90deg,#74f0ca,#ffd479)}
+  #dsub{font-size:11px;color:#718a99}
   #mlist{padding:11px 13px;display:flex;flex-direction:column;gap:8px}
-  .mrow{display:grid;grid-template-columns:102px 1fr;gap:7px}.mid{color:var(--key);font-weight:800}.mval{color:#fff}
+  .mrow{display:grid;grid-template-columns:104px 1fr;gap:7px}
+  .mid{color:var(--key);font-weight:800}.mid.srv{color:#ffd479}
+  .mval{color:#fff;text-align:right}
   .mname{grid-column:1/3;color:var(--dim);font-size:11px;margin-top:-4px}
   #logwrap{margin-top:auto;border-top:1px solid #29404d}
   #logwrap b{display:block;padding:8px 12px 3px;color:#819aaa;font-size:11px;letter-spacing:.08em}
-  #log{height:220px;overflow:auto;padding:2px 12px 12px;white-space:pre-wrap}
+  #log{height:205px;overflow:auto;padding:2px 12px 12px;white-space:pre-wrap}
   #log div{padding:3px 0;border-bottom:1px dotted #263b47}#log .t{color:#5e7888}
   @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;min-height:0;height:340px;flex:none}}
-  @media(max-width:580px){#options{grid-template-columns:1fr}.option{min-height:110px}.graph{height:95px}#scene{gap:14px}}
+  @media(max-width:580px){#options{grid-template-columns:1fr}.graph{height:110px}#scene{gap:14px}}
   @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
+<style>html[data-gt-telemetry="off"] #telemetry{display:none}</style>
+<script>/* D-028 — the researcher telemetry panel is presentational only. Embedded in the
+   child-facing screener it is hidden: naming the behavioural metrics to the child can
+   change the behaviour being measured. `?telemetry=1` restores it for a live
+   demonstration, and standalone (opened directly) is unchanged. Sampling, metric
+   computation and the {type:'telemetry'} postMessage stream are untouched. */
+(function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
 </head>
 <body>
 <main id="wrap">
   <div id="badge">QUANT-GRAPH-01 · Story Graph</div>
   <header id="howto">
     <h1>How to use — Story Graph</h1>
-    <p>Watch the short story play out (you can replay or drag the slider). Then tap the graph below that matches what happened, and press the check (<b>✓</b>) to submit. It gets harder each time you are right.</p>
+    <p>Watch the story play beat by beat. You can press <b>Play story</b> again or drag the slider to look at any beat. Then tap the graph that tells the same story, and press the check (<b>&#10003;</b>) to send it. You can change your pick before you send it.</p>
   </header>
-  <div id="phasecue" data-phase="demo">Watch the example</div>
+  <div id="phasecue" data-phase="waiting">Loading</div>
   <section id="stagecard">
-    <div id="storyboard"><div id="scene"></div><div id="beats"></div><input id="scrub" type="range" min="0" max="2" value="0" step="1" aria-label="move through story"><button id="replayStory" aria-label="replay story">▶</button></div>
+    <div id="prompt"></div>
+    <div id="storyboard">
+      <div id="scene"></div>
+      <div id="beatline"><div id="beats"></div><span id="beatlabel">Beat — of —</span></div>
+      <div id="storycontrols">
+        <button id="playStory">Play story</button>
+        <input id="scrub" type="range" min="0" max="2" value="0" step="1" aria-label="move through the story beat by beat">
+      </div>
+    </div>
     <div id="options"></div>
-    <div id="controls"><button class="round" id="replayDemo" aria-label="replay demonstration">↻</button><button id="go" aria-label="submit">✓</button></div>
-    <div id="progress"></div>
-    <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+    <div id="controls">
+      <button class="round" id="replay" aria-label="show how to answer again" title="show how to answer again">&#8635;</button>
+      <button id="go" aria-label="send answer" title="send answer" disabled>&#10003;</button>
+    </div>
+    <div id="status">Waiting for an item.</div>
   </section>
 </main>
 <aside id="telemetry">
-  <h3>Live telemetry · per-child</h3>
-  <div id="difficulty"><div id="diffhead"><span>DIFFICULTY</span><span id="dlevel"></span></div><div id="diffbar"></div><div id="dtrend"></div></div>
+  <h3>Live telemetry · per-child (display only)</h3>
+  <div id="difficulty">
+    <div id="diffhead"><span>ITEM DIFFICULTY (design rung)</span><span id="dlevel">— / 20</span></div>
+    <div id="diffbar"></div>
+    <div id="dsub">relation served by the host · score: server-side</div>
+  </div>
   <div id="mlist"></div>
   <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
 </aside>
-<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#a87619" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
-const $=s=>document.querySelector(s);
-const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
-const ITEMS=[
-  {level:1,kind:'one',mode:'bars',a:[1,2,4],options:[{a:[4,2,1],err:'direction',credit:.33},{a:[1,2,4],err:'none',credit:1},{a:[1,1,4],err:'height',credit:.67}],correct:1},
-  {level:2,kind:'one',mode:'line',a:[0,2,4,6],options:[{a:[2,2,2,2],err:'slope-as-level',credit:.25},{a:[0,1,2,3],err:'rate-size',credit:.5},{a:[0,2,4,6],err:'none',credit:1}],correct:2},
-  {level:3,kind:'rate',mode:'line',a:[0,1,3,6],rates:[1,2,3],options:[{a:[0,1,3,6],err:'none',credit:1},{a:[0,2,4,6],err:'constant-rate',credit:.5},{a:[0,3,5,6],err:'rate-order',credit:.5}],correct:0},
-  {level:4,kind:'two',mode:'two',a:[0,2,4,6],b:[5,4,3,2],options:[{a:[0,2,4,6],b:[5,6,7,8],err:'intersection',credit:.5},{a:[0,2,4,6],b:[5,4,3,2],err:'none',credit:1},{a:[0,1,2,3],b:[5,4,3,2],err:'relative-slope',credit:.75}],correct:1},
-  {level:5,kind:'one',mode:'line',a:[1,3,6,7,7],options:[{a:[1,3,5,7,9],err:'constant-rate',credit:.4},{a:[7,7,6,3,1],err:'direction',credit:.2},{a:[1,3,6,7,7],err:'none',credit:1}],correct:2},
-  {level:6,kind:'rate',mode:'area',a:[0,1,4,6,10],rates:[1,3,2,4],options:[{a:[0,1,3,2,4],err:'rate-as-height',credit:.25},{a:[0,1,4,6,10],err:'none',credit:1},{a:[0,2,4,6,8],err:'constant-accumulation',credit:.5}],correct:1}
-];
-const WARM={level:1,kind:'one',mode:'bars',a:[1,3],options:[{a:[3,1],err:'direction',credit:.5},{a:[1,3],err:'none',credit:1},{a:[1,1],err:'height',credit:.5}],correct:1};
-let phase='demo',cur=null,selected=-1,locked=true,animToken=0,scoredIndex=0,replays=0;
-const T={scored:0,correct:0,poly:'—',path:[],plan:'—',err:'—',level:1,startLevel:1,maxSolved:0,results:[],itemStart:0};
-const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
-function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
-function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
-const METERS=[
-  {id:'M-ACC',name:'Whole graph-story match',get:()=>T.scored?`${T.correct}/${T.scored} · ${Math.round(100*T.correct/T.scored)}%`:'—'},
-  {id:'M-POLY',name:'Story relations preserved',get:()=>T.poly},
-  {id:'M-PATH',name:'Selections and story replays',get:()=>T.path.length?`${T.path.join('→')} · replay ${replays}`:'—'},
-  {id:'M-PLANFUL',name:'Temporal mapping strategy',get:()=>T.plan},
-  {id:'M-ERRTYPE',name:'Height, rate, crossing, or accumulation',get:()=>T.err},
-  {id:'M-DIFFREACH',name:'Deepest graph idea solved',get:()=>T.maxSolved?`level ${T.maxSolved} · ${idea(T.maxSolved)}`:'—'},
-  {id:'M-LEARNRATE',name:'Adaptive level gain per scored item',get:()=>T.scored?`${((T.level-T.startLevel)/T.scored).toFixed(2)} level/trial`:'—'}
-];
-function idea(level){return['height','constant rise','changing rate','intersection','turning rate','accumulation'][level-1]}
-function buildTelemetry(){
-  $('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');
-  $('#diffbar').innerHTML=ITEMS.map(()=>'<i></i>').join('');
-  $('#progress').innerHTML=ITEMS.map(()=>'<i></i>').join('');
+/* =====================================================================
+ * QUANT-GRAPH-01 — PURE RENDERER
+ * Renders a SERVED item (item.content: one latent quantity story plus the
+ * candidate graphs, all as plain numbers) and reports the child's RAW choice +
+ * process telemetry. It NEVER self-generates items, NEVER derives which graph
+ * matches, and NEVER shows correct/incorrect: the key and the score live
+ * server-side (EXAM_ADAPTIVE_BUILD_PLAN.md §2).
+ *
+ * The animation frames and the graphs come from the same served numbers, so the
+ * mapping the child must find is real. Every option is drawn on the item's ONE
+ * fixed y-scale (content.graph.yMax) so no option can be judged by its scale.
+ *
+ * Interaction is unlocked once, in begin(). The story animation deliberately does
+ * NOT gate the option buttons: an animation-driven lock is exactly the bug that
+ * silently blocked result emission in SPA-FOLDNET-01.
+ *
+ * Embedding protocol (postMessage), source-tagged:
+ *   host -> demo : {source:'gt-exam-host', type:'init',  item:ServedItem}
+ *                  {source:'gt-exam-host', type:'start', tutorial?:bool}
+ *   demo -> host : {source:'gt-exam-demo', type:'ready'}
+ *                  {source:'gt-exam-demo', type:'result',    result:ItemResult}
+ *                  {source:'gt-exam-demo', type:'telemetry', event:TelemetryEvent}
+ *
+ * Standalone (double-click / no host): loads spread samples from the bank JSONL,
+ * or bundled inline served items when file:// blocks fetch. Correctness is still
+ * never shown.
+ * ===================================================================== */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const clock=()=>performance.now();
+const SRC_HOST='gt-exam-host', SRC_DEMO='gt-exam-demo';
+const EMBEDDED=(()=>{try{return !!(window.parent&&window.parent!==window);}catch(_){return true;}})();
+const RAPID_MS=900;
+const BEAT_MS=520;
+
+/* ---------------- per-item state ---------------- */
+let item=null;
+let interactive=false, submitted=false;
+let selectedKey=null, firstKey=null, selectionOrder=[], changeCount=0;
+let beat=0, playToken=0, replays=0, scrubs=0, inspectPath=[], inspectionsBeforeFirstPick=0;
+let renderT0=0, firstLatency=null, submitMs=0, startFallback=null;
+let telemetryLog=[];
+let focusedMs=0, focusTs=clock(), isFocused=(document.visibilityState!=='hidden');
+
+/* ---------------- story rendering ---------------- */
+function trackRigHTML(track,index,frame){
+  const tag=track.id==='A'?'Tank A':'Tank B';
+  if(track.kind==='rate'){
+    const n=track.values[frame]||0;
+    const drops=n>0?Array.from({length:n},()=>'<span class="drop"></span>').join(''):'<span>no drops this beat</span>';
+    return `<div class="rig"><span class="tag">Drops arriving</span><div class="rateBox"><div class="drops${n>0?'':' none'}">${drops}</div></div></div>`;
+  }
+  const level=track.values[frame]||0;
+  const blocks=Array.from({length:level},()=>'<i class="block"></i>').join('');
+  return `<div class="rig${index===1?' two':''}"><span class="tag">${tag}</span><div class="tank">${blocks}</div></div>`;
 }
-function renderMeters(){
-  METERS.forEach(m=>$('#v_'+m.id).textContent=m.get());
-  $('#dlevel').textContent=`${T.level} / 6 · ${idea(T.level)}`;
-  [...$('#diffbar').children].forEach((x,i)=>x.classList.toggle('live',i<T.level));
-  $('#dtrend').textContent=`path ${T.results.join('')||'·'} · success raises, miss lowers`;
+function renderFrame(frame){
+  const s=item.content.story;
+  beat=Math.max(0,Math.min(s.beats-1,frame));
+  $('#scene').innerHTML=s.tracks.map((t,i)=>trackRigHTML(t,i,beat)).join('');
+  $('#beats').innerHTML=Array.from({length:s.beats},(_,i)=>`<i class="${i===beat?'live':''}"></i>`).join('');
+  $('#beatlabel').textContent=`Beat ${beat+1} of ${s.beats}`;
+  $('#scrub').value=String(beat);
 }
-function log(message){
-  const elapsed=T.itemStart?Math.round(performance.now()-T.itemStart):0;
-  const row=document.createElement('div');row.innerHTML=`<span class="t">+${elapsed}ms</span> ${message}`;
-  $('#log').appendChild(row);$('#log').scrollTop=$('#log').scrollHeight;
+async function playStory(countAsReplay){
+  const token=++playToken;
+  const s=item.content.story;
+  $('#scrub').max=String(s.beats-1);
+  if(countAsReplay){replays++;inspectPath.push('play');emitEvent('story_play',{replays});}
+  for(let i=0;i<s.beats;i++){
+    if(token!==playToken||!item)return;
+    renderFrame(i);
+    await sleep(BEAT_MS);
+  }
+  renderMeters();
 }
-function points(values){
-  const max=Math.max(10,...values),step=values.length>1?140/(values.length-1):140;
-  return values.map((v,i)=>`${20+i*step},${90-v/max*72}`).join(' ');
-}
-function graphSVG(option,mode){
-  const a=option.a,b=option.b||[];
-  let marks='<line class="axis" x1="18" y1="90" x2="168" y2="90"/><line class="axis" x1="18" y1="92" x2="18" y2="12"/>';
-  marks+='<line class="guide" x1="18" y1="52" x2="168" y2="52"/><text x="151" y="108">⏱</text><text x="1" y="18">🧱</text>';
-  if(mode==='bars'){
-    const max=Math.max(...a),w=125/a.length;
-    marks+=a.map((v,i)=>`<rect class="barA" x="${28+i*w}" y="${88-v/max*65}" width="${w-10}" height="${v/max*65}"/>`).join('');
+
+/* ---------------- graph rendering (one fixed scale per item) ---------------- */
+const PLOT={x0:24,x1:168,yTop:14,yBase:100};
+function xAt(i,n){return n<2?PLOT.x0:PLOT.x0+(i*(PLOT.x1-PLOT.x0))/(n-1);}
+function yAt(v,yMax){return PLOT.yBase-(v/yMax)*(PLOT.yBase-PLOT.yTop);}
+function graphSVG(series,graph){
+  const n=graph.xCount,yMax=graph.yMax;
+  let inner=`<line class="guide" x1="${PLOT.x0}" y1="${yAt(yMax,yMax)}" x2="${PLOT.x1}" y2="${yAt(yMax,yMax)}"/>`
+    +`<line class="guide" x1="${PLOT.x0}" y1="${yAt(yMax/2,yMax)}" x2="${PLOT.x1}" y2="${yAt(yMax/2,yMax)}"/>`
+    +`<line class="axis" x1="${PLOT.x0}" y1="${PLOT.yBase}" x2="${PLOT.x1+4}" y2="${PLOT.yBase}"/>`
+    +`<line class="axis" x1="${PLOT.x0}" y1="${PLOT.yBase+2}" x2="${PLOT.x0}" y2="${PLOT.yTop-4}"/>`
+    +`<text class="axislabel" x="${PLOT.x1-2}" y="${PLOT.yBase+13}" text-anchor="end">${graph.xLabel||'time'}</text>`
+    +`<text class="axislabel" x="${PLOT.x0-4}" y="${PLOT.yTop-5}" text-anchor="start">${graph.yLabel||'amount'}</text>`;
+  if(graph.mode==='bars'){
+    const w=(PLOT.x1-PLOT.x0)/n;
+    inner+=series.A.map((v,i)=>{
+      const h=PLOT.yBase-yAt(v,yMax);
+      return `<rect class="barA" x="${(PLOT.x0+i*w+w*0.2).toFixed(1)}" y="${yAt(v,yMax).toFixed(1)}" width="${(w*0.6).toFixed(1)}" height="${Math.max(1,h).toFixed(1)}" rx="2"/>`;
+    }).join('');
   }else{
-    marks+=`<polyline class="pathA" points="${points(a)}"/>`;
-    marks+=a.map((v,i)=>{const p=points(a).split(' ')[i].split(',');return `<circle class="pointA" cx="${p[0]}" cy="${p[1]}" r="4"/>`}).join('');
-    if(b.length)marks+=`<polyline class="pathB" points="${points(b)}"/>`;
+    const pts=(list)=>list.map((v,i)=>`${xAt(i,n).toFixed(1)},${yAt(v,yMax).toFixed(1)}`).join(' ');
+    inner+=`<polyline class="pathA" points="${pts(series.A)}"/>`;
+    inner+=series.A.map((v,i)=>`<circle class="dotA" cx="${xAt(i,n).toFixed(1)}" cy="${yAt(v,yMax).toFixed(1)}" r="3.6"/>`).join('');
+    if(series.B){
+      inner+=`<polyline class="pathB" points="${pts(series.B)}"/>`;
+      inner+=series.B.map((v,i)=>`<rect class="dotB" x="${(xAt(i,n)-3).toFixed(1)}" y="${(yAt(v,yMax)-3).toFixed(1)}" width="6" height="6"/>`).join('');
+    }
   }
-  return `<svg class="graph" viewBox="0 0 180 112" aria-hidden="true">${marks}</svg>`;
+  return `<svg class="graph" viewBox="0 0 180 118" role="img" aria-label="graph option">${inner}</svg>`;
 }
-function renderOptions(){
-  $('#options').innerHTML=cur.options.map((o,i)=>`<button class="option" data-i="${i}" disabled>${graphSVG(o,cur.mode)}</button>`).join('');
-  selected=-1;T.path=[];T.poly='—';T.err='—';T.plan='—';$('#go').classList.remove('ready');
+
+/* ---------------- render ---------------- */
+function render(){
+  const c=item.content;
+  $('#prompt').textContent=c.prompt||'Tap the graph that matches the story.';
+  $('#options').innerHTML=c.options.map(o=>
+    `<button class="option${selectedKey===o.key?' selected':''}" data-key="${o.key}" ${interactive&&!submitted?'':'disabled'}>${graphSVG(o.series,c.graph)}</button>`
+  ).join('');
+  const ready=interactive&&!submitted&&selectedKey!==null;
+  $('#go').disabled=!ready;
+  $('#go').classList.toggle('ready',ready);
+  $('#playStory').disabled=!item||submitted;
+  $('#scrub').disabled=!item||submitted;
+  const dd=Number(item.difficulty)||0;
+  $('#dlevel').textContent=`${dd?dd.toFixed(1):'—'} / 20`;
+  $('#diffbar').innerHTML=Array.from({length:20},(_,i)=>`<i class="${i<Math.round(dd)?'on':''}"></i>`).join('');
+  $('#dsub').textContent=`${c.question} · ${c.story.beats} beats · ${c.graph.mode} · score: server-side`;
+  renderMeters();
 }
-function blocks(count){return Array.from({length:count},()=>'<i class="block"></i>').join('')}
-function renderFrame(index){
-  const beats=$('#beats').children;[...beats].forEach((x,i)=>x.classList.toggle('live',i===index));
-  $('#scrub').value=index;
-  if(cur.kind==='two'){
-    $('#scene').innerHTML=`<div class="rig"><div class="mark">▲</div><div class="tank">${blocks(cur.a[index])}</div></div><div class="rig b"><div class="mark">●</div><div class="tank">${blocks(cur.b[index])}</div></div>`;
-    return;
+
+/* ---------------- metrics + telemetry (numeric only, no correctness) ---------------- */
+function tickFocus(){const t=clock();if(isFocused)focusedMs+=t-focusTs;focusTs=t;}
+function metricsNow(){
+  tickFocus();
+  const elapsed=Math.max(1,Math.round(clock()-renderT0));
+  return {
+    'M-RT':submitted?submitMs:elapsed,
+    'M-RTFIRST':firstLatency==null?0:Math.round(firstLatency),
+    'M-REV':changeCount,
+    'M-PATH':inspectPath.length,
+    'M-PLANFUL':inspectionsBeforeFirstPick,
+    'M-ENGAGE':Math.round(1000*Math.min(1,focusedMs/elapsed))/1000,
+    'M-RAPIDGUESS':submitted&&submitMs<RAPID_MS?1:0,
+  };
+}
+const METERS=[
+  {id:'M-RT',name:'Total response time (ms)'},
+  {id:'M-RTFIRST',name:'First-graph latency — encode / plan (ms)'},
+  {id:'M-REV',name:'Graph changes before commit'},
+  {id:'M-PATH',name:'Story inspections (plays + beat scrubs)'},
+  {id:'M-PLANFUL',name:'Inspections before the first pick'},
+  {id:'M-ENGAGE',name:'Focused fraction (tracked, not enforced)'},
+  {id:'M-RAPIDGUESS',name:'Rapid-guess flag (tracked, not enforced)'},
+];
+const SERVER_METERS=[
+  {id:'M-ACC',name:'Graph matches the story'},
+  {id:'M-POLY',name:'Story relations preserved'},
+  {id:'M-ERRTYPE',name:'Height, rate, crossing or accumulation lure'},
+  {id:'M-DIFFREACH',name:'Deepest graph relation solved'},
+  {id:'M-LEARNRATE',name:'Within-session growth'},
+];
+function buildMeters(){
+  $('#mlist').innerHTML=
+    METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}">—</span><span class="mname">${m.name}</span></div>`).join('')
+    +SERVER_METERS.map(m=>`<div class="mrow"><span class="mid srv">${m.id}</span><span class="mval">server-side</span><span class="mname">${m.name} · needs the key</span></div>`).join('');
+}
+function renderMeters(){const m=metricsNow();METERS.forEach(x=>{const el=$('#v_'+x.id);if(el)el.textContent=(x.id==='M-RTFIRST'&&firstLatency==null)?'—':String(m[x.id]);});}
+function log(msg){
+  const d=document.createElement('div');
+  d.innerHTML=`<span class="t">+${renderT0?Math.round(clock()-renderT0):0}ms</span> ${msg}`;
+  $('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;
+}
+function post(msg){if(!EMBEDDED)return;try{window.parent.postMessage(Object.assign({source:SRC_DEMO},msg),'*');}catch(_){}}
+function emitEvent(kind,extra){
+  const event=Object.assign({t:renderT0?Math.round(clock()-renderT0):0,kind,itemId:item?item.itemId:null},extra||{});
+  telemetryLog.push(event);post({type:'telemetry',event});
+  log(`<b>${kind}</b>`+(extra&&Object.keys(extra).length?' · '+JSON.stringify(extra):''));
+}
+
+/* ---------------- outline-pointer gesture hint (never reveals the key) ---------------- */
+const ghost=$('#ghost');
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const p=centerOf(el);ghost.style.transform=`translate(${p.x-10}px,${p.y-10}px)`;await sleep(480);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(340);}
+async function gestureHint(){
+  // Teaches the GESTURE only: watch the story, look along the graphs, tap one, send.
+  // It never selects a graph and never indicates which one matches.
+  ghost.classList.add('show');await sleep(220);
+  await ghostTo($('#scene'));await sleep(160);
+  await ghostTo($('#playStory'));await ghostTap();
+  await ghostTo($('#options'));await ghostTap();
+  await ghostTo($('#go'));await ghostTap();
+  ghost.classList.remove('show');await sleep(200);
+}
+
+/* ---------------- interaction ---------------- */
+function chooseGraph(key){
+  if(!interactive||submitted||!item)return;
+  if(firstKey===null){
+    firstKey=key;firstLatency=clock()-renderT0;
+    inspectionsBeforeFirstPick=inspectPath.length;
+    emitEvent('first_action',{key,latencyMs:Math.round(firstLatency),inspectionsBefore:inspectPath.length});
+  }else if(selectedKey!==null&&selectedKey!==key){changeCount++;emitEvent('change',{from:selectedKey,to:key});}
+  selectedKey=key;selectionOrder.push(key);
+  inspectPath.push('pick:'+key);
+  render();
+}
+function submit(){
+  if(!interactive||submitted||selectedKey===null)return;
+  submitted=true;interactive=false;submitMs=Math.round(clock()-renderT0);
+  playToken++;                                   // stop any animation still running
+  render();
+  emitEvent('submit',{selectedKey,rtMs:submitMs});
+  setCue('sent','Answer sent');
+  setStatus('Answer sent. Waiting for the next item.');
+  const result={
+    itemId:item.itemId,typeCode:item.typeCode||'QUANT-GRAPH-01',domain:item.domain||'quantitative',
+    response:{
+      kind:'choice',
+      selectedKey,
+      firstSelectedKey:firstKey,
+      selectionOrder:selectionOrder.slice(),
+      changeCount,
+      storyReplays:replays,
+      beatScrubs:scrubs,
+      inspectPath:inspectPath.slice(),
+    },
+    metrics:metricsNow(),
+    telemetry:telemetryLog.slice(),
+  };
+  post({type:'result',result});
+  log('RESULT sent · '+JSON.stringify({response:result.response,metrics:result.metrics}));
+  if(!EMBEDDED)setTimeout(standaloneAdvance,1400);
+}
+
+/* ---------------- cue / status ---------------- */
+function setCue(k,txt){const el=$('#phasecue');el.dataset.phase=k;el.textContent=txt;}
+function setStatus(msg){$('#status').textContent=msg;}
+
+/* ---------------- lifecycle ---------------- */
+function loadItem(served){
+  clearTimeout(startFallback);
+  if(!served||!served.content||!served.content.story||!Array.isArray(served.content.options)){
+    log('init ignored: malformed ServedItem');return;
   }
-  const amount=cur.a[Math.min(index,cur.a.length-1)];
-  const rate=cur.rates?cur.rates[Math.max(0,index-1)]||cur.rates[0]:0;
-  const strip=cur.rates?`<div class="rateStrip">${Array.from({length:rate},()=>'<i class="drop"></i>').join('')}</div>`:'';
-  $('#scene').innerHTML=`${strip}<div class="rig"><div class="mark">${cur.kind==='rate'?'💧':'🫙'}</div><div class="tank">${blocks(amount)}</div></div>`;
+  item=served;
+  interactive=false;submitted=false;
+  selectedKey=null;firstKey=null;selectionOrder=[];changeCount=0;
+  replays=0;scrubs=0;inspectPath=[];inspectionsBeforeFirstPick=0;
+  firstLatency=null;submitMs=0;telemetryLog=[];
+  focusedMs=0;focusTs=clock();isFocused=(document.visibilityState!=='hidden');
+  renderT0=clock();beat=0;
+  render();renderFrame(0);
+  setCue('waiting','Get ready');
+  setStatus('Watch the story.');
+  emitEvent('render',{difficulty:item.difficulty,question:item.content.question,beats:item.content.story.beats,options:item.content.options.length});
+  startFallback=setTimeout(()=>{if(!interactive&&!submitted)begin(false);},500);
 }
-async function playStory(countReplay=true){
-  const token=++animToken;locked=true;if(countReplay){replays++;T.path.push('▶');log('story replay');}
-  const frames=cur.a.length;$('#beats').innerHTML=Array.from({length:frames},()=>'<i></i>').join('');
-  $('#scrub').max=frames-1;$('#scrub').disabled=true;
-  for(let i=0;i<frames;i++){if(token!==animToken)return;renderFrame(i);await sleep(430)}
-  if(token!==animToken)return;locked=false;
-  $('#scrub').disabled=false;
-  [...document.querySelectorAll('.option')].forEach(x=>x.disabled=false);
-  T.itemStart=performance.now();renderMeters();
+async function begin(withTutorial){
+  if(!item||submitted||interactive)return;
+  clearTimeout(startFallback);
+  if(withTutorial&&!begin._taught){begin._taught=true;await gestureHint();if(submitted)return;}
+  interactive=true;renderT0=clock();
+  setCue('answer','Your turn');
+  setStatus('Watch the story, then tap the graph that tells the same story and press the check.');
+  emitEvent('start');
+  render();
+  playStory(false);
 }
-function pick(index,fromGhost=false){
-  if(locked||phase==='done')return;
-  if(selected!==index){T.path.push(`g${index+1}`);selected=index}
-  document.querySelectorAll('.option').forEach((x,i)=>x.classList.toggle('selected',i===index));
-  const credit=cur.options[index].credit;T.poly=`${Math.round(credit*100)}% relations`;
-  T.err=cur.options[index].err;T.plan=T.path.some(x=>x.startsWith('↔'))?'scrub-then-map':replays?'replay-then-map':T.path.length===1?'direct temporal map':'visual revision';
-  $('#go').classList.add('ready');renderMeters();if(!fromGhost)log(`select graph ${index+1} · partial ${Math.round(credit*100)}%`);
-}
-async function submit(){
-  if(locked||selected<0)return;locked=true;$('#go').classList.remove('ready');
-  const correct=selected===cur.correct;
-  document.querySelectorAll('.option').forEach((x,i)=>{x.disabled=true;if(i===cur.correct)x.classList.add('correct');if(i===selected&&!correct)x.classList.add('wrong')});
-  if(phase==='warmup'){
-    setStatus(correct?'ok':'no',correct?'✓ Correct - practice':'✗ Not quite - the correct graph is highlighted (practice)');
-    log(`WARM-UP ${correct?'match':'corrective match'} · UNSCORED`);await sleep(850);startScored();return;
-  }
-  setStatus(correct?'ok':'no',correct?'✓ Correct':'✗ Not quite - the correct graph is highlighted');
-  T.scored++;if(correct){T.correct++;T.maxSolved=Math.max(T.maxSolved,cur.level)}
-  T.results.push(correct?'↑':'↓');T.level=clamp(T.level+(correct?1:-1),1,6);
-  $('#progress').children[scoredIndex].classList.add(correct?'ok':'no');
-  log(`SUBMIT level ${cur.level} ${idea(cur.level)} → ${correct?'CORRECT':'MISS '+T.err}`);
-  renderMeters();scoredIndex++;await sleep(900);scoredIndex<6?startScored():finish();
-}
-function center(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}}
-async function ghostTo(el){const p=center(el);$('#ghost').style.transform=`translate(${p.x-10}px,${p.y-10}px)`;await sleep(480)}
-async function ghostTap(){$('#ghost').classList.remove('tap');void $('#ghost').offsetWidth;$('#ghost').classList.add('tap');await sleep(350)}
-function reset(){
-  Object.assign(T,{scored:0,correct:0,poly:'—',path:[],plan:'—',err:'—',level:1,startLevel:1,maxSolved:0,results:[],itemStart:0});
-  scoredIndex=0;replays=0;[...$('#progress').children].forEach(x=>x.className='');renderMeters();
-}
-async function loadItem(item){
-  cur=item;selected=-1;replays=0;locked=true;renderOptions();await playStory(false);
-}
-async function runDemo(){
-  animToken++;reset();phase='demo';log('ghost-hand demo · wordless');
-  setCue('demo');setStatus('neutral','Watch the example.');await loadItem(ITEMS[0]);locked=false;$('#ghost').classList.add('show');
-  await ghostTo($('#scene'));await sleep(220);await ghostTo($('#options').children[cur.correct]);await ghostTap();pick(cur.correct,true);
-  await ghostTo($('#go'));await ghostTap();document.querySelectorAll('.option')[cur.correct].classList.add('correct');
-  await sleep(500);$('#ghost').classList.remove('show');startWarmup();
-}
-async function startWarmup(){phase='warmup';setCue('warmup');setStatus('neutral','Practice - this one is not scored.');await loadItem(WARM);log('warm-up · unscored')}
-async function startScored(){phase='scored';setCue('scored',(scoredIndex+1)+'/6');setStatus('neutral','Watch the story, then tap the graph that matches it.');await loadItem(ITEMS[T.level-1]);log(`SCORED ${scoredIndex+1}/6 · ${idea(T.level)}`)}
-function finish(){phase='done';locked=true;setCue('done');setStatus('ok','✓ Done');log(`DONE · ${T.correct}/${T.scored} · peak ${T.maxSolved}`);renderMeters()}
-$('#options').addEventListener('click',e=>{const button=e.target.closest('.option');if(button)pick(+button.dataset.i)});
+window.addEventListener('message',e=>{
+  const d=e.data;if(!d||d.source!==SRC_HOST)return;
+  if(d.type==='init')loadItem(d.item);
+  else if(d.type==='start'){clearTimeout(startFallback);begin(!!d.tutorial);}
+});
+
+/* ---------------- engagement tracking ---------------- */
+function onFocus(){tickFocus();isFocused=true;}
+function onBlur(){tickFocus();if(isFocused&&interactive&&!submitted)emitEvent('engagement',{reason:'blur'});isFocused=false;}
+window.addEventListener('focus',onFocus);window.addEventListener('blur',onBlur);
+document.addEventListener('visibilitychange',()=>{document.visibilityState==='hidden'?onBlur():onFocus();});
+
+/* ---------------- input wiring ---------------- */
+$('#options').addEventListener('click',e=>{const b=e.target.closest('.option');if(b&&!b.disabled)chooseGraph(b.dataset.key);});
 $('#go').addEventListener('click',submit);
-$('#replayStory').addEventListener('click',()=>{if(cur&&phase!=='demo'&&phase!=='done')playStory(true)});
-$('#scrub').addEventListener('input',event=>{if(cur&&!locked)renderFrame(+event.target.value)});
-$('#scrub').addEventListener('change',event=>{if(cur&&!locked){T.path.push(`↔${event.target.value}`);T.plan='scrub-then-map';log(`inspect beat ${+event.target.value+1}`);renderMeters()}});
-$('#replayDemo').addEventListener('click',runDemo);
-buildTelemetry();renderMeters();runDemo();
+$('#playStory').addEventListener('click',()=>{if(item&&!submitted)playStory(true);});
+$('#scrub').addEventListener('input',e=>{if(item&&!submitted){playToken++;renderFrame(+e.target.value);}});
+$('#scrub').addEventListener('change',e=>{
+  if(!item||submitted)return;
+  scrubs++;inspectPath.push('beat:'+(+e.target.value+1));
+  emitEvent('story_scrub',{beat:+e.target.value+1,scrubs});renderMeters();
+});
+$('#replay').addEventListener('click',()=>{if(item&&!submitted)gestureHint();});
+document.addEventListener('keydown',e=>{
+  if(!interactive||submitted)return;
+  if(e.key==='Enter'&&selectedKey!==null){submit();return;}
+  const opts=$$('#options .option');
+  if(/^[1-9]$/.test(e.key)){const o=opts[+e.key-1];if(o)chooseGraph(o.dataset.key);return;}
+  const o=opts.find(x=>x.dataset.key.toUpperCase()===e.key.toUpperCase());
+  if(o)chooseGraph(o.dataset.key);
+});
+
+/* ---------------- standalone fallback (double-click QA) ---------------- */
+const INLINE_SAMPLES=[
+{"itemId":"sample-floor","typeCode":"QUANT-GRAPH-01","domain":"quantitative","difficulty":1.2,"ageBands":["2-3"],"demoPath":"demos/QUANT-GRAPH-01.html","content":{"typeCode":"QUANT-GRAPH-01","prompt":"Watch the tank. Tap the graph that shows how full it is at each beat.","question":"amount","story":{"beats":3,"tracks":[{"id":"A","kind":"amount","icon":"tank","values":[1,2,3]}],"replayable":true},"graph":{"mode":"bars","yMax":5,"xCount":3,"series":["A"],"xLabel":"time","yLabel":"blocks"},"options":[{"key":"A","series":{"A":[2,2,2]}},{"key":"B","series":{"A":[1,2,3]}},{"key":"C","series":{"A":[3,2,1]}}]},"syntheticOnly":true,"validated":false},
+{"itemId":"sample-compare","typeCode":"QUANT-GRAPH-01","domain":"quantitative","difficulty":11.4,"ageBands":["4-5"],"demoPath":"demos/QUANT-GRAPH-01.html","content":{"typeCode":"QUANT-GRAPH-01","prompt":"Watch both tanks. Tap the graph that shows what each one does at every beat.","question":"compare","story":{"beats":4,"tracks":[{"id":"A","kind":"amount","icon":"tank","values":[1,3,5,7]},{"id":"B","kind":"amount","icon":"tower","values":[6,5,4,3]}],"replayable":true},"graph":{"mode":"twoline","yMax":8,"xCount":4,"series":["A","B"],"xLabel":"time","yLabel":"blocks"},"options":[{"key":"A","series":{"A":[1,3,5,7],"B":[6,5,4,3]}},{"key":"B","series":{"A":[6,5,4,3],"B":[1,3,5,7]}},{"key":"C","series":{"A":[1,3,5,7],"B":[2,4,6,8]}}]},"syntheticOnly":true,"validated":false},
+{"itemId":"sample-total","typeCode":"QUANT-GRAPH-01","domain":"quantitative","difficulty":15.7,"ageBands":["6-8"],"demoPath":"demos/QUANT-GRAPH-01.html","content":{"typeCode":"QUANT-GRAPH-01","prompt":"Drops arrive at each beat. Tap the graph that shows the total collected so far.","question":"total","story":{"beats":5,"tracks":[{"id":"A","kind":"rate","icon":"drops","values":[2,0,2,4,2]}],"replayable":true},"graph":{"mode":"line","yMax":11,"xCount":5,"series":["A"],"xLabel":"time","yLabel":"total"},"options":[{"key":"A","series":{"A":[2,2,4,8,11]}},{"key":"B","series":{"A":[2,0,2,4,2]}},{"key":"C","series":{"A":[2,2,4,8,10]}},{"key":"D","series":{"A":[2,2,2,6,6]}}]},"syntheticOnly":true,"validated":false},
+{"itemId":"sample-step","typeCode":"QUANT-GRAPH-01","domain":"quantitative","difficulty":19.6,"ageBands":["6-8"],"demoPath":"demos/QUANT-GRAPH-01.html","content":{"typeCode":"QUANT-GRAPH-01","prompt":"Watch the tank. Tap the graph that shows how much was added at each beat.","question":"step","story":{"beats":6,"tracks":[{"id":"A","kind":"amount","icon":"tank","values":[0,0,2,2,4,5]}],"replayable":true},"graph":{"mode":"bars","yMax":5,"xCount":5,"series":["A"],"xLabel":"beat","yLabel":"added"},"options":[{"key":"A","series":{"A":[0,2,2,4,5]}},{"key":"B","series":{"A":[0,0,2,2,4]}},{"key":"C","series":{"A":[0,2,0,2,1]}},{"key":"D","series":{"A":[0,2,1,2,1]}}]},"syntheticOnly":true,"validated":false}
+];
+let queue=[], queueIx=0;
+function toServed(b){const{answer,scoring,provenance,...served}=b;return served;}
+async function loadBankSamples(){
+  try{
+    const res=await fetch('../banks/QUANT-GRAPH-01.jsonl',{cache:'no-store'});
+    if(res.ok){
+      const all=(await res.text()).trim().split('\n').filter(Boolean).map(l=>JSON.parse(l)).map(toServed);
+      all.sort((a,b)=>a.difficulty-b.difficulty);
+      const N=Math.min(12,all.length),pick=[];
+      for(let i=0;i<N;i++)pick.push(all[N===1?0:Math.round(i*(all.length-1)/(N-1))]);
+      log(`standalone: fetched ${all.length} bank items; cycling ${pick.length} across difficulty`);
+      return pick;
+    }
+  }catch(_){/* file:// blocks fetch */}
+  log('standalone: bank fetch unavailable (serve the folder over http for the full bank) — using inline samples');
+  return INLINE_SAMPLES.slice();
+}
+function standaloneAdvance(){queueIx=(queueIx+1)%queue.length;loadItem(queue[queueIx]);begin(false);}
+async function bootstrapStandalone(){queue=await loadBankSamples();queueIx=0;loadItem(queue[0]);begin(true);}
+
+/* ---------------- boot ---------------- */
+buildMeters();
+post({type:'ready'});
+if(EMBEDDED){setCue('waiting','Waiting for host');log('ready · awaiting host init');setTimeout(()=>{if(!item)bootstrapStandalone();},1200);}
+else{log('standalone · no host detected');bootstrapStandalone();}
 </script>
 </body>
 </html>

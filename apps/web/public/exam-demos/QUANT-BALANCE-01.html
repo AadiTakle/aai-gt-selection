@@ -3,12 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>QUANT-BALANCE-01 · Balance Lab</title>
+<title>QUANT-BALANCE-01 · Balance Lab (renderer)</title>
 <style>
   :root{
     --lav:#f1ebff;--mint:#e7faf2;--ink:#30364e;--card:#fff;
-    --purple:#7664ce;--green:#2ea985;--gold:#e6a844;--good:#26b879;--bad:#ef6672;
+    --purple:#7664ce;--green:#2ea985;--gold:#e6a844;--good:#26b879;
     --beam:#66708d;--tel:#111628;--tel2:#1d2440;--key:#82f4d1;--dim:#7785ae;
+    --orb:#438bce;--cube:#35a580;--diamond:#8a60ce;--triangle:#e5a42d;
   }
   *{box-sizing:border-box}
   html,body{margin:0;min-height:100%}
@@ -18,113 +19,72 @@
     background:linear-gradient(145deg,var(--lav),var(--mint));
   }
   button{font:inherit}
-  #wrap{
-    flex:1;min-width:0;padding:18px;display:flex;flex-direction:column;
-    align-items:center;gap:12px;
-  }
-  #badge{
-    color:#7e84a3;font-size:12px;font-weight:800;letter-spacing:.1em;
-    text-transform:uppercase;
-  }
-  #howto{max-width:620px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--purple);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+  #wrap{flex:1;min-width:0;padding:18px;display:flex;flex-direction:column;align-items:center;gap:12px}
+  #badge{color:#7e84a3;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+  #howto{max-width:640px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--purple);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
   #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--purple)}
   #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
   #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#efeaff;color:var(--purple);border:2px solid #d8cffb;min-height:30px}
-  #phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
-  #phasecue[data-phase="scored"]{background:var(--purple);color:#fff;border-color:var(--purple)}
-  #phasecue[data-phase="done"]{background:#efeaff;color:#5a49b5;border-color:#d8cffb}
-  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
-  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
+  #phasecue[data-phase="waiting"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
+  #phasecue[data-phase="answer"]{background:var(--purple);color:#fff;border-color:var(--purple)}
+  #phasecue[data-phase="sent"]{background:#e6f6ec;color:#1c7f57;border-color:#bfe6cc}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center;color:#8a93b5}
   #stagecard{
     width:min(820px,100%);min-height:560px;padding:22px;border-radius:32px;
     background:rgba(255,255,255,.95);box-shadow:0 25px 62px -32px #595178;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:17px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
   }
-  #examples{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;min-height:66px}
-  .mini-scale{
-    min-width:150px;height:62px;border-radius:18px;background:#f4f1ff;
-    border:2px solid #dcd5f3;display:flex;align-items:center;justify-content:center;gap:10px;
-  }
-  .mini-side{min-width:48px;display:flex;gap:3px;justify-content:center}
-  .mini-beam{width:25px;height:3px;background:var(--beam);position:relative}
-  .mini-beam::after{content:"";position:absolute;left:10px;top:3px;border:5px solid transparent;border-bottom:0;border-top:10px solid var(--beam)}
-  #scale{width:min(590px,100%);height:230px;position:relative}
-  #post{
-    position:absolute;left:50%;bottom:18px;width:18px;height:150px;transform:translateX(-50%);
-    border-radius:10px 10px 2px 2px;background:linear-gradient(90deg,#56617e,#7c87a4,#56617e);
-  }
-  #post::after{
-    content:"";position:absolute;left:-52px;bottom:-12px;width:122px;height:22px;
-    border-radius:50% 50% 8px 8px;background:#4f5872;
-  }
-  #beam{
-    position:absolute;left:8%;right:8%;top:72px;height:12px;border-radius:8px;
-    background:linear-gradient(#818ca9,#59637e);transform-origin:center;
-    transition:transform .35s ease;
-  }
-  #beam::after{
-    content:"";position:absolute;left:50%;top:-7px;width:25px;height:25px;
-    border-radius:50%;background:var(--gold);transform:translateX(-50%);
-  }
-  .hanger{position:absolute;top:5px;width:38%;height:126px}
+  #examples{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;min-height:60px}
+  .mini-scale{min-width:150px;height:58px;border-radius:18px;background:#f4f1ff;border:2px solid #dcd5f3;display:flex;align-items:center;justify-content:center;gap:9px;padding:0 10px}
+  .mini-side{display:flex;gap:4px;justify-content:center;flex-wrap:wrap;max-width:66px}
+  .mini-beam{width:24px;height:3px;background:var(--beam);position:relative;flex:0 0 auto}
+  .mini-beam::after{content:"";position:absolute;left:9px;top:3px;border:5px solid transparent;border-bottom:0;border-top:9px solid var(--beam)}
+  /* CSS-drawn shape tokens (no glyphs) */
+  .shape{width:24px;height:24px;display:inline-block;flex:0 0 auto}
+  .shape.orb{border-radius:50%;background:var(--orb)}
+  .shape.cube{border-radius:5px;background:var(--cube)}
+  .shape.diamond{background:var(--diamond);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+  .shape.triangle{background:var(--triangle);clip-path:polygon(50% 0,100% 100%,0 100%)}
+  #scale{width:min(590px,100%);height:220px;position:relative}
+  #post{position:absolute;left:50%;bottom:18px;width:18px;height:150px;transform:translateX(-50%);border-radius:10px 10px 2px 2px;background:linear-gradient(90deg,#56617e,#7c87a4,#56617e)}
+  #post::after{content:"";position:absolute;left:-52px;bottom:-12px;width:122px;height:22px;border-radius:50% 50% 8px 8px;background:#4f5872}
+  #beam{position:absolute;left:8%;right:8%;top:70px;height:12px;border-radius:8px;background:linear-gradient(#818ca9,#59637e);transform-origin:center}
+  #beam::after{content:"";position:absolute;left:50%;top:-7px;width:25px;height:25px;border-radius:50%;background:var(--gold);transform:translateX(-50%)}
+  .hanger{position:absolute;top:5px;width:38%;height:120px}
   .hanger.left{left:1%}.hanger.right{right:1%}
-  .string{position:absolute;left:50%;top:0;width:3px;height:76px;background:#7b86a2}
+  .string{position:absolute;left:50%;top:0;width:3px;height:70px;background:#7b86a2}
   .pan{
-    position:absolute;left:5%;right:5%;bottom:0;min-height:55px;padding:9px;
-    border:4px solid #79839e;border-top:0;border-radius:8px 8px 34px 34px;
-    background:#f8faff;display:flex;gap:5px;align-items:center;justify-content:center;
+    position:absolute;left:2%;right:2%;bottom:0;min-height:56px;padding:9px;
+    border:4px solid #79839e;border-top:0;border-radius:8px 8px 34px 34px;background:#f8faff;
+    display:flex;gap:5px;align-items:center;justify-content:center;flex-wrap:wrap;
   }
-  #rightpan{border-style:dashed;background:#f6fffb;cursor:pointer}
-  #rightpan.good{border-color:var(--good);background:#eafff4}
-  #rightpan.bad{border-color:var(--bad);background:#fff0f2}
-  .piece{
-    width:37px;height:37px;border:0;border-radius:12px;background:#fff;
-    display:grid;place-items:center;font-size:28px;line-height:1;cursor:pointer;
-    box-shadow:0 3px 0 #d9ddeb;
+  #rightpan{border-style:dashed;background:#f6fffb}
+  #rightpan.empty{color:#9aa6c8;font-weight:800}
+  #tray{min-height:20px}
+  #choices{display:flex;gap:11px;justify-content:center;flex-wrap:wrap;min-height:78px}
+  .choice{
+    min-width:96px;min-height:66px;padding:8px 10px;border:3px solid #d4dcf2;border-radius:18px;background:#fff;
+    display:flex;gap:5px;align-items:center;justify-content:center;flex-wrap:wrap;cursor:pointer;box-shadow:0 6px 0 #d3d9ee;transition:.15s;
   }
-  .piece.orb{color:#438bce}.piece.star{color:#e5a42d}
-  .piece.diamond{color:#8a60ce}.piece.triangle{color:#35a580}
-  #tray{
-    min-height:70px;padding:10px 14px;border-radius:22px;background:#edf2ff;
-    border:3px solid #d4dcf2;display:flex;gap:9px;align-items:center;justify-content:center;
-    flex-wrap:wrap;
-  }
-  #tray .piece{width:48px;height:48px;font-size:34px;box-shadow:0 5px 0 #cbd4e8}
-  #tray .piece.used{opacity:.18;pointer-events:none;transform:translateY(4px)}
+  .choice:hover,.choice:focus-visible{outline:none;transform:translateY(-3px);border-color:#a99cec}
+  .choice.selected{transform:translateY(-4px);border-color:var(--purple);box-shadow:0 8px 0 #cabff0}
+  .choice[disabled]{opacity:.5;cursor:default;pointer-events:none}
   #controls{display:flex;gap:18px;align-items:center}
-  #replay,#go{border:0;border-radius:50%;cursor:pointer;display:grid;place-items:center}
-  #replay{width:50px;height:50px;color:var(--purple);background:#eeeaff;font-size:24px}
   #go{
-    width:76px;height:76px;color:#fff;font-size:34px;background:linear-gradient(145deg,var(--purple),var(--green));
-    box-shadow:0 11px 26px -9px var(--purple);opacity:.34;pointer-events:none;
+    width:76px;height:76px;border:0;border-radius:50%;cursor:pointer;display:grid;place-items:center;color:#fff;font-size:33px;
+    background:linear-gradient(145deg,var(--purple),var(--green));box-shadow:0 11px 26px -9px var(--purple);opacity:.34;pointer-events:none;transition:.2s;
   }
   #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.1s infinite}
   @keyframes pulse{50%{transform:scale(1.08)}}
-  .shake{animation:shake .4s}
-  @keyframes shake{25%,75%{transform:translateX(-8px)}50%{transform:translateX(8px)}}
-  #ghost{
-    position:fixed;left:0;top:0;z-index:90;font-size:42px;opacity:0;pointer-events:none;
-    filter:drop-shadow(0 3px 4px #0004);transition:transform .46s ease,opacity .2s;
-  }
-  #ghost.show{opacity:.94}#ghost.tap{animation:tap .34s}
-  @keyframes tap{50%{scale:.78}}
-  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--purple);opacity:0}
-  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
-  #telemetry{
-    width:336px;flex:0 0 336px;background:var(--tel);color:#cbd6f8;
-    display:flex;flex-direction:column;font:13px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace;
-  }
-  #telemetry h3{
-    margin:0;padding:13px 14px;background:var(--tel2);color:#fff;
-    font-size:12px;letter-spacing:.09em;text-transform:uppercase;
-  }
+  #telemetry{width:336px;flex:0 0 336px;background:var(--tel);color:#cbd6f8;display:flex;flex-direction:column;font:13px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:13px 14px;background:var(--tel2);color:#fff;font-size:12px;letter-spacing:.09em;text-transform:uppercase}
   #difficulty{padding:11px 13px;border-bottom:1px solid #293351}
   .cap{display:flex;justify-content:space-between;color:#8998c1;font-size:11px}
-  #dbar{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-top:7px}
-  #dbar i{height:9px;border-radius:5px;background:#2b3452}
+  #dbar{display:grid;grid-template-columns:repeat(20,1fr);gap:2px;margin-top:7px}
+  #dbar i{height:9px;border-radius:3px;background:#2b3452}
   #dbar i.on{background:linear-gradient(90deg,#82f4d1,#a894ff)}
-  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
-  .mrow{display:grid;grid-template-columns:96px 1fr;gap:7px}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+  .mrow{display:grid;grid-template-columns:104px 1fr;gap:7px}
   .mid{color:var(--key);font-weight:800}.mval{color:#fff;text-align:right}
   .mname{grid-column:1/3;color:var(--dim);font-size:11px}
   #logwrap{border-top:1px solid #293351;margin-top:auto}
@@ -133,206 +93,244 @@
   #log div{padding:3px 0;border-bottom:1px dotted #26304d}#log .t{color:#6474a4}
   @media(max-width:860px){
     body{flex-direction:column}#telemetry{width:100%;flex:none;min-height:350px}
-    #stagecard{min-height:520px}#scale{height:210px}.hanger{width:42%}
+    #stagecard{min-height:520px}#scale{height:200px}.hanger{width:42%}
   }
   @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
+<style>html[data-gt-telemetry="off"] #telemetry{display:none}</style>
+<script>/* D-028 — the researcher telemetry panel is presentational only. Embedded in the
+   child-facing screener it is hidden: naming the behavioural metrics to the child can
+   change the behaviour being measured. `?telemetry=1` restores it for a live
+   demonstration, and standalone (opened directly) is unchanged. Sampling, metric
+   computation and the {type:'telemetry'} postMessage stream are untouched. */
+(function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
 </head>
 <body>
 <main id="wrap">
   <div id="badge">QUANT-BALANCE-01 · Balance Lab</div>
   <header id="howto">
     <h1>How to use — Balance Lab</h1>
-    <p>Look at the small example scales to learn what each shape is worth. Then tap shapes from the tray onto the right pan so it balances the left pan, and press the check (<b>✓</b>) to submit. Tap a shape on the pan to take it back off. It gets harder each time you balance it.</p>
+    <p>Use the small example scales to work out what each shape is worth. Then tap the group of shapes that would balance the left pan. You can tap another group to change your pick, then press the check to send your answer.</p>
   </header>
-  <div id="phasecue" data-phase="demo">Watch the example</div>
+  <div id="phasecue" data-phase="waiting">Loading</div>
   <section id="stagecard">
-    <div id="examples"></div>
+    <div id="examples" aria-label="Example scales"></div>
     <div id="scale">
       <div id="post"></div>
       <div id="beam">
         <div class="hanger left"><i class="string"></i><div class="pan" id="leftpan"></div></div>
-        <div class="hanger right"><i class="string"></i><div class="pan" id="rightpan"></div></div>
+        <div class="hanger right"><i class="string"></i><div class="pan empty" id="rightpan">?</div></div>
       </div>
     </div>
-    <div id="tray"></div>
+    <div id="choices" aria-label="Answer choices"></div>
     <div id="controls">
-      <button id="replay" aria-label="Replay demonstration">↻</button>
-      <button id="go" aria-label="Check balance">✓</button>
+      <button id="go" aria-label="Send answer">&#10003;</button>
     </div>
-    <div id="status" class="neutral">Watch the example, then try it yourself.</div>
+    <div id="status">Waiting for an item.</div>
   </section>
 </main>
 <aside id="telemetry">
   <h3>Live telemetry · per-child</h3>
   <div id="difficulty">
-    <div class="cap"><span>DIFFICULTY</span><span id="dlabel">1 / 6</span></div>
+    <div class="cap"><span>ITEM DIFFICULTY (design rung)</span><span id="dlabel">— / 20</span></div>
     <div id="dbar"></div>
   </div>
   <div id="mlist"></div>
   <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
 </aside>
-<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
+/*
+ * QUANT-BALANCE-01 — PURE RENDERER.
+ * Renders one ServedItem's `content` (no answer key or shape weights ever reach
+ * this file — weights are inferred by the child from the served example scales),
+ * captures the child's raw response + behavioural metrics + telemetry, and hands
+ * them back to the host via postMessage. It NEVER shows correct/incorrect and the
+ * beam does NOT tilt on selection; scoring is server-authoritative
+ * (EXAM_ADAPTIVE_BUILD_PLAN.md §2).
+ *
+ * Embedding protocol (postMessage):
+ *   host -> demo : {source:'gt-exam-host', type:'init',  item:ServedItem}
+ *                  {source:'gt-exam-host', type:'start'}
+ *   demo -> host : {source:'gt-exam-demo', type:'ready'}
+ *                  {source:'gt-exam-demo', type:'result',    result:ItemResult}
+ *                  {source:'gt-exam-demo', type:'telemetry', event:TelemetryEvent}
+ *
+ * Double-clicked (standalone), it renders bundled sample items so it still runs.
+ */
 const $=s=>document.querySelector(s);
-const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const ICON={orb:'●',star:'★',diamond:'◆',triangle:'▲'};
-const ITEMS=[
-  {w:{orb:1},examples:[],target:['orb','orb'],stock:['orb','orb','orb'],solution:['orb','orb'],max:3,relations:1,label:'direct match'},
-  {w:{orb:1,star:2},examples:[[['star'],['orb','orb']]],target:['star'],stock:['orb','orb','orb'],solution:['orb','orb'],max:3,relations:1,label:'one hidden weight'},
-  {w:{orb:1,star:2,diamond:3},examples:[[['star'],['orb','orb']],[['diamond'],['star','orb']]],target:['diamond','orb'],stock:['star','star','orb'],solution:['star','star'],max:2,relations:2,label:'two linked weights'},
-  {w:{orb:1,star:3,diamond:5,triangle:8},examples:[[['star'],['orb','orb','orb']],[['diamond'],['star','orb','orb']],[['triangle'],['diamond','star']]],target:['triangle'],stock:['diamond','star','orb'],solution:['diamond','star'],max:2,relations:3,label:'substitution chain'},
-  {w:{orb:1,star:2,diamond:4,triangle:7},examples:[[['star'],['orb','orb']],[['diamond'],['star','star']],[['triangle'],['diamond','star','orb']]],target:['triangle'],stock:['diamond','star','orb','diamond'],solution:['diamond','star','orb'],max:3,relations:3,label:'three-piece decomposition'},
-  {w:{orb:1,star:3,diamond:6,triangle:10},examples:[[['star'],['orb','orb','orb']],[['diamond'],['star','star']],[['triangle'],['diamond','star','orb']]],target:['triangle','star'],stock:['diamond','diamond','star','orb','orb'],solution:['diamond','diamond','orb'],max:3,relations:4,label:'four linked constraints'}
-];
-const DEMO={w:{star:1},examples:[],target:['star','star'],stock:['star','star','star'],solution:['star','star'],preset:[0],max:3,relations:1,label:'matching pair'};
-const WARM={w:{orb:1},examples:[],target:['orb','orb'],stock:['orb','orb','orb'],solution:['orb','orb'],max:3,relations:1,label:'matching pair'};
-let phase='demo',cur=null,onPan=[],path=[],locked=true,trial=0,level=1;
-const T={scored:0,correct:0,lastPoly:'—',lastPath:'—',lastPlan:'—',lastErr:'—',maxLevel:0,levels:[]};
-const PHASE={demo:'Watch the example',warmup:'Warm-up · not scored',scored:'Scored',done:'Done'};
-function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
-function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
-function piece(shape,where,index){
-  return `<button class="piece ${shape}" data-where="${where}" data-index="${index}" aria-label="Shape weight">${ICON[shape]}</button>`;
+const clock=()=>performance.now();
+const EMBEDDED = !!(window.parent && window.parent !== window);
+const SRC_DEMO='gt-exam-demo', SRC_HOST='gt-exam-host';
+const RAPID_MS=800;                              // effort-validity threshold (tracked, not enforced)
+
+/* ---------------- state (reset per item) ---------------- */
+let item=null, renderT0=0, firstT=null, selectedKey=null;
+let pickSeq=[], revisions=0, locked=true, submitted=false, submitMs=0;
+let focusedMs=0, focusTs=clock(), isFocused=(document.visibilityState!=='hidden'), blurCount=0;
+let startFallback=null, telemetryLog=[];
+
+/* ---------------- shape rendering (CSS tokens, no glyphs) ---------------- */
+function cluster(load){ return (load||[]).map(s=>`<span class="shape ${s}"></span>`).join(''); }
+
+/* ---------------- telemetry + metrics ---------------- */
+function emit(type,payload){
+  const msg=Object.assign({source:SRC_DEMO,type},payload);
+  if(EMBEDDED){ try{window.parent.postMessage(msg,'*');}catch(e){/* no-op */} }
 }
-function cluster(arr){return arr.map((s,i)=>`<span class="piece ${s}" aria-hidden="true">${ICON[s]}</span>`).join('');}
-function total(arr){return arr.reduce((n,s)=>n+cur.w[s],0);}
-function counts(arr){return arr.reduce((o,s)=>(o[s]=(o[s]||0)+1,o),{});}
-function sameLoad(a,b){
-  const x=counts(a),y=counts(b);
-  return Object.keys({...x,...y}).every(k=>(x[k]||0)===(y[k]||0));
+function evt(name,extra){
+  const e=Object.assign({t:Math.round(clock()-renderT0),name},extra||{});
+  telemetryLog.push(e);
+  emit('telemetry',{event:e});
+  log(name+(extra&&extra.key?` · ${extra.key}`:'')+(extra&&extra.ms!=null?` · ${extra.ms}ms`:''));
+  return e;
 }
-function solutionIndices(){
-  const used=new Set();
-  return cur.solution.map(shape=>{
-    const i=cur.stock.findIndex((s,j)=>s===shape&&!used.has(j));
-    used.add(i);return i;
-  });
+function tickFocus(){ const t=clock(); if(isFocused) focusedMs+=t-focusTs; focusTs=t; }
+function metricsNow(){
+  tickFocus();
+  const total=Math.max(1,Math.round(clock()-renderT0));
+  const rt=submitted?submitMs:Math.round(clock()-renderT0);
+  return {
+    'M-RTFIRST': firstT!=null?Math.round(firstT):0,
+    'M-RT': rt,
+    'M-REV': revisions,
+    'M-RAPIDGUESS': submitted&&submitMs<RAPID_MS?1:0,
+    'M-ENGAGE': Math.round(1000*Math.min(1,focusedMs/total))/1000,
+  };
 }
-function matchedRequired(){
-  const have=counts(onPan.map(i=>cur.stock[i])),need=counts(cur.solution);
-  return Object.keys(need).reduce((n,k)=>n+Math.min(need[k],have[k]||0),0);
-}
-function poly(){
-  if(!cur)return 0;
-  return Math.floor(cur.relations*matchedRequired()/cur.solution.length);
-}
-function planfulness(){
-  if(!path.length)return '—';
-  const useful=path.filter(x=>x.useful).length/path.length;
-  return `${useful.toFixed(2)} · ${useful===1?'direct':'revising'}`;
-}
-function examplesHTML(){
-  return cur.examples.map(e=>`<div class="mini-scale"><div class="mini-side">${cluster(e[0])}</div><i class="mini-beam"></i><div class="mini-side">${cluster(e[1])}</div></div>`).join('');
-}
-function renderItem(item){
-  cur=item;onPan=(item.preset||[]).slice();path=[];
-  $('#examples').innerHTML=examplesHTML();$('#leftpan').innerHTML=cluster(item.target);
-  renderLoad();updateDifficulty();renderMeters();
-}
-function renderLoad(){
-  const shapes=onPan.map(i=>cur.stock[i]);
-  $('#rightpan').innerHTML=onPan.map(i=>piece(cur.stock[i],'pan',i)).join('')||'?';
-  $('#tray').innerHTML=cur.stock.map((s,i)=>piece(s,'tray',i)).join('');
-  onPan.forEach(i=>{const b=document.querySelector(`#tray .piece[data-index="${i}"]`);if(b)b.classList.add('used');});
-  const delta=total(shapes)-total(cur.target);
-  $('#beam').style.transform=`rotate(${Math.max(-8,Math.min(8,delta*2))}deg)`;
-  $('#rightpan').className='pan';
-  $('#go').classList.toggle('ready',onPan.length>0);
+
+/* ---------------- render ---------------- */
+function renderItem(){
+  const c=item.content;
+  $('#examples').innerHTML=(c.examples||[]).map(ex=>
+    `<div class="mini-scale"><div class="mini-side">${cluster(ex.left)}</div><i class="mini-beam"></i><div class="mini-side">${cluster(ex.right)}</div></div>`
+  ).join('')||'<div class="mini-side" style="color:#9aa6c8">no example scales</div>';
+  $('#leftpan').innerHTML=cluster(c.target);
+  const rp=$('#rightpan'); rp.innerHTML='?'; rp.classList.add('empty');
+  $('#beam').style.transform='rotate(0deg)';               // beam stays level (never a correctness cue)
+  $('#choices').innerHTML=(c.options||[]).map(o=>
+    `<button class="choice" data-key="${o.key}" aria-label="Group ${o.key}">${cluster(o.load)}</button>`
+  ).join('');
+  const d=Number(item.difficulty)||0;
+  $('#dlabel').textContent=`${d?d.toFixed(1):'—'} / 20`;
+  $('#dbar').innerHTML=Array.from({length:20},(_,i)=>`<i class="${i<Math.round(d)?'on':''}"></i>`).join('');
   renderMeters();
 }
-function addPiece(i,ghosted=false){
-  if(locked&&!ghosted||onPan.includes(i)||onPan.length>=cur.max)return;
-  const shape=cur.stock[i],before=counts(onPan.map(x=>cur.stock[x])),need=counts(cur.solution);
-  onPan.push(i);path.push({a:'+',shape,useful:(before[shape]||0)<(need[shape]||0)});
-  if(!ghosted)log(`add ${shape}`);renderLoad();
-}
-function removePiece(i){
-  if(locked)return;
-  const at=onPan.indexOf(i);if(at<0)return;
-  const shape=cur.stock[i],need=counts(cur.solution),before=counts(onPan.map(x=>cur.stock[x]));
-  onPan.splice(at,1);path.push({a:'−',shape,useful:(before[shape]||0)>(need[shape]||0)});
-  log(`remove ${shape}`);renderLoad();
-}
-function errorType(){
-  const load=onPan.map(i=>cur.stock[i]),a=total(load),b=total(cur.target);
-  if(a<b)return matchedRequired()?'one-relation-only':'under-balance';
-  if(a>b)return 'over-balance';
-  return 'alternate-load';
-}
-function feedback(ok){
-  $('#rightpan').classList.add(ok?'good':'bad');
-  if(ok)$('#beam').style.transform='rotate(0deg)';
-  else{$('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),430);}
+function optByKey(key){return (item.content.options||[]).find(o=>o.key===key);}
+
+/* ---------------- interaction ---------------- */
+function pick(key){
+  if(locked||submitted)return;
+  const opt=optByKey(key); if(!opt)return;
+  if(firstT===null){firstT=clock()-renderT0;evt('first_action',{key,ms:Math.round(firstT)});}
+  if(selectedKey!==null&&selectedKey!==key){revisions++;evt('revise',{key,from:selectedKey});}
+  selectedKey=key;pickSeq.push(key);
+  evt('select',{key});
+  document.querySelectorAll('.choice').forEach(b=>b.classList.toggle('selected',b.dataset.key===key));
+  const rp=$('#rightpan'); rp.classList.remove('empty'); rp.innerHTML=cluster(opt.load);   // preview on the pan (beam stays level)
+  $('#go').classList.add('ready');
+  setCue('answer','Your turn');
+  renderMeters();
 }
 function submit(){
-  if(locked||!onPan.length)return;
-  const ok=sameLoad(onPan.map(i=>cur.stock[i]),cur.solution);
-  if(phase==='warmup'){
-    locked=true;feedback(ok);setStatus(ok?'ok':'no',ok?'✓ Balanced - practice':'✗ Not balanced - the matching weights are shown (practice)');log(`warm-up ${ok?'balanced':'corrective placement'} · UNSCORED`);
-    if(!ok)setTimeout(()=>{onPan=solutionIndices();renderLoad();feedback(true);},430);
-    setTimeout(startScored,1100);return;
-  }
-  locked=true;T.scored++;if(ok)T.correct++;
-  setStatus(ok?'ok':'no',ok?'✓ Balanced':'✗ Not balanced yet');
-  T.lastPoly=`${poly()} / ${cur.relations}`;
-  T.lastPath=path.length?path.map(x=>x.a+x.shape[0]).join(' → '):'none';
-  T.lastPlan=planfulness();T.lastErr=ok?'—':errorType();
-  if(ok)T.maxLevel=Math.max(T.maxLevel,level);
-  T.levels.push({trial:T.scored,level,ok});feedback(ok);
-  log(`SCORED ${T.scored}/6 · L${level} · ${ok?'balanced':'miss '+T.lastErr} · poly ${T.lastPoly}`);
-  level=Math.max(1,Math.min(6,level+(ok?1:-1)));updateDifficulty();renderMeters();
-  setTimeout(()=>{trial++;trial<6?startScored():finish();},960);
+  if(locked||submitted||selectedKey===null)return;
+  submitted=true;locked=true;
+  submitMs=Math.round(clock()-renderT0);
+  const opt=optByKey(selectedKey)||{};
+  evt('submit',{key:selectedKey,ms:submitMs});
+  document.querySelectorAll('.choice').forEach(b=>b.setAttribute('disabled','')); $('#go').classList.remove('ready');
+  setCue('sent','Answer sent');
+  setStatus('Answer sent. Waiting for the next balance.');
+  const result={
+    itemId:item.itemId,typeCode:item.typeCode||'QUANT-BALANCE-01',domain:item.domain||'quantitative',
+    response:{
+      selectedKey,
+      selectedLoad:(opt.load?opt.load.slice():null),
+      pickSequence:pickSeq.slice(),
+      revisions,
+    },
+    metrics:metricsNow(),
+    telemetry:telemetryLog.slice(),
+  };
+  emit('result',{result});
+  log('RESULT sent · '+JSON.stringify(result.metrics));
+  if(!EMBEDDED) standaloneAdvance();
 }
-function learnRate(){return T.scored?((Math.max(1,T.maxLevel)-1)/T.scored).toFixed(2)+' levels/trial':'—';}
+
+/* ---------------- meters / cue / log ---------------- */
 const METERS=[
-  {id:'M-ACC',name:'Exact balanced load',get:()=>T.scored?`${T.correct}/${T.scored} · ${Math.round(100*T.correct/T.scored)}%`:'—'},
-  {id:'M-POLY',name:'Linked equivalence constraints',get:()=>cur?`${poly()} / ${cur.relations}`:T.lastPoly},
-  {id:'M-PATH',name:'Ordered add / remove path',get:()=>path.length?path.map(x=>x.a+x.shape[0]).join(' → '):T.lastPath},
-  {id:'M-PLANFUL',name:'Informative action fraction',get:()=>path.length?planfulness():T.lastPlan},
-  {id:'M-ERRTYPE',name:'Balance error type',get:()=>T.lastErr},
-  {id:'M-DIFFREACH',name:'Maximum relation chain solved',get:()=>T.maxLevel?`level ${T.maxLevel} / 6`:'—'},
-  {id:'M-LEARNRATE',name:'Within-session ceiling growth',get:learnRate}
+  {id:'M-RTFIRST',name:'First-action latency (ms)'},
+  {id:'M-RT',name:'Total response time (ms)'},
+  {id:'M-REV',name:'Answer revisions'},
+  {id:'M-RAPIDGUESS',name:'Rapid-guess flag (tracked)'},
+  {id:'M-ENGAGE',name:'Focused fraction (tracked)'},
 ];
-function buildMeters(){
-  $('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');
-  $('#dbar').innerHTML=Array.from({length:6},()=>'<i></i>').join('');
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}">—</span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){const m=metricsNow();METERS.forEach(x=>{const el=$('#v_'+x.id);if(el)el.textContent=(x.id==='M-RTFIRST'&&firstT===null)?'—':String(m[x.id]);});}
+function setCue(k,txt){const el=$('#phasecue');el.dataset.phase=k;el.textContent=txt;}
+function setStatus(msg){$('#status').textContent=msg;}
+function log(msg){const d=document.createElement('div');d.innerHTML=`<span class="t">${new Date().toLocaleTimeString([],{minute:'2-digit',second:'2-digit'})}</span> ${msg}`;$('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;}
+
+/* ---------------- lifecycle ---------------- */
+function loadItem(served){
+  item=served;submitted=false;locked=true;selectedKey=null;pickSeq=[];revisions=0;
+  firstT=null;telemetryLog=[];focusedMs=0;focusTs=clock();isFocused=(document.visibilityState!=='hidden');blurCount=0;
+  renderT0=clock();
+  renderItem();
+  setCue('waiting','Get ready');setStatus('Study the example scales.');
+  evt('render',{itemId:item.itemId,shapes:item.content.shapes,difficulty:item.difficulty});
+  clearTimeout(startFallback);
+  startFallback=setTimeout(()=>{ if(locked&&!submitted)begin(); },500);
 }
-function renderMeters(){METERS.forEach(m=>{$('#v_'+m.id).textContent=m.get();});}
-function updateDifficulty(){
-  $('#dlabel').textContent=`${level} / 6`;
-  [...$('#dbar').children].forEach((x,i)=>x.classList.toggle('on',i<level));
-}
-function log(msg){
-  const d=document.createElement('div');
-  d.innerHTML=`<span class="t">${new Date().toLocaleTimeString([],{minute:'2-digit',second:'2-digit'})}</span> ${msg}`;
-  $('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;
-}
-function startWarmup(){phase='warmup';locked=false;setCue('warmup');setStatus('neutral','Practice - this one is not scored.');renderItem(WARM);log('warm-up · direct pair · unscored');}
-function startScored(){phase='scored';locked=false;setCue('scored',(trial+1)+'/6');setStatus('neutral','Add weights to the right pan to balance the scale, then submit.');renderItem(ITEMS[level-1]);log(`item ${trial+1}/6 · level ${level} · ${cur.label}`);}
-function finish(){phase='done';locked=true;setCue('done');setStatus('ok','✓ Done');$('#go').classList.remove('ready');log(`DONE · ${T.correct}/${T.scored} · ceiling ${T.maxLevel}`);}
-const ghost=$('#ghost');
-function ghostShow(on){ghost.classList.toggle('show',on);}
-async function ghostTo(el){
-  const r=el.getBoundingClientRect();
-  ghost.style.transform=`translate(${r.left+r.width/2-12}px,${r.top+r.height/2-10}px)`;
-  await sleep(470);
-}
-async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(330);}
-async function runDemo(){
-  phase='demo';locked=true;setCue('demo');setStatus('neutral','Watch the example.');renderItem(DEMO);log('ghost-hand demo · wordless balancing');
-  ghostShow(true);await sleep(260);await ghostTo($('#leftpan'));await ghostTo($('#rightpan'));
-  const spare=cur.stock.findIndex((s,i)=>s==='star'&&!onPan.includes(i));
-  await ghostTo(document.querySelector(`#tray .piece[data-index="${spare}"]`));await ghostTap();addPiece(spare,true);
-  await ghostTo($('#go'));await ghostTap();feedback(true);await sleep(420);
-  ghostShow(false);startWarmup();
-}
-$('#tray').addEventListener('click',e=>{const b=e.target.closest('.piece');if(b)addPiece(+b.dataset.index);});
-$('#rightpan').addEventListener('click',e=>{const b=e.target.closest('.piece');if(b)removePiece(+b.dataset.index);});
+function begin(){ if(!item||submitted)return; locked=false; setCue('answer','Your turn'); setStatus('Tap the group that balances the left pan, then press the check.'); evt('start'); }
+
+/* host protocol */
+window.addEventListener('message',e=>{
+  const d=e.data; if(!d||d.source!==SRC_HOST)return;
+  if(d.type==='init'&&d.item){evt0('init');loadItem(d.item);}
+  else if(d.type==='start'){clearTimeout(startFallback);begin();}
+});
+function evt0(name){const e={t:0,name};telemetryLog.push(e);emit('telemetry',{event:e});log(name);}
+
+/* engagement tracking */
+function onFocus(){tickFocus();isFocused=true;}
+function onBlur(){tickFocus();if(isFocused)blurCount++;isFocused=false;evt('blur',{blurCount});}
+window.addEventListener('focus',onFocus);window.addEventListener('blur',onBlur);
+document.addEventListener('visibilitychange',()=>{document.visibilityState==='hidden'?onBlur():onFocus();});
+
+/* input wiring */
+$('#choices').addEventListener('click',e=>{const b=e.target.closest('.choice');if(b)pick(b.dataset.key);});
+$('#choices').addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.classList.contains('choice')){e.preventDefault();pick(e.target.dataset.key);}});
 $('#go').addEventListener('click',submit);
-$('#replay').addEventListener('click',()=>{if(phase!=='demo')location.reload();});
-buildMeters();renderMeters();runDemo();
+
+/* ---------------- standalone fallback (double-click) ---------------- */
+const SAMPLES=[
+  {itemId:'sample-count',typeCode:'QUANT-BALANCE-01',domain:'quantitative',difficulty:2.0,ageBands:['K-1'],
+   content:{typeCode:'QUANT-BALANCE-01',display:'shapes',attributes:['weight'],shapes:['orb'],examples:[],
+     target:['orb','orb','orb'],
+     options:[{key:'A',load:['orb','orb']},{key:'B',load:['orb','orb','orb']},{key:'C',load:['orb']},{key:'D',load:['orb','orb','orb','orb']}],
+     prompt:'Choose the group of shapes that balances the left pan.'}},
+  {itemId:'sample-sub2',typeCode:'QUANT-BALANCE-01',domain:'quantitative',difficulty:8.0,ageBands:['4-5'],
+   content:{typeCode:'QUANT-BALANCE-01',display:'shapes',attributes:['weight'],shapes:['orb','cube'],
+     examples:[{left:['cube'],right:['orb','orb','orb']}],
+     target:['cube','cube'],
+     options:[{key:'A',load:['orb','orb','orb','orb','orb','orb']},{key:'B',load:['cube','cube','cube']},{key:'C',load:['cube','orb']},{key:'D',load:['orb','orb']}],
+     prompt:'Choose the group of shapes that balances the left pan.'}},
+  {itemId:'sample-sub3',typeCode:'QUANT-BALANCE-01',domain:'quantitative',difficulty:15.0,ageBands:['6-8'],
+   content:{typeCode:'QUANT-BALANCE-01',display:'shapes',attributes:['weight'],shapes:['orb','cube','diamond'],
+     examples:[{left:['cube'],right:['orb','orb']},{left:['diamond'],right:['cube','orb','orb']}],
+     target:['diamond','cube'],
+     options:[{key:'A',load:['cube','cube','cube']},{key:'B',load:['diamond','diamond']},{key:'C',load:['orb','orb','orb']},{key:'D',load:['diamond','cube','orb']}],
+     prompt:'Choose the group of shapes that balances the left pan.'}},
+];
+let sampleIx=0;
+function standaloneAdvance(){setTimeout(()=>{sampleIx=(sampleIx+1)%SAMPLES.length;loadItem(SAMPLES[sampleIx]);begin();},1200);}
+
+/* ---------------- boot ---------------- */
+buildMeters();
+emit('ready');
+if(EMBEDDED){ setCue('waiting','Waiting for host'); log('ready · awaiting host init'); }
+else{ log('standalone · no host detected'); loadItem(SAMPLES[0]); begin(); }
 </script>
 </body>
 </html>

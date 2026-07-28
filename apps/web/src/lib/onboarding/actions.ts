@@ -12,6 +12,7 @@ import type {
 } from '@gt-selection/contracts';
 
 import { createServerLocalSyntheticOnboardingAdapter } from './local-synthetic-adapter';
+import { runSubmitApplicationFlow, type SubmitApplicationFlowRequest } from './submit-flow';
 
 export async function saveStudentProfileAction(request: SaveStudentProfileRequest) {
   const service = await createServerLocalSyntheticOnboardingAdapter();
@@ -51,4 +52,14 @@ export async function submitApplicationAction(request: SubmitApplicationRequest)
 export async function getApplicationStatusAction(request: GetApplicationStatusRequest) {
   const service = await createServerLocalSyntheticOnboardingAdapter();
   return service.getApplicationStatus(request);
+}
+
+/**
+ * Run the whole submit sequence (profile → draft → submit) server-side, where
+ * the real RPC error codes are visible. On a stale/cross-account application it
+ * self-heals under fresh ids so submit can't dead-end — see `submit-flow.ts`.
+ */
+export async function submitApplicationFlowAction(request: SubmitApplicationFlowRequest) {
+  const service = await createServerLocalSyntheticOnboardingAdapter();
+  return runSubmitApplicationFlow(service, request);
 }

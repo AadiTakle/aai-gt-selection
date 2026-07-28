@@ -30,6 +30,7 @@ export type LanguageFields = {
 };
 
 export type HouseholdFields = {
+  guardianName: string; // real parent/guardian name, stored verbatim (not born-synthetic)
   guardianRelationshipCode: string;
   address: AddressFields;
   hasPriorGtRelative: boolean;

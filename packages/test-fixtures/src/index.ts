@@ -1091,5 +1091,3 @@ export const fictionalFixtures = [
   exactReplayResponseFixture,
   disposedInputReplayResponseFixture,
 ] as const;
-
-export * from './exam-fixtures';
