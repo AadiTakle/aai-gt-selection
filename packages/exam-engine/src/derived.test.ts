@@ -21,6 +21,7 @@ function observation(partial: Partial<ItemObservation> & { itemId: string }): It
     correct: true,
     rtMs: null,
     angularDisparityDeg: null,
+    stage: 'standing',
     ...partial,
   };
 }

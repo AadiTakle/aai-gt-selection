@@ -73,6 +73,7 @@ function areaWith(difficulty: number, correctness: readonly boolean[]) {
       correct,
       rtMs: null,
       angularDisparityDeg: null,
+      stage: 'standing' as const,
     })),
   };
 }

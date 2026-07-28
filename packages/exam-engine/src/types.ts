@@ -31,6 +31,20 @@ export type MetricId = string;
 export type ItemId = string;
 export type TypeCode = string;
 
+/**
+ * Which regime an item was served under.
+ *
+ * - `standing`: locating where the child already performs (two-sided bracketing, `update.ts`).
+ * - `learning`: the novel block, held near a difficulty derived from the settled standing estimate
+ *   so that the climb across trials is the signal rather than the search for the child's level.
+ *
+ * Recorded per item because a growth statistic over a mixed trace is uninterpretable: while the
+ * estimate is still bracketing, the hardest-solved difficulty rises as the search converges, so a
+ * rising ceiling is produced both by the child learning and by the estimate arriving. Separating
+ * the two requires knowing which items belonged to which regime.
+ */
+export type ExamStage = 'standing' | 'learning';
+
 /** Renderer-agnostic, per-type stimulus parameters. */
 export type ItemContent = Record<string, unknown>;
 
@@ -109,6 +123,8 @@ export interface ScoredItem extends ItemResult {
   difficulty: number;
   /** Optional server-only stimulus parameters for derived aggregates (see {@link ItemStimulus}). */
   stimulus?: ItemStimulus;
+  /** Regime this item was served under; absent is read as `standing` (see {@link ExamStage}). */
+  stage?: ExamStage;
 }
 
 /** A registered question type (metadata used for selection). */
@@ -190,6 +206,8 @@ export interface ItemObservation {
   rtMs: number | null;
   /** Target angular disparity in degrees when the server supplied one; `null` otherwise. */
   angularDisparityDeg: number | null;
+  /** Regime this item was served under (see {@link ExamStage}). */
+  stage: ExamStage;
 }
 
 /** Tunable, deterministic engine configuration (carried in state to keep functions pure). */

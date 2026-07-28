@@ -83,7 +83,33 @@ export const CORE_METRICS: CoreMetricSpec[] = [
   // --- derived from the trace (see derived.ts) ---
   { id: 'M-DIFFREACH', scope: 'all', minSamples: 6, enforced: true, kind: 'derived' },
   { id: 'M-CONSIST', scope: 'all', minSamples: 3, enforced: true, kind: 'derived' },
-  { id: 'M-LEARNRATE', scope: 'all', minSamples: 8, enforced: true, kind: 'derived' },
+  /*
+   * M-LEARNRATE is DERIVED but NOT enforced, and its minimum is the novel-block length rather than
+   * a per-area item count.
+   *
+   * It was enforced at 8 samples per area, which had two costs. The stop rule could not end a
+   * session until all four areas had accumulated 8 growth trials, and having spent those items the
+   * scorer then reported a number that does not survive its own measurement: simulated recovery of
+   * an injected climb on this scale is about r = 0.07 at 8 trials, with the estimate attenuated to
+   * roughly a fifth of its true size. That is not a weak signal, it is no signal, bought at four
+   * areas' worth of items.
+   *
+   * A per-area growth statistic also cannot be separated from the search that produced it. While an
+   * area is still bracketing, the hardest difficulty solved rises as the estimate converges on a
+   * child who was seeded away from their level, so `deriveLearningRate`'s own claim boundary notes
+   * that a large early climb partly reflects seed distance rather than learning. Enforcing it meant
+   * requiring every area to produce a number that conflates the two.
+   *
+   * The rate is therefore measured once per session over a dedicated novel block in ONE area, after
+   * that area's estimate has settled (`learning-block.ts`, and `learning-rate-readout.ts` in
+   * `@gt-selection/exam-scoring`). `minSamples` is set to that block length so the adequacy check
+   * states the honest threshold; because the metric is derived and unenforced, the value does not
+   * steer type selection (`underCoveredWeights` skips derived metrics) or area neediness
+   * (`enforcedShortfallCount` counts only enforced ones), so it blocks nothing. Re-enforcing it
+   * per area would require both a validated reference distribution and evidence that a per-area
+   * block can be separated from its own bracketing. (D-030; measurements in E-095.)
+   */
+  { id: 'M-LEARNRATE', scope: 'all', minSamples: 30, enforced: false, kind: 'derived' },
   { id: 'M-RTVAR', scope: 'all', minSamples: 20, enforced: true, kind: 'derived', adequacy: 'session' },
   /*
    * M-ROTSLOPE is DERIVED but NOT enforced. It is fittable — SPA-VIEW-01 and SPA-XSCAN-01 record

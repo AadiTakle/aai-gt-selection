@@ -21,6 +21,21 @@ export type Area = Domain;
 export const SCALE_MIN = 1;
 export const SCALE_MAX = 20;
 
+/**
+ * Which regime an item was served under.
+ *
+ * - `standing`: locating where the child already performs (two-sided bracketing).
+ * - `learning`: the novel block, held near a difficulty derived from the settled standing
+ *   estimate, so the climb across trials is the signal rather than the search for the level.
+ *
+ * The learning-rate fit reads only `learning` items. Fitting growth over a mixed trace is
+ * uninterpretable: while the estimate is still bracketing, the hardest-solved difficulty rises as
+ * the search converges, so a rising ceiling is produced both by the child learning and by the
+ * estimate arriving.
+ */
+export const EXAM_STAGES = ['standing', 'learning'] as const;
+export type ExamStage = (typeof EXAM_STAGES)[number];
+
 /** A numeric metric map keyed by measurement ID (BUILD_PLAN: `Record<MetricId, number>`). */
 export type MetricMap = Readonly<Partial<Record<MetricId, number>>>;
 
@@ -70,6 +85,8 @@ export interface ScoredItem extends ItemResult {
   readonly difficulty: number;
   /** Optional server-only stimulus parameters for derived aggregates ({@link ItemStimulus}). */
   readonly stimulus?: ItemStimulus;
+  /** Regime this item was served under; absent is read as `standing` ({@link ExamStage}). */
+  readonly stage?: ExamStage;
 }
 
 /** Coarse band label for profile signals. */

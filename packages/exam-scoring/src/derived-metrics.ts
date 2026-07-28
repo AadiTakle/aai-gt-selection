@@ -135,10 +135,18 @@ export function deriveConsistency(items: readonly ScoredItem[]): number | null {
  * Within-session ceiling growth, mapped to [0, 1] with 0.5 = no growth (MEASUREMENTS
  * M-LEARNRATE: "max difficulty solved over trials", early block vs late block).
  *
- * CLAIM BOUNDARY: under an adaptive battery the early ceiling is anchored to the grade-band
- * seed, so a large early climb partly reflects how far the seed was from the child rather than
- * how fast they learn. This is a provisional within-session growth index, NOT a validated
- * learning-potential or program-benefit signal (`validated=false`).
+ * DIAGNOSTIC ONLY — do not report this as a learning rate. Two independent reasons:
+ *
+ * 1. Under an adaptive battery the early ceiling is anchored to the grade-band seed, so a large
+ *    early climb partly reflects how far the seed was from the child rather than how fast they
+ *    learn. A half-contrast over a bracketing trace cannot separate the two.
+ * 2. A half-contrast discards item difficulty and response order, and at the trial counts one area
+ *    supplies it recovers essentially nothing.
+ *
+ * The reportable rate is fitted over a dedicated novel block by `estimateLearningCurve` and
+ * reported through `learningRateReadout`, which refuses to name a band when the posterior cannot
+ * support one. This function is retained because it is cheap, needs no block, and is a useful
+ * cross-check on a trace that has one — not as a fallback when the block is missing.
  */
 export function deriveLearningRate(
   items: readonly ScoredItem[],
