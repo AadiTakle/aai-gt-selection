@@ -6,6 +6,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { EXAM_BANK, EXAM_DOMAINS, domainLabel, type ExamBankItem } from '@/lib/exam/bank';
 import { accuracyFrom, difficultyFrom, isDemoDone, readMetrics } from '@/lib/exam/harvest';
 import type { ExamItemResult, ExamSummary } from '@/lib/exam/types';
+import { readStoredApplication } from '@/lib/family/storage';
+import { saveExamSessionAction } from '@/lib/onboarding/actions';
 
 import styles from './exam-runner.module.css';
 
@@ -38,9 +40,13 @@ function pct(n: number | null): string {
 export function ExamRunner({
   studentName,
   dashboardHref,
+  durable = false,
 }: {
   studentName: string;
   dashboardHref: string;
+  /** Real family portal: persist durably to Supabase. Dev preview leaves this
+   * off and keeps posting to the in-memory /api/exam-results route. */
+  durable?: boolean;
 }) {
   const [phase, setPhase] = useState<Phase>('intro');
   const [index, setIndex] = useState(0);
@@ -79,7 +85,9 @@ export function ExamRunner({
     [],
   );
 
-  // POST the completed session, mirror to localStorage, show results.
+  // Persist the completed session, mirror to localStorage, show results. The
+  // real family portal (durable) saves to Supabase against the account; the dev
+  // preview keeps posting to the in-memory /api/exam-results route.
   const finalize = useCallback(
     async (items: ExamItemResult[]) => {
       setPhase('saving');
@@ -94,21 +102,34 @@ export function ExamRunner({
         syntheticOnly: true as const,
       };
       try {
-        const res = await fetch('/api/exam-results', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        const data = (await res.json()) as { ok: boolean; summary?: ExamSummary };
-        if (!res.ok || !data.ok || !data.summary) throw new Error('SAVE_REJECTED');
-        setSummary(data.summary);
+        let nextSummary: ExamSummary;
+        if (durable) {
+          const stored = readStoredApplication();
+          const result = await saveExamSessionAction({
+            applicationId: stored?.applicationId ?? null,
+            session: payload,
+            idempotencyKey: crypto.randomUUID(),
+            correlationId: crypto.randomUUID(),
+          });
+          nextSummary = result.data.summary;
+        } else {
+          const res = await fetch('/api/exam-results', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const data = (await res.json()) as { ok: boolean; summary?: ExamSummary };
+          if (!res.ok || !data.ok || !data.summary) throw new Error('SAVE_REJECTED');
+          nextSummary = data.summary;
+        }
+        setSummary(nextSummary);
         try {
           window.localStorage.setItem(
             RESULTS_KEY,
             JSON.stringify({
               sessionId: payload.sessionId,
               finishedAt: payload.finishedAt,
-              summary: data.summary,
+              summary: nextSummary,
             }),
           );
         } catch {
@@ -120,7 +141,7 @@ export function ExamRunner({
         setPhase('error');
       }
     },
-    [studentName],
+    [studentName, durable],
   );
   useEffect(() => {
     finalizeRef.current = (items) => void finalize(items);

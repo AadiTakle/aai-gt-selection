@@ -29,6 +29,18 @@ export type WizardAction =
       studentProfileVersionId: string;
     }
   | { type: 'draftSaved'; applicationVersion: number; applicationVersionId: string }
+  | {
+      // the server settled the flow on a (possibly fresh) set of ids/versions —
+      // e.g. it healed a stale/cross-account application by starting a clean one.
+      // Adopt those so state.meta stays the source of truth for later saves.
+      type: 'identityReconciled';
+      profileId: string;
+      applicationId: string;
+      profileVersion: number;
+      studentProfileVersionId: string | null;
+      applicationVersion: number;
+      applicationVersionId: string | null;
+    }
   | { type: 'hydrate'; state: WizardState }
   | { type: 'submitted' };
 
@@ -256,6 +268,19 @@ export function wizardReducer(state: WizardState, action: WizardAction): WizardS
         ...state,
         meta: {
           ...state.meta,
+          applicationVersion: action.applicationVersion,
+          applicationVersionId: action.applicationVersionId,
+        },
+      };
+    case 'identityReconciled':
+      return {
+        ...state,
+        meta: {
+          ...state.meta,
+          profileId: action.profileId,
+          applicationId: action.applicationId,
+          profileVersion: action.profileVersion,
+          studentProfileVersionId: action.studentProfileVersionId,
           applicationVersion: action.applicationVersion,
           applicationVersionId: action.applicationVersionId,
         },

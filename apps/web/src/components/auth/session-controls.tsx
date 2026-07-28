@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 
+import { clearStoredApplication } from '@/lib/family/storage';
+
 import styles from './session-controls.module.css';
 
 /**
@@ -31,7 +33,7 @@ export function SessionControls() {
   if (!authenticated) return null;
 
   return (
-    <form action="/auth/signout" method="post">
+    <form action="/auth/signout" method="post" onSubmit={() => clearStoredApplication()}>
       <button type="submit" className={styles.signout}>
         Sign out
       </button>

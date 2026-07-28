@@ -7,7 +7,7 @@ import {
   getApplicationAction,
   saveApplicationDraftAction,
   saveStudentProfileAction,
-  submitApplicationAction,
+  submitApplicationFlowAction,
 } from '@/lib/onboarding/actions';
 import { toApplicationDraft, toStudentProfileContent } from '@/lib/family/draft-mapper';
 import { completedSteps, isSectionComplete, overallProgress } from '@/lib/family/progress';
@@ -117,7 +117,17 @@ export function ApplyWizard({ preview = false, basePath = '/family' }: ApplyWiza
         return;
       }
       if (inFlight.current) return;
-      if (!isSectionComplete(snapshot, 'STUDENT_PROFILE')) return; // nothing to persist yet
+      // The backend stores student identity + household + language as ONE atomic,
+      // fully-valid profile (studentProfileContentSchema). `toStudentProfileContent`
+      // always emits the household/language survey, so persisting before the
+      // household section is complete posts an empty survey the born-synthetic
+      // contract rejects (server ZodError on every blur). Wait for both sections.
+      if (
+        !isSectionComplete(snapshot, 'STUDENT_PROFILE') ||
+        !isSectionComplete(snapshot, 'HOUSEHOLD_LANGUAGE')
+      ) {
+        return; // not enough yet to form a valid profile
+      }
       inFlight.current = true;
       dispatch({ type: 'setSaveState', saveState: 'saving' });
       try {
@@ -269,60 +279,52 @@ export function ApplyWizard({ preview = false, basePath = '/family' }: ApplyWiza
     // the generic Server Components render error).
     const snapshot = lastSnapshot.current;
     try {
-      // Persist the profile inline and use the version id it returns. Submit must
-      // NOT trust a debounced autosave's id/version: completing the last field and
-      // submitting within the 1.2s debounce (or after an autosave error) left them
-      // stale/missing, so the draft save bound to a version the backend couldn't
-      // resolve (RESOURCE_NOT_FOUND) or rejected as STALE_VERSION.
-      const profileResult = await saveStudentProfileAction({
+      // Run the whole profile → draft → submit sequence on the server. A prod
+      // Next build hides the real RPC error from the client (it sees only the
+      // generic "Server Components render" message + a digest), so the client
+      // can't tell a recoverable stale-id error from a fatal one. The server can:
+      // when the stored ids are stale or belong to a different account — the
+      // resumed application can't be advanced by the current actor
+      // (RESOURCE_NOT_FOUND / STALE_VERSION) — it restarts the flow under fresh
+      // ids so submit can't dead-end. It returns the ids/versions it settled on.
+      const result = await submitApplicationFlowAction({
         profileId: snapshot.meta.profileId,
-        profile: toStudentProfileContent(snapshot),
-        expectedVersion: versionsRef.current.profileVersion,
-        idempotencyKey: newUuid(),
-        correlationId: snapshot.meta.correlationId,
-      });
-      const profileVersionId = profileResult.data.profile.profileVersionId;
-      versionsRef.current.profileVersion = profileResult.data.profile.version;
-      versionsRef.current.studentProfileVersionId = profileVersionId;
-      dispatch({
-        type: 'profileSaved',
-        profileVersion: profileResult.data.profile.version,
-        studentProfileVersionId: profileVersionId,
-      });
-
-      // save the final submission block as a draft, then submit that version
-      const draftResult = await saveApplicationDraftAction({
         applicationId: snapshot.meta.applicationId,
-        studentProfileVersionId: profileVersionId,
+        profile: toStudentProfileContent(snapshot),
         draft: toApplicationDraft(snapshot, { includeFinalSubmission: true }),
-        expectedVersion: versionsRef.current.applicationVersion,
-        idempotencyKey: newUuid(),
+        expectedProfileVersion: versionsRef.current.profileVersion,
+        expectedApplicationVersion: versionsRef.current.applicationVersion,
         correlationId: snapshot.meta.correlationId,
       });
-      versionsRef.current.applicationVersion = draftResult.data.application.version;
-      versionsRef.current.applicationVersionId = draftResult.data.application.applicationVersionId;
-      const versionId = draftResult.data.application.applicationVersionId;
-      await submitApplicationAction({
-        applicationVersionId: versionId,
-        expectedVersion: draftResult.data.application.version,
-        idempotencyKey: newUuid(),
-        correlationId: snapshot.meta.correlationId,
+      // Adopt whatever ids/versions the server settled on (possibly fresh, if it
+      // healed a stale/cross-account application) so autosave, resume and a later
+      // "Make edits" re-submit all coordinate on the live application.
+      versionsRef.current = {
+        profileVersion: result.profileVersion,
+        studentProfileVersionId: result.studentProfileVersionId,
+        applicationVersion: result.applicationVersion,
+        applicationVersionId: result.applicationVersionId,
+      };
+      dispatch({
+        type: 'identityReconciled',
+        profileId: result.profileId,
+        applicationId: result.applicationId,
+        profileVersion: result.profileVersion,
+        studentProfileVersionId: result.studentProfileVersionId,
+        applicationVersion: result.applicationVersion,
+        applicationVersionId: result.applicationVersionId,
       });
       // persist the ids so a reload can rehydrate the locked view even when no
       // autosave ever succeeded (submit owns the save in the race case)
       storeApplication({
-        profileId: snapshot.meta.profileId,
-        applicationId: snapshot.meta.applicationId,
+        profileId: result.profileId,
+        applicationId: result.applicationId,
       });
       dispatch({ type: 'submitted' });
       setEditing(false);
       router.push(dashboardHref);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'SUBMIT_FAILED';
-      if (message === 'SUBMISSION_LOCKED') {
-        router.push(dashboardHref);
-        return;
-      }
       // tab left open across a deploy: reload to pick up the fresh bundle, then
       // the family can re-submit against matching action ids
       if (isStaleServerActionError(message)) {

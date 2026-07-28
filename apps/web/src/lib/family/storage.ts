@@ -35,6 +35,20 @@ export function storeApplication(value: StoredApplication): void {
 }
 
 /**
+ * Forget the remembered application for this browser. Called on sign-out so a
+ * different account signing in on the same browser starts a fresh application
+ * instead of resuming — and failing to advance — the previous account's one.
+ */
+export function clearStoredApplication(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(FAMILY_APPLICATION_STORAGE_KEY);
+  } catch {
+    // localStorage can be unavailable (private mode / blocked) — nothing to do
+  }
+}
+
+/**
  * Full wizard-state snapshot for the no-backend preview, so navigating away
  * (e.g. to the dashboard and back via "Review your application") keeps every
  * answer. The real flow persists through the backend adapter instead.

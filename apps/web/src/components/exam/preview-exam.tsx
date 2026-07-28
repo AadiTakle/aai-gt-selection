@@ -37,7 +37,14 @@ function getName(): string {
   return cachedName;
 }
 
-export function PreviewExam({ dashboardHref }: { dashboardHref: string }) {
+export function PreviewExam({
+  dashboardHref,
+  durable = false,
+}: {
+  dashboardHref: string;
+  /** Real family portal passes this to persist results durably to Supabase. */
+  durable?: boolean;
+}) {
   const studentName = useSyncExternalStore(subscribe, getName, () => 'there');
-  return <ExamRunner studentName={studentName} dashboardHref={dashboardHref} />;
+  return <ExamRunner studentName={studentName} dashboardHref={dashboardHref} durable={durable} />;
 }
