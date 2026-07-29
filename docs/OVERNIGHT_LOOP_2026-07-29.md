@@ -10,24 +10,31 @@ Running log for the autonomous overnight session. Newest entries at the bottom o
 - No live data, no production, no destructive git, no promotion to `staging`/`main`.
 - `dev` stays green throughout. One coherent commit per task.
 
-## Queue & status
+## Queue & status — FINAL
 
-| # | Item | Card | Disposition | Status |
-|---|---|---|---|---|
-| 0 | Root README refresh | — | merged to dev (`78ac899`) | done |
-| 1 | Repo hygiene: broken scripts + scripts typecheck | WOp2EFzo | deferred (needs a decision) | see notes |
-| 2 | Two-phase section in the build plan | Gf5ZCYQC | merged to dev (`36b17a7`) | done |
-| 3 | Confidence range on the ability estimate | fw53TXn7 | PR #4 (green locally) for review | done → review |
-| 4 | Wire Phase 2 into runner + honest results readout | — (D-030) | prep only — plan below, needs UX/compliance sign-off | planned |
-| 5 | BrainLift deep research (metric-evidence, test-evaluation) | — | deferred (long; owner owns SPOV) | deferred |
-| — | AWS Lambda scoring function | bFZ1PXaP | prep only (infra decision) | not started |
+Decisions were taken from the owner before the run (fluid reasoning; 30 trials, configurable;
+indeterminate shown with a plain-English reason framed as a limit of the test; an interstitial that
+says the block is meant to be hard; Phase 2 user-started and resumable across sittings). Merge
+autonomy was limited to PR #4, so everything else is left as a PR.
+
+| # | Item | Outcome |
+|---|---|---|
+| 0 | Root README refresh | merged to dev (`78ac899`) |
+| 1 | Two-phase section in the build plan | merged to dev (`36b17a7`) |
+| 2 | Confidence range on the ability estimate | **merged** to dev (PR #4, `8ade1ca`) |
+| 3 | Phase 2 wiring — user-started, resumable learning block | PR #5 |
+| 4 | Retire the broken research scripts + typecheck `scripts/` | PR #6 |
+| 5 | Scoring as a standalone cloud function + Lambda infra | PR #7 |
+| 6 | BrainLift knowledge trees (both scaffolds) | PR #8 |
 
 ## Morning review — what needs you
 
-1. **PR #4** (`feat/ability-confidence-se`): confidence-range SE on the ability estimate. Review + merge.
-2. **Item 4 decisions** (below): the Phase 2 results-screen wiring is planned but not built, because it changes family-facing copy about learning rate. Sign off the four decisions and I'll implement it.
-3. **Item 1**: keep-vs-delete the 7 broken research scripts (their outputs are already recorded), then a workspace-aware `scripts/` typecheck.
-4. **Promotion**: `dev` is green; `main` is still behind. Say the word to promote `dev → staging → main`.
+1. **PR #5 — Phase 2 wiring.** The flagship. Please click through it before merging; there was no
+   browser here to verify the flow by hand.
+2. **PR #6 — retired scripts.** Confirms the delete-with-a-note decision.
+3. **PR #7 — Lambda.** `terraform validate` was not run (Terraform not installed here).
+4. **PR #8 — BrainLifts.** DOK 3, DOK 4 and Experts are deliberately empty; those are yours.
+5. **Promotion.** `dev` is green; `main` is still behind. Say the word for `dev → staging → main`.
 
 ## Notes
 
