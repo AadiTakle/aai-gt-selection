@@ -23,7 +23,7 @@ export const DEMO_SOURCE = 'gt-exam-demo' as const;
 
 export type HostMessage =
   | { source: typeof HOST_SOURCE; type: 'init'; item: ServedItem }
-  | { source: typeof HOST_SOURCE; type: 'start' };
+  | { source: typeof HOST_SOURCE; type: 'start'; tutorial?: boolean };
 
 /**
  * Inbound result, validated leniently: a demo may omit ids (the runner
@@ -106,9 +106,24 @@ export class ExamHost {
     this.post({ source: HOST_SOURCE, type: 'init', item });
   }
 
-  /** Tell the demo to begin the scored interaction. */
-  start(): void {
-    this.post({ source: HOST_SOURCE, type: 'start' });
+  /**
+   * Tell the demo to begin the scored interaction.
+   *
+   * `tutorial` opts into the demo's built-in wordless gesture hint — a few seconds of a pointer
+   * showing where to tap. It is OFF by default, because a demonstration in front of every item is
+   * dead time in a test and most types are explained adequately by their own one-line instruction.
+   * Pass it only for a type whose interaction genuinely cannot be conveyed in a sentence.
+   *
+   * The demo's own "already shown" flag lives in the item's document, and the runner reloads that
+   * document per item — so the flag resets every item and the CALLER must track what it has already
+   * demonstrated, or the hint replays forever.
+   */
+  start(tutorial = false): void {
+    this.post(
+      tutorial
+        ? { source: HOST_SOURCE, type: 'start', tutorial: true }
+        : { source: HOST_SOURCE, type: 'start' },
+    );
   }
 
   /**
