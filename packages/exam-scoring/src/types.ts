@@ -123,6 +123,14 @@ export interface AreaScore {
    * `bracketing.mode: 'ability'`, where it is the statistic that picked the bracket.
    */
   readonly abilityEstimate?: number;
+  /**
+   * Conditional standard error of `abilityEstimate` on the [1, 20] scale, from the items this area
+   * served (Fisher information). Present only alongside `abilityEstimate`, and omitted when it is
+   * not finite (a one-sided trace under a disabled prior). A ~95% range is
+   * `abilityEstimate ± 1.96 * abilityStandardError`, clamped to the scale — wider for a child who
+   * answered fewer or badly-targeted items.
+   */
+  readonly abilityStandardError?: number;
   /** Position within the bracket, in [0, 1] (0 = bracket floor, 1 = bracket ceiling). */
   readonly positionWithinBracket: number;
   /** Number of scored items in this area. */

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { type AbilityFitOptions, deriveAbilityEstimate } from './ability';
+import {
+  type AbilityFitOptions,
+  abilityStandardError,
+  deriveAbilityEstimate,
+  deriveAbilityFit,
+} from './ability';
 import { DEFAULT_ABILITY_BRACKETING } from './policy';
 import { type Domain, type ScoredItem } from './types';
 
@@ -115,6 +120,65 @@ describe('deriveAbilityEstimate — degenerate traces', () => {
       priorSd: Number.POSITIVE_INFINITY,
     }) as number;
     expect(Math.abs(withPrior - noPrior)).toBeLessThan(0.5);
+  });
+});
+
+describe('abilityStandardError — precision reflects which items were served', () => {
+  it('narrows as more well-targeted items are added', () => {
+    const near = (n: number): ScoredItem[] =>
+      Array.from({ length: n }, (_, i) => item(11, i % 2 === 0));
+    const few = abilityStandardError(11, near(4), FIT) as number;
+    const many = abilityStandardError(11, near(16), FIT) as number;
+    expect(many).toBeLessThan(few);
+  });
+
+  it('is smaller for well-targeted items than for the same count served far off level', () => {
+    // Same number of items, same fitted point (11); only the targeting differs.
+    const onLevel = Array.from({ length: 8 }, (_, i) => item(11, i % 2 === 0));
+    const farOff = Array.from({ length: 8 }, (_, i) => item(i % 2 === 0 ? 1 : 20, i < 4));
+    const sharp = abilityStandardError(11, onLevel, FIT) as number;
+    const blunt = abilityStandardError(11, farOff, FIT) as number;
+    expect(sharp).toBeLessThan(blunt);
+  });
+
+  it('returns null for an empty trace rather than a number', () => {
+    expect(abilityStandardError(10, [], FIT)).toBeNull();
+  });
+
+  it('stays finite for a one-sided trace only because of the prior', () => {
+    const oneSided = RAMP.map((d) => item(d, true));
+    const fitted = deriveAbilityEstimate(oneSided, FIT) as number;
+    const withPrior = abilityStandardError(fitted, oneSided, FIT) as number;
+    expect(Number.isFinite(withPrior)).toBe(true);
+    // With no prior and everything correct, the location is unbounded above: p*(1-p) collapses
+    // and the information vanishes, so the honest SE diverges.
+    const noPrior = abilityStandardError(20, oneSided, {
+      ...FIT,
+      priorSd: Number.POSITIVE_INFINITY,
+    }) as number;
+    expect(noPrior).toBeGreaterThan(withPrior);
+  });
+
+  it('is deterministic and order-independent', () => {
+    const trace = thresholdTrace(13, RAMP);
+    const reversed = [...trace].reverse();
+    expect(abilityStandardError(13, trace, FIT)).toBe(abilityStandardError(13, trace, FIT));
+    expect(abilityStandardError(13, reversed, FIT)).toBe(abilityStandardError(13, trace, FIT));
+  });
+});
+
+describe('deriveAbilityFit — estimate and SE together', () => {
+  it('returns the same estimate as deriveAbilityEstimate plus its SE', () => {
+    const trace = thresholdTrace(11, RAMP);
+    const fit = deriveAbilityFit(trace, FIT);
+    expect(fit).not.toBeNull();
+    expect(fit?.estimate).toBe(deriveAbilityEstimate(trace, FIT));
+    expect(fit?.se).toBe(abilityStandardError(fit?.estimate as number, trace, FIT));
+    expect(fit?.se).toBeGreaterThan(0);
+  });
+
+  it('returns null for an empty trace', () => {
+    expect(deriveAbilityFit([], FIT)).toBeNull();
   });
 });
 
