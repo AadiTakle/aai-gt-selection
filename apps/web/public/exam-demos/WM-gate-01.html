@@ -5,70 +5,70 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>WM-gate-01 · Gatekeeper</title>
 <style>
-  :root{--bg1:#f3f6ff;--bg2:#eaf7f2;--ink:#26304a;--card:#fff;--accent:#5b6cff;--stop:#e8534f;--good:#22b573;--bad:#ff6b6b;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  :root{--bg1:#fcf4ef;--bg2:#fcf4ef;--ink:#001117;--card:#ffffff;--accent:#004f71;--stop:#e48b53;--good:#146c43;--bad:#a4442f;--tel-bg:#002a3a;--tel-ink:#f5ddcd;--tel-key:#ebba9b;--tel-dim:#e48b53;}
   *{box-sizing:border-box} html,body{margin:0;height:100%}
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
-  #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
-  #howto{max-width:620px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+  #badge{font-size:12px;letter-spacing:.08em;color:#4a6470;text-transform:uppercase;font-weight:700}
+  #howto{max-width:620px;width:100%;background:#ffffff;border:1px solid #ecd9cb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #002a3a}
   #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
-  #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
-  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:var(--accent);border:2px solid #c9d0ff;min-height:30px}
-  #phasecue[data-phase="watch"]{background:#e6f6ef;color:#158055;border-color:#b6e3d0}
-  #phasecue[data-phase="scored"]{background:var(--accent);color:#fff;border-color:var(--accent)}
-  #phasecue[data-phase="done"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
+  #howto p{margin:0;font-size:14px;color:#33505c;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#f8e8de;color:var(--accent);border:2px solid #ecd9cb;min-height:30px}
+  #phasecue[data-phase="watch"]{background:#f8e8de;color:#33505c;border-color:#ebba9b}
+  #phasecue[data-phase="scored"]{background:var(--accent);color:#ffffff;border-color:var(--accent)}
+  #phasecue[data-phase="done"]{background:#f5ddcd;color:#002a3a;border-color:#ecd9cb}
   #status{min-height:22px;font-size:14px;font-weight:700;text-align:center;max-width:460px}
-  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#8a93b5}
-  #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:14px;max-width:600px;width:100%}
-  #road{position:relative;width:100%;height:120px;border-radius:18px;background:linear-gradient(180deg,#eef2ff,#e3ecff);border:3px solid #d3ddff;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#4a6470}
+  #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #002a3a;display:flex;flex-direction:column;align-items:center;gap:14px;max-width:600px;width:100%}
+  #road{position:relative;width:100%;height:120px;border-radius:18px;background:linear-gradient(180deg,#f8e8de,#fcf4ef);border:3px solid #f8e8de;display:flex;align-items:center;justify-content:center;overflow:hidden}
   #current{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:78px;justify-content:center}
-  #current small{font-size:11px;color:#68769c;letter-spacing:.04em}
-  #current .num{font:800 34px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:#33405f}
-  #gateIcon{position:absolute;right:12px;top:10px;font-size:12px;font-weight:800;letter-spacing:.1em;padding:5px 12px;border-radius:999px;background:#dff3e8;color:#158055;border:2px solid #b6e3d0}
-  #gateIcon.stop{background:#ffe6e5;color:var(--stop);border-color:#ffc4c2}
-  #progress{font-size:12px;color:#8a93b5;letter-spacing:.05em;min-height:16px}
-  #checkpoint{width:100%;display:none;flex-direction:column;align-items:center;gap:12px;padding:14px;border-radius:18px;background:#fff7f7;border:2px dashed #ffc4c2}
+  #current small{font-size:11px;color:#6f4526;letter-spacing:.04em}
+  #current .num{font:800 34px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:#33505c}
+  #gateIcon{position:absolute;right:12px;top:10px;font-size:12px;font-weight:800;letter-spacing:.1em;padding:5px 12px;border-radius:999px;background:#f8e8de;color:#33505c;border:2px solid #ebba9b}
+  #gateIcon.stop{background:#fcf4ef;color:var(--stop);border-color:#f5ddcd}
+  #progress{font-size:12px;color:#4a6470;letter-spacing:.05em;min-height:16px}
+  #checkpoint{width:100%;display:none;flex-direction:column;align-items:center;gap:12px;padding:14px;border-radius:18px;background:#ffffff;border:2px dashed #f5ddcd}
   #checkpoint.open{display:flex}
-  #cpprompt{font-size:14px;font-weight:700;color:#a33;text-align:center}
+  #cpprompt{font-size:14px;font-weight:700;color:#4a6470;text-align:center}
   #slots{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
-  .slot{width:66px;height:66px;border-radius:14px;background:#fff;border:2px dashed #e0c4c4;display:flex;align-items:center;justify-content:center;
-    font:700 12px/1.1 system-ui;color:#b09; text-align:center}
-  .slot.filled{border-style:solid;border-color:var(--accent);background:#f4f6ff}
+  .slot{width:66px;height:66px;border-radius:14px;background:#ffffff;border:2px dashed #ecd9cb;display:flex;align-items:center;justify-content:center;
+    font:700 12px/1.1 system-ui;color:#4a6470; text-align:center}
+  .slot.filled{border-style:solid;border-color:var(--accent);background:#fcf4ef}
   #palette{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
-  .ptok{background:#fff;border:2px solid #e2e8fb;border-radius:14px;padding:6px 8px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;
+  .ptok{background:#ffffff;border:2px solid #ecd9cb;border-radius:14px;padding:6px 8px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;
     min-width:66px;transition:.12s;-webkit-tap-highlight-color:transparent}
-  .ptok small{font-size:10px;color:#68769c;letter-spacing:.03em}
-  .ptok .val{font:800 20px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:#33405f;padding:6px 2px}
+  .ptok small{font-size:10px;color:#6f4526;letter-spacing:.03em}
+  .ptok .val{font:800 20px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:#33505c;padding:6px 2px}
   .ptok:hover{border-color:var(--accent);transform:translateY(-2px)}
-  #undo{border-radius:12px;background:#eef1ff;color:var(--accent);padding:8px 16px;font-weight:700;font-size:13px}
+  #undo{border-radius:12px;background:#f8e8de;color:var(--accent);padding:8px 16px;font-weight:700;font-size:13px}
   #diffwrap{width:100%;max-width:340px}
-  #diffbar{height:8px;background:#e3e8fb;border-radius:5px;overflow:hidden}
-  #difffill{height:100%;background:linear-gradient(90deg,#7fffcf,#5b6cff);width:0%;transition:.3s}
-  #difflabel{font-size:11px;color:#8a93b5;text-align:center;margin-top:4px;letter-spacing:.05em}
+  #diffbar{height:8px;background:#f8e8de;border-radius:5px;overflow:hidden}
+  #difffill{height:100%;background:linear-gradient(90deg,#ebba9b,#004f71);width:0%;transition:.3s}
+  #difflabel{font-size:11px;color:#4a6470;text-align:center;margin-top:4px;letter-spacing:.05em}
   #controls{display:flex;gap:16px;align-items:center}
   button{font:inherit;border:0;cursor:pointer}
-  #replay{width:48px;height:48px;border-radius:50%;background:#eef1ff;color:var(--accent);font-size:21px}
+  #replay{width:48px;height:48px;border-radius:50%;background:#f8e8de;color:var(--accent);font-size:21px}
   #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:60;opacity:0;transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
   #ghost.show{opacity:.95}
   #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
   #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
   #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
-  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
-  #served{margin:10px 12px 2px;padding:10px;border:1px solid #2c365d;border-radius:10px;background:#171e36}
-  .dtop{display:flex;justify-content:space-between;color:#fff}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#ffffff;background:#002a3a;text-transform:uppercase}
+  #served{margin:10px 12px 2px;padding:10px;border:1px solid #33505c;border-radius:10px;background:#003b5c}
+  .dtop{display:flex;justify-content:space-between;color:#ffffff}
   .dsub{display:flex;justify-content:space-between;color:var(--tel-dim);font-size:11px;margin-top:5px}
-  .dtrack{height:7px;background:#2a3458;border-radius:8px;margin-top:8px;overflow:hidden}
-  .dfill{height:100%;background:linear-gradient(90deg,#7fffcf,#ffd479);transition:.25s}
-  #mode{margin:6px 12px 0;font-size:11px;color:var(--tel-dim)}#mode b{color:#ffd479}
+  .dtrack{height:7px;background:#33505c;border-radius:8px;margin-top:8px;overflow:hidden}
+  .dfill{height:100%;background:linear-gradient(90deg,#ebba9b,#ebba9b);transition:.25s}
+  #mode{margin:6px 12px 0;font-size:11px;color:var(--tel-dim)}#mode b{color:#6f4526}
   #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
   .mrow{display:grid;grid-template-columns:118px 1fr;gap:8px;align-items:baseline}
-  .mid{color:var(--tel-key);font-weight:700}.mid.srv{color:#ffd479}
-  .mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
-  #logwrap{border-top:1px solid #262f52;margin-top:auto}
-  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  .mid{color:var(--tel-key);font-weight:700}.mid.srv{color:#6f4526}
+  .mval{color:#ffffff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #33505c;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#4a6470;font-size:11px;letter-spacing:.08em}
   #log{height:200px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
-  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
-  button:focus-visible,.ptok:focus-visible{outline:4px solid #ffbf69;outline-offset:3px}
+  #log div{padding:2px 0;border-bottom:1px dotted #004f71}#log .t{color:#6f4526}
+  button:focus-visible,.ptok:focus-visible{outline:4px solid #e48b53;outline-offset:3px}
   @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
   @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:320px}}
 </style>
@@ -79,6 +79,13 @@
    demonstration, and standalone (opened directly) is unchanged. Sampling, metric
    computation and the {type:'telemetry'} postMessage stream are untouched. */
 (function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
+<style>html[data-gt-chrome="off"] #howto{display:none}</style>
+<script>/* Instant-question gate. Embedded in the screener the "How to use" panel is hidden so the
+   child sees the question itself the moment it appears; the per-item status line carries the
+   instruction in words. A test should not spend its first seconds being read. `?chrome=1`
+   restores the panel for a walkthrough, and standalone (opened directly) is unchanged. */
+(function(){var f=/(^|[?&])chrome=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-chrome','off');})();</script>
+<link rel="stylesheet" href="../exam-skin.css">
 </head>
 <body>
   <div id="wrap">
@@ -109,7 +116,7 @@
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#004f71" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 /* =====================================================================
@@ -154,7 +161,7 @@ function bodyPath(shape,c){
     case 'cat':return `<circle cx="24" cy="27" r="13" ${c}/><polygon points="13,19 15,7 25,15" ${c}/><polygon points="35,19 33,7 23,15" ${c}/>`;
     case 'bird':return `<path d="M24 8 C36 14,36 32,24 40 C12 32,12 14,24 8Z" ${c}/><polygon points="24,20 40,25 24,29" ${c}/>`;
     case 'fish':return `<ellipse cx="26" cy="24" rx="14" ry="9" ${c}/><polygon points="12,24 3,15 3,33" ${c}/>`;
-    case 'bug':return `<ellipse cx="24" cy="24" rx="10" ry="14" ${c}/><path d="M14 16 L5 11 M14 24 L4 24 M14 32 L5 37 M34 16 L43 11 M34 24 L44 24 M34 32 L43 37" fill="none" stroke="#26304a" stroke-width="2.4"/>`;
+    case 'bug':return `<ellipse cx="24" cy="24" rx="10" ry="14" ${c}/><path d="M14 16 L5 11 M14 24 L4 24 M14 32 L5 37 M34 16 L43 11 M34 24 L44 24 M34 32 L43 37" fill="none" stroke="#001117" stroke-width="2.4"/>`;
     case 'rabbit':return `<circle cx="24" cy="30" r="12" ${c}/><ellipse cx="18" cy="11" rx="4" ry="10" ${c}/><ellipse cx="30" cy="11" rx="4" ry="10" ${c}/>`;
     case 'bear':return `<circle cx="24" cy="27" r="13" ${c}/><circle cx="13" cy="13" r="6" ${c}/><circle cx="35" cy="13" r="6" ${c}/>`;
     case 'frog':return `<ellipse cx="24" cy="30" rx="16" ry="11" ${c}/><circle cx="16" cy="15" r="7" ${c}/><circle cx="32" cy="15" r="7" ${c}/>`;
@@ -163,7 +170,7 @@ function bodyPath(shape,c){
   }
 }
 function tokenSVG(tk,box){
-  const c=`fill="${PAL[tk.hue]||'#888'}" stroke="#26304a" stroke-width="2" stroke-linejoin="round"`;
+  const c=`fill="${PAL[tk.hue]||'#888'}" stroke="#001117" stroke-width="2" stroke-linejoin="round"`;
   return `<svg width="${box}" height="${box}" viewBox="0 0 48 48" aria-label="${tk.label||tk.key}">${bodyPath(tk.shape,c)}</svg>`;
 }
 

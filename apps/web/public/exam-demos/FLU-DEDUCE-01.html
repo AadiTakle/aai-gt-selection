@@ -6,89 +6,89 @@
 <title>FLU-DEDUCE-01 · Clue Detective</title>
 <style>
 :root{
-  --ink:#293249;--paper:#fffef9;--violet:#625bd8;--good:#31b87b;
-  --bad:#ec6670;--gold:#efba3f;--line:#dfe4f0;--tel:#111729;
-  --tel2:#1a233c;--key:#80ffd0;--dim:#7f8db7;
+  --ink:#004f71;--paper:#ffffff;--violet:#e48b53;--good:#4a6470;
+  --bad:#9fb6bd;--gold:#e48b53;--line:#f8e8de;--tel:#002a3a;
+  --tel2:#003b5c;--key:#ebba9b;--dim:#e48b53;
 }
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%}
 body{
   min-height:100vh;display:flex;color:var(--ink);
   font:16px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;
-  background:radial-gradient(circle at 85% 8%,#fff0c7,transparent 26%),
-    linear-gradient(145deg,#ebf6ff,#f5efff 55%,#edfff6);
+  background:radial-gradient(circle at 85% 8%,#f5ddcd,transparent 26%),
+    linear-gradient(145deg,#fcf4ef,#fcf4ef 55%,#fcf4ef);
 }
 #wrap{flex:1;min-width:0;padding:18px;display:flex;flex-direction:column;align-items:center;gap:10px}
-#badge{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#828ba8}
-#howto{max-width:640px;width:100%;background:#fff;border:1px solid #dfe4f0;border-left:5px solid var(--violet);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #313b75}
+#badge{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#6f4526}
+#howto{max-width:640px;width:100%;background:#ffffff;border:1px solid #f8e8de;border-left:5px solid var(--violet);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a6470}
 #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--violet)}
-#howto p{margin:0;font-size:14px;color:#454f6e;line-height:1.5}
-#phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#edf0ff;color:var(--violet);border:2px solid #cdd3ff;min-height:30px}
-#phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
-#phasecue[data-phase="scored"]{background:var(--violet);color:#fff;border-color:var(--violet)}
-#phasecue[data-phase="done"]{background:#e7eaff;color:#3f3ab0;border-color:#cdd3ff}
+#howto p{margin:0;font-size:14px;color:#4a6470;line-height:1.5}
+#phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#fcf4ef;color:var(--violet);border:2px solid #f8e8de;min-height:30px}
+#phasecue[data-phase="warmup"]{background:#f5ddcd;color:#6f4526;border-color:#ebba9b}
+#phasecue[data-phase="scored"]{background:var(--violet);color:#ffffff;border-color:var(--violet)}
+#phasecue[data-phase="done"]{background:#fcf4ef;color:#4a6470;border-color:#f8e8de}
 #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
-#status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#828ba8}
+#status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#6f4526}
 #stagecard{
   width:min(700px,100%);background:var(--paper);border-radius:28px;padding:18px;
-  box-shadow:0 24px 58px -35px #313b75;display:flex;flex-direction:column;
-  align-items:center;gap:15px;border:1px solid #fff;min-height:420px;
+  box-shadow:0 24px 58px -35px #4a6470;display:flex;flex-direction:column;
+  align-items:center;gap:15px;border:1px solid #ffffff;min-height:420px;
 }
 #clues{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;min-height:86px}
 .clue{
-  min-width:92px;max-width:150px;padding:6px 8px;border-radius:14px;border:2px solid #e1c96b;
-  background:#fff8d9;display:flex;flex-direction:column;align-items:center;gap:3px;transition:.2s;
-  box-shadow:0 7px 16px -15px #6e5700;
+  min-width:92px;max-width:150px;padding:6px 8px;border-radius:14px;border:2px solid #9fb6bd;
+  background:#f8e8de;display:flex;flex-direction:column;align-items:center;gap:3px;transition:.2s;
+  box-shadow:0 7px 16px -15px #004f71;
 }
 .clue.pending{opacity:.24;filter:grayscale(1);transform:scale(.92)}
-.clue.current{box-shadow:0 0 0 4px #ffed9f;transform:translateY(-3px)}
-.clueText{font:700 11.5px/1.2 system-ui;text-align:center;color:#5c5230}
-.clueId{font:800 9px ui-monospace,monospace;color:#a3925c;letter-spacing:.08em}
+.clue.current{box-shadow:0 0 0 4px #ebba9b;transform:translateY(-3px)}
+.clueText{font:700 11.5px/1.2 system-ui;text-align:center;color:#33505c}
+.clueId{font:800 9px ui-monospace,monospace;color:#6f4526;letter-spacing:.08em}
 .slash{position:relative;display:inline-grid;place-items:center}
-.slash::after{content:"";position:absolute;width:44px;height:4px;border-radius:4px;background:#cf3d48;transform:rotate(-35deg)}
+.slash::after{content:"";position:absolute;width:44px;height:4px;border-radius:4px;background:#e48b53;transform:rotate(-35deg)}
 #lineup{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;width:100%}
 .candidate{
-  width:96px;height:112px;border:3px solid #e5e9f2;border-radius:17px;background:#fff;
+  width:96px;height:112px;border:3px solid #f8e8de;border-radius:17px;background:#ffffff;
   display:grid;place-items:center;cursor:pointer;position:relative;transition:.15s;padding:0;
 }
-.candidate:hover{transform:translateY(-3px);border-color:#b7c1dc}
+.candidate:hover{transform:translateY(-3px);border-color:#ebba9b}
 .candidate.dead{opacity:.32;filter:grayscale(.75)}
 .candidate.dead::after{
-  content:"\2715";position:absolute;font-size:42px;font-weight:900;color:var(--bad);text-shadow:0 2px #fff;
+  content:"\2715";position:absolute;font-size:42px;font-weight:900;color:var(--bad);text-shadow:0 2px #ffffff;
 }
-.candidate.pick{border-color:var(--violet);box-shadow:0 0 0 4px #dfdcff}
-.num{position:absolute;right:6px;bottom:4px;color:#a0a9c1;font:800 10px ui-monospace,monospace}
+.candidate.pick{border-color:var(--violet);box-shadow:0 0 0 4px #f8e8de}
+.num{position:absolute;right:6px;bottom:4px;color:#4a6470;font:800 10px ui-monospace,monospace}
 #tools{display:flex;gap:11px;align-items:center}
-#tools button{height:52px;border:0;border-radius:16px;cursor:pointer;font:800 15px system-ui;background:#edf0ff;color:var(--violet);padding:0 16px}
+#tools button{height:52px;border:0;border-radius:16px;cursor:pointer;font:800 15px system-ui;background:#fcf4ef;color:var(--violet);padding:0 16px}
 #replay{width:54px;font-size:21px!important}
-#nextclue{background:#e7ecff!important}
-#go{width:80px;background:var(--violet)!important;color:#fff!important;font-size:26px!important;opacity:.35;pointer-events:none;transition:.2s}
+#nextclue{background:#f5ddcd!important}
+#go{width:80px;background:var(--violet)!important;color:#ffffff!important;font-size:26px!important;opacity:.35;pointer-events:none;transition:.2s}
 #go.ready{opacity:1;pointer-events:auto}
-button:focus-visible,.candidate:focus-visible{outline:4px solid #168dff;outline-offset:2px}
+button:focus-visible,.candidate:focus-visible{outline:4px solid #e48b53;outline-offset:2px}
 #ghost{position:fixed;left:0;top:0;opacity:0;z-index:50;pointer-events:none;
   transition:transform .45s cubic-bezier(.2,.7,.2,1),opacity .2s;filter:drop-shadow(0 4px 4px #0004)}
 #ghost.show{opacity:1}
 #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--violet);opacity:0}
 #ghost.tap .ring{animation:tapring .5s ease-out}
 @keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
-#telemetry{width:335px;flex:0 0 335px;min-height:100vh;background:var(--tel);color:#cbd8ff;
+#telemetry{width:335px;flex:0 0 335px;min-height:100vh;background:var(--tel);color:#f5ddcd;
   display:flex;flex-direction:column;font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
-#telemetry h3{margin:0;padding:13px 14px;background:var(--tel2);color:#fff;font:800 12px system-ui;letter-spacing:.1em;text-transform:uppercase}
-#difficulty{padding:10px 13px;border-bottom:1px solid #29324f}
-.diffTop{display:flex;justify-content:space-between;color:#fff}
+#telemetry h3{margin:0;padding:13px 14px;background:var(--tel2);color:#ffffff;font:800 12px system-ui;letter-spacing:.1em;text-transform:uppercase}
+#difficulty{padding:10px 13px;border-bottom:1px solid #004f71}
+.diffTop{display:flex;justify-content:space-between;color:#ffffff}
 .diffSub{display:flex;justify-content:space-between;color:var(--dim);font-size:10px;margin-top:5px}
-.diffTrack{height:8px;background:#28314c;border-radius:8px;overflow:hidden;margin-top:6px}
-#diffFill{height:100%;width:0;background:linear-gradient(90deg,#6863ff,#63e7bc);transition:.3s}
-#mode{padding:6px 13px 0;font-size:10.5px;color:var(--dim)}#mode b{color:#ffd479}
+.diffTrack{height:8px;background:#004f71;border-radius:8px;overflow:hidden;margin-top:6px}
+#diffFill{height:100%;width:0;background:linear-gradient(90deg,#9fb6bd,#9fb6bd);transition:.3s}
+#mode{padding:6px 13px 0;font-size:10.5px;color:var(--dim)}#mode b{color:#6f4526}
 #mlist{padding:11px 12px;display:flex;flex-direction:column;gap:8px}
 .mrow{display:grid;grid-template-columns:104px 1fr;gap:7px}
-.mid{color:var(--key);font-weight:800}.mid.srv{color:#ffd479}.mval{color:#fff}
+.mid{color:var(--key);font-weight:800}.mid.srv{color:#6f4526}.mval{color:#ffffff}
 .mname{grid-column:1/3;color:var(--dim);font-size:10px;margin-top:-3px}
-#logwrap{border-top:1px solid #29324f;margin-top:auto}
-#logwrap b{display:block;padding:8px 12px 3px;color:#8190b8;font-size:10px}
+#logwrap{border-top:1px solid #004f71;margin-top:auto}
+#logwrap b{display:block;padding:8px 12px 3px;color:#6f4526;font-size:10px}
 #log{height:186px;overflow:auto;padding:0 12px 12px}
-#log div{border-bottom:1px dotted #29324f;padding:3px 0}
-#log .t{color:#6272a1}
+#log div{border-bottom:1px dotted #004f71;padding:3px 0}
+#log .t{color:#6f4526}
 @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;min-height:0;height:305px;flex:none}}
 @media(max-width:480px){.candidate{width:82px;height:96px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition-duration:.01ms!important}}
@@ -100,6 +100,13 @@ button:focus-visible,.candidate:focus-visible{outline:4px solid #168dff;outline-
    demonstration, and standalone (opened directly) is unchanged. Sampling, metric
    computation and the {type:'telemetry'} postMessage stream are untouched. */
 (function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
+<style>html[data-gt-chrome="off"] #howto{display:none}</style>
+<script>/* Instant-question gate. Embedded in the screener the "How to use" panel is hidden so the
+   child sees the question itself the moment it appears; the per-item status line carries the
+   instruction in words. A test should not spend its first seconds being read. `?chrome=1`
+   restores the panel for a walkthrough, and standalone (opened directly) is unchanged. */
+(function(){var f=/(^|[?&])chrome=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-chrome','off');})();</script>
+<link rel="stylesheet" href="../exam-skin.css">
 </head>
 <body>
 <main id="wrap">

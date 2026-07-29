@@ -1,0 +1,203 @@
+/*
+ * GT exam skin — shared by every question type.
+ *
+ * The battery serves 63 separately-built activities in a row. Each arrived with its own palette,
+ * its own card, and its own heading, so a child moving through them experienced a series of
+ * unrelated toys rather than one test. This sheet is loaded LAST by every demo, so it wins on
+ * equal specificity, and it does two things: it re-points the palette the demos already share at
+ * the GT brand colours, and — when the demo is embedded in the exam — it removes the chrome the
+ * exam page is already drawing.
+ *
+ * Standalone is deliberately left alone. Opened directly, a demo is a research artefact and its
+ * badge, "how to use" panel and telemetry sidebar are the point.
+ *
+ * Mirrors the tokens in apps/web/src/styles/globals.css. Kept as one file in two places rather than
+ * inlined 63 times so the look can be changed in one edit.
+ */
+
+:root {
+  /* GT brand palette */
+  --gt-navy: #002a3a;
+  --gt-blue: #004f71;
+  --gt-dark-navy: #001117;
+  --gt-gold: #e48b53;
+  --gt-gold-light: #ebba9b;
+  --gt-gold-lighter: #f5ddcd;
+  --gt-gold-lightest: #f8e8de;
+  --gt-off-white: #fcf4ef;
+  --gt-border: #ecd9cb;
+  --gt-ink-soft: #33505c;
+  --gt-muted: #4a6470;
+
+  /*
+   * The variables the demos already share, re-pointed. Every demo that draws a tile, cell or
+   * highlight from --accent picks up the brand colour without being edited.
+   */
+  --bg1: var(--gt-off-white);
+  --bg2: var(--gt-gold-lightest);
+  --ink: var(--gt-dark-navy);
+  --card: #ffffff;
+  --accent: var(--gt-blue);
+  --accent2: var(--gt-navy);
+  --good: #146c43;
+  --bad: #a4442f;
+  --line: var(--gt-border);
+}
+
+/*
+ * Typography. The variable fonts are loaded by the app on the parent document and an iframe cannot
+ * inherit them, so these are the same stacks with their system fallbacks — consistent across all 63
+ * either way, which is what the cohesion depends on.
+ */
+body {
+  font-family: 'Inter Tight Variable', 'Inter Tight', 'Segoe UI', system-ui, sans-serif;
+  color: var(--ink);
+}
+
+#badge,
+#phasecue,
+#status {
+  font-family: 'Inconsolata Variable', Inconsolata, ui-monospace, Consolas, monospace;
+}
+
+/* ---- embedded in the exam: stop drawing a second card ---- */
+
+/*
+ * The iframe already has the page's card treatment (1px border, 12px radius, white panel), so a
+ * gradient page background and a 26px drop-shadowed card inside it read as a widget sitting in a
+ * test rather than as the test itself.
+ */
+html[data-gt-chrome='off'] body {
+  background: #ffffff;
+}
+
+/* Dev metadata. The exam header already names the activity in words a child can read. */
+html[data-gt-chrome='off'] #badge {
+  display: none;
+}
+
+html[data-gt-chrome='off'] #wrap {
+  padding: 14px;
+  gap: 12px;
+}
+
+html[data-gt-chrome='off'] #stagecard {
+  box-shadow: none;
+  border: 1px solid var(--gt-border);
+  border-radius: 12px;
+}
+
+/* ---- shared chrome, in brand colours ---- */
+
+/*
+ * Catch-all first: demos invent their own phase names ("waiting", "explore", "cue", …) and an
+ * unlisted one used to fall through to whatever that demo happened to define, so the same state
+ * read gold in one activity and navy or green in the next. Everything defaults to gold here; the
+ * three states below are the only ones that earn a different treatment.
+ */
+#phasecue,
+#phasecue[data-phase] {
+  background: var(--gt-gold-lightest);
+  color: var(--gt-navy);
+  border-color: var(--gt-border);
+}
+
+#phasecue[data-phase='warmup'] {
+  background: var(--gt-gold-lighter);
+  color: #6f4526;
+  border-color: var(--gt-gold-light);
+}
+
+#phasecue[data-phase='scored'] {
+  background: var(--gt-navy);
+  color: #ffffff;
+  border-color: var(--gt-navy);
+}
+
+#phasecue[data-phase='done'] {
+  background: var(--gt-gold-lightest);
+  color: var(--gt-navy);
+  border-color: var(--gt-border);
+}
+
+/*
+ * The action control is the one thing on screen that should look decisive, and it must be the same
+ * thing in every activity. Each demo named it differently (#go, #lock, #send, #submit, #done, RUN)
+ * and coloured it independently, which a contrast audit caught failing two different ways: white on
+ * GT gold (2.59 — and the brand's rule is that text on Gold is Dark Navy), and dark navy text on a
+ * navy button (1.32, effectively invisible). One navy-on-white pairing settles both.
+ */
+/*
+ * `!important` is used only on this audited control set. Several demos reach these buttons through
+ * a nested selector (`#controls #replay`) that outranks a flat one no matter how late this sheet
+ * loads, and the failures were severe (down to 1.32). One decisive pairing everywhere beats 63
+ * independent guesses.
+ */
+#go,
+#go.ready,
+#lock,
+#send,
+#submit,
+#done,
+#run,
+#btnSame,
+#btnDiff {
+  background: var(--gt-navy) !important;
+  color: #ffffff !important;
+  box-shadow: none;
+}
+
+/* The secondary control ("show how again") — quieter, but still a legible pair. */
+#replay,
+#undo {
+  background: var(--gt-gold-lightest) !important;
+  color: var(--gt-navy) !important;
+}
+
+/* Audited light-field text that reached its colour through a nested or inline rule. */
+#nextclue {
+  color: var(--gt-navy) !important;
+}
+
+#modelempty,
+#targetword {
+  color: var(--gt-muted) !important;
+}
+
+/*
+ * Text sitting on a dark field. The "light tints are not text colours" repair is background-blind,
+ * so where a tint was correctly doing light-on-navy it pushed it dark instead. These are the places
+ * the audit caught (1.42–1.88).
+ */
+#cueTxt,
+#cueSub,
+#kUp,
+#kLeft,
+#kDown,
+#kRight,
+.pl {
+  color: #ffffff !important;
+}
+
+#replay {
+  background: var(--gt-gold-lightest);
+  color: var(--gt-navy);
+}
+
+#status.neutral {
+  color: var(--gt-muted);
+}
+
+#status.ok {
+  color: var(--good);
+}
+
+#status.no {
+  color: var(--bad);
+}
+
+/* Consistent focus ring, since these are keyboard-operable and the app uses one everywhere. */
+:focus-visible {
+  outline: 3px solid var(--gt-blue);
+  outline-offset: 2px;
+}

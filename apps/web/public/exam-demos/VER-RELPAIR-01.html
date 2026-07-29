@@ -32,59 +32,59 @@
   sample ServedItems locally and logs the emitted results/telemetry on-page.
 -->
 <style>
-  :root{--bg1:#eef4ff;--bg2:#f7ecff;--ink:#26304a;--card:#fff;--accent:#5b6cff;--good:#22b573;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  :root{--bg1:#fcf4ef;--bg2:#f8e8de;--ink:#001117;--card:#ffffff;--accent:#004f71;--good:#146c43;--tel-bg:#002a3a;--tel-ink:#f5ddcd;--tel-key:#ebba9b;--tel-dim:#e48b53;}
   *{box-sizing:border-box} html,body{margin:0;height:100%}
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
-  #badge{font-size:12px;letter-spacing:.08em;color:#8a93b5;text-transform:uppercase;font-weight:700}
-  #howto{max-width:660px;width:100%;background:#fff;border:1px solid #e2e8fb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a4a7a}
+  #badge{font-size:12px;letter-spacing:.08em;color:#4a6470;text-transform:uppercase;font-weight:700}
+  #howto{max-width:660px;width:100%;background:#ffffff;border:1px solid #ecd9cb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #002a3a}
   #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
-  #howto p{margin:0;font-size:14px;color:#42506e;line-height:1.5}
-  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eef1ff;color:#5b6cff;border:2px solid #c9d0ff;min-height:30px}
-  #phasecue[data-phase="ready"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
-  #phasecue[data-phase="answer"]{background:#eef1ff;color:#5b6cff;border-color:#c9d0ff}
-  #phasecue[data-phase="done"]{background:#5b6cff;color:#fff;border-color:#5b6cff}
-  #phasecue[data-phase="demo"]{background:#e7ecff;color:#3a49c8;border-color:#c9d0ff}
+  #howto p{margin:0;font-size:14px;color:#33505c;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#f8e8de;color:#004f71;border:2px solid #ecd9cb;min-height:30px}
+  #phasecue[data-phase="ready"]{background:#f5ddcd;color:#6f4526;border-color:#ebba9b}
+  #phasecue[data-phase="answer"]{background:#f8e8de;color:#004f71;border-color:#ecd9cb}
+  #phasecue[data-phase="done"]{background:#004f71;color:#ffffff;border-color:#004f71}
+  #phasecue[data-phase="demo"]{background:#f5ddcd;color:#002a3a;border-color:#ecd9cb}
   #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
-  #status.ok{color:var(--good)} #status.neutral{color:#8a93b5}
-  #stagecard{background:var(--card);border-radius:26px;padding:24px;box-shadow:0 18px 50px -22px #4a4a7a;display:flex;flex-direction:column;align-items:center;gap:18px;max-width:680px;width:100%}
+  #status.ok{color:var(--good)} #status.neutral{color:#4a6470}
+  #stagecard{background:var(--card);border-radius:26px;padding:24px;box-shadow:0 18px 50px -22px #002a3a;display:flex;flex-direction:column;align-items:center;gap:18px;max-width:680px;width:100%}
   .band{border-radius:16px;padding:14px 18px;display:flex;flex-direction:column;gap:10px;align-items:center;width:100%}
-  #keyBand{background:linear-gradient(160deg,#eafaf1,#eef1ff);border:3px solid #bfe8cf}
+  #keyBand{background:linear-gradient(160deg,#fcf4ef,#f8e8de);border:3px solid #ecd9cb}
   .pairRow{display:flex;align-items:center;gap:14px;font-size:22px;font-weight:700}
-  .pairRow .word,.cand .word{padding:6px 12px;background:#fff;border:2px solid #dfe4fb;border-radius:10px}
-  .pairRow .arrow,.cand .ar{color:#8ea0d6}
+  .pairRow .word,.cand .word{padding:6px 12px;background:#ffffff;border:2px solid #f8e8de;border-radius:10px}
+  .pairRow .arrow,.cand .ar{color:#4a6470}
   .pairRow .arrow{font-size:24px}
   #candGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;width:100%}
-  .cand{display:flex;align-items:center;justify-content:center;gap:10px;background:#f4f6ff;border:3px solid #d7deff;border-radius:16px;padding:14px 10px;cursor:pointer;font-size:18px;font-weight:600;transition:.12s;position:relative}
-  .cand:hover{border-color:#b9c2ee}
-  .cand .hk{position:absolute;top:4px;left:6px;font-size:10px;color:#a7b0d8;font-weight:700}
-  .cand.sel{border-color:var(--accent);background:#e7ecff;animation:pulse 1.1s infinite}
+  .cand{display:flex;align-items:center;justify-content:center;gap:10px;background:#fcf4ef;border:3px solid #f8e8de;border-radius:16px;padding:14px 10px;cursor:pointer;font-size:18px;font-weight:600;transition:.12s;position:relative}
+  .cand:hover{border-color:#ecd9cb}
+  .cand .hk{position:absolute;top:4px;left:6px;font-size:10px;color:#6f4526;font-weight:700}
+  .cand.sel{border-color:var(--accent);background:#f5ddcd;animation:pulse 1.1s infinite}
   .cand.locked{cursor:default;opacity:.9}
   @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
   .cand .ar{font-size:16px}
   #controls{display:flex;gap:16px;align-items:center}
   button.rd{font:inherit;border:0;cursor:pointer;border-radius:50%}
-  #go{width:64px;height:64px;background:var(--accent);color:#fff;font-size:26px;box-shadow:0 10px 24px -8px var(--accent);opacity:.35;pointer-events:none;transition:.2s}
+  #go{width:64px;height:64px;background:var(--accent);color:#ffffff;font-size:26px;box-shadow:0 10px 24px -8px var(--accent);opacity:.35;pointer-events:none;transition:.2s}
   #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.1s infinite}
-  #replay{width:50px;height:50px;background:#eef1ff;color:#5b6cff;font-size:22px}
+  #replay{width:50px;height:50px;background:#f8e8de;color:#004f71;font-size:22px}
   #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:60;opacity:0;transition:transform .55s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
   #ghost.show{opacity:.92}
-  #diffmeter{width:100%;display:flex;align-items:center;gap:8px;font-size:11px;color:#8a93b5}
-  #diffbar{flex:1;height:8px;background:#e4e9ff;border-radius:6px;overflow:hidden}
-  #diffbar i{display:block;height:100%;background:linear-gradient(90deg,#5b6cff,#ff8fd0);width:0%;transition:.3s}
-  #diffval{min-width:96px;text-align:right;font-weight:700;color:#6b76a8}
+  #diffmeter{width:100%;display:flex;align-items:center;gap:8px;font-size:11px;color:#4a6470}
+  #diffbar{flex:1;height:8px;background:#fcf4ef;border-radius:6px;overflow:hidden}
+  #diffbar i{display:block;height:100%;background:linear-gradient(90deg,#004f71,#ebba9b);width:0%;transition:.3s}
+  #diffval{min-width:96px;text-align:right;font-weight:700;color:#6f4526}
   #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
-  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
-  #chan{padding:6px 14px;font-size:11px;color:var(--tel-dim);border-bottom:1px solid #262f52}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#ffffff;background:#002a3a;text-transform:uppercase}
+  #chan{padding:6px 14px;font-size:11px;color:var(--tel-dim);border-bottom:1px solid #33505c}
   #chan b{color:var(--tel-key)}
   #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
   .mrow{display:grid;grid-template-columns:110px 1fr;gap:8px;align-items:baseline}
   .mid{color:var(--tel-key);font-weight:700}
-  .mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
-  #logwrap{border-top:1px solid #262f52;margin-top:auto}
-  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  .mval{color:#ffffff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #33505c;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#4a6470;font-size:11px;letter-spacing:.08em}
   #log{height:200px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
-  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
+  #log div{padding:2px 0;border-bottom:1px dotted #004f71}#log .t{color:#6f4526}
   @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:320px}}
 </style>
 <style>html[data-gt-telemetry="off"] #telemetry{display:none}</style>
@@ -94,6 +94,13 @@
    demonstration, and standalone (opened directly) is unchanged. Sampling, metric
    computation and the {type:'telemetry'} postMessage stream are untouched. */
 (function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
+<style>html[data-gt-chrome="off"] #howto{display:none}</style>
+<script>/* Instant-question gate. Embedded in the screener the "How to use" panel is hidden so the
+   child sees the question itself the moment it appears; the per-item status line carries the
+   instruction in words. A test should not spend its first seconds being read. `?chrome=1`
+   restores the panel for a walkthrough, and standalone (opened directly) is unchanged. */
+(function(){var f=/(^|[?&])chrome=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-chrome','off');})();</script>
+<link rel="stylesheet" href="../exam-skin.css">
 </head>
 <body>
   <div id="wrap">
@@ -120,7 +127,7 @@
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#5b6cff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#004f71" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg></div>
 <script>
 'use strict';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];

@@ -5,56 +5,56 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>GB-WORDLADDER-01 · Letter Climb</title>
 <style>
-  :root{--bg1:#e6fff5;--bg2:#eaf6ff;--ink:#233a30;--card:#fff;--accent:#22b573;--good:#22b573;--bad:#ff6b6b;
-    --tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  :root{--bg1:#fcf4ef;--bg2:#fcf4ef;--ink:#003b5c;--card:#ffffff;--accent:#146c43;--good:#146c43;--bad:#a4442f;
+    --tel-bg:#002a3a;--tel-ink:#f5ddcd;--tel-key:#ebba9b;--tel-dim:#e48b53;}
   *{box-sizing:border-box} html,body{margin:0;min-height:100%}
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);
     background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:12px;min-width:0}
-  #badge{font-size:12px;letter-spacing:.08em;color:#7a9a8a;text-transform:uppercase;font-weight:700}
-  #howto{max-width:640px;width:100%;background:#fff;border:1px solid #bfe8cf;border-left:5px solid var(--accent);
-    border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #3a7a5a}
+  #badge{font-size:12px;letter-spacing:.08em;color:#6f4526;text-transform:uppercase;font-weight:700}
+  #howto{max-width:640px;width:100%;background:#ffffff;border:1px solid #ecd9cb;border-left:5px solid var(--accent);
+    border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a6470}
   #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
-  #howto p{margin:0;font-size:14px;color:#33544a;line-height:1.5}
+  #howto p{margin:0;font-size:14px;color:#33505c;line-height:1.5}
   #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;
-    text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#eafaf1;color:#1a8f5a;
-    border:2px solid #bfe8cf;min-height:30px}
-  #phasecue[data-phase="waiting"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
-  #phasecue[data-phase="climbing"]{background:var(--accent);color:#fff;border-color:var(--accent)}
-  #phasecue[data-phase="sent"]{background:#eafaf1;color:#0e7f4b;border-color:#bfe8cf}
-  #prompt{max-width:640px;width:100%;text-align:center;font-size:15px;font-weight:700;color:#2c5a46;min-height:22px}
+    text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#fcf4ef;color:#4a6470;
+    border:2px solid #ecd9cb;min-height:30px}
+  #phasecue[data-phase="waiting"]{background:#f5ddcd;color:#6f4526;border-color:#ebba9b}
+  #phasecue[data-phase="climbing"]{background:var(--accent);color:#ffffff;border-color:var(--accent)}
+  #phasecue[data-phase="sent"]{background:#fcf4ef;color:#33505c;border-color:#ecd9cb}
+  #prompt{max-width:640px;width:100%;text-align:center;font-size:15px;font-weight:700;color:#33505c;min-height:22px}
   #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
-  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#7a9a8a}
-  #stagecard{background:var(--card);border-radius:26px;padding:20px;box-shadow:0 18px 50px -22px #3a7a5a;
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#6f4526}
+  #stagecard{background:var(--card);border-radius:26px;padding:20px;box-shadow:0 18px 50px -22px #4a6470;
     display:flex;flex-direction:column;align-items:center;gap:14px;max-width:640px;width:100%}
   .wordrow{display:flex;gap:6px;align-items:center}
-  .wordlabel{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:#7a9a8a;font-weight:800;width:56px;text-align:right}
+  .wordlabel{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:#6f4526;font-weight:800;width:56px;text-align:right}
   .l{width:40px;height:40px;border-radius:9px;display:flex;align-items:center;justify-content:center;
     font-size:19px;font-weight:800}
-  .goalrow .l{background:#fff2e0;border:2px solid #ffcf9a;color:#c06a2a}
-  .rung .l{background:#eafaf1;border:2px solid #cfeedd;color:#3f7a62}
+  .goalrow .l{background:#f8e8de;border:2px solid #ebba9b;color:#4a6470}
+  .rung .l{background:#fcf4ef;border:2px solid #f5ddcd;color:#4a6470}
   #goalbox{display:flex;flex-direction:column;gap:6px;align-items:center;width:100%}
   #history{display:flex;flex-direction:column;gap:6px;align-items:center;width:100%;max-height:210px;overflow:auto}
   #current{display:flex;gap:6px}
-  .curtile{width:46px;height:46px;background:#f4f7ff;border:3px solid #cfd8ff;border-radius:11px;display:flex;
+  .curtile{width:46px;height:46px;background:#fcf4ef;border:3px solid #f8e8de;border-radius:11px;display:flex;
     align-items:center;justify-content:center;font-size:23px;font-weight:800;cursor:pointer;
     -webkit-tap-highlight-color:transparent;transition:.12s}
-  .curtile:hover{border-color:#aeb9f5}
-  .curtile.sel{border-color:var(--accent);box-shadow:0 0 0 4px #bfe8cf}
+  .curtile:hover{border-color:#ecd9cb}
+  .curtile.sel{border-color:var(--accent);box-shadow:0 0 0 4px #ecd9cb}
   #alphabet{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;max-width:430px}
-  .letterbtn{width:32px;height:32px;background:#eef2ff;border-radius:7px;font-size:15px;font-weight:700;
-    cursor:pointer;display:flex;align-items:center;justify-content:center;color:#5b6cff;
+  .letterbtn{width:32px;height:32px;background:#f8e8de;border-radius:7px;font-size:15px;font-weight:700;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;color:#004f71;
     -webkit-tap-highlight-color:transparent}
-  .letterbtn:hover{background:#dde4ff}
+  .letterbtn:hover{background:#f8e8de}
   #alphabet.off .letterbtn{opacity:.4;cursor:default}
   #controls{display:flex;gap:14px;align-items:center}
-  button{font:inherit;border:0;cursor:pointer;border-radius:50%;background:#eafaf1;color:#1a8f5a}
-  #go{width:72px;height:72px;background:var(--accent);color:#fff;font-size:26px;
+  button{font:inherit;border:0;cursor:pointer;border-radius:50%;background:#fcf4ef;color:#4a6470}
+  #go{width:72px;height:72px;background:var(--accent);color:#ffffff;font-size:26px;
     box-shadow:0 10px 24px -8px var(--accent);opacity:.35;pointer-events:none;transition:.2s}
   #go.ready{opacity:1;pointer-events:auto}
   #undo,#replay{width:50px;height:50px;font-size:21px}
-  #undo{background:#ffe9ec;color:#c0455a}
-  .hotkeys{font-size:11px;color:#8fae9e}
+  #undo{background:#fcf4ef;color:#6f4526}
+  .hotkeys{font-size:11px;color:#6f4526}
   #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:60;opacity:0;
     transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
   #ghost.show{opacity:.92}
@@ -64,21 +64,21 @@
   @keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
   #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;
     flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
-  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
-  #itemcard{margin:12px 12px 4px;padding:10px;border:1px solid #263056;border-radius:12px}
-  .itemRow{display:flex;justify-content:space-between;color:#9399c0;font-size:11px;padding:2px 0}
-  .itemRow b{color:#cfd3ff}
-  #mode{margin:6px 12px 0;font-size:11px;color:var(--tel-dim)}#mode b{color:#ffd479}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#ffffff;background:#002a3a;text-transform:uppercase}
+  #itemcard{margin:12px 12px 4px;padding:10px;border:1px solid #004f71;border-radius:12px}
+  .itemRow{display:flex;justify-content:space-between;color:#4a6470;font-size:11px;padding:2px 0}
+  .itemRow b{color:#f8e8de}
+  #mode{margin:6px 12px 0;font-size:11px;color:var(--tel-dim)}#mode b{color:#6f4526}
   #mlist{padding:8px 12px;display:flex;flex-direction:column;gap:7px}
   .mrow{display:grid;grid-template-columns:104px 1fr;gap:8px;align-items:baseline}
   .mid{color:var(--tel-key);font-weight:700}
-  .mval{color:#fff;text-align:right;overflow-wrap:anywhere}
+  .mval{color:#ffffff;text-align:right;overflow-wrap:anywhere}
   .mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
-  #logwrap{border-top:1px solid #262f52;margin-top:auto}
-  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  #logwrap{border-top:1px solid #33505c;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#4a6470;font-size:11px;letter-spacing:.08em}
   #log{height:170px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
-  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
-  button:focus-visible,.curtile:focus-visible,.letterbtn:focus-visible{outline:4px solid #ffbf69;outline-offset:3px}
+  #log div{padding:2px 0;border-bottom:1px dotted #004f71}#log .t{color:#6f4526}
+  button:focus-visible,.curtile:focus-visible,.letterbtn:focus-visible{outline:4px solid #e48b53;outline-offset:3px}
   @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
   @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:320px}}
 </style>
@@ -89,6 +89,13 @@
    demonstration, and standalone (opened directly) is unchanged. Sampling, metric
    computation and the {type:'telemetry'} postMessage stream are untouched. */
 (function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
+<style>html[data-gt-chrome="off"] #howto{display:none}</style>
+<script>/* Instant-question gate. Embedded in the screener the "How to use" panel is hidden so the
+   child sees the question itself the moment it appears; the per-item status line carries the
+   instruction in words. A test should not spend its first seconds being read. `?chrome=1`
+   restores the panel for a walkthrough, and standalone (opened directly) is unchanged. */
+(function(){var f=/(^|[?&])chrome=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-chrome','off');})();</script>
+<link rel="stylesheet" href="../exam-skin.css">
 </head>
 <body>
   <div id="wrap">
@@ -129,7 +136,7 @@
     <div id="mlist"></div>
     <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
   </aside>
-  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#22b573" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#146c43" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
 <script>
 'use strict';
 /* =====================================================================

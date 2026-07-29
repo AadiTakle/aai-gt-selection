@@ -6,81 +6,81 @@
 <title>CX-diverge-01 · Brainstorm Blaster</title>
 <style>
 :root{
-  --ink:#16313a;--paper:#fffef8;--teal:#25aa9b;--blue:#368ed0;
-  --pink:#ed6d91;--gold:#efb63d;--line:#d6e7e5;--tel:#0d1c23;
-  --tel2:#142b35;--key:#78ffd0;--dim:#789ca5;
+  --ink:#003b5c;--paper:#ffffff;--teal:#4a6470;--blue:#e48b53;
+  --pink:#9fb6bd;--gold:#e48b53;--line:#f5ddcd;--tel:#002a3a;
+  --tel2:#002a3a;--key:#ebba9b;--dim:#e48b53;
 }
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%}
 body{
   min-height:100vh;display:flex;color:var(--ink);
   font:16px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;
-  background:radial-gradient(circle at 13% 8%,#d8fff2,transparent 27%),
-    linear-gradient(145deg,#e7fbff,#f5f7e9 58%,#fff0dc);
+  background:radial-gradient(circle at 13% 8%,#f8e8de,transparent 27%),
+    linear-gradient(145deg,#fcf4ef,#f8e8de 58%,#f8e8de);
 }
 #wrap{flex:1;min-width:0;padding:17px;display:flex;flex-direction:column;align-items:center;gap:9px}
-#badge{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#718f94}
-#howto{max-width:720px;width:100%;background:#fff;border:1px solid #d8ece9;border-left:5px solid var(--teal);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #234c55}
+#badge{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#6f4526}
+#howto{max-width:720px;width:100%;background:#ffffff;border:1px solid #f5ddcd;border-left:5px solid var(--teal);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #004f71}
 #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--teal)}
-#howto p{margin:0;font-size:14px;color:#3c5a55;line-height:1.5}
-#phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#e7f4f2;color:#1f716c;border:2px solid #bfe6e0;min-height:30px}
-#phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
-#phasecue[data-phase="scored"]{background:#25aa9b;color:#fff;border-color:#25aa9b}
-#phasecue[data-phase="done"]{background:#e7f4f2;color:#1f716c;border-color:#bfe6e0}
+#howto p{margin:0;font-size:14px;color:#33505c;line-height:1.5}
+#phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#f8e8de;color:#33505c;border:2px solid #ecd9cb;min-height:30px}
+#phasecue[data-phase="warmup"]{background:#f5ddcd;color:#6f4526;border-color:#ebba9b}
+#phasecue[data-phase="scored"]{background:#4a6470;color:#ffffff;border-color:#4a6470}
+#phasecue[data-phase="done"]{background:#f8e8de;color:#33505c;border-color:#ecd9cb}
 #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
-#status.ok{color:#1f9e6f} #status.no{color:var(--pink)} #status.neutral{color:#5c7d82}
+#status.ok{color:#4a6470} #status.no{color:var(--pink)} #status.neutral{color:#4a6470}
 #stagecard{
   width:min(720px,100%);background:var(--paper);border-radius:30px;padding:18px;
-  box-shadow:0 24px 58px -35px #234c55;display:flex;flex-direction:column;
-  align-items:center;gap:12px;border:1px solid #fff;overflow:hidden;
+  box-shadow:0 24px 58px -35px #004f71;display:flex;flex-direction:column;
+  align-items:center;gap:12px;border:1px solid #ffffff;overflow:hidden;
 }
 #promptCard{
-  width:100%;border:3px solid #d8ece9;border-radius:23px;
-  background:radial-gradient(circle at 50% 30%,#fff 0 25%,#e9faf7);
+  width:100%;border:3px solid #f5ddcd;border-radius:23px;
+  background:radial-gradient(circle at 50% 30%,#ffffff 0 25%,#fcf4ef);
   padding:16px 18px;display:flex;gap:14px;align-items:flex-start;position:relative;
 }
 #promptMark{flex:0 0 44px;margin-top:2px}
 #promptText{flex:1;min-width:0}
-#promptHead{font:900 22px/1.25 ui-rounded,"Arial Rounded MT Bold",system-ui;color:#1f716c}
-#promptNote{margin-top:6px;font-size:13px;color:#4f7a76}
-#rules{margin:8px 0 0;padding-left:18px;font-size:13px;color:#8a5b18}
+#promptHead{font:900 22px/1.25 ui-rounded,"Arial Rounded MT Bold",system-ui;color:#33505c}
+#promptNote{margin-top:6px;font-size:13px;color:#4a6470}
+#rules{margin:8px 0 0;padding-left:18px;font-size:13px;color:#33505c}
 #rules li{margin-top:2px}
 #timerWrap{position:absolute;right:14px;top:12px;text-align:right}
-#timer{font:900 19px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:#4f7a76}
-#timertrack{width:74px;height:6px;border-radius:6px;background:#d8ece9;margin-top:5px;overflow:hidden}
-#timerfill{height:100%;width:100%;background:linear-gradient(90deg,#25aa9b,#efb63d);transition:width 1s linear}
+#timer{font:900 19px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:#4a6470}
+#timertrack{width:74px;height:6px;border-radius:6px;background:#f5ddcd;margin-top:5px;overflow:hidden}
+#timerfill{height:100%;width:100%;background:linear-gradient(90deg,#4a6470,#e48b53);transition:width 1s linear}
 #entry{width:100%;display:grid;grid-template-columns:1fr 62px;gap:8px}
 #idea{
-  width:100%;height:54px;border:3px solid #cfe3e1;border-radius:17px;background:#fff;
+  width:100%;height:54px;border:3px solid #ecd9cb;border-radius:17px;background:#ffffff;
   color:var(--ink);padding:8px 15px;font:700 17px system-ui;outline:none;
 }
-#idea:focus{border-color:var(--teal);box-shadow:0 0 0 4px #d9f6f0}
-#idea[disabled]{background:#f2f6f5;color:#8aa6a3}
-#add{border:0;border-radius:17px;background:var(--teal);color:#fff;cursor:pointer;font:900 15px system-ui}
-#add[disabled]{opacity:.35;cursor:default}
+#idea:focus{border-color:var(--teal);box-shadow:0 0 0 4px #f8e8de}
+#idea[disabled]{background:#fcf4ef;color:#6f4526}
+#ebba9b{border:0;border-radius:17px;background:var(--teal);color:#ffffff;cursor:pointer;font:900 15px system-ui}
+#ebba9b[disabled]{opacity:.35;cursor:default}
 #field{
-  width:100%;height:150px;border-top:2px dashed #c9dedb;position:relative;
-  overflow:hidden;background:linear-gradient(transparent,#f3fbf8);
+  width:100%;height:150px;border-top:2px dashed #ecd9cb;position:relative;
+  overflow:hidden;background:linear-gradient(transparent,#fcf4ef);
 }
 .bubble{
   position:absolute;bottom:-40px;max-width:200px;padding:7px 12px;border-radius:20px;
-  border:2px solid var(--teal);background:#fff;color:var(--ink);
-  font:700 13px system-ui;animation:rise 8s linear forwards;box-shadow:0 7px 15px -12px #173d44;
+  border:2px solid var(--teal);background:#ffffff;color:var(--ink);
+  font:700 13px system-ui;animation:rise 8s linear forwards;box-shadow:0 7px 15px -12px #003b5c;
 }
 @keyframes rise{0%{transform:translateY(0);opacity:0}8%{opacity:1}75%{opacity:1}100%{transform:translateY(-175px);opacity:.2}}
 #chips{width:100%;display:flex;flex-wrap:wrap;gap:6px;min-height:8px}
 .chip{
-  display:inline-flex;align-items:center;gap:7px;border:2px solid #cfe3e1;border-radius:14px;
-  background:#fff;padding:5px 6px 5px 11px;font:700 13px system-ui;color:var(--ink);
+  display:inline-flex;align-items:center;gap:7px;border:2px solid #ecd9cb;border-radius:14px;
+  background:#ffffff;padding:5px 6px 5px 11px;font:700 13px system-ui;color:var(--ink);
 }
-.chip button{border:0;background:#eef6f4;color:#5c7d82;border-radius:9px;width:22px;height:22px;cursor:pointer;font:800 12px system-ui}
-#count{font:700 12px ui-monospace,monospace;color:#5c7d82}
+.chip button{border:0;background:#fcf4ef;color:#4a6470;border-radius:9px;width:22px;height:22px;cursor:pointer;font:800 12px system-ui}
+#count{font:700 12px ui-monospace,monospace;color:#4a6470}
 #tools{display:flex;gap:11px;align-items:center;flex-wrap:wrap;justify-content:center}
-#tools button{height:50px;border:0;border-radius:16px;cursor:pointer;font:800 16px system-ui;background:#e7f4f2;color:var(--teal);padding:0 18px}
+#tools button{height:50px;border:0;border-radius:16px;cursor:pointer;font:800 16px system-ui;background:#f8e8de;color:var(--teal);padding:0 18px}
 #replay{padding:0 15px;font-size:19px}
-#send{background:var(--blue)!important;color:#fff!important;opacity:.35;pointer-events:none}
+#send{background:var(--blue)!important;color:#ffffff!important;opacity:.35;pointer-events:none}
 #send.ready{opacity:1;pointer-events:auto}
-button:focus-visible,input:focus-visible{outline:4px solid #168dff;outline-offset:2px}
+button:focus-visible,input:focus-visible{outline:4px solid #e48b53;outline-offset:2px}
 #ghost{
   position:fixed;left:0;top:0;opacity:0;z-index:50;pointer-events:none;
   transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .25s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25));
@@ -91,28 +91,28 @@ button:focus-visible,input:focus-visible{outline:4px solid #168dff;outline-offse
 @keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
 #telemetry{
   width:345px;flex:0 0 345px;min-height:100vh;background:var(--tel);
-  color:#c7e4e7;display:flex;flex-direction:column;
+  color:#4a6470;display:flex;flex-direction:column;
   font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;
 }
-#telemetry h3{margin:0;padding:13px 14px;background:var(--tel2);color:#fff;font:800 12px system-ui;letter-spacing:.1em;text-transform:uppercase}
-#difficulty{margin:10px 12px 2px;padding:10px;border:1px solid #25414a;border-radius:10px;background:#122630}
-.dtop{display:flex;justify-content:space-between;color:#fff}
+#telemetry h3{margin:0;padding:13px 14px;background:var(--tel2);color:#ffffff;font:800 12px system-ui;letter-spacing:.1em;text-transform:uppercase}
+#difficulty{margin:10px 12px 2px;padding:10px;border:1px solid #004f71;border-radius:10px;background:#002a3a}
+.dtop{display:flex;justify-content:space-between;color:#ffffff}
 .dsub{display:flex;justify-content:space-between;color:var(--dim);font-size:11px;margin-top:5px}
-.dtrack{height:7px;background:#203941;border-radius:8px;margin-top:8px;overflow:hidden}
-.dfill{height:100%;background:linear-gradient(90deg,#78ffd0,#efbd47);transition:.25s}
+.dtrack{height:7px;background:#003b5c;border-radius:8px;margin-top:8px;overflow:hidden}
+.dfill{height:100%;background:linear-gradient(90deg,#ebba9b,#e48b53);transition:.25s}
 #mode{margin:6px 12px 0;font-size:11px;color:var(--dim)}
-#mode b{color:#efbd47}
+#mode b{color:#6f4526}
 #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
 .mrow{display:grid;grid-template-columns:105px 1fr;gap:7px;align-items:baseline}
 .mid{color:var(--key);font-weight:800}
-.mid.def{color:#efbd47}
-.mval{color:#fff;word-break:break-word}
+.mid.def{color:#6f4526}
+.mval{color:#ffffff;word-break:break-word}
 .mname{grid-column:1/3;color:var(--dim);font-size:10px;margin-top:-3px}
-#logwrap{border-top:1px solid #25414a;margin-top:auto}
-#logwrap b{display:block;padding:8px 12px 3px;color:#7899a1;font-size:10px;letter-spacing:.08em}
+#logwrap{border-top:1px solid #004f71;margin-top:auto}
+#logwrap b{display:block;padding:8px 12px 3px;color:#6f4526;font-size:10px;letter-spacing:.08em}
 #log{height:175px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
-#log div{border-bottom:1px dotted #25414a;padding:3px 0}
-#log .t{color:#50757d}
+#log div{border-bottom:1px dotted #004f71;padding:3px 0}
+#log .t{color:#4a6470}
 @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;min-height:0;height:320px;flex:none}}
 @media(max-width:480px){#promptHead{font-size:18px}#field{height:120px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition-duration:.01ms!important}}
@@ -124,6 +124,13 @@ button:focus-visible,input:focus-visible{outline:4px solid #168dff;outline-offse
    demonstration, and standalone (opened directly) is unchanged. Sampling, metric
    computation and the {type:'telemetry'} postMessage stream are untouched. */
 (function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
+<style>html[data-gt-chrome="off"] #howto{display:none}</style>
+<script>/* Instant-question gate. Embedded in the screener the "How to use" panel is hidden so the
+   child sees the question itself the moment it appears; the per-item status line carries the
+   instruction in words. A test should not spend its first seconds being read. `?chrome=1`
+   restores the panel for a walkthrough, and standalone (opened directly) is unchanged. */
+(function(){var f=/(^|[?&])chrome=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-chrome','off');})();</script>
+<link rel="stylesheet" href="../exam-skin.css">
 </head>
 <body>
 <main id="wrap">

@@ -5,54 +5,54 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>GB-FILTER-01 · Star Filter</title>
 <style>
-  :root{--bg1:#101833;--bg2:#1b1440;--ink:#e7ecff;--card:#1b2450;--accent:#7c8cff;--good:#7fffcf;
-    --cell:#25305e;--cellon:#3b4c96;--tel-bg:#0a0f1e;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  :root{--bg1:#002a3a;--bg2:#003b5c;--ink:#f5ddcd;--card:#004f71;--accent:#ebba9b;--good:#ebba9b;
+    --cell:#33505c;--cellon:#4a6470;--tel-bg:#001117;--tel-ink:#f5ddcd;--tel-key:#ebba9b;--tel-dim:#e48b53;}
   *{box-sizing:border-box}html,body{margin:0;min-height:100%}
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:radial-gradient(circle at 25% 8%,var(--bg2),var(--bg1));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:10px;min-width:0}
-  #badge{font-size:12px;letter-spacing:.08em;color:#93a0d8;text-transform:uppercase;font-weight:700}
-  #howto{max-width:600px;width:100%;background:#fff;border:1px solid #d7dcff;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #000}
-  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:#4653b8}
-  #howto p{margin:0;font-size:14px;color:#38406b;line-height:1.5}
-  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#25305e;color:#c3ccff;border:2px solid #3b4c96;min-height:30px}
-  #phasecue[data-phase="waiting"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
-  #phasecue[data-phase="sent"]{background:var(--accent);color:#0d1330;border-color:var(--accent)}
-  #prompt{max-width:600px;width:100%;font-size:15px;font-weight:700;color:#c9d2ff;text-align:center;min-height:20px}
+  #badge{font-size:12px;letter-spacing:.08em;color:#4a6470;text-transform:uppercase;font-weight:700}
+  #howto{max-width:600px;width:100%;background:#ffffff;border:1px solid #f8e8de;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #001117}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:#6f4526}
+  #howto p{margin:0;font-size:14px;color:#33505c;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#33505c;color:#f5ddcd;border:2px solid #4a6470;min-height:30px}
+  #phasecue[data-phase="waiting"]{background:#f5ddcd;color:#6f4526;border-color:#ebba9b}
+  #phasecue[data-phase="sent"]{background:var(--accent);color:#002a3a;border-color:var(--accent)}
+  #prompt{max-width:600px;width:100%;font-size:15px;font-weight:700;color:#f5ddcd;text-align:center;min-height:20px}
   #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
-  #status.ok{color:var(--good)} #status.neutral{color:#93a0d8}
-  #stagecard{background:var(--card);border-radius:24px;padding:18px;box-shadow:0 18px 50px -22px #000;display:flex;flex-direction:column;align-items:center;gap:14px}
-  #cuecard{display:flex;align-items:center;gap:12px;background:#131b3d;border-radius:14px;padding:10px 18px;min-height:62px}
+  #status.ok{color:var(--good)} #status.neutral{color:#4a6470}
+  #stagecard{background:var(--card);border-radius:24px;padding:18px;box-shadow:0 18px 50px -22px #001117;display:flex;flex-direction:column;align-items:center;gap:14px}
+  #cuecard{display:flex;align-items:center;gap:12px;background:#003b5c;border-radius:14px;padding:10px 18px;min-height:62px}
   #cuecard .sw{width:34px;height:34px;border-radius:9px;box-shadow:inset 0 0 0 2px rgba(255,255,255,.35)}
   #cuecard .txt{font-size:15px;font-weight:800;letter-spacing:.08em}
-  #cuecard .sub{font-size:11px;color:#93a0d8;letter-spacing:.06em;font-weight:600}
+  #cuecard .sub{font-size:11px;color:#4a6470;letter-spacing:.06em;font-weight:600}
   #grid{display:grid;gap:5px}
   .cell{background:var(--cell);border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:default;position:relative;transition:background .12s}
   .cell.tappable{cursor:pointer}
   .cell.tappable:hover{background:var(--cellon)}
-  .cell.picked{background:var(--cellon);box-shadow:inset 0 0 0 3px #fff}
+  .cell.picked{background:var(--cellon);box-shadow:inset 0 0 0 3px #ffffff}
   .cell svg{display:block;pointer-events:none}
-  #done{background:var(--accent);color:#0d1330;padding:10px 26px;font-size:16px;border:0;border-radius:14px;font-weight:700;cursor:pointer;opacity:.4;pointer-events:none;transition:.2s}
+  #done{background:var(--accent);color:#002a3a;padding:10px 26px;font-size:16px;border:0;border-radius:14px;font-weight:700;cursor:pointer;opacity:.4;pointer-events:none;transition:.2s}
   #done.ready{opacity:1;pointer-events:auto}
-  #replay{width:44px;height:44px;background:#25305e;color:#c3ccff;font-size:19px;border:0;border-radius:50%;cursor:pointer;font-weight:700}
+  #replay{width:44px;height:44px;background:#33505c;color:#f5ddcd;font-size:19px;border:0;border-radius:50%;cursor:pointer;font-weight:700}
   #row{display:flex;gap:12px;align-items:center}
-  #picked{font-size:12px;color:#93a0d8;letter-spacing:.04em}
-  .hotkeys{font-size:11px;color:#6f7cb5;text-align:center}
+  #picked{font-size:12px;color:#4a6470;letter-spacing:.04em}
+  .hotkeys{font-size:11px;color:#6f4526;text-align:center}
   #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:60;opacity:0;transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s}
   #ghost.show{opacity:.95}#ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
   #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
   #telemetry{width:330px;flex:0 0 330px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
-  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#141e38;text-transform:uppercase}
-  #itemcard{margin:12px 12px 4px;padding:10px;border:1px solid #1c2745;border-radius:12px}
-  .itemRow{display:flex;justify-content:space-between;color:#9399c0;font-size:11px;padding:2px 0}.itemRow b{color:#cfd3ff}
-  #mode{margin:4px 12px 0;font-size:11px;color:var(--tel-dim)}#mode b{color:#ffd479}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#ffffff;background:#003b5c;text-transform:uppercase}
+  #itemcard{margin:12px 12px 4px;padding:10px;border:1px solid #003b5c;border-radius:12px}
+  .itemRow{display:flex;justify-content:space-between;color:#4a6470;font-size:11px;padding:2px 0}.itemRow b{color:#f8e8de}
+  #mode{margin:4px 12px 0;font-size:11px;color:var(--tel-dim)}#mode b{color:#6f4526}
   #mlist{padding:8px 12px;display:flex;flex-direction:column;gap:7px}
   .mrow{display:grid;grid-template-columns:108px 1fr;gap:8px;align-items:baseline}
-  .mid{color:var(--tel-key);font-weight:700}.mid.srv{color:#ffd479}
-  .mval{color:#fff;text-align:right;overflow-wrap:anywhere}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
-  #logwrap{border-top:1px solid #1c2745;margin-top:auto}
-  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  .mid{color:var(--tel-key);font-weight:700}.mid.srv{color:#6f4526}
+  .mval{color:#ffffff;text-align:right;overflow-wrap:anywhere}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #003b5c;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#4a6470;font-size:11px;letter-spacing:.08em}
   #log{height:150px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
-  #log div{padding:2px 0;border-bottom:1px dotted #1c2745}#log .t{color:#5f6f9e}
+  #log div{padding:2px 0;border-bottom:1px dotted #003b5c}#log .t{color:#6f4526}
   @media(max-width:900px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
   @media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
 </style>
@@ -63,6 +63,13 @@
    demonstration, and standalone (opened directly) is unchanged. Sampling, metric
    computation and the {type:'telemetry'} postMessage stream are untouched. */
 (function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
+<style>html[data-gt-chrome="off"] #howto{display:none}</style>
+<script>/* Instant-question gate. Embedded in the screener the "How to use" panel is hidden so the
+   child sees the question itself the moment it appears; the per-item status line carries the
+   instruction in words. A test should not spend its first seconds being read. `?chrome=1`
+   restores the panel for a walkthrough, and standalone (opened directly) is unchanged. */
+(function(){var f=/(^|[?&])chrome=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-chrome','off');})();</script>
+<link rel="stylesheet" href="../exam-skin.css">
 </head>
 <body>
   <div id="wrap">
