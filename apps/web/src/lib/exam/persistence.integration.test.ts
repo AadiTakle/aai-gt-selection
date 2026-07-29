@@ -321,7 +321,10 @@ describe('adaptive exam trace round trip', () => {
   beforeAll(async () => {
     const login = await proctor.auth.signInWithPassword({
       email: process.env.GT_EXAM_PROCTOR_EMAIL ?? 'admissions@example.test',
-      password: process.env.GT_EXAM_PROCTOR_PASSWORD ?? '',
+      // Matches the synthetic proctor seeded by scripts/create-local-auth-users.ts
+      // (the same constant the other integration tests and e2e setup sign in with),
+      // so this works without extra CI env plumbing; the env vars stay as overrides.
+      password: process.env.GT_EXAM_PROCTOR_PASSWORD ?? 'Synthetic-Only-2026!',
     });
     if (login.error) throw login.error;
     run = await runBattery();
@@ -494,7 +497,10 @@ describe('a forged scoredItems payload cannot move the score', () => {
   beforeAll(async () => {
     const login = await proctor.auth.signInWithPassword({
       email: process.env.GT_EXAM_PROCTOR_EMAIL ?? 'admissions@example.test',
-      password: process.env.GT_EXAM_PROCTOR_PASSWORD ?? '',
+      // Matches the synthetic proctor seeded by scripts/create-local-auth-users.ts
+      // (the same constant the other integration tests and e2e setup sign in with),
+      // so this works without extra CI env plumbing; the env vars stay as overrides.
+      password: process.env.GT_EXAM_PROCTOR_PASSWORD ?? 'Synthetic-Only-2026!',
     });
     if (login.error) throw login.error;
 
