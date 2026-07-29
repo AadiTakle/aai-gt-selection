@@ -22,7 +22,7 @@
  * `(items, policy)`: no clock, no randomness, no I/O — so a stored trace plus a
  * frozen policy id reproduces the score exactly.
  */
-import { type AbilityFitOptions, deriveAbilityEstimate } from './ability';
+import { type AbilityFitOptions, deriveAbilityFit } from './ability';
 import { DERIVED_METRIC_IDS, deriveAggregateMetrics } from './derived-metrics';
 import type { MetricId } from './metric-ids';
 import type { BracketingMode, ExamPolicy, MetricWeight } from './policy';
@@ -84,6 +84,12 @@ interface AreaAggregate {
    * default path is byte-for-byte the code it always was.
    */
   readonly ability: number | null;
+  /**
+   * Conditional standard error of `ability` on the [1, 20] scale, from the items this area served
+   * (Fisher information). `null` whenever `ability` is. Wider when fewer or badly-targeted items
+   * were answered, so a results screen can show an honest range rather than a bare point.
+   */
+  readonly abilitySe: number | null;
   /** Metric id → single aggregated value used for scoring. */
   readonly aggregated: ReadonlyMap<string, number>;
   /** Metric id → number of items that reported it (coverage, informational). */
@@ -128,10 +134,12 @@ function aggregateArea(
 
   // Ability (the alternative bracket driver, D-024). Fitted from the same per-item difficulty and
   // score the accuracy term reads — no engine state is consulted.
-  const ability =
+  const abilityFit =
     bracketingMode(policy) === 'ability'
-      ? deriveAbilityEstimate(items, abilityFitOptions(policy))
+      ? deriveAbilityFit(items, abilityFitOptions(policy))
       : null;
+  const ability = abilityFit?.estimate ?? null;
+  const abilitySe = abilityFit?.se ?? null;
 
   // Collect raw metric values per id. Session-level aggregates are skipped: they are fitted from
   // the trace below, and averaging a per-item emission of one would be meaningless.
@@ -176,7 +184,7 @@ function aggregateArea(
     );
   }
 
-  return { area, items, accuracy, ability, aggregated, coverage };
+  return { area, items, accuracy, ability, abilitySe, aggregated, coverage };
 }
 
 // ---------------------------------------------------------------------------
@@ -278,6 +286,9 @@ function scoreArea(agg: AreaAggregate, policy: ExamPolicy): AreaScore {
     accuracy: agg.accuracy,
     // Present only under ability bracketing, so the default output shape is unchanged.
     ...(agg.ability === null ? {} : { abilityEstimate: agg.ability }),
+    ...(agg.abilitySe === null || !Number.isFinite(agg.abilitySe)
+      ? {}
+      : { abilityStandardError: agg.abilitySe }),
     positionWithinBracket: position,
     itemsScored: agg.items.length,
     contributions,

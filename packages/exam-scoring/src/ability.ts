@@ -107,3 +107,62 @@ export function deriveAbilityEstimate(
   }
   return (lo + hi) / 2;
 }
+
+/**
+ * Conditional standard error of the estimate at `theta`, from the observed items.
+ *
+ * The precision of a fitted 1PL location is the curvature of the log posterior at the estimate:
+ * each item contributes Fisher information `slope^2 * p * (1 - p)` (with `p` the model's success
+ * probability on that item), and a finite prior adds `1 / priorSd^2`. The SE is
+ * `1 / sqrt(total precision)`.
+ *
+ * Because `p * (1 - p)` peaks at `p = 0.5`, an item pitched near the child's own level (what a
+ * converged battery serves) sharpens the estimate most, while an item far above or below barely
+ * moves it. So the SE reflects WHICH items were served, not merely how many — a child who answered
+ * fewer or badly-targeted items gets a legitimately wider interval.
+ *
+ * Returns `null` for an empty trace. With a finite prior the SE is always finite (the prior alone
+ * bounds it); with `priorSd: Infinity` and a fully one-sided trace the information can approach 0
+ * and the SE diverges, which is the honest answer — a one-sided trace does not locate the ability.
+ */
+export function abilityStandardError(
+  theta: number,
+  items: readonly ScoredItem[],
+  opts: AbilityFitOptions,
+): number | null {
+  if (items.length === 0) return null;
+  if (!(opts.slope > 0) || !Number.isFinite(opts.slope)) return null;
+
+  let information = 0;
+  for (const item of items) {
+    const difficulty = clamp(item.difficulty, opts.min, opts.max);
+    const p = 1 / (1 + Math.exp(-opts.slope * (theta - difficulty)));
+    information += opts.slope * opts.slope * p * (1 - p);
+  }
+  if (Number.isFinite(opts.priorSd) && opts.priorSd > 0) {
+    information += 1 / (opts.priorSd * opts.priorSd);
+  }
+
+  if (!(information > 0)) return Number.POSITIVE_INFINITY;
+  return 1 / Math.sqrt(information);
+}
+
+/** An ability estimate together with its conditional standard error. */
+export interface AbilityFit {
+  readonly estimate: number;
+  readonly se: number;
+}
+
+/**
+ * Convenience wrapper: the estimate and its conditional SE from one pass. `null` for an empty
+ * trace, matching {@link deriveAbilityEstimate}. The SE is evaluated at the fitted estimate.
+ */
+export function deriveAbilityFit(
+  items: readonly ScoredItem[],
+  opts: AbilityFitOptions,
+): AbilityFit | null {
+  const estimate = deriveAbilityEstimate(items, opts);
+  if (estimate === null) return null;
+  const se = abilityStandardError(estimate, items, opts);
+  return { estimate, se: se ?? Number.POSITIVE_INFINITY };
+}
