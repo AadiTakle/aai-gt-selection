@@ -130,8 +130,41 @@ export function selectNextNovelItem(
   targetDifficulty: number,
   seed: number,
 ): ServedItem | null {
+  const best = pickNearestNovel(pool, administeredIds, targetDifficulty, seed);
+  return best === null ? null : toServedItem(best);
+}
+
+/**
+ * The same selection rule over an ALREADY-SERVED pool.
+ *
+ * A browser never holds `BankItem` — it only ever receives `ServedItem` (no answer key), so it
+ * cannot call {@link selectNextNovelItem}. Rather than restate the nearest-difficulty rule in the
+ * app, where it would drift from the tested one, both entry points share `pickNearestNovel`. The
+ * caller is responsible for having already restricted `pool` to the block's area.
+ */
+export function selectNextNovelServedItem(
+  pool: readonly ServedItem[],
+  administeredIds: readonly ItemId[],
+  targetDifficulty: number,
+  seed: number,
+): ServedItem | null {
+  return pickNearestNovel(pool, administeredIds, targetDifficulty, seed);
+}
+
+/** The minimum an item must expose to be ranked; both `BankItem` and `ServedItem` satisfy it. */
+interface NovelCandidate {
+  readonly itemId: ItemId;
+  readonly difficulty: number;
+}
+
+function pickNearestNovel<T extends NovelCandidate>(
+  pool: readonly T[],
+  administeredIds: readonly ItemId[],
+  targetDifficulty: number,
+  seed: number,
+): T | null {
   const seen = new Set(administeredIds);
-  let best: BankItem | null = null;
+  let best: T | null = null;
 
   for (const candidate of pool) {
     if (seen.has(candidate.itemId)) continue;
@@ -142,11 +175,16 @@ export function selectNextNovelItem(
     if (novelItemIsBetter(candidate, best, targetDifficulty, seed)) best = candidate;
   }
 
-  return best === null ? null : toServedItem(best);
+  return best;
 }
 
 /** Nearest difficulty, then the same seeded id tie-break `selection.ts` uses, for replayability. */
-function novelItemIsBetter(a: BankItem, b: BankItem, target: number, seed: number): boolean {
+function novelItemIsBetter(
+  a: NovelCandidate,
+  b: NovelCandidate,
+  target: number,
+  seed: number,
+): boolean {
   const aCost = Math.abs(a.difficulty - target);
   const bCost = Math.abs(b.difficulty - target);
   if (aCost !== bCost) return aCost < bCost;
