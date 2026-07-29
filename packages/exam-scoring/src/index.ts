@@ -26,3 +26,6 @@ export * from './ability';
 export * from './learning-curve';
 export * from './learning-rate-readout';
 export * from './scorer';
+// The same scoring, packaged as a standalone cloud function (D-019). Exported so a caller can run
+// it in-process during development and deploy the identical code path.
+export * from './lambda/handler';
