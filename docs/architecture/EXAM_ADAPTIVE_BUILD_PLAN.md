@@ -130,6 +130,64 @@ Justification per `MEASUREMENTS.md`/`METRIC_FRAMEWORK.md`. Others stay *tracked-
    rate, consistency). NO decision label. All weights come from a **tunable `ExamPolicy`** (defaults
    in code now; admin-portal-editable later). Fully reproducible from the stored trace.
 
+## 5.5 Two-phase structure: standing level, then learning rate (BUILT 2026-07-28)
+
+The adaptive battery runs in **two regimes**, marked on every observation by
+`stage: 'standing' | 'learning'` (defaults to `'standing'`, so every pre-existing trace,
+fixture, and replay stays valid). This refines §3/§5 rather than replacing them.
+Governance: decision **D-030**, evidence **E-073** and **E-095**.
+
+### Phase 1 — standing level (per area)
+
+For each reasoning area, two-sided bracketing homes in on the child's level and stops when
+that area's estimate settles (a confident stop, not a fixed length). Implemented in
+`packages/exam-engine` (`update`, `isDone`, `phase1-homing.test.ts`). Output: a per-area
+proficiency (θ on the 1–20 scale) plus the §5 profile. This is the score-bracket driver.
+
+### Phase 2 — learning rate (one area, session-level)
+
+After a chosen area's estimate settles, administer a **physically separate block of ~30 novel
+items in that one area**, every item stage-marked `'learning'`:
+
+- **Administration** — `packages/exam-engine/src/learning-block.ts`: `selectNextNovelItem`
+  (max-information among items not served in Phase 1), `poolSupportsBlock`, and `blockReadiness`.
+- **Estimation** — `packages/exam-scoring/src/learning-curve.ts` `estimateLearningCurve` fits a
+  1PL MAP learning curve returning `{ theta0, lambda, lambdaSe }` (consistent with `ability.ts`).
+- **Readout** — `packages/exam-scoring/src/learning-rate-readout.ts` converts λ to an ordinal
+  band (`below | typical | above`) or `indeterminate`.
+
+**Handover condition** (`blockReadiness`): the area estimate is settled **and** the domain pool
+has ≥30 unseen items. Otherwise the block does not run and the readout is `indeterminate`.
+
+**One area, not four.** Recovering λ needs *length*, not breadth: it is near-worthless at ≤8
+trials and only becomes usable near 30 (E-073). Four blocks of 15 cost more items than one block
+of 30 and measure worse. Fixing the same area for every child keeps λ comparable across children.
+
+**Separate from Phase 1 — the confound.** Over one undifferentiated adaptive stream, "hardest
+item solved rises" is produced *both* by learning and by the bracketing converging: a child of
+fixed ability shows apparent growth that grows with how far the grade-band seed started from them.
+The old block-half contrast (`deriveLearningRate`) is fooled by this; the MAP fit over a separate
+novel block is not. The `stage` marker is the structural guard that keeps the fit reading the
+block alone (see the "confound guard" tests in `learning-block.test.ts` /
+`learning-rate-readout.test.ts`).
+
+### What it may and may not claim (D-030, E-095)
+
+- At 30 trials the individual posterior SE (~0.045 scale points/trial) is wider than the plausible
+  between-child spread, and no K-8 reference distribution exists — so on real sessions the honest
+  readout is usually `indeterminate`. **That refusal is correct behaviour, not a gap to tune away.**
+- **Supported:** ranking a cohort we measured ourselves (ordinal). **Not supported:** placing an
+  individual child on an absolute learning-rate scale.
+- The per-area §4 metric `M-LEARNRATE` is therefore `enforced: false` — a labelled diagnostic, not
+  a reported score. The reported learning rate comes only from the Phase 2 block.
+
+### Status
+
+Engine, estimator, readout, guard tests, and a demo (`pnpm exam:phase2-demo`) are built and on
+`dev`. **Not yet done:** wiring the novel block into the web runner and replacing the results
+screen's learning-rate line (still fed by the demoted per-area diagnostic) with this honest
+readout — tracked separately.
+
 ## 6. Storage contract (implement in `supabase/`; RLS, born-synthetic)
 
 Tables (private `app` schema, `SECURITY DEFINER` RPCs, forced RLS, `synthetic_only`):
