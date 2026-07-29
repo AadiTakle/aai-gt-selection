@@ -170,7 +170,8 @@ function gridProgramSpace(paletteSize: number): GridOp[][] {
   }
   single.push({ op: 'reflectH' }, { op: 'reflectV' }, { op: 'rot180' });
   for (let a = 1; a <= paletteSize; a++) {
-    for (let b = 1; b <= paletteSize; b++) if (a !== b) single.push({ op: 'recolor', from: a, to: b });
+    for (let b = 1; b <= paletteSize; b++)
+      if (a !== b) single.push({ op: 'recolor', from: a, to: b });
   }
   for (let color = 1; color <= paletteSize; color++) {
     for (const [dx, dy] of [
@@ -207,7 +208,11 @@ function deriveGridTarget(content: Record<string, unknown>): Grid | null {
 
   const predicted = new Map<string, Grid>();
   for (const program of gridProgramSpace(paletteSize)) {
-    if (!examples.every((ex) => serializeGrid(runProgram(ex.input, program)) === serializeGrid(ex.output))) {
+    if (
+      !examples.every(
+        (ex) => serializeGrid(runProgram(ex.input, program)) === serializeGrid(ex.output),
+      )
+    ) {
       continue;
     }
     const out = runProgram(probeInput, program);
@@ -279,7 +284,11 @@ function normalizeAttr(attribute: string, value: unknown): string | number | nul
 }
 
 /** Distinct blank values predicted by the rules that fit the visible cells. */
-function induceBlankValues(values: (AttrValue | null)[][], size: number, numeric: boolean): AttrValue[] {
+function induceBlankValues(
+  values: (AttrValue | null)[][],
+  size: number,
+  numeric: boolean,
+): AttrValue[] {
   const shown: { r: number; c: number; v: AttrValue }[] = [];
   for (let r = 0; r < size; r++) {
     for (let c = 0; c < size; c++) {
@@ -311,7 +320,8 @@ function induceBlankValues(values: (AttrValue | null)[][], size: number, numeric
     if (rowsDistinct && colsDistinct) {
       const gapRow = alphabet.filter((v) => !row(size - 1).includes(v));
       const gapCol = alphabet.filter((v) => !col(size - 1).includes(v));
-      if (gapRow.length === 1 && gapCol.length === 1 && gapRow[0] === gapCol[0]) preds.push(gapRow[0]!);
+      if (gapRow.length === 1 && gapCol.length === 1 && gapRow[0] === gapCol[0])
+        preds.push(gapRow[0]!);
     }
   }
 
@@ -324,7 +334,12 @@ function induceBlankValues(values: (AttrValue | null)[][], size: number, numeric
     }
     const distinctDeltas = [...new Set(deltas)];
     const delta = distinctDeltas[0];
-    if (distinctDeltas.length === 1 && delta !== undefined && delta !== 0 && Number.isFinite(delta)) {
+    if (
+      distinctDeltas.length === 1 &&
+      delta !== undefined &&
+      delta !== 0 &&
+      Number.isFinite(delta)
+    ) {
       const lastRow = numbers(row(size - 1));
       const tail = lastRow[lastRow.length - 1];
       if (tail !== undefined && Number.isFinite(tail)) preds.push(tail + delta);
@@ -335,8 +350,10 @@ function induceBlankValues(values: (AttrValue | null)[][], size: number, numeric
         return typeof v === 'number' ? v : Number.NaN;
       };
       const rowsWithSum = [0, 1];
-      if (rowsWithSum.every((r) => at(r, 2) === at(r, 0) + at(r, 1))) preds.push(at(2, 0) + at(2, 1));
-      if (rowsWithSum.every((r) => at(r, 2) === at(r, 0) - at(r, 1))) preds.push(at(2, 0) - at(2, 1));
+      if (rowsWithSum.every((r) => at(r, 2) === at(r, 0) + at(r, 1)))
+        preds.push(at(2, 0) + at(2, 1));
+      if (rowsWithSum.every((r) => at(r, 2) === at(r, 0) - at(r, 1)))
+        preds.push(at(2, 0) - at(2, 1));
     }
   }
 
@@ -349,7 +366,8 @@ function deriveMatrixTile(content: Record<string, unknown>): Map<string, AttrVal
   const attributes = asArray(content.constructedAttributes)?.map(asString) ?? null;
   const matrix = asRecord(content.matrix);
   const cells = asArray(matrix?.cells);
-  if (size === null || size < 2 || !attributes || attributes.some((a) => a === null) || !cells) return null;
+  if (size === null || size < 2 || !attributes || attributes.some((a) => a === null) || !cells)
+    return null;
   if (cells.length !== size) return null;
 
   const blank = asRecord(matrix?.blank);
@@ -385,7 +403,9 @@ function deriveMatrixTile(content: Record<string, unknown>): Map<string, AttrVal
 
 function verifyMatrixBuild(item: RawBankItem, response: Record<string, unknown>): Verdict {
   const content = item.content;
-  const attributes = (asArray(content.constructedAttributes) ?? []).map(asString).filter((a): a is string => a !== null);
+  const attributes = (asArray(content.constructedAttributes) ?? [])
+    .map(asString)
+    .filter((a): a is string => a !== null);
   if (attributes.length === 0) return { correct: false };
 
   const derived = deriveMatrixTile(content);
@@ -448,7 +468,8 @@ const figureKey = (figure: ConceptFigure) => CONCEPT_DIMS.map((d) => String(figu
 function atomHolds(atom: ConceptAtom, figure: ConceptFigure): boolean {
   const value = figure[atom.dim];
   if (value === undefined) return false;
-  if (atom.kind === 'gte') return typeof value === 'number' && typeof atom.value === 'number' && value >= atom.value;
+  if (atom.kind === 'gte')
+    return typeof value === 'number' && typeof atom.value === 'number' && value >= atom.value;
   return value === atom.value;
 }
 
@@ -466,7 +487,9 @@ function conceptHypotheses(
     const values = valuesByDim.get(dim) ?? [];
     for (const value of values) atoms.push({ kind: 'eq', dim, value });
     if (dim === 'count') {
-      const numbers = values.filter((v): v is number => typeof v === 'number').sort((a, b) => a - b);
+      const numbers = values
+        .filter((v): v is number => typeof v === 'number')
+        .sort((a, b) => a - b);
       for (const value of numbers.slice(1)) atoms.push({ kind: 'gte', dim: 'count', value });
     }
   }
@@ -500,7 +523,9 @@ interface ConceptModel {
 /** Hypothesis space, oracle and the one probe-verdict string the evidence forces. */
 function buildConceptModel(item: RawBankItem): ConceptModel | null {
   const content = item.content;
-  const varyDims = (asArray(content.varyDims) ?? []).map(asString).filter((d): d is string => d !== null);
+  const varyDims = (asArray(content.varyDims) ?? [])
+    .map(asString)
+    .filter((d): d is string => d !== null);
   const rawOracle = asArray(content.gateOracle);
   const rawProbes = asArray(content.probes);
   if (varyDims.length === 0 || !rawOracle || !rawProbes || rawProbes.length === 0) return null;
@@ -547,7 +572,10 @@ function buildConceptModel(item: RawBankItem): ConceptModel | null {
 }
 
 /** Mean share of the viable-rule space each of the child's tests eliminated. */
-function hypothesisSearchEfficiency(model: ConceptModel, response: Record<string, unknown>): number | null {
+function hypothesisSearchEfficiency(
+  model: ConceptModel,
+  response: Record<string, unknown>,
+): number | null {
   const tests = asArray(response.tests);
   if (!tests || tests.length === 0) return null;
   const oracleMap = new Map(model.oracle.map((entry) => [figureKey(entry.figure), entry.accepts]));
@@ -806,7 +834,10 @@ function benchExpected(
     const b = asString(interaction.factorB);
     const bonus = asFiniteNumber(interaction.bonus);
     if (a === null || b === null || bonus === null) return null;
-    if (asInt(setting[a]) === asInt(interaction.levelA) && asInt(setting[b]) === asInt(interaction.levelB)) {
+    if (
+      asInt(setting[a]) === asInt(interaction.levelA) &&
+      asInt(setting[b]) === asInt(interaction.levelB)
+    ) {
       value += bonus;
     }
   }
@@ -834,7 +865,9 @@ function deriveBestOptionKey(item: RawBankItem): string | null {
   }
   if (scored.length === 0) return null;
 
-  const best = scored.reduce((a, b) => (direction === 'min' ? (b.value < a.value ? b : a) : b.value > a.value ? b : a));
+  const best = scored.reduce((a, b) =>
+    direction === 'min' ? (b.value < a.value ? b : a) : b.value > a.value ? b : a,
+  );
   const tied = scored.filter((s) => s.value === best.value);
   return tied.length === 1 ? best.key : null;
 }

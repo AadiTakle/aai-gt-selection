@@ -2,11 +2,7 @@ import type { RawBankItem } from '../bank-loader';
 import { fluidVerifiers } from './fluid';
 import { quantitativeVerifiers } from './quantitative';
 import { spatialVerifiers } from './spatial';
-import {
-  verifyConstructedValue,
-  verifyKeyed,
-  verifyPlacementTolerance,
-} from './generic';
+import { verifyConstructedValue, verifyKeyed, verifyPlacementTolerance } from './generic';
 import type { Verdict, Verifier } from './types';
 import { verbalVerifiers } from './verbal';
 

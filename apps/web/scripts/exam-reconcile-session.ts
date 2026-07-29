@@ -170,15 +170,17 @@ async function reconcile(client: Client, sessionId: string): Promise<boolean> {
     const tier = row.ported ? tiers.ported : tiers.generic;
     tier.n += 1;
     if (row.app_correct === row.db_correct) tier.agree += 1;
-    else disagreements.push(`#${row.order_no} ${row.type_code} app=${row.app_correct} db=${row.db_correct}`);
+    else
+      disagreements.push(
+        `#${row.order_no} ${row.type_code} app=${row.app_correct} db=${row.db_correct}`,
+      );
   }
   const verifyOk = disagreements.length === 0;
 
   /* 2. re-hash the stored trace ------------------------------------------ */
-  const hash = await client.query<{ h: string }>(
-    'select app.exam_scorer_input_hash($1) as h',
-    [sessionId],
-  );
+  const hash = await client.query<{ h: string }>('select app.exam_scorer_input_hash($1) as h', [
+    sessionId,
+  ]);
   const rehashed = hash.rows[0]?.h ?? null;
   const hashOk = stored.scorer_input_hash !== null && rehashed === stored.scorer_input_hash;
 

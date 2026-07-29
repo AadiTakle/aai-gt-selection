@@ -200,7 +200,10 @@ describe('wired pool reachability', () => {
     // engine must always be able to find an item, or the battery cannot spread.
     const index = await getServedIndex();
     for (const area of AREAS) {
-      expect(index.some((i) => i.domain === area), `${area} has no items at all`).toBe(true);
+      expect(
+        index.some((i) => i.domain === area),
+        `${area} has no items at all`,
+      ).toBe(true);
     }
   });
 

@@ -46,8 +46,9 @@ export function matchedPairCount(trace: readonly ItemObservation[], tolerance: n
     a.difficulty !== b.difficulty ? a.difficulty - b.difficulty : a.itemId < b.itemId ? -1 : 1,
   );
   let pairs = 0;
-  for (let i = 0; i + 1 < sorted.length; ) {
-    const gap = (sorted[i + 1] as ItemObservation).difficulty - (sorted[i] as ItemObservation).difficulty;
+  for (let i = 0; i + 1 < sorted.length;) {
+    const gap =
+      (sorted[i + 1] as ItemObservation).difficulty - (sorted[i] as ItemObservation).difficulty;
     if (gap <= tolerance) {
       pairs += 1;
       i += 2;

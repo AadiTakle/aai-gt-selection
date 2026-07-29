@@ -25,6 +25,23 @@ export default tseslint.config(
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    // `ignoreRestSiblings` allows the `const { omit, ...rest } = obj` pattern used to
+    // drop a field while keeping the rest (e.g. the sync script omits `html` from its
+    // JSON output); the underscore patterns allow deliberately unused bindings. Both
+    // are standard and keep this class of false-positive from re-reddening CI.
+    rules: {
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          ignoreRestSiblings: true,
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
+    },
+  },
+  {
     // Repo-root Node scripts. `eslint.configs.recommended` declares no
     // environment, so `process`/`console`/`fetch` read as undefined globals.
     files: ['scripts/**/*.{mjs,cjs,js,ts}', '*.{mjs,cjs,js}'],

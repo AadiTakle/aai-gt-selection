@@ -32,8 +32,8 @@ const TRUE_THETA: TrueTheta = {
   spatial: 4,
 };
 
-// Same shape the live portal runs (apps/web/src/lib/exam/adaptive.ts EXAM_ENGINE_OVERRIDES):
-// variable length, stop when each area settles, bounded by a safety cap.
+// Same shape the live portal runs (the web app's EXAM_ENGINE_OVERRIDES in its exam
+// adaptive config): variable length, stop when each area settles, bounded by a safety cap.
 const CONFIG = {
   minItemsPerArea: 4,
   evenSpreadTolerance: 1,
@@ -64,18 +64,18 @@ describe('Phase 1: two-sided homing-in to a per-area standing level', () => {
       const reversals = directionReversals(observations);
       // At least one reversal means the estimate crossed the child's level and closed in from the
       // other side — the defining feature of bracketing vs ramping.
-      expect(reversals, `${area} never reversed direction — it ramped instead of bracketing`).toBeGreaterThanOrEqual(
-        1,
-      );
+      expect(
+        reversals,
+        `${area} never reversed direction — it ramped instead of bracketing`,
+      ).toBeGreaterThanOrEqual(1);
     }
   });
 
   it('stops each area on a settled (confident) estimate', () => {
     for (const area of AREAS) {
-      expect(
-        areaEstimateStable(area, state),
-        `${area} estimate had not settled at stop`,
-      ).toBe(true);
+      expect(areaEstimateStable(area, state), `${area} estimate had not settled at stop`).toBe(
+        true,
+      );
     }
   });
 

@@ -204,8 +204,7 @@ describe('GB-PATHFORGE-01', () => {
 describe('GB-EXPLORE-01', () => {
   const item = pick('GB-EXPLORE-01', (i) => (i.answer.optimalTotalMoves as number) >= 2);
   const optimalPath = item.answer.optimalPath as [number, number][];
-  const walk = (path: [number, number][]) =>
-    path.slice(1).map((to) => ({ kind: 'move', to }));
+  const walk = (path: [number, number][]) => path.slice(1).map((to) => ({ kind: 'move', to }));
 
   it('accepts the stored optimal tour and scores it fully efficient', () => {
     const verdict = grade(item, { actions: walk(optimalPath) });
@@ -246,7 +245,8 @@ describe('GB-EXPLORE-01', () => {
     const target = landmarks.find((l) => l.id === prompts[0])!;
     // answer.bearingRule: degrees clockwise from north of (landmark - standCell).
     const bearing =
-      (((Math.atan2(target.c - home[1], -(target.r - home[0])) * 180) / Math.PI) % 360 + 360) % 360;
+      ((((Math.atan2(target.c - home[1], -(target.r - home[0])) * 180) / Math.PI) % 360) + 360) %
+      360;
 
     const aimed = grade(item, {
       actions: walk(optimalPath),
@@ -297,10 +297,12 @@ describe('GB-SHAPEFIT-01', () => {
 
   it('rejects a piece placed in an orientation the instruction set cannot reach', () => {
     const first = assembly[0]!;
-    const skewed = first.cells.map(([r, c], i): [number, number] => (i === 0 ? [r, c] : [r, c + 7]));
-    expect(grade(item, { assembly: [{ id: first.id, cells: skewed }, ...assembly.slice(1)] }).correct).toBe(
-      false,
+    const skewed = first.cells.map(([r, c], i): [number, number] =>
+      i === 0 ? [r, c] : [r, c + 7],
     );
+    expect(
+      grade(item, { assembly: [{ id: first.id, cells: skewed }, ...assembly.slice(1)] }).correct,
+    ).toBe(false);
   });
 });
 
@@ -344,9 +346,9 @@ describe('GB-WORDLADDER-01', () => {
   });
 
   it('rejects a jump that changes more than one letter', () => {
-    expect(grade(item, { path: [optimalPath[0], optimalPath[optimalPath.length - 1]] }).correct).toBe(
-      false,
-    );
+    expect(
+      grade(item, { path: [optimalPath[0], optimalPath[optimalPath.length - 1]] }).correct,
+    ).toBe(false);
   });
 
   it('rejects a ladder containing a non-word rung', () => {

@@ -55,16 +55,40 @@ const WIDE_SPREAD: TrueTheta = {
  * population), far below it, and the two degenerate responders that pin at a scale bound.
  */
 const CONVERGENCE_PROFILES: readonly { name: string; band: AgeBand; theta: TrueTheta }[] = [
-  { name: 'at the grade-band seed', band: '4-5', theta: { fluid_reasoning: 11, verbal: 11, quantitative: 11, spatial: 11 } },
-  { name: 'gifted, far above seed', band: '4-5', theta: { fluid_reasoning: 18, verbal: 16, quantitative: 17, spatial: 15 } },
-  { name: 'struggling, far below seed', band: '4-5', theta: { fluid_reasoning: 5, verbal: 4, quantitative: 6, spatial: 3 } },
+  {
+    name: 'at the grade-band seed',
+    band: '4-5',
+    theta: { fluid_reasoning: 11, verbal: 11, quantitative: 11, spatial: 11 },
+  },
+  {
+    name: 'gifted, far above seed',
+    band: '4-5',
+    theta: { fluid_reasoning: 18, verbal: 16, quantitative: 17, spatial: 15 },
+  },
+  {
+    name: 'struggling, far below seed',
+    band: '4-5',
+    theta: { fluid_reasoning: 5, verbal: 4, quantitative: 6, spatial: 3 },
+  },
   // Off-scale abilities: the responder is correct on every item / wrong on every item, so the
   // estimate should travel to the relevant bound and stop there rather than oscillate.
-  { name: 'all-correct responder', band: '4-5', theta: { fluid_reasoning: 99, verbal: 99, quantitative: 99, spatial: 99 } },
-  { name: 'all-wrong responder', band: '4-5', theta: { fluid_reasoning: -99, verbal: -99, quantitative: -99, spatial: -99 } },
+  {
+    name: 'all-correct responder',
+    band: '4-5',
+    theta: { fluid_reasoning: 99, verbal: 99, quantitative: 99, spatial: 99 },
+  },
+  {
+    name: 'all-wrong responder',
+    band: '4-5',
+    theta: { fluid_reasoning: -99, verbal: -99, quantitative: -99, spatial: -99 },
+  },
   { name: 'mixed spread', band: '4-5', theta: WIDE_SPREAD },
   // The mirror of the gifted case: an above-level seed of 18 with ability near the bottom third.
-  { name: 'above-level seed, low ability', band: 'above-level', theta: { fluid_reasoning: 8, verbal: 7, quantitative: 9, spatial: 6 } },
+  {
+    name: 'above-level seed, low ability',
+    band: 'above-level',
+    theta: { fluid_reasoning: 8, verbal: 7, quantitative: 9, spatial: 6 },
+  },
 ];
 
 /**
@@ -110,10 +134,7 @@ function equalAbility(ability: number): TrueTheta {
  * estimate-stability arm of the stop rule. Recomputed by replaying the stored trace, which also
  * exercises the §5 requirement that adequacy is reproducible from the trace alone.
  */
-function metricCoverageCompleteAt(
-  gradeBand: AgeBand,
-  trace: readonly ScoredItem[],
-): number | null {
+function metricCoverageCompleteAt(gradeBand: AgeBand, trace: readonly ScoredItem[]): number | null {
   for (let n = 1; n <= trace.length; n++) {
     const state = replaySession(gradeBand, trace.slice(0, n), { hardItemCap: 400 });
     if (!coverageIsEven(state)) continue;
@@ -198,7 +219,8 @@ describe('stop rule against the real banks', () => {
   it('varies its length with the child, rather than being a fixed number of questions', () => {
     const lengths = new Set(
       CONVERGENCE_PROFILES.map(
-        ({ band, theta }) => runRealBankSession(band, theta, { hardItemCap: 400 }, real).state.itemsServed,
+        ({ band, theta }) =>
+          runRealBankSession(band, theta, { hardItemCap: 400 }, real).state.itemsServed,
       ),
     );
     expect(
@@ -278,7 +300,12 @@ describe('convergence from a distant seed (D-023)', () => {
       // The cap is lifted so an overrun can happen and BE SEEN; the assertion is that it does not.
       // Running at the real cap would silently convert an overrun into a pass, which is exactly
       // how the 83-item battery hid.
-      const { state, done, exhausted } = runRealBankSession(band, theta, { hardItemCap: 400 }, real);
+      const { state, done, exhausted } = runRealBankSession(
+        band,
+        theta,
+        { hardItemCap: 400 },
+        real,
+      );
 
       expect(exhausted, 'ran out of servable items instead of concluding').toBe(false);
       expect(done).toBe(true);
@@ -322,7 +349,10 @@ describe('convergence from a distant seed (D-023)', () => {
       const second = runRealBankSession(band, theta, { hardItemCap: 400 }, real);
 
       expect(second.state.itemsServed, name).toBe(first.state.itemsServed);
-      expect(second.trace.map((s) => s.itemId), name).toEqual(first.trace.map((s) => s.itemId));
+      expect(
+        second.trace.map((s) => s.itemId),
+        name,
+      ).toEqual(first.trace.map((s) => s.itemId));
       for (const area of AREAS) {
         expect(second.state.areas[area].difficulty, `${name}/${area}`).toBe(
           first.state.areas[area].difficulty,
@@ -377,8 +407,7 @@ describe('convergence across the whole ability scale (D-025)', () => {
     ]),
   );
 
-  const runFor = (ability: number): RealSessionResult =>
-    sweep.get(ability) as RealSessionResult;
+  const runFor = (ability: number): RealSessionResult => sweep.get(ability) as RealSessionResult;
 
   it.each(ABILITY_SWEEP)('recovers a planted ability of %i in every area', (ability) => {
     const { state } = runFor(ability);
@@ -390,15 +419,18 @@ describe('convergence across the whole ability scale (D-025)', () => {
     }
   });
 
-  it.each(ABILITY_SWEEP)('concludes on the stop rule inside the budget at ability %i', (ability) => {
-    const { state, done, exhausted } = runFor(ability);
-    expect(exhausted, 'ran out of servable items instead of concluding').toBe(false);
-    expect(done).toBe(true);
-    expect(
-      state.itemsServed,
-      'battery length regressed past the convergence budget',
-    ).toBeLessThanOrEqual(CONVERGENCE_BUDGET);
-  });
+  it.each(ABILITY_SWEEP)(
+    'concludes on the stop rule inside the budget at ability %i',
+    (ability) => {
+      const { state, done, exhausted } = runFor(ability);
+      expect(exhausted, 'ran out of servable items instead of concluding').toBe(false);
+      expect(done).toBe(true);
+      expect(
+        state.itemsServed,
+        'battery length regressed past the convergence budget',
+      ).toBeLessThanOrEqual(CONVERGENCE_BUDGET);
+    },
+  );
 
   it('rebuilds every swept estimate by replaying its stored trace', () => {
     for (const ability of ABILITY_SWEEP) {

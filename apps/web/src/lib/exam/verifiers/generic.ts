@@ -65,4 +65,3 @@ export function verifyConstructedValue(
   if (optimal !== null) return { correct: value === optimal };
   return { correct: String(value) === String(item.answer.correctKey) };
 }
-

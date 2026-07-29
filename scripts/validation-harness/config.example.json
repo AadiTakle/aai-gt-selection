@@ -7,8 +7,8 @@
     "impact_delta": 0.0,
     "loadings": {
       "newtest_g": 0.25,
-      "newtest_u": 0.90,
-      "newtest_noise": 0.30
+      "newtest_u": 0.9,
+      "newtest_noise": 0.3
     }
   },
   "analysis": {
@@ -20,7 +20,7 @@
       "selection_measure": "newtest_total",
       "cut": { "type": "percentile", "value": 95 },
       "subgroups": ["subgroup_demo", "ell_status", "ses_band"],
-      "four_fifths": 0.80
+      "four_fifths": 0.8
     }
   },
   "report": {

@@ -8,7 +8,11 @@ import {
   selectNextNovelItem,
 } from './learning-block';
 import { startState } from './state';
-import { buildSyntheticBanks, respondSynthetically, runSyntheticSession } from './testing/synthetic-bank';
+import {
+  buildSyntheticBanks,
+  respondSynthetically,
+  runSyntheticSession,
+} from './testing/synthetic-bank';
 import type { TrueTheta } from './testing/synthetic-bank';
 import type { Area, BankItem, SessionState } from './types';
 import { update } from './update';
@@ -43,7 +47,10 @@ describe('novelItems', () => {
 
   it('treats every area independently', () => {
     const spatial = banks.items.filter((i) => i.domain === 'spatial');
-    const state = seenState('spatial', spatial.map((i) => i.itemId));
+    const state = seenState(
+      'spatial',
+      spatial.map((i) => i.itemId),
+    );
 
     expect(novelItems(banks.items, 'spatial', state)).toHaveLength(0);
     expect(novelItems(banks.items, 'verbal', state).length).toBeGreaterThan(0);
@@ -77,7 +84,9 @@ describe('poolSupportsBlock', () => {
   });
 
   it('defaults to the recommended block length', () => {
-    const pool = Array.from({ length: RECOMMENDED_NOVEL_BLOCK_LENGTH }, (_, i) => item(`I${i}`, 10));
+    const pool = Array.from({ length: RECOMMENDED_NOVEL_BLOCK_LENGTH }, (_, i) =>
+      item(`I${i}`, 10),
+    );
     expect(poolSupportsBlock(pool)).toBe(true);
     expect(poolSupportsBlock(pool.slice(0, -1))).toBe(false);
   });

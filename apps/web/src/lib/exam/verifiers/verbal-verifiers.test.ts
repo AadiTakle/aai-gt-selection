@@ -48,7 +48,9 @@ describe('WM-corsi-01 — serial-order span', () => {
   it.each(['forward', 'backward'])('accepts the exact %s trail', (mode) => {
     const item = pick(
       bank,
-      (i) => (i.content as { mode?: string }).mode === mode && (i.answer.expectedSequence as number[]).length >= 4,
+      (i) =>
+        (i.content as { mode?: string }).mode === mode &&
+        (i.answer.expectedSequence as number[]).length >= 4,
       `a ${mode} item of span >= 4`,
     );
     const expected = item.answer.expectedSequence as number[];
@@ -61,7 +63,9 @@ describe('WM-corsi-01 — serial-order span', () => {
   it('rejects the reversed trail and keeps the partial signal', () => {
     const item = pick(
       bank,
-      (i) => (i.content as { mode?: string }).mode === 'forward' && (i.answer.expectedSequence as number[]).length === 4,
+      (i) =>
+        (i.content as { mode?: string }).mode === 'forward' &&
+        (i.answer.expectedSequence as number[]).length === 4,
       'a forward item of span 4',
     );
     const expected = item.answer.expectedSequence as number[];
@@ -100,7 +104,11 @@ describe('WM-bind-01 — object-to-location binding', () => {
   const bank = loadBank('WM-bind-01');
 
   it('accepts every creature back in its own house, in any placement order', () => {
-    const item = pick(bank, (i) => Object.keys(i.answer.bindings as object).length >= 4, 'setSize >= 4');
+    const item = pick(
+      bank,
+      (i) => Object.keys(i.answer.bindings as object).length >= 4,
+      'setSize >= 4',
+    );
     const bindings = item.answer.bindings as Record<string, number>;
     // Reverse the key order: binding credit must be order-free.
     const placements = Object.fromEntries(Object.entries(bindings).reverse());
@@ -110,7 +118,11 @@ describe('WM-bind-01 — object-to-location binding', () => {
   });
 
   it('scores a two-creature swap as partial, not zero', () => {
-    const item = pick(bank, (i) => Object.keys(i.answer.bindings as object).length === 4, 'setSize 4');
+    const item = pick(
+      bank,
+      (i) => Object.keys(i.answer.bindings as object).length === 4,
+      'setSize 4',
+    );
     const bindings = item.answer.bindings as Record<string, number>;
     const ids = Object.keys(bindings);
     const placements = { ...bindings };
@@ -123,7 +135,11 @@ describe('WM-bind-01 — object-to-location binding', () => {
   });
 
   it('never awards full credit for an incomplete set', () => {
-    const item = pick(bank, (i) => Object.keys(i.answer.bindings as object).length === 4, 'setSize 4');
+    const item = pick(
+      bank,
+      (i) => Object.keys(i.answer.bindings as object).length === 4,
+      'setSize 4',
+    );
     const bindings = item.answer.bindings as Record<string, number>;
     const [dropped, ...kept] = Object.keys(bindings);
     expect(dropped).toBeDefined();
@@ -175,7 +191,11 @@ describe('WM-gridflash-01 — change detection and array recognition', () => {
   });
 
   it('accepts the exact lit set in the recognition shell', () => {
-    const item = pick(bank, (i) => (i.content as { shell?: string }).shell === 'recognition', 'a recognition item');
+    const item = pick(
+      bank,
+      (i) => (i.content as { shell?: string }).shell === 'recognition',
+      'a recognition item',
+    );
     const expected = item.answer.expectedCells as number[];
     const verdict = verify(item, {
       shell: 'select_set',
@@ -191,7 +211,9 @@ describe('WM-gridflash-01 — change detection and array recognition', () => {
   it('splits hits and false alarms when one lit cell is swapped for a dark one', () => {
     const item = pick(
       bank,
-      (i) => (i.content as { shell?: string }).shell === 'recognition' && (i.answer.expectedCells as number[]).length === 4,
+      (i) =>
+        (i.content as { shell?: string }).shell === 'recognition' &&
+        (i.answer.expectedCells as number[]).length === 4,
       'a recognition item of set size 4',
     );
     const expected = item.answer.expectedCells as number[];
@@ -199,7 +221,10 @@ describe('WM-gridflash-01 — change detection and array recognition', () => {
     const dark = Array.from({ length: grid.cellCount }, (_, cell) => cell).find(
       (cell) => !expected.includes(cell),
     )!;
-    const verdict = verify(item, { shell: 'select_set', selectedCells: [...expected.slice(1), dark] });
+    const verdict = verify(item, {
+      shell: 'select_set',
+      selectedCells: [...expected.slice(1), dark],
+    });
     expect(verdict.correct).toBe(false);
     expect(verdict.metrics?.['M-POLY']).toBe(0.75);
     expect(verdict.metrics?.['M-DPRIME']).toBe(0.75);
@@ -216,10 +241,16 @@ describe('WM-gridflash-01 — change detection and array recognition', () => {
     // must remain the correct answer.
     expect(verify(corrupted, { shell: 'two_choice', selectedKey: 'CHANGED' }).correct).toBe(true);
 
-    const recognition = pick(bank, (i) => (i.content as { shell?: string }).shell === 'recognition', 'a recognition item');
+    const recognition = pick(
+      bank,
+      (i) => (i.content as { shell?: string }).shell === 'recognition',
+      'a recognition item',
+    );
     const expected = recognition.answer.expectedCells as number[];
     const corruptedSet = withCorruptedKey(recognition, { expectedCells: [99, 98, 97] });
-    expect(verify(corruptedSet, { shell: 'select_set', selectedCells: expected }).correct).toBe(true);
+    expect(verify(corruptedSet, { shell: 'select_set', selectedCells: expected }).correct).toBe(
+      true,
+    );
   });
 
   it('rebuilds SAME/CHANGED and the lit set for every item in the bank', () => {
@@ -260,7 +291,11 @@ describe('WM-gate-01 — running memory with multiple checkpoints', () => {
   it.each(['creature_lastk', 'keep_track', 'numeric_running'])(
     'accepts every checkpoint answered correctly in the %s shell',
     (shell) => {
-      const item = pick(bank, (i) => (i.content as { shell?: string }).shell === shell, `a ${shell} item`);
+      const item = pick(
+        bank,
+        (i) => (i.content as { shell?: string }).shell === shell,
+        `a ${shell} item`,
+      );
       const verdict = verify(item, fullResponse(item));
       expect(verdict.correct).toBe(true);
       expect(verdict.metrics?.['M-POLY']).toBe(1);
@@ -270,7 +305,9 @@ describe('WM-gate-01 — running memory with multiple checkpoints', () => {
   it('rejects a stale window on one checkpoint but keeps the units from the others', () => {
     const item = pick(
       bank,
-      (i) => (i.content as { shell?: string }).shell === 'creature_lastk' && (i.answer.unitsTotal as number) === 6,
+      (i) =>
+        (i.content as { shell?: string }).shell === 'creature_lastk' &&
+        (i.answer.unitsTotal as number) === 6,
       'a creature_lastk item worth 6 units',
     );
     const response = fullResponse(item);
@@ -283,7 +320,11 @@ describe('WM-gate-01 — running memory with multiple checkpoints', () => {
   });
 
   it('never awards full credit when a checkpoint is answered short', () => {
-    const item = pick(bank, (i) => (probesOf(i)[0]?.expectedKeys.length ?? 0) >= 2, 'a multi-key checkpoint');
+    const item = pick(
+      bank,
+      (i) => (probesOf(i)[0]?.expectedKeys.length ?? 0) >= 2,
+      'a multi-key checkpoint',
+    );
     const response = fullResponse(item);
     response.probes[0]!.keys = response.probes[0]!.keys.slice(0, -1);
     expect(verify(item, response).correct).toBe(false);
@@ -319,7 +360,11 @@ describe('WM-gate-01 — running memory with multiple checkpoints', () => {
   });
 
   it('grades from the replayed parade, not from the stored checkpoint answers', () => {
-    const item = pick(bank, (i) => (i.content as { shell?: string }).shell === 'creature_lastk', 'a creature_lastk item');
+    const item = pick(
+      bank,
+      (i) => (i.content as { shell?: string }).shell === 'creature_lastk',
+      'a creature_lastk item',
+    );
     const response = fullResponse(item);
     const corrupted = withCorruptedKey(item, {
       probes: probesOf(item).map((p) => ({ ...p, expectedKeys: p.expectedKeys.map(() => 'zz') })),
@@ -349,7 +394,8 @@ describe('WM-bubble-01 — n-back', () => {
     }
     return out;
   };
-  const streamLength = (item: RawBankItem) => (item.content as { streamLength: number }).streamLength;
+  const streamLength = (item: RawBankItem) =>
+    (item.content as { streamLength: number }).streamLength;
   const allPops = (item: RawBankItem) =>
     Object.entries(targetsOf(item)).flatMap(([channel, steps]) =>
       steps.map((stepIndex) => ({ channel, stepIndex, rtMs: 400, via: 'tap' })),
@@ -375,7 +421,9 @@ describe('WM-bubble-01 — n-back', () => {
   it('splits a miss from a false alarm on separate channels', () => {
     const item = pick(
       bank,
-      (i) => (i.content as { channels: unknown[] }).channels.length === 1 && Object.values(targetsOf(i))[0]!.length >= 3,
+      (i) =>
+        (i.content as { channels: unknown[] }).channels.length === 1 &&
+        Object.values(targetsOf(i))[0]!.length >= 3,
       'a single-channel block with >= 3 targets',
     );
     const pops = allPops(item);
@@ -407,7 +455,11 @@ describe('WM-bubble-01 — n-back', () => {
   });
 
   it('never awards full credit for a block that was cut short', () => {
-    const item = pick(bank, (i) => (i.content as { channels: unknown[] }).channels.length === 1, 'any block');
+    const item = pick(
+      bank,
+      (i) => (i.content as { channels: unknown[] }).channels.length === 1,
+      'any block',
+    );
     const verdict = verify(item, {
       pops: allPops(item),
       stepsShown: streamLength(item) - 2,
@@ -453,7 +505,9 @@ describe('VER-EVIDENCE-01 — answer plus evidence', () => {
   it('honours the 0.5/0.5 weights when only one part is right', () => {
     const item = bank[0]!;
     const { answerKey, evidenceKey } = keysOf(item);
-    const wrongEvidence = (item.content as { passage: { sentences: { key: string }[] } }).passage.sentences
+    const wrongEvidence = (
+      item.content as { passage: { sentences: { key: string }[] } }
+    ).passage.sentences
       .map((s) => s.key)
       .find((key) => key !== evidenceKey)!;
     const wrongAnswer = (item.content as { options: { key: string }[] }).options
@@ -512,12 +566,18 @@ describe('VER-SENSE-01 — word-card ordering', () => {
     const item = pick(
       bank,
       (i) =>
-        Object.values(i.answer.distractorRationales as Record<string, { lureClass: string; lureDetail?: string }>).some(
-          (r) => (r.lureDetail ?? r.lureClass) === 'grammatical-but-absurd',
-        ),
+        Object.values(
+          i.answer.distractorRationales as Record<
+            string,
+            { lureClass: string; lureDetail?: string }
+          >,
+        ).some((r) => (r.lureDetail ?? r.lureClass) === 'grammatical-but-absurd'),
       'an item with an absurd lure',
     );
-    const rationales = item.answer.distractorRationales as Record<string, { lureClass: string; lureDetail?: string }>;
+    const rationales = item.answer.distractorRationales as Record<
+      string,
+      { lureClass: string; lureDetail?: string }
+    >;
     const absurdKey = Object.entries(rationales).find(
       ([, r]) => (r.lureDetail ?? r.lureClass) === 'grammatical-but-absurd',
     )![0];
@@ -538,7 +598,9 @@ describe('VER-SENSE-01 — word-card ordering', () => {
 
   it('agrees with the recorded key on every item in the bank', () => {
     for (const item of bank) {
-      expect(verify(item, { order: orderOf(item), complete: true }).correct, item.itemId).toBe(true);
+      expect(verify(item, { order: orderOf(item), complete: true }).correct, item.itemId).toBe(
+        true,
+      );
     }
   });
 

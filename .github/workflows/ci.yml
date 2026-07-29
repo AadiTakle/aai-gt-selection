@@ -75,24 +75,36 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
+        id: install
         run: pnpm install --frozen-lockfile
 
+      # Each check below runs even if an earlier one failed (as long as install
+      # succeeded and the run was not cancelled), so a single CI run reports every
+      # problem at once. Previously the first failing gate (usually formatting)
+      # masked whether lint, typecheck, tests, and build passed. The job still
+      # fails if any check fails.
       - name: Check formatting
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm format:check
 
       - name: Lint
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm lint
 
       - name: Typecheck
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm typecheck
 
       - name: Run tests
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm test:coverage
 
       - name: Check workspace dependency direction
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm boundaries:check
 
       - name: Build workspaces
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm build
 
   database:

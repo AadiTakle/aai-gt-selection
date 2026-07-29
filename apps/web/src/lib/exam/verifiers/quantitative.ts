@@ -243,9 +243,7 @@ const verifyRobopath: Verifier = (item, response) => {
   const maxTokens = limits ? int(limits.maxProgramTokens) : null;
 
   const program = arr(response.program);
-  const sequence = program
-    ? expandProgram(program, maxReps)
-    : actionSequence(response.actionSeq);
+  const sequence = program ? expandProgram(program, maxReps) : actionSequence(response.actionSeq);
   if (!sequence) return { correct: false };
   if (program && maxTokens !== null && program.length > maxTokens) return { correct: false };
 
@@ -402,7 +400,8 @@ function pointingError(
     const target = id === null ? undefined : landmarkAt.get(id);
     if (!stand || angle === null || !target) continue;
     const bearing =
-      (((Math.atan2(target[1] - stand[1], -(target[0] - stand[0])) * 180) / Math.PI) % 360 + 360) %
+      ((((Math.atan2(target[1] - stand[1], -(target[0] - stand[0])) * 180) / Math.PI) % 360) +
+        360) %
       360;
     total += circularDelta(angle, bearing);
     counted++;
@@ -510,7 +509,10 @@ function normalise(cells: Poly): Poly {
     .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
 }
 
-const polySignature = (cells: Poly): string => normalise(cells).map(([r, c]) => `${r},${c}`).join('|');
+const polySignature = (cells: Poly): string =>
+  normalise(cells)
+    .map(([r, c]) => `${r},${c}`)
+    .join('|');
 
 const rotateCW = (cells: Poly): Poly => normalise(cells.map(([r, c]): [number, number] => [c, -r]));
 const mirror = (cells: Poly): Poly => normalise(cells.map(([r, c]): [number, number] => [r, -c]));
@@ -895,8 +897,7 @@ const verifyQuantMix: Verifier = (item, response) => {
   const cap = limits ? int(limits.maxPerIngredient) : null;
   if (cap !== null && (a > cap || b > cap)) return { correct: false };
 
-  const pae =
-    a + b > 0 ? Math.abs(a / (a + b) - targetA / (targetA + targetB)) : 1;
+  const pae = a + b > 0 ? Math.abs(a / (a + b) - targetA / (targetA + targetB)) : 1;
   const metrics = { 'M-PAE': pae };
 
   let constraintHolds = false;

@@ -60,13 +60,20 @@ describe('telemetry panel gate', () => {
         ).toBe(true);
       }
 
-      expect(withPanel, `${label}: no demo had a telemetry panel — did the markup change?`).toBeGreaterThan(0);
+      expect(
+        withPanel,
+        `${label}: no demo had a telemetry panel — did the markup change?`,
+      ).toBeGreaterThan(0);
     });
   }
 
   describe('guard behaviour', () => {
     /** Run the guard verbatim against stubbed globals; report the attribute it set. */
-    function runGuard({ search, parentThrows, embedded }: {
+    function runGuard({
+      search,
+      parentThrows,
+      embedded,
+    }: {
       search: string;
       parentThrows?: boolean;
       embedded?: boolean;

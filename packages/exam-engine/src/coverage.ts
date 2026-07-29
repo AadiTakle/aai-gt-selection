@@ -146,10 +146,7 @@ export function typeHasUnseenItem(type: QuestionType, state: SessionState, banks
 }
 
 /** Registered types (with unseen items) grouped by area. */
-export function availableTypesByArea(
-  state: SessionState,
-  banks: Banks,
-): Map<Area, QuestionType[]> {
+export function availableTypesByArea(state: SessionState, banks: Banks): Map<Area, QuestionType[]> {
   const byArea = new Map<Area, QuestionType[]>();
   for (const type of banks.types) {
     if (!typeHasUnseenItem(type, state, banks)) continue;

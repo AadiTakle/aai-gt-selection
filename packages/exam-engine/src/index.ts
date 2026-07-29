@@ -8,13 +8,7 @@
 // Engine functions
 export { startState } from './state';
 export { nextType, nextItem, toServedItem } from './selection';
-export {
-  update,
-  difficultyDelta,
-  directionReversals,
-  stepSize,
-  toObservation,
-} from './update';
+export { update, difficultyDelta, directionReversals, stepSize, toObservation } from './update';
 export { isDone, areaMetricsCovered, areaEstimateStable, coverageIsEven } from './done';
 export { replaySession } from './replay';
 
@@ -96,10 +90,7 @@ export type {
 } from './testing/synthetic-bank';
 
 // Types + constants
-export {
-  AREAS,
-  AGE_BANDS,
-} from './types';
+export { AREAS, AGE_BANDS } from './types';
 export type {
   Area,
   AgeBand,

@@ -41,7 +41,11 @@ const ALL_SCOPE_METRICS: MetricId[] = [
 ];
 
 const TYPE_BLUEPRINTS: { typeCode: string; domain: Area; extra: MetricId[] }[] = [
-  { typeCode: 'FLU-MATRIX-01', domain: 'fluid_reasoning', extra: ['M-RULEID', 'M-PATH', 'M-EFF', 'M-PLANFUL'] },
+  {
+    typeCode: 'FLU-MATRIX-01',
+    domain: 'fluid_reasoning',
+    extra: ['M-RULEID', 'M-PATH', 'M-EFF', 'M-PLANFUL'],
+  },
   { typeCode: 'FLU-SERIES-02', domain: 'fluid_reasoning', extra: ['M-RULEID'] },
   { typeCode: 'VER-RELPAIR-01', domain: 'verbal', extra: ['M-VOCABLVL', 'M-LURETYPE'] },
   { typeCode: 'VER-ANALOGY-02', domain: 'verbal', extra: ['M-VOCABLVL', 'M-LURETYPE'] },
@@ -118,7 +122,12 @@ export type TrueTheta = Record<Area, number>;
  * stable placeholder is honest for the ones with no modelled meaning here — unlike a fabricated
  * value for a session-level aggregate, which would paper over missing coverage.
  */
-function metricValue(metricId: MetricId, difficulty: number, score: number, errType: number): number {
+function metricValue(
+  metricId: MetricId,
+  difficulty: number,
+  score: number,
+  errType: number,
+): number {
   if (metricId === 'M-ACC') return score;
   if (metricId === 'M-ERRTYPE') return errType;
   if (metricId === 'M-RT') return Math.round(900 + 60 * difficulty + (score >= 0.5 ? 0 : 250));
@@ -138,7 +147,11 @@ function disparityFor(item: { typeCode: string; difficulty: number }): number | 
  * Wrong answers just above the ability threshold report a high `M-ERRTYPE` near-miss (so the
  * engine softens the downward step), fading to a random miss further above.
  */
-export function respondSynthetically(served: ServedItem, banks: Banks, trueTheta: TrueTheta): ScoredItem {
+export function respondSynthetically(
+  served: ServedItem,
+  banks: Banks,
+  trueTheta: TrueTheta,
+): ScoredItem {
   const theta = trueTheta[served.domain];
   const correct = served.difficulty <= theta;
   const score = correct ? 1 : 0;
