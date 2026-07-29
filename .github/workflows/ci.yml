@@ -75,24 +75,36 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
+        id: install
         run: pnpm install --frozen-lockfile
 
+      # Each check below runs even if an earlier one failed (as long as install
+      # succeeded and the run was not cancelled), so a single CI run reports every
+      # problem at once. Previously the first failing gate (usually formatting)
+      # masked whether lint, typecheck, tests, and build passed. The job still
+      # fails if any check fails.
       - name: Check formatting
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm format:check
 
       - name: Lint
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm lint
 
       - name: Typecheck
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm typecheck
 
       - name: Run tests
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm test:coverage
 
       - name: Check workspace dependency direction
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm boundaries:check
 
       - name: Build workspaces
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm build
 
   database:
@@ -187,6 +199,13 @@ jobs:
         env:
           GT_LOCAL_SYNTHETIC_ADAPTER_ENABLED: 'true'
           GT_LOCAL_SYNTHETIC_PROJECT_ID: gt-selection-capstone
+          # The exam-persistence integration tests enable server-side persistence
+          # and sign in as the seeded synthetic proctor to write to the local
+          # database. These are synthetic-only local fixtures created by
+          # scripts/create-local-auth-users.ts, not secrets.
+          GT_EXAM_PERSISTENCE_ENABLED: 'true'
+          GT_EXAM_PROCTOR_EMAIL: 'admissions@example.test'
+          GT_EXAM_PROCTOR_PASSWORD: 'Synthetic-Only-2026!'
         run: pnpm --filter @gt-selection/web test:integration
 
       - name: Build web application

@@ -47,7 +47,8 @@ export const CORE_METRICS: CoreMetricSpec[] = [
     minSamples: 3,
     enforced: true,
     kind: 'observed',
-    supplyNote: 'Sole source in quantitative (QUANT-EQUAL-01); a bank change there stalls the area.',
+    supplyNote:
+      'Sole source in quantitative (QUANT-EQUAL-01); a bank change there stalls the area.',
   },
   {
     id: 'M-RULEID',
@@ -76,9 +77,17 @@ export const CORE_METRICS: CoreMetricSpec[] = [
     enforced: true,
     kind: 'observed',
     adequacy: 'session',
-    supplyNote: 'Sole source in quantitative (QUANT-DOTS-01); session adequacy keeps that non-blocking.',
+    supplyNote:
+      'Sole source in quantitative (QUANT-DOTS-01); session adequacy keeps that non-blocking.',
   },
-  { id: 'M-RTFIRST', scope: 'all', minSamples: 15, enforced: true, kind: 'observed', adequacy: 'session' },
+  {
+    id: 'M-RTFIRST',
+    scope: 'all',
+    minSamples: 15,
+    enforced: true,
+    kind: 'observed',
+    adequacy: 'session',
+  },
 
   // --- derived from the trace (see derived.ts) ---
   { id: 'M-DIFFREACH', scope: 'all', minSamples: 6, enforced: true, kind: 'derived' },
@@ -110,7 +119,14 @@ export const CORE_METRICS: CoreMetricSpec[] = [
    * block can be separated from its own bracketing. (D-030; measurements in E-095.)
    */
   { id: 'M-LEARNRATE', scope: 'all', minSamples: 30, enforced: false, kind: 'derived' },
-  { id: 'M-RTVAR', scope: 'all', minSamples: 20, enforced: true, kind: 'derived', adequacy: 'session' },
+  {
+    id: 'M-RTVAR',
+    scope: 'all',
+    minSamples: 20,
+    enforced: true,
+    kind: 'derived',
+    adequacy: 'session',
+  },
   /*
    * M-ROTSLOPE is DERIVED but NOT enforced. It is fittable — SPA-VIEW-01 and SPA-XSCAN-01 record
    * `answer.angularDisparityDeg` per item — but not adequately within a proportionate spatial

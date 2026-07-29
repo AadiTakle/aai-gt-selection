@@ -154,7 +154,9 @@ export function loadRealBanks(): RealBanks {
 
   const bankDir = join(root, BANKS_RELATIVE);
   // Sorted so the wired registry (and therefore every session) is order-stable.
-  for (const file of readdirSync(bankDir).filter((f) => f.endsWith('.jsonl')).sort()) {
+  for (const file of readdirSync(bankDir)
+    .filter((f) => f.endsWith('.jsonl'))
+    .sort()) {
     const typeCode = file.slice(0, -'.jsonl'.length);
     const spec = catalog.get(typeCode);
     if (!spec) continue;
@@ -174,7 +176,9 @@ export function loadRealBanks(): RealBanks {
         difficulty,
         ageBands: asStringArray(row['ageBands']) as AgeBand[],
         content: (row['content'] ?? {}) as Record<string, unknown>,
-        answer: { correctKey: String((row['answer'] as { correctKey?: unknown })?.correctKey ?? '') },
+        answer: {
+          correctKey: String((row['answer'] as { correctKey?: unknown })?.correctKey ?? ''),
+        },
         scoring: { mode: 'deterministic_key' },
         provenance: { generator: 'grammar' },
         syntheticOnly: true,

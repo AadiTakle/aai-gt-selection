@@ -1,9 +1,5 @@
 import { AGE_BAND_BONUS } from './config';
-import {
-  availableTypesByArea,
-  enforcedShortfallCount,
-  underCoveredWeights,
-} from './coverage';
+import { availableTypesByArea, enforcedShortfallCount, underCoveredWeights } from './coverage';
 import { isDone } from './done';
 import { NoAvailableItemError, UnknownTypeError } from './errors';
 import { hashUnit } from './rng';

@@ -566,7 +566,8 @@ export const EXAM_TYPE_CODES: readonly string[] = EXAM_TYPE_REGISTRY.map((t) => 
 function main() {
   const { wired, blocked } = collect();
 
-  if (wired.length === 0) throw new Error('no compliant question types found — refusing to wire an empty pool');
+  if (wired.length === 0)
+    throw new Error('no compliant question types found — refusing to wire an empty pool');
 
   const registry = renderRegistry(wired, blocked);
   const expectedFiles = new Map(wired.map((t) => [`${t.code}.html`, t.html]));
@@ -582,7 +583,8 @@ function main() {
   }
   for (const [file, html] of expectedFiles) {
     const target = path.join(PUBLIC_DIR, file);
-    if (!existsSync(target) || readFileSync(target, 'utf8') !== html) drift.push(`out of date: ${file}`);
+    if (!existsSync(target) || readFileSync(target, 'utf8') !== html)
+      drift.push(`out of date: ${file}`);
   }
   if (!existsSync(REGISTRY_FILE) || readFileSync(REGISTRY_FILE, 'utf8') !== registry) {
     drift.push('out of date: apps/web/src/lib/exam/registry.generated.ts');
@@ -591,7 +593,9 @@ function main() {
   if (CHECK) {
     report(wired, blocked, drift);
     if (drift.length) {
-      console.error(`\nFAIL: ${drift.length} item(s) out of date. Run: node scripts/sync-exam-demos.mjs`);
+      console.error(
+        `\nFAIL: ${drift.length} item(s) out of date. Run: node scripts/sync-exam-demos.mjs`,
+      );
       process.exit(1);
     }
     console.log('\nOK: public/exam-demos and registry.generated.ts are up to date.');
@@ -647,7 +651,9 @@ function report(wired, blocked, drift) {
   console.log('\nPER-DOMAIN COVERAGE');
   for (const d of VALID_DOMAINS) {
     const n = byDomain[d]?.length ?? 0;
-    console.log(`  ${d.padEnd(16)} ${n} type(s)${n === 0 ? '   <-- NO WIRED TYPE: the even-spread stop rule can never be met' : ''}`);
+    console.log(
+      `  ${d.padEnd(16)} ${n} type(s)${n === 0 ? '   <-- NO WIRED TYPE: the even-spread stop rule can never be met' : ''}`,
+    );
   }
 }
 

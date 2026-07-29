@@ -93,7 +93,9 @@ console.log(`  mode    : ${mode}`);
 console.log(`  payload : ${JSON.stringify(redacted, null, 2)}`);
 
 if (!apply) {
-  console.log(`\n(dry run) Nothing was sent. Re-run with --apply to write this to the cloud project.\n`);
+  console.log(
+    `\n(dry run) Nothing was sent. Re-run with --apply to write this to the cloud project.\n`,
+  );
   process.exit(0);
 }
 

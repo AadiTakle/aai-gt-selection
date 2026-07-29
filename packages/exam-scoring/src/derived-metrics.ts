@@ -115,7 +115,7 @@ export function deriveConsistency(items: readonly ScoredItem[]): number | null {
 
   let pairs = 0;
   let agreements = 0;
-  for (let i = 0; i + 1 < sorted.length; ) {
+  for (let i = 0; i + 1 < sorted.length;) {
     const first = sorted[i] as ScoredItem;
     const second = sorted[i + 1] as ScoredItem;
     if (second.difficulty - first.difficulty <= PAIR_TOLERANCE) {

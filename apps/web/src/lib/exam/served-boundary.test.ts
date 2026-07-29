@@ -70,9 +70,7 @@ describe('published demo assets', () => {
     for (const file of readdirSync(PUBLIC_DEMOS)) {
       const src = readFileSync(join(PUBLIC_DEMOS, file), 'utf8');
       expect(src, `${file} correctKey`).not.toMatch(asDataKey('correctKey'));
-      expect(src, `${file} distractorRationales`).not.toMatch(
-        asDataKey('distractorRationales'),
-      );
+      expect(src, `${file} distractorRationales`).not.toMatch(asDataKey('distractorRationales'));
     }
   });
 

@@ -104,7 +104,12 @@ describe('learningRateReadout', () => {
 describe('learningRateCohortRank', () => {
   it('declines to rank against a handful of peers', () => {
     expect(learningRateCohortRank(0.1, [0.01, 0.02, 0.03])).toBeNull();
-    expect(learningRateCohortRank(0.1, Array.from({ length: 19 }, (_, i) => i / 100))).toBeNull();
+    expect(
+      learningRateCohortRank(
+        0.1,
+        Array.from({ length: 19 }, (_, i) => i / 100),
+      ),
+    ).toBeNull();
   });
 
   it('ranks within a cohort large enough to mean something', () => {
@@ -204,8 +209,7 @@ describe('confound guard: a rising ceiling is not evidence of learning', () => {
   it('a genuine flat block reports no climb on average, and never a spurious band', () => {
     const flatBlocks = Array.from({ length: 40 }, (_, seed) => adaptiveBlock(30, 0, seed));
     const fits = flatBlocks.map(
-      (trials) =>
-        estimateLearningCurve(trials, { slope: SLOPE, priorTheta0Mean: THETA0 }).lambda,
+      (trials) => estimateLearningCurve(trials, { slope: SLOPE, priorTheta0Mean: THETA0 }).lambda,
     );
 
     // Averaged over children the fit sits on zero, where the truth is.

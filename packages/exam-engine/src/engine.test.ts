@@ -5,7 +5,11 @@ import { isDone } from './done';
 import { NoAvailableItemError, UnknownTypeError } from './errors';
 import { nextItem, nextType } from './selection';
 import { startState } from './state';
-import { buildSyntheticBanks, respondSynthetically, type TrueTheta } from './testing/synthetic-bank';
+import {
+  buildSyntheticBanks,
+  respondSynthetically,
+  type TrueTheta,
+} from './testing/synthetic-bank';
 import { difficultyDelta, directionReversals, stepSize, update } from './update';
 import {
   AREAS,
@@ -173,7 +177,11 @@ describe('difficultyDelta', () => {
     const alternating = (n: number) => Array.from({ length: n }, (_, i) => i % 2 === 0);
     const stepAfter = (n: number) =>
       Math.abs(
-        difficultyDelta(areaWith(11, alternating(n)), { score: 1, difficulty: 11, metrics: {} }, cfg),
+        difficultyDelta(
+          areaWith(11, alternating(n)),
+          { score: 1, difficulty: 11, metrics: {} },
+          cfg,
+        ),
       );
 
     expect(stepAfter(8)).toBeLessThan(stepAfter(2));
@@ -182,16 +190,32 @@ describe('difficultyDelta', () => {
   });
 
   it('raises the estimate more for a hard item answered correctly than an easy one', () => {
-    const hardRight = difficultyDelta(areaWith(3, []), { score: 1, difficulty: 18, metrics: {} }, cfg);
-    const easyRight = difficultyDelta(areaWith(10, []), { score: 1, difficulty: 2, metrics: {} }, cfg);
+    const hardRight = difficultyDelta(
+      areaWith(3, []),
+      { score: 1, difficulty: 18, metrics: {} },
+      cfg,
+    );
+    const easyRight = difficultyDelta(
+      areaWith(10, []),
+      { score: 1, difficulty: 2, metrics: {} },
+      cfg,
+    );
     expect(hardRight).toBeGreaterThan(0);
     expect(easyRight).toBeGreaterThan(0);
     expect(hardRight).toBeGreaterThan(easyRight);
   });
 
   it('lowers the estimate more for an easy item answered wrong than a hard one', () => {
-    const easyWrong = difficultyDelta(areaWith(15, []), { score: 0, difficulty: 3, metrics: {} }, cfg);
-    const hardWrong = difficultyDelta(areaWith(3, []), { score: 0, difficulty: 18, metrics: {} }, cfg);
+    const easyWrong = difficultyDelta(
+      areaWith(15, []),
+      { score: 0, difficulty: 3, metrics: {} },
+      cfg,
+    );
+    const hardWrong = difficultyDelta(
+      areaWith(3, []),
+      { score: 0, difficulty: 18, metrics: {} },
+      cfg,
+    );
     expect(easyWrong).toBeLessThan(0);
     expect(hardWrong).toBeLessThan(0);
     expect(easyWrong).toBeLessThan(hardWrong); // more negative
@@ -301,9 +325,7 @@ describe('update', () => {
 
 describe('nextItem', () => {
   const tinyBanks: Banks = {
-    types: [
-      { typeCode: 'T', domain: 'fluid_reasoning', ageBands: ['4-5'], metrics: ['M-ACC'] },
-    ],
+    types: [{ typeCode: 'T', domain: 'fluid_reasoning', ageBands: ['4-5'], metrics: ['M-ACC'] }],
     items: ([5, 9, 12] as number[]).map<BankItem>((difficulty) => ({
       itemId: `T#${difficulty}`,
       typeCode: 'T',
@@ -342,11 +364,13 @@ describe('nextItem', () => {
    */
   const biasBanks: Banks = {
     types: [{ typeCode: 'T', domain: 'fluid_reasoning', ageBands: ['4-5'], metrics: ['M-ACC'] }],
-    items: ([
-      [11, ['4-5'] as AgeBand[]], // on target for a '4-5' seed, but tagged for an older band below
-      [11, ['6-8'] as AgeBand[]],
-      [9, ['4-5'] as AgeBand[]],
-    ] as [number, AgeBand[]][]).map<BankItem>(([difficulty, ageBands], i) => ({
+    items: (
+      [
+        [11, ['4-5'] as AgeBand[]], // on target for a '4-5' seed, but tagged for an older band below
+        [11, ['6-8'] as AgeBand[]],
+        [9, ['4-5'] as AgeBand[]],
+      ] as [number, AgeBand[]][]
+    ).map<BankItem>(([difficulty, ageBands], i) => ({
       itemId: `B${i}`,
       typeCode: 'T',
       domain: 'fluid_reasoning',

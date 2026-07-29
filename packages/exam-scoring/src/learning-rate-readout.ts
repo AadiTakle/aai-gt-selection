@@ -37,7 +37,11 @@
  * D-030 records the decision; E-095 records the measurements quoted above and the open assumption
  * that no reference distribution for lambda exists.
  */
-import { estimateLearningCurve, type LearningCurveOptions, type LearningTrial } from './learning-curve';
+import {
+  estimateLearningCurve,
+  type LearningCurveOptions,
+  type LearningTrial,
+} from './learning-curve';
 
 /**
  * Trials below which no rate is reported. See the table above for what this length buys.

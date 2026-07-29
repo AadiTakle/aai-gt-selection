@@ -247,7 +247,9 @@ const NARROW_REFERENCE = { mean: 0.06, sd: 0.03 };
 const WIDE_REFERENCE = { mean: 0, sd: 0.15 };
 
 console.log('\n\n## The fitted climb\n');
-console.log('| child | true climb | fitted climb | posterior SE | band (honest ref) | band (wide ref) |');
+console.log(
+  '| child | true climb | fitted climb | posterior SE | band (honest ref) | band (wide ref) |',
+);
 console.log('| --- | --- | --- | --- | --- | --- |');
 
 for (const [label, block, trueLambda] of [
@@ -297,7 +299,7 @@ console.log(
   `\n\nSummary: the block administers ${RECOMMENDED_NOVEL_BLOCK_LENGTH} unseen items whose difficulty ` +
     'follows the child, the fit separates a learner from a flat child in the right direction, and the ' +
     `readout refuses to name a band at ${MIN_TRIALS_FOR_RATE} trials against a realistic reference. ` +
-    'That refusal is the finding, not a gap to tune away: at this block length one child\'s estimate ' +
+    "That refusal is the finding, not a gap to tune away: at this block length one child's estimate " +
     'is less precise than the differences between children are thought to be, so the rate can order ' +
     'a cohort it measured but cannot place an individual on a scale.',
 );

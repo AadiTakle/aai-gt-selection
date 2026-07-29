@@ -111,7 +111,11 @@ describe('deriveRotationSlope', () => {
     expect(deriveRotationSlope(tooFew)).toBeNull();
 
     const tooFlat = Array.from({ length: 15 }, (_, i) =>
-      item({ itemId: `flat${i}`, metrics: { 'M-RT': 1000 }, stimulus: { angularDisparityDeg: 90 } }),
+      item({
+        itemId: `flat${i}`,
+        metrics: { 'M-RT': 1000 },
+        stimulus: { angularDisparityDeg: 90 },
+      }),
     );
     expect(deriveRotationSlope(tooFlat)).toBeNull();
   });
@@ -126,9 +130,9 @@ describe('deriveRotationSlope', () => {
 
 describe('deriveAggregateMetrics', () => {
   it('omits every aggregate the trace cannot support', () => {
-    expect([...deriveAggregateMetrics([item({ itemId: 'only' })], SCALE_MIN, SCALE_MAX).keys()]).toEqual(
-      [],
-    );
+    expect([
+      ...deriveAggregateMetrics([item({ itemId: 'only' })], SCALE_MIN, SCALE_MAX).keys(),
+    ]).toEqual([]);
   });
 
   it('reports exactly the aggregates the trace does support', () => {

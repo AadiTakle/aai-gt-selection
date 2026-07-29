@@ -12,12 +12,7 @@
 export type Area = 'fluid_reasoning' | 'verbal' | 'quantitative' | 'spatial';
 
 /** Ordered list of the four areas. */
-export const AREAS: readonly Area[] = [
-  'fluid_reasoning',
-  'verbal',
-  'quantitative',
-  'spatial',
-];
+export const AREAS: readonly Area[] = ['fluid_reasoning', 'verbal', 'quantitative', 'spatial'];
 
 /** Grade/age bands used for the start difficulty and item targeting. */
 export type AgeBand = 'K-1' | '2-3' | '4-5' | '6-8' | 'above-level';

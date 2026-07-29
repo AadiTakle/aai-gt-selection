@@ -43,7 +43,10 @@ function verifierFor(typeCode: string) {
  * verifier re-derives the expected response from `content` rather than trusting
  * the key, so a bad key in the bank cannot silently pass the tests above.
  */
-function withCorruptedKey(item: RawBankItem, corrupt: (answer: RawBankItem['answer']) => void): RawBankItem {
+function withCorruptedKey(
+  item: RawBankItem,
+  corrupt: (answer: RawBankItem['answer']) => void,
+): RawBankItem {
   const copy = structuredClone(item);
   corrupt(copy.answer);
   return copy;
@@ -75,7 +78,9 @@ describe('FLU-GRIDCOPY-01 verifier', () => {
   it('rejects an unchanged copy of the probe input, on every bank item', () => {
     for (const item of bank) {
       const probe = item.content.probeInput as number[][];
-      expect(verify(item, { finalGrid: probe }).correct, `${item.itemId} identity copy`).toBe(false);
+      expect(verify(item, { finalGrid: probe }).correct, `${item.itemId} identity copy`).toBe(
+        false,
+      );
     }
   });
 
@@ -107,7 +112,10 @@ describe('FLU-GRIDCOPY-01 verifier', () => {
         answer.targetGrid = wrong;
         answer.correctKey = wrong.map((row) => row.join('')).join('/');
       });
-      expect(verify(corrupted, { finalGrid: target }).correct, `${item.itemId} solver over key`).toBe(true);
+      expect(
+        verify(corrupted, { finalGrid: target }).correct,
+        `${item.itemId} solver over key`,
+      ).toBe(true);
     }
   });
 
@@ -125,7 +133,9 @@ describe('FLU-MATRIXBUILD-01 verifier', () => {
       const verdict = verify(item, { constructed: item.answer.canonical });
       expect(verdict.correct, `${item.itemId} canonical tile`).toBe(true);
       expect(verdict.metrics?.['M-POLY']).toBe(1);
-      expect(verdict.metrics?.['M-RULEID']).toBe((item.content.constructedAttributes as string[]).length);
+      expect(verdict.metrics?.['M-RULEID']).toBe(
+        (item.content.constructedAttributes as string[]).length,
+      );
     }
   });
 
@@ -134,7 +144,10 @@ describe('FLU-MATRIXBUILD-01 verifier', () => {
       const attributes = item.content.constructedAttributes as string[];
       const canonical = item.answer.canonical as Record<string, unknown>;
       const attribute = attributes[0]!;
-      const pickers = item.content.pickers as { attribute: string; options: { value: unknown }[] }[];
+      const pickers = item.content.pickers as {
+        attribute: string;
+        options: { value: unknown }[];
+      }[];
       const wrong = pickers
         .find((p) => p.attribute === attribute)!
         .options.find((o) => o.value !== canonical[attribute])!;
@@ -152,7 +165,9 @@ describe('FLU-MATRIXBUILD-01 verifier', () => {
     const messy: Record<string, unknown> = {};
     for (const attribute of item.content.constructedAttributes as string[]) {
       messy[attribute] =
-        attribute === 'count' ? String(canonical[attribute]) : ` ${String(canonical[attribute]).toUpperCase()} `;
+        attribute === 'count'
+          ? String(canonical[attribute])
+          : ` ${String(canonical[attribute]).toUpperCase()} `;
     }
     expect(verify(item, { constructed: messy }).correct).toBe(true);
   });
@@ -168,7 +183,10 @@ describe('FLU-MATRIXBUILD-01 verifier', () => {
         answer.canonical = wrong;
         answer.correctKey = '__corrupt__';
       });
-      expect(verify(corrupted, { constructed: canonical }).correct, `${item.itemId} solver over key`).toBe(true);
+      expect(
+        verify(corrupted, { constructed: canonical }).correct,
+        `${item.itemId} solver over key`,
+      ).toBe(true);
     }
   });
 
@@ -182,7 +200,10 @@ describe('FLU-CONCEPT-01 verifier', () => {
   const verify = verifierFor('FLU-CONCEPT-01');
 
   const probeAnswers = (item: RawBankItem) =>
-    (item.answer.probeVerdicts as { key: string; opens: boolean }[]).map((v) => ({ key: v.key, opens: v.opens }));
+    (item.answer.probeVerdicts as { key: string; opens: boolean }[]).map((v) => ({
+      key: v.key,
+      opens: v.opens,
+    }));
 
   it('accepts the verdicts the gate evidence forces, on every bank item', () => {
     for (const item of bank) {
@@ -207,14 +228,19 @@ describe('FLU-CONCEPT-01 verifier', () => {
 
   it('rejects the inverted verdict string read positionally', () => {
     const item = bank[0]!;
-    const inverted = [...(item.answer.correctKey as string)].map((ch) => (ch === 'Y' ? 'N' : 'Y')).join('');
+    const inverted = [...(item.answer.correctKey as string)]
+      .map((ch) => (ch === 'Y' ? 'N' : 'Y'))
+      .join('');
     expect(verify(item, { answerKeyString: item.answer.correctKey }).correct).toBe(true);
     expect(verify(item, { answerKeyString: inverted }).correct).toBe(false);
   });
 
   it('scores hypothesis-search efficiency from the tests the child actually ran', () => {
     const item = bank[0]!;
-    const oracle = item.content.gateOracle as { figure: Record<string, unknown>; accepts: boolean }[];
+    const oracle = item.content.gateOracle as {
+      figure: Record<string, unknown>;
+      accepts: boolean;
+    }[];
     const informative = verify(item, {
       probeAnswers: probeAnswers(item),
       tests: oracle.slice(0, 3).map((entry) => ({ figure: entry.figure, opened: entry.accepts })),
@@ -229,7 +255,9 @@ describe('FLU-CONCEPT-01 verifier', () => {
   it('re-derives the verdicts from the gate oracle, not the stored key', () => {
     for (const item of bank) {
       const corrupted = withCorruptedKey(item, (answer) => {
-        answer.correctKey = [...(answer.correctKey as string)].map((ch) => (ch === 'Y' ? 'N' : 'Y')).join('');
+        answer.correctKey = [...(answer.correctKey as string)]
+          .map((ch) => (ch === 'Y' ? 'N' : 'Y'))
+          .join('');
         answer.probeVerdicts = [];
       });
       expect(
@@ -249,7 +277,9 @@ describe('CX-check-01 verifier', () => {
   const verify = verifierFor('CX-check-01');
 
   const servedPlacement = (item: RawBankItem) =>
-    Object.fromEntries((item.content.tokens as { id: string; bin: string }[]).map((t) => [t.id, t.bin]));
+    Object.fromEntries(
+      (item.content.tokens as { id: string; bin: string }[]).map((t) => [t.id, t.bin]),
+    );
 
   it('accepts the placement re-derived from the tile signatures, on every bank item', () => {
     for (const item of bank) {
@@ -285,10 +315,15 @@ describe('CX-check-01 verifier', () => {
     for (const item of bank) {
       const trueBin = item.answer.trueBin as Record<string, string>;
       const corrupted = withCorruptedKey(item, (answer) => {
-        answer.trueBin = Object.fromEntries(Object.keys(trueBin).map((id) => [id, '__no-such-bin__']));
+        answer.trueBin = Object.fromEntries(
+          Object.keys(trueBin).map((id) => [id, '__no-such-bin__']),
+        );
         answer.correctKey = '__corrupt__';
       });
-      expect(verify(corrupted, { finalPlacement: trueBin }).correct, `${item.itemId} solver over key`).toBe(true);
+      expect(
+        verify(corrupted, { finalPlacement: trueBin }).correct,
+        `${item.itemId} solver over key`,
+      ).toBe(true);
     }
   });
 
@@ -303,28 +338,42 @@ describe('CX-curious-02 verifier', () => {
 
   it('accepts the option the scene never supports, on every bank item', () => {
     for (const item of bank) {
-      expect(verify(item, { gapKey: item.answer.correctKey }).correct, `${item.itemId} gap pick`).toBe(true);
+      expect(
+        verify(item, { gapKey: item.answer.correctKey }).correct,
+        `${item.itemId} gap pick`,
+      ).toBe(true);
     }
   });
 
   it('rejects an option the scene states outright, on every bank item', () => {
     for (const item of bank) {
-      const wrong = (item.content.gapOptions as { id: string }[]).find((o) => o.id !== item.answer.correctKey)!;
-      expect(verify(item, { gapKey: wrong.id }).correct, `${item.itemId} stated option`).toBe(false);
+      const wrong = (item.content.gapOptions as { id: string }[]).find(
+        (o) => o.id !== item.answer.correctKey,
+      )!;
+      expect(verify(item, { gapKey: wrong.id }).correct, `${item.itemId} stated option`).toBe(
+        false,
+      );
     }
   });
 
   it('never scores the questions or the guesses', () => {
     const item = bank[0]!;
     const questions = [{ text: 'who lives there?' }, { text: 'why is it shiny?' }];
-    const withQuestions = verify(item, { gapKey: item.answer.correctKey, questions, causeGuesses: [], nextGuesses: [] });
+    const withQuestions = verify(item, {
+      gapKey: item.answer.correctKey,
+      questions,
+      causeGuesses: [],
+      nextGuesses: [],
+    });
     const withNone = verify(item, { gapKey: item.answer.correctKey });
     expect(withQuestions).toEqual(withNone);
   });
 
   it('re-derives the gap from the evidence model, not the stored key', () => {
     for (const item of bank) {
-      const stated = (item.content.gapOptions as { id: string }[]).find((o) => o.id !== item.answer.correctKey)!;
+      const stated = (item.content.gapOptions as { id: string }[]).find(
+        (o) => o.id !== item.answer.correctKey,
+      )!;
       const corrupted = withCorruptedKey(item, (answer) => {
         answer.correctKey = stated.id;
       });
@@ -359,7 +408,10 @@ describe('CX-achieve-02 verifier', () => {
     for (const item of bank) {
       const options = (item.content.conclusion as { options: { key: string }[] }).options;
       const wrong = options.find((o) => o.key !== item.answer.correctKey)!;
-      const verdict = verify(item, { conclusionKey: wrong.key, factorPick: item.answer.topFactorId });
+      const verdict = verify(item, {
+        conclusionKey: wrong.key,
+        factorPick: item.answer.topFactorId,
+      });
       expect(verdict.correct, `${item.itemId} wrong setup`).toBe(false);
     }
   });
@@ -372,7 +424,10 @@ describe('CX-achieve-02 verifier', () => {
     for (const item of asked) {
       const factors = item.content.factors as { id: string }[];
       const wrongFactor = factors.find((f) => f.id !== item.answer.topFactorId)!;
-      const verdict = verify(item, { conclusionKey: item.answer.correctKey, factorPick: wrongFactor.id });
+      const verdict = verify(item, {
+        conclusionKey: item.answer.correctKey,
+        factorPick: wrongFactor.id,
+      });
       expect(verdict.correct, `${item.itemId} wrong top factor`).toBe(false);
       expect(verdict.metrics?.['M-POLY']).toBe(0.5);
     }
@@ -382,7 +437,9 @@ describe('CX-achieve-02 verifier', () => {
     for (const item of bank) {
       const options = (item.content.conclusion as { options: { key: string }[] }).options;
       const otherKey = options.find((o) => o.key !== item.answer.correctKey)!.key;
-      const otherFactor = (item.content.factors as { id: string }[]).find((f) => f.id !== item.answer.topFactorId)!.id;
+      const otherFactor = (item.content.factors as { id: string }[]).find(
+        (f) => f.id !== item.answer.topFactorId,
+      )!.id;
       const corrupted = withCorruptedKey(item, (answer) => {
         answer.correctKey = otherKey;
         answer.topFactorId = otherFactor;

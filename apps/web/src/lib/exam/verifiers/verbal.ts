@@ -646,8 +646,7 @@ function verifyEvidence(item: RawBankItem, response: Record<string, unknown>): V
 
   const answerOk = answerKey === expected.answer;
   const evidenceOk = evidenceKey === expected.evidence;
-  const credit =
-    ((answerOk ? answerWeight : 0) + (evidenceOk ? evidenceWeight : 0)) / totalWeight;
+  const credit = ((answerOk ? answerWeight : 0) + (evidenceOk ? evidenceWeight : 0)) / totalWeight;
 
   const correct = answerOk && evidenceOk;
   const metrics: Record<string, number> = { 'M-POLY': round4(credit) };
@@ -673,9 +672,7 @@ function verifyEvidence(item: RawBankItem, response: Record<string, unknown>): V
 function senseExpectedOrder(item: RawBankItem): number[] | null {
   const content = item.content as { cards?: unknown };
   const cards = arrayOf(content.cards);
-  const texts = cards
-    ? cards.map((card) => (isRecord(card) ? str(card.text) : null))
-    : null;
+  const texts = cards ? cards.map((card) => (isRecord(card) ? str(card.text) : null)) : null;
 
   if (texts && texts.every((text): text is string => text !== null)) {
     const provenance = recordOf(item.provenance);

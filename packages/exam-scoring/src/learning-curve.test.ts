@@ -35,7 +35,11 @@ function simulateBlock(
   const rand = mulberry32(seed);
   const trials: LearningTrial[] = [];
   for (let t = 0; t < length; t += 1) {
-    const target = nextTargetTheta(trials, { standingEstimate: theta0, targetOffset, slope: SLOPE });
+    const target = nextTargetTheta(trials, {
+      standingEstimate: theta0,
+      targetOffset,
+      slope: SLOPE,
+    });
     const difficulty = Math.round(target * 2) / 2;
     const theta = theta0 + lambda * t;
     const p = 1 / (1 + Math.exp(-SLOPE * (theta - difficulty)));
@@ -68,8 +72,12 @@ describe('estimateLearningCurve', () => {
     const flats: number[] = [];
 
     for (let seed = 0; seed < 40; seed += 1) {
-      climbers.push(estimateLearningCurve(simulateBlock(10, 0.1, 30, seed), { slope: SLOPE }).lambda);
-      flats.push(estimateLearningCurve(simulateBlock(10, 0, 30, seed + 500), { slope: SLOPE }).lambda);
+      climbers.push(
+        estimateLearningCurve(simulateBlock(10, 0.1, 30, seed), { slope: SLOPE }).lambda,
+      );
+      flats.push(
+        estimateLearningCurve(simulateBlock(10, 0, 30, seed + 500), { slope: SLOPE }).lambda,
+      );
     }
 
     const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
@@ -83,7 +91,8 @@ describe('estimateLearningCurve', () => {
 
   it('reports a posterior SE that narrows as the block lengthens', () => {
     const ses = [8, 15, 30, 60].map(
-      (length) => estimateLearningCurve(simulateBlock(10, 0.1, length, 7), { slope: SLOPE }).lambdaSe,
+      (length) =>
+        estimateLearningCurve(simulateBlock(10, 0.1, length, 7), { slope: SLOPE }).lambdaSe,
     );
 
     for (let i = 1; i < ses.length; i += 1) {
@@ -99,13 +108,15 @@ describe('estimateLearningCurve', () => {
     const short = mean(
       Array.from(
         { length: 60 },
-        (_, s) => estimateLearningCurve(simulateBlock(10, trueLambda, 8, s), { slope: SLOPE }).lambda,
+        (_, s) =>
+          estimateLearningCurve(simulateBlock(10, trueLambda, 8, s), { slope: SLOPE }).lambda,
       ),
     );
     const long = mean(
       Array.from(
         { length: 60 },
-        (_, s) => estimateLearningCurve(simulateBlock(10, trueLambda, 30, s), { slope: SLOPE }).lambda,
+        (_, s) =>
+          estimateLearningCurve(simulateBlock(10, trueLambda, 30, s), { slope: SLOPE }).lambda,
       ),
     );
 
@@ -191,7 +202,11 @@ describe('nextTargetTheta', () => {
       score: 1,
       trialIndex: t,
     }));
-    const target = nextTargetTheta(atCeiling, { standingEstimate: 20, targetOffset: 5, slope: SLOPE });
+    const target = nextTargetTheta(atCeiling, {
+      standingEstimate: 20,
+      targetOffset: 5,
+      slope: SLOPE,
+    });
     expect(target).toBeLessThanOrEqual(SCALE_MAX);
     expect(target).toBeGreaterThanOrEqual(SCALE_MIN);
   });

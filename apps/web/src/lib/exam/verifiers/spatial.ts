@@ -137,9 +137,7 @@ const verifyHiddenCube: Verifier = (item, response) => {
 function mazeEdgeKey(a: readonly [number, number], b: readonly [number, number]): string {
   const [r1, c1] = a;
   const [r2, c2] = b;
-  return r1 < r2 || (r1 === r2 && c1 < c2)
-    ? `${r1},${c1}-${r2},${c2}`
-    : `${r2},${c2}-${r1},${c1}`;
+  return r1 < r2 || (r1 === r2 && c1 < c2) ? `${r1},${c1}-${r2},${c2}` : `${r2},${c2}-${r1},${c1}`;
 }
 
 /**
@@ -639,7 +637,10 @@ function normalizeShape(cells: readonly Cell3[]): Cell3[] {
     .sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]);
 }
 
-const shapeKey = (cells: readonly Cell3[]) => normalizeShape(cells).map((c) => c.join(',')).join('|');
+const shapeKey = (cells: readonly Cell3[]) =>
+  normalizeShape(cells)
+    .map((c) => c.join(','))
+    .join('|');
 
 /** Quarter-turn about the vertical axis — the only transform the tray affords. */
 const rotateShape = (cells: readonly Cell3[]) =>
@@ -993,7 +994,8 @@ const verifyXPlane: Verifier = (item, response) => {
 
   const pl = planeFor(solid, pm, h, t, w);
   const outline = outlineOf(sectionLoop(solid, pl), pl);
-  const distance = outline.length === signature.length ? shapeDistance(outline, signature) : Infinity;
+  const distance =
+    outline.length === signature.length ? shapeDistance(outline, signature) : Infinity;
 
   const metrics: Record<string, number> = {};
   if (Number.isFinite(distance)) metrics['M-POLY'] = distance;

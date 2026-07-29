@@ -107,7 +107,11 @@ export function toObservation(scored: ScoredItem): ItemObservation {
   };
 }
 
-function nextAreaState(prev: AreaState, scored: ScoredItem, config: SessionState['config']): AreaState {
+function nextAreaState(
+  prev: AreaState,
+  scored: ScoredItem,
+  config: SessionState['config'],
+): AreaState {
   const delta = difficultyDelta(prev, scored, config);
   const difficulty = clamp(prev.difficulty + delta, DIFFICULTY_MIN, DIFFICULTY_MAX);
 

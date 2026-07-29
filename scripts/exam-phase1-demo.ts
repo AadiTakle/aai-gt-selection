@@ -180,7 +180,9 @@ const cappedOut = state.itemsServed >= config.hardItemCap;
 const allSettled = AREAS.every((a) => areaEstimateStable(a, state));
 console.log(
   `\nStop rule: the session ended ${
-    cappedOut ? 'on the SAFETY CAP (investigate — the stop rule should fire first)' : 'on CONFIDENCE'
+    cappedOut
+      ? 'on the SAFETY CAP (investigate — the stop rule should fire first)'
+      : 'on CONFIDENCE'
   } — every area's estimate ${allSettled ? 'settled' : 'did NOT all settle'} before the ${config.hardItemCap}-item cap.`,
 );
 console.log(

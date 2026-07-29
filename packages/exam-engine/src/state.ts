@@ -1,7 +1,14 @@
 import { DEFAULT_CONFIG, GRADE_BAND_SEED } from './config';
 import { DERIVED_METRIC_IDS } from './derived';
 import { clamp } from './stats';
-import { AREAS, type AgeBand, type Area, type AreaState, type EngineConfig, type SessionState } from './types';
+import {
+  AREAS,
+  type AgeBand,
+  type Area,
+  type AreaState,
+  type EngineConfig,
+  type SessionState,
+} from './types';
 import { DIFFICULTY_MAX, DIFFICULTY_MIN } from './config';
 
 function emptyMetricCounts(config: EngineConfig): Record<string, number> {

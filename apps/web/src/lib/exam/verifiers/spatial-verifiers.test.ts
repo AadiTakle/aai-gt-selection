@@ -183,21 +183,19 @@ describe('SPA-MAZE-01', () => {
       const content = i.content as { openEdges: string[]; grid: { R: number; C: number } };
       const open = new Set(content.openEdges);
       const start = i.content.start as Cell;
-      return [
-        [start[0] + 1, start[1]] as Cell,
-        [start[0], start[1] + 1] as Cell,
-      ].some(
-        (q) =>
-          q[0] < content.grid.R && q[1] < content.grid.C && !open.has(mazeEdgeKey(start, q)),
+      return [[start[0] + 1, start[1]] as Cell, [start[0], start[1] + 1] as Cell].some(
+        (q) => q[0] < content.grid.R && q[1] < content.grid.C && !open.has(mazeEdgeKey(start, q)),
       );
     })!;
     const content = item.content as { openEdges: string[]; grid: { R: number; C: number } };
     const open = new Set(content.openEdges);
     const start = item.content.start as Cell;
-    const walled = ([
-      [start[0] + 1, start[1]],
-      [start[0], start[1] + 1],
-    ] as Cell[]).find(
+    const walled = (
+      [
+        [start[0] + 1, start[1]],
+        [start[0], start[1] + 1],
+      ] as Cell[]
+    ).find(
       (q) => q[0] < content.grid.R && q[1] < content.grid.C && !open.has(mazeEdgeKey(start, q)),
     )!;
     const teleport = [start, walled, item.content.goal as Cell];
@@ -292,9 +290,7 @@ describe('SPA-PIPES-01', () => {
     let checked = 0;
     for (const item of items) {
       const wiring = solvedWiring(item);
-      const solved = new Set(
-        (item.answer.solutionOrients as Tile[]).map((t) => `${t.r},${t.c}`),
-      );
+      const solved = new Set((item.answer.solutionOrients as Tile[]).map((t) => `${t.r},${t.c}`));
       const decoy = wiring.find((t) => t.dirs.length === 1 && !solved.has(`${t.r},${t.c}`));
       if (!decoy) continue;
       checked++;
@@ -367,7 +363,9 @@ describe('SPA-PUNCH-01', () => {
 
   it('rejects every named lure hole pattern, with partial credit for the overlap', () => {
     for (const item of items) {
-      for (const lure of Object.values(item.answer.distractorRationales as Record<string, PunchLure>)) {
+      for (const lure of Object.values(
+        item.answer.distractorRationales as Record<string, PunchLure>,
+      )) {
         if (lureOf(lure) === 'correct') continue;
         const verdict = grade(item, { markedCells: cellsFromSignature(lure.signature) });
         expect(verdict.correct, `${item.itemId} ${lure.key}`).toBe(false);
@@ -378,11 +376,13 @@ describe('SPA-PUNCH-01', () => {
 
   it('flags a whole-pattern mirror as a mirror false alarm', () => {
     const item = items.find((i) =>
-      Object.values(i.answer.distractorRationales as Record<string, PunchLure>).some((l) => lureOf(l) === 'mirrored_whole_pattern'),
+      Object.values(i.answer.distractorRationales as Record<string, PunchLure>).some(
+        (l) => lureOf(l) === 'mirrored_whole_pattern',
+      ),
     )!;
-    const mirror = Object.values(item.answer.distractorRationales as Record<string, PunchLure>).find(
-      (l) => lureOf(l) === 'mirrored_whole_pattern',
-    )!;
+    const mirror = Object.values(
+      item.answer.distractorRationales as Record<string, PunchLure>,
+    ).find((l) => lureOf(l) === 'mirrored_whole_pattern')!;
     const verdict = grade(item, { markedCells: cellsFromSignature(mirror.signature) });
     expect(verdict.correct).toBe(false);
     expect(verdict.metrics?.['M-MIRRORFA']).toBe(1);
@@ -426,9 +426,9 @@ describe('SPA-SCENE-01', () => {
 
   it('rejects the egocentric left-right reversal and flags it as a mirror', () => {
     for (const item of items) {
-      const mirror = Object.values(item.answer.distractorRationales as Record<string, SceneLure>).find(
-        (l) => l.chirality === 'mirror',
-      )!;
+      const mirror = Object.values(
+        item.answer.distractorRationales as Record<string, SceneLure>,
+      ).find((l) => l.chirality === 'mirror')!;
       const verdict = grade(item, { order: mirror.order, nearestId: item.answer.nearestId });
       expect(verdict.correct, item.itemId).toBe(false);
       expect(verdict.metrics?.['M-MIRRORFA'], item.itemId).toBe(1);
@@ -436,12 +436,14 @@ describe('SPA-SCENE-01', () => {
   });
 
   it('rejects the right order with the wrong nearest card', () => {
-    const item = items.find((i) => (i.content.question as { requireNearest: boolean }).requireNearest)!;
+    const item = items.find(
+      (i) => (i.content.question as { requireNearest: boolean }).requireNearest,
+    )!;
     const objects = (item.content.scene as { objects: { id: number }[] }).objects;
     const wrongNearest = objects.find((o) => o.id !== item.answer.nearestId)!.id;
-    expect(
-      grade(item, { order: item.answer.correctOrder, nearestId: wrongNearest }).correct,
-    ).toBe(false);
+    expect(grade(item, { order: item.answer.correctOrder, nearestId: wrongNearest }).correct).toBe(
+      false,
+    );
   });
 
   it('gives partial credit for a single adjacent swap', () => {
@@ -477,9 +479,11 @@ function normalize(cells: Cell3[]): Cell3[] {
     .map((c) => [c[0] - ml, c[1] - mr, c[2] - mc] as Cell3)
     .sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]);
 }
-const shapeKey = (cells: Cell3[]) => normalize(cells).map((c) => c.join(',')).join('|');
-const rotateOffsets = (cells: Cell3[]) =>
-  normalize(cells.map(([l, r, c]) => [l, c, -r] as Cell3));
+const shapeKey = (cells: Cell3[]) =>
+  normalize(cells)
+    .map((c) => c.join(','))
+    .join('|');
+const rotateOffsets = (cells: Cell3[]) => normalize(cells.map(([l, r, c]) => [l, c, -r] as Cell3));
 function allRotations(offsets: Cell3[]): Cell3[][] {
   const out: Cell3[][] = [];
   const seen = new Set<string>();
@@ -739,10 +743,9 @@ describe('SPA-VIEW-01', () => {
 
     expect(grade(seamed, { headingDeg: 175 - 360 }).correct).toBe(true);
     expect(grade(seamed, { headingDeg: -100 }).correct).toBe(false);
-    expect(grade(seamed, { headingDeg: -175 + toleranceOf(item) }).metrics?.['M-VIEWANG']).toBeCloseTo(
-      10 + toleranceOf(item),
-      6,
-    );
+    expect(
+      grade(seamed, { headingDeg: -175 + toleranceOf(item) }).metrics?.['M-VIEWANG'],
+    ).toBeCloseTo(10 + toleranceOf(item), 6);
   });
 
   it('dispatches on the item, so neither shell can be graded by the other rule', () => {
