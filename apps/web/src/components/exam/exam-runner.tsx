@@ -25,6 +25,7 @@ import {
 import { EXAM_BANK_BY_CODE, EXAM_DOMAINS, domainLabel } from '@/lib/exam/bank';
 import {
   EXAM_ENGINE_OVERRIDES,
+  GESTURE_DEMO_TYPES,
   NATIVE_PROTOCOL_TYPES,
   bandForTheta,
   buildBanks,
@@ -103,6 +104,8 @@ export function ExamRunner({
   const scoredRef = useRef<TraceScoredItem[]>([]);
   const telemetryRef = useRef<Record<string, unknown>[]>([]);
   const processedRef = useRef<Set<string>>(new Set());
+  /** Type codes already demonstrated this session, so a gesture hint never replays. */
+  const demoedTypesRef = useRef<Set<string>>(new Set());
   const sessionRef = useRef<{
     sessionId: string;
     participantCode: string;
@@ -295,7 +298,12 @@ export function ExamRunner({
       if (initiated) return;
       initiated = true;
       host.init(item);
-      host.start();
+      // Only a designated type gets the gesture demonstration, and only the first time this
+      // session meets it — the demo's own "already shown" flag dies with each item's iframe.
+      const needsDemo =
+        GESTURE_DEMO_TYPES.has(item.typeCode) && !demoedTypesRef.current.has(item.typeCode);
+      if (needsDemo) demoedTypesRef.current.add(item.typeCode);
+      host.start(needsDemo);
     }
 
     const onLoad = () => {
@@ -599,9 +607,13 @@ export function ExamRunner({
         className={styles.frame}
       />
 
+      {/*
+        Deliberately terse. The type blurb and the "adaptive" explainer used to sit here, but they
+        restated what the activity itself already says and turned every question into something to
+        read first. The demo carries its own one-line instruction.
+      */}
       <p className={styles.frameNote}>
-        {meta?.blurb} · Adaptive — the battery length adjusts to your answers. This is a synthetic
-        screening activity; results are not shown between questions.
+        Synthetic screening activity; results are not shown between questions.
       </p>
     </div>
   );

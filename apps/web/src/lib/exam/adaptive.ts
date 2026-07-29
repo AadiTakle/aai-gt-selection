@@ -131,6 +131,18 @@ export function demoPathFor(typeCode: string): string {
 }
 
 /**
+ * Types whose interaction gets a short wordless gesture demonstration, shown ONCE per session.
+ *
+ * The default is deliberately empty. Every demo already states what to do in one line ("Tap the
+ * tile that completes the pattern, then press the check"), and a test should be answerable the
+ * moment a question appears rather than opening with something to watch. Add a type here only when
+ * its interaction genuinely cannot be conveyed in a sentence — a multi-step manipulation, say,
+ * rather than a choice — and expect roughly four seconds of demonstration the first time a child
+ * meets it.
+ */
+export const GESTURE_DEMO_TYPES: ReadonlySet<string> = new Set<string>([]);
+
+/**
  * Build the engine's `Banks` from served items. The engine only ever reads
  * served-safe fields (itemId/typeCode/domain/difficulty/ageBands/content), so the
  * served pool is a safe stand-in for `Banks.items` — no answer key is present in
