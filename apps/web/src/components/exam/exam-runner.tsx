@@ -25,6 +25,9 @@ import {
 import { EXAM_BANK_BY_CODE, EXAM_DOMAINS, domainLabel } from '@/lib/exam/bank';
 import {
   EXAM_ENGINE_OVERRIDES,
+  debugModeServerSnapshot,
+  debugModeSnapshot,
+  emulateAnswer,
   NATIVE_PROTOCOL_TYPES,
   bandForTheta,
   buildBanks,
@@ -34,6 +37,7 @@ import {
   numericMetrics,
   openExamSession,
   submitAnswer,
+  subscribeToDebugMode,
 } from '@/lib/exam/adaptive';
 import { GRADE_BANDS, GRADE_BAND_LABEL, syntheticId, type GradeBand } from '@/lib/exam/contract';
 import { ExamHost, type InboundResult } from '@/lib/exam/messaging';
@@ -154,6 +158,16 @@ export function ExamRunner({
   /** Routes each result to the block instead of the Phase 1 engine; a ref so it is never stale. */
   const inBlockRef = useRef(false);
 
+  /** Ability estimate for the item on screen, mirrored into state so render never reads a ref. */
+  const [debugAbility, setDebugAbility] = useState<number | null>(null);
+
+  /** `?telemetry=1` on the exam URL: shows each demo's researcher panel and the emulate control. */
+  const debugMode = useSyncExternalStore(
+    subscribeToDebugMode,
+    debugModeSnapshot,
+    debugModeServerSnapshot,
+  );
+
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const stateRef = useRef<SessionState | null>(null);
   const banksRef = useRef<Banks | null>(null);
@@ -169,7 +183,7 @@ export function ExamRunner({
     examSessionId: string | null;
   }>({ sessionId: '', participantCode: '', startedAt: '', examSessionId: null });
   const handleResultRef = useRef<
-    (item: ServedItem, inbound: InboundResult, skipped: boolean) => void
+    (item: ServedItem, inbound: InboundResult, skipped: boolean, emulateAbility?: number) => void
   >(() => {});
 
   // POST the completed trace; the server recomputes the score authoritatively.
@@ -276,6 +290,7 @@ export function ExamRunner({
         }
         servedRef.current = [...servedRef.current, item];
         setServed(servedRef.current);
+        setDebugAbility(state.areas[item.domain]?.difficulty ?? null);
         setCurrent(item);
       })();
     },
@@ -329,6 +344,7 @@ export function ExamRunner({
       } catch {
         // Fall back to the index entry; the item can still be skipped rather than wedging.
       }
+      setDebugAbility(blockStandingRef.current);
       setCurrent(item);
     })();
   }, [finishBlock]);
@@ -372,7 +388,7 @@ export function ExamRunner({
   );
 
   const handleResult = useCallback(
-    async (item: ServedItem, inbound: InboundResult, skipped: boolean) => {
+    async (item: ServedItem, inbound: InboundResult, skipped: boolean, emulateAbility?: number) => {
       if (processedRef.current.has(item.itemId)) return;
       processedRef.current.add(item.itemId);
       // NOTE: the Phase 1 session-state check happens AFTER the server round trip, because a block
@@ -390,14 +406,24 @@ export function ExamRunner({
       // with the response and kept on the in-memory trace.
       const perItemTelemetry = telemetryRef.current.filter((e) => e['itemId'] === item.itemId);
 
-      const verdict = await submitAnswer({
-        itemId: item.itemId,
-        response: inbound.response,
-        skipped,
-        examSessionId: sessionRef.current.examSessionId,
-        clientMetrics,
-        telemetry: perItemTelemetry,
-      });
+      // Emulation asks the server to SAMPLE the outcome at the caller's ability; the browser has
+      // no answer key and must not be able to assert one. Everything downstream is identical, so an
+      // emulated item moves the estimate exactly as a real answer of that outcome would.
+      const verdict =
+        emulateAbility === undefined
+          ? await submitAnswer({
+              itemId: item.itemId,
+              response: inbound.response,
+              skipped,
+              examSessionId: sessionRef.current.examSessionId,
+              clientMetrics,
+              telemetry: perItemTelemetry,
+            })
+          : await emulateAnswer({
+              itemId: item.itemId,
+              ability: emulateAbility,
+              examSessionId: sessionRef.current.examSessionId,
+            });
       const serverMetrics = verdict?.metrics ?? { 'M-ACC': 0, 'M-ERRTYPE': 0 };
       const correct = verdict?.correct ?? false;
       const score = verdict?.score ?? 0;
@@ -441,8 +467,8 @@ export function ExamRunner({
   );
 
   useEffect(() => {
-    handleResultRef.current = (item, inbound, skipped) => {
-      void handleResult(item, inbound, skipped);
+    handleResultRef.current = (item, inbound, skipped, emulateAbility) => {
+      void handleResult(item, inbound, skipped, emulateAbility);
     };
   }, [handleResult]);
 
@@ -872,13 +898,34 @@ export function ExamRunner({
           </p>
           <p className={styles.runTitle}>{meta?.title ?? current.typeCode}</p>
         </div>
-        <button
-          type="button"
-          className={styles.skip}
-          onClick={() => window.dispatchEvent(new Event('gt-exam-skip'))}
-        >
-          Skip this one →
-        </button>
+        <div className={styles.runActions}>
+          {debugMode ? (
+            <button
+              type="button"
+              className={styles.emulate}
+              title="Sample this item's outcome at the current ability estimate, instead of answering it"
+              onClick={() => {
+                if (!current) return;
+                // Ability for THIS item's area: the engine's running estimate in Phase 1, the
+                // settled standing the block was pitched against in Phase 2.
+                const ability = isBlockRunning
+                  ? blockStandingRef.current
+                  : (stateRef.current?.areas[current.domain]?.difficulty ??
+                    blockStandingRef.current);
+                handleResultRef.current(current, { response: { emulated: true } }, false, ability);
+              }}
+            >
+              Emulate{debugAbility === null ? '' : ` (θ ${debugAbility.toFixed(1)})`} →
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className={styles.skip}
+            onClick={() => window.dispatchEvent(new Event('gt-exam-skip'))}
+          >
+            Skip this one →
+          </button>
+        </div>
       </header>
 
       <div className={styles.progress} aria-hidden="true">
@@ -905,7 +952,7 @@ export function ExamRunner({
         key={current.itemId}
         ref={iframeRef}
         title={`${meta?.title ?? current.typeCode} question`}
-        src={demoPathFor(current.typeCode)}
+        src={demoPathFor(current.typeCode, debugMode)}
         className={styles.frame}
       />
 

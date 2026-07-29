@@ -126,8 +126,65 @@ export const EXAM_ENGINE_OVERRIDES: Partial<EngineConfig> = {
 };
 
 /** Derive the demo URL for a served item (renderers live under public/exam-demos). */
-export function demoPathFor(typeCode: string): string {
-  return `/exam-demos/${typeCode}.html`;
+export function demoPathFor(typeCode: string, telemetry = false): string {
+  // `?telemetry=1` un-hides the demo's researcher panel (D-028). Only ever passed in debug mode:
+  // naming the measured behaviours to a child can change them.
+  return `/exam-demos/${typeCode}.html${telemetry ? '?telemetry=1' : ''}`;
+}
+
+/**
+ * Debug mode: the exam URL carries `?telemetry=1`.
+ *
+ * Exposed as a store so a component can read it with `useSyncExternalStore` — the server render and
+ * the first client render then agree, and nothing sets state from an effect.
+ */
+export function subscribeToDebugMode(): () => void {
+  return () => {};
+}
+
+export function debugModeSnapshot(): boolean {
+  if (typeof window === 'undefined') return false;
+  return /(^|[?&])telemetry=1(&|$)/.test(window.location.search);
+}
+
+export function debugModeServerSnapshot(): boolean {
+  return false;
+}
+
+/** Verdict from the development-only emulator. Shape matches `submitAnswer`'s, plus `emulated`. */
+export interface EmulatedVerdict extends ServerVerdict {
+  readonly emulated: true;
+  readonly pCorrect: number;
+}
+
+/**
+ * Ask the server to emulate one item at the caller's current ability.
+ *
+ * Correctness is sampled server-side because the browser has no answer key and must not be able to
+ * assert one. Returns null when the endpoint is disabled (any non-development build), so a caller
+ * can fall back to a normal skip.
+ */
+export async function emulateAnswer(input: {
+  itemId: string;
+  ability: number;
+  examSessionId: string | null;
+}): Promise<EmulatedVerdict | null> {
+  try {
+    const res = await fetch('/api/exam-emulate', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        itemId: input.itemId,
+        ability: input.ability,
+        ...(input.examSessionId ? { examSessionId: input.examSessionId } : {}),
+      }),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { ok?: boolean } & EmulatedVerdict;
+    return data.ok ? data : null;
+  } catch {
+    return null;
+  }
 }
 
 /**

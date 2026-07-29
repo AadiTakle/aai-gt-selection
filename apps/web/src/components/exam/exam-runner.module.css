@@ -249,6 +249,42 @@
   margin: var(--gt-space-1) 0 0;
 }
 
+.runActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: none;
+}
+
+/*
+ * Development-only. Deliberately does not look like part of the test: a researcher control sitting
+ * beside a child-facing affordance should be unmistakable at a glance.
+ */
+.emulate {
+  all: unset;
+  cursor: pointer;
+  flex: none;
+  color: #a9791b;
+  background: #fff7e6;
+  border: 0.125rem dashed #ffe1a6;
+  font-family: var(--font-utility);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.375rem 0.625rem;
+  border-radius: var(--radius-md);
+}
+
+.emulate:hover {
+  background: #ffefd0;
+}
+
+.emulate:focus-visible {
+  outline: 0.1875rem solid var(--color-focus);
+  outline-offset: 0.125rem;
+}
+
 .skip {
   all: unset;
   cursor: pointer;
