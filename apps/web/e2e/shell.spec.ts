@@ -4,11 +4,10 @@ test('renders the linked synthetic application shell', async ({ page }) => {
   await page.goto('/');
 
   await expect(
-    page.getByText('Synthetic prototype — not a real admissions decision'),
-  ).toBeVisible();
-  await expect(
     page.getByRole('heading', { name: 'GT Admissions architecture shell' }),
   ).toBeVisible();
+  await expect(page.getByText(/verify the application boundary/i)).toBeVisible();
+  await expect(page.getByRole('link', { name: /Family portal/i })).toBeVisible();
 });
 
 test('reports the local Supabase boundary as ready', async ({ request }) => {
@@ -23,5 +22,5 @@ test('reports the local Supabase boundary as ready', async ({ request }) => {
 
 test('keeps role surfaces behind the server-side session boundary', async ({ page }) => {
   await page.goto('/family');
-  await expect(page).toHaveURL(/\?auth=required$/);
+  await expect(page).toHaveURL(/\/login\?redirect=/);
 });
