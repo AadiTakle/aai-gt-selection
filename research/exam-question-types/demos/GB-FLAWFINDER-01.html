@@ -42,54 +42,54 @@
   ServedItems and prints the emitted results in the telemetry log.
 -->
 <style>
-  :root{--bg1:#fff6e6;--bg2:#ffeef0;--ink:#3a2a1a;--card:#fff;--accent:#c06a2a;--good:#22b573;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  :root{--bg1:#fcf4ef;--bg2:#fcf4ef;--ink:#003b5c;--card:#ffffff;--accent:#4a6470;--good:#146c43;--tel-bg:#002a3a;--tel-ink:#f5ddcd;--tel-key:#ebba9b;--tel-dim:#e48b53;}
   *{box-sizing:border-box} html,body{margin:0;height:100%}
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
-  #badge{font-size:12px;letter-spacing:.08em;color:#a08060;text-transform:uppercase;font-weight:700}
-  #howto{max-width:680px;width:100%;background:#fff;border:1px solid #ffdcb0;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #7a4a3a}
+  #badge{font-size:12px;letter-spacing:.08em;color:#6f4526;text-transform:uppercase;font-weight:700}
+  #howto{max-width:680px;width:100%;background:#ffffff;border:1px solid #ecd9cb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a6470}
   #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
-  #howto p{margin:0;font-size:14px;color:#5a4a3a;line-height:1.5}
-  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#ffe6d0;color:var(--accent);border:2px solid #ffcfa6;min-height:30px}
-  #phasecue[data-phase="ready"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
-  #phasecue[data-phase="done"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#33505c;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#f8e8de;color:var(--accent);border:2px solid #ecd9cb;min-height:30px}
+  #phasecue[data-phase="ready"]{background:#f5ddcd;color:#6f4526;border-color:#ebba9b}
+  #phasecue[data-phase="done"]{background:var(--accent);color:#ffffff;border-color:var(--accent)}
   #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
-  #status.ok{color:var(--good)} #status.neutral{color:#a08060}
-  #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #7a4a3a;display:flex;flex-direction:column;align-items:center;gap:16px;max-width:700px;width:100%}
-  #prompt{font-size:16px;font-weight:800;text-align:center;color:#8a4a1a;background:#fff6ec;border:2px solid #ffdcb0;border-radius:12px;padding:10px 14px;width:100%}
+  #status.ok{color:var(--good)} #status.neutral{color:#6f4526}
+  #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #4a6470;display:flex;flex-direction:column;align-items:center;gap:16px;max-width:700px;width:100%}
+  #prompt{font-size:16px;font-weight:800;text-align:center;color:#33505c;background:#fcf4ef;border:2px solid #ecd9cb;border-radius:12px;padding:10px 14px;width:100%}
   #cards{display:flex;flex-direction:column;gap:10px;width:100%}
-  .fcard{background:#fff8ee;border:3px solid #ffdcb0;border-radius:14px;padding:12px 14px;display:flex;align-items:flex-start;gap:12px;cursor:pointer;transition:.15s;text-align:left;font:inherit;color:inherit;width:100%}
+  .fcard{background:#fcf4ef;border:3px solid #ecd9cb;border-radius:14px;padding:12px 14px;display:flex;align-items:flex-start;gap:12px;cursor:pointer;transition:.15s;text-align:left;font:inherit;color:inherit;width:100%}
   .fcard:hover{border-color:var(--accent)}
-  .fcard:focus-visible{outline:3px solid #8a4a1a;outline-offset:2px}
-  .fcard .hk{flex:0 0 auto;font-size:12px;font-weight:800;color:#b08050;background:#fff;border:2px solid #ffdcb0;border-radius:8px;padding:2px 7px}
+  .fcard:focus-visible{outline:3px solid #33505c;outline-offset:2px}
+  .fcard .hk{flex:0 0 auto;font-size:12px;font-weight:800;color:#6f4526;background:#ffffff;border:2px solid #ecd9cb;border-radius:8px;padding:2px 7px}
   .fcard .lb{font-size:16px;line-height:1.45}
-  .fcard.sel{border-color:var(--accent);background:#ffeedd;box-shadow:0 0 0 3px #c06a2a33}
+  .fcard.sel{border-color:var(--accent);background:#f8e8de;box-shadow:0 0 0 3px #c06a2a33}
   .fcard.locked{cursor:default;opacity:.85}
   #controls{display:flex;gap:14px;align-items:center}
   button.rd{font:inherit;border:0;cursor:pointer;border-radius:50%}
-  #go{width:64px;height:64px;background:var(--accent);color:#fff;font-size:26px;box-shadow:0 10px 24px -8px var(--accent);opacity:.35;pointer-events:none;transition:.2s}
+  #go{width:64px;height:64px;background:var(--accent);color:#ffffff;font-size:26px;box-shadow:0 10px 24px -8px var(--accent);opacity:.35;pointer-events:none;transition:.2s}
   #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.1s infinite}
   @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
-  #replay{width:50px;height:50px;background:#ffe6d0;color:var(--accent);font-size:22px}
-  #hintbtn{font:inherit;height:44px;padding:0 18px;font-size:14px;font-weight:800;border-radius:22px;background:#ffe6d0;color:var(--accent);border:0;cursor:pointer}
-  #diffmeter{width:100%;display:flex;align-items:center;gap:8px;font-size:11px;color:#a08060}
-  #diffbar{flex:1;height:8px;background:#ffe6d0;border-radius:6px;overflow:hidden}
-  #diffbar i{display:block;height:100%;background:linear-gradient(90deg,#ffb15e,#c06a2a);width:0%;transition:.3s}
-  #diffval{min-width:96px;text-align:right;font-weight:700;color:#8a6a4a}
+  #replay{width:50px;height:50px;background:#f8e8de;color:var(--accent);font-size:22px}
+  #hintbtn{font:inherit;height:44px;padding:0 18px;font-size:14px;font-weight:800;border-radius:22px;background:#f8e8de;color:var(--accent);border:0;cursor:pointer}
+  #diffmeter{width:100%;display:flex;align-items:center;gap:8px;font-size:11px;color:#6f4526}
+  #diffbar{flex:1;height:8px;background:#f8e8de;border-radius:6px;overflow:hidden}
+  #diffbar i{display:block;height:100%;background:linear-gradient(90deg,#9fb6bd,#4a6470);width:0%;transition:.3s}
+  #diffval{min-width:96px;text-align:right;font-weight:700;color:#4a6470}
   #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:60;opacity:0;transition:transform .55s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
   #ghost.show{opacity:.92}
   #telemetry{width:330px;flex:0 0 330px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
-  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
-  #chan{padding:6px 14px;font-size:11px;color:var(--tel-dim);border-bottom:1px solid #262f52}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#ffffff;background:#002a3a;text-transform:uppercase}
+  #chan{padding:6px 14px;font-size:11px;color:var(--tel-dim);border-bottom:1px solid #33505c}
   #chan b{color:var(--tel-key)}
   #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
   .mrow{display:grid;grid-template-columns:110px 1fr;gap:8px;align-items:baseline}
   .mid{color:var(--tel-key);font-weight:700}
-  .mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
-  #logwrap{border-top:1px solid #262f52;margin-top:auto}
-  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  .mval{color:#ffffff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #33505c;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#4a6470;font-size:11px;letter-spacing:.08em}
   #log{height:200px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
-  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
+  #log div{padding:2px 0;border-bottom:1px dotted #004f71}#log .t{color:#6f4526}
   @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:320px}}
 </style>
 <style>html[data-gt-telemetry="off"] #telemetry{display:none}</style>
@@ -99,6 +99,13 @@
    demonstration, and standalone (opened directly) is unchanged. Sampling, metric
    computation and the {type:'telemetry'} postMessage stream are untouched. */
 (function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
+<style>html[data-gt-chrome="off"] #howto{display:none}</style>
+<script>/* Instant-question gate. Embedded in the screener the "How to use" panel is hidden so the
+   child sees the question itself the moment it appears; the per-item status line carries the
+   instruction in words. A test should not spend its first seconds being read. `?chrome=1`
+   restores the panel for a walkthrough, and standalone (opened directly) is unchanged. */
+(function(){var f=/(^|[?&])chrome=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-chrome','off');})();</script>
+<link rel="stylesheet" href="../exam-skin.css">
 </head>
 <body>
   <div id="wrap">

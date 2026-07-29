@@ -48,59 +48,59 @@
   ServedItems locally and logs the emitted results/telemetry on-page.
 -->
 <style>
-  :root{--bg1:#e6f3ff;--bg2:#eaf9ff;--ink:#1a3450;--card:#fff;--accent:#2e9bff;--good:#22b573;--tel-bg:#11162a;--tel-ink:#c8d6ff;--tel-key:#7fffcf;--tel-dim:#7183b8;}
+  :root{--bg1:#fcf4ef;--bg2:#fcf4ef;--ink:#004f71;--card:#ffffff;--accent:#e48b53;--good:#146c43;--tel-bg:#002a3a;--tel-ink:#f5ddcd;--tel-key:#ebba9b;--tel-dim:#e48b53;}
   *{box-sizing:border-box} html,body{margin:0;height:100%}
   body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
   #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
-  #badge{font-size:12px;letter-spacing:.08em;color:#7a93b5;text-transform:uppercase;font-weight:700}
-  #howto{max-width:640px;width:100%;background:#fff;border:1px solid #cfe4ff;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #2a5a8a}
+  #badge{font-size:12px;letter-spacing:.08em;color:#6f4526;text-transform:uppercase;font-weight:700}
+  #howto{max-width:640px;width:100%;background:#ffffff;border:1px solid #f8e8de;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a6470}
   #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
-  #howto p{margin:0;font-size:14px;color:#33506e;line-height:1.5}
-  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#e6f3ff;color:#1c78c9;border:2px solid #bfe0ff;min-height:30px}
-  #phasecue[data-phase="ready"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
-  #phasecue[data-phase="watch"]{background:#eef1ff;color:#3a49c8;border-color:#c9d0ff}
-  #phasecue[data-phase="respond"]{background:var(--accent);color:#fff;border-color:var(--accent)}
-  #phasecue[data-phase="done"]{background:#e6f6ec;color:#1c8f57;border-color:#bfe6cc}
+  #howto p{margin:0;font-size:14px;color:#33505c;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#fcf4ef;color:#4a6470;border:2px solid #f5ddcd;min-height:30px}
+  #phasecue[data-phase="ready"]{background:#f5ddcd;color:#6f4526;border-color:#ebba9b}
+  #phasecue[data-phase="watch"]{background:#f8e8de;color:#002a3a;border-color:#ecd9cb}
+  #phasecue[data-phase="respond"]{background:var(--accent);color:#ffffff;border-color:var(--accent)}
+  #phasecue[data-phase="done"]{background:#f8e8de;color:#4a6470;border-color:#ecd9cb}
   #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
-  #status.ok{color:var(--good)} #status.neutral{color:#7a93b5} #status.hold{color:#a9791b}
-  #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #2a5a8a;display:flex;flex-direction:column;align-items:center;gap:16px;max-width:640px;width:100%}
-  #rule{font-size:15px;font-weight:700;color:#33506e;text-align:center}
+  #status.ok{color:var(--good)} #status.neutral{color:#6f4526} #status.hold{color:#6f4526}
+  #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #4a6470;display:flex;flex-direction:column;align-items:center;gap:16px;max-width:640px;width:100%}
+  #rule{font-size:15px;font-weight:700;color:#33505c;text-align:center}
   #lanes{display:flex;gap:14px;width:100%;justify-content:center}
   .lane{flex:1;max-width:280px;display:flex;flex-direction:column;align-items:center;gap:8px}
-  .laneName{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#7a93b5;font-weight:800}
-  .tank{width:100%;height:150px;position:relative;background:linear-gradient(180deg,#eaf6ff,#f4fbff);border-radius:18px;border:3px solid #cfe4ff;overflow:hidden}
-  .bubble{position:absolute;left:50%;bottom:44px;transform:translateX(-50%);min-width:130px;padding:0 14px;height:58px;background:#fff;border:3px solid var(--accent);border-radius:30px;display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:800;letter-spacing:.02em;color:#1a3450;box-shadow:0 6px 16px -6px #2e9bff88;animation:rise .45s ease-out}
+  .laneName{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#6f4526;font-weight:800}
+  .tank{width:100%;height:150px;position:relative;background:linear-gradient(180deg,#fcf4ef,#fcf4ef);border-radius:18px;border:3px solid #f8e8de;overflow:hidden}
+  .bubble{position:absolute;left:50%;bottom:44px;transform:translateX(-50%);min-width:130px;padding:0 14px;height:58px;background:#ffffff;border:3px solid var(--accent);border-radius:30px;display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:800;letter-spacing:.02em;color:#004f71;box-shadow:0 6px 16px -6px #2e9bff88;animation:rise .45s ease-out}
   @keyframes rise{from{bottom:6px;opacity:.2}to{bottom:44px;opacity:1}}
   .tank.locked{filter:grayscale(.35) opacity(.85)}
-  .popbtn{font:inherit;border:0;cursor:pointer;border-radius:16px;padding:12px 20px;font-size:17px;font-weight:800;background:var(--accent);color:#fff;width:100%}
+  .popbtn{font:inherit;border:0;cursor:pointer;border-radius:16px;padding:12px 20px;font-size:17px;font-weight:800;background:var(--accent);color:#ffffff;width:100%}
   .popbtn:disabled{opacity:.3;pointer-events:none}
   .popbtn.hit{animation:tapflash .3s}
   @keyframes tapflash{0%{transform:scale(1)}45%{transform:scale(.94)}100%{transform:scale(1)}}
-  #progressbar{width:100%;height:8px;background:#e4eeff;border-radius:6px;overflow:hidden}
-  #progressbar i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#2e9bff,#7fd6ff);transition:.2s}
+  #progressbar{width:100%;height:8px;background:#fcf4ef;border-radius:6px;overflow:hidden}
+  #progressbar i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#e48b53,#ebba9b);transition:.2s}
   #controls{display:flex;gap:16px;align-items:center}
-  #replay{width:46px;height:46px;background:#eaf6ff;color:#2e9bff;font-size:20px;border-radius:50%;border:0;cursor:pointer;font-family:inherit}
-  #hotkeys{font-size:12px;color:#7a93b5}
-  #diffmeter{width:100%;display:flex;align-items:center;gap:8px;font-size:11px;color:#7a93b5}
-  #diffbar{flex:1;height:8px;background:#e4eeff;border-radius:6px;overflow:hidden}
-  #diffbar i{display:block;height:100%;background:linear-gradient(90deg,#2e9bff,#ff8fd0);width:0%;transition:.3s}
-  #diffval{min-width:96px;text-align:right;font-weight:700;color:#5f7ba8}
+  #replay{width:46px;height:46px;background:#fcf4ef;color:#6f4526;font-size:20px;border-radius:50%;border:0;cursor:pointer;font-family:inherit}
+  #hotkeys{font-size:12px;color:#6f4526}
+  #diffmeter{width:100%;display:flex;align-items:center;gap:8px;font-size:11px;color:#6f4526}
+  #diffbar{flex:1;height:8px;background:#fcf4ef;border-radius:6px;overflow:hidden}
+  #diffbar i{display:block;height:100%;background:linear-gradient(90deg,#e48b53,#ebba9b);width:0%;transition:.3s}
+  #diffval{min-width:96px;text-align:right;font-weight:700;color:#6f4526}
   #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:60;opacity:0;transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
   #ghost.show{opacity:.92}
   #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
   #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
   #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
-  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#fff;background:#1b2340;text-transform:uppercase}
-  #chan{padding:6px 14px;font-size:11px;color:var(--tel-dim);border-bottom:1px solid #262f52}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#ffffff;background:#002a3a;text-transform:uppercase}
+  #chan{padding:6px 14px;font-size:11px;color:var(--tel-dim);border-bottom:1px solid #33505c}
   #chan b{color:var(--tel-key)}
   #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
   .mrow{display:grid;grid-template-columns:120px 1fr;gap:8px;align-items:baseline}
   .mid{color:var(--tel-key);font-weight:700}
-  .mval{color:#fff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
-  #logwrap{border-top:1px solid #262f52;margin-top:auto}
-  #logwrap b{display:block;padding:8px 12px 4px;color:#8ea0d6;font-size:11px;letter-spacing:.08em}
+  .mval{color:#ffffff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #33505c;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#4a6470;font-size:11px;letter-spacing:.08em}
   #log{height:210px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
-  #log div{padding:2px 0;border-bottom:1px dotted #232c4d}#log .t{color:#5f6f9e}
+  #log div{padding:2px 0;border-bottom:1px dotted #004f71}#log .t{color:#6f4526}
   @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
 </style>
 <style>html[data-gt-telemetry="off"] #telemetry{display:none}</style>
@@ -110,6 +110,13 @@
    demonstration, and standalone (opened directly) is unchanged. Sampling, metric
    computation and the {type:'telemetry'} postMessage stream are untouched. */
 (function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
+<style>html[data-gt-chrome="off"] #howto{display:none}</style>
+<script>/* Instant-question gate. Embedded in the screener the "How to use" panel is hidden so the
+   child sees the question itself the moment it appears; the per-item status line carries the
+   instruction in words. A test should not spend its first seconds being read. `?chrome=1`
+   restores the panel for a walkthrough, and standalone (opened directly) is unchanged. */
+(function(){var f=/(^|[?&])chrome=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-chrome','off');})();</script>
+<link rel="stylesheet" href="../exam-skin.css">
 </head>
 <body>
   <div id="wrap">

@@ -6,85 +6,85 @@
 <title>CX-figural-01 · Squiggle Studio</title>
 <style>
 :root{
-  --ink:#312743;--paper:#fffdfb;--plum:#8c56bf;--pink:#ed6faa;
-  --aqua:#43bda9;--gold:#efb846;--line:#e5dff0;--tel:#181126;
-  --tel2:#281b3d;--key:#8bffd8;--dim:#9b82b7;
+  --ink:#004f71;--paper:#ffffff;--plum:#e48b53;--pink:#9fb6bd;
+  --aqua:#e48b53;--gold:#e48b53;--line:#f8e8de;--tel:#002a3a;
+  --tel2:#003b5c;--key:#ebba9b;--dim:#e48b53;
 }
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%}
 body{
   min-height:100vh;display:flex;color:var(--ink);
   font:16px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;
-  background:radial-gradient(circle at 12% 8%,#ffe3f1,transparent 27%),
-    linear-gradient(145deg,#f5efff,#eafcff 58%,#fff4dc);
+  background:radial-gradient(circle at 12% 8%,#fcf4ef,transparent 27%),
+    linear-gradient(145deg,#fcf4ef,#fcf4ef 58%,#f8e8de);
 }
 #wrap{flex:1;min-width:0;padding:17px;display:flex;flex-direction:column;align-items:center;gap:9px}
-#badge{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8a789f}
-#howto{max-width:620px;width:100%;background:#fff;border:1px solid #eadff1;border-left:5px solid var(--plum);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #55366b}
+#badge{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#6f4526}
+#howto{max-width:620px;width:100%;background:#ffffff;border:1px solid #f8e8de;border-left:5px solid var(--plum);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #33505c}
 #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--plum)}
-#howto p{margin:0;font-size:14px;color:#5a4a6e;line-height:1.5}
-#phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#f4eaff;color:var(--plum);border:2px solid #e0d0ef;min-height:30px}
-#phasecue[data-phase="warmup"]{background:#fff7e6;color:#a9791b;border-color:#ffe1a6}
-#phasecue[data-phase="scored"]{background:var(--plum);color:#fff;border-color:var(--plum)}
-#phasecue[data-phase="done"]{background:#efe6fb;color:#6a3aa0;border-color:#e0d0ef}
+#howto p{margin:0;font-size:14px;color:#4a6470;line-height:1.5}
+#phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#fcf4ef;color:var(--plum);border:2px solid #f5ddcd;min-height:30px}
+#phasecue[data-phase="warmup"]{background:#f5ddcd;color:#6f4526;border-color:#ebba9b}
+#phasecue[data-phase="scored"]{background:var(--plum);color:#ffffff;border-color:var(--plum)}
+#phasecue[data-phase="done"]{background:#fcf4ef;color:#4a6470;border-color:#f5ddcd}
 #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
-#status.ok{color:#22b573} #status.no{color:#ec6670} #status.neutral{color:#8a789f}
+#status.ok{color:#146c43} #status.no{color:#4a6470} #status.neutral{color:#6f4526}
 #stagecard{
   width:min(640px,100%);background:var(--paper);border-radius:28px;padding:16px;
-  box-shadow:0 24px 58px -35px #55366b;display:flex;flex-direction:column;align-items:center;gap:10px;border:1px solid #fff;
+  box-shadow:0 24px 58px -35px #33505c;display:flex;flex-direction:column;align-items:center;gap:10px;border:1px solid #ffffff;
 }
-#taskline{font-size:14px;color:#5a4a6e;text-align:center;line-height:1.45;max-width:540px}
-#clock{font:800 13px ui-monospace,SFMono-Regular,Menlo,monospace;color:#7a5f96;letter-spacing:.04em}
+#taskline{font-size:14px;color:#4a6470;text-align:center;line-height:1.45;max-width:540px}
+#clock{font:800 13px ui-monospace,SFMono-Regular,Menlo,monospace;color:#4a6470;letter-spacing:.04em}
 #studio{
-  width:100%;border:3px solid #eadff1;border-radius:22px;background:#fff;
+  width:100%;border:3px solid #f8e8de;border-radius:22px;background:#ffffff;
   position:relative;overflow:hidden;touch-action:none;
 }
 #pad{display:block;width:100%;height:auto;cursor:crosshair;touch-action:none}
 #tools{display:flex;gap:9px;flex-wrap:wrap;justify-content:center;align-items:center}
 .tool{
   height:46px;padding:0 16px;border:0;border-radius:14px;cursor:pointer;
-  font:800 14px system-ui;background:#f0e8f8;color:var(--plum);
+  font:800 14px system-ui;background:#f8e8de;color:var(--plum);
 }
 .tool:disabled{opacity:.4;cursor:default}
-#submit{background:var(--plum);color:#fff;min-width:74px;font-size:20px;opacity:.4;pointer-events:none}
+#submit{background:var(--plum);color:#ffffff;min-width:74px;font-size:20px;opacity:.4;pointer-events:none}
 #submit.ready{opacity:1;pointer-events:auto}
 #replay{width:50px;padding:0;font-size:20px}
 #namer{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center;width:100%}
-#namer label{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#8a789f}
+#namer label{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#6f4526}
 #label{flex:1;min-width:180px;max-width:280px;height:40px;border:2px solid var(--line);border-radius:12px;padding:0 11px;font:600 14px system-ui;color:var(--ink)}
 #chips{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
-.chip{border:2px solid var(--line);background:#fff;border-radius:999px;padding:5px 11px;font:700 12px system-ui;color:#6a5a80;cursor:pointer}
-.chip.sel{border-color:var(--plum);background:#f7f0ff;color:var(--plum)}
+.chip{border:2px solid var(--line);background:#ffffff;border-radius:999px;padding:5px 11px;font:700 12px system-ui;color:#4a6470;cursor:pointer}
+.chip.sel{border-color:var(--plum);background:#fcf4ef;color:var(--plum)}
 #gallery{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;min-height:26px;width:100%}
-.saved{background:#f7f0ff;border:2px solid #e0d0ef;border-radius:10px;padding:4px 10px;font:700 12px system-ui;color:var(--plum)}
-button:focus-visible,input:focus-visible,.chip:focus-visible{outline:4px solid #168dff;outline-offset:2px}
+.saved{background:#fcf4ef;border:2px solid #f5ddcd;border-radius:10px;padding:4px 10px;font:700 12px system-ui;color:var(--plum)}
+button:focus-visible,input:focus-visible,.chip:focus-visible{outline:4px solid #e48b53;outline-offset:2px}
 #ghost{position:fixed;left:0;top:0;opacity:0;z-index:50;pointer-events:none;
   transition:transform .5s cubic-bezier(.2,.7,.2,1),opacity .2s;filter:drop-shadow(0 4px 4px #0004)}
 #ghost.show{opacity:1}
 #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--plum);opacity:0}
 #ghost.tap .ring{animation:tapring .5s ease-out}
 @keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
-#telemetry{width:345px;flex:0 0 345px;min-height:100vh;background:var(--tel);color:#e0d0ef;display:flex;flex-direction:column;
+#telemetry{width:345px;flex:0 0 345px;min-height:100vh;background:var(--tel);color:#f5ddcd;display:flex;flex-direction:column;
   font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
-#telemetry h3{margin:0;padding:13px 14px;background:var(--tel2);color:#fff;font:800 12px system-ui;letter-spacing:.1em;text-transform:uppercase}
-#difficulty{padding:10px 13px;border-bottom:1px solid #3b2b4e}
-.diffTop{display:flex;justify-content:space-between;color:#fff}
+#telemetry h3{margin:0;padding:13px 14px;background:var(--tel2);color:#ffffff;font:800 12px system-ui;letter-spacing:.1em;text-transform:uppercase}
+#difficulty{padding:10px 13px;border-bottom:1px solid #004f71}
+.diffTop{display:flex;justify-content:space-between;color:#ffffff}
 .diffSub{display:flex;justify-content:space-between;color:var(--dim);font-size:10px;margin-top:5px}
-.diffTrack{height:8px;background:#382846;border-radius:8px;overflow:hidden;margin-top:6px}
-.diffFill{height:100%;background:linear-gradient(90deg,#9b5ac9,#ed76b1,#66e0c5);transition:.3s}
+.diffTrack{height:8px;background:#004f71;border-radius:8px;overflow:hidden;margin-top:6px}
+.diffFill{height:100%;background:linear-gradient(90deg,#e48b53,#9fb6bd,#e48b53);transition:.3s}
 #mode{padding:8px 13px 0;font-size:10px;color:var(--dim)}
 #mode b{color:var(--gold)}
 #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
 .mrow{display:grid;grid-template-columns:106px 1fr;gap:7px}
 .mid{color:var(--key);font-weight:800}
 .mid.deferred{color:var(--gold)}
-.mval{color:#fff}
+.mval{color:#ffffff}
 .mname{grid-column:1/3;color:var(--dim);font-size:10px;margin-top:-3px}
-#logwrap{border-top:1px solid #3b2b4e;margin-top:auto}
-#logwrap b{display:block;padding:8px 12px 3px;color:#9c82b6;font-size:10px}
+#logwrap{border-top:1px solid #004f71;margin-top:auto}
+#logwrap b{display:block;padding:8px 12px 3px;color:#6f4526;font-size:10px}
 #log{height:180px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
-#log div{border-bottom:1px dotted #3b2b4e;padding:3px 0}
-#log .t{color:#795f92}
+#log div{border-bottom:1px dotted #004f71;padding:3px 0}
+#log .t{color:#4a6470}
 @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;min-height:0;height:320px;flex:none}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition-duration:.01ms!important}}
 </style>
@@ -95,6 +95,13 @@ button:focus-visible,input:focus-visible,.chip:focus-visible{outline:4px solid #
    demonstration, and standalone (opened directly) is unchanged. Sampling, metric
    computation and the {type:'telemetry'} postMessage stream are untouched. */
 (function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
+<style>html[data-gt-chrome="off"] #howto{display:none}</style>
+<script>/* Instant-question gate. Embedded in the screener the "How to use" panel is hidden so the
+   child sees the question itself the moment it appears; the per-item status line carries the
+   instruction in words. A test should not spend its first seconds being read. `?chrome=1`
+   restores the panel for a walkthrough, and standalone (opened directly) is unchanged. */
+(function(){var f=/(^|[?&])chrome=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-chrome','off');})();</script>
+<link rel="stylesheet" href="../exam-skin.css">
 </head>
 <body>
 <main id="wrap">
