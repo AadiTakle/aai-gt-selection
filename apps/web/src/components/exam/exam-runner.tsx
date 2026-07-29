@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import {
   isDone,
@@ -37,6 +37,23 @@ import {
 } from '@/lib/exam/adaptive';
 import { GRADE_BANDS, GRADE_BAND_LABEL, syntheticId, type GradeBand } from '@/lib/exam/contract';
 import { ExamHost, type InboundResult } from '@/lib/exam/messaging';
+import {
+  LEARNING_BLOCK_AREA,
+  LEARNING_BLOCK_LENGTH,
+  blockCanRun,
+  clearLearningBlockHandoff,
+  learningBlockHandoffServerSnapshot,
+  learningBlockHandoffSnapshot,
+  nextBlockItem,
+  nextBlockTarget,
+  novelBlockPool,
+  saveLearningBlockHandoff,
+  subscribeToLearningBlockHandoff,
+  summariseLearningBlock,
+  toLearningTrials,
+  type LearningBlockHandoff,
+  type LearningBlockReadout,
+} from '@/lib/exam/phase2';
 
 import styles from './exam-runner.module.css';
 
@@ -59,7 +76,20 @@ const MAX_MS_PER_ITEM = 4 * 60 * 1000; // safety valve so a stuck item can't wed
 const READY_FALLBACK_MS = 500; // how long to wait for a demo's `ready` before initing anyway
 const RESULTS_KEY = 'gt-exam-results';
 
-type Phase = 'intro' | 'running' | 'saving' | 'done' | 'error';
+/**
+ * Phase 1 ends at `done`. The learning block is a SEPARATE activity the family starts themselves
+ * (`block-*`), possibly in a later sitting — see `lib/exam/phase2.ts` for why it is handed over
+ * rather than continued.
+ */
+type Phase =
+  | 'intro'
+  | 'running'
+  | 'saving'
+  | 'done'
+  | 'error'
+  | 'block-intro'
+  | 'block-running'
+  | 'block-done';
 
 /** Per-item trace row: the raw result + the server-authoritative verdict. */
 interface TraceScoredItem {
@@ -79,6 +109,17 @@ function pct(n: number | null | undefined): string {
   return n == null ? '—' : `${Math.round(n * 100)}%`;
 }
 
+/**
+ * Family-facing wording for the learning-pace bands. `indeterminate` is the expected answer today
+ * and is phrased as something the test cannot yet do — never as a finding about the child.
+ */
+const LEARNING_BAND_LABEL: Record<string, string> = {
+  below: 'Slower than the comparison group',
+  typical: 'Typical for the comparison group',
+  above: 'Faster than the comparison group',
+  indeterminate: 'Not enough to tell yet',
+};
+
 export function ExamRunner({
   studentName,
   dashboardHref,
@@ -95,6 +136,23 @@ export function ExamRunner({
   const [scoredCount, setScoredCount] = useState(0);
   const [outcome, setOutcome] = useState<ExamScore | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Phase 2. `pendingBlock` is a handoff left by a finished Phase 1 — possibly from an earlier
+  // sitting — which is what lets the family come back and start the block later. Read through an
+  // external store so server and first client render agree and writes here refresh it.
+  const pendingBlock = useSyncExternalStore(
+    subscribeToLearningBlockHandoff,
+    learningBlockHandoffSnapshot,
+    learningBlockHandoffServerSnapshot,
+  );
+  const [blockCount, setBlockCount] = useState(0);
+  const [blockReadout, setBlockReadout] = useState<LearningBlockReadout | null>(null);
+  const blockTrialsRef = useRef<{ difficulty: number; score: number }[]>([]);
+  const blockAdministeredRef = useRef<string[]>([]);
+  const blockPoolRef = useRef<ServedItem[]>([]);
+  const blockStandingRef = useRef(0);
+  /** Routes each result to the block instead of the Phase 1 engine; a ref so it is never stale. */
+  const inBlockRef = useRef(false);
 
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const stateRef = useRef<SessionState | null>(null);
@@ -146,6 +204,25 @@ export function ExamRunner({
       if (!res.ok || !data.ok) throw new Error('SAVE_REJECTED');
       const finalOutcome = data.outcome ?? localOutcome;
       setOutcome(finalOutcome);
+
+      // Hand Phase 2 what it needs to start LATER: the settled standing level in the block's area,
+      // and every item already served so the block can guarantee unfamiliar ones. Without this the
+      // block would have to run in the same sitting off live engine state.
+      const areaScore = finalOutcome.perArea[LEARNING_BLOCK_AREA];
+      const standing = areaScore?.abilityEstimate ?? areaScore?.proficiency ?? null;
+      if (standing !== null) {
+        const handoff: LearningBlockHandoff = {
+          sessionId: payload.sessionId,
+          examSessionId: sessionRef.current.examSessionId,
+          gradeBand,
+          standing,
+          seenItemIds: servedRef.current.map((servedItem) => servedItem.itemId),
+          finishedAt: payload.finishedAt,
+          blockLength: LEARNING_BLOCK_LENGTH,
+        };
+        saveLearningBlockHandoff(handoff);
+      }
+
       try {
         window.localStorage.setItem(
           RESULTS_KEY,
@@ -206,12 +283,100 @@ export function ExamRunner({
   );
 
   // Record one item's result: server-verify correctness, then advance the engine.
+  // ---- Phase 2: the novel learning block ------------------------------------
+  // Block trials are collected in their OWN ref, never in the Phase 1 trace. That separation is
+  // the point: a rate fitted over the bracketing stream measures the search converging, not the
+  // child learning (BUILD_PLAN §5.5).
+
+  const finishBlock = useCallback(
+    (trialsOverride?: readonly { difficulty: number; score: number }[]) => {
+      const trials = toLearningTrials(trialsOverride ?? blockTrialsRef.current);
+      setBlockReadout(summariseLearningBlock(trials, undefined, LEARNING_BLOCK_LENGTH));
+      clearLearningBlockHandoff();
+      inBlockRef.current = false;
+      setCurrent(null);
+      setPhase('block-done');
+    },
+    [],
+  );
+
+  const serveNextBlockItem = useCallback(() => {
+    const trials = toLearningTrials(blockTrialsRef.current);
+    if (trials.length >= LEARNING_BLOCK_LENGTH) {
+      finishBlock();
+      return;
+    }
+
+    // Aim just above the settled standing early on, then re-project from the climb so far.
+    const target = nextBlockTarget(trials, blockStandingRef.current);
+    const picked = nextBlockItem(
+      blockPoolRef.current,
+      blockAdministeredRef.current,
+      target,
+      trials.length + 1,
+    );
+    if (!picked) {
+      // Pool exhausted early. Reportable, not swallowed: the readout will decline to name a band.
+      finishBlock();
+      return;
+    }
+    blockAdministeredRef.current = [...blockAdministeredRef.current, picked.itemId];
+
+    void (async () => {
+      let item = picked;
+      try {
+        item = await fetchServedItem(picked.itemId);
+      } catch {
+        // Fall back to the index entry; the item can still be skipped rather than wedging.
+      }
+      setCurrent(item);
+    })();
+  }, [finishBlock]);
+
+  const startLearningBlock = useCallback(
+    async (handoff: LearningBlockHandoff) => {
+      setError(null);
+      setBlockReadout(null);
+      setCurrent(null);
+      blockTrialsRef.current = [];
+      blockAdministeredRef.current = [];
+      blockStandingRef.current = handoff.standing;
+      processedRef.current = new Set();
+      setBlockCount(0);
+      inBlockRef.current = true;
+      sessionRef.current = {
+        sessionId: handoff.sessionId,
+        participantCode: sessionRef.current.participantCode || syntheticId('PART'),
+        startedAt: new Date().toISOString(),
+        examSessionId: handoff.examSessionId,
+      };
+      setPhase('block-running');
+
+      try {
+        const pool = await fetchServedPool();
+        if (!blockCanRun(pool, handoff.seenItemIds, handoff.blockLength)) {
+          // Not enough unfamiliar material left. Running a short block anyway would produce a
+          // number resting on fewer trials than the design assumes, which is most of the signal.
+          finishBlock([]);
+          return;
+        }
+        blockPoolRef.current = novelBlockPool(pool, handoff.seenItemIds);
+        serveNextBlockItem();
+      } catch {
+        inBlockRef.current = false;
+        setError('We could not load the next set of activities. Please try again.');
+        setPhase('error');
+      }
+    },
+    [serveNextBlockItem, finishBlock],
+  );
+
   const handleResult = useCallback(
     async (item: ServedItem, inbound: InboundResult, skipped: boolean) => {
       if (processedRef.current.has(item.itemId)) return;
       processedRef.current.add(item.itemId);
-      const state = stateRef.current;
-      if (!state) return;
+      // NOTE: the Phase 1 session-state check happens AFTER the server round trip, because a block
+      // resumed in a later sitting has no live Phase 1 state to check.
 
       const clientMetrics = numericMetrics(inbound.metrics);
       // A skip/timeout still contributes coverage so the battery can conclude.
@@ -238,6 +403,19 @@ export function ExamRunner({
       const score = verdict?.score ?? 0;
       const difficulty = verdict?.difficulty ?? item.difficulty;
 
+      // A block trial goes to the block, and nowhere near the Phase 1 engine state.
+      if (inBlockRef.current) {
+        const trials = [...blockTrialsRef.current, { difficulty, score }];
+        blockTrialsRef.current = trials;
+        setBlockCount(trials.length);
+        if (trials.length >= LEARNING_BLOCK_LENGTH) finishBlock(trials);
+        else serveNextBlockItem();
+        return;
+      }
+
+      const state = stateRef.current;
+      if (!state) return;
+
       const scored: TraceScoredItem = {
         itemId: item.itemId,
         typeCode: item.typeCode,
@@ -259,7 +437,7 @@ export function ExamRunner({
       if (isDone(nextState)) void finalize();
       else serveNext(nextState);
     },
-    [serveNext, finalize],
+    [serveNext, finalize, finishBlock, serveNextBlockItem],
   );
 
   useEffect(() => {
@@ -270,7 +448,7 @@ export function ExamRunner({
 
   // Bind the postMessage channel for the current item's iframe.
   useEffect(() => {
-    if (phase !== 'running' || !current) return;
+    if ((phase !== 'running' && phase !== 'block-running') || !current) return;
     const iframe = iframeRef.current;
     if (!iframe) return;
     const item = current;
@@ -404,6 +582,26 @@ export function ExamRunner({
             </Link>
           </div>
         </section>
+
+        {/* A block handed over by an earlier sitting: the family can pick it up whenever. */}
+        {pendingBlock ? (
+          <section className={styles.summaryCard}>
+            <p className={styles.cardKicker}>Picking up where you left off</p>
+            <h2 className={styles.runTitle}>Part two is still waiting</h2>
+            <p className={styles.lede}>
+              You have already finished the first part. The short second part — new kinds of puzzles
+              — is still available whenever you are ready for it.
+            </p>
+            <button
+              type="button"
+              className={styles.primary}
+              onClick={() => setPhase('block-intro')}
+            >
+              Continue to part two →
+            </button>
+          </section>
+        ) : null}
+
         <p className={styles.boundary}>
           This is an eligibility screening only. It is not an IQ test, an enrollment offer, or an
           admission decision. Results simply help route your family to the right next step.
@@ -460,8 +658,11 @@ export function ExamRunner({
                 <div className={styles.domainBarHead}>
                   <span>{domainLabel(area.area)}</span>
                   <span className={styles.domainBarPct}>
-                    {area.proficiency.toFixed(1)} · {bandForTheta(area.proficiency)} · acc{' '}
-                    {pct(area.accuracy)}
+                    {area.proficiency.toFixed(1)}
+                    {area.abilityStandardError != null
+                      ? ` ±${(1.96 * area.abilityStandardError).toFixed(1)}`
+                      : ''}{' '}
+                    · {bandForTheta(area.proficiency)} · acc {pct(area.accuracy)}
                   </span>
                 </div>
                 <div className={styles.track}>
@@ -498,17 +699,39 @@ export function ExamRunner({
                   : ''}
               </p>
             </div>
-            <div className={styles.profileItem}>
-              <p className={styles.profileLabel}>Learning rate</p>
-              <p className={styles.profileValue}>
-                {outcome.profile.learningRate.label}
-                {outcome.profile.learningRate.normalized != null
-                  ? ` · ${pct(outcome.profile.learningRate.normalized)}`
-                  : ''}
-              </p>
-            </div>
           </div>
         </section>
+
+        {/*
+          Learning pace is deliberately NOT reported here. The per-area growth metric this screen
+          used to print rises when the adaptive search converges, so on its own it measures the
+          software homing in rather than the child (D-030). It is now measured only over the
+          separate block below, which the family starts themselves.
+        */}
+        {pendingBlock ? (
+          <section className={styles.summaryCard}>
+            <p className={styles.cardKicker}>Optional next part</p>
+            <h2 className={styles.runTitle}>
+              See how quickly {studentName} picks up something new
+            </h2>
+            <p className={styles.lede}>
+              This part is a short set of unfamiliar puzzles, pitched a little above where{' '}
+              {studentName} just landed. It measures something the first part cannot: not what they
+              already know, but how fast they get the hang of something new.
+            </p>
+            <p className={styles.frameNote}>
+              You can start it now or come back to it another time — the results above are already
+              saved.
+            </p>
+            <button
+              type="button"
+              className={styles.primary}
+              onClick={() => setPhase('block-intro')}
+            >
+              Start the next part →
+            </button>
+          </section>
+        ) : null}
 
         <Link className={styles.primary} href={dashboardHref}>
           Return to portal →
@@ -516,6 +739,80 @@ export function ExamRunner({
         <p className={styles.boundary}>
           Synthetic screening result (validated=false). Accuracy sets each area’s bracket; other
           metrics position the score within it. A screen indicates likely fit; it is not an
+          admission decision and is not evidence of program impact.
+        </p>
+      </div>
+    );
+  }
+
+  // ---- Phase 2 intro: the family starts this, and it is framed as hard on purpose ----------
+  if (phase === 'block-intro') {
+    return (
+      <div className={styles.wrap}>
+        <section className={styles.hero}>
+          <div className={styles.heroText}>
+            <p className={styles.kicker}>Part two — learning something new</p>
+            <h1 className={styles.title}>These are meant to be hard.</h1>
+            <p className={styles.lede}>
+              The next {LEARNING_BLOCK_LENGTH} puzzles are kinds you have not seen yet, pitched a
+              little above where you just finished. You are not expected to get them all — most
+              people do not, and that is exactly how this part is supposed to feel. What we are
+              looking at is how you get on as you go, not how many you get right.
+            </p>
+            <p className={styles.lede}>
+              Take your time, and keep going even when one looks unfamiliar.
+            </p>
+            <button
+              type="button"
+              className={styles.primary}
+              onClick={() => {
+                if (pendingBlock) void startLearningBlock(pendingBlock);
+              }}
+            >
+              I’m ready — begin →
+            </button>
+            <Link className={styles.ghost} href={dashboardHref}>
+              Not right now
+            </Link>
+          </div>
+        </section>
+        <p className={styles.boundary}>
+          This is an eligibility screening only. It is not an IQ test, an enrollment offer, or an
+          admission decision.
+        </p>
+      </div>
+    );
+  }
+
+  // ---- Phase 2 result: a band, or an honest refusal to name one ----------------------------
+  if (phase === 'block-done' && blockReadout) {
+    return (
+      <div className={styles.wrap}>
+        <section className={styles.hero}>
+          <div className={styles.heroText}>
+            <p className={styles.kicker}>Part two complete</p>
+            <h1 className={styles.title}>Thanks, {studentName}.</h1>
+          </div>
+        </section>
+
+        <section className={styles.summaryCard}>
+          <p className={styles.cardKicker}>Learning pace</p>
+          <p className={styles.bigStat} style={{ fontSize: '1.5rem' }}>
+            {LEARNING_BAND_LABEL[blockReadout.band]}
+          </p>
+          <p className={styles.lede}>{blockReadout.reason}</p>
+          <p className={styles.frameNote}>
+            {blockReadout.trialCount > 0
+              ? `Based on ${blockReadout.trialCount} unfamiliar puzzles in one reasoning area.`
+              : 'We could not run this part — there were not enough unfamiliar puzzles left.'}
+          </p>
+        </section>
+
+        <Link className={styles.primary} href={dashboardHref}>
+          Return to portal →
+        </Link>
+        <p className={styles.boundary}>
+          Synthetic screening result (validated=false). A screen indicates likely fit; it is not an
           admission decision and is not evidence of program impact.
         </p>
       </div>
@@ -551,6 +848,7 @@ export function ExamRunner({
   }
 
   // ---- running -------------------------------------------------------------
+  const isBlockRunning = phase === 'block-running';
   const meta = current ? EXAM_BANK_BY_CODE.get(current.typeCode) : undefined;
   if (!current) {
     return (
@@ -567,7 +865,10 @@ export function ExamRunner({
       <header className={styles.runHead}>
         <div>
           <p className={styles.kicker}>
-            Question {scoredCount + 1} · {domainLabel(current.domain)}
+            {isBlockRunning
+              ? `New puzzle ${blockCount + 1} of ${LEARNING_BLOCK_LENGTH}`
+              : `Question ${scoredCount + 1}`}{' '}
+            · {domainLabel(current.domain)}
           </p>
           <p className={styles.runTitle}>{meta?.title ?? current.typeCode}</p>
         </div>
@@ -581,14 +882,23 @@ export function ExamRunner({
       </header>
 
       <div className={styles.progress} aria-hidden="true">
-        {served.map((item, i) => (
-          <span
-            key={item.itemId}
-            className={`${styles.seg} ${i < scoredCount ? styles.segDone : ''} ${
-              i === scoredCount ? styles.segActive : ''
-            }`}
-          />
-        ))}
+        {isBlockRunning
+          ? Array.from({ length: LEARNING_BLOCK_LENGTH }, (_, i) => (
+              <span
+                key={`block-${i}`}
+                className={`${styles.seg} ${i < blockCount ? styles.segDone : ''} ${
+                  i === blockCount ? styles.segActive : ''
+                }`}
+              />
+            ))
+          : served.map((item, i) => (
+              <span
+                key={item.itemId}
+                className={`${styles.seg} ${i < scoredCount ? styles.segDone : ''} ${
+                  i === scoredCount ? styles.segActive : ''
+                }`}
+              />
+            ))}
       </div>
 
       <iframe
@@ -600,8 +910,11 @@ export function ExamRunner({
       />
 
       <p className={styles.frameNote}>
-        {meta?.blurb} · Adaptive — the battery length adjusts to your answers. This is a synthetic
-        screening activity; results are not shown between questions.
+        {meta?.blurb} ·{' '}
+        {isBlockRunning
+          ? 'These are meant to be hard — keep going even when one looks unfamiliar.'
+          : 'Adaptive — the battery length adjusts to your answers.'}{' '}
+        This is a synthetic screening activity; results are not shown between questions.
       </p>
     </div>
   );

@@ -20,6 +20,7 @@ export {
   poolSupportsBlock,
   blockReadiness,
   selectNextNovelItem,
+  selectNextNovelServedItem,
 } from './learning-block';
 export type { BlockReadiness, BlockUnavailableReason } from './learning-block';
 
