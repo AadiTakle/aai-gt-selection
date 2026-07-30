@@ -15,7 +15,7 @@ scoring). Measurement IDs cite `research/exam-question-types/MEASUREMENTS.md`
 Inherited from `METRIC_FRAMEWORK.md` (not re-derived here):
 
 - **R5** — defensible capability signal + Timeback-fit standard.
-- **R11** — scalable, tunable, fully-automated screener (no human in the loop).
+- **R11** — scalable, tunable, GT-owned screener: no per-applicant human *scoring*, while R11 preserves a human path for near-miss cases and behavioral (shadow-day) review.
 - **H1 / H4** — broader measures; broaden who can demonstrate ability.
 - **H10** — minimize gaming / test burden.
 - **D-015 / D-016** — Timeback-fit target; adaptive; consistency-over-speed.

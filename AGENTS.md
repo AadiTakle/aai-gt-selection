@@ -173,6 +173,56 @@ into `staging` or `main`).
 - Push branches to `origin` with `-u` on first push so tracking is set up;
   do not force-push shared branches (`main`, `staging`, `dev`) without
   explicit user consent.
+- **Governance travels with the code it authorizes.** If a branch adds or
+  changes a requirement, decision, or evidence entry, the register edit and the
+  implementation it authorizes must reach `dev` on the same path — same branch
+  and same merge, or two branches merged together. Never merge the code and
+  leave the authorizing entry on an unmerged branch. That is what stranded R11,
+  D-015, and D-016 for six days while 272 citations across 39 files pointed at
+  IDs `dev` did not define (D-032; `docs/governance/REQUIREMENT_ID_AUDIT.md`).
+  If you cannot merge both, do not merge either — say so and stop.
+
+## Governance ID allocation
+
+Governance IDs (`D-` decisions, `E-` evidence) are allocated from **disjoint
+per-lineage bands** so two branches that cannot see each other cannot claim the
+same number. Ratified in D-032.
+
+**To allocate an ID:** find your lineage's band below, then take the lowest
+number in that band that is not already used on `dev` **or on your own branch**.
+You do not need to inspect any other branch — that is the point of the bands.
+
+| Band | Lineage | Matching branches |
+| --------------- | -------------------------- | ------------------------------------------------- |
+| `001`–`199` | **Trunk (closed)** | Historical `dev` sequence. Do not allocate here. |
+| `200`–`299` | Exam / screener workstream | `feat/exam-*`, `feat/adaptive-exam-*`, `feat/cat-*` |
+| `300`–`399` | Research | `research/*`, `feat/*-research`, `feat/qtype-*` |
+| `400`–`499` | Governance, audit, docs | `feat/*-audit`, `feat/gov-*`, `feat/docs-*` |
+| `500`–`599` | Product surfaces and app | `feat/app-*`, `feat/web-*`, `feat/*-demo` |
+| `600`–`899` | Unassigned | Ask before claiming a new band. |
+| `900`–`999` | Reconciliation only | Renumbering during a register merge. |
+
+<!-- id-audit:ignore-start — the next paragraph names band starts that are deliberately not yet allocated -->
+
+So the exam workstream's next decision is `D-200` and its next evidence entry is
+`E-200`; a research branch takes `D-300` / `E-300`. The bands apply to both
+families independently, and a number is consumed in one family only.
+
+<!-- id-audit:ignore-end -->
+
+Notes:
+
+- **The trunk band is closed at `D-032` and `E-102`.** The evidence register also
+  has a permanent five-entry hole from the pre-band allocation race; leave it
+  empty (`E-085`–`E-089`). <!-- id-audit:ignore-line -->
+- If your branch does not match any pattern above, use the band for the work's
+  subject matter, not its branch name.
+- Two branches in the same band can still collide. `scripts/audit-requirement-ids.mjs`
+  fails on duplicate definitions as well as orphaned citations, and runs as a
+  blocking CI check, so a collision is caught before it merges rather than
+  after.
+- Requirement IDs (`R`, `H`) are **not** banded. They are rare, owner-ratified,
+  and must be allocated by the team lead in `docs/product/project-requirements.md`.
 
 ## Document precedence
 

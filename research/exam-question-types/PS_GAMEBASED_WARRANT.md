@@ -2,7 +2,7 @@
 
 *Research memo — should "processing speed" be a testable domain/type family, and is "game-based" a distinct cognitive construct?*
 
-Serves **H4** ("broaden who can demonstrate ability") and decision **D-015** (fully-automated, adaptive, no-human screener whose north star is Timeback-fit). Requirement/evidence mappings beyond H4/D-015 are inherited from the orchestrator's recat plan and not reopened here.
+Serves **H4** ("broaden who can demonstrate ability") and decision **D-015** (adaptive, algorithmically-scored screener whose north star is Timeback-fit; D-015 retains a human shadow-day for behavioral fit, so the screener is not a no-human system). Requirement/evidence mappings beyond H4/D-015 are inherited from the orchestrator's recat plan and not reopened here.
 
 Claim labels used below: **[Verified finding]** = supported by cited peer-reviewed evidence; **[Independent context]** = accepted background not specific to GT; **[Reasoned inference]** = my logic from the evidence; **[Open assumption]** = unverified, needs local data. Reminders per guardrails: *predictive validity ≠ program impact*, and *correlation ≠ incremental validity*.
 

@@ -3,15 +3,24 @@
 **Scope:** every `R`, `H`, `E`, and `D` prefixed governance ID cited anywhere in
 the repository, checked in both directions against its canonical register.
 **Baseline:** `dev` @ `51e10c8`. **Date:** 2026-07-30.
-**Tool:** `scripts/audit-requirement-ids.mjs` (reporting only; deliberately not
-wired into CI — see §7).
+**Tool:** `scripts/audit-requirement-ids.mjs`.
 
-**This document does not add, retire, or renumber any ID.** `R11` turns out to be
-a ratified requirement stranded on unmerged branches, so reconciling it is a
-product-direction change that belongs to the team lead
+> **Status: the §5 remedy was ratified by the owner on 2026-07-30 and has been
+> applied under D-032.** Sections 1–4 remain the findings as measured against
+> `dev` @ `51e10c8` and are left unedited as the point-in-time record; the
+> orphan counts they report are the ones the remedy cleared, not current state.
+> As of D-032, `node scripts/audit-requirement-ids.mjs --strict` exits 0 and runs
+> as a blocking CI check. §5.4's recurrence prevention is now the per-lineage ID
+> bands and the governance-merge-path rule in `AGENTS.md`. §7's reasoning for
+> keeping the tool out of CI is superseded — it applied only while `dev` carried
+> unfixable orphans.
+
+**As originally written, this document did not add, retire, or renumber any ID.**
+`R11` turns out to be a ratified requirement stranded on unmerged branches, so
+reconciling it was a product-direction change belonging to the team lead
 (`PROJECT_CHARTER.md` precedence; `AGENTS.md` "Stop conditions"). §5 states the
-remedy and the exact edits it would take; §6 lists what was actually changed on
-this branch, which is the audit tool and this file.
+remedy and the exact edits it took; §6 lists what was changed on the audit
+branch itself, which was the audit tool and this file.
 
 **Requirements served:** R7 (auditability — a citation that points at nothing
 cannot be reconstructed by an independent reviewer) and R3 (the requirement-ID
@@ -41,7 +50,7 @@ three orphans have one cause and one fix.
 | `D` | `docs/governance/DECISION_LOG.md` | 29 | **2** — `D-015` (104 / 28), `D-016` (59 / 25) | **1** — `D-031` |
 
 **3 orphaned IDs carrying 272 citations; 23 uncited definitions.** Plus a
-five-ID hole at `E-085`–`E-089` that is defined nowhere in any branch (§4.3).
+five-ID hole at `E-085`–`E-089` that is defined nowhere in any branch (§4.3). <!-- id-audit:ignore-line -->
 
 Mechanical fixes made: **none, because none exist.** There is no typo'd ID
 anywhere in the repo — no wrong-width `D-15` for `D-016`, no dashed `R-11`, no
@@ -288,6 +297,8 @@ _should_ sit unused.
 team-lead ratification)". Benign — it is the newest entry and nothing has been
 built against it yet.
 
+<!-- id-audit:ignore-start — §4.3 exists to name IDs that are defined nowhere -->
+
 ### 4.3 Also found: a five-ID hole at `E-085`–`E-089`
 
 The evidence register runs `E-001…E-084`, then jumps to `E-090…E-095`.
@@ -305,6 +316,8 @@ the signature of the allocation race that
 allocate from the same counter without seeing each other." Harmless in itself; a
 useful confirmation that the counter needs the fix in §5.4.
 
+<!-- id-audit:ignore-end -->
+
 ### 4.4 Namespace collision that defeats automated checking
 
 `docs/audit/DUPLICATION_AND_REDUNDANCY.md` uses `D-01`…`D-30` for its own
@@ -319,6 +332,8 @@ listed here rather than done.
 
 Each of these looks like an orphaned ID to a naive grep. None is a citation.
 
+<!-- id-audit:ignore-start — this table catalogues non-IDs by name -->
+
 | Pattern | Real meaning | Sites |
 | ------------------- | ---------------------------------------------------------- | ---------------- |
 | `H0` | Null hypothesis in SPRT / sequential-testing notation | 8 |
@@ -328,6 +343,8 @@ Each of these looks like an orphaned ID to a naive grep. None is a citation.
 | `R-1` | JavaScript arithmetic in the demo renderers (`r === R-1`) | 7 |
 | `E-0xx` | A wildcard in prose, not an ID | 2 |
 | `R11` in `pnpm-lock.yaml` | sha512 integrity substring | 1 |
+
+<!-- id-audit:ignore-end -->
 
 ---
 
@@ -381,9 +398,9 @@ re-pointing.
 ### 5.4 Prevent the recurrence
 
 The `R11` stranding, the `D-019`/`E-072`/`E-073` collisions in
-`OVERNIGHT_GOVERNANCE_DIVERGENCE.md`, and the `E-085`–`E-089` hole are one
-failure repeated: parallel branches allocate governance IDs from a shared counter
-none of them can see. Two candidate fixes, for the owner:
+`OVERNIGHT_GOVERNANCE_DIVERGENCE.md`, and the five-entry register hole (§4.3) are
+one failure repeated: parallel branches allocate governance IDs from a shared
+counter none of them can see. Two candidate fixes, for the owner:
 
 - **Reserve disjoint ranges per lineage**, so a night of research cannot consume
   an ID another branch already holds; or
