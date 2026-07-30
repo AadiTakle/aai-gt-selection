@@ -49,9 +49,21 @@ describe('served item projection', () => {
     expect(full?.answer?.correctKey).toBeDefined();
   });
 
-  it('omits content from the index so the pool stays small', async () => {
+  it('puts nothing but an option count in the index, so the pool stays small', async () => {
     const index = await getServedIndex();
-    for (const entry of index) expect(Object.keys(entry.content)).toHaveLength(0);
+    /*
+     * `optionCount` is the ONE piece of stimulus shape the index is allowed to carry, because burst
+     * policy has to know whether a type is a bounded choice before any item's content has been
+     * fetched. A count is not an answer key and does not say which option is correct — the browser
+     * already receives the full option list for the one item it is rendering — but it is the only
+     * exception, so this assertion names it rather than allowing content through generally.
+     */
+    for (const entry of index) {
+      for (const [key, value] of Object.entries(entry.content)) {
+        expect(key, `${entry.itemId} content key`).toBe('optionCount');
+        expect(typeof value, `${entry.itemId} optionCount`).toBe('number');
+      }
+    }
     // The whole index must stay far smaller than the full pool it replaces.
     const indexBytes = JSON.stringify(index).length;
     const fullBytes = JSON.stringify(await getServedItems({ limit: 200 })).length;

@@ -255,16 +255,33 @@ export function toServedItem(item: RawBankItem): ServedItem {
  * an empty object so an index entry is structurally a `ServedItem` for the
  * engine's selection code.
  */
-export type ServedItemIndex = Omit<ServedItem, 'content'> & { content: Record<string, never> };
+export type ServedItemIndex = Omit<ServedItem, 'content'> & {
+  content: { optionCount?: number };
+};
+
+/**
+ * How many options an item offers, when it offers a bounded choice at all.
+ *
+ * This is the ONE piece of stimulus shape the index carries, because the engine's burst policy has
+ * to know whether a type is a single-tap choice BEFORE it selects an item, and by then the item's
+ * content has not been fetched. A count is not an answer key and does not say which option is
+ * correct, so it leaks nothing: the browser already receives the full option list for the one item
+ * it is rendering.
+ */
+function indexOptionCount(item: RawBankItem): number | undefined {
+  const options = (item.content as { options?: unknown } | undefined)?.options;
+  return Array.isArray(options) && options.length > 0 ? options.length : undefined;
+}
 
 export function toIndexEntry(item: RawBankItem): ServedItemIndex {
+  const optionCount = indexOptionCount(item);
   return {
     itemId: item.itemId,
     typeCode: item.typeCode,
     domain: item.domain,
     difficulty: item.difficulty,
     ageBands: item.ageBands,
-    content: {},
+    content: optionCount === undefined ? {} : { optionCount },
     syntheticOnly: true,
     validated: false,
   };

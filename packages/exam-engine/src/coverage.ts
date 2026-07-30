@@ -48,6 +48,20 @@ export function enforcedSessionMetrics(config: EngineConfig): CoreMetricSpec[] {
   return config.coreMetrics.filter((m) => m.enforced && metricAdequacyScope(m) === 'session');
 }
 
+/**
+ * Distinct question types an area has drawn items from.
+ *
+ * Read off the stored trace rather than a live counter, so replaying a trace reproduces the same
+ * verdict. This is the area's CONSTRUCT BREADTH: four verbal items from one cloze type measure that
+ * type, and a verbal reasoning estimate wants more than one task format behind it. It only became a
+ * live concern with bursting, which can hand a whole area to a single type in one run.
+ */
+export function distinctTypesInArea(areaState: AreaState): number {
+  const codes = new Set<string>();
+  for (const observation of areaState.trace) codes.add(observation.typeCode);
+  return codes.size;
+}
+
 /** Sample count for a metric in an area (0 when never collected). */
 export function metricCount(areaState: AreaState, metricId: string): number {
   return areaState.metricCounts[metricId] ?? 0;
@@ -115,17 +129,23 @@ export function enforcedShortfallCount(area: Area, state: SessionState): number 
   return count;
 }
 
+/** One under-covered metric's selection weight, and whether its shortfall can block the score. */
+export interface CoverageGap {
+  readonly weight: number;
+  readonly enforced: boolean;
+}
+
 /**
- * Map of metric id -> selection weight for metrics still under `minSamples` in an area. Enforced
- * shortfalls are weighted higher than tracked-inert ones so selection fills the score-blocking
- * gaps first while still rewarding coverage variety.
+ * Metrics still under `minSamples` in an area, with the selection weight and the enforcement status
+ * of each. Enforced shortfalls are weighted higher than tracked-inert ones so selection fills the
+ * score-blocking gaps first while still rewarding coverage variety.
  *
  * Derived metrics are omitted: no type declares them, so they cannot steer the type choice. They
  * still register as area neediness via `enforcedShortfallCount`, which biases which AREA is served.
  */
-export function underCoveredWeights(area: Area, state: SessionState): Map<string, number> {
+export function underCoveredMetrics(area: Area, state: SessionState): Map<string, CoverageGap> {
   const areaState = state.areas[area];
-  const weights = new Map<string, number>();
+  const gaps = new Map<string, CoverageGap>();
   for (const m of state.config.coreMetrics) {
     if (metricKind(m) === 'derived') continue;
     if (!scopeAppliesToArea(m.scope, area)) continue;
@@ -134,9 +154,51 @@ export function underCoveredWeights(area: Area, state: SessionState): Map<string
       metricAdequacyScope(m) === 'session'
         ? metricSamplesInSession(m, state) >= m.minSamples
         : metricCount(areaState, m.id) >= m.minSamples;
-    if (!covered) weights.set(m.id, m.enforced ? ENFORCED_METRIC_WEIGHT : TRACKED_METRIC_WEIGHT);
+    if (covered) continue;
+    gaps.set(m.id, {
+      weight: m.enforced ? ENFORCED_METRIC_WEIGHT : TRACKED_METRIC_WEIGHT,
+      enforced: m.enforced,
+    });
   }
+  return gaps;
+}
+
+/** {@link underCoveredMetrics} reduced to id -> weight. */
+export function underCoveredWeights(area: Area, state: SessionState): Map<string, number> {
+  const weights = new Map<string, number>();
+  for (const [id, gap] of underCoveredMetrics(area, state)) weights.set(id, gap.weight);
   return weights;
+}
+
+/**
+ * How much filling under-covered metrics is worth to one type's selection score.
+ *
+ * Enforced shortfalls SUM without limit: each one is a hard requirement, so a type that closes
+ * three of them really is three times as useful as one that closes a single gap, and until they are
+ * closed the session cannot end at all.
+ *
+ * Tracked-inert shortfalls are summed and then CAPPED at `trackedCoverageCap`. They cannot block
+ * completion by construction, so a type declaring four of them is not four times as valuable as one
+ * declaring one — yet the uncapped sum made it so, by a margin that outweighed the age-band content
+ * match and every tie-break. In practice that handed the first third of every session to whichever
+ * type in each area declared the most process measurements, which is how a child came to meet six
+ * types in a forty-item battery, five of them constructed-response. Capping the aggregate lets a
+ * tracked gap tilt and break ties without letting it choose the content of the test (D-201).
+ */
+export function coverageGain(
+  type: QuestionType,
+  gaps: ReadonlyMap<string, CoverageGap>,
+  config: EngineConfig,
+): number {
+  let enforced = 0;
+  let tracked = 0;
+  for (const metricId of type.metrics) {
+    const gap = gaps.get(metricId);
+    if (gap === undefined) continue;
+    if (gap.enforced) enforced += gap.weight;
+    else tracked += gap.weight;
+  }
+  return enforced + Math.min(tracked, config.trackedCoverageCap);
 }
 
 /** Does this type still have at least one unseen item for the given area? */

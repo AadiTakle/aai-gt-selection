@@ -14,9 +14,10 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { planNextSelection, type BurstPlan } from '../burst';
 import { isDone } from '../done';
 import { hashUnit } from '../rng';
-import { nextItem, nextType } from '../selection';
+import { nextItem } from '../selection';
 import { startState } from '../state';
 import { clamp } from '../stats';
 import { update } from '../update';
@@ -244,8 +245,21 @@ export function respondFromRealBank(
   real: RealBanks,
   trueTheta: TrueTheta,
 ): ScoredItem {
+  return scoredFrom(served, real, trueTheta, served.difficulty <= trueTheta[served.domain]);
+}
+
+/**
+ * Build the `ScoredItem` for an item whose correctness has already been decided, so the threshold
+ * and probabilistic responders differ ONLY in how they draw correctness and share every metric,
+ * response-time and stimulus detail.
+ */
+function scoredFrom(
+  served: ServedItem,
+  real: RealBanks,
+  trueTheta: TrueTheta,
+  correct: boolean,
+): ScoredItem {
   const theta = trueTheta[served.domain];
-  const correct = served.difficulty <= theta;
   const score = correct ? 1 : 0;
   const errType = correct ? 1 : clamp(1 - (served.difficulty - theta) / 5, 0, 1);
 
@@ -283,6 +297,81 @@ export function respondFromRealBank(
   };
 }
 
+/**
+ * Chance-success floor for one item, read off how many options it offers: a five-option item floors
+ * at 0.2. Returns `null` when the item declares no option list, so a caller can decide what an
+ * unbounded response is worth rather than have a floor invented for it.
+ */
+export function itemGuessingFloor(item: ServedItem): number | null {
+  const options = (item.content as { options?: unknown }).options;
+  if (!Array.isArray(options) || options.length === 0) return null;
+  return 1 / options.length;
+}
+
+/** Knobs for the probabilistic responder. */
+export interface ProbabilisticResponderOptions {
+  /** Logistic discrimination per scale point. 1.0 matches the engine and scorer defaults. */
+  readonly slope: number;
+  /**
+   * Chance-success floor the SIMULATED CHILD actually has.
+   *
+   * `'per-item'` derives it from each item's own option count ({@link itemGuessingFloor}), which is
+   * the faithful choice for a bank of mixed option counts. A number pins one floor for every item;
+   * `0` is a constructed-response child who never guesses right, which no wired bank contains.
+   */
+  readonly guessing: number | 'per-item';
+  /** Floor used when an item declares no options and `guessing` is `'per-item'`. */
+  readonly fallbackGuessing: number;
+  /** Per-child draw seed, so one cohort member's luck is reproducible and independent of another's. */
+  readonly seed: number;
+}
+
+export const DEFAULT_PROBABILISTIC_RESPONDER: ProbabilisticResponderOptions = {
+  slope: 1.0,
+  guessing: 'per-item',
+  fallbackGuessing: 0,
+  seed: 0x5eed,
+};
+
+/**
+ * Simulated child who answers PROBABILISTICALLY, with a chance-success floor.
+ *
+ * `respondFromRealBank` is a threshold responder: correct on everything at or below their ability,
+ * wrong on everything above, never lucky. That is a noise-free Guttman pattern, and a staircase
+ * converges on it far faster and far more tidily than on a child. It is the right responder for
+ * asserting routing SHAPE (does the estimate bracket from both sides at all) and the wrong one for
+ * measuring how many items convergence costs.
+ *
+ * This responder draws from
+ *
+ *     P(correct | b) = c + (1 - c) * logistic(slope * (theta - b))
+ *
+ * with `c` the item's own chance floor. Every wired bank is multiple choice, so `c > 0` always: a
+ * child well below an item still passes it sometimes, and the estimate is pushed up by luck as well
+ * as by ability. That is the single most consequential difference from the threshold responder, and
+ * it is why every length figure measured with it is larger.
+ *
+ * Born-synthetic and deterministic given `seed`; `validated=false`. Nothing here is a calibrated
+ * response model, and no bank item has a calibrated difficulty for it to be calibrated against.
+ */
+export function respondProbabilistically(
+  served: ServedItem,
+  real: RealBanks,
+  trueTheta: TrueTheta,
+  options: ProbabilisticResponderOptions = DEFAULT_PROBABILISTIC_RESPONDER,
+): ScoredItem {
+  const theta = trueTheta[served.domain];
+  const floor =
+    options.guessing === 'per-item'
+      ? (itemGuessingFloor(served) ?? options.fallbackGuessing)
+      : options.guessing;
+  const skill = 1 / (1 + Math.exp(-options.slope * (theta - served.difficulty)));
+  const pCorrect = clamp(floor + (1 - floor) * skill, 0, 1);
+  const correct = hashUnit(options.seed, `resp:${served.itemId}`) < pCorrect;
+
+  return scoredFrom(served, real, trueTheta, correct);
+}
+
 export interface RealSessionResult {
   state: SessionState;
   real: RealBanks;
@@ -290,30 +379,50 @@ export interface RealSessionResult {
   done: boolean;
   /** True when the session ended because it ran out of servable items rather than by rule/cap. */
   exhausted: boolean;
+  /**
+   * The burst each item belonged to, index-aligned with `trace`. With bursting disabled every entry
+   * is a length-1 burst, which is the same thing as no burst.
+   */
+  bursts: BurstPlan[];
 }
 
-/** Run a full adaptive session against the real registry and banks. */
+/** How a simulated child answers one item. */
+export type Responder = (served: ServedItem, real: RealBanks, trueTheta: TrueTheta) => ScoredItem;
+
+/**
+ * Run a full adaptive session against the real registry and banks.
+ *
+ * The loop advances through `planNextSelection`, which is the same contract a browser runner uses,
+ * so a burst here behaves exactly as it does in a live session. `responder` defaults to the
+ * threshold child for backwards compatibility; pass {@link respondProbabilistically} to measure
+ * anything about length or precision.
+ */
 export function runRealBankSession(
   gradeBand: AgeBand,
   trueTheta: TrueTheta,
   overrides?: Partial<EngineConfig>,
   real: RealBanks = loadRealBanks(),
+  responder: Responder = respondFromRealBank,
 ): RealSessionResult {
   let state = startState(gradeBand, overrides);
   const trace: ScoredItem[] = [];
+  const bursts: BurstPlan[] = [];
   let exhausted = false;
+  let active: BurstPlan | null = null;
 
   while (!isDone(state)) {
-    const typeCode = nextType(state, real.banks);
-    if (typeCode === null) {
+    const plan = planNextSelection(state, real.banks, active);
+    if (plan === null) {
       exhausted = true;
       break;
     }
-    const served = nextItem(state, typeCode, real.banks);
-    const scored = respondFromRealBank(served, real, trueTheta);
+    active = plan;
+    const served = nextItem(state, plan.typeCode, real.banks);
+    const scored = responder(served, real, trueTheta);
     state = update(state, scored);
     trace.push(scored);
+    bursts.push(plan);
   }
 
-  return { state, real, trace, done: isDone(state), exhausted };
+  return { state, real, trace, done: isDone(state), exhausted, bursts };
 }

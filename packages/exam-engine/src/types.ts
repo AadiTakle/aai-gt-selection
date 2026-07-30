@@ -162,6 +162,32 @@ export type MetricKind = 'observed' | 'derived';
  */
 export type MetricAdequacyScope = 'per_area' | 'session';
 
+/**
+ * Policy for serving several items of one type back-to-back (`burst.ts`).
+ *
+ * Every value here is a knob rather than a constant: how long a burst may run, and how wide a
+ * choice still counts as answerable in one tap. `maxLength: 1` disables bursting entirely and
+ * restores exactly the one-item-then-rotate behaviour.
+ */
+export interface BurstPolicy {
+  /**
+   * Longest run of consecutive items from a single type. `1` disables bursting. The effective
+   * length is also bounded by the type's unseen items and by the room left before `hardItemCap`.
+   */
+  readonly maxLength: number;
+  /**
+   * Shortest burst a qualifying type may be given, once the per-type step-down for a wider option
+   * list has been applied. Also the floor that keeps bursting worthwhile at all: a "burst" of one is
+   * just the ordinary rotation.
+   */
+  readonly minLength: number;
+  /**
+   * Most options an item may offer and still count as a one-tap choice. A wider choice is a search
+   * through candidates, which is work in its own right rather than instruction-reading overhead.
+   */
+  readonly maxOptions: number;
+}
+
 /** A core-metric registry entry (§4). */
 export interface CoreMetricSpec {
   id: MetricId;
@@ -258,6 +284,12 @@ export interface EngineConfig {
   evenSpreadTolerance: number;
   /** Minimum items per area before completion is possible. */
   minItemsPerArea: number;
+  /**
+   * Distinct question types an area's evidence must span before the stop rule will conclude it.
+   * Guards construct breadth: see `areaBreadthCovered`. `1` disables the requirement, and an area
+   * with fewer wired types than this can never finish — `auditTypeBreadth` checks for that.
+   */
+  minTypesPerArea: number;
   /** Estimates required in a window before an area's stability can be judged. */
   stabilityWindow: number;
   /** Max estimate-window SD for an area to count as "stable" (guards against wild swings). */
@@ -270,6 +302,14 @@ export interface EngineConfig {
   stabilityDrift: number;
   /** Hard safety cap on total items served. */
   hardItemCap: number;
+  /** Back-to-back same-type serving policy (see {@link BurstPolicy}). */
+  burst: BurstPolicy;
+  /**
+   * Ceiling on the combined selection weight a type may earn from TRACKED-INERT metric shortfalls,
+   * however many of them it declares. Enforced shortfalls are unaffected and still sum without
+   * limit. Set this to a very large number to restore the uncapped sum; see `coverageGain`.
+   */
+  trackedCoverageCap: number;
   /**
    * Max difficulty gap (in scale points) for two items in an area to count as a matched parallel
    * pair for `M-CONSIST`. Bank difficulty is the design-estimated b, so "same b" is approximated
