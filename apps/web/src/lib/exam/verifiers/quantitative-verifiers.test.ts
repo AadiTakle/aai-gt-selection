@@ -299,6 +299,49 @@ describe('GB-WORDLADDER-01', () => {
     expect(verdict.correct).toBe(true);
     expect(verdict.metrics?.['M-EFF']).toBeLessThan(1);
   });
+
+  /**
+   * The word-rarity term. Each bank item stores the band of every word on its
+   * reference path (`answer.pathVocab.bands`, from lexicon-child-en@v1), so the
+   * expected value is checkable against the key rather than against a rule
+   * restated in the test.
+   */
+  const typedRarest = (i: BankItem): number => {
+    const bands = (i.answer.pathVocab as { bands: number[] }).bands;
+    return Math.min(...bands.slice(1));
+  };
+
+  it('scores a rarer ladder higher: M-VOCABLVL ascends with rarity, bank-wide', () => {
+    const wrong = bank('GB-WORDLADDER-01')
+      .map((other) => ({
+        itemId: other.itemId,
+        got: grade(other, { path: other.answer.optimalPath }).metrics?.['M-VOCABLVL'],
+        want: 8 - typedRarest(other),
+      }))
+      .filter((row) => row.got !== row.want);
+    expect(wrong).toEqual([]);
+  });
+
+  it('keeps the rarity term inside the 1..7 the lexicon bands span', () => {
+    for (const other of bank('GB-WORDLADDER-01')) {
+      const level = grade(other, { path: other.answer.optimalPath }).metrics?.['M-VOCABLVL'];
+      expect(level, other.itemId).toBeGreaterThanOrEqual(1);
+      expect(level, other.itemId).toBeLessThanOrEqual(7);
+    }
+  });
+
+  it('does not credit the child for the rarity of the word they were handed', () => {
+    // The start word is served. On these items it is strictly rarer than
+    // anything the child had to produce, so counting it would inflate the term.
+    const servedRarer = pick('GB-WORDLADDER-01', (i) => {
+      const bands = (i.answer.pathVocab as { bands: number[] }).bands;
+      return Math.min(...bands) < Math.min(...bands.slice(1));
+    });
+    const bands = (servedRarer.answer.pathVocab as { bands: number[] }).bands;
+    const verdict = grade(servedRarer, { path: servedRarer.answer.optimalPath });
+    expect(verdict.metrics?.['M-VOCABLVL']).toBe(8 - Math.min(...bands.slice(1)));
+    expect(verdict.metrics?.['M-VOCABLVL']).not.toBe(8 - Math.min(...bands));
+  });
 });
 
 describe('GB-WORDFORGE-01', () => {
@@ -333,6 +376,88 @@ describe('GB-WORDFORGE-01', () => {
       submissions: [{ word: first }, { word: first }, { word: first }],
     });
     expect(verdict.metrics?.['M-IDEAFLU']).toBe(1);
+  });
+
+  /**
+   * The declared non-word penalty (the demo states it in the play gate before the
+   * clock starts). Two made-up words cost one real one, the net is floored at
+   * zero, and a real word that only broke a rule is not a made-up word.
+   */
+  const junk = (count: number): { word: string }[] =>
+    Array.from({ length: count }, (_, i) => ({ word: `ZQXJ${'V'.repeat(i + 1)}` }));
+
+  it('takes the declared penalty off a run that reached the target with junk', () => {
+    const reached = validWords.slice(0, target).map((v) => ({ word: v.word }));
+    const verdict = grade(item, { submissions: [...reached, ...junk(2)] });
+    // Two made-up words = one real word, so the threshold is missed by one.
+    expect(verdict.metrics?.['M-IDEAFLU']).toBe(target);
+    expect(verdict.metrics?.['M-EFF']).toBeCloseTo((target - 1) / target, 10);
+    expect(verdict.correct).toBe(false);
+  });
+
+  it('reports what share of the entries were real words (M-ERRTYPE)', () => {
+    const real = validWords.slice(0, 2).map((v) => ({ word: v.word }));
+    expect(grade(item, { submissions: real }).metrics?.['M-ERRTYPE']).toBe(1);
+    expect(grade(item, { submissions: [...real, ...junk(2)] }).metrics?.['M-ERRTYPE']).toBe(0.5);
+    // Nothing was judged, so there is nothing to report — an abandoned round
+    // must not collect a free 1 on a metric the scorer positions on.
+    expect(grade(item, { submissions: [] }).metrics?.['M-ERRTYPE']).toBeUndefined();
+  });
+
+  it('keeps the score monotone and floored, so guessing cannot beat honesty', () => {
+    const nothing = grade(item, { submissions: [] });
+    const barrage = grade(item, { submissions: junk(40) });
+    const oneReal = grade(item, { submissions: [{ word: validWords[0]!.word }] });
+
+    expect(barrage.metrics?.['M-EFF']).toBe(0); // floored, never negative
+    expect(barrage.correct).toBe(false);
+    expect(nothing.metrics?.['M-EFF']).toBe(0);
+    expect(oneReal.metrics?.['M-EFF']).toBeGreaterThan(nothing.metrics?.['M-EFF'] as number);
+  });
+
+  it('does not penalise a real word that only broke a rule', () => {
+    // A lexicon word below content.minWordLength is a rule slip, not a made-up
+    // word, and the child was only warned about made-up words.
+    const lexicon = childLexicon() as Map<string, number>;
+    const strict = pick(
+      'GB-WORDFORGE-01',
+      (i) => (i.content.minWordLength as number) >= 4 && (i.answer.referenceTarget as number) >= 2,
+    );
+    const forgeable = new Set(
+      (strict.answer.validWords as { word: string }[]).map((v) => v.word.toUpperCase()),
+    );
+    const tooShort = [...lexicon.keys()].find(
+      (word) => word.length < (strict.content.minWordLength as number) && !forgeable.has(word),
+    );
+    expect(tooShort, 'no lexicon word below minWordLength').toBeDefined();
+
+    const reached = (strict.answer.validWords as { word: string }[])
+      .slice(0, strict.answer.referenceTarget as number)
+      .map((v) => ({ word: v.word }));
+    const verdict = grade(strict, { submissions: [...reached, { word: tooShort as string }] });
+    expect(verdict.correct).toBe(true);
+    expect(verdict.metrics?.['M-EFF']).toBe(1);
+  });
+
+  it('scores a rarer set of words higher (M-VOCABLVL ascends with rarity)', () => {
+    const spread = pick('GB-WORDFORGE-01', (i) => {
+      const bands = (i.answer.validWords as { band: number }[]).map((v) => v.band);
+      return bands.length > 0 && Math.max(...bands) - Math.min(...bands) >= 2;
+    });
+    const words = spread.answer.validWords as { word: string; band: number }[];
+    const commonest = Math.max(...words.map((v) => v.band));
+    const rarest = Math.min(...words.map((v) => v.band));
+
+    const common = grade(spread, {
+      submissions: words.filter((v) => v.band === commonest).map((v) => ({ word: v.word })),
+    });
+    const rare = grade(spread, {
+      submissions: words.filter((v) => v.band === rarest).map((v) => ({ word: v.word })),
+    });
+
+    expect(common.metrics?.['M-VOCABLVL']).toBe(8 - commonest);
+    expect(rare.metrics?.['M-VOCABLVL']).toBe(8 - rarest);
+    expect(rare.metrics?.['M-VOCABLVL']).toBeGreaterThan(common.metrics?.['M-VOCABLVL'] as number);
   });
 });
 

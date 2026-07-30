@@ -19,6 +19,17 @@
 //
 //     hidden(c,y,r)  <=>  occ(c, y+1, r) AND occ(c+sc, y, r) AND occ(c, y, r+sr)
 //
+// That face-adjacency rule is not the whole story, though. It asks only whether a cube's
+// three camera-facing faces are covered by the cells immediately next to it, so under it a
+// column's top face is never covered and every configuration looks deducible. The demo
+// renders a real orthographic projection, where a tall column near the camera hides the
+// tops of shorter columns behind it along the view ray - and a column whose top cannot be
+// seen has an unknowable height, which makes the total unknowable too. Every candidate
+// stack therefore also has to pass `assessCountLegibility` (occlusion-legibility.mjs),
+// which ray-marches every column top toward the camera over every viewpoint the child can
+// reach. Ambiguous configurations are worse than hard ones: they punish the child who
+// reasons correctly.
+//
 // The answer key is the TOTAL cube count (viewpoint-invariant). visible / hidden /
 // bury-depth are recorded as answer-side DIAGNOSTICS: they drive M-ERRTYPE (a
 // "visible-only" undercount is a systematic occlusion failure, +/-1 is a near miss) and
@@ -37,6 +48,7 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeBank } from './item-shape.mjs';
+import { assessCountLegibility } from './occlusion-legibility.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT = resolve(__dirname, '../banks/SPA-HIDDENCUBE-01.jsonl');
@@ -46,8 +58,8 @@ const DOMAIN = 'spatial';
 const DEMO_PATH = 'demos/SPA-HIDDENCUBE-01.html';
 const GENERATOR_REF = 'SPA-HIDDENCUBE-01@1';
 const ITEMS_PER_LEVEL = 7;
-const STEPPER_MAX = 60;
-const CANON_YAW_DEG = -45; // canonical corner view (camera toward +col, +row)
+export const STEPPER_MAX = 60;
+export const CANON_YAW_DEG = -45; // canonical corner view (camera toward +col, +row)
 
 // ---------------------------------------------------------------------------
 // Deterministic RNG (mulberry32) + string hashing.
@@ -65,8 +77,8 @@ function mulberry32(a) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
-function makeRng(seedStr) { return mulberry32(hashStr(seedStr)); }
-function seededUuid(seedStr) {
+export function makeRng(seedStr) { return mulberry32(hashStr(seedStr)); }
+export function seededUuid(seedStr) {
   const b = new Uint8Array(16);
   let h = hashStr(seedStr);
   for (let i = 0; i < 16; i++) { h = (Math.imul(h ^ (h >>> 13), 0x5bd1e995) + i * 0x9e3779b1) >>> 0; b[i] = h & 0xff; }
@@ -74,20 +86,20 @@ function seededUuid(seedStr) {
   const hex = [...b].map(x => x.toString(16).padStart(2, '0'));
   return `${hex.slice(0, 4).join('')}-${hex.slice(4, 6).join('')}-${hex.slice(6, 8).join('')}-${hex.slice(8, 10).join('')}-${hex.slice(10, 16).join('')}`;
 }
-const round1 = (x) => Math.round(x * 10) / 10;
+export const round1 = (x) => Math.round(x * 10) / 10;
 const round2 = (x) => Math.round(x * 100) / 100;
 
 // ---------------------------------------------------------------------------
 // Camera quadrants. yawDeg is the turntable yaw that puts the camera in that corner
 // for the renderer's orthographic projection; (sc, sr) are the occluding directions.
 // ---------------------------------------------------------------------------
-const QUADRANTS = [
+export const QUADRANTS = [
   { q: 0, sc: 1, sr: 1, yawDeg: -45 },
   { q: 1, sc: -1, sr: 1, yawDeg: 45 },
   { q: 2, sc: -1, sr: -1, yawDeg: 135 },
   { q: 3, sc: 1, sr: -1, yawDeg: -135 },
 ];
-function angularDisparity(aDeg, bDeg) {
+export function angularDisparity(aDeg, bDeg) {
   let d = Math.abs(aDeg - bDeg) % 360;
   if (d > 180) d = 360 - d;
   return round1(d);
@@ -110,7 +122,7 @@ function analyze(H, R, C, sc, sr) {
   }
   return { total, hidden, visible: total - hidden, maxBury };
 }
-function layersOf(H, R, C) {
+export function layersOf(H, R, C) {
   let maxH = 0;
   for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) maxH = Math.max(maxH, H[r][c]);
   const layers = [];
@@ -126,7 +138,7 @@ function layersOf(H, R, C) {
 // Difficulty ramp: one hand-authored profile per level 1..20.
 // ---------------------------------------------------------------------------
 const ALLQ = [0, 1, 2, 3];
-const PROFILES = {
+export const PROFILES = {
   1: { R: 2, C: 2, maxH: 2, holes: false, minHidden: 1, maxHidden: 1, minBury: 0, totalMin: 5, totalMax: 8, quads: [0], rotate: true, yawJitter: 5 },
   2: { R: 2, C: 2, maxH: 3, holes: false, minHidden: 1, maxHidden: 2, minBury: 0, totalMin: 6, totalMax: 10, quads: [0], rotate: true, yawJitter: 6 },
   3: { R: 2, C: 3, maxH: 3, holes: false, minHidden: 1, maxHidden: 3, minBury: 0, totalMin: 8, totalMax: 13, quads: [0], rotate: true, yawJitter: 7 },
@@ -149,7 +161,7 @@ const PROFILES = {
   20: { R: 4, C: 5, maxH: 6, holes: true, minHidden: 14, maxHidden: 24, minBury: 4, totalMin: 36, totalMax: 46, quads: ALLQ, rotate: false, yawJitter: 12 },
 };
 
-function ageBandsForLevel(L) {
+export function ageBandsForLevel(L) {
   if (L <= 4) return ['2-3'];
   if (L <= 8) return ['2-3', '4-5'];
   if (L <= 12) return ['4-5', '6-8'];
@@ -157,10 +169,18 @@ function ageBandsForLevel(L) {
 }
 
 // ---------------------------------------------------------------------------
-// Stack search: random height-maps until the profile's occlusion budget is met.
-// Falls back to a solid block (hidden cubes forced by construction).
+// Stack search: random height-maps until the profile's occlusion budget is met AND every
+// column top is observable from the served viewpoint. Falls back to a solid block (hidden
+// cubes forced by construction).
 // ---------------------------------------------------------------------------
-function genStack(rng, P, sc, sr) {
+// A stack whose cube count cannot be read off the render is unanswerable, not hard.
+function countIsDeducible(H, P, view, inspection) {
+  const { layers, maxHeight } = layersOf(H, P.R, P.C);
+  const stack = { rows: P.R, cols: P.C, maxHeight, layers };
+  return assessCountLegibility(stack, view, inspection, { samples: 5 }).deducible;
+}
+
+export function genStack(rng, P, sc, sr, view, inspection) {
   const cells = [];
   for (let r = 0; r < P.R; r++) for (let c = 0; c < P.C; c++) cells.push([r, c]);
   for (let t = 0; t < 4000; t++) {
@@ -193,19 +213,13 @@ function genStack(rng, P, sc, sr) {
     if (a.hidden < P.minHidden || a.hidden > P.maxHidden) continue;
     if (a.maxBury < P.minBury) continue;
     if (a.visible === a.total) continue;
+    if (!countIsDeducible(H, P, view, inspection)) continue;
     return Object.assign({ H }, a);
   }
-  // Deterministic fallback: a staircase rising toward the camera corner.
-  const H = [];
-  for (let r = 0; r < P.R; r++) {
-    const row = [];
-    for (let c = 0; c < P.C; c++) {
-      const toward = (sc > 0 ? c : P.C - 1 - c) + (sr > 0 ? r : P.R - 1 - r);
-      row.push(Math.max(1, Math.min(P.maxH, 1 + Math.round(toward * (P.maxH - 1) / Math.max(1, P.R + P.C - 2)))));
-    }
-    H.push(row);
-  }
-  return Object.assign({ H, fallback: true }, analyze(H, P.R, P.C, sc, sr));
+  // No fallback. The old fallback was a staircase rising toward the camera, which is the shape
+  // that hides column tops, so it manufactured exactly the unanswerable items the legibility gate
+  // exists to reject. A level the search cannot fill is reported as a shortfall instead.
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -214,27 +228,9 @@ function genStack(rng, P, sc, sr) {
 const PROMPT = 'How many cubes are in the pile? Count the hidden ones too.';
 const FALLBACKS = [];
 
-function buildItem(L, idx, usedSigs) {
-  const P = PROFILES[L];
-  let salt = 0, seed = '', rng = null, quad = null, stack = null, sig = '';
-  for (; ;) {
-    seed = `${TYPE_CODE}|L${L}|#${idx}|s${salt}|${BASE_SEED}`;
-    rng = makeRng(seed);
-    quad = QUADRANTS[P.quads[Math.floor(rng() * P.quads.length)]];
-    stack = genStack(rng, P, quad.sc, quad.sr);
-    sig = `${quad.q}:${stack.H.map(r => r.join('')).join('/')}`;
-    if (!usedSigs.has(sig) || salt >= 40) break;
-    salt++;
-  }
-  usedSigs.add(sig);
-
-  if (stack.fallback) FALLBACKS.push(`L${L}#${idx}`);
-  const { layers, maxHeight } = layersOf(stack.H, P.R, P.C);
-  const yawDeg = round1(quad.yawDeg + (rng() * 2 - 1) * P.yawJitter);
-  const pitchDeg = round1(31 - (L - 1) * 0.5 + (rng() * 4 - 2));
-  const footprint = stack.H.flat().filter(h => h > 0).length;
-
-  // Diagnostic answer values (M-ERRTYPE lure taxonomy). De-duplicated by value.
+// The answer key plus the M-ERRTYPE lure taxonomy, de-duplicated by value. Exported because the
+// curation pass re-derives it after replacing a stack, and the two must not drift apart.
+export function buildAnswerBlock(stack, layers, maxHeight, footprint, angularDisparityDeg) {
   const rawLures = [
     { value: stack.total, lure: 'correct' },
     { value: stack.visible, lure: 'visible_only_undercount' },
@@ -253,6 +249,48 @@ function buildItem(L, idx, usedSigs) {
     // Counting is not a chirality task; recorded so the field is uniform across the bank.
     distractorRationales.push({ key: `N${d.value}`, value: d.value, lure: d.lure, chirality: 'not_applicable' });
   }
+  return {
+    correctKey: String(stack.total),
+    correctCount: stack.total,
+    relation: 'total_cube_count_including_occluded',
+    diagnostics: {
+      visibleCount: stack.visible,
+      hiddenCount: stack.hidden,
+      maxBuryDepth: stack.maxBury,
+      footprintCount: footprint,
+      tallestColumn: maxHeight,
+      angularDisparityDeg,
+    },
+    distractorRationales,
+  };
+}
+
+function buildItem(L, idx, usedSigs) {
+  const P = PROFILES[L];
+  const inspection = { rotate: P.rotate, yawStepDeg: 15, yawRangeDeg: [-40, 40] };
+  let salt = 0, seed = '', rng = null, quad = null, stack = null, sig = '';
+  let yawDeg = 0, pitchDeg = 0;
+  for (; ;) {
+    seed = `${TYPE_CODE}|L${L}|#${idx}|s${salt}|${BASE_SEED}`;
+    rng = makeRng(seed);
+    quad = QUADRANTS[P.quads[Math.floor(rng() * P.quads.length)]];
+    // The viewpoint is drawn BEFORE the stack search because what the child can see -- and so
+    // whether the count is deducible at all -- depends on it.
+    yawDeg = round1(quad.yawDeg + (rng() * 2 - 1) * P.yawJitter);
+    pitchDeg = round1(31 - (L - 1) * 0.5 + (rng() * 4 - 2));
+    stack = genStack(rng, P, quad.sc, quad.sr, { yawDeg, pitchDeg }, inspection);
+    if (stack) {
+      sig = `${quad.q}:${stack.H.map(r => r.join('')).join('/')}`;
+      if (!usedSigs.has(sig) || salt >= 40) break;
+    }
+    if (salt >= 40) break;
+    salt++;
+  }
+  if (!stack) return null;
+  usedSigs.add(sig);
+
+  const { layers, maxHeight } = layersOf(stack.H, P.R, P.C);
+  const footprint = stack.H.flat().filter(h => h > 0).length;
 
   const difficulty = round2(Math.min(20, Math.max(1, L + (rng() * 0.9 - 0.45))));
 
@@ -268,24 +306,11 @@ function buildItem(L, idx, usedSigs) {
       canonicalYawDeg: CANON_YAW_DEG,
       angularDisparityDeg: angularDisparity(yawDeg, CANON_YAW_DEG),
     },
-    inspection: { rotate: P.rotate, yawStepDeg: 15, yawRangeDeg: [-40, 40] },
+    inspection,
     response: { mode: 'stepper', min: 0, max: STEPPER_MAX, step: 1 },
     scaffold: { xray: false, warmup: L <= 2, layerHint: L <= 3 },
   };
-  const answer = {
-    correctKey: String(stack.total),
-    correctCount: stack.total,
-    relation: 'total_cube_count_including_occluded',
-    diagnostics: {
-      visibleCount: stack.visible,
-      hiddenCount: stack.hidden,
-      maxBuryDepth: stack.maxBury,
-      footprintCount: footprint,
-      tallestColumn: maxHeight,
-      angularDisparityDeg: content.view.angularDisparityDeg,
-    },
-    distractorRationales,
-  };
+  const answer = buildAnswerBlock(stack, layers, maxHeight, footprint, content.view.angularDisparityDeg);
   return {
     itemId: seededUuid(seed),
     typeCode: TYPE_CODE,
@@ -302,11 +327,18 @@ function buildItem(L, idx, usedSigs) {
   };
 }
 
+const SHORTFALLS = [];
+
 function generate() {
   const items = [];
   for (let L = 1; L <= 20; L++) {
     const used = new Set();
-    for (let i = 0; i < ITEMS_PER_LEVEL; i++) items.push(buildItem(L, i, used));
+    let got = 0;
+    for (let i = 0; i < ITEMS_PER_LEVEL; i++) {
+      const it = buildItem(L, i, used);
+      if (it) { items.push(it); got++; }
+    }
+    if (got < ITEMS_PER_LEVEL) SHORTFALLS.push({ level: L, got, want: ITEMS_PER_LEVEL });
   }
   return items;
 }
@@ -377,10 +409,18 @@ function main() {
   const byQuad = {}; for (const it of items) byQuad[it.content.view.quadrant] = (byQuad[it.content.view.quadrant] || 0) + 1;
   console.log(`[${TYPE_CODE}] viewpoint quadrants:`, JSON.stringify(byQuad));
   const fb = items.filter(it => it.answer.diagnostics.hiddenCount === 0).length;
-  console.log(`[${TYPE_CODE}] items with zero hidden cubes (must be 0): ${fb}  ·  search fallbacks: ${FALLBACKS.length}`);
-  if (FALLBACKS.length) { console.error(`[${TYPE_CODE}] FAIL: stack search fell back for ${FALLBACKS.join(', ')}`); process.exit(1); }
+  console.log(`[${TYPE_CODE}] items with zero hidden cubes (must be 0): ${fb}`);
   const over = items.filter(it => it.answer.correctCount > STEPPER_MAX).length;
   if (over) { console.error(`[${TYPE_CODE}] FAIL: ${over} item(s) exceed the stepper range`); process.exit(1); }
+
+  // An item whose count cannot be read off the render is unanswerable however well the child
+  // reasons, so this is a hard gate rather than a warning.
+  const illegible = items.filter(it => !assessCountLegibility(it.content.stack, it.content.view, it.content.inspection).deducible);
+  console.log(`[${TYPE_CODE}] items with an unobservable column top (must be 0): ${illegible.length}`);
+  if (illegible.length) {
+    console.error(`[${TYPE_CODE}] FAIL: ${illegible.length} item(s) do not permit the count to be deduced`);
+    process.exit(1);
+  }
 
   const v = verify(items);
   const cov = coverageReport(v.bands);
@@ -393,8 +433,25 @@ function main() {
     process.exit(1);
   }
   if (fb > 0) { console.error(`[${TYPE_CODE}] FAIL: ${fb} item(s) have no occluded cube`); process.exit(1); }
-  if (cov.minBand < ITEMS_PER_LEVEL) { console.error(`[${TYPE_CODE}] FAIL: coverage below ${ITEMS_PER_LEVEL} in some band`); process.exit(1); }
-  console.log(`[${TYPE_CODE}] OK: totals computed from voxel geometry, occlusion forced, coverage satisfied, born-synthetic.`);
+
+  // Rungs the legibility gate cannot fill. A rung whose profile demands more occlusion than the
+  // viewpoint can leave readable is not a search failure to retry harder at -- it is a statement
+  // that the profile buys difficulty with ambiguity, which is the thing being removed. Reported,
+  // not fabricated. Serving a shorter ramp is a design consequence for the owner to rule on.
+  const servedLevels = [...new Set(items.map(it => it.provenance.level))].sort((a, b) => a - b);
+  if (SHORTFALLS.length) {
+    console.log(`[${TYPE_CODE}] rungs the legibility gate cannot fill:`);
+    for (const s of SHORTFALLS) console.log(`  rung ${String(s.level).padStart(2)}: ${s.got}/${s.want}`);
+    console.log(`[${TYPE_CODE}] served rungs: ${servedLevels.join(', ')}`);
+  }
+  // A gap in the middle of the ramp WOULD break adaptive selection, so that stays a hard failure.
+  const contiguous = servedLevels.every((L, i) => i === 0 ? L === 1 : L === servedLevels[i - 1] + 1);
+  if (!contiguous) {
+    console.error(`[${TYPE_CODE}] FAIL: served rungs are not contiguous from 1 (${servedLevels.join(', ')})`);
+    process.exit(1);
+  }
+  console.log(`[${TYPE_CODE}] OK: totals computed from voxel geometry, occlusion forced and legible, born-synthetic.`);
 }
 
-main();
+// Guarded so the curation pass can import the search and answer helpers without writing a bank.
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();

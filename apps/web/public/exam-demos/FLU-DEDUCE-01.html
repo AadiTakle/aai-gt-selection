@@ -42,10 +42,10 @@ body{
 }
 .clue.pending{opacity:.24;filter:grayscale(1);transform:scale(.92)}
 .clue.current{box-shadow:0 0 0 4px #ebba9b;transform:translateY(-3px)}
-.clueText{font:700 11.5px/1.2 system-ui;text-align:center;color:#33505c}
 .clueId{font:800 9px ui-monospace,monospace;color:#6f4526;letter-spacing:.08em}
 .slash{position:relative;display:inline-grid;place-items:center}
 .slash::after{content:"";position:absolute;width:44px;height:4px;border-radius:4px;background:#e48b53;transform:rotate(-35deg)}
+.cmp{display:inline-flex;align-items:center;gap:2px}
 #lineup{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;width:100%}
 .candidate{
   width:96px;height:112px;border:3px solid #f8e8de;border-radius:17px;background:#ffffff;
@@ -56,7 +56,6 @@ body{
 .candidate.dead::after{
   content:"\2715";position:absolute;font-size:42px;font-weight:900;color:var(--bad);text-shadow:0 2px #ffffff;
 }
-.candidate.pick{border-color:var(--violet);box-shadow:0 0 0 4px #f8e8de}
 .num{position:absolute;right:6px;bottom:4px;color:#4a6470;font:800 10px ui-monospace,monospace}
 #tools{display:flex;gap:11px;align-items:center}
 #tools button{height:52px;border:0;border-radius:16px;cursor:pointer;font:800 15px system-ui;background:#fcf4ef;color:var(--violet);padding:0 16px}
@@ -113,7 +112,7 @@ button:focus-visible,.candidate:focus-visible{outline:4px solid #e48b53;outline-
   <div id="badge">FLU-DEDUCE-01 · Clue Detective</div>
   <header id="howto">
     <h1>How to use — Clue Detective</h1>
-    <p>Read each clue and tap every suspect it rules out (tap again to bring one back). Press <b>Next clue</b> for the next clue. When all the clues are showing, tap the one suspect that fits them all, then press the check (<b>&#10003;</b>) to send your answer.</p>
+    <p>Each clue card shows a picture, and the suspect you want matches it. A picture with a line through it means the opposite: the suspect does <b>not</b> match. Tap every suspect the clue on show rules out (tap again to bring one back), then press <b>Next clue</b>. Each clue is marked on its own, so cross out as you go. After the last clue press the check (<b>&#10003;</b>) to send.</p>
   </header>
   <div id="phasecue" data-phase="warmup">Get ready</div>
   <section id="stagecard">
@@ -126,6 +125,10 @@ button:focus-visible,.candidate:focus-visible{outline:4px solid #e48b53;outline-
     </div>
     <div id="status" class="neutral">Waiting for the next case.</div>
   </section>
+  <div id="playgate">
+    <p>The case is ready. Press play when you are, and it starts then.</p>
+    <button type="button" id="play">Play</button>
+  </div>
 </main>
 <aside id="telemetry">
   <h3>Live telemetry · per-child (display only)</h3>
@@ -195,9 +198,19 @@ function dimIcon(dim,value){
   if(dim==='pos')return `<svg width="42" height="42" viewBox="0 0 60 60"><circle cx="27" cy="32" r="18" fill="none" stroke="#59627b" stroke-width="4"/><circle cx="${value==='inside'?27:52}" cy="${value==='inside'?32:10}" r="6" fill="#ed6671"/></svg>`;
   return '';
 }
+/* A stacked chevron: up reads "this many or more", down "this many or fewer". Without
+   it an at-least clue draws exactly the same dots as a conjunction term asking for that
+   count, and the child would be guessing which reading was meant rather than deducing. */
+function chevron(up){
+  const line=(y)=>up?`4,${y+11} 13,${y} 22,${y+11}`:`4,${y} 13,${y+11} 22,${y}`;
+  return `<svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true">`
+    +`<polyline points="${line(up?4:3)}" fill="none" stroke="#59627b" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>`
+    +`<polyline points="${line(up?12:11)}" fill="none" stroke="#59627b" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
 function clueIcon(c){
   if(c.form==='and')return `<span style="display:inline-flex;align-items:center;gap:4px">${dimIcon(c.terms[0].dim,c.terms[0].value)}<b style="color:#8a7c46">+</b>${dimIcon(c.terms[1].dim,c.terms[1].value)}</span>`;
   if(c.form==='not')return `<span class="slash">${dimIcon(c.dim,c.value)}</span>`;
+  if(c.form==='atleast'||c.form==='atmost')return `<span class="cmp">${dimIcon(c.dim,c.value)}${chevron(c.form==='atleast')}</span>`;
   return dimIcon(c.dim,c.value);
 }
 
@@ -207,10 +220,11 @@ let interactive=false;   // interaction enabled?
 let submitted=false;     // already answered this item?
 let shown=1;             // clues revealed so far
 let crossed={};          // key -> bool
-let picked=null;         // selected survivor key
 let firstKey=null;       // first candidate touched
 let elimLog=[];          // {clueStage,key,action} raw elimination trace
-let itemStart=0,startTimer=null,itemTelemetry=[];
+let stepMarks=[];        // per clue, the crossed-out set the child left that clue with
+let itemStart=0,itemTelemetry=[];
+let gateTutorial=false;  // does the pending play press owe a gesture hint?
 const M={rt:null,firstLat:null,rev:0,blur:0,elims:0};
 
 /* ---------- embedding detection + emit ---------- */
@@ -220,9 +234,9 @@ function post(msg){if(!embedded)return;try{window.parent.postMessage(Object.assi
 
 /* ---------- telemetry panel (DISPLAY ONLY; key-free) ---------- */
 const METERS=[
- {id:'M-ACC',srv:true,name:'Unique-survivor accuracy (server-verified)',get:()=>'server-side'},
+ {id:'M-ACC',srv:true,name:'Every clue step exactly right (server-verified)',get:()=>'server-side'},
  {id:'M-POLY',srv:true,name:'Per-clue elimination credit (server-verified)',get:()=>'server-side'},
- {id:'M-ERRTYPE',srv:true,name:'Negation vs conjunction error (server-verified)',get:()=>'server-side'},
+ {id:'M-ERRTYPE',srv:true,name:'Missed vs wrongly crossed out (server-verified)',get:()=>'server-side'},
  {id:'M-PATH',name:'Elimination actions logged',get:()=>String(elimLog.length)},
  {id:'M-EFF',name:'Eliminations made (vs forced: server)',get:()=>String(M.elims)},
  {id:'M-REV',name:'Restored suspects / answer changes',get:()=>String(M.rev)},
@@ -256,8 +270,8 @@ function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width
 async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(600);}
 async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(450);}
 async function gestureHint(){
-  // Teaches the GESTURE only: read a clue, tap suspects, next clue, send.
-  // It never crosses out or selects a candidate, so no answer is implied.
+  // Teaches the GESTURE only: look at the clue, tap suspects, next clue, send.
+  // It never crosses out a candidate, so no answer is implied.
   ghostShow(true);await sleep(250);
   await ghostTo($('#clues'));await sleep(150);
   await ghostTo($('#lineup'));await ghostTap();
@@ -271,24 +285,26 @@ const PHASE={warmup:'Get ready',scored:'Your turn',done:'Answer sent'};
 function setCue(k,txt){const el=$('#phasecue');el.dataset.phase=k;el.textContent=txt||PHASE[k];}
 function setStatus(kind,msg){const el=$('#status');el.className=kind;el.textContent=msg;}
 function allCluesShown(){return current&&shown>=current.content.clues.length;}
+/* The clue is the PICTURE only. The written label the bank ships stays server-side: it
+   named the criterial attribute outright, which is the induction the child is supposed to
+   do. `aria-label` is deliberately just the clue number for the same reason. */
 function renderClues(){
   const cl=current.content.clues;
   $('#clues').innerHTML=cl.map((c,i)=>`
-    <div class="clue ${i<shown?'':'pending'} ${i===shown-1?'current':''}">
+    <div class="clue ${i<shown?'':'pending'} ${i===shown-1?'current':''}" aria-label="clue ${i+1}">
       <span class="clueId">${c.clueId}</span>
       ${i<shown?clueIcon(c):'<span style="font:800 20px system-ui;color:#a3925c">?</span>'}
-      <span class="clueText">${i<shown?c.label:'hidden'}</span>
     </div>`).join('');
 }
 function renderLineup(){
   $('#lineup').innerHTML=current.content.candidates.map((o,i)=>`
-    <button class="candidate ${crossed[o.key]?'dead':''} ${picked===o.key?'pick':''}" data-key="${o.key}"
+    <button class="candidate ${crossed[o.key]?'dead':''}" data-key="${o.key}"
       aria-label="suspect ${i+1}">${figureSVG(o.figure)}<span class="num">${o.key}</span>
     </button>`).join('');
-  $('#go').classList.toggle('ready',interactive&&!submitted&&allCluesShown()&&picked!==null);
+  $('#go').classList.toggle('ready',interactive&&!submitted&&allCluesShown());
 }
 function renderServedItem(item){
-  current=item;submitted=false;interactive=false;shown=1;crossed={};picked=null;firstKey=null;elimLog=[];
+  current=item;submitted=false;interactive=false;shown=1;crossed={};firstKey=null;elimLog=[];stepMarks=[];
   M.rev=0;M.firstLat=null;M.blur=0;M.elims=0;M.rt=null;itemTelemetry=[];
   renderClues();renderLineup();
   $('#nextclue').textContent='Next clue';
@@ -301,46 +317,52 @@ function noteFirstAction(key){
   if(firstKey!==null)return;
   firstKey=key;M.firstLat=Date.now()-itemStart;emitEvent('first_action',{key,latencyMs:M.firstLat});
 }
+const crossedKeys=()=>current.content.candidates.map(o=>o.key).filter(k=>crossed[k]);
+/* One graded step per clue: the crossed-out set the child was holding when they left
+   that clue. Scoring compares each snapshot with the suspects that clue (and every clue
+   before it) actually rules out, so credit is earned clue by clue rather than on a single
+   final pick. */
+function recordStep(){
+  const i=shown-1,clue=current.content.clues[i];
+  if(!clue)return;
+  stepMarks[i]={clueId:clue.clueId,eliminated:crossedKeys()};
+}
 function tapCandidate(key){
   if(!interactive||submitted)return;
   noteFirstAction(key);
-  if(allCluesShown()&&!crossed[key]){ // final selection stage
-    if(picked!==null&&picked!==key){M.rev++;emitEvent('change',{from:picked,to:key});}
-    picked=key;emitEvent('select',{key});
-    setStatus('neutral','Press the check to send this suspect.');
-  }else{
-    const now=!crossed[key];
-    crossed[key]=now;
-    if(now){M.elims++;if(picked===key)picked=null;}else{M.rev++;}
-    elimLog.push({clueStage:shown,key,action:now?'cross':'restore'});
-    emitEvent(now?'eliminate':'restore',{key,clueStage:shown});
-  }
+  const now=!crossed[key];
+  crossed[key]=now;
+  if(now){M.elims++;}else{M.rev++;}
+  elimLog.push({clueStage:shown,key,action:now?'cross':'restore'});
+  emitEvent(now?'eliminate':'restore',{key,clueStage:shown});
   renderLineup();renderMeters();
 }
 function nextClue(){
   if(!interactive||submitted)return;
   if(allCluesShown()){
-    setStatus('neutral','All clues are showing. Tap the suspect that fits them all, then press the check.');
+    setStatus('neutral','That was the last clue. Press the check when you are done crossing out.');
     return;
   }
+  recordStep();
   shown++;renderClues();renderLineup();
   emitEvent('clue_reveal',{clueStage:shown});
   if(allCluesShown()){
     $('#nextclue').textContent='All clues shown';
-    setStatus('neutral','Tap the one suspect that fits every clue, then press the check.');
+    setStatus('neutral','Last clue. Cross out everyone it rules out, then press the check.');
   }
 }
 function submit(){
-  if(!interactive||submitted||picked===null||!allCluesShown())return;
+  if(!interactive||submitted||!allCluesShown())return;
+  recordStep();
   const rt=Date.now()-itemStart;
   M.rt=rt;submitted=true;interactive=false;$('#go').classList.remove('ready');
   // NEUTRAL acknowledgment only — never correct/incorrect.
   setCue('done','Answer sent');
   setStatus('neutral',standalone?'Answer received. Loading the next case.':'Answer received. Next case coming up.');
-  emitEvent('submit',{selectedKey:picked,rtMs:rt,eliminated:Object.keys(crossed).filter(k=>crossed[k])});
+  emitEvent('submit',{rtMs:rt,steps:stepMarks.length,eliminated:crossedKeys()});
   const response={
-    selectedKey:picked,
-    eliminatedKeys:Object.keys(crossed).filter(k=>crossed[k]).sort(),
+    steps:stepMarks.slice(0,shown),
+    eliminatedKeys:crossedKeys().sort(),
     eliminationLog:elimLog.slice(),
     cluesRevealed:shown,
     changeCount:M.rev,
@@ -349,33 +371,41 @@ function submit(){
     'M-PATH':elimLog.length,'M-EFF':M.elims,'M-ENGAGE':M.blur,'M-RAPIDGUESS':rt<600?1:0};
   const result={itemId:current.itemId,typeCode:current.typeCode,domain:current.domain,response,metrics,telemetry:itemTelemetry.slice()};
   post({type:'result',result});
-  log('RESULT emitted \u2192 '+JSON.stringify({response:{selectedKey:response.selectedKey,eliminatedKeys:response.eliminatedKeys},metrics}));
+  log('RESULT emitted \u2192 '+JSON.stringify({response:{steps:response.steps,eliminatedKeys:response.eliminatedKeys},metrics}));
   renderMeters();
   if(standalone)setTimeout(advanceStandalone,1200);
 }
 
 /* ---------- host-driven lifecycle ---------- */
+/* R1 — the case waits behind the play gate. `init` renders the clues and the line-up, but
+   they stay covered and inert until the child presses play. That press is also when the
+   response clock starts, so M-RT and M-RTFIRST measure deducing rather than however long
+   the child took to look up at the screen. */
+function openGate(withTutorial){
+  gateTutorial=!!withTutorial;
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('warmup','Ready when you are');
+  setStatus('neutral','Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
 function onInit(item){
-  clearTimeout(startTimer);
   if(!item||!item.content||!Array.isArray(item.content.clues)){log('init ignored: malformed ServedItem');return;}
   renderServedItem(item);
-  setCue('warmup','Get ready');
-  setStatus('neutral','Get ready for the next case.');
-  // Lenient: if the host never sends {type:'start'}, begin on our own shortly.
-  startTimer=setTimeout(()=>{if(!interactive&&!submitted)beginItem(false);},500);
+  openGate(false);
 }
 async function beginItem(withTutorial){
   if(interactive||submitted||!current)return;
+  closeGate();
   if(withTutorial&&!tutorialShown){tutorialShown=true;await gestureHint();if(submitted)return;}
   interactive=true;itemStart=Date.now();               // interaction unlocked HERE
   setCue('scored','Your turn');
-  setStatus('neutral','Tap every suspect this clue rules out, then press Next clue.');
+  setStatus('neutral','Cross out every suspect this clue rules out, then press Next clue.');
   renderLineup();renderMeters();
 }
 function onHostMessage(e){
   const d=e.data;if(!d||d.source!==HOST_SRC)return;
   if(d.type==='init')onInit(d.item);
-  else if(d.type==='start'){clearTimeout(startTimer);beginItem(!!d.tutorial);}
+  else if(d.type==='start')openGate(!!d.tutorial);
 }
 
 /* ---------- standalone fallback (QA when there is no host) ---------- */
@@ -395,7 +425,7 @@ async function loadBankSamples(){
   log('standalone: bank fetch unavailable (open via a local server for the full bank) — using inline samples');
   return INLINE_SAMPLES.slice();
 }
-function playStandalone(){const item=standaloneQueue[standaloneIdx%standaloneQueue.length];onInit(item);beginItem(standaloneIdx===0);}
+function playStandalone(){const item=standaloneQueue[standaloneIdx%standaloneQueue.length];onInit(item);openGate(standaloneIdx===0);}
 function advanceStandalone(){standaloneIdx++;playStandalone();}
 async function bootstrapStandalone(){if(standalone)return;standalone=true;standaloneQueue=await loadBankSamples();standaloneIdx=0;playStandalone();}
 
@@ -407,6 +437,7 @@ const INLINE_SAMPLES=[
 ];
 
 /* ---------- wiring ---------- */
+$('#play').addEventListener('click',()=>{if(current&&!interactive&&!submitted)beginItem(gateTutorial);});
 $('#lineup').addEventListener('click',e=>{const b=e.target.closest('.candidate');if(b)tapCandidate(b.dataset.key);});
 $('#nextclue').addEventListener('click',nextClue);
 $('#go').addEventListener('click',()=>{if($('#go').classList.contains('ready'))submit();});

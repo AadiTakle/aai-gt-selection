@@ -452,6 +452,185 @@ function verifyConcept(item: RawBankItem, response: Record<string, unknown>): Ve
 }
 
 /* ================================================================== *
+ * FLU-DEDUCE-01 — cross out the suspects each clue rules out
+ *
+ * The child now works one clue at a time and is graded on the state they left
+ * each clue in, not on a single final pick: after clue k the crossed-out set
+ * should be exactly the candidates that violate at least one of clues 1..k.
+ * Every one of those sets is re-derived here by evaluating `content.clues`
+ * against `content.candidates`, so the stored key is never consulted.
+ *
+ * `correct` therefore means EVERY STEP WAS EXACTLY RIGHT — no suspect left
+ * standing that a clue rules out, and none crossed out early. That is a
+ * strictly harder bar than the old "picked the survivor", and the adaptive
+ * engine keys its difficulty step off this boolean, so an item's `correct`
+ * rate will sit lower than it did under the single-answer contract.
+ * `M-POLY` carries the graded signal: the mean, over steps, of the share of
+ * candidates in the right state.
+ * ================================================================== */
+
+interface DeduceClue {
+  clueId: string;
+  /** True when the figure satisfies the clue, i.e. the clue does NOT rule it out. */
+  holds: (figure: Record<string, unknown>) => boolean;
+}
+
+function readDeduceClue(raw: unknown): DeduceClue | null {
+  const clue = asRecord(raw);
+  const clueId = asString(clue?.clueId);
+  const form = asString(clue?.form);
+  if (!clue || clueId === null || form === null) return null;
+
+  if (form === 'and') {
+    const terms: { dim: string; value: AttrValue }[] = [];
+    for (const rawTerm of asArray(clue.terms) ?? []) {
+      const term = asRecord(rawTerm);
+      const dim = asString(term?.dim);
+      const value = readAttrValue(term?.value);
+      if (dim === null || value === null) return null;
+      terms.push({ dim, value });
+    }
+    if (terms.length === 0) return null;
+    return { clueId, holds: (figure) => terms.every((t) => figure[t.dim] === t.value) };
+  }
+
+  const dim = asString(clue.dim);
+  const value = readAttrValue(clue.value);
+  if (dim === null || value === null) return null;
+  switch (form) {
+    case 'is':
+      return { clueId, holds: (figure) => figure[dim] === value };
+    case 'not':
+      return { clueId, holds: (figure) => figure[dim] !== value };
+    case 'atleast':
+      return {
+        clueId,
+        holds: (figure) =>
+          typeof figure[dim] === 'number' && typeof value === 'number' && figure[dim] >= value,
+      };
+    case 'atmost':
+      return {
+        clueId,
+        holds: (figure) =>
+          typeof figure[dim] === 'number' && typeof value === 'number' && figure[dim] <= value,
+      };
+    default:
+      // An unknown clue form would be silently treated as satisfied by everything,
+      // which grades a correct child wrong. Refuse the item instead.
+      return null;
+  }
+}
+
+interface DeduceModel {
+  candidateKeys: string[];
+  /** Per clue, the keys ruled out by that clue or any clue before it. */
+  steps: { clueId: string; ruledOut: Set<string> }[];
+}
+
+function buildDeduceModel(content: Record<string, unknown>): DeduceModel | null {
+  const rawClues = asArray(content.clues);
+  const rawCandidates = asArray(content.candidates);
+  if (!rawClues || rawClues.length === 0 || !rawCandidates || rawCandidates.length === 0) {
+    return null;
+  }
+
+  const candidates: { key: string; figure: Record<string, unknown> }[] = [];
+  for (const raw of rawCandidates) {
+    const candidate = asRecord(raw);
+    const key = asString(candidate?.key);
+    const figure = asRecord(candidate?.figure);
+    if (key === null || !figure) return null;
+    candidates.push({ key, figure });
+  }
+
+  const steps: DeduceModel['steps'] = [];
+  const ruledOut = new Set<string>();
+  for (const raw of rawClues) {
+    const clue = readDeduceClue(raw);
+    if (!clue) return null;
+    for (const candidate of candidates) {
+      if (!clue.holds(candidate.figure)) ruledOut.add(candidate.key);
+    }
+    steps.push({ clueId: clue.clueId, ruledOut: new Set(ruledOut) });
+  }
+  return { candidateKeys: candidates.map((c) => c.key), steps };
+}
+
+/** One crossed-out set per clue, in clue order, or null when the response is unusable. */
+function readDeduceSteps(
+  response: Record<string, unknown>,
+  model: DeduceModel,
+): Set<string>[] | null {
+  const raw = asArray(response.steps);
+  if (!raw || raw.length !== model.steps.length) return null;
+
+  const out: Set<string>[] = [];
+  for (const [index, entry] of raw.entries()) {
+    const step = asRecord(entry);
+    if (!step) return null;
+    const clueId = asString(step.clueId);
+    // Positional by contract; when the demo names the clue it must be the right one,
+    // so a reordered or truncated trace is rejected rather than mis-graded.
+    if (clueId !== null && clueId !== model.steps[index]!.clueId) return null;
+    const eliminated = asArray(step.eliminated);
+    if (!eliminated) return null;
+    const keys = new Set<string>();
+    for (const value of eliminated) {
+      const key = asString(value);
+      if (key === null) return null;
+      keys.add(key);
+    }
+    out.push(keys);
+  }
+  return out;
+}
+
+function verifyDeduce(item: RawBankItem, response: Record<string, unknown>): Verdict {
+  const model = buildDeduceModel(item.content);
+  if (!model) return { correct: false };
+  const submitted = readDeduceSteps(response, model);
+  if (!submitted) return { correct: false };
+
+  let cells = 0;
+  let hits = 0;
+  let missed = 0; // left standing though a clue rules it out
+  let overcrossed = 0; // crossed out though every clue so far still fits it
+  let perfectSteps = 0;
+
+  for (const [index, step] of model.steps.entries()) {
+    const got = submitted[index]!;
+    let stepHits = 0;
+    for (const key of model.candidateKeys) {
+      cells++;
+      const shouldBeOut = step.ruledOut.has(key);
+      if (shouldBeOut === got.has(key)) {
+        hits++;
+        stepHits++;
+      } else if (shouldBeOut) {
+        missed++;
+      } else {
+        overcrossed++;
+      }
+    }
+    if (stepHits === model.candidateKeys.length) perfectSteps++;
+  }
+
+  // M-ERRTYPE (0..1, higher is better, matching the route's direction): of the
+  // states the child got wrong, the share that are under-pruning rather than
+  // crossing out a suspect the clue still admits. Crossing out a candidate that
+  // fits means the clue was read in the wrong direction — the rule violation the
+  // route scores lowest — whereas leaving one standing is incomplete pruning.
+  const errors = missed + overcrossed;
+  return {
+    correct: perfectSteps === model.steps.length,
+    metrics: {
+      'M-POLY': proportion(hits, cells),
+      'M-ERRTYPE': errors === 0 ? 1 : proportion(missed, errors),
+    },
+  };
+}
+
+/* ================================================================== *
  * CX-check-01 — review a sorter's work and fix the tiles it misplaced
  *
  * Every tile's true bin is recomputed from the visible board: canonicalise the
@@ -690,6 +869,7 @@ function verifyInvestigation(item: RawBankItem, response: Record<string, unknown
 export const fluidVerifiers: Record<string, Verifier> = {
   'FLU-GRIDCOPY-01': verifyGridCopy,
   'FLU-CONCEPT-01': verifyConcept,
+  'FLU-DEDUCE-01': verifyDeduce,
   'CX-check-01': verifyCheckTwice,
   'CX-achieve-02': verifyInvestigation,
 };

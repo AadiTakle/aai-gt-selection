@@ -83,6 +83,10 @@
       <div class="hotkeys">tap a jar to pick it &middot; tap it again to unpick &middot; Enter submits</div>
       <div id="status" class="neutral">Waiting for an item from the host…</div>
     </div>
+    <div id="playgate">
+      <p>The jars light up and start sliding when you press play, so watch closely from the first move.</p>
+      <button type="button" id="play">Play</button>
+    </div>
   </div>
   <aside id="telemetry">
     <h3>Live telemetry · per-child</h3>
@@ -328,14 +332,24 @@ function loadItem(served){
   $('#log').innerHTML='';log(`item ${(served.itemId||'').slice(0,8)} \u00b7 ${targets.length} fireflies \u00b7 digest ${replay.digest}`);
   renderMeters();
 }
+/* R1 — the glow and the slide used to begin the instant the host said `start`, so a child who
+   was not already looking lost the targets before the first swap and could not recover. The gate
+   hands that moment to them. */
+function openGate(){
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('waiting');setStatus('neutral','Press play when you are ready to watch the jars.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
 async function startItem(){
-  if(!content)return;
+  if(!content||started)return;
+  closeGate();
   started=true;T.itemStart=performance.now();emit('start',{motionDigest:replay.digest});
   if(content.scaffold&&content.scaffold.warmup)await ghostScaffold();
   await runMotion();
 }
 
 /* ---------- input ---------- */
+$('#play').addEventListener('click',()=>{void startItem();});
 $('#stage').addEventListener('click',e=>{const j=e.target.closest('.jar');if(j)toggleJar(j);});
 $('#done').addEventListener('click',()=>{if($('#done').classList.contains('ready'))submit();});
 $('#replay').addEventListener('click',()=>{if(started&&!locked&&!moving)ghostScaffold();});
@@ -344,8 +358,8 @@ addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();if($('#don
 /* ---------- host message handling ---------- */
 let gotInit=false;
 addEventListener('message',e=>{const d=e.data;if(!d||d.source!==HOST)return;
- if(d.type==='init'&&d.item){gotInit=true;loadItem(d.item);post('ready');}
- else if(d.type==='start'){startItem();}
+ if(d.type==='init'&&d.item){gotInit=true;loadItem(d.item);post('ready');openGate();}
+ else if(d.type==='start'){openGate();}
 });
 
 /* ---------- standalone fallback (opens by double-click; no host present) ----------
@@ -353,7 +367,7 @@ addEventListener('message',e=>{const d=e.data;if(!d||d.source!==HOST)return;
    stay in sync. A ServedItem carries no answer, scoring or provenance. */
 const SAMPLES=[{"itemId":"85836a06-3f27-4557-bd49-15250351398f","typeCode":"GB-TRACK-01","domain":"spatial","difficulty":1.07,"ageBands":["2-3"],"demoPath":"demos/GB-TRACK-01.html","content":{"typeCode":"GB-TRACK-01","question":{"mode":"track_targets","targetCount":1,"prompt":"Watch the 1 jar that light up. Keep your eyes on it while the jars slide around.","responsePrompt":"Tap the 1 jar that holds a firefly, then press DONE. Take as long as you need."},"jarCount":4,"slots":[{"x":0,"y":121},{"x":154,"y":121},{"x":308,"y":121},{"x":462,"y":121}],"initialTargets":[0],"motion":{"seed":"GB-TRACK-01|L1|#0|20260724","glowMs":1400,"phaseMs":1000,"phaseCount":2,"swapsPerPhase":1,"phases":[{"swaps":[[0,2]]},{"swaps":[[2,1]]}]},"clutterBugs":{"bugs":[]},"limits":{"maxTaps":16},"responseUntimed":true,"optionKind":"slot_set","scaffold":{"warmup":true}},"syntheticOnly":true,"validated":false},{"itemId":"94ed6ad7-e305-4827-a0ca-1b8fdbda4d99","typeCode":"GB-TRACK-01","domain":"spatial","difficulty":5.69,"ageBands":["2-3"],"demoPath":"demos/GB-TRACK-01.html","content":{"typeCode":"GB-TRACK-01","question":{"mode":"track_targets","targetCount":2,"prompt":"Watch the 2 jars that light up. Keep your eyes on them while the jars slide around.","responsePrompt":"Tap the 2 jars that hold a firefly, then press DONE. Take as long as you need."},"jarCount":6,"slots":[{"x":0,"y":10},{"x":231,"y":10},{"x":462,"y":10},{"x":0,"y":232},{"x":231,"y":232},{"x":462,"y":232}],"initialTargets":[2,3],"motion":{"seed":"GB-TRACK-01|L6|#0|20260724","glowMs":1400,"phaseMs":880,"phaseCount":6,"swapsPerPhase":2,"phases":[{"swaps":[[3,5],[4,0]]},{"swaps":[[2,4],[0,3]]},{"swaps":[[4,1],[0,3]]},{"swaps":[[5,4],[1,0]]},{"swaps":[[0,4],[3,2]]},{"swaps":[[0,1],[4,3]]}]},"clutterBugs":{"bugs":[{"atPhase":3,"y0":134,"y1":47,"fromLeft":true},{"atPhase":5,"y0":204,"y1":150,"fromLeft":false}]},"limits":{"maxTaps":24},"responseUntimed":true,"optionKind":"slot_set","scaffold":{"warmup":false}},"syntheticOnly":true,"validated":false},{"itemId":"0b959a8a-40ac-492e-8b8f-e4e96b465ba6","typeCode":"GB-TRACK-01","domain":"spatial","difficulty":12.23,"ageBands":["4-5","6-8"],"demoPath":"demos/GB-TRACK-01.html","content":{"typeCode":"GB-TRACK-01","question":{"mode":"track_targets","targetCount":4,"prompt":"Watch the 4 jars that light up. Keep your eyes on them while the jars slide around.","responsePrompt":"Tap the 4 jars that hold a firefly, then press DONE. Take as long as you need."},"jarCount":9,"slots":[{"x":0,"y":10},{"x":116,"y":10},{"x":231,"y":10},{"x":347,"y":10},{"x":462,"y":10},{"x":0,"y":232},{"x":116,"y":232},{"x":231,"y":232},{"x":347,"y":232}],"initialTargets":[4,6,7,8],"motion":{"seed":"GB-TRACK-01|L12|#0|20260724","glowMs":1400,"phaseMs":760,"phaseCount":10,"swapsPerPhase":3,"phases":[{"swaps":[[8,4],[5,7],[1,3]]},{"swaps":[[8,4],[7,1],[6,0]]},{"swaps":[[1,6],[3,2],[0,5]]},{"swaps":[[4,8],[0,1],[7,5]]},{"swaps":[[8,2],[3,1],[7,4]]},{"swaps":[[2,1],[3,8],[5,7]]},{"swaps":[[8,3],[7,0],[4,1]]},{"swaps":[[1,7],[8,0],[3,2]]},{"swaps":[[2,4],[8,7],[1,3]]},{"swaps":[[5,8],[4,2],[7,3]]}]},"clutterBugs":{"bugs":[{"atPhase":1,"y0":87,"y1":48,"fromLeft":true},{"atPhase":4,"y0":86,"y1":186,"fromLeft":true},{"atPhase":6,"y0":31,"y1":85,"fromLeft":false}]},"limits":{"maxTaps":36},"responseUntimed":true,"optionKind":"slot_set","scaffold":{"warmup":false}},"syntheticOnly":true,"validated":false},{"itemId":"3f7056c1-6b17-4aee-a15c-712727ba3104","typeCode":"GB-TRACK-01","domain":"spatial","difficulty":19.09,"ageBands":["6-8"],"demoPath":"demos/GB-TRACK-01.html","content":{"typeCode":"GB-TRACK-01","question":{"mode":"track_targets","targetCount":6,"prompt":"Watch the 6 jars that light up. Keep your eyes on them while the jars slide around.","responsePrompt":"Tap the 6 jars that hold a firefly, then press DONE. Take as long as you need."},"jarCount":13,"slots":[{"x":0,"y":10},{"x":116,"y":10},{"x":231,"y":10},{"x":347,"y":10},{"x":462,"y":10},{"x":0,"y":121},{"x":116,"y":121},{"x":231,"y":121},{"x":347,"y":121},{"x":462,"y":121},{"x":0,"y":232},{"x":116,"y":232},{"x":231,"y":232}],"initialTargets":[0,1,5,6,7,12],"motion":{"seed":"GB-TRACK-01|L19|#0|20260724","glowMs":1400,"phaseMs":600,"phaseCount":17,"swapsPerPhase":4,"phases":[{"swaps":[[0,8],[5,10],[4,7],[6,12]]},{"swaps":[[1,9],[10,3],[7,11],[5,6]]},{"swaps":[[8,1],[3,6],[12,10],[9,5]]},{"swaps":[[6,12],[10,8],[7,9],[4,2]]},{"swaps":[[7,4],[8,0],[10,6],[5,3]]},{"swaps":[[0,5],[6,10],[3,12],[9,1]]},{"swaps":[[12,8],[0,1],[7,2],[10,3]]},{"swaps":[[9,7],[3,2],[6,5],[8,0]]},{"swaps":[[5,10],[9,2],[1,7],[6,3]]},{"swaps":[[3,5],[2,4],[1,6],[0,11]]},{"swaps":[[5,9],[3,11],[12,6],[4,7]]},{"swaps":[[11,10],[1,0],[7,5],[9,3]]},{"swaps":[[5,8],[9,7],[1,6],[4,0]]},{"swaps":[[8,6],[12,1],[9,11],[4,5]]},{"swaps":[[6,10],[0,7],[8,1],[11,2]]},{"swaps":[[3,9],[0,11],[4,12],[2,1]]},{"swaps":[[10,4],[3,8],[12,11],[5,7]]}]},"clutterBugs":{"bugs":[{"atPhase":0,"y0":245,"y1":38,"fromLeft":true},{"atPhase":5,"y0":98,"y1":67,"fromLeft":false},{"atPhase":7,"y0":21,"y1":63,"fromLeft":true},{"atPhase":13,"y0":32,"y1":240,"fromLeft":false},{"atPhase":15,"y0":189,"y1":110,"fromLeft":false}]},"limits":{"maxTaps":52},"responseUntimed":true,"optionKind":"slot_set","scaffold":{"warmup":false}},"syntheticOnly":true,"validated":false}];
 let sampleIdx=0;
-function nextSample(){if(!SAMPLES.length)return;loadItem(SAMPLES[sampleIdx%SAMPLES.length]);sampleIdx++;startItem();}
+function nextSample(){if(!SAMPLES.length)return;loadItem(SAMPLES[sampleIdx%SAMPLES.length]);sampleIdx++;openGate();}
 
 /* ---------- boot ---------- */
 buildMeters();

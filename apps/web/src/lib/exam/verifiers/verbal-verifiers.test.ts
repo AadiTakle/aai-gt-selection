@@ -7,7 +7,7 @@ import type { RawBankItem } from '../bank-loader';
 import { verify } from './index';
 
 /**
- * Round-trip tests for the five types owned by `verbal.ts`.
+ * Round-trip tests for the six types owned by `verbal.ts`.
  *
  * Every case loads a REAL bank item off disk, builds the response an actual
  * renderer would post for a correct child, and asserts the verdict — then does
@@ -174,27 +174,65 @@ describe('WM-bubble-01 — n-back', () => {
   };
   const streamLength = (item: RawBankItem) =>
     (item.content as { streamLength: number }).streamLength;
-  const allPops = (item: RawBankItem) =>
-    Object.entries(targetsOf(item)).flatMap(([channel, steps]) =>
-      steps.map((stepIndex) => ({ channel, stepIndex, rtMs: 400, via: 'tap' })),
-    );
+  const nOf = (item: RawBankItem) => (item.content as { n: number }).n;
+  const channelsOf = (item: RawBankItem) =>
+    (item.content as { channels: { id: string }[] }).channels;
 
-  it.each([1, 2])('accepts a pop on every target and nowhere else (%i channel(s))', (channels) => {
-    const item = pick(
-      bank,
-      (i) => (i.content as { channels: unknown[] }).channels.length === channels,
-      `a ${channels}-channel block`,
+  interface Judgement {
+    channel: string;
+    stepIndex: number;
+    choice: 'seen' | 'new';
+    rtMs: number;
+    via: string;
+  }
+  /**
+   * What the renderer posts for a child who judges every decidable bubble right:
+   * one answer per lane per step, "seen" exactly on the recorded target steps.
+   */
+  const allJudgements = (item: RawBankItem): Judgement[] => {
+    const targets = targetsOf(item);
+    const out: Judgement[] = [];
+    for (const channel of channelsOf(item)) {
+      const targetSteps = new Set(targets[channel.id] ?? []);
+      for (let i = nOf(item); i < streamLength(item); i++) {
+        out.push({
+          channel: channel.id,
+          stepIndex: i,
+          choice: targetSteps.has(i) ? 'seen' : 'new',
+          rtMs: 400,
+          via: 'tap',
+        });
+      }
+    }
+    return out;
+  };
+  /** The same stream with one answer flipped, addressed by lane and step. */
+  const flipped = (judgements: Judgement[], at: (j: Judgement) => boolean): Judgement[] => {
+    const index = judgements.findIndex(at);
+    return judgements.map((j, i) =>
+      i === index ? { ...j, choice: j.choice === 'seen' ? 'new' : 'seen' } : j,
     );
-    const verdict = verify(item, {
-      pops: allPops(item),
-      stepsShown: streamLength(item),
-      completed: true,
-    });
-    expect(verdict.correct).toBe(true);
-    expect(verdict.metrics?.['M-POLY']).toBe(1);
-    expect(verdict.metrics?.['M-DPRIME']).toBe(1);
-    expect(verdict.metrics?.['M-FALSEALARM']).toBe(0);
-  });
+  };
+
+  it.each([1, 2])(
+    'accepts "seen it" on every target and "new" everywhere else (%i channel(s))',
+    (channels) => {
+      const item = pick(
+        bank,
+        (i) => (i.content as { channels: unknown[] }).channels.length === channels,
+        `a ${channels}-channel block`,
+      );
+      const verdict = verify(item, {
+        judgements: allJudgements(item),
+        stepsShown: streamLength(item),
+        completed: true,
+      });
+      expect(verdict.correct).toBe(true);
+      expect(verdict.metrics?.['M-POLY']).toBe(1);
+      expect(verdict.metrics?.['M-DPRIME']).toBe(1);
+      expect(verdict.metrics?.['M-FALSEALARM']).toBe(0);
+    },
+  );
 
   it('splits a miss from a false alarm on separate channels', () => {
     const item = pick(
@@ -204,11 +242,12 @@ describe('WM-bubble-01 — n-back', () => {
         Object.values(targetsOf(i))[0]!.length >= 3,
       'a single-channel block with >= 3 targets',
     );
-    const pops = allPops(item);
-    const targets = pops.length;
+    const judgements = allJudgements(item);
+    const targets = judgements.filter((j) => j.choice === 'seen').length;
 
+    // A target called "new": the hit rate falls, and calling a repeat new is not a false alarm.
     const missed = verify(item, {
-      pops: pops.slice(1),
+      judgements: flipped(judgements, (j) => j.choice === 'seen'),
       stepsShown: streamLength(item),
       completed: true,
     });
@@ -216,20 +255,35 @@ describe('WM-bubble-01 — n-back', () => {
     expect(missed.metrics?.['M-DPRIME']).toBe(Math.round(((targets - 1) / targets) * 1e4) / 1e4);
     expect(missed.metrics?.['M-FALSEALARM']).toBe(0);
 
-    // A pop on a step that is not a target: perfect hit rate, non-zero bias.
-    const n = (item.content as { n: number }).n;
-    const claimed = new Set(pops.map((p) => p.stepIndex));
-    const foil = Array.from({ length: streamLength(item) }, (_, i) => i).find(
-      (i) => i >= n && !claimed.has(i),
-    )!;
+    // A non-target called "seen it": perfect hit rate, non-zero bias.
     const biased = verify(item, {
-      pops: [...pops, { channel: pops[0]!.channel, stepIndex: foil, rtMs: 300, via: 'tap' }],
+      judgements: flipped(judgements, (j) => j.choice === 'new'),
       stepsShown: streamLength(item),
       completed: true,
     });
     expect(biased.correct).toBe(false);
     expect(biased.metrics?.['M-DPRIME']).toBe(1);
     expect(biased.metrics?.['M-FALSEALARM']).toBeGreaterThan(0);
+  });
+
+  it('does not credit a bubble that was never answered', () => {
+    const item = pick(
+      bank,
+      (i) => (i.content as { channels: unknown[] }).channels.length === 1,
+      'any single-channel block',
+    );
+    const judgements = allJudgements(item);
+    const dropped = judgements.findIndex((j) => j.choice === 'new');
+    const decidable = judgements.length;
+    const verdict = verify(item, {
+      judgements: judgements.filter((_, i) => i !== dropped),
+      stepsShown: streamLength(item),
+      completed: true,
+    });
+    // Silence on a non-target must not read as "new": it is a decision that was not made.
+    expect(verdict.correct).toBe(false);
+    expect(verdict.metrics?.['M-POLY']).toBe(Math.round(((decidable - 1) / decidable) * 1e4) / 1e4);
+    expect(verdict.metrics?.['M-FALSEALARM']).toBe(0);
   });
 
   it('never awards full credit for a block that was cut short', () => {
@@ -239,7 +293,7 @@ describe('WM-bubble-01 — n-back', () => {
       'any block',
     );
     const verdict = verify(item, {
-      pops: allPops(item),
+      judgements: allJudgements(item),
       stepsShown: streamLength(item) - 2,
       completed: false,
     });
@@ -249,7 +303,7 @@ describe('WM-bubble-01 — n-back', () => {
   it('re-derives the target steps of every block in the bank', () => {
     for (const item of bank) {
       const verdict = verify(item, {
-        pops: allPops(item),
+        judgements: allJudgements(item),
         stepsShown: streamLength(item),
         completed: true,
       });
@@ -258,7 +312,11 @@ describe('WM-bubble-01 — n-back', () => {
   });
 
   it('returns incorrect rather than throwing on a malformed response', () => {
-    expect(verify(bank[0]!, { pops: 'nope' })).toEqual({ correct: false });
+    expect(verify(bank[0]!, { judgements: 'nope' })).toEqual({ correct: false });
+    // The retired go/no-go shape is no longer a gradeable response.
+    expect(verify(bank[0]!, { pops: [], stepsShown: streamLength(bank[0]!) })).toEqual({
+      correct: false,
+    });
   });
 });
 
@@ -323,9 +381,64 @@ describe('VER-EVIDENCE-01 — answer plus evidence', () => {
   });
 });
 
+/**
+ * GB-FLAWFINDER-01 has no per-type verifier — it resolves to the generic keyed one.
+ * It is covered here because the 2026-07-29 reframe changed WHAT the key names: the
+ * old bank keyed the defective statement, the reframed bank keys the claim the facts
+ * support, and the renderer now reports that claim id as `selectedKey`. A demo that
+ * reported only an index would be scored wrong on every item against a string key, so
+ * the contract between the two is asserted rather than assumed.
+ */
+describe('GB-FLAWFINDER-01 — best-supported claim (generic keyed verifier)', () => {
+  const bank = loadBank('GB-FLAWFINDER-01');
+
+  it('accepts the supported claim and refuses every distractor, bank-wide', () => {
+    for (const item of bank) {
+      const claims = (item.content as { claims: { id: string }[] }).claims;
+      const key = String(item.answer.correctKey);
+      expect(verify(item, { selectedKey: key }).correct, item.itemId).toBe(true);
+      for (const claim of claims) {
+        if (claim.id === key) continue;
+        expect(verify(item, { selectedKey: claim.id }).correct, `${item.itemId} ${claim.id}`).toBe(
+          false,
+        );
+      }
+    }
+  });
+
+  it('reads the recorded key rather than a constant position', () => {
+    const item = pick(
+      bank,
+      (i) => String(i.answer.correctKey) !== 'c1',
+      'an item not keyed on the first claim',
+    );
+    expect(verify(item, { selectedKey: 'c1' }).correct).toBe(false);
+    const relabelled = withCorruptedKey(item, { correctKey: 'c1' });
+    expect(verify(relabelled, { selectedKey: 'c1' }).correct).toBe(true);
+  });
+
+  it('returns incorrect rather than throwing on a malformed response', () => {
+    const item = bank[0]!;
+    expect(verify(item, {})).toEqual({ correct: false });
+    expect(verify(item, { selectedKey: 'nope' })).toEqual({ correct: false });
+    // The index alone cannot grade a string key — this is why the renderer sends
+    // `selectedKey` (the claim id) and not just `selectedIndex`.
+    expect(verify(item, { selectedIndex: 0 })).toEqual({ correct: false });
+  });
+});
+
 describe('VER-SENSE-01 — word-card ordering', () => {
   const bank = loadBank('VER-SENSE-01');
   const orderOf = (item: RawBankItem) => String(item.answer.correctKey).split(',').map(Number);
+  const articlesOf = (item: RawBankItem) => (item.content as { articles: string[] }).articles;
+
+  /** The line the renderer posts: card tokens, with articles inserted between them. */
+  const lineOf = (order: number[], articleAt: Record<number, string> = {}) =>
+    order.flatMap((index, position) => {
+      const article = articleAt[position];
+      const card = { kind: 'card', index };
+      return article ? [{ kind: 'article', text: article }, card] : [card];
+    });
 
   it('accepts the one ordering that is grammatical and plausible', () => {
     const item = bank[0]!;
@@ -333,11 +446,68 @@ describe('VER-SENSE-01 — word-card ordering', () => {
     const cards = (item.content as { cards: { text: string }[] }).cards;
     const verdict = verify(item, {
       order,
+      sequence: lineOf(order),
       sentence: order.map((i) => cards[i]!.text).join(' '),
       complete: true,
     });
     expect(verdict.correct).toBe(true);
     expect(verdict.metrics?.['M-POLY']).toBe(1);
+  });
+
+  /**
+   * The reviewer's point: with the article sidebar the child can realise the same
+   * ordering as "the dog ate a bone" or "a dog ate the bone", and nothing in the
+   * item fixes which. Every realisation of the reference ordering has to score
+   * full credit, or the more complete answer is the one penalised.
+   */
+  it('accepts every article realisation of the reference ordering, on every item', () => {
+    for (const item of bank) {
+      const order = orderOf(item);
+      const articles = articlesOf(item);
+      for (const article of articles) {
+        const verdict = verify(item, {
+          order,
+          sequence: lineOf(order, { 0: article, [order.length - 1]: article }),
+          complete: true,
+        });
+        expect(verdict.correct, `${item.itemId} with "${article}"`).toBe(true);
+        expect(verdict.metrics?.['M-POLY']).toBe(1);
+      }
+    }
+  });
+
+  /**
+   * Deliberate leniency, recorded so it cannot become accidental: article
+   * PLACEMENT is not scored. Grading it would need per-noun countability data the
+   * bank does not carry, and the construct is the word order plus the semantic
+   * plausibility of the content words — not determiner grammar.
+   */
+  it('does not score where the articles were put', () => {
+    const item = bank[0]!;
+    const order = orderOf(item);
+    const articleAt = Object.fromEntries(order.map((_, position) => [position, 'the']));
+    const verdict = verify(item, { order, sequence: lineOf(order, articleAt), complete: true });
+    expect(verdict.correct).toBe(true);
+  });
+
+  it('refuses a line carrying a token the item never offered', () => {
+    const item = bank[0]!;
+    const order = orderOf(item);
+    const cards = (item.content as { cards: unknown[] }).cards;
+    expect(
+      verify(item, { sequence: [...lineOf(order), { kind: 'article', text: 'some' }] }),
+    ).toEqual({ correct: false });
+    expect(
+      verify(item, { sequence: [...lineOf(order), { kind: 'card', index: cards.length }] }),
+    ).toEqual({ correct: false });
+    expect(verify(item, { sequence: [{ kind: 'word', text: 'dog' }] })).toEqual({ correct: false });
+  });
+
+  it('refuses a response whose card order and built line disagree', () => {
+    const item = pick(bank, (i) => orderOf(i).length >= 3, 'any item');
+    const order = orderOf(item);
+    const swapped = [order[1]!, order[0]!, ...order.slice(2)];
+    expect(verify(item, { order, sequence: lineOf(swapped) })).toEqual({ correct: false });
   });
 
   it('rejects the grammatical-but-absurd lure', () => {
@@ -384,5 +554,69 @@ describe('VER-SENSE-01 — word-card ordering', () => {
 
   it('returns incorrect rather than throwing on a malformed response', () => {
     expect(verify(bank[0]!, { order: ['a', 'b'] })).toEqual({ correct: false });
+  });
+});
+
+describe('VER-SEQUENCE-01 — constructed story order', () => {
+  const bank = loadBank('VER-SEQUENCE-01');
+  const referenceOf = (item: RawBankItem) =>
+    (item.content as { options: { order: number[] }[] }).options[item.answer.correctKey as number]!
+      .order;
+
+  it('accepts the ordering the child built when it is the reference order', () => {
+    const item = bank[0]!;
+    const verdict = verify(item, { finalOrder: [...referenceOf(item)], moves: 3 });
+    expect(verdict.correct).toBe(true);
+    expect(verdict.metrics?.['M-POLY']).toBe(1);
+  });
+
+  it('replays the reference order of every item in the bank', () => {
+    for (const item of bank) {
+      const verdict = verify(item, { finalOrder: [...referenceOf(item)] });
+      expect(verdict.correct, item.itemId).toBe(true);
+      expect(verdict.metrics?.['M-POLY'], item.itemId).toBe(1);
+    }
+  });
+
+  it('rejects one adjacent swap but keeps most of the pair concordance', () => {
+    const item = pick(bank, (i) => referenceOf(i).length >= 4, 'a 4-event story');
+    const reference = referenceOf(item);
+    const built = [...reference];
+    [built[0], built[1]] = [built[1]!, built[0]!];
+    const verdict = verify(item, { finalOrder: built });
+    expect(verdict.correct).toBe(false);
+    const pairs = (reference.length * (reference.length - 1)) / 2;
+    expect(verdict.metrics?.['M-POLY']).toBe(Math.round(((pairs - 1) / pairs) * 1e4) / 1e4);
+  });
+
+  it('scores a fully reversed story at zero concordance', () => {
+    const item = bank[0]!;
+    const verdict = verify(item, { finalOrder: [...referenceOf(item)].reverse() });
+    expect(verdict.correct).toBe(false);
+    expect(verdict.metrics?.['M-POLY']).toBe(0);
+  });
+
+  it('reads the reference order through the answer key, not a constant', () => {
+    const item = pick(
+      bank,
+      (i) => (i.content as { options: unknown[] }).options.length >= 2,
+      'any item',
+    );
+    const options = (item.content as { options: { order: number[] }[] }).options;
+    const otherIndex = options.findIndex((_, index) => index !== item.answer.correctKey);
+    const relabelled = withCorruptedKey(item, { correctKey: otherIndex });
+    expect(verify(relabelled, { finalOrder: [...referenceOf(item)] }).correct).toBe(false);
+    expect(verify(relabelled, { finalOrder: [...options[otherIndex]!.order] }).correct).toBe(true);
+  });
+
+  it('returns incorrect rather than throwing on a malformed response', () => {
+    const item = bank[0]!;
+    expect(verify(item, { finalOrder: 'nope' })).toEqual({ correct: false });
+    expect(verify(item, {})).toEqual({ correct: false });
+    // An ordering that drops or repeats an event places no story at all.
+    expect(verify(item, { finalOrder: referenceOf(item).slice(1) })).toEqual({ correct: false });
+    expect(verify(item, { finalOrder: referenceOf(item).map(() => 0) })).toEqual({
+      correct: false,
+    });
   });
 });

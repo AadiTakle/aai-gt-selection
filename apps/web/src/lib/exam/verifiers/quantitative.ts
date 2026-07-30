@@ -27,7 +27,8 @@ import { num, setOverlap, type Verifier } from './types';
  *      efficiency; a legal-but-wasteful solution is still correct, and the
  *      waste is reported as `M-EFF` (optimum / actual, capped at 1). The only
  *      exceptions are the types whose bank states a threshold for full credit
- *      (GB-WORDFORGE-01) or an exact key (GB-TRACK-01, QUANT-MIX-01).
+ *      (GB-WORDFORGE-01, whose threshold is now net of the declared non-word
+ *      penalty) or an exact key (GB-TRACK-01, QUANT-MIX-01).
  *   3. Never throw. Malformed input returns `{ correct: false }`.
  */
 
@@ -92,11 +93,12 @@ function efficiency(optimum: number | null, actual: number | null): number | nul
 }
 
 // ---------------------------------------------------------------------------
-// server-only child lexicon (GB-WORDLADDER-01)
+// server-only child lexicon (GB-WORDLADDER-01, GB-WORDFORGE-01)
 // ---------------------------------------------------------------------------
 
 /**
- * The 4k-word curated child lexicon that GB-WORDLADDER-01 is defined against
+ * The 4k-word curated child lexicon that GB-WORDLADDER-01 and GB-WORDFORGE-01
+ * are defined against
  * (`research/exam-question-types/generators/lexicon-child-en.mjs`).
  *
  * It is read off disk at first use rather than imported or inlined so it can
@@ -166,6 +168,28 @@ export function childLexicon(): Map<string, number> | null {
     lexiconCache = null; // a missing lexicon must fail closed, never throw
   }
   return lexiconCache;
+}
+
+/**
+ * A lexicon band as `M-VOCABLVL`: 1 for a child who stayed on the commonest
+ * words, 7 for one who reached the rarest.
+ *
+ * The two scales run opposite ways and the metric's is the one that has to win
+ * here. `lexicon-child-en@v1` counts DOWN in rarity (band 7 = earliest and most
+ * frequent, band 1 = above-level), while `M-VOCABLVL` is declared as a lexical
+ * CEILING that counts up: "ascending difficulty band (higher = rarer mastered)"
+ * in `@gt-selection/exam-scoring`'s metric registry, `direction: 'higher'` over
+ * 1..8 in `DEFAULT_EXAM_POLICY`, and — in GB-WORDFORGE-01's own answer key —
+ * "a valid word at vocabulary band <= 3 (raises M-VOCABLVL)". Reporting the raw
+ * band scored a child who reached a rare word as if they had the shallowest
+ * vocabulary in the room.
+ *
+ * The bands themselves are provisional design estimates, not a corpus
+ * measurement (RES-012 / RES-013), so this is a ranked signal and not a
+ * calibrated frequency.
+ */
+function vocabCeiling(rarestBand: number): number {
+  return 8 - rarestBand;
 }
 
 // ---------------------------------------------------------------------------
@@ -488,6 +512,14 @@ const verifyTrack: Verifier = (item, response) => {
  * longer legal ladder, and zero only for an illegal step, a non-word rung or a
  * ladder that never reaches the goal — so a long legal climb is `correct` with
  * `M-EFF = optimalRungs / submittedRungs`.
+ *
+ * WORD RARITY. A ladder through uncommon words is more evidence than the same
+ * climb through the commonest ones, so `M-VOCABLVL` reports the rarest band the
+ * child's own rungs reached, on the metric's ascending scale (`vocabCeiling`).
+ * Two boundaries make it a bonus rather than a second verdict: it is computed
+ * AFTER legality, so it can never turn an illegal ladder into a legal one, and
+ * it is bounded to the 1..7 the lexicon's bands span. The start word is served,
+ * so it is excluded — its rarity is a property of the item, not of the child.
  */
 const verifyWordladder: Verifier = (item, response) => {
   const lexicon = childLexicon();
@@ -514,39 +546,72 @@ const verifyWordladder: Verifier = (item, response) => {
   if (ladder[0] !== start.toUpperCase()) return { correct: false };
   if (ladder[rungs] !== goal.toUpperCase()) return { correct: false };
 
-  let rarestBand = 7;
+  let rarestTypedBand = 7;
   for (let i = 0; i < ladder.length; i++) {
     const word = ladder[i] as string;
     if (word.length !== wordLength) return { correct: false };
     const band = lexicon.get(word);
     if (band === undefined) return { correct: false };
-    if (band < rarestBand) rarestBand = band;
     if (i === 0) continue;
+    if (band < rarestTypedBand) rarestTypedBand = band;
     const previous = ladder[i - 1] as string;
     let changed = 0;
     for (let k = 0; k < wordLength; k++) if (previous[k] !== word[k]) changed++;
     if (changed !== 1) return { correct: false };
   }
 
-  const metrics: Record<string, number> = { 'M-VOCABLVL': rarestBand };
+  const metrics: Record<string, number> = { 'M-VOCABLVL': vocabCeiling(rarestTypedBand) };
   const eff = efficiency(int(item.answer.optimalRungs), rungs);
   if (eff !== null) metrics['M-EFF'] = eff;
   return { correct: true, metrics };
 };
 
 // ---------------------------------------------------------------------------
-// GB-WORDFORGE-01 — credit every forgeable word
+// GB-WORDFORGE-01 — credit every forgeable word, less the declared non-word cost
 // ---------------------------------------------------------------------------
 
 /**
- * GB-WORDFORGE-01. `answer.validWords` is the exact set of lexicon words the
- * rack affords, enumerated when the bank was built, so this verifier needs no
- * lexicon of its own: a submission is credited iff it is in that set
- * (case-insensitively), and repeats score once.
+ * What one distinct made-up word costs, counted in credited words.
  *
- * The bank's credit table makes full credit a THRESHOLD — distinct credited
- * words >= `answer.referenceTarget` — with the ratio as partial credit, so
- * unlike the search types `correct` here is not merely "produced one word".
+ * HALF, not one. The lexicon is a curated 4k child list rather than a
+ * dictionary, so a real word its curation never took in is indistinguishable
+ * here from an invented one; at 1:1 that curation gap would cost a child a word
+ * they genuinely knew. At a half, two junk entries still cancel one real word,
+ * which is enough that typing letters at random cannot pay, while a single
+ * near-miss on a word the child believed in costs them less than the word they
+ * got right.
+ *
+ * The number is only defensible because the child is TOLD it before they play:
+ * the demo's play gate states that made-up words take points off. An
+ * unannounced penalty measures whether a child guessed the rules rather than
+ * what words they know.
+ */
+const WORDFORGE_NONWORD_COST = 0.5;
+
+/**
+ * GB-WORDFORGE-01. `answer.validWords` is the exact set of lexicon words the
+ * rack affords, enumerated when the bank was built: a submission is credited iff
+ * it is in that set (case-insensitively), and repeats score once.
+ *
+ * The bank's credit table makes full credit a THRESHOLD — credited words >=
+ * `answer.referenceTarget` — with the ratio as partial credit, so unlike the
+ * search types `correct` here is not merely "produced one word". The threshold
+ * and the ratio are now met NET of the non-word penalty.
+ *
+ * WHICH UNCREDITED ENTRIES ARE PENALISED. Only the ones that are not words at
+ * all, which is the only thing the child was warned about. A real word that
+ * broke a rule — shorter than `content.minWordLength`, or not spellable from the
+ * rack — earns nothing and costs nothing, because it is a rule slip rather than
+ * the "randomly inputting words" behaviour the penalty exists to price. Telling
+ * those two apart needs the lexicon, so this is the second type that reads it;
+ * if it cannot be read there is NO penalty, since a file the server failed to
+ * open must not take points off a child.
+ *
+ * The score stays monotone and bounded. Every real word adds 1 and every junk
+ * entry subtracts a half, so submitting only real words can never score below
+ * submitting nothing, and the net is floored at 0 — the same floor the bank's
+ * credit table already allows ("no credited word forged") — so no barrage of
+ * junk can push a child below it.
  */
 const verifyWordforge: Verifier = (item, response) => {
   const entries = arr(item.answer.validWords);
@@ -562,12 +627,15 @@ const verifyWordforge: Verifier = (item, response) => {
   const submissions = arr(response.submissions);
   if (!submissions) return { correct: false };
 
+  const lexicon = childLexicon();
   const credited = new Set<string>();
+  const nonwords = new Set<string>();
   for (const entry of submissions) {
     const word = str(entry) ?? str(obj(entry)?.word);
-    if (word === null) continue;
+    if (word === null || word.length === 0) continue;
     const normalised = word.toUpperCase();
     if (bandOf.has(normalised)) credited.add(normalised);
+    else if (lexicon && !lexicon.has(normalised)) nonwords.add(normalised);
   }
 
   let rarestBand = 0;
@@ -576,11 +644,18 @@ const verifyWordforge: Verifier = (item, response) => {
     if (rarestBand === 0 || (band > 0 && band < rarestBand)) rarestBand = band;
   }
 
+  const netCredit = Math.max(0, credited.size - WORDFORGE_NONWORD_COST * nonwords.size);
+  const judged = credited.size + nonwords.size;
   const target = int(item.answer.referenceTarget);
   const metrics: Record<string, number> = { 'M-IDEAFLU': credited.size };
-  if (rarestBand > 0) metrics['M-VOCABLVL'] = rarestBand;
-  if (target !== null && target > 0) metrics['M-EFF'] = Math.min(1, credited.size / target);
-  return { correct: target !== null && credited.size >= target, metrics };
+  if (rarestBand > 0) metrics['M-VOCABLVL'] = vocabCeiling(rarestBand);
+  // The share of judged entries that were real words: the bank declares
+  // M-ERRTYPE for this type, and this is the signal that separates a child
+  // reaching for words from one typing letters. Absent when nothing was judged,
+  // rather than a free 1 for an abandoned round.
+  if (judged > 0) metrics['M-ERRTYPE'] = credited.size / judged;
+  if (target !== null && target > 0) metrics['M-EFF'] = Math.min(1, netCredit / target);
+  return { correct: target !== null && netCredit >= target, metrics };
 };
 
 // ---------------------------------------------------------------------------

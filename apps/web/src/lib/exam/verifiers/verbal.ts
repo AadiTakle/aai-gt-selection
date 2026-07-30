@@ -192,36 +192,48 @@ function verifyBind(item: RawBankItem, response: Record<string, unknown>): Verdi
  * the stream itself — step `i` is a target iff `stream[i] === stream[i - n]` —
  * rather than read off `answer.correctKey`.
  *
- * The first n steps are the lead-in: no n-back item exists yet, so no pop there
- * is defensible and the renderer blocks it. Pops outside the decidable range are
- * therefore ignored rather than counted, matching what the renderer can emit.
+ * The renderer asks a two-alternative question of every decidable bubble — "seen
+ * it" (this stimulus repeats the one n back) or "new" — and posts the answers as
+ * `response.judgements`, one per lane per step, in presentation order. Grading the
+ * answers rather than a stream of taps is what makes a miss distinguishable from
+ * a non-response: under a go/no-go POP control the absence of a tap meant either.
  *
- * Only steps the child actually saw are scored (`response.stepsShown`), but full
- * credit still requires the whole stream to have been presented — a block cut
- * short was not administered, so it cannot be a full-credit block.
+ * The first n steps are the lead-in: no n-back item exists yet, so no answer
+ * there is defensible and the renderer does not collect one. Judgements outside
+ * the decidable range are therefore ignored rather than counted, matching what
+ * the renderer can emit. A later judgement for the same lane and step supersedes
+ * an earlier one, so a child who changes their mind is graded on the answer they
+ * left standing.
+ *
+ * Only steps the child actually answered are scored (`response.stepsShown`), but
+ * full credit still requires the whole stream to have been presented — a block
+ * cut short was not administered, so it cannot be a full-credit block.
  *
  * Hits and false alarms go on separate SDT channels, because they are not
  * interchangeable evidence: `M-DPRIME` carries the hit rate over target steps,
  * `M-FALSEALARM` the false-alarm rate over non-target decidable steps. Collapsing
  * them into one accuracy figure would make a cautious child and a guesser look
- * identical. `M-POLY` is the proportion of decidable steps decided correctly (a
- * pop on a target, no pop on a non-target).
+ * identical. `M-POLY` is the proportion of decidable steps answered correctly; a
+ * step left unanswered is not correct, and is not a false alarm either.
  */
 function verifyBubble(item: RawBankItem, response: Record<string, unknown>): Verdict {
   const content = item.content as { n?: unknown; channels?: unknown; streamLength?: unknown };
   const n = num(content.n);
   const channels = arrayOf(content.channels);
-  const pops = arrayOf(response.pops);
-  if (n === null || n < 1 || !channels || channels.length === 0 || !pops) {
+  const judgements = arrayOf(response.judgements);
+  if (n === null || n < 1 || !channels || channels.length === 0 || !judgements) {
     return { correct: false };
   }
 
-  const popped = new Set<string>();
-  for (const pop of pops) {
-    if (!isRecord(pop)) continue;
-    const channel = str(pop.channel);
-    const stepIndex = num(pop.stepIndex);
-    if (channel !== null && stepIndex !== null) popped.add(`${channel}:${stepIndex}`);
+  const answered = new Map<string, 'seen' | 'new'>();
+  for (const judgement of judgements) {
+    if (!isRecord(judgement)) continue;
+    const channel = str(judgement.channel);
+    const stepIndex = num(judgement.stepIndex);
+    const choice = str(judgement.choice);
+    if (channel === null || stepIndex === null) continue;
+    if (choice !== 'seen' && choice !== 'new') continue;
+    answered.set(`${channel}:${stepIndex}`, choice);
   }
 
   const declaredLength = num(content.streamLength);
@@ -232,6 +244,7 @@ function verifyBubble(item: RawBankItem, response: Record<string, unknown>): Ver
   let hits = 0;
   let nonTargets = 0;
   let falseAlarms = 0;
+  let correctDecisions = 0;
 
   for (const channel of channels) {
     if (!isRecord(channel)) return { correct: false };
@@ -245,28 +258,28 @@ function verifyBubble(item: RawBankItem, response: Record<string, unknown>): Ver
     if (shown < streamLength) fullStreamShown = false;
 
     for (let i = n; i < shown; i++) {
-      const isTarget = stream[i] === stream[i - n];
-      const didPop = popped.has(`${id}:${i}`);
-      if (isTarget) {
+      const expected = stream[i] === stream[i - n] ? 'seen' : 'new';
+      const choice = answered.get(`${id}:${i}`) ?? null;
+      if (expected === 'seen') {
         targets++;
-        if (didPop) hits++;
+        if (choice === 'seen') hits++;
       } else {
         nonTargets++;
-        if (didPop) falseAlarms++;
+        if (choice === 'seen') falseAlarms++;
       }
+      if (choice === expected) correctDecisions++;
     }
   }
 
   const decidable = targets + nonTargets;
   if (decidable === 0) return { correct: false };
 
-  const correctDecisions = hits + (nonTargets - falseAlarms);
   const metrics: Record<string, number> = { 'M-POLY': round4(correctDecisions / decidable) };
   if (targets > 0) metrics['M-DPRIME'] = round4(hits / targets);
   if (nonTargets > 0) metrics['M-FALSEALARM'] = round4(falseAlarms / nonTargets);
 
   return {
-    correct: fullStreamShown && targets > 0 && hits === targets && falseAlarms === 0,
+    correct: fullStreamShown && targets > 0 && correctDecisions === decidable,
     metrics,
   };
 }
@@ -380,10 +393,71 @@ function senseExpectedOrder(item: RawBankItem): number[] | null {
   return indices.every((index) => Number.isInteger(index) && index >= 0) ? indices : null;
 }
 
+/** Fallback article vocabulary for a bank row written before `content.articles`. */
+const SENSE_ARTICLES = ['a', 'an', 'the'];
+
+/** The closed set of article tokens this item's sidebar may contribute. */
+function senseArticleSet(item: RawBankItem): Set<string> {
+  const declared = strArray((item.content as { articles?: unknown }).articles);
+  const list = declared && declared.length > 0 ? declared : SENSE_ARTICLES;
+  return new Set(list.map((word) => word.toLowerCase()));
+}
+
 /**
- * The child drags word cards into a track. Exactly one ordering is both
- * grammatical and plausible, so correctness is a strict permutation match against
- * that ordering.
+ * Project the line the child built onto the card-index ordering that is graded.
+ *
+ * The child inserts word cards and, from the sidebar, as many articles as they
+ * like, so `response.sequence` is the full ordered line. Articles are SURFACE:
+ * they are checked against the item's own closed article vocabulary and then
+ * dropped, which is what makes every grammatical realisation of the reference
+ * ordering accepted — "the dog ate a bone", "a dog ate the bone" and the bare
+ * "dog ate bone" all project to the same card order. Nothing in the item fixes
+ * the definiteness choice, so scoring it would mark a correct child wrong.
+ *
+ * A token that is neither a card in range nor a declared article makes the
+ * response malformed rather than partially credited: otherwise a client could
+ * smuggle a card past the projection by mislabelling it.
+ *
+ * `response.order` is still read (and is what the plpgsql port grades), so when
+ * both fields arrive they must agree — a line and a card order that disagree
+ * cannot both be what the child built.
+ */
+function senseCardOrder(item: RawBankItem, response: Record<string, unknown>): number[] | null {
+  const cards = arrayOf((item.content as { cards?: unknown }).cards);
+  const cardCount = cards ? cards.length : 0;
+  const order = numArray(response.order);
+  const sequence = arrayOf(response.sequence);
+  if (!sequence) return order;
+
+  const articles = senseArticleSet(item);
+  const projected: number[] = [];
+  for (const token of sequence) {
+    if (!isRecord(token)) return null;
+    const kind = str(token.kind);
+    if (kind === 'card') {
+      const index = num(token.index);
+      if (index === null || !Number.isInteger(index) || index < 0 || index >= cardCount)
+        return null;
+      projected.push(index);
+    } else if (kind === 'article') {
+      const text = str(token.text);
+      if (text === null || !articles.has(text.toLowerCase())) return null;
+    } else {
+      return null;
+    }
+  }
+  if (order && (order.length !== projected.length || order.some((v, i) => v !== projected[i]))) {
+    return null;
+  }
+  return projected;
+}
+
+/**
+ * The child inserts word cards, in order, into a growing sentence line. Exactly
+ * one ordering of the cards is both grammatical and plausible — the generator
+ * proves it by brute force over every permutation and refuses to write an item
+ * where two survive — so correctness is a strict permutation match against that
+ * ordering, article placement aside (see {@link senseCardOrder}).
  *
  * `M-POLY` is the adjacent-pair credit the type declares: the proportion of the
  * target's adjacent word pairs that the child reproduced consecutively and in the
@@ -393,7 +467,7 @@ function senseExpectedOrder(item: RawBankItem): number[] | null {
  */
 function verifySense(item: RawBankItem, response: Record<string, unknown>): Verdict {
   const expected = senseExpectedOrder(item);
-  const order = numArray(response.order);
+  const order = senseCardOrder(item, response);
   if (!expected || expected.length === 0 || !order) return { correct: false };
 
   let matched = 0;
@@ -413,10 +487,77 @@ function verifySense(item: RawBankItem, response: Record<string, unknown>): Verd
   };
 }
 
+/* ------------------------------------------------------------------ *
+ * VER-SEQUENCE-01 — constructed event ordering
+ * ------------------------------------------------------------------ */
+
+/**
+ * The reference ordering, re-derived from the item's own candidate set: the
+ * option `answer.correctKey` names, validated to be a permutation of the events.
+ *
+ * The candidate orderings stay in `content` (they are what the bank was built
+ * with) but the renderer no longer shows them — the child now reorders the event
+ * cards directly, so the option set neither leaks the answer nor bounds the
+ * response. Reading the reference through the key keeps one source of truth for
+ * "what order does this story happen in".
+ */
+function sequenceReferenceOrder(item: RawBankItem): number[] | null {
+  const content = item.content as { options?: unknown; events?: unknown };
+  const options = arrayOf(content.options);
+  const events = arrayOf(content.events);
+  const key = num(item.answer.correctKey);
+  if (!options || !events || key === null || !Number.isInteger(key)) return null;
+  if (key < 0 || key >= options.length) return null;
+  const option = recordOf(options[key]);
+  const order = option ? numArray(option.order) : null;
+  return isEventPermutation(order, events.length) ? order : null;
+}
+
+/** An ordering is gradeable only when it places every event exactly once. */
+function isEventPermutation(order: number[] | null, eventCount: number): order is number[] {
+  if (!order || eventCount === 0 || order.length !== eventCount) return false;
+  if (new Set(order).size !== order.length) return false;
+  return order.every((index) => Number.isInteger(index) && index >= 0 && index < eventCount);
+}
+
+/**
+ * Story ordering, produced rather than recognised: the child drags the event
+ * cards into the order the story happens and the response carries that ordering.
+ * Correctness is exact agreement with the reference order.
+ *
+ * `M-POLY` is the pair concordance (Kendall-tau) the type declares: the share of
+ * event PAIRS the child left in the right relative order. Adjacent-pair credit
+ * would be the wrong partial signal here — a child who has the whole causal chain
+ * but slots one late event too early keeps almost every ordering relation, which
+ * is the thing the construct is about, and only a global measure sees it.
+ */
+function verifySequence(item: RawBankItem, response: Record<string, unknown>): Verdict {
+  const expected = sequenceReferenceOrder(item);
+  const built = numArray(response.finalOrder);
+  if (!expected || !isEventPermutation(built, expected.length)) return { correct: false };
+
+  const rank = new Map(expected.map((event, index) => [event, index]));
+  let pairs = 0;
+  let concordant = 0;
+  for (let i = 0; i < built.length; i++) {
+    for (let j = i + 1; j < built.length; j++) {
+      pairs++;
+      if (rank.get(built[i]!)! < rank.get(built[j]!)!) concordant++;
+    }
+  }
+  const correct = built.every((event, index) => event === expected[index]);
+
+  return {
+    correct,
+    metrics: { 'M-POLY': round4(pairs > 0 ? concordant / pairs : correct ? 1 : 0) },
+  };
+}
+
 export const verbalVerifiers: Record<string, Verifier> = {
   'WM-corsi-01': verifyCorsi,
   'WM-bind-01': verifyBind,
   'WM-bubble-01': verifyBubble,
   'VER-EVIDENCE-01': verifyEvidence,
   'VER-SENSE-01': verifySense,
+  'VER-SEQUENCE-01': verifySequence,
 };

@@ -363,14 +363,6 @@ function tfRotate(solid, deg) {
   const segs = solid.segments.map((g) => seg(g.y0, g.y1, g.sides, g.r0, g.r1, { rotDeg: g.rotDeg + deg, curv: g.curv, arc: g.arc }));
   return solidOf(segs);
 }
-function tfScaleRadius(solid, k) {
-  const segs = solid.segments.map((g) => {
-    const m = seg(g.y0, g.y1, g.sides, g.r0 * k, g.r1 * k, { rotDeg: g.rotDeg, curv: g.curv ? g.curv * k : 0 });
-    if (g.arc) m.arc = { yc: g.arc.yc, R: round4(g.arc.R * k) };
-    return m;
-  });
-  return solidOf(segs);
-}
 function tfEndpointSwap(solid) {
   const segs = solid.segments.map((g) => {
     if (g.arc) return seg(g.y0, g.y1, g.sides, g.arc.R * 0.9, TINY_R, { rotDeg: g.rotDeg });
@@ -398,17 +390,47 @@ const LURE_NOTES = {
   taper_family_swap: 'same start and end slice, wrong curvature of the change between them',
   sides_shift: 'right taper, wrong cross-section family (polygon side count off)',
   rotational_offset: 'right solid, cross-section twisted about the scan axis',
-  radius_scale: 'right profile shape, wrong overall size',
   endpoint_swap: 'taper runs the wrong way within the segment',
   boundary_shift: 'right parts, wrong height at which the solid changes',
   foreign_solid: 'unrelated solid: a random pick that matches no slice progression',
 };
 
+/* ---- R6: no candidate may differ from the key by size alone ----
+ * Absolute size is not recoverable from the task. The child reads a stack of
+ * cross-sections and matches it to a solid drawn at a scale the item chose, so
+ * "which of these is bigger" is a question about the drawing, not about the
+ * solid — a foil that reproduces the key's cross-section SHAPE at every
+ * sampled height and only rescales its radii is unanswerable rather than hard.
+ * Every foil must therefore differ somewhere in cross-section shape, side
+ * count, orientation, or the order of the profile along the scan axis.
+ *
+ * True when `cand` is `ref` under one uniform radius scaling: same
+ * cross-section family and orientation at every sampled height, and every
+ * radius in the same ratio (measured against the largest slice, so the ratio
+ * is read where it is best determined).
+ */
+export function sizeOnlyVariant(ref, cand, sliceCount) {
+  const a = sampleStack(ref, sliceCount).map((s) => s.section);
+  const b = sampleStack(cand, sliceCount).map((s) => s.section);
+  if (a.some((s) => !s) || b.some((s) => !s)) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i].sides !== b[i].sides) return false;
+    if (a[i].sides >= 3) {
+      const period = 360 / a[i].sides;
+      const raw = (((a[i].rotDeg - b[i].rotDeg) % period) + period) % period;
+      if (Math.min(raw, period - raw) > ROT_NEAR) return false;
+    }
+  }
+  const i0 = a.reduce((best, s, i) => (s.r > a[best].r ? i : best), 0);
+  if (a[i0].r < 1e-6 || b[i0].r < 1e-6) return false;
+  const k = b[i0].r / a[i0].r;
+  return a.every((s, i) => Math.abs(s.r * k - b[i].r) <= R_NEAR);
+}
+
 function buildDistractors(correct, want, sim, sliceCount, rng) {
   const baseStack = sampleStack(correct, sliceCount);
   const seen = new Set([stackKey(baseStack)]);
   const out = [];
-  const delta = 0.06 + 0.3 * (1 - sim); // radius perturbation magnitude
   const theta = Math.round(8 + 52 * (1 - sim)); // rotational perturbation magnitude
   const push = (solid, lure, extra = {}) => {
     if (!solid || out.length >= want) return false;
@@ -418,6 +440,7 @@ function buildDistractors(correct, want, sim, sliceCount, rng) {
     // borderline slice would make "matches / does not match" ambiguous.
     const rels = st.map((s, i) => sectionRel(s.section, baseStack[i].section));
     if (rels.includes('fuzzy') || !rels.includes('diff')) return false;
+    if (sizeOnlyVariant(correct, solid, sliceCount)) return false;
     const k = stackKey(st);
     if (seen.has(k)) return false;
     seen.add(k);
@@ -428,12 +451,11 @@ function buildDistractors(correct, want, sim, sliceCount, rng) {
   const near = [
     () => push(tfRotate(correct, theta), 'rotational_offset', { rotationDeg: theta }),
     () => push(tfTaperFamilySwap(correct), 'taper_family_swap'),
-    () => push(tfScaleRadius(correct, 1 - delta), 'radius_scale', { scale: round4(1 - delta) }),
     () => push(tfMirrorInverted(correct), 'mirror_inverted', { chirality: 'reflected_scan_axis', exactMirror: true }),
     () => push(tfEndpointSwap(correct), 'endpoint_swap'),
     () => push(tfSidesShift(correct, 1), 'sides_shift', { sidesDelta: 1 }),
     () => push(tfBoundaryShift(correct, 0.3), 'boundary_shift'),
-    () => push(tfScaleRadius(correct, 1 + delta * 0.7), 'radius_scale', { scale: round4(1 + delta * 0.7) }),
+    () => push(tfSidesShift(correct, -1), 'sides_shift', { sidesDelta: -1 }),
     () => push(tfRotate(correct, -theta), 'rotational_offset', { rotationDeg: -theta }),
     () => push(tfConstantProfile(correct), 'constant_profile'),
   ];
@@ -441,11 +463,11 @@ function buildDistractors(correct, want, sim, sliceCount, rng) {
     () => push(tfConstantProfile(correct), 'constant_profile'),
     () => push(tfMirrorInverted(correct), 'mirror_inverted', { chirality: 'reflected_scan_axis', exactMirror: true }),
     () => push(tfSidesShift(correct, -1), 'sides_shift', { sidesDelta: -1 }),
-    () => push(tfScaleRadius(correct, 1 - delta), 'radius_scale', { scale: round4(1 - delta) }),
     () => push(tfEndpointSwap(correct), 'endpoint_swap'),
     () => push(tfTaperFamilySwap(correct), 'taper_family_swap'),
     () => push(tfSidesShift(correct, 2), 'sides_shift', { sidesDelta: 2 }),
     () => push(tfRotate(correct, theta), 'rotational_offset', { rotationDeg: theta }),
+    () => push(tfBoundaryShift(correct, 0.3), 'boundary_shift'),
   ];
   for (const step of sim >= 0.5 ? near : far) step();
   // Top up with foreign solids if de-duplication left us short.

@@ -75,6 +75,10 @@
     <div id="controls"><button id="replay" class="round" title="replay the scan sweep" aria-label="replay the scan sweep">&#8635;</button><button id="lock" class="round" title="send answer" aria-label="send answer">&#10003;</button></div>
     <div id="status" class="neutral">Waiting for the next scan.</div>
   </main>
+  <div id="playgate">
+    <p>The scan is ready. Press play when you are, and it starts then.</p>
+    <button type="button" id="play">Play</button>
+  </div>
 </div>
 <aside id="telemetry">
   <h3>Live telemetry · per-child (display only)</h3>
@@ -179,11 +183,11 @@ function drawScan(){
 /* ---------- per-item state ---------- */
 let current=null,interactive=false,submitted=false;
 let staged=null,firstKey=null,selectionOrder=[],scanIdx=0;
-let itemStart=0,startTimer=null,itemTelemetry=[];
+let itemStart=0,itemTelemetry=[];
 const M={rt:null,rts:[],firstLat:null,rev:0,blur:0,scrubs:0,replays:0,seen:new Set()};
 
 const embedded=(()=>{try{return window.parent&&window.parent!==window;}catch(_){return true;}})();
-let standalone=false,standaloneQueue=[],standaloneIdx=0,tutorialShown=false;
+let standalone=false,standaloneQueue=[],standaloneIdx=0,tutorialShown=false,gateTutorial=false;
 function post(msg){if(!embedded)return;try{window.parent.postMessage(Object.assign({source:DEMO_SRC},msg),'*');}catch(_){}}
 
 /* ---------- telemetry panel (DISPLAY ONLY; key-free) ---------- */
@@ -285,12 +289,30 @@ function submit(){
 }
 
 /* ---------- host-driven lifecycle ---------- */
+/* R1 — the scan waits behind the play gate. The item used to go live 500ms after the host
+   delivered it, so M-RT and M-RTFIRST started while the child was still looking up and mixed
+   orienting time into a scored quantity. `init` renders behind the gate, `start` only arms it,
+   and the press of play is what begins the item and starts the clock. */
+function openGate(withTutorial){
+ gateTutorial=!!withTutorial;
+ document.documentElement.setAttribute('data-gt-gate','closed');
+ setCue('warmup','Get ready');setStatus('neutral','Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
+/* Every route through this item is keyboard-reachable, so the gate is too. Behind a closed
+   gate the item's own shortcuts do nothing, so any key the child presses means "I am ready":
+   it presses play and is consumed rather than silently going nowhere. */
+function gateKey(e){
+  if(document.documentElement.getAttribute('data-gt-gate')!=='closed')return false;
+  if(!e.metaKey&&!e.ctrlKey&&!e.altKey&&!/^(Tab|Escape|Shift|Control|Alt|Meta|CapsLock)$/.test(e.key)){
+    $('#play').click();e.preventDefault();
+  }
+  return true;
+}
 function onInit(item){
- clearTimeout(startTimer);
  if(!item||!item.content||!item.content.scan||!item.content.options){log('init ignored: malformed ServedItem');return;}
  renderServedItem(item);
- setCue('warmup','Get ready');setStatus('neutral','Get ready for the scan.');
- startTimer=setTimeout(()=>{if(!interactive&&!submitted)beginItem(false);},500);
+ openGate(false);
 }
 async function beginItem(withTutorial){
  if(interactive||submitted||!current)return;
@@ -302,7 +324,7 @@ async function beginItem(withTutorial){
 }
 function onHostMessage(e){const d=e.data;if(!d||d.source!==HOST_SRC)return;
  if(d.type==='init')onInit(d.item);
- else if(d.type==='start'){clearTimeout(startTimer);beginItem(!!d.tutorial);}}
+ else if(d.type==='start')openGate(!!d.tutorial);}
 
 /* ---------- standalone fallback (QA when there is no host) ---------- */
 function toServed(b){const{answer,scoring,provenance,...s}=b;return s;}
@@ -321,23 +343,29 @@ async function loadBankSamples(){
  log('standalone: bank fetch unavailable (serve the folder for the full bank) — using inline samples');
  return INLINE_SAMPLES.slice();
 }
-function playStandalone(){onInit(standaloneQueue[standaloneIdx%standaloneQueue.length]);beginItem(standaloneIdx===0);}
+function playStandalone(){onInit(standaloneQueue[standaloneIdx%standaloneQueue.length]);openGate(standaloneIdx===0);}
 function advanceStandalone(){standaloneIdx++;playStandalone();}
 async function bootstrapStandalone(){if(standalone)return;standalone=true;standaloneQueue=await loadBankSamples();standaloneIdx=0;playStandalone();}
 
 /* Inline served-item fallback (real bank rows with the answer stripped). */
 const INLINE_SAMPLES=[
 {"itemId":"4c2da6d8-a90f-42e5-956e-96b20b425fd3","typeCode":"SPA-XSCAN-01","domain":"spatial","difficulty":1.22,"ageBands":["4-5"],"demoPath":"demos/SPA-XSCAN-01.html","content":{"typeCode":"SPA-XSCAN-01","question":{"mode":"pick_solid","prompt":"Scan up and down through the hidden solid. Which solid makes these slices?"},"scan":{"axis":"y","axisRange":[-1,1],"sliceCount":9,"showHeightScale":true,"slices":[{"t":0.0556,"section":{"sides":0,"r":0.7986,"rotDeg":0}},{"t":0.1667,"section":{"sides":0,"r":0.7986,"rotDeg":0}},{"t":0.2778,"section":{"sides":0,"r":0.7986,"rotDeg":0}},{"t":0.3889,"section":{"sides":0,"r":0.7986,"rotDeg":0}},{"t":0.5,"section":{"sides":0,"r":0.7986,"rotDeg":0}},{"t":0.6111,"section":{"sides":0,"r":0.7986,"rotDeg":0}},{"t":0.7222,"section":{"sides":0,"r":0.7986,"rotDeg":0}},{"t":0.8333,"section":{"sides":0,"r":0.7986,"rotDeg":0}},{"t":0.9444,"section":{"sides":0,"r":0.7986,"rotDeg":0}}]},"optionKind":"axial_stack_solid","options":[{"key":"A","solid":{"axis":"y","axisRange":[-1,1],"segments":[{"y0":-1,"y1":1,"sides":4,"rotDeg":0,"r0":0.7986,"r1":0.7986}]}},{"key":"B","solid":{"axis":"y","axisRange":[-1,1],"segments":[{"y0":-1,"y1":1,"sides":0,"rotDeg":0,"r0":0.7986,"r1":0.7986}]}}],"display":{"candidateYawDeg":60,"candidatePitchDeg":22},"scaffold":{"warmup":true,"replayHint":true}},"syntheticOnly":true,"validated":false},
-{"itemId":"fe570fd0-ea04-4b19-b765-39f1155f8f23","typeCode":"SPA-XSCAN-01","domain":"spatial","difficulty":10.77,"ageBands":["4-5","6-8"],"demoPath":"demos/SPA-XSCAN-01.html","content":{"typeCode":"SPA-XSCAN-01","question":{"mode":"pick_solid","prompt":"Scan up and down through the hidden solid. Which solid makes these slices?"},"scan":{"axis":"y","axisRange":[-1,1],"sliceCount":5,"showHeightScale":false,"slices":[{"t":0.1,"section":{"sides":0,"r":0.8015,"rotDeg":0}},{"t":0.3,"section":{"sides":0,"r":0.63,"rotDeg":0}},{"t":0.5,"section":{"sides":0,"r":0.4586,"rotDeg":0}},{"t":0.7,"section":{"sides":0,"r":0.2872,"rotDeg":0}},{"t":0.9,"section":{"sides":0,"r":0.1157,"rotDeg":0}}]},"optionKind":"axial_stack_solid","options":[{"key":"A","solid":{"axis":"y","axisRange":[-1,1],"segments":[{"y0":-1,"y1":1,"sides":0,"rotDeg":0,"r0":0.8872,"r1":0.03,"curv":0.28}]}},{"key":"B","solid":{"axis":"y","axisRange":[-1,1],"segments":[{"y0":-1,"y1":1,"sides":0,"rotDeg":0,"r0":0.03,"r1":0.8872}]}},{"key":"C","solid":{"axis":"y","axisRange":[-1,1],"segments":[{"y0":-1,"y1":1,"sides":0,"rotDeg":0,"r0":0.8872,"r1":0.03}]}}],"display":{"candidateYawDeg":0,"candidatePitchDeg":22},"scaffold":{"warmup":false,"replayHint":false}},"syntheticOnly":true,"validated":false},
-{"itemId":"9e2f1547-8b4a-446c-9fe2-039a8f977f1a","typeCode":"SPA-XSCAN-01","domain":"spatial","difficulty":19.91,"ageBands":["6-8"],"demoPath":"demos/SPA-XSCAN-01.html","content":{"typeCode":"SPA-XSCAN-01","question":{"mode":"pick_solid","prompt":"Scan up and down through the hidden solid. Which solid makes these slices?"},"scan":{"axis":"y","axisRange":[-1,1],"sliceCount":5,"showHeightScale":false,"slices":[{"t":0.1,"section":{"sides":0,"r":0.1645,"rotDeg":0}},{"t":0.3,"section":{"sides":0,"r":0.4335,"rotDeg":0}},{"t":0.5,"section":{"sides":0,"r":0.7025,"rotDeg":0}},{"t":0.7,"section":{"sides":6,"r":0.7697,"rotDeg":30}},{"t":0.9,"section":{"sides":6,"r":0.7697,"rotDeg":30}}]},"optionKind":"axial_stack_solid","options":[{"key":"A","solid":{"axis":"y","axisRange":[-1,1],"segments":[{"y0":-1,"y1":0.1,"sides":0,"rotDeg":0,"r0":0.03,"r1":0.7697},{"y0":0.1,"y1":1,"sides":6,"rotDeg":30,"r0":0.7697,"r1":0.7697}]}},{"key":"B","solid":{"axis":"y","axisRange":[-1,1],"segments":[{"y0":-1,"y1":-0.1,"sides":6,"rotDeg":30,"r0":0.7697,"r1":0.7697},{"y0":-0.1,"y1":1,"sides":0,"rotDeg":0,"r0":0.7697,"r1":0.03}]}},{"key":"C","solid":{"axis":"y","axisRange":[-1,1],"segments":[{"y0":-1,"y1":0.1,"sides":0,"rotDeg":0,"r0":0.03,"r1":0.7697,"curv":-0.28},{"y0":0.1,"y1":1,"sides":6,"rotDeg":30,"r0":0.7697,"r1":0.7697,"curv":0.28}]}},{"key":"D","solid":{"axis":"y","axisRange":[-1,1],"segments":[{"y0":-1,"y1":0.1,"sides":5,"rotDeg":0,"r0":0.03,"r1":0.7697},{"y0":0.1,"y1":1,"sides":7,"rotDeg":30,"r0":0.7697,"r1":0.7697}]}},{"key":"E","solid":{"axis":"y","axisRange":[-1,1],"segments":[{"y0":-1,"y1":0.1,"sides":0,"rotDeg":9,"r0":0.03,"r1":0.7697},{"y0":0.1,"y1":1,"sides":6,"rotDeg":39,"r0":0.7697,"r1":0.7697}]}},{"key":"F","solid":{"axis":"y","axisRange":[-1,1],"segments":[{"y0":-1,"y1":0.1,"sides":0,"rotDeg":0,"r0":0.7697,"r1":0.03},{"y0":0.1,"y1":1,"sides":6,"rotDeg":30,"r0":0.7697,"r1":0.7697}]}}],"display":{"candidateYawDeg":45,"candidatePitchDeg":22},"scaffold":{"warmup":false,"replayHint":false}},"syntheticOnly":true,"validated":false}
+{"itemId":"fe570fd0-ea04-4b19-b765-39f1155f8f23","typeCode":"SPA-XSCAN-01","domain":"spatial","difficulty":10.77,"ageBands":["4-5","6-8"],"demoPath":"demos/SPA-XSCAN-01.html","content":{"typeCode":"SPA-XSCAN-01","question":{"mode":"pick_solid","prompt":"Scan up and down through the hidden solid. Which solid makes these slices?"},"scan":{"axis":"y","axisRange":[-1,1],"sliceCount":5,"showHeightScale":false,"slices":[{"t":0.1,"section":{"sides":0,"r":0.8015,"rotDeg":0}},{"t":0.3,"section":{"sides":0,"r":0.63,"rotDeg":0}},{"t":0.5,"section":{"sides":0,"r":0.4586,"rotDeg":0}},{"t":0.7,"section":{"sides":0,"r":0.2872,"rotDeg":0}},{"t":0.9,"section":{"sides":0,"r":0.1157,"rotDeg":0}}]},"optionKind":"axial_stack_solid","options":[{"key":"A","solid":{"axis":"y","axisRange":[-1,1],"segments":[{"y0":-1,"y1":1,"sides":0,"rotDeg":0,"r0":0.8872,"r1":0.03}]}},{"key":"B","solid":{"axis":"y","axisRange":[-1,1],"segments":[{"y0":-1,"y1":1,"sides":0,"rotDeg":0,"r0":0.8872,"r1":0.03,"curv":0.28}]}},{"key":"C","solid":{"axis":"y","axisRange":[-1,1],"segments":[{"y0":-1,"y1":1,"sides":0,"rotDeg":0,"r0":0.03,"r1":0.8872}]}}],"display":{"candidateYawDeg":0,"candidatePitchDeg":22},"scaffold":{"warmup":false,"replayHint":false}},"syntheticOnly":true,"validated":false},
+{"itemId":"9e2f1547-8b4a-446c-9fe2-039a8f977f1a","typeCode":"SPA-XSCAN-01","domain":"spatial","difficulty":19.91,"ageBands":["6-8"],"demoPath":"demos/SPA-XSCAN-01.html","content":{"typeCode":"SPA-XSCAN-01","question":{"mode":"pick_solid","prompt":"Scan up and down through the hidden solid. Which solid makes these slices?"},"scan":{"axis":"y","axisRange":[-1,1],"sliceCount":5,"showHeightScale":false,"slices":[{"t":0.1,"section":{"sides":0,"r":0.1645,"rotDeg":0}},{"t":0.3,"section":{"sides":0,"r":0.4335,"rotDeg":0}},{"t":0.5,"section":{"sides":0,"r":0.7025,"rotDeg":0}},{"t":0.7,"section":{"sides":6,"r":0.7697,"rotDeg":30}},{"t":0.9,"section":{"sides":6,"r":0.7697,"rotDeg":30}}]},"optionKind":"axial_stack_solid","options":[{"key":"A","solid":{"axis":"y","axisRange":[-1,1],"segments":[{"y0":-1,"y1":-0.1,"sides":6,"rotDeg":30,"r0":0.7697,"r1":0.7697},{"y0":-0.1,"y1":1,"sides":0,"rotDeg":0,"r0":0.7697,"r1":0.03}]}},{"key":"B","solid":{"axis":"y","axisRange":[-1,1],"segments":[{"y0":-1,"y1":0.1,"sides":0,"rotDeg":0,"r0":0.03,"r1":0.7697,"curv":-0.28},{"y0":0.1,"y1":1,"sides":6,"rotDeg":30,"r0":0.7697,"r1":0.7697,"curv":0.28}]}},{"key":"C","solid":{"axis":"y","axisRange":[-1,1],"segments":[{"y0":-1,"y1":0.1,"sides":0,"rotDeg":0,"r0":0.03,"r1":0.7697},{"y0":0.1,"y1":1,"sides":6,"rotDeg":30,"r0":0.7697,"r1":0.7697}]}},{"key":"D","solid":{"axis":"y","axisRange":[-1,1],"segments":[{"y0":-1,"y1":0.1,"sides":5,"rotDeg":0,"r0":0.03,"r1":0.7697},{"y0":0.1,"y1":1,"sides":7,"rotDeg":30,"r0":0.7697,"r1":0.7697}]}},{"key":"E","solid":{"axis":"y","axisRange":[-1,1],"segments":[{"y0":-1,"y1":0.1,"sides":0,"rotDeg":9,"r0":0.03,"r1":0.7697},{"y0":0.1,"y1":1,"sides":6,"rotDeg":39,"r0":0.7697,"r1":0.7697}]}},{"key":"F","solid":{"axis":"y","axisRange":[-1,1],"segments":[{"y0":-1,"y1":0.1,"sides":0,"rotDeg":0,"r0":0.7697,"r1":0.03},{"y0":0.1,"y1":1,"sides":6,"rotDeg":30,"r0":0.7697,"r1":0.7697}]}}],"display":{"candidateYawDeg":45,"candidatePitchDeg":22},"scaffold":{"warmup":false,"replayHint":false}},"syntheticOnly":true,"validated":false}
 ];
 
 /* ---------- wiring ---------- */
+// A second press of play is a no-op: the gate is already open by then.
+$('#play').addEventListener('click',()=>{
+ if(document.documentElement.getAttribute('data-gt-gate')!=='closed')return;
+ closeGate();beginItem(gateTutorial);
+});
 $('#options').addEventListener('click',e=>{const o=e.target.closest('.option');if(o)stageOption(o);});
 $('#slider').addEventListener('input',()=>{if(!interactive||submitted)return;setScan(+$('#slider').value,true);});
 $('#lock').addEventListener('click',()=>{if($('#lock').classList.contains('ready'))submit();});
 $('#replay').addEventListener('click',async()=>{if(!interactive||submitted)return;M.replays++;markFirst('replay');emitEvent('replay_sweep',{});await sweep();});
 document.addEventListener('keydown',e=>{
+ if(gateKey(e))return;
  if(!interactive||submitted)return;
  if(/^[1-9]$/.test(e.key)){const o=$$('#options .option')[+e.key-1];if(o)stageOption(o);}
  else if(e.key==='ArrowLeft'){setScan(scanIdx-1,true);e.preventDefault();}

@@ -37,16 +37,17 @@
   #history{display:flex;flex-direction:column;gap:6px;align-items:center;width:100%;max-height:210px;overflow:auto}
   #current{display:flex;gap:6px}
   .curtile{width:46px;height:46px;background:#fcf4ef;border:3px solid #f8e8de;border-radius:11px;display:flex;
-    align-items:center;justify-content:center;font-size:23px;font-weight:800;cursor:pointer;
-    -webkit-tap-highlight-color:transparent;transition:.12s}
-  .curtile:hover{border-color:#ecd9cb}
-  .curtile.sel{border-color:var(--accent);box-shadow:0 0 0 4px #ecd9cb}
-  #alphabet{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;max-width:430px}
-  .letterbtn{width:32px;height:32px;background:#f8e8de;border-radius:7px;font-size:15px;font-weight:700;
-    cursor:pointer;display:flex;align-items:center;justify-content:center;color:#004f71;
-    -webkit-tap-highlight-color:transparent}
-  .letterbtn:hover{background:#f8e8de}
-  #alphabet.off .letterbtn{opacity:.4;cursor:default}
+    align-items:center;justify-content:center;font-size:23px;font-weight:800}
+  #entry{display:flex;flex-direction:column;align-items:center;gap:6px}
+  #entryrow{display:flex;gap:10px;align-items:center}
+  #entrylabel{font-size:13px;font-weight:700;color:#33505c}
+  #rung{width:190px;padding:9px 12px;border:3px solid #ecd9cb;border-radius:12px;background:#ffffff;
+    font:800 23px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:#003b5c;text-align:center;
+    letter-spacing:.18em;text-transform:uppercase}
+  #rung:focus{border-color:var(--accent)}
+  #rung:disabled{background:#fcf4ef;color:#4a6470}
+  #add{border-radius:12px;padding:11px 18px;font-size:15px;font-weight:800;background:var(--accent);color:#ffffff}
+  #add:disabled{opacity:.4;cursor:default}
   #controls{display:flex;gap:14px;align-items:center}
   button{font:inherit;border:0;cursor:pointer;border-radius:50%;background:#fcf4ef;color:#4a6470}
   #go{width:72px;height:72px;background:var(--accent);color:#ffffff;font-size:26px;
@@ -78,7 +79,7 @@
   #logwrap b{display:block;padding:8px 12px 4px;color:#4a6470;font-size:11px;letter-spacing:.08em}
   #log{height:170px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
   #log div{padding:2px 0;border-bottom:1px dotted #004f71}#log .t{color:#6f4526}
-  button:focus-visible,.curtile:focus-visible,.letterbtn:focus-visible{outline:4px solid #e48b53;outline-offset:3px}
+  button:focus-visible,#rung:focus-visible{outline:4px solid #e48b53;outline-offset:3px}
   @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
   @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:320px}}
 </style>
@@ -102,10 +103,10 @@
     <div id="badge">GB-WORDLADDER-01 · Letter Climb</div>
     <header id="howto">
       <h1>How to use — Letter Climb</h1>
-      <p>Tap one letter in your word, then tap a new letter to change it. That makes the next rung of your
-      ladder. Keep changing one letter at a time until your word matches the goal word at the top, using as
-      few steps as you can. Press the check (<b>&#10003;</b>) to send your ladder. Use undo (<b>&#8630;</b>)
-      to take a rung back.</p>
+      <p>Type the next word of your ladder in the box and press add. Each word must change exactly one
+      letter of the word before it, and every word must be a real word. Keep climbing until your word
+      matches the goal word at the top, using as few steps as you can. Press the check (<b>&#10003;</b>)
+      to send your ladder. Use undo (<b>&#8630;</b>) to take a rung back.</p>
     </header>
     <div id="phasecue" data-phase="waiting">Waiting for item</div>
     <div id="prompt"></div>
@@ -113,14 +114,25 @@
       <div id="goalbox"></div>
       <div class="wordrow"><span class="wordlabel">Now</span><span id="current"></span></div>
       <div id="history"></div>
-      <div id="alphabet" class="off"></div>
+      <div id="entry">
+        <label id="entrylabel" for="rung">Type the next word</label>
+        <div id="entryrow">
+          <input id="rung" type="text" autocomplete="off" autocapitalize="characters" autocorrect="off"
+                 spellcheck="false" enterkeyhint="go" disabled>
+          <button id="add" type="button" disabled>Add</button>
+        </div>
+      </div>
       <div id="controls">
         <button id="replay" title="show how again">&#8635;</button>
         <button id="undo" title="undo last rung">&#8630;</button>
         <button id="go" title="send my ladder">&#10003;</button>
       </div>
-      <div class="hotkeys">arrow keys or 1-5 pick a letter slot &middot; A-Z types &middot; backspace undoes &middot; enter sends</div>
+      <div class="hotkeys">type a word and press enter to add it &middot; the check sends your ladder</div>
       <div id="status" class="neutral">Waiting for an item from the host.</div>
+    </div>
+    <div id="playgate">
+      <p>The ladder is ready. Press play when you are, and the climb starts then.</p>
+      <button type="button" id="play">Play</button>
     </div>
   </div>
   <aside id="telemetry">
@@ -142,16 +154,24 @@
 /* =====================================================================
  * GB-WORDLADDER-01 — PURE RENDERER
  *
- * Renders a SERVED item (item.content: start, goal, wordLength, alphabet) and reports the
- * child's RAW ladder plus process telemetry. It NEVER generates its own puzzle and it NEVER
- * shows correct/incorrect.
+ * Renders a SERVED item (item.content: start, goal, wordLength) and reports the child's RAW
+ * ladder plus process telemetry. It NEVER generates its own puzzle and it NEVER shows
+ * correct/incorrect.
+ *
+ * The child WRITES each rung (R3). Stepping one letter at a time through a picker made the
+ * interaction do part of the work — it could only ever produce a one-letter change, so the
+ * child never had to hold the whole next word in mind — and it was slow. The box takes the
+ * whole word.
  *
  * The subtle part for this type: the renderer has NO LEXICON. A word ladder's feedback signal
  * ("that is a real word / that is not") IS the answer key, so shipping a word list to the
- * browser would leak correctness on every keystroke. So every one-letter change the child
- * makes is accepted as a rung and written to the attempt log; the server replays the ladder
- * against the lexicon, checks each rung, and compares the length to its BFS optimum
- * (BUILD_PLAN §2, scoring.mode = 'computed_solver').
+ * browser would leak correctness on every keystroke. The SAME argument covers the one-letter
+ * rule now that the child types freely: rejecting a two-letter jump here would tell them their
+ * word failed for the other reason, which narrows the search for them. So the box turns away
+ * only what cannot be a rung at all — nothing typed, the wrong number of letters, something
+ * that is not letters — and everything else is accepted as a rung and written to the attempt
+ * log. The server replays the ladder against the lexicon, checks every rung and every step, and
+ * compares the length to its BFS optimum (BUILD_PLAN §2, scoring.mode = 'computed_solver').
  *
  * Embedding protocol (postMessage), source-tagged:
  *   host -> demo : {source:'gt-exam-host', type:'init',  item:ServedItem}
@@ -173,10 +193,9 @@ function post(type,extra){if(!embedded)return;try{window.parent.postMessage(Obje
 
 /* ---------- per-item state ---------- */
 let item=null,content=null;
-let startWord='',goalWord='',wordLen=0,alphabet=[];
+let startWord='',goalWord='',wordLen=0;
 let rungs=[];        // ordered ladder INCLUDING the start word
 let curWord='';
-let selIdx=null;
 let locked=true;     // released the moment interaction starts (see startItem)
 let started=false, submitted=false;
 const T={t0:0,first:null,commits:0,undos:0,rt:0,blur:0,events:[],log:[],lastActivity:0};
@@ -225,55 +244,52 @@ function paintLadder(){
   $('#history').innerHTML=earlier+base;
 }
 function paintCurrent(){
-  $('#current').innerHTML=curWord.split('').map((c,i)=>
-    `<span class="curtile${i===selIdx?' sel':''}" data-i="${i}" tabindex="0">${c}</span>`).join('');
-}
-function paintAlphabet(){
-  $('#alphabet').innerHTML=alphabet.map(c=>`<span class="letterbtn" data-c="${c}" tabindex="0">${c}</span>`).join('');
+  $('#current').innerHTML=curWord.split('').map(c=>`<span class="curtile">${c}</span>`).join('');
 }
 function refresh(){paintLadder();paintCurrent();renderMeters();}
 
-/* ---------- interaction: every accepted change is a rung, judged later ---------- */
+/* ---------- interaction: every typed word of the right shape is a rung, judged later ---------- */
 function noteFirst(){if(T.first==null&&started){T.first=performance.now()-T.t0;emit('first_action',{ms:Math.round(T.first)});}}
-function selectSlot(i){
-  if(locked||submitted||i==null||i<0||i>=wordLen)return;
-  noteFirst();
-  selIdx=i;paintCurrent();
-  emit('select_slot',{index:i});
-}
-function applyLetter(ch){
+function clearEntry(){const box=$('#rung');box.value='';$('#add').disabled=true;}
+function focusEntry(){if(!locked&&!submitted)$('#rung').focus();}
+/* The only rejections allowed here are STRUCTURAL: a string that could not be a rung of this
+   ladder whatever the lexicon says. Whether the word exists, and whether it changed exactly one
+   letter, is the server's judgement and saying either would hand the child the answer key. */
+function addRung(){
   if(locked||submitted)return;
-  if(selIdx==null){setStatus('neutral','Tap a letter in your word first, then tap the new letter.');return;}
-  const cand=curWord.slice(0,selIdx)+ch+curWord.slice(selIdx+1);
-  if(cand===curWord){setStatus('neutral','That letter is already there. Pick a different one.');return;}
+  const typed=$('#rung').value.trim().toUpperCase();
+  if(!typed){setStatus('neutral','Type a word in the box first.');focusEntry();return;}
+  if(!/^[A-Z]+$/.test(typed)){setStatus('neutral','Use letters only.');focusEntry();return;}
+  if(typed.length!==wordLen){setStatus('neutral',`Your word needs ${wordLen} letters. That one has ${typed.length}.`);focusEntry();return;}
   if(rungs.length-1>=(content.stepLimit||20)){setStatus('neutral','That is as long as the ladder can get. Send it with the check.');return;}
   noteFirst();
-  curWord=cand;rungs.push(curWord);T.commits++;
-  T.log.push({t:Math.round(nowRel()),kind:'rung',index:selIdx,letter:ch,word:curWord});
-  selIdx=null;
+  curWord=typed;rungs.push(curWord);T.commits++;
+  T.log.push({t:Math.round(nowRel()),kind:'rung',word:curWord});
+  clearEntry();
   // NEUTRAL acknowledgement only. The renderer has no lexicon and makes no judgement.
-  setStatus('neutral','Rung added. Keep changing one letter, or send your ladder.');
+  setStatus('neutral','Rung added. Type the next word, or send your ladder.');
   setCue('climbing');
   emit('rung',{word:curWord,index:T.log.length-1});
   log(`rung ${rungs.length-1}: ${curWord}`);
-  refresh();
+  refresh();focusEntry();
 }
 function undo(){
   if(locked||submitted||rungs.length<=1)return;
   const removed=rungs.pop();
-  curWord=last(rungs);T.undos++;selIdx=null;
+  curWord=last(rungs);T.undos++;
   T.log.push({t:Math.round(nowRel()),kind:'undo',word:removed});
   emit('undo',{word:removed});
   log(`undo ${removed}`);
   setStatus('neutral','Rung taken back.');
-  refresh();
+  refresh();focusEntry();
 }
 function submit(){
   if(locked||submitted||!started)return;
   submitted=true;locked=true;
   T.rt=Math.round(performance.now()-T.t0);
   const idle=performance.now()-T.lastActivity;
-  $('#go').classList.remove('ready');$('#alphabet').classList.add('off');
+  $('#go').classList.remove('ready');
+  $('#rung').disabled=true;$('#add').disabled=true;
   setCue('sent');
   setStatus('neutral','Ladder sent. Next puzzle coming up.');   // never correct/incorrect
   const response={
@@ -311,25 +327,36 @@ function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width
 async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(480);}
 async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(380);}
 async function gestureHint(){
-  // Points at a slot, then at the letter pad, then at the check. It changes nothing and
-  // never indicates which letter or which route is right.
+  // Points at the word so far, then at the box, then at the check. It types nothing and never
+  // indicates which word or which route is right.
   ghostShow(true);await sleep(250);
   await ghostTo($('#current .curtile'));await ghostTap();
-  await ghostTo($('#alphabet .letterbtn'));await ghostTap();
+  await ghostTo($('#rung'));await ghostTap();
   await ghostTo($('#go'));await ghostTap();
   ghostShow(false);await sleep(250);
 }
 
-/* ---------- item lifecycle ---------- */
-let startTimer=null,hintShown=false;
+/* ---------- item lifecycle ----------
+   R1 — the ladder is rendered on `init` but waits behind the play gate. `start` only ARMS the
+   gate; the child's press of play is what unlocks the entry box and starts the scored clock, so
+   M-RT and M-RTFIRST measure planning the climb rather than however long the child took to look
+   up after the host handed the item over. */
+let hintShown=false,gateTutorial=false;
+function openGate(withHint){
+  gateTutorial=!!withHint;
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('waiting');setStatus('neutral','Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
 function loadItem(served){
   item=served;content=served.content;
   startWord=content.start;goalWord=content.goal;wordLen=content.wordLength;
-  alphabet=(content.alphabet||'ABCDEFGHIJKLMNOPQRSTUVWXYZ').split('');
-  rungs=[startWord];curWord=startWord;selIdx=null;
+  rungs=[startWord];curWord=startWord;
   locked=true;started=false;submitted=false;
   Object.assign(T,{t0:0,first:null,commits:0,undos:0,rt:0,blur:0,events:[],log:[],lastActivity:performance.now()});
-  paintAlphabet();$('#alphabet').classList.add('off');
+  const box=$('#rung');
+  box.maxLength=wordLen;box.value='';box.disabled=true;$('#add').disabled=true;
+  $('#entrylabel').textContent=`Type the next word (${wordLen} letters)`;
   refresh();
   $('#prompt').textContent=content.prompt||'';
   $('#go').classList.remove('ready');
@@ -337,14 +364,12 @@ function loadItem(served){
   $('#i_pair').textContent=`${startWord} \u2192 ${goalWord}`;
   $('#i_diff').textContent=served.difficulty==null?'\u2014':Number(served.difficulty).toFixed(2)+'/20';
   $('#log').innerHTML='';
-  setCue('waiting');setStatus('neutral','Get ready.');
   log(`item ${(served.itemId||'').slice(0,8)} \u00b7 ${startWord}\u2192${goalWord} \u00b7 ${wordLen} letters`);
-  clearTimeout(startTimer);
-  // Lenient: begin on our own if the host never sends {type:'start'}.
-  startTimer=setTimeout(()=>{if(!started&&!submitted)startItem(!!(content.scaffold&&content.scaffold.warmup));},500);
+  openGate(!!(content.scaffold&&content.scaffold.warmup));
 }
 async function startItem(withHint){
-  if(started||submitted||!content)return;
+  if(started||submitted||!content)return;               // a second press of play is a no-op
+  closeGate();
   started=true;T.t0=performance.now();T.lastActivity=performance.now();
   emit('start',{});
   if(withHint&&!hintShown){
@@ -357,29 +382,26 @@ async function startItem(withHint){
   // exactly the bug that silently blocked result emission in the old SPA-FOLDNET-01 renderer.
   locked=false;
   T.t0=performance.now();   // the clock starts when the child can act, not before the hint
-  $('#alphabet').classList.remove('off');
+  $('#rung').disabled=false;
   $('#go').classList.add('ready');
   setCue('ready');
-  setStatus('neutral','Tap a letter in your word, then tap a new letter. Send with the check when you are done.');
-  renderMeters();
+  setStatus('neutral',`Type a ${wordLen}-letter word that changes one letter, then press add. Send with the check when you are done.`);
+  renderMeters();focusEntry();
 }
 
 /* ---------- input ---------- */
-$('#current').addEventListener('click',e=>{const t=e.target.closest('.curtile');if(t)selectSlot(+t.dataset.i);});
-$('#alphabet').addEventListener('click',e=>{const b=e.target.closest('.letterbtn');if(b)applyLetter(b.dataset.c);});
+$('#play').addEventListener('click',()=>{startItem(gateTutorial);});
 $('#undo').addEventListener('click',undo);
+$('#add').addEventListener('click',addRung);
 $('#go').addEventListener('click',()=>{if($('#go').classList.contains('ready'))submit();});
 $('#replay').addEventListener('click',()=>{if(started&&!submitted)gestureHint();});
-addEventListener('keydown',e=>{
+// Keyboard-first: enter in the box adds the rung, so a child can climb without touching a
+// control. `add` only lights once something is typed, and never on whether it is a word.
+$('#rung').addEventListener('input',()=>{
   T.lastActivity=performance.now();
-  if(locked||submitted)return;
-  if(/^[1-9]$/.test(e.key)){e.preventDefault();selectSlot(+e.key-1);return;}
-  if(e.key==='ArrowRight'){e.preventDefault();selectSlot(selIdx==null?0:Math.min(wordLen-1,selIdx+1));return;}
-  if(e.key==='ArrowLeft'){e.preventDefault();selectSlot(selIdx==null?wordLen-1:Math.max(0,selIdx-1));return;}
-  if(e.key==='Backspace'){e.preventDefault();undo();return;}
-  if(e.key==='Enter'){e.preventDefault();if($('#go').classList.contains('ready'))submit();return;}
-  if(/^[a-zA-Z]$/.test(e.key)){e.preventDefault();applyLetter(e.key.toUpperCase());}
+  $('#add').disabled=$('#rung').value.trim().length===0;
 });
+$('#rung').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addRung();}});
 addEventListener('pointerdown',()=>{T.lastActivity=performance.now();});
 addEventListener('blur',()=>{if(started&&!submitted){T.blur++;emit('engagement',{reason:'blur'});renderMeters();}});
 
@@ -388,7 +410,7 @@ let gotInit=false;
 addEventListener('message',e=>{
   const d=e.data;if(!d||d.source!==HOST)return;
   if(d.type==='init'&&d.item){gotInit=true;loadItem(d.item);post('ready');}
-  else if(d.type==='start'){clearTimeout(startTimer);startItem(!!d.tutorial);}
+  else if(d.type==='start')openGate(!!d.tutorial);
 });
 
 /* ---------- standalone fallback (no host present) ----------

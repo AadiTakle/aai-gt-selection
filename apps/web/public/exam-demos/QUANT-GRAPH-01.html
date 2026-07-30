@@ -154,6 +154,10 @@
     </div>
     <div id="status">Waiting for an item.</div>
   </section>
+  <div id="playgate">
+    <p>The story is ready. Press play when you are, and it starts moving then.</p>
+    <button type="button" id="play">Play</button>
+  </div>
 </main>
 <aside id="telemetry">
   <h3>Live telemetry · per-child (display only)</h3>
@@ -208,7 +212,7 @@ let item=null;
 let interactive=false, submitted=false;
 let selectedKey=null, firstKey=null, selectionOrder=[], changeCount=0;
 let beat=0, playToken=0, replays=0, scrubs=0, inspectPath=[], inspectionsBeforeFirstPick=0;
-let renderT0=0, firstLatency=null, submitMs=0, startFallback=null;
+let renderT0=0, firstLatency=null, submitMs=0, gateTutorial=false;
 let telemetryLog=[];
 let focusedMs=0, focusTs=clock(), isFocused=(document.visibilityState!=='hidden');
 
@@ -285,8 +289,8 @@ function render(){
   const ready=interactive&&!submitted&&selectedKey!==null;
   $('#go').disabled=!ready;
   $('#go').classList.toggle('ready',ready);
-  $('#playStory').disabled=!item||submitted;
-  $('#scrub').disabled=!item||submitted;
+  $('#playStory').disabled=!item||submitted||!interactive;   // no beat moves behind the play gate
+  $('#scrub').disabled=!item||submitted||!interactive;
   const dd=Number(item.difficulty)||0;
   $('#dlevel').textContent=`${dd?dd.toFixed(1):'—'} / 20`;
   $('#diffbar').innerHTML=Array.from({length:20},(_,i)=>`<i class="${i<Math.round(dd)?'on':''}"></i>`).join('');
@@ -403,9 +407,12 @@ function submit(){
 function setCue(k,txt){const el=$('#phasecue');el.dataset.phase=k;el.textContent=txt;}
 function setStatus(msg){$('#status').textContent=msg;}
 
-/* ---------------- lifecycle ---------------- */
+/* ---------------- lifecycle ----------------
+   R1 — the story is a self-playing stimulus, so it must not run, and M-RT must not start, before
+   the child has looked up. `init` paints the first beat behind the closed gate and `start` only
+   ARMS the gate; pressing play is what closes the gate, starts the scored clock and plays the
+   story. Nothing moves while the gate is closed. */
 function loadItem(served){
-  clearTimeout(startFallback);
   if(!served||!served.content||!served.content.story||!Array.isArray(served.content.options)){
     log('init ignored: malformed ServedItem');return;
   }
@@ -417,16 +424,21 @@ function loadItem(served){
   focusedMs=0;focusTs=clock();isFocused=(document.visibilityState!=='hidden');
   renderT0=clock();beat=0;
   render();renderFrame(0);
-  setCue('waiting','Get ready');
-  setStatus('Watch the story.');
   emitEvent('render',{difficulty:item.difficulty,question:item.content.question,beats:item.content.story.beats,options:item.content.options.length});
-  startFallback=setTimeout(()=>{if(!interactive&&!submitted)begin(false);},500);
+  openGate(false);
 }
+function openGate(withTutorial){
+  gateTutorial=!!withTutorial;
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('waiting','Ready when you are');
+  setStatus('Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
 async function begin(withTutorial){
-  if(!item||submitted||interactive)return;
-  clearTimeout(startFallback);
+  if(!item||submitted||interactive)return;              // a second press of play is a no-op
+  closeGate();
   if(withTutorial&&!begin._taught){begin._taught=true;await gestureHint();if(submitted)return;}
-  interactive=true;renderT0=clock();
+  interactive=true;renderT0=clock();focusedMs=0;focusTs=clock();
   setCue('answer','Your turn');
   setStatus('Watch the story, then tap the graph that tells the same story and press the check.');
   emitEvent('start');
@@ -436,7 +448,7 @@ async function begin(withTutorial){
 window.addEventListener('message',e=>{
   const d=e.data;if(!d||d.source!==SRC_HOST)return;
   if(d.type==='init')loadItem(d.item);
-  else if(d.type==='start'){clearTimeout(startFallback);begin(!!d.tutorial);}
+  else if(d.type==='start')openGate(!!d.tutorial);
 });
 
 /* ---------------- engagement tracking ---------------- */
@@ -446,16 +458,17 @@ window.addEventListener('focus',onFocus);window.addEventListener('blur',onBlur);
 document.addEventListener('visibilitychange',()=>{document.visibilityState==='hidden'?onBlur():onFocus();});
 
 /* ---------------- input wiring ---------------- */
+$('#play').addEventListener('click',()=>{begin(gateTutorial);});
 $('#options').addEventListener('click',e=>{const b=e.target.closest('.option');if(b&&!b.disabled)chooseGraph(b.dataset.key);});
 $('#go').addEventListener('click',submit);
-$('#playStory').addEventListener('click',()=>{if(item&&!submitted)playStory(true);});
-$('#scrub').addEventListener('input',e=>{if(item&&!submitted){playToken++;renderFrame(+e.target.value);}});
+$('#playStory').addEventListener('click',()=>{if(item&&interactive&&!submitted)playStory(true);});
+$('#scrub').addEventListener('input',e=>{if(item&&interactive&&!submitted){playToken++;renderFrame(+e.target.value);}});
 $('#scrub').addEventListener('change',e=>{
-  if(!item||submitted)return;
+  if(!item||!interactive||submitted)return;
   scrubs++;inspectPath.push('beat:'+(+e.target.value+1));
   emitEvent('story_scrub',{beat:+e.target.value+1,scrubs});renderMeters();
 });
-$('#replay').addEventListener('click',()=>{if(item&&!submitted)gestureHint();});
+$('#replay').addEventListener('click',()=>{if(item&&interactive&&!submitted)gestureHint();});
 document.addEventListener('keydown',e=>{
   if(!interactive||submitted)return;
   if(e.key==='Enter'&&selectedKey!==null){submit();return;}
@@ -489,8 +502,8 @@ async function loadBankSamples(){
   log('standalone: bank fetch unavailable (serve the folder over http for the full bank) — using inline samples');
   return INLINE_SAMPLES.slice();
 }
-function standaloneAdvance(){queueIx=(queueIx+1)%queue.length;loadItem(queue[queueIx]);begin(false);}
-async function bootstrapStandalone(){queue=await loadBankSamples();queueIx=0;loadItem(queue[0]);begin(true);}
+function standaloneAdvance(){queueIx=(queueIx+1)%queue.length;loadItem(queue[queueIx]);openGate(false);}
+async function bootstrapStandalone(){queue=await loadBankSamples();queueIx=0;loadItem(queue[0]);openGate(true);}
 
 /* ---------------- boot ---------------- */
 buildMeters();

@@ -23,7 +23,7 @@ STAGE = {
     "VER-WORDTRAIN-01": "S1", "WM-bubble-01": "S1",
     "SPA-HIDDENCUBE-01": "S1", "SPA-ROLL-01": "S1", "SPA-FOLDNET-01": "S1",
     "SPA-PICKFOLD-01": "S1", "SPA-PUNCH-01": "S1", "SPA-SHADOW-01": "S1",
-    "SPA-VIEW-01": "S1", "SPA-SCENE-01": "S1", "SPA-XSCAN-01": "S1",
+    "SPA-SCENE-01": "S1", "SPA-XSCAN-01": "S1",
     "WM-corsi-01": "S1", "WM-bind-01": "S1", "WM-gridflash-01": "S1",
     "WM-gate-01": "S1", "GB-FILTER-01": "S1", "GB-TRACK-01": "S1",
     "QUANT-DOTS-01": "S1",
@@ -43,7 +43,8 @@ STAGE = {
     "CX-figural-01": "S2", "CX-check-01": "S2", "VER-SORTBOT-01": "S2",
     "CX-curious-02": "S2", "CX-sjt-01": "S2", "GB-WORDFORGE-01": "S2",
     "GB-WORDLADDER-01": "S2", "GB-PATHFORGE-01": "S2", "GB-ROBOPATH-01": "S2",
-    "GB-SHAPEFIT-01": "S2", "QUANT-BALANCE-01": "S2", "QUANT-MOBILE-01": "S2",
+    "GB-SHAPEFIT-01": "S2", "SPA-VIEW-01": "S2",
+    "QUANT-BALANCE-01": "S2", "QUANT-MOBILE-01": "S2",
     "QUANT-GRAPH-01": "S2", "QUANT-MIX-01": "S2", "QUANT-BUILD-01": "S2",
     "QUANT-WORD-01": "S2",
 }

@@ -33,6 +33,15 @@
   #kUp{grid-column:2;grid-row:1}#kLeft{grid-column:1;grid-row:2}#kDown{grid-column:2;grid-row:2}#kRight{grid-column:3;grid-row:2}
   .keycap{background:#004f71;color:#4a6470;border-radius:8px;width:42px;height:38px;display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;user-select:none;border:0;font-weight:700}
   #meta{font-size:12px;color:#4a6470;letter-spacing:.04em;text-align:center}
+  /* The walker's own heading, slaved to the grid: it turns as they walk and is never
+     interactive. The big dial below stays the only answer control. */
+  #heading{display:flex;align-items:center;gap:10px;font-size:12px;color:#4a6470;letter-spacing:.04em}
+  #headingdial{width:44px;height:44px;border-radius:50%;background:#002a3a;box-shadow:inset 0 0 0 2px #33505c;position:relative;flex:0 0 44px}
+  #headingdial .mark{position:absolute;left:50%;top:2px;transform:translateX(-50%);font-size:8px;color:#ebba9b;letter-spacing:.1em}
+  #headingneedle{position:absolute;left:50%;top:50%;width:3px;height:17px;background:#ebba9b;transform-origin:50% 100%;transform:translate(-50%,-100%) rotate(0deg);border-radius:2px;transition:transform .18s}
+  /* Exploration is over and the child decides when the next phase begins (R1's principle). */
+  #explored{display:none;flex-direction:column;align-items:center;gap:10px;background:#f8e8de;border:2px solid #ecd9cb;border-radius:14px;padding:14px 18px;text-align:center}
+  #explored p{margin:0;font-size:15px;font-weight:700;color:#002a3a;max-width:26rem;line-height:1.4}
   #compass{display:none;flex-direction:column;align-items:center;gap:8px}
   #target{font-size:15px;font-weight:800;letter-spacing:.08em;color:#6f4526}
   #dial{width:150px;height:150px;border-radius:50%;background:#002a3a;box-shadow:inset 0 0 0 3px #33505c;position:relative;cursor:grab;touch-action:none}
@@ -94,6 +103,14 @@
         <button class="keycap" id="kDown">&#8595;</button>
         <button class="keycap" id="kRight">&#8594;</button>
       </div>
+      <div id="heading">
+        <div id="headingdial"><div class="mark">N</div><div id="headingneedle"></div></div>
+        <span id="headingtext">the way you are walking</span>
+      </div>
+      <div id="explored">
+        <p id="exploredmsg"></p>
+        <button class="pill" id="nextphase">Next &#8594;</button>
+      </div>
       <div id="compass">
         <div id="target"></div>
         <div id="dial"><div class="mark">N</div><div id="needle"></div></div>
@@ -105,6 +122,10 @@
       </div>
       <div class="hotkeys">keys: arrows walk &middot; while pointing, left/right turn the dial and Enter confirms</div>
       <div id="status" class="neutral">Waiting for an item from the host.</div>
+    </div>
+    <div id="playgate">
+      <p>The map is ready. Press play when you are, and it starts then.</p>
+      <button type="button" id="play">Play</button>
     </div>
   </div>
   <aside id="telemetry">
@@ -153,12 +174,13 @@ function post(type,extra){if(!embedded)return;try{window.parent.postMessage(Obje
 let item=null,content=null,R=0,C=0,px=34;
 let walls=new Set(),lm=[],lmByCell=new Map(),home=[0,0];
 let at=[0,0],seen=new Set(),visited=new Set(),found=new Set();
-let phase='waiting';            // waiting | explore | point | shortcut | sent
+let phase='waiting';            // waiting | explore | explored | point | shortcut | sent
 let locked=true,started=false,submitted=false;
 let pointIdx=0,dialAngle=0,dragging=false,pointings=[],pointStart=0;
+let gateTutorial=false;         // does the pending play press owe a controls walkthrough?
 const T={itemStart:0,first:null,actions:[],events:[],moves:0,shortMoves:0,revisits:0,blocks:0,blur:0,rt:null};
 
-const PHASE={waiting:'Waiting for item',explore:'Explore',point:'Point at the landmark',shortcut:'Walk home',sent:'Answer sent'};
+const PHASE={waiting:'Waiting for item',ready:'Ready',explore:'Explore',explored:'Walking done',point:'Point at the landmark',shortcut:'Walk home',sent:'Answer sent'};
 function setCue(k){const el=$('#phasecue');el.dataset.phase=(k==='sent'||k==='waiting')?k:'ready';el.textContent=PHASE[k];}
 function setStatus(cls,msg){const el=$('#status');el.className=cls;el.textContent=msg;}
 function nowRel(){return T.itemStart?Math.round(performance.now()-T.itemStart):0;}
@@ -202,7 +224,9 @@ function renderWorld(){
   w.style.gridTemplateColumns=`repeat(${C},${px}px)`;
   w.style.gridTemplateRows=`repeat(${R},${px}px)`;
   w.innerHTML='';
-  const fogOnly=(phase==='point'||phase==='shortcut'||phase==='sent');
+  // The fog returns the moment the walking ends, not when the child presses Next: otherwise the
+  // pause before the pointing phase becomes free study time the exploring child never had.
+  const fogOnly=(phase==='explored'||phase==='point'||phase==='shortcut'||phase==='sent');
   for(let r=0;r<R;r++)for(let c=0;c<C;c++){
     const key=k(r,c),d=document.createElement('div');
     d.className='cell';d.dataset.r=r;d.dataset.c=c;
@@ -228,6 +252,7 @@ function step(dr,dc){
   const key=k(nr,nc);
   if(visited.has(key))T.revisits++;
   at=[nr,nc];visited.add(key);
+  setHeading(dr,dc);
   if(phase==='explore'){
     T.moves++;reveal();
     if(lmByCell.has(key)&&!found.has(key)){found.add(key);act('landmark_found',{id:lmByCell.get(key).id,cell:[nr,nc]});log(`found ${lmByCell.get(key).label}`);}
@@ -236,8 +261,22 @@ function step(dr,dc){
     T.shortMoves++;act('shortcut_move',{to:[nr,nc]});
   }
   renderWorld();renderMeters();
-  if(phase==='explore'&&(found.size>=lm.length||T.moves>=content.moveBudget))endExplore();
+  if(phase==='explore'&&(found.size>=lm.length||T.moves>=content.moveBudget))finishExplore();
   else if(phase==='shortcut'&&(key===k(home[0],home[1])||T.shortMoves>=content.shortcutBudget))submit();
+}
+/* The walker's heading, in the same north-up frame as the answer dial. Slaved to their own last
+   step, so it tells them nothing they did not already know — it just spares them holding "which
+   way am I facing" in mind while they also hold the map. */
+const HEADINGS=[[-1,0,0,'north'],[0,1,90,'east'],[1,0,180,'south'],[0,-1,270,'west']];
+function setHeading(dr,dc){
+  const h=HEADINGS.find(([r,c])=>r===dr&&c===dc);
+  if(!h)return;
+  $('#headingneedle').style.transform=`translate(-50%,-100%) rotate(${h[2]}deg)`;
+  $('#headingtext').textContent='you are walking '+h[3];
+}
+function resetHeading(){
+  $('#headingneedle').style.transform='translate(-50%,-100%) rotate(0deg)';
+  $('#headingtext').textContent='the way you are walking';
 }
 function reveal(){
   const rad=content.fogRadius||1;
@@ -248,8 +287,25 @@ function reveal(){
 }
 
 /* ---------- phase transitions ---------- */
-function endExplore(){
+/* Exploring used to end and pointing used to begin in the same instant the last landmark was
+   stepped on, so the child was answering before they had registered that the walking was over.
+   Now the end is stated and the next phase waits on their own press. */
+function finishExplore(){
+  if(phase!=='explore')return;
+  phase='explored';
   act('explore_end',{found:found.size,moves:T.moves});
+  renderWorld();renderMeters();setCue('explored');
+  const all=found.size>=lm.length;
+  $('#exploredmsg').textContent=all
+    ? `You found all ${lm.length} landmark${lm.length===1?'':'s'}. The walking part is done.`
+    : 'You have used all your steps, so the walking part is done.';
+  $('#explored').style.display='flex';
+  setStatus('neutral','Press Next when you are ready for the pointing part.');
+  $('#nextphase').focus();
+}
+function endExplore(){
+  if(phase!=='explored')return;
+  $('#explored').style.display='none';
   phase='point';pointIdx=0;
   renderWorld();setCue('point');
   setStatus('neutral','The fog is back. Turn the dial to point at the landmark named below, then press the check.');
@@ -340,6 +396,8 @@ function loadItem(served){
   phase='waiting';started=false;locked=true;submitted=false;
   T.itemStart=0;T.first=null;T.actions=[];T.events=[];T.moves=0;T.shortMoves=0;T.revisits=0;T.blocks=0;T.blur=0;T.rt=null;
   $('#compass').style.display='none';
+  $('#explored').style.display='none';
+  resetHeading();
   renderWorld();
   $('#prompt').textContent=content.question.prompt;
   $('#i_id').textContent=(served.itemId||'\u2014').slice(0,8);
@@ -349,8 +407,22 @@ function loadItem(served){
   $('#log').innerHTML='';log(`item ${(served.itemId||'').slice(0,8)} \u00b7 ${R}x${C} \u00b7 budget ${content.moveBudget}`);
   renderMeters();
 }
+/* ---------- play gate (R1) ----------
+   This is the gate at the FRONT of the item, and it is a different thing from the
+   explore -> point handover that `#nextphase` owns: `init` draws the fogged world behind it,
+   `start` only arms it, and the child's press of play is what begins the exploring phase and
+   starts the clock. M-RT and M-RTFIRST are scored, so they must not include however long it
+   took the child to look up after the host delivered the map. */
+function openGate(withTutorial){
+  gateTutorial=!!withTutorial;
+  locked=true;
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('ready');setStatus('neutral','Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
 async function startItem(withScaffold){
-  if(!content||started)return;
+  if(!content||started)return;                 // a second press of play is a no-op
+  closeGate();
   started=true;T.itemStart=performance.now();emit('start',{});
   phase='explore';reveal();renderWorld();
   if(withScaffold||(content.scaffold&&content.scaffold.warmup))await scaffold();
@@ -375,9 +447,11 @@ $('#kUp').addEventListener('click',()=>step(-1,0));
 $('#kDown').addEventListener('click',()=>step(1,0));
 $('#kLeft').addEventListener('click',()=>step(0,-1));
 $('#kRight').addEventListener('click',()=>step(0,1));
+$('#nextphase').addEventListener('click',endExplore);
 $('#confirm').addEventListener('click',commitPoint);
 $('#done').addEventListener('click',()=>{if(started&&!submitted)submit();});
 $('#replay').addEventListener('click',()=>{if(started&&!submitted)scaffold();});
+$('#play').addEventListener('click',()=>{startItem(gateTutorial);});
 (function(){
   const d=$('#dial');
   const down=e=>{if(locked||phase!=='point')return;dragging=true;setNeedle(angleFromEvent(e));e.preventDefault();};
@@ -406,8 +480,8 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&started&&!
 /* ---------- host messages ---------- */
 let gotInit=false;
 addEventListener('message',e=>{const d=e.data;if(!d||d.source!==HOST)return;
-  if(d.type==='init'&&d.item){gotInit=true;loadItem(d.item);post('ready');}
-  else if(d.type==='start'){startItem(!!d.tutorial);}
+  if(d.type==='init'&&d.item){gotInit=true;loadItem(d.item);openGate(false);post('ready');}
+  else if(d.type==='start'){if(content&&!started)openGate(!!d.tutorial);}
 });
 
 /* ---------- standalone fallback (no host): cycle real bank items ---------- */
@@ -428,7 +502,7 @@ async function loadQueue(){
   log('standalone: bank fetch unavailable (serve the folder over http for the full bank) - using inline samples');
   return INLINE_SAMPLES.slice();
 }
-function nextSample(){if(!queue.length)return;loadItem(queue[qIdx%queue.length]);qIdx++;startItem(qIdx===1);}
+function nextSample(){if(!queue.length)return;loadItem(queue[qIdx%queue.length]);qIdx++;openGate(qIdx===1);}
 async function bootstrapStandalone(){queue=await loadQueue();qIdx=0;nextSample();}
 
 /* Inline ServedItem fallback (real bank rows with answer/scoring/provenance stripped). */

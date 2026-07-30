@@ -106,6 +106,10 @@
       <div id="keys"><b>&#9664; &#9654;</b> turn · <b>&#9650; &#9660;</b> count · <b>Enter</b> send</div>
       <div id="status" class="neutral">Waiting for the next pile.</div>
     </div>
+    <div id="playgate">
+      <p>The pile is ready. Press play when you are, and it starts then.</p>
+      <button type="button" id="play">Play</button>
+    </div>
   </div>
   <aside id="telemetry">
     <h3>Live telemetry · per-child (display only)</h3>
@@ -161,13 +165,13 @@ let current=null;        // current ServedItem
 let interactive=false;   // interaction enabled? (released by beginItem — never latched on load)
 let submitted=false;     // already answered this item?
 let answerVal=0, touched=false;
-let itemStart=0, startTimer=null, itemTelemetry=[];
+let itemStart=0, itemTelemetry=[];
 let scene=null, baseYaw=0, yaw=0, pitch=0, scaleF=44, ox=250, oy=200;
 const M={rt:null,rts:[],firstLat:null,rev:0,explore:0,blur:0};
 
 /* ---------- embedding detection + emit ---------- */
 const embedded=(()=>{try{return window.parent&&window.parent!==window;}catch(_){return true;}})();
-let standalone=false, standaloneQueue=[], standaloneIdx=0, tutorialShown=false;
+let standalone=false, standaloneQueue=[], standaloneIdx=0, tutorialShown=false, gateTutorial=false;
 function post(msg){if(!embedded)return;try{window.parent.postMessage(Object.assign({source:DEMO_SRC},msg),'*');}catch(_){}}
 
 /* ---------- canvas (with a visible non-canvas degradation) ---------- */
@@ -348,14 +352,31 @@ function submit(){
 }
 
 /* ---------- host-driven lifecycle ---------- */
+/* R1 — the pile waits behind the play gate. Counting used to go live 500ms after the host
+   delivered the item, so M-RT and M-RTFIRST started while the child was still looking up and
+   mixed orienting time into a scored quantity. `init` renders behind the gate, `start` only
+   arms it, and the press of play is what begins the item and starts the clock. */
+function openGate(withTutorial){
+  gateTutorial=!!withTutorial;
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('warmup','Get ready');
+  setStatus('neutral','Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
+/* Every route through this item is keyboard-reachable, so the gate is too. Behind a closed
+   gate the item's own shortcuts do nothing, so any key the child presses means "I am ready":
+   it presses play and is consumed rather than silently going nowhere. */
+function gateKey(e){
+  if(document.documentElement.getAttribute('data-gt-gate')!=='closed')return false;
+  if(!e.metaKey&&!e.ctrlKey&&!e.altKey&&!/^(Tab|Escape|Shift|Control|Alt|Meta|CapsLock)$/.test(e.key)){
+    $('#play').click();e.preventDefault();
+  }
+  return true;
+}
 function onInit(item){
-  clearTimeout(startTimer);
   if(!item||!item.content||!item.content.stack){log('init ignored: malformed ServedItem');return;}
   renderServedItem(item);
-  setCue('warmup','Get ready');
-  setStatus('neutral','Get ready to count the pile.');
-  // Lenient: if the host never sends {type:'start'}, begin on our own shortly.
-  startTimer=setTimeout(()=>{if(!interactive&&!submitted)beginItem(false);},500);
+  openGate(false);
 }
 async function beginItem(withTutorial){
   if(interactive||submitted||!current)return;
@@ -368,7 +389,7 @@ async function beginItem(withTutorial){
 function onHostMessage(e){
   const d=e.data;if(!d||d.source!==HOST_SRC)return;
   if(d.type==='init')onInit(d.item);
-  else if(d.type==='start'){clearTimeout(startTimer);beginItem(!!d.tutorial);}
+  else if(d.type==='start')openGate(!!d.tutorial);
 }
 
 /* ---------- standalone fallback (QA when there is no host) ---------- */
@@ -388,25 +409,31 @@ async function loadBankSamples(){
   log('standalone: bank fetch unavailable (open via a local server for the full bank) — using inline samples');
   return INLINE_SAMPLES.slice();
 }
-function playStandalone(){const item=standaloneQueue[standaloneIdx%standaloneQueue.length];onInit(item);beginItem(standaloneIdx===0);}
+function playStandalone(){const item=standaloneQueue[standaloneIdx%standaloneQueue.length];onInit(item);openGate(standaloneIdx===0);}
 function advanceStandalone(){standaloneIdx++;playStandalone();}
 async function bootstrapStandalone(){if(standalone)return;standalone=true;standaloneQueue=await loadBankSamples();standaloneIdx=0;playStandalone();}
 
 /* Inline served-item fallback (real items exported from the bank; answer stripped). */
 const INLINE_SAMPLES=[
 {"itemId":"79999894-21d9-4de6-b947-54f4308b1ed0","typeCode":"SPA-HIDDENCUBE-01","domain":"spatial","difficulty":1,"ageBands":["2-3"],"demoPath":"demos/SPA-HIDDENCUBE-01.html","content":{"typeCode":"SPA-HIDDENCUBE-01","question":{"mode":"count_all_cubes","relation":"total_cube_count_including_occluded","prompt":"How many cubes are in the pile? Count the hidden ones too."},"stack":{"rows":2,"cols":2,"maxHeight":2,"layers":[[[0,0],[0,1],[1,0],[1,1]],[[0,0],[0,1],[1,1]]]},"view":{"quadrant":0,"cameraSigns":{"col":1,"row":1},"yawDeg":-41.8,"pitchDeg":30.3,"canonicalYawDeg":-45,"angularDisparityDeg":3.2},"inspection":{"rotate":true,"yawStepDeg":15,"yawRangeDeg":[-40,40]},"response":{"mode":"stepper","min":0,"max":60,"step":1},"scaffold":{"xray":false,"warmup":true,"layerHint":true}},"syntheticOnly":true,"validated":false},
-{"itemId":"bcc359ed-f1fa-4c29-a77d-88a0802eea39","typeCode":"SPA-HIDDENCUBE-01","domain":"spatial","difficulty":10.59,"ageBands":["4-5","6-8"],"demoPath":"demos/SPA-HIDDENCUBE-01.html","content":{"typeCode":"SPA-HIDDENCUBE-01","question":{"mode":"count_all_cubes","relation":"total_cube_count_including_occluded","prompt":"How many cubes are in the pile? Count the hidden ones too."},"stack":{"rows":3,"cols":4,"maxHeight":5,"layers":[[[0,0],[0,1],[0,2],[0,3],[1,0],[1,1],[1,2],[1,3],[2,0],[2,1],[2,2],[2,3]],[[0,1],[0,2],[0,3],[1,0],[1,1],[1,2],[2,2],[2,3]],[[0,1],[0,3],[1,0],[1,2],[2,2]],[[1,2],[2,2]],[[1,2]]]},"view":{"quadrant":0,"cameraSigns":{"col":1,"row":1},"yawDeg":-55.2,"pitchDeg":26,"canonicalYawDeg":-45,"angularDisparityDeg":10.2},"inspection":{"rotate":false,"yawStepDeg":15,"yawRangeDeg":[-40,40]},"response":{"mode":"stepper","min":0,"max":60,"step":1},"scaffold":{"xray":false,"warmup":false,"layerHint":false}},"syntheticOnly":true,"validated":false},
-{"itemId":"d418d683-ba36-49e5-8011-b11a01ee1b0a","typeCode":"SPA-HIDDENCUBE-01","domain":"spatial","difficulty":20,"ageBands":["6-8"],"demoPath":"demos/SPA-HIDDENCUBE-01.html","content":{"typeCode":"SPA-HIDDENCUBE-01","question":{"mode":"count_all_cubes","relation":"total_cube_count_including_occluded","prompt":"How many cubes are in the pile? Count the hidden ones too."},"stack":{"rows":4,"cols":5,"maxHeight":5,"layers":[[[0,4],[1,1],[1,2],[1,3],[1,4],[2,0],[2,1],[2,2],[2,3],[2,4],[3,0],[3,1],[3,2],[3,3]],[[0,4],[1,1],[1,2],[1,3],[1,4],[2,0],[2,1],[2,2],[2,3],[2,4],[3,2],[3,3]],[[0,4],[1,1],[1,2],[1,3],[1,4],[2,1],[2,2],[2,3],[2,4],[3,2]],[[1,3],[2,1],[2,2],[2,3],[2,4],[3,2]],[[1,3],[2,3]]]},"view":{"quadrant":0,"cameraSigns":{"col":1,"row":1},"yawDeg":-41.8,"pitchDeg":21.3,"canonicalYawDeg":-45,"angularDisparityDeg":3.2},"inspection":{"rotate":false,"yawStepDeg":15,"yawRangeDeg":[-40,40]},"response":{"mode":"stepper","min":0,"max":60,"step":1},"scaffold":{"xray":false,"warmup":false,"layerHint":false}},"syntheticOnly":true,"validated":false}
+{"itemId":"f30b790d-37ca-43c0-b559-e32cf2cc192c","typeCode":"SPA-HIDDENCUBE-01","domain":"spatial","difficulty":9.19,"ageBands":["4-5","6-8"],"demoPath":"demos/SPA-HIDDENCUBE-01.html","content":{"typeCode":"SPA-HIDDENCUBE-01","question":{"mode":"count_all_cubes","relation":"total_cube_count_including_occluded","prompt":"How many cubes are in the pile? Count the hidden ones too."},"stack":{"rows":3,"cols":4,"maxHeight":3,"layers":[[[0,0],[0,1],[0,2],[1,1],[1,2],[1,3],[2,0],[2,1],[2,2],[2,3]],[[0,0],[0,2],[1,1],[1,2],[1,3],[2,0],[2,1],[2,2]],[[1,1],[1,2],[1,3]]]},"view":{"quadrant":0,"cameraSigns":{"col":1,"row":1},"yawDeg":-52.7,"pitchDeg":25.8,"canonicalYawDeg":-45,"angularDisparityDeg":7.7},"inspection":{"rotate":true,"yawStepDeg":15,"yawRangeDeg":[-40,40]},"response":{"mode":"stepper","min":0,"max":60,"step":1},"scaffold":{"xray":false,"warmup":false,"layerHint":false}},"syntheticOnly":true,"validated":false},
+{"itemId":"7c719b6c-6ede-43a9-8d94-d77c4e7f0343","typeCode":"SPA-HIDDENCUBE-01","domain":"spatial","difficulty":18.8,"ageBands":["6-8"],"demoPath":"demos/SPA-HIDDENCUBE-01.html","content":{"typeCode":"SPA-HIDDENCUBE-01","question":{"mode":"count_all_cubes","relation":"total_cube_count_including_occluded","prompt":"How many cubes are in the pile? Count the hidden ones too."},"stack":{"rows":4,"cols":5,"maxHeight":6,"layers":[[[0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[1,4],[2,0],[2,1],[2,2],[2,4],[3,0],[3,1]],[[0,0],[0,2],[1,0],[1,1],[1,2],[2,0],[2,1],[2,2],[3,0],[3,1]],[[1,1],[1,2],[2,0],[2,1],[2,2],[3,0],[3,1]],[[1,1],[1,2],[2,1],[2,2],[3,0],[3,1]],[[2,1],[2,2]],[[2,1]]]},"view":{"quadrant":2,"cameraSigns":{"col":-1,"row":-1},"yawDeg":129.9,"pitchDeg":21.5,"canonicalYawDeg":-45,"angularDisparityDeg":174.9},"inspection":{"rotate":false,"yawStepDeg":15,"yawRangeDeg":[-40,40]},"response":{"mode":"stepper","min":0,"max":60,"step":1},"scaffold":{"xray":false,"warmup":false,"layerHint":false}},"syntheticOnly":true,"validated":false}
 ];
 
 /* ---------- wiring ---------- */
+// A second press of play is a no-op: the gate is already open by then.
+$('#play').onclick=()=>{
+  if(document.documentElement.getAttribute('data-gt-gate')!=='closed')return;
+  closeGate();beginItem(gateTutorial);
+};
 $('#rl').onclick=()=>rotate(-1);
 $('#rr').onclick=()=>rotate(1);
 $('#minus').onclick=()=>step(-1);
 $('#plus').onclick=()=>step(1);
 $('#go').onclick=()=>{if($('#go').classList.contains('ready'))submit();};
-$('#replay').onclick=()=>{if(current&&!submitted)gestureHint();};
+$('#replay').onclick=()=>{if(current&&interactive&&!submitted)gestureHint();};
 window.addEventListener('keydown',e=>{
+  if(gateKey(e))return;
   if(!interactive||submitted)return;
   if(e.key==='ArrowLeft'){rotate(-1);e.preventDefault();}
   else if(e.key==='ArrowRight'){rotate(1);e.preventDefault();}

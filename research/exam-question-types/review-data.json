@@ -2760,79 +2760,6 @@
     ]
   },
   {
-    "type_id": "SPA-VIEW-01",
-    "name": "What Do They See",
-    "domain": "spatial",
-    "stage": "S1",
-    "stage_label": "Stage 1 - Standing (accuracy -> theta)",
-    "works_well": "med",
-    "age_bands": [
-      "2-3",
-      "4-5",
-      "6-8"
-    ],
-    "content_range": "match a two-object view among 2-4 viewpoints (2-3) to continuous dial heading toward a target from an imagined orientation (6-8)",
-    "difficulty_levers": "number of objects; number and spacing of viewpoints; discrete match vs continuous pointing; viewpoint offset magnitude; self vs array reference frame",
-    "one_liner": "The child figures out what a character sees from where it stands, by moving the character or pointing a dial toward a target from the character's viewpoint.",
-    "interaction": "A small scene of labeled objects is shown from above with a character token. As the child drags the character around the scene (snapping to set viewpoints), a live 'what they see' strip updates, showing the objects in the character's left-to-right order. To answer, the child either drags the character to the spot that would produce a shown view, or (older bands) rotates a pointer dial to indicate the direction to a hidden target as seen from the character's heading, then taps LOCK.",
-    "self_teach": "A ghost-hand walks the character to the other side and the 'what they see' strip flips left-to-right; a warm-up asks the child to match one simple two-object view before scoring.",
-    "engagement_hook": "A character with a live 'camera view' you control: move it around and watch the world reorder from its eyes; it feels like directing a scene.",
-    "tail_precision_rationale": "Continuous heading/pointing error (M-VIEWANG) grades responses far more finely than right/wrong, and its systematic component (pointing as if from the child's own position) quantifies residual egocentric bias; at the tail, low angular error on large viewpoint offsets (>=135 degrees) with little exploration (M-EXPLORE) marks children with a true allocentric model, a navigation-linked spatial strength standard batteries omit.",
-    "construct_irrelevant_risks": "Developmental floor for young bands (report reliability, exclude K-1); reading (labels replaced by icons); motor (snap viewpoints, coarse dial detents for younger); mistaking left/right mirroring for error (score angular direction consistently). Reading policy (D-017): reading is a REQUIRED baseline-literacy capability, not a construct-irrelevant risk to mitigate \u2014 instructions and stimuli are on-screen text only (never audio); K-1 uses very simple, high-frequency words a beginning reader can interpret; a child who cannot read the grade-appropriate text is intentionally screened out (capability-to-benefit from reading-based Timeback).",
-    "demo": "demos/SPA-VIEW-01.html",
-    "metrics": [
-      {
-        "id": "M-ACC",
-        "name": "Item accuracy",
-        "what": "Correct / incorrect (dichotomous) on a scored item.",
-        "how_to_collect": "Log final response vs key per scored item.",
-        "usefulness_tail": "The base IRT signal; at the tail, accuracy on very hard items is the primary separator once difficulty is high enough to avoid ceiling."
-      },
-      {
-        "id": "M-RT",
-        "name": "Response time (total)",
-        "what": "Milliseconds from item onset to submitted answer.",
-        "how_to_collect": "Timestamp item render and submit; store ms.",
-        "usefulness_tail": "Combined with accuracy it separates fast-accurate (able) from slow-accurate; feeds effort-moderated and joint speed-accuracy models."
-      },
-      {
-        "id": "M-RTFIRST",
-        "name": "First-action latency",
-        "what": "Milliseconds from item onset to the child's first interaction.",
-        "how_to_collect": "Timestamp first pointer/key/drag event.",
-        "usefulness_tail": "Indexes planning/encoding before acting; high-ability reflective solvers often show longer first-action latency with fewer revisions."
-      },
-      {
-        "id": "M-REV",
-        "name": "Revisions / answer changes",
-        "what": "Count of answer changes, undos, or re-drags before commit.",
-        "how_to_collect": "Increment a counter on each answer change / undo event.",
-        "usefulness_tail": "Distinguishes confident tail performers (few, targeted revisions) from guess-and-check; adds process variance beyond right/wrong."
-      },
-      {
-        "id": "M-EXPLORE",
-        "name": "Exploration behavior",
-        "what": "Number of options sampled / states explored before committing.",
-        "how_to_collect": "Count distinct states/options visited via M-PATH log.",
-        "usefulness_tail": "Systematic exploration vs flailing separates strategic tail solvers; useful in open/interactive items."
-      },
-      {
-        "id": "M-VIEWANG",
-        "name": "Perspective-taking angular error",
-        "what": "Signed angular error between the child's indicated heading/direction and the true direction to the target from an imagined viewpoint.",
-        "how_to_collect": "On pointing/heading items, record the dial angle and subtract the geometric correct heading; decompose into random and egocentric-bias components.",
-        "usefulness_tail": "Grades perspective responses far more finely than right/wrong, and its systematic component quantifies residual egocentric bias; low angular error at large viewpoint offsets is a navigation-linked tail signal standard batteries omit."
-      },
-      {
-        "id": "M-DIFFREACH",
-        "name": "Ceiling / max difficulty reached",
-        "what": "Highest item difficulty answered correctly.",
-        "how_to_collect": "Track max b-parameter solved under adaptive escalation.",
-        "usefulness_tail": "Directly probes the tail; adaptive escalation to failure pinpoints the child's edge and is the sharpest single tail statistic."
-      }
-    ]
-  },
-  {
     "type_id": "SPA-XSCAN-01",
     "name": "Scan Stacker",
     "domain": "spatial",
@@ -3924,6 +3851,79 @@
         "what": "Time spent engaging a hard item before solving or giving up.",
         "how_to_collect": "Time from onset to solve/skip on items above the child's level.",
         "usefulness_tail": "Task commitment (Renzulli) is a construct CogAT misses; persistence on hard items adds non-cognitive tail signal and flags disengagement."
+      }
+    ]
+  },
+  {
+    "type_id": "SPA-VIEW-01",
+    "name": "What Do They See",
+    "domain": "spatial",
+    "stage": "S2",
+    "stage_label": "Stage 2 - Learning-rate / effort (-> Timeback-fit)",
+    "works_well": "med",
+    "age_bands": [
+      "2-3",
+      "4-5",
+      "6-8"
+    ],
+    "content_range": "match a two-object view among 2-4 viewpoints (2-3) to continuous dial heading toward a target from an imagined orientation (6-8)",
+    "difficulty_levers": "number of objects; number and spacing of viewpoints; discrete match vs continuous pointing; viewpoint offset magnitude; self vs array reference frame",
+    "one_liner": "The child figures out what a character sees from where it stands, by moving the character or pointing a dial toward a target from the character's viewpoint.",
+    "interaction": "A small scene of labeled objects is shown from above with a character token. As the child drags the character around the scene (snapping to set viewpoints), a live 'what they see' strip updates, showing the objects in the character's left-to-right order. To answer, the child either drags the character to the spot that would produce a shown view, or (older bands) rotates a pointer dial to indicate the direction to a hidden target as seen from the character's heading, then taps LOCK.",
+    "self_teach": "A ghost-hand walks the character to the other side and the 'what they see' strip flips left-to-right; a warm-up asks the child to match one simple two-object view before scoring.",
+    "engagement_hook": "A character with a live 'camera view' you control: move it around and watch the world reorder from its eyes; it feels like directing a scene.",
+    "tail_precision_rationale": "Continuous heading/pointing error (M-VIEWANG) grades responses far more finely than right/wrong, and its systematic component (pointing as if from the child's own position) quantifies residual egocentric bias; at the tail, low angular error on large viewpoint offsets (>=135 degrees) with little exploration (M-EXPLORE) marks children with a true allocentric model, a navigation-linked spatial strength standard batteries omit.",
+    "construct_irrelevant_risks": "Developmental floor for young bands (report reliability, exclude K-1); reading (labels replaced by icons); motor (snap viewpoints, coarse dial detents for younger); mistaking left/right mirroring for error (score angular direction consistently). Reading policy (D-017): reading is a REQUIRED baseline-literacy capability, not a construct-irrelevant risk to mitigate \u2014 instructions and stimuli are on-screen text only (never audio); K-1 uses very simple, high-frequency words a beginning reader can interpret; a child who cannot read the grade-appropriate text is intentionally screened out (capability-to-benefit from reading-based Timeback).",
+    "demo": "demos/SPA-VIEW-01.html",
+    "metrics": [
+      {
+        "id": "M-ACC",
+        "name": "Item accuracy",
+        "what": "Correct / incorrect (dichotomous) on a scored item.",
+        "how_to_collect": "Log final response vs key per scored item.",
+        "usefulness_tail": "The base IRT signal; at the tail, accuracy on very hard items is the primary separator once difficulty is high enough to avoid ceiling."
+      },
+      {
+        "id": "M-RT",
+        "name": "Response time (total)",
+        "what": "Milliseconds from item onset to submitted answer.",
+        "how_to_collect": "Timestamp item render and submit; store ms.",
+        "usefulness_tail": "Combined with accuracy it separates fast-accurate (able) from slow-accurate; feeds effort-moderated and joint speed-accuracy models."
+      },
+      {
+        "id": "M-RTFIRST",
+        "name": "First-action latency",
+        "what": "Milliseconds from item onset to the child's first interaction.",
+        "how_to_collect": "Timestamp first pointer/key/drag event.",
+        "usefulness_tail": "Indexes planning/encoding before acting; high-ability reflective solvers often show longer first-action latency with fewer revisions."
+      },
+      {
+        "id": "M-REV",
+        "name": "Revisions / answer changes",
+        "what": "Count of answer changes, undos, or re-drags before commit.",
+        "how_to_collect": "Increment a counter on each answer change / undo event.",
+        "usefulness_tail": "Distinguishes confident tail performers (few, targeted revisions) from guess-and-check; adds process variance beyond right/wrong."
+      },
+      {
+        "id": "M-EXPLORE",
+        "name": "Exploration behavior",
+        "what": "Number of options sampled / states explored before committing.",
+        "how_to_collect": "Count distinct states/options visited via M-PATH log.",
+        "usefulness_tail": "Systematic exploration vs flailing separates strategic tail solvers; useful in open/interactive items."
+      },
+      {
+        "id": "M-VIEWANG",
+        "name": "Perspective-taking angular error",
+        "what": "Signed angular error between the child's indicated heading/direction and the true direction to the target from an imagined viewpoint.",
+        "how_to_collect": "On pointing/heading items, record the dial angle and subtract the geometric correct heading; decompose into random and egocentric-bias components.",
+        "usefulness_tail": "Grades perspective responses far more finely than right/wrong, and its systematic component quantifies residual egocentric bias; low angular error at large viewpoint offsets is a navigation-linked tail signal standard batteries omit."
+      },
+      {
+        "id": "M-DIFFREACH",
+        "name": "Ceiling / max difficulty reached",
+        "what": "Highest item difficulty answered correctly.",
+        "how_to_collect": "Track max b-parameter solved under adaptive escalation.",
+        "usefulness_tail": "Directly probes the tail; adaptive escalation to failure pinpoints the child's edge and is the sharpest single tail statistic."
       }
     ]
   },

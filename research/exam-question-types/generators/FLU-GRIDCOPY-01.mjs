@@ -18,6 +18,15 @@
 //   | grid size and number of objects | one worked example vs several | number of
 //   coordinated edits required | whether the examples imply a single plausible rule.
 //
+// BAND LADDER (2026-07 review, quoted verbatim: "for k-1, focus on translations.
+// 2-3, make it multi-color. 4-5, add rotations. in 6-8, combine these different
+// rules."). The transformation is therefore no longer chosen mechanically from
+// whatever config happens to reach a difficulty bin: each grade band owns a
+// transform family, and BANDS below maps the bands onto the shared 1..20 scale
+// exactly as the improvement plan §4 does. Above level (16..20) is deliberately
+// NOT banded — the review said nothing about it, so those bins keep drawing from
+// the full config space they drew from before.
+//
 // ITEM-QUALITY INVARIANT (audited independently by check-FLU-GRIDCOPY-01.mjs):
 //   the worked examples IDENTIFY the answer — every program in the audit space that
 //   reproduces all shown examples produces the SAME output on the probe input. Per-cell
@@ -181,6 +190,9 @@ export const PROGRAM_TEMPLATES = {
   'rot180+recolor': { load: 2.8 + 1.6 + 1.0, minPalette: 2 },
   'shift+shiftColor': { load: 1.2 + 3.4 + 1.0, minPalette: 2 },
   'shiftColor+recolor': { load: 3.4 + 1.6 + 1.0, minPalette: 2 },
+  // The 6-8 combination: a turn plus a colour-conditional slide, so one program
+  // carries all three of the families the earlier bands introduced separately.
+  'rot180+shiftColor': { load: 2.8 + 3.4 + 1.0, minPalette: 2 },
 };
 export const GRIDS = [
   { rows: 3, cols: 3 },
@@ -212,6 +224,32 @@ export const ALLOWED_CONFIGS = (() => {
         }
   return out;
 })();
+
+/* ================================================================== *
+ * BAND LADDER — which transformation each grade band gets.
+ *
+ * `lo`/`hi` are the improvement-plan §4 windows on the 1..20 scale. `serves`
+ * is the reviewer's sentence for that band, expressed over the lever config:
+ * an item cannot land in a band unless the program it applies belongs there.
+ * Above level carries `serves: null`, i.e. no restriction: the review's
+ * above-level row is a proposal, not an instruction, so nothing here decides it.
+ * ================================================================== */
+export const BANDS = [
+  // "for k-1, focus on translations" — one slide, one colour.
+  { band: 'K-1', lo: 1, hi: 4, serves: (c) => c.programKey === 'shift' && c.paletteSize === 1 },
+  // "2-3, make it multi-color" — the same slide over a multi-colour grid.
+  { band: '2-3', lo: 4, hi: 8, serves: (c) => c.programKey === 'shift' && c.paletteSize >= 2 },
+  // "4-5, add rotations" — the turn replaces the slide.
+  { band: '4-5', lo: 8, hi: 12, serves: (c) => c.programKey === 'rot180' && c.paletteSize >= 2 },
+  // "in 6-8, combine these different rules" — turn + colour-conditional slide.
+  { band: '6-8', lo: 12, hi: 16, serves: (c) => c.programKey === 'rot180+shiftColor' },
+  { band: 'above-level', lo: 16, hi: 20, serves: null },
+];
+
+/** The band whose window contains an integer difficulty bin. */
+export function bandForBin(k) {
+  return BANDS.find((b) => k <= b.hi) ?? BANDS[BANDS.length - 1];
+}
 
 const ALL_BASES = ALLOWED_CONFIGS.map(baseScore);
 const RAW_MIN = Math.min(...ALL_BASES) + densityTerm(0);
@@ -413,19 +451,21 @@ export function genItem({ programKey, rows, cols, exampleCount, paletteSize, dem
   };
 }
 
-// Age-band targeting hint. This type EXCLUDES K-1 by design (spec age_rationale:
-// multi-edit construction exceeds K-1 motor + working-memory load); declared bands
-// are 2-3 | 4-5 | 6-8. Boundary overlap is a targeting hint, not a hard cut.
+// Age band, read straight off the §4 window the item's difficulty falls in — the
+// bands are no longer overlapping targeting hints, because since the 2026-07 review
+// the band decides which transformation the item applies (BANDS above), and an item
+// cannot be two transform families at once. K-1 is served (translation only, single
+// colour); the pre-review K-1 exclusion still holds for every heavier family, which
+// is exactly what the ladder enforces.
+//
+// Above level (16..20) reports as `6-8`: the item schema's band vocabulary stops
+// there (`ageBandSchema`, packages/contracts), so above-level means "the top of the
+// 6-8 ladder", not a fifth band.
 export function ageBandsFor(difficulty) {
-  const bands = [];
-  const add = (b) => {
-    if (!bands.includes(b)) bands.push(b);
-  };
-  if (difficulty < 9) add('2-3');
-  if (difficulty >= 7.5 && difficulty < 13.5) add('4-5');
-  if (difficulty >= 12) add('6-8');
-  if (bands.length === 0) add(difficulty < 8 ? '2-3' : '6-8');
-  return bands;
+  if (difficulty < 4) return ['K-1'];
+  if (difficulty < 8) return ['2-3'];
+  if (difficulty < 12) return ['4-5'];
+  return ['6-8'];
 }
 
 /* ================================================================== *
@@ -437,16 +477,21 @@ export function ageBandsFor(difficulty) {
 export function buildBank({ perBin = 6 } = {}) {
   const items = [];
   for (let k = 1; k <= 20; k++) {
-    const lo = Math.max(1, k - 0.45);
-    const hi = Math.min(20, k + 0.45);
+    // The bin is clipped to its band's window as well as to +/-0.45, so an item
+    // can never carry a transform from the band next door on a boundary bin.
+    const band = bandForBin(k);
+    const lo = Math.max(1, band.lo, k - 0.45);
+    const hi = Math.min(20, band.hi, k + 0.45);
+    const allowed = band.serves ? ALLOWED_CONFIGS.filter(band.serves) : ALLOWED_CONFIGS;
 
     const segments = [];
-    for (const cfg of ALLOWED_CONFIGS) {
+    for (const cfg of allowed) {
       const a = Math.max(lo, difficultyFromLevers(cfg, 0));
       const b = Math.min(hi, difficultyFromLevers(cfg, 1));
       if (b > a + 1e-6) segments.push({ cfg, tLo: a, tHi: b });
     }
-    if (segments.length === 0) throw new Error(`no reachable lever config for difficulty bin k=${k}`);
+    if (segments.length === 0)
+      throw new Error(`no reachable ${band.band} lever config for difficulty bin k=${k}`);
 
     const stride = Math.max(1, Math.floor(segments.length / perBin));
     const hits = segments.map(() => 0);

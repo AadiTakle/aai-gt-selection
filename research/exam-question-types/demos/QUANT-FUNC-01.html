@@ -132,6 +132,10 @@
     </div>
     <div id="status">Waiting for an item.</div>
   </section>
+  <div id="playgate">
+    <p>The machine is ready. Press play when you are, and the round starts then.</p>
+    <button type="button" id="play">Play</button>
+  </div>
 </main>
 <aside id="telemetry">
   <h3>Live telemetry · per-child</h3>
@@ -171,7 +175,7 @@ const DOT_RENDER_CAP=24;                         // hard render guard; bank keep
 let item=null, renderT0=0, firstT=null, selectedKey=null;
 let pickSeq=[], revisions=0, locked=true, submitted=false, submitMs=0;
 let focusedMs=0, focusTs=clock(), isFocused=(document.visibilityState!=='hidden'), blurCount=0;
-let startFallback=null, telemetryLog=[];
+let telemetryLog=[];
 
 /* ---------------- quantity / numeral rendering ---------------- */
 function valueBody(n, display){
@@ -281,25 +285,38 @@ function setCue(k,txt){const el=$('#phasecue');el.dataset.phase=k;el.textContent
 function setStatus(msg){$('#status').textContent=msg;}
 function log(msg){const d=document.createElement('div');d.innerHTML=`<span class="t">${new Date().toLocaleTimeString([],{minute:'2-digit',second:'2-digit'})}</span> ${msg}`;$('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;}
 
-/* ---------------- lifecycle ---------------- */
+/* ---------------- lifecycle ----------------
+   R1 — the machine is rendered on `init` but waits behind the play gate. `start` only ARMS the
+   gate; the child's press of play is what makes the item live, and it is where the scored clock
+   starts, so M-RT and M-RTFIRST measure working the rule out rather than however long the child
+   took to look up after the host handed the item over. */
 function loadItem(served){
   item=served;submitted=false;locked=true;selectedKey=null;pickSeq=[];revisions=0;
   firstT=null;telemetryLog=[];focusedMs=0;focusTs=clock();isFocused=(document.visibilityState!=='hidden');blurCount=0;
   renderT0=clock();
   $('#machine').classList.remove('spin');
   renderItem();
-  setCue('waiting','Get ready');setStatus('Study how the machine changes each number.');
   evt('render',{itemId:item.itemId,display:item.content.display,difficulty:item.difficulty});
-  clearTimeout(startFallback);
-  startFallback=setTimeout(()=>{ if(locked&&!submitted)begin(); },500);
+  openGate();
 }
-function begin(){ if(!item||submitted)return; locked=false; setCue('answer','Your turn'); setStatus('Tap the output for the new input, then press the check.'); evt('start'); }
+function openGate(){
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('waiting','Ready when you are');setStatus('Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
+function begin(){
+  if(!item||submitted||!locked)return;                 // a second press of play is a no-op
+  closeGate();
+  locked=false;
+  renderT0=clock();focusedMs=0;focusTs=clock();        // the scored window opens on the play press
+  setCue('answer','Your turn'); setStatus('Tap the output for the new input, then press the check.'); evt('start');
+}
 
 /* host protocol */
 window.addEventListener('message',e=>{
   const d=e.data; if(!d||d.source!==SRC_HOST)return;
   if(d.type==='init'&&d.item){evt0('init');loadItem(d.item);}
-  else if(d.type==='start'){clearTimeout(startFallback);begin();}
+  else if(d.type==='start')openGate();
 });
 function evt0(name){const e={t:0,name};telemetryLog.push(e);emit('telemetry',{event:e});log(name);}
 
@@ -313,6 +330,7 @@ document.addEventListener('visibilitychange',()=>{document.visibilityState==='hi
 $('#choices').addEventListener('click',e=>{const b=e.target.closest('.choice');if(b)pick(b.dataset.key);});
 $('#choices').addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.classList.contains('choice')){e.preventDefault();pick(e.target.dataset.key);}});
 $('#go').addEventListener('click',submit);
+$('#play').addEventListener('click',begin);
 
 /* ---------------- standalone fallback (double-click) ---------------- */
 const SAMPLES=[
@@ -333,13 +351,13 @@ const SAMPLES=[
      prompt:'Choose the amount the machine makes for the new input.'}},
 ];
 let sampleIx=0;
-function standaloneAdvance(){setTimeout(()=>{sampleIx=(sampleIx+1)%SAMPLES.length;loadItem(SAMPLES[sampleIx]);begin();},1200);}
+function standaloneAdvance(){setTimeout(()=>{sampleIx=(sampleIx+1)%SAMPLES.length;loadItem(SAMPLES[sampleIx]);},1200);}
 
 /* ---------------- boot ---------------- */
 buildMeters();
 emit('ready');
 if(EMBEDDED){ setCue('waiting','Waiting for host'); log('ready · awaiting host init'); }
-else{ log('standalone · no host detected'); loadItem(SAMPLES[0]); begin(); }
+else{ log('standalone · no host detected'); loadItem(SAMPLES[0]); }
 </script>
 </body>
 </html>

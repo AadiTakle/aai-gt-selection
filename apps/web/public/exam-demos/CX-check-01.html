@@ -6,7 +6,7 @@
 <title>CX-check-01 · Check It Twice</title>
 <style>
 :root{
-  --ink:#004f71;--paper:#ffffff;--blue:#e48b53;--cyan:#e48b53;
+  --ink:#004f71;--paper:#ffffff;--blue:#e48b53;
   --good:#4a6470;--bad:#9fb6bd;--gold:#e48b53;--line:#f5ddcd;
   --tel:#002a3a;--tel2:#003b5c;--key:#ebba9b;--dim:#e48b53;
 }
@@ -36,29 +36,37 @@ body{
 }
 #prompt{font:700 15px/1.4 system-ui;color:#33505c;text-align:center;max-width:620px}
 #bins{width:100%;display:grid;gap:9px}
-.bin{min-height:190px;border:2px solid var(--line);border-radius:18px;background:#ffffff;padding:7px;cursor:pointer;transition:.14s}
+.bin{min-height:190px;border:2px solid var(--line);border-radius:18px;background:#ffffff;padding:7px;cursor:default;transition:.14s}
 .bin:hover{border-color:#ebba9b;background:#fcf4ef}
-.bin.target{border-color:var(--blue);background:#fcf4ef}
+/* A bin the picked-up tile can actually be dropped into. Dashed, so "somewhere to
+   drop this" reads without relying on the colour change. */
+.bin.target{border-style:dashed;border-width:3px;border-color:var(--blue);background:#fcf4ef;cursor:pointer}
 .binHeader{
   height:43px;border-radius:11px;background:#fcf4ef;display:grid;place-items:center;
   color:#4a6470;font:900 22px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
-  margin-bottom:7px;letter-spacing:.12em;
+  margin-bottom:7px;letter-spacing:.12em;cursor:default;
 }
 .tokens{display:flex;flex-wrap:wrap;align-content:flex-start;gap:6px;justify-content:center}
+/* Every tile is movable, and the grip plus the grab cursor are what say so — the
+   reviewer could not tell what was draggable, and colour alone would not tell a
+   colour-blind child either. */
 .token{
-  min-width:82px;height:54px;border:3px solid #f8e8de;border-radius:13px;background:#ffffff;
-  display:grid;grid-template-columns:1fr 24px;align-items:center;padding-left:9px;
-  font:900 17px/1 ui-monospace,SFMono-Regular,Menlo,monospace;cursor:pointer;
+  min-width:96px;height:54px;border:3px solid #f8e8de;border-radius:13px;background:#ffffff;
+  display:grid;grid-template-columns:13px 1fr 30px;align-items:center;gap:4px;padding-left:7px;
+  font:900 17px/1 ui-monospace,SFMono-Regular,Menlo,monospace;cursor:grab;
   transition:.14s;position:relative;color:var(--ink);
 }
-.token:hover{transform:translateY(-2px)}
-.token.sel{border-color:var(--blue);box-shadow:0 0 0 3px #f8e8de}
-.token.reviewed{border-color:var(--cyan)}
+.token:hover{transform:translateY(-2px);border-color:#ebba9b}
+.token.sel{border-color:var(--blue);border-style:dashed;box-shadow:0 0 0 3px #f8e8de;cursor:grabbing}
+.grip{color:#4a6470;font:900 11px/1 system-ui;letter-spacing:1px;user-select:none;cursor:grab}
+/* A real box that fills in and empties again, so the child can see the mark is
+   theirs to take back. */
 .check{
-  width:22px;height:32px;border:0;border-left:1px solid #f8e8de;background:transparent;
-  color:#4a6470;font-size:14px;cursor:pointer;padding:0;
+  width:26px;height:26px;border:2px solid #4a6470;border-radius:7px;background:#ffffff;
+  color:#ffffff;font:900 14px/1 system-ui;cursor:pointer;padding:0;display:grid;place-items:center;
 }
-.reviewed .check{color:var(--cyan);font-weight:900}
+.token.checked{border-style:double;border-width:5px}
+.token.checked .check{background:#4a6470}
 #tools{display:flex;gap:11px;align-items:center;flex-wrap:wrap;justify-content:center}
 #tools button{height:50px;border:0;border-radius:16px;cursor:pointer;font:800 16px system-ui;background:#fcf4ef;color:var(--blue);padding:0 18px}
 #submit{background:var(--good)!important;color:#002a3a!important}
@@ -123,8 +131,9 @@ button:focus-visible,.token:focus-visible,.bin:focus-visible{outline:4px solid #
   <header id="howto">
     <h1>How to use — Check It Twice</h1>
     <p>The sorter already filled these groups, and some tiles are in the wrong one. Each group header
-    shows its pattern. Tap a tile to pick it up, then tap the group it belongs in to move it. Tap the
-    small check (<b>&#10003;</b>) on a tile to mark that you looked at it. You may press
+    shows its pattern. Every tile has a grip (<b>&#8942;&#8942;</b>) and can be moved: tap a tile to pick it up,
+    then tap one of the dashed groups to drop it there. Tap the small box on a tile to mark that you
+    looked at it, and tap it again to clear the mark. You may press
     <b>Turn it in</b> at any time — right away, or after you have checked everything.</p>
   </header>
   <div id="phasecue" data-phase="warmup">Get ready</div>
@@ -138,6 +147,10 @@ button:focus-visible,.token:focus-visible,.bin:focus-visible{outline:4px solid #
     </div>
     <div id="status" class="neutral">Waiting for the board.</div>
   </section>
+  <div id="playgate">
+    <p>The board is ready. Press play when you are, and it starts then.</p>
+    <button type="button" id="play">Play</button>
+  </div>
 </main>
 <aside id="telemetry">
   <h3>Live telemetry · per-child (display only)</h3>
@@ -185,13 +198,15 @@ let interactive=false;     // interaction enabled? (released in beginItem)
 let submitted=false;       // already sent this item?
 let placement={};          // tokenId -> binKey (starts at the served placement)
 let boardOrder=[];         // tokenIds in display order (for review-order analysis)
-let reviewed=new Set();    // tokenIds the child marked or moved
+let reviewed=new Set();    // tokenIds the child has looked at at all (coverage; monotone)
+let checked=new Set();     // tokenIds currently carrying the child's own tick (reversible)
 let inspectSeq=[];         // ordered tokenIds inspected (with repeats)
 let moves=[];              // [{t, tokenId, from, to}]
 let actions=[];            // raw action sequence
 let itemTelemetry=[];
 let selected=null;
-let itemStart=0, firstLat=null, startTimer=null, lastRt=0;
+let itemStart=0, firstLat=null, lastRt=0;
+let gateTutorial=false;    // does the pending play press owe a gesture hint?
 let blurs=0, blurStart=0, blurMs=0;
 
 /* ---------- embedding detection + emit ---------- */
@@ -242,7 +257,7 @@ function renderDifficulty(){
    +`<div class="dtrack"><div class="dfill" style="width:${d==null?0:Math.max(0,Math.min(100,d/20*100))}%"></div></div>`
    +`<div class="dsub"><span>${c?c.tokens.length+' tiles \u00b7 '+c.bins.length+' groups':'\u2014'}</span><span>score: server-side</span></div>`;}
 function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});renderDifficulty();
-  if(current)$('#coverage').textContent=`checked ${reviewed.size} of ${current.content.tokens.length}`;}
+  if(current)$('#coverage').textContent=`checked ${checked.size} of ${current.content.tokens.length}`;}
 function log(msg){const t=Math.max(0,Date.now()-(itemStart||Date.now())),d=document.createElement('div');
   d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
 
@@ -284,18 +299,24 @@ function setStatus(kind,msg){const el=$('#status');el.className=kind;el.textCont
 function renderBoard(){
   const c=current.content;
   $('#bins').style.gridTemplateColumns=`repeat(${Math.min(4,c.bins.length)},1fr)`;
+  // While a tile is picked up, every group that would actually take it is dashed;
+  // the group it already sits in is not, because dropping it back there does nothing.
+  const canDrop=k=>selected!==null&&placement[selected]!==k;
   $('#bins').innerHTML=c.bins.map(b=>`
-    <section class="bin" data-bin="${b.key}" tabindex="0" aria-label="group ${b.pattern}">
+    <section class="bin ${canDrop(b.key)?'target':''}" data-bin="${b.key}" tabindex="0"
+      aria-label="group ${b.pattern}${canDrop(b.key)?', drop here':''}">
       <div class="binHeader">${b.pattern}</div>
       <div class="tokens">${c.tokens.filter(t=>placement[t.id]===b.key).map(t=>`
-        <div class="token ${selected===t.id?'sel':''} ${reviewed.has(t.id)?'reviewed':''}" data-id="${t.id}" tabindex="0">
-          <span>${t.text}</span><button class="check" data-check="${t.id}" aria-label="mark ${t.text} as looked at">&#10003;</button>
+        <div class="token ${selected===t.id?'sel':''} ${checked.has(t.id)?'checked':''}" data-id="${t.id}" tabindex="0">
+          <span class="grip" aria-hidden="true">&#8942;&#8942;</span><span>${t.text}</span>
+          <button class="check" data-check="${t.id}" aria-pressed="${checked.has(t.id)}"
+            aria-label="${checked.has(t.id)?`clear the mark on ${t.text}`:`mark ${t.text} as looked at`}">&#10003;</button>
         </div>`).join('')}</div>
     </section>`).join('');
 }
 function renderServedItem(item){
   current=item;submitted=false;interactive=false;
-  placement={};reviewed=new Set();inspectSeq=[];moves=[];actions=[];itemTelemetry=[];
+  placement={};reviewed=new Set();checked=new Set();inspectSeq=[];moves=[];actions=[];itemTelemetry=[];
   selected=null;firstLat=null;blurs=0;blurStart=0;blurMs=0;
   const c=item.content;
   boardOrder=c.tokens.map(t=>t.id);
@@ -321,12 +342,18 @@ function selectToken(id){
   renderBoard();renderMeters();
   emitEvent('inspect',{tokenId:id});
 }
-function markChecked(id){
+/* The tick is the child's own note-to-self, so it has to come off again: an
+   accidental tap used to be permanent, and this type is scored on whether a child
+   chooses to review, not on how steady their finger is. Un-ticking clears the mark
+   but never rewinds `reviewed`/`inspectSeq` — they saw the tile either way. */
+function toggleChecked(id){
   if(!interactive||submitted)return;
+  const now=!checked.has(id);
+  if(now)checked.add(id);else checked.delete(id);
   noteInspect(id);
-  recordAction('mark_checked',{tokenId:id});
+  recordAction(now?'mark_checked':'unmark_checked',{tokenId:id});
   renderBoard();renderMeters();
-  emitEvent('mark_checked',{tokenId:id});
+  emitEvent(now?'mark_checked':'unmark_checked',{tokenId:id});
 }
 function moveSelected(binKey){
   if(!interactive||submitted||selected===null)return;
@@ -358,6 +385,7 @@ function submit(){
     finalPlacement:Object.assign({},placement),
     servedPlacement:Object.fromEntries(current.content.tokens.map(t=>[t.id,t.bin])),
     reviewedTokens:[...reviewed],
+    checkedTokens:[...checked],
     reviewCoveragePct:coveragePct(),
     inspectSequence:inspectSeq.slice(),
     moves:moves.slice(),
@@ -384,16 +412,25 @@ function submit(){
 }
 
 /* ---------- host-driven lifecycle ---------- */
+/* R1 — the board waits behind the play gate. `init` renders it, but it stays covered and
+   inert, and "Turn it in" stays disabled, until the child presses play. That press is also
+   when the response clock starts, so M-RT and M-PERSIST measure checking rather than
+   however long the child took to look up at the screen. */
+function openGate(withTutorial){
+  gateTutorial=!!withTutorial;
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('warmup','Ready when you are');
+  setStatus('neutral','Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
 function onInit(item){
-  clearTimeout(startTimer);
   if(!item||!item.content||!item.content.bins||!item.content.tokens){log('init ignored: malformed ServedItem');return;}
   renderServedItem(item);
-  setCue('warmup','Get ready');
-  setStatus('neutral','Get ready for the board.');
-  startTimer=setTimeout(()=>{if(!interactive&&!submitted)beginItem(false);},500);
+  openGate(false);
 }
 async function beginItem(withTutorial){
   if(interactive||submitted||!current)return;
+  closeGate();
   if(withTutorial&&!tutorialShown){tutorialShown=true;await gestureHint();if(submitted)return;}
   interactive=true;itemStart=Date.now();
   // Turn it in is live from the first interactive moment: checking is voluntary.
@@ -405,7 +442,7 @@ async function beginItem(withTutorial){
 function onHostMessage(e){
   const d=e.data;if(!d||d.source!==HOST_SRC)return;
   if(d.type==='init')onInit(d.item);
-  else if(d.type==='start'){clearTimeout(startTimer);beginItem(!!d.tutorial);}
+  else if(d.type==='start')openGate(!!d.tutorial);
 }
 
 /* ---------- standalone fallback (QA when there is no host) ---------- */
@@ -425,7 +462,7 @@ async function loadBankSamples(){
   log('standalone: bank fetch unavailable (open via a local server for the full bank) — using inline samples');
   return INLINE_SAMPLES.slice();
 }
-function playStandalone(){const item=standaloneQueue[standaloneIdx%standaloneQueue.length];onInit(item);beginItem(standaloneIdx===0);}
+function playStandalone(){const item=standaloneQueue[standaloneIdx%standaloneQueue.length];onInit(item);openGate(standaloneIdx===0);}
 function advanceStandalone(){standaloneIdx++;playStandalone();}
 async function bootstrapStandalone(){if(standalone)return;standalone=true;standaloneQueue=await loadBankSamples();standaloneIdx=0;playStandalone();}
 
@@ -437,8 +474,9 @@ const INLINE_SAMPLES=[
 ];
 
 /* ---------- wiring ---------- */
+$('#play').addEventListener('click',()=>{if(current&&!interactive&&!submitted)beginItem(gateTutorial);});
 $('#bins').addEventListener('click',e=>{
-  const chk=e.target.closest('[data-check]');if(chk){e.stopPropagation();markChecked(chk.dataset.check);return;}
+  const chk=e.target.closest('[data-check]');if(chk){e.stopPropagation();toggleChecked(chk.dataset.check);return;}
   const tok=e.target.closest('.token');if(tok){e.stopPropagation();selectToken(tok.dataset.id);return;}
   const bin=e.target.closest('.bin');if(bin)moveSelected(bin.dataset.bin);
 });

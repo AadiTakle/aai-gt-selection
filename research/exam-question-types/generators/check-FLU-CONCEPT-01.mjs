@@ -18,7 +18,14 @@
 //      well-chosen tests needed to decide the probes.
 //   5. Difficulty equals the value independently re-derived from the item's levers,
 //      and the item regenerates byte-identically from its provenance.
-//   6. Coverage: spans 1..20 with >=5 items per integer bin AND per +/-1 pt band.
+//   6. Coverage: spans the SERVED range 8..20 with >=5 items per integer bin AND
+//      per +/-1 pt band, and publishes nothing below it. The 2026-07 review took
+//      the younger bands off this type ("grades 4-8 could do this but not the
+//      younger kids"), so a bank that still reached difficulty 1 would be serving
+//      K-1/2-3 rungs the review removed.
+//   7. Band ladder: the rule form an item uses, and the age band it declares, both
+//      match the difficulty window it sits in (4-5 single-attribute, 6-8
+//      conjunctive over two attributes; above level left unbanded by the review).
 //
 // Run:  node research/exam-question-types/generators/check-FLU-CONCEPT-01.mjs
 
@@ -30,9 +37,22 @@ import { lureLabel, normalizeBankItem } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/FLU-CONCEPT-01.jsonl');
-const ALLOWED_BANDS = ['2-3', '4-5', '6-8']; // this type excludes K-1 by design
+// Served bands after the 2026-07 review: K-1 and 2-3 are not served at all.
+const ALLOWED_BANDS = ['4-5', '6-8'];
 const ALLOWED_LURES = ['over_general', 'over_specific', 'feature_swap', 'inverted_rule', 'inconsistent_with_evidence'];
 const MIN_PER_BAND = 5;
+/* ---- independent band ladder (plan §4 windows + the review's rule forms) ---- */
+const SERVED_FLOOR = 8;
+const BAND_OF = (d) => (d < 12 ? '4-5' : d < 16 ? '6-8' : 'above-level');
+const LADDER = {
+  '4-5': (L) => L.form === 'single' || L.form === 'ordinal',
+  '6-8': (L) => L.form === 'conj2',
+  // The review left above level unbanded, so any documented rule form may serve it.
+  'above-level': () => true,
+};
+// `above-level` is not a value the item schema knows (packages/contracts
+// ageBandSchema), so a ceiling item declares the top band it belongs to.
+const BAND_LABEL = { '4-5': '4-5', '6-8': '6-8', 'above-level': '6-8' };
 
 const failures = [];
 const fail = (id, msg) => failures.push(`[${id}] ${msg}`);
@@ -255,6 +275,17 @@ for (const it of items) {
   const lev = (it.provenance && it.provenance.levers) || {};
   const derived = round2(difficultyOf(lev));
   if (Math.abs(derived - it.difficulty) > 0.01) fail(id, `difficulty ${it.difficulty} != derived-from-levers ${derived}`);
+
+  // ---- 7. Band ladder ----
+  if (isNum(it.difficulty)) {
+    if (it.difficulty < SERVED_FLOOR)
+      fail(id, `difficulty ${it.difficulty} is below the served floor ${SERVED_FLOOR} (K-1/2-3 are not served)`);
+    const band = BAND_OF(it.difficulty);
+    if (!LADDER[band](lev)) fail(id, `band ${band} (difficulty ${it.difficulty}) must not use rule form ${lev.form}`);
+    if (!deepEq(it.ageBands, [BAND_LABEL[band]]))
+      fail(id, `ageBands ${JSON.stringify(it.ageBands)} != ["${BAND_LABEL[band]}"] for difficulty ${it.difficulty}`);
+  }
+
   try {
     const regen = normalizeBankItem(genItem({ ...lev, seed: it.provenance.seed }));
     if (!deepEq(regen, it)) fail(id, 'item is NOT reproducible from its provenance (grammar drift)');
@@ -267,7 +298,10 @@ for (const it of items) {
 const diffs = items.map((it) => it.difficulty).filter(isNum);
 const min = Math.min(...diffs);
 const max = Math.max(...diffs);
-if (!(min <= 1.5)) fail('coverage', `min difficulty ${round2(min)} > 1.5 (does not reach the floor)`);
+if (!(min >= SERVED_FLOOR))
+  fail('coverage', `min difficulty ${round2(min)} < ${SERVED_FLOOR} (serves a band the review removed)`);
+if (!(min <= SERVED_FLOOR + 0.5))
+  fail('coverage', `min difficulty ${round2(min)} > ${SERVED_FLOOR + 0.5} (does not reach the served floor)`);
 if (!(max >= 19.5)) fail('coverage', `max difficulty ${round2(max)} < 19.5 (does not reach the ceiling)`);
 
 const binCounts = Array.from({ length: 20 }, () => 0);
@@ -278,9 +312,11 @@ for (const d of diffs) {
   for (let kk = 1; kk <= 20; kk++) if (Math.abs(d - kk) <= 1.0) bandCounts[kk - 1]++;
 }
 binCounts.forEach((n, i) => {
+  if (i + 1 < SERVED_FLOOR) return; // not served: bins below the floor are empty by design
   if (n < MIN_PER_BAND) fail('coverage', `integer bin k=${i + 1} has ${n} items (<${MIN_PER_BAND})`);
 });
 bandCounts.forEach((n, i) => {
+  if (i + 1 < SERVED_FLOOR) return;
   if (n < MIN_PER_BAND) fail('coverage', `+/-1pt band around k=${i + 1} has ${n} items (<${MIN_PER_BAND})`);
 });
 
@@ -296,4 +332,6 @@ if (failures.length) {
   if (failures.length > 40) console.error(`  ... and ${failures.length - 40} more`);
   process.exit(1);
 }
-console.log('\nPASS — parses, no probe verdict in content, key re-derived from the gate evidence alone, budget >= disambiguation target, coverage 1..20 with >=5 per bin and per +/-1pt band.');
+console.log(
+  `\nPASS — parses, no probe verdict in content, key re-derived from the gate evidence alone, budget >= disambiguation target, coverage ${SERVED_FLOOR}..20 with >=5 per served bin and per +/-1pt band, every rule form on the band the review put it in.`,
+);

@@ -21,7 +21,11 @@
   #status{min-height:22px;font-size:14px;font-weight:700;text-align:center;max-width:420px}
   #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#4a6470}
   #stagecard{background:var(--card);border-radius:26px;padding:24px;box-shadow:0 18px 50px -22px #001117;display:flex;flex-direction:column;align-items:center;gap:16px;max-width:520px;width:100%}
-  #modecue{font-size:13px;color:var(--accent);letter-spacing:.06em;text-transform:uppercase;min-height:16px;font-weight:700}
+  /* The order asked (same / reverse) decides whether a perfect memory scores zero, so it is
+     stated as a full sentence at reading size rather than as a small uppercase tag. */
+  #modecue{font-size:17px;line-height:1.35;color:#001117;font-weight:700;text-align:center;min-height:22px;
+    background:#f5ddcd;border:2px solid #ebba9b;border-radius:12px;padding:8px 14px;width:100%}
+  #modecue:empty{display:none}
   #grid{display:grid;gap:10px}
   .tile{background:var(--tile);border-radius:16px;display:flex;align-items:center;justify-content:center;
     font:700 20px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:#004f71;cursor:default;transition:background .12s,box-shadow .12s,transform .12s;
@@ -31,10 +35,6 @@
   .tile.flash{background:var(--accent);box-shadow:0 0 24px 6px #ffd16688;transform:scale(1.06)}
   .tile.sel{box-shadow:inset 0 0 0 3px #ebba9b;background:#003b5c;color:#6f4526}
   #tapcount{font-size:13px;color:#4a6470;letter-spacing:.05em;min-height:18px}
-  #diffwrap{width:100%;max-width:340px}
-  #diffbar{height:8px;background:#004f71;border-radius:5px;overflow:hidden}
-  #difffill{height:100%;background:linear-gradient(90deg,#ebba9b,#9fb6bd);width:0%;transition:.3s}
-  #difflabel{font-size:11px;color:#6f4526;text-align:center;margin-top:4px;letter-spacing:.05em}
   #controls{display:flex;gap:16px;align-items:center}
   button{font:inherit;border:0;cursor:pointer;border-radius:50%}
   #replay{width:50px;height:50px;background:#004f71;color:var(--accent);font-size:22px}
@@ -89,9 +89,13 @@
       <div id="modecue"></div>
       <div id="grid"></div>
       <div id="tapcount"></div>
-      <div id="diffwrap"><div id="diffbar"><div id="difffill"></div></div><div id="difflabel">SERVED ITEM</div></div>
       <div id="controls"><button id="replay" title="show how again">&#8635;</button></div>
       <div id="status" class="neutral">Waiting for the next round.</div>
+    </div>
+    <div id="playgate">
+      <p id="gateorder"></p>
+      <p>The lights start when you press play, so take your time.</p>
+      <button type="button" id="play">Play</button>
     </div>
   </div>
   <aside id="telemetry">
@@ -151,7 +155,7 @@ let itemTelemetry=[];
 let blurCount=0;
 
 const embedded=(()=>{try{return window.parent&&window.parent!==window;}catch(_){return true;}})();
-let standalone=false,standaloneQueue=[],standaloneIdx=0,tutorialShown=false,startTimer=null;
+let standalone=false,standaloneQueue=[],standaloneIdx=0,tutorialShown=false,gateTutorial=false;
 function post(msg){if(!embedded)return;try{window.parent.postMessage(Object.assign({source:DEMO_SRC},msg),'*');}catch(_){}}
 
 /* ---------- telemetry panel (DISPLAY ONLY; key-free values) ---------- */
@@ -276,13 +280,13 @@ function renderServedItem(item){
   emitEvent('render',{difficulty:current.difficulty,span:responseView.span,mode:c.mode,grid:c.grid.rows+'x'+c.grid.cols});
 }
 async function beginItem(withTutorial){
-  if(!current||submitted)return;
+  if(!current||submitted||presenter)return;
+  closeGate();
   if(withTutorial&&!tutorialShown){tutorialShown=true;await gestureHint();if(submitted)return;}
   const pres=current.content.presentation;
   if(!pres){log('begin ignored: presentation already sealed');return;}
   locked=true;
   setCue('watch');
-  $('#modecue').textContent=responseView.modeLabel==='reverse order'?'\u21c4 reverse order asked':'\u25b6 same order asked';
   setStatus('neutral','Watch the tiles light up. Do not tap yet.');
   presenter=makePlayer(pres);
   await presenter.play();
@@ -384,18 +388,33 @@ function pathLength(){
 /* @response-phase:end */
 
 /* ---------- host-driven lifecycle ---------- */
+/* R1 — the trail waits behind the play gate. The flash sequence used to begin 600ms after the
+   host delivered the item, so a child still settling missed the first tiles and the span was
+   scored against a trail they never saw. The gate also carries the order instruction, so which
+   direction is being asked is read BEFORE the lights rather than after them. */
+function orderSentence(){
+  return responseView&&responseView.modeLabel==='reverse order'
+    ? 'Tap the tiles back in the REVERSE order \u2014 the last one first.'
+    : 'Tap the tiles back in the SAME order they light up.';
+}
+function openGate(withTutorial){
+  gateTutorial=!!withTutorial;
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  $('#gateorder').textContent=orderSentence();
+  $('#modecue').textContent=orderSentence();
+  setCue('warmup');
+  setStatus('neutral','Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
 function onInit(item){
-  clearTimeout(startTimer);
   if(!item||!item.content||!item.content.presentation||!item.content.responsePhase){log('init ignored: malformed ServedItem');return;}
   renderServedItem(item);
-  setCue('warmup');
-  setStatus('neutral','Get ready. The tiles will start to light up.');
-  startTimer=setTimeout(()=>{if(locked&&!submitted&&current&&current.content.presentation)beginItem(false);},600);
+  openGate(false);
 }
 function onHostMessage(e){
   const d=e.data;if(!d||d.source!==HOST_SRC)return;
   if(d.type==='init')onInit(d.item);
-  else if(d.type==='start'){clearTimeout(startTimer);beginItem(!!d.tutorial);}
+  else if(d.type==='start')openGate(!!d.tutorial);
 }
 
 /* ---------- standalone fallback (QA when there is no host) ---------- */
@@ -416,7 +435,7 @@ async function loadBankSamples(){
   return INLINE_SAMPLES.slice();
 }
 function playStandalone(){const item=standaloneQueue[standaloneIdx%standaloneQueue.length];onInit(item);
-  setTimeout(()=>beginItem(standaloneIdx===0),300);}
+  openGate(standaloneIdx===0);}
 function advanceStandalone(){standaloneIdx++;playStandalone();}
 async function bootstrapStandalone(){if(standalone)return;standalone=true;standaloneQueue=await loadBankSamples();standaloneIdx=0;playStandalone();}
 
@@ -428,6 +447,7 @@ const INLINE_SAMPLES=[
 ];
 
 /* ---------- wiring ---------- */
+$('#play').addEventListener('click',()=>{if(current&&!submitted&&!presenter)beginItem(gateTutorial);});
 $('#grid').addEventListener('click',e=>{const t=e.target.closest('.tile');if(t)onTileTap(+t.dataset.i);});
 $('#replay').addEventListener('click',()=>{if(!submitted)gestureHint();});
 document.addEventListener('keydown',e=>{

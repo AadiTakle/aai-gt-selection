@@ -203,10 +203,71 @@ describe('SPA-MAZE-01', () => {
   });
 
   it('rejects a legal path that skips a required gem', () => {
-    const gems = withGems.content.gems as Cell[];
-    const bfsSkip = shortestPathAvoiding(withGems, gems);
-    expect(bfsSkip).not.toBeNull();
-    expect(grade(withGems, { path: bfsSkip, reachedGoal: true }).correct).toBe(false);
+    // The bank cannot supply this case: the generator now places gems only on cells
+    // every route through the maze crosses, so that a child choosing a competing
+    // route is never punished for it (see the item below, and the bank-wide
+    // assertion that follows). The verifier still has to reject a gem-skipping
+    // path, so the case is built explicitly.
+    const cycle: Cell[][] = [
+      [
+        [0, 0],
+        [0, 1],
+      ],
+      [
+        [0, 1],
+        [0, 2],
+      ],
+      [
+        [0, 0],
+        [1, 0],
+      ],
+      [
+        [1, 0],
+        [1, 1],
+      ],
+      [
+        [1, 1],
+        [1, 2],
+      ],
+      [
+        [0, 2],
+        [1, 2],
+      ],
+    ];
+    const twoRoutes = {
+      ...withGems,
+      content: {
+        ...withGems.content,
+        grid: { R: 2, C: 3 },
+        start: [0, 0] as Cell,
+        goal: [0, 2] as Cell,
+        gems: [[1, 1] as Cell],
+        openEdges: cycle.map(([a, b]) => mazeEdgeKey(a!, b!)),
+      },
+      answer: { ...withGems.answer, optimalPath: undefined },
+    } as unknown as RawBankItem;
+    const viaGem: Cell[] = [
+      [0, 0],
+      [1, 0],
+      [1, 1],
+      [1, 2],
+      [0, 2],
+    ];
+    const skipsGem: Cell[] = [
+      [0, 0],
+      [0, 1],
+      [0, 2],
+    ];
+    expect(grade(twoRoutes, { path: viaGem, reachedGoal: true }).correct).toBe(true);
+    expect(grade(twoRoutes, { path: skipsGem, reachedGoal: true }).correct).toBe(false);
+  });
+
+  it('never places a gem a competing route can dodge', () => {
+    for (const item of items) {
+      const gems = item.content.gems as Cell[];
+      if (gems.length === 0) continue;
+      expect(shortestPathAvoiding(item, gems), item.itemId).toBeNull();
+    }
   });
 });
 
@@ -453,6 +514,45 @@ describe('SPA-SCENE-01', () => {
     const verdict = grade(item, { order: swapped, nearestId: item.answer.nearestId });
     expect(verdict.correct).toBe(false);
     expect(verdict.metrics?.['M-POLY']).toBeGreaterThan(0.5);
+  });
+
+  /* The occluded bands only work if the verifier reads barriers the same way the bank does.
+     These two assert that agreement on real items rather than on a hand-built fixture. */
+  it('rejects an order that includes an object hidden behind a barrier', () => {
+    const occluded = items.filter(
+      (i) => (i.answer.occlusion as { hiddenIds: number[] }).hiddenIds.length > 0,
+    );
+    expect(occluded.length).toBeGreaterThan(0);
+    for (const item of occluded) {
+      const ignoredOcclusion = Object.values(
+        item.answer.distractorRationales as Record<string, SceneLure>,
+      ).find((l) => l.lureDetail === 'over_general')!;
+      expect(ignoredOcclusion, item.itemId).toBeDefined();
+      const verdict = grade(item, {
+        order: ignoredOcclusion.order,
+        nearestId: item.answer.nearestId,
+      });
+      expect(verdict.correct, item.itemId).toBe(false);
+    }
+  });
+
+  it('derives the same visible set the bank recorded, windows included', () => {
+    for (const item of items) {
+      const occlusion = item.answer.occlusion as {
+        visibleIds: number[];
+        seenThroughWindow: number;
+      };
+      // A correct order over exactly the bank's visible ids grades correct, and dropping a
+      // visible object or adding a hidden one does not.
+      expect([...(item.answer.correctOrder as number[])].sort(), item.itemId).toEqual(
+        [...occlusion.visibleIds].sort(),
+      );
+      const short = (item.answer.correctOrder as number[]).slice(1);
+      expect(grade(item, { order: short, nearestId: item.answer.nearestId }).correct).toBe(false);
+    }
+    expect(
+      items.filter((i) => (i.answer.occlusion as { windows: number }).windows > 0).length,
+    ).toBeGreaterThan(0);
   });
 });
 

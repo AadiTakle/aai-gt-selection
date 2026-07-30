@@ -83,6 +83,10 @@ button:focus-visible{outline:4px solid #e48b53;outline-offset:3px}
       <div id="controls"><button id="replay" class="round" title="show how again" aria-label="show how again">&#8635;</button><button id="go" class="round" title="send answer" aria-label="send answer">&#10003;</button></div>
       <div id="status" class="neutral">Waiting for the next scene.</div>
     </main>
+    <div id="playgate">
+      <p>The scene is ready. Press play when you are, and it starts then.</p>
+      <button type="button" id="play">Play</button>
+    </div>
   </div>
   <aside id="telemetry">
     <h3>Live telemetry · per-child (display only)</h3>
@@ -161,11 +165,11 @@ function glyphSvg(kind){ // tiny inline swatch for the view strip
 let current=null,shell=null,interactive=false,submitted=false;
 let staged=null,firstKey=null,selectionOrder=[],sampled=new Set();
 let dialDeg=0,dialMoves=0,firstDial=null,dialZones=new Set();
-let itemStart=0,startTimer=null,itemTelemetry=[];
+let itemStart=0,itemTelemetry=[];
 const M={rt:null,rts:[],firstLat:null,rev:0,blur:0};
 
 const embedded=(()=>{try{return window.parent&&window.parent!==window;}catch(_){return true;}})();
-let standalone=false,standaloneQueue=[],standaloneIdx=0,tutorialShown=false;
+let standalone=false,standaloneQueue=[],standaloneIdx=0,tutorialShown=false,gateTutorial=false;
 function post(msg){if(!embedded)return;try{window.parent.postMessage(Object.assign({source:DEMO_SRC},msg),'*');}catch(_){}}
 
 /* ---------- telemetry panel (DISPLAY ONLY; key-free) ---------- */
@@ -350,12 +354,30 @@ async function gestureHint(){
 }
 
 /* ---------- host-driven lifecycle ---------- */
+/* R1 — the scene waits behind the play gate. The item used to go live 500ms after the host
+   delivered it, so M-RT and M-RTFIRST started while the child was still looking up and mixed
+   orienting time into a scored quantity. `init` renders behind the gate, `start` only arms it,
+   and the press of play is what begins the item and starts the clock. */
+function openGate(withTutorial){
+  gateTutorial=!!withTutorial;
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('warmup','Get ready');setStatus('neutral','Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
+/* Every route through this item is keyboard-reachable, so the gate is too. Behind a closed
+   gate the item's own shortcuts do nothing, so any key the child presses means "I am ready":
+   it presses play and is consumed rather than silently going nowhere. */
+function gateKey(e){
+  if(document.documentElement.getAttribute('data-gt-gate')!=='closed')return false;
+  if(!e.metaKey&&!e.ctrlKey&&!e.altKey&&!/^(Tab|Escape|Shift|Control|Alt|Meta|CapsLock)$/.test(e.key)){
+    $('#play').click();e.preventDefault();
+  }
+  return true;
+}
 function onInit(item){
-  clearTimeout(startTimer);
   if(!item||!item.content||!item.content.scene||!item.content.question){log('init ignored: malformed ServedItem');return;}
   renderServedItem(item);
-  setCue('warmup','Get ready');setStatus('neutral','Get ready for the scene.');
-  startTimer=setTimeout(()=>{if(!interactive&&!submitted)beginItem(false);},500);
+  openGate(false);
 }
 async function beginItem(withTutorial){
   if(interactive||submitted||!current)return;
@@ -369,7 +391,7 @@ async function beginItem(withTutorial){
 }
 function onHostMessage(e){const d=e.data;if(!d||d.source!==HOST_SRC)return;
   if(d.type==='init')onInit(d.item);
-  else if(d.type==='start'){clearTimeout(startTimer);beginItem(!!d.tutorial);}}
+  else if(d.type==='start')openGate(!!d.tutorial);}
 
 /* ---------- standalone fallback (QA when there is no host) ---------- */
 function toServed(b){const{answer,scoring,provenance,...s}=b;return s;}
@@ -388,7 +410,7 @@ async function loadBankSamples(){
   log('standalone: bank fetch unavailable (serve the folder for the full bank) — using inline samples');
   return INLINE_SAMPLES.slice();
 }
-function playStandalone(){onInit(standaloneQueue[standaloneIdx%standaloneQueue.length]);beginItem(standaloneIdx===0);}
+function playStandalone(){onInit(standaloneQueue[standaloneIdx%standaloneQueue.length]);openGate(standaloneIdx===0);}
 function advanceStandalone(){standaloneIdx++;playStandalone();}
 async function bootstrapStandalone(){if(standalone)return;standalone=true;standaloneQueue=await loadBankSamples();standaloneIdx=0;playStandalone();}
 
@@ -401,6 +423,11 @@ const INLINE_SAMPLES=[
 ];
 
 /* ---------- wiring ---------- */
+// A second press of play is a no-op: the gate is already open by then.
+$('#play').addEventListener('click',()=>{
+  if(document.documentElement.getAttribute('data-gt-gate')!=='closed')return;
+  closeGate();beginItem(gateTutorial);
+});
 $('#map').addEventListener('click',e=>{
   if(shell!=='match_viewpoint')return;
   const r=e.currentTarget.getBoundingClientRect();
@@ -408,8 +435,9 @@ $('#map').addEventListener('click',e=>{
 });
 $('#dial').addEventListener('input',()=>setDial(+$('#dial').value,true));
 $('#go').addEventListener('click',()=>{if($('#go').classList.contains('ready'))submit();});
-$('#replay').addEventListener('click',()=>{if(current&&!submitted)gestureHint();});
+$('#replay').addEventListener('click',()=>{if(current&&interactive&&!submitted)gestureHint();});
 document.addEventListener('keydown',e=>{
+  if(gateKey(e))return;
   if(!interactive||submitted)return;
   const step=current&&current.content.pointing?(current.content.pointing.dialStepDeg||5):5;
   if(shell==='match_viewpoint'&&/^[1-8]$/.test(e.key)){

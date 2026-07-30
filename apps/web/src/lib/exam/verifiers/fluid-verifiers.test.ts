@@ -201,6 +201,108 @@ describe('FLU-CONCEPT-01 verifier', () => {
   });
 });
 
+describe('FLU-DEDUCE-01 verifier', () => {
+  const bank = loadBank('FLU-DEDUCE-01');
+  const verify = verifierFor('FLU-DEDUCE-01');
+
+  const candidateKeys = (item: RawBankItem) =>
+    (item.content.candidates as { key: string }[]).map((c) => c.key);
+
+  /**
+   * The trace a child who read every clue correctly would leave, built from the
+   * bank's own `cluesViolated` rationales. That is a different source from the
+   * `content.clues` predicates the verifier evaluates, so agreement here is a
+   * real cross-check of the derivation rather than a restatement of it.
+   */
+  function solvedSteps(item: RawBankItem) {
+    const rationales = item.answer.distractorRationales as Record<
+      string,
+      { cluesViolated?: string[] }
+    >;
+    const eliminated = new Set<string>();
+    return (item.content.clues as { clueId: string }[]).map((clue) => {
+      for (const [key, rationale] of Object.entries(rationales)) {
+        if (rationale.cluesViolated?.includes(clue.clueId)) eliminated.add(key);
+      }
+      return { clueId: clue.clueId, eliminated: [...eliminated] };
+    });
+  }
+
+  it('accepts the elimination trace the clues force, on every bank item', () => {
+    for (const item of bank) {
+      const verdict = verify(item, { steps: solvedSteps(item) });
+      expect(verdict.correct, `${item.itemId} solver trace`).toBe(true);
+      expect(verdict.metrics?.['M-POLY']).toBe(1);
+      expect(verdict.metrics?.['M-ERRTYPE']).toBe(1);
+    }
+  });
+
+  it('leaves exactly the answer key standing at the last step, on every bank item', () => {
+    for (const item of bank) {
+      const steps = solvedSteps(item);
+      const standing = candidateKeys(item).filter((k) => !steps.at(-1)!.eliminated.includes(k));
+      expect(standing, `${item.itemId} survivor`).toEqual([item.answer.correctKey]);
+    }
+  });
+
+  it('rejects a trace that leaves one ruled-out suspect standing, on every bank item', () => {
+    for (const item of bank) {
+      const steps = solvedSteps(item);
+      const last = steps.at(-1)!;
+      const verdict = verify(item, {
+        steps: steps.map((step) =>
+          step === last ? { ...step, eliminated: step.eliminated.slice(0, -1) } : step,
+        ),
+      });
+      expect(verdict.correct, `${item.itemId} under-pruned`).toBe(false);
+      // Under-pruning only: M-ERRTYPE stays at its best value, and the single
+      // wrong state costs one cell of the graded grid.
+      expect(verdict.metrics?.['M-ERRTYPE']).toBe(1);
+      const cells = steps.length * candidateKeys(item).length;
+      expect(verdict.metrics?.['M-POLY']).toBeCloseTo((cells - 1) / cells);
+    }
+  });
+
+  it('scores crossing out the one suspect every clue admits as the worse error', () => {
+    const item = bank[0]!;
+    const key = item.answer.correctKey as string;
+    const steps = solvedSteps(item).map((step) => ({
+      ...step,
+      eliminated: [...step.eliminated, key],
+    }));
+    const verdict = verify(item, { steps });
+    expect(verdict.correct).toBe(false);
+    expect(verdict.metrics?.['M-ERRTYPE']).toBe(0);
+  });
+
+  it('rejects a trace whose steps do not line up with the clues', () => {
+    const item = bank.find((entry) => (entry.content.clues as unknown[]).length > 1)!;
+    const steps = solvedSteps(item);
+    expect(verify(item, { steps: steps.slice(0, -1) }).correct, 'short trace').toBe(false);
+    expect(verify(item, { steps: [...steps].reverse() }).correct, 'reordered trace').toBe(false);
+  });
+
+  it('re-derives the eliminations from the clues, not the stored key', () => {
+    for (const item of bank) {
+      const steps = solvedSteps(item);
+      const corrupted = withCorruptedKey(item, (answer) => {
+        answer.correctKey = `${String(answer.correctKey)}~wrong`;
+        answer.distractorRationales = {};
+        answer.targetFigure = null;
+      });
+      expect(verify(corrupted, { steps }).correct, `${item.itemId} solver over key`).toBe(true);
+    }
+  });
+
+  it('rejects a malformed response instead of throwing', () => {
+    expectsMalformedToFail('FLU-DEDUCE-01', bank[0]!);
+    const item = bank[0]!;
+    expect(verify(item, { steps: 'nonsense' }).correct).toBe(false);
+    expect(verify(item, { steps: [{ eliminated: [7] }] }).correct).toBe(false);
+    expect(verify(item, { selectedKey: item.answer.correctKey }).correct).toBe(false);
+  });
+});
+
 describe('CX-check-01 verifier', () => {
   const bank = loadBank('CX-check-01');
   const verify = verifierFor('CX-check-01');

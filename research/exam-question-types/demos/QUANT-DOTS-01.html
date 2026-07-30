@@ -94,6 +94,10 @@
     </div>
     <div id="status">Waiting for an item.</div>
   </section>
+  <div id="playgate">
+    <p>The dots are ready. Press play when you are, and they flash then.</p>
+    <button type="button" id="play">Play</button>
+  </div>
 </main>
 <aside id="telemetry">
   <h3>Live telemetry · per-child</h3>
@@ -131,7 +135,7 @@ const RAPID_MS=250;                               // ANS effort-validity thresho
 
 /* ---------------- state (reset per item) ---------------- */
 let item=null, renderT0=0, decisionT0=null, firstT=null, selectedKey=null;
-let submitted=false, locked=true, loadToken=0;
+let submitted=false, locked=true, loadToken=0, began=false;
 let focusedMs=0, focusTs=clock(), isFocused=(document.visibilityState!=='hidden'), blurCount=0;
 let telemetryLog=[];
 
@@ -216,21 +220,30 @@ function log(msg){const d=document.createElement('div');d.innerHTML=`<span class
 
 /* ---------------- lifecycle ---------------- */
 function loadItem(served){
-  item=served;submitted=false;locked=true;selectedKey=null;decisionT0=null;firstT=null;
+  item=served;submitted=false;locked=true;began=false;selectedKey=null;decisionT0=null;firstT=null;
   telemetryLog=[];focusedMs=0;focusTs=clock();isFocused=(document.visibilityState!=='hidden');blurCount=0;
   renderT0=clock();loadToken++;
   renderItem();
-  setCue('waiting','Get ready');setStatus('Watch for the two dot groups.');
   evt('render',{itemId:item.itemId,exposureMs:item.content.exposureMs,difficulty:item.difficulty});
-  // Unlock via the flash sequence on host 'start'; self-run shortly if omitted.
-  clearTimeout(loadItem._t);
-  loadItem._t=setTimeout(()=>{ if(!submitted&&decisionT0==null)begin(); },500);
+  openGate();
 }
+/* R1 — the flash waits behind the play gate. The dots are painted on `init` but stay
+   covered by the gate, and the fixed exposure only runs once the child presses play,
+   so a child who was still looking away cannot lose the one look they get. */
+function openGate(){
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('waiting','Ready when you are');setStatus('Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
 // Flash both arrays, then hide and RELEASE the lock so the child can answer.
 function begin(){
-  if(!item||submitted||decisionT0!=null)return;
+  if(!item||submitted||began)return;                 // a second play press is a no-op
+  began=true;
   const token=loadToken;
-  clearTimeout(loadItem._t);
+  closeGate();
+  // The item clock restarts here, so however long the child waited at the gate is
+  // not counted against them in the timing or engagement metrics.
+  renderT0=clock();focusedMs=0;focusTs=clock();
   setCue('flash','Look');setStatus('Which side has more?');
   $('#coverL').classList.remove('closed');$('#coverR').classList.remove('closed'); // reveal dots
   evt('flash_on',{exposureMs:item.content.exposureMs});
@@ -248,7 +261,7 @@ function begin(){
 window.addEventListener('message',e=>{
   const d=e.data; if(!d||d.source!==SRC_HOST)return;
   if(d.type==='init'&&d.item){evt0('init');loadItem(d.item);}
-  else if(d.type==='start'){clearTimeout(loadItem._t);begin();}
+  else if(d.type==='start')openGate();   // ARMS the gate; the flash starts on the play press
 });
 
 /* engagement tracking */
@@ -258,6 +271,7 @@ window.addEventListener('focus',onFocus);window.addEventListener('blur',onBlur);
 document.addEventListener('visibilitychange',()=>{document.visibilityState==='hidden'?onBlur():onFocus();});
 
 /* input wiring */
+$('#play').addEventListener('click',()=>begin());
 $('#pickL').addEventListener('click',()=>choose('L','tap'));
 $('#pickR').addEventListener('click',()=>choose('R','tap'));
 document.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(k==='f')choose('L','key');if(k==='j')choose('R','key');});
@@ -275,13 +289,14 @@ const SAMPLES=[
      exposureMs:400,cueCondition:'incongruent',options:[{key:'L'},{key:'R'}],prompt:'Which side had more dots?'}},
 ];
 let sampleIx=0;
-function standaloneAdvance(){setTimeout(()=>{sampleIx=(sampleIx+1)%SAMPLES.length;loadItem(SAMPLES[sampleIx]);begin();},1300);}
+// Standalone shows the same gate the child sees, so the double-click QA flow exercises it.
+function standaloneAdvance(){setTimeout(()=>{sampleIx=(sampleIx+1)%SAMPLES.length;loadItem(SAMPLES[sampleIx]);},1300);}
 
 /* ---------------- boot ---------------- */
 buildMeters();
 emit('ready');
 if(EMBEDDED){ setCue('waiting','Waiting for host'); log('ready · awaiting host init'); }
-else{ log('standalone · no host detected'); loadItem(SAMPLES[0]); begin(); }
+else{ log('standalone · no host detected'); loadItem(SAMPLES[0]); }
 </script>
 </body>
 </html>
