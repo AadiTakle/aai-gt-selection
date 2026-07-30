@@ -15,8 +15,8 @@
  * would be asserting something neither language guarantees. `correct` is compared exactly.
  *
  * Every type is reported, and a type whose per-type verifier has NOT been ported yet is
- * reported as PENDING rather than passing quietly — coverage is meant to be visibly 4 of 31
- * today and 31 of 31 when the port finishes.
+ * reported as PENDING rather than passing quietly — coverage is meant to be visibly partial
+ * while the port is in progress and complete when it finishes.
  *
  * Run it with `pnpm exam:verify:diff` against a running local Supabase. It writes nothing:
  * the bank items it needs are inserted inside a transaction that is always rolled back.
@@ -208,28 +208,6 @@ const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {
       wrong: { plane: { ...plane, h: h >= 50 ? h - 40 : h + 40 } },
     };
   },
-  'CX-curious-02': (item) => {
-    const key = String(item.answer.correctKey ?? '');
-    const offered = (Array.isArray(item.content.gapOptions) ? item.content.gapOptions : [])
-      .map((option) => asRecord(option)?.id)
-      .filter((id): id is string => typeof id === 'string');
-    // An option the scene states outright, which is the discrimination the type is about.
-    return {
-      correct: { gapKey: key },
-      wrong: { gapKey: offered.find((id) => id !== key) ?? `${key}~no` },
-    };
-  },
-  'GB-DEBATE-01': (item) => {
-    const key = asRecord(item.answer.correctKey) ?? {};
-    const support = String(key.support ?? '');
-    const rebut = String(key.rebut ?? '');
-    return {
-      correct: { supportKey: support, rebutKey: rebut },
-      // One of two decisions lands, so M-PROG is compared on its 0.5 rung and not only at
-      // the endpoints — that partial signal is the reason the type carries the metric.
-      wrong: { supportKey: support, rebutKey: `${rebut}~no` },
-    };
-  },
   'SPA-VIEW-01': (item) => {
     const heading = item.answer.correctHeadingDeg;
     if (item.content.optionKind === 'heading_dial' || typeof heading === 'number') {
@@ -263,33 +241,6 @@ const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {
       wrong: { count: total - 1, finalYawDeg: yaw },
     };
   },
-  'GB-FILTER-01': (item) => {
-    const targets = Array.isArray(item.answer.targets)
-      ? (item.answer.targets as [number, number][])
-      : [];
-    const grid = asRecord(item.content.grid) ?? {};
-    const rows = typeof grid.R === 'number' ? grid.R : 0;
-    const cols = typeof grid.C === 'number' ? grid.C : 0;
-    const lit = new Set(targets.map(([r, c]) => `${r},${c}`));
-    let dark: [number, number] | undefined;
-    for (let r = 0; r < rows && dark === undefined; r++) {
-      for (let c = 0; c < cols; c++) {
-        if (!lit.has(`${r},${c}`)) {
-          dark = [r, c];
-          break;
-        }
-      }
-    }
-    return {
-      correct: { selectedCells: targets, taps: targets.length },
-      // One target traded for one distractor: a miss AND a false alarm in one response, so
-      // M-PROG and M-FALSEALARM are both non-trivial on the comparison.
-      wrong: {
-        selectedCells: [...targets.slice(1), ...(dark === undefined ? [] : [dark])],
-        taps: targets.length,
-      },
-    };
-  },
   'WM-corsi-01': (item) => {
     const expected = numbers(item.answer.expectedSequence);
     return {
@@ -311,31 +262,6 @@ const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {
       swapped[ids[0]!] = -1;
     }
     return { correct: { placements: bindings }, wrong: { placements: swapped } };
-  },
-  'WM-gridflash-01': (item) => {
-    const phase = asRecord(item.content.responsePhase) ?? {};
-    if (phase.mode === 'select_set') {
-      const expected = numbers(item.answer.expectedCells);
-      const grid = asRecord(item.content.grid) ?? {};
-      const cellCount = typeof grid.cellCount === 'number' ? grid.cellCount : 0;
-      const dark = Array.from({ length: cellCount }, (_, cell) => cell).find(
-        (cell) => !expected.includes(cell),
-      );
-      return {
-        correct: { shell: 'select_set', selectedCells: expected },
-        // One lit cell swapped for a dark one, which moves the hit channel and the
-        // false-alarm channel in opposite directions — the split the type exists to keep.
-        wrong: {
-          shell: 'select_set',
-          selectedCells: [...expected.slice(1), ...(dark === undefined ? [] : [dark])],
-        },
-      };
-    }
-    const key = String(item.answer.correctKey ?? '');
-    return {
-      correct: { shell: 'two_choice', selectedKey: key },
-      wrong: { shell: 'two_choice', selectedKey: key === 'SAME' ? 'CHANGED' : 'SAME' },
-    };
   },
   'WM-bubble-01': (item) => {
     // `answer.correctKey` is the target steps per channel, "w:2,7|s:3". The verifier
@@ -375,16 +301,6 @@ const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {
       if (other !== undefined) wrong[target] = other;
     }
     return { correct: { finalPlacement: trueBin }, wrong: { finalPlacement: wrong } };
-  },
-  'FLU-MATRIXBUILD-01': (item) => {
-    const canonical = asRecord(item.answer.canonical) ?? {};
-    const wrong: Record<string, unknown> = { ...canonical };
-    const first = Object.keys(canonical)[0];
-    if (first !== undefined) {
-      const value = canonical[first];
-      wrong[first] = typeof value === 'number' ? value + 1 : `${String(value)}~no`;
-    }
-    return { correct: { constructed: canonical }, wrong: { constructed: wrong } };
   },
   'VER-SENSE-01': (item) => {
     const order = String(item.answer.correctKey)
@@ -484,26 +400,6 @@ const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {
     };
   },
 
-  'WM-gate-01': (item) => {
-    const probes = (item.answer.probes as { probeIndex: number; expectedKeys: string[] }[]) ?? [];
-    const answered = probes.map((p) => ({ probeIndex: p.probeIndex, keys: [...p.expectedKeys] }));
-    return {
-      correct: { probes: answered },
-      // The first checkpoint answered in the wrong ORDER: the contents survived, the gating
-      // did not, which is the type's own `order_reversal` lure and moves the OLS slope.
-      wrong: {
-        probes: answered.map((p, i) =>
-          i === 0
-            ? {
-                probeIndex: p.probeIndex,
-                keys: p.keys.length > 1 ? [...p.keys].reverse() : ['~no'],
-              }
-            : p,
-        ),
-      },
-    };
-  },
-
   'SPA-PUNCH-01': (item) => {
     const cells = (item.answer.trueCells as { x: number; y: number }[] | undefined) ?? [];
     return {
@@ -524,16 +420,6 @@ const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {
     };
   },
 
-  'GB-SHAPEFIT-01': (item) => {
-    const canonical = asRecord(item.answer.canonicalSolution) ?? {};
-    const placements = (canonical.placements as unknown[] | undefined) ?? [];
-    const cost = asRecord(item.answer.cost) ?? {};
-    return {
-      correct: { assembly: placements, cost: { moves: cost.moves } },
-      wrong: { assembly: placements.slice(0, -1), cost: { moves: cost.moves } },
-    };
-  },
-
   'SPA-PIPES-01': (item) => {
     const clockwise: Record<string, string> = { N: 'E', E: 'S', S: 'W', W: 'N' };
     const orients =
@@ -547,14 +433,6 @@ const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {
           i === 0 ? { ...tile, dirs: tile.dirs.map((d) => clockwise[d] ?? d) } : tile,
         ),
       },
-    };
-  },
-
-  'GB-PATHFORGE-01': (item) => {
-    const board = (item.answer.tileSpec as unknown[] | undefined) ?? [];
-    return {
-      correct: { finalBoard: board },
-      wrong: { finalBoard: board.slice(1) },
     };
   },
 

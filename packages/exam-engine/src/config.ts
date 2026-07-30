@@ -41,33 +41,45 @@ export const CORE_METRICS: CoreMetricSpec[] = [
   // --- per-item observed, per-area ---
   { id: 'M-ACC', scope: 'all', minSamples: 5, enforced: true, kind: 'observed' },
   { id: 'M-ERRTYPE', scope: 'all', minSamples: 3, enforced: true, kind: 'observed' },
+  /*
+   * M-REV is declared per area rather than once with `scope:'all'`, because after the
+   * question-type review retired `QUANT-EQUAL-01` no quantitative type declares it — and
+   * `QUANT-EQUAL-01` was its only quantitative supplier. Enforcing a metric with zero suppliers
+   * in an area makes `areaMetricsCovered` permanently false there, which pins every battery to
+   * `hardItemCap` instead of ending on the stop rule. So it stays enforced in the three areas
+   * whose banks supply it and is tracked-only in quantitative, where it still biases selection
+   * toward coverage variety but cannot block completion. Re-enforce it for quantitative when a
+   * quantitative type declares a revision count.
+   */
   {
     id: 'M-REV',
-    scope: 'all',
-    minSamples: 3,
-    enforced: true,
-    kind: 'observed',
-    supplyNote:
-      'Sole source in quantitative (QUANT-EQUAL-01); a bank change there stalls the area.',
-  },
-  {
-    id: 'M-RULEID',
     scope: 'fluid_reasoning',
     minSamples: 3,
     enforced: true,
     kind: 'observed',
     supplyNote: 'Five fluid types supply it; thin, so selection luck matters if banks shrink.',
   },
-  { id: 'M-VOCABLVL', scope: 'verbal', minSamples: 3, enforced: true, kind: 'observed' },
-  { id: 'M-LURETYPE', scope: 'verbal', minSamples: 3, enforced: true, kind: 'observed' },
+  { id: 'M-REV', scope: 'verbal', minSamples: 3, enforced: true, kind: 'observed' },
+  { id: 'M-REV', scope: 'spatial', minSamples: 3, enforced: true, kind: 'observed' },
+  { id: 'M-REV', scope: 'quantitative', minSamples: 3, enforced: false, kind: 'observed' },
   {
-    id: 'M-PAE',
-    scope: 'quantitative',
+    id: 'M-RULEID',
+    scope: 'fluid_reasoning',
     minSamples: 3,
     enforced: true,
     kind: 'observed',
-    supplyNote: 'Sole source (QUANT-NUMLINE-01); the only number-line placement type wired.',
+    supplyNote: 'Four fluid types supply it; thin, so selection luck matters if banks shrink.',
   },
+  { id: 'M-VOCABLVL', scope: 'verbal', minSamples: 3, enforced: true, kind: 'observed' },
+  { id: 'M-LURETYPE', scope: 'verbal', minSamples: 3, enforced: true, kind: 'observed' },
+  /*
+   * M-PAE is DECLARED but NOT enforced. Proportional absolute error is a number-line placement
+   * statistic, and `QUANT-NUMLINE-01` — the only number-line placement type ever wired — was
+   * retired by the question-type review. No surviving quantitative type can emit it, so
+   * enforcing it made the quantitative area permanently uncoverable. The engine still counts it
+   * wherever a type supplies it; re-enforce it when a placement type is wired again.
+   */
+  { id: 'M-PAE', scope: 'quantitative', minSamples: 3, enforced: false, kind: 'observed' },
 
   // --- per-item observed, session-level adequacy (per-child RT distribution) ---
   {

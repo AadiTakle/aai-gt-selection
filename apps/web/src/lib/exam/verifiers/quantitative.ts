@@ -27,8 +27,7 @@ import { num, setOverlap, type Verifier } from './types';
  *      efficiency; a legal-but-wasteful solution is still correct, and the
  *      waste is reported as `M-EFF` (optimum / actual, capped at 1). The only
  *      exceptions are the types whose bank states a threshold for full credit
- *      (GB-WORDFORGE-01) or an exact key (GB-TRACK-01, GB-FILTER-01,
- *      GB-DEBATE-01, QUANT-MIX-01).
+ *      (GB-WORDFORGE-01) or an exact key (GB-TRACK-01, QUANT-MIX-01).
  *   3. Never throw. Malformed input returns `{ correct: false }`.
  */
 
@@ -277,95 +276,6 @@ const verifyRobopath: Verifier = (item, response) => {
 };
 
 // ---------------------------------------------------------------------------
-// GB-PATHFORGE-01 — flood the submitted board
-// ---------------------------------------------------------------------------
-
-const OPPOSITE: Record<string, string> = { N: 'S', S: 'N', E: 'W', W: 'E' };
-
-/**
- * GB-PATHFORGE-01. The child lays pipe tiles; the server floods the board.
- *
- * Correct iff the final board carries a continuous hut -> flag road that runs
- * over every coin, within `content.tileBudget`. Orientation is judged by
- * connectivity (matching arms between neighbours), not by matching the stored
- * `answer.tileSpec` — `answer.equivalence.rule = any_minimal_road` says any
- * layout that connects is accepted, and `answer.optimalTiles` only sets M-EFF.
- */
-const verifyPathforge: Verifier = (item, response) => {
-  const content = item.content;
-  const grid = gridOf(content);
-  const start = cell(content.start);
-  const goal = cell(content.goal);
-  const blockedCells = cellList(content.blocked ?? []);
-  const coins = cellList(content.coins ?? []);
-  const budget = int(content.tileBudget);
-  if (!grid || !start || !goal || !blockedCells || !coins) return { correct: false };
-
-  const board = arr(response.finalBoard);
-  if (!board) return { correct: false };
-  if (budget !== null && board.length > budget) return { correct: false };
-
-  const blocked = new Set(blockedCells.map(([r, c]) => key(r, c)));
-  const startKey = key(start[0], start[1]);
-  const goalKey = key(goal[0], goal[1]);
-
-  const arms = new Map<string, Set<string>>();
-  for (const entry of board) {
-    const tile = obj(entry);
-    if (!tile) return { correct: false };
-    const r = int(tile.r);
-    const c = int(tile.c);
-    const dirs = arr(tile.dirs);
-    if (r === null || c === null || !dirs) return { correct: false };
-    if (r < 0 || r >= grid.R || c < 0 || c >= grid.C) return { correct: false };
-    const k = key(r, c);
-    // A tile on a wall, on the hut, on the flag, or stacked on another tile is
-    // an illegal board state, not an inefficient one.
-    if (blocked.has(k) || k === startKey || k === goalKey || arms.has(k)) return { correct: false };
-    const out = new Set<string>();
-    for (const dir of dirs) {
-      const d = str(dir);
-      if (d === null || !OPPOSITE[d]) return { correct: false };
-      out.add(d);
-    }
-    arms.set(k, out);
-  }
-
-  // Flood from the hut through matching arms. The hut and the flag are
-  // omnidirectional ports: they join any neighbour whose arm points at them.
-  const road = new Set<string>([startKey]);
-  const queue: [number, number][] = [start];
-  for (let head = 0; head < queue.length; head++) {
-    const at = queue[head];
-    if (!at) break;
-    const [r, c] = at;
-    const here = arms.get(key(r, c));
-    const isPort = key(r, c) === startKey || key(r, c) === goalKey;
-    const steps: [number, number, string][] = [
-      [r - 1, c, 'N'],
-      [r + 1, c, 'S'],
-      [r, c - 1, 'W'],
-      [r, c + 1, 'E'],
-    ];
-    for (const [nr, nc, dir] of steps) {
-      if (nr < 0 || nr >= grid.R || nc < 0 || nc >= grid.C) continue;
-      const nk = key(nr, nc);
-      if (road.has(nk)) continue;
-      if (!isPort && !here?.has(dir)) continue;
-      const there = arms.get(nk);
-      const opposite = OPPOSITE[dir] as string;
-      if (nk !== startKey && nk !== goalKey && !there?.has(opposite)) continue;
-      road.add(nk);
-      queue.push([nr, nc]);
-    }
-  }
-
-  const connected = road.has(goalKey) && coins.every(([r, c]) => road.has(key(r, c)));
-  const eff = efficiency(int(item.answer.optimalTiles), board.length);
-  return eff === null ? { correct: connected } : { correct: connected, metrics: { 'M-EFF': eff } };
-};
-
-// ---------------------------------------------------------------------------
 // GB-EXPLORE-01 — replay the walk
 // ---------------------------------------------------------------------------
 
@@ -489,114 +399,6 @@ const verifyExplore: Verifier = (item, response) => {
   const viewAngle = pointingError(response.pointings, landmarkAt);
   if (viewAngle !== null) metrics['M-VIEWANG'] = viewAngle;
   return Object.keys(metrics).length > 0 ? { correct: solved, metrics } : { correct: solved };
-};
-
-// ---------------------------------------------------------------------------
-// GB-SHAPEFIT-01 — exact-cover tiling
-// ---------------------------------------------------------------------------
-
-type Poly = [number, number][];
-
-function normalise(cells: Poly): Poly {
-  let minR = Infinity;
-  let minC = Infinity;
-  for (const [r, c] of cells) {
-    if (r < minR) minR = r;
-    if (c < minC) minC = c;
-  }
-  return cells
-    .map(([r, c]): [number, number] => [r - minR, c - minC])
-    .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-}
-
-const polySignature = (cells: Poly): string =>
-  normalise(cells)
-    .map(([r, c]) => `${r},${c}`)
-    .join('|');
-
-const rotateCW = (cells: Poly): Poly => normalise(cells.map(([r, c]): [number, number] => [c, -r]));
-const mirror = (cells: Poly): Poly => normalise(cells.map(([r, c]): [number, number] => [r, -c]));
-
-/** Every shape the tray piece can be turned into with the item's own ops. */
-function orientationSignatures(base: Poly, ops: readonly string[]): Set<string> {
-  const seen = new Set<string>([polySignature(base)]);
-  const frontier: Poly[] = [normalise(base)];
-  for (let head = 0; head < frontier.length; head++) {
-    const shape = frontier[head];
-    if (!shape) break;
-    const images: Poly[] = [];
-    if (ops.includes('rotate')) images.push(rotateCW(shape));
-    if (ops.includes('flip')) images.push(mirror(shape));
-    for (const image of images) {
-      const sig = polySignature(image);
-      if (seen.has(sig)) continue;
-      seen.add(sig);
-      frontier.push(image);
-    }
-  }
-  return seen;
-}
-
-/**
- * GB-SHAPEFIT-01. Correct iff the submitted assembly is a genuine exact cover:
- * every placement is a tray piece in an orientation its instruction set can
- * actually reach, no piece is used twice, no cell falls outside the outline,
- * nothing overlaps, and every outline cell ends up covered.
- *
- * `answer.cost.moves` (one move per orientation press plus one per drop) is the
- * minimum for efficiency only — a clumsy but complete tiling is still correct.
- */
-const verifyShapefit: Verifier = (item, response) => {
-  const content = item.content;
-  const target = obj(content.target);
-  const targetCells = target ? cellList(target.cells) : null;
-  const tray = arr(content.tray);
-  if (!targetCells || targetCells.length === 0 || !tray) return { correct: false };
-
-  const instructionSet = obj(content.instructionSet);
-  const opsRaw = instructionSet ? arr(instructionSet.ops) : null;
-  const ops: string[] = [];
-  for (const op of opsRaw ?? ['rotate']) {
-    const name = str(op);
-    if (name !== null) ops.push(name);
-  }
-
-  const trayPieces = new Map<string, Poly>();
-  for (const entry of tray) {
-    const piece = obj(entry);
-    const cells = piece ? cellList(piece.cells) : null;
-    if (!piece || !cells) return { correct: false };
-    trayPieces.set(String(piece.id), cells);
-  }
-
-  const outline = new Set(targetCells.map(([r, c]) => key(r, c)));
-  const assembly = arr(response.assembly);
-  if (!assembly) return { correct: false };
-
-  const covered = new Set<string>();
-  const usedPieces = new Set<string>();
-  for (const entry of assembly) {
-    const placement = obj(entry);
-    const placed = placement ? cellList(placement.cells) : null;
-    if (!placement || !placed || placed.length === 0) return { correct: false };
-    const id = String(placement.id);
-    const base = trayPieces.get(id);
-    if (!base || usedPieces.has(id)) return { correct: false };
-    usedPieces.add(id);
-    if (placed.length !== base.length) return { correct: false };
-    if (!orientationSignatures(base, ops).has(polySignature(placed))) return { correct: false };
-    for (const [r, c] of placed) {
-      const k = key(r, c);
-      if (!outline.has(k) || covered.has(k)) return { correct: false };
-      covered.add(k);
-    }
-  }
-
-  const tiled = covered.size === outline.size;
-  const optimum = obj(item.answer.cost);
-  const spent = obj(response.cost);
-  const eff = efficiency(optimum ? int(optimum.moves) : null, spent ? int(spent.moves) : null);
-  return eff === null ? { correct: tiled } : { correct: tiled, metrics: { 'M-EFF': eff } };
 };
 
 // ---------------------------------------------------------------------------
@@ -782,86 +584,6 @@ const verifyWordforge: Verifier = (item, response) => {
 };
 
 // ---------------------------------------------------------------------------
-// GB-DEBATE-01 — two keyed decisions in one item
-// ---------------------------------------------------------------------------
-
-/**
- * GB-DEBATE-01. `answer.correctKey` is an OBJECT — `{support, rebut}` — so the
- * generic keyed verifier, which compares a single option key, cannot grade it.
- * Both decisions are graded here; the item is correct only when both land, and
- * the one-of-two case is reported as partial progress rather than thrown away.
- */
-const verifyDebate: Verifier = (item, response) => {
-  const correctKey = obj(item.answer.correctKey as unknown);
-  if (!correctKey) return { correct: false };
-  const support = str(correctKey.support);
-  const rebut = str(correctKey.rebut);
-  if (support === null || rebut === null) return { correct: false };
-
-  let hits = 0;
-  if (str(response.supportKey) === support) hits++;
-  if (str(response.rebutKey) === rebut) hits++;
-  return { correct: hits === 2, metrics: { 'M-PROG': hits / 2 } };
-};
-
-// ---------------------------------------------------------------------------
-// GB-FILTER-01 — set equality against the re-applied cue rule
-// ---------------------------------------------------------------------------
-
-/**
- * GB-FILTER-01. The target set is re-derived by re-applying `content.cue` to
- * the displayed array (colour, or colour AND shape on a conjunction level)
- * rather than read out of `answer.targets`; correct iff the final selected set
- * equals it exactly. Tap order is irrelevant and a de-selected cell is a
- * revision, not a false alarm, so only `response.selectedCells` is scored.
- */
-const verifyFilter: Verifier = (item, response) => {
-  const content = item.content;
-  const grid = gridOf(content);
-  const cue = obj(content.cue);
-  const shapes = arr(content.items);
-  if (!grid || !cue || !shapes) return { correct: false };
-
-  const cueColor = str(cue.color);
-  const cueShape = str(cue.shape);
-  const conjunction = str(cue.mode) === 'color_shape';
-  if (cueColor === null || (conjunction && cueShape === null)) return { correct: false };
-
-  const targets = new Set<string>();
-  for (const entry of shapes) {
-    const shape = obj(entry);
-    const r = shape ? int(shape.r) : null;
-    const c = shape ? int(shape.c) : null;
-    if (!shape || r === null || c === null) return { correct: false };
-    const matches = conjunction
-      ? str(shape.color) === cueColor && str(shape.shape) === cueShape
-      : str(shape.color) === cueColor;
-    if (matches) targets.add(key(r, c));
-  }
-
-  const selectedCells = cellList(response.selectedCells);
-  if (!selectedCells) return { correct: false };
-  const selected = new Set(selectedCells.map(([r, c]) => key(r, c)));
-
-  let hits = 0;
-  for (const target of targets) if (selected.has(target)) hits++;
-  const falseAlarms = selected.size - hits;
-  const nonTargets = Math.max(1, grid.R * grid.C - targets.size);
-  const correct = targets.size > 0 && hits === targets.size && falseAlarms === 0;
-
-  const metrics: Record<string, number> = {
-    'M-FALSEALARM': falseAlarms / nonTargets,
-  };
-  if (targets.size > 0) {
-    // The bank's scoringRule: hits/nTargets penalised by falseAlarms/nNonTargetCells.
-    metrics['M-PROG'] = Math.max(0, hits / targets.size - falseAlarms / nonTargets);
-    const eff = efficiency(targets.size, int(response.taps));
-    if (eff !== null) metrics['M-EFF'] = eff;
-  }
-  return { correct, metrics };
-};
-
-// ---------------------------------------------------------------------------
 // QUANT-MIX-01 — ratio equivalence under the served constraint
 // ---------------------------------------------------------------------------
 
@@ -919,12 +641,8 @@ const verifyQuantMix: Verifier = (item, response) => {
 // ---------------------------------------------------------------------------
 
 export const quantitativeVerifiers: Record<string, Verifier> = {
-  'GB-DEBATE-01': verifyDebate,
   'GB-EXPLORE-01': verifyExplore,
-  'GB-FILTER-01': verifyFilter,
-  'GB-PATHFORGE-01': verifyPathforge,
   'GB-ROBOPATH-01': verifyRobopath,
-  'GB-SHAPEFIT-01': verifyShapefit,
   'GB-TRACK-01': verifyTrack,
   'GB-WORDFORGE-01': verifyWordforge,
   'GB-WORDLADDER-01': verifyWordladder,

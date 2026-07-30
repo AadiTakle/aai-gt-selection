@@ -19,17 +19,7 @@ import type { Verdict, Verifier } from './types';
  *   - `M-POLY`  proportion of the item's scorable parts that are right, 0..1.
  *   - `M-ERRTYPE` 0..1, higher is better, matching the route's error-quality
  *     direction; emitted only where the bank itself defines the components.
- *   - `M-RULEID` count of co-acting rules bound at once, emitted only on a fully
- *     correct response (the scorer's range is 1..4).
  *   - `M-HYP` 0..1 mean reduction of the viable-rule space per test.
- *
- * Types deliberately absent from this record:
- *   - `CX-diverge-01` and `CX-figural-01` are divergent-production banks
- *     (`answer.correctKey === null`, `scoring.mode = 'model_judge_deferred'`).
- *     No response is wrong, and the quality dimensions they declare (`M-ORIG`,
- *     `M-FLEX`) need a per-prompt norm bank and a semantic clusterer that do not
- *     exist (E-093). Any correctness rule here would be fiction, so there is
- *     none.
  */
 
 /* ------------------------------------------------------------------ *
@@ -56,6 +46,14 @@ function asInt(value: unknown): number | null {
 
 function asFiniteNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+type AttrValue = string | number;
+
+function readAttrValue(value: unknown): AttrValue | null {
+  if (typeof value === 'string') return value;
+  const n = asFiniteNumber(value);
+  return n === null ? null : n;
 }
 
 function proportion(hits: number, total: number): number {
@@ -248,185 +246,6 @@ function verifyGridCopy(item: RawBankItem, response: Record<string, unknown>): V
     }
   }
   return { correct: hits === cells, metrics: { 'M-POLY': proportion(hits, cells) } };
-}
-
-/* ================================================================== *
- * FLU-MATRIXBUILD-01 — build the missing tile of a matrix
- *
- * Each constructed attribute is re-induced from the VISIBLE cells: keep every
- * rule in the declared taxonomy that fits them, and require them all to predict
- * the same blank value. Credit is per attribute, so a child who binds two of
- * three rules is separated from one who binds none.
- * ================================================================== */
-
-type AttrValue = string | number;
-
-function readAttrValue(value: unknown): AttrValue | null {
-  if (typeof value === 'string') return value;
-  const n = asFiniteNumber(value);
-  return n === null ? null : n;
-}
-
-/** Normalised comparison form declared by `answer.equivalence.normalization`. */
-function normalizeAttr(attribute: string, value: unknown): string | number | null {
-  if (attribute === 'count') {
-    const n = asFiniteNumber(value);
-    if (n !== null) return n;
-    const text = asString(value);
-    if (text === null) return null;
-    const parsed = Number.parseInt(text, 10);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-  const text = asString(value);
-  if (text !== null) return text.trim().toLowerCase();
-  const n = asFiniteNumber(value);
-  return n === null ? null : n;
-}
-
-/** Distinct blank values predicted by the rules that fit the visible cells. */
-function induceBlankValues(
-  values: (AttrValue | null)[][],
-  size: number,
-  numeric: boolean,
-): AttrValue[] {
-  const shown: { r: number; c: number; v: AttrValue }[] = [];
-  for (let r = 0; r < size; r++) {
-    for (let c = 0; c < size; c++) {
-      if (r === size - 1 && c === size - 1) continue;
-      const v = values[r]?.[c];
-      if (v === null || v === undefined) return [];
-      shown.push({ r, c, v });
-    }
-  }
-  const row = (r: number) => shown.filter((s) => s.r === r).map((s) => s.v);
-  const col = (c: number) => shown.filter((s) => s.c === c).map((s) => s.v);
-  const allSame = (xs: AttrValue[]) => xs.every((x) => x === xs[0]);
-  const indices = Array.from({ length: size }, (_, i) => i);
-  const preds: AttrValue[] = [];
-
-  if (indices.every((r) => allSame(row(r)))) {
-    const v = row(size - 1)[0];
-    if (v !== undefined) preds.push(v);
-  }
-  if (indices.every((c) => allSame(col(c)))) {
-    const v = col(size - 1)[0];
-    if (v !== undefined) preds.push(v);
-  }
-
-  const alphabet = [...new Set(shown.map((s) => s.v))];
-  if (alphabet.length === size) {
-    const rowsDistinct = indices.every((r) => new Set(row(r)).size === row(r).length);
-    const colsDistinct = indices.every((c) => new Set(col(c)).size === col(c).length);
-    if (rowsDistinct && colsDistinct) {
-      const gapRow = alphabet.filter((v) => !row(size - 1).includes(v));
-      const gapCol = alphabet.filter((v) => !col(size - 1).includes(v));
-      if (gapRow.length === 1 && gapCol.length === 1 && gapRow[0] === gapCol[0])
-        preds.push(gapRow[0]!);
-    }
-  }
-
-  if (numeric) {
-    const numbers = (xs: AttrValue[]) => xs.map((x) => (typeof x === 'number' ? x : Number.NaN));
-    const deltas: number[] = [];
-    for (let r = 0; r < size; r++) {
-      const vs = numbers(row(r));
-      for (let i = 1; i < vs.length; i++) deltas.push(vs[i]! - vs[i - 1]!);
-    }
-    const distinctDeltas = [...new Set(deltas)];
-    const delta = distinctDeltas[0];
-    if (
-      distinctDeltas.length === 1 &&
-      delta !== undefined &&
-      delta !== 0 &&
-      Number.isFinite(delta)
-    ) {
-      const lastRow = numbers(row(size - 1));
-      const tail = lastRow[lastRow.length - 1];
-      if (tail !== undefined && Number.isFinite(tail)) preds.push(tail + delta);
-    }
-    if (size === 3) {
-      const at = (r: number, c: number) => {
-        const v = values[r]?.[c];
-        return typeof v === 'number' ? v : Number.NaN;
-      };
-      const rowsWithSum = [0, 1];
-      if (rowsWithSum.every((r) => at(r, 2) === at(r, 0) + at(r, 1)))
-        preds.push(at(2, 0) + at(2, 1));
-      if (rowsWithSum.every((r) => at(r, 2) === at(r, 0) - at(r, 1)))
-        preds.push(at(2, 0) - at(2, 1));
-    }
-  }
-
-  return [...new Set(preds)];
-}
-
-/** Expected tile per constructed attribute, re-induced from the visible cells. */
-function deriveMatrixTile(content: Record<string, unknown>): Map<string, AttrValue> | null {
-  const size = asInt(content.gridSize);
-  const attributes = asArray(content.constructedAttributes)?.map(asString) ?? null;
-  const matrix = asRecord(content.matrix);
-  const cells = asArray(matrix?.cells);
-  if (size === null || size < 2 || !attributes || attributes.some((a) => a === null) || !cells)
-    return null;
-  if (cells.length !== size) return null;
-
-  const blank = asRecord(matrix?.blank);
-  // The induction below reads the blank as the bottom-right cell, as the bank
-  // guarantees; anything else is not a shape this solver can reason about.
-  if (asInt(blank?.row) !== size - 1 || asInt(blank?.col) !== size - 1) return null;
-
-  const out = new Map<string, AttrValue>();
-  for (const attribute of attributes as string[]) {
-    const values: (AttrValue | null)[][] = [];
-    for (let r = 0; r < size; r++) {
-      const rowCells = asArray(cells[r]);
-      if (!rowCells || rowCells.length !== size) return null;
-      const row: (AttrValue | null)[] = [];
-      for (let c = 0; c < size; c++) {
-        if (r === size - 1 && c === size - 1) {
-          row.push(null);
-          continue;
-        }
-        const tile = asRecord(rowCells[c]);
-        const value = tile ? readAttrValue(tile[attribute]) : null;
-        if (value === null) return null;
-        row.push(value);
-      }
-      values.push(row);
-    }
-    const predicted = induceBlankValues(values, size, attribute === 'count');
-    if (predicted.length !== 1) return null;
-    out.set(attribute, predicted[0]!);
-  }
-  return out;
-}
-
-function verifyMatrixBuild(item: RawBankItem, response: Record<string, unknown>): Verdict {
-  const content = item.content;
-  const attributes = (asArray(content.constructedAttributes) ?? [])
-    .map(asString)
-    .filter((a): a is string => a !== null);
-  if (attributes.length === 0) return { correct: false };
-
-  const derived = deriveMatrixTile(content);
-  const canonical = asRecord(item.answer.canonical);
-  const constructed = asRecord(response.constructed);
-  if (!constructed) return { correct: false };
-
-  let hits = 0;
-  for (const attribute of attributes) {
-    const want = normalizeAttr(attribute, derived?.get(attribute) ?? canonical?.[attribute]);
-    const got = normalizeAttr(attribute, constructed[attribute]);
-    if (want === null || got === null) continue;
-    if (want === got) hits++;
-  }
-
-  const correct = hits === attributes.length;
-  const metrics: Record<string, number> = { 'M-POLY': proportion(hits, attributes.length) };
-  // Halford relational complexity: only a fully correct tile evidences that the
-  // child bound all of the co-acting attribute rules at once.
-  if (correct) metrics['M-RULEID'] = attributes.length;
-  return { correct, metrics };
 }
 
 /* ================================================================== *
@@ -729,46 +548,6 @@ function verifyCheckTwice(item: RawBankItem, response: Record<string, unknown>):
 }
 
 /* ================================================================== *
- * CX-curious-02 — spot what the scene does NOT tell us
- *
- * Only the information-gap pick is keyed. The questions the child asks and the
- * cause/next guesses they make are never right or wrong (they are counted, and
- * their quality is judge-deferred), so nothing here scores them. The gap option
- * is re-derived as the single option whose evidence model records no support in
- * the scene.
- * ================================================================== */
-
-function deriveGapKey(item: RawBankItem): string | null {
-  const options = asArray(item.content.gapOptions);
-  if (!options) return null;
-  const offered = new Set<string>();
-  for (const raw of options) {
-    const id = asString(asRecord(raw)?.id);
-    if (id === null) return null;
-    offered.add(id);
-  }
-
-  const evidence = asArray(asRecord(item.answer.evidenceModel)?.gapOptions);
-  if (evidence) {
-    const unknown = evidence
-      .map((raw) => asRecord(raw))
-      .filter((entry) => asString(entry?.support) === 'unknown')
-      .map((entry) => asString(entry?.id))
-      .filter((id): id is string => id !== null && offered.has(id));
-    if (unknown.length === 1) return unknown[0]!;
-  }
-
-  const stored = asString(item.answer.correctKey);
-  return stored !== null && offered.has(stored) ? stored : null;
-}
-
-function verifyCurious(item: RawBankItem, response: Record<string, unknown>): Verdict {
-  const expected = deriveGapKey(item);
-  if (expected === null) return { correct: false };
-  return { correct: asString(response.gapKey) === expected };
-}
-
-/* ================================================================== *
  * CX-achieve-02 — run trials on a bench, then say which setup wins
  *
  * The keyed part is the conclusion (and the highest-effect factor when the item
@@ -910,9 +689,7 @@ function verifyInvestigation(item: RawBankItem, response: Record<string, unknown
 
 export const fluidVerifiers: Record<string, Verifier> = {
   'FLU-GRIDCOPY-01': verifyGridCopy,
-  'FLU-MATRIXBUILD-01': verifyMatrixBuild,
   'FLU-CONCEPT-01': verifyConcept,
   'CX-check-01': verifyCheckTwice,
-  'CX-curious-02': verifyCurious,
   'CX-achieve-02': verifyInvestigation,
 };

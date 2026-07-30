@@ -8,7 +8,7 @@ import { childLexicon, quantitativeVerifiers } from './quantitative';
 import { resolveVerifier } from './index';
 
 /**
- * Round-trip tests for the ten types owned by `quantitative.ts`.
+ * Round-trip tests for the six types owned by `quantitative.ts`.
  *
  * Every type gets BOTH directions against a REAL bank item: the response a
  * child who solved it would emit (for the search types, the bank's own stored
@@ -47,12 +47,8 @@ function grade(item: BankItem, response: Record<string, unknown>) {
 }
 
 const OWNED = [
-  'GB-DEBATE-01',
   'GB-EXPLORE-01',
-  'GB-FILTER-01',
-  'GB-PATHFORGE-01',
   'GB-ROBOPATH-01',
-  'GB-SHAPEFIT-01',
   'GB-TRACK-01',
   'GB-WORDFORGE-01',
   'GB-WORDLADDER-01',
@@ -60,7 +56,7 @@ const OWNED = [
 ] as const;
 
 describe('registry wiring', () => {
-  it('registers exactly the ten owned type codes', () => {
+  it('registers exactly the six owned type codes', () => {
     expect(Object.keys(quantitativeVerifiers).sort()).toEqual([...OWNED].sort());
   });
 
@@ -89,22 +85,13 @@ describe('registry wiring', () => {
  */
 describe('whole-bank replay of every stored reference solution', () => {
   const referenceResponse: Record<string, (item: BankItem) => Record<string, unknown>> = {
-    'GB-DEBATE-01': (i) => {
-      const k = i.answer.correctKey as unknown as { support: string; rebut: string };
-      return { supportKey: k.support, rebutKey: k.rebut };
-    },
     'GB-EXPLORE-01': (i) => ({
       actions: (i.answer.optimalPath as [number, number][])
         .slice(1)
         .map((to) => ({ kind: 'move', to })),
     }),
-    'GB-FILTER-01': (i) => ({ selectedCells: i.answer.targets }),
-    'GB-PATHFORGE-01': (i) => ({ finalBoard: i.answer.tileSpec }),
     'GB-ROBOPATH-01': (i) => ({
       program: (i.answer.canonicalSolution as { program: unknown[] }).program,
-    }),
-    'GB-SHAPEFIT-01': (i) => ({
-      assembly: (i.answer.canonicalSolution as { placements: unknown[] }).placements,
     }),
     'GB-TRACK-01': (i) => ({
       selectedSlots: (i.answer.canonicalSolution as { targetSlots: number[] }).targetSlots,
@@ -172,32 +159,6 @@ describe('GB-ROBOPATH-01', () => {
     const maxReps = repeat?.maxReps ?? 1;
     const overlong = canonical.program.map((token) => ({ ...token, reps: maxReps + 1 }));
     expect(grade(item, { program: overlong }).correct).toBe(false);
-  });
-});
-
-describe('GB-PATHFORGE-01', () => {
-  const item = pick('GB-PATHFORGE-01', (i) => (i.answer.optimalTiles as number) >= 2);
-  const tileSpec = item.answer.tileSpec as { r: number; c: number; dirs: string[] }[];
-
-  it('accepts the stored optimal road', () => {
-    const verdict = grade(item, { finalBoard: tileSpec });
-    expect(verdict.correct).toBe(true);
-    expect(verdict.metrics?.['M-EFF']).toBe(1);
-  });
-
-  it('rejects a road with one tile missing', () => {
-    expect(grade(item, { finalBoard: tileSpec.slice(0, -1) }).correct).toBe(false);
-  });
-
-  it('rejects a board that exceeds the tile budget', () => {
-    const budget = item.content.tileBudget as number;
-    const padded = Array.from({ length: budget + 1 }, (_, i) => ({
-      r: 0,
-      c: 0,
-      dirs: ['N', 'S'],
-      shape: `pad${i}`,
-    }));
-    expect(grade(item, { finalBoard: padded }).correct).toBe(false);
   });
 });
 
@@ -271,38 +232,6 @@ describe('GB-EXPLORE-01', () => {
     expect(grade(item, { cellsVisited: trail.slice(0, 1), endCell: home, cost }).correct).toBe(
       false,
     );
-  });
-});
-
-describe('GB-SHAPEFIT-01', () => {
-  const item = pick('GB-SHAPEFIT-01', (i) => {
-    const solution = i.answer.canonicalSolution as { placements?: unknown[] } | undefined;
-    return Array.isArray(solution?.placements) && solution.placements.length >= 2;
-  });
-  const placements = (
-    item.answer.canonicalSolution as { placements: { id: number; cells: [number, number][] }[] }
-  ).placements;
-  const assembly = placements.map((p) => ({ id: p.id, cells: p.cells }));
-  const cost = item.answer.cost as { moves: number };
-
-  it('accepts the stored exact cover', () => {
-    const verdict = grade(item, { assembly, cost: { moves: cost.moves } });
-    expect(verdict.correct).toBe(true);
-    expect(verdict.metrics?.['M-EFF']).toBe(1);
-  });
-
-  it('rejects an assembly that leaves the outline partly empty', () => {
-    expect(grade(item, { assembly: assembly.slice(0, -1) }).correct).toBe(false);
-  });
-
-  it('rejects a piece placed in an orientation the instruction set cannot reach', () => {
-    const first = assembly[0]!;
-    const skewed = first.cells.map(([r, c], i): [number, number] =>
-      i === 0 ? [r, c] : [r, c + 7],
-    );
-    expect(
-      grade(item, { assembly: [{ id: first.id, cells: skewed }, ...assembly.slice(1)] }).correct,
-    ).toBe(false);
   });
 });
 
@@ -404,67 +333,6 @@ describe('GB-WORDFORGE-01', () => {
       submissions: [{ word: first }, { word: first }, { word: first }],
     });
     expect(verdict.metrics?.['M-IDEAFLU']).toBe(1);
-  });
-});
-
-describe('GB-DEBATE-01', () => {
-  const item = pick('GB-DEBATE-01', () => true);
-  const correctKey = item.answer.correctKey as unknown as { support: string; rebut: string };
-  const rebutOptions = item.content.rebutOptions as { id: string }[];
-
-  it('accepts both keyed decisions', () => {
-    const verdict = grade(item, { supportKey: correctKey.support, rebutKey: correctKey.rebut });
-    expect(verdict.correct).toBe(true);
-    expect(verdict.metrics?.['M-PROG']).toBe(1);
-  });
-
-  it('scores one-of-two as incorrect with half progress', () => {
-    const wrongRebut = rebutOptions.find((o) => o.id !== correctKey.rebut)!;
-    const verdict = grade(item, { supportKey: correctKey.support, rebutKey: wrongRebut.id });
-    expect(verdict.correct).toBe(false);
-    expect(verdict.metrics?.['M-PROG']).toBe(0.5);
-  });
-
-  it('scores neither decision as zero progress', () => {
-    const wrongRebut = rebutOptions.find((o) => o.id !== correctKey.rebut)!;
-    const verdict = grade(item, { supportKey: 'nope', rebutKey: wrongRebut.id });
-    expect(verdict.correct).toBe(false);
-    expect(verdict.metrics?.['M-PROG']).toBe(0);
-  });
-});
-
-describe('GB-FILTER-01', () => {
-  const item = pick('GB-FILTER-01', (i) => (i.answer.nTargets as number) >= 1);
-  const targets = item.answer.targets as [number, number][];
-
-  it('accepts the exact cue-matching cell set, in any order', () => {
-    const verdict = grade(item, { selectedCells: [...targets].reverse(), taps: targets.length });
-    expect(verdict.correct).toBe(true);
-    expect(verdict.metrics?.['M-FALSEALARM']).toBe(0);
-    expect(verdict.metrics?.['M-EFF']).toBe(1);
-  });
-
-  it('rejects a set with one extra cell and records the false alarm', () => {
-    const grid = item.content.grid as { R: number; C: number };
-    const taken = new Set(targets.map(([r, c]) => `${r},${c}`));
-    let extra: [number, number] | null = null;
-    for (let r = 0; r < grid.R && !extra; r++) {
-      for (let c = 0; c < grid.C && !extra; c++) if (!taken.has(`${r},${c}`)) extra = [r, c];
-    }
-    const verdict = grade(item, { selectedCells: [...targets, extra!], taps: targets.length + 1 });
-    expect(verdict.correct).toBe(false);
-    expect(verdict.metrics?.['M-FALSEALARM']).toBeGreaterThan(0);
-  });
-
-  it('rejects a set that misses a target', () => {
-    expect(grade(item, { selectedCells: targets.slice(0, -1) }).correct).toBe(false);
-  });
-
-  it('re-derives the same target set as the bank across the whole file', () => {
-    for (const other of bank('GB-FILTER-01')) {
-      const key = other.answer.targets as [number, number][];
-      expect(grade(other, { selectedCells: key }).correct, other.itemId).toBe(true);
-    }
   });
 });
 

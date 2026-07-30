@@ -124,77 +124,6 @@ describe('FLU-GRIDCOPY-01 verifier', () => {
   });
 });
 
-describe('FLU-MATRIXBUILD-01 verifier', () => {
-  const bank = loadBank('FLU-MATRIXBUILD-01');
-  const verify = verifierFor('FLU-MATRIXBUILD-01');
-
-  it('accepts the tile re-induced from the visible cells, on every bank item', () => {
-    for (const item of bank) {
-      const verdict = verify(item, { constructed: item.answer.canonical });
-      expect(verdict.correct, `${item.itemId} canonical tile`).toBe(true);
-      expect(verdict.metrics?.['M-POLY']).toBe(1);
-      expect(verdict.metrics?.['M-RULEID']).toBe(
-        (item.content.constructedAttributes as string[]).length,
-      );
-    }
-  });
-
-  it('rejects a tile with one attribute wrong, on every bank item', () => {
-    for (const item of bank) {
-      const attributes = item.content.constructedAttributes as string[];
-      const canonical = item.answer.canonical as Record<string, unknown>;
-      const attribute = attributes[0]!;
-      const pickers = item.content.pickers as {
-        attribute: string;
-        options: { value: unknown }[];
-      }[];
-      const wrong = pickers
-        .find((p) => p.attribute === attribute)!
-        .options.find((o) => o.value !== canonical[attribute])!;
-
-      const verdict = verify(item, { constructed: { ...canonical, [attribute]: wrong.value } });
-      expect(verdict.correct, `${item.itemId} one attribute wrong`).toBe(false);
-      expect(verdict.metrics?.['M-POLY']).toBeCloseTo((attributes.length - 1) / attributes.length);
-      expect(verdict.metrics?.['M-RULEID']).toBeUndefined();
-    }
-  });
-
-  it('accepts the declared normalization of an equivalent submission', () => {
-    const item = bank[bank.length - 1]!;
-    const canonical = item.answer.canonical as Record<string, unknown>;
-    const messy: Record<string, unknown> = {};
-    for (const attribute of item.content.constructedAttributes as string[]) {
-      messy[attribute] =
-        attribute === 'count'
-          ? String(canonical[attribute])
-          : ` ${String(canonical[attribute]).toUpperCase()} `;
-    }
-    expect(verify(item, { constructed: messy }).correct).toBe(true);
-  });
-
-  it('re-induces the tile from the visible cells, not the stored key', () => {
-    for (const item of bank) {
-      const canonical = item.answer.canonical as Record<string, unknown>;
-      const corrupted = withCorruptedKey(item, (answer) => {
-        const wrong: Record<string, unknown> = {};
-        for (const attribute of item.content.constructedAttributes as string[]) {
-          wrong[attribute] = attribute === 'count' ? -1 : '__not-an-option__';
-        }
-        answer.canonical = wrong;
-        answer.correctKey = '__corrupt__';
-      });
-      expect(
-        verify(corrupted, { constructed: canonical }).correct,
-        `${item.itemId} solver over key`,
-      ).toBe(true);
-    }
-  });
-
-  it('rejects a malformed response instead of throwing', () => {
-    expectsMalformedToFail('FLU-MATRIXBUILD-01', bank[0]!);
-  });
-});
-
 describe('FLU-CONCEPT-01 verifier', () => {
   const bank = loadBank('FLU-CONCEPT-01');
   const verify = verifierFor('FLU-CONCEPT-01');
@@ -332,63 +261,6 @@ describe('CX-check-01 verifier', () => {
   });
 });
 
-describe('CX-curious-02 verifier', () => {
-  const bank = loadBank('CX-curious-02');
-  const verify = verifierFor('CX-curious-02');
-
-  it('accepts the option the scene never supports, on every bank item', () => {
-    for (const item of bank) {
-      expect(
-        verify(item, { gapKey: item.answer.correctKey }).correct,
-        `${item.itemId} gap pick`,
-      ).toBe(true);
-    }
-  });
-
-  it('rejects an option the scene states outright, on every bank item', () => {
-    for (const item of bank) {
-      const wrong = (item.content.gapOptions as { id: string }[]).find(
-        (o) => o.id !== item.answer.correctKey,
-      )!;
-      expect(verify(item, { gapKey: wrong.id }).correct, `${item.itemId} stated option`).toBe(
-        false,
-      );
-    }
-  });
-
-  it('never scores the questions or the guesses', () => {
-    const item = bank[0]!;
-    const questions = [{ text: 'who lives there?' }, { text: 'why is it shiny?' }];
-    const withQuestions = verify(item, {
-      gapKey: item.answer.correctKey,
-      questions,
-      causeGuesses: [],
-      nextGuesses: [],
-    });
-    const withNone = verify(item, { gapKey: item.answer.correctKey });
-    expect(withQuestions).toEqual(withNone);
-  });
-
-  it('re-derives the gap from the evidence model, not the stored key', () => {
-    for (const item of bank) {
-      const stated = (item.content.gapOptions as { id: string }[]).find(
-        (o) => o.id !== item.answer.correctKey,
-      )!;
-      const corrupted = withCorruptedKey(item, (answer) => {
-        answer.correctKey = stated.id;
-      });
-      expect(
-        verify(corrupted, { gapKey: item.answer.correctKey }).correct,
-        `${item.itemId} evidence model over key`,
-      ).toBe(true);
-    }
-  });
-
-  it('rejects a malformed response instead of throwing', () => {
-    expectsMalformedToFail('CX-curious-02', bank[0]!);
-  });
-});
-
 describe('CX-achieve-02 verifier', () => {
   const bank = loadBank('CX-achieve-02');
   const verify = verifierFor('CX-achieve-02');
@@ -454,22 +326,5 @@ describe('CX-achieve-02 verifier', () => {
 
   it('rejects a malformed response instead of throwing', () => {
     expectsMalformedToFail('CX-achieve-02', bank[0]!);
-  });
-});
-
-describe('divergent-production types', () => {
-  it('has no verifier for the types with no deterministic correctness', () => {
-    // CX-diverge-01 and CX-figural-01 are `model_judge_deferred` banks with
-    // `answer.correctKey === null`: no response is wrong, and M-ORIG / M-FLEX
-    // need a norm bank and a clusterer that do not exist (E-093). A verifier
-    // here would have to invent a correctness rule, so there deliberately is
-    // none — the types stay unserved rather than being scored on fiction.
-    expect(fluidVerifiers['CX-diverge-01']).toBeUndefined();
-    expect(fluidVerifiers['CX-figural-01']).toBeUndefined();
-    for (const typeCode of ['CX-diverge-01', 'CX-figural-01']) {
-      for (const item of loadBank(typeCode)) {
-        expect(item.answer.correctKey, `${typeCode} ${item.itemId}`).toBeNull();
-      }
-    }
   });
 });
