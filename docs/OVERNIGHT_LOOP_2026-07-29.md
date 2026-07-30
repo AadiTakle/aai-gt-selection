@@ -38,7 +38,23 @@ autonomy was limited to PR #4, so everything else is left as a PR.
 
 ## Notes
 
-### Item 1 — repo hygiene (deferred, needs a decision)
+### Item 1 — repo hygiene (RESOLVED 2026-07-29, owner chose "delete with a note")
+
+**Retired** `scripts/persona-sim/` and `scripts/psychometric-sweep/` (10 files). They imported
+`packages/cat-engine`, which was deleted when the platform consolidated; the functionality moved to
+a **different psychometric model** (3PL/EAP → 1PL/MAP), so re-pointing them was a rewrite rather
+than a fix. Everything they produced is already recorded as evidence — E-073, the psychometric-sweep
+write-up, and the persona-sim results doc — so the findings survive the scripts.
+
+Also removed their now-dead package scripts (`persona-sim`, `persona-sim:typecheck`,
+`sweep:lambda`, `sweep:selection`, `sweep:engagement`, `sweep:typecheck`).
+
+**Closed the gap that hid this:** `scripts/` sat outside every package, so nothing typechecked it.
+Added `scripts/tsconfig.json` and a `typecheck:scripts` step wired into the root `typecheck`
+(which also drops the vestigial `tsc --showConfig` that compiled nothing). Verified by adding a
+deliberately broken import and confirming `error TS2307`, then removing it.
+
+### Original assessment (kept for context)
 
 - Removed the stray `packages/cat-engine` directory locally — it was untracked (0 tracked files,
   only a leftover `node_modules` from when the package was deleted). No repo change.
