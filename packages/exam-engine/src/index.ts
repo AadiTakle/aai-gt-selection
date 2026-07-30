@@ -9,7 +9,14 @@
 export { startState } from './state';
 export { nextType, nextItem, toServedItem } from './selection';
 export { update, difficultyDelta, directionReversals, stepSize, toObservation } from './update';
-export { isDone, areaMetricsCovered, areaEstimateStable, coverageIsEven } from './done';
+export {
+  isDone,
+  areaMetricsCovered,
+  areaEstimateStable,
+  areaBreadthCovered,
+  auditTypeBreadth,
+  coverageIsEven,
+} from './done';
 export { replaySession } from './replay';
 
 // Back-to-back same-type serving. `planNextSelection` is the loop-level contract every caller
@@ -63,12 +70,15 @@ export {
   metricAdequateInArea,
   sessionMetricsCovered,
   enforcedShortfallCount,
+  distinctTypesInArea,
+  underCoveredMetrics,
   underCoveredWeights,
+  coverageGain,
   typeHasUnseenItem,
   availableTypesByArea,
   auditMetricSupply,
 } from './coverage';
-export type { MetricSupply } from './coverage';
+export type { CoverageGap, MetricSupply } from './coverage';
 
 // Derived (session-level aggregate) core metrics
 export {

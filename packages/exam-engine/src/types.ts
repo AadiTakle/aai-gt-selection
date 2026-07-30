@@ -284,6 +284,12 @@ export interface EngineConfig {
   evenSpreadTolerance: number;
   /** Minimum items per area before completion is possible. */
   minItemsPerArea: number;
+  /**
+   * Distinct question types an area's evidence must span before the stop rule will conclude it.
+   * Guards construct breadth: see `areaBreadthCovered`. `1` disables the requirement, and an area
+   * with fewer wired types than this can never finish — `auditTypeBreadth` checks for that.
+   */
+  minTypesPerArea: number;
   /** Estimates required in a window before an area's stability can be judged. */
   stabilityWindow: number;
   /** Max estimate-window SD for an area to count as "stable" (guards against wild swings). */
@@ -298,6 +304,12 @@ export interface EngineConfig {
   hardItemCap: number;
   /** Back-to-back same-type serving policy (see {@link BurstPolicy}). */
   burst: BurstPolicy;
+  /**
+   * Ceiling on the combined selection weight a type may earn from TRACKED-INERT metric shortfalls,
+   * however many of them it declares. Enforced shortfalls are unaffected and still sum without
+   * limit. Set this to a very large number to restore the uncapped sum; see `coverageGain`.
+   */
+  trackedCoverageCap: number;
   /**
    * Max difficulty gap (in scale points) for two items in an area to count as a matched parallel
    * pair for `M-CONSIST`. Bank difficulty is the design-estimated b, so "same b" is approximated

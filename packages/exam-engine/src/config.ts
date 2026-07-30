@@ -177,6 +177,13 @@ export const DEFAULT_BURST_POLICY: BurstPolicy = {
   maxOptions: 6,
 };
 
+/** Bonus added to a type's selection score when its age bands include the current grade band. */
+export const AGE_BAND_BONUS = 1.5;
+/** Selection weight for an under-covered enforced core metric. */
+export const ENFORCED_METRIC_WEIGHT = 2;
+/** Selection weight for an under-covered tracked-inert metric. */
+export const TRACKED_METRIC_WEIGHT = 1;
+
 /**
  * Default, tunable engine configuration.
  *
@@ -190,8 +197,12 @@ export const DEFAULT_BURST_POLICY: BurstPolicy = {
  *
  * `ageBandBias` 0.5 prices the age-band content preference at half a difficulty point, so the band
  * decides between comparably targeted items but cannot buy the 2-3 point targeting error that used
- * to bias the estimate wherever the band's item supply ran out (D-025). Anything from 0 to 1.0
- * holds the same accuracy; 1.5 and wider reopens the bias.
+ * to bias the estimate wherever the band's item supply ran out (D-025). Anything from 0 to 0.75
+ * holds the same accuracy — better than before, in fact, since capping tracked-inert coverage gain
+ * (D-201) took the ability sweep's worst error from 1.20 down to 0.77 — and the plateau's upper edge
+ * now sits between 0.75 and 1.0 rather than at 1.0. It still decays smoothly rather than snapping:
+ * at 1.0 one of the sweep's 72 ability × area cells lands 1.84 off, on one seed in five.
+ * `real-bank.test.ts` asserts both the plateau and the softness of its edge.
  */
 export const DEFAULT_CONFIG: EngineConfig = {
   seed: 0xc0ffee,
@@ -208,19 +219,26 @@ export const DEFAULT_CONFIG: EngineConfig = {
   nearMissSoften: 0.5,
   evenSpreadTolerance: 2,
   minItemsPerArea: 6,
+  /*
+   * Two, the weakest form of the requirement that means anything: an area's estimate may not rest
+   * entirely on one task format. Every wired area supplies at least eight types, so this costs at
+   * most one extra selection per area and only when bursting has narrowed one.
+   */
+  minTypesPerArea: 2,
   stabilityWindow: 6,
   stabilitySd: 1.2,
   stabilityDrift: 0.8,
   hardItemCap: 60,
   burst: DEFAULT_BURST_POLICY,
+  /*
+   * One tracked-inert metric's worth, total. Tracked metrics cannot block completion, so a type
+   * that declares four of them is not four times as useful as one that declares one — but the
+   * uncapped sum made it four times as attractive, which is a bigger margin than the age-band
+   * content match (1.5) and enough to win the same area's selection several items running. See
+   * `coverageGain` and D-201.
+   */
+  trackedCoverageCap: TRACKED_METRIC_WEIGHT,
   consistencyPairTolerance: 1.0,
   rotationMinDistinctDisparities: 3,
   coreMetrics: CORE_METRICS,
 };
-
-/** Bonus added to a type's selection score when its age bands include the current grade band. */
-export const AGE_BAND_BONUS = 1.5;
-/** Selection weight for an under-covered enforced core metric. */
-export const ENFORCED_METRIC_WEIGHT = 2;
-/** Selection weight for an under-covered tracked-inert metric. */
-export const TRACKED_METRIC_WEIGHT = 1;

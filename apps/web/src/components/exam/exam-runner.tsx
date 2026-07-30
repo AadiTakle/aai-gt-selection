@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
 import {
   isDone,
@@ -177,6 +177,19 @@ export function ExamRunner({
    * plan for `current`; `planNextSelection` reads it back to decide whether to stay on the type.
    */
   const burstRef = useRef<BurstPlan | null>(null);
+
+  /**
+   * The engine configuration this session runs under.
+   *
+   * Derived rather than read off the live session, because the debug dock renders from it and a ref
+   * read during render would not re-render when it changed. It cannot change: `startState` fixes the
+   * config for the session and `update` carries it through untouched, so this is the same object the
+   * session holds.
+   */
+  const engineConfig = useMemo(
+    () => startState(gradeBand, EXAM_ENGINE_OVERRIDES).config,
+    [gradeBand],
+  );
 
   /** `?debug=1` on the exam URL: shows the convergence dock, the demo's researcher panel, Emulate. */
   const debugMode = useSyncExternalStore(
@@ -1019,7 +1032,7 @@ export function ExamRunner({
           view={buildDebugView({
             trace: debugTrace,
             gradeBand,
-            config: stateRef.current?.config ?? startState(gradeBand, EXAM_ENGINE_OVERRIDES).config,
+            config: engineConfig,
           })}
         />
       ) : null}

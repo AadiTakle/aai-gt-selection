@@ -170,7 +170,13 @@ export function fitInterval(items: readonly DebugTraceItem[]): DebugInterval | n
   if (estimate === null) return null;
   const se = abilityStandardError(estimate, scoring, DEBUG_ABILITY_FIT);
   if (se === null || !Number.isFinite(se)) {
-    return { estimate, se: Number.POSITIVE_INFINITY, lower: DIFFICULTY_MIN, upper: DIFFICULTY_MAX, width: DIFFICULTY_MAX - DIFFICULTY_MIN };
+    return {
+      estimate,
+      se: Number.POSITIVE_INFINITY,
+      lower: DIFFICULTY_MIN,
+      upper: DIFFICULTY_MAX,
+      width: DIFFICULTY_MAX - DIFFICULTY_MIN,
+    };
   }
   const lower = clamp(estimate - Z95 * se, DIFFICULTY_MIN, DIFFICULTY_MAX);
   const upper = clamp(estimate + Z95 * se, DIFFICULTY_MIN, DIFFICULTY_MAX);

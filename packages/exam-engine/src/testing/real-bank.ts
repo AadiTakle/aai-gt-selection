@@ -387,11 +387,7 @@ export interface RealSessionResult {
 }
 
 /** How a simulated child answers one item. */
-export type Responder = (
-  served: ServedItem,
-  real: RealBanks,
-  trueTheta: TrueTheta,
-) => ScoredItem;
+export type Responder = (served: ServedItem, real: RealBanks, trueTheta: TrueTheta) => ScoredItem;
 
 /**
  * Run a full adaptive session against the real registry and banks.

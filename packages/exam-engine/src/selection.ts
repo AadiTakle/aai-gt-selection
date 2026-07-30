@@ -1,5 +1,10 @@
 import { AGE_BAND_BONUS } from './config';
-import { availableTypesByArea, enforcedShortfallCount, underCoveredWeights } from './coverage';
+import {
+  availableTypesByArea,
+  coverageGain,
+  enforcedShortfallCount,
+  underCoveredMetrics,
+} from './coverage';
 import { isDone } from './done';
 import { NoAvailableItemError, UnknownTypeError } from './errors';
 import { hashUnit } from './rng';
@@ -43,13 +48,12 @@ export function nextType(state: SessionState, banks: Banks): TypeCode | null {
 
   const area = pickArea(areasWithItems, state);
   const candidates = byArea.get(area) ?? [];
-  const weights = underCoveredWeights(area, state);
+  const gaps = underCoveredMetrics(area, state);
 
   let best: QuestionType | null = null;
   let bestScore = Number.NEGATIVE_INFINITY;
   for (const type of candidates) {
-    let gain = 0;
-    for (const metricId of type.metrics) gain += weights.get(metricId) ?? 0;
+    const gain = coverageGain(type, gaps, state.config);
     const ageBonus = type.ageBands.includes(state.gradeBand) ? AGE_BAND_BONUS : 0;
     const jitter = hashUnit(state.config.seed, `type:${type.typeCode}:${state.itemsServed}`) * 0.1;
     const score = gain + ageBonus + jitter;

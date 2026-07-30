@@ -23,6 +23,7 @@
     "exam:arm-equivalence": "tsx scripts/stage2-arm-equivalence-probe.ts",
     "exam:block-harness": "tsx scripts/exam-learning-block-harness.ts",
     "exam:bracketing": "tsx scripts/exam-bracketing-comparison.ts",
+    "exam:instruction-cost": "tsx scripts/exam-instruction-cost.ts",
     "exam:phase1-demo": "tsx scripts/exam-phase1-demo.ts",
     "exam:phase2-demo": "tsx scripts/exam-phase2-demo.ts",
     "exam:sync": "node scripts/sync-exam-demos.mjs",

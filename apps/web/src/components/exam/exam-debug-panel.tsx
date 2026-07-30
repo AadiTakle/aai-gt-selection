@@ -40,13 +40,7 @@ function intervalLabel(interval: DebugInterval | null): string {
   return `${fmt(interval.estimate)} ±${fmt(half)}`;
 }
 
-function AreaRow({
-  view,
-  scale,
-}: {
-  view: DebugAreaView;
-  scale: { min: number; max: number };
-}) {
+function AreaRow({ view, scale }: { view: DebugAreaView; scale: { min: number; max: number } }) {
   const { interval } = view;
   return (
     <div className={styles.area}>
@@ -78,7 +72,10 @@ function AreaRow({
           </>
         ) : null}
         {/* Green hairline: where the engine will aim the next item in this area. */}
-        <div className={styles.aim} style={{ left: `${pos(view.target, scale.min, scale.max)}%` }} />
+        <div
+          className={styles.aim}
+          style={{ left: `${pos(view.target, scale.min, scale.max)}%` }}
+        />
       </div>
       <span className={styles.areaWidth}>
         {interval ? `±${fmt((interval.upper - interval.lower) / 2)}` : '—'} · {view.itemsSeen}q
@@ -153,9 +150,7 @@ export function ExamDebugPanel({
       <div className={styles.head}>
         <h2 className={styles.title}>Ability estimate</h2>
         <div className={styles.headline}>
-          <span className={styles.bigTheta}>
-            {view.overall ? fmt(view.overall.estimate) : '—'}
-          </span>
+          <span className={styles.bigTheta}>{view.overall ? fmt(view.overall.estimate) : '—'}</span>
           <span className={styles.bigRange}>
             {view.overall
               ? `± ${fmt((view.overall.upper - view.overall.lower) / 2)}  (range ${fmt(view.overall.lower)}–${fmt(view.overall.upper)})`

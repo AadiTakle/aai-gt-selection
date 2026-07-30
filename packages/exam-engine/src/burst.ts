@@ -17,23 +17,52 @@
  *
  * WHICH TYPES QUALIFY. Derived, not hand-listed — see {@link classifyTypeSpeed}. This repository
  * holds no measured per-child response times for any type, so the classification runs off the
- * machine-readable structure of the items themselves plus the measurements a type declares.
+ * machine-readable structure of the items themselves.
+ *
+ * WHAT THIS FILE NO LONGER DOES, AND WHY. An earlier rule also disqualified any type that declared
+ * `M-PATH`, `M-EFF`, `M-PLANFUL` or `M-IDEAFLU`, on the reasoning that a type reporting on a
+ * solution process must have a multi-move response and therefore a slow one. That inference is
+ * unsupported and the only observation bearing on it contradicts it: in the first live session, the
+ * six types the engine actually served were `QUANT-MIX-01`, `SPA-XPLANE-01`, `GB-WORDFORGE-01`,
+ * `CX-check-01`, `GB-EXPLORE-01` and `VER-SEQUENCE-01` — every one of them a declarer of a process
+ * measurement — and the owner's report was that the questions felt *too instantaneous*. Declaring a
+ * process measurement says the renderer logs intermediate states; it says nothing about how long a
+ * child takes. The two properties were conflated, so the proxy is gone rather than merely widened.
+ *
+ * WHAT WOULD PUT A SPEED TERM BACK. The observed `M-RT` / `M-RTFIRST` split per type — total
+ * response time against time to first interaction, which separates reading the instruction from
+ * answering the question. Both are already emitted on every item by every wired renderer and
+ * persisted per response, and neither has ever been collected: at the time of writing the response
+ * table holds zero rows. `docs/product/EXAM_BURST_INSTRUCTION_COST.md` states the smallest
+ * collection that would settle it.
  */
 import { typeHasUnseenItem } from './coverage';
 import { isDone } from './done';
 import { nextType } from './selection';
-import type { BankItem, Banks, BurstPolicy, QuestionType, SessionState, TypeCode } from './types';
+import {
+  AREAS,
+  type BankItem,
+  type Banks,
+  type BurstPolicy,
+  type QuestionType,
+  type SessionState,
+  type TypeCode,
+} from './types';
 
 /**
- * Item-content fields that bound or extend the RESPONSE rather than the stimulus: an explicit time
- * budget, an explicit refusal to time the response, a paced multi-step stream, or a program the
- * child assembles. Any of these means the response itself takes real time, so instruction reading
- * is not the dominant cost and the type is not a burst candidate.
+ * Item-content fields that pace or time-bound the RESPONSE rather than the stimulus: an explicit
+ * time budget, an explicit refusal to time the response, a paced multi-step stream, or a program the
+ * child assembles before running it.
+ *
+ * These are not proxies for how fast a child answers. Each one is a direct statement that the item's
+ * response is not a single self-contained choice — it runs on a clock, or arrives as a stream, or is
+ * built up over several moves — and back-to-back serving is a different experience for such an item
+ * than for a one-tap choice. That is what disqualifies them.
  *
  * `exposureMs` is deliberately absent. It bounds how long the STIMULUS is visible, after which the
- * response is a single forced choice — that is evidence for a fast type, not against one.
+ * response is a single forced choice, so it constrains presentation rather than response.
  */
-const SLOW_RESPONSE_CONTENT_FIELDS: readonly string[] = [
+const PACED_RESPONSE_CONTENT_FIELDS: readonly string[] = [
   'timeBudgetSec',
   'responseUntimed',
   'paceMs',
@@ -42,14 +71,7 @@ const SLOW_RESPONSE_CONTENT_FIELDS: readonly string[] = [
   'instructionSet',
 ];
 
-/**
- * Measurements only a multi-step manipulation can produce. A type declaring one of these is
- * reporting on a solution PROCESS with intermediate states, so its response is a sequence of moves
- * rather than a single choice.
- */
-const PROCESS_METRIC_IDS: readonly string[] = ['M-PATH', 'M-EFF', 'M-PLANFUL', 'M-IDEAFLU'];
-
-/** Why a type was or was not classified fast. Carried so the decision can be printed and audited. */
+/** Why a type was or was not classified burstable. Carried so the decision can be printed and audited. */
 export interface TypeSpeedVerdict {
   readonly typeCode: TypeCode;
   readonly fast: boolean;
@@ -57,10 +79,8 @@ export interface TypeSpeedVerdict {
   readonly reason: string;
   /** Largest option count seen across the type's items; `null` when no item offers options. */
   readonly maxOptions: number | null;
-  /** Response-bounding content fields found, if any. */
+  /** Response-pacing content fields found, if any. */
   readonly slowFields: readonly string[];
-  /** Process measurements declared, if any. */
-  readonly processMetrics: readonly string[];
 }
 
 /**
@@ -81,26 +101,31 @@ function optionCount(item: BankItem): number | null {
 }
 
 /**
- * Classify one type as fast (instruction-bound) or not, from the structure of its own items.
+ * Classify one type as burstable or not, from the structure of its own items.
  *
- * A type is fast when all three hold:
+ * A type qualifies when both hold:
  *
  *  1. **Every** item is a bounded choice — it offers an `options` array, and no item offers more
- *     than `maxOptions` of them. A choice among a handful of visible candidates is answered with
- *     one tap; a construction, a free response, or a twenty-way choice is not.
- *  2. No item carries a field that bounds or extends the response
- *     ({@link SLOW_RESPONSE_CONTENT_FIELDS}).
- *  3. The type declares no process measurement that requires intermediate moves
- *     ({@link PROCESS_METRIC_IDS}).
+ *     than `maxOptions` of them. A choice among a handful of visible candidates is one self-contained
+ *     decision; a construction, a free response or a twenty-way choice is not.
+ *  2. No item carries a field that paces or time-bounds the response
+ *     ({@link PACED_RESPONSE_CONTENT_FIELDS}).
+ *
+ * Both conditions are per-item facts read off the bank, and both are about the SHAPE of the
+ * response, not its duration. Together they say: a run of these items is one instruction followed by
+ * several independent choices, with no clock and no cross-item stream. That is the property a burst
+ * needs in order to be a coherent experience, and it is a property this repository can actually
+ * check.
  *
  * Requiring EVERY item to qualify is deliberate: a burst can land on any item in the pool, so a
- * type is only safe to burst if its whole bank is fast. One paced or constructed item disqualifies
- * the type.
+ * type is only safe to burst if its whole bank qualifies. One paced or constructed item disqualifies
+ * the type. `type` is retained in the signature because a future speed term — see the file header —
+ * would be per type rather than per item.
  *
- * CLAIM BOUNDARY. This is a structural proxy for "instruction reading dominates this item", not a
- * measured response time. No per-child response-time distribution exists for any type here, so
- * nothing in this classification is calibrated; it is a design decision over a born-synthetic bank,
- * and the observed `M-RT` / `M-RTFIRST` split is the evidence that would confirm or refute it.
+ * CLAIM BOUNDARY. This says nothing about how long a child takes on one of these items, and it is
+ * not calibrated against anything; no per-type response-time distribution exists in this repository.
+ * What it claims is narrower and checkable: that consecutive items of this type are each a single
+ * unpaced choice.
  */
 export function classifyTypeSpeed(
   type: QuestionType,
@@ -112,7 +137,7 @@ export function classifyTypeSpeed(
   let itemsWithoutOptions = 0;
 
   for (const item of items) {
-    for (const field of SLOW_RESPONSE_CONTENT_FIELDS) {
+    for (const field of PACED_RESPONSE_CONTENT_FIELDS) {
       if (field in item.content) slowFields.add(field);
     }
     const count = optionCount(item);
@@ -120,12 +145,10 @@ export function classifyTypeSpeed(
     else if (maxOptions === null || count > maxOptions) maxOptions = count;
   }
 
-  const processMetrics = type.metrics.filter((m) => PROCESS_METRIC_IDS.includes(m));
   const base = {
     typeCode: type.typeCode,
     maxOptions,
     slowFields: [...slowFields].sort(),
-    processMetrics,
   };
 
   if (items.length === 0) {
@@ -149,21 +172,14 @@ export function classifyTypeSpeed(
     return {
       ...base,
       fast: false,
-      reason: `response is bounded or paced by ${base.slowFields.join(', ')}`,
-    };
-  }
-  if (processMetrics.length > 0) {
-    return {
-      ...base,
-      fast: false,
-      reason: `declares process measurement(s) ${processMetrics.join(', ')}, so the response is a sequence of moves`,
+      reason: `response is paced or time-bounded by ${base.slowFields.join(', ')}`,
     };
   }
 
   return {
     ...base,
     fast: true,
-    reason: `every item is one choice of at most ${maxOptions ?? 0}, unpaced, no process measurement`,
+    reason: `every item is one unpaced choice of at most ${String(maxOptions ?? 0)}`,
   };
 }
 
@@ -210,19 +226,37 @@ function unseenCount(state: SessionState, typeCode: TypeCode, banks: Banks): num
 /**
  * How many consecutive items to serve from `typeCode`, starting now.
  *
- * `1` means no burst — the ordinary one-item-then-rotate behaviour, and what a non-fast type or a
- * disabled policy always gets. Bounded by four things, each a real constraint rather than a taste:
+ * `1` means no burst — the ordinary one-item-then-rotate behaviour, and what a non-burstable type or
+ * a disabled policy always gets. Bounded by four things, each a real constraint rather than a taste:
  *
  *  - the configured `maxLength`, so burst length is policy, not code;
  *  - the type's remaining unseen items, since the engine never repeats an item;
  *  - the items left before `hardItemCap`, so a burst can never overshoot the cap;
- *  - whether the type is fast at all.
+ *  - whether the type is burstable at all.
  *
- * Note what is NOT bounded here: area balance. `nextType` always serves the area with the fewest
- * items seen, so a burst that puts one area ahead is immediately followed by bursts in the other
- * three until they catch up. Balance is therefore preserved at the granularity of a ROUND of bursts
- * rather than of a single item, and `coverageIsEven` — which the stop rule checks — is what holds
- * the session to it.
+ * The `hardItemCap` bound is applied twice over, and the second application is the one that keeps a
+ * bursting battery finishable. `coverageIsEven` will not let the session end while the areas differ
+ * by more than `evenSpreadTolerance` items, and `nextType` always serves the area with the fewest
+ * items seen, so bursting round-robins the four areas and the session can only END on a whole round.
+ * With a six-item ceiling that puts the exits at 24 items and then 48 — and 48 is past a 40-item cap,
+ * so any battery needing more than one round ran to the safety net instead of the stop rule.
+ *
+ * So a burst is bounded by {@link roundHeadroom}: the share of the remaining budget that leaves room
+ * both for the other three areas to match this one AND for a second, shorter round after it. The
+ * second round's reserve is what makes the exits fine rather than coarse — bursts run 6, then 5, then
+ * 2, then single items as the budget drains, so a session can stop within a couple of items of when
+ * its evidence is actually adequate instead of at the next multiple of twenty-four.
+ *
+ * WHAT IS DELIBERATELY NOT BOUNDED HERE, having been tried and measured: how much the area still
+ * needs. Refusing to burst into an area whose estimate has settled and whose metrics are covered
+ * looks like the obvious way to stop a burst buying items that measure nothing, and it is backwards.
+ * The items that land in a settled area are BALANCE items `coverageIsEven` is going to insist on
+ * regardless; delivering six of them as a burst costs the child one instruction, and one at a time
+ * costs six. Adding that bound measured out at one extra instruction screen per session for one item
+ * saved, i.e. the wrong side of the trade.
+ *
+ * A burst also cannot outlive the stop rule: `planNextSelection` re-checks `isDone` before every
+ * item, so the run is abandoned the moment there is adequate data to conclude a score.
  */
 export function burstLengthFor(state: SessionState, typeCode: TypeCode, banks: Banks): number {
   const policy = state.config.burst;
@@ -240,8 +274,24 @@ export function burstLengthFor(state: SessionState, typeCode: TypeCode, banks: B
       typeBurstLength(verdict, policy),
       unseenCount(state, typeCode, banks),
       capHeadroom,
+      roundHeadroom(capHeadroom),
     ),
   );
+}
+
+/**
+ * The longest burst the remaining item budget can afford, given that every burst commits the other
+ * three areas to matching it.
+ *
+ * A burst of `n` costs the session `4n` items, because `coverageIsEven` will not conclude while the
+ * areas are uneven. Dividing the headroom by `4` alone would therefore spend the budget exactly, and
+ * a session that needs one item more than a whole number of rounds lands on the safety cap. Dividing
+ * by `8` reserves a further round's worth, which is what lets the length taper — a long round, then a
+ * shorter one, then single items — and lets the stop rule fire between rounds rather than only on
+ * them.
+ */
+function roundHeadroom(capHeadroom: number): number {
+  return Math.floor(capHeadroom / (2 * AREAS.length));
 }
 
 /**
@@ -253,10 +303,11 @@ export function burstLengthFor(state: SessionState, typeCode: TypeCode, banks: B
  * steps down one item per option above four, floored at `minLength`.
  *
  * PROVISIONAL. Option count is a structural stand-in for time-on-item, chosen because it is the only
- * per-item property in the bank that bears on answering effort. The measurement that would replace
- * it is the observed `M-RT` / `M-RTFIRST` split per type — total response time against time to first
- * interaction — which separates instruction reading from answering directly. No such distribution
- * exists for any type in this repository yet.
+ * per-item property in the bank that bears on answering effort at all. It is the LAST remaining
+ * speed proxy in this file, kept because the quantity it stands in for — how many candidates the
+ * child must scan — is at least a property of the item rather than of the renderer's telemetry
+ * declarations. The measurement that would replace it is the observed `M-RT` / `M-RTFIRST` split per
+ * type. No such distribution exists for any type in this repository yet.
  */
 function typeBurstLength(verdict: TypeSpeedVerdict, policy: BurstPolicy): number {
   const options = verdict.maxOptions ?? policy.maxOptions;
