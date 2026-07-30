@@ -20,6 +20,13 @@ import { EXAM_TYPE_CODES } from './registry.generated';
  *   1. the banks are DECLARED as build output, not carried in by accident; and
  *   2. a bank that is missing, empty or corrupt is fatal and named, never an empty pool.
  *
+ * On (1), a measured caveat: the loader's paths are now statically resolvable, so the tracer
+ * FINDS the banks on its own and a build with the declaration deleted still ships them. The
+ * declaration is kept, and still pinned, as the guarantee that survives the loader being
+ * refactored into something the tracer cannot follow. What it is not is the only thing standing
+ * between the image and an empty pool, and a reader deciding how much to trust it should know
+ * that. `pnpm bundle:check` asserts the outcome against the real build output.
+ *
  * Publishing the banks under `public/` would also make them available, and would also put every
  * `answer.correctKey` one URL away from the child; `served-boundary.test.ts` forbids it.
  */

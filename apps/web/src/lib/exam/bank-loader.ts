@@ -63,7 +63,45 @@ export interface RawBankItem {
 
 let cache: RawBankItem[] | null = null;
 
-const BANKS_RELATIVE = ['research', 'exam-question-types', 'banks'] as const;
+/**
+ * The two places the banks can be, spelled out as literal path segments.
+ *
+ * WHY LITERALS AND WHY MODULE SCOPE. Next's build tracer statically evaluates the argument of
+ * every `fs` call it can see, and when it cannot resolve one it falls back to globbing the
+ * nearest directory it *did* resolve. This module used to assemble its candidates inside the
+ * resolver — `path.join(process.cwd(), '..', '..', ...BANKS_RELATIVE)` — where the spread left
+ * the tail unresolvable with `<repo root>` as the resolved prefix, so the tracer globbed the
+ * whole repository into the standalone bundle: `docs/`, `infra/`, `brainlifting/`, `supabase/`.
+ * Nothing was wrong at runtime, which is exactly why it went unnoticed for so long.
+ *
+ * Keeping the segments literal, and at module scope where the tracer can fold them once, bounds
+ * that glob to the banks directory — measured at 91 MB down to 61 MB. `pnpm bundle:check` fails
+ * the build if it comes back. A side effect worth knowing: because the tracer can now resolve
+ * these paths, it discovers the banks by itself, so `outputFileTracingIncludes` in
+ * `next.config.ts` is no longer the only thing putting them in the image. It is kept as the
+ * guarantee for whatever this module looks like after the next refactor.
+ *
+ * They are ALTERNATIVES, not a search path: cwd is the repo root under the workspace scripts and
+ * the vitest suites, and `apps/web` under `next dev`, `next start` and the standalone server
+ * (`server.js` chdirs to its own directory, which is why `../..` lands on `/app/research`).
+ */
+const BANKS_DIR_FROM_REPO_ROOT = path.join(
+  process.cwd(),
+  'research',
+  'exam-question-types',
+  'banks',
+);
+const BANKS_DIR_FROM_APP = path.join(
+  process.cwd(),
+  '..',
+  '..',
+  'research',
+  'exam-question-types',
+  'banks',
+);
+const BANKS_DIR = existsSync(BANKS_DIR_FROM_REPO_ROOT)
+  ? BANKS_DIR_FROM_REPO_ROOT
+  : BANKS_DIR_FROM_APP;
 
 /**
  * The bank could not be read, so there is no item pool.
@@ -87,27 +125,35 @@ const SHIPPING_HINT =
   '(they are deliberately NOT published under public/, which would expose every answer key). ' +
   'A build that drops them serves an exam with no items.';
 
-/** Resolve the banks dir robustly whether cwd is the app, the repo root, or a standalone bundle. */
-function resolveBanksDir(): string {
-  const candidates = [
-    path.join(process.cwd(), ...BANKS_RELATIVE),
-    path.join(process.cwd(), '..', '..', ...BANKS_RELATIVE),
-    path.join(process.cwd(), '..', '..', '..', ...BANKS_RELATIVE),
-  ];
-  for (const dir of candidates) if (existsSync(dir)) return dir;
+/**
+ * Throws unless the resolved banks directory is really on disk, whether cwd is the app, the repo
+ * root, or a standalone bundle.
+ *
+ * Deliberately returns nothing. Every bank path in this module comes from {@link bankFile} so that
+ * `BANKS_DIR` is the single expression the build tracer has to fold; handing the directory back
+ * here would invite a caller to `path.join` an opaque local instead and quietly un-bound the glob
+ * again.
+ */
+function requireBanksDir(): void {
+  if (existsSync(BANKS_DIR)) return;
   throw new ExamBankUnavailableError(
     `No exam item bank directory found from cwd ${process.cwd()}. Looked in:\n` +
-      candidates.map((dir) => `  - ${dir}`).join('\n') +
+      [BANKS_DIR_FROM_REPO_ROOT, BANKS_DIR_FROM_APP].map((dir) => `  - ${dir}`).join('\n') +
       `\n${SHIPPING_HINT}`,
   );
 }
 
+/** The only place a bank file path is built. */
+function bankFile(code: string): string {
+  return path.join(BANKS_DIR, `${code}.jsonl`);
+}
+
 async function loadAll(): Promise<RawBankItem[]> {
   if (cache) return cache;
-  const dir = resolveBanksDir();
+  requireBanksDir();
   const items: RawBankItem[] = [];
   for (const code of BANK_TYPE_CODES) {
-    const file = path.join(dir, `${code}.jsonl`);
+    const file = bankFile(code);
     let text: string;
     try {
       text = await readFile(file, 'utf8');
@@ -144,7 +190,8 @@ async function loadAll(): Promise<RawBankItem[]> {
 
   if (items.length === 0) {
     throw new ExamBankUnavailableError(
-      `The item pool is empty after reading ${String(BANK_TYPE_CODES.length)} banks from ${dir}.`,
+      `The item pool is empty after reading ${String(BANK_TYPE_CODES.length)} banks from ` +
+        `${BANKS_DIR}.`,
     );
   }
 
@@ -159,16 +206,15 @@ async function loadAll(): Promise<RawBankItem[]> {
  * at deploy time, rather than at the moment a child opens the first question.
  */
 export function examBankHealth(): { ready: boolean; detail: string } {
-  let dir: string;
   try {
-    dir = resolveBanksDir();
+    requireBanksDir();
   } catch (error) {
     return { ready: false, detail: error instanceof Error ? error.message : String(error) };
   }
 
   const missing: string[] = [];
   for (const code of BANK_TYPE_CODES) {
-    const file = path.join(dir, `${code}.jsonl`);
+    const file = bankFile(code);
     if (!existsSync(file) || statSync(file).size === 0) missing.push(code);
   }
   if (missing.length > 0) {
@@ -176,10 +222,13 @@ export function examBankHealth(): { ready: boolean; detail: string } {
       ready: false,
       detail:
         `${String(missing.length)} of ${String(BANK_TYPE_CODES.length)} wired banks are missing ` +
-        `or empty under ${dir}: ${missing.join(', ')}. ${SHIPPING_HINT}`,
+        `or empty under ${BANKS_DIR}: ${missing.join(', ')}. ${SHIPPING_HINT}`,
     };
   }
-  return { ready: true, detail: `${String(BANK_TYPE_CODES.length)} banks present under ${dir}` };
+  return {
+    ready: true,
+    detail: `${String(BANK_TYPE_CODES.length)} banks present under ${BANKS_DIR}`,
+  };
 }
 
 /** Strip every server-only field (answer/scoring/provenance) + the on-disk demoPath. */
