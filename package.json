@@ -19,6 +19,7 @@
     "db:types": "supabase gen types typescript --local --schema api > packages/db-types/src/database.generated.ts",
     "db:types:check": "tsx scripts/check-generated-types.ts",
     "db:users": "tsx scripts/create-local-auth-users.ts",
+    "exam:block-harness": "tsx scripts/exam-learning-block-harness.ts",
     "exam:bracketing": "tsx scripts/exam-bracketing-comparison.ts",
     "exam:phase1-demo": "tsx scripts/exam-phase1-demo.ts",
     "exam:phase2-demo": "tsx scripts/exam-phase2-demo.ts",
