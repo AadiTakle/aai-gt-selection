@@ -22,6 +22,17 @@ on:
       - pnpm-lock.yaml
       - pnpm-workspace.yaml
       - tsconfig.base.json
+      # Governance-ID citations live mostly outside the code paths above
+      # (research/ alone holds 191 citing files, docs/ another 48), so the
+      # "Check governance ID citations" gate would never fire on the changes
+      # most likely to strand an ID. See D-032.
+      - AGENTS.md
+      - PROJECT_CHARTER.md
+      - README.md
+      - brainlifting/**
+      - docs/**
+      - infra/**
+      - research/**
   push:
     branches:
       - dev
@@ -43,6 +54,14 @@ on:
       - pnpm-lock.yaml
       - pnpm-workspace.yaml
       - tsconfig.base.json
+      # Kept in step with the pull_request paths above; see D-032.
+      - AGENTS.md
+      - PROJECT_CHARTER.md
+      - README.md
+      - brainlifting/**
+      - docs/**
+      - infra/**
+      - research/**
   workflow_dispatch:
 
 concurrency:
