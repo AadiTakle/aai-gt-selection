@@ -8,14 +8,14 @@
  * reuses the one already read. So the cost being complained about is the number of type CHANGES in
  * the served sequence, and that is the headline number here.
  *
- * WHY IT DOES NOT USE THE EXISTING HARNESS AS-IS. `runRealBankSession` selects over the research
- * catalog's declared measurement lists and the engine's default `CORE_METRICS`. A live session
- * selects over the generated registry's per-type metrics and the app's `EXAM_ENGINE_OVERRIDES`,
- * which replaces `coreMetrics` wholesale — and it selects over a pool whose `content` has been
- * stripped to the served INDEX. Those are different selection problems with different answers, and
- * the gap is exactly why bursting could be demonstrated in simulation while never firing in a
- * browser. This script rebuilds the harness's banks to match the browser on all three counts before
- * measuring anything.
+ * WHY IT DOES NOT USE `runRealBankSession` AS-IS. That harness selects over the research catalog's
+ * declared measurement lists and the engine's default `CORE_METRICS`. A live session selects over
+ * the generated registry's per-type metrics and the app's `EXAM_ENGINE_OVERRIDES`, which replaces
+ * `coreMetrics` wholesale — and it selects over a pool whose `content` has been stripped to the
+ * served INDEX. Those are different selection problems with different answers, and the gap is
+ * exactly why bursting could be demonstrated in simulation while never firing in a browser.
+ * `./exam-selection-harness` rebuilds the banks to match the browser on all three counts, and is
+ * shared with the four-arm integration measurement so the two cannot drift apart.
  *
  * CLAIM BOUNDARY. Instruction screens are COUNTED. The seconds each one costs are NOT measured
  * anywhere in this repository — see `docs/product/EXAM_BURST_INSTRUCTION_COST.md` for what would
@@ -26,170 +26,48 @@
  */
 import {
   classifyBankSpeed,
-  isDone,
-  nextItem,
-  planNextSelection,
-  startState,
-  update,
   AREAS,
   type AgeBand,
-  type Area,
-  type BankItem,
-  type BurstPlan,
   type EngineConfig,
-  type QuestionType,
 } from '../packages/exam-engine/src';
-import {
-  loadRealBanks,
-  respondProbabilistically,
-  type RealBanks,
-  type TrueTheta,
-} from '../packages/exam-engine/src/testing/real-bank';
-import {
-  EXAM_ENGINE_OVERRIDES,
-  SERVER_GUARANTEED_METRICS,
-} from '../apps/web/src/lib/exam/engine-config';
+import { EXAM_ENGINE_OVERRIDES } from '../apps/web/src/lib/exam/engine-config';
 import { EXAM_TYPE_REGISTRY } from '../apps/web/src/lib/exam/registry.generated';
+import {
+  browserFaithful,
+  loadRealBanks,
+  runSession,
+  runsOf,
+  UNCAPPED_TRACKED_COVERAGE,
+  type HarnessChild,
+  type RealBanks,
+  type SessionShape,
+  type TrueTheta,
+} from './exam-selection-harness';
 
 const GRADE_BAND: AgeBand = '4-5';
 
-/** Restores the pre-D-201 behaviour, where tracked-inert shortfalls summed without limit. */
-const UNCAPPED_TRACKED_COVERAGE = Number.MAX_SAFE_INTEGER;
-
 /**
- * Eight born-synthetic children spanning the ability range in every area, so a screen count is a
- * cohort mean rather than one lucky trace. Seeds are per child, so one child's luck is independent
- * of another's and the whole cohort is reproducible.
+ * Eight born-synthetic probabilistic children spanning the ability range in every area, so a screen
+ * count is a cohort mean rather than one lucky trace. Seeds are per child, so one child's luck is
+ * independent of another's and the whole cohort is reproducible.
+ *
+ * `engineSeed` is per child too. It was not, when these arms were first measured, because the
+ * engine seed was a constant nobody could override (D-202) — which made the whole cohort one
+ * selection sequence answered by eight different responders, and a screen count a fact about that
+ * one sequence. It is drawn per sitting now, so the arms below are re-measured; see
+ * `EXAM_BURST_INSTRUCTION_COST.md` §6.
  */
-const COHORT: readonly { label: string; theta: TrueTheta; seed: number }[] = Array.from(
-  { length: 8 },
-  (_, i) => ({
-    label: `child-${String(i + 1)}`,
-    theta: {
-      fluid_reasoning: 5 + i * 2,
-      verbal: 19 - i * 2,
-      quantitative: 8 + (i % 4) * 3,
-      spatial: 3 + i * 2,
-    },
-    seed: 0x5eed + i * 7919,
-  }),
-);
-
-/**
- * The four measurements the retired burst rule treated as proof of a multi-move — and therefore
- * slow — response. Retained here ONLY so an arm can reproduce the retired rule's effect; nothing in
- * `packages/exam-engine` consults them any more.
- */
-const RETIRED_PROCESS_DISQUALIFIERS: readonly string[] = [
-  'M-PATH',
-  'M-EFF',
-  'M-PLANFUL',
-  'M-IDEAFLU',
-];
-
-/**
- * Rebuild the harness's banks so selection sees what a browser sees.
- *
- * Three substitutions, each one a place the harness and the app previously disagreed:
- *
- *  1. only registry-wired types exist (the harness wires anything with a bank file);
- *  2. a type's `metrics` are the generated registry's — what the demo really emits — rather than the
- *     catalog's full declared measurement list; and
- *  3. an item's `content` is the served index's, i.e. an option count and nothing else.
- *
- * `carryOptionCount: false` reproduces the index as it shipped on `dev`, where `content` was `{}`
- * and therefore no item anywhere looked like a bounded choice.
- *
- * `applyRetiredRule` reproduces the retired declared-process-metric disqualifier by withholding the
- * option count from the types it excluded. Withholding the count is exactly how that rule reached
- * its verdict — such a type failed the "every item is a bounded choice" test — so the arm classifies
- * identically to the old code without needing the old code kept alive.
- */
-function browserFaithful(
-  real: RealBanks,
-  carryOptionCount: boolean,
-  applyRetiredRule = false,
-): RealBanks {
-  const registryByCode = new Map(EXAM_TYPE_REGISTRY.map((t) => [t.typeCode, t]));
-
-  const types: QuestionType[] = [];
-  for (const type of real.banks.types) {
-    const entry = registryByCode.get(type.typeCode);
-    if (!entry) continue;
-    types.push({
-      ...type,
-      metrics: Array.from(new Set([...entry.metrics, ...SERVER_GUARANTEED_METRICS, 'M-DIFFREACH'])),
-    });
-  }
-  const wired = new Set(types.map((t) => t.typeCode));
-  const retired = new Set(
-    applyRetiredRule
-      ? types
-          .filter((t) => t.metrics.some((m) => RETIRED_PROCESS_DISQUALIFIERS.includes(m)))
-          .map((t) => t.typeCode)
-      : [],
-  );
-
-  const items: BankItem[] = [];
-  for (const item of real.banks.items) {
-    if (!wired.has(item.typeCode)) continue;
-    const options = (item.content as { options?: unknown }).options;
-    const count = Array.isArray(options) && options.length > 0 ? options.length : undefined;
-    const show = carryOptionCount && count !== undefined && !retired.has(item.typeCode);
-    items.push({ ...item, content: show ? { optionCount: count } : {} });
-  }
-
-  // The simulated renderer emits what the real demo emits, so metric counts advance as they do live.
-  const catalog = new Map(real.catalog);
-  for (const type of types) {
-    const previous = catalog.get(type.typeCode);
-    if (previous) catalog.set(type.typeCode, { ...previous, perItem: [...type.metrics] });
-  }
-
-  return { banks: { types, items }, catalog, stimulus: real.stimulus };
-}
-
-interface SessionShape {
-  readonly served: readonly string[];
-  readonly areas: readonly Area[];
-  /** Instruction screens: item 1, plus every item whose type differs from the one before it. */
-  readonly screens: number;
-  readonly longestBurst: number;
-}
-
-function runSession(real: RealBanks, config: Partial<EngineConfig>, index: number): SessionShape {
-  const child = COHORT[index]!;
-  let state = startState(GRADE_BAND, config);
-  let active: BurstPlan | null = null;
-  const served: string[] = [];
-  const areas: Area[] = [];
-  let longestBurst = 0;
-
-  while (!isDone(state)) {
-    const plan = planNextSelection(state, real.banks, active);
-    if (plan === null) break;
-    active = plan;
-    longestBurst = Math.max(longestBurst, plan.length);
-    const item = nextItem(state, plan.typeCode, real.banks);
-    const scored = respondProbabilistically(item, real, child.theta, {
-      slope: 1,
-      guessing: 'per-item',
-      // The served index carries no option list, so a per-item floor is unavailable here. 1/4 is the
-      // modal option count across the wired banks, and is applied identically in every arm.
-      fallbackGuessing: 0.25,
-      seed: child.seed,
-    });
-    state = update(state, scored);
-    served.push(item.typeCode);
-    areas.push(item.domain);
-  }
-
-  let screens = 0;
-  for (let i = 0; i < served.length; i++) {
-    if (i === 0 || served[i] !== served[i - 1]) screens += 1;
-  }
-  return { served, areas, screens, longestBurst };
-}
+const COHORT: readonly HarnessChild[] = Array.from({ length: 8 }, (_, i) => ({
+  label: `child-${String(i + 1)}`,
+  engineSeed: i + 1,
+  theta: {
+    fluid_reasoning: 5 + i * 2,
+    verbal: 19 - i * 2,
+    quantitative: 8 + (i % 4) * 3,
+    spatial: 3 + i * 2,
+  } satisfies TrueTheta,
+  seed: 0x5eed + i * 7919,
+}));
 
 interface Arm {
   readonly label: string;
@@ -231,7 +109,7 @@ function measure(arm: Arm, real: RealBanks): ArmResult {
   const cap = arm.config.hardItemCap ?? Number.POSITIVE_INFINITY;
 
   for (let i = 0; i < COHORT.length; i++) {
-    const session = runSession(banks, arm.config, i);
+    const session = runSession(banks, arm.config, COHORT[i]!);
     first ??= session;
     items += session.served.length;
     screens += session.screens;
@@ -261,17 +139,6 @@ function measure(arm: Arm, real: RealBanks): ArmResult {
   };
 }
 
-/** Collapse a served sequence into runs, so a burst reads as one instruction. */
-function runsOf(served: readonly string[]): string {
-  const out: { code: string; n: number }[] = [];
-  for (const code of served) {
-    const last = out[out.length - 1];
-    if (last && last.code === code) last.n += 1;
-    else out.push({ code, n: 1 });
-  }
-  return out.map((r) => (r.n === 1 ? r.code : `${r.code}×${String(r.n)}`)).join(' | ');
-}
-
 function report(result: ArmResult): void {
   const n = COHORT.length;
   console.log(`\n## ${result.arm.label}\n`);
@@ -299,7 +166,8 @@ function report(result: ArmResult): void {
 
 // --- arms -------------------------------------------------------------------
 
-const UNCAPPED = { ...EXAM_ENGINE_OVERRIDES, trackedCoverageCap: UNCAPPED_TRACKED_COVERAGE };
+const CAPPED = EXAM_ENGINE_OVERRIDES;
+const UNCAPPED = { ...CAPPED, trackedCoverageCap: UNCAPPED_TRACKED_COVERAGE };
 
 const ARMS: readonly Arm[] = [
   {
@@ -334,7 +202,7 @@ const ARMS: readonly Arm[] = [
       'A type can no longer earn more than one tracked metric’s worth of selection score however ' +
       'many it declares (D-201), so process telemetry stops choosing the content of the test.',
     carryOptionCount: true,
-    config: EXAM_ENGINE_OVERRIDES,
+    config: CAPPED,
   },
   {
     label: 'E — D with the even-spread tolerance widened to the burst length (NOT ADOPTED)',
@@ -345,7 +213,7 @@ const ARMS: readonly Arm[] = [
       'by the remaining item budget, this arm measures identically to D, so the tolerance was never ' +
       'the binding constraint.',
     carryOptionCount: true,
-    config: { ...EXAM_ENGINE_OVERRIDES, evenSpreadTolerance: 6 },
+    config: { ...CAPPED, evenSpreadTolerance: 6 },
   },
 ];
 

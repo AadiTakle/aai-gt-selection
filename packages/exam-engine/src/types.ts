@@ -244,6 +244,29 @@ export interface EngineConfig {
    * large value makes an age-band match override targeting entirely.
    */
   ageBandBias: number;
+  /**
+   * Randomesque exposure control for the TYPE choice, in selection-score points. Any type scoring
+   * within this much of the best is treated as an acceptable substitute and one is drawn using the
+   * session seed. `0` restores strict argmax, which serves the same type order to every child.
+   *
+   * Must stay strictly below {@link EngineConfig.trackedCoverageCap}, or a tracked-inert shortfall
+   * stops deciding the type choice and an enforced one comes within tolerance of no shortfall at
+   * all. See the note on `DEFAULT_CONFIG` and D-203.
+   */
+  typeSelectionTolerance: number;
+  /**
+   * The same idea for the ITEM choice, in difficulty scale points. Any unseen item within this much
+   * of the best-targeted one may be drawn. Costs a little targeting precision and buys item-level
+   * variety and bank exposure; `0` restores strict nearest-item.
+   */
+  itemSelectionTolerance: number;
+  /**
+   * Selection-score discount applied to a type the child has just been served, fading linearly to
+   * nothing across `typeRecencyWindow`. Stops one session cycling the same few types. `0` disables.
+   */
+  typeRecencyPenalty: number;
+  /** How many items back the recency discount reaches, counted within the area. */
+  typeRecencyWindow: number;
   /** Max length of the per-area recent-accuracy window. */
   accWindowSize: number;
   /** Max length of the per-area recent-estimate window (used for the stability check). */

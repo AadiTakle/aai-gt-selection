@@ -169,6 +169,8 @@ Eight born-synthetic probabilistic children spanning the ability range in all fo
 `4-5`, 40-item safety cap, selecting over the served index with the app's own engine config. An
 instruction screen is a served item whose type differs from the one before it.
 
+**These figures were measured on this work alone and no longer reproduce on `dev`. See §6a.**
+
 | Arm | Burstable types | Items (mean, range) | **Instruction screens** | Share of items opening one | Distinct types per area |
 | --- | --- | --- | --- | --- | --- |
 | **A** — `dev` as shipped | 0 | 26.9 (21–39) | **26.9** | 100% | 4.3 |
@@ -198,6 +200,36 @@ rounds taper — long, then shorter, then single items — and measured against 
 *both* fewer screens and a shorter session. Under a 40-item cap the effective ceiling is therefore 4–5
 rather than the configured 6. The owner's bound of "no more than 5–6, stepped down by option count" is
 respected and was never approached from below.
+
+## 6a. What changed when the variety work landed beside this
+
+The table in §6 was measured on this work alone. It no longer reproduces, and saying so is more
+useful than re-cutting it: **D-202 rewrote the same function.** `nextType` is now randomesque
+exposure control over the near-optimal set with a recency discount, rather than a strict argmax with
+a ±0.1 jitter, and `nextItem` draws from within a tolerance rather than taking the nearest item. Even
+with every variety knob set to zero the tie-break RULE differs — a seeded draw where there used to be
+a jitter and then an alphabetical fallback — and on the wired bank's flat metric lists ties are
+common, so the served sequences diverge. There is no configuration of the merged engine that
+reproduces §6's arms, because §6's arms ran different code.
+
+`pnpm exam:instruction-cost` on the merged tree therefore answers a different and still useful
+question: what the burst work adds ON TOP of variety, at the merged defaults. Its cohort also now
+draws an engine seed per child, because the constant one D-202 removed had made all eight children a
+single selection sequence answered by eight responders.
+
+**Two claims from §6 do not survive the combination, and both are stated in E-203:**
+
+- **"The session is no longer than before" does not hold.** Bursting now lengthens it slightly:
+  measured over 80 sittings, 28.7 → 29.2 items against `dev`, and 28.0 → 30.4 items when added to
+  the variety work.
+- **"No child on the safety cap" does not hold** at the cohort sizes the four-arm measurement uses.
+  15 of 80 sittings reach the 40-item cap in the combination, against 10 for this work alone and 17
+  for `dev`.
+
+The attribution ordering in §6 is unaffected — capping tracked coverage is still the change that
+does most of the work, and the eligibility rule is still nearly worthless on its own.
+`docs/product/EXAM_SELECTION_INTEGRATION.md` is the measurement of the merged behaviour and is the
+one to cite for it.
 
 ## 7. Claim boundaries
 

@@ -203,11 +203,37 @@ export const TRACKED_METRIC_WEIGHT = 1;
  * now sits between 0.75 and 1.0 rather than at 1.0. It still decays smoothly rather than snapping:
  * at 1.0 one of the sweep's 72 ability × area cells lands 1.84 off, on one seed in five.
  * `real-bank.test.ts` asserts both the plateau and the softness of its edge.
+ *
+ * `typeSelectionTolerance` 0.5 and `itemSelectionTolerance` 0.25 are randomesque exposure control.
+ * Without them selection is a strict argmax whose only variation was a +-0.1 jitter — too small to
+ * outweigh a metric weight (1 or 2) or the age bonus (1.5) — so every session served the same types
+ * in the same order (D-202).
+ *
+ * The type tolerance MUST stay below `trackedCoverageCap`, and that is what took it from the 1.0 it
+ * was first calibrated at down to 0.5 (D-203). The tolerance was derived against the UNCAPPED
+ * coverage sum, where a type could earn four tracked-metric points and the spread inside an area was
+ * correspondingly wide. Capping the tracked total at one point (D-201) compressed that spread, so a
+ * tolerance of 1.0 became exactly the value at which the whole tracked contribution stops deciding
+ * anything — the type carrying a tracked shortfall and the type carrying none fall within tolerance
+ * of each other, cancelling the tilt the cap was left in place to preserve — and at which a type
+ * closing an ENFORCED shortfall (weight 2) comes within reach of a rival closing none but holding a
+ * tracked gap (2 - 1 = 1.0). Measured over 80 sittings on the wired bank, 1.0 cost 1.9 items per
+ * session against 0.5 and bought 0.3 of a distinct type. Below about 1/3 the knob stops doing
+ * anything at all, because no score gap is smaller than the narrowest recency step.
+ *
+ * The item tolerance MUST stay below `ageBandBias`, or it cancels the age-band preference outright:
+ * a non-matching item carries exactly `ageBandBias` of penalty, so a tolerance of 0.5 makes it
+ * indistinguishable from a matching item at the same difficulty and D-025's content preference
+ * stops applying. 0.25 keeps the band decisive while still admitting a quarter-point of variety.
  */
 export const DEFAULT_CONFIG: EngineConfig = {
   seed: 0xc0ffee,
   difficultyWindow: 3,
   ageBandBias: 0.5,
+  typeSelectionTolerance: 0.5,
+  itemSelectionTolerance: 0.25,
+  typeRecencyPenalty: 1.0,
+  typeRecencyWindow: 3,
   accWindowSize: 10,
   estWindowSize: 10,
   minUpdate: 0.25,

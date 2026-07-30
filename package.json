@@ -25,6 +25,7 @@
     "exam:bracketing": "tsx scripts/exam-bracketing-comparison.ts",
     "exam:instruction-cost": "tsx scripts/exam-instruction-cost.ts",
     "exam:phase1-demo": "tsx scripts/exam-phase1-demo.ts",
+    "exam:selection-integration": "tsx scripts/exam-selection-integration.ts",
     "exam:phase2-demo": "tsx scripts/exam-phase2-demo.ts",
     "exam:sync": "node scripts/sync-exam-demos.mjs",
     "exam:sync:check": "node scripts/sync-exam-demos.mjs --check",

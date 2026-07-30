@@ -1,5 +1,6 @@
-import type { Area, ServedItem } from '@gt-selection/exam-engine';
+import type { Area, EngineConfig, ServedItem } from '@gt-selection/exam-engine';
 
+import { EXAM_ENGINE_OVERRIDES } from './engine-config';
 import { EXAM_TYPE_REGISTRY } from './registry.generated';
 
 /**
@@ -12,7 +13,8 @@ import { EXAM_TYPE_REGISTRY } from './registry.generated';
  *
  * The engine configuration itself lives in `./engine-config`, which is free of browser globals so
  * that an offline harness can import the very config a live session runs. It is re-exported here so
- * existing callers keep one import site.
+ * existing callers keep one import site. The per-session SEED stays on this side of that line,
+ * because drawing one reads `globalThis.crypto`.
  */
 export {
   buildBanks,
@@ -30,6 +32,26 @@ export {
 export const NATIVE_PROTOCOL_TYPES: ReadonlySet<string> = new Set(
   EXAM_TYPE_REGISTRY.map((t) => t.typeCode),
 );
+
+/**
+ * Per-session engine config: the shared overrides plus a seed unique to this sitting.
+ *
+ * The engine's seed drives every selection draw, so a fixed seed makes every child receive the
+ * same types in the same order. Drawing it per session gives variety between children while
+ * keeping one session perfectly replayable from the seed recorded in its own state.
+ */
+export function examEngineOverrides(seed = randomSessionSeed()): Partial<EngineConfig> {
+  return { ...EXAM_ENGINE_OVERRIDES, seed };
+}
+
+/** A 32-bit seed, from the platform CSPRNG where available. */
+export function randomSessionSeed(): number {
+  const cryptoRef = globalThis.crypto;
+  if (cryptoRef?.getRandomValues) {
+    return cryptoRef.getRandomValues(new Uint32Array(1))[0] as number;
+  }
+  return Math.floor(Math.random() * 0x100000000) >>> 0;
+}
 
 /** Derive the demo URL for a served item (renderers live under public/exam-demos). */
 export function demoPathFor(typeCode: string, telemetry = false): string {

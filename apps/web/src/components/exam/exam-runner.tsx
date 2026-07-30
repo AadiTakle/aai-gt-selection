@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import {
   isDone,
@@ -12,6 +12,7 @@ import {
   type Area,
   type Banks,
   type BurstPlan,
+  type EngineConfig,
   type ScoredItem as EngineScoredItem,
   type ServedItem,
   type SessionState,
@@ -26,6 +27,7 @@ import {
 import { EXAM_BANK_BY_CODE, EXAM_DOMAINS, domainLabel } from '@/lib/exam/bank';
 import {
   EXAM_ENGINE_OVERRIDES,
+  examEngineOverrides,
   GESTURE_DEMO_TYPES,
   debugModeServerSnapshot,
   debugModeSnapshot,
@@ -181,14 +183,14 @@ export function ExamRunner({
   /**
    * The engine configuration this session runs under.
    *
-   * Derived rather than read off the live session, because the debug dock renders from it and a ref
-   * read during render would not re-render when it changed. It cannot change: `startState` fixes the
-   * config for the session and `update` carries it through untouched, so this is the same object the
-   * session holds.
+   * Taken from the live session at `start` and held in state, not re-derived: the config now
+   * carries a seed drawn per sitting, so building a second one would report a different seed from
+   * the one the session is actually replaying off — which is the one number in the dock that has to
+   * be the session's own. State rather than a ref because the dock renders from it. It cannot change
+   * mid-session: `startState` fixes the config and `update` carries it through untouched.
    */
-  const engineConfig = useMemo(
+  const [engineConfig, setEngineConfig] = useState<EngineConfig>(
     () => startState(gradeBand, EXAM_ENGINE_OVERRIDES).config,
-    [gradeBand],
   );
 
   /** `?debug=1` on the exam URL: shows the convergence dock, the demo's researcher panel, Emulate. */
@@ -604,8 +606,9 @@ export function ExamRunner({
       const pool = await fetchServedPool();
       if (pool.length === 0) throw new Error('EMPTY_BANK');
       banksRef.current = buildBanks(pool);
-      const state = startState(gradeBand, EXAM_ENGINE_OVERRIDES);
+      const state = startState(gradeBand, examEngineOverrides());
       stateRef.current = state;
+      setEngineConfig(state.config);
       const participantCode = syntheticId('PART');
       sessionRef.current = {
         sessionId: syntheticId('SESS'),
