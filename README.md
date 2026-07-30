@@ -100,6 +100,14 @@ pnpm db:stop
 `pnpm db:users` reads local setup values directly from the running Supabase CLI. It creates only
 fictional login-capable users and refuses non-loopback Supabase URLs.
 
+Local Supabase runs on its own port, so it is a different origin from the dev server as far as the
+browser is concerned. The app's Content-Security-Policy therefore names the configured Supabase
+origin in `connect-src` (derived from `NEXT_PUBLIC_SUPABASE_URL`, so any port works) — without it
+the browser blocks every sign-in request before it is sent. If sign-in fails locally with
+"Guest access is unavailable right now" while a server-side `curl` password grant against the same
+project returns 200, check the CSP header rather than the auth layer: that combination means the
+request never left the browser. See `apps/web/src/lib/csp.ts`.
+
 Use `pnpm verify` for the complete local sequence. It starts and resets Supabase, executes all
 workspace/database/security/E2E checks, and stops the local project without preserving data.
 
