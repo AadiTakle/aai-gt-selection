@@ -1,9 +1,27 @@
 # Stage 2 Question Design — Item Types for the Learning-Rate Block
 
-**Status:** Design proposal. **Nothing here is built, and nothing here is ratified.** This document
-proposes item types for the Phase 2 novel block and a build plan for them; it does not change any
-shipped behaviour, bank, generator, demo, verifier, or engine file. The owner triggers the build
-separately.
+**Status:** Design specification. **Nothing here is built.** This document specifies item types for
+the Phase 2 novel block and an executable build plan for them; it does not change any shipped
+behaviour, bank, generator, demo, verifier, or engine file. The owner triggers the build separately.
+
+**Owner decisions of record (2026-07-30):** three questions that were blocking are now closed, and
+the document has been reworked around them. Full reasoning and consequences in §10.
+
+- **D-S2-1 — the block stays in fluid reasoning.** `LEARNING_BLOCK_AREA` is not moved. The new
+  Stage 2 types are built there.
+- **D-S2-2 — build purpose-designed types; do not extend `FLU-CONCEPT-01`.** A type designed for a
+  different job carries constraints that are invisible until they bind. `FLU-CONCEPT-01` remains
+  cited as prior art and as a shape reference; it is not a delivery vehicle.
+- **D-S2-3 — the scrambled-system control is a binding acceptance criterion, not a
+  recommendation.** A type ships only if it beats its own scrambled control. §4.1 states the
+  statistic, the separation required, the sample size, and the decision rule for a separation that
+  is real but small. §9 is ordered so the control condition and its harness exist *before* the
+  first type's renderer, because the control is a generator **mode**, not a later add-on.
+
+**The largest consequence of D-S2-3, stated up front:** the hard gate needs real children, so **no
+type can ship out of an overnight loop.** What the build plan delivers is a *gate-ready* type plus
+the instrument that will run the gate. Shipping waits on a pilot the project does not currently have
+a route to (New Question 1, §10).
 
 **Requirements served:** R6 (measure growth without a gifted-student ceiling — this is the whole
 point of the block), R5 (a defensible capability standard needs the constructs it claims to
@@ -21,15 +39,18 @@ reintroduce), E-093 (no norm bank exists for originality-style indices). Decisio
 (text-only, reading is a required capability, never audio), D-023/D-025 (bracketing and selection
 unchanged).
 
-**In scope tonight:** the design philosophy for a Stage 2 item, one or more proposed types per
-reasoning area, the mechanism by which faster learners diverge, the falsification evidence for
-each, a shortlist, and the overnight build plan.
+**In scope:** the design philosophy for a Stage 2 item, one or more specified types per reasoning
+area, the mechanism by which faster learners diverge, the falsification evidence for each, a
+shortlist, the acceptance gate, and an ordered build plan a builder can execute without further
+decisions.
 
-**Explicitly out of scope tonight:** difficulty calibration, metric selection and weighting,
-reference distributions for λ, any change to the estimator or the readout, and any implementation.
-Section 8 states what each design *needs* from calibration and metrics and then stops.
+**Explicitly out of scope:** difficulty calibration, metric selection and weighting, reference
+distributions for λ, any change to the estimator or the readout, and any implementation. Section 8
+states what each design *needs* from calibration and metrics and then stops.
 
-**New assumptions opened by this document:** A-S2-1 through A-S2-6, listed in §10.
+**New assumptions opened by this document:** A-S2-1 through A-S2-6, listed in §10. **New open
+questions created by the three decisions:** six, listed separately in §10.2 — they are not absorbed
+into the decisions.
 
 ---
 
@@ -314,6 +335,14 @@ now the block runs in the one area with no usable Stage 2 type**, drawing instea
 S1/DUAL fluid items, which are novel-to-the-child but contain nothing learnable across items. That
 is the hole, and it is worse than the type counts suggest.
 
+**How D-S2-1 and D-S2-2 resolve this.** The two decisions together repair the premise rather than
+abandoning it. `phase2.ts` justified fluid on pool depth and on leaning least on taught content;
+that justification was sound about the *area* and simply had no supplier in it. Keeping the area
+(D-S2-1) and building a purpose-designed supplier for it (D-S2-2) restores the original rationale,
+where moving the area would have traded a real justification for a merely available one. The
+diagnosis above therefore stands as written — it is the reason the fluid type is first in §7 and the
+only operationally urgent one.
+
 ---
 
 ## 3. Proposed types, by reasoning area
@@ -368,13 +397,26 @@ guessing or difficulty misspecification, not from induction. (c) λ does not sep
 scrambled-vocabulary control block (§4.1) → the block is not measuring learning of the system.
 (d) λ correlates with opening-trial first-response latency → interface learning.
 
-**Position against existing types.** Closest relatives are `FLU-GRIDCOPY-01` (constructed transform,
-drag, per-attribute partial credit) and `FLU-CONCEPT-01` (rule discovery with keyed probes). The
-new properties are a *persistent vocabulary across 30 novel trials*, *countable composition depth
-as difficulty*, and *single tap*. **Before building, check whether `FLU-CONCEPT-01` can be extended
-into this shape instead** — it already has the rule-discovery frame and a keyed probe; what it lacks
-is a persistent composable vocabulary and a depth ladder. Extending an existing type would be
-cheaper and would inherit its verifier. This is a genuine open question, not a formality (§10).
+**Position against existing types — prior art, not a starting point (D-S2-2).** The closest relatives
+are `FLU-GRIDCOPY-01` (constructed transform, drag, per-attribute partial credit) and
+`FLU-CONCEPT-01` (rule discovery with keyed probes). Both are worth reading before building:
+`FLU-CONCEPT-01` in particular already solves the "probe a hidden rule with a keyed item" problem and
+its demo is the nearest shape reference for how the machine frame reads to a child.
+
+**This type is built from scratch anyway, and the decision is deliberate.** An earlier draft of this
+document proposed extending `FLU-CONCEPT-01` on cost grounds — cheaper, inherits a verifier. That
+path is retired. `FLU-CONCEPT-01` is classified DUAL and is designed to bracket a ceiling *and*
+discover a rule; the three properties this type needs are a persistent composable vocabulary,
+composition depth as the difficulty lever, and a per-trial control mode
+(`systemPersistence: 'consistent' | 'perTrial'`, §4.1). Grafting those onto a type whose difficulty
+lever is already "probe verdicts against a single rule" would mean either changing what
+`FLU-CONCEPT-01` measures — which invalidates its existing classification, bank, and verifier — or
+carrying its lever alongside the new one, which is exactly the invisible constraint D-S2-2 exists to
+avoid. The saved verifier is not worth a type that measures two things at once.
+
+So the genuinely new properties, none of which are retrofits: a *persistent operator vocabulary
+across 30 novel trials*, *countable composition depth as difficulty*, *single tap*, and a
+*scrambled control mode present in the generator from the first commit*.
 
 ### 3.2 Quantitative — `QUANT-GLYPHNUM-01` "Alien Numbers" *(primary)*
 
@@ -533,26 +575,161 @@ a learning-rate costume.
 
 ## 4. Failure modes, and being adversarial about these proposals
 
-### 4.1 The one test that gates everything: the scrambled-system control
+### 4.1 The binding acceptance gate: the scrambled-system control (D-S2-3)
 
 Every design above rests on one claim: *accuracy rises because the child acquired the system.* There
-is exactly one cheap way to test it, and the retest literature says it is the only design that
-works — "you need either a genuine no-training control condition observed on the same schedule, or
-non-identical forms, or both" (research shard category 6.7, on Scharfen et al., 2018).
+is one cheap way to test it, and the retest literature says it is the only design that works — "you
+need either a genuine no-training control condition observed on the same schedule, or non-identical
+forms, or both" (research shard category 6.7, on Scharfen et al., 2018).
 
-**The control:** run the identical block with the system **re-drawn every trial**. Same interface,
-same difficulty ladder, same item counts, same feedback, same session position — but nothing carries
-forward. Any λ observed in that condition is the design's contamination floor: practice, warm-up,
-interface, guessing, regression to the mean, and difficulty misspecification, summed.
+Per **D-S2-3 this is a binding acceptance criterion.** A type does not enter the battery as a λ
+vehicle until it beats its own scrambled control. The rest of this section specifies that gate
+precisely enough to hand to a builder and an analyst.
 
-**Acceptance rule I would propose: a type does not enter the battery until λ in the consistent
-condition is reliably greater than λ in the scrambled condition, on the same bank and the same
-targeting rule.** That is a stronger and much cheaper gate than any validity study, and it is the
-difference between "this looks like a learning curve" and "this is a learning curve".
+#### 4.1.1 The control condition, and what it is equated on
 
-Note honestly what it does *not* establish: it shows the block measures learning **of that system**.
-It says nothing about whether that predicts real learning, platform acceleration, or program
-benefit. D-030 and E-095 already draw that line and this does not move it.
+Run the identical block with the hidden system **re-drawn every trial**, so nothing carries forward.
+Any λ observed there is the design's **contamination floor**: practice, warm-up, residual interface
+learning, guessing, regression to the mean at the handover, and difficulty misspecification, summed.
+
+The control is a **generator mode, not a separate artifact** — `systemPersistence: 'consistent' |
+'perTrial'` on one code path, one renderer, one verifier. This matters for validity, not just
+economy: if the two arms were produced by different generators or rendered by different demos, the
+contrast would be confounded with the renderer, and the gate would be measuring the wrong
+difference. It is also why §9 puts the control mode at spec time rather than after the type exists.
+
+Equated across arms: interface and renderer, option count and layout, difficulty ladder and targeting
+rule, item count, demonstration and observation trial cadence, feedback form, interface gate, and
+position in the session. Differing across arms: **only** whether the system persists.
+
+**Manipulation check — and it is not the obvious one.** The naive check is "the scrambled arm should
+be less accurate". It should not, and expecting it to would misread the design: the adaptive targeting
+rule drags difficulty *down* for a child who is not climbing, holding accuracy near p = 0.5 by
+construction. So accuracy is roughly equated by the mechanism, and the correct observable is
+**mean served difficulty over the last third of the block**, which must be lower in the scrambled
+arm. If served difficulty does not separate, the manipulation failed — the system was not load-bearing
+for solving the items in the first place — and no λ contrast from that run is interpretable.
+
+#### 4.1.2 Gate A — synthetic, and honest about what it cannot do
+
+Runs on the harness (§9 U0) with no children. Its purpose is **not** to show the type measures
+learning; a synthetic child's climb is written by the simulator, so recovering it would be circular
+in exactly the way `learning-curve.ts` already warns about. Its purpose is the converse and it is
+non-circular: **show that the pipeline does not manufacture λ out of nothing.**
+
+Simulate children with **λ_true = 0** — fixed ability, no learning whatsoever — running the real
+bank through the real targeting rule with the deliberately noisy standing handover E-095 used. Then:
+
+| Gate A check | pass condition | what a failure means |
+|---|---|---|
+| **A1 static-child null** | fitted λ distribution centred on 0 within Monte-Carlo error | The ladder itself produces a climb. Almost always trial-index-correlated difficulty misspecification — the §1.1(d) failure — occasionally pool saturation |
+| **A2 false-positive rate** | `learningRateReadout` returns `above` no more often than the nominal band rate | The readout would call non-learners fast learners |
+| **A3 no saturation** | for the fastest simulated learner, served difficulty never pins to the pool maximum | Headroom is short of §1.1(c); the top of the λ distribution would be truncated |
+| **A4 recovery sanity** | injected-λ recovery, attenuation and mean SE at 30 trials land within a stated band of E-095's figures on *this* bank's actual difficulty grid | The bank's grid is too coarse or too shallow to support the estimator at all |
+
+A1 is the one that earns its keep. It is a real, decisive test of the *bank and its stated
+difficulties* that costs no children, and it fails loudly for the exact pathology §1.1(d) predicts.
+**Gate A is cheap, runs overnight, and is a prerequisite for Gate B — but passing it is not
+shipping.**
+
+#### 4.1.3 Gate B — the ship gate, with real children
+
+Only children can differ in whether they actually induce a system, so only children can clear this.
+
+**Design.** Between-subject randomised assignment to `consistent` or `perTrial`, stratified by grade
+band and by settled fluid standing. A within-subject counterbalanced design would be more efficient,
+and is **rejected**: it needs 60 block trials per child, which collides with §4.3 feasibility, and a
+scrambled block following a consistent one is functionally a rule reversal, which imports
+perseveration effects that have nothing to do with learning rate.
+
+**Primary statistic — existence of the effect.** A mixed-effects logistic model of per-trial
+correctness across all children in both arms:
+
+```
+correct ~ trialIndex * condition + difficulty + (1 + trialIndex | child)
+```
+
+The gate is on the **`trialIndex × condition` interaction**: the per-trial climb must be reliably
+steeper in the consistent arm. This is the primary because it is the most powerful available test —
+it uses all 30 × n observations and borrows strength across children rather than comparing noisy
+30-trial point estimates — and because it is the same model class Koedinger et al. (2023) used to
+argue learning rates barely differ, so a null here is directly comparable to the strongest published
+result against the whole premise.
+
+**Confirmatory statistic — survival in the pipeline that would actually run.** The between-arm
+difference in **per-child fitted λ** from `estimateLearningCurve`, reported as Hedges' *g*. This must
+also separate, because λ is the quantity that would be reported. The two can come apart, and that
+third outcome is informative rather than confusing — see the decision rule below.
+
+**Sample size.** Fitted λ at 30 trials carries a mean posterior SE ≈ 0.047 (E-095); combined with a
+plausible true spread of ≈ 0.03 that gives a fitted-λ SD of roughly 0.06, which is the scale the
+standardised effect is measured against. For the confirmatory two-arm comparison at α = .05
+two-tailed and 80% power, n per arm ≈ 15.7/*g*²:
+
+| separation to detect | *g* | n per arm | total |
+|---|---|---|---|
+| λ_S ≈ ⅓ λ_C (contamination is a clear minority) | ≈ 1.0 | 16 | 32 |
+| comfortable ship margin | 0.8 | 25 | 50 |
+| **smallest separation worth shipping on** | **0.5** | **63** | **126** |
+| detectable but below the ship threshold | 0.35 | 128 | 256 |
+
+**Specified n = 64 per arm (128 total).** That powers the confirmatory comparison to the smallest
+separation this document would ship on, and it is conservative for the primary, which has
+substantially more power at the same n. These figures assume a fitted-λ SD of ≈ 0.06; the power
+script (§9 U1) must recompute them from the Gate A output rather than inheriting this estimate,
+because A4 measures that SD on the actual bank.
+
+**The gate must also report Var(λ_S), not only its mean.** Whether the contamination floor is a
+subtractable constant or an irreducible per-child nuisance turns entirely on its variance, and the
+decision rule below branches on it.
+
+#### 4.1.4 The decision rule, fixed in advance
+
+Pre-commitment is what separates a gate from theatre. The statistic, n, and this rule are recorded
+before the pilot runs (New Question 4, §10.2 — where the pre-registration lives is unresolved);
+choosing among them after seeing data voids the gate.
+
+**Verdict 1 — clears the gate.** Interaction reliable, *g* ≥ 0.8, and λ̄_S ≤ ⅓ λ̄_C. Ship the type
+into the block. The readout stays ordinal and `indeterminate` stays first-class (D-030) — clearing
+this gate says the block measures learning of the system, not that λ may be reported as a number.
+
+**Verdict 2 — real but small.** Interaction reliable, but *g* < 0.8 or λ̄_S > ⅓ λ̄_C. The block is
+measuring substantially the floor. **Do not ship as a λ vehicle yet.** Three graded responses, to be
+taken in this order, because they diagnose different causes:
+
+1. **Lengthen before condemning.** E-095: recovery runs 0.448 at 30 trials, 0.746 at 45, 0.862 at 60.
+   A small separation at 30 may be a *precision* problem rather than a *design* problem, and those
+   have opposite remedies. Re-run the gate at 45 trials. This is the cheapest discriminator available
+   and it must be authorised in advance (New Question 3) so it cannot function as a post-hoc rescue.
+2. **Subtract the floor — only if it is subtractable.** If Var(λ_S) is small, the floor is
+   approximately a constant offset and λ_C − λ̄_S is a defensible reportable. If Var(λ_S) is large it
+   is not: the retest literature's own heterogeneity is the warning here, with a 95% prediction
+   interval of [−0.30, 0.96] around a mean first-to-second effect of 0.33 SD (Scharfen et al., 2018),
+   which is precisely why meta-analytic practice-effect corrections over-predicted in a prospective
+   clinical test (Duff & Hammers, 2022). A floor that varies per child can be subtracted in the mean
+   but not for an individual, and an individual readout is the use case. Whether this branch is
+   permitted at all changes what λ means and is not mine to decide (New Question 5).
+3. **Fall back to the strategy trace.** If λ fails but the distractor-classified trace (§4.6)
+   separates between arms, the trace becomes the reportable and λ is demoted to a diagnostic. This is
+   the pre-planned fallback, and it is the reason the trace is a build requirement (§9 U3(f)) even
+   though λ is the headline: the fallback has to already exist at the moment the gate returns
+   Verdict 2, or discovering it is needed costs another build cycle.
+
+**Verdict 3 — effect exists but the estimator cannot see it.** Interaction reliable, per-child λ
+contrast not. This is a *measurement* verdict, not a design verdict, and it should not be read as a
+failed type: the design produces a real climb that a 30-trial dichotomous MAP fit cannot resolve. It
+points at the two levers §8 already names — block length and a graded response model — and it is the
+single most likely way a good design fails this gate. Do not ship; do not redesign the type.
+
+**Verdict 4 — not real.** Interaction not reliable. The type does not enter the battery as a λ
+vehicle. It may still be a sound S1 or DUAL type — reclassify it rather than deleting the work.
+
+#### 4.1.5 What clearing this gate does *not* establish
+
+It shows the block measures learning **of that system**. It says nothing about whether that predicts
+real learning, platform acceleration, or program benefit. D-030 and E-095 already draw that line and
+this does not move it. §4.7 stands unchanged and unsoftened: a type can clear this gate and still be
+measuring something that adds nothing over θ.
 
 ### 4.2 Practice and motor effects
 
@@ -619,8 +796,8 @@ per-trial strategy trace, which gives:
   of assistance required — may carry most of the incremental validity that survives in the dynamic-
   testing literature, precisely because it is an ordinal measurement rather than a difference between
   two error-laden measurements. A distractor-classified strategy trace is the same kind of quantity.
-  **Speculative**, and out of scope tonight, but it is worth building the trace even if λ is the
-  headline, because the trace is where the fallback lives.
+  **Speculative**, and its metric ID is out of scope here, but the trace is a build requirement
+  (§9 U3(f)) even though λ is the headline, because it is where the §4.1.4 Verdict-2 fallback lives.
 
 On guessing specifically: the estimator uses `guessing = 0`, a known misspecification. Lucky early
 successes inflate `theta0` and flatten `lambda` — the direction that destroys the measurement. Three
@@ -670,14 +847,18 @@ cannot be answered by better puzzles.
 
 ## 5. The one-area tension (D-030), addressed rather than avoided
 
-D-030 fixes the block to a single area for every child, and the app already sets that area to
-`fluid_reasoning`. Designing types for all four areas is still right, for three reasons that are not
-"future flexibility" hand-waving:
+D-030 fixes the block to a single area for every child, and the app sets that area to
+`fluid_reasoning`. **D-S2-1 keeps it there and this document does not propose moving it.** Designing
+types for all four areas is still right, for three reasons that are not "future flexibility"
+hand-waving:
 
-1. **The policy area is a choice that has to be re-choosable.** It was chosen on pool depth and
-   "leans least on taught content" (comment in `phase2.ts`). §2 shows fluid currently has *no*
-   usable S2 type, so the premise of that choice is weaker than it looks. Re-examining it requires
-   having candidates in more than one area.
+1. **The premise of the fluid choice needs repairing, and D-S2-2 repairs it.** The area was chosen on
+   pool depth and "leans least on taught content" (comment in `phase2.ts`), and §2 shows fluid
+   currently has *no* usable S2 type — so the choice was sound in principle and unsupplied in
+   practice. The resolution is to supply it, not to move the block to whichever area happened to have
+   a survivor. Note what this does to the other three types: with the area locked, they are **no
+   longer operationally urgent**. They are insurance (point 2) and research instrument (point 3), and
+   §7 sequences them accordingly.
 2. **Insurance against a floor.** If the chosen area floors in a band — and §4.3 gives two concrete
    mechanisms by which it might — the whole learning-rate output is lost for that band. A second
    built area is the only remedy that does not require a redesign.
@@ -740,26 +921,65 @@ interface partner.
   Stage 1 for the children who least need it. If the owner wants it anyway, the minimum honest
   version is: fix the dose, log it per child, and report λ conditional on it. That is a real
   measurement design, not a configuration change.
-- *Keep `SPA-SCENE-01` → `SPA-VIEW-01`.* Fine to keep, but **re-label the rationale** in the
-  classification doc from "measures whether teaching transferred" to "shares an interaction grammar
-  with a Stage 1 type", which is what it actually delivers. The transfer claim is not currently
-  supported by the administration.
+- *Keep `SPA-SCENE-01` → `SPA-VIEW-01`.* Keep the pairing; re-label the rationale. See the decided
+  action below.
+
+### 6.1 Decided action — re-label the `SPA-SCENE-01` → `SPA-VIEW-01` pairing rationale
+
+**Decided 2026-07-30.** This is no longer a recommendation. The pairing is retained and **generalised
+on interface, not on teaching**, because Stage 1's confident stop makes the teaching dose vary per
+child and covary with ability — so a transfer claim resting on that dose is not comparable across
+children, which is the one property D-030 says λ currently has. The pairing is still worth keeping;
+only the stated reason is wrong.
+
+**Target:** the `SPA-VIEW-01` row of
+`research/test-structure-research/STAGE_CLASSIFICATION_AND_METRIC_AUDIT.md`, whose rationale
+currently ends by describing the paired teach-then-probe block as an open decision.
+
+**What the rationale should say instead** — plainly, and this is the text to use:
+
+> Reclassified from S1 by the 2026-07 review, which reads perspective-taking as a ladder the child
+> climbs within the session rather than a standing ceiling. It is the only S2 type in spatial. It is
+> paired with `SPA-SCENE-01`, and the pairing is on **interaction grammar, not teaching**: the child
+> meets the tap-a-viewpoint response format in Stage 1 and therefore arrives at the Stage 2 block
+> already fluent in the interface, which is the extraneous-load saving the pairing buys. It is **not**
+> a teach-then-transfer probe and must not be described as one. Stage 1 stops on a confident estimate
+> rather than a fixed length (D-023), so the number of `SPA-SCENE-01` items a child sees varies per
+> child and varies systematically with ability — a child whose estimate settles quickly sees fewer.
+> A transfer measure whose teaching dose is confounded with ability is not comparable across children.
+> Reading this pair as evidence of transfer would reintroduce exactly the confound the separate novel
+> block exists to remove. Establishing transfer would require a fixed, logged teaching dose for every
+> child and λ reported conditional on it, which is a measurement design, not a configuration change.
+
+**Why this document does not apply the edit itself.** Two reasons, both practical. The task is
+design-only, and that file is currently modified in the owner's working tree — editing it on this
+branch would hand the owner a merge conflict in a file they are actively changing. The text above is
+written to be pasted as-is.
 
 ---
 
 ## 7. Shortlist — what I would build first
 
-Build order is driven by one fact: the operational block runs in **fluid reasoning** today.
+Build order is driven by one settled fact: the operational block runs in **fluid reasoning** and stays
+there (D-S2-1). That makes exactly one of these four operationally load-bearing and the other three
+insurance.
 
 | # | type | area | why here |
 |---|---|---|---|
-| 1 | `FLU-OPCHAIN-01` | fluid | The only one that is *operationally* load-bearing right now. Fluid is the policy area and has no usable S2 type (§2). Everything else is coverage until this exists. **First check whether `FLU-CONCEPT-01` can be extended into this shape** — cheaper, and inherits a verifier. |
-| 2 | `SPA-XFORM-01` | spatial | Biggest coverage hole (spatial lost every pure-S2 type), deepest existing S1 interface partners to borrow from, and it is the design whose failure mode is most instructive: if the scrambled control does *not* separate here, that result generalises to the others and should change the whole programme. |
-| 3 | `QUANT-GLYPHNUM-01` | quantitative | Best-evidenced difficulty structure of the four, strongest novelty guarantee, and it would restore a `M-PAE` supplier (D-031). Held to third only because quantitative is not the policy area; **promote to #1 if the policy area moves to quantitative**, which §5 argues is worth reconsidering. |
-| 4 | `VER-MORPHO-01` | verbal | Best prior-knowledge resistance but the weakest construct claim — whether it loads verbal rather than fluid is untested (A-S2-3). Build last, when the pattern is proven and the construct question can be checked against three existing types. |
+| 1 | `FLU-OPCHAIN-01` | fluid | The only *operationally* load-bearing one. Fluid is the policy area, it is fixed there, and it has no usable S2 type (§2). Everything else is coverage until this exists. Built from scratch per D-S2-2. |
+| 2 | `SPA-XFORM-01` | spatial | Biggest coverage hole (spatial lost every pure-S2 type), deepest existing S1 interface partners to borrow from, and the design whose gate failure would be most informative: spatial has the highest prior probability of failing the §4.1 control, because rotation practice is the most plausible source of a system-free climb. |
+| 3 | `QUANT-GLYPHNUM-01` | quantitative | Best-evidenced difficulty structure of the four, strongest novelty guarantee, and it would restore a `M-PAE` supplier (D-031). Third because quantitative is not the policy area and will not become one. |
+| 4 | `VER-MORPHO-01` | verbal | Best prior-knowledge resistance but the weakest construct claim — whether it loads verbal rather than fluid is untested (A-S2-3). Build last, when the schema is proven and the construct question can be checked against three existing types. |
 
-**If only one is built:** `FLU-OPCHAIN-01`, plus the shared control-block harness from §9. One type
+**If only one is built:** `FLU-OPCHAIN-01`, plus the harness and gate instrument from §9. One type
 with a passing scrambled-system control is worth more than four types without one.
+
+**Stop rule that follows from D-S2-3.** Types 2–4 are **not** started until `FLU-OPCHAIN-01` has
+cleared Gate A and its Gate B instrument is built. If `FLU-OPCHAIN-01` returns Verdict 3 or 4 (§4.1.4),
+**do not build types 2–4.** All four share the Novel Generative System schema, so a failure in the
+first is evidence about the *schema*, not about fluid reasoning, and replicating a broken schema three
+more times buys nothing. The right response to that failure is §4.6's strategy trace and §8's
+block-length and graded-scoring levers — not more types.
 
 ---
 
@@ -791,86 +1011,225 @@ Calibration and metrics are the owner's. Stated as requirements, not choices:
 
 ---
 
-## 9. The overnight-loop build plan
+## 9. The build plan — an ordered sequence of buildable units
 
-**Precondition (human, blocking):** the owner ratifies the design philosophy (§1) and confirms the
-shortlist and the policy area. Without that, step 1 is guessing.
+**Preconditions: satisfied.** D-S2-1 fixes the area, D-S2-2 fixes build-new, D-S2-3 fixes the gate,
+§7 fixes the order, and §6.1 fixes the relabel text. Nothing in U0–U8 waits on a further decision.
+The unresolved items in §10.2 bear on Gate B and on U9's governance wording; they do **not** block
+U0–U8, and a builder should not stop for them.
 
-**Shared, built once, first — and the most valuable single artifact here.** `S0: the control-block
-harness.` A synthetic driver that runs a candidate bank through `nextTargetTheta` +
-`selectNextNovelItem` + `estimateLearningCurve` under two conditions — system consistent across
-trials, and system re-drawn every trial — for a simulated cohort, and reports the λ distributions.
-*Produces:* a script under `research/` or `scripts/` plus a results table. *Acceptance:* reproduces
-E-095's published figures at 30 trials on an existing bank (r ≈ 0.448, attenuation ≈ 0.98, mean
-SE ≈ 0.047) before it is trusted on a new one. *Parallelisable with:* step 1 of type #1.
+**The structural change D-S2-3 forces.** The control is not a step near the end — it is a **mode of
+the generator**, `systemPersistence: 'consistent' | 'perTrial'`, present in the spec (U2) before any
+code and in the first generator commit (U3). One generator emits both banks; one renderer serves both
+arms. That is what "the control exists before or alongside the first real type" means concretely, and
+it is also the only arrangement in which the contrast is not confounded with the generator or the
+renderer (§4.1.1). A builder who defers the mode to a later unit has broken the gate, not delayed it.
 
-Then, **per type, strictly sequential** (S1 → S5), and the four types are **fully parallel with each
-other** once S0 exists:
+**Read the ordering this way:** U0 and U1 are shared infrastructure built once. U2–U8 are the track
+for one type, run first for `FLU-OPCHAIN-01`. Types 2–4 repeat U2–U7 only if the §7 stop rule permits.
 
-| step | produces | acceptance evidence |
+### 9.1 Shared infrastructure — built once, first
+
+| unit | produces | acceptance evidence | depends on |
+|---|---|---|---|
+| **U0 harness** | A synthetic driver under `research/` or `scripts/` that runs any candidate bank through `nextTargetTheta` + `selectNextNovelItem` + `estimateLearningCurve` for a simulated cohort in both persistence modes, plus a results table. This is the single most valuable artifact in the plan and it is reused by every type | Reproduces E-095's published figures at 30 trials **on an existing bank** before it is trusted on a new one: r ≈ 0.448, attenuation ≈ 0.98, mean posterior SE ≈ 0.047. Also runs a λ_true = 0 cohort and returns fitted λ̄ ≈ 0, which proves the harness itself is unbiased before it is used to judge a bank | — |
+| **U1 gate pre-registration** | A short pre-registration artifact fixing, for Gate B: the primary statistic (`correct ~ trialIndex * condition + difficulty + (1 + trialIndex \| child)`), the confirmatory per-child λ contrast, n = 64/arm, the manipulation check on mean served difficulty, and the four verdicts of §4.1.4 verbatim — plus a power script that recomputes n from the fitted-λ SD that U5/A4 measures rather than from this document's 0.06 estimate | Pre-registration is written and dated **before** any Gate B data exists; the power script reproduces the §4.1.3 table from a supplied SD; where the artifact lives is New Question 4 and the builder should place it and flag it, not stall | — (parallel with U0) |
+
+### 9.2 Per-type track — strictly sequential
+
+Each unit consumes the previous unit's artifact, so nothing inside a track parallelises.
+
+| unit | produces | acceptance evidence |
 |---|---|---|
-| **S1 spec** | one row in `catalog/master_types.jsonl` + `specs/types_<area>.jsonl` (`interaction`, `self_teach`, `adaptive.difficulty_levers`, `measurements`, `age_bands`, `construct_irrelevant_risks`, `learning_science`) | Row is schema-valid; every difficulty lever is countable from a generator parameter; the named S1 interface partner exists and is served; D-017 satisfied (text-only, no audio) |
-| **S2 generator** | `generators/<CODE>.mjs` → `banks/<CODE>.jsonl` | (a) items parse against `bankItemSchema` — note E-074 records 0/63 currently passing, so this is a *raise* on the status quo and may need the contract reconciled first; (b) key positions uniform within a stated tolerance (E-094); (c) leak scan clean — the key must not be derivable from `content` (E-075/E-076), and for these designs the *system* must not be shippable to the client; (d) difficulty monotone in the declared levers, asserted by a checker; (e) ≥6 points of headroom coverage at 0.5 granularity (§1.1(c)); (f) every distractor tagged with the incomplete rule it encodes (§4.6) |
-| **S3 checker** | `generators/check-<CODE>.mjs` | Independent re-derivation of the key agrees on 100% of the bank |
-| **S4 demo** | `demos/<CODE>.html` (+ published copy) | Embedded-safe: no standalone-timer fallback (E-079), no telemetry sidebar (E-082), `ready` handshake honoured (E-083); single tap, fixed option positions; informational-only feedback (no verdict/score/streak/praise); interface gate to *k* consecutive correct; fixed-cadence observation trials if used |
-| **S5 verifier** | app-tier verifier + plpgsql twin | Cross-tier differential agrees on every bank item × response (the pattern in `apps/web/scripts/verifier-differential.ts` and `supabase/tests/*exam_verify*`) |
+| **U2 spec** | One row in `catalog/master_types.jsonl` + `specs/types_<area>.jsonl` (`interaction`, `self_teach`, `adaptive.difficulty_levers`, `measurements`, `age_bands`, `construct_irrelevant_risks`, `learning_science`), **including the `systemPersistence` parameter and its two values** | Row is schema-valid; every difficulty lever is countable from a generator parameter; `systemPersistence` present with both modes declared; the named S1 interface partner exists and is served; D-017 satisfied (text-only, no audio) |
+| **U3 generator, both modes** | `generators/<CODE>.mjs` → **two** banks from one code path: `banks/<CODE>.jsonl` (consistent) and a `perTrial` control bank | (a) items parse against `bankItemSchema` — E-074 records 0/63 currently passing, so this is a *raise* on the status quo and may need the contract reconciled first; (b) key positions uniform within a stated tolerance (E-094) **in both banks**; (c) leak scan clean — the key must not be derivable from `content` (E-075/E-076) and the *system* must never ship to the client; (d) difficulty monotone in the declared levers, asserted by a checker; (e) ≥6 points of headroom at 0.5 granularity (§1.1(c)); (f) every distractor tagged with the incomplete rule it encodes, which is the §4.6 strategy trace and the Verdict-2 fallback — **not optional**; (g) the two banks are equated on item count, option count, difficulty distribution and key balance, differing only in persistence |
+| **U4 checker** | `generators/check-<CODE>.mjs` | Independent re-derivation of the key agrees on 100% of **both** banks |
+| **U5 Gate A** | Gate A results table from U0 on both new banks | All four §4.1.2 checks pass: **A1** static-child null (fitted λ̄ ≈ 0 for λ_true = 0 — the decisive one, and the one that catches trial-index-correlated difficulty misspecification), **A2** false-positive `above` rate no higher than nominal, **A3** no pool saturation for the fastest simulated learner, **A4** recovery/attenuation/SE within a stated band of E-095 on this bank's actual grid. A1 failure stops the track — a bank that manufactures λ from a static child cannot be fixed downstream, and building a renderer for it is wasted work |
+| **U6 demo, one renderer for both arms** | `demos/<CODE>.html` (+ published copy), taking persistence as a served parameter | Embedded-safe: no standalone-timer fallback (E-079), no telemetry sidebar (E-082), `ready` handshake honoured (E-083); single tap, fixed option positions; informational-only feedback (no verdict, score, streak or praise); interface gate to *k* consecutive correct; fixed-cadence observation trials if used. **One renderer serves both arms** — a separate control demo confounds the gate with the renderer and is a rejection |
+| **U7 verifier** | App-tier verifier + plpgsql twin | Cross-tier differential agrees on every item × response across **both** banks (the pattern in `apps/web/scripts/verifier-differential.ts` and `supabase/tests/*exam_verify*`) |
 
-Then, **per type, after S5:**
+**U5 sits before U6 deliberately.** The earlier draft ran the control after the verifier, which spends
+the demo and verifier budget before learning whether the bank can support the measurement at all.
 
-| step | produces | acceptance evidence |
+### 9.3 Gate B instrument, and governance
+
+| unit | produces | acceptance evidence |
 |---|---|---|
-| **S6 scrambled-system control** | a results table from S0 on the new bank | **λ(consistent) reliably > λ(scrambled), on the same bank and targeting rule.** This is the gate: a type that fails it does not enter the battery, whatever else passes (§4.1) |
-| **S7 recovery sweep** | recovery table on the new bank's actual difficulty grid | Injected-λ recovery, attenuation and mean SE at 30 trials within a stated band of E-095's figures; explicit check that the pool never saturated for the fastest simulated learner |
+| **U8 Gate B readiness pack** | The instrument that will run the hard gate, **not the gate**: randomisation and stratification procedure (grade band × settled standing), arm assignment plumbing, per-trial logging sufficient for the mixed model (trial index, condition, served difficulty, correctness, distractor class, first-response latency), the manipulation-check report on mean served difficulty over the final third, and the analysis script implementing U1's pre-registered statistics | The analysis script runs end-to-end on **U0-simulated** data in both arms and returns all four §4.1.4 verdicts correctly on synthetic cases constructed to exhibit each. That is the honest acceptance test: it proves the instrument works without pretending synthetic data can clear a gate that needs children |
+| **U9 governance** | DECISION_LOG entries for D-S2-1/2/3 and the new types; ASSUMPTIONS_AND_EVIDENCE entries for the U5 and U8 artifacts and A-S2-1…6; TRACEABILITY_MATRIX and FEATURE_TO_REQUIREMENT_MAP updates; the §6.1 relabel applied to `STAGE_CLASSIFICATION_AND_METRIC_AUDIT.md` using the text as written; §2's coverage-hole correction | Every claim traces to a U5 or U8 artifact or is labelled an open assumption. Banks ship `validated: false`, `syntheticOnly: true`, and **no type is recorded as gate-passing**, because Gate B has not run |
 
-Finally, **once, after all built types pass S6/S7:**
+### 9.4 Ordering, parallelism, and the stop rules
 
-| step | produces | acceptance evidence |
-|---|---|---|
-| **S8 governance** | DECISION_LOG entry (new types + any classification change), ASSUMPTIONS_AND_EVIDENCE entries for S6/S7 results and A-S2-1…6, TRACEABILITY_MATRIX and FEATURE_TO_REQUIREMENT_MAP updates, `STAGE_CLASSIFICATION_AND_METRIC_AUDIT.md` correction (§2 and §6) | Every claim in the entries traces to an S6/S7 artifact or is labelled an open assumption |
+**Critical path:** U0 → U2 → U3 → U4 → **U5 (Gate A)** → U6 → U7 → U8 → U9, with U1 parallel to U0.
 
-**What can be parallelised:** the four type tracks (S1→S5), once S0 exists. Within a track, nothing —
-each step consumes the previous step's artifact.
+**Parallelisable:** U0 with U1. Types 2–4's tracks with each other, once U0 and U1 exist *and* the §7
+stop rule permits. Nothing within a track.
 
-**What cannot be parallelised or reordered:** S0 must precede every S6, because S6 is S0 pointed at a
-new bank. S6 must precede S7, because a type that fails the control does not need a recovery sweep —
-running them the other way round spends the expensive step on types that are about to be rejected.
-S8 runs last and once, so the governance record describes what was actually measured rather than what
-was planned.
+**Not reorderable:** U0 before U5, because U5 is U0 pointed at new banks. U5 before U6, per above. The
+`systemPersistence` mode before U3's first commit, per D-S2-3. U9 last and once, so the governance
+record describes what was measured rather than what was planned.
 
-**Named risks in this plan.** S2(a) may be blocked by E-074's contract mismatch, which is a
-pre-existing repo-wide condition and could turn into its own task. S6's "reliably greater" needs a
-margin the owner sets. And the plan produces **no** difficulty calibration — that is deliberate and
-out of scope; banks ship `validated: false`.
+**Stop rules, both hard.** (1) A1 failure in U5 stops that type's track at U5. (2) Per §7, types 2–4
+do not start until `FLU-OPCHAIN-01` reaches U8, and do not start at all if it returns Verdict 3 or 4
+from Gate B.
+
+**What this plan does and does not deliver.** It delivers a gate-*ready* type: specced, generated in
+both modes, checked, cleared through Gate A, rendered, verified, with the Gate B instrument built and
+tested. It does **not** deliver a shipped type, because D-S2-3's gate needs children and no overnight
+loop produces those. It also delivers **no** difficulty calibration — deliberate, out of scope (§8).
+
+**Named risks.** U3(a) may be blocked by E-074's contract mismatch, a pre-existing repo-wide condition
+that could become its own task. U1's n depends on a fitted-λ SD that U5/A4 measures, so the power
+figures may move once and should be recorded when they do. And the interval between U9 and Gate B is
+an interval in which the block still has no gated type — New Question 2.
 
 ---
 
-## 10. Open questions for the owner
+## 10. Decisions of record, and what they opened
 
-Clearly separated from the recommendations above. The first three are blocking.
+### 10.1 Resolved — owner decisions, 2026-07-30
 
-1. **Which area is the block's fixed area, and is `fluid_reasoning` still the right choice?** The app
-   sets it; D-030 does not name it. §2 shows fluid currently has no usable S2 type, which weakens the
-   stated rationale. This determines build order (§7).
-2. **Extend `FLU-CONCEPT-01`, or build `FLU-OPCHAIN-01` new?** Extension is cheaper and inherits a
-   verifier; a new type is cleaner and does not disturb a type already classified DUAL. I lean
-   extension-if-feasible, but the feasibility check is a real task, not a formality.
-3. **Is the scrambled-system control accepted as a *gate* rather than a nice-to-have?** Everything in
-   §9 is arranged around it. If a type may enter the battery without passing it, the plan changes
-   shape and the honesty claim weakens considerably.
-4. **Does the teaching-pair rationale get re-labelled?** §6 argues the variable Stage 1 dose makes a
-   transfer claim non-comparable. Either fix the dose or re-label the rationale.
-5. **Graded response model: yes or no, and when?** §1.1(e) — partial credit cannot narrow
-   `lambdaSe` without it, so this decides whether the block can ever return anything but
-   `indeterminate` at 30 trials.
-6. **Is a per-area λ wanted enough to fund a 120-trial research administration on a subsample?**
-   (§5.) If not, the four types are coverage and insurance, and the labelling constraint in §5
-   should be adopted now.
-7. **Where does the distractor-classified strategy trace live** — an existing metric ID, or a new
-   one? §4.6 argues it is worth building even if λ is the headline, because it is the fallback
-   operationalisation.
+These were the three blocking questions in the previous revision of this section. They are closed.
+The reasoning that produced each question is preserved, because it is the reason the decision is not
+arbitrary and because a future reader needs to know what was traded away.
 
-**Open assumptions opened by this document** (candidates for
-`docs/research/ASSUMPTIONS_AND_EVIDENCE.md` at S8):
+**D-S2-1 — the learning block stays in fluid reasoning. Decided 2026-07-30.**
+
+*The question was:* `phase2.ts` sets `LEARNING_BLOCK_AREA = 'fluid_reasoning'` on the stated grounds
+of pool depth and leaning least on taught content, but D-030 does not name an area, and §2 shows fluid
+has *no* usable Stage 2 type — so the block runs in the one area with no supplier. That made the
+premise look weaker than it was.
+
+*Decided:* keep fluid; do not propose moving it; build the new Stage 2 types there.
+
+*Why this resolves rather than ignores the objection:* the premise was sound about the area and simply
+unsupplied. Moving the block would have exchanged a principled area choice for whichever area happened
+to retain a survivor of the reviewer pass — an availability argument dressed as a design one. Combined
+with D-S2-2, the fix is to supply the area rather than relocate the block.
+
+*What changed in this document:* §2 gained a paragraph on how D-S2-1 and D-S2-2 jointly repair the
+premise; §5 point 1 was rewritten from "the area has to be re-choosable" to the consequence that
+follows from locking it — types 2–4 are **no longer operationally urgent**, only insurance and research
+instrument; §7 lost the "promote to #1 if the policy area moves to quantitative" clause.
+
+**D-S2-2 — build purpose-designed types; do not extend `FLU-CONCEPT-01`. Decided 2026-07-30.**
+
+*The question was:* extension is cheaper and inherits a verifier; a new type is cleaner but does not
+disturb a type already classified DUAL. The previous revision leaned extension-if-feasible.
+
+*Decided:* build from scratch, explicitly so the new types do not inherit constraints from a type
+designed for a different job. `FLU-CONCEPT-01` remains cited as prior art and as a shape reference; it
+is not a delivery vehicle.
+
+*Why:* `FLU-CONCEPT-01` is DUAL and its difficulty lever is already "probe verdicts against a single
+rule". The new type needs a persistent composable vocabulary, composition depth as the lever, and a
+per-trial control mode. Grafting those on means either changing what `FLU-CONCEPT-01` measures — which
+invalidates its classification, bank and verifier — or carrying two levers at once, which is the
+invisible constraint the decision exists to avoid. The saved verifier is not worth a type that
+measures two things.
+
+*What changed:* §3.1's "check whether `FLU-CONCEPT-01` can be extended" paragraph was replaced with a
+prior-art framing that states plainly why the extension path is retired; the same clause was removed
+from §7's shortlist table.
+
+**D-S2-3 — the scrambled-system control is a binding acceptance criterion. Decided 2026-07-30.**
+
+*The question was:* whether the control is a gate or a nice-to-have. The previous revision noted that
+everything in the build plan was arranged around it and that the honesty claim weakened considerably
+if a type could enter the battery without it.
+
+*Decided:* it is a gate. A type ships only if it beats its own scrambled control, with the control
+condition and its harness produced before or alongside the first real type.
+
+*Why:* it is the only cheap design the retest literature endorses — a genuine no-training control on
+the same schedule (Scharfen et al., 2018) — and it is the difference between "this looks like a
+learning curve" and "this is a learning curve".
+
+*What changed, and it is the largest rework in this revision:*
+
+- §4.1 was expanded from a proposed rule into a specified gate: the control as a generator **mode**
+  rather than a separate artifact; the equating list; the manipulation check on **mean served
+  difficulty** rather than accuracy, because adaptive targeting equates accuracy by construction;
+  **Gate A** (synthetic, non-circular, its purpose being to prove the pipeline does not manufacture λ
+  from a static child); **Gate B** (between-subject randomised, mixed-effects `trialIndex × condition`
+  interaction as primary, per-child fitted-λ contrast as confirmatory, n = 64/arm); and a four-verdict
+  decision rule fixed in advance.
+- §9 was reordered around it. The mode now enters at spec time (U2) and ships in the generator's first
+  commit (U3); Gate A runs at U5, **before** the demo and verifier, so a bank that cannot support the
+  measurement does not consume renderer budget; U8 builds the Gate B instrument.
+- §7 gained a stop rule: types 2–4 are not built if the first type fails, because all four share the
+  Novel Generative System schema and replicating a broken schema three times buys nothing.
+
+*The consequence that must not be buried:* the gate needs real children, so **no type ships out of an
+overnight loop.** The plan now delivers a gate-ready type plus the instrument to run the gate, and
+says so in §9.4.
+
+**D-S2-4 — the `SPA-SCENE-01` → `SPA-VIEW-01` pairing is generalised on interface, not teaching.
+Decided 2026-07-30.** Promoted from recommendation to a decided action with the replacement rationale
+text written out verbatim in §6.1, because the variable Stage 1 dose makes a transfer claim
+non-comparable across children.
+
+### 10.2 NEW open questions — created by the decisions above
+
+These are downstream consequences of D-S2-1/2/3, not restatements of the closed questions, and they
+are listed separately rather than absorbed. **None of them block U0–U8** (§9); a builder should
+proceed and flag them.
+
+**NQ-1 — What is the route to a child pilot for Gate B, and under what consent?** *(blocking for
+shipping, not for building.)* D-S2-3 makes shipping conditional on a contrast that needs ≈128 children
+(§4.1.3). The project has no described route to piloting with children, and this touches applicant
+rights and data minimisation (R9, H7), not just logistics. Without an answer, the honest status of
+every type built under §9 is permanently "gate-ready, ungated". This is the single most consequential
+question the decisions opened.
+
+**NQ-2 — May an ungated type be served in the live block in order to collect the gate data?** This is
+the crux of NQ-1 and worth separating: serving `FLU-OPCHAIN-01` in both persistence modes *is* the
+pilot. If the live block can carry the randomised arms with λ suppressed, the gate becomes reachable
+as a by-product of ordinary administration. If it cannot, Gate B needs a separate study. The reason
+this is not obviously permitted: half the children served would receive the scrambled arm, which is by
+construction the condition in which nothing is learnable — a real question about what applicants are
+owed, not a technicality.
+
+**NQ-3 — Is a 45-trial re-run pre-authorised for the Verdict-2 branch?** §4.1.4 puts "lengthen before
+condemning" first, because E-095's recovery goes 0.448 → 0.746 at 45 trials and a small separation may
+be a precision problem rather than a design problem. That must be authorised *before* the gate runs,
+or it functions as a post-hoc rescue and voids the pre-registration.
+
+**NQ-4 — Where does the Gate B pre-registration live?** It needs a home that is dated and not
+editable after data exists: a `DECISION_LOG` entry, an `ASSUMPTIONS_AND_EVIDENCE` entry, or a new
+artifact type. U1 builds it regardless and the builder should place it and flag the choice.
+
+**NQ-5 — Is floor subtraction permitted at all?** §4.1.4's Verdict-2 branch 2 would report
+λ_C − λ̄_S when Var(λ_S) is small. That changes what λ *means* and is not a measurement detail. The
+retest literature's own heterogeneity — a 95% prediction interval of [−0.30, 0.96] (Scharfen et al.,
+2018), and a meta-analytic correction that over-predicted prospectively (Duff & Hammers, 2022) — is
+the reason to doubt it is ever available for an individual readout.
+
+**NQ-6 — If `FLU-OPCHAIN-01` returns Verdict 3 or 4, is the λ programme paused or is a second fluid
+design attempted?** §7's stop rule says types 2–4 do not get built, but not what happens instead. The
+options are materially different: pause the λ readout, pursue §8's block-length and graded-scoring
+levers, or fall back to §4.6's strategy trace as the reportable. Worth deciding before the gate runs,
+so the answer is not chosen to suit the result.
+
+### 10.3 Still open, and predating these decisions
+
+Unchanged by 2026-07-30 and not blocking.
+
+1. **Graded response model: yes or no, and when?** §1.1(e) — partial credit cannot narrow `lambdaSe`
+   without it, so this decides whether the block can ever return anything but `indeterminate` at 30
+   trials. NQ-6 may force it.
+2. **Is a per-area λ wanted enough to fund a 120-trial research administration on a subsample?** (§5.)
+   D-S2-1 makes this less urgent, not moot: with the area locked, the four types are coverage,
+   insurance, and the instrument that could answer the domain-generality question. The labelling
+   constraint in §5 — never call a single-area λ "this child's learning rate" — costs nothing and
+   should be adopted now regardless.
+3. **Where does the distractor-classified strategy trace live** — an existing metric ID, or a new one?
+   §4.6. D-S2-3 raises the stakes: the trace is now a build requirement (U3(f)) because it is the
+   Verdict-2 fallback, so it needs an ID before U2.
+
+### 10.4 Open assumptions opened by this document
+
+Candidates for `docs/research/ASSUMPTIONS_AND_EVIDENCE.md` at U9:
 
 - **A-S2-1** — that a Stage 2 trial of any of these designs is answerable in ≈20 s or less by the
   target bands, so 30 trials fit the session. The §2 table rests on this and it is currently a
@@ -906,7 +1265,8 @@ peer-reviewed primary study or authoritative book, `T3` unrefereed or vendor sou
 | Suanda, Mugwanya & Namy (2014), *Journal of Experimental Child Psychology*, 126, 395–411, doi:10.1016/j.jecp.2014.06.003 | T2 | 5–7-year-olds learn word–referent mappings cross-situationally within a session; contextual diversity as a lever |
 | Vlach & DeBrock (2019), *Journal of Experimental Psychology: Learning, Memory, and Cognition*, 45, 700–711, doi:10.1037/xlm0000611 | T2 | Post-delay retention of cross-situational learning is fragile in young children |
 | Uttal, Meadow, Tipton, Hand, Alden, Warren & Newcombe (2013), *Psychological Bulletin*, 139(2), 352–402, doi:10.1037/a0028446 | T1 | Spatial skills trainable, g = 0.47, transfers and persists — cited as a *practice-effect warning* |
-| Scharfen, Peters & Holling (2018), *Intelligence*, 67, 44–66 | T1 | Retest gain ≈0.33 SD first-to-second, decelerating — the contamination floor under any within-person climb |
+| Scharfen, Peters & Holling (2018), *Intelligence*, 67, 44–66, doi:10.1016/j.intell.2018.01.003 | T1 | Retest gain ≈0.33 SD first-to-second, decelerating — the contamination floor under any within-person climb; 95% prediction interval [−0.30, 0.96], which is why the mean cannot correct an individual case (§4.1.4 Verdict 2) |
+| Duff & Hammers (2022), *The Clinical Neuropsychologist*, 36(3), 571–583, doi:10.1080/13854046.2020.1781933 | T2 | Prospective test of meta-analytic practice-effect correction partly failed — 3 of 7 follow-up scores significantly below prediction. Cited against per-child floor subtraction (§4.1.4, NQ-5) |
 | Koedinger, Carvalho, Liu & McLaughlin (2023), *PNAS*, 120(13), e2221311120 | T2 | Near-constant learning rate across 1.3M observations; IQR ≈1pt/opportunity vs ≈20pts in initial knowledge |
 | Waltmann, Schlagenhauf & Deserno (2022), *Behavior Research Methods*, 54(6), 2993–3014 | T2 | Individual learning-rate parameter reliability requires hierarchical empirical priors |
 | Zerr et al. (2018), *Psychological Science*, 29(9), 1436–1450 | T2 | Stable "learning efficiency" is entangled with ability, not orthogonal to it |
