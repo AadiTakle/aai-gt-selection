@@ -33,3 +33,15 @@ variable "vpc_cidr" {
   type        = string
   default     = "10.20.0.0/16"
 }
+
+variable "lambda_log_retention_days" {
+  description = "CloudWatch retention for the exam-scoring function's logs."
+  type        = number
+  default     = 14
+}
+
+variable "exam_scoring_artifact" {
+  description = "Zip artifact for the exam-scoring function (bundled from packages/exam-scoring)."
+  type        = string
+  default     = "artifacts/exam-scoring.zip"
+}
