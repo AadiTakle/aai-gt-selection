@@ -31,7 +31,9 @@ H1 (broader evidence-backed capability measures), H6 (design for enough statisti
 H10 (minimise gaming and burden).
 
 **Evidence and assumptions used:** E-073 and E-095 (recovery, attenuation and posterior SE of the
-fitted climb by block length), E-094 (key-position imbalance in the born-synthetic banks),
+fitted climb by block length — **read with E-200, which halves E-095's 30-trial recovery once the
+responder has a real five-option guessing floor, and corrects §4.6's sign**),
+E-094 (key-position imbalance in the born-synthetic banks),
 E-074 (banks do not currently satisfy `bankItemSchema`), E-075/E-076 (content-computable items and
 response-model leaks), E-079/E-082/E-083 (demo embedding defects that any new demo must not
 reintroduce), E-093 (no norm bank exists for originality-style indices). Decisions honoured:
@@ -806,6 +808,19 @@ positions by construction**, verified against the bank (E-094 measured imbalance
 percentage points, including +16 on `SPA-VIEW-01`); and distractors that are all *plausible*
 system-failures, which raises the effective option count without raising the visual load.
 
+> **CORRECTION, 2026-07-30 (E-200, D-200). The paragraph above has the sign backwards, and the error
+> mattered.** "Flatten `lambda`" is right for the fit standing still and wrong for the block. Inside
+> the adaptive loop the fit's own output chooses the next difficulty: an inflated `theta0` makes
+> `nextTargetTheta` aim higher, the served difficulty climbs across trials, and the fit reads its own
+> walk back as a genuine climb. Measured on a cohort with **λ_true = 0 for every child** against a
+> five-option responder, the shipped estimator fits **λ̄ = 0.0398 ± 0.0043** on an idealised grid with
+> no bank involved, and the readout calls **32.8%** of those non-learners `above` average pace. Freeze
+> the served difficulty and the same misspecified fit returns **0.0018** — so the loop, not the fit,
+> is the mechanism, and §4.6's reasoning was sound about the wrong system. The correction is
+> `DEFAULT_GUESSING = 0.2`; it removes about three-quarters of the effect and not all of it. Nothing in
+> the three design responses above is wrong, but they cannot fix this: it was isolated with no bank
+> involved. Reproduce with `pnpm exam:block-harness -- --guessing-probe` and `-- --fix-probe`.
+
 ### 4.7 The threat that no design can engineer away
 
 Three results, together, are the strongest case *against* this entire enterprise, and the honest
@@ -997,9 +1012,16 @@ Calibration and metrics are the owner's. Stated as requirements, not choices:
    reported `lambdaSe` under the current dichotomous information calculation (§1.1(e)), so it cannot
    move a readout off `indeterminate` by itself. Whether to move to a graded response model is a
    measurement decision. Designs are built to supply either.
-4. **A decision on the guessing floor.** `guessing = 0` biases `theta0` up and `lambda` flat at the
-   low end. The designs reduce the exposure (more options, plausible distractors, balanced keys) but
-   cannot remove it.
+4. **A decision on the guessing floor.** ~~`guessing = 0` biases `theta0` up and `lambda` flat at the
+   low end.~~ **Answered, and the sign was wrong — see the §4.6 correction.** Inside the adaptive
+   loop `guessing = 0` biases `lambda` UP, not flat: a cohort that learned nothing fits λ̄ = 0.0398
+   and 32.8% of it reads `above` average pace (E-200). D-200 proposes `DEFAULT_GUESSING = 0.2` plus a
+   required, measured `contaminationFloor` on any reference, **and awaits owner sign-off.** The
+   designs reduce the exposure (more options, plausible distractors, balanced keys) but cannot remove
+   it, and item design was never going to: the defect was isolated on an idealised grid with no bank
+   involved. What the owner still has to decide is item-format policy for the block, because a
+   single scalar floor is only right for a single-format pool and the currently wired fluid bank is
+   mixed (`FLU-MATRIX-01`: 63 four-option, 27 five-option, 30 six-option).
 5. **Metric declarations.** Each type will declare `M-ACC`, `M-LEARNRATE`, `M-ERRTYPE`, `M-RTFIRST`,
    `M-ENGAGE`, `M-RAPIDGUESS`, plus the distractor-classified strategy trace of §4.6 (which needs
    either an existing metric ID or a new one — owner's call). `QUANT-GLYPHNUM-01` would additionally
@@ -1007,7 +1029,12 @@ Calibration and metrics are the owner's. Stated as requirements, not choices:
 6. **A reference distribution, or continued refusal.** No reference for λ exists (E-095). Until one
    does, `learningRateReadout` returns `indeterminate` and `learningRateCohortRank` is the supported
    question. Nothing in these designs changes that, and none of them should be built on the
-   expectation that it will.
+   expectation that it will. **E-200 raises the bar a reference would have to clear:** with the
+   guessing floor corrected and its measured residual declared, a 30-item block on the wired fluid
+   bank returns `indeterminate` for 94.5% of children even against the SD-0.15 reference — the widest
+   spread anyone has proposed and one the harness flags as not a claim about children. A reference
+   distribution is necessary but no longer sufficient; on current evidence a 30-item block cannot
+   support a reportable absolute learning rate at all.
 
 ---
 

@@ -72,15 +72,12 @@ export interface LearningCurveOptions {
    */
   readonly priorLambdaSd?: number;
   /**
-   * Lower asymptote (guessing floor). Defaults to 0 to match `ability.ts`.
+   * Lower asymptote (guessing floor). Defaults to {@link DEFAULT_GUESSING}.
    *
-   * 0 is a known misspecification for four-option multiple choice, where a child who knows
-   * nothing still scores about 0.25. Leaving it at 0 makes the model read those lucky successes
-   * as ability, which biases `theta0` upward at the low end and can flatten `lambda` by
-   * inflating the early trials. It is 0 anyway so that this fit and the standing fit make the
-   * SAME assumption — a `theta0` that silently used a different response model would not be
-   * comparable to a standing estimate. Set it to the reciprocal of the option count if the two
-   * are ever migrated together.
+   * Pass the reciprocal of the option count when a block is administered from a bank whose items
+   * are not the five-option format `DEFAULT_GUESSING` assumes. Passing 0 asserts that a child who
+   * knows nothing scores nothing, which is true only for a constructed-response item; on multiple
+   * choice it is the misspecification E-200 measures.
    */
   readonly guessing?: number;
   readonly maxIterations?: number;
@@ -106,6 +103,33 @@ export interface LearningCurveEstimate {
 
 /** Widest per-trial climb the fit will entertain, in scale points per trial. */
 const LAMBDA_BOUND = 1;
+
+/**
+ * Lower asymptote the fit assumes by default: the chance floor of a five-option item.
+ *
+ * NOT a cosmetic default, and the reason it is a named constant rather than a literal. At 0 — which
+ * is what this estimator shipped with — the fit has no way to explain a success on an item well
+ * above the child's level except as ability, and inside an adaptive block that error compounds
+ * rather than averaging out: the inflated fit raises `theta0`, `nextTargetTheta` aims the next item
+ * higher, and the fit then reads its own rising difficulty walk as a genuine climb. Measured
+ * against a responder with a real five-option floor and no learning at all (λ_true = 0 for every
+ * child, 400 children, idealised grid, 30 trials), the `guessing = 0` fit returns λ̄ = 0.0398 ±
+ * 0.0043 and `learningRateReadout` calls 32.8% of those non-learners `above` average pace. At this
+ * floor the same cohort returns λ̄ = 0.0011 ± 0.0033 and 5.3%. E-200 records the measurement;
+ * `learning-curve.test.ts` asserts both halves so the floor cannot be reverted quietly.
+ *
+ * 0.2 rather than a per-item reciprocal because the fit takes one floor for the whole block and the
+ * block is administered from one area's pool. `FLU-OPCHAIN-01`, the bank Stage 2 builds the block
+ * on, is uniformly five-option. A bank of mixed option counts is a real exposure and E-200 costs
+ * it: it is a second-order error next to the 0-versus-0.2 one, but it is not zero.
+ *
+ * The standing fit in `ability.ts` has no such parameter and is therefore still a plain 1PL, so a
+ * `theta0` from this fit and a `deriveAbilityEstimate` no longer make identical response-model
+ * assumptions. That comparability was the stated reason the floor was 0, and giving it up is a
+ * deliberate trade recorded in D-200: a `theta0` that is comparable to the standing estimate but
+ * manufactures a learning rate is worse than one that is not.
+ */
+export const DEFAULT_GUESSING = 0.2;
 
 function clamp(value: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, value));
@@ -135,7 +159,7 @@ export function estimateLearningCurve(
     priorTheta0Sd = 6.0,
     priorLambdaMean = 0,
     priorLambdaSd = 0.15,
-    guessing = 0,
+    guessing = DEFAULT_GUESSING,
     maxIterations = 60,
     tolerance = 1e-7,
   } = options;

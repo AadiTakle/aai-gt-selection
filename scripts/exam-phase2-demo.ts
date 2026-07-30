@@ -242,9 +242,14 @@ narrateBlock('Child B — ability does not change', flat, standing);
  * band becomes separable at this block length (half-width 0.075 against an SE around 0.045),
  * included only to show that the band logic discriminates when it is allowed to — NOT as a claim
  * that children differ that much. Nothing establishes which of the two is closer to the truth.
+ *
+ * Both declare `contaminationFloor: 0`, which is NOT the figure a real administration would use.
+ * This demo drives an idealised responder with no guessing floor at all, so zero is the floor that
+ * matches its own simulation. `pnpm exam:block-harness -- --fix-probe` measures the floor for a
+ * responder that answers like a child on a five-option item, and it is not zero (E-200).
  */
-const NARROW_REFERENCE = { mean: 0.06, sd: 0.03 };
-const WIDE_REFERENCE = { mean: 0, sd: 0.15 };
+const NARROW_REFERENCE = { mean: 0.06, sd: 0.03, contaminationFloor: 0 };
+const WIDE_REFERENCE = { mean: 0, sd: 0.15, contaminationFloor: 0 };
 
 console.log('\n\n## The fitted climb\n');
 console.log(

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  DEFAULT_GUESSING,
   MIN_TRIALS_FOR_PROJECTION,
   estimateLearningCurve,
   nextTargetTheta,
@@ -24,6 +25,12 @@ const SLOPE = 1;
 /**
  * A block worked by a child whose ability is `theta0 + lambda * t`, served at difficulty that
  * tracks that climb. Mirrors what an administering caller does with `nextTargetTheta`.
+ *
+ * The simulated child has NO guessing floor, which is deliberate here and only here: the assertions
+ * below encode E-095's published recovery ladder, and that ladder was measured against exactly this
+ * responder. Reproducing it needs the same responder, not a better one. The five-option case — the
+ * one a real block actually administers — is the `the guessing floor is not misspecified` block at
+ * the bottom of this file, and `--fix-probe` in the harness reports it at cohort scale.
  */
 function simulateBlock(
   theta0: number,
@@ -170,6 +177,96 @@ describe('estimateLearningCurve', () => {
     // With c=0 those lucky successes can only be explained as ability, so theta0 is pulled up.
     // Modelling the floor attributes them to chance instead and places the child lower.
     expect(modellingGuessing.theta0).toBeLessThan(ignoringGuessing.theta0);
+  });
+});
+
+/**
+ * The guard on the floor itself (E-200).
+ *
+ * This exists because the defect it catches was invisible to every other test in this file. Each of
+ * those simulates a responder with NO guessing floor, so a fit that assumes no floor agrees with
+ * them perfectly; the misspecification only shows up against a responder that has one. And it only
+ * shows up at COHORT scale: for any single child the manufactured climb is inside the noise, which
+ * is exactly why it reached `dev`.
+ *
+ * The two assertions are a matched pair and neither is sufficient alone. The first says the shipped
+ * default keeps a non-learner near zero. The second says a zero floor does NOT — without it the
+ * first could pass because the simulation is too weak to manufacture anything, and the test would
+ * quietly stop guarding anything at all.
+ */
+describe('the guessing floor is not misspecified', () => {
+  const FIVE_OPTION_FLOOR = 1 / 5;
+
+  /**
+   * Mean fitted λ over a cohort of children who learn NOTHING, run through the real closed loop.
+   *
+   * The loop is the point: `nextTargetTheta` chooses each difficulty from the fit so far, so an
+   * inflated fit is served harder items and then reads its own difficulty walk back as a climb.
+   * Serving a fixed difficulty instead makes this metric ~0 whatever the floor, which is why the
+   * simulation has to re-target rather than walk a preset ladder.
+   */
+  function nullCohortLambdaMean(fitGuessing: number): number {
+    const CHILDREN = 120;
+    const LENGTH = 30;
+    let total = 0;
+
+    for (let c = 0; c < CHILDREN; c += 1) {
+      const rand = mulberry32(9000 + c);
+      // Spread the cohort over the scale so the result is not a property of one starting point,
+      // and hand over a standing estimate that is close but not exact, as Phase 1 does.
+      const theta0 = 7 + 7 * rand();
+      const standing = theta0 + 1.5 * (rand() - 0.5) * 2;
+      const trials: LearningTrial[] = [];
+
+      for (let t = 0; t < LENGTH; t += 1) {
+        const target = nextTargetTheta(trials, {
+          standingEstimate: standing,
+          targetOffset: 1,
+          slope: SLOPE,
+          guessing: fitGuessing,
+        });
+        const difficulty = Math.round(target * 2) / 2;
+        // λ_true = 0: ability never moves. The five-option floor is the child's, not the fit's.
+        const star = 1 / (1 + Math.exp(-SLOPE * (theta0 - difficulty)));
+        const p = FIVE_OPTION_FLOOR + (1 - FIVE_OPTION_FLOOR) * star;
+        trials.push({ difficulty, score: rand() < p ? 1 : 0, trialIndex: t });
+      }
+
+      total += estimateLearningCurve(trials, {
+        slope: SLOPE,
+        priorTheta0Mean: standing,
+        guessing: fitGuessing,
+      }).lambda;
+    }
+
+    return total / CHILDREN;
+  }
+
+  /**
+   * Widest manufactured climb the shipped default may produce for a cohort that learned nothing.
+   *
+   * 0.02 rather than 0, because the correction does not remove the loop bias entirely — E-200
+   * measures a residual, and `learningRateReadout` carries a declared contamination floor precisely
+   * because of it. This bound is an upper limit on that residual, not a claim it is zero.
+   */
+  const MANUFACTURED_LAMBDA_BOUND = 0.02;
+
+  it('pins the default to the five-option chance rate', () => {
+    expect(DEFAULT_GUESSING).toBeCloseTo(FIVE_OPTION_FLOOR, 10);
+  });
+
+  // Separate from the constant check on purpose: this one has to fail on its own when the default
+  // is reverted, or the guard is a literal comparison dressed up as a measurement.
+  it('keeps a cohort that learned nothing near zero at the shipped default', () => {
+    expect(Math.abs(nullCohortLambdaMean(DEFAULT_GUESSING))).toBeLessThan(
+      MANUFACTURED_LAMBDA_BOUND,
+    );
+  });
+
+  it('manufactures a climb from the same cohort once the floor is set to zero', () => {
+    // The proof that the assertion above is load-bearing. If this ever stops failing the bound,
+    // the simulation has lost its teeth and the test above is no longer a guard.
+    expect(nullCohortLambdaMean(0)).toBeGreaterThan(MANUFACTURED_LAMBDA_BOUND);
   });
 });
 
