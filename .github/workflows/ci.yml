@@ -127,8 +127,17 @@ jobs:
         run: pnpm governance:ids
 
       - name: Build workspaces
+        id: build
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm build
+
+      # Reads the standalone bundle the step above produced. The item banks have to be in it and
+      # the repository must not be: an unresolvable `fs` path makes Next's tracer glob the nearest
+      # directory it could resolve, which once swept docs/, infra/ and brainlifting/ into the
+      # deployed image with no symptom other than its size.
+      - name: Check standalone bundle scope
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: pnpm bundle:check
 
   database:
     name: Local database and generated types

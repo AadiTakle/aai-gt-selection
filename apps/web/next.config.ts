@@ -19,12 +19,24 @@ const nextConfig: NextConfig = {
   // `public/` the way `pnpm exam:sync` publishes the demos — see the "never publishes the raw
   // banks" assertion in src/lib/exam/served-boundary.test.ts.
   //
+  // The child lexicon is the same kind of dependency and was NOT declared until now: it only
+  // reached built images because the two `process.cwd()` walks defeated the tracer badly enough
+  // that it globbed the entire repository, which also dragged in `docs/`, `brainlifting/` and
+  // `supabase/`. With those walks made statically resolvable (`bank-loader.ts`,
+  // `verifiers/quantitative.ts`) that sweep is gone, so anything read at runtime has to be
+  // declared here rather than left to luck. Without the lexicon GB-WORDLADDER-01 fails every
+  // submission closed and GB-WORDFORGE-01 stops distinguishing a made-up word from a real one —
+  // see `childLexicon()`.
+  //
   // Applied to every route rather than to the three that reach the loader today
   // (`/api/exam-items`, `/api/exam-submit`, `/api/exam-emulate`): an enumerated list is a list
   // that goes stale silently, and the traced files are copied once regardless of how many routes
   // claim them.
   outputFileTracingIncludes: {
-    '/**': ['../../research/exam-question-types/banks/*.jsonl'],
+    '/**': [
+      '../../research/exam-question-types/banks/*.jsonl',
+      '../../research/exam-question-types/generators/lexicon-child-en.mjs',
+    ],
   },
   poweredByHeader: false,
   async headers() {

@@ -11,6 +11,7 @@
   "scripts": {
     "build": "pnpm -r --if-present run build",
     "boundaries:check": "tsx scripts/check-workspace-boundaries.ts",
+    "bundle:check": "tsx scripts/check-bundle-scope.ts",
     "db:lint": "supabase db lint --local --schema app,api,public --fail-on error",
     "db:reset": "supabase db reset --local",
     "db:start": "supabase start",

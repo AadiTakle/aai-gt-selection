@@ -112,20 +112,32 @@ function efficiency(optimum: number | null, actual: number | null): number | nul
  * curation, a token whose length disagrees with its bucket is dropped, and the
  * highest (most common) band wins on a duplicate.
  */
-const LEXICON_RELATIVE = ['research', 'exam-question-types', 'generators', 'lexicon-child-en.mjs'];
+const LEXICON_FROM_REPO_ROOT = path.join(
+  process.cwd(),
+  'research',
+  'exam-question-types',
+  'generators',
+  'lexicon-child-en.mjs',
+);
+const LEXICON_FROM_APP = path.join(
+  process.cwd(),
+  '..',
+  '..',
+  'research',
+  'exam-question-types',
+  'generators',
+  'lexicon-child-en.mjs',
+);
+/**
+ * Literal segments, resolved once at module scope, for the same reason `bank-loader.ts` does it:
+ * a path the build tracer cannot fold makes it glob the enclosing directory instead, and the
+ * `...LEXICON_RELATIVE` spread this replaced was one of the two reasons a standalone build swept
+ * in the whole repository. `next.config.ts` declares this file alongside the banks.
+ */
+const LEXICON_FILE = existsSync(LEXICON_FROM_REPO_ROOT) ? LEXICON_FROM_REPO_ROOT : LEXICON_FROM_APP;
 
 let lexiconCache: Map<string, number> | null = null;
 let lexiconTried = false;
-
-function resolveLexiconFile(): string | null {
-  const candidates = [
-    path.join(process.cwd(), ...LEXICON_RELATIVE),
-    path.join(process.cwd(), '..', '..', ...LEXICON_RELATIVE),
-    path.join(process.cwd(), '..', '..', '..', ...LEXICON_RELATIVE),
-  ];
-  for (const file of candidates) if (existsSync(file)) return file;
-  return null;
-}
 
 function parseLexicon(source: string): Map<string, number> {
   const words = new Map<string, number>();
@@ -159,10 +171,8 @@ function parseLexicon(source: string): Map<string, number> {
 export function childLexicon(): Map<string, number> | null {
   if (lexiconTried) return lexiconCache;
   lexiconTried = true;
-  const file = resolveLexiconFile();
-  if (!file) return null;
   try {
-    const parsed = parseLexicon(readFileSync(file, 'utf8'));
+    const parsed = parseLexicon(readFileSync(LEXICON_FILE, 'utf8'));
     lexiconCache = parsed.size > 0 ? parsed : null;
   } catch {
     lexiconCache = null; // a missing lexicon must fail closed, never throw
