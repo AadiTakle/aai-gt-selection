@@ -122,6 +122,13 @@ export const EXAM_ENGINE_OVERRIDES: Partial<EngineConfig> = {
   accWindowSize: 8,
   estWindowSize: 8,
   hardItemCap: 40,
+  /*
+   * Back-to-back items within one type, so a child reads an instruction once and then answers
+   * several questions off it. Six is the ceiling, stepped down one item per option above four by
+   * `burstLengthFor`, and floored at two — so the wired banks run 6 (four-option), 5 (five-option)
+   * and 4 (six-option). Only types the engine classifies as a single unpaced choice burst at all.
+   */
+  burst: { maxLength: 6, minLength: 2, maxOptions: 6 },
 };
 
 /** Derive the demo URL for a served item (renderers live under public/exam-demos). */
@@ -132,7 +139,19 @@ export function demoPathFor(typeCode: string, telemetry = false): string {
 }
 
 /**
- * Debug mode: the exam URL carries `?telemetry=1`.
+ * Debug mode: the exam URL carries `?debug=1`.
+ *
+ * `?telemetry=1` is kept as an alias because it costs one alternation in this regex and because it
+ * is the spelling in the existing runbooks and screenshots. Note that the two names mean different
+ * things and only one of them moved: this flag gates the RUNNER's debug dock, while the
+ * `?telemetry=1` that {@link demoPathFor} puts on the demo iframe's own URL is D-028's ratified
+ * contract for un-hiding a renderer's researcher sidebar, is asserted over every published demo by
+ * `telemetry-panel-gate.test.ts`, and is unchanged.
+ *
+ * Gating is by URL only, exactly as before — there is no environment check here, and none was
+ * removed. The environment gates in this area are elsewhere and also unchanged: the `/dev/*` preview
+ * routes `notFound()` in production, and `/api/exam-emulate` (what the Emulate button calls) needs
+ * both a non-production build and `GT_EXAM_EMULATE_ENABLED=true`.
  *
  * Exposed as a store so a component can read it with `useSyncExternalStore` — the server render and
  * the first client render then agree, and nothing sets state from an effect.
@@ -143,7 +162,7 @@ export function subscribeToDebugMode(): () => void {
 
 export function debugModeSnapshot(): boolean {
   if (typeof window === 'undefined') return false;
-  return /(^|[?&])telemetry=1(&|$)/.test(window.location.search);
+  return /(^|[?&])(debug|telemetry)=1(&|$)/.test(window.location.search);
 }
 
 export function debugModeServerSnapshot(): boolean {

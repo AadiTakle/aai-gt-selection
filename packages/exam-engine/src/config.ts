@@ -1,4 +1,4 @@
-import type { AgeBand, CoreMetricSpec, EngineConfig } from './types';
+import type { AgeBand, BurstPolicy, CoreMetricSpec, EngineConfig } from './types';
 
 /**
  * Start difficulty seeded from the requested grade band (BUILD_PLAN §0). Midpoints of the
@@ -163,6 +163,21 @@ export const CORE_METRICS: CoreMetricSpec[] = [
 ];
 
 /**
+ * Default burst policy: OFF.
+ *
+ * Bursting changes how many instruction-readings a battery costs, which is a session-design
+ * decision rather than an engine default, so the engine ships with it disabled and a caller opts in.
+ * `maxOptions: 6` is the widest choice any wired bank offers (`FLU-MATRIX-01` runs 4, 5 and 6), so
+ * at this setting the option count never by itself disqualifies a wired type — the bound exists so
+ * that a future type offering a long candidate list is excluded without anyone editing a list.
+ */
+export const DEFAULT_BURST_POLICY: BurstPolicy = {
+  maxLength: 1,
+  minLength: 2,
+  maxOptions: 6,
+};
+
+/**
  * Default, tunable engine configuration.
  *
  * Step-schedule defaults (`initialStep`, `minUpdate`, `stepDecayExponent`, `stepBurnInReversals`,
@@ -197,6 +212,7 @@ export const DEFAULT_CONFIG: EngineConfig = {
   stabilitySd: 1.2,
   stabilityDrift: 0.8,
   hardItemCap: 60,
+  burst: DEFAULT_BURST_POLICY,
   consistencyPairTolerance: 1.0,
   rotationMinDistinctDisparities: 3,
   coreMetrics: CORE_METRICS,

@@ -12,6 +12,17 @@ export { update, difficultyDelta, directionReversals, stepSize, toObservation } 
 export { isDone, areaMetricsCovered, areaEstimateStable, coverageIsEven } from './done';
 export { replaySession } from './replay';
 
+// Back-to-back same-type serving. `planNextSelection` is the loop-level contract every caller
+// advances through, so a burst behaves identically in a browser and in the simulation harness.
+export {
+  burstLengthFor,
+  classifyBankSpeed,
+  classifyTypeSpeed,
+  fastTypeCodes,
+  planNextSelection,
+} from './burst';
+export type { BurstPlan, TypeSpeedVerdict } from './burst';
+
 // Novel-block administration (the learning-rate regime). Administration only: the projection that
 // picks the target difficulty, the fit and the readout all live in `@gt-selection/exam-scoring`.
 export {
@@ -27,6 +38,7 @@ export type { BlockReadiness, BlockUnavailableReason } from './learning-block';
 // Configuration and registries
 export {
   DEFAULT_CONFIG,
+  DEFAULT_BURST_POLICY,
   CORE_METRICS,
   GRADE_BAND_SEED,
   AGE_BAND_BONUS,
@@ -115,6 +127,7 @@ export type {
   MetricScope,
   MetricKind,
   MetricAdequacyScope,
+  BurstPolicy,
   CoreMetricSpec,
   EngineConfig,
   AreaState,
