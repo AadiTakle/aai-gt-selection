@@ -27,6 +27,7 @@
     "exam:reconcile": "tsx apps/web/scripts/exam-reconcile-session.ts",
     "exam:verify:diff": "tsx apps/web/scripts/verifier-differential.ts",
     "format": "prettier --write .",
+    "governance:ids": "node scripts/audit-requirement-ids.mjs --strict",
     "format:check": "prettier --check .",
     "lint": "eslint . && pnpm -r --if-present run lint",
     "security:scan": "tsx scripts/check-security-boundaries.ts",

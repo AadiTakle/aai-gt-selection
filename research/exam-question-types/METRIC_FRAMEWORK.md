@@ -1,9 +1,12 @@
 # Metric Framework — Fully-Automated, Timeback-Fit Scoring
 
-How the exam turns per-type telemetry into a defensible, **fully automated**
-gifted-tail decision with **no human in the loop**. Canonical measurement IDs
-live in `measurements.json` (rendered to `MEASUREMENTS.md`); this file explains
-how they combine.
+How the exam turns per-type telemetry into a defensible gifted-tail
+classification **scored without per-applicant human judgement**. "Automated"
+throughout this file describes the scoring and classification pipeline, not the
+whole admission decision: **R11 preserves a human path for near-miss cases and
+behavioral (shadow-day) review**, and D-015 retains that shadow day explicitly.
+Canonical measurement IDs live in `measurements.json` (rendered to
+`MEASUREMENTS.md`); this file explains how they combine.
 
 Serves **R5** (defensible capability + Timeback-fit standard), **R11** (scalable/
 tunable screener), **H1** (broader measures), **H4** (broaden who can demonstrate

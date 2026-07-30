@@ -348,6 +348,11 @@ migrations there is **exactly one** R/H citation:
 **R11 does not exist.** `docs/product/project-requirements.md` defines only R1–R10. So the single
 citation in the entire exam workstream is half-invalid. Additionally:
 
+> **Forward-pointer (2026-07-30):** accurate as written on 2026-07-28. R11 was stranded on unmerged
+> branches, not invented; it was transcribed onto `dev` under D-032 — see
+> `docs/governance/REQUIREMENT_ID_AUDIT.md`.
+
+
 - the three dedicated exam architecture documents — `EXAM_ADAPTIVE_BUILD_PLAN.md`,
   `EXAM_PERSISTENCE_NOTES.md`, `EXAM_VERIFIER_PORT_INVENTORY.md` — cite **zero** R/H IDs;
 - `docs/product/FEATURE_TO_REQUIREMENT_MAP.md`, the repo's own development index, contains **no exam

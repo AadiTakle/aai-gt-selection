@@ -103,6 +103,10 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm boundaries:check
 
+      - name: Check governance ID citations
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm governance:ids
+
       - name: Build workspaces
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm build
