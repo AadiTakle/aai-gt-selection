@@ -63,9 +63,21 @@ export interface TypeSpeedVerdict {
   readonly processMetrics: readonly string[];
 }
 
+/**
+ * How many options an item offers, or `null` when it is not a bounded choice.
+ *
+ * Two spellings are accepted because the engine runs over two different views of the same bank. A
+ * full bank item carries the option list itself. A selection index carries only `optionCount`: the
+ * pool a browser selects over is fetched without stimulus content (megabytes of it), so the count
+ * is sent instead, and burst policy has to decide before an item's content exists.
+ */
 function optionCount(item: BankItem): number | null {
-  const options = (item.content as { options?: unknown }).options;
-  return Array.isArray(options) ? options.length : null;
+  const content = item.content as { options?: unknown; optionCount?: unknown };
+  if (Array.isArray(content.options)) return content.options.length;
+  if (typeof content.optionCount === 'number' && Number.isFinite(content.optionCount)) {
+    return content.optionCount;
+  }
+  return null;
 }
 
 /**
