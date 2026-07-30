@@ -19,6 +19,13 @@
 import { DEFAULT_EXAM_POLICY, type ExamPolicy } from './../policy';
 import { scoreExam } from './../scorer';
 import type { ExamScore, ScoredItem } from './../types';
+import { UncanonicalScorerInputError, scorerInputFingerprint } from './scorer-input-hash';
+
+export {
+  UncanonicalScorerInputError,
+  canonicalScorerInput,
+  scorerInputFingerprint,
+} from './scorer-input-hash';
 
 export interface ScoringLambdaEvent {
   /** Session the trace belongs to. Echoed back so a caller can correlate the response. */
@@ -34,40 +41,14 @@ export interface ScoringLambdaResponse {
   readonly sessionId: string;
   readonly outcome: ExamScore | null;
   /**
-   * Stable fingerprint of the exact input that produced `outcome`. Two runs that agree on this
-   * must agree on the score; if they do not, the engine changed and the difference is a bug.
+   * Stable fingerprint of the exact input that produced `outcome`, in the `sha256:<64 hex>` form
+   * `app.exam_scorer_input_hash` records and `packages/contracts` requires — the same value for
+   * the same trace, so the two can be compared. Two runs that agree on this must agree on the
+   * score; if they do not, the engine changed and the difference is a bug.
    */
   readonly inputHash: string | null;
   readonly itemsScored: number;
   readonly error?: string;
-}
-
-/** FNV-1a over the canonical form. Small, dependency-free, and stable across runtimes. */
-function fingerprint(input: string): string {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < input.length; i += 1) {
-    hash ^= input.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193) >>> 0;
-  }
-  return hash.toString(16).padStart(8, '0');
-}
-
-/**
- * Canonical form of the scored input.
- *
- * Only the fields the scorer actually reads go in, in a fixed order, so the fingerprint tracks the
- * score rather than incidental payload shape — a reordered key or an extra field the scorer ignores
- * must not look like a different result.
- */
-export function scorerInputFingerprint(items: readonly ScoredItem[]): string {
-  const canonical = items
-    .map((item) =>
-      [item.itemId, item.domain, item.typeCode, item.difficulty, item.score, item.correct].join(
-        '|',
-      ),
-    )
-    .join('\n');
-  return fingerprint(canonical);
 }
 
 function isScoredItem(value: unknown): value is ScoredItem {
@@ -124,11 +105,29 @@ export function handler(event: ScoringLambdaEvent): ScoringLambdaResponse {
   }
 
   const items = event.scoredItems;
+  let inputHash: string;
+  try {
+    inputHash = scorerInputFingerprint(items);
+  } catch (error) {
+    // A value with no faithful `jsonb::text` rendering would produce a hash that cannot be
+    // compared with the database's. Refusing is the only honest answer; returning the score
+    // beside an incomparable fingerprint is how the divergence got in last time.
+    if (!(error instanceof UncanonicalScorerInputError)) throw error;
+    return {
+      ok: false,
+      sessionId,
+      outcome: null,
+      inputHash: null,
+      itemsScored: 0,
+      error: 'UNCANONICAL_SCORER_INPUT',
+    };
+  }
+
   return {
     ok: true,
     sessionId,
     outcome: scoreExam(items, event.policy ?? DEFAULT_EXAM_POLICY),
-    inputHash: scorerInputFingerprint(items),
+    inputHash,
     itemsScored: items.length,
   };
 }
