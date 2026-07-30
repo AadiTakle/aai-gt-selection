@@ -1,29 +1,29 @@
--- The nine moderate per-type verifiers ported in 20260725181742_exam_verify_moderate_batch.sql
--- (D-027, E-091).
+-- The moderate per-type verifiers ported in 20260725181742_exam_verify_moderate_batch.sql
+-- (D-027, E-091), less FLU-MATRIXBUILD-01, whose type was retired and whose verifier was
+-- dropped in 20260729190000_exam_verify_retire_types.sql.
 --
 -- Three things are proved here, in this order:
---   1. DISPATCH — each of the nine type codes resolves to its own plpgsql verifier rather than
---      falling through to the keyed default.
+--   1. DISPATCH — each of the eight surviving type codes resolves to its own plpgsql verifier
+--      rather than falling through to the keyed default.
 --   2. THE PART OF EACH PORT THAT IS EASY TO GET WRONG — the repetition-signature relabelling,
---      the arithmetic-delta induction and the `count` string normalisation, adjacent-pair
---      credit (which is NOT positional overlap), the wordforge threshold, the SIMULTANEOUS
---      per-phase swap permutation, the cross-product comparator plus the nearest-card check,
---      a legal detour through a gem, the crash abort that emits NO metrics at all, and the
---      pointing error. Each fixture is chosen so that the obvious wrong implementation gives a
---      different answer.
+--      adjacent-pair credit (which is NOT positional overlap), the wordforge threshold, the
+--      SIMULTANEOUS per-phase swap permutation, the cross-product comparator plus the
+--      nearest-card check, a legal detour through a gem, the crash abort that emits NO metrics
+--      at all, and the pointing error. Each fixture is chosen so that the obvious wrong
+--      implementation gives a different answer.
 --   3. THE TWO DEFECTS THIS BATCH PRESERVES ON PURPOSE (inventory section 8.3 and 8.4), pinned
 --      so that a later "tidy-up" cannot change scoring semantics without failing a test and
 --      going back to the owner.
 --
 -- Parity across the REAL banks is not provable in pgTAP, because it needs both implementations
--- in one process. `pnpm exam:verify:diff` does that for all 63 served types; this file pins
--- the contract that harness relies on. Assertion 38 keeps the firewall assertions honest.
+-- in one process. `pnpm exam:verify:diff` does that for every served type; this file pins
+-- the contract that harness relies on. Assertion 32 keeps the firewall assertions honest.
 
 begin;
 
 set local search_path = extensions, public, pg_catalog;
 
-select plan(40);
+select plan(34);
 
 grant usage on schema extensions to api_executor, authenticated;
 
@@ -32,7 +32,6 @@ grant usage on schema extensions to api_executor, authenticated;
 insert into app.exam_question_type (type_code, domain, name, demo_path, metric_ids)
 values
   ('CX-check-01', 'fluid_reasoning', 'Check Twice', 'CX-check-01.html', array['M-ACC']),
-  ('FLU-MATRIXBUILD-01', 'fluid_reasoning', 'Matrix Build', 'FLU-MATRIXBUILD-01.html', array['M-ACC']),
   ('VER-SENSE-01', 'verbal', 'Sentence Sense', 'VER-SENSE-01.html', array['M-ACC']),
   ('GB-WORDFORGE-01', 'verbal', 'Word Forge', 'GB-WORDFORGE-01.html', array['M-ACC']),
   ('GB-TRACK-01', 'spatial', 'Firefly Track', 'GB-TRACK-01.html', array['M-ACC']),
@@ -65,41 +64,6 @@ values (
   ),
   jsonb_build_object('correctKey', 't0:b0|t1:b1|t2:b0|t3:b1'),
   jsonb_build_object('mode', 'deterministic_key'),
-  '{}'::jsonb
-);
-
--- FLU-MATRIXBUILD-01. A 3x3 count matrix whose rows step by 1. Only the arithmetic-delta rule
--- survives: no row or column is constant, the alphabet has 8 symbols against a size of 3 so the
--- Latin rule cannot fire, and the third column is neither the row sum nor the row difference.
--- The single prediction is therefore 8 + 1 = 9.
-insert into app.exam_item (
-  item_id, type_code, domain, difficulty, age_bands, content, answer_key, scoring, provenance
-)
-values (
-  '00000000-0000-4000-8000-0000000b2002',
-  'FLU-MATRIXBUILD-01', 'fluid_reasoning', 9.0, array['4-5'],
-  jsonb_build_object(
-    'gridSize', 3,
-    'constructedAttributes', jsonb_build_array('count'),
-    'matrix', jsonb_build_object(
-      'cells', jsonb_build_array(
-        jsonb_build_array(
-          jsonb_build_object('count', 1), jsonb_build_object('count', 2), jsonb_build_object('count', 3)
-        ),
-        jsonb_build_array(
-          jsonb_build_object('count', 4), jsonb_build_object('count', 5), jsonb_build_object('count', 6)
-        ),
-        jsonb_build_array(
-          jsonb_build_object('count', 7), jsonb_build_object('count', 8), 'null'::jsonb
-        )
-      ),
-      'blank', jsonb_build_object('row', 2, 'col', 2)
-    )
-  ),
-  -- A canonical tile that DISAGREES with the induction, so a port that read the stored key
-  -- instead of inducing would fail assertion 15.
-  jsonb_build_object('correctKey', 'count=9', 'canonical', jsonb_build_object('count', 99)),
-  jsonb_build_object('mode', 'computed_solver'),
   '{}'::jsonb
 );
 
@@ -275,35 +239,32 @@ values (
   '{}'::jsonb
 );
 
--- --- 1. Dispatch: nine type codes, nine verifiers -----------------------------------
+-- --- 1. Dispatch: eight type codes, eight verifiers ----------------------------------
 
 select is(
   app.exam_verify_response('00000000-0000-4000-8000-0000000b2001', '{}'::jsonb) ->> 'verifier',
   'exam_verify_check_twice', 'CX-check-01 resolves to its own verifier');            -- 1
 select is(
-  app.exam_verify_response('00000000-0000-4000-8000-0000000b2002', '{}'::jsonb) ->> 'verifier',
-  'exam_verify_matrix_build', 'FLU-MATRIXBUILD-01 resolves to its own verifier');    -- 2
-select is(
   app.exam_verify_response('00000000-0000-4000-8000-0000000b2003', '{}'::jsonb) ->> 'verifier',
-  'exam_verify_sense', 'VER-SENSE-01 resolves to its own verifier');                 -- 3
+  'exam_verify_sense', 'VER-SENSE-01 resolves to its own verifier');                 -- 2
 select is(
   app.exam_verify_response('00000000-0000-4000-8000-0000000b2004', '{}'::jsonb) ->> 'verifier',
-  'exam_verify_wordforge', 'GB-WORDFORGE-01 resolves to its own verifier');          -- 4
+  'exam_verify_wordforge', 'GB-WORDFORGE-01 resolves to its own verifier');          -- 3
 select is(
   app.exam_verify_response('00000000-0000-4000-8000-0000000b2006', '{}'::jsonb) ->> 'verifier',
-  'exam_verify_track', 'GB-TRACK-01 resolves to its own verifier');                  -- 5
+  'exam_verify_track', 'GB-TRACK-01 resolves to its own verifier');                  -- 4
 select is(
   app.exam_verify_response('00000000-0000-4000-8000-0000000b2007', '{}'::jsonb) ->> 'verifier',
-  'exam_verify_scene', 'SPA-SCENE-01 resolves to its own verifier');                 -- 6
+  'exam_verify_scene', 'SPA-SCENE-01 resolves to its own verifier');                 -- 5
 select is(
   app.exam_verify_response('00000000-0000-4000-8000-0000000b2008', '{}'::jsonb) ->> 'verifier',
-  'exam_verify_maze', 'SPA-MAZE-01 resolves to its own verifier');                   -- 7
+  'exam_verify_maze', 'SPA-MAZE-01 resolves to its own verifier');                   -- 6
 select is(
   app.exam_verify_response('00000000-0000-4000-8000-0000000b2009', '{}'::jsonb) ->> 'verifier',
-  'exam_verify_robopath', 'GB-ROBOPATH-01 resolves to its own verifier');            -- 8
+  'exam_verify_robopath', 'GB-ROBOPATH-01 resolves to its own verifier');            -- 7
 select is(
   app.exam_verify_response('00000000-0000-4000-8000-0000000b2010', '{}'::jsonb) ->> 'verifier',
-  'exam_verify_explore', 'GB-EXPLORE-01 resolves to its own verifier');              -- 9
+  'exam_verify_explore', 'GB-EXPLORE-01 resolves to its own verifier');              -- 8
 
 -- --- 2. CX-check-01: the repetition signature decides, not the served bin ------------
 
@@ -318,11 +279,11 @@ select set_config(
 select is(
   (current_setting('test.check_fixed')::jsonb) ->> 'correct', 'true',
   'CX-check-01: moving the ABB tile out of the AAA bin is correct, with no stored trueBin'
-);                                                                                     -- 10
+);                                                                                     -- 9
 select is(
   (current_setting('test.check_fixed')::jsonb) #>> '{metrics,M-ERRTYPE}', '1',
   'CX-check-01: M-ERRTYPE is 1 when the one planted slip was caught'
-);                                                                                     -- 11
+);                                                                                     -- 10
 
 select set_config(
   'test.check_missed',
@@ -335,52 +296,13 @@ select set_config(
 select is(
   (current_setting('test.check_missed')::jsonb) #>> '{metrics,M-POLY}', '0.75',
   'CX-check-01: turning the board in untouched still credits the three tiles already right'
-);                                                                                     -- 12
+);                                                                                     -- 11
 select is(
   (current_setting('test.check_missed')::jsonb) #>> '{metrics,M-ERRTYPE}', '0',
   'CX-check-01: M-ERRTYPE is 0 when the planted slip was missed'
-);                                                                                     -- 13
+);                                                                                     -- 12
 
--- --- 3. FLU-MATRIXBUILD-01: the induction wins over the stored canonical tile --------
-
-select set_config(
-  'test.matrix_ok',
-  app.exam_verify_response(
-    '00000000-0000-4000-8000-0000000b2002', '{"constructed":{"count":9}}'::jsonb
-  )::text,
-  true
-);
-select is(
-  (current_setting('test.matrix_ok')::jsonb) ->> 'correct', 'true',
-  'FLU-MATRIXBUILD-01: the arithmetic-delta induction predicts 9'
-);                                                                                     -- 14
-select is(
-  app.exam_verify_response(
-    '00000000-0000-4000-8000-0000000b2002', '{"constructed":{"count":99}}'::jsonb
-  ) ->> 'correct',
-  'false',
-  'FLU-MATRIXBUILD-01: the stored canonical tile is the FALLBACK, not the key'
-);                                                                                     -- 15
-select is(
-  (current_setting('test.matrix_ok')::jsonb) #>> '{metrics,M-RULEID}', '1',
-  'FLU-MATRIXBUILD-01: M-RULEID counts the co-acting rules and only on a fully correct tile'
-);                                                                                     -- 16
-select is(
-  app.exam_verify_response(
-    '00000000-0000-4000-8000-0000000b2002', '{"constructed":{"count":"9"}}'::jsonb
-  ) ->> 'correct',
-  'true',
-  'FLU-MATRIXBUILD-01: the count attribute normalises a numeric STRING through parseInt'
-);                                                                                     -- 17
-select is(
-  (app.exam_verify_response(
-    '00000000-0000-4000-8000-0000000b2002', '{"constructed":{"count":8}}'::jsonb
-  ) -> 'metrics')::text,
-  '{"M-POLY": 0}',
-  'FLU-MATRIXBUILD-01: a wrong tile keeps M-POLY and drops M-RULEID entirely'
-);                                                                                     -- 18
-
--- --- 4. VER-SENSE-01: adjacent-pair credit, which is not positional overlap ----------
+-- --- 3. VER-SENSE-01: adjacent-pair credit, which is not positional overlap ----------
 
 select is(
   app.exam_verify_response(
@@ -388,7 +310,7 @@ select is(
   ) ->> 'correct',
   'true',
   'VER-SENSE-01: the permutation re-derived from provenance.derivation.trueOrder is correct'
-);                                                                                     -- 19
+);                                                                                     -- 13
 -- [1,2,0] gets NOTHING positionally, but keeps the "dog ate" pair consecutive, which is the
 -- whole reason the type scores adjacent pairs rather than positions.
 select is(
@@ -397,9 +319,9 @@ select is(
   ) #>> '{metrics,M-POLY}',
   '0.5',
   'VER-SENSE-01: M-POLY is the adjacent-pair share, so a rotation keeps half the credit'
-);                                                                                     -- 20
+);                                                                                     -- 14
 
--- --- 5. GB-WORDFORGE-01: a threshold, and the defect this batch preserves ------------
+-- --- 4. GB-WORDFORGE-01: a threshold, and the defect this batch preserves ------------
 
 select set_config(
   'test.forge_ok',
@@ -412,22 +334,22 @@ select set_config(
 select is(
   (current_setting('test.forge_ok')::jsonb) ->> 'correct', 'true',
   'GB-WORDFORGE-01: two distinct credited words meet a referenceTarget of two'
-);                                                                                     -- 21
+);                                                                                     -- 15
 select is(
   (current_setting('test.forge_ok')::jsonb) #>> '{metrics,M-IDEAFLU}', '2',
   'GB-WORDFORGE-01: a repeat scores once and a nonword scores nothing'
-);                                                                                     -- 22
+);                                                                                     -- 16
 select is(
   (current_setting('test.forge_ok')::jsonb) #>> '{metrics,M-VOCABLVL}', '5',
   'GB-WORDFORGE-01: M-VOCABLVL reports the rarest band among the credited words'
-);                                                                                     -- 23
+);                                                                                     -- 17
 select is(
   app.exam_verify_response(
     '00000000-0000-4000-8000-0000000b2004', '{"submissions":["ate"]}'::jsonb
   ) ->> 'correct',
   'false',
   'GB-WORDFORGE-01: one valid word is NOT full credit — the bank makes it a threshold'
-);                                                                                     -- 24
+);                                                                                     -- 18
 -- PRESERVED DEFECT (inventory section 8.3). Every valid word the rack affords, and still
 -- wrong, because the item ships no threshold. Reported, not fixed: changing it is a scoring
 -- decision for the owner, and this assertion is what stops it being changed by accident.
@@ -437,9 +359,9 @@ select is(
   ) ->> 'correct',
   'false',
   'GB-WORDFORGE-01: a missing referenceTarget fails EVERY child closed (defect preserved)'
-);                                                                                     -- 25
+);                                                                                     -- 19
 
--- --- 6. GB-TRACK-01: the swaps in one phase are simultaneous, not sequential ---------
+-- --- 5. GB-TRACK-01: the swaps in one phase are simultaneous, not sequential ---------
 
 select is(
   app.exam_verify_response(
@@ -447,23 +369,23 @@ select is(
   ) ->> 'correct',
   'true',
   'GB-TRACK-01: applying the phase against a snapshot lands the watched jar in slot 2'
-);                                                                                     -- 26
+);                                                                                     -- 20
 select is(
   app.exam_verify_response(
     '00000000-0000-4000-8000-0000000b2006', '{"selectedSlots":[0],"taps":1}'::jsonb
   ) ->> 'correct',
   'false',
   'GB-TRACK-01: slot 0 is what SEQUENTIAL swaps would give, and it is not the answer'
-);                                                                                     -- 27
+);                                                                                     -- 21
 select is(
   app.exam_verify_response(
     '00000000-0000-4000-8000-0000000b2006', '{"selectedSlots":[0],"taps":1}'::jsonb
   ) #>> '{metrics,M-PROG}',
   '0',
   'GB-TRACK-01: M-PROG is the share of the target set recovered, not the verdict'
-);                                                                                     -- 28
+);                                                                                     -- 22
 
--- --- 7. SPA-SCENE-01: comparator order, concordant pairs, and the nearest card -------
+-- --- 6. SPA-SCENE-01: comparator order, concordant pairs, and the nearest card -------
 
 select is(
   app.exam_verify_response(
@@ -471,23 +393,23 @@ select is(
   ) ->> 'correct',
   'true',
   'SPA-SCENE-01: the robot''s-eye order is 0, 2, 1 — neither the array order nor sorted x'
-);                                                                                     -- 29
+);                                                                                     -- 23
 select is(
   app.exam_verify_response(
     '00000000-0000-4000-8000-0000000b2007', '{"order":[1,2,0],"nearestId":2}'::jsonb
   ) #>> '{metrics,M-MIRRORFA}',
   '1',
   'SPA-SCENE-01: the exact left-right reversal is flagged as the egocentric foil'
-);                                                                                     -- 30
+);                                                                                     -- 24
 select is(
   app.exam_verify_response(
     '00000000-0000-4000-8000-0000000b2007', '{"order":[0,2,1],"nearestId":0}'::jsonb
   ) ->> 'correct',
   'false',
   'SPA-SCENE-01: the right order with the wrong nearest card is not full credit'
-);                                                                                     -- 31
+);                                                                                     -- 25
 
--- --- 8. SPA-MAZE-01: a legal walk, not equality with the stored optimum --------------
+-- --- 7. SPA-MAZE-01: a legal walk, not equality with the stored optimum --------------
 
 select is(
   app.exam_verify_response(
@@ -496,7 +418,7 @@ select is(
   ) ->> 'correct',
   'true',
   'SPA-MAZE-01: doubling back through the gem is a legal solving walk'
-);                                                                                     -- 32
+);                                                                                     -- 26
 -- The failure paths still report M-EFF: efficiency is measured even when the route is wrong,
 -- and the differential harness compares the metric map, not only the verdict.
 select is(
@@ -505,16 +427,16 @@ select is(
   ) -> 'metrics')::text,
   '{"M-EFF": 1}',
   'SPA-MAZE-01: skipping the gem is wrong but still carries M-EFF'
-);                                                                                     -- 33
+);                                                                                     -- 27
 select is(
   app.exam_verify_response(
     '00000000-0000-4000-8000-0000000b2008', '{"path":[[0,0],[0,1],[1,1]]}'::jsonb
   ) ->> 'correct',
   'false',
   'SPA-MAZE-01: a route that reaches the goal without the gem is not a solution'
-);                                                                                     -- 34
+);                                                                                     -- 28
 
--- --- 9. GB-ROBOPATH-01: the program is RUN, and a bump emits no metrics at all -------
+-- --- 8. GB-ROBOPATH-01: the program is RUN, and a bump emits no metrics at all -------
 
 select is(
   app.exam_verify_response(
@@ -523,7 +445,7 @@ select is(
   ) ->> 'correct',
   'true',
   'GB-ROBOPATH-01: the expanded program collects the key and stops on the door'
-);                                                                                     -- 35
+);                                                                                     -- 29
 select is(
   app.exam_verify_response(
     '00000000-0000-4000-8000-0000000b2009',
@@ -531,9 +453,9 @@ select is(
   )::text,
   '{"mode": "computed_solver", "score": 0, "correct": false, "metrics": {}, "verifier": "exam_verify_robopath"}',
   'GB-ROBOPATH-01: a bump aborts the run and emits NO metrics, not a zero one'
-);                                                                                     -- 36
+);                                                                                     -- 30
 
--- --- 10. GB-EXPLORE-01: the pointing error, and the defect this batch preserves ------
+-- --- 9. GB-EXPLORE-01: the pointing error, and the defect this batch preserves -------
 
 select is(
   app.exam_verify_response(
@@ -543,7 +465,7 @@ select is(
   ) #>> '{metrics,M-VIEWANG}',
   '10',
   'GB-EXPLORE-01: M-VIEWANG is the circular error against the landmark''s true bearing of 90'
-);                                                                                     -- 37
+);                                                                                     -- 31
 -- PRESERVED DEFECT (inventory section 8.4). With no action log the move count is taken from
 -- the CLIENT-reported response.cost.actual, so a renderer claiming eight moves for a two-move
 -- tour drops M-EFF to 0.25 while the verdict stays correct. Reported, not fixed.
@@ -554,18 +476,18 @@ select is(
   ) #>> '{metrics,M-EFF}',
   '0.25',
   'GB-EXPLORE-01: the fallback branch trusts the client''s own move count (defect preserved)'
-);                                                                                     -- 38
+);                                                                                     -- 32
 
--- --- 11. Firewall posture for the nine new verifiers ---------------------------------
+-- --- 10. Firewall posture for the eight surviving verifiers --------------------------
 -- 123 asserts this generically over every app.exam_v% function, including the helpers these
--- verifiers call. Naming the nine explicitly means a future rename cannot quietly drop one out
--- of that pattern and take its revoke with it.
+-- verifiers call. Naming the eight explicitly means a future rename cannot quietly drop one
+-- out of that pattern and take its revoke with it.
 
 select is(
   (
     select count(*)::integer
     from unnest(array[
-      'exam_verify_check_twice', 'exam_verify_matrix_build', 'exam_verify_sense',
+      'exam_verify_check_twice', 'exam_verify_sense',
       'exam_verify_wordforge', 'exam_verify_track', 'exam_verify_scene',
       'exam_verify_maze', 'exam_verify_robopath', 'exam_verify_explore'
     ]) as fn
@@ -573,21 +495,21 @@ select is(
     where has_function_privilege(who, 'app.' || fn || '(jsonb,jsonb)', 'execute')
   ),
   0,
-  'no client role can execute any of the nine new verifiers'
-);                                                                                     -- 39
+  'no client role can execute any of the eight surviving verifiers'
+);                                                                                     -- 33
 select is(
   (
     select count(*)::integer
     from unnest(array[
-      'exam_verify_check_twice', 'exam_verify_matrix_build', 'exam_verify_sense',
+      'exam_verify_check_twice', 'exam_verify_sense',
       'exam_verify_wordforge', 'exam_verify_track', 'exam_verify_scene',
       'exam_verify_maze', 'exam_verify_robopath', 'exam_verify_explore'
     ]) as fn
     where has_function_privilege('api_executor', 'app.' || fn || '(jsonb,jsonb)', 'execute')
   ),
-  9,
-  'api_executor can execute all nine — the same posture app.exam_score_response has'
-);                                                                                     -- 40
+  8,
+  'api_executor can execute all eight — the same posture app.exam_score_response has'
+);                                                                                     -- 34
 
 select * from finish();
 

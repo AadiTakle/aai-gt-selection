@@ -243,10 +243,14 @@ function quarterTurnsBetween(from: readonly PipeDir[], to: readonly PipeDir[]): 
 }
 
 /**
- * Correct iff the submitted wiring actually carries the road from the car to the
- * flag through every gem — a flood fill over matching arms, exactly the demo's
- * and the checker's connectivity test. `answer.optimalRot` is one solution among
- * several, so it grades efficiency (`M-EFF`), not correctness.
+ * Correct iff the submitted wiring actually carries the road from the car to
+ * EVERY flag through every gem — a flood fill over matching arms, exactly the
+ * demo's and the checker's connectivity test. `answer.optimalRot` is one
+ * solution among several, so it grades efficiency (`M-EFF`), not correctness.
+ *
+ * Harder items branch to several flags, so `content.goals` lists them all;
+ * `content.goal` remains the first one for single-endpoint readers. Arm count is
+ * never constrained, so a 3-arm T tile flood-fills like any other tile.
  *
  * Every submitted tile must be a genuine rotation of the tile the child was
  * served; a wiring the tray cannot produce is rejected.
@@ -256,9 +260,12 @@ const verifyPipes: Verifier = (item, response) => {
   const grid = record(content.grid);
   const tiles = list(content.tiles);
   const start = pair(content.start);
-  const goal = pair(content.goal);
+  const goalList = list(content.goals) ?? [content.goal];
+  const goals = goalList.map(pair);
   const gems = list(content.gems) ?? [];
-  if (!grid || !tiles || !start || !goal) return { correct: false };
+  if (!grid || !tiles || !start || goals.length === 0 || goals.some((g) => !g)) {
+    return { correct: false };
+  }
   const rows = num(grid.R);
   const cols = num(grid.C);
   if (rows === null || cols === null) return { correct: false };
@@ -298,7 +305,8 @@ const verifyPipes: Verifier = (item, response) => {
 
   const armsAt = (r: number, c: number) => wiring.get(`${r},${c}`) ?? [];
   if (!armsAt(start[0], start[1]).includes('W')) return { correct: false, metrics };
-  if (!armsAt(goal[0], goal[1]).includes('E')) return { correct: false, metrics };
+  for (const goal of goals)
+    if (!armsAt(goal![0], goal![1]).includes('E')) return { correct: false, metrics };
 
   const neighbours = (r: number, c: number): [number, number, PipeDir][] => {
     const out: [number, number, PipeDir][] = [];
@@ -323,7 +331,8 @@ const verifyPipes: Verifier = (item, response) => {
     }
   }
 
-  if (!seen.has(`${goal[0]},${goal[1]}`)) return { correct: false, metrics };
+  for (const goal of goals)
+    if (!seen.has(`${goal![0]},${goal![1]}`)) return { correct: false, metrics };
   for (const gem of gems) {
     const g = pair(gem);
     if (!g) return { correct: false, metrics };
@@ -515,8 +524,71 @@ interface SceneObject {
   y: number;
 }
 
+interface SceneBarrier {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+  window: { t0: number; t1: number } | null;
+}
+
+function sceneBarriers(scene: Record<string, unknown>): SceneBarrier[] | null {
+  const raw = list(scene.barriers);
+  if (raw === null) return [];
+  const out: SceneBarrier[] = [];
+  for (const entry of raw) {
+    const b = record(entry);
+    if (!b) return null;
+    const x0 = num(b.x0);
+    const y0 = num(b.y0);
+    const x1 = num(b.x1);
+    const y1 = num(b.y1);
+    if (x0 === null || y0 === null || x1 === null || y1 === null) return null;
+    const w = record(b.window);
+    const t0 = w ? num(w.t0) : null;
+    const t1 = w ? num(w.t1) : null;
+    out.push({ x0, y0, x1, y1, window: t0 !== null && t1 !== null ? { t0, t1 } : null });
+  }
+  return out;
+}
+
+/**
+ * The bank's occlusion rule, restated: the robot's sight line to an object is the segment
+ * robot->object, and a barrier is a segment. If they cross strictly inside both segments
+ * the object is hidden, unless the crossing falls inside the barrier's window, which the
+ * robot sees straight through. Identical to `isVisible` in
+ * research/exam-question-types/generators/SPA-SCENE-01.mjs and to the demo renderer's
+ * `sightBlocked`; the bank emits every item with a geometric margin so all three agree
+ * without needing to agree on an epsilon.
+ */
+function sceneVisible(
+  objects: readonly SceneObject[],
+  robot: { x: number; y: number },
+  barriers: readonly SceneBarrier[],
+): SceneObject[] {
+  return objects.filter((o) => {
+    for (const b of barriers) {
+      const rx = o.x - robot.x;
+      const ry = o.y - robot.y;
+      const sx = b.x1 - b.x0;
+      const sy = b.y1 - b.y0;
+      const den = rx * sy - ry * sx;
+      if (Math.abs(den) < 1e-9) continue;
+      const dx = b.x0 - robot.x;
+      const dy = b.y0 - robot.y;
+      const u = (dx * sy - dy * sx) / den; // along robot->object
+      const t = (dx * ry - dy * rx) / den; // along the barrier
+      if (u <= 0 || u >= 1 || t <= 0 || t >= 1) continue;
+      if (b.window && t >= b.window.t0 && t <= b.window.t1) continue;
+      return false;
+    }
+    return true;
+  });
+}
+
 function sceneObjects(content: Record<string, unknown>): {
   objects: SceneObject[];
+  visible: SceneObject[];
   robot: { x: number; y: number };
 } | null {
   const scene = record(content.scene);
@@ -538,7 +610,12 @@ function sceneObjects(content: Record<string, unknown>): {
     if (id === null || x === null || y === null) return null;
     objects.push({ id, x, y });
   }
-  return objects.length >= 2 ? { objects, robot: { x: rx, y: ry } } : null;
+  if (objects.length < 2) return null;
+  const barriers = sceneBarriers(scene);
+  if (!barriers) return null;
+  const robot = { x: rx, y: ry };
+  const visible = sceneVisible(objects, robot, barriers);
+  return visible.length >= 2 ? { objects, visible, robot } : null;
 }
 
 /**
@@ -554,11 +631,13 @@ function seenOrder(objects: readonly SceneObject[], observer: { x: number; y: nu
 }
 
 /**
- * Correct iff the submitted order is the robot's-eye order re-derived from the
- * scene geometry (plus the nearest card when the item asks for it). `M-POLY`
- * grades the correctly ordered pairs — the partial-credit basis the bank records
- * as `diagnostics.orderedPairTotal` — and `M-MIRRORFA` flags the exact
- * left-right reversal, the egocentric-bias foil every item carries.
+ * Correct iff the submitted order is the robot's-eye order of the objects the robot can
+ * actually SEE, re-derived from the scene geometry (plus the nearest visible card when the
+ * item asks for it). From the 4-5 band up the scene carries barriers, so ordering an object
+ * hidden behind one is wrong however well the child read the angles. `M-POLY` grades the
+ * correctly ordered pairs — the partial-credit basis the bank records as
+ * `diagnostics.orderedPairTotal` — and `M-MIRRORFA` flags the exact left-right reversal,
+ * the egocentric-bias foil every item carries.
  */
 const verifyScene: Verifier = (item, response) => {
   const scene = sceneObjects(item.content);
@@ -572,14 +651,14 @@ const verifyScene: Verifier = (item, response) => {
     order.push(id);
   }
 
-  const derived = seenOrder(scene.objects, scene.robot);
+  const derived = seenOrder(scene.visible, scene.robot);
   const expected =
-    derived.length === scene.objects.length
+    derived.length === scene.visible.length
       ? derived
       : (list(item.answer.correctOrder) ?? [])
           .map((v) => num(v))
           .filter((v): v is number => v !== null);
-  if (expected.length !== scene.objects.length) return { correct: false };
+  if (expected.length !== scene.visible.length) return { correct: false };
 
   const position = new Map(order.map((id, i) => [id, i]));
   let concordant = 0;
@@ -607,7 +686,7 @@ const verifyScene: Verifier = (item, response) => {
   if (question?.requireNearest === true) {
     let nearestId: number | null = null;
     let best = Infinity;
-    for (const o of scene.objects) {
+    for (const o of scene.visible) {
       const dist = Math.hypot(o.x - scene.robot.x, o.y - scene.robot.y);
       if (dist < best) {
         best = dist;

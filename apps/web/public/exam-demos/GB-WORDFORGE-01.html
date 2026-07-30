@@ -51,7 +51,7 @@
     box-shadow:0 10px 24px -8px var(--accent);opacity:.35;pointer-events:none;transition:.2s}
   #enter.ready{opacity:1;pointer-events:auto}
   #clear,#replay{width:50px;height:50px;font-size:21px}
-  #finish{border-radius:12px;padding:10px 18px;font-size:14px;font-weight:800;background:#f8e8de;color:#4a6470}
+  #done{border-radius:12px;padding:10px 18px;font-size:14px;font-weight:800;background:#f8e8de;color:#4a6470}
   .hotkeys{font-size:11px;color:#6f4526}
   #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:60;opacity:0;
     transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
@@ -102,7 +102,8 @@
       <h1>How to use — Word Forge</h1>
       <p>Tap letter tiles to spell a word into the slot, then press the check (<b>&#10003;</b>) to forge it
       and start the next one. Build as many real words as you can before the timer runs out. A tile can be
-      used again in a different word. Use clear (<b>&#9003;</b>) to empty the slot, or DONE to finish early.</p>
+      used again in a different word. Use clear (<b>&#9003;</b>) to empty the slot, or DONE to finish early.
+      Only try words you think are real: every two made-up words take away one of your real ones.</p>
     </header>
     <div id="phasecue" data-phase="waiting">Waiting for item</div>
     <div id="prompt"></div>
@@ -115,10 +116,15 @@
         <button id="replay" title="show how again">&#8635;</button>
         <button id="clear" title="clear the slot">&#9003;</button>
         <button id="enter" title="forge this word">&#10003;</button>
-        <button id="finish" title="finish this round">DONE</button>
+        <button id="done" title="finish this round">DONE</button>
       </div>
       <div class="hotkeys">type letters on the keyboard &middot; backspace clears &middot; enter forges the word</div>
       <div id="status" class="neutral">Waiting for an item from the host.</div>
+    </div>
+    <div id="playgate">
+      <p>The word game is ready. Press play when you are, and the timer starts then.</p>
+      <p>Only try words you think are real. Every two made-up words take away one of your real words.</p>
+      <button type="button" id="play">Play</button>
     </div>
   </div>
   <aside id="telemetry">
@@ -152,6 +158,10 @@
  * M-IDEAFLU reported here is the plain count of DISTINCT SUBMISSIONS — an upper bound the
  * server replaces with the validated count.
  *
+ * That is also why the shelf cannot show a made-up-word tally: made-up words now cost the child
+ * credit (verifyWordforge), but only the server can tell which entries they were, so this file
+ * states the penalty in the play gate before the round and then judges nothing.
+ *
  * Embedding protocol (postMessage), source-tagged:
  *   host -> demo : {source:'gt-exam-host', type:'init',  item:ServedItem}
  *                  {source:'gt-exam-host', type:'start', tutorial?:bool}
@@ -180,7 +190,7 @@ let timerId=null, endsAt=0;
 const T={t0:0,first:null,clears:0,rt:0,blur:0,cleanBuilds:0,events:[],log:[],lastActivity:0};
 
 /* ---------- worded phase + status (never correct/incorrect) ---------- */
-const PHASE={waiting:'Waiting for item',hint:'Watch the pointer',ready:'Your turn',forging:'Forging',sent:'Words sent'};
+const PHASE={waiting:'Waiting for item',warmup:'Ready when you are',hint:'Watch the pointer',ready:'Your turn',forging:'Forging',sent:'Words sent'};
 function setCue(k){const el=$('#phasecue');el.dataset.phase=k;el.textContent=PHASE[k];}
 function setStatus(cls,msg){const el=$('#status');el.className=cls;el.textContent=msg;}
 
@@ -324,7 +334,19 @@ async function gestureHint(){
 }
 
 /* ---------- item lifecycle ---------- */
-let startTimer=null,hintShown=false;
+/* R1 — the round waits behind the play gate. The rack is rendered on `init` but stays covered
+   and inert until the child presses play, which is when the 75-second clock and the response
+   timers start. It is also the last thing they read before the clock runs, which is why the
+   made-up-word penalty is stated there: a penalty nobody announced measures whether a child
+   guessed the rules rather than what words they know. */
+let gateTutorial=false,hintShown=false;
+function openGate(withTutorial){
+  gateTutorial=!!withTutorial;
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('warmup');
+  setStatus('neutral','Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
 function loadItem(served){
   item=served;content=served.content;
   rack=content.rack.slice();minLen=content.minWordLength;
@@ -342,15 +364,13 @@ function loadItem(served){
   $('#i_rack').textContent=`${rack.join('')} \u00b7 ${minLen}+`;
   $('#i_diff').textContent=served.difficulty==null?'\u2014':Number(served.difficulty).toFixed(2)+'/20';
   $('#log').innerHTML='';
-  setCue('waiting');setStatus('neutral','Get ready.');
   log(`item ${(served.itemId||'').slice(0,8)} \u00b7 rack ${rack.join('')} \u00b7 min ${minLen} \u00b7 ${Math.round(budgetMs/1000)}s`);
   renderMeters();
-  clearTimeout(startTimer);
-  // Lenient: begin on our own if the host never sends {type:'start'}.
-  startTimer=setTimeout(()=>{if(!started&&!submitted)startItem(!!(content.scaffold&&content.scaffold.warmup));},500);
+  openGate(false);
 }
 async function startItem(withHint){
   if(started||submitted||!content)return;
+  closeGate();
   started=true;T.t0=performance.now();T.lastActivity=performance.now();
   emit('start',{});
   if(withHint&&!hintShown){
@@ -372,10 +392,12 @@ async function startItem(withHint){
 }
 
 /* ---------- input ---------- */
+// A second press is a no-op: startItem() returns early once `started` is set.
+$('#play').addEventListener('click',()=>{if(content&&!started&&!submitted)startItem(gateTutorial);});
 $('#rack').addEventListener('click',e=>{const t=e.target.closest('.tile');if(t)tapTile(+t.dataset.i);});
 $('#clear').addEventListener('click',()=>clearSlot(true));
 $('#enter').addEventListener('click',()=>{if($('#enter').classList.contains('ready'))forgeWord();});
-$('#finish').addEventListener('click',()=>finishRound('child'));
+$('#done').addEventListener('click',()=>finishRound('child'));
 $('#replay').addEventListener('click',()=>{if(started&&!submitted)gestureHint();});
 addEventListener('keydown',e=>{
   T.lastActivity=performance.now();
@@ -398,7 +420,8 @@ let gotInit=false;
 addEventListener('message',e=>{
   const d=e.data;if(!d||d.source!==HOST)return;
   if(d.type==='init'&&d.item){gotInit=true;loadItem(d.item);post('ready');}
-  else if(d.type==='start'){clearTimeout(startTimer);startItem(!!d.tutorial);}
+  // `start` ARMS the gate. Only the play press begins the round.
+  else if(d.type==='start')openGate(!!d.tutorial);
 });
 
 /* ---------- standalone fallback (no host present) ----------
@@ -422,7 +445,8 @@ async function loadSamples(){
   log('standalone: bank fetch unavailable (serve the folder for the full bank) — using inline samples');
   return INLINE_SAMPLES.slice();
 }
-function playStandalone(){loadItem(queue[qi%queue.length]);}
+// Standalone shows the same gate the child sees, so the double-click QA flow matches production.
+function playStandalone(){loadItem(queue[qi%queue.length]);openGate(!!(content.scaffold&&content.scaffold.warmup));}
 function advanceStandalone(){qi++;playStandalone();}
 async function bootstrapStandalone(){
   if(standalone)return;standalone=true;

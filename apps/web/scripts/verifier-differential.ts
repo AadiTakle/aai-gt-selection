@@ -15,8 +15,8 @@
  * would be asserting something neither language guarantees. `correct` is compared exactly.
  *
  * Every type is reported, and a type whose per-type verifier has NOT been ported yet is
- * reported as PENDING rather than passing quietly — coverage is meant to be visibly 4 of 31
- * today and 31 of 31 when the port finishes.
+ * reported as PENDING rather than passing quietly — coverage is meant to be visibly partial
+ * while the port is in progress and complete when it finishes.
  *
  * Run it with `pnpm exam:verify:diff` against a running local Supabase. It writes nothing:
  * the bank items it needs are inserted inside a transaction that is always rolled back.
@@ -183,6 +183,32 @@ const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {
       },
     };
   },
+  'FLU-DEDUCE-01': (item) => {
+    // Built from `answer.distractorRationales[key].cluesViolated`, so the trace is independent
+    // of the content-only derivation both verifiers run — a real cross-check, not a tautology.
+    const rationales = asRecord(item.answer.distractorRationales) ?? {};
+    const violatedBy = new Map<string, Set<string>>();
+    for (const [key, entry] of Object.entries(rationales)) {
+      const clues = list((asRecord(entry) ?? {}).cluesViolated).map(String);
+      violatedBy.set(key, new Set(clues));
+    }
+    const seen = new Set<string>();
+    const steps = list(item.content.clues).map((raw) => {
+      const clueId = String((asRecord(raw) ?? {}).clueId ?? '');
+      for (const [key, clues] of violatedBy) if (clues.has(clueId)) seen.add(key);
+      return { clueId, eliminated: [...seen] };
+    });
+    const last = steps.at(-1);
+    return {
+      correct: { steps },
+      // One suspect left standing at the end: the commonest real near miss.
+      wrong: {
+        steps: steps.map((step) =>
+          step === last ? { ...step, eliminated: step.eliminated.slice(0, -1) } : step,
+        ),
+      },
+    };
+  },
   'VER-EVIDENCE-01': (item) => {
     const [answerKey = '', evidenceKey = ''] = String(item.answer.correctKey).split('+');
     return {
@@ -206,28 +232,6 @@ const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {
       // Same angle of cut, a different height: the bank's own `cut_too_low`/`cut_too_high`
       // near-miss family, not a malformed response.
       wrong: { plane: { ...plane, h: h >= 50 ? h - 40 : h + 40 } },
-    };
-  },
-  'CX-curious-02': (item) => {
-    const key = String(item.answer.correctKey ?? '');
-    const offered = (Array.isArray(item.content.gapOptions) ? item.content.gapOptions : [])
-      .map((option) => asRecord(option)?.id)
-      .filter((id): id is string => typeof id === 'string');
-    // An option the scene states outright, which is the discrimination the type is about.
-    return {
-      correct: { gapKey: key },
-      wrong: { gapKey: offered.find((id) => id !== key) ?? `${key}~no` },
-    };
-  },
-  'GB-DEBATE-01': (item) => {
-    const key = asRecord(item.answer.correctKey) ?? {};
-    const support = String(key.support ?? '');
-    const rebut = String(key.rebut ?? '');
-    return {
-      correct: { supportKey: support, rebutKey: rebut },
-      // One of two decisions lands, so M-PROG is compared on its 0.5 rung and not only at
-      // the endpoints — that partial signal is the reason the type carries the metric.
-      wrong: { supportKey: support, rebutKey: `${rebut}~no` },
     };
   },
   'SPA-VIEW-01': (item) => {
@@ -263,33 +267,6 @@ const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {
       wrong: { count: total - 1, finalYawDeg: yaw },
     };
   },
-  'GB-FILTER-01': (item) => {
-    const targets = Array.isArray(item.answer.targets)
-      ? (item.answer.targets as [number, number][])
-      : [];
-    const grid = asRecord(item.content.grid) ?? {};
-    const rows = typeof grid.R === 'number' ? grid.R : 0;
-    const cols = typeof grid.C === 'number' ? grid.C : 0;
-    const lit = new Set(targets.map(([r, c]) => `${r},${c}`));
-    let dark: [number, number] | undefined;
-    for (let r = 0; r < rows && dark === undefined; r++) {
-      for (let c = 0; c < cols; c++) {
-        if (!lit.has(`${r},${c}`)) {
-          dark = [r, c];
-          break;
-        }
-      }
-    }
-    return {
-      correct: { selectedCells: targets, taps: targets.length },
-      // One target traded for one distractor: a miss AND a false alarm in one response, so
-      // M-PROG and M-FALSEALARM are both non-trivial on the comparison.
-      wrong: {
-        selectedCells: [...targets.slice(1), ...(dark === undefined ? [] : [dark])],
-        taps: targets.length,
-      },
-    };
-  },
   'WM-corsi-01': (item) => {
     const expected = numbers(item.answer.expectedSequence);
     return {
@@ -312,52 +289,58 @@ const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {
     }
     return { correct: { placements: bindings }, wrong: { placements: swapped } };
   },
-  'WM-gridflash-01': (item) => {
-    const phase = asRecord(item.content.responsePhase) ?? {};
-    if (phase.mode === 'select_set') {
-      const expected = numbers(item.answer.expectedCells);
-      const grid = asRecord(item.content.grid) ?? {};
-      const cellCount = typeof grid.cellCount === 'number' ? grid.cellCount : 0;
-      const dark = Array.from({ length: cellCount }, (_, cell) => cell).find(
-        (cell) => !expected.includes(cell),
-      );
-      return {
-        correct: { shell: 'select_set', selectedCells: expected },
-        // One lit cell swapped for a dark one, which moves the hit channel and the
-        // false-alarm channel in opposite directions — the split the type exists to keep.
-        wrong: {
-          shell: 'select_set',
-          selectedCells: [...expected.slice(1), ...(dark === undefined ? [] : [dark])],
-        },
-      };
-    }
-    const key = String(item.answer.correctKey ?? '');
-    return {
-      correct: { shell: 'two_choice', selectedKey: key },
-      wrong: { shell: 'two_choice', selectedKey: key === 'SAME' ? 'CHANGED' : 'SAME' },
-    };
-  },
   'WM-bubble-01': (item) => {
     // `answer.correctKey` is the target steps per channel, "w:2,7|s:3". The verifier
     // re-derives them from the stream instead, so driving the response off the key keeps the
     // two sides independent.
-    const streamLength =
-      typeof (item.content as { streamLength?: unknown }).streamLength === 'number'
-        ? (item.content as { streamLength: number }).streamLength
-        : 0;
-    const pops: { channel: string; stepIndex: number }[] = [];
+    const content = item.content as {
+      streamLength?: unknown;
+      n?: unknown;
+      channels?: unknown;
+    };
+    const streamLength = typeof content.streamLength === 'number' ? content.streamLength : 0;
+    const n = typeof content.n === 'number' ? content.n : 0;
+    const targetSteps = new Map<string, Set<number>>();
     for (const part of String(item.answer.correctKey ?? '').split('|')) {
       const [channel, steps] = part.split(':');
-      if (!channel || !steps) continue;
-      for (const step of steps.split(',')) {
+      if (!channel) continue;
+      const set = targetSteps.get(channel) ?? new Set<number>();
+      for (const step of (steps ?? '').split(',')) {
         const stepIndex = Number(step);
-        if (Number.isInteger(stepIndex)) pops.push({ channel, stepIndex });
+        if (Number.isInteger(stepIndex)) set.add(stepIndex);
+      }
+      targetSteps.set(channel, set);
+    }
+    // One seen/new answer per lane per decidable bubble, in presentation order, plus the
+    // "seen" steps reduced to the `pops` shape the plpgsql port still reads.
+    const judgements: { channel: string; stepIndex: number; choice: 'seen' | 'new' }[] = [];
+    for (const entry of list(content.channels)) {
+      const channel = (asRecord(entry) ?? {}).id;
+      if (typeof channel !== 'string') continue;
+      const targets = targetSteps.get(channel) ?? new Set<number>();
+      for (let stepIndex = n; stepIndex < streamLength; stepIndex++) {
+        judgements.push({ channel, stepIndex, choice: targets.has(stepIndex) ? 'seen' : 'new' });
       }
     }
+    const pops = (
+      answers: { channel: string; stepIndex: number; choice: 'seen' | 'new' }[],
+    ): { channel: string; stepIndex: number }[] =>
+      answers
+        .filter((j) => j.choice === 'seen')
+        .map((j) => ({ channel: j.channel, stepIndex: j.stepIndex }));
+    // One target called "new": the hit rate falls, the false-alarm rate does not.
+    const missedIndex = judgements.findIndex((j) => j.choice === 'seen');
+    const missed = judgements.map((j, i) =>
+      i === missedIndex ? { ...j, choice: 'new' as const } : j,
+    );
     return {
-      correct: { pops, stepsShown: streamLength, completed: true },
-      // One target missed: the hit rate falls, the false-alarm rate does not.
-      wrong: { pops: pops.slice(1), stepsShown: streamLength, completed: true },
+      correct: {
+        judgements,
+        pops: pops(judgements),
+        stepsShown: streamLength,
+        completed: true,
+      },
+      wrong: { judgements: missed, pops: pops(missed), stepsShown: streamLength, completed: true },
     };
   },
   'CX-check-01': (item) => {
@@ -375,16 +358,6 @@ const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {
       if (other !== undefined) wrong[target] = other;
     }
     return { correct: { finalPlacement: trueBin }, wrong: { finalPlacement: wrong } };
-  },
-  'FLU-MATRIXBUILD-01': (item) => {
-    const canonical = asRecord(item.answer.canonical) ?? {};
-    const wrong: Record<string, unknown> = { ...canonical };
-    const first = Object.keys(canonical)[0];
-    if (first !== undefined) {
-      const value = canonical[first];
-      wrong[first] = typeof value === 'number' ? value + 1 : `${String(value)}~no`;
-    }
-    return { correct: { constructed: canonical }, wrong: { constructed: wrong } };
   },
   'VER-SENSE-01': (item) => {
     const order = String(item.answer.correctKey)
@@ -484,26 +457,6 @@ const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {
     };
   },
 
-  'WM-gate-01': (item) => {
-    const probes = (item.answer.probes as { probeIndex: number; expectedKeys: string[] }[]) ?? [];
-    const answered = probes.map((p) => ({ probeIndex: p.probeIndex, keys: [...p.expectedKeys] }));
-    return {
-      correct: { probes: answered },
-      // The first checkpoint answered in the wrong ORDER: the contents survived, the gating
-      // did not, which is the type's own `order_reversal` lure and moves the OLS slope.
-      wrong: {
-        probes: answered.map((p, i) =>
-          i === 0
-            ? {
-                probeIndex: p.probeIndex,
-                keys: p.keys.length > 1 ? [...p.keys].reverse() : ['~no'],
-              }
-            : p,
-        ),
-      },
-    };
-  },
-
   'SPA-PUNCH-01': (item) => {
     const cells = (item.answer.trueCells as { x: number; y: number }[] | undefined) ?? [];
     return {
@@ -524,16 +477,6 @@ const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {
     };
   },
 
-  'GB-SHAPEFIT-01': (item) => {
-    const canonical = asRecord(item.answer.canonicalSolution) ?? {};
-    const placements = (canonical.placements as unknown[] | undefined) ?? [];
-    const cost = asRecord(item.answer.cost) ?? {};
-    return {
-      correct: { assembly: placements, cost: { moves: cost.moves } },
-      wrong: { assembly: placements.slice(0, -1), cost: { moves: cost.moves } },
-    };
-  },
-
   'SPA-PIPES-01': (item) => {
     const clockwise: Record<string, string> = { N: 'E', E: 'S', S: 'W', W: 'N' };
     const orients =
@@ -547,14 +490,6 @@ const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {
           i === 0 ? { ...tile, dirs: tile.dirs.map((d) => clockwise[d] ?? d) } : tile,
         ),
       },
-    };
-  },
-
-  'GB-PATHFORGE-01': (item) => {
-    const board = (item.answer.tileSpec as unknown[] | undefined) ?? [];
-    return {
-      correct: { finalBoard: board },
-      wrong: { finalBoard: board.slice(1) },
     };
   },
 

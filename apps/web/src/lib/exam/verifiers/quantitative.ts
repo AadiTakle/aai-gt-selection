@@ -27,8 +27,8 @@ import { num, setOverlap, type Verifier } from './types';
  *      efficiency; a legal-but-wasteful solution is still correct, and the
  *      waste is reported as `M-EFF` (optimum / actual, capped at 1). The only
  *      exceptions are the types whose bank states a threshold for full credit
- *      (GB-WORDFORGE-01) or an exact key (GB-TRACK-01, GB-FILTER-01,
- *      GB-DEBATE-01, QUANT-MIX-01).
+ *      (GB-WORDFORGE-01, whose threshold is now net of the declared non-word
+ *      penalty) or an exact key (GB-TRACK-01, QUANT-MIX-01).
  *   3. Never throw. Malformed input returns `{ correct: false }`.
  */
 
@@ -93,11 +93,12 @@ function efficiency(optimum: number | null, actual: number | null): number | nul
 }
 
 // ---------------------------------------------------------------------------
-// server-only child lexicon (GB-WORDLADDER-01)
+// server-only child lexicon (GB-WORDLADDER-01, GB-WORDFORGE-01)
 // ---------------------------------------------------------------------------
 
 /**
- * The 4k-word curated child lexicon that GB-WORDLADDER-01 is defined against
+ * The 4k-word curated child lexicon that GB-WORDLADDER-01 and GB-WORDFORGE-01
+ * are defined against
  * (`research/exam-question-types/generators/lexicon-child-en.mjs`).
  *
  * It is read off disk at first use rather than imported or inlined so it can
@@ -167,6 +168,28 @@ export function childLexicon(): Map<string, number> | null {
     lexiconCache = null; // a missing lexicon must fail closed, never throw
   }
   return lexiconCache;
+}
+
+/**
+ * A lexicon band as `M-VOCABLVL`: 1 for a child who stayed on the commonest
+ * words, 7 for one who reached the rarest.
+ *
+ * The two scales run opposite ways and the metric's is the one that has to win
+ * here. `lexicon-child-en@v1` counts DOWN in rarity (band 7 = earliest and most
+ * frequent, band 1 = above-level), while `M-VOCABLVL` is declared as a lexical
+ * CEILING that counts up: "ascending difficulty band (higher = rarer mastered)"
+ * in `@gt-selection/exam-scoring`'s metric registry, `direction: 'higher'` over
+ * 1..8 in `DEFAULT_EXAM_POLICY`, and — in GB-WORDFORGE-01's own answer key —
+ * "a valid word at vocabulary band <= 3 (raises M-VOCABLVL)". Reporting the raw
+ * band scored a child who reached a rare word as if they had the shallowest
+ * vocabulary in the room.
+ *
+ * The bands themselves are provisional design estimates, not a corpus
+ * measurement (RES-012 / RES-013), so this is a ranked signal and not a
+ * calibrated frequency.
+ */
+function vocabCeiling(rarestBand: number): number {
+  return 8 - rarestBand;
 }
 
 // ---------------------------------------------------------------------------
@@ -274,95 +297,6 @@ const verifyRobopath: Verifier = (item, response) => {
   const cost = obj(item.answer.cost);
   const eff = efficiency(cost ? int(cost.actions) : null, sequence.length);
   return eff === null ? { correct: solved } : { correct: solved, metrics: { 'M-EFF': eff } };
-};
-
-// ---------------------------------------------------------------------------
-// GB-PATHFORGE-01 — flood the submitted board
-// ---------------------------------------------------------------------------
-
-const OPPOSITE: Record<string, string> = { N: 'S', S: 'N', E: 'W', W: 'E' };
-
-/**
- * GB-PATHFORGE-01. The child lays pipe tiles; the server floods the board.
- *
- * Correct iff the final board carries a continuous hut -> flag road that runs
- * over every coin, within `content.tileBudget`. Orientation is judged by
- * connectivity (matching arms between neighbours), not by matching the stored
- * `answer.tileSpec` — `answer.equivalence.rule = any_minimal_road` says any
- * layout that connects is accepted, and `answer.optimalTiles` only sets M-EFF.
- */
-const verifyPathforge: Verifier = (item, response) => {
-  const content = item.content;
-  const grid = gridOf(content);
-  const start = cell(content.start);
-  const goal = cell(content.goal);
-  const blockedCells = cellList(content.blocked ?? []);
-  const coins = cellList(content.coins ?? []);
-  const budget = int(content.tileBudget);
-  if (!grid || !start || !goal || !blockedCells || !coins) return { correct: false };
-
-  const board = arr(response.finalBoard);
-  if (!board) return { correct: false };
-  if (budget !== null && board.length > budget) return { correct: false };
-
-  const blocked = new Set(blockedCells.map(([r, c]) => key(r, c)));
-  const startKey = key(start[0], start[1]);
-  const goalKey = key(goal[0], goal[1]);
-
-  const arms = new Map<string, Set<string>>();
-  for (const entry of board) {
-    const tile = obj(entry);
-    if (!tile) return { correct: false };
-    const r = int(tile.r);
-    const c = int(tile.c);
-    const dirs = arr(tile.dirs);
-    if (r === null || c === null || !dirs) return { correct: false };
-    if (r < 0 || r >= grid.R || c < 0 || c >= grid.C) return { correct: false };
-    const k = key(r, c);
-    // A tile on a wall, on the hut, on the flag, or stacked on another tile is
-    // an illegal board state, not an inefficient one.
-    if (blocked.has(k) || k === startKey || k === goalKey || arms.has(k)) return { correct: false };
-    const out = new Set<string>();
-    for (const dir of dirs) {
-      const d = str(dir);
-      if (d === null || !OPPOSITE[d]) return { correct: false };
-      out.add(d);
-    }
-    arms.set(k, out);
-  }
-
-  // Flood from the hut through matching arms. The hut and the flag are
-  // omnidirectional ports: they join any neighbour whose arm points at them.
-  const road = new Set<string>([startKey]);
-  const queue: [number, number][] = [start];
-  for (let head = 0; head < queue.length; head++) {
-    const at = queue[head];
-    if (!at) break;
-    const [r, c] = at;
-    const here = arms.get(key(r, c));
-    const isPort = key(r, c) === startKey || key(r, c) === goalKey;
-    const steps: [number, number, string][] = [
-      [r - 1, c, 'N'],
-      [r + 1, c, 'S'],
-      [r, c - 1, 'W'],
-      [r, c + 1, 'E'],
-    ];
-    for (const [nr, nc, dir] of steps) {
-      if (nr < 0 || nr >= grid.R || nc < 0 || nc >= grid.C) continue;
-      const nk = key(nr, nc);
-      if (road.has(nk)) continue;
-      if (!isPort && !here?.has(dir)) continue;
-      const there = arms.get(nk);
-      const opposite = OPPOSITE[dir] as string;
-      if (nk !== startKey && nk !== goalKey && !there?.has(opposite)) continue;
-      road.add(nk);
-      queue.push([nr, nc]);
-    }
-  }
-
-  const connected = road.has(goalKey) && coins.every(([r, c]) => road.has(key(r, c)));
-  const eff = efficiency(int(item.answer.optimalTiles), board.length);
-  return eff === null ? { correct: connected } : { correct: connected, metrics: { 'M-EFF': eff } };
 };
 
 // ---------------------------------------------------------------------------
@@ -492,114 +426,6 @@ const verifyExplore: Verifier = (item, response) => {
 };
 
 // ---------------------------------------------------------------------------
-// GB-SHAPEFIT-01 — exact-cover tiling
-// ---------------------------------------------------------------------------
-
-type Poly = [number, number][];
-
-function normalise(cells: Poly): Poly {
-  let minR = Infinity;
-  let minC = Infinity;
-  for (const [r, c] of cells) {
-    if (r < minR) minR = r;
-    if (c < minC) minC = c;
-  }
-  return cells
-    .map(([r, c]): [number, number] => [r - minR, c - minC])
-    .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-}
-
-const polySignature = (cells: Poly): string =>
-  normalise(cells)
-    .map(([r, c]) => `${r},${c}`)
-    .join('|');
-
-const rotateCW = (cells: Poly): Poly => normalise(cells.map(([r, c]): [number, number] => [c, -r]));
-const mirror = (cells: Poly): Poly => normalise(cells.map(([r, c]): [number, number] => [r, -c]));
-
-/** Every shape the tray piece can be turned into with the item's own ops. */
-function orientationSignatures(base: Poly, ops: readonly string[]): Set<string> {
-  const seen = new Set<string>([polySignature(base)]);
-  const frontier: Poly[] = [normalise(base)];
-  for (let head = 0; head < frontier.length; head++) {
-    const shape = frontier[head];
-    if (!shape) break;
-    const images: Poly[] = [];
-    if (ops.includes('rotate')) images.push(rotateCW(shape));
-    if (ops.includes('flip')) images.push(mirror(shape));
-    for (const image of images) {
-      const sig = polySignature(image);
-      if (seen.has(sig)) continue;
-      seen.add(sig);
-      frontier.push(image);
-    }
-  }
-  return seen;
-}
-
-/**
- * GB-SHAPEFIT-01. Correct iff the submitted assembly is a genuine exact cover:
- * every placement is a tray piece in an orientation its instruction set can
- * actually reach, no piece is used twice, no cell falls outside the outline,
- * nothing overlaps, and every outline cell ends up covered.
- *
- * `answer.cost.moves` (one move per orientation press plus one per drop) is the
- * minimum for efficiency only — a clumsy but complete tiling is still correct.
- */
-const verifyShapefit: Verifier = (item, response) => {
-  const content = item.content;
-  const target = obj(content.target);
-  const targetCells = target ? cellList(target.cells) : null;
-  const tray = arr(content.tray);
-  if (!targetCells || targetCells.length === 0 || !tray) return { correct: false };
-
-  const instructionSet = obj(content.instructionSet);
-  const opsRaw = instructionSet ? arr(instructionSet.ops) : null;
-  const ops: string[] = [];
-  for (const op of opsRaw ?? ['rotate']) {
-    const name = str(op);
-    if (name !== null) ops.push(name);
-  }
-
-  const trayPieces = new Map<string, Poly>();
-  for (const entry of tray) {
-    const piece = obj(entry);
-    const cells = piece ? cellList(piece.cells) : null;
-    if (!piece || !cells) return { correct: false };
-    trayPieces.set(String(piece.id), cells);
-  }
-
-  const outline = new Set(targetCells.map(([r, c]) => key(r, c)));
-  const assembly = arr(response.assembly);
-  if (!assembly) return { correct: false };
-
-  const covered = new Set<string>();
-  const usedPieces = new Set<string>();
-  for (const entry of assembly) {
-    const placement = obj(entry);
-    const placed = placement ? cellList(placement.cells) : null;
-    if (!placement || !placed || placed.length === 0) return { correct: false };
-    const id = String(placement.id);
-    const base = trayPieces.get(id);
-    if (!base || usedPieces.has(id)) return { correct: false };
-    usedPieces.add(id);
-    if (placed.length !== base.length) return { correct: false };
-    if (!orientationSignatures(base, ops).has(polySignature(placed))) return { correct: false };
-    for (const [r, c] of placed) {
-      const k = key(r, c);
-      if (!outline.has(k) || covered.has(k)) return { correct: false };
-      covered.add(k);
-    }
-  }
-
-  const tiled = covered.size === outline.size;
-  const optimum = obj(item.answer.cost);
-  const spent = obj(response.cost);
-  const eff = efficiency(optimum ? int(optimum.moves) : null, spent ? int(spent.moves) : null);
-  return eff === null ? { correct: tiled } : { correct: tiled, metrics: { 'M-EFF': eff } };
-};
-
-// ---------------------------------------------------------------------------
 // GB-TRACK-01 — replay the motion script
 // ---------------------------------------------------------------------------
 
@@ -686,6 +512,14 @@ const verifyTrack: Verifier = (item, response) => {
  * longer legal ladder, and zero only for an illegal step, a non-word rung or a
  * ladder that never reaches the goal — so a long legal climb is `correct` with
  * `M-EFF = optimalRungs / submittedRungs`.
+ *
+ * WORD RARITY. A ladder through uncommon words is more evidence than the same
+ * climb through the commonest ones, so `M-VOCABLVL` reports the rarest band the
+ * child's own rungs reached, on the metric's ascending scale (`vocabCeiling`).
+ * Two boundaries make it a bonus rather than a second verdict: it is computed
+ * AFTER legality, so it can never turn an illegal ladder into a legal one, and
+ * it is bounded to the 1..7 the lexicon's bands span. The start word is served,
+ * so it is excluded — its rarity is a property of the item, not of the child.
  */
 const verifyWordladder: Verifier = (item, response) => {
   const lexicon = childLexicon();
@@ -712,39 +546,72 @@ const verifyWordladder: Verifier = (item, response) => {
   if (ladder[0] !== start.toUpperCase()) return { correct: false };
   if (ladder[rungs] !== goal.toUpperCase()) return { correct: false };
 
-  let rarestBand = 7;
+  let rarestTypedBand = 7;
   for (let i = 0; i < ladder.length; i++) {
     const word = ladder[i] as string;
     if (word.length !== wordLength) return { correct: false };
     const band = lexicon.get(word);
     if (band === undefined) return { correct: false };
-    if (band < rarestBand) rarestBand = band;
     if (i === 0) continue;
+    if (band < rarestTypedBand) rarestTypedBand = band;
     const previous = ladder[i - 1] as string;
     let changed = 0;
     for (let k = 0; k < wordLength; k++) if (previous[k] !== word[k]) changed++;
     if (changed !== 1) return { correct: false };
   }
 
-  const metrics: Record<string, number> = { 'M-VOCABLVL': rarestBand };
+  const metrics: Record<string, number> = { 'M-VOCABLVL': vocabCeiling(rarestTypedBand) };
   const eff = efficiency(int(item.answer.optimalRungs), rungs);
   if (eff !== null) metrics['M-EFF'] = eff;
   return { correct: true, metrics };
 };
 
 // ---------------------------------------------------------------------------
-// GB-WORDFORGE-01 — credit every forgeable word
+// GB-WORDFORGE-01 — credit every forgeable word, less the declared non-word cost
 // ---------------------------------------------------------------------------
 
 /**
- * GB-WORDFORGE-01. `answer.validWords` is the exact set of lexicon words the
- * rack affords, enumerated when the bank was built, so this verifier needs no
- * lexicon of its own: a submission is credited iff it is in that set
- * (case-insensitively), and repeats score once.
+ * What one distinct made-up word costs, counted in credited words.
  *
- * The bank's credit table makes full credit a THRESHOLD — distinct credited
- * words >= `answer.referenceTarget` — with the ratio as partial credit, so
- * unlike the search types `correct` here is not merely "produced one word".
+ * HALF, not one. The lexicon is a curated 4k child list rather than a
+ * dictionary, so a real word its curation never took in is indistinguishable
+ * here from an invented one; at 1:1 that curation gap would cost a child a word
+ * they genuinely knew. At a half, two junk entries still cancel one real word,
+ * which is enough that typing letters at random cannot pay, while a single
+ * near-miss on a word the child believed in costs them less than the word they
+ * got right.
+ *
+ * The number is only defensible because the child is TOLD it before they play:
+ * the demo's play gate states that made-up words take points off. An
+ * unannounced penalty measures whether a child guessed the rules rather than
+ * what words they know.
+ */
+const WORDFORGE_NONWORD_COST = 0.5;
+
+/**
+ * GB-WORDFORGE-01. `answer.validWords` is the exact set of lexicon words the
+ * rack affords, enumerated when the bank was built: a submission is credited iff
+ * it is in that set (case-insensitively), and repeats score once.
+ *
+ * The bank's credit table makes full credit a THRESHOLD — credited words >=
+ * `answer.referenceTarget` — with the ratio as partial credit, so unlike the
+ * search types `correct` here is not merely "produced one word". The threshold
+ * and the ratio are now met NET of the non-word penalty.
+ *
+ * WHICH UNCREDITED ENTRIES ARE PENALISED. Only the ones that are not words at
+ * all, which is the only thing the child was warned about. A real word that
+ * broke a rule — shorter than `content.minWordLength`, or not spellable from the
+ * rack — earns nothing and costs nothing, because it is a rule slip rather than
+ * the "randomly inputting words" behaviour the penalty exists to price. Telling
+ * those two apart needs the lexicon, so this is the second type that reads it;
+ * if it cannot be read there is NO penalty, since a file the server failed to
+ * open must not take points off a child.
+ *
+ * The score stays monotone and bounded. Every real word adds 1 and every junk
+ * entry subtracts a half, so submitting only real words can never score below
+ * submitting nothing, and the net is floored at 0 — the same floor the bank's
+ * credit table already allows ("no credited word forged") — so no barrage of
+ * junk can push a child below it.
  */
 const verifyWordforge: Verifier = (item, response) => {
   const entries = arr(item.answer.validWords);
@@ -760,12 +627,15 @@ const verifyWordforge: Verifier = (item, response) => {
   const submissions = arr(response.submissions);
   if (!submissions) return { correct: false };
 
+  const lexicon = childLexicon();
   const credited = new Set<string>();
+  const nonwords = new Set<string>();
   for (const entry of submissions) {
     const word = str(entry) ?? str(obj(entry)?.word);
-    if (word === null) continue;
+    if (word === null || word.length === 0) continue;
     const normalised = word.toUpperCase();
     if (bandOf.has(normalised)) credited.add(normalised);
+    else if (lexicon && !lexicon.has(normalised)) nonwords.add(normalised);
   }
 
   let rarestBand = 0;
@@ -774,91 +644,18 @@ const verifyWordforge: Verifier = (item, response) => {
     if (rarestBand === 0 || (band > 0 && band < rarestBand)) rarestBand = band;
   }
 
+  const netCredit = Math.max(0, credited.size - WORDFORGE_NONWORD_COST * nonwords.size);
+  const judged = credited.size + nonwords.size;
   const target = int(item.answer.referenceTarget);
   const metrics: Record<string, number> = { 'M-IDEAFLU': credited.size };
-  if (rarestBand > 0) metrics['M-VOCABLVL'] = rarestBand;
-  if (target !== null && target > 0) metrics['M-EFF'] = Math.min(1, credited.size / target);
-  return { correct: target !== null && credited.size >= target, metrics };
-};
-
-// ---------------------------------------------------------------------------
-// GB-DEBATE-01 — two keyed decisions in one item
-// ---------------------------------------------------------------------------
-
-/**
- * GB-DEBATE-01. `answer.correctKey` is an OBJECT — `{support, rebut}` — so the
- * generic keyed verifier, which compares a single option key, cannot grade it.
- * Both decisions are graded here; the item is correct only when both land, and
- * the one-of-two case is reported as partial progress rather than thrown away.
- */
-const verifyDebate: Verifier = (item, response) => {
-  const correctKey = obj(item.answer.correctKey as unknown);
-  if (!correctKey) return { correct: false };
-  const support = str(correctKey.support);
-  const rebut = str(correctKey.rebut);
-  if (support === null || rebut === null) return { correct: false };
-
-  let hits = 0;
-  if (str(response.supportKey) === support) hits++;
-  if (str(response.rebutKey) === rebut) hits++;
-  return { correct: hits === 2, metrics: { 'M-PROG': hits / 2 } };
-};
-
-// ---------------------------------------------------------------------------
-// GB-FILTER-01 — set equality against the re-applied cue rule
-// ---------------------------------------------------------------------------
-
-/**
- * GB-FILTER-01. The target set is re-derived by re-applying `content.cue` to
- * the displayed array (colour, or colour AND shape on a conjunction level)
- * rather than read out of `answer.targets`; correct iff the final selected set
- * equals it exactly. Tap order is irrelevant and a de-selected cell is a
- * revision, not a false alarm, so only `response.selectedCells` is scored.
- */
-const verifyFilter: Verifier = (item, response) => {
-  const content = item.content;
-  const grid = gridOf(content);
-  const cue = obj(content.cue);
-  const shapes = arr(content.items);
-  if (!grid || !cue || !shapes) return { correct: false };
-
-  const cueColor = str(cue.color);
-  const cueShape = str(cue.shape);
-  const conjunction = str(cue.mode) === 'color_shape';
-  if (cueColor === null || (conjunction && cueShape === null)) return { correct: false };
-
-  const targets = new Set<string>();
-  for (const entry of shapes) {
-    const shape = obj(entry);
-    const r = shape ? int(shape.r) : null;
-    const c = shape ? int(shape.c) : null;
-    if (!shape || r === null || c === null) return { correct: false };
-    const matches = conjunction
-      ? str(shape.color) === cueColor && str(shape.shape) === cueShape
-      : str(shape.color) === cueColor;
-    if (matches) targets.add(key(r, c));
-  }
-
-  const selectedCells = cellList(response.selectedCells);
-  if (!selectedCells) return { correct: false };
-  const selected = new Set(selectedCells.map(([r, c]) => key(r, c)));
-
-  let hits = 0;
-  for (const target of targets) if (selected.has(target)) hits++;
-  const falseAlarms = selected.size - hits;
-  const nonTargets = Math.max(1, grid.R * grid.C - targets.size);
-  const correct = targets.size > 0 && hits === targets.size && falseAlarms === 0;
-
-  const metrics: Record<string, number> = {
-    'M-FALSEALARM': falseAlarms / nonTargets,
-  };
-  if (targets.size > 0) {
-    // The bank's scoringRule: hits/nTargets penalised by falseAlarms/nNonTargetCells.
-    metrics['M-PROG'] = Math.max(0, hits / targets.size - falseAlarms / nonTargets);
-    const eff = efficiency(targets.size, int(response.taps));
-    if (eff !== null) metrics['M-EFF'] = eff;
-  }
-  return { correct, metrics };
+  if (rarestBand > 0) metrics['M-VOCABLVL'] = vocabCeiling(rarestBand);
+  // The share of judged entries that were real words: the bank declares
+  // M-ERRTYPE for this type, and this is the signal that separates a child
+  // reaching for words from one typing letters. Absent when nothing was judged,
+  // rather than a free 1 for an abandoned round.
+  if (judged > 0) metrics['M-ERRTYPE'] = credited.size / judged;
+  if (target !== null && target > 0) metrics['M-EFF'] = Math.min(1, netCredit / target);
+  return { correct: target !== null && netCredit >= target, metrics };
 };
 
 // ---------------------------------------------------------------------------
@@ -919,12 +716,8 @@ const verifyQuantMix: Verifier = (item, response) => {
 // ---------------------------------------------------------------------------
 
 export const quantitativeVerifiers: Record<string, Verifier> = {
-  'GB-DEBATE-01': verifyDebate,
   'GB-EXPLORE-01': verifyExplore,
-  'GB-FILTER-01': verifyFilter,
-  'GB-PATHFORGE-01': verifyPathforge,
   'GB-ROBOPATH-01': verifyRobopath,
-  'GB-SHAPEFIT-01': verifyShapefit,
   'GB-TRACK-01': verifyTrack,
   'GB-WORDFORGE-01': verifyWordforge,
   'GB-WORDLADDER-01': verifyWordladder,

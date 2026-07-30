@@ -16,6 +16,8 @@
 //   4. Difficulty equals the value independently re-derived from the item's levers,
 //      and the item regenerates byte-identically from its provenance.
 //   5. Coverage: spans 1..20 with >=5 items per integer bin AND per +/-1 pt band.
+//   6. Band ladder (2026-07 review): the transformation an item applies, and the
+//      age band it declares, both match the difficulty window it sits in.
 //
 // Run:  node research/exam-question-types/generators/check-FLU-GRIDCOPY-01.mjs
 
@@ -27,7 +29,9 @@ import { lureLabel, normalizeBankItem } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BANK = resolve(__dirname, '../banks/FLU-GRIDCOPY-01.jsonl');
-const ALLOWED_BANDS = ['2-3', '4-5', '6-8']; // this type excludes K-1 by design
+// K-1 is served since the 2026-07 review opened a translation-only, single-colour
+// rung for it; the heavier transform families stay out of K-1 via LADDER below.
+const ALLOWED_BANDS = ['K-1', '2-3', '4-5', '6-8'];
 const ALLOWED_LURES = [
   'identity_copy',
   'first_step_only',
@@ -105,6 +109,7 @@ const LOADS = {
   'rot180+recolor': 5.4,
   'shift+shiftColor': 5.6,
   'shiftColor+recolor': 6.0,
+  'rot180+shiftColor': 7.2,
 };
 const MIN_PALETTE = { shift: 1, reflectH: 1, reflectV: 1, rot180: 1 };
 const GRID_LIST = [[3, 3], [3, 4], [4, 4], [4, 5], [5, 5]];
@@ -126,6 +131,22 @@ const RAW_MIN = Math.min(...ANCHORS);
 const RAW_MAX = Math.max(...ANCHORS) + DENSITY_SPAN;
 const difficultyOf = (L) =>
   Math.max(1, Math.min(20, 1 + ((baseOf(L) + DENSITY_SPAN * L.demandDensity - RAW_MIN) * 19) / (RAW_MAX - RAW_MIN)));
+
+/* ---- independent band ladder (2026-07 review, re-stated from the comment
+       "for k-1, focus on translations. 2-3, make it multi-color. 4-5, add
+       rotations. in 6-8, combine these different rules") ---- */
+const BAND_OF = (d) => (d < 4 ? 'K-1' : d < 8 ? '2-3' : d < 12 ? '4-5' : d < 16 ? '6-8' : 'above-level');
+const LADDER = {
+  'K-1': (L) => L.programKey === 'shift' && L.paletteSize === 1,
+  '2-3': (L) => L.programKey === 'shift' && L.paletteSize >= 2,
+  '4-5': (L) => L.programKey === 'rot180' && L.paletteSize >= 2,
+  '6-8': (L) => L.programKey === 'rot180+shiftColor',
+  // The review left above level unbanded, so any documented program may serve it.
+  'above-level': () => true,
+};
+// `above-level` is not a value the item schema knows (packages/contracts
+// ageBandSchema), so a ceiling item declares the top band it belongs to.
+const BAND_LABEL = { 'K-1': 'K-1', '2-3': '2-3', '4-5': '4-5', '6-8': '6-8', 'above-level': '6-8' };
 
 // ---- 1. Parse ----
 const raw = readFileSync(BANK, 'utf8').trim();
@@ -230,6 +251,16 @@ for (const it of items) {
   const lev = (it.provenance && it.provenance.levers) || {};
   const derived = round2(difficultyOf(lev));
   if (Math.abs(derived - it.difficulty) > 0.01) fail(id, `difficulty ${it.difficulty} != derived-from-levers ${derived}`);
+
+  // ---- 6. Band ladder ----
+  if (isNum(it.difficulty)) {
+    const band = BAND_OF(it.difficulty);
+    if (!LADDER[band](lev))
+      fail(id, `band ${band} (difficulty ${it.difficulty}) must not apply ${lev.programKey} at P${lev.paletteSize}`);
+    if (!deepEq(it.ageBands, [BAND_LABEL[band]]))
+      fail(id, `ageBands ${JSON.stringify(it.ageBands)} != ["${BAND_LABEL[band]}"] for difficulty ${it.difficulty}`);
+  }
+
   try {
     const regen = normalizeBankItem(genItem({ ...lev, seed: it.provenance.seed }));
     if (!deepEq(regen, it)) fail(id, 'item is NOT reproducible from its provenance (grammar drift)');
@@ -271,4 +302,6 @@ if (failures.length) {
   if (failures.length > 40) console.error(`  ... and ${failures.length - 40} more`);
   process.exit(1);
 }
-console.log('\nPASS — parses, structure valid, key re-derived from the worked examples alone, coverage 1..20 with >=5 per bin and per +/-1pt band.');
+console.log(
+  '\nPASS — parses, structure valid, key re-derived from the worked examples alone, coverage 1..20 with >=5 per bin and per +/-1pt band, every transformation on the band the review put it in.',
+);

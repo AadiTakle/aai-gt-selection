@@ -26,6 +26,9 @@
   .token{position:absolute;left:50%;top:50%;width:44px;height:48px;display:flex;align-items:center;justify-content:center}
   .robot{position:absolute;left:50%;top:50%;width:54px;height:56px;display:flex;align-items:center;justify-content:center}
   .gaze{position:absolute;left:50%;top:50%;height:6px;border-radius:3px;background:linear-gradient(90deg,rgba(91,108,255,.8),rgba(91,108,255,.04));transform-origin:0 50%}
+  /* A barrier lies on the ground plane as a slab; a window pane is the see-through part of it. */
+  .wall{position:absolute;left:50%;top:50%;height:13px;border-radius:3px;transform-origin:0 50%;background:linear-gradient(180deg,#6f4526,#4a2e19);box-shadow:0 3px 0 #33210f}
+  .pane{position:absolute;left:50%;top:50%;height:13px;border-radius:3px;transform-origin:0 50%;background:repeating-linear-gradient(115deg,rgba(120,200,225,.85) 0 5px,rgba(215,245,252,.85) 5px 10px);border:2px solid #2f8fa8;box-sizing:border-box}
   .shadow{position:absolute;left:50%;top:50%;width:36px;height:14px;margin:-7px 0 0 -18px;border-radius:50%;background:rgba(40,50,90,.25);filter:blur(2px)}
   #ask{font-weight:800;color:#002a3a;font-size:14px;text-align:center;max-width:520px}
   #striprow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center}
@@ -95,7 +98,7 @@
     <div id="badge">SPA-SCENE-01 · What the Robot Sees</div>
     <header id="howto">
       <h1>How to use — What the Robot Sees</h1>
-      <p>Imagine standing where the robot stands and looking the way it looks. Tap the cards in the order the robot sees them, from the robot's left to its right. Press <b>Undo</b> to take the last card back, then press the check (<b>&#10003;</b>) to send.</p>
+      <p>Imagine standing where the robot stands and looking the way it looks. Tap the cards in the order the robot sees them, from the robot's left to its right. Harder scenes have <b>walls</b> in the way: anything the robot cannot see past a wall is left out, but it can see through a <b>glass window</b> set into one. There is one empty space for each thing the robot can see. Press <b>Undo</b> to take the last card back, then press the check (<b>&#10003;</b>) to send.</p>
     </header>
     <div id="phasecue" data-phase="warmup">Get ready</div>
     <div id="stagecard">
@@ -115,6 +118,10 @@
       </div>
       <div id="keys"><b>1&#8211;6</b> place a card · <b>Backspace</b> undo · <b>Enter</b> send</div>
       <div id="status" class="neutral">Waiting for the next scene.</div>
+    </div>
+    <div id="playgate">
+      <p>The robot is ready. Press play when you are, and the scene starts then.</p>
+      <button type="button" id="play">Play</button>
     </div>
   </div>
   <aside id="telemetry">
@@ -194,7 +201,8 @@ let current=null;
 let interactive=false;   // released by beginItem for EVERY item — never latched on load
 let submitted=false;
 let placed=[], nearestId=null;
-let itemStart=0, startTimer=null, itemTelemetry=[];
+let itemStart=0, itemTelemetry=[];
+let gateTutorial=false;
 const M={rt:null,rts:[],firstLat:null,rev:0,moves:0,blur:0};
 
 /* ---------- embedding detection + emit ---------- */
@@ -237,9 +245,48 @@ function firstAction(){if(M.firstLat==null){M.firstLat=Date.now()-itemStart;emit
 /* ---------- rendering the served item ---------- */
 function setCue(k,txt){const el=$('#phasecue');el.dataset.phase=k;el.textContent=txt;}
 function setStatus(kind,msg){const el=$('#status');el.className=kind;el.textContent=msg;}
+/* ---------- occlusion (the SAME rule as the bank generator and the server verifier) ----------
+   A barrier is the segment (x0,y0)-(x1,y1). The robot's sight line to an object is the segment
+   robot->object. If the two cross strictly inside both, the object is HIDDEN — unless the
+   barrier carries a window [t0,t1] and the crossing falls inside it, which the robot sees
+   straight through. The renderer only uses this to draw the sight lines honestly; the order
+   and the score are still computed server-side. */
+function sightBlocked(robot,o,barriers){
+  for(const b of (barriers||[])){
+    const rx=o.x-robot.x,ry=o.y-robot.y,sx=b.x1-b.x0,sy=b.y1-b.y0;
+    const den=rx*sy-ry*sx; if(Math.abs(den)<1e-9)continue;
+    const dx=b.x0-robot.x,dy=b.y0-robot.y;
+    const u=(dx*sy-dy*sx)/den, t=(dx*ry-dy*rx)/den;
+    if(u<=0||u>=1||t<=0||t>=1)continue;
+    if(b.window&&t>=b.window.t0&&t<=b.window.t1)continue;
+    return true;
+  }
+  return false;
+}
+function visibleObjects(c){const{objects,robot,barriers}=c.scene;return objects.filter(o=>!sightBlocked(robot,o,barriers));}
+function isHidden(id){const c=current.content;const o=c.scene.objects.find(x=>x.id===id);return !!o&&sightBlocked(c.scene.robot,o,c.scene.barriers);}
+function bar(cls,ax,ay,bx,by){
+  const d=document.createElement('div');d.className=cls;
+  const len=Math.hypot(bx-ax,by-ay)*SCALE;
+  d.style.width=Math.max(len,4)+'px';
+  d.style.transform=`translate(0,-50%) translate3d(${ax*SCALE}px,${ay*SCALE}px,0) rotate(${Math.atan2(by-ay,bx-ax)*180/Math.PI}deg)`;
+  return d;
+}
+function renderBarriers(cam,c){
+  (c.scene.barriers||[]).forEach(b=>{
+    const at=t=>[b.x0+(b.x1-b.x0)*t,b.y0+(b.y1-b.y0)*t];
+    if(!b.window){cam.appendChild(bar('wall',b.x0,b.y0,b.x1,b.y1));return;}
+    const w0=at(b.window.t0),w1=at(b.window.t1);
+    if(b.window.t0>0.01)cam.appendChild(bar('wall',b.x0,b.y0,w0[0],w0[1]));
+    cam.appendChild(bar('pane',w0[0],w0[1],w1[0],w1[1]));
+    if(b.window.t1<0.99)cam.appendChild(bar('wall',w1[0],w1[1],b.x1,b.y1));
+  });
+}
+
 function renderScene(c){
   const cam=$('#cam');
-  cam.querySelectorAll('.token,.robot,.gaze,.shadow').forEach(e=>e.remove());
+  cam.querySelectorAll('.token,.robot,.gaze,.shadow,.wall,.pane').forEach(e=>e.remove());
+  renderBarriers(cam,c);
   c.scene.objects.forEach(o=>{
     const sh=document.createElement('div');sh.className='shadow';
     sh.style.transform=`translate(-50%,-50%) translate3d(${o.x*SCALE}px,${o.y*SCALE}px,0)`;cam.appendChild(sh);
@@ -282,8 +329,10 @@ function renderNear(){
   const need=!!current.content.response.requireNearest;
   const row=$('#nearrow');row.classList.toggle('on',need&&placed.filter(x=>x!=null).length===current.content.response.slots);
   if(!need)return;
+  // Offer the cards the CHILD placed, not the ones the bank calls visible: the near/far
+  // question must not quietly correct the visibility judgment they just made.
   const host=$('#neartray');host.innerHTML='';
-  current.content.scene.objects.forEach(o=>{
+  placed.map(id=>objById(id)).filter(Boolean).forEach(o=>{
     const b=document.createElement('button');b.className='card'+(nearestId===o.id?' near':'');
     b.dataset.near=o.id;b.innerHTML=shapeSVG(o.shape,o.color,36);
     host.appendChild(b);
@@ -306,8 +355,10 @@ function renderServedItem(item){
   $('#ask').textContent=c.question.prompt;
   refresh();
   $('#go').classList.remove('ready');
-  itemStart=Date.now();renderMeters();
-  emitEvent('render',{difficulty:item.difficulty,objects:c.scene.objects.length,
+  itemStart=0;renderMeters();   // the scored clock stays unstarted until the child presses play
+  const bars=c.scene.barriers||[];
+  emitEvent('render',{difficulty:item.difficulty,objects:c.scene.objects.length,slots:c.response.slots,
+    barriers:bars.length,windows:bars.filter(b=>b.window).length,
     angularDisparityDeg:c.view.angularDisparityDeg,requireNearest:!!c.question.requireNearest});
 }
 
@@ -374,15 +425,26 @@ async function gestureHint(){
 
 /* ---------- host-driven lifecycle ---------- */
 function onInit(item){
-  clearTimeout(startTimer);
   if(!item||!item.content||!item.content.scene){log('init ignored: malformed ServedItem');return;}
   renderServedItem(item);
-  setCue('warmup','Get ready');
-  setStatus('neutral','Get ready — look at the scene.');
-  startTimer=setTimeout(()=>{if(!interactive&&!submitted)beginItem(false);},500);
+  openGate(false);
 }
+/* ---------- play gate (R1) ----------
+   The scene used to go live on a 500 ms timer after `init`, which meant M-RT began while the child
+   was still finding the screen — reading-and-orienting time landed inside a scored quantity, by a
+   different amount for every child. The gate replaces the timer: `init` draws the scene behind it,
+   `start` only arms it, and the child's press is what starts the clock. */
+function openGate(withTutorial){
+  gateTutorial=!!withTutorial;
+  interactive=false;
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('warmup','Ready when you are');
+  setStatus('neutral','Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
 async function beginItem(withTutorial){
   if(interactive||submitted||!current)return;
+  closeGate();
   if(withTutorial&&!tutorialShown){tutorialShown=true;await gestureHint();if(submitted)return;}
   interactive=true;itemStart=Date.now();   // interaction is UNLOCKED here, every item
   setCue('scored','Your turn');
@@ -392,7 +454,7 @@ async function beginItem(withTutorial){
 function onHostMessage(e){
   const d=e.data;if(!d||d.source!==HOST_SRC)return;
   if(d.type==='init')onInit(d.item);
-  else if(d.type==='start'){clearTimeout(startTimer);beginItem(!!d.tutorial);}
+  else if(d.type==='start'){if(current&&!interactive&&!submitted)openGate(!!d.tutorial);}
 }
 
 /* ---------- standalone fallback (QA when there is no host) ---------- */
@@ -412,15 +474,17 @@ async function loadBankSamples(){
   log('standalone: bank fetch unavailable (open via a local server for the full bank) — using inline samples');
   return INLINE_SAMPLES.slice();
 }
-function playStandalone(){const item=standaloneQueue[standaloneIdx%standaloneQueue.length];onInit(item);beginItem(standaloneIdx===0);}
+// Standalone shows the child's gate too, so the double-click QA pass exercises the same path.
+function playStandalone(){const item=standaloneQueue[standaloneIdx%standaloneQueue.length];onInit(item);openGate(standaloneIdx===0);}
 function advanceStandalone(){standaloneIdx++;playStandalone();}
 async function bootstrapStandalone(){if(standalone)return;standalone=true;standaloneQueue=await loadBankSamples();standaloneIdx=0;playStandalone();}
 
 /* Inline served-item fallback (real items exported from the bank; answer stripped). */
 const INLINE_SAMPLES=[
-{"itemId":"e24f9fd1-969c-4963-9bcd-aaff95e68f4d","typeCode":"SPA-SCENE-01","domain":"spatial","difficulty":1,"ageBands":["2-3"],"demoPath":"demos/SPA-SCENE-01.html","content":{"typeCode":"SPA-SCENE-01","question":{"mode":"order_from_viewpoint","relation":"left_to_right_as_seen_by_robot","prompt":"Put the cards in the order the robot sees them, from the robot\u2019s left to its right.","requireNearest":false},"scene":{"objects":[{"id":0,"shape":"pentagon","color":"#e5484d","x":-1.036,"y":-0.289},{"id":1,"shape":"star","color":"#f5a300","x":0.405,"y":0.198}],"robot":{"x":0,"y":1.9,"headingDeg":-90},"bounds":{"minX":-1.4,"maxX":1.4,"minY":-1.4,"maxY":1.4}},"view":{"childHeadingDeg":-90,"robotHeadingDeg":-90,"viewpointOffsetDeg":0,"viewpointSide":-1,"angularDisparityDeg":0},"distinctiveness":"shape_and_color","response":{"mode":"order_cards","slots":2,"requireNearest":false},"scaffold":{"liveStrip":false,"warmup":true}},"syntheticOnly":true,"validated":false},
-{"itemId":"988274ac-53ac-463e-b90c-4450ea23cce3","typeCode":"SPA-SCENE-01","domain":"spatial","difficulty":10.56,"ageBands":["4-5","6-8"],"demoPath":"demos/SPA-SCENE-01.html","content":{"typeCode":"SPA-SCENE-01","question":{"mode":"order_from_viewpoint","relation":"left_to_right_as_seen_by_robot","prompt":"Put the cards in the order the robot sees them, from the robot\u2019s left to its right.","requireNearest":false},"scene":{"objects":[{"id":0,"shape":"square","color":"#e5484d","x":-0.233,"y":-0.487},{"id":1,"shape":"cross","color":"#2f9e56","x":-0.697,"y":0.15},{"id":2,"shape":"circle","color":"#d6409f","x":0.907,"y":-0.617},{"id":3,"shape":"diamond","color":"#8e4ec6","x":-0.152,"y":0.617},{"id":4,"shape":"star","color":"#2f6bd0","x":0.498,"y":0.836}],"robot":{"x":1.9,"y":0,"headingDeg":-180},"bounds":{"minX":-1.4,"maxX":1.4,"minY":-1.4,"maxY":1.4}},"view":{"childHeadingDeg":-90,"robotHeadingDeg":-180,"viewpointOffsetDeg":90,"viewpointSide":1,"angularDisparityDeg":90},"distinctiveness":"shape_and_color","response":{"mode":"order_cards","slots":5,"requireNearest":false},"scaffold":{"liveStrip":false,"warmup":false}},"syntheticOnly":true,"validated":false},
-{"itemId":"acc9191a-2b46-4c1e-b451-11c225525537","typeCode":"SPA-SCENE-01","domain":"spatial","difficulty":20,"ageBands":["6-8"],"demoPath":"demos/SPA-SCENE-01.html","content":{"typeCode":"SPA-SCENE-01","question":{"mode":"order_from_viewpoint","relation":"left_to_right_as_seen_by_robot","prompt":"Put the cards in the order the robot sees them, from the robot\u2019s left to its right, then tap the one that looks nearest to the robot.","requireNearest":true},"scene":{"objects":[{"id":0,"shape":"square","color":"#2f9e56","x":-0.328,"y":0.434},{"id":1,"shape":"square","color":"#d6409f","x":0.325,"y":-0.465},{"id":2,"shape":"square","color":"#e5484d","x":-0.341,"y":-0.839},{"id":3,"shape":"square","color":"#8e4ec6","x":-1.031,"y":0.144},{"id":4,"shape":"square","color":"#0f9b9b","x":0.861,"y":0.212},{"id":5,"shape":"square","color":"#2f6bd0","x":0.168,"y":1.023}],"robot":{"x":0,"y":-1.9,"headingDeg":90},"bounds":{"minX":-1.4,"maxX":1.4,"minY":-1.4,"maxY":1.4}},"view":{"childHeadingDeg":-90,"robotHeadingDeg":90,"viewpointOffsetDeg":180,"viewpointSide":-1,"angularDisparityDeg":180},"distinctiveness":"color_only","response":{"mode":"order_cards","slots":6,"requireNearest":true},"scaffold":{"liveStrip":false,"warmup":false}},"syntheticOnly":true,"validated":false}
+{"itemId":"e24f9fd1-969c-4963-9bcd-aaff95e68f4d","typeCode":"SPA-SCENE-01","domain":"spatial","difficulty":1,"ageBands":["2-3"],"content":{"typeCode":"SPA-SCENE-01","question":{"mode":"order_from_viewpoint","relation":"left_to_right_as_seen_by_robot","prompt":"Put the cards in the order the robot sees them, from the robot’s left to its right.","requireNearest":false,"hasOcclusion":false},"scene":{"objects":[{"id":0,"shape":"pentagon","color":"#e5484d","x":-1.036,"y":-0.289},{"id":1,"shape":"star","color":"#f5a300","x":0.405,"y":0.198}],"robot":{"x":0,"y":1.9,"headingDeg":-90},"barriers":[],"bounds":{"minX":-1.4,"maxX":1.4,"minY":-1.4,"maxY":1.4}},"view":{"childHeadingDeg":-90,"robotHeadingDeg":-90,"viewpointOffsetDeg":0,"viewpointSide":-1,"angularDisparityDeg":0},"distinctiveness":"shape_and_color","response":{"mode":"order_cards","slots":2,"requireNearest":false},"scaffold":{"liveStrip":false,"warmup":true}},"syntheticOnly":true,"validated":false},
+{"itemId":"33ad5fc5-33b1-41a3-85e6-0975c5d822aa","typeCode":"SPA-SCENE-01","domain":"spatial","difficulty":10,"ageBands":["4-5","6-8"],"content":{"typeCode":"SPA-SCENE-01","question":{"mode":"order_from_viewpoint","relation":"left_to_right_as_seen_by_robot","prompt":"A wall is in the way. Put the cards the robot CAN see in order, from the robot’s left to its right. Leave out anything the robot cannot see.","requireNearest":false,"hasOcclusion":true},"scene":{"objects":[{"id":0,"shape":"cross","color":"#d6409f","x":0.483,"y":-0.496},{"id":1,"shape":"star","color":"#2f9e56","x":0.53,"y":0.849},{"id":2,"shape":"square","color":"#8e4ec6","x":-0.031,"y":-0.998},{"id":3,"shape":"diamond","color":"#7a5b3a","x":-0.884,"y":0.119}],"robot":{"x":-1.9,"y":0,"headingDeg":0},"barriers":[{"id":0,"x0":0.334,"y0":-0.079,"x1":-0.731,"y1":1.268,"kind":"wall","window":null}],"bounds":{"minX":-1.4,"maxX":1.4,"minY":-1.4,"maxY":1.4}},"view":{"childHeadingDeg":-90,"robotHeadingDeg":0,"viewpointOffsetDeg":90,"viewpointSide":-1,"angularDisparityDeg":90},"distinctiveness":"shape_and_color","response":{"mode":"order_cards","slots":3,"requireNearest":false},"scaffold":{"liveStrip":false,"warmup":false}},"syntheticOnly":true,"validated":false},
+{"itemId":"cbc46fa9-515f-428d-9cc3-4c394cbed134","typeCode":"SPA-SCENE-01","domain":"spatial","difficulty":14.88,"ageBands":["6-8"],"content":{"typeCode":"SPA-SCENE-01","question":{"mode":"order_from_viewpoint","relation":"left_to_right_as_seen_by_robot","prompt":"Walls are in the way. Put the cards the robot CAN see in order, from the robot’s left to its right. Leave out anything the robot cannot see, then tap the one that looks nearest to the robot.","requireNearest":true,"hasOcclusion":true},"scene":{"objects":[{"id":0,"shape":"pentagon","color":"#0f9b9b","x":-0.296,"y":0.464},{"id":1,"shape":"circle","color":"#8e4ec6","x":-0.633,"y":-0.186},{"id":2,"shape":"cross","color":"#2f6bd0","x":-0.666,"y":-0.839},{"id":3,"shape":"diamond","color":"#2f9e56","x":0.999,"y":0.344},{"id":4,"shape":"triangle","color":"#d6409f","x":0.588,"y":-0.299}],"robot":{"x":0,"y":-1.9,"headingDeg":90},"barriers":[{"id":0,"x0":1.002,"y0":-1.003,"x1":0.104,"y1":-0.314,"kind":"wall","window":null},{"id":1,"x0":0.785,"y0":-1.063,"x1":0.048,"y1":-0.469,"kind":"wall","window":null},{"id":2,"x0":-0.812,"y0":0.891,"x1":0.002,"y1":1.295,"kind":"wall","window":null}],"bounds":{"minX":-1.4,"maxX":1.4,"minY":-1.4,"maxY":1.4}},"view":{"childHeadingDeg":-90,"robotHeadingDeg":90,"viewpointOffsetDeg":180,"viewpointSide":-1,"angularDisparityDeg":180},"distinctiveness":"shape_and_color","response":{"mode":"order_cards","slots":3,"requireNearest":true},"scaffold":{"liveStrip":false,"warmup":false}},"syntheticOnly":true,"validated":false},
+{"itemId":"3c7a637d-18a0-4d1e-b865-43d357d255b1","typeCode":"SPA-SCENE-01","domain":"spatial","difficulty":20,"ageBands":["6-8"],"content":{"typeCode":"SPA-SCENE-01","question":{"mode":"order_from_viewpoint","relation":"left_to_right_as_seen_by_robot","prompt":"Walls are in the way. Put the cards the robot CAN see in order, from the robot’s left to its right. The robot can see through a glass window, but not through solid wall. Leave out anything the robot cannot see, then tap the one that looks nearest to the robot.","requireNearest":true,"hasOcclusion":true},"scene":{"objects":[{"id":0,"shape":"circle","color":"#2f6bd0","x":0.37,"y":-0.328},{"id":1,"shape":"circle","color":"#7a5b3a","x":-1.021,"y":-0.23},{"id":2,"shape":"circle","color":"#f5a300","x":-0.325,"y":-0.714},{"id":3,"shape":"circle","color":"#e5484d","x":0.549,"y":0.465},{"id":4,"shape":"circle","color":"#8e4ec6","x":0.927,"y":-0.557},{"id":5,"shape":"circle","color":"#0f9b9b","x":-0.316,"y":0.765}],"robot":{"x":0,"y":-1.9,"headingDeg":90},"barriers":[{"id":0,"x0":0.381,"y0":0.08,"x1":-0.791,"y1":-0.419,"kind":"window_wall","window":{"t0":0.39,"t1":0.61}},{"id":1,"x0":0.919,"y0":-1.54,"x1":0.094,"y1":-0.793,"kind":"window_wall","window":{"t0":0.39,"t1":0.61}},{"id":2,"x0":0.275,"y0":0.393,"x1":0.38,"y1":1.752,"kind":"wall","window":null}],"bounds":{"minX":-1.4,"maxX":1.4,"minY":-1.4,"maxY":1.4}},"view":{"childHeadingDeg":-90,"robotHeadingDeg":90,"viewpointOffsetDeg":180,"viewpointSide":1,"angularDisparityDeg":180},"distinctiveness":"color_only","response":{"mode":"order_cards","slots":4,"requireNearest":true},"scaffold":{"liveStrip":false,"warmup":false}},"syntheticOnly":true,"validated":false}
 ];
 
 /* ---------- wiring ---------- */
@@ -429,7 +493,8 @@ $('#neartray').addEventListener('click',e=>{const b=e.target.closest('.card');if
 $('#strip').addEventListener('click',e=>{const b=e.target.closest('.slot');if(b&&placed.length)undo();});
 $('#undo').addEventListener('click',undo);
 $('#go').addEventListener('click',()=>{if($('#go').classList.contains('ready'))submit();});
-$('#replay').addEventListener('click',()=>{if(current&&!submitted)gestureHint();});
+$('#replay').addEventListener('click',()=>{if(current&&interactive&&!submitted)gestureHint();});
+$('#play').addEventListener('click',()=>{beginItem(gateTutorial);});
 window.addEventListener('keydown',e=>{
   if(!interactive||submitted||e.repeat)return;
   if(/^[1-9]$/.test(e.key)){const o=current.content.scene.objects[+e.key-1];if(o)placeCard(o.id);e.preventDefault();}

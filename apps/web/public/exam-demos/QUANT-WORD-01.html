@@ -35,7 +35,23 @@
   }
   #story p{margin:0 0 6px}
   #story p:last-child{margin-bottom:0}
-  #question{margin-top:10px;padding-top:10px;border-top:2px dashed #ecd9cb;font-weight:800;font-size:19px}
+  #question{
+    border-radius:16px;background:#ffffff;border:2px dashed #ecd9cb;
+    padding:12px 16px;font-weight:800;font-size:19px;
+  }
+  /* One step on screen at a time. The story with its tappable numbers and the answer row
+     are never both present, so choosing the relevant quantities is a separate act from
+     computing with them rather than something to shuttle back and forth between. */
+  #stagecard[data-step="read"] #modelwrap,
+  #stagecard[data-step="read"] #answers,
+  #stagecard[data-step="mark"] #answers,
+  #stagecard[data-step="answer"] #story{display:none}
+  #stagecard[data-step="read"] #reread{visibility:hidden}
+  #stagecard[data-step="answer"] #modelwrap{background:#f8e8de;border-color:#ecd9cb}
+  #steps{display:flex;gap:8px;align-items:center;justify-content:center;font-size:11px;
+    font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#4a6470}
+  #steps span{padding:4px 10px;border-radius:999px;background:#fcf4ef;border:2px solid #ecd9cb}
+  #steps span[data-on="1"]{background:var(--accent);border-color:var(--accent);color:#ffffff}
   .num{
     display:inline-block;min-width:30px;padding:1px 8px;margin:0 1px;border-radius:8px;font:inherit;font-weight:800;
     background:#ffffff;border:2px solid #ecd9cb;color:#33505c;line-height:1.3;
@@ -63,6 +79,9 @@
     box-shadow:0 12px 25px -12px #4a6470;opacity:.35;pointer-events:none;transition:.2s;
   }
   #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.05s infinite}
+  /* The pulse belongs to the commit. On the reading and number steps the same control
+     is a plain "go on" arrow, so it stays still. */
+  #stagecard:not([data-step="answer"]) #go{animation:none}
   @keyframes pulse{50%{transform:scale(1.06)}}
   #ghost{position:fixed;left:0;top:0;z-index:60;opacity:0;pointer-events:none;
     transition:transform .6s cubic-bezier(.3,.6,.2,1),opacity .25s;filter:drop-shadow(0 3px 4px #0004)}
@@ -114,11 +133,15 @@
   <div id="badge">QUANT-WORD-01 · Story Model</div>
   <header id="howto">
     <h1>How to use — Story Model</h1>
-    <p>Read the story, then read the question under the line. Tap the numbers in the story that you will use — that is your model. Then tap the answer you worked out and press the check (<b>&#10003;</b>) to send it. Press <b>&#8635;</b> to read the story again. Not every number in a story is needed.</p>
+    <p>This story comes in three steps. First read it. Then tap the numbers in the story that you will use — that is your model. Then choose your answer. Press <b>&#8594;</b> to go on and <b>&#10003;</b> to send your answer. Press <b>&#8635;</b> to step back to the story. Not every number in a story is needed.</p>
   </header>
   <div id="phasecue" data-phase="warmup">Get ready</div>
-  <section id="stagecard">
-    <div id="story"><p id="storybody"></p><div id="question"></div></div>
+  <section id="stagecard" data-step="read">
+    <div id="steps" aria-hidden="true">
+      <span id="step_read">1 read</span><span id="step_mark">2 numbers</span><span id="step_answer">3 answer</span>
+    </div>
+    <div id="story"><div id="storybody"></div></div>
+    <div id="question"></div>
     <div id="modelwrap">
       <span id="modellabel">Numbers I will use</span>
       <span id="modelempty">none marked yet</span>
@@ -126,11 +149,15 @@
     </div>
     <div id="answers"></div>
     <div id="controls">
-      <button id="reread" title="read the story again" aria-label="read the story again">&#8635;</button>
-      <button id="go" title="send answer" aria-label="send answer">&#10003;</button>
+      <button id="reread" title="step back to the story" aria-label="step back to the story">&#8635;</button>
+      <button id="go" title="go on" aria-label="go on">&#8594;</button>
     </div>
     <div id="status" class="neutral">Waiting for the next story.</div>
   </section>
+  <div id="playgate">
+    <p>The story is ready. Press play when you are, and it starts then.</p>
+    <button type="button" id="play">Play</button>
+  </div>
 </main>
 <aside id="telemetry">
   <h3>Live telemetry · per-child (display only)</h3>
@@ -153,6 +180,20 @@
  * content.readingLoad. The solvable math skeleton (operand table, operation tree,
  * answer step) is NOT in content at all — it lives in the server-only `answer.math`
  * — so nothing the browser receives can be evaluated to recover the key.
+ *
+ * THREE STEPS, one on screen at a time: read the story, mark the numbers that
+ * matter, then answer. Identifying the relevant quantities and computing with them
+ * used to sit on one screen, so a child could shuttle between the answer row and
+ * the story and neither act was observable on its own. The child may step back
+ * towards the story from either later screen; doing so takes the answer row off
+ * screen, so the number-selection screen and the answer screen are never both up.
+ *
+ * WHAT THE SERVER GRADES: `/api/exam-submit` resolves this type to the generic
+ * keyed verifier, which reads `response.selectedKey` only. The relevance selection
+ * (`response.markedNumbers` and the `model` / `step` telemetry events) is PROCESS
+ * data: it is recorded and distinguishable from the answer, but nothing scores it.
+ * Crediting relevance selection would need a per-type verifier, which is a
+ * server-side change this file cannot make.
  *
  * Embedding protocol (postMessage), source-tagged:
  *   host -> demo : {source:'gt-exam-host', type:'init',  item:ServedItem}
@@ -185,8 +226,17 @@ let marked=[];             // model: story-number tokens the child marked, in or
 let markActions=0;         // total mark/unmark actions (model-building effort)
 let numberTokens=[];       // every numeral printed in the story
 let itemStart=0;           // ms timestamp when the item became interactive
-let startTimer=null;       // fallback auto-start timer
 let itemTelemetry=[];      // TelemetryEvent[] for the current item
+let gateTutorial=false;    // does the pending play press owe a gesture hint?
+
+/* The three screens, in order. Exactly one is on show at a time (see the
+   `#stagecard[data-step=...]` rules): the story, then the story with its numbers
+   live, then the answer row with the marked numbers carried over read-only. */
+const STEPS=['read','mark','answer'];
+let step='read';           // current screen
+let stepAt=0;              // ms timestamp the current screen opened
+let stepMs={read:0,mark:0,answer:0};
+let backs=0;               // times the child stepped back towards the story
 
 const M={rt:null,rts:[],firstLat:null,rev:0,blur:0,rereads:0};
 
@@ -197,11 +247,19 @@ function post(msg){if(!embedded)return;try{window.parent.postMessage(Object.assi
 
 /* ---------- derived process metrics (key-free; no correctness anywhere) ---------- */
 function modelProgress(){return numberTokens.length?marked.length/numberTokens.length:0;}
-function planful(){return (marked.length>0 && firstKey===null)||M.plannedFirst?1:0;}
+/* M-PLANFUL: share of the item spent reading and choosing the relevant numbers before
+   the answer row opened. Under the staged flow "did they model before answering" is no
+   longer a choice the child can make, so the metric measures HOW MUCH of the item went
+   into the modelling steps instead of whether any did. */
+function planful(){
+  const totals=stepTotals();
+  const all=totals.read+totals.mark+totals.answer;
+  return all>0?Math.round((1-totals.answer/all)*1000)/1000:0;
+}
 const METERS=[
  {id:'M-PATH',name:'Model actions (numbers marked / unmarked)',get:()=>String(markActions)},
  {id:'M-PROG',name:'Share of story numbers taken into the model',get:()=>numberTokens.length?Math.round(modelProgress()*100)+'%':'\u2014'},
- {id:'M-PLANFUL',name:'Modelled before answering (1) or answered first (0)',get:()=>String(planful())},
+ {id:'M-PLANFUL',name:'Share of the item spent before the answer step',get:()=>planful().toFixed(2)},
  {id:'M-RT',name:'Response time — this item / mean',get:()=>M.rt==null?'\u2014':`${M.rt} ms${M.rts.length>1?` (mean ${mean(M.rts)})`:''}`},
  {id:'M-RTFIRST',name:'First-action latency (read / encode)',get:()=>M.firstLat==null?'\u2014':M.firstLat+' ms'},
  {id:'M-REV',name:'Answer changes',get:()=>String(M.rev)},
@@ -239,13 +297,12 @@ function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width
 async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(620);}
 async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(430);}
 async function gestureHint(){
-  // Reads across the story, points at the number strip, then at the answer row and
-  // the check. It marks nothing and selects nothing, so no answer is revealed.
+  // Reads across the story, then points at the forward control. It only ever points at
+  // what the current step has on screen, marks nothing and selects nothing, so no answer
+  // is revealed and the hint cannot fly at a hidden element.
   ghostShow(true);await sleep(220);
   await ghostTo($('#storybody'));await sleep(160);
   await ghostTo($('#question'));await sleep(160);
-  await ghostTo($('#modelwrap'));await ghostTap();await sleep(140);
-  await ghostTo($('#answers'));await ghostTap();await sleep(140);
   await ghostTo($('#go'));await ghostTap();await sleep(180);
   ghostShow(false);await sleep(240);
 }
@@ -253,6 +310,57 @@ async function gestureHint(){
 /* ---------- rendering the served item ---------- */
 function setCue(k,txt){const el=$('#phasecue');el.dataset.phase=k;el.textContent=txt;}
 function setStatus(kind,msg){const el=$('#status');el.className=kind;el.textContent=msg;}
+
+/* ---------- the three steps ---------- */
+/** Time on each screen so far, including the one still open. */
+function stepTotals(){
+  const out={...stepMs};
+  if(interactive&&!submitted&&stepAt)out[step]+=Date.now()-stepAt;
+  return out;
+}
+const STEP_COPY={
+  read:'Read the whole story, then press the arrow.',
+  mark:'Tap every number in the story you will use, then press the arrow.',
+  answer:'Tap the answer you worked out, then press the check.',
+};
+function setStep(next,via){
+  if(!STEPS.includes(next))return;
+  if(stepAt)stepMs[step]+=Date.now()-stepAt;
+  step=next;stepAt=Date.now();
+  $('#stagecard').dataset.step=step;
+  STEPS.forEach(s=>{$('#step_'+s).dataset.on=s===step?'1':'0';});
+  setNumbersEnabled(step==='mark');
+  setAnswersEnabled(step==='answer');
+  $('#modellabel').textContent=step==='answer'?'Numbers I chose':'Numbers I will use';
+  const last=step==='answer';
+  const go=$('#go');
+  go.innerHTML=last?'&#10003;':'&#8594;';
+  go.title=last?'send answer':'go on';
+  go.setAttribute('aria-label',go.title);
+  go.classList.toggle('ready',!last||staged!==null);
+  setCue('scored',step==='answer'?'Your answer':'Your turn');
+  setStatus('neutral',STEP_COPY[step]);
+  emitEvent('step',{step,via:via||'forward',marked:marked.length});
+  renderMeters();
+}
+/** The forward control: one step on, or the answer on the last step. */
+function advance(){
+  if(!interactive||submitted)return;
+  const at=STEPS.indexOf(step);
+  if(step==='answer'){submit();return;}
+  if(step==='mark'&&marked.length===0){
+    setStatus('neutral','Tap at least one number in the story before you go on.');
+    return;
+  }
+  setStep(STEPS[at+1],'forward');
+}
+/** Step back towards the story. This takes the answer row off screen. */
+function stepBack(){
+  if(!interactive||submitted||step==='read')return;
+  backs++;M.rereads++;
+  emitEvent('reread',{count:M.rereads,from:step});
+  setStep(STEPS[STEPS.indexOf(step)-1],'back');
+}
 
 function renderStory(sentences,question){
   numberTokens=[];
@@ -265,7 +373,7 @@ function renderStory(sentences,question){
       return `<button class="num" data-idx="${idx}" data-val="${part}" aria-label="number ${part}">${part}</button>`;
     }).join('')+'</p>';
   }).join('');
-  $('#storybody').outerHTML=`<div id="storybody">${html}</div>`;
+  $('#storybody').innerHTML=html;
   $('#question').textContent=question;
 }
 function renderModel(){
@@ -276,7 +384,13 @@ function renderModel(){
 function renderServedItem(item){
   current=item;submitted=false;interactive=false;staged=null;firstKey=null;
   selectionOrder=[];marked=[];markActions=0;itemTelemetry=[];
-  M.rev=0;M.firstLat=null;M.blur=0;M.rereads=0;M.plannedFirst=false;
+  M.rev=0;M.firstLat=null;M.blur=0;M.rereads=0;
+  step='read';stepAt=0;stepMs={read:0,mark:0,answer:0};backs=0;
+  $('#stagecard').dataset.step='read';
+  STEPS.forEach(s=>{$('#step_'+s).dataset.on=s==='read'?'1':'0';});
+  $('#go').innerHTML='&#8594;';
+  $('#go').title='go on';$('#go').setAttribute('aria-label','go on');
+  $('#modellabel').textContent='Numbers I will use';
   const c=item.content;
   renderStory(c.storySentences||[],c.question||'');
   renderModel();
@@ -300,18 +414,18 @@ function setAnswersEnabled(on){$$('.answer').forEach(b=>{b.disabled=!on;});}
 
 /* ---------- interaction ---------- */
 function toggleNumber(el){
-  if(!interactive||submitted)return;
+  if(!interactive||submitted||step!=='mark')return;
   const idx=+el.dataset.idx;
   const at=marked.indexOf(idx);
   if(at>=0){marked.splice(at,1);el.classList.remove('marked');}
   else{marked.push(idx);el.classList.add('marked');}
   markActions++;
-  if(firstKey===null&&M.firstLat===null){M.firstLat=Date.now()-itemStart;M.plannedFirst=true;emitEvent('first_action',{via:'mark',latencyMs:M.firstLat});}
+  if(M.firstLat===null){M.firstLat=Date.now()-itemStart;emitEvent('first_action',{via:'mark',latencyMs:M.firstLat});}
   emitEvent('model',{action:at>=0?'unmark':'mark',value:numberTokens[idx],marked:marked.length});
   renderModel();renderMeters();
 }
 function stageOption(el){
-  if(!interactive||submitted)return;
+  if(!interactive||submitted||step!=='answer')return;
   const key=el.dataset.key;
   if(M.firstLat===null){M.firstLat=Date.now()-itemStart;emitEvent('first_action',{via:'answer',latencyMs:M.firstLat});}
   if(staged!==null&&staged!==key){M.rev++;emitEvent('change',{from:staged,to:key});}
@@ -324,13 +438,17 @@ function stageOption(el){
 function submit(){
   if(!interactive||submitted||staged===null)return;
   const rt=Date.now()-itemStart;
+  const totals=stepTotals();
   M.rt=rt;M.rts.push(rt);
   submitted=true;interactive=false;
+  stepMs=totals;stepAt=0;
   $('#go').classList.remove('ready');setNumbersEnabled(false);setAnswersEnabled(false);
   // NEUTRAL acknowledgment only — never correct/incorrect.
   setCue('done','Answer sent');
   setStatus('neutral',standalone?'Answer received. Loading the next story.':'Answer received. Next story coming up.');
-  emitEvent('submit',{selectedKey:staged,rtMs:rt,markedCount:marked.length});
+  emitEvent('submit',{selectedKey:staged,rtMs:rt,markedCount:marked.length,stepMs:totals});
+  // `selectedKey` is the graded field; `markedNumbers` and `stepMs` are the process record
+  // of the relevance step, kept separate from it so the two are never conflated.
   const response={
     selectedKey:staged,
     selectedValue:Number($(`.answer[data-key="${staged}"]`).dataset.value),
@@ -339,6 +457,7 @@ function submit(){
     markedNumbers:marked.map(i=>numberTokens[i]),
     markOrder:marked.slice(),
     storyNumbers:numberTokens.slice(),
+    stepMs:{...totals},stepBacks:backs,
     markActions,rereads:M.rereads,changeCount:M.rev,
   };
   const metrics={
@@ -360,30 +479,36 @@ function submit(){
 }
 
 /* ---------- host-driven lifecycle ---------- */
+/* R1 — the story waits behind the play gate. The item is rendered on `init` but stays
+   covered and inert until the child presses play, which is also when the response clock
+   starts, so M-RT measures reading and reasoning rather than however long they took to
+   look up. */
+function openGate(withTutorial){
+  gateTutorial=!!withTutorial;
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('warmup','Ready when you are');
+  setStatus('neutral','Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
 function onInit(item){
-  clearTimeout(startTimer);
   if(!item||!item.content||!Array.isArray(item.content.storySentences)){log('init ignored: malformed ServedItem');return;}
   renderServedItem(item);
-  setCue('warmup','Get ready');
-  setStatus('neutral','Get ready to read the story.');
-  // Lenient: if the host never sends {type:'start'}, begin shortly on our own.
-  startTimer=setTimeout(()=>{if(!interactive&&!submitted)beginItem(false);},500);
+  openGate(false);
 }
 async function beginItem(withTutorial){
   if(interactive||submitted||!current)return;
-  if(withTutorial&&!tutorialShown){tutorialShown=true;await gestureHint();if(submitted)return;}
+  closeGate();
   // The interaction lock is RELEASED here — every path that shows an item ends
   // in beginItem, so the lock can never survive into the answering phase.
   interactive=true;itemStart=Date.now();
-  setNumbersEnabled(true);setAnswersEnabled(true);
-  setCue('scored','Your turn');
-  setStatus('neutral','Mark the numbers you will use, tap your answer, then press the check.');
+  setStep('read','start');
+  if(withTutorial&&!tutorialShown){tutorialShown=true;await gestureHint();if(submitted)return;}
   renderMeters();
 }
 function onHostMessage(e){
   const d=e.data;if(!d||d.source!==HOST_SRC)return;
   if(d.type==='init')onInit(d.item);
-  else if(d.type==='start'){clearTimeout(startTimer);beginItem(!!d.tutorial);}
+  else if(d.type==='start')openGate(!!d.tutorial);
 }
 
 /* ---------- standalone fallback (QA when there is no host) ---------- */
@@ -403,7 +528,8 @@ async function loadBankSamples(){
   log('standalone: bank fetch unavailable (open via a local server for the full bank) — using inline samples');
   return INLINE_SAMPLES.slice();
 }
-function playStandalone(){const item=standaloneQueue[standaloneIdx%standaloneQueue.length];onInit(item);beginItem(standaloneIdx===0);}
+// Standalone shows the same gate the child sees, so double-click QA exercises it too.
+function playStandalone(){const item=standaloneQueue[standaloneIdx%standaloneQueue.length];onInit(item);openGate(standaloneIdx===0);}
 function advanceStandalone(){standaloneIdx++;playStandalone();}
 async function bootstrapStandalone(){if(standalone)return;standalone=true;standaloneQueue=await loadBankSamples();standaloneIdx=0;playStandalone();}
 
@@ -415,19 +541,15 @@ const INLINE_SAMPLES=[
 ];
 
 /* ---------- wiring ---------- */
+$('#play').addEventListener('click',()=>{if(current&&!interactive&&!submitted)beginItem(gateTutorial);});
 $('#story').addEventListener('click',e=>{const n=e.target.closest('.num');if(n)toggleNumber(n);});
 $('#answers').addEventListener('click',e=>{const o=e.target.closest('.answer');if(o&&!o.disabled)stageOption(o);});
-$('#go').addEventListener('click',()=>{if($('#go').classList.contains('ready'))submit();});
-$('#reread').addEventListener('click',()=>{
-  if(!current||submitted)return;
-  M.rereads++;emitEvent('reread',{count:M.rereads});
-  const s=$('#story');s.style.transition='none';s.style.background='#fff6dd';
-  setTimeout(()=>{s.style.transition='background .5s';s.style.background='';},260);
-  if(!interactive&&!submitted)gestureHint();
-});
+$('#go').addEventListener('click',advance);
+$('#reread').addEventListener('click',stepBack);
 document.addEventListener('keydown',e=>{
   if(!interactive||submitted)return;
-  if(e.key==='Enter'){if($('#go').classList.contains('ready'))submit();return;}
+  if(e.key==='Enter'){advance();return;}
+  if(step!=='answer')return;
   if(/^[1-9]$/.test(e.key)){const o=$$('.answer')[+e.key-1];if(o)stageOption(o);return;}
   const o=$$('.answer').find(b=>b.dataset.key.toUpperCase()===e.key.toUpperCase());if(o)stageOption(o);
 });

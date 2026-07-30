@@ -37,10 +37,6 @@
   .animal.sel{box-shadow:0 0 0 3px var(--accent)}
   .animal.placed{opacity:.25;pointer-events:none}
   #placecount{font-size:13px;color:#6f4526;letter-spacing:.05em;min-height:18px}
-  #diffwrap{width:100%;max-width:340px}
-  #diffbar{height:8px;background:#ecd9cb;border-radius:5px;overflow:hidden}
-  #difffill{height:100%;background:linear-gradient(90deg,#e48b53,#e48b53);width:0%;transition:.3s}
-  #difflabel{font-size:11px;color:#6f4526;text-align:center;margin-top:4px;letter-spacing:.05em}
   #controls{display:flex;gap:16px;align-items:center}
   button{font:inherit;border:0;cursor:pointer;border-radius:50%}
   #replay{width:50px;height:50px;background:#f8e8de;color:var(--accent);font-size:22px}
@@ -95,9 +91,12 @@
       <div id="grid"></div>
       <div id="tray"></div>
       <div id="placecount"></div>
-      <div id="diffwrap"><div id="diffbar"><div id="difffill"></div></div><div id="difflabel">SERVED ITEM</div></div>
       <div id="controls"><button id="replay" title="show how again">&#8635;</button></div>
       <div id="status" class="neutral">Waiting for the next round.</div>
+    </div>
+    <div id="playgate">
+      <p>Watch which creature goes into which house, then put them back. The round starts when you press play.</p>
+      <button type="button" id="play">Play</button>
     </div>
   </div>
   <aside id="telemetry">
@@ -178,7 +177,7 @@ let recallOpenAt=0,stageStart=0,itemTelemetry=[],blurCount=0;
 let gridCols=3;
 
 const embedded=(()=>{try{return window.parent&&window.parent!==window;}catch(_){return true;}})();
-let standalone=false,standaloneQueue=[],standaloneIdx=0,tutorialShown=false,startTimer=null;
+let standalone=false,standaloneQueue=[],standaloneIdx=0,tutorialShown=false,gateTutorial=false;
 function post(msg){if(!embedded)return;try{window.parent.postMessage(Object.assign({source:DEMO_SRC},msg),'*');}catch(_){}}
 
 /* ---------- telemetry panel (DISPLAY ONLY; key-free values) ---------- */
@@ -307,7 +306,8 @@ function renderServedItem(item){
   emitEvent('render',{difficulty:current.difficulty,setSize:responseView.setSize,identitySet:c.identitySet,grid:c.grid.rows+'x'+c.grid.cols});
 }
 async function beginItem(withTutorial){
-  if(!current||submitted)return;
+  if(!current||submitted||presenter)return;
+  closeGate();
   if(withTutorial&&!tutorialShown){tutorialShown=true;await gestureHint();if(submitted)return;}
   const pres=current.content.presentation;
   if(!pres){log('begin ignored: presentation already sealed');return;}
@@ -437,18 +437,25 @@ function pathLength(){
 /* @response-phase:end */
 
 /* ---------- host-driven lifecycle ---------- */
+/* R1 — the exposure waits behind the play gate. It used to begin 600ms after the host delivered
+   the item, so a child still settling missed the first bindings and was then scored on a set they
+   never fully saw. */
+function openGate(withTutorial){
+  gateTutorial=!!withTutorial;
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('warmup');
+  setStatus('neutral','Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
 function onInit(item){
-  clearTimeout(startTimer);
   if(!item||!item.content||!item.content.presentation||!item.content.responsePhase){log('init ignored: malformed ServedItem');return;}
   renderServedItem(item);
-  setCue('warmup');
-  setStatus('neutral','Get ready. The creatures will show you their houses.');
-  startTimer=setTimeout(()=>{if(locked&&!submitted&&current&&current.content.presentation)beginItem(false);},600);
+  openGate(false);
 }
 function onHostMessage(e){
   const d=e.data;if(!d||d.source!==HOST_SRC)return;
   if(d.type==='init')onInit(d.item);
-  else if(d.type==='start'){clearTimeout(startTimer);beginItem(!!d.tutorial);}
+  else if(d.type==='start')openGate(!!d.tutorial);
 }
 
 /* ---------- standalone fallback (QA when there is no host) ---------- */
@@ -469,7 +476,7 @@ async function loadBankSamples(){
   return INLINE_SAMPLES.slice();
 }
 function playStandalone(){const item=standaloneQueue[standaloneIdx%standaloneQueue.length];onInit(item);
-  setTimeout(()=>beginItem(standaloneIdx===0),300);}
+  openGate(standaloneIdx===0);}
 function advanceStandalone(){standaloneIdx++;playStandalone();}
 async function bootstrapStandalone(){if(standalone)return;standalone=true;standaloneQueue=await loadBankSamples();standaloneIdx=0;playStandalone();}
 
@@ -481,6 +488,7 @@ const INLINE_SAMPLES=[
 ];
 
 /* ---------- wiring ---------- */
+$('#play').addEventListener('click',()=>{if(current&&!submitted&&!presenter)beginItem(gateTutorial);});
 $('#tray').addEventListener('click',e=>{const a=e.target.closest('.animal');if(a)onCreatureTap(a.dataset.cid);});
 $('#grid').addEventListener('click',e=>{const h=e.target.closest('.house');if(h)onHouseTap(+h.dataset.i);});
 $('#replay').addEventListener('click',()=>{if(!submitted)gestureHint();});

@@ -124,77 +124,6 @@ describe('FLU-GRIDCOPY-01 verifier', () => {
   });
 });
 
-describe('FLU-MATRIXBUILD-01 verifier', () => {
-  const bank = loadBank('FLU-MATRIXBUILD-01');
-  const verify = verifierFor('FLU-MATRIXBUILD-01');
-
-  it('accepts the tile re-induced from the visible cells, on every bank item', () => {
-    for (const item of bank) {
-      const verdict = verify(item, { constructed: item.answer.canonical });
-      expect(verdict.correct, `${item.itemId} canonical tile`).toBe(true);
-      expect(verdict.metrics?.['M-POLY']).toBe(1);
-      expect(verdict.metrics?.['M-RULEID']).toBe(
-        (item.content.constructedAttributes as string[]).length,
-      );
-    }
-  });
-
-  it('rejects a tile with one attribute wrong, on every bank item', () => {
-    for (const item of bank) {
-      const attributes = item.content.constructedAttributes as string[];
-      const canonical = item.answer.canonical as Record<string, unknown>;
-      const attribute = attributes[0]!;
-      const pickers = item.content.pickers as {
-        attribute: string;
-        options: { value: unknown }[];
-      }[];
-      const wrong = pickers
-        .find((p) => p.attribute === attribute)!
-        .options.find((o) => o.value !== canonical[attribute])!;
-
-      const verdict = verify(item, { constructed: { ...canonical, [attribute]: wrong.value } });
-      expect(verdict.correct, `${item.itemId} one attribute wrong`).toBe(false);
-      expect(verdict.metrics?.['M-POLY']).toBeCloseTo((attributes.length - 1) / attributes.length);
-      expect(verdict.metrics?.['M-RULEID']).toBeUndefined();
-    }
-  });
-
-  it('accepts the declared normalization of an equivalent submission', () => {
-    const item = bank[bank.length - 1]!;
-    const canonical = item.answer.canonical as Record<string, unknown>;
-    const messy: Record<string, unknown> = {};
-    for (const attribute of item.content.constructedAttributes as string[]) {
-      messy[attribute] =
-        attribute === 'count'
-          ? String(canonical[attribute])
-          : ` ${String(canonical[attribute]).toUpperCase()} `;
-    }
-    expect(verify(item, { constructed: messy }).correct).toBe(true);
-  });
-
-  it('re-induces the tile from the visible cells, not the stored key', () => {
-    for (const item of bank) {
-      const canonical = item.answer.canonical as Record<string, unknown>;
-      const corrupted = withCorruptedKey(item, (answer) => {
-        const wrong: Record<string, unknown> = {};
-        for (const attribute of item.content.constructedAttributes as string[]) {
-          wrong[attribute] = attribute === 'count' ? -1 : '__not-an-option__';
-        }
-        answer.canonical = wrong;
-        answer.correctKey = '__corrupt__';
-      });
-      expect(
-        verify(corrupted, { constructed: canonical }).correct,
-        `${item.itemId} solver over key`,
-      ).toBe(true);
-    }
-  });
-
-  it('rejects a malformed response instead of throwing', () => {
-    expectsMalformedToFail('FLU-MATRIXBUILD-01', bank[0]!);
-  });
-});
-
 describe('FLU-CONCEPT-01 verifier', () => {
   const bank = loadBank('FLU-CONCEPT-01');
   const verify = verifierFor('FLU-CONCEPT-01');
@@ -272,6 +201,108 @@ describe('FLU-CONCEPT-01 verifier', () => {
   });
 });
 
+describe('FLU-DEDUCE-01 verifier', () => {
+  const bank = loadBank('FLU-DEDUCE-01');
+  const verify = verifierFor('FLU-DEDUCE-01');
+
+  const candidateKeys = (item: RawBankItem) =>
+    (item.content.candidates as { key: string }[]).map((c) => c.key);
+
+  /**
+   * The trace a child who read every clue correctly would leave, built from the
+   * bank's own `cluesViolated` rationales. That is a different source from the
+   * `content.clues` predicates the verifier evaluates, so agreement here is a
+   * real cross-check of the derivation rather than a restatement of it.
+   */
+  function solvedSteps(item: RawBankItem) {
+    const rationales = item.answer.distractorRationales as Record<
+      string,
+      { cluesViolated?: string[] }
+    >;
+    const eliminated = new Set<string>();
+    return (item.content.clues as { clueId: string }[]).map((clue) => {
+      for (const [key, rationale] of Object.entries(rationales)) {
+        if (rationale.cluesViolated?.includes(clue.clueId)) eliminated.add(key);
+      }
+      return { clueId: clue.clueId, eliminated: [...eliminated] };
+    });
+  }
+
+  it('accepts the elimination trace the clues force, on every bank item', () => {
+    for (const item of bank) {
+      const verdict = verify(item, { steps: solvedSteps(item) });
+      expect(verdict.correct, `${item.itemId} solver trace`).toBe(true);
+      expect(verdict.metrics?.['M-POLY']).toBe(1);
+      expect(verdict.metrics?.['M-ERRTYPE']).toBe(1);
+    }
+  });
+
+  it('leaves exactly the answer key standing at the last step, on every bank item', () => {
+    for (const item of bank) {
+      const steps = solvedSteps(item);
+      const standing = candidateKeys(item).filter((k) => !steps.at(-1)!.eliminated.includes(k));
+      expect(standing, `${item.itemId} survivor`).toEqual([item.answer.correctKey]);
+    }
+  });
+
+  it('rejects a trace that leaves one ruled-out suspect standing, on every bank item', () => {
+    for (const item of bank) {
+      const steps = solvedSteps(item);
+      const last = steps.at(-1)!;
+      const verdict = verify(item, {
+        steps: steps.map((step) =>
+          step === last ? { ...step, eliminated: step.eliminated.slice(0, -1) } : step,
+        ),
+      });
+      expect(verdict.correct, `${item.itemId} under-pruned`).toBe(false);
+      // Under-pruning only: M-ERRTYPE stays at its best value, and the single
+      // wrong state costs one cell of the graded grid.
+      expect(verdict.metrics?.['M-ERRTYPE']).toBe(1);
+      const cells = steps.length * candidateKeys(item).length;
+      expect(verdict.metrics?.['M-POLY']).toBeCloseTo((cells - 1) / cells);
+    }
+  });
+
+  it('scores crossing out the one suspect every clue admits as the worse error', () => {
+    const item = bank[0]!;
+    const key = item.answer.correctKey as string;
+    const steps = solvedSteps(item).map((step) => ({
+      ...step,
+      eliminated: [...step.eliminated, key],
+    }));
+    const verdict = verify(item, { steps });
+    expect(verdict.correct).toBe(false);
+    expect(verdict.metrics?.['M-ERRTYPE']).toBe(0);
+  });
+
+  it('rejects a trace whose steps do not line up with the clues', () => {
+    const item = bank.find((entry) => (entry.content.clues as unknown[]).length > 1)!;
+    const steps = solvedSteps(item);
+    expect(verify(item, { steps: steps.slice(0, -1) }).correct, 'short trace').toBe(false);
+    expect(verify(item, { steps: [...steps].reverse() }).correct, 'reordered trace').toBe(false);
+  });
+
+  it('re-derives the eliminations from the clues, not the stored key', () => {
+    for (const item of bank) {
+      const steps = solvedSteps(item);
+      const corrupted = withCorruptedKey(item, (answer) => {
+        answer.correctKey = `${String(answer.correctKey)}~wrong`;
+        answer.distractorRationales = {};
+        answer.targetFigure = null;
+      });
+      expect(verify(corrupted, { steps }).correct, `${item.itemId} solver over key`).toBe(true);
+    }
+  });
+
+  it('rejects a malformed response instead of throwing', () => {
+    expectsMalformedToFail('FLU-DEDUCE-01', bank[0]!);
+    const item = bank[0]!;
+    expect(verify(item, { steps: 'nonsense' }).correct).toBe(false);
+    expect(verify(item, { steps: [{ eliminated: [7] }] }).correct).toBe(false);
+    expect(verify(item, { selectedKey: item.answer.correctKey }).correct).toBe(false);
+  });
+});
+
 describe('CX-check-01 verifier', () => {
   const bank = loadBank('CX-check-01');
   const verify = verifierFor('CX-check-01');
@@ -329,63 +360,6 @@ describe('CX-check-01 verifier', () => {
 
   it('rejects a malformed response instead of throwing', () => {
     expectsMalformedToFail('CX-check-01', bank[0]!);
-  });
-});
-
-describe('CX-curious-02 verifier', () => {
-  const bank = loadBank('CX-curious-02');
-  const verify = verifierFor('CX-curious-02');
-
-  it('accepts the option the scene never supports, on every bank item', () => {
-    for (const item of bank) {
-      expect(
-        verify(item, { gapKey: item.answer.correctKey }).correct,
-        `${item.itemId} gap pick`,
-      ).toBe(true);
-    }
-  });
-
-  it('rejects an option the scene states outright, on every bank item', () => {
-    for (const item of bank) {
-      const wrong = (item.content.gapOptions as { id: string }[]).find(
-        (o) => o.id !== item.answer.correctKey,
-      )!;
-      expect(verify(item, { gapKey: wrong.id }).correct, `${item.itemId} stated option`).toBe(
-        false,
-      );
-    }
-  });
-
-  it('never scores the questions or the guesses', () => {
-    const item = bank[0]!;
-    const questions = [{ text: 'who lives there?' }, { text: 'why is it shiny?' }];
-    const withQuestions = verify(item, {
-      gapKey: item.answer.correctKey,
-      questions,
-      causeGuesses: [],
-      nextGuesses: [],
-    });
-    const withNone = verify(item, { gapKey: item.answer.correctKey });
-    expect(withQuestions).toEqual(withNone);
-  });
-
-  it('re-derives the gap from the evidence model, not the stored key', () => {
-    for (const item of bank) {
-      const stated = (item.content.gapOptions as { id: string }[]).find(
-        (o) => o.id !== item.answer.correctKey,
-      )!;
-      const corrupted = withCorruptedKey(item, (answer) => {
-        answer.correctKey = stated.id;
-      });
-      expect(
-        verify(corrupted, { gapKey: item.answer.correctKey }).correct,
-        `${item.itemId} evidence model over key`,
-      ).toBe(true);
-    }
-  });
-
-  it('rejects a malformed response instead of throwing', () => {
-    expectsMalformedToFail('CX-curious-02', bank[0]!);
   });
 });
 
@@ -454,22 +428,5 @@ describe('CX-achieve-02 verifier', () => {
 
   it('rejects a malformed response instead of throwing', () => {
     expectsMalformedToFail('CX-achieve-02', bank[0]!);
-  });
-});
-
-describe('divergent-production types', () => {
-  it('has no verifier for the types with no deterministic correctness', () => {
-    // CX-diverge-01 and CX-figural-01 are `model_judge_deferred` banks with
-    // `answer.correctKey === null`: no response is wrong, and M-ORIG / M-FLEX
-    // need a norm bank and a clusterer that do not exist (E-093). A verifier
-    // here would have to invent a correctness rule, so there deliberately is
-    // none — the types stay unserved rather than being scored on fiction.
-    expect(fluidVerifiers['CX-diverge-01']).toBeUndefined();
-    expect(fluidVerifiers['CX-figural-01']).toBeUndefined();
-    for (const typeCode of ['CX-diverge-01', 'CX-figural-01']) {
-      for (const item of loadBank(typeCode)) {
-        expect(item.answer.correctKey, `${typeCode} ${item.itemId}`).toBeNull();
-      }
-    }
   });
 });

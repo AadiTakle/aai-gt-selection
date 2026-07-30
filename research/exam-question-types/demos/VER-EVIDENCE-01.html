@@ -31,6 +31,23 @@
                  metrics:{'M-RT','M-RTFIRST','M-REV','M-PATH','M-VOCABLVL'},
                  telemetry:[TelemetryEvent] }
 
+  The two decisions are sequenced on screen and are never live at the same time. Step 1
+  asks for the claim and shows the choices. Choosing one starts step 2: the choices
+  collapse to the answer that was picked plus a "Change answer" button, a prompt appears
+  INSIDE the passage band, and every sentence takes a visible tap affordance — so the
+  proof is asked for in the place the child has to look, and they are not re-reading
+  claims while hunting a sentence. Both decisions remain permitted in either order: a
+  child who spots the proof first is not blocked, and the order they worked in stays
+  visible in `sentenceTapPath` and the revision counts. The response shape is unchanged:
+  the two-part key is graded server-side with weighted partial credit.
+
+  The per-band difficulty table proposed for this type in the improvement plan is
+  [proposed] and is NOT implemented here; the bank's difficulty assignment is untouched.
+
+  R1: the passage is a timed reading stimulus, so `init` renders the item behind the play
+  gate and `start` only arms it. The item becomes live — and M-RT starts — when the child
+  presses play, not when the host happened to send `start`.
+
   D-017: reading is a required baseline-literacy gate. This type previously reached
   K-1 through a narrated story with comic panels; that is prohibited, so the floor is
   grade 2 and the passage is on-screen TEXT at every band. This file contains no
@@ -64,20 +81,37 @@
   #passageText .sent:hover{background:#f8e8de}
   #passageText .sent.ev{background:#ecd9cb;border-color:var(--good)}
   #passageText.locked .sent{cursor:default}
+  /* Step 2 affordance: once the claim is chosen, every sentence is visibly a thing you tap.
+     Before that the passage reads as prose, so step 1 is the only thing asking to be answered. */
+  #passageBand.armed{border-color:#ebba9b;box-shadow:0 0 0 3px #f5ddcd}
+  #passageText.armed .sent{background:#ffffff;border-color:#ecd9cb;box-shadow:inset 0 -3px 0 #ebba9b}
+  #passageText.armed .sent:hover{background:#f8e8de;border-color:#ebba9b}
+  #passageText.armed .sent.ev{background:#ecd9cb;border-color:var(--good);box-shadow:none}
+  /* The prompt the review asked for: it appears when step 2 starts, directly above the
+     sentences it is talking about, so "go back into the passage" is where the child is looking. */
+  #evidencecue{display:none;align-items:center;gap:10px;background:var(--accent);color:#ffffff;border-radius:12px;padding:10px 14px;font-size:14px;font-weight:700;line-height:1.4;box-shadow:0 12px 26px -16px #002a3a;animation:cuepop .28s ease-out}
+  #evidencecue.show{display:flex}
+  #evidencecue .arrow{font-size:20px;line-height:1}
+  @keyframes cuepop{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
   #qBand{background:linear-gradient(160deg,#fcf4ef,#fcf4ef);border:3px solid #f8e8de;align-items:center}
   #stepcue{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#4a6470;text-align:center;font-weight:800}
   #qText{font-size:18px;font-weight:700;text-align:center}
   #optsBand{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+  /* Step 2 puts the claims away. The child is hunting a sentence now, so the choices
+     collapse to the one they made plus a way back — never a live list to re-read while
+     they are looking somewhere else. */
+  #answerSummary{display:none;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;font-size:14px;color:#33505c}
+  #answerSummary .chosen{background:#f5ddcd;border:3px solid var(--accent);border-radius:14px;padding:8px 14px;font-weight:700;max-width:330px}
+  #changeans{font:inherit;font-size:13px;font-weight:700;border:2px solid #ecd9cb;background:#ffffff;color:var(--accent);border-radius:999px;padding:7px 14px;cursor:pointer}
+  #changeans:hover{border-color:var(--accent)}
+  #qBand.step2 #optsBand{display:none}
+  #qBand.step2 #answerSummary{display:flex}
   .opt{display:flex;align-items:center;gap:6px;background:#fcf4ef;border:3px solid #f8e8de;border-radius:14px;padding:10px 14px 10px 22px;cursor:pointer;font-size:14px;position:relative;max-width:330px}
   .opt .hk{font-size:10px;color:#6f4526;font-weight:700;position:absolute;top:3px;left:6px}
   .opt.sel{border-color:var(--accent);background:#f5ddcd}
   .opt.locked{cursor:default;opacity:.9}
   #picks{display:flex;gap:12px;justify-content:center;font-size:12px;color:#6f4526;flex-wrap:wrap}
   #picks span b{color:#4a6470}
-  #diffmeter{width:100%;display:flex;align-items:center;gap:8px;font-size:11px;color:#4a6470}
-  #diffbar{flex:1;height:8px;background:#fcf4ef;border-radius:6px;overflow:hidden}
-  #diffbar i{display:block;height:100%;background:linear-gradient(90deg,#004f71,#ebba9b);width:0%;transition:.3s}
-  #diffval{min-width:96px;text-align:right;font-weight:700;color:#6f4526}
   #controls{display:flex;gap:16px;align-items:center;justify-content:center}
   button.rd{font:inherit;border:0;cursor:pointer;border-radius:50%}
   #go{width:64px;height:64px;background:var(--accent);color:#ffffff;font-size:26px;box-shadow:0 10px 24px -8px var(--accent);opacity:.35;pointer-events:none;transition:.2s}
@@ -122,26 +156,31 @@
     <div id="badge">VER-EVIDENCE-01 &middot; Proof Hunt</div>
     <header id="howto">
       <h1>How to use &mdash; Proof Hunt</h1>
-      <p>Read the story, then read the question. First tap the best answer (or press its number key). Then tap the one sentence in the story that <b>proves</b> your answer &mdash; it turns green, and tapping another sentence moves the proof. When you have both, press the check (<b>&#10003;</b>). You need the right answer <b>and</b> the right proof.</p>
+      <p>Press <b>play</b> when you are ready &mdash; the story appears then. <b>Step 1:</b> read the story and tap the best answer to the question (or press its number key). <b>Step 2:</b> the choices tuck away, the story lights up and asks you for the proof &mdash; tap the one sentence that <b>proves</b> your answer. It turns green, and tapping another sentence moves the proof. <b>Change answer</b> brings the choices back. When you have both, press the check (<b>&#10003;</b>). You need the right answer <b>and</b> the right proof.</p>
     </header>
     <div id="phasecue" data-phase="ready">Ready</div>
     <div id="stagecard">
       <div id="passageBand" class="band">
         <div id="passageTitle"></div>
+        <div id="evidencecue" role="status" aria-live="polite"><span class="arrow" aria-hidden="true">&#8595;</span><span id="evidencecueText"></span></div>
         <div id="passageText"></div>
       </div>
       <div id="qBand" class="band">
         <div id="stepcue">Step 1 &mdash; pick the answer</div>
         <div id="qText"></div>
         <div id="optsBand"></div>
+        <div id="answerSummary"><span>Your answer:</span><span class="chosen" id="chosenText"></span><button type="button" id="changeans">Change answer</button></div>
       </div>
       <div id="picks"><span>Answer: <b id="pickAns">not chosen</b></span><span>Proof: <b id="pickEv">not chosen</b></span></div>
-      <div id="diffmeter"><span>Easy</span><div id="diffbar"><i id="diffbarfill"></i></div><span>Hard</span><span id="diffval">level &mdash; / 20</span></div>
       <div id="controls">
         <button class="rd" id="replay" title="replay how-to">&#8635;</button>
         <button class="rd" id="go" title="submit">&#10003;</button>
       </div>
       <div id="status" class="neutral">Waiting for the first item&hellip;</div>
+    </div>
+    <div id="playgate">
+      <p>The story is ready. Press play when you are, and it starts then.</p>
+      <button type="button" id="play">Play</button>
     </div>
   </div>
   <aside id="telemetry">
@@ -168,7 +207,8 @@ function post(type,payload){
 /* ---------------- item state ---------------- */
 let item=null,content=null,options=[],sentences=[],
     selAns=null,selEv=null,ansChanges=0,evChanges=0,tapPath=[],optionsSeen=new Set(),
-    itemStart=0,firstAt=null,telemetryLog=[],locked=true,resultSent=false,inputModality='tap';
+    itemStart=0,firstAt=null,telemetryLog=[],locked=true,resultSent=false,inputModality='tap',
+    gateTutorial=false;    // does the pending play press owe a how-to walkthrough?
 
 function recordEv(ev){ev.t=itemStart?Date.now()-itemStart:0;telemetryLog.push(ev);post('telemetry',{event:ev});}
 function log(msg){const t=itemStart?Date.now()-itemStart:0;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
@@ -198,25 +238,71 @@ function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textC
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function difficultyOf(it){const d=(it&&it.difficulty!=null)?it.difficulty:0;return +d||0;}
 
+/* ---------------- the two steps, made explicit ----------------
+   Both decisions used to be live at once, so the proof half was easy to walk past:
+   a child could tap an option, see the check stay dim, and not know what was missing.
+   The two are now separate steps on screen.
+
+   Step 1 asks the question and shows the choices; the passage reads as prose.
+   Choosing an answer starts step 2: the choices COLLAPSE to the one that was picked
+   (plus a way back to change it), a prompt appears inside the passage band, and every
+   sentence takes a visible tap affordance. So the child is never re-reading a list of
+   claims while hunting a sentence, and "go back into the story and show me the proof"
+   is stated in the place they have to look.
+
+   Sentences stay clickable during step 1 as well: a child who notices the proof first
+   loses nothing, and the order they worked in is in `sentenceTapPath` either way. What
+   changed is what the screen ASKS for at each moment, not what it permits. */
+function enterProofStep(silent){
+  $('#qBand').classList.add('step2');
+  $('#stepcue').textContent='Step 2 \u2014 tap the sentence that proves it';
+  $('#passageBand').classList.add('armed');
+  $('#passageText').classList.add('armed');
+  if(selEv===null){
+    $('#evidencecueText').textContent=(content&&content.evidencePrompt)||'Now tap the sentence in the story that proves your answer.';
+    $('#evidencecue').classList.add('show');
+  }
+  const band=$('#passageBand');
+  if(band.scrollIntoView)band.scrollIntoView({behavior:'smooth',block:'nearest'});
+  if(!silent)recordEv({kind:'evidence_prompt_shown'});
+}
+function exitProofStep(){
+  $('#qBand').classList.remove('step2');
+  $('#stepcue').textContent='Step 1 \u2014 pick the answer';
+  $('#passageBand').classList.remove('armed');
+  $('#passageText').classList.remove('armed');
+  $('#evidencecue').classList.remove('show');
+  $('#evidencecueText').textContent='';
+}
+function hideEvidenceCue(){$('#evidencecue').classList.remove('show');}
+/* Back to step 1 on the child's own initiative. The answer they already gave stays
+   selected — reopening the list is for changing it, not for starting over. */
+function reopenAnswerStep(){
+  if(locked||resultSent)return;
+  exitProofStep();
+  setCue('answer');
+  setStatus('neutral','Pick the answer you want, and the story will ask you for the proof again.');
+  recordEv({kind:'reopen_answer_step'});
+  log('child reopened step 1 to change the answer');
+}
+
 function setItem(served){
   item=served;content=(served&&served.content)||{};
   options=(content.options||[]).slice();
   sentences=((content.passage&&content.passage.sentences)||[]).slice();
   selAns=null;selEv=null;ansChanges=0;evChanges=0;tapPath=[];optionsSeen=new Set();
-  itemStart=Date.now();firstAt=null;telemetryLog=[];resultSent=false;locked=false;
+  itemStart=Date.now();firstAt=null;telemetryLog=[];resultSent=false;locked=true;
   $('#passageTitle').textContent=(content.passage&&content.passage.title)||'';
   $('#passageText').classList.remove('locked');
+  exitProofStep();
+  $('#chosenText').textContent='';
   $('#passageText').innerHTML=sentences.map(s=>`<span class="sent" data-key="${s.key}">${esc(s.text)}</span>`).join(' ');
   $('#qText').textContent=(content.question&&content.question.text)||'';
   $('#optsBand').innerHTML=options.map((o,i)=>`<div class="opt" data-key="${o.key}"><span class="hk">${i+1}</span>${esc(o.text)}</div>`).join('');
   $('#stepcue').textContent='Step 1 \u2014 pick the answer';
   $('#pickAns').textContent='not chosen';$('#pickEv').textContent='not chosen';
   const d=difficultyOf(served);
-  $('#diffbarfill').style.width=Math.max(0,Math.min(100,d/20*100))+'%';
-  $('#diffval').textContent='level '+(Math.round(d*10)/10)+' / 20';
   $('#go').classList.remove('ready');
-  setCue('answer');
-  setStatus('neutral','Read the story, then choose the answer. After that, tap the sentence that proves it.');
   log(`INIT item ${served&&served.itemId?served.itemId:'(no id)'} \u00b7 ${sentences.length} sentences \u00b7 ${options.length} options \u00b7 lexical band ${content.vocabularyLevel} \u00b7 level ${Math.round(d*10)/10}`);
   recordEv({kind:'shown',itemId:served&&served.itemId,sentenceCount:sentences.length,optionCount:options.length});
   renderMeters();
@@ -230,10 +316,13 @@ function selectAnswer(key,via){
   selAns=key;optionsSeen.add(key);
   $$('#optsBand .opt').forEach(o=>o.classList.toggle('sel',o.dataset.key===key));
   $('#pickAns').textContent=key;
-  $('#stepcue').textContent='Step 2 \u2014 tap the sentence that proves it';
+  const chosen=options.find(o=>o.key===key);
+  $('#chosenText').textContent=chosen?chosen.text:key;
   setCue('proof');
   recordEv({kind:'select_answer',key,via});
   log(`answer ${key} chosen`);
+  enterProofStep();
+  if(selEv===null)setStatus('neutral',(content&&content.evidencePrompt)||'Now tap the sentence in the story that proves your answer.');
   maybeReady();renderMeters();
 }
 function selectEvidence(key,via){
@@ -243,14 +332,40 @@ function selectEvidence(key,via){
   selEv=key;tapPath.push(key);
   $$('#passageText .sent').forEach(s=>s.classList.toggle('ev',s.dataset.key===key));
   $('#pickEv').textContent=key;
+  hideEvidenceCue();
   recordEv({kind:'select_evidence',key,via});
   log(`proof ${key} chosen`);
+  if(selAns===null)setStatus('neutral','Proof marked. Now tap the answer to the question below.');
   maybeReady();renderMeters();
 }
 function maybeReady(){
   const ready=selAns!==null&&selEv!==null&&!locked;
   $('#go').classList.toggle('ready',ready);
   if(ready)setStatus('neutral','Both parts chosen. Press the check to send, or change either one first.');
+}
+
+/* ---------------- play gate (R1) ----------------
+   The passage is a timed reading stimulus, so it must not be uncovered — and M-RT must
+   not start — before the child has looked up. `init` renders the item behind the gate;
+   `start` only arms it. Pressing play is what makes the item live. */
+function openGate(withTutorial){
+  gateTutorial=!!withTutorial;
+  locked=true;
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('ready');
+  setStatus('neutral','Press play when you are ready.');
+  $('#go').classList.remove('ready');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
+async function beginItem(withTutorial){
+  if(!content||!locked||resultSent)return;
+  closeGate();
+  locked=false;
+  itemStart=Date.now();firstAt=null;
+  setCue('answer');
+  setStatus('neutral','Read the story, then choose the answer. After that, tap the sentence that proves it.');
+  if(withTutorial)await runHowto();
+  renderMeters();
 }
 
 function submit(){
@@ -298,25 +413,52 @@ const ghost=$('#ghost');
 function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
 async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(520);}
 async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(340);}
+let howtoRunning=false,howtoAbort=false;
 async function runHowto(){
-  if(!content)return;
-  const wasLocked=locked;locked=true;
+  // Not behind the gate (the panel is covered, so the pointer would mime at nothing)
+  // and not on top of itself, which would leave `locked` wherever the last run found it.
+  if(!content||howtoRunning||document.documentElement.getAttribute('data-gt-gate')==='closed')return;
+  howtoRunning=true;howtoAbort=false;
+  locked=true;
   setCue('demo');
-  setStatus('neutral','The pointer shows the motion: read the story, tap an answer, then tap a sentence as the proof, then press the check.');
+  setStatus('neutral','The pointer shows the motion: read the story, tap an answer, then the story asks you for the proof \u2014 tap the sentence that proves it, then press the check.');
   ghost.classList.add('show');
+  const mimed=selAns===null&&selEv===null;   // nothing chosen yet, so step 2 can be mimed
   await ghostTo($('#passageText'));
-  await ghostTo(document.querySelector('#optsBand .opt'));await ghostTap();
-  await ghostTo(document.querySelector('#passageText .sent'));await ghostTap();
-  await ghostTo($('#go'));await ghostTap();
-  ghost.classList.remove('show');await sleep(200);
-  locked=wasLocked;
+  if(!howtoAbort){await ghostTo(document.querySelector('#optsBand .opt'));await ghostTap();}
+  if(!howtoAbort&&mimed)enterProofStep(true);
+  if(!howtoAbort){await ghostTo(document.querySelector('#passageText .sent'));await ghostTap();}
+  if(!howtoAbort){await ghostTo($('#go'));await ghostTap();}
+  if(mimed&&selAns===null&&selEv===null)exitProofStep();
+  if(!howtoAbort)await sleep(200);
+  endHowto();
+}
+/* A tap during the walkthrough is a child who already knows what to do, so the mime stops
+   and their tap counts rather than being swallowed by an animation. Every exit from the
+   walkthrough runs through here, so the lock can never be left on once interaction
+   resumes. */
+function endHowto(){
+  if(!howtoRunning)return;
+  howtoRunning=false;howtoAbort=false;
+  ghost.classList.remove('show');
+  if(resultSent)return;
+  locked=false;
   setCue(selAns===null?'answer':'proof');
   setStatus('neutral','Your turn. Choose the answer, then tap the sentence that proves it.');
   maybeReady();
 }
+function interruptHowto(){if(howtoRunning){howtoAbort=true;endHowto();}}
 
 /* ---------------- input ---------------- */
+$('#play').addEventListener('click',()=>{beginItem(gateTutorial);});
+// Capture phase on the two answer surfaces only: the tap that stops the walkthrough is the
+// same tap that then chooses, and the how-to control itself stays inert while it is playing.
+for(const sel of ['#optsBand','#passageText']){
+  $(sel).addEventListener('pointerdown',interruptHowto,true);
+  $(sel).addEventListener('click',interruptHowto,true);
+}
 $('#optsBand').addEventListener('click',e=>{const o=e.target.closest('.opt');if(o)selectAnswer(o.dataset.key,'tap');});
+$('#changeans').addEventListener('click',reopenAnswerStep);
 $('#passageText').addEventListener('click',e=>{const s=e.target.closest('.sent');if(s)selectEvidence(s.dataset.key,'tap');});
 document.addEventListener('keydown',e=>{
   if(locked)return;
@@ -362,19 +504,19 @@ const SAMPLES=[
 ];
 let sIdx=0;
 function startStandalone(){$('#chanval').textContent='standalone (no host)';sIdx=0;nextStandalone(true);}
-async function nextStandalone(first){
+function nextStandalone(first){
   if(sIdx>=SAMPLES.length){setCue('done');setStatus('ok','Demo complete. Press \u21bb or reload to run the examples again.');locked=true;return;}
   const s=SAMPLES[sIdx++];
   setItem(s);
-  setCue('answer','\u00b7 example '+sIdx+'/'+SAMPLES.length);
-  if(first)await runHowto();
+  openGate(!!first);
+  setCue('ready','\u00b7 example '+sIdx+'/'+SAMPLES.length);
 }
 
 /* ---------------- host message handling ---------------- */
 window.addEventListener('message',e=>{
   const d=e.data;if(!d||d.source!==SRC_HOST)return;
   if(d.type==='init'&&d.item){hostSeen=true;$('#chanval').textContent='host-embedded';setItem(d.item);}
-  else if(d.type==='start'){if(content&&!resultSent){itemStart=Date.now();locked=false;setStatus('neutral','Your turn. Choose the answer, then tap the sentence that proves it.');maybeReady();}}
+  else if(d.type==='start'){if(content&&!resultSent)openGate(!!d.tutorial);}
 });
 
 /* ---------------- boot ---------------- */

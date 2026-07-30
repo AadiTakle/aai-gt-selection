@@ -71,10 +71,6 @@
   #replay{width:50px;height:50px;background:#f8e8de;color:#004f71;font-size:22px}
   #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:60;opacity:0;transition:transform .55s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
   #ghost.show{opacity:.92}
-  #diffmeter{width:100%;display:flex;align-items:center;gap:8px;font-size:11px;color:#4a6470}
-  #diffbar{flex:1;height:8px;background:#fcf4ef;border-radius:6px;overflow:hidden}
-  #diffbar i{display:block;height:100%;background:linear-gradient(90deg,#004f71,#ebba9b);width:0%;transition:.3s}
-  #diffval{min-width:96px;text-align:right;font-weight:700;color:#6f4526}
   #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
   #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#ffffff;background:#002a3a;text-transform:uppercase}
   #chan{padding:6px 14px;font-size:11px;color:var(--tel-dim);border-bottom:1px solid #33505c}
@@ -115,12 +111,15 @@
     <div id="stagecard">
       <div id="sentBand" class="band"><div id="sentText"></div></div>
       <div id="candGrid"></div>
-      <div id="diffmeter"><span>Easy</span><div id="diffbar"><i id="diffbarfill"></i></div><span>Hard</span><span id="diffval">level &mdash; / 20</span></div>
       <div id="controls">
         <button class="rd" id="replay" title="replay how-to">&#8635;</button>
         <button class="rd" id="go" title="submit">&#10003;</button>
       </div>
       <div id="status" class="neutral">Waiting for the first item&hellip;</div>
+    </div>
+    <div id="playgate">
+      <p>The sentence is ready. Press play when you are, and it starts then.</p>
+      <button type="button" id="play">Play</button>
     </div>
   </div>
   <aside id="telemetry">
@@ -167,7 +166,10 @@ function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=ki
 
 /* ---------------- item state ---------------- */
 let item=null, options=[], selected=null, order=[], tried=null, changes=0,
-    itemStart=0, firstAt=null, locked=true, inputModality='tap', telemetryLog=[];
+    itemStart=0, firstAt=null, locked=true, inputModality='tap', telemetryLog=[],
+    gateOpen=false,        // is the play gate armed and waiting for a press?
+    gateTutorial=false,    // does the pending play press owe a how-to walkthrough?
+    howtoRunning=false;    // one walkthrough at a time, however often replay is pressed
 
 function esc(s){return String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
 function tokenText(o){return (o&&o.token&&o.token.text)!=null?o.token.text:(o&&o.text!=null?o.text:'?');}
@@ -187,15 +189,11 @@ function setItem(served){
   item=served;
   const c=(served&&served.content)||{};
   options=(c.options||[]).map((o)=>({token:{text:tokenText(o)}}));
-  selected=null;order=[];tried=new Set();changes=0;firstAt=null;telemetryLog=[];itemStart=Date.now();locked=false;
+  selected=null;order=[];tried=new Set();changes=0;firstAt=null;telemetryLog=[];itemStart=0;locked=true;
   $('#sentText').innerHTML=frameHTML(c.sentenceFrame,null);
   $('#candGrid').innerHTML=options.map((o,i)=>`<div class="cand" data-i="${i}"><span class="hk">${i+1}</span><span class="word">${esc(o.token.text)}</span></div>`).join('');
   const d=difficultyOf(served);
-  $('#diffbarfill').style.width=Math.max(0,Math.min(100,d/20*100))+'%';
-  $('#diffval').textContent='level '+(Math.round(d*10)/10)+' / 20';
   $('#go').classList.remove('ready');
-  setCue('answer');
-  setStatus('neutral','Read the whole sentence, tap the best word, then press the check.');
   log(`INIT item ${served&&served.itemId?served.itemId:'(no id)'} · "${(c.sentenceFrame||'')}" · ${options.length} options · level ${Math.round(d*10)/10}`);
   recordEv({kind:'shown',itemId:served&&served.itemId,difficulty:d,optionCount:options.length});
   renderMeters();
@@ -255,9 +253,13 @@ function submit(){
 const ghost=$('#ghost');
 function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
 async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(500);}
+/* The walkthrough no longer owns `locked` — the play gate decides when the item is live, and
+   the pointer is a wordless hint the child may ignore and answer straight through, as in every
+   other demo. It also refuses to stack: pressing replay repeatedly used to queue overlapping
+   walkthroughs that each unlocked on their own schedule. */
 async function runHowto(){
-  if(!item)return;
-  const wasLocked=locked;locked=true;setCue('demo');
+  if(!item||howtoRunning||gateOpen)return;
+  howtoRunning=true;setCue('demo');
   setStatus('neutral','Read the whole sentence, then read each choice, then press the check.');
   ghost.classList.add('show');await sleep(250);
   await ghostTo($('#sentText'));
@@ -265,7 +267,31 @@ async function runHowto(){
   await ghostTo($('#go'));
   await sleep(200);ghost.classList.remove('show');await sleep(250);
   setCue('answer');setStatus('neutral','Your turn. Tap the best word, then press the check.');
+  howtoRunning=false;
+}
+
+/* ---------------- play gate (R1) ----------------
+   M-RT and M-RTFIRST are scored, so the clock must not start before the child has looked
+   up: `init` renders the sentence behind the closed gate, `start` only arms it, and pressing
+   play is what unlocks the words and starts the clock. */
+function openGate(withTutorial){
+  gateOpen=true;gateTutorial=!!withTutorial;
+  locked=true;
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('ready');
+  setStatus('neutral','Press play when you are ready.');
+  $('#go').classList.remove('ready');
+}
+function closeGate(){gateOpen=false;document.documentElement.removeAttribute('data-gt-gate');}
+async function beginItem(withTutorial){
+  if(!item||!gateOpen)return;   // a second press of play is a no-op
+  closeGate();
+  if(withTutorial)await runHowto();   // still locked: the clock starts after the walkthrough
   locked=false;
+  itemStart=Date.now();firstAt=null;
+  setCue('answer');
+  setStatus('neutral','Read the whole sentence, tap the best word, then press the check.');
+  renderMeters();
 }
 
 /* ---------------- standalone fallback (double-click, no host) ---------------- */
@@ -287,18 +313,19 @@ function nextStandalone(first){
   if(sIdx>=SAMPLES.length){setCue('done');setStatus('ok','Demo complete. Press \u21bb or reload to run the examples again.');locked=true;return;}
   const s=SAMPLES[sIdx++];
   setItem(s);
-  setCue('answer','\u00b7 example '+sIdx+'/'+SAMPLES.length);
-  if(first){runHowto();}
+  openGate(!!first);
+  setCue('ready','\u00b7 example '+sIdx+'/'+SAMPLES.length);
 }
 
 /* ---------------- host message handling ---------------- */
 window.addEventListener('message',e=>{
   const d=e.data;if(!d||d.source!==SRC_HOST)return;
-  if(d.type==='init'&&d.item){hostSeen=true;$('#chanval').textContent='host-embedded';setItem(d.item);}
-  else if(d.type==='start'){if(item){itemStart=Date.now();locked=false;setStatus('neutral','Your turn. Tap the best word, then press the check.');}}
+  if(d.type==='init'&&d.item){hostSeen=true;$('#chanval').textContent='host-embedded';setItem(d.item);openGate(false);}
+  else if(d.type==='start'){if(item)openGate(!!d.tutorial);}
 });
 
 /* ---------------- input ---------------- */
+$('#play').addEventListener('click',()=>{beginItem(gateTutorial);});
 $('#candGrid').addEventListener('click',e=>{const c=e.target.closest('.cand');if(c&&!locked)select(+c.dataset.i,'tap');});
 $('#go').addEventListener('click',submit);
 document.addEventListener('keydown',e=>{

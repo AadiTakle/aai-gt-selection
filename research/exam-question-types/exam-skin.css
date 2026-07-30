@@ -1,7 +1,7 @@
 /*
  * GT exam skin — shared by every question type.
  *
- * The battery serves 63 separately-built activities in a row. Each arrived with its own palette,
+ * The battery serves 48 separately-built activities in a row. Each arrived with its own palette,
  * its own card, and its own heading, so a child moving through them experienced a series of
  * unrelated toys rather than one test. This sheet is loaded LAST by every demo, so it wins on
  * equal specificity, and it does two things: it re-points the palette the demos already share at
@@ -12,7 +12,7 @@
  * badge, "how to use" panel and telemetry sidebar are the point.
  *
  * Mirrors the tokens in apps/web/src/styles/globals.css. Kept as one file in two places rather than
- * inlined 63 times so the look can be changed in one edit.
+ * inlined 48 times so the look can be changed in one edit.
  */
 
 :root {
@@ -200,4 +200,60 @@ html[data-gt-chrome='off'] #stagecard {
 :focus-visible {
   outline: 3px solid var(--gt-blue);
   outline-offset: 2px;
+}
+
+/* ---- ready when you are ---- */
+
+/*
+ * Every activity with a clock or a self-playing stimulus used to become live shortly after the
+ * host handed it the item, so the question started before the child had looked up — and the
+ * response time it recorded included however long that took. The gate covers the activity until
+ * the child presses play; the demo opens it on `init`/`start` and closes it from its own play
+ * handler, which is also where its clock and its stimulus now begin.
+ *
+ * One sheet rather than one block per demo, because "nothing starts before the child is ready"
+ * has to look and behave identically across the battery to mean anything.
+ */
+#wrap {
+  position: relative;
+}
+
+#playgate {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 24px;
+  text-align: center;
+  background: var(--gt-off-white);
+}
+
+html[data-gt-gate='closed'] #playgate {
+  display: flex;
+}
+
+#playgate p {
+  margin: 0;
+  max-width: 30rem;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--gt-ink-soft);
+}
+
+#playgate #play {
+  min-width: 9rem;
+  padding: 0.85rem 1.7rem;
+  border: 0;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  background: var(--gt-navy);
+  color: #ffffff;
 }

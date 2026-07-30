@@ -31,6 +31,22 @@
 //   (single -> relational/ordinal -> conjunction) | salience of the criterial
 //   feature | feedback immediacy (per-send vs batched) | number of allowed tests.
 //
+// SERVED BANDS (2026-07 review: "grades 4-8 could do this but not the younger
+// kids"). The type no longer emits K-1 or 2-3 items at all: the bank starts at
+// difficulty 8, which is where the improvement plan §4 puts the bottom of the 4-5
+// band on the shared 1..20 scale. Within the served range the rule FORM is banded
+// too — a single-attribute gate rule for 4-5, a two-attribute conjunction for 6-8.
+// The scale itself is unchanged, so a difficulty here still means what it means in
+// every other type; the low rungs are simply not published for this one.
+//
+// Above level (16..20) keeps drawing from the full config space. The plan's
+// above-level row asks for a disjunctive or negated rule, and that is not a bank
+// change: `ruleAccepts` here, `conceptHypotheses` in apps/web verifiers/fluid.ts and
+// the plpgsql port app.exam_verify_concept all enumerate CONJUNCTIONS, so a
+// disjunction would leave the server unable to re-derive the key from the gate
+// evidence. It needs a scoring-contract change across all three tiers, not a
+// generator edit.
+//
 // ITEM-QUALITY INVARIANT (audited independently by check-FLU-CONCEPT-01.mjs):
 //   the accept-set over the buildable palette IDENTIFIES the answer — every rule in
 //   the hypothesis space consistent with that accept-set classifies all three probes
@@ -231,6 +247,29 @@ export const ALLOWED_CONFIGS = (() => {
       }
   return out;
 })();
+
+/* ================================================================== *
+ * SERVED BANDS — which rule form each grade band gets, on the plan §4 windows.
+ *
+ * `serves` is the reviewer's sentence expressed over the lever config; a config
+ * that belongs to no served band is simply never published. Above level carries
+ * `serves: null` (no restriction) because its row is not implementable in this
+ * tier — see the header note on disjunctive rules.
+ * ================================================================== */
+export const BANDS = [
+  // "4-5 single-attribute gate rule" — one atom, whether by identity or threshold.
+  { band: '4-5', lo: 8, hi: 12, serves: (c) => c.form === 'single' || c.form === 'ordinal' },
+  // "6-8 conjunctive rule (two attributes)".
+  { band: '6-8', lo: 12, hi: 16, serves: (c) => c.form === 'conj2' },
+  { band: 'above-level', lo: 16, hi: 20, serves: null },
+];
+/** Lowest difficulty this type publishes: K-1 and 2-3 are not served. */
+export const SERVED_FLOOR = BANDS[0].lo;
+
+/** The band whose window contains an integer difficulty bin. */
+export function bandForBin(k) {
+  return BANDS.find((b) => k <= b.hi) ?? BANDS[BANDS.length - 1];
+}
 
 const ALL_BASES = ALLOWED_CONFIGS.map(baseScore);
 const RAW_MIN = Math.min(...ALL_BASES) + budgetTerm(0);
@@ -492,26 +531,22 @@ export function genItem({ varyDims, form, ruleDims, feedbackMode, budgetTightnes
   };
 }
 
-// Age-band targeting hint. This type EXCLUDES K-1 by design (spec age_rationale:
-// designing and revising experiments is unreliable in K-1); declared bands are
-// 2-3 | 4-5 | 6-8. Boundary overlap is a targeting hint, not a hard cut.
+// Age band, read straight off the §4 window the item's difficulty falls in. The
+// bands no longer overlap: since the 2026-07 review restricted this type to 4-5 and
+// up, the band also decides the rule form (BANDS above), and an item cannot be two
+// rule forms at once. Declared bands are 4-5 | 6-8; above level (16..20) reports as
+// `6-8` because the item schema's band vocabulary stops there (`ageBandSchema`,
+// packages/contracts).
 export function ageBandsFor(difficulty) {
-  const bands = [];
-  const add = (b) => {
-    if (!bands.includes(b)) bands.push(b);
-  };
-  if (difficulty < 9) add('2-3');
-  if (difficulty >= 7.5 && difficulty < 13.5) add('4-5');
-  if (difficulty >= 12) add('6-8');
-  if (bands.length === 0) add(difficulty < 8 ? '2-3' : '6-8');
-  return bands;
+  return difficulty < 12 ? ['4-5'] : ['6-8'];
 }
 
 /* ================================================================== *
- * BANK BUILDER — fill each integer difficulty bin k=1..20 with >=perBin items
- * (BUILD_PLAN §0: >=5 per +/-1 pt band, gradual 1..20). Items in a bin spread
- * across reachable rule/space/feedback configs; the test budget is the
- * continuous fine-positioner within a bin.
+ * BANK BUILDER — fill each integer difficulty bin in the SERVED range with
+ * >=perBin items (BUILD_PLAN §0: >=5 per +/-1 pt band). The served range starts
+ * at SERVED_FLOOR because the review took the younger bands off this type; bins
+ * below it are not built at all. Items in a bin spread across the configs their
+ * band allows; the test budget is the continuous fine-positioner within a bin.
  * ================================================================== */
 export function buildBank({ perBin = 6 } = {}) {
   const items = [];
@@ -519,17 +554,22 @@ export function buildBank({ perBin = 6 } = {}) {
   // pattern the item actually realised (not every config can serve every one).
   const keyUse = new Map(VERDICT_PATTERNS.map((p) => [p, 0]));
   const patternPreference = () => VERDICT_PATTERNS.slice().sort((a, b) => keyUse.get(a) - keyUse.get(b));
-  for (let k = 1; k <= 20; k++) {
-    const lo = Math.max(1, k - 0.45);
-    const hi = Math.min(20, k + 0.45);
+  for (let k = Math.ceil(SERVED_FLOOR); k <= 20; k++) {
+    // The bin is clipped to its band's window as well as to +/-0.45, so a boundary
+    // bin cannot borrow the rule form of the band next door.
+    const band = bandForBin(k);
+    const lo = Math.max(SERVED_FLOOR, band.lo, k - 0.45);
+    const hi = Math.min(20, band.hi, k + 0.45);
+    const allowed = band.serves ? ALLOWED_CONFIGS.filter(band.serves) : ALLOWED_CONFIGS;
 
     const segments = [];
-    for (const cfg of ALLOWED_CONFIGS) {
+    for (const cfg of allowed) {
       const a = Math.max(lo, difficultyFromLevers(cfg, 0));
       const b = Math.min(hi, difficultyFromLevers(cfg, 1));
       if (b > a + 1e-6) segments.push({ cfg, tLo: a, tHi: b });
     }
-    if (segments.length === 0) throw new Error(`no reachable lever config for difficulty bin k=${k}`);
+    if (segments.length === 0)
+      throw new Error(`no reachable ${band.band} lever config for difficulty bin k=${k}`);
 
     const stride = Math.max(1, Math.floor(segments.length / perBin));
     const hits = segments.map(() => 0);
@@ -575,9 +615,14 @@ if (isMain()) {
     max = Math.max(max, it.difficulty);
   }
   console.log(`FLU-CONCEPT-01 bank: ${items.length} items -> ${outPath}`);
-  console.log(`difficulty span: ${round2(min)} .. ${round2(max)}  (target 1..20)`);
+  console.log(`difficulty span: ${round2(min)} .. ${round2(max)}  (served target ${SERVED_FLOOR}..20)`);
   console.log('per-bin counts (k: n):');
   console.log(bins.map((n, i) => `${String(i + 1).padStart(2)}:${n}`).join('  '));
-  const short = bins.map((n, i) => ({ k: i + 1, n })).filter((b) => b.n < 5);
-  console.log(short.length ? `SHORT BINS (<5): ${short.map((b) => b.k).join(',')}` : 'all bins >=5 OK');
+  const short = bins
+    .map((n, i) => ({ k: i + 1, n }))
+    .filter((b) => b.k >= Math.ceil(SERVED_FLOOR) && b.n < 5);
+  console.log(short.length ? `SHORT BINS (<5): ${short.map((b) => b.k).join(',')}` : 'all served bins >=5 OK');
+  const perBand = new Map();
+  for (const it of items) perBand.set(it.ageBands.join('+'), (perBand.get(it.ageBands.join('+')) ?? 0) + 1);
+  console.log(`bands served: ${[...perBand].map(([b, n]) => `${b}:${n}`).join('  ')}  (K-1 / 2-3 not served)`);
 }

@@ -22,8 +22,30 @@
 //   node generators/SPA-MAZE-01.mjs --verify   # write bank + independent self-check
 //
 // Difficulty is a FLOAT 1..20 (a design rung, provisional; not calibrated). It rises via
-// maze size (R x C), loop density (braiding = more decision points), and the number of
-// gems that must be sequenced (0 -> 3, a small travelling-salesman planning load).
+// maze size (R x C) and — the lever the review asked for — the COMPETITIVENESS of the
+// alternative routes, not random loop density:
+//
+//   K-1 (1-4)    one viable route
+//   2-3 (5-8)    two routes of clearly different lengths (>= 6 steps apart)
+//   4-5 (9-12)   two routes two steps apart
+//   6-8 (13-16)  three routes at the tightest spacing the grid allows
+//   above (17-20) several near-equal routes, exactly one of them shortest
+//
+// The route set is MEASURED, never assumed. Every maze is a spanning tree (exactly one
+// route) plus a small, searched-for set of extra edges; after each candidate set the
+// generator enumerates every simple start->goal route and keeps the maze only if the
+// resulting length profile matches the band. `answer.routeProfile` records what was
+// achieved, and verify() re-enumerates it from `content` alone.
+//
+// PARITY NOTE — the grid is 4-connected and therefore bipartite, so every start->goal
+// route has the same length parity and two route lengths can never differ by an odd
+// number. The review's "three paths differing by 1 step" is unreachable in this movement
+// model; 2 steps is the tightest spacing that exists, and that is what the 6-8 band uses.
+//
+// Gems sit only on cells EVERY route crosses, so adding a gem cannot make a competing
+// route unviable. Making the gems a detour instead would restore the old travelling-
+// salesman load but would leave only one route legal, which is the opposite of what the
+// review asked for.
 
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -81,13 +103,62 @@ function carve(R, C, rng) {
   }
   return open;
 }
-function braid(R, C, open, p, rng) {
-  let extra = 0;
-  for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) neighborsOf(r, c, R, C).forEach(([nr, nc]) => {
-    const k = edgeKey([r, c], [nr, nc]);
-    if (!open.has(k) && rng() < p) { open.add(k); extra++; }
-  });
-  return extra;
+function shuffle(rng, arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+/** Every wall that could be opened without leaving the grid. */
+function nonTreeEdges(R, C, open) {
+  const out = [];
+  for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) {
+    if (r < R - 1) { const k = edgeKey([r, c], [r + 1, c]); if (!open.has(k)) out.push(k); }
+    if (c < C - 1) { const k = edgeKey([r, c], [r, c + 1]); if (!open.has(k)) out.push(k); }
+  }
+  return out;
+}
+/**
+ * EVERY simple start->goal route, or null when the search blew past a cap (which
+ * only happens on a maze too loopy to reason about, and such a maze is rejected).
+ * This is the measurement the review's "closely competitive alternative paths"
+ * requirement rests on: the bands are checked against it, not against loop density.
+ */
+const CAP_ROUTES = 64;
+const CAP_STEPS = 250000;
+function enumerateRoutes(R, C, open, start, goal) {
+  const key = (p) => p[0] + ',' + p[1];
+  const goalKey = key(goal);
+  const routes = [];
+  const visited = new Set([key(start)]);
+  const path = [start];
+  let steps = 0, overflow = false;
+  const walk = (cur) => {
+    if (++steps > CAP_STEPS) { overflow = true; return; }
+    if (key(cur) === goalKey) {
+      routes.push(path.slice());
+      if (routes.length > CAP_ROUTES) overflow = true;
+      return;
+    }
+    for (const nb of neighborsOf(cur[0], cur[1], R, C)) {
+      const nk = key(nb);
+      if (visited.has(nk) || !open.has(edgeKey(cur, nb))) continue;
+      visited.add(nk); path.push(nb);
+      walk(nb);
+      path.pop(); visited.delete(nk);
+      if (overflow) return;
+    }
+  };
+  walk(start);
+  return overflow ? null : routes;
+}
+const routeLengths = (routes) => routes.map((p) => p.length - 1).sort((a, b) => a - b);
+/** Cells every route crosses (the shared spine gems are allowed to sit on). */
+function sharedCells(routes) {
+  const counts = new Map();
+  for (const route of routes) for (const key of new Set(route.map((p) => p[0] + ',' + p[1]))) {
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+  return [...counts.entries()].filter(([, n]) => n === routes.length).map(([k]) => k.split(',').map(Number));
 }
 // BFS shortest path (inclusive of both endpoints); null if unreachable.
 function bfsPath(R, C, open, a, b) {
@@ -126,29 +197,116 @@ function optimalPlan(R, C, open, start, goal, gems) {
 // ---------------------------------------------------------------------------
 // Difficulty ramp: one hand-authored profile per level 1..20.
 // ---------------------------------------------------------------------------
+// `maxLen` caps the walk the child actually has to make. A spanning tree left to
+// itself produces serpentine corridors, and an above-level item is meant to be a
+// planning problem, not seventy-eight taps.
 const PROFILES = {
-  1: { R: 4, C: 4, braid: 0.00, gems: 0 },
-  2: { R: 4, C: 5, braid: 0.02, gems: 0 },
-  3: { R: 5, C: 5, braid: 0.03, gems: 0 },
-  4: { R: 5, C: 6, braid: 0.04, gems: 0 },
-  5: { R: 6, C: 6, braid: 0.05, gems: 1 },
-  6: { R: 6, C: 7, braid: 0.06, gems: 1 },
-  7: { R: 7, C: 7, braid: 0.07, gems: 1 },
-  8: { R: 7, C: 8, braid: 0.08, gems: 1 },
-  9: { R: 8, C: 8, braid: 0.09, gems: 2 },
-  10: { R: 8, C: 9, braid: 0.10, gems: 2 },
-  11: { R: 9, C: 9, braid: 0.10, gems: 2 },
-  12: { R: 9, C: 10, braid: 0.11, gems: 2 },
-  13: { R: 10, C: 10, braid: 0.12, gems: 2 },
-  14: { R: 10, C: 10, braid: 0.13, gems: 3 },
-  15: { R: 10, C: 11, braid: 0.13, gems: 3 },
-  16: { R: 11, C: 11, braid: 0.14, gems: 3 },
-  17: { R: 11, C: 11, braid: 0.15, gems: 3 },
-  18: { R: 11, C: 12, braid: 0.15, gems: 3 },
-  19: { R: 12, C: 12, braid: 0.16, gems: 3 },
-  20: { R: 12, C: 12, braid: 0.16, gems: 3 },
+  1: { R: 4, C: 4, gems: 0, maxLen: 10 },
+  2: { R: 4, C: 5, gems: 0, maxLen: 11 },
+  3: { R: 5, C: 5, gems: 0, maxLen: 12 },
+  4: { R: 5, C: 6, gems: 0, maxLen: 14 },
+  5: { R: 6, C: 6, gems: 0, maxLen: 16 },
+  6: { R: 6, C: 7, gems: 1, maxLen: 18 },
+  7: { R: 7, C: 7, gems: 1, maxLen: 20 },
+  8: { R: 7, C: 8, gems: 1, maxLen: 22 },
+  9: { R: 8, C: 8, gems: 1, maxLen: 24 },
+  10: { R: 8, C: 9, gems: 2, maxLen: 26 },
+  11: { R: 9, C: 9, gems: 2, maxLen: 28 },
+  12: { R: 9, C: 10, gems: 2, maxLen: 30 },
+  13: { R: 10, C: 10, gems: 2, maxLen: 32 },
+  14: { R: 10, C: 10, gems: 2, maxLen: 34 },
+  15: { R: 10, C: 11, gems: 3, maxLen: 36 },
+  16: { R: 11, C: 11, gems: 3, maxLen: 38 },
+  17: { R: 11, C: 11, gems: 3, maxLen: 40 },
+  18: { R: 11, C: 12, gems: 3, maxLen: 42 },
+  19: { R: 12, C: 12, gems: 3, maxLen: 44 },
+  20: { R: 12, C: 12, gems: 3, maxLen: 46 },
 };
 const ITEMS_PER_LEVEL = 5;
+
+// ---------------------------------------------------------------------------
+// Route-competition bands (plan §4 band -> 1..20 scale; §6.3 SPA-MAZE-01 curve).
+// `test` runs on the ASCENDING list of every simple route's length.
+// ---------------------------------------------------------------------------
+const BANDS = ['K-1', '2-3', '4-5', '6-8', 'above-level'];
+function bandOfLevel(L) { return L <= 4 ? 'K-1' : L <= 8 ? '2-3' : L <= 12 ? '4-5' : L <= 16 ? '6-8' : 'above-level'; }
+const CLEARLY_DIFFERENT = 6;             // steps; "two paths, clearly different lengths"
+const ROUTE_SPECS = {
+  'K-1': {
+    extra: 0, poolDelta: [],
+    rule: 'exactly one viable route',
+    test: (lens) => lens.length === 1,
+  },
+  '2-3': {
+    extra: 1, poolDelta: [],
+    rule: `exactly two routes, at least ${CLEARLY_DIFFERENT} steps apart`,
+    test: (lens) => lens.length === 2 && lens[1] - lens[0] >= CLEARLY_DIFFERENT,
+  },
+  '4-5': {
+    extra: 1, poolDelta: [],
+    rule: 'exactly two routes, exactly 2 steps apart',
+    test: (lens) => lens.length === 2 && lens[1] - lens[0] === 2,
+  },
+  '6-8': {
+    extra: 2, poolDelta: [2, 4],
+    rule: 'exactly three routes at lengths L, L+2, L+4 (2 = the tightest spacing a 4-connected grid allows)',
+    test: (lens) => lens.length === 3 && lens[1] - lens[0] === 2 && lens[2] - lens[1] === 2,
+  },
+  'above-level': {
+    extra: 3, poolDelta: [2],
+    rule: 'four or more routes, exactly one of minimum length, at least three tied 2 steps behind it',
+    test: (lens) => lens.length >= 4 && lens[1] > lens[0] && lens.filter((n) => n === lens[0] + 2).length >= 3,
+  },
+};
+
+/**
+ * A maze whose measured route profile satisfies the band, or null.
+ * Start from a spanning tree (one route by construction) and open walls one at a
+ * time, re-enumerating after every candidate set — the profile is never inferred
+ * from how many walls were opened.
+ */
+const MAX_COMBOS = 4000;
+function searchMaze(R, C, start, goal, spec, maxLen, rng) {
+  const tree = carve(R, C, rng);
+  const base = enumerateRoutes(R, C, tree, start, goal);
+  if (!base) return null;
+  // Opening walls can only shorten the shortest route, and never by much, so a
+  // wildly long tree path is thrown away before the candidate scan.
+  if (routeLengths(base)[0] > maxLen + 6) return null;
+  if (spec.extra === 0) return spec.test(routeLengths(base)) ? { open: tree, routes: base } : null;
+
+  const singles = [];
+  for (const e of shuffle(rng, nonTreeEdges(R, C, tree))) {
+    const open = new Set(tree); open.add(e);
+    const routes = enumerateRoutes(R, C, open, start, goal);
+    if (!routes) continue;
+    const lens = routeLengths(routes);
+    if (spec.extra === 1 && spec.test(lens)) return { open, routes };
+    if (routes.length === 2 && spec.poolDelta.includes(lens[1] - lens[0])) singles.push(e);
+  }
+  if (spec.extra === 1 || singles.length < spec.extra) return null;
+
+  const pool = singles.slice(0, 24);
+  let combos = 0;
+  for (let i = 0; i < pool.length; i++) {
+    for (let j = i + 1; j < pool.length; j++) {
+      if (spec.extra === 2) {
+        if (++combos > MAX_COMBOS) return null;
+        const open = new Set(tree); open.add(pool[i]); open.add(pool[j]);
+        const routes = enumerateRoutes(R, C, open, start, goal);
+        if (routes && spec.test(routeLengths(routes))) return { open, routes };
+        continue;
+      }
+      for (let k = j + 1; k < pool.length; k++) {
+        if (++combos > MAX_COMBOS) return null;
+        const open = new Set(tree); open.add(pool[i]); open.add(pool[j]); open.add(pool[k]);
+        const routes = enumerateRoutes(R, C, open, start, goal);
+        if (routes && spec.test(routeLengths(routes))) return { open, routes };
+      }
+    }
+  }
+  return null;
+}
 
 function ageBandsForLevel(L) {
   if (L <= 3) return ['2-3'];
@@ -170,21 +328,38 @@ const RESPONSE_TAXONOMY = [
 // Build one item.
 // ---------------------------------------------------------------------------
 function buildItem(L, idx) {
-  const seed = `${TYPE_CODE}|L${L}|#${idx}|${BASE_SEED}`;
-  const rng = makeRng(seed);
   const prof = PROFILES[L];
   const R = prof.R, C = prof.C;
   const start = [0, 0], goal = [R - 1, C - 1];
-  let open;
-  for (let t = 0; t < 8; t++) { open = carve(R, C, rng); const extra = braid(R, C, open, prof.braid, rng); if (extra >= 1 || prof.braid === 0) break; }
+  const band = bandOfLevel(L);
+  const spec = ROUTE_SPECS[band];
 
-  // gem placement on interior cells (not start/goal), deterministic.
-  const cellsPool = [];
-  for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) if (!(r === 0 && c === 0) && !(r === R - 1 && c === C - 1)) cellsPool.push([r, c]);
-  const gems = [];
-  while (gems.length < prof.gems && cellsPool.length) { const gi = Math.floor(rng() * cellsPool.length); gems.push(cellsPool.splice(gi, 1)[0]); }
+  let seed = '', rng = null, found = null, gems = [], plan = null;
+  for (let salt = 0; salt < 240 && !found; salt++) {
+    seed = `${TYPE_CODE}|L${L}|#${idx}|s${salt}|${BASE_SEED}`;
+    rng = makeRng(seed);
+    const candidate = searchMaze(R, C, start, goal, spec, prof.maxLen, rng);
+    if (!candidate) continue;
+    if (routeLengths(candidate.routes)[0] > prof.maxLen) continue;
 
-  const plan = optimalPlan(R, C, open, start, goal, gems);
+    // Gems only on the shared spine, so every competing route stays viable.
+    const spine = sharedCells(candidate.routes)
+      .filter(([r, c]) => !(r === start[0] && c === start[1]) && !(r === goal[0] && c === goal[1]));
+    if (spine.length < prof.gems) continue;
+    const pool = shuffle(rng, spine);
+    gems = pool.slice(0, prof.gems);
+
+    // The stored key must be the shortest LEGAL WALK, and it must coincide with the
+    // shortest enumerated route — otherwise a gem is pulling the optimum off the
+    // measured route set and the profile would describe a different task.
+    plan = optimalPlan(R, C, candidate.open, start, goal, gems);
+    if (!plan || plan.length !== routeLengths(candidate.routes)[0]) continue;
+    found = candidate;
+  }
+  if (!found) throw new Error(`${TYPE_CODE} L${L} #${idx}: no maze matched the ${band} route spec`);
+
+  const open = found.open;
+  const lens = routeLengths(found.routes);
   const difficulty = Math.round((Math.min(20, Math.max(1, L + (rng() * 0.7 - 0.35)))) * 100) / 100;
   const openEdges = [...open].sort();
 
@@ -207,6 +382,17 @@ function buildItem(L, idx) {
     optimalPath: plan.path,
     gemOrder: plan.order,
     relation: 'min_path_bfs',
+    // What the route search actually achieved — re-derivable from `content` alone,
+    // which is what verify() does. Server-side because a route count is a hint.
+    routeProfile: {
+      band,
+      rule: spec.rule,
+      routeCount: found.routes.length,
+      lengths: lens,
+      shortest: lens[0],
+      runnerUpGap: lens.length > 1 ? lens[1] - lens[0] : null,
+      tiedAtRunnerUp: lens.length > 1 ? lens.filter((n) => n === lens[1]).length : 0,
+    },
     distractorRationales: RESPONSE_TAXONOMY,
   };
   return {
@@ -218,7 +404,7 @@ function buildItem(L, idx) {
     content,
     answer,
     scoring: { mode: 'deterministic_key' },
-    provenance: { generator: 'grammar', generatorRef: GENERATOR_REF, seed },
+    provenance: { generator: 'grammar', generatorRef: GENERATOR_REF, seed, level: L, levers: { grid: `${R}x${C}`, band, routeCount: found.routes.length, gems: gems.length } },
     syntheticOnly: true,
     validated: false,
   };
@@ -259,6 +445,7 @@ function independentOptimal(c) {
 function verify(items) {
   let ok = 0, bad = 0; const problems = [];
   const bands = {}; for (let L = 1; L <= 20; L++) bands[L] = 0;
+  const byBand = {}; for (const b of BANDS) byBand[b] = { items: 0, routeCounts: {}, gaps: {}, lengthSpread: [] };
   for (const it of items) {
     const req = ['itemId', 'typeCode', 'domain', 'difficulty', 'ageBands', 'content', 'answer', 'scoring', 'provenance', 'syntheticOnly', 'validated'];
     for (const k of req) if (!(k in it)) problems.push(`${it.itemId}: missing ${k}`);
@@ -275,9 +462,32 @@ function verify(items) {
     const recomputed = re ? String(re.length) : 'UNREACHABLE';
     if (recomputed === it.answer.correctKey && !pathErr) ok++;
     else { bad++; problems.push(`${it.itemId}: key ${it.answer.correctKey} != recomputed ${recomputed} (${it.content.grid.R}x${it.content.grid.C}, ${it.content.gems.length} gems)`); }
+
+    // Re-enumerate the competing routes straight from the served maze and hold the
+    // item to its band's rule. This is the evidence for the review's curve.
+    const p = it.answer.routeProfile;
+    const spec = ROUTE_SPECS[p ? p.band : ''];
+    const routes = enumerateRoutes(it.content.grid.R, it.content.grid.C, new Set(it.content.openEdges), it.content.start, it.content.goal);
+    if (!p || !spec) problems.push(`${it.itemId}: no routeProfile`);
+    else if (!routes) problems.push(`${it.itemId}: route enumeration overflowed`);
+    else {
+      const lens = routeLengths(routes);
+      if (lens.join(',') !== p.lengths.join(',')) problems.push(`${it.itemId}: stored profile ${p.lengths.join(',')} != re-enumerated ${lens.join(',')}`);
+      if (!spec.test(lens)) problems.push(`${it.itemId}: band ${p.band} route profile ${lens.join(',')} fails "${spec.rule}"`);
+      if (lens[0] !== it.answer.optimalLength) problems.push(`${it.itemId}: shortest route ${lens[0]} != optimalLength ${it.answer.optimalLength}`);
+      const onEvery = new Set(sharedCells(routes).map((cell) => cell.join(',')));
+      for (const g of it.content.gems) if (!onEvery.has(g.join(','))) problems.push(`${it.itemId}: gem ${g} is not on every route`);
+      const b = byBand[p.band];
+      if (b) {
+        b.items++;
+        b.routeCounts[lens.length] = (b.routeCounts[lens.length] || 0) + 1;
+        if (lens.length > 1) b.gaps[lens[1] - lens[0]] = (b.gaps[lens[1] - lens[0]] || 0) + 1;
+        b.lengthSpread.push(lens.map((n) => n - lens[0]).join('/'));
+      }
+    }
     for (let L = 1; L <= 20; L++) if (it.difficulty >= L - 1 && it.difficulty <= L + 1) bands[L]++;
   }
-  return { ok, bad, problems, bands };
+  return { ok, bad, problems, bands, byBand };
 }
 
 function coverageReport(bands) {
@@ -299,6 +509,12 @@ function main() {
 
   const v = verify(items);
   const cov = coverageReport(v.bands);
+  console.log(`[${TYPE_CODE}] measured route profile per band (re-enumerated from content):`);
+  for (const b of BANDS) {
+    const s = v.byBand[b];
+    const spread = {}; for (const k of s.lengthSpread) spread[k] = (spread[k] || 0) + 1;
+    console.log(`  ${b.padEnd(11)} n=${String(s.items).padStart(3)}  routes/item ${JSON.stringify(s.routeCounts)}  runner-up gap ${JSON.stringify(s.gaps)}  offsets-from-shortest ${JSON.stringify(spread)}`);
+  }
   console.log(`[${TYPE_CODE}] key check (BFS re-solve + path validation): ${v.ok} ok, ${v.bad} bad`);
   console.log(`[${TYPE_CODE}] coverage (min band count = ${cov.minBand}, need >= ${ITEMS_PER_LEVEL}):`);
   if (doVerify) console.log(cov.text);

@@ -139,9 +139,11 @@ export const distractorRationaleMapSchema = z.record(z.string().min(1), distract
 
 /**
  * Rationales for a type that asks for more than one decision per item, grouped
- * by decision. `GB-DEBATE-01` asks the child to pick both a supporting and a
- * rebutting card, so it keys one rationale map per decision and its
- * `correctKey` is correspondingly `{support, rebut}` rather than a single key.
+ * by decision: one rationale map per decision, with an object `correctKey` whose
+ * keys name the decisions rather than a single key. No wired type uses this shape
+ * today — `GB-DEBATE-01`, which did, was retired by the question-type review —
+ * but the schema stays because the two-decision shape is a property of the item
+ * contract, not of one bank.
  */
 export const groupedDistractorRationaleMapSchema = z.record(
   z.string().min(1),

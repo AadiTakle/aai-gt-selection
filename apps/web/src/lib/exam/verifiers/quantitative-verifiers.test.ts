@@ -8,7 +8,7 @@ import { childLexicon, quantitativeVerifiers } from './quantitative';
 import { resolveVerifier } from './index';
 
 /**
- * Round-trip tests for the ten types owned by `quantitative.ts`.
+ * Round-trip tests for the six types owned by `quantitative.ts`.
  *
  * Every type gets BOTH directions against a REAL bank item: the response a
  * child who solved it would emit (for the search types, the bank's own stored
@@ -47,12 +47,8 @@ function grade(item: BankItem, response: Record<string, unknown>) {
 }
 
 const OWNED = [
-  'GB-DEBATE-01',
   'GB-EXPLORE-01',
-  'GB-FILTER-01',
-  'GB-PATHFORGE-01',
   'GB-ROBOPATH-01',
-  'GB-SHAPEFIT-01',
   'GB-TRACK-01',
   'GB-WORDFORGE-01',
   'GB-WORDLADDER-01',
@@ -60,7 +56,7 @@ const OWNED = [
 ] as const;
 
 describe('registry wiring', () => {
-  it('registers exactly the ten owned type codes', () => {
+  it('registers exactly the six owned type codes', () => {
     expect(Object.keys(quantitativeVerifiers).sort()).toEqual([...OWNED].sort());
   });
 
@@ -89,22 +85,13 @@ describe('registry wiring', () => {
  */
 describe('whole-bank replay of every stored reference solution', () => {
   const referenceResponse: Record<string, (item: BankItem) => Record<string, unknown>> = {
-    'GB-DEBATE-01': (i) => {
-      const k = i.answer.correctKey as unknown as { support: string; rebut: string };
-      return { supportKey: k.support, rebutKey: k.rebut };
-    },
     'GB-EXPLORE-01': (i) => ({
       actions: (i.answer.optimalPath as [number, number][])
         .slice(1)
         .map((to) => ({ kind: 'move', to })),
     }),
-    'GB-FILTER-01': (i) => ({ selectedCells: i.answer.targets }),
-    'GB-PATHFORGE-01': (i) => ({ finalBoard: i.answer.tileSpec }),
     'GB-ROBOPATH-01': (i) => ({
       program: (i.answer.canonicalSolution as { program: unknown[] }).program,
-    }),
-    'GB-SHAPEFIT-01': (i) => ({
-      assembly: (i.answer.canonicalSolution as { placements: unknown[] }).placements,
     }),
     'GB-TRACK-01': (i) => ({
       selectedSlots: (i.answer.canonicalSolution as { targetSlots: number[] }).targetSlots,
@@ -172,32 +159,6 @@ describe('GB-ROBOPATH-01', () => {
     const maxReps = repeat?.maxReps ?? 1;
     const overlong = canonical.program.map((token) => ({ ...token, reps: maxReps + 1 }));
     expect(grade(item, { program: overlong }).correct).toBe(false);
-  });
-});
-
-describe('GB-PATHFORGE-01', () => {
-  const item = pick('GB-PATHFORGE-01', (i) => (i.answer.optimalTiles as number) >= 2);
-  const tileSpec = item.answer.tileSpec as { r: number; c: number; dirs: string[] }[];
-
-  it('accepts the stored optimal road', () => {
-    const verdict = grade(item, { finalBoard: tileSpec });
-    expect(verdict.correct).toBe(true);
-    expect(verdict.metrics?.['M-EFF']).toBe(1);
-  });
-
-  it('rejects a road with one tile missing', () => {
-    expect(grade(item, { finalBoard: tileSpec.slice(0, -1) }).correct).toBe(false);
-  });
-
-  it('rejects a board that exceeds the tile budget', () => {
-    const budget = item.content.tileBudget as number;
-    const padded = Array.from({ length: budget + 1 }, (_, i) => ({
-      r: 0,
-      c: 0,
-      dirs: ['N', 'S'],
-      shape: `pad${i}`,
-    }));
-    expect(grade(item, { finalBoard: padded }).correct).toBe(false);
   });
 });
 
@@ -274,38 +235,6 @@ describe('GB-EXPLORE-01', () => {
   });
 });
 
-describe('GB-SHAPEFIT-01', () => {
-  const item = pick('GB-SHAPEFIT-01', (i) => {
-    const solution = i.answer.canonicalSolution as { placements?: unknown[] } | undefined;
-    return Array.isArray(solution?.placements) && solution.placements.length >= 2;
-  });
-  const placements = (
-    item.answer.canonicalSolution as { placements: { id: number; cells: [number, number][] }[] }
-  ).placements;
-  const assembly = placements.map((p) => ({ id: p.id, cells: p.cells }));
-  const cost = item.answer.cost as { moves: number };
-
-  it('accepts the stored exact cover', () => {
-    const verdict = grade(item, { assembly, cost: { moves: cost.moves } });
-    expect(verdict.correct).toBe(true);
-    expect(verdict.metrics?.['M-EFF']).toBe(1);
-  });
-
-  it('rejects an assembly that leaves the outline partly empty', () => {
-    expect(grade(item, { assembly: assembly.slice(0, -1) }).correct).toBe(false);
-  });
-
-  it('rejects a piece placed in an orientation the instruction set cannot reach', () => {
-    const first = assembly[0]!;
-    const skewed = first.cells.map(([r, c], i): [number, number] =>
-      i === 0 ? [r, c] : [r, c + 7],
-    );
-    expect(
-      grade(item, { assembly: [{ id: first.id, cells: skewed }, ...assembly.slice(1)] }).correct,
-    ).toBe(false);
-  });
-});
-
 describe('GB-TRACK-01', () => {
   const item = pick('GB-TRACK-01', () => true);
   const targetSlots = (item.answer.canonicalSolution as { targetSlots: number[] }).targetSlots;
@@ -370,6 +299,49 @@ describe('GB-WORDLADDER-01', () => {
     expect(verdict.correct).toBe(true);
     expect(verdict.metrics?.['M-EFF']).toBeLessThan(1);
   });
+
+  /**
+   * The word-rarity term. Each bank item stores the band of every word on its
+   * reference path (`answer.pathVocab.bands`, from lexicon-child-en@v1), so the
+   * expected value is checkable against the key rather than against a rule
+   * restated in the test.
+   */
+  const typedRarest = (i: BankItem): number => {
+    const bands = (i.answer.pathVocab as { bands: number[] }).bands;
+    return Math.min(...bands.slice(1));
+  };
+
+  it('scores a rarer ladder higher: M-VOCABLVL ascends with rarity, bank-wide', () => {
+    const wrong = bank('GB-WORDLADDER-01')
+      .map((other) => ({
+        itemId: other.itemId,
+        got: grade(other, { path: other.answer.optimalPath }).metrics?.['M-VOCABLVL'],
+        want: 8 - typedRarest(other),
+      }))
+      .filter((row) => row.got !== row.want);
+    expect(wrong).toEqual([]);
+  });
+
+  it('keeps the rarity term inside the 1..7 the lexicon bands span', () => {
+    for (const other of bank('GB-WORDLADDER-01')) {
+      const level = grade(other, { path: other.answer.optimalPath }).metrics?.['M-VOCABLVL'];
+      expect(level, other.itemId).toBeGreaterThanOrEqual(1);
+      expect(level, other.itemId).toBeLessThanOrEqual(7);
+    }
+  });
+
+  it('does not credit the child for the rarity of the word they were handed', () => {
+    // The start word is served. On these items it is strictly rarer than
+    // anything the child had to produce, so counting it would inflate the term.
+    const servedRarer = pick('GB-WORDLADDER-01', (i) => {
+      const bands = (i.answer.pathVocab as { bands: number[] }).bands;
+      return Math.min(...bands) < Math.min(...bands.slice(1));
+    });
+    const bands = (servedRarer.answer.pathVocab as { bands: number[] }).bands;
+    const verdict = grade(servedRarer, { path: servedRarer.answer.optimalPath });
+    expect(verdict.metrics?.['M-VOCABLVL']).toBe(8 - Math.min(...bands.slice(1)));
+    expect(verdict.metrics?.['M-VOCABLVL']).not.toBe(8 - Math.min(...bands));
+  });
 });
 
 describe('GB-WORDFORGE-01', () => {
@@ -405,66 +377,87 @@ describe('GB-WORDFORGE-01', () => {
     });
     expect(verdict.metrics?.['M-IDEAFLU']).toBe(1);
   });
-});
 
-describe('GB-DEBATE-01', () => {
-  const item = pick('GB-DEBATE-01', () => true);
-  const correctKey = item.answer.correctKey as unknown as { support: string; rebut: string };
-  const rebutOptions = item.content.rebutOptions as { id: string }[];
+  /**
+   * The declared non-word penalty (the demo states it in the play gate before the
+   * clock starts). Two made-up words cost one real one, the net is floored at
+   * zero, and a real word that only broke a rule is not a made-up word.
+   */
+  const junk = (count: number): { word: string }[] =>
+    Array.from({ length: count }, (_, i) => ({ word: `ZQXJ${'V'.repeat(i + 1)}` }));
 
-  it('accepts both keyed decisions', () => {
-    const verdict = grade(item, { supportKey: correctKey.support, rebutKey: correctKey.rebut });
-    expect(verdict.correct).toBe(true);
-    expect(verdict.metrics?.['M-PROG']).toBe(1);
-  });
-
-  it('scores one-of-two as incorrect with half progress', () => {
-    const wrongRebut = rebutOptions.find((o) => o.id !== correctKey.rebut)!;
-    const verdict = grade(item, { supportKey: correctKey.support, rebutKey: wrongRebut.id });
+  it('takes the declared penalty off a run that reached the target with junk', () => {
+    const reached = validWords.slice(0, target).map((v) => ({ word: v.word }));
+    const verdict = grade(item, { submissions: [...reached, ...junk(2)] });
+    // Two made-up words = one real word, so the threshold is missed by one.
+    expect(verdict.metrics?.['M-IDEAFLU']).toBe(target);
+    expect(verdict.metrics?.['M-EFF']).toBeCloseTo((target - 1) / target, 10);
     expect(verdict.correct).toBe(false);
-    expect(verdict.metrics?.['M-PROG']).toBe(0.5);
   });
 
-  it('scores neither decision as zero progress', () => {
-    const wrongRebut = rebutOptions.find((o) => o.id !== correctKey.rebut)!;
-    const verdict = grade(item, { supportKey: 'nope', rebutKey: wrongRebut.id });
-    expect(verdict.correct).toBe(false);
-    expect(verdict.metrics?.['M-PROG']).toBe(0);
+  it('reports what share of the entries were real words (M-ERRTYPE)', () => {
+    const real = validWords.slice(0, 2).map((v) => ({ word: v.word }));
+    expect(grade(item, { submissions: real }).metrics?.['M-ERRTYPE']).toBe(1);
+    expect(grade(item, { submissions: [...real, ...junk(2)] }).metrics?.['M-ERRTYPE']).toBe(0.5);
+    // Nothing was judged, so there is nothing to report — an abandoned round
+    // must not collect a free 1 on a metric the scorer positions on.
+    expect(grade(item, { submissions: [] }).metrics?.['M-ERRTYPE']).toBeUndefined();
   });
-});
 
-describe('GB-FILTER-01', () => {
-  const item = pick('GB-FILTER-01', (i) => (i.answer.nTargets as number) >= 1);
-  const targets = item.answer.targets as [number, number][];
+  it('keeps the score monotone and floored, so guessing cannot beat honesty', () => {
+    const nothing = grade(item, { submissions: [] });
+    const barrage = grade(item, { submissions: junk(40) });
+    const oneReal = grade(item, { submissions: [{ word: validWords[0]!.word }] });
 
-  it('accepts the exact cue-matching cell set, in any order', () => {
-    const verdict = grade(item, { selectedCells: [...targets].reverse(), taps: targets.length });
+    expect(barrage.metrics?.['M-EFF']).toBe(0); // floored, never negative
+    expect(barrage.correct).toBe(false);
+    expect(nothing.metrics?.['M-EFF']).toBe(0);
+    expect(oneReal.metrics?.['M-EFF']).toBeGreaterThan(nothing.metrics?.['M-EFF'] as number);
+  });
+
+  it('does not penalise a real word that only broke a rule', () => {
+    // A lexicon word below content.minWordLength is a rule slip, not a made-up
+    // word, and the child was only warned about made-up words.
+    const lexicon = childLexicon() as Map<string, number>;
+    const strict = pick(
+      'GB-WORDFORGE-01',
+      (i) => (i.content.minWordLength as number) >= 4 && (i.answer.referenceTarget as number) >= 2,
+    );
+    const forgeable = new Set(
+      (strict.answer.validWords as { word: string }[]).map((v) => v.word.toUpperCase()),
+    );
+    const tooShort = [...lexicon.keys()].find(
+      (word) => word.length < (strict.content.minWordLength as number) && !forgeable.has(word),
+    );
+    expect(tooShort, 'no lexicon word below minWordLength').toBeDefined();
+
+    const reached = (strict.answer.validWords as { word: string }[])
+      .slice(0, strict.answer.referenceTarget as number)
+      .map((v) => ({ word: v.word }));
+    const verdict = grade(strict, { submissions: [...reached, { word: tooShort as string }] });
     expect(verdict.correct).toBe(true);
-    expect(verdict.metrics?.['M-FALSEALARM']).toBe(0);
     expect(verdict.metrics?.['M-EFF']).toBe(1);
   });
 
-  it('rejects a set with one extra cell and records the false alarm', () => {
-    const grid = item.content.grid as { R: number; C: number };
-    const taken = new Set(targets.map(([r, c]) => `${r},${c}`));
-    let extra: [number, number] | null = null;
-    for (let r = 0; r < grid.R && !extra; r++) {
-      for (let c = 0; c < grid.C && !extra; c++) if (!taken.has(`${r},${c}`)) extra = [r, c];
-    }
-    const verdict = grade(item, { selectedCells: [...targets, extra!], taps: targets.length + 1 });
-    expect(verdict.correct).toBe(false);
-    expect(verdict.metrics?.['M-FALSEALARM']).toBeGreaterThan(0);
-  });
+  it('scores a rarer set of words higher (M-VOCABLVL ascends with rarity)', () => {
+    const spread = pick('GB-WORDFORGE-01', (i) => {
+      const bands = (i.answer.validWords as { band: number }[]).map((v) => v.band);
+      return bands.length > 0 && Math.max(...bands) - Math.min(...bands) >= 2;
+    });
+    const words = spread.answer.validWords as { word: string; band: number }[];
+    const commonest = Math.max(...words.map((v) => v.band));
+    const rarest = Math.min(...words.map((v) => v.band));
 
-  it('rejects a set that misses a target', () => {
-    expect(grade(item, { selectedCells: targets.slice(0, -1) }).correct).toBe(false);
-  });
+    const common = grade(spread, {
+      submissions: words.filter((v) => v.band === commonest).map((v) => ({ word: v.word })),
+    });
+    const rare = grade(spread, {
+      submissions: words.filter((v) => v.band === rarest).map((v) => ({ word: v.word })),
+    });
 
-  it('re-derives the same target set as the bank across the whole file', () => {
-    for (const other of bank('GB-FILTER-01')) {
-      const key = other.answer.targets as [number, number][];
-      expect(grade(other, { selectedCells: key }).correct, other.itemId).toBe(true);
-    }
+    expect(common.metrics?.['M-VOCABLVL']).toBe(8 - commonest);
+    expect(rare.metrics?.['M-VOCABLVL']).toBe(8 - rarest);
+    expect(rare.metrics?.['M-VOCABLVL']).toBeGreaterThan(common.metrics?.['M-VOCABLVL'] as number);
   });
 });
 

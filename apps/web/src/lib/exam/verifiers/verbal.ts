@@ -9,7 +9,7 @@ import { num, numArray, type Verdict, type Verifier } from './types';
  * possible, rather than trusting a stored key, and never show correctness to the
  * client beyond the boolean this returns.
  *
- * FILE OWNERSHIP NOTE: the five `WM-*` entries below are spatial/memory types by
+ * FILE OWNERSHIP NOTE: the three `WM-*` entries below are spatial/memory types by
  * domain, not verbal ones. They live here only so that four agents can write
  * verifiers in parallel without touching the same file. `index.ts` merges every
  * domain file into one `typeCode`-keyed record, so which file an entry sits in
@@ -49,29 +49,6 @@ function strArray(value: unknown): string[] | null {
 /** Scores are compared and reported at the 4dp the solver specs round to. */
 function round4(value: number): number {
   return Math.round(value * 1e4) / 1e4;
-}
-
-/** Ordinary-least-squares slope of `ys` on `xs`; null when x has no spread. */
-function olsSlope(xs: readonly number[], ys: readonly number[]): number | null {
-  const n = Math.min(xs.length, ys.length);
-  if (n < 2) return null;
-  let sx = 0;
-  let sy = 0;
-  for (let i = 0; i < n; i++) {
-    sx += xs[i]!;
-    sy += ys[i]!;
-  }
-  const mx = sx / n;
-  const my = sy / n;
-  let cov = 0;
-  let varx = 0;
-  for (let i = 0; i < n; i++) {
-    const dx = xs[i]! - mx;
-    cov += dx * (ys[i]! - my);
-    varx += dx * dx;
-  }
-  if (varx === 0) return null;
-  return cov / varx;
 }
 
 /* ------------------------------------------------------------------ *
@@ -207,294 +184,6 @@ function verifyBind(item: RawBankItem, response: Record<string, unknown>): Verdi
 }
 
 /* ------------------------------------------------------------------ *
- * WM-gridflash-01 — wm-change-detection-sdt@1 + wm-array-recognition-partial-credit@1
- * ------------------------------------------------------------------ */
-
-/**
- * Two shells share one difficulty ladder, so one verifier grades both and
- * branches on the response's own `shell` tag (cross-checked against
- * `content.responsePhase.mode`).
- *
- * SDT CHANNELS. A hit and a correct rejection are not interchangeable evidence,
- * and the trial type lives in the item, not the response — so the two are emitted
- * on separate metric channels rather than as one accuracy number:
- *
- *   `M-DPRIME`     — hit-rate evidence. Only present on trials that can produce a
- *                    hit (a `change` probe, or the lit cells of a recognition
- *                    array).
- *   `M-FALSEALARM` — false-alarm-rate evidence. Only present on trials that can
- *                    produce a false alarm (a `same` probe, or the dark cells of
- *                    a recognition array).
- *
- * Averaging each channel over the items that carry it therefore yields the hit
- * rate and the false-alarm rate separately, which is what d-prime and Cowan's
- * K = setSize * (hitRate - falseAlarmRate) need. Collapsing them into one
- * accuracy figure would make a cautious child and a guesser look identical.
- */
-function verifyGridflash(item: RawBankItem, response: Record<string, unknown>): Verdict {
-  const content = item.content as {
-    presentation?: unknown;
-    responsePhase?: unknown;
-    grid?: unknown;
-    setSize?: unknown;
-  };
-  const presentation = recordOf(content.presentation);
-  const responsePhase = recordOf(content.responsePhase);
-  const array = presentation ? arrayOf(presentation.array) : null;
-  const mode = responsePhase ? str(responsePhase.mode) : null;
-  const shell = str(response.shell) ?? mode;
-
-  if (shell === 'two_choice') {
-    const probe = responsePhase ? recordOf(responsePhase.probe) : null;
-    const probeCell = probe ? num(probe.cell) : null;
-    const probeHue = probe ? str(probe.hue) : null;
-
-    // Re-derive SAME/CHANGED: the colour the probed cell carried in the flash vs
-    // the colour the test shows. The stored key is only a fallback.
-    let expectedKey: string | null = null;
-    if (array && probeCell !== null && probeHue !== null) {
-      const flashed = array.filter(isRecord).find((star) => num(star.cell) === probeCell);
-      const originalHue = flashed ? str(flashed.hue) : null;
-      if (originalHue !== null) expectedKey = originalHue === probeHue ? 'SAME' : 'CHANGED';
-    }
-    expectedKey ??= str(item.answer.correctKey);
-    const selectedKey = str(response.selectedKey);
-    if (expectedKey === null || selectedKey === null) return { correct: false };
-
-    const correct = selectedKey === expectedKey;
-    // The spec is explicit that a single two-choice probe is dichotomous: the
-    // polytomous information for this type comes from the recognition shell and
-    // from the set-size ladder, so no M-POLY is emitted here.
-    return expectedKey === 'CHANGED'
-      ? { correct, metrics: { 'M-DPRIME': correct ? 1 : 0 } }
-      : { correct, metrics: { 'M-FALSEALARM': correct ? 0 : 1 } };
-  }
-
-  if (shell === 'select_set') {
-    let expectedCells: number[] | null = null;
-    if (array && array.length > 0) {
-      const cells = array.filter(isRecord).map((star) => num(star.cell));
-      if (cells.length === array.length && cells.every((cell): cell is number => cell !== null)) {
-        expectedCells = cells;
-      }
-    }
-    expectedCells ??= numArray(item.answer.expectedCells);
-    const selectedRaw = numArray(response.selectedCells);
-    if (!expectedCells || expectedCells.length === 0 || !selectedRaw) return { correct: false };
-
-    const expectedSet = new Set(expectedCells);
-    const selected = new Set(selectedRaw);
-    let hits = 0;
-    for (const cell of selected) if (expectedSet.has(cell)) hits++;
-    const falseAlarms = selected.size - hits;
-
-    const grid = recordOf(content.grid);
-    const cellCount = grid ? num(grid.cellCount) : null;
-    const darkCells = cellCount !== null ? cellCount - expectedSet.size : 0;
-
-    const metrics: Record<string, number> = {
-      'M-POLY': round4(hits / expectedSet.size),
-      'M-DPRIME': round4(hits / expectedSet.size),
-    };
-    if (darkCells > 0) metrics['M-FALSEALARM'] = round4(falseAlarms / darkCells);
-
-    return { correct: hits === expectedSet.size && falseAlarms === 0, metrics };
-  }
-
-  return { correct: false };
-}
-
-/* ------------------------------------------------------------------ *
- * WM-gate-01 — wm-running-memory-multiprobe@1
- * ------------------------------------------------------------------ */
-
-interface GateProbe {
-  probeIndex: number;
-  k: number;
-  expectedKeys: string[];
-}
-
-/**
- * Replay the parade event by event and answer every checkpoint from scratch, the
- * way a scorer holding only the display would:
- *
- *   creature_lastk  — the last k token keys, in order;
- *   keep_track      — the most recent token of each asked colour family (the
- *                     families are read off `content.responsePhase.probePlan`,
- *                     which is what the child was actually asked for);
- *   numeric_running — the running total after every update so far.
- *
- * Returns null when the stream is unreadable, so the caller can fall back to the
- * stored `answer.probes`.
- */
-function gateReplay(item: RawBankItem): GateProbe[] | null {
-  const content = item.content as {
-    shell?: unknown;
-    palette?: unknown;
-    presentation?: unknown;
-    responsePhase?: unknown;
-  };
-  const shell = str(content.shell);
-  const presentation = recordOf(content.presentation);
-  const events = presentation ? arrayOf(presentation.events) : null;
-  const stops = presentation ? arrayOf(presentation.probes) : null;
-  if (!shell || !events || !stops) return null;
-
-  const responsePhase = recordOf(content.responsePhase);
-  const plan = responsePhase ? arrayOf(responsePhase.probePlan) : null;
-  const askedByProbe = new Map<number, string[]>();
-  for (const entry of plan ?? []) {
-    if (!isRecord(entry)) continue;
-    const probeIndex = num(entry.probeIndex);
-    const asked = strArray(entry.askedFamilies);
-    if (probeIndex !== null && asked) askedByProbe.set(probeIndex, asked);
-  }
-
-  const familyOf = new Map<string, string>();
-  for (const token of arrayOf(content.palette) ?? []) {
-    if (!isRecord(token)) continue;
-    const key = str(token.key);
-    const family = str(token.family);
-    if (key !== null && family !== null) familyOf.set(key, family);
-  }
-
-  const ordered = events.filter(isRecord).sort((a, b) => (num(a.index) ?? 0) - (num(b.index) ?? 0));
-  if (ordered.length !== events.length) return null;
-
-  const stopAt = new Map<number, Record<string, unknown>>();
-  for (const stop of stops) {
-    if (!isRecord(stop)) return null;
-    const after = num(stop.afterEventIndex);
-    if (after === null) return null;
-    stopAt.set(after, stop);
-  }
-
-  const history: Record<string, unknown>[] = [];
-  const derived: GateProbe[] = [];
-  let total = 0;
-  for (const event of ordered) {
-    history.push(event);
-    if (shell === 'numeric_running') {
-      const value = num(event.value);
-      if (value === null) return null;
-      total = str(event.kind) === 'set' ? value : total + value;
-    }
-    const index = num(event.index);
-    if (index === null) return null;
-    const stop = stopAt.get(index);
-    if (!stop) continue;
-
-    const probeIndex = num(stop.probeIndex);
-    const k = num(stop.k);
-    if (probeIndex === null || k === null) return null;
-
-    let expectedKeys: string[] | null = null;
-    if (shell === 'creature_lastk') {
-      const window = history.slice(-k).map((e) => str(e.tokenKey));
-      if (window.every((key): key is string => key !== null)) expectedKeys = window;
-    } else if (shell === 'keep_track') {
-      const asked = askedByProbe.get(probeIndex);
-      if (asked) {
-        const keys: string[] = [];
-        for (const family of asked) {
-          let found: string | null = null;
-          for (let i = history.length - 1; i >= 0; i--) {
-            const tokenKey = str(history[i]!.tokenKey);
-            if (tokenKey !== null && familyOf.get(tokenKey) === family) {
-              found = tokenKey;
-              break;
-            }
-          }
-          if (found === null) {
-            expectedKeys = null;
-            break;
-          }
-          keys.push(found);
-        }
-        if (keys.length === asked.length) expectedKeys = keys;
-      }
-    } else if (shell === 'numeric_running') {
-      expectedKeys = [`v${total}`];
-    }
-
-    if (!expectedKeys) return null;
-    derived.push({ probeIndex, k, expectedKeys });
-  }
-
-  return derived.length > 0 ? derived : null;
-}
-
-/** The stored checkpoint answers, used only when the stream cannot be replayed. */
-function gateStoredProbes(item: RawBankItem): GateProbe[] | null {
-  const stored = arrayOf(item.answer.probes);
-  if (!stored) return null;
-  const probes: GateProbe[] = [];
-  for (const entry of stored) {
-    if (!isRecord(entry)) return null;
-    const probeIndex = num(entry.probeIndex);
-    const k = num(entry.k);
-    const expectedKeys = strArray(entry.expectedKeys);
-    if (probeIndex === null || k === null || !expectedKeys) return null;
-    probes.push({ probeIndex, k, expectedKeys });
-  }
-  return probes.length > 0 ? probes : null;
-}
-
-/**
- * Running memory with several checkpoints inside one administration, and — in
- * most items — a different k at different checkpoints.
- *
- * Every checkpoint is scored on its own, position by position, and the units are
- * summed across checkpoints; full credit needs every checkpoint answered in full
- * and every position right. `M-POLY` is that summed proportion.
- *
- * `M-UPDATECOST` is the OLS slope of per-checkpoint score on that checkpoint's k.
- * Because k varies WITHIN the item, the slope is estimable from a single
- * administration — a negative slope means accuracy falls as the window widens.
- * It is omitted (not zeroed) when every checkpoint used the same k, since a slope
- * with no x-spread is undefined rather than flat.
- */
-function verifyGate(item: RawBankItem, response: Record<string, unknown>): Verdict {
-  const expected = gateReplay(item) ?? gateStoredProbes(item);
-  const submitted = arrayOf(response.probes);
-  if (!expected || !submitted) return { correct: false };
-
-  const byIndex = new Map<number, string[]>();
-  for (const entry of submitted) {
-    if (!isRecord(entry)) continue;
-    const probeIndex = num(entry.probeIndex);
-    const keys = strArray(entry.keys);
-    if (probeIndex !== null && keys) byIndex.set(probeIndex, keys);
-  }
-
-  let unitsTotal = 0;
-  let unitsCorrect = 0;
-  let allProbesComplete = true;
-  const ks: number[] = [];
-  const probeScores: number[] = [];
-
-  for (const probe of expected) {
-    const keys = byIndex.get(probe.probeIndex) ?? [];
-    let credited = 0;
-    for (let i = 0; i < probe.expectedKeys.length; i++) {
-      if (keys[i] === probe.expectedKeys[i]) credited++;
-    }
-    unitsTotal += probe.expectedKeys.length;
-    unitsCorrect += credited;
-    if (keys.length !== probe.expectedKeys.length) allProbesComplete = false;
-    ks.push(probe.k);
-    probeScores.push(credited / probe.expectedKeys.length);
-  }
-  if (unitsTotal === 0) return { correct: false };
-
-  const metrics: Record<string, number> = { 'M-POLY': round4(unitsCorrect / unitsTotal) };
-  const slope = olsSlope(ks, probeScores);
-  if (slope !== null) metrics['M-UPDATECOST'] = round4(slope);
-
-  return { correct: allProbesComplete && unitsCorrect === unitsTotal, metrics };
-}
-
-/* ------------------------------------------------------------------ *
  * WM-bubble-01 — n-back, computed_solver
  * ------------------------------------------------------------------ */
 
@@ -503,34 +192,48 @@ function verifyGate(item: RawBankItem, response: Record<string, unknown>): Verdi
  * the stream itself — step `i` is a target iff `stream[i] === stream[i - n]` —
  * rather than read off `answer.correctKey`.
  *
- * The first n steps are the lead-in: no n-back item exists yet, so no pop there
- * is defensible and the renderer blocks it. Pops outside the decidable range are
- * therefore ignored rather than counted, matching what the renderer can emit.
+ * The renderer asks a two-alternative question of every decidable bubble — "seen
+ * it" (this stimulus repeats the one n back) or "new" — and posts the answers as
+ * `response.judgements`, one per lane per step, in presentation order. Grading the
+ * answers rather than a stream of taps is what makes a miss distinguishable from
+ * a non-response: under a go/no-go POP control the absence of a tap meant either.
  *
- * Only steps the child actually saw are scored (`response.stepsShown`), but full
- * credit still requires the whole stream to have been presented — a block cut
- * short was not administered, so it cannot be a full-credit block.
+ * The first n steps are the lead-in: no n-back item exists yet, so no answer
+ * there is defensible and the renderer does not collect one. Judgements outside
+ * the decidable range are therefore ignored rather than counted, matching what
+ * the renderer can emit. A later judgement for the same lane and step supersedes
+ * an earlier one, so a child who changes their mind is graded on the answer they
+ * left standing.
  *
- * Hits and false alarms go on the same two SDT channels as WM-gridflash-01:
- * `M-DPRIME` carries the hit rate over target steps, `M-FALSEALARM` the
- * false-alarm rate over non-target decidable steps. `M-POLY` is the proportion of
- * decidable steps decided correctly (a pop on a target, no pop on a non-target).
+ * Only steps the child actually answered are scored (`response.stepsShown`), but
+ * full credit still requires the whole stream to have been presented — a block
+ * cut short was not administered, so it cannot be a full-credit block.
+ *
+ * Hits and false alarms go on separate SDT channels, because they are not
+ * interchangeable evidence: `M-DPRIME` carries the hit rate over target steps,
+ * `M-FALSEALARM` the false-alarm rate over non-target decidable steps. Collapsing
+ * them into one accuracy figure would make a cautious child and a guesser look
+ * identical. `M-POLY` is the proportion of decidable steps answered correctly; a
+ * step left unanswered is not correct, and is not a false alarm either.
  */
 function verifyBubble(item: RawBankItem, response: Record<string, unknown>): Verdict {
   const content = item.content as { n?: unknown; channels?: unknown; streamLength?: unknown };
   const n = num(content.n);
   const channels = arrayOf(content.channels);
-  const pops = arrayOf(response.pops);
-  if (n === null || n < 1 || !channels || channels.length === 0 || !pops) {
+  const judgements = arrayOf(response.judgements);
+  if (n === null || n < 1 || !channels || channels.length === 0 || !judgements) {
     return { correct: false };
   }
 
-  const popped = new Set<string>();
-  for (const pop of pops) {
-    if (!isRecord(pop)) continue;
-    const channel = str(pop.channel);
-    const stepIndex = num(pop.stepIndex);
-    if (channel !== null && stepIndex !== null) popped.add(`${channel}:${stepIndex}`);
+  const answered = new Map<string, 'seen' | 'new'>();
+  for (const judgement of judgements) {
+    if (!isRecord(judgement)) continue;
+    const channel = str(judgement.channel);
+    const stepIndex = num(judgement.stepIndex);
+    const choice = str(judgement.choice);
+    if (channel === null || stepIndex === null) continue;
+    if (choice !== 'seen' && choice !== 'new') continue;
+    answered.set(`${channel}:${stepIndex}`, choice);
   }
 
   const declaredLength = num(content.streamLength);
@@ -541,6 +244,7 @@ function verifyBubble(item: RawBankItem, response: Record<string, unknown>): Ver
   let hits = 0;
   let nonTargets = 0;
   let falseAlarms = 0;
+  let correctDecisions = 0;
 
   for (const channel of channels) {
     if (!isRecord(channel)) return { correct: false };
@@ -554,28 +258,28 @@ function verifyBubble(item: RawBankItem, response: Record<string, unknown>): Ver
     if (shown < streamLength) fullStreamShown = false;
 
     for (let i = n; i < shown; i++) {
-      const isTarget = stream[i] === stream[i - n];
-      const didPop = popped.has(`${id}:${i}`);
-      if (isTarget) {
+      const expected = stream[i] === stream[i - n] ? 'seen' : 'new';
+      const choice = answered.get(`${id}:${i}`) ?? null;
+      if (expected === 'seen') {
         targets++;
-        if (didPop) hits++;
+        if (choice === 'seen') hits++;
       } else {
         nonTargets++;
-        if (didPop) falseAlarms++;
+        if (choice === 'seen') falseAlarms++;
       }
+      if (choice === expected) correctDecisions++;
     }
   }
 
   const decidable = targets + nonTargets;
   if (decidable === 0) return { correct: false };
 
-  const correctDecisions = hits + (nonTargets - falseAlarms);
   const metrics: Record<string, number> = { 'M-POLY': round4(correctDecisions / decidable) };
   if (targets > 0) metrics['M-DPRIME'] = round4(hits / targets);
   if (nonTargets > 0) metrics['M-FALSEALARM'] = round4(falseAlarms / nonTargets);
 
   return {
-    correct: fullStreamShown && targets > 0 && hits === targets && falseAlarms === 0,
+    correct: fullStreamShown && targets > 0 && correctDecisions === decidable,
     metrics,
   };
 }
@@ -689,10 +393,71 @@ function senseExpectedOrder(item: RawBankItem): number[] | null {
   return indices.every((index) => Number.isInteger(index) && index >= 0) ? indices : null;
 }
 
+/** Fallback article vocabulary for a bank row written before `content.articles`. */
+const SENSE_ARTICLES = ['a', 'an', 'the'];
+
+/** The closed set of article tokens this item's sidebar may contribute. */
+function senseArticleSet(item: RawBankItem): Set<string> {
+  const declared = strArray((item.content as { articles?: unknown }).articles);
+  const list = declared && declared.length > 0 ? declared : SENSE_ARTICLES;
+  return new Set(list.map((word) => word.toLowerCase()));
+}
+
 /**
- * The child drags word cards into a track. Exactly one ordering is both
- * grammatical and plausible, so correctness is a strict permutation match against
- * that ordering.
+ * Project the line the child built onto the card-index ordering that is graded.
+ *
+ * The child inserts word cards and, from the sidebar, as many articles as they
+ * like, so `response.sequence` is the full ordered line. Articles are SURFACE:
+ * they are checked against the item's own closed article vocabulary and then
+ * dropped, which is what makes every grammatical realisation of the reference
+ * ordering accepted — "the dog ate a bone", "a dog ate the bone" and the bare
+ * "dog ate bone" all project to the same card order. Nothing in the item fixes
+ * the definiteness choice, so scoring it would mark a correct child wrong.
+ *
+ * A token that is neither a card in range nor a declared article makes the
+ * response malformed rather than partially credited: otherwise a client could
+ * smuggle a card past the projection by mislabelling it.
+ *
+ * `response.order` is still read (and is what the plpgsql port grades), so when
+ * both fields arrive they must agree — a line and a card order that disagree
+ * cannot both be what the child built.
+ */
+function senseCardOrder(item: RawBankItem, response: Record<string, unknown>): number[] | null {
+  const cards = arrayOf((item.content as { cards?: unknown }).cards);
+  const cardCount = cards ? cards.length : 0;
+  const order = numArray(response.order);
+  const sequence = arrayOf(response.sequence);
+  if (!sequence) return order;
+
+  const articles = senseArticleSet(item);
+  const projected: number[] = [];
+  for (const token of sequence) {
+    if (!isRecord(token)) return null;
+    const kind = str(token.kind);
+    if (kind === 'card') {
+      const index = num(token.index);
+      if (index === null || !Number.isInteger(index) || index < 0 || index >= cardCount)
+        return null;
+      projected.push(index);
+    } else if (kind === 'article') {
+      const text = str(token.text);
+      if (text === null || !articles.has(text.toLowerCase())) return null;
+    } else {
+      return null;
+    }
+  }
+  if (order && (order.length !== projected.length || order.some((v, i) => v !== projected[i]))) {
+    return null;
+  }
+  return projected;
+}
+
+/**
+ * The child inserts word cards, in order, into a growing sentence line. Exactly
+ * one ordering of the cards is both grammatical and plausible — the generator
+ * proves it by brute force over every permutation and refuses to write an item
+ * where two survive — so correctness is a strict permutation match against that
+ * ordering, article placement aside (see {@link senseCardOrder}).
  *
  * `M-POLY` is the adjacent-pair credit the type declares: the proportion of the
  * target's adjacent word pairs that the child reproduced consecutively and in the
@@ -702,7 +467,7 @@ function senseExpectedOrder(item: RawBankItem): number[] | null {
  */
 function verifySense(item: RawBankItem, response: Record<string, unknown>): Verdict {
   const expected = senseExpectedOrder(item);
-  const order = numArray(response.order);
+  const order = senseCardOrder(item, response);
   if (!expected || expected.length === 0 || !order) return { correct: false };
 
   let matched = 0;
@@ -722,12 +487,77 @@ function verifySense(item: RawBankItem, response: Record<string, unknown>): Verd
   };
 }
 
+/* ------------------------------------------------------------------ *
+ * VER-SEQUENCE-01 — constructed event ordering
+ * ------------------------------------------------------------------ */
+
+/**
+ * The reference ordering, re-derived from the item's own candidate set: the
+ * option `answer.correctKey` names, validated to be a permutation of the events.
+ *
+ * The candidate orderings stay in `content` (they are what the bank was built
+ * with) but the renderer no longer shows them — the child now reorders the event
+ * cards directly, so the option set neither leaks the answer nor bounds the
+ * response. Reading the reference through the key keeps one source of truth for
+ * "what order does this story happen in".
+ */
+function sequenceReferenceOrder(item: RawBankItem): number[] | null {
+  const content = item.content as { options?: unknown; events?: unknown };
+  const options = arrayOf(content.options);
+  const events = arrayOf(content.events);
+  const key = num(item.answer.correctKey);
+  if (!options || !events || key === null || !Number.isInteger(key)) return null;
+  if (key < 0 || key >= options.length) return null;
+  const option = recordOf(options[key]);
+  const order = option ? numArray(option.order) : null;
+  return isEventPermutation(order, events.length) ? order : null;
+}
+
+/** An ordering is gradeable only when it places every event exactly once. */
+function isEventPermutation(order: number[] | null, eventCount: number): order is number[] {
+  if (!order || eventCount === 0 || order.length !== eventCount) return false;
+  if (new Set(order).size !== order.length) return false;
+  return order.every((index) => Number.isInteger(index) && index >= 0 && index < eventCount);
+}
+
+/**
+ * Story ordering, produced rather than recognised: the child drags the event
+ * cards into the order the story happens and the response carries that ordering.
+ * Correctness is exact agreement with the reference order.
+ *
+ * `M-POLY` is the pair concordance (Kendall-tau) the type declares: the share of
+ * event PAIRS the child left in the right relative order. Adjacent-pair credit
+ * would be the wrong partial signal here — a child who has the whole causal chain
+ * but slots one late event too early keeps almost every ordering relation, which
+ * is the thing the construct is about, and only a global measure sees it.
+ */
+function verifySequence(item: RawBankItem, response: Record<string, unknown>): Verdict {
+  const expected = sequenceReferenceOrder(item);
+  const built = numArray(response.finalOrder);
+  if (!expected || !isEventPermutation(built, expected.length)) return { correct: false };
+
+  const rank = new Map(expected.map((event, index) => [event, index]));
+  let pairs = 0;
+  let concordant = 0;
+  for (let i = 0; i < built.length; i++) {
+    for (let j = i + 1; j < built.length; j++) {
+      pairs++;
+      if (rank.get(built[i]!)! < rank.get(built[j]!)!) concordant++;
+    }
+  }
+  const correct = built.every((event, index) => event === expected[index]);
+
+  return {
+    correct,
+    metrics: { 'M-POLY': round4(pairs > 0 ? concordant / pairs : correct ? 1 : 0) },
+  };
+}
+
 export const verbalVerifiers: Record<string, Verifier> = {
   'WM-corsi-01': verifyCorsi,
   'WM-bind-01': verifyBind,
-  'WM-gridflash-01': verifyGridflash,
-  'WM-gate-01': verifyGate,
   'WM-bubble-01': verifyBubble,
   'VER-EVIDENCE-01': verifyEvidence,
   'VER-SENSE-01': verifySense,
+  'VER-SEQUENCE-01': verifySequence,
 };

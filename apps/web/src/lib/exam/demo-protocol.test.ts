@@ -95,6 +95,20 @@ const PRIME_SELECTOR = '#play,#foldBtn,#step,#replay,#nextclue,#reveal';
 /** Max presses per prime control, for the staged ones. */
 const PRIME_PRESSES = 8;
 
+/**
+ * `#play` first, whatever its DOM position. The R1 play gate keeps every other
+ * control inert until the child presses play, and the gate markup is the last
+ * child of `#wrap`, so a sweep in document order primes the staged controls (one
+ * clue per press, one fold per press) and the submit button while they are still
+ * no-ops, then releases the gate with nothing left to click.
+ */
+function playFirst(elements: Element[]): Element[] {
+  return [
+    ...elements.filter((el) => el.id === 'play'),
+    ...elements.filter((el) => el.id !== 'play'),
+  ];
+}
+
 interface DemoRun {
   ready: boolean;
   rendered: boolean;
@@ -226,7 +240,7 @@ async function driveDemo(
       },
       // animation-gated: watch the roll / fold the net first
       async () => {
-        for (const el of doc.querySelectorAll(PRIME_SELECTOR)) {
+        for (const el of playFirst([...doc.querySelectorAll(PRIME_SELECTOR)])) {
           for (let press = 0; press < PRIME_PRESSES; press++) {
             click(el);
             await sleep(press === 0 ? 800 : 80);
@@ -242,7 +256,7 @@ async function driveDemo(
       },
       // any button at all (some demos commit straight from a control)
       async () => {
-        for (const button of [...doc.querySelectorAll('button')].slice(0, 30)) {
+        for (const button of playFirst([...doc.querySelectorAll('button')]).slice(0, 30)) {
           click(button);
           await sleep(40);
           if (hasResult()) return;
@@ -270,8 +284,14 @@ async function driveDemo(
           if (hasResult()) return;
         }
       },
-      // keyboard-driven
+      // keyboard-driven. The R1 play gate holds the key handlers inert like every
+      // other control, so the gate has to be released before any key does
+      // anything — a child presses play, then types.
       async () => {
+        for (const el of doc.querySelectorAll('#play')) {
+          click(el);
+          await sleep(200);
+        }
         for (const key of ['1', '2', 'a', 'A', 'ArrowRight', 'Enter', ' ']) {
           for (const type of ['keydown', 'keyup']) {
             doc.dispatchEvent(new win.KeyboardEvent(type, { key, bubbles: true }));
@@ -318,9 +338,6 @@ describe('published demos speak the embedding protocol', () => {
    * never be answered" failure mode.
    */
   const DRIVER_CANNOT_COMPLETE = new Set<string>([
-    'QUANT-BUILD-01', // needs a two-card swap that yields the constrained optimum
-    'SPA-ROLL-01', // commit unlocks only after the roll animation completes
-    'SPA-SHADOW-01', // commit unlocks only after the light source is sampled
     // Constructed-response types wired once their server verifiers landed. Each
     // needs an artefact built over many ordered interactions, which a scripted
     // click sweep cannot produce. These have stronger evidence than the driver
@@ -328,15 +345,15 @@ describe('published demos speak the embedding protocol', () => {
     // for every item of each bank through `verify()`, in both directions.
     'WM-corsi-01', // must reproduce a cell sequence shown on a timed schedule
     'WM-bind-01', // must place each creature in the house it was bound to
-    'WM-gridflash-01', // response follows a flash exposure the driver cannot wait out
-    'WM-gate-01', // several checkpoints per item, each with its own k-back window
-    'WM-bubble-01', // n-back over a running stream; a click sweep pops arbitrarily
-    'VER-SENSE-01', // must order word cards into the one grammatical permutation
+    // n-back that now asks a seen/new question of every decidable bubble: a block
+    // reports only once 8-28 answers have been given, and the driver presses each
+    // control a handful of times. Verified by removing this entry: the demo reacts to
+    // input and answers the first bubbles, then the run ends mid-stream.
+    'WM-bubble-01',
+    // Every card has to be inserted into the line, one insertion point at a time,
+    // before the check unlocks — and the play gate covers the line until then.
+    'VER-SENSE-01', // must build the one sensible ordering by ordered insertion
     'FLU-CONCEPT-01', // must run probes against the gate before a verdict is offered
-    'CX-curious-02', // must pick a question, which is gated behind reading the scene
-    'GB-DEBATE-01', // two independent decisions per item, support and rebut
-    'GB-FILTER-01', // must select exactly the cued set, not merely click cells
-    'GB-PATHFORGE-01', // must lay a connected road within the tile budget
     'GB-TRACK-01', // must track moving targets through swap phases
     'SPA-MAZE-01', // must walk a legal path to the goal collecting every gem
     'SPA-PUNCH-01', // must mark the unfolded hole set

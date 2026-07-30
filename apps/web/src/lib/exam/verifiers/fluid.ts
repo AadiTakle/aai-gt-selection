@@ -19,17 +19,7 @@ import type { Verdict, Verifier } from './types';
  *   - `M-POLY`  proportion of the item's scorable parts that are right, 0..1.
  *   - `M-ERRTYPE` 0..1, higher is better, matching the route's error-quality
  *     direction; emitted only where the bank itself defines the components.
- *   - `M-RULEID` count of co-acting rules bound at once, emitted only on a fully
- *     correct response (the scorer's range is 1..4).
  *   - `M-HYP` 0..1 mean reduction of the viable-rule space per test.
- *
- * Types deliberately absent from this record:
- *   - `CX-diverge-01` and `CX-figural-01` are divergent-production banks
- *     (`answer.correctKey === null`, `scoring.mode = 'model_judge_deferred'`).
- *     No response is wrong, and the quality dimensions they declare (`M-ORIG`,
- *     `M-FLEX`) need a per-prompt norm bank and a semantic clusterer that do not
- *     exist (E-093). Any correctness rule here would be fiction, so there is
- *     none.
  */
 
 /* ------------------------------------------------------------------ *
@@ -56,6 +46,14 @@ function asInt(value: unknown): number | null {
 
 function asFiniteNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+type AttrValue = string | number;
+
+function readAttrValue(value: unknown): AttrValue | null {
+  if (typeof value === 'string') return value;
+  const n = asFiniteNumber(value);
+  return n === null ? null : n;
 }
 
 function proportion(hits: number, total: number): number {
@@ -248,185 +246,6 @@ function verifyGridCopy(item: RawBankItem, response: Record<string, unknown>): V
     }
   }
   return { correct: hits === cells, metrics: { 'M-POLY': proportion(hits, cells) } };
-}
-
-/* ================================================================== *
- * FLU-MATRIXBUILD-01 — build the missing tile of a matrix
- *
- * Each constructed attribute is re-induced from the VISIBLE cells: keep every
- * rule in the declared taxonomy that fits them, and require them all to predict
- * the same blank value. Credit is per attribute, so a child who binds two of
- * three rules is separated from one who binds none.
- * ================================================================== */
-
-type AttrValue = string | number;
-
-function readAttrValue(value: unknown): AttrValue | null {
-  if (typeof value === 'string') return value;
-  const n = asFiniteNumber(value);
-  return n === null ? null : n;
-}
-
-/** Normalised comparison form declared by `answer.equivalence.normalization`. */
-function normalizeAttr(attribute: string, value: unknown): string | number | null {
-  if (attribute === 'count') {
-    const n = asFiniteNumber(value);
-    if (n !== null) return n;
-    const text = asString(value);
-    if (text === null) return null;
-    const parsed = Number.parseInt(text, 10);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-  const text = asString(value);
-  if (text !== null) return text.trim().toLowerCase();
-  const n = asFiniteNumber(value);
-  return n === null ? null : n;
-}
-
-/** Distinct blank values predicted by the rules that fit the visible cells. */
-function induceBlankValues(
-  values: (AttrValue | null)[][],
-  size: number,
-  numeric: boolean,
-): AttrValue[] {
-  const shown: { r: number; c: number; v: AttrValue }[] = [];
-  for (let r = 0; r < size; r++) {
-    for (let c = 0; c < size; c++) {
-      if (r === size - 1 && c === size - 1) continue;
-      const v = values[r]?.[c];
-      if (v === null || v === undefined) return [];
-      shown.push({ r, c, v });
-    }
-  }
-  const row = (r: number) => shown.filter((s) => s.r === r).map((s) => s.v);
-  const col = (c: number) => shown.filter((s) => s.c === c).map((s) => s.v);
-  const allSame = (xs: AttrValue[]) => xs.every((x) => x === xs[0]);
-  const indices = Array.from({ length: size }, (_, i) => i);
-  const preds: AttrValue[] = [];
-
-  if (indices.every((r) => allSame(row(r)))) {
-    const v = row(size - 1)[0];
-    if (v !== undefined) preds.push(v);
-  }
-  if (indices.every((c) => allSame(col(c)))) {
-    const v = col(size - 1)[0];
-    if (v !== undefined) preds.push(v);
-  }
-
-  const alphabet = [...new Set(shown.map((s) => s.v))];
-  if (alphabet.length === size) {
-    const rowsDistinct = indices.every((r) => new Set(row(r)).size === row(r).length);
-    const colsDistinct = indices.every((c) => new Set(col(c)).size === col(c).length);
-    if (rowsDistinct && colsDistinct) {
-      const gapRow = alphabet.filter((v) => !row(size - 1).includes(v));
-      const gapCol = alphabet.filter((v) => !col(size - 1).includes(v));
-      if (gapRow.length === 1 && gapCol.length === 1 && gapRow[0] === gapCol[0])
-        preds.push(gapRow[0]!);
-    }
-  }
-
-  if (numeric) {
-    const numbers = (xs: AttrValue[]) => xs.map((x) => (typeof x === 'number' ? x : Number.NaN));
-    const deltas: number[] = [];
-    for (let r = 0; r < size; r++) {
-      const vs = numbers(row(r));
-      for (let i = 1; i < vs.length; i++) deltas.push(vs[i]! - vs[i - 1]!);
-    }
-    const distinctDeltas = [...new Set(deltas)];
-    const delta = distinctDeltas[0];
-    if (
-      distinctDeltas.length === 1 &&
-      delta !== undefined &&
-      delta !== 0 &&
-      Number.isFinite(delta)
-    ) {
-      const lastRow = numbers(row(size - 1));
-      const tail = lastRow[lastRow.length - 1];
-      if (tail !== undefined && Number.isFinite(tail)) preds.push(tail + delta);
-    }
-    if (size === 3) {
-      const at = (r: number, c: number) => {
-        const v = values[r]?.[c];
-        return typeof v === 'number' ? v : Number.NaN;
-      };
-      const rowsWithSum = [0, 1];
-      if (rowsWithSum.every((r) => at(r, 2) === at(r, 0) + at(r, 1)))
-        preds.push(at(2, 0) + at(2, 1));
-      if (rowsWithSum.every((r) => at(r, 2) === at(r, 0) - at(r, 1)))
-        preds.push(at(2, 0) - at(2, 1));
-    }
-  }
-
-  return [...new Set(preds)];
-}
-
-/** Expected tile per constructed attribute, re-induced from the visible cells. */
-function deriveMatrixTile(content: Record<string, unknown>): Map<string, AttrValue> | null {
-  const size = asInt(content.gridSize);
-  const attributes = asArray(content.constructedAttributes)?.map(asString) ?? null;
-  const matrix = asRecord(content.matrix);
-  const cells = asArray(matrix?.cells);
-  if (size === null || size < 2 || !attributes || attributes.some((a) => a === null) || !cells)
-    return null;
-  if (cells.length !== size) return null;
-
-  const blank = asRecord(matrix?.blank);
-  // The induction below reads the blank as the bottom-right cell, as the bank
-  // guarantees; anything else is not a shape this solver can reason about.
-  if (asInt(blank?.row) !== size - 1 || asInt(blank?.col) !== size - 1) return null;
-
-  const out = new Map<string, AttrValue>();
-  for (const attribute of attributes as string[]) {
-    const values: (AttrValue | null)[][] = [];
-    for (let r = 0; r < size; r++) {
-      const rowCells = asArray(cells[r]);
-      if (!rowCells || rowCells.length !== size) return null;
-      const row: (AttrValue | null)[] = [];
-      for (let c = 0; c < size; c++) {
-        if (r === size - 1 && c === size - 1) {
-          row.push(null);
-          continue;
-        }
-        const tile = asRecord(rowCells[c]);
-        const value = tile ? readAttrValue(tile[attribute]) : null;
-        if (value === null) return null;
-        row.push(value);
-      }
-      values.push(row);
-    }
-    const predicted = induceBlankValues(values, size, attribute === 'count');
-    if (predicted.length !== 1) return null;
-    out.set(attribute, predicted[0]!);
-  }
-  return out;
-}
-
-function verifyMatrixBuild(item: RawBankItem, response: Record<string, unknown>): Verdict {
-  const content = item.content;
-  const attributes = (asArray(content.constructedAttributes) ?? [])
-    .map(asString)
-    .filter((a): a is string => a !== null);
-  if (attributes.length === 0) return { correct: false };
-
-  const derived = deriveMatrixTile(content);
-  const canonical = asRecord(item.answer.canonical);
-  const constructed = asRecord(response.constructed);
-  if (!constructed) return { correct: false };
-
-  let hits = 0;
-  for (const attribute of attributes) {
-    const want = normalizeAttr(attribute, derived?.get(attribute) ?? canonical?.[attribute]);
-    const got = normalizeAttr(attribute, constructed[attribute]);
-    if (want === null || got === null) continue;
-    if (want === got) hits++;
-  }
-
-  const correct = hits === attributes.length;
-  const metrics: Record<string, number> = { 'M-POLY': proportion(hits, attributes.length) };
-  // Halford relational complexity: only a fully correct tile evidences that the
-  // child bound all of the co-acting attribute rules at once.
-  if (correct) metrics['M-RULEID'] = attributes.length;
-  return { correct, metrics };
 }
 
 /* ================================================================== *
@@ -633,6 +452,185 @@ function verifyConcept(item: RawBankItem, response: Record<string, unknown>): Ve
 }
 
 /* ================================================================== *
+ * FLU-DEDUCE-01 — cross out the suspects each clue rules out
+ *
+ * The child now works one clue at a time and is graded on the state they left
+ * each clue in, not on a single final pick: after clue k the crossed-out set
+ * should be exactly the candidates that violate at least one of clues 1..k.
+ * Every one of those sets is re-derived here by evaluating `content.clues`
+ * against `content.candidates`, so the stored key is never consulted.
+ *
+ * `correct` therefore means EVERY STEP WAS EXACTLY RIGHT — no suspect left
+ * standing that a clue rules out, and none crossed out early. That is a
+ * strictly harder bar than the old "picked the survivor", and the adaptive
+ * engine keys its difficulty step off this boolean, so an item's `correct`
+ * rate will sit lower than it did under the single-answer contract.
+ * `M-POLY` carries the graded signal: the mean, over steps, of the share of
+ * candidates in the right state.
+ * ================================================================== */
+
+interface DeduceClue {
+  clueId: string;
+  /** True when the figure satisfies the clue, i.e. the clue does NOT rule it out. */
+  holds: (figure: Record<string, unknown>) => boolean;
+}
+
+function readDeduceClue(raw: unknown): DeduceClue | null {
+  const clue = asRecord(raw);
+  const clueId = asString(clue?.clueId);
+  const form = asString(clue?.form);
+  if (!clue || clueId === null || form === null) return null;
+
+  if (form === 'and') {
+    const terms: { dim: string; value: AttrValue }[] = [];
+    for (const rawTerm of asArray(clue.terms) ?? []) {
+      const term = asRecord(rawTerm);
+      const dim = asString(term?.dim);
+      const value = readAttrValue(term?.value);
+      if (dim === null || value === null) return null;
+      terms.push({ dim, value });
+    }
+    if (terms.length === 0) return null;
+    return { clueId, holds: (figure) => terms.every((t) => figure[t.dim] === t.value) };
+  }
+
+  const dim = asString(clue.dim);
+  const value = readAttrValue(clue.value);
+  if (dim === null || value === null) return null;
+  switch (form) {
+    case 'is':
+      return { clueId, holds: (figure) => figure[dim] === value };
+    case 'not':
+      return { clueId, holds: (figure) => figure[dim] !== value };
+    case 'atleast':
+      return {
+        clueId,
+        holds: (figure) =>
+          typeof figure[dim] === 'number' && typeof value === 'number' && figure[dim] >= value,
+      };
+    case 'atmost':
+      return {
+        clueId,
+        holds: (figure) =>
+          typeof figure[dim] === 'number' && typeof value === 'number' && figure[dim] <= value,
+      };
+    default:
+      // An unknown clue form would be silently treated as satisfied by everything,
+      // which grades a correct child wrong. Refuse the item instead.
+      return null;
+  }
+}
+
+interface DeduceModel {
+  candidateKeys: string[];
+  /** Per clue, the keys ruled out by that clue or any clue before it. */
+  steps: { clueId: string; ruledOut: Set<string> }[];
+}
+
+function buildDeduceModel(content: Record<string, unknown>): DeduceModel | null {
+  const rawClues = asArray(content.clues);
+  const rawCandidates = asArray(content.candidates);
+  if (!rawClues || rawClues.length === 0 || !rawCandidates || rawCandidates.length === 0) {
+    return null;
+  }
+
+  const candidates: { key: string; figure: Record<string, unknown> }[] = [];
+  for (const raw of rawCandidates) {
+    const candidate = asRecord(raw);
+    const key = asString(candidate?.key);
+    const figure = asRecord(candidate?.figure);
+    if (key === null || !figure) return null;
+    candidates.push({ key, figure });
+  }
+
+  const steps: DeduceModel['steps'] = [];
+  const ruledOut = new Set<string>();
+  for (const raw of rawClues) {
+    const clue = readDeduceClue(raw);
+    if (!clue) return null;
+    for (const candidate of candidates) {
+      if (!clue.holds(candidate.figure)) ruledOut.add(candidate.key);
+    }
+    steps.push({ clueId: clue.clueId, ruledOut: new Set(ruledOut) });
+  }
+  return { candidateKeys: candidates.map((c) => c.key), steps };
+}
+
+/** One crossed-out set per clue, in clue order, or null when the response is unusable. */
+function readDeduceSteps(
+  response: Record<string, unknown>,
+  model: DeduceModel,
+): Set<string>[] | null {
+  const raw = asArray(response.steps);
+  if (!raw || raw.length !== model.steps.length) return null;
+
+  const out: Set<string>[] = [];
+  for (const [index, entry] of raw.entries()) {
+    const step = asRecord(entry);
+    if (!step) return null;
+    const clueId = asString(step.clueId);
+    // Positional by contract; when the demo names the clue it must be the right one,
+    // so a reordered or truncated trace is rejected rather than mis-graded.
+    if (clueId !== null && clueId !== model.steps[index]!.clueId) return null;
+    const eliminated = asArray(step.eliminated);
+    if (!eliminated) return null;
+    const keys = new Set<string>();
+    for (const value of eliminated) {
+      const key = asString(value);
+      if (key === null) return null;
+      keys.add(key);
+    }
+    out.push(keys);
+  }
+  return out;
+}
+
+function verifyDeduce(item: RawBankItem, response: Record<string, unknown>): Verdict {
+  const model = buildDeduceModel(item.content);
+  if (!model) return { correct: false };
+  const submitted = readDeduceSteps(response, model);
+  if (!submitted) return { correct: false };
+
+  let cells = 0;
+  let hits = 0;
+  let missed = 0; // left standing though a clue rules it out
+  let overcrossed = 0; // crossed out though every clue so far still fits it
+  let perfectSteps = 0;
+
+  for (const [index, step] of model.steps.entries()) {
+    const got = submitted[index]!;
+    let stepHits = 0;
+    for (const key of model.candidateKeys) {
+      cells++;
+      const shouldBeOut = step.ruledOut.has(key);
+      if (shouldBeOut === got.has(key)) {
+        hits++;
+        stepHits++;
+      } else if (shouldBeOut) {
+        missed++;
+      } else {
+        overcrossed++;
+      }
+    }
+    if (stepHits === model.candidateKeys.length) perfectSteps++;
+  }
+
+  // M-ERRTYPE (0..1, higher is better, matching the route's direction): of the
+  // states the child got wrong, the share that are under-pruning rather than
+  // crossing out a suspect the clue still admits. Crossing out a candidate that
+  // fits means the clue was read in the wrong direction — the rule violation the
+  // route scores lowest — whereas leaving one standing is incomplete pruning.
+  const errors = missed + overcrossed;
+  return {
+    correct: perfectSteps === model.steps.length,
+    metrics: {
+      'M-POLY': proportion(hits, cells),
+      'M-ERRTYPE': errors === 0 ? 1 : proportion(missed, errors),
+    },
+  };
+}
+
+/* ================================================================== *
  * CX-check-01 — review a sorter's work and fix the tiles it misplaced
  *
  * Every tile's true bin is recomputed from the visible board: canonicalise the
@@ -726,46 +724,6 @@ function verifyCheckTwice(item: RawBankItem, response: Record<string, unknown>):
       'M-ERRTYPE': planted === 0 ? 1 : caught / planted,
     },
   };
-}
-
-/* ================================================================== *
- * CX-curious-02 — spot what the scene does NOT tell us
- *
- * Only the information-gap pick is keyed. The questions the child asks and the
- * cause/next guesses they make are never right or wrong (they are counted, and
- * their quality is judge-deferred), so nothing here scores them. The gap option
- * is re-derived as the single option whose evidence model records no support in
- * the scene.
- * ================================================================== */
-
-function deriveGapKey(item: RawBankItem): string | null {
-  const options = asArray(item.content.gapOptions);
-  if (!options) return null;
-  const offered = new Set<string>();
-  for (const raw of options) {
-    const id = asString(asRecord(raw)?.id);
-    if (id === null) return null;
-    offered.add(id);
-  }
-
-  const evidence = asArray(asRecord(item.answer.evidenceModel)?.gapOptions);
-  if (evidence) {
-    const unknown = evidence
-      .map((raw) => asRecord(raw))
-      .filter((entry) => asString(entry?.support) === 'unknown')
-      .map((entry) => asString(entry?.id))
-      .filter((id): id is string => id !== null && offered.has(id));
-    if (unknown.length === 1) return unknown[0]!;
-  }
-
-  const stored = asString(item.answer.correctKey);
-  return stored !== null && offered.has(stored) ? stored : null;
-}
-
-function verifyCurious(item: RawBankItem, response: Record<string, unknown>): Verdict {
-  const expected = deriveGapKey(item);
-  if (expected === null) return { correct: false };
-  return { correct: asString(response.gapKey) === expected };
 }
 
 /* ================================================================== *
@@ -910,9 +868,8 @@ function verifyInvestigation(item: RawBankItem, response: Record<string, unknown
 
 export const fluidVerifiers: Record<string, Verifier> = {
   'FLU-GRIDCOPY-01': verifyGridCopy,
-  'FLU-MATRIXBUILD-01': verifyMatrixBuild,
   'FLU-CONCEPT-01': verifyConcept,
+  'FLU-DEDUCE-01': verifyDeduce,
   'CX-check-01': verifyCheckTwice,
-  'CX-curious-02': verifyCurious,
   'CX-achieve-02': verifyInvestigation,
 };

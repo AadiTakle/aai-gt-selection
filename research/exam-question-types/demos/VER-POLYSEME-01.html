@@ -13,9 +13,23 @@
   (build plan: no correct/incorrect mid-test; key stays server-side).
 
   Mechanic (deterministic key): a homograph is shown inside a meaning-biasing SENTENCE.
-  Four "pictures" (word-based, emoji-free labels — an assetId would supply the real image)
-  are offered: the sentence's meaning, the word's OTHER meaning, a thematic associate, and
-  an unrelated foil. The child taps the picture that matches the sentence, then submits.
+  Four written meanings are offered: the sentence's meaning, the word's OTHER meaning, a
+  thematic associate, and an unrelated foil. The child taps the sentence that shows what the
+  word means here, then submits — the review's wording, used verbatim in the how-to panel,
+  the prompt line and the status line so the child reads one instruction wherever they look.
+
+  The `picture` in `content.options[].picture.text` and in `response.selectedPicture` is a
+  relic of the pre-D-017 picture design and is now a text label; the child-facing copy no
+  longer says "picture", while the field names stay because the server key reads them.
+
+  OPEN — the instruction is the review's wording verbatim, and it names something the item
+  does not contain: all 400 option glosses in this bank are noun phrases of 3-8 words ("a
+  small animal that can fly"), not sentences, so the only sentence on screen is the
+  untappable stem at the top. Two ways to close it, and both are decisions for the review
+  rather than this renderer: change the instruction's noun to the thing that is tappable
+  ("tap the MEANING that shows what the word means here"), or author each option as a
+  sentence that uses the word in that meaning — 400 new glosses whose meaning-bias has to
+  be re-validated per item. Nothing here was invented to paper over it.
 
   House style: word-based only. No emoji. Reading the sentence IS the task (D-017: the
   biasing sentence is printed text, never audio).
@@ -76,10 +90,6 @@
   #replay{width:50px;height:50px;background:#f8e8de;color:#004f71;font-size:22px}
   #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:60;opacity:0;transition:transform .55s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
   #ghost.show{opacity:.92}
-  #diffmeter{width:100%;display:flex;align-items:center;gap:8px;font-size:11px;color:#4a6470}
-  #diffbar{flex:1;height:8px;background:#fcf4ef;border-radius:6px;overflow:hidden}
-  #diffbar i{display:block;height:100%;background:linear-gradient(90deg,#004f71,#ebba9b);width:0%;transition:.3s}
-  #diffval{min-width:96px;text-align:right;font-weight:700;color:#6f4526}
   #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
   #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#ffffff;background:#002a3a;text-transform:uppercase}
   #chan{padding:6px 14px;font-size:11px;color:var(--tel-dim);border-bottom:1px solid #33505c}
@@ -114,7 +124,7 @@
     <div id="badge">VER-POLYSEME-01 · Two Meanings</div>
     <header id="howto">
       <h1>How to use — Two Meanings</h1>
-      <p>One word can mean two things. Read the sentence and look at the highlighted word. Then tap the picture that shows what the word means <b>in this sentence</b> (not its other meaning), and press the check (<b>&#10003;</b>). You can also press number keys 1&ndash;4.</p>
+      <p>One word can mean two things. Read the sentence at the top and look at the highlighted word. Then <b>tap the sentence that shows what the word means here</b> &mdash; the meaning it has in this sentence, not its other meaning &mdash; and press the check (<b>&#10003;</b>). You can also press number keys 1&ndash;4.</p>
     </header>
     <div id="phasecue" data-phase="ready">Ready</div>
     <div id="stagecard">
@@ -124,12 +134,15 @@
       </div>
       <div id="promptLine"></div>
       <div id="candGrid"></div>
-      <div id="diffmeter"><span>Easy</span><div id="diffbar"><i id="diffbarfill"></i></div><span>Hard</span><span id="diffval">level &mdash; / 20</span></div>
       <div id="controls">
         <button class="rd" id="replay" title="replay how-to">&#8635;</button>
         <button class="rd" id="go" title="submit">&#10003;</button>
       </div>
       <div id="status" class="neutral">Waiting for the first item&hellip;</div>
+    </div>
+    <div id="playgate">
+      <p>The word puzzle is ready. Press play when you are, and it starts then.</p>
+      <button type="button" id="play">Play</button>
     </div>
   </div>
   <aside id="telemetry">
@@ -170,13 +183,15 @@ function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textC
 function log(msg){const t=itemStart?Date.now()-itemStart:0;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
 
 /* ---------------- phase + status (worded, no emoji) ---------------- */
+const INSTRUCTION='Tap the sentence that shows what the word means here.';
 const PHASE={ready:'Ready',demo:'How it works',answer:'Your turn',done:'Answer sent'};
 function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
 function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
 
 /* ---------------- item state ---------------- */
 let item=null, options=[], selected=null, order=[], tried=null, changes=0,
-    itemStart=0, firstAt=null, locked=true, inputModality='tap', telemetryLog=[];
+    itemStart=0, firstAt=null, locked=true, inputModality='tap', telemetryLog=[],
+    gateTutorial=false;    // does the pending play press owe a how-to walkthrough?
 
 function esc(s){return String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
 function difficultyOf(it){const d=(it&&it.difficulty!=null)?it.difficulty:(it&&it.difficultyLevel!=null?it.difficultyLevel:0);return +d||0;}
@@ -193,19 +208,42 @@ function setItem(served){
   item=served;
   const c=(served&&served.content)||{};
   options=(c.options||[]).map((o)=>({picture:{text:(o&&o.picture&&o.picture.text)!=null?o.picture.text:String(o&&o.picture!=null?o.picture:'')}}));
-  selected=null;order=[];tried=new Set();changes=0;firstAt=null;telemetryLog=[];itemStart=Date.now();locked=false;
+  selected=null;order=[];tried=new Set();changes=0;firstAt=null;telemetryLog=[];itemStart=0;locked=true;
   $('#wordVal').textContent=c.word||'\u2014';
   $('#sentence').innerHTML=highlight(c.sentence||'',c.word||'');
-  $('#promptLine').textContent=c.prompt||'Tap the picture that shows what the word means here.';
+  // The instruction is the renderer's, not the bank's: `content.prompt` still says "tap the
+  // picture" from the pre-D-017 picture design, and the options have been on-screen text ever
+  // since. The wording is identical here and in the status line, because the how-to panel is
+  // hidden while embedded and the status line is the instruction the child actually reads.
+  $('#promptLine').textContent=INSTRUCTION;
   $('#candGrid').innerHTML=options.map((o,i)=>`<div class="cand" data-i="${i}"><span class="hk">${i+1}</span><span class="pic">${esc(o.picture.text)}</span></div>`).join('');
   const d=difficultyOf(served);
-  $('#diffbarfill').style.width=Math.max(0,Math.min(100,d/20*100))+'%';
-  $('#diffval').textContent='level '+(Math.round(d*10)/10)+' / 20';
   $('#go').classList.remove('ready');
-  setCue('answer');
-  setStatus('neutral','Read the sentence, tap the picture that fits, then press the check.');
   log(`INIT item ${served&&served.itemId?served.itemId:'(no id)'} · word "${c.word||'?'}" · ${options.length} pictures · level ${Math.round(d*10)/10}`);
   recordEv({kind:'shown',itemId:served&&served.itemId,difficulty:d,word:c.word,optionCount:options.length});
+  renderMeters();
+}
+
+/* ---------------- play gate (R1) ----------------
+   `init` renders the item behind the gate and `start` only arms it; the child's press of
+   play is what makes the item live. M-RT and M-RTFIRST are scored, so the clock has to
+   start on a deliberate action rather than on the host's delivery. */
+function openGate(withTutorial){
+  gateTutorial=!!withTutorial;
+  locked=true;
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('ready');
+  setStatus('neutral','Press play when you are ready.');
+  $('#go').classList.remove('ready');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
+function beginItem(withTutorial){
+  if(!item||itemStart)return;      // a second press of play is a no-op
+  closeGate();
+  itemStart=Date.now();firstAt=null;locked=false;
+  setCue('answer');
+  setStatus('neutral',INSTRUCTION+' Then press the check.');
+  if(withTutorial)runHowto();
   renderMeters();
 }
 
@@ -261,18 +299,34 @@ function submit(){
 const ghost=$('#ghost');
 function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
 async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(500);}
+let howtoRunning=false,howtoAbort=false;
 async function runHowto(){
-  if(!item)return;
+  if(!item||howtoRunning)return;
+  howtoRunning=true;howtoAbort=false;
   locked=true;setCue('demo');
-  setStatus('neutral','Read the sentence, then read each picture, then press the check.');
+  setStatus('neutral','Read the sentence at the top, then read each one below, then press the check.');
   ghost.classList.add('show');await sleep(250);
-  await ghostTo($('#sentence'));
-  for(const el of $$('#candGrid .cand')){await ghostTo(el);}
-  await ghostTo($('#go'));
-  await sleep(200);ghost.classList.remove('show');await sleep(250);
-  setCue('answer');setStatus('neutral','Your turn. Tap the picture that fits the sentence, then press the check.');
-  locked=false; // release the lock so the child can answer + the demo can emit
+  const steps=[$('#sentence'),...$$('#candGrid .cand'),$('#go')];
+  for(const el of steps){
+    if(howtoAbort)break;
+    await ghostTo(el);
+  }
+  if(!howtoAbort)await sleep(200);
+  endHowto();
 }
+/* A tap during the walkthrough is a child who already knows what to do, so the mime stops
+   and their tap counts rather than being swallowed by an animation. Every exit from the
+   walkthrough runs through here, so the lock can never be left on once interaction
+   resumes. */
+function endHowto(){
+  if(!howtoRunning)return;
+  howtoRunning=false;howtoAbort=false;
+  ghost.classList.remove('show');
+  if(!itemStart)return;   // still behind the gate: beginItem starts the clock and unlocks
+  locked=false;
+  setCue('answer');setStatus('neutral','Your turn. '+INSTRUCTION+' Then press the check.');
+}
+function interruptHowto(){if(howtoRunning){howtoAbort=true;endHowto();}}
 
 /* ---------------- standalone fallback (double-click, no host) ---------------- */
 // Built-in sample ServedItems (content only; options carry a picture but NO answer).
@@ -296,8 +350,8 @@ function nextStandalone(first){
   if(sIdx>=SAMPLES.length){setCue('done');setStatus('ok','Demo complete. Press \u21bb or reload to run the examples again.');locked=true;return;}
   const s=SAMPLES[sIdx++];
   setItem(s);
-  setCue('answer','\u00b7 example '+sIdx+'/'+SAMPLES.length);
-  if(first){runHowto();}
+  openGate(first===true);
+  setCue('ready','\u00b7 example '+sIdx+'/'+SAMPLES.length);
 }
 
 /* ---------------- host message handling ---------------- */
@@ -317,11 +371,16 @@ function refuseAnswerSignal(served){
 }
 window.addEventListener('message',e=>{
   const d=e.data;if(!d||d.source!==SRC_HOST)return;
-  if(d.type==='init'&&d.item){hostSeen=true;$('#chanval').textContent='host-embedded';setItem(refuseAnswerSignal(d.item));}
-  else if(d.type==='start'){if(item){itemStart=Date.now();locked=false;setStatus('neutral','Your turn. Tap the picture that fits the sentence, then press the check.');}}
+  if(d.type==='init'&&d.item){hostSeen=true;$('#chanval').textContent='host-embedded';setItem(refuseAnswerSignal(d.item));openGate(false);}
+  else if(d.type==='start'){if(item&&!itemStart)openGate(!!d.tutorial);}
 });
 
 /* ---------------- input ---------------- */
+$('#play').addEventListener('click',()=>{beginItem(gateTutorial);});
+// Capture phase on the choices only: the tap that stops the walkthrough is the same tap
+// that then selects, and the how-to control itself stays inert while it is playing.
+$('#candGrid').addEventListener('pointerdown',interruptHowto,true);
+$('#candGrid').addEventListener('click',interruptHowto,true);
 $('#candGrid').addEventListener('click',e=>{const c=e.target.closest('.cand');if(c&&!locked)select(+c.dataset.i,'tap');});
 $('#go').addEventListener('click',submit);
 document.addEventListener('keydown',e=>{
@@ -329,7 +388,7 @@ document.addEventListener('keydown',e=>{
   const n=+e.key;if(n>=1&&n<=options.length)select(n-1,'key');
   if(e.key==='Enter')submit();
 });
-$('#replay').addEventListener('click',()=>{if(item)runHowto();});
+$('#replay').addEventListener('click',()=>{if(item&&itemStart)runHowto();});
 
 /* ---------------- boot ---------------- */
 buildMeters();renderMeters();

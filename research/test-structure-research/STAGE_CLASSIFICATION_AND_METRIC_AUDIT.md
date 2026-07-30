@@ -33,9 +33,9 @@ Legend: **S1** = Standing/accuracy (feeds θ) · **S2** = Learning-rate/effort (
 | `FLU-VENN-01` Double Match | high | **S1** | M-ACC + M-RULEID (conjunctive classification) |
 | `FLU-MATRIXBUILD-01` Build the Tile | high | **DUAL** | keyed **+ M-POLY/M-PATH/M-RULEID** (constructed → per-attribute + strategy) |
 | `FLU-GRIDCOPY-01` Copy the Change | high | **DUAL** | keyed **+ M-POLY/M-PATH/M-EFF/M-PROG** (constructed transform, convergence curve) |
-| `FLU-DEDUCE-01` Clue Detective | high | **DUAL** | keyed **+ M-POLY/M-PATH/M-EFF** (deduction process) |
+| `FLU-DEDUCE-01` Clue Detective | high | **DUAL** | per-step elimination **+ M-POLY/M-PATH/M-EFF** (deduction process; graded clue by clue since the 2026-07 review, not on a final pick) |
 | `FLU-LADDER-01` Ranking Ladder | high | **DUAL** | **M-DIFFREACH** + **M-HYP/M-RULEID** (transitive integration ceiling + search efficiency) |
-| `FLU-CONCEPT-01` Mystery Gate | high | **S2** | **M-HYP/M-EXPLORE/M-EFF/M-PROG/M-PATH** — active rule *discovery* = learning-rate-adjacent |
+| `FLU-CONCEPT-01` Mystery Gate | high | **DUAL** | **M-HYP/M-EXPLORE/M-EFF/M-PROG/M-PATH** — active rule *discovery* = learning-rate-adjacent, but the probe verdicts are keyed, so it also brackets a ceiling (reviewer, 2026-07: "make this a dual question instead of just s2"); served 4-5 and 6-8 only |
 | `CX-achieve-02` Investigation Station | med | **S2** | **M-LEARNRATE** + M-PLANFUL/M-HYP/M-EXPLORE/M-PROG (investigation) |
 | `CX-diverge-01` Brainstorm Blaster | low | **S2** | **M-IDEAFLU/M-FLEX/M-ORIG/M-ELAB** (divergent creativity — no key) |
 | `CX-figural-01` Squiggle Studio | low | **S2** | **M-IDEAFLU/M-ORIG/M-ELAB** (figural creativity — no key) |
@@ -70,7 +70,6 @@ Legend: **S1** = Standing/accuracy (feeds θ) · **S2** = Learning-rate/effort (
 | `SPA-PICKFOLD-01` Which Fold Made It? | high | **S1** | keyed + **M-DIFFREACH** + M-HINT |
 | `SPA-PUNCH-01` Fold & Punch | high | **S1** | M-POLY + **M-DIFFREACH** |
 | `SPA-SHADOW-01` Shadow Play | high | **S1** | keyed + M-CONF + **M-DIFFREACH** |
-| `SPA-VIEW-01` What Do They See | med | **S1** | keyed + M-VIEWANG + **M-DIFFREACH** |
 | `SPA-SCENE-01` What the Robot Sees | med | **S1** | M-POLY + **M-DIFFREACH** |
 | `SPA-XSCAN-01` Scan Stacker | med | **S1** | M-POLY + **M-DIFFREACH** (cross-section) |
 | `SPA-XPLANE-01` Place the Slice | med | **DUAL** | M-POLY/**M-PATH/M-EFF** + M-DIFFREACH |
@@ -81,6 +80,7 @@ Legend: **S1** = Standing/accuracy (feeds θ) · **S2** = Learning-rate/effort (
 | `GB-PATHFORGE-01` Path Forge | high | **S2** | **M-EFF/M-PATH/M-EXPLORE/M-PROG/M-PERSIST** (no ceiling; planning/effort) |
 | `GB-ROBOPATH-01` Path Coder | high | **S2** | **M-EFF/M-PATH/M-EXPLORE/M-PROG/M-PERSIST** (sequence-planning) |
 | `GB-SHAPEFIT-01` Shape Smith | high | **S2** | **M-EFF/M-PATH/M-EXPLORE/M-PROG/M-PERSIST** (construction) |
+| `SPA-VIEW-01` What Do They See | med | **S2** | keyed + M-VIEWANG + **M-DIFFREACH**; reclassified from S1 by the 2026-07 review ("make this a S2 question with the intent that What the Robot Sees is a S1 question that the student can learn from"), which reads perspective-taking as a ladder the child climbs within the session rather than a standing ceiling. It is the only S2 type in spatial. Whether `SPA-SCENE-01`/`SPA-VIEW-01` are actually served as a paired teach-then-probe block is an open §7 decision, not implemented |
 | `WM-corsi-01` Firefly Trail | high | **S1** | **M-SPAN/M-DIFFREACH/M-MANIPCOST** (spatial span capacity) |
 | `WM-bind-01` Home Again | high | **S1** | **M-SPAN/M-DIFFREACH** (object-location binding) |
 | `WM-gridflash-01` Star Grid | high | **S1** | **M-SPAN/M-DPRIME/M-DIFFREACH** (simultaneous span) |
@@ -107,9 +107,9 @@ Legend: **S1** = Standing/accuracy (feeds θ) · **S2** = Learning-rate/effort (
 | `QUANT-WORD-01` Story Model | high | **DUAL→S2** | **M-POLY/M-PATH/M-PROG/M-PLANFUL** + **M-LEARNRATE** |
 
 ### 2.5 Summary counts
-- **Pure S1 (standing / ceiling):** ~24 types — the figural matrices/series/analogies, verbal reasoning/vocab, spatial transforms, WM-span capacity, ANS acuity. These *bracket* θ.
-- **DUAL (bridge):** ~19 types — constructed-response, deduction, planning, and *all* the rule-induction quant. Usable in either stage by configuration.
-- **Pure S2 (learning-rate / process / creativity / effort):** ~11 types — rule *discovery* (Mystery Gate, Sorting Robot), creativity (Brainstorm, Squiggle, Question Quest), open planning/effort (Path Forge/Coder/Smith, Word Forge/Ladder), investigation (Investigation Station), conscientiousness (Check It Twice).
+- **Pure S1 (standing / ceiling):** ~23 types — the figural matrices/series/analogies, verbal reasoning/vocab, spatial transforms, WM-span capacity, ANS acuity. These *bracket* θ.
+- **DUAL (bridge):** ~20 types — constructed-response, deduction, planning, rule discovery at Mystery Gate, and *all* the rule-induction quant. Usable in either stage by configuration.
+- **Pure S2 (learning-rate / process / creativity / effort):** ~11 types — rule *discovery* (Sorting Robot), creativity (Brainstorm, Squiggle, Question Quest), open planning/effort (Path Forge/Coder/Smith, Word Forge/Ladder), investigation (Investigation Station), conscientiousness (Check It Twice), perspective taking (What Do They See).
 
 **Design consequence [I]:** Stage 1 should draw from the **pure-S1 + the keyed side of DUAL** types (clean ceilings, fast to bracket). Stage 2 should draw from **pure-S2 + the process/growth side of DUAL** — and the **quant DUAL types are the best learning-rate vehicle** because they combine a novel rule ladder (for `M-LEARNRATE`) with a legible key.
 

@@ -63,9 +63,8 @@ function registryMetrics(typeCode: string): string[] {
  * area. A metric that some wired type never emits therefore cannot be enforced
  * blindly: with a large type pool the engine can keep picking that type and the
  * count never advances, so `isDone` stays false until the hard item cap — a
- * 40-item battery that looks like a hang. (Concretely: QUANT-BUILD-01 reports
- * `M-PATH` instead of `M-REV`, so `M-REV` is not enforceable for the
- * quantitative area.)
+ * 40-item battery that looks like a hang. (Concretely: FLU-CONCEPT-01 never
+ * reports `M-REV`, so `M-REV` is not enforceable for the fluid_reasoning area.)
  *
  * So a client metric is enforced for an area only when EVERY wired type in that
  * area emits it, and is otherwise demoted to tracked — still biasing selection

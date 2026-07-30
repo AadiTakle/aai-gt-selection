@@ -271,15 +271,17 @@ describe('metric supply audit', () => {
   });
 
   it('pins the known sole-source fragilities so a bank change cannot silently stall the battery', () => {
-    // Each of these is supplied by exactly ONE wired type. They are satisfiable today, but if
-    // that bank is renamed, retired, or drops the measurement, the area stalls at the hard cap.
-    // `M-RT` is session-adequacy, so its thin quantitative supply is already non-blocking.
+    // Supplied by exactly ONE wired type: satisfiable today, but if that bank is renamed,
+    // retired, or drops the measurement, the area stalls at the hard cap. `M-RT` is
+    // session-adequacy, so its thin quantitative supply is already non-blocking.
+    //
+    // `quantitative/M-PAE` and `quantitative/M-REV` used to sit on this list. The
+    // question-type review retired their only quantitative suppliers (QUANT-NUMLINE-01 and
+    // QUANT-EQUAL-01), which is the failure this test was written to predict — both are now
+    // declared unenforced for quantitative in `CORE_METRICS`, so the audit no longer covers
+    // them.
     const soleSource = supply.filter((s) => s.soleSource).map((s) => `${s.area}/${s.metricId}`);
-    expect(soleSource.sort()).toEqual([
-      'quantitative/M-PAE',
-      'quantitative/M-REV',
-      'quantitative/M-RT',
-    ]);
+    expect(soleSource.sort()).toEqual(['quantitative/M-RT']);
   });
 });
 

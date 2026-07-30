@@ -98,6 +98,10 @@
       </div>
       <div id="status" class="neutral">Waiting for the next puzzle.</div>
     </div>
+    <div id="playgate">
+      <p>The puzzle is ready. Press play when you are, and it starts then.</p>
+      <button type="button" id="play">Play</button>
+    </div>
   </div>
   <aside id="telemetry">
     <h3>Live telemetry · per-child (display only)</h3>
@@ -161,7 +165,7 @@ let staged=null;           // currently staged option key
 let firstKey=null;         // first option key touched
 let selectionOrder=[];     // raw sequence of taps (keys)
 let itemStart=0;           // ms timestamp when the item became interactive
-let startTimer=null;       // fallback auto-start timer
+let gateTutorial=false;    // does the pending play press owe a gesture hint?
 let itemTelemetry=[];      // TelemetryEvent[] for the current item
 
 const M={rt:null,rts:[],firstLat:null,rev:0,blur:0}; // locally-computed process metrics
@@ -268,16 +272,24 @@ function submit(){
 }
 
 /* ---------- host-driven lifecycle ---------- */
+/* R1 — the puzzle waits behind the play gate. The item is rendered on `init` but stays
+   covered and inert until the child presses play, which is also when the response clock
+   starts, so M-RT measures thinking rather than however long they took to look up. */
+function openGate(withTutorial){
+  gateTutorial=!!withTutorial;
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('warmup','Ready when you are');
+  setStatus('neutral','Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
 function onInit(item){
-  clearTimeout(startTimer);
   if(!item||!item.content||!item.content.example||!item.content.question){log('init ignored: malformed ServedItem');return;}
   renderServedItem(item);
-  setCue('warmup','Get ready');
-  setStatus('neutral','Get ready for the puzzle.');
-  startTimer=setTimeout(()=>{if(!interactive&&!submitted)beginItem(false);},500);
+  openGate(false);
 }
 async function beginItem(withTutorial){
   if(interactive||submitted||!current)return;
+  closeGate();
   if(withTutorial&&!tutorialShown){tutorialShown=true;await gestureHint();if(submitted)return;}
   interactive=true;itemStart=Date.now();
   setCue('scored','Your turn');
@@ -287,7 +299,7 @@ async function beginItem(withTutorial){
 function onHostMessage(e){
   const d=e.data;if(!d||d.source!==HOST_SRC)return;
   if(d.type==='init')onInit(d.item);
-  else if(d.type==='start'){clearTimeout(startTimer);beginItem(!!d.tutorial);}
+  else if(d.type==='start')openGate(!!d.tutorial);
 }
 
 /* ---------- standalone fallback (QA when there is no host) ---------- */
@@ -307,7 +319,7 @@ async function loadBankSamples(){
   log('standalone: bank fetch unavailable (open via a local server for the full bank) — using inline samples');
   return INLINE_SAMPLES.slice();
 }
-function playStandalone(){const item=standaloneQueue[standaloneIdx%standaloneQueue.length];onInit(item);beginItem(standaloneIdx===0);}
+function playStandalone(){const item=standaloneQueue[standaloneIdx%standaloneQueue.length];onInit(item);openGate(standaloneIdx===0);}
 function advanceStandalone(){standaloneIdx++;playStandalone();}
 async function bootstrapStandalone(){if(standalone)return;standalone=true;standaloneQueue=await loadBankSamples();standaloneIdx=0;playStandalone();}
 
@@ -319,6 +331,7 @@ const INLINE_SAMPLES=[
 ];
 
 /* ---------- wiring ---------- */
+$('#play').addEventListener('click',()=>{if(current&&!interactive&&!submitted)beginItem(gateTutorial);});
 $('#tray').addEventListener('click',e=>{const o=e.target.closest('.opt');if(o)stageOption(o);});
 $('#go').addEventListener('click',()=>{if($('#go').classList.contains('ready'))submit();});
 $('#replay').addEventListener('click',()=>{if(current&&!submitted)gestureHint();});

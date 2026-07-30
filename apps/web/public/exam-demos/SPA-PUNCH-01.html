@@ -27,8 +27,15 @@ body{display:flex;background:linear-gradient(145deg,#fcf4ef,#fcf4ef);font:16px/1
 .then{color:#4a6470}
 .punchChip{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#002a3a;color:#ffffff;font-size:18px}
 #rig{height:230px;width:100%;border-radius:20px;background:linear-gradient(165deg,#003b5c,#002a3a);perspective:820px;display:grid;place-items:center;position:relative;overflow:hidden}
-#paper{width:176px;height:176px;background:var(--cream);border:3px solid var(--edge);border-radius:4px;position:relative;transform:rotateX(52deg) rotateZ(6deg);transform-style:preserve-3d;z-index:2;transition:width .2s,height .2s;box-shadow:0 10px 17px #0008}
-#flap{position:absolute;display:none;background:#ebba9b;border:2px solid #4a6470;z-index:4}
+/* Reference grid on the paper: one line per answer-sheet cell, so a punch sits in a square
+   the child can name. Every line is drawn the same, so it says nothing about where the
+   creases are or where the holes will fall. --cell is set per item from grid.n. */
+.gridded{background-color:var(--cream);background-image:
+  repeating-linear-gradient(to right,#ecd9cb 0 1px,transparent 1px var(--cell)),
+  repeating-linear-gradient(to bottom,#ecd9cb 0 1px,transparent 1px var(--cell));
+  background-position:0 0}
+#paper{--cell:44px;width:176px;height:176px;border:3px solid var(--edge);border-radius:4px;position:relative;transform:rotateX(52deg) rotateZ(6deg);transform-style:preserve-3d;z-index:2;transition:width .2s,height .2s;box-shadow:0 10px 17px #001117aa}
+#flap{position:absolute;display:none;background-color:#f5ddcd;border:2px solid var(--edge);z-index:4}
 .punchMark{position:absolute;width:22px;height:22px;border-radius:50%;background:#001117;border:4px solid #fcf4ef;box-shadow:0 0 0 3px #001117;opacity:0;z-index:6}
 .punchMark.hit{animation:punch .42s ease-out forwards}
 @keyframes punch{0%{opacity:0;transform:translate(-50%,-50%) scale(1.9)}60%{opacity:1;transform:translate(-50%,-50%) scale(.7)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
@@ -102,7 +109,7 @@ button{font:inherit;border:0;cursor:pointer}
   <main id="stagecard">
     <div id="sequence"></div>
     <div id="rig">
-      <div id="paper"><div id="flap"></div></div>
+      <div id="paper" class="gridded"><div id="flap" class="gridded"></div></div>
       <span id="noBack">forward only</span><span id="stack">1x</span>
     </div>
     <div id="sheetwrap">
@@ -117,6 +124,10 @@ button{font:inherit;border:0;cursor:pointer}
     </div>
     <div id="status" class="neutral">Waiting for the next sheet.</div>
   </main>
+  <div id="playgate">
+    <p>The paper is ready. Press play when you are, and the folding starts then.</p>
+    <button type="button" id="play">Play</button>
+  </div>
 </div>
 <aside id="telemetry">
   <h3>Live telemetry · per-child (display only)</h3>
@@ -162,7 +173,8 @@ let current=null;
 let interactive=false;    // released by beginItem for EVERY item — never latched on load
 let submitted=false;
 let marks=new Set();
-let itemStart=0, startTimer=null, itemTelemetry=[], playToken=0;
+let itemStart=0, itemTelemetry=[], playToken=0;
+let gateTutorial=false;   // does the pending play press owe a gesture hint?
 const M={rt:null,rts:[],firstLat:null,rev:0,progress:0,replays:0,blur:0};
 
 /* ---------- embedding detection + emit ---------- */
@@ -223,6 +235,8 @@ function renderSheet(c){
 }
 function paperSize(c){
   const R=c.foldedRegion,n=c.grid.n,unit=176/n;
+  // One grid square per answer-sheet cell — the space verifyPunch grades markedCells in.
+  $('#paper').style.setProperty('--cell',unit+'px');
   return {w:(R.x1-R.x0+1)*unit,h:(R.y1-R.y0+1)*unit,unit};
 }
 function clipFor(diag){
@@ -253,12 +267,12 @@ async function playFolds(c,track){
   $$('.punchMark').forEach(e=>e.remove());
   p.style.clipPath='none';
   let w=176,h=176,layers=1;
+  p.style.setProperty('--cell',unit+'px');
   p.style.width='176px';p.style.height='176px';
   $('#stack').textContent='1x';M.progress=0;renderMeters();
   for(const f of c.folds){
     if(token!==playToken)return;
-    flap.style.cssText='';flap.style.display='block';flap.style.background='#ffe98b';
-    flap.style.border='2px solid #c98514';flap.style.zIndex='4';
+    flap.style.cssText='';flap.style.display='block';flap.style.zIndex='4';
     let frames;
     if(f.axis==='vertical'){
       flap.style.top='0';flap.style.width='50%';flap.style.height='100%';
@@ -362,16 +376,25 @@ async function gestureHint(){
 }
 
 /* ---------- host-driven lifecycle ---------- */
+/* R1 — the fold sequence is a timed stimulus, so it waits behind the play gate. The
+   sheet is rendered on `init` but stays covered and inert until the child presses play,
+   which is also when the folds run and when the response clock starts, so M-RT measures
+   thinking rather than however long they took to look up. */
+function openGate(withTutorial){
+  gateTutorial=!!withTutorial;
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('warmup','Ready when you are');
+  setStatus('neutral','Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
 function onInit(item){
-  clearTimeout(startTimer);
   if(!item||!item.content||!item.content.grid||!item.content.folds){log('init ignored: malformed ServedItem');return;}
   renderServedItem(item);
-  setCue('warmup','Get ready');
-  setStatus('neutral','Get ready — watch the folds.');
-  startTimer=setTimeout(()=>{if(!interactive&&!submitted)beginItem(false);},500);
+  openGate(false);
 }
 async function beginItem(withTutorial){
   if(interactive||submitted||!current)return;
+  closeGate();
   interactive=true;itemStart=Date.now();   // UNLOCK first: the fold animation must never gate input
   setCue('scored','Your turn');
   setStatus('neutral','Tap every square that will have a hole, then press the check.');
@@ -382,7 +405,7 @@ async function beginItem(withTutorial){
 function onHostMessage(e){
   const d=e.data;if(!d||d.source!==HOST_SRC)return;
   if(d.type==='init')onInit(d.item);
-  else if(d.type==='start'){clearTimeout(startTimer);beginItem(!!d.tutorial);}
+  else if(d.type==='start')openGate(!!d.tutorial);
 }
 
 /* ---------- standalone fallback (QA when there is no host) ---------- */
@@ -402,7 +425,7 @@ async function loadBankSamples(){
   log('standalone: bank fetch unavailable (open via a local server for the full bank) — using inline samples');
   return INLINE_SAMPLES.slice();
 }
-function playStandalone(){const item=standaloneQueue[standaloneIdx%standaloneQueue.length];onInit(item);beginItem(standaloneIdx===0);}
+function playStandalone(){const item=standaloneQueue[standaloneIdx%standaloneQueue.length];onInit(item);openGate(standaloneIdx===0);}
 function advanceStandalone(){standaloneIdx++;playStandalone();}
 async function bootstrapStandalone(){if(standalone)return;standalone=true;standaloneQueue=await loadBankSamples();standaloneIdx=0;playStandalone();}
 
@@ -417,8 +440,9 @@ const INLINE_SAMPLES=[
 $('#sheet').addEventListener('click',e=>{const b=e.target.closest('.mcell');if(b)toggleCell(b);});
 $('#clear').addEventListener('click',clearMarks);
 $('#lock').addEventListener('click',()=>{if($('#lock').classList.contains('ready'))submit();});
+$('#play').addEventListener('click',()=>{if(current&&!interactive&&!submitted)beginItem(gateTutorial);});
 $('#replay').addEventListener('click',()=>{
-  if(!current||submitted)return;
+  if(!current||!interactive||submitted)return;
   M.replays++;emitEvent('replay_folds',{replays:M.replays});playFolds(current.content,false);
 });
 window.addEventListener('keydown',e=>{

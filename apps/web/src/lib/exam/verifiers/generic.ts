@@ -22,10 +22,9 @@ export function verifyKeyed(item: RawBankItem, response: Record<string, unknown>
 }
 
 /**
- * Continuous-placement verifier (QUANT-NUMLINE-01, `scoring.rule =
- * 'placement_tolerance'`). Per the generator contract the child places a mark on
- * a bounded line and is correct iff the placement-absolute-error is within the
- * item's tolerance:
+ * Continuous-placement verifier (`scoring.rule = 'placement_tolerance'`). Per
+ * the generator contract the child places a mark on a bounded line and is
+ * correct iff the placement-absolute-error is within the item's tolerance:
  *
  *     pae     = |placedRatio - answer.targetRatio|
  *     correct = pae <= answer.tolerance
@@ -49,7 +48,7 @@ export function verifyPlacementTolerance(
 }
 
 /**
- * Constructed-value verifier (QUANT-BUILD-01, `scoring.rule =
+ * Constructed-value verifier (`scoring.rule =
  * 'constructed_value_equals_optimum'`). The child arranges cards; the response
  * carries the numeric value of the final arrangement, which must equal the
  * unique constrained optimum held server-side.
