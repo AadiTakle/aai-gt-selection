@@ -12,6 +12,20 @@ const nextConfig: NextConfig = {
   // Emit a minimal self-contained server bundle for container images
   // (Amazon ECS Fargate target per D-012). No effect on local dev.
   output: 'standalone',
+  // The item bank is real runtime data, not source: `src/lib/exam/bank-loader.ts` reads
+  // `research/exam-question-types/banks/*.jsonl` with `fs.readFile`, so Next's static tracing
+  // cannot see it and a standalone build shipped without it. The banks carry the server-only
+  // answer keys, which is why they are traced into the server bundle rather than published under
+  // `public/` the way `pnpm exam:sync` publishes the demos — see the "never publishes the raw
+  // banks" assertion in src/lib/exam/served-boundary.test.ts.
+  //
+  // Applied to every route rather than to the three that reach the loader today
+  // (`/api/exam-items`, `/api/exam-submit`, `/api/exam-emulate`): an enumerated list is a list
+  // that goes stale silently, and the traced files are copied once regardless of how many routes
+  // claim them.
+  outputFileTracingIncludes: {
+    '/**': ['../../research/exam-question-types/banks/*.jsonl'],
+  },
   poweredByHeader: false,
   async headers() {
     return [

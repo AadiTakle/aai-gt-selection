@@ -45,9 +45,27 @@ describe('scoring lambda handler', () => {
     expect(scorerInputFingerprint(altered)).not.toBe(scorerInputFingerprint(TRACE));
   });
 
-  it('ignores payload fields the fingerprint does not cover', () => {
-    const withExtras = TRACE.map((i) => ({ ...i, metrics: { 'M-RT': 1234 } }));
+  it('ignores payload fields the database does not put in its canonical input', () => {
+    // `telemetry` is on the event but not on `app.exam_scorer_input_json`, so it must not move the
+    // fingerprint. `metrics` IS in the database's canonical input and therefore does move it —
+    // see scorer-input-hash.test.ts.
+    const withExtras = TRACE.map((i) => ({ ...i, telemetry: [{ t: 12, type: 'focus' }] }));
     expect(scorerInputFingerprint(withExtras)).toBe(scorerInputFingerprint(TRACE));
+  });
+
+  it('reports the fingerprint in the sha256 form the contract and the database require', () => {
+    const response = handler({ sessionId: 'S', scoredItems: TRACE });
+    expect(response.inputHash).toMatch(/^sha256:[0-9a-f]{64}$/);
+  });
+
+  it('refuses rather than return a fingerprint the database could not reproduce', () => {
+    const response = handler({
+      sessionId: 'S',
+      scoredItems: [...TRACE, { ...TRACE[0]!, itemId: 'tiny', metrics: { 'M-RT': 1e-7 } }],
+    });
+    expect(response.ok).toBe(false);
+    expect(response.error).toBe('UNCANONICAL_SCORER_INPUT');
+    expect(response.inputHash).toBeNull();
   });
 
   describe('refuses rather than throwing, so the caller can always record something', () => {

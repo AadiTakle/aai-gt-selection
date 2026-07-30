@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, statSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
@@ -63,16 +63,43 @@ export interface RawBankItem {
 
 let cache: RawBankItem[] | null = null;
 
-/** Resolve the banks dir robustly whether cwd is the app or the repo root. */
+const BANKS_RELATIVE = ['research', 'exam-question-types', 'banks'] as const;
+
+/**
+ * The bank could not be read, so there is no item pool.
+ *
+ * This used to be swallowed — a missing file `continue`d, a malformed line was skipped — on the
+ * reasoning that one bad bank should not take down the whole battery. In a container that
+ * reasoning inverts: the banks live under `research/`, which is not application source, so the
+ * failure mode was not "47 of 48 types" but "no types at all", presented to a child as an exam
+ * that never starts and to an operator as a healthy deploy. Silence is the wrong default on the
+ * path that serves questions to children, so every read failure is now fatal and named.
+ */
+export class ExamBankUnavailableError extends Error {
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
+    this.name = 'ExamBankUnavailableError';
+  }
+}
+
+const SHIPPING_HINT =
+  'The banks reach a built app through `outputFileTracingIncludes` in apps/web/next.config.ts ' +
+  '(they are deliberately NOT published under public/, which would expose every answer key). ' +
+  'A build that drops them serves an exam with no items.';
+
+/** Resolve the banks dir robustly whether cwd is the app, the repo root, or a standalone bundle. */
 function resolveBanksDir(): string {
-  const rel = ['research', 'exam-question-types', 'banks'];
   const candidates = [
-    path.join(process.cwd(), ...rel),
-    path.join(process.cwd(), '..', '..', ...rel),
-    path.join(process.cwd(), '..', '..', '..', ...rel),
+    path.join(process.cwd(), ...BANKS_RELATIVE),
+    path.join(process.cwd(), '..', '..', ...BANKS_RELATIVE),
+    path.join(process.cwd(), '..', '..', '..', ...BANKS_RELATIVE),
   ];
   for (const dir of candidates) if (existsSync(dir)) return dir;
-  return candidates[0]!;
+  throw new ExamBankUnavailableError(
+    `No exam item bank directory found from cwd ${process.cwd()}. Looked in:\n` +
+      candidates.map((dir) => `  - ${dir}`).join('\n') +
+      `\n${SHIPPING_HINT}`,
+  );
 }
 
 async function loadAll(): Promise<RawBankItem[]> {
@@ -80,24 +107,79 @@ async function loadAll(): Promise<RawBankItem[]> {
   const dir = resolveBanksDir();
   const items: RawBankItem[] = [];
   for (const code of BANK_TYPE_CODES) {
+    const file = path.join(dir, `${code}.jsonl`);
     let text: string;
     try {
-      text = await readFile(path.join(dir, `${code}.jsonl`), 'utf8');
-    } catch {
-      continue; // a missing bank must not crash the whole battery
+      text = await readFile(file, 'utf8');
+    } catch (cause) {
+      throw new ExamBankUnavailableError(
+        `${code} is a wired question type but its bank could not be read: ${file}. ` +
+          SHIPPING_HINT,
+        { cause },
+      );
     }
-    for (const line of text.split('\n')) {
-      const trimmed = line.trim();
+
+    let parsed = 0;
+    const lines = text.split('\n');
+    for (let i = 0; i < lines.length; i += 1) {
+      const trimmed = lines[i]!.trim();
       if (!trimmed) continue;
       try {
         items.push(JSON.parse(trimmed) as RawBankItem);
-      } catch {
-        // skip a malformed line rather than fail the whole file
+        parsed += 1;
+      } catch (cause) {
+        throw new ExamBankUnavailableError(
+          `${file}:${i + 1} is not valid JSON. A corrupt line silently shrinks the pool the ` +
+            'adaptive engine draws from, so it is fatal rather than skipped.',
+          { cause },
+        );
       }
     }
+    if (parsed === 0) {
+      throw new ExamBankUnavailableError(
+        `${code} is a wired question type but its bank is empty: ${file}.`,
+      );
+    }
   }
+
+  if (items.length === 0) {
+    throw new ExamBankUnavailableError(
+      `The item pool is empty after reading ${String(BANK_TYPE_CODES.length)} banks from ${dir}.`,
+    );
+  }
+
   cache = items;
   return items;
+}
+
+/**
+ * Whether a deployed instance can actually serve items, without loading the whole pool.
+ *
+ * `/api/health` reports this so a container that shipped without its banks fails its healthcheck
+ * at deploy time, rather than at the moment a child opens the first question.
+ */
+export function examBankHealth(): { ready: boolean; detail: string } {
+  let dir: string;
+  try {
+    dir = resolveBanksDir();
+  } catch (error) {
+    return { ready: false, detail: error instanceof Error ? error.message : String(error) };
+  }
+
+  const missing: string[] = [];
+  for (const code of BANK_TYPE_CODES) {
+    const file = path.join(dir, `${code}.jsonl`);
+    if (!existsSync(file) || statSync(file).size === 0) missing.push(code);
+  }
+  if (missing.length > 0) {
+    return {
+      ready: false,
+      detail:
+        `${String(missing.length)} of ${String(BANK_TYPE_CODES.length)} wired banks are missing ` +
+        `or empty under ${dir}: ${missing.join(', ')}. ${SHIPPING_HINT}`,
+    };
+  }
+  return { ready: true, detail: `${String(BANK_TYPE_CODES.length)} banks present under ${dir}` };
 }
 
 /** Strip every server-only field (answer/scoring/provenance) + the on-disk demoPath. */
