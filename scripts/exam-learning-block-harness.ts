@@ -34,11 +34,16 @@
  *   pnpm exam:block-harness -- --calibrate           # E-095 reproduction: grid vs an existing bank
  *   pnpm exam:block-harness -- --noise-sweep         # sensitivity to the handover-noise SD
  *   pnpm exam:block-harness -- --guessing-probe      # what the `guessing = 0` fit does to a static child
+ *   pnpm exam:block-harness -- --fix-probe           # every candidate remedy, costed side by side
  *   pnpm exam:block-harness -- --gate-a --bank FLU-OPCHAIN-01.consistent
  *   pnpm exam:block-harness -- --gate-a --bank <path/to/bank.jsonl> --mode perTrial
  *
  * Flags: --children N  --length N  --lambda-mean X  --lambda-sd X  --standing-noise X
- *        --guessing X  --seed N  --json
+ *        --guessing X  --fit-guessing X  --target-guessing X  --seed N  --json
+ *
+ * `--guessing` is the SIMULATED CHILD's floor (the truth). `--fit-guessing` and `--target-guessing`
+ * are what the estimator assumes, in the readout fit and inside `nextTargetTheta` respectively.
+ * Keeping the three separate is the whole point: the defect is a disagreement between them.
  */
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
@@ -51,6 +56,7 @@ import {
   type BankItem,
 } from '../packages/exam-engine/src';
 import {
+  DEFAULT_GUESSING,
   estimateLearningCurve,
   learningRateReadout,
   nextTargetTheta,
@@ -332,6 +338,21 @@ interface Responder {
 }
 
 /**
+ * What the ESTIMATOR assumes, held separately from what the child actually does.
+ *
+ * Two floors rather than one because the block runs the estimator twice per trial in two different
+ * roles, and they can be corrected independently. `readout` is the floor the reported fit uses;
+ * `targeting` is the floor `nextTargetTheta` uses when it re-fits to choose the next difficulty.
+ * Correcting only the first leaves the difficulty walk itself still driven by a misspecified fit,
+ * and the walk is half the mechanism — so an arm that changes one and not the other is a distinct,
+ * measurable remedy rather than a variation on the same one.
+ */
+interface FitSpec {
+  readonly readout: number;
+  readonly targeting: number;
+}
+
+/**
  * Administer one novel block, using the shipped administration path end to end.
  *
  * The engine picks the item (`selectNextNovelItem`), the scorer picks the difficulty to aim at
@@ -344,6 +365,8 @@ function runBlock(
   child: ChildSpec,
   length: number,
   responder: Responder,
+  fit: FitSpec,
+  staticTarget: boolean,
   selectionSeed: number,
 ): BlockRun {
   const rng = makeRng(`response|${child.seed}`);
@@ -353,11 +376,18 @@ function runBlock(
   let exhausted = false;
 
   for (let t = 0; t < length; t += 1) {
-    const target = nextTargetTheta(trials, {
-      standingEstimate: child.standing,
-      targetOffset: TARGET_OFFSET,
-      slope: responder.slope,
-    });
+    // `staticTarget` is a diagnostic, not an administration option: it holds the difficulty at
+    // `standing + offset` for the whole block, so the block still uses the real fit but no longer
+    // feeds the fit's own output back into what gets served. It is the only way to separate what the
+    // ESTIMATOR does from what the LOOP does, and the two need different remedies.
+    const target = staticTarget
+      ? clamp(child.standing + TARGET_OFFSET, SCALE_MIN, SCALE_MAX)
+      : nextTargetTheta(trials, {
+          standingEstimate: child.standing,
+          targetOffset: TARGET_OFFSET,
+          slope: responder.slope,
+          guessing: fit.targeting,
+        });
     const item = selectNextNovelItem(pool, administered, target, selectionSeed);
     if (item === null) {
       exhausted = true;
@@ -390,6 +420,15 @@ interface CohortOptions {
   theta0Mean: number;
   theta0Sd: number;
   responder: Responder;
+  fit: FitSpec;
+  /** Diagnostic: freeze the served difficulty instead of re-projecting it. See {@link runBlock}. */
+  staticTarget?: boolean;
+  /**
+   * Contamination floor to declare on `A2_REFERENCE` for the third readout pass, which is how the
+   * cost of the evidence bar gets measured. Supplied from the matching λ_true = 0 run, so the bar is
+   * always the floor this arm actually manufactures rather than a figure chosen to look good.
+   */
+  barFloor?: number;
   seed: number;
 }
 
@@ -407,6 +446,18 @@ interface CohortResult {
   peakDemand: number[];
   /** Fraction of children whose readout came back `above` against a separable reference. */
   aboveRate: number;
+  /**
+   * Fraction whose readout declined to name a band at all, against the same separable reference.
+   *
+   * The cost side of every remedy below. A fix that restores λ̄ = 0 by widening the posterior until
+   * nothing is reportable has not made the measurement honest, it has removed it, and only this
+   * column distinguishes the two.
+   */
+  indeterminateRate: number;
+  /** Same, against {@link NARROW_REFERENCE} — the reportability question rather than the band. */
+  narrowIndeterminateRate: number;
+  /** Same, against the SD 0.15 reference WITH this arm's own contamination floor declared. */
+  barIndeterminateRate: number;
   exhaustedCount: number;
   poolMax: number;
   shortBlocks: number;
@@ -419,8 +470,23 @@ interface CohortResult {
  * `indeterminate` for everybody (E-095), which would make A2 vacuously pass. `sd: 0.15` is the
  * smallest spread at which the bands separate at this length, which is the same device
  * `exam-phase2-demo.ts` calls its "wide reference" and flags as not a claim about children.
+ *
+ * `contaminationFloor: 0` is not a claim that there is no contamination — E-200 measures plenty. It
+ * is what makes A2 a measurement of the pipeline's false-`above` rate rather than a measurement of
+ * the bar: with the floor declared, the readout would refuse to name any band at this length and A2
+ * would pass on every bank ever built. The `--fix-probe` table reports the bar's cost separately.
  */
-const A2_REFERENCE = { mean: 0, sd: 0.15 } as const;
+const A2_REFERENCE = { mean: 0, sd: 0.15, contaminationFloor: 0 } as const;
+
+/**
+ * The reference the project's own synthetic work actually used: centre 0.06, SD 0.03.
+ *
+ * Carried alongside `A2_REFERENCE` so every remedy is costed against BOTH the widest reference
+ * anyone has proposed and the only one with a stated provenance. The two answer different questions.
+ * Against `A2_REFERENCE` a remedy can be judged on how often it names a band; against this one the
+ * answer is expected to be "never", and a remedy that changed that would be the surprise.
+ */
+const NARROW_REFERENCE = { mean: 0.06, sd: 0.03, contaminationFloor: 0 } as const;
 
 function runCohort(options: CohortOptions): CohortResult {
   const {
@@ -433,6 +499,9 @@ function runCohort(options: CohortOptions): CohortResult {
     theta0Mean,
     theta0Sd,
     responder,
+    fit: fitSpec,
+    staticTarget = false,
+    barFloor = 0,
     seed,
   } = options;
 
@@ -444,6 +513,9 @@ function runCohort(options: CohortOptions): CohortResult {
   const peakDifficulty: number[] = [];
   const peakDemand: number[] = [];
   let aboveCount = 0;
+  let indeterminateCount = 0;
+  let narrowIndeterminateCount = 0;
+  let barIndeterminateCount = 0;
   let exhaustedCount = 0;
   let shortBlocks = 0;
 
@@ -453,7 +525,7 @@ function runCohort(options: CohortOptions): CohortResult {
     const standing = clamp(theta0 + normal(rng, 0, standingNoise), SCALE_MIN, SCALE_MAX);
     const child: ChildSpec = { theta0, lambda, standing, seed: `${seed}|${length}|${c}` };
 
-    const run = runBlock(pool, child, length, responder, seed);
+    const run = runBlock(pool, child, length, responder, fitSpec, staticTarget, seed);
     if (run.exhausted) exhaustedCount += 1;
     if (run.trials.length < length) shortBlocks += 1;
     if (run.trials.length === 0) continue;
@@ -461,6 +533,7 @@ function runCohort(options: CohortOptions): CohortResult {
     const fit = estimateLearningCurve(run.trials, {
       slope: responder.slope,
       priorTheta0Mean: child.standing,
+      guessing: fitSpec.readout,
     });
     trueLambda.push(lambda);
     fitLambda.push(fit.lambda);
@@ -474,8 +547,24 @@ function runCohort(options: CohortOptions): CohortResult {
     const readout = learningRateReadout(run.trials, {
       reference: A2_REFERENCE,
       minTrials: length,
+      fit: { slope: responder.slope, guessing: fitSpec.readout },
     });
     if (readout.band === 'above') aboveCount += 1;
+    if (readout.band === 'indeterminate') indeterminateCount += 1;
+
+    const narrow = learningRateReadout(run.trials, {
+      reference: NARROW_REFERENCE,
+      minTrials: length,
+      fit: { slope: responder.slope, guessing: fitSpec.readout },
+    });
+    if (narrow.band === 'indeterminate') narrowIndeterminateCount += 1;
+
+    const barred = learningRateReadout(run.trials, {
+      reference: { ...A2_REFERENCE, contaminationFloor: barFloor },
+      minTrials: length,
+      fit: { slope: responder.slope, guessing: fitSpec.readout },
+    });
+    if (barred.band === 'indeterminate') barIndeterminateCount += 1;
   }
 
   return {
@@ -488,6 +577,11 @@ function runCohort(options: CohortOptions): CohortResult {
     peakDifficulty,
     peakDemand,
     aboveRate: fitLambda.length === 0 ? Number.NaN : aboveCount / fitLambda.length,
+    indeterminateRate: fitLambda.length === 0 ? Number.NaN : indeterminateCount / fitLambda.length,
+    narrowIndeterminateRate:
+      fitLambda.length === 0 ? Number.NaN : narrowIndeterminateCount / fitLambda.length,
+    barIndeterminateRate:
+      fitLambda.length === 0 ? Number.NaN : barIndeterminateCount / fitLambda.length,
     exhaustedCount,
     poolMax: Math.max(...pool.map((i) => i.difficulty)),
     shortBlocks,
@@ -531,6 +625,14 @@ interface Settings {
   theta0Mean: number;
   theta0Sd: number;
   guessing: number;
+  /**
+   * Whether `--guessing` was supplied. `--fix-probe` needs a responder that actually has a floor,
+   * or every arm is comparing corrections against a truth of zero; it defaults its own responder to
+   * the five-option floor, and this is how it tells "not supplied" from an explicit `--guessing 0`.
+   */
+  guessingExplicit: boolean;
+  fitGuessing: number;
+  targetGuessing: number;
   seed: number;
   bank: string | null;
   mode: Persistence;
@@ -539,6 +641,7 @@ interface Settings {
   gateA: boolean;
   noiseSweep: boolean;
   guessingProbe: boolean;
+  fixProbe: boolean;
 }
 
 function parseArgs(argv: readonly string[]): Settings {
@@ -569,6 +672,9 @@ function parseArgs(argv: readonly string[]): Settings {
     theta0Mean: num('theta0-mean', 10.5),
     theta0Sd: num('theta0-sd', 3),
     guessing: num('guessing', 0),
+    guessingExplicit: argv.includes('--guessing'),
+    fitGuessing: num('fit-guessing', DEFAULT_GUESSING),
+    targetGuessing: num('target-guessing', DEFAULT_GUESSING),
     seed: num('seed', 20260730),
     bank: flag('bank'),
     mode: modeRaw,
@@ -577,6 +683,7 @@ function parseArgs(argv: readonly string[]): Settings {
     gateA: argv.includes('--gate-a'),
     noiseSweep: argv.includes('--noise-sweep'),
     guessingProbe: argv.includes('--guessing-probe'),
+    fixProbe: argv.includes('--fix-probe'),
   };
 }
 
@@ -595,6 +702,7 @@ function cohortOptionsFor(
     theta0Mean: settings.theta0Mean,
     theta0Sd: settings.theta0Sd,
     responder: { slope: SLOPE, guessing: settings.guessing },
+    fit: { readout: settings.fitGuessing, targeting: settings.targetGuessing },
     seed: settings.seed,
     ...overrides,
   };
@@ -822,6 +930,7 @@ function printSettings(settings: Settings): void {
     `Simulation: ${settings.children} children/cell, λ ~ N(${settings.lambdaMean}, ${settings.lambdaSd}²), ` +
       `θ0 ~ N(${settings.theta0Mean}, ${settings.theta0Sd}²), handover noise SD ${settings.standingNoise}, ` +
       `slope ${SLOPE}, target offset +${TARGET_OFFSET}, responder guessing floor ${settings.guessing}, ` +
+      `estimator floor ${settings.fitGuessing} (readout) / ${settings.targetGuessing} (targeting), ` +
       `seed ${settings.seed}.`,
   );
 }
@@ -887,8 +996,9 @@ function printGuessingProbe(settings: Settings, bankRefs: readonly string[]): vo
   console.log('\n## What a static child fits when the responder has a guessing floor\n');
   console.log(
     'Every row is a cohort with λ_true = 0 for EVERY child — no learning whatsoever. The estimator\n' +
-      'always runs at its shipped `guessing = 0`; only the simulated responder\u2019s floor changes.\n' +
-      'A1 asks for λ̄ = 0, so any row that is not zero is the pipeline manufacturing a climb.\n',
+      'is pinned at `guessing = 0` in BOTH roles (readout fit and targeting re-fit), which is what it\n' +
+      'shipped with; only the simulated responder\u2019s floor changes. A1 asks for λ̄ = 0, so any row\n' +
+      'that is not zero is the pipeline manufacturing a climb. `--fix-probe` costs the remedies.\n',
   );
   console.log('| pool | responder floor | fitted λ̄ | Monte-Carlo SE | false `above` rate |');
   console.log('| --- | --- | --- | --- | --- |');
@@ -909,6 +1019,7 @@ function printGuessingProbe(settings: Settings, bankRefs: readonly string[]): vo
           lambdaSd: 0,
           length: 30,
           responder: { slope: SLOPE, guessing },
+          fit: { readout: 0, targeting: 0 },
         }),
       );
       const m = mean(cohort.fitLambda);
@@ -925,6 +1036,128 @@ function printGuessingProbe(settings: Settings, bankRefs: readonly string[]): vo
       'mean this project uses as a plausible centre. That is a MEASUREMENT decision for the owner —\n' +
       "§8.4's \u201Cdecision on the guessing floor\u201D — and no item design can remove it. A bank can only\n" +
       'avoid making it worse.',
+  );
+}
+
+/**
+ * Every candidate remedy for the floor misspecification, costed on the same cohort.
+ *
+ * Each arm is run twice against the same seeds: once on a cohort with λ_true = 0 for every child,
+ * which measures what the arm MANUFACTURES, and once on the λ ~ N(mean, sd²) cohort, which measures
+ * what it COSTS. Reporting either alone is how a remedy gets adopted on half its evidence — a floor
+ * that fixes the null by widening the posterior until nothing is reportable would look perfect in
+ * the first table and is useless.
+ *
+ * The `indet` column is against `A2_REFERENCE` (SD 0.15), the widest reference anyone has proposed
+ * and the only one at which bands separate at all at 30 trials. Against an honest narrow reference
+ * every arm here is 100% indeterminate, including the status quo, so that column would not
+ * discriminate between them.
+ */
+function printFixProbe(settings: Settings, bankRefs: readonly string[]): void {
+  const truth = settings.guessingExplicit ? settings.guessing : DEFAULT_GUESSING;
+
+  console.log('\n## Costing the remedies\n');
+  console.log(
+    `Responder floor is pinned at ${truth.toFixed(2)} for every arm — a real five-option item — and only what the\n` +
+      'ESTIMATOR assumes changes. `fit c` is the floor the reported fit uses; `target c` is the floor\n' +
+      '`nextTargetTheta` uses when it re-fits to pick the next difficulty. The null columns are a\n' +
+      'cohort with λ_true = 0 for every child; the recovery columns are the same arm on a cohort with\n' +
+      `λ ~ N(${settings.lambdaMean}, ${settings.lambdaSd}²).\n`,
+  );
+
+  interface Arm {
+    label: string;
+    fit: FitSpec;
+    length: number;
+    /** Responder floor, when an arm is probing what a WRONG assumed floor costs. */
+    responderGuessing?: number;
+    staticTarget?: boolean;
+  }
+
+  const arms: Arm[] = [
+    { label: 'status quo (c = 0 both)', fit: { readout: 0, targeting: 0 }, length: 30 },
+    { label: 'fit only (c = 0.2 readout)', fit: { readout: 0.2, targeting: 0 }, length: 30 },
+    { label: 'fit + targeting (c = 0.2)', fit: { readout: 0.2, targeting: 0.2 }, length: 30 },
+    { label: 'fit + targeting, 45 trials', fit: { readout: 0.2, targeting: 0.2 }, length: 45 },
+    { label: 'fit + targeting, 60 trials', fit: { readout: 0.2, targeting: 0.2 }, length: 60 },
+    {
+      label: 'c = 0.2 assumed, 4-option truth (0.25)',
+      fit: { readout: 0.2, targeting: 0.2 },
+      length: 30,
+      responderGuessing: 0.25,
+    },
+    {
+      label: 'c = 0.2 assumed, 6-option truth (0.167)',
+      fit: { readout: 0.2, targeting: 0.2 },
+      length: 30,
+      responderGuessing: 1 / 6,
+    },
+    {
+      label: 'DIAGNOSTIC frozen target, c = 0',
+      fit: { readout: 0, targeting: 0 },
+      length: 30,
+      staticTarget: true,
+    },
+    {
+      label: 'DIAGNOSTIC frozen target, c = 0.2',
+      fit: { readout: 0.2, targeting: 0.2 },
+      length: 30,
+      staticTarget: true,
+    },
+  ];
+
+  const pools: { label: string; items: BankItem[] }[] = [
+    { label: 'ideal 0.5-point grid (no bank)', items: gridPool(0.5, 12) },
+    ...bankRefs.map((ref) => {
+      const bank = loadBank(ref);
+      return { label: bank.label, items: bank.items };
+    }),
+  ];
+
+  for (const pool of pools) {
+    console.log(`\n### ${pool.label}\n`);
+    console.log(
+      '| arm | null λ̄ | ±MC SE | false `above` | r | mean SE | atten. slope | indet (SD 0.15) | + bar | indet (SD 0.03) |',
+    );
+    console.log('| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |');
+    for (const arm of arms) {
+      const responder = { slope: SLOPE, guessing: arm.responderGuessing ?? truth };
+      const staticTarget = arm.staticTarget ?? false;
+      const nullCohort = runCohort(
+        cohortOptionsFor(settings, pool.items, {
+          lambdaMean: 0,
+          lambdaSd: 0,
+          length: arm.length,
+          responder,
+          fit: arm.fit,
+          staticTarget,
+        }),
+      );
+      const recoveryCohort = runCohort(
+        cohortOptionsFor(settings, pool.items, {
+          length: arm.length,
+          responder,
+          fit: arm.fit,
+          staticTarget,
+          barFloor: Math.max(0, mean(nullCohort.fitLambda)),
+        }),
+      );
+      const row = recoveryRow(recoveryCohort);
+      console.log(
+        `| ${arm.label} | ${f(mean(nullCohort.fitLambda), 4)} | ${f(seOfMean(nullCohort.fitLambda), 4)} | ` +
+          `${f(100 * nullCohort.aboveRate, 1)}% | ` +
+          `${f(row.r)} | ${f(row.meanSe)} | ${f(row.attenuationSlope)} | ` +
+          `${f(100 * recoveryCohort.indeterminateRate, 1)}% | ` +
+          `${f(100 * recoveryCohort.barIndeterminateRate, 1)}% | ` +
+          `${f(100 * recoveryCohort.narrowIndeterminateRate, 1)}% |`,
+      );
+    }
+  }
+
+  console.log(
+    `\nShipped default is now \`DEFAULT_GUESSING = ${DEFAULT_GUESSING}\`, which is the "fit + targeting" arm:\n` +
+      '`nextTargetTheta` forwards its options into the same estimator, so one default corrects both\n' +
+      'roles and there is no configuration in which only one of them is corrected.',
   );
 }
 
@@ -991,7 +1224,8 @@ function printGateA(report: GateAReport): boolean {
 
 function main(): void {
   const settings = parseArgs(process.argv.slice(2));
-  const explicit = settings.gateA || settings.noiseSweep || settings.guessingProbe;
+  const explicit =
+    settings.gateA || settings.noiseSweep || settings.guessingProbe || settings.fixProbe;
   const runCalibration = settings.calibrate || !explicit;
   const output: Record<string, unknown> = {};
 
@@ -1006,9 +1240,12 @@ function main(): void {
   if (settings.guessingProbe) {
     printGuessingProbe(settings, settings.bank === null ? [REFERENCE_BANK] : [settings.bank]);
   }
+  if (settings.fixProbe) {
+    printFixProbe(settings, settings.bank === null ? [REFERENCE_BANK] : [settings.bank]);
+  }
 
   let allPass = true;
-  if (settings.gateA || (settings.bank !== null && !settings.guessingProbe)) {
+  if (settings.gateA || (settings.bank !== null && !settings.guessingProbe && !settings.fixProbe)) {
     const ref = settings.bank ?? REFERENCE_BANK;
     const modes: Persistence[] =
       settings.bank === null ? [settings.mode] : ['consistent', 'perTrial'];

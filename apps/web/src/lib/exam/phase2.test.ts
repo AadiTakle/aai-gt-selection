@@ -132,7 +132,9 @@ describe('summariseLearningBlock', () => {
 
   it('defers to the engine readout once a reference distribution exists', () => {
     const trials = climbingBlock(30, 0.4);
-    const reference = { mean: 0, sd: 0.15 };
+    // A contamination floor has to be declared before any band can be named (E-200); 0 here keeps
+    // this test about the delegation rather than about the bar.
+    const reference = { mean: 0, sd: 0.15, contaminationFloor: 0 };
     expect(summariseLearningBlock(trials, reference, 30).band).toBe(
       learningRateReadout(trials, { reference, minTrials: 30 }).band,
     );
