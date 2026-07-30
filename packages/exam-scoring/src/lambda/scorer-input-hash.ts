@@ -5,7 +5,7 @@
  * is the live implementation: `'sha256:' || encode(digest(convert_to(
  * app.exam_scorer_input_json(session)::text, 'UTF8'), 'sha256'), 'hex')`. The outcome column,
  * `packages/contracts/src/application.ts` (`/^sha256:[0-9a-f]{64}$/`) and two pgTAP suites all
- * require that shape, and `apps/web/scripts/exam-reconcile-session.ts` recomputes it to prove a
+ * require that shape, and the web app's `exam-reconcile-session` script recomputes it to prove a
  * stored score still matches its stored trace.
  *
  * This module is the second implementation of the same value. Producing anything else — a
@@ -19,9 +19,9 @@
  * `scorer-input-hash.test.ts`) and `supabase/tests/140_exam_scorer_input_hash_parity.test.sql`
  * assert the SAME literal hash. Move either implementation and exactly one of them goes red.
  *
- * No `node:crypto`: `../index.ts` re-exports this transitively and
- * `apps/web/src/components/exam/exam-runner.tsx` is a client component that imports that barrel
- * for `scoreExam`, so a Node builtin here lands in the browser bundle.
+ * No `node:crypto`: `../index.ts` re-exports this transitively, and the web app's exam runner is
+ * a client component that imports that barrel for `scoreExam`, so a Node builtin here lands in
+ * the browser bundle.
  */
 import type { ScoredItem } from './../types';
 
