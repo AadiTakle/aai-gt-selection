@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  classifyBankSpeed,
   isDone,
   nextItem,
-  nextType,
+  planNextSelection,
   startState,
   update,
   type Area,
+  type BurstPlan,
   type ScoredItem,
   type ServedItem,
   type SessionState,
@@ -72,19 +74,28 @@ describe('core-metric registry', () => {
 
 /**
  * Replays a whole battery through the real engine with a simulated responder,
- * exactly as the runner does: nextType -> nextItem -> (server verdict) ->
- * update -> isDone. Returns the trace so the test can assert HOW it ended.
+ * exactly as the runner does: planNextSelection -> nextItem -> (server verdict)
+ * -> update -> isDone. Returns the trace so the test can assert HOW it ended.
+ *
+ * It drives `planNextSelection` rather than `nextType` on purpose. That is the loop
+ * the runner drives, so bursting is in scope here; a battery test that skipped it
+ * would pass while a child met a fresh instruction on every single item, which is
+ * exactly what happened.
  */
 async function runBattery(gradeBand: GradeBand, trueAbility: number) {
   const banks = buildBanks((await getServedIndex()) as unknown as ServedItem[]);
   let state: SessionState = startState(gradeBand, EXAM_ENGINE_OVERRIDES);
 
   const served: ServedItem[] = [];
+  const bursts: BurstPlan[] = [];
+  let active: BurstPlan | null = null;
   let guard = 0;
   while (!isDone(state) && guard++ < 500) {
-    const typeCode = nextType(state, banks);
-    if (!typeCode) break;
-    const item = nextItem(state, typeCode, banks);
+    const plan = planNextSelection(state, banks, active);
+    if (!plan) break;
+    active = plan;
+    bursts.push(plan);
+    const item = nextItem(state, plan.typeCode, banks);
     served.push(item);
 
     // Simulated responder: correct with probability falling off as the item's
@@ -115,7 +126,16 @@ async function runBattery(gradeBand: GradeBand, trueAbility: number) {
     state = update(state, scored);
   }
 
-  return { state, served, hitCap: state.itemsServed >= state.config.hardItemCap };
+  return { state, served, bursts, banks, hitCap: state.itemsServed >= state.config.hardItemCap };
+}
+
+/** Items whose type differs from the item before them — i.e. instructions the child must read. */
+function instructionScreens(served: readonly ServedItem[]): number {
+  let screens = 0;
+  for (let i = 0; i < served.length; i++) {
+    if (i === 0 || served[i]!.typeCode !== served[i - 1]!.typeCode) screens += 1;
+  }
+  return screens;
 }
 
 describe('adaptive battery across the wired pool', () => {
@@ -160,6 +180,60 @@ describe('adaptive battery across the wired pool', () => {
     const { served } = await runBattery('4-5', 11);
     const typesUsed = new Set(served.map((i) => i.typeCode));
     expect(typesUsed.size).toBeGreaterThan(AREAS.length);
+  }, 30_000);
+});
+
+/**
+ * Bursting, checked against the pool and the config a BROWSER actually has.
+ *
+ * The bug these guard against shipped and reached a child: the engine's burst policy was verified in
+ * a simulation that selected over the research catalog's measurement lists, the engine's default
+ * core metrics and full item content, while a live session selects over the generated registry, this
+ * app's `EXAM_ENGINE_OVERRIDES` and a served index with the stimulus stripped out. Under the live
+ * combination no type was ever burstable and every one of a child's items opened a fresh
+ * instruction. Every assertion here therefore runs off `getServedIndex()`, not off the bank.
+ */
+describe('bursting under the served index', () => {
+  it('finds burstable types in the pool a browser selects over', async () => {
+    const banks = buildBanks((await getServedIndex()) as unknown as ServedItem[]);
+    const verdicts = classifyBankSpeed(banks, EXAM_ENGINE_OVERRIDES.burst!);
+    const burstable = [...verdicts.values()].filter((v) => v.fast);
+    expect(
+      burstable.length,
+      'no wired type is burstable from the served index, so no child will ever reuse an instruction',
+    ).toBeGreaterThan(0);
+    // Every verdict must be reasoned, so a future regression says why rather than just failing.
+    for (const verdict of verdicts.values()) expect(verdict.reason).not.toBe('');
+  });
+
+  it('serves real bursts, and never longer than the six the owner set', async () => {
+    const { bursts } = await runBattery('4-5', 11);
+    const longest = Math.max(...bursts.map((b) => b.length));
+    expect(longest, 'bursts never fired').toBeGreaterThan(1);
+    expect(longest, 'a burst ran past the agreed ceiling of six').toBeLessThanOrEqual(
+      EXAM_ENGINE_OVERRIDES.burst!.maxLength,
+    );
+  }, 30_000);
+
+  it('costs a child materially fewer instructions than items', async () => {
+    // The complaint, restated as an assertion. Before this branch the ratio was exactly 1.0.
+    const { served } = await runBattery('4-5', 11);
+    const screens = instructionScreens(served);
+    expect(screens).toBeLessThan(served.length * 0.7);
+  }, 30_000);
+
+  it('does not let one type monopolise an area', async () => {
+    // The other half of the complaint: coverage pressure used to hand each area's first several
+    // selections to whichever type declared the most process measurements (D-201).
+    const { served } = await runBattery('4-5', 11);
+    for (const area of AREAS) {
+      const inArea = served.filter((i) => i.domain === area);
+      if (inArea.length === 0) continue;
+      expect(
+        new Set(inArea.map((i) => i.typeCode)).size,
+        `${area} drew every item from one type`,
+      ).toBeGreaterThan(1);
+    }
   }, 30_000);
 });
 

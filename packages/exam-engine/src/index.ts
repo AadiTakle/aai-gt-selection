@@ -9,8 +9,26 @@
 export { startState } from './state';
 export { nextType, nextItem, toServedItem } from './selection';
 export { update, difficultyDelta, directionReversals, stepSize, toObservation } from './update';
-export { isDone, areaMetricsCovered, areaEstimateStable, coverageIsEven } from './done';
+export {
+  isDone,
+  areaMetricsCovered,
+  areaEstimateStable,
+  areaBreadthCovered,
+  auditTypeBreadth,
+  coverageIsEven,
+} from './done';
 export { replaySession } from './replay';
+
+// Back-to-back same-type serving. `planNextSelection` is the loop-level contract every caller
+// advances through, so a burst behaves identically in a browser and in the simulation harness.
+export {
+  burstLengthFor,
+  classifyBankSpeed,
+  classifyTypeSpeed,
+  fastTypeCodes,
+  planNextSelection,
+} from './burst';
+export type { BurstPlan, TypeSpeedVerdict } from './burst';
 
 // Novel-block administration (the learning-rate regime). Administration only: the projection that
 // picks the target difficulty, the fit and the readout all live in `@gt-selection/exam-scoring`.
@@ -27,6 +45,7 @@ export type { BlockReadiness, BlockUnavailableReason } from './learning-block';
 // Configuration and registries
 export {
   DEFAULT_CONFIG,
+  DEFAULT_BURST_POLICY,
   CORE_METRICS,
   GRADE_BAND_SEED,
   AGE_BAND_BONUS,
@@ -51,12 +70,15 @@ export {
   metricAdequateInArea,
   sessionMetricsCovered,
   enforcedShortfallCount,
+  distinctTypesInArea,
+  underCoveredMetrics,
   underCoveredWeights,
+  coverageGain,
   typeHasUnseenItem,
   availableTypesByArea,
   auditMetricSupply,
 } from './coverage';
-export type { MetricSupply } from './coverage';
+export type { CoverageGap, MetricSupply } from './coverage';
 
 // Derived (session-level aggregate) core metrics
 export {
@@ -115,6 +137,7 @@ export type {
   MetricScope,
   MetricKind,
   MetricAdequacyScope,
+  BurstPolicy,
   CoreMetricSpec,
   EngineConfig,
   AreaState,

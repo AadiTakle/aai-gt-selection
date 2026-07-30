@@ -1,4 +1,4 @@
-import type { AgeBand, CoreMetricSpec, EngineConfig } from './types';
+import type { AgeBand, BurstPolicy, CoreMetricSpec, EngineConfig } from './types';
 
 /**
  * Start difficulty seeded from the requested grade band (BUILD_PLAN §0). Midpoints of the
@@ -163,6 +163,28 @@ export const CORE_METRICS: CoreMetricSpec[] = [
 ];
 
 /**
+ * Default burst policy: OFF.
+ *
+ * Bursting changes how many instruction-readings a battery costs, which is a session-design
+ * decision rather than an engine default, so the engine ships with it disabled and a caller opts in.
+ * `maxOptions: 6` is the widest choice any wired bank offers (`FLU-MATRIX-01` runs 4, 5 and 6), so
+ * at this setting the option count never by itself disqualifies a wired type — the bound exists so
+ * that a future type offering a long candidate list is excluded without anyone editing a list.
+ */
+export const DEFAULT_BURST_POLICY: BurstPolicy = {
+  maxLength: 1,
+  minLength: 2,
+  maxOptions: 6,
+};
+
+/** Bonus added to a type's selection score when its age bands include the current grade band. */
+export const AGE_BAND_BONUS = 1.5;
+/** Selection weight for an under-covered enforced core metric. */
+export const ENFORCED_METRIC_WEIGHT = 2;
+/** Selection weight for an under-covered tracked-inert metric. */
+export const TRACKED_METRIC_WEIGHT = 1;
+
+/**
  * Default, tunable engine configuration.
  *
  * Step-schedule defaults (`initialStep`, `minUpdate`, `stepDecayExponent`, `stepBurnInReversals`,
@@ -175,13 +197,43 @@ export const CORE_METRICS: CoreMetricSpec[] = [
  *
  * `ageBandBias` 0.5 prices the age-band content preference at half a difficulty point, so the band
  * decides between comparably targeted items but cannot buy the 2-3 point targeting error that used
- * to bias the estimate wherever the band's item supply ran out (D-025). Anything from 0 to 1.0
- * holds the same accuracy; 1.5 and wider reopens the bias.
+ * to bias the estimate wherever the band's item supply ran out (D-025). Anything from 0 to 0.75
+ * holds the same accuracy — better than before, in fact, since capping tracked-inert coverage gain
+ * (D-201) took the ability sweep's worst error from 1.20 down to 0.77 — and the plateau's upper edge
+ * now sits between 0.75 and 1.0 rather than at 1.0. It still decays smoothly rather than snapping:
+ * at 1.0 one of the sweep's 72 ability × area cells lands 1.84 off, on one seed in five.
+ * `real-bank.test.ts` asserts both the plateau and the softness of its edge.
+ *
+ * `typeSelectionTolerance` 0.5 and `itemSelectionTolerance` 0.25 are randomesque exposure control.
+ * Without them selection is a strict argmax whose only variation was a +-0.1 jitter — too small to
+ * outweigh a metric weight (1 or 2) or the age bonus (1.5) — so every session served the same types
+ * in the same order (D-202).
+ *
+ * The type tolerance MUST stay below `trackedCoverageCap`, and that is what took it from the 1.0 it
+ * was first calibrated at down to 0.5 (D-203). The tolerance was derived against the UNCAPPED
+ * coverage sum, where a type could earn four tracked-metric points and the spread inside an area was
+ * correspondingly wide. Capping the tracked total at one point (D-201) compressed that spread, so a
+ * tolerance of 1.0 became exactly the value at which the whole tracked contribution stops deciding
+ * anything — the type carrying a tracked shortfall and the type carrying none fall within tolerance
+ * of each other, cancelling the tilt the cap was left in place to preserve — and at which a type
+ * closing an ENFORCED shortfall (weight 2) comes within reach of a rival closing none but holding a
+ * tracked gap (2 - 1 = 1.0). Measured over 80 sittings on the wired bank, 1.0 cost 1.9 items per
+ * session against 0.5 and bought 0.3 of a distinct type. Below about 1/3 the knob stops doing
+ * anything at all, because no score gap is smaller than the narrowest recency step.
+ *
+ * The item tolerance MUST stay below `ageBandBias`, or it cancels the age-band preference outright:
+ * a non-matching item carries exactly `ageBandBias` of penalty, so a tolerance of 0.5 makes it
+ * indistinguishable from a matching item at the same difficulty and D-025's content preference
+ * stops applying. 0.25 keeps the band decisive while still admitting a quarter-point of variety.
  */
 export const DEFAULT_CONFIG: EngineConfig = {
   seed: 0xc0ffee,
   difficultyWindow: 3,
   ageBandBias: 0.5,
+  typeSelectionTolerance: 0.5,
+  itemSelectionTolerance: 0.25,
+  typeRecencyPenalty: 1.0,
+  typeRecencyWindow: 3,
   accWindowSize: 10,
   estWindowSize: 10,
   minUpdate: 0.25,
@@ -193,18 +245,26 @@ export const DEFAULT_CONFIG: EngineConfig = {
   nearMissSoften: 0.5,
   evenSpreadTolerance: 2,
   minItemsPerArea: 6,
+  /*
+   * Two, the weakest form of the requirement that means anything: an area's estimate may not rest
+   * entirely on one task format. Every wired area supplies at least eight types, so this costs at
+   * most one extra selection per area and only when bursting has narrowed one.
+   */
+  minTypesPerArea: 2,
   stabilityWindow: 6,
   stabilitySd: 1.2,
   stabilityDrift: 0.8,
   hardItemCap: 60,
+  burst: DEFAULT_BURST_POLICY,
+  /*
+   * One tracked-inert metric's worth, total. Tracked metrics cannot block completion, so a type
+   * that declares four of them is not four times as useful as one that declares one — but the
+   * uncapped sum made it four times as attractive, which is a bigger margin than the age-band
+   * content match (1.5) and enough to win the same area's selection several items running. See
+   * `coverageGain` and D-201.
+   */
+  trackedCoverageCap: TRACKED_METRIC_WEIGHT,
   consistencyPairTolerance: 1.0,
   rotationMinDistinctDisparities: 3,
   coreMetrics: CORE_METRICS,
 };
-
-/** Bonus added to a type's selection score when its age bands include the current grade band. */
-export const AGE_BAND_BONUS = 1.5;
-/** Selection weight for an under-covered enforced core metric. */
-export const ENFORCED_METRIC_WEIGHT = 2;
-/** Selection weight for an under-covered tracked-inert metric. */
-export const TRACKED_METRIC_WEIGHT = 1;

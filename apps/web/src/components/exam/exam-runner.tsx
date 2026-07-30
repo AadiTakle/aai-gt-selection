@@ -6,11 +6,13 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from '
 import {
   isDone,
   nextItem,
-  nextType,
+  planNextSelection,
   startState,
   update,
   type Area,
   type Banks,
+  type BurstPlan,
+  type EngineConfig,
   type ScoredItem as EngineScoredItem,
   type ServedItem,
   type SessionState,
@@ -25,6 +27,7 @@ import {
 import { EXAM_BANK_BY_CODE, EXAM_DOMAINS, domainLabel } from '@/lib/exam/bank';
 import {
   EXAM_ENGINE_OVERRIDES,
+  examEngineOverrides,
   GESTURE_DEMO_TYPES,
   debugModeServerSnapshot,
   debugModeSnapshot,
@@ -41,6 +44,7 @@ import {
   subscribeToDebugMode,
 } from '@/lib/exam/adaptive';
 import { GRADE_BANDS, GRADE_BAND_LABEL, syntheticId, type GradeBand } from '@/lib/exam/contract';
+import { buildDebugView, type DebugTraceItem } from '@/lib/exam/debug-view';
 import { ExamHost, type InboundResult } from '@/lib/exam/messaging';
 import {
   LEARNING_BLOCK_AREA,
@@ -60,6 +64,7 @@ import {
   type LearningBlockReadout,
 } from '@/lib/exam/phase2';
 
+import { ExamDebugPanel } from './exam-debug-panel';
 import styles from './exam-runner.module.css';
 
 /**
@@ -161,8 +166,34 @@ export function ExamRunner({
 
   /** Ability estimate for the item on screen, mirrored into state so render never reads a ref. */
   const [debugAbility, setDebugAbility] = useState<number | null>(null);
+  /**
+   * Answered items, in state rather than a ref, because the debug dock renders from them: appending
+   * one is what re-renders the panel and advances the convergence on screen. Kept separate from
+   * `scoredRef` (which is the POSTed trace) so the panel can carry the burst position without
+   * changing the results payload.
+   */
+  const [debugTrace, setDebugTrace] = useState<DebugTraceItem[]>([]);
 
-  /** `?telemetry=1` on the exam URL: shows each demo's researcher panel and the emulate control. */
+  /**
+   * The burst the on-screen item belongs to. One item is on screen at a time, so this is always the
+   * plan for `current`; `planNextSelection` reads it back to decide whether to stay on the type.
+   */
+  const burstRef = useRef<BurstPlan | null>(null);
+
+  /**
+   * The engine configuration this session runs under.
+   *
+   * Taken from the live session at `start` and held in state, not re-derived: the config now
+   * carries a seed drawn per sitting, so building a second one would report a different seed from
+   * the one the session is actually replaying off — which is the one number in the dock that has to
+   * be the session's own. State rather than a ref because the dock renders from it. It cannot change
+   * mid-session: `startState` fixes the config and `update` carries it through untouched.
+   */
+  const [engineConfig, setEngineConfig] = useState<EngineConfig>(
+    () => startState(gradeBand, EXAM_ENGINE_OVERRIDES).config,
+  );
+
+  /** `?debug=1` on the exam URL: shows the convergence dock, the demo's researcher panel, Emulate. */
   const debugMode = useSyncExternalStore(
     subscribeToDebugMode,
     debugModeSnapshot,
@@ -271,12 +302,16 @@ export function ExamRunner({
       }
       let selected: ServedItem;
       try {
-        const typeCode = nextType(state, banks);
-        if (!typeCode) {
+        // Either the next item of the burst already running, or a fresh type. Staying on the type is
+        // all a burst is: `update` has already moved this area's estimate, so `nextItem` re-targets
+        // at the new one and the burst adapts to how the previous items went.
+        const plan = planNextSelection(state, banks, burstRef.current);
+        if (!plan) {
           void finalize();
           return;
         }
-        selected = nextItem(state, typeCode, banks);
+        burstRef.current = plan;
+        selected = nextItem(state, plan.typeCode, banks);
       } catch {
         // Pool exhausted for the selected type — conclude with what we have.
         void finalize();
@@ -460,6 +495,17 @@ export function ExamRunner({
       scoredRef.current = [...scoredRef.current, scored];
       setScoredCount(scoredRef.current.length);
 
+      // Same row plus the burst position, for the debug dock. Appending re-renders the panel, which
+      // is what makes the estimate and its range visibly move as each question is answered.
+      const plan = burstRef.current;
+      setDebugTrace((rows) => [
+        ...rows,
+        {
+          ...scored,
+          ...(plan ? { burstIndex: plan.index, burstLength: plan.length } : {}),
+        },
+      ]);
+
       const nextState = update(state, scored as unknown as EngineScoredItem);
       stateRef.current = nextState;
 
@@ -551,15 +597,18 @@ export function ExamRunner({
     scoredRef.current = [];
     telemetryRef.current = [];
     processedRef.current = new Set();
+    burstRef.current = null;
     setServed([]);
     setScoredCount(0);
+    setDebugTrace([]);
     setPhase('running');
     try {
       const pool = await fetchServedPool();
       if (pool.length === 0) throw new Error('EMPTY_BANK');
       banksRef.current = buildBanks(pool);
-      const state = startState(gradeBand, EXAM_ENGINE_OVERRIDES);
+      const state = startState(gradeBand, examEngineOverrides());
       stateRef.current = state;
+      setEngineConfig(state.config);
       const participantCode = syntheticId('PART');
       sessionRef.current = {
         sessionId: syntheticId('SESS'),
@@ -975,6 +1024,21 @@ export function ExamRunner({
           : ''}
         Synthetic screening activity; results are not shown between questions.
       </p>
+
+      {/*
+        The convergence dock. Rendered from the answered-item trace alone, so it is a view of the
+        session rather than a second copy of it, and every number in it comes from the engine's own
+        update or the scorer's own ability fit.
+      */}
+      {debugMode ? (
+        <ExamDebugPanel
+          view={buildDebugView({
+            trace: debugTrace,
+            gradeBand,
+            config: engineConfig,
+          })}
+        />
+      ) : null}
     </div>
   );
 }
