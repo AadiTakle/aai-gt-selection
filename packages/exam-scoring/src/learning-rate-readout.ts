@@ -11,6 +11,18 @@
  *     mean SE| 0.138  | 0.101  | 0.047  | 0.026  | 0.017
  *     fit/true 0.22   | 0.57   | 0.98   | 1.02   | 0.97       (attenuation toward zero)
  *
+ * READ THAT TABLE WITH ONE CORRECTION, which is load-bearing rather than pedantic. Every cell was
+ * measured against a simulated child with NO guessing floor — a child who, on an item far above
+ * their level, scores zero. That describes a constructed-response item. Every item the block is
+ * actually administered from is five-option multiple choice, where the same child scores 0.2. Rerun
+ * against a five-option responder with the floor correctly specified in the fit, the 30-trial cell
+ * is r = 0.254 and mean SE = 0.062 on the same idealised grid — barely half the recovery, on a
+ * quarter more uncertainty — and r = 0.249 / SE = 0.072 on `FLU-MATRIX-01`. Reaching the published
+ * 30-trial recovery takes about 45 trials on an ideal grid, and on that bank 60 trials do not reach
+ * it. E-200 records the reproduction; `pnpm exam:block-harness -- --calibrate --guessing 0.2` is the
+ * command. The table above is kept because it is what E-095 published, not because it describes the
+ * block as administered.
+ *
  * Two things follow. First, a short block does not merely measure imprecisely, it measures almost
  * nothing: at 8 trials the estimate correlates with truth at r = 0.07 AND is attenuated to about a
  * fifth of its true size. Second, `r` is not a property of the estimator alone — it depends on how
@@ -28,6 +40,17 @@
  * `learningRateReadout` returns `indeterminate` at 30 trials for any honest small-spread
  * reference, and that is the correct answer rather than a bug to tune away.
  * `learningRateCohortRank` is the question that IS supported at that length.
+ *
+ * AND THERE IS A SECOND, SYSTEMATIC REASON, added by E-200. `lambdaSe` is random error. A closed
+ * adaptive loop also has a bias that no averaging removes: the fit picks the next difficulty, so a
+ * fit that reads chance successes as ability walks the difficulty up and reads its own walk back as
+ * a climb. On a cohort that learned nothing at all, that mechanism alone fits λ̄ = 0.0398 with the
+ * guessing floor at 0 and still 0.0098 with it correct — and freezing the served difficulty, which
+ * breaks the loop without touching the fit, drops it to 0.0018. So the loop, not the fit, is where
+ * the manufactured rate comes from. `LearningRateReference` therefore requires a measured
+ * `contaminationFloor` and separability is tested against SE PLUS that floor. The consequence is
+ * blunt and worth stating rather than discovering: at 30 trials no reference anyone has proposed,
+ * including the deliberately wide SD 0.15 one, separates once the floor is counted.
  *
  * WHY THIS IS NOT IN THE SCORED DECISION: a within-session learning rate is a labelled hypothesis.
  * Nothing here has been shown to predict real learning, acceleration, or program benefit. Keeping
@@ -70,6 +93,25 @@ export interface LearningRateReference {
   readonly mean: number;
   /** Spread of the comparison distribution, same units. Required for the same reason as `mean`. */
   readonly sd: number;
+  /**
+   * Largest climb this administration path is known to fit for a child who learned NOTHING, in the
+   * same units — the pipeline's own systematic floor, not a property of any child.
+   *
+   * REQUIRED, and required for a sharper reason than `mean` and `sd`. The fit's `lambdaSe` describes
+   * random error only. A closed-loop adaptive block also has a SYSTEMATIC error that no amount of
+   * averaging removes: the fit's output chooses the next difficulty, so a fit that reads chance
+   * successes as ability walks the served difficulty up and then reads its own walk as a climb.
+   * Measured on a cohort with λ_true = 0 for every child, 30 trials, five-option responder, that
+   * floor is 0.0098 ± 0.0033 on an idealised grid and 0.0183 ± 0.0035 on `FLU-MATRIX-01` even with
+   * the guessing floor correctly specified — and 0.0398 / 0.0547 with it at 0 (E-200).
+   *
+   * Banding an estimate against a half-width narrower than that floor names a band that a
+   * non-learner would also have been given, which is the failure E-200 exists to prevent. Supplying
+   * this is an assertion that the caller has MEASURED it for their own bank, length and item format
+   * — `pnpm exam:block-harness -- --fix-probe` is what measures it. Pass 0 only for a
+   * non-adaptive block with a constructed-response item, where the harness measures no floor.
+   */
+  readonly contaminationFloor: number;
   /**
    * Band half-width in reference SDs. Default 0.5, so `typical` spans one SD centred on the mean
    * and the outer bands begin beyond it.
@@ -118,7 +160,7 @@ export function learningRateReadout(
   options: LearningRateReadoutOptions,
 ): LearningRateReadout {
   const { reference, minTrials = MIN_TRIALS_FOR_RATE, fit: fitOptions } = options;
-  const { mean, sd, bandHalfWidthSds = 0.5 } = reference;
+  const { mean, sd, contaminationFloor, bandHalfWidthSds = 0.5 } = reference;
 
   const base = { trialCount: trials.length, hypothesis: true as const };
 
@@ -142,6 +184,17 @@ export function learningRateReadout(
     };
   }
 
+  if (!Number.isFinite(contaminationFloor) || contaminationFloor < 0) {
+    return {
+      ...base,
+      band: 'indeterminate',
+      lambdaDiagnostic: null,
+      lambdaSe: null,
+      reason:
+        'reference is missing a measured contamination floor; no band can be named without one',
+    };
+  }
+
   const fit = estimateLearningCurve(trials, fitOptions);
 
   if (!fit.converged || !Number.isFinite(fit.lambda)) {
@@ -157,11 +210,18 @@ export function learningRateReadout(
   const halfWidth = bandHalfWidthSds * sd;
   const common = { ...base, lambdaDiagnostic: fit.lambda, lambdaSe: fit.lambdaSe };
 
-  if (fit.lambdaSe >= halfWidth) {
+  // The separability test is against the TOTAL error budget, random plus systematic. Testing
+  // `lambdaSe` alone treats a known, signed, non-averaging bias as if it were not there, and it is
+  // the larger of the two problems on a short block: at 30 trials the contamination floor is a
+  // quarter of the posterior SE, and unlike the SE it does not shrink toward the truth.
+  const errorBudget = fit.lambdaSe + contaminationFloor;
+  if (errorBudget >= halfWidth) {
     return {
       ...common,
       band: 'indeterminate',
-      reason: `posterior SE ${fit.lambdaSe.toFixed(4)} is at or wider than the ${halfWidth.toFixed(4)} band half-width; bands are not separable at this precision`,
+      reason:
+        `posterior SE ${fit.lambdaSe.toFixed(4)} plus the ${contaminationFloor.toFixed(4)} contamination floor ` +
+        `is at or wider than the ${halfWidth.toFixed(4)} band half-width; bands are not separable at this precision`,
     };
   }
 

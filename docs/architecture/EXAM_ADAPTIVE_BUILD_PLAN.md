@@ -171,11 +171,18 @@ novel block is not. The `stage` marker is the structural guard that keeps the fi
 block alone (see the "confound guard" tests in `learning-block.test.ts` /
 `learning-rate-readout.test.ts`).
 
-### What it may and may not claim (D-030, E-095)
+### What it may and may not claim (D-030, E-095, E-200)
 
-- At 30 trials the individual posterior SE (~0.045 scale points/trial) is wider than the plausible
-  between-child spread, and no K-8 reference distribution exists — so on real sessions the honest
-  readout is usually `indeterminate`. **That refusal is correct behaviour, not a gap to tune away.**
+- At 30 trials the individual posterior SE (~0.062 scale points/trial once the five-option guessing
+  floor is modelled; ~0.045 without it) is wider than the plausible between-child spread, and no K-8
+  reference distribution exists — so on real sessions the honest readout is usually `indeterminate`.
+  **That refusal is correct behaviour, not a gap to tune away.**
+- **E-200 hardens that to "always", on the bank the block would run on.** The estimator shipped
+  assuming no guessing floor, which inside the adaptive targeting loop made a cohort that learned
+  nothing fit λ̄ = 0.0398 and read `above` average pace 32.8% of the time. D-200 corrects the floor
+  and requires any reference to declare a measured contamination floor; with both, a 30-item block on
+  `FLU-MATRIX-01` is `indeterminate` for 94.5% of children even against the widest reference
+  proposed. **D-200 is proposed and awaits owner sign-off.**
 - **Supported:** ranking a cohort we measured ourselves (ordinal). **Not supported:** placing an
   individual child on an absolute learning-rate scale.
 - The per-area §4 metric `M-LEARNRATE` is therefore `enforced: false` — a labelled diagnostic, not

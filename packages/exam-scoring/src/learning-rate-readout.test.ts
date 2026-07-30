@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import { deriveLearningRate } from './derived-metrics';
-import { estimateLearningCurve, nextTargetTheta, type LearningTrial } from './learning-curve';
+import {
+  DEFAULT_GUESSING,
+  estimateLearningCurve,
+  nextTargetTheta,
+  type LearningTrial,
+} from './learning-curve';
 import {
   MIN_TRIALS_FOR_RATE,
   learningRateCohortRank,
@@ -22,8 +27,21 @@ function mulberry32(seed: number): () => number {
 const SLOPE = 1;
 const THETA0 = 11;
 
-/** A novel block administered the way `nextTargetTheta` intends: difficulty follows the climb. */
-function adaptiveBlock(length: number, lambda: number, seed: number): LearningTrial[] {
+/**
+ * A novel block administered the way `nextTargetTheta` intends: difficulty follows the climb.
+ *
+ * The simulated child answers with the same five-option floor `DEFAULT_GUESSING` assumes, because
+ * that is the item format the block is administered from. A floorless responder here would test the
+ * readout against a response model no real trial follows, and the mismatch is not harmless in either
+ * direction: a fit that assumes a floor the responder lacks attenuates a declining child from −0.35
+ * to −0.17 and doubles its posterior SE (E-200).
+ */
+function adaptiveBlock(
+  length: number,
+  lambda: number,
+  seed: number,
+  responderFloor = DEFAULT_GUESSING,
+): LearningTrial[] {
   const rand = mulberry32(seed);
   const trials: LearningTrial[] = [];
   for (let t = 0; t < length; t += 1) {
@@ -34,17 +52,24 @@ function adaptiveBlock(length: number, lambda: number, seed: number): LearningTr
     });
     const difficulty = Math.round(target * 2) / 2;
     const theta = THETA0 + lambda * t;
-    const p = 1 / (1 + Math.exp(-SLOPE * (theta - difficulty)));
+    const star = 1 / (1 + Math.exp(-SLOPE * (theta - difficulty)));
+    const p = responderFloor + (1 - responderFloor) * star;
     trials.push({ difficulty, score: rand() < p ? 1 : 0, trialIndex: t });
   }
   return trials;
 }
 
 describe('learningRateReadout', () => {
-  /** The narrow spread synthetic work explored. Half-width 0.015 against an SE around 0.047. */
-  const narrow = { mean: 0.06, sd: 0.03 };
+  /**
+   * The narrow spread synthetic work explored. Half-width 0.015 against an SE around 0.047.
+   *
+   * `contaminationFloor: 0` throughout this block so each assertion isolates the behaviour it names.
+   * A declared floor is tested on its own below; folding it into every case would mean a failure
+   * could not be attributed to the thing the test is about.
+   */
+  const narrow = { mean: 0.06, sd: 0.03, contaminationFloor: 0 };
   /** Wide enough that the band half-width (0.1) exceeds the estimate's own uncertainty. */
-  const wide = { mean: 0, sd: 0.2 };
+  const wide = { mean: 0, sd: 0.2, contaminationFloor: 0 };
 
   it('refuses to answer below the trial floor, and says so', () => {
     const readout = learningRateReadout(adaptiveBlock(12, 0.1, 1), { reference: narrow });
@@ -59,7 +84,7 @@ describe('learningRateReadout', () => {
 
   it('refuses when the reference has no spread to define band edges', () => {
     const readout = learningRateReadout(adaptiveBlock(30, 0.1, 2), {
-      reference: { mean: 0.06, sd: 0 },
+      reference: { mean: 0.06, sd: 0, contaminationFloor: 0 },
     });
     expect(readout.band).toBe('indeterminate');
     expect(readout.reason).toContain('reference SD');
@@ -98,6 +123,44 @@ describe('learningRateReadout', () => {
     for (const trials of [adaptiveBlock(12, 0.1, 7), adaptiveBlock(30, 0.1, 8)]) {
       expect(learningRateReadout(trials, { reference: narrow }).hypothesis).toBe(true);
     }
+  });
+
+  // E-200. The bar tests separability against random error PLUS the systematic floor the adaptive
+  // loop is measured to produce, because a band the pipeline would also have given a non-learner is
+  // not a finding about the child.
+  describe('the declared contamination floor', () => {
+    const fast = adaptiveBlock(30, 0.35, 0);
+
+    it('withdraws a band the reference can no longer separate', () => {
+      const withoutFloor = learningRateReadout(fast, { reference: wide });
+      const withFloor = learningRateReadout(fast, {
+        reference: { ...wide, contaminationFloor: 0.09 },
+      });
+
+      // Same trials, same fit. The only thing that changed is what the caller declared it knows
+      // about its own pipeline, and it is enough to take the verdict away.
+      expect(withoutFloor.band).toBe('above');
+      expect(withFloor.band).toBe('indeterminate');
+      expect(withFloor.reason).toContain('contamination floor');
+      expect(withFloor.lambdaDiagnostic).toBe(withoutFloor.lambdaDiagnostic);
+    });
+
+    it('leaves a band standing when the floor still fits inside the half-width', () => {
+      const readout = learningRateReadout(fast, {
+        reference: { ...wide, contaminationFloor: 0.005 },
+      });
+      expect(readout.band).toBe('above');
+    });
+
+    it('refuses outright when no floor has been measured', () => {
+      const readout = learningRateReadout(fast, {
+        // A caller reaching for `-1` or `NaN` has not measured it. Naming a band anyway would make
+        // the required field decorative.
+        reference: { ...wide, contaminationFloor: Number.NaN },
+      });
+      expect(readout.band).toBe('indeterminate');
+      expect(readout.reason).toContain('measured contamination floor');
+    });
   });
 });
 
@@ -216,13 +279,23 @@ describe('confound guard: a rising ceiling is not evidence of learning', () => {
     const mean = fits.reduce((a, b) => a + b, 0) / fits.length;
     expect(Math.abs(mean)).toBeLessThan(0.02);
 
-    // But no INDIVIDUAL child's estimate can be asserted that tightly: with an SE around 0.047 a
+    // But no INDIVIDUAL child's estimate can be asserted that tightly: with an SE around 0.06 a
     // single flat child routinely lands 0.05-0.1 away from zero. That is the whole reason the
-    // reportable output is a band and not this number — and against a reference wide enough to be
-    // separable, none of these zero-learning children is mislabelled as a learner.
+    // reportable output is a band and not this number.
     expect(Math.max(...fits.map(Math.abs))).toBeGreaterThan(0.05);
-    for (const trials of flatBlocks) {
-      expect(learningRateReadout(trials, { reference: { mean: 0, sd: 0.4 } }).band).toBe('typical');
+
+    // The claim worth guarding is that a child who learned nothing is never CALLED a learner. It is
+    // deliberately not "always `typical`": against a five-option responder some 30-trial blocks come
+    // back with a posterior wider than even this SD 0.4 reference can separate, and `indeterminate`
+    // is the right answer for those rather than a near miss (E-200).
+    const bands = flatBlocks.map(
+      (trials) =>
+        learningRateReadout(trials, { reference: { mean: 0, sd: 0.4, contaminationFloor: 0 } })
+          .band,
+    );
+    for (const band of bands) {
+      expect(['typical', 'indeterminate']).toContain(band);
     }
+    expect(bands.filter((b) => b === 'typical').length).toBeGreaterThan(flatBlocks.length / 2);
   });
 });
