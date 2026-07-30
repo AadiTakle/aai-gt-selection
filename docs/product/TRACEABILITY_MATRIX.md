@@ -94,3 +94,5 @@ Add one row before beginning substantive work.
 - `Removed`
 
 `Implemented` means the artifact exists. `Verified` means its stated acceptance evidence has been checked.
+
+<!-- TEMPORARY gate verification: cites R12, which does not exist. Reverted in the next commit. -->
