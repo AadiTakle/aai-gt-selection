@@ -69,6 +69,42 @@
   .field textarea:focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 2px #cfe0f2}
   .savenote{font-size:11px;color:var(--ok);height:14px}
   .disc{font-size:11px;color:var(--muted);margin-top:6px;border-top:1px dashed var(--line);padding-top:8px}
+  /* difficulty explorer */
+  .diffwrap{border:1px solid var(--line);border-radius:10px;background:#fff;margin:14px 0}
+  .diffwrap .bar{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f4f7fb;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted)}
+  .diffwrap .bar .spacer{flex:1}
+  .diffwrap .bar b{color:var(--navy-2)}
+  .diffbody{padding:11px 13px}
+  .spec{display:flex;align-items:flex-end;gap:2px;height:58px}
+  .spec .bin{flex:1;min-height:2px;background:#c9d8ec;border-radius:2px 2px 0 0;cursor:pointer}
+  .spec .bin:hover{background:var(--navy-2)}
+  .spec .bin.hit{background:var(--gold)}
+  .spec .bin.empty{background:#eef1f4;cursor:default}
+  .axis{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);font-family:ui-monospace,Menlo,monospace;margin-top:3px}
+  .band{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted);margin-top:4px}
+  .band .lbl{width:30px;font-weight:700;color:var(--navy-2);font-family:ui-monospace,Menlo,monospace}
+  .band .track{position:relative;flex:1;height:6px;background:#eef1f4;border-radius:3px}
+  .band .fill{position:absolute;top:0;bottom:0;background:#9db8d8;border-radius:3px}
+  .band .n{width:96px;text-align:right;white-space:nowrap;font-family:ui-monospace,Menlo,monospace}
+  .slrow{display:flex;align-items:center;gap:9px;margin-top:11px}
+  .slrow input[type=range]{flex:1;accent-color:#0f2742}
+  .slrow .val{font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700;color:var(--navy);min-width:64px;text-align:right}
+  .btns{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:9px;font-size:12px;color:var(--muted)}
+  .btns button,.chip{font-size:12px;color:var(--navy);background:#fff;border:1px solid var(--line);border-radius:5px;padding:3px 8px;cursor:pointer;font-family:inherit}
+  .btns button:hover,.chip:hover{background:#f4f7fb}
+  .btns button.primary{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .btns label.chk{display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer}
+  .served{font-size:11.5px;color:var(--muted);margin-top:10px;border-top:1px dashed var(--line);padding-top:8px;line-height:1.6}
+  .served code{font-family:ui-monospace,Menlo,monospace;background:#f4f7fb;padding:0 4px;border-radius:4px}
+  .served b{color:var(--navy-2)}
+  .served .stat{color:var(--ok);font-weight:650}
+  .served details{margin-top:5px}
+  .served details summary{cursor:pointer;color:var(--navy)}
+  .served details pre{max-height:150px;overflow:auto;background:#f8fafc;border:1px solid var(--line);border-radius:6px;padding:7px;font-size:10.5px;margin:5px 0 0}
+  .rangeset{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin-top:9px;border-top:1px dashed var(--line);padding-top:8px}
+  .rangeset input[type=number]{width:58px;padding:3px 5px;border:1px solid var(--line);border-radius:5px;font-family:ui-monospace,Menlo,monospace;font-size:11.5px}
+  .rangeset button{font-size:11.5px;color:var(--navy);background:#fff;border:1px solid var(--line);border-radius:5px;padding:2px 7px;cursor:pointer;font-family:inherit}
 </style>
 </head>
 <body>
@@ -150,6 +186,236 @@ function renderList(){
   [...ul.querySelectorAll('li.type[data-id]')].forEach(li=>li.onclick=()=>select(li.dataset.id));
 }
 
+/* =====================================================================
+ * Difficulty explorer
+ * Reads the type's real bank (banks/<TYPE_ID>.jsonl, difficulty 1..20) to
+ * chart its spectrum, and serves a chosen item into the demo iframe over the
+ * demos' documented host protocol:
+ *   host -> demo : {source:'gt-exam-host', type:'init', item:ServedItem}
+ *                  {source:'gt-exam-host', type:'start', tutorial?:bool}
+ * The answer key / scoring / provenance are stripped before injection, exactly
+ * as the demos' own toServed() does. READ-ONLY over the banks: the slider picks
+ * which existing item to show, it never rewrites generated item data.
+ * ===================================================================== */
+const HOST_SRC='gt-exam-host', DEMO_SRC='gt-exam-demo';
+const BANDS=['K-1','2-3','4-5','6-8'];
+const BINS=20;                       // one bin per difficulty point, 1..20
+const bankCache=new Map();           // type_id -> items[] sorted by difficulty
+let bankItems=[];                    // bank of the active type
+let pool=[], poolIdx=-1;             // band-filtered candidates + cursor
+let bandFilter='', tutorial=false;
+let frame=null, frameReady=false, wantServe=false;
+
+function median(ns){const s=[...ns].sort((a,b)=>a-b),m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2;}
+function binOf(d){return Math.max(0,Math.min(BINS-1,Math.floor(d)-1));}
+
+async function loadBank(id){
+  if(bankCache.has(id)) return bankCache.get(id);
+  const res=await fetch(`banks/${encodeURIComponent(id)}.jsonl`,{cache:'no-store'});
+  if(!res.ok) throw new Error(`banks/${id}.jsonl → HTTP ${res.status}`);
+  const items=(await res.text()).trim().split('\n').filter(Boolean).map(l=>JSON.parse(l))
+    .filter(i=>typeof i.difficulty==='number')
+    .sort((a,b)=>a.difficulty-b.difficulty);
+  bankCache.set(id,items);
+  return items;
+}
+
+/* ---- host -> demo ---- */
+function pushItem(item){
+  if(!frame||!frame.contentWindow) return;
+  const {answer,scoring,provenance,...served}=item;   // key stays out of the demo
+  frame.contentWindow.postMessage({source:HOST_SRC,type:'init',item:served},'*');
+  frame.contentWindow.postMessage({source:HOST_SRC,type:'start',tutorial:tutorial},'*');
+}
+
+/* ---- demo -> host ---- */
+window.addEventListener('message',e=>{
+  const d=e.data;
+  if(!d||d.source!==DEMO_SRC) return;
+  if(!frame||e.source!==frame.contentWindow) return;   // ignore stale iframes
+  if(d.type==='ready'){ frameReady=true; if(wantServe&&poolIdx>=0){ pushItem(pool[poolIdx]); } }
+  else if(d.type==='result'){
+    const s=document.getElementById('servedStatus');
+    if(s) s.innerHTML=' · <span class="stat">answered</span> — press ▶ or “another at this level” for the next item';
+  }
+});
+
+function rebuildPool(){
+  pool = bandFilter ? bankItems.filter(i=>(i.ageBands||[]).includes(bandFilter)) : bankItems.slice();
+}
+function nearestIdx(v){
+  let best=-1,bd=Infinity;
+  pool.forEach((it,i)=>{const dd=Math.abs(it.difficulty-v); if(dd<bd){bd=dd;best=i;}});
+  return best;
+}
+function serve(idx,syncSlider){
+  if(idx<0||idx>=pool.length) return;
+  poolIdx=idx; wantServe=true;
+  const item=pool[idx];
+  if(frameReady) pushItem(item);          // otherwise the 'ready' handler serves it
+  const sl=document.getElementById('slider');
+  if(sl&&syncSlider!==false) sl.value=String(item.difficulty);
+  renderSliderVal();
+  renderServed(item);
+  markBins();
+}
+function renderSliderVal(){
+  const sl=document.getElementById('slider'), out=document.getElementById('sliderVal');
+  if(sl&&out) out.textContent=(+sl.value).toFixed(1)+' / 20';
+}
+function markBins(){
+  const item=pool[poolIdx]; if(!item) return;
+  const b=binOf(item.difficulty);
+  document.querySelectorAll('#spec .bin').forEach(el=>el.classList.toggle('hit',+el.dataset.bin===b));
+}
+/* 46 of the 66 banks record provenance.levers; the rest carry their difficulty
+ * knobs under bank-specific keys (ruleFamily, level, tier, rung, variant, ...),
+ * so fall back to the whole provenance minus the bookkeeping fields. */
+const PROV_NOISE=new Set(['generator','generatorRef','seed','contentHash','promptHash','validatorVerdicts','validator','lexiconHash']);
+function leverText(item){
+  const p=item.provenance||{};
+  const src=(p.levers&&Object.keys(p.levers).length)?p.levers
+    :Object.fromEntries(Object.entries(p).filter(([k])=>!PROV_NOISE.has(k)));
+  const parts=Object.entries(src).map(([k,v])=>{
+    const val=Array.isArray(v)?v.join('/'):(v&&typeof v==='object'?JSON.stringify(v):v);
+    return `${esc(k)}=<b>${esc(String(val).slice(0,60))}</b>`;
+  });
+  return parts.length?parts.join(' · '):'not recorded in this bank';
+}
+
+function renderServed(item){
+  const el=document.getElementById('servedInfo'); if(!el) return;
+  const levers=leverText(item);
+  const key=item.answer&&item.answer.correctKey!=null?item.answer.correctKey:null;
+  el.innerHTML=
+    `<div><b>Serving</b> item ${poolIdx+1} of ${pool.length}${bandFilter?` in band ${esc(bandFilter)}`:''} · `+
+    `difficulty <b>${item.difficulty.toFixed(2)}</b>/20 · bands ${esc((item.ageBands||[]).join(', ')||'—')} · `+
+    `<code>${esc(String(item.itemId).slice(0,8))}</code><span id="servedStatus"></span></div>`+
+    `<div>difficulty levers that generated it: ${levers}</div>`+
+    (key!=null||item.answer?`<details><summary>answer key &amp; distractor rationales (reviewer-only — local synthetic bank)</summary>`+
+      `<pre>${esc(JSON.stringify(item.answer,null,2))}</pre></details>`:'');
+}
+
+function diffPanelShell(){
+  return `<div class="diffwrap">
+    <div class="bar"><span><b>Difficulty spectrum &amp; served level</b></span><span class="spacer"></span>
+      <span id="diffCount"></span></div>
+    <div class="diffbody" id="diffBody"><div class="served" style="border:0;margin:0;padding:0">Loading bank…</div></div>
+  </div>`;
+}
+
+async function initDifficultyPanel(d){
+  const body=document.getElementById('diffBody'); if(!body) return;
+  const id=d.type_id;
+  bankItems=[]; pool=[]; poolIdx=-1; bandFilter=''; wantServe=false;
+  try{ bankItems=await loadBank(id); }
+  catch(err){
+    body.innerHTML=`<div class="served" style="border:0;margin:0;padding:0">No bank loaded for <code>${esc(id)}</code> — the demo keeps cycling its own samples.<br>`+
+      `Serve this folder over HTTP so <code>banks/${esc(id)}.jsonl</code> is reachable.<br><small>${esc(err.message)}</small></div>`;
+    return;
+  }
+  if(activeId!==id) return;                        // reviewer moved on while loading
+  rebuildPool();
+
+  const ds=bankItems.map(i=>i.difficulty);
+  const counts=Array(BINS).fill(0);
+  bankItems.forEach(i=>counts[binOf(i.difficulty)]++);
+  const peak=Math.max(...counts,1);
+  const cnt=document.getElementById('diffCount');
+  if(cnt) cnt.textContent=`${bankItems.length} items · min ${Math.min(...ds).toFixed(1)} · median ${median(ds).toFixed(1)} · max ${Math.max(...ds).toFixed(1)}`;
+
+  const bins=counts.map((n,i)=>
+    `<div class="bin ${n?'':'empty'}" data-bin="${i}" style="height:${n?Math.max(6,Math.round(n/peak*100)):2}%" `+
+    `title="difficulty ${i+1}–${i+2===21?20:i+2}: ${n} item${n===1?'':'s'}${n?' — click to serve':''}"></div>`).join('');
+
+  const bandRows=BANDS.filter(b=>bankItems.some(i=>(i.ageBands||[]).includes(b))).map(b=>{
+    const sub=bankItems.filter(i=>(i.ageBands||[]).includes(b)).map(i=>i.difficulty);
+    const lo=Math.min(...sub), hi=Math.max(...sub);
+    const L=(lo-1)/19*100, W=Math.max(1.5,(hi-lo)/19*100);
+    return `<div class="band"><span class="lbl">${esc(b)}</span>`+
+      `<span class="track"><span class="fill" style="left:${L.toFixed(1)}%;width:${W.toFixed(1)}%"></span></span>`+
+      `<span class="n">${lo.toFixed(1)}–${hi.toFixed(1)} · ${sub.length}</span></div>`;
+  }).join('');
+
+  body.innerHTML=
+    `<div class="spec" id="spec">${bins}</div>
+     <div class="axis"><span>1 · easiest</span><span>5</span><span>10</span><span>15</span><span>20 · hardest</span></div>
+     <div id="bandRows">${bandRows}</div>
+     <div class="slrow">
+       <button id="dPrev" title="previous item by difficulty">◀</button>
+       <input type="range" id="slider" min="1" max="20" step="0.1" value="${median(ds).toFixed(1)}" />
+       <button id="dNext" title="next item by difficulty">▶</button>
+       <span class="val" id="sliderVal"></span>
+     </div>
+     <div class="btns">
+       <button class="primary" id="dServe">Serve at this level</button>
+       <button id="dAnother">another at this level</button>
+       <label class="chk"><input type="checkbox" id="dTutorial" /> include warm-up / ghost-hand</label>
+       <span class="spacer" style="flex:1"></span>
+       <span>band:</span>
+       <button class="chip on" data-band="">all</button>
+       ${BANDS.filter(b=>bankItems.some(i=>(i.ageBands||[]).includes(b))).map(b=>`<button class="chip" data-band="${esc(b)}">${esc(b)}</button>`).join('')}
+     </div>
+     <div class="served" id="servedInfo"></div>
+     <div class="rangeset">
+       <span><b>Your verdict —</b> intended difficulty range:</span>
+       <input type="number" id="rMin" min="1" max="20" step="0.5" placeholder="min" />
+       <span>–</span>
+       <input type="number" id="rMax" min="1" max="20" step="0.5" placeholder="max" />
+       <button id="rFromMin">◀ set min from slider</button>
+       <button id="rFromMax">set max from slider ▶</button>
+       <button id="rClear">clear</button>
+       <span id="rNote" class="savenote"></span>
+     </div>`;
+
+  const sl=document.getElementById('slider');
+  renderSliderVal();
+  sl.addEventListener('input',()=>{ renderSliderVal(); serve(nearestIdx(+sl.value),false); });
+  document.getElementById('dServe').onclick=()=>serve(nearestIdx(+sl.value),false);
+  document.getElementById('dPrev').onclick=()=>serve(Math.max(0,poolIdx-1),true);
+  document.getElementById('dNext').onclick=()=>serve(Math.min(pool.length-1,poolIdx+1),true);
+  document.getElementById('dAnother').onclick=()=>{
+    const v=+sl.value;
+    const near=pool.map((it,i)=>({i,dd:Math.abs(it.difficulty-v)})).filter(x=>x.dd<=0.75).map(x=>x.i);
+    if(near.length<2) return serve(nearestIdx(v),false);
+    const at=near.indexOf(poolIdx);
+    serve(near[(at+1+near.length)%near.length],false);
+  };
+  document.getElementById('dTutorial').onchange=e=>{ tutorial=e.target.checked; };
+  document.querySelectorAll('#diffBody .chip').forEach(ch=>ch.onclick=()=>{
+    bandFilter=ch.dataset.band;
+    document.querySelectorAll('#diffBody .chip').forEach(c=>c.classList.toggle('on',c===ch));
+    rebuildPool();
+    serve(nearestIdx(+sl.value),false);
+  });
+  document.querySelectorAll('#spec .bin').forEach(el=>el.onclick=()=>{
+    if(el.classList.contains('empty')) return;
+    sl.value=String(+el.dataset.bin+1.5); renderSliderVal(); serve(nearestIdx(+sl.value),false);
+  });
+
+  /* recorded verdict — persisted next to the comments, exported with them */
+  const c=store[id]||(store[id]={});
+  const rng=c.diffRange||{};
+  const rMin=document.getElementById('rMin'), rMax=document.getElementById('rMax');
+  if(rng.min!=null) rMin.value=rng.min;
+  if(rng.max!=null) rMax.value=rng.max;
+  const saveRange=()=>{
+    let mn=rMin.value===''?null:+rMin.value, mx=rMax.value===''?null:+rMax.value;
+    if(mn!=null&&mx!=null&&mn>mx){ [mn,mx]=[mx,mn]; rMin.value=mn; rMax.value=mx; }  // keep it a range
+    if(mn==null&&mx==null) delete c.diffRange; else c.diffRange={min:mn,max:mx};
+    saveStore();
+    const n=document.getElementById('rNote');
+    if(n){ n.textContent='saved'; clearTimeout(n._t); n._t=setTimeout(()=>n.textContent='',900); }
+  };
+  rMin.addEventListener('input',saveRange);
+  rMax.addEventListener('input',saveRange);
+  document.getElementById('rFromMin').onclick=()=>{ rMin.value=(+sl.value).toFixed(1); saveRange(); };
+  document.getElementById('rFromMax').onclick=()=>{ rMax.value=(+sl.value).toFixed(1); saveRange(); };
+  document.getElementById('rClear').onclick=()=>{ rMin.value=''; rMax.value=''; saveRange(); };
+
+  serve(nearestIdx(+sl.value),false);              // open at the median rung
+}
+
 function card(title, bodyHtml, collapsed){
   return `<section class="card ${collapsed?'collapsed':''}"><h3>${title}<span class="tw">${collapsed?'show':'hide'}</span></h3><div class="body">${bodyHtml}</div></section>`;
 }
@@ -201,6 +467,7 @@ function select(id){
     </div>
     <div class="grid">
       <div>${demoHtml}
+        ${d.demo?diffPanelShell():''}
         ${card('Metrics tracked &amp; how they are calculated', metricsBody, false)}
       </div>
       <div>
@@ -216,8 +483,10 @@ function select(id){
     const s=h.parentElement; s.classList.toggle('collapsed');
     h.querySelector('.tw').textContent = s.classList.contains('collapsed')?'show':'hide';
   });
+  frame = main.querySelector('.demoWrap iframe');
+  frameReady = false;
   const rl = main.querySelector('[data-reload]');
-  if(rl) rl.onclick=()=>{ const f=main.querySelector('iframe'); if(f) f.src=f.src; };
+  if(rl) rl.onclick=()=>{ if(frame){ frameReady=false; frame.src=frame.src; } };  // re-serves on 'ready'
   main.querySelectorAll('textarea[data-cat]').forEach(ta=>{
     ta.addEventListener('input',()=>{
       c[ta.dataset.cat]=ta.value; saveStore();
@@ -228,17 +497,28 @@ function select(id){
       if(li) li.classList.toggle('done', hasComments(activeId));
     });
   });
+
+  if(d.demo) initDifficultyPanel(d);
+}
+
+function hasRange(id){ const c=store[id]; return !!(c&&c.diffRange&&(c.diffRange.min!=null||c.diffRange.max!=null)); }
+function rangeText(id){
+  const r=(store[id]||{}).diffRange||{};
+  if(r.min==null&&r.max==null) return '';
+  return `${r.min==null?'?':r.min}–${r.max==null?'?':r.max} of 1–20`;
 }
 
 function exportReview(){
   const stamp=new Date().toISOString().slice(0,16).replace('T',' ');
-  const withC=DATA.filter(d=>hasComments(d.type_id));
-  let md=`# GT Question-Type Review — comments\n\n_${withC.length} of ${DATA.length} types commented · exported ${stamp}_\n\n`;
+  const withC=DATA.filter(d=>hasComments(d.type_id)||hasRange(d.type_id));
+  let md=`# GT Question-Type Review — comments\n\n_${withC.length} of ${DATA.length} types reviewed · exported ${stamp}_\n\n`;
   let curDom=null;
   withC.forEach(d=>{
     if(d.domain!==curDom){ md+=`\n## Domain: ${d.domain}\n`; curDom=d.domain; }
     const c=store[d.type_id]||{};
     md+=`\n### ${d.type_id} — ${d.name}  (${d.stage})\n`;
+    const rt=rangeText(d.type_id);
+    if(rt) md+=`- **Intended difficulty range:** ${rt}\n`;
     CATS.forEach(cat=>{ const v=(c[cat.key]||'').trim(); if(v) md+=`- **${cat.label.replace(/^\d+ · /,'')}:** ${v}\n`; });
   });
   download('gt-type-review.md', md, 'text/markdown');

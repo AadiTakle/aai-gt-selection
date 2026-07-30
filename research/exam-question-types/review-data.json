@@ -509,6 +509,7 @@
     "stage_label": "Dual - usable in either stage",
     "works_well": "high",
     "age_bands": [
+      "K-1",
       "2-3",
       "4-5",
       "6-8"
@@ -693,7 +694,7 @@
     "engagement_hook": "You are the tile-maker: forging the missing piece attribute-by-attribute and watching the machine light up when your built tile is right feels more agentive than picking from a menu.",
     "tail_precision_rationale": "Because the tile is CONSTRUCTED, M-POLY reads exactly which of the co-acting attribute-rules the child satisfied, and M-RULEID reports the maximum simultaneously-satisfied rules - a per-child relational-complexity ceiling that a single right/wrong bit cannot expose. M-ERRTYPE names the specific attribute-rule missed (a color-progression slip vs a count-arithmetic slip), so a near-miss at high complexity marks latent ability just below the cut. M-PATH (order of attribute settings) plus M-RTFIRST distinguish a child who derives each attribute deliberately from one who flails; guessing is near-impossible because there is no option set to eliminate, making high-difficulty accuracy unusually clean tail evidence.",
     "construct_irrelevant_risks": "Pair color with shape so color-vision differences never decide an item; keep picker buttons large to remove fine-motor load; live preview and undo prevent slip errors; ghost-hand plus warm-up neutralizes construction-novelty variance; cap attribute count for young bands so working memory does not confound rule derivation; do not over-reward speed since deliberate construction is expected. Reading policy (D-017): reading is a REQUIRED baseline-literacy capability, not a construct-irrelevant risk to mitigate \u2014 instructions and stimuli are on-screen text only (never audio); K-1 uses very simple, high-frequency words a beginning reader can interpret; a child who cannot read the grade-appropriate text is intentionally screened out (capability-to-benefit from reading-based Timeback).",
-    "demo": "demos/FLU-MATRIXBUILD-01.html",
+    "demo": null,
     "metrics": [
       {
         "id": "M-ACC",
@@ -921,7 +922,7 @@
     "engagement_hook": "Ideas literally blast onto the screen as colorful floating bubbles with a combo meter that rewards switching to a new kind of idea, turning brainstorming into a rapid-fire game.",
     "tail_precision_rationale": "A reasoning cutoff cannot see idea generation at all. Fluency (M-IDEAFLU) gives a continuous ideation axis, but at the gifted tail M-FLEX (category switching) and M-ORIG (statistical infrequency vs norms) are the sharp separators: two children who list ten uses differ enormously if one stays in a single category and the other spans functional, physical, and imaginative frames with rare ideas. M-ELAB adds detail variance, and M-PERSIST (ideas produced in the final third of the window) distinguishes children who keep generating after the obvious ideas are exhausted - a task-commitment x creativity interaction invisible to CogAT.",
     "construct_irrelevant_risks": "Verbal fluency and vocabulary can confound verbal ideation (offer picture/drawing modes to reduce the language load); typing speed can penalize older children (allow voice-to-text or picture modes); automated originality scoring has low reliability and can misjudge child-appropriate ideas (use norm banks and human/expert audit); avoid rewarding sheer speed at the expense of appropriateness. Reading policy (D-017): reading is a REQUIRED baseline-literacy capability, not a construct-irrelevant risk to mitigate \u2014 instructions and stimuli are on-screen text only (never audio); K-1 uses very simple, high-frequency words a beginning reader can interpret; a child who cannot read the grade-appropriate text is intentionally screened out (capability-to-benefit from reading-based Timeback).",
-    "demo": "demos/CX-diverge-01.html",
+    "demo": null,
     "metrics": [
       {
         "id": "M-IDEAFLU",
@@ -988,7 +989,7 @@
     "engagement_hook": "A playful art-studio canvas where the same doodle magically resets so kids can 'see how many things hide in one squiggle' - open-ended drawing feels like free play, not a test.",
     "tail_precision_rationale": "CogAT figural items ask the child to pick a completion, never to produce one, so creative production is unobserved. Here M-IDEAFLU (distinct interpretations of one squiggle) and M-ORIG (how rare each interpretation is) provide a production-based creativity axis; M-ELAB (stroke count, added features) and M-PATH (how radically the base line is transformed vs merely traced) separate children who reinterpret the stimulus from those who add token detail. M-PERSIST (still generating new pictures late in the window) captures the resistance-to-premature-closure that marks gifted figural creativity and is invisible to a multiple-choice cutoff.",
     "construct_irrelevant_risks": "Fine-motor and device-drawing skill can confound figural output (score interpretation count and transformation, not draw quality; allow stamps for very young children); automated originality of drawings is unreliable (retain artifacts for consensual expert rating and flag low scoring reliability); touch vs mouse hardware differences add noise (normalize by device). Reading policy (D-017): reading is a REQUIRED baseline-literacy capability, not a construct-irrelevant risk to mitigate \u2014 instructions and stimuli are on-screen text only (never audio); K-1 uses very simple, high-frequency words a beginning reader can interpret; a child who cannot read the grade-appropriate text is intentionally screened out (capability-to-benefit from reading-based Timeback).",
-    "demo": "demos/CX-figural-01.html",
+    "demo": null,
     "metrics": [
       {
         "id": "M-IDEAFLU",
@@ -1042,7 +1043,6 @@
     "stage_label": "Stage 2 - Learning-rate / effort (-> Timeback-fit)",
     "works_well": "high",
     "age_bands": [
-      "2-3",
       "4-5",
       "6-8"
     ],
@@ -1212,7 +1212,7 @@
     "engagement_hook": "Every solved equality steadies a glowing bridge between two islands, making same-on-both-sides physically satisfying.",
     "tail_precision_rationale": "M-EQREL uses the first substantive choice to distinguish a relational solution from operational total-all or answer-after-equals signatures. M-ERRTYPE preserves compensation, inverse-operation, side-confusion, and near-miss evidence, while M-REV records spontaneous correction before commit without requiring an explanation. M-DIFFREACH marks the most structurally non-canonical equivalence handled and M-LEARNRATE captures transfer as concrete bars fade, sharpening tail placement beyond arithmetic accuracy alone.",
     "construct_irrelevant_risks": "Prior worksheet format can bias children toward operational responding; varied layouts and the wordless relational demo mitigate familiarity without coaching scored answers. Arithmetic fact difficulty must remain below structural difficulty, and bars must not directly reveal an answer option through pixel matching. Use texture plus color, large snap slots, no time bonus, and log accidental swaps separately from conceptual revisions. Reading policy (D-017): reading is a REQUIRED baseline-literacy capability, not a construct-irrelevant risk to mitigate \u2014 instructions and stimuli are on-screen text only (never audio); K-1 uses very simple, high-frequency words a beginning reader can interpret; a child who cannot read the grade-appropriate text is intentionally screened out (capability-to-benefit from reading-based Timeback).",
-    "demo": "demos/QUANT-EQUAL-01.html",
+    "demo": null,
     "metrics": [
       {
         "id": "M-ACC",
@@ -1433,7 +1433,7 @@
     "engagement_hook": "The marker is a tiny jumper that springs to the selected landing spot, with longer and stranger number landscapes unlocking as accuracy grows.",
     "tail_precision_rationale": "M-PAE turns every release into a continuous error measure and supports a placement curve, preserving fine differences when broad correctness bands would ceiling. M-CONSIST across matched values and representation forms distinguishes stable magnitude knowledge from lucky placements. M-DIFFREACH records the sparsest anchors, widest range, and most complex rational representation accurately placed, while M-LEARNRATE tracks improvement as scaffolding fades; M-ACC supplies tolerance-banded evidence for adaptive routing.",
     "construct_irrelevant_risks": "Drag precision, screen size, and parallax can inflate placement error; use a thick line, large thumb, tap-nudge controls, device calibration, and error normalized by range. Endpoint labels and fraction symbols cannot be prerequisites for young children. Keep spatial length fixed across comparison items when needed, avoid decorative landmarks that cue answers, and do not reward raw speed. Reading policy (D-017): reading is a REQUIRED baseline-literacy capability, not a construct-irrelevant risk to mitigate \u2014 instructions and stimuli are on-screen text only (never audio); K-1 uses very simple, high-frequency words a beginning reader can interpret; a child who cannot read the grade-appropriate text is intentionally screened out (capability-to-benefit from reading-based Timeback).",
-    "demo": "demos/QUANT-NUMLINE-01.html",
+    "demo": null,
     "metrics": [
       {
         "id": "M-ACC",
@@ -1655,7 +1655,7 @@
     "engagement_hook": "The constructed value becomes a tower: smart swaps make it shoot upward toward the mountain or shrink neatly into the burrow while rule badges click into place.",
     "tail_precision_rationale": "M-PATH and M-PLANFUL reveal whether the child prioritizes the most valuable slot, satisfies a restrictive units condition first, and avoids redundant permutations. M-EFF compares the swap sequence with an optimal construction path, while M-ERRTYPE distinguishes reversed place value, local-greedy, parity, factor, and missed-constraint solutions. M-DIFFREACH records maximum slots and simultaneous properties coordinated, and M-LEARNRATE captures rapid strategy improvement as new pictorial constraints are introduced.",
     "construct_irrelevant_risks": "Digit recognition and learned divisibility rules can become a knowledge barrier, so early items use quantity overlays and every property icon is self-taught through concrete pairs or equal groups. Do not use reading, color-only constraints, or tiny drag slots. Ensure animation does not expose the optimum before submission, keep search spaces age-appropriate, and treat repeated exploratory swaps as process evidence rather than a motor penalty. Reading policy (D-017): reading is a REQUIRED baseline-literacy capability, not a construct-irrelevant risk to mitigate \u2014 instructions and stimuli are on-screen text only (never audio); K-1 uses very simple, high-frequency words a beginning reader can interpret; a child who cannot read the grade-appropriate text is intentionally screened out (capability-to-benefit from reading-based Timeback).",
-    "demo": "demos/QUANT-BUILD-01.html",
+    "demo": null,
     "metrics": [
       {
         "id": "M-ACC",
@@ -1895,7 +1895,7 @@
     "engagement_hook": "Completing the mobile triggers a cascading level-up from the lowest arm to the top, ending in a gentle kinetic sculpture animation.",
     "tail_precision_rationale": "M-POLY and M-PROG score how many lower and upper constraints are satisfied over time, so a nearly solved four-relation mobile contributes more information than a binary miss. M-PATH and M-PLANFUL reveal whether the child solves from constrained leaves upward, substitutes systematically, or guesses clusters. M-DIFFREACH marks maximum branch depth and linked-relation count, while M-LEARNRATE captures acceleration across novel mobile structures; this process-rich evidence sharpens decisions among high performers who all solve simpler balances.",
     "construct_irrelevant_risks": "Motion can distract or induce visual tracking demands, so mobiles settle immediately during reasoning and animate only on feedback. Shape size, branch length, and color must not leak weight unless explicitly controlled; color is never the sole identity cue. Keep premises visible, offer tap placement for motor accessibility, and prevent scored trial-and-error by withholding exact balance feedback until submit. Reading policy (D-017): reading is a REQUIRED baseline-literacy capability, not a construct-irrelevant risk to mitigate \u2014 instructions and stimuli are on-screen text only (never audio); K-1 uses very simple, high-frequency words a beginning reader can interpret; a child who cannot read the grade-appropriate text is intentionally screened out (capability-to-benefit from reading-based Timeback).",
-    "demo": "demos/QUANT-MOBILE-01.html",
+    "demo": null,
     "metrics": [
       {
         "id": "M-ACC",
@@ -2054,7 +2054,7 @@
     "engagement_hook": "A quick catch-the-stars memory flash with lights and a satisfying reveal keeps children leaning in, and rising loads feel like harder arcade waves.",
     "tail_precision_rationale": "M-DPRIME separates true filtering sensitivity from guessing (a cautious child and a guesser are not scored alike), and M-FALSEALARM specifically counts distractor intrusions, the purest filtering-failure signal. M-UPDATECOST (accuracy decrement per added distractor) and M-SPAN (staircased target load at criterion) give a continuous capacity estimate that keeps separating high performers who all succeed at low load.",
     "construct_irrelevant_risks": "Targets are cued by colour plus a shape/pattern for colour-vision fairness; large tap cells remove motor demands; timing is tuned per band so processing speed does not contaminate the capacity estimate; ghost-hand plus warm-up controls novelty; M-DPRIME corrects for guessing so response bias does not inflate scores. Reading policy (D-017): reading is a REQUIRED baseline-literacy capability, not a construct-irrelevant risk to mitigate \u2014 instructions and stimuli are on-screen text only (never audio); K-1 uses very simple, high-frequency words a beginning reader can interpret; a child who cannot read the grade-appropriate text is intentionally screened out (capability-to-benefit from reading-based Timeback).",
-    "demo": "demos/GB-FILTER-01.html",
+    "demo": null,
     "metrics": [
       {
         "id": "M-ACC",
@@ -3027,7 +3027,7 @@
     "engagement_hook": "A guard-the-gate game of surprise checkpoints: you never know when the gate will slam shut and quiz you, so staying ready and nailing each spot-check feels like beating a memory ambush.",
     "tail_precision_rationale": "Repeated within-stream probing yields signal a single terminal recall cannot: the accuracy-by-k slope across many probes (M-UPDATECOST) is a direct updating-efficiency index, partial-credit position scoring (M-POLY) builds a recency gradient that localises the accessible window, intrusion-vs-novel error typing (M-ERRTYPE) exposes proactive-interference control, and response-time variability and lapses across probes (M-RTVAR, M-LAPSE) capture worst-performance consistency; drift and engagement (M-DRIFT, M-ENGAGE) gate the many-probe stream so tail decisions rest on engaged, consistent updating rather than speed.",
     "construct_irrelevant_risks": "Attention/ADHD: surprise probes load sustained attention and impulse control, so scores must be read with consistency and M-ENGAGE/M-DRIFT gating, not as raw capacity. Numeracy: the numeric shell needs addition (age-gated). Motor: single taps from a fixed palette, no drag. Familiarity: the close-and-ask rhythm is novel but self-teaches via the ghost-hand and warm-up. Startle: the gate-close should be gentle (no loud or sudden effects) to avoid penalising sensitive children. Reading policy (D-017): reading is a REQUIRED baseline-literacy capability, not a construct-irrelevant risk to mitigate \u2014 instructions and stimuli are on-screen text only (never audio); K-1 uses very simple, high-frequency words a beginning reader can interpret; a child who cannot read the grade-appropriate text is intentionally screened out (capability-to-benefit from reading-based Timeback).",
-    "demo": "demos/WM-gate-01.html",
+    "demo": null,
     "metrics": [
       {
         "id": "M-ACC",
@@ -3108,7 +3108,7 @@
     "engagement_hook": "A spot-the-difference star flash: the sky lights up for a blink and you catch whether a star changed, so holding the whole picture in your mind's eye feels like a superpower.",
     "tail_precision_rationale": "Simultaneous change detection extracts a continuous capacity signal that sequential span and dichotomous accuracy miss: signal-detection sensitivity (M-DPRIME) yields a bias-free visual-capacity K that separates cautious from guessing responders, the staircase set-size threshold (M-SPAN) and highest set size reached (M-DIFFREACH) give an above-grade capacity index, and change-vs-no-change error typing (M-ERRTYPE) with cross-form consistency (M-CONSIST) and lapse rate (M-LAPSE) score stable capacity rather than speed - RT is logged only as process, never credited.",
     "construct_irrelevant_risks": "Colour vision: change detection uses highly distinct hues and offers a shape-change and position-recognition alternate so colour-blind children are not disadvantaged. Attention/ADHD: brief exposures load attention; gate on M-ENGAGE and require consistency before tail calls. Vision/device: exposure duration depends on display refresh, so the demo logs frame time and uses conservative exposures. Motor: single taps on large cells. Familiarity mitigated by the ghost-hand and warm-up. Reading policy (D-017): reading is a REQUIRED baseline-literacy capability, not a construct-irrelevant risk to mitigate \u2014 instructions and stimuli are on-screen text only (never audio); K-1 uses very simple, high-frequency words a beginning reader can interpret; a child who cannot read the grade-appropriate text is intentionally screened out (capability-to-benefit from reading-based Timeback).",
-    "demo": "demos/WM-gridflash-01.html",
+    "demo": null,
     "metrics": [
       {
         "id": "M-ACC",
@@ -3622,7 +3622,7 @@
     "engagement_hook": "Snapping and spinning road tiles to forge a path and then watching the little courier stroll it is a cosy building hook, with fewest-tiles stars for tidy routes.",
     "tail_precision_rationale": "M-EFF (tiles and rotations versus the minimal connecting path) resists ceiling on dense boards; M-REV (re-rotations and re-placements) separates children who mentally pre-rotate each tile from guess-and-turn solvers. M-RTFIRST captures the planning pause and M-PROG turns one board into a coins-collected trajectory.",
     "construct_irrelevant_risks": "Tap-then-rotate placement removes precise-drag load; tiles are shape and pattern distinct; the full board is visible so it taxes manipulation and planning not memory; ghost-hand plus warm-up controls novelty; tile efficiency not speed is scored. Reading policy (D-017): reading is a REQUIRED baseline-literacy capability, not a construct-irrelevant risk to mitigate \u2014 instructions and stimuli are on-screen text only (never audio); K-1 uses very simple, high-frequency words a beginning reader can interpret; a child who cannot read the grade-appropriate text is intentionally screened out (capability-to-benefit from reading-based Timeback).",
-    "demo": "demos/GB-PATHFORGE-01.html",
+    "demo": null,
     "metrics": [
       {
         "id": "M-ACC",
@@ -3794,7 +3794,7 @@
     "engagement_hook": "The click of a rotated piece snapping perfectly into a silhouette is deeply satisfying, and fewest-turns stars reward elegant fits.",
     "tail_precision_rationale": "M-EFF (rotations and placements versus the minimal solution) is a fine continuous discriminator on hard silhouettes; M-REV separates confident pre-visualised placements from rotate-and-try. M-RTFIRST captures the pre-placement visualisation pause and M-PROG turns one hard fill into a coverage trajectory beyond solved/unsolved.",
     "construct_irrelevant_risks": "Tap-rotate-then-place removes precise drag and rotate motor load; pieces are shape distinct; the outline is fully visible so it taxes manipulation not memory; ghost-hand plus warm-up controls novelty; move efficiency not speed is scored. Reading policy (D-017): reading is a REQUIRED baseline-literacy capability, not a construct-irrelevant risk to mitigate \u2014 instructions and stimuli are on-screen text only (never audio); K-1 uses very simple, high-frequency words a beginning reader can interpret; a child who cannot read the grade-appropriate text is intentionally screened out (capability-to-benefit from reading-based Timeback).",
-    "demo": "demos/GB-SHAPEFIT-01.html",
+    "demo": null,
     "metrics": [
       {
         "id": "M-ACC",
@@ -4174,7 +4174,7 @@
     "engagement_hook": "A train-building game where the word cars only chug away once the sentence is in the right order; longer, fancier sentences pull a longer, cooler train.",
     "tail_precision_rationale": "Word order is scored as graded credit (M-POLY by adjacent-pair correctness / Kendall tau), so one item yields many bits and near-misses (one transposition) score above scrambles. The highest syntactic structure ordered correctly (M-DIFFREACH) is an above-grade ceiling index, efficiency versus the minimum moves (M-EFF) and the drag path (M-PATH) separate planful builders from trial-and-error, and frequency leveling (M-VOCABLVL) guarantees the signal is syntax, not rare-word knowledge, right at the cut.",
     "construct_irrelevant_risks": "Sentence arrangement is language- and exposure-loaded (mitigated by picture-plus-audio cars for young bands, frequency leveling so syntax not rare vocabulary carries difficulty via M-VOCABLVL, and ELL-neutral frames); reading load only in the older printed mode (audio labels and read-aloud); drag motor demand (large snap slots, free re-dragging so fumbles are not scored as errors); working-memory load of holding the target sentence is kept modest by band-limited length. Reading policy (D-017): reading is a REQUIRED baseline-literacy capability, not a construct-irrelevant risk to mitigate \u2014 instructions and stimuli are on-screen text only (never audio); K-1 uses very simple, high-frequency words a beginning reader can interpret; a child who cannot read the grade-appropriate text is intentionally screened out (capability-to-benefit from reading-based Timeback).",
-    "demo": "demos/VER-WORDTRAIN-01.html",
+    "demo": null,
     "metrics": [
       {
         "id": "M-ACC",
@@ -4311,7 +4311,7 @@
     "engagement_hook": "A friendly debate duel where strong evidence powers up your side and rebuttals knock down the rival makes reasoning feel like a battle, driving effortful evaluation.",
     "tail_precision_rationale": "M-POLY (graded claim-evidence link quality) extracts multiple bits of tail information from one rich item, and M-LURETYPE reveals whether errors are pulled by thematic-associate or weak-but-related lures, grading discrimination of evidential relevance. M-PATH preserves the attach/rebut sequence for evidence-model scoring of argument construction, while M-RTFIRST and M-REV separate deliberate evidence evaluation from surface matching.",
     "construct_irrelevant_risks": "Picture-plus-audio cards keep reading load low; tap-to-attach removes typing; cards are typed by evidential role so scoring reflects link quality not opinion agreement; ghost-hand plus warm-up controls novelty; topics are kept culturally neutral and non-controversial so background knowledge does not confound the reasoning score. Reading policy (D-017): reading is a REQUIRED baseline-literacy capability, not a construct-irrelevant risk to mitigate \u2014 instructions and stimuli are on-screen text only (never audio); K-1 uses very simple, high-frequency words a beginning reader can interpret; a child who cannot read the grade-appropriate text is intentionally screened out (capability-to-benefit from reading-based Timeback).",
-    "demo": "demos/GB-DEBATE-01.html",
+    "demo": null,
     "metrics": [
       {
         "id": "M-ACC",
@@ -4464,7 +4464,7 @@
     "engagement_hook": "A build-along craft game where following the spoken plan makes a little scene assemble itself piece by piece; finishing a long plan reveals a completed picture like following a treasure map.",
     "tail_precision_rationale": "Construction turns one direction into a graded, multi-step item: partial credit (M-POLY) for steps satisfied plus the adaptive oral-direction step/condition span (M-ORALSPAN, M-DIFFREACH) drive each child to the maximum ordered spoken constraints they can hold and execute (a sharp tail separator because gifted children carry 4-5 embedded steps). The action log (M-PATH) shows whether they build systematically in the described order, and re-placements (M-REV) separate decisive builders from trial-and-error at the cut.",
     "construct_irrelevant_risks": "Loads verbal working memory alongside comprehension (one replay caps memory-only failure; reported with WM and separated from motor via M-REV/M-PATH); drag precision is a motor demand (large snap targets, place-not-type); audio clarity (caption fallback plus replay in the demo); language background (dialect-neutral, frequency-leveled direction wording); construction adds a light visual-planning load kept modest by capped piece counts per band. Reading policy (D-017): reading is a REQUIRED baseline-literacy capability, not a construct-irrelevant risk to mitigate \u2014 instructions and stimuli are on-screen text only (never audio); K-1 uses very simple, high-frequency words a beginning reader can interpret; a child who cannot read the grade-appropriate text is intentionally screened out (capability-to-benefit from reading-based Timeback).",
-    "demo": "demos/VER-BUILDIT-01.html",
+    "demo": null,
     "metrics": [
       {
         "id": "M-ACC",
@@ -4750,7 +4750,7 @@
     "engagement_hook": "A mysterious scene that begs 'what is going on here?', where every question the child asks lights up the picture and reveals a tiny hint - curiosity is immediately rewarded with a peek behind the mystery.",
     "tail_precision_rationale": "CogAT observes what a child does when told exactly what to do; it never observes the questions a child asks when facing the unknown. M-QUERY (count and depth of questions) is a direct epistemic-curiosity axis, and grading question depth - causal/hypothetical over labeling - separates children who probe mechanism from those who merely name. The guess rounds add M-IDEAFLU, M-FLEX (variety of causal and consequential explanations), and M-ORIG (rare-but-plausible guesses) so the same activity yields both a curiosity and a divergent-thinking signal. At the gifted tail this distinguishes an able-but-incurious child from an able-and-inquisitive one, and it does so through question generation rather than the physical exploration and uncertainty-choice mechanic of the Mystery Box. M-ENGAGE confirms questioning reflects interest, not idle tapping.",
     "construct_irrelevant_risks": "Question quantity confounds with verbal ability and question syntax (use starter-card scaffolds and voicing; score depth, not word count); shy or reticent children may under-ask even when curious (corroborate with the Mystery Box behavioral signals); scene-content familiarity shapes what feels puzzling (rotate novel scenes); depth rating of questions can be subjective (use a clear causal-vs-labeling rubric and audit). Reading policy (D-017): reading is a REQUIRED baseline-literacy capability, not a construct-irrelevant risk to mitigate \u2014 instructions and stimuli are on-screen text only (never audio); K-1 uses very simple, high-frequency words a beginning reader can interpret; a child who cannot read the grade-appropriate text is intentionally screened out (capability-to-benefit from reading-based Timeback).",
-    "demo": "demos/CX-curious-02.html",
+    "demo": null,
     "metrics": [
       {
         "id": "M-QUERY",
@@ -4809,7 +4809,7 @@
     "engagement_hook": "A choose-your-own-adventure story where the child's tap changes what happens next, making social judgment feel like steering a cartoon rather than answering a quiz.",
     "tail_precision_rationale": "Reasoning cutoffs ignore social/practical judgment entirely. Keying scenarios to an expert-consensus scale yields a graded score (M-POLY) rather than dichotomous right/wrong, extracting tail information from each rich item. M-PATH and M-EXPLORE (which options and branches the child inspects before committing) plus decision time (M-RT) reveal deliberate weighing versus impulsive choosing, and M-CONF calibration down-weights lucky picks. Together these add a judgment axis that separates equally 'able' children by the quality and deliberateness of their real-world decisions.",
     "construct_irrelevant_risks": "Scenario choices are semi-self-report and thus fakeable/social-desirability-prone (children may pick the 'nice' answer they think adults want) - mitigate with behavioral timing, forced trade-offs between two goods, and consequence branching; cultural norms shape 'best' responses (localize consensus keys and audit for bias); reading load must stay low via voicing; expert-consensus keys can encode rater bias (use diverse expert panels). Reading policy (D-017): reading is a REQUIRED baseline-literacy capability, not a construct-irrelevant risk to mitigate \u2014 instructions and stimuli are on-screen text only (never audio); K-1 uses very simple, high-frequency words a beginning reader can interpret; a child who cannot read the grade-appropriate text is intentionally screened out (capability-to-benefit from reading-based Timeback).",
-    "demo": "demos/CX-sjt-01.html",
+    "demo": null,
     "metrics": [
       {
         "id": "M-ACC",
