@@ -71,10 +71,6 @@
   #replay{width:50px;height:50px;background:#f8e8de;color:#004f71;font-size:22px}
   #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:60;opacity:0;transition:transform .55s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
   #ghost.show{opacity:.92}
-  #diffmeter{width:100%;display:flex;align-items:center;gap:8px;font-size:11px;color:#4a6470}
-  #diffbar{flex:1;height:8px;background:#fcf4ef;border-radius:6px;overflow:hidden}
-  #diffbar i{display:block;height:100%;background:linear-gradient(90deg,#004f71,#ebba9b);width:0%;transition:.3s}
-  #diffval{min-width:96px;text-align:right;font-weight:700;color:#6f4526}
   #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
   #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#ffffff;background:#002a3a;text-transform:uppercase}
   #chan{padding:6px 14px;font-size:11px;color:var(--tel-dim);border-bottom:1px solid #33505c}
@@ -115,7 +111,6 @@
     <div id="stagecard">
       <div id="sentBand" class="band"><div id="sentText"></div></div>
       <div id="candGrid"></div>
-      <div id="diffmeter"><span>Easy</span><div id="diffbar"><i id="diffbarfill"></i></div><span>Hard</span><span id="diffval">level &mdash; / 20</span></div>
       <div id="controls">
         <button class="rd" id="replay" title="replay how-to">&#8635;</button>
         <button class="rd" id="go" title="submit">&#10003;</button>
@@ -191,8 +186,6 @@ function setItem(served){
   $('#sentText').innerHTML=frameHTML(c.sentenceFrame,null);
   $('#candGrid').innerHTML=options.map((o,i)=>`<div class="cand" data-i="${i}"><span class="hk">${i+1}</span><span class="word">${esc(o.token.text)}</span></div>`).join('');
   const d=difficultyOf(served);
-  $('#diffbarfill').style.width=Math.max(0,Math.min(100,d/20*100))+'%';
-  $('#diffval').textContent='level '+(Math.round(d*10)/10)+' / 20';
   $('#go').classList.remove('ready');
   setCue('answer');
   setStatus('neutral','Read the whole sentence, tap the best word, then press the check.');
