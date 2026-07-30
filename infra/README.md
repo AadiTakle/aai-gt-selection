@@ -27,9 +27,10 @@ These are tracked under **D-012** and are **out of scope** for the current MVP U
 1. **Relax the fail-closed env guards.** *(Partially addressed — hosted mode
    added; see below.)* `apps/web/src/lib/env.ts` rejects any non-loopback
    Supabase URL by default. An explicit **`GT_DEPLOY_MODE=hosted`** now opts into
-   an https cloud Supabase target (and widens CSP `connect-src` to it), while the
-   default and the local synthetic adapter path stay fail-closed and service-role
-   keys remain forbidden in runtime. Enabling hosted mode against a real project
+   an https cloud Supabase target, while the default and the local synthetic
+   adapter path stay fail-closed and service-role keys remain forbidden in
+   runtime. (CSP `connect-src` names the configured Supabase origin in both
+   shapes and is not part of this opt-in.) Enabling hosted mode against a real project
    is still a **D-012-reviewed decision** (logged in the decision log as an
    interim Supabase-Cloud divergence) — see `docs/DEPLOYMENT_RUNBOOK.md`.
 2. **Rebind data access** from Supabase (`createSupabaseServerClient` + the RPC

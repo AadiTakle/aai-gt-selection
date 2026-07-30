@@ -17,10 +17,15 @@ as the interim data/auth backend.
 
 Setting `GT_DEPLOY_MODE=hosted` in the runtime environment:
 - allows an **https** `NEXT_PUBLIC_SUPABASE_URL` (cloud) instead of loopback;
-- widens the CSP `connect-src` to the Supabase origin (auth + RPC + realtime);
 - leaves every other guard intact — **service-role keys are still forbidden**
   in the app runtime (`assertNoElevatedRuntimeKeys`), and the local synthetic
   adapter path still refuses anything but loopback:65421.
+
+CSP `connect-src` is **not** one of the things hosted mode changes. The browser
+talks to Supabase directly, so `connect-src` names the configured Supabase origin
+in both shapes — the cloud host in hosted mode, the loopback host in local
+development. Gating it on hosted mode is what broke local sign-in; see
+`apps/web/src/lib/csp.ts`.
 
 Unset / any other value = the current local synthetic behavior (fail-closed).
 
