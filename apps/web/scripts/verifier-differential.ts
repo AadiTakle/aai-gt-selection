@@ -183,6 +183,32 @@ const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {
       },
     };
   },
+  'FLU-DEDUCE-01': (item) => {
+    // Built from `answer.distractorRationales[key].cluesViolated`, so the trace is independent
+    // of the content-only derivation both verifiers run — a real cross-check, not a tautology.
+    const rationales = asRecord(item.answer.distractorRationales) ?? {};
+    const violatedBy = new Map<string, Set<string>>();
+    for (const [key, entry] of Object.entries(rationales)) {
+      const clues = list((asRecord(entry) ?? {}).cluesViolated).map(String);
+      violatedBy.set(key, new Set(clues));
+    }
+    const seen = new Set<string>();
+    const steps = list(item.content.clues).map((raw) => {
+      const clueId = String((asRecord(raw) ?? {}).clueId ?? '');
+      for (const [key, clues] of violatedBy) if (clues.has(clueId)) seen.add(key);
+      return { clueId, eliminated: [...seen] };
+    });
+    const last = steps.at(-1);
+    return {
+      correct: { steps },
+      // One suspect left standing at the end: the commonest real near miss.
+      wrong: {
+        steps: steps.map((step) =>
+          step === last ? { ...step, eliminated: step.eliminated.slice(0, -1) } : step,
+        ),
+      },
+    };
+  },
   'VER-EVIDENCE-01': (item) => {
     const [answerKey = '', evidenceKey = ''] = String(item.answer.correctKey).split('+');
     return {
@@ -267,23 +293,54 @@ const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {
     // `answer.correctKey` is the target steps per channel, "w:2,7|s:3". The verifier
     // re-derives them from the stream instead, so driving the response off the key keeps the
     // two sides independent.
-    const streamLength =
-      typeof (item.content as { streamLength?: unknown }).streamLength === 'number'
-        ? (item.content as { streamLength: number }).streamLength
-        : 0;
-    const pops: { channel: string; stepIndex: number }[] = [];
+    const content = item.content as {
+      streamLength?: unknown;
+      n?: unknown;
+      channels?: unknown;
+    };
+    const streamLength = typeof content.streamLength === 'number' ? content.streamLength : 0;
+    const n = typeof content.n === 'number' ? content.n : 0;
+    const targetSteps = new Map<string, Set<number>>();
     for (const part of String(item.answer.correctKey ?? '').split('|')) {
       const [channel, steps] = part.split(':');
-      if (!channel || !steps) continue;
-      for (const step of steps.split(',')) {
+      if (!channel) continue;
+      const set = targetSteps.get(channel) ?? new Set<number>();
+      for (const step of (steps ?? '').split(',')) {
         const stepIndex = Number(step);
-        if (Number.isInteger(stepIndex)) pops.push({ channel, stepIndex });
+        if (Number.isInteger(stepIndex)) set.add(stepIndex);
+      }
+      targetSteps.set(channel, set);
+    }
+    // One seen/new answer per lane per decidable bubble, in presentation order, plus the
+    // "seen" steps reduced to the `pops` shape the plpgsql port still reads.
+    const judgements: { channel: string; stepIndex: number; choice: 'seen' | 'new' }[] = [];
+    for (const entry of list(content.channels)) {
+      const channel = (asRecord(entry) ?? {}).id;
+      if (typeof channel !== 'string') continue;
+      const targets = targetSteps.get(channel) ?? new Set<number>();
+      for (let stepIndex = n; stepIndex < streamLength; stepIndex++) {
+        judgements.push({ channel, stepIndex, choice: targets.has(stepIndex) ? 'seen' : 'new' });
       }
     }
+    const pops = (
+      answers: { channel: string; stepIndex: number; choice: 'seen' | 'new' }[],
+    ): { channel: string; stepIndex: number }[] =>
+      answers
+        .filter((j) => j.choice === 'seen')
+        .map((j) => ({ channel: j.channel, stepIndex: j.stepIndex }));
+    // One target called "new": the hit rate falls, the false-alarm rate does not.
+    const missedIndex = judgements.findIndex((j) => j.choice === 'seen');
+    const missed = judgements.map((j, i) =>
+      i === missedIndex ? { ...j, choice: 'new' as const } : j,
+    );
     return {
-      correct: { pops, stepsShown: streamLength, completed: true },
-      // One target missed: the hit rate falls, the false-alarm rate does not.
-      wrong: { pops: pops.slice(1), stepsShown: streamLength, completed: true },
+      correct: {
+        judgements,
+        pops: pops(judgements),
+        stepsShown: streamLength,
+        completed: true,
+      },
+      wrong: { judgements: missed, pops: pops(missed), stepsShown: streamLength, completed: true },
     };
   },
   'CX-check-01': (item) => {
