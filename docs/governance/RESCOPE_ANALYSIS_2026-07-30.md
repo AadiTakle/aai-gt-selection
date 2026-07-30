@@ -365,7 +365,8 @@ is cleaner, for three reasons — the first of which is close to decisive.
 
 **6.1 High-leverage would force a renumber, and a renumber orphans citations.**
 `H1`–`H10` are occupied. Moving `R2` into the High-leverage tier means either
-renaming it `H11`, which orphans every existing `R2` citation across the
+renaming it `H11`, <!-- id-audit:ignore-line: names the ID this change deliberately did NOT create -->
+which orphans every existing `R2` citation across the
 repository, or leaving a heading that reads `R2` inside a section titled
 "High-leverage requirements", which breaks the convention that `R` means
 required and would confuse every future reader. Orphaning ratified IDs is
