@@ -48,46 +48,27 @@ recommendation — a tension becomes an insight only once the owner has interrog
 - The Atlanta special investigation treated a three-standard-deviation erasure excess as almost statistically impossible without an external cause, while Caveon in the same record argued many flagged schools were on the list for reasons unrelated to cheating, including scanner misalignment corrections.
 - Georgia's erasure-analysis protocol and the D.C. state superintendent's office both stated erasure statistics alone explain nothing and require follow-up, while the D.C. district skipped classroom investigation after the 2008 flags and a Tampa charter school had roughly 100 tests invalidated after interviews with only a few teachers.
 
-## 7. Exposure control — what it costs, and whether pool size helps
-
-- Karagianni & Tsaousis and Leroux et al. find exposure control costs essentially nothing in precision, while Boztunç Öztürk & Doğan measure a 26% RMSE increase from the same named algorithms.
-- Sympson–Hetter is presented across the literature as the workhorse conditional method, while Yi, Zhang & Chang found maximum-information-plus-Sympson–Hetter to be the most vulnerable design tested against organised item theft.
-- Wainer holds that pool size cannot buy security because the relationship is exponential, while Chang & Zhang's thief-count arithmetic and Stocking's pool-sizing guidance both treat larger and multiplied pools as a workable lever.
-- Yi, Zhang & Chang recommend a-stratification as the better security choice, while Davis's polytomous dissertation study reports it "turned in surprisingly poor performances across all variables."
-- van der Linden & Glas offer drift-based leak detection as the operational safeguard, while Zimmermann, Klusmann & Hampe note the equating anchor must itself be uncompromised and that sub-5% cheating groups escape detection.
-
-## 8. Item generation and figural item equivalence
-
-- Weak-theory automatic-item-generation proponents hold that calibrating item models plus subject-matter-expert review suffices for high-stakes use, while strong-theory proponents and Sommer & Arendasy require explanatory IRT validation of radicals.
-- Item-model generation is promoted as reducing exposure risk, while Sommer & Arendasy argue item models increase organised-theft exposure because one leaked model compromises every instance.
-- The generation-as-security argument assumes generated isomorphs are exchangeable, while Zorowitz, Chierchia, Blakemore & Daw find 35.1% of clone-level difficulty variance unexplained and declare them non-exchangeable.
-- Zorowitz et al. report a 19.9% accuracy reduction from distractor type alone on the same matrix bank, while Chierchia et al.'s earlier study of that bank reported otherwise.
-- Isomorphic alternate forms are proposed as the mechanism for secure rotation, while Arendasy & Sommer find retest gains on surface-feature-only alternate forms as large as on identical forms.
-- Matzen et al. describe Raven-like generation software as producing effectively unlimited items, while Matzen et al.'s own norming report and Harris, McMillan, Listyg, Matzen & Carter note substantial manual distractor curation was required.
-- Foster states there is no research supporting the belief that harder-to-verbalise or higher-order items resist theft, and the International Test Commission notes a digital recorder can capture an entire session regardless of modality, while the common intuition holds figural and visual items to be intrinsically safer than verbal ones.
-- Freund & Holling report algorithmically generated figural matrix forms showed item-difficulty non-invariance across time and behaved little differently from identical forms, while strict-construction-rationale generation is claimed to deliver genuinely parallel figural forms.
-
-## 9. Demographic error — what was measured, on what task
+## 7. Demographic error — what was measured, on what task
 
 - NIST (Grother, Ngan & Hanaoka) explicitly refuses to attribute measured recognition differentials to skin tone, while the study that did measure by skin tone — Buolamwini & Gebru — measured gender classification rather than detection or verification.
 - Proctorio's response distinguishes face detection from identity recognition to answer the privacy objection, while Yoder-Himes et al. measured the demographic differential in face *detection* output specifically.
 - Brown / CDT and the National Disabled Law Students Association articulate a well-developed disability flagging mechanism, while no located study measures flag rates against disability status the way Yoder-Himes et al. measured them against skin tone.
 - Srinivas et al. and NIST find children the group with the worst measured biometric performance and Regulation (EU) 2024/1689, GDPR and COPPA give them the strongest legal protection, while no proctoring-specific evaluation on child examinees was located.
 
-## 10. Law and regulation — what has been decided
+## 8. Law and regulation — what has been decided
 
 - The Italian data protection authority found exam-proctoring facial processing to be Article 9 biometric data processed without a lawful basis, while the Amsterdam court expressly found no Article 9 biometric data was involved in comparable software.
 - The Amsterdam court accepted public-task processing precisely because a public university cannot rely on legitimate interest, while the Italian authority held student consent could not be freely given at all given the controller–student power imbalance.
 - The *Ogletree* court held a room scan an unreasonable Fourth Amendment search and reasoned that students can cheat regardless so the scan is unnecessary, while the test-security literature disputes that same empirical premise.
 - Regulation (EU) 2024/1689 prohibits inferring emotions in education institutions outright while classifying test-behaviour monitoring as merely high-risk, and Proctorio's own characterisation of its internal signals draws the behavioural/affective line for itself.
 
-## 11. Consent, the room, and access
+## 9. Consent and the room
 
 - GDPR Article 8 and COPPA require parental consent, and Kansas and Oklahoma remote-testing manuals require parental setup and device provision, while Viñas-Guasch et al. name the same adult as a source of possible active help.
 - The ATP/ITC guidelines and the Kansas manual specify a private quiet room and 100 Mb connectivity as a security control, while Pew Research Center data show roughly half of the lowest-income US households do not subscribe to home broadband, and the Oklahoma program's stated remedy is to send those students to test in person.
 - The ATP/ITC *Guidelines for Technology-Based Assessment* are the professional guidance most often cited to justify remote proctoring, while they are co-authored by a trade association of the test publishers whose products they govern.
 
-## 12. AI capability, and what institutions did about it
+## 10. AI capability, and what institutions did about it
 
 - ARC Prize's verified 92.5% on ARC-AGI-2 stands against roughly 28% near-chance performance on image-delivered abstract puzzles measured by Khezresmaeilzadeh et al.
 - Khezresmaeilzadeh et al. attribute 55.4% of model failures to perception, while Du, Zou & Cheng find decomposition rather than perception the dominant failure for closed-source models.
@@ -95,11 +76,18 @@ recommendation — a tension becomes an insight only once the owner has interrog
 - Bloemers, Oud & van Dam found figural and analogical items immune to cheating with human help, while Yan et al. and Khezresmaeilzadeh et al. imply a human who describes the item to a model supplies exactly the missing capability.
 - ACCA and LSAC withdrew remote delivery in 2026 on integrity grounds, while Stanford Graduate School of Education survey data show high-school cheating rates unchanged after ChatGPT's release.
 
-## 13. Coaching, adult presence, and remote equivalence
+## 11. Adult presence and remote equivalence
 
-- te Nijenhuis, van Vianen & van der Flier (2007) report no g in score gains, while te Nijenhuis, Voskuijl & Schijve (2001) found practice data unsupportive of that same hypothesis.
-- Bunting & Mooney found three hours of coaching shifted means while preserving rank order, while the standard assumption in selection debate is that coaching corrupts the ranking.
 - Hamner et al., Manning et al. and Ruffini et al. report teleassessment equivalence in clinician-supervised clinical samples, while Moreau et al. report a significant fluid-reasoning discrepancy and Harder et al. report that performance validity was never tested in any included study.
-- Hausknecht et al., Scharfen et al. and Bunting & Mooney locate the dominant inflation channel in coaching, which is legal and unequally distributed by income, while the AI-assistance literature locates it in model help, which is prohibited and currently perception-limited on figural items.
 - Yantz et al., Kehrer et al. and Pearson's facilitator guidance treat adult presence as a validity threat, while Viñas-Guasch et al. and the state remote-testing manuals treat adult presence as a practical necessity for young children testing at home.
 - Walker et al. and Hamner et al. report equivalence for remotely administered children's cognitive testing with an examiner present and supervising, while Steger et al. and Bloemers et al. report substantial score inflation when supervision is absent, and nothing published connects the two bodies of evidence for young children at home.
+
+## 12. Operating cost and the review that does not happen
+
+- A leading provider withdrew AI-only proctoring in 2021 on the grounds that unreviewed flags are worthless, while the automated-only tier continues to be sold across the industry at $3–$10 per exam in 2026. *(ProctorU/Meazure 2021 vs. industry pricing guidance 2026.)*
+- Vendors selling hybrid review report automated flag rates of 15–50 per cent, and no independent measurement of flag rates at scale exists because flag data are not published in any standardised form. *(Integrity Advocate / Proctor360 / Meazure vs. the absence of any independent audit.)*
+- Industry guidance prices automated proctoring as the low-cost option while separately conceding hidden costs of 30–50 per cent, and other sources put downstream review labour at roughly 78 staff hours per 100 exams — a cost absent from every per-exam comparison. *(Industry pricing guidance vs. Meazure operational figures.)*
+- A ratio of one live proctor to eight candidates is asserted in industry material without observational support, yet it determines whether live proctoring is affordable at any volume. *(Industry comparison vs. no primary source.)*
+- The 47-minute-per-session review figure originates with a provider whose business depends on institutions concluding they cannot do that review themselves. *(Meazure operational figure vs. its own commercial interest.)*
+- The stated remedy — two people verifying every flag before it reaches a decision-maker — multiplies the cost of exactly the step the same company’s data showed institutions were already skipping. *(ProctorU replacement model vs. ProctorU’s 11 per cent finding.)*
+- Institutions reviewed 11 and 14 per cent of flagged sessions in two independent measurements, while the hybrid model sold as the fix assumes review approaching 100 per cent. *(ProctorU and University of Iowa audit vs. hybrid vendor positioning.)*
