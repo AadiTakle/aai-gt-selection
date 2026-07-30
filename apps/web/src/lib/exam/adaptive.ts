@@ -124,6 +124,26 @@ export const EXAM_ENGINE_OVERRIDES: Partial<EngineConfig> = {
   hardItemCap: 40,
 };
 
+/**
+ * Per-session engine config: the shared overrides plus a seed unique to this sitting.
+ *
+ * The engine's seed drives every selection draw, so a fixed seed makes every child receive the
+ * same types in the same order. Drawing it per session gives variety between children while
+ * keeping one session perfectly replayable from the seed recorded in its own state.
+ */
+export function examEngineOverrides(seed = randomSessionSeed()): Partial<EngineConfig> {
+  return { ...EXAM_ENGINE_OVERRIDES, seed };
+}
+
+/** A 32-bit seed, from the platform CSPRNG where available. */
+export function randomSessionSeed(): number {
+  const cryptoRef = globalThis.crypto;
+  if (cryptoRef?.getRandomValues) {
+    return cryptoRef.getRandomValues(new Uint32Array(1))[0] as number;
+  }
+  return Math.floor(Math.random() * 0x100000000) >>> 0;
+}
+
 /** Derive the demo URL for a served item (renderers live under public/exam-demos). */
 export function demoPathFor(typeCode: string, telemetry = false): string {
   // `?telemetry=1` un-hides the demo's researcher panel (D-028). Only ever passed in debug mode:

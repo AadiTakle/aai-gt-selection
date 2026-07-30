@@ -177,11 +177,26 @@ export const CORE_METRICS: CoreMetricSpec[] = [
  * decides between comparably targeted items but cannot buy the 2-3 point targeting error that used
  * to bias the estimate wherever the band's item supply ran out (D-025). Anything from 0 to 1.0
  * holds the same accuracy; 1.5 and wider reopens the bias.
+ *
+ * `typeSelectionTolerance` 1.0 and `itemSelectionTolerance` 0.25 are randomesque exposure control.
+ * Without them selection is a strict argmax whose only variation was a +-0.1 jitter — too small to
+ * outweigh a metric weight (1 or 2) or the age bonus (1.5) — so every session served the same types
+ * in the same order. 1.0 lets a type trade one tracked-metric point for variety but never outbids
+ * an enforced shortfall (weight 2), so coverage still leads.
+ *
+ * The item tolerance MUST stay below `ageBandBias`, or it cancels the age-band preference outright:
+ * a non-matching item carries exactly `ageBandBias` of penalty, so a tolerance of 0.5 makes it
+ * indistinguishable from a matching item at the same difficulty and D-025's content preference
+ * stops applying. 0.25 keeps the band decisive while still admitting a quarter-point of variety.
  */
 export const DEFAULT_CONFIG: EngineConfig = {
   seed: 0xc0ffee,
   difficultyWindow: 3,
   ageBandBias: 0.5,
+  typeSelectionTolerance: 1.0,
+  itemSelectionTolerance: 0.25,
+  typeRecencyPenalty: 1.0,
+  typeRecencyWindow: 3,
   accWindowSize: 10,
   estWindowSize: 10,
   minUpdate: 0.25,

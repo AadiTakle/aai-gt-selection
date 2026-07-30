@@ -24,7 +24,7 @@ import {
 
 import { EXAM_BANK_BY_CODE, EXAM_DOMAINS, domainLabel } from '@/lib/exam/bank';
 import {
-  EXAM_ENGINE_OVERRIDES,
+  examEngineOverrides,
   GESTURE_DEMO_TYPES,
   debugModeServerSnapshot,
   debugModeSnapshot,
@@ -558,7 +558,7 @@ export function ExamRunner({
       const pool = await fetchServedPool();
       if (pool.length === 0) throw new Error('EMPTY_BANK');
       banksRef.current = buildBanks(pool);
-      const state = startState(gradeBand, EXAM_ENGINE_OVERRIDES);
+      const state = startState(gradeBand, examEngineOverrides());
       stateRef.current = state;
       const participantCode = syntheticId('PART');
       sessionRef.current = {
