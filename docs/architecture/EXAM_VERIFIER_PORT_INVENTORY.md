@@ -220,3 +220,38 @@ most coverage per unit of risk.
 Every batch's definition of done is the same: the new `app.exam_verify_*` function, one row in
 `app.exam_verifier_registry` in the batch's own additive migration, and `pnpm exam:verify:diff`
 showing the type move from PENDING to `ok` with `BOTH-OK` greater than zero.
+
+## 10. Reconciliation after the question-type review (2026-07-29)
+
+Everything above predates the reviewer pass in `docs/product/QUESTION_IMPROVEMENT_PLAN.md`, which
+retired 15 wired types and changed the scoring contract of four survivors. Two consequences for the
+port, both measured with `pnpm exam:verify:diff` against a freshly reset local database:
+
+**Retired types are gone from both tiers.** Eight of them had a plpgsql verifier and a registry row;
+`supabase/migrations/20260729190000_exam_verify_retire_types.sql` deletes the rows and drops the
+functions, leaving 22 registry rows. The batches in §9 above still name retired types
+(`CX-curious-02`, `GB-DEBATE-01`, `GB-FILTER-01`, `GB-SHAPEFIT-01`, `WM-gate-01`,
+`WM-gridflash-01`, `FLU-MATRIXBUILD-01`, `GB-PATHFORGE-01`) — those entries are dead and the batches
+shrink accordingly. §9 is left as written because it is the record of how the work was planned.
+
+**Four already-ported verifiers now disagree with the app tier, and this is new.** Before the review
+every disagreement was an *unported* verifier; these four are ported and diverged because the review
+changed the app-tier rule and the plpgsql side was not changed with it:
+
+| type | why the two tiers now disagree |
+|---|---|
+| `GB-WORDFORGE-01` | the app tier now penalises a declared non-word and emits `M-ERRTYPE`; the port emits neither |
+| `GB-WORDLADDER-01` | free-text entry changed how `M-VOCABLVL` is derived |
+| `SPA-PIPES-01` | the app tier now handles multiple endpoints and T-branches; the port assumes one endpoint |
+| `SPA-SCENE-01` | the app tier now models walls and windows; the port has no occlusion model |
+
+Whole run after the review: **1,656 / 1,728 cases agree across all 48 served types** — generic
+verifiers 864/864, ported per-type 744/792. `VER-SEQUENCE-01` is PENDING: the drag-and-drop rewrite
+accepts orderings the database's keyed default rejects.
+
+This matters beyond tidiness, because per D-029 the database verifies each raw answer against the
+key it holds when persistence is enabled. The child's score still comes from the app tier and
+`@gt-selection/exam-scoring` output is stored verbatim, so no child is mis-scored by this — but the
+persisted per-response trace disagrees with it for those four types, which corrupts the trace as a
+research and audit record. Re-porting them is the fix; `SPA-SCENE-01`'s visibility model is
+"awkward" by the §6 rating and should be budgeted as such.

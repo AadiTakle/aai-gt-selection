@@ -33,8 +33,8 @@ values
   ('VER-EVIDENCE-01', 'verbal', 'Evidence Citation', 'VER-EVIDENCE-01.html', array['M-ACC']),
   ('QUANT-MIX-01', 'quantitative', 'Ratio Mix', 'QUANT-MIX-01.html', array['M-ACC']),
   ('SPA-XPLANE-01', 'spatial', 'Cross Section', 'SPA-XPLANE-01.html', array['M-ACC']),
-  ('QUANT-NUMLINE-01', 'quantitative', 'Number Line', 'QUANT-NUMLINE-01.html', array['M-ACC']),
-  ('QUANT-BUILD-01', 'quantitative', 'Build A Number', 'QUANT-BUILD-01.html', array['M-ACC']),
+  ('QUANT-DISPATCH-01', 'quantitative', 'Dispatch Fixture', 'QUANT-DISPATCH-01.html', array['M-ACC']),
+  ('QUANT-DISPATCH-02', 'quantitative', 'Dispatch Fixture', 'QUANT-DISPATCH-02.html', array['M-ACC']),
   ('FLU-DISPATCH-01', 'fluid_reasoning', 'Dispatch Fixture', 'FLU-DISPATCH-01.html', array['M-ACC'])
 on conflict (type_code) do nothing;
 
@@ -147,20 +147,23 @@ values (
 );
 
 -- Three dispatch fixtures: rule -> placement, rule -> constructed value, neither -> keyed.
+-- The type codes are synthetic on purpose. What step 2 resolves on is `scoring.rule`, not the
+-- type, so pinning it to a real code would make the assertion fail the day that type retires
+-- and say nothing about the generic verifier it is actually guarding.
 insert into app.exam_item (
   item_id, type_code, domain, difficulty, age_bands, content, answer_key, scoring, provenance
 )
 values
   (
     '00000000-0000-4000-8000-0000000e0005',
-    'QUANT-NUMLINE-01', 'quantitative', 7.0, array['4-5'], '{}'::jsonb,
+    'QUANT-DISPATCH-01', 'quantitative', 7.0, array['4-5'], '{}'::jsonb,
     jsonb_build_object('correctKey', 'MARK', 'targetRatio', 0.5, 'tolerance', 0.05),
     jsonb_build_object('mode', 'deterministic_key', 'rule', 'placement_tolerance'),
     '{}'::jsonb
   ),
   (
     '00000000-0000-4000-8000-0000000e0006',
-    'QUANT-BUILD-01', 'quantitative', 7.0, array['4-5'], '{}'::jsonb,
+    'QUANT-DISPATCH-02', 'quantitative', 7.0, array['4-5'], '{}'::jsonb,
     jsonb_build_object('correctKey', '42', 'optimalValue', 42),
     jsonb_build_object('mode', 'computed_solver', 'rule', 'constructed_value_equals_optimum'),
     '{}'::jsonb
