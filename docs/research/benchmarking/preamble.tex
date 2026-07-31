@@ -1,0 +1,100 @@
+% Shared preamble. Kept separate so the figure-producing sibling can reuse it.
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[a4paper,margin=2.6cm]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{microtype}
+\usepackage[hidelinks,breaklinks]{hyperref}
+
+\definecolor{boxrule}{HTML}{9AA3AF}
+\definecolor{boxfill}{HTML}{F4F5F7}
+\definecolor{warnfill}{HTML}{FDF3F2}
+\definecolor{warnrule}{HTML}{C0563F}
+
+\setlength{\parskip}{0.45em}
+\setlength{\parindent}{0pt}
+\renewcommand{\arraystretch}{1.18}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Benchmarking the GT screener}
+\fancyhead[R]{\small\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+
+% ---------------------------------------------------------------------------
+% Callout boxes
+% ---------------------------------------------------------------------------
+\newcommand{\boundary}[1]{%
+  \par\medskip\noindent
+  \fcolorbox{warnrule}{warnfill}{%
+    \begin{minipage}{0.965\linewidth}\small\vspace{2pt}
+    \textbf{Claim boundary.}\ #1\vspace{2pt}
+    \end{minipage}}\par\medskip}
+
+\newcommand{\assumption}[1]{%
+  \par\medskip\noindent
+  \fcolorbox{boxrule}{boxfill}{%
+    \begin{minipage}{0.965\linewidth}\small\vspace{2pt}
+    \textbf{Assumption to confirm.}\ #1\vspace{2pt}
+    \end{minipage}}\par\medskip}
+
+\newcommand{\simnote}[1]{%
+  \par\medskip\noindent
+  \fcolorbox{warnrule}{warnfill}{%
+    \begin{minipage}{0.965\linewidth}\small\vspace{2pt}
+    \textbf{Simulated data.}\ #1\vspace{2pt}
+    \end{minipage}}\par\medskip}
+
+\newcommand{\keyfinding}[1]{%
+  \par\medskip\noindent
+  \fcolorbox{boxrule}{boxfill}{%
+    \begin{minipage}{0.965\linewidth}\vspace{2pt}
+    #1\vspace{2pt}
+    \end{minipage}}\par\medskip}
+
+% ---------------------------------------------------------------------------
+% Include a generated table body inside a tabular.
+%
+% LaTeX's \input{} appends \relax after the file, which lands after the final
+% \\ and puts the following \bottomrule's \noalign inside a cell ("Misplaced
+% \noalign").  The TeX primitive does not, so use it for table bodies.
+% ---------------------------------------------------------------------------
+\makeatletter
+\newcommand{\tabinput}[1]{\@@input #1 }
+\makeatother
+
+% ---------------------------------------------------------------------------
+% Figure placeholders. The sibling analysis drops PDFs into figures/ ; until
+% then a labelled frame stands in, so the document always builds.
+% #1 file stem  #2 label  #3 caption
+% ---------------------------------------------------------------------------
+\newcommand{\figslot}[3]{%
+  \begin{figure}[htbp]
+  \centering
+  \IfFileExists{figures/#1.pdf}
+    {\includegraphics[width=0.92\linewidth]{figures/#1}}
+    {\fcolorbox{boxrule}{boxfill}{%
+       \begin{minipage}[c][4.6cm][c]{0.9\linewidth}
+       \centering\small
+       \textbf{[ figure pending ]}\par\smallskip
+       \texttt{figures/#1.pdf}\par\smallskip
+       Produced by the companion synthetic-data analysis.\\
+       The surrounding argument does not depend on its values.
+       \end{minipage}}}
+  \caption{#3}
+  \label{#2}
+  \end{figure}}
+
+% shorthand
+\newcommand{\dR}{\ensuremath{\Delta R^{2}}}
+\newcommand{\Rsq}{\ensuremath{R^{2}}}

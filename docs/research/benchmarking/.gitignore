@@ -1,0 +1,11 @@
+# LaTeX build artefacts. main.pdf and generated/ are committed deliberately:
+# the PDF so it can be read without a TeX installation, generated/ so the
+# computed numbers are visible in review diffs.
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+__pycache__/

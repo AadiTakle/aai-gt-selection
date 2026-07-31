@@ -1,0 +1,926 @@
+\appendix
+
+% ==========================================================================
+\section{Criterion scale: the cost of regressing on a percentile}
+\label{app:uniform}
+
+Conditional growth is published as a percentile rank. Suppose the underlying
+growth construct $G$ is normally distributed and the screener relates to it
+linearly. The published criterion is $P = \Phi(G)$, which is uniform on $(0,1)$.
+Even a perfect monotone relationship between $G$ and $P$ is not a perfect linear
+one, so regressing on $P$ loses information.
+
+The size of the loss is the correlation between a standard normal variate and
+its own probability integral transform. Integrating by parts with $u=\Phi(z)$
+and $dv = z\varphi(z)\,dz$, so $v=-\varphi(z)$:
+
+\[
+\mathbb{E}[Z\,\Phi(Z)] = \Big[-\Phi(z)\varphi(z)\Big]_{-\infty}^{\infty}
+  + \int_{-\infty}^{\infty}\varphi(z)^2\,dz
+  = 0 + \frac{1}{2\pi}\int e^{-z^2}dz = \frac{1}{2\sqrt{\pi}}.
+\]
+
+Since $\mathbb{E}[Z]=0$ this is also $\operatorname{Cov}(Z,\Phi(Z))$, and
+$\operatorname{Var}(\Phi(Z))=1/12$ because $\Phi(Z)$ is uniform. Hence
+
+\[
+\operatorname{corr}(Z,\Phi(Z))
+ = \frac{1/(2\sqrt{\pi})}{1\cdot\sqrt{1/12}}
+ = \frac{\sqrt{12}}{2\sqrt{\pi}} = \sqrt{\tfrac{3}{\pi}} = \UniformAttenR.
+\]
+
+The attainable $\Rsq$ is therefore multiplied by $3/\pi = \UniformAttenRsq$:
+about \UniformAttenLossPct{} of explainable variance is discarded by using the
+percentile directly. Applying $\Phi^{-1}$ to the conditional growth percentile
+before analysis recovers it. The constant is verified numerically against
+quadrature in \texttt{selftest.py}.
+
+% ==========================================================================
+\section{Stage 1: precision and power for a correlation}
+\label{app:stage1}
+
+For a bivariate normal sample, $z=\operatorname{artanh}(r)$ is approximately
+normal with standard error $1/\sqrt{n-3}$. A two-sided test of
+$H_0\!:\rho=0$ at level $\alpha$ with power $1-\beta$ against a true $\rho$
+requires
+
+\[
+n \;=\; \left(\frac{z_{1-\alpha/2}+z_{1-\beta}}{\operatorname{artanh}\rho}\right)^{2} + 3 ,
+\]
+
+and the confidence interval is obtained by transforming
+$\operatorname{artanh}(r) \pm z_{1-\alpha/2}/\sqrt{n-3}$ back through $\tanh$.
+The routine reproduces Cohen's tabled value of $n=85$ for $\rho=0.30$ exactly;
+at $\rho=0.50$ it returns 30 against Cohen's 28, the normal approximation being
+mildly conservative at small $n$, which errs toward larger samples and is
+therefore safe for planning.
+
+\textbf{Why the report emphasises interval width over power.} A significance
+test answers whether validity is distinguishable from zero. No admissions policy
+turns on that. The decision-relevant quantity is the width of the interval,
+because the cut score and the expected decision accuracy both depend on the
+magnitude. This is why Section~\ref{sec:stage1} reports the sample needed for a
+$\pm0.10$ interval (\NciTenAtThirtyFive{} children at $r=0.35$) alongside the
+much smaller sample needed for significance (\NforThirtyFive{}).
+
+\textbf{Multiplicity.} Two primary criteria are tested. The tables report the
+Bonferroni-adjusted requirement ($\alpha=0.025$) as well as the unadjusted one.
+Bonferroni is conservative here because the two criteria are positively
+correlated; it is used because the correlation between them is unknown, and a
+conservative adjustment is easier to defend than an estimated one.
+
+\textbf{Clustering.} With clusters of size $m$ and intraclass correlation
+$\mathrm{ICC}$, the variance of an estimate is inflated by the design effect
+$1+(m-1)\mathrm{ICC}$, and the effective sample is $n$ divided by that factor.
+
+% ==========================================================================
+\section{Criterion contamination: bounds and the detection test}
+\label{app:contam}
+
+\subsection{How large a confounder would have to be}
+
+Let $S$ be the sealed screener score, $P$ mastery pace, and $R$ a routing
+variable. If $R$ is the only path from $S$ to $P$ other than the child's
+ability, the contribution of that path to the observed correlation is
+$\rho_{SR}\rho_{RP}$. To account for an observed $r_{SP}$ in full, the product
+of the two legs must equal $r_{SP}$; the symmetric case sets both legs to
+$\sqrt{r_{SP}}$.
+
+\begin{center}
+\small
+\begin{tabular}{@{}cccc@{}}
+\toprule
+\textbf{Observed $r_{SP}$} & \textbf{Both legs equal} &
+\textbf{$\rho_{RP}$ if $\rho_{SR}{=}0.30$} &
+\textbf{$\rho_{RP}$ if $\rho_{SR}{=}0.50$} \\
+\midrule
+\tabinput{generated/tab_contamination_sensitivity.tex}
+\bottomrule
+\end{tabular}
+\end{center}
+
+At an observed validity of $0.35$, a confounder would need both legs at
+\ConfoundSymThirtyFive{}, or --- if routing correlates only $0.30$ with the
+screener --- a routing-to-pace association above $1$, which is impossible. The
+reading is that \emph{weak} routing dependence on the screener cannot explain a
+moderate validity; only strong dependence can. That is a specific, checkable
+claim rather than an unfalsifiable worry.
+
+This is the logic of sensitivity analysis for unmeasured confounding: rather
+than asserting no confounding, state how strong confounding would have to be,
+and let the reader judge whether that is plausible.
+
+\subsection{The detection test}
+
+Contamination inflates $\operatorname{corr}(S,P)$ but not
+$\operatorname{corr}(S,M)$ where $M$ is MAP conditional growth, because MAP is
+outside the platform's routing. The diagnostic is therefore the difference
+between two correlations that share the variable $S$, tested by the
+Meng--Rosenthal--Rubin statistic:
+
+\[
+Z=(z_1-z_2)\sqrt{\frac{n-3}{2(1-r_{PM})\,h}},
+\qquad
+h=\frac{1-f\,\bar r^{2}}{1-\bar r^{2}},
+\quad
+f=\min\!\left(\frac{1-r_{PM}}{2(1-\bar r^{2})},\,1\right),
+\]
+
+with $z_i=\operatorname{artanh}(r_i)$ and $\bar r^{2}=(r_1^{2}+r_2^{2})/2$.
+Required samples:
+
+\begin{center}
+\small
+\begin{tabular}{@{}ccccc@{}}
+\toprule
+\textbf{$r$(screener, pace)} & \textbf{$r$(screener, MAP)} &
+\multicolumn{3}{c}{\textbf{$n$ for 80\% power, by $r$(pace, MAP)}} \\
+\cmidrule(lr){3-5}
+ & & $0.30$ & $0.50$ & $0.70$ \\
+\midrule
+\tabinput{generated/tab_contamination_power.tex}
+\bottomrule
+\end{tabular}
+\end{center}
+
+Note the direction of the dependence on $r_{PM}$: the more strongly pace and MAP
+agree, the \emph{easier} the discrepancy is to detect, because the comparison
+becomes a within-child contrast. Detecting a gap between $0.45$ and $0.30$ at
+$r_{PM}=0.50$ requires \NcontamCheckMid{} children; the pooled cohort of
+\Nbothcohorts{} reaches power \PowerBothContam{}. GT Anywhere alone
+(\NanywhereCohort{} children) reaches \PowerAnywhereContam{}, so the check does
+not depend on pooling the two cohorts --- which matters, because pooling a
+virtual and a physical cohort introduces exactly the clustering discussed in
+Appendix~\ref{app:stage1}.
+
+\subsection{Interpreting the outcome}
+
+\begin{itemize}[leftmargin=1.4em,itemsep=0.15em]
+\item \textbf{No detectable gap.} Pace and MAP agree about the screener.
+Contamination is bounded below the detectable difference, and the primary
+criterion can be used with its full validity estimate.
+\item \textbf{Pace materially exceeds MAP.} Consistent with routing
+contamination, and also with pace being a more proximal and less noisy measure
+of what the screener predicts. These are not distinguishable by this test alone;
+the exposure-adjusted analysis in Section~\ref{sec:contamination} is what
+separates them. Until it does, the MAP figure should be treated as the headline.
+\item \textbf{MAP exceeds pace.} Not contamination. Most likely the pace measure
+is noisy, or its denominator is mis-specified.
+\end{itemize}
+
+\boundary{This test bounds contamination; it does not eliminate it. A routing
+mechanism that happened to affect pace and MAP equally would be invisible to it.
+That is implausible given MAP's externality but is not excluded, and it is the
+reason the routing-input audit in Section~\ref{sec:contamination} is listed
+ahead of the statistical checks.}
+
+% ==========================================================================
+\section{Equating, linking and concordance}
+\label{app:equating}
+
+The measurement literature distinguishes several kinds of relationship between
+scores on two tests, in decreasing order of strength.
+
+\textbf{Equating} produces interchangeable scores. It requires that the two
+tests measure the same construct, at comparable reliability, with the same
+intended use, and that the conversion be invariant across subpopulations. Only
+then may a score on one be substituted for a score on the other without
+qualification.
+
+\textbf{Calibration and projection} are weaker forms, applicable when tests
+measure the same construct at different reliabilities or difficulties.
+
+\textbf{Concordance} is a purely statistical correspondence between scores on
+tests measuring \emph{different} constructs. It is population-dependent: the
+concordance table derived in one group need not hold in another. It supports
+statements of the form ``in this population, children at this screener score
+tended to obtain that CogAT score,'' and nothing stronger.
+
+\textbf{Why this matters for GT.} A concordance table between the screener and
+CogAT would be straightforward to produce once both are administered, and it
+would be actively harmful if labelled an equating. It would invite the inference
+that the screener can substitute for CogAT in contexts where CogAT is required
+--- district gifted identification, for instance --- which the evidence would
+not support and which would expose GT to a defensible complaint.
+
+More importantly, concordance answers a question GT does not need answered.
+Knowing that a screener score of $X$ corresponds to a CogAT SAS of $Y$ tells GT
+nothing about whether the screener should replace CogAT. That decision rests on
+which instrument better predicts the criterion, and on whether the screener adds
+information CogAT lacks. Both are incremental-validity questions, which is why
+Section~\ref{sec:stage2} is framed as it is.
+
+\textbf{The invariance question is separate and still required.} Before
+operational use, the screener must be checked for differential item functioning
+and for measurement invariance across the groups it will be used on, and for
+differential prediction --- whether a given score forecasts the same criterion
+value in every group. A test can be free of item bias and still predict
+differently across groups; these are distinct properties requiring distinct
+evidence.
+
+% ==========================================================================
+\section{The increment manufactured by unreliability}
+\label{app:spurious}
+
+\subsection{Setup}
+
+Let $T$ be a latent ability, standardised. Let the criterion $Y$ be standardised
+with $\operatorname{corr}(T,Y)=\rho$. Let two instruments be congeneric
+indicators of $T$ with reliabilities $r_1$ and $r_2$:
+
+\[
+X_1=\sqrt{r_1}\,T+\sqrt{1-r_1}\,e_1,
+\qquad
+X_2=\sqrt{r_2}\,T+\sqrt{1-r_2}\,e_2,
+\]
+
+with $e_1,e_2$ independent of each other, of $T$, and of $Y$ given $T$. By
+construction $X_2$ carries \emph{no information about $Y$ beyond $T$}: it is a
+second thermometer for the same temperature. Write
+
+\[
+a=\operatorname{corr}(X_1,Y)=\sqrt{r_1}\,\rho,\quad
+b=\operatorname{corr}(X_2,Y)=\sqrt{r_2}\,\rho,\quad
+c=\operatorname{corr}(X_1,X_2)=\sqrt{r_1r_2}.
+\]
+
+\subsection{Derivation}
+
+$R^2$ from $X_1$ alone is $a^2=r_1\rho^2$. For two predictors,
+
+\[
+R^2_{\text{full}}=\frac{a^2+b^2-2abc}{1-c^2}.
+\]
+
+Substituting, $a^2+b^2 = \rho^2(r_1+r_2)$ and
+$2abc = 2\rho^2\sqrt{r_1r_2}\sqrt{r_1r_2}=2\rho^2 r_1r_2$, so the numerator is
+$\rho^2(r_1+r_2-2r_1r_2)$ and
+
+\begin{align}
+\dR &= \frac{\rho^2(r_1+r_2-2r_1r_2)}{1-r_1r_2}-r_1\rho^2
+     = \rho^2\,\frac{r_1+r_2-2r_1r_2-r_1(1-r_1r_2)}{1-r_1r_2} \notag\\[0.3em]
+    &= \rho^2\,\frac{r_2-2r_1r_2+r_1^2r_2}{1-r_1r_2}
+     = \boxed{\;\rho^{2}\,\frac{r_2\,(1-r_1)^{2}}{1-r_1r_2}\;}
+\end{align}
+
+The closed form is checked in \texttt{selftest.py} against $R^2$ computed
+directly from the $3\times3$ correlation matrix, at several parameter
+combinations, to machine precision.
+
+\subsection{Reading it}
+
+The expression behaves as it should. It vanishes when $r_1=1$: a perfectly
+measured incumbent leaves nothing for a redundant challenger to pick up. It
+grows with $\rho^2$, so the artefact is largest exactly when the construct
+matters most. It grows with $r_2$, so a \emph{more} reliable redundant
+challenger produces a \emph{larger} spurious increment --- which is the
+counterintuitive part, and the reason a well-built screener is more likely to
+produce a misleading positive than a poorly built one.
+
+Substituting GT's figures --- comparator reliability $\RelCompLow$--$\RelCompHigh$,
+a screener reliability target of $\RelScreener$, and a criterion correlation
+between the Sackett-revised operational value $\RhoCogAToperational$ and the
+observed meta-analytic value $\RhoCogATobserved$ --- gives the table in
+Section~\ref{sec:floor}: an artefact between $\SpuriousLow$ and $\SpuriousHigh$,
+with $\SpuriousMid$ as the central case.
+
+\subsection{Consequence for the test}
+
+At the central case, the conventional test against $\dR=0$ reaches 80\% power to
+declare the \emph{artefact} significant at $n=\NdetectSpurious$; at the
+pessimistic case, at $n=\NdetectSpuriousHigh$. Since Stage~2 will plausibly run
+at a few hundred children, a naive analysis is at material risk of reporting a
+significant increment that is entirely an artefact of CogAT's measurement error.
+Testing against the floor instead raises the sample needed for a real
+five-point increment from $\NincrFiveMid$ to $\NshiftedFive$.
+
+\assumption{The floor depends on $r_2$, the screener's own reliability, which is
+currently a design target of \RelScreener{} rather than a measurement. It also
+assumes the two instruments are congeneric indicators of a single latent trait,
+which is the worst case for GT --- it is the assumption under which the screener
+adds nothing. If the screener genuinely measures a partly distinct construct,
+the true floor is lower and the test is conservative.}
+
+% ==========================================================================
+\section{Decision accuracy and the base-rate arithmetic}
+\label{app:base}
+
+\subsection{The $2\times2$ table is implied, not chosen}
+
+Sensitivity and specificity are often treated as properties of an instrument.
+For a continuous score cut at a threshold they are not: they follow from the
+validity, the selection ratio and the base rate. Model the screener $X$ and the
+criterion $Y$ as standard bivariate normal with correlation $\rho$. Select
+children with $X>z_x$ where $z_x=\Phi^{-1}(1-\mathrm{SR})$; define ``excels'' as
+$Y>z_y$ where $z_y=\Phi^{-1}(1-\mathrm{BR})$. Then
+
+\[
+\mathrm{TP}=\Pr(X>z_x,\,Y>z_y),\quad
+\mathrm{FP}=\mathrm{SR}-\mathrm{TP},\quad
+\mathrm{FN}=\mathrm{BR}-\mathrm{TP},
+\]
+\[
+\mathrm{TN}=1-\mathrm{SR}-\mathrm{FN},\quad
+\text{Se}=\frac{\mathrm{TP}}{\mathrm{BR}},\quad
+\text{Sp}=\frac{\mathrm{TN}}{1-\mathrm{BR}},\quad
+\text{PPV}=\frac{\mathrm{TP}}{\mathrm{SR}} .
+\]
+
+The joint probability is a bivariate normal orthant, computed here by
+one-dimensional quadrature and validated against Sheppard's theorem, against
+Plackett's identity, and against the published Taylor--Russell tables.
+
+A structural consequence worth noting: sensitivity is bounded above by
+$\mathrm{SR}/\mathrm{BR}$. If GT selects the top $10\%$ but $20\%$ of children
+meet the criterion, sensitivity cannot exceed $0.50$ however good the instrument
+is, because there are not enough places. The low sensitivity figures in
+Section~\ref{sec:decision} are largely this, not instrument failure.
+
+\subsection{The odds form, as a cross-check}
+
+The same arithmetic in likelihood-ratio form makes the base-rate dependence
+transparent:
+
+\[
+\underbrace{\frac{\text{PPV}}{1-\text{PPV}}}_{\text{posterior odds}}
+=\underbrace{\frac{\mathrm{BR}}{1-\mathrm{BR}}}_{\text{prior odds}}
+\times
+\underbrace{\frac{\text{Se}}{1-\text{Sp}}}_{\text{likelihood ratio}} .
+\]
+
+The instrument contributes only the likelihood ratio. At Se $=0.90$ and
+Sp $=0.95$ the likelihood ratio is $18$, which is strong. At a base rate of
+$2\%$ the prior odds are $1{:}49$, so the posterior odds are $18{:}49$ --- a
+PPV of \PPVtwoPercentGood{}. \textbf{A likelihood ratio of 18 is an excellent
+diagnostic and still leaves most flagged children below the bar}, because the
+prior was so unfavourable. No improvement in the instrument fixes this; only
+redefining the criterion, or accepting that the score surfaces candidates rather
+than identifies successes, does.
+
+\subsection{Decision consistency and accuracy}
+
+Model observed score $X=T+E$ with $\operatorname{Var}(X)=1$ and
+$\operatorname{Var}(T)=r_{xx}$. Two parallel administrations correlate $r_{xx}$,
+so consistency at a cut $c$ is
+$\Pr(X_1>c,X_2>c)+\Pr(X_1<c,X_2<c)$ under a bivariate normal with correlation
+$r_{xx}$. Accuracy compares the observed classification to the true-score
+classification at the same raw cut, using
+$\operatorname{corr}(X,T)=\sqrt{r_{xx}}$ and the cut $c/\sqrt{r_{xx}}$ on the
+standardised true score.
+
+At a median cut this has the exact closed form
+$\tfrac12+\arcsin(r_{xx})/\pi$, which \texttt{selftest.py} verifies to nine
+decimal places. These are model-based figures assuming normality and classical
+error; the operational estimate for a real test would use the
+Livingston--Lewis procedure on the actual score distribution. The modelled
+figures are adequate for design, and the report labels them as modelled.
+
+% ==========================================================================
+\section{Range restriction}
+\label{app:range}
+
+\subsection{Thorndike Case II}
+
+Under direct selection on the predictor with unrestricted SD $S$ and restricted
+SD $s$, write $U=S/s$. The observed correlation in the restricted group relates
+to the unrestricted one by
+
+\[
+r_{\text{restricted}}
+= \frac{\rho/U}{\sqrt{1-\rho^{2}+\rho^{2}/U^{2}}},
+\qquad
+\rho
+= \frac{r_{\text{restricted}}\,U}{\sqrt{1-r_{\text{restricted}}^{2}+r_{\text{restricted}}^{2}U^{2}}} .
+\]
+
+For top-fraction selection with ratio $p$ and cut $c=\Phi^{-1}(1-p)$, the
+truncated variance follows from the standard normal moments. With
+$\lambda=\varphi(c)/p$ the inverse Mills ratio,
+
+\[
+\operatorname{Var}(X\mid X>c) = 1+\lambda c-\lambda^{2} .
+\]
+
+At $p=0.10$: $c=1.2816$, $\lambda=1.7550$, and the SD ratio is
+$s/S=\SDratioTen$. The closed form is checked against numerical quadrature of
+the truncated density in \texttt{selftest.py}, and the attenuation and
+correction functions are checked to invert one another.
+
+\subsection{What GT avoids}
+
+A true validity of $0.40$ observed under top-$10\%$ selection appears as
+$\RestrictedTenFromForty$, an attenuation of \AttenuationTenPct{}. The sample
+needed to detect it at 80\% power rises from $\NunrestrictedForty$ to
+$\NrestrictedForty$ --- a factor of \NmultiplierTen{}. At top-$20\%$ selection
+the factor is still \NmultiplierTwenty{}.
+
+The deeper benefit is that no correction is applied at all. Corrections require
+the unrestricted SD as an input, assume linearity and homoscedasticity across a
+range that was by definition never observed, and have been shown to
+systematically overcorrect: the operational validity of cognitive ability was
+revised downward from roughly $0.51$ to $0.31$ once the overcorrection was
+identified. \textbf{An uncorrected estimate from an unrestricted sample is not
+merely more efficient --- it is a different and stronger class of evidence,
+because it does not depend on the correction machinery that produced that
+error.}
+
+\subsection{Indirect restriction, if it appears}
+
+If selection operates on a composite that includes the screener rather than on
+the screener alone, Case~II no longer applies and Case~III is required, which
+additionally needs the correlations between the screener, the composite and the
+criterion. Case~III corrections are substantially less stable. The mitigation is
+procedural rather than statistical: keep the selection rule explicit and
+recorded. An explicit rule is correctable; an unrecorded judgement is not.
+
+% ==========================================================================
+\section{Block length and the subscore-value bar}
+\label{app:block}
+
+\subsection{From recovery to reliability}
+
+The repository reports \emph{recovery} $r$: the correlation between the
+estimated learning rate and the injected true value in simulation. If the
+estimate is the truth plus independent error, then
+$\operatorname{corr}(\hat\lambda,\lambda)=\sqrt{\text{reliability}}$, so the
+implied reliability of the readout is $r^{2}$. At the administered
+\BlockAdministered{} trials, recovery of \RecoveryThirty{} implies a reliability
+of \RelLRthirty{}; at 60 trials, \RecoverySixty{} implies \RelLRsixty{}.
+
+\subsection{The subscore-value bar}
+
+A subscore earns separate reporting only when it predicts its own true score
+better than the total does --- the proportional-reduction-in-mean-squared-error
+criterion. Writing $r_s$ for the subscore reliability, $r_x$ for the total's,
+and $\rho$ for the correlation between their true scores, the condition is
+$r_s > \rho^{2}r_x$, so the subscore clears the bar only when
+
+\[
+\rho \;<\; \sqrt{r_s/r_x}.
+\]
+
+At \BlockAdministered{} trials this ceiling is \HabermanThirty{}: the
+learning-rate block earns separate reporting only if learning rate and standing
+ability are correlated below \HabermanThirty{} in truth. At 60 trials the
+ceiling relaxes to \HabermanSixty{}.
+
+\subsection{The hard ceiling on incremental validity}
+
+Separately, there is an upper bound on how much a subscore can add to prediction
+of an \emph{external} criterion: the incremental validity is no greater than the
+reliability of the residual from linear prediction of the subscore by the total.
+With $S$ and $X$ standardised, $\operatorname{corr}(S,X)=c=\rho\sqrt{r_sr_x}$,
+the residual is $e=S-cX$ with $\operatorname{Var}(e)=1-c^{2}$. Its true part is
+$T_e=T_s-cT_x$, and since $\operatorname{Var}(T_s)=r_s$,
+$\operatorname{Var}(T_x)=r_x$ and $\operatorname{Cov}(T_s,T_x)=c$,
+
+\[
+\operatorname{Var}(T_e)=r_s-2c^{2}+c^{2}r_x=r_s\big[1-\rho^{2}r_x(2-r_x)\big],
+\]
+\[
+\dR_{\max}=\operatorname{rel}(e)
+=\frac{r_s\big[1-\rho^{2}r_x(2-r_x)\big]}{1-\rho^{2}r_sr_x} .
+\]
+
+At $\rho=0$ this reduces to $r_s$: an orthogonal subscore can add at most its
+own reliability, which at \BlockAdministered{} trials is \RelLRthirty{}. At
+$\rho=\RhoLRstanding$ the ceiling falls to \HabCeilThirty{}.
+
+\subsection{Sensitivity to the unmeasured correlation}
+
+Both bars --- the subscore-value bar $\rho < \sqrt{r_s/r_x}$ and the incremental
+ceiling above --- are governed by $\rho$, the true correlation between learning
+rate and standing ability, which has never been measured. The sensitivity is
+tabulated in Section~\ref{sec:twophase}. Two features of it deserve emphasis
+here, because both are easy to miss from the main text.
+
+First, the failure point at the administered block length is $\rho \approx
+\HabermanThirty{}$, and the working assumption of \RhoLRstanding{} sits only
+\HabermanMarginThirty{} below it. The component does not survive to
+\RhoLRcollapse{} and then fail; it fails at $0.50$, which is an unremarkable
+correlation between two cognitive constructs measured on the same children by
+the same instrument on the same day.
+
+Second, the two bars fail in different ways and the difference matters for how a
+negative result should be reported. Exceeding the subscore-value bar means the
+subscore should not be reported \emph{at all}, because the total score predicts
+it better than it predicts itself. Falling below the incremental ceiling means
+only that the subscore's contribution is bounded and small. The first is a
+prohibition; the second is a magnitude. At \RhoLRcollapse{} the administered
+block \HabermanCollapseVerdict{} the first, which is the stronger and more
+damaging outcome.
+
+\subsection{Attenuation, and the decisive comparison}
+
+The ceiling is an upper bound. The \emph{expected} increment is governed by
+attenuation: a predictor with reliability $r_s$ realises only $r_s$ of a true
+$\dR$. A genuinely real increment of \TrueDeltaAssumed{} is realised as
+$\RelLRthirty\times\TrueDeltaAssumed=\ObsDeltaThirty$ at \BlockAdministered{}
+trials.
+
+The companion simulation measured the realised increment directly, against the
+external MAP anchor, and obtained \LRdeltaThirty{} at \BlockAdministered{}
+trials and \LRdeltaSixty{} at 60. The agreement with the attenuation prediction
+at \BlockAdministered{} trials is close, which is mild corroboration that the
+attenuation model is describing the right mechanism.
+
+\keyfinding{\textbf{Whether the measured increment clears the artefact floor
+depends on an assumption, not on the measurement.} At the working comparator
+reliability of \RelComparator{}, the floor is \SpuriousMid{} and the
+\BlockAdministered{}-trial increment of \LRdeltaThirty{} sits
+\LRthirtyVsFloor{} it. If the criterion correlation is at the upper end of its
+plausible range the floor rises to \SpuriousHigh{} and the same increment sits
+\LRthirtyVsFloorHigh{} it. If the comparator's reliability is \RelCompLow{}
+rather than \RelComparator{}, the floor reaches \SpuriousWorst{} and the
+increment is not close.
+\smallskip
+
+\noindent The honest summary is that the learning-rate component's contribution
+at the administered block length is \emph{the same order of magnitude as the
+artefact a second fallible measure of the same construct produces for free}. It
+cannot be separated from that artefact without first pinning down the
+comparator's reliability in GT's own sample --- which is a measurement GT can
+make, and should, before running this comparison at all.}
+
+At 60 trials the measured increment rises to \LRdeltaSixty{}, \LRsixtyVsFloor{}
+the working floor, and detectable at \NlrSixty{} children rather than
+\NlrThirty{}. Sixty trials is therefore the minimum plausible length for the
+covariate claim --- necessary, and still not sufficient for an absolute claim,
+because the contamination floor falls only \LRfloorDropPct{} across that
+doubling while the random error falls \LRseDropPct{}
+(Section~\ref{sec:covariate-vs-absolute}).
+
+\assumption{The correlation between learning rate and standing ability,
+$\rho=\RhoLRstanding$ in these tables, is an illustrative value. It has not been
+measured and it drives both the subscore-value ceiling and the incremental
+ceiling. Measuring it is the main reason to keep administering the block during
+validation even though its output is not reportable.}
+
+% ==========================================================================
+\section{ROC precision, paired comparison, and the cost of the frame}
+\label{app:auc}
+
+This appendix supports Section~\ref{sec:feasibility}. It derives the precision
+of an AUC estimate, the precision of the \emph{difference} between two AUCs
+measured on the same children, and the translation between the AUC frame and
+the variance frame used everywhere else in this report.
+
+\subsection*{Precision of a single AUC}
+
+For an AUC of $A$ estimated on $n_1$ positive and $n_0$ negative cases,
+Hanley and McNeil (1982) give
+\[
+  \operatorname{Var}(A) = \frac{A(1-A) + (n_1-1)(Q_1 - A^2) + (n_0-1)(Q_2 - A^2)}
+                               {n_1 n_0},
+\]
+\[
+  Q_1 = \frac{A}{2-A},\qquad Q_2 = \frac{2A^2}{1+A},
+\]
+where $Q_1$ and $Q_2$ are the probabilities that two positives both outrank a
+negative, and that a positive outranks two negatives. The expression is exact
+under an exponential model for the score distributions and is used here as an
+approximation.
+
+Two checks are run against this in \path{scripts/selftest.py}. At $A=0.5$ it must
+reduce exactly to the null variance of the Mann--Whitney statistic,
+$\operatorname{Var} = (N+1)/(12\,n_1 n_0)$, which it does to machine precision;
+and at $A=1$ it must vanish, which it does. At $n=\NcampusCohort{}$ with a
+\PoolBaseRate{} base rate it returns a half-width of \AnalyticHalfwidth{},
+against \MeasuredHalfwidth{} measured by subsampling the simulated cohort. The
+agreement is close enough to treat either as the working figure.
+
+\subsection*{Why the paired difference is far more precise}
+
+The relevant quantity is not the width of either marginal interval but the
+precision of $A_1 - A_2$ when both are computed on the \emph{same} children:
+\[
+  \operatorname{Var}(A_1 - A_2)
+   = \operatorname{Var}(A_1) + \operatorname{Var}(A_2)
+     - 2\,r_{\mathrm{AUC}}\sqrt{\operatorname{Var}(A_1)\operatorname{Var}(A_2)},
+\]
+with $r_{\mathrm{AUC}}$ the correlation between the two AUC statistics, itself
+induced by the correlation between the two instruments' scores within the
+positive and negative groups (Hanley \& McNeil, 1983). Because both instruments
+measure overlapping reasoning constructs, $r_{\mathrm{AUC}}$ is large and the
+shared sampling error cancels.
+
+This is the reason Section~\ref{sec:feasibility} does not simply divide the
+single-AUC half-width by the effect. Comparing two marginal intervals and
+concluding ``no difference'' where they overlap is a well-documented error
+(Gelman \& Stern, 2006). The correct paired test is several times more
+efficient --- and still, at $r_{\mathrm{AUC}}=0.9$, requires \NsupHi{} children
+for $80\%$ power against an effect of \AUCdiff{}.
+
+$r_{\mathrm{AUC}}$ is not known for this pair of instruments and is treated as a
+sensitivity parameter throughout, spanning $0.5$ to $0.9$. It can be estimated
+directly once any sample has both scores, and doing so early is worthwhile: it
+moves the required sample by a factor of five.
+
+\subsection*{Non-inferiority}
+
+A superiority test asks whether the lower bound on $A_1 - A_2$ exceeds zero. A
+non-inferiority test asks whether it exceeds $-\delta$ for a pre-specified
+margin $\delta$. With a true difference $\Delta$ the required sample follows from
+\[
+  \frac{\Delta + \delta}{\operatorname{SE}(A_1-A_2)} \;\ge\; z_{1-\alpha} + z_{1-\beta},
+\]
+one-sided at $\alpha = 0.025$. At $\delta = \NImargin{}$ this gives
+\NnonInfHi{} children at $r_{\mathrm{AUC}}=0.9$ against \NsupHi{} for
+superiority. The margin must be fixed before the data are seen and justified as
+a difference GT would genuinely tolerate in exchange for whatever the screener
+offers over CogAT --- cost, time, breadth, or accessibility. A margin chosen
+afterwards to make the result come out is the standard abuse of this design and
+is easy for a reviewer to detect from the analysis timestamp.
+
+\subsection*{Translating between AUC and $R^2$}
+
+The rest of this report works in correlations and variance increments; the
+companion simulation reports AUCs. The bridge, for a continuous predictor $X$
+and a latent criterion $Y$ that are bivariate normal with correlation $\rho$,
+with the binary outcome defined as $Y$ exceeding the $1-p$ quantile $c$:
+\[
+  \mathrm{AUC} = \int_{-\infty}^{\infty} f_{+}(x)\,F_{-}(x)\,\mathrm{d}x,
+  \qquad
+  f_{+}(x) = \frac{\phi(x)\,\bar\Phi\!\big(\tfrac{c-\rho x}{\sqrt{1-\rho^2}}\big)}{p},
+\]
+and $f_{-}$ the same with $\Phi$ in place of $\bar\Phi$ and $1-p$ in the
+denominator. This is evaluated by quadrature in \path{scripts/statlib.py} and
+inverted by bisection.
+
+It is validated against an independent reduction. Writing $U = X_i - X_j$, the
+event $\{X_i > X_j,\ Y_i > c,\ Y_j \le c\}$ is an orthant probability of the
+trivariate normal $(U/\sqrt2,\ Y_i,\ -Y_j)$ with correlations
+$(\rho/\sqrt2,\ \rho/\sqrt2,\ 0)$; conditioning on the first coordinate reduces
+it to a one-dimensional integral over the bivariate orthant routine already
+validated against Sheppard's theorem and Plackett's identity. The two paths
+agree to $10^{-6}$.
+
+Applying it to the simulated results: an AUC of \AUCinstr{} at a \PoolBaseRate{}
+base rate corresponds to $\rho = \RhoInstr$, and \AUCcomp{} to
+$\rho = \RhoComp$. The first of those is worth noting --- the validity of
+$0.35$ assumed throughout this report as a working value, chosen before the
+simulation was run, lands within $0.01$ of what the simulation produced.
+
+\subsection*{What dichotomising the criterion costs}
+
+Computing an AUC requires a binary criterion. Mastery pace is continuous, so
+using AUC means dichotomising it. For a bivariate normal pair split at base
+rate $p$, the correlation with the dichotomised criterion is
+\[
+  r_{\mathrm{pb}} = \rho\,\frac{\phi(c)}{\sqrt{p(1-p)}},
+\]
+whose multiplier is at most $\sqrt{2/\pi} = 0.798$ at a median split and
+\DichFactor{} at $p = \PoolBaseRate{}$. Squaring, about $42\%$ of the explained
+variance is discarded --- information the study paid to collect and then threw
+away at the analysis step (MacCallum et al., 2002). In sample terms the penalty
+is a factor of \DichPenalty{}, and the further step to a paired AUC comparison
+costs a factor of \AUCpenalty{} against the continuous variance increment.
+
+The recommendation that follows is narrow and worth stating precisely: compute
+AUC, report AUC, and put AUC in the slide deck, because it is the statistic a
+non-technical audience can interpret. Do not \emph{test} on it, and do not
+\emph{size the study} on it.
+
+\subsection*{The asymmetry between the two increments}
+
+Finally, the two directions of the incremental question are not the same
+question and do not have the same answer. In the simulation:
+\[
+  R^2_{\text{comparator}} = \RtwoComp, \qquad
+  R^2_{\text{screener}} = \RtwoInstr, \qquad
+  R^2_{\text{both}} = \RtwoBoth.
+\]
+Adding the screener to the comparator gains \DeltaAddInstr{}; adding the
+comparator to the screener gains \DeltaAddComp{}, which falls
+\DeltaAddCompVsFloor{} the artefact floor of Appendix~\ref{app:spurious}. A
+result of that shape does not license ``the screener is better.'' It licenses
+``the comparator adds nothing measurable once the screener is in the model,''
+which is a claim about redundancy rather than superiority, and is the claim
+Section~\ref{sec:feasibility} recommends GT pursue.
+
+\section{Reproducibility}
+\label{app:repro}
+
+\subsection{How the numbers were produced}
+
+Every numeric value in this report is generated by
+\texttt{scripts/compute.py} and written into \texttt{generated/} as \LaTeX{}
+macros and table bodies, which the document then includes. No number is typed
+into the prose by hand. To regenerate:
+
+\begin{center}
+\texttt{cd scripts \&\& python3 selftest.py \&\& python3 compute.py}
+\end{center}
+
+\texttt{scripts/statlib.py} implements the statistical routines using only the
+Python standard library --- no NumPy, no SciPy --- so the results reproduce on a
+bare Python 3.8+ interpreter. The routines include the regularised incomplete
+beta function, the central and noncentral $F$ distributions, bivariate normal
+orthant probabilities, and the power and sample-size functions built on them.
+
+\subsection{Validation}
+
+\texttt{scripts/selftest.py} checks those routines against external reference
+values and internal consistency identities, and exits non-zero on any failure.
+It is a prerequisite of the build. The external checks include:
+
+\begin{itemize}[leftmargin=1.4em,itemsep=0.1em]
+\item central $F$ quantiles against published tables at three
+$(\mathrm{df}_1,\mathrm{df}_2,\alpha)$ combinations;
+\item two G*Power worked examples for the $\Rsq$-increment test, reproduced
+exactly ($n=77$ for $f^2=0.15$ with $q=3$; $n=395$ for $f^2=0.02$ with $q=1$);
+\item Cohen's tabled sample size for a correlation ($n=85$ at $\rho=0.30$);
+\item Taylor--Russell tabled success ratios at two parameter combinations;
+\item Sheppard's theorem for the bivariate normal at the median cut, across five
+correlations;
+\item Plackett's identity for off-centre orthant probabilities;
+\item the Hanley--McNeil AUC variance reduced to the Mann--Whitney null variance
+$(N+1)/(12 n_1 n_0)$ at $A=0.5$, exactly, at three sample splits;
+\item the AUC/correlation bridge against an independent trivariate-orthant
+reduction of the same probability, agreeing to $10^{-6}$
+(Appendix~\ref{app:auc}).
+\end{itemize}
+
+Internal checks confirm that the range-restriction correction inverts the
+attenuation exactly, that the closed-form spurious increment matches $\Rsq$
+computed from the correlation matrix, that the $\sqrt{3/\pi}$ constant matches
+quadrature, that a zero-validity predictor selects exactly at the base rate, and
+that a zero-reliability test agrees with itself only at chance.
+
+\subsection{Building the document}
+
+\texttt{make} regenerates the numbers and builds \texttt{main.pdf}. If no local
+\LaTeX{} installation is present, \texttt{make docker} builds the same PDF in a
+TeX~Live container. \texttt{make check} runs the self-test and a consistency
+check that every macro referenced in the sources is defined in
+\texttt{generated/numbers.tex}. That check catches three things the build
+either misses or reports late: a stale \texttt{generated/} directory, a macro
+that is computed but no longer referenced anywhere (usually a number left behind
+by a rewritten passage), and a passage calling a macro that no longer exists.
+
+\subsection{Figures}
+
+The six figures are produced by a companion synthetic-data analysis and are
+included via \texttt{\textbackslash figslot}, which falls back to a labelled
+placeholder when the PDF is absent. The document therefore builds with or
+without them, and no argument in the text depends on a figure's values.
+
+\subsection{Limits of these computations}
+
+Three caveats a reviewer should hold onto. The power calculations assume
+bivariate normality and homoscedasticity; mastery pace is a rate and is likely
+right-skewed, so the analysis should either transform it or use a model
+appropriate to counts, and the sample sizes here should be treated as lower
+bounds. The noncentrality convention is $\lambda=f^{2}n$, matching G*Power and
+verified against its worked examples; other conventions give slightly different
+answers and the difference is not negligible at small $n$. And every figure
+depending on the screener's reliability inherits the status of that number,
+which is a design target rather than a measurement.
+
+A fourth caveat is more consequential than the other three and is stated in the
+main text as well. The two parameters that most strongly drive the conclusions
+--- the correlation between standing ability and learning rate, and the
+comparator's reliability --- are unmeasured working values, not estimates. They
+are carried through every table that depends on them as explicit sensitivity
+ranges rather than points, and the computations are structured so that revising
+either is a one-line change in \path{scripts/compute.py} followed by a rebuild.
+A reader who disputes either value can therefore recompute the report's numbers
+under their own assumption rather than arguing about the conclusion.
+
+% ==========================================================================
+\section*{References}
+\addcontentsline{toc}{section}{References}
+\small
+\sloppy
+
+\begin{itemize}[leftmargin=1.2em,itemsep=0.25em,label={}]
+
+\item AERA, APA, \& NCME (2014). \textit{Standards for Educational and
+Psychological Testing}. American Educational Research Association.
+
+\item Cohen, J. (1988). \textit{Statistical Power Analysis for the Behavioral
+Sciences} (2nd ed.). Lawrence Erlbaum.
+
+\item Dixon, C., Oxley, E., Gellert, A. S., \& Nash, H. (2023). Muddying the
+waters: A systematic review of dynamic assessment of reading.
+\textit{Reading and Writing}, 36(3), 673--698.
+\href{https://doi.org/10.1007/s11145-022-10312-3}{doi:10.1007/s11145-022-10312-3}
+
+\item Dorans, N. J. (2004). Equating, concordance, and expectation.
+\textit{Applied Psychological Measurement}, 28(4), 227--246.
+
+\item Faul, F., Erdfelder, E., Buchner, A., \& Lang, A.-G. (2009). Statistical
+power analyses using G*Power 3.1. \textit{Behavior Research Methods}, 41,
+1149--1160.
+
+\item Gelman, A., \& Stern, H. (2006). The difference between
+``significant'' and ``not significant'' is not itself statistically
+significant. \textit{The American Statistician}, 60(4), 328--331.
+\href{https://doi.org/10.1198/000313006X152649}{doi:10.1198/000313006X152649}
+
+\item Haberman, S. J. (2008). When can subscores have value?
+\textit{Journal of Educational and Behavioral Statistics}, 33(2), 204--229.
+\href{https://doi.org/10.3102/1076998607302636}{doi:10.3102/1076998607302636}
+
+\item Haberman, S. J. (2008). Subscores and validity.
+\textit{ETS Research Report Series}, 2008(2).
+\href{https://doi.org/10.1002/j.2333-8504.2008.tb02150.x}{doi:10.1002/j.2333-8504.2008.tb02150.x}
+
+\item Hanley, J. A., \& McNeil, B. J. (1982). The meaning and use of the
+area under a receiver operating characteristic (ROC) curve.
+\textit{Radiology}, 143(1), 29--36.
+\href{https://doi.org/10.1148/radiology.143.1.7063747}{doi:10.1148/radiology.143.1.7063747}
+
+\item Hanley, J. A., \& McNeil, B. J. (1983). A method of comparing the areas
+under receiver operating characteristic curves derived from the same cases.
+\textit{Radiology}, 148(3), 839--843.
+\href{https://doi.org/10.1148/radiology.148.3.6878708}{doi:10.1148/radiology.148.3.6878708}
+
+\item Holland, P. W., \& Dorans, N. J. (2006). Linking and equating. In R. L.
+Brennan (Ed.), \textit{Educational Measurement} (4th ed., pp. 187--220).
+
+\item Kane, M. T. (2013). Validating the interpretations and uses of test
+scores. \textit{Journal of Educational Measurement}, 50(1), 1--73.
+
+\item Killip, S., Mahfoud, Z., \& Pearce, K. (2004). What is an
+intracluster correlation coefficient? Crucial concepts for primary care
+researchers. \textit{Annals of Family Medicine}, 2(3), 204--208.
+\href{https://doi.org/10.1370/afm.141}{doi:10.1370/afm.141}
+
+\item Livingston, S. A., \& Lewis, C. (1995). Estimating the consistency and
+accuracy of classifications based on test scores.
+\textit{Journal of Educational Measurement}, 32(2), 179--197.
+
+\item MacCallum, R. C., Zhang, S., Preacher, K. J., \& Rucker, D. D. (2002).
+On the practice of dichotomization of quantitative variables.
+\textit{Psychological Methods}, 7(1), 19--40.
+\href{https://doi.org/10.1037/1082-989X.7.1.19}{doi:10.1037/1082-989X.7.1.19}
+
+\item Messick, S. (1995). Validity of psychological assessment.
+\textit{American Psychologist}, 50(9), 741--749.
+\href{https://doi.org/10.1037/0003-066X.50.9.741}{doi:10.1037/0003-066X.50.9.741}
+
+\item Lohman, D. F. (2005). An aptitude perspective on talent identification.
+\textit{Gifted Child Quarterly}, 49(2), 111--138.
+\href{https://doi.org/10.1177/001698620504900203}{doi:10.1177/001698620504900203}
+
+\item Meng, X.-L., Rosenthal, R., \& Rubin, D. B. (1992). Comparing correlated
+correlation coefficients. \textit{Psychological Bulletin}, 111(1), 172--175.
+
+\item NWEA (2025). \textit{MAP Growth Technical Report}. NWEA.
+
+\item Ozen, Z., et al. (2024). A meta-analysis of the criterion-related validity
+of the Cognitive Abilities Test. \textit{Gifted Child Quarterly}.
+\href{https://doi.org/10.1177/00169862241285593}{doi:10.1177/00169862241285593}
+
+\item Peters, S. J., Rambo-Hernandez, K., Makel, M. C., Matthews, M. S., \&
+Plucker, J. A. (2019). Effect of local norms on racial and ethnic representation
+in gifted education. \textit{AERA Open}, 5(2).
+
+\item Sackett, P. R., Zhang, C., Berry, C. M., \& Lievens, F. (2022).
+Revisiting meta-analytic estimates of validity in personnel selection:
+Addressing systematic overcorrection for restriction of range.
+\textit{Journal of Applied Psychology}, 107(11), 2040--2068.
+\href{https://doi.org/10.1037/apl0000994}{doi:10.1037/apl0000994}
+
+\item Sinharay, S. (2010). When do subscores have added value? Criteria based on
+classical test theory. \textit{Journal of Educational Measurement}, 47(2),
+150--174.
+
+\item Taylor, H. C., \& Russell, J. T. (1939). The relationship of validity
+coefficients to the practical effectiveness of tests in selection.
+\textit{Journal of Applied Psychology}, 23(5), 565--578.
+
+\item Thorndike, R. L. (1949). \textit{Personnel Selection: Test and Measurement
+Techniques}. Wiley.
+
+\item VanderWeele, T. J., \& Ding, P. (2017). Sensitivity analysis in
+observational research: Introducing the E-value.
+\textit{Annals of Internal Medicine}, 167(4), 268--274.
+
+\item Westfall, J., \& Yarkoni, T. (2016). Statistically controlling for
+confounding constructs is harder than you think.
+\textit{PLoS ONE}, 11(3), e0152719.
+\href{https://doi.org/10.1371/journal.pone.0152719}{doi:10.1371/journal.pone.0152719}
+
+\end{itemize}
+
+\normalsize
+
+\subsection*{Repository sources}
+
+Claims about the instrument's current state are grounded in the project's own
+records rather than external literature:
+\path{docs/product/STAGE2_BANK_RECOVERY_MEASUREMENT.md} (recovery ladder,
+contamination floor, indeterminate rates);
+\path{docs/product/STAGE2_QUESTION_DESIGN.md} (block design and gates);
+\path{docs/research/ASSUMPTIONS_AND_EVIDENCE.md} entries E-095, E-100,
+E-101, E-200 (recovery, validation-data commitment, cohort sizes, estimator
+defect);
+\path{docs/governance/DECISION_LOG.md} entries D-030 and D-200 (learning-rate
+reportability);
+\path{docs/research/IN_HOUSE_COGNITIVE_TEST_RESEARCH.md} and
+\path{docs/research/EVIDENCE_DOSSIER.md} (CogAT and MAP psychometric
+properties);
+\path{docs/interviews/CRYSTAL_MARTEL_INTERVIEW_NOTES.md} (cohort sizes,
+seat rationing, validation-data availability).
