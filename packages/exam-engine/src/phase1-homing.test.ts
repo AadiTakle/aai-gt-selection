@@ -44,6 +44,15 @@ const CONFIG = {
   accWindowSize: 8,
   estWindowSize: 8,
   hardItemCap: 40,
+  /*
+   * `respondFromRealBank` passes exactly the items at or below the planted ability and no others,
+   * which is a child whose chance-success floor is zero. The engine is told so, because the
+   * bracketing this file asserts is a property of aiming at where the response is genuinely
+   * uncertain: told to expect guessing that cannot happen, selection correctly aims BELOW such a
+   * child, they pass everything, and the trace never reverses — the shipped floor would make this
+   * file fail for a reason that has nothing to do with whether the search brackets.
+   */
+  guessingFloor: 0,
 };
 
 function areaTrace(trace: readonly ScoredItem[], area: Area): ScoredItem[] {

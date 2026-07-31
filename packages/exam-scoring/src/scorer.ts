@@ -106,6 +106,7 @@ function abilityFitOptions(policy: ExamPolicy): AbilityFitOptions {
   return {
     slope: ability.slope,
     priorSd: ability.priorSd,
+    guessing: ability.guessing ?? 0,
     min: policy.scale.min,
     max: policy.scale.max,
   };

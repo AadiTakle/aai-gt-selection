@@ -11,6 +11,16 @@ import {
   type TrueTheta,
 } from './testing/synthetic-bank';
 import { difficultyDelta, directionReversals, stepSize, update } from './update';
+
+/**
+ * The pre-MEPV selection rule, for the tests that are ABOUT that rule.
+ *
+ * `ageBandBias`, `itemSelectionTolerance` and "nearest item to the running estimate" are all
+ * staircase-path mechanics. They still ship, still have a supported configuration, and D-025 still
+ * governs them there — so the tests that pin them stay, pinned to the rule they describe, rather
+ * than being deleted or quietly reinterpreted against an objective they were never written for.
+ */
+const STAIRCASE = { selectionRule: 'staircase' } as const;
 import {
   AREAS,
   type AgeBand,
@@ -342,19 +352,41 @@ describe('nextItem', () => {
   };
 
   it('serves the unseen item whose difficulty is closest to the area estimate', () => {
-    const state = startState('4-5'); // fluid difficulty 11
+    const state = startState('4-5', STAIRCASE); // fluid difficulty 11
     const served = nextItem(state, 'T', tinyBanks);
     expect(served.itemId).toBe('T#12'); // |12-11| < |9-11| < |5-11|
     expect('answer' in served).toBe(false); // server-only fields stripped
   });
 
   it('never repeats a served item and picks the next closest', () => {
-    let state = startState('4-5');
+    let state = startState('4-5', STAIRCASE);
     const first = nextItem(state, 'T', tinyBanks);
     state = update(state, scoredFrom(first, { score: 1 }));
     const second = nextItem(state, 'T', tinyBanks);
     expect(second.itemId).not.toBe(first.itemId);
     expect(second.itemId).toBe('T#9');
+  });
+
+  /*
+   * The shipped `mepv` rule aims at the most informative item rather than the nearest one, and
+   * with a chance-success floor those are different items. Information peaks where the child's
+   * success probability is `(1 + sqrt(1 + 8c)) / 4` — about 0.65 for a five-option item, not the
+   * even chance a floor-free model implies — so the item worth serving is EASIER than the
+   * estimate. The effect is larger than the 0.27 points that offset implies while the belief is
+   * still wide, because a floor caps how much a hard item can ever teach: a child who fails it
+   * might have been unlucky, but a child who passes it might merely have guessed.
+   *
+   * Pinned as a pair against the same bank, so the assertion is that the FLOOR moves the aim and
+   * in which direction, not merely that two rules differ.
+   */
+  it('aims below the estimate, because a guessed pass teaches less than a real one', () => {
+    const state = startState('4-5', { guessingFloor: 0.2, mepvTolerance: 0 });
+    expect(nextItem(state, 'T', tinyBanks).itemId).toBe('T#9');
+  });
+
+  it('aims at the estimate itself once the floor says nobody guesses', () => {
+    const state = startState('4-5', { guessingFloor: 0, mepvTolerance: 0 });
+    expect(nextItem(state, 'T', tinyBanks).itemId).toBe('T#12');
   });
 
   /*
@@ -387,7 +419,7 @@ describe('nextItem', () => {
 
   it('prefers the better-targeted item over an age-band match at the default bias', () => {
     // Estimate 11; the off-band item sits on it, the band-matched one is 2 points away.
-    const state = startState('4-5', { ageBandBias: DEFAULT_CONFIG.ageBandBias });
+    const state = startState('4-5', { ...STAIRCASE, ageBandBias: DEFAULT_CONFIG.ageBandBias });
     const items = biasBanks.items.filter((it) => it.itemId !== 'B0'); // drop the on-target match
     expect(nextItem(state, 'T', { ...biasBanks, items }).itemId).toBe('B1');
   });
@@ -401,9 +433,45 @@ describe('nextItem', () => {
   it('lets a large bias restore the pre-D-025 rule, where the band always wins', () => {
     // The knob generalises the rule it replaces rather than replacing it: any bias wider than the
     // selection window reproduces "age-band match first, closeness second" exactly.
-    const state = startState('4-5', { ageBandBias: 1000 });
+    const state = startState('4-5', { ...STAIRCASE, ageBandBias: 1000 });
     const items = biasBanks.items.filter((it) => it.itemId !== 'B0');
     expect(nextItem(state, 'T', { ...biasBanks, items }).itemId).toBe('B2');
+  });
+
+  /*
+   * D-025's bargain has to survive the change of objective, and `ageBandBias` cannot carry it:
+   * that knob is priced in difficulty points, and `mepv` ranks candidates in units of expected
+   * posterior variance. The band is applied instead as a preference INSIDE `mepvTolerance`, so it
+   * still decides between items that would teach the same amount, and still cannot buy an item
+   * that would teach materially less.
+   */
+  it('breaks an information tie toward the age-band match under mepv', () => {
+    const state = startState('4-5');
+    const items = biasBanks.items.filter((it) => it.difficulty === 11);
+    expect(nextItem(state, 'T', { ...biasBanks, items }).itemId).toBe('B0');
+  });
+
+  it('does not let the age band buy a materially less informative item under mepv', () => {
+    /*
+     * The band-matched item here is four points above where the belief wants one, which under the
+     * default tolerance is far outside the "these teach the same amount" band. The preference is a
+     * filter applied INSIDE that band, so it simply never gets to apply — which is D-025's bargain
+     * carried across to a variance objective: content preference decides between comparable items
+     * and cannot pay for a badly-aimed one.
+     */
+    const items: BankItem[] = (
+      [
+        ['near', 10, ['6-8']],
+        ['far', 15, ['4-5']],
+      ] as [string, number, AgeBand[]][]
+    ).map(([itemId, difficulty, ageBands]) => ({
+      ...(biasBanks.items[0] as BankItem),
+      itemId,
+      difficulty,
+      ageBands,
+    }));
+
+    expect(nextItem(startState('4-5'), 'T', { ...biasBanks, items }).itemId).toBe('near');
   });
 
   it('throws when the type is unknown or exhausted', () => {

@@ -9,19 +9,33 @@
  * actually encodes.
  *
  * The estimate is the location parameter of a one-parameter (Rasch-style) logistic response
- * model fitted to the (difficulty, score) pairs in the trace:
+ * model fitted to the (difficulty, score) pairs in the trace, with a chance-success floor:
  *
- *     P(correct | difficulty b) = 1 / (1 + exp(-slope * (theta - b)))
+ *     P(correct | difficulty b) = c + (1 - c) / (1 + exp(-slope * (theta - b)))
  *
- * `theta` is therefore the difficulty at which the child's fitted success probability is 50% —
- * the same quantity the adaptive engine targets when it selects an item. It is fitted here from
- * the trace alone; the engine's own running estimate is NOT an input, so the scorer keeps its
- * single input contract and a stored trace still reproduces the score exactly.
+ * `theta` is the difficulty at which the child's underlying SKILL component is even — the point
+ * they would pass half the time if they could not guess. With `c > 0` their observed success rate
+ * at that difficulty is higher than a half, because chance supplies part of it.
  *
- * CLAIM BOUNDARY: `slope` is a design assumption, not a calibrated discrimination. No bank item
- * has a calibrated `a` or `b` — every difficulty is a design estimate on a born-synthetic bank
- * (`syntheticOnly = true`, `validated = false`). This is a difficulty-referenced RECOVERY
- * statistic, not a validated ability score, and nothing here establishes predictive validity.
+ * THE FLOOR IS NOT OPTIONAL AND WAS THE LARGEST SINGLE ERROR IN THIS FIT. Every wired bank is
+ * multiple choice, so a child well below an item still passes it sometimes. Fitting them with
+ * `c = 0` reads those lucky passes as ability and returns a standing level ABOVE the child —
+ * measured at +1.4 scale points on the real bank, and worse for a child seeded far above their
+ * level. This is the same misspecification D-200 corrected in the Phase 2 learning-curve fit; the
+ * standing fit kept assuming nobody guesses long after Phase 2 stopped, which also meant the
+ * corrected Phase 2 fit was anchored on an uncorrected Phase 1 handover.
+ *
+ * `guessing` defaults to 0 when a caller omits it, so an existing caller's numbers do not move
+ * without that caller opting in; `DEFAULT_ABILITY_BRACKETING` carries the corrected value, so the
+ * policy path gets it.
+ *
+ * CLAIM BOUNDARY: `slope` and `guessing` are design assumptions, not calibrated parameters. No
+ * bank item has a calibrated `a`, `b` or `c` — every difficulty is a design estimate on a
+ * born-synthetic bank (`syntheticOnly = true`, `validated = false`), and the wired banks mix four-,
+ * five- and six-option items so no single floor is right for all of them. Assuming a floor that is
+ * not there is harmful too, and asymmetrically so: it attenuates a genuinely low-ability child.
+ * This is a difficulty-referenced RECOVERY statistic, not a validated ability score, and nothing
+ * here establishes predictive validity.
  */
 import type { ScoredItem } from './types';
 
@@ -41,6 +55,12 @@ export interface AbilityFitOptions {
   readonly priorSd: number;
   readonly min: number;
   readonly max: number;
+  /**
+   * Chance-success floor `c`: the probability a child far below an item still answers it correctly.
+   * `1 / options` for a multiple-choice item, so 0.2 for the five-option items most of the wired
+   * bank is made of. Omitted ⇒ 0, the no-guessing model this fit used to assume unconditionally.
+   */
+  readonly guessing?: number;
 }
 
 /** Bisection steps. Fixed rather than tolerance-driven so the result is bit-for-bit repeatable. */
@@ -54,21 +74,42 @@ function isFiniteNumber(v: unknown): v is number {
   return typeof v === 'number' && Number.isFinite(v);
 }
 
+/** The configured chance-success floor, clamped to a usable range. */
+function floorOf(opts: AbilityFitOptions): number {
+  const c = opts.guessing ?? 0;
+  return Number.isFinite(c) ? clamp(c, 0, 0.95) : 0;
+}
+
 /**
- * Derivative of the log posterior with respect to `theta`. Strictly decreasing in `theta`, so its
- * single root is the maximum and bisection cannot land on a spurious stationary point.
+ * Derivative of the log posterior with respect to `theta`.
+ *
+ * Each item contributes `(observed - P) * (dP/dtheta) / (P * (1 - P))`. With `c = 0` the factor
+ * `dP/dtheta / (P (1 - P))` collapses to `slope` and this reduces to `slope * sum(observed - P)`,
+ * which is exactly the expression this function used before the floor was added — so a zero floor
+ * reproduces the previous fit term for term.
+ *
+ * With `c = 0` the derivative is strictly decreasing in `theta`, so the bisection below converges
+ * on the unique maximum. With `c > 0` a three-parameter likelihood is not guaranteed unimodal in
+ * general; the weakly-informative prior and the single shared slope make a second mode
+ * vanishingly unlikely here, and bisection remains bit-for-bit reproducible either way, which is
+ * what the audit trail requires of it.
  */
 function scoreFunction(
   theta: number,
   items: readonly ScoredItem[],
   opts: AbilityFitOptions,
 ): number {
-  let residual = 0;
+  const c = floorOf(opts);
+  let gradient = 0;
   for (const item of items) {
     const observed = isFiniteNumber(item.score) ? clamp(item.score, 0, 1) : 0;
     const difficulty = clamp(item.difficulty, opts.min, opts.max);
-    const expected = 1 / (1 + Math.exp(-opts.slope * (theta - difficulty)));
-    residual += observed - expected;
+    const skill = 1 / (1 + Math.exp(-opts.slope * (theta - difficulty)));
+    const expected = c + (1 - c) * skill;
+    const spread = expected * (1 - expected);
+    if (!(spread > 0)) continue;
+    // dP/dtheta = slope * (1 - c) * skill * (1 - skill).
+    gradient += ((observed - expected) * (opts.slope * (1 - c) * skill * (1 - skill))) / spread;
   }
 
   const priorPull =
@@ -76,7 +117,7 @@ function scoreFunction(
       ? (theta - (opts.min + opts.max) / 2) / (opts.priorSd * opts.priorSd)
       : 0;
 
-  return opts.slope * residual - priorPull;
+  return gradient - priorPull;
 }
 
 /**
@@ -111,14 +152,20 @@ export function deriveAbilityEstimate(
 /**
  * Conditional standard error of the estimate at `theta`, from the observed items.
  *
- * The precision of a fitted 1PL location is the curvature of the log posterior at the estimate:
- * each item contributes Fisher information `slope^2 * p * (1 - p)` (with `p` the model's success
- * probability on that item), and a finite prior adds `1 / priorSd^2`. The SE is
- * `1 / sqrt(total precision)`.
+ * The precision of a fitted location is the curvature of the log posterior at the estimate: each
+ * item contributes Fisher information `(dP/dtheta)^2 / (P (1 - P))`, and a finite prior adds
+ * `1 / priorSd^2`. The SE is `1 / sqrt(total precision)`. With a floor that works out to
+ * `slope^2 * (1 - P) * skill^2 / P`, which collapses to the familiar `slope^2 * P * (1 - P)` when
+ * `c = 0`.
  *
- * Because `p * (1 - p)` peaks at `p = 0.5`, an item pitched near the child's own level (what a
- * converged battery serves) sharpens the estimate most, while an item far above or below barely
- * moves it. So the SE reflects WHICH items were served, not merely how many — a child who answered
+ * WHERE THE MOST INFORMATIVE ITEM SITS depends on the floor, and this is the reason it matters to
+ * selection and not only to reporting. With `c = 0` information peaks at `P = 0.5`, i.e. at an
+ * item difficulty equal to the ability — the coin-flip item. With `c > 0` it peaks at
+ * `P = (1 + sqrt(1 + 8c)) / 4`, about 0.65 for a five-option item, so the item that sharpens the
+ * estimate most is somewhat EASIER than the child rather than level with them. A floor-blind SE
+ * therefore scores a correctly-aimed battery as if it had been aimed badly.
+ *
+ * Either way the SE reflects WHICH items were served, not merely how many — a child who answered
  * fewer or badly-targeted items gets a legitimately wider interval.
  *
  * Returns `null` for an empty trace. With a finite prior the SE is always finite (the prior alone
@@ -133,11 +180,15 @@ export function abilityStandardError(
   if (items.length === 0) return null;
   if (!(opts.slope > 0) || !Number.isFinite(opts.slope)) return null;
 
+  const c = floorOf(opts);
   let information = 0;
   for (const item of items) {
     const difficulty = clamp(item.difficulty, opts.min, opts.max);
-    const p = 1 / (1 + Math.exp(-opts.slope * (theta - difficulty)));
-    information += opts.slope * opts.slope * p * (1 - p);
+    const skill = 1 / (1 + Math.exp(-opts.slope * (theta - difficulty)));
+    const p = c + (1 - c) * skill;
+    if (!(p > 0) || !(p < 1)) continue;
+    const slopeAtTheta = opts.slope * (1 - c) * skill * (1 - skill);
+    information += (slopeAtTheta * slopeAtTheta) / (p * (1 - p));
   }
   if (Number.isFinite(opts.priorSd) && opts.priorSd > 0) {
     information += 1 / (opts.priorSd * opts.priorSd);

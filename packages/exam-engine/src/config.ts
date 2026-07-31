@@ -225,15 +225,99 @@ export const TRACKED_METRIC_WEIGHT = 1;
  * a non-matching item carries exactly `ageBandBias` of penalty, so a tolerance of 0.5 makes it
  * indistinguishable from a matching item at the same difficulty and D-025's content preference
  * stops applying. 0.25 keeps the band decisive while still admitting a quarter-point of variety.
+ *
+ * `selectionRule` ships as `mepv`: a belief over the child's standing is maintained from the trace,
+ * and each candidate is scored by simulating both answers and averaging the variance that would
+ * remain. `mfi` is the cheaper rule that maximises information at the belief's mean; `staircase`
+ * restores the previous up-down rule exactly; `cut` aims at a decision point instead of at the
+ * child. Knobs belonging to one rule are inert under the others.
+ *
+ * `mepv` OVER `mfi` DESPITE `mfi` WINNING THE OBVIOUS METRIC, because the two metrics disagree and
+ * one of them is partly circular. Over 60 sittings, `mfi` reaches a stated SE sooner (6.4 items to
+ * SE <= 1.25 against 7.0, and 195 of 240 areas ever reaching it against 147) and ends with a
+ * narrower interval (mean SE 1.14 against 1.29). But its estimates are further from the planted
+ * ability: refitted RMSE 1.74 against 1.30. So `mfi` reports +-1.14 while erring +-1.74 — an
+ * interval about half again too narrow — where `mepv` reports 1.29 and errs 1.30, which is
+ * calibrated. An interval shown to a family has to mean what it says, so the arm that is honest
+ * about its own uncertainty wins over the arm that reaches a threshold sooner.
+ *
+ * The circularity is worth naming: `mfi` selects items to maximise information at the estimate,
+ * and the SE is one over the square root of exactly that information. Judging the two criteria by
+ * SE therefore scores `mfi` on its own objective, while RMSE against a planted ability is outcome-
+ * based and favours no rule by construction. The literature's finding that sophisticated criteria
+ * add little past ten items reproduces here on precision and does NOT reproduce on accuracy; the
+ * cost that made `mepv` questionable is also not biting, since a whole 60-sitting four-arm sweep
+ * runs in about six seconds on this bank. Revisit if either changes: the knob is the whole change.
+ *
+ * `decisionCut` is `null`: no cut is assumed, because a real selection threshold is a district
+ * fact with a defined authority and consequences for real children, not something this repository
+ * may invent. `cut` selection is supported and measured, not enabled — and the measurements say
+ * it is a different product, not a better one. Against an illustrative cut of 15 it decides more
+ * areas faster (2.3 items, 223 of 240 areas against 3.0 and 183), and pays for it with an ability
+ * estimate that is worthless away from the cut (refitted RMSE 3.40 against 1.30, mean SE 3.20
+ * against 1.29), with the child's experience (47.8% of items at least 3 points above them against
+ * 7.6%, worst run of consecutive misses 5.4 against 2.2), and with exposure control: it draws on
+ * 265 distinct bank items where `mepv` draws on 1,329.
+ *
+ * `guessingFloor` 0.2 is the five-option item every wired bank is mostly made of. It is an
+ * ASSUMPTION, not a measurement — `FLU-MATRIX-01` alone mixes four-, five- and six-option items,
+ * and a plausible distractor set effectively raises the option count while a disengaged child
+ * lowers it. It is set positive rather than left at 0 because 0 is the one value known to be
+ * wrong: it is what made the standing estimate read above the child, and under `mepv` it would
+ * also aim every item at an even chance when a five-option item's information peaks at about 0.65.
+ *
+ * Swept against children who guess at their item's own option count, the penalty either side is
+ * real and asymmetric — signed error of the reported standing level runs +1.32 at a floor of 0,
+ * +0.35 at 0.1, +0.12 at 0.2, -0.06 at 0.25 and -0.46 at 0.35, so overstating the floor
+ * ATTENUATES a child just as understating it inflates them. 0.2 also minimises RMSE (1.40) and
+ * keeps 39/40 sittings concluding on evidence, where 0.25 drops that to 36/40.
+ *
+ * `responseSlope` 1.0 and `posteriorPriorSd` 6.0 deliberately match the scoring package's ability
+ * fit, so selection and reporting assume one response curve rather than two. `posterior.test.ts`
+ * pins that the belief and that fit agree.
+ *
+ * `mepvTolerance` 0.05 admits any item within 5% of the best expected posterior variance — about
+ * 2.5% on the SE scale — as an equivalent substitute, which the age-band preference then decides
+ * between. It is the `mepv` counterpart of `itemSelectionTolerance` and is set far tighter in
+ * relative terms, because under `mepv` the tolerance is what the age band is allowed to spend
+ * rather than what it is charged. Swept over 40 sittings on the wired bank: 0.15 costs both error
+ * and precision outright (refit RMSE 1.52 against 1.26, mean SE 1.41 against 1.27), and 0 buys the
+ * narrowest intervals but stops deserving them — RMSE 1.40 against a mean SE of 1.22, i.e. an
+ * interval about 15% tighter than the error it is meant to describe. 0.05 is where the two agree.
+ *
+ * `typeNoveltyBonus` 0.5 prices a task format the area has not drawn from yet at a third of the
+ * age-band content match and a quarter of an enforced coverage shortfall. It must stay below
+ * `ENFORCED_METRIC_WEIGHT`, or a novel type outranks the type that unblocks the stop rule. The
+ * sweep is the reason it is 0.5 rather than 1.0: at 1.0 it buys about 1.6 more distinct types per
+ * session and costs 0.26 of refitted RMSE, and it takes the reported interval back out of
+ * calibration (RMSE 1.53 against a mean SE of 1.31). Variety is worth paying for out of slack, not
+ * out of the estimate.
+ *
+ * `areaSpreadSlack` ships at 0, so uncertainty decides between areas TIED for fewest items seen and
+ * never overrides the count itself. The knob supports looking further, and is clamped against
+ * `evenSpreadTolerance` where it is read so the even-spread gate the stop rule depends on cannot be
+ * breached however it is set — but 0 is what the measurements were taken at and what the browser
+ * runs. The portal's `evenSpreadTolerance` of 1 already forces the clamp to 0, so any larger
+ * default would be inert in production while quietly changing behaviour under the engine's own
+ * defaults; at 1 that showed up as a within-session type-repeat regression in
+ * `selection-variety.test.ts`, an area held two items in a row being two items not spent
+ * elsewhere. Uncertainty-ranked TIE-BREAKING is where the measured gain was, and it costs nothing.
  */
 export const DEFAULT_CONFIG: EngineConfig = {
   seed: 0xc0ffee,
+  selectionRule: 'mepv',
+  decisionCut: null,
+  responseSlope: 1.0,
+  guessingFloor: 0.2,
+  posteriorPriorSd: 6.0,
+  mepvTolerance: 0.05,
   difficultyWindow: 3,
   ageBandBias: 0.5,
   typeSelectionTolerance: 0.5,
   itemSelectionTolerance: 0.25,
   typeRecencyPenalty: 1.0,
   typeRecencyWindow: 3,
+  typeNoveltyBonus: 0.5,
   accWindowSize: 10,
   estWindowSize: 10,
   minUpdate: 0.25,
@@ -244,6 +328,7 @@ export const DEFAULT_CONFIG: EngineConfig = {
   surpriseGain: 1.0,
   nearMissSoften: 0.5,
   evenSpreadTolerance: 2,
+  areaSpreadSlack: 0,
   minItemsPerArea: 6,
   /*
    * Two, the weakest form of the requirement that means anything: an area's estimate may not rest

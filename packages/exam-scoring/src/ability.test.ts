@@ -201,3 +201,69 @@ describe('deriveAbilityEstimate — determinism', () => {
     expect(trace).toEqual(snapshot);
   });
 });
+
+/*
+ * The chance-success floor.
+ *
+ * Pinned in both directions on purpose. "The corrected floor recovers a guessing child better"
+ * would pass just as happily if the floor were 0.9, so on its own it licenses any positive number.
+ * The second case is what gives the first its meaning: the same correction applied to a child who
+ * does not guess actively harms them. That asymmetry is why 0.2 is a claim about the BANK — five
+ * options per item — and not a safety margin, and why it is a policy knob.
+ */
+describe('the chance-success floor', () => {
+  it('omitting it reproduces the previous no-guessing fit exactly', () => {
+    const items = thresholdTrace(10, RAMP);
+    const withoutKnob = deriveAbilityEstimate(items, FIT) as number;
+    const explicitZero = deriveAbilityEstimate(items, { ...FIT, guessing: 0 }) as number;
+
+    expect(withoutKnob).toBe(explicitZero);
+    expect(abilityStandardError(withoutKnob, items, FIT)).toBe(
+      abilityStandardError(explicitZero, items, { ...FIT, guessing: 0 }),
+    );
+  });
+
+  it('stops lucky passes on hard items from reading as ability', () => {
+    // Two passes well above the child, which is what guessing looks like in a trace.
+    const items = [...thresholdTrace(10, RAMP), item(16, true), item(18, true)];
+    const uncorrected = deriveAbilityEstimate(items, { ...FIT, guessing: 0 }) as number;
+    const corrected = deriveAbilityEstimate(items, { ...FIT, guessing: 0.2 }) as number;
+
+    expect(uncorrected, 'lucky passes should inflate a floor-free fit').toBeGreaterThan(10);
+    expect(corrected, 'the floor should discount them').toBeLessThan(uncorrected);
+  });
+
+  it('attenuates a child with no lucky passes, so the floor is not a free win', () => {
+    /*
+     * The direction is worth stating precisely, because it is not symmetric and it is easy to
+     * assume backwards. A floor changes what a PASS is worth and leaves a FAILURE untouched:
+     * `P(wrong) = (1 - c)(1 - s)`, and the constant `(1 - c)` cancels in the likelihood ratio
+     * between two abilities, so a miss carries identical information under any floor. A pass does
+     * not — `P(correct) = c + (1 - c)s` is flatter in ability, so some of it is attributed to luck.
+     *
+     * For a fixed trace, then, a floor can only move the estimate DOWN. A child who genuinely
+     * never guessed is read as slightly less able than they are, and the harm falls on exactly the
+     * children a floor is meant to protect against being over-read.
+     */
+    const items = thresholdTrace(10, RAMP);
+    const matched = deriveAbilityEstimate(items, { ...FIT, guessing: 0 }) as number;
+    const overCorrected = deriveAbilityEstimate(items, { ...FIT, guessing: 0.2 }) as number;
+
+    expect(overCorrected).toBeLessThan(matched);
+  });
+
+  it('moves the sharpest item off the even chance and onto a 65% pass rate', () => {
+    /*
+     * Birnbaum's `(1 + sqrt(1 + 8c)) / 4`, which for a five-option item is 0.653 — an item about
+     * 0.27 scale points EASIER than the child. This is the reporting side of the fact the engine
+     * now selects on: a floor-blind SE is sharpest for items the child has an even chance on, so
+     * it would score a correctly-aimed battery as though it had been aimed badly.
+     */
+    const theta = 10;
+    const seAt = (difficulty: number, guessing: number): number =>
+      abilityStandardError(theta, [item(difficulty, true)], { ...FIT, guessing }) as number;
+
+    expect(seAt(10, 0)).toBeLessThan(seAt(9.73, 0));
+    expect(seAt(9.73, 0.2)).toBeLessThan(seAt(10, 0.2));
+  });
+});
