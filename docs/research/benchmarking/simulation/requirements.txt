@@ -1,0 +1,18 @@
+# Dependencies for the benchmarking figure generator.
+#
+# numpy and matplotlib only. No scipy, statsmodels, scikit-learn or pandas: every
+# estimator the figures use is implemented in `statistics.py` in a few lines each, so a
+# reviewer can check the arithmetic without also having to trust a third-party
+# implementation, and so the figures regenerate on a bare Python install.
+#
+# NOTE ON REPRODUCIBILITY: matplotlib's renderer changes between minor versions, so a
+# figure regenerated under a different matplotlib will be numerically identical but not
+# byte-identical, and `make_figures.py --check` will say so rather than fail silently.
+# The versions recorded here are the ones the committed manifest.json was produced with.
+#
+# NOTHING WAS ADDED TO THE REPOSITORY'S OWN DEPENDENCY MANIFESTS. This package is not
+# wired into package.json, pnpm-workspace.yaml or any lockfile; it is run directly with
+# the system Python.
+
+numpy==2.0.2
+matplotlib==3.9.4
