@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { findBankItem } from '@/lib/exam/bank-loader';
 import { persistItemResponse } from '@/lib/exam/persistence';
 import { EXAM_TYPE_REGISTRY } from '@/lib/exam/registry.generated';
+import { revealFor } from '@/lib/exam/reveal';
 import { verify } from '@/lib/exam/verifiers';
 
 /**
@@ -174,6 +175,11 @@ export async function POST(request: NextRequest) {
     persisted = stored != null;
   }
 
+  // Informational feedback for a learning-block type, and only after the trial has been graded and
+  // recorded. A skipped item gets none: the child committed no retrieval attempt, and revealing the
+  // outcome anyway would turn skipping into a free look at the system (see lib/exam/reveal.ts).
+  const reveal = parsed.data.skipped ? null : revealFor(item);
+
   return NextResponse.json({
     ok: true,
     correct,
@@ -182,6 +188,7 @@ export async function POST(request: NextRequest) {
     domain: item.domain,
     typeCode: item.typeCode,
     metrics,
+    ...(reveal ? { reveal } : {}),
     persisted,
     syntheticOnly: true as const,
     validated: false as const,

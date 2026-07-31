@@ -2,7 +2,8 @@
  * Why the scrambled-system control returns an exactly zero contrast under simulation.
  *
  * `docs/product/STAGE2_BANK_RECOVERY_MEASUREMENT.md` §7 reports that every Gate A and `--fix-probe`
- * cell is identical between `FLU-OPCHAIN-01.consistent` and `FLU-OPCHAIN-01.perTrial`. That is a
+ * cell is identical between the consistent arm (`banks/FLU-OPCHAIN-01.jsonl`) and the scrambled one
+ * (`control-banks/FLU-OPCHAIN-01.perTrial.jsonl`). That is a
  * strong claim about a control D-S2-3 made binding, so it should be a command rather than an
  * inference, and the explanation should be measured rather than argued.
  *
@@ -61,6 +62,8 @@ function repoRoot(): string {
 }
 
 const BANK_DIR = join(repoRoot(), 'research/exam-question-types/banks');
+/** The scrambled arm sits outside the served directory; see `generators/FLU-OPCHAIN-01.mjs`. */
+const CONTROL_BANK_DIR = join(repoRoot(), 'research/exam-question-types/control-banks');
 
 /**
  * Load a bank down to the three fields the administration path reads.
@@ -69,7 +72,8 @@ const BANK_DIR = join(repoRoot(), 'research/exam-question-types/banks');
  * reproduce what the harness sees rather than what the bank contains.
  */
 function loadBank(stem: string): BankItem[] {
-  const path = join(BANK_DIR, `${stem}.jsonl`);
+  const served = join(BANK_DIR, `${stem}.jsonl`);
+  const path = existsSync(served) ? served : join(CONTROL_BANK_DIR, `${stem}.jsonl`);
   const items: BankItem[] = [];
   for (const line of readFileSync(path, 'utf8').split('\n')) {
     const trimmed = line.trim();
@@ -187,7 +191,7 @@ function main(): void {
   const length = num('length', 60);
   const seed = num('seed', 20260730);
 
-  const consistent = loadBank('FLU-OPCHAIN-01.consistent');
+  const consistent = loadBank('FLU-OPCHAIN-01');
   const perTrial = loadBank('FLU-OPCHAIN-01.perTrial');
 
   console.log('# FLU-OPCHAIN-01 arm equivalence under simulation\n');

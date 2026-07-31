@@ -2,6 +2,7 @@ import type { Area, EngineConfig, ServedItem } from '@gt-selection/exam-engine';
 
 import { EXAM_ENGINE_OVERRIDES } from './engine-config';
 import { EXAM_TYPE_REGISTRY } from './registry.generated';
+import type { ItemReveal } from './reveal';
 
 /**
  * Client-side wiring helpers for the adaptive runner.
@@ -130,14 +131,22 @@ export async function emulateAnswer(input: {
 /**
  * Types whose interaction gets a short wordless gesture demonstration, shown ONCE per session.
  *
- * The default is deliberately empty. Every demo already states what to do in one line ("Tap the
- * tile that completes the pattern, then press the check"), and a test should be answerable the
+ * The default is deliberately near-empty. Every demo already states what to do in one line ("Tap
+ * the tile that completes the pattern, then press the check"), and a test should be answerable the
  * moment a question appears rather than opening with something to watch. Add a type here only when
  * its interaction genuinely cannot be conveyed in a sentence — a multi-step manipulation, say,
  * rather than a choice — and expect roughly four seconds of demonstration the first time a child
  * meets it.
+ *
+ * `FLU-OPCHAIN-01` is here for a different and stronger reason, and it is the reason the flag is
+ * per session rather than per item. Its `tutorial` run is not a gesture hint but the UNSCORED
+ * INTERFACE GATE the learning block requires (STAGE2_QUESTION_DESIGN §1.4(3)): a short run of
+ * degenerate instances, where the machine holds no parts so the answer is visible, to a criterion
+ * of k consecutive correct. Interface learning inside the block is indistinguishable from learning
+ * the system, so it has to be discharged before trial 0. Sending `tutorial` once per session is
+ * exactly "before trial 0"; sending it per item would put a warm-up inside the fitted climb.
  */
-export const GESTURE_DEMO_TYPES: ReadonlySet<string> = new Set<string>([]);
+export const GESTURE_DEMO_TYPES: ReadonlySet<string> = new Set<string>(['FLU-OPCHAIN-01']);
 
 /** Keep only finite numeric metric values from a loose metric bag. */
 export function numericMetrics(bag: unknown): Record<string, number> {
@@ -183,6 +192,12 @@ export interface ServerVerdict {
   domain: Area;
   typeCode: string;
   metrics: Record<string, number>;
+  /**
+   * Post-commit informational feedback for a learning-block type: which option the item's own
+   * mechanism produced. Absent for every type that does not need one — see `lib/exam/reveal.ts`
+   * for why this is not a key leak and why it is never a verdict.
+   */
+  reveal?: ItemReveal;
 }
 
 /**
@@ -244,6 +259,7 @@ export async function submitAnswer(input: SubmitAnswerInput): Promise<ServerVerd
     if (!res.ok) return null;
     const data = (await res.json()) as Record<string, unknown>;
     if (!data.ok) return null;
+    const machineOutput = (data.reveal as { machineOutput?: unknown } | undefined)?.machineOutput;
     return {
       correct: Boolean(data.correct),
       score: typeof data.score === 'number' ? data.score : 0,
@@ -251,6 +267,7 @@ export async function submitAnswer(input: SubmitAnswerInput): Promise<ServerVerd
       domain: data.domain as Area,
       typeCode: String(data.typeCode ?? ''),
       metrics: numericMetrics(data.metrics),
+      ...(typeof machineOutput === 'string' ? { reveal: { machineOutput } } : {}),
     };
   } catch {
     return null;

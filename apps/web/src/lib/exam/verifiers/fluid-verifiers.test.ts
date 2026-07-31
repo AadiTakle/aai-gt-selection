@@ -21,13 +21,21 @@ import { fluidVerifiers } from './fluid';
  * these types are not wired yet.
  */
 
-const BANKS_DIR = path.resolve(
+const QUESTION_TYPES_DIR = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
-  '../../../../../../research/exam-question-types/banks',
+  '../../../../../../research/exam-question-types',
 );
+const BANKS_DIR = path.join(QUESTION_TYPES_DIR, 'banks');
+/** Scrambled-system control arms, which are deliberately not in the served directory. */
+const CONTROL_BANKS_DIR = path.join(QUESTION_TYPES_DIR, 'control-banks');
 
 function loadBank(typeCode: string): RawBankItem[] {
   const text = readFileSync(path.join(BANKS_DIR, `${typeCode}.jsonl`), 'utf8').trim();
+  return text.split('\n').map((line) => JSON.parse(line) as RawBankItem);
+}
+
+function loadControlBank(fileStem: string): RawBankItem[] {
+  const text = readFileSync(path.join(CONTROL_BANKS_DIR, `${fileStem}.jsonl`), 'utf8').trim();
   return text.split('\n').map((line) => JSON.parse(line) as RawBankItem);
 }
 
@@ -122,6 +130,138 @@ describe('FLU-GRIDCOPY-01 verifier', () => {
   it('rejects a malformed response instead of throwing', () => {
     expectsMalformedToFail('FLU-GRIDCOPY-01', bank[0]!);
   });
+});
+
+/**
+ * FLU-OPCHAIN-01, run over BOTH persistence arms.
+ *
+ * The two arms differ only in whether the hidden badge->operator mapping is re-drawn per item, and
+ * §4.1.1 of STAGE2_QUESTION_DESIGN requires one verifier to serve both — a second verifier would
+ * confound Gate B's contrast with the grader. The only way to show there is no arm branch is to
+ * run the same assertions on both banks, so every block below is parameterised over the pair. Only
+ * the consistent arm is ever served to a child; the scrambled one is research-only.
+ */
+describe.each([
+  ['consistent', loadBank('FLU-OPCHAIN-01')],
+  ['perTrial (control arm, never served)', loadControlBank('FLU-OPCHAIN-01.perTrial')],
+])('FLU-OPCHAIN-01 verifier — %s arm', (_arm, bank) => {
+  const verify = verifierFor('FLU-OPCHAIN-01');
+
+  it('accepts the option the machine produces, on every bank item', () => {
+    expect(bank.length).toBeGreaterThan(0);
+    for (const item of bank) {
+      const verdict = verify(item, { selectedKey: item.answer.correctKey });
+      expect(verdict.correct, `${item.itemId} keyed option`).toBe(true);
+      expect(verdict.metrics?.['M-ERRTYPE']).toBe(1);
+      expect(verdict.metrics?.['M-RULEID']).toBe((item.content.chain as string[]).length);
+    }
+  });
+
+  it('rejects every other option, on every bank item', () => {
+    for (const item of bank) {
+      for (const option of item.content.options as { key: string }[]) {
+        if (option.key === item.answer.correctKey) continue;
+        expect(
+          verify(item, { selectedKey: option.key }).correct,
+          `${item.itemId} ${option.key}`,
+        ).toBe(false);
+      }
+    }
+  });
+
+  /**
+   * The load-bearing one. Corrupting the stored key must not change a single verdict, because the
+   * verifier is supposed to resolve `content.chain` through `answer.system.mapping` and run the
+   * chain itself. If it were reading the key, every item here would flip.
+   */
+  it('re-derives the key from the hidden system rather than reading it', () => {
+    for (const item of bank) {
+      const options = item.content.options as { key: string }[];
+      const wrongKey = options.find((o) => o.key !== item.answer.correctKey)!.key;
+      const corrupted = withCorruptedKey(item, (answer) => {
+        answer.correctKey = wrongKey;
+      });
+      expect(
+        verify(corrupted, { selectedKey: item.answer.correctKey }).correct,
+        `${item.itemId} solver over key`,
+      ).toBe(true);
+      expect(
+        verify(corrupted, { selectedKey: wrongKey }).correct,
+        `${item.itemId} corrupted key not trusted`,
+      ).toBe(false);
+    }
+  });
+
+  /**
+   * And the converse: with the mapping gone there is nothing to re-derive from, so the stored key
+   * is the documented fallback. Without this the test above could pass on a verifier that always
+   * returned false for a corrupted item.
+   */
+  it('falls back to the stored key only when the system is unreadable', () => {
+    const item = bank[0]!;
+    const noSystem = withCorruptedKey(item, (answer) => {
+      delete answer.system;
+    });
+    expect(verify(noSystem, { selectedKey: item.answer.correctKey }).correct).toBe(true);
+  });
+
+  it('grades error quality off the named partial rule the option encodes', () => {
+    // Distractors are ordered "almost had it" -> "did not engage" (§4.6). An order error must
+    // therefore score strictly above an identity copy, and both strictly below a correct answer.
+    const byKind = (kind: string) =>
+      bank.find((item) =>
+        Object.values(item.answer.strategyTrace as Record<string, { kind: string }>).some(
+          (t) => t.kind === kind,
+        ),
+      );
+    const item = byKind('identity_copy');
+    expect(item, 'no bank item carries an identity_copy distractor').toBeDefined();
+    const trace = item!.answer.strategyTrace as Record<string, { kind: string }>;
+    const identityKey = Object.entries(trace).find(([, t]) => t.kind === 'identity_copy')![0];
+    const identity = verify(item!, { selectedKey: identityKey });
+    expect(identity.correct).toBe(false);
+    expect(identity.metrics?.['M-ERRTYPE']).toBe(0);
+
+    const ordered = byKind('order_error');
+    if (ordered) {
+      const orderKey = Object.entries(
+        ordered.answer.strategyTrace as Record<string, { kind: string }>,
+      ).find(([, t]) => t.kind === 'order_error')![0];
+      const near = verify(ordered, { selectedKey: orderKey });
+      expect(near.metrics?.['M-ERRTYPE']).toBeCloseTo(0.9);
+      expect(near.metrics!['M-ERRTYPE']!).toBeLessThan(1);
+    }
+  });
+
+  it('rejects a malformed response instead of throwing', () => {
+    const item = bank[0]!;
+    expect(verify(item, {}).correct).toBe(false);
+    expect(verify(item, { selectedKey: 42 }).correct).toBe(false);
+    expect(verify(item, { selectedIndex: 0 }).correct).toBe(false);
+  });
+});
+
+/**
+ * The two arms are equated on every scored property, so the verifier must return the SAME verdict
+ * for the same item index in both. This is the property the gate rests on: if grading differed
+ * between arms, a between-arm contrast would be partly a grading artifact.
+ */
+it('FLU-OPCHAIN-01 grades both arms identically, item for item', () => {
+  const verify = verifierFor('FLU-OPCHAIN-01');
+  const consistent = loadBank('FLU-OPCHAIN-01');
+  const control = loadControlBank('FLU-OPCHAIN-01.perTrial');
+  expect(control.length).toBe(consistent.length);
+
+  for (let i = 0; i < consistent.length; i++) {
+    const a = consistent[i]!;
+    const b = control[i]!;
+    for (const option of a.content.options as { key: string }[]) {
+      const left = verify(a, { selectedKey: option.key });
+      const right = verify(b, { selectedKey: option.key });
+      expect(right.correct, `item ${String(i)} option ${option.key}`).toBe(left.correct);
+      expect(right.metrics, `item ${String(i)} option ${option.key} metrics`).toEqual(left.metrics);
+    }
+  }
 });
 
 describe('FLU-CONCEPT-01 verifier', () => {

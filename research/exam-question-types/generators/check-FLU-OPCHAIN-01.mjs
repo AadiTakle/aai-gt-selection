@@ -15,8 +15,15 @@
 //   2.  Key containment: `content` names no operator, states no mapping, and carries no verdict.
 //   3.  KEY RE-DERIVED: applying the mapping's operator chain to the input reproduces exactly the
 //       option `correctKey` names — on every item of both banks.
-//   4.  Anti-leak: the key is never the UNIQUE option that changed the most components from the
-//       input, so "tap whichever picture changed most" cannot beat chance (E-075/E-076).
+//   4.  Anti-leak, two invariants (E-075/E-076):
+//       (a) the key is never the UNIQUE option that changed the most components from the input, so
+//           "tap whichever picture changed most" cannot beat chance; and
+//       (b) the key is never the UNIQUE option reachable by RELABELLING the badges. Guessing the
+//           hidden mapping is exactly guessing an ordered selection of distinct operators for the
+//           chain's positions, so if only one option is consistent with any of them, a browser
+//           recovers the key from `content` with no induction at all. This is a stronger attack
+//           than (a) and it is the one that catches chains carrying all three orientation
+//           operators, where the D4 product collapses several relabellings onto the key.
 //   5.  Distractors: all five options distinct; every wrong option is the output of a named partial
 //       rule, re-derived here, and its declared ruleId/kind agree (the §4.6 strategy trace).
 //   6.  Chain invariants: length equals depth, no operator repeats, the declared geometric count is
@@ -39,12 +46,14 @@
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { genItem } from './FLU-OPCHAIN-01.mjs';
+import { BANK_PATHS, genItem } from './FLU-OPCHAIN-01.mjs';
 import { lureLabel, normalizeBankItem } from './item-shape.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const MODES = ['consistent', 'perTrial'];
-const bankPath = (mode) => resolve(__dirname, `../banks/FLU-OPCHAIN-01.${mode}.jsonl`);
+// The consistent arm is the live bank under banks/; the scrambled arm sits outside the served
+// directory in control-banks/. Both are read here, because U4's acceptance is BOTH banks.
+const bankPath = (mode) => resolve(__dirname, BANK_PATHS[mode]);
 
 const failures = [];
 const fail = (id, msg) => failures.push(`[${id}] ${msg}`);
@@ -90,6 +99,29 @@ function geomIsIdentity(chain) {
   let o = { a: 0, b: 0 };
   for (const op of chain) if (GEOM.includes(op)) o = dcompose(ELEMENT[op], o);
   return o.a === 0 && o.b === 0;
+}
+
+/**
+ * Everything a client can compute from `content` alone: every output produced by assigning
+ * distinct operators to the chain's positions. Re-implemented here rather than imported, because
+ * this IS the attack and validating it with the generator's own helper would prove nothing.
+ */
+function relabelReachable(depth, input) {
+  const out = new Set();
+  const walk = (position, used, state) => {
+    if (position === depth) {
+      out.add(fkey(state));
+      return;
+    }
+    for (const op of ALL_OPS) {
+      if (used.has(op)) continue;
+      used.add(op);
+      walk(position + 1, used, step(op, state));
+      used.delete(op);
+    }
+  };
+  walk(0, new Set(), input);
+  return out;
 }
 
 /* ---- independent partial-rule taxonomy ------------------------------------ */
@@ -350,6 +382,17 @@ function checkBank(mode, items) {
             '"pick what changed most" would beat chance without the system',
         );
 
+      // ---- 4b. Anti-leak: the key must not be the unique relabelling-reachable option ----
+      const reachable = relabelReachable(opChain.length, input);
+      const reachableKeys = options.filter((o) => reachable.has(fkey(o.figure))).map((o) => o.key);
+      if (reachableKeys.length < 2)
+        fail(
+          id,
+          `only ${reachableKeys.length} option(s) [${reachableKeys.join(',')}] are consistent with ANY ` +
+            'badge->operator relabelling — a client that brute-forces the 720 mappings recovers the ' +
+            'key from content alone, with no knowledge of the hidden system',
+        );
+
       // ---- 5. Distractors: distinct, and each a named partial rule ----
       const figureKeys = options.map((o) => fkey(o.figure));
       if (new Set(figureKeys).size !== figureKeys.length) fail(id, 'two options show the same figure');
@@ -518,7 +561,8 @@ if (failures.length) {
 }
 console.log(
   '\nPASS — both banks parse; the key is re-derived from the stated system on 100% of items; the key\n' +
-    'is never the unique largest change from the input; every distractor is a named partial rule that\n' +
+    'is never the unique largest change from the input NOR the unique option any badge relabelling can\n' +
+    'reach, so content does not determine it; every distractor is a named partial rule that\n' +
     'reproduces its figure; no chain repeats an operator or cancels its geometry; difficulty is\n' +
     'monotone in every lever and re-derived from each item\u2019s own levers; coverage is 1..20 with >=5\n' +
     'items per 0.5-point rung; depth respects the band ladder; key positions sit at the 5-option\n' +
