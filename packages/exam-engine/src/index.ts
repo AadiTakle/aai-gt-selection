@@ -19,6 +19,24 @@ export {
 } from './done';
 export { replaySession } from './replay';
 
+// The live per-area belief: what `mepv` selection aims with, and where an area's uncertainty
+// comes from. Rebuilt from the trace on demand, never stored.
+export {
+  BELIEF_GRID,
+  BELIEF_GRID_STEP,
+  beliefFor,
+  beliefFromTrace,
+  beliefMean,
+  beliefSd,
+  beliefVariance,
+  expectedPosteriorVariance,
+  modelOf,
+  priorBelief,
+  responseProbability,
+  updateBelief,
+} from './posterior';
+export type { Belief, ResponseModel } from './posterior';
+
 // Back-to-back same-type serving. `planNextSelection` is the loop-level contract every caller
 // advances through, so a burst behaves identically in a browser and in the simulation harness.
 export {
@@ -140,6 +158,7 @@ export type {
   BurstPolicy,
   CoreMetricSpec,
   EngineConfig,
+  SelectionRule,
   AreaState,
   SessionState,
 } from './types';

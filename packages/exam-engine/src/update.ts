@@ -1,5 +1,6 @@
-import { DIFFICULTY_MAX, DIFFICULTY_MIN, DIFFICULTY_RANGE } from './config';
+import { DIFFICULTY_MAX, DIFFICULTY_MIN, DIFFICULTY_RANGE, GRADE_BAND_SEED } from './config';
 import { DERIVED_METRIC_IDS } from './derived';
+import { beliefFromTrace, beliefMean, modelOf, updateBelief } from './posterior';
 import { clamp, pushWindow } from './stats';
 import type { Area, AreaState, ItemObservation, ScoredItem, SessionState } from './types';
 
@@ -107,13 +108,40 @@ export function toObservation(scored: ScoredItem): ItemObservation {
   };
 }
 
+/**
+ * The area's new standing estimate after this answer.
+ *
+ * Under `staircase` this is the previous estimate moved by {@link difficultyDelta}. Under `mepv`
+ * it is the mean of the area's belief once this answer has been folded in — the same belief
+ * selection aims with, so the number the engine reports, the number the stop rule watches for
+ * settling, and the number the next item is chosen against are one quantity rather than three that
+ * happen to travel together.
+ */
+function nextDifficulty(
+  prev: AreaState,
+  scored: ScoredItem,
+  config: SessionState['config'],
+  seedDifficulty: number,
+): number {
+  if (config.selectionRule !== 'staircase') {
+    const before = beliefFromTrace(prev, seedDifficulty, config);
+    const after = updateBelief(before, scored.difficulty, scored.score >= 0.5, modelOf(config));
+    return clamp(beliefMean(after), DIFFICULTY_MIN, DIFFICULTY_MAX);
+  }
+  return clamp(
+    prev.difficulty + difficultyDelta(prev, scored, config),
+    DIFFICULTY_MIN,
+    DIFFICULTY_MAX,
+  );
+}
+
 function nextAreaState(
   prev: AreaState,
   scored: ScoredItem,
   config: SessionState['config'],
+  seedDifficulty: number,
 ): AreaState {
-  const delta = difficultyDelta(prev, scored, config);
-  const difficulty = clamp(prev.difficulty + delta, DIFFICULTY_MIN, DIFFICULTY_MAX);
+  const difficulty = nextDifficulty(prev, scored, config, seedDifficulty);
 
   const metricCounts: Record<string, number> = { ...prev.metricCounts };
   for (const metricId of Object.keys(scored.metrics)) {
@@ -138,13 +166,18 @@ function nextAreaState(
 }
 
 /**
- * Apply a server-scored item to the session state: move the item's area difficulty by
- * `direction × magnitude` (clamped to 1..20), record the item as seen, and update the accuracy /
- * estimate windows and metric counts. Pure — returns a new `SessionState`.
+ * Apply a server-scored item to the session state: move the item's area estimate (by the staircase
+ * step, or to the belief's new mean, per `config.selectionRule`), record the item as seen, and
+ * update the accuracy / estimate windows and metric counts. Pure — returns a new `SessionState`.
  */
 export function update(state: SessionState, scored: ScoredItem): SessionState {
   const area: Area = scored.domain;
-  const updatedArea = nextAreaState(state.areas[area], scored, state.config);
+  const updatedArea = nextAreaState(
+    state.areas[area],
+    scored,
+    state.config,
+    GRADE_BAND_SEED[state.gradeBand],
+  );
 
   return {
     ...state,

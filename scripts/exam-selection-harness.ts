@@ -33,6 +33,8 @@ import {
   type BurstPlan,
   type EngineConfig,
   type QuestionType,
+  type ScoredItem,
+  type SessionState,
 } from '../packages/exam-engine/src';
 import {
   loadRealBanks,
@@ -164,6 +166,17 @@ export interface SessionShape {
   readonly screens: number;
   readonly longestBurst: number;
   readonly stop: StopVerdict;
+  /**
+   * The state the session stopped in, and the items it stopped on.
+   *
+   * Carried so a caller can score the session as well as shape it. A routing statistic
+   * (which types, how many items) says nothing about whether the estimate that came out is any
+   * good, and a variety change that quietly widened every interval would look like a pure win in
+   * every other field here. `exam-selection-diversity.ts` reads these to report error and
+   * precision beside the diversity columns.
+   */
+  readonly state: SessionState;
+  readonly scored: readonly ScoredItem[];
 }
 
 /**
@@ -178,6 +191,7 @@ export function runSession(real: RealBanks, config: Partial<EngineConfig>, child
   let active: BurstPlan | null = null;
   const served: string[] = [];
   const areas: Area[] = [];
+  const scored: ScoredItem[] = [];
   let longestBurst = 0;
   let exhausted = false;
 
@@ -190,7 +204,7 @@ export function runSession(real: RealBanks, config: Partial<EngineConfig>, child
     active = plan;
     longestBurst = Math.max(longestBurst, plan.length);
     const item = nextItem(state, plan.typeCode, real.banks);
-    const scored = respondProbabilistically(item, real, child.theta, {
+    const answered = respondProbabilistically(item, real, child.theta, {
       slope: 1,
       guessing: 'per-item',
       // The served index carries no option list, so a per-item floor is unavailable here. 1/4 is the
@@ -198,7 +212,8 @@ export function runSession(real: RealBanks, config: Partial<EngineConfig>, child
       fallbackGuessing: 0.25,
       seed: child.seed,
     });
-    state = update(state, scored);
+    state = update(state, answered);
+    scored.push(answered);
     served.push(item.typeCode);
     areas.push(item.domain);
   }
@@ -222,6 +237,8 @@ export function runSession(real: RealBanks, config: Partial<EngineConfig>, child
     areas,
     screens,
     longestBurst,
+    state,
+    scored,
     stop: {
       hitCap: state.itemsServed >= (state.config.hardItemCap || Number.POSITIVE_INFINITY),
       exhausted,

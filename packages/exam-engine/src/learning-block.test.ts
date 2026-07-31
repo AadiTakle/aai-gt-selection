@@ -195,7 +195,18 @@ describe('confound guard: the block starts after the search, on unseen items', (
     // every area and the 'K-1' seed starts near 3, so the trace walks 3, 5, 7, 9, 11, 13, 15 all
     // correct before it brackets. Every point of that rise is the search arriving at a child who
     // did not change. A growth statistic over this trace is reading the algorithm, not the child.
-    const { state } = runSyntheticSession('K-1', FLAT);
+    /*
+     * Pinned to the staircase, because the staircase is the rule whose walk this documents.
+     *
+     * The confound is real and this test's point stands, but its SIZE is a property of how the
+     * search moves. Under the shipped `mepv` rule the belief reaches a K-1-seeded child of ability
+     * 15 inside the first third of the trace, so the ceiling no longer climbs measurably ACROSS
+     * thirds and this assertion no longer fires — not because the confound is gone, but because
+     * most of the rise now happens before the first third ends. Phase 2 still must not read a
+     * growth statistic over a standing trace; how much of a run-up remains under `mepv` is a Stage
+     * 2 measurement, and this file is Stage 2's.
+     */
+    const { state } = runSyntheticSession('K-1', FLAT, { selectionRule: 'staircase' });
     const trace = state.areas.fluid_reasoning.trace;
     expect(trace.length).toBeGreaterThan(6);
 
