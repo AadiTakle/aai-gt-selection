@@ -1,0 +1,949 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GT Stage 2 Learning-Block Review</title>
+    <!--
+      Sibling of review.html, for the Stage 2 learning block rather than the question-type catalog.
+
+      The page holds NO selection or estimation logic. Everything that decides what to serve and
+      what the block adds up to is imported from the compiled real modules under stage2-build/,
+      which build-stage2-review.mjs produces from packages/exam-engine, packages/exam-scoring and
+      apps/web/src/lib/exam/phase2.ts. The import map below is what lets the app's own phase2
+      module load unchanged: it imports the two packages by name, exactly as it does in the browser.
+
+      Build first, then serve:
+        pnpm stage2:review:build
+        python3 research/exam-question-types/serve-review.py 4300
+        open http://127.0.0.1:4300/stage2-review.html
+    -->
+    <script type="importmap">
+      {
+        "imports": {
+          "@gt-selection/exam-engine": "./stage2-build/engine/packages/exam-engine/src/index.js",
+          "@gt-selection/exam-scoring": "./stage2-build/engine/packages/exam-scoring/src/index.js",
+          "node:fs": "./stage2-node-shim.js",
+          "node:path": "./stage2-node-shim.js",
+          "node:url": "./stage2-node-shim.js"
+        }
+      }
+    </script>
+    <script>
+      // `stage2-inspectors/opchain.js` imports the figure algebra from the generator that wrote
+      // the bank, rather than restating it. That generator is also the bank-writing CLI, so it
+      // reads `process.argv` at module scope to decide whether it was run directly. An empty stub
+      // makes that check false in the browser; see stage2-node-shim.js for the whole trade-off.
+      globalThis.process ??= { argv: [], env: {} };
+    </script>
+    <style>
+      :root {
+        --navy: #0f2742;
+        --navy-2: #1b3a5b;
+        --gold: #f2b705;
+        --paper: #faf7f0;
+        --ink: #12202e;
+        --muted: #5a6b7b;
+        --line: #dfe3e8;
+        --ok: #1f8a4c;
+        --warn: #b45309;
+        --bad: #b91c1c;
+        --card: #ffffff;
+        --consistent: #1d4ed8;
+        --control: #c2410c;
+        --mono: ui-monospace, Menlo, Monaco, 'Cascadia Mono', monospace;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        color: var(--ink);
+        background: var(--paper);
+        font-size: 14px;
+      }
+      header.topbar {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        background: var(--navy);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 9px 16px;
+        border-bottom: 3px solid var(--gold);
+        flex-wrap: wrap;
+      }
+      .topbar h1 {
+        font-size: 15px;
+        margin: 0;
+        font-weight: 650;
+        letter-spacing: 0.2px;
+      }
+      .topbar select {
+        background: #17324f;
+        color: #fff;
+        border: 1px solid #37567a;
+        border-radius: 6px;
+        padding: 5px 8px;
+        font-size: 12.5px;
+        font-family: inherit;
+      }
+      .topbar .spacer {
+        flex: 1;
+      }
+      .armswitch {
+        display: flex;
+        border: 1px solid #37567a;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .armswitch button {
+        background: #17324f;
+        color: #cfe0f2;
+        border: 0;
+        padding: 6px 11px;
+        font-size: 12px;
+        font-weight: 650;
+        cursor: pointer;
+        font-family: inherit;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        line-height: 1.25;
+        gap: 1px;
+      }
+      .armswitch button small {
+        font-weight: 500;
+        font-size: 10px;
+        opacity: 0.8;
+      }
+      .armswitch button.on[data-arm='consistent'] {
+        background: var(--consistent);
+        color: #fff;
+      }
+      .armswitch button.on[data-arm='perTrial'] {
+        background: var(--control);
+        color: #fff;
+      }
+      .provchip {
+        font-family: var(--mono);
+        font-size: 10.5px;
+        color: #bcd3ea;
+        background: #17324f;
+        border: 1px solid #37567a;
+        border-radius: 6px;
+        padding: 4px 8px;
+        cursor: pointer;
+      }
+      .provchip.stale {
+        background: #7f1d1d;
+        border-color: #dc2626;
+        color: #fee2e2;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 330px minmax(0, 1fr) 400px;
+        gap: 14px;
+        padding: 14px;
+        align-items: start;
+      }
+      @media (max-width: 1500px) {
+        .layout {
+          grid-template-columns: 320px minmax(0, 1fr);
+        }
+        .col-right {
+          grid-column: 1 / -1;
+        }
+      }
+      @media (max-width: 1000px) {
+        .layout {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .col-right {
+          grid-column: auto;
+        }
+      }
+      .col {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        min-width: 0;
+      }
+      section.card {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--card);
+        overflow: hidden;
+      }
+      section.card > h2 {
+        margin: 0;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        padding: 9px 12px;
+        border-bottom: 1px solid var(--line);
+        background: #fbfcfd;
+        color: var(--navy-2);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      section.card > h2 .tw {
+        margin-left: auto;
+        font-weight: 400;
+        text-transform: none;
+        letter-spacing: 0;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      section.card > h2.click {
+        cursor: pointer;
+      }
+      section.card .body {
+        padding: 12px;
+        line-height: 1.55;
+      }
+      section.card.collapsed .body {
+        display: none;
+      }
+
+      .slider {
+        margin-bottom: 9px;
+      }
+      .slider .lab {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        font-size: 12px;
+        margin-bottom: 2px;
+      }
+      .slider .lab b {
+        font-weight: 600;
+      }
+      .slider .lab .drives {
+        font-size: 10px;
+        font-weight: 700;
+        color: #fff;
+        background: var(--navy-2);
+        border-radius: 20px;
+        padding: 1px 6px;
+      }
+      .slider .lab .val {
+        margin-left: auto;
+        font-family: var(--mono);
+        font-weight: 700;
+        color: var(--navy);
+      }
+      .slider input[type='range'] {
+        width: 100%;
+        accent-color: #0f2742;
+        margin: 0;
+      }
+      .slider.inert .lab b,
+      .slider.inert input {
+        opacity: 0.55;
+      }
+      .cfgrow {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        margin-bottom: 7px;
+      }
+      .cfgrow label {
+        flex: 1;
+        color: var(--muted);
+      }
+      .cfgrow input[type='number'],
+      .cfgrow select {
+        width: 92px;
+        padding: 4px 6px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        font-family: var(--mono);
+        font-size: 12px;
+      }
+      .cfgrow .real {
+        font-size: 10px;
+        color: var(--muted);
+        font-family: var(--mono);
+      }
+      button.primary {
+        background: var(--navy);
+        color: #fff;
+        border: 0;
+        border-radius: 8px;
+        padding: 9px 12px;
+        font-weight: 650;
+        font-size: 13px;
+        cursor: pointer;
+        font-family: inherit;
+        width: 100%;
+      }
+      button.primary:hover {
+        filter: brightness(1.12);
+      }
+      button.ghost {
+        background: #fff;
+        color: var(--navy);
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        padding: 6px 10px;
+        font-size: 12px;
+        cursor: pointer;
+        font-family: inherit;
+      }
+      button.ghost:hover {
+        background: #f4f7fb;
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .btnrow {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-top: 9px;
+      }
+
+      pre.json {
+        font-family: var(--mono);
+        font-size: 10.5px;
+        background: #f8fafc;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        padding: 8px;
+        margin: 6px 0 0;
+        max-height: 190px;
+        overflow: auto;
+        line-height: 1.45;
+      }
+      .note {
+        font-size: 11.5px;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+      .note code,
+      .body code {
+        font-family: var(--mono);
+        font-size: 0.92em;
+        background: #eef1f4;
+        padding: 0 4px;
+        border-radius: 4px;
+      }
+      .warnbox {
+        border-left: 3px solid var(--warn);
+        background: #fffbeb;
+        padding: 8px 10px;
+        border-radius: 0 7px 7px 0;
+        font-size: 11.5px;
+        line-height: 1.5;
+        color: #713f12;
+      }
+      .warnbox b {
+        color: #7c2d12;
+      }
+      .badbox {
+        border-left: 3px solid var(--bad);
+        background: #fef2f2;
+        padding: 8px 10px;
+        border-radius: 0 7px 7px 0;
+        font-size: 11.5px;
+        line-height: 1.5;
+        color: #7f1d1d;
+      }
+
+      /* ---- the trial ---- */
+      .stage {
+        background: #fff;
+      }
+      .stagehead {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 12px;
+        color: var(--muted);
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--line);
+        background: #fbfcfd;
+        flex-wrap: wrap;
+      }
+      .stagehead .pill {
+        font-family: var(--mono);
+        font-size: 11px;
+        background: #eef1f4;
+        border-radius: 20px;
+        padding: 2px 9px;
+        color: var(--navy-2);
+      }
+      .stagehead .pill b {
+        color: var(--navy);
+      }
+      .stagehead .spacer {
+        flex: 1;
+      }
+      .machine {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        padding: 18px 12px 6px;
+      }
+      .figbox {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 5px;
+      }
+      .figbox .cap {
+        font-size: 10.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--muted);
+        font-weight: 600;
+      }
+      .chainrow {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .badge {
+        width: 44px;
+        height: 44px;
+        border: 2px solid var(--navy-2);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #fff;
+      }
+      .badge.step {
+        border-color: var(--muted);
+      }
+      .arrow {
+        color: var(--muted);
+        font-size: 18px;
+      }
+      .options {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+        padding: 4px 12px 16px;
+      }
+      .opt {
+        border: 2px solid var(--line);
+        border-radius: 12px;
+        background: #fff;
+        padding: 6px 6px 3px;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        font-family: inherit;
+      }
+      .opt.right {
+        border-color: var(--ok);
+        background: #f0fdf4;
+      }
+      .opt.wrong {
+        border-color: var(--bad);
+        background: #fef2f2;
+      }
+      .opt:hover {
+        border-color: var(--navy-2);
+        background: #f8fbff;
+      }
+      .opt .k {
+        font-family: var(--mono);
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--muted);
+      }
+      .opt.chosen {
+        border-color: var(--navy);
+        box-shadow: 0 0 0 3px #cfe0f2;
+      }
+      .opt.locked {
+        cursor: default;
+      }
+      .opt.locked:hover {
+        border-color: var(--line);
+        background: #fff;
+      }
+      .reveal {
+        border-top: 1px dashed var(--line);
+        padding: 12px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        background: #fcfdff;
+      }
+      .reveal .msg {
+        font-size: 12.5px;
+        color: var(--muted);
+        max-width: 340px;
+        line-height: 1.5;
+      }
+      iframe.demo {
+        width: 100%;
+        height: 560px;
+        border: 0;
+        display: block;
+        background: #fff;
+      }
+
+      /* ---- chart ---- */
+      .chartwrap {
+        padding: 10px 12px 4px;
+      }
+      svg.chart {
+        width: 100%;
+        height: 210px;
+        display: block;
+      }
+      .legend {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        font-size: 11px;
+        color: var(--muted);
+        padding: 0 12px 10px;
+      }
+      .legend i {
+        display: inline-block;
+        width: 16px;
+        height: 0;
+        border-top-width: 2px;
+        border-top-style: solid;
+        vertical-align: middle;
+        margin-right: 5px;
+      }
+
+      /* ---- trace table ---- */
+      .tablewrap {
+        max-height: 420px;
+        overflow: auto;
+      }
+      table.trace {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 11.5px;
+        font-family: var(--mono);
+      }
+      table.trace th,
+      table.trace td {
+        border-bottom: 1px solid var(--line);
+        padding: 4px 7px;
+        text-align: right;
+        white-space: nowrap;
+      }
+      table.trace th {
+        position: sticky;
+        top: 0;
+        background: #f4f7fb;
+        font-weight: 600;
+        text-align: right;
+        z-index: 2;
+        font-family: 'Inter', sans-serif;
+        font-size: 10.5px;
+      }
+      table.trace th:first-child,
+      table.trace td:first-child,
+      table.trace th.l,
+      table.trace td.l {
+        text-align: left;
+      }
+      table.trace tr.hit td {
+        background: #f0fdf4;
+      }
+      table.trace tr.miss td {
+        background: #fef7f7;
+      }
+      table.trace td.up {
+        color: var(--ok);
+      }
+      table.trace td.dn {
+        color: var(--bad);
+      }
+      .zero {
+        color: var(--warn);
+        font-weight: 700;
+      }
+
+      /* ---- readout ---- */
+      .readout .band {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--warn);
+        font-family: var(--mono);
+      }
+      .interval {
+        margin: 10px 0 4px;
+        position: relative;
+        height: 34px;
+      }
+      .interval .axis {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 17px;
+        height: 1px;
+        background: var(--line);
+      }
+      .interval .zeroline {
+        position: absolute;
+        top: 4px;
+        bottom: 10px;
+        width: 2px;
+        background: var(--navy-2);
+      }
+      .interval .bar {
+        position: absolute;
+        top: 12px;
+        height: 11px;
+        border-radius: 6px;
+        opacity: 0.85;
+      }
+      .interval .pt {
+        position: absolute;
+        top: 9px;
+        width: 3px;
+        height: 17px;
+        background: #111;
+      }
+      .interval .tick {
+        position: absolute;
+        top: 20px;
+        font-size: 9.5px;
+        color: var(--muted);
+        font-family: var(--mono);
+        transform: translateX(-50%);
+      }
+
+      /* ---- comparison ---- */
+      table.cmp {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+      table.cmp th,
+      table.cmp td {
+        border: 1px solid var(--line);
+        padding: 5px 7px;
+        text-align: left;
+        vertical-align: top;
+      }
+      table.cmp th {
+        background: #f4f7fb;
+        font-weight: 600;
+        font-size: 11px;
+      }
+      table.cmp td.num {
+        font-family: var(--mono);
+        text-align: right;
+      }
+      table.cmp .armA {
+        color: var(--consistent);
+        font-weight: 700;
+      }
+      table.cmp .armB {
+        color: var(--control);
+        font-weight: 700;
+      }
+      .verdict {
+        margin-top: 10px;
+        font-size: 12.5px;
+        line-height: 1.55;
+        border-left: 3px solid var(--navy-2);
+        background: #f4f7fb;
+        padding: 9px 11px;
+        border-radius: 0 7px 7px 0;
+      }
+
+      /* ---- philosophy ---- */
+      .phil h3 {
+        font-size: 13px;
+        margin: 14px 0 4px;
+        color: var(--navy);
+      }
+      .phil h3:first-child {
+        margin-top: 0;
+      }
+      .phil p {
+        margin: 0 0 6px;
+        font-size: 13px;
+        line-height: 1.62;
+        max-width: 74ch;
+      }
+      .phil .lead {
+        font-size: 13.5px;
+        border-left: 3px solid var(--gold);
+        padding: 2px 0 2px 11px;
+        color: var(--navy-2);
+      }
+      .ladder {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin: 6px 0 8px;
+      }
+      .ladder .rung {
+        flex: 1 1 150px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 7px 9px;
+        font-size: 11.5px;
+        line-height: 1.45;
+        background: #fbfcfd;
+      }
+      .ladder .rung b {
+        display: block;
+        font-family: var(--mono);
+        font-size: 10.5px;
+        color: var(--navy-2);
+        margin-bottom: 2px;
+      }
+      .armcols {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin: 8px 0;
+      }
+      @media (max-width: 700px) {
+        .armcols {
+          grid-template-columns: 1fr;
+        }
+      }
+      .armcol {
+        border: 1px solid var(--line);
+        border-top-width: 3px;
+        border-radius: 3px 3px 8px 8px;
+        padding: 9px 11px;
+        font-size: 12px;
+        line-height: 1.55;
+      }
+      .armcol.a {
+        border-top-color: var(--consistent);
+      }
+      .armcol.b {
+        border-top-color: var(--control);
+      }
+      .armcol h4 {
+        margin: 0 0 4px;
+        font-size: 12px;
+        font-family: var(--mono);
+      }
+      .armcol.a h4 {
+        color: var(--consistent);
+      }
+      .armcol.b h4 {
+        color: var(--control);
+      }
+
+      /* ---- type cards ---- */
+      .typecard {
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        padding: 11px 13px;
+        margin-bottom: 10px;
+        background: #fff;
+      }
+      .typecard .hd {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin-bottom: 5px;
+        flex-wrap: wrap;
+      }
+      .typecard .hd b {
+        font-family: var(--mono);
+        font-size: 13px;
+      }
+      .typecard .hd .nm {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .status {
+        font-size: 10px;
+        font-weight: 700;
+        border-radius: 20px;
+        padding: 2px 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+      }
+      .status.built {
+        background: #dcfce7;
+        color: #14532d;
+      }
+      .status.designed {
+        background: #f1f5f9;
+        color: #475569;
+        border: 1px dashed #94a3b8;
+      }
+      .typecard dl {
+        margin: 0;
+        display: grid;
+        grid-template-columns: 118px minmax(0, 1fr);
+        gap: 3px 10px;
+        font-size: 12px;
+        line-height: 1.5;
+      }
+      .typecard dt {
+        color: var(--muted);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        padding-top: 2px;
+      }
+      .typecard dd {
+        margin: 0;
+      }
+      .typecard ul {
+        margin: 0;
+        padding-left: 17px;
+      }
+      .boot {
+        padding: 60px 20px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.7;
+      }
+      .boot code {
+        display: inline-block;
+        font-family: var(--mono);
+        background: #eef1f4;
+        padding: 2px 7px;
+        border-radius: 5px;
+        margin: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>GT Stage 2 — Learning-Block Review</h1>
+      <select id="typeSel" aria-label="Stage 2 question type"></select>
+      <div class="armswitch" id="armSwitch">
+        <button data-arm="consistent" type="button">
+          CONSISTENT<small>system persists — the live arm</small>
+        </button>
+        <button data-arm="perTrial" type="button">
+          SCRAMBLED<small>system redrawn every trial — CONTROL</small>
+        </button>
+      </div>
+      <span class="spacer"></span>
+      <button class="provchip" id="provChip" type="button">real-code build: loading…</button>
+    </header>
+
+    <div id="boot" class="boot">Loading the compiled engine modules…</div>
+
+    <div class="layout" id="layout" hidden>
+      <div class="col col-left">
+        <section class="card">
+          <h2>Stage 1 result, set by hand <span class="tw" id="handoffState"></span></h2>
+          <div class="body">
+            <p class="note" id="abilityIntro"></p>
+            <div id="sliders"></div>
+            <div id="blockCfg"></div>
+            <div class="btnrow">
+              <button class="primary" id="startBtn" type="button">Start the block</button>
+            </div>
+            <div class="btnrow">
+              <button class="ghost" id="autoBtn" type="button">Auto-run to the end</button>
+              <button class="ghost" id="resetBtn" type="button">Discard run</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="card collapsed" id="handoffCard">
+          <h2 class="click">The handoff this wrote <span class="tw">show</span></h2>
+          <div class="body">
+            <p class="note" id="handoffNote"></p>
+            <pre class="json" id="handoffJson">—</pre>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Who is answering</h2>
+          <div class="body">
+            <div id="responderPick"></div>
+            <div id="responderNote"></div>
+          </div>
+        </section>
+
+        <section class="card collapsed" id="peekCard">
+          <h2 class="click">The hidden system <span class="tw">show</span></h2>
+          <div class="body">
+            <div class="warnbox">
+              <b>Reading this is peeking.</b> The badge-to-transform mapping is what the child has to
+              induce, and in the product it never leaves the server. Turning it on tells you what the
+              item means; it also makes your own two-arm comparison meaningless, because you can then
+              answer the scrambled arm as easily as the consistent one.
+            </div>
+            <div class="btnrow">
+              <button class="ghost" id="peekBtn" type="button">Reveal the mapping for this item</button>
+            </div>
+            <div id="peekBody"></div>
+          </div>
+        </section>
+      </div>
+
+      <div class="col col-mid">
+        <section class="card stage" id="stageCard">
+          <div class="stagehead" id="stageHead"></div>
+          <div id="stageBody"></div>
+        </section>
+
+        <section class="card">
+          <h2>
+            Bracketing and re-targeting
+            <span class="tw">what the rule asked for, and what the bank had</span>
+          </h2>
+          <div class="chartwrap"><svg class="chart" id="chart"></svg></div>
+          <div class="legend" id="chartLegend"></div>
+        </section>
+
+        <section class="card">
+          <h2>Trial by trial <span class="tw" id="traceCount"></span></h2>
+          <div class="tablewrap"><table class="trace" id="traceTable"></table></div>
+        </section>
+
+        <section class="card collapsed" id="philCard">
+          <h2 class="click">
+            What this type is trying to do <span class="tw">read this first — about a minute</span>
+          </h2>
+          <div class="body phil" id="philBody"></div>
+        </section>
+
+        <section class="card collapsed" id="setCard">
+          <h2 class="click">The rest of the Stage 2 set <span class="tw">show</span></h2>
+          <div class="body" id="setBody"></div>
+        </section>
+      </div>
+
+      <div class="col col-right">
+        <section class="card">
+          <h2>Where the estimate stands</h2>
+          <div class="body readout" id="readoutBody"></div>
+        </section>
+
+        <section class="card">
+          <h2>Consistent against its control <span class="tw">the acceptance gate</span></h2>
+          <div class="body" id="cmpBody"></div>
+        </section>
+      </div>
+    </div>
+
+    <script type="module" src="stage2-review.js"></script>
+  </body>
+</html>
