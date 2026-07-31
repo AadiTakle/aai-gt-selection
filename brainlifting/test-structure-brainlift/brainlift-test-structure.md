@@ -247,6 +247,313 @@ This tree maps how the *structure* of a K–8 adaptive cognitive screen shapes w
         *(Chang & Ansley, 2003, "A Comparative Study of Item Exposure Control Methods in Computerized Adaptive Testing," *Journal of Educational Measurement* 40(1):71–103, DOI 10.1111/j.1745-3984.2003.tb01097.x.)* `T1`
     - **DOK 2 — Summary:** Every exposure-control method buys item security by giving up some measurement precision, with no method dominating and the precision loss largest at extreme ability — exactly where a top-percentile cut sits.
     - **Link to source:** [https://doi.org/10.1002/j.2333-8504.1995.tb01660.x](https://doi.org/10.1002/j.2333-8504.1995.tb01660.x) | [https://doi.org/10.3102/10769986023001057](https://doi.org/10.3102/10769986023001057) | [https://doi.org/10.1111/j.1745-3984.1998.tb00541.x](https://doi.org/10.1111/j.1745-3984.1998.tb00541.x) | [https://doi.org/10.3102/10769986029003273](https://doi.org/10.3102/10769986029003273) | [https://doi.org/10.1111/j.1745-3984.2003.tb01097.x](https://doi.org/10.1111/j.1745-3984.2003.tb01097.x)
+- **Subcategory 1.6: Bayesian item selection: Owen's sequential procedure and minimum expected posterior variance (MEPV)**
+  - **Source:** Owen (1975); van der Linden (1998)
+    - **DOK 1 — Facts:**
+      - **Owen (1975)** originated the Bayesian line: an approximate empirical Bayes procedure for a
+        three-parameter **normal-ogive** model that replaces the true posterior with **a normal
+        approximation having the same mean and variance**, selects item *k* to satisfy
+        **|bₖ − E(θ | u₁,…,uₖ₋₁)| < δ** for a small δ (i.e., difficulty closest to the **EAP**
+        estimate), and **stops as soon as the posterior variance falls below a prespecified threshold**.
+        *(Owen, 1975, "A Bayesian Sequential Procedure for Quantal Response in the Context of Adaptive Mental Testing," *Journal of the American Statistical Association* 70(350):351–356, DOI 10.1080/01621459.1975.10479871; procedure as described in van der Linden, 1998, DOI 10.1007/BF02294775.)* `T1` `[UNVERIFIED: 1975 original not directly resolved this session; description taken from van der Linden's (1998) account]`
+      - **Owen also proposed the stronger criterion in the same paper** — "minimization of the
+        **preposterior risk under a quadratic loss function**," which "selects the item that **minimizes
+        the expected posterior variance**" — but it was "computationally … more involved" than the
+        δ-rule, "and for this reason the latter became widely popular as Owen's procedure of adaptive
+        testing." *(van der Linden, 1998, describing Owen, 1975, DOI 10.1007/BF02294775.)* `T1`
+      - **MEPV, formally.** Selecting the *k*th item, weight the **posterior variance of θ after each
+        possible response** by that response's **posterior predictive probability** and take the item
+        minimising the sum, writing **u** for the responses already given to the first *k*−1 items:
+        **iₖ = minⱼ { p(Uⱼ=0 | u)·Var(θ | u, Uⱼ=0) +
+        p(Uⱼ=1 | u)·Var(θ | u, Uⱼ=1) }**. It is thus a **preposterior** rule: it scores an item by the
+        uncertainty that will remain *after* the answer, not by information at a point.
+        *(van der Linden, 1998, eq. 15, DOI 10.1007/BF02294775.)* `T1`
+      - **Why the posterior variance rather than the information.** "Though the use of information
+        measures for item selection is a well-established practice in IRT, **the reciprocal of the
+        information measure is only a large-sample approximation to the true variance of the
+        posterior**"; MEPV is therefore "**a small-sample alternative**" — i.e., it is specifically the
+        criterion that stays correct while the ability estimate is still poor. *(van der Linden, 1998,
+        DOI 10.1007/BF02294775.)* `T1`
+      - MEPV sits in a family of true-posterior criteria proposed in the same paper — **maximum
+        posterior-weighted information (MPWI)**, **maximum expected information (MEI)**, MEPV, and
+        **maximum expected posterior-weighted information (MEPWI)** — of which MEI, MEPV and MEPWI are the
+        ones that use the **posterior predictive distribution of the next response**. *(van der Linden,
+        1998, DOI 10.1007/BF02294775.)* `T1`
+      - **The criterion self-destructs as the test lengthens.** Asymptotically the Bayesian criteria
+        "lead to the selection of the same items as the maximum-information criterion," and for MEPV
+        specifically "both posterior variances converge to the reciprocal of Fisher's information"; hence
+        "the choice of a Bayesian item selection criterion in adaptive testing **is not expected to lead
+        to improved ability estimation … for long tests**." *(van der Linden, 1998, DOI 10.1007/BF02294775.)* `T1`
+      - **Computation is a real cost, not a rounding error.** The four Bayesian criteria each required
+        **1.0–1.5 seconds per item selection** on the study's hardware (a Pentium 133 PC); MEPV requires
+        re-estimating the full posterior twice per candidate item at every step. *(van der Linden, 1998,
+        DOI 10.1007/BF02294775.)* `T1` `[dated hardware; the transferable fact is the per-item cost relative to MFI, not the seconds]`
+    - **DOK 2 — Summary:** MEPV picks the item that minimises the posterior variance expected *after* the response — originating with Owen (1975) and formalised by van der Linden (1998) — and its stated justification is precisely that Fisher information is only a large-sample approximation to that variance, so MEPV is the small-sample criterion that stays correct early and provably converges to maximum-information selection late.
+    - **Link to source:** [https://doi.org/10.1080/01621459.1975.10479871](https://doi.org/10.1080/01621459.1975.10479871) | [https://doi.org/10.1007/BF02294775](https://doi.org/10.1007/BF02294775)
+- **Subcategory 1.7: Weighted-information and Kullback–Leibler criteria: why maximum-information selection is unstable early**
+  - **Source:** Veerkamp & Berger (1997); van der Linden (1998); Chang & Ying (1996); Rulison & Loken (2009)
+    - **DOK 1 — Facts:**
+      - The whole weighted family exists because the point estimate is untrustworthy early: "as long as the
+        posterior distribution of the estimator has not yet converged to a single point, it may be
+        **suboptimal to select an item with maximum information at a point estimate ignoring values of the
+        ability parameter with substantial likelihood in its neighborhood**." *(van der Linden, 1998, DOI 10.1007/BF02294775.)* `T1`
+      - **Veerkamp & Berger (1997)** proposed criteria that "take into account **the uncertainty of the
+        ability estimates**" and gave "**a general weighted information criterion of which the usual
+        maximum information criterion and the proposed alternative criteria are special cases**." Their
+        simulation found "the **likelihood weighted information** criterion is a good alternative to the
+        maximum information criterion," and that so is "a maximum information criterion with the maximum
+        likelihood estimator of ability **replaced by the Bayesian expected a posteriori estimator**."
+        *(Veerkamp & Berger, 1997, "Some New Item Selection Criteria for Adaptive Testing," *Journal of Educational and Behavioral Statistics* 22(2):203–226, DOI 10.3102/10769986022002203.)* `T1`
+      - **Each weighting choice has its own failure mode.** For the **interval information** criterion, in
+        the 2-PL "the integral is known to approach the value of the discrimination parameter aⱼ" as the
+        interval widens, so "item selection becomes **independent of the value of the item difficulty
+        parameter bⱼ** — a phenomenon contrary to the well-known importance of the difficulty parameter."
+        **Likelihood weighting** improves on this, "but for the first few items the likelihood function is
+        still relatively flat and item selection **may capitalize again on large values of aⱼ independent
+        of the value of bⱼ**"; posterior weighting is described as "the only way out." *(van der Linden,
+        1998, DOI 10.1007/BF02294775.)* `T1` — the "capitalize on high-a items" failure is the same
+        mechanism a-stratification counteracts (**1.2**) and the reason exposure skews (**1.5**).
+      - **Kullback–Leibler / global information** (Chang & Ying, 1996) belongs to this family as the
+        non-Fisher way of averaging discriminating power over a region rather than at a point; its
+        derivation and short-test result are owned by **1.2** and are not re-derived here. *(Chang & Ying, 1996, DOI 10.1177/014662169602000303.)* `T1` — cross-ref **1.2**.
+      - **The concrete damage from early mis-targeting, at the top of the scale.** In a CAT, "**early
+        mistakes by high-ability students can lead to considerable underestimation, even in tests with 45
+        items**," and the error is **asymmetric**: "the opposite response pattern, where low-ability
+        students start with lucky guesses, leads to **much less bias**." Using a four-parameter model
+        (Barton & Lord) plus "**a less informative prior** can lower bias and root mean square error … for
+        high-ability students with a poor start," and the 4PM "slightly outperform[ed] a CAT in which less
+        discriminating items are initially used." *(Rulison & Loken, 2009, "I've Fallen and I Can't Get Up: Can High-Ability Students Recover From Early Mistakes in CAT?" *Applied Psychological Measurement* 33(2):83–101, DOI 10.1177/0146621608324023.)* `T1` `[simulation; directly on the high-ability tail]`
+    - **DOK 2 — Summary:** Likelihood-weighted, posterior-weighted and Kullback–Leibler criteria all exist because maximum-information selection trusts a point estimate that is unreliable early, and the cost of getting that early window wrong is asymmetric and largest for high-ability examinees, who can stay substantially underestimated 45 items later.
+    - **Link to source:** [https://doi.org/10.3102/10769986022002203](https://doi.org/10.3102/10769986022002203) | [https://doi.org/10.1007/BF02294775](https://doi.org/10.1007/BF02294775) | [https://doi.org/10.1177/014662169602000303](https://doi.org/10.1177/014662169602000303) | [https://doi.org/10.1177/0146621608324023](https://doi.org/10.1177/0146621608324023)
+- **Subcategory 1.8: Empirical comparisons of selection criteria: does the sophistication actually pay?**
+  - **Source:** van der Linden (1998); Chen, Ankenmann & Chang (2000); Choi & Swartz (2009); Thompson (2009)
+    - **DOK 1 — Facts:**
+      - **The originating simulation is favourable to MEPV.** On a 300-item 2-PL pool
+        (a ~ U(0.5, 1.5), b ~ U(−4, 4)), test lengths n = 5/10/20/30, 250 replications per θ: "for all test
+        lengths **the maximum information criterion had the worst MSE function**, followed by the maximum
+        posterior-weighted information criterion"; "**the differences among the MSE functions for these
+        three criteria [MEI, MEPV, MEPWI] were always negligible**"; and "**even after 30 items**, the MSE
+        functions for [the] first two and last three criteria still **differed by a factor equal to 2**."
+        *(van der Linden, 1998, DOI 10.1007/BF02294775.)* `T1`
+      - **A design caveat on that comparison.** In the same study the maximum-information arm used
+        "θ ~ U(−4.0, 4.0) as prior" (which, combined with MAP estimation, "yields an MLE for θ"), while the
+        four Bayesian arms used an **informative empirical normal prior** derived from a background
+        variable; criterion and prior are therefore **not fully separated** in the reported gap.
+        *(van der Linden, 1998, procedures 1–5 and standard setup, DOI 10.1007/BF02294775.)* `T1`
+        `[INFERENCE: the confound is read off the stated design, not claimed by the author]`
+      - **Independent replication finds the advantage small and short-lived.** Comparing five rules —
+        Fisher information (FI), Fisher interval information, Fisher information with a posterior, KL, and
+        KL with a posterior — the four alternatives "**performed marginally better than FI at the early
+        stages of CAT for θ = −3 and −2**," but "**for tests longer than 10 items, there appeared to be no
+        precision advantage for any of the selection rules**." *(Chen, Ankenmann & Chang, 2000, "A Comparison of Item Selection Rules at the Early Stages of Computerized Adaptive Testing," *Applied Psychological Measurement* 24(3):241–255, DOI 10.1177/01466210022031705.)* `T1`
+      - **A systematic six-criterion comparison finds no practical benefit.** "The results showed **no clear
+        benefit from more sophisticated selection criteria**," and MEPWI — "previously believed to be
+        superior" — was shown to be **mathematically equivalent to the simpler MPWI**. The authors conclude
+        that "more complex and computing-intensive item selection procedures … with theoretical advantages
+        **do not seem to provide practical benefits over the standard maximum information criterion in
+        conjunction with the EAP**," and that "**the MFI using the EAP theta estimation was very
+        competitive** (although the MEPV method would be preferred from the Bayesian perspective)."
+        *(Choi & Swartz, 2009, "Comparison of CAT Item Selection Criteria for Polytomous Items," *Applied Psychological Measurement* 33(6):419–440, DOI 10.1177/0146621608327801.)* `T1` `[ADJACENT: polytomous graded-response banks of 30–60 items, health/psychology outcomes, not a dichotomous K–8 reasoning bank]`
+      - **What the gain is actually attributable to.** The same authors argue that "**selecting an item
+        based on summarizing the information for a range of theta values** (i.e., using a weight function
+        such as the posterior distribution) as opposed to the information at a single point … **might be
+        all that is necessary to achieve the performance gain**, and predicting the next observation using
+        the predictive posterior distribution **may not be necessary**" — consistent with Veerkamp &
+        Berger's finding that MFI evaluated at the EAP performs like the weighted criteria.
+        *(Choi & Swartz, 2009, DOI 10.1177/0146621608327801; Veerkamp & Berger, 1997, DOI 10.3102/10769986022002203.)* `T1`
+      - Reviews of the classification case reach the same verdict — "**no conclusive evidence on the
+        substantial superiority of a single method**," with several methods that "assess items very
+        similarly … and will usually select the same item." *(Thompson, 2009, DOI 10.1177/0013164408324460.)* `T1` `[COI: vendor-affiliated]` — full treatment in **1.3**.
+      - `[gap]` These comparisons are run **unconstrained**; a caution in this literature is that
+        differences between selection procedures "will probably be smaller" once exposure control and
+        complex content balancing are added. *(Spray & Reckase, 1994, ED372078.)* `T4` `[conference paper]` —
+        interaction with exposure control belongs to **1.5**; the only claim extracted here is that it
+        **shrinks** criterion differences.
+    - **DOK 2 — Summary:** MEPV's advantage over maximum Fisher information is real but modest and concentrated where the ability estimate is poor — the originating simulation reports a factor-of-two MSE gap (with prior and criterion partly confounded), while independent replications find no precision advantage past about ten items and no practical benefit over maximum information evaluated at the EAP, at a real per-item computational cost.
+    - **Link to source:** [https://doi.org/10.1007/BF02294775](https://doi.org/10.1007/BF02294775) | [https://doi.org/10.1177/01466210022031705](https://doi.org/10.1177/01466210022031705) | [https://doi.org/10.1177/0146621608327801](https://doi.org/10.1177/0146621608327801) | [https://doi.org/10.1177/0013164408324460](https://doi.org/10.1177/0013164408324460)
+- **Subcategory 1.9: Selecting for a classification decision at a cut vs. selecting to estimate ability**
+  - **Source:** Spray & Reckase (1994); Huebner (2012); Weissman (2007); Eggen (1999); Thompson (2009)
+    - **DOK 1 — Facts:**
+      - **The two objectives are formally different problems.** Adaptive tests "seek to **estimate an
+        examinee's ability parameter as accurately and precisely as possible, as opposed to categorizing
+        the examinee**," and "the difference in the aims … lead to differences in how the two types of
+        tests are delivered" — in both the **item-selection rule** and the **termination rule**.
+        *(Huebner, 2012, "Item Overexposure in Computerized Classification Tests Using Sequential Item Selection," *Practical Assessment, Research & Evaluation* 17(12).)* `T4` `[open-access peer-reviewed e-journal; corroborative]`
+      - **The core result: when the objective is a decision, the optimal item sits at the cut, not at the
+        examinee.** "Results … provide very clear evidence that **selecting items to maximize information
+        at the decision point results in shorter average test lengths than selecting items to maximize
+        information either at true ability (which is impossible) or the most recent ability estimate**."
+        *(Spray & Reckase, 1994, "The Selection of Test Items for Decision Making with a Computer Adaptive Test," NCME annual meeting, ERIC ED372078.)* `T4` `[conference paper; the peer-reviewed companion comparing SPRT to sequential Bayes is Spray & Reckase, 1996, in **1.3**]`
+      - **A worked Rasch illustration of why.** With the cut at θ₀ = 0.0 and an examinee at θ = 1.0,
+        testing H₀ at α = .05 needs **n = 3.78 items** when items are selected at the cut (b = 0.0, where
+        the examinee's success probability is .73 against a null of .50) but **n = 4.26 items** when items
+        are selected at the examinee's own ability (b = 1.0, where success is .50 against a null of .27) —
+        matching the examinee **flattens the very contrast the decision rests on**. *(Spray & Reckase, 1994, ED372078.)* `T4`
+      - **The gap widens exactly where a selective cut sits.** "When the **decision points are high
+        relative to the prior distribution, or for high ability examinees**, the differences in average
+        test length for the alternative item selection methods can be **quite dramatic** … This finding may
+        be quite important when certification or licensure standards are fairly high, **or selection
+        criteria are rigorous**." *(Spray & Reckase, 1994, ED372078.)* `T4` `[ADJACENT: college-placement item pool, pass/fail cuts; not a top-percentile K–8 cut]`
+      - **The documented exception runs through the guessing floor.** The advantage of cut-based selection
+        reverses "for very low ability examinees **when a model with nonzero lower asymptotes is used**";
+        below about **θ = −1.5**, "selecting at the estimated ability may save one or two items," because
+        cut-targeted items are so hard for those examinees that "the noise induced by the c parameter has a
+        prominent effect." *(Spray & Reckase, 1994, ED372078.)* `T4` — see **1.10**.
+      - **What cut-based selection costs.** It is barely adaptive to the person: "**all examinees start
+        with the same items** (unless some sort of exposure control is used) and **the only adaptation that
+        takes place is in the length of the test**." Consequently it forfeits the **inherent exposure
+        control** that ability-matched selection provides — under ability matching "it is likely that a
+        given pair of examinees will not have seen the same exact set of items," whereas under cut-based
+        selection "it is **guaranteed that every examinee will see the most informative items in the
+        pool**," so "the problem of item overexposure is **exacerbated**." *(Spray & Reckase, 1994, ED372078; Huebner, 2012, *PARE* 17(12).)* `T4` — exposure *mechanics* owned by **1.5**.
+      - **What estimation-based selection costs.** It buys a θ estimate that is good across the scale at the
+        price of more items to reach the same decision accuracy (above); conversely, cut-based selection
+        concentrates precision at the cut, so the resulting θ is **not a general-purpose ability score away
+        from the cut** — the two objectives are traded, not jointly optimised. `[INFERENCE]` — follows from
+        Spray & Reckase (1994) plus the definition of the information function; no located source
+        quantifies the off-cut precision loss for a top-percentile screener `[gap]`.
+      - **Inside the classification problem the criterion ranking changes again.** For a four-category
+        adaptive classification test, "**mutual information (MI) item selection classifies the highest
+        proportion of examinees correctly and yields the shortest test lengths**. The next best performance
+        is observed for **FIP** [posterior-weighted Fisher] item selection, followed by **FI**."
+        *(Weissman, 2007, "Mutual Information Item Selection in Adaptive Classification Testing," *Educational and Psychological Measurement* 67(1):41–58, DOI 10.1177/0013164406288164.)* `T1` — consistent with
+        Kullback–Leibler selection performing "better than or as well as" Fisher-based selection under the
+        SPRT (Eggen, 1999, **1.3**).
+      - **Counterweight.** Cut-based selection is not automatically best: "the efficiency of item selection
+        approaches **depend on the termination criteria**," and "**item selection at the cut score, which
+        seems conceptually appropriate for CCT, is not always the most efficient option**."
+        *(Thompson, 2009, DOI 10.1177/0013164408324460.)* `T1` `[COI: vendor-affiliated]` — full treatment in **1.3**.
+    - **DOK 2 — Summary:** When the objective is a classification at a cut rather than a score, the optimal item is located at the cut and not at the examinee — an advantage that is largest precisely for high, selective cuts — but cut-based selection buys that shorter test by giving up person-level adaptation, the inherent exposure control that ability matching provides, and precision in the ability estimate away from the cut.
+    - **Link to source:** [https://files.eric.ed.gov/fulltext/ED372078.pdf](https://files.eric.ed.gov/fulltext/ED372078.pdf) | [https://openpublishing.library.umass.edu/pare/article/1344/](https://openpublishing.library.umass.edu/pare/article/1344/) | [https://doi.org/10.1177/0013164406288164](https://doi.org/10.1177/0013164406288164) | [https://doi.org/10.1177/0013164408324460](https://doi.org/10.1177/0013164408324460)
+- **Subcategory 1.10: The guessing floor moves the information-optimal success rate above 50%**
+  - **Source:** Birnbaum (1968) / Lord (1980); Magis (2013); Eggen & Verschoor (2006)
+    - **DOK 1 — Facts:**
+      - **Under 1-PL/2-PL, the information-optimal item is the coin-flip item.** With c = 0 the item
+        information function "is maximized whenever x = 0.5, implying that θ = b is the optimal ability
+        level." *(Magis, 2013, "A Note on the Item Information Function of the Four-Parameter Logistic Model," *Applied Psychological Measurement* 37(4):304–315, DOI 10.1177/0146621613475471.)* `T1`
+      - **Under a non-zero lower asymptote it is not.** For the 3-PL, maximising information in P-space
+        requires the roots of **p(x) = −2x² + x + c**, which "are equal to **0.25 ± √(1+8c)/4**"; the
+        relevant (positive) root "**belongs to (0.5; 1)**". Equivalently, the optimal success probability
+        is **P\* = (1 + √(1 + 8c)) / 4**, and the optimal ability is
+        **θ\* = b + (1/a)·log[(1 + √(1 + 8c)) / 2]**. *(Magis, 2013, eqs. 21–23, DOI 10.1177/0146621613475471.)* `T1`
+      - **The derivation is Birnbaum's, restated by Lord.** "With the 3PL model, the solution was provided
+        by **Birnbaum (1968; see also Lord, 1980)**"; Magis's algebra "corresponds exactly to the result
+        provided by Lord (1980)." *(Magis, 2013, DOI 10.1177/0146621613475471, citing Birnbaum, 1968, in Lord & Novick, *Statistical Theories of Mental Test Scores*, and Lord, 1980, *Applications of Item Response Theory to Practical Testing Problems*.)* `T1` (Magis) / `T2` (Birnbaum; Lord) `[UNVERIFIED: Birnbaum/Lord pages not directly resolved this session; the derivation is independently reproduced in Magis (2013)]`
+      - **What it means for five-option items.** At **c = 0.20** (a five-option item guessed at chance),
+        **P\* ≈ 0.653** — the information-maximising item is one the child gets right about **65%** of the
+        time, not 50% — and the optimal difficulty sits **≈ 0.27/a logits below** the child's ability. For
+        four options (c = 0.25), **P\* ≈ 0.683**. *(Values computed directly from P\* = (1 + √(1 + 8c))/4 as given in Magis, 2013, DOI 10.1177/0146621613475471.)* `T1` `[arithmetic from the cited formula, not a separately reported statistic]`
+      - **Caveats on transferring the number.** Estimated c is frequently **below** the reciprocal of the
+        number of options, so 0.653 is an upper anchor rather than a design constant; and if an **upper
+        asymptote** (inattention) is modelled, the optimum moves again and no longer has the closed 3-PL
+        form. *(Magis, 2013, deriving the 4-PL case, DOI 10.1177/0146621613475471.)* `T1` `[gap]` no located
+        source calibrates c for a K–8 text-only reasoning bank.
+      - **The 3-PL case is explicitly flagged as open in the adjacent literature.** Work on selecting easier
+        or harder items notes that its methods "are **symmetric around the p-50 points** … only true for the
+        1pl and 2pl model. Knowing that **the symmetry disappears**, it is worthwhile investigating the
+        application of the selection method if the 3pl model, including a guessing parameter, is used."
+        *(Eggen & Verschoor, 2006, DOI 10.1177/0146621606288890.)* `T1` — see **1.12**.
+    - **DOK 2 — Summary:** Under a model with a guessing floor the information-maximising item is not the coin-flip item: the optimum sits at P\* = (1 + √(1 + 8c))/4, which for five-option items is about 65% success — so part of the gap between "information-optimal" and "child-tolerable" difficulty closes for free, and the symmetric easier/harder machinery built for 1-PL/2-PL banks no longer applies unchanged.
+    - **Link to source:** [https://doi.org/10.1177/0146621613475471](https://doi.org/10.1177/0146621613475471) | [https://doi.org/10.1177/0146621606288890](https://doi.org/10.1177/0146621606288890)
+- **Subcategory 1.11: Information-optimal difficulty vs. child effort and engagement (evidence on both sides)**
+  - **Source:** Eggen & Verschoor (2006); Ortner, Weißkopf & Koch (2014); Ortner & Caspers (2011); Asseburg & Frey (2013); Martin & Lazendic (2018); Akhtar et al. (2023); Frey, Liu, Fink & König (2024)
+    - **DOK 1 — Facts:**
+      - **The premise is quantified, not rhetorical.** "**Maximum information item selection in CATs using
+        an item bank that is calibrated with the one or the two-parameter logistic model results in each
+        individual answering about 50% of the items correctly.**" *(Eggen & Verschoor, 2006, "Optimal Testing With Easy or Difficult Items in Computerized Adaptive Testing," *Applied Psychological Measurement* 30(5):379–393, DOI 10.1177/0146621606288890.)* `T1`
+      - **Psychometricians themselves raise the child-specific worry.** CAT tests "can be perceived as very
+        difficult for each individual student and this could have possible negative side effects, for
+        example, **enhanced test anxiety and, consequently, possible lower test performance**. This could
+        **especially be the case for tests which are administered in primary and secondary education**,
+        where, traditionally, tests are constructed in such a way that the average student has … a somewhat
+        **higher probability (60 or 70%)** of correctly answering the items." *(Eggen & Verschoor, 2006, DOI 10.1177/0146621606288890; report version, Cito Measurement and Research Department Report 2004-2.)* `T1` — an argued rationale, not an empirical finding.
+      - **Against — adaptive delivery lowered motivation in adolescents.** In 174 students aged 15–21 given
+        either a CAT or a fixed-item version of the same matrices test, "**more situational fear of failure
+        and less subjective probability of success were reported using CAT compared to FIT**"; self-reported
+        **flow did not differ**; and "as average reported motivation was lower during CAT, **results
+        contradict assumptions of enhanced motivation during CAT**." *(Ortner, Weißkopf & Koch, 2014, "I Will Probably Fail: Higher Ability Students' Motivational Experiences During Adaptive Achievement Testing," *European Journal of Psychological Assessment* 30(1):48–56, DOI 10.1027/1015-5759/a000168.)* `T1` `[ADJACENT: ages 15–21, German secondary schools]` `[UNVERIFIED-year: Crossref indexes the issue as 2014; many records cite the 2013 online-first version]`
+      - **Against — the harm is concentrated in anxious test-takers, and is partly an explanation problem.**
+        Testing the hypothesis "that tests containing mainly **items with medium probabilities of being
+        solved** would have negative effects on test performance for testtakers high in test anxiety," a
+        study of 110 students aged 16–20 found "a **significant interaction of test anxiety and test
+        mode**": the effect of test mode on score "was **stronger for students with higher scores on test
+        anxiety**." Notably, "**getting information about CAT led to significantly better results than
+        receiving standard test instructions**." *(Ortner & Caspers, 2011, "Consequences of Test Anxiety on Adaptive Versus Fixed Item Testing," *European Journal of Psychological Assessment* 27(3):157–163, DOI 10.1027/1015-5759/a000062.)* `T1` `[ADJACENT: ages 16–20; n = 110]`
+      - **Against, with a twist — the effort/difficulty relation is linear, not an inverted U.** In
+        **N = 9,452** German ninth-graders (PISA 2006 mathematics), "**ability-difficulty fit was positively
+        linear related with effort and boredom/daydreaming**," and "overall, mean item difficulty exceeded
+        individual ability," so "**low ability students may not show maximum performance** in a sequential
+        achievement test." The same easing that raises effort also raises boredom; no optimum at 50% is
+        observed. *(Asseburg & Frey, 2013, "Too hard, too easy, or just right? The relationship between effort or boredom and ability-difficulty fit," *Psychological Test and Assessment Modeling* 55(1):92–104.)* `T1` `[ADJACENT: ninth-graders; fixed sequential test, not adaptive]`
+      - **For — the largest school-age study found no motivational penalty and a precision gain.** Among
+        **N = 12,736** Australian students in **years 3, 5, 7 and 9**, adaptive (multistage) delivery
+        "generated **lower achievement error rates (i.e., higher measurement precision)**," with positive
+        motivation, engagement and subjective-experience effects "relatively greater for **females and older
+        students**"; the authors state the findings "**counter claims that computer-adaptive testing reduces
+        students' test-relevant motivation, engagement, and subjective experience**." *(Martin & Lazendic, 2018, "Computer-adaptive testing: Implications for students' achievement, motivation, engagement, and subjective test experience," *Journal of Educational Psychology* 110(1):27–45, DOI 10.1037/edu0000205.)* `T1` `[K–8 relevant: years 3–9]` `[ADJACENT: multistage routing vs fixed order — it does not manipulate the success-rate target]`
+      - **For — meta-analysis finds no overall motivational effect of adaptivity either way.** Across 11
+        direct CAT-vs-fixed comparisons, "**no overall effect of test type on anxiety and motivation** …
+        (k = 11, g+ = 0.06, p = .28)"; only "two of the four studies on motivation and four of nine studies
+        on anxiety … supported the benefits of CAT, while one of them showed the opposite result: a decrease
+        in motivation under CAT." *(Akhtar, Silfiasari, Vekety & Kovacs, 2023, "The Effect of Computerized Adaptive Testing on Motivation and Anxiety: A Systematic Review and Meta-Analysis," *Assessment* 30(5):1379–1390, DOI 10.1177/10731911221100995.)* `T1`
+      - **Both at once — but item difficulty is a significant moderator.** A larger meta-analysis
+        (**27 studies, 190 effect sizes**) found "the overall effect of CAT was **not significant for
+        motivation and negative emotion** and significant for positive emotion after publication bias
+        correction," while moderator analysis found a significant effect of "**average difficulty of
+        presented items**" on **negative emotion**; the authors recommend that CAT configurations "avoid
+        speededness, **present easy items**, allow for response revision, and provide feedback."
+        *(Frey, Liu, Fink & König, 2024, "Meta-Analysis of the Effects of Computerized Adaptive Testing on the Motivation and Emotion of Examinees," *European Journal of Psychological Assessment* 40(5):427–443, DOI 10.1027/1015-5759/a000821.)* `T1`
+      - `[gap]` No located study manipulates the **target success probability** and measures effort,
+        rapid-guessing or anxiety in a **K–8 gifted upper-tail** screener. Most of the child-age evidence
+        contrasts *adaptive vs fixed delivery*, which is not the same manipulation; the one located study
+        that varies the success target directly in school-age children is on a general middle-school
+        mathematics assessment (**1.12**), not on a top-percentile reasoning screen.
+    - **DOK 2 — Summary:** The evidence does not resolve the tension: adolescents report more fear of failure and lower success expectancy under adaptive delivery (worst for anxious test-takers), yet the largest school-age study and two meta-analyses find no overall motivational penalty from adaptivity — while both meta-analyses agree that the average difficulty of the items presented is one of the few moderators that does matter.
+    - **Link to source:** [https://doi.org/10.1177/0146621606288890](https://doi.org/10.1177/0146621606288890) | [https://doi.org/10.1027/1015-5759/a000168](https://doi.org/10.1027/1015-5759/a000168) | [https://doi.org/10.1027/1015-5759/a000062](https://doi.org/10.1027/1015-5759/a000062) | [https://www.leibniz-ipn.de/en/research/publications/too-hard-too-easy-or-just-right](https://www.leibniz-ipn.de/en/research/publications/too-hard-too-easy-or-just-right) | [https://doi.org/10.1037/edu0000205](https://doi.org/10.1037/edu0000205) | [https://doi.org/10.1177/10731911221100995](https://doi.org/10.1177/10731911221100995) | [https://doi.org/10.1027/1015-5759/a000821](https://doi.org/10.1027/1015-5759/a000821)
+- **Subcategory 1.12: Compromise designs: targeting a higher success probability, and its measured price**
+  - **Source:** Bergstrom, Lunz & Gershon (1992); Eggen & Verschoor (2006); Ling, Attali, Finn & Stone (2017); Akhtar et al. (2023); Pitkin & Vispoel (2001)
+    - **DOK 1 — Facts:**
+      - **The mechanism.** Rather than selecting maximum information *at* the current ability estimate,
+        select the item with maximum information at a **shifted** ability level; matching on an item's
+        **probability points** (the p-60 or p-70 point) also works but "yields good results **only with the
+        one-parameter logistic model and not with the two-parameter** logistic model," because it ignores
+        the height of the information function. *(Eggen & Verschoor, 2006, DOI 10.1177/0146621606288890; the 1-PL precursor is Bergstrom, Lunz & Gershon, 1992, "Altering the Level of Difficulty in Computer Adaptive Testing," *Applied Measurement in Education* 5(2):137–149, DOI 10.1207/s15324818ame0502_4.)* `T1` `[UNVERIFIED: the 1992 paper is cited here as described by Eggen & Verschoor; original not directly resolved this session]`
+      - **The price, in numbers.** In a large 2-PL bank with a 40-item test, mean standard error and mean
+        percent-correct were: **max-information 0.083 at 50.1%**, **p-60 0.085 at 60.1%**, **p-70 0.091 at
+        70.2%**, **p-80 0.106 at 79.7%**, **p-90 0.143 at 88.9%**, against **random selection 0.145 at
+        50.4%**. Expressed as items needed to match the precision of a 30-item random test: **11 / 12 / 13 /
+        17 / 29** respectively. *(Eggen & Verschoor, 2006, Tables 9–10, DOI 10.1177/0146621606288890.)* `T1` `[UNVERIFIED: table values read from the openly available Cito Measurement and Research Department Report 2004-2 preprint; the published table numbering was not directly resolved this session]`
+      - **The authors' own verdict.** "**For practical purposes, item selection, aiming at percentages
+        correct of 60 or 70 (or 40 or 30), seems to be possible without a large loss in precision**,"
+        whereas "extreme values of the success probabilities are combined with a considerable loss in
+        precision." *(Eggen & Verschoor, 2006, DOI 10.1177/0146621606288890.)* `T1`
+      - **Exposure control makes the compromise more expensive and less accurate.** Adding Sympson–Hetter
+        control at a maximum exposure rate of 0.3 cost "on average … **2 or 3 items**," and "**the
+        discrepancy between the desired and the achieved percentages correct is larger when exposure control
+        is applied**." *(Eggen & Verschoor, 2006, DOI 10.1177/0146621606288890.)* `T1` — exposure mechanics
+        owned by **1.5**; the point retained here is that exposure control **constrains how precisely a
+        success-rate target can be hit at all**.
+      - **The compromise has been tested on children, and it worked — motivationally.** Middle-school
+        students took a mathematics assessment under **fixed, adaptive, or easier-adaptive** conditions:
+        "**the easier adaptive test resulted in higher engagement and lower anxiety than either the adaptive
+        or fixed-item tests**," and "these effects were **not related to ability level**."
+        *(Ling, Attali, Finn & Stone, 2017, "Is a Computerized Adaptive Test More Motivating Than a Fixed-Item Test?" *Applied Psychological Measurement* 41(7):495–511, DOI 10.1177/0146621617707556.)* `T1` `[K–8 relevant: middle school]` `[COI: all four authors Educational Testing Service]`
+      - **But the motivational gain did not convert into a measurement gain.** In the same study, "results
+        showed **little evidence for test type effects**" and "**no significant differences in performance
+        were found across test types**"; the authors raise "the possibility that test experiences in
+        adaptive tests may **not in practice be significantly different** than in fixed-item tests."
+        *(Ling et al., 2017, DOI 10.1177/0146621617707556.)* `T1`
+      - **Meta-analytically, "easier CAT" is the one configuration with a positive effect.** Against an
+        overall null for CAT vs fixed-item testing, "**easier CAT had [a] positive effect compared with FIT
+        (k = 2, g+ = .22, p < .001)**" — and the reviewers note this rests on the small number of studies
+        that compared an easier CAT with a regular CAT. *(Akhtar et al., 2023, DOI 10.1177/10731911221100995.)* `T1` `[k = 2; small evidence base]`
+      - **A related lever, and its trade.** Letting examinees choose difficulty themselves (self-adapted
+        testing) "yielded proficiency estimates that were **0.12 standard deviation units higher** and
+        post-test anxiety levels that were **0.19 standard deviation units lower** than those yielded by
+        CATs," after controlling for measurement error — but self-adapted tests are **less precise and less
+        efficient** than CATs. *(Pitkin & Vispoel, 2001, "Differences Between Self-Adapted and Computerized Adaptive Tests: A Meta-Analysis," *Journal of Educational Measurement* 38(3):235–247, DOI 10.1111/j.1745-3984.2001.tb01125.x.)* `T1` `[ADJACENT: mostly college samples]`
+    - **DOK 2 — Summary:** Targeting a higher success probability is a solved engineering problem with a measured price — about 60–70% correct costs on the order of one or two extra items, and above that the precision loss climbs steeply — and in middle-schoolers an easier adaptive test did raise engagement and lower anxiety, but it produced no better scores, so the compromise is currently evidenced as an experience improvement rather than a measurement one.
+    - **Link to source:** [https://doi.org/10.1207/s15324818ame0502_4](https://doi.org/10.1207/s15324818ame0502_4) | [https://doi.org/10.1177/0146621606288890](https://doi.org/10.1177/0146621606288890) | [https://doi.org/10.1177/0146621617707556](https://doi.org/10.1177/0146621617707556) | [https://doi.org/10.1177/10731911221100995](https://doi.org/10.1177/10731911221100995) | [https://doi.org/10.1111/j.1745-3984.2001.tb01125.x](https://doi.org/10.1111/j.1745-3984.2001.tb01125.x)
 
 ### Category 2: Item ordering, position & context effects
 
