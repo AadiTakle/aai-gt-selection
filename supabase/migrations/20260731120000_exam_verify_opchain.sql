@@ -115,7 +115,7 @@ declare
   v_figure  jsonb;
   v_forient jsonb;
   v_key     text;
-  v_hits    text[] := '{}';
+  v_hits    text[] := '{}'::text[];
   v_expected text;
   v_depth   integer;
   v_kind    text;
@@ -254,7 +254,27 @@ comment on function app.exam_verify_opchain(jsonb, jsonb) is
 reset role;
 
 -- ===================================================================================
--- 3. Registration
+-- 3. Grants: identical posture to every other verifier
+--
+-- Same block 20260725170000 applies to each of its own functions. A verifier answers "is this
+-- response correct" against the server-only key, so any role that can call it can walk the key
+-- out one query at a time — which would route around the anti-leak invariant the generator
+-- enforces on `content`. A new function's ACL is null until something touches it, and a null ACL
+-- means PUBLIC may execute, so the revoke is what does the work here and the grant is what keeps
+-- api.exam_submit_response able to grade.
+-- ===================================================================================
+
+revoke execute on function app.exam_vopchain_orient(integer, integer, integer, integer)
+  from public, anon, authenticated, service_role;
+revoke execute on function app.exam_verify_opchain(jsonb, jsonb)
+  from public, anon, authenticated, service_role;
+
+grant execute on function app.exam_vopchain_orient(integer, integer, integer, integer)
+  to api_executor;
+grant execute on function app.exam_verify_opchain(jsonb, jsonb) to api_executor;
+
+-- ===================================================================================
+-- 4. Registration
 -- ===================================================================================
 
 insert into app.exam_verifier_registry (type_code, verifier_fn, ported_from) values
