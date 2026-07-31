@@ -59,8 +59,22 @@
 // for them, so the honest status of this type is "gate-ready, ungated". It is not wired into the
 // live learning block.
 //
+// WHERE THE TWO BANKS ARE WRITTEN, AND WHY THEY ARE NOT SIBLINGS.
+//
+// `banks/` is the SERVED directory: `apps/web/src/lib/exam/bank-loader.ts` builds every path it
+// reads inside it, and `scripts/sync-exam-demos.mjs` globs it to decide what is wired. So the
+// consistent arm is written there as the plain `banks/FLU-OPCHAIN-01.jsonl` — the live bank — and
+// the scrambled arm is written to `control-banks/`, a directory no application code names.
+//
+// That is a stronger guarantee than a filename convention. Under the previous
+// `<CODE>.<arm>.jsonl` scheme both arms sat in the served directory and were skipped only because
+// no `demos/<CODE>.<arm>.html` existed; adding one would silently have wired the scrambled bank.
+// The research harnesses reach the control arm by naming the directory, which is the only thing
+// that should be able to.
+//
 // Run:  node research/exam-question-types/generators/FLU-OPCHAIN-01.mjs
-//       writes ../banks/FLU-OPCHAIN-01.consistent.jsonl and ../banks/FLU-OPCHAIN-01.perTrial.jsonl
+//       writes ../banks/FLU-OPCHAIN-01.jsonl (consistent, live) and
+//       ../control-banks/FLU-OPCHAIN-01.perTrial.jsonl (scrambled control, never served)
 //       and prints a coverage + equating summary.
 
 import { writeFileSync, mkdirSync } from 'node:fs';
@@ -488,12 +502,52 @@ export function partialRules(chain) {
 }
 
 /**
+ * Every output an attacker can reach WITHOUT the mapping, by relabelling it.
+ *
+ * A mapping is a badge->operator bijection and the badges in a chain are distinct, so guessing the
+ * mapping is exactly guessing an ordered selection of `depth` distinct operators for the chain's
+ * positions — at most 6*5*4*3 = 360 of them. Anything the client can compute, it can compute this
+ * way, so this set IS the client's view of the item.
+ *
+ * WHY THIS EXISTS AS A SECOND ANTI-LEAK INVARIANT. The distance invariant below closes "tap
+ * whichever picture changed most". It does not close the stronger attack: brute-force all 720
+ * mappings, keep the ones whose output is on screen, and if they all point at the SAME option, the
+ * key is determined by `content` and the hidden system was never needed. Measured on the first
+ * version of this bank, that recovered the key on 11 of 234 items (4.7%), every one of them a chain
+ * carrying all three orientation operators — where the D4 product of `turn`, `flip` and `slant`
+ * lands in the same place under several relabellings, so the reorder distractors collapse onto the
+ * key and only the key survives. E-075/E-076 judge derivability from the data, not from who knows
+ * the algorithm, so 4.7% is a leak and not a rounding error.
+ */
+function relabelReachableFigures(chain, input) {
+  const out = new Set();
+  const walk = (position, used, state) => {
+    if (position === chain.length) {
+      out.add(figureKey(state));
+      return;
+    }
+    for (const op of OPERATORS) {
+      if (used.has(op)) continue;
+      used.add(op);
+      walk(position + 1, used, applyOp(op, state));
+      used.delete(op);
+    }
+  };
+  walk(0, new Set(), input);
+  return out;
+}
+
+/**
  * Choose four distractors along the nearness axis at `similarity`.
  *
- * The last clause is the anti-leak invariant and it is not optional: at least
- * one chosen distractor must move as far from the input as the key does, or
- * "tap whichever picture changed the most" would score above chance without any
- * knowledge of the system at all.
+ * Two anti-leak invariants, neither optional, applied after the slate is picked:
+ *
+ *   1. at least one chosen distractor must move as far from the input as the key does, or "tap
+ *      whichever picture changed the most" would score above chance with no knowledge of the
+ *      system; and
+ *   2. at least one chosen distractor must be reachable by relabelling the badges, or a client that
+ *      brute-forces all 720 mappings finds exactly one option consistent with any of them and has
+ *      the key without ever inducing anything (see {@link relabelReachableFigures}).
  */
 function chooseDistractors(chain, input, key, similarity) {
   const rules = partialRules(chain);
@@ -521,6 +575,23 @@ function chooseDistractors(chain, input, key, similarity) {
     const matched = scored.find((c) => c.distance >= keyDistance);
     if (!matched) return null;
     chosen[chosen.length - 1] = matched;
+  }
+
+  // Invariant 2. The substitution swapped in is the FARTHEST from the requested nearness, so the
+  // slate stays as close to the difficulty lever as the constraint allows, and it replaces the
+  // last slot rather than the first so it cannot displace the distance-matched distractor above.
+  const reachable = relabelReachableFigures(chain, input);
+  if (!chosen.some((c) => reachable.has(figureKey(c.output)))) {
+    const alternative = scored.find(
+      (c) => reachable.has(figureKey(c.output)) && !chosen.includes(c),
+    );
+    if (!alternative) return null;
+    let victim = chosen.length - 1;
+    for (let i = 0; i < chosen.length; i++) {
+      if (chosen[i].distance >= keyDistance) continue; // keep invariant 1 satisfied
+      if (chosen[i].cost >= chosen[victim].cost) victim = i;
+    }
+    chosen[victim] = alternative;
   }
   return chosen;
 }
@@ -754,6 +825,16 @@ export function buildBank({ systemPersistence, perRung = 6, systemSeed = 'FLU-OP
 function isMain() {
   return process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url));
 }
+/**
+ * Where each arm's bank file lives. The consistent arm takes the bare code inside the served
+ * directory so the loader and the sync script find it by the ordinary rule; the scrambled arm is
+ * written outside that directory entirely, keeping its arm suffix so a stray copy is recognisable.
+ */
+export const BANK_PATHS = {
+  consistent: '../banks/FLU-OPCHAIN-01.jsonl',
+  perTrial: '../control-banks/FLU-OPCHAIN-01.perTrial.jsonl',
+};
+
 if (isMain()) {
   const perRung = Number(process.env.PER_RUNG || 6);
   const modes = ['consistent', 'perTrial'];
@@ -762,7 +843,7 @@ if (isMain()) {
   for (const mode of modes) {
     const items = buildBank({ systemPersistence: mode, perRung });
     banks[mode] = items;
-    const outPath = resolve(__dirname, `../banks/FLU-OPCHAIN-01.${mode}.jsonl`);
+    const outPath = resolve(__dirname, BANK_PATHS[mode]);
     mkdirSync(dirname(outPath), { recursive: true });
     writeFileSync(outPath, serializeBank(items));
     console.log(`FLU-OPCHAIN-01 (${mode}): ${items.length} items -> ${outPath}`);
@@ -828,7 +909,7 @@ if (isMain()) {
       `perTrial bank uses ${distinctSystems} (one per item)`,
   );
   console.log(
-    '\nNOT GATED. Gate B needs ~128 real children (§4.1.3); no synthetic run substitutes. This is a\n' +
-      'gate-ready type, and it is not wired into the live learning block.',
+    '\nNOT GATED. Gate B needs ~128 real children (§4.1.3); no synthetic run substitutes. The\n' +
+      'consistent arm is the live bank; the scrambled arm lives outside banks/ and is never served.',
   );
 }

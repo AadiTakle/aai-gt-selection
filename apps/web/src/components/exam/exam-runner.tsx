@@ -87,6 +87,18 @@ const READY_FALLBACK_MS = 500; // how long to wait for a demo's `ready` before i
 const RESULTS_KEY = 'gt-exam-results';
 
 /**
+ * How long the machine's own outcome stays on screen before the next block item.
+ *
+ * A learning-block type has to give the child something to induce FROM, and what it gives them is
+ * the mechanism's next visible state rather than a verdict (STAGE2_QUESTION_DESIGN §1.5). That
+ * state has to be legible for long enough to be read; advancing the instant the server answers
+ * would deliver the feedback and hide it in the same frame. It is a fixed pause for every child on
+ * every trial — nothing here is contingent on whether they were right, which is what keeps the
+ * cadence out of the fitted climb.
+ */
+const REVEAL_HOLD_MS = 1600;
+
+/**
  * Phase 1 ends at `done`. The learning block is a SEPARATE activity the family starts themselves
  * (`block-*`), possibly in a later sitting — see `lib/exam/phase2.ts` for why it is handed over
  * rather than continued.
@@ -201,6 +213,14 @@ export function ExamRunner({
   );
 
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  /**
+   * The live postMessage channel to the item on screen.
+   *
+   * Held in a ref because the reveal is sent from `handleResult`, which runs after the server round
+   * trip and outside the effect that owns the channel. It is cleared on dispose, so a late verdict
+   * for an item that has already been torn down posts nothing.
+   */
+  const hostRef = useRef<ExamHost | null>(null);
   const stateRef = useRef<SessionState | null>(null);
   const banksRef = useRef<Banks | null>(null);
   const servedRef = useRef<ServedItem[]>([]);
@@ -467,6 +487,16 @@ export function ExamRunner({
       const score = verdict?.score ?? 0;
       const difficulty = verdict?.difficulty ?? item.difficulty;
 
+      // The machine finishes its action. Only a type that declares a reveal gets one, only for a
+      // committed (never a skipped) trial, and only after the server has graded it — see
+      // `lib/exam/reveal.ts`. The demo draws it as world-state; nothing here says whether the child
+      // was right, and the hold is the same length whatever the outcome was.
+      const reveal = verdict && 'reveal' in verdict ? verdict.reveal : undefined;
+      if (reveal && !skipped) {
+        hostRef.current?.reveal(reveal);
+        await new Promise((resolve) => setTimeout(resolve, REVEAL_HOLD_MS));
+      }
+
       // A block trial goes to the block, and nowhere near the Phase 1 engine state.
       if (inBlockRef.current) {
         const trials = [...blockTrialsRef.current, { difficulty, score }];
@@ -543,6 +573,7 @@ export function ExamRunner({
         telemetryRef.current.push({ ...event, itemId: item.itemId });
       },
     });
+    hostRef.current = host;
 
     function sendInit() {
       if (initiated) return;
@@ -582,6 +613,7 @@ export function ExamRunner({
 
     return () => {
       host.dispose();
+      if (hostRef.current === host) hostRef.current = null;
       iframe.removeEventListener('load', onLoad);
       window.clearTimeout(timeout);
       if (readyFallback !== undefined) window.clearTimeout(readyFallback);

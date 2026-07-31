@@ -3,13 +3,14 @@ import { z } from 'zod';
 import type { ServedItem } from '@gt-selection/exam-engine';
 
 import { injectLegacyBridge } from './legacy-bridge';
+import type { ItemReveal } from './reveal';
 
 /**
  * Host side of the demo-embedding postMessage protocol (BUILD_PLAN §2). The
  * runner talks to each demo iframe ONLY through this channel — it never reads the
  * demo DOM.
  *
- *   host → demo: {type:'init', item:ServedItem}, {type:'start'}
+ *   host → demo: {type:'init', item:ServedItem}, {type:'start'}, {type:'reveal', reveal}
  *   demo → host: {type:'ready'}, {type:'result', result}, {type:'telemetry', event}
  *
  * Every message is source-tagged (`gt-exam-host` / `gt-exam-demo`) and every
@@ -23,7 +24,8 @@ export const DEMO_SOURCE = 'gt-exam-demo' as const;
 
 export type HostMessage =
   | { source: typeof HOST_SOURCE; type: 'init'; item: ServedItem }
-  | { source: typeof HOST_SOURCE; type: 'start'; tutorial?: boolean };
+  | { source: typeof HOST_SOURCE; type: 'start'; tutorial?: boolean }
+  | { source: typeof HOST_SOURCE; type: 'reveal'; reveal: ItemReveal };
 
 /**
  * Inbound result, validated leniently: a demo may omit ids (the runner
@@ -124,6 +126,16 @@ export class ExamHost {
         ? { source: HOST_SOURCE, type: 'start', tutorial: true }
         : { source: HOST_SOURCE, type: 'start' },
     );
+  }
+
+  /**
+   * Hand the demo the outcome its own mechanism produced, AFTER the server has graded a committed
+   * trial. Only a learning-block type asks for one, and only because a block with no observable
+   * outcome has nothing to learn from (STAGE2_QUESTION_DESIGN §1.5). It is never a verdict: see
+   * `lib/exam/reveal.ts`.
+   */
+  reveal(reveal: ItemReveal): void {
+    this.post({ source: HOST_SOURCE, type: 'reveal', reveal });
   }
 
   /**

@@ -45,6 +45,30 @@ import {
 export const LEARNING_BLOCK_AREA: Area = 'fluid_reasoning';
 
 /**
+ * The ONE question type the block administers, or `null` for "any type in the area".
+ *
+ * This is not a preference, it is what makes the block a learning block at all. The measurement
+ * rests on a hidden generative system the child induces across trials that never repeat
+ * (STAGE2_QUESTION_DESIGN §1.2): the item is new every time, so the only thing that can carry
+ * forward is the system, and the system belongs to a type. A block that interleaves types has
+ * nothing persisting across it, and the fitted climb is then a climb through a mixture.
+ *
+ * It is also what makes the scrambled-system control possible. Gate B randomises children between
+ * a block whose system persists and one whose system is re-drawn every trial (§4.1.1); the two arms
+ * are equated on item count, difficulty ladder, feedback form and position in the session, and
+ * "which types were interleaved" is not a variable either arm could hold constant.
+ *
+ * Measured before it was set: on the wired fluid pool the type-agnostic block served
+ * `FLU-OPCHAIN-01` on 4 to 10 of 30 trials depending on standing, mixed with ten other types. Six
+ * scattered exposures cannot teach a six-badge vocabulary, so the block was reading as a general
+ * fluid run with some machine-chain items in it.
+ *
+ * Setting it to `null` restores the previous behaviour, which is the right thing to do if the type
+ * is ever withdrawn: an interleaved block measures something, just not this.
+ */
+export const LEARNING_BLOCK_TYPE: string | null = 'FLU-OPCHAIN-01';
+
+/**
  * Trials in the block. Configurable so the length can be tuned against session time, but 30 is a
  * floor rather than a comfortable target — recovery collapses well before it (E-073), so shortening
  * this mostly buys a number that is always "not enough to tell".
@@ -177,13 +201,18 @@ export function clearLearningBlockHandoff(): void {
   emit();
 }
 
-/** Items in the block's area that Phase 1 never served. */
+/** Items of the block's type, in the block's area, that Phase 1 never served. */
 export function novelBlockPool(
   pool: readonly ServedItem[],
   seenItemIds: readonly string[],
 ): ServedItem[] {
   const seen = new Set(seenItemIds);
-  return pool.filter((item) => item.domain === LEARNING_BLOCK_AREA && !seen.has(item.itemId));
+  return pool.filter(
+    (item) =>
+      item.domain === LEARNING_BLOCK_AREA &&
+      (LEARNING_BLOCK_TYPE === null || item.typeCode === LEARNING_BLOCK_TYPE) &&
+      !seen.has(item.itemId),
+  );
 }
 
 /** Whether a block can run at all: enough unseen items in the area to reach the configured length. */
@@ -234,15 +263,39 @@ export interface LearningBlockReadout {
    * test cannot yet do — never anything about the child.
    */
   readonly reason: string;
+  /**
+   * DIAGNOSTIC ONLY, and never a reportable rate.
+   *
+   * The fit is kept so a cohort can be ranked once one exists, and so the figure is on the record
+   * for the analysis that will run Gate B. It must not be rendered to a family: at this block
+   * length a child who learned nothing fits a positive value too
+   * (`STAGE2_BANK_RECOVERY_MEASUREMENT.md`), so the number carries a floor that cannot be
+   * subtracted for an individual. No child-facing surface reads it, and a test asserts that.
+   */
   readonly lambda: number | null;
   readonly lambdaSe: number | null;
   readonly trialCount: number;
 }
 
+/**
+ * Why this no longer opens with "we can measure the pace".
+ *
+ * It used to, and that sentence is no longer true. `STAGE2_BANK_RECOVERY_MEASUREMENT.md` measured
+ * what this pipeline fits for a cohort that learned NOTHING, against a responder with a real
+ * five-option guessing floor: on the bank purpose-built for this block it still returns a positive
+ * climb, because the adaptive loop reads lucky early successes as ability, aims higher, and then
+ * reads the rising served difficulty as learning. A number that a non-learner also produces is not
+ * a measurement of pace, and a block this length cannot separate the two.
+ *
+ * So the honest statement to a family has two parts, not one: there is no comparison group, AND
+ * the figure itself is not yet reportable on its own. Both are limits of the instrument. Neither
+ * is a statement about the child, and the last sentence says so in as many words.
+ */
 const NO_REFERENCE_REASON =
-  'We can measure the pace, but we cannot yet say whether it is fast or slow. Doing that needs a ' +
-  'comparison group of children who have taken this same block, and we do not have one yet. That ' +
-  'is a limit of how new this test is, not a comment on your child.';
+  'We are not able to report a learning pace for your child yet. Two things are missing: a ' +
+  'comparison group of children who have taken this same practice block, and a version of the ' +
+  'block long enough to tell a real climb apart from the ordinary warm-up any child shows. Those ' +
+  'are limits of how new this test is, not a comment on your child.';
 
 const SHORT_BLOCK_REASON =
   'The practice block was not finished, so there is not enough of it to read a pace from. Nothing ' +

@@ -47,6 +47,16 @@ const VALID_DOMAINS = new Set(['fluid_reasoning', 'verbal', 'quantitative', 'spa
 const VALID_AGE_BANDS = new Set(['K-1', '2-3', '4-5', '6-8', 'above-level']);
 
 /**
+ * The only `systemPersistence` arm a live session may serve.
+ *
+ * A dual-mode Stage 2 generator emits two equated banks and records the arm in each item's
+ * provenance. `consistent` holds one hidden system for the whole bank and is the measurement arm;
+ * anything else is a control condition. Kept in step with `LIVE_SYSTEM_PERSISTENCE` in
+ * `apps/web/src/lib/exam/bank-loader.ts`, which enforces the same rule at load time.
+ */
+const LIVE_SYSTEM_PERSISTENCE = 'consistent';
+
+/**
  * Upstream demo defects patched at copy time.
  *
  * `research/exam-question-types/**` is owned by the bank-generation agents, so we
@@ -311,6 +321,28 @@ function inspectBank(file, typeCode) {
   }
   if (items.some((i) => i.syntheticOnly !== true)) {
     return { error: 'bank has a non born-synthetic item (syntheticOnly must be true)' };
+  }
+
+  // A scrambled-system CONTROL arm must never be wired. Its hidden system is re-drawn every item,
+  // so nothing is learnable in it by construction: it exists to measure the contamination floor
+  // (STAGE2_QUESTION_DESIGN §4.1.1), and serving it to a child would administer a block in which
+  // there is nothing to learn. The control arms live outside `banks/` for exactly this reason; this
+  // check is the second lock, so a file copied back into the served directory is BLOCKED with a
+  // reason rather than silently wired the moment a matching demo exists.
+  const controlArms = [
+    ...new Set(
+      items
+        .map((i) => i.provenance?.levers?.systemPersistence)
+        .filter((mode) => typeof mode === 'string' && mode !== LIVE_SYSTEM_PERSISTENCE),
+    ),
+  ];
+  if (controlArms.length > 0) {
+    return {
+      error:
+        `bank declares systemPersistence=${controlArms.join('/')} — this is a scrambled-system ` +
+        'control arm and must never be served to a child. Keep it under ' +
+        'research/exam-question-types/control-banks/.',
+    };
   }
 
   // More than one scoring rule in a bank is safe ONLY behind a per-type

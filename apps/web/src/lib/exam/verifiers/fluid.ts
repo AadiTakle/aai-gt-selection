@@ -452,6 +452,158 @@ function verifyConcept(item: RawBankItem, response: Record<string, unknown>): Ve
 }
 
 /* ================================================================== *
+ * FLU-OPCHAIN-01 — the machine applies its badges in order; tap what it makes
+ *
+ * The child sees an input figure, a row of badge symbols and five candidate outputs, and taps one.
+ * What each badge DOES is the hidden system: a badge->operator bijection under `answer.system`,
+ * which `servedItemSchema` omits, so nothing the browser holds identifies the key.
+ *
+ * The key is re-derived here rather than read: resolve the badge chain through the mapping, run the
+ * resulting operator chain over `content.input` with the same D4 algebra
+ * `generators/check-FLU-OPCHAIN-01.mjs` re-implements, and take the option showing that figure.
+ * The stored `correctKey` is consulted only when the derivation is not uniquely determined — a
+ * cross-check, not the source of truth.
+ *
+ * ONE VERIFIER SERVES BOTH ARMS. `consistent` and `perTrial` differ only in whether the mapping is
+ * re-drawn per item, and the mapping is read per item either way, so this code has no arm branch —
+ * which is what §4.1.1 requires of the control condition. Only the consistent arm is ever served
+ * (`bank-loader.ts`), but the differential exercises both banks.
+ *
+ * Metrics:
+ *   - `M-ERRTYPE` 0..1, higher is better. §4.6 makes the strategy trace a build requirement: every
+ *     distractor encodes a NAMED incomplete version of the system, ordered from "applied two badges
+ *     in the wrong order" down to "applied none at all". That ordering is a far better error-quality
+ *     signal than the coarse lure class `/api/exam-submit` falls back to, and it is the falsification
+ *     instrument §3.1(b) names — in a real learner, errors should migrate up this axis across the
+ *     block. Wrong answers are capped below 1 so a correct answer is always strictly best.
+ *   - `M-RULEID` composition depth, on a correct answer only. The registry defines it as the
+ *     relational-complexity bound — how many co-acting rules the child binds at once, 1..4 — and
+ *     depth is exactly that here. A wrong answer binds an unknown number, so it reports none.
+ * ================================================================== */
+
+interface OpFigure {
+  glyph: string;
+  orient: { a: number; b: number };
+  shade: string;
+  border: number;
+  pair: number;
+}
+
+/** D4 written as r^a m^b under the relation m·r = r⁻¹·m. Left-multiplication by `g`. */
+function composeOrient(
+  g: { a: number; b: number },
+  o: { a: number; b: number },
+): { a: number; b: number } {
+  return { a: (((g.a + (g.b ? -o.a : o.a)) % 4) + 4) % 4, b: (g.b + o.b) % 2 };
+}
+
+const OPCHAIN_GEOM: Record<string, { a: number; b: number }> = {
+  turn: { a: 1, b: 0 },
+  flip: { a: 0, b: 1 },
+  slant: { a: 1, b: 1 },
+};
+
+function applyOpChainStep(op: string, figure: OpFigure): OpFigure | null {
+  const geom = OPCHAIN_GEOM[op];
+  if (geom) return { ...figure, orient: composeOrient(geom, figure.orient) };
+  if (op === 'swap') return { ...figure, shade: figure.shade === 'solid' ? 'hollow' : 'solid' };
+  if (op === 'ring') return { ...figure, border: figure.border ? 0 : 1 };
+  if (op === 'twin') return { ...figure, pair: figure.pair ? 0 : 1 };
+  return null;
+}
+
+function readOpFigure(value: unknown): OpFigure | null {
+  const record = asRecord(value);
+  const orient = asRecord(record?.orient);
+  const glyph = asString(record?.glyph);
+  const shade = asString(record?.shade);
+  const a = asInt(orient?.a);
+  const b = asInt(orient?.b);
+  const border = asInt(record?.border);
+  const pair = asInt(record?.pair);
+  if (glyph === null || shade === null || a === null || b === null) return null;
+  if (border === null || pair === null) return null;
+  return { glyph, orient: { a, b }, shade, border, pair };
+}
+
+const opFigureKey = (f: OpFigure) =>
+  `${f.glyph}|${String(f.orient.a)}${String(f.orient.b)}|${f.shade}|${String(f.border)}|${String(f.pair)}`;
+
+/**
+ * Error quality by named partial rule, from "almost had it" to "did not engage".
+ *
+ * The values are the generator's own `nearness` axis, scaled by 0.9 so that no wrong answer can
+ * tie a correct one at 1 — the route's convention is that higher is better with 1 reserved for
+ * correct.
+ */
+const OPCHAIN_NEARNESS: Record<string, number> = {
+  order_error: 1.0,
+  over_application: 0.85,
+  omission: 0.7,
+  wrong_operator: 0.55,
+  first_step_only: 0.25,
+  identity_copy: 0.0,
+};
+const OPCHAIN_WRONG_CAP = 0.9;
+
+/** The option key the machine's chain actually produces, or null when it cannot be derived. */
+function deriveOpChainKey(item: RawBankItem): string | null {
+  const input = readOpFigure(item.content.input);
+  const badges = asArray(item.content.chain);
+  const options = asArray(item.content.options);
+  const mapping = asRecord(asRecord(item.answer.system)?.mapping);
+  if (!input || !badges || badges.length === 0 || !options || !mapping) return null;
+
+  let state: OpFigure = input;
+  for (const badge of badges) {
+    const symbol = asString(badge);
+    if (symbol === null) return null;
+    const op = asString(mapping[symbol]);
+    if (op === null) return null;
+    const next = applyOpChainStep(op, state);
+    if (!next) return null;
+    state = next;
+  }
+
+  const target = opFigureKey(state);
+  const hits: string[] = [];
+  for (const raw of options) {
+    const option = asRecord(raw);
+    const key = asString(option?.key);
+    const figure = readOpFigure(option?.figure);
+    if (key === null || !figure) return null;
+    if (opFigureKey(figure) === target) hits.push(key);
+  }
+  return hits.length === 1 ? hits[0]! : null;
+}
+
+/** The partial rule the chosen option encodes, per the bank's strategy trace (§4.6). */
+function opChainErrorQuality(item: RawBankItem, chosen: string): number {
+  const traced = asRecord(asRecord(item.answer.strategyTrace)?.[chosen]);
+  const kind = asString(traced?.kind);
+  const nearness = kind === null ? undefined : OPCHAIN_NEARNESS[kind];
+  // An unrecognised or absent trace means the response named no option this bank knows about, so
+  // there is no partial rule to credit; report the floor rather than guessing a middle value.
+  return nearness === undefined ? 0 : OPCHAIN_WRONG_CAP * nearness;
+}
+
+function verifyOpChain(item: RawBankItem, response: Record<string, unknown>): Verdict {
+  const expected = deriveOpChainKey(item) ?? asString(item.answer.correctKey);
+  if (expected === null) return { correct: false };
+
+  const chosen = asString(response.selectedKey);
+  if (chosen === null) return { correct: false };
+
+  if (chosen === expected) {
+    const depth = asArray(item.content.chain)?.length ?? 0;
+    const metrics: Record<string, number> = { 'M-ERRTYPE': 1 };
+    if (depth > 0) metrics['M-RULEID'] = depth;
+    return { correct: true, metrics };
+  }
+  return { correct: false, metrics: { 'M-ERRTYPE': opChainErrorQuality(item, chosen) } };
+}
+
+/* ================================================================== *
  * FLU-DEDUCE-01 — cross out the suspects each clue rules out
  *
  * The child now works one clue at a time and is graded on the state they left
@@ -870,6 +1022,7 @@ export const fluidVerifiers: Record<string, Verifier> = {
   'FLU-GRIDCOPY-01': verifyGridCopy,
   'FLU-CONCEPT-01': verifyConcept,
   'FLU-DEDUCE-01': verifyDeduce,
+  'FLU-OPCHAIN-01': verifyOpChain,
   'CX-check-01': verifyCheckTwice,
   'CX-achieve-02': verifyInvestigation,
 };
