@@ -30,6 +30,7 @@
     "exam:phase2-demo": "tsx scripts/exam-phase2-demo.ts",
     "exam:sync": "node scripts/sync-exam-demos.mjs",
     "exam:sync:check": "node scripts/sync-exam-demos.mjs --check",
+    "stage2:learnability": "tsx research/exam-question-types/stage2-type-learnability-report.mjs",
     "exam:reconcile": "tsx apps/web/scripts/exam-reconcile-session.ts",
     "exam:verify:diff": "tsx apps/web/scripts/verifier-differential.ts",
     "format": "prettier --write .",
