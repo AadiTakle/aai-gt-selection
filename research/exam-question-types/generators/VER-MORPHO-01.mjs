@@ -1139,6 +1139,69 @@ export function semanticFingerprint(item) {
   ].join('#');
 }
 
+/**
+ * Assign every planned item the screen slot its key will occupy.
+ *
+ * WHY THIS IS NOT A CURSOR ANY MORE. `keyPosition = n % 4` over items emitted rung by rung in
+ * increasing difficulty makes the answer slot a function of the item's RANK IN THE BANK'S
+ * DIFFICULTY ORDER — and `difficulty` is a served field. Sorting a scraped bank recovers `n`, and
+ * `n mod 4` is the answer. STAGE2_ANTILEAK_COMPARISON §7.2 measures that at 59.0% against a 25.0%
+ * floor on this bank, and 84.0% cross-validated once the served covariates are added. No brute
+ * force, no understanding of the item.
+ *
+ * The replacement keeps everything the cursor bought and drops the order it leaked. Slots are
+ * allocated as a balanced MULTISET inside each stratum — a cell of the served covariates an
+ * attacker can condition on — and then PERMUTED inside that cell from the seeded stream, so an
+ * item's slot is independent of where it sits in the difficulty order. The remainder that does not
+ * divide is carried across cells that share a `carryOf` bucket, so the bucket's own counts still
+ * differ by at most one (E-094 balance) rather than accumulating on whichever slot the cells
+ * happen to start on.
+ *
+ * `carryOf` is what makes the §7.3 direction lock unrepresentable rather than merely unlikely.
+ * Carrying per DIRECTION forces each of A/B/C/D to be the key 58 or 59 times within each arm, so
+ * "the answer is never in B or D on a word->picture item" cannot recur however the cells fall.
+ *
+ * @param {string[]} strata one stratum label per planned item, in emission order
+ * @param {(stratum: string) => string} carryOf which cells must balance against each other
+ */
+function allocateKeySlots(strata, optionCount, seed, carryOf) {
+  const rng = makeRng(seed);
+  const cells = new Map();
+  strata.forEach((stratum, index) => {
+    const cell = cells.get(stratum) ?? [];
+    cell.push(index);
+    cells.set(stratum, cell);
+  });
+
+  const carried = new Map();
+  const slots = new Array(strata.length);
+  // Cells are walked in a fixed lexical order, not in Map insertion order, so the allocation does
+  // not depend on the order the rung loop happened to discover the strata in.
+  for (const stratum of [...cells.keys()].sort()) {
+    const indices = cells.get(stratum);
+    const bucket = carryOf(stratum);
+    const used = carried.get(bucket) ?? new Array(optionCount).fill(0);
+
+    const base = Math.floor(indices.length / optionCount);
+    const multiset = [];
+    for (let slot = 0; slot < optionCount; slot++) {
+      for (let n = 0; n < base; n++) multiset.push(slot);
+    }
+    // The remainder goes to the slots this bucket has used LEAST so far. Ties are broken off the
+    // seeded stream rather than by slot index, or slot A would collect every remainder.
+    const bySlack = shuffle([...Array(optionCount).keys()], rng).sort((a, b) => used[a] - used[b]);
+    for (let n = 0; n < indices.length - base * optionCount; n++) multiset.push(bySlack[n]);
+    for (const slot of multiset) used[slot] += 1;
+    carried.set(bucket, used);
+
+    const permuted = shuffle(multiset, rng);
+    indices.forEach((index, n) => {
+      slots[index] = permuted[n];
+    });
+  }
+  return slots;
+}
+
 /* ================================================================== *
  * BANK BUILDER
  *
@@ -1166,10 +1229,14 @@ export function buildBank({ systemPersistence, perRung = 12, systemSeed = 'VER-M
   const rungs = [];
   for (let d = 1; d <= 20 + 1e-9; d += 0.5) rungs.push(round2(d));
 
-  let keyCursor = 0;
   let kindCursor = 0;
   let directionCursor = 0;
   const seen = new Set();
+
+  // PASS 1 — the lever plan for the whole bank, everything except the key's screen slot. The slot
+  // has to be allocated over the finished plan rather than inside this loop, because the strata it
+  // balances within are cells of the whole bank and a cursor cannot see them one item at a time.
+  const plan = [];
 
   for (const rung of rungs) {
     // The rung window is clipped to its BAND's window as well as to +/-0.24, so an item cannot land
@@ -1204,34 +1271,57 @@ export function buildBank({ systemPersistence, perRung = 12, systemSeed = 'VER-M
       const similarity = solveSimilarity(segment.cfg, target);
       const c = segment.cfg;
       const base = `VER-MORPHO-01|rung=${rung}|i=${i}|D${c.depth}S${c.scope}`;
-      const levers = {
-        ...c,
-        distractorSimilarity: similarity,
-        // Round-robin over all three, so key position, direction and kind are balanced by
-        // construction rather than by luck (E-094) — and direction is balanced WITHIN each rung,
-        // which is what keeps an unpriced direction effect orthogonal to difficulty.
-        keyPosition: keyCursor++ % OPTION_KEYS.length,
-        direction: ['wordToPicture', 'pictureToWord'][directionCursor++ % 2],
-        kindIndex: kindCursor++ % KINDS.length,
-        systemPersistence,
-        systemSeed,
-      };
-
-      // Redraw on a semantic collision. The redraw is carried in the SEED rather than in a separate
-      // lever, so an item stays byte-reproducible from its own provenance: the checker regenerates
-      // from `levers` + `seed` and lands on the same draw without knowing a redraw happened.
-      let item = null;
-      for (let redraw = 0; redraw < 64; redraw++) {
-        const candidate = genItem({ ...levers, seed: redraw === 0 ? base : `${base}|r${redraw}` });
-        const fingerprint = semanticFingerprint(candidate);
-        if (seen.has(fingerprint)) continue;
-        seen.add(fingerprint);
-        item = candidate;
-        break;
-      }
-      if (item === null) throw new Error(`64 redraws at rung ${rung} all collided (${base})`);
-      items.push(item);
+      plan.push({
+        rung,
+        base,
+        levers: {
+          ...c,
+          distractorSimilarity: similarity,
+          // Round-robin, so direction and kind are balanced by construction rather than by luck
+          // (E-094) — and direction is balanced WITHIN each rung, which is what keeps an unpriced
+          // direction effect orthogonal to difficulty.
+          direction: ['wordToPicture', 'pictureToWord'][directionCursor++ % 2],
+          kindIndex: kindCursor++ % KINDS.length,
+          systemPersistence,
+          systemSeed,
+        },
+      });
     }
+  }
+
+  // PASS 2 — the key's screen slot, balanced inside each (direction, depth) cell and permuted
+  // there, with the remainder carried per DIRECTION. The cell is the pair of served covariates an
+  // attacker can condition on, so a slot policy fitted on either of them scores the 25.0% floor;
+  // the permutation is what removes the difficulty-order recovery; and the per-direction carry is
+  // what makes the §7.3 lock — the answer never in B or D on a word->picture item — impossible
+  // rather than merely absent from this draw.
+  const slots = allocateKeySlots(
+    plan.map((p) => `${p.levers.direction}|D${p.levers.depth}`),
+    OPTION_KEYS.length,
+    `${systemSeed}|keySlots`,
+    (stratum) => stratum.split('|')[0],
+  );
+
+  // PASS 3 — generate, in the same rung order as before, so the de-duplication below sees items in
+  // the order the bank ships them.
+  for (let n = 0; n < plan.length; n++) {
+    const { rung, base } = plan[n];
+    const levers = { ...plan[n].levers, keyPosition: slots[n] };
+
+    // Redraw on a semantic collision. The redraw is carried in the SEED rather than in a separate
+    // lever, so an item stays byte-reproducible from its own provenance: the checker regenerates
+    // from `levers` + `seed` and lands on the same draw without knowing a redraw happened.
+    let item = null;
+    for (let redraw = 0; redraw < 64; redraw++) {
+      const candidate = genItem({ ...levers, seed: redraw === 0 ? base : `${base}|r${redraw}` });
+      const fingerprint = semanticFingerprint(candidate);
+      if (seen.has(fingerprint)) continue;
+      seen.add(fingerprint);
+      item = candidate;
+      break;
+    }
+    if (item === null) throw new Error(`64 redraws at rung ${rung} all collided (${base})`);
+    items.push(item);
   }
   return items;
 }
