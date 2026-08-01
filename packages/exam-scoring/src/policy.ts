@@ -53,6 +53,11 @@ export interface AbilityBracketing {
   readonly slope: number;
   /** SD of the weakly-informative prior centred on the scale midpoint; `Infinity` disables it. */
   readonly priorSd: number;
+  /**
+   * Chance-success floor. Omitted ⇒ 0, which is the no-guessing model and is wrong for a bank in
+   * which every item is multiple choice; see the note on {@link DEFAULT_ABILITY_BRACKETING}.
+   */
+  readonly guessing?: number;
 }
 
 /**
@@ -62,10 +67,24 @@ export interface AbilityBracketing {
  * granularity the engine's own step schedule resolves to (D-023); it is a design assumption, not
  * a calibrated discrimination. `priorSd` 6.0 is close to the SD of a uniform draw on [1, 20]
  * (≈5.5), i.e. deliberately about as weak as a proper prior on this scale can be.
+ *
+ * `guessing` 0.2 is a five-option item, the shape most of the wired bank takes. It is set because
+ * 0 — what this fit assumed until now — is the one value known to be wrong: every wired item is
+ * multiple choice, so a child well below an item passes it sometimes, and reading those passes as
+ * ability put the reported standing level about +1.4 scale points above the child on the real
+ * bank. It matches the floor `estimateLearningCurve` already assumes, so the standing fit and the
+ * learning-rate fit that consumes its output no longer make different response-model assumptions.
+ *
+ * It remains an ASSUMPTION rather than a measurement, and the banks are not uniform — `FLU-MATRIX-01`
+ * alone mixes four-, five- and six-option items, a plausible distractor set effectively raises the
+ * option count, and a disengaged child lowers it. Assuming a floor that is not there is harmful in
+ * its own right and asymmetrically so, which is why `ability.test.ts` pins the harm in BOTH
+ * directions rather than only the direction this default helps.
  */
 export const DEFAULT_ABILITY_BRACKETING: AbilityBracketing = {
   slope: 1.0,
   priorSd: 6.0,
+  guessing: 0.2,
 };
 
 /** Coarse-band thresholds (on a normalized [0, 1] signal) for profile labels. */

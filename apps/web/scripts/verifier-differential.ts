@@ -25,7 +25,7 @@
  * `validated=false`, and every response here is generated, never observed.
  */
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 
 import { Client } from 'pg';
@@ -82,6 +82,16 @@ function repoRoot(): string {
 
 const ROOT = repoRoot();
 const BANKS_DIR = path.join(ROOT, 'research', 'exam-question-types', 'banks');
+/**
+ * Scrambled-system control arms, which are deliberately NOT in the served directory.
+ *
+ * A Stage 2 learning-block type is generated in two equated arms and only the `consistent` one is
+ * ever administered — but U7's acceptance is that the two tiers agree "on every item x response
+ * across BOTH banks" (STAGE2_QUESTION_DESIGN §9.2). The point of that is not coverage for its own
+ * sake: §4.1.1 requires one verifier to serve both arms, and the only way to show a verifier has no
+ * arm branch is to run it on both. Reading a bank here serves nothing to anybody.
+ */
+const CONTROL_BANKS_DIR = path.join(ROOT, 'research', 'exam-question-types', 'control-banks');
 const NOT_SERVABLE = path.join(ROOT, 'research', 'exam-question-types', 'qa', 'NOT_SERVABLE.json');
 
 /**
@@ -100,8 +110,7 @@ function blockedTypeCodes(): Set<string> {
   return blocked;
 }
 
-function loadBank(typeCode: string): RawBankItem[] {
-  const file = path.join(BANKS_DIR, `${typeCode}.jsonl`);
+function readBankFile(file: string): RawBankItem[] {
   if (!existsSync(file)) return [];
   const items: RawBankItem[] = [];
   for (const line of readFileSync(file, 'utf8').split('\n')) {
@@ -114,6 +123,29 @@ function loadBank(typeCode: string): RawBankItem[] {
     }
   }
   return items;
+}
+
+/** One bank a type is graded over: the served one, plus any control arm it was generated with. */
+interface BankArm {
+  /** Row label — the bare type code for the served arm, `<CODE> (perTrial)` for a control arm. */
+  label: string;
+  items: RawBankItem[];
+}
+
+function loadArms(typeCode: string): BankArm[] {
+  const arms: BankArm[] = [
+    { label: typeCode, items: readBankFile(path.join(BANKS_DIR, `${typeCode}.jsonl`)) },
+  ];
+  if (!existsSync(CONTROL_BANKS_DIR)) return arms;
+  for (const file of readdirSync(CONTROL_BANKS_DIR).sort()) {
+    if (!file.startsWith(`${typeCode}.`) || !file.endsWith('.jsonl')) continue;
+    const arm = file.slice(typeCode.length + 1, -'.jsonl'.length);
+    arms.push({
+      label: `${typeCode} (${arm})`,
+      items: readBankFile(path.join(CONTROL_BANKS_DIR, file)),
+    });
+  }
+  return arms;
 }
 
 /** Evenly spaced sample, so the slice spans the bank's difficulty ladder deterministically. */
@@ -181,6 +213,38 @@ const PER_TYPE_RESPONSES: Record<string, (item: RawBankItem) => Responses> = {
         probeAnswers: answers.map((a) => ({ key: a.key, opens: !a.opens })),
         tests,
       },
+    };
+  },
+  'FLU-OPCHAIN-01': (item) => {
+    const key = String(item.answer.correctKey ?? '');
+    // The NEAREST wrong option, chosen off the bank's own strategy trace rather than by picking
+    // whatever sits next in the list: `order_error` is "applied two badges the other way round",
+    // the miss a child who has the vocabulary but not the composition rule actually makes. It is
+    // also the top of the M-ERRTYPE nearness axis, so this case exercises the branch of the port
+    // that a random wrong option would leave at the floor.
+    const trace = asRecord(item.answer.strategyTrace) ?? {};
+    const nearness: Record<string, number> = {
+      order_error: 1,
+      over_application: 0.85,
+      omission: 0.7,
+      wrong_operator: 0.55,
+      first_step_only: 0.25,
+      identity_copy: 0,
+    };
+    let wrongKey = '';
+    let best = -1;
+    for (const [optionKey, entry] of Object.entries(trace)) {
+      if (optionKey === key) continue;
+      const kind = String((asRecord(entry) ?? {}).kind ?? '');
+      const score = nearness[kind] ?? -1;
+      if (score > best) {
+        best = score;
+        wrongKey = optionKey;
+      }
+    }
+    return {
+      correct: { selectedKey: key },
+      wrong: { selectedKey: wrongKey || `${key}~no` },
     };
   },
   'FLU-DEDUCE-01': (item) => {
@@ -624,38 +688,39 @@ async function main(): Promise<void> {
   await client.query('begin');
   try {
     for (const entry of served) {
-      const bank = sample(loadBank(entry.typeCode), itemsPerType);
-      const hasPerType = entry.typeCode in perTypeVerifiers;
-      const status: TypeReport['status'] = !hasPerType
-        ? 'GENERIC'
-        : ported.has(entry.typeCode)
-          ? 'PORTED'
-          : 'PENDING';
+      for (const arm of loadArms(entry.typeCode)) {
+        const bank = sample(arm.items, itemsPerType);
+        const hasPerType = entry.typeCode in perTypeVerifiers;
+        const status: TypeReport['status'] = !hasPerType
+          ? 'GENERIC'
+          : ported.has(entry.typeCode)
+            ? 'PORTED'
+            : 'PENDING';
 
-      const report: TypeReport = {
-        typeCode: entry.typeCode,
-        domain: entry.domain as Domain,
-        appVerifier: hasPerType ? 'per_type' : entry.verifier,
-        dbVerifier: '-',
-        status,
-        cases: 0,
-        agree: 0,
-        bothCorrect: 0,
-        metricMismatches: 0,
-        examples: [],
-      };
-      reports.push(report);
-      if (bank.length === 0) continue;
+        const report: TypeReport = {
+          typeCode: arm.label,
+          domain: entry.domain as Domain,
+          appVerifier: hasPerType ? 'per_type' : entry.verifier,
+          dbVerifier: '-',
+          status,
+          cases: 0,
+          agree: 0,
+          bothCorrect: 0,
+          metricMismatches: 0,
+          examples: [],
+        };
+        reports.push(report);
+        if (bank.length === 0) continue;
 
-      // Register the type and the sampled items exactly as api.exam_register_item would.
-      await client.query(
-        `insert into app.exam_question_type (type_code, domain, name, demo_path, metric_ids)
+        // Register the type and the sampled items exactly as api.exam_register_item would.
+        await client.query(
+          `insert into app.exam_question_type (type_code, domain, name, demo_path, metric_ids)
          values ($1, $2, $1, $1 || '.html', '{}'::text[])
          on conflict (type_code) do nothing`,
-        [entry.typeCode, entry.domain],
-      );
-      await client.query(
-        `insert into app.exam_item (
+          [entry.typeCode, entry.domain],
+        );
+        await client.query(
+          `insert into app.exam_item (
            item_id, type_code, domain, difficulty, age_bands, content, answer_key, scoring, provenance
          )
          select
@@ -667,79 +732,84 @@ async function main(): Promise<void> {
            case when jsonb_typeof(i -> 'provenance') = 'object' then i -> 'provenance' else '{}'::jsonb end
          from jsonb_array_elements($3::jsonb) i
          on conflict (item_id) do nothing`,
-        [entry.typeCode, entry.domain, JSON.stringify(bank)],
-      );
+          [entry.typeCode, entry.domain, JSON.stringify(bank)],
+        );
 
-      const cases: Case[] = [];
-      for (const item of bank) {
-        const { correct, wrong } = responsesFor(item);
-        cases.push({
-          caseId: `${item.itemId}:correct`,
-          typeCode: item.typeCode,
-          itemId: item.itemId,
-          kind: 'correct',
-          raw: correct,
-          expected: verify(item, correct),
-        });
-        cases.push({
-          caseId: `${item.itemId}:wrong`,
-          typeCode: item.typeCode,
-          itemId: item.itemId,
-          kind: 'wrong',
-          raw: wrong,
-          expected: verify(item, wrong),
-        });
-        // `/api/exam-submit` short-circuits `verify()` on a skip and drops the verdict's
-        // metrics, then persists the raw answer with `skipped: true`. Driving the CORRECT
-        // body with that flag proves the database does not credit an abandoned item.
-        cases.push({
-          caseId: `${item.itemId}:skipped`,
-          typeCode: item.typeCode,
-          itemId: item.itemId,
-          kind: 'skipped',
-          raw: { ...correct, skipped: true },
-          expected: { correct: false },
-        });
-      }
+        const cases: Case[] = [];
+        for (const item of bank) {
+          const { correct, wrong } = responsesFor(item);
+          cases.push({
+            caseId: `${item.itemId}:correct`,
+            typeCode: item.typeCode,
+            itemId: item.itemId,
+            kind: 'correct',
+            raw: correct,
+            expected: verify(item, correct),
+          });
+          cases.push({
+            caseId: `${item.itemId}:wrong`,
+            typeCode: item.typeCode,
+            itemId: item.itemId,
+            kind: 'wrong',
+            raw: wrong,
+            expected: verify(item, wrong),
+          });
+          // `/api/exam-submit` short-circuits `verify()` on a skip and drops the verdict's
+          // metrics, then persists the raw answer with `skipped: true`. Driving the CORRECT
+          // body with that flag proves the database does not credit an abandoned item.
+          cases.push({
+            caseId: `${item.itemId}:skipped`,
+            typeCode: item.typeCode,
+            itemId: item.itemId,
+            kind: 'skipped',
+            raw: { ...correct, skipped: true },
+            expected: { correct: false },
+          });
+        }
 
-      const { rows } = await client.query<{ case_id: string; verdict: DbVerdict }>(
-        `select c.case_id, ${dbFunction}(c.item_id, c.raw) as verdict
+        const { rows } = await client.query<{ case_id: string; verdict: DbVerdict }>(
+          `select c.case_id, ${dbFunction}(c.item_id, c.raw) as verdict
          from jsonb_to_recordset($1::jsonb) as c(case_id text, item_id uuid, raw jsonb)`,
-        [JSON.stringify(cases.map((c) => ({ case_id: c.caseId, item_id: c.itemId, raw: c.raw })))],
-      );
-      const byCase = new Map(rows.map((row) => [row.case_id, row.verdict]));
+          [
+            JSON.stringify(
+              cases.map((c) => ({ case_id: c.caseId, item_id: c.itemId, raw: c.raw })),
+            ),
+          ],
+        );
+        const byCase = new Map(rows.map((row) => [row.case_id, row.verdict]));
 
-      for (const testCase of cases) {
-        const got = byCase.get(testCase.caseId);
-        if (!got) throw new Error(`no database verdict for ${testCase.caseId}`);
-        if (report.dbVerifier === '-') report.dbVerifier = got.verifier ?? 'exam_score_response';
-        report.cases += 1;
+        for (const testCase of cases) {
+          const got = byCase.get(testCase.caseId);
+          if (!got) throw new Error(`no database verdict for ${testCase.caseId}`);
+          if (report.dbVerifier === '-') report.dbVerifier = got.verifier ?? 'exam_score_response';
+          report.cases += 1;
 
-        const verdictAgrees = got.correct === testCase.expected.correct;
-        if (verdictAgrees && got.correct) report.bothCorrect += 1;
-        // Metrics are only compared where the app tier is the authority the port must match:
-        // an unported type is graded by a different verifier on each side by construction.
-        const metricProblem =
-          baseline || status === 'PENDING' || testCase.kind === 'skipped'
-            ? null
-            : metricsDiffer(testCase.expected.metrics, got.metrics ?? {});
+          const verdictAgrees = got.correct === testCase.expected.correct;
+          if (verdictAgrees && got.correct) report.bothCorrect += 1;
+          // Metrics are only compared where the app tier is the authority the port must match:
+          // an unported type is graded by a different verifier on each side by construction.
+          const metricProblem =
+            baseline || status === 'PENDING' || testCase.kind === 'skipped'
+              ? null
+              : metricsDiffer(testCase.expected.metrics, got.metrics ?? {});
 
-        if (verdictAgrees && metricProblem === null) {
-          report.agree += 1;
-        } else {
-          if (metricProblem !== null && verdictAgrees) report.metricMismatches += 1;
-          if (report.examples.length < 2) {
-            report.examples.push(
-              `${testCase.kind} ${testCase.itemId.slice(0, 8)}: ` +
-                (verdictAgrees
-                  ? (metricProblem ?? '')
-                  : `correct ${got.correct} != ${testCase.expected.correct}`),
-            );
+          if (verdictAgrees && metricProblem === null) {
+            report.agree += 1;
+          } else {
+            if (metricProblem !== null && verdictAgrees) report.metricMismatches += 1;
+            if (report.examples.length < 2) {
+              report.examples.push(
+                `${testCase.kind} ${testCase.itemId.slice(0, 8)}: ` +
+                  (verdictAgrees
+                    ? (metricProblem ?? '')
+                    : `correct ${got.correct} != ${testCase.expected.correct}`),
+              );
+            }
           }
         }
-      }
 
-      if (!baseline && status !== 'PENDING' && report.agree !== report.cases) failures += 1;
+        if (!baseline && status !== 'PENDING' && report.agree !== report.cases) failures += 1;
+      }
     }
   } finally {
     await client.query('rollback');
@@ -762,7 +832,8 @@ function printReport(
   console.log('');
   console.log(`TypeScript verifier vs ${dbFunction}`);
   console.log(
-    `${reports.length} served types - up to ${itemsPerType} bank items each - ` +
+    `${reports.length} bank arms across ${new Set(reports.map((r) => r.typeCode.split(' ')[0])).size} ` +
+      `served types - up to ${itemsPerType} bank items each - ` +
       `3 responses per item (correct / wrong / skipped)`,
   );
   console.log('');
@@ -788,7 +859,9 @@ function printReport(
   }
 
   const perType = reports.filter((r) => r.status !== 'GENERIC');
-  const portedCount = perType.filter((r) => r.status === 'PORTED').length;
+  const portedCount = new Set(
+    perType.filter((r) => r.status === 'PORTED').map((r) => r.typeCode.split(' ')[0]),
+  ).size;
   const generic = reports.filter((r) => r.status === 'GENERIC');
   const failing = reports.filter((r) => r.status !== 'PENDING' && r.agree !== r.cases);
   const pendingAgreement = perType
@@ -803,9 +876,10 @@ function printReport(
     rs.reduce((sum, r) => sum + pick(r), 0);
 
   console.log('-'.repeat(128));
+  const perTypeCodes = new Set(perType.map((r) => r.typeCode.split(' ')[0]));
   console.log(
-    `per-type verifiers ported: ${portedCount}/${perType.length} served ` +
-      `(${portedCount}/31 including the blocked CX-achieve-02)`,
+    `per-type verifiers ported: ${portedCount}/${perTypeCodes.size} served ` +
+      `(${portedCount + 1}/${String(perTypeCodes.size + 1)} including the blocked CX-achieve-02)`,
   );
   console.log(
     `generic verifiers: ${generic.length} types, ` +
@@ -823,7 +897,7 @@ function printReport(
   );
   console.log(
     `WHOLE RUN: ${total(reports, (r) => r.agree)}/${total(reports, (r) => r.cases)} cases agree ` +
-      `across all ${reports.length} served types`,
+      `across all ${reports.length} bank arms`,
   );
   console.log(
     failing.length === 0

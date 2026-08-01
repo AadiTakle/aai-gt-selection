@@ -25,13 +25,41 @@ import { coverageIsEven } from './done';
 import { replaySession } from './replay';
 import {
   loadRealBanks,
+  respondProbabilistically,
   runRealBankSession,
+  type RealBanks,
   type RealSessionResult,
+  type Responder,
   type TrueTheta,
 } from './testing/real-bank';
-import { AREAS, type AgeBand, type Area, type ScoredItem } from './types';
+import { AREAS, type AgeBand, type Area, type EngineConfig, type ScoredItem } from './types';
 
 const real = loadRealBanks();
+
+/**
+ * Every session in this file, run against a child who by construction never guesses.
+ *
+ * `respondFromRealBank` answers correctly exactly when the item's difficulty is at or below the
+ * planted ability. That is a child with a chance-success floor of ZERO, so the engine is told so.
+ * Leaving the shipped floor of 0.2 in place here would not test the selection rule, it would test
+ * what a deliberately mismatched response model does to it — measured at about +1.5 scale points
+ * of upward bias, which is the same asymmetric harm `ability.test.ts` pins and exactly the thing a
+ * recovery test must not silently absorb.
+ *
+ * The shipped floor is covered where it belongs, against children who actually guess: the
+ * probabilistic matched pair at the end of this file, and `pnpm exam:selection-diversity`.
+ */
+const NO_GUESSING: Partial<EngineConfig> = { guessingFloor: 0 };
+
+function runSession(
+  band: AgeBand,
+  theta: TrueTheta,
+  overrides?: Partial<EngineConfig>,
+  banks: RealBanks = real,
+  responder?: Responder,
+): RealSessionResult {
+  return runRealBankSession(band, theta, { ...NO_GUESSING, ...overrides }, banks, responder);
+}
 
 /** A child whose abilities sit near their grade-band seed — the case the cap is sized for. */
 const BAND_MATCHED: TrueTheta = {
@@ -107,6 +135,17 @@ const CONVERGENCE_BUDGET = 48;
 const ESTIMATE_TOLERANCE = 1.5;
 
 /**
+ * How close to a scale end a degenerate responder's estimate must land to count as having reached
+ * it.
+ *
+ * One scale point. The hardest wired item sits below 20 and the easiest above 1, so no evidence
+ * exists that could place a child ON either bound; an estimator that reported one anyway would be
+ * asserting something it cannot know. This asserts the estimate is unambiguously at the end of the
+ * scale while leaving room for the honest gap between the bound and the last item.
+ */
+const SCALE_END_TOLERANCE = 1.0;
+
+/**
  * Every integer ability the sweep below plants, with the same value in all four areas. The named
  * profiles pick seven interesting points; this covers the scale so an accuracy hole cannot hide in
  * the gaps between them (D-025). The bounds are the first and last integers strictly inside the
@@ -153,7 +192,7 @@ function equalAbility(ability: number): TrueTheta {
  */
 function metricCoverageCompleteAt(gradeBand: AgeBand, trace: readonly ScoredItem[]): number | null {
   for (let n = 1; n <= trace.length; n++) {
-    const state = replaySession(gradeBand, trace.slice(0, n), { hardItemCap: 400 });
+    const state = replaySession(gradeBand, trace.slice(0, n), { ...NO_GUESSING, hardItemCap: 400 });
     if (!coverageIsEven(state)) continue;
     const sessionOk = enforcedSessionMetrics(state.config).every(
       (m) => metricSamplesInSession(m, state) >= m.minSamples,
@@ -183,7 +222,7 @@ describe('real registry and banks', () => {
 
 describe('core-metric coverage against the real banks', () => {
   it('every enforced core metric reaches adequate data, well before the safety cap', () => {
-    const { trace } = runRealBankSession('4-5', BAND_MATCHED, { hardItemCap: 400 }, real);
+    const { trace } = runSession('4-5', BAND_MATCHED, { hardItemCap: 400 }, real);
     const completeAt = metricCoverageCompleteAt('4-5', trace);
 
     expect(
@@ -204,7 +243,7 @@ describe('core-metric coverage against the real banks', () => {
     ];
 
     for (const { band, theta } of profiles) {
-      const { trace } = runRealBankSession(band, theta, { hardItemCap: 400 }, real);
+      const { trace } = runSession(band, theta, { hardItemCap: 400 }, real);
       const completeAt = metricCoverageCompleteAt(band, trace);
       expect(completeAt, `${band} ${JSON.stringify(theta)}`).not.toBeNull();
       expect(completeAt as number).toBeLessThan(DEFAULT_CONFIG.hardItemCap);
@@ -214,7 +253,7 @@ describe('core-metric coverage against the real banks', () => {
 
 describe('stop rule against the real banks', () => {
   // Deterministic and pure, so one shared run is safe to assert against from several tests.
-  const session: RealSessionResult = runRealBankSession('4-5', BAND_MATCHED, undefined, real);
+  const session: RealSessionResult = runSession('4-5', BAND_MATCHED, undefined, real);
 
   it('concludes a band-matched session on the stop rule, not the safety cap', () => {
     expect(session.exhausted, 'ran out of servable items instead of concluding').toBe(false);
@@ -236,8 +275,7 @@ describe('stop rule against the real banks', () => {
   it('varies its length with the child, rather than being a fixed number of questions', () => {
     const lengths = new Set(
       CONVERGENCE_PROFILES.map(
-        ({ band, theta }) =>
-          runRealBankSession(band, theta, { hardItemCap: 400 }, real).state.itemsServed,
+        ({ band, theta }) => runSession(band, theta, { hardItemCap: 400 }, real).state.itemsServed,
       ),
     );
     expect(
@@ -247,7 +285,7 @@ describe('stop rule against the real banks', () => {
   });
 
   it('recovers the true ability ordering from real items', () => {
-    const { state } = runRealBankSession('4-5', WIDE_SPREAD, { hardItemCap: 400 }, real);
+    const { state } = runSession('4-5', WIDE_SPREAD, { hardItemCap: 400 }, real);
     const est = (a: Area) => state.areas[a].difficulty;
     expect(est('fluid_reasoning')).toBeGreaterThan(est('quantitative'));
     expect(est('quantitative')).toBeGreaterThan(est('verbal'));
@@ -255,15 +293,15 @@ describe('stop rule against the real banks', () => {
   });
 
   it('is deterministic across identical runs', () => {
-    const a = runRealBankSession('4-5', BAND_MATCHED, undefined, real);
-    const b = runRealBankSession('4-5', BAND_MATCHED, undefined, real);
+    const a = runSession('4-5', BAND_MATCHED, undefined, real);
+    const b = runSession('4-5', BAND_MATCHED, undefined, real);
     expect(a.state.itemsServed).toBe(b.state.itemsServed);
     expect(a.trace.map((s) => s.itemId)).toEqual(b.trace.map((s) => s.itemId));
   });
 
   it('rebuilds identical derived-metric adequacy by replaying the stored trace', () => {
-    const live = runRealBankSession('4-5', BAND_MATCHED, undefined, real);
-    const replayed = replaySession('4-5', live.trace);
+    const live = runSession('4-5', BAND_MATCHED, undefined, real);
+    const replayed = replaySession('4-5', live.trace, { ...NO_GUESSING, hardItemCap: 400 });
 
     for (const area of AREAS) {
       expect(replayed.areas[area].trace).toEqual(live.state.areas[area].trace);
@@ -319,12 +357,7 @@ describe('convergence from a distant seed (D-023)', () => {
       // The cap is lifted so an overrun can happen and BE SEEN; the assertion is that it does not.
       // Running at the real cap would silently convert an overrun into a pass, which is exactly
       // how the 83-item battery hid.
-      const { state, done, exhausted } = runRealBankSession(
-        band,
-        theta,
-        { hardItemCap: 400 },
-        real,
-      );
+      const { state, done, exhausted } = runSession(band, theta, { hardItemCap: 400 }, real);
 
       expect(exhausted, 'ran out of servable items instead of concluding').toBe(false);
       expect(done).toBe(true);
@@ -342,16 +375,31 @@ describe('convergence from a distant seed (D-023)', () => {
   it.each(CONVERGENCE_PROFILES)(
     'recovers the planted ability, not just a fast number: $name',
     ({ band, theta }) => {
-      const { state } = runRealBankSession(band, theta, { hardItemCap: 400 }, real);
+      const { state } = runSession(band, theta, { hardItemCap: 400 }, real);
 
       for (const area of AREAS) {
         const estimate = state.areas[area].difficulty;
         const truth = theta[area];
         if (truth > DIFFICULTY_MAX) {
-          // Ability beyond anything the bank can present: the estimate should pin at the ceiling.
-          expect(estimate, `${area} did not reach the scale ceiling`).toBe(DIFFICULTY_MAX);
+          /*
+           * Ability beyond anything the bank can present. The requirement is that the estimate
+           * reaches the top of the scale, NOT that it lands exactly on 20.
+           *
+           * It used to say exactly 20, which was a property of the staircase rather than of a
+           * defensible estimate: a rule that adds a step per correct answer eventually walks into
+           * the clamp and stops there. A child who was correct on everything served is only known
+           * to be at least as able as the hardest item they saw, and the bank runs out below 20, so
+           * a belief with a proper prior settles just above that item instead of asserting a
+           * number the evidence cannot reach. `abilityStandardError` already documented the same
+           * behaviour for the reported score; this is the selection side agreeing with it.
+           */
+          expect(estimate, `${area} did not reach the top of the scale`).toBeGreaterThanOrEqual(
+            DIFFICULTY_MAX - SCALE_END_TOLERANCE,
+          );
         } else if (truth < DIFFICULTY_MIN) {
-          expect(estimate, `${area} did not reach the scale floor`).toBe(DIFFICULTY_MIN);
+          expect(estimate, `${area} did not reach the bottom of the scale`).toBeLessThanOrEqual(
+            DIFFICULTY_MIN + SCALE_END_TOLERANCE,
+          );
         } else {
           expect(
             Math.abs(estimate - truth),
@@ -364,8 +412,8 @@ describe('convergence from a distant seed (D-023)', () => {
 
   it('reaches identical estimates on a repeated run (deterministic and pure)', () => {
     for (const { name, band, theta } of CONVERGENCE_PROFILES) {
-      const first = runRealBankSession(band, theta, { hardItemCap: 400 }, real);
-      const second = runRealBankSession(band, theta, { hardItemCap: 400 }, real);
+      const first = runSession(band, theta, { hardItemCap: 400 }, real);
+      const second = runSession(band, theta, { hardItemCap: 400 }, real);
 
       expect(second.state.itemsServed, name).toBe(first.state.itemsServed);
       expect(
@@ -384,8 +432,8 @@ describe('convergence from a distant seed (D-023)', () => {
     // The schedule is indexed by direction reversals read off the per-area trace, so it has to
     // rebuild exactly from stored results: the score must be recomputable from the trace alone.
     for (const { name, band, theta } of CONVERGENCE_PROFILES) {
-      const live = runRealBankSession(band, theta, { hardItemCap: 400 }, real);
-      const replayed = replaySession(band, live.trace, { hardItemCap: 400 });
+      const live = runSession(band, theta, { hardItemCap: 400 }, real);
+      const replayed = replaySession(band, live.trace, { ...NO_GUESSING, hardItemCap: 400 });
       for (const area of AREAS) {
         expect(replayed.areas[area].difficulty, `${name}/${area}`).toBe(
           live.state.areas[area].difficulty,
@@ -398,7 +446,7 @@ describe('convergence from a distant seed (D-023)', () => {
     // Convergence got faster; the coverage bar did not move. Coverage, not the estimate, is now
     // what sets the floor on battery length.
     const gifted = CONVERGENCE_PROFILES[1] as (typeof CONVERGENCE_PROFILES)[number];
-    const { trace } = runRealBankSession(gifted.band, gifted.theta, { hardItemCap: 400 }, real);
+    const { trace } = runSession(gifted.band, gifted.theta, { hardItemCap: 400 }, real);
     const completeAt = metricCoverageCompleteAt(gifted.band, trace);
     expect(completeAt).not.toBeNull();
     expect(completeAt as number).toBeLessThan(DEFAULT_CONFIG.hardItemCap);
@@ -422,7 +470,7 @@ describe('convergence across the whole ability scale (D-025)', () => {
   const sweep = new Map(
     ABILITY_SWEEP.map((ability) => [
       ability,
-      runRealBankSession('4-5', equalAbility(ability), { hardItemCap: 400 }, real),
+      runSession('4-5', equalAbility(ability), { hardItemCap: 400 }, real),
     ]),
   );
 
@@ -454,7 +502,7 @@ describe('convergence across the whole ability scale (D-025)', () => {
   it('rebuilds every swept estimate by replaying its stored trace', () => {
     for (const ability of ABILITY_SWEEP) {
       const live = runFor(ability);
-      const replayed = replaySession('4-5', live.trace, { hardItemCap: 400 });
+      const replayed = replaySession('4-5', live.trace, { ...NO_GUESSING, hardItemCap: 400 });
       for (const area of AREAS) {
         expect(replayed.areas[area].difficulty, `ability ${ability} / ${area}`).toBe(
           live.state.areas[area].difficulty,
@@ -471,7 +519,7 @@ describe('convergence across the whole ability scale (D-025)', () => {
       // selection window reopens all five.
       const breaches: string[] = [];
       for (const ability of ABILITY_SWEEP) {
-        const { state } = runRealBankSession(
+        const { state } = runSession(
           '4-5',
           equalAbility(ability),
           { hardItemCap: 400, ageBandBias },
@@ -491,7 +539,7 @@ describe('convergence across the whole ability scale (D-025)', () => {
   it('decays smoothly rather than snapping at the top of the plateau', () => {
     const errors: number[] = [];
     for (const ability of ABILITY_SWEEP) {
-      const { state } = runRealBankSession(
+      const { state } = runSession(
         '4-5',
         equalAbility(ability),
         { hardItemCap: 400, ageBandBias: EDGE_BIAS },
@@ -509,5 +557,100 @@ describe('convergence across the whole ability scale (D-025)', () => {
     expect(Math.max(...errors), 'the age-band bias has reopened').toBeLessThanOrEqual(
       EDGE_MAX_ERROR,
     );
+  });
+});
+
+/*
+ * The guessing floor, tested in BOTH directions.
+ *
+ * Every wired item is multiple choice, so a child below an item passes it sometimes and a model
+ * that assumes otherwise reads luck as ability. The obvious guard — "the corrected floor recovers a
+ * guessing child better" — passes just as happily if the floor were set to 0.9, so on its own it
+ * would license any positive number. The second case is what makes the first mean something: the
+ * same correction applied to a child who does NOT guess actively harms them.
+ *
+ * That asymmetry is the reason the shipped 0.2 is a five-option item rather than a safety margin,
+ * and the reason it is a policy knob rather than a constant. It is an assumption about the bank,
+ * and it is wrong in a measurable direction whichever way it is missed.
+ */
+describe('the chance-success floor, in both directions', () => {
+  /**
+   * Abilities spanning the scale, because the floor's effect is not uniform along it.
+   *
+   * A single child would not settle the question. A child seeded near their own level barely
+   * guesses their way anywhere, while one seeded far above their level is served items they can
+   * only guess at and is inflated hardest — so a low child alone overstates the correction and a
+   * mid child alone understates it. Averaging across the scale is what makes the direction a
+   * property of the model rather than of the child chosen to demonstrate it.
+   */
+  const PLANTED = [5, 7, 9, 11, 13, 15, 17] as const;
+
+  /** Signed error of every reported standing level. Positive means the child was flattered. */
+  function errors(floor: number, responder?: Responder): number[] {
+    const out: number[] = [];
+    for (const ability of PLANTED) {
+      const { state } = runSession(
+        '4-5',
+        equalAbility(ability),
+        { guessingFloor: floor, hardItemCap: 400 },
+        real,
+        responder,
+      );
+      for (const area of AREAS) out.push(state.areas[area].difficulty - ability);
+    }
+    return out;
+  }
+
+  const mean = (xs: number[]): number => xs.reduce((a, b) => a + b, 0) / xs.length;
+  const worst = (xs: number[]): number => Math.max(...xs.map(Math.abs));
+
+  const guesses: Responder = (served, banks, theta) =>
+    respondProbabilistically(served, banks, theta, {
+      slope: 1.0,
+      guessing: 'per-item',
+      fallbackGuessing: 0.25,
+      seed: 0x9e3779b9,
+    });
+
+  it('stops a child who guesses from being reported above their level', () => {
+    const uncorrected = mean(errors(0, guesses));
+    const corrected = mean(errors(0.2, guesses));
+
+    expect(
+      uncorrected,
+      'assuming nobody guesses no longer flatters a guessing child',
+    ).toBeGreaterThan(0.5);
+    expect(
+      Math.abs(corrected),
+      `the floor did not remove the inflation: ${uncorrected.toFixed(2)} -> ${corrected.toFixed(2)}`,
+    ).toBeLessThan(Math.abs(uncorrected));
+  });
+
+  it('overstates a child who does not guess, so the floor is a bank claim and not a free win', () => {
+    /*
+     * `respondFromRealBank` is a pure threshold child: they never pass an item above their level.
+     * Asserted on the WORST area rather than the average because that is the shape of the harm —
+     * it is not a uniform shift but a concentration in the mid scale, where a floor the child does
+     * not have makes every miss weaker evidence than it really is and the estimate settles above
+     * them. Averaged across the scale it is about a fifth of a point and easy to dismiss; at its
+     * worst it is most of the recovery tolerance the rest of this file is held to. The abilities
+     * are a systematic sweep of the usable scale rather than a chosen point, so what is asserted
+     * is a property of the mid-scale and not of one lucky seed.
+     */
+    const matched = errors(0);
+    const overCorrected = errors(0.2);
+
+    expect(
+      worst(matched),
+      'a matched model should recover this child within the usual tolerance',
+    ).toBeLessThanOrEqual(ESTIMATE_TOLERANCE);
+    expect(
+      mean(overCorrected),
+      'assuming a floor that is not there should push the estimate UP, not down',
+    ).toBeGreaterThan(mean(matched));
+    expect(
+      worst(overCorrected) - worst(matched),
+      `the mismatch cost less than expected: ${worst(matched).toFixed(2)} -> ${worst(overCorrected).toFixed(2)}`,
+    ).toBeGreaterThan(0.25);
   });
 });

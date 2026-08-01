@@ -41,7 +41,7 @@ run fixprobe-matrix --fix-probe --bank FLU-MATRIX-01
 # --- 2. The question. Null contamination, recovery, and both indeterminate rates on the ---------
 #        purpose-built bank, at PR #22's arms and settings. `+ bar` is the SD-0.15 reference with
 #        this arm's own measured floor declared, which is what D-200 makes required.
-run fixprobe-opchain-consistent --fix-probe --bank FLU-OPCHAIN-01.consistent
+run fixprobe-opchain-consistent --fix-probe --bank FLU-OPCHAIN-01
 
 # --- 3. The scrambled control (D-S2-3). Identical block, system re-drawn every trial. -----------
 run fixprobe-opchain-pertrial --fix-probe --bank FLU-OPCHAIN-01.perTrial
@@ -85,7 +85,7 @@ done
 # --- 7. What the UNCORRECTED estimator does on the purpose-built bank. --------------------------
 #        Context for §2 of the findings: the bank is not what the correction was for, and this is
 #        the row that shows it was already near the ideal grid before PR #22 touched anything.
-run guessing-probe-opchain --guessing-probe --bank FLU-OPCHAIN-01.consistent
+run guessing-probe-opchain --guessing-probe --bank FLU-OPCHAIN-01
 
 # --- 8. Is any between-pool difference bigger than Monte-Carlo noise? ---------------------------
 #        Everything above is one cohort at one seed, and the between-pool gaps at 30 trials are

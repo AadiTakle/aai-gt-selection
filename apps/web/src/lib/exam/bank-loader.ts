@@ -148,6 +148,32 @@ function bankFile(code: string): string {
   return path.join(BANKS_DIR, `${code}.jsonl`);
 }
 
+/**
+ * The only `systemPersistence` arm a live session may serve.
+ *
+ * A Stage 2 learning-block type is generated in two equated arms
+ * (STAGE2_QUESTION_DESIGN §4.1.1): `consistent` holds one hidden system for the whole bank and is
+ * the arm the block measures with, while a control arm re-draws the system every item so that
+ * NOTHING is learnable in it — that is what makes it a contamination-floor control and what makes
+ * it unfit to administer to a child.
+ *
+ * Three things keep a control arm out of a session, and this is the last of them. The control banks
+ * are written outside `banks/` so no path built here can name one; `scripts/sync-exam-demos.mjs`
+ * refuses to wire a bank that declares a control arm; and this check fails the whole pool if one
+ * reaches the loader anyway. Fatal rather than filtered, for the reason
+ * {@link ExamBankUnavailableError} already gives: on the path that serves questions to children,
+ * silently continuing with a quietly different pool is the wrong default.
+ */
+const LIVE_SYSTEM_PERSISTENCE = 'consistent';
+
+/** The arm an item declares, or null when its type is not a dual-arm type. */
+function declaredPersistence(item: RawBankItem): string | null {
+  const levers = (item.provenance as { levers?: unknown } | undefined)?.levers;
+  if (typeof levers !== 'object' || levers === null) return null;
+  const mode = (levers as { systemPersistence?: unknown }).systemPersistence;
+  return typeof mode === 'string' ? mode : null;
+}
+
 async function loadAll(): Promise<RawBankItem[]> {
   if (cache) return cache;
   requireBanksDir();
@@ -170,9 +196,9 @@ async function loadAll(): Promise<RawBankItem[]> {
     for (let i = 0; i < lines.length; i += 1) {
       const trimmed = lines[i]!.trim();
       if (!trimmed) continue;
+      let item: RawBankItem;
       try {
-        items.push(JSON.parse(trimmed) as RawBankItem);
-        parsed += 1;
+        item = JSON.parse(trimmed) as RawBankItem;
       } catch (cause) {
         throw new ExamBankUnavailableError(
           `${file}:${i + 1} is not valid JSON. A corrupt line silently shrinks the pool the ` +
@@ -180,6 +206,17 @@ async function loadAll(): Promise<RawBankItem[]> {
           { cause },
         );
       }
+      const arm = declaredPersistence(item);
+      if (arm !== null && arm !== LIVE_SYSTEM_PERSISTENCE) {
+        throw new ExamBankUnavailableError(
+          `${file}:${i + 1} declares systemPersistence="${arm}". That is a scrambled-system ` +
+            'control arm, in which nothing is learnable by construction, and it must never be ' +
+            'administered to a child. Control arms belong in ' +
+            'research/exam-question-types/control-banks/, which nothing here reads.',
+        );
+      }
+      items.push(item);
+      parsed += 1;
     }
     if (parsed === 0) {
       throw new ExamBankUnavailableError(

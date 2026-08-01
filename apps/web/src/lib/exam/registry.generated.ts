@@ -11,7 +11,7 @@
 //   - the server-side answer verifier (/api/exam-submit)
 //   - the runner's type metadata + demo paths
 //
-// Wired: 48 types (fluid_reasoning 11 · quantitative 8 · spatial 18 · verbal 11).
+// Wired: 49 types (fluid_reasoning 12 · quantitative 8 · spatial 18 · verbal 11).
 // Adding a bank + compliant demo and re-running the sync is all it takes.
 
 export type ExamRegistryDomain = 'fluid_reasoning' | 'verbal' | 'quantitative' | 'spatial';
@@ -150,6 +150,18 @@ export const EXAM_TYPE_REGISTRY: readonly ExamRegistryEntry[] = [
     difficultyMax: 19.96,
     verifier: 'keyed',
     metrics: ['M-ENGAGE', 'M-RAPIDGUESS', 'M-REV', 'M-RT', 'M-RTFIRST'],
+  },
+  {
+    typeCode: 'FLU-OPCHAIN-01',
+    domain: 'fluid_reasoning',
+    title: 'Machine Chain',
+    blurb: 'A machine shows the badges it is about to use, in order; the child works out what each badge does by watching the machine work, then taps the figure it will…',
+    ageBands: ['2-3', '4-5', '6-8', 'K-1'],
+    itemCount: 234,
+    difficultyMin: 1.02,
+    difficultyMax: 19.98,
+    verifier: 'per_type',
+    metrics: ['M-ENGAGE', 'M-RAPIDGUESS', 'M-RT', 'M-RTFIRST'],
   },
   {
     typeCode: 'FLU-STACK-01',
@@ -624,8 +636,6 @@ export const EXAM_TYPE_REGISTRY: readonly ExamRegistryEntry[] = [
 /** Types with a bank but no servable demo, and why. */
 export const EXAM_BLOCKED_TYPES: readonly { typeCode: string; reason: string }[] = [
   { typeCode: 'CX-achieve-02', reason: 'blocked by qa/NOT_SERVABLE.json: Proven answer leak: content.apparatus ships the closed-form outcome model (base, per-level weights, interaction bonus). Evaluating it over content.conclusion.options and taking the argmax recovers the correct key on 120/120 items WITHOUT running a single trial.' },
-  { typeCode: 'FLU-OPCHAIN-01.consistent', reason: 'bank-only: no renderer demo at demos/FLU-OPCHAIN-01.consistent.html' },
-  { typeCode: 'FLU-OPCHAIN-01.perTrial', reason: 'bank-only: no renderer demo at demos/FLU-OPCHAIN-01.perTrial.html' },
 ] as const;
 
 /** Every wired type code, in registry (alphabetical) order. */

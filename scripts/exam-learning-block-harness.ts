@@ -35,7 +35,7 @@
  *   pnpm exam:block-harness -- --noise-sweep         # sensitivity to the handover-noise SD
  *   pnpm exam:block-harness -- --guessing-probe      # what the `guessing = 0` fit does to a static child
  *   pnpm exam:block-harness -- --fix-probe           # every candidate remedy, costed side by side
- *   pnpm exam:block-harness -- --gate-a --bank FLU-OPCHAIN-01.consistent
+ *   pnpm exam:block-harness -- --gate-a --bank FLU-OPCHAIN-01
  *   pnpm exam:block-harness -- --gate-a --bank <path/to/bank.jsonl> --mode perTrial
  *
  * Flags: --children N  --length N  --lambda-mean X  --lambda-sd X  --standing-noise X
@@ -220,6 +220,17 @@ function repoRoot(): string {
 
 const BANK_DIR = join(repoRoot(), 'research/exam-question-types/banks');
 
+/**
+ * Where a scrambled-control arm lives.
+ *
+ * `banks/` is the directory the app serves from, so the `perTrial` arm is deliberately not in it
+ * (see the header of `generators/FLU-OPCHAIN-01.mjs`). Gate A still has to run BOTH arms through
+ * this one driver — §4.1.1 requires the same driver, or the contrast is confounded with it — so the
+ * harness names the control directory explicitly. This is research tooling: it never runs in the
+ * app, and reaching a bank from here serves nothing to anybody.
+ */
+const CONTROL_BANK_DIR = join(repoRoot(), 'research/exam-question-types/control-banks');
+
 function poolItem(itemId: string, typeCode: string, difficulty: number): BankItem {
   return {
     itemId,
@@ -254,20 +265,25 @@ function gridPool(step: number, perRung: number): BankItem[] {
   return items;
 }
 
-/** Resolve `--bank` as a path, a bank file stem, or a bare type code. */
+/** Resolve `--bank` as a path, a bank file stem, or a bare type code, in either bank directory. */
 function resolveBankPath(ref: string): string {
   const candidates = [
     isAbsolute(ref) ? ref : resolve(process.cwd(), ref),
     join(BANK_DIR, ref),
     join(BANK_DIR, `${ref}.jsonl`),
+    join(CONTROL_BANK_DIR, ref),
+    join(CONTROL_BANK_DIR, `${ref}.jsonl`),
   ];
   for (const candidate of candidates) if (existsSync(candidate)) return candidate;
-  const available = existsSync(BANK_DIR)
-    ? readdirSync(BANK_DIR)
-        .filter((f) => f.endsWith('.jsonl'))
-        .join(', ')
-    : '(no bank directory)';
-  throw new Error(`no bank found for "${ref}". Available: ${available}`);
+  const listing = (dir: string) =>
+    existsSync(dir)
+      ? readdirSync(dir)
+          .filter((f) => f.endsWith('.jsonl'))
+          .join(', ')
+      : '(missing)';
+  throw new Error(
+    `no bank found for "${ref}".\n  banks/: ${listing(BANK_DIR)}\n  control-banks/: ${listing(CONTROL_BANK_DIR)}`,
+  );
 }
 
 interface LoadedBank {
@@ -297,13 +313,17 @@ function loadBank(ref: string): LoadedBank {
 /**
  * Which bank file an arm reads, given a `--bank` reference and a `--mode`.
  *
- * A dual-mode pair is `<CODE>.consistent.jsonl` / `<CODE>.perTrial.jsonl`, so a reference naming
- * either arm (or naming neither) resolves to the requested one. A single-arm bank ignores the mode.
+ * A dual-mode pair is the bare `<CODE>.jsonl` in `banks/` (the consistent arm, which is the one the
+ * app serves) plus `<CODE>.perTrial.jsonl` in `control-banks/`. A reference naming either arm, or
+ * naming neither, resolves to the requested one; a single-arm bank ignores the mode.
  */
 function bankRefForMode(ref: string, mode: Persistence): string {
   const stem = ref.replace(/\.jsonl$/, '').replace(/\.(consistent|perTrial)$/, '');
-  const withMode = `${stem}.${mode}`;
-  return existsSync(join(BANK_DIR, `${withMode}.jsonl`)) ? withMode : ref;
+  if (mode === 'perTrial') {
+    const control = `${stem}.perTrial`;
+    return existsSync(join(CONTROL_BANK_DIR, `${control}.jsonl`)) ? control : ref;
+  }
+  return existsSync(join(BANK_DIR, `${stem}.jsonl`)) ? stem : ref;
 }
 
 // --- one block ----------------------------------------------------------------

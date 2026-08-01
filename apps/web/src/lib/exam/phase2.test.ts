@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   LEARNING_BLOCK_AREA,
   LEARNING_BLOCK_LENGTH,
+  LEARNING_BLOCK_TYPE,
   blockCanRun,
   clearLearningBlockHandoff,
   loadLearningBlockHandoff,
@@ -16,10 +17,17 @@ import {
   type LearningBlockHandoff,
 } from './phase2';
 
-function served(itemId: string, difficulty: number, domain = LEARNING_BLOCK_AREA): ServedItem {
+const BLOCK_TYPE = LEARNING_BLOCK_TYPE ?? 'SYN-TYPE-01';
+
+function served(
+  itemId: string,
+  difficulty: number,
+  domain = LEARNING_BLOCK_AREA,
+  typeCode = BLOCK_TYPE,
+): ServedItem {
   return {
     itemId,
-    typeCode: 'SYN-TYPE-01',
+    typeCode,
     domain,
     difficulty,
     ageBands: [],
@@ -59,6 +67,30 @@ describe('novelBlockPool', () => {
   it('treats an empty seen-set as everything in the area being available', () => {
     const pool = [served('a', 10), served('b', 11)];
     expect(novelBlockPool(pool, [])).toHaveLength(2);
+  });
+
+  /**
+   * The block administers ONE type, because the thing being learned is that type's hidden system
+   * and nothing carries across a mixture (§1.2). Before this filter the wired fluid pool gave the
+   * block 4-10 machine-chain trials out of 30, interleaved with ten other types.
+   */
+  it('keeps only the block type, not every type in the area', () => {
+    const pool = [
+      served('block-a', 10),
+      served('other', 10.1, LEARNING_BLOCK_AREA, 'FLU-MATRIX-01'),
+      served('block-b', 10.2),
+    ];
+    expect(novelBlockPool(pool, []).map((i) => i.itemId)).toEqual(['block-a', 'block-b']);
+  });
+
+  it('refuses to start a block the block type cannot fill on its own', () => {
+    const mixed = [
+      ...Array.from({ length: 10 }, (_, i) => served(`block-${String(i)}`, 10 + i * 0.1)),
+      ...Array.from({ length: 40 }, (_, i) =>
+        served(`other-${String(i)}`, 10 + i * 0.1, LEARNING_BLOCK_AREA, 'FLU-MATRIX-01'),
+      ),
+    ];
+    expect(blockCanRun(mixed, [], 30)).toBe(false);
   });
 });
 
@@ -119,15 +151,31 @@ describe('summariseLearningBlock', () => {
     expect(readout.reason).not.toMatch(/slow|behind|struggl/i);
   });
 
-  it('with no comparison group it still fits the pace but declines to grade it', () => {
+  it('with no comparison group it still fits the pace but declines to report it', () => {
     const readout = summariseLearningBlock(climbingBlock(30, 0.4), undefined, 30);
     expect(readout.band).toBe('indeterminate');
     expect(readout.trialCount).toBe(30);
-    // The pace is on the record even though it is not reportable as a band.
+    // The pace stays on the record as a diagnostic even though it is not reportable.
     expect(readout.lambda).not.toBeNull();
     expect(readout.reason).toMatch(/comparison group/i);
     // The explanation must point at the test, never at the child.
-    expect(readout.reason).toMatch(/limit of how new this test is/i);
+    expect(readout.reason).toMatch(/limits of how new this test is/i);
+  });
+
+  /**
+   * The readout position, asserted rather than assumed: Gate B has not run, so no block may name a
+   * band, and a 30-item block cannot support an absolute rate on ANY bank — a cohort that learned
+   * nothing fits a positive climb on the purpose-built one. A wired reference would be the one way
+   * a band could appear, so this pins the wired call rather than the pure function.
+   */
+  it('names no band and quotes no rate however hard the block climbs', () => {
+    for (const rate of [0, 0.05, 0.2, 0.5, 1]) {
+      const readout = summariseLearningBlock(climbingBlock(30, rate), undefined, 30);
+      expect(readout.band, `climb ${String(rate)}`).toBe('indeterminate');
+      // Nothing the family sees may contain the fitted number, in any spelling.
+      expect(readout.reason).not.toMatch(/\d/);
+      expect(readout.reason).not.toMatch(/fast|slow|above|below|typical|ahead|behind/i);
+    }
   });
 
   it('defers to the engine readout once a reference distribution exists', () => {
