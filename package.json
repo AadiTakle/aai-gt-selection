@@ -34,6 +34,7 @@
     "stage2:review:check": "node research/exam-question-types/build-stage2-review.mjs --check",
     "stage2:review:probe": "tsx research/exam-question-types/stage2-block-probe.mjs",
     "stage2:learnability": "tsx research/exam-question-types/stage2-learnability-report.mjs",
+    "stage2:latency": "tsx research/exam-question-types/stage2-latency-report.mjs",
     "stage2:samples": "node research/exam-question-types/stage2-render-samples.mjs",
     "stage2:play-check": "node research/exam-question-types/stage2-play-check.mjs",
     "exam:reconcile": "tsx apps/web/scripts/exam-reconcile-session.ts",
