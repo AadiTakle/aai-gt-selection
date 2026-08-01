@@ -159,31 +159,61 @@ value(expression) / value(anchor) and keeps the options whose tick ratio matches
 
 | difficulty slice | n | mean surviving options | uniform over survivors | most-backed | least-backed |
 | --- | --- | --- | --- | --- | --- |
-| 1–5 | 100 | 3.79 | 28.0% | 17.3% | 17.8% |
-| 5–10 | 122 | 4.17 | 25.4% | 16.0% | 13.0% |
-| 10–15 | 119 | 3.88 | 27.5% | 17.4% | 17.1% |
-| **15–20** | 127 | **3.74** | **28.6%** | 18.5% | 21.9% |
-| whole bank | 468 | 3.90 | **27.4%** | 17.4% | 17.7% |
+| 1–5 | 100 | 3.66 | 27.9% | 25.3% | 26.4% |
+| 5–10 | 122 | 4.25 | 24.8% | 23.9% | 25.1% |
+| 10–15 | 119 | 4.58 | 22.5% | 21.7% | 21.8% |
+| **15–20** | 127 | 4.54 | 22.4% | 22.0% | 22.4% |
+| whole bank | 468 | 4.28 | **24.2%** | 23.1% | 23.8% |
 
 **Determinacy: 0 of 468 items on either arm** have a single surviving option, against the reference
-type's 11 of 234 before its fix. **Graded, in the worst difficulty slice: 28.6% against a 20.0%
-five-option chance floor**, and 27.4% over the bank.
+type's 11 of 234 before its fix. **Graded, over the bank: 24.2% against a 20.0% five-option chance
+floor**, and 27.9% in the worst slice, which is now the easiest one rather than the hardest.
 
-For scale, the same methodology applied to `FLU-OPCHAIN-01` as it stands on `dev` — which also has
-0 single-survivor items — gives a best attacker of **28.2% over its bank and 34.0% in its hardest
-slice**. So the residual here is smaller, and in the slice that matters most it is materially
-smaller, but **it is a residual and not zero**: a browser script that enumerates 120 mappings beats
-a blind guess by about 7 percentage points at the top of the scale. Closing it further needs either
-more options or a larger role vocabulary, both of which have their own costs, and neither is a
-change worth making before Gate B says the type is worth having.
+**Why these numbers replace the ones first published, and why two of them went up.** The first
+build reported 27.4% over the bank with the most-backed and least-backed columns at 17.3% and 17.5%
+— both *below* the 20.0% floor. `STAGE2_ANTILEAK_COMPARISON` §7.4 named that as the tell rather
+than the reassurance it looked like. Modal and anti-modal are the first and last of five vote
+ranks, and the ranks between them cost a client nothing, so a layout search scoring only the two
+ends is free to park the key in the middle. It did: the key sat at rank 0 on 253 items and rank 1
+on 206, and **playing rank 1 alone scored 32.4% bank-wide and took 111 of 468 items outright**,
+from one fitted integer with no conditioning at all. The published 27.4% was an understatement by
+more than the whole distance from the floor to it.
+
+The layout objective is now the size of the key's own vote TIER, which dominates all three of the
+old strategies and closes every rank at once, and the expression is redrawn against it rather than
+taken from the first draw that laid out. The columns above therefore converge on each other instead
+of straddling the floor — that convergence is the property, not the individual numbers. Measured
+the way §7.4 measures it: the best single rank tier falls from **32.4% to 23.7%**, items where the
+key is alone in its tier from **121 to 0**, the sorted-vote family from **51.0% in-sample / 47.4%
+cross-validated to 24.9% / 24.9%**, and mean surviving options rise from 3.90 to 4.28. Realised
+nearness error is unchanged to two decimals, so the difficulty lever did not pay for it.
 
 Three surface heuristics are closed separately, because none of them needs the mapping, and the
-shortcut probe in §5 measures each rather than asserting it: key rank is allocated round-robin
-*within each expression length* (not merely across the bank, which would balance the margin and
-leave "a longer expression sits further right" intact); the anchor value is itself an admissible
-wrong answer, so the end of the line is not a free elimination; and the line's numeric maximum is
-never served, because publishing it would give the attacker value(anchor) = max and pin part of the
-mapping for nothing.
+shortcut probe in §5 measures each rather than asserting it: key rank is balanced *within each
+expression length* (not merely across the bank, which would balance the margin and leave "a longer
+expression sits further right" intact); the anchor value is itself an admissible wrong answer, so
+the end of the line is not a free elimination; and the line's numeric maximum is never served,
+because publishing it would give the attacker value(anchor) = max and pin part of the mapping for
+nothing.
+
+**Key rank is balanced within each length by a permuted multiset, not by a cursor.** A cursor
+walked once per item is balanced but ordered, and items are emitted rung by rung in increasing
+difficulty with `difficulty` served — so sorting a scraped bank recovers it. §7.2 measured that at
+**32.9%** directly and 40.2% cross-validated. Ranks are now allocated as a balanced multiset inside
+each expression length and permuted there from the seeded stream, which keeps the balance §11 of
+the checker requires and drops the order; the same probe now reads **21.6%**.
+
+**What remains open, and it is the largest residue this bank has.** An attacker that groups items
+by their whole *unsorted* backing vector and names a tick still reaches **48.8% cross-validated**
+over the bank and **92.1% in the 1–5 slice**. The mechanism is not key allocation: at short
+expression lengths the grammar admits few role sequences and few line maxima, so the backing vector
+is close to an item fingerprint and a client that has labelled a handful of items recognises the
+rest. Choosing at random among layouts the objective and the nearness lever rate identical brought
+this down from 56.0% / 98.5%, but the rest of it is a structural-diversity property of the item
+grammar at length 1 and 2, not something the answer key can be hidden from. It was 59.5% / 87.3%
+on the first build, so the bank figure improved and **the easiest slice got worse by about five
+points**. Closing it needs more distinct expressions at the bottom of the ladder, which is a
+bank-shape change and is left for the owner.
 
 ---
 
