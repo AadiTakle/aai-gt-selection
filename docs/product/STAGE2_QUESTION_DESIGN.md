@@ -362,6 +362,7 @@ findings were confirmed and deliberately not acted on.
 | The badge enclosure was fixed-width, so a one- or two-badge chain looked like an enclosure with room left in it — misread as a partly filled input, a progress bar, and a carousel page-indicator strip. Two said the misreading persisted for three screens. | 3 of 4 | The enclosure now hugs its badges inside a fixed-width wrapper, so the column alignment survives without the empty trough. |
 | Answered option cards were dimmed with `opacity`, which faded the figure's ink as well as the card. `shade` (solid versus outline) is a component of the vocabulary, so "spent" was confusable with "differently filled". | 2 of 4 | Only the card's own chrome recedes; every figure keeps full-strength ink. |
 | The chevron did two unrelated jobs — punctuation meaning "then" inside a row, and the only control on the screen. Two identified the control only by elimination. | 4 of 4 | Forward is now a filled pill with a solid triangle. Different job, different mark. |
+| The badges in history rows were drawn at half size and low contrast, and at that scale the star, diamond and hexagon "collapse into near-identical small dark blobs" — so the rows a child must study from were the least legible on the screen. | 1 of 4 | Fixed by the same deletion as the row above: with one size everywhere, a history badge is drawn exactly as a live badge is. |
 
 **The layout question was settled by the audit, against my expectation.** The `scaled` variant
 oriented its evaluator perfectly — they never once lost track of which row was in play — and lost
@@ -460,6 +461,17 @@ holds two or three options — and those are rare here because the selection rul
 and is indifferent to how determined the answer is. Serving partially-determined trials deliberately
 would change what the block selects on, which is an owner decision recorded in §10.2, not a fix to
 take here.
+
+**One concrete behaviour this class should catch, stated as a prediction rather than a result.** Two
+audit evaluators independently identified a degenerate strategy the screen permits: pick whichever
+option most resembles the input figure, which on many items is the identity distractor. Because there
+is no verdict (§1.5), a child can play an entire block that way and have the same experience as a
+child reasoning correctly — the evaluators were right about that, and it is the cost of informational
+feedback. What the class split predicts is that such a child is nonetheless *distinguishable*: once
+the reveals determine an answer, the identity option is usually among the excluded ones, so a
+systematic similarity-matcher should show a ruled-out rate **above** chance, where a uniform guesser
+sits at chance by construction. **This is untested** — the report models only a uniform guesser and a
+reasoning learner, and adding a similarity-matching responder is the cheapest way to check it.
 
 ---
 
