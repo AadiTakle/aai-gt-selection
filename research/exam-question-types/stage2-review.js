@@ -848,8 +848,13 @@ function bandPath(series, xOf, yOf, pick, colour, { dashed = false, fillOpacity 
     .join('');
 }
 
-/** The dashed rule and label marking the first trial a predicate held. */
-function crossingMark(trial, xOf, label, colour) {
+/**
+ * The dashed rule and label marking the first trial a predicate held.
+ *
+ * `labelDy` because the latency panel's reference line sits at the very top of its plot, where a
+ * label at the default height would land on the ceiling's own caption.
+ */
+function crossingMark(trial, xOf, label, colour, labelDy = 10) {
   if (trial === null) return '';
   const { t, axisY, w } = RUN_CHART;
   const x = xOf(trial - 1);
@@ -858,7 +863,7 @@ function crossingMark(trial, xOf, label, colour) {
   return (
     `<line x1="${x}" y1="${t}" x2="${x}" y2="${axisY}" stroke="${colour}" ` +
     'stroke-width="1.5" stroke-dasharray="4 3" />' +
-    `<text x="${x + dx}" y="${t + 10}" font-size="9.5" fill="${colour}" font-weight="700" ` +
+    `<text x="${x + dx}" y="${t + labelDy}" font-size="9.5" fill="${colour}" font-weight="700" ` +
     `text-anchor="${anchor}">${esc(label)}</text>`
   );
 }
@@ -1022,11 +1027,14 @@ function renderRunningLatency(series, other, otherArm, n, horizon) {
   const voided = series.every((point) => point.latency.state === 'noOnset');
   const colour = ARM_COLOUR[state.arm];
 
+  // Left-anchored like the λ panel's floor label, and below its line rather than above: the
+  // crossing marker's own label sits at the top of the plot at whatever trial the crossing
+  // happened, and on a late crossing a right-anchored ceiling label lands underneath it.
   const ceiling =
     `<line x1="${l}" y1="${yOf(horizon)}" x2="${w - r}" y2="${yOf(horizon)}" stroke="#b45309" ` +
     'stroke-width="1.5" />' +
-    `<text x="${w - r - 3}" y="${yOf(horizon) + 11}" font-size="9" fill="#b45309" ` +
-    'text-anchor="end" font-weight="700">no primitive ever demonstrated</text>';
+    `<text x="${l + 3}" y="${yOf(horizon) + 12}" font-size="9.5" fill="#b45309" ` +
+    'font-weight="700">no primitive ever demonstrated</text>';
 
   $('runLatency').innerHTML =
     '<div class="runhead"><b>Acquisition latency \u2014 the censored survival readout</b>' +
@@ -1051,6 +1059,7 @@ function renderRunningLatency(series, other, otherArm, n, horizon) {
       xOf,
       `first leaves the ceiling \u00b7 trial ${verdict.trial}`,
       '#1f8a4c',
+      30,
     ) +
     (series.some((point) => point.latency.state === 'ok')
       ? ''
