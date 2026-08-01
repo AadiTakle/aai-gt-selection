@@ -8,6 +8,73 @@ is §4, which lays out options and their costs so the owner can take one.
 
 ---
 
+## 0. The answer in plain terms — what to score and how
+
+**Stop reporting a learning *rate* per child. Report an above-level *score*.**
+
+### Score A — Above-Level Score (ALS). Ship this one.
+
+*What the child does:* Phase 1 finds their standing level `S` on the 1–20 scale. Phase 2 then
+serves **30 items at a fixed difficulty above `S`** — half at `S+1`, half at `S+3`. **The difficulty
+never adapts inside the block.** Every child gets the same offsets from their own level.
+
+*How to score it:* count how many they got right, subtract what pure guessing would give, and
+express the rest as a percentage.
+
+```
+C  = number correct out of 30
+ALS = (C - 6) / 24 * 100      clipped to [0, 100]
+```
+
+`6` is what a child gets by guessing alone (30 items × 1/5 chance on five options). `24` is the
+range above guessing. So 6 correct → 0. 30 correct → 100. 18 correct → 50.
+
+*What it means in one sentence:* "Given material two to three levels above where this child tested,
+they answered X% of it correctly."
+
+*Why this one:* it is a level, not a rate. No assumption about the shape of learning, no second
+sitting, no slope to estimate. Its precision improves with every item added. It is what every
+adjacent field fell back to after trying to score growth.
+
+### Score B — Hints-to-Mastery. Only if you want a real *learning* number.
+
+This requires adding hints to the items, which makes it a different product. But it is the only
+quantity in the research that actually discriminated, and it is the one that matches GT's own words
+for what they value ("masters a concept in 1–2 exposures").
+
+*What the child does:* ~20 items. Wrong answer → a small hint → try again. Up to 3 hints per item.
+
+*How to score it:*
+
+| Solved… | Points |
+|---|---|
+| with no hint | 3 |
+| after 1 hint | 2 |
+| after 2 hints | 1 |
+| after 3 hints, or not at all | 0 |
+
+```
+HTM = (sum of points) / 60 * 100        // 20 items x 3 points
+```
+
+*What it means in one sentence:* "This child needed less help than average to get to the right
+answer" — literally a measure of how few exposures it took.
+
+### What to do with the current λ
+
+Keep computing it. **Never show it for an individual child.** Use it only to rank an entire measured
+cohort for research (`learningRateCohortRank`), which is the one comparative claim that survives at
+this precision.
+
+### Before either goes live
+
+Two parameters are not yet pinned, and both are one simulation run each: the exact offsets in Score
+A (`S+1`/`S+3` follows the symmetric-offset shape from the design literature but has not been
+measured on our bank), and whether 30 items is the right count for the precision wanted. Neither
+score is validated until real children sit it — see §6.
+
+---
+
 ## 1. Bottom line
 
 Five lanes searched five separate literatures — change psychometrics, dynamic assessment, learning
