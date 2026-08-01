@@ -611,6 +611,16 @@ const FAILURES = [
 ];
 const NEARNESS = Object.fromEntries(FAILURES.map((f) => [f.kind, f.nearness]));
 
+/**
+ * The failure classes that say the child did not carry the rule through, as opposed to carrying a
+ * wrong one. These are exactly the four the relabelling brute force cannot reach, so a slate built
+ * to put every option in one vote tier evicts them first — see the tie-break in
+ * `chooseDistractors`, which keeps them wherever doing so is free.
+ */
+const DISENGAGEMENT_KINDS = new Set(
+  FAILURES.filter((f) => !f.relabelReachable).map((f) => f.kind),
+);
+
 /** Every partial rule this chain admits, as {ruleId, kind, chain, note}. */
 export function partialRules(chain) {
   const out = [];
@@ -718,10 +728,31 @@ export function partialRules(chain) {
  * the system.
  */
 export function relabelReachableFigures(depth, input) {
-  const out = new Set();
+  return new Set(relabelVotes(depth, input).keys());
+}
+
+/**
+ * The same enumeration, COUNTED rather than collapsed to a set.
+ *
+ * Reachability is a yes/no property and it is not the whole of what a client can see. Several
+ * relabellings can land on the same figure, and how many do is content: a client that weights the
+ * options by their vote counts and takes the heaviest — or the lightest, or any rank between —
+ * beats one that merely deletes what nothing reaches. STAGE2_ANTILEAK_COMPARISON §5 measures that
+ * gap on this bank at 28.7% against the 24.6% the elimination attack scores, with the modal attack
+ * taking 26 of 234 items outright and the anti-modal attack reaching 47.7% in the hardest quartile
+ * — a clean signature of a slate chosen without ever looking at the vote counts.
+ *
+ * So the counts are what `chooseDistractors` now optimises against, and this is where they come
+ * from. The set-valued function above is kept because the two anti-leak invariants already on
+ * record are stated in terms of reachability, and re-deriving it from the counts keeps one
+ * enumeration rather than two that can drift.
+ */
+export function relabelVotes(depth, input) {
+  const out = new Map();
   const walk = (position, used, state) => {
     if (position === depth) {
-      out.add(figureKey(state));
+      const key = figureKey(state);
+      out.set(key, (out.get(key) ?? 0) + 1);
       return;
     }
     for (const op of OPERATORS) {
@@ -752,18 +783,70 @@ export function relabelReachableFigures(depth, input) {
 export const REACHABLE_DISTRACTORS = 3;
 
 /**
- * Choose four distractors along the nearness axis at `similarity`, subject to
- * two invariants applied in a fixed order.
+ * How many of the cheapest candidates the slate search looks at.
  *
- * The two required roles are filled from the CHEAPEST candidate that can fill
- * them, then the remaining slots go to the cheapest candidates outright. That
- * is deterministic, terminates, and keeps the slate as close to the similarity
- * lever as the constraints allow.
+ * The search below is exhaustive over 4-subsets, which is quadratically cheap at a dozen
+ * candidates and not at thirty. Capping the pool at the fourteen candidates NEAREST the requested
+ * similarity also keeps the difficulty lever primary: a slate the search never considers is one
+ * the lever had already placed far from where the item says it sits.
  */
-function chooseDistractors(chain, input, key, similarity) {
+const SLATE_POOL_CAP = 14;
+
+/**
+ * How far off the requested nearness the anti-leak objective may drag a slate, summed over the
+ * four distractors.
+ *
+ * 0.1 each, which is the SMALLEST gap between two adjacent classes on the nearness axis
+ * (`first_step_only` 0.1 to `wrong_family` 0.2, and `identity_copy` 0.0 to `first_step_only` 0.1).
+ * So the objective may move a distractor by at most one step on the axis, and only among slates
+ * the lever already treats as near-equivalent. The bound matters because without one, minimising
+ * the attacker would quietly become the difficulty model — a stated difficulty the item does not
+ * honour is the §1.1(d) structured-labelling error, and structured error biases lambda rather than
+ * merely attenuating it. `buildBank` reports the realised nearness error so the cost is visible
+ * rather than assumed.
+ */
+const DISTANCE_COST_TOLERANCE = 0.4;
+
+/**
+ * Choose four distractors along the nearness axis at `similarity`, subject to three invariants.
+ *
+ * WHY THIS IS AN ENUMERATION AND NOT A GREEDY FILL. The previous version took the cheapest
+ * candidate that could fill each required role and then the cheapest remaining outright, and it
+ * never looked at the vote counts at all. Reachability is a yes/no property, so a slate could
+ * satisfy both declared invariants while the key was the only figure eleven relabellings pointed
+ * at — and 26 of 234 items were exactly that. Worse, the residue had a direction: the modal attack
+ * falls from 37.8% in the easiest quarter to 5.0% in the hardest while the anti-modal attack rises
+ * from 19.2% to 47.7% over the same span, which is what a generator that pushes the key away from
+ * modal at depth looks like from outside. Bounding one tail hands the other the certainty it lost.
+ *
+ * The invariants, in the order they bind:
+ *
+ *   I1  at least one chosen distractor must move as far from the INPUT as the key does, or "tap
+ *       whichever picture changed the most" scores above chance with no knowledge of the system.
+ *   I2  at least `REACHABLE_DISTRACTORS` of the four must be relabelling-reachable, so four of the
+ *       five options survive a mapping-blind brute force and elimination is capped at 1-in-4.
+ *   I3  the slate names at least two distinct failures, so a wrong answer says WHICH incomplete
+ *       rule the child used rather than only that one was used. Hard whenever any admissible slate
+ *       has it, because §4.6's error-migration falsification test needs it.
+ *
+ * And then the objective, which is new. Among the slates all three invariants admit and the
+ * difficulty lever is indifferent between, take the one that puts the key in the LARGEST TIER of
+ * equally-voted options. A tier is indistinguishable from inside, so the best any rank policy does
+ * on the item is to play the key's tier and split it, and that is `1/|tier|` whichever rank the
+ * tier happens to occupy. Minimising it closes modal, anti-modal and every rank between them at
+ * once, rather than bounding two ends and leaving the middle open.
+ *
+ * The floor this can reach is 1/4, not 1/5, and that is I2's doing rather than an oversight: an
+ * option no relabelling reaches carries zero votes and can never join the key's tier, so a slate
+ * that keeps one unreachable failure class — the "did not engage" register I2 is set at three to
+ * preserve — caps the tier at four. 1-in-4 is the cap this type declared at the top of this file.
+ * Reaching 1-in-5 would mean evicting those classes, which is a construct decision and not one an
+ * anti-leak patch should make quietly.
+ */
+function chooseDistractors(chain, input, key, similarity, votes) {
   const keyFigure = figureKey(key);
   const keyDisplacement = displacement(input, key);
-  const reachable = relabelReachableFigures(chain.length, input);
+  const keyVotes = votes.get(keyFigure) ?? 0;
 
   const seen = new Set([keyFigure]);
   const pool = [];
@@ -777,40 +860,60 @@ function chooseDistractors(chain, input, key, similarity) {
       output,
       cost: Math.abs(NEARNESS[rule.kind] - similarity),
       displacementMatched: displacement(input, output) === keyDisplacement,
-      relabelReachable: reachable.has(fk),
+      relabelReachable: votes.has(fk),
+      votes: votes.get(fk) ?? 0,
     });
   }
   pool.sort((a, b) => a.cost - b.cost || (a.rule.ruleId < b.rule.ruleId ? -1 : 1));
   if (pool.length < 4) return null;
 
-  const chosen = [];
-  const take = (predicate) => {
-    const found = pool.find((c) => predicate(c) && !chosen.includes(c));
-    if (found) chosen.push(found);
-    return Boolean(found);
-  };
+  const ordered = pool.slice(0, SLATE_POOL_CAP);
+  const admissible = [];
+  for (let i = 0; i < ordered.length; i++) {
+    for (let j = i + 1; j < ordered.length; j++) {
+      for (let k = j + 1; k < ordered.length; k++) {
+        for (let l = k + 1; l < ordered.length; l++) {
+          const slate = [ordered[i], ordered[j], ordered[k], ordered[l]];
+          if (!slate.some((c) => c.displacementMatched)) continue; // I1
+          if (slate.filter((c) => c.relabelReachable).length < REACHABLE_DISTRACTORS) continue; // I2
+          const tally = [keyVotes, ...slate.map((c) => c.votes)];
+          admissible.push({
+            slate,
+            distanceCost: slate.reduce((a, c) => a + c.cost, 0),
+            // What the best rank policy scores on this item: play the key's own tier and split it.
+            tierScore: 1 / tally.filter((v) => v === keyVotes).length,
+            kinds: new Set(slate.map((c) => c.rule.kind)).size,
+            disengaged: slate.some((c) => DISENGAGEMENT_KINDS.has(c.rule.kind)) ? 1 : 0,
+            slateId: slate.map((s) => s.rule.ruleId).join('|'),
+          });
+        }
+      }
+    }
+  }
+  if (admissible.length === 0) return null;
 
-  // Invariant 1: the key is not separable by how far the machine moved things.
-  if (!take((c) => c.displacementMatched)) return null;
-  // Invariant 2: four of five options are consistent with SOME relabelling.
-  while (chosen.filter((c) => c.relabelReachable).length < REACHABLE_DISTRACTORS) {
-    if (chosen.length === 4) return null;
-    if (!take((c) => c.relabelReachable)) return null;
-  }
-  // Invariant 3: the slate names at least two distinct failures, so a wrong answer says WHICH
-  // incomplete rule the child used rather than only that one was used. A slate of four
-  // same-kind distractors still identifies which badge was misread, but it cannot show the
-  // error migration §4.6 uses as the falsification test. Best effort: taken only if a rival kind
-  // exists, and only after the two hard invariants are already satisfied.
-  if (chosen.length < 4) {
-    const kinds = new Set(chosen.map((c) => c.rule.kind));
-    if (kinds.size === 1) take((c) => !kinds.has(c.rule.kind));
-  }
-  for (const candidate of pool) {
-    if (chosen.length === 4) break;
-    if (!chosen.includes(candidate)) chosen.push(candidate);
-  }
-  return chosen.length === 4 ? chosen : null;
+  // I3 binds before the objective and before the lever, but only when it can: a chain whose whole
+  // admissible set names one failure has no slate to offer, and the checker's own rule is the same.
+  const named = admissible.filter((c) => c.kinds >= 2);
+  const candidates = named.length > 0 ? named : admissible;
+
+  // Lever first, anti-leak second: the budget is measured against the BEST distance cost any
+  // admissible slate reaches, so the objective can only choose among slates the difficulty lever
+  // already treats as equivalent.
+  const budget = Math.min(...candidates.map((c) => c.distanceCost)) + DISTANCE_COST_TOLERANCE;
+  return candidates
+    .filter((c) => c.distanceCost <= budget + 1e-9)
+    .sort(
+      (a, b) =>
+        a.tierScore - b.tierScore ||
+        // Strictly after the objective, so it never costs a vote tier: among slates the attacker
+        // cannot tell apart, keep the "did not engage" end of the axis in play. Those classes are
+        // the ones an equal-vote tier tends to evict, and §4.6's error-migration test and the
+        // §4.1.4 Verdict-2 fallback both read them off the strategy trace.
+        b.disengaged - a.disengaged ||
+        a.distanceCost - b.distanceCost ||
+        (a.slateId < b.slateId ? -1 : a.slateId > b.slateId ? 1 : 0),
+    )[0].slate;
 }
 
 /* ================================================================== *
@@ -854,10 +957,16 @@ export function genItem({
   // The OPERATOR chain and the figures depend only on the levers and the seed — never on the mode.
   // That is what equates the two banks: both arms serve the same figures, the same key and the same
   // difficulty, and differ only in which badge symbols label the operators.
+  // The FIGURE is redrawn against the anti-leak objective, not merely until one lays out.
+  //
+  // Taking the first draw that admitted a slate left the item at the mercy of that draw: whether a
+  // chain admits four distractors that carry the same number of relabelling votes as the key
+  // depends on the input figure, and most inputs do not. So this keeps drawing and keeps the BEST
+  // slate, stopping as soon as one reaches the five-way tie that carries no information at all.
+  // The draws come off the same seeded stream in the same order, so the item stays
+  // byte-reproducible from `levers` + `seed`.
   let chain = null;
-  let input = null;
-  let key = null;
-  let distractors = null;
+  let best = null;
   for (let attempt = 0; attempt < 64; attempt++) {
     if (chain === null || attempt % 8 === 0) {
       chain = buildChain({ depth, turns }, rng);
@@ -866,19 +975,25 @@ export function genItem({
     const candidate = drawFigure(density, rng);
     const output = applyChain(chain, candidate);
     if (figureKey(output) === figureKey(candidate)) continue; // the machine did nothing visible
-    const slate = chooseDistractors(chain, candidate, output, distractorSimilarity);
+    const votes = relabelVotes(chain.length, candidate);
+    const slate = chooseDistractors(chain, candidate, output, distractorSimilarity, votes);
     if (slate === null) continue;
-    input = candidate;
-    key = output;
-    distractors = slate;
-    break;
+    const keyVotes = votes.get(figureKey(output)) ?? 0;
+    const tally = [keyVotes, ...slate.map((c) => c.votes)];
+    const tierScore = 1 / tally.filter((v) => v === keyVotes).length;
+    if (best === null || tierScore < best.tierScore) {
+      best = { chain, input: candidate, key: output, distractors: slate, tierScore };
+    }
+    if (best.tierScore <= 0.2 + 1e-9) break;
   }
-  if (distractors === null) {
+  if (best === null) {
     throw new Error(
       `no figure satisfies the anti-leak invariants for depth=${depth} turns=${turns} ` +
         `density=${density} (seed ${seed})`,
     );
   }
+  const { input, key, distractors } = best;
+  chain = best.chain;
 
   const slot = keyPosition % 5;
   const optionKeys = ['A', 'B', 'C', 'D', 'E'];
@@ -991,6 +1106,59 @@ export function genItem({
   };
 }
 
+/**
+ * Assign every planned item the screen slot its key will occupy.
+ *
+ * WHY THIS IS NOT A CURSOR ANY MORE. `keyPosition = n % 5` over items emitted rung by rung in
+ * increasing difficulty makes the answer slot a function of the item's RANK IN THE BANK'S
+ * DIFFICULTY ORDER — and `difficulty` is a served field. Sorting a scraped bank recovers `n`, and
+ * `n mod 5` is the answer. STAGE2_ANTILEAK_COMPARISON §7.2 measures that at 38.5% against a 20.0%
+ * floor on this bank, and 62.2% cross-validated in the hardest slice once chain depth is added.
+ * No brute force, no relabelling, no understanding of the machine at all.
+ *
+ * The replacement keeps the balance the cursor bought and drops the order it leaked. Slots are
+ * allocated as a balanced MULTISET inside each stratum — here the chain depth, which is the served
+ * covariate an attacker conditions on — and are then PERMUTED inside that cell from the seeded
+ * stream, so a slot is independent of where its item sits in the difficulty order while every
+ * depth still shows all five slots equally often. The remainder that does not divide by five is
+ * carried across cells, so bank-level counts differ by at most one (E-094).
+ *
+ * @param {string[]} strata one stratum label per planned item, in emission order
+ */
+function allocateKeySlots(strata, optionCount, seed) {
+  const rng = makeRng(seed);
+  const cells = new Map();
+  strata.forEach((stratum, index) => {
+    const cell = cells.get(stratum) ?? [];
+    cell.push(index);
+    cells.set(stratum, cell);
+  });
+
+  const used = new Array(optionCount).fill(0);
+  const slots = new Array(strata.length);
+  // Cells are walked in a fixed lexical order, not in Map insertion order, so the allocation does
+  // not depend on the order the rung loop happened to discover the depths in.
+  for (const stratum of [...cells.keys()].sort()) {
+    const indices = cells.get(stratum);
+    const base = Math.floor(indices.length / optionCount);
+    const multiset = [];
+    for (let slot = 0; slot < optionCount; slot++) {
+      for (let n = 0; n < base; n++) multiset.push(slot);
+    }
+    // The remainder goes to the slots the bank has used LEAST so far. Ties are broken off the
+    // seeded stream rather than by slot index, or slot A would collect every remainder.
+    const bySlack = shuffle([...Array(optionCount).keys()], rng).sort((a, b) => used[a] - used[b]);
+    for (let n = 0; n < indices.length - base * optionCount; n++) multiset.push(bySlack[n]);
+    for (const slot of multiset) used[slot] += 1;
+
+    const permuted = shuffle(multiset, rng);
+    indices.forEach((index, n) => {
+      slots[index] = permuted[n];
+    });
+  }
+  return slots;
+}
+
 /* ================================================================== *
  * BANK BUILDER
  *
@@ -1009,7 +1177,10 @@ export function buildBank({ systemPersistence, perRung = 6, systemSeed = 'SPA-XF
   const rungs = [];
   for (let d = 1; d <= 20 + 1e-9; d += 0.5) rungs.push(round2(d));
 
-  let keyCursor = 0;
+  // PASS 1 — the lever plan for the whole bank, everything except the key's screen slot. The slot
+  // has to be allocated over the finished plan rather than inside this loop, because the cells it
+  // balances within span the whole bank and a cursor cannot see them one item at a time.
+  const plan = [];
 
   for (const rung of rungs) {
     // The rung window is clipped to its BAND's window as well as to +/-0.24, so an item cannot land
@@ -1045,18 +1216,51 @@ export function buildBank({ systemPersistence, perRung = 6, systemSeed = 'SPA-XF
       const similarity = solveSimilarity(segment.cfg, target);
       const c = segment.cfg;
       const seed = `SPA-XFORM-01|rung=${rung}|i=${i}|D${c.depth}T${c.turns}N${c.density}`;
-      items.push(
-        genItem({
-          ...c,
-          distractorSimilarity: similarity,
-          // Round-robin, so key position is balanced by construction rather than by luck (E-094).
-          keyPosition: keyCursor++ % 5,
-          systemPersistence,
-          systemSeed,
-          seed,
-        }),
-      );
+      plan.push({
+        levers: { ...c, distractorSimilarity: similarity, systemPersistence, systemSeed, seed },
+      });
     }
+  }
+
+  // PASS 2 — the key's screen slot, balanced inside each chain depth and permuted there.
+  const slots = allocateKeySlots(
+    plan.map((p) => `D${p.levers.depth}`),
+    5,
+    `${systemSeed}|keySlots`,
+  );
+
+  // PASS 3 — generate, in the same rung order as before, so the bank ships in difficulty order.
+  //
+  // Redraw on a repeated stimulus. `learning-block.ts` forbids serving the same item twice because
+  // a repeat measures recall of that item rather than the rule, and two items that differ only in
+  // `itemId` are a repeat wearing a new label. This became reachable when the figure draw started
+  // optimising the vote tier: the objective concentrates the draw on the inputs that admit a
+  // five-way tie, so two rungs sharing a lever config can converge on the same one. The attempt is
+  // carried in the SEED rather than in a new lever, so an item stays byte-reproducible from its own
+  // provenance — the checker regenerates from `levers` + `seed` and lands on the same draw without
+  // knowing a redraw happened — and both arms take the same redraws, because the figures depend on
+  // the levers and the seed and never on the mode.
+  const seen = new Set();
+  for (let n = 0; n < plan.length; n++) {
+    const { seed, ...levers } = plan[n].levers;
+    let item = null;
+    for (let redraw = 0; redraw < 64; redraw++) {
+      const candidate = genItem({
+        ...levers,
+        keyPosition: slots[n],
+        seed: redraw === 0 ? seed : `${seed}|r${redraw}`,
+      });
+      const fingerprint = JSON.stringify([
+        candidate.content.input.blocks,
+        candidate.content.options.map((o) => o.blocks),
+      ]);
+      if (seen.has(fingerprint)) continue;
+      seen.add(fingerprint);
+      item = candidate;
+      break;
+    }
+    if (item === null) throw new Error(`64 redraws all repeated an earlier stimulus (${seed})`);
+    items.push(item);
   }
   return items;
 }
