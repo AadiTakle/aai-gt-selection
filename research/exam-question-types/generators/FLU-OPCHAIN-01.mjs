@@ -297,6 +297,45 @@ export function baseScore({ depth, geom }) {
  * Every entry here is reachable by construction; there is no filtering step,
  * because an unreachable config would mean a difficulty the bank claims to serve
  * and cannot.
+ *
+ * WHY DEPTH STOPS AT 4, WHICH IS ALSO WHY THIS BANK CANNOT BE MADE HARDER.
+ *
+ * Composition depth is the only difficulty lever with room left in it — above difficulty ~16 every
+ * item is depth 4 and the only thing still varying is the distractor slate. Extending the ladder to
+ * depth 5 or 6 looks like the obvious way to serve a high-standing child, and it is measurably the
+ * wrong move, because the ANTI-LEAK arithmetic runs the other way from the difficulty arithmetic.
+ *
+ * What a client can compute from `content` is the set of figures reachable by relabelling the badges
+ * (see {@link relabelReachableFigures}); the key is safe only while that set is big enough that
+ * several of the five options are consistent with some mapping. Measured over every input figure:
+ *
+ *   depth   ordered assignments   distinct reachable figures
+ *     1                      6                            6
+ *     2                     30                           18
+ *     3                    120                           30   <- peak
+ *     4                    360                           27
+ *     5                    720                           12
+ *     6                    720                            2
+ *
+ * The set PEAKS at depth 3 and collapses after it, because a long chain uses the vocabulary up. All
+ * three attribute operators are involutions and each appears at most once, so by depth 6 every
+ * relabelling toggles every attribute exactly once and only the orientation can differ — and the
+ * orientation product of `turn`, `flip` and `slant` takes just two values over their six orderings
+ * (three of which are rejected outright by {@link geometricPartIsIdentity}). Two reachable figures
+ * means a browser that brute-forces the mappings is choosing between two options: a 50% hit rate
+ * with no induction at all, against the 20% floor a five-option item should have.
+ *
+ * So the collision risk has NOT cleared for deeper chains. The invariant in
+ * {@link chooseDistractors} closed the case where exactly one option was reachable, which is what
+ * made depth 4 safe (0 of 468 items, down from 11 of 234); it cannot rescue a depth at which only
+ * two figures exist to distribute over five options. Even at depth 4 the residue is visible and is
+ * reported by `check-FLU-OPCHAIN-01.mjs`: content-only chance rises from 20% at the floor of the
+ * scale to ~30% at difficulty 16-20.
+ *
+ * Extending the range upward therefore requires a WIDER FIGURE STATE SPACE — a fourth attribute
+ * component, or attribute operators that cycle through three states instead of toggling two — not a
+ * longer chain. That changes what the child has to induce, what the renderer draws and what the
+ * plpgsql verifier re-derives, so it is an owner decision rather than a generator tweak.
  */
 export const ALLOWED_CONFIGS = (() => {
   const out = [];
@@ -760,7 +799,36 @@ export function genItem({
  * children are. The U0 harness measures whether this bank actually delivers it
  * (Gate A check A3) rather than taking the granularity as proof.
  * ================================================================== */
-export function buildBank({ systemPersistence, perRung = 6, systemSeed = 'FLU-OPCHAIN-01|v1' }) {
+
+/**
+ * Items per 0.5-point rung. TWELVE, and the figure is measured rather than chosen.
+ *
+ * It was 6, which gave 234 items and 36 items above difficulty 17.5. A 30-trial block for a child
+ * standing at 17 consumed almost all of them, so `selectNextNovelItem` had no discretion left: it
+ * returned the highest unserved item whatever difficulty the rule had asked for, the difficulty walk
+ * stopped responding to the child, and the two arms served the SAME difficulty profile — measured at
+ * standing 17, mean served difficulty 18.98 in both arms. §4.1.1's manipulation check reads exactly
+ * that quantity, so above standing ~17 the control had nothing left to be a control with.
+ *
+ * At 12 the same block draws on 72 items above 17.5 and the arms separate again (19.38 against 17.39
+ * at standing 17). It also matches the 12-per-rung density of the idealised grid E-095 was measured
+ * on, which removes grid density as a confound when Gate A's A4 compares the two: recovery moves
+ * from r = 0.456 to 0.467 and the attenuation ratio from 0.888 to 0.922 against E-095's 0.98.
+ *
+ * The cost is a 1.3 MB bank file, read by `bank-loader.ts` through `node:fs` on the server and never
+ * shipped to a browser, so it is disk and server memory rather than client payload.
+ *
+ * This does NOT extend the ceiling, and nothing here should be read as claiming it does. The scale
+ * ends at 20 and `nextTargetTheta` clamps there; the top of the DEPTH ladder is a separate limit
+ * documented at {@link ALLOWED_CONFIGS}.
+ */
+export const DEFAULT_PER_RUNG = 12;
+
+export function buildBank({
+  systemPersistence,
+  perRung = DEFAULT_PER_RUNG,
+  systemSeed = 'FLU-OPCHAIN-01|v1',
+}) {
   const items = [];
   const rungs = [];
   for (let d = 1; d <= 20 + 1e-9; d += 0.5) rungs.push(round2(d));
@@ -836,7 +904,7 @@ export const BANK_PATHS = {
 };
 
 if (isMain()) {
-  const perRung = Number(process.env.PER_RUNG || 6);
+  const perRung = Number(process.env.PER_RUNG || DEFAULT_PER_RUNG);
   const modes = ['consistent', 'perTrial'];
   const banks = {};
 

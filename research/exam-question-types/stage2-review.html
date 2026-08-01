@@ -5,7 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>GT Stage 2 Learning-Block Review</title>
     <!--
-      Sibling of review.html, for the Stage 2 learning block rather than the question-type catalog.
+      Sibling of review.html, for the Stage 2 learning block rather than the question-type catalog,
+      and deliberately in the same visual language: same palette, same navy-and-gold topbar, same
+      aside-plus-main shell, same collapsing `section.card` with its show/hide affordance, same
+      13px Inter body. Different functionality, same furniture — a reviewer moving between the two
+      windows should not have to relearn where anything is.
 
       The page holds NO selection or estimation logic. Everything that decides what to serve and
       what the block adds up to is imported from the compiled real modules under stage2-build/,
@@ -37,6 +41,7 @@
       globalThis.process ??= { argv: [], env: {} };
     </script>
     <style>
+      /* Palette, type and chrome are review.html's, unchanged. */
       :root {
         --navy: #0f2742;
         --navy-2: #1b3a5b;
@@ -46,12 +51,13 @@
         --muted: #5a6b7b;
         --line: #dfe3e8;
         --ok: #1f8a4c;
-        --warn: #b45309;
-        --bad: #b91c1c;
         --card: #ffffff;
-        --consistent: #1d4ed8;
+        --s1: #2563eb;
+        --dual: #7c3aed;
+        --s2: #c2410c;
+        --consistent: #2563eb;
         --control: #c2410c;
-        --mono: ui-monospace, Menlo, Monaco, 'Cascadia Mono', monospace;
+        --mono: ui-monospace, Menlo, Monaco, monospace;
       }
       * {
         box-sizing: border-box;
@@ -59,29 +65,58 @@
       html,
       body {
         margin: 0;
+        height: 100%;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         color: var(--ink);
         background: var(--paper);
-        font-size: 14px;
       }
       header.topbar {
         position: sticky;
         top: 0;
-        z-index: 30;
+        z-index: 20;
         background: var(--navy);
         color: #fff;
         display: flex;
         align-items: center;
-        gap: 14px;
-        padding: 9px 16px;
+        gap: 16px;
+        padding: 10px 16px;
         border-bottom: 3px solid var(--gold);
-        flex-wrap: wrap;
       }
       .topbar h1 {
-        font-size: 15px;
+        font-size: 16px;
         margin: 0;
         font-weight: 650;
         letter-spacing: 0.2px;
+      }
+      .topbar .prog {
+        font-size: 13px;
+        color: #cfe0f2;
+      }
+      .topbar .spacer {
+        flex: 1;
+      }
+      .topbar button {
+        background: var(--gold);
+        color: #231a02;
+        border: none;
+        border-radius: 7px;
+        padding: 7px 12px;
+        font-weight: 650;
+        cursor: pointer;
+        font-size: 13px;
+        font-family: inherit;
+      }
+      .topbar button.ghost {
+        background: transparent;
+        color: #dfe9f5;
+        border: 1px solid #37567a;
+      }
+      .topbar button:hover {
+        filter: brightness(1.05);
+      }
+      .topbar button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
       }
       .topbar select {
         background: #17324f;
@@ -89,143 +124,234 @@
         border: 1px solid #37567a;
         border-radius: 6px;
         padding: 5px 8px;
-        font-size: 12.5px;
+        font-size: 13px;
         font-family: inherit;
       }
-      .topbar .spacer {
-        flex: 1;
-      }
+      /* The arm switch is the topbar's own button language, not a fourth control style. */
       .armswitch {
         display: flex;
-        border: 1px solid #37567a;
-        border-radius: 8px;
-        overflow: hidden;
-      }
-      .armswitch button {
-        background: #17324f;
-        color: #cfe0f2;
-        border: 0;
-        padding: 6px 11px;
-        font-size: 12px;
-        font-weight: 650;
-        cursor: pointer;
-        font-family: inherit;
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        line-height: 1.25;
-        gap: 1px;
-      }
-      .armswitch button small {
-        font-weight: 500;
-        font-size: 10px;
-        opacity: 0.8;
+        gap: 6px;
       }
       .armswitch button.on[data-arm='consistent'] {
         background: var(--consistent);
         color: #fff;
+        border-color: var(--consistent);
       }
       .armswitch button.on[data-arm='perTrial'] {
         background: var(--control);
         color: #fff;
+        border-color: var(--control);
       }
-      .provchip {
-        font-family: var(--mono);
-        font-size: 10.5px;
-        color: #bcd3ea;
-        background: #17324f;
-        border: 1px solid #37567a;
-        border-radius: 6px;
-        padding: 4px 8px;
-        cursor: pointer;
-      }
-      .provchip.stale {
-        background: #7f1d1d;
-        border-color: #dc2626;
-        color: #fee2e2;
-      }
-
       .layout {
+        display: flex;
+        height: calc(100vh - 53px);
+      }
+      aside {
+        width: 340px;
+        min-width: 300px;
+        border-right: 1px solid var(--line);
+        overflow-y: auto;
+        background: #fff;
+      }
+      main {
+        flex: 1;
+        overflow-y: auto;
+        padding: 18px 22px;
+      }
+      .empty {
+        color: var(--muted);
+        margin-top: 40px;
+        text-align: center;
+        line-height: 1.7;
+      }
+      .empty code {
+        display: inline-block;
+        font-family: var(--mono);
+        background: #eef1f4;
+        padding: 2px 7px;
+        border-radius: 5px;
+        margin: 2px;
+      }
+      .head h2 {
+        margin: 0 0 2px;
+        font-size: 22px;
+      }
+      .head .meta {
+        color: var(--muted);
+        font-size: 13px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .head .meta code {
+        font-family: var(--mono);
+        background: #eef1f4;
+        padding: 1px 6px;
+        border-radius: 5px;
+      }
+      .badge {
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 6px;
+        border-radius: 20px;
+        color: #fff;
+        white-space: nowrap;
+      }
+      .b-S2 {
+        background: var(--s2);
+      }
+      .b-consistent {
+        background: var(--consistent);
+      }
+      .b-perTrial {
+        background: var(--control);
+      }
+      .grid {
         display: grid;
-        grid-template-columns: 330px minmax(0, 1fr) 400px;
-        gap: 14px;
-        padding: 14px;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 18px;
         align-items: start;
       }
-      @media (max-width: 1500px) {
-        .layout {
-          grid-template-columns: 320px minmax(0, 1fr);
+      @media (max-width: 1100px) {
+        .grid {
+          grid-template-columns: 1fr;
         }
-        .col-right {
-          grid-column: 1 / -1;
-        }
-      }
-      @media (max-width: 1000px) {
-        .layout {
-          grid-template-columns: minmax(0, 1fr);
-        }
-        .col-right {
-          grid-column: auto;
-        }
-      }
-      .col {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        min-width: 0;
       }
       section.card {
         border: 1px solid var(--line);
         border-radius: 10px;
         background: var(--card);
-        overflow: hidden;
+        margin-bottom: 14px;
       }
-      section.card > h2 {
+      section.card > h3 {
         margin: 0;
-        font-size: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.6px;
+        font-size: 13px;
         padding: 9px 12px;
         border-bottom: 1px solid var(--line);
         background: #fbfcfd;
-        color: var(--navy-2);
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
       }
-      section.card > h2 .tw {
-        margin-left: auto;
-        font-weight: 400;
-        text-transform: none;
-        letter-spacing: 0;
-        color: var(--muted);
-        font-size: 11px;
-      }
-      section.card > h2.click {
+      section.card > h3.click {
         cursor: pointer;
       }
+      section.card > h3 .tw {
+        color: var(--muted);
+        font-weight: 400;
+        font-size: 11px;
+        margin-left: auto;
+      }
       section.card .body {
-        padding: 12px;
-        line-height: 1.55;
+        padding: 11px 13px;
+        font-size: 13px;
+        line-height: 1.5;
       }
       section.card.collapsed .body {
         display: none;
       }
-
-      .slider {
-        margin-bottom: 9px;
+      .kv {
+        margin: 0 0 8px;
       }
-      .slider .lab {
+      .kv b {
+        color: var(--navy-2);
+      }
+      .note {
+        font-size: 11.5px;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+      .note code,
+      .body code {
+        font-family: var(--mono);
+        font-size: 0.92em;
+        background: #eef1f4;
+        padding: 0 4px;
+        border-radius: 4px;
+      }
+      pre.json {
+        font-family: var(--mono);
+        font-size: 10.5px;
+        background: #f8fafc;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 7px;
+        margin: 5px 0 0;
+        max-height: 190px;
+        overflow: auto;
+        line-height: 1.45;
+      }
+      .warnbox {
+        border-left: 3px solid #b45309;
+        background: #fffbeb;
+        padding: 8px 10px;
+        border-radius: 0 7px 7px 0;
+        font-size: 11.5px;
+        line-height: 1.5;
+        color: #713f12;
+      }
+      .warnbox b {
+        color: #7c2d12;
+      }
+      .badbox {
+        border-left: 3px solid #b91c1c;
+        background: #fef2f2;
+        padding: 8px 10px;
+        border-radius: 0 7px 7px 0;
+        font-size: 11.5px;
+        line-height: 1.5;
+        color: #7f1d1d;
+      }
+
+      /* ---- aside controls: review.html's .field / .btns / .rangeset language ---- */
+      .field {
+        margin-bottom: 12px;
+      }
+      .field label {
+        display: block;
+        font-size: 12px;
+        font-weight: 650;
+        color: var(--navy-2);
+        margin-bottom: 4px;
+      }
+      .field label .hint {
+        font-weight: 400;
+        color: var(--muted);
+      }
+      .slrow {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin-top: 4px;
+      }
+      .slrow input[type='range'] {
+        flex: 1;
+        accent-color: #0f2742;
+      }
+      .slrow .val {
+        font-family: var(--mono);
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--navy);
+        min-width: 58px;
+        text-align: right;
+      }
+      .slider.inert .lab,
+      .slider.inert input {
+        opacity: 0.55;
+      }
+      .lab {
         display: flex;
         align-items: baseline;
         gap: 6px;
         font-size: 12px;
-        margin-bottom: 2px;
       }
-      .slider .lab b {
+      .lab b {
         font-weight: 600;
       }
-      .slider .lab .drives {
+      .drives {
         font-size: 10px;
         font-weight: 700;
         color: #fff;
@@ -233,20 +359,36 @@
         border-radius: 20px;
         padding: 1px 6px;
       }
-      .slider .lab .val {
-        margin-left: auto;
-        font-family: var(--mono);
-        font-weight: 700;
+      .btns {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-top: 9px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .btns button {
+        font-size: 12px;
         color: var(--navy);
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        padding: 4px 9px;
+        cursor: pointer;
+        font-family: inherit;
       }
-      .slider input[type='range'] {
-        width: 100%;
-        accent-color: #0f2742;
-        margin: 0;
+      .btns button:hover:not(:disabled) {
+        background: #f4f7fb;
       }
-      .slider.inert .lab b,
-      .slider.inert input {
-        opacity: 0.55;
+      .btns button.primary {
+        background: var(--navy);
+        color: #fff;
+        border-color: var(--navy);
+      }
+      .btns button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
       }
       .cfgrow {
         display: flex;
@@ -259,122 +401,53 @@
         flex: 1;
         color: var(--muted);
       }
-      .cfgrow input[type='number'],
-      .cfgrow select {
-        width: 92px;
-        padding: 4px 6px;
+      .cfgrow input[type='number'] {
+        width: 88px;
+        padding: 3px 5px;
         border: 1px solid var(--line);
-        border-radius: 6px;
+        border-radius: 5px;
         font-family: var(--mono);
-        font-size: 12px;
+        font-size: 11.5px;
       }
       .cfgrow .real {
         font-size: 10px;
         color: var(--muted);
         font-family: var(--mono);
       }
-      button.primary {
-        background: var(--navy);
-        color: #fff;
-        border: 0;
-        border-radius: 8px;
-        padding: 9px 12px;
-        font-weight: 650;
-        font-size: 13px;
-        cursor: pointer;
-        font-family: inherit;
-        width: 100%;
-      }
-      button.primary:hover {
-        filter: brightness(1.12);
-      }
-      button.ghost {
-        background: #fff;
-        color: var(--navy);
-        border: 1px solid var(--line);
-        border-radius: 7px;
-        padding: 6px 10px;
-        font-size: 12px;
-        cursor: pointer;
-        font-family: inherit;
-      }
-      button.ghost:hover {
-        background: #f4f7fb;
-      }
-      button:disabled {
-        opacity: 0.45;
-        cursor: not-allowed;
-      }
-      .btnrow {
-        display: flex;
-        gap: 6px;
-        flex-wrap: wrap;
-        margin-top: 9px;
-      }
 
-      pre.json {
-        font-family: var(--mono);
-        font-size: 10.5px;
-        background: #f8fafc;
+      /* =================================================================
+       * THE CHILD'S SCREEN
+       *
+       * Everything between `.playwrap`'s bar and the reviewer divider is what a
+       * child sees. It carries no verdict, no score, no streak and no praise:
+       * the only feedback is the figure the machine made (§1.5). The panel is
+       * built on review.html's `.diffwrap` chrome so it reads as the same
+       * instrument.
+       * ================================================================= */
+      .playwrap {
         border: 1px solid var(--line);
-        border-radius: 7px;
-        padding: 8px;
-        margin: 6px 0 0;
-        max-height: 190px;
-        overflow: auto;
-        line-height: 1.45;
-      }
-      .note {
-        font-size: 11.5px;
-        color: var(--muted);
-        line-height: 1.5;
-      }
-      .note code,
-      .body code {
-        font-family: var(--mono);
-        font-size: 0.92em;
-        background: #eef1f4;
-        padding: 0 4px;
-        border-radius: 4px;
-      }
-      .warnbox {
-        border-left: 3px solid var(--warn);
-        background: #fffbeb;
-        padding: 8px 10px;
-        border-radius: 0 7px 7px 0;
-        font-size: 11.5px;
-        line-height: 1.5;
-        color: #713f12;
-      }
-      .warnbox b {
-        color: #7c2d12;
-      }
-      .badbox {
-        border-left: 3px solid var(--bad);
-        background: #fef2f2;
-        padding: 8px 10px;
-        border-radius: 0 7px 7px 0;
-        font-size: 11.5px;
-        line-height: 1.5;
-        color: #7f1d1d;
-      }
-
-      /* ---- the trial ---- */
-      .stage {
+        border-radius: 10px;
         background: #fff;
+        margin: 0 0 14px;
       }
-      .stagehead {
+      .playwrap > .bar {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 8px;
+        padding: 6px 10px;
+        background: #f4f7fb;
+        border-bottom: 1px solid var(--line);
         font-size: 12px;
         color: var(--muted);
-        padding: 8px 12px;
-        border-bottom: 1px solid var(--line);
-        background: #fbfcfd;
         flex-wrap: wrap;
       }
-      .stagehead .pill {
+      .playwrap > .bar .spacer {
+        flex: 1;
+      }
+      .playwrap > .bar b {
+        color: var(--navy-2);
+      }
+      .pill {
         font-family: var(--mono);
         font-size: 11px;
         background: #eef1f4;
@@ -382,124 +455,33 @@
         padding: 2px 9px;
         color: var(--navy-2);
       }
-      .stagehead .pill b {
+      .pill b {
         color: var(--navy);
       }
-      .stagehead .spacer {
-        flex: 1;
+      .pill.warn {
+        background: #fef3c7;
+        color: #713f12;
       }
-      .machine {
+      /* The child-facing CSS is NOT here. It is injected by stage2-review.js from
+         stage2-child-stage.js, which is the single definition of the child's screen and the exact
+         source the intuitiveness audit was rendered from. Keeping a copy in this file would let the
+         audited screen and the administered screen drift apart. */
+      .divider {
         display: flex;
         align-items: center;
-        justify-content: center;
-        gap: 16px;
-        flex-wrap: wrap;
-        padding: 18px 12px 6px;
-      }
-      .figbox {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 5px;
-      }
-      .figbox .cap {
-        font-size: 10.5px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: var(--muted);
-        font-weight: 600;
-      }
-      .chainrow {
-        display: flex;
-        align-items: center;
-        gap: 7px;
-      }
-      .badge {
-        width: 44px;
-        height: 44px;
-        border: 2px solid var(--navy-2);
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #fff;
-      }
-      .badge.step {
-        border-color: var(--muted);
-      }
-      .arrow {
-        color: var(--muted);
-        font-size: 18px;
-      }
-      .options {
-        display: flex;
         gap: 10px;
-        justify-content: center;
-        flex-wrap: wrap;
-        padding: 4px 12px 16px;
-      }
-      .opt {
-        border: 2px solid var(--line);
-        border-radius: 12px;
-        background: #fff;
-        padding: 6px 6px 3px;
-        cursor: pointer;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 2px;
-        font-family: inherit;
-      }
-      .opt.right {
-        border-color: var(--ok);
-        background: #f0fdf4;
-      }
-      .opt.wrong {
-        border-color: var(--bad);
-        background: #fef2f2;
-      }
-      .opt:hover {
-        border-color: var(--navy-2);
-        background: #f8fbff;
-      }
-      .opt .k {
-        font-family: var(--mono);
+        margin: 0 0 14px;
         font-size: 11px;
-        font-weight: 700;
         color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        font-weight: 650;
       }
-      .opt.chosen {
-        border-color: var(--navy);
-        box-shadow: 0 0 0 3px #cfe0f2;
-      }
-      .opt.locked {
-        cursor: default;
-      }
-      .opt.locked:hover {
-        border-color: var(--line);
-        background: #fff;
-      }
-      .reveal {
+      .divider::before,
+      .divider::after {
+        content: '';
+        flex: 1;
         border-top: 1px dashed var(--line);
-        padding: 12px;
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        flex-wrap: wrap;
-        background: #fcfdff;
-      }
-      .reveal .msg {
-        font-size: 12.5px;
-        color: var(--muted);
-        max-width: 340px;
-        line-height: 1.5;
-      }
-      iframe.demo {
-        width: 100%;
-        height: 560px;
-        border: 0;
-        display: block;
-        background: #fff;
       }
 
       /* ---- chart ---- */
@@ -508,12 +490,12 @@
       }
       svg.chart {
         width: 100%;
-        height: 210px;
+        height: 200px;
         display: block;
       }
       .legend {
         display: flex;
-        gap: 14px;
+        gap: 12px;
         flex-wrap: wrap;
         font-size: 11px;
         color: var(--muted);
@@ -529,62 +511,76 @@
         margin-right: 5px;
       }
 
-      /* ---- trace table ---- */
+      /* ---- tables: review.html's table.metrics language ---- */
       .tablewrap {
-        max-height: 420px;
+        max-height: 400px;
         overflow: auto;
       }
-      table.trace {
+      table.metrics {
         width: 100%;
         border-collapse: collapse;
-        font-size: 11.5px;
-        font-family: var(--mono);
+        font-size: 12px;
       }
-      table.trace th,
-      table.trace td {
-        border-bottom: 1px solid var(--line);
+      table.metrics th,
+      table.metrics td {
+        border: 1px solid var(--line);
         padding: 4px 7px;
+        text-align: left;
+        vertical-align: top;
+      }
+      table.metrics th {
+        background: #f4f7fb;
+        font-weight: 600;
+        font-size: 11px;
+        position: sticky;
+        top: 0;
+        z-index: 2;
+      }
+      table.metrics td.num,
+      table.metrics th.num {
+        font-family: var(--mono);
         text-align: right;
         white-space: nowrap;
       }
-      table.trace th {
-        position: sticky;
-        top: 0;
-        background: #f4f7fb;
-        font-weight: 600;
-        text-align: right;
-        z-index: 2;
-        font-family: 'Inter', sans-serif;
-        font-size: 10.5px;
+      table.metrics tr.hit td {
+        background: #f6fdf8;
       }
-      table.trace th:first-child,
-      table.trace td:first-child,
-      table.trace th.l,
-      table.trace td.l {
-        text-align: left;
+      table.metrics tr.miss td {
+        background: #fdf7f7;
       }
-      table.trace tr.hit td {
-        background: #f0fdf4;
-      }
-      table.trace tr.miss td {
-        background: #fef7f7;
-      }
-      table.trace td.up {
+      table.metrics td.up {
         color: var(--ok);
       }
-      table.trace td.dn {
-        color: var(--bad);
+      table.metrics td.dn {
+        color: #b91c1c;
       }
-      .zero {
-        color: var(--warn);
+      table.metrics .armA {
+        color: var(--consistent);
         font-weight: 700;
+      }
+      table.metrics .armB {
+        color: var(--control);
+        font-weight: 700;
+      }
+      .flag {
+        color: #b45309;
+        font-weight: 700;
+      }
+      .verdict {
+        margin-top: 10px;
+        font-size: 12.5px;
+        line-height: 1.55;
+        border-left: 3px solid var(--navy-2);
+        background: #f4f7fb;
+        padding: 9px 11px;
+        border-radius: 0 7px 7px 0;
       }
 
       /* ---- readout ---- */
-      .readout .band {
+      .band {
         font-size: 15px;
         font-weight: 700;
-        color: var(--warn);
+        color: #b45309;
         font-family: var(--mono);
       }
       .interval {
@@ -630,53 +626,69 @@
         transform: translateX(-50%);
       }
 
-      /* ---- comparison ---- */
-      table.cmp {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 12px;
+      /* ---- learnability: the knowable curve, and the per-badge timeline ---- */
+      .knowbar {
+        display: flex;
+        align-items: flex-end;
+        gap: 2px;
+        height: 46px;
+        margin: 6px 0 2px;
       }
-      table.cmp th,
-      table.cmp td {
-        border: 1px solid var(--line);
-        padding: 5px 7px;
-        text-align: left;
-        vertical-align: top;
+      .knowbar .k {
+        flex: 1;
+        min-height: 2px;
+        background: #c9d8ec;
+        border-radius: 2px 2px 0 0;
       }
-      table.cmp th {
-        background: #f4f7fb;
-        font-weight: 600;
-        font-size: 11px;
+      .knowbar .k.no {
+        background: #fde68a;
       }
-      table.cmp td.num {
+      .axis-lbl {
+        display: flex;
+        justify-content: space-between;
+        font-size: 10px;
+        color: var(--muted);
         font-family: var(--mono);
+        margin-bottom: 8px;
+      }
+      .pinned {
+        display: grid;
+        grid-template-columns: 74px minmax(0, 1fr) 46px;
+        gap: 3px 8px;
+        font-size: 11.5px;
+        align-items: center;
+      }
+      .pinned .nm {
+        font-family: var(--mono);
+        color: var(--navy-2);
+      }
+      .pinned .track {
+        position: relative;
+        height: 6px;
+        background: #eef1f4;
+        border-radius: 3px;
+      }
+      .pinned .fill {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        background: #9db8d8;
+        border-radius: 3px;
+      }
+      .pinned .at {
         text-align: right;
-      }
-      table.cmp .armA {
-        color: var(--consistent);
-        font-weight: 700;
-      }
-      table.cmp .armB {
-        color: var(--control);
-        font-weight: 700;
-      }
-      .verdict {
-        margin-top: 10px;
-        font-size: 12.5px;
-        line-height: 1.55;
-        border-left: 3px solid var(--navy-2);
-        background: #f4f7fb;
-        padding: 9px 11px;
-        border-radius: 0 7px 7px 0;
+        font-family: var(--mono);
+        color: var(--muted);
       }
 
-      /* ---- philosophy ---- */
-      .phil h3 {
+      /* ---- philosophy / type cards ---- */
+      .phil h4 {
         font-size: 13px;
         margin: 14px 0 4px;
         color: var(--navy);
       }
-      .phil h3:first-child {
+      .phil h4:first-child {
         margin-top: 0;
       }
       .phil p {
@@ -738,19 +750,17 @@
       .armcol.b {
         border-top-color: var(--control);
       }
-      .armcol h4 {
+      .armcol h5 {
         margin: 0 0 4px;
         font-size: 12px;
         font-family: var(--mono);
       }
-      .armcol.a h4 {
+      .armcol.a h5 {
         color: var(--consistent);
       }
-      .armcol.b h4 {
+      .armcol.b h5 {
         color: var(--control);
       }
-
-      /* ---- type cards ---- */
       .typecard {
         border: 1px solid var(--line);
         border-radius: 9px;
@@ -812,21 +822,6 @@
         margin: 0;
         padding-left: 17px;
       }
-      .boot {
-        padding: 60px 20px;
-        text-align: center;
-        color: var(--muted);
-        font-size: 13px;
-        line-height: 1.7;
-      }
-      .boot code {
-        display: inline-block;
-        font-family: var(--mono);
-        background: #eef1f4;
-        padding: 2px 7px;
-        border-radius: 5px;
-        margin: 2px;
-      }
     </style>
   </head>
   <body>
@@ -834,55 +829,46 @@
       <h1>GT Stage 2 — Learning-Block Review</h1>
       <select id="typeSel" aria-label="Stage 2 question type"></select>
       <div class="armswitch" id="armSwitch">
-        <button data-arm="consistent" type="button">
-          CONSISTENT<small>system persists — the live arm</small>
+        <button class="ghost" data-arm="consistent" type="button" title="One hidden system for the whole block — the live arm">
+          Consistent
         </button>
-        <button data-arm="perTrial" type="button">
-          SCRAMBLED<small>system redrawn every trial — CONTROL</small>
+        <button class="ghost" data-arm="perTrial" type="button" title="A fresh hidden system every trial — the control">
+          Scrambled control
         </button>
       </div>
+      <span class="prog" id="prog"></span>
       <span class="spacer"></span>
-      <button class="provchip" id="provChip" type="button">real-code build: loading…</button>
+      <button class="ghost" id="provChip" type="button">real-code build: loading…</button>
     </header>
 
-    <div id="boot" class="boot">Loading the compiled engine modules…</div>
+    <div id="boot" class="empty">Loading the compiled engine modules…</div>
 
     <div class="layout" id="layout" hidden>
-      <div class="col col-left">
-        <section class="card">
-          <h2>Stage 1 result, set by hand <span class="tw" id="handoffState"></span></h2>
+      <aside>
+        <section class="card" style="border:0;border-radius:0;margin:0">
+          <h3>Stage 1 result, set by hand <span class="tw" id="handoffState"></span></h3>
           <div class="body">
             <p class="note" id="abilityIntro"></p>
             <div id="sliders"></div>
             <div id="blockCfg"></div>
-            <div class="btnrow">
+            <div class="btns">
               <button class="primary" id="startBtn" type="button">Start the block</button>
-            </div>
-            <div class="btnrow">
-              <button class="ghost" id="autoBtn" type="button">Auto-run to the end</button>
-              <button class="ghost" id="resetBtn" type="button">Discard run</button>
+              <button id="autoBtn" type="button">Auto-run to the end</button>
+              <button id="resetBtn" type="button">Discard run</button>
             </div>
           </div>
         </section>
 
-        <section class="card collapsed" id="handoffCard">
-          <h2 class="click">The handoff this wrote <span class="tw">show</span></h2>
-          <div class="body">
-            <p class="note" id="handoffNote"></p>
-            <pre class="json" id="handoffJson">—</pre>
-          </div>
-        </section>
-
-        <section class="card">
-          <h2>Who is answering</h2>
+        <section class="card" style="border-left:0;border-right:0;border-radius:0;margin:0">
+          <h3>Who is answering</h3>
           <div class="body">
             <div id="responderPick"></div>
             <div id="responderNote"></div>
           </div>
         </section>
 
-        <section class="card collapsed" id="peekCard">
-          <h2 class="click">The hidden system <span class="tw">show</span></h2>
+        <section class="card collapsed" id="peekCard" style="border-left:0;border-right:0;border-radius:0;margin:0">
+          <h3 class="click">The hidden system <span class="tw">show</span></h3>
           <div class="body">
             <div class="warnbox">
               <b>Reading this is peeking.</b> The badge-to-transform mapping is what the child has to
@@ -890,58 +876,82 @@
               item means; it also makes your own two-arm comparison meaningless, because you can then
               answer the scrambled arm as easily as the consistent one.
             </div>
-            <div class="btnrow">
-              <button class="ghost" id="peekBtn" type="button">Reveal the mapping for this item</button>
+            <div class="btns">
+              <button id="peekBtn" type="button">Reveal the mapping for this item</button>
             </div>
             <div id="peekBody"></div>
           </div>
         </section>
-      </div>
 
-      <div class="col col-mid">
-        <section class="card stage" id="stageCard">
-          <div class="stagehead" id="stageHead"></div>
+        <section class="card collapsed" id="handoffCard" style="border-left:0;border-right:0;border-radius:0;margin:0">
+          <h3 class="click">The handoff this wrote <span class="tw">show</span></h3>
+          <div class="body">
+            <p class="note" id="handoffNote"></p>
+            <pre class="json" id="handoffJson">—</pre>
+          </div>
+        </section>
+      </aside>
+
+      <main id="main">
+        <div class="head">
+          <h2 id="headTitle">—</h2>
+          <div class="meta" id="headMeta"></div>
+        </div>
+
+        <div class="playwrap" id="playWrap">
+          <div class="bar" id="stageHead"></div>
           <div id="stageBody"></div>
-        </section>
+        </div>
 
-        <section class="card">
-          <h2>
-            Bracketing and re-targeting
-            <span class="tw">what the rule asked for, and what the bank had</span>
-          </h2>
-          <div class="chartwrap"><svg class="chart" id="chart"></svg></div>
-          <div class="legend" id="chartLegend"></div>
-        </section>
+        <div class="divider">Below here the reviewer's instruments — the child sees none of it</div>
 
-        <section class="card">
-          <h2>Trial by trial <span class="tw" id="traceCount"></span></h2>
-          <div class="tablewrap"><table class="trace" id="traceTable"></table></div>
-        </section>
+        <div class="grid">
+          <div>
+            <section class="card">
+              <h3>
+                Bracketing and re-targeting
+                <span class="tw">what the rule asked for, and what the bank had</span>
+              </h3>
+              <div class="chartwrap"><svg class="chart" id="chart"></svg></div>
+              <div class="legend" id="chartLegend"></div>
+            </section>
 
-        <section class="card collapsed" id="philCard">
-          <h2 class="click">
-            What this type is trying to do <span class="tw">read this first — about a minute</span>
-          </h2>
-          <div class="body phil" id="philBody"></div>
-        </section>
+            <section class="card">
+              <h3>Trial by trial <span class="tw" id="traceCount"></span></h3>
+              <div class="tablewrap"><table class="metrics" id="traceTable"></table></div>
+            </section>
 
-        <section class="card collapsed" id="setCard">
-          <h2 class="click">The rest of the Stage 2 set <span class="tw">show</span></h2>
-          <div class="body" id="setBody"></div>
-        </section>
-      </div>
+            <section class="card collapsed" id="philCard">
+              <h3 class="click">
+                What this type is trying to do <span class="tw">read this first — about a minute</span>
+              </h3>
+              <div class="body phil" id="philBody"></div>
+            </section>
 
-      <div class="col col-right">
-        <section class="card">
-          <h2>Where the estimate stands</h2>
-          <div class="body readout" id="readoutBody"></div>
-        </section>
+            <section class="card collapsed" id="setCard">
+              <h3 class="click">The rest of the Stage 2 set <span class="tw">show</span></h3>
+              <div class="body" id="setBody"></div>
+            </section>
+          </div>
 
-        <section class="card">
-          <h2>Consistent against its control <span class="tw">the acceptance gate</span></h2>
-          <div class="body" id="cmpBody"></div>
-        </section>
-      </div>
+          <div>
+            <section class="card">
+              <h3>When each thing became learnable <span class="tw">the answerability trace</span></h3>
+              <div class="body" id="learnBody"></div>
+            </section>
+
+            <section class="card">
+              <h3>Where the estimate stands</h3>
+              <div class="body" id="readoutBody"></div>
+            </section>
+
+            <section class="card">
+              <h3>Consistent against its control <span class="tw">the acceptance gate</span></h3>
+              <div class="body" id="cmpBody"></div>
+            </section>
+          </div>
+        </div>
+      </main>
     </div>
 
     <script type="module" src="stage2-review.js"></script>

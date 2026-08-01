@@ -80,8 +80,14 @@ export function figureSvg(figure, size = 92) {
       `<g transform="translate(6,26) scale(0.46)">${glyphNode(figure)}</g>` +
       `<g transform="translate(50,26) scale(0.46)">${glyphNode(figure)}</g>`
     : `<g transform="translate(8,8) scale(0.84)">${glyphNode(figure)}</g>`;
+  // A CIRCLE, not the rounded rectangle this used to draw. The intuitiveness audit found the old
+  // rectangle indistinguishable from the cell and card outlines that surround every figure: three of
+  // four evaluators reported a "heavy dark border" that appeared to mean four different interface
+  // things and turned out to be part of the stimulus. A component of the hidden vocabulary cannot
+  // share a visual language with interface chrome — the child would be inducing over the furniture.
+  // Nothing about the algebra changes; `ring` is a boolean and how it is drawn is free.
   const ring = figure.border
-    ? '<rect x="3" y="3" width="94" height="94" rx="15" fill="none" stroke="#12202e" stroke-width="4" />'
+    ? '<circle cx="50" cy="50" r="47" fill="none" stroke="#12202e" stroke-width="4" />'
     : '';
   return (
     `<svg width="${size}" height="${size}" viewBox="0 0 100 100" role="img" ` +
@@ -134,8 +140,13 @@ export function describeItem(meta) {
   return `d${l.depth}·g${l.geom}${l.mixed ? '·mix' : ''}`;
 }
 
-/** One-line statement of what the child has to do, for the stimulus caption. */
-export const prompt = 'The machine applies its badges to the figure, in order. Which output does it make?';
+// THERE IS DELIBERATELY NO `prompt` EXPORT. An earlier version of this file carried a sentence
+// stating what the child had to do, and the screen printed it above the options. That is the wrong
+// shape: a written direction is an instruction, and an instruction is a reading task bolted onto a
+// non-verbal reasoning task. The task is carried by the layout instead — see the header of
+// `stage2-child-stage.js` for the four devices that do it and the audit that tested whether they
+// work. If a caption ever seems necessary again, that is evidence the layout has stopped explaining
+// itself and the layout is what should change.
 
 /* ------------------------------------------------------------------ *
  * The induction model

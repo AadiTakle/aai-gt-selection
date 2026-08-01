@@ -32,6 +32,15 @@ import {
   submitAnswer,
   summariseRun,
 } from './stage2-block-run.js';
+import { STAGE_CSS, stageMarkup } from './stage2-child-stage.js';
+import * as learnability from './stage2-learnability.mjs';
+
+// The child-facing CSS is injected from the module that owns the child-facing markup, so the screen
+// the intuitiveness audit was run on and the screen in this window cannot drift apart. Both arms draw
+// through it and nothing below branches on arm.
+document.head.appendChild(
+  Object.assign(document.createElement('style'), { textContent: STAGE_CSS }),
+);
 
 /* ------------------------------------------------------------------ *
  * Boot
@@ -104,6 +113,14 @@ const state = {
   responder: 'you',
   peeking: false,
   run: null,
+  /**
+   * Which unscored demonstration is on screen, or `run.warmup.length` once they are done. The child
+   * watches these before trial 1 and answers nothing; they are how the task is taught without a
+   * written instruction, and they are not scored, so they never reach `lambda`.
+   */
+  demoAt: 0,
+  /** Which beat of that demonstration: 0 poses the row with its hole open, 1 completes it. */
+  demoBeat: 0,
   /** Completed runs, keyed by arm, so the two can be put side by side. */
   completed: { consistent: null, perTrial: null },
 };
@@ -312,7 +329,10 @@ function startRun() {
     length: state.blockLength,
     seenItemIds: handoff.seenItemIds,
     responder: makeResponder(),
+    learnability,
   });
+  state.demoAt = 0;
+  state.demoBeat = 0;
   beginTrial(state.run);
   renderAll();
 }
@@ -399,67 +419,124 @@ function renderStage() {
     return;
   }
 
+  // The unscored demonstrations, before trial 1. They are how the task becomes legible without a
+  // written instruction, and they are the only screens on which nothing is asked of the child.
+  if (state.demoAt < run.warmup.length) {
+    head.innerHTML =
+      `<span class="pill">demonstration <b>${state.demoAt + 1}</b>/${run.warmup.length}` +
+      `<span class="sep"></span>beat ${state.demoBeat + 1}/2 — ${state.demoBeat === 0 ? 'posed' : 'completed'}</span>` +
+      '<span class="pill">unscored — never enters \u03bb</span>' +
+      '<span class="spacer"></span>' +
+      `<span class="pill">warm-up has pinned <b>${run.tracker?.warmupDetermined ?? 0}</b>/6 badges</span>`;
+    body.innerHTML = stageMarkup({ inspector, view: demoView(run) });
+    wireStage(body, run);
+    return;
+  }
+
   const { item, target } = run.current;
   const gap = item.difficulty - target;
+  const learn = run.pending ? run.pending.row?.learn ?? run.current.learn : run.current.learn;
   head.innerHTML =
     `<span class="pill">trial <b>${run.served.length + 1}</b>/${run.length}</span>` +
     `<span class="pill">asked for <b>${fmt(target)}</b></span>` +
     `<span class="pill">served <b>${fmt(item.difficulty)}</b></span>` +
     `<span class="pill${Math.abs(gap) > 1 ? ' ' : ''}">gap <b>${gap >= 0 ? '+' : ''}${fmt(gap)}</b></span>` +
     `<span class="pill">${esc(inspector.describeItem(item.content ? metaFor(item.itemId) : null))}</span>` +
+    // Computed before the child answers: what the reveals they had already seen made available.
+    (learn
+      ? `<span class="pill${learn.derivable ? '' : ' warn'}">` +
+        `${learn.derivable ? 'answerable from prior reveals' : `not yet determinable — ${learn.viableFromKnowledge} options still possible`}` +
+        '</span>' +
+        `<span class="pill">knowable <b>${learn.knowableBadges}</b>/6</span>`
+      : '') +
+    (run.pending?.row?.learn?.inference
+      ? `<span class="pill ${INFERENCE[run.pending.row.learn.inference].cls}">` +
+        `chose: <b>${INFERENCE[run.pending.row.learn.inference].label}</b>` +
+        (run.pending.row.learn.ruledOutBy
+          ? ` by ${esc(run.pending.row.learn.ruledOutBy)}`
+          : '') +
+        '</span>'
+      : '') +
     '<span class="spacer"></span>' +
     `<span class="pill">${run.current.projecting ? 'projected from the fit' : 'standing + offset (too few trials to project)'}</span>`;
 
-  const chain = item.content.chain
-    .map((badge) => `<div class="badge step">${inspector.badgeSvg(badge)}</div>`)
-    .join('<span class="arrow">›</span>');
+  body.innerHTML = stageMarkup({ inspector, view: askView(run, item) });
+  wireStage(body, run);
+}
 
-  const options = item.content.options
-    .map((option) => {
-      const chosen = run.pending?.key === option.key;
-      const right = run.pending && option.key === run.pending.meta.correctKey;
-      const cls = [
-        'opt',
-        run.pending ? 'locked' : '',
-        chosen ? 'chosen' : '',
-        run.pending ? (right ? 'right' : chosen ? 'wrong' : '') : '',
-      ]
-        .filter(Boolean)
-        .join(' ');
-      return (
-        `<button class="${cls}" data-key="${option.key}" type="button">` +
-        `${inspector.figureSvg(option.figure, 74)}<span class="k">${option.key}</span></button>`
-      );
-    })
-    .join('');
+/**
+ * How a choice is labelled for the REVIEWER. Never shown to the child: `ruled out` is an evaluative
+ * judgement, and putting an evaluation on the child's screen changes what the block measures (§1.5).
+ */
+const INFERENCE = {
+  determined: { label: 'the determined answer', cls: '', short: 'det' },
+  consistent: { label: 'still possible', cls: '', short: 'poss' },
+  ruledOut: { label: 'already ruled out', cls: 'warn', short: 'out' },
+};
 
-  body.innerHTML =
-    `<div class="machine"><div class="figbox"><span class="cap">in</span>` +
-    `${inspector.figureSvg(item.content.input, 92)}</div>` +
-    `<div class="chainrow">${chain}</div>` +
-    `<div class="figbox"><span class="cap">out</span>` +
-    '<div class="badge" style="width:92px;height:92px;font-size:34px;color:#5a6b7b">?</div></div></div>' +
-    `<p class="note" style="text-align:center;margin:0 12px">${esc(inspector.prompt)}</p>` +
-    `<div class="options">${options}</div>` +
-    (run.pending
-      ? '<div class="reveal">' +
-        `<div class="figbox"><span class="cap">it made</span>` +
-        `${inspector.figureSvg(run.pending.correctFigure, 74)}</div>` +
-        `<div class="msg"><b style="color:${run.pending.correct ? 'var(--ok)' : 'var(--bad)'}">` +
-        `${run.pending.correct ? 'Correct.' : `Not this one — ${esc(run.pending.meta.correctKey)}.`}</b> ` +
-        `${esc(run.pending.meta.strategyTrace?.[run.pending.key]?.kind?.replace(/_/g, ' ') ?? '')}` +
-        '<br />Seeing the output is the feedback. Without it there is nothing to induce from.</div>' +
-        '<span class="spacer" style="flex:1"></span>' +
-        '<button class="primary" id="nextBtn" style="width:auto" type="button">Next trial</button>' +
-        '</div>'
-      : '');
+/* ------------------------------------------------------------------ *
+ * The child's screen
+ *
+ * All of it is `stage2-child-stage.js`. What lives here is only which VIEW
+ * to show and what to do when it is clicked, because those are properties of
+ * this window's run state rather than of the screen.
+ * ------------------------------------------------------------------ */
 
-  if (run.pending) {
-    $('nextBtn').addEventListener('click', advance);
-  } else {
-    for (const button of body.querySelectorAll('.opt')) {
-      button.addEventListener('click', () => answer(button.dataset.key));
-    }
+/**
+ * Reveals already shown, oldest first: the demonstrations watched so far, then every answered trial.
+ *
+ * Only what the child was shown. Removing memory-for-reveals from the measurement leaves the
+ * induction in it — the point is to measure working out the system, not recall of five figures.
+ */
+function stageHistory(run) {
+  return [
+    ...run.warmup.slice(0, state.demoAt).map((reveal) => ({
+      input: reveal.item.content.input,
+      chain: reveal.item.content.chain,
+      output: reveal.revealedFigure,
+    })),
+    ...run.rows.map((row) => row.revealed),
+  ].filter((entry) => entry && entry.output);
+}
+
+const askView = (run, item) =>
+  run.pending
+    ? {
+        kind: 'answer',
+        item,
+        output: run.pending.correctFigure,
+        chosenKey: run.pending.key,
+        history: stageHistory(run),
+      }
+    : { kind: 'ask', item, history: stageHistory(run) };
+
+/**
+ * A worked demonstration, in two beats: the row posed as a trial is posed, then the row completed.
+ * Unscored, and there is nothing to choose in either beat.
+ */
+const demoView = (run) => ({
+  kind: state.demoBeat === 0 ? 'pose' : 'show',
+  item: run.warmup[state.demoAt].item,
+  output: run.warmup[state.demoAt].revealedFigure,
+  history: stageHistory(run),
+});
+
+function wireStage(body, run) {
+  const next = body.querySelector('#kidNext');
+  if (next) {
+    next.addEventListener('click', () => {
+      if (state.demoAt >= run.warmup.length) advance();
+      else if (state.demoBeat === 0) state.demoBeat = 1;
+      else {
+        state.demoAt += 1;
+        state.demoBeat = 0;
+      }
+      renderAll();
+    });
+    return;
+  }
+  for (const button of body.querySelectorAll('.card')) {
+    button.addEventListener('click', () => answer(button.dataset.key));
   }
 }
 
@@ -541,12 +618,19 @@ function renderTrace() {
     ? `${rows.length} of ${state.run.length}${state.run.exhausted ? ' — pool exhausted' : ''}`
     : '';
   $('traceTable').innerHTML =
+    // `knew`, `poss` and `chose` are the learnability trace. `knew` is how much of the vocabulary a
+    // perfect reasoner had pinned going in; `poss` how many options the reveals still allowed, so 1
+    // means the answer was determinable and a miss on it is a real miss. `chose` scores the answer
+    // against that set, which is a different question from `ok`.
     '<thead><tr><th>#</th><th>asked</th><th>served</th><th>gap</th><th class="l">item</th>' +
-    '<th class="l">levers</th><th>ans</th><th>ok</th><th>\u03b8\u03050</th><th>\u03bb\u0302</th>' +
+    '<th class="l">levers</th><th>ans</th><th>ok</th><th>knew</th><th>poss</th>' +
+    '<th class="l">chose</th><th>\u03b8\u03050</th><th>\u03bb\u0302</th>' +
     '<th>\u03bb\u0302 SE</th><th class="l">learner</th></tr></thead><tbody>' +
     rows
       .map((r) => {
         const gap = r.served - r.target;
+        const learn = r.learn;
+        const verdict = learn?.inference ? INFERENCE[learn.inference] : null;
         return (
           `<tr class="${r.correct ? 'hit' : 'miss'}"><td>${r.index}</td>` +
           `<td>${fmt(r.target)}</td><td>${fmt(r.served)}</td>` +
@@ -554,6 +638,10 @@ function renderTrace() {
           `<td class="l">${esc(r.itemId.slice(0, 8))}</td>` +
           `<td class="l">${esc(inspector ? inspector.describeItem(r.meta) : '—')}</td>` +
           `<td>${esc(r.answered)}</td><td>${r.correct ? '\u2713' : '\u00b7'}</td>` +
+          `<td>${learn ? `${learn.knowableBadges}/6` : '—'}</td>` +
+          `<td class="${learn?.derivable ? '' : 'zero'}">${learn ? learn.viableFromKnowledge : '—'}</td>` +
+          `<td class="l${verdict?.cls === 'warn' ? ' zero' : ''}">` +
+          `${verdict ? esc(verdict.short + (learn.ruledOutBy ? `/${learn.ruledOutBy}` : '')) : '—'}</td>` +
           arrow(r.fit.theta0, r.before?.theta0, 2) +
           arrow(r.fit.lambda, r.before?.lambda, 3) +
           arrow(r.fit.lambdaSe, r.before?.lambdaSe, 3) +
@@ -893,6 +981,71 @@ function renderControls() {
   }
 }
 
+/* ------------------------------------------------------------------ *
+ * When each thing became learnable, and how the choices scored against it
+ * ------------------------------------------------------------------ */
+
+function renderLearnability() {
+  const body = $('learnBody');
+  const run = state.run;
+  const summary = run?.tracker?.summary();
+  if (!summary) {
+    body.innerHTML =
+      '<p class="note">Start a block. This panel is the oracle\u2019s view: an ideal reasoner with ' +
+      'perfect memory, given exactly the reveals the child was given, propagating over all 720 ' +
+      'badge-to-operator bijections. It is an upper bound on what was <b>available to be known</b>, ' +
+      'never a prediction about a child.</p>';
+    return;
+  }
+
+  const inference = summary.inference;
+  const first = Object.entries(summary.firstDetermined).sort((a, b) => a[1] - b[1]);
+  const pctOf = (x) => (x === null ? '—' : `${Math.round(100 * x)}%`);
+  const lift =
+    inference.ruledOutRate === null
+      ? null
+      : inference.ruledOutRate - inference.ruledOutChance;
+
+  body.innerHTML =
+    '<div class="kv">' +
+    `<div><b>${summary.warmupDetermined}</b>/6 pinned by the warm-up</div>` +
+    `<div><b>${pctOf(summary.derivableShare)}</b> of trials answerable from prior reveals</div>` +
+    `<div>whole system pinned by trial <b>${summary.fullyKnowableAt ?? 'never'}</b></div>` +
+    `<div><b>${summary.unanswerablePrefix}</b> leading trials nobody could answer</div>` +
+    '</div>' +
+    // The avoidable defect. Anything but zero means the sequence spent a trial that could neither be
+    // answered nor learned from, which the warm-up exists to prevent.
+    (summary.multiIntroductionTrials > 0
+      ? `<div class="warnbox">${summary.multiIntroductionTrials} trial(s) introduced two badges at ` +
+        'once. One reveal cannot attribute a change between two badges never seen, so those trials ' +
+        'were unanswerable <b>and</b> uninformative \u2014 a sequencing defect, not a slow learner.</div>'
+      : '<p class="note">No trial introduced two unseen badges at once, so every unanswerable trial ' +
+        'here was unanswerable for a reason the construct requires rather than one the sequence ' +
+        'chose.</p>') +
+    '<p class="note"><b>Became determined:</b> ' +
+    (first.length === 0
+      ? 'nothing yet'
+      : first.map(([badge, trial]) => `${esc(badge)} at ${trial}`).join(', ')) +
+    '. A badge can be pinned without ever appearing in a chain: fix five and the bijection fixes the ' +
+    'sixth.</p>' +
+    '<h4 style="margin:14px 0 4px;font-size:13px">How the choices scored against the evidence</h4>' +
+    '<p class="note">A different question from accuracy. On a trial nobody could answer, being right ' +
+    'is luck — but choosing an option the reveals had <b>already eliminated</b> is not luck, it is ' +
+    'information held and not used.</p>' +
+    '<div class="kv">' +
+    `<div>took the determined answer: <b>${inference.determined}</b></div>` +
+    `<div>chose a still-possible option: <b>${inference.consistent}</b></div>` +
+    `<div>chose an already-ruled-out option: <b>${inference.ruledOut}</b> ` +
+    `(${inference.ruledOutByReveals} by reveals, ${inference.ruledOutByContent} by content)</div>` +
+    `<div>ruled-out rate <b>${pctOf(inference.ruledOutRate)}</b> against <b>${pctOf(inference.ruledOutChance)}</b> ` +
+    `for uniform guessing on the same items \u2014 lift <b>${lift === null ? '—' : `${lift >= 0 ? '+' : ''}${lift.toFixed(3)}`}</b></div>` +
+    '</div>' +
+    '<p class="note">The chance column is not decoration: how many options an item excludes is a ' +
+    'property of the item, so a bare ruled-out rate would rank banks rather than children. Negative ' +
+    'lift is the part that is about the child. None of this is shown to the child \u2014 "ruled out" ' +
+    'is an evaluative judgement, and evaluation on their screen would change what is measured.</p>';
+}
+
 function renderAll() {
   renderProvenance();
   renderSliders();
@@ -903,6 +1056,7 @@ function renderAll() {
   renderStage();
   renderChart();
   renderTrace();
+  renderLearnability();
   renderReadout();
   renderComparison();
   renderPeek();

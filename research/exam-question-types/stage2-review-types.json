@@ -24,8 +24,8 @@
       "generator": "generators/FLU-OPCHAIN-01.mjs",
       "inspector": "opchain",
       "banks": {
-        "consistent": "banks/FLU-OPCHAIN-01.consistent.jsonl",
-        "perTrial": "banks/FLU-OPCHAIN-01.perTrial.jsonl"
+        "consistent": "banks/FLU-OPCHAIN-01.jsonl",
+        "perTrial": "control-banks/FLU-OPCHAIN-01.perTrial.jsonl"
       },
       "hiddenSystem": "A badge to operator mapping. Six operators — turn, flip, slant (orientation, non-commuting) and swap, ring, twin (attribute toggles) — labelled by six arbitrary badge symbols. The mapping is what persists; the figures never repeat.",
       "induces": [

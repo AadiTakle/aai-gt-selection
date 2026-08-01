@@ -18,7 +18,13 @@
 // `engine` is injected rather than imported because the browser loads the compiled emit under
 // `stage2-build/` through an import map and the probe loads the TypeScript sources directly. Same
 // source files either way; only the loader differs. Nothing here recomputes a target, a difficulty
-// or an ability — search this file for `Math.exp` and for arithmetic on `difficulty`.
+// or an ability: search this file for `Math.exp`. The only arithmetic on `difficulty` is comparing a
+// requested target against the top of the pool, which is how a trial knows the rule asked for more
+// than exists.
+//
+// It also carries the LEARNABILITY tracker (`stage2-learnability.mjs`, injected the same way), so
+// every trial records what a perfect reasoner could have determined from the reveals shown so far —
+// before the child answers, never after.
 
 /**
  * A responder is anything that can pick an option key and (optionally) watch the reveal.
@@ -71,11 +77,98 @@ export function manualResponder() {
 }
 
 /**
+ * How many unscored worked demonstrations open the block, before trial 1.
+ *
+ * THREE, and the number is measured rather than chosen. Two problems are solved by the same device.
+ *
+ * FIRST, TASK VERSUS SYSTEM. The first version tangled them: a child met a figure, a row of
+ * unexplained symbols and five candidate outputs, and had to work out what was even being asked.
+ * Trials spent on that are construct-irrelevant variance landing exactly where the fit is most
+ * sensitive to it — the opening trials, which carry the `theta0` anchor the whole climb is measured
+ * from. A worked example is the design's own answer (§1.7, Sweller & Cooper 1985: novices need the
+ * system demonstrated), and depths 1, 2 and 3 make the task grammar self-evident by showing it:
+ *
+ *   one badge     the figure changes in ONE way        -> "badges do something to the figure"
+ *   two badges    two changes                          -> "several badges act, one after another"
+ *   three badges  three changes                        -> "however many badges there are, all act"
+ *
+ * SECOND, ANSWERABILITY. Depths 1 + 2 + 3 with DISJOINT operator chains exercise all six operators,
+ * so no scored trial can ever turn on a badge the child has never once been shown. Measured over six
+ * seeds at each of seven standings, `multiIntroductionTrials` — trials showing two brand-new badges at
+ * once, which no single reveal can attribute and which are therefore unanswerable AND uninformative:
+ *
+ *   demonstrations   0      1      2      3
+ *   2+ introductions 1.0-2.0  1.0-2.0  0.3-1.0  0.00   <- zero at every standing
+ *   badges pinned    0/6    1/6    1/6    1/6
+ *   1st-third answerable  68-90%  80-92%  83-95%  85-100%
+ *
+ * The cost stays at ONE badge of six because the chains are disjoint (see {@link chooseWarmup}): only
+ * the depth-1 demonstration pins a badge outright, and the depth-2 and depth-3 reveals constrain their
+ * operator sets jointly without settling any individual member. So three demonstrations buy the whole
+ * avoidable-unanswerability problem for a sixth of the vocabulary.
+ *
+ * WHAT IS DELIBERATELY NOT REMOVED. The leading run of trials that are unanswerable because nothing
+ * has been revealed yet stays, at 0-1 trials. That ramp is not a defect: it is the baseline the climb
+ * is measured from, and it is half of what a learning rate is — the gap between when a thing became
+ * knowable and when the child knew it. Removing it would delete the quantity.
+ *
+ * FIXED COUNT, NEVER PERFORMANCE-CONTINGENT. §1.7 fades worked examples on a fixed schedule precisely
+ * so `lambda` stays comparable between children; a criterion-based warm-up would give slower children
+ * more exposure and fold their own performance into their own baseline.
+ */
+export const WARMUP_DEMONSTRATIONS = 3;
+
+/**
+ * Pick the worked demonstrations: the easiest items showing depth 1, then depth 2, then depth 3.
+ *
+ * Chosen by the OPERATOR chain, never by the badge chain. That is what keeps the two arms equated:
+ * operator chains are identical item-for-item across the pair by construction, badge chains are not,
+ * so selecting on badges would hand the two arms different demonstrations and confound the contrast
+ * with the warm-up. In the product this choice is the server's — it is the only party that knows the
+ * operator chain — which is why it reads `reviewerOnly` here rather than `content`.
+ *
+ * THE CHAINS ARE FORCED DISJOINT, and that is what keeps the cost down. A depth-1 demonstration pins
+ * its badge outright: one badge, one visible change, nothing else it could be. If the depth-2
+ * demonstration then reused that badge, its partner would be pinned too by subtraction, and two
+ * demonstrations would hand over a third of the vocabulary. With disjoint chains the depth-2 reveal
+ * constrains its pair jointly without settling either, so the warm-up teaches the task grammar while
+ * giving away as little of the system as the demonstration can. Measured, not assumed: the
+ * learnability trace reports `warmupDetermined`.
+ */
+export function chooseWarmup(bank, pool, count = WARMUP_DEMONSTRATIONS) {
+  const byEase = pool
+    .slice()
+    .sort((a, b) => a.difficulty - b.difficulty || (a.itemId < b.itemId ? -1 : 1));
+  const chosen = [];
+  const usedOps = new Set();
+  for (let depth = 1; depth <= count; depth += 1) {
+    const found = byEase.find((item) => {
+      const chain = bank.reviewerOnly[item.itemId]?.operatorChain ?? null;
+      if (chain === null || chain.length !== depth) return false;
+      return chain.every((op) => !usedOps.has(op));
+    });
+    if (!found) continue;
+    for (const op of bank.reviewerOnly[found.itemId].operatorChain) usedOps.add(op);
+    chosen.push(found);
+  }
+  return chosen;
+}
+
+/** The figure the machine makes for an item, from the reviewer-only key. */
+function correctFigureOf(bank, item) {
+  const meta = bank.reviewerOnly[item.itemId] ?? null;
+  return item.content.options.find((o) => o.key === meta?.correctKey)?.figure ?? null;
+}
+
+/**
  * Set up a block against one arm's bank.
  *
  * `bank.served` is the shape the product ships (no answer key); `bank.reviewerOnly` is the review
  * window's separate, never-shipped side table. Keeping them apart is what stops the loop from
  * accidentally selecting on something the browser would not have.
+ *
+ * `learnability` is the oracle module. Passing it in rather than importing it keeps this file free of
+ * any opinion about what "knowable" means, and lets a second Stage 2 type supply its own.
  */
 export function createRun({
   engine,
@@ -86,8 +179,29 @@ export function createRun({
   length,
   seenItemIds = [],
   responder,
+  learnability = null,
+  warmupCount = WARMUP_DEMONSTRATIONS,
 }) {
-  const pool = engine.novelBlockPool(bank.served, seenItemIds);
+  const wholePool = engine.novelBlockPool(bank.served, seenItemIds);
+  const warmup = warmupCount > 0 ? chooseWarmup(bank, wholePool, warmupCount) : [];
+  // The demonstrations are spent: a scored trial on an item the child has already been walked
+  // through would measure recall of that item, which is the one thing the block forbids.
+  const warmupIds = new Set(warmup.map((item) => item.itemId));
+  const pool = wholePool.filter((item) => !warmupIds.has(item.itemId));
+
+  const tracker = learnability ? learnability.createTracker({ persistence: arm }) : null;
+  const warmupReveals = warmup.map((item) => ({
+    item,
+    revealedFigure: correctFigureOf(bank, item),
+    meta: bank.reviewerOnly[item.itemId] ?? null,
+  }));
+  for (const reveal of warmupReveals) {
+    // The warm-up teaches, so its reveals are real evidence and belong in the knowledge state. They
+    // are NOT trials: they are unscored, and scoring them would put them into `lambda`.
+    if (tracker) tracker.observePrior(reveal.item, reveal.revealedFigure);
+    if (responder.observe) responder.observe({ item: reveal.item, correctFigure: reveal.revealedFigure, correct: null });
+  }
+
   return {
     engine,
     bank,
@@ -97,7 +211,11 @@ export function createRun({
     length,
     responder,
     pool,
+    tracker,
+    warmup: warmupReveals,
     canRun: engine.blockCanRun(pool, seenItemIds, length),
+    /** Top of the pool, so a trial can say whether the targeting rule asked for more than exists. */
+    poolMax: pool.length === 0 ? 0 : Math.max(...pool.map((item) => item.difficulty)),
     served: [],
     rows: [],
     current: null,
@@ -136,6 +254,12 @@ export function beginTrial(run) {
     item,
     target,
     projecting: trials.length >= run.engine.MIN_TRIALS_FOR_PROJECTION,
+    // Computed BEFORE the child answers, because that is the question: given only what has already
+    // been revealed, was this answer available to be worked out at all?
+    learn: run.tracker ? run.tracker.before(item) : null,
+    // The rule asked for more than the bank holds, so the item served is whatever was left at the
+    // top and the difficulty walk has stopped carrying information about this child.
+    clamped: target > run.poolMax - 1e-9,
   };
   run.pending = null;
   return run.current;
@@ -160,12 +284,17 @@ export function autoKey(run) {
  * indistinguishable from its own control for a reason that has nothing to do with the bank.
  */
 export function submitAnswer(run, key) {
-  const { item, target, projecting } = run.current;
+  const { item, target, projecting, learn, clamped } = run.current;
   const meta = metaFor(run, item.itemId);
   const correct = key === meta.correctKey;
   const correctFigure = item.content.options.find((o) => o.key === meta.correctKey)?.figure ?? null;
 
   const learned = run.responder.observe({ item, correctFigure, correct, run }) ?? { reset: false };
+  // Folded in AFTER the responder has answered, with the `before` row computed at `beginTrial`, so
+  // the recorded learnability is what was available going in and never contaminated by this reveal.
+  const learnRow = run.tracker
+    ? run.tracker.record(item, correctFigure, { correct, chosenKey: key, precomputed: learn })
+    : null;
 
   const before = run.rows.length > 0 ? run.rows[run.rows.length - 1].fit : null;
   run.served.push({ itemId: item.itemId, difficulty: item.difficulty, score: correct ? 1 : 0 });
@@ -189,9 +318,19 @@ export function submitAnswer(run, key) {
     projecting,
     reset: learned.reset === true,
     pinned: memory.pinned,
+    learn: learnRow,
+    clamped,
+    /**
+     * Exactly what the child was shown, for the persistent record on their screen. Carried on the row
+     * rather than looked up from the bank later, so the record cannot show anything the child was not
+     * actually shown — and in particular can never carry the mapping.
+     */
+    revealed: { input: item.content.input, chain: item.content.chain, output: correctFigure },
   };
   run.rows.push(row);
-  run.pending = { key, correct, correctFigure, meta, item };
+  // `row` carried on the reveal so the window can show the reviewer how this choice scored against the
+  // evidence without recomputing it — a second computation there could disagree with the trace.
+  run.pending = { key, correct, correctFigure, meta, item, row };
   return row;
 }
 
@@ -236,6 +375,8 @@ export function summariseRun(run) {
   const fit = run.finalFit ?? rows[rows.length - 1].fit;
   const half = 1.96 * fit.lambdaSe;
   const memory = run.responder.state();
+  const lastThirdRows = rows.slice(-size);
+  const clamped = rows.filter((r) => r.clamped).length;
   return {
     arm: run.arm,
     responder: run.responder.id,
@@ -245,9 +386,23 @@ export function summariseRun(run) {
     trials: rows.length,
     accuracy: share(rows),
     firstThird: share(rows.slice(0, size)),
-    lastThird: share(rows.slice(-size)),
+    lastThird: share(lastThirdRows),
     meanServed: rows.reduce((sum, r) => sum + r.served, 0) / rows.length,
     lastServed: rows[rows.length - 1].served,
+    /**
+     * §4.1.1's manipulation-check observable: mean served difficulty over the last third. It must be
+     * LOWER in the scrambled arm; accuracy must not be expected to separate, because the targeting
+     * rule holds accuracy near p = 0.5 by construction.
+     */
+    lateServed: lastThirdRows.reduce((sum, r) => sum + r.served, 0) / lastThirdRows.length,
+    /**
+     * Trials where the rule asked for a difficulty the pool does not hold. On those the served
+     * difficulty is whatever was left at the top, so it is no longer a function of this child — and
+     * §4.1.1 says a run whose served difficulty cannot separate carries no interpretable contrast.
+     */
+    clampedTrials: clamped,
+    clampedShare: clamped / rows.length,
+    learnability: run.tracker ? run.tracker.summary() : null,
     theta0: fit.theta0,
     lambda: fit.lambda,
     lambdaSe: fit.lambdaSe,

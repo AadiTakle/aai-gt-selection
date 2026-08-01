@@ -32,6 +32,7 @@ import * as scoring from '../../packages/exam-scoring/src/index.ts';
 import { hashUnit } from '../../packages/exam-engine/src/rng.ts';
 
 import * as inspector from './stage2-inspectors/opchain.js';
+import * as learnability from './stage2-learnability.mjs';
 import {
   createRun,
   guessingResponder,
@@ -81,6 +82,7 @@ function block(arm, standing, seed, responderId) {
     length: LENGTH,
     seenItemIds: [],
     responder: RESPONDERS[responderId](),
+    learnability,
   });
   playToEnd(run);
   return summariseRun(run);
