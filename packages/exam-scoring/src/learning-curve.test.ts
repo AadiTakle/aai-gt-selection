@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_GUESSING,
   MIN_TRIALS_FOR_PROJECTION,
+  estimateBlockLevel,
   estimateLearningCurve,
   nextTargetTheta,
   type LearningTrial,
@@ -181,7 +182,7 @@ describe('estimateLearningCurve', () => {
 });
 
 /**
- * The guard on the floor itself (E-200).
+ * The guard on the two corrections that keep a static child from fitting a climb (E-200, E-205).
  *
  * This exists because the defect it catches was invisible to every other test in this file. Each of
  * those simulates a responder with NO guessing floor, so a fit that assumes no floor agrees with
@@ -189,27 +190,61 @@ describe('estimateLearningCurve', () => {
  * shows up at COHORT scale: for any single child the manufactured climb is inside the noise, which
  * is exactly why it reached `dev`.
  *
- * The two assertions are a matched pair and neither is sufficient alone. The first says the shipped
- * default keeps a non-learner near zero. The second says a zero floor does NOT — without it the
- * first could pass because the simulation is too weak to manufacture anything, and the test would
- * quietly stop guarding anything at all.
+ * There are two corrections and they are independent, so the cohort is run as a 2 × 2 and the
+ * assertions are a matched set. Reverting EITHER one on its own has to break the gate, or a test
+ * that passes is not evidence that both are load-bearing.
+ *
+ * The pass condition is Gate A's own A1 (`STAGE2_QUESTION_DESIGN` §4.1.2): the fitted λ
+ * distribution is centred on zero within Monte-Carlo error, `|λ̄| ≤ 2 SE`. It is used here in
+ * preference to a fixed bound because the bound would be a number chosen to pass — and because
+ * this file should assert the same condition the gate does, so a change that clears the test and
+ * fails the gate is not possible.
  */
-describe('the guessing floor is not misspecified', () => {
+describe('a cohort that learned nothing does not fit a climb', () => {
   const FIVE_OPTION_FLOOR = 1 / 5;
+  const CHILDREN = 400;
+  const LENGTH = 30;
+
+  /** The rule this module shipped before D-206: aim at the ability PROJECTED for the next trial. */
+  function projectingTarget(
+    trials: readonly LearningTrial[],
+    standing: number,
+    guessing: number,
+  ): number {
+    if (trials.length < MIN_TRIALS_FOR_PROJECTION) {
+      return Math.min(SCALE_MAX, Math.max(SCALE_MIN, standing + 1));
+    }
+    const fit = estimateLearningCurve(trials, {
+      slope: SLOPE,
+      priorTheta0Mean: standing,
+      guessing,
+    });
+    const projected = fit.theta0 + fit.lambda * trials.length + 1;
+    return Math.min(SCALE_MAX, Math.max(SCALE_MIN, projected));
+  }
+
+  interface NullCohort {
+    mean: number;
+    /** Monte-Carlo SE of that mean, which is what "centred on zero" has to be judged against. */
+    se: number;
+  }
+
+  const cache = new Map<string, NullCohort>();
 
   /**
-   * Mean fitted λ over a cohort of children who learn NOTHING, run through the real closed loop.
+   * Fitted λ over a cohort of children who learn NOTHING, run through the real closed loop.
    *
-   * The loop is the point: `nextTargetTheta` chooses each difficulty from the fit so far, so an
-   * inflated fit is served harder items and then reads its own difficulty walk back as a climb.
-   * Serving a fixed difficulty instead makes this metric ~0 whatever the floor, which is why the
-   * simulation has to re-target rather than walk a preset ladder.
+   * The loop is the point: the difficulty of each trial is chosen from the fit so far, so the
+   * estimator's own output decides what evidence it sees next. Serving a fixed difficulty instead
+   * makes this metric ~0 under every combination below, which is why the simulation has to
+   * re-target rather than walk a preset ladder.
    */
-  function nullCohortLambdaMean(fitGuessing: number): number {
-    const CHILDREN = 120;
-    const LENGTH = 30;
-    let total = 0;
+  function nullCohort(fitGuessing: number, projecting: boolean): NullCohort {
+    const key = `${fitGuessing}|${projecting}`;
+    const hit = cache.get(key);
+    if (hit) return hit;
 
+    const fitted: number[] = [];
     for (let c = 0; c < CHILDREN; c += 1) {
       const rand = mulberry32(9000 + c);
       // Spread the cohort over the scale so the result is not a property of one starting point,
@@ -219,12 +254,14 @@ describe('the guessing floor is not misspecified', () => {
       const trials: LearningTrial[] = [];
 
       for (let t = 0; t < LENGTH; t += 1) {
-        const target = nextTargetTheta(trials, {
-          standingEstimate: standing,
-          targetOffset: 1,
-          slope: SLOPE,
-          guessing: fitGuessing,
-        });
+        const target = projecting
+          ? projectingTarget(trials, standing, fitGuessing)
+          : nextTargetTheta(trials, {
+              standingEstimate: standing,
+              targetOffset: 1,
+              slope: SLOPE,
+              guessing: fitGuessing,
+            });
         const difficulty = Math.round(target * 2) / 2;
         // λ_true = 0: ability never moves. The five-option floor is the child's, not the fit's.
         const star = 1 / (1 + Math.exp(-SLOPE * (theta0 - difficulty)));
@@ -232,41 +269,107 @@ describe('the guessing floor is not misspecified', () => {
         trials.push({ difficulty, score: rand() < p ? 1 : 0, trialIndex: t });
       }
 
-      total += estimateLearningCurve(trials, {
-        slope: SLOPE,
-        priorTheta0Mean: standing,
-        guessing: fitGuessing,
-      }).lambda;
+      fitted.push(
+        estimateLearningCurve(trials, {
+          slope: SLOPE,
+          priorTheta0Mean: standing,
+          guessing: fitGuessing,
+        }).lambda,
+      );
     }
 
-    return total / CHILDREN;
+    const mean = fitted.reduce((a, b) => a + b, 0) / fitted.length;
+    const variance = fitted.reduce((a, b) => a + (b - mean) * (b - mean), 0) / (fitted.length - 1);
+    const result = { mean, se: Math.sqrt(variance / fitted.length) };
+    cache.set(key, result);
+    return result;
   }
 
-  /**
-   * Widest manufactured climb the shipped default may produce for a cohort that learned nothing.
-   *
-   * 0.02 rather than 0, because the correction does not remove the loop bias entirely — E-200
-   * measures a residual, and `learningRateReadout` carries a declared contamination floor precisely
-   * because of it. This bound is an upper limit on that residual, not a claim it is zero.
-   */
-  const MANUFACTURED_LAMBDA_BOUND = 0.02;
+  const centredOnZero = (c: NullCohort): boolean => Math.abs(c.mean) <= 2 * c.se;
 
   it('pins the default to the five-option chance rate', () => {
     expect(DEFAULT_GUESSING).toBeCloseTo(FIVE_OPTION_FLOOR, 10);
   });
 
-  // Separate from the constant check on purpose: this one has to fail on its own when the default
-  // is reverted, or the guard is a literal comparison dressed up as a measurement.
-  it('keeps a cohort that learned nothing near zero at the shipped default', () => {
-    expect(Math.abs(nullCohortLambdaMean(DEFAULT_GUESSING))).toBeLessThan(
-      MANUFACTURED_LAMBDA_BOUND,
-    );
+  it('is centred on zero with both corrections in place', () => {
+    expect(centredOnZero(nullCohort(DEFAULT_GUESSING, false))).toBe(true);
   });
 
-  it('manufactures a climb from the same cohort once the floor is set to zero', () => {
-    // The proof that the assertion above is load-bearing. If this ever stops failing the bound,
-    // the simulation has lost its teeth and the test above is no longer a guard.
-    expect(nullCohortLambdaMean(0)).toBeGreaterThan(MANUFACTURED_LAMBDA_BOUND);
+  // The three teeth. Each reverts one correction and asserts the gate fails, so neither correction
+  // can be removed on the grounds that the tests still pass.
+  it('fails once the guessing floor is reverted to zero (D-200)', () => {
+    const reverted = nullCohort(0, false);
+    expect(centredOnZero(reverted)).toBe(false);
+    expect(reverted.mean).toBeGreaterThan(0);
+  });
+
+  it('fails once the targeting rule extrapolates its own fitted climb (D-206)', () => {
+    const reverted = nullCohort(DEFAULT_GUESSING, true);
+    expect(centredOnZero(reverted)).toBe(false);
+    expect(reverted.mean).toBeGreaterThan(0);
+  });
+
+  it('is worst with both reverted, and each correction removes part of it', () => {
+    const both = nullCohort(0, true).mean;
+    const floorOnly = nullCohort(DEFAULT_GUESSING, true).mean;
+    const targetingOnly = nullCohort(0, false).mean;
+    const corrected = Math.abs(nullCohort(DEFAULT_GUESSING, false).mean);
+
+    expect(both).toBeGreaterThan(floorOnly);
+    expect(both).toBeGreaterThan(targetingOnly);
+    expect(floorOnly).toBeGreaterThan(corrected);
+    expect(targetingOnly).toBeGreaterThan(corrected);
+  });
+});
+
+describe('estimateBlockLevel', () => {
+  it('locates a child between the hardest item passed and the easiest item missed', () => {
+    const trials: LearningTrial[] = [
+      ...Array.from({ length: 10 }, (_, t) => ({ difficulty: 8, score: 1, trialIndex: t })),
+      ...Array.from({ length: 10 }, (_, t) => ({ difficulty: 14, score: 0, trialIndex: t + 10 })),
+    ];
+    const level = estimateBlockLevel(trials, { slope: SLOPE, priorTheta0Mean: 11 });
+    expect(level).toBeGreaterThan(8);
+    expect(level).toBeLessThan(14);
+  });
+
+  it('reads a climb as a level somewhere inside it, not as the endpoint', () => {
+    // The lag D-206 accepts, asserted rather than described: a fit with no climb term over a
+    // climbing child lands inside the range they worked, so the target trails rather than leads.
+    const climbing = simulateBlock(10, 0.15, 24, 5);
+    const level = estimateBlockLevel(climbing, { slope: SLOPE, priorTheta0Mean: 10 });
+    expect(level).toBeGreaterThan(10);
+    expect(level).toBeLessThan(10 + 0.15 * 24);
+  });
+
+  it('stays on the reportable scale for a one-sided block', () => {
+    const allCorrect: LearningTrial[] = Array.from({ length: 30 }, (_, t) => ({
+      difficulty: 19,
+      score: 1,
+      trialIndex: t,
+    }));
+    const level = estimateBlockLevel(allCorrect, { slope: SLOPE, priorTheta0Mean: 19 });
+    expect(level).toBeGreaterThanOrEqual(SCALE_MIN);
+    expect(level).toBeLessThanOrEqual(SCALE_MAX);
+  });
+
+  it('places a child lower once their chance successes are modelled as chance', () => {
+    const rand = mulberry32(31);
+    const trials: LearningTrial[] = Array.from({ length: 30 }, (_, t) => ({
+      difficulty: 15,
+      score: rand() < 0.25 ? 1 : 0,
+      trialIndex: t,
+    }));
+    const floorless = estimateBlockLevel(trials, { slope: SLOPE, guessing: 0 });
+    const floored = estimateBlockLevel(trials, { slope: SLOPE, guessing: 0.25 });
+    expect(floored).toBeLessThan(floorless);
+  });
+
+  it('re-fits a stored block bit-for-bit', () => {
+    const trials = simulateBlock(10, 0.08, 30, 99);
+    expect(estimateBlockLevel(trials, { slope: SLOPE })).toBe(
+      estimateBlockLevel(trials, { slope: SLOPE }),
+    );
   });
 });
 
@@ -291,6 +394,24 @@ describe('nextTargetTheta', () => {
     // they have outgrown, which is where the climb signal would be lost to a ceiling.
     expect(climbTarget).toBeGreaterThan(flatTarget);
     expect(climbTarget).toBeGreaterThan(10);
+  });
+
+  it('aims at the fitted level and not at an extrapolation of the fitted climb (D-206)', () => {
+    const climbing = simulateBlock(10, 0.15, 24, 11);
+    const target = nextTargetTheta(climbing, {
+      standingEstimate: 10,
+      targetOffset: 1,
+      slope: SLOPE,
+    });
+    const fit = estimateLearningCurve(climbing, { slope: SLOPE, priorTheta0Mean: 10 });
+
+    expect(target).toBeCloseTo(
+      estimateBlockLevel(climbing, { slope: SLOPE, priorTheta0Mean: 10 }) + 1,
+      10,
+    );
+    // And it is genuinely a different number from the rule this replaced, so the assertion above
+    // cannot be satisfied by the two rules happening to coincide on this block.
+    expect(target).not.toBeCloseTo(fit.theta0 + fit.lambda * climbing.length + 1, 3);
   });
 
   it('never asks for a difficulty off the scale', () => {
