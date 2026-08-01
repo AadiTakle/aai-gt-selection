@@ -48,12 +48,18 @@
  * that mechanism alone fitted λ̄ = 0.0398 with the guessing floor at 0 and still 0.0097 ± 0.0011
  * with it correct.
  *
- * D-206 opened the loop — the targeting rule aims at a fit with no climb term, so the estimate of
- * `lambda` no longer chooses the evidence for `lambda` — and the same cohort now fits −0.0007 ±
- * 0.0008 on `FLU-OPCHAIN-01`, which is the value a FROZEN difficulty returns. The floor a caller
- * has to declare on the four Stage 2 banks is therefore approximately zero rather than 0.01, and
- * the `indeterminate` rate against the wide SD-0.15 reference with the floor declared falls from
- * 32.8% to 5.8% at 30 trials.
+ * D-206 opened most of the loop — the targeting rule aims at a fit with no climb term, corrected by
+ * observed accuracy rather than by anything fitted, so the estimate of `lambda` no longer chooses
+ * the evidence for `lambda` — and the same cohort now fits −0.0005 ± 0.0007 on `FLU-OPCHAIN-01`.
+ * The floor a caller has to declare on the four Stage 2 banks is therefore approximately zero
+ * rather than 0.01, and the `indeterminate` rate against the wide SD-0.15 reference with the floor
+ * declared falls from 32.8% to 6.2% at 30 trials.
+ *
+ * "MOST OF" IS LOAD-BEARING AND IS NOT HEDGING. Replaying the rule's own served sequence to an
+ * untargeted twin returns −0.005 to −0.008, so the −0.0005 above is a near-cancellation of prior
+ * shrinkage against a residual feedback term of +0.0045 — a third of the projecting rule's +0.0146,
+ * not zero (E-206). A caller measuring their own floor should keep measuring it rather than reading
+ * the number off this paragraph, which is what the field below already requires.
  *
  * NONE OF THAT MAKES A RATE REPORTABLE, and the field below is still required. Against the SD-0.03
  * reference — the only one in this project with a stated provenance — every arm at every length
@@ -114,9 +120,10 @@ export interface LearningRateReference {
    * on `FLU-MATRIX-01` even with the guessing floor correctly specified (E-200).
    *
    * WHAT IT IS NOW, AND WHY THE FIELD STAYS REQUIRED. Under D-206's targeting rule the same
-   * measurement returns −0.0007 ± 0.0008 on `FLU-OPCHAIN-01`, −0.0010 on `SPA-XFORM-01`, −0.0034 on
-   * `QUANT-GLYPHNUM-01` and −0.0027 on `VER-MORPHO-01` at its own four-option floor (E-205). Those
-   * are measured zeros, not assumed ones, and the difference is the whole point of the field: a
+   * measurement returns −0.0005 ± 0.0007 on `FLU-OPCHAIN-01`, −0.0005 on `SPA-XFORM-01`, −0.0001 on
+   * `QUANT-GLYPHNUM-01` and +0.0008 on `VER-MORPHO-01` at its own four-option floor (E-206; E-205
+   * has the figures for the targeting rule without D-206's accuracy correction, which run about
+   * 0.002 lower). Those are measured zeros, not assumed ones, and the difference is the point: a
    * caller on a different bank, length or item format has no basis for reading this paragraph and
    * passing 0. `FLU-MATRIX-01` is the standing counter-example — a mixed-format bank whose floor
    * was three times the purpose-built one's.

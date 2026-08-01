@@ -27,8 +27,9 @@
  * `estimateLearningCurve` reads a finished block; `nextTargetTheta` decides what the next trial of a
  * live block should be. They used to be the same computation used twice, which meant the estimate of
  * `lambda` chose the evidence from which `lambda` would be estimated. D-206 opened that loop: the
- * targeting rule now aims at {@link estimateBlockLevel}, a fit with no climb term at all. See
- * {@link nextTargetTheta} for what the loop was doing and what opening it cost.
+ * targeting rule aims at {@link estimateBlockLevel}, a fit with no climb term at all, corrected by
+ * recent OBSERVED accuracy rather than by any fitted quantity. See {@link nextTargetTheta} for what
+ * the loop was doing, what opening it cost, and why the correction does not reinstate it.
  *
  * CLAIM BOUNDARY: this is an estimator, not a validated measure. `slope` and every item difficulty
  * are design assumptions on a born-synthetic bank (`syntheticOnly=true`, `validated=false`), and
@@ -312,16 +313,30 @@ export function estimateBlockLevel(
 /** Trials needed before the fit carries enough information to project from. */
 export const MIN_TRIALS_FOR_PROJECTION = 4;
 
+/**
+ * Trials of observed accuracy the aim is corrected against in {@link nextTargetTheta}.
+ *
+ * Short enough that a climbing child's recent accuracy reflects where they are NOW rather than
+ * where they averaged over the block, long enough that the correction is not chasing single
+ * responses. Eight and twelve were both measured (E-206) and behave the same on the null; eight
+ * recovers more of the lag, so it is the one used.
+ */
+const RECENT_ACCURACY_WINDOW = 8;
+
 export interface TargetingOptions extends LearningCurveOptions {
   /**
-   * Offset added to the projected ability when choosing the next item, in scale points. Positive
-   * aims ABOVE the child's projected level.
+   * How far ABOVE the child the next item should sit, in scale points.
    *
    * This is the desirable-difficulty knob: a positive offset keeps the block harder than the
    * child's settled standing so there is headroom to climb into. It is exposed rather than fixed
    * because the right value is a question about what keeps a child working, not a statistical one
    * — synthetic work found the difficulty regime moves recovery by around 0.015 in correlation,
    * which is negligible next to the difference between a child who engages and one who gives up.
+   *
+   * It is a TARGET rather than a literal addend. {@link nextTargetTheta} corrects toward it using
+   * observed accuracy, so it also sets the accuracy the block aims to hold: under a floor `c` the
+   * intended accuracy is `c + (1 - c) * sigmoid(-slope * targetOffset)`, which at the shipped
+   * `c = 0.2` and an offset of 1 is 41.5%.
    */
   readonly targetOffset?: number;
   /**
@@ -358,11 +373,38 @@ export interface TargetingOptions extends LearningCurveOptions {
  * proportional to the floor and vanishes at `c = 0`, which is why this was invisible against a
  * floorless simulated responder.
  *
- * The level fit still rises as a real learner climbs — it is a fit to their responses, and it is
- * what the `follows a climbing child upward` test asserts — it simply lags the current ability by
- * about half the block instead of extrapolating ahead of it. That lag is the price, it is paid in
- * the direction of serving items slightly too easy rather than far too hard, and it is measured:
- * attenuation improves rather than worsening.
+ * A LEVEL FIT ALONE LAGS A CLIMBING CHILD, SO THE AIM IS THEN CORRECTED AGAINST OBSERVED ACCURACY.
+ * The level fit averages over the whole block, so for a child climbing at `lambda` it sits roughly
+ * `lambda * t / 2` behind them, and the level-only rule under-served the fastest learners badly: at
+ * `lambda = 0.15` the mean served difficulty ran 0.57 scale points BELOW ability instead of the
+ * intended `targetOffset` above it, and late accuracy rose to 69%. The correction below closes that
+ * to 0.10 points and 61% (E-206).
+ *
+ * The correction is driven by OBSERVED ACCURACY over the last {@link RECENT_ACCURACY_WINDOW}
+ * trials, not by the fitted `lambda`, and that distinction is the whole design. An offset that
+ * widens when the fit is optimistic is the loop D-206 removed, wearing a different hat: it aims
+ * higher exactly when `lambda` is overstated, and the asymmetry above then protects the error. An
+ * offset driven by accuracy is the opposite sign of feedback — aiming too high LOWERS accuracy,
+ * which retracts the correction on the next trial. It is a servo on the quantity `targetOffset`
+ * exists to control, not a projection of the quantity being estimated.
+ *
+ * IT IS SYMMETRIC, AND THAT IS LOAD-BEARING RATHER THAN TIDY. A rectified version that only ever
+ * pushes forward was measured too, and it costs: under the null the rectifier turns response noise
+ * into a one-way ratchet, so a static child's mean served difficulty rises from 1.26 to 1.49 points
+ * above them, the feedback term grows by half, and the indeterminate rate goes from 6.3% to 11.1%.
+ * Correcting in both directions leaves the null cohort's served difficulty slightly CLOSER to them
+ * (1.26 → 1.10) than the uncorrected level rule, so the fast learner's headroom is not bought by
+ * pushing everyone else up.
+ *
+ * Verified by attribution rather than assumed: replaying each rule's served-difficulty sequence to
+ * an untargeted twin isolates the feedback term, which is 0.0045 ± 0.0012 for the level rule alone
+ * and 0.0046 ± 0.0012 with this correction — indistinguishable — against 0.0146 ± 0.0015 for the
+ * projecting rule D-206 removed (E-206).
+ *
+ * WHAT IT DOES NOT FIX: the correction is a one-step servo, so it still trails a child climbing
+ * much faster than the design anticipated. At `lambda = 0.30` the served difficulty is 1.6 points
+ * below ability and late accuracy is 83%. Tracking that would need a projection, which is the thing
+ * that cannot be afforded.
  *
  * Below `MIN_TRIALS_FOR_PROJECTION` the fit is dominated by its prior and carries no real
  * information, so the standing estimate is returned unchanged instead of pretending to project.
@@ -376,6 +418,8 @@ export function nextTargetTheta(
     standingEstimate = (SCALE_MIN + SCALE_MAX) / 2,
     min = SCALE_MIN,
     max = SCALE_MAX,
+    slope = 1.0,
+    guessing = DEFAULT_GUESSING,
   } = options;
 
   if (trials.length < MIN_TRIALS_FOR_PROJECTION) {
@@ -383,5 +427,44 @@ export function nextTargetTheta(
   }
 
   const level = estimateBlockLevel(trials, { ...options, priorTheta0Mean: standingEstimate });
-  return clamp(level + targetOffset, min, max);
+  const correction = accuracyCorrection(trials, clamp(guessing, 0, 0.99), slope, targetOffset);
+  return clamp(level + targetOffset + correction, min, max);
+}
+
+/**
+ * Scale points to add to the aim so that recent observed accuracy moves toward the accuracy
+ * `targetOffset` is designed to produce.
+ *
+ * Both accuracies are put through the SAME floored logistic the fit uses and differenced on the
+ * logit scale, so the correction is in scale points by construction and there is no gain constant
+ * to choose. Under the declared floor `c`, aiming `targetOffset` above a child yields
+ * `c + (1 - c) * sigmoid(-slope * targetOffset)`; observing more than that means the aim is low by
+ * the logit distance between the two, and observing less means it is high by the same measure.
+ *
+ * The proportion is pulled off the boundary by `1 / 2n` before inverting — the usual continuity
+ * correction — because an all-correct or all-incorrect window inverts to an infinite correction.
+ * That bound is what keeps a single extreme window from throwing the aim across the scale, and it
+ * is the only constant here that is not read off the response model.
+ */
+function accuracyCorrection(
+  trials: readonly LearningTrial[],
+  c: number,
+  slope: number,
+  targetOffset: number,
+): number {
+  const recent = trials.slice(-RECENT_ACCURACY_WINDOW);
+  if (recent.length === 0 || c >= 1 || !(slope > 0)) return 0;
+
+  let total = 0;
+  for (const trial of recent) {
+    total += isFiniteNumber(trial.score) ? clamp(trial.score, 0, 1) : 0;
+  }
+  const observed = total / recent.length;
+
+  const edge = 1 / (2 * recent.length);
+  const above = clamp((observed - c) / (1 - c), edge, 1 - edge);
+  const intended = 1 / (1 + Math.exp(slope * targetOffset));
+
+  const logitGap = Math.log(above / (1 - above)) - Math.log(intended / (1 - intended));
+  return logitGap / slope;
 }

@@ -42,7 +42,7 @@
  *
  * Flags: --children N  --length N  --lambda-mean X  --lambda-sd X  --standing-noise X
  *        --guessing X  --fit-guessing X  --target-guessing X  --seed N  --seeds a,b,c  --json
- *        --targeting level|projecting|frozen
+ *        --targeting level|level-plain|projecting|frozen
  *
  * `--guessing` is the SIMULATED CHILD's floor (the truth). `--fit-guessing` and `--target-guessing`
  * are what the estimator assumes, in the readout fit and inside `nextTargetTheta` respectively.
@@ -61,6 +61,7 @@ import {
 import {
   DEFAULT_GUESSING,
   MIN_TRIALS_FOR_PROJECTION,
+  estimateBlockLevel,
   estimateLearningCurve,
   learningRateReadout,
   nextTargetTheta,
@@ -398,19 +399,23 @@ interface FitSpec {
 /**
  * Which rule chooses the difficulty of the next trial. `level` is what ships.
  *
- * The other two are diagnostics, not administration options, and they exist because the difference
- * between them is the whole of D-206:
+ * The other three are diagnostics, not administration options, and they exist because the
+ * differences between them are the whole of D-206:
  *
  * - `projecting` is the rule the block shipped with before D-206 — aim at `theta0 + lambda * t`,
  *   the ability PROJECTED for the next trial. It closes a loop from the estimate of `lambda` back
  *   onto the design that identifies `lambda`. Kept so the before/after can be run at matched seeds
  *   in one version of this harness; a comparison across two harness versions would be confounded
  *   with the harness.
+ * - `level-plain` is D-206 as first drafted: the level fit plus the offset, with no accuracy
+ *   correction on top. It removes the loop but lags a climbing child, and the size of that lag is
+ *   what the correction in `level` was added to fix. Kept so the correction's cost is measurable
+ *   against the thing it was added to rather than against the rule two revisions back.
  * - `frozen` holds the difficulty at `standing + offset` for the whole block. It is the open-loop
  *   bound: the block still uses the real fit, but nothing the fit says reaches what gets served. It
  *   is the only way to separate what the ESTIMATOR does from what the LOOP does.
  */
-type TargetingRule = 'level' | 'projecting' | 'frozen';
+type TargetingRule = 'level' | 'level-plain' | 'projecting' | 'frozen';
 
 /** The rule D-206 replaced, kept here rather than in the estimator so the shipped path has one. */
 function projectingTargetTheta(
@@ -458,6 +463,19 @@ function runBlock(
       target = clamp(child.standing + TARGET_OFFSET, SCALE_MIN, SCALE_MAX);
     } else if (targeting === 'projecting') {
       target = projectingTargetTheta(trials, child.standing, fit.targeting);
+    } else if (targeting === 'level-plain') {
+      target =
+        trials.length < MIN_TRIALS_FOR_PROJECTION
+          ? clamp(child.standing + TARGET_OFFSET, SCALE_MIN, SCALE_MAX)
+          : clamp(
+              estimateBlockLevel(trials, {
+                slope: SLOPE,
+                priorTheta0Mean: child.standing,
+                guessing: fit.targeting,
+              }) + TARGET_OFFSET,
+              SCALE_MIN,
+              SCALE_MAX,
+            );
     } else {
       target = nextTargetTheta(trials, {
         standingEstimate: child.standing,
@@ -747,9 +765,10 @@ function parseArgs(argv: readonly string[]): Settings {
   if (modeRaw !== 'consistent' && modeRaw !== 'perTrial') {
     throw new Error(`--mode expects consistent|perTrial, got "${modeRaw}"`);
   }
+  const targetingRules: readonly TargetingRule[] = ['level', 'level-plain', 'projecting', 'frozen'];
   const targetingRaw = flag('targeting') ?? 'level';
-  if (targetingRaw !== 'level' && targetingRaw !== 'projecting' && targetingRaw !== 'frozen') {
-    throw new Error(`--targeting expects level|projecting|frozen, got "${targetingRaw}"`);
+  if (!targetingRules.includes(targetingRaw as TargetingRule)) {
+    throw new Error(`--targeting expects ${targetingRules.join('|')}, got "${targetingRaw}"`);
   }
   const seed = num('seed', 20260730);
   const seedsRaw = flag('seeds');
@@ -776,7 +795,7 @@ function parseArgs(argv: readonly string[]): Settings {
     guessingExplicit: argv.includes('--guessing'),
     fitGuessing: num('fit-guessing', DEFAULT_GUESSING),
     targetGuessing: num('target-guessing', DEFAULT_GUESSING),
-    targeting: targetingRaw,
+    targeting: targetingRaw as TargetingRule,
     seed,
     seeds,
     bank: flag('bank'),
@@ -1199,7 +1218,13 @@ function printFixProbe(settings: Settings, bankRefs: readonly string[]): void {
       targeting: projecting,
     },
     {
-      label: 'D-206 shipped: c = 0.2, level targeting',
+      label: 'D-206 part 1 only: level, no accuracy correction',
+      fit: { readout: 0.2, targeting: 0.2 },
+      length: 30,
+      targeting: 'level-plain',
+    },
+    {
+      label: 'D-206 shipped: c = 0.2, level + accuracy correction',
       fit: { readout: 0.2, targeting: 0.2 },
       length: 30,
     },

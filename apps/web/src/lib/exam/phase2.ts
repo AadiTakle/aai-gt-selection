@@ -283,9 +283,10 @@ export interface LearningBlockReadout {
  *
  * It used to, and that sentence is no longer true. `STAGE2_BANK_RECOVERY_MEASUREMENT.md` measured
  * what this pipeline fits for a cohort that learned NOTHING, against a responder with a real
- * five-option guessing floor, and found a positive climb on every bank tried. D-206 removed that
- * particular defect — the targeting rule no longer extrapolates the climb it is estimating — and a
- * null cohort now fits zero. **It did not make the pace reportable**, and the wording below is
+ * five-option guessing floor, and found a positive climb on every bank tried. D-206 removed most of
+ * that particular defect — the targeting rule no longer extrapolates the climb it is estimating —
+ * and a null cohort now fits within a Monte-Carlo standard error of zero on all four Stage 2 banks
+ * and on no bank at all. **It did not make the pace reportable**, and the wording below is
  * unchanged because the reason it was written is unchanged: at 30 trials one child's estimate is
  * still far less precise than children are believed to differ, so a rate for an individual would be
  * invented precision whatever the floor is.

@@ -845,6 +845,22 @@ system-failures, which raises the effective option count without raising the vis
 > (r 0.332 → 0.365 on `FLU-OPCHAIN-01`). Reproduce with
 > `bash scripts/stage2-lambda-loop-runs.sh`. **This does not make a rate reportable** — against the
 > SD-0.03 reference every length from 30 to 60 trials is still 100% `indeterminate`.
+>
+> **Two amendments to the paragraph above, both from E-206 and both material.** (1) **The level fit
+> alone under-serves fast learners, and the shipped rule no longer uses it alone.** A no-climb fit
+> lags a climbing child by about half the block, which put a λ = 0.15 learner 0.58 points *below*
+> their ability for the last third of the block at 69% accuracy, against a design intent of +1 and
+> 41.5%. `nextTargetTheta` now corrects the aim by the gap between observed accuracy over the last
+> eight trials and the accuracy the offset is designed to produce, which takes that learner to −0.10
+> and 61.1% while leaving the null cohort at −0.0005 and taking A1 from 37 to **40 of 40 pool × seed
+> cells**. The correction is symmetric and driven by observed accuracy rather than by the fitted
+> slope; a version driven by any slope estimate, including the difference of two level fits,
+> reinstates the loop and was measured doing so. `--targeting level-plain` is the level fit alone,
+> kept so the comparison stays runnable. (2) **"The residual is gone" overstates it.** Replaying the
+> shipped rule's own served sequence to an untargeted twin returns −0.005 to −0.008, so the live
+> −0.0005 is a near-cancellation of prior shrinkage against a residual feedback term of +0.0045,
+> which is a third of the projecting rule's +0.0146 rather than zero. The loop is reduced threefold,
+> not opened.
 
 ### 4.7 The threat that no design can engineer away
 

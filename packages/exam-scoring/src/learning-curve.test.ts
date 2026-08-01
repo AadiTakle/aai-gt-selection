@@ -47,6 +47,10 @@ function simulateBlock(
       standingEstimate: theta0,
       targetOffset,
       slope: SLOPE,
+      // The responder below has no floor, so the targeting rule is told the same thing. Leaving it
+      // at `DEFAULT_GUESSING` would have the accuracy correction discount a fifth of the responses
+      // as chance when none of them are, and aim about 1.4 points low throughout.
+      guessing: 0,
     });
     const difficulty = Math.round(target * 2) / 2;
     const theta = theta0 + lambda * t;
@@ -334,8 +338,9 @@ describe('estimateBlockLevel', () => {
   });
 
   it('reads a climb as a level somewhere inside it, not as the endpoint', () => {
-    // The lag D-206 accepts, asserted rather than described: a fit with no climb term over a
-    // climbing child lands inside the range they worked, so the target trails rather than leads.
+    // The lag that makes D-206's accuracy correction necessary, asserted rather than described: a
+    // fit with no climb term over a climbing child lands inside the range they worked, so a target
+    // taken from the level ALONE trails rather than leads.
     const climbing = simulateBlock(10, 0.15, 24, 5);
     const level = estimateBlockLevel(climbing, { slope: SLOPE, priorTheta0Mean: 10 });
     expect(level).toBeGreaterThan(10);
@@ -387,8 +392,12 @@ describe('nextTargetTheta', () => {
     const climbing = simulateBlock(10, 0.15, 24, 11);
     const flat = simulateBlock(10, 0, 24, 11);
 
-    const climbTarget = nextTargetTheta(climbing, { standingEstimate: 10, slope: SLOPE });
-    const flatTarget = nextTargetTheta(flat, { standingEstimate: 10, slope: SLOPE });
+    // Same floor and offset the blocks were served under; the accuracy correction is relative to
+    // the accuracy the offset is designed to hold, so asking with a different one asks a different
+    // question.
+    const options = { standingEstimate: 10, targetOffset: 1, slope: SLOPE, guessing: 0 };
+    const climbTarget = nextTargetTheta(climbing, options);
+    const flatTarget = nextTargetTheta(flat, options);
 
     // The point of re-targeting: a fast child does not spend the back half of the block on items
     // they have outgrown, which is where the climb signal would be lost to a ceiling.
@@ -396,22 +405,90 @@ describe('nextTargetTheta', () => {
     expect(climbTarget).toBeGreaterThan(10);
   });
 
-  it('aims at the fitted level and not at an extrapolation of the fitted climb (D-206)', () => {
+  it('aims off the fitted level and not off an extrapolation of the fitted climb (D-206)', () => {
     const climbing = simulateBlock(10, 0.15, 24, 11);
-    const target = nextTargetTheta(climbing, {
-      standingEstimate: 10,
-      targetOffset: 1,
+    const options = { standingEstimate: 10, targetOffset: 1, slope: SLOPE, guessing: 0 };
+    const target = nextTargetTheta(climbing, options);
+    const level = estimateBlockLevel(climbing, { slope: SLOPE, priorTheta0Mean: 10, guessing: 0 });
+    const fit = estimateLearningCurve(climbing, {
       slope: SLOPE,
+      priorTheta0Mean: 10,
+      guessing: 0,
     });
-    const fit = estimateLearningCurve(climbing, { slope: SLOPE, priorTheta0Mean: 10 });
 
-    expect(target).toBeCloseTo(
-      estimateBlockLevel(climbing, { slope: SLOPE, priorTheta0Mean: 10 }) + 1,
+    // The level fit plus the offset is the anchor; everything else is the accuracy correction,
+    // which is bounded by the continuity-corrected inversion of an eight-trial window.
+    expect(target - (level + 1)).toBeLessThan(3);
+    expect(target - (level + 1)).toBeGreaterThan(-3);
+    // And it is nowhere near the rule this replaced, so the block is not one where the projecting
+    // rule and this one happen to coincide.
+    expect(target).not.toBeCloseTo(fit.theta0 + fit.lambda * climbing.length + 1, 3);
+  });
+
+  it('is driven by observed accuracy and not by the fitted climb (D-206)', () => {
+    // The discriminating test for the constraint the correction exists under. Permuting the trials
+    // BEFORE the accuracy window leaves the level fit untouched — it sums over trials and never
+    // reads `trialIndex` — and leaves the window itself untouched by construction, while moving
+    // the fitted `lambda` a long way. A rule that reads the fitted climb has to move with it.
+    const block = simulateBlock(10, 0.15, 24, 11);
+    const head = block.slice(0, block.length - 8);
+    const tail = block.slice(block.length - 8);
+    const reindex = (trials: LearningTrial[]): LearningTrial[] =>
+      trials.map((trial, index) => ({ ...trial, trialIndex: index }));
+
+    const ascending = reindex([...[...head].sort((a, b) => a.score - b.score), ...tail]);
+    const descending = reindex([...[...head].sort((a, b) => b.score - a.score), ...tail]);
+
+    const options = { standingEstimate: 10, targetOffset: 1, slope: SLOPE, guessing: 0 };
+    const fitted = (trials: LearningTrial[]): number =>
+      estimateLearningCurve(trials, { slope: SLOPE, priorTheta0Mean: 10, guessing: 0 }).lambda;
+
+    // Sorting the head by score is the largest swing in fitted slope the same responses can produce.
+    expect(fitted(ascending) - fitted(descending)).toBeGreaterThan(0.1);
+    expect(nextTargetTheta(ascending, options)).toBeCloseTo(
+      nextTargetTheta(descending, options),
       10,
     );
-    // And it is genuinely a different number from the rule this replaced, so the assertion above
-    // cannot be satisfied by the two rules happening to coincide on this block.
-    expect(target).not.toBeCloseTo(fit.theta0 + fit.lambda * climbing.length + 1, 3);
+  });
+
+  it('corrects in both directions rather than only pushing forward (D-206)', () => {
+    // A child answering at exactly the accuracy the offset is designed to produce gets no
+    // correction; above it the aim rises, below it the aim falls. The downward half is what stops
+    // response noise ratcheting a static child's difficulty upward, which is the failure the
+    // rectified form of this correction was measured to have (E-206).
+    const atTarget = DEFAULT_GUESSING + (1 - DEFAULT_GUESSING) * (1 / (1 + Math.exp(1)));
+    // Partial credit rather than 0/1, so the window can hold the target accuracy exactly instead of
+    // rounding to the nearest eighth.
+    const held = (accuracy: number): LearningTrial[] =>
+      Array.from({ length: 8 }, (_, t) => ({ difficulty: 11, score: accuracy, trialIndex: t }));
+    const options = { standingEstimate: 10, targetOffset: 1, slope: SLOPE };
+    const aimFor = (accuracy: number): number =>
+      nextTargetTheta(held(accuracy), options) -
+      estimateBlockLevel(held(accuracy), { slope: SLOPE, priorTheta0Mean: 10 });
+
+    expect(aimFor(atTarget)).toBeCloseTo(1, 1);
+    expect(aimFor(atTarget + 0.25)).toBeGreaterThan(aimFor(atTarget) + 0.5);
+    expect(aimFor(atTarget - 0.25)).toBeLessThan(aimFor(atTarget) - 0.5);
+  });
+
+  it('stays on the scale when a window is answered perfectly or not at all', () => {
+    // The inversion runs to infinity at either boundary; the continuity correction is what keeps
+    // the aim finite, and the clamp is the backstop rather than the mechanism.
+    for (const score of [0, 1]) {
+      const degenerate = Array.from({ length: 12 }, (_, t) => ({
+        difficulty: 11,
+        score,
+        trialIndex: t,
+      }));
+      const target = nextTargetTheta(degenerate, {
+        standingEstimate: 11,
+        targetOffset: 1,
+        slope: SLOPE,
+      });
+      expect(Number.isFinite(target)).toBe(true);
+      expect(target).toBeLessThanOrEqual(SCALE_MAX);
+      expect(target).toBeGreaterThanOrEqual(SCALE_MIN);
+    }
   });
 
   it('never asks for a difficulty off the scale', () => {
