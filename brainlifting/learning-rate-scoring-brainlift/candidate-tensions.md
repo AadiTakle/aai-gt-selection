@@ -92,3 +92,47 @@ recommendation — a tension becomes an insight only once the owner has interrog
 - Jølstad & Gustavsson argue a lottery is impartial at a genuine tie, while AERA, APA & NCME Standard 12.10 requires that additional relevant information about the student's performance be considered.
 - McBee, Peters & Waterman show combination-rule choice alone changes who is identified and how psychometrically sound the system is, while a measure described as "one input among several" is treated as evidentially lighter than a decisive one.
 - Kane's separation of score interpretation from score use permits a research-only rate interpretation to stand while the gating use is rejected, while AERA, APA & NCME Standard 13.7 records that any logged signal requires an explicit use boundary because it remains available to later rules.
+
+## 11. Whether a latency and a rate are two statistics or one
+
+- van de Sande derives the mastery-learning model's performance curve as an exponential whose rate constant is a fixed function of the fitted per-opportunity learn probability, while Gallistel, Fairhurst & Balsam hold that onset latency is the correct measure precisely because a rate is not estimable.
+- Lee & Brunskill compute an expected number of practice opportunities to mastery directly from the same fitted parameter set that defines the rate, while an event-time score is proposed as an alternative measurement rather than as a transform of that set.
+- Stake finds the asymptote or total-errors parameter and the curvature or rate parameter correlating around +.80 within a task and concludes the curves are one-independent-parameter functions, while Stake's own recommendations state the two might be completely uncorrelated over longer-term learning.
+- Stake finds the total-errors parameter the better predictor of aptitude and achievement of the two, while the rate parameter is elsewhere treated as the quantity that purges an error count of prior knowledge.
+- Stake finds a rate parameter and an error-count parameter carrying common information within a task, while Koedinger, Carvalho, Liu & McLaughlin find initial knowledge and learning rate separable and put nearly all of the between-student spread in the former.
+
+## 12. What a time to criterion is actually measuring
+
+- Beck & Chang show that parameter sets fitting the same performance data equally well imply 24 against 32 practice opportunities to mastery in one comparison and 24 against 22,313 in another, while Lee & Brunskill treat an expected number of practice opportunities computed from fitted parameters as an actionable individual quantity.
+- Koedinger, Carvalho, Liu & McLaughlin report 13.13 against 3.66 opportunities to mastery for the lower and higher halves by initial knowledge but 7.89 against 6.94 for the slower and faster halves by learning rate, while an event-time score is proposed as a measure of learning speed rather than of prior knowledge.
+- Lee & Brunskill find a large spread of individually fitted learn probabilities across 265 students, while Koedinger et al. report the interquartile range of student learning rate spanning only 1.70% to 2.56% gain per opportunity.
+- Beck & Chang state there is no statistical justification for preferring one of an infinite family of equally fitting knowledge-tracing models, while the mastery threshold that defines a latency score is read off exactly that unidentified knowledge estimate.
+- Levine holds that a learner sampling from a hypothesis set lacking the solution shows no learning at all, so a recorded onset measures time spent in the wrong region of hypothesis space, while an onset score is proposed as a measure of acquisition speed.
+
+## 13. Whether human rule learning is step-like or graded
+
+- Rock finds identical median trials to criterion under his dropout procedure and Estes finds near-chance second-test recall, while Williams shows an item-selection artifact capable of producing the same result without all-or-none learning.
+- Restle concludes that at least one task is learned all-or-none and that not all learning is, while Gallistel, Fairhurst & Balsam treat the step-like individual function as general enough to disqualify rate estimation outright.
+- Gregg & Simon make the all-or-none or incremental character of learning depend on the strategy the learner adopts, while Bower's one-element model fixes a constant per-trial conditioning probability as a property of the item.
+- Downing finds stationarity and independence of presolution responding supported on a two-level concept problem and absent on a four-level one, while the all-or-none reading of that tradition is applied to rule induction generally.
+- Harlow finds discrimination learning gradual in inexperienced monkeys and one-trial in experienced ones, while one regime is assumed whenever a single measurement form is chosen for all learners.
+- Roediger & Arnold conclude that the question of how associations are learned remains unanswered, while choosing between a rate and an onset requires an answer to it.
+- Hayes aligns each learner's record at their own last error so that a step can become visible, while Stake fits every learner from a common origin and summarises the whole record with curve parameters.
+
+## 14. Trials to criterion as a measurement plan
+
+- Feldt & Spray find fixed-length scoring more reliable than trials-to-criterion scoring across most true-score distributions considered, while an event time is proposed as the better-conditioned statistic at small trial counts.
+- Feldt & Spray find the trials-to-criterion plan superior under negative skewness in the true-score distribution, while the same analysis finds it inferior everywhere else they examined.
+- Patterson & Shifflett find substantially higher misclassification rates for trials-to-criterion than for sequential probability ratio testing on the same 110 learners, while the trials-to-criterion plan produced the shorter test.
+- Henry reports that in one re-examined group only about 56% of participants reached criterion at all, while Willett & Singer hold that censored cases carry information and must be modelled rather than dropped or assigned a fixed value.
+- Willett & Singer require censored event times to be incorporated if event histories are to be modelled without bias, while Kittur, Holyoak & Hummel handled their 22% of non-learners by conservatively assigning a fixed value of 601 trials.
+- Henry finds trials to criterion correlating with total accuracy above r = .597 while also finding a wide spread of total accuracy among the participants scoring lowest on trials to criterion.
+- Willett makes the reliability of a measured growth rate rise sharply with added measurement occasions, while Feldt & Spray's trials-to-criterion plan makes the number of occasions a function of the learner rather than of the design.
+
+## 15. Normalising a learning measure by information availability
+
+- Kittur, Holyoak & Hummel normalise each participant's trials to criterion against an ideal observer run on that participant's own trial sequence, while Hake's normalized gain — the normalisation in widest educational use — divides by the room left to improve rather than by what was inferable.
+- Markant & Gureckis find that yoked learners given the identical observation sequence did not show the relation between observation quality and accuracy that self-directed learners showed, while an availability normalisation assumes identical evidence places learners in an identical informational position.
+- Markant & Gureckis's Bayesian model predicts that selection and yoked learners benefit equally from the same observations, while their hypothesis-dependent sampling model predicts divergence and their participants diverged.
+- Kittur, Holyoak & Hummel report efficiency as a condition-level contrast, while an individual-differences use of the same statistic would require the reliability evidence Hedge, Powell & Sumner and Enkavi et al. show cannot be assumed for a task measure.
+- Singer & Willett supply a discrete-time hazard framework in which a per-trial indicator of when a rule became deducible could be entered directly as a covariate, while no located source — Kittur, Holyoak & Hummel included, as the closest normalisation on offer — has done so or reported such a measure's properties.
