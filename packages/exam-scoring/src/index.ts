@@ -15,7 +15,8 @@
  *   Fitted and reported here, but deliberately NOT part of {@link scoreExam}'s output: it is a
  *   labelled hypothesis, so it stays outside the scored decision until someone chooses otherwise.
  *   {@link nextTargetTheta} is the projection an administering caller needs to aim the next trial;
- *   choosing the item itself belongs to `@gt-selection/exam-engine`.
+ *   choosing the item itself belongs to `@gt-selection/exam-engine`. {@link scheduledTargetTheta} is
+ *   the exogenous alternative to that projection, measured but not wired (D-206).
  */
 export * from './metric-ids';
 export * from './types';

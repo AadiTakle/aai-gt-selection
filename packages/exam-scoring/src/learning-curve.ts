@@ -111,12 +111,17 @@ const LAMBDA_BOUND = 1;
  * is what this estimator shipped with — the fit has no way to explain a success on an item well
  * above the child's level except as ability, and inside an adaptive block that error compounds
  * rather than averaging out: the inflated fit raises `theta0`, `nextTargetTheta` aims the next item
- * higher, and the fit then reads its own rising difficulty walk as a genuine climb. Measured
- * against a responder with a real five-option floor and no learning at all (λ_true = 0 for every
- * child, 400 children, idealised grid, 30 trials), the `guessing = 0` fit returns λ̄ = 0.0398 ±
- * 0.0043 and `learningRateReadout` calls 32.8% of those non-learners `above` average pace. At this
- * floor the same cohort returns λ̄ = 0.0011 ± 0.0033 and 5.3%. E-200 records the measurement;
- * `learning-curve.test.ts` asserts both halves so the floor cannot be reverted quietly.
+ * higher, and the answers to those harder items are then read back through a fit whose own output
+ * chose them. Measured against a responder with a real five-option floor and no learning at all
+ * (λ_true = 0 for every child, 400 children, idealised grid, 30 trials), the `guessing = 0` fit
+ * returns λ̄ = 0.0398 ± 0.0043 and `learningRateReadout` calls 32.8% of those non-learners `above`
+ * average pace. At this floor the same cohort returns λ̄ = 0.0011 ± 0.0033 and 5.3%. E-200 records
+ * the measurement; `learning-curve.test.ts` asserts both halves so the floor cannot be reverted
+ * quietly.
+ *
+ * The floor is not the whole defect and this correction does not close it. A RESIDUAL λ̄ ≈ +0.009
+ * survives at a correctly specified floor, and E-205 localises it to the closed loop rather than to
+ * the floor or to any bank — see {@link nextTargetTheta} and {@link scheduledTargetTheta}.
  *
  * 0.2 rather than a per-item reciprocal because the fit takes one floor for the whole block and the
  * block is administered from one area's pool. `FLU-OPCHAIN-01`, the bank Stage 2 builds the block
@@ -263,6 +268,22 @@ export interface TargetingOptions extends LearningCurveOptions {
  *
  * Below `MIN_TRIALS_FOR_PROJECTION` the fit is dominated by its prior and carries no real
  * information, so the standing estimate is returned unchanged instead of pretending to project.
+ *
+ * THIS RULE IS THE MEASURED SOURCE OF THE RESIDUAL NULL CLIMB, AND IT IS NOT FIXABLE IN THE FIT.
+ * Because the target is `theta0 + lambda * nextIndex`, the served difficulty rises at whatever rate
+ * the running fit has estimated; a flat accuracy series over a path rising at that rate is exactly
+ * the signature of an ability rising at that rate, so the estimate is written into the design and
+ * then read back out. In statistical terms the served difficulty is ENDOGENOUS — a function of the
+ * child's own earlier answers — which is a different failure from an omitted covariate and does not
+ * respond to the same remedies.
+ *
+ * E-205 separates the two by replaying the IDENTICAL difficulty path against an independent
+ * response stream: the rising path alone manufactures nothing (λ̄ = −0.0039 ± 0.0010 on the
+ * bank-free grid, against +0.0085 ± 0.0013 for the same path when the responses being fitted are the
+ * ones that chose it). Conditioning the fit on served difficulty with a free coefficient — the shape
+ * of the pre-registered Gate B statistic — makes it WORSE, not better (+0.0167), because difficulty
+ * is not missing from the fit, it is endogenous within it. {@link scheduledTargetTheta} is the arm
+ * that removes it, and what that costs is recorded in D-206.
  */
 export function nextTargetTheta(
   trials: readonly LearningTrial[],
@@ -282,4 +303,54 @@ export function nextTargetTheta(
   const fit = estimateLearningCurve(trials, { ...options, priorTheta0Mean: standingEstimate });
   const nextIndex = trials.length;
   return clamp(fit.theta0 + fit.lambda * nextIndex + targetOffset, min, max);
+}
+
+export interface ScheduledTargetOptions {
+  /** Settled standing estimate handed over from the bracketing phase. The only anchor. */
+  readonly standingEstimate: number;
+  /** Offset added to the schedule, in scale points. The same knob as `TargetingOptions`. */
+  readonly targetOffset?: number;
+  /**
+   * Rate the schedule climbs at, in scale points per trial.
+   *
+   * A DESIGN CONSTANT, not an estimate, and that is the whole point — it must be fixed before the
+   * block starts and must not be derived from the block's own responses. Its value trades nothing
+   * about the null cohort (see below) and everything about who the block tracks: at 0 the schedule
+   * is flat and a fast learner finishes the block on items well below them; at the population mean
+   * it tracks an average learner and still under-serves the fastest. There is no value that is right
+   * for every child, which is the cost this arm carries and D-206 records.
+   */
+  readonly rate: number;
+  readonly min?: number;
+  readonly max?: number;
+}
+
+/**
+ * Difficulty to aim trial `nextTrialIndex` at, from a schedule fixed before the block began.
+ *
+ * THE SIGNATURE IS THE GUARANTEE. This function is handed a trial index and a standing estimate and
+ * is given no access to the child's responses at all, so the difficulty it returns cannot be a
+ * function of them. That is what {@link nextTargetTheta} cannot promise and what makes the served
+ * difficulty exogenous: the fit is no longer reading back a path its own output chose.
+ *
+ * WHAT IT BUYS AND WHAT IT COSTS, both measured over 3,200 simulated children per cell (E-205).
+ * On a cohort that learned nothing, the shipped adaptive rule fits λ̄ = +0.0097 ± 0.0011 on
+ * `FLU-OPCHAIN-01`; this schedule at the population rate fits −0.0019 ± 0.0008, and every rate from
+ * 0 to 0.30 lands in the same narrow band — the rate is not what removes the artifact, exogeneity is.
+ * The price is paid twice over. The posterior SE widens by about a third (0.063 → 0.085 at 30
+ * trials), which under D-200 part 2 directly reduces how often a band may be named. And a schedule
+ * pitched at one rate is wrong for children away from it: a λ = 0.15 learner works the block at 59%
+ * accuracy under a 0.06 schedule against 50% under the adaptive rule, so the fastest learners spend
+ * the block below their level — a ceiling for exactly the children R5 and R6 exist to measure.
+ *
+ * NOT WIRED. D-206 is Proposed, Gate B has not run, and no live surface administers from this. It
+ * exists so Gate A can be measured under it and so the trade can be reviewed against numbers.
+ */
+export function scheduledTargetTheta(
+  nextTrialIndex: number,
+  options: ScheduledTargetOptions,
+): number {
+  const { standingEstimate, targetOffset = 0, rate, min = SCALE_MIN, max = SCALE_MAX } = options;
+  const index = Number.isFinite(nextTrialIndex) ? Math.max(0, nextTrialIndex) : 0;
+  return clamp(standingEstimate + targetOffset + rate * index, min, max);
 }

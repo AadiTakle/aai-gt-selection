@@ -35,15 +35,26 @@
  *   pnpm exam:block-harness -- --noise-sweep         # sensitivity to the handover-noise SD
  *   pnpm exam:block-harness -- --guessing-probe      # what the `guessing = 0` fit does to a static child
  *   pnpm exam:block-harness -- --fix-probe           # every candidate remedy, costed side by side
+ *   pnpm exam:block-harness -- --endogeneity-probe   # WHY the residual survives a correct floor
  *   pnpm exam:block-harness -- --gate-a --bank FLU-OPCHAIN-01
+ *   pnpm exam:block-harness -- --gate-a --bank FLU-OPCHAIN-01 --targeting scheduled
+ *   pnpm exam:block-harness -- --gate-a --bank ideal-grid    # the bank-free bound, same code path
  *   pnpm exam:block-harness -- --gate-a --bank <path/to/bank.jsonl> --mode perTrial
  *
  * Flags: --children N  --length N  --lambda-mean X  --lambda-sd X  --standing-noise X
  *        --guessing X  --fit-guessing X  --target-guessing X  --seed N  --json
+ *        --targeting adaptive|scheduled  --schedule-rate X
  *
  * `--guessing` is the SIMULATED CHILD's floor (the truth). `--fit-guessing` and `--target-guessing`
  * are what the estimator assumes, in the readout fit and inside `nextTargetTheta` respectively.
- * Keeping the three separate is the whole point: the defect is a disagreement between them.
+ * Keeping the three separate is the whole point: the FLOOR defect is a disagreement between them.
+ *
+ * `--targeting` is a different axis and answers a different question. `adaptive` is the shipped
+ * closed loop (`nextTargetTheta`); `scheduled` administers from `scheduledTargetTheta`, a schedule
+ * fixed before the block starts, which makes the served difficulty exogenous. E-205 shows the
+ * residual A1 failure is a property of that loop and not of the floor, so `--fix-probe` (which sweeps
+ * floors) and `--endogeneity-probe` (which sweeps the dependence structure) are two separate probes
+ * on purpose. `--fix-probe`'s table is cited by three published Gate A reports and is unchanged.
  */
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
@@ -60,6 +71,7 @@ import {
   estimateLearningCurve,
   learningRateReadout,
   nextTargetTheta,
+  scheduledTargetTheta,
   type LearningTrial,
 } from '../packages/exam-scoring/src';
 
@@ -265,6 +277,17 @@ function gridPool(step: number, perRung: number): BankItem[] {
   return items;
 }
 
+/**
+ * The reference name that runs Gate A on the idealised grid instead of a bank.
+ *
+ * Three published Gate A reports quote "the bank-free bound" as the row that attributes A1 to the
+ * estimator rather than to any bank, and each computed it from a different probe than the one that
+ * produced its bank rows. §4.1.1's argument for one driver applies to that comparison as much as to
+ * the two arms: the bound and the bank should come out of the SAME code path, or the difference is
+ * confounded with the path. `--bank ideal-grid` is that path.
+ */
+const IDEAL_GRID_REF = 'ideal-grid';
+
 /** Resolve `--bank` as a path, a bank file stem, or a bare type code, in either bank directory. */
 function resolveBankPath(ref: string): string {
   const candidates = [
@@ -282,7 +305,8 @@ function resolveBankPath(ref: string): string {
           .join(', ')
       : '(missing)';
   throw new Error(
-    `no bank found for "${ref}".\n  banks/: ${listing(BANK_DIR)}\n  control-banks/: ${listing(CONTROL_BANK_DIR)}`,
+    `no bank found for "${ref}".\n  "${IDEAL_GRID_REF}" for the bank-free bound\n` +
+      `  banks/: ${listing(BANK_DIR)}\n  control-banks/: ${listing(CONTROL_BANK_DIR)}`,
   );
 }
 
@@ -293,6 +317,13 @@ interface LoadedBank {
 }
 
 function loadBank(ref: string): LoadedBank {
+  if (ref === IDEAL_GRID_REF) {
+    return {
+      label: 'ideal 0.5-point grid (no bank)',
+      path: '(synthetic — gridPool(0.5, 12), no file)',
+      items: gridPool(0.5, 12),
+    };
+  }
   const path = resolveBankPath(ref);
   const items: BankItem[] = [];
   for (const line of readFileSync(path, 'utf8').split('\n')) {
@@ -318,6 +349,8 @@ function loadBank(ref: string): LoadedBank {
  * naming neither, resolves to the requested one; a single-arm bank ignores the mode.
  */
 function bankRefForMode(ref: string, mode: Persistence): string {
+  // The grid has no arms: there is no system in it to make consistent or per-trial.
+  if (ref === IDEAL_GRID_REF) return ref;
   const stem = ref.replace(/\.jsonl$/, '').replace(/\.(consistent|perTrial)$/, '');
   if (mode === 'perTrial') {
     const control = `${stem}.perTrial`;
@@ -373,12 +406,40 @@ interface FitSpec {
 }
 
 /**
+ * How the difficulty of the next trial is chosen. The axis E-205 turns on.
+ *
+ * `adaptive` is shipped: `nextTargetTheta` re-fits and projects, so the served difficulty is a
+ * function of the child's own earlier answers. The other three each break that dependence in a
+ * different place, and the differences between them are what attribute the residual null climb.
+ *
+ * - `frozen` holds the difficulty at `standing + offset` for the whole block. A diagnostic, not an
+ *   administration option: it removes the loop by removing adaptation altogether.
+ * - `scheduled` administers from `scheduledTargetTheta` — still climbing, but at a rate fixed before
+ *   the block began, so the path is exogenous while remaining a climb.
+ * - `replay` serves a difficulty path supplied from outside. Used to answer the question that
+ *   separates the two candidate causes: is it the SHAPE of the rising path, or the fact that the path
+ *   was chosen by the responses being fitted? Replaying one child's own path against an independent
+ *   response stream holds the shape fixed and cuts only the dependence.
+ */
+type TargetingMode =
+  | { readonly kind: 'adaptive' }
+  | { readonly kind: 'frozen' }
+  | { readonly kind: 'scheduled'; readonly rate: number }
+  | { readonly kind: 'replay'; readonly difficulties: readonly number[] };
+
+const ADAPTIVE: TargetingMode = { kind: 'adaptive' };
+
+/**
  * Administer one novel block, using the shipped administration path end to end.
  *
  * The engine picks the item (`selectNextNovelItem`), the scorer picks the difficulty to aim at
  * (`nextTargetTheta`), and the simulated child answers under a 1PL with an explicit guessing floor.
  * Nothing about the block is pre-scripted: the difficulty walk is whatever the targeting rule and
  * the bank's grid produce together, which is the only reason the run says anything about the bank.
+ *
+ * `responseStream` names the RNG stream the child answers from. It exists so the same child can be
+ * run twice on one difficulty path with independent answers, which is the `replay` diagnostic above;
+ * every other caller leaves it at the default and gets the same numbers as before.
  */
 function runBlock(
   pool: readonly BankItem[],
@@ -386,42 +447,61 @@ function runBlock(
   length: number,
   responder: Responder,
   fit: FitSpec,
-  staticTarget: boolean,
+  targeting: TargetingMode,
   selectionSeed: number,
+  responseStream = 'response',
 ): BlockRun {
-  const rng = makeRng(`response|${child.seed}`);
+  const rng = makeRng(`${responseStream}|${child.seed}`);
   const trials: LearningTrial[] = [];
   const served: BlockRun['served'] = [];
   const administered: string[] = [];
   let exhausted = false;
 
   for (let t = 0; t < length; t += 1) {
-    // `staticTarget` is a diagnostic, not an administration option: it holds the difficulty at
-    // `standing + offset` for the whole block, so the block still uses the real fit but no longer
-    // feeds the fit's own output back into what gets served. It is the only way to separate what the
-    // ESTIMATOR does from what the LOOP does, and the two need different remedies.
-    const target = staticTarget
-      ? clamp(child.standing + TARGET_OFFSET, SCALE_MIN, SCALE_MAX)
-      : nextTargetTheta(trials, {
+    let target: number;
+    let difficulty: number;
+    if (targeting.kind === 'replay') {
+      const replayed = targeting.difficulties[t];
+      if (replayed === undefined) {
+        exhausted = true;
+        break;
+      }
+      // The path is given, so no selection happens and the served difficulty IS the target.
+      target = replayed;
+      difficulty = replayed;
+    } else {
+      if (targeting.kind === 'frozen') {
+        target = clamp(child.standing + TARGET_OFFSET, SCALE_MIN, SCALE_MAX);
+      } else if (targeting.kind === 'scheduled') {
+        target = scheduledTargetTheta(t, {
+          standingEstimate: child.standing,
+          targetOffset: TARGET_OFFSET,
+          rate: targeting.rate,
+        });
+      } else {
+        target = nextTargetTheta(trials, {
           standingEstimate: child.standing,
           targetOffset: TARGET_OFFSET,
           slope: responder.slope,
           guessing: fit.targeting,
         });
-    const item = selectNextNovelItem(pool, administered, target, selectionSeed);
-    if (item === null) {
-      exhausted = true;
-      break;
+      }
+      const item = selectNextNovelItem(pool, administered, target, selectionSeed);
+      if (item === null) {
+        exhausted = true;
+        break;
+      }
+      administered.push(item.itemId);
+      difficulty = item.difficulty;
     }
-    administered.push(item.itemId);
 
     const ability = child.theta0 + child.lambda * t;
-    const star = 1 / (1 + Math.exp(-responder.slope * (ability - item.difficulty)));
+    const star = 1 / (1 + Math.exp(-responder.slope * (ability - difficulty)));
     const p = responder.guessing + (1 - responder.guessing) * star;
     const correct = rng() < p;
 
-    trials.push({ difficulty: item.difficulty, score: correct ? 1 : 0, trialIndex: t });
-    served.push({ difficulty: item.difficulty, target, correct });
+    trials.push({ difficulty, score: correct ? 1 : 0, trialIndex: t });
+    served.push({ difficulty, target, correct });
   }
 
   return { trials, served, exhausted };
@@ -441,8 +521,27 @@ interface CohortOptions {
   theta0Sd: number;
   responder: Responder;
   fit: FitSpec;
-  /** Diagnostic: freeze the served difficulty instead of re-projecting it. See {@link runBlock}. */
-  staticTarget?: boolean;
+  /** How the next difficulty is chosen. Defaults to the shipped loop. See {@link TargetingMode}. */
+  targeting?: TargetingMode;
+  /**
+   * Diagnostic: re-answer each child's OWN difficulty path from an independent RNG stream.
+   *
+   * Two passes per child. The first is whatever `targeting` says, and only its difficulty sequence is
+   * kept; the second replays that sequence against fresh answers. The path's shape, the child's
+   * ability and the standing handover are all held fixed, so the only thing that changes is whether
+   * the responses being fitted are the ones that chose the path. That difference is the endogeneity,
+   * isolated (E-205).
+   */
+  exogenousReplay?: boolean;
+  /**
+   * Alternative estimator for the reported climb, for arms that cost a candidate FIT rather than a
+   * candidate DESIGN. Defaults to the shipped `estimateLearningCurve`.
+   *
+   * Only `fitLambda` and `fitLambdaSe` come from it. The readout columns always use the shipped fit,
+   * because `learningRateReadout` fits internally, so those columns are meaningless for an
+   * alternative-fitter arm and `--endogeneity-probe` does not print them.
+   */
+  fitter?: CandidateFitter;
   /**
    * Contamination floor to declare on `A2_REFERENCE` for the third readout pass, which is how the
    * cost of the evidence bar gets measured. Supplied from the matching λ_true = 0 run, so the bar is
@@ -460,6 +559,14 @@ interface CohortResult {
   fitLambdaSe: number[];
   /** Mean served difficulty over the final third — §4.1.1's manipulation check observable. */
   lateDifficulty: number[];
+  /**
+   * Mean served difficulty over the FIRST third.
+   *
+   * Carried so the difficulty CLIMB can be reported as `late − early`. `--endogeneity-probe` needs it
+   * to show when a row holds the climb fixed and changes only what chose it, which is the whole
+   * attribution.
+   */
+  earlyDifficulty: number[];
   /** Highest difficulty served to each child, for the saturation check (A3). */
   peakDifficulty: number[];
   /** Highest difficulty each child's targeting rule ASKED for, before the pool had its say. */
@@ -481,6 +588,15 @@ interface CohortResult {
   exhaustedCount: number;
   poolMax: number;
   shortBlocks: number;
+  /**
+   * Mean proportion correct over the cohort.
+   *
+   * The observable that says whether a targeting rule is still aimed AT the children it is serving.
+   * §4.5 wants the block held near p = 0.5, where the linear climb is least wrong and the items carry
+   * the most information; a rule that drifts far above or below that has stopped measuring, whatever
+   * its null-cohort mean looks like.
+   */
+  meanAccuracy: number;
 }
 
 /**
@@ -508,6 +624,234 @@ const A2_REFERENCE = { mean: 0, sd: 0.15, contaminationFloor: 0 } as const;
  */
 const NARROW_REFERENCE = { mean: 0.06, sd: 0.03, contaminationFloor: 0 } as const;
 
+// --- candidate estimators, all of them measured and all of them rejected --------
+
+/** What the reported climb is fitted with. Enough of `LearningCurveEstimate` to score a cohort. */
+type CandidateFitter = (
+  trials: readonly LearningTrial[],
+  priorTheta0Mean: number,
+  guessing: number,
+  slope: number,
+) => { lambda: number; lambdaSe: number };
+
+const shippedFitter: CandidateFitter = (trials, priorTheta0Mean, guessing, slope) =>
+  estimateLearningCurve(trials, { slope, priorTheta0Mean, guessing });
+
+/** Prior widths the shipped fit uses, restated here because the candidates must match it exactly. */
+const PRIOR_THETA0_SD = 6.0;
+const PRIOR_LAMBDA_SD = 0.15;
+
+/** Per-trial quantities for a logistic with a lower asymptote, plus d(information)/d(eta). */
+function trialTerms(eta: number, c: number, slope: number) {
+  const s = 1 / (1 + Math.exp(-eta));
+  const p = c + (1 - c) * s;
+  const u = s * (1 - s);
+  const info = p > 0 && p < 1 ? (slope * slope * (1 - c) * s * s * (1 - s)) / p : 0;
+  const dInfo =
+    p > 0
+      ? (slope * slope * (1 - c) * u * ((2 * s - 3 * s * s) * p - (s * s - s * s * s) * (1 - c))) /
+        (p * p)
+      : 0;
+  return { p, info, dInfo };
+}
+
+/**
+ * CANDIDATE 1 — a FREE coefficient on served difficulty.
+ *
+ * The shape of this project's own pre-registered Gate B statistic, which conditions on `difficulty`
+ * alongside `trialIndex` rather than pinning difficulty's coefficient to the discrimination. It is
+ * the first hypothesis anyone reaches for, and it is refuted: see `--endogeneity-probe`.
+ *
+ * The reason it cannot work is worth stating, because it generalises. Conditioning on a covariate
+ * removes the bias an OMITTED covariate causes. Served difficulty is not omitted here — it is already
+ * in the fit as a known offset — it is ENDOGENOUS, and freeing its coefficient does not make it
+ * exogenous. Worse, under adaptive targeting the served difficulty is very nearly a linear function
+ * of the trial index, so `beta` and `lambda` are close to collinear and the extra freedom is spent
+ * absorbing the very signal being measured.
+ */
+const freeDifficultyFitter: CandidateFitter = (trials, priorTheta0Mean, c, slope) => {
+  const pT0 = 1 / (PRIOR_THETA0_SD * PRIOR_THETA0_SD);
+  const pL = 1 / (PRIOR_LAMBDA_SD * PRIOR_LAMBDA_SD);
+  // Weak prior on beta, centred on the coefficient the shipped fit pins. Without it the arm would be
+  // measuring non-identification rather than the remedy.
+  const pB = 1;
+  let th = clamp(priorTheta0Mean, SCALE_MIN, SCALE_MAX);
+  let la = 0;
+  let be = slope;
+  let h: number[][] = identityPrior(pT0, pL, pB);
+
+  for (let iter = 0; iter < 80; iter += 1) {
+    const g = [(priorTheta0Mean - th) * pT0, -la * pL, (slope - be) * pB];
+    h = identityPrior(pT0, pL, pB);
+    for (const trial of trials) {
+      const t = trial.trialIndex;
+      const b = clamp(trial.difficulty, SCALE_MIN, SCALE_MAX);
+      const y = Number.isFinite(trial.score) ? clamp(trial.score, 0, 1) : 0;
+      const { p, info } = trialTerms(slope * (th + la * t) - be * b, c, 1);
+      if (p <= 0 || p >= 1) continue;
+      const resid = ((y - p) * (p - c)) / (p * (1 - c));
+      const x = [slope, slope * t, -b];
+      for (let i = 0; i < 3; i += 1) {
+        g[i] = (g[i] ?? 0) + (x[i] ?? 0) * resid;
+        for (let j = 0; j < 3; j += 1) {
+          (h[i] as number[])[j] = ((h[i] as number[])[j] ?? 0) + info * (x[i] ?? 0) * (x[j] ?? 0);
+        }
+      }
+    }
+    const inv = invert3(h);
+    if (inv === null) break;
+    const step = [0, 1, 2].map((i) =>
+      [0, 1, 2].reduce((acc, j) => acc + ((inv[i] as number[])[j] ?? 0) * (g[j] ?? 0), 0),
+    );
+    const damp = Math.min(
+      1,
+      2 /
+        (1 + Math.max(Math.abs(step[0] ?? 0), 10 * Math.abs(step[1] ?? 0), Math.abs(step[2] ?? 0))),
+    );
+    th = clamp(th + damp * (step[0] ?? 0), SCALE_MIN, SCALE_MAX);
+    la = clamp(la + damp * (step[1] ?? 0), -1, 1);
+    be = clamp(be + damp * (step[2] ?? 0), 0.05, 5);
+    if (step.every((s) => Math.abs(damp * s) < 1e-7)) break;
+  }
+  const inv = invert3(h);
+  return {
+    lambda: la,
+    lambdaSe: inv === null ? PRIOR_LAMBDA_SD : Math.sqrt(Math.max(0, (inv[1] as number[])[1] ?? 0)),
+  };
+};
+
+function identityPrior(a: number, b: number, c: number): number[][] {
+  return [
+    [a, 0, 0],
+    [0, b, 0],
+    [0, 0, c],
+  ];
+}
+
+function invert3(m: readonly number[][]): number[][] | null {
+  const g = (i: number, j: number) => (m[i] as number[])[j] ?? 0;
+  const det =
+    g(0, 0) * (g(1, 1) * g(2, 2) - g(1, 2) * g(2, 1)) -
+    g(0, 1) * (g(1, 0) * g(2, 2) - g(1, 2) * g(2, 0)) +
+    g(0, 2) * (g(1, 0) * g(2, 1) - g(1, 1) * g(2, 0));
+  if (!Number.isFinite(det) || Math.abs(det) < 1e-14) return null;
+  const minor = (r: number, c: number) => {
+    const rows = [0, 1, 2].filter((i) => i !== r);
+    const cols = [0, 1, 2].filter((j) => j !== c);
+    return (
+      g(rows[0] as number, cols[0] as number) * g(rows[1] as number, cols[1] as number) -
+      g(rows[0] as number, cols[1] as number) * g(rows[1] as number, cols[0] as number)
+    );
+  };
+  const out: number[][] = [[], [], []];
+  for (let i = 0; i < 3; i += 1) {
+    for (let j = 0; j < 3; j += 1) {
+      (out[i] as number[])[j] = (((i + j) % 2 === 0 ? 1 : -1) * minor(j, i)) / det;
+    }
+  }
+  return out;
+}
+
+/**
+ * CANDIDATE 2 — the Jeffreys/Firth penalty, `+ ½ log det I(theta)`.
+ *
+ * The canonical removal of the leading finite-sample bias of a likelihood estimator, and the
+ * generalisation of Warm's weighted likelihood estimator, which exists precisely because adaptive
+ * testing biases maximum-likelihood ability estimates. Parameter-free, so there is nothing in it to
+ * tune. It was the right thing to try and it is refuted, decisively and in the wrong direction: the
+ * penalty rewards parameter values that carry MORE Fisher information, and on a rising difficulty
+ * path a larger `lambda` is what keeps the response probability off the chance floor, so the penalty
+ * pushes the climb UP. Under the exogenous schedule, where the remaining bias is small, it is
+ * catastrophic (−0.0019 becomes +0.0314 on `FLU-OPCHAIN-01`).
+ */
+const firthFitter: CandidateFitter = (trials, priorTheta0Mean, c, slope) => {
+  const pT0 = 1 / (PRIOR_THETA0_SD * PRIOR_THETA0_SD);
+  const pL = 1 / (PRIOR_LAMBDA_SD * PRIOR_LAMBDA_SD);
+  let th = clamp(priorTheta0Mean, SCALE_MIN, SCALE_MAX);
+  let la = 0;
+  let h00 = pT0;
+  let h01 = 0;
+  let h11 = pL;
+
+  for (let iter = 0; iter < 80; iter += 1) {
+    let g0 = (priorTheta0Mean - th) * pT0;
+    let g1 = -la * pL;
+    h00 = pT0;
+    h01 = 0;
+    h11 = pL;
+    // Likelihood-only information, and its derivative in each parameter, for the penalty term.
+    let i00 = 0;
+    let i01 = 0;
+    let i11 = 0;
+    const d = [
+      [0, 0, 0],
+      [0, 0, 0],
+    ];
+    for (const trial of trials) {
+      const t = trial.trialIndex;
+      const b = clamp(trial.difficulty, SCALE_MIN, SCALE_MAX);
+      const y = Number.isFinite(trial.score) ? clamp(trial.score, 0, 1) : 0;
+      const { p, info, dInfo } = trialTerms(slope * (th + la * t - b), c, slope);
+      if (p <= 0 || p >= 1) continue;
+      const s = (slope * (p - c) * (y - p)) / (p * (1 - c));
+      g0 += s;
+      g1 += t * s;
+      h00 += info;
+      h01 += t * info;
+      h11 += t * t * info;
+      i00 += info;
+      i01 += t * info;
+      i11 += t * t * info;
+      for (const j of [0, 1]) {
+        const w = slope * (j === 0 ? 1 : t) * dInfo;
+        (d[j] as number[])[0] = ((d[j] as number[])[0] ?? 0) + w;
+        (d[j] as number[])[1] = ((d[j] as number[])[1] ?? 0) + w * t;
+        (d[j] as number[])[2] = ((d[j] as number[])[2] ?? 0) + w * t * t;
+      }
+    }
+    const detI = i00 * i11 - i01 * i01;
+    if (detI > 1e-12) {
+      // ½ tr(I⁻¹ ∂I/∂θ_j), with I⁻¹ written out for the 2x2 case.
+      const halfTrace = (row: readonly number[]) =>
+        (0.5 * (i11 * (row[0] ?? 0) - 2 * i01 * (row[1] ?? 0) + i00 * (row[2] ?? 0))) / detI;
+      g0 += halfTrace(d[0] as number[]);
+      g1 += halfTrace(d[1] as number[]);
+    }
+    const det = h00 * h11 - h01 * h01;
+    if (!Number.isFinite(det) || det <= 0) break;
+    const step0 = (h11 * g0 - h01 * g1) / det;
+    const step1 = (h00 * g1 - h01 * g0) / det;
+    const damp = Math.min(1, 2 / (1 + Math.max(Math.abs(step0), 10 * Math.abs(step1))));
+    th = clamp(th + damp * step0, SCALE_MIN, SCALE_MAX);
+    la = clamp(la + damp * step1, -1, 1);
+    if (Math.abs(damp * step0) < 1e-7 && Math.abs(damp * step1) < 1e-7) break;
+  }
+  const det = h00 * h11 - h01 * h01;
+  return { lambda: la, lambdaSe: det > 0 ? Math.sqrt(h00 / det) : PRIOR_LAMBDA_SD };
+};
+
+/**
+ * CANDIDATE 3 — a delete-one-trial jackknife bias correction of the shipped fit.
+ *
+ * The non-parametric counterpart to candidate 2, carried because the two rest on different
+ * assumptions and agreeing is informative. They agree: it also moves the null climb up, which is the
+ * measurement that says the residual is not the ordinary finite-sample bias of a likelihood
+ * estimator. Nothing to tune here either.
+ */
+const jackknifeFitter: CandidateFitter = (trials, priorTheta0Mean, c, slope) => {
+  const full = estimateLearningCurve(trials, { slope, priorTheta0Mean, guessing: c });
+  const n = trials.length;
+  if (n < 6) return full;
+  let total = 0;
+  for (let i = 0; i < n; i += 1) {
+    total += estimateLearningCurve(
+      trials.filter((_, j) => j !== i),
+      { slope, priorTheta0Mean, guessing: c },
+    ).lambda;
+  }
+  return { lambda: n * full.lambda - (n - 1) * (total / n), lambdaSe: full.lambdaSe };
+};
+
 function runCohort(options: CohortOptions): CohortResult {
   const {
     pool,
@@ -520,7 +864,9 @@ function runCohort(options: CohortOptions): CohortResult {
     theta0Sd,
     responder,
     fit: fitSpec,
-    staticTarget = false,
+    targeting = ADAPTIVE,
+    exogenousReplay = false,
+    fitter = shippedFitter,
     barFloor = 0,
     seed,
   } = options;
@@ -530,6 +876,8 @@ function runCohort(options: CohortOptions): CohortResult {
   const fitLambda: number[] = [];
   const fitLambdaSe: number[] = [];
   const lateDifficulty: number[] = [];
+  const earlyDifficulty: number[] = [];
+  const accuracy: number[] = [];
   const peakDifficulty: number[] = [];
   const peakDemand: number[] = [];
   let aboveCount = 0;
@@ -545,22 +893,38 @@ function runCohort(options: CohortOptions): CohortResult {
     const standing = clamp(theta0 + normal(rng, 0, standingNoise), SCALE_MIN, SCALE_MAX);
     const child: ChildSpec = { theta0, lambda, standing, seed: `${seed}|${length}|${c}` };
 
-    const run = runBlock(pool, child, length, responder, fitSpec, staticTarget, seed);
+    const firstPass = runBlock(pool, child, length, responder, fitSpec, targeting, seed);
+    const run = exogenousReplay
+      ? runBlock(
+          pool,
+          child,
+          length,
+          responder,
+          fitSpec,
+          { kind: 'replay', difficulties: firstPass.trials.map((t) => t.difficulty) },
+          seed,
+          'response-independent',
+        )
+      : firstPass;
     if (run.exhausted) exhaustedCount += 1;
     if (run.trials.length < length) shortBlocks += 1;
     if (run.trials.length === 0) continue;
 
-    const fit = estimateLearningCurve(run.trials, {
-      slope: responder.slope,
-      priorTheta0Mean: child.standing,
-      guessing: fitSpec.readout,
-    });
+    const fit = fitter(run.trials, child.standing, fitSpec.readout, responder.slope);
     trueLambda.push(lambda);
     fitLambda.push(fit.lambda);
     fitLambdaSe.push(fit.lambdaSe);
 
+    accuracy.push(mean(run.trials.map((t) => t.score)));
     const cut = Math.floor((2 * run.served.length) / 3);
     lateDifficulty.push(mean(run.served.slice(cut).map((s) => s.difficulty)));
+    earlyDifficulty.push(
+      mean(
+        run.served
+          .slice(0, Math.max(1, Math.floor(run.served.length / 3)))
+          .map((s) => s.difficulty),
+      ),
+    );
     peakDifficulty.push(Math.max(...run.served.map((s) => s.difficulty)));
     peakDemand.push(Math.max(...run.served.map((s) => s.target)));
 
@@ -594,6 +958,7 @@ function runCohort(options: CohortOptions): CohortResult {
     fitLambda,
     fitLambdaSe,
     lateDifficulty,
+    earlyDifficulty,
     peakDifficulty,
     peakDemand,
     aboveRate: fitLambda.length === 0 ? Number.NaN : aboveCount / fitLambda.length,
@@ -605,6 +970,7 @@ function runCohort(options: CohortOptions): CohortResult {
     exhaustedCount,
     poolMax: Math.max(...pool.map((i) => i.difficulty)),
     shortBlocks,
+    meanAccuracy: mean(accuracy),
   };
 }
 
@@ -656,12 +1022,24 @@ interface Settings {
   seed: number;
   bank: string | null;
   mode: Persistence;
+  /** Which targeting rule Gate A administers under. See {@link TargetingMode}. */
+  targeting: 'adaptive' | 'scheduled';
+  /**
+   * Rate `--targeting scheduled` climbs at, in scale points per trial.
+   *
+   * Defaults to the population λ mean the rest of this harness already defaults to, so the schedule
+   * tracks an average learner rather than a value chosen here. E-205's rate sweep is the reason this
+   * is not a tuning knob for A1: every rate from 0 to 0.30 returns the same null-cohort mean within
+   * error, and what the rate moves is recovery, which it moves monotonically and against you.
+   */
+  scheduleRate: number;
   json: boolean;
   calibrate: boolean;
   gateA: boolean;
   noiseSweep: boolean;
   guessingProbe: boolean;
   fixProbe: boolean;
+  endogeneityProbe: boolean;
 }
 
 function parseArgs(argv: readonly string[]): Settings {
@@ -679,6 +1057,10 @@ function parseArgs(argv: readonly string[]): Settings {
   const modeRaw = flag('mode') ?? 'consistent';
   if (modeRaw !== 'consistent' && modeRaw !== 'perTrial') {
     throw new Error(`--mode expects consistent|perTrial, got "${modeRaw}"`);
+  }
+  const targetingRaw = flag('targeting') ?? 'adaptive';
+  if (targetingRaw !== 'adaptive' && targetingRaw !== 'scheduled') {
+    throw new Error(`--targeting expects adaptive|scheduled, got "${targetingRaw}"`);
   }
 
   return {
@@ -698,13 +1080,29 @@ function parseArgs(argv: readonly string[]): Settings {
     seed: num('seed', 20260730),
     bank: flag('bank'),
     mode: modeRaw,
+    targeting: targetingRaw,
+    scheduleRate: num('schedule-rate', num('lambda-mean', 0.06)),
     json: argv.includes('--json'),
     calibrate: argv.includes('--calibrate'),
     gateA: argv.includes('--gate-a'),
     noiseSweep: argv.includes('--noise-sweep'),
     guessingProbe: argv.includes('--guessing-probe'),
     fixProbe: argv.includes('--fix-probe'),
+    endogeneityProbe: argv.includes('--endogeneity-probe'),
   };
+}
+
+/** The targeting mode `--targeting` selects, for every run other than an explicit diagnostic. */
+function targetingFor(settings: Settings): TargetingMode {
+  return settings.targeting === 'scheduled'
+    ? { kind: 'scheduled', rate: settings.scheduleRate }
+    : ADAPTIVE;
+}
+
+function describeTargeting(settings: Settings): string {
+  return settings.targeting === 'scheduled'
+    ? `scheduled (exogenous, rate ${settings.scheduleRate})`
+    : 'adaptive (shipped closed loop)';
 }
 
 function cohortOptionsFor(
@@ -723,6 +1121,7 @@ function cohortOptionsFor(
     theta0Sd: settings.theta0Sd,
     responder: { slope: SLOPE, guessing: settings.guessing },
     fit: { readout: settings.fitGuessing, targeting: settings.targetGuessing },
+    targeting: targetingFor(settings),
     seed: settings.seed,
     ...overrides,
   };
@@ -806,12 +1205,39 @@ interface GateAReport {
   difficultySpan: [number, number];
   distinctRungs: number;
   guessing: number;
+  /**
+   * Which targeting rule the block was administered under.
+   *
+   * On the report rather than only in the settings line because A1's verdict now depends on it, so a
+   * figure quoted without it is unattributable (E-205).
+   */
+  targeting: string;
   checks: GateACheck[];
   /** Fitted-λ SD on this bank, which U1's power script needs instead of the doc's 0.06 estimate. */
   fitLambdaSd: number;
   recovery: ReturnType<typeof recoveryRow>;
   nullMean: number;
   nullSe: number;
+  /**
+   * How often a band could be named at all, which is the question D-200 part 2 turned Gate A into.
+   *
+   * Separability is tested against posterior SE PLUS a declared contamination floor, so a change that
+   * lowers A1's manufactured climb while widening the posterior can leave the block LESS reportable
+   * than it was. A1 and A4 alone cannot see that trade; without this row a remedy could be adopted
+   * for removing a bias it had in fact swapped for imprecision.
+   *
+   * `withDeclaredFloor` is the one D-200 makes binding: the floor declared is this arm's own measured
+   * A1 mean, so the bar is always what the pipeline actually manufactures rather than a figure chosen
+   * to look good.
+   */
+  reportability: {
+    /** Against `A2_REFERENCE` (SD 0.15, floor 0) — the widest reference anyone has proposed. */
+    atWideReference: number;
+    /** Against SD 0.15 WITH this arm's own A1 mean declared as the contamination floor. */
+    withDeclaredFloor: number;
+    /** Against `NARROW_REFERENCE` (SD 0.03), the only reference with a stated provenance. */
+    atNarrowReference: number;
+  };
 }
 
 /**
@@ -869,8 +1295,14 @@ function gateA(settings: Settings, bank: LoadedBank, mode: Persistence): GateARe
   }
   const a3Pass = bankLimited === 0 && fastCohort.exhaustedCount === 0;
 
-  // A4 — recovery on this bank's actual grid, against E-095's 30-trial figures.
-  const recoveryCohort = runCohort(cohortOptionsFor(settings, pool, { length: settings.length }));
+  // A4 — recovery on this bank's actual grid, against E-095's 30-trial figures. The declared floor
+  // is A1's own mean, per D-200 part 2; it feeds only the reportability row, never `r` or the SE.
+  const recoveryCohort = runCohort(
+    cohortOptionsFor(settings, pool, {
+      length: settings.length,
+      barFloor: Math.max(0, nullMean),
+    }),
+  );
   const recovery = recoveryRow(recoveryCohort);
   const published = settings.length === 30 ? E095[30] : null;
   const a4Pass =
@@ -889,10 +1321,16 @@ function gateA(settings: Settings, bank: LoadedBank, mode: Persistence): GateARe
     difficultySpan: [Math.min(...difficulties), Math.max(...difficulties)],
     distinctRungs: rungs.size,
     guessing: settings.guessing,
+    targeting: describeTargeting(settings),
     fitLambdaSd: recovery.fitLambdaSd,
     recovery,
     nullMean,
     nullSe,
+    reportability: {
+      atWideReference: 1 - recoveryCohort.indeterminateRate,
+      withDeclaredFloor: 1 - recoveryCohort.barIndeterminateRate,
+      atNarrowReference: 1 - recoveryCohort.narrowIndeterminateRate,
+    },
     checks: [
       {
         id: 'A1',
@@ -951,7 +1389,7 @@ function printSettings(settings: Settings): void {
       `θ0 ~ N(${settings.theta0Mean}, ${settings.theta0Sd}²), handover noise SD ${settings.standingNoise}, ` +
       `slope ${SLOPE}, target offset +${TARGET_OFFSET}, responder guessing floor ${settings.guessing}, ` +
       `estimator floor ${settings.fitGuessing} (readout) / ${settings.targetGuessing} (targeting), ` +
-      `seed ${settings.seed}.`,
+      `targeting ${describeTargeting(settings)}, seed ${settings.seed}.`,
   );
 }
 
@@ -1004,9 +1442,13 @@ function printCalibration(settings: Settings): CalibrationRow[] {
  * the design document, that lucky early successes "inflate `theta0` and flatten `lambda`". Run
  * against a responder that actually has a five-option floor, the sign comes out the other way, and
  * the reason is the targeting loop the block adds on top of the fit: a fit that reads chance
- * successes as ability raises `theta0`, `nextTargetTheta` then aims higher, the served difficulty
- * climbs across trials, and the fit reads that climb as learning. §4.6 reasoned about the fit
+ * successes as ability raises `theta0`, `nextTargetTheta` then aims higher, and the answers to those
+ * harder items are read back through a fit whose own output chose them. §4.6 reasoned about the fit
  * standing still; inside an adaptive block the loop closes and reverses the sign.
+ *
+ * The "and the fit reads that climb as learning" this used to end on is one step too strong, and
+ * E-205 measures why: the climb alone manufactures nothing, and a steeper exogenous climb manufactures
+ * less. What does it is that the climb is a function of the child's own earlier answers.
  *
  * This probe exists so the finding is a command rather than a paragraph. It is a property of the
  * estimator and the targeting rule, not of any bank, so it runs the ideal grid alongside whatever
@@ -1091,7 +1533,7 @@ function printFixProbe(settings: Settings, bankRefs: readonly string[]): void {
     length: number;
     /** Responder floor, when an arm is probing what a WRONG assumed floor costs. */
     responderGuessing?: number;
-    staticTarget?: boolean;
+    targeting?: TargetingMode;
   }
 
   const arms: Arm[] = [
@@ -1116,13 +1558,13 @@ function printFixProbe(settings: Settings, bankRefs: readonly string[]): void {
       label: 'DIAGNOSTIC frozen target, c = 0',
       fit: { readout: 0, targeting: 0 },
       length: 30,
-      staticTarget: true,
+      targeting: { kind: 'frozen' },
     },
     {
       label: 'DIAGNOSTIC frozen target, c = 0.2',
       fit: { readout: 0.2, targeting: 0.2 },
       length: 30,
-      staticTarget: true,
+      targeting: { kind: 'frozen' },
     },
   ];
 
@@ -1142,7 +1584,7 @@ function printFixProbe(settings: Settings, bankRefs: readonly string[]): void {
     console.log('| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |');
     for (const arm of arms) {
       const responder = { slope: SLOPE, guessing: arm.responderGuessing ?? truth };
-      const staticTarget = arm.staticTarget ?? false;
+      const targeting = arm.targeting ?? ADAPTIVE;
       const nullCohort = runCohort(
         cohortOptionsFor(settings, pool.items, {
           lambdaMean: 0,
@@ -1150,7 +1592,7 @@ function printFixProbe(settings: Settings, bankRefs: readonly string[]): void {
           length: arm.length,
           responder,
           fit: arm.fit,
-          staticTarget,
+          targeting,
         }),
       );
       const recoveryCohort = runCohort(
@@ -1158,7 +1600,7 @@ function printFixProbe(settings: Settings, bankRefs: readonly string[]): void {
           length: arm.length,
           responder,
           fit: arm.fit,
-          staticTarget,
+          targeting,
           barFloor: Math.max(0, mean(nullCohort.fitLambda)),
         }),
       );
@@ -1178,6 +1620,156 @@ function printFixProbe(settings: Settings, bankRefs: readonly string[]): void {
     `\nShipped default is now \`DEFAULT_GUESSING = ${DEFAULT_GUESSING}\`, which is the "fit + targeting" arm:\n` +
       '`nextTargetTheta` forwards its options into the same estimator, so one default corrects both\n' +
       'roles and there is no configuration in which only one of them is corrected.',
+  );
+}
+
+/**
+ * WHY the null climb survives a correctly specified guessing floor (E-205).
+ *
+ * `--fix-probe` sweeps what the estimator assumes about the CHANCE FLOOR and shows a residual
+ * λ̄ ≈ +0.009 that no floor removes. This probe sweeps something else: the DEPENDENCE between the
+ * responses being fitted and the difficulty they were served at. It is organised as three questions,
+ * in the order they have to be asked.
+ *
+ * §1 asks what the cause is, and settles it with one contrast. The `exogenous replay` row runs each
+ * child's own adaptive difficulty path a second time against an independent stream of answers. The
+ * path's shape, the child's ability and the standing handover are identical to the row above it — only
+ * the dependence is cut. If the rising path were the cause, the two rows would agree.
+ *
+ * §2 costs the candidate FITS, which is where anyone would look first and where the answer is not.
+ * All three are refuted, and the two bias corrections are refuted in the wrong direction.
+ *
+ * §3 costs the candidate DESIGNS, and sweeps the schedule's rate over a factor of ten to show that
+ * the rate is not what removes the artifact. That sweep is the reason the schedule is not a knob
+ * tuned until A1 passed: A1's cell is flat in it, and recovery falls monotonically as it rises, so
+ * every rate is a cost and none is a pass.
+ */
+function printEndogeneityProbe(settings: Settings, bankRefs: readonly string[]): void {
+  const truth = settings.guessingExplicit ? settings.guessing : DEFAULT_GUESSING;
+  const fit: FitSpec = { readout: truth, targeting: truth };
+
+  console.log('\n## Why the residual survives a correctly specified floor\n');
+  console.log(
+    `Responder floor ${truth.toFixed(2)} and estimator floor ${truth.toFixed(2)} in BOTH roles for every row below, so the\n` +
+      'floor is correctly specified throughout and nothing here is the E-200 misspecification. `null λ̄`\n' +
+      'is a cohort with λ_true = 0 for every child; `r` and `mean SE` are the same arm on a cohort with\n' +
+      `λ ~ N(${settings.lambdaMean}, ${settings.lambdaSd}²). \`late−early b\` is the mean served difficulty over the last third\n` +
+      'minus the first third: it is in the table so the reader can see when a row holds the difficulty\n' +
+      'CLIMB fixed and changes only who chose it.\n',
+  );
+
+  const pools: { label: string; items: BankItem[] }[] = [
+    { label: 'ideal 0.5-point grid (no bank)', items: gridPool(0.5, 12) },
+    ...bankRefs.map((ref) => {
+      const bank = loadBank(ref);
+      return { label: bank.label, items: bank.items };
+    }),
+  ];
+
+  interface ProbeArm {
+    label: string;
+    targeting: TargetingMode;
+    exogenousReplay: boolean;
+    fitter: CandidateFitter;
+  }
+  const arm = (label: string, over: Partial<ProbeArm> = {}): ProbeArm => ({
+    label,
+    targeting: ADAPTIVE,
+    exogenousReplay: false,
+    fitter: shippedFitter,
+    ...over,
+  });
+
+  const causeArms: ProbeArm[] = [
+    arm('shipped adaptive loop'),
+    arm('same paths, EXOGENOUS REPLAY', { exogenousReplay: true }),
+  ];
+  const fitArms: ProbeArm[] = [
+    arm('free coefficient on difficulty (Gate B shape)', { fitter: freeDifficultyFitter }),
+    arm('Jeffreys/Firth penalty', { fitter: firthFitter }),
+    arm('delete-one jackknife', { fitter: jackknifeFitter }),
+  ];
+  const designArms: ProbeArm[] = [
+    arm('frozen difficulty (= schedule at rate 0)', { targeting: { kind: 'frozen' } }),
+    ...[0, 0.03, settings.scheduleRate, 0.09, 0.15, 0.3]
+      .filter((rate, i, all) => all.indexOf(rate) === i)
+      .map((rate) =>
+        arm(
+          `exogenous schedule, rate ${rate.toFixed(2)}` +
+            `${rate === settings.scheduleRate ? ' (--targeting scheduled default)' : ''}`,
+          { targeting: { kind: 'scheduled', rate } },
+        ),
+      ),
+  ];
+
+  const row = (pool: readonly BankItem[], probeArm: ProbeArm): string => {
+    const common = {
+      responder: { slope: SLOPE, guessing: truth },
+      fit,
+      targeting: probeArm.targeting,
+      exogenousReplay: probeArm.exogenousReplay,
+      fitter: probeArm.fitter,
+      length: 30,
+    };
+    const nullCohort = runCohort(
+      cohortOptionsFor(settings, pool, { ...common, lambdaMean: 0, lambdaSd: 0 }),
+    );
+    const recoveryCohort = runCohort(cohortOptionsFor(settings, pool, common));
+    // The λ = 0.15 cohort A3 uses. Its mean accuracy is the ceiling cost: an arm that serves a fast
+    // learner items well below them keeps them near 1.0 and stops measuring anything about them.
+    const fastCohort = runCohort(
+      cohortOptionsFor(settings, pool, { ...common, lambdaMean: 0.15, lambdaSd: 0 }),
+    );
+    const nullMean = mean(nullCohort.fitLambda);
+    const nullSe = seOfMean(nullCohort.fitLambda);
+    const recovery = recoveryRow(recoveryCohort);
+    const climb = mean(nullCohort.lateDifficulty) - mean(nullCohort.earlyDifficulty);
+    return (
+      `| ${probeArm.label} | ${f(nullMean, 4)} | ${f(nullSe, 4)} | ` +
+      `${f(Math.abs(nullMean / nullSe), 1)} | ${Math.abs(nullMean) <= 2 * nullSe ? 'PASS' : 'FAIL'} | ` +
+      `${f(recovery.r)} | ${f(recovery.meanSe)} | ${f(climb, 2)} | ${f(fastCohort.meanAccuracy)} |`
+    );
+  };
+
+  for (const pool of pools) {
+    console.log(`\n### ${pool.label}\n`);
+    console.log(
+      '| arm | null λ̄ | ±MC SE | SEs from 0 | A1 | r | mean SE | late−early b | fast p̂ |',
+    );
+    console.log('| --- | --- | --- | --- | --- | --- | --- | --- | --- |');
+    console.log('| **§1 what the cause is** | | | | | | | | |');
+    for (const probeArm of causeArms) console.log(row(pool.items, probeArm));
+    console.log('| **§2 candidate fits, on the shipped loop** | | | | | | | | |');
+    for (const probeArm of fitArms) console.log(row(pool.items, probeArm));
+    console.log('| **§3 candidate designs, with the shipped fit** | | | | | | | | |');
+    for (const probeArm of designArms) console.log(row(pool.items, probeArm));
+  }
+
+  console.log(
+    '\nTHE READING. §1 holds the difficulty climb fixed and cuts only the dependence between the\n' +
+      'answers and the path, and the manufactured climb goes with it — so the cause is that the served\n' +
+      'difficulty is a function of the child\u2019s own earlier answers (endogeneity), not that the path\n' +
+      'rises. §2 is why that matters: conditioning on served difficulty with a free coefficient makes it\n' +
+      'WORSE, because difficulty was never omitted from the fit, and both standard finite-sample bias\n' +
+      'corrections also move it up, because the residual is not that kind of bias. The likelihood itself\n' +
+      'needs no repair — a selection rule that depends only on the observed past is ignorable, so there\n' +
+      'is no term missing from it for a conditional likelihood to restore. §3 is the only family that\n' +
+      'works, and it works by giving something up: adaptivity, or a third of the posterior precision, or\n' +
+      'both. D-206 records the trade; this table is not a recommendation.',
+  );
+  console.log(
+    '\nTHE LAST COLUMN IS THE COST THAT MATTERS. `fast p̂` is the mean accuracy of the λ = 0.15 cohort A3\n' +
+      'uses. §4.5 wants a block held near p = 0.5, where the items carry the most information and the\n' +
+      'linear climb is least wrong. The shipped loop keeps a fast learner there because it follows them;\n' +
+      'a schedule aims at a RATE rather than at a child, so it leaves the fastest learners working items\n' +
+      'below their level — a ceiling for exactly the children R5 and R6 exist to measure. The rate trades\n' +
+      'that ceiling against recovery for everybody else, and no value settles both.',
+  );
+  console.log(
+    '\nWHAT IS DELIBERATELY NOT IN THIS TABLE: any readout column. `learningRateReadout` fits internally,\n' +
+      'so it cannot be pointed at a candidate fit, and printing a §2 arm\u2019s band rate from the SHIPPED fit\n' +
+      'beside a λ̄ from the candidate one would silently mix the two. `--gate-a` reports reportability\n' +
+      'per bank, which is where that cost belongs.',
   );
 }
 
@@ -1202,7 +1794,8 @@ function printNoiseSweep(settings: Settings): void {
 
 function printGateA(report: GateAReport): boolean {
   console.log(
-    `\n## Gate A — ${report.bank} (mode ${report.mode}, guessing floor ${report.guessing})\n`,
+    `\n## Gate A — ${report.bank} (mode ${report.mode}, guessing floor ${report.guessing}, ` +
+      `targeting ${report.targeting})\n`,
   );
   console.log(
     `  ${report.items} items, difficulty ${f(report.difficultySpan[0], 2)}..${f(report.difficultySpan[1], 2)}, ` +
@@ -1226,6 +1819,15 @@ function printGateA(report: GateAReport): boolean {
       "    must use in place of the design document's 0.06 estimate (§4.1.3).",
   );
   console.log(
+    `  Reportable at all (a band is named rather than \`indeterminate\`): ` +
+      `${f(100 * report.reportability.atWideReference, 1)}% against the SD-0.15 reference, ` +
+      `${f(100 * report.reportability.withDeclaredFloor, 1)}% once this arm's own\n` +
+      `    A1 mean is declared as the contamination floor D-200 requires, and ` +
+      `${f(100 * report.reportability.atNarrowReference, 1)}% against the SD-0.03\n` +
+      `    reference the project's synthetic work used. A1 and A4 do not see this: a remedy can lower\n` +
+      `    the manufactured climb and still leave the block less reportable by widening the posterior.`,
+  );
+  console.log(
     `  Headroom boundary: §1.1(c) asks for ≥6 scale points above \`standing + 1\`. On a bounded\n` +
       `    [${SCALE_MIN}, ${SCALE_MAX}] scale that is only geometrically available for standing ≤ ` +
       `${SCALE_MAX - 1 - 6}, so it cannot\n` +
@@ -1245,7 +1847,11 @@ function printGateA(report: GateAReport): boolean {
 function main(): void {
   const settings = parseArgs(process.argv.slice(2));
   const explicit =
-    settings.gateA || settings.noiseSweep || settings.guessingProbe || settings.fixProbe;
+    settings.gateA ||
+    settings.noiseSweep ||
+    settings.guessingProbe ||
+    settings.fixProbe ||
+    settings.endogeneityProbe;
   const runCalibration = settings.calibrate || !explicit;
   const output: Record<string, unknown> = {};
 
@@ -1263,9 +1869,18 @@ function main(): void {
   if (settings.fixProbe) {
     printFixProbe(settings, settings.bank === null ? [REFERENCE_BANK] : [settings.bank]);
   }
+  if (settings.endogeneityProbe) {
+    printEndogeneityProbe(settings, settings.bank === null ? [REFERENCE_BANK] : [settings.bank]);
+  }
 
   let allPass = true;
-  if (settings.gateA || (settings.bank !== null && !settings.guessingProbe && !settings.fixProbe)) {
+  if (
+    settings.gateA ||
+    (settings.bank !== null &&
+      !settings.guessingProbe &&
+      !settings.fixProbe &&
+      !settings.endogeneityProbe)
+  ) {
     const ref = settings.bank ?? REFERENCE_BANK;
     const modes: Persistence[] =
       settings.bank === null ? [settings.mode] : ['consistent', 'perTrial'];

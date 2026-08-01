@@ -5,6 +5,7 @@ import {
   MIN_TRIALS_FOR_PROJECTION,
   estimateLearningCurve,
   nextTargetTheta,
+  scheduledTargetTheta,
   type LearningTrial,
 } from './learning-curve';
 import { SCALE_MAX, SCALE_MIN } from './types';
@@ -180,6 +181,107 @@ describe('estimateLearningCurve', () => {
   });
 });
 
+const FIVE_OPTION_FLOOR = 1 / 5;
+
+/**
+ * One cohort of children who learn NOTHING (λ_true = 0), administered end to end.
+ *
+ * Returns the fitted mean, the difficulty path each child was served, and how far that path climbed
+ * across the block. The paths come back because the two questions this file has to answer need the
+ * same paths run twice: whether a manufactured climb appears at all (E-200's floor guard below), and
+ * whether it appears because the path ROSE or because the child's own answers CHOSE it (E-205's loop
+ * guard further down). Replaying a path with a different answer stream is the only way to separate
+ * those, and it needs the paths.
+ *
+ * Shared at module scope rather than duplicated per block, so the two guards cannot drift apart on
+ * cohort size, spread, or handover noise and start measuring different things.
+ */
+function nullCohort(
+  fitGuessing: number,
+  targeting: 'adaptive' | { scheduleRate: number } = 'adaptive',
+  replayPaths?: readonly number[][],
+  answerSalt = 0,
+): { lambdaMean: number; lambdaSeMean: number; paths: number[][]; difficultyClimb: number } {
+  const CHILDREN = 120;
+  const LENGTH = 30;
+  let total = 0;
+  let totalSe = 0;
+  let climb = 0;
+  const paths: number[][] = [];
+
+  for (let c = 0; c < CHILDREN; c += 1) {
+    const rand = mulberry32(9000 + c + answerSalt);
+    // Spread the cohort over the scale so the result is not a property of one starting point,
+    // and hand over a standing estimate that is close but not exact, as Phase 1 does.
+    const theta0 = 7 + 7 * rand();
+    const standing = theta0 + 1.5 * (rand() - 0.5) * 2;
+    const trials: LearningTrial[] = [];
+    const path: number[] = [];
+
+    for (let t = 0; t < LENGTH; t += 1) {
+      let difficulty: number;
+      if (replayPaths !== undefined) {
+        difficulty = replayPaths[c]?.[t] ?? standing + 1;
+      } else if (targeting === 'adaptive') {
+        difficulty =
+          Math.round(
+            nextTargetTheta(trials, {
+              standingEstimate: standing,
+              targetOffset: 1,
+              slope: SLOPE,
+              guessing: fitGuessing,
+            }) * 2,
+          ) / 2;
+      } else {
+        difficulty =
+          Math.round(
+            scheduledTargetTheta(t, {
+              standingEstimate: standing,
+              targetOffset: 1,
+              rate: targeting.scheduleRate,
+            }) * 2,
+          ) / 2;
+      }
+      // λ_true = 0: ability never moves. The five-option floor is the child's, not the fit's.
+      const star = 1 / (1 + Math.exp(-SLOPE * (theta0 - difficulty)));
+      const p = FIVE_OPTION_FLOOR + (1 - FIVE_OPTION_FLOOR) * star;
+      trials.push({ difficulty, score: rand() < p ? 1 : 0, trialIndex: t });
+      path.push(difficulty);
+    }
+
+    const fit = estimateLearningCurve(trials, {
+      slope: SLOPE,
+      priorTheta0Mean: standing,
+      guessing: fitGuessing,
+    });
+    total += fit.lambda;
+    totalSe += fit.lambdaSe;
+    const third = Math.floor(LENGTH / 3);
+    const meanOf = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+    climb += meanOf(path.slice(-third)) - meanOf(path.slice(0, third));
+    paths.push(path);
+  }
+
+  return {
+    lambdaMean: total / CHILDREN,
+    lambdaSeMean: totalSe / CHILDREN,
+    paths,
+    difficultyClimb: climb / CHILDREN,
+  };
+}
+
+/**
+ * Mean fitted λ over a cohort that learned nothing, run through the real closed loop.
+ *
+ * The loop is the point: `nextTargetTheta` chooses each difficulty from the fit so far, so the
+ * answers being fitted are the answers that chose what they were fitted against. Walking a preset
+ * ladder instead makes this metric ~0 whatever the floor, which is why the simulation has to
+ * re-target rather than walk one.
+ */
+function nullCohortLambdaMean(fitGuessing: number): number {
+  return nullCohort(fitGuessing).lambdaMean;
+}
+
 /**
  * The guard on the floor itself (E-200).
  *
@@ -195,53 +297,6 @@ describe('estimateLearningCurve', () => {
  * quietly stop guarding anything at all.
  */
 describe('the guessing floor is not misspecified', () => {
-  const FIVE_OPTION_FLOOR = 1 / 5;
-
-  /**
-   * Mean fitted λ over a cohort of children who learn NOTHING, run through the real closed loop.
-   *
-   * The loop is the point: `nextTargetTheta` chooses each difficulty from the fit so far, so an
-   * inflated fit is served harder items and then reads its own difficulty walk back as a climb.
-   * Serving a fixed difficulty instead makes this metric ~0 whatever the floor, which is why the
-   * simulation has to re-target rather than walk a preset ladder.
-   */
-  function nullCohortLambdaMean(fitGuessing: number): number {
-    const CHILDREN = 120;
-    const LENGTH = 30;
-    let total = 0;
-
-    for (let c = 0; c < CHILDREN; c += 1) {
-      const rand = mulberry32(9000 + c);
-      // Spread the cohort over the scale so the result is not a property of one starting point,
-      // and hand over a standing estimate that is close but not exact, as Phase 1 does.
-      const theta0 = 7 + 7 * rand();
-      const standing = theta0 + 1.5 * (rand() - 0.5) * 2;
-      const trials: LearningTrial[] = [];
-
-      for (let t = 0; t < LENGTH; t += 1) {
-        const target = nextTargetTheta(trials, {
-          standingEstimate: standing,
-          targetOffset: 1,
-          slope: SLOPE,
-          guessing: fitGuessing,
-        });
-        const difficulty = Math.round(target * 2) / 2;
-        // λ_true = 0: ability never moves. The five-option floor is the child's, not the fit's.
-        const star = 1 / (1 + Math.exp(-SLOPE * (theta0 - difficulty)));
-        const p = FIVE_OPTION_FLOOR + (1 - FIVE_OPTION_FLOOR) * star;
-        trials.push({ difficulty, score: rand() < p ? 1 : 0, trialIndex: t });
-      }
-
-      total += estimateLearningCurve(trials, {
-        slope: SLOPE,
-        priorTheta0Mean: standing,
-        guessing: fitGuessing,
-      }).lambda;
-    }
-
-    return total / CHILDREN;
-  }
-
   /**
    * Widest manufactured climb the shipped default may produce for a cohort that learned nothing.
    *
@@ -267,6 +322,90 @@ describe('the guessing floor is not misspecified', () => {
     // The proof that the assertion above is load-bearing. If this ever stops failing the bound,
     // the simulation has lost its teeth and the test above is no longer a guard.
     expect(nullCohortLambdaMean(0)).toBeGreaterThan(MANUFACTURED_LAMBDA_BOUND);
+  });
+});
+
+/**
+ * The guard on WHY the residual survives a correct floor (E-205).
+ *
+ * The block above bounds the residual at 0.02 and says nothing about where it comes from. Its own
+ * comment used to say the fit "reads its own rising difficulty walk as a genuine climb", and that is
+ * measurably not the mechanism: the rising walk is innocent. What produces the climb is that the walk
+ * is a function of the child's own earlier answers. These assertions are the difference between those
+ * two statements, and they exist so the corrected explanation cannot drift back.
+ *
+ * Every assertion below compares two cohorts rather than testing one against a number. That is
+ * deliberate: absolute bounds on a Monte-Carlo mean either have to be loose enough to be vacuous or
+ * tight enough to be a tuned threshold, and a paired contrast is neither.
+ */
+describe('the manufactured climb is the loop, not the ladder', () => {
+  const FIT_FLOOR = DEFAULT_GUESSING;
+
+  it('is removed by replaying the SAME difficulty paths against independent answers', () => {
+    const closedLoop = nullCohort(FIT_FLOOR);
+    // Identical paths, identical children, different answers. Only the dependence is cut.
+    const replayed = nullCohort(FIT_FLOOR, 'adaptive', closedLoop.paths, 777);
+
+    expect(closedLoop.lambdaMean).toBeGreaterThan(0);
+    expect(replayed.lambdaMean).toBeLessThan(closedLoop.lambdaMean);
+    // Not merely smaller: the sign goes away, which no rescaling of a path effect would do.
+    expect(replayed.lambdaMean).toBeLessThanOrEqual(0);
+  });
+
+  it('does not come back when the ladder rises FASTER, so long as it rises exogenously', () => {
+    const closedLoop = nullCohort(FIT_FLOOR);
+    // A schedule at 0.10 per trial climbs several times as far across the block as the adaptive rule
+    // does, and it is fixed before the block starts. If a rising ladder were the cause, this is the
+    // cohort that would manufacture the most.
+    const steepButExogenous = nullCohort(FIT_FLOOR, { scheduleRate: 0.1 });
+
+    expect(steepButExogenous.difficultyClimb).toBeGreaterThan(closedLoop.difficultyClimb);
+    expect(Math.abs(steepButExogenous.lambdaMean)).toBeLessThan(Math.abs(closedLoop.lambdaMean));
+  });
+
+  it('costs posterior precision to remove, which is the trade and not a footnote', () => {
+    // The same cohort of children, the same fit, the same 30 trials — only the administration
+    // differs. A remedy that removed the bias for free would show no difference here, and that
+    // would be the surprising result rather than the expected one.
+    const underLoop = nullCohort(FIT_FLOOR);
+    const underSchedule = nullCohort(FIT_FLOOR, { scheduleRate: 0.06 });
+
+    // A schedule aims at a rate rather than at the child, so it spends part of the block away from
+    // where the items carry the most information and the posterior on the climb is wider. Gate A's
+    // A4 and its reportability row price this; without this assertion the remedy would look free.
+    expect(underSchedule.lambdaSeMean).toBeGreaterThan(underLoop.lambdaSeMean);
+  });
+});
+
+describe('scheduledTargetTheta', () => {
+  it('cannot depend on the responses, because it is never given any', () => {
+    // Not a behavioural assertion so much as a restatement of the signature, which is the property
+    // the remedy rests on: two children with the same standing estimate are served the same path
+    // whatever they answer.
+    const a = scheduledTargetTheta(7, { standingEstimate: 11, targetOffset: 1, rate: 0.06 });
+    const b = scheduledTargetTheta(7, { standingEstimate: 11, targetOffset: 1, rate: 0.06 });
+    expect(a).toBe(b);
+    expect(a).toBeCloseTo(11 + 1 + 0.06 * 7, 10);
+  });
+
+  it('climbs monotonically and stays on the reportable scale at both ends', () => {
+    const rising = Array.from({ length: 40 }, (_, t) =>
+      scheduledTargetTheta(t, { standingEstimate: 18, targetOffset: 1, rate: 0.5 }),
+    );
+    for (let i = 1; i < rising.length; i += 1) {
+      expect(rising[i]!).toBeGreaterThanOrEqual(rising[i - 1]!);
+      expect(rising[i]!).toBeLessThanOrEqual(SCALE_MAX);
+    }
+    expect(
+      scheduledTargetTheta(10, { standingEstimate: 2, targetOffset: 0, rate: -1 }),
+    ).toBeGreaterThanOrEqual(SCALE_MIN);
+  });
+
+  it('reduces to the standing handover at the first trial and at rate zero', () => {
+    expect(scheduledTargetTheta(0, { standingEstimate: 12, targetOffset: 1, rate: 0.06 })).toBe(13);
+    for (const t of [0, 5, 29]) {
+      expect(scheduledTargetTheta(t, { standingEstimate: 12, targetOffset: 1, rate: 0 })).toBe(13);
+    }
   });
 });
 
