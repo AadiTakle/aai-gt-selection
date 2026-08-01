@@ -307,6 +307,32 @@ Identical in both arms.
   word is the same length and made of distinct forms, so each is the image of exactly the same
   number of mappings and all four vote counts are equal by construction. All 25.0% cells above come
   from that half of the bank.
+- **The direction lock, which none of the above measured, and which was the worst leak this bank
+  had.** Every figure in this section brute-forces the mappings, and the strongest attack on this
+  bank needed no brute force at all. `buildBank` advanced the key-slot cursor and the direction
+  cursor once per item each, so `keyPosition = n mod 4` and `direction = n mod 2` — and `n mod 4`
+  determines `n mod 2`. In the shipped bank the answer was therefore **never in B or D on a
+  word→picture item and never in A or C on a picture→word one**, and `content.direction` is served.
+  Reading one field and always tapping the same one of the two live slots scored exactly **50.0%**
+  on all 468 items against the 25.0% floor. `STAGE2_ANTILEAK_COMPARISON` §7.3 found it; the same
+  cursor also made the slot recoverable from the item's rank in the bank's difficulty order, at
+  59.0% directly and 84.0% cross-validated once the served covariates were added (§7.2).
+
+  Both are the one cursor, so both went with it. The key's slot is now allocated over the finished
+  lever plan as a balanced multiset inside each (direction, depth) cell and permuted there from the
+  seeded stream, with the remainder carried per direction. The bank in this report is the rebuilt
+  one. Every cell now sits within one item of exact balance —
+
+  | direction | A | B | C | D |
+  | --- | --- | --- | --- | --- |
+  | `wordToPicture` (234 items) | 58 | 59 | 59 | 58 |
+  | `pictureToWord` (234 items) | 59 | 58 | 58 | 59 |
+
+  — so the lock is unrepresentable rather than merely absent from this draw. Re-measured with the
+  same probe, the covariate attack falls from **52.6% to 25.6%** and the difficulty-ordinal attack
+  from **84.0% to 16.0%**, both against the 25.0% floor. Nothing above this bullet moved: the fix
+  permutes which slot holds the key and changes no picture, no word, no difficulty and no slate,
+  and Gate A reproduces digit for digit.
 - Two further content-computable shortcuts are closed and asserted: the key is never the unique
   option that moved furthest from the reference picture, and in the picture-to-word direction all
   four candidate words carry the same morpheme count and the same character count, so counting
