@@ -90,14 +90,21 @@ bank's top item (19.98) and the scale ceiling (20.00), and that the remedy is kn
 twelve items per 0.5-point rung rather than six, which is what `VER-MORPHO-01` carries and why it
 recorded zero.
 
-**What U4 found that the U3 self-check does not test.** The independent validator confirms the
-declared anti-leak invariants exactly — the key is fully determined by `content` on **0 of 234**
-items, and at least four of five options survive relabelling on every item. It also measures a
-residue nothing in the design bounds: an attacker who *weights* options by how many badge
-relabellings point at each, rather than merely eliminating, scores **24.9%** across the bank against
-a 20.0% chance floor, **37.8% in the easiest quarter**, and wins outright on the **26 of 234** items
-where the key is the unique modal option. §9 reports it in full. The sibling type asserts an
-invariant against exactly this and this one does not.
+**What U4 found that the U3 self-check does not test, and what was done about it.** The independent
+validator confirms the declared anti-leak invariants exactly — the key is fully determined by
+`content` on **0 of 234** items, and at least four of five options survive relabelling on every
+item. It also measured a residue nothing in the design bounded: an attacker who *weights* options
+by how many badge relabellings point at each, rather than merely eliminating, scored **24.9%**
+across the bank against a 20.0% chance floor, **37.8% in the easiest quarter**, **47.7% in the
+hardest quarter on the anti-modal tail**, and won outright on **26 of 234** items where the key was
+the unique modal option.
+
+**That residue is now closed, and the bank in this report is the rebuilt one.** `chooseDistractors`
+chooses the slate by the size of the key's vote TIER instead of filling it greedily on reachability
+alone, and the figure is redrawn against that objective. The weighted attack now scores **20.6%**
+across the bank against the 20.0% floor, **21.4%** in the easiest quarter and **19.9%** in the
+hardest, and the key is the unique modal option on **0 of 234** items — the property `VER-MORPHO-01`
+asserts and this type had not. §9 reports it in full and §9.2 records what it cost.
 
 ---
 
@@ -384,48 +391,74 @@ item**. On 100% of both banks, with no sampling:
 - Difficulty, the band ladder, the lever/figure agreement, key-position balance, arm equating and
   the ink invariant are all re-derived from independently typed formulae.
 
-### 9.1 The declared invariants hold, and a third attack nobody bounded does not
+### 9.1 The declared invariants hold, and the attack nobody bounded is now bounded too
 
 | difficulty slice | items | key fully determined | mean viable options | elimination attack | modal attack | key uniquely modal |
 | --- | --- | --- | --- | --- | --- | --- |
-| Q1 (1.02–5.50) | 59 | **0** | 4.10 / 5 | 24.5% | **37.8%** | 14 |
-| Q2 (5.50–10.50) | 59 | **0** | 4.15 / 5 | 24.2% | 37.0% | 9 |
-| Q3 (10.50–15.50) | 59 | **0** | 4.03 / 5 | 24.8% | 19.1% | 2 |
-| Q4 (15.50–19.98) | 57 | **0** | 4.05 / 5 | 24.7% | 5.0% | 1 |
-| **whole bank** | 234 | **0** | 4.09 / 5 | 24.6% | **24.9%** | **26** |
+| Q1 (1.02–5.50) | 59 | **0** | 4.73 / 5 | 21.4% | 21.4% | **0** |
+| Q2 (5.50–10.50) | 59 | **0** | 4.88 / 5 | 20.6% | 20.6% | **0** |
+| Q3 (10.50–15.50) | 59 | **0** | 4.92 / 5 | 20.4% | 20.6% | **0** |
+| Q4 (15.50–19.98) | 57 | **0** | 4.96 / 5 | 20.2% | 19.9% | **0** |
+| **whole bank** | 234 | **0** | 4.87 / 5 | 20.6% | **20.6%** | **0** |
 
 Identical in both arms. By composition depth, which is where the structure actually lives:
 
 | depth | items | elimination attack | modal attack | key uniquely modal |
 | --- | --- | --- | --- | --- |
-| 1 | 78 | 24.5% | 33.9% | 14 |
-| 2 | 84 | 24.6% | 29.2% | 10 |
-| 3 | 72 | 24.7% | **10.1%** | 2 |
+| 1 | 78 | 21.5% | 21.5% | **0** |
+| 2 | 84 | 20.4% | 20.5% | **0** |
+| 3 | 72 | 20.1% | 19.8% | **0** |
 
 - **The two declared invariants hold exactly.** The key is fully determined by `content` on **0 of
   234** items, against the 11 of 234 `FLU-OPCHAIN-01` shipped with; and at least four of five
-  options survive relabelling on **every** item, so the elimination attack scores 24.6% against a
-  25% design bound. The independently computed 24.6% matches the generator's own reported 0.246.
-- **The undeclared residue.** An attacker who weights options by how many of the ≤120 relabellings
-  point at each, and takes the argmax, does better than eliminating: **24.9%** across the bank and
-  **37.8% in the easiest quarter**, with the key the *unique* modal option — attack succeeds
-  outright — on **26 of 234 items**. This is not a contract violation: this generator never claimed
-  the invariant, and the validator does not fail the bank for it, because charging an invariant a
-  design never declared would be the validator inventing a contract. But `VER-MORPHO-01` *does*
-  assert it and measured 0 of 468, so the two sibling types differ on a property one of them
-  bounded and the other did not, and that is worth the owner knowing.
-- **The mechanism is collision at low depth, and it is fixable.** At depth 1 the attack scores
-  33.9% because two distinct operators sometimes land the same small figure in the same place, and
-  the doubled count makes the key modal; at depth 3 the attack scores **10.1%, well below the 20%
-  chance floor**, because the argmax is then almost always a distractor. The remedy is the one the
-  generator already uses for its other invariants — reject a drawn figure whose key is uniquely
-  modal and redraw — and it would cost nothing at depth 3. It is **not applied here**, for the same
-  ordering reason as A3: this is a U3 change to a track that §9.4 has stopped.
+  options survive relabelling on **every** item. The declared bound was 1-in-4; the bank now sits at
+  1-in-4.87, because a slate chosen for an equal-vote tier reaches five reachable options on 204 of
+  234 items rather than the four the invariant asks for.
+- **The residue the first build left, and where it went.** The build this report first covered was
+  measured by the validator at **24.9%** bank-wide and **37.8%** in the easiest quarter on the
+  weighted attack, with the key the unique modal option on **26 of 234** items; and
+  `STAGE2_ANTILEAK_COMPARISON` §5.1 found the other tail worse still, **47.7% anti-modal in Q4**,
+  which is the signature of a generator pushing the key away from modal at depth. Bounding one tail
+  hands the other the certainty it lost, so neither is bounded directly: the slate is now chosen to
+  maximise the number of options carrying the SAME vote count as the key. A tier is
+  indistinguishable from inside, so every rank policy — modal, anti-modal and the three between —
+  collapses to 1/|tier| at once. Both tails now sit on the floor and the outright wins are gone.
+- **The depth trend is gone with it.** The first build scored 33.9% at depth 1 and 10.1% at depth 3
+  — both away from the floor, in opposite directions, which is what made the two tails trade places
+  across the difficulty range. The rebuilt bank reads 21.5% / 20.5% / 19.8% across the three
+  depths, so the attack no longer carries information about where in the ladder an item sits.
+- **The key slot no longer follows the difficulty order either.** `keyPosition = n % 5` walked with
+  the emission index, and items are emitted rung by rung in increasing difficulty with `difficulty`
+  served: `STAGE2_ANTILEAK_COMPARISON` §7.2 read the answer slot straight off the difficulty rank at
+  **38.5%** against the 20.0% floor, and **62.2%** cross-validated in the hardest slice. The slot is
+  now a balanced multiset inside each chain depth, permuted there from the seeded stream, so the
+  same probe reads **23.9%**. Key positions remain 47/47/47/46/47.
 - **Neither attack is available to a child.** Both require brute-forcing up to 120 relabellings.
   They are E-075/E-076 properties of what a *client holding `content`* can compute, which is why
   they do not enter the responder model in §2.
 
-### 9.2 Proving the validator has teeth
+### 9.2 What the rebuild cost
+
+Two things, and neither is free.
+
+- **The `identity_copy` failure class is gone from the slate.** It appeared on 12 of 234 slates in
+  the first build. An option no relabelling reaches carries zero votes and can never join the key's
+  tier, so an equal-vote slate evicts the unreachable classes first, and `identity_copy` — the
+  figure the machine was never applied to — is the one that is never reachable. A tie-break placed
+  strictly after the objective keeps the rest of that family wherever it is free, and
+  `over_application` in fact rose from 210 slates to 91 items' worth of them; but the "did not
+  engage" extreme of the nearness axis is no longer represented. §4.6's error-migration test and the
+  §4.1.4 Verdict-2 fallback read that register, so this is a construct decision for the owner rather
+  than something the anti-leak change should settle. Recovering it means accepting a 1-in-4 tier on
+  those items instead of 1-in-5.
+- **Realised nearness error rose from 0.205 to 0.244** on `|realised − declared|` over the four
+  distractors. The anti-leak objective may move a slate by at most 0.1 per distractor, which is the
+  smallest gap between two adjacent classes on the nearness axis, so no distractor moves more than
+  one step. The quantity that matters for §1.1(d) is not the level but the TREND, because random
+  labelling error attenuates lambda while error correlated with difficulty biases it — and the
+  trend is flatter than before: 0.311 → 0.220 across the four slices, against 0.294 → 0.169.
+
+### 9.3 Proving the validator has teeth
 
 A validator nobody has seen fail is a validator nobody has tested. `--prove-teeth` injects nine
 defects into in-memory copies of the banks — one per independent check, nothing written to disk —
