@@ -835,11 +835,22 @@ export function genItem({
   // Everything below is drawn from the levers and the seed, never from the mode. That is what
   // equates the two banks: both arms serve the same values, the same key, the same key rank and the
   // same difficulty, and differ only in which glyph symbols spell them.
+  // The EXPRESSION is redrawn against the anti-leak objective, not merely until one lays out.
+  //
+  // Taking the first expression that admitted any layout left the item at the mercy of that one
+  // draw: whether five ticks with equal relabelling support exist at all depends on the role
+  // sequence, and most sequences do not admit them. So this keeps drawing and keeps the BEST
+  // layout, stopping as soon as one reaches the chance floor. The draws come off the same seeded
+  // stream in the same order, so the item stays byte-reproducible from `levers` + `seed` and the
+  // checker still regenerates it without knowing how many draws it took.
   let built = null;
-  for (let attempt = 0; attempt < 60 && built === null; attempt++) {
+  for (let attempt = 0; attempt < 60; attempt++) {
     const roles = buildExpression({ length, binds, distinct }, rng);
     if (roles === null) continue;
-    built = layOutItem(roles, { distractorNearness, keyRank });
+    const candidate = layOutItem(roles, { distractorNearness, keyRank, jitter: () => 1e-6 * rng() });
+    if (candidate === null) continue;
+    if (built === null || candidate.score > built.score) built = candidate;
+    if (built.attackerCost <= 0.2 + 1e-9) break;
   }
   if (built === null) {
     throw new Error(
@@ -848,7 +859,7 @@ export function genItem({
     );
   }
 
-  const { roles, lineMax, anchorRoles, options, slot } = built;
+  const { roles, lineMax, anchorRoles, options, slot } = built.layout;
   const trueValue = valueOf(roles);
   const optionKeys = ['A', 'B', 'C', 'D', 'E'];
 
@@ -973,7 +984,7 @@ export function genItem({
  *   * at least two options survive a brute force over all 120 relabellings, and at least one
  *     SURVIVING DISTRACTOR is backed by at least as many mappings as the key.
  */
-function layOutItem(roles, { distractorNearness, keyRank }) {
+function layOutItem(roles, { distractorNearness, keyRank, jitter }) {
   const trueValue = valueOf(roles);
   let best = null;
 
@@ -993,8 +1004,16 @@ function layOutItem(roles, { distractorNearness, keyRank }) {
     }
 
     const support = relabelRatioSupportForRoles(roles, anchor.roles);
-    const backedValue = (value) => (support.get(round6(value / lineMax)) ?? 0) > 0;
-    const order = byNearnessTo(distractorNearness, backedValue);
+    const backingOf = (value) => support.get(round6(value / lineMax)) ?? 0;
+    const backedValue = (value) => backingOf(value) > 0;
+    // The key's own backing, so a distractor that MATCHES it — and therefore joins the key's
+    // indistinguishable tier — can be preferred over one that merely survives the brute force.
+    const keyBacking = backingOf(trueValue);
+    const order = byNearnessTo(distractorNearness, (value) => {
+      const backing = backingOf(value);
+      if (backing === 0) return 0;
+      return backing === keyBacking ? 2 : 1;
+    });
     const below = candidates.filter((c) => c.value < trueValue).sort(order);
     const above = candidates.filter((c) => c.value > trueValue).sort(order);
     if (below.length < keyRank || above.length < 4 - keyRank) continue;
@@ -1005,7 +1024,11 @@ function layOutItem(roles, { distractorNearness, keyRank }) {
     // a floor the item scrapes past into the quantity the layout is chosen to maximise.
     let tried = 0;
     for (const chosen of slateChoices(below, above, keyRank, backedValue)) {
-      if (tried++ >= 30) break; // the swap fan-out is quadratic; thirty is enough to find a maximum
+      // The swap fan-out is quadratic. Thirty was enough while the objective only had to keep the
+      // key off the two extreme ranks; an equal-backing TIER is rarer than a non-extreme rank, so
+      // the budget is raised to let the search actually reach one. Whole-bank build time is still
+      // under two seconds.
+      if (tried++ >= 120) break;
       // Each option carries the rule that put it there, so the rationale and the tick can never
       // drift apart: the slate is ordered by nearness and the line is ordered by magnitude, and
       // pairing them by index rather than by object is exactly the mismatch the checker caught.
@@ -1028,7 +1051,18 @@ function layOutItem(roles, { distractorNearness, keyRank }) {
       // step the attacker term can take (1/4 - 1/5 = 0.05), so nearness can only choose between
       // layouts the brute force already finds equally uninformative.
       const attackerCost = bestAttackerAccuracy(backing, slot);
-      const score = -attackerCost - 0.02 * nearnessCost;
+      // A SEEDED tie-break, at 1e-6, below any difference either term above can express.
+      //
+      // Where the layout cannot back all five ticks, the unbacked ones have to go somewhere, and a
+      // deterministic tie-break puts them in the same place relative to the key every time. That
+      // turns the POSITIONS OF THE ZEROES in the backing vector into a reading of the key's rank:
+      // STAGE2_ANTILEAK_COMPARISON's F4 attacker, which groups on the unsorted vector and names a
+      // slot, reached 98.5% cross-validated in the 1-5 slice on exactly that. Choosing at random
+      // among layouts the objective and the nearness lever both rate identical makes the zero
+      // pattern independent of the rank, so the same vector turns up with the key in several
+      // places and the attacker is back to guessing inside it. Drawn from the item's own stream,
+      // so the item stays byte-reproducible from `levers` + `seed`.
+      const score = -attackerCost - 0.02 * nearnessCost + jitter();
       if (best === null || score > best.score) {
         best = {
           score,
@@ -1050,37 +1084,40 @@ function layOutItem(roles, { distractorNearness, keyRank }) {
     // longer lines once an item reaches it.
     if (best !== null && best.attackerCost <= 0.2 + 1e-9) break;
   }
-  return best === null ? null : best.layout;
+  return best;
 }
 
 /**
  * What the best content-only attacker scores on one item, given how many of the 120 relabellings
  * back each option and which option is the key.
  *
- * Three strategies, because an attacker picks whichever works and reporting only the weakest would
- * be choosing one's own evidence:
+ * EVERY VOTE RANK, NOT ONLY THE TWO ENDS. This function used to return the maximum of three
+ * strategies — uniform over the survivors, modal, anti-modal — and minimising that was not enough.
+ * Modal and anti-modal are the FIRST and LAST of five vote ranks, and a client can play any of the
+ * ranks between them: the sorted vote vector is content, so "take the second-most-backed option"
+ * costs exactly as little as "take the most-backed one". A layout search that scores only the two
+ * ends is therefore free to park the key at rank 1, and it did:
+ * STAGE2_ANTILEAK_COMPARISON §7.4 found this bank's key at rank 0 on 253 items and at rank 1 on
+ * 206, with modal (17.3%) and anti-modal (17.5%) both BELOW the 20.0% floor — the tell — while
+ * playing rank 1 alone scored 32.4% bank-wide and took 111 of 468 items outright. One fitted
+ * integer, no conditioning, and it beat the published figure by 5.0 points.
  *
- *   uniform     guess evenly among the options that survive the brute force;
- *   modal       take the survivor the most relabellings point at;
- *   anti-modal  take the survivor the fewest point at, which beats chance exactly when a generator
- *               has over-corrected by pushing the key away from being modal.
+ * The measure that closes every rank at once is the size of the key's own TIER. A tier of options
+ * with equal backing is indistinguishable from inside, so the best any rank policy does on this
+ * item is to play the key's tier and split it — 1/|tier|. That dominates all three of the old
+ * strategies, because a tier is a subset of the survivors and modal and anti-modal are two
+ * particular tiers, so nothing the old measure caught is given up.
  *
- * The layout search minimises the maximum of the three, which drives them together: they coincide
- * at 1/5 when every option survives and all are equally backed, and that is the only configuration
- * in which the brute force returns no information at all.
+ * It bottoms out at 1/5 when all five options are equally backed, which is the only configuration
+ * in which the brute force returns no information at all, and is the same floor the previous
+ * measure had. What changed is that a rank-1 key now costs 1.0 instead of scoring 0.2.
  */
 export function bestAttackerAccuracy(backing, keyIndex) {
-  const survivorIndices = backing.map((n, i) => [n, i]).filter(([n]) => n > 0);
-  if (survivorIndices.length === 0) return 1;
-  const keySurvives = backing[keyIndex] > 0;
-  const uniform = keySurvives ? 1 / survivorIndices.length : 0;
-  const pick = (target) => {
-    const tied = survivorIndices.filter(([n]) => n === target);
-    return tied.some(([, i]) => i === keyIndex) ? 1 / tied.length : 0;
-  };
-  const modal = pick(Math.max(...survivorIndices.map(([n]) => n)));
-  const antiModal = pick(Math.min(...survivorIndices.map(([n]) => n)));
-  return Math.max(uniform, modal, antiModal);
+  if (backing.every((n) => n === 0)) return 1;
+  // The key is always backed by its own true mapping, so this guard is for callers exploring
+  // hypothetical slates: an option no relabelling reaches is one no rank policy ever names.
+  if (backing[keyIndex] === 0) return 0;
+  return 1 / backing.filter((n) => n === backing[keyIndex]).length;
 }
 
 /**
@@ -1090,10 +1127,17 @@ export function bestAttackerAccuracy(backing, keyIndex) {
  * The 0.12 tie-break is smaller than the smallest gap between adjacent nearness classes, so it can
  * only reorder rules that were already close on the difficulty lever. Anti-leak buys nothing at the
  * expense of the item sitting where its stated difficulty says it does.
+ *
+ * The bonus is now GRADED inside that same 0.12, rather than widened. Merely being reachable is
+ * worth half of it; being reachable by exactly as many relabellings as the KEY is worth all of it,
+ * because that is the option that joins the key's tier and a tier is what
+ * `bestAttackerAccuracy` prices. Two grades inside the old budget cannot move an item further off
+ * its declared nearness than one grade could.
+ *
+ * @param {(value: number) => number} backingGrade 2 ties the key's backing, 1 backed, 0 unreachable
  */
-function byNearnessTo(target, backedValue) {
-  const cost = (rule) =>
-    Math.abs(NEARNESS[rule.kind] - target) - (backedValue(rule.value) ? 0.12 : 0);
+function byNearnessTo(target, backingGrade) {
+  const cost = (rule) => Math.abs(NEARNESS[rule.kind] - target) - 0.06 * backingGrade(rule.value);
   return (a, b) => cost(a) - cost(b) || (a.ruleId < b.ruleId ? -1 : 1);
 }
 
@@ -1165,6 +1209,61 @@ function preferredLineMaxima(trueValue) {
   );
 }
 
+/**
+ * Assign every planned item the rank its key will occupy among the five ticks.
+ *
+ * WHY THIS IS NOT A CURSOR ANY MORE. `keyRank = cursor % 5`, walked once per item inside each
+ * expression length, balances the marginal distribution but makes the key's rank a function of the
+ * item's position in the EMISSION order — and items are emitted rung by rung in increasing
+ * difficulty, with `difficulty` served. Sorting a scraped bank by difficulty therefore recovers the
+ * cursor. STAGE2_ANTILEAK_COMPARISON §7.2 measures the key slot straight off the difficulty rank at
+ * 32.9% against a 20.0% floor on this bank, and 40.2% cross-validated once expression length is
+ * added — no brute force, no relabelling, no understanding of the notation at all.
+ *
+ * The replacement keeps the balance the cursor bought and drops the order it leaked. Ranks are
+ * allocated as a balanced MULTISET inside each stratum — here the expression length, which is both
+ * the served covariate an attacker conditions on and the cell §11's key-balance check already
+ * requires — and are then PERMUTED inside that cell from the seeded stream. A rank is therefore
+ * independent of where its item sits in the difficulty order, while every length still shows all
+ * five ranks equally often. The remainder that does not divide by five is carried across cells, so
+ * the bank-level counts differ by at most one (E-094).
+ *
+ * @param {string[]} strata one stratum label per planned item, in emission order
+ */
+function allocateKeyRanks(strata, rankCount, seed) {
+  const rng = makeRng(seed);
+  const cells = new Map();
+  strata.forEach((stratum, index) => {
+    const cell = cells.get(stratum) ?? [];
+    cell.push(index);
+    cells.set(stratum, cell);
+  });
+
+  const used = new Array(rankCount).fill(0);
+  const ranks = new Array(strata.length);
+  // Cells are walked in a fixed lexical order, not in Map insertion order, so the allocation does
+  // not depend on the order the rung loop happened to discover the lengths in.
+  for (const stratum of [...cells.keys()].sort()) {
+    const indices = cells.get(stratum);
+    const base = Math.floor(indices.length / rankCount);
+    const multiset = [];
+    for (let rank = 0; rank < rankCount; rank++) {
+      for (let n = 0; n < base; n++) multiset.push(rank);
+    }
+    // The remainder goes to the ranks the bank has used LEAST so far. Ties are broken off the
+    // seeded stream rather than by rank order, or rank 0 would collect every remainder.
+    const bySlack = shuffle([...Array(rankCount).keys()], rng).sort((a, b) => used[a] - used[b]);
+    for (let n = 0; n < indices.length - base * rankCount; n++) multiset.push(bySlack[n]);
+    for (const rank of multiset) used[rank] += 1;
+
+    const permuted = shuffle(multiset, rng);
+    indices.forEach((index, n) => {
+      ranks[index] = permuted[n];
+    });
+  }
+  return ranks;
+}
+
 /* ================================================================== *
  * BANK BUILDER
  *
@@ -1191,7 +1290,10 @@ export function buildBank({ systemPersistence, perRung = 12, systemSeed = 'QUANT
   const rungs = [];
   for (let d = 1; d <= 20 + 1e-9; d += 0.5) rungs.push(round2(d));
 
-  const rankCursor = new Map();
+  // PASS 1 — the lever plan for the whole bank, everything except the key's rank. The rank has to
+  // be allocated over the finished plan rather than inside this loop, because the cells it
+  // balances within span the whole bank and a cursor cannot see them one item at a time.
+  const plan = [];
 
   for (const rung of rungs) {
     // The rung window is clipped to its BAND's window as well as to +/-0.24, so an item cannot land
@@ -1226,20 +1328,23 @@ export function buildBank({ systemPersistence, perRung = 12, systemSeed = 'QUANT
       const target = segment.lo + (segment.hi - segment.lo) * ((li + 0.5) / hits[index]);
       const nearness = solveNearness(segment.cfg, target);
       const c = segment.cfg;
-      const cursor = rankCursor.get(c.length) ?? 0;
-      rankCursor.set(c.length, cursor + 1);
       const seed = `QUANT-GLYPHNUM-01|rung=${rung}|i=${i}|L${c.length}B${c.binds}D${c.distinct}`;
-      items.push(
-        genItem({
-          ...c,
-          distractorNearness: nearness,
-          keyRank: cursor % 5,
-          systemPersistence,
-          systemSeed,
-          seed,
-        }),
-      );
+      plan.push({
+        levers: { ...c, distractorNearness: nearness, systemPersistence, systemSeed, seed },
+      });
     }
+  }
+
+  // PASS 2 — the key's rank, balanced inside each expression length and permuted there.
+  const ranks = allocateKeyRanks(
+    plan.map((p) => `L${p.levers.length}`),
+    5,
+    `${systemSeed}|keyRanks`,
+  );
+
+  // PASS 3 — generate, in the same rung order as before, so the bank ships in difficulty order.
+  for (let n = 0; n < plan.length; n++) {
+    items.push(genItem({ ...plan[n].levers, keyRank: ranks[n] }));
   }
   return items;
 }
