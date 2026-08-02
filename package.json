@@ -36,7 +36,7 @@
     "stage2:learnability": "tsx research/exam-question-types/stage2-type-learnability-report.mjs",
     "stage2:learnability:opchain": "tsx research/exam-question-types/stage2-learnability-report.mjs",
     "stage2:latency": "tsx research/exam-question-types/stage2-latency-report.mjs",
-    "stage2:rotation": "tsx research/exam-question-types/stage2-rotation-report.mjs",
+    "stage2:rotation": "node research/exam-question-types/stage2-rotation-report.mjs",
     "stage2:samples": "node research/exam-question-types/stage2-render-samples.mjs",
     "stage2:play-check": "node research/exam-question-types/stage2-play-check.mjs",
     "exam:reconcile": "tsx apps/web/scripts/exam-reconcile-session.ts",
