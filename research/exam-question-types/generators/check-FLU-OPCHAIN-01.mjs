@@ -15,15 +15,24 @@
 //   2.  Key containment: `content` names no operator, states no mapping, and carries no verdict.
 //   3.  KEY RE-DERIVED: applying the mapping's operator chain to the input reproduces exactly the
 //       option `correctKey` names — on every item of both banks.
-//   4.  Anti-leak, two invariants (E-075/E-076):
+//   4.  Anti-leak (E-075/E-076), now measured as a graded attack rather than only a determinacy
+//       count, because "the key is not DETERMINED" is a much weaker property than "the key is not
+//       PREDICTABLE" and the gap between them was 14 points:
 //       (a) the key is never the UNIQUE option that changed the most components from the input, so
-//           "tap whichever picture changed most" cannot beat chance; and
-//       (b) the key is never the UNIQUE option reachable by RELABELLING the badges. Guessing the
-//           hidden mapping is exactly guessing an ordered selection of distinct operators for the
-//           chain's positions, so if only one option is consistent with any of them, a browser
-//           recovers the key from `content` with no induction at all. This is a stronger attack
-//           than (a) and it is the one that catches chains carrying all three orientation
-//           operators, where the D4 product collapses several relabellings onto the key.
+//           "tap whichever picture changed most" cannot beat chance;
+//       (b) EVERY option is reachable by relabelling the badges. Guessing the hidden mapping is
+//           exactly guessing an ordered selection of distinct operators for the chain's positions, so
+//           an option no relabelling reaches is one the client can prove is not the key and delete.
+//           With all five reachable, "eliminate, then guess" sits exactly on the 20% floor. The
+//           previous invariant asked only that TWO survive, which bounds that attack at 50%;
+//       (c) the key is never the unique most-backed NOR the unique least-backed option, counting how
+//           many relabellings reach each. Both tails matter: pushing the key away from modal is
+//           precisely the over-correction that hands the anti-modal attacker a certainty; and
+//       (d) the GRADED attack is bounded per difficulty slice. A client conditions on the sorted
+//           vote vector — which is content — and runs whichever rank tier is the key most often for
+//           that shape. That strategy dominates (b) and (c), so it is the one the ceiling is set
+//           against, and it is checked per slice because the block serves different slices to
+//           different children.
 //   5.  Distractors: all five options distinct; every wrong option is the output of a named partial
 //       rule, re-derived here, and its declared ruleId/kind agree (the §4.6 strategy trace).
 //   6.  Chain invariants: length equals depth, no operator repeats, the declared geometric count is
@@ -102,26 +111,52 @@ function geomIsIdentity(chain) {
 }
 
 /**
- * Everything a client can compute from `content` alone: every output produced by assigning
- * distinct operators to the chain's positions. Re-implemented here rather than imported, because
- * this IS the attack and validating it with the generator's own helper would prove nothing.
+ * Everything a client can compute from `content` alone: every output produced by assigning distinct
+ * operators to the chain's positions, WITH the number of assignments that produce it.
+ *
+ * Re-implemented here rather than imported, because this IS the attack and validating it with the
+ * generator's own helper would prove nothing. The counts matter and not merely the set: the
+ * generator's guarantee is now that all five options are reachable AND that the key sits at no
+ * exploitable rank among the counts, and a set cannot express either half.
  */
-function relabelReachable(depth, input) {
-  const out = new Set();
-  const walk = (position, used, state) => {
+function relabelVotes(depth, input) {
+  const votes = new Map();
+  const used = new Set();
+  const walk = (position, state) => {
     if (position === depth) {
-      out.add(fkey(state));
+      const k = fkey(state);
+      votes.set(k, (votes.get(k) ?? 0) + 1);
       return;
     }
     for (const op of ALL_OPS) {
       if (used.has(op)) continue;
       used.add(op);
-      walk(position + 1, used, step(op, state));
+      walk(position + 1, step(op, state));
       used.delete(op);
     }
   };
-  walk(0, new Set(), input);
-  return out;
+  walk(0, input);
+  return votes;
+}
+
+/**
+ * The key's rank tier among the five vote counts.
+ *
+ * `above` is how many options strictly outrank the key, `size` how many share its count, so the key
+ * occupies ranks [above, above + size - 1] of five and an attacker guessing inside that tier pays
+ * 1/size. `unique` flags the two configurations that make a single rank strategy CERTAIN: the key
+ * alone at the top (the modal attack) or alone at the bottom (the anti-modal attack, which is what
+ * an over-correction against the first one produces).
+ */
+function keyTier(backing, keyIndex) {
+  const above = backing.filter((v) => v > backing[keyIndex]).length;
+  const size = backing.filter((v) => v === backing[keyIndex]).length;
+  return {
+    above,
+    size,
+    tier: new Set(backing.filter((v) => v > backing[keyIndex])).size,
+    unique: size === 1 && (above === 0 || above + size === backing.length),
+  };
 }
 
 /* ---- independent partial-rule taxonomy ------------------------------------ */
@@ -283,6 +318,8 @@ function checkBank(mode, items) {
   const seenIds = new Set();
   const systemIds = new Set();
   const keyCounts = Object.fromEntries(OPTION_KEYS.map((k) => [k, 0]));
+  const rankTargetCounts = [0, 0, 0, 0, 0];
+  const leakRows = [];
   let optionCounts = new Set();
 
   for (const it of items) {
@@ -382,16 +419,52 @@ function checkBank(mode, items) {
             '"pick what changed most" would beat chance without the system',
         );
 
-      // ---- 4b. Anti-leak: the key must not be the unique relabelling-reachable option ----
-      const reachable = relabelReachable(opChain.length, input);
-      const reachableKeys = options.filter((o) => reachable.has(fkey(o.figure))).map((o) => o.key);
-      if (reachableKeys.length < 2)
+      // ---- 4b. Anti-leak: EVERY option must be relabelling-reachable, and the key must sit at no
+      //          exploitable rank among the vote counts ----
+      const votes = relabelVotes(opChain.length, input);
+      const backing = options.map((o) => votes.get(fkey(o.figure)) ?? 0);
+      const keyIndex = options.findIndex((o) => o.key === ans.correctKey);
+      const viable = backing.filter((v) => v > 0).length;
+      if (viable < options.length)
         fail(
           id,
-          `only ${reachableKeys.length} option(s) [${reachableKeys.join(',')}] are consistent with ANY ` +
-            'badge->operator relabelling — a client that brute-forces the 720 mappings recovers the ' +
-            'key from content alone, with no knowledge of the hidden system',
+          `only ${viable} of ${options.length} options are consistent with ANY badge->operator ` +
+            'relabelling — a client can prove the rest are not the key and delete them, so ' +
+            '"eliminate, then guess" beats the five-option chance floor',
         );
+      if (backing[keyIndex] === 0)
+        fail(id, 'the key itself is unreachable by relabelling — the answer key contradicts the semantics');
+
+      const tier = keyTier(backing, keyIndex);
+      if (tier.unique)
+        fail(
+          id,
+          `the key is the unique ${tier.above === 0 ? 'MOST' : 'LEAST'}-backed option ` +
+            `(votes ${backing.join(',')}) — a client running that one rank strategy takes this item ` +
+            'every time, with no knowledge of the hidden system',
+        );
+
+      // The per-item audit the bank ships must be the audit re-derived here, or the reported figure
+      // is the generator's opinion of itself.
+      const rel = ans.relabelling || {};
+      const total = backing.reduce((a, b) => a + b, 0);
+      if (!deepEq(rel.optionVotes, backing))
+        fail(id, `answer.relabelling.optionVotes ${JSON.stringify(rel.optionVotes)} != re-derived ${JSON.stringify(backing)}`);
+      if (rel.viableOptions !== viable)
+        fail(id, `answer.relabelling.viableOptions ${rel.viableOptions} != re-derived ${viable}`);
+      if (Math.abs(rel.maxVoteShare - round2(Math.max(...backing) / total)) > 0.011)
+        fail(id, `answer.relabelling.maxVoteShare ${rel.maxVoteShare} != re-derived ${round2(Math.max(...backing) / total)}`);
+      if (Math.abs(rel.minVoteShare - round2(Math.min(...backing) / total)) > 0.011)
+        fail(id, `answer.relabelling.minVoteShare ${rel.minVoteShare} != re-derived ${round2(Math.min(...backing) / total)}`);
+
+      leakRows.push({
+        difficulty: it.difficulty,
+        shape: [...backing].sort((a, b) => b - a).join(','),
+        tier: tier.tier,
+        size: tier.size,
+        viable,
+        rankTargetMet: lev.voteRankTarget >= tier.above && lev.voteRankTarget <= tier.above + tier.size - 1,
+      });
 
       // ---- 5. Distractors: distinct, and each a named partial rule ----
       const figureKeys = options.map((o) => fkey(o.figure));
@@ -436,6 +509,9 @@ function checkBank(mode, items) {
     }
 
     if (OPTION_KEYS.includes(ans.correctKey)) keyCounts[ans.correctKey]++;
+    if (Number.isInteger(lev.voteRankTarget) && lev.voteRankTarget >= 0 && lev.voteRankTarget < 5)
+      rankTargetCounts[lev.voteRankTarget]++;
+    else fail(id, `provenance levers voteRankTarget is not a rank in 0..4 (${lev.voteRankTarget})`);
 
     // ---- 7. Difficulty + reproducibility ----
     const derivedDifficulty = round2(difficultyOf(lev.depth, lev.geom, lev.distractorSimilarity));
@@ -489,6 +565,106 @@ function checkBank(mode, items) {
       fail(`coverage:${mode}`, `+/-0.5pt band around ${r} has ${bandCounts[i]} items (<5)`);
   });
 
+  /* ---- 4c. Anti-leak at BANK level: the graded attacker, per difficulty slice ----------------- *
+   *
+   * The per-item checks above bound each item away from certainty. They do not bound the ATTACK,
+   * because an attacker does not work item by item: it conditions on the vote SHAPE, which is
+   * content, and runs whichever rank tier is the key most often for that shape. That is the
+   * strongest permutation-invariant content-only strategy there is, and it is the one this bank has
+   * to be measured against.
+   *
+   * The bound is 25% — a client running it must not do better than it would if one option were
+   * simply removed from the item. That is a meaningful line rather than a round number: below it the
+   * leak is worth less than the difference between a five-option and a four-option question, which
+   * is the smallest unit of item design anyone here trades in.
+   *
+   * Sliced, because the block serves systematically different slices to different children, so a
+   * leak concentrated in the hardest slice is invisible in a bank mean and lands on exactly the
+   * children the measurement is about.
+   */
+  const SLICES = [
+    [1, 5],
+    [5, 10],
+    [10, 15],
+    [15, 20.01],
+  ];
+  const GRADED_ATTACK_CEILING = 0.25;
+  const gradedSlices = [];
+  for (const [lo, hi] of SLICES) {
+    const inSlice = leakRows.filter((r) => r.difficulty >= lo && r.difficulty < hi);
+    if (inSlice.length === 0) continue;
+    const shapes = new Map();
+    for (const r of inSlice) {
+      const g = shapes.get(r.shape) ?? new Map();
+      g.set(r.tier, { count: (g.get(r.tier)?.count ?? 0) + 1, size: r.size });
+      shapes.set(r.shape, g);
+    }
+    let hits = 0;
+    for (const g of shapes.values()) {
+      let best = 0;
+      for (const { count, size } of g.values()) best = Math.max(best, count / size);
+      hits += best;
+    }
+    const accuracy = hits / inSlice.length;
+    gradedSlices.push({ lo, hi, n: inSlice.length, accuracy, shapes: shapes.size });
+    if (accuracy > GRADED_ATTACK_CEILING + 1e-9)
+      fail(
+        `antileak:${mode}`,
+        `graded content-only attacker scores ${(100 * accuracy).toFixed(1)}% on difficulty ` +
+          `${lo}–${hi === 20.01 ? 20 : hi} (${inSlice.length} items), above the ` +
+          `${(100 * GRADED_ATTACK_CEILING).toFixed(0)}% ceiling`,
+      );
+  }
+
+  // Every item must have all five options viable, which is what pins the elimination attack to the
+  // five-option floor exactly rather than merely near it.
+  const notFullyViable = leakRows.filter((r) => r.viable < 5).length;
+  if (notFullyViable > 0)
+    fail(`antileak:${mode}`, `${notFullyViable} item(s) have fewer than 5 relabelling-viable options`);
+
+  /* ---- 14. No two items are the same QUESTION -------------------------------------------------- *
+   *
+   * Re-derived here rather than trusted from the builder's redraw loop. A duplicate stimulus is two
+   * defects at once: `learning-block.ts` forbids re-serving an item because a repeat measures recall
+   * of that item, and a pair priced at two difficulties is the §1.1(d) labelling error. The first
+   * 12/rung draw produced one such pair, so this is a guard against a real failure mode and not a
+   * hypothetical.
+   *
+   * Option ORDER is normalised away and the answer is identified by its figure rather than its slot,
+   * because two items showing the same five pictures are the same question however the key has been
+   * round-robined among them. The 6/rung bank on `dev` carried four such pairs that an order-sensitive
+   * comparison did not see.
+   */
+  const stimuli = new Map();
+  for (const it of items) {
+    const ans = it.answer || {};
+    const keyed = (it.content.options || []).find((o) => o.key === ans.correctKey);
+    const fp = JSON.stringify([
+      fkey(it.content.input),
+      ans.operatorChain,
+      keyed ? fkey(keyed.figure) : null,
+      (it.content.options || []).map((o) => fkey(o.figure)).sort(),
+    ]);
+    stimuli.set(fp, [...(stimuli.get(fp) ?? []), it]);
+  }
+  for (const group of stimuli.values()) {
+    if (group.length < 2) continue;
+    fail(
+      `duplicates:${mode}`,
+      `${group.length} items share one stimulus (difficulties ${group.map((g) => g.difficulty).join(', ')}) — ` +
+        'a re-served question, and if the difficulties differ, the same question priced twice',
+    );
+  }
+
+  // ---- 4d. The rank quota is a declared lever, so it is balanced like any other (E-094) -------
+  const rankTotal = rankTargetCounts.reduce((a, b) => a + b, 0);
+  const worstRank = Math.max(...rankTargetCounts.map((n) => (100 * n) / rankTotal));
+  if (worstRank - 20 > 5)
+    fail(
+      `antileak:${mode}`,
+      `voteRankTarget is not uniform: modal rank beats the 20% floor by ${(worstRank - 20).toFixed(1)}pt (>5pt)`,
+    );
+
   // ---- 11. Key balance (E-094: report per option count, never pooled across formats) ----
   const total = items.length;
   const worst = Math.max(...OPTION_KEYS.map((k) => (100 * keyCounts[k]) / total));
@@ -507,7 +683,19 @@ function checkBank(mode, items) {
       `perTrial bank holds ${systemIds.size} systems for ${items.length} items, expected one each`,
     );
 
-  return { items, rungCounts, keyCounts, systemIds, min, max, worstKeyAdvantage: worst - floor };
+  return {
+    items,
+    rungCounts,
+    keyCounts,
+    systemIds,
+    min,
+    max,
+    worstKeyAdvantage: worst - floor,
+    gradedSlices,
+    rankTargetCounts,
+    zeroInformation: leakRows.filter((r) => r.size === 5).length,
+    rankTargetMet: leakRows.filter((r) => r.rankTargetMet).length,
+  };
 }
 
 const banks = {};
@@ -551,6 +739,19 @@ for (const mode of MODES) {
       `  — modal advantage over the 20.0% floor: +${b.worstKeyAdvantage.toFixed(1)}pt`,
   );
   console.log(`  per 0.5pt rung (1.0 -> 20.0): ${b.rungCounts.join(' ')}`);
+  console.log(
+    `  anti-leak: ${b.zeroInformation}/${b.items.length} items carry NO vote information at all ` +
+      `(all five options equally backed); key vote-rank quota met on ${b.rankTargetMet}/${b.items.length}`,
+  );
+  console.log(
+    `  graded content-only attacker by difficulty slice (ceiling 25.0%, floor 20.0%): ` +
+      b.gradedSlices
+        .map(
+          (s) =>
+            `${s.lo}–${s.hi === 20.01 ? 20 : s.hi}: ${(100 * s.accuracy).toFixed(1)}% (n=${s.n}, ${s.shapes} shapes)`,
+        )
+        .join('  '),
+  );
 }
 
 if (failures.length) {
@@ -561,13 +762,15 @@ if (failures.length) {
 }
 console.log(
   '\nPASS — both banks parse; the key is re-derived from the stated system on 100% of items; the key\n' +
-    'is never the unique largest change from the input NOR the unique option any badge relabelling can\n' +
-    'reach, so content does not determine it; every distractor is a named partial rule that\n' +
-    'reproduces its figure; no chain repeats an operator or cancels its geometry; difficulty is\n' +
-    'monotone in every lever and re-derived from each item\u2019s own levers; coverage is 1..20 with >=5\n' +
-    'items per 0.5-point rung; depth respects the band ladder; key positions sit at the 5-option\n' +
-    'floor; the consistent bank holds one hidden system and the perTrial bank one per item; and the\n' +
-    'two banks are equated on every scored property.\n\n' +
+    'is never the unique largest change from the input, EVERY option is reachable by relabelling the\n' +
+    'badges so nothing can be eliminated, the key is never the unique most- nor least-backed option,\n' +
+    'and the graded content-only attacker stays under 25% in every difficulty slice against a 20%\n' +
+    'five-option floor; every distractor is a named partial rule that reproduces its figure; no chain\n' +
+    'repeats an operator or cancels its geometry; difficulty is monotone in every lever and re-derived\n' +
+    'from each item\u2019s own levers; coverage is 1..20 with >=5 items per 0.5-point rung; depth respects\n' +
+    'the band ladder; key positions AND key vote ranks sit at the 5-option floor; the consistent bank\n' +
+    'holds one hidden system and the perTrial bank one per item; and the two banks are equated on\n' +
+    'every scored property.\n\n' +
     'NOT GATED. This says the instrument is well formed, not that it measures learning: Gate B needs\n' +
     '~128 real children (STAGE2_QUESTION_DESIGN §4.1.3).',
 );

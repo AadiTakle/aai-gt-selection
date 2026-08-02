@@ -236,6 +236,14 @@ Three readings, in descending order of importance.
    good ones sooner. **This is a conjecture I did not test**; a decisive version would re-run the
    grid at `perRung = 6`, which is a one-line change to a hard-wired constant in the harness and
    therefore out of scope here. It matters only if a 45–60 trial block is ever authorised.
+
+   **Since tested, and the conjecture holds.** `STAGE2_FLU_OPCHAIN_DENSITY_GATE_A.md` §2.1 rebuilt
+   the bank at 12 items per rung and measured it against the same bank-free grid at the same eight
+   seeds: the paired difference is +0.002 (t = 0.5) at 45 trials and −0.003 (t = −0.6) at 60, so the
+   12/rung bank is on the bound where the 6/rung bank was 0.020 and 0.041 below it. The test was run
+   the other way round from the one proposed here — by raising the bank's density rather than lowering
+   the grid's — which needed no harness change. The rows above describe the 6/rung bank and are left
+   as measured.
 3. **`FLU-MATRIX-01` stops improving after 45 trials** (0.392 → 0.419) while both other pools keep
    climbing. Its 120 items across 39 rungs is roughly 3 per rung, and PR #22's finding that 60
    trials never reach the published 30-trial figure on that bank reproduces here.
@@ -469,7 +477,9 @@ pipeline does to a bank, which is the converse and the only non-circular thing a
 - Whether a graded response model would narrow `lambdaSe` enough to matter. §1.1(e) says partial
   credit under the current Bernoulli information calculation will not, and that is unchanged and
   untested here.
-- Whether the §5 pool-depth conjecture (6 vs 12 items per rung at 45–60 trials) is right.
+- ~~Whether the §5 pool-depth conjecture (6 vs 12 items per rung at 45–60 trials) is right.~~
+  **Answered: it is.** See `STAGE2_FLU_OPCHAIN_DENSITY_GATE_A.md` §2.1. Every other figure in this
+  document is measured on the 6/rung bank and stands as measured.
 
 **If the owner accepts these figures, the governance record would need** (all deferred to U9, none
 done here, per §9.3's "last and once"): an E-family entry for the three-pool comparison and the

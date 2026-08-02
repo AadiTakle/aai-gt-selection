@@ -38,7 +38,7 @@
 //
 // `content` gives the input figure, the badge chain and five candidate outputs. Recovering the key
 // needs the badge->operator mapping, and the mapping lives under `answer.system`, which
-// `servedItemSchema` omits wholesale. Two content-computable shortcuts are closed explicitly:
+// `servedItemSchema` omits wholesale. Three content-computable shortcuts are closed explicitly:
 //
 //   1. "pick the option that differs most from the input." Every item is required to carry at least
 //      one DISTANCE-MATCHED distractor — one whose figure differs from the input in as many
@@ -46,6 +46,16 @@
 //      is asserted here and re-derived independently by check-FLU-OPCHAIN-01.mjs.
 //   2. "the key sits in the modal slot." Key positions are allocated round-robin over the five
 //      slots, so the modal-key advantage is at the arithmetic floor for a 5-option item (E-094).
+//   3. "brute-force the mapping and see which options survive." This is the one that was measured
+//      too weakly. The first version of this generator asked only that the key not be the ONLY
+//      surviving option, and by that test the bank was clean: 0 of 234 items determined. But a
+//      client does not stop at determinacy — it counts how many relabellings back each option and
+//      plays a rank, and measured that way the same bank handed it 34.0% in its hardest difficulty
+//      slice against a 20% five-option floor (32.9% bank-wide, 38.2% worst slice, once the attacker
+//      is allowed to choose its rank per vote SHAPE, which is also content). Determinacy is the
+//      wrong bar: "the key is not DETERMINED" is a much weaker property than "the key is not
+//      PREDICTABLE", and the gap between them was 14 points. See {@link chooseDistractors} for the
+//      invariants that close it and `gate-a/opchain-attacker-probe.mjs` for the measurement.
 //
 // The reveal a learning block needs — the machine completing its action after the child commits —
 // is deliberately NOT in `content`. The renderer cannot know the correct output; the host supplies
@@ -423,20 +433,24 @@ export function geometricPartIsIdentity(chain) {
  * §4.1.4 Verdict-2 branch depends on. The fallback has to exist at the moment
  * the gate returns Verdict 2, not a build cycle later.
  *
- * `nearness` orders the failures from "almost had it" to "did not engage", and
- * the item's `distractorSimilarity` lever picks a slate along that axis. Each
- * label maps to a lure class already registered in item-shape.mjs, so
- * M-ERRTYPE / M-RULEID stay computable without widening the coarse enum.
+ * All six classes are still TAGGED and still admissible. What changed is that
+ * they no longer ORDER the slate: the class list used to carry a numeric
+ * `nearness` from "almost had it" to "did not engage" and `distractorSimilarity`
+ * picked a point on it, but the strengthened anti-leak invariant deletes whole
+ * classes at some depths, which would make that axis a lever that moves the
+ * stated difficulty without moving the item. See {@link chooseDistractors} for
+ * the positioner that replaced it. Each label maps to a lure class already
+ * registered in item-shape.mjs, so M-ERRTYPE / M-RULEID stay computable without
+ * widening the coarse enum.
  * ================================================================== */
 const FAILURES = [
-  { kind: 'order_error', lure: 'order_error', nearness: 1.0 },
-  { kind: 'over_application', lure: 'over_application', nearness: 0.85 },
-  { kind: 'omission', lure: 'omission', nearness: 0.7 },
-  { kind: 'wrong_operator', lure: 'wrong_operator', nearness: 0.55 },
-  { kind: 'first_step_only', lure: 'first_step_only', nearness: 0.25 },
-  { kind: 'identity_copy', lure: 'identity_copy', nearness: 0.0 },
+  { kind: 'order_error', lure: 'order_error' },
+  { kind: 'over_application', lure: 'over_application' },
+  { kind: 'omission', lure: 'omission' },
+  { kind: 'wrong_operator', lure: 'wrong_operator' },
+  { kind: 'first_step_only', lure: 'first_step_only' },
+  { kind: 'identity_copy', lure: 'identity_copy' },
 ];
-const NEARNESS = Object.fromEntries(FAILURES.map((f) => [f.kind, f.nearness]));
 
 /** Every partial rule this chain admits, as {ruleId, kind, chain, note}. */
 export function partialRules(chain) {
@@ -502,98 +516,193 @@ export function partialRules(chain) {
 }
 
 /**
- * Every output an attacker can reach WITHOUT the mapping, by relabelling it.
+ * Every output an attacker can reach WITHOUT the mapping, and how many relabellings reach it.
  *
  * A mapping is a badge->operator bijection and the badges in a chain are distinct, so guessing the
  * mapping is exactly guessing an ordered selection of `depth` distinct operators for the chain's
- * positions — at most 6*5*4*3 = 360 of them. Anything the client can compute, it can compute this
- * way, so this set IS the client's view of the item.
+ * positions — at most 6*5*4*3 = 360 of them. The 720 full bijections project onto these with a
+ * constant multiplicity of (6 - depth)!, so the vote RATIOS are identical and this map IS the
+ * client's entire posterior over which option is the key.
  *
- * WHY THIS EXISTS AS A SECOND ANTI-LEAK INVARIANT. The distance invariant below closes "tap
- * whichever picture changed most". It does not close the stronger attack: brute-force all 720
- * mappings, keep the ones whose output is on screen, and if they all point at the SAME option, the
- * key is determined by `content` and the hidden system was never needed. Measured on the first
- * version of this bank, that recovered the key on 11 of 234 items (4.7%), every one of them a chain
- * carrying all three orientation operators — where the D4 product of `turn`, `flip` and `slant`
- * lands in the same place under several relabellings, so the reorder distractors collapse onto the
- * key and only the key survives. E-075/E-076 judge derivability from the data, not from who knows
- * the algorithm, so 4.7% is a leak and not a rounding error.
+ * WHY THIS IS COUNTED RATHER THAN COLLECTED. The first version of this generator held the set and
+ * asked only whether at least one distractor was in it. That closed DETERMINACY — the key is never
+ * the only option a relabelling can reach, and the measured count is 0 items — but it left the
+ * GRADED attack wide open: an attacker who counts how many relabellings back each option, and takes
+ * the modal one (or, if a generator has over-corrected, the least-backed one), scored 34.0% in the
+ * hardest difficulty slice against a 20% five-option floor. E-075/E-076 judge derivability from the
+ * data rather than from who knows the algorithm, so 14 points above chance is a leak and not a
+ * rounding error. The vote COUNTS are what the invariants below are stated in, because a set cannot
+ * express "the five options are equally backed", which is the only configuration in which the brute
+ * force returns nothing at all.
  */
-function relabelReachableFigures(chain, input) {
-  const out = new Set();
-  const walk = (position, used, state) => {
-    if (position === chain.length) {
-      out.add(figureKey(state));
+export function relabelVotes(depth, input) {
+  const votes = new Map();
+  const used = new Set();
+  const walk = (position, state) => {
+    if (position === depth) {
+      const k = figureKey(state);
+      votes.set(k, (votes.get(k) ?? 0) + 1);
       return;
     }
     for (const op of OPERATORS) {
       if (used.has(op)) continue;
       used.add(op);
-      walk(position + 1, used, applyOp(op, state));
+      walk(position + 1, applyOp(op, state));
       used.delete(op);
     }
   };
-  walk(0, new Set(), input);
-  return out;
+  walk(0, input);
+  return votes;
 }
 
 /**
- * Choose four distractors along the nearness axis at `similarity`.
+ * How far a slate's summed distance cost may exceed the best available before the vote-balancing
+ * objective is allowed to move it.
  *
- * Two anti-leak invariants, neither optional, applied after the slate is picked:
+ * The difficulty lever comes FIRST and the anti-leak objective only chooses among slates the lever
+ * is nearly indifferent between. Without a bound like this, minimising the attacker would quietly
+ * BECOME the difficulty model, which is the §1.1(d) structured-labelling error wearing a security
+ * badge — and the temptation is real, because the budget buys the anti-leak figure directly: 44
+ * items in this bank could be driven to zero information by spending between 0.6 and 3.9 more.
  *
- *   1. at least one chosen distractor must move as far from the input as the key does, or "tap
- *      whichever picture changed the most" would score above chance with no knowledge of the
- *      system; and
- *   2. at least one chosen distractor must be reachable by relabelling the badges, or a client that
- *      brute-forces all 720 mappings finds exactly one option consistent with any of them and has
- *      the key without ever inducing anything (see {@link relabelReachableFigures}).
+ * 1.0 over four distractors is 0.25 of one figure component each, which is the same PER-DISTRACTOR
+ * budget `VER-MORPHO-01` set (0.75 over three), chosen there because a quarter of one attribute is
+ * below the granularity the lever itself resolves. Taking the sibling's per-distractor number rather
+ * than the value that minimises the attacker is the point: this constant is the one place where the
+ * measurement could be tuned into the design, so it is set by precedent and the residual it leaves
+ * is reported instead.
  */
-function chooseDistractors(chain, input, key, similarity) {
-  const rules = partialRules(chain);
-  const seen = new Set([figureKey(key)]);
-  const scored = rules
+const DISTANCE_COST_TOLERANCE = 1.0;
+
+/**
+ * Choose four distractors at the requested distance from the key, subject to four invariants.
+ *
+ * WHY THE POSITIONER CHANGED, AND WHAT IT COST. The first version ordered candidates by rule-class
+ * NEARNESS: `order_error` (1.0) down to `identity_copy` (0.0), with `distractorSimilarity` picking a
+ * point on that axis. Invariant I2 below makes that axis unusable as a positioner, because it
+ * deletes whole rule classes at some depths — at depth 1 the only reachable non-key figures are the
+ * five single-operator outputs, so every candidate is `wrong_operator` and the nearness axis is a
+ * single point. A lever that moves the stated difficulty without moving the item is exactly the
+ * §1.1(d) labelling error, so the positioner is now FIGURE DISTANCE FROM THE KEY — how many
+ * components separate a distractor from the right answer. At similarity 1 every distractor sits one
+ * component from the key and the item is a minimal-pair discrimination; at similarity 0 they sit as
+ * far away as the chain admits. That axis exists for every reachable candidate at every depth and
+ * does not depend on the rule taxonomy at all, which is the same move `VER-MORPHO-01` made for the
+ * same reason.
+ *
+ * The rule tagging is NOT what was given up: every distractor still carries the named partial rule
+ * it encodes, and §4.6's strategy trace is unchanged. What was given up is rule-class nearness as
+ * the *ordering* key, and the classes that survive the I2 filter are now whatever the chain happens
+ * to admit rather than a designed spread. §9 of the Gate A report measures which classes those are.
+ *
+ * The four invariants, in the order they bind:
+ *
+ *   I2  EVERY chosen distractor must be relabelling-reachable. This is the strengthening: with all
+ *       five options reachable, nothing can be eliminated and the "delete what no mapping reaches,
+ *       guess among the rest" attack sits exactly on the 20% chance floor. The previous invariant
+ *       asked for one reachable distractor, which bounds that attack at 50%.
+ *   I1  at least one chosen distractor must move as far from the INPUT as the key does, or "tap
+ *       whichever picture changed the most" scores above chance with no knowledge of the system.
+ *   I3  the key's RANK among the five vote counts must land on `voteRankTarget`, which `buildBank`
+ *       allocates round-robin over the five ranks exactly as it allocates the key's screen position.
+ *
+ * WHY I3 IS A RANK QUOTA AND NOT "THE KEY IS NEVER MODAL". Modal and anti-modal are the first and
+ * last of five ranks, and a client can run any of them — and can run a different one depending on the
+ * vote SHAPE it is looking at, because the sorted vote vector is content. So bounding the two tails
+ * leaves the middle open, and pushing the key away from modal is itself a pattern: it hands the
+ * anti-modal attacker the certainty the modal attacker lost. Every rank-based attack is closed at
+ * once, and only at once, by making the key's rank UNIFORM: if the key is equally likely to occupy
+ * any of the five ranks, then a tier of size s holds the key on s/5 of items and guessing inside it
+ * pays 1/s, so every tier strategy scores exactly 1/5 whatever the shape. That is the invariant, and
+ * it is why the round-robin cursor is a recorded lever rather than a local optimisation.
+ *
+ * A slate whose five vote counts are all EQUAL is a single tier spanning all five ranks, so it
+ * satisfies every target and carries no information at all. Those are preferred wherever they exist,
+ * and they are the reason most of the bank sits exactly on the floor rather than near it. The rank
+ * quota is what handles the remainder, where the chain admits no equal-vote slate.
+ *
+ * Slates are enumerated exhaustively rather than hill-climbed — after de-duplication by figure there
+ * are at most a dozen or so candidates, so all 4-subsets is a few hundred evaluations and there is no
+ * reason to accept a local optimum on the one property E-075/E-076 turn on.
+ */
+function chooseDistractors(chain, input, key, similarity, votes, voteRankTarget) {
+  const keyFigure = figureKey(key);
+  const keyVotes = votes.get(keyFigure) ?? 0;
+  const keyInputDistance = figureDistance(input, key);
+  const seen = new Set([keyFigure]);
+
+  // I2, as a FILTER rather than a repair. A candidate no relabelling reaches is one the attacker can
+  // prove is not the key and delete, so it is not admissible at all.
+  const candidates = partialRules(chain)
     .map((rule) => ({ rule, output: applyChain(rule.chain, input) }))
     .filter(({ output }) => {
       const k = figureKey(output);
       if (seen.has(k)) return false;
       seen.add(k);
-      return true;
+      return (votes.get(k) ?? 0) >= 1;
     })
     .map((entry) => ({
       ...entry,
-      cost: Math.abs(NEARNESS[entry.rule.kind] - similarity),
-      distance: figureDistance(input, entry.output),
-    }))
+      keyDistance: figureDistance(key, entry.output),
+      inputDistance: figureDistance(input, entry.output),
+      votes: votes.get(figureKey(entry.output)) ?? 0,
+    }));
+  if (candidates.length < 4) return null;
+
+  const maxKeyDistance = Math.max(...candidates.map((c) => c.keyDistance));
+  const target = 1 + (1 - similarity) * (maxKeyDistance - 1);
+  const ordered = candidates
+    .map((entry) => ({ ...entry, cost: Math.abs(entry.keyDistance - target) }))
     .sort((a, b) => a.cost - b.cost || (a.rule.ruleId < b.rule.ruleId ? -1 : 1));
 
-  const keyDistance = figureDistance(input, key);
-  const chosen = scored.slice(0, 4);
-  if (chosen.length < 4) return null;
-
-  if (!chosen.some((c) => c.distance >= keyDistance)) {
-    const matched = scored.find((c) => c.distance >= keyDistance);
-    if (!matched) return null;
-    chosen[chosen.length - 1] = matched;
-  }
-
-  // Invariant 2. The substitution swapped in is the FARTHEST from the requested nearness, so the
-  // slate stays as close to the difficulty lever as the constraint allows, and it replaces the
-  // last slot rather than the first so it cannot displace the distance-matched distractor above.
-  const reachable = relabelReachableFigures(chain, input);
-  if (!chosen.some((c) => reachable.has(figureKey(c.output)))) {
-    const alternative = scored.find(
-      (c) => reachable.has(figureKey(c.output)) && !chosen.includes(c),
-    );
-    if (!alternative) return null;
-    let victim = chosen.length - 1;
-    for (let i = 0; i < chosen.length; i++) {
-      if (chosen[i].distance >= keyDistance) continue; // keep invariant 1 satisfied
-      if (chosen[i].cost >= chosen[victim].cost) victim = i;
+  const admissible = [];
+  for (let i = 0; i < ordered.length; i++) {
+    for (let j = i + 1; j < ordered.length; j++) {
+      for (let k = j + 1; k < ordered.length; k++) {
+        for (let l = k + 1; l < ordered.length; l++) {
+          const slate = [ordered[i], ordered[j], ordered[k], ordered[l]];
+          if (!slate.some((c) => c.inputDistance >= keyInputDistance)) continue; // I1
+          const tally = [keyVotes, ...slate.map((c) => c.votes)];
+          const sum = tally.reduce((a, b) => a + b, 0);
+          const above = tally.filter((v) => v > keyVotes).length;
+          const shared = tally.filter((v) => v === keyVotes).length;
+          const tiers = new Set(tally).size;
+          admissible.push({
+            slate,
+            distanceCost: slate.reduce((a, c) => a + c.cost, 0),
+            // The key's tier occupies ranks [above, above + shared - 1] of the five, so the target is
+            // met when it falls inside that window.
+            hitsRankTarget: voteRankTarget >= above && voteRankTarget <= above + shared - 1,
+            tiers,
+            maxShare: Math.max(...tally) / sum,
+            uniquelyExtreme:
+              shared === 1 && (above === 0 || above + shared === tally.length) ? 1 : 0,
+            slateId: slate.map((s) => s.rule.ruleId).join('|'),
+          });
+        }
+      }
     }
-    chosen[victim] = alternative;
   }
-  return chosen;
+  if (admissible.length === 0) return null;
+
+  // Lever first, anti-leak second: the budget is measured against the BEST distance cost any
+  // admissible slate reaches, so the anti-leak objective can only choose among slates the difficulty
+  // lever already treats as equivalent.
+  const budget = Math.min(...admissible.map((c) => c.distanceCost)) + DISTANCE_COST_TOLERANCE;
+  return admissible
+    .filter((c) => c.distanceCost <= budget + 1e-9)
+    .sort(
+      (a, b) =>
+        // I3 first: the rank quota is the invariant, and an equal-vote slate satisfies it for free.
+        Number(b.hitsRankTarget) - Number(a.hitsRankTarget) ||
+        // Fewer tiers is less information; one tier is none.
+        a.tiers - b.tiers ||
+        // Only if the quota cannot be met: do not hand any single strategy a certainty.
+        a.uniquelyExtreme - b.uniquelyExtreme ||
+        a.maxShare - b.maxShare ||
+        a.distanceCost - b.distanceCost ||
+        (a.slateId < b.slateId ? -1 : a.slateId > b.slateId ? 1 : 0),
+    )[0].slate;
 }
 
 /* ================================================================== *
@@ -611,6 +720,7 @@ export function genItem({
   geom,
   distractorSimilarity,
   keyPosition,
+  voteRankTarget,
   glyphIndex,
   systemPersistence,
   systemSeed,
@@ -640,8 +750,20 @@ export function genItem({
     throw new Error(`chain ${chain.join('>')} is a no-op on its input (seed ${seed})`);
   }
 
-  const distractors = chooseDistractors(chain, input, key, distractorSimilarity);
-  if (distractors === null) throw new Error(`fewer than 4 distinct distractors (seed ${seed})`);
+  // The client's whole posterior over the item, computed once and shared by the slate search and the
+  // per-item audit below, so the invariants and the reported figure cannot drift apart.
+  const votes = relabelVotes(chain.length, input);
+  const distractors = chooseDistractors(
+    chain,
+    input,
+    key,
+    distractorSimilarity,
+    votes,
+    voteRankTarget,
+  );
+  if (distractors === null) {
+    throw new Error(`no admissible 4-distractor slate under the anti-leak invariants (seed ${seed})`);
+  }
 
   const slot = keyPosition % 5;
   const optionKeys = ['A', 'B', 'C', 'D', 'E'];
@@ -690,6 +812,14 @@ export function genItem({
   const cfg = { depth, geom };
   const difficulty = round2(difficultyFromLevers(cfg, distractorSimilarity));
 
+  // The anti-leak audit, carried PER ITEM so the claim is checkable off the shipped bank rather than
+  // only off a generator run. `optionVotes` is how many relabellings send the chain to each option,
+  // in A..E order; `viableOptions` is how many survive the elimination attack (5 is the target, and
+  // 1 would be a determined item); `maxVoteShare` is the modal attacker's posterior, whose floor is
+  // 1/5 = 0.2 and which equals 0.2 exactly when all five options are equally backed.
+  const optionVotes = figures.map((figure) => votes.get(figureKey(figure)) ?? 0);
+  const totalVotes = optionVotes.reduce((a, b) => a + b, 0);
+
   return {
     itemId: seededUuid(`${systemPersistence}|${seed}`),
     typeCode: 'FLU-OPCHAIN-01',
@@ -719,6 +849,12 @@ export function genItem({
       strategyTrace,
       strategyTraceRules: FAILURES.map((f) => f.kind),
       keyDistanceFromInput: figureDistance(input, key),
+      relabelling: {
+        optionVotes,
+        viableOptions: optionVotes.filter((v) => v > 0).length,
+        maxVoteShare: totalVotes === 0 ? 1 : round2(Math.max(...optionVotes) / totalVotes),
+        minVoteShare: totalVotes === 0 ? 1 : round2(Math.min(...optionVotes) / totalVotes),
+      },
       distractorRationales,
     },
     scoring: { mode: 'deterministic_key' },
@@ -737,6 +873,10 @@ export function genItem({
         systemPersistence,
         systemSeed,
         keyPosition,
+        // Which of the five vote ranks the key is aimed at, round-robin across the bank. This is the
+        // anti-leak rank quota (I3), recorded as a lever so the item stays reproducible from its own
+        // provenance and the checker can re-derive the invariant rather than trust it.
+        voteRankTarget,
         glyphIndex,
         // Full precision (not rounded): enables exact, reproducible regeneration.
         distractorSimilarity,
@@ -745,6 +885,40 @@ export function genItem({
     syntheticOnly: true,
     validated: false,
   };
+}
+
+/**
+ * What makes two items the SAME QUESTION, for the purpose of refusing to ship both.
+ *
+ * `learning-block.ts` forbids re-serving an item, because a re-served item measures recall of that
+ * item rather than the system. Two items that differ only in `itemId` are a repeat wearing a new
+ * label, and if they also carry different stated difficulties they are the §1.1(d) structured
+ * labelling error as well — the same question priced twice. At six items per rung the stimulus space
+ * was wide enough to hide this; at twelve it is not, and the first 12/rung draw produced one such
+ * pair at difficulty 1.09 and 1.80.
+ *
+ * Two properties of the fingerprint are deliberate and both are load-bearing.
+ *
+ * It is ARM-INDEPENDENT: it names the operator chain, not the badge chain. A badge-sensitive
+ * fingerprint would let the two arms collide at different points and therefore redraw at different
+ * points, so they would contain different items — which would break the item-for-item equating the
+ * whole control condition rests on.
+ *
+ * It is INSENSITIVE TO OPTION ORDER, and identifies the answer by its FIGURE rather than by its slot.
+ * Two items showing the same input, the same chain and the same five pictures are the same question
+ * even when the key has been round-robined into a different position: a child who remembers the
+ * picture is right again wherever it sits. An order-sensitive fingerprint misses those — it left four
+ * such pairs in the 6/rung bank on `dev` and would have left ten here, which `qa/audit_banks.mjs`
+ * reports as "near-identical once option ordering is normalised".
+ */
+export function stimulusFingerprint(item) {
+  const keyFigure = item.content.options.find((o) => o.key === item.answer.correctKey).figure;
+  return JSON.stringify([
+    figureKey(item.content.input),
+    item.answer.operatorChain,
+    figureKey(keyFigure),
+    item.content.options.map((o) => figureKey(o.figure)).sort(),
+  ]);
 }
 
 /* ================================================================== *
@@ -760,13 +934,21 @@ export function genItem({
  * children are. The U0 harness measures whether this bank actually delivers it
  * (Gate A check A3) rather than taking the granularity as proof.
  * ================================================================== */
-export function buildBank({ systemPersistence, perRung = 6, systemSeed = 'FLU-OPCHAIN-01|v1' }) {
+export function buildBank({ systemPersistence, perRung = 12, systemSeed = 'FLU-OPCHAIN-01|v1' }) {
   const items = [];
   const rungs = [];
   for (let d = 1; d <= 20 + 1e-9; d += 0.5) rungs.push(round2(d));
 
-  let keyCursor = 0;
+  // One global item counter driving three balanced allocations.
+  //
+  // The key's screen POSITION takes `n % 5` and the key's vote RANK takes `floor(n / 5) % 5`, so the
+  // pair walks all 25 combinations every 25 items. Incrementing both at `n % 5` would have made them
+  // equal on every item, which would hand a client "the key's screen slot tells you its vote rank" —
+  // a leak assembled out of two separate anti-leak measures.
+  let itemCursor = 0;
   let glyphCursor = 0;
+  /** Every stimulus already emitted, so a duplicate question is refused rather than shipped. */
+  const emitted = new Set();
 
   for (const rung of rungs) {
     // The rung window is clipped to its BAND's window as well as to +/-0.24, so an item cannot land
@@ -800,20 +982,38 @@ export function buildBank({ systemPersistence, perRung = 6, systemSeed = 'FLU-OP
       const target = segment.lo + (segment.hi - segment.lo) * ((li + 0.5) / hits[index]);
       const similarity = solveSimilarity(segment.cfg, target);
       const c = segment.cfg;
-      const seed = `FLU-OPCHAIN-01|rung=${rung}|i=${i}|D${c.depth}G${c.geom}`;
-      items.push(
-        genItem({
-          ...c,
-          distractorSimilarity: similarity,
-          // Round-robin over both, so key position and glyph are balanced by construction
-          // rather than by luck (E-094).
-          keyPosition: keyCursor++ % 5,
-          glyphIndex: glyphCursor++ % GLYPHS.length,
-          systemPersistence,
-          systemSeed,
-          seed,
-        }),
-      );
+      const baseSeed = `FLU-OPCHAIN-01|rung=${rung}|i=${i}|D${c.depth}G${c.geom}`;
+      // The cursors advance once per ITEM, not once per redraw attempt, so a redraw cannot shift the
+      // key-position or vote-rank allocation off its round-robin.
+      const lever = {
+        ...c,
+        distractorSimilarity: similarity,
+        // Round-robin over all three, so key position, key vote rank and glyph are balanced by
+        // construction rather than by luck (E-094).
+        keyPosition: itemCursor % 5,
+        voteRankTarget: Math.floor(itemCursor++ / 5) % 5,
+        glyphIndex: glyphCursor++ % GLYPHS.length,
+        systemPersistence,
+        systemSeed,
+      };
+
+      // Redraw on a duplicate stimulus, carrying the attempt in the SEED rather than in a new lever,
+      // so the item stays byte-reproducible from its own provenance: the checker regenerates from
+      // `levers` + `provenance.seed` and lands on the same draw without knowing a redraw happened.
+      let item = null;
+      for (let attempt = 0; attempt < 64 && item === null; attempt++) {
+        const candidate = genItem({
+          ...lever,
+          seed: attempt === 0 ? baseSeed : `${baseSeed}|r${attempt}`,
+        });
+        if (emitted.has(stimulusFingerprint(candidate))) continue;
+        item = candidate;
+      }
+      if (item === null) {
+        throw new Error(`64 redraws at rung ${rung} i=${i} all duplicated an existing stimulus`);
+      }
+      emitted.add(stimulusFingerprint(item));
+      items.push(item);
     }
   }
   return items;
@@ -836,7 +1036,7 @@ export const BANK_PATHS = {
 };
 
 if (isMain()) {
-  const perRung = Number(process.env.PER_RUNG || 6);
+  const perRung = Number(process.env.PER_RUNG || 12);
   const modes = ['consistent', 'perTrial'];
   const banks = {};
 
@@ -900,6 +1100,26 @@ if (isMain()) {
     if (a[i].answer.operatorChain.join('>') !== b[i].answer.operatorChain.join('>'))
       mismatches.push(`item ${i}: operator chain`);
   }
+  // Anti-leak, on the bank just written, so a regeneration that weakened it says so immediately
+  // rather than waiting for the checker. `reportBank` is the same code the before/after comparison
+  // ran, which is the only way the two sides of that comparison are the same measurement.
+  const { reportBank } = await import('../gate-a/opchain-attacker-probe.mjs');
+  reportBank('FLU-OPCHAIN-01.consistent (as just written)', reference);
+
+  // Content fingerprints. `learning-block.ts` forbids re-serving an item because a repeat measures
+  // recall of that item, and two items differing only in `itemId` are a repeat wearing a new label.
+  // Pricing one stimulus at two difficulties would also be the §1.1(d) labelling error directly.
+  const fingerprints = new Map();
+  for (const it of reference) {
+    const fp = JSON.stringify([it.content.input, it.content.chain, it.content.options]);
+    fingerprints.set(fp, (fingerprints.get(fp) ?? 0) + 1);
+  }
+  const collided = [...fingerprints.values()].filter((n) => n > 1).reduce((a, n) => a + n, 0);
+  console.log(
+    `\ncontent fingerprints: ${fingerprints.size} distinct over ${reference.length} items` +
+      (collided > 0 ? ` — ${collided} ITEMS COLLIDE` : ' (no duplicate stimuli)'),
+  );
+
   const distinctSystems = new Set(b.map((it) => it.answer.system.systemId)).size;
   console.log(
     `\nequating: ${mismatches.length === 0 ? 'the two banks match on every scored property' : `MISMATCH — ${mismatches.slice(0, 5).join('; ')}`}`,
