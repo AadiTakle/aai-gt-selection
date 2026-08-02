@@ -636,6 +636,7 @@ export const EXAM_TYPE_REGISTRY: readonly ExamRegistryEntry[] = [
 /** Types with a bank but no servable demo, and why. */
 export const EXAM_BLOCKED_TYPES: readonly { typeCode: string; reason: string }[] = [
   { typeCode: 'CX-achieve-02', reason: 'blocked by qa/NOT_SERVABLE.json: Proven answer leak: content.apparatus ships the closed-form outcome model (base, per-level weights, interaction bonus). Evaluating it over content.conclusion.options and taking the argmax recovers the correct key on 120/120 items WITHOUT running a single trial.' },
+  { typeCode: 'SPA-XFORM-01', reason: 'bank-only: no renderer demo at demos/SPA-XFORM-01.html' },
   { typeCode: 'VER-MORPHO-01', reason: 'bank-only: no renderer demo at demos/VER-MORPHO-01.html' },
 ] as const;
 
