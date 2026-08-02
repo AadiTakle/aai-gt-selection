@@ -817,6 +817,7 @@ export function runSystem({
   const rule = createMasteryRule(criterion);
 
   const warmupItems = [];
+  const warmupServed = [];
   for (let i = 0; i < warmup; i += 1) {
     // Shallowest available: a depth-1 reveal pins its badge outright and teaches what the task is.
     const item = take(true);
@@ -825,6 +826,9 @@ export function runSystem({
     tracker.observePrior(item);
     learner.observe(item, answerOf(item));
     warmupItems.push(item.itemId);
+    // The demonstration resolves in front of the child, so it is evidence a watching client holds
+    // too. §10's attacker replays it, which is why the references are kept and not only the ids.
+    warmupServed.push({ trial: 0, item, chosenKey: answerOf(item) });
     seenItemIds.add(item.itemId);
   }
 
@@ -890,6 +894,7 @@ export function runSystem({
     trials: observed,
     screens: observed + warmupItems.length,
     warmupItems,
+    warmupServed,
     /** First trial the oracle could have answered from prior reveals: the induction ramp. */
     firstDerivable: trials.find((t) => t.derivable)?.trial ?? null,
     determinedTrials: trials.filter((t) => t.derivable).length,

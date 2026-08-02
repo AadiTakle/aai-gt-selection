@@ -36,6 +36,11 @@ import {
   runBlock,
   sessionSupply,
 } from './stage2-rotation.mjs';
+import {
+  attackBlock,
+  crossSessionTransfer,
+  itemsToPin,
+} from './stage2-rotation-attack.mjs';
 
 /* ================================================================== *
  * Flags and formatting
@@ -909,12 +914,199 @@ console.log(
 );
 
 /* ================================================================== *
- * 10. The comparison, in one place
+ * 10. F6, the cross-item intersection attack, against a rotating block
+ * ================================================================== */
+
+console.log(
+  '\n## 10. F6 against the rotating design\n\n' +
+    '§9d recorded assumption **A-R7**: that rotation shortens any one mapping\'s exposure enough to ' +
+    'limit\nthe cross-item attack. It was flagged plausible and UNMEASURED. This section measures it ' +
+    'with PR #47\'s\nown probe — `crossItemAttack` and `scoreItem` imported verbatim from ' +
+    '`gate-a/stage2-antileak-comparison.mjs`,\nwith a new adapter because that file\'s adapters read ' +
+    'shipped bank content and this pool is synthesised.\n\n' +
+    'TWO CHANNELS. `onScreen` is PR #47\'s: the client knows only that the output was one of the five ' +
+    'figures,\nwhich is all a static bank scrape gives. `reveal` is the stronger one a LEARNING block ' +
+    'hands over — the\ntrial resolves in front of the child, so the client also knows which figure. ' +
+    'Rotation only works in a\nblock that reveals, so `reveal` is the channel this design has to ' +
+    'answer for.\n',
+);
+
+console.log(
+  '### 10a. Items to pin a mapping, against how long a mapping lives\n\n' +
+    'The attacker holds the pool and the algebra and does not know which badge means which. Items ' +
+    'are drawn\nin a depth-representative order, and `pinned` is PR #47\'s definition: the ' +
+    'hypothesis space collapsing\nto one system.\n',
+);
+const attackPool = pools.get(SIZE);
+const PIN_DRAWS = Number(flag('pin-draws', '120'));
+const pinsFor = (size, channel) => {
+  const out = [];
+  for (let i = 0; i < PIN_DRAWS; i += 1) {
+    const run = itemsToPin({
+      pool: pools.get(size),
+      mapping: makeSystem(size, 880000, i).mapping,
+      channel,
+      sample: 80,
+      label: `${channel}|${size}|${i}`,
+    });
+    if (run !== null && run.collapsedAt !== null) out.push(run.collapsedAt);
+  }
+  return out;
+};
+// The lifetime a pin has to beat: scored trials per system in the recommended configuration.
+const lifeSystems = best[1].blocks.flatMap((b) => b.systems);
+const lifetimes = lifeSystems.map((s) => s.trials);
+console.log(
+  '| size | candidate mappings | onScreen median | reveal: p10 | median | p90 | information bound |',
+);
+console.log('| --- | --- | --- | --- | --- | --- | --- |');
+for (const size of SIZES) {
+  const onScreen = pinsFor(size, 'onScreen');
+  const reveal = pinsFor(size, 'reveal');
+  const count = pools.get(size).oracle.mappings.length;
+  console.log(
+    `| ${size}${size === SIZE ? ' (recommended)' : ''} | ${count} | ${n2(median(onScreen))} | ` +
+      `${n2(quantile(reveal, 0.1))} | **${n2(median(reveal))}** | ${n2(quantile(reveal, 0.9))} | ` +
+      `${n2(Math.log(count) / Math.log(5))} |`,
+  );
+}
+console.log(
+  `\nAgainst that, one system's LIFETIME in the recommended k = ${spendK} block: median ` +
+    `${n2(median(lifetimes))} scored trials,\np10 ${n2(quantile(lifetimes, 0.1))}, p90 ` +
+    `${n2(quantile(lifetimes, 0.9))}. PR #47 pinned the shipped single-system banks after 4–12 ` +
+    'items and scored\n100% on everything after.\n\n' +
+    '`information bound` is log5 of the hypothesis space: a five-option reveal carries at most ' +
+    'log2(5)\nbits, so no mapping over this many candidates can survive more than that many reveals ' +
+    'however the\nitems are chosen. THE OBSERVED MEDIAN IS AT THE BOUND, which means the attack is ' +
+    'not exploiting a\nweakness in the pool that a better pool would remove — it is reading the ' +
+    'reveals, and the reveals are\nthe feature. Making the pin outlast a median 8-trial system ' +
+    'would need a hypothesis space above 5^8,\nabout 390,000 mappings, against 120 at size 5 and 720 ' +
+    'at the shipped size 6. That is roughly a\nnine-badge vocabulary, and §6 sized the system at ' +
+    'five for reasons that have nothing to do with this.\n',
+);
+
+console.log(
+  '### 10b. Where the pin lands inside a real block, and what the attacker scores\n\n' +
+    'The attacker rides along with the blocks §4 measured, answering each trial BEFORE that trial\'s ' +
+    'own\nreveal arrives, and losing everything at each rotation. `k = 1, 30 trials` is the current ' +
+    'design.\nScoring is PR #47\'s `scoreItem`, so a certainty means what it means there.\n',
+);
+console.log(
+  '| arm | mean pin trial | systems ever pinned | trials before the pin | attacker accuracy | before pin | after pin |',
+);
+console.log('| --- | --- | --- | --- | --- | --- | --- |');
+const attackArms = [
+  ['k = 1, 30 trials (current design)', { k: 1, budget: null, cap: 30, stopOnCrack: false }],
+  ['k = 3, budget-matched', { k: 3, budget: BUDGET, cap: CAP }],
+  ['k = 5, budget-matched', { k: 5, budget: BUDGET, cap: CAP }],
+];
+const attackResults = new Map();
+for (const [label, options] of attackArms) {
+  const runs = runCell(options).map((block) =>
+    attackBlock({ pool: attackPool, block, channel: 'reveal' }),
+  );
+  attackResults.set(label, runs);
+  const systems = runs.flatMap((r) => r.perSystem).filter((s) => s.trials > 0);
+  const pinned = systems.filter((s) => s.pinnedAt !== null);
+  const before = systems.reduce((a, s) => a + s.beforePin, 0);
+  const trials = systems.reduce((a, s) => a + s.trials, 0);
+  // Accuracy split at the pin, over trials rather than over systems, so a long system counts more.
+  let beforeHits = 0;
+  let beforeN = 0;
+  let afterHits = 0;
+  let afterN = 0;
+  for (const r of runs) {
+    for (const s of r.perSystem) {
+      if (s.trials === 0) continue;
+      const cut = s.pinnedAt ?? s.trials;
+      beforeN += cut;
+      afterN += s.trials - cut;
+      beforeHits += s.beforeHits;
+      afterHits += s.afterHits;
+    }
+  }
+  console.log(
+    `| ${label} | ${n2(mean(pinned.map((s) => s.pinnedAt)))} | ` +
+      `${pct(pinned.length / systems.length)} | ${pct(before / trials)} | ` +
+      `**${pct(mean(runs.map((r) => r.accuracy).filter((x) => x !== null)))}** | ` +
+      `${pct(beforeN === 0 ? null : beforeHits / beforeN)} | ` +
+      `${pct(afterN === 0 ? null : afterHits / afterN)} |`,
+  );
+}
+
+console.log(
+  '\n### 10c. Does a scrape survive into the next session?\n\n' +
+    'The severe property of the shipped design is permanence: one scrape pins the bank and every ' +
+    'future\nchild is served items the attacker already holds. Tested literally — pin session A\'s ' +
+    "mapping, then\nanswer session B's items with it.\n\n" +
+    '**The control is not the guessing floor, it is a mapping picked at random and never scraped.** ' +
+    'Two\nbijections over five badges agree somewhere by coincidence, so a stale pin scores above ' +
+    'the floor for\nreasons that have nothing to do with having scraped anything. If the pinned ' +
+    'mapping does no better\nthan the guessed one, the scrape carried nothing.\n',
+);
+const transfers = [];
+for (let i = 0; i < 40; i += 1) {
+  const t = crossSessionTransfer({
+    pool: attackPool,
+    sessionA: makeSystem(SIZE, 880000, i).mapping,
+    sessionB: makeSystem(SIZE, 881000, i).mapping,
+  });
+  if (t !== null && !t.sameMapping) transfers.push(t);
+}
+const sameSession = crossSessionTransfer({
+  pool: attackPool,
+  sessionA: makeSystem(SIZE, 880000, 0).mapping,
+  sessionB: makeSystem(SIZE, 880000, 0).mapping,
+});
+console.log('| attacker on the next session | accuracy |');
+console.log('| --- | --- |');
+console.log(
+  `| pinned mapping, SAME session (the shipped design's permanence) | **${pct(sameSession.carried)}** |`,
+);
+console.log(
+  `| pinned mapping from session A, applied to session B | ${pct(mean(transfers.map((t) => t.carried)))} |`,
+);
+console.log(
+  `| a mapping guessed at random, never scraped (control) | ${pct(mean(transfers.map((t) => t.guessed)))} |`,
+);
+console.log(
+  `| no mapping knowledge at all, vote over the full family | ${pct(mean(transfers.map((t) => t.residual)))} |`,
+);
+console.log(`| guessing floor | ${pct(1 / 5)} |`);
+console.log(
+  `\n${n2(100 * mean(transfers.map((t) => t.refuted)))}% of the next session's items cannot be keyed ` +
+    "by the stale mapping at all. Averaged over\n" +
+    `${transfers.length} session pairs.\n`,
+);
+
+console.log(
+  '### 10d. What separates the attacker from a child who has cracked the system\n\n' +
+    'A child who cracks a system by trial 9 has done the same computation. In the recommended ' +
+    'configuration:\n',
+);
+const pinTrials = (attackResults.get('k = 5, budget-matched') ?? [])
+  .flatMap((r) => r.perSystem)
+  .filter((s) => s.pinnedAt !== null)
+  .map((s) => s.pinnedAt);
+const crackTrials = lifeSystems.filter((s) => s.event).map((s) => s.crackTrial);
+console.log('| | p10 | median | p90 |');
+console.log('| --- | --- | --- | --- |');
+console.log(
+  `| attacker pins the mapping at trial | ${n2(quantile(pinTrials, 0.1))} | ` +
+    `**${n2(median(pinTrials))}** | ${n2(quantile(pinTrials, 0.9))} |`,
+);
+console.log(
+  `| child demonstrates mastery at trial | ${n2(quantile(crackTrials, 0.1))} | ` +
+    `**${n2(median(crackTrials))}** | ${n2(quantile(crackTrials, 0.9))} |`,
+);
+
+/* ================================================================== *
+ * 11. The comparison, in one place
  * ================================================================== */
 
 const single = cells.get(1);
 console.log(
-  '\n## 10. The comparison, in one place\n\n' +
+  '\n## 11. The comparison, in one place\n\n' +
     '| arm | trials | ICC(1,1) | rank recovery |\n| --- | --- | --- | --- |\n' +
     `| current design: 1 system, 30 trials, per-primitive latency | 30.00 | ` +
     `${n2(baselinePerPrimitive.vc?.icc)} | ${n2(baselinePerPrimitive.rho)} |\n` +

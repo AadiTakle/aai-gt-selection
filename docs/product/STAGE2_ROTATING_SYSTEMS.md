@@ -30,6 +30,16 @@ crack-time block has no rungs — a single-depth supply matches the mixed defaul
 size that stops strong children flooring out (13.3% at floor, against 62.7% at size 3) is also the
 size whose items keep all five options reachable.
 
+**A third measurement, and it is a negative one.** §9d assumed rotation's short per-mapping exposure
+would also blunt the within-session cross-item attack. **§10 ran the attack and refutes that.** The
+mapping is pinned after a median of 4 items against a system that lives 8, and a rotating block
+concedes **89.8%** to the attacker against the current design's 96.8% — a 7-point gain against a 20%
+floor, which is not a mitigation. What rotation *does* break is permanence: a scrape applied to the
+next session scores 24.9% against 24.0% for a mapping guessed at random and never scraped. **The
+security claim is therefore narrower than §9 alone would suggest — rotation fixes the scraping
+defect, not the live intersection attack**, which is bounded below by how much the reveals disclose
+and is unsolved in both designs.
+
 **Requirements served:** R5 (a decision-used measure must have a defensible relationship to what it
 claims to measure — the whole document is a variance-ratio argument), R6 (measure growth without a
 gifted-student ceiling — §6 is the ceiling test and it is the least comfortable section), R7
@@ -40,7 +50,8 @@ conclusion — §5 and §8), H1, H6.
 manufactured-rate problem, which is why answerability has to be separable from correctness before any
 crack-time means anything), E-075/E-076 (content-derivability, re-checked here through the same
 oracle code path that computes answerability), E-211 (PR #42's acquisition-latency measurement, whose
-criterion and survival machinery this run imports rather than restates). **No new E or D ID is
+criterion and survival machinery this run imports rather than restates), PR #47's F6 cross-item
+attack (imported verbatim in §10, not re-implemented). **No new E or D ID is
 claimed.** This is a simulation of a design that has not been approved, and minting an evidence ID
 for a planted correlation would be exactly the error §5 warns about. **New assumptions: A-R1 through
 A-R6, §8.**
@@ -49,7 +60,7 @@ A-R6, §8.**
 
 ```
 pnpm stage2:rotation                                 # the full run, ~35s, deterministic
-pnpm --filter @gt-selection/web test                 # includes this simulation's 21 assertions
+pnpm --filter @gt-selection/web test                 # includes this simulation's 24 assertions
 ```
 
 Raw output is committed at `research/exam-question-types/stage2-rotation-output.md`, so every number
@@ -371,9 +382,12 @@ children actually carry a discarded mapping forward is an empirical question.
 - **A-R6.** The measured item pool is representative of what a generator could actually produce for
   a rotating design. No bank rotates today, so this is an assumption about a bank that does not
   exist. §9b prices supply against this pool, so the headroom figures inherit the assumption.
-- **A-R7.** A rotating block's shorter per-mapping exposure limits the within-session intersection
-  attack. §9d. **Not measured** — PR #51's F6 pinning procedure has not been run against a rotating
-  block, and no security claim should rest on this until it has.
+- **A-R7. REFUTED, §10.** A rotating block's shorter per-mapping exposure was assumed to limit the
+  within-session intersection attack. F6 has now been run against the design and it does not: the
+  pin needs a median of 4 items against a median 8-trial system, and block-level attacker accuracy
+  falls only from 96.8% to 89.8%. The permanence half of the assumption is **supported** and
+  promoted to a finding — a scrape is worth 0.9 points over never having scraped. Retained as a
+  refuted entry rather than deleted, because the original claim was communicated.
 
 **What is deliberately out of scope:** any change to a bank, generator, checker or renderer; any
 wiring into the live block; any change to `packages/exam-scoring` or the estimator; any Gate A or
@@ -511,14 +525,148 @@ two orders of magnitude smaller than a difficulty-ladder block's, so an admissib
 one is immaterial to the other. If a future design re-introduced fine difficulty targeting *within* a
 rotating system, PR #51's constraint would come back with it.
 
-**Two things this section does not establish.** It does not measure the *within-session* intersection
-attack that PR #51 also ran — a client narrowing the surviving mappings from the reveals it is shown.
-Rotation shortens the exposure of any one mapping to about ten trials before it is discarded, which is
-a plausible mitigation, but plausible is not measured and the F6 procedure should be re-run against a
-rotating block before any security claim is made. It also does not establish that a generator can
-*produce* a rotating pool with these properties (A-R6); the pool here is synthesised in memory.
+**Two things this section does not establish, one of which has since been measured.** It does not
+measure the *within-session* intersection attack — a client narrowing the surviving mappings from the
+reveals it is shown. **§10 now runs that attack, and it refutes the mitigation this section
+originally proposed:** the pin needs a median of 4 items against a system lifetime of 8, and a
+rotating block still concedes 89.8% against the current design's 96.8%. Read the security claim in
+this section as covering *permanence only*. It also does not establish that a generator can *produce*
+a rotating pool with these properties (A-R6); the pool here is synthesised in memory.
 
-## 10. Recommendation
+## 10. F6 against the rotating design: A-R7 measured
+
+§9d assumed, without measuring, that rotation's shorter per-mapping exposure limits the cross-item
+intersection attack. **That assumption is half right, and the half that fails is the half that was
+offered as a mitigation.** F6 is run here with PR #47's own probe — `crossItemAttack` and `scoreItem`
+imported verbatim from `research/exam-question-types/gate-a/stage2-antileak-comparison.mjs`, with a
+new adapter because that file's adapters read shipped bank content and this pool is synthesised.
+
+**Headline: rotation does not mitigate the within-session attack. It does break permanence
+completely.**
+
+Two channels are scored. `onScreen` is PR #47's — the client knows only that the output was one of
+the five figures, which is all a static bank scrape gives. `reveal` is the stronger channel a
+*learning* block hands over: the trial resolves in front of the child, so the client also knows
+which figure. **Rotation only works in a block that reveals**, so `reveal` is the channel this design
+has to answer for.
+
+### 10a. Items to pin, against how long a mapping lives
+
+| size | candidate mappings | onScreen median | reveal p10 | reveal median | reveal p90 | information bound |
+| --- | --- | --- | --- | --- | --- | --- |
+| 3 | 6 | never | 2 | **2** | 5 | 1.11 |
+| 4 | 24 | 25 | 2 | **3** | 5 | 1.97 |
+| **5 (recommended)** | 120 | 14 | 3 | **4** | 6.1 | 2.97 |
+| 6 | 720 | 14 | 4 | **6** | 10 | 4.09 |
+
+A size-5 system's **lifetime** in the recommended block is a median of 8 scored trials (p10 4, p90
+15). The pin needs 4. **The attack lands comfortably inside a system's life, not at its boundary.**
+
+**And no pool change fixes it.** `information bound` is log₅ of the hypothesis space: a five-option
+reveal carries at most log₂5 bits, so no mapping over that many candidates survives more than that
+many reveals however the items are chosen. The observed median sits *at* the bound. The attack is not
+exploiting a weakness a better-constructed pool would remove — it is reading the reveals, and the
+reveals are the pedagogical feature the whole design is built on. Making the pin outlast a median
+8-trial system needs a hypothesis space above 5⁸ ≈ 390,000 mappings, roughly a nine-badge vocabulary,
+against 120 at size 5 and 720 at the shipped size 6. §6 sized the system at five for reasons that
+have nothing to do with this, and enlarging it to nine would break every crack-time result above.
+
+Note the direction: **the recommended size 5 is *more* pinnable than the shipped size 6** (median 4
+against 6), because shrinking the vocabulary shrinks the hypothesis space. That is a cost of the
+sizing recommendation that §6 did not price.
+
+### 10b. What the attacker scores across a whole block
+
+The attacker rides along with the blocks §4 measured, committing to each trial *before* that trial's
+reveal arrives, and losing its entire hypothesis state at every rotation.
+
+| arm | mean pin trial | systems ever pinned | share of trials before the pin | **attacker accuracy** | before pin | after pin |
+| --- | --- | --- | --- | --- | --- | --- |
+| k = 1, 30 trials (current design) | 3.40 | 100.0% | 11.3% | **96.8%** | 71.6% | 100.0% |
+| k = 3, budget-matched | 3.33 | 94.9% | 35.2% | **89.3%** | 70.5% | 100.0% |
+| k = 5, budget-matched | 3.08 | 92.3% | 34.8% | **89.8%** | 70.7% | 100.0% |
+
+**Rotation buys 7 points against a 20% floor. That is not a mitigation.** It works as far as it goes —
+the share of trials the attacker answers unpinned rises from 11.3% to about 35%, which is exactly the
+effect A-R7 predicted — but two things cancel most of it. The pin arrives at trial 3 of a system that
+lives 8, so rotation is re-arming an attacker that re-pins almost immediately. And the attacker is
+not helpless before the pin: voting over the surviving mappings scores **70.7%** while still unpinned,
+because after one or two reveals the survivor set already agrees about most items.
+
+An 89.8% attacker and a 96.8% attacker are the same finding for a selection instrument. **Anyone who
+was told rotation might fix the cross-item attack should be told it does not.**
+
+### 10c. Permanence, which rotation genuinely does break
+
+The severe property of the shipped design is that one scrape pins the bank and every future child is
+served items whose answers the attacker already holds. Tested literally: pin session A's mapping,
+then answer session B's items with it. **The control is not the guessing floor** — two bijections over
+five badges agree somewhere by coincidence, so a stale pin scores above the floor for reasons that
+have nothing to do with having scraped anything. The control is a mapping picked at random and never
+scraped.
+
+| attacker on the next session | accuracy |
+| --- | --- |
+| pinned mapping, same session (the shipped design's permanence) | **100.0%** |
+| pinned mapping from session A, applied to session B | 24.9% |
+| a mapping guessed at random, never scraped — **the control** | 24.0% |
+| no mapping knowledge at all, vote over the full family | 23.2% |
+| guessing floor | 20.0% |
+
+**A scrape is worth 0.9 points over guessing, which is nothing.** 28.0% of the next session's items
+the stale mapping cannot key at all. Averaged over 40 session pairs. This is the clean positive
+result and it is the one that matters for the defect PR #51 set out to fix: *scraping stops being
+permanent*.
+
+**What an attacker does retain across sessions**, stated precisely, because "the mappings are fresh"
+is not the same as "the attacker starts over":
+
+- **The item structures.** Every chain, input and option slate is still shared, and if the pool ships
+  they are known in advance. Rotation re-keys the mapping, not the items.
+- **The ability to enumerate.** The vocabulary and the algebra are public, so the full bijection
+  family is always available — that is what the 23.2% row is.
+- **The per-item leak.** Voting over the full family scores 23.2% against a 20.0% floor. That 3.2
+  points is permanent, does not depend on any scrape, and is the residual the per-item families
+  (F1–F5) are about. It is not affected by rotation in either direction.
+- **Nothing about which badge means which.** That, and only that, is what a fresh draw destroys.
+
+### 10d. What separates the attacker from a child who has cracked the system
+
+| | p10 | median | p90 |
+| --- | --- | --- | --- |
+| attacker pins the mapping at trial | 2 | **3** | 5 |
+| child demonstrates mastery at trial | 6 | **8** | 14 |
+
+**In the served data, nothing distinguishes them in kind — only in speed.** Both perform the same
+computation on the same evidence and both then answer correctly; the block records a response and a
+correctness, and after the pin the attacker's record is a child's record with a shorter ramp. The two
+distributions here barely overlap (attacker p90 = 5 against child p10 = 6), so an *unmodified*
+attacker is detectable as an implausibly fast learner.
+
+**That detection is worth very little, and it should not be presented as a control.** The attacker
+chooses its own accuracy. One that answers at a plausible rate on a plausible ramp is
+indistinguishable from a strong child by construction, and it still scores whatever it wants to
+score. Speed-based detection catches only an attacker that is not trying to avoid it.
+
+### 10e. Verdict on A-R7
+
+**A-R7 is refuted as written and must not be repeated.** It claimed the ~10-trial exposure limits the
+cross-item attack; the pin needs 4 items and arrives at trial 3, and the block-level attacker drops
+only from 96.8% to 89.8%. The claim that rotation *might fix the cross-item attack* is wrong and
+should be corrected with anyone who has heard it.
+
+**The permanence half is now supported by measurement rather than assumed** (§10c), and it is
+promoted from an assumption to a finding: a scrape carries 0.9 points over never having scraped.
+
+**What this does and does not change.** It does not change any reliability result — the attacker is
+not a child and §4 is untouched. It does not make rotation *worse* than the current design on this
+axis; 89.8% beats 96.8%. It does narrow the security claim in §9 from "rotation solves the security
+problem" to "rotation solves the *permanence* half of it". The within-session intersection attack is
+unsolved in both designs, it is bounded below by the information content of the reveals, and it
+needs a different mechanism — server-side answer checking without a full reveal, a reveal that does
+not disclose the resolved figure, or per-child item selection — none of which is in scope here.
+
+## 11. Recommendation
 
 **Build it, after one study, at k = 2 or 3 and system size 5.**
 
@@ -527,13 +675,20 @@ recovery 0.48 → 0.67–0.76, with no extra trials and non-overlapping bootstra
 sensitivity sweep reverses it. Sizes 5 and 6 put the mid-ability median crack-time at 9 trials,
 inside the target band, with no hard floor at the top.
 
-**Size 5 also carries the security fix, at no cost to the measurement.** A rotating block is already
-per-session keyed, and §9 finds the pool supports it with 24× supply headroom, five reachable options
-per item and balanced key positions. The reason PR #51 could not ship the same fix for the current
-block — 87.8% of half-point rungs left short — does not survive a change of measure: §9c finds a
-single-depth item supply matches the calibrated mix. **This makes the case materially stronger than
-reliability alone**, because it converts a live defect into something the redesign fixes on the way
-past, rather than a second project. It does not weaken the condition below.
+**Size 5 also carries half of the security fix, at no cost to the measurement.** A rotating block is
+already per-session keyed, and §9 finds the pool supports it with 24× supply headroom, five reachable
+options per item and balanced key positions. The reason PR #51 could not ship the same fix for the
+current block — 87.8% of half-point rungs left short — does not survive a change of measure: §9c
+finds a single-depth item supply matches the calibrated mix. So the **permanence** defect, where one
+scrape breaks the bank for every future child, is fixed on the way past rather than as a second
+project (§10c: a scrape carries 0.9 points over guessing).
+
+**The other half is not fixed, and §10 measured it rather than assuming it.** The within-session
+intersection attack still scores **89.8%** against the current design's 96.8%. That is bounded below
+by how much the reveals disclose, not by anything about rotation, so no version of this design closes
+it. Rotation is not worse than the incumbent here, but it must not be sold as the fix. Closing it
+needs a separate mechanism — server-side checking without a full reveal, or a reveal that does not
+disclose the resolved figure — and that is out of scope for this workstream.
 
 **k = 2 or 3, not more.** Beyond three systems a 30-trial budget cannot deliver what is asked for: the
 sweep administers at most 3.5 systems whatever k says, and the extra requested systems are censored

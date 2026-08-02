@@ -426,7 +426,87 @@ so the rows above bear on whether the BLOCK needs a spread of rungs — not on w
 should keep its finer levers for other purposes.
 
 
-## 10. The comparison, in one place
+## 10. F6 against the rotating design
+
+§9d recorded assumption **A-R7**: that rotation shortens any one mapping's exposure enough to limit
+the cross-item attack. It was flagged plausible and UNMEASURED. This section measures it with PR #47's
+own probe — `crossItemAttack` and `scoreItem` imported verbatim from `gate-a/stage2-antileak-comparison.mjs`,
+with a new adapter because that file's adapters read shipped bank content and this pool is synthesised.
+
+TWO CHANNELS. `onScreen` is PR #47's: the client knows only that the output was one of the five figures,
+which is all a static bank scrape gives. `reveal` is the stronger one a LEARNING block hands over — the
+trial resolves in front of the child, so the client also knows which figure. Rotation only works in a
+block that reveals, so `reveal` is the channel this design has to answer for.
+
+### 10a. Items to pin a mapping, against how long a mapping lives
+
+The attacker holds the pool and the algebra and does not know which badge means which. Items are drawn
+in a depth-representative order, and `pinned` is PR #47's definition: the hypothesis space collapsing
+to one system.
+
+| size | candidate mappings | onScreen median | reveal: p10 | median | p90 | information bound |
+| --- | --- | --- | --- | --- | --- | --- |
+| 3 | 6 | — | 2.00 | **2.00** | 5.00 | 1.11 |
+| 4 | 24 | 25.00 | 2.00 | **3.00** | 5.00 | 1.97 |
+| 5 (recommended) | 120 | 14.00 | 3.00 | **4.00** | 6.10 | 2.97 |
+| 6 | 720 | 14.00 | 4.00 | **6.00** | 10.00 | 4.09 |
+
+Against that, one system's LIFETIME in the recommended k = 5 block: median 8.00 scored trials,
+p10 4.00, p90 15.00. PR #47 pinned the shipped single-system banks after 4–12 items and scored
+100% on everything after.
+
+`information bound` is log5 of the hypothesis space: a five-option reveal carries at most log2(5)
+bits, so no mapping over this many candidates can survive more than that many reveals however the
+items are chosen. THE OBSERVED MEDIAN IS AT THE BOUND, which means the attack is not exploiting a
+weakness in the pool that a better pool would remove — it is reading the reveals, and the reveals are
+the feature. Making the pin outlast a median 8-trial system would need a hypothesis space above 5^8,
+about 390,000 mappings, against 120 at size 5 and 720 at the shipped size 6. That is roughly a
+nine-badge vocabulary, and §6 sized the system at five for reasons that have nothing to do with this.
+
+### 10b. Where the pin lands inside a real block, and what the attacker scores
+
+The attacker rides along with the blocks §4 measured, answering each trial BEFORE that trial's own
+reveal arrives, and losing everything at each rotation. `k = 1, 30 trials` is the current design.
+Scoring is PR #47's `scoreItem`, so a certainty means what it means there.
+
+| arm | mean pin trial | systems ever pinned | trials before the pin | attacker accuracy | before pin | after pin |
+| --- | --- | --- | --- | --- | --- | --- |
+| k = 1, 30 trials (current design) | 3.40 | 100.0% | 11.3% | **96.8%** | 71.6% | 100.0% |
+| k = 3, budget-matched | 3.33 | 94.9% | 35.2% | **89.3%** | 70.5% | 100.0% |
+| k = 5, budget-matched | 3.08 | 92.3% | 34.8% | **89.8%** | 70.7% | 100.0% |
+
+### 10c. Does a scrape survive into the next session?
+
+The severe property of the shipped design is permanence: one scrape pins the bank and every future
+child is served items the attacker already holds. Tested literally — pin session A's mapping, then
+answer session B's items with it.
+
+**The control is not the guessing floor, it is a mapping picked at random and never scraped.** Two
+bijections over five badges agree somewhere by coincidence, so a stale pin scores above the floor for
+reasons that have nothing to do with having scraped anything. If the pinned mapping does no better
+than the guessed one, the scrape carried nothing.
+
+| attacker on the next session | accuracy |
+| --- | --- |
+| pinned mapping, SAME session (the shipped design's permanence) | **100.0%** |
+| pinned mapping from session A, applied to session B | 24.9% |
+| a mapping guessed at random, never scraped (control) | 24.0% |
+| no mapping knowledge at all, vote over the full family | 23.2% |
+| guessing floor | 20.0% |
+
+27.99% of the next session's items cannot be keyed by the stale mapping at all. Averaged over
+40 session pairs.
+
+### 10d. What separates the attacker from a child who has cracked the system
+
+A child who cracks a system by trial 9 has done the same computation. In the recommended configuration:
+
+| | p10 | median | p90 |
+| --- | --- | --- | --- |
+| attacker pins the mapping at trial | 2.00 | **3.00** | 5.00 |
+| child demonstrates mastery at trial | 6.00 | **8.00** | 14.00 |
+
+## 11. The comparison, in one place
 
 | arm | trials | ICC(1,1) | rank recovery |
 | --- | --- | --- | --- |

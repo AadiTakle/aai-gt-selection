@@ -87,6 +87,7 @@
 
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 
 /* ==================================================================== *
  * SERVED PROJECTION — the only thing any attack is allowed to see.
@@ -529,7 +530,7 @@ function quantSupport(served, mappings) {
  * `keyIndex` enters here and nowhere upstream: the attacks compute votes, the scorer compares them
  * to the truth.
  */
-function scoreItem(votes, keyIndex) {
+export function scoreItem(votes, keyIndex) {
   const survivors = votes.map((n, i) => ({ n, i })).filter((s) => s.n > 0);
   if (survivors.length === 0) {
     // No mapping reaches any option: the brute force has refuted the item, not the key. Credited to
@@ -850,7 +851,7 @@ function sliceQuartiles(entries) {
  * collapses but after how many items, against the 30-60 trials a learning block actually serves.
  * ==================================================================== */
 
-function crossItemAttack(adapter, served, keys, label) {
+export function crossItemAttack(adapter, served, keys, label) {
   // The tray is canonical and identical in every item of a bank, which is what makes "the same
   // unknown every time" true. Asserted rather than assumed: a per-item tray order would make the
   // intersection below meaningless.
@@ -1221,4 +1222,7 @@ function main() {
   for (const r of results) printBank(r);
 }
 
-main();
+// Run the four-bank comparison when invoked directly. `crossItemAttack` and `scoreItem` are also
+// imported by `stage2-rotation-attack.mjs`, which runs F6 against the rotating design; importing
+// this file must not re-measure the banks. Nothing above this line changed with the export.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();

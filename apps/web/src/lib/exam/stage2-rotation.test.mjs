@@ -15,6 +15,11 @@ import {
   runBlock,
   sessionSupply,
 } from '../../../../../research/exam-question-types/stage2-rotation.mjs';
+import {
+  attackAdapter,
+  crossSessionTransfer,
+  itemsToPin,
+} from '../../../../../research/exam-question-types/stage2-rotation-attack.mjs';
 
 /**
  * The rotating-system simulation, at the six places it could be wrong without saying so.
@@ -44,6 +49,9 @@ import {
  *      branch's measurement of the shipped bank, so the size-6 cell has to reproduce its collapse —
  *      and the opposite failure, a perfect admissibility score over a two-option slate, has to be
  *      caught rather than reported as a pass.
+ *   8. THE ATTACKER PINS THE RIGHT THING. §10 scores an F6 attacker against the design and reports a
+ *      negative result. A probe that collapsed onto a mapping other than the one in play, or that
+ *      crossed its two channels, would produce an equally confident number about nothing.
  *
  * Born-synthetic throughout. Nothing here is evidence that rotation measures learning in children.
  */
@@ -130,6 +138,45 @@ describe('re-keying admissibility', () => {
     expect(observed).toBeGreaterThan(0.75 * expected);
     expect(observed).toBeLessThan(1.25 * expected);
     for (const draw of draws) expect(draw.worstSlot).toBeLessThan(0.5);
+  });
+});
+
+describe('the F6 attacker', () => {
+  const truth = makeSystem(SIZE, 880000, 0);
+  const other = makeSystem(SIZE, 881000, 0);
+
+  it('pins the mapping the block is actually using, not merely some mapping', () => {
+    // Soundness. A collapse to one survivor that is not the truth would be the probe converging on
+    // an artefact, and every accuracy figure in §10 would be measuring the wrong thing.
+    const run = itemsToPin({ pool, mapping: truth.mapping, channel: 'reveal', label: 'sound' });
+    expect(run.collapsedAt).not.toBeNull();
+    const adapter = attackAdapter(pool, { channel: 'reveal', truth: truth.mapping });
+    let systems = adapter.allSystems();
+    for (const item of pool.items) {
+      systems = adapter.systemFilter(item, systems);
+      if (systems.length <= 1) break;
+    }
+    expect(systems).toHaveLength(1);
+    expect(mappingKey(systems[0])).toBe(mappingKey(truth.mapping));
+  });
+
+  it('pins no slower on the reveal channel than on the on-screen one', () => {
+    // Knowing WHICH figure resolved is a strictly stronger constraint than knowing it was on the
+    // slate, so this ordering is structural. If it ever inverts, the two channels are crossed.
+    const onScreen = itemsToPin({ pool, mapping: truth.mapping, channel: 'onScreen', label: 'a' });
+    const reveal = itemsToPin({ pool, mapping: truth.mapping, channel: 'reveal', label: 'a' });
+    expect(reveal.collapsedAt).toBeLessThanOrEqual(onScreen.collapsedAt ?? Number.MAX_SAFE_INTEGER);
+  });
+
+  it('carries nothing into a session that redrew its mapping', () => {
+    const t = crossSessionTransfer({ pool, sessionA: truth.mapping, sessionB: other.mapping });
+    expect(t.survivingFromA).toBe(1);
+    // Against a mapping guessed at random and never scraped, not against the guessing floor: two
+    // bijections agree somewhere by coincidence, and that coincidence is not retained knowledge.
+    expect(t.carried).toBeLessThan(t.guessed + 0.05);
+    // ...and the same pin against the SAME session is still total, or the test proves nothing.
+    const same = crossSessionTransfer({ pool, sessionA: truth.mapping, sessionB: truth.mapping });
+    expect(same.carried).toBe(1);
   });
 });
 
