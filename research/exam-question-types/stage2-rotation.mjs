@@ -405,6 +405,103 @@ export function buildPool({
 }
 
 /* ================================================================== *
+ * 2b. Re-keying admissibility
+ * ================================================================== */
+
+const meanOf = (xs) => (xs.length === 0 ? null : xs.reduce((a, b) => a + b, 0) / xs.length);
+
+/** Where an option key sits on the slate, which is what a key-slot imbalance is measured over. */
+const slotOf = (item, key) => item.content.options.findIndex((o) => o.key === key);
+
+/**
+ * Can this pool be re-keyed under a mapping drawn at session time?
+ *
+ * DELIBERATELY THE SIBLING BRANCH'S STATISTIC, not a new one, so the two results can be read
+ * against each other. `feat/stage2-session-keying` asks, for each item and each bijection in the
+ * free family, whether that mapping's output lands on one of the item's options — `keyUnder >= 0` —
+ * and reports the share of the family that does (`admissibleShare`) plus how many DISTINCT options
+ * are ever the key (`reachable`, with four-of-five its shippability bar). `answerByMapping` already
+ * holds exactly that: `buildPool` records the single predicted key under every mapping the oracle
+ * enumerates, and the oracle's family is every bijection over the size's value set.
+ *
+ * TWO FAILURE MODES, AT OPPOSITE ENDS, AND ONLY REPORTING ONE WOULD MISLEAD:
+ *
+ *   TOO MUCH DEPTH FOR THE SIZE. The chain reaches far more figures than a slate holds, so most
+ *   mappings put the answer off screen. `meanAdmissibleShare` collapses. This is the sibling's
+ *   finding and the reason a per-session draw served only part of its bank.
+ *   TOO LITTLE DEPTH FOR THE SIZE. There are so few distinct assignments that they collide onto two
+ *   or three figures. Every mapping is admissible, but the key only ever lands on those few options,
+ *   so the effective guessing floor is 1/`reachable` rather than 1/5 and a client who knows the
+ *   vocabulary can discard the rest. `meanReachable`, `safeFraction` and `meanMaxShare` catch it;
+ *   `meanAdmissibleShare` alone reads it as a perfect score.
+ *
+ * `meanReachable` is not comparable with the shipped bank's in the way `meanAdmissibleShare` is:
+ * this pool draws its slate from reachable figures by construction (§2), so it can only lose options
+ * to assignment collisions, whereas the shipped generator's distractors are named partial rules and
+ * some are unreachable outright. The share statistic is the one to compare.
+ */
+export function admissibility(pool, { safeAt = OPTION_KEYS.length - 1 } = {}) {
+  const mappings = pool.oracle.mappings.length;
+  const byDepth = {};
+  for (const depth of pool.depths) {
+    const bucket = pool.byDepth.get(depth) ?? [];
+    if (bucket.length === 0) continue;
+    const shares = [];
+    const reachable = [];
+    const maxShares = [];
+    for (const item of bucket) {
+      const admissible = item.answerByMapping.size;
+      shares.push(admissible / mappings);
+      const perSlot = new Array(item.content.options.length).fill(0);
+      for (const key of item.answerByMapping.values()) perSlot[slotOf(item, key)] += 1;
+      reachable.push(perSlot.filter((n) => n > 0).length);
+      maxShares.push(admissible === 0 ? 1 : Math.max(...perSlot) / admissible);
+    }
+    byDepth[depth] = {
+      templates: bucket.length,
+      meanAdmissibleShare: meanOf(shares),
+      meanReachable: meanOf(reachable),
+      safeFraction: reachable.filter((r) => r >= safeAt).length / reachable.length,
+      deadFraction: reachable.filter((r) => r <= 1).length / reachable.length,
+      meanMaxShare: meanOf(maxShares),
+    };
+  }
+  return { size: pool.size, mappings, byDepth };
+}
+
+/**
+ * What ONE session's draw can actually serve, which is the quantity the sibling's shippability
+ * verdict turned on.
+ *
+ * Its bank had to fill forty half-point rungs with five items each and a draw left 87.8% of them
+ * short. A rotating block asks a different question of the same pool — enough unseen servable items
+ * at the depths it serves to reach mastery, a few tens rather than a full ladder — so the supply is
+ * reported as a COUNT against what a block consumes, not as ladder coverage.
+ *
+ * `worstSlot` is the share of this draw's servable items whose key sits on the most-used option
+ * position. The shipped bank balances key position with a round-robin cursor that a session-time
+ * draw does not have, so it is checked rather than assumed.
+ */
+export function sessionSupply(pool, mapping) {
+  const key = mappingKey(mapping);
+  const slots = new Array(OPTION_KEYS.length).fill(0);
+  const perDepth = {};
+  let servable = 0;
+  for (const depth of pool.depths) {
+    const bucket = (pool.byDepth.get(depth) ?? []).filter((item) => item.answerByMapping.has(key));
+    perDepth[depth] = bucket.length;
+    servable += bucket.length;
+    for (const item of bucket) slots[slotOf(item, item.answerByMapping.get(key))] += 1;
+  }
+  return {
+    servable,
+    servableShare: servable / Math.max(1, pool.items.length),
+    perDepth,
+    worstSlot: servable === 0 ? 1 : Math.max(...slots) / servable,
+  };
+}
+
+/* ================================================================== *
  * 3. The learner
  * ================================================================== */
 

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import * as opchain from '../../../../../research/exam-question-types/stage2-inspectors/opchain.js';
 import {
   DEFAULT_CRITERION,
+  admissibility,
   buildPool,
   createLearner,
   createMasteryRule,
@@ -12,6 +13,7 @@ import {
   perPrimitiveLatencies,
   primitiveOpportunity,
   runBlock,
+  sessionSupply,
 } from '../../../../../research/exam-question-types/stage2-rotation.mjs';
 
 /**
@@ -38,6 +40,10 @@ import {
  *   5. CENSORING IS CARRIED, NOT DROPPED. A child who never cracks must still produce an
  *      observation, or every figure biases toward fast learners.
  *   6. DETERMINISM. A seeded run must replay bit-for-bit, or the report is not reproducible.
+ *   7. THE RE-KEYING STATISTIC IS PR #51'S. §9 compares this pool's admissibility with the sibling
+ *      branch's measurement of the shipped bank, so the size-6 cell has to reproduce its collapse —
+ *      and the opposite failure, a perfect admissibility score over a two-option slate, has to be
+ *      caught rather than reported as a pass.
  *
  * Born-synthetic throughout. Nothing here is evidence that rotation measures learning in children.
  */
@@ -86,6 +92,44 @@ describe('the item pool', () => {
         item.answerByMapping.get(mappingKey(b.mapping)),
     );
     expect(differing.length).toBeGreaterThan(0);
+  });
+});
+
+describe('re-keying admissibility', () => {
+  // The size-6 pool is the shipped vocabulary, so this is the cell that has to line up with
+  // `feat/stage2-session-keying` (PR #51) before its numbers and §9's can be read against each other.
+  const wide = buildPool({ size: 6, perDepth: 60, depths: [1, 2, 3] });
+
+  it('reproduces the depth collapse PR #51 measured on the shipped bank', () => {
+    const a = admissibility(wide).byDepth;
+    expect(a[1].meanAdmissibleShare).toBeGreaterThan(0.7);
+    expect(a[3].meanAdmissibleShare).toBeLessThan(0.25);
+    expect(a[1].meanAdmissibleShare).toBeGreaterThan(a[2].meanAdmissibleShare);
+    expect(a[2].meanAdmissibleShare).toBeGreaterThan(a[3].meanAdmissibleShare);
+  });
+
+  it('catches the opposite failure, where every mapping is admissible onto two options', () => {
+    // Size 3 depth 3: only six assignments and they collide, so a perfect admissibility score hides
+    // a slate on which three of the five options are never right.
+    const narrow = admissibility(buildPool({ size: 3, perDepth: 40, depths: [3] })).byDepth[3];
+    expect(narrow.meanAdmissibleShare).toBe(1);
+    expect(narrow.meanReachable).toBeLessThan(3);
+    expect(narrow.safeFraction).toBe(0);
+  });
+
+  it('prices one draw the same way whether counted per item or per session', () => {
+    const perItem = admissibility(wide).byDepth;
+    const expected = wide.depths.reduce(
+      (sum, d) => sum + perItem[d].meanAdmissibleShare * perItem[d].templates,
+      0,
+    );
+    const draws = Array.from({ length: 24 }, (_, i) =>
+      sessionSupply(wide, makeSystem(6, 555000, i).mapping),
+    );
+    const observed = draws.reduce((sum, d) => sum + d.servable, 0) / draws.length;
+    expect(observed).toBeGreaterThan(0.75 * expected);
+    expect(observed).toBeLessThan(1.25 * expected);
+    for (const draw of draws) expect(draw.worstSlot).toBeLessThan(0.5);
   });
 });
 

@@ -27,11 +27,14 @@ import {
 import {
   DEFAULT_CRITERION,
   DEFAULT_DEPTH_MIX,
+  admissibility,
   buildPool,
   hashUnit,
   makePopulation,
+  makeSystem,
   perPrimitiveObservations,
   runBlock,
+  sessionSupply,
 } from './stage2-rotation.mjs';
 
 /* ================================================================== *
@@ -53,6 +56,12 @@ const BUDGET = Number(flag('budget', '30'));
 const CAP = Number(flag('cap', '30'));
 const WARMUP = Number(flag('warmup', '1'));
 const PER_DEPTH = Number(flag('per-depth', '900'));
+// §9's pools go one depth deeper than the design serves, so the curve reaches the depth the sibling
+// branch measured at 13.8%. Per-item admissibility is a mean over mappings and settles quickly, so
+// these buckets are smaller than the simulation's.
+const KEY_PER_DEPTH = Number(flag('keying-per-depth', '300'));
+const KEY_DEPTHS = [1, 2, 3, 4];
+const KEY_DRAWS = Number(flag('keying-draws', '40'));
 const SECONDS_PER_QUESTION = Number(flag('seconds', '15'));
 const BASE_SEED = 20260801;
 const SEED_STRIDE = 7919;
@@ -756,15 +765,156 @@ for (const [label, options] of SENSITIVITIES) {
 }
 
 /* ================================================================== *
- * 9. The comparison, in one place
+ * 9. Per-session re-keying
+ * ================================================================== */
+
+/** The budget-matched k that §3 came out on, so §9 prices the configuration actually recommended. */
+const best = [...cells.entries()].filter(([, c]) => c.vc !== null).sort((a, b) => b[1].vc.icc - a[1].vc.icc)[0];
+
+console.log(
+  '\n## 9. Does the recommended size survive per-session re-keying?\n\n' +
+    'A separate result on `feat/stage2-session-keying` (PR #51) found that drawing the hidden system ' +
+    'at\nsession time — the fix for the scraping defect, where about a dozen items pin a shipped ' +
+    "bank's system\nfor every future child — is not shippable for the CURRENT block: a draw served " +
+    '28% of the bank and left\n87.8% of the half-point rungs short of five items, because ' +
+    'admissibility collapses with chain depth.\n\n' +
+    'This section asks the same question of the rotating design. THE MEASUREMENT MATTERS BECAUSE ' +
+    'ROTATION\nHAS NO CHOICE: the k systems in a block differ only in which badge means which, so ' +
+    'every result in §3\nabove was ALREADY produced under freshly drawn mappings — ten replicates × ' +
+    'k draws apiece, against a\nfixed pool. Re-keying is not an extra mechanism to bolt on here, it ' +
+    'is what makes the block a rotation.\nWhat is not yet established is whether the pool that ' +
+    'supports it is a pool anyone can ship.\n',
+);
+
+console.log(
+  '### 9a. Admissibility by system size and chain depth\n\n' +
+    "PR #51's statistic, unchanged, so the numbers can be read against its. `relabellings on screen` " +
+    'is\nthe share of the free bijection family whose output for that item lands on one of its five ' +
+    'options —\nthe rest cannot serve the item at all in that session. `reachable` counts how many ' +
+    "DISTINCT options are\never the key; PR #51's shippability bar is four of five, and an item well " +
+    'below it has an effective\nguessing floor above 1/5 whatever its admissibility says.\n\n' +
+    `Templates are ${KEY_PER_DEPTH} per (size, depth) cell, one depth deeper than the design serves ` +
+    'so the curve\nreaches where PR #51 measured 13.8%.\n',
+);
+console.log(
+  '| size | mappings | depth | relabellings on screen | mean reachable | ≥4 of 5 reachable | key on one option |',
+);
+console.log('| --- | --- | --- | --- | --- | --- | --- |');
+const keyingPools = new Map(
+  SIZES.map((size) => [size, buildPool({ size, perDepth: KEY_PER_DEPTH, depths: KEY_DEPTHS })]),
+);
+for (const size of SIZES) {
+  const a = admissibility(keyingPools.get(size));
+  for (const [depth, row] of Object.entries(a.byDepth)) {
+    console.log(
+      `| ${size} | ${a.mappings} | ${depth} | **${pct(row.meanAdmissibleShare)}** | ` +
+        `${n2(row.meanReachable)} | ${pct(row.safeFraction)} | ${pct(row.meanMaxShare)} |`,
+    );
+  }
+}
+console.log(
+  '\nPR #51 measured the SHIPPED FLU-OPCHAIN-01 bank — six operators, so the size-6 rows are the ' +
+    'ones to\ncompare — at 78.2% / 25.7% / 13.5% / 13.8% for depths 1 to 4, with mean reachable ' +
+    '4.69 / 4.38 / 3.93 /\n3.67. The share column reproduces that collapse closely, which is what ' +
+    'licenses reading the rest of\nthe table. The reachable column does not, and should not be ' +
+    "compared: this pool draws its slate from\nthe chain's reachable figures by construction (§2), " +
+    "so it loses options only to assignment collisions,\nwhile the shipped generator's distractors " +
+    'are named partial rules and some are unreachable outright.\n\n' +
+    '**The curve has two ends and only one of them is the failure PR #51 found.** Going deeper for a ' +
+    'given\nsize collapses admissibility — that is its result. Going SHALLOWER for a given size ' +
+    'eventually collapses\nthe number of distinct assignments instead: at size 3 depth 3, and at ' +
+    'size 4 depth 4, every mapping is\nadmissible and the key still only ever lands on two of the ' +
+    'five options, so the honest guessing floor is\n0.50 rather than 0.20 and a client that knows ' +
+    'the vocabulary can discard three options unseen. Reading\nthe share column alone would score ' +
+    'those cells as perfect.\n',
+);
+
+console.log(
+  `### 9b. What one draw actually supplies, against what a block spends\n\n` +
+    "PR #51's verdict turned on ladder coverage: five items in each of forty half-point rungs, and a " +
+    'draw\nleft 87.8% of them short. A rotating block does not ask that. It asks for enough unseen ' +
+    'servable items,\nat the depths it serves, to reach mastery k times. So the supply is priced as ' +
+    `a COUNT against\nconsumption. Pools here are the simulation's own (${PER_DEPTH} per depth, ` +
+    `depths ${pool.depths.join('/')}); ${KEY_DRAWS} mapping draws.\n`,
+);
+const spendK = best[0];
+const spend = mean(best[1].blocks.map((b) => b.totalTrials + b.totalScreens));
+console.log(
+  `| size | servable per draw | share of pool | thinnest depth | items a k = ${spendK} block spends | headroom | worst key slot |`,
+);
+console.log('| --- | --- | --- | --- | --- | --- | --- |');
+for (const size of SIZES) {
+  const sizePool = pools.get(size);
+  const draws = Array.from({ length: KEY_DRAWS }, (_, i) =>
+    sessionSupply(sizePool, makeSystem(size, 770000, i).mapping),
+  );
+  const servable = mean(draws.map((d) => d.servable));
+  const thinnest = Math.min(
+    ...sizePool.depths.map((d) => mean(draws.map((x) => x.perDepth[d] ?? 0))),
+  );
+  console.log(
+    `| ${size} | ${n2(servable)} | ${pct(mean(draws.map((d) => d.servableShare)))} | ` +
+      `${n2(thinnest)} | ${n2(spend)} | ${n2(servable / spend)}× | ` +
+      `${pct(Math.max(...draws.map((d) => d.worstSlot)))} |`,
+  );
+}
+console.log(
+  '\n`thinnest depth` is the smallest per-depth servable count, because a block that runs out of ' +
+    'depth-3\nitems degrades into a shallower block rather than stopping, and that would show up as ' +
+    'reliability\nrather than as an error. `worst key slot` is the largest share of one draw\'s ' +
+    "servable items keyed on a\nsingle option position, over the draws — the shipped bank's " +
+    'round-robin cursor does not exist under a\nsession draw, so it is checked; 20.0% is balance.\n',
+);
+
+console.log(
+  '### 9c. Is the half-point difficulty ladder still doing work?\n\n' +
+    'Under the current block the score is the HEIGHT REACHED, so the rung an item sits on is the ' +
+    'measurement\nand the grain has to be fine. Under rotation the score is TRIALS TO CRACK, and ' +
+    'what a trial has to do\nis narrow the candidate set — a property of whether the item is ' +
+    'determined, not of where it sits on a\nladder. Each row below serves the recommended ' +
+    `k = ${spendK} configuration from ONE depth only, or from a\nrestricted range, against the ` +
+    'mixed default.\n',
+);
+console.log(`| item supply | ICC(1,1) | ICC 90% | rank recovery | mean trials | censoring |`);
+console.log('| --- | --- | --- | --- | --- | --- |');
+const LADDERS = [
+  ['mixed default (depth 1/2/3 at 15/50/35)', DEFAULT_DEPTH_MIX],
+  ['depth 1 only', { 1: 1 }],
+  ['depth 2 only', { 2: 1 }],
+  ['depth 3 only', { 3: 1 }],
+  ['depths 1–2 only (the ≥38% admissible band)', { 1: 0.3, 2: 0.7 }],
+];
+for (const [label, depthMix] of LADDERS) {
+  const blocks = runCell({ k: spendK, budget: BUDGET, cap: CAP, depthMix });
+  const { score } = scorer(blocks);
+  const vc = varianceComponents(childGroups(blocks, score));
+  const systems = blocks.flatMap((b) => b.systems);
+  console.log(
+    `| ${label} | ${vc === null ? '—' : n2(vc.icc)} | ${bootstrap(blocks, score, traitOfBlock).icc} | ` +
+      `${n2(rankCorrelation(blocks.map(score), blocks.map(traitOfBlock)))} | ` +
+      `${n2(mean(blocks.map((b) => b.totalTrials)))} | ` +
+      `${pct(systems.filter((s) => s.censored).length / systems.length)} |`,
+  );
+}
+console.log(
+  '\nA single-depth supply is not merely tolerable, it is very slightly BETTER, and the likely ' +
+    'reason is\nmechanical rather than interesting: a homogeneous supply removes item-difficulty ' +
+    'variation from the\nwithin-child error, which is the denominator of the ICC. The intervals ' +
+    'overlap throughout and no row\nhere separates from another; the finding is that the grain does ' +
+    'not matter, not that flatter is better.\n\n' +
+    'WHAT THIS CAN AND CANNOT SETTLE. This pool prices difficulty by chain depth alone. The shipped ' +
+    'ladder\nalso prices the geometric-operator count and the distractor similarity, and those are ' +
+    'not varied here,\nso the rows above bear on whether the BLOCK needs a spread of rungs — not on ' +
+    'whether the generator\nshould keep its finer levers for other purposes.\n',
+);
+
+/* ================================================================== *
+ * 10. The comparison, in one place
  * ================================================================== */
 
 const single = cells.get(1);
-const best = [...cells.entries()]
-  .filter(([, c]) => c.vc !== null)
-  .sort((a, b) => b[1].vc.icc - a[1].vc.icc)[0];
 console.log(
-  '\n## 9. The comparison, in one place\n\n' +
+  '\n## 10. The comparison, in one place\n\n' +
     '| arm | trials | ICC(1,1) | rank recovery |\n| --- | --- | --- | --- |\n' +
     `| current design: 1 system, 30 trials, per-primitive latency | 30.00 | ` +
     `${n2(baselinePerPrimitive.vc?.icc)} | ${n2(baselinePerPrimitive.rho)} |\n` +

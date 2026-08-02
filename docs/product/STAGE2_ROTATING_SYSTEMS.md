@@ -19,6 +19,17 @@ range — inside the top tercile it recovers ability at rho 0.18 from one system
 though §6 shows this is *not* a top-end floor at system sizes 5 and 6, and is no worse at the top
 than in the middle.
 
+**A second argument, added after the first measurement.** Per-session re-keying — the fix for the
+bank-scraping defect, recorded *not shippable* for the current block in
+[PR #51](https://github.com/AadiTakle/aai-gt-selection/pull/51) — **is viable at size 5, and rotation
+already does it.** The k systems in a block are k freshly drawn mappings against one fixed pool, so
+every figure in §4 was measured under session keying. §9 shows why the constraint that broke it does
+not apply: PR #51 failed on *ladder coverage*, five items in each of forty half-point rungs, and a
+crack-time block has no rungs — a single-depth supply matches the mixed default at ICC 0.65 against
+0.62. Security and measurement do not conflict at this size; they point the same way, because the
+size that stops strong children flooring out (13.3% at floor, against 62.7% at size 3) is also the
+size whose items keep all five options reachable.
+
 **Requirements served:** R5 (a decision-used measure must have a defensible relationship to what it
 claims to measure — the whole document is a variance-ratio argument), R6 (measure growth without a
 gifted-student ceiling — §6 is the ceiling test and it is the least comfortable section), R7
@@ -38,7 +49,7 @@ A-R6, §8.**
 
 ```
 pnpm stage2:rotation                                 # the full run, ~35s, deterministic
-pnpm --filter @gt-selection/web test                 # includes this simulation's 18 assertions
+pnpm --filter @gt-selection/web test                 # includes this simulation's 21 assertions
 ```
 
 Raw output is committed at `research/exam-question-types/stage2-rotation-output.md`, so every number
@@ -359,14 +370,155 @@ children actually carry a discarded mapping forward is an empirical question.
   modelled.
 - **A-R6.** The measured item pool is representative of what a generator could actually produce for
   a rotating design. No bank rotates today, so this is an assumption about a bank that does not
-  exist.
+  exist. §9b prices supply against this pool, so the headroom figures inherit the assumption.
+- **A-R7.** A rotating block's shorter per-mapping exposure limits the within-session intersection
+  attack. §9d. **Not measured** — PR #51's F6 pinning procedure has not been run against a rotating
+  block, and no security claim should rest on this until it has.
 
 **What is deliberately out of scope:** any change to a bank, generator, checker or renderer; any
 wiring into the live block; any change to `packages/exam-scoring` or the estimator; any Gate A or
 Gate B claim for any type; any recommendation about which of the four Stage 2 types should carry a
 rotating design.
 
-## 9. Recommendation
+## 9. Per-session re-keying: does the recommended size survive it?
+
+A separate workstream, `feat/stage2-session-keying`
+([PR #51](https://github.com/AadiTakle/aai-gt-selection/pull/51)), tested drawing the hidden system at
+session time instead of baking it into the shipped bank — the fix for a real defect, where scraping
+about a dozen items pins a bank's system permanently for every future child. It was recorded **not
+shippable for the current block**: a session draw served 28% of the bank and left 87.8% of the
+half-point rungs short of five items, because *re-keying admissibility collapses with chain depth*
+(78.2% of relabellings admissible at depth 1, 13.8% at depth 4). Since the current ladder is built out
+of depth, the fix cuts the ladder off at the top.
+
+**The result matters here because rotation has no choice about re-keying.** The k systems in a block
+differ only in which badge means which, so every reliability figure in §4 was *already* produced under
+freshly drawn mappings — ten replicates × k draws each, against one fixed pool. Re-keying is not an
+extra mechanism to add to this design; it is what makes the block a rotation. The open question was
+whether the pool that supports it is one anyone could ship.
+
+### 9a. Admissibility by system size and chain depth
+
+PR #51's statistic, unchanged. `admissible` is the share of the free bijection family whose output for
+an item lands on one of its five options; the rest cannot serve that item in that session.
+`reachable` counts how many *distinct* options are ever the key, and PR #51's shippability bar is four
+of five.
+
+| depth | size 3 | size 4 | **size 5** | size 6 | shipped bank (PR #51, 6 operators) |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 100.0% | 100.0% | **100.0%** | 83.3% | 78.2% |
+| 2 | 100.0% | 71.1% | **38.8%** | 28.0% | 25.7% |
+| 3 | 100.0% | 83.4% | **29.2%** | 16.6% | 13.5% |
+| 4 | — | 100.0% | **50.0%** | 18.4% | 13.8% |
+
+**The size-6 column reproduces PR #51's collapse closely** (83.3 / 28.0 / 16.6 / 18.4 against its 78.2
+/ 25.7 / 13.5 / 13.8), which is what licenses reading the rest of the table as comparable. The
+*reachable-option* counts are not comparable and are reported separately below: this pool draws its
+slate from the chain's reachable figures by construction (§1), so it loses options only to assignment
+collisions, whereas the shipped generator's distractors are named partial rules and some are
+unreachable outright.
+
+**The curve has two ends, and reading admissibility alone would misprice one of them.**
+
+| size | depth | admissible | mean reachable | ≥4 of 5 reachable | key on one option |
+| --- | --- | --- | --- | --- | --- |
+| 3 | 3 | 100.0% | **2.00** | **0.0%** | **50.0%** |
+| 4 | 4 | 100.0% | **2.00** | **0.0%** | **50.0%** |
+| 5 | 2 | 38.8% | 5.00 | 100.0% | 26.2% |
+| 5 | 3 | 29.2% | 5.00 | 100.0% | 28.2% |
+
+Going *deeper* for a given size collapses admissibility — PR #51's finding. Going *shallower* for a
+given size eventually collapses the number of distinct assignments instead. At size 3 depth 3 and at
+size 4 depth 4 every mapping is admissible, yet the key only ever lands on **two of the five options**:
+the honest guessing floor is 0.50 rather than 0.20, and a client that knows the vocabulary can discard
+three options unseen. A shallower-is-safer reading of the admissibility column alone would score those
+cells as perfect and ship a broken item. **Size 5 at depths 1–3 clears both ends**: five reachable
+options everywhere, key position balanced within 8 points of even, and admissibility well above zero.
+
+### 9b. What one draw supplies, against what a block spends
+
+PR #51's verdict turned on ladder coverage — five items in each of forty half-point rungs. A rotating
+block does not ask that. It asks for enough unseen servable items, at the depths it serves, to reach
+mastery k times, which is a few tens. So the supply is priced as a count against consumption (40
+mapping draws, the simulation's own 900-per-depth pool):
+
+| size | servable per draw | share of pool | thinnest depth | items a k = 5 block spends | headroom |
+| --- | --- | --- | --- | --- | --- |
+| 4 | 2,295 | 85.0% | 645 | 63.4 | 36× |
+| **5** | **1,508** | **55.8%** | **264** | **63.4** | **24×** |
+| 6 | 1,151 | 42.6% | 149 | 63.4 | 18× |
+
+Worst key slot over all draws is 22.5% at size 5 against 20.0% for perfect balance, so a session draw
+does not need the shipped bank's round-robin cursor to keep the answer off a predictable position.
+
+**The important thing this table says is that admissibility was never the binding constraint — the
+ladder requirement was.** At size 5, 29.2% admissibility at depth 3 is the *same order* as the shipped
+bank's failing numbers. What changed is not that size 5 sits in a comfortable region; it is that
+rotation asks for 63 items and gets 1,508, where the current block asks for five items in each of
+forty specific rungs and cannot get them.
+
+### 9c. Does rotation still need the half-point ladder?
+
+Under the current block the score is the **height reached**, so the rung an item sits on *is* the
+measurement and the grain has to be fine. Under rotation the score is **trials to crack**, and what a
+trial has to do is narrow the candidate set — a property of whether the item is determined, not of
+where it sits on a ladder. Each row serves the recommended k = 5 configuration from one depth only:
+
+| item supply | ICC(1,1) | ICC 90% | rank recovery |
+| --- | --- | --- | --- |
+| mixed default (depth 1/2/3 at 15/50/35) | 0.62 | 0.53–0.69 | 0.76 |
+| depth 1 only | 0.65 | 0.56–0.71 | 0.76 |
+| depth 2 only | 0.64 | 0.55–0.70 | 0.75 |
+| depth 3 only | 0.65 | 0.56–0.71 | 0.76 |
+| depths 1–2 only | 0.62 | 0.54–0.69 | 0.76 |
+
+**The grain is not doing work.** A block built from a single depth matches the mixed default on every
+figure; all five bands overlap and rank recovery is 0.75–0.76 throughout. Single-depth is very
+slightly *higher*, and the likely reason is mechanical rather than interesting — a homogeneous supply
+removes item-difficulty variation from the within-child error, which is the ICC's denominator. The
+finding is that the grain does not matter, **not** that flatter is better.
+
+This bears directly on PR #51's blocker. Its failure metric was "87.8% of the 0.5-point rungs left
+short of five items". Under rotation there are no 0.5-point rungs to leave short. **The constraint that
+broke per-session keying does not apply to a design measured by crack-time.**
+
+*What this cannot settle:* this pool prices difficulty by chain depth alone. The shipped ladder also
+prices the geometric-operator count and the distractor similarity. Those are not varied here, so the
+rows above bear on whether the *block* needs a spread of rungs — not on whether the generator should
+keep its finer levers for other purposes.
+
+### 9d. Do security and measurement conflict?
+
+**At size 5, no — and the reason is worth stating precisely, because the obvious version of the
+argument is wrong.** The tempting reading is "shallower systems are more admissible, so re-key by going
+shallow". That reading is unsafe in both directions:
+
+| | measurement | security |
+| --- | --- | --- |
+| size 3 | fails — **62.7%** of high-ability crack-times sit at the floor (§6) | fails — depth-3 items reachable on only 2 of 5 options, guessing floor 0.50 |
+| size 4 | marginal — 39.7% at floor, mid-band median 8 | fine at depths 1–3; depth 4 collapses to 2 reachable options |
+| **size 5** | **works — 13.3% at floor, mid-band median 9** | **works — 5 reachable options, balanced key slot, 24× supply headroom** |
+| size 6 | works — 7.0% at floor, mid-band median 9 | works, with 18× headroom and the thinnest depth bucket |
+
+**The two goals point the same way here rather than trading off.** Shrinking the system to buy
+admissibility floors out strong children *and* collapses the option set; the size that fixes the floor
+is also the size with five reachable options and balanced key positions. Sizes 5 and 6 both clear
+both bars, and size 5 has the larger supply margin.
+
+**The honest qualification.** This is not a discovery that size 5 sits in a high-admissibility region —
+it does not, at 29.2% for its modal depth. It is that a rotating block's demand on the pool is roughly
+two orders of magnitude smaller than a difficulty-ladder block's, so an admissibility that is fatal to
+one is immaterial to the other. If a future design re-introduced fine difficulty targeting *within* a
+rotating system, PR #51's constraint would come back with it.
+
+**Two things this section does not establish.** It does not measure the *within-session* intersection
+attack that PR #51 also ran — a client narrowing the surviving mappings from the reveals it is shown.
+Rotation shortens the exposure of any one mapping to about ten trials before it is discarded, which is
+a plausible mitigation, but plausible is not measured and the F6 procedure should be re-run against a
+rotating block before any security claim is made. It also does not establish that a generator can
+*produce* a rotating pool with these properties (A-R6); the pool here is synthesised in memory.
+
+## 10. Recommendation
 
 **Build it, after one study, at k = 2 or 3 and system size 5.**
 
@@ -374,6 +526,14 @@ The reliability gain at a matched budget is real, large and robust: ICC 0.35 →
 recovery 0.48 → 0.67–0.76, with no extra trials and non-overlapping bootstrap bands. Nothing in the
 sensitivity sweep reverses it. Sizes 5 and 6 put the mid-ability median crack-time at 9 trials,
 inside the target band, with no hard floor at the top.
+
+**Size 5 also carries the security fix, at no cost to the measurement.** A rotating block is already
+per-session keyed, and §9 finds the pool supports it with 24× supply headroom, five reachable options
+per item and balanced key positions. The reason PR #51 could not ship the same fix for the current
+block — 87.8% of half-point rungs left short — does not survive a change of measure: §9c finds a
+single-depth item supply matches the calibrated mix. **This makes the case materially stronger than
+reliability alone**, because it converts a live defect into something the redesign fixes on the way
+past, rather than a second project. It does not weaken the condition below.
 
 **k = 2 or 3, not more.** Beyond three systems a 30-trial budget cannot deliver what is asked for: the
 sweep administers at most 3.5 systems whatever k says, and the extra requested systems are censored
@@ -388,7 +548,9 @@ where they are.**
 
 **What the document does not establish.** That crack-time measures learning; that the trait it
 assumes exists; that any of these numbers transfers to children; that the current block is bad
-because two thirds of it is post-mastery — §3 shows the tail is degenerate, not empty. The comparison
+because two thirds of it is post-mastery — §3 shows the tail is degenerate, not empty; that a
+rotating block resists the within-session intersection attack, which §9d flags as unmeasured. The
+comparison
 with PR #42's published figures (ICC 0.59, rank recovery 0.71 on the real bank) is **not** a like-for-
 like comparison: different population, synthetic pool, and a block-level rather than per-primitive
 criterion. Only the rows of §4 are comparable with each other.
