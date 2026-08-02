@@ -490,3 +490,36 @@
     gap: var(--gt-space-3);
   }
 }
+
+/* Per-activity learning rates on the Phase 2 results screen. */
+.rateTable {
+  width: 100%;
+  margin-top: 0.75rem;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.rateTable th,
+.rateTable td {
+  padding: 0.35rem 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid rgb(15 23 42 / 8%);
+}
+
+.rateTable th {
+  font-weight: 600;
+  color: rgb(15 23 42 / 60%);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.rateTable td:nth-child(3) {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.rateTable td:nth-child(4) {
+  font-variant-numeric: tabular-nums;
+  color: rgb(15 23 42 / 55%);
+}

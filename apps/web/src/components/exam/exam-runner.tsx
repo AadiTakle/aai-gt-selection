@@ -1084,14 +1084,37 @@ export function ExamRunner({
                 `${stage2.offered > stage2.completed ? ` of ${stage2.offered} offered` : ''}.`
               : 'We could not run this part — there were not enough unfamiliar puzzles left.'}
           </p>
-          {stage2 && stage2.blocks.length > 1 ? (
-            <ul className={styles.frameNote} style={{ marginTop: '0.5rem', paddingLeft: '1.1rem' }}>
-              {stage2.blocks.map((b) => (
-                <li key={b.spec.id}>
-                  {b.spec.label} — {b.readout.trialCount} puzzles
-                </li>
-              ))}
-            </ul>
+          {stage2 && stage2.blocks.length > 0 ? (
+            <table className={styles.rateTable}>
+              <thead>
+                <tr>
+                  <th>Activity</th>
+                  <th>Puzzles</th>
+                  <th>Learning rate</th>
+                  <th>Margin</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stage2.blocks.map((b) => (
+                  <tr key={b.spec.id}>
+                    <td>{b.spec.label}</td>
+                    <td>{b.readout.trialCount}</td>
+                    <td>{b.readout.lambda === null ? '—' : b.readout.lambda.toFixed(3)}</td>
+                    <td>
+                      {b.readout.lambdaSe === null ? '—' : `± ${b.readout.lambdaSe.toFixed(3)}`}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : null}
+          {stage2 && stage2.blocks.length > 0 ? (
+            <p className={styles.frameNote}>
+              Learning rate is the fitted climb in difficulty points per puzzle, with the margin
+              either side of it. It is provisional: there is no comparison group yet, and at this
+              block length the figure carries a floor, so a rate near zero is not evidence a child
+              did not learn.
+            </p>
           ) : null}
         </section>
 
