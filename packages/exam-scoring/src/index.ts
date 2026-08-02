@@ -25,6 +25,7 @@ export * from './derived-metrics';
 export * from './ability';
 export * from './learning-curve';
 export * from './learning-rate-readout';
+export * from './learning-rate-interval';
 export * from './scorer';
 // The same scoring, packaged as a standalone cloud function (D-019). Exported so a caller can run
 // it in-process during development and deploy the identical code path.

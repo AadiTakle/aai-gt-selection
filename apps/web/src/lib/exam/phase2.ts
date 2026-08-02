@@ -415,10 +415,11 @@ export interface LearningBlockReadout {
    * DIAGNOSTIC ONLY, and never a reportable rate.
    *
    * The fit is kept so a cohort can be ranked once one exists, and so the figure is on the record
-   * for the analysis that will run Gate B. It must not be rendered to a family: at this block
-   * length a child who learned nothing fits a positive value too
-   * (`STAGE2_BANK_RECOVERY_MEASUREMENT.md`), so the number carries a floor that cannot be
-   * subtracted for an individual. No child-facing surface reads it, and a test asserts that.
+   * for the analysis that will run Gate B. It must not be rendered to a family, and D-206 does not
+   * change that: the systematic floor a child who learned nothing used to carry is gone, but at 30
+   * trials the posterior SE alone is about 0.060 against a reference half-width of 0.015, so a
+   * single child's figure still cannot be placed on any scale anyone can defend. No child-facing
+   * surface reads it, and a test asserts that.
    */
   readonly lambda: number | null;
   readonly lambdaSe: number | null;
@@ -430,10 +431,13 @@ export interface LearningBlockReadout {
  *
  * It used to, and that sentence is no longer true. `STAGE2_BANK_RECOVERY_MEASUREMENT.md` measured
  * what this pipeline fits for a cohort that learned NOTHING, against a responder with a real
- * five-option guessing floor: on the bank purpose-built for this block it still returns a positive
- * climb, because the adaptive loop reads lucky early successes as ability, aims higher, and then
- * reads the rising served difficulty as learning. A number that a non-learner also produces is not
- * a measurement of pace, and a block this length cannot separate the two.
+ * five-option guessing floor, and found a positive climb on every bank tried. D-206 removed most of
+ * that particular defect — the targeting rule no longer extrapolates the climb it is estimating —
+ * and a null cohort now fits within a Monte-Carlo standard error of zero on all four Stage 2 banks
+ * and on no bank at all. **It did not make the pace reportable**, and the wording below is
+ * unchanged because the reason it was written is unchanged: at 30 trials one child's estimate is
+ * still far less precise than children are believed to differ, so a rate for an individual would be
+ * invented precision whatever the floor is.
  *
  * So the honest statement to a family has two parts, not one: there is no comparison group, AND
  * the figure itself is not yet reportable on its own. Both are limits of the instrument. Neither

@@ -157,9 +157,9 @@ export const EXAM_TYPE_REGISTRY: readonly ExamRegistryEntry[] = [
     title: 'Machine Chain',
     blurb: 'A machine shows the badges it is about to use, in order; the child works out what each badge does by watching the machine work, then taps the figure it will…',
     ageBands: ['2-3', '4-5', '6-8', 'K-1'],
-    itemCount: 234,
-    difficultyMin: 1.02,
-    difficultyMax: 19.98,
+    itemCount: 468,
+    difficultyMin: 1.01,
+    difficultyMax: 19.99,
     verifier: 'per_type',
     metrics: ['M-ENGAGE', 'M-RAPIDGUESS', 'M-RT', 'M-RTFIRST'],
   },
@@ -636,6 +636,9 @@ export const EXAM_TYPE_REGISTRY: readonly ExamRegistryEntry[] = [
 /** Types with a bank but no servable demo, and why. */
 export const EXAM_BLOCKED_TYPES: readonly { typeCode: string; reason: string }[] = [
   { typeCode: 'CX-achieve-02', reason: 'blocked by qa/NOT_SERVABLE.json: Proven answer leak: content.apparatus ships the closed-form outcome model (base, per-level weights, interaction bonus). Evaluating it over content.conclusion.options and taking the argmax recovers the correct key on 120/120 items WITHOUT running a single trial.' },
+  { typeCode: 'QUANT-GLYPHNUM-01', reason: 'bank-only: no renderer demo at demos/QUANT-GLYPHNUM-01.html' },
+  { typeCode: 'SPA-XFORM-01', reason: 'bank-only: no renderer demo at demos/SPA-XFORM-01.html' },
+  { typeCode: 'VER-MORPHO-01', reason: 'bank-only: no renderer demo at demos/VER-MORPHO-01.html' },
 ] as const;
 
 /** Every wired type code, in registry (alphabetical) order. */
