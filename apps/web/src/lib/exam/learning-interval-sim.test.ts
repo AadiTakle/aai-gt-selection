@@ -92,14 +92,41 @@ describe('simulateLearningBlock', () => {
     expect(trials.length).toBeLessThan(30);
   });
 
+  /**
+   * WHY THIS TEST PINS THE POOL AS WELL AS THE CHILD, since the previous version did not and broke.
+   * It asserted the floor's effect on a low child drawing from the whole grid, on one seed. D-206
+   * changed where `nextTargetTheta` aims, and the corrected loop tracks the child instead of an
+   * extrapolation — so it finds items near whoever is sitting, both children converge on roughly
+   * half correct whatever their floor, and the seed landed them both on exactly 14. Measuring across
+   * 25 seeds instead only moved the totals to 365 against 360: a 1.4% margin, passing by luck.
+   *
+   * That compression is the adaptive loop working, not a defect, and it means a whole-grid pool
+   * cannot test this property any more. So the pool is restricted to items far above the child,
+   * which is what "on items above them" was always supposed to mean: at difficulty >= 15 against a
+   * child at 4, a floorless responder is near zero and a five-option responder collects the chance
+   * rate, and the gap is structural rather than seed-dependent.
+   */
   it('responds to the guessing floor: a floorless child scores less on items above them', () => {
+    const wellAbove = pool.filter((item) => item.difficulty >= 15);
     const hard = { ...child, theta0: 4, standing: 4 };
-    const fiveOption = simulateLearningBlock(pool, hard, 30);
-    const floorless = simulateLearningBlock(pool, { ...hard, responderFloor: 0 }, 30);
-
     const correct = (trials: readonly { score: number }[]) =>
       trials.reduce((sum, trial) => sum + trial.score, 0);
-    expect(correct(floorless.trials)).toBeLessThan(correct(fiveOption.trials));
+
+    let fiveOption = 0;
+    let floorless = 0;
+    for (let seed = 1; seed <= 25; seed += 1) {
+      fiveOption += correct(simulateLearningBlock(wellAbove, { ...hard, seed }, 30).trials);
+      floorless += correct(
+        simulateLearningBlock(wellAbove, { ...hard, seed, responderFloor: 0 }, 30).trials,
+      );
+    }
+
+    expect(floorless).toBeLessThan(fiveOption);
+    // Structural rather than marginal, and summed over seeds so a single unlucky draw cannot
+    // decide it: across 750 trials the five-option child collects about the chance rate while the
+    // floorless child collects almost nothing, which is a margin in the hundreds rather than in
+    // single figures. One block alone is binomial noise around six correct and would flip.
+    expect(fiveOption - floorless).toBeGreaterThan(50);
   });
 });
 
