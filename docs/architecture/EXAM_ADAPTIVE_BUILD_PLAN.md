@@ -155,6 +155,14 @@ items in that one area**, every item stage-marked `'learning'`:
   1PL MAP learning curve returning `{ theta0, lambda, lambdaSe }` (consistent with `ability.ts`).
 - **Readout** — `packages/exam-scoring/src/learning-rate-readout.ts` converts λ to an ordinal
   band (`below | typical | above`) or `indeterminate`.
+- **Interval** — `packages/exam-scoring/src/learning-rate-interval.ts` reports λ as a **range**
+  (posterior mode ± posterior SE) and its evolution trial by trial, with four first-class states:
+  `floor_undeclared`, `insufficient_trials`, `not_distinguishable_from_no_learning` (the interval
+  reaches the declared contamination floor) and `separated_from_no_learning`. It calls the same
+  `estimateLearningCurve` — there is no second estimator — and takes **no** reference `mean`/`sd`,
+  so it is structurally incapable of naming a band. That is deliberate: the bank-recovery
+  measurement found that tightening the posterior *raises* false `above` verdicts, because a block
+  too imprecise to name a band cannot name a wrong one.
 
 **Handover condition** (`blockReadiness`): the area estimate is settled **and** the domain pool
 has ≥30 unseen items. Otherwise the block does not run and the readout is `indeterminate`.
@@ -190,10 +198,14 @@ block alone (see the "confound guard" tests in `learning-block.test.ts` /
 
 ### Status
 
-Engine, estimator, readout, guard tests, and a demo (`pnpm exam:phase2-demo`) are built and on
-`dev`. **Not yet done:** wiring the novel block into the web runner and replacing the results
-screen's learning-rate line (still fed by the demoted per-area diagnostic) with this honest
-readout — tracked separately.
+Engine, estimator, readout, interval, guard tests, and a demo (`pnpm exam:phase2-demo`) are built
+and on `dev`. The interval has a dev-only view at `/dev/learning-interval`, gated on a
+non-production build **plus** `GT_LEARNING_INTERVAL_VIEW_ENABLED=true` the way `/api/exam-emulate`
+is; it runs a simulated block through the shipped administration path and plots the range
+contracting against the measured posterior-SE ladder. **Not yet done:** wiring the novel block into
+the web runner and replacing the results screen's learning-rate line (still fed by the demoted
+per-area diagnostic) with this honest readout — tracked separately. The interval is not wired into
+any child-facing surface, and nothing about D-030 or D-200 changes by adding it.
 
 ## 6. Storage contract (implement in `supabase/`; RLS, born-synthetic)
 
