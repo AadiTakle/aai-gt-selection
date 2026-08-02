@@ -112,7 +112,11 @@ Every completion handoff must state:
 - files or behavior changed;
 - verification performed and result;
 - remaining assumptions or blockers;
-- decisions or scope exceptions created.
+- decisions or scope exceptions created;
+- the `docs/product/FEATURE_TO_REQUIREMENT_MAP.md` rows updated, or why none applied. A change to
+  product behavior updates its rows in the same pull request, verified against the code rather than
+  against another document. An unchanged status field on a behavior-changing pull request is an
+  incomplete change.
 
 ## Git branch workflow
 

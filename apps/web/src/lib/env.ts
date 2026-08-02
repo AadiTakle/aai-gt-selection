@@ -2,6 +2,11 @@ import { z } from 'zod';
 
 const loopbackHosts = new Set(['127.0.0.1', 'localhost', '::1']);
 
+/** `URL.hostname` keeps IPv6 literals bracketed; `loopbackHosts` stores `::1` bare. */
+function hostname(url: URL): string {
+  return url.hostname.replace(/^\[(.*)\]$/, '$1');
+}
+
 /**
  * Hosted-deploy escape hatch (D-012 interim divergence — see infra/README.md).
  *
@@ -37,7 +42,7 @@ const publicEnvironmentSchema = z
       }
       return;
     }
-    if (!loopbackHosts.has(new URL(NEXT_PUBLIC_SUPABASE_URL).hostname)) {
+    if (!loopbackHosts.has(hostname(new URL(NEXT_PUBLIC_SUPABASE_URL)))) {
       context.addIssue({
         code: 'custom',
         message: 'The synthetic prototype refuses non-loopback Supabase URLs.',
