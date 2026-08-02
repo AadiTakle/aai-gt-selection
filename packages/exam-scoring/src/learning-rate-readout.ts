@@ -41,16 +41,30 @@
  * reference, and that is the correct answer rather than a bug to tune away.
  * `learningRateCohortRank` is the question that IS supported at that length.
  *
- * AND THERE IS A SECOND, SYSTEMATIC REASON, added by E-200. `lambdaSe` is random error. A closed
- * adaptive loop also has a bias that no averaging removes: the fit picks the next difficulty, so a
- * fit that reads chance successes as ability walks the difficulty up and reads its own walk back as
- * a climb. On a cohort that learned nothing at all, that mechanism alone fits λ̄ = 0.0398 with the
- * guessing floor at 0 and still 0.0098 with it correct — and freezing the served difficulty, which
- * breaks the loop without touching the fit, drops it to 0.0018. So the loop, not the fit, is where
- * the manufactured rate comes from. `LearningRateReference` therefore requires a measured
- * `contaminationFloor` and separability is tested against SE PLUS that floor. The consequence is
- * blunt and worth stating rather than discovering: at 30 trials no reference anyone has proposed,
- * including the deliberately wide SD 0.15 one, separates once the floor is counted.
+ * AND THERE WAS A SECOND, SYSTEMATIC REASON, added by E-200 and largely removed by E-205.
+ * `lambdaSe` is random error. A closed adaptive loop also had a bias that no averaging removes: the
+ * fit picked the next difficulty, so a fit that reads chance successes as ability walked the
+ * difficulty up and read its own walk back as a climb. On a cohort that learned nothing at all,
+ * that mechanism alone fitted λ̄ = 0.0398 with the guessing floor at 0 and still 0.0097 ± 0.0011
+ * with it correct.
+ *
+ * D-206 opened most of the loop — the targeting rule aims at a fit with no climb term, corrected by
+ * observed accuracy rather than by anything fitted, so the estimate of `lambda` no longer chooses
+ * the evidence for `lambda` — and the same cohort now fits −0.0005 ± 0.0007 on `FLU-OPCHAIN-01`.
+ * The floor a caller has to declare on the four Stage 2 banks is therefore approximately zero
+ * rather than 0.01, and the `indeterminate` rate against the wide SD-0.15 reference with the floor
+ * declared falls from 32.8% to 6.2% at 30 trials.
+ *
+ * "MOST OF" IS LOAD-BEARING AND IS NOT HEDGING. Replaying the rule's own served sequence to an
+ * untargeted twin returns −0.005 to −0.008, so the −0.0005 above is a near-cancellation of prior
+ * shrinkage against a residual feedback term of +0.0045 — a third of the projecting rule's +0.0146,
+ * not zero (E-206). A caller measuring their own floor should keep measuring it rather than reading
+ * the number off this paragraph, which is what the field below already requires.
+ *
+ * NONE OF THAT MAKES A RATE REPORTABLE, and the field below is still required. Against the SD-0.03
+ * reference — the only one in this project with a stated provenance — every arm at every length
+ * from 30 to 60 trials is still 100% `indeterminate`, before and after. What changed is that the
+ * refusal is now honest random error rather than random error plus a manufactured floor.
  *
  * WHY THIS IS NOT IN THE SCORED DECISION: a within-session learning rate is a labelled hypothesis.
  * Nothing here has been shown to predict real learning, acceleration, or program benefit. Keeping
@@ -98,18 +112,27 @@ export interface LearningRateReference {
    * same units — the pipeline's own systematic floor, not a property of any child.
    *
    * REQUIRED, and required for a sharper reason than `mean` and `sd`. The fit's `lambdaSe` describes
-   * random error only. A closed-loop adaptive block also has a SYSTEMATIC error that no amount of
-   * averaging removes: the fit's output chooses the next difficulty, so a fit that reads chance
-   * successes as ability walks the served difficulty up and then reads its own walk as a climb.
-   * Measured on a cohort with λ_true = 0 for every child, 30 trials, five-option responder, that
-   * floor is 0.0098 ± 0.0033 on an idealised grid and 0.0183 ± 0.0035 on `FLU-MATRIX-01` even with
-   * the guessing floor correctly specified — and 0.0398 / 0.0547 with it at 0 (E-200).
+   * random error only. An adaptive block can also carry a SYSTEMATIC error that no amount of
+   * averaging removes, and this one did: while the targeting rule extrapolated the fitted climb, a
+   * fit that reads chance successes as ability walked the served difficulty up and then read its
+   * own walk as a climb. Measured on a cohort with λ_true = 0 for every child, 30 trials,
+   * five-option responder, that floor was 0.0097 ± 0.0011 on `FLU-OPCHAIN-01` and 0.0183 ± 0.0035
+   * on `FLU-MATRIX-01` even with the guessing floor correctly specified (E-200).
    *
-   * Banding an estimate against a half-width narrower than that floor names a band that a
+   * WHAT IT IS NOW, AND WHY THE FIELD STAYS REQUIRED. Under D-206's targeting rule the same
+   * measurement returns −0.0005 ± 0.0007 on `FLU-OPCHAIN-01`, −0.0005 on `SPA-XFORM-01`, −0.0001 on
+   * `QUANT-GLYPHNUM-01` and +0.0008 on `VER-MORPHO-01` at its own four-option floor (E-206; E-205
+   * has the figures for the targeting rule without D-206's accuracy correction, which run about
+   * 0.002 lower). Those are measured zeros, not assumed ones, and the difference is the point: a
+   * caller on a different bank, length or item format has no basis for reading this paragraph and
+   * passing 0. `FLU-MATRIX-01` is the standing counter-example — a mixed-format bank whose floor
+   * was three times the purpose-built one's.
+   *
+   * Banding an estimate against a half-width narrower than the floor names a band that a
    * non-learner would also have been given, which is the failure E-200 exists to prevent. Supplying
    * this is an assertion that the caller has MEASURED it for their own bank, length and item format
-   * — `pnpm exam:block-harness -- --fix-probe` is what measures it. Pass 0 only for a
-   * non-adaptive block with a constructed-response item, where the harness measures no floor.
+   * — `pnpm exam:block-harness -- --fix-probe` is what measures it. Pass 0 only when the harness
+   * has been run and measured no floor.
    */
   readonly contaminationFloor: number;
   /**

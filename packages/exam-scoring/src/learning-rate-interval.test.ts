@@ -119,12 +119,25 @@ describe('learningRateInterval — the too-short block is a state, not a wide ra
 
 describe('learningRateInterval — overlapping the contamination floor', () => {
   /**
-   * Seed 22 with λ_true = 0 is chosen deliberately, not for convenience: its fit lands at 0.0570
-   * with a posterior SE of 0.0565, so its lower end is 0.00054 — ABOVE zero and BELOW the measured
-   * floor. It is the exact block on which the pre-D-200 behaviour and the shipped behaviour disagree,
-   * so every assertion in this block is live rather than incidentally true.
+   * A λ_true = 0 seed chosen deliberately, not for convenience: its interval straddles the measured
+   * floor, with a centre of 0.0697 and a lower end of 0.00798 — ABOVE zero and BELOW the floor of
+   * 0.0097. It is a block on which the pre-D-200 behaviour and the shipped behaviour disagree, so
+   * every assertion here is live rather than incidentally true.
+   *
+   * RE-SELECTED WHEN D-206 LANDED, and the reason matters more than the number. The previous seed
+   * was 22, chosen because the contaminated loop fitted that null learner at 0.0570 with a lower end
+   * of 0.00054. D-206 stops `nextTargetTheta` aiming at `theta0 + lambda * t`, which is what
+   * manufactured that positive fit, so seed 22 now fits a NEGATIVE centre (−0.0077) and no longer
+   * straddles anything. That is the fix working, not a regression: the block stopped straddling
+   * because the artifact it straddled on was removed.
+   *
+   * The guard is still needed and still live. Searching seeds under the corrected estimator finds
+   * straddling null blocks at 18, 74, 76, 126, 142, 205, 207 and 218 — eight in the first 218 — so
+   * a null learner can still fit an interval whose centre clears the floor while its lower end does
+   * not. If a future change leaves NO straddling seed, this guard has become vacuous and should be
+   * deleted rather than re-seeded, because at that point nothing is left for the floor to catch.
    */
-  const STRADDLING_NULL_SEED = 22;
+  const STRADDLING_NULL_SEED = 18;
 
   /**
    * A cohort that learned NOTHING is the case E-200 and the bank-recovery measurement exist for: the adaptive loop feeds the

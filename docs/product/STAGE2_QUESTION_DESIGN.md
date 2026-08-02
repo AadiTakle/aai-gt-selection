@@ -629,8 +629,14 @@ bank through the real targeting rule with the deliberately noisy standing handov
 | **A3 no saturation** | for the fastest simulated learner, served difficulty never pins to the pool maximum | Headroom is short of §1.1(c); the top of the λ distribution would be truncated |
 | **A4 recovery sanity** | injected-λ recovery, attenuation and mean SE at 30 trials land within a stated band of E-095's figures on *this* bank's actual difficulty grid | The bank's grid is too coarse or too shallow to support the estimator at all |
 
-A1 is the one that earns its keep. It is a real, decisive test of the *bank and its stated
-difficulties* that costs no children, and it fails loudly for the exact pathology §1.1(d) predicts.
+A1 is the one that earns its keep. It costs no children and it fails loudly for the exact pathology
+§1.1(d) predicts. **It is not, however, a test of the bank alone, and reading it as one was an
+error this document made and D-207 corrected:** A1 measures the whole administration path, so a
+defect anywhere in it — the estimator, the targeting rule, or the bank — fails the check
+identically. E-205 is the case in point: A1 failed on four pools including one containing no bank,
+and the cause was the targeting rule. An A1 result is therefore only attributable to a bank when it
+is compared against the same run with no bank in it (`--gate-a --bank grid`), which §9.4 now
+requires before the stop rule fires.
 **Gate A is cheap, runs overnight, and is a prerequisite for Gate B — but passing it is not
 shipping.**
 
@@ -820,6 +826,41 @@ system-failures, which raises the effective option count without raising the vis
 > `DEFAULT_GUESSING = 0.2`; it removes about three-quarters of the effect and not all of it. Nothing in
 > the three design responses above is wrong, but they cannot fix this: it was isolated with no bank
 > involved. Reproduce with `pnpm exam:block-harness -- --guessing-probe` and `-- --fix-probe`.
+
+> **SECOND CORRECTION, 2026-08-01 (E-205, D-206). The residual the note above left behind is gone,
+> and the part of the loop that caused it was narrower than "the loop".** The correction above
+> stopped at `DEFAULT_GUESSING = 0.2` because the floor was the only misspecification anyone could
+> find, and the remaining λ̄ ≈ 0.0097 was recorded as an irreducible contamination floor. It was not
+> irreducible. The targeting rule aimed at `theta0 + lambda * t` — the ability *projected* for the
+> next trial — which closed a loop from the estimate of `lambda` onto the design that identifies
+> `lambda`. Three controls separate that from adaptivity in general: replaying a *twin's* difficulty
+> sequence reproduces the same rising ladder and returns λ̄ = −0.0034 (so the ladder's SHAPE is
+> innocent); a design that follows the child's TRUE `lambda` returns −0.0039; and the artifact scales
+> with the floor even when the floor is correctly specified (λ̄ = 0.0014 at `c = 0`, 0.0073 at 0.2,
+> 0.0290 at 0.5), because a floored logistic carries far less information above the child than an
+> equally mis-aimed item below them, so the later trials that would contradict a spurious climb
+> arrive down-weighted and the ones that would contradict a spurious fall do not. Aiming at a
+> no-climb level fit instead takes the null cohort to −0.0007 on `FLU-OPCHAIN-01`, −0.0010 on
+> `SPA-XFORM-01`, −0.0034 on `QUANT-GLYPHNUM-01` and −0.0027 on `VER-MORPHO-01`, and recovery *rises*
+> (r 0.332 → 0.365 on `FLU-OPCHAIN-01`). Reproduce with
+> `bash scripts/stage2-lambda-loop-runs.sh`. **This does not make a rate reportable** — against the
+> SD-0.03 reference every length from 30 to 60 trials is still 100% `indeterminate`.
+>
+> **Two amendments to the paragraph above, both from E-206 and both material.** (1) **The level fit
+> alone under-serves fast learners, and the shipped rule no longer uses it alone.** A no-climb fit
+> lags a climbing child by about half the block, which put a λ = 0.15 learner 0.58 points *below*
+> their ability for the last third of the block at 69% accuracy, against a design intent of +1 and
+> 41.5%. `nextTargetTheta` now corrects the aim by the gap between observed accuracy over the last
+> eight trials and the accuracy the offset is designed to produce, which takes that learner to −0.10
+> and 61.1% while leaving the null cohort at −0.0005 and taking A1 from 37 to **40 of 40 pool × seed
+> cells**. The correction is symmetric and driven by observed accuracy rather than by the fitted
+> slope; a version driven by any slope estimate, including the difference of two level fits,
+> reinstates the loop and was measured doing so. `--targeting level-plain` is the level fit alone,
+> kept so the comparison stays runnable. (2) **"The residual is gone" overstates it.** Replaying the
+> shipped rule's own served sequence to an untargeted twin returns −0.005 to −0.008, so the live
+> −0.0005 is a near-cancellation of prior shrinkage against a residual feedback term of +0.0045,
+> which is a third of the projecting rule's +0.0146 rather than zero. The loop is reduced threefold,
+> not opened.
 
 ### 4.7 The threat that no design can engineer away
 
@@ -1071,7 +1112,7 @@ Each unit consumes the previous unit's artifact, so nothing inside a track paral
 | **U2 spec** | One row in `catalog/master_types.jsonl` + `specs/types_<area>.jsonl` (`interaction`, `self_teach`, `adaptive.difficulty_levers`, `measurements`, `age_bands`, `construct_irrelevant_risks`, `learning_science`), **including the `systemPersistence` parameter and its two values** | Row is schema-valid; every difficulty lever is countable from a generator parameter; `systemPersistence` present with both modes declared; the named S1 interface partner exists and is served; D-017 satisfied (text-only, no audio) |
 | **U3 generator, both modes** | `generators/<CODE>.mjs` → **two** banks from one code path: `banks/<CODE>.jsonl` (consistent) and a `perTrial` control bank | (a) items parse against `bankItemSchema` — E-074 records 0/63 currently passing, so this is a *raise* on the status quo and may need the contract reconciled first; (b) key positions uniform within a stated tolerance (E-094) **in both banks**; (c) leak scan clean — the key must not be derivable from `content` (E-075/E-076) and the *system* must never ship to the client; (d) difficulty monotone in the declared levers, asserted by a checker; (e) ≥6 points of headroom at 0.5 granularity (§1.1(c)); (f) every distractor tagged with the incomplete rule it encodes, which is the §4.6 strategy trace and the Verdict-2 fallback — **not optional**; (g) the two banks are equated on item count, option count, difficulty distribution and key balance, differing only in persistence |
 | **U4 checker** | `generators/check-<CODE>.mjs` | Independent re-derivation of the key agrees on 100% of **both** banks |
-| **U5 Gate A** | Gate A results table from U0 on both new banks | All four §4.1.2 checks pass: **A1** static-child null (fitted λ̄ ≈ 0 for λ_true = 0 — the decisive one, and the one that catches trial-index-correlated difficulty misspecification), **A2** false-positive `above` rate no higher than nominal, **A3** no pool saturation for the fastest simulated learner, **A4** recovery/attenuation/SE within a stated band of E-095 on this bank's actual grid. A1 failure stops the track — a bank that manufactures λ from a static child cannot be fixed downstream, and building a renderer for it is wasted work |
+| **U5 Gate A** | Gate A results table from U0 on both new banks | All four §4.1.2 checks pass: **A1** static-child null (fitted λ̄ ≈ 0 for λ_true = 0 — the decisive one, and the one that catches trial-index-correlated difficulty misspecification), **A2** false-positive `above` rate no higher than nominal, **A3** no pool saturation for the fastest simulated learner, **A4** recovery/attenuation/SE within a stated band of E-095 on this bank's actual grid. A1 failure stops the track only when it is worse than the bank-free bound (`--gate-a --bank grid` at matched seeds), per D-207 and the supersession note in §9.4 |
 | **U6 demo, one renderer for both arms** | `demos/<CODE>.html` (+ published copy), taking persistence as a served parameter | Embedded-safe: no standalone-timer fallback (E-079), no telemetry sidebar (E-082), `ready` handshake honoured (E-083); single tap, fixed option positions; informational-only feedback (no verdict, score, streak or praise); interface gate to *k* consecutive correct; fixed-cadence observation trials if used. **One renderer serves both arms** — a separate control demo confounds the gate with the renderer and is a rejection |
 | **U7 verifier** | App-tier verifier + plpgsql twin | Cross-tier differential agrees on every item × response across **both** banks (the pattern in `apps/web/scripts/verifier-differential.ts` and `supabase/tests/*exam_verify*`) |
 
@@ -1096,9 +1137,33 @@ stop rule permits. Nothing within a track.
 `systemPersistence` mode before U3's first commit, per D-S2-3. U9 last and once, so the governance
 record describes what was measured rather than what was planned.
 
-**Stop rules, both hard.** (1) A1 failure in U5 stops that type's track at U5. (2) Per §7, types 2–4
+**Stop rules, both hard.** (1) A1 failure in U5 stops that type's track at U5 **only when the failure
+is worse than the bank-free bound** — see the supersession note below. (2) Per §7, types 2–4
 do not start until `FLU-OPCHAIN-01` reaches U8, and do not start at all if it returns Verdict 3 or 4
 from Gate B.
+
+> **STOP RULE (1) SUPERSEDED, 2026-08-01 (D-207). The rule as written above is the narrowed version;
+> what follows is what it replaced and why.** It used to read "A1 failure in U5 stops that type's
+> track at U5", full stop, and the harness printed *"a bank that manufactures λ from a static child
+> cannot be fixed downstream, and building a renderer for it is wasted work"* on every A1 failure.
+> That premise was falsified by measurement, not by argument. `STAGE2_BANK_RECOVERY_MEASUREMENT.md`
+> found A1 failing identically on three banks in three domains built by three different agents AND
+> on an idealised grid containing no bank at all, with paired between-bank contrasts null; E-205 then
+> fixed it downstream, in `nextTargetTheta`, with no bank changing at all. A rule that would have
+> stopped all four tracks for a defect none of the banks caused and none of them could cure is a rule
+> that spends the project's remaining time on the wrong object.
+>
+> **The narrowed trigger:** A1 failure stops a type's track when the bank's null-cohort λ̄ is worse
+> than the same measurement on the bank-free idealised grid, at matched seeds and at the bank's own
+> option count. That is the form the original argument actually supports — an excess a *bank* is
+> responsible for is an excess a different bank could remove — and it is now a command:
+> `pnpm exam:block-harness -- --gate-a --bank grid` runs Gate A with no bank in it. A1 failure at or
+> below the bank-free bound is recorded and does not stop the track, because there is nothing about
+> the bank left to fix.
+>
+> **What this does not relax.** A1 is still a gate, still reported, and still fails the run's exit
+> code. A bank-attributable A1 failure still stops the track. And nothing here touches stop rule (2)
+> or D-S2-3's Gate B, which is the gate that decides whether a type ships.
 
 **What this plan does and does not deliver.** It delivers a gate-*ready* type: specced, generated in
 both modes, checked, cleared through Gate A, rendered, verified, with the Gate B instrument built and

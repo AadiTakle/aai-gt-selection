@@ -36,10 +36,13 @@
  *   pnpm exam:block-harness -- --guessing-probe      # what the `guessing = 0` fit does to a static child
  *   pnpm exam:block-harness -- --fix-probe           # every candidate remedy, costed side by side
  *   pnpm exam:block-harness -- --gate-a --bank FLU-OPCHAIN-01
+ *   pnpm exam:block-harness -- --gate-a --bank grid          # Gate A with no bank at all
  *   pnpm exam:block-harness -- --gate-a --bank <path/to/bank.jsonl> --mode perTrial
+ *   pnpm exam:block-harness -- --gate-a --bank grid --seeds 20260730,11,22,33,44,55,66,77
  *
  * Flags: --children N  --length N  --lambda-mean X  --lambda-sd X  --standing-noise X
- *        --guessing X  --fit-guessing X  --target-guessing X  --seed N  --json
+ *        --guessing X  --fit-guessing X  --target-guessing X  --seed N  --seeds a,b,c  --json
+ *        --targeting level|level-plain|projecting|frozen
  *
  * `--guessing` is the SIMULATED CHILD's floor (the truth). `--fit-guessing` and `--target-guessing`
  * are what the estimator assumes, in the readout fit and inside `nextTargetTheta` respectively.
@@ -57,6 +60,8 @@ import {
 } from '../packages/exam-engine/src';
 import {
   DEFAULT_GUESSING,
+  MIN_TRIALS_FOR_PROJECTION,
+  estimateBlockLevel,
   estimateLearningCurve,
   learningRateReadout,
   nextTargetTheta,
@@ -292,7 +297,25 @@ interface LoadedBank {
   items: BankItem[];
 }
 
+/**
+ * The reference the harness uses when `--bank grid` is asked for: the idealised pool as a bank.
+ *
+ * Gate A takes a bank, and until now the bank-free control could only be reached through
+ * `--calibrate`, which does not run the gate. That is the wrong way round for the question the gate
+ * is for: A1 asks whether the PIPELINE manufactures a climb, and the only condition that settles
+ * where a manufactured climb comes from is the one with no bank in it. `STAGE2_BANK_RECOVERY_MEASUREMENT`
+ * §3.1 had to assemble that row by hand from a different code path; this makes it the same command.
+ */
+const GRID_BANK_REF = 'grid';
+
 function loadBank(ref: string): LoadedBank {
+  if (ref === GRID_BANK_REF) {
+    return {
+      label: 'ideal 0.5-point grid (no bank)',
+      path: '(synthesised in-process — gridPool(0.5, 12))',
+      items: gridPool(0.5, 12),
+    };
+  }
   const path = resolveBankPath(ref);
   const items: BankItem[] = [];
   for (const line of readFileSync(path, 'utf8').split('\n')) {
@@ -318,6 +341,7 @@ function loadBank(ref: string): LoadedBank {
  * naming neither, resolves to the requested one; a single-arm bank ignores the mode.
  */
 function bankRefForMode(ref: string, mode: Persistence): string {
+  if (ref === GRID_BANK_REF) return ref;
   const stem = ref.replace(/\.jsonl$/, '').replace(/\.(consistent|perTrial)$/, '');
   if (mode === 'perTrial') {
     const control = `${stem}.perTrial`;
@@ -373,6 +397,44 @@ interface FitSpec {
 }
 
 /**
+ * Which rule chooses the difficulty of the next trial. `level` is what ships.
+ *
+ * The other three are diagnostics, not administration options, and they exist because the
+ * differences between them are the whole of D-206:
+ *
+ * - `projecting` is the rule the block shipped with before D-206 — aim at `theta0 + lambda * t`,
+ *   the ability PROJECTED for the next trial. It closes a loop from the estimate of `lambda` back
+ *   onto the design that identifies `lambda`. Kept so the before/after can be run at matched seeds
+ *   in one version of this harness; a comparison across two harness versions would be confounded
+ *   with the harness.
+ * - `level-plain` is D-206 as first drafted: the level fit plus the offset, with no accuracy
+ *   correction on top. It removes the loop but lags a climbing child, and the size of that lag is
+ *   what the correction in `level` was added to fix. Kept so the correction's cost is measurable
+ *   against the thing it was added to rather than against the rule two revisions back.
+ * - `frozen` holds the difficulty at `standing + offset` for the whole block. It is the open-loop
+ *   bound: the block still uses the real fit, but nothing the fit says reaches what gets served. It
+ *   is the only way to separate what the ESTIMATOR does from what the LOOP does.
+ */
+type TargetingRule = 'level' | 'level-plain' | 'projecting' | 'frozen';
+
+/** The rule D-206 replaced, kept here rather than in the estimator so the shipped path has one. */
+function projectingTargetTheta(
+  trials: readonly LearningTrial[],
+  standing: number,
+  fitGuessing: number,
+): number {
+  if (trials.length < MIN_TRIALS_FOR_PROJECTION) {
+    return clamp(standing + TARGET_OFFSET, SCALE_MIN, SCALE_MAX);
+  }
+  const fit = estimateLearningCurve(trials, {
+    slope: SLOPE,
+    priorTheta0Mean: standing,
+    guessing: fitGuessing,
+  });
+  return clamp(fit.theta0 + fit.lambda * trials.length + TARGET_OFFSET, SCALE_MIN, SCALE_MAX);
+}
+
+/**
  * Administer one novel block, using the shipped administration path end to end.
  *
  * The engine picks the item (`selectNextNovelItem`), the scorer picks the difficulty to aim at
@@ -386,7 +448,7 @@ function runBlock(
   length: number,
   responder: Responder,
   fit: FitSpec,
-  staticTarget: boolean,
+  targeting: TargetingRule,
   selectionSeed: number,
 ): BlockRun {
   const rng = makeRng(`response|${child.seed}`);
@@ -396,18 +458,32 @@ function runBlock(
   let exhausted = false;
 
   for (let t = 0; t < length; t += 1) {
-    // `staticTarget` is a diagnostic, not an administration option: it holds the difficulty at
-    // `standing + offset` for the whole block, so the block still uses the real fit but no longer
-    // feeds the fit's own output back into what gets served. It is the only way to separate what the
-    // ESTIMATOR does from what the LOOP does, and the two need different remedies.
-    const target = staticTarget
-      ? clamp(child.standing + TARGET_OFFSET, SCALE_MIN, SCALE_MAX)
-      : nextTargetTheta(trials, {
-          standingEstimate: child.standing,
-          targetOffset: TARGET_OFFSET,
-          slope: responder.slope,
-          guessing: fit.targeting,
-        });
+    let target: number;
+    if (targeting === 'frozen') {
+      target = clamp(child.standing + TARGET_OFFSET, SCALE_MIN, SCALE_MAX);
+    } else if (targeting === 'projecting') {
+      target = projectingTargetTheta(trials, child.standing, fit.targeting);
+    } else if (targeting === 'level-plain') {
+      target =
+        trials.length < MIN_TRIALS_FOR_PROJECTION
+          ? clamp(child.standing + TARGET_OFFSET, SCALE_MIN, SCALE_MAX)
+          : clamp(
+              estimateBlockLevel(trials, {
+                slope: SLOPE,
+                priorTheta0Mean: child.standing,
+                guessing: fit.targeting,
+              }) + TARGET_OFFSET,
+              SCALE_MIN,
+              SCALE_MAX,
+            );
+    } else {
+      target = nextTargetTheta(trials, {
+        standingEstimate: child.standing,
+        targetOffset: TARGET_OFFSET,
+        slope: responder.slope,
+        guessing: fit.targeting,
+      });
+    }
     const item = selectNextNovelItem(pool, administered, target, selectionSeed);
     if (item === null) {
       exhausted = true;
@@ -441,8 +517,8 @@ interface CohortOptions {
   theta0Sd: number;
   responder: Responder;
   fit: FitSpec;
-  /** Diagnostic: freeze the served difficulty instead of re-projecting it. See {@link runBlock}. */
-  staticTarget?: boolean;
+  /** Which rule chooses the next difficulty. Defaults to the shipped one. See {@link TargetingRule}. */
+  targeting?: TargetingRule;
   /**
    * Contamination floor to declare on `A2_REFERENCE` for the third readout pass, which is how the
    * cost of the evidence bar gets measured. Supplied from the matching λ_true = 0 run, so the bar is
@@ -520,7 +596,7 @@ function runCohort(options: CohortOptions): CohortResult {
     theta0Sd,
     responder,
     fit: fitSpec,
-    staticTarget = false,
+    targeting = 'level',
     barFloor = 0,
     seed,
   } = options;
@@ -545,7 +621,7 @@ function runCohort(options: CohortOptions): CohortResult {
     const standing = clamp(theta0 + normal(rng, 0, standingNoise), SCALE_MIN, SCALE_MAX);
     const child: ChildSpec = { theta0, lambda, standing, seed: `${seed}|${length}|${c}` };
 
-    const run = runBlock(pool, child, length, responder, fitSpec, staticTarget, seed);
+    const run = runBlock(pool, child, length, responder, fitSpec, targeting, seed);
     if (run.exhausted) exhaustedCount += 1;
     if (run.trials.length < length) shortBlocks += 1;
     if (run.trials.length === 0) continue;
@@ -653,7 +729,16 @@ interface Settings {
   guessingExplicit: boolean;
   fitGuessing: number;
   targetGuessing: number;
+  /** Which rule chooses the next difficulty. Diagnostic; `level` is what the block administers. */
+  targeting: TargetingRule;
   seed: number;
+  /**
+   * Every seed Gate A should be run at. One cell of 400 children carries about ±0.04 of noise on
+   * `r` and ±0.0033 on the null-cohort λ̄ (`STAGE2_BANK_RECOVERY_MEASUREMENT` §9), which is wider
+   * than several differences worth reporting, so a single-seed Gate A cannot settle whether A1
+   * passes. Supplying more than one prints a replication block alongside the per-seed reports.
+   */
+  seeds: number[];
   bank: string | null;
   mode: Persistence;
   json: boolean;
@@ -680,6 +765,21 @@ function parseArgs(argv: readonly string[]): Settings {
   if (modeRaw !== 'consistent' && modeRaw !== 'perTrial') {
     throw new Error(`--mode expects consistent|perTrial, got "${modeRaw}"`);
   }
+  const targetingRules: readonly TargetingRule[] = ['level', 'level-plain', 'projecting', 'frozen'];
+  const targetingRaw = flag('targeting') ?? 'level';
+  if (!targetingRules.includes(targetingRaw as TargetingRule)) {
+    throw new Error(`--targeting expects ${targetingRules.join('|')}, got "${targetingRaw}"`);
+  }
+  const seed = num('seed', 20260730);
+  const seedsRaw = flag('seeds');
+  const seeds =
+    seedsRaw === null
+      ? [seed]
+      : seedsRaw.split(',').map((part) => {
+          const parsed = Number(part.trim());
+          if (!Number.isFinite(parsed)) throw new Error(`--seeds expects numbers, got "${part}"`);
+          return parsed;
+        });
 
   return {
     children: num('children', 400),
@@ -695,7 +795,9 @@ function parseArgs(argv: readonly string[]): Settings {
     guessingExplicit: argv.includes('--guessing'),
     fitGuessing: num('fit-guessing', DEFAULT_GUESSING),
     targetGuessing: num('target-guessing', DEFAULT_GUESSING),
-    seed: num('seed', 20260730),
+    targeting: targetingRaw as TargetingRule,
+    seed,
+    seeds,
     bank: flag('bank'),
     mode: modeRaw,
     json: argv.includes('--json'),
@@ -723,6 +825,7 @@ function cohortOptionsFor(
     theta0Sd: settings.theta0Sd,
     responder: { slope: SLOPE, guessing: settings.guessing },
     fit: { readout: settings.fitGuessing, targeting: settings.targetGuessing },
+    targeting: settings.targeting,
     seed: settings.seed,
     ...overrides,
   };
@@ -951,7 +1054,7 @@ function printSettings(settings: Settings): void {
       `θ0 ~ N(${settings.theta0Mean}, ${settings.theta0Sd}²), handover noise SD ${settings.standingNoise}, ` +
       `slope ${SLOPE}, target offset +${TARGET_OFFSET}, responder guessing floor ${settings.guessing}, ` +
       `estimator floor ${settings.fitGuessing} (readout) / ${settings.targetGuessing} (targeting), ` +
-      `seed ${settings.seed}.`,
+      `targeting rule ${settings.targeting}, seed ${settings.seed}.`,
   );
 }
 
@@ -1091,23 +1194,51 @@ function printFixProbe(settings: Settings, bankRefs: readonly string[]): void {
     length: number;
     /** Responder floor, when an arm is probing what a WRONG assumed floor costs. */
     responderGuessing?: number;
-    staticTarget?: boolean;
+    targeting?: TargetingRule;
   }
 
+  const projecting: TargetingRule = 'projecting';
   const arms: Arm[] = [
-    { label: 'status quo (c = 0 both)', fit: { readout: 0, targeting: 0 }, length: 30 },
-    { label: 'fit only (c = 0.2 readout)', fit: { readout: 0.2, targeting: 0 }, length: 30 },
-    { label: 'fit + targeting (c = 0.2)', fit: { readout: 0.2, targeting: 0.2 }, length: 30 },
-    { label: 'fit + targeting, 45 trials', fit: { readout: 0.2, targeting: 0.2 }, length: 45 },
-    { label: 'fit + targeting, 60 trials', fit: { readout: 0.2, targeting: 0.2 }, length: 60 },
     {
-      label: 'c = 0.2 assumed, 4-option truth (0.25)',
+      label: 'pre-D-200 (c = 0 both, projecting)',
+      fit: { readout: 0, targeting: 0 },
+      length: 30,
+      targeting: projecting,
+    },
+    {
+      label: 'D-200 fit only (c = 0.2 readout, projecting)',
+      fit: { readout: 0.2, targeting: 0 },
+      length: 30,
+      targeting: projecting,
+    },
+    {
+      label: 'D-200 fit + targeting (c = 0.2, projecting)',
+      fit: { readout: 0.2, targeting: 0.2 },
+      length: 30,
+      targeting: projecting,
+    },
+    {
+      label: 'D-206 part 1 only: level, no accuracy correction',
+      fit: { readout: 0.2, targeting: 0.2 },
+      length: 30,
+      targeting: 'level-plain',
+    },
+    {
+      label: 'D-206 shipped: c = 0.2, level + accuracy correction',
+      fit: { readout: 0.2, targeting: 0.2 },
+      length: 30,
+    },
+    { label: 'D-206 level targeting, c = 0 both', fit: { readout: 0, targeting: 0 }, length: 30 },
+    { label: 'D-206 shipped, 45 trials', fit: { readout: 0.2, targeting: 0.2 }, length: 45 },
+    { label: 'D-206 shipped, 60 trials', fit: { readout: 0.2, targeting: 0.2 }, length: 60 },
+    {
+      label: 'D-206 shipped, 4-option truth (0.25) assumed 0.2',
       fit: { readout: 0.2, targeting: 0.2 },
       length: 30,
       responderGuessing: 0.25,
     },
     {
-      label: 'c = 0.2 assumed, 6-option truth (0.167)',
+      label: 'D-206 shipped, 6-option truth (0.167) assumed 0.2',
       fit: { readout: 0.2, targeting: 0.2 },
       length: 30,
       responderGuessing: 1 / 6,
@@ -1116,13 +1247,13 @@ function printFixProbe(settings: Settings, bankRefs: readonly string[]): void {
       label: 'DIAGNOSTIC frozen target, c = 0',
       fit: { readout: 0, targeting: 0 },
       length: 30,
-      staticTarget: true,
+      targeting: 'frozen',
     },
     {
       label: 'DIAGNOSTIC frozen target, c = 0.2',
       fit: { readout: 0.2, targeting: 0.2 },
       length: 30,
-      staticTarget: true,
+      targeting: 'frozen',
     },
   ];
 
@@ -1142,7 +1273,7 @@ function printFixProbe(settings: Settings, bankRefs: readonly string[]): void {
     console.log('| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |');
     for (const arm of arms) {
       const responder = { slope: SLOPE, guessing: arm.responderGuessing ?? truth };
-      const staticTarget = arm.staticTarget ?? false;
+      const targeting = arm.targeting ?? 'level';
       const nullCohort = runCohort(
         cohortOptionsFor(settings, pool.items, {
           lambdaMean: 0,
@@ -1150,7 +1281,7 @@ function printFixProbe(settings: Settings, bankRefs: readonly string[]): void {
           length: arm.length,
           responder,
           fit: arm.fit,
-          staticTarget,
+          targeting,
         }),
       );
       const recoveryCohort = runCohort(
@@ -1158,7 +1289,7 @@ function printFixProbe(settings: Settings, bankRefs: readonly string[]): void {
           length: arm.length,
           responder,
           fit: arm.fit,
-          staticTarget,
+          targeting,
           barFloor: Math.max(0, mean(nullCohort.fitLambda)),
         }),
       );
@@ -1175,9 +1306,11 @@ function printFixProbe(settings: Settings, bankRefs: readonly string[]): void {
   }
 
   console.log(
-    `\nShipped default is now \`DEFAULT_GUESSING = ${DEFAULT_GUESSING}\`, which is the "fit + targeting" arm:\n` +
-      '`nextTargetTheta` forwards its options into the same estimator, so one default corrects both\n' +
-      'roles and there is no configuration in which only one of them is corrected.',
+    `\nWhat ships is \`DEFAULT_GUESSING = ${DEFAULT_GUESSING}\` (D-200) plus level targeting (D-206), which is the\n` +
+      '"D-206 shipped" row. The two are independent corrections to the same artifact and the table is\n' +
+      'the 2 × 2: neither alone reaches the frozen-target row, and the frozen row is the open-loop\n' +
+      'bound rather than a target anyone chose. Read the `r` column beside the null column — a remedy\n' +
+      'that zeroes the null by making the estimator insensitive shows up there and nowhere else.',
   );
 }
 
@@ -1235,11 +1368,54 @@ function printGateA(report: GateAReport): boolean {
   );
   if (failures.some((c) => c.id === 'A1')) {
     console.log(
-      '\n  A1 failure STOPS this type\u2019s track at U5 (§9.4). A bank that manufactures λ from a\n' +
-        '  static child cannot be fixed downstream, and building a renderer for it is wasted work.',
+      '\n  A1 FAILED. Under §9.4 as superseded by D-207 this stops the type\u2019s track ONLY if the\n' +
+        '  failure is worse than the bank-free bound. Run `--gate-a --bank grid` at the same settings\n' +
+        '  and compare: a bank whose A1 sits at the grid\u2019s own value has not manufactured anything\n' +
+        '  a different bank could remove, and stopping its track would not address the cause.',
     );
   }
   return failures.length === 0;
+}
+
+/**
+ * Gate A's two quantitative checks, replicated across seeds.
+ *
+ * A1's condition is `|λ̄| ≤ 2 × Monte-Carlo SE`, and at one seed that SE is the spread WITHIN a
+ * 400-child cell. It says nothing about whether the next seed would return the same λ̄, and the
+ * seed-to-seed spread is the larger of the two (§9). This block is the honest version of the
+ * check: the per-seed means, and the SE of their mean.
+ */
+function printSeedReplication(reports: readonly GateAReport[], seeds: readonly number[]): void {
+  const nulls = reports.map((r) => r.nullMean);
+  const rs = reports.map((r) => r.recovery.r);
+  const ses = reports.map((r) => r.recovery.meanSe);
+  const sds = reports.map((r) => r.fitLambdaSd);
+
+  const nullMean = mean(nulls);
+  const nullSe = seOfMean(nulls);
+  const first = reports[0];
+  console.log(`\n### Replication across ${seeds.length} seeds — ${first?.bank ?? '?'}\n`);
+  console.log('| quantity | mean of seeds | ± SE of that mean | [min, max] |');
+  console.log('| --- | --- | --- | --- |');
+  const row = (label: string, xs: readonly number[], places = 4) =>
+    console.log(
+      `| ${label} | ${f(mean(xs), places)} | ${f(seOfMean(xs), places)} | ` +
+        `[${f(Math.min(...xs), places)}, ${f(Math.max(...xs), places)}] |`,
+    );
+  row('A1 null-cohort λ̄', nulls);
+  row('A4 recovery r', rs, 3);
+  row('A4 mean posterior SE', ses, 3);
+  row('fitted-λ SD', sds);
+
+  const passCount = (id: GateACheck['id']) =>
+    reports.filter((r) => r.checks.find((c) => c.id === id)?.pass).length;
+  console.log(
+    `\n  **SEs from zero: ${f(Math.abs(nullMean) / nullSe, 1)}** ` +
+      `(λ̄ = ${f(nullMean)} ± ${f(nullSe)}). Seeds: ${seeds.join(', ')}.\n` +
+      `  Per-seed verdicts: A1 passes at ${passCount('A1')}/${reports.length} seeds, ` +
+      `A2 at ${passCount('A2')}/${reports.length}, A3 at ${passCount('A3')}/${reports.length}, ` +
+      `A4 at ${passCount('A4')}/${reports.length}.`,
+  );
 }
 
 function main(): void {
@@ -1275,9 +1451,15 @@ function main(): void {
       const resolved = bankRefForMode(ref, mode);
       if (seen.has(resolved)) continue;
       seen.add(resolved);
-      const report = gateA(settings, loadBank(resolved), mode);
-      reports.push(report);
-      allPass = printGateA(report) && allPass;
+      const bank = loadBank(resolved);
+      const perSeed = settings.seeds.map((seed) => gateA({ ...settings, seed }, bank, mode));
+      reports.push(...perSeed);
+      // The full report is per-seed detail; at more than one seed it buries the replication that
+      // is the point of asking for several, so only the first is printed in full.
+      const [head, ...rest] = perSeed;
+      if (head) allPass = printGateA(head) && allPass;
+      for (const report of rest) allPass = report.checks.every((c) => c.pass) && allPass;
+      if (settings.seeds.length > 1) printSeedReplication(perSeed, settings.seeds);
     }
     output['gateA'] = reports;
   }

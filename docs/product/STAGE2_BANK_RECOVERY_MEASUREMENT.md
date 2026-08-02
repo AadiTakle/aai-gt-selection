@@ -1,5 +1,18 @@
 # Stage 2 — Is the 30-trial learning rate recoverable on a bank built for it?
 
+> **FORWARD POINTER, 2026-08-01 (E-205, D-206). One conclusion in this report has been overturned;
+> the rest stands and the figures below are correct as measured.** This report's §10 says the
+> residual λ̄ = 0.0097 "is not costed" and its §1 treats it as the pipeline's irreducible floor.
+> It was not irreducible. It was produced by `nextTargetTheta` extrapolating the climb it was
+> estimating, and opening that loop takes the same measurement to −0.0007 ± 0.0008 with recovery
+> *rising* from 0.332 to 0.365. **Every λ̄ and every `r` in this document was measured under the
+> superseded targeting rule and should be read as dating the defect rather than describing the
+> shipped pipeline.** What is unaffected and remains this report's contribution: the bank is not the
+> cause (§1, §3.1), the arms are arithmetically identical at Gate A (§7), the headroom split is a
+> scale limit rather than a bank defect (§8), and the seed sensitivity in §9. The A1 status recorded
+> in §10 is superseded by D-207, which narrows the §9.4 stop rule this report flagged. This document
+> is not rewritten, per D-032's convention for dated measurement records.
+
 **Status:** Measurement report. **Nothing was changed.** The estimator
 (`packages/exam-scoring/src/learning-curve.ts`), the readout (`learning-rate-readout.ts`), the banks,
 the generator and the harness (`scripts/exam-learning-block-harness.ts`) are byte-identical to their
