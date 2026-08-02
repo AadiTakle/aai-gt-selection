@@ -3,10 +3,13 @@ import { learningRateReadout, type LearningTrial } from '@gt-selection/exam-scor
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
+  LEARNING_BLOCKS,
   LEARNING_BLOCK_AREA,
   LEARNING_BLOCK_LENGTH,
   LEARNING_BLOCK_TYPE,
+  availableBlocks,
   blockCanRun,
+  blockPool,
   clearLearningBlockHandoff,
   loadLearningBlockHandoff,
   nextBlockItem,
@@ -217,9 +220,11 @@ describe('learning-block handoff', () => {
     examSessionId: null,
     gradeBand: '4-5',
     standing: 13.4,
+    standings: { fluid_reasoning: 13.4 },
     seenItemIds: ['a', 'b'],
     finishedAt: '2026-07-29T00:00:00.000Z',
     blockLength: 30,
+    completedBlockIds: [],
   };
 
   beforeEach(() => {
@@ -230,6 +235,25 @@ describe('learning-block handoff', () => {
   it('round-trips so the block can be started in a later sitting', () => {
     saveLearningBlockHandoff(handoff);
     expect(loadLearningBlockHandoff()).toEqual(handoff);
+  });
+
+  it('resumes a handoff written before Phase 2 had more than one activity', () => {
+    // No `standings`, no `completedBlockIds` — exactly what an in-flight run would have stored.
+    window.localStorage.setItem(
+      'gt-exam-learning-block',
+      JSON.stringify({
+        sessionId: 'SESS-OLD-1',
+        examSessionId: null,
+        gradeBand: '4-5',
+        standing: 12,
+        seenItemIds: ['a'],
+        finishedAt: '2026-07-29T00:00:00.000Z',
+        blockLength: 30,
+      }),
+    );
+    const loaded = loadLearningBlockHandoff();
+    expect(loaded?.standings.fluid_reasoning).toBe(12);
+    expect(loaded?.completedBlockIds).toEqual([]);
   });
 
   it('returns null when nothing has been handed over', () => {
@@ -247,5 +271,57 @@ describe('learning-block handoff', () => {
     expect(loadLearningBlockHandoff()).toBeNull();
     window.localStorage.setItem('gt-exam-learning-block', 'not json');
     expect(loadLearningBlockHandoff()).toBeNull();
+  });
+});
+
+describe('multi-activity Phase 2', () => {
+  /** A pool holding `count` unseen items for each of the given activity specs. */
+  function poolFor(specs: readonly (typeof LEARNING_BLOCKS)[number][], count: number) {
+    return specs.flatMap((spec) =>
+      Array.from({ length: count }, (_, i) =>
+        served(`${spec.id}-${i}`, 10, spec.area, spec.typeCode),
+      ),
+    );
+  }
+
+  const allStandings = Object.fromEntries(LEARNING_BLOCKS.map((s) => [s.area, 12]));
+
+  it('offers only the activities whose bank is actually wired', () => {
+    // Exactly the situation on `dev`: one type banked, three not.
+    const pool = poolFor(LEARNING_BLOCKS.slice(0, 1), LEARNING_BLOCK_LENGTH);
+    const offered = availableBlocks(pool, [], allStandings);
+    expect(offered.map((s) => s.id)).toEqual(['fluid']);
+  });
+
+  it('offers all four once every bank is present', () => {
+    const pool = poolFor(LEARNING_BLOCKS, LEARNING_BLOCK_LENGTH);
+    expect(availableBlocks(pool, [], allStandings)).toHaveLength(4);
+  });
+
+  it('drops an activity whose area never settled a standing', () => {
+    const pool = poolFor(LEARNING_BLOCKS, LEARNING_BLOCK_LENGTH);
+    const { spatial: _dropped, ...missingSpatial } = allStandings;
+    expect(availableBlocks(pool, [], missingSpatial).map((s) => s.id)).not.toContain('spatial');
+  });
+
+  it('drops an activity left with too few unseen items by Phase 1', () => {
+    const pool = poolFor(LEARNING_BLOCKS, LEARNING_BLOCK_LENGTH);
+    const spatial = LEARNING_BLOCKS[1]!;
+    const seen = pool.filter((i) => i.typeCode === spatial.typeCode).map((i) => i.itemId);
+    expect(availableBlocks(pool, seen, allStandings).map((s) => s.id)).not.toContain(spatial.id);
+  });
+
+  it('does not re-offer an activity already completed, so a resumed run continues', () => {
+    const pool = poolFor(LEARNING_BLOCKS, LEARNING_BLOCK_LENGTH);
+    const offered = availableBlocks(pool, [], allStandings, ['fluid', 'spatial']);
+    expect(offered.map((s) => s.id)).toEqual(['quantitative', 'verbal']);
+  });
+
+  it('keeps each activity single-type — the system a child induces cannot span types', () => {
+    const pool = poolFor(LEARNING_BLOCKS, LEARNING_BLOCK_LENGTH);
+    for (const spec of LEARNING_BLOCKS) {
+      const codes = new Set(blockPool(spec, pool, []).map((i) => i.typeCode));
+      expect([...codes]).toEqual([spec.typeCode]);
+    }
   });
 });

@@ -21,6 +21,7 @@
  * `@gt-selection/exam-engine`, so the browser and the engine cannot drift apart.
  */
 import {
+  AREAS,
   RECOMMENDED_NOVEL_BLOCK_LENGTH,
   selectNextNovelServedItem,
   type Area,
@@ -83,6 +84,69 @@ export const LEARNING_BLOCK_LENGTH = RECOMMENDED_NOVEL_BLOCK_LENGTH;
  */
 export const LEARNING_BLOCK_TARGET_OFFSET = 1;
 
+/**
+ * One activity in Phase 2: a single question type, run in one area, for a fixed number of trials.
+ *
+ * The single-type rule is the whole reason this is a list of blocks rather than one longer block.
+ * A learning block measures a hidden system the child induces across trials that never repeat, and
+ * the system belongs to a type — so a run that interleaves types has nothing persisting across it
+ * (see {@link LEARNING_BLOCK_TYPE}). Four activities therefore means four separate single-type
+ * blocks, each with its own climb, not one block of 120 mixed trials.
+ *
+ * Each block still runs in the SAME area and type for every child, for the comparability reason in
+ * {@link LEARNING_BLOCK_AREA}: a rate measured in whichever area a given child happened to be
+ * strongest in is not comparable to anyone else's.
+ */
+export interface LearningBlockSpec {
+  /** Stable key for per-block state and storage. Never renumber; the handoff persists it. */
+  readonly id: string;
+  readonly area: Area;
+  /** The one type this block administers. */
+  readonly typeCode: string;
+  /** Child-facing name for the activity. */
+  readonly label: string;
+  readonly length: number;
+}
+
+/**
+ * The Phase 2 activities, in the order they are offered.
+ *
+ * Three of these four types are not on `dev` yet. That is deliberate rather than aspirational:
+ * {@link availableBlocks} filters this list against the item pool the app actually has, so the run
+ * is one activity today and becomes four the moment the remaining banks land, with no code change.
+ * A block whose type has too few unseen items is skipped, not failed.
+ */
+export const LEARNING_BLOCKS: readonly LearningBlockSpec[] = [
+  {
+    id: 'fluid',
+    area: 'fluid_reasoning',
+    typeCode: 'FLU-OPCHAIN-01',
+    label: 'Machine Chains',
+    length: LEARNING_BLOCK_LENGTH,
+  },
+  {
+    id: 'spatial',
+    area: 'spatial',
+    typeCode: 'SPA-XFORM-01',
+    label: 'Transform Machine',
+    length: LEARNING_BLOCK_LENGTH,
+  },
+  {
+    id: 'quantitative',
+    area: 'quantitative',
+    typeCode: 'QUANT-GLYPHNUM-01',
+    label: 'Alien Numbers',
+    length: LEARNING_BLOCK_LENGTH,
+  },
+  {
+    id: 'verbal',
+    area: 'verbal',
+    typeCode: 'VER-MORPHO-01',
+    label: 'Word Machines',
+    length: LEARNING_BLOCK_LENGTH,
+  },
+];
+
 const HANDOFF_KEY = 'gt-exam-learning-block';
 
 /**
@@ -96,12 +160,27 @@ export interface LearningBlockHandoff {
   /** Database session id when the run was persisted; null for an unpersisted preview run. */
   readonly examSessionId: string | null;
   readonly gradeBand: string;
-  /** The settled standing level for {@link LEARNING_BLOCK_AREA}, on the 1–20 scale. */
+  /**
+   * The settled standing level for {@link LEARNING_BLOCK_AREA}, on the 1–20 scale.
+   *
+   * Retained as the fluid-reasoning standing so a handoff written before Phase 2 had more than one
+   * activity still resumes. {@link standings} is what a multi-block run reads.
+   */
   readonly standing: number;
+  /**
+   * Settled standing per area, so each activity can be aimed at the level the child actually
+   * reached in ITS area. Aiming a spatial block at a fluid standing would pitch the difficulty at
+   * the wrong child.
+   *
+   * Partial because Phase 1 may not settle every area.
+   */
+  readonly standings: Partial<Record<Area, number>>;
   /** Every item served in Phase 1, so the block can exclude them. */
   readonly seenItemIds: readonly string[];
   readonly finishedAt: string;
   readonly blockLength: number;
+  /** Ids of activities already completed, so a resumed run continues rather than restarts. */
+  readonly completedBlockIds: readonly string[];
 }
 
 function storage(): Storage | null {
@@ -124,17 +203,33 @@ function parseHandoff(raw: string | null): LearningBlockHandoff | null {
     ) {
       return null;
     }
+    // A handoff written before Phase 2 had per-area standings carries only the fluid one. Seed the
+    // map from it so an in-flight run resumes instead of being discarded.
+    const rawStandings = (parsed.standings ?? {}) as Record<string, unknown>;
+    const standings: Partial<Record<Area, number>> = {};
+    for (const area of AREAS) {
+      const value = rawStandings[area];
+      if (typeof value === 'number' && Number.isFinite(value)) standings[area] = value;
+    }
+    if (standings[LEARNING_BLOCK_AREA] === undefined) {
+      standings[LEARNING_BLOCK_AREA] = parsed.standing;
+    }
+
     return {
       sessionId: parsed.sessionId,
       examSessionId: typeof parsed.examSessionId === 'string' ? parsed.examSessionId : null,
       gradeBand: typeof parsed.gradeBand === 'string' ? parsed.gradeBand : '4-5',
       standing: parsed.standing,
+      standings,
       seenItemIds: parsed.seenItemIds.filter((id): id is string => typeof id === 'string'),
       finishedAt: typeof parsed.finishedAt === 'string' ? parsed.finishedAt : '',
       blockLength:
         typeof parsed.blockLength === 'number' && Number.isFinite(parsed.blockLength)
           ? parsed.blockLength
           : LEARNING_BLOCK_LENGTH,
+      completedBlockIds: Array.isArray(parsed.completedBlockIds)
+        ? parsed.completedBlockIds.filter((id): id is string => typeof id === 'string')
+        : [],
     };
   } catch {
     return null;
@@ -199,6 +294,43 @@ export function clearLearningBlockHandoff(): void {
     // nothing to do
   }
   emit();
+}
+
+/** Items of one activity's type, in its area, that Phase 1 never served. */
+export function blockPool(
+  spec: LearningBlockSpec,
+  pool: readonly ServedItem[],
+  seenItemIds: readonly string[],
+): ServedItem[] {
+  const seen = new Set(seenItemIds);
+  return pool.filter(
+    (item) =>
+      item.domain === spec.area && item.typeCode === spec.typeCode && !seen.has(item.itemId),
+  );
+}
+
+/**
+ * The activities this child can actually be given, in order.
+ *
+ * An activity is dropped when its bank is not wired yet, when Phase 1 left too few unseen items of
+ * its type, or when Phase 1 never settled a standing in its area — all three make the block
+ * unaimable rather than merely short, and a block aimed at nothing measures nothing.
+ *
+ * Completed activities are dropped too, so a resumed run continues where it stopped.
+ */
+export function availableBlocks(
+  pool: readonly ServedItem[],
+  seenItemIds: readonly string[],
+  standings: Partial<Record<Area, number>>,
+  completedBlockIds: readonly string[] = [],
+): LearningBlockSpec[] {
+  const done = new Set(completedBlockIds);
+  return LEARNING_BLOCKS.filter(
+    (spec) =>
+      !done.has(spec.id) &&
+      standings[spec.area] !== undefined &&
+      blockPool(spec, pool, seenItemIds).length >= spec.length,
+  );
 }
 
 /** Items of the block's type, in the block's area, that Phase 1 never served. */
@@ -343,5 +475,47 @@ export function summariseLearningBlock(
     lambda: readout.lambdaDiagnostic,
     lambdaSe: readout.lambdaSe,
     trialCount: readout.trialCount,
+  };
+}
+
+/** One finished activity, kept so the run can be summarised and resumed. */
+export interface CompletedBlock {
+  readonly spec: LearningBlockSpec;
+  readonly readout: LearningBlockReadout;
+}
+
+/**
+ * What the whole of Phase 2 says, once every activity a child could take has been taken.
+ *
+ * There is deliberately no combined rate. Each activity fits its own climb in its own area, and
+ * averaging four figures that are each individually indeterminate produces a fifth indeterminate
+ * figure with a falsely tighter look — the block-length floor in {@link summariseLearningBlock}
+ * does not average away. So this reports coverage and holds the per-activity fits for the cohort
+ * analysis, and says plainly that the pace itself is not yet reportable.
+ */
+export interface Stage2Readout {
+  readonly blocks: readonly CompletedBlock[];
+  /** Activities finished out of the number offered to THIS child. */
+  readonly completed: number;
+  readonly offered: number;
+  readonly band: LearningRateBand;
+  readonly reason: string;
+}
+
+const PARTIAL_COVERAGE_REASON =
+  'Your child completed part of the practice section. The activities they did finish are on the ' +
+  'record, but a pace is not something we can report from them yet.';
+
+export function summariseStage2(
+  blocks: readonly CompletedBlock[],
+  offered: number,
+): Stage2Readout {
+  const completed = blocks.length;
+  return {
+    blocks,
+    completed,
+    offered,
+    band: 'indeterminate',
+    reason: completed > 0 && completed < offered ? PARTIAL_COVERAGE_REASON : NO_REFERENCE_REASON,
   };
 }

@@ -9,6 +9,7 @@ import {
   planNextSelection,
   startState,
   update,
+  AREAS,
   type Area,
   type Banks,
   type BurstPlan,
@@ -49,17 +50,21 @@ import { ExamHost, type InboundResult } from '@/lib/exam/messaging';
 import {
   LEARNING_BLOCK_AREA,
   LEARNING_BLOCK_LENGTH,
-  blockCanRun,
+  availableBlocks,
+  blockPool,
   clearLearningBlockHandoff,
   learningBlockHandoffServerSnapshot,
   learningBlockHandoffSnapshot,
   nextBlockItem,
   nextBlockTarget,
-  novelBlockPool,
   saveLearningBlockHandoff,
   subscribeToLearningBlockHandoff,
   summariseLearningBlock,
+  summariseStage2,
   toLearningTrials,
+  type CompletedBlock,
+  type LearningBlockSpec,
+  type Stage2Readout,
   type LearningBlockHandoff,
   type LearningBlockReadout,
 } from '@/lib/exam/phase2';
@@ -176,6 +181,26 @@ export function ExamRunner({
   /** Routes each result to the block instead of the Phase 1 engine; a ref so it is never stale. */
   const inBlockRef = useRef(false);
 
+  // ---- Phase 2 as a sequence of activities ----------------------------------
+  /** Which activity of the queue is on screen, mirrored into state for the progress line. */
+  const [blockIndex, setBlockIndex] = useState(0);
+  const blockIndexRef = useRef(0);
+  blockIndexRef.current = blockIndex;
+  /** The activities this child was offered, after availability filtering. */
+  const blockQueueRef = useRef<LearningBlockSpec[]>([]);
+  const activeSpecRef = useRef<LearningBlockSpec | null>(null);
+  const completedBlocksRef = useRef<CompletedBlock[]>([]);
+  /** Whole served pool, kept so each activity can build its own single-type sub-pool. */
+  const blockFullPoolRef = useRef<ServedItem[]>([]);
+  /** Items unavailable to the next activity: Phase 1's, plus every earlier activity's. */
+  const blockSeenRef = useRef<string[]>([]);
+  const blockStandingsRef = useRef<Partial<Record<Area, number>>>({});
+  const [stage2, setStage2] = useState<Stage2Readout | null>(null);
+  /** Lets `serveNextBlockItem` call the finisher declared after it, without a stale closure. */
+  const finishBlockRef = useRef<(t?: readonly { difficulty: number; score: number }[]) => void>(
+    () => {},
+  );
+
   /** Ability estimate for the item on screen, mirrored into state so render never reads a ref. */
   const [debugAbility, setDebugAbility] = useState<number | null>(null);
   /**
@@ -276,17 +301,27 @@ export function ExamRunner({
       // Hand Phase 2 what it needs to start LATER: the settled standing level in the block's area,
       // and every item already served so the block can guarantee unfamiliar ones. Without this the
       // block would have to run in the same sitting off live engine state.
-      const areaScore = finalOutcome.perArea[LEARNING_BLOCK_AREA];
-      const standing = areaScore?.abilityEstimate ?? areaScore?.proficiency ?? null;
+      // Every area's settled level, not just the block area: each activity is aimed at the
+      // standing the child reached in ITS OWN area, since a spatial block pitched at a fluid
+      // standing would be aimed at the wrong child.
+      const standings: Partial<Record<Area, number>> = {};
+      for (const area of AREAS) {
+        const score = finalOutcome.perArea[area];
+        const level = score?.abilityEstimate ?? score?.proficiency ?? null;
+        if (level !== null) standings[area] = level;
+      }
+      const standing = standings[LEARNING_BLOCK_AREA] ?? null;
       if (standing !== null) {
         const handoff: LearningBlockHandoff = {
           sessionId: payload.sessionId,
           examSessionId: sessionRef.current.examSessionId,
           gradeBand,
           standing,
+          standings,
           seenItemIds: servedRef.current.map((servedItem) => servedItem.itemId),
           finishedAt: payload.finishedAt,
           blockLength: LEARNING_BLOCK_LENGTH,
+          completedBlockIds: [],
         };
         saveLearningBlockHandoff(handoff);
       }
@@ -361,22 +396,15 @@ export function ExamRunner({
   // the point: a rate fitted over the bracketing stream measures the search converging, not the
   // child learning (BUILD_PLAN §5.5).
 
-  const finishBlock = useCallback(
-    (trialsOverride?: readonly { difficulty: number; score: number }[]) => {
-      const trials = toLearningTrials(trialsOverride ?? blockTrialsRef.current);
-      setBlockReadout(summariseLearningBlock(trials, undefined, LEARNING_BLOCK_LENGTH));
-      clearLearningBlockHandoff();
-      inBlockRef.current = false;
-      setCurrent(null);
-      setPhase('block-done');
-    },
-    [],
-  );
-
+  // Phase 2 is a SEQUENCE of activities, not one block. Each is a single question type run in one
+  // area, because the thing being measured is a hidden system the child induces across trials —
+  // and that system belongs to a type, so it cannot span one (phase2.ts, LEARNING_BLOCKS).
   const serveNextBlockItem = useCallback(() => {
+    const spec = activeSpecRef.current;
+    if (!spec) return;
     const trials = toLearningTrials(blockTrialsRef.current);
-    if (trials.length >= LEARNING_BLOCK_LENGTH) {
-      finishBlock();
+    if (trials.length >= spec.length) {
+      finishBlockRef.current();
       return;
     }
 
@@ -390,7 +418,7 @@ export function ExamRunner({
     );
     if (!picked) {
       // Pool exhausted early. Reportable, not swallowed: the readout will decline to name a band.
-      finishBlock();
+      finishBlockRef.current();
       return;
     }
     blockAdministeredRef.current = [...blockAdministeredRef.current, picked.itemId];
@@ -405,44 +433,106 @@ export function ExamRunner({
       setDebugAbility(blockStandingRef.current);
       setCurrent(item);
     })();
-  }, [finishBlock]);
+  }, []);
+
+  /** Begin the activity at `index` in the queue this child was offered. */
+  const startActivity = useCallback(
+    (index: number) => {
+      const spec = blockQueueRef.current[index];
+      if (!spec) return;
+      activeSpecRef.current = spec;
+      setBlockIndex(index);
+      setBlockReadout(null);
+      setCurrent(null);
+      blockTrialsRef.current = [];
+      blockAdministeredRef.current = [];
+      blockStandingRef.current = blockStandingsRef.current[spec.area] ?? blockStandingRef.current;
+      blockPoolRef.current = blockPool(spec, blockFullPoolRef.current, blockSeenRef.current);
+      processedRef.current = new Set();
+      setBlockCount(0);
+      inBlockRef.current = true;
+      setPhase('block-running');
+      serveNextBlockItem();
+    },
+    [serveNextBlockItem],
+  );
+
+  const finishBlock = useCallback(
+    (trialsOverride?: readonly { difficulty: number; score: number }[]) => {
+      const spec = activeSpecRef.current;
+      const trials = toLearningTrials(trialsOverride ?? blockTrialsRef.current);
+      const readout = summariseLearningBlock(trials, undefined, spec?.length ?? LEARNING_BLOCK_LENGTH);
+      setBlockReadout(readout);
+      if (spec) {
+        completedBlocksRef.current = [...completedBlocksRef.current, { spec, readout }];
+        // Items this activity used are unavailable to the next one — an item repeated across
+        // activities would measure recall of it rather than the new system.
+        blockSeenRef.current = [...blockSeenRef.current, ...blockAdministeredRef.current];
+      }
+      inBlockRef.current = false;
+      setCurrent(null);
+
+      const nextIndex = blockIndexRef.current + 1;
+      if (nextIndex < blockQueueRef.current.length) {
+        // Another activity waits. The child chooses when to start it, exactly as they chose to
+        // start Phase 2 — a run of four back-to-back blocks is where fatigue would enter.
+        setPhase('block-intro');
+        setBlockIndex(nextIndex);
+        return;
+      }
+
+      clearLearningBlockHandoff();
+      setStage2(summariseStage2(completedBlocksRef.current, blockQueueRef.current.length));
+      setPhase('block-done');
+    },
+    [],
+  );
+  finishBlockRef.current = finishBlock;
 
   const startLearningBlock = useCallback(
     async (handoff: LearningBlockHandoff) => {
       setError(null);
       setBlockReadout(null);
+      setStage2(null);
       setCurrent(null);
-      blockTrialsRef.current = [];
-      blockAdministeredRef.current = [];
+      completedBlocksRef.current = [];
+      blockSeenRef.current = [...handoff.seenItemIds];
+      blockStandingsRef.current = handoff.standings;
       blockStandingRef.current = handoff.standing;
-      processedRef.current = new Set();
-      setBlockCount(0);
-      inBlockRef.current = true;
       sessionRef.current = {
         sessionId: handoff.sessionId,
         participantCode: sessionRef.current.participantCode || syntheticId('PART'),
         startedAt: new Date().toISOString(),
         examSessionId: handoff.examSessionId,
       };
-      setPhase('block-running');
 
       try {
         const pool = await fetchServedPool();
-        if (!blockCanRun(pool, handoff.seenItemIds, handoff.blockLength)) {
-          // Not enough unfamiliar material left. Running a short block anyway would produce a
-          // number resting on fewer trials than the design assumes, which is most of the signal.
-          finishBlock([]);
+        blockFullPoolRef.current = pool;
+        // Only the activities this child can actually be given: bank wired, enough unseen items,
+        // and a settled standing in that area to aim at.
+        blockQueueRef.current = availableBlocks(
+          pool,
+          handoff.seenItemIds,
+          handoff.standings,
+          handoff.completedBlockIds,
+        );
+        if (blockQueueRef.current.length === 0) {
+          // Nothing runnable. Say so rather than serving a short block, whose fitted climb would
+          // rest on fewer trials than the design assumes.
+          activeSpecRef.current = null;
+          setStage2(summariseStage2([], 0));
+          setPhase('block-done');
           return;
         }
-        blockPoolRef.current = novelBlockPool(pool, handoff.seenItemIds);
-        serveNextBlockItem();
+        startActivity(0);
       } catch {
         inBlockRef.current = false;
         setError('We could not load the next set of activities. Please try again.');
         setPhase('error');
       }
     },
-    [serveNextBlockItem, finishBlock],
+    [startActivity],
   );
 
   const handleResult = useCallback(
@@ -502,7 +592,8 @@ export function ExamRunner({
         const trials = [...blockTrialsRef.current, { difficulty, score }];
         blockTrialsRef.current = trials;
         setBlockCount(trials.length);
-        if (trials.length >= LEARNING_BLOCK_LENGTH) finishBlock(trials);
+        if (trials.length >= (activeSpecRef.current?.length ?? LEARNING_BLOCK_LENGTH))
+          finishBlock(trials);
         else serveNextBlockItem();
         return;
       }
@@ -862,18 +953,38 @@ export function ExamRunner({
 
   // ---- Phase 2 intro: the family starts this, and it is framed as hard on purpose ----------
   if (phase === 'block-intro') {
+    // Mid-sequence the queue is known, so this screen names the activity ahead and how many
+    // remain. Before the first one it is not, so it stays general.
+    const queued = blockQueueRef.current;
+    const upcoming = queued[blockIndex] ?? null;
+    const isResuming = queued.length > 0 && completedBlocksRef.current.length > 0;
     return (
       <div className={styles.wrap}>
         <section className={styles.hero}>
           <div className={styles.heroText}>
-            <p className={styles.kicker}>Part two — learning something new</p>
-            <h1 className={styles.title}>These are meant to be hard.</h1>
-            <p className={styles.lede}>
-              The next {LEARNING_BLOCK_LENGTH} puzzles are kinds you have not seen yet, pitched a
-              little above where you just finished. You are not expected to get them all — most
-              people do not, and that is exactly how this part is supposed to feel. What we are
-              looking at is how you get on as you go, not how many you get right.
+            <p className={styles.kicker}>
+              {isResuming
+                ? `Part two — activity ${blockIndex + 1} of ${queued.length}`
+                : 'Part two — learning something new'}
             </p>
+            <h1 className={styles.title}>
+              {isResuming ? `Next up: ${upcoming?.label ?? 'a new activity'}.` : 'These are meant to be hard.'}
+            </h1>
+            {isResuming ? (
+              <p className={styles.lede}>
+                That was a different puzzle from the one before it, and this next set works by its
+                own rules again. {upcoming ? `There are ${upcoming.length} of them.` : ''} Same
+                idea as last time: nobody is expected to get them all, and what matters is how you
+                get on as you go.
+              </p>
+            ) : (
+              <p className={styles.lede}>
+                The next part is a set of activities made of puzzles you have not seen before,
+                pitched a little above where you just finished. Each one works by its own hidden
+                rules, and you work them out as you go. You are not expected to get them all —
+                most people do not, and that is exactly how this part is supposed to feel.
+              </p>
+            )}
             <p className={styles.lede}>
               Take your time, and keep going even when one looks unfamiliar.
             </p>
@@ -881,7 +992,8 @@ export function ExamRunner({
               type="button"
               className={styles.primary}
               onClick={() => {
-                if (pendingBlock) void startLearningBlock(pendingBlock);
+                if (isResuming) startActivity(blockIndex);
+                else if (pendingBlock) void startLearningBlock(pendingBlock);
               }}
             >
               I’m ready — begin →
@@ -913,14 +1025,26 @@ export function ExamRunner({
         <section className={styles.summaryCard}>
           <p className={styles.cardKicker}>Learning pace</p>
           <p className={styles.bigStat} style={{ fontSize: '1.5rem' }}>
-            {LEARNING_BAND_LABEL[blockReadout.band]}
+            {LEARNING_BAND_LABEL[stage2?.band ?? blockReadout.band]}
           </p>
-          <p className={styles.lede}>{blockReadout.reason}</p>
+          <p className={styles.lede}>{stage2?.reason ?? blockReadout.reason}</p>
           <p className={styles.frameNote}>
-            {blockReadout.trialCount > 0
-              ? `Based on ${blockReadout.trialCount} unfamiliar puzzles in one reasoning area.`
+            {stage2 && stage2.completed > 0
+              ? `Based on ${stage2.blocks.reduce((n, b) => n + b.readout.trialCount, 0)} unfamiliar ` +
+                `puzzles across ${stage2.completed} ` +
+                `${stage2.completed === 1 ? 'activity' : 'activities'}` +
+                `${stage2.offered > stage2.completed ? ` of ${stage2.offered} offered` : ''}.`
               : 'We could not run this part — there were not enough unfamiliar puzzles left.'}
           </p>
+          {stage2 && stage2.blocks.length > 1 ? (
+            <ul className={styles.frameNote} style={{ marginTop: '0.5rem', paddingLeft: '1.1rem' }}>
+              {stage2.blocks.map((b) => (
+                <li key={b.spec.id}>
+                  {b.spec.label} — {b.readout.trialCount} puzzles
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </section>
 
         <Link className={styles.primary} href={dashboardHref}>
@@ -981,7 +1105,11 @@ export function ExamRunner({
         <div>
           <p className={styles.kicker}>
             {isBlockRunning
-              ? `New puzzle ${blockCount + 1} of ${LEARNING_BLOCK_LENGTH}`
+              ? `${activeSpecRef.current?.label ?? 'New puzzle'} — ${blockCount + 1} of ` +
+                `${activeSpecRef.current?.length ?? LEARNING_BLOCK_LENGTH}` +
+                (blockQueueRef.current.length > 1
+                  ? ` · activity ${blockIndex + 1} of ${blockQueueRef.current.length}`
+                  : '')
               : `Question ${scoredCount + 1}`}{' '}
             · {domainLabel(current.domain)}
           </p>
@@ -1019,7 +1147,7 @@ export function ExamRunner({
 
       <div className={styles.progress} aria-hidden="true">
         {isBlockRunning
-          ? Array.from({ length: LEARNING_BLOCK_LENGTH }, (_, i) => (
+          ? Array.from({ length: activeSpecRef.current?.length ?? LEARNING_BLOCK_LENGTH }, (_, i) => (
               <span
                 key={`block-${i}`}
                 className={`${styles.seg} ${i < blockCount ? styles.segDone : ''} ${
