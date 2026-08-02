@@ -46,6 +46,7 @@ import {
 } from '@/lib/exam/adaptive';
 import { GRADE_BANDS, GRADE_BAND_LABEL, syntheticId, type GradeBand } from '@/lib/exam/contract';
 import { buildDebugView, type DebugTraceItem } from '@/lib/exam/debug-view';
+import { stage1Progress, stage2Progress } from '@/lib/exam/progress';
 import { ExamHost, type InboundResult } from '@/lib/exam/messaging';
 import {
   LEARNING_BLOCK_AREA,
@@ -280,6 +281,8 @@ export function ExamRunner({
    */
   const hostRef = useRef<ExamHost | null>(null);
   const stateRef = useRef<SessionState | null>(null);
+  /** Render mirror of the engine session; the progress projection is derived from it. */
+  const [engineState, setEngineState] = useState<SessionState | null>(null);
   const banksRef = useRef<Banks | null>(null);
   const servedRef = useRef<ServedItem[]>([]);
   const scoredRef = useRef<TraceScoredItem[]>([]);
@@ -672,6 +675,7 @@ export function ExamRunner({
 
       const nextState = update(state, scored as unknown as EngineScoredItem);
       stateRef.current = nextState;
+      setEngineState(nextState);
 
       if (isDone(nextState)) void finalize();
       else serveNext(nextState);
@@ -774,6 +778,7 @@ export function ExamRunner({
       banksRef.current = buildBanks(pool);
       const state = startState(gradeBand, examEngineOverrides());
       stateRef.current = state;
+      setEngineState(state);
       setEngineConfig(state.config);
       const participantCode = syntheticId('PART');
       sessionRef.current = {
@@ -1131,6 +1136,13 @@ export function ExamRunner({
 
   // ---- running -------------------------------------------------------------
   const isBlockRunning = phase === 'block-running';
+  const progress = isBlockRunning
+    ? stage2Progress(
+        blockQueue.map((spec) => spec.length),
+        blockIndex,
+        blockTrials.length,
+      )
+    : stage1Progress(engineState, scoredCount);
   const meta = current ? EXAM_BANK_BY_CODE.get(current.typeCode) : undefined;
   if (!current) {
     return (
@@ -1191,24 +1203,26 @@ export function ExamRunner({
         </div>
       </header>
 
-      <div className={styles.progress} aria-hidden="true">
-        {isBlockRunning
-          ? Array.from({ length: activeSpec?.length ?? LEARNING_BLOCK_LENGTH }, (_, i) => (
-              <span
-                key={`block-${i}`}
-                className={`${styles.seg} ${i < blockCount ? styles.segDone : ''} ${
-                  i === blockCount ? styles.segActive : ''
-                }`}
-              />
-            ))
-          : served.map((item, i) => (
-              <span
-                key={item.itemId}
-                className={`${styles.seg} ${i < scoredCount ? styles.segDone : ''} ${
-                  i === scoredCount ? styles.segActive : ''
-                }`}
-              />
-            ))}
+      {/*
+        One smooth bar, not a segment per question. Phase 1 has no fixed length — it ends when the
+        stop rule is satisfied — so a fixed count of segments would be asserting a total nobody
+        knows. The fill is `answered / shortest total still consistent with the rules`, which is
+        why it moves unevenly: an area settling removes a requirement and the bar takes a bigger
+        step. In Phase 2 the total IS known, and the bar spans every activity rather than
+        resetting per activity.
+      */}
+      <div
+        className={styles.progress}
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(progress.fraction * 100)}
+        aria-label={isBlockRunning ? 'Progress through part two' : 'Progress through part one'}
+      >
+        <span
+          className={styles.progressFill}
+          style={{ width: `${Math.max(1.5, progress.fraction * 100)}%` }}
+        />
       </div>
 
       <iframe

@@ -326,3 +326,44 @@ describe('multi-activity Phase 2', () => {
     }
   });
 });
+
+describe('activity order', () => {
+  function poolAll(count: number) {
+    return LEARNING_BLOCKS.flatMap((spec) =>
+      Array.from({ length: count }, (_, i) =>
+        served(`${spec.id}-${i}`, 10, spec.area, spec.typeCode),
+      ),
+    );
+  }
+
+  it('runs weakest area first, strongest last', () => {
+    const pool = poolAll(LEARNING_BLOCK_LENGTH);
+    const order = availableBlocks(pool, [], {
+      fluid_reasoning: 17,
+      verbal: 4,
+      quantitative: 11,
+      spatial: 8,
+    }).map((s) => s.area);
+    expect(order).toEqual(['verbal', 'spatial', 'quantitative', 'fluid_reasoning']);
+  });
+
+  it('reorders for a different child', () => {
+    const pool = poolAll(LEARNING_BLOCK_LENGTH);
+    const order = availableBlocks(pool, [], {
+      fluid_reasoning: 2,
+      verbal: 19,
+      quantitative: 6,
+      spatial: 14,
+    }).map((s) => s.area);
+    expect(order).toEqual(['fluid_reasoning', 'quantitative', 'spatial', 'verbal']);
+  });
+
+  it('breaks ties deterministically, so a session stays replayable', () => {
+    const pool = poolAll(LEARNING_BLOCK_LENGTH);
+    const tied = { fluid_reasoning: 9, verbal: 9, quantitative: 9, spatial: 9 };
+    const first = availableBlocks(pool, [], tied).map((s) => s.id);
+    const again = availableBlocks(pool, [], tied).map((s) => s.id);
+    expect(first).toEqual(again);
+    expect(first).toEqual(LEARNING_BLOCKS.map((s) => s.id));
+  });
+});

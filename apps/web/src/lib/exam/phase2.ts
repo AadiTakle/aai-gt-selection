@@ -310,13 +310,23 @@ export function blockPool(
 }
 
 /**
- * The activities this child can actually be given, in order.
+ * The activities this child can actually be given, ordered weakest area first.
  *
  * An activity is dropped when its bank is not wired yet, when Phase 1 left too few unseen items of
  * its type, or when Phase 1 never settled a standing in its area — all three make the block
  * unaimable rather than merely short, and a block aimed at nothing measures nothing.
  *
  * Completed activities are dropped too, so a resumed run continues where it stopped.
+ *
+ * **Order is by the child's own standing, ascending.** Every activity is pitched above wherever
+ * that child finished, so all four are hard; going weakest-area first means the run opens where
+ * the ceiling is lowest and the material is least likely to be already familiar. It also puts the
+ * areas most exposed to fatigue at the front, while effort is highest — Phase 2 is the part
+ * children are told they are not expected to complete, so what lands late is what a tiring child
+ * is most likely to abandon.
+ *
+ * The order is a property of the child, not of the list, so two children can meet these in
+ * different sequences. That is fine for a within-block climb, which never compares across areas.
  */
 export function availableBlocks(
   pool: readonly ServedItem[],
@@ -330,7 +340,13 @@ export function availableBlocks(
       !done.has(spec.id) &&
       standings[spec.area] !== undefined &&
       blockPool(spec, pool, seenItemIds).length >= spec.length,
-  );
+  ).sort((a, b) => {
+    const byStanding = (standings[a.area] ?? 0) - (standings[b.area] ?? 0);
+    // Ties keep the declaration order, so the sequence stays deterministic and replayable.
+    return byStanding !== 0
+      ? byStanding
+      : LEARNING_BLOCKS.indexOf(a) - LEARNING_BLOCKS.indexOf(b);
+  });
 }
 
 /** Items of the block's type, in the block's area, that Phase 1 never served. */
