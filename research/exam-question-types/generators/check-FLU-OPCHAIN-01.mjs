@@ -279,11 +279,37 @@ function loadBank(mode) {
   return items;
 }
 
+/**
+ * How much of the key `content` gives away, in expectation rather than as a yes/no.
+ *
+ * The binary invariant below asks whether exactly ONE option survives brute-forcing the mappings,
+ * because that is the case where the key is recovered outright. It is not the whole exposure: an item
+ * where two of five options survive hands a client a 50% hit rate with no induction, and averaged
+ * over a block that is a floor under accuracy in BOTH arms — including the scrambled control, where
+ * by construction nothing is learnable, so an elevated floor there is what makes the control stop
+ * separating from the live arm.
+ *
+ * Reported per 2-point slice of the scale because the exposure is not uniform: chains get longer as
+ * difficulty rises, and the reachable figure set collapses as they do (see ALLOWED_CONFIGS in the
+ * generator). The guard is on the worst slice, so a future change that trades leak for difficulty
+ * fails here instead of being discovered in a Gate B run.
+ */
+const LEAK_SLICE_WIDTH = 2;
+/**
+ * Ceiling on content-only chance in any slice. 0.35 is above today's worst slice (~0.30 at
+ * difficulty 16-20) and well under the 0.50 a two-option item would give, so it is a regression
+ * guard on a known, recorded exposure rather than a claim that the exposure is acceptable.
+ */
+const LEAK_CHANCE_CEILING = 0.35;
+
 function checkBank(mode, items) {
   const seenIds = new Set();
   const systemIds = new Set();
   const keyCounts = Object.fromEntries(OPTION_KEYS.map((k) => [k, 0]));
   let optionCounts = new Set();
+  /** slice index -> { n, viableSum } for the graded leak report. */
+  const leakBySlice = new Map();
+  let uniqueReachable = 0;
 
   for (const it of items) {
     const id = `${mode}:${it.itemId || '(no id)'}`;
@@ -385,13 +411,23 @@ function checkBank(mode, items) {
       // ---- 4b. Anti-leak: the key must not be the unique relabelling-reachable option ----
       const reachable = relabelReachable(opChain.length, input);
       const reachableKeys = options.filter((o) => reachable.has(fkey(o.figure))).map((o) => o.key);
-      if (reachableKeys.length < 2)
+      if (reachableKeys.length < 2) {
+        uniqueReachable += 1;
         fail(
           id,
           `only ${reachableKeys.length} option(s) [${reachableKeys.join(',')}] are consistent with ANY ` +
             'badge->operator relabelling — a client that brute-forces the 720 mappings recovers the ' +
             'key from content alone, with no knowledge of the hidden system',
         );
+      }
+
+      // ---- 4c. Anti-leak, GRADED: how good a guess does content alone buy? ----
+      const slice = Math.floor(it.difficulty / LEAK_SLICE_WIDTH);
+      const bucket = leakBySlice.get(slice) ?? { n: 0, viableSum: 0, worst: OPTION_KEYS.length };
+      bucket.n += 1;
+      bucket.viableSum += reachableKeys.length;
+      bucket.worst = Math.min(bucket.worst, reachableKeys.length);
+      leakBySlice.set(slice, bucket);
 
       // ---- 5. Distractors: distinct, and each a named partial rule ----
       const figureKeys = options.map((o) => fkey(o.figure));
@@ -507,7 +543,39 @@ function checkBank(mode, items) {
       `perTrial bank holds ${systemIds.size} systems for ${items.length} items, expected one each`,
     );
 
-  return { items, rungCounts, keyCounts, systemIds, min, max, worstKeyAdvantage: worst - floor };
+  // ---- 4c. Graded leak: the worst slice must stay under the stated ceiling ----
+  const leakSlices = [...leakBySlice.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([slice, bucket]) => ({
+      lo: slice * LEAK_SLICE_WIDTH,
+      hi: (slice + 1) * LEAK_SLICE_WIDTH,
+      n: bucket.n,
+      meanViable: bucket.viableSum / bucket.n,
+      fewestViable: bucket.worst,
+      chance: bucket.n / bucket.viableSum,
+    }));
+  for (const s of leakSlices) {
+    if (s.chance > LEAK_CHANCE_CEILING) {
+      fail(
+        `leak:${mode}`,
+        `difficulty ${s.lo}-${s.hi}: brute-forcing the mappings leaves ${s.meanViable.toFixed(2)} of 5 ` +
+          `options viable on average, a ${(100 * s.chance).toFixed(0)}% content-only hit rate, over the ` +
+          `${(100 * LEAK_CHANCE_CEILING).toFixed(0)}% ceiling`,
+      );
+    }
+  }
+
+  return {
+    items,
+    rungCounts,
+    keyCounts,
+    systemIds,
+    min,
+    max,
+    worstKeyAdvantage: worst - floor,
+    uniqueReachable,
+    leakSlices,
+  };
 }
 
 const banks = {};
@@ -551,6 +619,18 @@ for (const mode of MODES) {
       `  — modal advantage over the 20.0% floor: +${b.worstKeyAdvantage.toFixed(1)}pt`,
   );
   console.log(`  per 0.5pt rung (1.0 -> 20.0): ${b.rungCounts.join(' ')}`);
+  console.log(
+    `  ANTI-LEAK: key derivable from content alone on ${b.uniqueReachable}/${b.items.length} items ` +
+      '(only one option consistent with any badge relabelling)',
+  );
+  console.log('  graded leak — what brute-forcing the 720 mappings buys, by difficulty:');
+  for (const s of b.leakSlices) {
+    console.log(
+      `    ${String(s.lo).padStart(2)}-${String(s.hi).padEnd(2)}  ${String(s.n).padStart(3)} items  ` +
+        `${s.meanViable.toFixed(2)} of 5 options viable (fewest ${s.fewestViable})  ` +
+        `content-only chance ${(100 * s.chance).toFixed(0)}%`,
+    );
+  }
 }
 
 if (failures.length) {
