@@ -195,6 +195,14 @@ export function ExamRunner({
   const [blockQueue, setBlockQueue] = useState<LearningBlockSpec[]>([]);
   const [completedCount, setCompletedCount] = useState(0);
   const [blockStanding, setBlockStanding] = useState(0);
+  /**
+   * TRUE climb of the emulated child, in scale points per trial — the same units the fit
+   * reports. 0 is the honest default: a non-learner is what the block has to be able to
+   * show, and it is the case the estimator is known to get wrong.
+   */
+  const [emulatedLambda, setEmulatedLambda] = useState(0);
+  /** Emulate the rest of the block without a click per trial. */
+  const [autoRun, setAutoRun] = useState(false);
   const completedBlocksRef = useRef<CompletedBlock[]>([]);
   /** Whole served pool, kept so each activity can build its own single-type sub-pool. */
   const blockFullPoolRef = useRef<ServedItem[]>([]);
@@ -205,6 +213,26 @@ export function ExamRunner({
   useEffect(() => {
     blockIndexRef.current = blockIndex;
   }, [blockIndex]);
+
+  // Auto-run: emulate one trial per served item until the block ends. Chained through the
+  // served item rather than a loop, so each trial waits for the server's verdict exactly as a
+  // clicked one does — the trace an auto-run produces is the same trace.
+  const autoRunBusyRef = useRef(false);
+  useEffect(() => {
+    if (!autoRun) return;
+    if (phase !== 'block-running' || !current) return;
+    if (autoRunBusyRef.current) return;
+    autoRunBusyRef.current = true;
+    const item = current;
+    const ability = blockStandingRef.current + emulatedLambda * blockTrialsRef.current.length;
+    void (async () => {
+      try {
+        await handleResultRef.current(item, { response: { emulated: true } }, false, ability);
+      } finally {
+        autoRunBusyRef.current = false;
+      }
+    })();
+  }, [autoRun, phase, current, emulatedLambda]);
 
   /** Ability estimate for the item on screen, mirrored into state so render never reads a ref. */
   const [debugAbility, setDebugAbility] = useState<number | null>(null);
@@ -418,6 +446,7 @@ export function ExamRunner({
         blockSeenRef.current = [...blockSeenRef.current, ...blockAdministeredRef.current];
       }
       inBlockRef.current = false;
+      setAutoRun(false);
       setCurrent(null);
 
       const nextIndex = blockIndexRef.current + 1;
@@ -1140,7 +1169,10 @@ export function ExamRunner({
                 // Ability for THIS item's area: the engine's running estimate in Phase 1, the
                 // settled standing the block was pitched against in Phase 2.
                 const ability = isBlockRunning
-                  ? blockStandingRef.current
+                  ? // The emulated child CLIMBS: theta(t) = standing + lambda * t, matching the
+                    // curve `estimateLearningCurve` inverts. A flat standing can only ever
+                    // produce a non-learner, which is why this used to look broken.
+                    blockStandingRef.current + emulatedLambda * blockTrialsRef.current.length
                   : (stateRef.current?.areas[current.domain]?.difficulty ??
                     blockStandingRef.current);
                 handleResultRef.current(current, { response: { emulated: true } }, false, ability);
@@ -1222,6 +1254,10 @@ export function ExamRunner({
                   length: activeSpec.length,
                   standing: blockStanding,
                   trials: blockTrials,
+                  emulatedLambda,
+                  onEmulatedLambda: setEmulatedLambda,
+                  autoRun,
+                  onAutoRun: setAutoRun,
                 }
               : null
           }

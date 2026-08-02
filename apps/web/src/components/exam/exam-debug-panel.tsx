@@ -144,7 +144,20 @@ export interface Stage2DebugView {
   readonly length: number;
   readonly standing: number;
   readonly trials: readonly { readonly difficulty: number; readonly score: number }[];
+  /** TRUE climb of the emulated child, in scale points per trial. */
+  readonly emulatedLambda: number;
+  readonly onEmulatedLambda: (value: number) => void;
+  readonly autoRun: boolean;
+  readonly onAutoRun: (value: boolean) => void;
 }
+
+/** Presets spanning the cases the block has to be able to tell apart. */
+const LEARNER_PRESETS: readonly { label: string; lambda: number }[] = [
+  { label: 'none', lambda: 0 },
+  { label: 'slow', lambda: 0.03 },
+  { label: 'typical', lambda: 0.06 },
+  { label: 'fast', lambda: 0.12 },
+];
 
 const COLLAPSE_KEY = 'gt-exam-debug-collapsed';
 
@@ -193,13 +206,39 @@ function Stage2Body({ view }: { view: Stage2DebugView }) {
           })}
         </div>
       </div>
+      <div className={styles.actions}>
+        <span className={styles.headMeta}>Emulated learner λ</span>
+        {LEARNER_PRESETS.map((preset) => (
+          <button
+            key={preset.label}
+            type="button"
+            className={`${styles.toggle} ${
+              Math.abs(view.emulatedLambda - preset.lambda) < 1e-9 ? styles.presetOn : ''
+            }`}
+            onClick={() => view.onEmulatedLambda(preset.lambda)}
+          >
+            {preset.label} ({preset.lambda})
+          </button>
+        ))}
+        <button
+          type="button"
+          className={styles.toggle}
+          onClick={() => view.onAutoRun(!view.autoRun)}
+        >
+          {view.autoRun ? 'Stop auto-run' : 'Auto-run block →'}
+        </button>
+      </div>
       <p className={styles.foot}>
         Bar height is the difficulty served; green is correct. λ is the fitted climb and is{' '}
         <strong>diagnostic only</strong> — at this block length a child who learned nothing still
         fits a positive value, so it is never shown to a family and never gates anything.{' '}
         {fit?.converged
-          ? `Current fit: λ ${fit.lambda.toFixed(3)} ± ${fit.lambdaSe.toFixed(3)}.`
-          : 'Not enough trials to fit a climb yet.'}
+          ? `Current fit: λ ${fit.lambda.toFixed(3)} ± ${fit.lambdaSe.toFixed(3)} against a true ` +
+            `λ of ${view.emulatedLambda} in the emulator.`
+          : 'Not enough trials to fit a climb yet.'}{' '}
+        The emulator generates from the SAME curve this fit inverts, so agreement here is a
+        self-consistency check on the estimator — never evidence that a within-session climb
+        measures real learning.
       </p>
     </>
   );

@@ -304,3 +304,9 @@
   background: #1a2338;
   height: 6% !important;
 }
+
+.presetOn {
+  background: #3d7dff;
+  border-color: #3d7dff;
+  color: #fff;
+}
