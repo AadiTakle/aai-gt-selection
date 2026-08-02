@@ -268,3 +268,39 @@
   font-size: 0.95rem;
   color: #9fb0d6;
 }
+
+/* Collapsed: the head alone stays reachable, so the dock never eats the exam. */
+.dock.collapsed {
+  max-height: none;
+  gap: 0;
+  padding-bottom: 0.6rem;
+}
+
+/* Phase 2: one bar per trial, height = difficulty served, colour = right or wrong. */
+.trialStrip {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 56px;
+  padding: 0.35rem 0;
+}
+
+.trialCell {
+  flex: 1 1 0;
+  min-width: 3px;
+  border-radius: 1px;
+  background: #24304f;
+}
+
+.trialOk {
+  background: #3ddc97;
+}
+
+.trialNo {
+  background: #ff6b6b;
+}
+
+.trialPending {
+  background: #1a2338;
+  height: 6% !important;
+}

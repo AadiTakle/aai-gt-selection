@@ -300,7 +300,8 @@ describe('multi-activity Phase 2', () => {
 
   it('drops an activity whose area never settled a standing', () => {
     const pool = poolFor(LEARNING_BLOCKS, LEARNING_BLOCK_LENGTH);
-    const { spatial: _dropped, ...missingSpatial } = allStandings;
+    const missingSpatial = { ...allStandings };
+    delete missingSpatial.spatial;
     expect(availableBlocks(pool, [], missingSpatial).map((s) => s.id)).not.toContain('spatial');
   });
 
