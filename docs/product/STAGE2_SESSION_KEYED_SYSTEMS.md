@@ -3,7 +3,7 @@
 **Status:** Design note plus its supporting measurement and a working proof of concept for one type
 (`FLU-OPCHAIN-01`). **Nothing is wired into the live learning block, no bank is changed, and no
 generator, checker or Gate A artifact is touched.** The architecture change is recorded as
-**D-206, Proposed** — it is the owner's to ratify, and §9 states plainly what it does and does not
+**D-208, Proposed** — it is the owner's to ratify, and §9 states plainly what it does and does not
 buy.
 
 **Requirements served:** R7 (auditable and falsifiable — every figure below is one command), R10
@@ -15,7 +15,7 @@ from served content), E-094 (key-position balance), E-095 (the recovery ladder t
 set against), E-200 (a misspecified floor inside a closed adaptive loop biases rather than adding
 noise — the reason a drifting difficulty label is not a small problem).
 `docs/product/STAGE2_ANTILEAK_COMPARISON.md` §7.1 for the defect. **One new evidence entry is
-claimed: E-205**, the feasibility measurement in §3–§5 and §9.
+claimed: E-207**, the feasibility measurement in §3–§5 and §9.
 
 **In scope:** whether the four shipped Stage 2 banks admit per-session re-keying at all, what it
 costs, and a server-side proof of concept for `FLU-OPCHAIN-01`. **Out of scope:** converting the
