@@ -49,17 +49,64 @@ Do not interpret:
 - **MVP-bounded** — demonstrated only with synthetic/stub behavior.
 - **Future** — needed for full project or live-use requirements after the MVP.
 - **Deferred** — explicitly excluded by a ratified scope decision.
+- **Screener-supporting** — retained only to the extent the screener depends on it; further build-out beyond that need is out of scope (D-400).
+- **Out of scope (D-400)** — no further investment authorized. Existing code is **not** deleted and keeps working; code removal would be a separate decision.
+
+## Scope boundary under D-400
+
+D-400 makes the screener the binding aim and stops the project building a complete
+admissions application, because GT already operates one and asked for the test to be
+integrated into it (E-401). A feature stays in scope only if the screener cannot be
+delivered, validated, tuned, embedded, or defended without it — or if R9 or R10
+require it regardless.
+
+The per-row `Scope` column below is **deliberately not rewritten**; this section is
+authoritative where the two disagree, and rewriting 99 rows during a governance
+rescope would obscure the change rather than clarify it. Full reasoning and the
+contested calls: `docs/governance/RESCOPE_ANALYSIS_2026-07-30.md` §8.
+
+**In scope — the instrument.** `AX-01`–`AX-06`; `GOV-01`–`GOV-08`; `UI-05`
+(the integration seam into GT's portal, now one of the more important surfaces);
+`BE-09`–`BE-13` (versioning, canonicalization, replay, audit chain, generated types
+— these are R7, and a screener whose scoring cannot be reconstructed cannot be
+defended to GT); `SEC-01`–`SEC-09`; `OPS-01`.
+
+**Screener-supporting — retained, scoped to what the instrument needs.** `UI-01`
+(get a child into a session and return a result; **not** the six-stage D-014
+journey); `UI-02` (parameter/cut tuning and the validation view — the "let your
+admissions team tune the parameters" deliverable; **not** completeness, assignment,
+or correction-rerun queues); `F7.1` and `F7.5` (the screener's own admit / defer /
+retry output and its reasons; **not** dual-track eligibility aggregation); `F6.1`
+and `F6.2` (test accommodations and invalid-administration recovery — R9 is Required
+and the admissions director raised the noisy-testing-room case herself); `F9.1` and
+`F9.2` (explaining and correcting a **screener result**); `F10.1` and `F10.3`
+(consent separation and retention for screener data); `F11.2` and `F11.3` (screener
+parameter versioning, cut locking, session replay); `BE-01`–`BE-08` and
+`BE-14`–`BE-16` (the screener-serving subset only).
+
+**Out of scope (D-400) — the application GT already has.** `F2.1`–`F2.5`;
+`F3.1`–`F3.3`; `F4.1`, `F4.2`; `F5.1`, `F5.2`; `F7.2`, `F7.3`, `F7.4`, `F7.6`;
+`F8.1`–`F8.4`; `F9.3`, `F9.4`, `F9.5`; `F10.2`; `F11.1`, `F11.4`, `F11.5`;
+`UI-03`, `UI-03S`, `UI-04`; `OPS-02`; and `EV-01`–`EV-21`, the whole evaluation
+block, which now sits under the non-binding arm. `EV-13` (Track A cutoff
+regression-discontinuity audit) is the most promising survivor there, because the
+screener's own locked cut supplies the discontinuity it needs.
+
+Four of these are genuine judgement calls rather than mechanical consequences and
+are flagged for owner review: the `F8.x` reviewer-panel removal, the `F7.2` Track B
+treatment, the `F2.5`/`F10.2` finance and data-rights split, and whether `UI-01`
+should be screener-supporting or out of scope. See the analysis §8.4.
 
 ## Requirement definitions and overall coverage
 
 | ID | Requirement | Overall project status | Material gap |
 |---|---|---|---|
 | R1 | Support an actual student-selection decision with explicit population, inputs, rule, decision-maker, and output. | Specified; runtime incomplete | Routing/eligibility contracts exist; decision engine and database RPCs do not. |
-| R2 | Create or preserve a credible counterfactual for selected students without GT. | Deferred | Requires randomized Track B offers or a defensible live quasi-experiment. |
-| R3 | Define the causal question prospectively before observing outcomes. | Deferred | Requires a ratified preregistered protocol and independent evaluator. |
+| R2 | Create or preserve a credible counterfactual for selected students without GT. | Non-binding (D-400) | Randomized Track B offers need seat scarcity GT does not currently have (E-400). The regression-discontinuity route, EV-13, is the open one. |
+| R3 | Define the causal question prospectively before observing outcomes. | Non-binding (D-400) | No protocol is owed unless a program-effect claim is contemplated; it must then precede any observed result. |
 | R4 | Avoid circular selection and success measurement. | Partially specified | Admissions firewalls are specified; the future selection-to-outcome pipeline is not operational. |
 | R5 | Preserve a defensible capability standard. | Specified pending validation | Synthetic thresholds and Snapshot anchors need GT confirmation and psychometric validation. |
-| R6 | Measure growth without a gifted-student ceiling. | Deferred | MAP follow-up, upper-tail validation, attrition controls, and outcome collection are future work. |
+| R6 | Measure growth without a gifted-student ceiling. | Non-binding (D-400) | No outcome window exists inside the capstone (E-403). The ceiling concern itself transfers to the screener, where R11 and H1 carry it. |
 | R7 | Make the process auditable and falsifiable. | Specified; runtime incomplete | Replay/audit contracts exist; canonicalization, storage, and executable replay do not. |
 | R8 | Remain feasible under real GT constraints. | In progress | B-01–B-08 still gate policy, staffing, privacy, allocation, and evaluation feasibility. |
 | R9 | Protect students and families. | Partially specified | Synthetic safeguards exist; legal consent, production data rights, and live controls do not. |
