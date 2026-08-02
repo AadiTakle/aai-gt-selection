@@ -2,6 +2,15 @@
 
 **Prepared:** 2026-08-02 · **Base:** `dev` @ `f1fe857` · **Open PRs against `dev`:** 18
 
+
+<!-- id-audit:ignore-start
+     This document reviews UNMERGED pull requests, so it necessarily names decision and
+     evidence IDs that are defined on those branches and are not yet in the registers on
+     dev — D-206 and E-205 (minted independently by #49 and #51, and colliding), D-207,
+     and E-211. They are descriptions of pending work rather than citations of the
+     registers, and they become real citations when their PRs merge. Remove this marker
+     once the queue is clear, so the gate covers this file again. -->
+
 Every mergeability claim below was tested, not inferred: each branch was fetched and merged into a
 throwaway branch off `origin/dev`, the conflicts recorded by file, and the merge discarded. Nothing
 was pushed and no PR branch was modified.
@@ -721,3 +730,5 @@ artifact rather than removing it, that two independent finite-sample bias correc
 Nothing else in the queue is broken or superseded. The near-misses are the two duplicates named above —
 #33's shard against #32's copy of it, and #49's D-206/E-205 against #51's — neither of which any tool
 will catch on its own.
+
+<!-- id-audit:ignore-end -->
