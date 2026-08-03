@@ -1058,9 +1058,14 @@ describe('the review marks do not outlive their trial', () => {
         const play = demo.document.querySelector('#play');
         if (play) demo.click(play);
         await sleep(60);
-        demo.click(demo.options()[0]!);
+        if (typeCode === PLACEMENT_TYPE) {
+          demo.place(0.5);
+          demo.click(demo.document.querySelector('#send')!);
+        } else {
+          demo.click(demo.options()[0]!);
+        }
         await sleep(60);
-        demo.send({ type: 'reveal', reveal: { machineOutput: String(item.answer.correctKey) } });
+        demo.send({ type: 'reveal', reveal: revealFor(item)! });
         await sleep(60);
       };
 
