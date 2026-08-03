@@ -553,6 +553,218 @@ function verifySequence(item: RawBankItem, response: Record<string, unknown>): V
   };
 }
 
+/* ================================================================== *
+ * VER-MORPHO-01 — a tiny invented morphology; tap what the word means
+ *
+ * The child sees one labelled reference picture ("this is a KIB") and then either a derived word
+ * and four candidate pictures, or a target picture and four candidate words. What each three-letter
+ * morpheme MEANS is the hidden system: a form->meaning bijection under `answer.system.affixMap`,
+ * which `servedItemSchema` omits, so nothing the browser holds identifies the key.
+ *
+ * The key is re-derived here rather than read. Resolve the word's morphemes through the mapping,
+ * apply them to `content.stemPicture` left to right — the morpheme nearest the stem acts first —
+ * and take the option that lands on the result. In the picture->word direction the same walk runs
+ * once per option and the target is `content.targetPicture`. The stored `correctKey` is consulted
+ * only when the derivation is not uniquely determined: a cross-check, not the source of truth.
+ *
+ * ONE VERIFIER SERVES BOTH ARMS. `consistent` and `perTrial` differ only in whether the mapping is
+ * re-drawn per item, and the mapping is read per item either way, so this code has no arm branch —
+ * which is what §4.1.1 requires of the control condition. Only the consistent arm is ever served
+ * (`bank-loader.ts`), but the differential exercises both banks.
+ *
+ * Metrics:
+ *   - `M-ERRTYPE` 0..1, higher is better. §4.6 makes the strategy trace a build requirement, and
+ *     this type's four classes are ordered by how much of the system the error still holds. Wrong
+ *     answers are capped below 1 so a correct answer is always strictly best.
+ *   - `M-RULEID` composition depth, on a correct answer only. The registry defines it as the
+ *     relational-complexity bound — how many co-acting rules the child binds at once, 1..4 — and
+ *     the number of morphemes in the word is exactly that here.
+ * ================================================================== */
+
+interface MorphoPicture {
+  kind: string;
+  count: number;
+  size: string;
+  mark: string;
+  role: string;
+}
+
+/**
+ * The two counts each number morpheme swaps: the three transpositions of S₃ on one/two/many.
+ *
+ * They do not commute, which is the entire reason "the morphemes compose in the order written" is
+ * a real thing for a child to induce rather than a convention. Getting this table or the walk
+ * order wrong is the single most likely way a verifier for this type could be wrong about its own
+ * answer, so it is stated once here and re-derived independently by
+ * `research/exam-question-types/generators/check-VER-MORPHO-01.mjs`.
+ */
+const MORPHO_NUMBER_SWAP: Record<string, [number, number]> = {
+  plural: [1, 3],
+  dual: [1, 2],
+  paucal: [2, 3],
+};
+
+/** Apply one meaning. Every morpheme is an involution, so a doubled one undoes itself. */
+function applyMorphoMeaning(meaning: string, picture: MorphoPicture): MorphoPicture | null {
+  const swap = MORPHO_NUMBER_SWAP[meaning];
+  if (swap) {
+    const [lo, hi] = swap;
+    if (picture.count === lo) return { ...picture, count: hi };
+    if (picture.count === hi) return { ...picture, count: lo };
+    return { ...picture };
+  }
+  if (meaning === 'negate') {
+    return { ...picture, mark: picture.mark === 'none' ? 'cross' : 'none' };
+  }
+  if (meaning === 'resize') {
+    return { ...picture, size: picture.size === 'small' ? 'big' : 'small' };
+  }
+  if (meaning === 'swapRole') {
+    return { ...picture, role: picture.role === 'doer' ? 'target' : 'doer' };
+  }
+  return null;
+}
+
+function readMorphoPicture(value: unknown): MorphoPicture | null {
+  const record = recordOf(value);
+  const kind = str(record?.kind);
+  const count = num(record?.count);
+  const size = str(record?.size);
+  const mark = str(record?.mark);
+  const role = str(record?.role);
+  if (kind === null || count === null || size === null || mark === null || role === null) {
+    return null;
+  }
+  return { kind, count, size, mark, role };
+}
+
+const morphoPictureKey = (p: MorphoPicture): string =>
+  `${p.kind}|${String(p.count)}|${p.size}|${p.mark}|${p.role}`;
+
+/** A word is `stem-affix-affix`; position 0 is the stem and never carries a meaning. */
+function morphoAffixes(word: string): string[] {
+  return word.split('-').slice(1);
+}
+
+/** What a written word denotes: its morphemes applied to the reference picture, in order. */
+function morphoDenotation(
+  word: string,
+  affixMap: Record<string, unknown>,
+  base: MorphoPicture,
+): MorphoPicture | null {
+  let state = base;
+  for (const form of morphoAffixes(word)) {
+    const meaning = str(affixMap[form]);
+    if (meaning === null) return null;
+    const next = applyMorphoMeaning(meaning, state);
+    if (next === null) return null;
+    state = next;
+  }
+  return state;
+}
+
+/** The option the hidden system actually picks out, or null when it cannot be derived. */
+function deriveMorphoKey(item: RawBankItem): string | null {
+  const content = item.content;
+  const base = readMorphoPicture(content.stemPicture);
+  const options = arrayOf(content.options);
+  const affixMap = recordOf(recordOf(item.answer.system)?.affixMap);
+  if (!base || !options || options.length === 0 || !affixMap) return null;
+  const toWord = str(content.direction) === 'pictureToWord';
+
+  const target = toWord
+    ? readMorphoPicture(content.targetPicture)
+    : (() => {
+        const word = str(content.word);
+        return word === null ? null : morphoDenotation(word, affixMap, base);
+      })();
+  if (!target) return null;
+  const wanted = morphoPictureKey(target);
+
+  const hits: string[] = [];
+  for (const raw of options) {
+    const option = recordOf(raw);
+    const key = str(option?.key);
+    if (key === null) return null;
+    let shown: MorphoPicture | null;
+    if (toWord) {
+      const word = str(option?.word);
+      shown = word === null ? null : morphoDenotation(word, affixMap, base);
+    } else {
+      shown = readMorphoPicture(option?.picture);
+    }
+    // An unreadable option aborts the whole derivation: the key is "the option that uniquely
+    // matches", and that claim cannot be made over a slate one of whose members is unknown.
+    if (!shown) return null;
+    if (morphoPictureKey(shown) === wanted) hits.push(key);
+  }
+  return hits.length === 1 ? hits[0]! : null;
+}
+
+/** Morphemes in the word the key names — the same count in either direction. */
+function morphoDepth(item: RawBankItem, expected: string): number {
+  const content = item.content;
+  if (str(content.direction) === 'pictureToWord') {
+    for (const raw of arrayOf(content.options) ?? []) {
+      const option = recordOf(raw);
+      if (str(option?.key) !== expected) continue;
+      const word = str(option?.word);
+      return word === null ? 0 : morphoAffixes(word).length;
+    }
+    return 0;
+  }
+  const word = str(content.word);
+  return word === null ? 0 : morphoAffixes(word).length;
+}
+
+/**
+ * Error quality by named partial rule, from "almost had it" to "did not engage".
+ *
+ * The ladder is this type's own four relabelling-closed distractor classes, ordered by how much of
+ * the system the error still holds: `order_error` has every morpheme meaning right and only the
+ * composition order wrong; `near_miss` reads one morpheme as the other member of ITS OWN family,
+ * so the family structure survives; `wrong_operator` reads one as a morpheme from the other family,
+ * so it does not; `wrong_family` gets two morphemes wrong at once.
+ *
+ * The two classes this type shares with `FLU-OPCHAIN-01` keep that type's values (`order_error`
+ * 1.0, `wrong_operator` 0.55) and the other two take free slots on the same ladder, so the metric
+ * means the same thing when a child's two Stage 2 blocks are read side by side. Scaled by 0.9 so
+ * that no wrong answer can tie a correct one at 1 — the route's convention is that higher is
+ * better with 1 reserved for correct.
+ */
+const MORPHO_NEARNESS: Record<string, number> = {
+  order_error: 1.0,
+  near_miss: 0.7,
+  wrong_operator: 0.55,
+  wrong_family: 0.25,
+};
+const MORPHO_WRONG_CAP = 0.9;
+
+function verifyMorpho(item: RawBankItem, response: Record<string, unknown>): Verdict {
+  const expected = deriveMorphoKey(item) ?? str(item.answer.correctKey);
+  if (expected === null) return { correct: false };
+
+  const chosen = str(response.selectedKey);
+  if (chosen === null) return { correct: false };
+
+  if (chosen === expected) {
+    const depth = morphoDepth(item, expected);
+    const metrics: Record<string, number> = { 'M-ERRTYPE': 1 };
+    if (depth > 0) metrics['M-RULEID'] = depth;
+    return { correct: true, metrics };
+  }
+
+  const traced = recordOf(recordOf(item.answer.strategyTrace)?.[chosen]);
+  const kind = str(traced?.kind);
+  const nearness = kind === null ? undefined : MORPHO_NEARNESS[kind];
+  // An unrecognised or absent trace means the response named no option this bank knows about, so
+  // there is no partial rule to credit; report the floor rather than guessing a middle value.
+  return {
+    correct: false,
+    metrics: { 'M-ERRTYPE': nearness === undefined ? 0 : MORPHO_WRONG_CAP * nearness },
+  };
+}
+
 export const verbalVerifiers: Record<string, Verifier> = {
   'WM-corsi-01': verifyCorsi,
   'WM-bind-01': verifyBind,
@@ -560,4 +772,5 @@ export const verbalVerifiers: Record<string, Verifier> = {
   'VER-EVIDENCE-01': verifyEvidence,
   'VER-SENSE-01': verifySense,
   'VER-SEQUENCE-01': verifySequence,
+  'VER-MORPHO-01': verifyMorpho,
 };
