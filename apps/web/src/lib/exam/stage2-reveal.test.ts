@@ -1015,3 +1015,84 @@ describe('the review palette', () => {
     expect(review).not.toMatch(/--good|--bad|#146c43|#a4442f/);
   });
 });
+
+/* ================================================================== *
+ * 6. Neither mark outlives the trial it belongs to
+ * ================================================================== */
+
+/**
+ * A block runs thirty trials of ONE type, and the runner serves them all through a single loaded
+ * demo — the iframe is keyed on the demo it loads rather than on the item, so that a run of trials
+ * reads as one activity instead of the same question asked thirty times (`exam-runner.tsx`, and
+ * `lib/exam/demo-protocol.test.ts` for the per-type proof that every demo tolerates it). Each trial
+ * after the first therefore arrives at a document that is still showing the review of the trial
+ * before it, and the two marks acquire a lifetime they did not have when every trial reloaded the
+ * page.
+ *
+ * Either one surviving its own trial is a §1.5 leak in its most direct form. The machine's mark
+ * names the option the mechanism resolved to on an item the child has already been graded on, so
+ * leaving it up beside a NEW item shows them an answer to the question they are being asked; the
+ * child's own mark would tell them they had already answered this one. §4.3's palette work above
+ * makes the two marks legible, which is exactly why neither may be left on screen by accident.
+ *
+ * `onReveal` requires `committed` in every renderer, so a second `reveal_shown` is also evidence
+ * that the second trial was really answered on the reused document.
+ */
+describe('the review marks do not outlive their trial', () => {
+  for (const typeCode of STAGE2_TYPES) {
+    it(`${typeCode} clears both and takes the next trial on the same document`, async () => {
+      const bank = BANKS.get(typeCode)!;
+      const one = bank[0]!;
+      // Same difficulty where the bank has one, so both trials take the same interaction.
+      const two = bank.slice(1).find((item) => item.difficulty === one.difficulty) ?? bank[1]!;
+      expect(two.itemId).not.toBe(one.itemId);
+
+      const demo = openDemo(typeCode);
+      const revealsShown = () => demo.events.filter((kind) => kind === 'reveal_shown').length;
+      const marked = () =>
+        demo.marks().filter((mark) => mark.chose !== null || mark.machine !== null);
+      const answer = async (item: RawBankItem) => {
+        demo.send({ type: 'init', item: toServedItem(item) });
+        demo.send({ type: 'start' });
+        await sleep(60);
+        const play = demo.document.querySelector('#play');
+        if (play) demo.click(play);
+        await sleep(60);
+        demo.click(demo.options()[0]!);
+        await sleep(60);
+        demo.send({ type: 'reveal', reveal: { machineOutput: String(item.answer.correctKey) } });
+        await sleep(60);
+      };
+
+      try {
+        await sleep(120);
+        await answer(one);
+        expect(revealsShown(), `${typeCode}: the first trial got no reveal`).toBe(1);
+        expect(
+          marked().length,
+          `${typeCode}: the first trial was not reviewed at all`,
+        ).toBeGreaterThan(0);
+
+        // The next trial arrives as `init` + `start` and nothing else — exactly what the host sends.
+        demo.send({ type: 'init', item: toServedItem(two) });
+        demo.send({ type: 'start' });
+        await sleep(60);
+        expect(
+          marked(),
+          `${typeCode}: a mark from the previous trial is still on screen beside the next item`,
+        ).toEqual([]);
+        expect(revealsShown(), `${typeCode}: the init re-showed a reveal`).toBe(1);
+
+        await answer(two);
+        expect(revealsShown(), `${typeCode}: the second trial got no reveal of its own`).toBe(2);
+        expect(
+          demo.marks().filter((mark) => mark.machine !== null).length,
+          `${typeCode}: the second trial\u2019s machine output was not marked`,
+        ).toBe(1);
+        expect(demo.errors, `${typeCode}: the renderer threw`).toEqual([]);
+      } finally {
+        demo.close();
+      }
+    }, 20_000);
+  }
+});
