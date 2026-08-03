@@ -24,6 +24,8 @@ import {
   summariseLearningBlock,
   summariseStage2,
   toLearningTrials,
+  phase1Pool,
+  LEARNING_BLOCK_TYPE_CODES,
   type CompletedBlock,
 } from '@/lib/exam/phase2';
 
@@ -123,5 +125,31 @@ describe('Phase 2 end to end on the shipped bank', () => {
     };
 
     expect(mean(fast)).toBeGreaterThan(mean(still));
+  });
+});
+
+describe('Phase 1 never serves a Phase 2 activity type', () => {
+  it('excludes every learning-block type from the Phase 1 pool', async () => {
+    const pool = await getServedIndex();
+    const phase1 = phase1Pool(pool);
+    const reserved = new Set(LEARNING_BLOCK_TYPE_CODES);
+    expect(phase1.some((item) => reserved.has(item.typeCode))).toBe(false);
+    // And it removed something, so the assertion above cannot pass vacuously.
+    expect(phase1.length).toBeLessThan(pool.length);
+  });
+
+  it('leaves Phase 1 a pool that still covers every area', async () => {
+    const phase1 = phase1Pool(await getServedIndex());
+    for (const area of ['fluid_reasoning', 'verbal', 'quantitative', 'spatial']) {
+      expect(phase1.filter((i) => i.domain === area).length).toBeGreaterThan(0);
+    }
+  });
+
+  it('leaves Phase 2 its pool untouched — the exclusion is one-directional', async () => {
+    const pool = await getServedIndex();
+    const standings = Object.fromEntries(LEARNING_BLOCKS.map((s) => [s.area, 12])) as Partial<
+      Record<(typeof LEARNING_BLOCKS)[number]['area'], number>
+    >;
+    expect(availableBlocks(pool, [], standings)).toHaveLength(4);
   });
 });

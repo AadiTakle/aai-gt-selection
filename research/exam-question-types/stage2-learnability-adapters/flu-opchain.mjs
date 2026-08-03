@@ -6,15 +6,20 @@
 // oracle. If it did not, the other three adapters would be measuring something the reference type
 // was never measured with, and no cross-type comparison would mean anything.
 //
-// Nothing about the figure algebra is restated. `applyChain` and `figureKey` come from the generator
-// that wrote the bank, so "what the machine does" keeps exactly one definition.
+// Nothing about the figure algebra is restated. `applyChain` and `figureKey` come from the module the
+// generator that wrote the bank also imports, so "what the machine does" keeps exactly one definition.
+//
+// The import names the ALGEBRA module rather than the generator. Same functions — the generator
+// re-exports these very bindings — but the algebra module imports nothing, so this adapter (and
+// therefore the oracle built on it, and therefore the serve-time difficulty function) can be loaded
+// by the app without dragging a bank writer and a top-level await into a request handler.
 
 import {
   BADGE_SYMBOLS,
   OPERATORS,
   applyChain,
   figureKey,
-} from '../generators/FLU-OPCHAIN-01.mjs';
+} from '../generators/FLU-OPCHAIN-01-algebra.mjs';
 
 export const adapter = {
   id: 'flu-opchain',

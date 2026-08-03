@@ -69,10 +69,15 @@
   .opt[disabled]{cursor:default}
   .opt[disabled]:hover{transform:none}
   /*
-   * Post-commit marks. BOTH are the same neutral navy and neither carries a verdict word, a tick,
-   * a cross or a good/bad colour: one says what the child chose, the other says what the machine
-   * made. Reading the two together is the informational feedback the design allows; being TOLD
-   * which of the two is right is the evaluative feedback it forbids.
+   * Post-commit marks. One says what the child chose, the other says what the machine made, and
+   * neither carries a verdict word, a tick, a cross or a good/bad colour. Reading the two together
+   * is the informational feedback the design allows; being TOLD which of the two is right is the
+   * evaluative feedback it forbids.
+   *
+   * These are the fallback pairing. `exam-skin.css` loads after this block and restyles both marks
+   * into the audited review palette — a colour, a shape, a position and a border style per role
+   * (STAGE2_REDESIGN_SPEC §4.3, D-210) — which is where the contrast figures are recorded and
+   * tested. Keeping the local rules means a demo opened without the skin still distinguishes them.
    */
   .opt.chose{border-color:var(--accent2)}
   .opt.made{border-color:var(--accent);box-shadow:0 0 0 4px #ecd9cb}
@@ -332,18 +337,26 @@ function drawOptions(options){
     `<button type="button" class="opt" data-key="${o.key}" data-i="${i}" `+
     `data-fig="${figSig(o.figure)}" aria-label="option ${i+1}">${glyphSVG(o.figure,80)}</button>`).join('');
 }
+/**
+ * Mark one option with one ROLE — 'chose' for the child's pick, 'made' for the machine's output.
+ *
+ * One tag element per role, keyed by `data-mark`. A single shared tag would be overwritten on the
+ * one tile that carries both roles, which is exactly the tile the child has most to read: they
+ * picked what the machine made, and a reviewable trial has to say both things there rather than
+ * whichever was written last (STAGE2_REDESIGN_SPEC §4.3).
+ */
 function tagOption(key,cls,text){
   const el=$(`#options .opt[data-key="${key}"]`);
   if(!el)return;
   el.classList.add(cls);
-  if(!el.querySelector('.tag')){
-    const tag=document.createElement('span');
+  let tag=el.querySelector(`.tag[data-mark="${cls}"]`);
+  if(!tag){
+    tag=document.createElement('span');
     tag.className='tag';
-    tag.textContent=text;
+    tag.dataset.mark=cls;
     el.appendChild(tag);
-  }else{
-    el.querySelector('.tag').textContent=text;
   }
+  tag.textContent=text;
 }
 function lockOptions(){$$('#options .opt').forEach(el=>{el.disabled=true;});}
 
@@ -446,8 +459,10 @@ async function onGateTap(key){
   tagOption(key,'chose','you chose');
   tagOption(gateAnswer,'made','it made this');
   const madeFigure=(function(){
-    const el=$(`#options .opt[data-key="${gateAnswer}"]`);
-    return el?el.innerHTML:null;
+    // The FIGURE only, for the same reason as `onReveal`: the tile it comes from may already carry
+    // a review mark, and that mark belongs to the tile, not to the machine's output slot.
+    const el=$(`#options .opt[data-key="${gateAnswer}"] svg`);
+    return el?el.outerHTML:null;
   })();
   if(madeFigure){const slot=$('#outslot');slot.className='figbox made';slot.innerHTML=madeFigure;}
   lockOptions();
@@ -556,7 +571,9 @@ function onReveal(reveal){
   if(!made)return;
   const slot=$('#outslot');
   slot.className='figbox made';
-  slot.innerHTML=made.innerHTML;
+  // The FIGURE only. Copying the whole tile would carry any review mark already on it into the
+  // machine's own output slot, so a child who picked this tile would see their own mark inside it.
+  slot.innerHTML=made.querySelector('svg')?.outerHTML??'';
   tagOption(key,'made','it made this');
   setStatus('That is what the machine made.');
   emitEvent('reveal_shown',{});

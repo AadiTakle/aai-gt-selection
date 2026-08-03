@@ -296,7 +296,9 @@ function setCount(v){
 }
 function renderServedItem(item){
   current=item;submitted=false;interactive=false;touched=false;answerVal=0;
-  M.rev=0;M.firstLat=null;M.explore=0;itemTelemetry=[];
+  /* Every per-item counter, `M.blur` included: the host serves a whole burst through one loaded
+     document, so a count left standing here is reported again as the next item's M-ENGAGE. */
+  M.rev=0;M.firstLat=null;M.explore=0;M.blur=0;itemTelemetry=[];
   const st=item.content.stack, v=item.content.view;
   baseYaw=v.yawDeg*Math.PI/180;yaw=baseYaw;pitch=v.pitchDeg*Math.PI/180;
   buildScene(st);draw();drawFlat(st);

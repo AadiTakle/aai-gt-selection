@@ -54,6 +54,7 @@ import {
   availableBlocks,
   blockGuessingFloor,
   blockPool,
+  phase1Pool,
   clearLearningBlockHandoff,
   learningBlockHandoffServerSnapshot,
   learningBlockHandoffSnapshot,
@@ -70,6 +71,7 @@ import {
   type LearningBlockHandoff,
   type LearningBlockReadout,
 } from '@/lib/exam/phase2';
+import { openReviewGate, resetReviewDwell } from '@/lib/exam/review-dwell';
 
 import { ExamDebugPanel } from './exam-debug-panel';
 import styles from './exam-runner.module.css';
@@ -94,7 +96,7 @@ const READY_FALLBACK_MS = 500; // how long to wait for a demo's `ready` before i
 const RESULTS_KEY = 'gt-exam-results';
 
 /**
- * How long the machine's own outcome stays on screen before the next block item.
+ * How long the machine's own outcome stays on screen before the next PHASE 1 item.
  *
  * A learning-block type has to give the child something to induce FROM, and what it gives them is
  * the mechanism's next visible state rather than a verdict (STAGE2_QUESTION_DESIGN §1.5). That
@@ -102,6 +104,11 @@ const RESULTS_KEY = 'gt-exam-results';
  * would deliver the feedback and hide it in the same frame. It is a fixed pause for every child on
  * every trial — nothing here is contingent on whether they were right, which is what keeps the
  * cadence out of the fitted climb.
+ *
+ * STAGE 2 NO LONGER USES IT. A learning block hands the advance to the child instead — see the Next
+ * control below and STAGE2_REDESIGN_SPEC §4.2. Phase 1 keeps the fixed hold: the four types that
+ * produce a reveal are in the Phase 1 registry too, and Phase 1 is a bracketing search rather than
+ * a block to be sat with, so nothing there changes.
  */
 const REVEAL_HOLD_MS = 1600;
 
@@ -195,6 +202,38 @@ export function ExamRunner({
   /** Routes each result to the block instead of the Phase 1 engine; a ref so it is never stale. */
   const inBlockRef = useRef(false);
 
+  // ---- self-paced advance (STAGE2_REDESIGN_SPEC §4.2) -----------------------
+  /**
+   * The revealed trial the child is currently sitting with, or `null`.
+   *
+   * While this is set, the runner has served the reveal and is doing nothing else. It is the only
+   * thing that ends the trial: no timer runs against it, so a Stage 2 trial cannot advance unless
+   * the child acts. That is the point — a fixed hold flicks the outcome past a child who wanted to
+   * look at it, and the outcome is the entire learning signal the block runs on.
+   */
+  const [review, setReview] = useState<{ itemId: string; typeCode: string } | null>(null);
+  /** Resolves the promise `handleResult` is parked on. Cleared as it fires, so it runs once. */
+  const releaseReviewRef = useRef<(() => void) | null>(null);
+  const nextRef = useRef<HTMLButtonElement | null>(null);
+
+  /**
+   * Park until the child continues.
+   *
+   * The gate itself — and the time-to-next it records — is `lib/exam/review-dwell.ts`. The figure
+   * goes to that ledger and nowhere else: it is not returned here, not attached to the trial, and
+   * not visible to the fit, which is why the separation is a module boundary rather than a habit.
+   */
+  const waitForChildToContinue = useCallback((item: ServedItem, emulated: boolean) => {
+    const gate = openReviewGate(item, { emulated });
+    releaseReviewRef.current = () => {
+      releaseReviewRef.current = null;
+      setReview(null);
+      gate.release();
+    };
+    setReview({ itemId: item.itemId, typeCode: item.typeCode });
+    return gate.settled;
+  }, []);
+
   // ---- Phase 2 as a sequence of activities ----------------------------------
   /** Which activity of the queue is on screen, mirrored into state for the progress line. */
   const [blockIndex, setBlockIndex] = useState(0);
@@ -246,6 +285,23 @@ export function ExamRunner({
     })();
   }, [autoRun, phase, current, emulatedLambda]);
 
+  /**
+   * Auto-run has no child, so it presses Next itself.
+   *
+   * The gate is never bypassed — the trial is still released by an action, and the row it leaves is
+   * flagged `emulated` so a session-budget figure built from the ledger does not include a
+   * researcher's emulator. Making the gate conditional on auto-run instead would leave two advance
+   * paths where the whole design rests on there being one.
+   */
+  useEffect(() => {
+    if (autoRun && review) releaseReviewRef.current?.();
+  }, [autoRun, review]);
+
+  /** Move focus to Next when a trial becomes reviewable, so it is reachable without a pointer. */
+  useEffect(() => {
+    if (review) nextRef.current?.focus();
+  }, [review]);
+
   /** Ability estimate for the item on screen, mirrored into state so render never reads a ref. */
   const [debugAbility, setDebugAbility] = useState<number | null>(null);
   /**
@@ -261,6 +317,15 @@ export function ExamRunner({
    * plan for `current`; `planNextSelection` reads it back to decide whether to stay on the type.
    */
   const burstRef = useRef<BurstPlan | null>(null);
+  /**
+   * The burst on screen, and which QUESTION it is.
+   *
+   * A burst is several items of one type asked back to back, each aimed by how the previous
+   * ones went. To a child that is one question with several parts, not several questions that
+   * happen to look alike — so the counter advances per burst and the part is shown inside it.
+   */
+  const [burstView, setBurstView] = useState<BurstPlan | null>(null);
+  const [questionNumber, setQuestionNumber] = useState(1);
 
   /**
    * The engine configuration this session runs under.
@@ -291,6 +356,15 @@ export function ExamRunner({
    * for an item that has already been torn down posts nothing.
    */
   const hostRef = useRef<ExamHost | null>(null);
+  /**
+   * The demo window that has already announced `{type:'ready'}`.
+   *
+   * A demo announces itself once per DOCUMENT, and a burst serves several items through one
+   * document, so for every item after the first there is no `ready` coming and no `load` to hear.
+   * Window identity is what separates "the document the previous item ran in" from a freshly
+   * created iframe, whose window belongs to a new browsing context.
+   */
+  const readyWindowRef = useRef<Window | null>(null);
   const stateRef = useRef<SessionState | null>(null);
   /** Render mirror of the engine session; the progress projection is derived from it. */
   const [engineState, setEngineState] = useState<SessionState | null>(null);
@@ -413,6 +487,10 @@ export function ExamRunner({
           return;
         }
         burstRef.current = plan;
+        setBurstView(plan);
+        // index 1 means `planNextSelection` started a fresh burst rather than continuing one.
+        if (plan.index === 1)
+          setQuestionNumber((n) => (scoredRef.current.length === 0 ? 1 : n + 1));
         selected = nextItem(state, plan.typeCode, banks);
       } catch {
         // Pool exhausted for the selected type — conclude with what we have.
@@ -530,6 +608,8 @@ export function ExamRunner({
       setBlockIndex(index);
       setBlockReadout(null);
       setCurrent(null);
+      releaseReviewRef.current = null;
+      setReview(null);
       blockTrialsRef.current = [];
       setBlockTrials([]);
       blockAdministeredRef.current = [];
@@ -556,6 +636,8 @@ export function ExamRunner({
       setCurrent(null);
       completedBlocksRef.current = [];
       setCompletedCount(0);
+      // One sitting's time-to-next figures stay one sitting's; a resumed block starts a new budget.
+      resetReviewDwell();
       blockSeenRef.current = [...handoff.seenItemIds];
       blockStandingsRef.current = handoff.standings;
       blockStandingRef.current = handoff.standing;
@@ -643,11 +725,17 @@ export function ExamRunner({
       // The machine finishes its action. Only a type that declares a reveal gets one, only for a
       // committed (never a skipped) trial, and only after the server has graded it — see
       // `lib/exam/reveal.ts`. The demo draws it as world-state; nothing here says whether the child
-      // was right, and the hold is the same length whatever the outcome was.
+      // was right.
+      //
+      // What ends the trial then splits by PHASE and by nothing else. Stage 2 hands it to the child
+      // (§4.2): the trial stays on screen until they press Next, and how long that took is recorded
+      // as a process signal that reaches no estimator. Phase 1 keeps its fixed hold, the same length
+      // for every child on every item, which is what keeps the cadence out of the fitted climb.
       const reveal = verdict && 'reveal' in verdict ? verdict.reveal : undefined;
       if (reveal && !skipped) {
         hostRef.current?.reveal(reveal);
-        await new Promise((resolve) => setTimeout(resolve, REVEAL_HOLD_MS));
+        if (inBlockRef.current) await waitForChildToContinue(item, emulateAbility !== undefined);
+        else await new Promise((resolve) => setTimeout(resolve, REVEAL_HOLD_MS));
       }
 
       // A block trial goes to the block, and nowhere near the Phase 1 engine state.
@@ -698,7 +786,7 @@ export function ExamRunner({
       if (isDone(nextState)) void finalize();
       else serveNext(nextState);
     },
-    [serveNext, finalize, finishBlock, serveNextBlockItem],
+    [serveNext, finalize, finishBlock, serveNextBlockItem, waitForChildToContinue],
   );
 
   useEffect(() => {
@@ -717,15 +805,32 @@ export function ExamRunner({
     let readySeen = false;
     let readyFallback: number | undefined;
 
+    /**
+     * Is an inbound message about the item on screen?
+     *
+     * The demo instance outlives the item now — a burst re-inits one document instead of reloading
+     * it — so a late message about the item just answered would otherwise be recorded against this
+     * one, and a whole answer could land on the wrong stimulus. Demos that name the item they are
+     * talking about are held to it; one that names nothing (or names nothing yet) is taken at its
+     * word, because there is nothing else to go on.
+     */
+    const isThisItem = (named: unknown) =>
+      named === undefined || named === null || named === item.itemId;
+
     const host = new ExamHost(iframe, {
       origin: window.location.origin,
       onReady: () => {
         readySeen = true;
+        readyWindowRef.current = iframe.contentWindow;
         if (readyFallback !== undefined) window.clearTimeout(readyFallback);
         sendInit();
       },
-      onResult: (inbound) => handleResultRef.current(item, inbound, false),
+      onResult: (inbound) => {
+        if (!isThisItem(inbound.itemId)) return;
+        handleResultRef.current(item, inbound, false);
+      },
       onTelemetry: (event) => {
+        if (!isThisItem(event['itemId'])) return;
         telemetryRef.current.push({ ...event, itemId: item.itemId });
       },
     });
@@ -736,7 +841,8 @@ export function ExamRunner({
       initiated = true;
       host.init(item);
       // Only a designated type gets the gesture demonstration, and only the first time this
-      // session meets it — the demo's own "already shown" flag dies with each item's iframe.
+      // session meets it. The demo's own "already shown" flag cannot be relied on: it dies with the
+      // iframe, which now survives a whole burst rather than one item, so the CALLER tracks it.
       const needsDemo =
         GESTURE_DEMO_TYPES.has(item.typeCode) && !demoedTypesRef.current.has(item.typeCode);
       if (needsDemo) demoedTypesRef.current.add(item.typeCode);
@@ -759,6 +865,12 @@ export function ExamRunner({
     };
     iframe.addEventListener('load', onLoad);
     if (iframe.contentDocument?.readyState === 'complete') onLoad();
+    // The next item of a burst arrives at a document that is already loaded and already listening,
+    // so neither `ready` nor `load` will fire again for it. Init straight away rather than sitting
+    // out the fallback with the answered item still on screen.
+    if (readyWindowRef.current !== null && readyWindowRef.current === iframe.contentWindow) {
+      sendInit();
+    }
 
     const timeout = window.setTimeout(() => {
       handleResultRef.current(item, { response: { timedOut: true } }, true);
@@ -786,6 +898,8 @@ export function ExamRunner({
     telemetryRef.current = [];
     processedRef.current = new Set();
     burstRef.current = null;
+    setBurstView(null);
+    setQuestionNumber(1);
     setServed([]);
     setScoredCount(0);
     setDebugTrace([]);
@@ -793,7 +907,9 @@ export function ExamRunner({
     try {
       const pool = await fetchServedPool();
       if (pool.length === 0) throw new Error('EMPTY_BANK');
-      banksRef.current = buildBanks(pool);
+      // Phase 1 never draws a Phase 2 activity type: they measure a different thing, and an
+      // item spent here is one the block can no longer treat as unfamiliar (phase2.ts).
+      banksRef.current = buildBanks(phase1Pool(pool));
       const state = startState(gradeBand, examEngineOverrides());
       stateRef.current = state;
       setEngineState(state);
@@ -1187,6 +1303,7 @@ export function ExamRunner({
       )
     : stage1Progress(engineState, scoredCount);
   const meta = current ? EXAM_BANK_BY_CODE.get(current.typeCode) : undefined;
+  const demoSrc = current ? demoPathFor(current.typeCode, debugMode) : '';
   if (!current) {
     return (
       <div className={styles.wrap}>
@@ -1208,7 +1325,9 @@ export function ExamRunner({
                 (blockQueue.length > 1
                   ? ` · activity ${blockIndex + 1} of ${blockQueue.length}`
                   : '')
-              : `Question ${scoredCount + 1}`}{' '}
+              : burstView && burstView.length > 1
+                ? `Question ${questionNumber} · part ${burstView.index} of ${burstView.length}`
+                : `Question ${questionNumber}`}{' '}
             · {domainLabel(current.domain)}
           </p>
           <p className={styles.runTitle}>{meta?.title ?? current.typeCode}</p>
@@ -1236,13 +1355,16 @@ export function ExamRunner({
               Emulate{debugAbility === null ? '' : ` (θ ${debugAbility.toFixed(1)})`} →
             </button>
           ) : null}
-          <button
-            type="button"
-            className={styles.skip}
-            onClick={() => window.dispatchEvent(new Event('gt-exam-skip'))}
-          >
-            Skip this one →
-          </button>
+          {/* Nothing to skip once the answer is in: this trial is finished and being looked at. */}
+          {review ? null : (
+            <button
+              type="button"
+              className={styles.skip}
+              onClick={() => window.dispatchEvent(new Event('gt-exam-skip'))}
+            >
+              Skip this one →
+            </button>
+          )}
         </div>
       </header>
 
@@ -1268,25 +1390,63 @@ export function ExamRunner({
         />
       </div>
 
+      {/*
+        Keyed on the DEMO, not on the item.
+
+        A burst asks two or three items of one type back to back and a Stage 2 activity asks thirty,
+        all of them through the identical demo file. Keying on the item id tore the iframe down and
+        reloaded the same page under the child every time, which is what made a burst read as being
+        asked the same question three times over instead of one question with several parts. Keyed
+        on the path, the instance survives the burst and each item arrives as a fresh
+        `{type:'init', item}` + `{type:'start'}` — safe because every published demo resets its
+        per-item state on init, asserted per type in `lib/exam/demo-protocol.test.ts`. The key still
+        changes when the TYPE changes, so a different activity always gets a clean document.
+      */}
       <iframe
-        key={current.itemId}
+        key={demoSrc}
         ref={iframeRef}
         title={`${meta?.title ?? current.typeCode} question`}
-        src={demoPathFor(current.typeCode, debugMode)}
+        src={demoSrc}
         className={styles.frame}
       />
 
       {/*
-        Deliberately terse. The type blurb and the "adaptive" explainer used to sit here, but they
-        restated what the activity itself already says and turned every question into something to
-        read first. The demo carries its own one-line instruction.
+        The reviewable trial, and the only way out of it.
+
+        Every word here points at the WORK — what came out, and which one was picked — and none of
+        it points at the child. There is no verdict, no tally and no count of anything they have got
+        right, because feedback about the person is what Category 7.8 found made performance worse
+        (STAGE2_REDESIGN_SPEC §4.3). Which of the two marks the child should draw a conclusion from
+        is left to them; that inference is the thing the block is measuring.
       */}
-      <p className={styles.frameNote}>
-        {isBlockRunning
-          ? 'These are meant to be hard — keep going even when one looks unfamiliar. '
-          : ''}
-        Synthetic screening activity; results are not shown between questions.
-      </p>
+      {review ? (
+        <div className={styles.reviewBar}>
+          <p className={styles.reviewNote} aria-live="polite">
+            Take as long as you like looking at this one. The marks show what the activity did and
+            which one you picked.
+          </p>
+          <button
+            type="button"
+            ref={nextRef}
+            className={styles.next}
+            onClick={() => releaseReviewRef.current?.()}
+          >
+            Next →
+          </button>
+        </div>
+      ) : (
+        /*
+          Deliberately terse. The type blurb and the "adaptive" explainer used to sit here, but they
+          restated what the activity itself already says and turned every question into something to
+          read first. The demo carries its own one-line instruction.
+        */
+        <p className={styles.frameNote}>
+          {isBlockRunning
+            ? 'These are meant to be hard — keep going even when one looks unfamiliar. '
+            : ''}
+          Synthetic screening activity; results are not shown between questions.
+        </p>
+      )}
 
       {/*
         The convergence dock. Rendered from the answered-item trace alone, so it is a view of the

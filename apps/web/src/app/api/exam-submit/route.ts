@@ -2,6 +2,11 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 
 import { findBankItem } from '@/lib/exam/bank-loader';
+import {
+  commitMaterialisedTrial,
+  materialisationEnabled,
+  materialisedBankItem,
+} from '@/lib/exam/materialised-session';
 import { persistItemResponse } from '@/lib/exam/persistence';
 import { EXAM_TYPE_REGISTRY } from '@/lib/exam/registry.generated';
 import { revealFor } from '@/lib/exam/reveal';
@@ -41,6 +46,13 @@ const submitSchema = z
     skipped: z.boolean().optional(),
     /** Supabase session id from `/api/exam-session`; absent = do not persist. */
     examSessionId: z.uuid().optional(),
+    /**
+     * The runner's own session id, needed ONLY on the serve-time materialisation path (D-211): the
+     * item being graded was made by that session and does not exist in any bank, so without it there
+     * is nothing to grade against. Not a secret and not the session seed — see
+     * `lib/exam/materialised-session.ts`.
+     */
+    sessionId: z.string().min(1).optional(),
     /** Metrics the demo emitted for this item (client-tracked, never correctness). */
     clientMetrics: z.record(z.string(), z.number()).optional(),
     /** This item's telemetry events, appended to the stored trace verbatim. */
@@ -118,7 +130,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const item = await findBankItem(parsed.data.itemId);
+  // A materialised item is looked up FIRST and in the session that made it. It has no bank record, so
+  // the fallback is the ordinary path rather than an error, which is what keeps the shipped block
+  // working with the flag on and one type migrated.
+  const materialisedSessionId =
+    materialisationEnabled() && parsed.data.sessionId !== undefined ? parsed.data.sessionId : null;
+  const item =
+    (materialisedSessionId === null
+      ? null
+      : await materialisedBankItem(materialisedSessionId, parsed.data.itemId)) ??
+    (await findBankItem(parsed.data.itemId));
   if (!item) {
     return NextResponse.json({ ok: false, error: 'UNKNOWN_ITEM' }, { status: 404 });
   }
@@ -141,6 +162,19 @@ export async function POST(request: NextRequest) {
     ...(parsed.data.skipped ? {} : (verdict.metrics ?? {})),
   };
   if (correct) metrics['M-DIFFREACH'] = item.difficulty;
+
+  /**
+   * Fold the reveal into the session's evidence, and pick up the R7 ledger row for the trace.
+   *
+   * ORDER MATTERS AND IS THE OPPOSITE OF THE OBVIOUS ONE. The commit happens AFTER the verdict, so the
+   * difficulty this trial was served at was priced against the evidence the child actually had. Folding
+   * first would let this trial's own reveal make this trial look easier than it was, which is the
+   * ordering error the learnability oracle's own suite exists to catch.
+   */
+  const materialisation =
+    materialisedSessionId === null || parsed.data.skipped === true || selectedKey === null
+      ? null
+      : await commitMaterialisedTrial(materialisedSessionId, parsed.data.itemId, selectedKey);
 
   let persisted = false;
   if (parsed.data.examSessionId) {
@@ -170,6 +204,31 @@ export async function POST(request: NextRequest) {
           skipped: parsed.data.skipped === true,
           verifier: 'apps/web/src/lib/exam/verifiers',
         },
+        /**
+         * THE R7 RECORD for a materialised trial (D-211).
+         *
+         * Under the shipped bank, reconstructing what a child saw needs only the item ids, because the
+         * item is a file. Under materialisation the item is a function of the session, so the record has
+         * to name what was actually built: which template, where the key sat, which rationale produced
+         * the option in every slot, and the difficulty the item was priced at. With those and the
+         * session seed — which `materialised-session.ts` re-derives from this same `sessionId` and the
+         * server secret — a rejected family's block is both reconstructible from the record and
+         * re-derivable from the seed, and the two can be compared rather than assumed equal.
+         *
+         * It goes in the append-only trace, which is server-side. It names the key, so it must never be
+         * read back toward a browser.
+         */
+        ...(materialisation === null
+          ? []
+          : [
+              {
+                kind: 'materialisation',
+                seq: clientTelemetry.length + 1,
+                tOffsetMs: 0,
+                sessionId: parsed.data.sessionId,
+                ...materialisation,
+              },
+            ]),
       ],
     });
     persisted = stored != null;

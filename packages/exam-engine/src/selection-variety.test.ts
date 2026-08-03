@@ -213,13 +213,25 @@ describe('the recency discount waits for the area to bracket', () => {
   // hand each area a single constant answer.
   const alternating = (i: number) => i % 3 !== 0;
 
+  /**
+   * Seeds to aggregate the two order comparisons over.
+   *
+   * ACROSS SEEDS, NOT AT ONE, and the reason is that these two assertions run on the REAL wired bank.
+   * A comparison of type orders at a single seed is a hostage to every bank edit: `QUANT-GLYPHNUM-01`
+   * changing shape moved seed 11 to a tie, which said nothing about the homing guard and everything
+   * about which quantitative type happened to lead. The property is a tendency of the rule, so it is
+   * pinned as one.
+   */
+  const SEEDS = [11, 23, 37, 41, 59, 67, 71, 83];
+
   it('does not discount a repeated type while the area is still homing', () => {
     // Every answer correct, so no area ever reverses and the discount must stay switched off. With
-    // it off, the coverage leader in each area keeps winning and types repeat.
-    const homing = typeOrder(11, 20, {}, alwaysCorrect);
-    const bracketed = typeOrder(11, 20, {}, alternating);
+    // it off, the coverage leader in each area keeps winning and types repeat more.
+    const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+    const homing = mean(SEEDS.map((seed) => maxRepeat(typeOrder(seed, 20, {}, alwaysCorrect))));
+    const bracketed = mean(SEEDS.map((seed) => maxRepeat(typeOrder(seed, 20, {}, alternating))));
 
-    expect(maxRepeat(homing)).toBeGreaterThan(maxRepeat(bracketed));
+    expect(homing).toBeGreaterThan(bracketed);
   });
 
   it('is the homing guard, not the answers, that makes the difference', () => {
@@ -232,10 +244,16 @@ describe('the recency discount waits for the area to bracket', () => {
   });
 
   it('applies once the area has reversed, so the discount is not simply dead', () => {
-    const bracketed = typeOrder(11, 20, {}, alternating);
-    const noDiscount = typeOrder(11, 20, { typeRecencyPenalty: 0 }, alternating);
+    // At least one seed must show the discount changing the order. Requiring EVERY seed to differ
+    // would be the wrong claim: a run in which no area happens to repeat a type has nothing for the
+    // discount to move, and that is the rule working rather than failing.
+    const moved = SEEDS.filter(
+      (seed) =>
+        JSON.stringify(typeOrder(seed, 20, {}, alternating)) !==
+        JSON.stringify(typeOrder(seed, 20, { typeRecencyPenalty: 0 }, alternating)),
+    );
 
-    expect(bracketed).not.toEqual(noDiscount);
+    expect(moved.length).toBeGreaterThan(0);
   });
 });
 

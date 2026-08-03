@@ -23,7 +23,7 @@
 import {
   AREAS,
   RECOMMENDED_NOVEL_BLOCK_LENGTH,
-  itemOptionCount,
+  itemResponseFormat,
   selectNextNovelServedItem,
   type Area,
   type ServedItem,
@@ -298,6 +298,31 @@ export function clearLearningBlockHandoff(): void {
   emit();
 }
 
+/** Every type code reserved for a Phase 2 activity. */
+export const LEARNING_BLOCK_TYPE_CODES: readonly string[] = LEARNING_BLOCKS.map(
+  (spec) => spec.typeCode,
+);
+
+/**
+ * The pool Phase 1 may draw from: everything EXCEPT the Phase 2 activity types.
+ *
+ * Two separate reasons, either of which alone would be sufficient.
+ *
+ * 1. **They measure different things.** A Phase 1 item is scored on whether the child can already
+ *    do it, against a calibrated difficulty. A Phase 2 item is one trial of a run in which the
+ *    child induces a hidden system that never repeats — a single one of them, met cold, measures
+ *    almost nothing about standing, because the thing it is built to detect only exists across
+ *    trials.
+ * 2. **It would destroy the measurement it feeds.** Phase 2 requires items Phase 1 never served,
+ *    and not merely to avoid repeats: an item seen in Phase 1 has already taught the child part of
+ *    the system, so the block would open with a head start that is invisible to the fit and reads
+ *    as a climb the child did not make. That is the confound `deriveLearningRate` was retired for.
+ */
+export function phase1Pool(pool: readonly ServedItem[]): ServedItem[] {
+  const reserved = new Set(LEARNING_BLOCK_TYPE_CODES);
+  return pool.filter((item) => !reserved.has(item.typeCode));
+}
+
 /** Items of one activity's type, in its area, that Phase 1 never served. */
 export function blockPool(
   spec: LearningBlockSpec,
@@ -315,19 +340,35 @@ export function blockPool(
 export type BlockFloorBasis =
   | { readonly kind: 'option-count'; readonly optionCount: number }
   /**
+   * The pool declares a CONTINUOUS response, so the floor is the format's, not a reciprocal.
+   *
+   * `QUANT-GLYPHNUM-01` is the first such activity: the child places a slider on a number line and is
+   * graded on a tolerance the browser never receives. There is no option count to take a reciprocal
+   * of, and the old reader returned `null` for it — which fell through to the FIVE-OPTION default and
+   * fitted a fifteen-alternative response at 0.2. That is the same class of misspecification E-212
+   * measured on `VER-MORPHO-01`, three times larger.
+   */
+  | { readonly kind: 'response-format'; readonly format: 'continuous_placement' }
+  /**
    * The floor could not be read off the pool, so {@link DEFAULT_GUESSING} stands in.
    *
-   * - `no-option-count`: no item declares an option list. Either the pool is not multiple choice at
-   *   all, or it reached here stripped of the one field that would say.
+   * - `no-response-format`: no item declares an option list OR a format tag. Either the pool is not a
+   *   bounded choice at all, or it reached here stripped of the one field that would say.
    * - `mixed-option-counts`: the pool disagrees with itself. The fit takes ONE floor for the whole
    *   block, and averaging reciprocals across a pool would put a number nobody chose into the fit,
    *   so the declared default is used and the disagreement is reported instead.
+   * - `mixed-response-formats`: worse than a disagreement about how many options — a pool holding
+   *   both a choice and a placement has two different floors and no average of them is either.
    * - `degenerate-option-count`: an option list too short to guess from (0 or 1), whose reciprocal
    *   is not a probability.
    */
   | {
       readonly kind: 'default';
-      readonly reason: 'no-option-count' | 'mixed-option-counts' | 'degenerate-option-count';
+      readonly reason:
+        | 'no-response-format'
+        | 'mixed-option-counts'
+        | 'mixed-response-formats'
+        | 'degenerate-option-count';
     };
 
 export interface BlockGuessingFloor {
@@ -348,29 +389,42 @@ const MIN_GUESSABLE_OPTIONS = 2;
  * different item format pass the reciprocal of their option count" — and this is the caller doing
  * it. E-212 measures what it is worth on the shipped targeting rule.
  *
- * DERIVED RATHER THAN TABULATED. The count comes off the bank record every time (`content.options`
- * on a full item, `content.optionCount` on the selection index the browser holds), so a bank that
- * changes format moves this with it. A per-type table would keep returning the old number and
- * nothing in the pipeline would notice.
+ * IT READS THE FORMAT, NOT JUST A COUNT, and that is D-212. `QUANT-GLYPHNUM-01` is now a slider on a
+ * number line: there is no option count, so the count-only reader returned `null` and this function
+ * fell through to the five-option default — fitting and aiming a fifteen-alternative response as
+ * though it were a five-alternative one. A reciprocal of nothing is not a floor, and a continuous
+ * type is not a pool that arrived stripped of its options; those two cases now have separate answers
+ * (`itemResponseFormat` in `@gt-selection/exam-engine`).
  *
- * ONE FLOOR FOR THE WHOLE BLOCK, because the fit takes one. That is exact while an activity's bank
- * is uniform — all four wired Stage 2 banks are — and a pool that disagrees with itself falls back
- * to the declared default rather than to an invented average. E-200 costs mixed option counts as a
- * real second-order exposure, so the fallback is reported through {@link BlockFloorBasis} rather
- * than applied silently.
+ * DERIVED RATHER THAN TABULATED. The format comes off the bank record every time (`content.options`
+ * or `content.responseFormat` on a full item, `content.optionCount` or the same tag on the selection
+ * index the browser holds), so a bank that changes format moves this with it. A per-type table would
+ * keep returning the old number and nothing in the pipeline would notice.
  *
- * CLAIM BOUNDARY. The reciprocal of the option count is a DESIGN assumption, not a calibrated `c`.
- * An estimated lower asymptote is typically below chance, since a plausible distractor set is not
- * chosen uniformly, and a child who disengages sits below it again. E-205 records that if a real
- * child's floor is not the reciprocal, this correction is itself misspecified.
+ * ONE FLOOR FOR THE WHOLE BLOCK, because the fit takes one. That is exact while an activity's bank is
+ * uniform — all four wired Stage 2 banks are — and a pool that disagrees with itself falls back to
+ * the declared default rather than to an invented average. E-200 costs mixed option counts as a real
+ * second-order exposure, so every fallback is reported through {@link BlockFloorBasis} rather than
+ * applied silently.
+ *
+ * CLAIM BOUNDARY. Both floors are DESIGN assumptions, not calibrated `c`. An estimated lower
+ * asymptote is typically below chance, since a plausible distractor set is not chosen uniformly, and
+ * a child who disengages sits below it again; a placement floor assumes a uniform placement, which no
+ * real child makes. E-205 records that if a real child's floor is not the declared one, this
+ * correction is itself misspecified.
  */
 export function blockGuessingFloor(pool: readonly ServedItem[]): BlockGuessingFloor {
   let count: number | null = null;
+  let continuousFloor: number | null = null;
   for (const item of pool) {
-    const declared = itemOptionCount(item);
-    if (declared === null) continue;
-    if (count === null) count = declared;
-    else if (count !== declared) {
+    const format = itemResponseFormat(item);
+    if (format.kind === 'continuous') {
+      continuousFloor = format.chanceFloor;
+      continue;
+    }
+    if (format.kind === 'undeclared') continue;
+    if (count === null) count = format.optionCount;
+    else if (count !== format.optionCount) {
       return {
         guessing: DEFAULT_GUESSING,
         basis: { kind: 'default', reason: 'mixed-option-counts' },
@@ -378,8 +432,22 @@ export function blockGuessingFloor(pool: readonly ServedItem[]): BlockGuessingFl
     }
   }
 
+  // A pool that is both a choice and a placement has two floors and no average of them is either.
+  if (continuousFloor !== null && count !== null) {
+    return {
+      guessing: DEFAULT_GUESSING,
+      basis: { kind: 'default', reason: 'mixed-response-formats' },
+    };
+  }
+  if (continuousFloor !== null) {
+    return {
+      guessing: continuousFloor,
+      basis: { kind: 'response-format', format: 'continuous_placement' },
+    };
+  }
+
   if (count === null) {
-    return { guessing: DEFAULT_GUESSING, basis: { kind: 'default', reason: 'no-option-count' } };
+    return { guessing: DEFAULT_GUESSING, basis: { kind: 'default', reason: 'no-response-format' } };
   }
   if (count < MIN_GUESSABLE_OPTIONS) {
     return {

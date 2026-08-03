@@ -7,7 +7,7 @@
      This document reviews UNMERGED pull requests, so it necessarily names decision and
      evidence IDs that are defined on those branches and are not yet in the registers on
      dev — D-206 and E-205 (minted independently by #49 and #51, and colliding), D-207,
-     and E-211. They are descriptions of pending work rather than citations of the
+     and E-214. They are descriptions of pending work rather than citations of the
      registers, and they become real citations when their PRs merge. Remove this marker
      once the queue is clear, so the gate covers this file again. -->
 
@@ -374,7 +374,7 @@ conflicts with #46 on the four FLU-OPCHAIN files inherited from #36.
 
 **Dependencies:** sits on #36; contained in #52. Merge after #36 and before #52.
 
-**What it needs from you:** nothing blocking. It adds evidence entry E-211 and records a recommendation
+**What it needs from you:** nothing blocking. It adds evidence entry E-214 and records a recommendation
 that no decision has yet ratified. Merging the measurement does not adopt anything — the recommendation
 is *not to build*, so the null action and the recommended action coincide.
 

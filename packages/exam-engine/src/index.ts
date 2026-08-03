@@ -50,8 +50,13 @@ export type { BurstPlan, TypeSpeedVerdict } from './burst';
 
 // Response-format facts read off a bank record. Shared so burst policy and the Phase 2 guessing
 // floor cannot disagree about how many options an item offers.
-export { itemOptionCount } from './item-format';
-export type { FormattedItem } from './item-format';
+export {
+  CONTINUOUS_PLACEMENT,
+  CONTINUOUS_PLACEMENT_CHANCE_FLOOR,
+  itemOptionCount,
+  itemResponseFormat,
+} from './item-format';
+export type { FormattedItem, ItemResponseFormat } from './item-format';
 
 // Novel-block administration (the learning-rate regime). Administration only: the projection that
 // picks the target difficulty, the fit and the readout all live in `@gt-selection/exam-scoring`.
