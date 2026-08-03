@@ -11,7 +11,7 @@
 //   - the server-side answer verifier (/api/exam-submit)
 //   - the runner's type metadata + demo paths
 //
-// Wired: 50 types (fluid_reasoning 12 · quantitative 9 · spatial 18 · verbal 11).
+// Wired: 51 types (fluid_reasoning 12 · quantitative 9 · spatial 19 · verbal 11).
 // Adding a bank + compliant demo and re-running the sync is all it takes.
 
 export type ExamRegistryDomain = 'fluid_reasoning' | 'verbal' | 'quantitative' | 'spatial';
@@ -500,6 +500,18 @@ export const EXAM_TYPE_REGISTRY: readonly ExamRegistryEntry[] = [
     metrics: ['M-ENGAGE', 'M-EXPLORE', 'M-RAPIDGUESS', 'M-REV', 'M-RT', 'M-RTFIRST'],
   },
   {
+    typeCode: 'SPA-XFORM-01',
+    domain: 'spatial',
+    title: 'Transform Machine',
+    blurb: 'A machine shows the badges it is about to use, in order, then rearranges a small pattern of blocks; the child works out what each badge does by watching the…',
+    ageBands: ['2-3', '4-5', '6-8', 'K-1'],
+    itemCount: 234,
+    difficultyMin: 1.02,
+    difficultyMax: 19.98,
+    verifier: 'per_type',
+    metrics: ['M-ENGAGE', 'M-RAPIDGUESS', 'M-RT', 'M-RTFIRST'],
+  },
+  {
     typeCode: 'SPA-XPLANE-01',
     domain: 'spatial',
     title: 'Place the Slice',
@@ -648,7 +660,6 @@ export const EXAM_TYPE_REGISTRY: readonly ExamRegistryEntry[] = [
 /** Types with a bank but no servable demo, and why. */
 export const EXAM_BLOCKED_TYPES: readonly { typeCode: string; reason: string }[] = [
   { typeCode: 'CX-achieve-02', reason: 'blocked by qa/NOT_SERVABLE.json: Proven answer leak: content.apparatus ships the closed-form outcome model (base, per-level weights, interaction bonus). Evaluating it over content.conclusion.options and taking the argmax recovers the correct key on 120/120 items WITHOUT running a single trial.' },
-  { typeCode: 'SPA-XFORM-01', reason: 'bank-only: no renderer demo at demos/SPA-XFORM-01.html' },
   { typeCode: 'VER-MORPHO-01', reason: 'bank-only: no renderer demo at demos/VER-MORPHO-01.html' },
 ] as const;
 

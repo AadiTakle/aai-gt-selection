@@ -1,5 +1,5 @@
 import type { RawBankItem } from '../bank-loader';
-import { num, type Verifier } from './types';
+import { num, numArray, type Verifier } from './types';
 
 /**
  * Per-type verifiers for the spatial domain, keyed by `typeCode`.
@@ -1143,6 +1143,166 @@ const verifyView: Verifier = (item, response) => {
   return { correct: selectedKey === correctKey, metrics };
 };
 
+/* ================================================================== *
+ * SPA-XFORM-01 — the machine applies its parts in order; tap what it makes
+ *
+ * The child sees a pattern of blocks on a 4x4 lattice, a row of mark symbols and five candidate
+ * patterns, and taps one. What each mark DOES is the hidden system: a mark->transformation
+ * bijection under `answer.system`, which `servedItemSchema` omits, so nothing the browser holds
+ * identifies the key.
+ *
+ * The key is re-derived here rather than read: resolve the mark chain through the mapping, run the
+ * resulting transformation chain over `content.input.blocks` with the same lattice algebra
+ * `generators/check-SPA-XFORM-01.mjs` re-implements, and take the option showing that pattern. The
+ * stored `correctKey` is consulted only when the derivation is not uniquely determined — a
+ * cross-check, not the source of truth.
+ *
+ * EVERY TRANSFORMATION IS A PERMUTATION OF THE SIXTEEN CELLS, which is why this verifier needs no
+ * attribute algebra at all: a pattern is a set of occupied cells and nothing else, so applying a
+ * transformation is a table lookup per block and comparing two patterns is comparing two sorted
+ * cell lists. That is the generator's anti-chrome guarantee (nothing is added, removed or
+ * decorated) showing up as a simpler verifier.
+ *
+ * ONE VERIFIER SERVES BOTH ARMS. `consistent` and `perTrial` differ only in whether the mapping is
+ * re-drawn per item, and the mapping is read per item either way, so this code has no arm branch —
+ * which is what §4.1.1 requires of the control condition. Only the consistent arm is ever served
+ * (`bank-loader.ts`), but the differential exercises both banks.
+ *
+ * Metrics:
+ *   - `M-ERRTYPE` 0..1, higher is better. §4.6 makes the strategy trace a build requirement: every
+ *     distractor encodes a NAMED incomplete version of the system, ordered from "applied two marks
+ *     in the wrong order" down to "applied none at all". That ordering is a far better error-quality
+ *     signal than the coarse lure class `/api/exam-submit` falls back to, and it is the
+ *     falsification instrument §3.4 needs — in a real learner, errors should migrate up this axis
+ *     across the block. Wrong answers are capped below 1 so a correct answer is always strictly
+ *     best.
+ *   - `M-RULEID` composition depth, on a correct answer only. The registry defines it as the
+ *     relational-complexity bound — how many co-acting rules the child binds at once — and depth is
+ *     exactly that here. A wrong answer binds an unknown number, so it reports none.
+ *
+ * Response time is deliberately NOT graded and not reported here. §3.4 rejects a spatial block
+ * scored on speed because within-session rotation practice improves latency for every child.
+ * ================================================================== */
+
+const XFORM_GRID = 4;
+const XFORM_CELLS = XFORM_GRID * XFORM_GRID;
+
+/** Build a cell permutation table from a coordinate map, as the generator's `cellPermutation` does. */
+function xformPermutation(move: (r: number, c: number) => [number, number]): number[] {
+  const table = new Array<number>(XFORM_CELLS);
+  for (let r = 0; r < XFORM_GRID; r++) {
+    for (let c = 0; c < XFORM_GRID; c++) {
+      const [nr, nc] = move(r, c);
+      table[r * XFORM_GRID + c] = nr * XFORM_GRID + nc;
+    }
+  }
+  return table;
+}
+
+/**
+ * The six transformations, re-typed from the documented coordinate maps rather than imported: the
+ * research tree is not a runtime dependency of the app, and getting one of these wrong is the
+ * single most likely way a port of this type could be confidently wrong about its own answer.
+ */
+const XFORM_PERMUTATION: Record<string, number[]> = {
+  pivot: xformPermutation((r, c) => [c, XFORM_GRID - 1 - r]),
+  mirror: xformPermutation((r, c) => [r, XFORM_GRID - 1 - c]),
+  braid: xformPermutation((r, c) => [r, c ^ 1]),
+  stagger: xformPermutation((r, c) => [r ^ 1, c]),
+  drift: xformPermutation((r, c) => [(r + 2) % XFORM_GRID, (c + 2) % XFORM_GRID]),
+  shunt: xformPermutation((r, c) => [r, (c + 1) % XFORM_GRID]),
+};
+
+/** Occupied cells as a canonical string, so pattern equality is textual. */
+const xformFigureKey = (blocks: readonly number[]) => [...blocks].sort((a, b) => a - b).join('.');
+
+/** `blocks`, validated as cell indices on this lattice. */
+function xformBlocks(value: unknown): number[] | null {
+  const cells = numArray(value);
+  if (cells === null) return null;
+  for (const cell of cells) {
+    if (!Number.isInteger(cell) || cell < 0 || cell >= XFORM_CELLS) return null;
+  }
+  return cells;
+}
+
+/**
+ * Error quality by named partial rule, from "almost had it" to "did not engage".
+ *
+ * The values are the generator's own `nearness` axis, scaled by 0.9 so that no wrong answer can
+ * tie a correct one at 1 — the route's convention is that higher is better with 1 reserved for
+ * correct. Eight classes rather than the reference type's six: this grammar also admits
+ * `wrong_axis` (re-oriented the pattern the other way) and `wrong_family` (read two marks as a
+ * different pair), and both are named in `answer.strategyTraceRules`.
+ */
+const XFORM_NEARNESS: Record<string, number> = {
+  order_error: 1.0,
+  wrong_axis: 0.8,
+  over_application: 0.65,
+  wrong_operator: 0.5,
+  omission: 0.35,
+  wrong_family: 0.2,
+  first_step_only: 0.1,
+  identity_copy: 0.0,
+};
+const XFORM_WRONG_CAP = 0.9;
+
+/** The option key the machine's chain actually produces, or null when it cannot be derived. */
+function deriveXformKey(item: RawBankItem): string | null {
+  const input = xformBlocks(record(item.content.input)?.blocks);
+  const marks = list(item.content.chain);
+  const options = list(item.content.options);
+  const mapping = record(record(item.answer.system)?.mapping);
+  if (input === null || !marks || marks.length === 0 || !options || !mapping) return null;
+
+  let state: number[] = input;
+  for (const mark of marks) {
+    if (typeof mark !== 'string') return null;
+    const op = mapping[mark];
+    const table = typeof op === 'string' ? XFORM_PERMUTATION[op] : undefined;
+    if (!table) return null;
+    state = state.map((cell) => table[cell] as number);
+  }
+
+  const target = xformFigureKey(state);
+  const hits: string[] = [];
+  for (const raw of options) {
+    const option = record(raw);
+    const key = typeof option?.key === 'string' ? option.key : null;
+    const blocks = xformBlocks(option?.blocks);
+    if (key === null || blocks === null) return null;
+    if (xformFigureKey(blocks) === target) hits.push(key);
+  }
+  return hits.length === 1 ? (hits[0] as string) : null;
+}
+
+/** The partial rule the chosen option encodes, per the bank's strategy trace (§4.6). */
+function xformErrorQuality(item: RawBankItem, chosen: string): number {
+  const traced = record(record(item.answer.strategyTrace)?.[chosen]);
+  const kind = typeof traced?.kind === 'string' ? traced.kind : null;
+  const nearness = kind === null ? undefined : XFORM_NEARNESS[kind];
+  // An unrecognised or absent trace means the response named no option this bank knows about, so
+  // there is no partial rule to credit; report the floor rather than guessing a middle value.
+  return nearness === undefined ? 0 : XFORM_WRONG_CAP * nearness;
+}
+
+const verifyXform: Verifier = (item, response) => {
+  const stored = typeof item.answer.correctKey === 'string' ? item.answer.correctKey : null;
+  const expected = deriveXformKey(item) ?? stored;
+  if (expected === null) return { correct: false };
+
+  const chosen = typeof response.selectedKey === 'string' ? response.selectedKey : null;
+  if (chosen === null) return { correct: false };
+
+  if (chosen === expected) {
+    const depth = list(item.content.chain)?.length ?? 0;
+    const metrics: Record<string, number> = { 'M-ERRTYPE': 1 };
+    if (depth > 0) metrics['M-RULEID'] = depth;
+    return { correct: true, metrics };
+  }
+  return { correct: false, metrics: { 'M-ERRTYPE': xformErrorQuality(item, chosen) } };
+};
+
 /* ================================================================== */
 
 export const spatialVerifiers: Record<string, Verifier> = {
@@ -1153,5 +1313,6 @@ export const spatialVerifiers: Record<string, Verifier> = {
   'SPA-SCENE-01': verifyScene,
   'SPA-TANGRAM-01': verifyTangram,
   'SPA-VIEW-01': verifyView,
+  'SPA-XFORM-01': verifyXform,
   'SPA-XPLANE-01': verifyXPlane,
 };
