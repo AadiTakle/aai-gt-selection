@@ -151,13 +151,20 @@
   cursor: not-allowed;
 }
 
-/* Link out to the CogAT explainer, offered in every state of this card. */
+/*
+ * Link out to the CogAT explainer, offered in every state of this card.
+ *
+ * Uses `--color-ink`, the token this card's own `.title` and `.note` use, rather
+ * than a hardcoded navy. The card sits on `--color-panel` (light), so dark ink is
+ * correct here — but the same block copied onto the baseline page's dark hero
+ * shipped invisible, so the rule is: take the colour from the surface you are on.
+ */
 .aboutLink {
   display: inline-block;
   margin-top: 0.625rem;
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--gt-navy, #0f2742);
+  color: var(--color-ink);
   text-decoration: underline;
   text-underline-offset: 2px;
 }

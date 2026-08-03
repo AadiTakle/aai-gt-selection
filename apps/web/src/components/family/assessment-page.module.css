@@ -278,21 +278,34 @@
   }
 }
 
-/* Link out to the CogAT explainer, offered on the baseline step. */
+/*
+ * Link out to the CogAT explainer, offered on the baseline step.
+ *
+ * THESE COLORS ARE FOR A DARK BACKGROUND, and that is the whole point. This block
+ * first shipped copied from the explainer page's stylesheet, where the surface is
+ * white — so the link was `--gt-navy` on `.hero`'s dark navy gradient and was
+ * invisible in production. It rendered correctly and could not be read. Match the
+ * hero's own tokens (`--gt-near-white`, `--gt-gold-light`) rather than the
+ * document defaults, and treat any new element added inside `.hero` the same way.
+ */
 .aboutLine {
-  margin: 0.875rem 0 0;
-  font-size: 0.9375rem;
-  color: var(--gt-muted, #5a6b7b);
+  margin: var(--gt-space-3) 0 0;
+  font-size: 0.95rem;
+  color: rgb(251 251 251 / 0.82);
 }
 
 .aboutLink {
-  color: var(--gt-navy, #0f2742);
-  font-weight: 650;
+  color: var(--gt-gold-light, #f7d15f);
+  font-weight: 600;
   text-decoration: underline;
-  text-underline-offset: 2px;
+  text-underline-offset: 3px;
+}
+
+.aboutLink:hover {
+  color: var(--gt-near-white, #fbfbfb);
 }
 
 .aboutLink:focus-visible {
-  outline: 3px solid var(--gt-gold, #f2b705);
-  outline-offset: 2px;
+  outline: 3px solid var(--gt-gold-light, #f7d15f);
+  outline-offset: 3px;
 }
