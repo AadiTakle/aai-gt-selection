@@ -1,0 +1,1625 @@
+From d32186ada90cce82b5f346bfcdfcb841d518b027 Mon Sep 17 00:00:00 2001
+From: Aadi Takle <aadiatakle@gmail.com>
+Date: Thu, 30 Jul 2026 10:34:03 -0500
+Subject: [PATCH] feat(exam): ?debug=1 convergence dock, and back-to-back
+ bursts within a fast type
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The debug dock renders the ability estimate CONVERGING while the test is taken:
+the pooled estimate, the plausible range around it, that range per reasoning
+area on a shared 1..20 axis, and the range's width after every answered item so
+the narrowing is visible rather than inferred. Built as a pure function of the
+answered-item trace, so the panel is a view of the session rather than a second
+copy of it, and the running estimate it prints is recomputed with the engine's
+own `difficultyDelta` and the scorer's own `deriveAbilityFit` — no second
+implementation of ability.
+
+Bursts serve several items of one type back-to-back so an instruction is read
+once. Not a fixed mini-set: `update` has already moved the area estimate, so
+`nextItem` re-targets and the burst adapts to the earlier answers. Which types
+qualify is derived from item structure (a bounded unpaced choice, no process
+measurement), not a hand-picked list; length steps down one item per option
+above four, so the wired banks run 6/5/4.
+
+The runner's debug gate moves to `?debug=1` with `?telemetry=1` kept as an
+alias. The `?telemetry=1` on the demo iframe URL is D-028's separate ratified
+contract and is untouched. Gating stays URL-only exactly as before.
+
+Co-authored-by: Cursor <cursoragent@cursor.com>
+---
+ .../exam/exam-debug-panel.module.css          | 270 ++++++++++++++++
+ .../src/components/exam/exam-debug-panel.tsx  | 228 ++++++++++++++
+ apps/web/src/components/exam/exam-runner.tsx  |  60 +++-
+ apps/web/src/lib/exam/adaptive.ts             |  23 +-
+ apps/web/src/lib/exam/debug-view.ts           | 278 +++++++++++++++++
+ packages/exam-engine/src/burst.ts             | 291 ++++++++++++++++++
+ packages/exam-engine/src/config.ts            |  18 +-
+ packages/exam-engine/src/index.ts             |  13 +
+ packages/exam-engine/src/testing/real-bank.ts | 129 +++++++-
+ packages/exam-engine/src/types.ts             |  28 ++
+ 10 files changed, 1321 insertions(+), 17 deletions(-)
+ create mode 100644 apps/web/src/components/exam/exam-debug-panel.module.css
+ create mode 100644 apps/web/src/components/exam/exam-debug-panel.tsx
+ create mode 100644 apps/web/src/lib/exam/debug-view.ts
+ create mode 100644 packages/exam-engine/src/burst.ts
+
+diff --git a/apps/web/src/components/exam/exam-debug-panel.module.css b/apps/web/src/components/exam/exam-debug-panel.module.css
+new file mode 100644
+index 0000000..4f8e84b
+--- /dev/null
++++ b/apps/web/src/components/exam/exam-debug-panel.module.css
+@@ -0,0 +1,270 @@
++/*
++ * Debug panel styling, sized for a PROJECTOR rather than a desk: large type, high contrast, and a
++ * fixed dock so the convergence stays on screen while the child clicks through the activity.
++ */
++
++.dock {
++  position: fixed;
++  inset-inline: 0;
++  bottom: 0;
++  z-index: 90;
++  display: flex;
++  flex-direction: column;
++  gap: 0.75rem;
++  padding: 1rem 1.25rem 1.1rem;
++  background: #0b1020;
++  border-top: 3px solid #3d7dff;
++  color: #eef2ff;
++  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
++  box-shadow: 0 -16px 40px rgb(0 0 0 / 45%);
++  max-height: 62vh;
++  overflow-y: auto;
++}
++
++.head {
++  display: flex;
++  flex-wrap: wrap;
++  align-items: baseline;
++  gap: 0.6rem 1.5rem;
++}
++
++.title {
++  margin: 0;
++  font-size: 1rem;
++  font-weight: 700;
++  letter-spacing: 0.08em;
++  text-transform: uppercase;
++  color: #8fb4ff;
++}
++
++.headline {
++  display: flex;
++  align-items: baseline;
++  gap: 0.6rem;
++}
++
++.bigTheta {
++  font-size: 2.3rem;
++  font-weight: 700;
++  line-height: 1;
++  color: #fff;
++  font-variant-numeric: tabular-nums;
++}
++
++.bigRange {
++  font-size: 1.25rem;
++  color: #ffd479;
++  font-variant-numeric: tabular-nums;
++}
++
++.headMeta {
++  font-size: 0.95rem;
++  color: #9fb0d6;
++  font-variant-numeric: tabular-nums;
++}
++
++/* --- per-area convergence rows ------------------------------------------- */
++
++.areas {
++  display: grid;
++  gap: 0.5rem;
++}
++
++.area {
++  display: grid;
++  grid-template-columns: 8.5rem 5.5rem 1fr 6.5rem;
++  align-items: center;
++  gap: 0.75rem;
++}
++
++.areaName {
++  font-size: 1rem;
++  font-weight: 600;
++  color: #cfdcff;
++  white-space: nowrap;
++  overflow: hidden;
++  text-overflow: ellipsis;
++}
++
++.areaTheta {
++  font-size: 1.35rem;
++  font-weight: 700;
++  color: #fff;
++  font-variant-numeric: tabular-nums;
++  text-align: right;
++}
++
++/* The 1..20 axis. The shaded span is the plausible range; the dot is the estimate. */
++.axis {
++  position: relative;
++  height: 1.6rem;
++  border-radius: 0.8rem;
++  background: #17203a;
++  border: 1px solid #26325a;
++  overflow: hidden;
++}
++
++.band {
++  position: absolute;
++  top: 0;
++  bottom: 0;
++  background: linear-gradient(90deg, rgb(255 212 121 / 30%), rgb(255 212 121 / 55%));
++  border-inline: 2px solid #ffd479;
++}
++
++.marker {
++  position: absolute;
++  top: -2px;
++  bottom: -2px;
++  width: 4px;
++  background: #fff;
++  box-shadow: 0 0 8px rgb(255 255 255 / 90%);
++}
++
++/* Where selection is aiming next — the staircase position, distinct from the fitted estimate. */
++.aim {
++  position: absolute;
++  top: 0;
++  bottom: 0;
++  width: 2px;
++  background: #56e0a0;
++}
++
++.axisTicks {
++  position: absolute;
++  inset: 0;
++  display: flex;
++  justify-content: space-between;
++  padding-inline: 0.35rem;
++  align-items: center;
++  font-size: 0.6rem;
++  color: #4d5b82;
++  pointer-events: none;
++}
++
++.areaWidth {
++  font-size: 0.95rem;
++  color: #ffd479;
++  font-variant-numeric: tabular-nums;
++  text-align: right;
++  white-space: nowrap;
++}
++
++.settled {
++  color: #56e0a0;
++}
++
++/* --- the narrowing series ------------------------------------------------ */
++
++.narrowWrap {
++  display: flex;
++  align-items: flex-end;
++  gap: 2px;
++  height: 2.6rem;
++  padding: 0.2rem 0.35rem;
++  background: #10182e;
++  border: 1px solid #26325a;
++  border-radius: 0.35rem;
++}
++
++.narrowBar {
++  flex: 1 1 auto;
++  min-width: 3px;
++  background: linear-gradient(180deg, #ffd479, #ff9f43);
++  border-radius: 1px 1px 0 0;
++}
++
++.narrowLabel {
++  font-size: 0.75rem;
++  letter-spacing: 0.06em;
++  text-transform: uppercase;
++  color: #8fb4ff;
++}
++
++/* --- per-item log ------------------------------------------------------- */
++
++.log {
++  width: 100%;
++  border-collapse: collapse;
++  font-size: 0.85rem;
++  font-variant-numeric: tabular-nums;
++}
++
++.log th {
++  text-align: right;
++  padding: 0.15rem 0.5rem;
++  color: #7f8fb8;
++  font-weight: 600;
++  border-bottom: 1px solid #26325a;
++  white-space: nowrap;
++}
++
++.log th:nth-child(2),
++.log td:nth-child(2) {
++  text-align: left;
++}
++
++.log td {
++  text-align: right;
++  padding: 0.15rem 0.5rem;
++  color: #dbe4ff;
++  white-space: nowrap;
++}
++
++.ok {
++  color: #56e0a0;
++  font-weight: 700;
++}
++
++.no {
++  color: #ff7a7a;
++  font-weight: 700;
++}
++
++.rev {
++  color: #ffd479;
++}
++
++.burstTag {
++  display: inline-block;
++  padding: 0 0.35rem;
++  border-radius: 0.25rem;
++  background: #2b3a6b;
++  color: #bcd0ff;
++  font-size: 0.75rem;
++}
++
++.foot {
++  margin: 0;
++  font-size: 0.75rem;
++  line-height: 1.35;
++  color: #7f8fb8;
++}
++
++.actions {
++  display: flex;
++  gap: 0.5rem;
++  margin-inline-start: auto;
++}
++
++.toggle {
++  appearance: none;
++  border: 1px solid #3d7dff;
++  background: transparent;
++  color: #8fb4ff;
++  border-radius: 0.35rem;
++  padding: 0.25rem 0.6rem;
++  font: inherit;
++  font-size: 0.8rem;
++  cursor: pointer;
++}
++
++.toggle:hover {
++  background: #16224a;
++}
++
++.empty {
++  margin: 0;
++  font-size: 0.95rem;
++  color: #9fb0d6;
++}
+diff --git a/apps/web/src/components/exam/exam-debug-panel.tsx b/apps/web/src/components/exam/exam-debug-panel.tsx
+new file mode 100644
+index 0000000..6d4f77e
+--- /dev/null
++++ b/apps/web/src/components/exam/exam-debug-panel.tsx
+@@ -0,0 +1,228 @@
++'use client';
++
++import { useState } from 'react';
++
++import { domainLabel } from '@/lib/exam/bank';
++import type { DebugAreaView, DebugInterval, DebugItemRow, DebugView } from '@/lib/exam/debug-view';
++
++import styles from './exam-debug-panel.module.css';
++
++/**
++ * The `?debug=1` dock: the ability estimate converging, live, while the test is taken.
++ *
++ * Reading order is deliberate, because the point of the panel is one thing and everything else is
++ * supporting detail:
++ *
++ *  1. the pooled estimate and its plausible range, in the largest type on screen;
++ *  2. the same thing per reasoning area, each on a shared 1..20 axis so the shaded ranges can be
++ *     compared by eye and watched to shrink;
++ *  3. the width of that range after every answered item — the narrowing itself, as a series;
++ *  4. only then the per-item detail that explains WHY each next item was chosen.
++ *
++ * The range is `deriveAbilityFit`'s conditional SE, the estimator the scorer uses. See
++ * `lib/exam/debug-view.ts` for what that interval does and does not claim.
++ */
++
++const HOW_MANY_LOG_ROWS = 8;
++
++function pos(value: number, min: number, max: number): number {
++  return ((value - min) / (max - min)) * 100;
++}
++
++function fmt(n: number, digits = 1): string {
++  return Number.isFinite(n) ? n.toFixed(digits) : '—';
++}
++
++/** `12.4 ±2.1` — the estimate with the half-width of its plausible range. */
++function intervalLabel(interval: DebugInterval | null): string {
++  if (!interval) return '—';
++  const half = (interval.upper - interval.lower) / 2;
++  return `${fmt(interval.estimate)} ±${fmt(half)}`;
++}
++
++function AreaRow({
++  view,
++  scale,
++}: {
++  view: DebugAreaView;
++  scale: { min: number; max: number };
++}) {
++  const { interval } = view;
++  return (
++    <div className={styles.area}>
++      <span className={styles.areaName}>{domainLabel(view.area)}</span>
++      <span className={styles.areaTheta}>{interval ? fmt(interval.estimate) : '—'}</span>
++      <div
++        className={styles.axis}
++        role="img"
++        aria-label={`${domainLabel(view.area)} ability ${intervalLabel(interval)} on a ${scale.min} to ${scale.max} scale`}
++      >
++        <div className={styles.axisTicks} aria-hidden="true">
++          <span>{scale.min}</span>
++          <span>{Math.round((scale.min + scale.max) / 2)}</span>
++          <span>{scale.max}</span>
++        </div>
++        {interval ? (
++          <>
++            <div
++              className={styles.band}
++              style={{
++                left: `${pos(interval.lower, scale.min, scale.max)}%`,
++                width: `${Math.max(0.6, pos(interval.upper, scale.min, scale.max) - pos(interval.lower, scale.min, scale.max))}%`,
++              }}
++            />
++            <div
++              className={styles.marker}
++              style={{ left: `${pos(interval.estimate, scale.min, scale.max)}%` }}
++            />
++          </>
++        ) : null}
++        {/* Green hairline: where the engine will aim the next item in this area. */}
++        <div className={styles.aim} style={{ left: `${pos(view.target, scale.min, scale.max)}%` }} />
++      </div>
++      <span className={styles.areaWidth}>
++        {interval ? `±${fmt((interval.upper - interval.lower) / 2)}` : '—'} · {view.itemsSeen}q
++      </span>
++    </div>
++  );
++}
++
++/** The narrowing, as a bar per answered item. Tallest bar = widest the range has been. */
++function Narrowing({ widths }: { widths: readonly number[] }) {
++  if (widths.length === 0) return null;
++  const peak = Math.max(...widths, 0.001);
++  return (
++    <div>
++      <p className={styles.narrowLabel}>
++        Plausible range after each question — first {fmt(widths[0] ?? 0)}, now{' '}
++        {fmt(widths[widths.length - 1] ?? 0)} wide
++      </p>
++      <div className={styles.narrowWrap} aria-hidden="true">
++        {widths.map((width, i) => (
++          <span
++            key={i}
++            className={styles.narrowBar}
++            style={{ height: `${Math.max(4, (width / peak) * 100)}%` }}
++          />
++        ))}
++      </div>
++    </div>
++  );
++}
++
++function LogRow({ row }: { row: DebugItemRow }) {
++  return (
++    <tr>
++      <td>{row.sessionIndex}</td>
++      <td>{row.typeCode}</td>
++      <td>{fmt(row.targetDifficulty)}</td>
++      <td>{fmt(row.servedDifficulty)}</td>
++      <td className={row.correct ? styles.ok : styles.no}>{row.correct ? '✓' : '✗'}</td>
++      <td>{fmt(row.step, 2)}</td>
++      <td>
++        {row.delta >= 0 ? '+' : ''}
++        {fmt(row.delta, 2)}
++      </td>
++      <td>{fmt(row.targetAfter)}</td>
++      <td>{row.interval ? `±${fmt((row.interval.upper - row.interval.lower) / 2)}` : '—'}</td>
++      <td className={styles.rev}>{row.reversal ? '↩' : ''}</td>
++      <td>
++        {row.burst ? (
++          <span className={styles.burstTag}>
++            {row.burst.index}/{row.burst.length}
++          </span>
++        ) : null}
++      </td>
++    </tr>
++  );
++}
++
++export function ExamDebugPanel({
++  view,
++  children,
++}: {
++  view: DebugView;
++  /** Controls that belong to the runner rather than the panel (the Emulate button). */
++  children?: React.ReactNode;
++}) {
++  const [showLog, setShowLog] = useState(true);
++  const recent = view.log.slice(-HOW_MANY_LOG_ROWS);
++
++  return (
++    <aside className={styles.dock} aria-label="Debug: ability convergence">
++      <div className={styles.head}>
++        <h2 className={styles.title}>Ability estimate</h2>
++        <div className={styles.headline}>
++          <span className={styles.bigTheta}>
++            {view.overall ? fmt(view.overall.estimate) : '—'}
++          </span>
++          <span className={styles.bigRange}>
++            {view.overall
++              ? `± ${fmt((view.overall.upper - view.overall.lower) / 2)}  (range ${fmt(view.overall.lower)}–${fmt(view.overall.upper)})`
++              : 'waiting for the first answer'}
++          </span>
++        </div>
++        <span className={styles.headMeta}>
++          {view.itemsServed} question{view.itemsServed === 1 ? '' : 's'} answered · scale{' '}
++          {view.scale.min}–{view.scale.max}
++        </span>
++        <div className={styles.actions}>
++          {children}
++          <button type="button" className={styles.toggle} onClick={() => setShowLog((v) => !v)}>
++            {showLog ? 'Hide per-item detail' : 'Show per-item detail'}
++          </button>
++        </div>
++      </div>
++
++      {view.itemsServed === 0 ? (
++        <p className={styles.empty}>
++          Answer the first question and the estimate, its plausible range, and the narrowing will
++          appear here.
++        </p>
++      ) : (
++        <>
++          <Narrowing widths={view.overallWidths} />
++
++          <div className={styles.areas}>
++            {view.areas.map((area) => (
++              <AreaRow key={area.area} view={area} scale={view.scale} />
++            ))}
++          </div>
++
++          {showLog ? (
++            <table className={styles.log}>
++              <thead>
++                <tr>
++                  <th>#</th>
++                  <th>type</th>
++                  <th>aimed</th>
++                  <th>served</th>
++                  <th>ok</th>
++                  <th>step</th>
++                  <th>move</th>
++                  <th>new aim</th>
++                  <th>±range</th>
++                  <th>rev</th>
++                  <th>burst</th>
++                </tr>
++              </thead>
++              <tbody>
++                {recent.map((row) => (
++                  <LogRow key={row.itemId} row={row} />
++                ))}
++              </tbody>
++            </table>
++          ) : null}
++        </>
++      )}
++
++      <p className={styles.foot}>
++        White marker = fitted ability (<code>deriveAbilityFit</code>, the scorer&apos;s own
++        estimator). Shaded band = ±1.96 SE from that fit. Green hairline = where the next item in
++        that area will be aimed. The band is sampling error under a 1PL that assumes no guessing
++        floor, while every wired item is multiple choice — so watch it narrow, but do not read it as
++        a 95% claim about the child. Born-synthetic, <code>validated=false</code>.
++      </p>
++    </aside>
++  );
++}
+diff --git a/apps/web/src/components/exam/exam-runner.tsx b/apps/web/src/components/exam/exam-runner.tsx
+index d46e0aa..8b27670 100644
+--- a/apps/web/src/components/exam/exam-runner.tsx
++++ b/apps/web/src/components/exam/exam-runner.tsx
+@@ -6,11 +6,12 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from '
+ import {
+   isDone,
+   nextItem,
+-  nextType,
++  planNextSelection,
+   startState,
+   update,
+   type Area,
+   type Banks,
++  type BurstPlan,
+   type ScoredItem as EngineScoredItem,
+   type ServedItem,
+   type SessionState,
+@@ -41,6 +42,7 @@ import {
+   subscribeToDebugMode,
+ } from '@/lib/exam/adaptive';
+ import { GRADE_BANDS, GRADE_BAND_LABEL, syntheticId, type GradeBand } from '@/lib/exam/contract';
++import { buildDebugView, type DebugTraceItem } from '@/lib/exam/debug-view';
+ import { ExamHost, type InboundResult } from '@/lib/exam/messaging';
+ import {
+   LEARNING_BLOCK_AREA,
+@@ -60,6 +62,7 @@ import {
+   type LearningBlockReadout,
+ } from '@/lib/exam/phase2';
+ 
++import { ExamDebugPanel } from './exam-debug-panel';
+ import styles from './exam-runner.module.css';
+ 
+ /**
+@@ -161,8 +164,21 @@ export function ExamRunner({
+ 
+   /** Ability estimate for the item on screen, mirrored into state so render never reads a ref. */
+   const [debugAbility, setDebugAbility] = useState<number | null>(null);
+-
+-  /** `?telemetry=1` on the exam URL: shows each demo's researcher panel and the emulate control. */
++  /**
++   * Answered items, in state rather than a ref, because the debug dock renders from them: appending
++   * one is what re-renders the panel and advances the convergence on screen. Kept separate from
++   * `scoredRef` (which is the POSTed trace) so the panel can carry the burst position without
++   * changing the results payload.
++   */
++  const [debugTrace, setDebugTrace] = useState<DebugTraceItem[]>([]);
++
++  /**
++   * The burst the on-screen item belongs to. One item is on screen at a time, so this is always the
++   * plan for `current`; `planNextSelection` reads it back to decide whether to stay on the type.
++   */
++  const burstRef = useRef<BurstPlan | null>(null);
++
++  /** `?debug=1` on the exam URL: shows the convergence dock, the demo's researcher panel, Emulate. */
+   const debugMode = useSyncExternalStore(
+     subscribeToDebugMode,
+     debugModeSnapshot,
+@@ -271,12 +287,16 @@ export function ExamRunner({
+       }
+       let selected: ServedItem;
+       try {
+-        const typeCode = nextType(state, banks);
+-        if (!typeCode) {
++        // Either the next item of the burst already running, or a fresh type. Staying on the type is
++        // all a burst is: `update` has already moved this area's estimate, so `nextItem` re-targets
++        // at the new one and the burst adapts to how the previous items went.
++        const plan = planNextSelection(state, banks, burstRef.current);
++        if (!plan) {
+           void finalize();
+           return;
+         }
+-        selected = nextItem(state, typeCode, banks);
++        burstRef.current = plan;
++        selected = nextItem(state, plan.typeCode, banks);
+       } catch {
+         // Pool exhausted for the selected type — conclude with what we have.
+         void finalize();
+@@ -460,6 +480,17 @@ export function ExamRunner({
+       scoredRef.current = [...scoredRef.current, scored];
+       setScoredCount(scoredRef.current.length);
+ 
++      // Same row plus the burst position, for the debug dock. Appending re-renders the panel, which
++      // is what makes the estimate and its range visibly move as each question is answered.
++      const plan = burstRef.current;
++      setDebugTrace((rows) => [
++        ...rows,
++        {
++          ...scored,
++          ...(plan ? { burstIndex: plan.index, burstLength: plan.length } : {}),
++        },
++      ]);
++
+       const nextState = update(state, scored as unknown as EngineScoredItem);
+       stateRef.current = nextState;
+ 
+@@ -551,8 +582,10 @@ export function ExamRunner({
+     scoredRef.current = [];
+     telemetryRef.current = [];
+     processedRef.current = new Set();
++    burstRef.current = null;
+     setServed([]);
+     setScoredCount(0);
++    setDebugTrace([]);
+     setPhase('running');
+     try {
+       const pool = await fetchServedPool();
+@@ -975,6 +1008,21 @@ export function ExamRunner({
+           : ''}
+         Synthetic screening activity; results are not shown between questions.
+       </p>
++
++      {/*
++        The convergence dock. Rendered from the answered-item trace alone, so it is a view of the
++        session rather than a second copy of it, and every number in it comes from the engine's own
++        update or the scorer's own ability fit.
++      */}
++      {debugMode ? (
++        <ExamDebugPanel
++          view={buildDebugView({
++            trace: debugTrace,
++            gradeBand,
++            config: stateRef.current?.config ?? startState(gradeBand, EXAM_ENGINE_OVERRIDES).config,
++          })}
++        />
++      ) : null}
+     </div>
+   );
+ }
+diff --git a/apps/web/src/lib/exam/adaptive.ts b/apps/web/src/lib/exam/adaptive.ts
+index 6741980..d4d683f 100644
+--- a/apps/web/src/lib/exam/adaptive.ts
++++ b/apps/web/src/lib/exam/adaptive.ts
+@@ -122,6 +122,13 @@ export const EXAM_ENGINE_OVERRIDES: Partial<EngineConfig> = {
+   accWindowSize: 8,
+   estWindowSize: 8,
+   hardItemCap: 40,
++  /*
++   * Back-to-back items within one type, so a child reads an instruction once and then answers
++   * several questions off it. Six is the ceiling, stepped down one item per option above four by
++   * `burstLengthFor`, and floored at two — so the wired banks run 6 (four-option), 5 (five-option)
++   * and 4 (six-option). Only types the engine classifies as a single unpaced choice burst at all.
++   */
++  burst: { maxLength: 6, minLength: 2, maxOptions: 6 },
+ };
+ 
+ /** Derive the demo URL for a served item (renderers live under public/exam-demos). */
+@@ -132,7 +139,19 @@ export function demoPathFor(typeCode: string, telemetry = false): string {
+ }
+ 
+ /**
+- * Debug mode: the exam URL carries `?telemetry=1`.
++ * Debug mode: the exam URL carries `?debug=1`.
++ *
++ * `?telemetry=1` is kept as an alias because it costs one alternation in this regex and because it
++ * is the spelling in the existing runbooks and screenshots. Note that the two names mean different
++ * things and only one of them moved: this flag gates the RUNNER's debug dock, while the
++ * `?telemetry=1` that {@link demoPathFor} puts on the demo iframe's own URL is D-028's ratified
++ * contract for un-hiding a renderer's researcher sidebar, is asserted over every published demo by
++ * `telemetry-panel-gate.test.ts`, and is unchanged.
++ *
++ * Gating is by URL only, exactly as before — there is no environment check here, and none was
++ * removed. The environment gates in this area are elsewhere and also unchanged: the `/dev/*` preview
++ * routes `notFound()` in production, and `/api/exam-emulate` (what the Emulate button calls) needs
++ * both a non-production build and `GT_EXAM_EMULATE_ENABLED=true`.
+  *
+  * Exposed as a store so a component can read it with `useSyncExternalStore` — the server render and
+  * the first client render then agree, and nothing sets state from an effect.
+@@ -143,7 +162,7 @@ export function subscribeToDebugMode(): () => void {
+ 
+ export function debugModeSnapshot(): boolean {
+   if (typeof window === 'undefined') return false;
+-  return /(^|[?&])telemetry=1(&|$)/.test(window.location.search);
++  return /(^|[?&])(debug|telemetry)=1(&|$)/.test(window.location.search);
+ }
+ 
+ export function debugModeServerSnapshot(): boolean {
+diff --git a/apps/web/src/lib/exam/debug-view.ts b/apps/web/src/lib/exam/debug-view.ts
+new file mode 100644
+index 0000000..8fada07
+--- /dev/null
++++ b/apps/web/src/lib/exam/debug-view.ts
+@@ -0,0 +1,278 @@
++/**
++ * What `?debug=1` renders: the child's ability estimate CONVERGING, item by item.
++ *
++ * The whole thing is a pure function of the trace collected so far plus the engine config. Nothing
++ * is accumulated in a live counter, which buys three properties that matter:
++ *
++ *  1. the panel and any offline replay of the same trace produce identical numbers;
++ *  2. re-rendering after each answered item is enough to animate the convergence, with no effect
++ *     writing state and no second source of truth to drift; and
++ *  3. the running estimate it prints is the engine's OWN estimate, because it is recomputed with
++ *     the engine's own `difficultyDelta` rather than re-derived by something that looks similar.
++ *
++ * There are deliberately TWO quantities on screen and they answer different questions:
++ *
++ *  - **the engine's running target** — where selection is currently aiming. This is the staircase
++ *    position, and it is what makes the next item's difficulty predictable.
++ *  - **the fitted ability and its interval** — `deriveAbilityFit` over the items answered so far,
++ *    which is the estimator the scorer uses. The interval is the one the owner watches narrow.
++ *
++ * A second, divergent implementation of ability is the exact class of bug this repository has been
++ * bitten by twice, so the interval here is `deriveAbilityFit` / `abilityStandardError` from
++ * `@gt-selection/exam-scoring` and nothing else.
++ *
++ * CLAIM BOUNDARY, and it is not a small one. The interval is the conditional (Fisher-information)
++ * SE of a one-parameter logistic fit that assumes NO guessing floor, while every wired bank item is
++ * multiple choice. A child who succeeds by chance moves this estimate up, and the interval drawn
++ * around it reflects only sampling error under that misspecified model — not the bias from it. So
++ * the bracket narrowing is a real and faithful picture of the estimator gaining information, and it
++ * is NOT a claim that the true ability lies inside the band with 95% probability. The related defect
++ * in the Phase 2 learning-curve fit is under review separately.
++ */
++import {
++  DIFFICULTY_MAX,
++  DIFFICULTY_MIN,
++  GRADE_BAND_SEED,
++  AREAS,
++  clamp,
++  difficultyDelta,
++  directionReversals,
++  stepSize,
++  toObservation,
++  type AgeBand,
++  type Area,
++  type EngineConfig,
++  type ItemObservation,
++  type ScoredItem,
++} from '@gt-selection/exam-engine';
++import {
++  DEFAULT_ABILITY_BRACKETING,
++  abilityStandardError,
++  deriveAbilityEstimate,
++  type AbilityFitOptions,
++  type ScoredItem as ScoringScoredItem,
++} from '@gt-selection/exam-scoring';
++
++/**
++ * Fit options for the displayed interval: the same slope and prior the scorer uses under ability
++ * bracketing, on the same 1..20 scale. Held here as one constant so the panel cannot drift from the
++ * scorer by editing a number in a component.
++ */
++export const DEBUG_ABILITY_FIT: AbilityFitOptions = {
++  slope: DEFAULT_ABILITY_BRACKETING.slope,
++  priorSd: DEFAULT_ABILITY_BRACKETING.priorSd,
++  min: DIFFICULTY_MIN,
++  max: DIFFICULTY_MAX,
++};
++
++/** ~95% interval half-width in SE units. */
++const Z95 = 1.96;
++
++/** The subset of a trace row this view needs. Matches what the runner already records per item. */
++export interface DebugTraceItem {
++  readonly itemId: string;
++  readonly typeCode: string;
++  readonly domain: Area;
++  readonly difficulty: number;
++  readonly score: number;
++  readonly correct: boolean;
++  readonly metrics: Record<string, number>;
++  readonly skipped?: boolean;
++  /** 1-based position within its burst, when the item was served as part of one. */
++  readonly burstIndex?: number;
++  /** Total length of that burst. */
++  readonly burstLength?: number;
++}
++
++/** An estimate with the interval drawn around it, already clamped to the scale. */
++export interface DebugInterval {
++  readonly estimate: number;
++  readonly se: number;
++  readonly lower: number;
++  readonly upper: number;
++  /** `upper - lower`. The number that shrinks. */
++  readonly width: number;
++}
++
++/** One answered item, and what it did to the estimate. */
++export interface DebugItemRow {
++  /** 1-based position in the whole session. */
++  readonly sessionIndex: number;
++  /** 1-based position within this area. */
++  readonly areaIndex: number;
++  readonly itemId: string;
++  readonly typeCode: string;
++  readonly area: Area;
++  /** Where selection was aiming when it chose this item — the running target BEFORE the answer. */
++  readonly targetDifficulty: number;
++  /** What the bank actually had closest to that target. */
++  readonly servedDifficulty: number;
++  /** `served - target`: how far the bank forced the aim to miss. */
++  readonly targetingMiss: number;
++  readonly correct: boolean;
++  readonly skipped: boolean;
++  /** Scheduled staircase magnitude for this answer — the thing that shrinks at each reversal. */
++  readonly step: number;
++  /** Signed move actually applied, after surprise and near-miss softening. */
++  readonly delta: number;
++  /** The running target after the move. */
++  readonly targetAfter: number;
++  /** True when this answer flipped direction, i.e. the estimate is now straddling the child. */
++  readonly reversal: boolean;
++  /** The fitted interval using every item answered in this area up to and including this one. */
++  readonly interval: DebugInterval | null;
++  readonly burst: { readonly index: number; readonly length: number } | null;
++}
++
++/** Everything the panel shows for one reasoning area. */
++export interface DebugAreaView {
++  readonly area: Area;
++  readonly itemsSeen: number;
++  /** The engine's running target — where the next item in this area will be aimed. */
++  readonly target: number;
++  /** Fitted ability and its interval over this area's items. `null` before the first answer. */
++  readonly interval: DebugInterval | null;
++  /** Interval width after each answered item, oldest first: the narrowing, as a series. */
++  readonly widths: readonly number[];
++  readonly reversals: number;
++  /** Current scheduled staircase step. */
++  readonly step: number;
++  readonly rows: readonly DebugItemRow[];
++}
++
++export interface DebugView {
++  readonly areas: readonly DebugAreaView[];
++  readonly itemsServed: number;
++  /**
++   * The fit pooled over ALL areas. Not a composite score — it is the same estimator run over the
++   * whole trace, which is the single headline number that converges fastest on screen.
++   */
++  readonly overall: DebugInterval | null;
++  /** Overall interval width after each answered item, oldest first. */
++  readonly overallWidths: readonly number[];
++  readonly scale: { readonly min: number; readonly max: number };
++  /** Rows across every area in the order they were served — the per-item log. */
++  readonly log: readonly DebugItemRow[];
++}
++
++function toScoringItems(items: readonly DebugTraceItem[]): ScoringScoredItem[] {
++  return items as unknown as ScoringScoredItem[];
++}
++
++/**
++ * Fit the interval over `items`. Returns `null` for an empty set, and clamps the band to the scale
++ * so the panel never draws outside its own axis.
++ */
++export function fitInterval(items: readonly DebugTraceItem[]): DebugInterval | null {
++  if (items.length === 0) return null;
++  const scoring = toScoringItems(items);
++  const estimate = deriveAbilityEstimate(scoring, DEBUG_ABILITY_FIT);
++  if (estimate === null) return null;
++  const se = abilityStandardError(estimate, scoring, DEBUG_ABILITY_FIT);
++  if (se === null || !Number.isFinite(se)) {
++    return { estimate, se: Number.POSITIVE_INFINITY, lower: DIFFICULTY_MIN, upper: DIFFICULTY_MAX, width: DIFFICULTY_MAX - DIFFICULTY_MIN };
++  }
++  const lower = clamp(estimate - Z95 * se, DIFFICULTY_MIN, DIFFICULTY_MAX);
++  const upper = clamp(estimate + Z95 * se, DIFFICULTY_MIN, DIFFICULTY_MAX);
++  return { estimate, se, lower, upper, width: upper - lower };
++}
++
++/**
++ * Build the whole view from the trace.
++ *
++ * The per-area walk replays the engine's own update: `difficultyDelta` given the observations so
++ * far returns exactly the signed move the engine applied, so `targetAfter` is the engine's estimate
++ * and not an approximation of it.
++ */
++export function buildDebugView(input: {
++  readonly trace: readonly DebugTraceItem[];
++  readonly gradeBand: AgeBand;
++  readonly config: EngineConfig;
++}): DebugView {
++  const { trace, gradeBand, config } = input;
++  const seed = GRADE_BAND_SEED[gradeBand] ?? (DIFFICULTY_MIN + DIFFICULTY_MAX) / 2;
++
++  // Session-order index per item, so an area row can report where it fell in the whole session.
++  const sessionIndexOf = new Map<string, number>();
++  trace.forEach((item, i) => sessionIndexOf.set(item.itemId, i + 1));
++
++  const areas: DebugAreaView[] = [];
++  const allRows: DebugItemRow[] = [];
++
++  for (const area of AREAS) {
++    const items = trace.filter((item) => item.domain === area);
++    const observations: ItemObservation[] = [];
++    const rows: DebugItemRow[] = [];
++    const widths: number[] = [];
++    let target = seed;
++
++    items.forEach((item, index) => {
++      const last = observations[observations.length - 1];
++      const reversal = last !== undefined && last.correct !== item.correct;
++      const reversalsIncl = directionReversals(observations) + (reversal ? 1 : 0);
++      const step = stepSize(reversalsIncl, config);
++
++      const targetBefore = target;
++      const delta = difficultyDelta(
++        { difficulty: target, trace: observations },
++        item as unknown as ScoredItem,
++        config,
++      );
++      target = clamp(target + delta, DIFFICULTY_MIN, DIFFICULTY_MAX);
++      observations.push(toObservation(item as unknown as ScoredItem));
++
++      const interval = fitInterval(items.slice(0, index + 1));
++      if (interval) widths.push(interval.width);
++
++      const row: DebugItemRow = {
++        sessionIndex: sessionIndexOf.get(item.itemId) ?? index + 1,
++        areaIndex: index + 1,
++        itemId: item.itemId,
++        typeCode: item.typeCode,
++        area,
++        targetDifficulty: targetBefore,
++        servedDifficulty: item.difficulty,
++        targetingMiss: item.difficulty - targetBefore,
++        correct: item.correct,
++        skipped: item.skipped === true,
++        step,
++        delta,
++        targetAfter: target,
++        reversal,
++        interval,
++        burst:
++          item.burstIndex !== undefined && item.burstLength !== undefined && item.burstLength > 1
++            ? { index: item.burstIndex, length: item.burstLength }
++            : null,
++      };
++      rows.push(row);
++      allRows.push(row);
++    });
++
++    areas.push({
++      area,
++      itemsSeen: items.length,
++      target,
++      interval: fitInterval(items),
++      widths,
++      reversals: directionReversals(observations),
++      step: stepSize(directionReversals(observations), config),
++      rows,
++    });
++  }
++
++  const overallWidths: number[] = [];
++  for (let i = 1; i <= trace.length; i += 1) {
++    const interval = fitInterval(trace.slice(0, i));
++    if (interval) overallWidths.push(interval.width);
++  }
++
++  return {
++    areas,
++    itemsServed: trace.length,
++    overall: fitInterval(trace),
++    overallWidths,
++    scale: { min: DIFFICULTY_MIN, max: DIFFICULTY_MAX },
++    log: allRows.sort((a, b) => a.sessionIndex - b.sessionIndex),
++  };
++}
+diff --git a/packages/exam-engine/src/burst.ts b/packages/exam-engine/src/burst.ts
+new file mode 100644
+index 0000000..fba54ba
+--- /dev/null
++++ b/packages/exam-engine/src/burst.ts
+@@ -0,0 +1,291 @@
++/**
++ * Back-to-back bursts of the same question type.
++ *
++ * THE PROBLEM. Every type opens with an instruction the child has to read before they can answer
++ * anything. For a type whose response is a single tap, that fixed cost dominates: the child spends
++ * most of the item reading how to answer rather than answering. Serving one such item and rotating
++ * to a different type pays the instruction cost again on the very next item.
++ *
++ * THE FIX. Stay on the type for several consecutive items, reusing the instruction already read.
++ *
++ * WHAT THIS IS NOT. It is not a fixed mini-set. The engine's normal loop already re-targets every
++ * selection at the area's live estimate, and `update` moves that estimate after every item, so
++ * simply *not rotating the type* makes the second and later items of a burst adapt to how the
++ * earlier ones went — the same bracketing staircase as the main loop, running inside one type.
++ * There is no second targeting rule here and no second ability estimate; {@link burstLengthFor}
++ * only decides HOW MANY consecutive items to take from the type that `nextType` already chose.
++ *
++ * WHICH TYPES QUALIFY. Derived, not hand-listed — see {@link classifyTypeSpeed}. This repository
++ * holds no measured per-child response times for any type, so the classification runs off the
++ * machine-readable structure of the items themselves plus the measurements a type declares.
++ */
++import { typeHasUnseenItem } from './coverage';
++import { isDone } from './done';
++import { nextType } from './selection';
++import type { BankItem, Banks, BurstPolicy, QuestionType, SessionState, TypeCode } from './types';
++
++/**
++ * Item-content fields that bound or extend the RESPONSE rather than the stimulus: an explicit time
++ * budget, an explicit refusal to time the response, a paced multi-step stream, or a program the
++ * child assembles. Any of these means the response itself takes real time, so instruction reading
++ * is not the dominant cost and the type is not a burst candidate.
++ *
++ * `exposureMs` is deliberately absent. It bounds how long the STIMULUS is visible, after which the
++ * response is a single forced choice — that is evidence for a fast type, not against one.
++ */
++const SLOW_RESPONSE_CONTENT_FIELDS: readonly string[] = [
++  'timeBudgetSec',
++  'responseUntimed',
++  'paceMs',
++  'responseWindowMs',
++  'streamLength',
++  'instructionSet',
++];
++
++/**
++ * Measurements only a multi-step manipulation can produce. A type declaring one of these is
++ * reporting on a solution PROCESS with intermediate states, so its response is a sequence of moves
++ * rather than a single choice.
++ */
++const PROCESS_METRIC_IDS: readonly string[] = ['M-PATH', 'M-EFF', 'M-PLANFUL', 'M-IDEAFLU'];
++
++/** Why a type was or was not classified fast. Carried so the decision can be printed and audited. */
++export interface TypeSpeedVerdict {
++  readonly typeCode: TypeCode;
++  readonly fast: boolean;
++  /** Human-readable evidence for the verdict. */
++  readonly reason: string;
++  /** Largest option count seen across the type's items; `null` when no item offers options. */
++  readonly maxOptions: number | null;
++  /** Response-bounding content fields found, if any. */
++  readonly slowFields: readonly string[];
++  /** Process measurements declared, if any. */
++  readonly processMetrics: readonly string[];
++}
++
++function optionCount(item: BankItem): number | null {
++  const options = (item.content as { options?: unknown }).options;
++  return Array.isArray(options) ? options.length : null;
++}
++
++/**
++ * Classify one type as fast (instruction-bound) or not, from the structure of its own items.
++ *
++ * A type is fast when all three hold:
++ *
++ *  1. **Every** item is a bounded choice — it offers an `options` array, and no item offers more
++ *     than `maxOptions` of them. A choice among a handful of visible candidates is answered with
++ *     one tap; a construction, a free response, or a twenty-way choice is not.
++ *  2. No item carries a field that bounds or extends the response
++ *     ({@link SLOW_RESPONSE_CONTENT_FIELDS}).
++ *  3. The type declares no process measurement that requires intermediate moves
++ *     ({@link PROCESS_METRIC_IDS}).
++ *
++ * Requiring EVERY item to qualify is deliberate: a burst can land on any item in the pool, so a
++ * type is only safe to burst if its whole bank is fast. One paced or constructed item disqualifies
++ * the type.
++ *
++ * CLAIM BOUNDARY. This is a structural proxy for "instruction reading dominates this item", not a
++ * measured response time. No per-child response-time distribution exists for any type here, so
++ * nothing in this classification is calibrated; it is a design decision over a born-synthetic bank,
++ * and the observed `M-RT` / `M-RTFIRST` split is the evidence that would confirm or refute it.
++ */
++export function classifyTypeSpeed(
++  type: QuestionType,
++  items: readonly BankItem[],
++  policy: BurstPolicy,
++): TypeSpeedVerdict {
++  const slowFields = new Set<string>();
++  let maxOptions: number | null = null;
++  let itemsWithoutOptions = 0;
++
++  for (const item of items) {
++    for (const field of SLOW_RESPONSE_CONTENT_FIELDS) {
++      if (field in item.content) slowFields.add(field);
++    }
++    const count = optionCount(item);
++    if (count === null) itemsWithoutOptions += 1;
++    else if (maxOptions === null || count > maxOptions) maxOptions = count;
++  }
++
++  const processMetrics = type.metrics.filter((m) => PROCESS_METRIC_IDS.includes(m));
++  const base = {
++    typeCode: type.typeCode,
++    maxOptions,
++    slowFields: [...slowFields].sort(),
++    processMetrics,
++  };
++
++  if (items.length === 0) {
++    return { ...base, fast: false, reason: 'no items in bank' };
++  }
++  if (itemsWithoutOptions > 0) {
++    return {
++      ...base,
++      fast: false,
++      reason: `${itemsWithoutOptions}/${items.length} items are not a bounded choice (no options array)`,
++    };
++  }
++  if (maxOptions !== null && maxOptions > policy.maxOptions) {
++    return {
++      ...base,
++      fast: false,
++      reason: `up to ${maxOptions} options, above the ${policy.maxOptions}-option bound`,
++    };
++  }
++  if (slowFields.size > 0) {
++    return {
++      ...base,
++      fast: false,
++      reason: `response is bounded or paced by ${base.slowFields.join(', ')}`,
++    };
++  }
++  if (processMetrics.length > 0) {
++    return {
++      ...base,
++      fast: false,
++      reason: `declares process measurement(s) ${processMetrics.join(', ')}, so the response is a sequence of moves`,
++    };
++  }
++
++  return {
++    ...base,
++    fast: true,
++    reason: `every item is one choice of at most ${maxOptions ?? 0}, unpaced, no process measurement`,
++  };
++}
++
++/** Classify every wired type in `banks`. Pure; the map is keyed by type code. */
++export function classifyBankSpeed(
++  banks: Banks,
++  policy: BurstPolicy,
++): Map<TypeCode, TypeSpeedVerdict> {
++  const byType = new Map<TypeCode, BankItem[]>();
++  for (const item of banks.items) {
++    const list = byType.get(item.typeCode);
++    if (list) list.push(item);
++    else byType.set(item.typeCode, [item]);
++  }
++
++  const verdicts = new Map<TypeCode, TypeSpeedVerdict>();
++  for (const type of banks.types) {
++    verdicts.set(type.typeCode, classifyTypeSpeed(type, byType.get(type.typeCode) ?? [], policy));
++  }
++  return verdicts;
++}
++
++/** The set of type codes that qualify for bursting, for a given bank and policy. */
++export function fastTypeCodes(banks: Banks, policy: BurstPolicy): Set<TypeCode> {
++  const fast = new Set<TypeCode>();
++  for (const [typeCode, verdict] of classifyBankSpeed(banks, policy)) {
++    if (verdict.fast) fast.add(typeCode);
++  }
++  return fast;
++}
++
++/** Unseen items of `typeCode` remaining in its own area. */
++function unseenCount(state: SessionState, typeCode: TypeCode, banks: Banks): number {
++  const type = banks.types.find((t) => t.typeCode === typeCode);
++  if (!type) return 0;
++  const seen = state.areas[type.domain].itemsSeen;
++  let count = 0;
++  for (const item of banks.items) {
++    if (item.typeCode === typeCode && !seen.has(item.itemId)) count += 1;
++  }
++  return count;
++}
++
++/**
++ * How many consecutive items to serve from `typeCode`, starting now.
++ *
++ * `1` means no burst — the ordinary one-item-then-rotate behaviour, and what a non-fast type or a
++ * disabled policy always gets. Bounded by four things, each a real constraint rather than a taste:
++ *
++ *  - the configured `maxLength`, so burst length is policy, not code;
++ *  - the type's remaining unseen items, since the engine never repeats an item;
++ *  - the items left before `hardItemCap`, so a burst can never overshoot the cap;
++ *  - whether the type is fast at all.
++ *
++ * Note what is NOT bounded here: area balance. `nextType` always serves the area with the fewest
++ * items seen, so a burst that puts one area ahead is immediately followed by bursts in the other
++ * three until they catch up. Balance is therefore preserved at the granularity of a ROUND of bursts
++ * rather than of a single item, and `coverageIsEven` — which the stop rule checks — is what holds
++ * the session to it.
++ */
++export function burstLengthFor(state: SessionState, typeCode: TypeCode, banks: Banks): number {
++  const policy = state.config.burst;
++  if (policy.maxLength <= 1) return 1;
++
++  const verdict = classifyBankSpeed(banks, policy).get(typeCode);
++  if (!verdict?.fast) return 1;
++
++  const capHeadroom = state.config.hardItemCap - state.itemsServed;
++  if (capHeadroom <= 1) return 1;
++
++  return Math.max(
++    1,
++    Math.min(
++      typeBurstLength(verdict, policy),
++      unseenCount(state, typeCode, banks),
++      capHeadroom,
++    ),
++  );
++}
++
++/**
++ * Shorten the burst for a type whose choice is wider.
++ *
++ * The reason to burst is that instruction reading, not answering, is the fixed cost. That argument
++ * weakens as the option list grows: scanning six candidates is work of its own, so six of those
++ * items in a row is a longer stretch of real effort than six two-option items. Length therefore
++ * steps down one item per option above four, floored at `minLength`.
++ *
++ * PROVISIONAL. Option count is a structural stand-in for time-on-item, chosen because it is the only
++ * per-item property in the bank that bears on answering effort. The measurement that would replace
++ * it is the observed `M-RT` / `M-RTFIRST` split per type — total response time against time to first
++ * interaction — which separates instruction reading from answering directly. No such distribution
++ * exists for any type in this repository yet.
++ */
++function typeBurstLength(verdict: TypeSpeedVerdict, policy: BurstPolicy): number {
++  const options = verdict.maxOptions ?? policy.maxOptions;
++  const stepDown = Math.max(0, options - 4);
++  return Math.max(policy.minLength, policy.maxLength - stepDown);
++}
++
++/** A burst in progress: which type, how long it is, and which item of it is being served. */
++export interface BurstPlan {
++  readonly typeCode: TypeCode;
++  /** Total items this burst will take from the type. */
++  readonly length: number;
++  /** 1-based position of the item being served now. */
++  readonly index: number;
++}
++
++/**
++ * Decide what to serve next: continue the active burst, or ask `nextType` for a fresh selection.
++ *
++ * This is the whole loop-level contract, so every caller — a browser runner and a simulation
++ * harness alike — advances identically and a trace replays the way it was collected. Returns `null`
++ * when the session is over or nothing is left to serve, exactly as `nextType` does.
++ *
++ * A burst is abandoned the moment the stop rule fires or the type runs out of unseen items: an item
++ * served past `isDone` is an item the child answered for nothing.
++ */
++export function planNextSelection(
++  state: SessionState,
++  banks: Banks,
++  active: BurstPlan | null,
++): BurstPlan | null {
++  if (isDone(state)) return null;
++
++  if (active !== null && active.index < active.length) {
++    const type = banks.types.find((t) => t.typeCode === active.typeCode);
++    if (type && typeHasUnseenItem(type, state, banks)) {
++      return { typeCode: active.typeCode, length: active.length, index: active.index + 1 };
++    }
++  }
++
++  const typeCode = nextType(state, banks);
++  if (typeCode === null) return null;
++  return { typeCode, length: burstLengthFor(state, typeCode, banks), index: 1 };
++}
+diff --git a/packages/exam-engine/src/config.ts b/packages/exam-engine/src/config.ts
+index d12ae8a..0849aee 100644
+--- a/packages/exam-engine/src/config.ts
++++ b/packages/exam-engine/src/config.ts
+@@ -1,4 +1,4 @@
+-import type { AgeBand, CoreMetricSpec, EngineConfig } from './types';
++import type { AgeBand, BurstPolicy, CoreMetricSpec, EngineConfig } from './types';
+ 
+ /**
+  * Start difficulty seeded from the requested grade band (BUILD_PLAN §0). Midpoints of the
+@@ -162,6 +162,21 @@ export const CORE_METRICS: CoreMetricSpec[] = [
+   { id: 'M-IDEAFLU', scope: 'open_ended', minSamples: 3, enforced: false, kind: 'observed' },
+ ];
+ 
++/**
++ * Default burst policy: OFF.
++ *
++ * Bursting changes how many instruction-readings a battery costs, which is a session-design
++ * decision rather than an engine default, so the engine ships with it disabled and a caller opts in.
++ * `maxOptions: 6` is the widest choice any wired bank offers (`FLU-MATRIX-01` runs 4, 5 and 6), so
++ * at this setting the option count never by itself disqualifies a wired type — the bound exists so
++ * that a future type offering a long candidate list is excluded without anyone editing a list.
++ */
++export const DEFAULT_BURST_POLICY: BurstPolicy = {
++  maxLength: 1,
++  minLength: 2,
++  maxOptions: 6,
++};
++
+ /**
+  * Default, tunable engine configuration.
+  *
+@@ -197,6 +212,7 @@ export const DEFAULT_CONFIG: EngineConfig = {
+   stabilitySd: 1.2,
+   stabilityDrift: 0.8,
+   hardItemCap: 60,
++  burst: DEFAULT_BURST_POLICY,
+   consistencyPairTolerance: 1.0,
+   rotationMinDistinctDisparities: 3,
+   coreMetrics: CORE_METRICS,
+diff --git a/packages/exam-engine/src/index.ts b/packages/exam-engine/src/index.ts
+index 51328fe..64470d8 100644
+--- a/packages/exam-engine/src/index.ts
++++ b/packages/exam-engine/src/index.ts
+@@ -12,6 +12,17 @@ export { update, difficultyDelta, directionReversals, stepSize, toObservation }
+ export { isDone, areaMetricsCovered, areaEstimateStable, coverageIsEven } from './done';
+ export { replaySession } from './replay';
+ 
++// Back-to-back same-type serving. `planNextSelection` is the loop-level contract every caller
++// advances through, so a burst behaves identically in a browser and in the simulation harness.
++export {
++  burstLengthFor,
++  classifyBankSpeed,
++  classifyTypeSpeed,
++  fastTypeCodes,
++  planNextSelection,
++} from './burst';
++export type { BurstPlan, TypeSpeedVerdict } from './burst';
++
+ // Novel-block administration (the learning-rate regime). Administration only: the projection that
+ // picks the target difficulty, the fit and the readout all live in `@gt-selection/exam-scoring`.
+ export {
+@@ -27,6 +38,7 @@ export type { BlockReadiness, BlockUnavailableReason } from './learning-block';
+ // Configuration and registries
+ export {
+   DEFAULT_CONFIG,
++  DEFAULT_BURST_POLICY,
+   CORE_METRICS,
+   GRADE_BAND_SEED,
+   AGE_BAND_BONUS,
+@@ -115,6 +127,7 @@ export type {
+   MetricScope,
+   MetricKind,
+   MetricAdequacyScope,
++  BurstPolicy,
+   CoreMetricSpec,
+   EngineConfig,
+   AreaState,
+diff --git a/packages/exam-engine/src/testing/real-bank.ts b/packages/exam-engine/src/testing/real-bank.ts
+index b4636c8..46d5cb6 100644
+--- a/packages/exam-engine/src/testing/real-bank.ts
++++ b/packages/exam-engine/src/testing/real-bank.ts
+@@ -14,9 +14,10 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
+ import { dirname, join } from 'node:path';
+ import { fileURLToPath } from 'node:url';
+ 
++import { planNextSelection, type BurstPlan } from '../burst';
+ import { isDone } from '../done';
+ import { hashUnit } from '../rng';
+-import { nextItem, nextType } from '../selection';
++import { nextItem } from '../selection';
+ import { startState } from '../state';
+ import { clamp } from '../stats';
+ import { update } from '../update';
+@@ -243,9 +244,22 @@ export function respondFromRealBank(
+   served: ServedItem,
+   real: RealBanks,
+   trueTheta: TrueTheta,
++): ScoredItem {
++  return scoredFrom(served, real, trueTheta, served.difficulty <= trueTheta[served.domain]);
++}
++
++/**
++ * Build the `ScoredItem` for an item whose correctness has already been decided, so the threshold
++ * and probabilistic responders differ ONLY in how they draw correctness and share every metric,
++ * response-time and stimulus detail.
++ */
++function scoredFrom(
++  served: ServedItem,
++  real: RealBanks,
++  trueTheta: TrueTheta,
++  correct: boolean,
+ ): ScoredItem {
+   const theta = trueTheta[served.domain];
+-  const correct = served.difficulty <= theta;
+   const score = correct ? 1 : 0;
+   const errType = correct ? 1 : clamp(1 - (served.difficulty - theta) / 5, 0, 1);
+ 
+@@ -283,6 +297,81 @@ export function respondFromRealBank(
+   };
+ }
+ 
++/**
++ * Chance-success floor for one item, read off how many options it offers: a five-option item floors
++ * at 0.2. Returns `null` when the item declares no option list, so a caller can decide what an
++ * unbounded response is worth rather than have a floor invented for it.
++ */
++export function itemGuessingFloor(item: ServedItem): number | null {
++  const options = (item.content as { options?: unknown }).options;
++  if (!Array.isArray(options) || options.length === 0) return null;
++  return 1 / options.length;
++}
++
++/** Knobs for the probabilistic responder. */
++export interface ProbabilisticResponderOptions {
++  /** Logistic discrimination per scale point. 1.0 matches the engine and scorer defaults. */
++  readonly slope: number;
++  /**
++   * Chance-success floor the SIMULATED CHILD actually has.
++   *
++   * `'per-item'` derives it from each item's own option count ({@link itemGuessingFloor}), which is
++   * the faithful choice for a bank of mixed option counts. A number pins one floor for every item;
++   * `0` is a constructed-response child who never guesses right, which no wired bank contains.
++   */
++  readonly guessing: number | 'per-item';
++  /** Floor used when an item declares no options and `guessing` is `'per-item'`. */
++  readonly fallbackGuessing: number;
++  /** Per-child draw seed, so one cohort member's luck is reproducible and independent of another's. */
++  readonly seed: number;
++}
++
++export const DEFAULT_PROBABILISTIC_RESPONDER: ProbabilisticResponderOptions = {
++  slope: 1.0,
++  guessing: 'per-item',
++  fallbackGuessing: 0,
++  seed: 0x5eed,
++};
++
++/**
++ * Simulated child who answers PROBABILISTICALLY, with a chance-success floor.
++ *
++ * `respondFromRealBank` is a threshold responder: correct on everything at or below their ability,
++ * wrong on everything above, never lucky. That is a noise-free Guttman pattern, and a staircase
++ * converges on it far faster and far more tidily than on a child. It is the right responder for
++ * asserting routing SHAPE (does the estimate bracket from both sides at all) and the wrong one for
++ * measuring how many items convergence costs.
++ *
++ * This responder draws from
++ *
++ *     P(correct | b) = c + (1 - c) * logistic(slope * (theta - b))
++ *
++ * with `c` the item's own chance floor. Every wired bank is multiple choice, so `c > 0` always: a
++ * child well below an item still passes it sometimes, and the estimate is pushed up by luck as well
++ * as by ability. That is the single most consequential difference from the threshold responder, and
++ * it is why every length figure measured with it is larger.
++ *
++ * Born-synthetic and deterministic given `seed`; `validated=false`. Nothing here is a calibrated
++ * response model, and no bank item has a calibrated difficulty for it to be calibrated against.
++ */
++export function respondProbabilistically(
++  served: ServedItem,
++  real: RealBanks,
++  trueTheta: TrueTheta,
++  options: ProbabilisticResponderOptions = DEFAULT_PROBABILISTIC_RESPONDER,
++): ScoredItem {
++  const theta = trueTheta[served.domain];
++  const floor =
++    options.guessing === 'per-item'
++      ? (itemGuessingFloor(served) ?? options.fallbackGuessing)
++      : options.guessing;
++  const skill = 1 / (1 + Math.exp(-options.slope * (theta - served.difficulty)));
++  const pCorrect = clamp(floor + (1 - floor) * skill, 0, 1);
++  const correct = hashUnit(options.seed, `resp:${served.itemId}`) < pCorrect;
++
++  return scoredFrom(served, real, trueTheta, correct);
++}
++
+ export interface RealSessionResult {
+   state: SessionState;
+   real: RealBanks;
+@@ -290,30 +379,54 @@ export interface RealSessionResult {
+   done: boolean;
+   /** True when the session ended because it ran out of servable items rather than by rule/cap. */
+   exhausted: boolean;
++  /**
++   * The burst each item belonged to, index-aligned with `trace`. With bursting disabled every entry
++   * is a length-1 burst, which is the same thing as no burst.
++   */
++  bursts: BurstPlan[];
+ }
+ 
+-/** Run a full adaptive session against the real registry and banks. */
++/** How a simulated child answers one item. */
++export type Responder = (
++  served: ServedItem,
++  real: RealBanks,
++  trueTheta: TrueTheta,
++) => ScoredItem;
++
++/**
++ * Run a full adaptive session against the real registry and banks.
++ *
++ * The loop advances through `planNextSelection`, which is the same contract a browser runner uses,
++ * so a burst here behaves exactly as it does in a live session. `responder` defaults to the
++ * threshold child for backwards compatibility; pass {@link respondProbabilistically} to measure
++ * anything about length or precision.
++ */
+ export function runRealBankSession(
+   gradeBand: AgeBand,
+   trueTheta: TrueTheta,
+   overrides?: Partial<EngineConfig>,
+   real: RealBanks = loadRealBanks(),
++  responder: Responder = respondFromRealBank,
+ ): RealSessionResult {
+   let state = startState(gradeBand, overrides);
+   const trace: ScoredItem[] = [];
++  const bursts: BurstPlan[] = [];
+   let exhausted = false;
++  let active: BurstPlan | null = null;
+ 
+   while (!isDone(state)) {
+-    const typeCode = nextType(state, real.banks);
+-    if (typeCode === null) {
++    const plan = planNextSelection(state, real.banks, active);
++    if (plan === null) {
+       exhausted = true;
+       break;
+     }
+-    const served = nextItem(state, typeCode, real.banks);
+-    const scored = respondFromRealBank(served, real, trueTheta);
++    active = plan;
++    const served = nextItem(state, plan.typeCode, real.banks);
++    const scored = responder(served, real, trueTheta);
+     state = update(state, scored);
+     trace.push(scored);
++    bursts.push(plan);
+   }
+ 
+-  return { state, real, trace, done: isDone(state), exhausted };
++  return { state, real, trace, done: isDone(state), exhausted, bursts };
+ }
+diff --git a/packages/exam-engine/src/types.ts b/packages/exam-engine/src/types.ts
+index e9aa326..b1052eb 100644
+--- a/packages/exam-engine/src/types.ts
++++ b/packages/exam-engine/src/types.ts
+@@ -162,6 +162,32 @@ export type MetricKind = 'observed' | 'derived';
+  */
+ export type MetricAdequacyScope = 'per_area' | 'session';
+ 
++/**
++ * Policy for serving several items of one type back-to-back (`burst.ts`).
++ *
++ * Every value here is a knob rather than a constant: how long a burst may run, and how wide a
++ * choice still counts as answerable in one tap. `maxLength: 1` disables bursting entirely and
++ * restores exactly the one-item-then-rotate behaviour.
++ */
++export interface BurstPolicy {
++  /**
++   * Longest run of consecutive items from a single type. `1` disables bursting. The effective
++   * length is also bounded by the type's unseen items and by the room left before `hardItemCap`.
++   */
++  readonly maxLength: number;
++  /**
++   * Shortest burst a qualifying type may be given, once the per-type step-down for a wider option
++   * list has been applied. Also the floor that keeps bursting worthwhile at all: a "burst" of one is
++   * just the ordinary rotation.
++   */
++  readonly minLength: number;
++  /**
++   * Most options an item may offer and still count as a one-tap choice. A wider choice is a search
++   * through candidates, which is work in its own right rather than instruction-reading overhead.
++   */
++  readonly maxOptions: number;
++}
++
+ /** A core-metric registry entry (§4). */
+ export interface CoreMetricSpec {
+   id: MetricId;
+@@ -270,6 +296,8 @@ export interface EngineConfig {
+   stabilityDrift: number;
+   /** Hard safety cap on total items served. */
+   hardItemCap: number;
++  /** Back-to-back same-type serving policy (see {@link BurstPolicy}). */
++  burst: BurstPolicy;
+   /**
+    * Max difficulty gap (in scale points) for two items in an area to count as a matched parallel
+    * pair for `M-CONSIST`. Bank difficulty is the design-estimated b, so "same b" is approximated
+-- 
+2.50.1 (Apple Git-155)
+

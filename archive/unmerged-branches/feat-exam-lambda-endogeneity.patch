@@ -1,0 +1,2207 @@
+From 5c2960adbef76958425bca83f43568771383f18f Mon Sep 17 00:00:00 2001
+From: Aadi Takle <aadiatakle@gmail.com>
+Date: Sat, 1 Aug 2026 16:29:07 -0500
+Subject: [PATCH] fix(exam-scoring): the residual null lambda is endogeneity,
+ not the fit
+
+E-200 corrected the guessing floor and left a null-cohort lambda of about
++0.009 that three banks in three domains and a grid with no items in it all
+returned identically. That localised it to the estimator plus the targeting
+loop but could not say which part, because freezing the difficulty removes two
+things at once: the climb, and the climb's dependence on the child's answers.
+
+Replaying each child's OWN adaptive difficulty path against an independent
+answer stream separates them. Identical path, identical ability, identical
+handover, only the dependence cut: +0.0085 becomes -0.0039 on the bank-free
+grid at an unchanged 0.29-point climb. A rising ladder manufactures nothing,
+and a steeper exogenous one manufactures less. The cause is that the served
+difficulty is a function of the child's own earlier answers.
+
+The first hypothesis is refuted in the wrong direction. Conditioning the fit
+on served difficulty with a free coefficient - the shape of the pre-registered
+Gate B statistic - roughly doubles the artifact, because difficulty was never
+omitted from the fit, it is endogenous within it. Both standard finite-sample
+bias corrections also move it up, so the residual is not that kind of bias,
+and a conditional likelihood has nothing to add: a selection rule depending
+only on the observed past is ignorable.
+
+Add `scheduledTargetTheta`, which is handed a trial index and no responses, so
+it cannot use them. Gate A on all four banks and the grid, 8 seeds x 400
+children: null lambda 0.0085 -> -0.0033, 0.0097 -> -0.0019, 0.0092 -> -0.0021,
+0.0087 -> -0.0027, 0.0166 -> 0.0063, a near-constant -0.011 everywhere.
+Per-cell A1 reaches 8/8 on two banks.
+
+NOT ADOPTED, because the price is larger than the bias. Mean posterior SE
+widens about a third, A4 gets worse rather than better, and the share of blocks
+where a band can be named at all falls 12 to 16 points on every pool whose
+floor was already right. `nextTargetTheta` stays the default, nothing is wired
+into the live block, no user-facing surface changes, and `--fix-probe` is
+byte-identical to dev so the three published Gate A reports still reproduce.
+
+D-206 is Proposed and states the trade for the owner. E-205 records the
+attribution, every rejected candidate, the before/after, and the rate sweep
+that shows the schedule's rate buys nothing on A1 and costs on everything else.
+E-200's mechanism sentence is corrected in place; its figures stand.
+
+Co-authored-by: Cursor <cursoragent@cursor.com>
+---
+ docs/governance/DECISION_LOG.md               |  17 +
+ docs/product/FEATURE_TO_REQUIREMENT_MAP.md    |   2 +-
+ docs/product/STAGE2_LAMBDA_ENDOGENEITY.md     | 341 +++++++++
+ docs/research/ASSUMPTIONS_AND_EVIDENCE.md     |   3 +-
+ packages/exam-scoring/src/index.ts            |   3 +-
+ .../exam-scoring/src/learning-curve.test.ts   | 233 ++++--
+ packages/exam-scoring/src/learning-curve.ts   |  83 ++-
+ .../lambda-endogeneity-gate-a.mjs             | 314 ++++++++
+ scripts/exam-learning-block-harness.ts        | 699 ++++++++++++++++--
+ 9 files changed, 1597 insertions(+), 98 deletions(-)
+ create mode 100644 docs/product/STAGE2_LAMBDA_ENDOGENEITY.md
+ create mode 100644 research/exam-question-types/lambda-endogeneity-gate-a.mjs
+
+diff --git a/docs/governance/DECISION_LOG.md b/docs/governance/DECISION_LOG.md
+index b3bfc94..198470e 100644
+--- a/docs/governance/DECISION_LOG.md
++++ b/docs/governance/DECISION_LOG.md
+@@ -634,6 +634,23 @@ Each decision must include the requirements served, alternatives considered, evi
+ - **Owner:** **Team lead**, deciding 2026-07-31 on the measurement the exam workstream produced in E-204 the same day. This entry records a decision already taken; it is not a proposal awaiting sign-off.
+ - **Relationship to prior decisions:** Settles the product question D-204 explicitly declined to settle — its alternative (c) says "which of these is right depends on an unresolved product question — is Stage 1 a gate or a locator — which this decision deliberately does not settle" — and changes nothing D-204 decided: the chance-success floor, the live per-area belief, `mepv`, the uncertainty-ranked area choice and the type-novelty bonus all stand exactly as ratified. Makes explicit an assumption D-030 and D-200 were already resting on, that the standing level handed to the learning block is accurate for the child rather than at a threshold, without changing what either decided. Leaves D-024 open. Does not touch R11's tunable cut or D-016's screener scope. Supersedes nothing.
+ 
++### D-206 — The residual learning rate is endogeneity of the adaptive design, not a defect of the fit; it is removable, and removing it costs more reportability than it buys
++
++- **Date:** 2026-08-01
++- **Status:** **Proposed.** This changes statistical scoring logic, which `AGENTS.md` puts behind the full-mode bar, and the owner authorised the work. It is written as Proposed rather than Approved because part 3 below is a trade between two things the project cares about and neither answer is obviously right; the measurement is finished, the choice is not. Nothing is wired: `nextTargetTheta` remains the default, the live block is unchanged, and no user-facing surface reports anything differently.
++- **Decision:** Four parts. The first two are findings that close a question. The third is the trade the owner has to settle. The fourth is a correction to a record.
++  1. **The residual A1 failure D-200 left behind is endogeneity of the adaptive design.** The served difficulty is a function of the child's own earlier answers, because `nextTargetTheta` aims at `theta0 + lambda * nextIndex`, so the difficulty path rises at whatever rate the running fit has estimated and a flat accuracy series over such a path is the exact signature of an ability rising at that rate. Established by holding the path fixed and cutting only the dependence: the same paths replayed against an independent answer stream fit −0.0039 where the closed loop fits +0.0085, at an identical difficulty climb. **A rising ladder is not the cause, and a steeper exogenous ladder manufactures less.**
++  2. **No change to the FIT removes it, and the first hypothesis makes it worse.** Conditioning on served difficulty with a free coefficient — the shape of this project's own pre-registered Gate B statistic — roughly doubles it, because difficulty was never omitted from the fit. Both standard finite-sample bias corrections also move it up. The likelihood needs no repair: a selection rule depending only on the observed past is ignorable, so there is no missing term for a conditional or profile likelihood to restore. This is recorded as a closed question so it is not reopened.
++  3. **`scheduledTargetTheta` is offered as the remedy and is NOT adopted here.** It administers from a schedule fixed before the block starts, which makes the served difficulty exogenous by construction — the function is given no responses, so it cannot use them. It takes A1's null mean from +0.009 to about −0.002 on every correctly specified pool and flips the harness's per-cell A1 verdict to 8/8 on two of the four banks. **It is offered with its price attached and the price is larger than the bias: mean posterior SE widens by about a third, A4 gets worse rather than better, and the share of blocks where a band can be named at all falls by 12 to 16 points on every pool whose floor was already right.** The owner's decision is whether an unbiased-but-unreportable rate is better than a reportable one carrying a declared +0.009 contamination floor. This entry does not presume the answer.
++  4. **E-200's mechanism sentence is corrected.** It says the fit "reads its own rising difficulty walk as a genuine climb". The walk is not what does it, and the same wording had propagated into `learning-curve.ts` and into a test comment. Both are corrected. The measurement E-200 records is unaffected; only its explanation was imprecise.
++- **Requirements served:** R9/R10 (claim boundaries — the readout is shown about a child, and a manufactured climb is a false claim about them however small), R7 (auditability — the cause, every refuted candidate and every cost is a command rather than a paragraph), R5/R6 (measure growth without a gifted-student ceiling — which is what part 3's cost threatens, and why it is a decision rather than a fix).
++- **Alternatives considered:** (a) *Condition the fit on served difficulty with a free coefficient.* The first hypothesis, tested rather than assumed, and **refuted in the wrong direction**: +0.0085 → +0.0167 on the grid, +0.0097 → +0.0172 on `FLU-OPCHAIN-01`, with the posterior SE widening as well. Served difficulty is not omitted from the fit, it is endogenous within it, and under adaptive targeting it is nearly collinear with the trial index, so the extra freedom absorbs the signal. (b) *The Jeffreys/Firth penalty.* The canonical first-order bias correction and the generalisation of Warm's estimator, which exists precisely because adaptive testing biases ML ability estimates — so it was the right thing to try. Measured and rejected: +0.0133 on the loop, and +0.0314 under an exogenous schedule, because the penalty rewards parameter values carrying more Fisher information and on a rising path a larger `lambda` is what keeps the response probability off the chance floor, so it pushes the climb up. (c) *A delete-one jackknife bias correction.* The non-parametric counterpart to (b), carried because agreement between two corrections resting on different assumptions is informative. They agree: +0.0132. Together (b) and (c) are the measurement that says the residual is not the ordinary finite-sample bias of a likelihood estimator. (d) *A conditional or profile likelihood accounting for the selection rule.* Not implemented, and the reason is a statement rather than a measurement: a sequential rule depending only on the observed past is ignorable, so the shipped likelihood already factorises correctly and there is no term for a conditional likelihood to add. The bias is not in the likelihood; it is that the estimator is a nonlinear function of data whose information matrix and score vector are both functions of the same answers. (e) *Correct the floor inside the likelihood rather than as a lower asymptote.* Also not implemented, also with a reason: `P(correct) = c + (1 − c)σ` **is** the marginal of the latent guess/know mixture, so an EM formulation maximises the identical function and cannot differ. (f) *Cross-fit the design — drive the targeting rule from the odd trials and fit the even ones.* Measured, and it works for the reason part 1 gives: the difficulty served on an even trial is then a function of answers independent of the ones being fitted, and it lands within error of the exogenous-replay diagnostic (−0.0039 on the grid, −0.0039 on the bank). Rejected on cost: it spends half the block's information on the design, taking recovery to 0.271 and the posterior SE to 0.090, both worse than (g). It needs no package change — a caller passes a filtered trial list — so it stays available. (g) *A pre-registered exogenous schedule*, which is part 3. (h) *Freeze the served difficulty*, which is (g) at rate zero, already measured and rejected as D-200's alternative (d). Re-measured here and it is **not** the worst arm on recovery — it is the best of the exogenous family (r 0.374, SE 0.070) — but it is the worst on the ceiling: a λ = 0.15 learner works the block at 73% correct, so the fastest children spend it below their level. That is the trade the rate governs. (i) *Lengthen the block.* Already priced in D-200 alternative (c) and unchanged: it costs 30 more items of a child's time and does not reach A1 either. (j) *Tune the schedule's rate until A1 passes.* **Refused, and the refusal is measurable rather than asserted:** the rate sweep shows every rate from 0 to 0.30 returning the same null mean within error while recovery falls monotonically from 0.374 to 0.084. There is no rate that passes A1 and no rate that fails it, so there was nothing to tune; the rate is set to the population λ mean the harness already defaults to. (k) *Model a floorless responder so the null cohort looks clean.* Refused. It is a false claim about a multiple-choice item, and it is the same refusal E-200 recorded.
++- **Evidence:** E-205 (the attribution, every refuted candidate, the Gate A before/after on all four banks and the bank-free grid, and the rate sweep). E-200 (the floor correction this sits on top of, whose mechanism sentence part 4 corrects). E-095 as amended, for the recovery ladder A4 is judged against.
++- **Rationale:** The correction D-200 shipped was necessary and its own entry said it was not sufficient. What was not known was whether the remainder was a fixable misspecification or a property of the design, and those have opposite consequences: the first is a bug in a module this project owns, the second is a limit on what an adaptively-administered block can be asked to report. It is the second. That is worth recording even though the remedy is not worth adopting on these figures, because it closes off the direction three separate reports were pointing at — build more banks, or specify the fit better — and neither can move A1. **The reason part 3 is Proposed and not Approved is that the cost lands on the wrong side of the ledger.** A1 exists to stop a child who learned nothing being told they learned quickly; the reportability column exists to stop a number too imprecise to mean anything being reported at all. This remedy trades the first against the second, and D-200 already found the second nearly exhausted. Adopting it would mean choosing an estimator that is honest about a rate it can no longer report, which may well be right — but it is a decision about what the product claims, not an implementation choice, and `AGENTS.md` makes that the owner's.
++- **Consequences:** **The headline is a negative result and must not be read as a fix. A1 is passable and passing it makes the block less reportable than it already was.** `packages/exam-scoring/src/learning-curve.ts` gains `scheduledTargetTheta` and corrected documentation on `nextTargetTheta` and `DEFAULT_GUESSING`; nothing existing changes behaviour, and `pnpm exam:block-harness -- --fix-probe` is byte-for-byte identical to `dev`, so the three published Stage 2 Gate A reports still reproduce. The harness gains `--targeting scheduled`, `--endogeneity-probe`, `--bank ideal-grid`, and a reportability row on every Gate A report — that row is new and load-bearing: A1 and A4 between them could not see this remedy's cost, and without it the remedy would have looked free. `research/exam-question-types/lambda-endogeneity-gate-a.mjs` is the before/after runner. **Two things the owner should know beyond the trade.** First, `VER-MORPHO-01` is the only bank still failing A1 after the remedy, and it is because its four-option items meet a five-option estimator: correct that too and it joins the others, which confirms the floor defect and the design defect are separate and additive, and makes D-200's deferred follow-up — a per-item floor from the served option count — worth more than it looked. Second, **A3's verdict flips against the remedy for a reason that is not a regression**: the schedule stops asking for off-scale difficulties, so pins at a pool maximum that the adaptive rule charged to the 20-point scale ceiling are now charged to the bank, and A3 only counts the latter. On `FLU-OPCHAIN-01` at seed 11 the schedule produces **half** as much saturation (10 pins against 20) and fails A3 where the loop passed it. A3's attribution rule, not the bank and not the remedy, is what moved. **What this forecloses if part 3 is adopted:** the schedule aims at a rate rather than at a child, so it gives up the adaptive rule's one real virtue, which is that it recovers from a bad standing handover. D-205 makes the handover's accuracy a premise; if that premise weakens, this remedy has no mechanism to notice. **What is explicitly not decided:** whether the block should be lengthened, whether Stage 2's A1 stop rule should fire (the question `STAGE2_SPA_XFORM_GATE_A.md` §10 puts to the owner, which this entry informs but does not answer), and whether `learningRateReadout` should ever name a band at 30 trials. `learningRateCohortRank` remains the supported question, unchanged.
++- **Owner:** Proposed by the exam scoring workstream (session 2026-08-01); **awaiting team-lead sign-off.** Part 3 is a product trade and is not an implementer's to take.
++- **Relationship to prior decisions:** Completes D-200 rather than superseding it — the floor correction, the required `contaminationFloor` and the abandoned `theta0` comparability all stand exactly as ratified, and D-200's own statement that the correction was "necessary but not sufficient" is what this entry closes. Corrects one explanatory sentence in D-200's rationale and in E-200's claim, without changing any figure either records. Rests on D-205's premise that the standing level handed to the learning block is accurate for the child, and part 3 depends on it more heavily than the shipped loop does, which is stated in Consequences rather than assumed. Leaves D-030 untouched: the block is still one area, 30 items, reported as an ordinal band or not at all, and this entry strengthens D-030's expectation that `indeterminate` is the normal answer. Supersedes nothing.
++
+ ## Entry template
+ 
+ ### D-XXX — Decision title
+diff --git a/docs/product/FEATURE_TO_REQUIREMENT_MAP.md b/docs/product/FEATURE_TO_REQUIREMENT_MAP.md
+index 49a3d8d..8ae1e74 100644
+--- a/docs/product/FEATURE_TO_REQUIREMENT_MAP.md
++++ b/docs/product/FEATURE_TO_REQUIREMENT_MAP.md
+@@ -209,7 +209,7 @@ Primary sources: `research/backend-admissions/RLS_AND_AUTH_BLUEPRINT.md`,
+ | ID | Feature | Requirements | Scope | Current status | Remaining work / dependency |
+ |---|---|---|---|---|---|
+ | AX-01 | Assessment/session/telemetry contracts (`packages/contracts`) + demo `postMessage` embedding protocol | R11, R5, R7, R9, R10 | MVP-bounded | In progress | Zod schemas for items, sessions, responses, telemetry events, and per-domain metrics; versioned and `synthetic_only`. |
+-| AX-02 | IRT/CAT adaptive engine (`packages/exam-engine`) + deterministic scoring (`packages/exam-scoring`) | R11, R5, H6 | MVP-bounded | In progress | Item information, theta estimation, max-information selection, engagement gate, SE/max-item stop, exposure control; unit-tested; params synthetic/`validated=false`. D-016 named this one package `packages/cat-engine`; it is now these two. Routing also serves back-to-back bursts within one question type so a child reads an instruction once instead of once per item, caps what a type earns from tracked-inert metric coverage, and requires each area's evidence to span two types (D-201; measured in E-201 and `docs/product/EXAM_BURST_INSTRUCTION_COST.md`). The question order is drawn per session rather than replayed from one constant seed, using randomesque exposure control over the near-optimal types and items plus a recency discount that waits for the area to bracket (D-202); the type tolerance is priced against the capped coverage spread it draws from, so variety cannot outbid the enforced coverage that gates the stop rule (D-203; measured in E-203 and `docs/product/EXAM_SELECTION_INTEGRATION.md`). Phase 1 now maintains a live floor-aware belief per reasoning area, rebuilt from the stored trace so a session still replays exactly, and serves the item expected to narrow it most rather than the one nearest a running point estimate; the area with the widest belief goes next among those tied for fewest items seen; and both the engine and the reported fit correct for chance success on multiple-choice items. Maximum-information-at-the-mean and cut-targeted selection are supported and measured as policy values (D-204; measured in E-204). Stage 1's objective is a locator, not a gate — it estimates ability per reasoning area so Stage 2 can be scaled from it — so `mepv` is the recorded objective and cut-targeted selection is a retained, priced alternative rather than an open question (D-205). |
++| AX-02 | IRT/CAT adaptive engine (`packages/exam-engine`) + deterministic scoring (`packages/exam-scoring`) | R11, R5, H6 | MVP-bounded | In progress | Item information, theta estimation, max-information selection, engagement gate, SE/max-item stop, exposure control; unit-tested; params synthetic/`validated=false`. D-016 named this one package `packages/cat-engine`; it is now these two. Routing also serves back-to-back bursts within one question type so a child reads an instruction once instead of once per item, caps what a type earns from tracked-inert metric coverage, and requires each area's evidence to span two types (D-201; measured in E-201 and `docs/product/EXAM_BURST_INSTRUCTION_COST.md`). The question order is drawn per session rather than replayed from one constant seed, using randomesque exposure control over the near-optimal types and items plus a recency discount that waits for the area to bracket (D-202); the type tolerance is priced against the capped coverage spread it draws from, so variety cannot outbid the enforced coverage that gates the stop rule (D-203; measured in E-203 and `docs/product/EXAM_SELECTION_INTEGRATION.md`). Phase 1 now maintains a live floor-aware belief per reasoning area, rebuilt from the stored trace so a session still replays exactly, and serves the item expected to narrow it most rather than the one nearest a running point estimate; the area with the widest belief goes next among those tied for fewest items seen; and both the engine and the reported fit correct for chance success on multiple-choice items. Maximum-information-at-the-mean and cut-targeted selection are supported and measured as policy values (D-204; measured in E-204). Stage 1's objective is a locator, not a gate — it estimates ability per reasoning area so Stage 2 can be scaled from it — so `mepv` is the recorded objective and cut-targeted selection is a retained, priced alternative rather than an open question (D-205). **Phase 2's learning-rate estimator carries a known residual that is a property of its adaptive administration and not of the fit: the served difficulty is a function of the child's own earlier answers, so the fit reads back a rate its own output chose. No change to the fit removes it — conditioning on served difficulty roughly doubles it — and the exogenous schedule that does remove it (`scheduledTargetTheta`) costs about a third of the posterior precision and 12 to 16 points of reportability, so it is implemented, measured, and NOT wired. `nextTargetTheta` remains the shipped default (D-206, Proposed; measured in E-205 and `docs/product/STAGE2_LAMBDA_ENDOGENEITY.md`).** |
+ | AX-03 | Item bank seeded from the question-type catalog with versioned IRT parameters | R11, R5, H1, H10 | MVP-bounded | In progress | `app.*` type/item tables; synthetic difficulty ladder per domain; catalog re-orientation is RES-013. |
+ | AX-04 | Session/response/telemetry/metric data model + `api.*` RPCs + forced RLS | R11, R7, R9 | MVP-bounded | In progress | start/next/submit/finalize RPCs; append-only telemetry; derived per-domain θ/SE; pgTAP; regenerate db-types. Per-item correctness is the database's authority per D-027. |
+ | AX-05 | Test-taker delivery surface (demo host + adaptive session runner + results) | R11, R5, H4, H9 | MVP-bounded | In progress | Next.js route embedding demos via the AX-01 contract; born-synthetic proctor-issued session tokens; no PII. |
+diff --git a/docs/product/STAGE2_LAMBDA_ENDOGENEITY.md b/docs/product/STAGE2_LAMBDA_ENDOGENEITY.md
+new file mode 100644
+index 0000000..339d0f6
+--- /dev/null
++++ b/docs/product/STAGE2_LAMBDA_ENDOGENEITY.md
+@@ -0,0 +1,341 @@
++# The residual learning rate is endogeneity, and removing it costs more than it buys
++
++**Status:** Measurement report. It closes the question three Stage 2 Gate A reports left open — what the
++residual A1 failure is, once the guessing floor is correct and the bank is ruled out — and prices the
++only family of remedies that works. **The remedy is implemented behind an opt-in and is not adopted.**
++D-206 is **Proposed**; `nextTargetTheta` remains the shipped default, nothing is wired into the live
++learning block, and no user-facing surface reports anything differently.
++
++**Requirements served:** R9, R10 (claim boundaries — the readout is shown about a child, and a
++manufactured climb is a false claim about them however small), R7 (auditability — the cause, every
++refuted candidate and every cost below is a command), R5, R6 (measure growth without a
++gifted-student ceiling, which is what the remedy's cost threatens and why this is a decision rather
++than a fix).
++
++**Evidence used:** E-200 (the guessing-floor defect, the loop attribution, and the residual this
++report explains), E-095 as amended (the recovery ladder A4 is judged against). **New:** E-205.
++**New decision:** D-206, Proposed.
++
++**In scope:** what causes the residual; whether conditioning on served difficulty removes it; what
++does; and what that costs, measured as Gate A before and after on all four banks a Stage 2 track has
++measured plus a bank-free grid. **Out of scope:** any change to a bank, generator or renderer; any
++wiring into the live block; any change to what a user-facing surface reports; Gate B; and the
++question of whether Stage 2's A1 stop rule should fire, which this report informs and does not
++answer.
++
++**Claim boundary, before any number.** Everything here is born-synthetic against banks carrying
++`validated: false` and `syntheticOnly: true`. No output is evidence about a real child. Gate B has
++not run, so nothing here licenses reporting an absolute learning rate for anybody. The attribution
++below rests on a simulated responder whose true ability really is flat — which is exactly the
++condition no real cohort can be known to satisfy.
++
++---
++
++## 1. The answer
++
++**The residual is endogeneity of the adaptive design. Conditioning the fit on served difficulty was
++the first hypothesis and it is refuted: it roughly doubles the artifact. Breaking the loop removes
++it. The price is about a third more posterior width, which is worse for A4 and takes 12 to 16 points
++off how often a band can be named at all — so on every pool whose guessing floor was already correct
++the remedy costs more reportability than the bias it removes.**
++
++Four independent measurements had localised the defect to the interaction between the guessing floor
++and the adaptive targeting loop: three banks in three domains and a grid containing no items all
++returned λ̄ ≈ +0.009 for a cohort that learned nothing, and freezing the served difficulty nearly
++eliminated it. What that could not distinguish is *which part* of the loop. Freezing removes two
++things at once — the difficulty stops rising, **and** it stops depending on the child's answers.
++
++One contrast separates them. Replay each child's own adaptive difficulty path a second time against
++an independent stream of answers. The path's shape, the child's ability and the standing handover are
++all identical; the only thing cut is the dependence between the answers being fitted and the path
++they were served at.
++
++| pool | administration | null λ̄ | ± MC SE | difficulty climb across the block |
++| --- | --- | --- | --- | --- |
++| ideal grid, no bank | shipped adaptive loop | **+0.0085** | 0.0013 | 0.29 |
++| ideal grid, no bank | **same paths, independent answers** | **−0.0039** | 0.0010 | **0.29** |
++| `FLU-OPCHAIN-01` | shipped adaptive loop | **+0.0097** | 0.0011 | 0.35 |
++| `FLU-OPCHAIN-01` | **same paths, independent answers** | **−0.0035** | 0.0012 | **0.35** |
++
++**The rising ladder is innocent.** And the converse holds too: an exogenous schedule climbing 1.63
++scale points across the block — four times as far as the adaptive rule's 0.39 — returns −0.0023. A
++*steeper* climb manufactures *less*.
++
++**The statistical name is endogeneity.** `nextTargetTheta` aims at `theta0 + lambda * nextIndex`, so
++the difficulty path rises at whatever rate the running fit has estimated, and a flat accuracy series
++over a path rising at rate λ̂ is exactly the signature of an ability rising at λ̂. The estimate is
++written into the design and then read back out; early noise is not averaged away, it is served.
++
++**Why that matters more than a label.** Endogeneity and an omitted covariate have opposite remedies,
++and the project's pre-registered Gate B statistic conditions on `difficulty` — which is what makes
++"condition on difficulty" the natural first hypothesis. It is the wrong one here, and measurably so.
++
++---
++
++## 2. What was run, and how to re-run it
++
++```
++pnpm exam:block-harness -- --endogeneity-probe --bank FLU-OPCHAIN-01 --guessing 0.2   # §1, §3
++pnpm exam:block-harness -- --gate-a --bank ideal-grid --guessing 0.2                  # the bound
++pnpm exam:block-harness -- --gate-a --bank FLU-OPCHAIN-01 --guessing 0.2 --targeting scheduled
++node research/exam-question-types/lambda-endogeneity-gate-a.mjs /tmp/gt-stage2-banks   # §4, §5
++```
++
++Three conventions, and one thing deliberately not touched.
++
++- **The floor is correctly specified in every row of §1 and §3.** Responder floor and estimator floor
++  are both 0.20, the five-option rate, in both estimator roles. Nothing in this report is the E-200
++  misspecification; that defect is already corrected and this is what survived it. The one exception
++  is `VER-MORPHO-01`, whose four-option items meet a five-option estimator — §6 uses that on purpose.
++- **`--bank ideal-grid` is new, and it exists for a methodological reason.** All three published Gate
++  A reports quote a bank-free bound computed by a *different* probe from the one that produced their
++  bank rows. §4.1.1's argument for a single driver applies to that comparison too, so the grid now
++  runs through the identical `gateA()` path as a bank and appears as one more pool.
++- **Eight seeds, 400 children per cell, so 3,200 simulated children per number.** Everything else is
++  the harness default: λ ~ N(0.06, 0.03²), θ0 ~ N(10.5, 3²), handover-noise SD 1.5, slope 1.0, target
++  offset +1.
++- **`--fix-probe` is byte-for-byte identical to `dev`, verified by diff.** Its table is cited by three
++  published Gate A reports and by E-200; changing it would silently break their reproduction path.
++
++**The three Stage 2 banks are not on this branch and were not copied onto it.** Each is owned by its
++own track. They were extracted read-only with `git show <branch>:<path>`; the exact commands are in
++the header of the runner.
++
++**Two things are reported for A1, not one, and the difference matters.**
++
++- **Per-cell A1** is the harness's own verdict: `|λ̄| ≤ 2 ×` the Monte-Carlo SE *within* one 400-child
++  cell. It is what "does A1 pass" means operationally and it is what the sibling reports quote.
++- **Pooled** is `|mean over 8 seeds| / SE of the eight seed means`, roughly √8 more powerful.
++
++A remedy that widened its own error bar would pass the first and fail the second, and that failure
++mode is exactly what the harness's own `--fix-probe` header warns about. Both are below.
++
++---
++
++## 3. Every candidate, costed on the same cohorts
++
++Reproduced by `--endogeneity-probe`. Rows are grouped by what they change.
++
++### Candidate fits — the family anyone would reach for first, and the answer is not here
++
++| candidate | null λ̄ (grid) | null λ̄ (`FLU-OPCHAIN-01`) | verdict |
++| --- | --- | --- | --- |
++| shipped fit, for reference | +0.0085 | +0.0097 | the residual being explained |
++| **free coefficient on served difficulty** (Gate B's shape) | **+0.0167** | **+0.0172** | **refuted — roughly doubles it** |
++| Jeffreys/Firth penalty | +0.0120 | +0.0129 | refuted |
++| delete-one jackknife | +0.0122 | +0.0131 | refuted |
++
++**The first hypothesis fails, and the reason generalises.** Conditioning on a covariate removes the
++bias an *omitted* covariate causes. Served difficulty is not omitted from this fit — it is already
++there as a known offset with its coefficient pinned to the discrimination — it is *endogenous*, and
++freeing its coefficient does not make it exogenous. Worse, under adaptive targeting the served
++difficulty is very nearly a linear function of the trial index, so the free coefficient and `lambda`
++are close to collinear and the extra freedom is spent absorbing the signal being measured. The
++posterior SE widens as well (0.062 → 0.076), so the arm is worse on both axes.
++
++**Both standard bias corrections were the right things to try and both fail in the wrong direction.**
++The Jeffreys/Firth penalty is the canonical removal of a likelihood estimator's leading finite-sample
++bias and is the generalisation of Warm's weighted likelihood estimator, which exists *precisely*
++because adaptive testing biases ML ability estimates; it is parameter-free, so there is nothing in it
++to tune. It pushes the climb **up**, and under an exogenous schedule it is catastrophic
++(−0.0019 → +0.0314). The mechanism is legible: the penalty rewards parameter values carrying more
++Fisher information, and on a rising difficulty path a larger `lambda` is what keeps the response
++probability off the chance floor. The delete-one jackknife is the non-parametric counterpart, resting
++on different assumptions, and it agrees. **Two independent corrections agreeing is the measurement
++that says the residual is not the ordinary finite-sample bias of a likelihood estimator.**
++
++**Two candidates were not implemented, and the reasons are statements rather than measurements.**
++
++- *A conditional or profile likelihood accounting for the selection rule.* There is nothing to
++  condition on. A sequential rule that depends only on the observed past is **ignorable**: the
++  likelihood already factorises correctly and carries no term for the rule. The shipped likelihood is
++  the right likelihood. The bias is that the estimator is a nonlinear function of data whose
++  information matrix and score vector are both functions of the same answers, so the expectation of
++  `H⁻¹g` is not zero even though the expectation of `g` is.
++- *Correcting the floor inside the likelihood rather than as a lower asymptote.*
++  `P(correct) = c + (1 − c)σ` **is** the marginal likelihood of the latent guess-or-know mixture, so an
++  EM formulation maximises the identical function and cannot give a different answer.
++
++### Candidate designs — the family that works, priced
++
++| design | null λ̄ (grid) | pooled SEs from 0 | r | mean SE | λ = 0.15 learner's accuracy |
++| --- | --- | --- | --- | --- | --- |
++| shipped adaptive loop | +0.0085 | 6.5 | 0.334 | 0.062 | **0.50** |
++| cross-fit (odd drives targeting, even fitted) | −0.0041 | 2.9 | 0.271 | 0.090 | 0.49 |
++| exogenous schedule, rate 0.00 (= frozen) | −0.0027 | 5.1 | **0.365** | 0.071 | **0.73** |
++| **exogenous schedule, rate 0.06** | **−0.0033** | **3.1** | 0.332 | 0.079 | 0.63 |
++| exogenous schedule, rate 0.15 | +0.0007 | 0.7 | 0.225 | 0.105 | 0.47 |
++
++**Cross-fitting works and is rejected on cost.** Driving the targeting rule from the odd trials makes
++the difficulty served on an even trial a function of answers independent of the ones being fitted, so
++it lands within error of the replay diagnostic — which is a satisfying confirmation of §1 by a second
++route. It spends half the block's information on the design, and both `r` and the posterior SE come
++out worse than the schedule. It needs no package change (a caller passes a filtered trial list), so
++it remains available at zero cost if the trade ever looks different.
++
++**The schedule's rate is not a knob tuned until A1 passed, and the sweep is the proof.**
++
++| rate | 0.00 | 0.03 | 0.06 | 0.09 | 0.12 | 0.15 | 0.30 |
++| --- | --- | --- | --- | --- | --- | --- | --- |
++| null λ̄ (grid) | −0.0027 | −0.0034 | −0.0033 | −0.0015 | −0.0003 | +0.0007 | +0.0016 |
++| per-cell A1 | 8/8 | 7/8 | 7/8 | 8/8 | 8/8 | 8/8 | 8/8 |
++| r | 0.365 | 0.354 | 0.332 | 0.306 | 0.263 | 0.225 | 0.094 |
++| mean SE | 0.071 | 0.075 | 0.079 | 0.087 | 0.096 | 0.105 | 0.133 |
++
++**A1's cell is flat across a ten-fold change in the rate while recovery falls monotonically and the
++posterior widens monotonically.** There is no rate that passes A1 and none that fails it, so there was
++nothing to tune: the rate buys nothing on A1 and costs on everything else. It is set to the population
++λ mean the harness already defaults to (`--lambda-mean`, 0.06), which is a stated design assumption
++with a provenance rather than a value chosen here.
++
++**What the rate does govern is who the block is aimed at, and there is no right answer.** At 0.00 the
++schedule has the best average recovery of any exogenous arm and a λ = 0.15 learner works the block at
++**73% correct** — well above the p ≈ 0.5 §4.5 asks for, which means the fastest children spend it on
++items below their level. At 0.15 that learner is tracked properly and average recovery collapses to
++0.225. A schedule pitched at one rate is wrong for every child away from it.
++
++---
++
++## 4. Gate A on all four banks and the grid, before and after
++
++`before` is `--targeting adaptive`, the shipped loop. `after` is `--targeting scheduled` at rate 0.06.
++One flag differs.
++
++### A1 — a cohort that learned nothing
++
++| pool | before | after | pooled SEs from 0, before → after | per-cell A1, before → after |
++| --- | --- | --- | --- | --- |
++| ideal grid, no bank | 0.0085 ± 0.0013 | **−0.0033 ± 0.0011** | 6.5 → 3.1 | 3/8 → 7/8 |
++| `FLU-OPCHAIN-01` | 0.0097 ± 0.0011 | **−0.0019 ± 0.0008** | 8.6 → 2.5 | 2/8 → **8/8 PASS** |
++| `SPA-XFORM-01` | 0.0092 ± 0.0010 | **−0.0021 ± 0.0009** | 9.4 → 2.5 | 2/8 → **8/8 PASS** |
++| `QUANT-GLYPHNUM-01` | 0.0087 ± 0.0010 | **−0.0027 ± 0.0009** | 9.0 → 2.9 | 2/8 → 7/8 |
++| `VER-MORPHO-01` | 0.0166 ± 0.0012 | 0.0063 ± 0.0008 | 14.0 → 8.0 | 0/8 → 3/8 |
++
++The `before` column reproduces all four published figures exactly — 0.0085, 0.0097, 0.0092 and
++0.0166 — which is the check that this is the same measurement and not a new one.
++
++**The change is a near-constant −0.011 on every pool: −0.0118, −0.0116, −0.0113, −0.0114, −0.0104.**
++That is what a single shared cause looks like, and it is the strongest single line of evidence that
++the attribution in §1 is right: a bank-specific or floor-specific effect would not subtract the same
++amount from a lattice-permutation task, a morphology task, an arithmetic task and a grid with no items
++in it.
++
++**So: does A1 now pass? On the harness's own per-cell rule, yes on two of the four banks and 7 of 8
++seeds on two more. On the more powerful pooled test, no — the remaining −0.002 to −0.003 is still
++about 2.5 SEs from zero, now on the conservative side.** Both are reported because reporting only the
++first would be passing a check by widening an error bar.
++
++### A4 — recovery and precision, which is what it costs
++
++| pool | r, before → after | mean posterior SE, before → after | per-cell A4 | per-cell A3 |
++| --- | --- | --- | --- | --- |
++| ideal grid, no bank | 0.334 → 0.332 | 0.062 → **0.079** | 2/8 → **0/8** | 1/8 → 5/8 |
++| `FLU-OPCHAIN-01` | 0.332 → 0.307 | 0.063 → **0.085** | 0/8 → 0/8 | 6/8 → 2/8 |
++| `SPA-XFORM-01` | 0.329 → 0.306 | 0.063 → **0.085** | 0/8 → 0/8 | 5/8 → 2/8 |
++| `QUANT-GLYPHNUM-01` | 0.334 → 0.333 | 0.062 → **0.079** | 0/8 → 0/8 | 5/8 → 8/8 |
++| `VER-MORPHO-01` | 0.287 → 0.310 | 0.062 → 0.073 | 0/8 → 0/8 | 8/8 → 8/8 |
++
++**A4 gets worse, not better.** It was already failing on the SE criterion everywhere except two seeds
++on the grid, and after the remedy it fails everywhere: 0.079–0.085 against E-095's 0.047, where the
++tolerance is ±0.015. Recovery itself is nearly untouched on the grid and on `QUANT-GLYPHNUM-01`
++(−0.003, −0.002) and falls about 0.023 on the two banks with sparser grids. At a wider assumed true
++spread the loss grows — at λ SD 0.10 the grid goes 0.778 → 0.694 — so the cost is largest for exactly
++the heterogeneous cohort the metric exists to order.
++
++**A3's verdict flips against the remedy for a reason that is not a regression, and it should not be
++read as one.** The schedule stops asking for off-scale difficulties, so a child pinned at a pool
++maximum is no longer sitting at the 20-point scale clamp, and A3 charges only *bank*-limited pins. On
++`FLU-OPCHAIN-01` at seed 11 the loop produces 20 pins, all 20 charged to the scale, and passes; the
++schedule produces **10** pins — half as much saturation — one of them charged to the bank, and fails.
++A3's attribution rule is what moved, not the bank and not the amount of saturation.
++
++---
++
++## 5. The cost that A1 and A4 cannot see, and it is the decisive one
++
++D-200 part 2 made a band nameable only when the posterior SE **plus** a declared contamination floor
++is narrower than the band half-width. The remedy lowers the floor and widens the SE, so this can move
++against the remedy even where A1 improves. It does. The SD-0.15 reference — the widest anyone has
++proposed, and the only one at which bands separate at all at 30 trials — has a half-width of 0.075.
++
++| pool | SE + declared floor, before → after | reportable at SD 0.15 | reportable with the floor declared |
++| --- | --- | --- | --- |
++| ideal grid, no bank | 0.071 → **0.079** | 92.7% → 58.7% | 71.6% → **58.2%** |
++| `FLU-OPCHAIN-01` | 0.073 → **0.085** | 92.2% → 51.8% | 64.0% → **51.6%** |
++| `SPA-XFORM-01` | 0.072 → **0.085** | 91.8% → 52.0% | 67.6% → **51.8%** |
++| `QUANT-GLYPHNUM-01` | 0.071 → **0.079** | 92.5% → 58.4% | 71.3% → **58.1%** |
++| `VER-MORPHO-01` | 0.079 → 0.079 | 92.8% → 66.0% | 36.3% → **58.5%** |
++
++**On every pool whose guessing floor was already correct, the remedy takes the total error budget from
++just inside the band half-width to outside it, and 12 to 16 points off how often a rate can be
++reported at all.** Only `VER-MORPHO-01` gains, and only because its 0.0166 contamination floor was
++costing more than the widening does.
++
++**This is the trade, stated plainly and not buried.** A1 exists so a child who learned nothing is not
++told they learned quickly. The reportability column exists so a number too imprecise to mean anything
++is not reported at all. This remedy trades the first against the second, and D-200 already found the
++second nearly exhausted. **Removing the bias makes the estimator honest about a rate it can no longer
++report.** That may well be the right choice — an unbiased-and-silent estimator is defensible and a
++biased-and-talkative one is not — but it is a decision about what the product claims, and D-206 leaves
++it to the owner rather than taking it.
++
++Against the SD-0.03 reference the project's own synthetic work used, every arm at every length is
++100% indeterminate, before and after. That was already true and is unchanged.
++
++---
++
++## 6. The two defects are separable, and that makes a deferred follow-up worth more
++
++`VER-MORPHO-01` is the only pool still failing A1 after the remedy. It is also the only pool whose
++items are four-option while the shipped estimator assumes five — an E-200 floor misspecification
++sitting on top of the endogeneity. If the two are separate defects, correcting the floor as well
++should land it where the others land.
++
++| `VER-MORPHO-01`, floor corrected to 0.25 | null λ̄ | pooled SEs from 0 | per-cell A1 | r | mean SE |
++| --- | --- | --- | --- | --- | --- |
++| before (adaptive) | 0.0113 ± 0.0010 | 11.2 | 0/8 | 0.303 | 0.066 |
++| after (scheduled) | **−0.0024 ± 0.0009** | 2.6 | **7/8** | 0.325 | 0.082 |
++
++It does, to three decimal places of the other four pools. **The floor defect and the design defect are
++separate and additive**, and D-200's deferred follow-up — a per-item floor derived from the served
++option count, which is feasible because the option array reaches the client — is worth more than it
++looked: on a four-option bank it is worth about 0.010 on A1 by itself, comparable to the whole
++endogeneity effect.
++
++---
++
++## 7. Boundaries, and what remains open
++
++**What this report establishes.** The residual A1 failure that survives a correct guessing floor is
++endogeneity of the adaptive design, established by holding the difficulty path fixed and cutting only
++its dependence on the child's answers. No change to the fit removes it, and the natural first
++hypothesis — conditioning on served difficulty, the shape of the pre-registered Gate B statistic —
++makes it about twice as bad. An exogenous schedule removes it on all four banks and the bank-free
++grid, at a near-constant −0.011, and costs about a third of the posterior precision, A4, and 12 to 16
++points of reportability.
++
++**What it does not.**
++
++- That the block measures learning in children. Gate B, and no synthetic run substitutes.
++- That the remedy should be adopted. On these figures it is a net loss wherever the floor was already
++  right, which is why D-206 is Proposed and part 3 of it is the owner's.
++- **That the remaining −0.002 to −0.003 is understood.** It is not. It is present under every
++  exogenous arm including a frozen one, it is in the conservative direction, and it is reported rather
++  than attributed. The two bias corrections that would be the obvious explanation both move the
++  estimate the wrong way, so it is not the ordinary finite-sample bias of a likelihood estimator
++  either.
++- That a schedule is safe when the standing handover is wrong. It is not, and this is the remedy's
++  structural weakness rather than a tuning detail: the adaptive rule's one real virtue is that it
++  recovers from a bad handover, and a fixed schedule has no mechanism to notice. D-205 makes the
++  handover's accuracy a premise; this remedy leans on that premise harder than the shipped loop does.
++- That Stage 2's A1 stop rule should or should not fire. `STAGE2_SPA_XFORM_GATE_A.md` §10 puts that to
++  the owner. This report changes one input to it — A1 *is* passable, and not by building banks — and
++  adds a second — passing it costs reportability the programme may not have to spend.
++
++**Nothing is wired and no type is recorded as gate-passing.** All four banks ship `validated: false`
++and `syntheticOnly: true`, none is administered from `scheduledTargetTheta`, and Gate B has not run.
++**Learning-rate figures produced before this report remain comparable to figures produced after it**,
++because the shipped default is unchanged: any figure quoted from `--targeting adaptive` is the same
++figure it was. A figure produced under `--targeting scheduled` is **not** comparable to one produced
++before — the estimator is the same but the administration is not, so the two answer different
++questions and every table above labels which arm produced it.
+diff --git a/docs/research/ASSUMPTIONS_AND_EVIDENCE.md b/docs/research/ASSUMPTIONS_AND_EVIDENCE.md
+index e0275b6..4b2238e 100644
+--- a/docs/research/ASSUMPTIONS_AND_EVIDENCE.md
++++ b/docs/research/ASSUMPTIONS_AND_EVIDENCE.md
+@@ -111,12 +111,13 @@ Do not silently promote a claim from one class to another.
+ | E-100 | GT can provide screener-validation data: dummy-testing its ~46 GT School students (a <=45-minute test), plus every student's CogAT and MAP screeners, plus historical CogAT score ranges from Riverside. | Company claim (GT commitment) | Crystal Martel interview 2026-07-23 (Otter pt.1); data delivery pending; re-registered here from the forked lineage's `E-075` (D-032) | Without this data the screener cannot be validated against GT's cohort; partially relaxes E-010's data-availability gap for validation | Evaluation owner | Committed by GT; delivery pending |
+ | E-101 | Current cohorts are ~40-46 students (physical GT School) and ~300 (GT Anywhere virtual), K-8; campuses open at >=20-30 committed students (cap ~100), with 3-4 new physical campuses targeted next year; the screener must scale to thousands of applicants. North-star: ~100,000 "MIT-ready by 8th grade" (leadership goal, expansion-dependent). | Company claim (current numbers reported; 100K is a leadership goal) | Crystal Martel interview 2026-07-23 (Otter pt.1); Joe Liemandt goal; re-registered here from the forked lineage's `E-076` (D-032) | Volume/scale assumptions could be mis-set; the 100K north-star must not be treated as a near-term deliverable | Operations owner | Reported by GT; 100K aspirational |
+ | E-102 | The requested deliverable is a tunable model plus facilities for GT admissions to tune the parameters/cut themselves (GT owns the cut), integrated into a unified "GT Universe" portal; algorithmic screening replaces per-applicant human review at scale, while a human shadow-day for behavioral fit remains. | Company claim / approved project direction (D-015) | Crystal Martel interview 2026-07-23 (Otter pt.1/pt.2); ratified in D-015; re-registered here from the forked lineage's `E-077` (D-032) | Building a locked, non-tunable, or fully-automated end-to-end system would not match GT's request | Product owner | Approved direction (D-015) |
+-| E-200 | **The Phase 2 learning-rate estimator manufactured a learning rate out of chance successes, and the mechanism is the adaptive targeting loop rather than the fit.** `estimateLearningCurve` shipped with `guessing = 0` while every item the novel block serves is five- (or four- or six-) option multiple choice. Measured over 400 simulated children per cell at 30 trials, all with **λ_true = 0 — no learning whatsoever** — against a responder with a real 0.2 floor: the shipped estimator fits **λ̄ = 0.0398 ± 0.0043** on an idealised 0.5-point grid with no bank involved, and **0.0547 ± 0.0049** on `FLU-MATRIX-01`; the same cohort at a zero responder floor fits **−0.0006 ± 0.0023**. 0.04 is two-thirds of the 0.06 the project uses as a plausible reference centre, and against the SD-0.15 reference (the only spread at which bands separate at this length) `learningRateReadout` calls **32.8%** of those non-learners `above` average pace, rising to **48.8%** on the bank. **Mechanism, isolated by measurement rather than argument:** freezing the served difficulty at `standing + 1` — which breaks the loop without touching the fit — drops the same misspecified fit to **0.0018 ± 0.0023** (6.0% false `above`), and with the floor also corrected to **−0.0034 ± 0.0029**. So the fit alone is approximately unbiased and mildly NEGATIVE, exactly as STAGE2_QUESTION_DESIGN §4.6 predicted; the positive sign is produced by the closed loop, because the inflated fit raises `theta0`, `nextTargetTheta` aims higher, and the fit then reads its own rising difficulty walk as a climb. **Remedy costs, same cohorts:** correcting the floor in the readout fit ONLY (targeting left misspecified) barely helps — λ̄ = 0.0338 — and pushes 48.5% of blocks to `indeterminate`; correcting it in both roles gives **λ̄ = 0.0098 ± 0.0033** on the grid and **0.0183 ± 0.0035** on the bank, false `above` 14.0% / 12.8%, r 0.178 → **0.254** / 0.149 → 0.249, mean SE 0.047 → 0.062 / 0.050 → 0.072. **The correction is necessary but not sufficient: the residual is 3 Monte-Carlo SEs from zero on an ideal grid and 5 on the wired bank.** Lengthening the block to 45 / 60 trials gives λ̄ = 0.0085 / 0.0041 and r 0.532 / 0.680 on the grid, but only 0.0199 / 0.0150 and r 0.324 / 0.398 on the bank. Declaring the measured residual as a `contaminationFloor` on the reference and testing separability against SE-plus-floor takes the SD-0.15 reference to **32.0% indeterminate at 30 trials on the grid and 94.5% on the bank**, 0.5% / 19.3% at 60 trials. **Against the SD-0.03 reference the project's own synthetic work used, every arm at every length from 30 to 60 is 100% indeterminate — before and after the fix.** Assuming a floor that is not there is also harmful and not symmetric: a declining child (λ = −0.35) answering without a floor is attenuated to −0.168 and its posterior SE doubles when the fit assumes 0.2. Mixed option counts are a real second-order exposure — `FLU-MATRIX-01` is 63 four-option, 27 five-option and 30 six-option items, and assuming 0.2 against a 0.25 truth raises the grid residual from 0.0098 to 0.0176. | Verified measurement under known synthetic truth (circular by construction, in the one direction that is not circular: it measures what the pipeline produces from a child who did nothing) | `pnpm exam:block-harness -- --guessing-probe` reproduces the defect; `-- --fix-probe` produces the full remedy table; `-- --calibrate --guessing 0.2` produces the corrected recovery ladder. Parameters as recorded on E-095, with the responder floor as stated per row. Standing assertions in `packages/exam-scoring/src/learning-curve.test.ts` (`the guessing floor is not misspecified` — a matched pair, one asserting the shipped default keeps a null cohort under 0.02 and one asserting a zero floor does NOT, so the guard cannot pass vacuously) and `learning-rate-readout.test.ts` (`the declared contamination floor`) | If the five-option floor is not the right lower asymptote for a real child on these items — plausible, since a plausible distractor set raises the effective option count and a child who disengages lowers it — then the correction is itself misspecified, in the direction shown above to attenuate declining children. The residual is measured on a born-synthetic bank with design-estimated difficulties and does not transfer to a calibrated bank. Nothing here says a within-session climb measures learning; it says the pipeline reports a climb for a child who had none | Measurement owner | **Open — the estimator fix is implemented and awaiting owner sign-off (D-200). The reportability conclusion is not fixed by it: on the bank the block would actually run on, a 30-item block does not support a reportable learning rate once the guessing floor is handled correctly.** |
++| E-200 | **The Phase 2 learning-rate estimator manufactured a learning rate out of chance successes, and the mechanism is the adaptive targeting loop rather than the fit.** `estimateLearningCurve` shipped with `guessing = 0` while every item the novel block serves is five- (or four- or six-) option multiple choice. Measured over 400 simulated children per cell at 30 trials, all with **λ_true = 0 — no learning whatsoever** — against a responder with a real 0.2 floor: the shipped estimator fits **λ̄ = 0.0398 ± 0.0043** on an idealised 0.5-point grid with no bank involved, and **0.0547 ± 0.0049** on `FLU-MATRIX-01`; the same cohort at a zero responder floor fits **−0.0006 ± 0.0023**. 0.04 is two-thirds of the 0.06 the project uses as a plausible reference centre, and against the SD-0.15 reference (the only spread at which bands separate at this length) `learningRateReadout` calls **32.8%** of those non-learners `above` average pace, rising to **48.8%** on the bank. **Mechanism, isolated by measurement rather than argument:** freezing the served difficulty at `standing + 1` — which breaks the loop without touching the fit — drops the same misspecified fit to **0.0018 ± 0.0023** (6.0% false `above`), and with the floor also corrected to **−0.0034 ± 0.0029**. So the fit alone is approximately unbiased and mildly NEGATIVE, exactly as STAGE2_QUESTION_DESIGN §4.6 predicted; the positive sign is produced by the closed loop, because the inflated fit raises `theta0`, `nextTargetTheta` aims higher, and the fit then reads its own rising difficulty walk as a climb. **Remedy costs, same cohorts:** correcting the floor in the readout fit ONLY (targeting left misspecified) barely helps — λ̄ = 0.0338 — and pushes 48.5% of blocks to `indeterminate`; correcting it in both roles gives **λ̄ = 0.0098 ± 0.0033** on the grid and **0.0183 ± 0.0035** on the bank, false `above` 14.0% / 12.8%, r 0.178 → **0.254** / 0.149 → 0.249, mean SE 0.047 → 0.062 / 0.050 → 0.072. **The correction is necessary but not sufficient: the residual is 3 Monte-Carlo SEs from zero on an ideal grid and 5 on the wired bank.** Lengthening the block to 45 / 60 trials gives λ̄ = 0.0085 / 0.0041 and r 0.532 / 0.680 on the grid, but only 0.0199 / 0.0150 and r 0.324 / 0.398 on the bank. Declaring the measured residual as a `contaminationFloor` on the reference and testing separability against SE-plus-floor takes the SD-0.15 reference to **32.0% indeterminate at 30 trials on the grid and 94.5% on the bank**, 0.5% / 19.3% at 60 trials. **Against the SD-0.03 reference the project's own synthetic work used, every arm at every length from 30 to 60 is 100% indeterminate — before and after the fix.** Assuming a floor that is not there is also harmful and not symmetric: a declining child (λ = −0.35) answering without a floor is attenuated to −0.168 and its posterior SE doubles when the fit assumes 0.2. Mixed option counts are a real second-order exposure — `FLU-MATRIX-01` is 63 four-option, 27 five-option and 30 six-option items, and assuming 0.2 against a 0.25 truth raises the grid residual from 0.0098 to 0.0176. | Verified measurement under known synthetic truth (circular by construction, in the one direction that is not circular: it measures what the pipeline produces from a child who did nothing) | `pnpm exam:block-harness -- --guessing-probe` reproduces the defect; `-- --fix-probe` produces the full remedy table; `-- --calibrate --guessing 0.2` produces the corrected recovery ladder. Parameters as recorded on E-095, with the responder floor as stated per row. Standing assertions in `packages/exam-scoring/src/learning-curve.test.ts` (`the guessing floor is not misspecified` — a matched pair, one asserting the shipped default keeps a null cohort under 0.02 and one asserting a zero floor does NOT, so the guard cannot pass vacuously) and `learning-rate-readout.test.ts` (`the declared contamination floor`) | If the five-option floor is not the right lower asymptote for a real child on these items — plausible, since a plausible distractor set raises the effective option count and a child who disengages lowers it — then the correction is itself misspecified, in the direction shown above to attenuate declining children. The residual is measured on a born-synthetic bank with design-estimated difficulties and does not transfer to a calibrated bank. Nothing here says a within-session climb measures learning; it says the pipeline reports a climb for a child who had none | Measurement owner | **Open — the estimator fix is implemented and awaiting owner sign-off (D-200). The reportability conclusion is not fixed by it: on the bank the block would actually run on, a 30-item block does not support a reportable learning rate once the guessing floor is handled correctly.** **ONE CORRECTION RECORDED 2026-08-01, to the explanation and not to any figure.** The mechanism sentence above ends "and the fit then reads its own rising difficulty walk as a climb". The walk is not what does it: replaying the identical walk against an independent answer stream manufactures nothing, and an exogenous walk four times as steep manufactures less. What produces the climb is that the walk is a function of the child's own earlier answers — endogeneity — which matters because it has different remedies: conditioning the fit on served difficulty makes it worse rather than better. E-205 records the attribution, the refuted candidates, and what removing it costs. Every measurement in this entry stands as recorded. |
+ 
+ | E-201 | **A Phase 1 battery spent one instruction screen per item, and metric-coverage pressure rather than burst eligibility was the cause. No per-type response-time data exists anywhere in this repository to price the trade in seconds.** An instruction screen is a served item whose type differs from the item before it, so it counts the times a child must read how to answer. Measured over 8 born-synthetic probabilistic children spanning the ability range in all four areas, grade band `4-5`, 40-item cap, selecting over the served INDEX with the app's own `EXAM_ENGINE_OVERRIDES` — not the engine defaults and not the research catalog's measurement lists, whose substitution is itself the reason bursting was demonstrated in simulation while never firing in a browser. **`dev` as shipped: 26.9 items, 26.9 instruction screens, 100% of items opening one.** Three independent causes, each individually sufficient: (1) the served index sets `content` to `{}`, so no item anywhere looked like a bounded choice and **0 of 48 types were burstable** whatever else was true; (2) the eligibility rule disqualified any type declaring `M-PATH`/`M-EFF`/`M-PLANFUL`/`M-IDEAFLU`; (3) `nextType` summed tracked-inert metric shortfalls without limit, making the type in each area that declares the most process measurements worth 4 points against its rivals' 2 — more than the 1.5-point age-band preference and 40× the tie-break jitter — so it won every selection in its area until its counts filled. That is why the child met exactly six types (`QUANT-MIX-01`, `SPA-XPLANE-01`, `GB-WORDFORGE-01`, `CX-check-01`, `GB-EXPLORE-01`, `VER-SEQUENCE-01`), five of them constructed-response with **zero** of their items offering an option list, so never burstable under any rule. **Arm-by-arm attribution, and it inverts the expected diagnosis: 19 types were ALREADY eligible and simply never selected.** Option count on the index alone: 25.4 screens (−6%) with the session 8% LONGER (29.1 items). Plus retiring the process-metric rule: 21.9 (−19%), 5 more types eligible. Plus capping tracked-inert coverage at one metric's worth: **15.6 screens (−42%), 24.0 items (range 19–28), no session on the cap** — so the cap is 24 of the 42 points, and the only change that also shortens the battery. Caps of 2 and 3 give −28% and −5% with **every** session running to the 40-item safety cap. **Costs, measured:** distinct types per area 4.3 → 3.2 and 24 → 15 of 48 wired types across the cohort — arithmetic, not a side effect, since instruction screens ARE the count of type-runs and distinct types cannot exceed runs. Bursting also let one area draw every item from a single type (observed in the app's battery test), addressed by requiring 2 types per area in the stop rule. **Counterintuitive and load-bearing before anyone raises the ceiling:** a burst of `n` commits the session to ~`4n` items under `coverageIsEven`, so a fixed 6-ceiling put the exits at 24 then 48 items and ran a 40-cap battery to the safety net; bounding length by remaining budget gives both fewer screens AND a shorter session, at an effective ceiling of 4–5. | Verified measurement of routing behaviour over born-synthetic uncalibrated banks (`validated=false`); the "too instantaneous" report that prompted it is a single subject's impression of one session | `pnpm exam:instruction-cost` (`scripts/exam-instruction-cost.ts`) reproduces every arm; method and claim boundaries in `docs/product/EXAM_BURST_INSTRUCTION_COST.md`; decision D-201. **Absence of response-time data verified on every path, 2026-07-30:** `app.exam_item_response` in the local Postgres holds **0 rows** (0 sessions, 0 telemetry events, 0 outcomes); `research/exam-question-types/measurements.json` specifies `M-RT`/`M-RTFIRST` and contains no observations; `packages/exam-engine/src/testing/real-bank.ts` simulates `M-RTFIRST` as a flat `0.35 × M-RT` for every type, a constant ratio that cannot distinguish types; `METRICS_BASIS.md` wires both at scoring weight 0. Standing assertions in `packages/exam-engine/src/burst.test.ts` and `apps/web/src/lib/exam/adaptive.test.ts`, the latter driving `planNextSelection` over the served index so the loop the runner runs is the loop under test | An instruction screen is COUNTED, never priced: if a screen is cheap relative to a question then 42% fewer screens is a smaller improvement than it reads, and if construct variety matters more than the owner's stated objective then the 4.3 → 3.2 narrowing is a loss rather than a cost. Burst eligibility claims only that consecutive items are each a single unpaced choice; if answering one of them is in fact slow, a burst is merely less beneficial, not harmful. Nothing here bears on score validity, reliability or fairness | Measurement owner | **Open — implemented, awaiting owner sign-off (D-201). Which types are "fast" remains unmeasured; the collection that would settle it is specified in `EXAM_BURST_INSTRUCTION_COST.md` §5 and needs one persisted session plus one query, no code change.** |
+ | E-202 | **Every Phase 1 sitting served the same question types in the same order, and the fixed seed was only one of three causes.** `DEFAULT_CONFIG.seed` was the constant `0xc0ffee` and nothing overrode it, so every selection draw was identical in every sitting; the type choice was a strict argmax whose only variation was a ±0.1 jitter, too small to outweigh a metric weight (1 or 2) or the age bonus (1.5); and nothing discouraged returning to a type just served. Measured over 20 differently-seeded sittings on the REAL wired bank with the ENGINE defaults and the research catalog's measurement lists: **6 of 49 distinct types reached before, 23 after; worst within-session repeat over 20 items 5.0 → 3.1.** On the wired bank the order was literally a four-type cycle (`VER-POLYSEME-01 > FLU-LADDER-01 > SPA-XPLANE-01 > QUANT-GRAPH-01 > ...`). **Attribution:** the seed alone fixes variety BETWEEN children and leaves within-session repetition completely unchanged (5.0 → 5.0); all three parts were needed. **Two constraints found by measurement rather than reasoning, both pinned by tests.** `itemSelectionTolerance` must stay strictly below `ageBandBias`: a non-matching item is charged exactly `ageBandBias`, so a tolerance of 0.5 makes a band-matching and a non-matching item at the same difficulty interchangeable and silently cancels D-025; set to 0.25. The recency discount must not apply while an area is still homing: applied throughout it cost a distant-seeded child 4 items and broke D-023's convergence budget (52 against 48), while after the estimate straddles the same discount is free. | Verified measurement of routing behaviour over born-synthetic uncalibrated banks (`validated=false`) | `packages/exam-engine/src/selection-variety.test.ts` over `loadRealBanks()`; decision D-202. Superseded in part by E-203, which re-measures every figure here against the configuration a browser actually runs and finds the fixed-rotation diagnosis does NOT reproduce there | If a child's experience of repetition matters less than targeting precision, then the tolerances are a cost rather than a benefit: each one serves a less well-targeted item on purpose. Nothing here bears on score validity, reliability or fairness | Measurement owner | **Open — implemented, awaiting owner sign-off (D-202). The published figures are taken against the ENGINE defaults and the research catalog, not against the browser configuration; see E-203** |
+ | E-203 | **Capping tracked-inert coverage (D-201) and adding exposure control (D-202) are COMPLEMENTARY rather than mutually cancelling, but only after the type tolerance is re-derived against the capped scores, and the combination gives back half of D-201's stop-rule reliability.** Four arms at matched settings — same abilities, responder seeds, engine seeds, grade band and 40-item cap — over 80 differently-seeded sittings on the REAL wired bank, selecting over the served INDEX with the app's own `EXAM_ENGINE_OVERRIDES`, i.e. the configuration a child actually sits. **Instruction screens per session: `dev` 28.6, D-201 alone 18.5, D-202 alone 28.0, combined 19.7.** **Distinct types per session: `dev` 18.1, D-201 alone 14.9, D-202 alone 19.8, combined 17.1** — so D-201 alone costs 3.2 types per session and adding D-202 recovers 2.2 of them, at a cost of 1.2 instruction screens. **Worst return-to-type over 20 items (a burst of four counted as one arrival): `dev` 3.4, D-201 alone 1.5, D-202 alone 3.1, combined 1.4** — the lowest of the four arms. **Enforced metric coverage completed in 80 of 80 sittings in every arm.** **The residual cost: 15 of 80 sittings reach the 40-item safety cap in the combination, against 10 for D-201 alone and 17 for `dev`** — so the combination is better than `dev` and worse than D-201 alone on the signature of a battery becoming fixed-length. **The retune, and its mechanism.** `typeSelectionTolerance` was derived at 1.0 against the UNCAPPED coverage sum, where a type could earn four tracked-metric points; capping the tracked total at one point compressed the score spread, making the same tolerance proportionally a much wider net. At 1.0 exactly, a type holding a tracked shortfall and one holding none fall within tolerance of each other, and a type closing an ENFORCED shortfall (weight 2) falls within tolerance of a rival closing none but holding the full capped tracked gain (2 − 1 = 1.0). Swept over 80 sittings: **1.0 costs 1.9 items per session against 0.5 and buys 0.3 of a distinct type**, so the tolerance moved to 0.5 and the constraint is now stated as `typeSelectionTolerance < trackedCoverageCap`. Below about 1/3 the knob does nothing at all, because no score gap is narrower than the smallest recency step. `typeRecencyPenalty` 1.0, `typeRecencyWindow` 3 and `itemSelectionTolerance` 0.25 were swept on the same grid and are at their measured optimum; they are unchanged. **E-202's fixed-rotation diagnosis does not reproduce under the browser configuration.** With a per-session seed, `dev`'s own rule already reaches 47 of 48 wired types across 20 sittings there, because the generated registry gives types much flatter metric lists than the research catalog does and the argmax therefore ties far more often. E-202's 6-of-49 is a fact about the ENGINE defaults. What a cohort meets today, on the constant seed actually shipped, is 24 distinct types across 20 sittings. **A pinned constraint went slack.** D-202's homing guard was held by D-023's convergence budget; with the coverage cap in place the worst battery runs 47 items against a budget of 48 whether the guard is present or removed, so that test would no longer catch its removal. Re-pinned directly on the served type order, and the new assertions were verified to fail when the guard is removed. The `itemSelectionTolerance < ageBandBias` pin was verified to still fail when the tolerance is raised to 0.5. | Verified measurement of routing behaviour over born-synthetic probabilistic children and uncalibrated banks (`validated=false`) | `pnpm exam:selection-integration` (`scripts/exam-selection-integration.ts`, `--sweep` for the knob grid, `--sessions=N` for the cohort size) reproduces every figure; method and claim boundaries in `docs/product/EXAM_SELECTION_INTEGRATION.md`; decision D-203. Shares `scripts/exam-selection-harness.ts` with `pnpm exam:instruction-cost`, so the two measurements cannot drift apart | If the residual cap pressure matters more than construct breadth, the combination is worse than D-201 alone and the tolerances should go to zero. Instruction screens are COUNTED, never priced in seconds — no per-type response-time data exists in this repository (E-201). Nothing here bears on score validity, reliability or fairness | Measurement owner | **Open — implemented, awaiting owner sign-off (D-203), which inherits the sign-off D-201 and D-202 are each still awaiting. The 40-item cap pressure the combination adds is unresolved: 15 of 80 against 10** |
+ | E-204 | **Stage 1 selection never read its own uncertainty, and the standing level it reported was about a point and a half above the child. Correcting the chance-success floor and selecting on a live belief fixes the bias and what the child is handed, and costs a little precision per item.** Four arms at matched settings — same abilities, responder seeds, engine seeds, grade band and 40-item cap — over 60 differently-seeded probabilistic sittings on the REAL wired bank under the app's own `EXAM_ENGINE_OVERRIDES`. **`staircase` (as shipped) against `mepv` (proposed): reported standing bias +1.577 → +0.017 and RMSE 2.352 → 1.250; refitted ability RMSE 2.047 → 1.300; sessions concluding on evidence 52/60 → 58/60 with safety-cap hits 12 → 2; distinct types per session 17.6 → 18.0 and per area 4.39 → 4.50.** **What the child is handed, which is the BrainLift's actual claim and was never previously measured: items at least 3 scale points above them 21.4% → 7.6%, and the worst run of consecutive misses within an area 4.08 → 2.22.** **The cost is precision per item, in the opposite direction to the intuition that motivated the change:** mean final SE 1.235 → 1.286, items to an SE of 1.50 5.1 → 5.6, to 1.25 6.6 → 7.0, and areas ever reaching 1.25 159/240 → 147/240. The corrected aim deliberately serves items EASIER than the child — with a floor `c`, information peaks at `P = (1+sqrt(1+8c))/4`, about 0.653 for a five-option item, roughly 0.27 scale points below ability (Birnbaum 1968; Lord 1980; Magis 2013) — so the gain is accuracy, not speed to a stated precision. **`mfi` (maximum information at the belief mean) was measured, not assumed away, and it wins the obvious metric while losing the one that matters:** 6.4 items to an SE of 1.25 against `mepv`'s 7.0, 195/240 areas reaching it against 147, mean SE 1.138 against 1.286 — but refitted RMSE 1.740 against 1.300, so it reports ±1.14 while erring ±1.74 where `mepv` reports 1.29 and errs 1.30. **The SE comparison is partly circular in `mfi`'s favour and is reported as such:** `mfi` maximises information at the estimate and the SE is one over the root of exactly that information, so scoring the two criteria by SE scores `mfi` on its own objective, while RMSE against a planted ability favours neither by construction. This is a partial reproduction of Chen/Ankenmann/Chang and Choi/Swartz — elaborate criteria add little on PRECISION — and a non-reproduction on accuracy. **`cut` (maximum information at a decision point) reproduces Spray & Reckase and is not adopted:** against an ILLUSTRATIVE cut of 15 (no real GT threshold exists in this repository and none was invented) it reaches a 95% above/below call in 2.3 items across 223/240 areas, against `mepv`'s 3.0 across 183/240 — and pays with an ability estimate worthless away from the cut (refitted RMSE 3.403, mean SE 3.199, area SE spread 4.038 against 0.528), with the child's experience (47.8% of items at least 3 points above them, worst miss run 5.42), and with exposure control: **265 distinct bank items against 1,329**, the most-served item reaching 28% of sittings against 13%. **Two negative results worth as much as the positive ones.** Capping the ENFORCED coverage sum so diversity could outrank it changes nothing at all — identical results at caps of 2, 4, 6 and none — because no wired type ever earns more than one enforced gap's weight, so the enforced sum D-201 deliberately left free was never the binding constraint on diversity; the knob was reverted rather than shipped inert. And `areaSpreadSlack` of 1 is inert under the portal's `evenSpreadTolerance` of 1 while changing behaviour under the engine's own defaults, where it caused a within-session type-repeat regression; it ships at 0, so uncertainty breaks ties among the least-served areas and even spread is unchanged by construction. **The floor is harmful when wrong in either direction and is pinned in both.** Against a guessing child, assuming none inflates the reported level (+1.32 at floor 0, +0.35 at 0.1, +0.12 at 0.2, −0.06 at 0.25, −0.46 at 0.35); against a child who does NOT guess, assuming one attenuates them, and for a FIXED trace a floor can only move an estimate down, since `P(wrong) = (1−c)(1−s)` and the `(1−c)` cancels in the likelihood ratio — a miss carries identical information under any floor while a pass carries less. | Verified measurement of routing and RECOVERY behaviour over born-synthetic probabilistic children and uncalibrated banks (`syntheticOnly = true`, `validated = false`) | `pnpm exam:selection-diversity` (`scripts/exam-selection-diversity.ts`; `--sessions=N`, `--floor-sweep`, `--knob-sweep`) reproduces every figure, sharing `scripts/exam-selection-harness.ts` with `exam:instruction-cost` and `exam:selection-integration` so the three cannot drift apart. Standing assertions: `packages/exam-engine/src/posterior.test.ts` (the information peak against the closed form, the refutation of endpoint targeting as arithmetic, and that a belief will not claim a scale bound from a one-sided trace), `real-bank.test.ts` (`the chance-success floor, in both directions` — a matched pair, so the guard cannot pass vacuously), `packages/exam-scoring/src/ability.test.ts` (the same pair on the reporting fit, plus that omitting the knob reproduces the previous fit exactly). Decision D-204. Builds on `docs/architecture/ITEM_SELECTION_BRACKETING_ANALYSIS.md`, whose +1.44 bias estimate this reproduces and corrects | The 0.2 floor, the slope of 1.0 and the prior SD of 6.0 are DESIGN ASSUMPTIONS on an uncalibrated born-synthetic bank, not calibrated parameters; an estimated `c` is typically below the reciprocal of the option count, so 0.653 is an upper anchor rather than a constant, and the wired banks mix four-, five- and six-option items. Recovery under a simulated responder is not evidence about score validity, reliability, fairness or giftedness — it says the machinery can read back an ability the trace was generated from, and nothing more. The `cut` figures are shaped entirely by an illustrative threshold and must never be read as how a real gate would perform. Every standing level already shown to anyone moves downward under this change | Measurement owner | **Supported — implemented, and D-204 approved by the owner 2026-07-31. The product question this measurement was meant to inform is now settled: Stage 1 is a LOCATOR, not a gate — a per-area standing level that scales Stage 2, where precision away from any cut is the product (D-205, decided on arm four of this measurement). `cut` selection remains a supported policy value carrying the price recorded above, so a later decision to run a gate is a configuration change rather than a rebuild.** |
++| E-205 | **The learning-rate residual E-200 left behind is endogeneity of the adaptive design, not a defect of the fit, and no change to the fit removes it. Breaking the loop does remove it, and costs more reportability than it buys.** E-200 corrected the chance floor and left λ̄ ≈ +0.009 for a cohort that learned nothing. Three banks across three domains and an idealised grid containing no items at all return that same value, so it is not a bank property; the shipped default already matches the five-option format, so it is not the floor either. **The cause, settled by one contrast rather than by argument.** Replay each child's OWN adaptive difficulty path a second time against an independent stream of answers — identical path, identical ability, identical standing handover, only the dependence between the answers and the path cut — and the manufactured climb goes: **+0.0085 ± 0.0013 becomes −0.0039 ± 0.0010 on the bank-free grid at an unchanged difficulty climb of 0.29 scale points**, and +0.0097 → −0.0035 on `FLU-OPCHAIN-01` at an unchanged 0.35. **A rising ladder is therefore innocent, and a steeper one manufactures less: an exogenous schedule climbing 1.63 points across the block, four times the adaptive rule's 0.39, returns −0.0023.** The statistical name is endogeneity — the served difficulty is a function of the child's own earlier answers — and the mechanism is that `nextTargetTheta` aims at `theta0 + lambda * nextIndex`, so the path rises at the rate the running fit has estimated and a flat accuracy series over such a path is exactly the signature of an ability rising at that rate. The estimate is written into the design and read back out. **The first hypothesis is refuted, and refuted in the wrong direction. Conditioning the fit on served difficulty with a FREE coefficient — the shape of this project's own pre-registered Gate B statistic — roughly doubles the artifact, to +0.0167 on the grid and +0.0172 on the bank**, because difficulty was never omitted from the fit (it is already there as a known offset), and under adaptive targeting it is close to collinear with the trial index, so the extra freedom absorbs the signal. Both standard finite-sample bias corrections also move it UP and are rejected on measurement: the Jeffreys/Firth penalty gives +0.0133 (and +0.0314 under an exogenous schedule, because the penalty rewards parameter values carrying more Fisher information and on a rising path a larger `lambda` is what keeps the response probability off the chance floor), the delete-one jackknife +0.0132. **A conditional or profile likelihood has nothing to condition on: a selection rule depending only on the observed past is ignorable, so the shipped likelihood is already the right one and contains no missing term.** Correcting the floor "inside the likelihood" as a latent guess/know mixture is the same estimator algebraically — `P(correct) = c + (1−c)σ` is that mixture's marginal — so it was not implemented and the reason is stated rather than measured. **What works, and its price. `scheduledTargetTheta` administers from a schedule fixed before the block starts.** Gate A on all four banks and the grid, 8 seeds × 400 children, before → after: null λ̄ **grid 0.0085 → −0.0033, `FLU-OPCHAIN-01` 0.0097 → −0.0019, `SPA-XFORM-01` 0.0092 → −0.0021, `QUANT-GLYPHNUM-01` 0.0087 → −0.0027, `VER-MORPHO-01` 0.0166 → 0.0063**; the harness's own per-cell A1 verdict goes 3/8 → 7/8, 2/8 → **8/8**, 2/8 → **8/8**, 2/8 → 7/8, 0/8 → 3/8. **The change is a near-constant −0.011 on every pool (−0.0104 to −0.0118), which is what a single shared cause looks like.** `VER-MORPHO-01` keeps a residual because its items are four-option against a five-option estimator; correct that too and it joins the others at **−0.0024 ± 0.0009, per-cell A1 7/8**, so the floor defect and the design defect are separable and additive. **THE COST IS LARGER THAN THE BIAS REMOVED, and it lands on the only thing D-200 left reportable.** Mean posterior SE widens **0.062 → 0.079 on the grid and 0.063 → 0.085 on the two five-option banks, about a third**, so **A4 gets worse, not better** — the grid's per-cell A4 falls 2/8 → 0/8 and no pool passes it after. Because separability is tested against SE plus the declared contamination floor, and the half-width of the SD-0.15 reference is 0.075, **SE + floor moves from 0.071–0.073 (just inside) to 0.079–0.085 (outside), and the share of blocks where a band can be named at all falls 92% → 52–59%, or 64–72% → 52–58% with the floor declared — a 12 to 16 point loss on every pool whose floor was already correct.** Only `VER-MORPHO-01` gains (+22 points), because its 0.0166 floor was costing more than the widening. Recovery `r` is roughly unchanged at the design spread (grid 0.334 → 0.332, `QUANT-GLYPHNUM-01` 0.334 → 0.333) and falls about 0.023 on the two banks whose grids are sparser; at a wider true spread the loss grows (λ SD 0.10: 0.778 → 0.694). **A fast learner is the one who pays.** The schedule aims at a rate, not at a child, so a λ = 0.15 learner works the block at **64% correct under a 0.06 schedule and 73% under a flat one, against 49% under the adaptive rule** — items below their level, which is a ceiling for exactly the children R5 and R6 exist to measure. **A1's verdict also depends on which test is used, and both are reported: per-cell (the harness's rule, |λ̄| ≤ 2 Monte-Carlo SEs within one 400-child cell) passes; pooling eight seeds is roughly √8 more powerful and still places the remaining −0.002 to −0.003 about 2.5 SEs below zero.** A remedy that passed only the first would be passing by widening its own error bar. **The schedule's rate is not a knob tuned until a check passed, and the sweep is the proof: every rate from 0 to 0.30 returns the same null-cohort mean within error (−0.0036 to +0.0049) while recovery falls monotonically from 0.374 to 0.084 and mean SE rises from 0.070 to 0.131.** The rate buys nothing on A1 and costs on everything else; it is set to the population λ mean the harness already defaults to. | Verified measurement under known synthetic truth, in the one direction that is not circular: it measures what the pipeline produces from a child who did nothing, and it isolates the cause by holding the difficulty path fixed while changing only what chose it | `pnpm exam:block-harness -- --endogeneity-probe` produces the attribution and every rejected candidate in one table; `-- --gate-a --bank <ref> --targeting scheduled` runs Gate A under the remedy; `-- --gate-a --bank ideal-grid` runs the bank-free bound through the identical `gateA()` path rather than a separate probe. `node research/exam-question-types/lambda-endogeneity-gate-a.mjs` produces the full before/after across all four banks and the grid, and its header carries the read-only extraction commands for the three banks that live on other branches. Parameters as recorded on E-095 and E-200. Standing assertions in `packages/exam-scoring/src/learning-curve.test.ts` (`the manufactured climb is the loop, not the ladder` — three paired-cohort contrasts: the same paths replayed against independent answers lose the sign, a STEEPER exogenous ladder manufactures less, and the remedy widens the posterior; plus `scheduledTargetTheta`'s exogeneity, monotonicity and scale bounds). Decision D-206. Refines E-200's mechanism sentence, which attributed the climb to the fit reading "its own rising difficulty walk" — the walk is not what does it | The measurement is born-synthetic against `validated: false` banks with design-estimated difficulties, and none of it is evidence about a real child. The attribution rests on a simulated responder whose true ability really is flat, which is exactly the condition no real cohort can be known to satisfy. A schedule fixed before the block starts assumes the standing handover is accurate for the child (D-205's premise); where it is not, the whole block is mis-aimed with no mechanism to recover, and the adaptive rule's one real virtue is that it corrects a bad handover. The `−0.002` residual under the remedy is itself unexplained and is reported rather than attributed. Nothing here says a within-session climb measures learning, and nothing here licenses reporting an absolute rate — Gate B has not run | Measurement owner | **Open — measured, implemented behind an opt-in, and NOT adopted. `scheduledTargetTheta` exists and is not wired into the live block; `nextTargetTheta` remains the shipped default and the app is unchanged. D-206 is Proposed and states the trade the owner has to settle: A1 is passable, and the price is that the block becomes less reportable than it already was. The prior recorded in E-200 — that a 30-item block does not support a reportable learning rate on the bank it would run on — is not improved by this and is made slightly worse.** |
+ 
+ ## Update procedure
+ 
+diff --git a/packages/exam-scoring/src/index.ts b/packages/exam-scoring/src/index.ts
+index 387f597..8e31297 100644
+--- a/packages/exam-scoring/src/index.ts
++++ b/packages/exam-scoring/src/index.ts
+@@ -15,7 +15,8 @@
+  *   Fitted and reported here, but deliberately NOT part of {@link scoreExam}'s output: it is a
+  *   labelled hypothesis, so it stays outside the scored decision until someone chooses otherwise.
+  *   {@link nextTargetTheta} is the projection an administering caller needs to aim the next trial;
+- *   choosing the item itself belongs to `@gt-selection/exam-engine`.
++ *   choosing the item itself belongs to `@gt-selection/exam-engine`. {@link scheduledTargetTheta} is
++ *   the exogenous alternative to that projection, measured but not wired (D-206).
+  */
+ export * from './metric-ids';
+ export * from './types';
+diff --git a/packages/exam-scoring/src/learning-curve.test.ts b/packages/exam-scoring/src/learning-curve.test.ts
+index e77c6f6..75ad93a 100644
+--- a/packages/exam-scoring/src/learning-curve.test.ts
++++ b/packages/exam-scoring/src/learning-curve.test.ts
+@@ -5,6 +5,7 @@ import {
+   MIN_TRIALS_FOR_PROJECTION,
+   estimateLearningCurve,
+   nextTargetTheta,
++  scheduledTargetTheta,
+   type LearningTrial,
+ } from './learning-curve';
+ import { SCALE_MAX, SCALE_MIN } from './types';
+@@ -180,6 +181,107 @@ describe('estimateLearningCurve', () => {
+   });
+ });
+ 
++const FIVE_OPTION_FLOOR = 1 / 5;
++
++/**
++ * One cohort of children who learn NOTHING (λ_true = 0), administered end to end.
++ *
++ * Returns the fitted mean, the difficulty path each child was served, and how far that path climbed
++ * across the block. The paths come back because the two questions this file has to answer need the
++ * same paths run twice: whether a manufactured climb appears at all (E-200's floor guard below), and
++ * whether it appears because the path ROSE or because the child's own answers CHOSE it (E-205's loop
++ * guard further down). Replaying a path with a different answer stream is the only way to separate
++ * those, and it needs the paths.
++ *
++ * Shared at module scope rather than duplicated per block, so the two guards cannot drift apart on
++ * cohort size, spread, or handover noise and start measuring different things.
++ */
++function nullCohort(
++  fitGuessing: number,
++  targeting: 'adaptive' | { scheduleRate: number } = 'adaptive',
++  replayPaths?: readonly number[][],
++  answerSalt = 0,
++): { lambdaMean: number; lambdaSeMean: number; paths: number[][]; difficultyClimb: number } {
++  const CHILDREN = 120;
++  const LENGTH = 30;
++  let total = 0;
++  let totalSe = 0;
++  let climb = 0;
++  const paths: number[][] = [];
++
++  for (let c = 0; c < CHILDREN; c += 1) {
++    const rand = mulberry32(9000 + c + answerSalt);
++    // Spread the cohort over the scale so the result is not a property of one starting point,
++    // and hand over a standing estimate that is close but not exact, as Phase 1 does.
++    const theta0 = 7 + 7 * rand();
++    const standing = theta0 + 1.5 * (rand() - 0.5) * 2;
++    const trials: LearningTrial[] = [];
++    const path: number[] = [];
++
++    for (let t = 0; t < LENGTH; t += 1) {
++      let difficulty: number;
++      if (replayPaths !== undefined) {
++        difficulty = replayPaths[c]?.[t] ?? standing + 1;
++      } else if (targeting === 'adaptive') {
++        difficulty =
++          Math.round(
++            nextTargetTheta(trials, {
++              standingEstimate: standing,
++              targetOffset: 1,
++              slope: SLOPE,
++              guessing: fitGuessing,
++            }) * 2,
++          ) / 2;
++      } else {
++        difficulty =
++          Math.round(
++            scheduledTargetTheta(t, {
++              standingEstimate: standing,
++              targetOffset: 1,
++              rate: targeting.scheduleRate,
++            }) * 2,
++          ) / 2;
++      }
++      // λ_true = 0: ability never moves. The five-option floor is the child's, not the fit's.
++      const star = 1 / (1 + Math.exp(-SLOPE * (theta0 - difficulty)));
++      const p = FIVE_OPTION_FLOOR + (1 - FIVE_OPTION_FLOOR) * star;
++      trials.push({ difficulty, score: rand() < p ? 1 : 0, trialIndex: t });
++      path.push(difficulty);
++    }
++
++    const fit = estimateLearningCurve(trials, {
++      slope: SLOPE,
++      priorTheta0Mean: standing,
++      guessing: fitGuessing,
++    });
++    total += fit.lambda;
++    totalSe += fit.lambdaSe;
++    const third = Math.floor(LENGTH / 3);
++    const meanOf = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
++    climb += meanOf(path.slice(-third)) - meanOf(path.slice(0, third));
++    paths.push(path);
++  }
++
++  return {
++    lambdaMean: total / CHILDREN,
++    lambdaSeMean: totalSe / CHILDREN,
++    paths,
++    difficultyClimb: climb / CHILDREN,
++  };
++}
++
++/**
++ * Mean fitted λ over a cohort that learned nothing, run through the real closed loop.
++ *
++ * The loop is the point: `nextTargetTheta` chooses each difficulty from the fit so far, so the
++ * answers being fitted are the answers that chose what they were fitted against. Walking a preset
++ * ladder instead makes this metric ~0 whatever the floor, which is why the simulation has to
++ * re-target rather than walk one.
++ */
++function nullCohortLambdaMean(fitGuessing: number): number {
++  return nullCohort(fitGuessing).lambdaMean;
++}
++
+ /**
+  * The guard on the floor itself (E-200).
+  *
+@@ -195,53 +297,6 @@ describe('estimateLearningCurve', () => {
+  * quietly stop guarding anything at all.
+  */
+ describe('the guessing floor is not misspecified', () => {
+-  const FIVE_OPTION_FLOOR = 1 / 5;
+-
+-  /**
+-   * Mean fitted λ over a cohort of children who learn NOTHING, run through the real closed loop.
+-   *
+-   * The loop is the point: `nextTargetTheta` chooses each difficulty from the fit so far, so an
+-   * inflated fit is served harder items and then reads its own difficulty walk back as a climb.
+-   * Serving a fixed difficulty instead makes this metric ~0 whatever the floor, which is why the
+-   * simulation has to re-target rather than walk a preset ladder.
+-   */
+-  function nullCohortLambdaMean(fitGuessing: number): number {
+-    const CHILDREN = 120;
+-    const LENGTH = 30;
+-    let total = 0;
+-
+-    for (let c = 0; c < CHILDREN; c += 1) {
+-      const rand = mulberry32(9000 + c);
+-      // Spread the cohort over the scale so the result is not a property of one starting point,
+-      // and hand over a standing estimate that is close but not exact, as Phase 1 does.
+-      const theta0 = 7 + 7 * rand();
+-      const standing = theta0 + 1.5 * (rand() - 0.5) * 2;
+-      const trials: LearningTrial[] = [];
+-
+-      for (let t = 0; t < LENGTH; t += 1) {
+-        const target = nextTargetTheta(trials, {
+-          standingEstimate: standing,
+-          targetOffset: 1,
+-          slope: SLOPE,
+-          guessing: fitGuessing,
+-        });
+-        const difficulty = Math.round(target * 2) / 2;
+-        // λ_true = 0: ability never moves. The five-option floor is the child's, not the fit's.
+-        const star = 1 / (1 + Math.exp(-SLOPE * (theta0 - difficulty)));
+-        const p = FIVE_OPTION_FLOOR + (1 - FIVE_OPTION_FLOOR) * star;
+-        trials.push({ difficulty, score: rand() < p ? 1 : 0, trialIndex: t });
+-      }
+-
+-      total += estimateLearningCurve(trials, {
+-        slope: SLOPE,
+-        priorTheta0Mean: standing,
+-        guessing: fitGuessing,
+-      }).lambda;
+-    }
+-
+-    return total / CHILDREN;
+-  }
+-
+   /**
+    * Widest manufactured climb the shipped default may produce for a cohort that learned nothing.
+    *
+@@ -270,6 +325,90 @@ describe('the guessing floor is not misspecified', () => {
+   });
+ });
+ 
++/**
++ * The guard on WHY the residual survives a correct floor (E-205).
++ *
++ * The block above bounds the residual at 0.02 and says nothing about where it comes from. Its own
++ * comment used to say the fit "reads its own rising difficulty walk as a genuine climb", and that is
++ * measurably not the mechanism: the rising walk is innocent. What produces the climb is that the walk
++ * is a function of the child's own earlier answers. These assertions are the difference between those
++ * two statements, and they exist so the corrected explanation cannot drift back.
++ *
++ * Every assertion below compares two cohorts rather than testing one against a number. That is
++ * deliberate: absolute bounds on a Monte-Carlo mean either have to be loose enough to be vacuous or
++ * tight enough to be a tuned threshold, and a paired contrast is neither.
++ */
++describe('the manufactured climb is the loop, not the ladder', () => {
++  const FIT_FLOOR = DEFAULT_GUESSING;
++
++  it('is removed by replaying the SAME difficulty paths against independent answers', () => {
++    const closedLoop = nullCohort(FIT_FLOOR);
++    // Identical paths, identical children, different answers. Only the dependence is cut.
++    const replayed = nullCohort(FIT_FLOOR, 'adaptive', closedLoop.paths, 777);
++
++    expect(closedLoop.lambdaMean).toBeGreaterThan(0);
++    expect(replayed.lambdaMean).toBeLessThan(closedLoop.lambdaMean);
++    // Not merely smaller: the sign goes away, which no rescaling of a path effect would do.
++    expect(replayed.lambdaMean).toBeLessThanOrEqual(0);
++  });
++
++  it('does not come back when the ladder rises FASTER, so long as it rises exogenously', () => {
++    const closedLoop = nullCohort(FIT_FLOOR);
++    // A schedule at 0.10 per trial climbs several times as far across the block as the adaptive rule
++    // does, and it is fixed before the block starts. If a rising ladder were the cause, this is the
++    // cohort that would manufacture the most.
++    const steepButExogenous = nullCohort(FIT_FLOOR, { scheduleRate: 0.1 });
++
++    expect(steepButExogenous.difficultyClimb).toBeGreaterThan(closedLoop.difficultyClimb);
++    expect(Math.abs(steepButExogenous.lambdaMean)).toBeLessThan(Math.abs(closedLoop.lambdaMean));
++  });
++
++  it('costs posterior precision to remove, which is the trade and not a footnote', () => {
++    // The same cohort of children, the same fit, the same 30 trials — only the administration
++    // differs. A remedy that removed the bias for free would show no difference here, and that
++    // would be the surprising result rather than the expected one.
++    const underLoop = nullCohort(FIT_FLOOR);
++    const underSchedule = nullCohort(FIT_FLOOR, { scheduleRate: 0.06 });
++
++    // A schedule aims at a rate rather than at the child, so it spends part of the block away from
++    // where the items carry the most information and the posterior on the climb is wider. Gate A's
++    // A4 and its reportability row price this; without this assertion the remedy would look free.
++    expect(underSchedule.lambdaSeMean).toBeGreaterThan(underLoop.lambdaSeMean);
++  });
++});
++
++describe('scheduledTargetTheta', () => {
++  it('cannot depend on the responses, because it is never given any', () => {
++    // Not a behavioural assertion so much as a restatement of the signature, which is the property
++    // the remedy rests on: two children with the same standing estimate are served the same path
++    // whatever they answer.
++    const a = scheduledTargetTheta(7, { standingEstimate: 11, targetOffset: 1, rate: 0.06 });
++    const b = scheduledTargetTheta(7, { standingEstimate: 11, targetOffset: 1, rate: 0.06 });
++    expect(a).toBe(b);
++    expect(a).toBeCloseTo(11 + 1 + 0.06 * 7, 10);
++  });
++
++  it('climbs monotonically and stays on the reportable scale at both ends', () => {
++    const rising = Array.from({ length: 40 }, (_, t) =>
++      scheduledTargetTheta(t, { standingEstimate: 18, targetOffset: 1, rate: 0.5 }),
++    );
++    for (let i = 1; i < rising.length; i += 1) {
++      expect(rising[i]!).toBeGreaterThanOrEqual(rising[i - 1]!);
++      expect(rising[i]!).toBeLessThanOrEqual(SCALE_MAX);
++    }
++    expect(
++      scheduledTargetTheta(10, { standingEstimate: 2, targetOffset: 0, rate: -1 }),
++    ).toBeGreaterThanOrEqual(SCALE_MIN);
++  });
++
++  it('reduces to the standing handover at the first trial and at rate zero', () => {
++    expect(scheduledTargetTheta(0, { standingEstimate: 12, targetOffset: 1, rate: 0.06 })).toBe(13);
++    for (const t of [0, 5, 29]) {
++      expect(scheduledTargetTheta(t, { standingEstimate: 12, targetOffset: 1, rate: 0 })).toBe(13);
++    }
++  });
++});
++
+ describe('nextTargetTheta', () => {
+   it('holds at the standing estimate plus the offset until a projection is possible', () => {
+     for (let n = 0; n < MIN_TRIALS_FOR_PROJECTION; n += 1) {
+diff --git a/packages/exam-scoring/src/learning-curve.ts b/packages/exam-scoring/src/learning-curve.ts
+index 66f1b3a..82cfb33 100644
+--- a/packages/exam-scoring/src/learning-curve.ts
++++ b/packages/exam-scoring/src/learning-curve.ts
+@@ -111,12 +111,17 @@ const LAMBDA_BOUND = 1;
+  * is what this estimator shipped with — the fit has no way to explain a success on an item well
+  * above the child's level except as ability, and inside an adaptive block that error compounds
+  * rather than averaging out: the inflated fit raises `theta0`, `nextTargetTheta` aims the next item
+- * higher, and the fit then reads its own rising difficulty walk as a genuine climb. Measured
+- * against a responder with a real five-option floor and no learning at all (λ_true = 0 for every
+- * child, 400 children, idealised grid, 30 trials), the `guessing = 0` fit returns λ̄ = 0.0398 ±
+- * 0.0043 and `learningRateReadout` calls 32.8% of those non-learners `above` average pace. At this
+- * floor the same cohort returns λ̄ = 0.0011 ± 0.0033 and 5.3%. E-200 records the measurement;
+- * `learning-curve.test.ts` asserts both halves so the floor cannot be reverted quietly.
++ * higher, and the answers to those harder items are then read back through a fit whose own output
++ * chose them. Measured against a responder with a real five-option floor and no learning at all
++ * (λ_true = 0 for every child, 400 children, idealised grid, 30 trials), the `guessing = 0` fit
++ * returns λ̄ = 0.0398 ± 0.0043 and `learningRateReadout` calls 32.8% of those non-learners `above`
++ * average pace. At this floor the same cohort returns λ̄ = 0.0011 ± 0.0033 and 5.3%. E-200 records
++ * the measurement; `learning-curve.test.ts` asserts both halves so the floor cannot be reverted
++ * quietly.
++ *
++ * The floor is not the whole defect and this correction does not close it. A RESIDUAL λ̄ ≈ +0.009
++ * survives at a correctly specified floor, and E-205 localises it to the closed loop rather than to
++ * the floor or to any bank — see {@link nextTargetTheta} and {@link scheduledTargetTheta}.
+  *
+  * 0.2 rather than a per-item reciprocal because the fit takes one floor for the whole block and the
+  * block is administered from one area's pool. `FLU-OPCHAIN-01`, the bank Stage 2 builds the block
+@@ -263,6 +268,22 @@ export interface TargetingOptions extends LearningCurveOptions {
+  *
+  * Below `MIN_TRIALS_FOR_PROJECTION` the fit is dominated by its prior and carries no real
+  * information, so the standing estimate is returned unchanged instead of pretending to project.
++ *
++ * THIS RULE IS THE MEASURED SOURCE OF THE RESIDUAL NULL CLIMB, AND IT IS NOT FIXABLE IN THE FIT.
++ * Because the target is `theta0 + lambda * nextIndex`, the served difficulty rises at whatever rate
++ * the running fit has estimated; a flat accuracy series over a path rising at that rate is exactly
++ * the signature of an ability rising at that rate, so the estimate is written into the design and
++ * then read back out. In statistical terms the served difficulty is ENDOGENOUS — a function of the
++ * child's own earlier answers — which is a different failure from an omitted covariate and does not
++ * respond to the same remedies.
++ *
++ * E-205 separates the two by replaying the IDENTICAL difficulty path against an independent
++ * response stream: the rising path alone manufactures nothing (λ̄ = −0.0039 ± 0.0010 on the
++ * bank-free grid, against +0.0085 ± 0.0013 for the same path when the responses being fitted are the
++ * ones that chose it). Conditioning the fit on served difficulty with a free coefficient — the shape
++ * of the pre-registered Gate B statistic — makes it WORSE, not better (+0.0167), because difficulty
++ * is not missing from the fit, it is endogenous within it. {@link scheduledTargetTheta} is the arm
++ * that removes it, and what that costs is recorded in D-206.
+  */
+ export function nextTargetTheta(
+   trials: readonly LearningTrial[],
+@@ -283,3 +304,53 @@ export function nextTargetTheta(
+   const nextIndex = trials.length;
+   return clamp(fit.theta0 + fit.lambda * nextIndex + targetOffset, min, max);
+ }
++
++export interface ScheduledTargetOptions {
++  /** Settled standing estimate handed over from the bracketing phase. The only anchor. */
++  readonly standingEstimate: number;
++  /** Offset added to the schedule, in scale points. The same knob as `TargetingOptions`. */
++  readonly targetOffset?: number;
++  /**
++   * Rate the schedule climbs at, in scale points per trial.
++   *
++   * A DESIGN CONSTANT, not an estimate, and that is the whole point — it must be fixed before the
++   * block starts and must not be derived from the block's own responses. Its value trades nothing
++   * about the null cohort (see below) and everything about who the block tracks: at 0 the schedule
++   * is flat and a fast learner finishes the block on items well below them; at the population mean
++   * it tracks an average learner and still under-serves the fastest. There is no value that is right
++   * for every child, which is the cost this arm carries and D-206 records.
++   */
++  readonly rate: number;
++  readonly min?: number;
++  readonly max?: number;
++}
++
++/**
++ * Difficulty to aim trial `nextTrialIndex` at, from a schedule fixed before the block began.
++ *
++ * THE SIGNATURE IS THE GUARANTEE. This function is handed a trial index and a standing estimate and
++ * is given no access to the child's responses at all, so the difficulty it returns cannot be a
++ * function of them. That is what {@link nextTargetTheta} cannot promise and what makes the served
++ * difficulty exogenous: the fit is no longer reading back a path its own output chose.
++ *
++ * WHAT IT BUYS AND WHAT IT COSTS, both measured over 3,200 simulated children per cell (E-205).
++ * On a cohort that learned nothing, the shipped adaptive rule fits λ̄ = +0.0097 ± 0.0011 on
++ * `FLU-OPCHAIN-01`; this schedule at the population rate fits −0.0019 ± 0.0008, and every rate from
++ * 0 to 0.30 lands in the same narrow band — the rate is not what removes the artifact, exogeneity is.
++ * The price is paid twice over. The posterior SE widens by about a third (0.063 → 0.085 at 30
++ * trials), which under D-200 part 2 directly reduces how often a band may be named. And a schedule
++ * pitched at one rate is wrong for children away from it: a λ = 0.15 learner works the block at 59%
++ * accuracy under a 0.06 schedule against 50% under the adaptive rule, so the fastest learners spend
++ * the block below their level — a ceiling for exactly the children R5 and R6 exist to measure.
++ *
++ * NOT WIRED. D-206 is Proposed, Gate B has not run, and no live surface administers from this. It
++ * exists so Gate A can be measured under it and so the trade can be reviewed against numbers.
++ */
++export function scheduledTargetTheta(
++  nextTrialIndex: number,
++  options: ScheduledTargetOptions,
++): number {
++  const { standingEstimate, targetOffset = 0, rate, min = SCALE_MIN, max = SCALE_MAX } = options;
++  const index = Number.isFinite(nextTrialIndex) ? Math.max(0, nextTrialIndex) : 0;
++  return clamp(standingEstimate + targetOffset + rate * index, min, max);
++}
+diff --git a/research/exam-question-types/lambda-endogeneity-gate-a.mjs b/research/exam-question-types/lambda-endogeneity-gate-a.mjs
+new file mode 100644
+index 0000000..b555c4c
+--- /dev/null
++++ b/research/exam-question-types/lambda-endogeneity-gate-a.mjs
+@@ -0,0 +1,314 @@
++// Gate A before and after the endogeneity remedy, on every bank a Stage 2 track has measured.
++//
++// Contains no measurement logic. Every figure comes out of `pnpm exam:block-harness --gate-a`, the
++// shared U0 harness, invoked with existing flags; this file only chooses the invocations, repeats
++// them over seeds, and aggregates. The two arms of the comparison differ in ONE flag, `--targeting`,
++// so the before/after contrast cannot be confounded with anything else about the driver.
++//
++// WHY BOTH ARMS COME OUT OF ONE INVOCATION SET AND NOT TWO REPORTS. The published Gate A reports for
++// SPA-XFORM-01, QUANT-GLYPHNUM-01 and VER-MORPHO-01 each measured A1 against a bank-free bound
++// computed by a DIFFERENT probe than the one that produced their bank rows. That is defensible for
++// what those reports were asking, but a before/after on a change to the estimator package needs the
++// bound and the banks on identical code, so `--bank ideal-grid` runs the grid through the same
++// `gateA()` path as a bank and appears here as one more pool.
++//
++// WHY EIGHT SEEDS. STAGE2_BANK_RECOVERY_MEASUREMENT §9 found the harness's default seed
++// unrepresentative in both directions, with single-seed cells carrying roughly ±0.04 of noise on `r`.
++// Eight seeds at 400 children per cell is 3,200 simulated children per number. TWO distances from
++// zero are therefore reported for A1 and they answer different questions:
++//
++//   * `per-cell A1` is the harness's own verdict, |λ̄| <= 2 x the Monte-Carlo SE WITHIN one cell of
++//     400 children. It is what "does A1 pass" means operationally, and it is what the sibling reports
++//     quote a verdict from.
++//   * `pooled SEs from 0` is |mean over seeds| / (SE of the eight seed means), which is roughly
++//     sqrt(8) times more powerful and will therefore call a residual that the per-cell test cannot
++//     see. Reporting only the first would let a remedy pass by widening its own error bar, which is
++//     exactly the failure `--fix-probe`'s header warns about.
++//
++// THE THREE STAGE 2 BANKS ARE NOT ON THIS BRANCH and must not be copied onto it — each is owned by
++// its own track. Extract them read-only first and pass the paths:
++//
++//   mkdir -p /tmp/gt-stage2-banks
++//   git show feat/stage2-spa-xform:research/exam-question-types/banks/SPA-XFORM-01.jsonl \
++//     > /tmp/gt-stage2-banks/SPA-XFORM-01.jsonl
++//   git show feat/stage2-quant-glyphnum:research/exam-question-types/banks/QUANT-GLYPHNUM-01.jsonl \
++//     > /tmp/gt-stage2-banks/QUANT-GLYPHNUM-01.jsonl
++//   git show feat/stage2-ver-morpho:research/exam-question-types/banks/VER-MORPHO-01.jsonl \
++//     > /tmp/gt-stage2-banks/VER-MORPHO-01.jsonl
++//
++// CLAIM BOUNDARY. Born-synthetic against `validated: false` banks. Nothing here is evidence about a
++// real child; passing Gate A is not passing the gate (STAGE2_QUESTION_DESIGN §4.1.2); and Gate B has
++// not run, so no absolute learning rate is licensed by anything below.
++//
++// Run:  node research/exam-question-types/lambda-endogeneity-gate-a.mjs [/tmp/gt-stage2-banks]
++//       (about fifteen minutes; writes markdown to stdout)
++
++import { execFileSync } from 'node:child_process';
++import { existsSync } from 'node:fs';
++import { dirname, join, resolve } from 'node:path';
++import { fileURLToPath } from 'node:url';
++
++const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
++const EXTERNAL_BANK_DIR = process.argv[2] ?? '/tmp/gt-stage2-banks';
++
++/**
++ * The seed set the SPA-XFORM-01, VER-MORPHO-01 and FLU-OPCHAIN-01 reports use.
++ *
++ * QUANT-GLYPHNUM-01's report used a different set, so its published "before" figure is on different
++ * children from the row below. The reconciliation row at the end runs its set too, rather than
++ * quietly comparing across seed sets.
++ */
++const SEEDS = [20260730, 11, 22, 33, 44, 55, 66, 77];
++const GLYPHNUM_SEEDS = [20260730, 11, 202, 3003, 40404, 555555, 6060606, 77777777];
++
++/**
++ * The pools, with the responder floor each one's item format makes exact.
++ *
++ * `fitFloor` is what the ESTIMATOR assumes. It equals the responder floor everywhere except
++ * VER-MORPHO-01, whose items are four-option while the shipped `DEFAULT_GUESSING` is 0.2 — that gap
++ * is deliberate and is the arm that bank's own Gate A report publishes, so it is carried here
++ * unchanged. Changing it would make this a different measurement from the one being compared against.
++ */
++const POOLS = [
++  { label: 'ideal grid (no bank)', ref: 'ideal-grid', guessing: 0.2, fitFloor: 0.2, options: 5 },
++  { label: 'FLU-OPCHAIN-01', ref: 'FLU-OPCHAIN-01', guessing: 0.2, fitFloor: 0.2, options: 5 },
++  { label: 'SPA-XFORM-01', ref: 'SPA-XFORM-01', guessing: 0.2, fitFloor: 0.2, options: 5 },
++  {
++    label: 'QUANT-GLYPHNUM-01',
++    ref: 'QUANT-GLYPHNUM-01',
++    guessing: 0.2,
++    fitFloor: 0.2,
++    options: 5,
++  },
++  { label: 'VER-MORPHO-01', ref: 'VER-MORPHO-01', guessing: 0.25, fitFloor: 0.2, options: 4 },
++];
++
++function bankArgument(ref) {
++  if (ref === 'ideal-grid') return ref;
++  const local = join(ROOT, 'research/exam-question-types/banks', `${ref}.jsonl`);
++  if (existsSync(local)) return ref;
++  const external = join(EXTERNAL_BANK_DIR, `${ref}.jsonl`);
++  if (existsSync(external)) return external;
++  throw new Error(
++    `${ref} is on neither this branch nor ${EXTERNAL_BANK_DIR}. See the extraction commands in the ` +
++      `header of this file.`,
++  );
++}
++
++function harness(args) {
++  try {
++    return execFileSync('pnpm', ['--silent', 'exam:block-harness', '--', ...args], {
++      cwd: ROOT,
++      encoding: 'utf8',
++      maxBuffer: 128 * 1024 * 1024,
++      stdio: ['ignore', 'pipe', 'ignore'],
++    }).toString();
++    // `--gate-a` exits nonzero whenever a check fails, which is the normal case here and must not
++    // abort the run: reporting the failure IS the deliverable.
++  } catch (error) {
++    return (error.stdout ?? '').toString();
++  }
++}
++
++/** The `gateA` array the harness emits under `--json`, for the consistent arm. */
++function gateAReport(pool, targeting, seed) {
++  const args = [
++    '--gate-a',
++    '--bank',
++    bankArgument(pool.ref),
++    '--guessing',
++    String(pool.guessing),
++    '--fit-guessing',
++    String(pool.fitFloor),
++    '--target-guessing',
++    String(pool.fitFloor),
++    '--seed',
++    String(seed),
++    '--targeting',
++    targeting,
++    '--json',
++  ];
++  const out = harness(args);
++  const start = out.indexOf('{\n  "gateA"');
++  if (start < 0) throw new Error(`no JSON in harness output for ${pool.label} / ${targeting}`);
++  const parsed = JSON.parse(out.slice(start));
++  const report = parsed.gateA?.[0];
++  if (report === undefined) throw new Error(`empty gateA report for ${pool.label}`);
++  return report;
++}
++
++const mean = (xs) => xs.reduce((a, b) => a + b, 0) / xs.length;
++const sd = (xs) =>
++  Math.sqrt(xs.reduce((a, b) => a + (b - mean(xs)) ** 2, 0) / Math.max(1, xs.length - 1));
++const seOfMean = (xs) => sd(xs) / Math.sqrt(xs.length);
++const verdict = (checks, id) => checks.find((c) => c.id === id)?.pass === true;
++const f = (x, places = 4) => (Number.isFinite(x) ? x.toFixed(places) : 'n/a');
++
++function cell(pool, targeting, seeds) {
++  const nullMeans = [];
++  const rs = [];
++  const meanSes = [];
++  const fitSds = [];
++  const wide = [];
++  const barred = [];
++  let a1PerCell = 0;
++  let a3 = 0;
++  let a4 = 0;
++  for (const seed of seeds) {
++    const report = gateAReport(pool, targeting, seed);
++    nullMeans.push(report.nullMean);
++    rs.push(report.recovery.r);
++    meanSes.push(report.recovery.meanSe);
++    fitSds.push(report.fitLambdaSd);
++    wide.push(report.reportability.atWideReference);
++    barred.push(report.reportability.withDeclaredFloor);
++    if (verdict(report.checks, 'A1')) a1PerCell += 1;
++    if (verdict(report.checks, 'A3')) a3 += 1;
++    if (verdict(report.checks, 'A4')) a4 += 1;
++  }
++  const nullMean = mean(nullMeans);
++  const nullSe = seOfMean(nullMeans);
++  return {
++    nullMean,
++    nullSe,
++    pooledZ: Math.abs(nullMean / nullSe),
++    a1PerCell,
++    a3,
++    a4,
++    r: mean(rs),
++    meanSe: mean(meanSes),
++    fitLambdaSd: mean(fitSds),
++    reportableWide: mean(wide),
++    reportableBarred: mean(barred),
++    n: seeds.length,
++  };
++}
++
++console.log('# Gate A, before and after the endogeneity remedy\n');
++console.log(
++  'Born-synthetic. Every bank carries `validated: false`; nothing here is evidence about a real\n' +
++    'child, and clearing Gate A is not clearing the gate (STAGE2_QUESTION_DESIGN §4.1.2).\n',
++);
++console.log(
++  '`before` is `--targeting adaptive`, the shipped closed loop. `after` is `--targeting scheduled`,\n' +
++    'which administers from `scheduledTargetTheta` at the population rate. One flag differs. 400\n' +
++    `children per cell, ${SEEDS.length} seeds, 30 trials, λ ~ N(0.06, 0.03²), θ0 ~ N(10.5, 3²), handover noise\n` +
++    'SD 1.5, slope 1.0, target offset +1.\n',
++);
++
++const rows = [];
++for (const pool of POOLS) {
++  const before = cell(pool, 'adaptive', SEEDS);
++  const after = cell(pool, 'scheduled', SEEDS);
++  rows.push({ pool, before, after });
++}
++
++console.log('## A1 — a cohort that learned nothing\n');
++console.log(
++  '| pool | arm | null λ̄ | ± pooled SE | pooled SEs from 0 | per-cell A1 (harness verdict) |',
++);
++console.log('| --- | --- | --- | --- | --- | --- |');
++for (const { pool, before, after } of rows) {
++  for (const [name, c] of [
++    ['before', before],
++    ['after', after],
++  ]) {
++    console.log(
++      `| ${pool.label} | ${name} | ${f(c.nullMean)} | ${f(c.nullSe)} | ${f(c.pooledZ, 1)} | ` +
++        `${c.a1PerCell}/${c.n} ${c.a1PerCell === c.n ? 'PASS' : c.a1PerCell === 0 ? 'FAIL' : 'SPLIT'} |`,
++    );
++  }
++}
++
++console.log('\n## A4 — recovery and precision, which is what the remedy costs\n');
++console.log(
++  '| pool | arm | r (E-095: 0.448) | mean posterior SE (E-095: 0.047) | fitted-λ SD | per-cell A4 | per-cell A3 |',
++);
++console.log('| --- | --- | --- | --- | --- | --- | --- |');
++for (const { pool, before, after } of rows) {
++  for (const [name, c] of [
++    ['before', before],
++    ['after', after],
++  ]) {
++    console.log(
++      `| ${pool.label} | ${name} | ${f(c.r, 3)} | ${f(c.meanSe, 3)} | ${f(c.fitLambdaSd)} | ` +
++        `${c.a4}/${c.n} | ${c.a3}/${c.n} |`,
++    );
++  }
++}
++
++console.log('\n## Reportability — the cost A1 and A4 cannot see\n');
++console.log(
++  'A band is named only when posterior SE PLUS the declared contamination floor is narrower than the\n' +
++    'band half-width (D-200 part 2). The remedy lowers the floor and widens the SE, so this column can\n' +
++    'move against the remedy even where A1 improves. `with declared floor` is the binding one: the\n' +
++    "floor declared is that arm's own A1 mean.\n",
++);
++console.log(
++  '| pool | arm | reportable at SD 0.15 | reportable with declared floor | SE + floor | band half-width |',
++);
++console.log('| --- | --- | --- | --- | --- | --- |');
++for (const { pool, before, after } of rows) {
++  for (const [name, c] of [
++    ['before', before],
++    ['after', after],
++  ]) {
++    console.log(
++      `| ${pool.label} | ${name} | ${f(100 * c.reportableWide, 1)}% | ` +
++        `${f(100 * c.reportableBarred, 1)}% | ${f(c.meanSe + Math.max(0, c.nullMean), 3)} | 0.075 |`,
++    );
++  }
++}
++
++console.log('\n## Paired change, per pool\n');
++console.log(
++  '| pool | Δ null λ̄ | Δ r | Δ mean SE | Δ reportable (declared floor) | A1 per-cell before → after |',
++);
++console.log('| --- | --- | --- | --- | --- | --- |');
++for (const { pool, before, after } of rows) {
++  console.log(
++    `| ${pool.label} | ${f(after.nullMean - before.nullMean)} | ${f(after.r - before.r, 3)} | ` +
++      `${f(after.meanSe - before.meanSe, 3)} | ` +
++      `${f(100 * (after.reportableBarred - before.reportableBarred), 1)} pp | ` +
++      `${before.a1PerCell}/${before.n} → ${after.a1PerCell}/${after.n} |`,
++  );
++}
++
++console.log('\n## Are the two defects separable? VER-MORPHO-01 with its floor corrected\n');
++console.log(
++  'VER-MORPHO-01 is the one pool whose items are four-option while the shipped estimator assumes\n' +
++    'five, so it carries an E-200 FLOOR misspecification on top of the endogeneity. If the two are\n' +
++    'separate defects, correcting the floor as well should take the remaining climb to the same place\n' +
++    'the correctly specified pools reach, and the remedy should still be worth the same ~0.011.\n',
++);
++const morphoSpecified = {
++  ...POOLS.find((p) => p.ref === 'VER-MORPHO-01'),
++  label: 'VER-MORPHO-01 (floor specified, 0.25)',
++  fitFloor: 0.25,
++};
++console.log('| arm | null λ̄ | ± pooled SE | pooled SEs from 0 | per-cell A1 | r | mean SE |');
++console.log('| --- | --- | --- | --- | --- | --- | --- |');
++for (const targeting of ['adaptive', 'scheduled']) {
++  const c = cell(morphoSpecified, targeting, SEEDS);
++  console.log(
++    `| ${targeting === 'adaptive' ? 'before' : 'after'} | ${f(c.nullMean)} | ${f(c.nullSe)} | ` +
++      `${f(c.pooledZ, 1)} | ${c.a1PerCell}/${c.n} | ${f(c.r, 3)} | ${f(c.meanSe, 3)} |`,
++  );
++}
++
++console.log('\n## Reconciliation — QUANT-GLYPHNUM-01 on its own published seed set\n');
++console.log(
++  "Its Gate A report used a different set of eight seeds from the other three, so the row above is on\n" +
++    'different simulated children from its published figure. Both are reported rather than compared\n' +
++    'across seed sets.\n',
++);
++const glyphnum = POOLS.find((p) => p.ref === 'QUANT-GLYPHNUM-01');
++console.log('| arm | null λ̄ | ± pooled SE | pooled SEs from 0 | per-cell A1 | r | mean SE |');
++console.log('| --- | --- | --- | --- | --- | --- | --- |');
++for (const targeting of ['adaptive', 'scheduled']) {
++  const c = cell(glyphnum, targeting, GLYPHNUM_SEEDS);
++  console.log(
++    `| ${targeting === 'adaptive' ? 'before' : 'after'} | ${f(c.nullMean)} | ${f(c.nullSe)} | ` +
++      `${f(c.pooledZ, 1)} | ${c.a1PerCell}/${c.n} | ${f(c.r, 3)} | ${f(c.meanSe, 3)} |`,
++  );
++}
+diff --git a/scripts/exam-learning-block-harness.ts b/scripts/exam-learning-block-harness.ts
+index 731d0f5..86e8c02 100644
+--- a/scripts/exam-learning-block-harness.ts
++++ b/scripts/exam-learning-block-harness.ts
+@@ -35,15 +35,26 @@
+  *   pnpm exam:block-harness -- --noise-sweep         # sensitivity to the handover-noise SD
+  *   pnpm exam:block-harness -- --guessing-probe      # what the `guessing = 0` fit does to a static child
+  *   pnpm exam:block-harness -- --fix-probe           # every candidate remedy, costed side by side
++ *   pnpm exam:block-harness -- --endogeneity-probe   # WHY the residual survives a correct floor
+  *   pnpm exam:block-harness -- --gate-a --bank FLU-OPCHAIN-01
++ *   pnpm exam:block-harness -- --gate-a --bank FLU-OPCHAIN-01 --targeting scheduled
++ *   pnpm exam:block-harness -- --gate-a --bank ideal-grid    # the bank-free bound, same code path
+  *   pnpm exam:block-harness -- --gate-a --bank <path/to/bank.jsonl> --mode perTrial
+  *
+  * Flags: --children N  --length N  --lambda-mean X  --lambda-sd X  --standing-noise X
+  *        --guessing X  --fit-guessing X  --target-guessing X  --seed N  --json
++ *        --targeting adaptive|scheduled  --schedule-rate X
+  *
+  * `--guessing` is the SIMULATED CHILD's floor (the truth). `--fit-guessing` and `--target-guessing`
+  * are what the estimator assumes, in the readout fit and inside `nextTargetTheta` respectively.
+- * Keeping the three separate is the whole point: the defect is a disagreement between them.
++ * Keeping the three separate is the whole point: the FLOOR defect is a disagreement between them.
++ *
++ * `--targeting` is a different axis and answers a different question. `adaptive` is the shipped
++ * closed loop (`nextTargetTheta`); `scheduled` administers from `scheduledTargetTheta`, a schedule
++ * fixed before the block starts, which makes the served difficulty exogenous. E-205 shows the
++ * residual A1 failure is a property of that loop and not of the floor, so `--fix-probe` (which sweeps
++ * floors) and `--endogeneity-probe` (which sweeps the dependence structure) are two separate probes
++ * on purpose. `--fix-probe`'s table is cited by three published Gate A reports and is unchanged.
+  */
+ import { existsSync, readFileSync, readdirSync } from 'node:fs';
+ import { dirname, isAbsolute, join, resolve } from 'node:path';
+@@ -60,6 +71,7 @@ import {
+   estimateLearningCurve,
+   learningRateReadout,
+   nextTargetTheta,
++  scheduledTargetTheta,
+   type LearningTrial,
+ } from '../packages/exam-scoring/src';
+ 
+@@ -265,6 +277,17 @@ function gridPool(step: number, perRung: number): BankItem[] {
+   return items;
+ }
+ 
++/**
++ * The reference name that runs Gate A on the idealised grid instead of a bank.
++ *
++ * Three published Gate A reports quote "the bank-free bound" as the row that attributes A1 to the
++ * estimator rather than to any bank, and each computed it from a different probe than the one that
++ * produced its bank rows. §4.1.1's argument for one driver applies to that comparison as much as to
++ * the two arms: the bound and the bank should come out of the SAME code path, or the difference is
++ * confounded with the path. `--bank ideal-grid` is that path.
++ */
++const IDEAL_GRID_REF = 'ideal-grid';
++
+ /** Resolve `--bank` as a path, a bank file stem, or a bare type code, in either bank directory. */
+ function resolveBankPath(ref: string): string {
+   const candidates = [
+@@ -282,7 +305,8 @@ function resolveBankPath(ref: string): string {
+           .join(', ')
+       : '(missing)';
+   throw new Error(
+-    `no bank found for "${ref}".\n  banks/: ${listing(BANK_DIR)}\n  control-banks/: ${listing(CONTROL_BANK_DIR)}`,
++    `no bank found for "${ref}".\n  "${IDEAL_GRID_REF}" for the bank-free bound\n` +
++      `  banks/: ${listing(BANK_DIR)}\n  control-banks/: ${listing(CONTROL_BANK_DIR)}`,
+   );
+ }
+ 
+@@ -293,6 +317,13 @@ interface LoadedBank {
+ }
+ 
+ function loadBank(ref: string): LoadedBank {
++  if (ref === IDEAL_GRID_REF) {
++    return {
++      label: 'ideal 0.5-point grid (no bank)',
++      path: '(synthetic — gridPool(0.5, 12), no file)',
++      items: gridPool(0.5, 12),
++    };
++  }
+   const path = resolveBankPath(ref);
+   const items: BankItem[] = [];
+   for (const line of readFileSync(path, 'utf8').split('\n')) {
+@@ -318,6 +349,8 @@ function loadBank(ref: string): LoadedBank {
+  * naming neither, resolves to the requested one; a single-arm bank ignores the mode.
+  */
+ function bankRefForMode(ref: string, mode: Persistence): string {
++  // The grid has no arms: there is no system in it to make consistent or per-trial.
++  if (ref === IDEAL_GRID_REF) return ref;
+   const stem = ref.replace(/\.jsonl$/, '').replace(/\.(consistent|perTrial)$/, '');
+   if (mode === 'perTrial') {
+     const control = `${stem}.perTrial`;
+@@ -372,6 +405,30 @@ interface FitSpec {
+   readonly targeting: number;
+ }
+ 
++/**
++ * How the difficulty of the next trial is chosen. The axis E-205 turns on.
++ *
++ * `adaptive` is shipped: `nextTargetTheta` re-fits and projects, so the served difficulty is a
++ * function of the child's own earlier answers. The other three each break that dependence in a
++ * different place, and the differences between them are what attribute the residual null climb.
++ *
++ * - `frozen` holds the difficulty at `standing + offset` for the whole block. A diagnostic, not an
++ *   administration option: it removes the loop by removing adaptation altogether.
++ * - `scheduled` administers from `scheduledTargetTheta` — still climbing, but at a rate fixed before
++ *   the block began, so the path is exogenous while remaining a climb.
++ * - `replay` serves a difficulty path supplied from outside. Used to answer the question that
++ *   separates the two candidate causes: is it the SHAPE of the rising path, or the fact that the path
++ *   was chosen by the responses being fitted? Replaying one child's own path against an independent
++ *   response stream holds the shape fixed and cuts only the dependence.
++ */
++type TargetingMode =
++  | { readonly kind: 'adaptive' }
++  | { readonly kind: 'frozen' }
++  | { readonly kind: 'scheduled'; readonly rate: number }
++  | { readonly kind: 'replay'; readonly difficulties: readonly number[] };
++
++const ADAPTIVE: TargetingMode = { kind: 'adaptive' };
++
+ /**
+  * Administer one novel block, using the shipped administration path end to end.
+  *
+@@ -379,6 +436,10 @@ interface FitSpec {
+  * (`nextTargetTheta`), and the simulated child answers under a 1PL with an explicit guessing floor.
+  * Nothing about the block is pre-scripted: the difficulty walk is whatever the targeting rule and
+  * the bank's grid produce together, which is the only reason the run says anything about the bank.
++ *
++ * `responseStream` names the RNG stream the child answers from. It exists so the same child can be
++ * run twice on one difficulty path with independent answers, which is the `replay` diagnostic above;
++ * every other caller leaves it at the default and gets the same numbers as before.
+  */
+ function runBlock(
+   pool: readonly BankItem[],
+@@ -386,42 +447,61 @@ function runBlock(
+   length: number,
+   responder: Responder,
+   fit: FitSpec,
+-  staticTarget: boolean,
++  targeting: TargetingMode,
+   selectionSeed: number,
++  responseStream = 'response',
+ ): BlockRun {
+-  const rng = makeRng(`response|${child.seed}`);
++  const rng = makeRng(`${responseStream}|${child.seed}`);
+   const trials: LearningTrial[] = [];
+   const served: BlockRun['served'] = [];
+   const administered: string[] = [];
+   let exhausted = false;
+ 
+   for (let t = 0; t < length; t += 1) {
+-    // `staticTarget` is a diagnostic, not an administration option: it holds the difficulty at
+-    // `standing + offset` for the whole block, so the block still uses the real fit but no longer
+-    // feeds the fit's own output back into what gets served. It is the only way to separate what the
+-    // ESTIMATOR does from what the LOOP does, and the two need different remedies.
+-    const target = staticTarget
+-      ? clamp(child.standing + TARGET_OFFSET, SCALE_MIN, SCALE_MAX)
+-      : nextTargetTheta(trials, {
++    let target: number;
++    let difficulty: number;
++    if (targeting.kind === 'replay') {
++      const replayed = targeting.difficulties[t];
++      if (replayed === undefined) {
++        exhausted = true;
++        break;
++      }
++      // The path is given, so no selection happens and the served difficulty IS the target.
++      target = replayed;
++      difficulty = replayed;
++    } else {
++      if (targeting.kind === 'frozen') {
++        target = clamp(child.standing + TARGET_OFFSET, SCALE_MIN, SCALE_MAX);
++      } else if (targeting.kind === 'scheduled') {
++        target = scheduledTargetTheta(t, {
++          standingEstimate: child.standing,
++          targetOffset: TARGET_OFFSET,
++          rate: targeting.rate,
++        });
++      } else {
++        target = nextTargetTheta(trials, {
+           standingEstimate: child.standing,
+           targetOffset: TARGET_OFFSET,
+           slope: responder.slope,
+           guessing: fit.targeting,
+         });
+-    const item = selectNextNovelItem(pool, administered, target, selectionSeed);
+-    if (item === null) {
+-      exhausted = true;
+-      break;
++      }
++      const item = selectNextNovelItem(pool, administered, target, selectionSeed);
++      if (item === null) {
++        exhausted = true;
++        break;
++      }
++      administered.push(item.itemId);
++      difficulty = item.difficulty;
+     }
+-    administered.push(item.itemId);
+ 
+     const ability = child.theta0 + child.lambda * t;
+-    const star = 1 / (1 + Math.exp(-responder.slope * (ability - item.difficulty)));
++    const star = 1 / (1 + Math.exp(-responder.slope * (ability - difficulty)));
+     const p = responder.guessing + (1 - responder.guessing) * star;
+     const correct = rng() < p;
+ 
+-    trials.push({ difficulty: item.difficulty, score: correct ? 1 : 0, trialIndex: t });
+-    served.push({ difficulty: item.difficulty, target, correct });
++    trials.push({ difficulty, score: correct ? 1 : 0, trialIndex: t });
++    served.push({ difficulty, target, correct });
+   }
+ 
+   return { trials, served, exhausted };
+@@ -441,8 +521,27 @@ interface CohortOptions {
+   theta0Sd: number;
+   responder: Responder;
+   fit: FitSpec;
+-  /** Diagnostic: freeze the served difficulty instead of re-projecting it. See {@link runBlock}. */
+-  staticTarget?: boolean;
++  /** How the next difficulty is chosen. Defaults to the shipped loop. See {@link TargetingMode}. */
++  targeting?: TargetingMode;
++  /**
++   * Diagnostic: re-answer each child's OWN difficulty path from an independent RNG stream.
++   *
++   * Two passes per child. The first is whatever `targeting` says, and only its difficulty sequence is
++   * kept; the second replays that sequence against fresh answers. The path's shape, the child's
++   * ability and the standing handover are all held fixed, so the only thing that changes is whether
++   * the responses being fitted are the ones that chose the path. That difference is the endogeneity,
++   * isolated (E-205).
++   */
++  exogenousReplay?: boolean;
++  /**
++   * Alternative estimator for the reported climb, for arms that cost a candidate FIT rather than a
++   * candidate DESIGN. Defaults to the shipped `estimateLearningCurve`.
++   *
++   * Only `fitLambda` and `fitLambdaSe` come from it. The readout columns always use the shipped fit,
++   * because `learningRateReadout` fits internally, so those columns are meaningless for an
++   * alternative-fitter arm and `--endogeneity-probe` does not print them.
++   */
++  fitter?: CandidateFitter;
+   /**
+    * Contamination floor to declare on `A2_REFERENCE` for the third readout pass, which is how the
+    * cost of the evidence bar gets measured. Supplied from the matching λ_true = 0 run, so the bar is
+@@ -460,6 +559,14 @@ interface CohortResult {
+   fitLambdaSe: number[];
+   /** Mean served difficulty over the final third — §4.1.1's manipulation check observable. */
+   lateDifficulty: number[];
++  /**
++   * Mean served difficulty over the FIRST third.
++   *
++   * Carried so the difficulty CLIMB can be reported as `late − early`. `--endogeneity-probe` needs it
++   * to show when a row holds the climb fixed and changes only what chose it, which is the whole
++   * attribution.
++   */
++  earlyDifficulty: number[];
+   /** Highest difficulty served to each child, for the saturation check (A3). */
+   peakDifficulty: number[];
+   /** Highest difficulty each child's targeting rule ASKED for, before the pool had its say. */
+@@ -481,6 +588,15 @@ interface CohortResult {
+   exhaustedCount: number;
+   poolMax: number;
+   shortBlocks: number;
++  /**
++   * Mean proportion correct over the cohort.
++   *
++   * The observable that says whether a targeting rule is still aimed AT the children it is serving.
++   * §4.5 wants the block held near p = 0.5, where the linear climb is least wrong and the items carry
++   * the most information; a rule that drifts far above or below that has stopped measuring, whatever
++   * its null-cohort mean looks like.
++   */
++  meanAccuracy: number;
+ }
+ 
+ /**
+@@ -508,6 +624,234 @@ const A2_REFERENCE = { mean: 0, sd: 0.15, contaminationFloor: 0 } as const;
+  */
+ const NARROW_REFERENCE = { mean: 0.06, sd: 0.03, contaminationFloor: 0 } as const;
+ 
++// --- candidate estimators, all of them measured and all of them rejected --------
++
++/** What the reported climb is fitted with. Enough of `LearningCurveEstimate` to score a cohort. */
++type CandidateFitter = (
++  trials: readonly LearningTrial[],
++  priorTheta0Mean: number,
++  guessing: number,
++  slope: number,
++) => { lambda: number; lambdaSe: number };
++
++const shippedFitter: CandidateFitter = (trials, priorTheta0Mean, guessing, slope) =>
++  estimateLearningCurve(trials, { slope, priorTheta0Mean, guessing });
++
++/** Prior widths the shipped fit uses, restated here because the candidates must match it exactly. */
++const PRIOR_THETA0_SD = 6.0;
++const PRIOR_LAMBDA_SD = 0.15;
++
++/** Per-trial quantities for a logistic with a lower asymptote, plus d(information)/d(eta). */
++function trialTerms(eta: number, c: number, slope: number) {
++  const s = 1 / (1 + Math.exp(-eta));
++  const p = c + (1 - c) * s;
++  const u = s * (1 - s);
++  const info = p > 0 && p < 1 ? (slope * slope * (1 - c) * s * s * (1 - s)) / p : 0;
++  const dInfo =
++    p > 0
++      ? (slope * slope * (1 - c) * u * ((2 * s - 3 * s * s) * p - (s * s - s * s * s) * (1 - c))) /
++        (p * p)
++      : 0;
++  return { p, info, dInfo };
++}
++
++/**
++ * CANDIDATE 1 — a FREE coefficient on served difficulty.
++ *
++ * The shape of this project's own pre-registered Gate B statistic, which conditions on `difficulty`
++ * alongside `trialIndex` rather than pinning difficulty's coefficient to the discrimination. It is
++ * the first hypothesis anyone reaches for, and it is refuted: see `--endogeneity-probe`.
++ *
++ * The reason it cannot work is worth stating, because it generalises. Conditioning on a covariate
++ * removes the bias an OMITTED covariate causes. Served difficulty is not omitted here — it is already
++ * in the fit as a known offset — it is ENDOGENOUS, and freeing its coefficient does not make it
++ * exogenous. Worse, under adaptive targeting the served difficulty is very nearly a linear function
++ * of the trial index, so `beta` and `lambda` are close to collinear and the extra freedom is spent
++ * absorbing the very signal being measured.
++ */
++const freeDifficultyFitter: CandidateFitter = (trials, priorTheta0Mean, c, slope) => {
++  const pT0 = 1 / (PRIOR_THETA0_SD * PRIOR_THETA0_SD);
++  const pL = 1 / (PRIOR_LAMBDA_SD * PRIOR_LAMBDA_SD);
++  // Weak prior on beta, centred on the coefficient the shipped fit pins. Without it the arm would be
++  // measuring non-identification rather than the remedy.
++  const pB = 1;
++  let th = clamp(priorTheta0Mean, SCALE_MIN, SCALE_MAX);
++  let la = 0;
++  let be = slope;
++  let h: number[][] = identityPrior(pT0, pL, pB);
++
++  for (let iter = 0; iter < 80; iter += 1) {
++    const g = [(priorTheta0Mean - th) * pT0, -la * pL, (slope - be) * pB];
++    h = identityPrior(pT0, pL, pB);
++    for (const trial of trials) {
++      const t = trial.trialIndex;
++      const b = clamp(trial.difficulty, SCALE_MIN, SCALE_MAX);
++      const y = Number.isFinite(trial.score) ? clamp(trial.score, 0, 1) : 0;
++      const { p, info } = trialTerms(slope * (th + la * t) - be * b, c, 1);
++      if (p <= 0 || p >= 1) continue;
++      const resid = ((y - p) * (p - c)) / (p * (1 - c));
++      const x = [slope, slope * t, -b];
++      for (let i = 0; i < 3; i += 1) {
++        g[i] = (g[i] ?? 0) + (x[i] ?? 0) * resid;
++        for (let j = 0; j < 3; j += 1) {
++          (h[i] as number[])[j] = ((h[i] as number[])[j] ?? 0) + info * (x[i] ?? 0) * (x[j] ?? 0);
++        }
++      }
++    }
++    const inv = invert3(h);
++    if (inv === null) break;
++    const step = [0, 1, 2].map((i) =>
++      [0, 1, 2].reduce((acc, j) => acc + ((inv[i] as number[])[j] ?? 0) * (g[j] ?? 0), 0),
++    );
++    const damp = Math.min(
++      1,
++      2 /
++        (1 + Math.max(Math.abs(step[0] ?? 0), 10 * Math.abs(step[1] ?? 0), Math.abs(step[2] ?? 0))),
++    );
++    th = clamp(th + damp * (step[0] ?? 0), SCALE_MIN, SCALE_MAX);
++    la = clamp(la + damp * (step[1] ?? 0), -1, 1);
++    be = clamp(be + damp * (step[2] ?? 0), 0.05, 5);
++    if (step.every((s) => Math.abs(damp * s) < 1e-7)) break;
++  }
++  const inv = invert3(h);
++  return {
++    lambda: la,
++    lambdaSe: inv === null ? PRIOR_LAMBDA_SD : Math.sqrt(Math.max(0, (inv[1] as number[])[1] ?? 0)),
++  };
++};
++
++function identityPrior(a: number, b: number, c: number): number[][] {
++  return [
++    [a, 0, 0],
++    [0, b, 0],
++    [0, 0, c],
++  ];
++}
++
++function invert3(m: readonly number[][]): number[][] | null {
++  const g = (i: number, j: number) => (m[i] as number[])[j] ?? 0;
++  const det =
++    g(0, 0) * (g(1, 1) * g(2, 2) - g(1, 2) * g(2, 1)) -
++    g(0, 1) * (g(1, 0) * g(2, 2) - g(1, 2) * g(2, 0)) +
++    g(0, 2) * (g(1, 0) * g(2, 1) - g(1, 1) * g(2, 0));
++  if (!Number.isFinite(det) || Math.abs(det) < 1e-14) return null;
++  const minor = (r: number, c: number) => {
++    const rows = [0, 1, 2].filter((i) => i !== r);
++    const cols = [0, 1, 2].filter((j) => j !== c);
++    return (
++      g(rows[0] as number, cols[0] as number) * g(rows[1] as number, cols[1] as number) -
++      g(rows[0] as number, cols[1] as number) * g(rows[1] as number, cols[0] as number)
++    );
++  };
++  const out: number[][] = [[], [], []];
++  for (let i = 0; i < 3; i += 1) {
++    for (let j = 0; j < 3; j += 1) {
++      (out[i] as number[])[j] = (((i + j) % 2 === 0 ? 1 : -1) * minor(j, i)) / det;
++    }
++  }
++  return out;
++}
++
++/**
++ * CANDIDATE 2 — the Jeffreys/Firth penalty, `+ ½ log det I(theta)`.
++ *
++ * The canonical removal of the leading finite-sample bias of a likelihood estimator, and the
++ * generalisation of Warm's weighted likelihood estimator, which exists precisely because adaptive
++ * testing biases maximum-likelihood ability estimates. Parameter-free, so there is nothing in it to
++ * tune. It was the right thing to try and it is refuted, decisively and in the wrong direction: the
++ * penalty rewards parameter values that carry MORE Fisher information, and on a rising difficulty
++ * path a larger `lambda` is what keeps the response probability off the chance floor, so the penalty
++ * pushes the climb UP. Under the exogenous schedule, where the remaining bias is small, it is
++ * catastrophic (−0.0019 becomes +0.0314 on `FLU-OPCHAIN-01`).
++ */
++const firthFitter: CandidateFitter = (trials, priorTheta0Mean, c, slope) => {
++  const pT0 = 1 / (PRIOR_THETA0_SD * PRIOR_THETA0_SD);
++  const pL = 1 / (PRIOR_LAMBDA_SD * PRIOR_LAMBDA_SD);
++  let th = clamp(priorTheta0Mean, SCALE_MIN, SCALE_MAX);
++  let la = 0;
++  let h00 = pT0;
++  let h01 = 0;
++  let h11 = pL;
++
++  for (let iter = 0; iter < 80; iter += 1) {
++    let g0 = (priorTheta0Mean - th) * pT0;
++    let g1 = -la * pL;
++    h00 = pT0;
++    h01 = 0;
++    h11 = pL;
++    // Likelihood-only information, and its derivative in each parameter, for the penalty term.
++    let i00 = 0;
++    let i01 = 0;
++    let i11 = 0;
++    const d = [
++      [0, 0, 0],
++      [0, 0, 0],
++    ];
++    for (const trial of trials) {
++      const t = trial.trialIndex;
++      const b = clamp(trial.difficulty, SCALE_MIN, SCALE_MAX);
++      const y = Number.isFinite(trial.score) ? clamp(trial.score, 0, 1) : 0;
++      const { p, info, dInfo } = trialTerms(slope * (th + la * t - b), c, slope);
++      if (p <= 0 || p >= 1) continue;
++      const s = (slope * (p - c) * (y - p)) / (p * (1 - c));
++      g0 += s;
++      g1 += t * s;
++      h00 += info;
++      h01 += t * info;
++      h11 += t * t * info;
++      i00 += info;
++      i01 += t * info;
++      i11 += t * t * info;
++      for (const j of [0, 1]) {
++        const w = slope * (j === 0 ? 1 : t) * dInfo;
++        (d[j] as number[])[0] = ((d[j] as number[])[0] ?? 0) + w;
++        (d[j] as number[])[1] = ((d[j] as number[])[1] ?? 0) + w * t;
++        (d[j] as number[])[2] = ((d[j] as number[])[2] ?? 0) + w * t * t;
++      }
++    }
++    const detI = i00 * i11 - i01 * i01;
++    if (detI > 1e-12) {
++      // ½ tr(I⁻¹ ∂I/∂θ_j), with I⁻¹ written out for the 2x2 case.
++      const halfTrace = (row: readonly number[]) =>
++        (0.5 * (i11 * (row[0] ?? 0) - 2 * i01 * (row[1] ?? 0) + i00 * (row[2] ?? 0))) / detI;
++      g0 += halfTrace(d[0] as number[]);
++      g1 += halfTrace(d[1] as number[]);
++    }
++    const det = h00 * h11 - h01 * h01;
++    if (!Number.isFinite(det) || det <= 0) break;
++    const step0 = (h11 * g0 - h01 * g1) / det;
++    const step1 = (h00 * g1 - h01 * g0) / det;
++    const damp = Math.min(1, 2 / (1 + Math.max(Math.abs(step0), 10 * Math.abs(step1))));
++    th = clamp(th + damp * step0, SCALE_MIN, SCALE_MAX);
++    la = clamp(la + damp * step1, -1, 1);
++    if (Math.abs(damp * step0) < 1e-7 && Math.abs(damp * step1) < 1e-7) break;
++  }
++  const det = h00 * h11 - h01 * h01;
++  return { lambda: la, lambdaSe: det > 0 ? Math.sqrt(h00 / det) : PRIOR_LAMBDA_SD };
++};
++
++/**
++ * CANDIDATE 3 — a delete-one-trial jackknife bias correction of the shipped fit.
++ *
++ * The non-parametric counterpart to candidate 2, carried because the two rest on different
++ * assumptions and agreeing is informative. They agree: it also moves the null climb up, which is the
++ * measurement that says the residual is not the ordinary finite-sample bias of a likelihood
++ * estimator. Nothing to tune here either.
++ */
++const jackknifeFitter: CandidateFitter = (trials, priorTheta0Mean, c, slope) => {
++  const full = estimateLearningCurve(trials, { slope, priorTheta0Mean, guessing: c });
++  const n = trials.length;
++  if (n < 6) return full;
++  let total = 0;
++  for (let i = 0; i < n; i += 1) {
++    total += estimateLearningCurve(
++      trials.filter((_, j) => j !== i),
++      { slope, priorTheta0Mean, guessing: c },
++    ).lambda;
++  }
++  return { lambda: n * full.lambda - (n - 1) * (total / n), lambdaSe: full.lambdaSe };
++};
++
+ function runCohort(options: CohortOptions): CohortResult {
+   const {
+     pool,
+@@ -520,7 +864,9 @@ function runCohort(options: CohortOptions): CohortResult {
+     theta0Sd,
+     responder,
+     fit: fitSpec,
+-    staticTarget = false,
++    targeting = ADAPTIVE,
++    exogenousReplay = false,
++    fitter = shippedFitter,
+     barFloor = 0,
+     seed,
+   } = options;
+@@ -530,6 +876,8 @@ function runCohort(options: CohortOptions): CohortResult {
+   const fitLambda: number[] = [];
+   const fitLambdaSe: number[] = [];
+   const lateDifficulty: number[] = [];
++  const earlyDifficulty: number[] = [];
++  const accuracy: number[] = [];
+   const peakDifficulty: number[] = [];
+   const peakDemand: number[] = [];
+   let aboveCount = 0;
+@@ -545,22 +893,38 @@ function runCohort(options: CohortOptions): CohortResult {
+     const standing = clamp(theta0 + normal(rng, 0, standingNoise), SCALE_MIN, SCALE_MAX);
+     const child: ChildSpec = { theta0, lambda, standing, seed: `${seed}|${length}|${c}` };
+ 
+-    const run = runBlock(pool, child, length, responder, fitSpec, staticTarget, seed);
++    const firstPass = runBlock(pool, child, length, responder, fitSpec, targeting, seed);
++    const run = exogenousReplay
++      ? runBlock(
++          pool,
++          child,
++          length,
++          responder,
++          fitSpec,
++          { kind: 'replay', difficulties: firstPass.trials.map((t) => t.difficulty) },
++          seed,
++          'response-independent',
++        )
++      : firstPass;
+     if (run.exhausted) exhaustedCount += 1;
+     if (run.trials.length < length) shortBlocks += 1;
+     if (run.trials.length === 0) continue;
+ 
+-    const fit = estimateLearningCurve(run.trials, {
+-      slope: responder.slope,
+-      priorTheta0Mean: child.standing,
+-      guessing: fitSpec.readout,
+-    });
++    const fit = fitter(run.trials, child.standing, fitSpec.readout, responder.slope);
+     trueLambda.push(lambda);
+     fitLambda.push(fit.lambda);
+     fitLambdaSe.push(fit.lambdaSe);
+ 
++    accuracy.push(mean(run.trials.map((t) => t.score)));
+     const cut = Math.floor((2 * run.served.length) / 3);
+     lateDifficulty.push(mean(run.served.slice(cut).map((s) => s.difficulty)));
++    earlyDifficulty.push(
++      mean(
++        run.served
++          .slice(0, Math.max(1, Math.floor(run.served.length / 3)))
++          .map((s) => s.difficulty),
++      ),
++    );
+     peakDifficulty.push(Math.max(...run.served.map((s) => s.difficulty)));
+     peakDemand.push(Math.max(...run.served.map((s) => s.target)));
+ 
+@@ -594,6 +958,7 @@ function runCohort(options: CohortOptions): CohortResult {
+     fitLambda,
+     fitLambdaSe,
+     lateDifficulty,
++    earlyDifficulty,
+     peakDifficulty,
+     peakDemand,
+     aboveRate: fitLambda.length === 0 ? Number.NaN : aboveCount / fitLambda.length,
+@@ -605,6 +970,7 @@ function runCohort(options: CohortOptions): CohortResult {
+     exhaustedCount,
+     poolMax: Math.max(...pool.map((i) => i.difficulty)),
+     shortBlocks,
++    meanAccuracy: mean(accuracy),
+   };
+ }
+ 
+@@ -656,12 +1022,24 @@ interface Settings {
+   seed: number;
+   bank: string | null;
+   mode: Persistence;
++  /** Which targeting rule Gate A administers under. See {@link TargetingMode}. */
++  targeting: 'adaptive' | 'scheduled';
++  /**
++   * Rate `--targeting scheduled` climbs at, in scale points per trial.
++   *
++   * Defaults to the population λ mean the rest of this harness already defaults to, so the schedule
++   * tracks an average learner rather than a value chosen here. E-205's rate sweep is the reason this
++   * is not a tuning knob for A1: every rate from 0 to 0.30 returns the same null-cohort mean within
++   * error, and what the rate moves is recovery, which it moves monotonically and against you.
++   */
++  scheduleRate: number;
+   json: boolean;
+   calibrate: boolean;
+   gateA: boolean;
+   noiseSweep: boolean;
+   guessingProbe: boolean;
+   fixProbe: boolean;
++  endogeneityProbe: boolean;
+ }
+ 
+ function parseArgs(argv: readonly string[]): Settings {
+@@ -680,6 +1058,10 @@ function parseArgs(argv: readonly string[]): Settings {
+   if (modeRaw !== 'consistent' && modeRaw !== 'perTrial') {
+     throw new Error(`--mode expects consistent|perTrial, got "${modeRaw}"`);
+   }
++  const targetingRaw = flag('targeting') ?? 'adaptive';
++  if (targetingRaw !== 'adaptive' && targetingRaw !== 'scheduled') {
++    throw new Error(`--targeting expects adaptive|scheduled, got "${targetingRaw}"`);
++  }
+ 
+   return {
+     children: num('children', 400),
+@@ -698,15 +1080,31 @@ function parseArgs(argv: readonly string[]): Settings {
+     seed: num('seed', 20260730),
+     bank: flag('bank'),
+     mode: modeRaw,
++    targeting: targetingRaw,
++    scheduleRate: num('schedule-rate', num('lambda-mean', 0.06)),
+     json: argv.includes('--json'),
+     calibrate: argv.includes('--calibrate'),
+     gateA: argv.includes('--gate-a'),
+     noiseSweep: argv.includes('--noise-sweep'),
+     guessingProbe: argv.includes('--guessing-probe'),
+     fixProbe: argv.includes('--fix-probe'),
++    endogeneityProbe: argv.includes('--endogeneity-probe'),
+   };
+ }
+ 
++/** The targeting mode `--targeting` selects, for every run other than an explicit diagnostic. */
++function targetingFor(settings: Settings): TargetingMode {
++  return settings.targeting === 'scheduled'
++    ? { kind: 'scheduled', rate: settings.scheduleRate }
++    : ADAPTIVE;
++}
++
++function describeTargeting(settings: Settings): string {
++  return settings.targeting === 'scheduled'
++    ? `scheduled (exogenous, rate ${settings.scheduleRate})`
++    : 'adaptive (shipped closed loop)';
++}
++
+ function cohortOptionsFor(
+   settings: Settings,
+   pool: readonly BankItem[],
+@@ -723,6 +1121,7 @@ function cohortOptionsFor(
+     theta0Sd: settings.theta0Sd,
+     responder: { slope: SLOPE, guessing: settings.guessing },
+     fit: { readout: settings.fitGuessing, targeting: settings.targetGuessing },
++    targeting: targetingFor(settings),
+     seed: settings.seed,
+     ...overrides,
+   };
+@@ -806,12 +1205,39 @@ interface GateAReport {
+   difficultySpan: [number, number];
+   distinctRungs: number;
+   guessing: number;
++  /**
++   * Which targeting rule the block was administered under.
++   *
++   * On the report rather than only in the settings line because A1's verdict now depends on it, so a
++   * figure quoted without it is unattributable (E-205).
++   */
++  targeting: string;
+   checks: GateACheck[];
+   /** Fitted-λ SD on this bank, which U1's power script needs instead of the doc's 0.06 estimate. */
+   fitLambdaSd: number;
+   recovery: ReturnType<typeof recoveryRow>;
+   nullMean: number;
+   nullSe: number;
++  /**
++   * How often a band could be named at all, which is the question D-200 part 2 turned Gate A into.
++   *
++   * Separability is tested against posterior SE PLUS a declared contamination floor, so a change that
++   * lowers A1's manufactured climb while widening the posterior can leave the block LESS reportable
++   * than it was. A1 and A4 alone cannot see that trade; without this row a remedy could be adopted
++   * for removing a bias it had in fact swapped for imprecision.
++   *
++   * `withDeclaredFloor` is the one D-200 makes binding: the floor declared is this arm's own measured
++   * A1 mean, so the bar is always what the pipeline actually manufactures rather than a figure chosen
++   * to look good.
++   */
++  reportability: {
++    /** Against `A2_REFERENCE` (SD 0.15, floor 0) — the widest reference anyone has proposed. */
++    atWideReference: number;
++    /** Against SD 0.15 WITH this arm's own A1 mean declared as the contamination floor. */
++    withDeclaredFloor: number;
++    /** Against `NARROW_REFERENCE` (SD 0.03), the only reference with a stated provenance. */
++    atNarrowReference: number;
++  };
+ }
+ 
+ /**
+@@ -869,8 +1295,14 @@ function gateA(settings: Settings, bank: LoadedBank, mode: Persistence): GateARe
+   }
+   const a3Pass = bankLimited === 0 && fastCohort.exhaustedCount === 0;
+ 
+-  // A4 — recovery on this bank's actual grid, against E-095's 30-trial figures.
+-  const recoveryCohort = runCohort(cohortOptionsFor(settings, pool, { length: settings.length }));
++  // A4 — recovery on this bank's actual grid, against E-095's 30-trial figures. The declared floor
++  // is A1's own mean, per D-200 part 2; it feeds only the reportability row, never `r` or the SE.
++  const recoveryCohort = runCohort(
++    cohortOptionsFor(settings, pool, {
++      length: settings.length,
++      barFloor: Math.max(0, nullMean),
++    }),
++  );
+   const recovery = recoveryRow(recoveryCohort);
+   const published = settings.length === 30 ? E095[30] : null;
+   const a4Pass =
+@@ -889,10 +1321,16 @@ function gateA(settings: Settings, bank: LoadedBank, mode: Persistence): GateARe
+     difficultySpan: [Math.min(...difficulties), Math.max(...difficulties)],
+     distinctRungs: rungs.size,
+     guessing: settings.guessing,
++    targeting: describeTargeting(settings),
+     fitLambdaSd: recovery.fitLambdaSd,
+     recovery,
+     nullMean,
+     nullSe,
++    reportability: {
++      atWideReference: 1 - recoveryCohort.indeterminateRate,
++      withDeclaredFloor: 1 - recoveryCohort.barIndeterminateRate,
++      atNarrowReference: 1 - recoveryCohort.narrowIndeterminateRate,
++    },
+     checks: [
+       {
+         id: 'A1',
+@@ -951,7 +1389,7 @@ function printSettings(settings: Settings): void {
+       `θ0 ~ N(${settings.theta0Mean}, ${settings.theta0Sd}²), handover noise SD ${settings.standingNoise}, ` +
+       `slope ${SLOPE}, target offset +${TARGET_OFFSET}, responder guessing floor ${settings.guessing}, ` +
+       `estimator floor ${settings.fitGuessing} (readout) / ${settings.targetGuessing} (targeting), ` +
+-      `seed ${settings.seed}.`,
++      `targeting ${describeTargeting(settings)}, seed ${settings.seed}.`,
+   );
+ }
+ 
+@@ -1004,10 +1442,14 @@ function printCalibration(settings: Settings): CalibrationRow[] {
+  * the design document, that lucky early successes "inflate `theta0` and flatten `lambda`". Run
+  * against a responder that actually has a five-option floor, the sign comes out the other way, and
+  * the reason is the targeting loop the block adds on top of the fit: a fit that reads chance
+- * successes as ability raises `theta0`, `nextTargetTheta` then aims higher, the served difficulty
+- * climbs across trials, and the fit reads that climb as learning. §4.6 reasoned about the fit
++ * successes as ability raises `theta0`, `nextTargetTheta` then aims higher, and the answers to those
++ * harder items are read back through a fit whose own output chose them. §4.6 reasoned about the fit
+  * standing still; inside an adaptive block the loop closes and reverses the sign.
+  *
++ * The "and the fit reads that climb as learning" this used to end on is one step too strong, and
++ * E-205 measures why: the climb alone manufactures nothing, and a steeper exogenous climb manufactures
++ * less. What does it is that the climb is a function of the child's own earlier answers.
++ *
+  * This probe exists so the finding is a command rather than a paragraph. It is a property of the
+  * estimator and the targeting rule, not of any bank, so it runs the ideal grid alongside whatever
+  * banks are named — and the ideal grid is the row that settles the attribution.
+@@ -1091,7 +1533,7 @@ function printFixProbe(settings: Settings, bankRefs: readonly string[]): void {
+     length: number;
+     /** Responder floor, when an arm is probing what a WRONG assumed floor costs. */
+     responderGuessing?: number;
+-    staticTarget?: boolean;
++    targeting?: TargetingMode;
+   }
+ 
+   const arms: Arm[] = [
+@@ -1116,13 +1558,13 @@ function printFixProbe(settings: Settings, bankRefs: readonly string[]): void {
+       label: 'DIAGNOSTIC frozen target, c = 0',
+       fit: { readout: 0, targeting: 0 },
+       length: 30,
+-      staticTarget: true,
++      targeting: { kind: 'frozen' },
+     },
+     {
+       label: 'DIAGNOSTIC frozen target, c = 0.2',
+       fit: { readout: 0.2, targeting: 0.2 },
+       length: 30,
+-      staticTarget: true,
++      targeting: { kind: 'frozen' },
+     },
+   ];
+ 
+@@ -1142,7 +1584,7 @@ function printFixProbe(settings: Settings, bankRefs: readonly string[]): void {
+     console.log('| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |');
+     for (const arm of arms) {
+       const responder = { slope: SLOPE, guessing: arm.responderGuessing ?? truth };
+-      const staticTarget = arm.staticTarget ?? false;
++      const targeting = arm.targeting ?? ADAPTIVE;
+       const nullCohort = runCohort(
+         cohortOptionsFor(settings, pool.items, {
+           lambdaMean: 0,
+@@ -1150,7 +1592,7 @@ function printFixProbe(settings: Settings, bankRefs: readonly string[]): void {
+           length: arm.length,
+           responder,
+           fit: arm.fit,
+-          staticTarget,
++          targeting,
+         }),
+       );
+       const recoveryCohort = runCohort(
+@@ -1158,7 +1600,7 @@ function printFixProbe(settings: Settings, bankRefs: readonly string[]): void {
+           length: arm.length,
+           responder,
+           fit: arm.fit,
+-          staticTarget,
++          targeting,
+           barFloor: Math.max(0, mean(nullCohort.fitLambda)),
+         }),
+       );
+@@ -1181,6 +1623,156 @@ function printFixProbe(settings: Settings, bankRefs: readonly string[]): void {
+   );
+ }
+ 
++/**
++ * WHY the null climb survives a correctly specified guessing floor (E-205).
++ *
++ * `--fix-probe` sweeps what the estimator assumes about the CHANCE FLOOR and shows a residual
++ * λ̄ ≈ +0.009 that no floor removes. This probe sweeps something else: the DEPENDENCE between the
++ * responses being fitted and the difficulty they were served at. It is organised as three questions,
++ * in the order they have to be asked.
++ *
++ * §1 asks what the cause is, and settles it with one contrast. The `exogenous replay` row runs each
++ * child's own adaptive difficulty path a second time against an independent stream of answers. The
++ * path's shape, the child's ability and the standing handover are identical to the row above it — only
++ * the dependence is cut. If the rising path were the cause, the two rows would agree.
++ *
++ * §2 costs the candidate FITS, which is where anyone would look first and where the answer is not.
++ * All three are refuted, and the two bias corrections are refuted in the wrong direction.
++ *
++ * §3 costs the candidate DESIGNS, and sweeps the schedule's rate over a factor of ten to show that
++ * the rate is not what removes the artifact. That sweep is the reason the schedule is not a knob
++ * tuned until A1 passed: A1's cell is flat in it, and recovery falls monotonically as it rises, so
++ * every rate is a cost and none is a pass.
++ */
++function printEndogeneityProbe(settings: Settings, bankRefs: readonly string[]): void {
++  const truth = settings.guessingExplicit ? settings.guessing : DEFAULT_GUESSING;
++  const fit: FitSpec = { readout: truth, targeting: truth };
++
++  console.log('\n## Why the residual survives a correctly specified floor\n');
++  console.log(
++    `Responder floor ${truth.toFixed(2)} and estimator floor ${truth.toFixed(2)} in BOTH roles for every row below, so the\n` +
++      'floor is correctly specified throughout and nothing here is the E-200 misspecification. `null λ̄`\n' +
++      'is a cohort with λ_true = 0 for every child; `r` and `mean SE` are the same arm on a cohort with\n' +
++      `λ ~ N(${settings.lambdaMean}, ${settings.lambdaSd}²). \`late−early b\` is the mean served difficulty over the last third\n` +
++      'minus the first third: it is in the table so the reader can see when a row holds the difficulty\n' +
++      'CLIMB fixed and changes only who chose it.\n',
++  );
++
++  const pools: { label: string; items: BankItem[] }[] = [
++    { label: 'ideal 0.5-point grid (no bank)', items: gridPool(0.5, 12) },
++    ...bankRefs.map((ref) => {
++      const bank = loadBank(ref);
++      return { label: bank.label, items: bank.items };
++    }),
++  ];
++
++  interface ProbeArm {
++    label: string;
++    targeting: TargetingMode;
++    exogenousReplay: boolean;
++    fitter: CandidateFitter;
++  }
++  const arm = (label: string, over: Partial<ProbeArm> = {}): ProbeArm => ({
++    label,
++    targeting: ADAPTIVE,
++    exogenousReplay: false,
++    fitter: shippedFitter,
++    ...over,
++  });
++
++  const causeArms: ProbeArm[] = [
++    arm('shipped adaptive loop'),
++    arm('same paths, EXOGENOUS REPLAY', { exogenousReplay: true }),
++  ];
++  const fitArms: ProbeArm[] = [
++    arm('free coefficient on difficulty (Gate B shape)', { fitter: freeDifficultyFitter }),
++    arm('Jeffreys/Firth penalty', { fitter: firthFitter }),
++    arm('delete-one jackknife', { fitter: jackknifeFitter }),
++  ];
++  const designArms: ProbeArm[] = [
++    arm('frozen difficulty (= schedule at rate 0)', { targeting: { kind: 'frozen' } }),
++    ...[0, 0.03, settings.scheduleRate, 0.09, 0.15, 0.3]
++      .filter((rate, i, all) => all.indexOf(rate) === i)
++      .map((rate) =>
++        arm(
++          `exogenous schedule, rate ${rate.toFixed(2)}` +
++            `${rate === settings.scheduleRate ? ' (--targeting scheduled default)' : ''}`,
++          { targeting: { kind: 'scheduled', rate } },
++        ),
++      ),
++  ];
++
++  const row = (pool: readonly BankItem[], probeArm: ProbeArm): string => {
++    const common = {
++      responder: { slope: SLOPE, guessing: truth },
++      fit,
++      targeting: probeArm.targeting,
++      exogenousReplay: probeArm.exogenousReplay,
++      fitter: probeArm.fitter,
++      length: 30,
++    };
++    const nullCohort = runCohort(
++      cohortOptionsFor(settings, pool, { ...common, lambdaMean: 0, lambdaSd: 0 }),
++    );
++    const recoveryCohort = runCohort(cohortOptionsFor(settings, pool, common));
++    // The λ = 0.15 cohort A3 uses. Its mean accuracy is the ceiling cost: an arm that serves a fast
++    // learner items well below them keeps them near 1.0 and stops measuring anything about them.
++    const fastCohort = runCohort(
++      cohortOptionsFor(settings, pool, { ...common, lambdaMean: 0.15, lambdaSd: 0 }),
++    );
++    const nullMean = mean(nullCohort.fitLambda);
++    const nullSe = seOfMean(nullCohort.fitLambda);
++    const recovery = recoveryRow(recoveryCohort);
++    const climb = mean(nullCohort.lateDifficulty) - mean(nullCohort.earlyDifficulty);
++    return (
++      `| ${probeArm.label} | ${f(nullMean, 4)} | ${f(nullSe, 4)} | ` +
++      `${f(Math.abs(nullMean / nullSe), 1)} | ${Math.abs(nullMean) <= 2 * nullSe ? 'PASS' : 'FAIL'} | ` +
++      `${f(recovery.r)} | ${f(recovery.meanSe)} | ${f(climb, 2)} | ${f(fastCohort.meanAccuracy)} |`
++    );
++  };
++
++  for (const pool of pools) {
++    console.log(`\n### ${pool.label}\n`);
++    console.log(
++      '| arm | null λ̄ | ±MC SE | SEs from 0 | A1 | r | mean SE | late−early b | fast p̂ |',
++    );
++    console.log('| --- | --- | --- | --- | --- | --- | --- | --- | --- |');
++    console.log('| **§1 what the cause is** | | | | | | | | |');
++    for (const probeArm of causeArms) console.log(row(pool.items, probeArm));
++    console.log('| **§2 candidate fits, on the shipped loop** | | | | | | | | |');
++    for (const probeArm of fitArms) console.log(row(pool.items, probeArm));
++    console.log('| **§3 candidate designs, with the shipped fit** | | | | | | | | |');
++    for (const probeArm of designArms) console.log(row(pool.items, probeArm));
++  }
++
++  console.log(
++    '\nTHE READING. §1 holds the difficulty climb fixed and cuts only the dependence between the\n' +
++      'answers and the path, and the manufactured climb goes with it — so the cause is that the served\n' +
++      'difficulty is a function of the child\u2019s own earlier answers (endogeneity), not that the path\n' +
++      'rises. §2 is why that matters: conditioning on served difficulty with a free coefficient makes it\n' +
++      'WORSE, because difficulty was never omitted from the fit, and both standard finite-sample bias\n' +
++      'corrections also move it up, because the residual is not that kind of bias. The likelihood itself\n' +
++      'needs no repair — a selection rule that depends only on the observed past is ignorable, so there\n' +
++      'is no term missing from it for a conditional likelihood to restore. §3 is the only family that\n' +
++      'works, and it works by giving something up: adaptivity, or a third of the posterior precision, or\n' +
++      'both. D-206 records the trade; this table is not a recommendation.',
++  );
++  console.log(
++    '\nTHE LAST COLUMN IS THE COST THAT MATTERS. `fast p̂` is the mean accuracy of the λ = 0.15 cohort A3\n' +
++      'uses. §4.5 wants a block held near p = 0.5, where the items carry the most information and the\n' +
++      'linear climb is least wrong. The shipped loop keeps a fast learner there because it follows them;\n' +
++      'a schedule aims at a RATE rather than at a child, so it leaves the fastest learners working items\n' +
++      'below their level — a ceiling for exactly the children R5 and R6 exist to measure. The rate trades\n' +
++      'that ceiling against recovery for everybody else, and no value settles both.',
++  );
++  console.log(
++    '\nWHAT IS DELIBERATELY NOT IN THIS TABLE: any readout column. `learningRateReadout` fits internally,\n' +
++      'so it cannot be pointed at a candidate fit, and printing a §2 arm\u2019s band rate from the SHIPPED fit\n' +
++      'beside a λ̄ from the candidate one would silently mix the two. `--gate-a` reports reportability\n' +
++      'per bank, which is where that cost belongs.',
++  );
++}
++
+ function printNoiseSweep(settings: Settings): void {
+   console.log('\n## Sensitivity of the 30-trial cell to the unrecorded handover-noise SD\n');
+   const pool = gridPool(0.5, 12);
+@@ -1202,7 +1794,8 @@ function printNoiseSweep(settings: Settings): void {
+ 
+ function printGateA(report: GateAReport): boolean {
+   console.log(
+-    `\n## Gate A — ${report.bank} (mode ${report.mode}, guessing floor ${report.guessing})\n`,
++    `\n## Gate A — ${report.bank} (mode ${report.mode}, guessing floor ${report.guessing}, ` +
++      `targeting ${report.targeting})\n`,
+   );
+   console.log(
+     `  ${report.items} items, difficulty ${f(report.difficultySpan[0], 2)}..${f(report.difficultySpan[1], 2)}, ` +
+@@ -1225,6 +1818,15 @@ function printGateA(report: GateAReport): boolean {
+     `  Fitted-λ SD on this bank: ${f(report.fitLambdaSd, 4)}. This is the figure U1's power script\n` +
+       "    must use in place of the design document's 0.06 estimate (§4.1.3).",
+   );
++  console.log(
++    `  Reportable at all (a band is named rather than \`indeterminate\`): ` +
++      `${f(100 * report.reportability.atWideReference, 1)}% against the SD-0.15 reference, ` +
++      `${f(100 * report.reportability.withDeclaredFloor, 1)}% once this arm's own\n` +
++      `    A1 mean is declared as the contamination floor D-200 requires, and ` +
++      `${f(100 * report.reportability.atNarrowReference, 1)}% against the SD-0.03\n` +
++      `    reference the project's synthetic work used. A1 and A4 do not see this: a remedy can lower\n` +
++      `    the manufactured climb and still leave the block less reportable by widening the posterior.`,
++  );
+   console.log(
+     `  Headroom boundary: §1.1(c) asks for ≥6 scale points above \`standing + 1\`. On a bounded\n` +
+       `    [${SCALE_MIN}, ${SCALE_MAX}] scale that is only geometrically available for standing ≤ ` +
+@@ -1245,7 +1847,11 @@ function printGateA(report: GateAReport): boolean {
+ function main(): void {
+   const settings = parseArgs(process.argv.slice(2));
+   const explicit =
+-    settings.gateA || settings.noiseSweep || settings.guessingProbe || settings.fixProbe;
++    settings.gateA ||
++    settings.noiseSweep ||
++    settings.guessingProbe ||
++    settings.fixProbe ||
++    settings.endogeneityProbe;
+   const runCalibration = settings.calibrate || !explicit;
+   const output: Record<string, unknown> = {};
+ 
+@@ -1263,9 +1869,18 @@ function main(): void {
+   if (settings.fixProbe) {
+     printFixProbe(settings, settings.bank === null ? [REFERENCE_BANK] : [settings.bank]);
+   }
++  if (settings.endogeneityProbe) {
++    printEndogeneityProbe(settings, settings.bank === null ? [REFERENCE_BANK] : [settings.bank]);
++  }
+ 
+   let allPass = true;
+-  if (settings.gateA || (settings.bank !== null && !settings.guessingProbe && !settings.fixProbe)) {
++  if (
++    settings.gateA ||
++    (settings.bank !== null &&
++      !settings.guessingProbe &&
++      !settings.fixProbe &&
++      !settings.endogeneityProbe)
++  ) {
+     const ref = settings.bank ?? REFERENCE_BANK;
+     const modes: Persistence[] =
+       settings.bank === null ? [settings.mode] : ['consistent', 'perTrial'];
+-- 
+2.50.1 (Apple Git-155)
+
