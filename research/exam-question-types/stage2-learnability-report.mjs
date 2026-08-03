@@ -33,8 +33,8 @@
 // bank whose `difficulty` values are design rungs. Nothing printed is a learning rate.
 //
 // Usage:
-//   pnpm stage2:learnability
-//   pnpm stage2:learnability -- --standings 8,13,17 --seeds 8 --responder induces
+//   pnpm stage2:learnability:opchain
+//   pnpm stage2:learnability:opchain -- --standings 8,13,17 --seeds 8 --responder induces
 
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';

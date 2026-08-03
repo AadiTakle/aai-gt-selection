@@ -37,6 +37,7 @@
     "stage2:review:build": "node research/exam-question-types/build-stage2-review.mjs",
     "stage2:review:check": "node research/exam-question-types/build-stage2-review.mjs --check",
     "stage2:review:probe": "tsx research/exam-question-types/stage2-block-probe.mjs",
+    "stage2:rotation": "node research/exam-question-types/stage2-rotation-report.mjs",
     "stage2:samples": "node research/exam-question-types/stage2-render-samples.mjs",
     "exam:reconcile": "tsx apps/web/scripts/exam-reconcile-session.ts",
     "exam:verify:diff": "tsx apps/web/scripts/verifier-differential.ts",
