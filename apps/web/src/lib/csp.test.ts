@@ -59,7 +59,7 @@ describe('content security policy', () => {
     // Pins this file's notion of "local" to env.ts's: any URL the app will
     // actually boot against outside hosted mode must not be left CSP-blocked.
     // Asserted as an implication so it stays honest if that guard's accepted set
-    // changes — today it rejects the bracketed IPv6 form (see env.ts note below).
+    // changes.
     const candidates = [
       'http://127.0.0.1:65421',
       'http://localhost:65421',
@@ -90,8 +90,6 @@ describe('content security policy', () => {
 
   it('treats the bracketed IPv6 loopback literal as local', () => {
     // `URL.hostname` keeps the brackets, so a bare `::1` comparison would miss it.
-    // env.ts currently rejects this form before the CSP is ever built; handling it
-    // here means the CSP is not the thing left behind if that is corrected.
     const connectSrc = directive(
       buildContentSecurityPolicy({
         ...localEnvironment,

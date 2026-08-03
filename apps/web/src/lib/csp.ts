@@ -18,10 +18,8 @@
  * Deliberately the same literals `env.ts` accepts as a non-hosted Supabase
  * target, so this cannot widen to a host the environment guard would have refused
  * to boot against. `csp.test.ts` pins that direction: anything the guard accepts
- * must appear here. (`env.ts` compares against the unnormalized `URL.hostname`,
- * so its `::1` entry never matches today; `hostname()` below makes this set the
- * more forgiving of the two, which is the safe direction for a functional
- * allowance that only ever names loopback.)
+ * must appear here. Both files strip the brackets `URL.hostname` keeps around an
+ * IPv6 literal, so the two sets match on `::1` as well as on the named hosts.
  */
 const loopbackHosts = new Set(['127.0.0.1', 'localhost', '::1']);
 

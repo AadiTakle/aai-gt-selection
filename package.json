@@ -48,8 +48,9 @@
     "security:scan": "tsx scripts/check-security-boundaries.ts",
     "typecheck": "pnpm -r --if-present run typecheck && pnpm run typecheck:scripts",
     "typecheck:scripts": "tsc -p scripts/tsconfig.json",
-    "test": "pnpm -r --if-present run test",
-    "test:coverage": "pnpm -r --if-present run test:coverage",
+    "test": "pnpm -r --if-present run test && pnpm run test:scripts",
+    "test:coverage": "pnpm -r --if-present run test:coverage && pnpm run test:scripts",
+    "test:scripts": "vitest run --config vitest.scripts.config.ts",
     "verify": "tsx scripts/verify.ts"
   },
   "devDependencies": {

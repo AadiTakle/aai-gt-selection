@@ -16,6 +16,17 @@ describe('synthetic runtime environment', () => {
     ).toBeDefined();
   });
 
+  it('accepts the bracketed IPv6 loopback literal', () => {
+    // `URL.hostname` keeps the brackets, so a bare `::1` comparison would miss it
+    // and reject a genuinely local target. `csp.ts` normalises the same way.
+    expect(
+      validatePublicEnvironment({
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'local-publishable-key',
+        NEXT_PUBLIC_SUPABASE_URL: 'http://[::1]:65421',
+      }),
+    ).toBeDefined();
+  });
+
   it('rejects a remote Supabase target by default', () => {
     expect(() =>
       validatePublicEnvironment({
