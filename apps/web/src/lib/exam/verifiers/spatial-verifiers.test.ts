@@ -9,7 +9,7 @@ import { spatialVerifiers } from './spatial';
 import type { Verdict } from './types';
 
 /**
- * Round-trip tests for the eight spatial verifiers.
+ * Round-trip tests for the nine spatial verifiers.
  *
  * Every case loads a REAL bank item and feeds it the bank's own reference
  * solution as the child's response — the reference exists precisely so the
@@ -52,7 +52,9 @@ const MALFORMED: Record<string, unknown>[] = [
 ];
 
 describe('spatial verifiers — registry', () => {
-  it('registers exactly the eight in-scope spatial types', () => {
+  // SPA-XFORM-01 is the Stage 2 learning-block type; its round-trip cases live in
+  // `src/lib/exam/stage2-xform.test.ts`, which grades its whole bank and both persistence arms.
+  it('registers exactly the nine in-scope spatial types', () => {
     expect(Object.keys(spatialVerifiers).sort()).toEqual([
       'SPA-HIDDENCUBE-01',
       'SPA-MAZE-01',
@@ -61,6 +63,7 @@ describe('spatial verifiers — registry', () => {
       'SPA-SCENE-01',
       'SPA-TANGRAM-01',
       'SPA-VIEW-01',
+      'SPA-XFORM-01',
       'SPA-XPLANE-01',
     ]);
   });

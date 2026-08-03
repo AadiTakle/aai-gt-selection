@@ -21,12 +21,15 @@
  * `@gt-selection/exam-engine`, so the browser and the engine cannot drift apart.
  */
 import {
+  AREAS,
   RECOMMENDED_NOVEL_BLOCK_LENGTH,
+  itemOptionCount,
   selectNextNovelServedItem,
   type Area,
   type ServedItem,
 } from '@gt-selection/exam-engine';
 import {
+  DEFAULT_GUESSING,
   estimateLearningCurve,
   learningRateReadout,
   nextTargetTheta,
@@ -83,6 +86,69 @@ export const LEARNING_BLOCK_LENGTH = RECOMMENDED_NOVEL_BLOCK_LENGTH;
  */
 export const LEARNING_BLOCK_TARGET_OFFSET = 1;
 
+/**
+ * One activity in Phase 2: a single question type, run in one area, for a fixed number of trials.
+ *
+ * The single-type rule is the whole reason this is a list of blocks rather than one longer block.
+ * A learning block measures a hidden system the child induces across trials that never repeat, and
+ * the system belongs to a type — so a run that interleaves types has nothing persisting across it
+ * (see {@link LEARNING_BLOCK_TYPE}). Four activities therefore means four separate single-type
+ * blocks, each with its own climb, not one block of 120 mixed trials.
+ *
+ * Each block still runs in the SAME area and type for every child, for the comparability reason in
+ * {@link LEARNING_BLOCK_AREA}: a rate measured in whichever area a given child happened to be
+ * strongest in is not comparable to anyone else's.
+ */
+export interface LearningBlockSpec {
+  /** Stable key for per-block state and storage. Never renumber; the handoff persists it. */
+  readonly id: string;
+  readonly area: Area;
+  /** The one type this block administers. */
+  readonly typeCode: string;
+  /** Child-facing name for the activity. */
+  readonly label: string;
+  readonly length: number;
+}
+
+/**
+ * The Phase 2 activities, in the order they are offered.
+ *
+ * Three of these four types are not on `dev` yet. That is deliberate rather than aspirational:
+ * {@link availableBlocks} filters this list against the item pool the app actually has, so the run
+ * is one activity today and becomes four the moment the remaining banks land, with no code change.
+ * A block whose type has too few unseen items is skipped, not failed.
+ */
+export const LEARNING_BLOCKS: readonly LearningBlockSpec[] = [
+  {
+    id: 'fluid',
+    area: 'fluid_reasoning',
+    typeCode: 'FLU-OPCHAIN-01',
+    label: 'Machine Chains',
+    length: LEARNING_BLOCK_LENGTH,
+  },
+  {
+    id: 'spatial',
+    area: 'spatial',
+    typeCode: 'SPA-XFORM-01',
+    label: 'Transform Machine',
+    length: LEARNING_BLOCK_LENGTH,
+  },
+  {
+    id: 'quantitative',
+    area: 'quantitative',
+    typeCode: 'QUANT-GLYPHNUM-01',
+    label: 'Alien Numbers',
+    length: LEARNING_BLOCK_LENGTH,
+  },
+  {
+    id: 'verbal',
+    area: 'verbal',
+    typeCode: 'VER-MORPHO-01',
+    label: 'Word Machines',
+    length: LEARNING_BLOCK_LENGTH,
+  },
+];
+
 const HANDOFF_KEY = 'gt-exam-learning-block';
 
 /**
@@ -96,12 +162,27 @@ export interface LearningBlockHandoff {
   /** Database session id when the run was persisted; null for an unpersisted preview run. */
   readonly examSessionId: string | null;
   readonly gradeBand: string;
-  /** The settled standing level for {@link LEARNING_BLOCK_AREA}, on the 1–20 scale. */
+  /**
+   * The settled standing level for {@link LEARNING_BLOCK_AREA}, on the 1–20 scale.
+   *
+   * Retained as the fluid-reasoning standing so a handoff written before Phase 2 had more than one
+   * activity still resumes. {@link standings} is what a multi-block run reads.
+   */
   readonly standing: number;
+  /**
+   * Settled standing per area, so each activity can be aimed at the level the child actually
+   * reached in ITS area. Aiming a spatial block at a fluid standing would pitch the difficulty at
+   * the wrong child.
+   *
+   * Partial because Phase 1 may not settle every area.
+   */
+  readonly standings: Partial<Record<Area, number>>;
   /** Every item served in Phase 1, so the block can exclude them. */
   readonly seenItemIds: readonly string[];
   readonly finishedAt: string;
   readonly blockLength: number;
+  /** Ids of activities already completed, so a resumed run continues rather than restarts. */
+  readonly completedBlockIds: readonly string[];
 }
 
 function storage(): Storage | null {
@@ -124,17 +205,33 @@ function parseHandoff(raw: string | null): LearningBlockHandoff | null {
     ) {
       return null;
     }
+    // A handoff written before Phase 2 had per-area standings carries only the fluid one. Seed the
+    // map from it so an in-flight run resumes instead of being discarded.
+    const rawStandings = (parsed.standings ?? {}) as Record<string, unknown>;
+    const standings: Partial<Record<Area, number>> = {};
+    for (const area of AREAS) {
+      const value = rawStandings[area];
+      if (typeof value === 'number' && Number.isFinite(value)) standings[area] = value;
+    }
+    if (standings[LEARNING_BLOCK_AREA] === undefined) {
+      standings[LEARNING_BLOCK_AREA] = parsed.standing;
+    }
+
     return {
       sessionId: parsed.sessionId,
       examSessionId: typeof parsed.examSessionId === 'string' ? parsed.examSessionId : null,
       gradeBand: typeof parsed.gradeBand === 'string' ? parsed.gradeBand : '4-5',
       standing: parsed.standing,
+      standings,
       seenItemIds: parsed.seenItemIds.filter((id): id is string => typeof id === 'string'),
       finishedAt: typeof parsed.finishedAt === 'string' ? parsed.finishedAt : '',
       blockLength:
         typeof parsed.blockLength === 'number' && Number.isFinite(parsed.blockLength)
           ? parsed.blockLength
           : LEARNING_BLOCK_LENGTH,
+      completedBlockIds: Array.isArray(parsed.completedBlockIds)
+        ? parsed.completedBlockIds.filter((id): id is string => typeof id === 'string')
+        : [],
     };
   } catch {
     return null;
@@ -201,6 +298,138 @@ export function clearLearningBlockHandoff(): void {
   emit();
 }
 
+/** Items of one activity's type, in its area, that Phase 1 never served. */
+export function blockPool(
+  spec: LearningBlockSpec,
+  pool: readonly ServedItem[],
+  seenItemIds: readonly string[],
+): ServedItem[] {
+  const seen = new Set(seenItemIds);
+  return pool.filter(
+    (item) =>
+      item.domain === spec.area && item.typeCode === spec.typeCode && !seen.has(item.itemId),
+  );
+}
+
+/** Where a block's assumed guessing floor came from. Named so the fallback cannot pass unnoticed. */
+export type BlockFloorBasis =
+  | { readonly kind: 'option-count'; readonly optionCount: number }
+  /**
+   * The floor could not be read off the pool, so {@link DEFAULT_GUESSING} stands in.
+   *
+   * - `no-option-count`: no item declares an option list. Either the pool is not multiple choice at
+   *   all, or it reached here stripped of the one field that would say.
+   * - `mixed-option-counts`: the pool disagrees with itself. The fit takes ONE floor for the whole
+   *   block, and averaging reciprocals across a pool would put a number nobody chose into the fit,
+   *   so the declared default is used and the disagreement is reported instead.
+   * - `degenerate-option-count`: an option list too short to guess from (0 or 1), whose reciprocal
+   *   is not a probability.
+   */
+  | {
+      readonly kind: 'default';
+      readonly reason: 'no-option-count' | 'mixed-option-counts' | 'degenerate-option-count';
+    };
+
+export interface BlockGuessingFloor {
+  /** Lower asymptote to fit and to target with, for every trial of this block. */
+  readonly guessing: number;
+  readonly basis: BlockFloorBasis;
+}
+
+/** Fewest options an item can offer and still leave something to guess between. */
+const MIN_GUESSABLE_OPTIONS = 2;
+
+/**
+ * The chance-success floor for one activity, derived from its own items.
+ *
+ * WHY THIS EXISTS. `DEFAULT_GUESSING` is the FIVE-option floor, and the Phase 2 activities are not
+ * all five-option: `VER-MORPHO-01` offers four, so the block it runs was fitted and aimed at 0.2
+ * against a truth of 0.25. D-200 part 1 already provides for this — "callers administering a
+ * different item format pass the reciprocal of their option count" — and this is the caller doing
+ * it. E-212 measures what it is worth on the shipped targeting rule.
+ *
+ * DERIVED RATHER THAN TABULATED. The count comes off the bank record every time (`content.options`
+ * on a full item, `content.optionCount` on the selection index the browser holds), so a bank that
+ * changes format moves this with it. A per-type table would keep returning the old number and
+ * nothing in the pipeline would notice.
+ *
+ * ONE FLOOR FOR THE WHOLE BLOCK, because the fit takes one. That is exact while an activity's bank
+ * is uniform — all four wired Stage 2 banks are — and a pool that disagrees with itself falls back
+ * to the declared default rather than to an invented average. E-200 costs mixed option counts as a
+ * real second-order exposure, so the fallback is reported through {@link BlockFloorBasis} rather
+ * than applied silently.
+ *
+ * CLAIM BOUNDARY. The reciprocal of the option count is a DESIGN assumption, not a calibrated `c`.
+ * An estimated lower asymptote is typically below chance, since a plausible distractor set is not
+ * chosen uniformly, and a child who disengages sits below it again. E-205 records that if a real
+ * child's floor is not the reciprocal, this correction is itself misspecified.
+ */
+export function blockGuessingFloor(pool: readonly ServedItem[]): BlockGuessingFloor {
+  let count: number | null = null;
+  for (const item of pool) {
+    const declared = itemOptionCount(item);
+    if (declared === null) continue;
+    if (count === null) count = declared;
+    else if (count !== declared) {
+      return {
+        guessing: DEFAULT_GUESSING,
+        basis: { kind: 'default', reason: 'mixed-option-counts' },
+      };
+    }
+  }
+
+  if (count === null) {
+    return { guessing: DEFAULT_GUESSING, basis: { kind: 'default', reason: 'no-option-count' } };
+  }
+  if (count < MIN_GUESSABLE_OPTIONS) {
+    return {
+      guessing: DEFAULT_GUESSING,
+      basis: { kind: 'default', reason: 'degenerate-option-count' },
+    };
+  }
+  return { guessing: 1 / count, basis: { kind: 'option-count', optionCount: count } };
+}
+
+/**
+ * The activities this child can actually be given, ordered weakest area first.
+ *
+ * An activity is dropped when its bank is not wired yet, when Phase 1 left too few unseen items of
+ * its type, or when Phase 1 never settled a standing in its area — all three make the block
+ * unaimable rather than merely short, and a block aimed at nothing measures nothing.
+ *
+ * Completed activities are dropped too, so a resumed run continues where it stopped.
+ *
+ * **Order is by the child's own standing, ascending.** Every activity is pitched above wherever
+ * that child finished, so all four are hard; going weakest-area first means the run opens where
+ * the ceiling is lowest and the material is least likely to be already familiar. It also puts the
+ * areas most exposed to fatigue at the front, while effort is highest — Phase 2 is the part
+ * children are told they are not expected to complete, so what lands late is what a tiring child
+ * is most likely to abandon.
+ *
+ * The order is a property of the child, not of the list, so two children can meet these in
+ * different sequences. That is fine for a within-block climb, which never compares across areas.
+ */
+export function availableBlocks(
+  pool: readonly ServedItem[],
+  seenItemIds: readonly string[],
+  standings: Partial<Record<Area, number>>,
+  completedBlockIds: readonly string[] = [],
+): LearningBlockSpec[] {
+  const done = new Set(completedBlockIds);
+  return LEARNING_BLOCKS.filter(
+    (spec) =>
+      !done.has(spec.id) &&
+      standings[spec.area] !== undefined &&
+      blockPool(spec, pool, seenItemIds).length >= spec.length,
+  ).sort((a, b) => {
+    const byStanding = (standings[a.area] ?? 0) - (standings[b.area] ?? 0);
+    // Ties keep the declaration order, so the sequence stays deterministic and replayable.
+    return byStanding !== 0
+      ? byStanding
+      : LEARNING_BLOCKS.indexOf(a) - LEARNING_BLOCKS.indexOf(b);
+  });
+}
+
 /** Items of the block's type, in the block's area, that Phase 1 never served. */
 export function novelBlockPool(
   pool: readonly ServedItem[],
@@ -226,12 +455,22 @@ export function blockCanRun(
 
 /**
  * Difficulty to aim the next trial at: the standing level plus the desirable-difficulty offset
- * early on, then re-projected from the climb fitted so far.
+ * early on, then re-fitted from the level reached so far.
+ *
+ * `guessing` is the block's own chance floor from {@link blockGuessingFloor}. It reaches the
+ * TARGETING role here and the READOUT role in {@link summariseLearningBlock}, and both matter:
+ * E-200 measured correcting the readout alone and found it barely helps, because the difficulty
+ * walk is still driven by a misspecified fit.
  */
-export function nextBlockTarget(trials: readonly LearningTrial[], standing: number): number {
+export function nextBlockTarget(
+  trials: readonly LearningTrial[],
+  standing: number,
+  guessing: number = DEFAULT_GUESSING,
+): number {
   return nextTargetTheta(trials, {
     standingEstimate: standing,
     targetOffset: LEARNING_BLOCK_TARGET_OFFSET,
+    guessing,
   });
 }
 
@@ -311,11 +550,16 @@ const SHORT_BLOCK_REASON =
  * Pass `reference` only once a real distribution of learning rates exists. Until then this
  * deliberately returns `indeterminate`: at this block length one child's estimate is less precise
  * than children are believed to differ, so naming a band would be inventing precision.
+ *
+ * `guessing` is the block's own chance floor from {@link blockGuessingFloor} — the READOUT half of
+ * the pair {@link nextBlockTarget} completes. Leaving it at the default fits a four-option activity
+ * as though it were five-option, which is the misspecification E-212 measures.
  */
 export function summariseLearningBlock(
   trials: readonly LearningTrial[],
   reference?: LearningRateReference,
   length: number = LEARNING_BLOCK_LENGTH,
+  guessing: number = DEFAULT_GUESSING,
 ): LearningBlockReadout {
   if (trials.length < length) {
     return {
@@ -330,7 +574,7 @@ export function summariseLearningBlock(
   if (!reference) {
     // Still fit it, so the pace is on the record and a cohort can be ranked later; just do not
     // dress it up as a comparison we cannot make.
-    const fit = estimateLearningCurve(trials);
+    const fit = estimateLearningCurve(trials, { guessing });
     return {
       band: 'indeterminate',
       reason: NO_REFERENCE_REASON,
@@ -340,12 +584,54 @@ export function summariseLearningBlock(
     };
   }
 
-  const readout = learningRateReadout(trials, { reference, minTrials: length });
+  const readout = learningRateReadout(trials, { reference, minTrials: length, fit: { guessing } });
   return {
     band: readout.band,
     reason: readout.band === 'indeterminate' ? NO_REFERENCE_REASON : readout.reason,
     lambda: readout.lambdaDiagnostic,
     lambdaSe: readout.lambdaSe,
     trialCount: readout.trialCount,
+  };
+}
+
+/** One finished activity, kept so the run can be summarised and resumed. */
+export interface CompletedBlock {
+  readonly spec: LearningBlockSpec;
+  readonly readout: LearningBlockReadout;
+}
+
+/**
+ * What the whole of Phase 2 says, once every activity a child could take has been taken.
+ *
+ * There is deliberately no combined rate. Each activity fits its own climb in its own area, and
+ * averaging four figures that are each individually indeterminate produces a fifth indeterminate
+ * figure with a falsely tighter look — the block-length floor in {@link summariseLearningBlock}
+ * does not average away. So this reports coverage and holds the per-activity fits for the cohort
+ * analysis, and says plainly that the pace itself is not yet reportable.
+ */
+export interface Stage2Readout {
+  readonly blocks: readonly CompletedBlock[];
+  /** Activities finished out of the number offered to THIS child. */
+  readonly completed: number;
+  readonly offered: number;
+  readonly band: LearningRateBand;
+  readonly reason: string;
+}
+
+const PARTIAL_COVERAGE_REASON =
+  'Your child completed part of the practice section. The activities they did finish are on the ' +
+  'record, but a pace is not something we can report from them yet.';
+
+export function summariseStage2(
+  blocks: readonly CompletedBlock[],
+  offered: number,
+): Stage2Readout {
+  const completed = blocks.length;
+  return {
+    blocks,
+    completed,
+    offered,
+    band: 'indeterminate',
+    reason: completed > 0 && completed < offered ? PARTIAL_COVERAGE_REASON : NO_REFERENCE_REASON,
   };
 }

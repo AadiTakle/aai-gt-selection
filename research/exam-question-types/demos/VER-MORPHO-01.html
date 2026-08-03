@@ -1,0 +1,778 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VER-MORPHO-01 · Word Machines</title>
+<style>
+  :root{
+    --bg1:#fcf4ef; --bg2:#f8e8de; --ink:#001117; --card:#ffffff;
+    --accent:#004f71; --accent2:#002a3a; --good:#146c43; --bad:#a4442f;
+    --line:#ecd9cb; --socket:#ebba9b; --muted:#4a6470;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));
+    display:flex;min-height:100%;
+  }
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;font-weight:700}
+  #howto{max-width:620px;width:100%;background:#fff;border:1px solid var(--line);border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #002a3a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#33505c;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#f8e8de;color:var(--accent);border:2px solid var(--line);min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#f5ddcd;color:#6f4526;border-color:var(--socket)}
+  #phasecue[data-phase="scored"]{background:var(--accent2);color:#fff;border-color:var(--accent2)}
+  #phasecue[data-phase="done"]{background:#f5ddcd;color:var(--accent2);border-color:var(--line)}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.neutral{color:var(--muted)}
+  #stagecard{
+    background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #002a3a;
+    display:flex;flex-direction:column;align-items:center;gap:18px;max-width:620px;width:100%;
+  }
+
+  /* ---- the workbench: reference word+picture, then the prompt ---- */
+  #bench{width:100%;padding:16px;border-radius:20px;background:#f8e8de;border:3px solid #f8e8de}
+  #belt{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap}
+  .picbox{background:#fff;border:2px solid var(--line);border-radius:14px;width:104px;height:104px;
+    display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .arrow{color:var(--muted);font-size:22px;font-weight:700;flex:0 0 auto}
+  .named{display:flex;flex-direction:column;align-items:center;gap:6px;flex:0 0 auto}
+  .caption{font:700 10px/1.3 ui-monospace,monospace;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+  /*
+   * The written word. Hyphens are part of the stimulus, not decoration: the generator separates the
+   * morphemes so the child decodes CVC syllables instead of a 15-letter blob, and the space around
+   * each hyphen is what makes the segmentation visible at a glance.
+   */
+  #wordslot{display:flex;align-items:center;justify-content:center;min-height:64px;min-width:132px;
+    padding:10px 16px;background:#fff;border:2px dashed var(--socket);border-radius:14px}
+  .word{font:800 25px/1.15 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.04em;color:var(--accent2);
+    white-space:nowrap}
+  .word .hy{color:var(--socket);padding:0 1px}
+  #tray{margin-top:16px;display:flex;align-items:center;gap:8px;justify-content:center;flex-wrap:wrap}
+  #traylabel{font:600 11px/1.3 ui-monospace,monospace;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+  .chip{font:700 13px/1 ui-monospace,monospace;letter-spacing:.03em;padding:7px 9px;border-radius:9px;
+    border:2px solid var(--socket);background:#f8e8de;color:var(--accent2);opacity:.45}
+  .chip.inuse{opacity:1;border-color:var(--accent);background:#ffffff}
+
+  /* ---- the four answers: fixed positions, one tap ---- */
+  #optlabel{font:600 11px/1.3 ui-monospace,monospace;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+  #options{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;width:100%}
+  .opt{position:relative;background:#fff;border:3px solid var(--line);border-radius:14px;
+    min-height:96px;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:6px;
+    transition:.15s;-webkit-tap-highlight-color:transparent}
+  #options[data-mode="picture"] .opt{aspect-ratio:1/1;padding:0}
+  #options[data-mode="word"] .opt{aspect-ratio:auto;padding:14px 6px}
+  #options[data-mode="word"] .word{font-size:18px;white-space:normal;word-break:break-word;text-align:center}
+  .opt::after{content:attr(data-key);position:absolute;right:5px;bottom:3px;font:700 11px/1 ui-monospace,monospace;color:var(--muted)}
+  .opt:hover{transform:translateY(-3px)}
+  .opt[disabled]{cursor:default}
+  .opt[disabled]:hover{transform:none}
+  /*
+   * Post-commit marks. BOTH are the same neutral navy and neither carries a verdict word, a tick,
+   * a cross or a good/bad colour: one says what the child chose, the other says what the system
+   * says the word means. Reading the two together is the informational feedback the design allows;
+   * being TOLD which of the two is right is the evaluative feedback it forbids.
+   */
+  .opt.chose{border-color:var(--accent2)}
+  .opt.made{border-color:var(--accent);box-shadow:0 0 0 4px #ecd9cb}
+  .tag{position:absolute;left:50%;transform:translateX(-50%);bottom:-9px;padding:1px 7px;border-radius:999px;
+    font:700 9px/1.6 ui-monospace,monospace;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;color:#fff}
+  .opt.chose .tag{background:var(--accent2)}
+  .opt.made .tag{background:var(--accent)}
+  .opt.chose.made .tag{background:var(--accent)}
+
+  /* ---- pointer hint: outline cursor, never an emoji ---- */
+  #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:60;opacity:0;
+    transition:transform .7s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #ghost .pulsering{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;
+    border:3px solid var(--accent);opacity:0}
+  #ghost.tap .pulsering{animation:tapring .5s ease-out}
+  @keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+
+  .opt:focus-visible,button:focus-visible{outline:4px solid #e48b53;outline-offset:3px}
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+  @media(max-width:620px){
+    #wrap{padding:10px}#stagecard{padding:14px}#bench{padding:10px}
+    .picbox{width:80px;height:80px}.picbox svg{width:68px;height:68px}
+    .word{font-size:20px}#options{gap:7px}
+    #options[data-mode="word"] .word{font-size:14px}
+  }
+</style>
+<style>html[data-gt-chrome="off"] #howto{display:none}</style>
+<script>/* Instant-question gate. Embedded in the screener the "How to use" panel is hidden so the
+   child sees the question itself the moment it appears; the per-item status line carries the
+   instruction in words. A test should not spend its first seconds being read. `?chrome=1`
+   restores the panel for a walkthrough, and standalone (opened directly) is unchanged. */
+(function(){var f=/(^|[?&])chrome=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-chrome','off');})();</script>
+<link rel="stylesheet" href="../exam-skin.css">
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">VER-MORPHO-01 · Word Machines</div>
+    <header id="howto">
+      <h1>How to use — Word Machines</h1>
+      <p>One picture is named for you, so you know what its word means on its own. Little word-parts get added on the end, and each one changes the picture in its own way. Tap the one answer out of four that matches. One tap sends your answer. Nobody tells you what the word-parts mean — you work that out by watching what the words do.</p>
+    </header>
+    <div id="phasecue" data-phase="warmup">Get ready</div>
+    <div id="stagecard">
+      <div id="bench">
+        <div id="belt">
+          <div class="named">
+            <div class="picbox" id="refpic"></div>
+            <div class="caption" id="refcap">this is a</div>
+          </div>
+          <span class="arrow">&#8594;</span>
+          <div class="named">
+            <div id="askslot"></div>
+            <div class="caption" id="askcap">the new word</div>
+          </div>
+        </div>
+        <div id="tray"><span id="traylabel">Word-parts in this language</span></div>
+      </div>
+      <div id="optlabel">Which one is it?</div>
+      <div id="options" data-mode="picture"></div>
+      <div id="status" class="neutral">Waiting for the next puzzle.</div>
+    </div>
+    <div id="playgate">
+      <p>The word is ready. Press play when you are ready, and it starts then.</p>
+      <button type="button" id="play">Play</button>
+    </div>
+  </div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#004f71" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="pulsering"></span></div>
+<script>
+'use strict';
+/* =====================================================================
+ * VER-MORPHO-01 "Word Machines" — PURE RENDERER (STAGE2_QUESTION_DESIGN §9.2, U6)
+ *
+ * Renders a SERVED item (`item.content`) and reports the child's RAW choice. It never
+ * self-generates a scored item and never decides correctness.
+ *
+ * ---------------------------------------------------------------------
+ * THIS FILE CANNOT DERIVE THE KEY, AND THAT IS STRUCTURAL RATHER THAN A PROMISE
+ *
+ * The hidden system is a form->meaning bijection living under `answer.system.affixMap`, which
+ * `servedItemSchema` omits wholesale. There is no morpheme semantics anywhere in this file: it
+ * draws a picture it is HANDED as five plain attributes and prints a word it is HANDED as a
+ * string. It does not know that `kib` resizes anything, and there is no code path by which it
+ * could work that out — so "the browser never asserts correctness" is a property of what this
+ * file contains, not a rule it obeys.
+ *
+ * The generator states the same requirement from its side: the reveal a learning block needs is
+ * deliberately NOT in `content`, "because putting the reveal in the bank would hand the key to
+ * the browser".
+ * ---------------------------------------------------------------------
+ *
+ * ---------------------------------------------------------------------
+ * ONE RENDERER SERVES BOTH ARMS, AND IT DOES NOT KNOW WHICH ARM IT IS SERVING
+ *
+ * D-S2-3 makes the scrambled-system control a binding gate and §4.1.1 makes it a generator MODE:
+ * one generator, one renderer, one verifier. A second "control demo" would confound the contrast
+ * with the renderer and is an automatic rejection.
+ *
+ * So persistence reaches this file the only way it can without becoming a renderer branch: as the
+ * SERVED ITEM ITSELF. Under `consistent` a given morpheme is spelt the same way on every item of
+ * the block; under `perTrial` the spelling is re-drawn per item. Either way this file receives a
+ * word and a tray of forms and prints them. There is no arm flag, no query parameter and no code
+ * path that differs between arms, which is exactly the property the gate needs: any between-arm
+ * difference Gate B measures cannot have come from here.
+ * ---------------------------------------------------------------------
+ *
+ * ---------------------------------------------------------------------
+ * BOTH DIRECTIONS, ONE RESPONSE GRAMMAR
+ *
+ * §3.3's item runs either way round — a written word with four candidate pictures, or a target
+ * picture with four candidate words — and STAGE2_QUESTION_DESIGN makes the two DIVERGING its
+ * failure mode (c), so the bank carries both, balanced within every 0.5-point rung. The two share
+ * one response grammar: look at the bench, tap one of four in FIXED positions. Only the contents
+ * of the prompt slot and of the option tiles swap, which is why there is one `direction` branch in
+ * the painting code and none anywhere else — the motor act the child learns is identical, so no
+ * part of it lands inside the fitted climb.
+ * ---------------------------------------------------------------------
+ *
+ * WHAT THIS FILE DELIBERATELY DOES NOT DO
+ *
+ *  * No standalone-timer fallback (E-079). Embedded, it waits indefinitely for the host's `init`.
+ *    Fifteen demos hedged with "if no init by 500ms, assume no host", and a host init landing after
+ *    that timeout put dev preview text in front of a child mid-assessment. The standalone bootstrap
+ *    here is behind `if (!embedded)` and behind no timer at all.
+ *  * No researcher sidebar (E-082), for the reason FLU-OPCHAIN-01 records: a panel that can never
+ *    be shown to a child has nothing to gate. Telemetry itself is unchanged.
+ *  * No verdict. Not a tick, not a cross, not a score, not a streak, not praise, not points, and no
+ *    performance-contingent animation (§1.5, Deci/Koestner/Ryan 1999; Kluger & DeNisi 1996). What
+ *    the child gets after committing is the system resolving the instance. Two neutral chips say
+ *    "you chose" and "this one" in the same colour. Comparing them is the child's business.
+ *  * No second tap. One tap on an option IS the answer (§1.4(2)).
+ *  * No colour coding of any picture attribute (§1.6). Count, size, the negation mark and the role
+ *    icon are all drawn in one ink, so colour vision does not gate the task.
+ *
+ * Embedding protocol (postMessage), source-tagged:
+ *   host -> demo : {source:'gt-exam-host', type:'init',   item:ServedItem}
+ *                  {source:'gt-exam-host', type:'start',  tutorial?:bool}
+ *                  {source:'gt-exam-host', type:'reveal', reveal:{machineOutput:'C'}}
+ *   demo -> host : {source:'gt-exam-demo', type:'ready'}
+ *                  {source:'gt-exam-demo', type:'result',    result:ItemResult}
+ *                  {source:'gt-exam-demo', type:'telemetry', event:TelemetryEvent}
+ *
+ * `reveal` is optional and nothing here waits on it. It arrives only AFTER `/api/exam-submit` has
+ * scored a trial the child has already committed to and which is never re-served, so it hands the
+ * browser nothing it can use ahead of an answer. A host that sends none simply advances.
+ * ===================================================================== */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+const HOST_SRC='gt-exam-host', DEMO_SRC='gt-exam-demo';
+const OPTION_KEYS=['A','B','C','D'];
+
+/* ---------- picture drawing ------------------------------------------------
+ * A picture is {kind, count, size, mark, role} — the four mutable attributes plus the kind, which
+ * every option in an item shares so it can never discriminate.
+ *
+ * The four attributes are drawn on four SEPARABLE channels, which §1.6 requires and which is not
+ * cosmetic: imported category-difficulty orderings invert when dimensions are integral rather than
+ * separable, and a wrong difficulty ordering biases the fitted rate rather than merely adding
+ * noise. So `count` is how many shapes, `size` is how big each one is at any count (a FIXED size
+ * per value, never rescaled to fit, or the size channel would read differently at count 3), and
+ * `mark` and `role` are two icons sharing a reserved strip along the bottom. The strip is why they
+ * sit side by side rather than in opposite corners: a three-shape cluster reaches into the top
+ * corners, so a corner badge would cap the shapes at roughly two thirds of the size they can
+ * otherwise be drawn at, and at the youngest band served that is the wrong trade.
+ *
+ * The role pair is deliberately NOT an arrow and its mirror image. Left-right mirror discrimination
+ * is itself a developing skill at the youngest band this type serves, so a mirrored pair would put
+ * a construct-irrelevant load on exactly the children the design is most careful about. `doer` gets
+ * an outgoing arrow and `target` a bullseye: maximally different silhouettes, neither derived from
+ * the other by reflection.
+ *
+ * This file knows how to DRAW a picture. It does not know what any morpheme DOES to one.
+ * ------------------------------------------------------------------------ */
+const KIND_PATH={
+  blob:'M50,10 C72,10 90,25 90,47 C90,72 71,92 48,92 C24,92 10,73 10,49 C10,26 28,10 50,10 Z',
+  star:'M50,5 L62,37 L96,38 L69,58 L79,91 L50,71 L21,91 L31,58 L4,38 L38,37 Z',
+  leaf:'M50,6 C80,22 90,54 50,94 C10,54 20,22 50,6 Z',
+  drop:'M50,5 C71,34 85,51 85,65 A35,35 0 0 1 15,65 C15,51 29,34 50,5 Z',
+};
+const INK='#004f71';
+/** Fixed per value, never scaled to fit the count — see the separability note above. */
+const GLYPH_SIZE={small:23,big:34};
+/** The cluster's centre. Above the icon strip, and high enough for three big shapes to fit. */
+const CLUSTER_Y=39;
+
+/** Where each shape of a `count`-shape cluster sits, in the 100x100 picture box. */
+function clusterAt(count,s){
+  const dx=0.58*s, dy=0.56*s, cy=CLUSTER_Y;
+  if(count<=1)return [[50,cy]];
+  if(count===2)return [[50-dx,cy],[50+dx,cy]];
+  return [[50-dx,cy-dy],[50+dx,cy-dy],[50,cy+dy]];
+}
+/**
+ * A picture's signature, put on the DOM as `data-pic`.
+ *
+ * It discloses nothing: it is a shorter spelling of the SVG already on screen, and every option's
+ * picture is in `content` regardless. It exists so the interface gate can find the unchanged
+ * picture without the renderer keeping a second copy of it, and so a test can assert what is on
+ * screen without parsing SVG.
+ */
+function picSig(p){
+  if(!p)return '';
+  return [p.kind,String(p.count),p.size,p.mark,p.role].join('|');
+}
+function pictureSVG(p,box){
+  if(!p)return '';
+  const path=KIND_PATH[p.kind]||KIND_PATH.blob;
+  const s=GLYPH_SIZE[p.size]||GLYPH_SIZE.small;
+  const shapes=clusterAt(Number(p.count)||1,s).map(([cx,cy])=>
+    `<g transform="translate(${cx},${cy}) scale(${s/100}) translate(-50,-50)">`+
+    `<path d="${path}" fill="${INK}"/></g>`).join('');
+  const mark=p.mark==='cross'
+    ? `<g stroke="${INK}" stroke-width="5" stroke-linecap="round">`+
+      `<path d="M70,81 L86,97"/><path d="M86,81 L70,97"/></g>`
+    : '';
+  const role=p.role==='doer'
+    ? `<g stroke="${INK}" stroke-width="5" fill="${INK}" stroke-linecap="round">`+
+      `<path d="M8,89 L24,89" fill="none"/><path d="M22,81 L36,89 L22,97 Z" stroke="none"/></g>`
+    : `<g stroke="${INK}" fill="none" stroke-width="5">`+
+      `<circle cx="21" cy="89" r="9"/><circle cx="21" cy="89" r="2" fill="${INK}"/></g>`;
+  return `<svg width="${box}" height="${box}" viewBox="0 0 100 100" aria-hidden="true">`+
+    `${shapes}${mark}${role}</svg>`;
+}
+
+/**
+ * A hyphenated word, with the hyphens drawn quieter than the syllables.
+ *
+ * The segmentation is GIVEN AWAY on purpose: segmenting an unfamiliar string is a real skill and
+ * it is not the construct, so the child decodes CVC syllables rather than a 15-letter blob.
+ * Rendering the separators in a lighter ink is the same decision carried into the type.
+ */
+function wordHTML(word){
+  return String(word==null?'':word)
+    .split('-')
+    .map(part=>part.replace(/[&<>]/g,''))
+    .join('<span class="hy">-</span>');
+}
+
+/* ---------- per-item state ---------- */
+let current=null;        // the ServedItem on screen (null during the interface gate)
+let interactive=false;   // may a tap be accepted?
+let committed=false;     // has this item already been answered?
+let touched=false;       // has the child made contact with any option yet?
+let itemStart=0;         // ms at which the child became able to answer
+let firstLatency=null;   // ms to first contact with an option
+let blurCount=0;
+let itemTelemetry=[];
+let gateTutorial=false;  // does the pending play press owe the interface gate?
+
+/* ---------- embedding + emit ---------- */
+const embedded=(()=>{try{return window.parent&&window.parent!==window;}catch(_){return true;}})();
+let standalone=false, standaloneQueue=[], standaloneIdx=0;
+function post(msg){if(!embedded)return;try{window.parent.postMessage(Object.assign({source:DEMO_SRC},msg),'*');}catch(_){}}
+function emitEvent(kind,extra){
+  const event=Object.assign(
+    {t:itemStart?Date.now()-itemStart:0,kind,itemId:current?current.itemId:null},
+    extra||{},
+  );
+  itemTelemetry.push(event);
+  post({type:'telemetry',event});
+}
+
+/* ---------- chrome ---------- */
+function setCue(k,txt){const el=$('#phasecue');el.dataset.phase=k;el.textContent=txt;}
+/* Only ever `neutral`. The skin colours `ok` green and `no` red, and this block does not have an
+   opinion about the child's answer. */
+function setStatus(msg){const el=$('#status');el.className='neutral';el.textContent=msg;}
+
+/* ---------- the bench ---------- */
+function drawReference(stem,picture){
+  const slot=$('#refpic');
+  slot.className='picbox';
+  slot.dataset.pic=picSig(picture);
+  slot.innerHTML=pictureSVG(picture,88);
+  $('#refcap').textContent='this is a '+String(stem==null?'':stem).toUpperCase();
+}
+/** The prompt slot: the written word in one direction, the target picture in the other. */
+function drawPrompt(direction,content){
+  const slot=$('#askslot');
+  if(direction==='pictureToWord'){
+    slot.className='picbox';
+    slot.dataset.pic=picSig(content.targetPicture);
+    slot.innerHTML=pictureSVG(content.targetPicture,88);
+    $('#askcap').textContent='name this one';
+    return;
+  }
+  slot.className='';
+  slot.removeAttribute('data-pic');
+  slot.innerHTML=`<div id="wordslot"><span class="word">${wordHTML(content.word)}</span></div>`;
+  $('#askcap').textContent='the new word';
+}
+/**
+ * The morpheme tray, always in the bank's canonical order.
+ *
+ * The order is alphabetical BY FORM in both arms and in every item, so the tray itself carries no
+ * information about the mapping — ordered by meaning it would BE the mapping. Marking which forms
+ * this trial uses leaks nothing either: in one direction they are the word on screen, and in the
+ * other they are the union over all four options, which is the same set whichever option is right.
+ */
+function drawTray(tray,inUse){
+  const label='<span id="traylabel">Word-parts in this language</span>';
+  const used=new Set(inUse||[]);
+  $('#tray').innerHTML=label+(tray||[]).map(form=>
+    `<span class="chip${used.has(form)?' inuse':''}">${wordHTML(form)}</span>`).join('');
+}
+function formsOf(word){return String(word==null?'':word).split('-').slice(1);}
+/** Every form this trial puts in front of the child, for the tray highlight. */
+function formsInPlay(direction,content){
+  if(direction==='pictureToWord'){
+    const out=[];
+    for(const o of (content.options||[]))for(const f of formsOf(o.word))out.push(f);
+    return out;
+  }
+  return formsOf(content.word);
+}
+function drawOptions(direction,options){
+  const box=$('#options');
+  const picture=direction!=='pictureToWord';
+  box.dataset.mode=picture?'picture':'word';
+  box.innerHTML=(options||[]).map((o,i)=>{
+    const body=picture
+      ? pictureSVG(o.picture,80)
+      : `<span class="word">${wordHTML(o.word)}</span>`;
+    const sig=picture?` data-pic="${picSig(o.picture)}"`:'';
+    return `<button type="button" class="opt" data-key="${o.key}" data-i="${i}"${sig} `+
+      `aria-label="option ${i+1}">${body}</button>`;
+  }).join('');
+}
+function tagOption(key,cls,text){
+  const el=$(`#options .opt[data-key="${key}"]`);
+  if(!el)return;
+  el.classList.add(cls);
+  if(!el.querySelector('.tag')){
+    const tag=document.createElement('span');
+    tag.className='tag';
+    tag.textContent=text;
+    el.appendChild(tag);
+  }else{
+    el.querySelector('.tag').textContent=text;
+  }
+}
+function lockOptions(){$$('#options .opt').forEach(el=>{el.disabled=true;});}
+
+/* ---------- pointer hint (gesture only) ---------- */
+const ghost=$('#ghost');
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(650);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(480);}
+
+/* ==================================================================== *
+ * THE UNSCORED INTERFACE GATE (§1.4(3), §9 U6)
+ *
+ * Interface learning is the failure this design is most likely to die of: a child working out
+ * where to tap produces a climb that a 30-trial fit cannot tell apart from a child learning the
+ * system. The fix is pre-training — discharge the interface BEFORE trial 0, where it costs nothing,
+ * instead of inside the block, where it lands on lambda (Mayer 2021; Sweller et al. 2019).
+ *
+ * A gate instance is DEGENERATE: the word is the BARE STEM with no affix at all, so it names the
+ * reference picture and the answer is on screen the whole time. It therefore exercises
+ * read-the-bench -> tap-one-of-four without teaching anything about the hidden system, which is
+ * the shape the spec row names ("a bare stem with no affix, where the answer is the reference
+ * picture itself"). Gate instances are built here from the picture grammar this file already has
+ * to know in order to draw; they are NOT bank items, they are never scored, and no
+ * `{type:'result'}` is ever emitted for one.
+ *
+ * The gate mirrors the served item's DIRECTION rather than always running one of them. A child
+ * pre-trained on the picture-options layout and then handed word options would be discovering the
+ * layout inside trial 0, which is the exact cost the gate exists to remove.
+ *
+ * The gate runs only when the host asks for it — `{type:'start', tutorial:true}` — which the runner
+ * sends once per session per type. Every later item of the block goes straight to the question.
+ * ==================================================================== */
+const GATE_CRITERION=2;   // k consecutive correct
+const GATE_MAX_TRIALS=8;  // see the comment on `gateExhausted` below
+let gateActive=false, gateStreak=0, gateTrials=0, gateAnswer=null, gateShownHint=false;
+let gateExhausted=false;
+/*
+ * The design says a child who has not got the interface does not reach trial 0. Taken literally in
+ * software that is an unbounded loop with no way out of the session, so the gate gives up after
+ * GATE_MAX_TRIALS and lets the child through with `gateCriterionMet:0` on the record. Excluding
+ * that child is an analysis decision at Gate B, which can see the flag; wedging their session for
+ * four minutes until the host times the item out is not a decision anyone made.
+ */
+
+/** The reference picture plus three single-attribute changes, in four fixed positions. */
+function gatePictureOptions(base,seed){
+  const variants=[
+    p=>({...p,size:p.size==='small'?'big':'small'}),
+    p=>({...p,mark:p.mark==='cross'?'none':'cross'}),
+    p=>({...p,role:p.role==='doer'?'target':'doer'}),
+    p=>({...p,count:p.count===3?1:p.count+1}),
+  ].map(fn=>fn(base));
+  const slot=seed%4;
+  const out=[];
+  let v=0;
+  for(let i=0;i<4;i++){
+    out.push({key:OPTION_KEYS[i],picture:i===slot?{...base}:variants[v++]});
+  }
+  return {options:out,answerKey:OPTION_KEYS[slot]};
+}
+/** The bare stem plus three one-affix words, in four fixed positions. */
+function gateWordOptions(stem,tray,seed){
+  const slot=seed%4;
+  const out=[];
+  let v=0;
+  for(let i=0;i<4;i++){
+    out.push({
+      key:OPTION_KEYS[i],
+      word:i===slot?String(stem):`${stem}-${(tray||[])[v++%Math.max(1,(tray||[]).length)]||'zam'}`,
+    });
+  }
+  return {options:out,answerKey:OPTION_KEYS[slot]};
+}
+
+/** A neutral stand-in bench for a host that opens the gate before any item has arrived. */
+const GATE_FALLBACK={
+  stem:'saz',
+  stemPicture:{kind:'blob',count:2,size:'small',mark:'none',role:'target'},
+  morphemeTray:['dez','fov','kib','pav','pef','pog'],
+  direction:'wordToPicture',
+};
+
+function renderGateTrial(){
+  const c=(current&&current.content)?current.content:GATE_FALLBACK;
+  const stem=c.stem||GATE_FALLBACK.stem;
+  const base={...(c.stemPicture||GATE_FALLBACK.stemPicture)};
+  const tray=c.morphemeTray||GATE_FALLBACK.morphemeTray;
+  const direction=c.direction==='pictureToWord'?'pictureToWord':'wordToPicture';
+  const built=direction==='pictureToWord'
+    ? gateWordOptions(stem,tray,gateTrials+2)
+    : gatePictureOptions(base,gateTrials+2);
+  gateAnswer=built.answerKey;
+  gateTrials++;
+  committed=false;
+  touched=false;
+  firstLatency=null;
+  drawReference(stem,base);
+  drawPrompt(direction,direction==='pictureToWord'
+    ? {targetPicture:base}
+    : {word:String(stem)});
+  drawTray(tray,[]);
+  drawOptions(direction,built.options);
+  setCue('warmup','Warm-up · not scored');
+  setStatus(direction==='pictureToWord'
+    ? `This one has no extra parts, so its word is just ${String(stem).toUpperCase()}. Tap that word.`
+    : `${String(stem).toUpperCase()} has no extra parts, so it means the picture as it is. Tap that picture.`);
+  itemStart=Date.now();
+  interactive=true;
+  emitEvent('gate_render',{gateTrial:gateTrials,streak:gateStreak,direction});
+}
+
+async function gateHint(){
+  const target=$(`#options .opt[data-key="${gateAnswer}"]`);
+  ghost.classList.add('show');
+  await sleep(220);
+  await ghostTo($('#refpic'));
+  await ghostTo($('#askslot'));
+  await ghostTo(target);
+  await ghostTap();
+  ghost.classList.remove('show');
+  await sleep(260);
+}
+
+async function onGateTap(key){
+  interactive=false;
+  const right=key===gateAnswer;
+  gateStreak=right?gateStreak+1:0;
+  emitEvent('gate_response',{gateTrial:gateTrials,streak:gateStreak});
+  // The gate is the one place this file may resolve an instance, because it built it and the
+  // answer was on screen the whole time. It is still shown as world-state, not as a verdict.
+  const chosen=$(`#options .opt[data-key="${key}"]`);
+  tagOption(key,'chose','you chose');
+  tagOption(gateAnswer,'made','this one');
+  lockOptions();
+  setStatus('A word with no extra parts just means the picture it names.');
+  if(chosen)chosen.blur();
+  await sleep(1100);
+  if(gateStreak>=GATE_CRITERION||gateTrials>=GATE_MAX_TRIALS){
+    gateExhausted=gateStreak<GATE_CRITERION;
+    gateActive=false;
+    emitEvent('gate_complete',{gateTrials,criterionMet:gateExhausted?0:1});
+    beginScoredItem();
+    return;
+  }
+  renderGateTrial();
+}
+
+async function runGate(){
+  gateActive=true;gateStreak=0;gateTrials=0;
+  renderGateTrial();
+  if(!gateShownHint){gateShownHint=true;await gateHint();}
+}
+
+/* ==================================================================== *
+ * THE SCORED TRIAL
+ * ==================================================================== */
+/** Draw the served item. Separate from {@link renderServedItem} because the interface gate paints
+ *  its own degenerate instances over the top and the scored trial has to paint the real one back. */
+function paintServedItem(){
+  const c=current.content;
+  const direction=c.direction==='pictureToWord'?'pictureToWord':'wordToPicture';
+  drawReference(c.stem,c.stemPicture);
+  drawPrompt(direction,c);
+  drawTray(c.morphemeTray||[],formsInPlay(direction,c));
+  drawOptions(direction,c.options||[]);
+  $('#optlabel').textContent=direction==='pictureToWord'
+    ? 'Which word says it?'
+    : 'Which picture is it?';
+}
+
+function renderServedItem(item){
+  current=item;
+  committed=false;interactive=false;touched=false;firstLatency=null;blurCount=0;itemTelemetry=[];
+  paintServedItem();
+  itemStart=Date.now();
+  const c=item.content;
+  emitEvent('render',{
+    direction:c.direction,
+    depth:formsInPlay(c.direction,c).length,
+    options:(c.options||[]).length,
+    difficulty:item.difficulty,
+  });
+}
+
+function beginScoredItem(){
+  if(!current||committed)return;
+  // Repaint unconditionally. Coming out of the interface gate the bench is still showing a
+  // degenerate instance with its options locked, and the child would be looking at a dead screen.
+  // When no gate ran this redraws what is already there, which costs nothing and keeps one path.
+  paintServedItem();
+  touched=false;firstLatency=null;
+  interactive=true;
+  itemStart=Date.now();
+  setCue('scored','Your turn');
+  setStatus(current.content.direction==='pictureToWord'
+    ? 'Every word-part changes the picture in its own way, in the order it is written. Tap the word for this picture.'
+    : 'Every word-part changes the picture in its own way, in the order it is written. Tap the picture this word means.');
+  emitEvent('scored_begin',{direction:current.content.direction});
+}
+
+function commit(key){
+  if(!interactive||committed||!current)return;
+  const rt=Date.now()-itemStart;
+  committed=true;interactive=false;
+  lockOptions();
+  tagOption(key,'chose','you chose');
+  setCue('done','Answer sent');
+  setStatus(standalone
+    ?'Answer sent. (Opened directly: the host supplies what the word means.)'
+    :'Answer sent.');
+  emitEvent('submit',{selectedKey:key,rtMs:rt});
+  // `gateCriterionMet` rides on the response, not on `metrics`: the metric registry is a closed
+  // vocabulary and there is no id for "cleared the interface gate". Gate B needs the flag to be
+  // able to exclude a child who never got the interface (§1.4(4)), and the raw response is stored
+  // verbatim, so that is where it belongs.
+  const response={
+    selectedKey:key,
+    firstContactMs:firstLatency==null?rt:firstLatency,
+    gateCriterionMet:gateExhausted?0:1,
+  };
+  const metrics={
+    'M-RT':rt,
+    'M-RTFIRST':firstLatency==null?rt:firstLatency,
+    'M-ENGAGE':blurCount,
+    'M-RAPIDGUESS':rt<350?1:0,
+  };
+  const result={itemId:current.itemId,typeCode:current.typeCode,domain:current.domain,
+    response,metrics,telemetry:itemTelemetry.slice()};
+  post({type:'result',result});
+  if(standalone)setTimeout(advanceStandalone,1250);
+}
+
+/**
+ * The system resolves the instance.
+ *
+ * `reveal.machineOutput` names the option the hidden system produces. It arrives from the host only
+ * after the server has scored an item the child has already committed to and which is never served
+ * again, so it hands the browser nothing it can use — and it is the entire learning signal the
+ * block runs on. No word here evaluates the child's choice.
+ *
+ * The wording follows the item's direction for the same reason `drawPrompt` does: in one direction
+ * the marked option is a picture the written word means, and in the other it is the name of the
+ * pictured thing, so one sentence cannot describe both without telling half the block something
+ * false about what it just saw. Direction is a property of the ITEM, fixed before the child
+ * answered, so branching on it says nothing about how they answered.
+ */
+function onReveal(reveal){
+  if(!committed||!reveal||!current)return;
+  const key=typeof reveal.machineOutput==='string'?reveal.machineOutput:null;
+  if(key===null)return;
+  if(!$(`#options .opt[data-key="${key}"]`))return;
+  const naming=(current.content||{}).direction==='pictureToWord';
+  tagOption(key,'made',naming?'it is called this':'it means this');
+  setStatus(naming?'That is what this one is called.':'That is what the word means.');
+  emitEvent('reveal_shown',{});
+}
+
+/* ---------- interaction ---------- */
+function noteContact(){
+  if(!interactive||committed||touched)return;
+  touched=true;
+  firstLatency=Date.now()-itemStart;
+  emitEvent('first_contact',{latencyMs:firstLatency});
+}
+function onOptionTap(el){
+  if(!interactive)return;
+  const key=el.dataset.key;
+  if(!key)return;
+  noteContact();
+  if(gateActive){void onGateTap(key);return;}
+  commit(key);
+}
+
+/* ---------- host-driven lifecycle ---------- */
+/* R1 play gate: the item is rendered on `init` but stays covered and inert until the child presses
+   play, which is also when the response clock starts — so M-RT measures thinking rather than
+   however long the child took to look up. */
+function openGate(withTutorial){
+  gateTutorial=!!withTutorial;
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('warmup','Ready when you are');
+  setStatus('Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
+function onInit(item){
+  if(!item||!item.content||!item.content.options)return;
+  renderServedItem(item);
+  openGate(false);
+}
+function onPlay(){
+  if(!current||committed)return;
+  closeGate();
+  if(gateTutorial){gateTutorial=false;void runGate();return;}
+  beginScoredItem();
+}
+function onHostMessage(e){
+  const d=e.data;
+  if(!d||d.source!==HOST_SRC)return;
+  if(d.type==='init')onInit(d.item);
+  else if(d.type==='start')openGate(!!d.tutorial);
+  else if(d.type==='reveal')onReveal(d.reveal);
+}
+
+/* ---------- standalone (a researcher opening the file directly) ----------
+ * Guarded by `!embedded` and by NO timer. See the E-079 note in the header: a timer that decides
+ * "there is probably no host" is the defect, because a real host can be slower than any timeout.
+ * -------------------------------------------------------------------- */
+function toServed(b){const{answer,scoring,provenance,...s}=b;return s;}
+async function loadBankSamples(){
+  try{
+    const res=await fetch('../banks/VER-MORPHO-01.jsonl',{cache:'no-store'});
+    if(res.ok){
+      const all=(await res.text()).trim().split('\n').filter(Boolean).map(l=>JSON.parse(l)).map(toServed);
+      all.sort((a,b)=>a.difficulty-b.difficulty);
+      const N=Math.min(12,all.length),pick=[];
+      for(let i=0;i<N;i++)pick.push(all[N===1?0:Math.round(i*(all.length-1)/(N-1))]);
+      return pick;
+    }
+  }catch(_){/* file:// blocks fetch, and the published copy has no /banks — fall through */}
+  return INLINE_SAMPLES.slice();
+}
+function playStandalone(){
+  const item=standaloneQueue[standaloneIdx%standaloneQueue.length];
+  onInit(item);
+  openGate(standaloneIdx===0);
+}
+function advanceStandalone(){standaloneIdx++;playStandalone();}
+async function bootstrapStandalone(){
+  standalone=true;
+  standaloneQueue=await loadBankSamples();
+  standaloneIdx=0;
+  playStandalone();
+}
+
+/* Inline served-item fallback: real bank items with every server-only field stripped. */
+const INLINE_SAMPLES=[
+{"itemId":"315d853c-2203-40b0-94e0-8586b453749b","typeCode":"VER-MORPHO-01","domain":"verbal","difficulty":1.01,"ageBands":["2-3"],"content":{"typeCode":"VER-MORPHO-01","direction":"wordToPicture","morphemeTray":["dez","fov","kib","pav","pef","pog"],"stem":"saz","stemPicture":{"kind":"blob","count":2,"size":"small","mark":"none","role":"target"},"word":"saz-kib","wordMorphemes":["kib"],"options":[{"key":"A","picture":{"kind":"blob","count":1,"size":"small","mark":"none","role":"target"}},{"key":"B","picture":{"kind":"blob","count":2,"size":"big","mark":"none","role":"target"}},{"key":"C","picture":{"kind":"blob","count":2,"size":"small","mark":"cross","role":"target"}},{"key":"D","picture":{"kind":"blob","count":3,"size":"small","mark":"none","role":"target"}}]},"syntheticOnly":true,"validated":false},
+{"itemId":"1218f2e2-7639-49b3-a550-ce5611237075","typeCode":"VER-MORPHO-01","domain":"verbal","difficulty":1.03,"ageBands":["2-3"],"content":{"typeCode":"VER-MORPHO-01","direction":"pictureToWord","morphemeTray":["dez","fov","kib","pav","pef","pog"],"stem":"tas","stemPicture":{"kind":"star","count":3,"size":"small","mark":"cross","role":"target"},"targetPicture":{"kind":"star","count":3,"size":"small","mark":"cross","role":"doer"},"options":[{"key":"A","word":"tas-pef","morphemes":["pef"]},{"key":"B","word":"tas-pav","morphemes":["pav"]},{"key":"C","word":"tas-dez","morphemes":["dez"]},{"key":"D","word":"tas-fov","morphemes":["fov"]}]},"syntheticOnly":true,"validated":false}
+];
+
+/* ---------- wiring ---------- */
+$('#play').addEventListener('click',onPlay);
+$('#options').addEventListener('click',e=>{const o=e.target.closest('.opt');if(o)onOptionTap(o);});
+$('#options').addEventListener('pointerover',e=>{if(e.target.closest('.opt'))noteContact();});
+$('#options').addEventListener('focusin',e=>{if(e.target.closest('.opt'))noteContact();});
+document.addEventListener('keydown',e=>{
+  if(!interactive)return;
+  const byNumber=/^[1-4]$/.test(e.key)?$$('#options .opt')[Number(e.key)-1]:null;
+  const byLetter=OPTION_KEYS.indexOf(String(e.key).toUpperCase());
+  const el=byNumber||(byLetter>=0?$$('#options .opt')[byLetter]:null);
+  if(el)onOptionTap(el);
+});
+window.addEventListener('blur',()=>{if(interactive&&!committed){blurCount++;emitEvent('engagement',{reason:'blur'});}});
+
+window.addEventListener('message',onHostMessage);
+post({type:'ready'});
+if(!embedded)void bootstrapStandalone();
+</script>
+</body>
+</html>

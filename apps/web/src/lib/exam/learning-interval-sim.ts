@@ -22,7 +22,7 @@
 import { selectNextNovelServedItem, type ServedItem } from '@gt-selection/exam-engine';
 import { type LearningTrial } from '@gt-selection/exam-scoring';
 
-import { LEARNING_BLOCK_AREA, nextBlockTarget } from './phase2';
+import { LEARNING_BLOCK_AREA, blockGuessingFloor, nextBlockTarget } from './phase2';
 
 /** The chance floor of a five-option item — what the banks the block draws from actually are. */
 export const FIVE_OPTION_FLOOR = 0.2;
@@ -112,9 +112,14 @@ export function simulateLearningBlock(
   const trials: SimulatedTrial[] = [];
   const administered: string[] = [];
   let exhausted = false;
+  // The same floor the shipped runner derives, off the same pool, so the simulated block is aimed
+  // under the block's own response model rather than a shared default. Deliberately NOT
+  // `child.responderFloor`: the estimator only ever knows what the bank declares, and a simulation
+  // that handed it the truth would hide exactly the misspecification it exists to expose.
+  const { guessing } = blockGuessingFloor(pool);
 
   for (let t = 0; t < length; t += 1) {
-    const target = nextBlockTarget(trials, child.standing);
+    const target = nextBlockTarget(trials, child.standing, guessing);
     const item = selectNextNovelServedItem(pool, administered, target, child.seed);
     if (item === null) {
       exhausted = true;

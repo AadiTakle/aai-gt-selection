@@ -3,13 +3,18 @@ import { learningRateReadout, type LearningTrial } from '@gt-selection/exam-scor
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
+  LEARNING_BLOCKS,
   LEARNING_BLOCK_AREA,
   LEARNING_BLOCK_LENGTH,
   LEARNING_BLOCK_TYPE,
+  availableBlocks,
   blockCanRun,
+  blockGuessingFloor,
+  blockPool,
   clearLearningBlockHandoff,
   loadLearningBlockHandoff,
   nextBlockItem,
+  nextBlockTarget,
   novelBlockPool,
   saveLearningBlockHandoff,
   summariseLearningBlock,
@@ -189,6 +194,100 @@ describe('summariseLearningBlock', () => {
   });
 });
 
+/** A pool item declaring the option list a full bank record carries. */
+function withOptions(itemId: string, count: number): ServedItem {
+  return {
+    ...served(itemId, 12),
+    content: { options: Array.from({ length: count }, (_, i) => ({ key: String(i) })) },
+  };
+}
+
+/** The same fact as the selection index spells it, with no stimulus content attached. */
+function withOptionCount(itemId: string, count: number): ServedItem {
+  return { ...served(itemId, 12), content: { optionCount: count } };
+}
+
+describe('blockGuessingFloor', () => {
+  it('reads the floor off the bank record rather than a per-type table', () => {
+    expect(blockGuessingFloor([withOptions('a', 4), withOptions('b', 4)])).toEqual({
+      guessing: 0.25,
+      basis: { kind: 'option-count', optionCount: 4 },
+    });
+    expect(blockGuessingFloor([withOptions('a', 5)]).guessing).toBeCloseTo(0.2, 12);
+  });
+
+  it('reads the selection index spelling too, which is the view the browser actually holds', () => {
+    // `fetchServedPool` returns the index, whose `content` carries only `optionCount` — so a
+    // reader that understood the full record alone would silently fall back on every live block.
+    expect(blockGuessingFloor([withOptionCount('a', 4), withOptionCount('b', 4)])).toEqual({
+      guessing: 0.25,
+      basis: { kind: 'option-count', optionCount: 4 },
+    });
+  });
+
+  /**
+   * The four wired activities, at the option counts their own banks declare. `VER-MORPHO-01` is
+   * the four-option one, and the reason a single shared default was wrong.
+   */
+  it('separates the four-option activity from the five-option ones', () => {
+    expect(blockGuessingFloor([withOptions('m', 4)]).guessing).toBeCloseTo(0.25, 12);
+    expect(blockGuessingFloor([withOptions('o', 5)]).guessing).toBeCloseTo(0.2, 12);
+    expect(blockGuessingFloor([withOptions('s', 6)]).guessing).toBeCloseTo(1 / 6, 12);
+  });
+
+  it('falls back to the five-option default, and names the reason rather than hiding it', () => {
+    // Nothing declares a count: `served` builds items with an empty `content`.
+    expect(blockGuessingFloor([served('a', 12)])).toEqual({
+      guessing: 0.2,
+      basis: { kind: 'default', reason: 'no-option-count' },
+    });
+    expect(blockGuessingFloor([])).toEqual({
+      guessing: 0.2,
+      basis: { kind: 'default', reason: 'no-option-count' },
+    });
+    // One floor is fitted for the whole block, so a pool that disagrees with itself gets the
+    // declared default rather than an averaged reciprocal nobody chose (E-200).
+    expect(blockGuessingFloor([withOptions('a', 4), withOptions('b', 6)])).toEqual({
+      guessing: 0.2,
+      basis: { kind: 'default', reason: 'mixed-option-counts' },
+    });
+    // A one-option "choice" has a reciprocal of 1, which is not a chance-success floor.
+    expect(blockGuessingFloor([withOptions('a', 1)])).toEqual({
+      guessing: 0.2,
+      basis: { kind: 'default', reason: 'degenerate-option-count' },
+    });
+  });
+
+  /**
+   * The floor has to reach BOTH estimator roles, and this is the assertion that would fail if a
+   * future change threaded only one. E-200 measured the half-correction: fixing the readout while
+   * the targeting rule stays misspecified barely helps, because the difficulty walk the readout
+   * then reads is still chosen under the wrong asymptote.
+   */
+  it('reaches the targeting rule and the readout fit, not just one of them', () => {
+    const trials = climbingBlock(30, 0.4);
+
+    const targetAtFive = nextBlockTarget(trials, 11, 0.2);
+    const targetAtFour = nextBlockTarget(trials, 11, 0.25);
+    expect(targetAtFive).not.toBeCloseTo(targetAtFour, 6);
+
+    const lambdaAtFive = summariseLearningBlock(trials, undefined, 30, 0.2).lambda;
+    const lambdaAtFour = summariseLearningBlock(trials, undefined, 30, 0.25).lambda;
+    expect(lambdaAtFive).not.toBeNull();
+    expect(lambdaAtFour).not.toBeNull();
+    expect(lambdaAtFive).not.toBeCloseTo(lambdaAtFour!, 6);
+  });
+
+  it('leaves a five-option activity exactly where it was, which is the control', () => {
+    const trials = climbingBlock(30, 0.4);
+    const { guessing } = blockGuessingFloor([withOptions('a', 5), withOptions('b', 5)]);
+    expect(nextBlockTarget(trials, 11, guessing)).toBe(nextBlockTarget(trials, 11));
+    expect(summariseLearningBlock(trials, undefined, 30, guessing).lambda).toBe(
+      summariseLearningBlock(trials, undefined, 30).lambda,
+    );
+  });
+});
+
 /** jsdom here ships a non-functional localStorage, so back it with a real in-memory store. */
 function installLocalStorage(): void {
   const store = new Map<string, string>();
@@ -217,9 +316,11 @@ describe('learning-block handoff', () => {
     examSessionId: null,
     gradeBand: '4-5',
     standing: 13.4,
+    standings: { fluid_reasoning: 13.4 },
     seenItemIds: ['a', 'b'],
     finishedAt: '2026-07-29T00:00:00.000Z',
     blockLength: 30,
+    completedBlockIds: [],
   };
 
   beforeEach(() => {
@@ -230,6 +331,25 @@ describe('learning-block handoff', () => {
   it('round-trips so the block can be started in a later sitting', () => {
     saveLearningBlockHandoff(handoff);
     expect(loadLearningBlockHandoff()).toEqual(handoff);
+  });
+
+  it('resumes a handoff written before Phase 2 had more than one activity', () => {
+    // No `standings`, no `completedBlockIds` — exactly what an in-flight run would have stored.
+    window.localStorage.setItem(
+      'gt-exam-learning-block',
+      JSON.stringify({
+        sessionId: 'SESS-OLD-1',
+        examSessionId: null,
+        gradeBand: '4-5',
+        standing: 12,
+        seenItemIds: ['a'],
+        finishedAt: '2026-07-29T00:00:00.000Z',
+        blockLength: 30,
+      }),
+    );
+    const loaded = loadLearningBlockHandoff();
+    expect(loaded?.standings.fluid_reasoning).toBe(12);
+    expect(loaded?.completedBlockIds).toEqual([]);
   });
 
   it('returns null when nothing has been handed over', () => {
@@ -247,5 +367,99 @@ describe('learning-block handoff', () => {
     expect(loadLearningBlockHandoff()).toBeNull();
     window.localStorage.setItem('gt-exam-learning-block', 'not json');
     expect(loadLearningBlockHandoff()).toBeNull();
+  });
+});
+
+describe('multi-activity Phase 2', () => {
+  /** A pool holding `count` unseen items for each of the given activity specs. */
+  function poolFor(specs: readonly (typeof LEARNING_BLOCKS)[number][], count: number) {
+    return specs.flatMap((spec) =>
+      Array.from({ length: count }, (_, i) =>
+        served(`${spec.id}-${i}`, 10, spec.area, spec.typeCode),
+      ),
+    );
+  }
+
+  const allStandings = Object.fromEntries(LEARNING_BLOCKS.map((s) => [s.area, 12]));
+
+  it('offers only the activities whose bank is actually wired', () => {
+    // Exactly the situation on `dev`: one type banked, three not.
+    const pool = poolFor(LEARNING_BLOCKS.slice(0, 1), LEARNING_BLOCK_LENGTH);
+    const offered = availableBlocks(pool, [], allStandings);
+    expect(offered.map((s) => s.id)).toEqual(['fluid']);
+  });
+
+  it('offers all four once every bank is present', () => {
+    const pool = poolFor(LEARNING_BLOCKS, LEARNING_BLOCK_LENGTH);
+    expect(availableBlocks(pool, [], allStandings)).toHaveLength(4);
+  });
+
+  it('drops an activity whose area never settled a standing', () => {
+    const pool = poolFor(LEARNING_BLOCKS, LEARNING_BLOCK_LENGTH);
+    const missingSpatial = { ...allStandings };
+    delete missingSpatial.spatial;
+    expect(availableBlocks(pool, [], missingSpatial).map((s) => s.id)).not.toContain('spatial');
+  });
+
+  it('drops an activity left with too few unseen items by Phase 1', () => {
+    const pool = poolFor(LEARNING_BLOCKS, LEARNING_BLOCK_LENGTH);
+    const spatial = LEARNING_BLOCKS[1]!;
+    const seen = pool.filter((i) => i.typeCode === spatial.typeCode).map((i) => i.itemId);
+    expect(availableBlocks(pool, seen, allStandings).map((s) => s.id)).not.toContain(spatial.id);
+  });
+
+  it('does not re-offer an activity already completed, so a resumed run continues', () => {
+    const pool = poolFor(LEARNING_BLOCKS, LEARNING_BLOCK_LENGTH);
+    const offered = availableBlocks(pool, [], allStandings, ['fluid', 'spatial']);
+    expect(offered.map((s) => s.id)).toEqual(['quantitative', 'verbal']);
+  });
+
+  it('keeps each activity single-type — the system a child induces cannot span types', () => {
+    const pool = poolFor(LEARNING_BLOCKS, LEARNING_BLOCK_LENGTH);
+    for (const spec of LEARNING_BLOCKS) {
+      const codes = new Set(blockPool(spec, pool, []).map((i) => i.typeCode));
+      expect([...codes]).toEqual([spec.typeCode]);
+    }
+  });
+});
+
+describe('activity order', () => {
+  function poolAll(count: number) {
+    return LEARNING_BLOCKS.flatMap((spec) =>
+      Array.from({ length: count }, (_, i) =>
+        served(`${spec.id}-${i}`, 10, spec.area, spec.typeCode),
+      ),
+    );
+  }
+
+  it('runs weakest area first, strongest last', () => {
+    const pool = poolAll(LEARNING_BLOCK_LENGTH);
+    const order = availableBlocks(pool, [], {
+      fluid_reasoning: 17,
+      verbal: 4,
+      quantitative: 11,
+      spatial: 8,
+    }).map((s) => s.area);
+    expect(order).toEqual(['verbal', 'spatial', 'quantitative', 'fluid_reasoning']);
+  });
+
+  it('reorders for a different child', () => {
+    const pool = poolAll(LEARNING_BLOCK_LENGTH);
+    const order = availableBlocks(pool, [], {
+      fluid_reasoning: 2,
+      verbal: 19,
+      quantitative: 6,
+      spatial: 14,
+    }).map((s) => s.area);
+    expect(order).toEqual(['fluid_reasoning', 'quantitative', 'spatial', 'verbal']);
+  });
+
+  it('breaks ties deterministically, so a session stays replayable', () => {
+    const pool = poolAll(LEARNING_BLOCK_LENGTH);
+    const tied = { fluid_reasoning: 9, verbal: 9, quantitative: 9, spatial: 9 };
+    const first = availableBlocks(pool, [], tied).map((s) => s.id);
+    const again = availableBlocks(pool, [], tied).map((s) => s.id);
+    expect(first).toEqual(again);
+    expect(first).toEqual(LEARNING_BLOCKS.map((s) => s.id));
   });
 });

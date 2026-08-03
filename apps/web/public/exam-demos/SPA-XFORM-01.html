@@ -1,0 +1,730 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SPA-XFORM-01 · Transform Machine</title>
+<style>
+  :root{
+    --bg1:#fcf4ef; --bg2:#f8e8de; --ink:#001117; --card:#ffffff;
+    --accent:#004f71; --accent2:#002a3a; --good:#146c43; --bad:#a4442f;
+    --line:#ecd9cb; --socket:#ebba9b; --muted:#4a6470;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));
+    display:flex;min-height:100%;
+  }
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;font-weight:700}
+  #howto{max-width:640px;width:100%;background:#fff;border:1px solid var(--line);border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #002a3a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#33505c;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#f8e8de;color:var(--accent);border:2px solid var(--line);min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#f5ddcd;color:#6f4526;border-color:var(--socket)}
+  #phasecue[data-phase="scored"]{background:var(--accent2);color:#fff;border-color:var(--accent2)}
+  #phasecue[data-phase="done"]{background:#f5ddcd;color:var(--accent2);border-color:var(--line)}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.neutral{color:var(--muted)}
+  #stagecard{
+    background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #002a3a;
+    display:flex;flex-direction:column;align-items:center;gap:18px;max-width:640px;width:100%;
+  }
+
+  /* ---- the machine: input -> badge chain -> output window ---- */
+  #machine{width:100%;padding:16px;border-radius:20px;background:#f8e8de;border:3px solid #f8e8de}
+  #belt{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap}
+  /*
+   * The lattice lives inside this slot, and the slot itself is the only rectangle allowed near it.
+   * The 4x4 substrate is drawn as faint DOTS, never as ruled lines or a boxed table: the generator
+   * makes every transformation a permutation of the sixteen cells precisely so that no operator
+   * effect can be drawn as furniture, and a ruled grid would put the furniture back by hand.
+   */
+  .figbox{background:#fff;border:2px solid var(--line);border-radius:14px;width:112px;height:112px;
+    display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .arrow{color:var(--muted);font-size:22px;font-weight:700;flex:0 0 auto}
+  #chain{display:flex;align-items:center;gap:6px;padding:8px 10px;background:#fff;border:2px dashed var(--socket);
+    border-radius:14px;min-height:64px;min-width:76px;justify-content:center}
+  #chain.empty::after{content:'no parts';font:600 11px/1 ui-monospace,monospace;color:var(--muted);letter-spacing:.06em}
+  .mark{width:46px;height:46px;display:flex;align-items:center;justify-content:center;
+    background:#ffffff;border:2px solid var(--socket);border-radius:10px;flex:0 0 auto}
+  .markstep{position:relative}
+  .markstep::after{content:attr(data-step);position:absolute;left:50%;transform:translateX(-50%);bottom:-15px;
+    font:700 10px/1 ui-monospace,monospace;color:var(--muted)}
+  #outslot{position:relative}
+  #outslot.pending{background:repeating-linear-gradient(45deg,#f8e8de,#f8e8de 8px,#fcf4ef 8px,#fcf4ef 16px);
+    border:3px dashed var(--socket)}
+  #outslot.pending::after{content:'?';font:800 30px/1 system-ui;color:var(--socket)}
+  #outslot.running::after{content:'…';font:800 30px/1 system-ui;color:var(--accent)}
+  #outslot.made{border-color:var(--accent);box-shadow:0 0 0 4px #ecd9cb}
+  #parts{margin-top:16px;display:flex;align-items:center;gap:8px;justify-content:center;flex-wrap:wrap}
+  #partslabel{font:600 11px/1.3 ui-monospace,monospace;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+  #parts .mark{width:32px;height:32px;opacity:.4;background:#f8e8de}
+  #parts .mark.inuse{opacity:1;border-color:var(--accent);background:#ffffff}
+
+  /* ---- the five answers: fixed positions, one tap ---- */
+  #optlabel{font:600 11px/1.3 ui-monospace,monospace;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+  #options{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;width:100%}
+  .opt{position:relative;background:#fff;border:3px solid var(--line);border-radius:14px;aspect-ratio:1/1;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;transition:.15s;
+    -webkit-tap-highlight-color:transparent}
+  .opt::after{content:attr(data-key);position:absolute;right:5px;bottom:3px;font:700 11px/1 ui-monospace,monospace;color:var(--muted)}
+  .opt:hover{transform:translateY(-3px)}
+  .opt[disabled]{cursor:default}
+  .opt[disabled]:hover{transform:none}
+  /*
+   * Post-commit marks. BOTH are the same neutral navy and neither carries a verdict word, a tick,
+   * a cross or a good/bad colour: one says what the child chose, the other says what the machine
+   * made. Reading the two together is the informational feedback the design allows; being TOLD
+   * which of the two is right is the evaluative feedback it forbids.
+   */
+  .opt.chose{border-color:var(--accent2)}
+  .opt.made{border-color:var(--accent);box-shadow:0 0 0 4px #ecd9cb}
+  .tag{position:absolute;left:50%;transform:translateX(-50%);bottom:-9px;padding:1px 7px;border-radius:999px;
+    font:700 9px/1.6 ui-monospace,monospace;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;color:#fff}
+  .opt.chose .tag{background:var(--accent2)}
+  .opt.made .tag{background:var(--accent)}
+  .opt.chose.made .tag{background:var(--accent)}
+
+  /* ---- pointer hint: outline cursor, never an emoji ---- */
+  #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:60;opacity:0;
+    transition:transform .7s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #ghost .pulsering{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;
+    border:3px solid var(--accent);opacity:0}
+  #ghost.tap .pulsering{animation:tapring .5s ease-out}
+  @keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+
+  .opt:focus-visible,button:focus-visible{outline:4px solid #e48b53;outline-offset:3px}
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+  @media(max-width:640px){
+    #wrap{padding:10px}#stagecard{padding:14px}#machine{padding:10px}
+    .figbox{width:82px;height:82px}.figbox svg{width:70px;height:70px}
+    #options{gap:7px}
+  }
+</style>
+<style>html[data-gt-chrome="off"] #howto{display:none}</style>
+<script>/* Instant-question gate. Embedded in the screener the "How to use" panel is hidden so the
+   child sees the question itself the moment it appears; the per-item status line carries the
+   instruction in words. A test should not spend its first seconds being read. `?chrome=1`
+   restores the panel for a walkthrough, and standalone (opened directly) is unchanged. */
+(function(){var f=/(^|[?&])chrome=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-chrome','off');})();</script>
+<link rel="stylesheet" href="../exam-skin.css">
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">SPA-XFORM-01 · Transform Machine</div>
+    <header id="howto">
+      <h1>How to use — Transform Machine</h1>
+      <p>The machine holds some parts. It puts the pattern on the left through each part in turn, left to right, and a new pattern comes out. Tap the one pattern out of five that the machine makes. One tap sends your answer. Nobody tells you what the parts do — you work that out by watching what the machine makes.</p>
+    </header>
+    <div id="phasecue" data-phase="warmup">Get ready</div>
+    <div id="stagecard">
+      <div id="machine">
+        <div id="belt">
+          <div class="figbox" id="inslot"></div>
+          <span class="arrow">&#8594;</span>
+          <div id="chain" class="empty"></div>
+          <span class="arrow">&#8594;</span>
+          <div class="figbox pending" id="outslot"></div>
+        </div>
+        <div id="parts"><span id="partslabel">Parts this machine has</span></div>
+      </div>
+      <div id="optlabel">Which one does it make?</div>
+      <div id="options"></div>
+      <div id="status" class="neutral">Waiting for the next puzzle.</div>
+    </div>
+    <div id="playgate">
+      <p>The machine is loaded. Press play when you are ready, and it starts then.</p>
+      <button type="button" id="play">Play</button>
+    </div>
+  </div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#004f71" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="pulsering"></span></div>
+<script>
+'use strict';
+/* =====================================================================
+ * SPA-XFORM-01 "Transform Machine" — PURE RENDERER (STAGE2_QUESTION_DESIGN §9.2, U6)
+ *
+ * Renders a SERVED item (`item.content`) and reports the child's RAW choice. It never
+ * self-generates a scored item and never decides correctness: the mark->transformation mapping
+ * and the key are server-only.
+ *
+ * Built against FLU-OPCHAIN-01.html, which is the reference renderer for this family. The host
+ * protocol, the play gate, the unscored interface gate, the no-verdict feedback rule and the
+ * standalone bootstrap are deliberately the same code shape. What differs is spatial and only
+ * spatial: the stimulus is a set of blocks on a 4x4 lattice rather than a single glyph with
+ * attributes, so the drawing primitives and the interface gate's degenerate variants are new.
+ *
+ * ---------------------------------------------------------------------
+ * WHY THE LATTICE IS DOTS AND NOT A RULED GRID
+ *
+ * A blind audit of the reference type found its "add a border" transformation drawn as a rounded
+ * rectangle indistinguishable from a UI border, so children were inducing over the furniture. The
+ * generator's structural answer is that EVERY transformation here is a permutation of the sixteen
+ * lattice cells — nothing is added, removed, enclosed or outlined, so no transformation has an
+ * effect a renderer could draw as chrome. That leaves exactly one exposure, the substrate itself:
+ * a ruled 4x4 box reads as a table. So the substrate is sixteen faint dots, and the only rectangle
+ * on the stage is the slot the lattice sits in — which is identical in the input, the output and
+ * all five options, and therefore carries no information about any item.
+ * ---------------------------------------------------------------------
+ *
+ * ---------------------------------------------------------------------
+ * ONE RENDERER SERVES BOTH ARMS, AND IT DOES NOT KNOW WHICH ARM IT IS SERVING
+ *
+ * D-S2-3 makes the scrambled-system control a binding gate and §4.1.1 makes it a generator MODE:
+ * one generator, one renderer, one verifier. A second "control demo" would confound the contrast
+ * with the renderer and is an automatic rejection.
+ *
+ * So persistence reaches this file the only way it can without becoming a renderer branch: as the
+ * SERVED ITEM ITSELF. Under `consistent` the labelling of a given transformation is the same on
+ * every item of the block; under `perTrial` it is re-drawn per item. Either way this file receives
+ * `content.chain` — a list of mark symbols — and draws it. There is no arm flag, no query
+ * parameter and no code path that differs between arms, which is exactly the property the gate
+ * needs: any between-arm difference Gate B measures cannot have come from here.
+ * ---------------------------------------------------------------------
+ *
+ * WHAT THIS FILE DELIBERATELY DOES NOT DO
+ *
+ *  * No standalone-timer fallback (E-079). Embedded, it waits indefinitely for the host's `init`.
+ *    Fifteen demos hedged with "if no init by 500ms, assume no host", and a host init landing after
+ *    that timeout put dev preview text in front of a child mid-assessment, 404'd on the
+ *    unpublished bank and cycled its own items alongside the runner's. The standalone bootstrap
+ *    here is behind `if (!embedded)` and behind no timer at all.
+ *  * No researcher sidebar (E-082). §9's U6 lists "no telemetry sidebar" as an acceptance
+ *    criterion for this family, and a panel that can never be shown to a child has nothing to
+ *    gate, so this renderer ships without one. Telemetry itself is unchanged: the per-event
+ *    stream and the metric map are emitted exactly as elsewhere.
+ *  * No verdict. Not a tick, not a cross, not a score, not a streak, not praise, not points, and no
+ *    performance-contingent animation (§1.5, Deci/Koestner/Ryan 1999; Kluger & DeNisi 1996). What
+ *    the child gets after committing is the machine's own next state: the pattern it made. Two
+ *    neutral chips say "you chose" and "the machine made this" in the same colour.
+ *  * No second tap. One tap on an option IS the answer (§1.4(2)). There is no stage-then-confirm
+ *    step, because option-position search and a confirm gesture are motor learning that would land
+ *    inside the fitted climb.
+ *  * No timing signal in the score. §3.4 is explicit that response time is the quantity
+ *    within-session spatial practice improves, so it is recorded as a diagnostic and never as an
+ *    input to the fitted rate. Nothing here rewards answering faster.
+ *
+ * Embedding protocol (postMessage), source-tagged:
+ *   host -> demo : {source:'gt-exam-host', type:'init',   item:ServedItem}
+ *                  {source:'gt-exam-host', type:'start',  tutorial?:bool}
+ *                  {source:'gt-exam-host', type:'reveal', reveal:{machineOutput:'C'}}
+ *   demo -> host : {source:'gt-exam-demo', type:'ready'}
+ *                  {source:'gt-exam-demo', type:'result',    result:ItemResult}
+ *                  {source:'gt-exam-demo', type:'telemetry', event:TelemetryEvent}
+ *
+ * `reveal` is the one addition this type needs and the reason is recorded in the generator: a
+ * learning block with no feedback has nothing to learn from (§1.5), but the correct output cannot
+ * be in `content` without handing the browser the key. So the host sends it AFTER
+ * `/api/exam-submit` has scored the trial, for an item that is already committed and never
+ * re-served. A host that does not send one simply advances; nothing here waits on it.
+ * ===================================================================== */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+const HOST_SRC='gt-exam-host', DEMO_SRC='gt-exam-demo';
+const OPTION_KEYS=['A','B','C','D','E'];
+
+/* ---------- pattern drawing ----------------------------------------------
+ * A pattern is a set of occupied cells on a rows x cols lattice, each cell indexed `r*cols+c`.
+ * There is no colour, no fill state and no marker, because every one of those would be an
+ * attribute a hidden transformation could toggle, and a toggled attribute is the thing a renderer
+ * ends up drawing as decoration.
+ *
+ * This file knows how to DRAW a pattern. It does not know what any mark DOES to one.
+ * ------------------------------------------------------------------------ */
+const DEFAULT_GRID={rows:4,cols:4};
+
+function gridOf(content){
+  const g=content&&content.grid;
+  const rows=g&&Number.isFinite(g.rows)?g.rows:DEFAULT_GRID.rows;
+  const cols=g&&Number.isFinite(g.cols)?g.cols:DEFAULT_GRID.cols;
+  return {rows:Math.max(1,rows),cols:Math.max(1,cols)};
+}
+
+/**
+ * A pattern's signature, put on the DOM as `data-fig`.
+ *
+ * It discloses nothing: it is a shorter spelling of the cells already on screen, and every
+ * option's cells are in `content` regardless. It exists so the interface gate can find the
+ * unchanged pattern without the renderer keeping a second copy of it, and so a test can assert
+ * what is on screen without parsing SVG.
+ */
+function figSig(blocks){
+  return Array.isArray(blocks)?blocks.slice().sort((a,b)=>a-b).join('.'):'';
+}
+
+function latticeSVG(blocks,grid,box){
+  const {rows,cols}=grid;
+  const span=100;
+  const pad=7;
+  const stepX=(span-2*pad)/cols, stepY=(span-2*pad)/rows;
+  const side=Math.min(stepX,stepY)*0.78;
+  const cx=c=>pad+stepX*(c+0.5), cy=r=>pad+stepY*(r+0.5);
+  const dots=[];
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      dots.push(`<circle cx="${cx(c).toFixed(2)}" cy="${cy(r).toFixed(2)}" r="1.6" fill="#004f71" opacity="0.18"/>`);
+    }
+  }
+  const filled=(Array.isArray(blocks)?blocks:[])
+    .filter(cell=>Number.isInteger(cell)&&cell>=0&&cell<rows*cols)
+    .map(cell=>{
+      const r=Math.floor(cell/cols), c=cell%cols;
+      return `<rect x="${(cx(c)-side/2).toFixed(2)}" y="${(cy(r)-side/2).toFixed(2)}" `+
+        `width="${side.toFixed(2)}" height="${side.toFixed(2)}" rx="${(side*0.22).toFixed(2)}" fill="#004f71"/>`;
+    });
+  return `<svg width="${box}" height="${box}" viewBox="0 0 100 100" aria-hidden="true">`+
+    dots.join('')+filled.join('')+'</svg>';
+}
+
+/*
+ * Mark symbols. Arbitrary pictorial glyphs: they are LABELS the machine's parts wear, not pictures
+ * of what the parts do, which is what makes the vocabulary novel by construction (§3.4).
+ *
+ * Three properties are load-bearing rather than decorative:
+ *
+ *   1. They ALTERNATE filled and outline in the tray's canonical order. §3.4's first named failure
+ *      mode is that the marks are not legible and the block ends up measuring symbol decoding; at
+ *      the size a mark appears in the chain, two filled silhouettes are two grey blobs, and a
+ *      filled shape beside an open one is not.
+ *   2. None of them is a lattice shape. A mark that looked like an arrangement of blocks would
+ *      invite reading it as a picture of the transformation rather than as a name for it.
+ *   3. None of them is a glyph an interface uses as a control — no tick, arrow, chevron, plus or
+ *      cross — so nothing on the stage can be mistaken for something to press.
+ */
+const MARK_SVG={
+  crescent:'<path d="M27,5 C9,9 9,31 27,35 C17,29 17,11 27,5 Z" fill="#002a3a"/>',
+  spiral:'<path d="M32,20 C32,26.6 26.6,32 20,32 C13.4,32 8,26.6 8,20 C8,13.4 13.4,8 20,8 '+
+    'C25.5,8 30,12.5 30,18 C30,22.4 26.4,26 22,26 C18.7,26 16,23.3 16,20" fill="none" '+
+    'stroke="#002a3a" stroke-width="4" stroke-linecap="round"/>',
+  trefoil:'<g fill="#002a3a"><circle cx="20" cy="11" r="7.4"/><circle cx="11.6" cy="25" r="7.4"/>'+
+    '<circle cx="28.4" cy="25" r="7.4"/></g>',
+  zigzag:'<path d="M6,30 L14,10 L20,25 L26,10 L34,30" fill="none" stroke="#002a3a" '+
+    'stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>',
+  teardrop:'<path d="M20,4 C25,14 31,18 31,24 A11,11 0 1,1 9,24 C9,18 15,14 20,4 Z" fill="#002a3a"/>',
+  leaf:'<path d="M7,33 C7,17 17,7 33,7 C33,23 23,33 7,33 Z" fill="none" stroke="#002a3a" '+
+    'stroke-width="4" stroke-linejoin="round"/>',
+};
+function markSVG(symbol,box){
+  const inner=MARK_SVG[symbol]||MARK_SVG.crescent;
+  return `<svg width="${box}" height="${box}" viewBox="0 0 40 40" aria-hidden="true">${inner}</svg>`;
+}
+
+/* ---------- per-item state ---------- */
+let current=null;        // the ServedItem on screen (null during the interface gate)
+let grid=DEFAULT_GRID;   // the lattice the current item declares
+let interactive=false;   // may a tap be accepted?
+let committed=false;     // has this item already been answered?
+let touched=false;       // has the child made contact with any option yet?
+let itemStart=0;         // ms at which the child became able to answer
+let firstLatency=null;   // ms to first contact with an option
+let blurCount=0;
+let itemTelemetry=[];
+let gateTutorial=false;  // does the pending play press owe the interface gate?
+
+/* ---------- embedding + emit ---------- */
+const embedded=(()=>{try{return window.parent&&window.parent!==window;}catch(_){return true;}})();
+let standalone=false, standaloneQueue=[], standaloneIdx=0;
+function post(msg){if(!embedded)return;try{window.parent.postMessage(Object.assign({source:DEMO_SRC},msg),'*');}catch(_){}}
+function emitEvent(kind,extra){
+  const event=Object.assign(
+    {t:itemStart?Date.now()-itemStart:0,kind,itemId:current?current.itemId:null},
+    extra||{},
+  );
+  itemTelemetry.push(event);
+  post({type:'telemetry',event});
+}
+
+/* ---------- chrome ---------- */
+function setCue(k,txt){const el=$('#phasecue');el.dataset.phase=k;el.textContent=txt;}
+/* Only ever `neutral`. The skin colours `ok` green and `no` red, and this block does not have an
+   opinion about the child's answer. */
+function setStatus(msg){const el=$('#status');el.className='neutral';el.textContent=msg;}
+
+/* ---------- the machine ---------- */
+function drawInput(blocks){
+  const slot=$('#inslot');
+  slot.dataset.fig=figSig(blocks);
+  slot.innerHTML=latticeSVG(blocks,grid,96);
+}
+function drawChain(marks){
+  const chain=$('#chain');
+  chain.classList.toggle('empty',marks.length===0);
+  chain.innerHTML=marks.map((symbol,i)=>
+    `<span class="mark markstep" data-step="${i+1}">${markSVG(symbol,34)}</span>`).join('');
+}
+function drawParts(tray,inUse){
+  const label='<span id="partslabel">Parts this machine has</span>';
+  const used=new Set(inUse);
+  $('#parts').innerHTML=label+tray.map(symbol=>
+    `<span class="mark${used.has(symbol)?' inuse':''}">${markSVG(symbol,24)}</span>`).join('');
+}
+function setOutput(state,blocks){
+  const slot=$('#outslot');
+  slot.className='figbox'+(state?' '+state:'');
+  slot.innerHTML=blocks?latticeSVG(blocks,grid,96):'';
+}
+function drawOptions(options){
+  $('#options').innerHTML=options.map((o,i)=>
+    `<button type="button" class="opt" data-key="${o.key}" data-i="${i}" `+
+    `data-fig="${figSig(o.blocks)}" aria-label="option ${i+1}">${latticeSVG(o.blocks,grid,84)}</button>`).join('');
+}
+function tagOption(key,cls,text){
+  const el=$(`#options .opt[data-key="${key}"]`);
+  if(!el)return;
+  el.classList.add(cls);
+  if(!el.querySelector('.tag')){
+    const tag=document.createElement('span');
+    tag.className='tag';
+    tag.textContent=text;
+    el.appendChild(tag);
+  }else{
+    el.querySelector('.tag').textContent=text;
+  }
+}
+function lockOptions(){$$('#options .opt').forEach(el=>{el.disabled=true;});}
+
+/* ---------- pointer hint (gesture only) ---------- */
+const ghost=$('#ghost');
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(650);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(480);}
+
+/* ==================================================================== *
+ * THE UNSCORED INTERFACE GATE (§1.4(3), §9 U6)
+ *
+ * Interface learning is the failure this design is most likely to die of: a child working out
+ * where to tap produces a climb that a 30-trial fit cannot tell apart from a child learning the
+ * system. The fix is pre-training — discharge the interface BEFORE trial 0, where it costs nothing,
+ * instead of inside the block, where it lands on lambda (Mayer 2021; Sweller et al. 2019).
+ *
+ * A gate instance is DEGENERATE: the machine holds no parts at all, so it makes exactly what went
+ * in and the answer is visible. It therefore exercises look-at-the-machine -> tap-one-of-five
+ * without teaching anything about the hidden system. Gate instances are built here by MOVING ONE
+ * BLOCK to an empty cell — an operation this file can perform because it only has to know where
+ * the blocks are in order to draw them, and one that is nothing like any hidden transformation,
+ * every one of which acts on the whole pattern at once. They are NOT bank items, they are never
+ * scored, and no `{type:'result'}` is ever emitted for one.
+ *
+ * The gate runs only when the host asks for it — `{type:'start', tutorial:true}` — which the runner
+ * sends once per session per type. Every later item of the block goes straight to the question.
+ * ==================================================================== */
+const GATE_CRITERION=2;   // k consecutive correct
+const GATE_MAX_TRIALS=8;  // see the comment on `gateExhausted` below
+let gateActive=false, gateStreak=0, gateTrials=0, gateAnswer=null, gateShownHint=false;
+let gateExhausted=false;
+/*
+ * The design says a child who has not got the interface does not reach trial 0. Taken literally in
+ * software that is an unbounded loop with no way out of the session, so the gate gives up after
+ * GATE_MAX_TRIALS and lets the child through with `gateCriterionMet:0` on the record. Excluding
+ * that child is an analysis decision at Gate B, which can see the flag; wedging their session for
+ * four minutes until the host times the item out is not a decision anyone made.
+ */
+
+/** Five degenerate options: the pattern itself plus four one-block relocations of it. */
+function gateOptions(blocks,seed){
+  const total=grid.rows*grid.cols;
+  const held=new Set(blocks);
+  const free=[];
+  for(let cell=0;cell<total;cell++)if(!held.has(cell))free.push(cell);
+  // Candidate relocations walked in a fixed seeded order until four DISTINCT patterns are found.
+  // Two variants that landed on the same cells would put one pattern in two slots, so "which one
+  // is unchanged" would have more than one defensible reading. The walk is bounded by the
+  // candidate list rather than by retrying a draw, so it always terminates.
+  const seen=new Set([figSig(blocks)]);
+  const variants=[];
+  for(let i=0;i<blocks.length&&variants.length<4;i++){
+    for(let j=0;j<free.length&&variants.length<4;j++){
+      const moved=blocks[(seed+i)%blocks.length];
+      const landing=free[(seed*3+i*5+j)%free.length];
+      const next=blocks.filter(cell=>cell!==moved).concat(landing).sort((a,b)=>a-b);
+      const sig=figSig(next);
+      if(seen.has(sig))continue;
+      seen.add(sig);
+      variants.push(next);
+    }
+  }
+  // Unreachable at this type's densities (2..7 blocks on 16 cells always admit four relocations),
+  // and present so a malformed input cannot leave a slot undrawn.
+  while(variants.length<4)variants.push(blocks.slice());
+  const slot=seed%5;
+  const out=[];
+  let v=0;
+  for(let i=0;i<5;i++){
+    out.push({key:OPTION_KEYS[i],blocks:i===slot?blocks.slice():variants[v++]});
+  }
+  return {options:out,answerKey:OPTION_KEYS[slot]};
+}
+
+function renderGateTrial(){
+  const template=(current&&current.content&&current.content.input&&Array.isArray(current.content.input.blocks))
+    ?current.content.input.blocks
+    :[0,5];
+  const input=template.slice().sort((a,b)=>a-b);
+  const built=gateOptions(input,gateTrials+2);
+  gateAnswer=built.answerKey;
+  gateTrials++;
+  committed=false;
+  touched=false;
+  firstLatency=null;
+  drawInput(input);
+  drawChain([]);
+  drawParts((current&&current.content&&current.content.badgeTray)||[],[]);
+  setOutput('pending',null);
+  drawOptions(built.options);
+  setCue('warmup','Warm-up · not scored');
+  setStatus('The machine is empty, so it makes exactly what went in. Tap that one.');
+  itemStart=Date.now();
+  interactive=true;
+  emitEvent('gate_render',{gateTrial:gateTrials,streak:gateStreak});
+}
+
+async function gateHint(){
+  const target=$(`#options .opt[data-key="${gateAnswer}"]`);
+  ghost.classList.add('show');
+  await sleep(220);
+  await ghostTo($('#inslot'));
+  await ghostTo($('#chain'));
+  await ghostTo($('#outslot'));
+  await ghostTo(target);
+  await ghostTap();
+  ghost.classList.remove('show');
+  await sleep(260);
+}
+
+async function onGateTap(key){
+  interactive=false;
+  const right=key===gateAnswer;
+  gateStreak=right?gateStreak+1:0;
+  emitEvent('gate_response',{gateTrial:gateTrials,streak:gateStreak});
+  // The gate is the one place this file may resolve an instance, because it built it and the
+  // answer was on screen the whole time. It is still shown as world-state, not as a verdict.
+  const chosen=$(`#options .opt[data-key="${key}"]`);
+  tagOption(key,'chose','you chose');
+  tagOption(gateAnswer,'made','it made this');
+  const madePattern=(function(){
+    const el=$(`#options .opt[data-key="${gateAnswer}"]`);
+    return el?el.innerHTML:null;
+  })();
+  if(madePattern){const slot=$('#outslot');slot.className='figbox made';slot.innerHTML=madePattern;}
+  lockOptions();
+  setStatus('The machine held no parts, so the pattern came out unchanged.');
+  if(chosen)chosen.blur();
+  await sleep(1100);
+  if(gateStreak>=GATE_CRITERION||gateTrials>=GATE_MAX_TRIALS){
+    gateExhausted=gateStreak<GATE_CRITERION;
+    gateActive=false;
+    emitEvent('gate_complete',{gateTrials,criterionMet:gateExhausted?0:1});
+    beginScoredItem();
+    return;
+  }
+  renderGateTrial();
+}
+
+async function runGate(){
+  gateActive=true;gateStreak=0;gateTrials=0;
+  renderGateTrial();
+  if(!gateShownHint){gateShownHint=true;await gateHint();}
+}
+
+/* ==================================================================== *
+ * THE SCORED TRIAL
+ * ==================================================================== */
+/** Draw the served item. Separate from {@link renderServedItem} because the interface gate paints
+ *  its own degenerate instances over the top and the scored trial has to paint the real one back. */
+function paintServedItem(){
+  const c=current.content;
+  drawInput((c.input&&c.input.blocks)||[]);
+  drawChain(c.chain||[]);
+  drawParts(c.badgeTray||[],c.chain||[]);
+  setOutput('pending',null);
+  drawOptions(c.options||[]);
+}
+
+function renderServedItem(item){
+  current=item;
+  grid=gridOf(item.content);
+  committed=false;interactive=false;touched=false;firstLatency=null;blurCount=0;itemTelemetry=[];
+  paintServedItem();
+  itemStart=Date.now();
+  const c=item.content;
+  emitEvent('render',{depth:(c.chain||[]).length,options:(c.options||[]).length,difficulty:item.difficulty});
+}
+
+function beginScoredItem(){
+  if(!current||committed)return;
+  // Repaint unconditionally. Coming out of the interface gate the stage is still showing a
+  // degenerate instance with its options locked, and the child would be looking at a dead screen.
+  // When no gate ran this redraws what is already there, which costs nothing and keeps one path.
+  paintServedItem();
+  touched=false;firstLatency=null;
+  interactive=true;
+  itemStart=Date.now();
+  setCue('scored','Your turn');
+  setStatus('The machine runs the pattern through its parts, left to right. Tap what it makes.');
+  emitEvent('scored_begin',{depth:(current.content.chain||[]).length});
+}
+
+function commit(key){
+  if(!interactive||committed||!current)return;
+  const rt=Date.now()-itemStart;
+  committed=true;interactive=false;
+  lockOptions();
+  tagOption(key,'chose','you chose');
+  setOutput('running',null);
+  setCue('done','Answer sent');
+  setStatus(standalone
+    ?'The machine is running. (Opened directly: the host supplies what it made.)'
+    :'The machine is running.');
+  emitEvent('submit',{selectedKey:key,rtMs:rt});
+  // `gateCriterionMet` rides on the response, not on `metrics`: the metric registry is a closed
+  // vocabulary and there is no id for "cleared the interface gate". Gate B needs the flag to be
+  // able to exclude a child who never got the interface (§1.4(4)), and the raw response is stored
+  // verbatim, so that is where it belongs.
+  const response={
+    selectedKey:key,
+    firstContactMs:firstLatency==null?rt:firstLatency,
+    gateCriterionMet:gateExhausted?0:1,
+  };
+  // M-RT and M-RTFIRST are DIAGNOSTICS here and nothing else. §3.4 rejects a spatial block scored
+  // on speed, because within-session rotation practice improves latency for every child and would
+  // manufacture a climb that owes nothing to the hidden system. Accuracy is the score.
+  const metrics={
+    'M-RT':rt,
+    'M-RTFIRST':firstLatency==null?rt:firstLatency,
+    'M-ENGAGE':blurCount,
+    'M-RAPIDGUESS':rt<350?1:0,
+  };
+  const result={itemId:current.itemId,typeCode:current.typeCode,domain:current.domain,
+    response,metrics,telemetry:itemTelemetry.slice()};
+  post({type:'result',result});
+  if(standalone)setTimeout(advanceStandalone,1250);
+}
+
+/**
+ * The machine finishes its action.
+ *
+ * `reveal.machineOutput` names the option the machine actually made. It arrives from the host only
+ * after the server has scored an item the child has already committed to and which is never served
+ * again, so it hands the browser nothing it can use — and it is the entire learning signal the
+ * block runs on. No word here evaluates the child's choice.
+ */
+function onReveal(reveal){
+  if(!committed||!reveal)return;
+  const key=typeof reveal.machineOutput==='string'?reveal.machineOutput:null;
+  if(key===null)return;
+  const made=$(`#options .opt[data-key="${key}"]`);
+  if(!made)return;
+  const slot=$('#outslot');
+  slot.className='figbox made';
+  slot.innerHTML=made.innerHTML;
+  tagOption(key,'made','it made this');
+  setStatus('That is what the machine made.');
+  emitEvent('reveal_shown',{});
+}
+
+/* ---------- interaction ---------- */
+function noteContact(){
+  if(!interactive||committed||touched)return;
+  touched=true;
+  firstLatency=Date.now()-itemStart;
+  emitEvent('first_contact',{latencyMs:firstLatency});
+}
+function onOptionTap(el){
+  if(!interactive)return;
+  const key=el.dataset.key;
+  if(!key)return;
+  noteContact();
+  if(gateActive){void onGateTap(key);return;}
+  commit(key);
+}
+
+/* ---------- host-driven lifecycle ---------- */
+/* R1 play gate: the item is rendered on `init` but stays covered and inert until the child presses
+   play, which is also when the response clock starts — so M-RT measures thinking rather than
+   however long the child took to look up. */
+function openGate(withTutorial){
+  gateTutorial=!!withTutorial;
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('warmup','Ready when you are');
+  setStatus('Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
+function onInit(item){
+  if(!item||!item.content||!item.content.options)return;
+  renderServedItem(item);
+  openGate(false);
+}
+function onPlay(){
+  if(!current||committed)return;
+  closeGate();
+  if(gateTutorial){gateTutorial=false;void runGate();return;}
+  beginScoredItem();
+}
+function onHostMessage(e){
+  const d=e.data;
+  if(!d||d.source!==HOST_SRC)return;
+  if(d.type==='init')onInit(d.item);
+  else if(d.type==='start')openGate(!!d.tutorial);
+  else if(d.type==='reveal')onReveal(d.reveal);
+}
+
+/* ---------- standalone (a researcher opening the file directly) ----------
+ * Guarded by `!embedded` and by NO timer. See the E-079 note in the header: a timer that decides
+ * "there is probably no host" is the defect, because a real host can be slower than any timeout.
+ * -------------------------------------------------------------------- */
+function toServed(b){const{answer,scoring,provenance,...s}=b;return s;}
+async function loadBankSamples(){
+  try{
+    const res=await fetch('../banks/SPA-XFORM-01.jsonl',{cache:'no-store'});
+    if(res.ok){
+      const all=(await res.text()).trim().split('\n').filter(Boolean).map(l=>JSON.parse(l)).map(toServed);
+      all.sort((a,b)=>a.difficulty-b.difficulty);
+      const N=Math.min(12,all.length),pick=[];
+      for(let i=0;i<N;i++)pick.push(all[N===1?0:Math.round(i*(all.length-1)/(N-1))]);
+      return pick;
+    }
+  }catch(_){/* file:// blocks fetch, and the published copy has no /banks — fall through */}
+  return INLINE_SAMPLES.slice();
+}
+function playStandalone(){
+  const item=standaloneQueue[standaloneIdx%standaloneQueue.length];
+  onInit(item);
+  openGate(standaloneIdx===0);
+}
+function advanceStandalone(){standaloneIdx++;playStandalone();}
+async function bootstrapStandalone(){
+  standalone=true;
+  standaloneQueue=await loadBankSamples();
+  standaloneIdx=0;
+  playStandalone();
+}
+
+/* Inline served-item fallback: real bank items with every server-only field stripped. */
+const INLINE_SAMPLES=[
+{"itemId":"778fbb0c-1853-4eab-8097-b446deac3126","typeCode":"SPA-XFORM-01","domain":"spatial","difficulty":1.02,"ageBands":["K-1"],"demoPath":"demos/SPA-XFORM-01.html","content":{"typeCode":"SPA-XFORM-01","grid":{"rows":4,"cols":4},"badgeTray":["crescent","spiral","trefoil","zigzag","teardrop","leaf"],"input":{"blocks":[1,2]},"chain":["leaf"],"options":[{"key":"A","blocks":[8,11]},{"key":"B","blocks":[0,3]},{"key":"C","blocks":[7,11]},{"key":"D","blocks":[2,3]},{"key":"E","blocks":[1,2]}]},"syntheticOnly":true,"validated":false}
+];
+
+/* ---------- wiring ---------- */
+$('#play').addEventListener('click',onPlay);
+$('#options').addEventListener('click',e=>{const o=e.target.closest('.opt');if(o)onOptionTap(o);});
+$('#options').addEventListener('pointerover',e=>{if(e.target.closest('.opt'))noteContact();});
+$('#options').addEventListener('focusin',e=>{if(e.target.closest('.opt'))noteContact();});
+document.addEventListener('keydown',e=>{
+  if(!interactive)return;
+  const byNumber=/^[1-5]$/.test(e.key)?$$('#options .opt')[Number(e.key)-1]:null;
+  const byLetter=OPTION_KEYS.indexOf(String(e.key).toUpperCase());
+  const el=byNumber||(byLetter>=0?$$('#options .opt')[byLetter]:null);
+  if(el)onOptionTap(el);
+});
+window.addEventListener('blur',()=>{if(interactive&&!committed){blurCount++;emitEvent('engagement',{reason:'blur'});}});
+
+window.addEventListener('message',onHostMessage);
+post({type:'ready'});
+if(!embedded)void bootstrapStandalone();
+</script>
+</body>
+</html>

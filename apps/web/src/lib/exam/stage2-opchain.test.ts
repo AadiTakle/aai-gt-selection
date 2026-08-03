@@ -277,10 +277,13 @@ describe('the hidden system is absent from everything the client receives', () =
  * ================================================================== */
 
 describe('the post-commit reveal', () => {
-  it('exists only for the learning-block type', () => {
-    expect(REVEAL_TYPE_CODES).toEqual([TYPE]);
+  // Stated as "this type is in the reveal set, and nothing outside the set gets one" rather than
+  // as an exact list: the set grows by one entry per Stage 2 learning-block type, and an equality
+  // assertion would fail the next one for the wrong reason while saying nothing about this one.
+  it('exists only for the learning-block types', () => {
+    expect(REVEAL_TYPE_CODES).toContain(TYPE);
     for (const entry of EXAM_TYPE_REGISTRY) {
-      if (entry.typeCode === TYPE) continue;
+      if (REVEAL_TYPE_CODES.includes(entry.typeCode)) continue;
       const item = { typeCode: entry.typeCode, answer: { correctKey: 'A' } } as RawBankItem;
       expect(revealFor(item), `${entry.typeCode} produced a reveal`).toBeNull();
     }

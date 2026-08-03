@@ -313,8 +313,20 @@
 }
 
 .progress {
-  display: flex;
-  gap: 6px;
+  position: relative;
+  height: 6px;
+  border-radius: 999px;
+  background: rgb(15 23 42 / 10%);
+  overflow: hidden;
+}
+
+.progressFill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--gt-navy, #16233f), var(--gt-gold, #e8a44e));
+  /* Slow enough to read as motion rather than a jump, since the size of the step is the signal. */
+  transition: width 520ms cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
 .seg {
@@ -477,4 +489,37 @@
     grid-template-columns: 1fr;
     gap: var(--gt-space-3);
   }
+}
+
+/* Per-activity learning rates on the Phase 2 results screen. */
+.rateTable {
+  width: 100%;
+  margin-top: 0.75rem;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.rateTable th,
+.rateTable td {
+  padding: 0.35rem 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid rgb(15 23 42 / 8%);
+}
+
+.rateTable th {
+  font-weight: 600;
+  color: rgb(15 23 42 / 60%);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.rateTable td:nth-child(3) {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.rateTable td:nth-child(4) {
+  font-variant-numeric: tabular-nums;
+  color: rgb(15 23 42 / 55%);
 }
