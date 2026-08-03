@@ -386,32 +386,42 @@ export function toServedItem(item: RawBankItem): ServedItem {
  * engine's selection code.
  */
 export type ServedItemIndex = Omit<ServedItem, 'content'> & {
-  content: { optionCount?: number };
+  content: { optionCount?: number; responseFormat?: string };
 };
 
 /**
- * How many options an item offers, when it offers a bounded choice at all.
+ * The shape of an item's RESPONSE, and the only stimulus fact the index carries.
  *
- * This is the ONE piece of stimulus shape the index carries, because the engine's burst policy has
- * to know whether a type is a single-tap choice BEFORE it selects an item, and by then the item's
- * content has not been fetched. A count is not an answer key and does not say which option is
- * correct, so it leaks nothing: the browser already receives the full option list for the one item
- * it is rendering.
+ * It has to be here because two decisions are made before the item's content is fetched: the engine's
+ * burst policy asks whether a type is a single-tap choice, and Phase 2 asks what a child who knows
+ * nothing scores on it. Neither can wait for the stimulus.
+ *
+ * Neither field is key material. A COUNT does not say which option is correct — the browser already
+ * receives the whole option list for the item it is rendering. A FORMAT TAG says the answer is a
+ * position rather than a choice, which is evident from the screen the moment the item is drawn; it
+ * carries no tolerance, no target and no bound, and those are the fields that would actually matter
+ * (`CONTINUOUS_PLACEMENT_CHANCE_FLOOR` in `packages/exam-engine/src/item-format.ts` says why the floor
+ * itself is declared engine-side rather than sent).
  */
-function indexOptionCount(item: RawBankItem): number | undefined {
-  const options = (item.content as { options?: unknown } | undefined)?.options;
-  return Array.isArray(options) && options.length > 0 ? options.length : undefined;
+function indexResponseShape(item: RawBankItem): { optionCount?: number; responseFormat?: string } {
+  const content = item.content as
+    | { options?: unknown; responseFormat?: unknown }
+    | undefined;
+  if (typeof content?.responseFormat === 'string') {
+    return { responseFormat: content.responseFormat };
+  }
+  const options = content?.options;
+  return Array.isArray(options) && options.length > 0 ? { optionCount: options.length } : {};
 }
 
 export function toIndexEntry(item: RawBankItem): ServedItemIndex {
-  const optionCount = indexOptionCount(item);
   return {
     itemId: item.itemId,
     typeCode: item.typeCode,
     domain: item.domain,
     difficulty: item.difficulty,
     ageBands: item.ageBands,
-    content: optionCount === undefined ? {} : { optionCount },
+    content: indexResponseShape(item),
     syntheticOnly: true,
     validated: false,
   };

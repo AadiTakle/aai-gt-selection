@@ -77,11 +77,15 @@ describe.each(TYPES)('%s — the oracle is sound', (code) => {
     }
   });
 
-  it('always leaves the correct option viable, on every item, with no reveals at all', () => {
+  it('always leaves the correct response viable, on every item, with no reveals at all', () => {
     for (const arm of [arms.consistent, arms.perTrial]) {
       for (const item of arm) {
         const { viableOptions } = oracle.contentDerivability(item);
-        expect(viableOptions).toContain(item.reviewerOnly.correctKey);
+        // Through the adapter, not off the raw stored key. `QUANT-GLYPHNUM-01` grades a PLACEMENT, so
+        // its stored key is a position and its response space is the set of accepting intervals the
+        // tolerance cuts the line into — the adapter is what translates one into the other, and a test
+        // that read the raw key would be comparing a ratio against an interval label.
+        expect(viableOptions).toContain(oracle.adapter.correctKeyOf(item));
       }
     }
   });
@@ -169,7 +173,7 @@ describe.each(TYPES)('%s — a trial is judged on what preceded it', (code) => {
 
   it('classifies the correct answer as `consistent`, not `determined`, when it was not determined', () => {
     const item = arms.consistent.find((i) => oracle.contentDerivability(i).count > 1);
-    const trials = [{ item, chosenKey: item.reviewerOnly.correctKey, correct: true }];
+    const trials = [{ item, chosenKey: oracle.adapter.correctKeyOf(item), correct: true }];
     const { rows } = oracle.traceBlock({ trials, persistence: 'consistent' });
     expect(rows[0].derivable).toBe(false);
     expect(rows[0].inference).toBe('consistent');

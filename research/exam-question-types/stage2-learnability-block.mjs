@@ -88,13 +88,23 @@ export function chooseWarmup(pool, adapter, count) {
  * Responders
  * ================================================================== */
 
-/** Uniform choice among the options, learning nothing, ever — the contamination-floor responder. */
-export function guessingResponder() {
+/**
+ * The response keys one item offers, through the adapter when it has an opinion.
+ *
+ * A placement type has no option list — its response space is the set of accepting intervals its
+ * tolerance cuts the line into — so both responders below ask the adapter rather than the content.
+ */
+function responseKeys(adapter, item) {
+  return adapter?.responseKeysOf ? adapter.responseKeysOf(item) : item.content.options.map((o) => o.key);
+}
+
+/** Uniform choice among the responses, learning nothing, ever — the contamination-floor responder. */
+export function guessingResponder(adapter) {
   return {
     id: 'guesses',
     pick: ({ item, unit }) => {
-      const { options } = item.content;
-      return options[Math.min(options.length - 1, Math.floor(unit * options.length))].key;
+      const keys = responseKeys(adapter, item);
+      return keys[Math.min(keys.length - 1, Math.floor(unit * keys.length))];
     },
     observe: () => ({ reset: false }),
     state: () => ({ resets: 0, pinned: 0 }),
@@ -159,9 +169,9 @@ export function inductionResponder(adapter, { assignmentCap = 4096 } = {}) {
           votes.set(key, (votes.get(key) ?? 0) + 1);
         }
       }
-      const { options } = item.content;
       if (votes.size === 0) {
-        return options[Math.min(options.length - 1, Math.floor(unit * options.length))].key;
+        const keys = responseKeys(adapter, item);
+        return keys[Math.min(keys.length - 1, Math.floor(unit * keys.length))];
       }
       const ranked = [...votes.entries()].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1));
       const top = ranked[0][1];
@@ -205,7 +215,7 @@ export function inductionResponder(adapter, { assignmentCap = 4096 } = {}) {
 }
 
 export const RESPONDERS = {
-  guesses: () => guessingResponder(),
+  guesses: (adapter) => guessingResponder(adapter),
   induces: (adapter) => inductionResponder(adapter),
 };
 

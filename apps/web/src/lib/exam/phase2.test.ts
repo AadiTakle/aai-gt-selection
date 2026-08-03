@@ -1,4 +1,7 @@
-import type { ServedItem } from '@gt-selection/exam-engine';
+import {
+  CONTINUOUS_PLACEMENT_CHANCE_FLOOR,
+  type ServedItem,
+} from '@gt-selection/exam-engine';
 import { learningRateReadout, type LearningTrial } from '@gt-selection/exam-scoring';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -235,15 +238,53 @@ describe('blockGuessingFloor', () => {
     expect(blockGuessingFloor([withOptions('s', 6)]).guessing).toBeCloseTo(1 / 6, 12);
   });
 
+  /**
+   * The activity with no options at all: `QUANT-GLYPHNUM-01` is a slider on a number line.
+   *
+   * This is the case the count-only reader got wrong, and it got it wrong SILENTLY — no option list
+   * meant `null`, `null` meant "nothing declared", and "nothing declared" meant the five-option
+   * default. A fifteen-alternative response was therefore fitted and aimed at 0.2, which is E-207's
+   * misspecification three times over. The format tag is what separates "declares no options" from
+   * "declares that the answer is a position".
+   */
+  it('reads a continuous placement off its format, not off an option count it does not have', () => {
+    const placement = (itemId: string): ServedItem => ({
+      ...served(itemId, 12),
+      content: { responseFormat: 'continuous_placement', responseField: 'placedRatio' },
+    });
+    expect(blockGuessingFloor([placement('a'), placement('b')])).toEqual({
+      guessing: CONTINUOUS_PLACEMENT_CHANCE_FLOOR,
+      basis: { kind: 'response-format', format: 'continuous_placement' },
+    });
+    // The index spelling is the same tag, because the browser decides the floor from the index.
+    expect(
+      blockGuessingFloor([{ ...served('c', 12), content: { responseFormat: 'continuous_placement' } }])
+        .guessing,
+    ).toBeCloseTo(1 / 15, 12);
+    // Three times lower than the default it used to inherit, and not zero.
+    expect(CONTINUOUS_PLACEMENT_CHANCE_FLOOR).toBeLessThan(0.2);
+    expect(CONTINUOUS_PLACEMENT_CHANCE_FLOOR).toBeGreaterThan(0);
+  });
+
   it('falls back to the five-option default, and names the reason rather than hiding it', () => {
-    // Nothing declares a count: `served` builds items with an empty `content`.
+    // Nothing declares a count or a format: `served` builds items with an empty `content`.
     expect(blockGuessingFloor([served('a', 12)])).toEqual({
       guessing: 0.2,
-      basis: { kind: 'default', reason: 'no-option-count' },
+      basis: { kind: 'default', reason: 'no-response-format' },
     });
     expect(blockGuessingFloor([])).toEqual({
       guessing: 0.2,
-      basis: { kind: 'default', reason: 'no-option-count' },
+      basis: { kind: 'default', reason: 'no-response-format' },
+    });
+    // A pool holding both a choice and a placement has two floors and no average of them is either.
+    expect(
+      blockGuessingFloor([
+        withOptions('a', 5),
+        { ...served('b', 12), content: { responseFormat: 'continuous_placement' } },
+      ]),
+    ).toEqual({
+      guessing: 0.2,
+      basis: { kind: 'default', reason: 'mixed-response-formats' },
     });
     // One floor is fitted for the whole block, so a pool that disagrees with itself gets the
     // declared default rather than an averaged reciprocal nobody chose (E-200).

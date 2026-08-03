@@ -27,10 +27,32 @@ import type { RawBankItem } from './bank-loader';
  * The map below is the whole surface. A type absent from it gets no reveal, which is the default.
  */
 
-export interface ItemReveal {
+/**
+ * One observation of the mechanism, in whichever currency the type's response is denominated.
+ *
+ * A discriminated pair rather than one field, because a reveal has to name something the child can
+ * SEE, and what there is to see differs: three of the four types resolve to one of several options on
+ * screen, and `QUANT-GLYPHNUM-01` resolves to a POSITION on a line with no options at all. Naming an
+ * option key for a slider would mean inventing a key, and naming a ratio for a keyed type would mean
+ * inventing a scale.
+ */
+export type ItemReveal =
   /** Option key of the output the machine produced. Never described as "the correct answer". */
-  machineOutput: string;
-}
+  | { machineOutput: string }
+  /**
+   * Where on its line the mechanism put the thing, as a ratio in [0, 1].
+   *
+   * WHAT THIS DISCLOSES, PRECISELY. One (numeral -> magnitude) observation, for an item the child has
+   * already committed to and which the block never serves again. It is a RATIO and the line's numeric
+   * maximum stays server-only, so it is not a quantity: it says where this numeral sits relative to
+   * the numeral labelling the end of the line, which is what the child was looking at.
+   *
+   * It does NOT disclose the tolerance. The revealed position is the target, not the band, so a client
+   * learns where the answer was and not how close it had to be — and it learns that after the answer
+   * it could have used it for was already sent. That is the same bound §1.5 accepts for the keyed
+   * types, in the currency this one grades in.
+   */
+  | { machinePlacement: number };
 
 type RevealBuilder = (item: RawBankItem) => ItemReveal | null;
 
@@ -69,23 +91,28 @@ const REVEAL_BUILDERS: Record<string, RevealBuilder> = {
    */
   'SPA-XFORM-01': optionTheMechanismResolvedTo,
   /**
-   * QUANT-GLYPHNUM-01: the machine puts its writing at a place on the line, and the reveal names
-   * which of the five plates that place is.
+   * QUANT-GLYPHNUM-01: the machine puts its writing at its place on the line, and the reveal is that
+   * PLACE — a ratio, not an option key, because the response is a slider and there are no options.
    *
-   * This is the weakest reveal of the four, because the position it points at is already on
-   * screen: `content.options` carries all five tick RATIOS, so the reveal moves no number to the
-   * browser that the browser did not already have — it selects one of five it is drawing. What the
-   * child gains is one (expression -> magnitude) observation, and it does not resolve any glyph's
-   * value on its own, because the line's numeric maximum stays server-only and a ratio without it
-   * is not a quantity.
+   * This is the reveal that had to change when the type was rebuilt (D-211). It used to name one of
+   * five plates, which disclosed nothing new because all five tick ratios were already in `content`.
+   * With the options gone there is nothing on screen to select, so the position itself is sent. That
+   * discloses strictly more than the old reveal did — one exact (numeral -> position) observation
+   * instead of a choice among five the browser already held — and it is the same disclosure §1.1
+   * measured and accepted for the keyed types: a reveal is the block's whole learning signal, and
+   * per-session keying is what makes the disclosure per-session rather than bank-wide.
    *
-   * This type grades on a placement tolerance rather than on the key
-   * (`scoring.rule = 'placement_tolerance'`), so `correctKey` is here the tick the target ratio
-   * falls on. `stage2-reveal.test.ts` holds that to the verifier: the revealed plate must be the
-   * unique plate the shipped verifier scores correct, or the machine would be shown putting its
-   * writing somewhere the server does not grade.
+   * It reads `answer.targetRatio` and not `answer.tolerance`. The child is shown where the writing
+   * goes, never how wide the band was, so the reveal cannot be inverted into a grading threshold.
+   * `stage2-reveal.test.ts` holds the position to the verifier: placing exactly there must score
+   * correct, or the machine would be shown putting its writing somewhere the server does not grade.
    */
-  'QUANT-GLYPHNUM-01': optionTheMechanismResolvedTo,
+  'QUANT-GLYPHNUM-01': (item) => {
+    const target = (item.answer as { targetRatio?: unknown }).targetRatio;
+    return typeof target === 'number' && Number.isFinite(target)
+      ? { machinePlacement: target }
+      : null;
+  },
   /**
    * VER-MORPHO-01: the system resolves the instance — which picture the written word means, or
    * which word names the pictured thing, depending on the item's direction.

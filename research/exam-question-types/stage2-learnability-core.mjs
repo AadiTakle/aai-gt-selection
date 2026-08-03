@@ -96,7 +96,16 @@ export function createOracle(adapter, { revealMode = 'outcome' } = {}) {
     return rows;
   }
 
-  const optionKeysOf = (item) => item.content.options.map((o) => o.key);
+  /**
+   * The response keys this item offers — what a mapping's prediction can be compared against.
+   *
+   * Read through the adapter, because not every Stage 2 type answers with an option. A tolerance-graded
+   * PLACEMENT has no option list; its response space is the finite set of disjoint accepting intervals
+   * the tolerance cuts the line into, which is the same kind of object under a different name. An
+   * adapter that says nothing keeps the option-list default, so the three keyed types are unaffected.
+   */
+  const optionKeysOf = (item) =>
+    adapter.responseKeysOf ? adapter.responseKeysOf(item) : item.content.options.map((o) => o.key);
 
   /** Fresh ignorance: every system is still possible. */
   const newKnowledge = () => ({ surviving: allIndices, reveals: 0, contradicted: 0 });

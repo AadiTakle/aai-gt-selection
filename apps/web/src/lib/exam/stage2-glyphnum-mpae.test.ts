@@ -17,13 +17,19 @@
  * one:
  *
  *   1. the shipped `resolveVerifier` routes every item to the generic placement verifier;
- *   2. `M-PAE` is present on every verdict and correctness matches the keyed tick exactly;
- *   3. the emitted values are inside the [0, 0.5] range the metric registry declares, and there
- *      are enough distinct ones for "continuous placement error" to mean anything;
- *   4. the value is GRADED — a near-miss reading of the notation produces a smaller placement
- *      error than a disengaged one. Without that, `M-PAE` would be an error *code* wearing the name
- *      of an error *size*, and the registry's "small consistent PAE separates top reasoners without
- *      ceiling" would not hold.
+ *   2. `M-PAE` is present on every verdict and correctness matches the accepting band exactly, on
+ *      both sides of the target;
+ *   3. the emitted values are continuous and bounded, and the [0, 0.5] window `policy.ts` declares is
+ *      a normalisation range rather than a domain claim — a free slider genuinely produces errors past
+ *      half the line, where five constrained options could not;
+ *   4. the value is GRADED — a placement nearer the target reports a smaller error, monotonically.
+ *      Without that, `M-PAE` would be an error *code* wearing the name of an error *size*, and the
+ *      registry's "small consistent PAE separates top reasoners without ceiling" would not hold.
+ *
+ * REBUILT WITH THE TYPE (D-211). The activity is now a slider on a number line, so there are no
+ * option ratios to probe and the probe is the response space itself. That makes claims 2 and 4
+ * stronger rather than weaker: they used to hold for the five placements the generator chose, and now
+ * hold for any placement a child can make.
  *
  * SCOPE. This is U4-adjacent evidence for U3's `M-PAE` claim. It does not wire the type: no
  * renderer (U6) and no per-type verifier (U7) exist, the bank ships `validated: false` and
@@ -51,14 +57,14 @@ const BANK = join(repoRoot(), 'research/exam-question-types/banks/QUANT-GLYPHNUM
 
 interface GlyphnumItem extends RawBankItem {
   content: {
-    options: { key: string; ratio: number }[];
+    responseFormat: string;
+    responseField: string;
     [key: string]: unknown;
   };
   answer: {
-    correctKey: string;
+    correctKey: number;
     targetRatio: number;
     tolerance: number;
-    distractorRationales: Record<string, { partialRuleKind?: string }>;
     [key: string]: unknown;
   };
 }
@@ -69,16 +75,17 @@ const items = readFileSync(BANK, 'utf8')
   .map((line) => JSON.parse(line) as GlyphnumItem);
 
 /**
- * How near each named incomplete reading sits to having the whole notation, as the generator
- * declares it. Only the two ends are needed here: the ordering claim is that the near end produces
- * smaller placement error than the far end, which is a much weaker and more testable claim than a
- * full rank correlation over eleven classes.
+ * Placements to probe each item with, as offsets from the target in units of its own tolerance.
+ *
+ * The old build could only probe the five ratios its options happened to carry. A slider can be put
+ * anywhere, so the probe is the response space itself: dead on, just inside the band, just outside
+ * it, and progressively further away. That is what makes the claim "M-PAE is an error SIZE, not an
+ * error code" testable without any distractor taxonomy to lean on.
  */
-const NEAREST = new Set(['additive_only', 'over_binding', 'phantom_bind', 'place_value_read']);
-const FURTHEST = new Set(['first_unit_only', 'largest_glyph_only', 'token_count', 'anchor_echo']);
+const PROBE_OFFSETS = [0, 0.9, 1.1, 3, 8, 20] as const;
 
 describe('QUANT-GLYPHNUM-01 supplies M-PAE through the shipped placement verifier', () => {
-  it('has a bank to check', () => {
+  it('has a bank to check, and it is a placement bank', () => {
     expect(items.length).toBeGreaterThan(0);
     for (const item of items) {
       expect(item.typeCode).toBe('QUANT-GLYPHNUM-01');
@@ -86,6 +93,11 @@ describe('QUANT-GLYPHNUM-01 supplies M-PAE through the shipped placement verifie
       // The claim under test is about the generic path, so a per-type verifier appearing later must
       // not silently take over and leave this test passing for the wrong reason.
       expect(item.scoring?.rule).toBe('placement_tolerance');
+      // No options at all: the response is a position, and the format tag is what says so to the
+      // block's chance-floor reader.
+      expect(item.content.options).toBeUndefined();
+      expect(item.content.responseFormat).toBe('continuous_placement');
+      expect(item.content.responseField).toBe('placedRatio');
     }
   });
 
@@ -94,19 +106,25 @@ describe('QUANT-GLYPHNUM-01 supplies M-PAE through the shipped placement verifie
     expect([...routed]).toEqual(['verifyPlacementTolerance']);
   });
 
-  it('emits M-PAE on every option of every item, and grades exactly the keyed tick', () => {
+  it('emits M-PAE on every placement, and grades the band and nothing wider', () => {
     const missing: string[] = [];
     const misgraded: string[] = [];
     for (const item of items) {
-      for (const option of item.content.options) {
-        const verdict = verify(item, { placedRatio: option.ratio });
-        const pae = verdict.metrics?.['M-PAE'];
-        if (typeof pae !== 'number' || !Number.isFinite(pae)) {
-          missing.push(`${item.itemId}/${option.key}`);
-          continue;
-        }
-        if (verdict.correct !== (option.key === item.answer.correctKey)) {
-          misgraded.push(`${item.itemId}/${option.key}`);
+      const { targetRatio, tolerance } = item.answer;
+      for (const offset of PROBE_OFFSETS) {
+        // Both sides of the target, so a verifier that compared signed error would be caught.
+        for (const direction of [1, -1]) {
+          const placed = Math.min(1, Math.max(0, targetRatio + direction * offset * tolerance));
+          const verdict = verify(item, { placedRatio: placed });
+          const pae = verdict.metrics?.['M-PAE'];
+          if (typeof pae !== 'number' || !Number.isFinite(pae)) {
+            missing.push(`${item.itemId}@${offset}`);
+            continue;
+          }
+          // Clamping at the ends of the line can bring a far probe back inside the band, so the
+          // expectation is computed from the placement that was actually sent.
+          const expected = Math.abs(placed - targetRatio) <= tolerance;
+          if (verdict.correct !== expected) misgraded.push(`${item.itemId}@${offset}`);
         }
       }
     }
@@ -114,17 +132,24 @@ describe('QUANT-GLYPHNUM-01 supplies M-PAE through the shipped placement verifie
     expect(misgraded).toEqual([]);
   });
 
-  it('emits values inside the range the metric registry declares, and enough of them to be continuous', () => {
+  it('emits a continuous error, and one the scoring policy normalises rather than rejects', () => {
     const values: number[] = [];
     for (const item of items) {
-      for (const option of item.content.options) {
-        const pae = verify(item, { placedRatio: option.ratio }).metrics?.['M-PAE'];
+      for (const placed of [0, 0.25, item.answer.targetRatio, 0.75, 1]) {
+        const pae = verify(item, { placedRatio: placed }).metrics?.['M-PAE'];
         if (typeof pae === 'number') values.push(pae);
       }
     }
-    // `policy.ts` declares M-PAE over { min: 0, max: 0.5 }, direction 'lower'.
-    expect(Math.min(...values)).toBeGreaterThanOrEqual(0);
-    expect(Math.max(...values)).toBeLessThanOrEqual(0.5 + 1e-9);
+    expect(Math.min(...values)).toBe(0);
+    /*
+     * A FREE slider genuinely produces errors past 0.5, where five constrained options could not, so
+     * `policy.ts`'s { min: 0, max: 0.5 } is a NORMALISATION window and not a claim about the domain.
+     * `normalizeToUnit` clamps, so a placement more than half the line away scores as maximally
+     * wrong — which is the right reading, and is why this needs no registry change. What must hold is
+     * that the metric stays a bounded error on the line.
+     */
+    expect(Math.max(...values)).toBeGreaterThan(0.5);
+    expect(Math.max(...values)).toBeLessThanOrEqual(1);
     const distinct = new Set(values.map((v) => Math.round(v * 1e6))).size;
     expect(distinct).toBeGreaterThan(100);
     // The registry asks for >=10 placements before M-PAE is adequate, and MEASUREMENTS says 10-15.
@@ -132,30 +157,40 @@ describe('QUANT-GLYPHNUM-01 supplies M-PAE through the shipped placement verifie
     expect(items.length).toBeGreaterThanOrEqual(30);
   });
 
-  it('emits a graded error: near-miss readings land nearer than disengaged ones', () => {
-    const near: number[] = [];
-    const far: number[] = [];
+  it('emits a graded error: a placement nearer the target reports a smaller one', () => {
+    /*
+     * With no options there is no distractor taxonomy to order, and the ordering claim gets stronger
+     * rather than weaker: it is now about the response itself. A child who has the vocabulary and the
+     * place rule lands near; a child holding only the vocabulary lands a place-value's worth away; a
+     * child who has neither lands anywhere. The registry's "small consistent PAE separates top
+     * reasoners without ceiling" is exactly this monotonicity, and it now holds for every placement a
+     * child can make instead of for five the generator chose.
+     */
+    const violations: string[] = [];
     for (const item of items) {
-      for (const option of item.content.options) {
-        if (option.key === item.answer.correctKey) continue;
-        const kind = item.answer.distractorRationales[option.key]?.partialRuleKind;
-        const pae = verify(item, { placedRatio: option.ratio }).metrics?.['M-PAE'];
-        if (typeof pae !== 'number' || kind === undefined) continue;
-        if (NEAREST.has(kind)) near.push(pae);
-        if (FURTHEST.has(kind)) far.push(pae);
+      const { targetRatio, tolerance } = item.answer;
+      const errors = PROBE_OFFSETS.map((offset) => {
+        const placed = Math.min(1, targetRatio + offset * tolerance);
+        return verify(item, { placedRatio: placed }).metrics?.['M-PAE'];
+      });
+      for (let i = 1; i < errors.length; i += 1) {
+        const previous = errors[i - 1];
+        const current = errors[i];
+        if (typeof previous !== 'number' || typeof current !== 'number') continue;
+        // Non-decreasing: equal only where the probe clamped at the end of the line.
+        if (current < previous - 1e-12) violations.push(`${item.itemId} at offset ${i}`);
       }
     }
-    expect(near.length).toBeGreaterThan(50);
-    expect(far.length).toBeGreaterThan(50);
-    const mean = (xs: number[]): number => xs.reduce((a, b) => a + b, 0) / xs.length;
-    expect(mean(near)).toBeLessThan(mean(far));
+    expect(violations).toEqual([]);
   });
 
   it('never lets a response the renderer cannot produce score as correct', () => {
-    // The renderer posts back the ratio of the tick the child tapped, so an absent or malformed
-    // response is the failure mode to fail CLOSED on rather than an impossible one.
+    // The renderer posts back where the child put the handle, so an absent or malformed response is
+    // the failure mode to fail CLOSED on rather than an impossible one.
     const sample = items[0]!;
     expect(verify(sample, {}).correct).toBe(false);
     expect(verify(sample, { placedRatio: 'middle' }).correct).toBe(false);
+    // The option key the old build graded on is gone, and sending one must not grade anything.
+    expect(verify(sample, { selectedKey: 'C' }).correct).toBe(false);
   });
 });

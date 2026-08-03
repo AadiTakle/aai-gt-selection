@@ -23,13 +23,13 @@ import type { NextRequest } from 'next/server';
  *
  * WHERE THE BOUNDARY NOW SITS. §1.5 originally fixed the reveal as outcome-free — the mechanism's
  * next visible state and nothing else, identical for every child. STAGE2_REDESIGN_SPEC §4.3 changed
- * that deliberately (D-209): the trial is REVIEWABLE, showing what the machine produced and which
- * option the child chose, and those two facts cannot both be shown without the picture differing by
- * outcome. What did not change is the reason §1.5 existed. Feedback that points at the child is the
- * failure its evidence is about (Kluger & DeNisi 1996; van Duijvenvoorde et al. 2008; Deci, Koestner
- * & Ryan 1999), so the line moved from "say nothing about the outcome" to "say nothing about the
- * child": no verdict word, no tally, no reward furniture, and no channel that carries the outcome
- * anywhere except into the two marks the child reads for themselves.
+ * that deliberately (D-209): the trial is REVIEWABLE, showing what the machine produced and what the
+ * child answered, and those two facts cannot both be shown without the picture differing by outcome.
+ * What did not change is the reason §1.5 existed. Feedback that points at the child is the failure
+ * its evidence is about (Kluger & DeNisi 1996; van Duijvenvoorde et al. 2008; Deci, Koestner & Ryan
+ * 1999), so the line moved from "say nothing about the outcome" to "say nothing about the child": no
+ * verdict word, no tally, no reward furniture, and no channel that carries the outcome anywhere
+ * except into the two marks the child reads for themselves.
  *
  * The five places that could break, and the five sections below:
  *
@@ -41,6 +41,14 @@ import type { NextRequest } from 'next/server';
  *     instead of words — and in Stage 2 it must now be the child and nothing else (§4.2);
  *  4. the RENDERED trial could editorialise, or keep score; or
  *  5. the two marks could be told apart by COLOUR ALONE, or at a contrast a child cannot read.
+ *
+ * TWO RESPONSE SHAPES, ONE SET OF PROPERTIES. Three of the four types answer by choosing one of
+ * several options on screen. `QUANT-GLYPHNUM-01` does not: since D-211 it is a slider, so the child
+ * answers with a POSITION on a number line and the mechanism resolves to a position too. Every
+ * property this file polices is a property of the SET and has to hold for both shapes, so the harness
+ * reads each renderer in its own currency and reports one common structure — a list of marked PLACES,
+ * where a place is an option tile for three types and a point on the line for the fourth. Nothing is
+ * skipped for the placement type and no assertion is loosened to accommodate it; see `marksOf`.
  *
  * The per-type suites (`stage2-opchain.test.ts`, `stage2-xform.test.ts`) already check that their
  * own renderer draws a reveal. What only a cross-type file can check is the property that has to
@@ -63,14 +71,17 @@ const STAGE2_TYPES = [
   'VER-MORPHO-01',
 ] as const;
 
+/** The one type whose response is a placement on a line rather than a choice among options. */
+const PLACEMENT_TYPE = 'QUANT-GLYPHNUM-01';
+
 /**
- * The role name each renderer puts on the option the mechanism resolved to.
+ * The role name each renderer puts on the place the mechanism resolved to.
  *
  * Three types mark it `made` because their mechanism MAKES a thing; `QUANT-GLYPHNUM-01` marks it
  * `goes` because its mechanism puts a thing somewhere. Neither word evaluates the child, which is
  * the property that matters and the reason this table is a per-type detail rather than a rule.
  *
- * The child's own pick is marked `chose` in all four, which is why that one is a constant.
+ * The child's own answer is marked `chose` in all four, which is why that one is a constant.
  */
 const REVEAL_MARK: Record<string, string> = {
   'FLU-OPCHAIN-01': 'made',
@@ -137,6 +148,11 @@ function optionsOf(item: RawBankItem): Option[] {
   return (item.content as { options?: Option[] }).options ?? [];
 }
 
+/** The graded band of a placement item, which is server-only and never leaves this process. */
+function placementAnswer(item: RawBankItem): { targetRatio: number; tolerance: number } {
+  return item.answer as unknown as { targetRatio: number; tolerance: number };
+}
+
 /** Items spread evenly along the difficulty ladder, so a sample is never all easy items. */
 function sample(items: RawBankItem[], count: number): RawBankItem[] {
   const sorted = [...items].sort((a, b) => a.difficulty - b.difficulty);
@@ -147,22 +163,51 @@ function sample(items: RawBankItem[], count: number): RawBankItem[] {
 }
 
 /**
- * The raw response the type's renderer would post for one option.
+ * One committable answer, in whichever currency the type takes, plus whether it is the one the
+ * mechanism resolved to.
  *
- * `QUANT-GLYPHNUM-01` is graded on where the child placed, not on which plate they tapped
- * (`scoring.rule = 'placement_tolerance'`), so its renderer posts the tapped plate's ratio. Sending
- * only `selectedKey` for it would make every submission below score wrong and the right/wrong
- * contrast this file rests on would be vacuous.
+ * This is what lets a cross-type file ask the same question of a choice and a placement: "answer it
+ * right, answer it wrong, and check the reveal did not move". `at` is where the harness has to act —
+ * an option index for three types, a ratio of the line for the fourth.
+ *
+ * `QUANT-GLYPHNUM-01` is graded on where the child placed rather than on a stored key
+ * (`scoring.rule = 'placement_tolerance'`), and the three option types that also carry a ratio have
+ * it sent alongside the key. Sending only `selectedKey` for a placement would make every submission
+ * below score wrong and the right/wrong contrast this file rests on would be vacuous.
  */
-function responseFor(item: RawBankItem, option: Option): Record<string, unknown> {
-  return option.ratio === undefined
-    ? { selectedKey: option.key }
-    : { selectedKey: option.key, placedRatio: option.ratio };
+interface Candidate {
+  readonly label: string;
+  readonly at: number;
+  readonly response: Record<string, unknown>;
+  readonly right: boolean;
+}
+
+function candidatesFor(item: RawBankItem): Candidate[] {
+  if (item.typeCode === PLACEMENT_TYPE) {
+    const { targetRatio, tolerance } = placementAnswer(item);
+    // Dead on, and a placement four tolerances away on whichever side has room. A slider has no
+    // enumerable wrong answers, so two suffice: what matters is that one grades right and one wrong.
+    const away = targetRatio > 0.5 ? targetRatio - 4 * tolerance : targetRatio + 4 * tolerance;
+    return [
+      { label: 'off', at: away, response: { placedRatio: away }, right: false },
+      { label: 'on', at: targetRatio, response: { placedRatio: targetRatio }, right: true },
+    ];
+  }
+  const key = String(item.answer.correctKey);
+  return optionsOf(item).map((option, index) => ({
+    label: option.key,
+    at: index,
+    response:
+      option.ratio === undefined
+        ? { selectedKey: option.key }
+        : { selectedKey: option.key, placedRatio: option.ratio },
+    right: option.key === key,
+  }));
 }
 
 interface SubmitBody {
   correct: boolean;
-  reveal?: { machineOutput: string };
+  reveal?: { machineOutput?: string; machinePlacement?: number };
 }
 
 /** Drive the real route handler, as the runner does, minus the HTTP hop. */
@@ -196,14 +241,22 @@ describe('the reveal set', () => {
     }
   });
 
-  it('names an option the item actually put in front of the child, on every item of every bank', () => {
+  it('names a place the item actually put in front of the child, on every item of every bank', () => {
     for (const typeCode of STAGE2_TYPES) {
       for (const item of BANKS.get(typeCode)!) {
         const reveal = revealFor(item);
         expect(reveal, `${item.itemId}: no reveal`).not.toBeNull();
+        if (typeCode === PLACEMENT_TYPE) {
+          // A position on the line the child was already looking at. Not a quantity: the line's
+          // numeric maximum stays server-only, so a ratio without it says only "this far along".
+          const placement = (reveal as { machinePlacement: number }).machinePlacement;
+          expect(placement, `${item.itemId}: reveal is off the line`).toBeGreaterThanOrEqual(0);
+          expect(placement, `${item.itemId}: reveal is off the line`).toBeLessThanOrEqual(1);
+          continue;
+        }
         const keys = optionsOf(item).map((option) => option.key);
         expect(keys, `${item.itemId}: reveal names an option that is not on screen`).toContain(
-          reveal!.machineOutput,
+          (reveal as { machineOutput: string }).machineOutput,
         );
       }
     }
@@ -211,10 +264,18 @@ describe('the reveal set', () => {
 
   it('carries one field and no vocabulary that could read as a judgement', () => {
     for (const typeCode of STAGE2_TYPES) {
-      const reveal = revealFor(BANKS.get(typeCode)![0]!);
-      expect(Object.keys(reveal!)).toEqual(['machineOutput']);
-      expect(typeof reveal!.machineOutput).toBe('string');
-      expect(reveal!.machineOutput.length).toBeGreaterThan(0);
+      const reveal = revealFor(BANKS.get(typeCode)![0]!)!;
+      // One field, whichever currency it is in. A reveal carrying both would be a reveal carrying
+      // something other than the mechanism's own outcome.
+      if (typeCode === PLACEMENT_TYPE) {
+        expect(Object.keys(reveal)).toEqual(['machinePlacement']);
+        expect(typeof (reveal as { machinePlacement: number }).machinePlacement).toBe('number');
+      } else {
+        expect(Object.keys(reveal)).toEqual(['machineOutput']);
+        const output = (reveal as { machineOutput: string }).machineOutput;
+        expect(typeof output).toBe('string');
+        expect(output.length).toBeGreaterThan(0);
+      }
       expect(JSON.stringify(reveal)).not.toMatch(/correct|wrong|right|score|verdict/i);
     }
   });
@@ -222,18 +283,27 @@ describe('the reveal set', () => {
   /**
    * `QUANT-GLYPHNUM-01` is the one type whose reveal could point somewhere the server does not
    * grade, because it grades on a placement tolerance rather than on the stored key. The reveal
-   * moves the pin to the marked plate, so if the graded band ever fell on a different plate the
-   * child would watch the machine put its writing somewhere that scores wrong.
+   * moves the pin to a position, so if that position ever fell outside the graded band the child
+   * would watch the machine put its writing somewhere that scores wrong.
+   *
+   * And it must disclose the position ONLY. Revealing the band as well would hand a client the
+   * grading threshold, which is the one field on this type that is genuinely key material.
    */
-  it('points QUANT-GLYPHNUM-01 at the one plate the shipped verifier scores correct', () => {
-    for (const item of BANKS.get('QUANT-GLYPHNUM-01')!) {
-      const graded = optionsOf(item).filter(
-        (option) => verify(item, { placedRatio: option.ratio }).correct,
-      );
+  it('points QUANT-GLYPHNUM-01 at a position the shipped verifier scores correct, and at no band', () => {
+    for (const item of BANKS.get(PLACEMENT_TYPE)!) {
+      const reveal = revealFor(item) as { machinePlacement: number };
       expect(
-        graded.map((option) => option.key),
-        `${item.itemId}: graded plates`,
-      ).toEqual([revealFor(item)!.machineOutput]);
+        verify(item, { placedRatio: reveal.machinePlacement }).correct,
+        `${item.itemId}: the revealed position does not grade correct`,
+      ).toBe(true);
+      // A placement a hair past the band must still be wrong, so the reveal cannot be read as
+      // "anything from here on is fine".
+      const { tolerance } = placementAnswer(item);
+      expect(
+        verify(item, { placedRatio: reveal.machinePlacement + tolerance * 1.5 }).correct,
+        `${item.itemId}: the band is wider than the item declares`,
+      ).toBe(false);
+      expect(JSON.stringify(reveal)).not.toContain(String(tolerance));
     }
   });
 });
@@ -243,32 +313,30 @@ describe('the reveal set', () => {
  * ================================================================== */
 
 describe('the reveal carries no correctness signal', () => {
-  it('is byte-identical whichever option the child committed to', async () => {
+  it('is byte-identical whichever answer the child committed to', async () => {
     for (const typeCode of STAGE2_TYPES) {
       for (const item of sample(BANKS.get(typeCode)!, 3)) {
-        const options = optionsOf(item);
-        const key = String(item.answer.correctKey);
         const seen = new Set<string>();
         const outcomes = new Set<boolean>();
 
-        for (const option of options) {
-          const { body, revealJson } = await submit(item, responseFor(item, option));
+        for (const candidate of candidatesFor(item)) {
+          const { body, revealJson } = await submit(item, candidate.response);
           seen.add(revealJson);
           outcomes.add(body.correct);
-          expect(body.correct, `${item.itemId}/${option.key}: graded against the key`).toBe(
-            option.key === key,
+          expect(body.correct, `${item.itemId}/${candidate.label}: graded as expected`).toBe(
+            candidate.right,
           );
         }
 
-        // Without this the equality above would be vacuous: it says the submissions really did
+        // Without this the equality below would be vacuous: it says the submissions really did
         // produce different outcomes, so an identical reveal across them means something.
-        expect(outcomes, `${item.itemId}: every option graded the same`).toEqual(
+        expect(outcomes, `${item.itemId}: every answer graded the same`).toEqual(
           new Set([true, false]),
         );
         expect(
           [...seen],
           `${item.itemId}: the reveal differed between a right and a wrong answer`,
-        ).toEqual([JSON.stringify({ machineOutput: key })]);
+        ).toEqual([JSON.stringify(revealFor(item))]);
       }
     }
   });
@@ -290,12 +358,11 @@ describe('the reveal carries no correctness signal', () => {
   it('is withheld entirely from a skipped trial, whatever the response held', async () => {
     for (const typeCode of STAGE2_TYPES) {
       const item = BANKS.get(typeCode)![0]!;
-      const key = String(item.answer.correctKey);
-      const right = optionsOf(item).find((option) => option.key === key)!;
+      const right = candidatesFor(item).find((candidate) => candidate.right)!;
       // A skip is not a retrieval attempt, so revealing anyway would turn skipping into a free
       // look at the system (Roediger & Karpicke 2006) — including the skip that arrives with the
-      // right option already in the payload.
-      for (const response of [{}, responseFor(item, right)]) {
+      // right answer already in the payload.
+      for (const response of [{}, right.response]) {
         const { body } = await submit(item, response, true);
         expect(body.correct).toBe(false);
         expect(Object.hasOwn(body, 'reveal'), `${typeCode}: a skip was given a reveal`).toBe(false);
@@ -424,10 +491,18 @@ describe('what ends a revealed trial', () => {
  * The embedding harness: a real demo document, driven over the real protocol
  * ------------------------------------------------------------------ */
 
-/** One option tile, and whichever review marks it is carrying. */
-interface OptionMarks {
-  key: string;
-  /** Text of the `you chose` mark, or null when this tile is not the child's pick. */
+/**
+ * One PLACE the child could be shown something about, and whichever review marks it carries.
+ *
+ * A place is an option tile for the three choice types and a point on the line for the placement
+ * type, and `where` identifies it: the tile's key, or the position as a percentage of the line. That
+ * substitution is the whole of what the placement type needs, and it is why the section-4 assertions
+ * below are written once rather than twice — "two places marked when the child answered differently
+ * from the machine, one when they answered the same" is the same sentence in both currencies.
+ */
+interface PlaceMarks {
+  where: string;
+  /** Text of the `you chose` mark, or null when this place is not the child's answer. */
   chose: string | null;
   /** Text of the machine's mark, or null when the mechanism did not resolve here. */
   machine: string | null;
@@ -437,13 +512,62 @@ interface DemoHarness {
   document: Document;
   events: string[];
   status: () => string;
-  marks: () => OptionMarks[];
+  marks: () => PlaceMarks[];
   visibleText: () => string;
   send: (message: Record<string, unknown>) => void;
   click: (el: Element) => void;
   options: () => Element[];
+  /** Put the placement type's handle at a ratio of the line. Unused by the three choice types. */
+  place: (ratio: number) => void;
   errors: string[];
   close: () => void;
+}
+
+/**
+ * Read the two review marks off a rendered trial, in whichever shape the renderer draws them.
+ *
+ * The three choice types mark option tiles, so each tile is a place and both roles are read from the
+ * tags it carries. The placement type marks two boxes at two positions on the line — the handle the
+ * child left behind and the pin the machine's writing landed on — so the position is the place, and
+ * marks at the SAME position are folded into one entry exactly as two roles on one tile are. Folding
+ * is what makes the coincident case testable in both currencies rather than only in one.
+ *
+ * Positions are compared at the resolution the slider actually offers (0.1% of the line, its own
+ * step), because that is the finest distinction the child can make and therefore the only one at
+ * which "the child placed it where the writing belongs" is a fact about the child rather than about
+ * floating point. The revealed ratio is unquantised and the handle is on the step grid, so a child
+ * who places dead on the target lands on the same step by construction.
+ */
+function marksOf(document: Document, typeCode: string): PlaceMarks[] {
+  const machineMark = REVEAL_MARK[typeCode]!;
+  const tagText = (host: Element | null, role: string): string | null =>
+    host?.querySelector(`.tag[data-mark="${role}"]`)?.textContent ?? null;
+
+  if (typeCode !== PLACEMENT_TYPE) {
+    return [...document.querySelectorAll('#options .opt')].map((opt) => ({
+      where: opt.getAttribute('data-key') ?? '',
+      chose: tagText(opt, CHILD_MARK),
+      machine: tagText(opt, machineMark),
+    }));
+  }
+
+  /** A CSS `left` of `34.567%` and one of `34.6%` are the same slider step, so both read as 34.6. */
+  const step = (el: HTMLElement): string =>
+    (Math.round(Number.parseFloat(el.style.left) * 10) / 10).toFixed(1);
+
+  const handle = document.querySelector('#handle') as HTMLElement | null;
+  const pin = document.querySelector('#pin') as HTMLElement | null;
+  const found: PlaceMarks[] = [];
+  const add = (at: string, role: 'chose' | 'machine', text: string | null): void => {
+    if (text === null) return;
+    const existing = found.find((mark) => mark.where === at);
+    if (existing) existing[role] = text;
+    else found.push({ where: at, chose: null, machine: null, [role]: text });
+  };
+  if (handle) add(step(handle), 'chose', tagText(handle, CHILD_MARK));
+  // A pin that is not shown is not a mark, and the renderer hides it between trials.
+  if (pin?.classList.contains('show')) add(step(pin), 'machine', tagText(pin, machineMark));
+  return found;
 }
 
 function openDemo(typeCode: string): DemoHarness {
@@ -479,13 +603,7 @@ function openDemo(typeCode: string): DemoHarness {
     events,
     errors,
     status: () => win.document.querySelector('#status')?.textContent ?? '',
-    marks: () =>
-      [...win.document.querySelectorAll('#options .opt')].map((opt) => ({
-        key: opt.getAttribute('data-key') ?? '',
-        chose: opt.querySelector(`.tag[data-mark="${CHILD_MARK}"]`)?.textContent ?? null,
-        machine:
-          opt.querySelector(`.tag[data-mark="${REVEAL_MARK[typeCode]!}"]`)?.textContent ?? null,
-      })),
+    marks: () => marksOf(win.document, typeCode),
     visibleText: () => {
       const body = win.document.body.cloneNode(true) as HTMLElement;
       for (const el of body.querySelectorAll('script,style')) el.remove();
@@ -503,6 +621,12 @@ function openDemo(typeCode: string): DemoHarness {
       el.dispatchEvent(new win.MouseEvent('click', { bubbles: true, cancelable: true }));
     },
     options: () => [...win.document.querySelectorAll('#options .opt')],
+    place: (ratio: number) => {
+      const slider = win.document.querySelector('#slider') as HTMLInputElement | null;
+      if (slider === null) throw new Error('the placement demo has no slider');
+      slider.value = String(Math.round(ratio * 1000));
+      slider.dispatchEvent(new win.Event('input', { bubbles: true }));
+    },
     close: () => {
       win.close();
     },
@@ -513,20 +637,22 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 interface PlayedTrial {
   status: string;
-  marks: OptionMarks[];
+  marks: PlaceMarks[];
   reveals: number;
   text: string;
 }
 
 /**
- * Answer one item with `chosenIndex`, then hand the demo a reveal naming `revealedKey`, and report
- * everything the reveal put on screen.
+ * Answer one item with `candidate` — clicking its option, or putting the handle at its ratio and
+ * pressing Send — then hand the demo the item's own reveal, and report everything it put on screen.
+ *
+ * The reveal comes from the real `revealFor`, not from a literal assembled here, so the payload the
+ * renderer is driven with is the payload the route would send.
  */
 async function playOneTrial(
   typeCode: string,
   item: RawBankItem,
-  chosenIndex: number,
-  revealedKey: string,
+  candidate: Candidate,
 ): Promise<PlayedTrial> {
   const demo = openDemo(typeCode);
   try {
@@ -536,10 +662,15 @@ async function playOneTrial(
     await sleep(60);
     demo.click(demo.document.querySelector('#play')!);
     await sleep(60);
-    demo.click(demo.options()[chosenIndex]!);
+    if (typeCode === PLACEMENT_TYPE) {
+      demo.place(candidate.at);
+      demo.click(demo.document.querySelector('#send')!);
+    } else {
+      demo.click(demo.options()[candidate.at]!);
+    }
     await sleep(60);
 
-    demo.send({ type: 'reveal', reveal: { machineOutput: revealedKey } });
+    demo.send({ type: 'reveal', reveal: revealFor(item) });
     await sleep(60);
 
     expect(demo.errors, `${typeCode}: the renderer threw`).toEqual([]);
@@ -570,69 +701,77 @@ function reviewCopy(trial: PlayedTrial): string {
  * REPLACES `the rendered reveal says the same thing to a child who was right and one who was wrong`.
  *
  * That suite asserted the rendered reveal was IDENTICAL across outcomes — same status line, same
- * mark, whatever the child had picked. §4.3 deliberately reverses that: the trial is now reviewable,
- * it shows what the machine produced AND which option the child chose, and those two facts cannot be
- * shown together without the picture differing between a child who picked the machine's option and
+ * mark, whatever the child had answered. §4.3 deliberately reverses that: the trial is now
+ * reviewable, it shows what the machine produced AND what the child answered, and those two facts
+ * cannot be shown together without the picture differing between a child who matched the machine and
  * one who did not. A block that never lets a child see what happened gives them nothing to learn
  * from, which undercuts the construct it is measuring (D-209).
  *
  * So the boundary moves rather than disappearing, and this suite pins where it moved to:
  *
- *  1. the MACHINE'S OWN statement is still outcome-independent — same tile, same words, either way,
+ *  1. the MACHINE'S OWN statement is still outcome-independent — same place, same words, either way,
  *     because it describes the mechanism and the mechanism was not told what the child did. This is
  *     the half of the replaced assertion that still has to hold, and it is what stops the reveal
  *     becoming a verdict wearing world-state clothing;
  *  2. the trial AS A WHOLE does differ, asserted positively, so a renderer that quietly collapsed
  *     back to outcome-free would fail here rather than pass silently;
- *  3. both marks survive on the one tile that carries both roles — the case the child has most to
+ *  3. both marks survive at the one place that carries both roles — the case the child has most to
  *     read, and the case a single shared tag element used to overwrite; and
  *  4. no evaluative language and no running tally, either way. Colour, shape and position carry the
  *     distinction; the copy points at the work.
+ *
+ * All four run for all four types, in each type's own currency. The placement type reaches (3) by
+ * being placed exactly on the revealed position, which is the coincidence its geometry exists for.
  */
 describe('the rendered trial is reviewable and carries no verdict', () => {
   for (const typeCode of STAGE2_TYPES) {
     it(`shows both marks without evaluating the child in ${typeCode}`, async () => {
-      const item = BANKS.get(typeCode)!.find(
-        (candidate) => optionsOf(candidate)[0]!.key !== String(candidate.answer.correctKey),
-      )!;
-      const key = String(item.answer.correctKey);
-      const keyIndex = optionsOf(item).findIndex((option) => option.key === key);
+      // An item the two answers really do separate on: for a choice type the first option must not
+      // be the key, and for the placement type any item will do because the wrong placement is
+      // constructed four tolerances off.
+      const item =
+        typeCode === PLACEMENT_TYPE
+          ? BANKS.get(typeCode)![0]!
+          : BANKS.get(typeCode)!.find(
+              (candidate) => optionsOf(candidate)[0]!.key !== String(candidate.answer.correctKey),
+            )!;
+      const candidates = candidatesFor(item);
+      const rightAnswer = candidates.find((candidate) => candidate.right)!;
+      const wrongAnswer = candidates.find((candidate) => !candidate.right)!;
 
       // The same item and the same reveal, answered wrong and answered right.
-      const wrong = await playOneTrial(typeCode, item, 0, key);
-      const right = await playOneTrial(typeCode, item, keyIndex, key);
+      const wrong = await playOneTrial(typeCode, item, wrongAnswer);
+      const right = await playOneTrial(typeCode, item, rightAnswer);
 
       expect(wrong.reveals).toBe(1);
       expect(right.reveals).toBe(1);
 
-      // (1) The machine's statement does not move. Same tile, same words, both times.
+      // (1) The machine's statement does not move. Same place, same words, both times.
       const machineOf = (trial: PlayedTrial) => trial.marks.filter((mark) => mark.machine !== null);
-      expect(machineOf(wrong).map((mark) => [mark.key, mark.machine])).toEqual([
-        [key, machineOf(wrong)[0]!.machine],
-      ]);
-      expect(machineOf(right).map((mark) => [mark.key, mark.machine])).toEqual(
-        machineOf(wrong).map((mark) => [mark.key, mark.machine]),
+      expect(machineOf(wrong).length, `${typeCode}: the machine marked no place`).toBe(1);
+      expect(machineOf(right).map((mark) => [mark.where, mark.machine])).toEqual(
+        machineOf(wrong).map((mark) => [mark.where, mark.machine]),
       );
       expect(machineOf(wrong)[0]!.machine!.length).toBeGreaterThan(0);
       expect(right.status, 'the status line differs by outcome').toBe(wrong.status);
       expect(right.status.length).toBeGreaterThan(0);
 
-      // (2) The child's mark does move, and that is the whole difference. Two marked tiles when the
-      // child picked something else, one when they picked what the machine made.
-      const chosenKey = (trial: PlayedTrial) =>
-        trial.marks.filter((mark) => mark.chose !== null).map((mark) => mark.key);
-      expect(chosenKey(wrong)).toEqual([optionsOf(item)[0]!.key]);
-      expect(chosenKey(right)).toEqual([key]);
-      expect(chosenKey(wrong), 'the trial no longer differs by outcome').not.toEqual(
-        chosenKey(right),
+      // (2) The child's mark does move, and that is the whole difference. Two marked places when the
+      // child answered differently from the machine, one when they answered the same.
+      const chosenAt = (trial: PlayedTrial) =>
+        trial.marks.filter((mark) => mark.chose !== null).map((mark) => mark.where);
+      expect(chosenAt(wrong).length, `${typeCode}: the child's answer was not marked`).toBe(1);
+      expect(chosenAt(right)).toEqual(machineOf(right).map((mark) => mark.where));
+      expect(chosenAt(wrong), 'the trial no longer differs by outcome').not.toEqual(
+        chosenAt(right),
       );
       const marked = (trial: PlayedTrial) =>
         trial.marks.filter((mark) => mark.chose !== null || mark.machine !== null).length;
       expect(marked(wrong)).toBe(2);
       expect(marked(right)).toBe(1);
 
-      // (3) On the coincident tile both roles are legible, and they say different things.
-      const both = right.marks.find((mark) => mark.key === key)!;
+      // (3) At the coincident place both roles are legible, and they say different things.
+      const both = right.marks.find((mark) => mark.where === chosenAt(right)[0])!;
       expect(both.chose, `${typeCode}: the child\u2019s mark was overwritten`).toBeTruthy();
       expect(both.machine, `${typeCode}: the machine\u2019s mark was overwritten`).toBeTruthy();
       expect(both.chose).not.toBe(both.machine);
@@ -669,13 +808,22 @@ describe('the rendered trial is reviewable and carries no verdict', () => {
 
     const said = new Map<string, string>();
     for (const [direction, item] of byDirection) {
-      const key = String(item.answer.correctKey);
-      const keyIndex = optionsOf(item).findIndex((option) => option.key === key);
-      const wrong = await playOneTrial('VER-MORPHO-01', item, 0, key);
-      const right = await playOneTrial('VER-MORPHO-01', item, keyIndex, key);
+      const candidates = candidatesFor(item);
+      const wrong = await playOneTrial(
+        'VER-MORPHO-01',
+        item,
+        candidates.find((candidate) => !candidate.right)!,
+      );
+      const right = await playOneTrial(
+        'VER-MORPHO-01',
+        item,
+        candidates.find((candidate) => candidate.right)!,
+      );
       expect(right.status, `${direction}: the status line differs by outcome`).toBe(wrong.status);
       const machineMark = (trial: PlayedTrial) =>
-        trial.marks.filter((mark) => mark.machine !== null).map((mark) => [mark.key, mark.machine]);
+        trial.marks
+          .filter((mark) => mark.machine !== null)
+          .map((mark) => [mark.where, mark.machine]);
       expect(machineMark(right), `${direction}: the machine mark differs by outcome`).toEqual(
         machineMark(wrong),
       );
@@ -784,6 +932,13 @@ describe('the review palette', () => {
         3,
       );
     }
+    // The child's fill is NOT an indicator on its own — it fails 1.4.11 against a white tile — which
+    // is why it only ever appears behind the bronze border and outline above. Asserted rather than
+    // noted, so a later edit that promotes the gold to a border fails here.
+    expect(contrast(CHILD_FILL, TILE), 'the gold fill was treated as an indicator').toBeLessThan(3);
+    expect(review, 'a bare gold border reached the review rules').not.toMatch(
+      /border(?:-color)?:[^;]*#e48b53/,
+    );
   });
 
   it('separates the two roles by lightness and not only by hue', () => {
@@ -808,6 +963,50 @@ describe('the review palette', () => {
     // SHAPE: a fully rounded pill against a square-cornered tab.
     expect(review).toMatch(/\[data-mark='made'\][\s\S]*?border-radius: 999px/);
     expect(review).toMatch(/\[data-mark='chose'\][\s\S]*?border-radius: 11px 0 8px 0/);
+  });
+
+  /**
+   * The same four channels for the type that answers with a POSITION (D-211).
+   *
+   * `QUANT-GLYPHNUM-01` has no `#options`, so the rules above cannot reach it and it would otherwise
+   * be the one type whose review is unstyled and unaudited. It reuses this block's palette rather
+   * than introducing a second one — which is the property asserted first, because a second palette
+   * is how the audited one stops being the one that ships.
+   *
+   * Its position channel is stronger than the tile version rather than weaker: the two marks can
+   * share an x exactly, so they are put on opposite sides of the line and cannot occupy the same
+   * space at all.
+   */
+  it('carries the same four channels where the answer is a position on a line', () => {
+    const rail = review.slice(review.indexOf('#rail #pin'));
+    expect(rail.length, 'the placement review rules are gone from the stylesheet').toBeGreaterThan(
+      0,
+    );
+
+    // COLOUR: the same two roles, out of the same audited pairing. No third hue is introduced.
+    expect(rail).toMatch(/#rail #pin\.goes \{[^}]*border-color: #004f71/);
+    expect(rail).toMatch(/#rail #pin\.goes \{[^}]*box-shadow: 0 0 0 4px #4b8299/);
+    expect(rail).toMatch(/#rail #handle\.chose \{[^}]*border-color: #6f4526/);
+    expect(rail).toMatch(/\[data-mark='goes'\][\s\S]*?background: #004f71;\s*\n\s*color: #ffffff/);
+    expect(rail).toMatch(/\[data-mark='chose'\][\s\S]*?background: #e48b53;\s*\n\s*color: #001117/);
+    const hexes = new Set(rail.match(/#[0-9a-f]{6}/g) ?? []);
+    expect(
+      [...hexes].sort(),
+      'the placement rules introduced a colour the palette has not audited',
+    ).toEqual([MACHINE_INK, CHILD_INK, MACHINE, MACHINE_RING, CHILD_BORDER, CHILD_FILL].sort());
+
+    // BORDER STYLE: solid for the machine, dashed for the child, as on a tile.
+    expect(rail).toMatch(/#rail #pin\.goes \{[^}]*border-style: solid/);
+    expect(rail).toMatch(/#rail #handle\.chose \{[^}]*border-style: dashed/);
+
+    // POSITION: above the line against below it. `bottom: 100%` and `top: 100%` are outside each
+    // other's boxes by construction, which is what keeps both readable at a shared position.
+    expect(rail).toMatch(/\[data-mark='goes'\][\s\S]*?bottom: 100%/);
+    expect(rail).toMatch(/\[data-mark='chose'\][\s\S]*?top: 100%/);
+
+    // SHAPE: the same pill and the same square-cornered tab.
+    expect(rail).toMatch(/\[data-mark='goes'\][\s\S]*?border-radius: 999px/);
+    expect(rail).toMatch(/\[data-mark='chose'\][\s\S]*?border-radius: 11px 0 8px 0/);
   });
 
   it('uses no good/bad colour to say which mark is which', () => {
