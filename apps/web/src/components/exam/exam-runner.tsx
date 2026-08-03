@@ -262,6 +262,15 @@ export function ExamRunner({
    * plan for `current`; `planNextSelection` reads it back to decide whether to stay on the type.
    */
   const burstRef = useRef<BurstPlan | null>(null);
+  /**
+   * The burst on screen, and which QUESTION it is.
+   *
+   * A burst is several items of one type asked back to back, each aimed by how the previous
+   * ones went. To a child that is one question with several parts, not several questions that
+   * happen to look alike — so the counter advances per burst and the part is shown inside it.
+   */
+  const [burstView, setBurstView] = useState<BurstPlan | null>(null);
+  const [questionNumber, setQuestionNumber] = useState(1);
 
   /**
    * The engine configuration this session runs under.
@@ -414,6 +423,10 @@ export function ExamRunner({
           return;
         }
         burstRef.current = plan;
+        setBurstView(plan);
+        // index 1 means `planNextSelection` started a fresh burst rather than continuing one.
+        if (plan.index === 1)
+          setQuestionNumber((n) => (scoredRef.current.length === 0 ? 1 : n + 1));
         selected = nextItem(state, plan.typeCode, banks);
       } catch {
         // Pool exhausted for the selected type — conclude with what we have.
@@ -787,6 +800,8 @@ export function ExamRunner({
     telemetryRef.current = [];
     processedRef.current = new Set();
     burstRef.current = null;
+    setBurstView(null);
+    setQuestionNumber(1);
     setServed([]);
     setScoredCount(0);
     setDebugTrace([]);
@@ -1211,7 +1226,9 @@ export function ExamRunner({
                 (blockQueue.length > 1
                   ? ` · activity ${blockIndex + 1} of ${blockQueue.length}`
                   : '')
-              : `Question ${scoredCount + 1}`}{' '}
+              : burstView && burstView.length > 1
+                ? `Question ${questionNumber} · part ${burstView.index} of ${burstView.length}`
+                : `Question ${questionNumber}`}{' '}
             · {domainLabel(current.domain)}
           </p>
           <p className={styles.runTitle}>{meta?.title ?? current.typeCode}</p>
