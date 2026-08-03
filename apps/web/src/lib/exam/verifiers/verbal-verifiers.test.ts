@@ -620,3 +620,138 @@ describe('VER-SEQUENCE-01 — constructed story order', () => {
     });
   });
 });
+
+/**
+ * VER-MORPHO-01, run over BOTH persistence arms.
+ *
+ * The two arms differ only in whether the hidden form->meaning mapping is re-drawn per item, and
+ * §4.1.1 of STAGE2_QUESTION_DESIGN requires one verifier to serve both — a second verifier would
+ * confound Gate B's contrast with the grader. The only way to show there is no arm branch is to run
+ * the same assertions on both banks, so every block below is parameterised over the pair. Only the
+ * consistent arm is ever served to a child; the scrambled one is research-only and lives outside
+ * `banks/` so no loader can reach it.
+ */
+function loadControlBank(fileStem: string): RawBankItem[] {
+  return readFileSync(join(BANKS, '..', 'control-banks', `${fileStem}.jsonl`), 'utf8')
+    .trim()
+    .split('\n')
+    .filter((line) => line.trim().length > 0)
+    .map((line) => JSON.parse(line) as RawBankItem);
+}
+
+const morphoTrace = (item: RawBankItem) =>
+  item.answer.strategyTrace as Record<string, { kind: string }>;
+
+describe.each([
+  ['consistent', loadBank('VER-MORPHO-01')],
+  ['perTrial (control arm, never served)', loadControlBank('VER-MORPHO-01.perTrial')],
+])('VER-MORPHO-01 — %s arm', (_arm, bank) => {
+  it('accepts the option the hidden morphology picks out, on every bank item', () => {
+    expect(bank.length).toBeGreaterThan(0);
+    for (const item of bank) {
+      const verdict = verify(item, { selectedKey: item.answer.correctKey });
+      expect(verdict.correct, `${item.itemId} keyed option`).toBe(true);
+      expect(verdict.metrics?.['M-ERRTYPE']).toBe(1);
+      expect(verdict.metrics?.['M-RULEID']).toBe(
+        (item.provenance as { levers: { depth: number } }).levers.depth,
+      );
+    }
+  });
+
+  it('rejects every other option, on every bank item', () => {
+    for (const item of bank) {
+      for (const option of (item.content as { options: { key: string }[] }).options) {
+        if (option.key === item.answer.correctKey) continue;
+        expect(
+          verify(item, { selectedKey: option.key }).correct,
+          `${item.itemId} ${option.key}`,
+        ).toBe(false);
+      }
+    }
+  });
+
+  /**
+   * The load-bearing one. Corrupting the stored key must not change a single verdict, because the
+   * verifier is supposed to resolve the word's morphemes through `answer.system.affixMap` and walk
+   * them over the reference picture itself. If it were reading the key, every item here would flip.
+   */
+  it('re-derives the key from the hidden system rather than reading it', () => {
+    for (const item of bank) {
+      const options = (item.content as { options: { key: string }[] }).options;
+      const wrongKey = options.find((o) => o.key !== item.answer.correctKey)!.key;
+      const corrupted = withCorruptedKey(item, { correctKey: wrongKey });
+      expect(
+        verify(corrupted, { selectedKey: item.answer.correctKey }).correct,
+        `${item.itemId} solver over key`,
+      ).toBe(true);
+      expect(
+        verify(corrupted, { selectedKey: wrongKey }).correct,
+        `${item.itemId} corrupted key not trusted`,
+      ).toBe(false);
+    }
+  });
+
+  /**
+   * And the converse: with the mapping gone there is nothing to re-derive from, so the stored key
+   * is the documented fallback. Without this the test above could pass on a verifier that always
+   * returned false for a corrupted item.
+   */
+  it('falls back to the stored key only when the system is unreadable', () => {
+    const item = bank[0]!;
+    const noSystem = JSON.parse(JSON.stringify(item)) as RawBankItem;
+    delete (noSystem.answer as Record<string, unknown>).system;
+    expect(verify(noSystem, { selectedKey: item.answer.correctKey }).correct).toBe(true);
+  });
+
+  it('grades error quality off the named partial rule the option encodes', () => {
+    // The four classes are ordered by how much of the system the error still holds (§4.6), so an
+    // order error must score strictly above a double substitution, and both strictly below 1.
+    const expected: Record<string, number> = {
+      order_error: 0.9,
+      near_miss: 0.63,
+      wrong_operator: 0.495,
+      wrong_family: 0.225,
+    };
+    const seen = new Set<string>();
+    for (const item of bank) {
+      for (const [key, traced] of Object.entries(morphoTrace(item))) {
+        if (traced.kind === 'correct' || seen.has(traced.kind)) continue;
+        seen.add(traced.kind);
+        const verdict = verify(item, { selectedKey: key });
+        expect(verdict.correct, `${item.itemId} ${traced.kind}`).toBe(false);
+        expect(verdict.metrics?.['M-ERRTYPE'], traced.kind).toBeCloseTo(expected[traced.kind]!, 10);
+      }
+    }
+    // Every class the bank declares must have been priced, or the ladder has a silent hole.
+    expect([...seen].sort()).toEqual([...(bank[0]!.answer.strategyTraceRules as string[])].sort());
+  });
+
+  it('rejects a malformed response instead of throwing', () => {
+    const item = bank[0]!;
+    expect(verify(item, {}).correct).toBe(false);
+    expect(verify(item, { selectedKey: 42 }).correct).toBe(false);
+    expect(verify(item, { selectedIndex: 0 }).correct).toBe(false);
+  });
+});
+
+/**
+ * The two arms are equated on every scored property, so the verifier must return the SAME verdict
+ * for the same item index in both. This is the property the gate rests on: if grading differed
+ * between arms, a between-arm contrast would be partly a grading artifact.
+ */
+it('VER-MORPHO-01 grades both arms identically, item for item', () => {
+  const consistent = loadBank('VER-MORPHO-01');
+  const control = loadControlBank('VER-MORPHO-01.perTrial');
+  expect(control.length).toBe(consistent.length);
+
+  for (let i = 0; i < consistent.length; i++) {
+    const a = consistent[i]!;
+    const b = control[i]!;
+    for (const option of (a.content as { options: { key: string }[] }).options) {
+      const left = verify(a, { selectedKey: option.key });
+      const right = verify(b, { selectedKey: option.key });
+      expect(right.correct, `item ${String(i)} option ${option.key}`).toBe(left.correct);
+      expect(right.metrics, `item ${String(i)} option ${option.key} metrics`).toEqual(left.metrics);
+    }
+  }
+});
