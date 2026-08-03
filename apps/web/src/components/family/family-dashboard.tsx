@@ -44,11 +44,14 @@ export function FamilyDashboard({
   status,
   applyHref = '/family/apply',
   assessmentHref = '/family/assessment',
+  aboutHref = '/about-the-test',
 }: {
   studentName: string;
   status: StatusProjection;
   applyHref?: string;
   assessmentHref?: string;
+  /** Explainer on the CogAT; defaulted so every dashboard surfaces it. */
+  aboutHref?: string;
 }) {
   const submitted = status.workflowStatus !== 'application_draft';
   const activePhase = phaseIndex(status);
@@ -121,7 +124,7 @@ export function FamilyDashboard({
 
       {/* actions: assessment + application review */}
       <div className={styles.grid}>
-        <AssessmentGate enabled={submitted} assessmentHref={assessmentHref} />
+        <AssessmentGate enabled={submitted} assessmentHref={assessmentHref} aboutHref={aboutHref} />
 
         <section className={styles.sideCard}>
           <p className={styles.kicker}>Your application</p>

@@ -42,4 +42,37 @@ describe('AssessmentGate', () => {
     expect(screen.getByRole('link', { name: /retake the baseline/i })).toBeInTheDocument();
     expect(screen.getByText(/what has actually moved/i)).toBeInTheDocument();
   });
+  /**
+   * The dashboard is where most people land, so a link that only exists on the
+   * baseline page one click deeper is a link most people never see. It is offered
+   * in every state, including locked: someone who cannot start yet is exactly who
+   * benefits from reading about the test first.
+   */
+  it('offers the explainer in every state, locked included', () => {
+    const { unmount } = render(
+      <AssessmentGate
+        enabled={false}
+        assessmentHref="/family/assessment"
+        aboutHref="/about-the-test"
+      />,
+    );
+    expect(screen.getByRole('link', { name: /what is the cogat/i })).toHaveAttribute(
+      'href',
+      '/about-the-test',
+    );
+    unmount();
+
+    for (const taken of [false, true]) {
+      const view = render(
+        <AssessmentGate
+          enabled
+          taken={taken}
+          assessmentHref="/family/assessment"
+          aboutHref="/about-the-test"
+        />,
+      );
+      expect(screen.getByRole('link', { name: /what is the cogat/i })).toBeInTheDocument();
+      view.unmount();
+    }
+  });
 });

@@ -150,3 +150,19 @@
   text-align: center;
   cursor: not-allowed;
 }
+
+/* Link out to the CogAT explainer, offered in every state of this card. */
+.aboutLink {
+  display: inline-block;
+  margin-top: 0.625rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--gt-navy, #0f2742);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.aboutLink:focus-visible {
+  outline: 3px solid var(--gt-gold, #f2b705);
+  outline-offset: 2px;
+}

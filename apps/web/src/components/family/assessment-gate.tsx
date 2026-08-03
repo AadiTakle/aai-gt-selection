@@ -22,11 +22,26 @@ export function AssessmentGate({
   enabled,
   assessmentHref,
   taken = false,
+  aboutHref,
 }: {
   enabled: boolean;
   assessmentHref: string;
   taken?: boolean;
+  /**
+   * The explainer on what the CogAT is. Offered on this card as well as on the
+   * baseline page, because the dashboard is where most people actually land and a
+   * link that only exists one click deeper is a link most people never see.
+   * Shown in every state, including the locked one — someone who cannot start yet
+   * is exactly who benefits from reading about the test first.
+   */
+  aboutHref?: string;
 }) {
+  const aboutLink = aboutHref ? (
+    <Link className={styles.aboutLink} href={aboutHref}>
+      What is the CogAT? →
+    </Link>
+  ) : null;
+
   if (!enabled) {
     return (
       <div className={styles.card}>
@@ -39,6 +54,7 @@ export function AssessmentGate({
         <div className={styles.lockedBtn} aria-disabled="true">
           Add your child’s details first
         </div>
+        {aboutLink}
       </div>
     );
   }
@@ -55,6 +71,7 @@ export function AssessmentGate({
         <Link className={styles.primary} href={assessmentHref}>
           Retake the baseline →
         </Link>
+        {aboutLink}
       </div>
     );
   }
@@ -70,6 +87,7 @@ export function AssessmentGate({
       <Link className={styles.primary} href={assessmentHref}>
         Start the baseline →
       </Link>
+      {aboutLink}
     </div>
   );
 }
