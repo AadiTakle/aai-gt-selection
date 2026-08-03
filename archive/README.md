@@ -1,5 +1,8 @@
 # GT Selection — archive index
 
+Everything below lives in this folder. The project's own README, written while it
+was live, is kept alongside as `ORIGINAL_README.md`.
+
 The project was stopped on 2026-08-03. This note records what was built, where it
 lives, and what state each piece was actually in — including the parts that were
 unfinished or wrong, since those are the expensive things to rediscover.
@@ -7,7 +10,7 @@ unfinished or wrong, since those are the expensive things to rediscover.
 Everything described here is reachable from this commit. Nothing depends on an
 unmerged branch. If you copy only the working tree and drop the `.git` directory,
 you still have all of it: work that could not be safely merged is preserved as
-patch files under `archive/unmerged-branches/`.
+patch files under `unmerged-branches/`.
 
 ## What this project was
 
@@ -74,7 +77,7 @@ built; the rest is designed and argued but not implemented.
 
 ## Unmerged work, and why
 
-Preserved as patches in `archive/unmerged-branches/`. Apply with
+Preserved as patches in `unmerged-branches/`. Apply with
 `git am < <file>.patch`, or just read them.
 
 | Patch | Why it is not merged |
@@ -86,7 +89,7 @@ Preserved as patches in `archive/unmerged-branches/`. Apply with
 | `feat-exam-lambda-endogeneity` | Its analysis is merged (`docs/product/STAGE2_LAMBDA_ENDOGENEITY.md`); its code predates the fix that shipped and would have mixed two approaches in one file. |
 | `feat-interview-scope-update` | Its substance (R11, D-015) reached `dev` by another path. Merging would revert the requirements document to an earlier phrasing. |
 
-`archive/uncommitted-worktrees/gt-live-demo/` holds scratch work that never
+`uncommitted-worktrees/gt-live-demo/` holds scratch work that never
 reached a branch: an earlier debug panel, verification scripts and screenshots.
 
 ## One caution about the governance IDs
