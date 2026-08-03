@@ -295,6 +295,184 @@ the children who already have the system; interleaving will make the block *feel
 worse trial-to-trial, and the design must not surface that to the child; observation trials cost
 session time for no scored information; and the interface gate adds items that produce no λ.
 
+### 1.8 Separating confusion about the task from confusion about the system
+
+The hidden system is *meant* to be cryptic — inducing it is the measurement. What must never be
+cryptic is **what kind of thing is being asked**, because a child spending trials working that out
+contributes construct-irrelevant variance to λ and burns block length that the rate fit needs.
+Those two confusions are separable, and the design separates them.
+
+**The task cue is implicit, never instructed.** A written direction would be a reading task bolted
+onto a non-verbal reasoning task, and the target band starts at K. Five devices carry the task
+instead, all in `research/exam-question-types/stage2-child-stage.js`:
+
+1. **A table of finished rows plus one unfinished row.** Every row reads left to right: a figure, the
+   badges, the figure that came out. The worked demonstrations are simply the first rows, already
+   complete; the live row is the same shape with its last cell empty. Finishing a row is a convention
+   a K–8 child already holds from matrix puzzles.
+2. **Shape congruence.** The empty cell and the option cards share a footprint and an outline, so
+   *which* thing fills the gap is a visual match rather than a stated rule.
+3. **Order in the picture.** Chevrons run between every cell and every badge. No numbering, which
+   would add a notation to decode.
+4. **Repetition.** The layout is identical on every trial and in both arms, so the task is parsed
+   once.
+5. **Demonstrations that are worked examples of the task, in two beats.** Beat one poses the
+   demonstration exactly as a trial is posed — hole open, options visible below, nothing to press but
+   forward. Beat two fills the hole and marks the option it matched. The audit established that the
+   task becomes legible precisely when a hole and an option tray first appear together (§1.8.1), so
+   the demonstrations must contain that configuration rather than defer it to the first scored trial.
+   Beat one's tray is inert: showing options that cannot be chosen is a worked example, whereas
+   accepting a choice that is never scored would teach that choices do not matter.
+
+**None of these says anything about what a badge does,** which is what keeps the system opaque while
+the task is not. The persistent record shows only reveals the child was already shown, never a
+mapping — so it removes memory-for-reveals from the measurement while leaving the induction in it.
+
+**This is tested rather than asserted.** A designer who knows the mapping cannot judge whether the
+screen explains itself. `stage2-render-samples.mjs` renders the real screens — same module, same
+bank, same warm-up rule — and the audit shows them to evaluators with no access to the design, the
+brief, or the repository, asking what they think the task is and what confused them. See
+§1.8.1 for the protocol and findings. If a caption ever seems necessary, that is evidence the layout
+has stopped explaining itself, and the layout is what should change.
+
+#### 1.8.1 The intuitiveness audit — protocol and findings
+
+**Protocol.** `stage2-render-samples.mjs` renders the child's screen from the shipping module and the
+shipping bank, so the audited pixels are the instrument rather than a mock-up. Four evaluators
+received only the images, in order, with no captions, no design notes and no repository access, and
+answered a fixed questionnaire: what they thought the task was, when it became clear, what the
+badges appeared to do, what confused them on sight, and what a 5-year-old and a 10-year-old would
+each make of it. Two saw an `aligned` layout and two a `scaled` variant. Findings below are quoted
+where they changed a decision; the round is recorded as **E-210**.
+
+**What read immediately, in all four reports.** The dashed hole beside a tray of same-shaped
+candidates — "the one convention in this whole product that works with no help at all". The
+left-to-right pipeline reading of a row (figure, machine, figure) was universal and instant, from the
+chevrons alone. That the badges were an ordered program rather than a set was inferred by three of
+four, from chevrons *between* badges and from chain length tracking how much changed. No evaluator
+reported a reading or counting demand, which the non-verbal constraint requires.
+
+**What did not read, and what changed as a result.** Four defects were confirmed and fixed; two
+findings were confirmed and deliberately not acted on.
+
+| Finding | Evaluators | Change |
+| --- | --- | --- |
+| The task was invisible until a hole and a tray first appeared together — which was the first *scored* trial. Demonstrations read as "a title card", "an onboarding carousel", "dead time … understood only in hindsight". | 4 of 4 | Demonstrations became two beats, so that configuration appears on screen one (device 5 above). |
+| A "heavy dark border" appeared to mark the chosen tile, the active row, the answer slot, and nothing at all, on different screens. It was in fact the `ring` component of the hidden vocabulary, drawn as a rounded rectangle — the same shape and ink as every cell outline. One evaluator spent seven screens trying to induce a rule for it and correctly guessed it might be part of the artwork. | 3 of 4 | `ring` is now drawn as a **circle**, which no interface element on the screen is, and the record of the child's choice is now a **bar beneath the card** rather than an outline around it. A component of the vocabulary may not share a visual channel with interface chrome; otherwise the child is inducing over the furniture. |
+| The badge enclosure was fixed-width, so a one- or two-badge chain looked like an enclosure with room left in it — misread as a partly filled input, a progress bar, and a carousel page-indicator strip. Two said the misreading persisted for three screens. | 3 of 4 | The enclosure now hugs its badges inside a fixed-width wrapper, so the column alignment survives without the empty trough. |
+| Answered option cards were dimmed with `opacity`, which faded the figure's ink as well as the card. `shade` (solid versus outline) is a component of the vocabulary, so "spent" was confusable with "differently filled". | 2 of 4 | Only the card's own chrome recedes; every figure keeps full-strength ink. |
+| The chevron did two unrelated jobs — punctuation meaning "then" inside a row, and the only control on the screen. Two identified the control only by elimination. | 4 of 4 | Forward is now a filled pill with a solid triangle. Different job, different mark. |
+| The badges in history rows were drawn at half size and low contrast, and at that scale the star, diamond and hexagon "collapse into near-identical small dark blobs" — so the rows a child must study from were the least legible on the screen. | 1 of 4 | Fixed by the same deletion as the row above: with one size everywhere, a history badge is drawn exactly as a live badge is. |
+
+**The layout question was settled by the audit, against my expectation.** The `scaled` variant
+oriented its evaluator perfectly — they never once lost track of which row was in play — and lost
+anyway, on an argument the design documents had not made: **size is one of the transformations.**
+`twin` turns one figure into two smaller copies, so a small glyph in a history row is ambiguous
+between "the data is small here" and "history is drawn small here". In their words, the layout was
+speaking the same language as the content with no way to separate the two voices. A layout variable
+may not share a channel with a component of the vocabulary, so the scaled variant is deleted and the
+live row is marked by tint and by the open hole alone.
+
+**Two findings confirmed and not acted on, each for a recorded reason.**
+
+- **"Correctness is invisible; there is no learning loop."** Raised by all four, most sharply as: the
+  only signal separating a right answer from a wrong one is whether two pictures in distant parts of
+  the screen happen to match. This is correct, and it is §1.5 working as specified — a verdict, score
+  or praise changes what a learning-rate measurement measures, so it stays out. The evaluators'
+  legibility complaint is nonetheless partly addressed: the choice marker no longer competes with the
+  stimulus, so "what the machine made" and "what I picked" are now different kinds of mark.
+- **"The operators are unattributable — each badge appears once, in a chain with others, so no
+  meaning can be isolated."** Also correct, and it is the construct rather than a defect. Attributing
+  a badge from confounded compositions **is** the induction being measured; a bank that isolated each
+  operator would be testing paired-associate recall. What the complaint does establish is that the
+  audit's seven screens are not a block: the instrument's own oracle scores the warm-up at 1 badge of
+  6 pinned and the first trial at two options still viable, which agrees with the evaluators
+  precisely. Their verdict of "unsolvable" is a correct reading of the first three trials and not of
+  the 30-trial block, where 95–100% of trials are answerable (§1.9).
+
+**Still open, and out of scope here.** Three evaluators independently asked for motion — a figure
+visibly splitting or flooding with ink — and for a persistent legend of badges. Motion is a plausible
+way to teach the task grammar without words; a legend is not adoptable as described, because a legend
+of what each badge *does* would ship the hidden mapping to the client (§4.2). Both are recorded as
+open design questions, not deferred fixes. Two evaluators also reported near-duplicate distractors
+distinguishable only by fine detail at small size, which is a figure-legibility question for the
+renderer and is filed separately.
+
+### 1.9 Behaviour under genuine uncertainty — a signal correctness cannot carry
+
+Early in a block, little has been revealed, so some trials genuinely have no determinable answer.
+Scoring those as right or wrong puts luck into λ. Excluding them is worse: it deletes the baseline
+that the climb is measured against, and it lets a bank keep serving unanswerable items because the
+fit stops noticing. So they are kept, and a **second, orthogonal reading** is taken from them.
+
+At each trial, from the reveals seen so far, the oracle
+(`research/exam-question-types/stage2-learnability.mjs`) computes the set of options still consistent
+with the evidence, and sorts the child's choice into exactly one of three classes:
+
+| class | meaning |
+| --- | --- |
+| **determined** | the answer was uniquely pinned by prior reveals, and the child took it |
+| **consistent** | several options were still genuinely possible, and the child chose one of them |
+| **ruled out** | no system consistent with what this child had *already been shown* produces this figure |
+
+`consistent` is everything the evidence permitted: a child who reasoned to the edge of what was
+knowable and then guessed has done nothing wrong, and correctness there is luck. `ruled out` is the
+informative class, and it is **not** luck — it is information held and not used. It splits again by
+what did the excluding: `content` (no mapping whatsoever reaches that figure, so rejecting it needed
+no memory) versus `reveals` (reachable in the abstract, eliminated by this child's own reveals). The
+second is the failure of inference.
+
+**Every rate is reported against the rate uniform guessing produces on the same items,** because how
+many options an item excludes is a property of the item. A bare ruled-out rate would rank banks, not
+children; the signed lift against chance is the part that is about the child.
+
+**Two constraints this creates.** The classification is computed *before* the child answers and
+stored on the trial row, so a later reveal cannot retroactively make a choice look eliminated. And
+none of it reaches the child's screen: "ruled out" is an evaluative judgement, and evaluation on the
+child's screen changes what is being measured (§1.5).
+
+**What the split actually looks like across a block.** Mean counts over 30 scored trials, 8 seeds ×
+7 standings, from `stage2-learnability-report.mjs` §3:
+
+| responder | arm | determined | consistent | ruled out | ruled-out rate | guessing chance | lift |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| induces | consistent | 25.5 | 0.7 | 3.8 | 13% | 79% | **−0.67** |
+| guesses | consistent | 6.1 | 0.5 | 23.4 | 78% | 79% | **−0.02** |
+| induces | scrambled | 0.0 | 26.9 | 3.1 | 10% | 20% | **−0.10** |
+| guesses | scrambled | 0.0 | 25.6 | 4.4 | 15% | 14% | **+0.01** |
+
+Read the lift column, not the rate: a uniform guesser lands on excluded options at exactly the rate
+the items make available (−0.02 and +0.01, i.e. chance by construction), so any responder that
+reliably beats chance is using evidence. The reasoning responder does, by 0.67 in the consistent arm
+against a block-to-block SD of 0.18 — a separation of **3.6 block SDs**, which is measurable and
+stable.
+
+**But it is not yet a usable individual score, for a reason the separation figure hides.** The class
+split can only carry information where several options are genuinely still possible, and neither arm
+spends time there: `consistent` fires on 0.7 of 30 trials in the consistent arm because the oracle
+determines the answer on ~97% of them, so `ruled out` collapses onto "wrong" and the signal is close
+to collinear with accuracy. The scrambled arm is the mirror image — every trial is open, but nothing
+has been eliminated by reveals, so only the item excludes anything and the separation falls to 1.4
+block SDs. The signal is therefore real and reproducible, and mostly redundant with correctness in
+the arm where it is strong.
+
+The regime where it would add something correctness cannot is the middle one — trials whose viable set
+holds two or three options — and those are rare here because the selection rule targets **difficulty**
+and is indifferent to how determined the answer is. Serving partially-determined trials deliberately
+would change what the block selects on, which is an owner decision recorded in §10.2, not a fix to
+take here.
+
+**One concrete behaviour this class should catch, stated as a prediction rather than a result.** Two
+audit evaluators independently identified a degenerate strategy the screen permits: pick whichever
+option most resembles the input figure, which on many items is the identity distractor. Because there
+is no verdict (§1.5), a child can play an entire block that way and have the same experience as a
+child reasoning correctly — the evaluators were right about that, and it is the cost of informational
+feedback. What the class split predicts is that such a child is nonetheless *distinguishable*: once
+the reveals determine an answer, the identity option is usually among the excluded ones, so a
+systematic similarity-matcher should show a ruled-out rate **above** chance, where a uniform guesser
+sits at chance by construction. **This is untested** — the report models only a uniform guesser and a
+reasoning learner, and adding a similarity-matching responder is the cheapest way to check it.
+
 ---
 
 ## 2. Why the current Stage 2 pool is thin — and why it was thinner than it looked

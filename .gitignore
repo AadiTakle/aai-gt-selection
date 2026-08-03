@@ -35,3 +35,7 @@ graphify-out/20*/
 
 # Playwright generated auth state
 apps/web/e2e/.auth/
+
+# Stage 2 child-screen renders. Regenerate with `pnpm stage2:samples` and `pnpm stage2:play-check`;
+# the audit findings they supported are recorded in E-210 and STAGE2_QUESTION_DESIGN.md §1.8.1.
+research/exam-question-types/samples/

@@ -1,0 +1,959 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GT Stage 2 Learning-Block Review</title>
+    <!--
+      Sibling of review.html, for the Stage 2 learning block rather than the question-type catalog,
+      and deliberately in the same visual language: same palette, same navy-and-gold topbar, same
+      aside-plus-main shell, same collapsing `section.card` with its show/hide affordance, same
+      13px Inter body. Different functionality, same furniture — a reviewer moving between the two
+      windows should not have to relearn where anything is.
+
+      The page holds NO selection or estimation logic. Everything that decides what to serve and
+      what the block adds up to is imported from the compiled real modules under stage2-build/,
+      which build-stage2-review.mjs produces from packages/exam-engine, packages/exam-scoring and
+      apps/web/src/lib/exam/phase2.ts. The import map below is what lets the app's own phase2
+      module load unchanged: it imports the two packages by name, exactly as it does in the browser.
+
+      Build first, then serve:
+        pnpm stage2:review:build
+        python3 research/exam-question-types/serve-review.py 4300
+        open http://127.0.0.1:4300/stage2-review.html
+    -->
+    <script type="importmap">
+      {
+        "imports": {
+          "@gt-selection/exam-engine": "./stage2-build/engine/packages/exam-engine/src/index.js",
+          "@gt-selection/exam-scoring": "./stage2-build/engine/packages/exam-scoring/src/index.js",
+          "node:fs": "./stage2-node-shim.js",
+          "node:path": "./stage2-node-shim.js",
+          "node:url": "./stage2-node-shim.js"
+        }
+      }
+    </script>
+    <script>
+      // `stage2-inspectors/opchain.js` imports the figure algebra from the generator that wrote
+      // the bank, rather than restating it. That generator is also the bank-writing CLI, so it
+      // reads `process.argv` at module scope to decide whether it was run directly. An empty stub
+      // makes that check false in the browser; see stage2-node-shim.js for the whole trade-off.
+      globalThis.process ??= { argv: [], env: {} };
+    </script>
+    <style>
+      /* Palette, type and chrome are review.html's, unchanged. */
+      :root {
+        --navy: #0f2742;
+        --navy-2: #1b3a5b;
+        --gold: #f2b705;
+        --paper: #faf7f0;
+        --ink: #12202e;
+        --muted: #5a6b7b;
+        --line: #dfe3e8;
+        --ok: #1f8a4c;
+        --card: #ffffff;
+        --s1: #2563eb;
+        --dual: #7c3aed;
+        --s2: #c2410c;
+        --consistent: #2563eb;
+        --control: #c2410c;
+        --mono: ui-monospace, Menlo, Monaco, monospace;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        color: var(--ink);
+        background: var(--paper);
+      }
+      header.topbar {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        background: var(--navy);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 10px 16px;
+        border-bottom: 3px solid var(--gold);
+      }
+      .topbar h1 {
+        font-size: 16px;
+        margin: 0;
+        font-weight: 650;
+        letter-spacing: 0.2px;
+      }
+      .topbar .prog {
+        font-size: 13px;
+        color: #cfe0f2;
+      }
+      .topbar .spacer {
+        flex: 1;
+      }
+      .topbar button {
+        background: var(--gold);
+        color: #231a02;
+        border: none;
+        border-radius: 7px;
+        padding: 7px 12px;
+        font-weight: 650;
+        cursor: pointer;
+        font-size: 13px;
+        font-family: inherit;
+      }
+      .topbar button.ghost {
+        background: transparent;
+        color: #dfe9f5;
+        border: 1px solid #37567a;
+      }
+      .topbar button:hover {
+        filter: brightness(1.05);
+      }
+      .topbar button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .topbar select {
+        background: #17324f;
+        color: #fff;
+        border: 1px solid #37567a;
+        border-radius: 6px;
+        padding: 5px 8px;
+        font-size: 13px;
+        font-family: inherit;
+      }
+      /* The arm switch is the topbar's own button language, not a fourth control style. */
+      .armswitch {
+        display: flex;
+        gap: 6px;
+      }
+      .armswitch button.on[data-arm='consistent'] {
+        background: var(--consistent);
+        color: #fff;
+        border-color: var(--consistent);
+      }
+      .armswitch button.on[data-arm='perTrial'] {
+        background: var(--control);
+        color: #fff;
+        border-color: var(--control);
+      }
+      .layout {
+        display: flex;
+        height: calc(100vh - 53px);
+      }
+      aside {
+        width: 340px;
+        min-width: 300px;
+        border-right: 1px solid var(--line);
+        overflow-y: auto;
+        background: #fff;
+      }
+      main {
+        flex: 1;
+        overflow-y: auto;
+        padding: 18px 22px;
+      }
+      .empty {
+        color: var(--muted);
+        margin-top: 40px;
+        text-align: center;
+        line-height: 1.7;
+      }
+      .empty code {
+        display: inline-block;
+        font-family: var(--mono);
+        background: #eef1f4;
+        padding: 2px 7px;
+        border-radius: 5px;
+        margin: 2px;
+      }
+      .head h2 {
+        margin: 0 0 2px;
+        font-size: 22px;
+      }
+      .head .meta {
+        color: var(--muted);
+        font-size: 13px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .head .meta code {
+        font-family: var(--mono);
+        background: #eef1f4;
+        padding: 1px 6px;
+        border-radius: 5px;
+      }
+      .badge {
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 6px;
+        border-radius: 20px;
+        color: #fff;
+        white-space: nowrap;
+      }
+      .b-S2 {
+        background: var(--s2);
+      }
+      .b-consistent {
+        background: var(--consistent);
+      }
+      .b-perTrial {
+        background: var(--control);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 18px;
+        align-items: start;
+      }
+      @media (max-width: 1100px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      section.card {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--card);
+        margin-bottom: 14px;
+      }
+      section.card > h3 {
+        margin: 0;
+        font-size: 13px;
+        padding: 9px 12px;
+        border-bottom: 1px solid var(--line);
+        background: #fbfcfd;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      section.card > h3.click {
+        cursor: pointer;
+      }
+      section.card > h3 .tw {
+        color: var(--muted);
+        font-weight: 400;
+        font-size: 11px;
+        margin-left: auto;
+      }
+      section.card .body {
+        padding: 11px 13px;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      section.card.collapsed .body {
+        display: none;
+      }
+      .kv {
+        margin: 0 0 8px;
+      }
+      .kv b {
+        color: var(--navy-2);
+      }
+      .note {
+        font-size: 11.5px;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+      .note code,
+      .body code {
+        font-family: var(--mono);
+        font-size: 0.92em;
+        background: #eef1f4;
+        padding: 0 4px;
+        border-radius: 4px;
+      }
+      pre.json {
+        font-family: var(--mono);
+        font-size: 10.5px;
+        background: #f8fafc;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 7px;
+        margin: 5px 0 0;
+        max-height: 190px;
+        overflow: auto;
+        line-height: 1.45;
+      }
+      .warnbox {
+        border-left: 3px solid #b45309;
+        background: #fffbeb;
+        padding: 8px 10px;
+        border-radius: 0 7px 7px 0;
+        font-size: 11.5px;
+        line-height: 1.5;
+        color: #713f12;
+      }
+      .warnbox b {
+        color: #7c2d12;
+      }
+      .badbox {
+        border-left: 3px solid #b91c1c;
+        background: #fef2f2;
+        padding: 8px 10px;
+        border-radius: 0 7px 7px 0;
+        font-size: 11.5px;
+        line-height: 1.5;
+        color: #7f1d1d;
+      }
+
+      /* ---- aside controls: review.html's .field / .btns / .rangeset language ---- */
+      .field {
+        margin-bottom: 12px;
+      }
+      .field label {
+        display: block;
+        font-size: 12px;
+        font-weight: 650;
+        color: var(--navy-2);
+        margin-bottom: 4px;
+      }
+      .field label .hint {
+        font-weight: 400;
+        color: var(--muted);
+      }
+      .slrow {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin-top: 4px;
+      }
+      .slrow input[type='range'] {
+        flex: 1;
+        accent-color: #0f2742;
+      }
+      .slrow .val {
+        font-family: var(--mono);
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--navy);
+        min-width: 58px;
+        text-align: right;
+      }
+      .slider.inert .lab,
+      .slider.inert input {
+        opacity: 0.55;
+      }
+      .lab {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        font-size: 12px;
+      }
+      .lab b {
+        font-weight: 600;
+      }
+      .drives {
+        font-size: 10px;
+        font-weight: 700;
+        color: #fff;
+        background: var(--navy-2);
+        border-radius: 20px;
+        padding: 1px 6px;
+      }
+      .btns {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-top: 9px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .btns button {
+        font-size: 12px;
+        color: var(--navy);
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        padding: 4px 9px;
+        cursor: pointer;
+        font-family: inherit;
+      }
+      .btns button:hover:not(:disabled) {
+        background: #f4f7fb;
+      }
+      .btns button.primary {
+        background: var(--navy);
+        color: #fff;
+        border-color: var(--navy);
+      }
+      .btns button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .cfgrow {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        margin-bottom: 7px;
+      }
+      .cfgrow label {
+        flex: 1;
+        color: var(--muted);
+      }
+      .cfgrow input[type='number'] {
+        width: 88px;
+        padding: 3px 5px;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        font-family: var(--mono);
+        font-size: 11.5px;
+      }
+      .cfgrow .real {
+        font-size: 10px;
+        color: var(--muted);
+        font-family: var(--mono);
+      }
+
+      /* =================================================================
+       * THE CHILD'S SCREEN
+       *
+       * Everything between `.playwrap`'s bar and the reviewer divider is what a
+       * child sees. It carries no verdict, no score, no streak and no praise:
+       * the only feedback is the figure the machine made (§1.5). The panel is
+       * built on review.html's `.diffwrap` chrome so it reads as the same
+       * instrument.
+       * ================================================================= */
+      .playwrap {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #fff;
+        margin: 0 0 14px;
+      }
+      .playwrap > .bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        background: #f4f7fb;
+        border-bottom: 1px solid var(--line);
+        font-size: 12px;
+        color: var(--muted);
+        flex-wrap: wrap;
+      }
+      .playwrap > .bar .spacer {
+        flex: 1;
+      }
+      .playwrap > .bar b {
+        color: var(--navy-2);
+      }
+      .pill {
+        font-family: var(--mono);
+        font-size: 11px;
+        background: #eef1f4;
+        border-radius: 20px;
+        padding: 2px 9px;
+        color: var(--navy-2);
+      }
+      .pill b {
+        color: var(--navy);
+      }
+      .pill.warn {
+        background: #fef3c7;
+        color: #713f12;
+      }
+      /* The child-facing CSS is NOT here. It is injected by stage2-review.js from
+         stage2-child-stage.js, which is the single definition of the child's screen and the exact
+         source the intuitiveness audit was rendered from. Keeping a copy in this file would let the
+         audited screen and the administered screen drift apart. */
+      .divider {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0 0 14px;
+        font-size: 11px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        font-weight: 650;
+      }
+      .divider::before,
+      .divider::after {
+        content: '';
+        flex: 1;
+        border-top: 1px dashed var(--line);
+      }
+
+      /* ---- chart ---- */
+      .chartwrap {
+        padding: 10px 12px 4px;
+      }
+      svg.chart {
+        width: 100%;
+        height: 200px;
+        display: block;
+      }
+      .legend {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        font-size: 11px;
+        color: var(--muted);
+        padding: 0 12px 10px;
+      }
+      .legend i {
+        display: inline-block;
+        width: 16px;
+        height: 0;
+        border-top-width: 2px;
+        border-top-style: solid;
+        vertical-align: middle;
+        margin-right: 5px;
+      }
+
+      /* ---- tables: review.html's table.metrics language ---- */
+      .tablewrap {
+        max-height: 400px;
+        overflow: auto;
+      }
+      table.metrics {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+      table.metrics th,
+      table.metrics td {
+        border: 1px solid var(--line);
+        padding: 4px 7px;
+        text-align: left;
+        vertical-align: top;
+      }
+      table.metrics th {
+        background: #f4f7fb;
+        font-weight: 600;
+        font-size: 11px;
+        position: sticky;
+        top: 0;
+        z-index: 2;
+      }
+      table.metrics td.num,
+      table.metrics th.num {
+        font-family: var(--mono);
+        text-align: right;
+        white-space: nowrap;
+      }
+      table.metrics tr.hit td {
+        background: #f6fdf8;
+      }
+      table.metrics tr.miss td {
+        background: #fdf7f7;
+      }
+      table.metrics td.up {
+        color: var(--ok);
+      }
+      table.metrics td.dn {
+        color: #b91c1c;
+      }
+      table.metrics .armA {
+        color: var(--consistent);
+        font-weight: 700;
+      }
+      table.metrics .armB {
+        color: var(--control);
+        font-weight: 700;
+      }
+      .flag {
+        color: #b45309;
+        font-weight: 700;
+      }
+      .verdict {
+        margin-top: 10px;
+        font-size: 12.5px;
+        line-height: 1.55;
+        border-left: 3px solid var(--navy-2);
+        background: #f4f7fb;
+        padding: 9px 11px;
+        border-radius: 0 7px 7px 0;
+      }
+
+      /* ---- readout ---- */
+      .band {
+        font-size: 15px;
+        font-weight: 700;
+        color: #b45309;
+        font-family: var(--mono);
+      }
+      .interval {
+        margin: 10px 0 4px;
+        position: relative;
+        height: 34px;
+      }
+      .interval .axis {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 17px;
+        height: 1px;
+        background: var(--line);
+      }
+      .interval .zeroline {
+        position: absolute;
+        top: 4px;
+        bottom: 10px;
+        width: 2px;
+        background: var(--navy-2);
+      }
+      .interval .bar {
+        position: absolute;
+        top: 12px;
+        height: 11px;
+        border-radius: 6px;
+        opacity: 0.85;
+      }
+      .interval .pt {
+        position: absolute;
+        top: 9px;
+        width: 3px;
+        height: 17px;
+        background: #111;
+      }
+      .interval .tick {
+        position: absolute;
+        top: 20px;
+        font-size: 9.5px;
+        color: var(--muted);
+        font-family: var(--mono);
+        transform: translateX(-50%);
+      }
+
+      /* ---- learnability: the knowable curve, and the per-badge timeline ---- */
+      .knowbar {
+        display: flex;
+        align-items: flex-end;
+        gap: 2px;
+        height: 46px;
+        margin: 6px 0 2px;
+      }
+      .knowbar .k {
+        flex: 1;
+        min-height: 2px;
+        background: #c9d8ec;
+        border-radius: 2px 2px 0 0;
+      }
+      .knowbar .k.no {
+        background: #fde68a;
+      }
+      .axis-lbl {
+        display: flex;
+        justify-content: space-between;
+        font-size: 10px;
+        color: var(--muted);
+        font-family: var(--mono);
+        margin-bottom: 8px;
+      }
+      .pinned {
+        display: grid;
+        grid-template-columns: 74px minmax(0, 1fr) 46px;
+        gap: 3px 8px;
+        font-size: 11.5px;
+        align-items: center;
+      }
+      .pinned .nm {
+        font-family: var(--mono);
+        color: var(--navy-2);
+      }
+      .pinned .track {
+        position: relative;
+        height: 6px;
+        background: #eef1f4;
+        border-radius: 3px;
+      }
+      .pinned .fill {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        background: #9db8d8;
+        border-radius: 3px;
+      }
+      .pinned .at {
+        text-align: right;
+        font-family: var(--mono);
+        color: var(--muted);
+      }
+
+      /* ---- philosophy / type cards ---- */
+      .phil h4 {
+        font-size: 13px;
+        margin: 14px 0 4px;
+        color: var(--navy);
+      }
+      .phil h4:first-child {
+        margin-top: 0;
+      }
+      .phil p {
+        margin: 0 0 6px;
+        font-size: 13px;
+        line-height: 1.62;
+        max-width: 74ch;
+      }
+      .phil .lead {
+        font-size: 13.5px;
+        border-left: 3px solid var(--gold);
+        padding: 2px 0 2px 11px;
+        color: var(--navy-2);
+      }
+      .ladder {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin: 6px 0 8px;
+      }
+      .ladder .rung {
+        flex: 1 1 150px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 7px 9px;
+        font-size: 11.5px;
+        line-height: 1.45;
+        background: #fbfcfd;
+      }
+      .ladder .rung b {
+        display: block;
+        font-family: var(--mono);
+        font-size: 10.5px;
+        color: var(--navy-2);
+        margin-bottom: 2px;
+      }
+      .armcols {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin: 8px 0;
+      }
+      @media (max-width: 700px) {
+        .armcols {
+          grid-template-columns: 1fr;
+        }
+      }
+      .armcol {
+        border: 1px solid var(--line);
+        border-top-width: 3px;
+        border-radius: 3px 3px 8px 8px;
+        padding: 9px 11px;
+        font-size: 12px;
+        line-height: 1.55;
+      }
+      .armcol.a {
+        border-top-color: var(--consistent);
+      }
+      .armcol.b {
+        border-top-color: var(--control);
+      }
+      .armcol h5 {
+        margin: 0 0 4px;
+        font-size: 12px;
+        font-family: var(--mono);
+      }
+      .armcol.a h5 {
+        color: var(--consistent);
+      }
+      .armcol.b h5 {
+        color: var(--control);
+      }
+      .typecard {
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        padding: 11px 13px;
+        margin-bottom: 10px;
+        background: #fff;
+      }
+      .typecard .hd {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin-bottom: 5px;
+        flex-wrap: wrap;
+      }
+      .typecard .hd b {
+        font-family: var(--mono);
+        font-size: 13px;
+      }
+      .typecard .hd .nm {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .status {
+        font-size: 10px;
+        font-weight: 700;
+        border-radius: 20px;
+        padding: 2px 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+      }
+      .status.built {
+        background: #dcfce7;
+        color: #14532d;
+      }
+      .status.designed {
+        background: #f1f5f9;
+        color: #475569;
+        border: 1px dashed #94a3b8;
+      }
+      .typecard dl {
+        margin: 0;
+        display: grid;
+        grid-template-columns: 118px minmax(0, 1fr);
+        gap: 3px 10px;
+        font-size: 12px;
+        line-height: 1.5;
+      }
+      .typecard dt {
+        color: var(--muted);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        padding-top: 2px;
+      }
+      .typecard dd {
+        margin: 0;
+      }
+      .typecard ul {
+        margin: 0;
+        padding-left: 17px;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>GT Stage 2 — Learning-Block Review</h1>
+      <select id="typeSel" aria-label="Stage 2 question type"></select>
+      <div class="armswitch" id="armSwitch">
+        <button class="ghost" data-arm="consistent" type="button" title="One hidden system for the whole block — the live arm">
+          Consistent
+        </button>
+        <button class="ghost" data-arm="perTrial" type="button" title="A fresh hidden system every trial — the control">
+          Scrambled control
+        </button>
+      </div>
+      <span class="prog" id="prog"></span>
+      <span class="spacer"></span>
+      <button class="ghost" id="provChip" type="button">real-code build: loading…</button>
+    </header>
+
+    <div id="boot" class="empty">Loading the compiled engine modules…</div>
+
+    <div class="layout" id="layout" hidden>
+      <aside>
+        <section class="card" style="border:0;border-radius:0;margin:0">
+          <h3>Stage 1 result, set by hand <span class="tw" id="handoffState"></span></h3>
+          <div class="body">
+            <p class="note" id="abilityIntro"></p>
+            <div id="sliders"></div>
+            <div id="blockCfg"></div>
+            <div class="btns">
+              <button class="primary" id="startBtn" type="button">Start the block</button>
+              <button id="autoBtn" type="button">Auto-run to the end</button>
+              <button id="resetBtn" type="button">Discard run</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="card" style="border-left:0;border-right:0;border-radius:0;margin:0">
+          <h3>Who is answering</h3>
+          <div class="body">
+            <div id="responderPick"></div>
+            <div id="responderNote"></div>
+          </div>
+        </section>
+
+        <section class="card collapsed" id="peekCard" style="border-left:0;border-right:0;border-radius:0;margin:0">
+          <h3 class="click">The hidden system <span class="tw">show</span></h3>
+          <div class="body">
+            <div class="warnbox">
+              <b>Reading this is peeking.</b> The badge-to-transform mapping is what the child has to
+              induce, and in the product it never leaves the server. Turning it on tells you what the
+              item means; it also makes your own two-arm comparison meaningless, because you can then
+              answer the scrambled arm as easily as the consistent one.
+            </div>
+            <div class="btns">
+              <button id="peekBtn" type="button">Reveal the mapping for this item</button>
+            </div>
+            <div id="peekBody"></div>
+          </div>
+        </section>
+
+        <section class="card collapsed" id="handoffCard" style="border-left:0;border-right:0;border-radius:0;margin:0">
+          <h3 class="click">The handoff this wrote <span class="tw">show</span></h3>
+          <div class="body">
+            <p class="note" id="handoffNote"></p>
+            <pre class="json" id="handoffJson">—</pre>
+          </div>
+        </section>
+      </aside>
+
+      <main id="main">
+        <div class="head">
+          <h2 id="headTitle">—</h2>
+          <div class="meta" id="headMeta"></div>
+        </div>
+
+        <div class="playwrap" id="playWrap">
+          <div class="bar" id="stageHead"></div>
+          <div id="stageBody"></div>
+        </div>
+
+        <div class="divider">Below here the reviewer's instruments — the child sees none of it</div>
+
+        <div class="grid">
+          <div>
+            <section class="card">
+              <h3>
+                Bracketing and re-targeting
+                <span class="tw">what the rule asked for, and what the bank had</span>
+              </h3>
+              <div class="chartwrap"><svg class="chart" id="chart"></svg></div>
+              <div class="legend" id="chartLegend"></div>
+            </section>
+
+            <section class="card">
+              <h3>Trial by trial <span class="tw" id="traceCount"></span></h3>
+              <div class="tablewrap"><table class="metrics" id="traceTable"></table></div>
+            </section>
+
+            <section class="card collapsed" id="philCard">
+              <h3 class="click">
+                What this type is trying to do <span class="tw">read this first — about a minute</span>
+              </h3>
+              <div class="body phil" id="philBody"></div>
+            </section>
+
+            <section class="card collapsed" id="setCard">
+              <h3 class="click">The rest of the Stage 2 set <span class="tw">show</span></h3>
+              <div class="body" id="setBody"></div>
+            </section>
+          </div>
+
+          <div>
+            <section class="card">
+              <h3>When each thing became learnable <span class="tw">the answerability trace</span></h3>
+              <div class="body" id="learnBody"></div>
+            </section>
+
+            <section class="card">
+              <h3>Where the estimate stands</h3>
+              <div class="body" id="readoutBody"></div>
+            </section>
+
+            <section class="card">
+              <h3>Consistent against its control <span class="tw">the acceptance gate</span></h3>
+              <div class="body" id="cmpBody"></div>
+            </section>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script type="module" src="stage2-review.js"></script>
+  </body>
+</html>
