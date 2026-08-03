@@ -44,9 +44,9 @@ function rng(seed: number): () => number {
 
 async function runStage2(lambdaTrue: number) {
   const pool = await getServedIndex();
-  const standings = Object.fromEntries(
-    LEARNING_BLOCKS.map((s) => [s.area, 12]),
-  ) as Partial<Record<(typeof LEARNING_BLOCKS)[number]['area'], number>>;
+  const standings = Object.fromEntries(LEARNING_BLOCKS.map((s) => [s.area, 12])) as Partial<
+    Record<(typeof LEARNING_BLOCKS)[number]['area'], number>
+  >;
   const offered = availableBlocks(pool, [], standings);
   const rand = rng(20260803);
 

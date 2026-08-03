@@ -1,4 +1,9 @@
-import { DEFAULT_CONFIG, startState, type Area, type SessionState } from '@gt-selection/exam-engine';
+import {
+  DEFAULT_CONFIG,
+  startState,
+  type Area,
+  type SessionState,
+} from '@gt-selection/exam-engine';
 import { describe, expect, it } from 'vitest';
 
 import { stage1Progress, stage2Progress } from './progress';
