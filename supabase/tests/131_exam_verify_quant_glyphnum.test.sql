@@ -15,6 +15,9 @@
 --      that it re-derives `answer.targetRatio` from the server-only glyph->role mapping instead of
 --      trusting the stored scalar. Assertions 13-16 are a differential on exactly that: the same
 --      corrupted ratio is ignored when the mapping is readable and honoured when it is not.
+--      Assertions 17-19 widen that from the one variant item to the whole sampled bank, because
+--      13-16 exercise only the three SCALE roles and a verifier that could not value a DIGIT role
+--      passed this file; see the note above assertion 17.
 --
 -- WHAT THE FIXTURES ARE. Rows 1-12 are verbatim bank items — `content`, `scoring` and `provenance`
 -- exactly as generated, and the full `answer` less `distractorRationales`, which is per-option
@@ -33,7 +36,7 @@ begin;
 
 set local search_path = extensions, public, pg_catalog;
 
-select plan(21);
+select plan(24);
 
 grant usage on schema extensions to api_executor, authenticated;
 
@@ -381,6 +384,79 @@ select ok(
   'from assertion 14 is now the one that grades correct'
 );                                                                                      -- 16
 
+-- Assertions 13 and 14 corrupt the stored ratio on ONE item, whose expression is
+-- `notch, crescent, arc` — three SCALE roles and no digit. So they pin the scale ladder and say
+-- nothing about `digitII` or `digitIII`. That is a real hole rather than a tidiness point: a role
+-- the reader cannot value at all aborts the derivation, and the derivation aborting drops through
+-- to `answer.targetRatio`, which on a real bank item is correct. Assertions 8-12 then pass on a
+-- verifier that never read the mapping.
+--
+-- Measured, before the assertions below existed: of the ten single-role mutations (five roles x
+-- {unknown, wrong value}), the two that made a DIGIT role unknown passed this file. The other
+-- eight failed, because a role that still has a value produces a wrong ratio rather than no ratio.
+--
+-- So the re-derivation is pinned on ALL TWELVE real bank items, both arms, the same way
+-- SPA-XFORM-01 rotates its stored key (`150_exam_verify_spa_xform.test.sql` assertions 18-19).
+-- The stored `targetRatio` is rotated to the NEAREST WRONG TICK, which assertion 9 has already
+-- shown lies outside the tolerance band: if the notation decides, the keyed tick still grades
+-- correct; if the fallback decided, the rotated tick does instead. There is no third outcome.
+create temporary table glyphnum_tamper as
+select
+  md5(p.item_id::text || '|tampered')::uuid as item_id,
+  p.keyed_ratio,
+  p.nearest_wrong_ratio as rotated_ratio,
+  i.content,
+  jsonb_set(i.answer_key, '{targetRatio}', to_jsonb(p.nearest_wrong_ratio)) as answer_key,
+  i.scoring,
+  i.difficulty,
+  i.age_bands
+from glyphnum_probe p
+join app.exam_item i on i.item_id = p.item_id;
+
+-- `provenance.generator` is 'test-fixture', which keeps these copies out of the bank sweeps in
+-- assertions 8-12, 20 and 21 — every one of them filters on `generator = 'grammar'`.
+insert into app.exam_item (
+  item_id, type_code, domain, difficulty, age_bands, content, answer_key, scoring, provenance
+)
+select t.item_id, 'QUANT-GLYPHNUM-01', 'quantitative', t.difficulty, t.age_bands,
+       t.content, t.answer_key, t.scoring,
+       '{"generator":"test-fixture","derivedFrom":"ratio-rotation"}'::jsonb
+from glyphnum_tamper t;
+
+select is(
+  (
+    select count(*)::integer from glyphnum_tamper t
+    where (app.exam_verify_response(
+             t.item_id, jsonb_build_object('placedRatio', t.keyed_ratio)
+           ) ->> 'correct')::boolean
+  ),
+  12,
+  'the notation decides on every real bank item: the keyed tick survives a rotated stored ratio'
+);                                                                                      -- 17
+select is(
+  (
+    select count(*)::integer from glyphnum_tamper t
+    where (app.exam_verify_response(
+             t.item_id, jsonb_build_object('placedRatio', t.rotated_ratio)
+           ) ->> 'correct')::boolean
+  ),
+  0,
+  'and the rotated ratio never grades correct, so 8-12 were not riding the stored-ratio fallback'
+);                                                                                      -- 18
+-- Anti-vacuity for 17 and 18: rotating a ratio proves nothing about a role the sampled
+-- expressions never use. All five must appear in the roles these twelve items actually read.
+select is(
+  (
+    select count(distinct r)::integer
+    from app.exam_item i,
+         lateral jsonb_array_elements_text(i.answer_key -> 'expressionRoles') r
+    where i.type_code = 'QUANT-GLYPHNUM-01'
+      and i.provenance ->> 'generator' = 'grammar'
+  ),
+  5,
+  'the twelve items read all five roles, so assertions 17-18 cover both digits and all three scales'
+);                                                                                      -- 19
+
 -- --- 5. Fail-closed on a response the renderer cannot produce -----------------------
 
 select is(
@@ -397,14 +473,14 @@ select is(
   '{"correct": false}',
   'a response with no placedRatio is incorrect with NO metrics — there is no placement error to '
   'report, which is exactly how the generic placement verifier behaves'
-);                                                                                      -- 17
+);                                                                                      -- 20
 select ok(
   not (app.exam_verify_response(
          (select item_id from glyphnum_probe order by item_id limit 1),
          '{"placedRatio":"middle"}'::jsonb
        ) ->> 'correct')::boolean,
   'a non-numeric placement is incorrect rather than coerced'
-);                                                                                      -- 18
+);                                                                                      -- 21
 select is(
   (
     select app.exam_verify_response(
@@ -414,7 +490,7 @@ select is(
   ),
   'skipped',
   'a skipped item is not credited even when the body carries the keyed placement'
-);                                                                                      -- 19
+);                                                                                      -- 22
 
 -- --- 6. The verdict carries no key material -----------------------------------------
 
@@ -433,7 +509,7 @@ select ok(
   ),
   'no verdict returns the key, the target ratio, the tolerance band, the line maximum or any part '
   'of the glyph->role mapping'
-);                                                                                      -- 20
+);                                                                                      -- 23
 select is(
   (
     select count(*)::integer
@@ -446,8 +522,8 @@ select is(
       and answer_key -> 'system' ? 'mapping'
   ),
   12,
-  'the fixtures DO hold the real key and the real mapping server-side (assertion 20 is not vacuous)'
-);                                                                                      -- 21
+  'the fixtures DO hold the real key and the real mapping server-side (assertion 23 is not vacuous)'
+);                                                                                      -- 24
 
 select * from finish();
 

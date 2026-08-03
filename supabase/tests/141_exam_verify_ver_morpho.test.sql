@@ -20,6 +20,9 @@
 --      server-only mapping rather than read off `answer.correctKey`, that the stored key is
 --      still the documented fallback when the mapping is unreadable, and that the four-class
 --      error ladder prices each class where the port says it does.
+--   5. THAT (4) HOLDS FOR EVERY MORPHEME, not just the one the corrupted-key fixture happens to
+--      use. Assertions 19-21 rotate the stored key on all eighteen fixtures. Without them ten of
+--      the twelve single-morpheme mutations passed this file; see the note above assertion 19.
 --
 -- Parity against the whole bank is not provable in pgTAP, because it needs both implementations
 -- in one process. `pnpm exam:verify:diff` does that over every served type, and
@@ -38,7 +41,7 @@ begin;
 
 set local search_path = extensions, public, pg_catalog;
 
-select plan(20);
+select plan(23);
 
 grant usage on schema extensions to api_executor, authenticated;
 
@@ -405,6 +408,90 @@ select is(
   'with the hidden system removed there is nothing to re-derive, so the stored key is the fallback'
 );                                                                                      -- 18
 
+-- Assertions 16 and 17 rotate the stored key on ONE item, and that item's word carries one
+-- morpheme: `kib`, which this system maps to `resize`. So they pin `resize` and nothing else.
+-- Every other assertion above is blind to a broken morphology, because the port falls back to
+-- `answer.correctKey` when the derivation names no single option — a faithful port of the
+-- TypeScript, and what keeps an unreadable item graded rather than refused. Break one morpheme and
+-- the items that use it derive a picture no option shows, drop through to the stored key, and
+-- grade correct anyway.
+--
+-- Measured, before these two assertions existed: of the twelve single-morpheme mutations (six
+-- morphemes x {unknown, identity}), TEN passed this file. Only the two `resize` mutations failed,
+-- and only because of ff01. `plural`, `dual`, `paucal`, `negate` and `swapRole` could each be
+-- silently wrong.
+--
+-- So the derivation is pinned on ALL eighteen real fixtures the same way SPA-XFORM-01 pins its
+-- bank (`150_exam_verify_spa_xform.test.sql` assertions 18-19): rotate the stored key to another
+-- option. If the morphology decides, the true key still wins; if the fallback decided, the rotated
+-- key wins instead. There is no third outcome. The eighteen fixtures between them exercise all six
+-- morphemes, in both item directions and both persistence arms, so every rule is covered.
+create temporary table morpho_tamper on commit drop as
+select
+  md5(i.item_id::text || '|tampered')::uuid as item_id,
+  i.answer_key ->> 'correctKey'             as correct_key,
+  (
+    select o.value ->> 'key'
+    from jsonb_array_elements(i.content -> 'options') o
+    where o.value ->> 'key' <> i.answer_key ->> 'correctKey'
+    order by o.value ->> 'key'
+    limit 1
+  ) as rotated_key,
+  i.content,
+  jsonb_set(
+    i.answer_key,
+    '{correctKey}',
+    to_jsonb((
+      select o.value ->> 'key'
+      from jsonb_array_elements(i.content -> 'options') o
+      where o.value ->> 'key' <> i.answer_key ->> 'correctKey'
+      order by o.value ->> 'key'
+      limit 1
+    ))
+  ) as answer_key,
+  i.difficulty,
+  i.age_bands
+from app.exam_item i
+where i.type_code = 'VER-MORPHO-01'
+  and i.provenance ? 'levers';
+
+-- `provenance` is dropped, which keeps these copies out of every assertion above: they all filter
+-- on `provenance ? 'levers'`, and `morpho_graded` was materialised before this insert either way.
+insert into app.exam_item (
+  item_id, type_code, domain, difficulty, age_bands, content, answer_key, scoring, provenance
+)
+select t.item_id, 'VER-MORPHO-01', 'verbal', t.difficulty, t.age_bands, t.content, t.answer_key,
+       jsonb_build_object('mode', 'deterministic_key'), '{}'::jsonb
+from morpho_tamper t;
+
+select is(
+  (select count(*)::integer from morpho_tamper t
+   where (app.exam_verify_response(t.item_id, jsonb_build_object('selectedKey', t.correct_key))
+          ->> 'correct') = 'true'),
+  18,
+  'the morphology decides on every real fixture: the true key wins over a rotated one'
+);                                                                                      -- 19
+select is(
+  (select count(*)::integer from morpho_tamper t
+   where (app.exam_verify_response(t.item_id, jsonb_build_object('selectedKey', t.rotated_key))
+          ->> 'correct') = 'true'),
+  0,
+  'and the rotated key never wins, so assertions 8-15 were not riding the stored-key fallback'
+);                                                                                      -- 20
+-- Anti-vacuity for 19 and 20: rotating a key proves nothing about a morpheme the fixtures never
+-- apply. All six must appear in the meanings these items actually compose.
+select is(
+  (
+    select count(distinct m)::integer
+    from app.exam_item i,
+         lateral jsonb_array_elements_text(i.answer_key -> 'meaningChain') m
+    where i.type_code = 'VER-MORPHO-01'
+      and i.provenance ? 'levers'
+  ),
+  6,
+  'the eighteen fixtures compose all six morphemes, so assertions 19-20 cover the whole morphology'
+);                                                                                      -- 21
+
 -- --- The verdict payload carries no key material -----------------------------------
 
 select ok(
@@ -412,7 +499,7 @@ select ok(
     select string_agg(verdict::text, '') from morpho_graded
   ) !~ '(answer_key|answerKey|correctKey|affixMap|stemMap|meaningChain|keyPicture|strategyTrace|distractorRationales|relabelling|provenance)',
   'no verdict returns a key, a mapping, or a derived expected answer'
-);                                                                                      -- 19
+);                                                                                      -- 22
 
 select is(
   (
@@ -421,7 +508,7 @@ select is(
   ),
   18,
   'one option per fixture actually graded CORRECT, so the assertions above are not vacuous'
-);                                                                                      -- 20
+);                                                                                      -- 23
 
 select * from finish();
 
