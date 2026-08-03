@@ -43,6 +43,16 @@ const REVEAL_BUILDERS: Record<string, RevealBuilder> = {
     const key = item.answer.correctKey;
     return typeof key === 'string' && key.length > 0 ? { machineOutput: key } : null;
   },
+  /**
+   * SPA-XFORM-01: the same machine frame over a lattice. Same argument, and the generator states
+   * it from its own side — the correct output is deliberately kept out of `content` because the
+   * renderer cannot be allowed to know it, so the reveal is the only path by which a child ever
+   * sees what the machine made.
+   */
+  'SPA-XFORM-01': (item) => {
+    const key = item.answer.correctKey;
+    return typeof key === 'string' && key.length > 0 ? { machineOutput: key } : null;
+  },
 };
 
 /**
