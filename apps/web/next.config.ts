@@ -36,6 +36,12 @@ const nextConfig: NextConfig = {
     '/**': [
       '../../research/exam-question-types/banks/*.jsonl',
       '../../research/exam-question-types/generators/lexicon-child-en.mjs',
+      // The FLU-OPCHAIN-01 template bank, read at runtime by `lib/exam/materialised-session.ts` when
+      // serve-time materialisation is on (D-208). Same kind of dependency as the banks and declared for
+      // the same reason: `fs.readFile` is invisible to the tracer, and without this an image with the
+      // flag set has no templates to materialise from. The materialiser itself is a static import and
+      // is traced automatically, which is why only the data file is named here.
+      '../../research/exam-question-types/templates/*.jsonl',
     ],
   },
   poweredByHeader: false,

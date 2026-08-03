@@ -268,9 +268,100 @@ export function examBankHealth(): { ready: boolean; detail: string } {
   };
 }
 
-/** Strip every server-only field (answer/scoring/provenance) + the on-disk demoPath. */
+/**
+ * The Stage 2 learning-block types, whose served payload is checked for key material and not merely
+ * projected.
+ *
+ * Every one of them hides a bijection from visible symbols to invisible meanings, so for these types
+ * the OMISSION of `answer` is not on its own sufficient: a payload that named the operator vocabulary
+ * would let a browser that also knows the algebra solve the item, and under serve-time materialisation
+ * (D-210) there are new fields — the template id, the rationale ids, the key slot — that would identify
+ * the item across sessions or name how each option was built. Structural omission cannot see any of
+ * that, because those fields never existed when the projection was written.
+ */
+const KEY_MATERIAL_GUARDED_TYPES = new Set([
+  'FLU-OPCHAIN-01',
+  'SPA-XFORM-01',
+  'QUANT-GLYPHNUM-01',
+  'VER-MORPHO-01',
+]);
+
+/**
+ * Tokens a guarded type's served payload may never contain, and why each is on the list.
+ *
+ * The six OPERATOR NAMES are the decisive entries and the reason this is a token check rather than a
+ * field check: with the mapping absent but the vocabulary present, a client that knows the algebra
+ * could enumerate readings against the on-screen options far more cheaply than brute force. The rest
+ * are the fields that would carry the mapping, the key, the slot allocation, or the identity that
+ * links one session's solved item to another's screen.
+ */
+const FORBIDDEN_SERVED_TOKENS = [
+  'turn',
+  'flip',
+  'slant',
+  'swap',
+  'ring',
+  'twin',
+  'correctKey',
+  'operatorChain',
+  'strategyTrace',
+  'distractorRationales',
+  'slotToOperator',
+  'slotToBadge',
+  'badgeToOperator',
+  'systemPersistence',
+  'templateId',
+  'rationaleId',
+  'keySlot',
+  'sessionSeed',
+];
+
+/**
+ * A served payload leaks key material.
+ *
+ * Fatal rather than redacted, and for the reason {@link ExamBankUnavailableError} gives: on the path
+ * that serves questions to children, quietly shipping a slightly different payload is the wrong
+ * default. A leak here means the item is unservable, not that it needs cleaning up in flight.
+ */
+export class ExamKeyMaterialLeakError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ExamKeyMaterialLeakError';
+  }
+}
+
+/**
+ * Refuse a served payload that names key material. THE enforcement point, and it is a strengthening.
+ *
+ * The boundary used to be structural omission alone — `servedItemSchema` is
+ * `bankItemSchema.omit({answer, scoring, provenance})` and `toServedItem` drops `demoPath` — which is
+ * exactly right for the fields it knows about and says nothing about `content`, which ships whole.
+ * That was tolerable while `content` was written by a generator that had already been audited. It is
+ * not tolerable once `content` is MATERIALISED per request from a template plus a drawn mapping,
+ * because the thing being projected no longer exists at review time.
+ *
+ * So this is asserted rather than assumed, on both paths, for the four types where the assumption
+ * would matter. It does not replace the omission: `toServedItem` still names its seven fields, and
+ * this runs after it.
+ */
+export function assertNoKeyMaterial(served: ServedItem): void {
+  if (!KEY_MATERIAL_GUARDED_TYPES.has(served.typeCode)) return;
+  const serialised = JSON.stringify(served);
+  const found = FORBIDDEN_SERVED_TOKENS.filter((token) => serialised.includes(token));
+  if (found.length === 0) return;
+  throw new ExamKeyMaterialLeakError(
+    `${served.typeCode} item ${served.itemId} would ship key material to the browser: ` +
+      `${found.join(', ')}. The hidden symbol->meaning mapping is what this type measures the ` +
+      'induction of, so a payload naming any part of it makes the item a lookup (E-075/E-076).',
+  );
+}
+
+/**
+ * Strip every server-only field (answer/scoring/provenance) + the on-disk demoPath, then refuse the
+ * result if it names key material.
+ */
 export function toServedItem(item: RawBankItem): ServedItem {
-  return {
+  const served: ServedItem = {
     itemId: item.itemId,
     typeCode: item.typeCode,
     domain: item.domain,
@@ -280,6 +371,8 @@ export function toServedItem(item: RawBankItem): ServedItem {
     syntheticOnly: true,
     validated: false,
   };
+  assertNoKeyMaterial(served);
+  return served;
 }
 
 /**

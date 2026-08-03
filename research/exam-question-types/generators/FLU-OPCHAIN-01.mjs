@@ -92,45 +92,56 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeBank } from './item-shape.mjs';
 
+/**
+ * THE FIGURE ALGEBRA LIVES IN `FLU-OPCHAIN-01-algebra.mjs`, and is re-exported here unchanged.
+ *
+ * §1.3 is the reason there are six operators rather than one hidden rule: a single rule to discover
+ * produces a STEP (chance until insight, ceiling after), and fitting a linear lambda to a step wastes
+ * most of 30 trials. A composable vocabulary makes "having learned it" a ladder — know one primitive,
+ * chain two, chain three, extend to a pair never demonstrated.
+ *
+ * It was split out so the SERVE-TIME materialiser can import the algebra without importing this file,
+ * which writes banks and ends in a CLI block with a top-level await. Every consumer — this generator,
+ * the checker, the learnability adapter, the Gate A probes and the app's materialiser — resolves to
+ * the same definitions, so none of them can drift on what `turn` does.
+ */
+export {
+  GEOMETRIC_OPS,
+  ATTRIBUTE_OPS,
+  OPERATORS,
+  isGeometric,
+  BADGE_SYMBOLS,
+  GLYPHS,
+  composeOrient,
+  GEOM_ELEMENT,
+  applyOp,
+  applyChain,
+  figureKey,
+  figureDistance,
+  geometricPartIsIdentity,
+  relabelVotes,
+  partialRules,
+} from './FLU-OPCHAIN-01-algebra.mjs';
+
+import {
+  ATTRIBUTE_OPS,
+  BADGE_SYMBOLS,
+  GEOMETRIC_OPS,
+  GLYPHS,
+  OPERATORS,
+  applyChain,
+  figureDistance,
+  figureKey,
+  geometricPartIsIdentity,
+  isGeometric,
+  makeRng,
+  partialRules,
+  relabelVotes,
+  seededUuid,
+  shuffle,
+} from './FLU-OPCHAIN-01-algebra.mjs';
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
-
-/* ================================================================== *
- * THE OPERATOR VOCABULARY — a small closed set whose primitives COMPOSE.
- *
- * §1.3 is the reason there are six of these rather than one hidden rule: a
- * single rule to discover produces a STEP (chance until insight, ceiling
- * after), and fitting a linear lambda to a step wastes most of 30 trials.
- * A composable vocabulary makes "having learned it" a ladder — know one
- * primitive, chain two, chain three, extend to a pair never demonstrated.
- *
- * Three of the six act on the figure's ORIENTATION and generate the dihedral
- * group D4, so they do not commute: applying `turn` then `flip` lands somewhere
- * different from `flip` then `turn`. That non-commutativity is what makes
- * "the badges compose IN ORDER" a real thing to learn rather than a slogan,
- * and it is the difficulty lever §3.1 calls order-sensitivity.
- *
- * The other three toggle independent attributes and commute with everything.
- * A chain built only from those is order-free and therefore easier, which is
- * the other half of the same lever.
- * ================================================================== */
-export const GEOMETRIC_OPS = ['turn', 'flip', 'slant'];
-export const ATTRIBUTE_OPS = ['swap', 'ring', 'twin'];
-export const OPERATORS = [...GEOMETRIC_OPS, ...ATTRIBUTE_OPS];
-export const isGeometric = (op) => GEOMETRIC_OPS.includes(op);
-
-/**
- * Badge symbols. Six neutral shapes, in ONE canonical order in every item of
- * both banks, so the tray never hints at the mapping. They are labels the
- * renderer draws; they are deliberately not the figure glyph vocabulary.
- */
-export const BADGE_SYMBOLS = ['circle', 'square', 'triangle', 'diamond', 'hexagon', 'star'];
-
-/**
- * Figure glyphs. Every one is CHIRAL and has no rotational symmetry, which is
- * not decoration: if the glyph were symmetric, `flip` and `turn` would be
- * invisible and the geometric half of the vocabulary would be unlearnable.
- */
-export const GLYPHS = ['flag', 'hook', 'boot', 'comma'];
 
 /**
  * WHAT REPLACED §3.1's "undemonstrated combination" LEVER, AND WHY IT HAD TO GO.
@@ -154,112 +165,8 @@ export const GLYPHS = ['flag', 'hook', 'boot', 'comma'];
  */
 export const isMixed = (depth, geom) => (geom > 0 && geom < depth ? 1 : 0);
 
-/* ------------------------------------------------------------------ *
- * Seeded RNG (xmur3 -> mulberry32), the same idiom every generator here uses.
- * ------------------------------------------------------------------ */
-function xmur3(str) {
-  let h = 1779033703 ^ str.length;
-  for (let i = 0; i < str.length; i++) {
-    h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
-    h = (h << 13) | (h >>> 19);
-  }
-  return () => {
-    h = Math.imul(h ^ (h >>> 16), 2246822507);
-    h = Math.imul(h ^ (h >>> 13), 3266489909);
-    h ^= h >>> 16;
-    return h >>> 0;
-  };
-}
-function mulberry32(a) {
-  return () => {
-    a |= 0;
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-function makeRng(seed) {
-  return mulberry32(xmur3(seed)());
-}
-function shuffle(arr, rng) {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-function seededUuid(seed) {
-  const rng = makeRng('uuid|' + seed);
-  const hex = [];
-  for (let i = 0; i < 32; i++) hex.push(Math.floor(rng() * 16).toString(16));
-  hex[12] = '4';
-  hex[16] = ((parseInt(hex[16], 16) & 0x3) | 0x8).toString(16);
-  const h = hex.join('');
-  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
-}
-
 const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
 const round2 = (x) => Math.round(x * 100) / 100;
-
-/* ================================================================== *
- * FIGURE SEMANTICS
- *
- * Orientation is an element of D4 written uniquely as r^a m^b, with `a` quarter
- * turns clockwise and `b` a mirror flag. The product below is the D4 relation
- * m r = r^-1 m; it is the entire reason `turn` and `flip` fail to commute, so
- * it is worth reading rather than trusting.
- * ================================================================== */
-export function composeOrient(g, o) {
-  return {
-    a: (((g.a + (g.b ? -o.a : o.a)) % 4) + 4) % 4,
-    b: (g.b + o.b) % 2,
-  };
-}
-
-/** Each geometric operator as the D4 element it left-multiplies by. */
-export const GEOM_ELEMENT = {
-  turn: { a: 1, b: 0 }, // quarter turn clockwise
-  flip: { a: 0, b: 1 }, // mirror
-  slant: { a: 1, b: 1 }, // mirror about a diagonal
-};
-
-/** Apply one operator to a figure state. Pure; never mutates. */
-export function applyOp(op, figure) {
-  if (isGeometric(op)) {
-    return { ...figure, orient: composeOrient(GEOM_ELEMENT[op], figure.orient) };
-  }
-  if (op === 'swap') return { ...figure, shade: figure.shade === 'solid' ? 'hollow' : 'solid' };
-  if (op === 'ring') return { ...figure, border: figure.border ? 0 : 1 };
-  if (op === 'twin') return { ...figure, pair: figure.pair ? 0 : 1 };
-  throw new Error(`unknown operator "${op}"`);
-}
-
-/** Apply a chain left-to-right: the first badge acts first. */
-export function applyChain(chain, figure) {
-  return chain.reduce((state, op) => applyOp(op, state), figure);
-}
-
-export const figureKey = (f) =>
-  `${f.glyph}|${f.orient.a}${f.orient.b}|${f.shade}|${f.border}|${f.pair}`;
-
-/**
- * Surface change between two figures, counted in components. Orientation counts
- * as ONE component however far it moved, because a child comparing pictures sees
- * "pointing a different way", not a rotation count.
- *
- * This is the metric the anti-leak invariant is stated in: the key must never be
- * the unique option that changed the most.
- */
-export function figureDistance(a, b) {
-  let d = 0;
-  if (a.orient.a !== b.orient.a || a.orient.b !== b.orient.b) d += 1;
-  if (a.shade !== b.shade) d += 1;
-  if (a.border !== b.border) d += 1;
-  if (a.pair !== b.pair) d += 1;
-  return d;
-}
 
 /* ================================================================== *
  * DIFFICULTY MODEL — from the declared levers, monotone by construction.
@@ -404,25 +311,6 @@ export function buildChain({ depth, geom }, rng) {
   return null;
 }
 
-/**
- * Whether the chain's geometric operators cancel out.
- *
- * Not a corner case: in D4, `slant` then `flip` then `turn` composes to the
- * identity, so a chain of three DISTINCT orientation badges can leave the figure
- * pointing exactly as it started. Such an item is far easier than its stated
- * depth — the child can ignore three badges and still be right — which makes its
- * difficulty label wrong in a way that correlates with which configs the
- * targeting rule serves late in the block. That is the §1.1(d) bias, not noise,
- * so these chains are rejected rather than merely noted.
- */
-export function geometricPartIsIdentity(chain) {
-  let orient = { a: 0, b: 0 };
-  for (const op of chain) {
-    if (isGeometric(op)) orient = composeOrient(GEOM_ELEMENT[op], orient);
-  }
-  return orient.a === 0 && orient.b === 0;
-}
-
 /* ================================================================== *
  * DISTRACTORS — each one a NAMED incomplete version of the system.
  *
@@ -451,109 +339,6 @@ const FAILURES = [
   { kind: 'first_step_only', lure: 'first_step_only' },
   { kind: 'identity_copy', lure: 'identity_copy' },
 ];
-
-/** Every partial rule this chain admits, as {ruleId, kind, chain, note}. */
-export function partialRules(chain) {
-  const out = [];
-  const label = (ops) => (ops.length ? ops.join('>') : 'none');
-
-  for (let i = 0; i + 1 < chain.length; i++) {
-    const swapped = chain.slice();
-    [swapped[i], swapped[i + 1]] = [swapped[i + 1], swapped[i]];
-    out.push({
-      ruleId: `reorder@${i}:${label(swapped)}`,
-      kind: 'order_error',
-      chain: swapped,
-      note: `applied badge ${i + 1} and badge ${i + 2} in the wrong order`,
-    });
-  }
-  for (let i = 0; i < chain.length; i++) {
-    const doubled = [...chain.slice(0, i + 1), chain[i], ...chain.slice(i + 1)];
-    out.push({
-      ruleId: `twice@${i}:${label(doubled)}`,
-      kind: 'over_application',
-      chain: doubled,
-      note: `applied badge ${i + 1} twice`,
-    });
-  }
-  for (let i = 0; i < chain.length; i++) {
-    const dropped = chain.filter((_, j) => j !== i);
-    out.push({
-      ruleId: `drop@${i}:${label(dropped)}`,
-      kind: 'omission',
-      chain: dropped,
-      note: `skipped badge ${i + 1}`,
-    });
-  }
-  for (let i = 0; i < chain.length; i++) {
-    for (const op of OPERATORS) {
-      if (chain.includes(op)) continue;
-      const swappedIn = chain.slice();
-      swappedIn[i] = op;
-      out.push({
-        ruleId: `sub@${i}=${op}:${label(swappedIn)}`,
-        kind: 'wrong_operator',
-        chain: swappedIn,
-        note: `read badge ${i + 1} as a different operator`,
-      });
-    }
-  }
-  if (chain.length > 1) {
-    out.push({
-      ruleId: `firstOnly:${label(chain.slice(0, 1))}`,
-      kind: 'first_step_only',
-      chain: chain.slice(0, 1),
-      note: 'applied only the first badge and stopped',
-    });
-  }
-  out.push({
-    ruleId: 'identity:none',
-    kind: 'identity_copy',
-    chain: [],
-    note: 'applied no operator at all',
-  });
-  return out;
-}
-
-/**
- * Every output an attacker can reach WITHOUT the mapping, and how many relabellings reach it.
- *
- * A mapping is a badge->operator bijection and the badges in a chain are distinct, so guessing the
- * mapping is exactly guessing an ordered selection of `depth` distinct operators for the chain's
- * positions — at most 6*5*4*3 = 360 of them. The 720 full bijections project onto these with a
- * constant multiplicity of (6 - depth)!, so the vote RATIOS are identical and this map IS the
- * client's entire posterior over which option is the key.
- *
- * WHY THIS IS COUNTED RATHER THAN COLLECTED. The first version of this generator held the set and
- * asked only whether at least one distractor was in it. That closed DETERMINACY — the key is never
- * the only option a relabelling can reach, and the measured count is 0 items — but it left the
- * GRADED attack wide open: an attacker who counts how many relabellings back each option, and takes
- * the modal one (or, if a generator has over-corrected, the least-backed one), scored 34.0% in the
- * hardest difficulty slice against a 20% five-option floor. E-075/E-076 judge derivability from the
- * data rather than from who knows the algorithm, so 14 points above chance is a leak and not a
- * rounding error. The vote COUNTS are what the invariants below are stated in, because a set cannot
- * express "the five options are equally backed", which is the only configuration in which the brute
- * force returns nothing at all.
- */
-export function relabelVotes(depth, input) {
-  const votes = new Map();
-  const used = new Set();
-  const walk = (position, state) => {
-    if (position === depth) {
-      const k = figureKey(state);
-      votes.set(k, (votes.get(k) ?? 0) + 1);
-      return;
-    }
-    for (const op of OPERATORS) {
-      if (used.has(op)) continue;
-      used.add(op);
-      walk(position + 1, applyOp(op, state));
-      used.delete(op);
-    }
-  };
-  walk(0, input);
-  return votes;
-}
 
 /**
  * How far a slate's summed distance cost may exceed the best available before the vote-balancing

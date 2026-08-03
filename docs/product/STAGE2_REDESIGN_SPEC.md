@@ -1,8 +1,8 @@
 # Stage 2 redesign — per-session systems, reviewable trials, and three new types
 
-**Status:** Proposed. Nothing here is built.
+**Status:** Proposed, except **§2.1 and §3, which are built on `FLU-OPCHAIN-01` behind `EXAM_SERVE_TIME_MATERIALISATION` (off by default) — see D-210 and E-210.** Everything else here is unbuilt.
 **Requirements served:** R5, R6, R7, R8, R10, H1, H6, H10.
-**Evidence relied on:** E-095, E-200, E-205, E-206, E-207; the re-keying measurement in D-206 / PR #51; the anti-leak comparison in `STAGE2_ANTILEAK_COMPARISON.md`.
+**Evidence relied on:** E-095, E-200, E-205, E-206, E-207, E-210; the re-keying measurement in D-206 / PR #51; the anti-leak comparison in `STAGE2_ANTILEAK_COMPARISON.md`.
 **Supersedes, if adopted:** `STAGE2_QUESTION_DESIGN.md` §3.2, §3.3, §3.4 — not §3.1, and not §1.2 or §4.1.1, whose constraints this spec inherits unchanged.
 
 ---
@@ -50,6 +50,8 @@ The class-preserving mapping family that would hold difficulty exactly fixed was
 
 ### 2.1 The implication: banks must store templates, not finished items
 
+**Status: BUILT on `FLU-OPCHAIN-01`, behind `EXAM_SERVE_TIME_MATERIALISATION`, off by default. D-210, E-210.**
+
 Failure B exists because the **options are baked at build time while the mapping is drawn at serve time**. Nothing reconciles them, so the correct answer is on screen only by luck.
 
 The fix is to stop shipping finished items. A bank record becomes a **template**: the input, the symbol chain, the distractor *rationales*, and the structural facts that price difficulty. The server draws the session mapping, applies the chain, and **materialises the options from the rationales under that mapping**. The correct answer is then on screen by construction, at every depth, for every mapping.
@@ -57,6 +59,63 @@ The fix is to stop shipping finished items. A bank record becomes a **template**
 This also closes something re-keying alone did not: the key slot stops being a function of the emission index, which kills the difficulty-ordinal attack that scores 70.5% on the current `FLU-OPCHAIN-01`.
 
 **Cost.** Item difficulty can no longer be a number in a file. It is computed at serve time from the template plus the session mapping, and it must be *recorded* with the served item so scoring and replay agree. Determinism therefore moves from "the bank is fixed" to "the session seed is fixed", which is a change §9 of `STAGE2_QUESTION_DESIGN.md` and the auditability requirements in Category 9 of the test-structure BrainLift both have opinions about. R7 is the binding requirement: a rejected family's result must be reconstructible.
+
+#### 2.1.1 The template contract, as built
+
+Three sibling type redesigns are being built against this, so it is stated as a contract rather than as a description. It is defined once for all four types in `research/exam-question-types/stage2-item-template.mjs`; `FLU-OPCHAIN-01` is the only implementation today.
+
+A template carries four things:
+
+| Carries | Form | Why this form |
+| --- | --- | --- |
+| **the input state** | type-specific and opaque to the contract | the four types have no `input` in common |
+| **the chain** | references to symbol **slots** — `[0, 3, 1]` — never to meanings | what a slot means, and which badge the child sees for it, are both session facts |
+| **distractor rationales** | transformations of the chain, in a fixed **priority order**: `reorder`, `drop`, `repeat`, `substitute`, `prefix`, `reverse` | expressible before any operator is known, so the same rationale yields a valid wrong option under every mapping instead of under 18.4% of them |
+| **structural facts** | slot count, chain length, the slot set, glyph, band, reachable-figure count | the levers §3 prices, all relabelling-invariant |
+
+And it carries three things by their **absence**: no `answer`, no `difficulty`, and **no name of any hidden meaning anywhere in the record**. The third is the rule that makes the whole thing work, and it is executable — `assertNoMeaningNames` runs over every template the emitter writes, so a type that mentions `turn` fails at build time rather than three measurements later.
+
+Two properties of the priority order are load-bearing. It is **class-interleaved**, so the first four rationales span four lure classes rather than being three reorders and a drop, which keeps §4.6's strategy trace informative. And it is **fixed in the file**, so the server walks the same list under every mapping and the slate is reproducible from the seed. The list is deliberately long: collisions are the normal case, not the exception — five of the six operators are involutions, so `repeat@0` and `drop@0` produce the same figure whenever slot 0 means one of them.
+
+#### 2.1.3 The contract has already diverged once, and it needs an owner decision
+
+`VER-ROLES-01` (D-208) writes to the same `templates/` directory from a different reading of this section, and its records do not satisfy the contract above. Two fields:
+
+| Field | §2.1 as written | `VER-ROLES-01` | Why it did it |
+| --- | --- | --- | --- |
+| `difficulty` | forbidden — "item difficulty can no longer be a number in a file" | a stored design rung | the engine's selection index carries a difficulty, and there is no session yet when the index is built |
+| `answer.correctKey` | forbidden — which option is correct is a session fact | a build-time reference key | the true key is re-derived from the materialised sentence under the drawn grammar; the stored one is a cross-check |
+
+Neither is a defect in that type on its own terms, and the second is arguably the stronger design — a stored key that the materialisation must *agree with* is a check the `FLU-OPCHAIN-01` path does not have. But two banks in one directory answering to two contracts is how a shared format stops being one, so this needs a decision rather than a convention:
+
+1. **The contract holds and `VER-ROLES-01` moves to it.** It then needs the index problem solved the way `FLU-OPCHAIN-01` solved it — re-price per trial — which is a change to how the runner fetches items, not just to a generator.
+2. **The contract admits both fields as optional.** Cheaper, and it gives up the property that makes the format worth having: a reader can no longer tell whether a `difficulty` in a template is authoritative.
+3. **The two are different artifacts with different names.** Honest, and it means "template" stops meaning one thing across the four types, which is what §2.1 set out to make it mean.
+
+Nothing in the serve-time materialisation path depends on the answer: it reads `templates/FLU-OPCHAIN-01.jsonl` by name. `assertNoMeaningNames` and `templateProblems` in `stage2-item-template.mjs` encode option 1, and are reported rather than enforced on any type but the one they were written for.
+
+#### 2.1.2 What it fixed, and what it cost
+
+Measured over all 720 bijections; one command, `stage2-serve-time-materialisation-probe.mjs`.
+
+| | shipped bank, re-keyed | materialised |
+| --- | --- | --- |
+| key on screen, chain depth 1 | 83.3% | **100.0%** |
+| depth 2 | 29.9% | **100.0%** |
+| depth 3 | 18.0% | **100.0%** |
+| depth 4 | **18.4%** | **100.0%** |
+| templates excluded, depth 4 | — | 10.8% |
+| F7b ordinal slot attack, over its own permutation null | **+38.5 points** | **−0.83** |
+| difficulty drift across mappings, structural levers | mean 0.83 / p95 2.94 | **0.000** |
+| session replay from the seed | not applicable | exact, 8 of 8 seeds |
+
+The 18.4% and 83.3% figures are this branch's own implementation and read about 5 points higher than the 13.8% / 78.2% on the register; E-210 records that the two are not interchangeable and that the recorded pair is authoritative.
+
+Exclusion is the price of the guarantee, and it is the two guards the shipped generator applies at build time and a template cannot: under some mappings the drawn operators make the chain a no-op on its input, or make its orientation operators cancel in D4. Both make the item easier than its chain length, so both are excluded from that session rather than served mislabelled.
+
+**What did not survive.** The bank's promise of ">=5 items on every 0.5-point rung" has no successor, because an item has no difficulty until a session prices it. What replaced it is measured per trial and is weaker: see §3.1.
+
+---
 
 ---
 
@@ -76,6 +135,20 @@ Four levers, all relabelling-invariant:
 Residual ambiguity is the one that replaces class-counting, and it is strictly better: it is what actually makes an item hard for *this child at this point in the block*, which is what an adaptive block wants to target. The learnability oracles built in PR #48 already compute exactly this quantity — they were written to report when a primitive becomes deducible. This spec reuses them as the difficulty function rather than as a report.
 
 **Consequence for operator sets.** All operators within a type must be equal in intrinsic cost, or difficulty leaks back to which operator was drawn. Type designs in §5 are constrained accordingly.
+
+### 3.1 As built on `FLU-OPCHAIN-01`, and the two things it costs
+
+**Status: BUILT. D-210, E-210.** The oracle is imported and used as the difficulty function — `stage2-learnability-core.mjs`'s `createOracle` with the existing `flu-opchain` adapter — so the difficulty model and the learnability report cannot disagree about what a reveal rules out. Residual ambiguity is read as *the readings still consistent with every reveal so far **and** still landing on some option of this item*: both halves matter, because a reading predicting a figure that is not on screen tells the child nothing here.
+
+The levers land where the table says. Measured across 8 drawn mappings on 336 templates, the **structural levers moved on 0.0% of templates, max drift 0.000**, against the shipped `geom` model's mean 0.83 / p95 2.94 on this same type. The total moves by mean 0.27 / p95 0.48 — all of it through residual ambiguity, which is what this section asks of it. That the drift is *attributable* rather than merely *bounded* is the property under test: prices are grouped by the residual ambiguity they were computed at, and within a group they must be identical, because the only thing left varying is which operators the mapping drew.
+
+**Two costs. Both are consequences of this section as written, and neither is mentioned above.**
+
+**(a) The model is coarser than the ladder it replaces.** Three of the four levers saturate — chain length is a small integer, vocabulary in play is a *block* fact and so identical across every candidate at a given trial, and residual ambiguity goes to 1 for every item the moment the system is pinned, which on a seeded 30-trial run happened at trial 12. Evidence is the only lever that both varies across candidates late in a block and does not saturate, so its resolution is the pool's resolution. Even read at full resolution, the pool lands within the 0.25 `itemSelectionTolerance` on **46.7% of trials** (mean error 0.38, p95 0.97) and **11 of 39 half-point rungs are unreachable at any trial of any session**. The shipped bank guarantees five items on every rung.
+
+**(b) Two of the four levers are monotone in trial index by construction.** Evidence only accumulates and residual ambiguity only shrinks, so an unchanged item's price *falls* as the block runs: measured on the whole unserved pool, which contains no selection, the mean price goes from **14.17 at trial 1 to 8.90 at trial 30, r = −0.794**. That is the intended reading of this section — an item genuinely is easier once you know the system — and it collides with how the climb is fitted. `estimateLearningCurve` takes difficulty as the item covariate, and a covariate that declines with trial index by construction absorbs part of the climb it conditions on. This is §1.1(d)'s structured-labelling error arriving from the opposite direction: not a difficulty that is wrong, but one that is right and correlated with the thing being estimated.
+
+The implementation records `levers.structural` — the two levers a file *could* have held, with no evidence term — as an evidence-free covariate a fit can use instead. **Whether the fit should use it, and whether this section should be amended to say so, is an owner decision and is not settled here.**
 
 ---
 
@@ -190,7 +263,7 @@ six-reading space from the base-order rule with no extra hidden parameter.
 
 ## 8. Suggested sequence
 
-1. The serve-time materialisation path, proved on `FLU-OPCHAIN-01` — the one type that stays. It is the riskiest piece and it is testable against a bank whose behaviour is already measured.
+1. ~~The serve-time materialisation path, proved on `FLU-OPCHAIN-01`~~ — **done, D-210/E-210.** Two things it left behind: the §3.1(a) granularity loss and the §3.1(b) trial-index confound, both owner decisions. One thing it left unbuilt: the runner still fetches the selection index once per session, and on this path it must re-fetch per trial, because an item's price is a function of the evidence.
 2. The four cross-cutting mechanics, on that same type.
 3. Alien Numbers, as the first redesign — the slider is the smallest surface and it resolves two open items.
 4. The verbal type, as the one currently unusable.
