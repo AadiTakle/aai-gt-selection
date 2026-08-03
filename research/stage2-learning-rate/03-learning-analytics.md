@@ -226,6 +226,7 @@ Same true generating model, same true rate, only the sequence length changed —
 
 These are framed as *falsifiable candidates* with the check that would discriminate them. None is an insight; the human owner writes those.
 
+<!-- id-audit:ignore-start — H1..H12 below are this document's own hypothesis numbering, not H-family requirement IDs -->
 **H1 (constraint artifact).** The contamination floor is the arithmetic consequence of a one-sided constraint or asymmetric prior on λ. *Check:* refit the null cohort with λ unconstrained and a symmetric prior; the sign of λ̂ should be ~50/50. If it is, the floor is bookkeeping [F7, F6]. If λ̂ stays positive in ~all children, H1 is not the (only) story.
 
 **H2 (curvature artifact).** The floor is what a straight line in log-odds does to a concave or floor-compressed true curve over early trials [F16, F4]. *Check:* fit a saturating/exponential form and a free-per-position form to the null cohort; the linear-λ estimate should be positive while the free-position fit shows no monotone trend.
@@ -249,6 +250,7 @@ These are framed as *falsifiable candidates* with the check that would discrimin
 **H11 (report the intercept, not the slope).** Every large-scale result in this lane finds the *intercept* reliable and valid and the *slope* fragile [F11, F14, F16]. If above-level initial performance is the reliable signal, the honest product may be an above-level level estimate rather than a rate — with the rate demoted to a research quantity. This is a product hypothesis, not a measurement one, and belongs to the owner.
 
 **H12 (specify the null explicitly and test against it).** [F4] Doroudi & Brunskill's method is the template: generate data from a model where the parameter of interest is *known to be zero*, fit the production estimator, and read off what it reports. The existing 3,200-child null cohort already does this; the missing step is doing it at several block lengths (10 / 20 / 30 / 60) to see whether the bias moves with length, which would confirm misspecification rather than constraint as the mechanism.
+<!-- id-audit:ignore-end -->
 
 ---
 
