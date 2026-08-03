@@ -10,7 +10,7 @@ afterEach(() => {
 /**
  * These assertions were rewritten for the pivot (2026-08-03, see
  * `docs/product/COGAT_PREP_PIVOT.md` §7.1) rather than adjusted. They previously
- * pinned admissions behaviour — "submit your application first", "continue to the
+ * pinned admissions behavior — "submit your application first", "continue to the
  * assessment", and the absence of the $75 fee *on this card* — and each is a
  * statement about a product that no longer exists. The fee one especially is not
  * something to relax: it asserted the price was advertised elsewhere, and there

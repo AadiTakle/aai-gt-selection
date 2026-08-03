@@ -9,6 +9,7 @@ export default function FamilyAssessmentPreview() {
     <AssessmentPage
       dashboardHref="/dev/family-preview/dashboard"
       examHref="/dev/family-preview/exam"
+      aboutHref="/dev/family-preview/about-the-test"
     />
   );
 }

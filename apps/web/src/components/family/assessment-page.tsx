@@ -42,9 +42,18 @@ const BATTERIES = [
 export function AssessmentPage({
   dashboardHref,
   examHref,
+  aboutHref,
 }: {
   dashboardHref: string;
   examHref: string;
+  /**
+   * The explainer on what the CogAT is and how it gets used. Offered HERE, on the
+   * baseline step, because this is the moment a parent is deciding whether the
+   * thing is worth 40 minutes of their child's afternoon — and the answer depends
+   * on understanding what the real test rewards. Optional so the component still
+   * renders in contexts that have no route for it.
+   */
+  aboutHref?: string;
 }) {
   return (
     <div className={styles.wrap}>
@@ -58,8 +67,16 @@ export function AssessmentPage({
           <h1 className={styles.title}>See where you place</h1>
           <p className={styles.lede}>
             A short reasoning session that finds your child’s level in each area, then points at the
-            ones worth practising. Free, and you can take it again later to see what moved.
+            ones worth practicing. Free, and you can take it again later to see what moved.
           </p>
+          {aboutHref ? (
+            <p className={styles.aboutLine}>
+              New to this?{' '}
+              <Link className={styles.aboutLink} href={aboutHref}>
+                Read what the CogAT is and how schools use it →
+              </Link>
+            </p>
+          ) : null}
         </div>
       </section>
 
@@ -80,13 +97,13 @@ export function AssessmentPage({
             <div className={styles.fact}>
               <dt className={styles.factLabel}>Preparation</dt>
               <dd className={styles.factValue}>
-                None needed. This one is the starting point you practise against
+                None needed. This one is the starting point you practice against
               </dd>
             </div>
             <div className={styles.fact}>
               <dt className={styles.factLabel}>You get back</dt>
               <dd className={styles.factValue}>
-                A level in each of the three areas, the question types worth practising first, and a
+                A level in each of the three areas, the question types worth practicing first, and a
                 way in to practice
               </dd>
             </div>
@@ -132,7 +149,7 @@ export function AssessmentPage({
       <p className={styles.boundary}>
         This is practice, not an official test. It is not an IQ test, it is not affiliated with or
         endorsed by the makers of the CogAT, and the levels here do not predict a score on it. What
-        it gives you is a starting point and something to practise against.
+        it gives you is a starting point and something to practice against.
       </p>
     </div>
   );

@@ -64,7 +64,7 @@ export function AssessmentGate({
       <p className={styles.kicker}>Start here</p>
       <p className={styles.title}>See where you place</p>
       <p className={styles.note}>
-        A short session that finds your child’s level in each area and points at what to practise
+        A short session that finds your child’s level in each area and points at what to practice
         first. Free, and under 40 minutes.
       </p>
       <Link className={styles.primary} href={assessmentHref}>

@@ -19,7 +19,7 @@ import styles from './about-the-test.module.css';
  *
  * Every factual claim traces to the project's own research rather than to general
  * knowledge — the battery structure and untimed younger levels to the
- * CogAT gaps report, the SD-16 scale and tail behaviour to the
+ * CogAT gaps report, the SD-16 scale and tail behavior to the
  * gifted-assessment-quality BrainLift (Insight 11), and the admissions usage to
  * E-096 and E-099, which record what one school actually does.
  */
@@ -100,9 +100,9 @@ export function AboutTheTest({ baselineHref }: { baselineHref: string }) {
         <p className={styles.kicker}>Background</p>
         <h1 className={styles.title}>What the CogAT is, and what it is looking for</h1>
         <p className={styles.lede}>
-          Most gifted programmes decide using a reasoning test, and in the US that test is very
-          often the CogAT. It is worth understanding what it actually measures before you practise
-          for it, because the thing it rewards is not the thing most people assume.
+          Most gifted programs decide using a reasoning test, and in the US that test is very often
+          the CogAT. It is worth understanding what it actually measures before you practice for it,
+          because the thing it rewards is not the thing most people assume.
         </p>
       </section>
 
@@ -151,7 +151,7 @@ export function AboutTheTest({ baselineHref }: { baselineHref: string }) {
 
         <p className={styles.note}>
           These are descriptions of each question kind and our own practice items — not questions
-          from the real test, which are copyrighted and kept secure. That is the point of practising
+          from the real test, which are copyrighted and kept secure. That is the point of practicing
           on ours: a real item in your hands would not be practice, it would be a leak.
         </p>
       </section>
@@ -161,8 +161,8 @@ export function AboutTheTest({ baselineHref }: { baselineHref: string }) {
         <p className={styles.p}>
           Raw answers become a scaled score, and that becomes a percentile — the share of same-age
           children scoring at or below your child. A 95th percentile means 95 of 100 same-age
-          children scored at or below them. Programmes usually set their bar in percentiles,
-          commonly somewhere from the 90th up.
+          children scored at or below them. Programs usually set their bar in percentiles, commonly
+          somewhere from the 90th up.
         </p>
         <p className={styles.p}>
           Two things about those numbers are worth knowing, because they explain a lot of confusing
@@ -231,7 +231,7 @@ export function AboutTheTest({ baselineHref }: { baselineHref: string }) {
         <h2 className={styles.h2}>Where to start</h2>
         <p className={styles.p}>
           Take the baseline. It reports the same three areas, so you can see which one is furthest
-          behind and practise that instead of practising everything equally.
+          behind and practice that instead of practicing everything equally.
         </p>
         <Link className={styles.primary} href={baselineHref}>
           See where you place →

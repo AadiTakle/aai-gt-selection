@@ -277,3 +277,22 @@
     grid-template-columns: 84px 1fr;
   }
 }
+
+/* Link out to the CogAT explainer, offered on the baseline step. */
+.aboutLine {
+  margin: 0.875rem 0 0;
+  font-size: 0.9375rem;
+  color: var(--gt-muted, #5a6b7b);
+}
+
+.aboutLink {
+  color: var(--gt-navy, #0f2742);
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.aboutLink:focus-visible {
+  outline: 3px solid var(--gt-gold, #f2b705);
+  outline-offset: 2px;
+}
