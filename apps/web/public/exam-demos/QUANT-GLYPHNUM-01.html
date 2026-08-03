@@ -96,10 +96,15 @@
   .opt[disabled]{cursor:default}
   .opt[disabled]:hover{transform:none}
   /*
-   * Post-commit marks. BOTH are the same neutral navy and neither carries a verdict word, a tick,
-   * a cross or a good/bad colour: one says which place the child chose, the other says which place
-   * the expression turned out to sit at. Reading the two together is the informational feedback
-   * the design allows; being TOLD which of the two is right is the evaluative feedback it forbids.
+   * Post-commit marks. One says which place the child chose, the other says which place the
+   * expression turned out to sit at, and neither carries a verdict word, a tick, a cross or a
+   * good/bad colour. Reading the two together is the informational feedback the design allows;
+   * being TOLD which of the two is right is the evaluative feedback it forbids.
+   *
+   * These are the fallback pairing. `exam-skin.css` loads after this block and restyles both marks
+   * into the audited review palette — a colour, a shape, a position and a border style per role
+   * (STAGE2_REDESIGN_SPEC §4.3, D-209) — which is where the contrast figures are recorded and
+   * tested. Keeping the local rules means a demo opened without the skin still distinguishes them.
    */
   .opt.chose{border-color:var(--accent2)}
   .opt.goes{border-color:var(--accent);box-shadow:0 0 0 4px #ecd9cb}
@@ -422,16 +427,27 @@ function drawOptions(options){
     `<span class="platerail"><span class="platetick" style="left:${railPct(o.ratio)}%"></span></span>`+
     `<span class="platekey">${o.key}</span></button>`).join('');
 }
+/**
+ * Mark one plate with one ROLE — 'chose' for the place the child picked, 'goes' for the place the
+ * expression turned out to sit at.
+ *
+ * One tag element per role, keyed by `data-mark`. A single shared tag would be overwritten on the
+ * one plate that carries both roles, which is exactly the plate the child has most to read: they
+ * picked where the writing sits, and a reviewable trial has to say both things there rather than
+ * whichever was written last (STAGE2_REDESIGN_SPEC §4.3).
+ */
 function tagOption(key,cls,text){
   const el=$(`#options .opt[data-key="${key}"]`);
   if(!el)return;
   el.classList.add(cls);
-  const existing=el.querySelector('.tag');
-  if(existing){existing.textContent=text;return;}
-  const tag=document.createElement('span');
-  tag.className='tag';
+  let tag=el.querySelector(`.tag[data-mark="${cls}"]`);
+  if(!tag){
+    tag=document.createElement('span');
+    tag.className='tag';
+    tag.dataset.mark=cls;
+    el.appendChild(tag);
+  }
   tag.textContent=text;
-  el.appendChild(tag);
 }
 function lockOptions(){$$('#options .opt').forEach(el=>{el.disabled=true;});}
 

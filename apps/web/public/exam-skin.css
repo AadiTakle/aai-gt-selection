@@ -202,6 +202,90 @@ html[data-gt-chrome='off'] #stagecard {
   outline-offset: 2px;
 }
 
+/* ---- the reviewable trial (STAGE2_REDESIGN_SPEC §4.3, D-209) ---- */
+
+/*
+ * A committed Stage 2 trial is REVIEWABLE: it shows what the machine produced and which option the
+ * child picked, and it tells the two apart on four channels — colour, shape, where the mark sits,
+ * and the border style of the tile it marks. Four rather than one because colour alone is not a
+ * channel (WCAG 2.2 SC 1.4.1), and because both marks land on the SAME tile whenever the child
+ * picked what the machine made, which is the case the reveal most has to stay legible in.
+ *
+ * Nothing here evaluates the child. No tick, no cross, no green, no red, no tally. The machine's
+ * mark says what the machine did, the child's mark says what the child did, and reading the two
+ * together is the child's own inference — which is the whole difference between feedback that
+ * points at the work and feedback that points at the person (Kluger & DeNisi 1996; D-209).
+ *
+ * Audited against #ffffff (the tile), #fcf4ef (the standalone page) and #ecd9cb (an unmarked
+ * tile's border). `stage2-reveal.test.ts` re-derives every ratio below from this file, so a later
+ * edit that breaks one fails the suite rather than shipping.
+ *
+ *   the machine's output   solid #004f71 border + #4b8299 ring; ROUNDED pill BELOW the tile;
+ *                          #ffffff on #004f71 — 8.91:1 text, 8.91:1 border, 4.24:1 ring
+ *   the child's choice     dashed #6f4526 border; SQUARE tab INSIDE the tile's top-left corner;
+ *                          #001117 on #e48b53 — 7.43:1 text, 8.22:1 border and tab outline
+ *
+ * The two fills are 3.44:1 apart, so the roles separate by lightness and not only by hue. That is
+ * what keeps them apart for a monochromat as well as for a dichromat.
+ *
+ * Scoped to `#options .opt`, and the tabs to `[data-mark]`, so only the four Stage 2 renderers that
+ * emit these marks are affected. Loaded last, so these win on specificity over each demo's own
+ * pre-review rules without those rules having to be deleted — they remain the fallback if this
+ * sheet ever fails to load.
+ */
+
+#options .opt.made,
+#options .opt.goes,
+#options .opt.chose.made,
+#options .opt.chose.goes {
+  border-style: solid;
+  border-color: #004f71;
+  box-shadow: 0 0 0 4px #4b8299;
+}
+
+#options .opt.chose {
+  border-style: dashed;
+  border-color: #6f4526;
+}
+
+#options .opt .tag[data-mark='made'],
+#options .opt .tag[data-mark='goes'] {
+  left: 50%;
+  right: auto;
+  top: auto;
+  bottom: -9px;
+  transform: translateX(-50%);
+  border: 1px solid #004f71;
+  border-radius: 999px;
+  background: #004f71;
+  color: #ffffff;
+  z-index: 2;
+}
+
+/*
+ * Inside the tile rather than hanging off it, because on a coincident tile the machine's pill
+ * already owns the space below and two pills on one edge would overlap at five-across.
+ */
+#options .opt .tag[data-mark='chose'] {
+  left: -1px;
+  right: auto;
+  top: -1px;
+  bottom: auto;
+  padding: 2px 6px;
+  transform: none;
+  border: 1px solid #6f4526;
+  border-radius: 11px 0 8px 0;
+  background: #e48b53;
+  color: #001117;
+  z-index: 2;
+}
+
+/* The slot the machine's output is drawn into, kept in the machine's own colour. */
+#outslot.made {
+  border-color: #004f71;
+  box-shadow: 0 0 0 4px #4b8299;
+}
+
 /* ---- ready when you are ---- */
 
 /*
