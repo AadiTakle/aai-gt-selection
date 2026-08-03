@@ -298,6 +298,31 @@ export function clearLearningBlockHandoff(): void {
   emit();
 }
 
+/** Every type code reserved for a Phase 2 activity. */
+export const LEARNING_BLOCK_TYPE_CODES: readonly string[] = LEARNING_BLOCKS.map(
+  (spec) => spec.typeCode,
+);
+
+/**
+ * The pool Phase 1 may draw from: everything EXCEPT the Phase 2 activity types.
+ *
+ * Two separate reasons, either of which alone would be sufficient.
+ *
+ * 1. **They measure different things.** A Phase 1 item is scored on whether the child can already
+ *    do it, against a calibrated difficulty. A Phase 2 item is one trial of a run in which the
+ *    child induces a hidden system that never repeats — a single one of them, met cold, measures
+ *    almost nothing about standing, because the thing it is built to detect only exists across
+ *    trials.
+ * 2. **It would destroy the measurement it feeds.** Phase 2 requires items Phase 1 never served,
+ *    and not merely to avoid repeats: an item seen in Phase 1 has already taught the child part of
+ *    the system, so the block would open with a head start that is invisible to the fit and reads
+ *    as a climb the child did not make. That is the confound `deriveLearningRate` was retired for.
+ */
+export function phase1Pool(pool: readonly ServedItem[]): ServedItem[] {
+  const reserved = new Set(LEARNING_BLOCK_TYPE_CODES);
+  return pool.filter((item) => !reserved.has(item.typeCode));
+}
+
 /** Items of one activity's type, in its area, that Phase 1 never served. */
 export function blockPool(
   spec: LearningBlockSpec,
@@ -424,9 +449,7 @@ export function availableBlocks(
   ).sort((a, b) => {
     const byStanding = (standings[a.area] ?? 0) - (standings[b.area] ?? 0);
     // Ties keep the declaration order, so the sequence stays deterministic and replayable.
-    return byStanding !== 0
-      ? byStanding
-      : LEARNING_BLOCKS.indexOf(a) - LEARNING_BLOCKS.indexOf(b);
+    return byStanding !== 0 ? byStanding : LEARNING_BLOCKS.indexOf(a) - LEARNING_BLOCKS.indexOf(b);
   });
 }
 
@@ -622,10 +645,7 @@ const PARTIAL_COVERAGE_REASON =
   'Your child completed part of the practice section. The activities they did finish are on the ' +
   'record, but a pace is not something we can report from them yet.';
 
-export function summariseStage2(
-  blocks: readonly CompletedBlock[],
-  offered: number,
-): Stage2Readout {
+export function summariseStage2(blocks: readonly CompletedBlock[], offered: number): Stage2Readout {
   const completed = blocks.length;
   return {
     blocks,

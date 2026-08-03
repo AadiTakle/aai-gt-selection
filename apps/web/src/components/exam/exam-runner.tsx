@@ -54,6 +54,7 @@ import {
   availableBlocks,
   blockGuessingFloor,
   blockPool,
+  phase1Pool,
   clearLearningBlockHandoff,
   learningBlockHandoffServerSnapshot,
   learningBlockHandoffSnapshot,
@@ -548,7 +549,6 @@ export function ExamRunner({
     [serveNextBlockItem],
   );
 
-
   const startLearningBlock = useCallback(
     async (handoff: LearningBlockHandoff) => {
       setError(null);
@@ -574,9 +574,9 @@ export function ExamRunner({
         // and a settled standing in that area to aim at.
         setBlockQueue(
           (blockQueueRef.current = availableBlocks(
-          pool,
-          handoff.seenItemIds,
-          handoff.standings,
+            pool,
+            handoff.seenItemIds,
+            handoff.standings,
             handoff.completedBlockIds,
           )),
         );
@@ -794,7 +794,9 @@ export function ExamRunner({
     try {
       const pool = await fetchServedPool();
       if (pool.length === 0) throw new Error('EMPTY_BANK');
-      banksRef.current = buildBanks(pool);
+      // Phase 1 never draws a Phase 2 activity type: they measure a different thing, and an
+      // item spent here is one the block can no longer treat as unfamiliar (phase2.ts).
+      banksRef.current = buildBanks(phase1Pool(pool));
       const state = startState(gradeBand, examEngineOverrides());
       stateRef.current = state;
       setEngineState(state);
@@ -1035,21 +1037,23 @@ export function ExamRunner({
                 : 'Part two — learning something new'}
             </p>
             <h1 className={styles.title}>
-              {isResuming ? `Next up: ${upcoming?.label ?? 'a new activity'}.` : 'These are meant to be hard.'}
+              {isResuming
+                ? `Next up: ${upcoming?.label ?? 'a new activity'}.`
+                : 'These are meant to be hard.'}
             </h1>
             {isResuming ? (
               <p className={styles.lede}>
                 That was a different puzzle from the one before it, and this next set works by its
-                own rules again. {upcoming ? `There are ${upcoming.length} of them.` : ''} Same
-                idea as last time: nobody is expected to get them all, and what matters is how you
-                get on as you go.
+                own rules again. {upcoming ? `There are ${upcoming.length} of them.` : ''} Same idea
+                as last time: nobody is expected to get them all, and what matters is how you get on
+                as you go.
               </p>
             ) : (
               <p className={styles.lede}>
                 The next part is a set of activities made of puzzles you have not seen before,
                 pitched a little above where you just finished. Each one works by its own hidden
-                rules, and you work them out as you go. You are not expected to get them all —
-                most people do not, and that is exactly how this part is supposed to feel.
+                rules, and you work them out as you go. You are not expected to get them all — most
+                people do not, and that is exactly how this part is supposed to feel.
               </p>
             )}
             <p className={styles.lede}>
