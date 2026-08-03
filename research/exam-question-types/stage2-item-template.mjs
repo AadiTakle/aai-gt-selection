@@ -9,7 +9,7 @@
 //
 // `FLU-OPCHAIN-01` implements it, and is the type the serve-time materialisation path runs.
 //
-// `VER-ROLES-01` (D-208) also writes to `templates/`, arrived first, and does NOT satisfy
+// `VER-ROLES-01` (D-209) also writes to `templates/`, arrived first, and does NOT satisfy
 // {@link templateProblems} — deliberately reported here rather than quietly accommodated, because the
 // two workstreams reached the same directory from different readings of §2.1 and only one of them can
 // be the contract. Its records keep two fields this rejects:

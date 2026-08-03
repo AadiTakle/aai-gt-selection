@@ -31,7 +31,7 @@ import {
  * Born-synthetic only (`syntheticOnly=true`, `validated=false`).
  *
  * ---------------------------------------------------------------------------
- * SERVE-TIME MATERIALISATION (D-210), off unless `EXAM_SERVE_TIME_MATERIALISATION` is set
+ * SERVE-TIME MATERIALISATION (D-211), off unless `EXAM_SERVE_TIME_MATERIALISATION` is set
  *
  * With the flag on AND a `sessionId`, `FLU-OPCHAIN-01` items come from a session materialised out of
  * `research/exam-question-types/templates/` instead of from the shipped bank: the server draws the

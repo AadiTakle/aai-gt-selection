@@ -285,7 +285,7 @@ ROW = {
         "control-templates/, outside the served banks/ directory, because a template has no "
         "content.options and is not a servable item; the serve-time materialisation path does not "
         "yet exist. There is no renderer and no verifier. Whether this type loads on verbal rather "
-        "than fluid reasoning is UNTESTED. See docs/product/STAGE2_VER_ROLES_01_SPEC.md and D-208.",
+        "than fluid reasoning is UNTESTED. See docs/product/STAGE2_VER_ROLES_01_SPEC.md and D-209.",
     },
     "demo_path": "demos/VER-ROLES-01.html",
     "engagement_hook": "The alien sentence looks like nonsense until the moment it clicks — and then "

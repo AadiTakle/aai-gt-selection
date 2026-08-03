@@ -23,7 +23,7 @@ import type { NextRequest } from 'next/server';
  *
  * WHERE THE BOUNDARY NOW SITS. §1.5 originally fixed the reveal as outcome-free — the mechanism's
  * next visible state and nothing else, identical for every child. STAGE2_REDESIGN_SPEC §4.3 changed
- * that deliberately (D-209): the trial is REVIEWABLE, showing what the machine produced and what the
+ * that deliberately (D-210): the trial is REVIEWABLE, showing what the machine produced and what the
  * child answered, and those two facts cannot both be shown without the picture differing by outcome.
  * What did not change is the reason §1.5 existed. Feedback that points at the child is the failure
  * its evidence is about (Kluger & DeNisi 1996; van Duijvenvoorde et al. 2008; Deci, Koestner & Ryan
@@ -43,7 +43,7 @@ import type { NextRequest } from 'next/server';
  *  5. the two marks could be told apart by COLOUR ALONE, or at a contrast a child cannot read.
  *
  * TWO RESPONSE SHAPES, ONE SET OF PROPERTIES. Three of the four types answer by choosing one of
- * several options on screen. `QUANT-GLYPHNUM-01` does not: since D-211 it is a slider, so the child
+ * several options on screen. `QUANT-GLYPHNUM-01` does not: since D-212 it is a slider, so the child
  * answers with a POSITION on a number line and the mechanism resolves to a position too. Every
  * property this file polices is a property of the SET and has to hold for both shapes, so the harness
  * reads each renderer in its own currency and reports one common structure — a list of marked PLACES,
@@ -380,7 +380,7 @@ describe('the reveal carries no correctness signal', () => {
  *
  * That suite asserted `REVEAL_HOLD_MS` was the one thing that ended every revealed trial, and it
  * required the hold body to contain no branch at all. Stage 2 no longer has a hold: the trial stays
- * up until the child presses Next (STAGE2_REDESIGN_SPEC §4.2, D-209), so a branch now exists and
+ * up until the child presses Next (STAGE2_REDESIGN_SPEC §4.2, D-210), so a branch now exists and
  * has to. What the old suite was actually protecting is preserved and made explicit — the branch is
  * on the PHASE and never on the OUTCOME, so no child waits longer or shorter for having been right.
  *
@@ -705,7 +705,7 @@ function reviewCopy(trial: PlayedTrial): string {
  * reviewable, it shows what the machine produced AND what the child answered, and those two facts
  * cannot be shown together without the picture differing between a child who matched the machine and
  * one who did not. A block that never lets a child see what happened gives them nothing to learn
- * from, which undercuts the construct it is measuring (D-209).
+ * from, which undercuts the construct it is measuring (D-210).
  *
  * So the boundary moves rather than disappearing, and this suite pins where it moved to:
  *
@@ -966,7 +966,7 @@ describe('the review palette', () => {
   });
 
   /**
-   * The same four channels for the type that answers with a POSITION (D-211).
+   * The same four channels for the type that answers with a POSITION (D-212).
    *
    * `QUANT-GLYPHNUM-01` has no `#options`, so the rules above cannot reach it and it would otherwise
    * be the one type whose review is unstyled and unaudited. It reuses this block's palette rather

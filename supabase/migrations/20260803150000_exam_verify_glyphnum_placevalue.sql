@@ -1,5 +1,5 @@
 -- QUANT-GLYPHNUM-01's notation reader is replaced: base-6 PLACE VALUE, not the base-4 hybrid.
--- Serves R11; implements D-211. Replaces the reader added in 20260803021000.
+-- Serves R11; implements D-212. Replaces the reader added in 20260803021000.
 --
 -- WHY THIS MIGRATION EXISTS AND WHAT WOULD HAVE HAPPENED WITHOUT IT. `app.exam_verify_quant_glyphnum`
 -- re-derives the target ratio rather than trusting the stored one, which is the whole reason it exists
@@ -18,7 +18,7 @@
 -- THE NOTATION. Five arbitrary marks map bijectively onto the digit values {1,2,3,4,5} of a base-6
 -- place-value system, leftmost mark most significant. There is no zero digit: a zero-free digit set in
 -- base b has b-1 members, which is why five marks do not announce base 6, and why every digit costs the
--- same to learn (D-211 alternative (c)). A numeral is read `value = value * 6 + digit` across its marks,
+-- same to learn (D-212 alternative (c)). A numeral is read `value = value * 6 + digit` across its marks,
 -- and the line's maximum is the anchor numeral read the same way.
 --
 -- WHAT IS AND IS NOT SECRET. `app.exam_vglyphnum_pv_value` holds no key material: the secret is which

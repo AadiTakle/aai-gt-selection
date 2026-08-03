@@ -345,7 +345,7 @@ export type BlockFloorBasis =
    * `QUANT-GLYPHNUM-01` is the first such activity: the child places a slider on a number line and is
    * graded on a tolerance the browser never receives. There is no option count to take a reciprocal
    * of, and the old reader returned `null` for it — which fell through to the FIVE-OPTION default and
-   * fitted a fifteen-alternative response at 0.2. That is the same class of misspecification E-207
+   * fitted a fifteen-alternative response at 0.2. That is the same class of misspecification E-212
    * measured on `VER-MORPHO-01`, three times larger.
    */
   | { readonly kind: 'response-format'; readonly format: 'continuous_placement' }
@@ -387,9 +387,9 @@ const MIN_GUESSABLE_OPTIONS = 2;
  * all five-option: `VER-MORPHO-01` offers four, so the block it runs was fitted and aimed at 0.2
  * against a truth of 0.25. D-200 part 1 already provides for this — "callers administering a
  * different item format pass the reciprocal of their option count" — and this is the caller doing
- * it. E-207 measures what it is worth on the shipped targeting rule.
+ * it. E-212 measures what it is worth on the shipped targeting rule.
  *
- * IT READS THE FORMAT, NOT JUST A COUNT, and that is D-211. `QUANT-GLYPHNUM-01` is now a slider on a
+ * IT READS THE FORMAT, NOT JUST A COUNT, and that is D-212. `QUANT-GLYPHNUM-01` is now a slider on a
  * number line: there is no option count, so the count-only reader returned `null` and this function
  * fell through to the five-option default — fitting and aiming a fifteen-alternative response as
  * though it were a five-alternative one. A reciprocal of nothing is not a floor, and a continuous
@@ -619,7 +619,7 @@ const SHORT_BLOCK_REASON =
  *
  * `guessing` is the block's own chance floor from {@link blockGuessingFloor} — the READOUT half of
  * the pair {@link nextBlockTarget} completes. Leaving it at the default fits a four-option activity
- * as though it were five-option, which is the misspecification E-207 measures.
+ * as though it were five-option, which is the misspecification E-212 measures.
  */
 export function summariseLearningBlock(
   trials: readonly LearningTrial[],

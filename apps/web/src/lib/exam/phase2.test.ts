@@ -240,7 +240,7 @@ describe('blockGuessingFloor', () => {
    *
    * This is the case the count-only reader got wrong, and it got it wrong SILENTLY — no option list
    * meant `null`, `null` meant "nothing declared", and "nothing declared" meant the five-option
-   * default. A fifteen-alternative response was therefore fitted and aimed at 0.2, which is E-207's
+   * default. A fifteen-alternative response was therefore fitted and aimed at 0.2, which is E-212's
    * misspecification three times over. The format tag is what separates "declares no options" from
    * "declares that the answer is a position".
    */

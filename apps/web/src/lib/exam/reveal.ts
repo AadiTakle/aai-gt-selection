@@ -94,7 +94,7 @@ const REVEAL_BUILDERS: Record<string, RevealBuilder> = {
    * QUANT-GLYPHNUM-01: the machine puts its writing at its place on the line, and the reveal is that
    * PLACE — a ratio, not an option key, because the response is a slider and there are no options.
    *
-   * This is the reveal that had to change when the type was rebuilt (D-211). It used to name one of
+   * This is the reveal that had to change when the type was rebuilt (D-212). It used to name one of
    * five plates, which disclosed nothing new because all five tick ratios were already in `content`.
    * With the options gone there is nothing on screen to select, so the position itself is sent. That
    * discloses strictly more than the old reveal did — one exact (numeral -> position) observation

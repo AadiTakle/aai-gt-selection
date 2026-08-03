@@ -1,6 +1,6 @@
 // QUANT-GLYPHNUM-01 "Alien Numbers" — DUAL-MODE TEMPLATE generator (Bucket A: grammar).
 //
-// Rebuilt to STAGE2_REDESIGN_SPEC.md §5.1 under D-211. Serves R5, R6, R7, R8, R10, H1, H6, H10.
+// Rebuilt to STAGE2_REDESIGN_SPEC.md §5.1 under D-212. Serves R5, R6, R7, R8, R10, H1, H6, H10.
 // Supersedes the five-option build this file used to hold; STAGE2_QUESTION_DESIGN.md §3.2 is
 // superseded for this type by §5.1 of the redesign spec, and §1.2 / §4.1.1 / §4.3 still bind.
 //
@@ -53,7 +53,7 @@
 // THE RESPONSE, AND WHAT IT DOES TO THE CHANCE FLOOR
 //
 // §5.1 says a continuous response has "no guessing floor — it drops from 0.2 to effectively 0".
-// That is the right direction and the wrong number, and the number is the whole point of E-207, so
+// That is the right direction and the wrong number, and the number is the whole point of E-212, so
 // this bank computes it rather than asserting it.
 //
 // A placement is graded `|placedRatio - targetRatio| <= tolerance`, so the placements that score
@@ -82,7 +82,7 @@
 // CLAIM BOUNDARY. Uniform placement is a design assumption of exactly the same class as
 // "the floor is the reciprocal of the option count" (D-200 part 1): a real child who does not know
 // is not uniform — centre bias raises the effective floor for mid-line targets and lowers it at the
-// edges — and a disengaged child sits below it again. E-211 records the assumption; nothing here is
+// edges — and a disengaged child sits below it again. E-214 records the assumption; nothing here is
 // a calibrated `c`.
 //
 // ---------------------------------------------------------------------------
@@ -186,7 +186,7 @@
 // rung on the shared 1..20 scale computed from the declared levers, NOT a calibrated IRT parameter.
 // NOTHING HERE IS GATED: Gate B needs ~128 real children (§4.1.3) and no synthetic run substitutes,
 // and §6 of the redesign spec records that a continuous-response type sits outside every Gate A cell
-// measured so far, so Gate A must be re-read for it (E-211 does that).
+// measured so far, so Gate A must be re-read for it (E-214 does that).
 //
 // Run:  node research/exam-question-types/generators/QUANT-GLYPHNUM-01.mjs
 //       writes ../banks/QUANT-GLYPHNUM-01.jsonl (consistent, live) and
@@ -258,7 +258,7 @@ export const SUPPORT_MAX = 0.95;
 
 /**
  * What a client who does not know the answer scores. This is the number the block's fit and its
- * targeting rule both need, and getting it wrong is the misspecification E-207 exists to fix.
+ * targeting rule both need, and getting it wrong is the misspecification E-212 exists to fix.
  *
  * Two readings, and the estimator takes the LARGER, because a floor set below the truth is the
  * direction that reads chance successes as ability:
@@ -1470,7 +1470,7 @@ if (isMain()) {
   console.log(
     '\nNOT GATED. Gate B needs ~128 real children (§4.1.3); no synthetic run substitutes. A\n' +
       'continuous-response type is outside every Gate A cell measured before it, so Gate A is\n' +
-      're-read for this bank in E-211. The consistent arm is the live bank; the scrambled arm lives\n' +
+      're-read for this bank in E-214. The consistent arm is the live bank; the scrambled arm lives\n' +
       'outside banks/ and is never served.',
   );
 }

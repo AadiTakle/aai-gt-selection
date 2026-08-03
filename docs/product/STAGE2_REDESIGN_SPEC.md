@@ -1,8 +1,8 @@
 # Stage 2 redesign — per-session systems, reviewable trials, and three new types
 
-**Status:** Proposed except where a section records otherwise. **§2.1 and §3 are built** on `FLU-OPCHAIN-01` behind `EXAM_SERVE_TIME_MATERIALISATION`, off by default — D-210, E-210. **§5.1 is built** — D-211, E-211. Everything else here is unbuilt.
+**Status:** Proposed except where a section records otherwise. **§2.1 and §3 are built** on `FLU-OPCHAIN-01` behind `EXAM_SERVE_TIME_MATERIALISATION`, off by default — D-211, E-213. **§5.1 is built** — D-212, E-214. Everything else here is unbuilt.
 **Requirements served:** R5, R6, R7, R8, R10, H1, H6, H10.
-**Evidence relied on:** E-095, E-200, E-205, E-206, E-207, E-210; the re-keying measurement in D-206 / PR #51; the anti-leak comparison in `STAGE2_ANTILEAK_COMPARISON.md`.
+**Evidence relied on:** E-095, E-200, E-205, E-206, E-212, E-213; the re-keying measurement in D-206 / PR #51; the anti-leak comparison in `STAGE2_ANTILEAK_COMPARISON.md`.
 **Supersedes, if adopted:** `STAGE2_QUESTION_DESIGN.md` §3.2, §3.3, §3.4 — not §3.1, and not §1.2 or §4.1.1, whose constraints this spec inherits unchanged.
 
 ---
@@ -50,7 +50,7 @@ The class-preserving mapping family that would hold difficulty exactly fixed was
 
 ### 2.1 The implication: banks must store templates, not finished items
 
-**Status: BUILT on `FLU-OPCHAIN-01`, behind `EXAM_SERVE_TIME_MATERIALISATION`, off by default. D-210, E-210.**
+**Status: BUILT on `FLU-OPCHAIN-01`, behind `EXAM_SERVE_TIME_MATERIALISATION`, off by default. D-211, E-213.**
 
 Failure B exists because the **options are baked at build time while the mapping is drawn at serve time**. Nothing reconciles them, so the correct answer is on screen only by luck.
 
@@ -79,7 +79,7 @@ Two properties of the priority order are load-bearing. It is **class-interleaved
 
 #### 2.1.3 The contract has already diverged once, and it needs an owner decision
 
-`VER-ROLES-01` (D-208) writes to the same `templates/` directory from a different reading of this section, and its records do not satisfy the contract above. Two fields:
+`VER-ROLES-01` (D-209) writes to the same `templates/` directory from a different reading of this section, and its records do not satisfy the contract above. Two fields:
 
 | Field | §2.1 as written | `VER-ROLES-01` | Why it did it |
 | --- | --- | --- | --- |
@@ -109,7 +109,7 @@ Measured over all 720 bijections; one command, `stage2-serve-time-materialisatio
 | difficulty drift across mappings, structural levers | mean 0.83 / p95 2.94 | **0.000** |
 | session replay from the seed | not applicable | exact, 8 of 8 seeds |
 
-The 18.4% and 83.3% figures are this branch's own implementation and read about 5 points higher than the 13.8% / 78.2% on the register; E-210 records that the two are not interchangeable and that the recorded pair is authoritative.
+The 18.4% and 83.3% figures are this branch's own implementation and read about 5 points higher than the 13.8% / 78.2% on the register; E-213 records that the two are not interchangeable and that the recorded pair is authoritative.
 
 Exclusion is the price of the guarantee, and it is the two guards the shipped generator applies at build time and a template cannot: under some mappings the drawn operators make the chain a no-op on its input, or make its orientation operators cancel in D4. Both make the item easier than its chain length, so both are excluded from that session rather than served mislabelled.
 
@@ -138,7 +138,7 @@ Residual ambiguity is the one that replaces class-counting, and it is strictly b
 
 ### 3.1 As built on `FLU-OPCHAIN-01`, and the two things it costs
 
-**Status: BUILT. D-210, E-210.** The oracle is imported and used as the difficulty function — `stage2-learnability-core.mjs`'s `createOracle` with the existing `flu-opchain` adapter — so the difficulty model and the learnability report cannot disagree about what a reveal rules out. Residual ambiguity is read as *the readings still consistent with every reveal so far **and** still landing on some option of this item*: both halves matter, because a reading predicting a figure that is not on screen tells the child nothing here.
+**Status: BUILT. D-211, E-213.** The oracle is imported and used as the difficulty function — `stage2-learnability-core.mjs`'s `createOracle` with the existing `flu-opchain` adapter — so the difficulty model and the learnability report cannot disagree about what a reveal rules out. Residual ambiguity is read as *the readings still consistent with every reveal so far **and** still landing on some option of this item*: both halves matter, because a reading predicting a figure that is not on screen tells the child nothing here.
 
 The levers land where the table says. Measured across 8 drawn mappings on 336 templates, the **structural levers moved on 0.0% of templates, max drift 0.000**, against the shipped `geom` model's mean 0.83 / p95 2.94 on this same type. The total moves by mean 0.27 / p95 0.48 — all of it through residual ambiguity, which is what this section asks of it. That the drift is *attributable* rather than merely *bounded* is the property under test: prices are grouped by the residual ambiguity they were computed at, and within a group they must be identical, because the only thing left varying is which operators the mapping drew.
 
@@ -183,7 +183,7 @@ When the block's estimate says the child has the system, it switches: **given th
 
 `FLU-OPCHAIN-01` is unchanged and becomes the reference for the fluid slot.
 
-### 5.1 Alien Numbers — quantitative, rebuilt *(BUILT; D-211, E-211)*
+### 5.1 Alien Numbers — quantitative, rebuilt *(BUILT; D-212, E-214)*
 
 An invented **place-value system in base 6**, with five marks for the digits `{1,2,3,4,5}` and left-to-right significance retained. The child induces the base and the digit values. The response is a **slider on the number line**. Shipped as **templates** in `research/exam-question-types/banks/QUANT-GLYPHNUM-01.jsonl` (391 items, difficulty 4.0–20.0) plus the equated scrambled control arm.
 
@@ -191,9 +191,9 @@ An invented **place-value system in base 6**, with five marks for the digits `{1
 
 - **Why base 6, and why the digit set has no zero.** Three constraints, and only one base satisfies all three. (i) Non-decimal and not a base-10 landmark, as Weiers et al. required of base 3. (ii) **Every digit equal in intrinsic cost**, per §3 — a zero digit is not, because "this mark means nothing is here" is a different and harder inference, so a system containing zero prices difficulty partly on which digit was drawn. The digit set is therefore `1..b-1`. (iii) **The relabelling space must beat the response's own chance floor.** A brute-forcing client always has the true reading among its candidates, so it can never score below `1/g!` for `g` marks: base 4 gives 6 mappings and 16.7%, base 5 gives 24 and 4.2%, base 6 gives 120 and 0.8%, against a floor of 6.7%. Base 6 is the smallest that clears it with margin. A zero-free digit set has `b-1` members, so **the tray does not give the base** — a child who counts five marks and infers base 5 is wrong, which makes the base a graded inference rather than a free read.
 
-- **Measurement consequence, and §5.1's own number was wrong.** A continuous response does **not** have "no guessing floor". The accepting set of a tolerance-graded placement is an interval, so an unknowing client scores that interval's share of wherever it places. With a ±2.5% band and every target drawn from a support of `[0.20, 0.95]`, that is **1/15 ≈ 0.067**, not 0 — the slider is a fifteen-alternative response where the five options it replaced were five, so **the floor falls three-fold, not to zero**. The ±2.5% band is bounded from below by a child's pointing precision and from above by exactly this floor. `CONTINUOUS_PLACEMENT_CHANCE_FLOOR` in `packages/exam-engine/src/item-format.ts` carries the figure and `blockGuessingFloor` reads it off the response **format**, because a slider has no option count to take a reciprocal of and the count-only reader fell through to the five-option default — E-207's misspecification, three times over.
+- **Measurement consequence, and §5.1's own number was wrong.** A continuous response does **not** have "no guessing floor". The accepting set of a tolerance-graded placement is an interval, so an unknowing client scores that interval's share of wherever it places. With a ±2.5% band and every target drawn from a support of `[0.20, 0.95]`, that is **1/15 ≈ 0.067**, not 0 — the slider is a fifteen-alternative response where the five options it replaced were five, so **the floor falls three-fold, not to zero**. The ±2.5% band is bounded from below by a child's pointing precision and from above by exactly this floor. `CONTINUOUS_PLACEMENT_CHANCE_FLOOR` in `packages/exam-engine/src/item-format.ts` carries the figure and `blockGuessingFloor` reads it off the response **format**, because a slider has no option count to take a reciprocal of and the count-only reader fell through to the five-option default — E-212's misspecification, three times over.
 
-  **What the correction buys, measured** (`pnpm exam:block-harness --gate-a --bank QUANT-GLYPHNUM-01`, 8 seeds × 400 children, responder floor 1/15): mean posterior SE **0.061 → 0.052**, against E-095's published 0.047 at 30 trials. Recovery is unchanged within error (r 0.445 → 0.425) and the null cohort stays at zero either way (λ̄ −0.001 → −0.002). So the gain is **precision per trial, not bias removal** — a different and larger channel than the one E-207 costed on `VER-MORPHO-01`.
+  **What the correction buys, measured** (`pnpm exam:block-harness --gate-a --bank QUANT-GLYPHNUM-01`, 8 seeds × 400 children, responder floor 1/15): mean posterior SE **0.061 → 0.052**, against E-095's published 0.047 at 30 trials. Recovery is unchanged within error (r 0.445 → 0.425) and the null cohort stays at zero either way (λ̄ −0.001 → −0.002). So the gain is **precision per trial, not bias removal** — a different and larger channel than the one E-212 costed on `VER-MORPHO-01`.
 
 - **Templates are unusually cheap here, which is why §8 sequences this early.** A template stores the numeral as **digit values**, not as marks. `value(numeral)` is therefore a property of the template, so the target ratio, the tolerance and every difficulty lever are **invariant under re-keying** — only which mark draws which digit moves. Both failures §2 measured are impossible rather than fixed: difficulty cannot drift because every lever is a count over digit values, and the answer cannot leave the screen because it is a position on a continuous line. The checker verifies this by materialising every template under all 120 bijections.
 
@@ -212,7 +212,7 @@ An invented **place-value system in base 6**, with five marks for the digits `{1
   2. **Concreteness fading is designed and emitted, and it cannot ride on a scored item.** Building it surfaced a constraint §5.1 could not have known: any truthful depiction is an equation over the session mapping, and one equation against a fixed anchor collapses the 120 candidates to about one — so a worked example co-served with a scored numeral hands the browser *that item's* answer before the child answers. That is a firewall breach, strictly worse than the post-commit reveal §1.1 measured. The schedule therefore lives in `provenance.template.demonstration`, which `servedItemSchema` omits, and specifies **unscored demonstration trials** at the head of the block: `counted` (magnitude as countable unit tokens) → `extent` (an unbroken bar) → `symbolic` (position only). What fades is the **representation of magnitude**, concrete to abstract, which is what concreteness fading means (Fyfe, McNeil, Son & Goldstone 2014).
   3. **§3.2's "each glyph beside a depicted quantity" is not admissible at any stage** and is superseded. Depicting each of the five marks is a full key disclosure; the fade ladder above depicts quantities of whole numerals instead, which pins no single mark.
 
-- **The reviewable trial (§4.3, D-209) in the currency a slider answers in.** The other three types mark two option tiles. This one has no options, so the two facts a committed trial owes the child are two **positions**: where they left the handle, and where the writing turned out to belong. The marks are the handle and the pin themselves, on the same four channels and out of the same audited palette E-209 measured — solid navy with its ring and a rounded pill for the machine, dashed bronze with a square-cornered tab for the child — from the same shared block in `exam-skin.css`, not a second palette. **The position channel is stronger here than on a tile grid rather than weaker.** Two marks on a line can share an x exactly, which is precisely the case a child who placed it right produces, so the machine's mark owns the band above the line and the child's the band below it; coincidence is what the geometry is built for instead of what it fails on. No verdict word, no tick, no cross, no tally, and the child's mark is drawn at **commit** rather than at reveal, so a host that never sends a reveal still leaves them able to see where they put it.
+- **The reviewable trial (§4.3, D-210) in the currency a slider answers in.** The other three types mark two option tiles. This one has no options, so the two facts a committed trial owes the child are two **positions**: where they left the handle, and where the writing turned out to belong. The marks are the handle and the pin themselves, on the same four channels and out of the same audited palette E-209 measured — solid navy with its ring and a rounded pill for the machine, dashed bronze with a square-cornered tab for the child — from the same shared block in `exam-skin.css`, not a second palette. **The position channel is stronger here than on a tile grid rather than weaker.** Two marks on a line can share an x exactly, which is precisely the case a child who placed it right produces, so the machine's mark owns the band above the line and the child's the band below it; coincidence is what the geometry is built for instead of what it fails on. No verdict word, no tick, no cross, no tally, and the child's mark is drawn at **commit** rather than at reveal, so a host that never sends a reveal still leaves them able to see where they put it.
 
 - **Explaining the format without leaking.** The copy states that the marks are digits, that the leftmost counts for the most, and that the line runs from nothing to the number at its right-hand end. It states none of: the base, any digit's value, or how many digits the system has. Both the "How to use" panel and the per-trial status line are written to that boundary.
 
@@ -274,7 +274,7 @@ six-reading space from the base-order rule with no extra hidden parameter.
 
 - **Three new banks, generators, checkers, renderers and verifiers.** The U2–U7 track each of the current types took, times three, plus a legibility gate for the 3D type.
 - **A serve-time materialisation path** that does not exist: templates, session mapping, option generation, per-session difficulty, and the recording needed for R7 replay.
-- **Gate A must be re-run per type**, and the figures in E-095/E-200/E-205/E-207 describe the *current* pipeline. A continuous-response type with no guessing floor is outside every cell measured so far.
+- **Gate A must be re-run per type**, and the figures in E-095/E-200/E-205/E-212 describe the *current* pipeline. A continuous-response type with no guessing floor is outside every cell measured so far.
 - **Gate B still needs roughly 128 real children** and is untouched by any of this.
 - **None of it makes a learning rate reportable.** A 30-trial block does not support a reportable absolute rate, before or after. `learningRateCohortRank` remains the supported question.
 
@@ -288,7 +288,7 @@ six-reading space from the base-order rule with no extra hidden parameter.
 
 ## 8. Suggested sequence
 
-1. ~~The serve-time materialisation path, proved on `FLU-OPCHAIN-01`~~ — **done, D-210/E-210.** Two things it left behind: the §3.1(a) granularity loss and the §3.1(b) trial-index confound, both owner decisions. One thing it left unbuilt: the runner still fetches the selection index once per session, and on this path it must re-fetch per trial, because an item's price is a function of the evidence.
+1. ~~The serve-time materialisation path, proved on `FLU-OPCHAIN-01`~~ — **done, D-211/E-213.** Two things it left behind: the §3.1(a) granularity loss and the §3.1(b) trial-index confound, both owner decisions. One thing it left unbuilt: the runner still fetches the selection index once per session, and on this path it must re-fetch per trial, because an item's price is a function of the evidence.
 2. The four cross-cutting mechanics, on that same type.
 3. Alien Numbers, as the first redesign — the slider is the smallest surface and it resolves two open items.
 4. The verbal type, as the one currently unusable.

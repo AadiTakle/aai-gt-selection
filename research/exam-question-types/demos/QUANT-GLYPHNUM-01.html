@@ -78,7 +78,7 @@
    * machine's mark sits above the line and the child's below it, the machine's is a rounded pill and
    * the child's a square-cornered tab, and the two boxes they label carry different border styles.
    * `exam-skin.css` loads after this block and restyles both into the audited review palette
-   * (STAGE2_REDESIGN_SPEC §4.3, D-209), which is where the contrast figures are recorded and tested.
+   * (STAGE2_REDESIGN_SPEC §4.3, D-210), which is where the contrast figures are recorded and tested.
    */
   #rail .tag{position:absolute;left:50%;transform:translateX(-50%);padding:1px 7px;white-space:nowrap;
     font:700 9px/1.6 ui-monospace,monospace;letter-spacing:.04em;text-transform:uppercase;color:#fff;z-index:3}
@@ -178,7 +178,7 @@
 <script>
 'use strict';
 /* =====================================================================
- * QUANT-GLYPHNUM-01 "Alien Numbers" — PURE RENDERER (STAGE2_REDESIGN_SPEC §5.1, D-211)
+ * QUANT-GLYPHNUM-01 "Alien Numbers" — PURE RENDERER (STAGE2_REDESIGN_SPEC §5.1, D-212)
  *
  * Renders a SERVED item (`item.content`) and reports WHERE THE CHILD PUT THE HANDLE. It never
  * self-generates a scored item and never decides correctness: the base, the glyph->digit mapping,
@@ -237,7 +237,7 @@
  *  * No researcher sidebar (E-082): §9's U6 lists "no telemetry sidebar" as an acceptance criterion.
  *  * No verdict. Not a tick, not a cross, not a score, not a streak, not praise, and no
  *    performance-contingent animation (§1.5). After committing, the trial is REVIEWABLE (§4.3,
- *    D-209): it shows where the child put the handle and where the writing turned out to belong,
+ *    D-210): it shows where the child put the handle and where the writing turned out to belong,
  *    told apart on four channels — colour, shape, which side of the line the mark sits on, and the
  *    border style of the box it labels — from the audited palette in `exam-skin.css`. Because this
  *    type answers with a POSITION rather than an option, the two marks can land at the same x, and
@@ -395,7 +395,7 @@ function showPin(ratio,glyphs){
 function hidePin(){$('#pin').classList.remove('show');}
 
 /* ---------- the two review marks -----------------------------------------
- * A committed trial is REVIEWABLE (STAGE2_REDESIGN_SPEC §4.3, D-209): it shows where the child put
+ * A committed trial is REVIEWABLE (STAGE2_REDESIGN_SPEC §4.3, D-210): it shows where the child put
  * the handle AND where the writing turned out to belong. The other three Stage 2 types mark two
  * OPTION TILES; this type has no options, so the two facts are two POSITIONS on the line, and the
  * marks are the handle and the pin that already carry them.

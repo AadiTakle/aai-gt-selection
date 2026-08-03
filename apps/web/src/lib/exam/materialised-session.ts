@@ -16,7 +16,7 @@ import { ExamBankUnavailableError, assertNoKeyMaterial, type RawBankItem } from 
 
 /**
  * SERVER-ONLY. The serve-time materialisation path for `FLU-OPCHAIN-01`
- * (STAGE2_REDESIGN_SPEC.md §2.1, §3, §4.1; D-210).
+ * (STAGE2_REDESIGN_SPEC.md §2.1, §3, §4.1; D-211).
  *
  * The shipped bank stores finished items with baked options and one hidden system for its whole life.
  * This path stores TEMPLATES and makes the item per session: draw the symbol->operator mapping, apply
@@ -205,7 +205,7 @@ export function resetTemplateCache(): void {
  * a cost optimisation, not state the correctness depends on. What does NOT survive is the evidence
  * accumulated so far, because that is a function of the trials committed on this instance, so on a
  * multi-instance deployment the difficulty of a mid-block item could be computed against a shorter
- * history than the child actually has. Recorded as an open assumption in E-210; closing it means
+ * history than the child actually has. Recorded as an open assumption in E-213; closing it means
  * persisting the ledger, which is a migration and is out of scope here.
  */
 const sessions = new Map<string, MaterialisedSession>();

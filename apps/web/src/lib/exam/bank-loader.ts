@@ -275,7 +275,7 @@ export function examBankHealth(): { ready: boolean; detail: string } {
  * Every one of them hides a bijection from visible symbols to invisible meanings, so for these types
  * the OMISSION of `answer` is not on its own sufficient: a payload that named the operator vocabulary
  * would let a browser that also knows the algebra solve the item, and under serve-time materialisation
- * (D-210) there are new fields — the template id, the rationale ids, the key slot — that would identify
+ * (D-211) there are new fields — the template id, the rationale ids, the key slot — that would identify
  * the item across sessions or name how each option was built. Structural omission cannot see any of
  * that, because those fields never existed when the projection was written.
  */

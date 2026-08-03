@@ -135,7 +135,7 @@ const LAMBDA_BOUND = 1;
  * bank, not of this module. It is the DEFAULT and not an assertion: D-200 part 1 requires a caller
  * administering another format to pass the reciprocal of its own option count, and Phase 2 now
  * derives that per activity (`blockGuessingFloor` in `apps/web/src/lib/exam/phase2.ts`), because
- * the four wired Stage 2 banks are not all five-option — `VER-MORPHO-01` offers four. E-207
+ * the four wired Stage 2 banks are not all five-option — `VER-MORPHO-01` offers four. E-212
  * measures what leaving it at this default cost that one activity. A bank of MIXED option counts
  * is a further exposure that no single floor removes, and E-200 costs it.
  *

@@ -1,4 +1,4 @@
--- QUANT-GLYPHNUM-01's per-type verifier, on the REBUILT base-6 place-value bank (R11; D-211).
+-- QUANT-GLYPHNUM-01's per-type verifier, on the REBUILT base-6 place-value bank (R11; D-212).
 --
 -- Replaces this file's base-4 hybrid version wholesale, and the reason is the one thing a verifier test
 -- must not let happen quietly. The old assertions 13-19 pinned the RE-DERIVATION by corrupting the

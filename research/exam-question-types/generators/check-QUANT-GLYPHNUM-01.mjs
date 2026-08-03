@@ -1,4 +1,4 @@
-// Independent validator for the QUANT-GLYPHNUM-01 dual-mode TEMPLATE banks (U4; D-211).
+// Independent validator for the QUANT-GLYPHNUM-01 dual-mode TEMPLATE banks (U4; D-212).
 //
 // The place-value reader, the difficulty arithmetic, the admissibility rules and the brute-force
 // attacker are RE-IMPLEMENTED here from the documented model rather than imported, so a bug in the
@@ -725,5 +725,5 @@ console.log(
     'scored property.\n\n' +
     'NOT GATED. This says the instrument is well formed, not that it measures learning: Gate B needs\n' +
     '~128 real children (STAGE2_QUESTION_DESIGN §4.1.3), and a continuous-response type sits outside\n' +
-    'every Gate A cell measured before it (E-211).',
+    'every Gate A cell measured before it (E-214).',
 );

@@ -28,7 +28,7 @@ import { revealFor } from './reveal';
 import { verify } from './verifiers';
 
 /**
- * SERVE-TIME MATERIALISATION for FLU-OPCHAIN-01 (STAGE2_REDESIGN_SPEC §2.1, §3, §4.1; D-210).
+ * SERVE-TIME MATERIALISATION for FLU-OPCHAIN-01 (STAGE2_REDESIGN_SPEC §2.1, §3, §4.1; D-211).
  *
  * The bank stores a template; the server draws the session mapping, applies it, and materialises the
  * item. Five things could go wrong and each of them fails silently, which is what these tests are for:

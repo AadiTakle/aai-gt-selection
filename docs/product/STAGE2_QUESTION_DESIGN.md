@@ -422,7 +422,7 @@ across 30 novel trials*, *countable composition depth as difficulty*, *single ta
 
 ### 3.2 Quantitative — `QUANT-GLYPHNUM-01` "Alien Numbers" *(primary)*
 
-> **SUPERSEDED for this type by `STAGE2_REDESIGN_SPEC.md` §5.1, which is built (D-211).** Three
+> **SUPERSEDED for this type by `STAGE2_REDESIGN_SPEC.md` §5.1, which is built (D-212).** Three
 > statements below are no longer true of the shipped bank, and each is resolved rather than merely
 > overridden:
 >

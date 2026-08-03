@@ -202,7 +202,7 @@ html[data-gt-chrome='off'] #stagecard {
   outline-offset: 2px;
 }
 
-/* ---- the reviewable trial (STAGE2_REDESIGN_SPEC §4.3, D-209) ---- */
+/* ---- the reviewable trial (STAGE2_REDESIGN_SPEC §4.3, D-210) ---- */
 
 /*
  * A committed Stage 2 trial is REVIEWABLE: it shows what the machine produced and which option the
@@ -214,7 +214,7 @@ html[data-gt-chrome='off'] #stagecard {
  * Nothing here evaluates the child. No tick, no cross, no green, no red, no tally. The machine's
  * mark says what the machine did, the child's mark says what the child did, and reading the two
  * together is the child's own inference — which is the whole difference between feedback that
- * points at the work and feedback that points at the person (Kluger & DeNisi 1996; D-209).
+ * points at the work and feedback that points at the person (Kluger & DeNisi 1996; D-210).
  *
  * Audited against #ffffff (the tile), #fcf4ef (the standalone page) and #ecd9cb (an unmarked
  * tile's border). `stage2-reveal.test.ts` re-derives every ratio below from this file, so a later
@@ -290,7 +290,7 @@ html[data-gt-chrome='off'] #stagecard {
 }
 
 /*
- * THE SAME REVIEW, WHERE THE ANSWER IS A POSITION RATHER THAN AN OPTION (D-211).
+ * THE SAME REVIEW, WHERE THE ANSWER IS A POSITION RATHER THAN AN OPTION (D-212).
  *
  * `QUANT-GLYPHNUM-01` is answered by sliding a handle along a number line, so it has no `#options`
  * and the two facts a reviewable trial owes the child are two POSITIONS: where they put the handle,

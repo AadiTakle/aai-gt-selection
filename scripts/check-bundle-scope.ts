@@ -47,7 +47,7 @@ const ALLOWED_TREES = [
   'research/exam-question-types/banks/',
   'research/exam-question-types/generators/lexicon-child-en.mjs',
   // The Stage 2 template bank, read by `lib/exam/materialised-session.ts` when serve-time
-  // materialisation is on (D-210). Data, like the banks: the materialiser itself is a static import
+  // materialisation is on (D-211). Data, like the banks: the materialiser itself is a static import
   // and is bundled into `.next` rather than copied here, which is the tell that this entry is one
   // declared file and not a research sweep — if the tracer ever loses the fs path in that module,
   // this grows into the whole directory and the check fails rather than the bundle quietly bloating.

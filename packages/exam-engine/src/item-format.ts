@@ -9,7 +9,7 @@
  *
  * The format is a discriminated union rather than a nullable count, because "offers no options" and
  * "takes a continuous placement" are different facts with different floors, and collapsing them is
- * how a slider ends up fitted at the five-option 0.2 (E-207).
+ * how a slider ends up fitted at the five-option 0.2 (E-212).
  *
  * Pure: no I/O, no framework, no node-only APIs.
  */
@@ -67,12 +67,12 @@ export const CONTINUOUS_PLACEMENT = 'continuous_placement';
  * every target from [0.20, 0.95], so a placement uniform on that support scores
  * `0.05 / 0.75 = 1/15`. Equivalently the slider is a fifteen-alternative response. The bank's
  * generator computes and prints both this figure and the 0.05 a placement uniform over the WHOLE line
- * would score, and asserts the support on every item; E-211 records the measurement.
+ * would score, and asserts the support on every item; E-214 records the measurement.
  *
  * The LARGER of the two is the one carried here. A child cannot read the support off a single item,
  * but across thirty trials they can see that nothing ever lands in the left fifth of the line, and a
  * floor set below the truth is the direction that reads chance successes as ability — which is the
- * failure mode E-207 was raised to fix, in the direction that costs.
+ * failure mode E-212 was raised to fix, in the direction that costs.
  *
  * CLAIM BOUNDARY. Identical in kind to D-200 part 1's reciprocal-of-the-option-count: a DESIGN
  * assumption, not a calibrated `c`. A real child does not place uniformly — centre bias raises the
@@ -93,7 +93,7 @@ export const CONTINUOUS_PLACEMENT_CHANCE_FLOOR = 1 / 15;
  * `itemOptionCount` answers "how many options" and has to return `null` for a type that offers none —
  * which is indistinguishable from "the field was stripped on the way here". That ambiguity is exactly
  * what a caller must not resolve by falling back to a default: the reciprocal of a missing option
- * count is not the floor of a slider, and E-207 is the record of what one wrong floor costs an
+ * count is not the floor of a slider, and E-212 is the record of what one wrong floor costs an
  * activity. So a type whose response is continuous SAYS SO, and the two cases separate.
  */
 export type ItemResponseFormat =

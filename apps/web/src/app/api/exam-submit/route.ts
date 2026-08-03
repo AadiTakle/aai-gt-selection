@@ -47,7 +47,7 @@ const submitSchema = z
     /** Supabase session id from `/api/exam-session`; absent = do not persist. */
     examSessionId: z.uuid().optional(),
     /**
-     * The runner's own session id, needed ONLY on the serve-time materialisation path (D-210): the
+     * The runner's own session id, needed ONLY on the serve-time materialisation path (D-211): the
      * item being graded was made by that session and does not exist in any bank, so without it there
      * is nothing to grade against. Not a secret and not the session seed — see
      * `lib/exam/materialised-session.ts`.
@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
           verifier: 'apps/web/src/lib/exam/verifiers',
         },
         /**
-         * THE R7 RECORD for a materialised trial (D-210).
+         * THE R7 RECORD for a materialised trial (D-211).
          *
          * Under the shipped bank, reconstructing what a child saw needs only the item ids, because the
          * item is a file. Under materialisation the item is a function of the session, so the record has

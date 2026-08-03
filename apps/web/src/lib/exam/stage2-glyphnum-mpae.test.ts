@@ -26,7 +26,7 @@
  *      Without that, `M-PAE` would be an error *code* wearing the name of an error *size*, and the
  *      registry's "small consistent PAE separates top reasoners without ceiling" would not hold.
  *
- * REBUILT WITH THE TYPE (D-211). The activity is now a slider on a number line, so there are no
+ * REBUILT WITH THE TYPE (D-212). The activity is now a slider on a number line, so there are no
  * option ratios to probe and the probe is the response space itself. That makes claims 2 and 4
  * stronger rather than weaker: they used to hold for the five placements the generator chose, and now
  * hold for any placement a child can make.

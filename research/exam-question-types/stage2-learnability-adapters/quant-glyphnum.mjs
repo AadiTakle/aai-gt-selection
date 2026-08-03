@@ -7,7 +7,7 @@
 // POSITION, not a transformed stimulus, and a mapping is consistent with a reveal when the position
 // it computes falls inside the same accepting interval.
 //
-// WHAT THE REBUILD (D-211) CHANGED HERE. The response used to be one of five marked ticks, so the
+// WHAT THE REBUILD (D-212) CHANGED HERE. The response used to be one of five marked ticks, so the
 // oracle's "which on-screen option does this mapping predict" question had an obvious answer. With a
 // slider there are no options — but there is still a FINITE response space, because grading is
 // `|placedRatio - targetRatio| <= tolerance` and a tolerance cuts the line into disjoint accepting

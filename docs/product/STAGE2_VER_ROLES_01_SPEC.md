@@ -19,13 +19,13 @@ evidence-backed capability measures), H6 (design for enough statistical informat
 gaming and burden — §6 is the whole of it).
 
 **Evidence and assumptions used.** E-095 and E-200 (recovery and the guessing floor), E-094
-(key-position balance), E-075/E-076 (content-computable items and response-model leaks), E-207 (the
+(key-position balance), E-075/E-076 (content-computable items and response-model leaks), E-212 (the
 per-type floor machinery reads option count off the bank record, which is what lets a *template*
 carry `optionCount` and be read correctly), the re-keying measurement in D-206/PR #51 and
 `STAGE2_ANTILEAK_COMPARISON.md`. Decisions honoured: D-017 (text-only, never audio), D-S2-3 (the
 scrambled control is a binding gate and a generator *mode*), D-030, D-207. **New evidence:** E-208,
 the U3/U4 measurement below. **New assumption:** A-S2-7, the sign of the marking lever. **New
-decision:** D-208.
+decision:** D-209.
 
 **In scope:** U2 (this document plus the catalog rows), U3 (`generators/VER-ROLES-01.mjs`, both
 persistence modes) and U4 (`generators/check-VER-ROLES-01.mjs`).
@@ -174,7 +174,7 @@ All figures from `node research/exam-question-types/generators/check-VER-ROLES-0
 **Key containment.** `content` names no role, no participant, no predicate, no plan and no arm, and
 carries **no option list at all** — a template's content is the sentence's shape and the option count,
 nothing else. It is `content.optionCount` rather than `content.options`, which `itemOptionCount`
-already accepts (E-207), so the per-type guessing-floor machinery reads a template correctly with no
+already accepts (E-212), so the per-type guessing-floor machinery reads a template correctly with no
 change to it.
 
 **Key re-derivation: 11,232 / 11,232 materialisations per arm, 100%.** The checker builds its own 24
