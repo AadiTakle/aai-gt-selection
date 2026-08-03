@@ -310,6 +310,13 @@ export function submitAnswer(run, key) {
     target,
     served: item.difficulty,
     itemId: item.itemId,
+    /**
+     * The served item itself, for the per-primitive criterion in `stage2-running-estimate.mjs`:
+     * deciding whether a choice was compatible with holding one badge correct needs the option set
+     * and the input figure, and re-looking them up from the bank later would let the trace and the
+     * criterion disagree about which item was served. `served` above is only its difficulty.
+     */
+    item,
     meta,
     answered: key,
     correct,

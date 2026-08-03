@@ -22,6 +22,14 @@
 // Usage:
 //   pnpm exec tsx research/exam-question-types/stage2-block-probe.mjs
 //   pnpm exec tsx research/exam-question-types/stage2-block-probe.mjs --standings 8,13,17 --seeds 5
+//   pnpm exec tsx research/exam-question-types/stage2-block-probe.mjs --running --standings 13
+//
+// `--running` prints the RUNNING panel's own series instead of the end-of-block table: what each
+// readout would have reported had the block stopped at each trial, and the trial at which the λ
+// interval first cleared the contamination floor. It exists so a claim about the window ("the
+// interval cleared at trial 23 in the live arm and never in the control") is reproducible from one
+// seeded command rather than from a screenshot, and it drives `stage2-running-estimate.mjs` — the
+// same module the page draws from.
 
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -40,6 +48,13 @@ import {
   playToEnd,
   summariseRun,
 } from './stage2-block-run.js';
+import { partialInductionResponder } from './stage2-latency-responders.js';
+import {
+  CONTAMINATION_FLOOR,
+  lambdaVerdict,
+  latencyVerdict,
+  runningSeries,
+} from './stage2-running-estimate.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const engine = { ...phase2, ...scoring, hashUnit };
@@ -53,8 +68,15 @@ const TYPE = flag('type', 'FLU-OPCHAIN-01');
 const LENGTH = Number(flag('length', String(engine.LEARNING_BLOCK_LENGTH)));
 const STANDINGS = flag('standings', '8,13,17').split(',').map(Number);
 const SEEDS = Number(flag('seeds', '8'));
+const RUNNING = process.argv.includes('--running');
+const graded = (fidelity) => (seed, arm) =>
+  partialInductionResponder(inspector, { hashUnit, seed, salt: arm, fidelity });
 const RESPONDERS = {
   induces: () => inductionResponder(inspector),
+  // The window offers these two between the endpoints; a running-uncertainty claim read off the
+  // endpoints alone would be read off a responder that saturates and one that never moves.
+  induces25: graded(0.25),
+  induces10: graded(0.1),
   guesses: () => guessingResponder(),
 };
 
@@ -72,7 +94,7 @@ if (!arms?.consistent || !arms?.perTrial) {
   process.exit(1);
 }
 
-function block(arm, standing, seed, responderId) {
+function play(arm, standing, seed, responderId) {
   const run = createRun({
     engine,
     bank: arms[arm],
@@ -81,12 +103,15 @@ function block(arm, standing, seed, responderId) {
     seed,
     length: LENGTH,
     seenItemIds: [],
-    responder: RESPONDERS[responderId](),
+    responder: RESPONDERS[responderId](seed, arm),
     learnability,
   });
   playToEnd(run);
-  return summariseRun(run);
+  return run;
 }
+
+const block = (arm, standing, seed, responderId) =>
+  summariseRun(play(arm, standing, seed, responderId));
 
 const mean = (xs) => xs.reduce((a, b) => a + b, 0) / xs.length;
 const sd = (xs) => {
@@ -102,6 +127,84 @@ console.log(
     `${SEEDS} seeds x standings ${STANDINGS.join('/')}\n` +
     `real code: apps/web/src/lib/exam/phase2.ts + @gt-selection/exam-{engine,scoring}\n`,
 );
+
+/* ------------------------------------------------------------------ *
+ * --running: the panel's own series, arm by arm
+ * ------------------------------------------------------------------ */
+
+if (RUNNING) {
+  const floor = CONTAMINATION_FLOOR;
+  console.log(
+    `Running readout — what would be reported at each trial.\n` +
+      `contamination floor drawn at ${floor.low}\u2013${floor.high} scale points/trial ` +
+      '(STAGE2_BANK_RECOVERY_MEASUREMENT.md \u00a73: FLU-OPCHAIN-01 fits 0.0096 \u00b1 0.0033 for a ' +
+      'cohort that learned nothing)\n',
+  );
+
+  const interval = (lo, hi, places) =>
+    lo === null || lo === undefined ? '' : `[${lo.toFixed(places)}, ${hi.toFixed(places)}]`;
+  const tally = { blocks: 0, lamCleared: 0, lamHeld: 0, latOff: 0, noOnset: 0 };
+  const clearedIn = { consistent: 0, perTrial: 0 };
+  const blocksIn = { consistent: 0, perTrial: 0 };
+
+  console.log(
+    'stand  seed      responder   arm         \u03bb-clear held  \u03bb interval at the end  ' +
+      'lat-off  RMST interval    ev/cen/unt/nd',
+  );
+  for (const standing of STANDINGS) {
+    for (let s = 0; s < SEEDS; s += 1) {
+      const seed = 20260731 + s * 7919;
+      for (const responderId of Object.keys(RESPONDERS)) {
+        for (const arm of ['consistent', 'perTrial']) {
+          const series = runningSeries({ engine, run: play(arm, standing, seed, responderId) });
+          const lam = lambdaVerdict(series, floor);
+          const lat = latencyVerdict(series);
+          const counts = lat.endCounts ?? {};
+          tally.blocks += 1;
+          blocksIn[arm] += 1;
+          if (lam.trial !== null) {
+            tally.lamCleared += 1;
+            clearedIn[arm] += 1;
+            if (lam.held) tally.lamHeld += 1;
+          }
+          if (lat.trial !== null) tally.latOff += 1;
+          if (lat.endState === 'noOnset') tally.noOnset += 1;
+          console.log(
+            `${String(standing).padStart(5)}  ${seed}  ${responderId.padEnd(11)} ` +
+              `${arm.padEnd(11)} ` +
+              `${String(lam.trial ?? 'never').padStart(7)} ` +
+              `${(lam.trial === null ? '-' : lam.held ? 'yes' : 'NO').padStart(4)}  ` +
+              `${(lam.endState === 'ok' ? interval(lam.endLo, lam.endHi, 4) : lam.endState).padEnd(21)} ` +
+              `${String(lat.trial ?? (lat.endState === 'noOnset' ? 'none' : 'never')).padStart(7)}  ` +
+              `${interval(lat.endLo, lat.endHi, 2).padEnd(16)} ` +
+              `${counts.event ?? 0}/${counts.censored ?? 0}/${counts.untested ?? 0}/${counts.notDeducible ?? 0}`,
+          );
+        }
+      }
+    }
+  }
+
+  console.log(
+    `\n  over ${tally.blocks} blocks\n` +
+      `  \u03bb interval cleared the floor at any trial   ${tally.lamCleared}  ` +
+      `(consistent ${clearedIn.consistent}/${blocksIn.consistent}, ` +
+      `scrambled ${clearedIn.perTrial}/${blocksIn.perTrial})\n` +
+      `  ... and stayed clear to the end of the block ${tally.lamHeld}\n` +
+      `  latency interval ever left the ceiling      ${tally.latOff}\n` +
+      `  blocks with no onset at all (no latency)    ${tally.noOnset}`,
+  );
+  console.log(
+    '\n\u03bb-clear is the first trial whose 95% interval sits entirely ABOVE the contamination ' +
+      'floor; held says whether it stayed clear on every trial from there to the end. A clearance ' +
+      'in the SCRAMBLED column is a false positive by construction — there is nothing learnable in ' +
+      'that arm. lat-off is the first trial whose restricted-mean interval left the "no primitive ever ' +
+      'demonstrated" horizon; "none" is the scrambled arm, where nothing is ever deducible and the ' +
+      'normalised latency does not exist — an immunity, not a pass ' +
+      '(STAGE2_LATENCY_VS_SLOPE.md §6). ev/cen/unt/nd counts the six primitives by state at the ' +
+      'last trial: reached criterion, right-censored, deducible but never tested, never deducible.',
+  );
+  process.exit(0);
+}
 
 for (const responderId of Object.keys(RESPONDERS)) {
   console.log(`\n=== responder: ${responderId} ===`);
