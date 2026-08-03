@@ -655,14 +655,21 @@ function commit(key){
  * after the server has scored an item the child has already committed to and which is never served
  * again, so it hands the browser nothing it can use — and it is the entire learning signal the
  * block runs on. No word here evaluates the child's choice.
+ *
+ * The wording follows the item's direction for the same reason `drawPrompt` does: in one direction
+ * the marked option is a picture the written word means, and in the other it is the name of the
+ * pictured thing, so one sentence cannot describe both without telling half the block something
+ * false about what it just saw. Direction is a property of the ITEM, fixed before the child
+ * answered, so branching on it says nothing about how they answered.
  */
 function onReveal(reveal){
-  if(!committed||!reveal)return;
+  if(!committed||!reveal||!current)return;
   const key=typeof reveal.machineOutput==='string'?reveal.machineOutput:null;
   if(key===null)return;
   if(!$(`#options .opt[data-key="${key}"]`))return;
-  tagOption(key,'made','this one');
-  setStatus('That is what the word means.');
+  const naming=(current.content||{}).direction==='pictureToWord';
+  tagOption(key,'made',naming?'it is called this':'it means this');
+  setStatus(naming?'That is what this one is called.':'That is what the word means.');
   emitEvent('reveal_shown',{});
 }
 
