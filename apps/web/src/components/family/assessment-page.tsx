@@ -1,44 +1,43 @@
-'use client';
-
-import { useState } from 'react';
 import Link from 'next/link';
 
 import styles from './assessment-page.module.css';
 
 /**
- * The dedicated assessment page. The fee is advertised HERE (not on the
- * dashboard): the family sees what the CogAT assessment includes and the fee,
- * confirms the (mock) payment, then the assessment link unlocks. No real
- * processor/charge; the assessment itself is wired later by that workstream.
+ * The baseline page: what the baseline measures, then start it.
+ *
+ * NO PAYMENT AND NO GATE (pivot decision, 2026-08-03 — see
+ * `docs/product/COGAT_PREP_PIVOT.md` §7.1). This page used to advertise a $75
+ * mock fee and hold the assessment behind a `confirmMockPayment()` that wrote an
+ * unlock flag to `sessionStorage`. The product is a preparation tool now rather
+ * than an admissions step, so the baseline is free and directly startable, and
+ * the whole fee/unlock path is gone rather than disabled — a dormant paywall is
+ * a thing someone re-enables by accident.
+ *
+ * The page is a server component again as a result: with nothing to unlock there
+ * is no client state left to hold.
  */
 
-const MOCK_FEE_USD = 75;
-const UNLOCK_KEY = 'gt-synthetic-assessment-unlocked';
-
-/** The four reasoning domains the adaptive assessment measures. */
-const DOMAINS = [
+/**
+ * The three batteries the baseline reports, which are CogAT's own structure
+ * rather than the four domains this page used to list. Nonverbal absorbs what
+ * were separately "fluid" and "spatial" — that is how the target test groups
+ * them, and reporting a shape the target test does not use would make the
+ * baseline harder to act on, not more precise.
+ */
+const BATTERIES = [
   {
-    name: 'Fluid reasoning',
-    detail: 'Spotting patterns and solving new problems without prior knowledge.',
+    name: 'Verbal',
+    detail: 'Word relationships, sentence meaning, and sorting ideas by what they have in common.',
   },
   {
-    name: 'Verbal reasoning',
-    detail: 'Understanding language, relationships between words, and meaning.',
+    name: 'Quantitative',
+    detail: 'Number relationships, sequences, and puzzles about how quantities balance.',
   },
   {
-    name: 'Quantitative reasoning',
-    detail: 'Working with numbers, sequences, and mathematical relationships.',
-  },
-  {
-    name: 'Spatial reasoning',
-    detail: 'Picturing and mentally rotating shapes and figures in space.',
+    name: 'Nonverbal',
+    detail: 'Figure patterns, folding and rotating shapes, and grouping figures by rule.',
   },
 ] as const;
-
-function readUnlocked(): boolean {
-  if (typeof window === 'undefined') return false;
-  return window.sessionStorage.getItem(UNLOCK_KEY) === 'true';
-}
 
 export function AssessmentPage({
   dashboardHref,
@@ -47,15 +46,6 @@ export function AssessmentPage({
   dashboardHref: string;
   examHref: string;
 }) {
-  const [unlocked, setUnlocked] = useState(readUnlocked);
-  const [paying, setPaying] = useState(false);
-
-  function confirmMockPayment() {
-    window.sessionStorage.setItem(UNLOCK_KEY, 'true');
-    setUnlocked(true);
-    setPaying(false);
-  }
-
   return (
     <div className={styles.wrap}>
       <Link className={styles.back} href={dashboardHref}>
@@ -64,11 +54,11 @@ export function AssessmentPage({
 
       <section className={styles.hero}>
         <div className={styles.heroText}>
-          <p className={styles.kicker}>Assessment</p>
-          <h1 className={styles.title}>CogAT assessment</h1>
+          <p className={styles.kicker}>Baseline</p>
+          <h1 className={styles.title}>See where you place</h1>
           <p className={styles.lede}>
-            A short, adaptive reasoning session, and the next step toward your eligibility result.
-            Here’s what it measures, what to expect, and what it costs before you begin.
+            A short reasoning session that finds your child’s level in each area, then points at the
+            ones worth practising. Free, and you can take it again later to see what moved.
           </p>
         </div>
       </section>
@@ -79,7 +69,7 @@ export function AssessmentPage({
           <dl className={styles.facts}>
             <div className={styles.fact}>
               <dt className={styles.factLabel}>Length</dt>
-              <dd className={styles.factValue}>About 10 minutes, in one sitting</dd>
+              <dd className={styles.factValue}>Under 40 minutes, in one sitting</dd>
             </div>
             <div className={styles.fact}>
               <dt className={styles.factLabel}>Format</dt>
@@ -90,55 +80,39 @@ export function AssessmentPage({
             <div className={styles.fact}>
               <dt className={styles.factLabel}>Preparation</dt>
               <dd className={styles.factValue}>
-                None needed. It measures reasoning, not memorized facts
+                None needed. This one is the starting point you practise against
               </dd>
             </div>
             <div className={styles.fact}>
-              <dt className={styles.factLabel}>Included</dt>
+              <dt className={styles.factLabel}>You get back</dt>
               <dd className={styles.factValue}>
-                One session, a secure testing portal, live status updates, and automatic routing to
-                your eligibility result
+                A level in each of the three areas, the question types worth practising first, and a
+                way in to practice
               </dd>
             </div>
           </dl>
         </section>
 
         <section className={styles.feeCard}>
-          <p className={styles.cardKicker}>Assessment fee</p>
-          <p className={styles.feeAmount}>${MOCK_FEE_USD.toFixed(2)}</p>
-          <p className={styles.feeNote}>Charged once, right before your assessment begins.</p>
+          <p className={styles.cardKicker}>Cost</p>
+          <p className={styles.feeAmount}>Free</p>
+          <p className={styles.feeNote}>
+            No card, and you can take it again whenever you want to see what has moved.
+          </p>
 
-          {unlocked ? (
-            <>
-              <Link className={styles.primary} href={examHref}>
-                Open the assessment →
-              </Link>
-              <p className={styles.readyNote}>Your assessment access is ready.</p>
-            </>
-          ) : paying ? (
-            <div className={styles.payRow}>
-              <button type="button" className={styles.ghost} onClick={() => setPaying(false)}>
-                Back
-              </button>
-              <button type="button" className={styles.primary} onClick={confirmMockPayment}>
-                {`Confirm & pay $${MOCK_FEE_USD.toFixed(2)}`}
-              </button>
-            </div>
-          ) : (
-            <button type="button" className={styles.primary} onClick={() => setPaying(true)}>
-              {`Pay $${MOCK_FEE_USD.toFixed(2)} & start assessment`}
-            </button>
-          )}
+          <Link className={styles.primary} href={examHref}>
+            Start the baseline →
+          </Link>
         </section>
       </div>
 
       <section className={styles.measures}>
         <p className={styles.cardKicker}>What it measures</p>
         <p className={styles.sectionLede}>
-          Four kinds of reasoning, scored independently so strengths in any area come through.
+          Three areas, scored separately, so practice can go where it is actually needed.
         </p>
         <div className={styles.domainGrid}>
-          {DOMAINS.map((d, i) => (
+          {BATTERIES.map((d, i) => (
             <div key={d.name} className={styles.domain}>
               <span className={styles.domainNum}>{String(i + 1).padStart(2, '0')}</span>
               <p className={styles.domainName}>{d.name}</p>
@@ -148,9 +122,17 @@ export function AssessmentPage({
         </div>
       </section>
 
+      {/*
+        The claim boundary, rewritten for a preparation product. The old wording bounded an
+        admissions decision, which this no longer makes. What has to be bounded now is the
+        comparison a family will naturally assume: that a level here is a CogAT score, or an IQ.
+        Neither is supportable — there is no study linking this scale to CogAT's, and what practice
+        changes is performance on reasoning questions rather than a person's intelligence.
+      */}
       <p className={styles.boundary}>
-        This is an eligibility screening only, not an IQ test, an enrollment offer, or an admission
-        decision. Results help route your family to the right next step.
+        This is practice, not an official test. It is not an IQ test, it is not affiliated with or
+        endorsed by the makers of the CogAT, and the levels here do not predict a score on it. What
+        it gives you is a starting point and something to practise against.
       </p>
     </div>
   );

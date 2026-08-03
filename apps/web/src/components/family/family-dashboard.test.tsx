@@ -51,10 +51,16 @@ describe('FamilyDashboard', () => {
     }
   });
 
-  it('locks the assessment until the application is submitted', () => {
+  /**
+   * Rewritten for the pivot (2026-08-03): the gate no longer waits on an
+   * application being submitted, because the product no longer has an admissions
+   * application to submit. It waits on the child details a baseline needs in
+   * order to be scored against a grade.
+   */
+  it('keeps the baseline locked until the child details exist', () => {
     render(
       <FamilyDashboard studentName="Synthetic Rivera" status={projection('application_draft')} />,
     );
-    expect(screen.getByText(/submit your application first/i)).toBeInTheDocument();
+    expect(screen.getByText(/add your child’s details first/i)).toBeInTheDocument();
   });
 });

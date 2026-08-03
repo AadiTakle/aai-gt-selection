@@ -156,12 +156,6 @@
   margin: 0 0 var(--gt-space-2);
 }
 
-.readyNote {
-  font-size: 0.85rem;
-  color: var(--color-success);
-  margin: 0;
-}
-
 /* Primary action for this screen: Navy fill, Near White label, the one chamfer. */
 .primary {
   all: unset;
@@ -201,37 +195,6 @@
 
 .primary:hover::before {
   background: var(--color-primary-hover);
-}
-
-.ghost {
-  all: unset;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-ink);
-  padding: 0.75rem 1.1rem;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border-strong);
-  font-family: var(--font-body);
-  font-weight: 500;
-  text-align: center;
-}
-
-.ghost:hover {
-  background: var(--color-surface);
-  border-color: var(--color-primary);
-}
-
-.ghost:focus-visible {
-  outline: 0.1875rem solid var(--color-focus);
-  outline-offset: 0.125rem;
-}
-
-.payRow {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: var(--gt-space-3);
 }
 
 /* ---- What it measures: a grouped warm region ---- */

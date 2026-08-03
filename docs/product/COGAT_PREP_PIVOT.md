@@ -129,19 +129,44 @@ Two constraints on whatever is chosen:
    shorthand and should not reach the UI: what improves is performance on a reasoning test, and
    claiming a raised IQ is both unsupported and the exact overclaim the project has avoided so far.
 
-## 7. Open questions — owner's to settle
+## 7. Decisions taken, and what is still open
+
+### 7.1 Settled by the owner, 2026-08-03
+
+**Payment is gone.** Not moved, not deferred to the course — removed. The assessment page currently
+advertises a $75 mock fee and gates the exam link behind a `confirmMockPayment()` that writes
+`gt-synthetic-assessment-unlocked` to `sessionStorage`. All of it comes out, and the baseline becomes
+directly startable. Consequence worth noting: the fee was the only thing making the assessment page a
+distinct step rather than a launch button, so that page's job is now "explain what the baseline
+measures, then start it."
+
+**The dashboard shows baseline scores over time.** This makes the retest a first-class product
+feature rather than an incidental repeat, which matters more than it looks: §5 establishes that a
+before/after on the same battery is the *only* measurement in this product that the change literature
+actually supports. So the dashboard's score history is not decoration — it is the evidence surface,
+and the product's central claim ("this improves how your child performs") lives or dies on it.
+
+Two things that follow, and neither is cosmetic:
+
+1. **A baseline attempt has to be a stored, timestamped, comparable record** — per-battery ability
+   plus the weakest-area flags plus the grade at the time of sitting. Ability estimates are only
+   comparable across attempts if the scale is fixed, so the 1–20 difficulty scale and the estimator
+   must not drift between attempts, or the history compares two different rulers.
+2. **A visible score history invites reading noise as progress.** A per-battery estimate from 8–12
+   items carries real uncertainty, so two attempts differing slightly is not improvement. The history
+   needs to show the uncertainty, or say "no change yet", rather than draw a line through two points
+   and imply a trend.
+
+### 7.2 Still open
 
 1. **Application/onboarding flow:** keep, trim, or drop? The brief keeps it ("I liked everything I
    put in there") while noting the product no longer needs an admissions application. A prep product
    still needs an account, a child profile, and a grade — which is most of the profile layer already
-   built, minus the application-cycle machinery.
-2. **What replaces the payment step**, and is payment gone entirely or moved (e.g. free baseline,
-   paid course)?
-3. **Baseline name**, within §6's constraints.
-4. **Dashboard as third surface:** the brief describes it as the entry into the course plus a review
-   of what was worked on. Does it also show the baseline scores over time — i.e. is the
-   before/after retest a product feature, given §5 makes it the measurement that actually works?
-5. **Grades 3–8 efficiency metric:** report time-per-question to the child, or hold it internal? It
+   built, minus the application-cycle machinery. **Working assumption until told otherwise:** keep
+   the profile and child records, drop the admissions-cycle application.
+2. **Baseline name**, within §6's constraints. "See where you place" is the brief's suggestion and is
+   used as a placeholder in the UI until settled.
+3. **Grades 3–8 efficiency metric:** report time-per-question to the child, or hold it internal? It
    is currently a filter by policy, and promoting it to a reported metric a child is told to improve
    is a design decision with its own risks — speed pressure on a reasoning test degrades exactly the
    reflection it measures.
