@@ -261,9 +261,7 @@ export async function submitAnswer(input: SubmitAnswerInput): Promise<ServerVerd
     if (!data.ok) return null;
     // Narrowed field by field rather than cast, so a payload that named neither currency — or both —
     // forwards nothing to the demo instead of an object the renderer would silently ignore.
-    const raw = data.reveal as
-      | { machineOutput?: unknown; machinePlacement?: unknown }
-      | undefined;
+    const raw = data.reveal as { machineOutput?: unknown; machinePlacement?: unknown } | undefined;
     const reveal: ItemReveal | null =
       typeof raw?.machineOutput === 'string'
         ? { machineOutput: raw.machineOutput }

@@ -1,7 +1,4 @@
-import {
-  CONTINUOUS_PLACEMENT_CHANCE_FLOOR,
-  type ServedItem,
-} from '@gt-selection/exam-engine';
+import { CONTINUOUS_PLACEMENT_CHANCE_FLOOR, type ServedItem } from '@gt-selection/exam-engine';
 import { learningRateReadout, type LearningTrial } from '@gt-selection/exam-scoring';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -258,8 +255,9 @@ describe('blockGuessingFloor', () => {
     });
     // The index spelling is the same tag, because the browser decides the floor from the index.
     expect(
-      blockGuessingFloor([{ ...served('c', 12), content: { responseFormat: 'continuous_placement' } }])
-        .guessing,
+      blockGuessingFloor([
+        { ...served('c', 12), content: { responseFormat: 'continuous_placement' } },
+      ]).guessing,
     ).toBeCloseTo(1 / 15, 12);
     // Three times lower than the default it used to inherit, and not zero.
     expect(CONTINUOUS_PLACEMENT_CHANCE_FLOOR).toBeLessThan(0.2);

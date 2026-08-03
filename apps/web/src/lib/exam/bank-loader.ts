@@ -404,9 +404,7 @@ export type ServedItemIndex = Omit<ServedItem, 'content'> & {
  * itself is declared engine-side rather than sent).
  */
 function indexResponseShape(item: RawBankItem): { optionCount?: number; responseFormat?: string } {
-  const content = item.content as
-    | { options?: unknown; responseFormat?: unknown }
-    | undefined;
+  const content = item.content as { options?: unknown; responseFormat?: unknown } | undefined;
   if (typeof content?.responseFormat === 'string') {
     return { responseFormat: content.responseFormat };
   }
