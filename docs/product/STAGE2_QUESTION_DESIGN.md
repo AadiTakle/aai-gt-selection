@@ -422,6 +422,27 @@ across 30 novel trials*, *countable composition depth as difficulty*, *single ta
 
 ### 3.2 Quantitative — `QUANT-GLYPHNUM-01` "Alien Numbers" *(primary)*
 
+> **SUPERSEDED for this type by `STAGE2_REDESIGN_SPEC.md` §5.1, which is built (D-211).** Three
+> statements below are no longer true of the shipped bank, and each is resolved rather than merely
+> overridden:
+>
+> 1. **"six marked positions"** — and the first build emitted five. The discrepancy is *dissolved*, not
+>    reconciled: the response is a slider, so there are no marked positions at all and nothing for the
+>    two counts to disagree about.
+> 2. **"a small base (3 or 4)"** — the base is 6, with five marks for the zero-free digit set
+>    `{1,2,3,4,5}`. §5.1 gives the derivation; the binding constraint is that a brute force over `g!`
+>    relabellings must score below the response's own chance floor, which base 4 (16.7%) and base 5
+>    (4.2%) do not clear against 6.7% with margin.
+> 3. **"the first demonstration trials show each glyph beside a depicted quantity"** — **not
+>    admissible at any stage.** Depicting each of the five marks is a full disclosure of the session
+>    key, which is why the first renderer recorded concreteness fading as impossible. §5.1 replaces it
+>    with a fade over the *representation of magnitude* for whole numerals, on unscored demonstration
+>    trials, which pins no single mark. Anything depicted alongside a **scored** item would hand the
+>    browser that item's own answer.
+>
+> §1.2, §4.1.1 and §4.3 still bind, and the rest of this section is retained as the reasoning the
+> redesign was argued against.
+
 **The item.** An invented numeral system: three or four arbitrary glyphs, composed by a hidden rule,
 in a small base (3 or 4). Trials ask the child to compare two written expressions, order three, or
 tap where a written expression sits among six marked positions on a line. The system is fixed for

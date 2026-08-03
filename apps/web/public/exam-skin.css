@@ -232,6 +232,9 @@ html[data-gt-chrome='off'] #stagecard {
  * emit these marks are affected. Loaded last, so these win on specificity over each demo's own
  * pre-review rules without those rules having to be deleted — they remain the fallback if this
  * sheet ever fails to load.
+ *
+ * Three of the four types mark option tiles. The fourth is answered on a number line and marks two
+ * POSITIONS instead; its geometry is the second block below, on the same palette and the same roles.
  */
 
 #options .opt.made,
@@ -284,6 +287,66 @@ html[data-gt-chrome='off'] #stagecard {
 #outslot.made {
   border-color: #004f71;
   box-shadow: 0 0 0 4px #4b8299;
+}
+
+/*
+ * THE SAME REVIEW, WHERE THE ANSWER IS A POSITION RATHER THAN AN OPTION (D-211).
+ *
+ * `QUANT-GLYPHNUM-01` is answered by sliding a handle along a number line, so it has no `#options`
+ * and the two facts a reviewable trial owes the child are two POSITIONS: where they put the handle,
+ * and where the writing turned out to belong. The roles, the palette and the two non-colour channels
+ * are the ones above — one review block for the battery, not a second palette — and only the
+ * geometry differs, because the boxes being marked are a handle and a pin rather than five tiles.
+ *
+ * WHAT THE POSITION CHANNEL BECOMES HERE. On a tile grid the machine's pill hangs below the tile and
+ * the child's tab sits inside its corner, because five tiles across leave no room for two pills on
+ * one edge. On a line the constraint is different and sharper: the two marks share an x whenever the
+ * child placed the handle where the writing belongs, so hanging both off the same point would put one
+ * exactly on top of the other. The machine's mark therefore owns the band ABOVE the line and the
+ * child's the band BELOW it. Coincidence is then the case the geometry is built for rather than the
+ * case it fails on — which is the same property the tile rules are protecting, in the currency this
+ * type answers in.
+ *
+ * Same audited values, so the ratios recorded in E-209 carry over unchanged: solid #004f71 with the
+ * #4b8299 ring and a #ffffff-on-#004f71 rounded pill for the machine, dashed #6f4526 with a
+ * #001117-on-#e48b53 square tab for the child. The gold is again confined to a fill that carries its
+ * own bronze outline, because #e48b53 measures 2.59:1 against white and cannot be an indicator on
+ * its own. Scoped to `#rail`, so no option-based renderer is touched.
+ */
+
+#rail #pin.goes {
+  border-style: solid;
+  border-color: #004f71;
+  box-shadow: 0 0 0 4px #4b8299;
+}
+
+#rail #handle.chose {
+  border-style: dashed;
+  border-color: #6f4526;
+  background: #e48b53;
+}
+
+#rail .tag[data-mark='goes'] {
+  top: auto;
+  bottom: 100%;
+  margin-bottom: 5px;
+  border: 1px solid #004f71;
+  border-radius: 999px;
+  background: #004f71;
+  color: #ffffff;
+  z-index: 3;
+}
+
+#rail .tag[data-mark='chose'] {
+  top: 100%;
+  bottom: auto;
+  margin-top: 5px;
+  padding: 2px 6px;
+  border: 1px solid #6f4526;
+  border-radius: 11px 0 8px 0;
+  background: #e48b53;
+  color: #001117;
+  z-index: 3;
 }
 
 /* ---- ready when you are ---- */

@@ -49,19 +49,27 @@ describe('served item projection', () => {
     expect(full?.answer?.correctKey).toBeDefined();
   });
 
-  it('puts nothing but an option count in the index, so the pool stays small', async () => {
+  it('puts nothing but the response shape in the index, so the pool stays small', async () => {
     const index = await getServedIndex();
     /*
-     * `optionCount` is the ONE piece of stimulus shape the index is allowed to carry, because burst
-     * policy has to know whether a type is a bounded choice before any item's content has been
-     * fetched. A count is not an answer key and does not say which option is correct — the browser
-     * already receives the full option list for the one item it is rendering — but it is the only
-     * exception, so this assertion names it rather than allowing content through generally.
+     * The RESPONSE SHAPE is the only stimulus fact the index is allowed to carry, because two
+     * decisions are made before any item's content has been fetched: burst policy asks whether a type
+     * is a bounded choice, and Phase 2 asks what a child who knows nothing scores on it.
+     *
+     * Two spellings, and neither is key material. `optionCount` does not say which option is correct —
+     * the browser already receives the full option list for the item it is rendering.
+     * `responseFormat` says the answer is a position rather than a choice, which is evident from the
+     * screen; it carries no tolerance, no target and no bound, and those are the fields that would
+     * matter. Nothing else may pass, so this names both rather than allowing content through
+     * generally.
      */
     for (const entry of index) {
       for (const [key, value] of Object.entries(entry.content)) {
-        expect(key, `${entry.itemId} content key`).toBe('optionCount');
-        expect(typeof value, `${entry.itemId} optionCount`).toBe('number');
+        expect(['optionCount', 'responseFormat'], `${entry.itemId} content key`).toContain(key);
+        expect(
+          key === 'optionCount' ? typeof value === 'number' : typeof value === 'string',
+          `${entry.itemId} ${key}`,
+        ).toBe(true);
       }
     }
     // The whole index must stay far smaller than the full pool it replaces.

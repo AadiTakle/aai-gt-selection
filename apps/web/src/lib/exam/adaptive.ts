@@ -259,7 +259,17 @@ export async function submitAnswer(input: SubmitAnswerInput): Promise<ServerVerd
     if (!res.ok) return null;
     const data = (await res.json()) as Record<string, unknown>;
     if (!data.ok) return null;
-    const machineOutput = (data.reveal as { machineOutput?: unknown } | undefined)?.machineOutput;
+    // Narrowed field by field rather than cast, so a payload that named neither currency — or both —
+    // forwards nothing to the demo instead of an object the renderer would silently ignore.
+    const raw = data.reveal as
+      | { machineOutput?: unknown; machinePlacement?: unknown }
+      | undefined;
+    const reveal: ItemReveal | null =
+      typeof raw?.machineOutput === 'string'
+        ? { machineOutput: raw.machineOutput }
+        : typeof raw?.machinePlacement === 'number' && Number.isFinite(raw.machinePlacement)
+          ? { machinePlacement: raw.machinePlacement }
+          : null;
     return {
       correct: Boolean(data.correct),
       score: typeof data.score === 'number' ? data.score : 0,
@@ -267,7 +277,7 @@ export async function submitAnswer(input: SubmitAnswerInput): Promise<ServerVerd
       domain: data.domain as Area,
       typeCode: String(data.typeCode ?? ''),
       metrics: numericMetrics(data.metrics),
-      ...(typeof machineOutput === 'string' ? { reveal: { machineOutput } } : {}),
+      ...(reveal === null ? {} : { reveal }),
     };
   } catch {
     return null;

@@ -1,147 +1,197 @@
-// QUANT-GLYPHNUM-01 "Alien Numbers" — DUAL-MODE structured bank generator (Bucket A: grammar).
+// QUANT-GLYPHNUM-01 "Alien Numbers" — DUAL-MODE TEMPLATE generator (Bucket A: grammar).
 //
-// A Stage 2 learning-block type, built to STAGE2_QUESTION_DESIGN.md §3.2 and §9.2 (U3) under
-// D-S2-2 (purpose-designed) and D-S2-3 (the scrambled-system control is a binding gate).
-// `FLU-OPCHAIN-01.mjs` is the reference implementation and this file follows its structure
-// deliberately: same RNG idiom, same dual-mode contract, same lever-driven difficulty, same
-// "every distractor is a named incomplete rule" discipline.
-//
-// THE TASK. An invented numeral system. A written expression of one to four glyphs sits above a
-// number line whose right-hand end is labelled with another expression in the same system; the
-// child taps which of five marked positions the expression belongs at. One tap, five fixed
-// positions, no drag and no construction (§3.2 is explicit that the line response is tap targets
-// and not a drag, so no motor learning curve enters the block).
+// Rebuilt to STAGE2_REDESIGN_SPEC.md §5.1 under D-211. Serves R5, R6, R7, R8, R10, H1, H6, H10.
+// Supersedes the five-option build this file used to hold; STAGE2_QUESTION_DESIGN.md §3.2 is
+// superseded for this type by §5.1 of the redesign spec, and §1.2 / §4.1.1 / §4.3 still bind.
 //
 // ---------------------------------------------------------------------------
-// THE HIDDEN SYSTEM, AND WHY IT IS A HYBRID
+// THE TASK
 //
-// Five arbitrary glyphs map bijectively onto five roles in a base-4 notation:
+// An invented PLACE-VALUE numeral system in a non-decimal base. A numeral of one to four marks sits
+// above a number line whose right-hand end is labelled with another numeral in the same system. The
+// child DRAGS A SLIDER to where the numeral belongs. There are no options.
 //
-//   three SCALE roles   values 1, 4, 16     (a sign-value ladder: glyphs ADD, order irrelevant)
-//   two   DIGIT roles   values 2, 3         (a multiplier that BINDS to the scale after it)
-//
-// An expression is read left to right as a sum of UNITS. A unit is either a bare scale (worth the
-// scale) or a digit immediately followed by a scale (worth digit x scale). So the notation carries
-// an additive layer and a multiplicative layer, and WHICH LAYER an item needs is a property of the
-// item rather than of the block.
-//
-// That hybrid is not decoration; it is what makes §3.2's two published difficulty directions usable
-// as within-block levers. Weiers, Gilmore & Inglis (2025) found a sign-value advantage over
-// place-value, and Holt & Barner (2025) found additive composition easier than multiplicative —
-// both on ADULTS, which is open assumption A-S2-2. A system that were purely sign-value or purely
-// place-value would have to vary the composition rule BETWEEN blocks to use that ordering, and a
-// rule that changes between blocks is not learnable within one. Carrying both layers in one system
-// puts the ordering inside a single child's ladder, where λ can see it.
-//
-// WHAT §3.2's "base" LEVER BECAME, AND WHY. §3.2 lists base among the difficulty levers. Base is a
-// property of the SYSTEM, and §3.2 also fixes the system for the whole block — a per-item base
-// change would re-draw the system every trial, which is the `perTrial` control arm, not a
-// difficulty lever. So base is fixed at 4 for the bank and the lever is dropped, exactly as
-// FLU-OPCHAIN-01 dropped §3.1's "number of operators in the active vocabulary" for the same reason.
-// Base 4 rather than Weiers' base 3: both are equally unfamiliar to a base-10 child, and base 4
-// buys a fifth glyph (two digit roles instead of one), which raises the relabelling space from 24
-// mappings to 120 and is therefore the anti-leak margin below.
+// Left-to-right significance is retained — leftmost mark most significant. It is the one convention
+// that is genuinely intuitive and carries no information worth measuring; reversing it would test
+// convention-breaking rather than quantitative reasoning (§5.1).
 //
 // ---------------------------------------------------------------------------
-// WHY THIS IS ONE GENERATOR AND TWO BANKS
+// WHY BASE 6, AND WHY THE DIGIT SET HAS NO ZERO
 //
-// §4.1.1 makes the scrambled control a generator MODE: two code paths or two renderers would
-// confound the contrast with the generator or the renderer. `systemPersistence` is therefore a
-// parameter of this file from its first commit:
+// Three constraints pick the base, and only one value satisfies all three.
 //
-//   consistent  one glyph->role mapping for the WHOLE bank. What the child works out on trial 1 is
-//               still true on trial 30, so knowledge of the system transfers across items — the
-//               only thing that can transfer, because no item ever repeats.
-//   perTrial    a FRESH mapping every item. Nothing carries forward. Any climb observed here is the
-//               design's contamination floor: practice, warm-up, residual interface learning,
-//               guessing, regression at the handover and difficulty misspecification, summed.
+// 1. NON-DECIMAL, and not a base-10 landmark. Weiers, Gilmore & Inglis (2025) used base 3
+//    explicitly "to avoid the confound of familiarity with base-10"; 6 shares that property.
 //
-// The two banks are equated BY CONSTRUCTION, not by inspection. The ROLE sequence, the line's
-// maximum, every option value, the key, the key's rank on the line, the distractor slate and the
-// stated difficulty are drawn from the lever tuple and the seed and never from the mode. Only which
-// glyph symbols spell the expression and the line's anchor differ, and the glyph tray is listed in
-// one canonical order in both arms so the tray itself carries no information.
+// 2. EVERY DIGIT EQUAL IN INTRINSIC COST (§3 of the redesign spec). A zero digit is not equal in
+//    cost to a non-zero one — "this mark means nothing is here" is a different and famously harder
+//    inference than "this mark means three" — so a system containing zero prices difficulty partly
+//    on WHICH digit was drawn, which is exactly what §3 forbids. The digit set is therefore
+//    {1,2,3,4,5}: zero-free, so every numeral this generator writes has every place occupied, and
+//    every digit glyph is one lookup and nothing more.
 //
-// ---------------------------------------------------------------------------
-// WHY THE KEY IS NOT DERIVABLE FROM `content` (E-075/E-076)
+//    A zero-free digit set in base b has b-1 members, so THE TRAY DOES NOT GIVE THE BASE. Five
+//    marks in a base-6 system is a fact the child has to derive from where numerals land, not count
+//    off the tray — and a child who assumes base = tray size infers 5 and is wrong. That is a
+//    graded inference rather than a leak.
 //
-// `content` gives the glyph tray, the expression, the line's anchor expression and five tick
-// RATIOS. It does not give the line's numeric maximum, because publishing it would hand the
-// attacker the equation value(anchor) = max and pin part of the mapping for free.
+// 3. THE RELABELLING SPACE HAS TO BEAT THE RESPONSE'S OWN CHANCE FLOOR, which is about 1/15 (see
+//    below). A client that brute-forces every glyph->digit bijection always has the true reading
+//    among its candidates, so it can never do worse than 1/g! for g glyphs. That guaranteed floor
+//    must sit BELOW the response floor, or per-session re-keying is the weakest link in the item
+//    rather than the strongest:
 //
-// The strongest content-only attack is to brute-force the mapping. A mapping is a glyph->role
-// bijection over five glyphs, so there are 5! = 120 of them, and the attacker is assumed to know
-// the algorithm — E-075/E-076 judge derivability from the DATA, not from who knows the method. For
-// each mapping the attacker computes value(expression) / value(anchor) and keeps the options whose
-// ratio matches. That is closed in two layers, both re-derived independently by
-// `check-QUANT-GLYPHNUM-01.mjs` from `content` alone:
+//      base 4 -> 3 glyphs ->   6 mappings -> 16.7%  vs a 6.7% floor   FAILS
+//      base 5 -> 4 glyphs ->  24 mappings ->  4.2%  vs a 6.7% floor   marginal
+//      base 6 -> 5 glyphs -> 120 mappings ->  0.8%  vs a 6.7% floor   an order of magnitude clear
 //
-//   1. A HARD INVARIANT: at least TWO options must survive the brute force. If only one did, a
-//      browser would recover the key from `content` with no induction at all. This is the invariant
-//      FLU-OPCHAIN-01 had to retrofit after its first bank leaked the key on 11 of 234 items; here
-//      it is a build-time constraint and the generator abandons a layout that cannot satisfy it.
-//   2. An OPTIMISED OBJECTIVE, because determinacy is the wrong bar on its own. An item where two
-//      options survive still hands a guesser 50%, and an attacker who counts how many of the 120
-//      mappings back each survivor and takes the modal one can beat even a five-survivor item. So
-//      the layout — which line, and which partial rules make the slate — is chosen to MINIMISE the
-//      best of three content-only attacks: uniform over survivors, most-backed survivor, and
-//      least-backed survivor. The third is in the list because forcing the key never to be modal is
-//      as predictable as letting it always be modal, and an objective that ignored it would build
-//      the inverse tell while reporting a clean modal figure.
-//
-// The floor is 20% — five survivors, equally backed. What the bank achieves against that floor is
-// reported by the generator and by the checker PER DIFFICULTY SLICE, because a leak concentrated in
-// one slice is invisible in a bank mean and the block serves different slices to different children.
-//
-// Two surface heuristics are closed separately, because neither needs the mapping:
-//
-//   * "longer expression, further right." Key RANK on the line is allocated round-robin WITHIN each
-//     expression length, so rank carries no information about length. Round-robin over the bank as
-//     a whole would leave that correlation intact while looking balanced.
-//   * "tap the end of the line." One admissible distractor is the anchor value itself, so the
-//     right-hand end is a live wrong answer rather than a free elimination.
-//
-// Cross-item inference is NOT closed, and must not be: pooling several items in the `consistent`
-// arm narrows the mapping, and doing exactly that is the induction the block is trying to measure.
-// The checker reports how many items suffice to pin the mapping as a LEARNABILITY figure. In the
-// `perTrial` arm the same pooling yields nothing, which is the control's whole logic.
+//    Base 6 is the smallest base that clears it with margin. It also keeps the vocabulary lever a
+//    real 1..5 range and keeps the five glyph drawings the renderer already has, so no new
+//    legibility work is needed.
 //
 // ---------------------------------------------------------------------------
-// WHY THIS BANK CAN SUPPLY `M-PAE`, RATHER THAN DECLARING IT
+// THE RESPONSE, AND WHAT IT DOES TO THE CHANCE FLOOR
 //
-// D-031 left `M-PAE` `enforced: false` in quantitative because retiring `QUANT-NUMLINE-01` left it
-// with no placement supplier, and `packages/exam-engine/src/config.ts` names "a placement type
-// wired again" as the re-enforcement trigger. This bank emits `scoring.rule =
-// 'placement_tolerance'` with `answer.targetRatio` and `answer.tolerance`, which is the contract the
-// SHIPPED generic verifiers already implement in both tiers — `verifyPlacementTolerance` in
-// `apps/web/src/lib/exam/verifiers/generic.ts` and `app.exam_verify_placement_tolerance` in
-// `supabase/migrations/20260725170000_exam_verify_plpgsql.sql`. Both compute
-// `pae = |placedRatio - targetRatio|` and return it as `M-PAE`. So the emission needs no new
-// verifier code, and `check-QUANT-GLYPHNUM-01.mjs` re-implements that formula and proves, on every
-// item x every option, that the metric comes out graded, in the registry's declared [0, 0.5] range,
-// and that `pae <= tolerance` picks out exactly the keyed tick.
+// §5.1 says a continuous response has "no guessing floor — it drops from 0.2 to effectively 0".
+// That is the right direction and the wrong number, and the number is the whole point of E-207, so
+// this bank computes it rather than asserting it.
 //
-// It is graded because the four wrong ticks are the values of NAMED partial rules, so the distance
-// between the tapped tick and the key is the size of the child's decoding error, not an arbitrary
-// gap: a child who has the vocabulary and the additive layer but not the multiplicative binding
-// lands near, and a child counting glyph tokens lands far. That is what the registry means by
-// "small consistent PAE separates top reasoners without ceiling".
+// A placement is graded `|placedRatio - targetRatio| <= tolerance`, so the placements that score
+// correct form an INTERVAL and a client who does not know the answer succeeds with probability equal
+// to that interval's share of wherever it places. Two readings, both computed by the CLI:
+//
+//   * uniform over the whole line            -> 2 * TOLERANCE_RATIO      = 0.0500
+//   * uniform over the bank's target SUPPORT -> 2 * t / (support width)  = 0.0667 = 1/15
+//
+// The estimator takes the LARGER, because a floor below the truth reads chance successes as ability,
+// which is the direction that costs. {@link CHANCE_FLOOR} says why the support is narrower than the
+// line and why a child can learn it inside a block.
+//
+// Requiring every target at least a tolerance from both ends pays for itself twice: the accepting
+// interval is then exactly 2t on every item, so the block's single-floor fit is exact rather than an
+// average, and it kills "slam the slider to the end", the heuristic the old five-option build had to
+// spend a distractor (`anchor_echo`) closing.
+//
+// So the floor falls THREE-FOLD from the five-option 0.2, not to zero. Equivalently the slider is a
+// FIFTEEN-alternative response where the five options it replaces were five.
+// `packages/exam-engine/src/item-format.ts` carries the same figure as
+// `CONTINUOUS_PLACEMENT_CHANCE_FLOOR` and `blockGuessingFloor` in `apps/web/src/lib/exam/phase2.ts`
+// reads it off the response FORMAT, so neither has to guess `1/n` from an option count this type
+// does not have.
+//
+// CLAIM BOUNDARY. Uniform placement is a design assumption of exactly the same class as
+// "the floor is the reciprocal of the option count" (D-200 part 1): a real child who does not know
+// is not uniform — centre bias raises the effective floor for mid-line targets and lowers it at the
+// edges — and a disengaged child sits below it again. E-211 records the assumption; nothing here is
+// a calibrated `c`.
+//
+// ---------------------------------------------------------------------------
+// WHY THIS EMITS TEMPLATES
+//
+// §2.1 of the redesign spec requires banks to store templates rather than finished items, so the
+// server can draw the session mapping and materialise from it. For this type that is unusually
+// cheap, and the reason is worth stating because it is why §8 sequences Alien Numbers early:
+//
+//   A TEMPLATE STORES THE NUMERAL AS DIGIT VALUES, NOT AS GLYPHS. `value(numeral)` is therefore a
+//   property of the template, so the TARGET RATIO, THE TOLERANCE AND EVERY DIFFICULTY LEVER ARE
+//   INVARIANT UNDER RE-KEYING. Only which glyph draws which digit moves.
+//
+// Both failures §2 measured on the current banks are therefore impossible here rather than merely
+// fixed. Failure A (difficulty drifts under relabelling) cannot occur because every lever is a count
+// over digit values. Failure B (the answer stops being on screen) cannot occur because the answer is
+// a position on a continuous line and every position is on screen.
+//
+// `provenance.template` is the authority and `provenance` is what `servedItemSchema` omits, so the
+// template never reaches a browser. `content` and `answer` are the REFERENCE MATERIALISATION under
+// the bank's declared `systemSeed`: they keep the type servable on today's path, and a serve-time
+// materialiser re-keys by rewriting exactly those two objects from the template. The checker proves
+// the reference materialisation is reproducible from the template alone.
+//
+// ---------------------------------------------------------------------------
+// WHAT A CLIENT CAN COMPUTE FROM `content` ALONE (E-075/E-076)
+//
+// `content` gives the glyph tray, the numeral as a glyph string, the anchor as a glyph string, and
+// the response field. It does NOT give the base, any digit's value, the line's numeric maximum, the
+// target ratio or the tolerance.
+//
+// The strongest content-only attack is still to brute-force the 120 glyph->digit bijections, but a
+// continuous response changes what that buys. With five fixed options the attacker's candidates
+// COINCIDED with the options by construction, which is what made the leak dangerous. Here the
+// candidates are 120 ratios spread along the line and only those inside the accepting band score, so
+// the attack's yield collapses to roughly the band's own measure. The generator computes it exactly
+// as `bandHit` and REFUSES any layout above the response floor, which makes "the brute force is no
+// better than random placement" a build-time invariant rather than an argument.
+//
+// Two further attacks that need no mapping at all, both closed by construction and both measured:
+//
+//   * FIXED PLACEMENT. Park the slider at one ratio for every item. Best case over the bank is
+//     reported; target ratios are spread uniformly over the admissible interval, so it lands at the
+//     floor.
+//   * THE DIFFICULTY-ORDINAL ATTACK. `difficulty` is served, so a scraped bank sorted by it must not
+//     predict where on the line the answer sits. STAGE2_ANTILEAK_COMPARISON §7.2 read the key slot
+//     straight off the difficulty rank at 32.9% on the old build. The replacement is structural:
+//     within every rung the target ratio is spread across the admissible interval, and the generator
+//     reports the difficulty x targetRatio correlation and the best per-slice fixed placement.
+//
+// Cross-item inference is NOT closed and must not be: pooling items in the `consistent` arm narrows
+// the mapping, and doing exactly that is the induction the block measures. In `perTrial` the same
+// pooling yields nothing, which is the control's whole logic.
+//
+// ---------------------------------------------------------------------------
+// CONCRETENESS FADING — DESIGNED, EMITTED, AND DELIBERATELY NOT IN `content`
+//
+// §3.2 asked for "each glyph beside a depicted quantity", fading by a fixed trial index. The old
+// renderer recorded that as impossible, correctly: a renderer cannot depict a glyph's worth without
+// the key.
+//
+// A server-emitted schedule makes it possible, and building it surfaced a constraint §5.1 could not
+// have known: A DEMONSTRATION CANNOT RIDE ON A SCORED ITEM'S `content`. Any truthful depiction is an
+// equation over the session mapping, and one equation against a fixed anchor collapses the 120
+// candidates to about one — so a worked example co-served with a scored numeral hands the browser
+// THAT item's answer before the child answers. That is a firewall breach, not a learnability
+// disclosure: it is strictly worse than the post-commit reveal §1.1 measured, which discloses the
+// same equation only for an item that is already committed and never re-served.
+//
+// So the schedule is emitted in `provenance.template.demonstration` — server-only — and specifies
+// UNSCORED demonstration trials at the head of the block. Three stages, which is the fade:
+//
+//   `counted`  the numeral, and its quantity drawn as countable unit tokens along the line
+//   `extent`   the same, as a filled bar with no countable units
+//   `symbolic` the numeral and its position only
+//
+// What fades is the REPRESENTATION OF MAGNITUDE, concrete to abstract, which is what concreteness
+// fading means (Fyfe, McNeil, Son & Goldstone 2014; Goldstone & Son 2005). What does not fade is
+// "which mark is worth what", because that was never depictable without publishing the key, and
+// §3.2's "each glyph" is not admissible at any stage. The renderer implements the phase; which block
+// phase sends it is the serve-time path's job and is out of scope here.
+//
+// ---------------------------------------------------------------------------
+// M-PAE, AND WHY THIS BANK STILL SUPPLIES IT
+//
+// `scoring.rule = 'placement_tolerance'` with `answer.targetRatio` and `answer.tolerance` — the
+// contract the SHIPPED generic verifiers already implement in both tiers (`verifyPlacementTolerance`
+// in `apps/web/src/lib/exam/verifiers/generic.ts`, `app.exam_verify_placement_tolerance` and
+// `app.exam_verify_quant_glyphnum` in the database). Both return `pae = |placedRatio - targetRatio|`
+// as M-PAE. Nothing new is needed.
+//
+// What DID change is the metric's realised range. With five options every response was one of five
+// ratios the generator had already constrained to within 0.5 of the target. A free slider can be
+// placed anywhere, so PAE now genuinely spans [0, 1 - tolerance]. `policy.ts` declares M-PAE over
+// {min: 0, max: 0.5}: that is a NORMALISATION window, and `normalizeToUnit` clamps, so a placement
+// more than half the line away scores as maximally wrong — which is the right reading and needs no
+// registry change. The generator reports the realised span so the claim is measured.
 //
 // ---------------------------------------------------------------------------
 // GOVERNANCE. Born-synthetic only (syntheticOnly:true, validated:false). `difficulty` is a DESIGN
 // rung on the shared 1..20 scale computed from the declared levers, NOT a calibrated IRT parameter.
 // NOTHING HERE IS GATED: Gate B needs ~128 real children (§4.1.3) and no synthetic run substitutes,
-// so the honest status is "gate-ready, ungated". Not wired into the live learning block.
-//
-// WHERE THE TWO BANKS ARE WRITTEN. `banks/` is the SERVED directory — `bank-loader.ts` builds every
-// path it reads inside it and `sync-exam-demos.mjs` globs it — so the consistent arm goes there as
-// the plain `banks/QUANT-GLYPHNUM-01.jsonl` and the scrambled arm goes to `control-banks/`, a
-// directory no application code names. That is a stronger guarantee than a filename convention.
+// and §6 of the redesign spec records that a continuous-response type sits outside every Gate A cell
+// measured so far, so Gate A must be re-read for it (E-211 does that).
 //
 // Run:  node research/exam-question-types/generators/QUANT-GLYPHNUM-01.mjs
 //       writes ../banks/QUANT-GLYPHNUM-01.jsonl (consistent, live) and
 //       ../control-banks/QUANT-GLYPHNUM-01.perTrial.jsonl (scrambled control, never served)
-//       and prints a coverage + equating + anti-leak summary.
+//       and prints coverage, equating, floor and anti-leak summaries.
 
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -154,76 +204,126 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
  * THE NOTATION
  * ================================================================== */
 
-/** The notation's base. Fixed for the bank — see the header on why it is not a per-item lever. */
-export const BASE = 4;
+/** The notation's base. See the header for why 6 and not 3, 4 or 5. */
+export const BASE = 6;
 
-/** Sign-value ladder: these glyphs ADD, and a run of them is order-free. */
-export const SCALE_ROLES = Object.freeze({ scaleI: 1, scaleII: BASE, scaleIII: BASE * BASE });
-/** Multipliers: a digit BINDS to the scale immediately after it. `1` needs no glyph (a bare scale). */
-export const DIGIT_ROLES = Object.freeze({ digitII: 2, digitIII: 3 });
-
-export const ROLES = Object.freeze([...Object.keys(SCALE_ROLES), ...Object.keys(DIGIT_ROLES)]);
-export const isScale = (role) => role in SCALE_ROLES;
-export const isDigit = (role) => role in DIGIT_ROLES;
-export const roleValue = (role) => SCALE_ROLES[role] ?? DIGIT_ROLES[role];
+/**
+ * The digit values, zero-free. A base-b zero-free digit set has b-1 members, which is why five
+ * glyphs do not announce base 6.
+ */
+export const DIGITS = Object.freeze([1, 2, 3, 4, 5]);
 
 /**
  * Glyph symbols. Five neutral marks, in ONE canonical order in every item of both banks, so the
- * tray never hints at the mapping. They are labels the renderer draws. Deliberately abstract:
- * anything with a counting or numeric connotation (a tally, a dot cluster) would leak an ordering
- * onto the roles before the child has induced one.
+ * tray never hints at the mapping. Deliberately abstract: anything with a counting connotation (a
+ * tally, a dot cluster) would order the digits before the child has induced an ordering.
  */
 export const GLYPHS = Object.freeze(['arc', 'chevron', 'crescent', 'notch', 'spiral']);
 
 /**
- * Read a role sequence as a number.
+ * Half-width of the accepting band, as a fraction of the line.
  *
- * TOTAL by design. The generator only ever emits sequences in which every digit is followed by a
- * scale, but the ANTI-LEAK brute force applies wrong mappings, which turn scales into digits and
- * produce sequences the grammar would never emit. A partial function there would silently drop
- * attacker hypotheses and flatter the invariant, so a trailing or doubled digit falls back to its
- * own face value.
+ * 0.025 is chosen against the two things that bound it from opposite sides.
+ *
+ *  * FROM BELOW, the child's pointing precision. On a ~600px line +/-2.5% is +/-15px, comfortably
+ *    inside a child's slider control, and the renderer also offers arrow keys. A band tight enough
+ *    to punish pointing would make the block partly a motor-learning measure, which is the failure
+ *    §1.4 exists to prevent.
+ *  * FROM ABOVE, the chance floor, which IS 2 * this number. Every point of tolerance is bought
+ *    with guessing accuracy.
+ *
+ * FIXED, not proportional to the target. A Weber-style band would vary the floor per item and the
+ * block's fit takes one floor; a "closer to the true integer than to any other" band would vary it
+ * with the line's maximum and shrink to sub-pixel on a long line. A constant fraction keeps the
+ * motor demand identical across the ladder, so difficulty cannot be confounded with pointing
+ * precision, and keeps the floor a single exact number.
  */
-export function valueOf(roles) {
+export const TOLERANCE_RATIO = 0.025;
+
+/**
+ * The stretch of the line targets are drawn from.
+ *
+ * NOT the whole line, and the reason is a property of the notation rather than a choice. A small
+ * target ratio needs a numeral far shorter than its anchor, and then all 120 candidate readings pile
+ * up near zero — every one of them lands within a tolerance of every other, so the brute force wins
+ * outright and the pair fails the hard invariant below. Measured over the whole notation, the
+ * contiguous stretch that survives is [0.20, 0.95], and nothing at any tolerance a child can point
+ * to will widen it.
+ *
+ * So it is DECLARED rather than discovered, and the generator asserts it, because it is load-bearing
+ * twice: it sets the chance floor, and it is what a client learns about the bank for free.
+ */
+export const SUPPORT_MIN = 0.2;
+export const SUPPORT_MAX = 0.95;
+
+/**
+ * What a client who does not know the answer scores. This is the number the block's fit and its
+ * targeting rule both need, and getting it wrong is the misspecification E-207 exists to fix.
+ *
+ * Two readings, and the estimator takes the LARGER, because a floor set below the truth is the
+ * direction that reads chance successes as ability:
+ *
+ *   * A placement uniform on the WHOLE line scores the measure of the accepting interval,
+ *     `2 * TOLERANCE_RATIO` = 0.050. Every target sits at least a tolerance from both ends, so that
+ *     measure is exactly `2 * TOLERANCE_RATIO` on every item rather than varying at the edges.
+ *   * A placement uniform on the SUPPORT scores `2 * TOLERANCE_RATIO / (SUPPORT_MAX - SUPPORT_MIN)`
+ *     = 0.0667. A child cannot read the support off one item, but over thirty trials they can see
+ *     that nothing ever lands in the left fifth of the line, and a client that has the bank knows it
+ *     immediately.
+ *
+ * Equivalently: a +/-2.5% band over a 0.75-wide support divides the answer into 15 disjoint
+ * accepting intervals, so the slider is a FIFTEEN-alternative response where the five options it
+ * replaces were five. The floor falls from 0.2 to 1/15, a three-fold reduction — not to zero, which
+ * is what §5.1 of the redesign spec asserts and this measures instead.
+ */
+export const CHANCE_FLOOR = (2 * TOLERANCE_RATIO) / (SUPPORT_MAX - SUPPORT_MIN);
+
+/** The floor a placement uniform on the whole line would score. Reported alongside, never used. */
+export const UNIFORM_LINE_FLOOR = 2 * TOLERANCE_RATIO;
+
+/** Read a digit-value sequence as a number, leftmost most significant. */
+export function valueOf(digits) {
   let total = 0;
-  let i = 0;
-  while (i < roles.length) {
-    const here = roles[i];
-    const next = roles[i + 1];
-    if (isDigit(here) && next !== undefined && isScale(next)) {
-      total += roleValue(here) * roleValue(next);
-      i += 2;
-    } else {
-      total += roleValue(here);
-      i += 1;
-    }
-  }
+  for (const digit of digits) total = total * BASE + digit;
   return total;
 }
 
-/** Number of digit->scale bindings in a role sequence. */
-export function bindsIn(roles) {
-  let binds = 0;
-  let i = 0;
-  while (i < roles.length) {
-    if (isDigit(roles[i]) && roles[i + 1] !== undefined && isScale(roles[i + 1])) {
-      binds += 1;
-      i += 2;
-    } else {
-      i += 1;
+/** Every numeral of length 1..`maxLength` over the zero-free digit set, shortest first. */
+function allNumerals(maxLength) {
+  let level = [[]];
+  const out = [];
+  for (let length = 1; length <= maxLength; length++) {
+    const next = [];
+    for (const prefix of level) {
+      for (const digit of DIGITS) next.push([...prefix, digit]);
     }
+    out.push(...next);
+    level = next;
   }
-  return binds;
+  return out;
 }
 
-/** True when the sequence is one the grammar may emit: every digit binds to a scale after it. */
-export function isWellFormed(roles) {
-  for (let i = 0; i < roles.length; i += 1) {
-    if (!isDigit(roles[i])) continue;
-    if (roles[i + 1] === undefined || !isScale(roles[i + 1])) return false;
+/** Longest numeral the bank writes. Four marks is the top of §1.3's composition ladder. */
+const MAX_LENGTH = 4;
+
+/** Every numeral, with its value, computed once. */
+const NUMERALS = allNumerals(MAX_LENGTH).map((digits) => ({
+  digits,
+  value: valueOf(digits),
+  length: digits.length,
+}));
+
+/** Numerals by value, so an anchor can be looked up by the quantity it has to label. */
+const NUMERALS_BY_VALUE = (() => {
+  const byValue = new Map();
+  for (const numeral of NUMERALS) {
+    // The shortest spelling wins, so a given quantity has ONE canonical anchor and the anchor is
+    // identical across the two persistence arms up to relabelling.
+    const held = byValue.get(numeral.value);
+    if (held === undefined || numeral.length < held.length) byValue.set(numeral.value, numeral);
   }
-  return roles.length > 0;
-}
+  return byValue;
+})();
 
 /* ------------------------------------------------------------------ *
  * Seeded RNG (xmur3 -> mulberry32), the same idiom every generator here uses.
@@ -276,79 +376,253 @@ const round2 = (x) => Math.round(x * 100) / 100;
 const round6 = (x) => Math.round(x * 1e6) / 1e6;
 
 /* ================================================================== *
- * DIFFICULTY MODEL — from the declared levers, monotone by construction.
+ * THE HIDDEN SYSTEM — a glyph->digit bijection.
  *
- * §1.1(d) is why this is arithmetic over generator parameters rather than a
- * hand label: the block serves systematically different item subsets early and
- * late, so difficulty error that correlates with subset composition correlates
- * with trialIndex, and correlated error in `b` maps straight onto `lambda`.
- * Random labelling error only attenuates; structured labelling error BIASES.
- *
- * Expression length dominates because it is the ladder the learnable thing
- * unlocks (§1.3). The multiplicative binding is priced twice — once per binding
- * and once for the fact that ANY binding makes the notation order-sensitive —
- * because "these two glyphs mean something different in the other order" is the
- * step that separates a child holding the rule from one holding a lookup table.
+ * `consistent` draws one and holds it for the whole bank. `perTrial` draws a
+ * fresh one per item. Nothing else about the item changes with the mode,
+ * because the template stores digit VALUES.
  * ================================================================== */
-export const LENGTH_LOAD = Object.freeze({ 1: 0, 2: 2.2, 3: 4.0, 4: 5.4 });
-/** Load per multiplicative binding: a product to hold, not a term to add. */
-const BIND_WEIGHT = 1.1;
-/** Extra load once ANY binding is present, because the notation stops being order-free. */
-const ORDER_WEIGHT = 1.6;
-/** Load per distinct glyph beyond the first: more of the vocabulary must be held at once. */
-const DISTINCT_WEIGHT = 0.8;
-/** Span of the continuous distractor-nearness lever, the within-rung positioner. */
-const NEARNESS_SPAN = 2.8;
-
-export function baseScore({ length, binds, distinct }) {
-  return (
-    1.0 +
-    LENGTH_LOAD[length] +
-    BIND_WEIGHT * binds +
-    ORDER_WEIGHT * (binds > 0 ? 1 : 0) +
-    DISTINCT_WEIGHT * (distinct - 1)
-  );
+export function drawSystem(seed) {
+  const rng = makeRng(`system|${seed}`);
+  const values = shuffle(DIGITS.slice(), rng);
+  const mapping = {};
+  GLYPHS.forEach((glyph, i) => {
+    mapping[glyph] = values[i];
+  });
+  return { systemId: `sys-${seed}`, mapping };
 }
 
-/** Order-sensitivity is DERIVED from the binding count, never declared independently. */
-export const isOrderSensitive = (binds) => (binds > 0 ? 1 : 0);
+/** Glyph that means `digit` under this mapping. */
+function glyphFor(system, digit) {
+  const found = GLYPHS.find((glyph) => system.mapping[glyph] === digit);
+  if (found === undefined) throw new Error(`system ${system.systemId} has no glyph for ${digit}`);
+  return found;
+}
 
-/**
- * Every lever combination the grammar can build.
- *
- * `binds` is bounded by the number of digit->scale pairs that fit; `distinct` by how many distinct
- * glyphs a sequence of that shape can carry. A sequence with b bindings uses b digit tokens and
- * `length - b` scale tokens, so distinct is at most min(b, 2) + min(length - b, 3), and at least 1,
- * or 2 once a binding forces both a digit and a scale to be present.
- */
-export const ALLOWED_CONFIGS = (() => {
+/** Every glyph->digit bijection: the attacker's whole hypothesis space (5! = 120). */
+export const ALL_MAPPINGS = (() => {
   const out = [];
-  for (const length of [1, 2, 3, 4]) {
-    for (let binds = 0; binds <= Math.floor(length / 2); binds++) {
-      const scales = length - binds;
-      const maxDistinct = Math.min(binds, 2) + Math.min(scales, 3);
-      const minDistinct = binds > 0 ? 2 : 1;
-      for (let distinct = minDistinct; distinct <= maxDistinct; distinct++) {
-        out.push({ length, binds, distinct });
-      }
+  const walk = (i, used, acc) => {
+    if (i === GLYPHS.length) {
+      out.push({ ...acc });
+      return;
     }
-  }
+    for (const digit of DIGITS) {
+      if (used.has(digit)) continue;
+      used.add(digit);
+      acc[GLYPHS[i]] = digit;
+      walk(i + 1, used, acc);
+      used.delete(digit);
+    }
+  };
+  walk(0, new Set(), {});
   return out;
 })();
 
-const ALL_BASES = ALLOWED_CONFIGS.map(baseScore);
-const RAW_MIN = Math.min(...ALL_BASES);
-const RAW_MAX = Math.max(...ALL_BASES) + NEARNESS_SPAN;
+/**
+ * Every digit-value RELABELLING of the digit set (5! = 120).
+ *
+ * The brute force can be computed on digit values instead of on glyphs, and the two agree for the
+ * reason the anti-leak profile is identical in both arms: the glyph string is the true mapping
+ * applied to the digits, and composing the true mapping with each of the 120 relabellings runs over
+ * the same 120 relabellings again. So the attacker's yield depends on the DIGIT sequences alone —
+ * never on which glyphs spell them, and therefore never on the persistence mode. This form is used
+ * here because it is cheap and cacheable; `check-QUANT-GLYPHNUM-01.mjs` deliberately uses the slow
+ * honest one, built from `content` and nothing else, so the equivalence is checked not assumed.
+ */
+const DIGIT_PERMUTATIONS = (() => {
+  const out = [];
+  const walk = (i, used, acc) => {
+    if (i === DIGITS.length) {
+      out.push(acc.slice());
+      return;
+    }
+    for (const digit of DIGITS) {
+      if (used.has(digit)) continue;
+      used.add(digit);
+      acc[i] = digit;
+      walk(i + 1, used, acc);
+      used.delete(digit);
+    }
+  };
+  walk(0, new Set(), []);
+  return out;
+})();
 
-/** Lever tuple -> design rung on the shared 1..20 scale. */
-export function difficultyFromLevers(cfg, distractorNearness) {
-  const raw = baseScore(cfg) + NEARNESS_SPAN * distractorNearness;
-  return clamp(1 + ((raw - RAW_MIN) * 19) / (RAW_MAX - RAW_MIN), 1, 20);
+/**
+ * How many of the 120 relabellings put this numeral inside the accepting band, given this anchor.
+ *
+ * THIS IS THE ATTACKER'S YIELD, and it is the quantity the layout search minimises. A relabelling
+ * `p` maps digit value `d` to `p[d-1]`; the attacker reading the glyph strings under it would place
+ * at `value(p(numeral)) / value(p(anchor))`. The true relabelling is the identity and is always
+ * counted, so this can never return 0 — which is why the bound below is a floor and not a wish.
+ */
+function bandHitCount(numeral, anchor, targetRatio) {
+  let hits = 0;
+  let onSupport = 0;
+  for (const p of DIGIT_PERMUTATIONS) {
+    let numeratorValue = 0;
+    for (const d of numeral) numeratorValue = numeratorValue * BASE + p[d - 1];
+    let denominatorValue = 0;
+    for (const d of anchor) denominatorValue = denominatorValue * BASE + p[d - 1];
+    if (denominatorValue <= 0) continue;
+    const ratio = numeratorValue / denominatorValue;
+    // THE SUPPORT IS ITSELF INFORMATION, and this is where that gets paid for. `SUPPORT_MIN` and
+    // `SUPPORT_MAX` are a property of the bank, so a client that has watched a few trials — or read
+    // the generator — can discard every candidate reading that falls outside them before guessing
+    // among the rest. Counting only the survivors is therefore the honest attacker model, and it is
+    // strictly stronger than counting all 120. It was not obvious: the oracle found two items in 430
+    // where the support alone pins the accepting interval, which the all-120 count rated safe.
+    if (ratio < SUPPORT_MIN || ratio > SUPPORT_MAX) continue;
+    onSupport += 1;
+    // The 1e-12 is not slack in the invariant, it is the same comparison the verifier makes: a
+    // candidate landing on the exact boundary is graded correct, so it has to be counted as a hit.
+    if (Math.abs(ratio - targetRatio) <= TOLERANCE_RATIO + 1e-12) hits += 1;
+  }
+  return { hits, onSupport };
 }
 
-function solveNearness(cfg, targetDifficulty) {
-  const rawNeeded = RAW_MIN + ((targetDifficulty - 1) * (RAW_MAX - RAW_MIN)) / 19;
-  return clamp((rawNeeded - baseScore(cfg)) / NEARNESS_SPAN, 0, 1);
+/* ================================================================== *
+ * DIFFICULTY — every lever a count over digit values, so a relabelling
+ * cannot move any of them (§3).
+ *
+ * §1.1(d) is why this is arithmetic over template properties rather than a
+ * hand label: the block serves systematically different item subsets early and
+ * late, so difficulty error that correlates with subset composition correlates
+ * with trialIndex, and correlated error in `b` maps straight onto `lambda`.
+ * ================================================================== */
+
+/**
+ * DIFFICULTY IS COUNTED IN HALF-RUNGS, NOT IN ARBITRARY WEIGHTS.
+ *
+ * Every lever contributes a whole number of 0.5-point steps, so every difficulty this bank can
+ * express lands exactly on the 0.5-point grid the scale is read on. Two things follow, and both were
+ * defects of the old build.
+ *
+ *  * THE GRID IS E-095's GRID. Recovery, attenuation and posterior SE were measured on "an idealised
+ *    0.5-point item grid" with twelve items per rung. A bank whose difficulties are arbitrary floats
+ *    is being compared against that grid across a difference nobody chose; a bank built on it is
+ *    density-matched by construction, which is what makes A4 a comparison rather than an analogy.
+ *  * COVERAGE IS PROVABLE. The step sets below are chosen so their sums hit every integer from 0 to
+ *    38, which is every rung from 1.0 to 20.0 — not "in practice" but arithmetically, and the CLI
+ *    prints the check.
+ *
+ * The weights are ordinal design claims and nothing more: no item here has a calibrated `b`.
+ */
+
+/**
+ * Half-rungs from the numeral's length: how many marks must be read and weighted. Dominant, and
+ * CONVEX — a second mark is nearly free where the third and fourth are not.
+ *
+ * That shape is the response channel showing up in the ladder rather than a fudge. A +/-2.5% band
+ * divides the line into 20 accepting intervals, so the answer carries about log2(20) = 4.3 bits
+ * however long the numeral is, and in base 6 that is under two marks of precision. `digitsNeeded`
+ * records per item how many leading marks actually pin the value inside the band, and it is 1 for
+ * every two-mark numeral this bank admits at the youngest band. A mark the band cannot ask about is
+ * not a second thing to decode; the load arrives at three and four marks, where it must be
+ * integrated. Pricing all four marks alike would be difficulty misspecification, which §1.1(d) says
+ * biases lambda.
+ */
+export const LENGTH_STEPS = Object.freeze({ 1: 0, 2: 1, 3: 6, 4: 16 });
+
+/**
+ * Half-rungs from the anchor's length. The reference at the end of the line is itself a numeral in
+ * the same notation, so a longer anchor is more to decode before anything can be placed — and a
+ * four-mark anchor means the child decodes two numerals at the top of the notation, which is why
+ * that step is the large one.
+ */
+export const ANCHOR_STEPS = Object.freeze({ 1: 0, 2: 1, 3: 2, 4: 9 });
+
+/**
+ * Half-rungs per distinct glyph beyond the two any item must use.
+ *
+ * `vocabularyInPlay` counts the distinct glyphs across the numeral AND the anchor, because both must
+ * be decoded to place anything. It is at least 2: an item whose numeral and anchor used one glyph
+ * between them would sit at a target ratio of 1, which the admissible interval excludes.
+ *
+ * This is the template-encodable form of §3's "how many distinct symbols have appeared so far this
+ * block". The history-conditioned form is a serve-time quantity — it depends on which trials this
+ * child has already seen — and the template records everything a materialiser needs to recompute it.
+ */
+const VOCAB_STEPS = 2;
+
+/**
+ * Half-rungs when the numeral uses one glyph in two different places, by whether the two places are
+ * adjacent or separated.
+ *
+ * The sharpest available probe of place value: the same mark, worth different amounts, in one
+ * numeral. A child holding a lookup table cannot produce two values for one symbol; a child holding
+ * the place rule must. Separated occurrences cost more than adjacent ones because adjacent ones can
+ * be read as a single doubled unit, and a separated pair cannot.
+ */
+export const REPEAT_STEPS = Object.freeze({ none: 0, adjacent: 5, separated: 6 });
+
+/** Half-rungs when the ANCHOR repeats a mark: the same load, on the numeral that labels the line. */
+const ANCHOR_REPEAT_STEPS = 1;
+
+/**
+ * WHY RESIDUAL AMBIGUITY IS A CONSTRAINT HERE AND NOT A PRICED COORDINATE.
+ *
+ * §3 of the redesign spec names residual ambiguity as the lever that replaces class-counting, and it
+ * is computed per item here — `residualAmbiguity = 1 - bandHit`, over all 120 relabellings, exactly
+ * the quantity the PR #48 learnability oracles report. It is enforced as a HARD INVARIANT: no pair
+ * whose brute force beats a random placement is admissible at any rung.
+ *
+ * It is deliberately NOT one of the terms above, and the reason is a property of this response
+ * format that §3 could not have anticipated. `difficulty` IS SERVED. With difficulty an exact
+ * function of the levers, a client inverts it to recover the lever tuple — and the four terms above
+ * are all things the child is already looking at: how many marks the numeral has, how many the
+ * anchor has, how many distinct marks are in play, whether one repeats. Recovering them discloses
+ * nothing.
+ *
+ * `bandHit` is not on screen. It is the number of candidate readings that cluster within a tolerance
+ * of the true one, and a client can compute the neighbour count of every candidate it enumerates —
+ * so a served difficulty that encoded `bandHit` would let it discard every candidate whose
+ * neighbour count disagreed. That is STAGE2_ANTILEAK_COMPARISON §7.2's difficulty-ordinal attack
+ * rebuilt in a continuous response, and §7.4 is the standing warning about scoring only the attacks
+ * one thought of. Pricing ambiguity would have bought a within-rung positioner the half-rung grid
+ * does not need, at the price of the one lever that is not already public. The CLI measures the
+ * neighbour-count attack so the choice is evidenced rather than argued.
+ */
+
+/**
+ * Total half-rungs, so 0 is difficulty 1.0 and {@link MAX_STEPS} is difficulty 20.0.
+ *
+ * HOW THE NUMBERS ABOVE WERE FIXED, since a design weight nothing calibrates can still be chosen
+ * badly. Each is an ordinal claim and every lever is monotone in it. Within that family the
+ * particular integers were chosen by an exhaustive search over the whole admissible space
+ * (`ADMISSIBLE`, 142k pairs) for a weighting whose reachable half-rung set covers EVERY rung from
+ * 1.0 to 20.0 under the §4.3 band caps — because a hole in the ladder is a difficulty the selection
+ * rule can never serve, and E-095's recovery figures assume a 0.5-point grid with no gaps. The
+ * search returned a unique family with no holes; the CLI re-checks coverage on every build, so a
+ * future weight change that reopens a hole fails loudly instead of quietly.
+ */
+export const MAX_STEPS =
+  LENGTH_STEPS[MAX_LENGTH] +
+  ANCHOR_STEPS[MAX_LENGTH] +
+  VOCAB_STEPS * (DIGITS.length - 2) +
+  REPEAT_STEPS.separated +
+  ANCHOR_REPEAT_STEPS;
+
+export function leverSteps({
+  length,
+  anchorLength,
+  vocabularyInPlay,
+  repeatedPlace,
+  anchorRepeatedPlace,
+}) {
+  return (
+    LENGTH_STEPS[length] +
+    ANCHOR_STEPS[anchorLength] +
+    VOCAB_STEPS * (vocabularyInPlay - 2) +
+    REPEAT_STEPS[repeatedPlace] +
+    ANCHOR_REPEAT_STEPS * anchorRepeatedPlace
+  );
+}
+
+/** Lever tuple -> design rung on the shared 1..20 scale, always exactly on the 0.5-point grid. */
+export function difficultyFromLevers(levers) {
+  return clamp(1 + 0.5 * leverSteps(levers), 1, 20);
 }
 
 /* ================================================================== *
@@ -356,18 +630,50 @@ function solveNearness(cfg, targetDifficulty) {
  *
  * Li et al. (2024) found 6-7-year-olds mostly best fit by a RANDOM-RESPONSE
  * model on an information-integration structure, so §4.3 forbids multi-
- * dimensional integration at the young bands. Here the integration dimension is
- * the MULTIPLICATIVE BINDING — combining a digit with a scale is the step that
- * makes two features act on one another — so the young bands are capped on
- * `binds` as well as on length. A pure sign-value run is unidimensional
- * additive composition and stays available all the way down.
+ * dimensional integration at the young bands. Here the integration dimension IS
+ * place value: combining a mark with a place weight is two features acting on
+ * one another.
+ *
+ * THE CAP IS ON `digitsNeeded`, NOT ON THE NUMBER OF MARKS, and that is the one
+ * place this differs from the old build's `maxLength`/`maxBinds` pair. What a
+ * young band must not be handed is an item that CANNOT BE ANSWERED without
+ * integrating two marks, and a two-mark numeral against a long enough line is
+ * answerable from the leading mark alone — the tail cannot move the value out of
+ * the band. Capping the mark count instead would have withheld those items while
+ * admitting nothing safer, and would have left the K-1 window with the 27
+ * one-mark pairs the notation admits in total. Capping the integration demand
+ * withholds exactly the items whose answer requires the integration.
+ *
+ * A repeated mark across places is the purest integration probe and is withheld
+ * until 4-5 whatever its `digitsNeeded` says.
  * ================================================================== */
 export const BANDS = [
-  { band: 'K-1', lo: 1, hi: 4, maxLength: 2, maxBinds: 0 },
-  { band: '2-3', lo: 4, hi: 8, maxLength: 3, maxBinds: 0 },
-  { band: '4-5', lo: 8, hi: 12, maxLength: 4, maxBinds: 1 },
-  { band: '6-8', lo: 12, hi: 20, maxLength: 4, maxBinds: 2 },
+  { band: 'K-1', lo: 1, hi: 4, maxDigitsNeeded: 1, maxLength: 2, allowRepeat: false },
+  { band: '2-3', lo: 4, hi: 8, maxDigitsNeeded: 2, maxLength: 3, allowRepeat: false },
+  { band: '4-5', lo: 8, hi: 12, maxDigitsNeeded: 2, maxLength: 4, allowRepeat: true },
+  { band: '6-8', lo: 12, hi: 20, maxDigitsNeeded: MAX_LENGTH, maxLength: 4, allowRepeat: true },
 ];
+
+/**
+ * The lowest rung this bank ships, and it is not 1.0.
+ *
+ * THIS TYPE HAS NO K-1 SUPPLY, and the reason is a measured property of the notation rather than a
+ * developmental judgement. A K-1 item may not require two marks to be integrated (§4.3), so it is a
+ * one-mark numeral or a two-mark numeral whose leading mark decides — and those are exactly the items
+ * a SUPPORT-AWARE brute force wins. A short numeral against a short anchor has few distinct readings
+ * once the ones falling outside [SUPPORT_MIN, SUPPORT_MAX] are discarded, so the accepting interval
+ * takes a large share of what is left: of the 27 one-mark pairs in the whole notation, none clears the
+ * support floor, and three two-mark pairs do.
+ *
+ * Three items is not a ladder. The alternatives were both worse: shipping the three would advertise a
+ * band the block would exhaust on its first trials, and admitting items that need two marks
+ * integrated would put the youngest children on the structure §4.3 says they answer at random.
+ *
+ * So the honest statement is that the quantitative Stage 2 activity starts at the 2-3 band, which is
+ * a coverage gap to record rather than a defect to hide. `ageBands` on every shipped item is true;
+ * there simply are no K-1 ones.
+ */
+export const LADDER_MIN = 4;
 
 /** The band whose window contains a difficulty. */
 export function bandFor(difficulty) {
@@ -379,525 +685,305 @@ export function ageBandsFor(difficulty) {
   return [bandFor(difficulty).band];
 }
 
-/* ================================================================== *
- * THE HIDDEN SYSTEM — a glyph->role bijection.
+/**
+ * Whether the §4.3 caps admit this pair at the difficulty its own levers give it.
  *
- * `consistent` draws one and holds it for the whole bank. `perTrial` draws a
- * fresh one per item. Nothing else about the item changes with the mode.
+ * Applied by the item's OWN difficulty rather than by the rung it was aimed at, so the checker's cap
+ * and the builder's cap cannot disagree at a band boundary — the disagreement the old build had to
+ * clip a rung window to avoid.
+ */
+export function bandAdmits(pair) {
+  const band = bandFor(pair.difficulty);
+  if (pair.digitsNeeded > band.maxDigitsNeeded) return false;
+  if (pair.levers.length > band.maxLength) return false;
+  if (pair.levers.repeatedPlace !== 'none' && !band.allowRepeat) return false;
+  return true;
+}
+
+/* ================================================================== *
+ * ONE TEMPLATE
  * ================================================================== */
-export function drawSystem(seed) {
-  const rng = makeRng(`system|${seed}`);
-  const roles = shuffle(ROLES, rng);
-  const mapping = {};
-  GLYPHS.forEach((glyph, i) => {
-    mapping[glyph] = roles[i];
-  });
-  return { systemId: `sys-${seed}`, mapping };
+
+/**
+ * How many leading marks must be decoded before the value is pinned inside the band.
+ *
+ * Knowing the top `k` digits leaves the tail free over the zero-free digit set, so the value is
+ * pinned to an interval; the smallest `k` whose interval fits inside a tolerance of its own midpoint
+ * is what a child actually has to read. Recorded rather than priced — see {@link LENGTH_LOAD} — and
+ * it is the figure that says how much of the numeral the response channel can even ask about.
+ */
+export function digitsNeeded(numeral, lineMax) {
+  for (let k = 1; k <= numeral.length; k++) {
+    const tail = numeral.length - k;
+    let lowTail = 0;
+    let highTail = 0;
+    for (let i = 0; i < tail; i++) {
+      lowTail = lowTail * BASE + DIGITS[0];
+      highTail = highTail * BASE + DIGITS[DIGITS.length - 1];
+    }
+    let head = 0;
+    for (let i = 0; i < k; i++) head = head * BASE + numeral[i];
+    const scale = BASE ** tail;
+    const halfWidth = ((head * scale + highTail - (head * scale + lowTail)) / 2) / lineMax;
+    if (halfWidth <= TOLERANCE_RATIO) return k;
+  }
+  return numeral.length;
 }
 
-/** Glyph that means `role` under this mapping. */
-function glyphFor(system, role) {
-  const found = Object.keys(system.mapping).find((glyph) => system.mapping[glyph] === role);
-  if (!found) throw new Error(`system ${system.systemId} has no glyph for "${role}"`);
-  return found;
+/**
+ * A digit sequence's REPEAT SHAPE, with the digit values erased: `[3,1,3]` and `[5,2,5]` are both
+ * `"aba"`.
+ *
+ * This is what survives re-keying and reaches the browser. A relabelling changes which glyph draws
+ * which digit and therefore cannot change the shape, so the shape is exactly the part of the numeral
+ * a client can read off the screen without solving anything.
+ */
+function shapeOf(digits) {
+  const seen = new Map();
+  return digits
+    .map((digit) => {
+      if (!seen.has(digit)) seen.set(digit, String.fromCharCode(97 + seen.size));
+      return seen.get(digit);
+    })
+    .join('');
 }
 
-/** Every glyph->role bijection: the attacker's whole hypothesis space (5! = 120). */
-export const ALL_MAPPINGS = (() => {
+/** Whether a numeral repeats a mark, and whether the repeated places are adjacent or separated. */
+function repeatKind(digits) {
+  let kind = 'none';
+  for (let i = 0; i < digits.length; i++) {
+    for (let j = i + 1; j < digits.length; j++) {
+      if (digits[i] !== digits[j]) continue;
+      if (j > i + 1) return 'separated';
+      kind = 'adjacent';
+    }
+  }
+  return kind;
+}
+
+/**
+ * Anchors worth trying for one numeral, best first.
+ *
+ * The admissible interval is the whole constraint: `TOLERANCE_RATIO <= value/anchor <= 1 -
+ * TOLERANCE_RATIO` is what makes the chance floor exactly `2 * TOLERANCE_RATIO` on every item and
+ * what stops "slam the slider to an end" being a free answer. Within it, anchors are returned in
+ * canonical value order so the enumeration is deterministic and the two arms see the same set.
+ */
+function admissibleAnchors(value) {
   const out = [];
-  const walk = (i, used, acc) => {
-    if (i === GLYPHS.length) {
-      out.push({ ...acc });
-      return;
+  const minAnchor = Math.ceil(value / SUPPORT_MAX);
+  const maxAnchor = Math.floor(value / SUPPORT_MIN);
+  for (const [anchorValue, anchor] of NUMERALS_BY_VALUE) {
+    if (anchorValue < minAnchor || anchorValue > maxAnchor) continue;
+    out.push(anchor);
+  }
+  return out.sort((a, b) => a.value - b.value);
+}
+
+/**
+ * Every (numeral, anchor) pair the notation admits, priced.
+ *
+ * Enumerated rather than searched, which is what a slider buys: with no options to reconcile there
+ * is no layout to optimise, so the whole admissible space can be costed once and the bank becomes a
+ * stratified SELECTION from it. That is also why the bank has no key-rank machinery — there is no
+ * key slot to balance, so the two surface heuristics the old build had to close ("longer numeral,
+ * further right"; "tap the end of the line") have nothing to attach to.
+ */
+export const ADMISSIBLE = (() => {
+  const out = [];
+  for (const numeral of NUMERALS) {
+    for (const anchor of admissibleAnchors(numeral.value)) {
+      const targetRatio = round6(numeral.value / anchor.value);
+      if (targetRatio < SUPPORT_MIN || targetRatio > SUPPORT_MAX) continue;
+
+      const { hits, onSupport } = bandHitCount(numeral.digits, anchor.digits, targetRatio);
+      const bandHit = hits / ALL_MAPPINGS.length;
+      // THE HARD INVARIANT, in two readings, and the pair must clear both.
+      //
+      //   * Over all 120 relabellings, against the floor a placement uniform on the whole LINE
+      //     scores. This is the plain brute force.
+      //   * Over the relabellings that land on the SUPPORT, against the floor a placement uniform on
+      //     the support scores. This is the brute force by a client that has noticed where the bank
+      //     keys, and it is the stronger of the two.
+      //
+      // Above either floor the item would reward scraping over induction, and unlike the old
+      // five-option build there is no distractor slate to trade against it — the pair is simply not
+      // admissible.
+      if (bandHit > UNIFORM_LINE_FLOOR + 1e-12) continue;
+      if (onSupport === 0 || hits / onSupport > CHANCE_FLOOR + 1e-12) continue;
+
+      const distinct = new Set([...numeral.digits, ...anchor.digits]).size;
+      const levers = {
+        length: numeral.length,
+        anchorLength: anchor.length,
+        vocabularyInPlay: distinct,
+        repeatedPlace: repeatKind(numeral.digits),
+        anchorRepeatedPlace: new Set(anchor.digits).size < anchor.digits.length ? 1 : 0,
+      };
+      out.push({
+        numeral: numeral.digits,
+        anchor: anchor.digits,
+        value: numeral.value,
+        lineMax: anchor.value,
+        targetRatio,
+        bandHitCount: hits,
+        /** Relabellings whose reading lands anywhere the bank keys — the attacker's real hypothesis set. */
+        onSupportCount: onSupport,
+        residualAmbiguity: round6(1 - hits / onSupport),
+        digitsNeeded: digitsNeeded(numeral.digits, anchor.value),
+        // What a client sees of the item's SHAPE once the glyph names are stripped: how the marks
+        // repeat, in the numeral and in the anchor. Not a difficulty lever — it is the residual
+        // channel a scraped bank could join to the served difficulty, so the CLI measures the
+        // attacker who conditions on it and the selection below deliberately keeps these cells
+        // populated rather than unique.
+        signature: `${shapeOf(numeral.digits)}/${shapeOf(anchor.digits)}`,
+        levers,
+        difficulty: round2(difficultyFromLevers(levers)),
+      });
     }
-    for (const role of ROLES) {
-      if (used.has(role)) continue;
-      used.add(role);
-      acc[GLYPHS[i]] = role;
-      walk(i + 1, used, acc);
-      used.delete(role);
-    }
+  }
+  return out;
+})();
+
+/* ================================================================== *
+ * THE DEMONSTRATION SCHEDULE
+ *
+ * Server-only, and see the header for why it cannot ride on a scored item.
+ * ================================================================== */
+
+/** Unit tokens the `counted` stage draws along the whole line. */
+const DEMO_UNITS = 12;
+
+/**
+ * The concreteness-fading schedule for one session, as digit values.
+ *
+ * Worked examples are chosen so the fade has something to fade THROUGH: a one-mark numeral first,
+ * because a single place is the only case where a countable depiction and the notation agree
+ * without the place rule; then a two-mark numeral, where the place rule is what makes the count come
+ * out; then nothing. Each example carries the position it belongs at, which is the observation the
+ * child is being shown, and nothing else.
+ *
+ * Expressed in digit values so a materialiser re-keys it with the same bijection it re-keys the
+ * numeral with. `fadeAfterTrial` is §3.2's fixed trial index.
+ */
+export function demonstrationSchedule({ anchor, lineMax }) {
+  const examples = [];
+  const stages = ['counted', 'extent'];
+  for (const [index, stage] of stages.entries()) {
+    // A one-mark then a two-mark numeral, both small enough that the counted stage is countable.
+    const numeral = index === 0 ? [DIGITS[0]] : [DIGITS[0], DIGITS[1]];
+    const value = valueOf(numeral);
+    if (value / lineMax > 1 - TOLERANCE_RATIO) continue;
+    examples.push({ stage, numeral, ratio: round6(value / lineMax), units: DEMO_UNITS });
+  }
+  return {
+    // The line every example is shown against, so the ratios mean the same thing across the phase.
+    anchor: anchor.slice(),
+    examples,
+    /** Trials after which no depiction of magnitude is drawn at all (§3.2's fixed index). */
+    fadeAfterTrial: examples.length,
+    /** Where these trials belong. Scored items carry no schedule; the checker asserts it. */
+    delivery: 'unscored_demonstration_trials',
   };
-  walk(0, new Set(), {});
-  return out;
-})();
-
-/* ================================================================== *
- * EXPRESSION CONSTRUCTION
- * ================================================================== */
-
-/**
- * Build a role sequence with exactly the requested length, binding count and distinct-glyph count.
- *
- * The distinct count is over GLYPHS, and the mapping is a bijection, so it is equivalently the
- * number of distinct roles — which is why it can be enforced here, on roles, and re-derived by the
- * checker from `content` without the mapping.
- */
-export function buildExpression({ length, binds, distinct }, rng) {
-  const scaleNames = Object.keys(SCALE_ROLES);
-  const digitNames = Object.keys(DIGIT_ROLES);
-  const scaleCount = length - binds;
-
-  for (let attempt = 0; attempt < 400; attempt++) {
-    // Digits first: `binds` of them, drawn with replacement from two roles.
-    const digits = [];
-    for (let i = 0; i < binds; i++) digits.push(digitNames[Math.floor(rng() * digitNames.length)]);
-    const scales = [];
-    for (let i = 0; i < scaleCount; i++) scales.push(scaleNames[Math.floor(rng() * scaleNames.length)]);
-
-    // Lay the units out: every digit takes the scale that follows it, so a sequence is a shuffle of
-    // `binds` two-token units and `scaleCount - binds` one-token units.
-    if (scales.length < binds) continue;
-    const units = [];
-    for (let i = 0; i < binds; i++) units.push([digits[i], scales[i]]);
-    for (let i = binds; i < scales.length; i++) units.push([scales[i]]);
-    const roles = shuffle(units, rng).flat();
-
-    if (roles.length !== length) continue;
-    if (!isWellFormed(roles)) continue;
-    if (bindsIn(roles) !== binds) continue;
-    if (new Set(roles).size !== distinct) continue;
-    return roles;
-  }
-  return null;
 }
 
 /* ================================================================== *
- * THE LINE
- *
- * The right-hand end is labelled with an expression in the same notation, so
- * the stimulus contains no Arabic numeral anywhere and the scale itself has to
- * be read out of the system. `line.max` — the NUMBER — is deliberately absent
- * from `content`: publishing it would give a brute-forcing client the equation
- * value(anchor) = max and pin part of the mapping for free.
- * ================================================================== */
-
-/** Largest line maximum the generator will consider. Above the largest expressible item value. */
-const MAX_LINE = 200;
-
-/**
- * Shortest canonical role sequence for every value up to {@link MAX_LINE}.
- *
- * Units are added in descending value order and the reconstruction always takes the
- * largest-first path, so the anchor for a given number is one fixed sequence rather than a draw —
- * which matters because the anchor must be identical across the two arms up to relabelling.
- */
-const ANCHOR_TABLE = (() => {
-  const units = [];
-  for (const scale of Object.keys(SCALE_ROLES)) {
-    units.push({ roles: [scale], value: SCALE_ROLES[scale], cost: 1 });
-    for (const digit of Object.keys(DIGIT_ROLES)) {
-      units.push({
-        roles: [digit, scale],
-        value: DIGIT_ROLES[digit] * SCALE_ROLES[scale],
-        cost: 2,
-      });
-    }
-  }
-  units.sort((a, b) => b.value - a.value || a.cost - b.cost);
-
-  const cost = new Array(MAX_LINE + 1).fill(Infinity);
-  const via = new Array(MAX_LINE + 1).fill(null);
-  cost[0] = 0;
-  for (let v = 1; v <= MAX_LINE; v++) {
-    for (const unit of units) {
-      if (unit.value > v) continue;
-      const candidate = cost[v - unit.value] + unit.cost;
-      if (candidate < cost[v]) {
-        cost[v] = candidate;
-        via[v] = unit;
-      }
-    }
-  }
-
-  const table = new Map();
-  for (let v = 1; v <= MAX_LINE; v++) {
-    if (!Number.isFinite(cost[v])) continue;
-    const roles = [];
-    let rest = v;
-    while (rest > 0) {
-      const unit = via[rest];
-      roles.push(...unit.roles);
-      rest -= unit.value;
-    }
-    table.set(v, { roles, tokens: roles.length });
-  }
-  return table;
-})();
-
-/** Line maxima worth considering: expressible in at most four tokens, like the expressions. */
-const LINE_CANDIDATES = [...ANCHOR_TABLE.entries()]
-  .filter(([, entry]) => entry.tokens <= 4)
-  .map(([value]) => value)
-  .sort((a, b) => a - b);
-
-/* ================================================================== *
- * PARTIAL RULES — each wrong option a NAMED incomplete version of the system.
- *
- * §4.6 makes this a build requirement rather than a nicety: with every wrong
- * option encoding a specific partial rule, each response is classifiable, which
- * gives both a falsification test (in a real learner, errors should migrate from
- * spread-out toward the near classes) and the ordinal fallback the §4.1.4
- * Verdict-2 branch depends on. The fallback has to exist at the moment the gate
- * returns Verdict 2, not a build cycle later.
- *
- * It is also what makes `M-PAE` a genuine approximate-error signal rather than a
- * relabelled "which wrong tick": the gap between the tapped tick and the key is
- * the size of the child's decoding error in quantity space.
- *
- * `nearness` orders the failures from "almost had it" to "did not engage" and
- * the item's `distractorNearness` lever picks a slate along that axis. Every
- * label is one already registered in `item-shape.mjs`, so M-ERRTYPE / M-RULEID
- * stay computable without widening the coarse enum.
- * ================================================================== */
-const FAILURES = [
-  // Has the vocabulary and the additive default, has not got the binding. The near miss.
-  { kind: 'additive_only', lure: 'operation_confusion', nearness: 1.0 },
-  // Has the binding idea and applies it where there is no digit.
-  { kind: 'over_binding', lure: 'over_application', nearness: 0.85 },
-  // Has the binding idea and attaches a digit that is not written at all.
-  { kind: 'phantom_bind', lure: 'over_application', nearness: 0.8 },
-  // Reads the notation under the OTHER published composition regime: place-value, not sign-value.
-  { kind: 'place_value_read', lure: 'inverted_rule', nearness: 0.75 },
-  // Dropped a token.
-  { kind: 'token_omitted', lure: 'omission', nearness: 0.6 },
-  // One glyph valued as another.
-  { kind: 'glyph_confusion', lure: 'one_factor_off', nearness: 0.5 },
-  // Counted each glyph once, ignoring repeats.
-  { kind: 'repeats_ignored', lure: 'wrong_count', nearness: 0.4 },
-  // Read the first unit and stopped.
-  { kind: 'first_unit_only', lure: 'first_step_only', nearness: 0.25 },
-  // Took the biggest glyph and ignored the rest.
-  { kind: 'largest_glyph_only', lure: 'incomplete', nearness: 0.2 },
-  // Counted the glyphs instead of valuing them — the "longer means bigger" heuristic, made visible.
-  { kind: 'token_count', lure: 'surface_match', nearness: 0.1 },
-  // Tapped the end of the line.
-  { kind: 'anchor_echo', lure: 'anchor', nearness: 0.0 },
-];
-const NEARNESS = Object.fromEntries(FAILURES.map((f) => [f.kind, f.nearness]));
-const LURE_OF = Object.fromEntries(FAILURES.map((f) => [f.kind, f.lure]));
-
-/**
- * Every partial rule this expression admits, as {ruleId, kind, value, note}.
- *
- * `lineMax` is a parameter because one rule — tapping the end of the line — is a property of the
- * line rather than of the expression, and it is the rule that keeps "tap the right-hand end" from
- * being a free elimination.
- */
-export function partialRules(roles, lineMax) {
-  const out = [];
-  const label = (rs) => rs.join('+');
-
-  if (bindsIn(roles) > 0) {
-    out.push({
-      ruleId: `additive:${label(roles)}`,
-      kind: 'additive_only',
-      value: roles.reduce((sum, r) => sum + roleValue(r), 0),
-      note: 'added every glyph instead of multiplying across the binding',
-    });
-  }
-
-  for (let i = 0; i + 1 < roles.length; i++) {
-    if (!isScale(roles[i]) || !isScale(roles[i + 1])) continue;
-    const bound = roles.slice();
-    const product = roleValue(bound[i]) * roleValue(bound[i + 1]);
-    const rest = roles.filter((_, j) => j !== i && j !== i + 1);
-    out.push({
-      ruleId: `overbind@${i}:${label(roles)}`,
-      kind: 'over_binding',
-      value: product + valueOf(rest),
-      note: `multiplied glyphs ${i + 1} and ${i + 2}, which are not a binding`,
-    });
-  }
-
-  // A bare scale is one no digit is bound to; attaching a phantom digit to it is the mirror image
-  // of `additive_only` — the binding rule over-applied instead of missed — and it is the only
-  // over-estimating failure available at length 1, which is what keeps key rank balanceable there.
-  for (let i = 0; i < roles.length; i++) {
-    if (!isScale(roles[i])) continue;
-    if (i > 0 && isDigit(roles[i - 1])) continue;
-    for (const digit of Object.keys(DIGIT_ROLES)) {
-      const grown = roles.slice();
-      grown.splice(i, 0, digit);
-      out.push({
-        ruleId: `phantom@${i}=${digit}:${label(grown)}`,
-        kind: 'phantom_bind',
-        value: valueOf(grown),
-        note: `multiplied glyph ${i + 1} by a digit that is not written`,
-      });
-    }
-  }
-
-  if (roles.length >= 2) {
-    let place = 0;
-    for (let i = 0; i < roles.length; i++) {
-      place += roleValue(roles[i]) * BASE ** (roles.length - 1 - i);
-    }
-    out.push({
-      ruleId: `placevalue:${label(roles)}`,
-      kind: 'place_value_read',
-      value: place,
-      note: 'read the notation as place-value, weighting each glyph by its position',
-    });
-  }
-
-  for (let i = 0; i < roles.length; i++) {
-    const dropped = roles.filter((_, j) => j !== i);
-    if (dropped.length === 0) continue;
-    out.push({
-      ruleId: `drop@${i}:${label(dropped)}`,
-      kind: 'token_omitted',
-      value: valueOf(dropped),
-      note: `skipped glyph ${i + 1}`,
-    });
-  }
-
-  for (let i = 0; i < roles.length; i++) {
-    for (const role of ROLES) {
-      if (role === roles[i]) continue;
-      const swapped = roles.slice();
-      swapped[i] = role;
-      out.push({
-        ruleId: `misread@${i}=${role}:${label(swapped)}`,
-        kind: 'glyph_confusion',
-        value: valueOf(swapped),
-        note: `read glyph ${i + 1} as a different glyph`,
-      });
-    }
-  }
-
-  if (new Set(roles).size < roles.length) {
-    const unique = [...new Set(roles)];
-    out.push({
-      ruleId: `unique:${label(unique)}`,
-      kind: 'repeats_ignored',
-      value: valueOf(unique),
-      note: 'counted each different glyph once and ignored the repeats',
-    });
-  }
-
-  if (roles.length >= 2) {
-    const firstUnit = isDigit(roles[0]) ? roles.slice(0, 2) : roles.slice(0, 1);
-    if (firstUnit.length < roles.length) {
-      out.push({
-        ruleId: `firstUnit:${label(firstUnit)}`,
-        kind: 'first_unit_only',
-        value: valueOf(firstUnit),
-        note: 'read the first part of the expression and stopped',
-      });
-    }
-    out.push({
-      ruleId: `largest:${label(roles)}`,
-      kind: 'largest_glyph_only',
-      value: Math.max(...roles.map(roleValue)),
-      note: 'took the biggest glyph and ignored the rest',
-    });
-    out.push({
-      ruleId: `count:${roles.length}`,
-      kind: 'token_count',
-      value: roles.length,
-      note: 'counted the glyphs instead of reading their values',
-    });
-  }
-
-  out.push({
-    ruleId: `anchor:${lineMax}`,
-    kind: 'anchor_echo',
-    value: lineMax,
-    note: 'tapped the end of the line',
-  });
-
-  return out;
-}
-
-/* ================================================================== *
- * ANTI-LEAK: what a client can compute from `content` alone.
+ * MATERIALISATION
  * ================================================================== */
 
 /**
- * For every one of the 120 glyph->role relabellings, the ratio the expression would sit at.
+ * Turn one template into a served `content` + `answer` pair under a glyph->digit bijection.
  *
- * This IS the client's view of the item: it sees the expression and the anchor as glyph strings and
- * the ticks as ratios, and everything else it can compute it can compute this way. Returned as a
- * map from ratio (rounded to the tick grid) to the number of mappings that produce it, because the
- * strongest attacker is not "which options survive" but "which surviving option has the most
- * mappings behind it".
- */
-export function relabelRatioSupport(expressionGlyphs, anchorGlyphs) {
-  const support = new Map();
-  for (const mapping of ALL_MAPPINGS) {
-    const exprRoles = expressionGlyphs.map((g) => mapping[g]);
-    const anchorRoles = anchorGlyphs.map((g) => mapping[g]);
-    const anchorValue = valueOf(anchorRoles);
-    if (anchorValue <= 0) continue;
-    const ratio = round6(valueOf(exprRoles) / anchorValue);
-    support.set(ratio, (support.get(ratio) ?? 0) + 1);
-  }
-  return support;
-}
-
-/**
- * The same brute force, computed on ROLE sequences and memoised.
+ * This IS the serve-time path's contract, exported so the sibling workstream can call the same
+ * function the bank was built with rather than reimplementing it, and so the checker can prove the
+ * reference materialisation is reproducible from `provenance.template` alone.
  *
- * The two agree, and the reason is worth stating because it is also the reason the anti-leak
- * profile is identical in both arms: the glyph strings are the true mapping applied to the roles,
- * and composing the true mapping with each of the 120 relabellings runs over the same 120
- * relabellings again. So the support map depends on the role sequences alone — never on which
- * glyphs happen to spell them, and therefore never on the persistence mode. The generator uses this
- * form because it is cheap; `check-QUANT-GLYPHNUM-01.mjs` deliberately uses the slow honest one,
- * built from `content` and nothing else, so the equivalence is checked rather than assumed.
+ * Nothing in `content` depends on anything but the glyph strings: the target ratio, the tolerance
+ * and every lever are properties of the TEMPLATE, so re-keying moves the surface and nothing else.
  */
-const ROLE_PERMUTATIONS = (() => {
-  const out = [];
-  const walk = (i, used, acc) => {
-    if (i === ROLES.length) {
-      out.push({ ...acc });
-      return;
-    }
-    for (const role of ROLES) {
-      if (used.has(role)) continue;
-      used.add(role);
-      acc[ROLES[i]] = role;
-      walk(i + 1, used, acc);
-      used.delete(role);
-    }
+export function materialise(template, system) {
+  const glyphsOf = (digits) => digits.map((digit) => glyphFor(system, digit));
+  return {
+    content: {
+      typeCode: 'QUANT-GLYPHNUM-01',
+      // The full vocabulary, always in canonical order, so the tray leaks nothing in either mode.
+      glyphTray: GLYPHS.slice(),
+      // Surface glyphs only. What each glyph is worth is server-only.
+      expression: glyphsOf(template.numeral),
+      // The line's numeric maximum is NOT here on purpose: publishing it would hand a brute-forcing
+      // client the equation value(anchor) = max and pin part of the mapping for free.
+      line: { minValue: 0, maxExpression: glyphsOf(template.anchor) },
+      /**
+       * The response is a position, not a choice. Read by `itemResponseFormat` in
+       * `packages/exam-engine/src/item-format.ts`, which is how the block's chance floor stops
+       * being a reciprocal of an option count this type does not have. It names the FORMAT and
+       * nothing about the band: no tolerance, no target, no base, no digit value.
+       */
+      responseFormat: 'continuous_placement',
+      responseField: 'placedRatio',
+    },
+    answer: {
+      /**
+       * There is no option key. The canonical solution IS the position, so `correctKey` carries the
+       * target ratio: `scoring.rule = 'placement_tolerance'` is what grades the trial, and the
+       * servability gate in `scripts/sync-exam-demos.mjs` requires a key to exist at all.
+       */
+      correctKey: template.targetRatio,
+      // The `placement_tolerance` contract: both verifier tiers read exactly these two fields.
+      targetRatio: template.targetRatio,
+      tolerance: TOLERANCE_RATIO,
+      // SERVER-ONLY: the system itself. Shipping this would make every item a lookup.
+      system: { systemId: system.systemId, mapping: { ...system.mapping } },
+      expressionDigits: template.numeral.slice(),
+      anchorDigits: template.anchor.slice(),
+      lineMax: template.lineMax,
+      trueValue: template.value,
+      /** What a uniformly-random placement scores on this item, exactly (see the header). */
+      chanceFloor: CHANCE_FLOOR,
+    },
   };
-  walk(0, new Set(), {});
-  return out;
-})();
-
-const ROLE_SUPPORT_CACHE = new Map();
-function relabelRatioSupportForRoles(exprRoles, anchorRoles) {
-  const cacheKey = `${exprRoles.join('+')}|${anchorRoles.join('+')}`;
-  const hit = ROLE_SUPPORT_CACHE.get(cacheKey);
-  if (hit) return hit;
-  const support = new Map();
-  for (const permutation of ROLE_PERMUTATIONS) {
-    const anchorValue = valueOf(anchorRoles.map((r) => permutation[r]));
-    if (anchorValue <= 0) continue;
-    const ratio = round6(valueOf(exprRoles.map((r) => permutation[r])) / anchorValue);
-    support.set(ratio, (support.get(ratio) ?? 0) + 1);
-  }
-  ROLE_SUPPORT_CACHE.set(cacheKey, support);
-  return support;
 }
 
 /**
- * How far the slate an item actually carries sits from the nearness its difficulty lever declares.
+ * Generate ONE structured BankItem from an admissible pair.
  *
- * Reported rather than asserted: the layout search trades nearness fidelity for anti-leak margin,
- * and the honest question is not whether the trade happened but whether what it cost TRENDS with
- * difficulty. It is the trend, not the magnitude, that §1.1(d) says maps onto lambda.
+ * @param {{pair, systemPersistence, systemSeed, seed}} spec
  */
-export function realisedNearnessError(item) {
-  const declared = item.provenance.levers.distractorNearness;
-  const wrong = Object.entries(item.answer.strategyTrace).filter(([, t]) => t.kind !== 'correct');
-  const total = wrong.reduce((sum, [, t]) => sum + Math.abs(NEARNESS[t.kind] - declared), 0);
-  return total / wrong.length;
-}
-
-/** Options a brute-forcing client cannot rule out, with how many mappings back each. */
-export function viableOptions(options, expressionGlyphs, anchorGlyphs) {
-  const support = relabelRatioSupport(expressionGlyphs, anchorGlyphs);
-  return options
-    .map((o) => ({ key: o.key, mappings: support.get(round6(o.ratio)) ?? 0 }))
-    .filter((o) => o.mappings > 0);
-}
-
-/* ================================================================== *
- * ONE ITEM
- * ================================================================== */
-
-/**
- * Generate ONE structured BankItem.
- *
- * @param {{length,binds,distinct,distractorNearness,keyRank,
- *          systemPersistence,systemSeed,seed}} lever
- */
-export function genItem({
-  length,
-  binds,
-  distinct,
-  distractorNearness,
-  keyRank,
-  systemPersistence,
-  systemSeed,
-  seed,
-}) {
+export function genItem({ pair, systemPersistence, systemSeed, seed }) {
   if (systemPersistence !== 'consistent' && systemPersistence !== 'perTrial') {
     throw new Error(`systemPersistence must be consistent|perTrial, got "${systemPersistence}"`);
   }
-  const rng = makeRng(seed);
-
   const system =
     systemPersistence === 'consistent' ? drawSystem(systemSeed) : drawSystem(`${systemSeed}|${seed}`);
 
-  // Everything below is drawn from the levers and the seed, never from the mode. That is what
-  // equates the two banks: both arms serve the same values, the same key, the same key rank and the
-  // same difficulty, and differ only in which glyph symbols spell them.
-  // The EXPRESSION is redrawn against the anti-leak objective, not merely until one lays out.
-  //
-  // Taking the first expression that admitted any layout left the item at the mercy of that one
-  // draw: whether five ticks with equal relabelling support exist at all depends on the role
-  // sequence, and most sequences do not admit them. So this keeps drawing and keeps the BEST
-  // layout, stopping as soon as one reaches the chance floor. The draws come off the same seeded
-  // stream in the same order, so the item stays byte-reproducible from `levers` + `seed` and the
-  // checker still regenerates it without knowing how many draws it took.
-  let built = null;
-  for (let attempt = 0; attempt < 60; attempt++) {
-    const roles = buildExpression({ length, binds, distinct }, rng);
-    if (roles === null) continue;
-    const candidate = layOutItem(roles, { distractorNearness, keyRank, jitter: () => 1e-6 * rng() });
-    if (candidate === null) continue;
-    if (built === null || candidate.score > built.score) built = candidate;
-    if (built.attackerCost <= 0.2 + 1e-9) break;
-  }
-  if (built === null) {
-    throw new Error(
-      `no admissible line/slate for length=${length} binds=${binds} distinct=${distinct} ` +
-        `rank=${keyRank} (seed ${seed})`,
-    );
-  }
+  const template = {
+    templateVersion: 'quant-glyphnum-01-template@1',
+    base: BASE,
+    digitValues: DIGITS.slice(),
+    significance: 'leftmost_most_significant',
+    numeral: pair.numeral.slice(),
+    anchor: pair.anchor.slice(),
+    value: pair.value,
+    lineMax: pair.lineMax,
+    targetRatio: pair.targetRatio,
+    toleranceRatio: TOLERANCE_RATIO,
+    chanceFloor: CHANCE_FLOOR,
+    digitsNeeded: pair.digitsNeeded,
+    /**
+     * How many of the 120 relabellings put this numeral inside the accepting band, and its
+     * complement. `residualAmbiguity` is §3's lever, computed and enforced but not priced — see the
+     * note above {@link MAX_STEPS} for why a served difficulty must not encode it.
+     */
+    bandHitCount: pair.bandHitCount,
+    onSupportCount: pair.onSupportCount,
+    residualAmbiguity: pair.residualAmbiguity,
+    /** Repeat shape of the numeral and the anchor, which is what survives re-keying. */
+    signature: pair.signature,
+    demonstration: demonstrationSchedule({ anchor: pair.anchor, lineMax: pair.lineMax }),
+  };
 
-  const { roles, lineMax, anchorRoles, options, slot } = built.layout;
-  const trueValue = valueOf(roles);
-  const optionKeys = ['A', 'B', 'C', 'D', 'E'];
-
-  const expressionGlyphs = roles.map((role) => glyphFor(system, role));
-  const anchorGlyphs = anchorRoles.map((role) => glyphFor(system, role));
-
-  const distractorRationales = {};
-  const strategyTrace = {};
-  const optionValues = {};
-  optionKeys.forEach((optionKey, i) => {
-    optionValues[optionKey] = options[i].value;
-    const rule = options[i].rule;
-    if (rule === null) {
-      distractorRationales[optionKey] = {
-        lure: 'correct',
-        ruleId: `full:${roles.join('+')}`,
-        note: 'every glyph read at its own value, with each digit multiplying the scale after it',
-      };
-      strategyTrace[optionKey] = { ruleId: `full:${roles.join('+')}`, kind: 'correct' };
-      return;
-    }
-    distractorRationales[optionKey] = {
-      lure: LURE_OF[rule.kind],
-      ruleId: rule.ruleId,
-      partialRuleKind: rule.kind,
-      note: rule.note,
-    };
-    strategyTrace[optionKey] = { ruleId: rule.ruleId, kind: rule.kind };
-  });
-
-  const cfg = { length, binds, distinct };
-  const difficulty = round2(difficultyFromLevers(cfg, distractorNearness));
-
-  // The tolerance that makes `pae <= tolerance` mean "tapped the keyed tick" and nothing else:
-  // strictly less than half the smallest gap between neighbouring ticks.
-  const gaps = [];
-  for (let i = 1; i < options.length; i++) gaps.push(options[i].ratio - options[i - 1].ratio);
-  const tolerance = round6(Math.min(...gaps) / 2.5);
+  const { content, answer } = materialise(template, system);
+  const difficulty = round2(difficultyFromLevers(pair.levers));
 
   return {
     itemId: seededUuid(`${systemPersistence}|${seed}`),
@@ -906,62 +992,36 @@ export function genItem({
     difficulty, // FLOAT 1..20 — DESIGN rung from the levers, not calibrated (validated:false)
     ageBands: ageBandsFor(difficulty),
     demoPath: 'demos/QUANT-GLYPHNUM-01.html',
-    content: {
-      typeCode: 'QUANT-GLYPHNUM-01',
-      // The full vocabulary, always in canonical order, so the tray leaks nothing in either mode.
-      glyphTray: GLYPHS.slice(),
-      // Surface glyphs only. Which role each glyph plays is server-only.
-      expression: expressionGlyphs,
-      // The line's numeric maximum is NOT here on purpose — see the header.
-      line: { minValue: 0, maxExpression: anchorGlyphs },
-      options: options.map((option, i) => ({ key: optionKeys[i], ratio: round6(option.ratio) })),
-      // What the renderer must post back for the shipped placement verifier to grade the trial.
-      responseField: 'placedRatio',
-    },
-    answer: {
-      correctKey: optionKeys[slot],
-      // The `placement_tolerance` contract: both verifier tiers read exactly these two fields.
-      targetRatio: round6(trueValue / lineMax),
-      tolerance,
-      // SERVER-ONLY: the system itself. Shipping this would make every item a lookup.
-      system: { systemId: system.systemId, mapping: { ...system.mapping } },
-      expressionRoles: roles.slice(),
-      anchorRoles: anchorRoles.slice(),
-      lineMax,
-      trueValue,
-      optionValues,
-      // §4.6's per-trial strategy trace: which partial rule each option is consistent with.
-      strategyTrace,
-      strategyTraceRules: FAILURES.map((f) => f.kind),
-      distractorRationales,
-    },
+    content,
+    answer,
     scoring: {
       mode: 'deterministic_key',
       // Dispatches to the SHIPPED generic placement verifier in both tiers, which returns M-PAE.
       rule: 'placement_tolerance',
       description:
-        'pae = |response.placedRatio - answer.targetRatio|; correct when pae <= answer.tolerance, ' +
-        'which the generator sets below half the smallest gap between neighbouring ticks so the ' +
-        'band contains exactly the keyed tick. pae is emitted as M-PAE (lower is better).',
+        'pae = |response.placedRatio - answer.targetRatio|; correct when pae <= answer.tolerance. ' +
+        'The band is a fixed fraction of the line and every target sits at least a tolerance from ' +
+        'both ends, so the accepting interval has measure 2 * tolerance on every item and that is ' +
+        'the chance floor a uniformly-random placement scores. pae is emitted as M-PAE (lower is ' +
+        'better).',
     },
     provenance: {
       generator: 'grammar',
-      generatorRef: 'quant-glyphnum-01-grammar@1',
+      generatorRef: 'quant-glyphnum-01-template@1',
       seed,
+      /**
+       * THE AUTHORITY (§2.1). `content` and `answer` above are the reference materialisation of
+       * this template under `systemSeed`; a serve-time path re-keys by calling `materialise` with a
+       * session mapping and rewriting exactly those two objects. `servedItemSchema` omits
+       * `provenance`, so none of it reaches a browser.
+       */
+      template,
       levers: {
-        length,
-        binds,
-        distinct,
-        // Derived from `binds`, recorded so the checker re-derives difficulty from the levers alone
-        // without re-deriving the derivation.
-        orderSensitive: isOrderSensitive(binds),
+        ...pair.levers,
         // The control condition, recorded in provenance rather than content: the renderer must not
-        // know which arm it is serving, and `servedItemSchema` omits provenance (§4.1.1).
+        // know which arm it is serving (§4.1.1).
         systemPersistence,
         systemSeed,
-        keyRank,
-        // Full precision (not rounded): enables exact, reproducible regeneration.
-        distractorNearness,
       },
     },
     syntheticOnly: true,
@@ -969,388 +1029,133 @@ export function genItem({
   };
 }
 
-/**
- * Choose the line maximum and the four distractors for one role sequence.
- *
- * Returns `null` when no combination satisfies every constraint, so the caller can redraw the
- * expression rather than ship an item that fails an invariant. The constraints, in the order they
- * bind:
- *
- *   * exactly `keyRank` distractor values below the key and `4 - keyRank` above, so key rank is
- *     controllable and can be balanced within each expression length;
- *   * all five values distinct and inside (0, lineMax], so every tick is a real position;
- *   * `|ratio - targetRatio| <= 0.5` for every option, which keeps M-PAE inside the [0, 0.5] range
- *     the metric registry declares;
- *   * at least two options survive a brute force over all 120 relabellings, and at least one
- *     SURVIVING DISTRACTOR is backed by at least as many mappings as the key.
- */
-function layOutItem(roles, { distractorNearness, keyRank, jitter }) {
-  const trueValue = valueOf(roles);
-  let best = null;
-
-  for (const lineMax of preferredLineMaxima(trueValue)) {
-    const anchor = ANCHOR_TABLE.get(lineMax);
-    if (!anchor) continue;
-
-    const seen = new Set([trueValue]);
-    const candidates = [];
-    for (const rule of partialRules(roles, lineMax)) {
-      if (!Number.isInteger(rule.value)) continue;
-      if (rule.value <= 0 || rule.value > lineMax) continue;
-      if (seen.has(rule.value)) continue;
-      if (Math.abs(rule.value - trueValue) / lineMax > 0.5) continue;
-      seen.add(rule.value);
-      candidates.push(rule);
-    }
-
-    const support = relabelRatioSupportForRoles(roles, anchor.roles);
-    const backingOf = (value) => support.get(round6(value / lineMax)) ?? 0;
-    const backedValue = (value) => backingOf(value) > 0;
-    // The key's own backing, so a distractor that MATCHES it — and therefore joins the key's
-    // indistinguishable tier — can be preferred over one that merely survives the brute force.
-    const keyBacking = backingOf(trueValue);
-    const order = byNearnessTo(distractorNearness, (value) => {
-      const backing = backingOf(value);
-      if (backing === 0) return 0;
-      return backing === keyBacking ? 2 : 1;
-    });
-    const below = candidates.filter((c) => c.value < trueValue).sort(order);
-    const above = candidates.filter((c) => c.value > trueValue).sort(order);
-    if (below.length < keyRank || above.length < 4 - keyRank) continue;
-
-    // The anchor and the expression are read under the SAME mapping, so the attacker's hypothesis
-    // space is over the pair, and it moves with the LINE as well as with the slate. Scoring lines
-    // against each other rather than taking the first admissible one is what turns invariant 1 from
-    // a floor the item scrapes past into the quantity the layout is chosen to maximise.
-    let tried = 0;
-    for (const chosen of slateChoices(below, above, keyRank, backedValue)) {
-      // The swap fan-out is quadratic. Thirty was enough while the objective only had to keep the
-      // key off the two extreme ranks; an equal-backing TIER is rarer than a non-extreme rank, so
-      // the budget is raised to let the search actually reach one. Whole-bank build time is still
-      // under two seconds.
-      if (tried++ >= 120) break;
-      // Each option carries the rule that put it there, so the rationale and the tick can never
-      // drift apart: the slate is ordered by nearness and the line is ordered by magnitude, and
-      // pairing them by index rather than by object is exactly the mismatch the checker caught.
-      const entries = [
-        ...chosen.map((rule) => ({ value: rule.value, rule })),
-        { value: trueValue, rule: null },
-      ].sort((x, y) => x.value - y.value);
-      const values = entries.map((e) => e.value);
-      const slot = entries.findIndex((e) => e.rule === null);
-      if (slot !== keyRank) continue;
-
-      const backing = values.map((v) => support.get(round6(v / lineMax)) ?? 0);
-      // Nearness fidelity, kept in the score so a layout cannot buy anti-leak margin with a slate
-      // that no longer sits where the difficulty lever says it does. §1.1(d): a stated difficulty
-      // the item does not honour is structured labelling error, and structured error biases lambda.
-      const nearnessCost =
-        chosen.reduce((sum, c) => sum + Math.abs(NEARNESS[c.kind] - distractorNearness), 0) /
-        chosen.length;
-      // Anti-leak first, nearness as the tie-break. The weight is deliberately below the smallest
-      // step the attacker term can take (1/4 - 1/5 = 0.05), so nearness can only choose between
-      // layouts the brute force already finds equally uninformative.
-      const attackerCost = bestAttackerAccuracy(backing, slot);
-      // A SEEDED tie-break, at 1e-6, below any difference either term above can express.
-      //
-      // Where the layout cannot back all five ticks, the unbacked ones have to go somewhere, and a
-      // deterministic tie-break puts them in the same place relative to the key every time. That
-      // turns the POSITIONS OF THE ZEROES in the backing vector into a reading of the key's rank:
-      // STAGE2_ANTILEAK_COMPARISON's F4 attacker, which groups on the unsorted vector and names a
-      // slot, reached 98.5% cross-validated in the 1-5 slice on exactly that. Choosing at random
-      // among layouts the objective and the nearness lever both rate identical makes the zero
-      // pattern independent of the rank, so the same vector turns up with the key in several
-      // places and the attacker is back to guessing inside it. Drawn from the item's own stream,
-      // so the item stays byte-reproducible from `levers` + `seed`.
-      const score = -attackerCost - 0.02 * nearnessCost + jitter();
-      if (best === null || score > best.score) {
-        best = {
-          score,
-          survivors: backing.filter((n) => n > 0).length,
-          attackerCost,
-          nearnessCost,
-          layout: {
-            roles,
-            lineMax,
-            anchorRoles: anchor.roles,
-            options: entries.map((e) => ({ value: e.value, ratio: e.value / lineMax, rule: e.rule })),
-            slot,
-          },
-        };
-      }
-    }
-    // Chance is the floor: five evenly-backed survivors means the brute force returns the whole
-    // option set with nothing to choose between its members. Nothing is left to gain by trying
-    // longer lines once an item reaches it.
-    if (best !== null && best.attackerCost <= 0.2 + 1e-9) break;
-  }
-  return best;
-}
-
-/**
- * What the best content-only attacker scores on one item, given how many of the 120 relabellings
- * back each option and which option is the key.
- *
- * EVERY VOTE RANK, NOT ONLY THE TWO ENDS. This function used to return the maximum of three
- * strategies — uniform over the survivors, modal, anti-modal — and minimising that was not enough.
- * Modal and anti-modal are the FIRST and LAST of five vote ranks, and a client can play any of the
- * ranks between them: the sorted vote vector is content, so "take the second-most-backed option"
- * costs exactly as little as "take the most-backed one". A layout search that scores only the two
- * ends is therefore free to park the key at rank 1, and it did:
- * STAGE2_ANTILEAK_COMPARISON §7.4 found this bank's key at rank 0 on 253 items and at rank 1 on
- * 206, with modal (17.3%) and anti-modal (17.5%) both BELOW the 20.0% floor — the tell — while
- * playing rank 1 alone scored 32.4% bank-wide and took 111 of 468 items outright. One fitted
- * integer, no conditioning, and it beat the published figure by 5.0 points.
- *
- * The measure that closes every rank at once is the size of the key's own TIER. A tier of options
- * with equal backing is indistinguishable from inside, so the best any rank policy does on this
- * item is to play the key's tier and split it — 1/|tier|. That dominates all three of the old
- * strategies, because a tier is a subset of the survivors and modal and anti-modal are two
- * particular tiers, so nothing the old measure caught is given up.
- *
- * It bottoms out at 1/5 when all five options are equally backed, which is the only configuration
- * in which the brute force returns no information at all, and is the same floor the previous
- * measure had. What changed is that a rank-1 key now costs 1.0 instead of scoring 0.2.
- */
-export function bestAttackerAccuracy(backing, keyIndex) {
-  if (backing.every((n) => n === 0)) return 1;
-  // The key is always backed by its own true mapping, so this guard is for callers exploring
-  // hypothetical slates: an option no relabelling reaches is one no rank policy ever names.
-  if (backing[keyIndex] === 0) return 0;
-  return 1 / backing.filter((n) => n === backing[keyIndex]).length;
-}
-
-/**
- * Order candidate rules by how close their failure class sits to the requested nearness, breaking
- * near-ties toward a value the brute force can also reach.
- *
- * The 0.12 tie-break is smaller than the smallest gap between adjacent nearness classes, so it can
- * only reorder rules that were already close on the difficulty lever. Anti-leak buys nothing at the
- * expense of the item sitting where its stated difficulty says it does.
- *
- * The bonus is now GRADED inside that same 0.12, rather than widened. Merely being reachable is
- * worth half of it; being reachable by exactly as many relabellings as the KEY is worth all of it,
- * because that is the option that joins the key's tier and a tier is what
- * `bestAttackerAccuracy` prices. Two grades inside the old budget cannot move an item further off
- * its declared nearness than one grade could.
- *
- * @param {(value: number) => number} backingGrade 2 ties the key's backing, 1 backed, 0 unreachable
- */
-function byNearnessTo(target, backingGrade) {
-  const cost = (rule) => Math.abs(NEARNESS[rule.kind] - target) - 0.06 * backingGrade(rule.value);
-  return (a, b) => cost(a) - cost(b) || (a.ruleId < b.ruleId ? -1 : 1);
-}
-
-/**
- * Slates to try, best first.
- *
- * The first is the plain nearness-optimal pick. The rest swap one distractor at a time for a
- * further-out alternative on the same side of the key, which is how an item whose best slate is
- * weak on the anti-leak invariant is improved without abandoning the difficulty lever: the swap
- * costs some nearness fidelity, which the caller prices, and nothing else.
- *
- * The only slate this refuses outright is one no relabelling can reach at all, because that is
- * invariant 1 — with the key always reachable under the true mapping, one reachable distractor is
- * what makes two options survive the brute force.
- */
-function* slateChoices(below, above, keyRank, backedValue) {
-  const nBelow = keyRank;
-  const nAbove = 4 - keyRank;
-  const ok = (chosen) => chosen.some((c) => backedValue(c.value));
-
-  const baseBelow = below.slice(0, nBelow);
-  const baseAbove = above.slice(0, nAbove);
-  if (baseBelow.length !== nBelow || baseAbove.length !== nAbove) return;
-
-  const first = [...baseBelow, ...baseAbove];
-  if (ok(first)) yield first;
-
-  for (let slot = 0; slot < nBelow; slot++) {
-    for (let alt = nBelow; alt < below.length; alt++) {
-      const swapped = baseBelow.slice();
-      swapped[slot] = below[alt];
-      const chosen = [...swapped, ...baseAbove];
-      if (ok(chosen)) yield chosen;
-    }
-  }
-  for (let slot = 0; slot < nAbove; slot++) {
-    for (let alt = nAbove; alt < above.length; alt++) {
-      const swapped = baseAbove.slice();
-      swapped[slot] = above[alt];
-      const chosen = [...baseBelow, ...swapped];
-      if (ok(chosen)) yield chosen;
-    }
-  }
-}
-
-/**
- * Line maxima worth trying for a given key value, best first.
- *
- * Prefer a line the key actually uses — a maximum far above the key would push every tick into the
- * left-hand sliver and make the response a crowding judgement instead of a magnitude one — and,
- * among those, prefer a short anchor, because the anchor is itself an expression the child has to
- * read.
- */
-function preferredLineMaxima(trueValue) {
-  // The upper bound is generous on purpose. Keeping every option inside the metric registry's
-  // [0, 0.5] range for M-PAE means the line has to be at least twice the widest error the slate
-  // carries, and at small key values the widest available partial-rule error is many times the key
-  // itself — so a line that merely "looks well used" cannot always be had, and the range contract
-  // is worth more than the aesthetics.
-  return LINE_CANDIDATES.filter((v) => v >= trueValue && v <= Math.max(64, trueValue * 4)).sort(
-    (a, b) => {
-      const ra = trueValue / a;
-      const rb = trueValue / b;
-      // 0.55 keeps the key off both ends of the line without pinning it to the exact middle, which
-      // would itself be a content-derivable tell.
-      const score = (r, v) => Math.abs(r - 0.55) + 0.05 * (ANCHOR_TABLE.get(v)?.tokens ?? 9);
-      return score(ra, a) - score(rb, b) || a - b;
-    },
-  );
-}
-
-/**
- * Assign every planned item the rank its key will occupy among the five ticks.
- *
- * WHY THIS IS NOT A CURSOR ANY MORE. `keyRank = cursor % 5`, walked once per item inside each
- * expression length, balances the marginal distribution but makes the key's rank a function of the
- * item's position in the EMISSION order — and items are emitted rung by rung in increasing
- * difficulty, with `difficulty` served. Sorting a scraped bank by difficulty therefore recovers the
- * cursor. STAGE2_ANTILEAK_COMPARISON §7.2 measures the key slot straight off the difficulty rank at
- * 32.9% against a 20.0% floor on this bank, and 40.2% cross-validated once expression length is
- * added — no brute force, no relabelling, no understanding of the notation at all.
- *
- * The replacement keeps the balance the cursor bought and drops the order it leaked. Ranks are
- * allocated as a balanced MULTISET inside each stratum — here the expression length, which is both
- * the served covariate an attacker conditions on and the cell §11's key-balance check already
- * requires — and are then PERMUTED inside that cell from the seeded stream. A rank is therefore
- * independent of where its item sits in the difficulty order, while every length still shows all
- * five ranks equally often. The remainder that does not divide by five is carried across cells, so
- * the bank-level counts differ by at most one (E-094).
- *
- * @param {string[]} strata one stratum label per planned item, in emission order
- */
-function allocateKeyRanks(strata, rankCount, seed) {
-  const rng = makeRng(seed);
-  const cells = new Map();
-  strata.forEach((stratum, index) => {
-    const cell = cells.get(stratum) ?? [];
-    cell.push(index);
-    cells.set(stratum, cell);
-  });
-
-  const used = new Array(rankCount).fill(0);
-  const ranks = new Array(strata.length);
-  // Cells are walked in a fixed lexical order, not in Map insertion order, so the allocation does
-  // not depend on the order the rung loop happened to discover the lengths in.
-  for (const stratum of [...cells.keys()].sort()) {
-    const indices = cells.get(stratum);
-    const base = Math.floor(indices.length / rankCount);
-    const multiset = [];
-    for (let rank = 0; rank < rankCount; rank++) {
-      for (let n = 0; n < base; n++) multiset.push(rank);
-    }
-    // The remainder goes to the ranks the bank has used LEAST so far. Ties are broken off the
-    // seeded stream rather than by rank order, or rank 0 would collect every remainder.
-    const bySlack = shuffle([...Array(rankCount).keys()], rng).sort((a, b) => used[a] - used[b]);
-    for (let n = 0; n < indices.length - base * rankCount; n++) multiset.push(bySlack[n]);
-    for (const rank of multiset) used[rank] += 1;
-
-    const permuted = shuffle(multiset, rng);
-    indices.forEach((index, n) => {
-      ranks[index] = permuted[n];
-    });
-  }
-  return ranks;
-}
-
 /* ================================================================== *
  * BANK BUILDER
  *
- * Fills every 0.5-point rung of the 1..20 scale with >=perRung items.
+ * Fills every 0.5-point rung of the 1..20 scale with `perRung` items, SELECTED
+ * from {@link ADMISSIBLE} rather than searched for. There is no layout to
+ * optimise, which is the other thing a slider buys: the whole admissible space
+ * can be enumerated and costed once.
  *
- * `perRung` defaults to 12 rather than FLU-OPCHAIN-01's 6, and the reason is a
- * measured one rather than a preference. STAGE2_BANK_RECOVERY_MEASUREMENT §5
- * found that `FLU-OPCHAIN-01` tracks the harness's idealised grid to about 45
- * trials and then falls behind it, and conjectured pool depth per rung as the
- * cause: the ideal grid carries 12 items per 0.5-point rung and that bank
- * carries 6. That conjecture was recorded as untested. Building at 12 makes this
- * bank density-matched to the ideal grid, so the conjecture becomes a comparison
- * anyone can run rather than a paragraph, and it is the cheap way to extend the
- * ceiling — by item density rather than by deepening the composition, which
- * would push the top rungs past what the band ladder allows.
+ * `perRung` is 12 to match the idealised grid E-095 was measured on.
+ * STAGE2_BANK_RECOVERY_MEASUREMENT §5 conjectured pool depth per rung as the
+ * reason `FLU-OPCHAIN-01` falls behind that grid after ~45 trials; building at
+ * the grid's own density makes that a comparison anyone can run rather than a
+ * paragraph.
  *
- * Key RANK is round-robined WITHIN each expression length, not across the bank.
- * Round-robin across the bank balances the marginal distribution while leaving
- * "longer expression, further right" intact, and that correlation is derivable
- * from `content` with no knowledge of the system at all.
+ * SELECTION IS WHERE THE ANTI-LEAK WORK NOW LIVES, and it replaces the key-rank
+ * allocator the old build needed. Two channels, both closed here:
+ *
+ *  1. FIXED PLACEMENT. Park the slider at one ratio for every item. This is
+ *     bounded by how evenly the bank's target ratios are spread, so the ratios
+ *     are laid on a STAGGERED grid: each rung takes `perRung` evenly spaced
+ *     ratio buckets, and consecutive rungs offset their bucket edges by a
+ *     fraction of a bucket. Aligned edges would let every rung drop an item into
+ *     the same window and multiply the attack by the number of rungs.
+ *  2. THE SCRAPED-BANK JOIN. `difficulty` is served and, for this type,
+ *     re-keying does not move the target ratio — so a scraped bank plus the
+ *     served difficulty plus the numeral's visible repeat SHAPE is a real
+ *     channel that per-session keying does not close. It is bounded by how many
+ *     bank items share a (rung, shape) cell, so selection prefers cells that are
+ *     POPULATED rather than distinct: a rung whose twelve items share one shape
+ *     leaves the join with nothing beyond the rung. The CLI measures the
+ *     residual.
+ *
+ * Both are deterministic — no draw anywhere in the plan — so the two persistence
+ * arms select identically and the equating is exact.
  * ================================================================== */
-export function buildBank({ systemPersistence, perRung = 12, systemSeed = 'QUANT-GLYPHNUM-01|v1' }) {
-  const items = [];
+export function buildBank({ systemPersistence, perRung = 12, systemSeed = 'QUANT-GLYPHNUM-01|v2' }) {
   const rungs = [];
-  for (let d = 1; d <= 20 + 1e-9; d += 0.5) rungs.push(round2(d));
+  for (let d = LADDER_MIN; d <= 20 + 1e-9; d += 0.5) rungs.push(round2(d));
 
-  // PASS 1 — the lever plan for the whole bank, everything except the key's rank. The rank has to
-  // be allocated over the finished plan rather than inside this loop, because the cells it
-  // balances within span the whole bank and a cursor cannot see them one item at a time.
+  const byRung = new Map(rungs.map((rung) => [rung, []]));
+  for (const pair of ADMISSIBLE) {
+    if (!bandAdmits(pair)) continue;
+    byRung.get(round2(pair.difficulty))?.push(pair);
+  }
+
+  /** @type {{rung:number, have:number}[]} */
+  const short = [];
   const plan = [];
-
-  for (const rung of rungs) {
-    // The rung window is clipped to its BAND's window as well as to +/-0.24, so an item cannot land
-    // a rounding-width across a band edge and carry the neighbouring band's caps with it. The
-    // checker caps by the item's own difficulty, not by the rung it was aimed at, and without this
-    // clip the two disagree at every boundary rung.
-    const band = bandFor(rung);
-    const lo = Math.max(1, rung - 0.24, band.lo);
-    const hi = Math.min(20, rung + 0.24, band.band === '6-8' ? 20 : band.hi - 0.01);
-
-    const segments = [];
-    for (const cfg of ALLOWED_CONFIGS) {
-      if (cfg.length > band.maxLength) continue; // §4.3 developmental floor
-      if (cfg.binds > band.maxBinds) continue;
-      const a = Math.max(lo, difficultyFromLevers(cfg, 0));
-      const b = Math.min(hi, difficultyFromLevers(cfg, 1));
-      if (b > a + 1e-6) segments.push({ cfg, lo: a, hi: b });
-    }
-    if (segments.length === 0) {
-      throw new Error(`no lever config reaches rung ${rung} under the ${band.band} caps`);
+  rungs.forEach((rung, rungIndex) => {
+    const candidates = byRung.get(rung) ?? [];
+    if (candidates.length === 0) {
+      short.push({ rung, have: 0 });
+      return;
     }
 
-    const stride = Math.max(1, Math.floor(segments.length / perRung));
-    const hits = segments.map(() => 0);
-    for (let i = 0; i < perRung; i++) hits[(i * stride) % segments.length]++;
-    const localSeen = segments.map(() => 0);
-
-    for (let i = 0; i < perRung; i++) {
-      const index = (i * stride) % segments.length;
-      const segment = segments[index];
-      const li = localSeen[index]++;
-      const target = segment.lo + (segment.hi - segment.lo) * ((li + 0.5) / hits[index]);
-      const nearness = solveNearness(segment.cfg, target);
-      const c = segment.cfg;
-      const seed = `QUANT-GLYPHNUM-01|rung=${rung}|i=${i}|L${c.length}B${c.binds}D${c.distinct}`;
-      plan.push({
-        levers: { ...c, distractorNearness: nearness, systemPersistence, systemSeed, seed },
-      });
+    // Shape cells, largest first by how many DISTINCT target ratios they can supply. Taking a whole
+    // rung out of one populated cell is what leaves the scraped-bank join nothing to read.
+    const cells = new Map();
+    for (const pair of candidates) {
+      const cell = cells.get(pair.signature) ?? [];
+      cell.push(pair);
+      cells.set(pair.signature, cell);
     }
+    const ordered = [...cells.entries()]
+      .map(([signature, pairs]) => ({
+        signature,
+        pairs: pairs
+          .slice()
+          .sort((a, b) => a.targetRatio - b.targetRatio || a.value - b.value || a.lineMax - b.lineMax),
+        ratios: new Set(pairs.map((p) => p.targetRatio)).size,
+      }))
+      .sort((a, b) => b.ratios - a.ratios || (a.signature < b.signature ? -1 : 1));
+
+    // Every pair the rung can offer, best shape cells first so the cell tie-break below has an
+    // order to prefer.
+    const pool = ordered.flatMap((cell) => cell.pairs);
+    const topCell = ordered[0].signature;
+
+    // THE GLOBAL RATIO GRID, INTERLEAVED ACROSS RUNGS. The bank's `rungs.length * perRung` slots are
+    // laid out uniformly over the admissible interval and then dealt round-robin to the rungs, so
+    // rung `r` asks for slots r, r + rungs.length, r + 2 * rungs.length, ... Two properties at once:
+    // the bank's ratios are uniform globally, which is what bounds the fixed-placement attack, and
+    // each rung's own ratios are spread across the whole interval, which is what bounds the attack
+    // conditioned on a difficulty. Aligned per-rung grids would give the second without the first.
+    const lo = SUPPORT_MIN;
+    const hi = SUPPORT_MAX;
+    const slots = rungs.length * perRung;
+    const taken = new Set();
+    for (let k = 0; k < perRung; k++) {
+      const slot = k * rungs.length + rungIndex;
+      const wanted = lo + ((hi - lo) * (slot + 0.5)) / slots;
+      let best = null;
+      for (const pair of pool) {
+        const id = `${pair.numeral.join('')}|${pair.anchor.join('')}`;
+        if (taken.has(id)) continue;
+        const cost =
+          Math.abs(pair.targetRatio - wanted) +
+          // Cell preference, well below the per-rung slot spacing of
+          // (SUPPORT_MAX - SUPPORT_MIN) / perRung, so it can only choose between pairs the ratio grid
+          // already rates as near-equivalent. Concentrating a rung in one shape cell is what stops
+          // the scraped-bank join reading anything from the shape.
+          (pair.signature === topCell ? 0 : 0.01) +
+          // Among equals, prefer the least leaky reading. Residual ambiguity is a constraint rather
+          // than a lever (see above), but nothing stops it breaking a tie.
+          0.001 * (pair.bandHitCount / ALL_MAPPINGS.length);
+        if (best === null || cost < best.cost) best = { cost, pair, id };
+      }
+      if (best === null) break;
+      taken.add(best.id);
+      plan.push({ rung, pair: best.pair, i: k });
+    }
+    if (taken.size < perRung) short.push({ rung, have: taken.size });
+  });
+
+  const items = [];
+  for (const entry of plan) {
+    const l = entry.pair.levers;
+    const seed =
+      `QUANT-GLYPHNUM-01|rung=${entry.rung}|i=${entry.i}|` +
+      `N${entry.pair.numeral.join('')}|A${entry.pair.anchor.join('')}|L${l.length}V${l.vocabularyInPlay}`;
+    items.push(genItem({ pair: entry.pair, systemPersistence, systemSeed, seed }));
   }
-
-  // PASS 2 — the key's rank, balanced inside each expression length and permuted there.
-  const ranks = allocateKeyRanks(
-    plan.map((p) => `L${p.levers.length}`),
-    5,
-    `${systemSeed}|keyRanks`,
-  );
-
-  // PASS 3 — generate, in the same rung order as before, so the bank ships in difficulty order.
-  for (let n = 0; n < plan.length; n++) {
-    items.push(genItem({ ...plan[n].levers, keyRank: ranks[n] }));
-  }
-  return items;
+  return { items, shortRungs: short };
 }
 
 /* ------------------------------------------------------------------ *
- * CLI entrypoint: write BOTH banks and print coverage + equating + leak summary.
+ * CLI entrypoint: write BOTH banks and print coverage + equating + floor + leak summaries.
  * ------------------------------------------------------------------ */
 function isMain() {
   return process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url));
@@ -1366,62 +1171,152 @@ export const BANK_PATHS = {
   perTrial: '../control-banks/QUANT-GLYPHNUM-01.perTrial.jsonl',
 };
 
+/** Pearson correlation, for the difficulty x targetRatio independence check. */
+function pearson(xs, ys) {
+  const n = xs.length;
+  const mx = xs.reduce((a, b) => a + b, 0) / n;
+  const my = ys.reduce((a, b) => a + b, 0) / n;
+  let sxy = 0;
+  let sxx = 0;
+  let syy = 0;
+  for (let i = 0; i < n; i++) {
+    const dx = xs[i] - mx;
+    const dy = ys[i] - my;
+    sxy += dx * dy;
+    sxx += dx * dx;
+    syy += dy * dy;
+  }
+  return sxx > 0 && syy > 0 ? sxy / Math.sqrt(sxx * syy) : 0;
+}
+
+/** Best accuracy a client gets by parking the slider at one fixed ratio for every item in `set`. */
+function bestFixedPlacement(set) {
+  let best = 0;
+  let at = 0;
+  // Every candidate ratio worth trying is one tolerance above some item's target: the accepting
+  // intervals are the only places the count can change.
+  for (const item of set) {
+    for (const ratio of [item.answer.targetRatio, item.answer.targetRatio + item.answer.tolerance]) {
+      const hits = set.filter(
+        (it) => Math.abs(ratio - it.answer.targetRatio) <= it.answer.tolerance + 1e-12,
+      ).length;
+      if (hits > best) {
+        best = hits;
+        at = ratio;
+      }
+    }
+  }
+  return { rate: set.length === 0 ? 0 : best / set.length, at: round2(at), hits: best };
+}
+
+/**
+ * The scraped-bank join, measured: a client that holds the whole bank, reads the served difficulty
+ * and the numeral's visible repeat shape, and parks the slider at the best ratio for that cell.
+ *
+ * This is the attack per-session re-keying does NOT close for this type, because re-keying leaves the
+ * target ratio where it was. Reported as a bank-wide accuracy so the residual is a number.
+ */
+function scrapedBankJoin(set) {
+  const cells = new Map();
+  for (const item of set) {
+    const key = `${item.difficulty}|${item.provenance.template.signature}`;
+    const cell = cells.get(key) ?? [];
+    cell.push(item);
+    cells.set(key, cell);
+  }
+  let hits = 0;
+  let singletons = 0;
+  for (const cell of cells.values()) {
+    if (cell.length === 1) singletons += 1;
+    hits += bestFixedPlacement(cell).hits;
+  }
+  return {
+    rate: set.length === 0 ? 0 : hits / set.length,
+    cells: cells.size,
+    singletons,
+    meanCell: set.length === 0 ? 0 : set.length / cells.size,
+  };
+}
+
+/**
+ * The neighbour-count attack, measured: a client enumerates all 120 candidate ratios, counts how
+ * many other candidates sit within a tolerance of each, and keeps the candidates whose count matches
+ * the item's own `bandHitCount`.
+ *
+ * It has no way to learn `bandHitCount` from anything served — that is the point of leaving residual
+ * ambiguity out of the priced levers — so this is measured as the attack a client WOULD have if
+ * difficulty had encoded it. Reported so the design choice is evidenced.
+ */
+function neighbourCountAttack(set) {
+  let total = 0;
+  for (const item of set) {
+    const template = item.provenance.template;
+    const ratios = [];
+    for (const p of DIGIT_PERMUTATIONS) {
+      let numeratorValue = 0;
+      for (const d of template.numeral) numeratorValue = numeratorValue * BASE + p[d - 1];
+      let denominatorValue = 0;
+      for (const d of template.anchor) denominatorValue = denominatorValue * BASE + p[d - 1];
+      if (denominatorValue > 0) ratios.push(numeratorValue / denominatorValue);
+    }
+    const tier = ratios.filter(
+      (c) =>
+        ratios.filter((o) => Math.abs(o - c) <= TOLERANCE_RATIO).length === template.bandHitCount,
+    );
+    // Playing the tier: pick one of its members at random, score if it lands in the band.
+    const inBand = tier.filter((c) => Math.abs(c - template.targetRatio) <= TOLERANCE_RATIO).length;
+    total += tier.length === 0 ? 0 : inBand / tier.length;
+  }
+  return set.length === 0 ? 0 : total / set.length;
+}
+
 if (isMain()) {
   const perRung = Number(process.env.PER_RUNG || 12);
   const modes = ['consistent', 'perTrial'];
   const banks = {};
+  let shortRungs = [];
 
   for (const mode of modes) {
-    const items = buildBank({ systemPersistence: mode, perRung });
-    banks[mode] = items;
+    const built = buildBank({ systemPersistence: mode, perRung });
+    banks[mode] = built.items;
+    shortRungs = built.shortRungs;
     const outPath = resolve(__dirname, BANK_PATHS[mode]);
     mkdirSync(dirname(outPath), { recursive: true });
-    writeFileSync(outPath, serializeBank(items));
-    console.log(`QUANT-GLYPHNUM-01 (${mode}): ${items.length} items -> ${outPath}`);
+    writeFileSync(outPath, serializeBank(built.items));
+    console.log(`QUANT-GLYPHNUM-01 (${mode}): ${built.items.length} items -> ${outPath}`);
   }
 
   const reference = banks.consistent;
+  const diffs = reference.map((it) => it.difficulty);
   const rungCounts = new Map();
   for (const it of reference) {
     const rung = round2(Math.round(it.difficulty * 2) / 2);
     rungCounts.set(rung, (rungCounts.get(rung) ?? 0) + 1);
   }
-  const short = [...rungCounts].filter(([, n]) => n < 5).map(([r]) => r);
-  const diffs = reference.map((it) => it.difficulty);
   console.log(
-    `\ndifficulty span: ${round2(Math.min(...diffs))} .. ${round2(Math.max(...diffs))} ` +
+    `\nnotation: base ${BASE}, digits {${DIGITS.join(',')}} (zero-free), ` +
+      `leftmost most significant, ${GLYPHS.length} glyphs -> ${ALL_MAPPINGS.length} relabellings`,
+  );
+  console.log(
+    `admissible (numeral, anchor) pairs in the whole notation: ${ADMISSIBLE.length} ` +
+      `(of ${NUMERALS.length} numerals x their admissible anchors)`,
+  );
+  console.log(
+    `difficulty span: ${round2(Math.min(...diffs))} .. ${round2(Math.max(...diffs))} ` +
       `over ${rungCounts.size} distinct 0.5-point rungs`,
   );
-  console.log(short.length ? `SHORT RUNGS (<5): ${short.join(',')}` : 'all 0.5-point rungs >=5 OK');
-
-  const keyCounts = {};
-  for (const it of reference)
-    keyCounts[it.answer.correctKey] = (keyCounts[it.answer.correctKey] ?? 0) + 1;
+  const under = [...rungCounts].filter(([, n]) => n < 5).map(([r]) => r);
   console.log(
-    `key positions (all items are 5-option, so one stratum): ` +
-      Object.entries(keyCounts)
-        .sort()
-        .map(([k, n]) => `${k}:${n} (${((100 * n) / reference.length).toFixed(1)}%)`)
-        .join('  '),
+    shortRungs.length || under.length
+      ? `SHORT RUNGS: below ${perRung} at ${shortRungs.map((s) => `${s.rung}(${s.have})`).join(',') || 'none'}; ` +
+          `below 5 at ${under.join(',') || 'none'}`
+      : `every one of the ${rungCounts.size} rungs from ${LADDER_MIN.toFixed(1)} to 20.0 carries ${perRung} items`,
   );
-
-  const byLength = new Map();
-  for (const it of reference) {
-    const len = it.provenance.levers.length;
-    const row = byLength.get(len) ?? {};
-    row[it.answer.correctKey] = (row[it.answer.correctKey] ?? 0) + 1;
-    byLength.set(len, row);
-  }
   console.log(
-    `key rank BY EXPRESSION LENGTH (closes "longer means further right"):\n` +
-      [...byLength]
-        .sort((a, b) => a[0] - b[0])
-        .map(
-          ([len, row]) =>
-            `  length ${len}: ` +
-            ['A', 'B', 'C', 'D', 'E'].map((k) => `${k}:${row[k] ?? 0}`).join(' '),
-        )
-        .join('\n'),
+    `NO K-1 SUPPLY, and it is a property of the notation: a K-1 item may not need two marks ` +
+      `integrated (§4.3), and every such\n  pair is decided by a support-aware brute force. The ladder ` +
+      `therefore starts at ${LADDER_MIN.toFixed(1)} — the 2-3 band — which is a coverage gap to ` +
+      `record, not a defect to hide.`,
   );
 
   const bandCounts = {};
@@ -1436,115 +1331,146 @@ if (isMain()) {
       .join('  ')}`,
   );
 
-  // Anti-leak, reported as a determinacy COUNT and as a graded attacker accuracy (E-075/E-076),
-  // sliced by difficulty because a leak concentrated in one slice is invisible in a bank mean and
-  // the block serves different slices to different children.
+  // --- the floor, which is the measurement §5.1 gets wrong by asserting zero -----------------
+  const measures = reference.map((it) => {
+    const p = it.answer.targetRatio;
+    const t = it.answer.tolerance;
+    return Math.min(1, p + t) - Math.max(0, p - t);
+  });
+  const ratios = reference.map((it) => it.answer.targetRatio);
+  console.log(
+    `\nchance floor — what a client who does not know the answer scores:\n` +
+      `  accepting interval, uniform over the whole line: ${UNIFORM_LINE_FLOOR.toFixed(4)} ` +
+      `(realised min ${Math.min(...measures).toFixed(4)}, max ${Math.max(...measures).toFixed(4)} — ` +
+      `exact on every item, because every target sits at least one tolerance from both ends)\n` +
+      `  uniform over the SUPPORT [${SUPPORT_MIN}, ${SUPPORT_MAX}]: ${CHANCE_FLOOR.toFixed(4)} = 1/${(1 / CHANCE_FLOOR).toFixed(0)}. ` +
+      `This is the one the estimator takes; realised support ` +
+      `[${Math.min(...ratios).toFixed(3)}, ${Math.max(...ratios).toFixed(3)}]\n` +
+      `  five-option floor it replaces: 0.2000, so the reduction is ` +
+      `${(0.2 / CHANCE_FLOOR).toFixed(1)}x — a 15-alternative response, not a zero-floor one`,
+  );
+  const paeMax = Math.max(
+    ...reference.map((it) => Math.max(it.answer.targetRatio, 1 - it.answer.targetRatio)),
+  );
+  console.log(
+    `  worst M-PAE a slider can produce: ${paeMax.toFixed(3)} (policy.ts normalises over [0, 0.5] ` +
+      `and clamps, so anything past half the line reads as maximally wrong)`,
+  );
+
+  // --- anti-leak ------------------------------------------------------------------------------
   const SLICES = [
     [1, 5],
     [5, 10],
     [10, 15],
     [15, 20.01],
   ];
-  const slice = SLICES.map(([lo, hi]) => ({
-    lo,
-    hi,
-    n: 0,
-    sole: 0,
-    survivors: 0,
-    uniform: 0,
-    modal: 0,
-    antiModal: 0,
-  }));
-  let paeMax = 0;
-  for (const it of reference) {
-    const row = slice.find((s) => it.difficulty >= s.lo && it.difficulty < s.hi);
-    const survivors = viableOptions(
-      it.content.options,
-      it.content.expression,
-      it.content.line.maxExpression,
-    );
-    const backing = it.content.options.map(
-      (o) => survivors.find((s) => s.key === o.key)?.mappings ?? 0,
-    );
-    const keyIndex = it.content.options.findIndex((o) => o.key === it.answer.correctKey);
-    const counts = survivors.map((s) => s.mappings);
-    const pick = (target) => {
-      const tied = survivors.filter((s) => s.mappings === target);
-      return tied.some((s) => s.key === it.answer.correctKey) ? 1 / tied.length : 0;
-    };
-    row.n += 1;
-    row.survivors += survivors.length;
-    if (survivors.length < 2) row.sole += 1;
-    row.uniform += 1 / survivors.length;
-    row.modal += pick(Math.max(...counts));
-    row.antiModal += pick(Math.min(...counts));
-    if (backing[keyIndex] === 0) throw new Error(`key not reachable under the true mapping`);
-    for (const option of it.content.options) {
-      paeMax = Math.max(paeMax, Math.abs(option.ratio - it.answer.targetRatio));
-    }
-  }
-  const n = reference.length;
-  const sum = (f) => slice.reduce((a, s) => a + f(s), 0);
-  console.log(
-    `\nanti-leak (all ${ALL_MAPPINGS.length} glyph->role relabellings brute-forced per item):\n` +
-      `  items where only ONE option survives: ${sum((s) => s.sole)} / ${n}\n` +
-      `  mean surviving options: ${(sum((s) => s.survivors) / n).toFixed(2)}\n` +
-      `  best content-only attacker: ${(
-        (100 *
-          Math.max(
-            sum((s) => s.uniform),
-            sum((s) => s.modal),
-            sum((s) => s.antiModal),
-          )) /
-        n
-      ).toFixed(1)}% against a 20.0% chance floor`,
+  const hits = reference.map((it) => it.provenance.template.bandHitCount);
+  const supported = reference.map((it) => it.provenance.template.onSupportCount);
+  const supportRates = reference.map(
+    (it) => it.provenance.template.bandHitCount / it.provenance.template.onSupportCount,
   );
-  console.log('  | difficulty | n | mean survivors | uniform | modal | anti-modal | nearness err |');
-  for (const s of slice) {
-    const errors = reference
-      .filter((it) => it.difficulty >= s.lo && it.difficulty < s.hi)
-      .map((it) => realisedNearnessError(it));
+  const mean = (xs) => xs.reduce((a, b) => a + b, 0) / xs.length;
+  console.log(
+    `\nanti-leak (all ${ALL_MAPPINGS.length} glyph->digit relabellings brute-forced per item):\n` +
+      `  mean relabellings landing in the band: ${mean(hits).toFixed(2)} / ${ALL_MAPPINGS.length}\n` +
+      `  plain brute force: ${((100 * Math.max(...hits)) / ALL_MAPPINGS.length).toFixed(1)}% worst item, ` +
+      `${((100 * mean(hits)) / ALL_MAPPINGS.length).toFixed(1)}% bank mean, against a ` +
+      `${(100 * UNIFORM_LINE_FLOOR).toFixed(1)}% whole-line floor\n` +
+      `  brute force RESTRICTED TO THE SUPPORT — the stronger attacker, because the bank's target ` +
+      `window is itself\n    information: ${(100 * Math.max(...supportRates)).toFixed(1)}% worst item, ` +
+      `${(100 * mean(supportRates)).toFixed(1)}% bank mean, against a ` +
+      `${(100 * CHANCE_FLOOR).toFixed(1)}% support floor (mean ${mean(supported).toFixed(1)} of ` +
+      `${ALL_MAPPINGS.length} readings survive the support)`,
+  );
+  const whole = bestFixedPlacement(reference);
+  const perRungFloor = 1 / perRung;
+  console.log(
+    `  best FIXED placement over the whole bank: ${(100 * whole.rate).toFixed(1)}% at ratio ${whole.at}\n` +
+      `  neighbour-count attack (what pricing residual ambiguity into difficulty would have cost): ` +
+      `${(100 * neighbourCountAttack(reference)).toFixed(1)}%`,
+  );
+  const join = scrapedBankJoin(reference);
+  console.log(
+    `  scraped-bank join (whole bank + served difficulty + visible repeat shape): ` +
+      `${(100 * join.rate).toFixed(1)}% over ${join.cells} cells, mean ${join.meanCell.toFixed(1)} ` +
+      `items/cell, ${join.singletons} singleton cell(s).\n` +
+      `    Bounded below by 1/perRung = ${(100 * perRungFloor).toFixed(1)}% for arithmetic reasons: ${perRung} ` +
+      `items spread over a support of width ${(SUPPORT_MAX - SUPPORT_MIN).toFixed(2)} cannot put fewer than one\n` +
+      `    of them in the best ${(2 * TOLERANCE_RATIO).toFixed(2)}-wide window. This is the exposure per-session ` +
+      `re-keying does NOT close for this type,\n    because the target ratio is a property of the ` +
+      `template and re-keying leaves it where it is.`,
+  );
+  console.log(
+    '  | difficulty | n | mean band hits | brute force | best fixed placement | mean vocab | mean digitsNeeded |',
+  );
+  for (const [lo, hi] of SLICES) {
+    const set = reference.filter((it) => it.difficulty >= lo && it.difficulty < hi);
+    if (set.length === 0) continue;
+    const sliceHits = set.map((it) => it.provenance.template.bandHitCount);
+    const fixed = bestFixedPlacement(set);
+    const meanOf = (f) => (set.reduce((a, it) => a + f(it), 0) / set.length).toFixed(2);
     console.log(
-      `  | ${s.lo}-${s.hi === 20.01 ? 20 : s.hi} | ${s.n} | ${(s.survivors / s.n).toFixed(2)} | ` +
-        `${((100 * s.uniform) / s.n).toFixed(1)}% | ${((100 * s.modal) / s.n).toFixed(1)}% | ` +
-        `${((100 * s.antiModal) / s.n).toFixed(1)}% | ` +
-        `${(errors.reduce((a, b) => a + b, 0) / errors.length).toFixed(3)} |`,
+      `  | ${lo}-${hi === 20.01 ? 20 : hi} | ${set.length} | ` +
+        `${(sliceHits.reduce((a, b) => a + b, 0) / set.length).toFixed(2)} | ` +
+        `${((100 * sliceHits.reduce((a, b) => a + b, 0)) / (set.length * ALL_MAPPINGS.length)).toFixed(1)}% | ` +
+        `${(100 * fixed.rate).toFixed(1)}% at ${fixed.at} | ` +
+        `${meanOf((it) => it.provenance.levers.vocabularyInPlay)} | ` +
+        `${meanOf((it) => it.provenance.template.digitsNeeded)} |`,
     );
   }
-  console.log(
-    '  The nearness column is |realised - declared| on the within-rung distractor lever. It is a\n' +
-      '  cost of the anti-leak search and it matters only if it TRENDS with difficulty: random\n' +
-      '  labelling error attenuates lambda, error correlated with which items the block serves late\n' +
-      '  biases it (§1.1(d)).',
+  const r = pearson(
+    diffs,
+    reference.map((it) => it.answer.targetRatio),
   );
-  console.log(`  worst M-PAE over every item x option: ${paeMax.toFixed(3)} (registry range max 0.5)`);
+  console.log(
+    `  difficulty x targetRatio correlation: r = ${r.toFixed(4)} — sorting a scraped bank by the ` +
+      `served difficulty does not\n    say where on the line the answer sits, which is ` +
+      `STAGE2_ANTILEAK_COMPARISON §7.2's attack on the old build (32.9% against a 20.0% floor)`,
+  );
 
-  // Equating (U3(g)): the two banks must differ ONLY in persistence.
+  // --- the demonstration schedule, and where it is NOT -----------------------------------------
+  const leaked = reference.filter((it) => 'demonstration' in it.content);
+  console.log(
+    `\ndemonstration schedule: emitted on ${reference.length}/${reference.length} templates ` +
+      `(server-only), present in \`content\` on ${leaked.length} items — it must be 0, because one ` +
+      `worked example against a fixed anchor collapses the 120 candidates to about one and would ` +
+      `hand the browser that item's own answer`,
+  );
+  const stages = new Set(
+    reference.flatMap((it) => it.provenance.template.demonstration.examples.map((e) => e.stage)),
+  );
+  console.log(`  fade stages emitted: ${[...stages].join(' -> ')} -> symbolic (no depiction)`);
+
+  // --- equating (U3(g)): the two banks must differ ONLY in persistence ------------------------
   const a = banks.consistent;
   const b = banks.perTrial;
   const mismatches = [];
   if (a.length !== b.length) mismatches.push(`item counts ${a.length} vs ${b.length}`);
   for (let i = 0; i < Math.min(a.length, b.length); i++) {
     if (a[i].difficulty !== b[i].difficulty) mismatches.push(`item ${i}: difficulty`);
-    if (a[i].answer.correctKey !== b[i].answer.correctKey) mismatches.push(`item ${i}: key slot`);
-    if (a[i].content.options.length !== b[i].content.options.length)
-      mismatches.push(`item ${i}: option count`);
-    if (JSON.stringify(a[i].content.options) !== JSON.stringify(b[i].content.options))
-      mismatches.push(`item ${i}: option ratios`);
-    if (a[i].answer.expressionRoles.join('+') !== b[i].answer.expressionRoles.join('+'))
-      mismatches.push(`item ${i}: role sequence`);
+    if (a[i].answer.targetRatio !== b[i].answer.targetRatio) mismatches.push(`item ${i}: target`);
+    if (a[i].answer.tolerance !== b[i].answer.tolerance) mismatches.push(`item ${i}: tolerance`);
     if (a[i].answer.lineMax !== b[i].answer.lineMax) mismatches.push(`item ${i}: line maximum`);
+    if (a[i].provenance.template.numeral.join('') !== b[i].provenance.template.numeral.join(''))
+      mismatches.push(`item ${i}: numeral`);
   }
-  const distinctSystems = new Set(b.map((it) => it.answer.system.systemId)).size;
   console.log(
-    `\nequating: ${mismatches.length === 0 ? 'the two banks match on every scored property' : `MISMATCH — ${mismatches.slice(0, 5).join('; ')}`}`,
+    `\nequating: ${
+      mismatches.length === 0
+        ? 'the two banks match on every scored property — exact by construction, because the ' +
+          'template stores digit VALUES so re-keying cannot move the target, the tolerance or a lever'
+        : `MISMATCH — ${mismatches.slice(0, 5).join('; ')}`
+    }`,
   );
   console.log(
     `persistence: consistent bank uses ${new Set(a.map((it) => it.answer.system.systemId)).size} system(s); ` +
-      `perTrial bank uses ${distinctSystems} (one per item)`,
+      `perTrial bank uses ${new Set(b.map((it) => it.answer.system.systemId)).size} (one per item)`,
   );
+
   console.log(
-    '\nNOT GATED. Gate B needs ~128 real children (§4.1.3); no synthetic run substitutes. The\n' +
-      'consistent arm is the live bank; the scrambled arm lives outside banks/ and is never served.',
+    '\nNOT GATED. Gate B needs ~128 real children (§4.1.3); no synthetic run substitutes. A\n' +
+      'continuous-response type is outside every Gate A cell measured before it, so Gate A is\n' +
+      're-read for this bank in E-211. The consistent arm is the live bank; the scrambled arm lives\n' +
+      'outside banks/ and is never served.',
   );
 }
