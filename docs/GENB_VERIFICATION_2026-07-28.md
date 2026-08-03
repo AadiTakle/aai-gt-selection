@@ -261,6 +261,7 @@ fails this rule, since I did not execute ESLint on a `dev` checkout.
 > `sync-exam-demos.mjs:621:31`, `'html' is defined but never used`. The formatting failure below is
 > unaffected by this and stands as written.
 
+>>>>>>> origin/feat/genb-verification
 **Formatting is the gate that actually blocks.** `pnpm verify` runs `format:check` **first**, so on
 this branch the repo's own aggregate verification fails immediately. All 32 offending tracked files
 are Gen-B's: 12 under `packages/exam-engine/src`, 2 under `packages/exam-scoring/src`, 15 under
@@ -348,11 +349,13 @@ migrations there is **exactly one** R/H citation:
 **R11 does not exist.** `docs/product/project-requirements.md` defines only R1–R10. So the single
 citation in the entire exam workstream is half-invalid. Additionally:
 
+<<<<<<< HEAD
 > **Forward-pointer (2026-07-30):** accurate as written on 2026-07-28. R11 was stranded on unmerged
 > branches, not invented; it was transcribed onto `dev` under D-032 — see
 > `docs/governance/REQUIREMENT_ID_AUDIT.md`.
 
 
+=======
 - the three dedicated exam architecture documents — `EXAM_ADAPTIVE_BUILD_PLAN.md`,
   `EXAM_PERSISTENCE_NOTES.md`, `EXAM_VERIFIER_PORT_INVENTORY.md` — cite **zero** R/H IDs;
 - `docs/product/FEATURE_TO_REQUIREMENT_MAP.md`, the repo's own development index, contains **no exam
