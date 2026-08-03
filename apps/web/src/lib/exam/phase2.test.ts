@@ -9,10 +9,12 @@ import {
   LEARNING_BLOCK_TYPE,
   availableBlocks,
   blockCanRun,
+  blockGuessingFloor,
   blockPool,
   clearLearningBlockHandoff,
   loadLearningBlockHandoff,
   nextBlockItem,
+  nextBlockTarget,
   novelBlockPool,
   saveLearningBlockHandoff,
   summariseLearningBlock,
@@ -188,6 +190,100 @@ describe('summariseLearningBlock', () => {
     const reference = { mean: 0, sd: 0.15, contaminationFloor: 0 };
     expect(summariseLearningBlock(trials, reference, 30).band).toBe(
       learningRateReadout(trials, { reference, minTrials: 30 }).band,
+    );
+  });
+});
+
+/** A pool item declaring the option list a full bank record carries. */
+function withOptions(itemId: string, count: number): ServedItem {
+  return {
+    ...served(itemId, 12),
+    content: { options: Array.from({ length: count }, (_, i) => ({ key: String(i) })) },
+  };
+}
+
+/** The same fact as the selection index spells it, with no stimulus content attached. */
+function withOptionCount(itemId: string, count: number): ServedItem {
+  return { ...served(itemId, 12), content: { optionCount: count } };
+}
+
+describe('blockGuessingFloor', () => {
+  it('reads the floor off the bank record rather than a per-type table', () => {
+    expect(blockGuessingFloor([withOptions('a', 4), withOptions('b', 4)])).toEqual({
+      guessing: 0.25,
+      basis: { kind: 'option-count', optionCount: 4 },
+    });
+    expect(blockGuessingFloor([withOptions('a', 5)]).guessing).toBeCloseTo(0.2, 12);
+  });
+
+  it('reads the selection index spelling too, which is the view the browser actually holds', () => {
+    // `fetchServedPool` returns the index, whose `content` carries only `optionCount` — so a
+    // reader that understood the full record alone would silently fall back on every live block.
+    expect(blockGuessingFloor([withOptionCount('a', 4), withOptionCount('b', 4)])).toEqual({
+      guessing: 0.25,
+      basis: { kind: 'option-count', optionCount: 4 },
+    });
+  });
+
+  /**
+   * The four wired activities, at the option counts their own banks declare. `VER-MORPHO-01` is
+   * the four-option one, and the reason a single shared default was wrong.
+   */
+  it('separates the four-option activity from the five-option ones', () => {
+    expect(blockGuessingFloor([withOptions('m', 4)]).guessing).toBeCloseTo(0.25, 12);
+    expect(blockGuessingFloor([withOptions('o', 5)]).guessing).toBeCloseTo(0.2, 12);
+    expect(blockGuessingFloor([withOptions('s', 6)]).guessing).toBeCloseTo(1 / 6, 12);
+  });
+
+  it('falls back to the five-option default, and names the reason rather than hiding it', () => {
+    // Nothing declares a count: `served` builds items with an empty `content`.
+    expect(blockGuessingFloor([served('a', 12)])).toEqual({
+      guessing: 0.2,
+      basis: { kind: 'default', reason: 'no-option-count' },
+    });
+    expect(blockGuessingFloor([])).toEqual({
+      guessing: 0.2,
+      basis: { kind: 'default', reason: 'no-option-count' },
+    });
+    // One floor is fitted for the whole block, so a pool that disagrees with itself gets the
+    // declared default rather than an averaged reciprocal nobody chose (E-200).
+    expect(blockGuessingFloor([withOptions('a', 4), withOptions('b', 6)])).toEqual({
+      guessing: 0.2,
+      basis: { kind: 'default', reason: 'mixed-option-counts' },
+    });
+    // A one-option "choice" has a reciprocal of 1, which is not a chance-success floor.
+    expect(blockGuessingFloor([withOptions('a', 1)])).toEqual({
+      guessing: 0.2,
+      basis: { kind: 'default', reason: 'degenerate-option-count' },
+    });
+  });
+
+  /**
+   * The floor has to reach BOTH estimator roles, and this is the assertion that would fail if a
+   * future change threaded only one. E-200 measured the half-correction: fixing the readout while
+   * the targeting rule stays misspecified barely helps, because the difficulty walk the readout
+   * then reads is still chosen under the wrong asymptote.
+   */
+  it('reaches the targeting rule and the readout fit, not just one of them', () => {
+    const trials = climbingBlock(30, 0.4);
+
+    const targetAtFive = nextBlockTarget(trials, 11, 0.2);
+    const targetAtFour = nextBlockTarget(trials, 11, 0.25);
+    expect(targetAtFive).not.toBeCloseTo(targetAtFour, 6);
+
+    const lambdaAtFive = summariseLearningBlock(trials, undefined, 30, 0.2).lambda;
+    const lambdaAtFour = summariseLearningBlock(trials, undefined, 30, 0.25).lambda;
+    expect(lambdaAtFive).not.toBeNull();
+    expect(lambdaAtFour).not.toBeNull();
+    expect(lambdaAtFive).not.toBeCloseTo(lambdaAtFour!, 6);
+  });
+
+  it('leaves a five-option activity exactly where it was, which is the control', () => {
+    const trials = climbingBlock(30, 0.4);
+    const { guessing } = blockGuessingFloor([withOptions('a', 5), withOptions('b', 5)]);
+    expect(nextBlockTarget(trials, 11, guessing)).toBe(nextBlockTarget(trials, 11));
+    expect(summariseLearningBlock(trials, undefined, 30, guessing).lambda).toBe(
+      summariseLearningBlock(trials, undefined, 30).lambda,
     );
   });
 });

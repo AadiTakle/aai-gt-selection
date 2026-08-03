@@ -130,10 +130,14 @@ const LAMBDA_BOUND = 1;
  * level rule, and `learning-curve.test.ts` runs the 2 × 2 that shows each correction removes part
  * of the artifact and neither removes it alone.
  *
- * 0.2 rather than a per-item reciprocal because the fit takes one floor for the whole block and the
- * block is administered from one area's pool. `FLU-OPCHAIN-01`, the bank Stage 2 builds the block
- * on, is uniformly five-option. A bank of mixed option counts is a real exposure and E-200 costs
- * it: it is a second-order error next to the 0-versus-0.2 one, but it is not zero.
+ * 0.2 rather than a per-item reciprocal because the fit takes one floor for the whole block, and a
+ * block is administered from ONE type's pool — so the right floor is a property of the caller's
+ * bank, not of this module. It is the DEFAULT and not an assertion: D-200 part 1 requires a caller
+ * administering another format to pass the reciprocal of its own option count, and Phase 2 now
+ * derives that per activity (`blockGuessingFloor` in `apps/web/src/lib/exam/phase2.ts`), because
+ * the four wired Stage 2 banks are not all five-option — `VER-MORPHO-01` offers four. E-207
+ * measures what leaving it at this default cost that one activity. A bank of MIXED option counts
+ * is a further exposure that no single floor removes, and E-200 costs it.
  *
  * The standing fit in `ability.ts` has no such parameter and is therefore still a plain 1PL, so a
  * `theta0` from this fit and a `deriveAbilityEstimate` no longer make identical response-model

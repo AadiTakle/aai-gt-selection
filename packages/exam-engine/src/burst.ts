@@ -38,6 +38,7 @@
  */
 import { typeHasUnseenItem } from './coverage';
 import { isDone } from './done';
+import { itemOptionCount } from './item-format';
 import { nextType } from './selection';
 import {
   AREAS,
@@ -84,23 +85,6 @@ export interface TypeSpeedVerdict {
 }
 
 /**
- * How many options an item offers, or `null` when it is not a bounded choice.
- *
- * Two spellings are accepted because the engine runs over two different views of the same bank. A
- * full bank item carries the option list itself. A selection index carries only `optionCount`: the
- * pool a browser selects over is fetched without stimulus content (megabytes of it), so the count
- * is sent instead, and burst policy has to decide before an item's content exists.
- */
-function optionCount(item: BankItem): number | null {
-  const content = item.content as { options?: unknown; optionCount?: unknown };
-  if (Array.isArray(content.options)) return content.options.length;
-  if (typeof content.optionCount === 'number' && Number.isFinite(content.optionCount)) {
-    return content.optionCount;
-  }
-  return null;
-}
-
-/**
  * Classify one type as burstable or not, from the structure of its own items.
  *
  * A type qualifies when both hold:
@@ -140,7 +124,7 @@ export function classifyTypeSpeed(
     for (const field of PACED_RESPONSE_CONTENT_FIELDS) {
       if (field in item.content) slowFields.add(field);
     }
-    const count = optionCount(item);
+    const count = itemOptionCount(item);
     if (count === null) itemsWithoutOptions += 1;
     else if (maxOptions === null || count > maxOptions) maxOptions = count;
   }

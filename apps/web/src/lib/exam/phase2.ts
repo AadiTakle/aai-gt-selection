@@ -23,11 +23,13 @@
 import {
   AREAS,
   RECOMMENDED_NOVEL_BLOCK_LENGTH,
+  itemOptionCount,
   selectNextNovelServedItem,
   type Area,
   type ServedItem,
 } from '@gt-selection/exam-engine';
 import {
+  DEFAULT_GUESSING,
   estimateLearningCurve,
   learningRateReadout,
   nextTargetTheta,
@@ -309,6 +311,85 @@ export function blockPool(
   );
 }
 
+/** Where a block's assumed guessing floor came from. Named so the fallback cannot pass unnoticed. */
+export type BlockFloorBasis =
+  | { readonly kind: 'option-count'; readonly optionCount: number }
+  /**
+   * The floor could not be read off the pool, so {@link DEFAULT_GUESSING} stands in.
+   *
+   * - `no-option-count`: no item declares an option list. Either the pool is not multiple choice at
+   *   all, or it reached here stripped of the one field that would say.
+   * - `mixed-option-counts`: the pool disagrees with itself. The fit takes ONE floor for the whole
+   *   block, and averaging reciprocals across a pool would put a number nobody chose into the fit,
+   *   so the declared default is used and the disagreement is reported instead.
+   * - `degenerate-option-count`: an option list too short to guess from (0 or 1), whose reciprocal
+   *   is not a probability.
+   */
+  | {
+      readonly kind: 'default';
+      readonly reason: 'no-option-count' | 'mixed-option-counts' | 'degenerate-option-count';
+    };
+
+export interface BlockGuessingFloor {
+  /** Lower asymptote to fit and to target with, for every trial of this block. */
+  readonly guessing: number;
+  readonly basis: BlockFloorBasis;
+}
+
+/** Fewest options an item can offer and still leave something to guess between. */
+const MIN_GUESSABLE_OPTIONS = 2;
+
+/**
+ * The chance-success floor for one activity, derived from its own items.
+ *
+ * WHY THIS EXISTS. `DEFAULT_GUESSING` is the FIVE-option floor, and the Phase 2 activities are not
+ * all five-option: `VER-MORPHO-01` offers four, so the block it runs was fitted and aimed at 0.2
+ * against a truth of 0.25. D-200 part 1 already provides for this — "callers administering a
+ * different item format pass the reciprocal of their option count" — and this is the caller doing
+ * it. E-207 measures what it is worth on the shipped targeting rule.
+ *
+ * DERIVED RATHER THAN TABULATED. The count comes off the bank record every time (`content.options`
+ * on a full item, `content.optionCount` on the selection index the browser holds), so a bank that
+ * changes format moves this with it. A per-type table would keep returning the old number and
+ * nothing in the pipeline would notice.
+ *
+ * ONE FLOOR FOR THE WHOLE BLOCK, because the fit takes one. That is exact while an activity's bank
+ * is uniform — all four wired Stage 2 banks are — and a pool that disagrees with itself falls back
+ * to the declared default rather than to an invented average. E-200 costs mixed option counts as a
+ * real second-order exposure, so the fallback is reported through {@link BlockFloorBasis} rather
+ * than applied silently.
+ *
+ * CLAIM BOUNDARY. The reciprocal of the option count is a DESIGN assumption, not a calibrated `c`.
+ * An estimated lower asymptote is typically below chance, since a plausible distractor set is not
+ * chosen uniformly, and a child who disengages sits below it again. E-205 records that if a real
+ * child's floor is not the reciprocal, this correction is itself misspecified.
+ */
+export function blockGuessingFloor(pool: readonly ServedItem[]): BlockGuessingFloor {
+  let count: number | null = null;
+  for (const item of pool) {
+    const declared = itemOptionCount(item);
+    if (declared === null) continue;
+    if (count === null) count = declared;
+    else if (count !== declared) {
+      return {
+        guessing: DEFAULT_GUESSING,
+        basis: { kind: 'default', reason: 'mixed-option-counts' },
+      };
+    }
+  }
+
+  if (count === null) {
+    return { guessing: DEFAULT_GUESSING, basis: { kind: 'default', reason: 'no-option-count' } };
+  }
+  if (count < MIN_GUESSABLE_OPTIONS) {
+    return {
+      guessing: DEFAULT_GUESSING,
+      basis: { kind: 'default', reason: 'degenerate-option-count' },
+    };
+  }
+  return { guessing: 1 / count, basis: { kind: 'option-count', optionCount: count } };
+}
+
 /**
  * The activities this child can actually be given, ordered weakest area first.
  *
@@ -374,12 +455,22 @@ export function blockCanRun(
 
 /**
  * Difficulty to aim the next trial at: the standing level plus the desirable-difficulty offset
- * early on, then re-projected from the climb fitted so far.
+ * early on, then re-fitted from the level reached so far.
+ *
+ * `guessing` is the block's own chance floor from {@link blockGuessingFloor}. It reaches the
+ * TARGETING role here and the READOUT role in {@link summariseLearningBlock}, and both matter:
+ * E-200 measured correcting the readout alone and found it barely helps, because the difficulty
+ * walk is still driven by a misspecified fit.
  */
-export function nextBlockTarget(trials: readonly LearningTrial[], standing: number): number {
+export function nextBlockTarget(
+  trials: readonly LearningTrial[],
+  standing: number,
+  guessing: number = DEFAULT_GUESSING,
+): number {
   return nextTargetTheta(trials, {
     standingEstimate: standing,
     targetOffset: LEARNING_BLOCK_TARGET_OFFSET,
+    guessing,
   });
 }
 
@@ -459,11 +550,16 @@ const SHORT_BLOCK_REASON =
  * Pass `reference` only once a real distribution of learning rates exists. Until then this
  * deliberately returns `indeterminate`: at this block length one child's estimate is less precise
  * than children are believed to differ, so naming a band would be inventing precision.
+ *
+ * `guessing` is the block's own chance floor from {@link blockGuessingFloor} — the READOUT half of
+ * the pair {@link nextBlockTarget} completes. Leaving it at the default fits a four-option activity
+ * as though it were five-option, which is the misspecification E-207 measures.
  */
 export function summariseLearningBlock(
   trials: readonly LearningTrial[],
   reference?: LearningRateReference,
   length: number = LEARNING_BLOCK_LENGTH,
+  guessing: number = DEFAULT_GUESSING,
 ): LearningBlockReadout {
   if (trials.length < length) {
     return {
@@ -478,7 +574,7 @@ export function summariseLearningBlock(
   if (!reference) {
     // Still fit it, so the pace is on the record and a cohort can be ranked later; just do not
     // dress it up as a comparison we cannot make.
-    const fit = estimateLearningCurve(trials);
+    const fit = estimateLearningCurve(trials, { guessing });
     return {
       band: 'indeterminate',
       reason: NO_REFERENCE_REASON,
@@ -488,7 +584,7 @@ export function summariseLearningBlock(
     };
   }
 
-  const readout = learningRateReadout(trials, { reference, minTrials: length });
+  const readout = learningRateReadout(trials, { reference, minTrials: length, fit: { guessing } });
   return {
     band: readout.band,
     reason: readout.band === 'indeterminate' ? NO_REFERENCE_REASON : readout.reason,

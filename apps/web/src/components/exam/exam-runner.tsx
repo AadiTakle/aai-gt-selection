@@ -52,6 +52,7 @@ import {
   LEARNING_BLOCK_AREA,
   LEARNING_BLOCK_LENGTH,
   availableBlocks,
+  blockGuessingFloor,
   blockPool,
   clearLearningBlockHandoff,
   learningBlockHandoffServerSnapshot,
@@ -183,6 +184,14 @@ export function ExamRunner({
   const blockAdministeredRef = useRef<string[]>([]);
   const blockPoolRef = useRef<ServedItem[]>([]);
   const blockStandingRef = useRef(0);
+  /**
+   * The active activity's chance-success floor, derived from its own pool's option count.
+   *
+   * Fixed once when the activity starts rather than re-derived per trial, so every trial of one
+   * block is fitted and aimed under the same response model — a floor that moved mid-block would
+   * make the climb partly an artifact of the assumption changing.
+   */
+  const blockGuessingRef = useRef(blockGuessingFloor([]).guessing);
   /** Routes each result to the block instead of the Phase 1 engine; a ref so it is never stale. */
   const inBlockRef = useRef(false);
 
@@ -441,7 +450,12 @@ export function ExamRunner({
     (trialsOverride?: readonly { difficulty: number; score: number }[]) => {
       const spec = activeSpecRef.current;
       const trials = toLearningTrials(trialsOverride ?? blockTrialsRef.current);
-      const readout = summariseLearningBlock(trials, undefined, spec?.length ?? LEARNING_BLOCK_LENGTH);
+      const readout = summariseLearningBlock(
+        trials,
+        undefined,
+        spec?.length ?? LEARNING_BLOCK_LENGTH,
+        blockGuessingRef.current,
+      );
       setBlockReadout(readout);
       if (spec) {
         completedBlocksRef.current = [...completedBlocksRef.current, { spec, readout }];
@@ -479,8 +493,8 @@ export function ExamRunner({
       return;
     }
 
-    // Aim just above the settled standing early on, then re-project from the climb so far.
-    const target = nextBlockTarget(trials, blockStandingRef.current);
+    // Aim just above the settled standing early on, then re-fit from the level reached so far.
+    const target = nextBlockTarget(trials, blockStandingRef.current, blockGuessingRef.current);
     const picked = nextBlockItem(
       blockPoolRef.current,
       blockAdministeredRef.current,
@@ -522,6 +536,9 @@ export function ExamRunner({
       blockStandingRef.current = blockStandingsRef.current[spec.area] ?? blockStandingRef.current;
       setBlockStanding(blockStandingRef.current);
       blockPoolRef.current = blockPool(spec, blockFullPoolRef.current, blockSeenRef.current);
+      // This activity's own chance floor. `VER-MORPHO-01` is four-option where the other three are
+      // five, so a single shared default would fit and aim one of the four at the wrong asymptote.
+      blockGuessingRef.current = blockGuessingFloor(blockPoolRef.current).guessing;
       processedRef.current = new Set();
       setBlockCount(0);
       inBlockRef.current = true;
