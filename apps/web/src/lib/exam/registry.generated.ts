@@ -11,7 +11,7 @@
 //   - the server-side answer verifier (/api/exam-submit)
 //   - the runner's type metadata + demo paths
 //
-// Wired: 49 types (fluid_reasoning 12 · quantitative 8 · spatial 18 · verbal 11).
+// Wired: 50 types (fluid_reasoning 12 · quantitative 9 · spatial 18 · verbal 11).
 // Adding a bank + compliant demo and re-running the sync is all it takes.
 
 export type ExamRegistryDomain = 'fluid_reasoning' | 'verbal' | 'quantitative' | 'spatial';
@@ -294,6 +294,18 @@ export const EXAM_TYPE_REGISTRY: readonly ExamRegistryEntry[] = [
     difficultyMax: 20,
     verifier: 'keyed',
     metrics: ['M-ENGAGE', 'M-RAPIDGUESS', 'M-REV', 'M-RT', 'M-RTFIRST'],
+  },
+  {
+    typeCode: 'QUANT-GLYPHNUM-01',
+    domain: 'quantitative',
+    title: 'Alien Numbers',
+    blurb: 'The machine writes numbers in glyphs nobody has explained; the child works out what each glyph is worth by watching where expressions land, then taps where t…',
+    ageBands: ['2-3', '4-5', '6-8', 'K-1'],
+    itemCount: 468,
+    difficultyMin: 1.01,
+    difficultyMax: 19.99,
+    verifier: 'placement_tolerance',
+    metrics: ['M-ENGAGE', 'M-RAPIDGUESS', 'M-RT', 'M-RTFIRST'],
   },
   {
     typeCode: 'QUANT-GRAPH-01',
@@ -636,7 +648,6 @@ export const EXAM_TYPE_REGISTRY: readonly ExamRegistryEntry[] = [
 /** Types with a bank but no servable demo, and why. */
 export const EXAM_BLOCKED_TYPES: readonly { typeCode: string; reason: string }[] = [
   { typeCode: 'CX-achieve-02', reason: 'blocked by qa/NOT_SERVABLE.json: Proven answer leak: content.apparatus ships the closed-form outcome model (base, per-level weights, interaction bonus). Evaluating it over content.conclusion.options and taking the argmax recovers the correct key on 120/120 items WITHOUT running a single trial.' },
-  { typeCode: 'QUANT-GLYPHNUM-01', reason: 'bank-only: no renderer demo at demos/QUANT-GLYPHNUM-01.html' },
   { typeCode: 'SPA-XFORM-01', reason: 'bank-only: no renderer demo at demos/SPA-XFORM-01.html' },
   { typeCode: 'VER-MORPHO-01', reason: 'bank-only: no renderer demo at demos/VER-MORPHO-01.html' },
 ] as const;
