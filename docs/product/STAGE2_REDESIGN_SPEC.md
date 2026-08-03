@@ -141,7 +141,32 @@ An invented **place-value system in a non-decimal base**, with symbols for digit
 - **Text-only**, per D-017. The scene can be schematic rather than pictorial.
 - **Difficulty levers, all relabelling-invariant:** number of arguments in the sentence, whether role marking is by particle or position, whether a distractor differs only in role assignment, and residual ambiguity per §3.
 
-**Alternates, if the primary is rejected:**
+**The primary is now specified and built through U4, as `VER-ROLES-01` "Who Did What" —
+`docs/product/STAGE2_VER_ROLES_01_SPEC.md`.** That document is the buildable spec; this section
+remains the proposal it came from. Three things about it are worth reading back into this spec,
+because they bear on §2 and §3 rather than only on the verbal slot:
+
+- **§2.1's template shape is executable, and it removes both failures rather than mitigating them.**
+  A record is a surface plan plus distractor rationales, and the key reading is *what the parser says
+  the sentence means under the session grammar* — not a stated fact the grammar has to agree with.
+  Measured over 468 templates × 24 grammars: difficulty, option count and key slot move on **none**,
+  the key reading moves on **all**, and every template materialises. Failure A and Failure B are not
+  reduced here; they are unconstructible.
+- **§3's fourth lever collapses into its third in this type, and that is a property rather than a
+  gap.** An option survives a vocabulary-knowing, grammar-free client exactly when it is a role
+  permutation of the key, so residual ambiguity *is* `roleOnlyDistractors + 1`. Pricing both would
+  double-count one structural fact.
+- **The leak that remains is derived rather than measured, which is a stronger statement than a
+  ceiling.** Every order strategy sits exactly on `1/n + (n−1−roleOnly)/(n·R)`, so the whole excess
+  over the guessing floor is the intrinsic "the key is always on screen" asymmetry and none of it is
+  the grammar. It is 8.3 points at one role-only distractor and **zero** at three — largest on the
+  easiest items, which is the opposite of `FLU-OPCHAIN-01`'s 34.0% in its hardest slice.
+
+The two alternates below are **not built** and are recorded as they were. The second is partly
+absorbed: an earlier draft of `VER-ROLES-01` gave each verb a hidden argument frame, which made the
+role set undeterminable from the surface and broke the parse; the shipped design recovers the same
+six-reading space from the base-order rule with no extra hidden parameter.
+
 - **Semantic-field induction.** An invented vocabulary clustered by relation — part-of, kind-of, opposite. Given labelled examples, infer the relation and extend it. Tests relational and analogical reasoning.
 - **Predicate-argument frames.** Invented verbs take different argument structures; the child induces which frame each verb takes and judges well-formedness.
 
