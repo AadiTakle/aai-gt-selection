@@ -424,9 +424,7 @@ export function availableBlocks(
   ).sort((a, b) => {
     const byStanding = (standings[a.area] ?? 0) - (standings[b.area] ?? 0);
     // Ties keep the declaration order, so the sequence stays deterministic and replayable.
-    return byStanding !== 0
-      ? byStanding
-      : LEARNING_BLOCKS.indexOf(a) - LEARNING_BLOCKS.indexOf(b);
+    return byStanding !== 0 ? byStanding : LEARNING_BLOCKS.indexOf(a) - LEARNING_BLOCKS.indexOf(b);
   });
 }
 
@@ -622,10 +620,7 @@ const PARTIAL_COVERAGE_REASON =
   'Your child completed part of the practice section. The activities they did finish are on the ' +
   'record, but a pace is not something we can report from them yet.';
 
-export function summariseStage2(
-  blocks: readonly CompletedBlock[],
-  offered: number,
-): Stage2Readout {
+export function summariseStage2(blocks: readonly CompletedBlock[], offered: number): Stage2Readout {
   const completed = blocks.length;
   return {
     blocks,

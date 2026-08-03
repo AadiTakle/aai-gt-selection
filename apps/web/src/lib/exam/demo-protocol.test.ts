@@ -382,48 +382,52 @@ describe('published demos speak the embedding protocol', () => {
   const RENDER_CASE_BUDGET_MS = 120_000;
 
   for (const type of EXAM_TYPE_REGISTRY) {
-    it(`${type.typeCode} renders a served item and stays answerable`, async () => {
-      const index = await getServedIndex();
-      const candidate = index.find((i) => i.typeCode === type.typeCode);
-      expect(candidate, `${type.typeCode} has no bank item`).toBeDefined();
+    it(
+      `${type.typeCode} renders a served item and stays answerable`,
+      async () => {
+        const index = await getServedIndex();
+        const candidate = index.find((i) => i.typeCode === type.typeCode);
+        expect(candidate, `${type.typeCode} has no bank item`).toBeDefined();
 
-      let run = await driveDemo(type.typeCode, candidate!.itemId, 0);
-      const first = run;
-      for (let i = 1; i < STRATEGY_COUNT && run.result === null; i++) {
-        const next = await driveDemo(type.typeCode, candidate!.itemId, i);
-        if (next.result || (!run.reactedToInput && next.reactedToInput)) run = next;
-      }
-
-      expect(first.ready, `${type.typeCode} never sent {type:'ready'}`).toBe(true);
-      expect(first.rendered, `${type.typeCode} rendered nothing on init`).toBe(true);
-
-      // The FOLDNET failure mode: a demo that renders but whose input handlers
-      // early-return because `start` never unlocked it. Such a demo emits no
-      // further telemetry however the child interacts, can never be answered,
-      // and the host can only time the item out after four minutes.
-      expect(
-        run.reactedToInput,
-        `${type.typeCode} did not react to any interaction after {type:'start'} — ` +
-          'it renders but cannot be answered',
-      ).toBe(true);
-
-      if (!DRIVER_CANNOT_COMPLETE.has(type.typeCode)) {
-        expect(run.result, `${type.typeCode} never emitted {type:'result'}`).not.toBeNull();
-
-        // The runner needs numeric metrics to advance metric coverage.
-        const metrics = run.result?.metrics ?? {};
-        for (const id of ['M-RT', 'M-RTFIRST']) {
-          expect(typeof metrics[id], `${type.typeCode} ${id}`).toBe('number');
+        let run = await driveDemo(type.typeCode, candidate!.itemId, 0);
+        const first = run;
+        for (let i = 1; i < STRATEGY_COUNT && run.result === null; i++) {
+          const next = await driveDemo(type.typeCode, candidate!.itemId, i);
+          if (next.result || (!run.reactedToInput && next.reactedToInput)) run = next;
         }
-        // What the demo emits must match what the registry claims, or the
-        // engine's coverage model (and the stop rule derived from it) is wrong.
-        for (const id of Object.keys(metrics)) {
-          expect(
-            type.metrics.includes(id),
-            `${type.typeCode} emitted ${id} but the registry does not list it — re-run the sync`,
-          ).toBe(true);
+
+        expect(first.ready, `${type.typeCode} never sent {type:'ready'}`).toBe(true);
+        expect(first.rendered, `${type.typeCode} rendered nothing on init`).toBe(true);
+
+        // The FOLDNET failure mode: a demo that renders but whose input handlers
+        // early-return because `start` never unlocked it. Such a demo emits no
+        // further telemetry however the child interacts, can never be answered,
+        // and the host can only time the item out after four minutes.
+        expect(
+          run.reactedToInput,
+          `${type.typeCode} did not react to any interaction after {type:'start'} — ` +
+            'it renders but cannot be answered',
+        ).toBe(true);
+
+        if (!DRIVER_CANNOT_COMPLETE.has(type.typeCode)) {
+          expect(run.result, `${type.typeCode} never emitted {type:'result'}`).not.toBeNull();
+
+          // The runner needs numeric metrics to advance metric coverage.
+          const metrics = run.result?.metrics ?? {};
+          for (const id of ['M-RT', 'M-RTFIRST']) {
+            expect(typeof metrics[id], `${type.typeCode} ${id}`).toBe('number');
+          }
+          // What the demo emits must match what the registry claims, or the
+          // engine's coverage model (and the stop rule derived from it) is wrong.
+          for (const id of Object.keys(metrics)) {
+            expect(
+              type.metrics.includes(id),
+              `${type.typeCode} emitted ${id} but the registry does not list it — re-run the sync`,
+            ).toBe(true);
+          }
         }
-      }
-    }, RENDER_CASE_BUDGET_MS);
+      },
+      RENDER_CASE_BUDGET_MS,
+    );
   }
 });

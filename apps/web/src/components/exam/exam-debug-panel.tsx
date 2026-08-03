@@ -177,7 +177,8 @@ function readCollapsed(): boolean {
 function Stage2Body({ view }: { view: Stage2DebugView }) {
   const done = view.trials.length;
   const correct = view.trials.reduce((n, t) => n + (t.score > 0 ? 1 : 0), 0);
-  const fit = done >= 4 ? estimateLearningCurve(view.trials.map((t, i) => ({ ...t, trialIndex: i }))) : null;
+  const fit =
+    done >= 4 ? estimateLearningCurve(view.trials.map((t, i) => ({ ...t, trialIndex: i }))) : null;
 
   return (
     <>
@@ -376,13 +377,13 @@ export function ExamDebugPanel({
       )}
 
       {collapsed || stage2 ? null : (
-      <p className={styles.foot}>
-        White marker = fitted ability (<code>deriveAbilityFit</code>, the scorer&apos;s own
-        estimator). Shaded band = ±1.96 SE from that fit. Green hairline = where the next item in
-        that area will be aimed. The band is sampling error under a 1PL that assumes no guessing
-        floor, while every wired item is multiple choice — so watch it narrow, but do not read it as
-        a 95% claim about the child. Born-synthetic, <code>validated=false</code>.
-      </p>
+        <p className={styles.foot}>
+          White marker = fitted ability (<code>deriveAbilityFit</code>, the scorer&apos;s own
+          estimator). Shaded band = ±1.96 SE from that fit. Green hairline = where the next item in
+          that area will be aimed. The band is sampling error under a 1PL that assumes no guessing
+          floor, while every wired item is multiple choice — so watch it narrow, but do not read it
+          as a 95% claim about the child. Born-synthetic, <code>validated=false</code>.
+        </p>
       )}
     </aside>
   );
