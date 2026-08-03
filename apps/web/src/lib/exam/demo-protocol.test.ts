@@ -360,6 +360,27 @@ describe('published demos speak the embedding protocol', () => {
     'SPA-XPLANE-01', // must dial a cutting plane to a quantised setting
   ]);
 
+  /**
+   * WHY THE PER-TEST BUDGET IS 120s AND NOT 60s. Each case can build up to `STRATEGY_COUNT` (8)
+   * JSDOM instances, each parsing a published demo and running its scripts with
+   * `runScripts: 'dangerously'` and `pretendToBeVisual`, then driving it to a result. That is
+   * genuinely expensive: a single case takes about 8 seconds unloaded, and the whole file runs 7 to
+   * 21 minutes depending on machine load.
+   *
+   * At 60s the file was intermittently red, and always in the same shape — a LATER case timing out
+   * while every case passed when run alone. Observed victims across runs: SPA-PUNCH-01 with
+   * SPA-SCENE-01, then FLU-STACK-01, then VER-POLYSEME-01, with mean time per case climbing 8s → 13s
+   * → 24s as the machine loaded. Nothing was wrong with any of those demos; the budget was simply
+   * close enough to the working time that load decided the outcome. Adding the three Stage 2
+   * renderers took the file from 50 cases to 53 and pushed it over.
+   *
+   * This buys headroom without weakening anything: the assertions below are about whether a demo
+   * renders, unlocks and can be answered, never about how fast it does so, and a demo that genuinely
+   * hangs still fails — 120s is far beyond any working case. If mean time per case climbs past ~60s
+   * the right fix is a faster driver or fewer strategies, not a larger number here.
+   */
+  const RENDER_CASE_BUDGET_MS = 120_000;
+
   for (const type of EXAM_TYPE_REGISTRY) {
     it(`${type.typeCode} renders a served item and stays answerable`, async () => {
       const index = await getServedIndex();
@@ -403,6 +424,6 @@ describe('published demos speak the embedding protocol', () => {
           ).toBe(true);
         }
       }
-    }, 60_000);
+    }, RENDER_CASE_BUDGET_MS);
   }
 });
