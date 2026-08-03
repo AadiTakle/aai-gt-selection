@@ -6,6 +6,8 @@ export default tseslint.config(
     ignores: [
       '.cursor/**',
       '**/.next/**',
+      // Frozen copies of work that was never merged. Kept readable, not maintained.
+      'archive/**',
       'docs/**',
       'graphify-out/**',
       'brainlifting/**',

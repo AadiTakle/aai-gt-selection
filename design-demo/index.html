@@ -745,7 +745,11 @@
       .space-scrim {
         position: absolute;
         inset: 0;
-        background: radial-gradient(62% 62% at 50% 46%, rgba(0, 12, 18, 0.3), rgba(0, 12, 18, 0.66));
+        background: radial-gradient(
+          62% 62% at 50% 46%,
+          rgba(0, 12, 18, 0.3),
+          rgba(0, 12, 18, 0.66)
+        );
         backdrop-filter: blur(2px);
       }
       .space-top {
@@ -1078,18 +1082,44 @@
   </head>
   <body>
     <div class="synthetic">
-      <b>SYNTHETIC DEMO</b> · fictional data only · not a live application or an eligibility/admission decision
+      <b>SYNTHETIC DEMO</b> · fictional data only · not a live application or an
+      eligibility/admission decision
     </div>
 
     <header class="topbar">
       <a class="brand" href="#" aria-label="GT School home">
-        <svg class="logo" viewBox="0 0 139 32" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="GT School">
-          <path d="M90.2546 18.2728L87.9706 18.511C87.875 18.1615 87.6679 17.8534 87.3494 17.5866C87.0308 17.3134 86.5816 17.1767 86.0019 17.1767C85.4794 17.1767 85.0398 17.2911 84.683 17.5198C84.3326 17.7486 84.1574 18.0408 84.1574 18.3967C84.1574 18.708 84.2721 18.9653 84.5014 19.1686C84.7372 19.3656 85.1258 19.5244 85.6674 19.6452L87.4927 20.0264C88.493 20.2361 89.2416 20.5792 89.7386 21.0557C90.2356 21.5323 90.484 22.1486 90.484 22.9047C90.484 23.5718 90.2897 24.1627 89.9011 24.6774C89.5124 25.192 88.974 25.5923 88.286 25.8782C87.6042 26.1642 86.8174 26.3071 85.9254 26.3071C84.6193 26.3071 83.568 26.0339 82.7716 25.4875C81.9816 24.9347 81.5069 24.1691 81.3477 23.1906L83.8038 22.9619C83.9121 23.4384 84.1478 23.8005 84.511 24.0483C84.8805 24.2898 85.352 24.4105 85.9254 24.4105C86.5243 24.4105 87.0053 24.2898 87.3685 24.0483C87.7317 23.8005 87.9132 23.4987 87.9132 23.143C87.9132 22.5457 87.4354 22.139 86.4797 21.923L84.6543 21.5418C83.6286 21.3194 82.8704 20.9604 82.3798 20.4648C81.8892 19.9628 81.6439 19.3243 81.6439 18.5491C81.6439 17.8883 81.8255 17.3165 82.1887 16.8336C82.5518 16.3507 83.0583 15.9759 83.7082 15.709C84.3581 15.4421 85.1099 15.3087 85.9636 15.3087C87.2188 15.3087 88.2031 15.5787 88.9167 16.1188C89.6366 16.6525 90.0827 17.3705 90.2546 18.2728ZM96.4953 26.3071C95.4313 26.3071 94.517 26.0752 93.7525 25.6114C92.9879 25.1412 92.4017 24.4931 91.994 23.6671C91.5863 22.8411 91.3824 21.8913 91.3824 20.8174C91.3824 19.731 91.5894 18.7747 92.0035 17.9487C92.4177 17.1227 93.007 16.4778 93.7716 16.014C94.5361 15.5438 95.4377 15.3087 96.4762 15.3087C97.349 15.3087 98.1199 15.4676 98.7889 15.7852C99.4579 16.1029 99.9899 16.5509 100.385 17.1291C100.786 17.7009 101.016 18.3712 101.073 19.1401H98.6647C98.601 18.7969 98.4767 18.4888 98.292 18.2156C98.1072 17.9423 97.8651 17.7263 97.5657 17.5675C97.2726 17.4087 96.9222 17.3292 96.5144 17.3292C95.9983 17.3292 95.546 17.469 95.1574 17.7486C94.7751 18.0218 94.4756 18.4157 94.259 18.9304C94.0424 19.4451 93.9341 20.0614 93.9341 20.7793C93.9341 21.5037 94.0392 22.1295 94.2494 22.6569C94.4597 23.1779 94.7592 23.5813 95.1478 23.8672C95.5364 24.1469 95.992 24.2866 96.5144 24.2866C97.0687 24.2866 97.537 24.1246 97.9193 23.8005C98.3079 23.4765 98.5564 23.0286 98.6647 22.4567H101.073C101.016 23.2128 100.793 23.88 100.404 24.4582C100.015 25.0364 99.4898 25.4907 98.8272 25.8211C98.1646 26.1451 97.3872 26.3071 96.4953 26.3071ZM104.944 19.8644V26.0975H102.43V11.8967H104.886V17.2625H105.02C105.268 16.6589 105.654 16.1824 106.176 15.8329C106.699 15.4834 107.371 15.3087 108.193 15.3087C108.932 15.3087 109.575 15.4644 110.123 15.7757C110.678 16.0871 111.108 16.5414 111.414 17.1386C111.719 17.7358 111.872 18.4634 111.872 19.3211V26.0975H109.349V19.7119C109.349 18.9875 109.165 18.4284 108.795 18.0345C108.425 17.6342 107.909 17.4341 107.247 17.4341C106.801 17.4341 106.403 17.5294 106.052 17.72C105.708 17.9106 105.437 18.187 105.24 18.5491C105.042 18.905 104.944 19.3434 104.944 19.8644ZM118.381 26.3071C117.336 26.3071 116.431 26.0784 115.666 25.6209C114.902 25.1634 114.309 24.5217 113.889 23.6957C113.475 22.8697 113.268 21.9103 113.268 20.8174C113.268 19.7182 113.475 18.7557 113.889 17.9297C114.309 17.0973 114.902 16.4524 115.666 15.9949C116.431 15.5375 117.336 15.3087 118.381 15.3087C119.425 15.3087 120.33 15.5375 121.095 15.9949C121.859 16.4524 122.452 17.0973 122.872 17.9297C123.293 18.7557 123.503 19.7182 123.503 20.8174C123.503 21.9103 123.293 22.8697 122.872 23.6957C122.452 24.5217 121.859 25.1634 121.095 25.6209C120.33 26.0784 119.425 26.3071 118.381 26.3071ZM118.381 24.2866C118.96 24.2866 119.438 24.1341 119.814 23.8291C120.19 23.5178 120.47 23.0984 120.655 22.5711C120.846 22.0437 120.942 21.4592 120.942 20.8174C120.942 20.163 120.846 19.5721 120.655 19.0447C120.47 18.5174 120.19 18.1012 119.814 17.7962C119.438 17.4849 118.96 17.3292 118.381 17.3292C117.813 17.3292 117.339 17.4849 116.957 17.7962C116.574 18.1012 116.288 18.5174 116.096 19.0447C115.912 19.5721 115.819 20.163 115.819 20.8174C115.819 21.4592 115.912 22.0437 116.096 22.5711C116.288 23.0984 116.574 23.5178 116.957 23.8291C117.339 24.1341 117.813 24.2866 118.381 24.2866ZM129.543 26.3071C128.498 26.3071 127.593 26.0784 126.829 25.6209C126.064 25.1634 125.472 24.5217 125.051 23.6957C124.637 22.8697 124.43 21.9103 124.43 20.8174C124.43 19.7182 124.637 18.7557 125.051 17.9297C125.472 17.0973 126.064 16.4524 126.829 15.9949C127.593 15.5375 128.498 15.3087 129.543 15.3087C130.588 15.3087 131.492 15.5375 132.257 15.9949C133.021 16.4524 133.614 17.0973 134.035 17.9297C134.455 18.7557 134.666 19.7182 134.666 20.8174C134.666 21.9103 134.455 22.8697 134.035 23.6957C133.614 24.5217 133.021 25.1634 132.257 25.6209C131.492 26.0784 130.588 26.3071 129.543 26.3071ZM129.543 24.2866C130.123 24.2866 130.601 24.1341 130.977 23.8291C131.352 23.5178 131.633 23.0984 131.818 22.5711C132.009 22.0437 132.104 21.4592 132.104 20.8174C132.104 20.163 132.009 19.5721 131.818 19.0447C131.633 18.5174 131.352 18.1012 130.977 17.7962C130.601 17.4849 130.123 17.3292 129.543 17.3292C128.976 17.3292 128.501 17.4849 128.119 17.7962C127.737 18.1012 127.45 18.5174 127.259 19.0447C127.074 19.5721 126.982 20.163 126.982 20.8174C126.982 21.4592 127.074 22.0437 127.259 22.5711C127.45 23.0984 127.737 23.5178 128.119 23.8291C128.501 24.1341 128.976 24.2866 129.543 24.2866ZM138.565 11.8967V26.0975H136.051V11.8967H138.565Z" fill="#E48B53"/>
-          <path d="M53.9021 26.5185C48.0522 26.5185 43.4961 22.1592 43.4961 15.9156C43.4961 9.95322 47.8272 5.48145 53.7334 5.48145C58.852 5.48145 62.5082 8.51888 63.8301 12.9063H58.7958C58.177 10.8532 56.3208 9.30636 53.6209 9.30636C50.3584 9.30636 47.8835 11.6969 47.8835 16.0281C47.8835 19.9093 50.0491 22.8904 54.099 22.8904C57.0802 22.8904 58.9645 21.1186 59.527 18.6155H53.6771V15.2125H64.0832C64.3363 21.7936 60.3426 26.5185 53.9021 26.5185ZM74.9635 26.0966H70.6886V9.75635H64.3323V5.90331H81.3477V9.75635H74.9635V26.0966Z" fill="#002A3A"/>
-          <path d="M7.24083 17.8085C7.7729 18.9925 8.37035 20.1469 9.0254 21.2674C8.83293 22.19 8.71281 23.0685 8.66364 23.8875C8.46723 27.1596 9.3937 28.6326 10.1887 29.0916C10.8887 29.4956 12.3202 29.5949 14.5194 28.3806C15.2061 29.0472 15.9041 29.655 16.606 30.1986C13.7161 32.0213 10.925 32.5523 8.87407 31.3684C5.67609 29.5222 5.18985 24.0333 7.24083 17.8085Z" fill="#E48B53"/>
-          <path d="M10.127 0.140114C11.9565 -0.286359 14.2189 0.296172 16.6062 1.80147C15.9036 2.3455 15.205 2.95266 14.5177 3.61999C12.7714 2.66143 11.4725 2.51824 10.7028 2.70552C10.013 2.87339 9.21138 3.45205 8.82708 5.28302C8.4279 7.18491 8.63879 9.94582 9.68001 13.1824C10.7092 16.3818 12.4277 19.6601 14.5637 22.4743C16.7123 25.3052 19.0615 27.3755 21.165 28.4792C23.3149 29.6073 24.6289 29.4584 25.2618 29.1171C25.8702 28.7889 26.6739 27.8317 26.8322 25.4993C26.9613 23.5983 26.6091 21.1976 25.7345 18.5673H16.4992C15.9728 17.7092 15.511 16.8294 15.0695 15.9343H27.5589L27.6285 16.089C29.0011 19.5522 29.6429 22.9174 29.4556 25.6773C29.2667 28.4591 28.246 30.4718 26.5501 31.4091L26.51 31.431C24.8035 32.3512 22.5178 32.1426 20.0026 30.8382L19.9432 30.8072C17.4442 29.4959 14.8595 27.1785 12.5776 24.2057L12.4692 24.0636C10.161 21.0226 8.30074 17.4807 7.17696 13.9875C6.05318 10.4942 5.72869 7.24475 6.25377 4.74307C6.77885 2.24139 8.12417 0.627249 10.0811 0.151057L10.127 0.140114Z" fill="#E48B53"/>
-          <path d="M12.8244 7.47298C17.452 1.5929 23.1176 -1.39147 26.6222 0.631674C28.6732 1.81567 29.6088 4.49799 29.475 7.91181C28.6533 7.57578 27.7778 7.27529 26.857 7.01396C26.8092 4.50251 26.0075 3.31254 25.3076 2.90847C24.5125 2.44951 22.7734 2.38375 20.0376 4.18986C18.9067 4.93642 17.7322 5.9315 16.5771 7.14615C16.9642 7.13354 17.3547 7.12709 17.7481 7.12709C27.5502 7.12709 35.4963 11.0996 35.4963 16C35.4963 18.368 33.6408 20.5192 30.6171 22.1104C30.4973 21.2308 30.3197 20.3225 30.0857 19.3945C32.2371 18.0973 32.8669 16.8081 32.8669 16C32.8669 15.0821 32.0543 13.5433 29.1221 12.0774C26.3471 10.6901 22.3295 9.7561 17.7481 9.7561C16.4809 9.7561 15.2567 9.82758 14.0901 9.96033C14.0277 9.96743 13.9655 9.97467 13.9034 9.98212C12.7631 10.119 11.679 10.3145 10.6649 10.559C11.3481 9.45998 12.0725 8.42829 12.8243 7.47301L12.8244 7.47298Z" fill="#E48B53"/>
-          <path d="M4.87916 9.8896C4.99898 10.7692 5.17653 11.6775 5.41056 12.6055C3.25914 13.9026 2.62935 15.1919 2.62935 16C2.62935 16.8081 3.25916 18.0973 5.41052 19.3944C5.1765 20.3224 4.99898 21.2308 4.87916 22.1103C1.85547 20.5192 0 18.368 0 16C0 13.632 1.85545 11.4807 4.87916 9.8896Z" fill="#E48B53"/>
+        <svg
+          class="logo"
+          viewBox="0 0 139 32"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          role="img"
+          aria-label="GT School"
+        >
+          <path
+            d="M90.2546 18.2728L87.9706 18.511C87.875 18.1615 87.6679 17.8534 87.3494 17.5866C87.0308 17.3134 86.5816 17.1767 86.0019 17.1767C85.4794 17.1767 85.0398 17.2911 84.683 17.5198C84.3326 17.7486 84.1574 18.0408 84.1574 18.3967C84.1574 18.708 84.2721 18.9653 84.5014 19.1686C84.7372 19.3656 85.1258 19.5244 85.6674 19.6452L87.4927 20.0264C88.493 20.2361 89.2416 20.5792 89.7386 21.0557C90.2356 21.5323 90.484 22.1486 90.484 22.9047C90.484 23.5718 90.2897 24.1627 89.9011 24.6774C89.5124 25.192 88.974 25.5923 88.286 25.8782C87.6042 26.1642 86.8174 26.3071 85.9254 26.3071C84.6193 26.3071 83.568 26.0339 82.7716 25.4875C81.9816 24.9347 81.5069 24.1691 81.3477 23.1906L83.8038 22.9619C83.9121 23.4384 84.1478 23.8005 84.511 24.0483C84.8805 24.2898 85.352 24.4105 85.9254 24.4105C86.5243 24.4105 87.0053 24.2898 87.3685 24.0483C87.7317 23.8005 87.9132 23.4987 87.9132 23.143C87.9132 22.5457 87.4354 22.139 86.4797 21.923L84.6543 21.5418C83.6286 21.3194 82.8704 20.9604 82.3798 20.4648C81.8892 19.9628 81.6439 19.3243 81.6439 18.5491C81.6439 17.8883 81.8255 17.3165 82.1887 16.8336C82.5518 16.3507 83.0583 15.9759 83.7082 15.709C84.3581 15.4421 85.1099 15.3087 85.9636 15.3087C87.2188 15.3087 88.2031 15.5787 88.9167 16.1188C89.6366 16.6525 90.0827 17.3705 90.2546 18.2728ZM96.4953 26.3071C95.4313 26.3071 94.517 26.0752 93.7525 25.6114C92.9879 25.1412 92.4017 24.4931 91.994 23.6671C91.5863 22.8411 91.3824 21.8913 91.3824 20.8174C91.3824 19.731 91.5894 18.7747 92.0035 17.9487C92.4177 17.1227 93.007 16.4778 93.7716 16.014C94.5361 15.5438 95.4377 15.3087 96.4762 15.3087C97.349 15.3087 98.1199 15.4676 98.7889 15.7852C99.4579 16.1029 99.9899 16.5509 100.385 17.1291C100.786 17.7009 101.016 18.3712 101.073 19.1401H98.6647C98.601 18.7969 98.4767 18.4888 98.292 18.2156C98.1072 17.9423 97.8651 17.7263 97.5657 17.5675C97.2726 17.4087 96.9222 17.3292 96.5144 17.3292C95.9983 17.3292 95.546 17.469 95.1574 17.7486C94.7751 18.0218 94.4756 18.4157 94.259 18.9304C94.0424 19.4451 93.9341 20.0614 93.9341 20.7793C93.9341 21.5037 94.0392 22.1295 94.2494 22.6569C94.4597 23.1779 94.7592 23.5813 95.1478 23.8672C95.5364 24.1469 95.992 24.2866 96.5144 24.2866C97.0687 24.2866 97.537 24.1246 97.9193 23.8005C98.3079 23.4765 98.5564 23.0286 98.6647 22.4567H101.073C101.016 23.2128 100.793 23.88 100.404 24.4582C100.015 25.0364 99.4898 25.4907 98.8272 25.8211C98.1646 26.1451 97.3872 26.3071 96.4953 26.3071ZM104.944 19.8644V26.0975H102.43V11.8967H104.886V17.2625H105.02C105.268 16.6589 105.654 16.1824 106.176 15.8329C106.699 15.4834 107.371 15.3087 108.193 15.3087C108.932 15.3087 109.575 15.4644 110.123 15.7757C110.678 16.0871 111.108 16.5414 111.414 17.1386C111.719 17.7358 111.872 18.4634 111.872 19.3211V26.0975H109.349V19.7119C109.349 18.9875 109.165 18.4284 108.795 18.0345C108.425 17.6342 107.909 17.4341 107.247 17.4341C106.801 17.4341 106.403 17.5294 106.052 17.72C105.708 17.9106 105.437 18.187 105.24 18.5491C105.042 18.905 104.944 19.3434 104.944 19.8644ZM118.381 26.3071C117.336 26.3071 116.431 26.0784 115.666 25.6209C114.902 25.1634 114.309 24.5217 113.889 23.6957C113.475 22.8697 113.268 21.9103 113.268 20.8174C113.268 19.7182 113.475 18.7557 113.889 17.9297C114.309 17.0973 114.902 16.4524 115.666 15.9949C116.431 15.5375 117.336 15.3087 118.381 15.3087C119.425 15.3087 120.33 15.5375 121.095 15.9949C121.859 16.4524 122.452 17.0973 122.872 17.9297C123.293 18.7557 123.503 19.7182 123.503 20.8174C123.503 21.9103 123.293 22.8697 122.872 23.6957C122.452 24.5217 121.859 25.1634 121.095 25.6209C120.33 26.0784 119.425 26.3071 118.381 26.3071ZM118.381 24.2866C118.96 24.2866 119.438 24.1341 119.814 23.8291C120.19 23.5178 120.47 23.0984 120.655 22.5711C120.846 22.0437 120.942 21.4592 120.942 20.8174C120.942 20.163 120.846 19.5721 120.655 19.0447C120.47 18.5174 120.19 18.1012 119.814 17.7962C119.438 17.4849 118.96 17.3292 118.381 17.3292C117.813 17.3292 117.339 17.4849 116.957 17.7962C116.574 18.1012 116.288 18.5174 116.096 19.0447C115.912 19.5721 115.819 20.163 115.819 20.8174C115.819 21.4592 115.912 22.0437 116.096 22.5711C116.288 23.0984 116.574 23.5178 116.957 23.8291C117.339 24.1341 117.813 24.2866 118.381 24.2866ZM129.543 26.3071C128.498 26.3071 127.593 26.0784 126.829 25.6209C126.064 25.1634 125.472 24.5217 125.051 23.6957C124.637 22.8697 124.43 21.9103 124.43 20.8174C124.43 19.7182 124.637 18.7557 125.051 17.9297C125.472 17.0973 126.064 16.4524 126.829 15.9949C127.593 15.5375 128.498 15.3087 129.543 15.3087C130.588 15.3087 131.492 15.5375 132.257 15.9949C133.021 16.4524 133.614 17.0973 134.035 17.9297C134.455 18.7557 134.666 19.7182 134.666 20.8174C134.666 21.9103 134.455 22.8697 134.035 23.6957C133.614 24.5217 133.021 25.1634 132.257 25.6209C131.492 26.0784 130.588 26.3071 129.543 26.3071ZM129.543 24.2866C130.123 24.2866 130.601 24.1341 130.977 23.8291C131.352 23.5178 131.633 23.0984 131.818 22.5711C132.009 22.0437 132.104 21.4592 132.104 20.8174C132.104 20.163 132.009 19.5721 131.818 19.0447C131.633 18.5174 131.352 18.1012 130.977 17.7962C130.601 17.4849 130.123 17.3292 129.543 17.3292C128.976 17.3292 128.501 17.4849 128.119 17.7962C127.737 18.1012 127.45 18.5174 127.259 19.0447C127.074 19.5721 126.982 20.163 126.982 20.8174C126.982 21.4592 127.074 22.0437 127.259 22.5711C127.45 23.0984 127.737 23.5178 128.119 23.8291C128.501 24.1341 128.976 24.2866 129.543 24.2866ZM138.565 11.8967V26.0975H136.051V11.8967H138.565Z"
+            fill="#E48B53"
+          />
+          <path
+            d="M53.9021 26.5185C48.0522 26.5185 43.4961 22.1592 43.4961 15.9156C43.4961 9.95322 47.8272 5.48145 53.7334 5.48145C58.852 5.48145 62.5082 8.51888 63.8301 12.9063H58.7958C58.177 10.8532 56.3208 9.30636 53.6209 9.30636C50.3584 9.30636 47.8835 11.6969 47.8835 16.0281C47.8835 19.9093 50.0491 22.8904 54.099 22.8904C57.0802 22.8904 58.9645 21.1186 59.527 18.6155H53.6771V15.2125H64.0832C64.3363 21.7936 60.3426 26.5185 53.9021 26.5185ZM74.9635 26.0966H70.6886V9.75635H64.3323V5.90331H81.3477V9.75635H74.9635V26.0966Z"
+            fill="#002A3A"
+          />
+          <path
+            d="M7.24083 17.8085C7.7729 18.9925 8.37035 20.1469 9.0254 21.2674C8.83293 22.19 8.71281 23.0685 8.66364 23.8875C8.46723 27.1596 9.3937 28.6326 10.1887 29.0916C10.8887 29.4956 12.3202 29.5949 14.5194 28.3806C15.2061 29.0472 15.9041 29.655 16.606 30.1986C13.7161 32.0213 10.925 32.5523 8.87407 31.3684C5.67609 29.5222 5.18985 24.0333 7.24083 17.8085Z"
+            fill="#E48B53"
+          />
+          <path
+            d="M10.127 0.140114C11.9565 -0.286359 14.2189 0.296172 16.6062 1.80147C15.9036 2.3455 15.205 2.95266 14.5177 3.61999C12.7714 2.66143 11.4725 2.51824 10.7028 2.70552C10.013 2.87339 9.21138 3.45205 8.82708 5.28302C8.4279 7.18491 8.63879 9.94582 9.68001 13.1824C10.7092 16.3818 12.4277 19.6601 14.5637 22.4743C16.7123 25.3052 19.0615 27.3755 21.165 28.4792C23.3149 29.6073 24.6289 29.4584 25.2618 29.1171C25.8702 28.7889 26.6739 27.8317 26.8322 25.4993C26.9613 23.5983 26.6091 21.1976 25.7345 18.5673H16.4992C15.9728 17.7092 15.511 16.8294 15.0695 15.9343H27.5589L27.6285 16.089C29.0011 19.5522 29.6429 22.9174 29.4556 25.6773C29.2667 28.4591 28.246 30.4718 26.5501 31.4091L26.51 31.431C24.8035 32.3512 22.5178 32.1426 20.0026 30.8382L19.9432 30.8072C17.4442 29.4959 14.8595 27.1785 12.5776 24.2057L12.4692 24.0636C10.161 21.0226 8.30074 17.4807 7.17696 13.9875C6.05318 10.4942 5.72869 7.24475 6.25377 4.74307C6.77885 2.24139 8.12417 0.627249 10.0811 0.151057L10.127 0.140114Z"
+            fill="#E48B53"
+          />
+          <path
+            d="M12.8244 7.47298C17.452 1.5929 23.1176 -1.39147 26.6222 0.631674C28.6732 1.81567 29.6088 4.49799 29.475 7.91181C28.6533 7.57578 27.7778 7.27529 26.857 7.01396C26.8092 4.50251 26.0075 3.31254 25.3076 2.90847C24.5125 2.44951 22.7734 2.38375 20.0376 4.18986C18.9067 4.93642 17.7322 5.9315 16.5771 7.14615C16.9642 7.13354 17.3547 7.12709 17.7481 7.12709C27.5502 7.12709 35.4963 11.0996 35.4963 16C35.4963 18.368 33.6408 20.5192 30.6171 22.1104C30.4973 21.2308 30.3197 20.3225 30.0857 19.3945C32.2371 18.0973 32.8669 16.8081 32.8669 16C32.8669 15.0821 32.0543 13.5433 29.1221 12.0774C26.3471 10.6901 22.3295 9.7561 17.7481 9.7561C16.4809 9.7561 15.2567 9.82758 14.0901 9.96033C14.0277 9.96743 13.9655 9.97467 13.9034 9.98212C12.7631 10.119 11.679 10.3145 10.6649 10.559C11.3481 9.45998 12.0725 8.42829 12.8243 7.47301L12.8244 7.47298Z"
+            fill="#E48B53"
+          />
+          <path
+            d="M4.87916 9.8896C4.99898 10.7692 5.17653 11.6775 5.41056 12.6055C3.25914 13.9026 2.62935 15.1919 2.62935 16C2.62935 16.8081 3.25916 18.0973 5.41052 19.3944C5.1765 20.3224 4.99898 21.2308 4.87916 22.1103C1.85547 20.5192 0 18.368 0 16C0 13.632 1.85545 11.4807 4.87916 9.8896Z"
+            fill="#E48B53"
+          />
         </svg>
       </a>
       <span class="cycle">Fall 2027 · Grades 3–8</span>
@@ -1103,7 +1133,9 @@
           <li>
             <button class="step done" disabled>
               <span class="dot" aria-hidden="true">✓</span>
-              <span class="lbl"><span class="nm">Account created</span><span class="st">Done</span></span>
+              <span class="lbl"
+                ><span class="nm">Account created</span><span class="st">Done</span></span
+              >
             </button>
           </li>
           <!-- section steps injected here -->
@@ -1137,7 +1169,12 @@
               <div class="grid">
                 <div class="field col-2">
                   <label>Student’s legal name <span class="req">*</span></label>
-                  <input class="control" data-req data-key="stu_name" placeholder="First and last name" />
+                  <input
+                    class="control"
+                    data-req
+                    data-key="stu_name"
+                    placeholder="First and last name"
+                  />
                   <span class="err">Please enter your child’s name.</span>
                 </div>
                 <div class="field">
@@ -1219,16 +1256,28 @@
                   <div class="select-wrap">
                     <select class="control" data-req data-key="edu_school" id="schoolSelect">
                       <option value="" selected disabled>Search the school directory…</option>
-                      <option data-type="Public elementary" data-addr="418 Larkspur Ave, Cedar Falls, IA 50613">
+                      <option
+                        data-type="Public elementary"
+                        data-addr="418 Larkspur Ave, Cedar Falls, IA 50613"
+                      >
                         Cedar Falls Community Elementary
                       </option>
-                      <option data-type="Public middle" data-addr="2100 Rownd St, Cedar Falls, IA 50613">
+                      <option
+                        data-type="Public middle"
+                        data-addr="2100 Rownd St, Cedar Falls, IA 50613"
+                      >
                         Holmes Junior High
                       </option>
-                      <option data-type="Private / independent" data-addr="55 Grove St, Waterloo, IA 50701">
+                      <option
+                        data-type="Private / independent"
+                        data-addr="55 Grove St, Waterloo, IA 50701"
+                      >
                         Waterloo Montessori Academy
                       </option>
-                      <option data-type="Charter" data-addr="900 Ansborough Ave, Waterloo, IA 50701">
+                      <option
+                        data-type="Charter"
+                        data-addr="900 Ansborough Ave, Waterloo, IA 50701"
+                      >
                         Riverbend Charter School
                       </option>
                       <option value="other" data-type="" data-addr="">Other / not listed</option>
@@ -1240,11 +1289,17 @@
               <div class="autofill" id="schoolAutofill">
                 <span class="pin" aria-hidden="true">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 21s7-5.4 7-11a7 7 0 10-14 0c0 5.6 7 11 7 11z" stroke="currentColor" stroke-width="2" />
+                    <path
+                      d="M12 21s7-5.4 7-11a7 7 0 10-14 0c0 5.6 7 11 7 11z"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    />
                     <circle cx="12" cy="10" r="2.5" stroke="currentColor" stroke-width="2" />
                   </svg>
                 </span>
-                <div id="schoolAutofillText">Select a school and its type and address appear here automatically.</div>
+                <div id="schoolAutofillText">
+                  Select a school and its type and address appear here automatically.
+                </div>
               </div>
               <div class="reveal" id="otherSchool">
                 <div>
@@ -1252,7 +1307,11 @@
                     <div class="grid">
                       <div class="field col-2">
                         <label>School name <span class="req">*</span></label>
-                        <input class="control" data-key="edu_other_name" placeholder="Enter the school’s name" />
+                        <input
+                          class="control"
+                          data-key="edu_other_name"
+                          placeholder="Enter the school’s name"
+                        />
                       </div>
                       <div class="field">
                         <label>School type <span class="req">*</span></label>
@@ -1268,7 +1327,11 @@
                       </div>
                       <div class="field">
                         <label>City &amp; state <span class="opt">optional</span></label>
-                        <input class="control" data-key="edu_other_city" placeholder="City, State" />
+                        <input
+                          class="control"
+                          data-key="edu_other_city"
+                          placeholder="City, State"
+                        />
                       </div>
                     </div>
                   </div>
@@ -1283,12 +1346,21 @@
             <h1 class="page-title">Support &amp; disclosures</h1>
             <p class="intro">
               Any accommodations, learning plans, or disclosures.
-              <span class="why">Private · hidden from eligibility reviewers · never affects routing</span>
+              <span class="why"
+                >Private · hidden from eligibility reviewers · never affects routing</span
+              >
             </p>
             <div class="card">
               <p class="card-title">Accommodations &amp; learning plans</p>
-              <p class="card-note">Does your child have any accommodations, learning plans, or other support in place?</p>
-              <div class="segmented" role="group" aria-label="Has support plans" data-toggle="support">
+              <p class="card-note">
+                Does your child have any accommodations, learning plans, or other support in place?
+              </p>
+              <div
+                class="segmented"
+                role="group"
+                aria-label="Has support plans"
+                data-toggle="support"
+              >
                 <button type="button" aria-pressed="false" data-val="yes">Yes</button>
                 <button type="button" aria-pressed="true" data-val="no">No</button>
               </div>
@@ -1296,20 +1368,44 @@
                 <div>
                   <div class="reveal-inner">
                     <div class="field" style="margin-bottom: 16px">
-                      <label>Which supports apply? <span class="opt">select all that apply</span></label>
+                      <label
+                        >Which supports apply? <span class="opt">select all that apply</span></label
+                      >
                       <div class="chips" data-chips>
-                        <button type="button" class="chip" aria-pressed="false"><span class="tick">✓</span>IEP</button>
-                        <button type="button" class="chip" aria-pressed="false"><span class="tick">✓</span>504 Plan</button>
-                        <button type="button" class="chip" aria-pressed="false"><span class="tick">✓</span>Speech / language</button>
-                        <button type="button" class="chip" aria-pressed="false"><span class="tick">✓</span>Occupational therapy</button>
-                        <button type="button" class="chip" aria-pressed="false"><span class="tick">✓</span>Behavioral support</button>
-                        <button type="button" class="chip" aria-pressed="false"><span class="tick">✓</span>Gifted service plan</button>
-                        <button type="button" class="chip" aria-pressed="false"><span class="tick">✓</span>Other</button>
+                        <button type="button" class="chip" aria-pressed="false">
+                          <span class="tick">✓</span>IEP
+                        </button>
+                        <button type="button" class="chip" aria-pressed="false">
+                          <span class="tick">✓</span>504 Plan
+                        </button>
+                        <button type="button" class="chip" aria-pressed="false">
+                          <span class="tick">✓</span>Speech / language
+                        </button>
+                        <button type="button" class="chip" aria-pressed="false">
+                          <span class="tick">✓</span>Occupational therapy
+                        </button>
+                        <button type="button" class="chip" aria-pressed="false">
+                          <span class="tick">✓</span>Behavioral support
+                        </button>
+                        <button type="button" class="chip" aria-pressed="false">
+                          <span class="tick">✓</span>Gifted service plan
+                        </button>
+                        <button type="button" class="chip" aria-pressed="false">
+                          <span class="tick">✓</span>Other
+                        </button>
                       </div>
                     </div>
                     <div class="field">
-                      <label>Details about accommodations or challenges <span class="opt">optional</span></label>
-                      <textarea class="control" maxlength="600" data-key="sup_detail" placeholder="Anything that helps us support your child well. Up to 600 characters."></textarea>
+                      <label
+                        >Details about accommodations or challenges
+                        <span class="opt">optional</span></label
+                      >
+                      <textarea
+                        class="control"
+                        maxlength="600"
+                        data-key="sup_detail"
+                        placeholder="Anything that helps us support your child well. Up to 600 characters."
+                      ></textarea>
                     </div>
                   </div>
                 </div>
@@ -1318,10 +1414,16 @@
             <div class="card">
               <p class="card-title">Disclosures</p>
               <p class="card-note">
-                Has the student ever been dismissed, suspended, placed on probation, or received another serious
-                disciplinary sanction — or withdrawn voluntarily for a non-health reason?
+                Has the student ever been dismissed, suspended, placed on probation, or received
+                another serious disciplinary sanction — or withdrawn voluntarily for a non-health
+                reason?
               </p>
-              <div class="segmented" role="group" aria-label="Has disclosures" data-toggle="disclose">
+              <div
+                class="segmented"
+                role="group"
+                aria-label="Has disclosures"
+                data-toggle="disclose"
+              >
                 <button type="button" aria-pressed="false" data-val="yes">Yes</button>
                 <button type="button" aria-pressed="true" data-val="no">No</button>
               </div>
@@ -1330,7 +1432,13 @@
                   <div class="reveal-inner">
                     <div class="field">
                       <label>Please explain <span class="req">*</span></label>
-                      <textarea class="control" maxlength="800" data-key="dis_detail" data-req-if="disclose" placeholder="A brief explanation. This is required when you answer yes, and stays private."></textarea>
+                      <textarea
+                        class="control"
+                        maxlength="800"
+                        data-key="dis_detail"
+                        data-req-if="disclose"
+                        placeholder="A brief explanation. This is required when you answer yes, and stays private."
+                      ></textarea>
                       <span class="err">A brief explanation is required when you answer yes.</span>
                     </div>
                   </div>
@@ -1366,14 +1474,26 @@
                 </div>
                 <div class="field">
                   <label>Primary household address <span class="req">*</span></label>
-                  <input class="control" data-req data-key="fam_addr" placeholder="Street, city, state, ZIP" />
+                  <input
+                    class="control"
+                    data-req
+                    data-key="fam_addr"
+                    placeholder="Street, city, state, ZIP"
+                  />
                   <span class="hint">Address is private and excluded from eligibility.</span>
                   <span class="err">Please add your address.</span>
                 </div>
               </div>
               <div style="margin-top: 20px">
-                <p class="card-note" style="margin-bottom: 10px">Have any relatives attended GT School?</p>
-                <div class="segmented" role="group" aria-label="Relatives at GT" data-toggle="relatives">
+                <p class="card-note" style="margin-bottom: 10px">
+                  Have any relatives attended GT School?
+                </p>
+                <div
+                  class="segmented"
+                  role="group"
+                  aria-label="Relatives at GT"
+                  data-toggle="relatives"
+                >
                   <button type="button" aria-pressed="false" data-val="yes">Yes</button>
                   <button type="button" aria-pressed="true" data-val="no">No</button>
                 </div>
@@ -1383,9 +1503,13 @@
                       <div class="field">
                         <label>Relative’s name <span class="req">*</span></label>
                         <div class="repeater" id="relRepeater">
-                          <div class="rel-row"><input class="control" placeholder="Full name" /></div>
+                          <div class="rel-row">
+                            <input class="control" placeholder="Full name" />
+                          </div>
                         </div>
-                        <button type="button" class="add-btn" id="addRelative"><span aria-hidden="true">+</span> Add another relative</button>
+                        <button type="button" class="add-btn" id="addRelative">
+                          <span aria-hidden="true">+</span> Add another relative
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -1401,12 +1525,25 @@
                   <div class="select-wrap">
                     <select class="control lang-select" data-req data-key="lang_home">
                       <option value="" selected disabled>Select…</option>
-                      <option>English</option><option>Spanish</option><option>Chinese</option>
-                      <option>Arabic</option><option>Vietnamese</option><option>Tagalog</option>
+                      <option>English</option>
+                      <option>Spanish</option>
+                      <option>Chinese</option>
+                      <option>Arabic</option>
+                      <option>Vietnamese</option>
+                      <option>Tagalog</option>
                       <option value="other">Other</option>
                     </select>
                   </div>
-                  <div class="reveal inline lang-other"><div><div class="reveal-inner"><input class="control lang-other-input" placeholder="If other, please specify" /></div></div></div>
+                  <div class="reveal inline lang-other">
+                    <div>
+                      <div class="reveal-inner">
+                        <input
+                          class="control lang-other-input"
+                          placeholder="If other, please specify"
+                        />
+                      </div>
+                    </div>
+                  </div>
                   <span class="err">Please choose a language.</span>
                 </div>
                 <div class="field">
@@ -1414,12 +1551,25 @@
                   <div class="select-wrap">
                     <select class="control lang-select" data-req data-key="lang_first">
                       <option value="" selected disabled>Select…</option>
-                      <option>English</option><option>Spanish</option><option>Chinese</option>
-                      <option>Arabic</option><option>Vietnamese</option><option>Tagalog</option>
+                      <option>English</option>
+                      <option>Spanish</option>
+                      <option>Chinese</option>
+                      <option>Arabic</option>
+                      <option>Vietnamese</option>
+                      <option>Tagalog</option>
                       <option value="other">Other</option>
                     </select>
                   </div>
-                  <div class="reveal inline lang-other"><div><div class="reveal-inner"><input class="control lang-other-input" placeholder="If other, please specify" /></div></div></div>
+                  <div class="reveal inline lang-other">
+                    <div>
+                      <div class="reveal-inner">
+                        <input
+                          class="control lang-other-input"
+                          placeholder="If other, please specify"
+                        />
+                      </div>
+                    </div>
+                  </div>
                   <span class="err">Please choose a language.</span>
                 </div>
                 <div class="field">
@@ -1427,12 +1577,25 @@
                   <div class="select-wrap">
                     <select class="control lang-select" data-req data-key="lang_use">
                       <option value="" selected disabled>Select…</option>
-                      <option>English</option><option>Spanish</option><option>Chinese</option>
-                      <option>Arabic</option><option>Vietnamese</option><option>Tagalog</option>
+                      <option>English</option>
+                      <option>Spanish</option>
+                      <option>Chinese</option>
+                      <option>Arabic</option>
+                      <option>Vietnamese</option>
+                      <option>Tagalog</option>
                       <option value="other">Other</option>
                     </select>
                   </div>
-                  <div class="reveal inline lang-other"><div><div class="reveal-inner"><input class="control lang-other-input" placeholder="If other, please specify" /></div></div></div>
+                  <div class="reveal inline lang-other">
+                    <div>
+                      <div class="reveal-inner">
+                        <input
+                          class="control lang-other-input"
+                          placeholder="If other, please specify"
+                        />
+                      </div>
+                    </div>
+                  </div>
                   <span class="err">Please choose a language.</span>
                 </div>
                 <div class="field">
@@ -1449,7 +1612,9 @@
             <h1 class="page-title">Financial intake</h1>
             <p class="intro">
               Optional financial-aid information.
-              <span class="why">Income can never affect eligibility · no documents requested now</span>
+              <span class="why"
+                >Income can never affect eligibility · no documents requested now</span
+              >
             </p>
             <div class="card">
               <div class="grid">
@@ -1469,18 +1634,37 @@
                 </div>
                 <div class="field">
                   <label>People in household <span class="req">*</span></label>
-                  <input class="control" type="number" min="1" max="20" data-req data-key="fin_size" placeholder="e.g. 4" />
+                  <input
+                    class="control"
+                    type="number"
+                    min="1"
+                    max="20"
+                    data-req
+                    data-key="fin_size"
+                    placeholder="e.g. 4"
+                  />
                   <span class="err">Please enter a number.</span>
                 </div>
               </div>
               <div class="autofill" style="margin-top: 20px">
                 <span class="pin" aria-hidden="true">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                    <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" />
+                    <rect
+                      x="3"
+                      y="5"
+                      width="18"
+                      height="14"
+                      rx="2"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    />
                     <path d="M3 9h18" stroke="currentColor" stroke-width="2" />
                   </svg>
                 </span>
-                <div><b>No documents needed today.</b> If your child is admitted, we’ll request proof of income separately through financial aid — never as part of this application.</div>
+                <div>
+                  <b>No documents needed today.</b> If your child is admitted, we’ll request proof
+                  of income separately through financial aid — never as part of this application.
+                </div>
               </div>
             </div>
           </section>
@@ -1496,48 +1680,80 @@
             <details class="review-group" open>
               <summary>Your child <span class="edit" data-goto="0">Edit</span></summary>
               <div class="review-body">
-                <div class="kv"><span class="k">Legal name</span><span class="v" data-echo="stu_name">—</span></div>
-                <div class="kv"><span class="k">Date of birth</span><span class="v" data-echo="stu_dob">—</span></div>
-                <div class="kv"><span class="k">Current grade</span><span class="v" data-echo="stu_grade">—</span></div>
-                <div class="kv"><span class="k">Requested entry</span><span class="v" data-echo="stu_egrade">—</span></div>
+                <div class="kv">
+                  <span class="k">Legal name</span><span class="v" data-echo="stu_name">—</span>
+                </div>
+                <div class="kv">
+                  <span class="k">Date of birth</span><span class="v" data-echo="stu_dob">—</span>
+                </div>
+                <div class="kv">
+                  <span class="k">Current grade</span><span class="v" data-echo="stu_grade">—</span>
+                </div>
+                <div class="kv">
+                  <span class="k">Requested entry</span
+                  ><span class="v" data-echo="stu_egrade">—</span>
+                </div>
               </div>
             </details>
             <details class="review-group">
               <summary>Education <span class="edit" data-goto="1">Edit</span></summary>
               <div class="review-body">
-                <div class="kv"><span class="k">Current school</span><span class="v" data-echo="edu_school">—</span></div>
+                <div class="kv">
+                  <span class="k">Current school</span
+                  ><span class="v" data-echo="edu_school">—</span>
+                </div>
               </div>
             </details>
             <details class="review-group">
-              <summary>Support &amp; disclosures <span class="edit" data-goto="2">Edit</span></summary>
+              <summary>
+                Support &amp; disclosures <span class="edit" data-goto="2">Edit</span>
+              </summary>
               <div class="review-body">
-                <div class="kv"><span class="k">Support plans</span><span class="v" data-echo-support>None reported</span></div>
-                <div class="kv"><span class="k">Disclosures</span><span class="v" data-echo-disclose>None reported</span></div>
+                <div class="kv">
+                  <span class="k">Support plans</span
+                  ><span class="v" data-echo-support>None reported</span>
+                </div>
+                <div class="kv">
+                  <span class="k">Disclosures</span
+                  ><span class="v" data-echo-disclose>None reported</span>
+                </div>
               </div>
             </details>
             <details class="review-group">
               <summary>Family &amp; language <span class="edit" data-goto="3">Edit</span></summary>
               <div class="review-body">
-                <div class="kv"><span class="k">Relationship</span><span class="v" data-echo="fam_rel">—</span></div>
-                <div class="kv"><span class="k">Home language</span><span class="v" data-echo="lang_home">—</span></div>
+                <div class="kv">
+                  <span class="k">Relationship</span><span class="v" data-echo="fam_rel">—</span>
+                </div>
+                <div class="kv">
+                  <span class="k">Home language</span><span class="v" data-echo="lang_home">—</span>
+                </div>
               </div>
             </details>
             <details class="review-group">
               <summary>Financial intake <span class="edit" data-goto="4">Edit</span></summary>
               <div class="review-body">
-                <div class="kv"><span class="k">Income band</span><span class="v" data-echo="fin_income">—</span></div>
-                <div class="kv"><span class="k">Household size</span><span class="v" data-echo="fin_size">—</span></div>
+                <div class="kv">
+                  <span class="k">Income band</span><span class="v" data-echo="fin_income">—</span>
+                </div>
+                <div class="kv">
+                  <span class="k">Household size</span><span class="v" data-echo="fin_size">—</span>
+                </div>
               </div>
             </details>
             <div class="ack">
               <p class="legal">
-                “I/We hereby state that the information contained herein is true and complete. I/We acknowledge that
-                supplemental information may be required by the school and understand that our application will not be
-                reviewed until supplement(s), if required, have been submitted.”
+                “I/We hereby state that the information contained herein is true and complete. I/We
+                acknowledge that supplemental information may be required by the school and
+                understand that our application will not be reviewed until supplement(s), if
+                required, have been submitted.”
               </p>
               <label class="check">
                 <input type="checkbox" id="ackBox" />
-                <span>I have read and accept the statement above, and confirm the information is true and complete.</span>
+                <span
+                  >I have read and accept the statement above, and confirm the information is true
+                  and complete.</span
+                >
               </label>
               <div class="grid" style="margin-top: 18px">
                 <div class="field">
@@ -1553,12 +1769,21 @@
                       <option>Other</option>
                     </select>
                   </div>
-                  <span class="hint">Referral source is operations-only and hidden from reviewers.</span>
+                  <span class="hint"
+                    >Referral source is operations-only and hidden from reviewers.</span
+                  >
                 </div>
                 <div class="field">
                   <label>Signature <span class="req">*</span></label>
-                  <input class="control" id="sigInput" data-key="sig" placeholder="Type your full legal name" />
-                  <span class="hint">Bound to your account, this signed snapshot, and the statement version.</span>
+                  <input
+                    class="control"
+                    id="sigInput"
+                    data-key="sig"
+                    placeholder="Type your full legal name"
+                  />
+                  <span class="hint"
+                    >Bound to your account, this signed snapshot, and the statement version.</span
+                  >
                   <span class="err">Please sign, and check the box above, to submit.</span>
                 </div>
               </div>
@@ -1571,17 +1796,26 @@
               <div class="dash-head">
                 <div class="seal" aria-hidden="true">
                   <svg width="30" height="27" viewBox="0 0 36 32" fill="currentColor">
-                    <path d="M7.24083 17.8085C7.7729 18.9925 8.37035 20.1469 9.0254 21.2674C8.83293 22.19 8.71281 23.0685 8.66364 23.8875C8.46723 27.1596 9.3937 28.6326 10.1887 29.0916C10.8887 29.4956 12.3202 29.5949 14.5194 28.3806C15.2061 29.0472 15.9041 29.655 16.606 30.1986C13.7161 32.0213 10.925 32.5523 8.87407 31.3684C5.67609 29.5222 5.18985 24.0333 7.24083 17.8085Z" />
-                    <path d="M10.127 0.140114C11.9565 -0.286359 14.2189 0.296172 16.6062 1.80147C15.9036 2.3455 15.205 2.95266 14.5177 3.61999C12.7714 2.66143 11.4725 2.51824 10.7028 2.70552C10.013 2.87339 9.21138 3.45205 8.82708 5.28302C8.4279 7.18491 8.63879 9.94582 9.68001 13.1824C10.7092 16.3818 12.4277 19.6601 14.5637 22.4743C16.7123 25.3052 19.0615 27.3755 21.165 28.4792C23.3149 29.6073 24.6289 29.4584 25.2618 29.1171C25.8702 28.7889 26.6739 27.8317 26.8322 25.4993C26.9613 23.5983 26.6091 21.1976 25.7345 18.5673H16.4992C15.9728 17.7092 15.511 16.8294 15.0695 15.9343H27.5589L27.6285 16.089C29.0011 19.5522 29.6429 22.9174 29.4556 25.6773C29.2667 28.4591 28.246 30.4718 26.5501 31.4091L26.51 31.431C24.8035 32.3512 22.5178 32.1426 20.0026 30.8382L19.9432 30.8072C17.4442 29.4959 14.8595 27.1785 12.5776 24.2057L12.4692 24.0636C10.161 21.0226 8.30074 17.4807 7.17696 13.9875C6.05318 10.4942 5.72869 7.24475 6.25377 4.74307C6.77885 2.24139 8.12417 0.627249 10.0811 0.151057L10.127 0.140114Z" />
-                    <path d="M12.8244 7.47298C17.452 1.5929 23.1176 -1.39147 26.6222 0.631674C28.6732 1.81567 29.6088 4.49799 29.475 7.91181C28.6533 7.57578 27.7778 7.27529 26.857 7.01396C26.8092 4.50251 26.0075 3.31254 25.3076 2.90847C24.5125 2.44951 22.7734 2.38375 20.0376 4.18986C18.9067 4.93642 17.7322 5.9315 16.5771 7.14615C16.9642 7.13354 17.3547 7.12709 17.7481 7.12709C27.5502 7.12709 35.4963 11.0996 35.4963 16C35.4963 18.368 33.6408 20.5192 30.6171 22.1104C30.4973 21.2308 30.3197 20.3225 30.0857 19.3945C32.2371 18.0973 32.8669 16.8081 32.8669 16C32.8669 15.0821 32.0543 13.5433 29.1221 12.0774C26.3471 10.6901 22.3295 9.7561 17.7481 9.7561C16.4809 9.7561 15.2567 9.82758 14.0901 9.96033C14.0277 9.96743 13.9655 9.97467 13.9034 9.98212C12.7631 10.119 11.679 10.3145 10.6649 10.559C11.3481 9.45998 12.0725 8.42829 12.8243 7.47301L12.8244 7.47298Z" />
-                    <path d="M4.87916 9.8896C4.99898 10.7692 5.17653 11.6775 5.41056 12.6055C3.25914 13.9026 2.62935 15.1919 2.62935 16C2.62935 16.8081 3.25916 18.0973 5.41052 19.3944C5.1765 20.3224 4.99898 21.2308 4.87916 22.1103C1.85547 20.5192 0 18.368 0 16C0 13.632 1.85545 11.4807 4.87916 9.8896Z" />
+                    <path
+                      d="M7.24083 17.8085C7.7729 18.9925 8.37035 20.1469 9.0254 21.2674C8.83293 22.19 8.71281 23.0685 8.66364 23.8875C8.46723 27.1596 9.3937 28.6326 10.1887 29.0916C10.8887 29.4956 12.3202 29.5949 14.5194 28.3806C15.2061 29.0472 15.9041 29.655 16.606 30.1986C13.7161 32.0213 10.925 32.5523 8.87407 31.3684C5.67609 29.5222 5.18985 24.0333 7.24083 17.8085Z"
+                    />
+                    <path
+                      d="M10.127 0.140114C11.9565 -0.286359 14.2189 0.296172 16.6062 1.80147C15.9036 2.3455 15.205 2.95266 14.5177 3.61999C12.7714 2.66143 11.4725 2.51824 10.7028 2.70552C10.013 2.87339 9.21138 3.45205 8.82708 5.28302C8.4279 7.18491 8.63879 9.94582 9.68001 13.1824C10.7092 16.3818 12.4277 19.6601 14.5637 22.4743C16.7123 25.3052 19.0615 27.3755 21.165 28.4792C23.3149 29.6073 24.6289 29.4584 25.2618 29.1171C25.8702 28.7889 26.6739 27.8317 26.8322 25.4993C26.9613 23.5983 26.6091 21.1976 25.7345 18.5673H16.4992C15.9728 17.7092 15.511 16.8294 15.0695 15.9343H27.5589L27.6285 16.089C29.0011 19.5522 29.6429 22.9174 29.4556 25.6773C29.2667 28.4591 28.246 30.4718 26.5501 31.4091L26.51 31.431C24.8035 32.3512 22.5178 32.1426 20.0026 30.8382L19.9432 30.8072C17.4442 29.4959 14.8595 27.1785 12.5776 24.2057L12.4692 24.0636C10.161 21.0226 8.30074 17.4807 7.17696 13.9875C6.05318 10.4942 5.72869 7.24475 6.25377 4.74307C6.77885 2.24139 8.12417 0.627249 10.0811 0.151057L10.127 0.140114Z"
+                    />
+                    <path
+                      d="M12.8244 7.47298C17.452 1.5929 23.1176 -1.39147 26.6222 0.631674C28.6732 1.81567 29.6088 4.49799 29.475 7.91181C28.6533 7.57578 27.7778 7.27529 26.857 7.01396C26.8092 4.50251 26.0075 3.31254 25.3076 2.90847C24.5125 2.44951 22.7734 2.38375 20.0376 4.18986C18.9067 4.93642 17.7322 5.9315 16.5771 7.14615C16.9642 7.13354 17.3547 7.12709 17.7481 7.12709C27.5502 7.12709 35.4963 11.0996 35.4963 16C35.4963 18.368 33.6408 20.5192 30.6171 22.1104C30.4973 21.2308 30.3197 20.3225 30.0857 19.3945C32.2371 18.0973 32.8669 16.8081 32.8669 16C32.8669 15.0821 32.0543 13.5433 29.1221 12.0774C26.3471 10.6901 22.3295 9.7561 17.7481 9.7561C16.4809 9.7561 15.2567 9.82758 14.0901 9.96033C14.0277 9.96743 13.9655 9.97467 13.9034 9.98212C12.7631 10.119 11.679 10.3145 10.6649 10.559C11.3481 9.45998 12.0725 8.42829 12.8243 7.47301L12.8244 7.47298Z"
+                    />
+                    <path
+                      d="M4.87916 9.8896C4.99898 10.7692 5.17653 11.6775 5.41056 12.6055C3.25914 13.9026 2.62935 15.1919 2.62935 16C2.62935 16.8081 3.25916 18.0973 5.41052 19.3944C5.1765 20.3224 4.99898 21.2308 4.87916 22.1103C1.85547 20.5192 0 18.368 0 16C0 13.632 1.85545 11.4807 4.87916 9.8896Z"
+                    />
                   </svg>
                 </div>
                 <div>
                   <div class="eyebrow">Your status</div>
                   <h1>Application received</h1>
                   <p class="dash-sub">
-                    This is not an eligibility or admission decision. Next steps and deadlines are on your status page.
+                    This is not an eligibility or admission decision. Next steps and deadlines are
+                    on your status page.
                   </p>
                 </div>
               </div>
@@ -1627,10 +1861,18 @@
         <div id="markMount">
           <div class="stage-fallback" id="markFallback">
             <svg viewBox="0 0 36 32" fill="currentColor">
-              <path d="M7.24083 17.8085C7.7729 18.9925 8.37035 20.1469 9.0254 21.2674C8.83293 22.19 8.71281 23.0685 8.66364 23.8875C8.46723 27.1596 9.3937 28.6326 10.1887 29.0916C10.8887 29.4956 12.3202 29.5949 14.5194 28.3806C15.2061 29.0472 15.9041 29.655 16.606 30.1986C13.7161 32.0213 10.925 32.5523 8.87407 31.3684C5.67609 29.5222 5.18985 24.0333 7.24083 17.8085Z" />
-              <path d="M10.127 0.140114C11.9565 -0.286359 14.2189 0.296172 16.6062 1.80147C15.9036 2.3455 15.205 2.95266 14.5177 3.61999C12.7714 2.66143 11.4725 2.51824 10.7028 2.70552C10.013 2.87339 9.21138 3.45205 8.82708 5.28302C8.4279 7.18491 8.63879 9.94582 9.68001 13.1824C10.7092 16.3818 12.4277 19.6601 14.5637 22.4743C16.7123 25.3052 19.0615 27.3755 21.165 28.4792C23.3149 29.6073 24.6289 29.4584 25.2618 29.1171C25.8702 28.7889 26.6739 27.8317 26.8322 25.4993C26.9613 23.5983 26.6091 21.1976 25.7345 18.5673H16.4992C15.9728 17.7092 15.511 16.8294 15.0695 15.9343H27.5589L27.6285 16.089C29.0011 19.5522 29.6429 22.9174 29.4556 25.6773C29.2667 28.4591 28.246 30.4718 26.5501 31.4091L26.51 31.431C24.8035 32.3512 22.5178 32.1426 20.0026 30.8382L19.9432 30.8072C17.4442 29.4959 14.8595 27.1785 12.5776 24.2057L12.4692 24.0636C10.161 21.0226 8.30074 17.4807 7.17696 13.9875C6.05318 10.4942 5.72869 7.24475 6.25377 4.74307C6.77885 2.24139 8.12417 0.627249 10.0811 0.151057L10.127 0.140114Z" />
-              <path d="M12.8244 7.47298C17.452 1.5929 23.1176 -1.39147 26.6222 0.631674C28.6732 1.81567 29.6088 4.49799 29.475 7.91181C28.6533 7.57578 27.7778 7.27529 26.857 7.01396C26.8092 4.50251 26.0075 3.31254 25.3076 2.90847C24.5125 2.44951 22.7734 2.38375 20.0376 4.18986C18.9067 4.93642 17.7322 5.9315 16.5771 7.14615C16.9642 7.13354 17.3547 7.12709 17.7481 7.12709C27.5502 7.12709 35.4963 11.0996 35.4963 16C35.4963 18.368 33.6408 20.5192 30.6171 22.1104C30.4973 21.2308 30.3197 20.3225 30.0857 19.3945C32.2371 18.0973 32.8669 16.8081 32.8669 16C32.8669 15.0821 32.0543 13.5433 29.1221 12.0774C26.3471 10.6901 22.3295 9.7561 17.7481 9.7561C16.4809 9.7561 15.2567 9.82758 14.0901 9.96033C14.0277 9.96743 13.9655 9.97467 13.9034 9.98212C12.7631 10.119 11.679 10.3145 10.6649 10.559C11.3481 9.45998 12.0725 8.42829 12.8243 7.47301L12.8244 7.47298Z" />
-              <path d="M4.87916 9.8896C4.99898 10.7692 5.17653 11.6775 5.41056 12.6055C3.25914 13.9026 2.62935 15.1919 2.62935 16C2.62935 16.8081 3.25916 18.0973 5.41052 19.3944C5.1765 20.3224 4.99898 21.2308 4.87916 22.1103C1.85547 20.5192 0 18.368 0 16C0 13.632 1.85545 11.4807 4.87916 9.8896Z" />
+              <path
+                d="M7.24083 17.8085C7.7729 18.9925 8.37035 20.1469 9.0254 21.2674C8.83293 22.19 8.71281 23.0685 8.66364 23.8875C8.46723 27.1596 9.3937 28.6326 10.1887 29.0916C10.8887 29.4956 12.3202 29.5949 14.5194 28.3806C15.2061 29.0472 15.9041 29.655 16.606 30.1986C13.7161 32.0213 10.925 32.5523 8.87407 31.3684C5.67609 29.5222 5.18985 24.0333 7.24083 17.8085Z"
+              />
+              <path
+                d="M10.127 0.140114C11.9565 -0.286359 14.2189 0.296172 16.6062 1.80147C15.9036 2.3455 15.205 2.95266 14.5177 3.61999C12.7714 2.66143 11.4725 2.51824 10.7028 2.70552C10.013 2.87339 9.21138 3.45205 8.82708 5.28302C8.4279 7.18491 8.63879 9.94582 9.68001 13.1824C10.7092 16.3818 12.4277 19.6601 14.5637 22.4743C16.7123 25.3052 19.0615 27.3755 21.165 28.4792C23.3149 29.6073 24.6289 29.4584 25.2618 29.1171C25.8702 28.7889 26.6739 27.8317 26.8322 25.4993C26.9613 23.5983 26.6091 21.1976 25.7345 18.5673H16.4992C15.9728 17.7092 15.511 16.8294 15.0695 15.9343H27.5589L27.6285 16.089C29.0011 19.5522 29.6429 22.9174 29.4556 25.6773C29.2667 28.4591 28.246 30.4718 26.5501 31.4091L26.51 31.431C24.8035 32.3512 22.5178 32.1426 20.0026 30.8382L19.9432 30.8072C17.4442 29.4959 14.8595 27.1785 12.5776 24.2057L12.4692 24.0636C10.161 21.0226 8.30074 17.4807 7.17696 13.9875C6.05318 10.4942 5.72869 7.24475 6.25377 4.74307C6.77885 2.24139 8.12417 0.627249 10.0811 0.151057L10.127 0.140114Z"
+              />
+              <path
+                d="M12.8244 7.47298C17.452 1.5929 23.1176 -1.39147 26.6222 0.631674C28.6732 1.81567 29.6088 4.49799 29.475 7.91181C28.6533 7.57578 27.7778 7.27529 26.857 7.01396C26.8092 4.50251 26.0075 3.31254 25.3076 2.90847C24.5125 2.44951 22.7734 2.38375 20.0376 4.18986C18.9067 4.93642 17.7322 5.9315 16.5771 7.14615C16.9642 7.13354 17.3547 7.12709 17.7481 7.12709C27.5502 7.12709 35.4963 11.0996 35.4963 16C35.4963 18.368 33.6408 20.5192 30.6171 22.1104C30.4973 21.2308 30.3197 20.3225 30.0857 19.3945C32.2371 18.0973 32.8669 16.8081 32.8669 16C32.8669 15.0821 32.0543 13.5433 29.1221 12.0774C26.3471 10.6901 22.3295 9.7561 17.7481 9.7561C16.4809 9.7561 15.2567 9.82758 14.0901 9.96033C14.0277 9.96743 13.9655 9.97467 13.9034 9.98212C12.7631 10.119 11.679 10.3145 10.6649 10.559C11.3481 9.45998 12.0725 8.42829 12.8243 7.47301L12.8244 7.47298Z"
+              />
+              <path
+                d="M4.87916 9.8896C4.99898 10.7692 5.17653 11.6775 5.41056 12.6055C3.25914 13.9026 2.62935 15.1919 2.62935 16C2.62935 16.8081 3.25916 18.0973 5.41052 19.3944C5.1765 20.3224 4.99898 21.2308 4.87916 22.1103C1.85547 20.5192 0 18.368 0 16C0 13.632 1.85545 11.4807 4.87916 9.8896Z"
+              />
             </svg>
           </div>
         </div>
@@ -1650,15 +1892,29 @@
       <div class="space-mount" id="spaceMount">
         <div class="space-fallback" id="spaceFallback" aria-hidden="true">
           <svg viewBox="0 0 36 32" fill="currentColor">
-            <path d="M7.24083 17.8085C7.7729 18.9925 8.37035 20.1469 9.0254 21.2674C8.83293 22.19 8.71281 23.0685 8.66364 23.8875C8.46723 27.1596 9.3937 28.6326 10.1887 29.0916C10.8887 29.4956 12.3202 29.5949 14.5194 28.3806C15.2061 29.0472 15.9041 29.655 16.606 30.1986C13.7161 32.0213 10.925 32.5523 8.87407 31.3684C5.67609 29.5222 5.18985 24.0333 7.24083 17.8085Z" />
-            <path d="M10.127 0.140114C11.9565 -0.286359 14.2189 0.296172 16.6062 1.80147C15.9036 2.3455 15.205 2.95266 14.5177 3.61999C12.7714 2.66143 11.4725 2.51824 10.7028 2.70552C10.013 2.87339 9.21138 3.45205 8.82708 5.28302C8.4279 7.18491 8.63879 9.94582 9.68001 13.1824C10.7092 16.3818 12.4277 19.6601 14.5637 22.4743C16.7123 25.3052 19.0615 27.3755 21.165 28.4792C23.3149 29.6073 24.6289 29.4584 25.2618 29.1171C25.8702 28.7889 26.6739 27.8317 26.8322 25.4993C26.9613 23.5983 26.6091 21.1976 25.7345 18.5673H16.4992C15.9728 17.7092 15.511 16.8294 15.0695 15.9343H27.5589L27.6285 16.089C29.0011 19.5522 29.6429 22.9174 29.4556 25.6773C29.2667 28.4591 28.246 30.4718 26.5501 31.4091L26.51 31.431C24.8035 32.3512 22.5178 32.1426 20.0026 30.8382L19.9432 30.8072C17.4442 29.4959 14.8595 27.1785 12.5776 24.2057L12.4692 24.0636C10.161 21.0226 8.30074 17.4807 7.17696 13.9875C6.05318 10.4942 5.72869 7.24475 6.25377 4.74307C6.77885 2.24139 8.12417 0.627249 10.0811 0.151057L10.127 0.140114Z" />
-            <path d="M12.8244 7.47298C17.452 1.5929 23.1176 -1.39147 26.6222 0.631674C28.6732 1.81567 29.6088 4.49799 29.475 7.91181C28.6533 7.57578 27.7778 7.27529 26.857 7.01396C26.8092 4.50251 26.0075 3.31254 25.3076 2.90847C24.5125 2.44951 22.7734 2.38375 20.0376 4.18986C18.9067 4.93642 17.7322 5.9315 16.5771 7.14615C16.9642 7.13354 17.3547 7.12709 17.7481 7.12709C27.5502 7.12709 35.4963 11.0996 35.4963 16C35.4963 18.368 33.6408 20.5192 30.6171 22.1104C30.4973 21.2308 30.3197 20.3225 30.0857 19.3945C32.2371 18.0973 32.8669 16.8081 32.8669 16C32.8669 15.0821 32.0543 13.5433 29.1221 12.0774C26.3471 10.6901 22.3295 9.7561 17.7481 9.7561C16.4809 9.7561 15.2567 9.82758 14.0901 9.96033C14.0277 9.96743 13.9655 9.97467 13.9034 9.98212C12.7631 10.119 11.679 10.3145 10.6649 10.559C11.3481 9.45998 12.0725 8.42829 12.8243 7.47301L12.8244 7.47298Z" />
-            <path d="M4.87916 9.8896C4.99898 10.7692 5.17653 11.6775 5.41056 12.6055C3.25914 13.9026 2.62935 15.1919 2.62935 16C2.62935 16.8081 3.25916 18.0973 5.41052 19.3944C5.1765 20.3224 4.99898 21.2308 4.87916 22.1103C1.85547 20.5192 0 18.368 0 16C0 13.632 1.85545 11.4807 4.87916 9.8896Z" />
+            <path
+              d="M7.24083 17.8085C7.7729 18.9925 8.37035 20.1469 9.0254 21.2674C8.83293 22.19 8.71281 23.0685 8.66364 23.8875C8.46723 27.1596 9.3937 28.6326 10.1887 29.0916C10.8887 29.4956 12.3202 29.5949 14.5194 28.3806C15.2061 29.0472 15.9041 29.655 16.606 30.1986C13.7161 32.0213 10.925 32.5523 8.87407 31.3684C5.67609 29.5222 5.18985 24.0333 7.24083 17.8085Z"
+            />
+            <path
+              d="M10.127 0.140114C11.9565 -0.286359 14.2189 0.296172 16.6062 1.80147C15.9036 2.3455 15.205 2.95266 14.5177 3.61999C12.7714 2.66143 11.4725 2.51824 10.7028 2.70552C10.013 2.87339 9.21138 3.45205 8.82708 5.28302C8.4279 7.18491 8.63879 9.94582 9.68001 13.1824C10.7092 16.3818 12.4277 19.6601 14.5637 22.4743C16.7123 25.3052 19.0615 27.3755 21.165 28.4792C23.3149 29.6073 24.6289 29.4584 25.2618 29.1171C25.8702 28.7889 26.6739 27.8317 26.8322 25.4993C26.9613 23.5983 26.6091 21.1976 25.7345 18.5673H16.4992C15.9728 17.7092 15.511 16.8294 15.0695 15.9343H27.5589L27.6285 16.089C29.0011 19.5522 29.6429 22.9174 29.4556 25.6773C29.2667 28.4591 28.246 30.4718 26.5501 31.4091L26.51 31.431C24.8035 32.3512 22.5178 32.1426 20.0026 30.8382L19.9432 30.8072C17.4442 29.4959 14.8595 27.1785 12.5776 24.2057L12.4692 24.0636C10.161 21.0226 8.30074 17.4807 7.17696 13.9875C6.05318 10.4942 5.72869 7.24475 6.25377 4.74307C6.77885 2.24139 8.12417 0.627249 10.0811 0.151057L10.127 0.140114Z"
+            />
+            <path
+              d="M12.8244 7.47298C17.452 1.5929 23.1176 -1.39147 26.6222 0.631674C28.6732 1.81567 29.6088 4.49799 29.475 7.91181C28.6533 7.57578 27.7778 7.27529 26.857 7.01396C26.8092 4.50251 26.0075 3.31254 25.3076 2.90847C24.5125 2.44951 22.7734 2.38375 20.0376 4.18986C18.9067 4.93642 17.7322 5.9315 16.5771 7.14615C16.9642 7.13354 17.3547 7.12709 17.7481 7.12709C27.5502 7.12709 35.4963 11.0996 35.4963 16C35.4963 18.368 33.6408 20.5192 30.6171 22.1104C30.4973 21.2308 30.3197 20.3225 30.0857 19.3945C32.2371 18.0973 32.8669 16.8081 32.8669 16C32.8669 15.0821 32.0543 13.5433 29.1221 12.0774C26.3471 10.6901 22.3295 9.7561 17.7481 9.7561C16.4809 9.7561 15.2567 9.82758 14.0901 9.96033C14.0277 9.96743 13.9655 9.97467 13.9034 9.98212C12.7631 10.119 11.679 10.3145 10.6649 10.559C11.3481 9.45998 12.0725 8.42829 12.8243 7.47301L12.8244 7.47298Z"
+            />
+            <path
+              d="M4.87916 9.8896C4.99898 10.7692 5.17653 11.6775 5.41056 12.6055C3.25914 13.9026 2.62935 15.1919 2.62935 16C2.62935 16.8081 3.25916 18.0973 5.41052 19.3944C5.1765 20.3224 4.99898 21.2308 4.87916 22.1103C1.85547 20.5192 0 18.368 0 16C0 13.632 1.85545 11.4807 4.87916 9.8896Z"
+            />
           </svg>
         </div>
       </div>
       <div class="space-scrim" id="spaceScrim"></div>
-      <div class="space-modal" id="spaceModal" role="dialog" aria-modal="true" aria-label="Review and sign"></div>
+      <div
+        class="space-modal"
+        id="spaceModal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Review and sign"
+      ></div>
     </div>
 
     <script type="importmap">
@@ -1681,16 +1937,28 @@
         { name: 'Review & sign', short: 'Review' },
       ];
       const STORE = 'gt_demo_v2';
-      const state = { view: 'welcome', index: 0, done: new Set(), data: {}, toggles: { support: 'no', disclose: 'no', relatives: 'no' } };
+      const state = {
+        view: 'welcome',
+        index: 0,
+        done: new Set(),
+        data: {},
+        toggles: { support: 'no', disclose: 'no', relatives: 'no' },
+      };
 
       // build rail
       const stepsEl = document.getElementById('steps');
       SECTIONS.forEach((s, i) => {
         const li = document.createElement('li');
         li.innerHTML =
-          '<button class="step" data-step="' + i + '">' +
-          '<span class="dot" aria-hidden="true">' + (i + 1) + '</span>' +
-          '<span class="lbl"><span class="nm">' + s.name + '</span><span class="st">Upcoming</span></span>' +
+          '<button class="step" data-step="' +
+          i +
+          '">' +
+          '<span class="dot" aria-hidden="true">' +
+          (i + 1) +
+          '</span>' +
+          '<span class="lbl"><span class="nm">' +
+          s.name +
+          '</span><span class="st">Upcoming</span></span>' +
           '</button>';
         stepsEl.appendChild(li);
       });
@@ -1746,7 +2014,10 @@
       // ---------------- silent persistence ----------------
       function save() {
         try {
-          localStorage.setItem(STORE, JSON.stringify({ data: state.data, toggles: state.toggles, done: [...state.done] }));
+          localStorage.setItem(
+            STORE,
+            JSON.stringify({ data: state.data, toggles: state.toggles, done: [...state.done] }),
+          );
         } catch (e) {}
       }
       function restore() {
@@ -1783,7 +2054,9 @@
         const last = i === SECTIONS.length - 1;
         Object.values(pages).forEach((p) => p.classList.remove('active'));
         nextBtn.textContent = last ? 'Submit application' : 'Continue →';
-        assurance.textContent = last ? 'Review your answers, then sign.' : 'Fields marked * are required.';
+        assurance.textContent = last
+          ? 'Review your answers, then sign.'
+          : 'Fields marked * are required.';
         if (last) {
           buildReview();
           enterSpace(); // full-screen space + review modal
@@ -1933,11 +2206,17 @@
         const name = group.dataset.toggle;
         group.querySelectorAll('button').forEach((b) => {
           b.addEventListener('click', () => {
-            group.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', 'false'));
+            group
+              .querySelectorAll('button')
+              .forEach((x) => x.setAttribute('aria-pressed', 'false'));
             b.setAttribute('aria-pressed', 'true');
             state.toggles[name] = b.dataset.val;
             save();
-            const map = { support: 'supportDetail', disclose: 'discloseDetail', relatives: 'relativesDetail' };
+            const map = {
+              support: 'supportDetail',
+              disclose: 'discloseDetail',
+              relatives: 'relativesDetail',
+            };
             const rev = document.getElementById(map[name]);
             if (rev) rev.classList.toggle('open', b.dataset.val === 'yes');
           });
@@ -1946,7 +2225,12 @@
 
       // chips
       document.querySelectorAll('[data-chips] .chip').forEach((c) => {
-        c.addEventListener('click', () => c.setAttribute('aria-pressed', c.getAttribute('aria-pressed') === 'true' ? 'false' : 'true'));
+        c.addEventListener('click', () =>
+          c.setAttribute(
+            'aria-pressed',
+            c.getAttribute('aria-pressed') === 'true' ? 'false' : 'true',
+          ),
+        );
       });
 
       // relatives repeater
@@ -1975,11 +2259,16 @@
         });
         const sup = document.querySelector('[data-echo-support]');
         if (sup) {
-          const chips = [...document.querySelectorAll('[data-chips] .chip[aria-pressed="true"]')].map((c) => c.textContent.trim());
-          sup.textContent = state.toggles.support === 'yes' && chips.length ? chips.join(', ') : 'None reported';
+          const chips = [
+            ...document.querySelectorAll('[data-chips] .chip[aria-pressed="true"]'),
+          ].map((c) => c.textContent.trim());
+          sup.textContent =
+            state.toggles.support === 'yes' && chips.length ? chips.join(', ') : 'None reported';
         }
         const dis = document.querySelector('[data-echo-disclose]');
-        if (dis) dis.textContent = state.toggles.disclose === 'yes' ? 'Reported (private)' : 'None reported';
+        if (dis)
+          dis.textContent =
+            state.toggles.disclose === 'yes' ? 'Reported (private)' : 'None reported';
       }
 
       // ---------------- ambient 3D mark ----------------
@@ -2000,7 +2289,8 @@
         let done = 0;
         for (let i = 0; i < total; i++) if (state.done.has(i)) done++;
         let partial = 0;
-        if (state.view === 'section' && !state.done.has(state.index)) partial = sectionFillFraction(state.index);
+        if (state.view === 'section' && !state.done.has(state.index))
+          partial = sectionFillFraction(state.index);
         return Math.min(1, (done + partial) / total);
       }
       function updateMark(force) {
@@ -2116,7 +2406,14 @@
           const data = new SVGLoader().parse(svg);
           const shapes = [];
           data.paths.forEach((p) => SVGLoader.createShapes(p).forEach((s) => shapes.push(s)));
-          const extrude = { depth: 3.0, bevelEnabled: true, bevelThickness: 0.45, bevelSize: 0.38, bevelSegments: 3, curveSegments: 18 };
+          const extrude = {
+            depth: 3.0,
+            bevelEnabled: true,
+            bevelThickness: 0.45,
+            bevelSize: 0.38,
+            bevelSegments: 3,
+            curveSegments: 18,
+          };
 
           // one material per ribbon; each warms white → ember with progress (no overlap)
           const WHITE = new THREE.Color('#efe9e1');

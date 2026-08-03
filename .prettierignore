@@ -16,3 +16,5 @@ scripts/validation-harness/sample-report/
 .agents/
 # verbatim question-type demos copied from research/exam-question-types — do not reformat
 apps/web/public/exam-demos/
+# frozen copies of unmerged work, kept readable and not maintained
+archive/

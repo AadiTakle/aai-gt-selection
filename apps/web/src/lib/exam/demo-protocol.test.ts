@@ -658,10 +658,10 @@ describe('published demos speak the embedding protocol', () => {
           ).toBe(true);
         }
       }
-    // 120s, not 60s: each case mounts up to STRATEGY_COUNT jsdom documents and runs their
-    // scripts, so a loaded machine pushes a healthy case past a 60s budget and the file goes
-    // red in a later case that passes when run alone. Nothing here asserts on speed, and a
-    // demo that genuinely hangs still fails well inside 120s.
+      // 120s, not 60s: each case mounts up to STRATEGY_COUNT jsdom documents and runs their
+      // scripts, so a loaded machine pushes a healthy case past a 60s budget and the file goes
+      // red in a later case that passes when run alone. Nothing here asserts on speed, and a
+      // demo that genuinely hangs still fails well inside 120s.
     }, 120_000);
 
     /**
