@@ -349,7 +349,9 @@ function refresh(){
 }
 function renderServedItem(item){
   current=item;submitted=false;interactive=false;placed=[];nearestId=null;
-  M.rev=0;M.firstLat=null;M.moves=0;itemTelemetry=[];
+  /* Every per-item counter, `M.blur` included: the host serves a whole burst through one loaded
+     document, so a count left standing here is reported again as the next item's M-ENGAGE. */
+  M.rev=0;M.firstLat=null;M.moves=0;M.blur=0;itemTelemetry=[];
   const c=item.content;
   renderScene(c);
   $('#ask').textContent=c.question.prompt;

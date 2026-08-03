@@ -356,6 +356,15 @@ export function ExamRunner({
    * for an item that has already been torn down posts nothing.
    */
   const hostRef = useRef<ExamHost | null>(null);
+  /**
+   * The demo window that has already announced `{type:'ready'}`.
+   *
+   * A demo announces itself once per DOCUMENT, and a burst serves several items through one
+   * document, so for every item after the first there is no `ready` coming and no `load` to hear.
+   * Window identity is what separates "the document the previous item ran in" from a freshly
+   * created iframe, whose window belongs to a new browsing context.
+   */
+  const readyWindowRef = useRef<Window | null>(null);
   const stateRef = useRef<SessionState | null>(null);
   /** Render mirror of the engine session; the progress projection is derived from it. */
   const [engineState, setEngineState] = useState<SessionState | null>(null);
@@ -796,15 +805,32 @@ export function ExamRunner({
     let readySeen = false;
     let readyFallback: number | undefined;
 
+    /**
+     * Is an inbound message about the item on screen?
+     *
+     * The demo instance outlives the item now — a burst re-inits one document instead of reloading
+     * it — so a late message about the item just answered would otherwise be recorded against this
+     * one, and a whole answer could land on the wrong stimulus. Demos that name the item they are
+     * talking about are held to it; one that names nothing (or names nothing yet) is taken at its
+     * word, because there is nothing else to go on.
+     */
+    const isThisItem = (named: unknown) =>
+      named === undefined || named === null || named === item.itemId;
+
     const host = new ExamHost(iframe, {
       origin: window.location.origin,
       onReady: () => {
         readySeen = true;
+        readyWindowRef.current = iframe.contentWindow;
         if (readyFallback !== undefined) window.clearTimeout(readyFallback);
         sendInit();
       },
-      onResult: (inbound) => handleResultRef.current(item, inbound, false),
+      onResult: (inbound) => {
+        if (!isThisItem(inbound.itemId)) return;
+        handleResultRef.current(item, inbound, false);
+      },
       onTelemetry: (event) => {
+        if (!isThisItem(event['itemId'])) return;
         telemetryRef.current.push({ ...event, itemId: item.itemId });
       },
     });
@@ -815,7 +841,8 @@ export function ExamRunner({
       initiated = true;
       host.init(item);
       // Only a designated type gets the gesture demonstration, and only the first time this
-      // session meets it — the demo's own "already shown" flag dies with each item's iframe.
+      // session meets it. The demo's own "already shown" flag cannot be relied on: it dies with the
+      // iframe, which now survives a whole burst rather than one item, so the CALLER tracks it.
       const needsDemo =
         GESTURE_DEMO_TYPES.has(item.typeCode) && !demoedTypesRef.current.has(item.typeCode);
       if (needsDemo) demoedTypesRef.current.add(item.typeCode);
@@ -838,6 +865,12 @@ export function ExamRunner({
     };
     iframe.addEventListener('load', onLoad);
     if (iframe.contentDocument?.readyState === 'complete') onLoad();
+    // The next item of a burst arrives at a document that is already loaded and already listening,
+    // so neither `ready` nor `load` will fire again for it. Init straight away rather than sitting
+    // out the fallback with the answered item still on screen.
+    if (readyWindowRef.current !== null && readyWindowRef.current === iframe.contentWindow) {
+      sendInit();
+    }
 
     const timeout = window.setTimeout(() => {
       handleResultRef.current(item, { response: { timedOut: true } }, true);
@@ -1270,6 +1303,7 @@ export function ExamRunner({
       )
     : stage1Progress(engineState, scoredCount);
   const meta = current ? EXAM_BANK_BY_CODE.get(current.typeCode) : undefined;
+  const demoSrc = current ? demoPathFor(current.typeCode, debugMode) : '';
   if (!current) {
     return (
       <div className={styles.wrap}>
@@ -1356,11 +1390,23 @@ export function ExamRunner({
         />
       </div>
 
+      {/*
+        Keyed on the DEMO, not on the item.
+
+        A burst asks two or three items of one type back to back and a Stage 2 activity asks thirty,
+        all of them through the identical demo file. Keying on the item id tore the iframe down and
+        reloaded the same page under the child every time, which is what made a burst read as being
+        asked the same question three times over instead of one question with several parts. Keyed
+        on the path, the instance survives the burst and each item arrives as a fresh
+        `{type:'init', item}` + `{type:'start'}` — safe because every published demo resets its
+        per-item state on init, asserted per type in `lib/exam/demo-protocol.test.ts`. The key still
+        changes when the TYPE changes, so a different activity always gets a clean document.
+      */}
       <iframe
-        key={current.itemId}
+        key={demoSrc}
         ref={iframeRef}
         title={`${meta?.title ?? current.typeCode} question`}
-        src={demoPathFor(current.typeCode, debugMode)}
+        src={demoSrc}
         className={styles.frame}
       />
 
