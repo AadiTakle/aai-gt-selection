@@ -1,0 +1,762 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QUANT-GLYPHNUM-01 · Alien Numbers</title>
+<style>
+  :root{
+    --bg1:#fcf4ef; --bg2:#f8e8de; --ink:#001117; --card:#ffffff;
+    --accent:#004f71; --accent2:#002a3a; --good:#146c43; --bad:#a4442f;
+    --line:#ecd9cb; --socket:#ebba9b; --muted:#4a6470;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));
+    display:flex;min-height:100%;
+  }
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;font-weight:700}
+  #howto{max-width:660px;width:100%;background:#fff;border:1px solid var(--line);border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #002a3a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#33505c;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#f8e8de;color:var(--accent);border:2px solid var(--line);min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#f5ddcd;color:#6f4526;border-color:var(--socket)}
+  #phasecue[data-phase="scored"]{background:var(--accent2);color:#fff;border-color:var(--accent2)}
+  #phasecue[data-phase="done"]{background:#f5ddcd;color:var(--accent2);border-color:var(--line)}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.neutral{color:var(--muted)}
+  #stagecard{
+    background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #002a3a;
+    display:flex;flex-direction:column;align-items:center;gap:18px;max-width:660px;width:100%;
+  }
+
+  /* ---- the writing: the expression, then the vocabulary it is drawn from ---- */
+  #writing{width:100%;padding:16px;border-radius:20px;background:#f8e8de;border:3px solid #f8e8de;
+    display:flex;flex-direction:column;align-items:center;gap:12px}
+  .caplabel{font:600 11px/1.3 ui-monospace,monospace;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+  #expression{display:flex;align-items:center;gap:6px;padding:10px 16px;background:#fff;
+    border:2px solid var(--socket);border-radius:14px;min-height:74px;min-width:96px;justify-content:center}
+  #expression.empty::after{content:'nothing written';font:600 11px/1 ui-monospace,monospace;color:var(--muted);letter-spacing:.06em}
+  .glyph{display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  #tray{display:flex;align-items:center;gap:8px;justify-content:center;flex-wrap:wrap}
+  #tray .glyph{width:32px;height:32px;border:2px solid var(--socket);border-radius:10px;background:#f8e8de;opacity:.4}
+  #tray .glyph.inuse{opacity:1;border-color:var(--accent);background:#fff}
+
+  /* ---- the line: exact marks, drawn where the values actually fall ---- */
+  #line{width:100%;position:relative;padding:6px 0 4px}
+  #rail{position:relative;height:112px}
+  #railbar{position:absolute;left:7%;right:7%;top:72px;height:6px;border-radius:3px;background:var(--socket)}
+  #railbar::before,#railbar::after{content:'';position:absolute;top:-7px;width:6px;height:20px;border-radius:3px;background:var(--accent2)}
+  #railbar::before{left:-3px}
+  #railbar::after{right:-3px}
+  /* Both ends sit in a flow row under the rail, aligned to the rail's own stops. Absolutely
+     positioning them centred on the stops clipped a four-glyph anchor off the edge of the card. */
+  #lineends{display:flex;justify-content:space-between;align-items:flex-start;padding:0 7%;
+    margin-top:-4px;gap:12px}
+  .endcap{display:flex;flex-direction:column;gap:3px;max-width:48%}
+  .endcap.start{align-items:flex-start}
+  .endcap.end{align-items:flex-end}
+  .endcap .caplabel{font-size:9px}
+  .endcap .glyphrow{display:flex;gap:3px;flex-wrap:wrap;justify-content:flex-end}
+  .mark{position:absolute;top:46px;transform:translateX(-50%);display:flex;flex-direction:column;
+    align-items:center;gap:2px;pointer-events:none}
+  .mark i{display:block;width:4px;height:32px;border-radius:2px;background:var(--accent)}
+  .mark b{font:700 11px/1 ui-monospace,monospace;color:var(--muted)}
+  /* Neighbouring ticks can be 0.0125 of the line apart, which is a few pixels: without two rows
+     the letters of a crowded cluster overlap into an unreadable smear. */
+  .mark.low b{margin-top:11px}
+  .mark.here i{background:var(--accent2);width:6px;height:40px}
+  .mark.here b{color:var(--accent2)}
+  /* Where the expression is shown sitting once the machine has placed it. */
+  #pin{position:absolute;top:0;transform:translateX(-50%);display:none;align-items:center;gap:4px;
+    padding:4px 8px;background:#fff;border:2px solid var(--accent);border-radius:12px;
+    box-shadow:0 0 0 4px #ecd9cb}
+  #pin.show{display:flex}
+  /* The neutral practice token the interface gate places. Carries no glyph and no value. */
+  #token{position:absolute;top:22px;transform:translateX(-50%);display:none;width:26px;height:26px;
+    border-radius:50%;background:var(--accent2)}
+  #token.show{display:block}
+
+  /* ---- the five answers: fixed positions, one tap ---- */
+  #optlabel{font:600 11px/1.3 ui-monospace,monospace;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+  #options{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;width:100%}
+  .opt{position:relative;background:#fff;border:3px solid var(--line);border-radius:14px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+    padding:12px 6px 14px;cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent}
+  .opt .platerail{position:relative;width:100%;height:14px}
+  .opt .platerail::before{content:'';position:absolute;left:7%;right:7%;top:6px;height:3px;
+    border-radius:2px;background:var(--socket)}
+  .opt .platetick{position:absolute;top:0;transform:translateX(-50%);width:4px;height:14px;
+    border-radius:2px;background:var(--accent)}
+  .opt .platekey{font:700 13px/1 ui-monospace,monospace;color:var(--muted)}
+  .opt:hover{transform:translateY(-3px)}
+  .opt[disabled]{cursor:default}
+  .opt[disabled]:hover{transform:none}
+  /*
+   * Post-commit marks. BOTH are the same neutral navy and neither carries a verdict word, a tick,
+   * a cross or a good/bad colour: one says which place the child chose, the other says which place
+   * the expression turned out to sit at. Reading the two together is the informational feedback
+   * the design allows; being TOLD which of the two is right is the evaluative feedback it forbids.
+   */
+  .opt.chose{border-color:var(--accent2)}
+  .opt.goes{border-color:var(--accent);box-shadow:0 0 0 4px #ecd9cb}
+  .tag{position:absolute;left:50%;transform:translateX(-50%);bottom:-9px;padding:1px 7px;border-radius:999px;
+    font:700 9px/1.6 ui-monospace,monospace;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;color:#fff}
+  .opt.chose .tag{background:var(--accent2)}
+  .opt.goes .tag{background:var(--accent)}
+  .opt.chose.goes .tag{background:var(--accent)}
+
+  /* ---- pointer hint: outline cursor, never an emoji ---- */
+  #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:60;opacity:0;
+    transition:transform .7s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #ghost .pulsering{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;
+    border:3px solid var(--accent);opacity:0}
+  #ghost.tap .pulsering{animation:tapring .5s ease-out}
+  @keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+
+  .opt:focus-visible,button:focus-visible{outline:4px solid #e48b53;outline-offset:3px}
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+  @media(max-width:620px){
+    #wrap{padding:10px}#stagecard{padding:14px}#writing{padding:10px}
+    #options{gap:6px}.opt{padding:10px 3px 12px}
+    #expression{min-height:60px;padding:8px 10px}
+  }
+</style>
+<style>html[data-gt-chrome="off"] #howto{display:none}</style>
+<script>/* Instant-question gate. Embedded in the screener the "How to use" panel is hidden so the
+   child sees the question itself the moment it appears; the per-item status line carries the
+   instruction in words. A test should not spend its first seconds being read. `?chrome=1`
+   restores the panel for a walkthrough, and standalone (opened directly) is unchanged. */
+(function(){var f=/(^|[?&])chrome=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-chrome','off');})();</script>
+<link rel="stylesheet" href="../exam-skin.css">
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">QUANT-GLYPHNUM-01 · Alien Numbers</div>
+    <header id="howto">
+      <h1>How to use — Alien Numbers</h1>
+      <p>The machine writes numbers with marks nobody has explained. The writing at the top is one number. The line below runs from nothing on the left up to the number written at its right-hand end. Tap the one place out of five where the writing belongs. One tap sends your answer. Nobody tells you what a mark is worth — you work that out by watching where the machine puts things.</p>
+    </header>
+    <div id="phasecue" data-phase="warmup">Get ready</div>
+    <div id="stagecard">
+      <div id="writing">
+        <span class="caplabel" id="exprlabel">The machine wrote this</span>
+        <div id="expression" class="empty"></div>
+        <div id="tray"></div>
+      </div>
+      <div id="line">
+        <div id="rail">
+          <div id="railbar"></div>
+          <div id="token"></div>
+          <div id="pin"></div>
+        </div>
+        <div id="lineends"></div>
+      </div>
+      <div id="optlabel">Where does it belong?</div>
+      <div id="options"></div>
+      <div id="status" class="neutral">Waiting for the next puzzle.</div>
+    </div>
+    <div id="playgate">
+      <p>The machine has written something. Press play when you are ready, and it starts then.</p>
+      <button type="button" id="play">Play</button>
+    </div>
+  </div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#004f71" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="pulsering"></span></div>
+<script>
+'use strict';
+/* =====================================================================
+ * QUANT-GLYPHNUM-01 "Alien Numbers" — PURE RENDERER (STAGE2_QUESTION_DESIGN §9.2, U6)
+ *
+ * Renders a SERVED item (`item.content`) and reports the child's RAW placement. It never
+ * self-generates a scored item and never decides correctness: the glyph->role mapping, the line's
+ * numeric maximum, the target ratio and the tolerance band are all server-only (BUILD_PLAN §2).
+ *
+ * WHAT IS ON SCREEN, AND WHY IT DISCLOSES NOTHING. `content` gives the glyph tray, the expression
+ * as a glyph string, the anchor expression that labels the right-hand end of the line, and five
+ * tick RATIOS. It does NOT give the line's numeric maximum, so a client cannot form
+ * value(anchor) = max and pin part of the mapping for free. Everything this file draws is a
+ * redrawing of those four things. The strongest attack the data admits — brute-force all 120
+ * glyph->role relabellings and keep the ticks whose ratio survives — is closed in the GENERATOR,
+ * which refuses a layout leaving fewer than two survivors and minimises the best content-only
+ * attacker over the survivors. Nothing here can weaken that, because nothing here adds data.
+ *
+ * ---------------------------------------------------------------------
+ * ONE RENDERER SERVES BOTH ARMS, AND IT DOES NOT KNOW WHICH ARM IT IS SERVING
+ *
+ * D-S2-3 makes the scrambled-system control a binding gate and §4.1.1 makes it a generator MODE:
+ * one generator, one renderer, one verifier. A second "control demo" would confound the contrast
+ * with the renderer and is an automatic rejection.
+ *
+ * So persistence reaches this file the only way it can without becoming a renderer branch: as the
+ * SERVED ITEM ITSELF. Under `consistent` a given glyph means the same thing on every item of the
+ * block; under `perTrial` the glyph->role mapping is re-drawn per item. Either way this file
+ * receives `content.expression` — a list of glyph names — and draws it. There is no arm flag, no
+ * query parameter and no code path that differs between arms, which is exactly the property the
+ * gate needs: any between-arm difference Gate B measures cannot have come from here. The generator
+ * states the same requirement from its side, recording the arm in `provenance`, which
+ * `servedItemSchema` omits.
+ * ---------------------------------------------------------------------
+ *
+ * WHY THE TAP TARGETS ARE A ROW OF PLATES AND NOT THE MARKS THEMSELVES
+ *
+ * §3.2 fixes the response as tap targets rather than a drag, "deliberately, to avoid a motor
+ * learning curve". Taken literally as "make each mark on the line a button", that fails on this
+ * bank: the smallest gap between neighbouring ticks is 0.0125 of the line, which is seven pixels
+ * on a phone — below any usable hit area, and a hit area sized for a child would overlap its
+ * neighbour and decide the answer by pixel rounding.
+ *
+ * So the line and the response are separated. The RAIL carries the five marks where the values
+ * actually fall, which is the magnitude information the item is about. The five PLATES below are
+ * the tap targets: always five, always the same width, always in the same left-to-right order as
+ * the marks (the generator emits options in strictly increasing ratio), and each plate repeats the
+ * whole line with only its own mark on it, so a crowded cluster is still readable. Position search
+ * is not learnable — the plates never move — and the placement the child reports is the exact
+ * ratio of the mark, not where their finger landed.
+ *
+ * WHAT THIS FILE DELIBERATELY DOES NOT DO
+ *
+ *  * No standalone-timer fallback (E-079). Embedded, it waits indefinitely for the host's `init`.
+ *    Fifteen demos hedged with "if no init by 500ms, assume no host", and a host init landing after
+ *    that timeout put dev preview text in front of a child mid-assessment. The standalone bootstrap
+ *    here is behind `if (!embedded)` and behind no timer at all.
+ *  * No researcher sidebar (E-082), for the reason FLU-OPCHAIN-01 records: §9's U6 lists "no
+ *    telemetry sidebar" as an acceptance criterion for these types, and a panel that can never be
+ *    shown to a child has nothing to gate. Telemetry itself is unchanged.
+ *  * No verdict. Not a tick, not a cross, not a score, not a streak, not praise, not points, and no
+ *    performance-contingent animation (§1.5). What the child gets after committing is the machine
+ *    putting the writing at its place. Two neutral chips say "you chose" and "it goes here" in the
+ *    same colour. Comparing them is the child's business; the test never editorialises.
+ *  * No second tap. One tap on a plate IS the answer (§1.4(2)).
+ *  * NO CONCRETENESS FADING, and this is a knowing departure from §3.2 and from the spec row.
+ *    Both ask the opening trials to "show each glyph beside a depicted quantity". A renderer cannot
+ *    do that: what a glyph is worth is `answer.system.mapping`, which is server-only, so this file
+ *    would have to either receive the mapping — which hands the browser the key and makes every
+ *    item a lookup — or invent a quantity, which teaches the child something false about the very
+ *    system they are being measured on inducing. Neither is admissible, so the depiction is absent
+ *    until the generator emits a demonstration schedule in `content` for the renderer to draw. The
+ *    interface gate below is unaffected: it deliberately shows no glyph at all.
+ *
+ * Embedding protocol (postMessage), source-tagged:
+ *   host -> demo : {source:'gt-exam-host', type:'init',   item:ServedItem}
+ *                  {source:'gt-exam-host', type:'start',  tutorial?:bool}
+ *                  {source:'gt-exam-host', type:'reveal', reveal:{machineOutput:'C'}}
+ *   demo -> host : {source:'gt-exam-demo', type:'ready'}
+ *                  {source:'gt-exam-demo', type:'result',    result:ItemResult}
+ *                  {source:'gt-exam-demo', type:'telemetry', event:TelemetryEvent}
+ *
+ * `reveal` is what a learning block needs and cannot have in `content` (§1.5): the place the
+ * writing belongs cannot travel with the item without handing the browser the key, so the host
+ * sends it AFTER `/api/exam-submit` has scored a trial the child has already committed to and
+ * which is never re-served. `reveal.machineOutput` names one of this item's own option keys —
+ * `lib/exam/reveal.ts` owns that mapping and is Stage 2 host wiring, not this file's. A host that
+ * sends no reveal simply advances; nothing here waits on one.
+ * ===================================================================== */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+const HOST_SRC='gt-exam-host', DEMO_SRC='gt-exam-demo';
+const OPTION_KEYS=['A','B','C','D','E'];
+
+/**
+ * Percentage of the rail's width kept clear at each end.
+ *
+ * The rail is a real number line: ratio 0 is its left stop and ratio 1 its right stop. Both ends
+ * carry a label and every mark is centred on its position, so without an inset a mark at either
+ * extreme would be half off the card. The map below is linear, so it insets the line without
+ * distorting any distance along it.
+ */
+const RAIL_INSET=7;
+const clamp01=x=>Math.max(0,Math.min(1,typeof x==='number'&&isFinite(x)?x:0));
+const railPct=ratio=>RAIL_INSET+clamp01(ratio)*(100-2*RAIL_INSET);
+
+/* ---------- glyph drawing ------------------------------------------------
+ * Five arbitrary marks. They are LABELS, not pictures of a quantity: nothing about a glyph's
+ * shape hints at what it is worth, which is what makes the notation novel by construction (§3.2)
+ * and is why the generator's own comment rules out anything with a counting connotation — a tally
+ * or a dot cluster would order the roles before the child has induced an ordering.
+ *
+ * They alternate FILLED and OUTLINE down the canonical order, for the reason FLU-OPCHAIN-01
+ * records about its badges: §3.2's first named failure mode is the child decoding symbols rather
+ * than learning the system, and at the size a glyph appears inside a four-glyph expression two
+ * filled silhouettes are the same blob. Every adjacent pair in the canonical `content.glyphTray`
+ * order differs in fill as well as in outline, and none is told apart by colour, so a colour-vision
+ * difference cannot gate the task.
+ *
+ * This file knows how to DRAW a glyph. It does not know what any glyph is WORTH.
+ * ------------------------------------------------------------------------ */
+/** An Archimedean spiral, computed rather than hand-written so the winding is actually even. */
+const SPIRAL_PATH=(()=>{
+  const turns=2.1, steps=96, pts=[];
+  for(let i=0;i<=steps;i++){
+    const t=(i/steps)*turns*2*Math.PI;
+    const r=2.5+(t/(turns*2*Math.PI))*14.5;
+    pts.push(`${(20+r*Math.cos(t)).toFixed(2)},${(20+r*Math.sin(t)).toFixed(2)}`);
+  }
+  return 'M'+pts.join(' L');
+})();
+const INK='#002a3a';
+const GLYPH_SVG={
+  arc:`<path d="M6,31 A15,15 0 0 1 34,31" fill="none" stroke="${INK}" stroke-width="5" stroke-linecap="round"/>`,
+  chevron:`<polygon points="9,5 34,20 9,35 9,26 20,20 9,14" fill="${INK}"/>`,
+  crescent:`<path d="M27,5 A16,16 0 1 0 27,35 A12.5,12.5 0 1 1 27,5 Z" fill="none" stroke="${INK}" stroke-width="4" stroke-linejoin="round"/>`,
+  notch:`<path d="M6,6 L14,6 L14,21 L26,21 L26,6 L34,6 L34,34 L6,34 Z" fill="${INK}"/>`,
+  spiral:`<path d="${SPIRAL_PATH}" fill="none" stroke="${INK}" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>`,
+};
+/** Fallback shape for a tray this renderer has no drawing for, so an unknown glyph is still legible. */
+const UNKNOWN_GLYPH=`<rect x="7" y="7" width="26" height="26" rx="6" fill="none" stroke="${INK}" stroke-width="4" stroke-dasharray="5 4"/>`;
+function glyphSVG(name,box){
+  const inner=GLYPH_SVG[name]||UNKNOWN_GLYPH;
+  return `<svg width="${box}" height="${box}" viewBox="0 0 40 40" aria-hidden="true">${inner}</svg>`;
+}
+/** A glyph string, drawn left to right. `content` speaks glyphs and only glyphs. */
+function glyphRow(names,box){
+  return (names||[]).map(n=>`<span class="glyph">${glyphSVG(n,box)}</span>`).join('');
+}
+
+/* ---------- per-item state ---------- */
+let current=null;        // the ServedItem on screen (null during the interface gate)
+let interactive=false;   // may a tap be accepted?
+let committed=false;     // has this item already been answered?
+let touched=false;       // has the child made contact with any plate yet?
+let itemStart=0;         // ms at which the child became able to answer
+let firstLatency=null;   // ms to first contact with a plate
+let blurCount=0;
+let itemTelemetry=[];
+let gateTutorial=false;  // does the pending play press owe the interface gate?
+
+/* ---------- embedding + emit ---------- */
+const embedded=(()=>{try{return window.parent&&window.parent!==window;}catch(_){return true;}})();
+let standalone=false, standaloneQueue=[], standaloneIdx=0;
+function post(msg){if(!embedded)return;try{window.parent.postMessage(Object.assign({source:DEMO_SRC},msg),'*');}catch(_){}}
+function emitEvent(kind,extra){
+  const event=Object.assign(
+    {t:itemStart?Date.now()-itemStart:0,kind,itemId:current?current.itemId:null},
+    extra||{},
+  );
+  itemTelemetry.push(event);
+  post({type:'telemetry',event});
+}
+
+/* ---------- chrome ---------- */
+function setCue(k,txt){const el=$('#phasecue');el.dataset.phase=k;el.textContent=txt;}
+/* Only ever `neutral`. The skin colours `ok` green and `no` red, and this block does not have an
+   opinion about the child's answer. */
+function setStatus(msg){const el=$('#status');el.className='neutral';el.textContent=msg;}
+
+/* ---------- the writing ---------- */
+function drawExpression(glyphs){
+  const el=$('#expression');
+  const names=glyphs||[];
+  el.classList.toggle('empty',names.length===0);
+  el.dataset.expr=names.join('+');
+  el.innerHTML=glyphRow(names,54);
+}
+function drawTray(tray,inUse){
+  const used=new Set(inUse||[]);
+  $('#tray').innerHTML=(tray||[]).map(name=>
+    `<span class="glyph${used.has(name)?' inuse':''}" data-glyph="${name}">${glyphSVG(name,24)}</span>`).join('');
+}
+
+/* ---------- the line ----------
+ * The rail is rebuilt per item because the marks move; the bar, the pin and the practice token are
+ * permanent children of it and are re-attached rather than re-created.
+ */
+function drawRail(options,anchorGlyphs){
+  const rail=$('#rail');
+  const keep=[$('#railbar'),$('#token'),$('#pin')];
+  rail.innerHTML='';
+  for(const node of keep)rail.appendChild(node);
+
+  (options||[]).forEach((option,i)=>{
+    const mark=document.createElement('span');
+    mark.className=i%2?'mark low':'mark';
+    mark.dataset.key=option.key;
+    mark.style.left=`${railPct(option.ratio)}%`;
+    mark.innerHTML=`<i></i><b>${option.key}</b>`;
+    rail.appendChild(mark);
+  });
+
+  // The far end is labelled in the SAME notation, so the stimulus carries no Arabic numeral
+  // anywhere and the scale itself has to be read out of the system. The interface gate passes no
+  // anchor, because it shows no writing at all, and then the end is just the end of the line.
+  const anchor=anchorGlyphs||[];
+  $('#lineends').innerHTML=
+    '<span class="endcap start"><span class="caplabel">nothing</span></span>'+
+    '<span class="endcap end">'+
+      `<span class="caplabel">${anchor.length?'this far':'the far end'}</span>`+
+      (anchor.length?`<span class="glyphrow">${glyphRow(anchor,22)}</span>`:'')+
+    '</span>';
+  hidePin();
+  hideToken();
+}
+function markFor(key){return $(`#rail .mark[data-key="${key}"]`);}
+function showPin(key,glyphs){
+  const mark=markFor(key);
+  if(!mark)return;
+  const pin=$('#pin');
+  pin.style.left=mark.style.left;
+  pin.innerHTML=glyphRow(glyphs,26);
+  pin.classList.add('show');
+  mark.classList.add('here');
+}
+function hidePin(){$('#pin').classList.remove('show');$$('#rail .mark').forEach(m=>m.classList.remove('here'));}
+function showToken(key){
+  const mark=markFor(key);
+  if(!mark)return;
+  const token=$('#token');
+  token.style.left=mark.style.left;
+  token.classList.add('show');
+  mark.classList.add('here');
+}
+function hideToken(){$('#token').classList.remove('show');}
+
+/* ---------- the plates ---------- */
+function drawOptions(options){
+  $('#options').innerHTML=(options||[]).map((o,i)=>
+    `<button type="button" class="opt" data-key="${o.key}" data-i="${i}" `+
+    `data-ratio="${o.ratio}" aria-label="place ${i+1} of ${(options||[]).length} on the line">`+
+    `<span class="platerail"><span class="platetick" style="left:${railPct(o.ratio)}%"></span></span>`+
+    `<span class="platekey">${o.key}</span></button>`).join('');
+}
+function tagOption(key,cls,text){
+  const el=$(`#options .opt[data-key="${key}"]`);
+  if(!el)return;
+  el.classList.add(cls);
+  const existing=el.querySelector('.tag');
+  if(existing){existing.textContent=text;return;}
+  const tag=document.createElement('span');
+  tag.className='tag';
+  tag.textContent=text;
+  el.appendChild(tag);
+}
+function lockOptions(){$$('#options .opt').forEach(el=>{el.disabled=true;});}
+
+/* ---------- pointer hint (gesture only) ---------- */
+const ghost=$('#ghost');
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(650);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(480);}
+
+/* ==================================================================== *
+ * THE UNSCORED INTERFACE GATE (§1.4(3), §9 U6)
+ *
+ * Interface learning is the failure this design is most likely to die of: a child working out
+ * where to tap produces a climb that a 30-trial fit cannot tell apart from a child learning the
+ * notation. The fix is pre-training — discharge the interface BEFORE trial 0, where it costs
+ * nothing, instead of inside the block, where it lands on lambda (Mayer 2021; Sweller et al. 2019).
+ *
+ * A gate instance is DEGENERATE: the thing to be placed is ALREADY SITTING on the line, so the
+ * answer is visible and the only thing to work out is which plate belongs to which mark — which is
+ * the one genuinely novel bit of this interface and exactly what pre-training should discharge.
+ *
+ * THE GATE SHOWS NO GLYPH, AND THAT IS THE WHOLE POINT. The obvious degenerate instance — put the
+ * item's own expression at one of the marks — would assert, to a child whose entire job is to
+ * induce what the glyphs are worth, that this writing sits HERE. If the mark is not the keyed one
+ * that is a lie about the hidden system, and if it is, it is the key. Placing any other glyph
+ * string is the same problem with an extra step. So the gate places a plain practice token with no
+ * writing on it at all: nothing about the notation is asserted, true or false. Gate instances are
+ * built here, are never bank items, are never scored, and no `{type:'result'}` is emitted for one.
+ *
+ * The gate runs only when the host asks for it — `{type:'start', tutorial:true}` — which the runner
+ * sends once per session per type. Every later item of the block goes straight to the question.
+ * ==================================================================== */
+const GATE_CRITERION=2;   // k consecutive correct
+const GATE_MAX_TRIALS=8;  // see the comment on `gateExhausted` below
+/**
+ * Evenly spread marks for the gate, rather than the served item's own crowded ratios.
+ *
+ * The gate is a test of the interface and of nothing else. Reusing a slate whose two nearest ticks
+ * sit 0.0125 of the line apart would fail a child for a discrimination the scored trial hands them
+ * a magnified plate for, and a child who fails the gate never reaches trial 0.
+ */
+const GATE_RATIOS=[0.1,0.3,0.5,0.7,0.9];
+let gateActive=false, gateStreak=0, gateTrials=0, gateAnswer=null, gateShownHint=false;
+let gateExhausted=false;
+/*
+ * The design says a child who has not got the interface does not reach trial 0. Taken literally in
+ * software that is an unbounded loop with no way out of the session, so the gate gives up after
+ * GATE_MAX_TRIALS and lets the child through with `gateCriterionMet:0` on the record. Excluding
+ * that child is an analysis decision at Gate B, which can see the flag; wedging their session for
+ * four minutes until the host times the item out is not a decision anyone made.
+ */
+
+function renderGateTrial(){
+  const options=GATE_RATIOS.map((ratio,i)=>({key:OPTION_KEYS[i],ratio}));
+  // The target walks the five places rather than sitting still, so the gate cannot be cleared by
+  // learning one position — which is the very thing the gate exists to stop being learnable later.
+  const slot=(gateTrials*2+1)%options.length;
+  gateAnswer=options[slot].key;
+  gateTrials++;
+  committed=false;
+  touched=false;
+  firstLatency=null;
+  drawExpression([]);
+  drawTray((current&&current.content&&current.content.glyphTray)||[],[]);
+  $('#exprlabel').textContent='Warm-up';
+  drawRail(options,[]);
+  drawOptions(options);
+  showToken(gateAnswer);
+  setCue('warmup','Warm-up · not scored');
+  setStatus('The dot is already on the line. Tap the button under the place it is sitting at.');
+  itemStart=Date.now();
+  interactive=true;
+  emitEvent('gate_render',{gateTrial:gateTrials,streak:gateStreak});
+}
+
+async function gateHint(){
+  const target=$(`#options .opt[data-key="${gateAnswer}"]`);
+  ghost.classList.add('show');
+  await sleep(220);
+  await ghostTo($('#token'));
+  await ghostTo(target);
+  await ghostTap();
+  ghost.classList.remove('show');
+  await sleep(260);
+}
+
+async function onGateTap(key){
+  interactive=false;
+  const right=key===gateAnswer;
+  gateStreak=right?gateStreak+1:0;
+  emitEvent('gate_response',{gateTrial:gateTrials,streak:gateStreak});
+  // The gate is the one place this file may resolve an instance, because it built it and the
+  // answer was on screen the whole time. It is still shown as world-state, not as a verdict.
+  const chosen=$(`#options .opt[data-key="${key}"]`);
+  tagOption(key,'chose','you chose');
+  tagOption(gateAnswer,'goes','it sits here');
+  lockOptions();
+  setStatus('That is the place the dot was sitting at.');
+  if(chosen)chosen.blur();
+  await sleep(1100);
+  if(gateStreak>=GATE_CRITERION||gateTrials>=GATE_MAX_TRIALS){
+    gateExhausted=gateStreak<GATE_CRITERION;
+    gateActive=false;
+    emitEvent('gate_complete',{gateTrials,criterionMet:gateExhausted?0:1});
+    beginScoredItem();
+    return;
+  }
+  renderGateTrial();
+}
+
+async function runGate(){
+  gateActive=true;gateStreak=0;gateTrials=0;
+  renderGateTrial();
+  if(!gateShownHint){gateShownHint=true;await gateHint();}
+}
+
+/* ==================================================================== *
+ * THE SCORED TRIAL
+ * ==================================================================== */
+/** Draw the served item. Separate from {@link renderServedItem} because the interface gate paints
+ *  its own degenerate instances over the top and the scored trial has to paint the real one back. */
+function paintServedItem(){
+  const c=current.content;
+  const line=c.line||{};
+  $('#exprlabel').textContent='The machine wrote this';
+  drawExpression(c.expression||[]);
+  drawTray(c.glyphTray||[],c.expression||[]);
+  drawRail(c.options||[],line.maxExpression||[]);
+  drawOptions(c.options||[]);
+}
+
+function renderServedItem(item){
+  current=item;
+  committed=false;interactive=false;touched=false;firstLatency=null;blurCount=0;itemTelemetry=[];
+  paintServedItem();
+  itemStart=Date.now();
+  const c=item.content;
+  emitEvent('render',{
+    length:(c.expression||[]).length,
+    options:(c.options||[]).length,
+    difficulty:item.difficulty,
+  });
+}
+
+function beginScoredItem(){
+  if(!current||committed)return;
+  // Repaint unconditionally. Coming out of the interface gate the stage is still showing a
+  // degenerate instance with its plates locked, and the child would be looking at a dead screen.
+  // When no gate ran this redraws what is already there, which costs nothing and keeps one path.
+  paintServedItem();
+  touched=false;firstLatency=null;
+  interactive=true;
+  itemStart=Date.now();
+  setCue('scored','Your turn');
+  setStatus('The line runs from nothing up to the writing at its right-hand end. Tap where this writing belongs.');
+  emitEvent('scored_begin',{length:(current.content.expression||[]).length});
+}
+
+function commit(key){
+  if(!interactive||committed||!current)return;
+  const el=$(`#options .opt[data-key="${key}"]`);
+  if(!el)return;
+  const placedRatio=Number(el.dataset.ratio);
+  if(!isFinite(placedRatio))return;
+  const rt=Date.now()-itemStart;
+  committed=true;interactive=false;
+  lockOptions();
+  tagOption(key,'chose','you chose');
+  setCue('done','Answer sent');
+  setStatus(standalone
+    ?'The machine is placing it. (Opened directly: the host supplies where it goes.)'
+    :'The machine is placing it.');
+  emitEvent('submit',{selectedKey:key,placedRatio,rtMs:rt});
+  /*
+   * `placedRatio` is the whole point of this response and is why this type supplies `M-PAE` rather
+   * than declaring it. The shipped generic placement verifier — `verifyPlacementTolerance` in
+   * apps/web and `app.exam_verify_placement_tolerance` / `app.exam_verify_quant_glyphnum` in the
+   * database — computes `pae = |placedRatio - targetRatio|` and returns it as `M-PAE`. Neither
+   * `targetRatio` nor `tolerance` is ever sent here, so the browser reports WHERE THE CHILD TAPPED
+   * and the server alone decides whether that is right. D-031 named "a placement type wired again"
+   * as the trigger to re-enforce M-PAE in quantitative; this is that placement.
+   *
+   * `selectedKey` rides along because the tapped plate is also a categorical choice and the bank's
+   * strategy trace is keyed by option (§4.6). It is not what grades the trial.
+   *
+   * `gateCriterionMet` rides on the response, not on `metrics`: the metric registry is a closed
+   * vocabulary with no id for "cleared the interface gate", and Gate B needs the flag to be able to
+   * exclude a child who never got the interface (§1.4(4)).
+   */
+  const response={
+    placedRatio,
+    selectedKey:key,
+    firstContactMs:firstLatency==null?rt:firstLatency,
+    gateCriterionMet:gateExhausted?0:1,
+  };
+  const metrics={
+    'M-RT':rt,
+    'M-RTFIRST':firstLatency==null?rt:firstLatency,
+    'M-ENGAGE':blurCount,
+    'M-RAPIDGUESS':rt<350?1:0,
+  };
+  const result={itemId:current.itemId,typeCode:current.typeCode,domain:current.domain,
+    response,metrics,telemetry:itemTelemetry.slice()};
+  post({type:'result',result});
+  if(standalone)setTimeout(advanceStandalone,1250);
+}
+
+/**
+ * The machine puts the writing at its place.
+ *
+ * `reveal.machineOutput` names the option key of the place the expression belongs at. It arrives
+ * from the host only after the server has scored an item the child has already committed to and
+ * which is never served again, so it hands the browser nothing it can use — and it is the entire
+ * learning signal the block runs on. No word here evaluates the child's choice.
+ */
+function onReveal(reveal){
+  if(!committed||!reveal||!current)return;
+  const key=typeof reveal.machineOutput==='string'?reveal.machineOutput:null;
+  if(key===null)return;
+  if(!markFor(key))return;
+  showPin(key,(current.content||{}).expression||[]);
+  tagOption(key,'goes','it goes here');
+  setStatus('That is where the writing goes.');
+  emitEvent('reveal_shown',{});
+}
+
+/* ---------- interaction ---------- */
+function noteContact(){
+  if(!interactive||committed||touched)return;
+  touched=true;
+  firstLatency=Date.now()-itemStart;
+  emitEvent('first_contact',{latencyMs:firstLatency});
+}
+function onOptionTap(el){
+  if(!interactive)return;
+  const key=el.dataset.key;
+  if(!key)return;
+  noteContact();
+  if(gateActive){void onGateTap(key);return;}
+  commit(key);
+}
+
+/* ---------- host-driven lifecycle ---------- */
+/* R1 play gate: the item is rendered on `init` but stays covered and inert until the child presses
+   play, which is also when the response clock starts — so M-RT measures thinking rather than
+   however long the child took to look up. */
+function openGate(withTutorial){
+  gateTutorial=!!withTutorial;
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('warmup','Ready when you are');
+  setStatus('Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
+function onInit(item){
+  if(!item||!item.content||!item.content.options)return;
+  renderServedItem(item);
+  openGate(false);
+}
+function onPlay(){
+  if(!current||committed)return;
+  closeGate();
+  if(gateTutorial){gateTutorial=false;void runGate();return;}
+  beginScoredItem();
+}
+function onHostMessage(e){
+  const d=e.data;
+  if(!d||d.source!==HOST_SRC)return;
+  if(d.type==='init')onInit(d.item);
+  else if(d.type==='start')openGate(!!d.tutorial);
+  else if(d.type==='reveal')onReveal(d.reveal);
+}
+
+/* ---------- standalone (a researcher opening the file directly) ----------
+ * Guarded by `!embedded` and by NO timer. See the E-079 note in the header: a timer that decides
+ * "there is probably no host" is the defect, because a real host can be slower than any timeout.
+ * -------------------------------------------------------------------- */
+function toServed(b){const{answer,scoring,provenance,...s}=b;return s;}
+async function loadBankSamples(){
+  try{
+    const res=await fetch('../banks/QUANT-GLYPHNUM-01.jsonl',{cache:'no-store'});
+    if(res.ok){
+      const all=(await res.text()).trim().split('\n').filter(Boolean).map(l=>JSON.parse(l)).map(toServed);
+      all.sort((a,b)=>a.difficulty-b.difficulty);
+      const N=Math.min(12,all.length),pick=[];
+      for(let i=0;i<N;i++)pick.push(all[N===1?0:Math.round(i*(all.length-1)/(N-1))]);
+      return pick;
+    }
+  }catch(_){/* file:// blocks fetch, and the published copy has no /banks — fall through */}
+  return INLINE_SAMPLES.slice();
+}
+function playStandalone(){
+  const item=standaloneQueue[standaloneIdx%standaloneQueue.length];
+  onInit(item);
+  openGate(standaloneIdx===0);
+}
+function advanceStandalone(){standaloneIdx++;playStandalone();}
+async function bootstrapStandalone(){
+  standalone=true;
+  standaloneQueue=await loadBankSamples();
+  standaloneIdx=0;
+  playStandalone();
+}
+
+/* Inline served-item fallback: real bank items with every server-only field stripped. */
+const INLINE_SAMPLES=[
+{"itemId":"517c6778-44de-4f8f-9a43-01de2dd63435","typeCode":"QUANT-GLYPHNUM-01","domain":"quantitative","difficulty":1.01,"ageBands":["K-1"],"content":{"typeCode":"QUANT-GLYPHNUM-01","glyphTray":["arc","chevron","crescent","notch","spiral"],"expression":["crescent"],"line":{"minValue":0,"maxExpression":["spiral","notch","arc","crescent"]},"options":[{"key":"A","ratio":0.027027},{"key":"B","ratio":0.054054},{"key":"C","ratio":0.081081},{"key":"D","ratio":0.108108},{"key":"E","ratio":0.432432}],"responseField":"placedRatio"},"syntheticOnly":true,"validated":false}
+];
+
+/* ---------- wiring ---------- */
+$('#play').addEventListener('click',onPlay);
+$('#options').addEventListener('click',e=>{const o=e.target.closest('.opt');if(o)onOptionTap(o);});
+$('#options').addEventListener('pointerover',e=>{if(e.target.closest('.opt'))noteContact();});
+$('#options').addEventListener('focusin',e=>{if(e.target.closest('.opt'))noteContact();});
+document.addEventListener('keydown',e=>{
+  if(!interactive)return;
+  const byNumber=/^[1-5]$/.test(e.key)?$$('#options .opt')[Number(e.key)-1]:null;
+  const byLetter=OPTION_KEYS.indexOf(String(e.key).toUpperCase());
+  const el=byNumber||(byLetter>=0?$$('#options .opt')[byLetter]:null);
+  if(el)onOptionTap(el);
+});
+window.addEventListener('blur',()=>{if(interactive&&!committed){blurCount++;emitEvent('engagement',{reason:'blur'});}});
+
+window.addEventListener('message',onHostMessage);
+post({type:'ready'});
+if(!embedded)void bootstrapStandalone();
+</script>
+</body>
+</html>
