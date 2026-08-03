@@ -160,7 +160,9 @@ export function ExamRunner({
   const [phase, setPhase] = useState<Phase>('intro');
   const [gradeBand, setGradeBand] = useState<GradeBand>(initialGradeBand ?? '4-5');
   const [current, setCurrent] = useState<ServedItem | null>(null);
-  const [served, setServed] = useState<ServedItem[]>([]);
+  // Write-only since the progress bar became continuous: `servedRef` is the source of truth, and
+  // this setter is kept purely to re-render on each newly served item.
+  const [, setServed] = useState<ServedItem[]>([]);
   const [scoredCount, setScoredCount] = useState(0);
   const [outcome, setOutcome] = useState<ExamScore | null>(null);
   const [error, setError] = useState<string | null>(null);
