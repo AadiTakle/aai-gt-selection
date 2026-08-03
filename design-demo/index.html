@@ -1,0 +1,1794 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GT School · Family Application (synthetic demo)</title>
+    <!--
+      GT School — Family Application (synthetic prototype)
+      Brand tokens extracted from gt.school live stylesheet:
+        ink #001117 · petrol #002a3a · blue #004f71 · orange #e48b53 / #ab683e
+        warm neutrals #f8e8de #f5ddcd #ebba9b #fcf4ef · white #fff
+      Type: Literata (display), Inter Tight (body), Inconsolata (utility/mono)
+      Progress is shown only qualitatively (journey states + a warming mark).
+      No percentages, no "x of y", no "saved" — autosave is silent.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,500;7..72,600;7..72,700&family=Inter+Tight:wght@400;500;600;700&family=Inconsolata:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --ink: #001117;
+        --petrol: #002a3a;
+        --blue: #004f71;
+        --blue-dark: #003b5c;
+        --orange: #e48b53;
+        --orange-deep: #ab683e;
+        --gold-1: #f8e8de;
+        --gold-2: #f5ddcd;
+        --gold-3: #ebba9b;
+        --paper: #fcf4ef;
+        --white: #ffffff;
+
+        --ink-70: #33474e;
+        --ink-50: #5b6a70;
+        --ink-35: #8a969b;
+        --line: #e7ddd3;
+        --line-strong: #d8cabb;
+
+        --display: 'Literata', Georgia, serif;
+        --body: 'Inter Tight', system-ui, sans-serif;
+        --mono: 'Inconsolata', ui-monospace, monospace;
+
+        --focus: 0 0 0 3px rgba(0, 79, 113, 0.35);
+        --radius: 14px;
+        --radius-sm: 10px;
+        --rail-w: 264px;
+        --stage-w: 340px;
+        --maxw: 1320px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: var(--body);
+        color: var(--ink);
+        background: var(--paper);
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+      h1,
+      h2,
+      h3 {
+        font-family: var(--display);
+        font-weight: 600;
+        line-height: 1.12;
+        margin: 0;
+        letter-spacing: -0.01em;
+      }
+      button {
+        font-family: inherit;
+        cursor: pointer;
+      }
+      input,
+      select,
+      textarea {
+        font-family: inherit;
+        font-size: 15px;
+        color: var(--ink);
+      }
+      :focus-visible {
+        outline: none;
+        box-shadow: var(--focus);
+        border-radius: 8px;
+      }
+
+      /* ---------- synthetic banner ---------- */
+      .synthetic {
+        background: var(--ink);
+        color: var(--gold-2);
+        font-family: var(--mono);
+        font-size: 12px;
+        letter-spacing: 0.04em;
+        text-align: center;
+        padding: 7px 16px;
+      }
+      .synthetic b {
+        color: var(--orange);
+        font-weight: 600;
+      }
+
+      /* ---------- top bar ---------- */
+      .topbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 28px;
+        max-width: var(--maxw);
+        margin: 0 auto;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .brand svg {
+        width: 30px;
+        height: 27px;
+        color: var(--petrol);
+      }
+      .brand .wm {
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 19px;
+        letter-spacing: -0.01em;
+        color: var(--ink);
+      }
+      .brand .wm span {
+        color: var(--orange-deep);
+      }
+      .topbar .cycle {
+        margin-left: auto;
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--ink-50);
+        letter-spacing: 0.04em;
+      }
+
+      /* ---------- shell ---------- */
+      .shell {
+        max-width: var(--maxw);
+        margin: 0 auto;
+        padding: 8px 28px 64px;
+        display: grid;
+        grid-template-columns: var(--rail-w) minmax(0, 1fr) var(--stage-w);
+        gap: 40px;
+        align-items: start;
+      }
+
+      /* ---------- journey rail ---------- */
+      .rail {
+        position: sticky;
+        top: 20px;
+      }
+      .rail-title {
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-35);
+        margin: 6px 0 16px 4px;
+      }
+      .steps {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        position: relative;
+      }
+      .steps::before {
+        content: '';
+        position: absolute;
+        left: 15px;
+        top: 12px;
+        bottom: 14px;
+        width: 2px;
+        background: var(--line);
+      }
+      .step {
+        position: relative;
+        display: flex;
+        gap: 13px;
+        align-items: flex-start;
+        padding: 7px 8px 7px 0;
+        border: 0;
+        background: none;
+        width: 100%;
+        text-align: left;
+        border-radius: 10px;
+        color: var(--ink-50);
+      }
+      .step:hover:not(:disabled) {
+        background: rgba(0, 42, 58, 0.04);
+      }
+      .step:disabled {
+        cursor: default;
+      }
+      .step .dot {
+        flex: none;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: var(--white);
+        border: 2px solid var(--line-strong);
+        color: var(--ink-35);
+        font-family: var(--mono);
+        font-size: 13px;
+        font-weight: 600;
+        z-index: 1;
+        transition:
+          background 0.35s ease,
+          border-color 0.35s ease,
+          color 0.35s ease;
+      }
+      .step .lbl {
+        padding-top: 5px;
+      }
+      .step .lbl .nm {
+        display: block;
+        font-weight: 500;
+        font-size: 14.5px;
+        color: var(--ink-70);
+        letter-spacing: -0.005em;
+      }
+      .step .lbl .st {
+        display: block;
+        font-family: var(--mono);
+        font-size: 10.5px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-35);
+        margin-top: 3px;
+      }
+      /* done */
+      .step.done .dot {
+        background: var(--blue);
+        border-color: var(--blue);
+        color: #fff;
+      }
+      .step.done .lbl .nm {
+        color: var(--ink);
+      }
+      .step.done .lbl .st {
+        color: var(--blue);
+      }
+      /* current */
+      .step.current .dot {
+        background: var(--orange);
+        border-color: var(--orange);
+        color: #26150a;
+      }
+      .step.current .lbl .nm {
+        color: var(--ink);
+        font-weight: 600;
+      }
+      .step.current .lbl .st {
+        color: var(--orange-deep);
+      }
+
+      /* ---------- main column ---------- */
+      .main {
+        min-width: 0;
+      }
+      .eyebrow {
+        font-family: var(--mono);
+        font-size: 12px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--orange-deep);
+        margin-bottom: 10px;
+      }
+      .page-title {
+        font-size: 34px;
+        margin-bottom: 10px;
+      }
+      .intro {
+        color: var(--ink-50);
+        max-width: 56ch;
+        margin: 0 0 26px;
+        font-size: 15.5px;
+      }
+      .intro .why {
+        display: block;
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--blue);
+        margin-top: 8px;
+        letter-spacing: 0.02em;
+      }
+
+      .page {
+        display: none;
+        animation: rise 0.4s ease both;
+      }
+      .page.active {
+        display: block;
+      }
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+      }
+
+      .card {
+        background: var(--white);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 24px;
+        margin-bottom: 18px;
+      }
+      .card + .card {
+        margin-top: 0;
+      }
+      .card-title {
+        font-family: var(--display);
+        font-size: 18px;
+        font-weight: 600;
+        margin: 0 0 4px;
+      }
+      .card-note {
+        color: var(--ink-50);
+        font-size: 14px;
+        margin: 0 0 16px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+      }
+      .field.col-2 {
+        grid-column: 1 / -1;
+      }
+      label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ink-70);
+        letter-spacing: 0.005em;
+      }
+      .req {
+        color: var(--orange-deep);
+      }
+      .opt {
+        font-weight: 400;
+        color: var(--ink-35);
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.04em;
+      }
+      .control {
+        width: 100%;
+        padding: 11px 13px;
+        border: 1px solid var(--line-strong);
+        border-radius: var(--radius-sm);
+        background: var(--paper);
+        transition:
+          border-color 0.2s ease,
+          box-shadow 0.2s ease,
+          background 0.2s ease;
+      }
+      .control:hover {
+        border-color: var(--blue);
+      }
+      .control:focus {
+        background: #fff;
+        border-color: var(--blue);
+        box-shadow: var(--focus);
+        outline: none;
+      }
+      textarea.control {
+        min-height: 96px;
+        resize: vertical;
+      }
+      .select-wrap {
+        position: relative;
+      }
+      .select-wrap::after {
+        content: '';
+        position: absolute;
+        right: 14px;
+        top: 50%;
+        width: 8px;
+        height: 8px;
+        border-right: 2px solid var(--ink-50);
+        border-bottom: 2px solid var(--ink-50);
+        transform: translateY(-70%) rotate(45deg);
+        pointer-events: none;
+      }
+      select.control {
+        appearance: none;
+        padding-right: 34px;
+      }
+      .hint {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--ink-35);
+        letter-spacing: 0.02em;
+      }
+      .field.invalid .control {
+        border-color: var(--orange-deep);
+      }
+      .err {
+        display: none;
+        color: var(--orange-deep);
+        font-size: 12px;
+        font-weight: 500;
+      }
+      .field.invalid .err {
+        display: block;
+      }
+
+      /* autofill panel */
+      .autofill {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        margin-top: 16px;
+        padding: 14px 16px;
+        border-radius: var(--radius-sm);
+        background: var(--gold-1);
+        border: 1px solid var(--gold-3);
+        color: var(--ink-70);
+        font-size: 13.5px;
+      }
+      .autofill .pin {
+        color: var(--orange-deep);
+        flex: none;
+      }
+      .autofill b {
+        color: var(--ink);
+      }
+
+      /* reveal */
+      .reveal {
+        display: grid;
+        grid-template-rows: 0fr;
+        transition: grid-template-rows 0.3s ease;
+      }
+      .reveal > div {
+        overflow: hidden;
+      }
+      .reveal.open {
+        grid-template-rows: 1fr;
+      }
+      .reveal-inner {
+        padding-top: 18px;
+      }
+      .reveal.inline .reveal-inner {
+        padding-top: 8px;
+      }
+
+      /* segmented yes/no */
+      .segmented {
+        display: inline-flex;
+        border: 1px solid var(--line-strong);
+        border-radius: 999px;
+        padding: 3px;
+        background: var(--paper);
+        gap: 3px;
+      }
+      .segmented button {
+        border: 0;
+        background: none;
+        padding: 8px 22px;
+        border-radius: 999px;
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--ink-50);
+      }
+      .segmented button[aria-pressed='true'] {
+        background: var(--petrol);
+        color: #fff;
+      }
+
+      /* chips */
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 9px;
+      }
+      .chip {
+        border: 1px solid var(--line-strong);
+        background: var(--paper);
+        border-radius: 999px;
+        padding: 8px 14px;
+        font-size: 13.5px;
+        font-weight: 500;
+        color: var(--ink-70);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .chip .tick {
+        display: none;
+        color: var(--orange-deep);
+        font-weight: 700;
+      }
+      .chip[aria-pressed='true'] {
+        border-color: var(--orange);
+        background: var(--gold-1);
+        color: var(--ink);
+      }
+      .chip[aria-pressed='true'] .tick {
+        display: inline;
+      }
+
+      /* repeater */
+      .rel-row {
+        margin-bottom: 10px;
+      }
+      .add-btn {
+        border: 1px dashed var(--line-strong);
+        background: none;
+        border-radius: var(--radius-sm);
+        padding: 9px 14px;
+        color: var(--blue);
+        font-weight: 600;
+        font-size: 13.5px;
+        display: inline-flex;
+        gap: 7px;
+        align-items: center;
+      }
+      .add-btn:hover {
+        border-color: var(--blue);
+        background: rgba(0, 79, 113, 0.04);
+      }
+
+      /* review */
+      .review-group {
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm);
+        background: var(--white);
+        margin-bottom: 12px;
+        overflow: hidden;
+      }
+      .review-group summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 15px 18px;
+        font-family: var(--display);
+        font-weight: 600;
+        font-size: 15.5px;
+        display: flex;
+        align-items: center;
+      }
+      .review-group summary::-webkit-details-marker {
+        display: none;
+      }
+      .review-group .edit {
+        margin-left: auto;
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--blue);
+        font-weight: 600;
+        letter-spacing: 0.03em;
+      }
+      .review-body {
+        padding: 0 18px 16px;
+      }
+      .kv {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 7px 0;
+        border-top: 1px solid var(--line);
+        font-size: 14px;
+      }
+      .kv .k {
+        color: var(--ink-50);
+      }
+      .kv .v {
+        color: var(--ink);
+        font-weight: 500;
+        text-align: right;
+      }
+
+      .ack {
+        background: var(--white);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 24px;
+        margin-top: 6px;
+      }
+      .legal {
+        font-family: var(--display);
+        font-style: italic;
+        color: var(--ink-70);
+        font-size: 15px;
+        line-height: 1.55;
+        border-left: 3px solid var(--gold-3);
+        padding-left: 16px;
+        margin: 0 0 18px;
+      }
+      .check {
+        display: flex;
+        gap: 11px;
+        align-items: flex-start;
+        font-size: 14px;
+        color: var(--ink-70);
+      }
+      .check input {
+        margin-top: 3px;
+        width: 17px;
+        height: 17px;
+        accent-color: var(--blue);
+      }
+
+      /* footer nav */
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-top: 26px;
+      }
+      .btn {
+        border-radius: 999px;
+        padding: 12px 26px;
+        font-weight: 600;
+        font-size: 15px;
+        border: 1px solid transparent;
+      }
+      .btn-primary {
+        background: var(--orange);
+        color: #26150a;
+      }
+      .btn-primary:hover {
+        background: var(--orange-deep);
+        color: #fff;
+      }
+      .btn-ghost {
+        background: none;
+        border-color: var(--line-strong);
+        color: var(--ink-70);
+      }
+      .btn-ghost:hover {
+        border-color: var(--ink-50);
+      }
+      .actions .spacer {
+        flex: 1;
+      }
+      .actions .assurance {
+        font-family: var(--mono);
+        font-size: 11.5px;
+        color: var(--ink-35);
+        letter-spacing: 0.02em;
+      }
+
+      /* ---------- ambient stage (3D mark) ---------- */
+      .stage {
+        position: sticky;
+        top: 20px;
+        background: linear-gradient(180deg, var(--petrol), var(--ink));
+        border-radius: 20px;
+        min-height: 460px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        color: var(--gold-2);
+      }
+      #markMount {
+        flex: 1;
+        position: relative;
+        min-height: 300px;
+      }
+      #markMount canvas {
+        display: block;
+        width: 100% !important;
+        height: 100% !important;
+      }
+      .stage-fallback {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+      }
+      .stage-fallback svg {
+        width: 128px;
+        height: 116px;
+        color: var(--gold-2);
+        opacity: 0.92;
+      }
+      .stage-copy {
+        padding: 20px 22px 24px;
+      }
+      .stage-copy .head {
+        font-family: var(--display);
+        font-size: 17px;
+        color: #fff;
+        margin-bottom: 5px;
+      }
+      .stage-copy .sub {
+        font-size: 13px;
+        color: var(--gold-3);
+        line-height: 1.5;
+      }
+
+      /* ---------- welcome + success ---------- */
+      .welcome,
+      .done {
+        background: var(--white);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 40px;
+        text-align: center;
+      }
+      .welcome h1 {
+        font-size: 36px;
+        margin-bottom: 12px;
+      }
+      .welcome p {
+        color: var(--ink-50);
+        max-width: 46ch;
+        margin: 0 auto 12px;
+        font-size: 16px;
+      }
+      .welcome .btn-primary {
+        margin-top: 18px;
+      }
+      .welcome .est {
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--ink-35);
+        margin-top: 14px;
+        letter-spacing: 0.03em;
+      }
+      .done .seal {
+        width: 74px;
+        height: 74px;
+        border-radius: 50%;
+        background: var(--gold-1);
+        border: 1px solid var(--gold-3);
+        display: grid;
+        place-items: center;
+        margin: 0 auto 20px;
+        color: var(--orange-deep);
+      }
+      .done h1 {
+        font-size: 30px;
+        margin-bottom: 12px;
+      }
+      .done p {
+        color: var(--ink-50);
+        max-width: 52ch;
+        margin: 0 auto 22px;
+      }
+      .next-step {
+        display: inline-flex;
+        gap: 14px;
+        align-items: center;
+        text-align: left;
+        border: 1px solid var(--line);
+        background: var(--paper);
+        border-radius: var(--radius-sm);
+        padding: 16px 20px;
+      }
+      .next-step .n {
+        font-family: var(--mono);
+        font-weight: 600;
+        color: #fff;
+        background: var(--blue);
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 13px;
+      }
+      .next-step h3 {
+        font-size: 15.5px;
+        margin-bottom: 2px;
+      }
+      .next-step p {
+        margin: 0;
+        font-size: 13px;
+      }
+
+      /* ---------- responsive ---------- */
+      @media (max-width: 1080px) {
+        .shell {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 22px;
+        }
+        .stage {
+          order: -1;
+          min-height: 220px;
+          flex-direction: row;
+          align-items: center;
+        }
+        #markMount {
+          min-height: 160px;
+        }
+        .stage-copy {
+          flex: 1;
+        }
+        .rail {
+          position: static;
+        }
+        .steps {
+          display: flex;
+          overflow-x: auto;
+          gap: 4px;
+          padding-bottom: 6px;
+        }
+        .steps::before {
+          display: none;
+        }
+        .step {
+          flex-direction: column;
+          align-items: center;
+          width: auto;
+          min-width: 92px;
+          gap: 6px;
+          text-align: center;
+        }
+        .step .lbl {
+          padding-top: 0;
+        }
+        .step .lbl .st {
+          display: none;
+        }
+      }
+      @media (max-width: 640px) {
+        .topbar,
+        .shell {
+          padding-left: 16px;
+          padding-right: 16px;
+        }
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        .page-title {
+          font-size: 27px;
+        }
+        .welcome,
+        .done {
+          padding: 26px 20px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="synthetic">
+      <b>SYNTHETIC DEMO</b> · fictional data only · not a live application or an eligibility/admission decision
+    </div>
+
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="GT School home">
+        <svg viewBox="0 0 36 32" fill="currentColor" aria-hidden="true">
+          <path
+            d="M10.13.14C11.96-.29 14.22.3 16.61 1.8c-.7.54-1.4 1.15-2.09 1.82-1.75-.96-3.04-1.1-3.81-.91-.69.17-1.5.75-1.88 2.58-.4 1.9-.19 4.66.85 7.9 1.03 3.2 2.75 6.48 4.88 9.29 2.15 2.83 4.5 4.9 6.6 6.01 2.15 1.13 3.47.98 4.1.64.61-.33 1.41-1.29 1.57-3.62.13-1.9-.22-4.3-1.1-6.93h-9.24c-.53-.86-.99-1.74-1.43-2.63h12.49l.07.15c1.37 3.46 2.01 6.83 1.83 9.59-.19 2.78-1.21 4.79-2.9 5.73l-.04.02c-1.71.92-3.99.71-6.51-.59l-.06-.03c-2.5-1.31-5.08-3.63-7.36-6.6l-.11-.14c-2.31-3.04-4.17-6.58-5.29-10.07C6.05 10.5 5.73 7.25 6.25 4.74 6.78 2.24 8.12.63 10.08.15l.05-.01Z"
+          />
+          <path
+            d="M12.82 7.47C17.45 1.59 23.12-1.39 26.62.63c2.05 1.18 2.99 3.87 2.85 7.28-.82-.34-1.7-.64-2.62-.9-.05-2.51-.85-3.7-1.55-4.1-.79-.46-2.53-.53-5.27 1.28-1.13.75-2.3 1.74-3.46 2.96.39-.01.78-.02 1.17-.02 9.8 0 17.75 3.97 17.75 8.87 0 2.37-1.86 4.52-4.88 6.11-.12-.88-.3-1.79-.53-2.72 2.15-1.3 2.78-2.59 2.78-3.39 0-.92-.81-2.46-3.74-3.92-2.78-1.39-6.8-2.32-11.38-2.32-1.27 0-2.49.07-3.66.2h-.01c-1.14.14-2.23.34-3.24.58.68-1.1 1.4-2.13 2.16-3.09Z"
+          />
+        </svg>
+        <span class="wm">GT<span>School</span></span>
+      </a>
+      <span class="cycle">Fall 2027 · Grades 3–8</span>
+    </header>
+
+    <div class="shell">
+      <!-- ============ JOURNEY RAIL ============ -->
+      <nav class="rail" aria-label="Application sections">
+        <p class="rail-title">Your application</p>
+        <ul class="steps" id="steps">
+          <li>
+            <button class="step done" disabled>
+              <span class="dot" aria-hidden="true">✓</span>
+              <span class="lbl"><span class="nm">Account created</span><span class="st">Done</span></span>
+            </button>
+          </li>
+          <!-- section steps injected here -->
+        </ul>
+      </nav>
+
+      <!-- ============ MAIN ============ -->
+      <main class="main">
+        <!-- WELCOME -->
+        <section class="page active" data-page="welcome">
+          <div class="welcome">
+            <h1>Let’s introduce us to your child</h1>
+            <p>
+              You’ve already started. A few short sections — about your child, your family, and how they learn — and
+              you’ll be ready for the next step.
+            </p>
+            <p>Every answer helps GT School understand who your child is. Take it at your pace; nothing is timed.</p>
+            <button class="btn btn-primary" id="beginBtn">Begin with your child →</button>
+            <div class="est">Most families finish in one sitting · pick up anytime</div>
+          </div>
+        </section>
+
+        <!-- SECTIONS -->
+        <div id="sections">
+          <!-- 1 STUDENT -->
+          <section class="page" data-page="0">
+            <div class="eyebrow" data-eyebrow>Student</div>
+            <h1 class="page-title">Tell us about your child</h1>
+            <p class="intro">
+              The basics, in your child’s own terms.
+              <span class="why">Kept private · never used to judge eligibility</span>
+            </p>
+            <div class="card">
+              <div class="grid">
+                <div class="field col-2">
+                  <label>Student’s legal name <span class="req">*</span></label>
+                  <input class="control" data-req data-key="stu_name" placeholder="First and last name" />
+                  <span class="err">Please enter your child’s name.</span>
+                </div>
+                <div class="field">
+                  <label>Date of birth <span class="req">*</span></label>
+                  <input class="control" type="date" data-req data-key="stu_dob" />
+                  <span class="err">Please add a date of birth.</span>
+                </div>
+                <div class="field">
+                  <label>Gender <span class="req">*</span></label>
+                  <div class="select-wrap">
+                    <select class="control" data-req data-key="stu_gender">
+                      <option value="" selected disabled>Select…</option>
+                      <option>Female</option>
+                      <option>Male</option>
+                      <option>Non-binary</option>
+                      <option>Prefer to self-describe</option>
+                      <option>Prefer not to say</option>
+                    </select>
+                  </div>
+                  <span class="err">Please choose an option.</span>
+                </div>
+                <div class="field">
+                  <label>Current grade level <span class="req">*</span></label>
+                  <div class="select-wrap">
+                    <select class="control" data-req data-key="stu_grade">
+                      <option value="" selected disabled>Select…</option>
+                      <option>Grade 2</option>
+                      <option>Grade 3</option>
+                      <option>Grade 4</option>
+                      <option>Grade 5</option>
+                      <option>Grade 6</option>
+                      <option>Grade 7</option>
+                    </select>
+                  </div>
+                  <span class="err">Please choose a grade.</span>
+                </div>
+                <div class="field">
+                  <label>Requested entry year <span class="req">*</span></label>
+                  <div class="select-wrap">
+                    <select class="control" data-req data-key="stu_year">
+                      <option value="" selected disabled>Select…</option>
+                      <option>Fall 2027</option>
+                      <option>Fall 2028</option>
+                    </select>
+                  </div>
+                  <span class="err">Please choose a year.</span>
+                </div>
+                <div class="field col-2">
+                  <label>Requested entry grade <span class="req">*</span></label>
+                  <div class="select-wrap">
+                    <select class="control" data-req data-key="stu_egrade">
+                      <option value="" selected disabled>Select…</option>
+                      <option>Grade 3</option>
+                      <option>Grade 4</option>
+                      <option>Grade 5</option>
+                      <option>Grade 6</option>
+                      <option>Grade 7</option>
+                      <option>Grade 8</option>
+                    </select>
+                  </div>
+                  <span class="err">Please choose a grade.</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 2 EDUCATION -->
+          <section class="page" data-page="1">
+            <div class="eyebrow" data-eyebrow>Education</div>
+            <h1 class="page-title">Where your child learns now</h1>
+            <p class="intro">
+              Pick from the directory and we’ll fill in the address and type for you.
+              <span class="why">School details never affect eligibility</span>
+            </p>
+            <div class="card">
+              <div class="grid">
+                <div class="field col-2">
+                  <label>Current school <span class="req">*</span></label>
+                  <div class="select-wrap">
+                    <select class="control" data-req data-key="edu_school" id="schoolSelect">
+                      <option value="" selected disabled>Search the school directory…</option>
+                      <option data-type="Public elementary" data-addr="418 Larkspur Ave, Cedar Falls, IA 50613">
+                        Cedar Falls Community Elementary
+                      </option>
+                      <option data-type="Public middle" data-addr="2100 Rownd St, Cedar Falls, IA 50613">
+                        Holmes Junior High
+                      </option>
+                      <option data-type="Private / independent" data-addr="55 Grove St, Waterloo, IA 50701">
+                        Waterloo Montessori Academy
+                      </option>
+                      <option data-type="Charter" data-addr="900 Ansborough Ave, Waterloo, IA 50701">
+                        Riverbend Charter School
+                      </option>
+                      <option value="other" data-type="" data-addr="">Other / not listed</option>
+                    </select>
+                  </div>
+                  <span class="err">Please choose a school.</span>
+                </div>
+              </div>
+              <div class="autofill" id="schoolAutofill">
+                <span class="pin" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 21s7-5.4 7-11a7 7 0 10-14 0c0 5.6 7 11 7 11z" stroke="currentColor" stroke-width="2" />
+                    <circle cx="12" cy="10" r="2.5" stroke="currentColor" stroke-width="2" />
+                  </svg>
+                </span>
+                <div id="schoolAutofillText">Select a school and its type and address appear here automatically.</div>
+              </div>
+              <div class="reveal" id="otherSchool">
+                <div>
+                  <div class="reveal-inner">
+                    <div class="grid">
+                      <div class="field col-2">
+                        <label>School name <span class="req">*</span></label>
+                        <input class="control" data-key="edu_other_name" placeholder="Enter the school’s name" />
+                      </div>
+                      <div class="field">
+                        <label>School type <span class="req">*</span></label>
+                        <div class="select-wrap">
+                          <select class="control" data-key="edu_other_type">
+                            <option value="" selected disabled>Select…</option>
+                            <option>Public</option>
+                            <option>Private / independent</option>
+                            <option>Charter</option>
+                            <option>Home education</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div class="field">
+                        <label>City &amp; state <span class="opt">optional</span></label>
+                        <input class="control" data-key="edu_other_city" placeholder="City, State" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 3 SUPPORT & DISCLOSURES -->
+          <section class="page" data-page="2">
+            <div class="eyebrow" data-eyebrow>Support</div>
+            <h1 class="page-title">Support &amp; disclosures</h1>
+            <p class="intro">
+              This helps us support your child well from day one.
+              <span class="why">Private · hidden from eligibility reviewers · never affects routing</span>
+            </p>
+            <div class="card">
+              <p class="card-title">Accommodations &amp; learning plans</p>
+              <p class="card-note">Does your child have any accommodations, learning plans, or other support in place?</p>
+              <div class="segmented" role="group" aria-label="Has support plans" data-toggle="support">
+                <button type="button" aria-pressed="false" data-val="yes">Yes</button>
+                <button type="button" aria-pressed="true" data-val="no">No</button>
+              </div>
+              <div class="reveal" id="supportDetail">
+                <div>
+                  <div class="reveal-inner">
+                    <div class="field" style="margin-bottom: 16px">
+                      <label>Which supports apply? <span class="opt">select all that apply</span></label>
+                      <div class="chips" data-chips>
+                        <button type="button" class="chip" aria-pressed="false"><span class="tick">✓</span>IEP</button>
+                        <button type="button" class="chip" aria-pressed="false"><span class="tick">✓</span>504 Plan</button>
+                        <button type="button" class="chip" aria-pressed="false"><span class="tick">✓</span>Speech / language</button>
+                        <button type="button" class="chip" aria-pressed="false"><span class="tick">✓</span>Occupational therapy</button>
+                        <button type="button" class="chip" aria-pressed="false"><span class="tick">✓</span>Behavioral support</button>
+                        <button type="button" class="chip" aria-pressed="false"><span class="tick">✓</span>Gifted service plan</button>
+                        <button type="button" class="chip" aria-pressed="false"><span class="tick">✓</span>Other</button>
+                      </div>
+                    </div>
+                    <div class="field">
+                      <label>Details about accommodations or challenges <span class="opt">optional</span></label>
+                      <textarea class="control" maxlength="600" data-key="sup_detail" placeholder="Anything that helps us support your child well. Up to 600 characters."></textarea>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <p class="card-title">Disclosures</p>
+              <p class="card-note">
+                Has the student ever been dismissed, suspended, placed on probation, or received another serious
+                disciplinary sanction — or withdrawn voluntarily for a non-health reason?
+              </p>
+              <div class="segmented" role="group" aria-label="Has disclosures" data-toggle="disclose">
+                <button type="button" aria-pressed="false" data-val="yes">Yes</button>
+                <button type="button" aria-pressed="true" data-val="no">No</button>
+              </div>
+              <div class="reveal" id="discloseDetail">
+                <div>
+                  <div class="reveal-inner">
+                    <div class="field">
+                      <label>Please explain <span class="req">*</span></label>
+                      <textarea class="control" maxlength="800" data-key="dis_detail" data-req-if="disclose" placeholder="A brief explanation. This is required when you answer yes, and stays private."></textarea>
+                      <span class="err">A brief explanation is required when you answer yes.</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 4 FAMILY & LANGUAGE -->
+          <section class="page" data-page="3">
+            <div class="eyebrow" data-eyebrow>Family</div>
+            <h1 class="page-title">Family &amp; language</h1>
+            <p class="intro">
+              Your household and the languages your child lives with.
+              <span class="why">Home language helps us serve you — it’s never scored</span>
+            </p>
+            <div class="card">
+              <p class="card-title">Guardian &amp; household</p>
+              <div class="grid">
+                <div class="field">
+                  <label>Your relationship to the child <span class="req">*</span></label>
+                  <div class="select-wrap">
+                    <select class="control" data-req data-key="fam_rel">
+                      <option value="" selected disabled>Select…</option>
+                      <option>Parent</option>
+                      <option>Legal guardian</option>
+                      <option>Grandparent</option>
+                      <option>Foster parent</option>
+                      <option>Other</option>
+                    </select>
+                  </div>
+                  <span class="err">Please choose an option.</span>
+                </div>
+                <div class="field">
+                  <label>Primary household address <span class="req">*</span></label>
+                  <input class="control" data-req data-key="fam_addr" placeholder="Street, city, state, ZIP" />
+                  <span class="hint">Address is private and excluded from eligibility.</span>
+                  <span class="err">Please add your address.</span>
+                </div>
+              </div>
+              <div style="margin-top: 20px">
+                <p class="card-note" style="margin-bottom: 10px">Have any relatives attended GT School?</p>
+                <div class="segmented" role="group" aria-label="Relatives at GT" data-toggle="relatives">
+                  <button type="button" aria-pressed="false" data-val="yes">Yes</button>
+                  <button type="button" aria-pressed="true" data-val="no">No</button>
+                </div>
+                <div class="reveal" id="relativesDetail">
+                  <div>
+                    <div class="reveal-inner">
+                      <div class="field">
+                        <label>Relative’s name <span class="req">*</span></label>
+                        <div class="repeater" id="relRepeater">
+                          <div class="rel-row"><input class="control" placeholder="Full name" /></div>
+                        </div>
+                        <button type="button" class="add-btn" id="addRelative"><span aria-hidden="true">+</span> Add another relative</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <p class="card-title">Home language survey</p>
+              <p class="card-note">These help us serve multilingual families — they’re never scored.</p>
+              <div class="grid">
+                <div class="field">
+                  <label>Language most often spoken at home <span class="req">*</span></label>
+                  <div class="select-wrap">
+                    <select class="control lang-select" data-req data-key="lang_home">
+                      <option value="" selected disabled>Select…</option>
+                      <option>English</option><option>Spanish</option><option>Chinese</option>
+                      <option>Arabic</option><option>Vietnamese</option><option>Tagalog</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div class="reveal inline lang-other"><div><div class="reveal-inner"><input class="control lang-other-input" placeholder="If other, please specify" /></div></div></div>
+                  <span class="err">Please choose a language.</span>
+                </div>
+                <div class="field">
+                  <label>Language the child first learned <span class="req">*</span></label>
+                  <div class="select-wrap">
+                    <select class="control lang-select" data-req data-key="lang_first">
+                      <option value="" selected disabled>Select…</option>
+                      <option>English</option><option>Spanish</option><option>Chinese</option>
+                      <option>Arabic</option><option>Vietnamese</option><option>Tagalog</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div class="reveal inline lang-other"><div><div class="reveal-inner"><input class="control lang-other-input" placeholder="If other, please specify" /></div></div></div>
+                  <span class="err">Please choose a language.</span>
+                </div>
+                <div class="field">
+                  <label>Language the child uses most <span class="req">*</span></label>
+                  <div class="select-wrap">
+                    <select class="control lang-select" data-req data-key="lang_use">
+                      <option value="" selected disabled>Select…</option>
+                      <option>English</option><option>Spanish</option><option>Chinese</option>
+                      <option>Arabic</option><option>Vietnamese</option><option>Tagalog</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div class="reveal inline lang-other"><div><div class="reveal-inner"><input class="control lang-other-input" placeholder="If other, please specify" /></div></div></div>
+                  <span class="err">Please choose a language.</span>
+                </div>
+                <div class="field">
+                  <label>Other languages regularly spoken <span class="opt">optional</span></label>
+                  <input class="control" data-key="lang_other" placeholder="Comma-separated" />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 5 FINANCIAL -->
+          <section class="page" data-page="4">
+            <div class="eyebrow" data-eyebrow>Financial</div>
+            <h1 class="page-title">Financial intake</h1>
+            <p class="intro">
+              Purpose-separated and private.
+              <span class="why">Income can never affect eligibility · no documents requested now</span>
+            </p>
+            <div class="card">
+              <div class="grid">
+                <div class="field">
+                  <label>Annual household income <span class="req">*</span></label>
+                  <div class="select-wrap">
+                    <select class="control" data-req data-key="fin_income">
+                      <option value="" selected disabled>Select a band…</option>
+                      <option>Under $30,000</option>
+                      <option>$30,000 – $59,999</option>
+                      <option>$60,000 – $99,999</option>
+                      <option>$100,000 – $149,999</option>
+                      <option>$150,000+</option>
+                    </select>
+                  </div>
+                  <span class="err">Please choose a band.</span>
+                </div>
+                <div class="field">
+                  <label>People in household <span class="req">*</span></label>
+                  <input class="control" type="number" min="1" max="20" data-req data-key="fin_size" placeholder="e.g. 4" />
+                  <span class="err">Please enter a number.</span>
+                </div>
+              </div>
+              <div class="autofill" style="margin-top: 20px">
+                <span class="pin" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" />
+                    <path d="M3 9h18" stroke="currentColor" stroke-width="2" />
+                  </svg>
+                </span>
+                <div><b>No documents needed today.</b> If your child is admitted, we’ll request proof of income separately through financial aid — never as part of this application.</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 6 REVIEW & SIGN -->
+          <section class="page" data-page="5">
+            <div class="eyebrow" data-eyebrow>Review</div>
+            <h1 class="page-title">Last one — then you’re done</h1>
+            <p class="intro">
+              Take a last look, then acknowledge and sign to submit.
+              <span class="why">You can still edit any section from here</span>
+            </p>
+            <details class="review-group" open>
+              <summary>Your child <span class="edit" data-goto="0">Edit</span></summary>
+              <div class="review-body">
+                <div class="kv"><span class="k">Legal name</span><span class="v" data-echo="stu_name">—</span></div>
+                <div class="kv"><span class="k">Date of birth</span><span class="v" data-echo="stu_dob">—</span></div>
+                <div class="kv"><span class="k">Current grade</span><span class="v" data-echo="stu_grade">—</span></div>
+                <div class="kv"><span class="k">Requested entry</span><span class="v" data-echo="stu_egrade">—</span></div>
+              </div>
+            </details>
+            <details class="review-group">
+              <summary>Education <span class="edit" data-goto="1">Edit</span></summary>
+              <div class="review-body">
+                <div class="kv"><span class="k">Current school</span><span class="v" data-echo="edu_school">—</span></div>
+              </div>
+            </details>
+            <details class="review-group">
+              <summary>Support &amp; disclosures <span class="edit" data-goto="2">Edit</span></summary>
+              <div class="review-body">
+                <div class="kv"><span class="k">Support plans</span><span class="v" data-echo-support>None reported</span></div>
+                <div class="kv"><span class="k">Disclosures</span><span class="v" data-echo-disclose>None reported</span></div>
+              </div>
+            </details>
+            <details class="review-group">
+              <summary>Family &amp; language <span class="edit" data-goto="3">Edit</span></summary>
+              <div class="review-body">
+                <div class="kv"><span class="k">Relationship</span><span class="v" data-echo="fam_rel">—</span></div>
+                <div class="kv"><span class="k">Home language</span><span class="v" data-echo="lang_home">—</span></div>
+              </div>
+            </details>
+            <details class="review-group">
+              <summary>Financial intake <span class="edit" data-goto="4">Edit</span></summary>
+              <div class="review-body">
+                <div class="kv"><span class="k">Income band</span><span class="v" data-echo="fin_income">—</span></div>
+                <div class="kv"><span class="k">Household size</span><span class="v" data-echo="fin_size">—</span></div>
+              </div>
+            </details>
+            <div class="ack">
+              <p class="legal">
+                “I/We hereby state that the information contained herein is true and complete. I/We acknowledge that
+                supplemental information may be required by the school and understand that our application will not be
+                reviewed until supplement(s), if required, have been submitted.”
+              </p>
+              <label class="check">
+                <input type="checkbox" id="ackBox" />
+                <span>I have read and accept the statement above, and confirm the information is true and complete.</span>
+              </label>
+              <div class="grid" style="margin-top: 18px">
+                <div class="field">
+                  <label>How did you hear about us? <span class="opt">optional</span></label>
+                  <div class="select-wrap">
+                    <select class="control" data-key="ref_src">
+                      <option value="" selected disabled>Select…</option>
+                      <option>A friend or family member</option>
+                      <option>My child’s current school</option>
+                      <option>Community event</option>
+                      <option>Social media</option>
+                      <option>Web search</option>
+                      <option>Other</option>
+                    </select>
+                  </div>
+                  <span class="hint">Referral source is operations-only and hidden from reviewers.</span>
+                </div>
+                <div class="field">
+                  <label>Signature <span class="req">*</span></label>
+                  <input class="control" id="sigInput" data-key="sig" placeholder="Type your full legal name" />
+                  <span class="hint">Bound to your account, this signed snapshot, and the statement version.</span>
+                  <span class="err">Please sign, and check the box above, to submit.</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SUCCESS -->
+          <section class="page" data-page="done">
+            <div class="done">
+              <div class="seal" aria-hidden="true">
+                <svg width="34" height="30" viewBox="0 0 36 32" fill="currentColor">
+                  <path d="M10.13.14C11.96-.29 14.22.3 16.61 1.8c-.7.54-1.4 1.15-2.09 1.82-1.75-.96-3.04-1.1-3.81-.91-.69.17-1.5.75-1.88 2.58-.4 1.9-.19 4.66.85 7.9 1.03 3.2 2.75 6.48 4.88 9.29 2.15 2.83 4.5 4.9 6.6 6.01 2.15 1.13 3.47.98 4.1.64.61-.33 1.41-1.29 1.57-3.62.13-1.9-.22-4.3-1.1-6.93h-9.24c-.53-.86-.99-1.74-1.43-2.63h12.49l.07.15c1.37 3.46 2.01 6.83 1.83 9.59-.19 2.78-1.21 4.79-2.9 5.73l-.04.02c-1.71.92-3.99.71-6.51-.59l-.06-.03c-2.5-1.31-5.08-3.63-7.36-6.6l-.11-.14c-2.31-3.04-4.17-6.58-5.29-10.07C6.05 10.5 5.73 7.25 6.25 4.74 6.78 2.24 8.12.63 10.08.15l.05-.01Z" />
+                </svg>
+              </div>
+              <h1>Application received</h1>
+              <p>This is not an eligibility or admission decision. Your status page lists required next steps, deadlines, available accommodations, and assistance routes.</p>
+              <div class="next-step">
+                <div class="n">CogAT</div>
+                <div>
+                  <h3>Next: CogAT assessment</h3>
+                  <p>We’ll open the secure testing portal from your status page and bring you back when results are in.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- FOOTER NAV -->
+        <div class="actions" id="actions" hidden>
+          <button class="btn btn-ghost" id="backBtn">← Back</button>
+          <span class="spacer"></span>
+          <span class="assurance" id="assurance">Your answers stay with you as you go.</span>
+          <button class="btn btn-primary" id="nextBtn">Continue →</button>
+        </div>
+      </main>
+
+      <!-- ============ AMBIENT 3D STAGE ============ -->
+      <aside class="stage" aria-hidden="true">
+        <div id="markMount">
+          <div class="stage-fallback" id="markFallback">
+            <svg viewBox="0 0 36 32" fill="currentColor">
+              <path d="M10.13.14C11.96-.29 14.22.3 16.61 1.8c-.7.54-1.4 1.15-2.09 1.82-1.75-.96-3.04-1.1-3.81-.91-.69.17-1.5.75-1.88 2.58-.4 1.9-.19 4.66.85 7.9 1.03 3.2 2.75 6.48 4.88 9.29 2.15 2.83 4.5 4.9 6.6 6.01 2.15 1.13 3.47.98 4.1.64.61-.33 1.41-1.29 1.57-3.62.13-1.9-.22-4.3-1.1-6.93h-9.24c-.53-.86-.99-1.74-1.43-2.63h12.49l.07.15c1.37 3.46 2.01 6.83 1.83 9.59-.19 2.78-1.21 4.79-2.9 5.73l-.04.02c-1.71.92-3.99.71-6.51-.59l-.06-.03c-2.5-1.31-5.08-3.63-7.36-6.6l-.11-.14c-2.31-3.04-4.17-6.58-5.29-10.07C6.05 10.5 5.73 7.25 6.25 4.74 6.78 2.24 8.12.63 10.08.15l.05-.01Z" />
+              <path d="M12.82 7.47C17.45 1.59 23.12-1.39 26.62.63c2.05 1.18 2.99 3.87 2.85 7.28-.82-.34-1.7-.64-2.62-.9-.05-2.51-.85-3.7-1.55-4.1-.79-.46-2.53-.53-5.27 1.28-1.13.75-2.3 1.74-3.46 2.96.39-.01.78-.02 1.17-.02 9.8 0 17.75 3.97 17.75 8.87 0 2.37-1.86 4.52-4.88 6.11-.12-.88-.3-1.79-.53-2.72 2.15-1.3 2.78-2.59 2.78-3.39 0-.92-.81-2.46-3.74-3.92-2.78-1.39-6.8-2.32-11.38-2.32-1.27 0-2.49.07-3.66.2h-.01c-1.14.14-2.23.34-3.24.58.68-1.1 1.4-2.13 2.16-3.09Z" />
+            </svg>
+          </div>
+        </div>
+        <div class="stage-copy">
+          <div class="head" id="stageHead">Welcome</div>
+          <div class="sub" id="stageSub">The mark warms as your child’s story comes together.</div>
+        </div>
+      </aside>
+    </div>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <script>
+      // ---------------- app state + flow ----------------
+      const SECTIONS = [
+        { name: 'Your child', short: 'Student' },
+        { name: 'Education', short: 'Education' },
+        { name: 'Support', short: 'Support' },
+        { name: 'Family & language', short: 'Family' },
+        { name: 'Financial', short: 'Financial' },
+        { name: 'Review & sign', short: 'Review' },
+      ];
+      const stageLines = [
+        ['Your child', 'A few details about who they are.'],
+        ['Education', 'Where they learn today.'],
+        ['Support', 'How we can support them well.'],
+        ['Family & language', 'Your household and languages.'],
+        ['Financial', 'Private and separate from eligibility.'],
+        ['Almost there', 'One last look, then sign.'],
+      ];
+
+      const STORE = 'gt_demo_v2';
+      const state = { view: 'welcome', index: 0, done: new Set(), data: {}, toggles: { support: 'no', disclose: 'no', relatives: 'no' } };
+
+      // build rail
+      const stepsEl = document.getElementById('steps');
+      SECTIONS.forEach((s, i) => {
+        const li = document.createElement('li');
+        li.innerHTML =
+          '<button class="step" data-step="' + i + '">' +
+          '<span class="dot" aria-hidden="true">' + (i + 1) + '</span>' +
+          '<span class="lbl"><span class="nm">' + s.name + '</span><span class="st">Upcoming</span></span>' +
+          '</button>';
+        stepsEl.appendChild(li);
+      });
+
+      const pages = {};
+      document.querySelectorAll('.page').forEach((p) => (pages[p.dataset.page] = p));
+      const actions = document.getElementById('actions');
+      const nextBtn = document.getElementById('nextBtn');
+      const backBtn = document.getElementById('backBtn');
+      const assurance = document.getElementById('assurance');
+
+      // ---------------- silent persistence ----------------
+      function save() {
+        try {
+          localStorage.setItem(STORE, JSON.stringify({ data: state.data, toggles: state.toggles, done: [...state.done] }));
+        } catch (e) {}
+      }
+      function restore() {
+        try {
+          const raw = localStorage.getItem(STORE);
+          if (!raw) return;
+          const s = JSON.parse(raw);
+          state.data = s.data || {};
+          state.toggles = Object.assign(state.toggles, s.toggles || {});
+          (s.done || []).forEach((d) => state.done.add(d));
+          Object.entries(state.data).forEach(([k, v]) => {
+            const el = document.querySelector('[data-key="' + k + '"]');
+            if (el && v != null) el.value = v;
+          });
+        } catch (e) {}
+      }
+
+      // ---------------- navigation ----------------
+      function showWelcome() {
+        state.view = 'welcome';
+        Object.values(pages).forEach((p) => p.classList.remove('active'));
+        pages.welcome.classList.add('active');
+        actions.hidden = true;
+        setStage('Welcome', 'The mark warms as your child’s story comes together.');
+        renderRail();
+      }
+
+      function go(i) {
+        i = Math.max(0, Math.min(SECTIONS.length - 1, i));
+        state.view = 'section';
+        state.index = i;
+        Object.values(pages).forEach((p) => p.classList.remove('active'));
+        pages[i].classList.add('active');
+        actions.hidden = false;
+        backBtn.textContent = i === 0 ? '← Back' : '← Back';
+        const last = i === SECTIONS.length - 1;
+        nextBtn.textContent = last ? 'Submit application' : 'Continue →';
+        assurance.textContent = last ? 'Review anything above before you sign.' : 'Your answers stay with you as you go.';
+        if (last) buildReview();
+        setStage(stageLines[i][0], stageLines[i][1]);
+        renderRail();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        updateMark();
+      }
+
+      function renderRail() {
+        document.querySelectorAll('.step[data-step]').forEach((btn) => {
+          const i = +btn.dataset.step;
+          btn.classList.remove('done', 'current');
+          const st = btn.querySelector('.st');
+          const dot = btn.querySelector('.dot');
+          if (state.done.has(i)) {
+            btn.classList.add('done');
+            st.textContent = 'Done';
+            dot.textContent = '✓';
+          } else if (state.view === 'section' && i === state.index) {
+            btn.classList.add('current');
+            st.textContent = 'In progress';
+            dot.textContent = i + 1;
+          } else {
+            st.textContent = 'Upcoming';
+            dot.textContent = i + 1;
+          }
+        });
+      }
+
+      // ---------------- validation ----------------
+      function validate(i) {
+        const page = pages[i];
+        let ok = true;
+        page.querySelectorAll('.field').forEach((f) => f.classList.remove('invalid'));
+        page.querySelectorAll('[data-req]').forEach((el) => {
+          // skip fields inside a closed reveal
+          const rev = el.closest('.reveal');
+          if (rev && !rev.classList.contains('open')) return;
+          if (!el.value || !String(el.value).trim()) {
+            el.closest('.field')?.classList.add('invalid');
+            ok = false;
+          }
+        });
+        // conditional: disclosure explanation required when yes
+        if (i === 2 && state.toggles.disclose === 'yes') {
+          const t = page.querySelector('[data-req-if="disclose"]');
+          if (t && !t.value.trim()) {
+            t.closest('.field')?.classList.add('invalid');
+            ok = false;
+          }
+        }
+        // review: signature + ack
+        if (i === 5) {
+          const sig = document.getElementById('sigInput');
+          const ack = document.getElementById('ackBox');
+          if (!sig.value.trim() || !ack.checked) {
+            sig.closest('.field')?.classList.add('invalid');
+            ok = false;
+          }
+        }
+        if (!ok) {
+          const bad = page.querySelector('.field.invalid .control, .field.invalid input');
+          bad?.focus();
+        }
+        return ok;
+      }
+
+      nextBtn.addEventListener('click', () => {
+        if (!validate(state.index)) return;
+        state.done.add(state.index);
+        save();
+        if (state.index === SECTIONS.length - 1) {
+          Object.values(pages).forEach((p) => p.classList.remove('active'));
+          pages.done.classList.add('active');
+          actions.hidden = true;
+          setStage('Received', 'Thank you — your application is in.');
+          state.done.add('all');
+          updateMark(1);
+          document.querySelectorAll('.step[data-step]').forEach((b) => {
+            b.classList.remove('current');
+            b.classList.add('done');
+            b.querySelector('.dot').textContent = '✓';
+            b.querySelector('.st').textContent = 'Done';
+          });
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
+        go(state.index + 1);
+      });
+      backBtn.addEventListener('click', () => {
+        if (state.index === 0) showWelcome();
+        else go(state.index - 1);
+      });
+
+      document.getElementById('beginBtn').addEventListener('click', () => go(0));
+      document.querySelectorAll('.step[data-step]').forEach((btn) => {
+        btn.addEventListener('click', () => go(+btn.dataset.step));
+      });
+      document.querySelectorAll('.edit[data-goto]').forEach((e) => {
+        e.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          go(+e.dataset.goto);
+        });
+      });
+
+      // ---------------- field interactions ----------------
+      // persist any control with data-key
+      document.addEventListener('input', (e) => {
+        const el = e.target;
+        if (el.dataset && el.dataset.key) {
+          state.data[el.dataset.key] = el.value;
+          save();
+        }
+      });
+
+      // school autofill + other
+      const schoolSelect = document.getElementById('schoolSelect');
+      const schoolAutofill = document.getElementById('schoolAutofillText');
+      const otherSchool = document.getElementById('otherSchool');
+      schoolSelect.addEventListener('change', () => {
+        const opt = schoolSelect.selectedOptions[0];
+        if (schoolSelect.value === 'other') {
+          otherSchool.classList.add('open');
+          schoolAutofill.textContent = 'Enter your school’s details below.';
+        } else {
+          otherSchool.classList.remove('open');
+          const type = opt.dataset.type || '';
+          const addr = opt.dataset.addr || '';
+          schoolAutofill.innerHTML = '<b>' + type + '</b> · ' + addr;
+        }
+      });
+
+      // segmented toggles
+      document.querySelectorAll('[data-toggle]').forEach((group) => {
+        const name = group.dataset.toggle;
+        group.querySelectorAll('button').forEach((b) => {
+          b.addEventListener('click', () => {
+            group.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', 'false'));
+            b.setAttribute('aria-pressed', 'true');
+            state.toggles[name] = b.dataset.val;
+            save();
+            const map = { support: 'supportDetail', disclose: 'discloseDetail', relatives: 'relativesDetail' };
+            const rev = document.getElementById(map[name]);
+            if (rev) rev.classList.toggle('open', b.dataset.val === 'yes');
+          });
+        });
+      });
+
+      // chips
+      document.querySelectorAll('[data-chips] .chip').forEach((c) => {
+        c.addEventListener('click', () => c.setAttribute('aria-pressed', c.getAttribute('aria-pressed') === 'true' ? 'false' : 'true'));
+      });
+
+      // relatives repeater
+      document.getElementById('addRelative').addEventListener('click', () => {
+        const row = document.createElement('div');
+        row.className = 'rel-row';
+        row.innerHTML = '<input class="control" placeholder="Full name" />';
+        document.getElementById('relRepeater').appendChild(row);
+        row.querySelector('input').focus();
+      });
+
+      // language "other"
+      document.querySelectorAll('.lang-select').forEach((sel) => {
+        sel.addEventListener('change', () => {
+          const rev = sel.parentElement.parentElement.querySelector('.lang-other');
+          if (rev) rev.classList.toggle('open', sel.value === 'other');
+        });
+      });
+
+      // review echo
+      function buildReview() {
+        document.querySelectorAll('[data-echo]').forEach((el) => {
+          const k = el.getAttribute('data-echo');
+          const v = state.data[k];
+          el.textContent = v && String(v).trim() ? v : '—';
+        });
+        const sup = document.querySelector('[data-echo-support]');
+        if (sup) {
+          const chips = [...document.querySelectorAll('[data-chips] .chip[aria-pressed="true"]')].map((c) => c.textContent.trim());
+          sup.textContent = state.toggles.support === 'yes' && chips.length ? chips.join(', ') : 'None reported';
+        }
+        const dis = document.querySelector('[data-echo-disclose]');
+        if (dis) dis.textContent = state.toggles.disclose === 'yes' ? 'Reported (private)' : 'None reported';
+      }
+
+      // ---------------- ambient 3D mark ----------------
+      const markState = { ratio: 0, api: null };
+      function completionRatio() {
+        const total = SECTIONS.length;
+        let n = 0;
+        for (let i = 0; i < total; i++) if (state.done.has(i)) n++;
+        return Math.min(1, n / total);
+      }
+      function updateMark(force) {
+        markState.ratio = force != null ? force : completionRatio();
+        if (markState.api) markState.api.setWarmth(markState.ratio);
+      }
+      function setStage(head, sub) {
+        document.getElementById('stageHead').textContent = head;
+        document.getElementById('stageSub').textContent = sub;
+      }
+
+      // ---------------- init ----------------
+      restore();
+      showWelcome();
+      updateMark();
+
+      // 3D enhancement (progressive; falls back to the static SVG)
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      (async () => {
+        try {
+          const THREE = await import('three');
+          const { SVGLoader } = await import('three/addons/loaders/SVGLoader.js');
+          const mount = document.getElementById('markMount');
+          const fallback = document.getElementById('markFallback');
+          const w = mount.clientWidth || 340;
+          const h = mount.clientHeight || 320;
+
+          const scene = new THREE.Scene();
+          const camera = new THREE.PerspectiveCamera(38, w / h, 0.1, 100);
+          camera.position.set(0, 0, 34);
+          const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+          renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
+          renderer.setSize(w, h);
+          mount.appendChild(renderer.domElement);
+          fallback.style.display = 'none';
+
+          scene.add(new THREE.AmbientLight(0xffffff, 0.85));
+          const key = new THREE.DirectionalLight(0xffffff, 1.1);
+          key.position.set(6, 10, 14);
+          scene.add(key);
+          const warm = new THREE.PointLight(0xe48b53, 0, 60);
+          warm.position.set(-6, -2, 16);
+          scene.add(warm);
+
+          const svg =
+            '<svg viewBox="0 0 36 32" xmlns="http://www.w3.org/2000/svg">' +
+            '<path d="M10.13.14C11.96-.29 14.22.3 16.61 1.8c-.7.54-1.4 1.15-2.09 1.82-1.75-.96-3.04-1.1-3.81-.91-.69.17-1.5.75-1.88 2.58-.4 1.9-.19 4.66.85 7.9 1.03 3.2 2.75 6.48 4.88 9.29 2.15 2.83 4.5 4.9 6.6 6.01 2.15 1.13 3.47.98 4.1.64.61-.33 1.41-1.29 1.57-3.62.13-1.9-.22-4.3-1.1-6.93h-9.24c-.53-.86-.99-1.74-1.43-2.63h12.49l.07.15c1.37 3.46 2.01 6.83 1.83 9.59-.19 2.78-1.21 4.79-2.9 5.73l-.04.02c-1.71.92-3.99.71-6.51-.59l-.06-.03c-2.5-1.31-5.08-3.63-7.36-6.6l-.11-.14c-2.31-3.04-4.17-6.58-5.29-10.07C6.05 10.5 5.73 7.25 6.25 4.74 6.78 2.24 8.12.63 10.08.15l.05-.01Z"/>' +
+            '<path d="M12.82 7.47C17.45 1.59 23.12-1.39 26.62.63c2.05 1.18 2.99 3.87 2.85 7.28-.82-.34-1.7-.64-2.62-.9-.05-2.51-.85-3.7-1.55-4.1-.79-.46-2.53-.53-5.27 1.28-1.13.75-2.3 1.74-3.46 2.96.39-.01.78-.02 1.17-.02 9.8 0 17.75 3.97 17.75 8.87 0 2.37-1.86 4.52-4.88 6.11-.12-.88-.3-1.79-.53-2.72 2.15-1.3 2.78-2.59 2.78-3.39 0-.92-.81-2.46-3.74-3.92-2.78-1.39-6.8-2.32-11.38-2.32-1.27 0-2.49.07-3.66.2h-.01c-1.14.14-2.23.34-3.24.58.68-1.1 1.4-2.13 2.16-3.09Z"/>' +
+            '<path d="M4.88 9.89c.12.88.3 1.79.53 2.72-2.15 1.3-2.78 2.59-2.78 3.39 0 .81.63 2.1 2.78 3.39-.23.93-.41 1.84-.53 2.72C1.86 20.52 0 18.37 0 16c0-2.37 1.86-4.52 4.88-6.11Z"/>' +
+            '</svg>';
+          const data = new SVGLoader().parse(svg);
+          const group = new THREE.Group();
+          const mat = new THREE.MeshStandardMaterial({ color: 0xf3efe9, roughness: 0.55, metalness: 0.05 });
+          markState.mat = mat;
+          data.paths.forEach((p) => {
+            SVGLoader.createShapes(p).forEach((shape) => {
+              const geo = new THREE.ExtrudeGeometry(shape, { depth: 3.2, bevelEnabled: true, bevelThickness: 0.5, bevelSize: 0.4, bevelSegments: 2 });
+              group.add(new THREE.Mesh(geo, mat));
+            });
+          });
+          // center + flip (SVG y-down)
+          const box = new THREE.Box3().setFromObject(group);
+          const center = new THREE.Vector3();
+          box.getCenter(center);
+          group.children.forEach((m) => {
+            m.geometry.translate(-center.x, -center.y, -center.z);
+          });
+          group.scale.y = -1;
+          const s = 18 / Math.max(box.max.x - box.min.x, box.max.y - box.min.y);
+          group.scale.multiplyScalar(s);
+          group.scale.y *= -1 < 0 ? 1 : 1;
+          scene.add(group);
+
+          const warmCool = new THREE.Color(0xf3efe9);
+          const warmHot = new THREE.Color(0xe9974f);
+          markState.api = {
+            setWarmth(r) {
+              mat.color.copy(warmCool).lerp(warmHot, r);
+              warm.intensity = 0.2 + r * 1.4;
+            },
+          };
+          markState.api.setWarmth(markState.ratio);
+
+          let t = 0;
+          function loop() {
+            t += 0.005;
+            if (!reduce) group.rotation.y = Math.sin(t) * 0.5;
+            group.rotation.x = -0.12;
+            renderer.render(scene, camera);
+            if (!reduce) requestAnimationFrame(loop);
+          }
+          loop();
+          if (reduce) renderer.render(scene, camera);
+
+          window.addEventListener('resize', () => {
+            const nw = mount.clientWidth,
+              nh = mount.clientHeight;
+            camera.aspect = nw / nh;
+            camera.updateProjectionMatrix();
+            renderer.setSize(nw, nh);
+            if (reduce) renderer.render(scene, camera);
+          });
+        } catch (e) {
+          // keep the static SVG fallback
+        }
+      })();
+    </script>
+  </body>
+</html>
