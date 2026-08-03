@@ -101,3 +101,18 @@ different work. The renumbering is recorded in the log. If you find a citation
 that resolves to something that makes no sense, that is where to look first;
 `node scripts/audit-requirement-ids.mjs` catches duplicates and orphans and is
 currently clean.
+
+## Loose ends preserved at cleanup
+
+`uncommitted-worktrees/misc/` holds work that was sitting uncommitted in a
+worktree when the worktrees were removed:
+
+- `brainlift-reasoning-growth.working-copy.md` — differs from the committed
+  version by one line: the working copy drops the sentence recording that DOK 1–2
+  are AI-assisted and citation-verified while DOK 3–4 are the author's. Whether
+  that removal was deliberate was never established, so both versions are kept and
+  the committed one is the fuller.
+- `exam-debug-converge-burst.uncommitted.patch` — further edits to a debug panel
+  that the shipped version has since superseded.
+- `genb-tmp-verification/` — the scratch probes whose presence skewed the lint
+  counts in `GENB_VERIFICATION_2026-07-28.md`.
