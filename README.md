@@ -5,7 +5,8 @@ All of its work — code, research, governance and the thinking behind it — is
 `archive/`. Start with `archive/README.md`, which indexes what was built, what was
 never finished, and the findings worth not rediscovering the hard way.
 
-The root is otherwise empty and ready for new work.
+New work starts in `docs/` — see `docs/README.md` for what has been established since the
+reset and what is still open.
 
 ## If you want to run the archived project
 
