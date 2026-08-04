@@ -1,248 +1,222 @@
+'use client';
+
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 
 import styles from './about-the-test.module.css';
 
 /**
- * The explainer: what the CogAT is, what it is looking for, what its scores mean,
- * and how schools actually use it. Requested by the design owner, 2026-08-03.
+ * The explainer, rebuilt around a live sampler instead of prose.
  *
- * TWO RULES THIS PAGE FOLLOWS, both load-bearing rather than legal boilerplate.
+ * The first version asked a parent to read four screens of writing before seeing
+ * a single question. A reasoning question explains itself in about five seconds
+ * of looking at it, so the page now leads with a short blurb, hands most of the
+ * space to a carousel of real playable questions, and keeps the reference
+ * material to three short cards at the bottom.
  *
- * 1. NO REAL COGAT ITEMS. The CogAT is a published, copyrighted instrument from
- *    Riverside Insights, and its live items are secured. Every sample below is one
- *    of OUR question types, described as *the same kind of question* — which is
- *    also the honest framing, because a practice item that were a real item would
- *    be a leak rather than practice.
- * 2. NO IMPLIED AFFILIATION AND NO PREDICTED SCORE. We are not endorsed by or
- *    connected to Riverside, and nothing here says a level in our baseline
- *    predicts a CogAT score. It could not: no study links the two scales.
+ * THE SAMPLES ARE LIVE, NOT PICTURES. Each slide embeds the same renderer the
+ * baseline serves, from `public/exam-demos`, so a parent can actually answer one.
+ * Only the visible slide is mounted, because each demo runs its own scripts and
+ * animations and four at once is wasteful.
  *
- * Every factual claim traces to the project's own research rather than to general
- * knowledge — the battery structure and untimed younger levels to the
- * CogAT gaps report, the SD-16 scale and tail behavior to the
- * gifted-assessment-quality BrainLift (Insight 11), and the admissions usage to
- * E-096 and E-099, which record what one school actually does.
+ * WHY THESE FOUR. They cover all three batteries, and each one self starts when
+ * no host drives it. Several other demos wait for an item to be sent by the exam
+ * runner and would sit blank in a frame here, which is why the set is not simply
+ * the four most typical types. Verified before selection, and worth rechecking if
+ * this list ever changes.
+ *
+ * No real CogAT items appear here. These are our own questions of the same kind,
+ * which is both the legal position and the honest one.
  */
 
-/** The three batteries, and what each is really asking of a child. */
-const BATTERIES = [
+interface Sample {
+  readonly code: string;
+  readonly battery: 'Verbal' | 'Quantitative' | 'Nonverbal';
+  readonly name: string;
+  readonly cogat: string;
+  readonly ask: string;
+}
+
+const SAMPLES: readonly Sample[] = [
   {
-    name: 'Verbal',
-    asking:
-      'Can the child reason about how words and ideas relate, rather than recall definitions?',
-    subtests: [
-      {
-        cogat: 'Verbal Analogies',
-        plain: 'Two words go together somehow. Apply that same relationship to a third word.',
-        ours: 'VER-RELPAIR-01',
-      },
-      {
-        cogat: 'Sentence Completion',
-        plain: 'Choose the word that makes a sentence make sense.',
-        ours: 'VER-CLOZE-01',
-      },
-      {
-        cogat: 'Verbal Classification',
-        plain: 'Three things belong together. Find the fourth that belongs with them.',
-        ours: 'VER-SORTBOT-01',
-      },
-    ],
+    code: 'SPA-PUNCH-01',
+    battery: 'Nonverbal',
+    name: 'Fold & Punch',
+    cogat: 'Paper Folding',
+    ask: 'Fold the paper, punch a hole, then work out where every hole lands once it opens back up.',
   },
   {
-    name: 'Quantitative',
-    asking: 'Can the child see structure in quantities, rather than compute quickly?',
-    subtests: [
-      {
-        cogat: 'Number Analogies',
-        plain: 'A pair of numbers is related by some rule. Apply it to a new number.',
-        ours: 'QUANT-FUNC-01',
-      },
-      {
-        cogat: 'Number Puzzles',
-        plain: 'Work out the missing value that makes both sides balance.',
-        ours: 'QUANT-BALANCE-01',
-      },
-      {
-        cogat: 'Number Series',
-        plain: 'Find what comes next in a sequence that follows a hidden rule.',
-        ours: 'QUANT-SERIES-01',
-      },
-    ],
+    code: 'FLU-MATRIX-01',
+    battery: 'Nonverbal',
+    name: 'Machine Matrix',
+    cogat: 'Figure Matrices',
+    ask: 'The shapes in the grid change by a hidden rule. Find the tile that finishes the pattern.',
   },
   {
-    name: 'Nonverbal',
-    asking:
-      'Can the child reason about shapes and patterns with no words involved at all — which is why this battery reaches children whose English is still developing?',
-    subtests: [
-      {
-        cogat: 'Figure Matrices',
-        plain: 'A grid of shapes changes by a rule. Work out the missing cell.',
-        ours: 'FLU-MATRIX-01',
-      },
-      {
-        cogat: 'Paper Folding',
-        plain: 'A folded, punched sheet is opened out. Picture where the holes land.',
-        ours: 'SPA-FOLDNET-01',
-      },
-      {
-        cogat: 'Figure Classification',
-        plain: 'Three figures share a property. Find the fourth that shares it.',
-        ours: 'FLU-CARPET-01',
-      },
-    ],
+    code: 'VER-RELPAIR-01',
+    battery: 'Verbal',
+    name: 'Relation Match',
+    cogat: 'Verbal Analogies',
+    ask: 'Two words go together in a particular way. Find the pair that goes together the same way.',
+  },
+  {
+    code: 'QUANT-MIX-01',
+    battery: 'Quantitative',
+    name: 'Fair Share',
+    cogat: 'Number Puzzles',
+    ask: 'Change two amounts so the mix keeps the same balance. Quantities, without the arithmetic drill.',
+  },
+];
+
+const FACTS = [
+  {
+    label: 'Scoring',
+    lead: 'A percentile, not a grade',
+    body: 'Answers become a scaled score, then a percentile against children the same age. The 95th percentile means 95 of 100 same age children scored at or below your child.',
+  },
+  {
+    label: 'Sorting',
+    lead: 'The cut is usually a percentile',
+    body: 'Programs commonly set a bar somewhere from the 90th up. Near that bar a score is genuinely uncertain, because a couple of answers can move a percentile several points.',
+  },
+  {
+    label: 'For a GT application',
+    lead: 'Rarely one number alone',
+    body: 'A realistic rubric offers several routes in, often mixing a reasoning score with achievement screeners. One weak area is not usually fatal, and one strong area is not usually enough.',
   },
 ] as const;
 
 export function AboutTheTest({ baselineHref }: { baselineHref: string }) {
+  const [index, setIndex] = useState(0);
+  const count = SAMPLES.length;
+
+  const go = useCallback((delta: number) => setIndex((i) => (i + delta + count) % count), [count]);
+
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.key === 'ArrowLeft') go(-1);
+      if (event.key === 'ArrowRight') go(1);
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [go]);
+
+  const active = SAMPLES[index]!;
+
   return (
     <div className={styles.wrap}>
       <section className={styles.hero}>
-        <p className={styles.kicker}>Background</p>
-        <h1 className={styles.title}>What the CogAT is, and what it is looking for</h1>
+        <p className={styles.kicker}>The test behind the decision</p>
+        <h1 className={styles.title}>
+          What the CogAT is,
+          <span className={styles.titleAccent}> in about a minute</span>
+        </h1>
         <p className={styles.lede}>
-          Most gifted programs decide using a reasoning test, and in the US that test is very often
-          the CogAT. It is worth understanding what it actually measures before you practice for it,
-          because the thing it rewards is not the thing most people assume.
+          It is a reasoning test, not a knowledge test. It does not ask what your child has been
+          taught. It asks how well they work out something they have never seen before. That is why
+          the questions look strange at first, and why seeing a few of them beats reading about
+          them.
         </p>
       </section>
 
-      <section className={styles.block}>
-        <h2 className={styles.h2}>It measures reasoning, not knowledge</h2>
-        <p className={styles.p}>
-          The CogAT — the Cognitive Abilities Test — is a reasoning test, not an achievement test.
-          It is not trying to find out what a child has been taught. It is trying to find out how
-          well they work out something they have not seen before: spotting a rule, applying a
-          relationship, holding a pattern in mind long enough to use it.
-        </p>
-        <p className={styles.p}>
-          That is why children can be strong at school and unremarkable on the CogAT, or the
-          reverse. It is also why the questions look strange the first time you meet them.
-          Familiarity with the
-          <em> format</em> is a real advantage, and it is the part that practice can legitimately
-          fix.
+      <section
+        className={styles.sampler}
+        aria-roledescription="carousel"
+        aria-label="Example questions"
+      >
+        <div className={styles.samplerBar}>
+          <div className={styles.samplerMeta}>
+            <span className={styles.battery} data-battery={active.battery}>
+              {active.battery}
+            </span>
+            <div>
+              <p className={styles.sampleName}>{active.name}</p>
+              <p className={styles.sampleCogat}>Same kind as: {active.cogat}</p>
+            </div>
+          </div>
+          <div className={styles.controls}>
+            <button
+              type="button"
+              className={styles.arrow}
+              onClick={() => go(-1)}
+              aria-label="Previous example"
+            >
+              <span aria-hidden="true">&lsaquo;</span>
+            </button>
+            <span className={styles.counter}>
+              {index + 1} <span className={styles.counterDim}>/ {count}</span>
+            </span>
+            <button
+              type="button"
+              className={styles.arrow}
+              onClick={() => go(1)}
+              aria-label="Next example"
+            >
+              <span aria-hidden="true">&rsaquo;</span>
+            </button>
+          </div>
+        </div>
+
+        <p className={styles.ask}>{active.ask}</p>
+
+        <div className={styles.screen}>
+          <iframe
+            key={active.code}
+            className={styles.frame}
+            src={`/exam-demos/${active.code}.html`}
+            title={`${active.name}, an example question you can try`}
+            loading="lazy"
+          />
+        </div>
+
+        <div className={styles.dots} role="tablist" aria-label="Choose an example">
+          {SAMPLES.map((s, i) => (
+            <button
+              key={s.code}
+              type="button"
+              role="tab"
+              aria-selected={i === index}
+              aria-label={s.name}
+              className={i === index ? `${styles.dot} ${styles.dotOn}` : styles.dot}
+              onClick={() => setIndex(i)}
+            />
+          ))}
+        </div>
+
+        <p className={styles.samplerNote}>
+          These are our questions, not the real test&rsquo;s. Real items are copyrighted and kept
+          secure, so practicing on a copy of one would not be practice at all. Try any of them. The
+          arrow keys work too.
         </p>
       </section>
 
-      <section className={styles.block}>
-        <h2 className={styles.h2}>Three batteries, nine kinds of question</h2>
-        <p className={styles.p}>
-          The test is built in three batteries, each scored separately as well as together. Below is
-          what each battery is really asking, the nine question kinds it uses, and one of our
-          practice types of the same kind so you can see the shape of it.
-        </p>
-
-        {BATTERIES.map((battery) => (
-          <div key={battery.name} className={styles.battery}>
-            <h3 className={styles.h3}>{battery.name}</h3>
-            <p className={styles.asking}>{battery.asking}</p>
-            <ul className={styles.subtests}>
-              {battery.subtests.map((s) => (
-                <li key={s.cogat} className={styles.subtest}>
-                  <p className={styles.subtestName}>{s.cogat}</p>
-                  <p className={styles.subtestPlain}>{s.plain}</p>
-                  <p className={styles.subtestOurs}>
-                    Our version: <code>{s.ours}</code>
-                  </p>
-                </li>
-              ))}
-            </ul>
+      <section className={styles.facts}>
+        {FACTS.map((f, i) => (
+          <div key={f.label} className={styles.fact}>
+            <span className={styles.factNum}>{String(i + 1).padStart(2, '0')}</span>
+            <p className={styles.factLabel}>{f.label}</p>
+            <p className={styles.factLead}>{f.lead}</p>
+            <p className={styles.factBody}>{f.body}</p>
           </div>
         ))}
-
-        <p className={styles.note}>
-          These are descriptions of each question kind and our own practice items — not questions
-          from the real test, which are copyrighted and kept secure. That is the point of practicing
-          on ours: a real item in your hands would not be practice, it would be a leak.
-        </p>
-      </section>
-
-      <section className={styles.block}>
-        <h2 className={styles.h2}>What the scores mean</h2>
-        <p className={styles.p}>
-          Raw answers become a scaled score, and that becomes a percentile — the share of same-age
-          children scoring at or below your child. A 95th percentile means 95 of 100 same-age
-          children scored at or below them. Programs usually set their bar in percentiles, commonly
-          somewhere from the 90th up.
-        </p>
-        <p className={styles.p}>
-          Two things about those numbers are worth knowing, because they explain a lot of confusing
-          results:
-        </p>
-        <ul className={styles.bullets}>
-          <li>
-            <strong>The scale is not the IQ scale you may be thinking of.</strong> The CogAT reports
-            on a scale with a standard deviation of 16, while most IQ tests use 15. A score of 130
-            is about the 98th percentile on an SD-15 scale but closer to the 97th here — so a cutoff
-            written for one test does not carry over to another unchanged.
-          </li>
-          <li>
-            <strong>Percentiles get coarse and jumpy at the top.</strong> Far from the average, a
-            couple of extra right answers can move a percentile several points, and the norms up
-            there rest on relatively few children. A score near a cutoff is genuinely uncertain, and
-            a child who lands just under one day can land just over on another.
-          </li>
-        </ul>
-      </section>
-
-      <section className={styles.block}>
-        <h2 className={styles.h2}>How schools actually use it</h2>
-        <p className={styles.p}>
-          Rarely as a single number, and rarely alone. A realistic admissions rubric offers several
-          routes in: a high CogAT; or achievement screeners above their own percentile bar with a
-          somewhat lower CogAT; or a blend of the two; or a very high composite as an
-          exceptional-ability route. Separate requirements — a reading threshold, for instance —
-          often sit alongside, with named exceptions for children whose English is still catching
-          up.
-        </p>
-        <p className={styles.p}>
-          The practical upshot: <strong>a single score rarely decides anything by itself</strong>,
-          which cuts both ways. One weak battery is not usually fatal, and one strong battery is not
-          usually sufficient.
-        </p>
-      </section>
-
-      <section className={styles.block}>
-        <h2 className={styles.h2}>What it is good at, and where it misses</h2>
-        <p className={styles.p}>
-          It earns its place: it predicts school achievement reasonably well, the nonverbal battery
-          reaches children whose English is still developing, and at younger levels the test is
-          untimed, so it is not primarily a speed contest.
-        </p>
-        <p className={styles.p}>Its known limits matter just as much:</p>
-        <ul className={styles.bullets}>
-          <li>
-            <strong>It misses some children who belong.</strong> In practice, schools see few
-            children who score high and then struggle, but a real number who score below the bar and
-            would have thrived — most often the youngest, whose scores are least stable.
-          </li>
-          <li>
-            <strong>Its coverage is narrower than &ldquo;ability&rdquo;.</strong> Verbal,
-            quantitative and figural reasoning is a lot, but it is not everything. Strong spatial
-            reasoners in particular can be under-served by what the test looks at.
-          </li>
-          <li>
-            <strong>It is one sitting, on one day.</strong> Nothing in a single administration
-            separates a child having a bad morning from a child who cannot do the task.
-          </li>
-        </ul>
       </section>
 
       <section className={styles.cta}>
-        <h2 className={styles.h2}>Where to start</h2>
-        <p className={styles.p}>
-          Take the baseline. It reports the same three areas, so you can see which one is furthest
-          behind and practice that instead of practicing everything equally.
-        </p>
+        <div>
+          <p className={styles.ctaTitle}>See where your child places</p>
+          <p className={styles.ctaBody}>
+            Under 40 minutes, free, and it reports the same three areas so you know which one to
+            work on first.
+          </p>
+        </div>
         <Link className={styles.primary} href={baselineHref}>
-          See where you place →
+          Start the baseline
         </Link>
       </section>
 
       <p className={styles.boundary}>
-        CogAT is a trademark of its publisher, Riverside Insights. We are not affiliated with,
-        endorsed by, or connected to them, and this page is our own explanation rather than official
-        guidance. Our practice questions are our own, resemble the real ones in kind only, and the
-        levels our baseline reports do not predict a CogAT score.
+        CogAT is a trademark of Riverside Insights. We are not affiliated with them or endorsed by
+        them, and the levels our baseline reports do not predict a CogAT score.
       </p>
     </div>
   );
