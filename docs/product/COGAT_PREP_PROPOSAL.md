@@ -1,13 +1,6 @@
 # Proposal: a CogAT preparation product that can prove it taught something
 
 **Owner:** Tiffany Lam
-**Source:** `brainlifting/cogat-prep-brainlift/brainlift-cogat-prep.md`
-**Companion:** `docs/product/COGAT_PREP_PIVOT.md` (what is already built)
-**Status:** proposal, not a commitment
-
-Bracketed references like (3.1) point at subcategories of the BrainLift knowledge
-tree. Every empirical claim below is traceable to one. Where the evidence is thin
-or missing, this document says so rather than rounding up.
 
 ---
 
@@ -19,47 +12,27 @@ every product in this market sells the first and quietly implies the second. The
 implication is usually false, and the reason it is false is measurable.
 
 **A. A score can rise without any ability changing.** Simply taking a cognitive
-ability test a second time buys roughly a quarter of a standard deviation, with no
-teaching involved at all, and coaching on top of bare practice adds more (5.2).
-That effect is not a curiosity. It is the size of the result most prep programs
-report as their product working.
+ability test a second time buys roughly 0.25 SD with no teaching involved, and
+coaching on top of bare practice adds more (5.2). That effect is the size of the
+result most prep programs report as their product working.
 
-**B. The gain has been tested at the construct level, and it failed.** Reeve and
-Lam examined repeated administrations at the level of the latent ability factor
-rather than the observed score, and found full measurement invariance: the ability
-factor's mean and variance were unchanged across sittings (1.1). The score moved
+**B. The gain has been tested at the construct level, and it failed.** At repeated
+administrations at the level of the latent ability factor rather than the observed score,
+the ability factor's mean and variance were unchanged across sittings (1.1). The score moved
 and the construct did not. Of the three mechanisms that produce retest gains, two
 are construct-irrelevant by definition (reduced anxiety and unfamiliarity, and the
-acquisition of test-specific tricks). No source in the tree demonstrates that a
+acquisition of test-specific tricks). No source demonstrates that a
 retest or coaching gain reflects an increase in underlying reasoning ability.
 
 **C. The obvious way to measure improvement cannot detect the difference.** If a
 program teaches to a test and then measures on that same test, the two competing
 explanations produce identical data. Separating them requires an independent audit
-measure of the same domain, and even then the comparison is qualitative: a large
-divergence between the focal test and the audit test licenses the inference of
-appreciable inflation, but cannot quantify it, because part of any non-generalizing
+measure of the same domain, and even then the comparison is qualitative. While a large
+divergence between the focal test and the audit test allows for considerable
+score inflation, it cannot quantify it because any non-generalizing
 gain is real learning the audit test was not built to detect (2.2). Correlations
 between two instruments can stay stable while their means diverge sharply, so
 correlation checks are not sufficient.
-
-**D. The cheapest way to build the product is illegal and prohibited.** Individual
-standardized-test questions are copyrightable expression, registering a form as a
-compilation still covers the questions, substituting different numbers into an
-otherwise identical item is copying rather than authorship, and fair use fails on
-all four factors for a commercial preparation product (6.1). The professional
-Standards reach the same boundary from the validity side, requiring that
-preparation items be based on publicly disclosed information and prohibiting
-material that reflects the specific test items closely enough to raise scores
-without increasing genuine achievement (6.2).
-
-**E. But refusing to prepare a child is also a defect.** The same Standards
-affirmatively require the other half. Standard 6.5 requires that test takers be
-given instructions and practice sufficient to reduce construct-irrelevant variance,
-and the comment to Standard 12.8 says students and parents should be informed of
-the domains tested, the nature of the item types, and the mode of administration
-(6.2). A child who has never seen the format is carrying measurement error that has
-nothing to do with their reasoning. Withholding format familiarity is not neutral.
 
 **F. The intuitive fix does not work either.** The instinct is to train the
 underlying capacity. Working-memory and brain-training programs produce enormous
