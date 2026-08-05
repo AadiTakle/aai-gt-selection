@@ -131,7 +131,7 @@ echo ""
 
 
 echo ""
-echo "The second consumer, and the partition between them"
+echo "The second consumer, the partition, and the playable catalogue"
 PRACTICE_OUT=$(python3 scripts/check-practice.py "$PORT")
 echo "$PRACTICE_OUT"
 echo "$PRACTICE_OUT" | grep -q FAIL && FAILED=1

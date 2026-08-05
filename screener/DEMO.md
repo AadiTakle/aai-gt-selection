@@ -1,6 +1,6 @@
 # Demo script
 
-Roughly eight minutes. The order matters, because each step sets up the next.
+Roughly ten minutes. The order matters, because each step sets up the next.
 
 ```bash
 cd screener && npm install && npm run dev     # http://localhost:5180
@@ -56,7 +56,32 @@ thrown it away.
 Point out what is absent: no score, no percentile, no decision, no recommendation. This tool
 makes no claim about anybody.
 
-## 3. Editing a live library without breaking it (2 min)
+## 3. The 52 playable questions, and the theme switch (2 min)
+
+**Question catalogue** tab. This is the existing question library running inside the app.
+
+Pick **Spatial reasoning** and any item. It plays. Nothing in that file was edited to get it here.
+Point at the flags above the frame: `ready`, a telemetry count that climbs as the child works, and
+`result received` when they answer. The items were already broadcasting all of that to their parent
+window, so observing a session cost nothing.
+
+Now change **Theme** from Institutional to Ink on paper, then to Evening. The question re-skins
+instantly. The host is setting CSS custom properties on the embedded document, so the visual
+identity is a setting rather than a property of the questions, and no file changed.
+
+Scroll to the palette table and drag a colour. It applies live, and the right-hand column says
+whether this particular item uses that property. The counts are honest: `--ink` is in all 52 items,
+the telemetry colours in 31, so a theme reaches most of the catalogue and not every corner of it.
+
+Two things to say while clicking:
+
+- Spatial and working memory need no reading at all, 17 items in total. That is what lets a child
+  whose decoding lags their reasoning show what they can actually do.
+- The result panel shows response time, revisions and focus losses, and it shows **no** correctness.
+  The items refuse to report that on purpose, so scoring them needs a key held on our side. Say this
+  before anyone asks, because it is the obvious question.
+
+## 4. Editing a live library without breaking it (2 min)
 
 **Library studio** tab. This is the architectural claim, and it takes thirty seconds.
 
@@ -77,7 +102,7 @@ Worth mentioning: those checks caught four real faults while the seed bank was b
 families were too small to avoid repeating forms, and two could emit a wrong answer identical to
 the right one.
 
-## 4. What it records (1 min)
+## 5. What it records (1 min)
 
 **Statistics** tab. Sessions, item behaviour keyed by generator *version*, and screener
 effectiveness split by surface.
@@ -86,7 +111,7 @@ The row to point at is effectiveness. It reads **not available** rather than zer
 real outcome has been attached to a session yet, and "we do not know" and "it scored zero" are
 different statements. Attach one real outcome and the whole column computes.
 
-## 5. The honest close (1 min)
+## 6. The honest close (1 min)
 
 Say this before anyone asks it.
 
@@ -114,10 +139,11 @@ cleaner: it makes no decision at all, so it is the safest of the two to build fi
 above the threshold at 97% specificity, in a median of 8 questions. Those are simulation numbers
 against a hidden truth the code generated, and they say nothing about children.
 
-**"Could Tiffany's CogAT familiarisation run on this?"** That is what the Practice tab is. It
-draws from the same library, uses the same measurement primitives, and shares none of the
-screener's decision machinery. Adding her item types means publishing generators marked
-teachable, not building a second system.
+**"Could Tiffany's CogAT familiarisation run on this?"** Two answers, and show both. The Practice
+tab is the generator-driven version: same library, same measurement primitives, none of the
+screener's decision machinery. The Question catalogue tab is the hand-built version: her 52 items
+already run here and already re-skin to whatever visual identity the course needs. Adding to either
+means publishing content, not building a second system.
 
 **"What would you do next?"** Calibrate. Everything else here is downstream of the fact that no
 difficulty parameter has ever seen a real response.

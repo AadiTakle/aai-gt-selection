@@ -92,4 +92,42 @@ check(
     "practice state carries no decision and no threshold probability",
 )
 
+
+# --- the playable catalogue, served same-origin so the host can theme it ------------------
+print("")
+print("The playable catalogue")
+
+cat = call("/qbank")
+check(cat["count"] == 52, f"catalogue lists {cat['count']} items")
+
+areas = {}
+for i in cat["items"]:
+    areas[i["area"]] = areas.get(i["area"], 0) + 1
+check(
+    areas == {"SPA": 14, "FLU": 11, "QUANT": 9, "VER": 8, "GB": 6, "WM": 3, "CX": 1},
+    f"area counts match the catalogue: {areas}",
+)
+check(
+    all(i["url"].startswith("/qbank/items/") and i["code"] and i["name"] for i in cat["items"]),
+    "every item has a code, a name and a same-origin url",
+)
+check(
+    sum(1 for i in cat["items"] if i["readingFree"]) == 17,
+    "17 items are flagged as needing no reading",
+)
+
+# Fetch one item and confirm the two properties the integration depends on are really in the file.
+import urllib.request as _u
+with _u.urlopen(f"http://localhost:{PORT}/qbank/items/FLU-MATRIX-01.html", timeout=15) as r:
+    html = r.read().decode("utf-8", "replace")
+check(len(html) > 5000, f"an item is served over HTTP ({len(html) // 1024} kB)")
+check(":root" in html, "the served item declares a :root palette, so it can be themed from the host")
+check("postMessage" in html and "gt-exam-demo" in html, "the served item broadcasts to its parent")
+# The host cannot score these, and asserting it stops anyone assuming otherwise later.
+import re as _re
+check(
+    not _re.search(r"post\(\{[^}]*\b(correct|isCorrect|score)\s*:", html),
+    "the served item reports no correctness flag, so scoring needs a host-side key",
+)
+
 sys.exit(1 if failed else 0)

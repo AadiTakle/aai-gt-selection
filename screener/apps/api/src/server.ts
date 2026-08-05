@@ -1,4 +1,7 @@
 import express from 'express';
+import { readdirSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { AgeBand, SessionRecord } from '@gt/contracts';
 import { createSeededLibrary, validateGenerator } from '@gt/item-library';
 import { ScreenerSession, defaultScreenerConfig, prototypeSurfaces } from '@gt/engine';
@@ -23,6 +26,48 @@ const live = new Map<string, { session: ScreenerSession; record: SessionRecord; 
 
 const app = express();
 app.use(express.json());
+
+// --- the playable catalogue ---------------------------------------------------
+//
+// Served from this origin so the web app can re-skin an embedded item by setting CSS custom
+// properties on its document. A cross-origin frame is opaque and could not be themed at all,
+// so co-locating these is load-bearing rather than tidy.
+
+// Resolved against this file, so the catalogue is found whichever directory the server is
+// launched from. GT_QBANK_DIR overrides it for a deployment that stores the items elsewhere.
+const QBANK_DIR =
+  process.env.GT_QBANK_DIR ??
+  join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..', 'qbank-library');
+
+app.use('/qbank/items', express.static(join(QBANK_DIR, 'items')));
+
+app.get('/api/qbank', (_req, res) => {
+  try {
+    const files = readdirSync(join(QBANK_DIR, 'items')).filter((f) => f.endsWith('.html'));
+    const items = files.map((file) => {
+      // Titles look like "SPA-TANGRAM-01 · Shape-Fill Form Board". Read only the head, since
+      // some of these files are tens of kilobytes and nothing below the title is needed.
+      const head = readFileSync(join(QBANK_DIR, 'items', file), 'utf8').slice(0, 4000);
+      const m = /<title>([^<]*)<\/title>/i.exec(head);
+      const raw = (m?.[1] ?? file.replace(/\.html$/, '')).trim();
+      const [codePart, namePart] = raw.split('·');
+      const code = (codePart ?? file).trim();
+      const area = code.split('-')[0]?.toUpperCase() ?? 'OTHER';
+      return {
+        file,
+        code,
+        name: (namePart ?? code).trim(),
+        area,
+        readingFree: area === 'SPA' || area === 'WM',
+        url: `/qbank/items/${file}`,
+      };
+    });
+    items.sort((a, b) => a.area.localeCompare(b.area) || a.code.localeCompare(b.code));
+    return res.json({ items, count: items.length, dir: QBANK_DIR });
+  } catch (err) {
+    return res.status(500).json({ error: `catalogue unavailable: ${err instanceof Error ? err.message : String(err)}` });
+  }
+});
 
 // --- library -----------------------------------------------------------------
 

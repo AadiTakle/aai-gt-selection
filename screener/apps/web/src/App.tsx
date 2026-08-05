@@ -2,8 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { AgeBand, RenderedItem, SurfaceConfig } from '@gt/contracts';
 import { ContentView } from './ItemView.js';
 import { Practice } from './Practice.js';
+import { QBank } from './QBank.js';
 
-type Tab = 'screener' | 'practice' | 'library' | 'stats';
+type Tab = 'screener' | 'practice' | 'qbank' | 'library' | 'stats';
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
@@ -30,15 +31,17 @@ export default function App() {
           </p>
         </div>
         <nav>
-          {(['screener', 'practice', 'library', 'stats'] as Tab[]).map((t) => (
+          {(['screener', 'practice', 'qbank', 'library', 'stats'] as Tab[]).map((t) => (
             <button key={t} className={tab === t ? 'tab active' : 'tab'} onClick={() => setTab(t)}>
-              {t === 'screener' ? 'Screener' : t === 'practice' ? 'Practice' : t === 'library' ? 'Library studio' : 'Statistics'}
+              {t === 'screener' ? 'Screener' : t === 'practice' ? 'Practice'
+                : t === 'qbank' ? 'Question catalogue' : t === 'library' ? 'Library studio' : 'Statistics'}
             </button>
           ))}
         </nav>
       </header>
       {tab === 'screener' && <Screener />}
       {tab === 'practice' && <Practice />}
+      {tab === 'qbank' && <QBank />}
       {tab === 'library' && <LibraryStudio />}
       {tab === 'stats' && <Stats />}
       <footer>

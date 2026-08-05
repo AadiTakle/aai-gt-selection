@@ -14,12 +14,16 @@ export default defineConfig({
       '@gt/engine': r('./packages/engine/src/index.ts'),
       '@gt/stats': r('./packages/stats/src/index.ts'),
       '@gt/practice': r('./packages/practice/src/index.ts'),
+      '@gt/qbank': r('./packages/qbank/src/index.ts'),
     },
   },
   server: {
     port: 5180,
     proxy: {
       '/api': 'http://localhost:5181',
+      // Served through the same origin on purpose. Cross-origin frames cannot be themed from
+      // the host, so this is not a convenience, it is the mechanism.
+      '/qbank': 'http://localhost:5181',
     },
   },
   build: {

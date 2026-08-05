@@ -157,3 +157,27 @@ footer {
 .explanation p { margin: 0 0 9px; font-size: 14px; }
 .explanation p:last-child { margin-bottom: 0; }
 .explanation strong { color: var(--accent); }
+
+/* --- embedded question catalogue --- */
+.qbank-frame {
+  width: 100%; height: 660px; border: 1px solid var(--line);
+  border-radius: var(--radius); background: #fff; display: block;
+}
+.frame-head {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 16px; flex-wrap: wrap; margin-bottom: 12px;
+}
+.frame-flags { display: flex; gap: 6px; flex-wrap: wrap; }
+.flag {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
+  padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line);
+  color: var(--ink-soft); background: #fbfbfc;
+}
+.flag.on { border-color: #cfe6d9; background: #f1f8f4; color: var(--ok); }
+.flag.warn { border-color: #eddcc0; background: #fdf7ec; color: var(--warn); }
+.swatch-row { display: inline-flex; align-items: center; gap: 7px; }
+.swatch-row input[type='color'] {
+  width: 30px; height: 22px; padding: 0; border: 1px solid var(--line);
+  border-radius: 4px; background: none; cursor: pointer;
+}
+a.tab { text-decoration: none; display: inline-flex; align-items: center; }

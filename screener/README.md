@@ -1,8 +1,8 @@
 # The screener library
 
-A shared assessment item library and adaptive engine, plus **two** tools built on it: a public
-screener and a reasoning-practice tool. The library is the product. Either consumer could be
-replaced without touching it, which is the point.
+A shared assessment item library and adaptive engine, plus the tools built on them: a public
+screener, a reasoning-practice tool, and the 52-item playable catalogue embedded and themed. The
+library is the product. Any consumer could be replaced without touching it, which is the point.
 
 Design rationale is in `../docs/design/screener-library-design.md`. The product argument is in
 `../docs/proposals/public-screener.md`.
@@ -22,8 +22,8 @@ npm run dev          # api on :5181, web on http://localhost:5180
 Other commands:
 
 ```bash
-npm run verify       # typecheck, 93 unit tests, simulation, 20 end-to-end checks
-npm test             # 93 unit tests
+npm run verify       # typecheck, 111 unit tests, simulation, 28 end-to-end checks
+npm test             # 111 unit tests
 npm run sim          # run synthetic cohorts through the engine and print what it did
 npm run smoke        # start the api, drive a real session over HTTP, assert the guarantees
 npm run typecheck
@@ -88,7 +88,7 @@ screener/
 │   └── stats/          metrics over stored sessions
 ├── apps/
 │   ├── api/            express, append-only persistence
-│   └── web/            the screener, the practice tool, the studio, and the statistics
+│   └── web/            the screener, practice, the catalogue, the studio, the statistics
 ├── DEMO.md             an eight-minute click path
 └── scripts/smoke.sh    end-to-end check
 ```
@@ -142,6 +142,37 @@ to a session, because those are different statements.
 
 ---
 
+## The playable catalogue, embedded and themed
+
+The 52 existing question types live in `../qbank-library/` and are served from the API at
+`/qbank/items/`, proxied through the web app so they arrive on the same origin. That is not a
+convenience. A cross-origin frame is opaque to its host, so same-origin is the mechanism that makes
+everything below possible.
+
+Two properties those files already had, before any of this existed:
+
+**They broadcast.** Every one posts `{source:'gt-exam-demo', type:'ready'|'telemetry'|'result'}` to
+its parent window, so the **Question catalogue** tab observes a live session without any item being
+modified. The result carries the response and its metrics: response time, first-action latency,
+revisions, focus losses, and a rapid-guess flag.
+
+**They declare their palette.** Every one sets CSS custom properties on `:root`, so the host
+re-skins an embedded item by setting those properties on the frame's document element. Four presets
+ship, every property is editable live, and a palette can be copied out as a new preset. No item file
+is edited and clearing the properties restores the original.
+
+Coverage is uneven and the table in that tab says so per property: `--ink` appears in all 52 items,
+`--good` in 47, `--accent` in 39, `--card` in 38, the background stops in 35, the telemetry panel's
+four in 31. So a theme re-skins most of the catalogue rather than all of it, and a few items carry
+one-off colours no global theme reaches. Those counts are asserted against the files in
+`packages/qbank/src/qbank.test.ts`, so they cannot drift silently.
+
+**What this does not do.** The items deliberately never report whether an answer was correct. Their
+own source says "NEUTRAL acknowledgment only — never correct/incorrect." So the host can read a
+response and its metrics and cannot score it, and wiring these into the screener's scored flow needs
+an answer key held here that does not exist yet. There is a test asserting no item leaks a
+correctness flag, so this stays true.
+
 ## Honest limits
 
 1. **Nothing is calibrated.** Every item type carries an assumed difficulty and an assumed
@@ -168,7 +199,11 @@ to a session, because those are different statements.
    least 40 items if correct decisions on the individual level" are needed. That figure comes from
    fixed-form simulations rather than adaptive classification, which is the reconciliation, but it
    should not be waved away. Raising `maxItems` is a config change and worth trying.
-8. **Shortening the test costs sensitivity almost exclusively, which is the error this tool least
+8. **The catalogue items cannot be scored yet.** They are embedded, observed and themed, and the
+   screener's own adaptive sessions still run on the generator library rather than on them, because
+   scoring 52 hand-built items needs 52 answer keys held host-side. That is the next piece of work
+   if these are to become live assessment items rather than a demonstration of the hookup.
+9. **Shortening the test costs sensitivity almost exclusively, which is the error this tool least
    wants.** At a demanding cut, clearing a candidate is cheap and confirming one is expensive, because
    there is little item information above the threshold and the prior already sits against them. In one
    simulation at a 10% selection ratio, going from 40 items to 15 moved specificity from .97 to .96
