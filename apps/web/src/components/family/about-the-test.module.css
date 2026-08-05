@@ -1,34 +1,43 @@
 /* =========================================================================
-   About the test: a full-screen walkthrough.
+   About the test: a full-screen walkthrough that takes over the browser.
 
    Built on the GT brand token layer. The rules this file follows, taken from
    `globals.css`:
 
      - Gold is a SURFACE, never ink. The Next button is a gold fill with dark
-       navy ink (--color-accent / --color-accent-ink), which is the same
-       treatment the landing and exam-runner CTAs use.
+       navy ink (--color-accent / --color-accent-ink), the same treatment the
+       landing and exam-runner CTAs use.
      - Surfaces sit flat on the paper. --gt-shadow-card is none, on purpose.
      - Headings are Literata (--font-display); marks, labels and controls are
        Inconsolata (--font-utility); body is Inter Tight.
      - The primary action carries the signature bottom-right chamfer, --cut-br.
      - No raw hexes. Components reference semantic tokens.
 
+   IT CONSUMES THE SITE. The stage is fixed to the viewport at a z-index above
+   the app shell, so the header and the 72rem content column are covered rather
+   than worked around. The component locks body scroll while mounted.
+
    LAYOUT CONTRACT. One screen occupies the viewport, no more and no less. A
    battery screen is three rows: a thin bar, the question, and a dock of notes
    plus controls. The question row is the flexible one, so it absorbs whatever
    height the window has and the dock never leaves the screen. Sizes are in svh
-   rather than vh so mobile browser chrome does not eat the controls.
+   so mobile browser chrome does not eat the controls.
 
-   THE FADE. The navy opening is a separate layer over the paper, faded on
-   opacity rather than swapped for a different background. Gradients cannot be
-   transitioned, and cross-fading the layer is what makes the handoff read as
-   one movement instead of a cut.
+   MOTION. --exit must stay in step with EXIT_MS in the component, since the
+   screen swap is timed against it in JS. Entrances stagger their children off
+   one keyframe with per-row delays rather than per-element animations, which
+   keeps the count of running animations low enough not to fight the demo
+   iframe for frames. Everything here collapses under prefers-reduced-motion.
    ========================================================================= */
 
 .stage {
-  position: relative;
+  --exit: 240ms;
+  --enter: 460ms;
+
+  position: fixed;
+  inset: 0;
+  z-index: 50;
   isolation: isolate;
-  min-height: 100svh;
   background: var(--color-bg);
   color: var(--color-ink);
   overflow: hidden;
@@ -46,27 +55,92 @@
     var(--gt-blue-dark) 100%
   );
   opacity: 1;
-  transition: opacity 800ms var(--gt-ease);
+  transition: opacity 900ms var(--gt-ease);
 }
 
 .fieldOut {
   opacity: 0;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .field {
-    transition: none;
+/* ---- the moving parts ---- */
+
+.screen {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-4);
+  padding: var(--gt-space-5) var(--gt-space-5) var(--gt-space-4);
+  overflow-y: auto;
+}
+
+.entering {
+  animation: screenIn var(--enter) var(--gt-ease) both;
+}
+
+.leaving {
+  animation: screenOut var(--exit) ease-in both;
+  pointer-events: none;
+}
+
+.fwd {
+  --slide: 2.5rem;
+}
+
+.back {
+  --slide: -2.5rem;
+}
+
+@keyframes screenIn {
+  from {
+    opacity: 0;
+    transform: translate3d(var(--slide), 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 
-.screen {
-  position: relative;
-  z-index: 1;
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  padding: var(--gt-space-5) var(--gt-space-5) var(--gt-space-4);
-  gap: var(--gt-space-4);
+@keyframes screenOut {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(calc(var(--slide) * -0.6), 0, 0);
+  }
+}
+
+/* Children rise in sequence behind the screen's own entrance, which is what
+   makes a move read as composed rather than as one block sliding. */
+.entering > * {
+  animation: rise var(--enter) var(--gt-ease) both;
+}
+
+.entering > *:nth-child(1) {
+  animation-delay: 60ms;
+}
+
+.entering > *:nth-child(2) {
+  animation-delay: 150ms;
+}
+
+.entering > *:nth-child(3) {
+  animation-delay: 240ms;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 1rem, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* ---- screen 1: the question, on navy ---- */
@@ -166,6 +240,7 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   text-align: center;
+  transition: transform 150ms var(--gt-ease);
 }
 
 .next::before {
@@ -185,8 +260,16 @@
   transition: background 150ms ease;
 }
 
+.next:hover {
+  transform: translateY(-1px);
+}
+
 .next:hover::before {
   background: var(--gt-gold-deep);
+}
+
+.next:active {
+  transform: translateY(0);
 }
 
 .next:focus-visible {
@@ -194,7 +277,27 @@
   outline-offset: 3px;
 }
 
-.back {
+/* The gate opening is the one moment on the screen worth announcing. */
+.pop {
+  animation: pop 380ms var(--gt-ease) both;
+}
+
+@keyframes pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.9) translateY(0.4rem);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.03) translateY(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.backBtn {
   all: unset;
   cursor: pointer;
   padding: 0.6rem 1rem;
@@ -209,11 +312,11 @@
   transition: background 150ms var(--gt-ease);
 }
 
-.back:hover {
+.backBtn:hover {
   background: var(--color-surface);
 }
 
-.back:focus-visible {
+.backBtn:focus-visible {
   outline: 0.1875rem solid var(--color-focus);
   outline-offset: 2px;
 }
@@ -282,9 +385,13 @@
   height: 0.25rem;
   border-radius: var(--radius-xs);
   background: var(--gt-grey-light);
+  transition:
+    background 300ms var(--gt-ease),
+    width 300ms var(--gt-ease);
 }
 
 .pipOn {
+  width: 2.4rem;
   background: var(--color-accent);
 }
 
@@ -395,19 +502,43 @@
   display: flex;
   align-items: center;
   gap: var(--gt-space-3);
-  min-height: 3rem;
+  min-height: 3.25rem;
 }
 
-/* Sits where the Next button will appear, so the dock does not jump when the
-   gate opens. */
+/* Occupies the space the Next button will take, so the dock does not jump when
+   the gate opens. */
 .gate {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
   margin: 0;
   padding: 0.6rem 0;
   font-family: var(--font-utility);
   font-size: 0.78rem;
   letter-spacing: 0.04em;
   color: var(--color-muted);
-  max-width: 14rem;
+  max-width: 16rem;
+}
+
+.pulse {
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--color-accent);
+  animation: pulse 1800ms ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 /* ---- last screen ---- */
@@ -453,7 +584,7 @@
   color: var(--color-muted);
 }
 
-/* ---- narrow and short windows ---- */
+/* ---- narrow windows ---- */
 
 @media (max-width: 48rem) {
   .screen {
@@ -473,15 +604,36 @@
   }
 }
 
-/* Below this the three rows genuinely cannot coexist, so the screen gives up
-   its viewport lock and scrolls rather than crushing the question. */
+/* Below this the three rows genuinely cannot coexist. The screen keeps its own
+   scroll (it is fixed, so the page has none to fall back on) and the question
+   keeps a usable size rather than being crushed. */
 @media (max-height: 34rem) {
-  .stage,
-  .screen {
-    min-height: auto;
-  }
-
   .frameWrap {
     min-height: 22rem;
+  }
+}
+
+/* ---- motion off ---- */
+
+@media (prefers-reduced-motion: reduce) {
+  .field {
+    transition: none;
+  }
+
+  .entering,
+  .entering > *,
+  .leaving,
+  .pop,
+  .pulse {
+    animation: none;
+  }
+
+  .next,
+  .pip {
+    transition: none;
+  }
+
+  .next:hover {
+    transform: none;
   }
 }

@@ -6,34 +6,36 @@ import Link from 'next/link';
 import styles from './about-the-test.module.css';
 
 /**
- * The explainer, as a full-screen walkthrough a parent completes once.
+ * The explainer, as a full-screen walkthrough that takes over the browser.
  *
- * It opens on a navy field carrying nothing but the question and a short answer
- * to it. Pressing Next fades that field back to the site's paper and hands over
- * to three battery screens, each of which is a large live question in the middle
- * with what the battery measures along the bottom. The last screen lets you go.
+ * IT CONSUMES THE WHOLE SITE, deliberately. The stage is fixed to the viewport
+ * and painted above the app shell, so the header, the 72rem content column and
+ * the page scroll all disappear while it is open. Anything less than that and it
+ * reads as a page inside a product rather than a thing you sit down and do. Body
+ * scroll is locked for the same reason and restored on unmount.
+ *
+ * MOVEMENT IS A STATE MACHINE, not a CSS afterthought. Each move plays an exit,
+ * swaps the screen at the halfway point, then plays an entrance whose children
+ * are staggered. Holding two screens on the DOM to cross-fade them would mean two
+ * live demo iframes animating at once, so the swap happens in the gap instead.
+ * `dir` carries which way the slide should go so Back feels like going back.
  *
  * THE GATE IS THE POINT. Next does not exist on a battery screen until the demo
- * reports that the question was answered. Reading that a figural matrix asks you
- * to find a hidden rule teaches almost nothing; being unable to move on until you
- * have found one teaches the thing itself. `answerBattery` listens for the demo
- * protocol's `result` message, which every embedded demo posts on submit.
+ * reports the question was answered, and it pops in when it arrives. Reading that
+ * a figural matrix asks you to find a hidden rule teaches almost nothing; being
+ * unable to move on until you have found one teaches the thing itself. Every demo
+ * posts {source:'gt-exam-demo', type:'result'} on submit whether or not a host is
+ * driving it, so one listener covers all three screens.
  *
- * THE SAFETY UNLOCK. If a demo fails to load or a child stalls, the gate opens by
- * itself after UNLOCK_AFTER_MS. Without it a broken iframe would be a dead end
- * with no way forward, and this page has no login behind it to fall back on.
- *
- * ONE QUESTION PER BATTERY, mounted only while its screen is showing. Each demo
- * runs its own scripts, animations and standalone bootstrap, so keeping three
- * alive at once would have them all animating off screen.
- *
- * WHY THESE SAMPLES. Every one self starts when no host drives it: embedded with
- * no `init` message, the demo boots its own bank sample after a second. Demos
- * without that fallback would sit blank in a frame here.
+ * THE SAFETY UNLOCK. If a demo fails to load the gate opens by itself after
+ * UNLOCK_AFTER_MS. Without it a broken iframe is a dead end, and this page has no
+ * login behind it to fall back on.
  *
  * No real CogAT items appear here. These are our own questions of the same kind.
  */
 
+/** Exit half of a move. Must match --exit in the stylesheet. */
+const EXIT_MS = 240;
 /** Opens the gate anyway, so a failed demo cannot trap someone on a screen. */
 const UNLOCK_AFTER_MS = 45_000;
 
@@ -88,37 +90,61 @@ const LAST = BATTERIES.length + 1;
 
 export function AboutTheTest({ baselineHref }: { baselineHref: string }) {
   const [step, setStep] = useState(0);
+  const [phase, setPhase] = useState<'in' | 'out'>('in');
+  const [dir, setDir] = useState<'fwd' | 'back'>('fwd');
   const [answered, setAnswered] = useState<Readonly<Record<string, boolean>>>({});
-  const topRef = useRef<HTMLDivElement | null>(null);
+  const pending = useRef<number | null>(null);
 
   const battery = step >= 1 && step <= BATTERIES.length ? BATTERIES[step - 1]! : null;
   const isOpen = battery ? answered[battery.code] === true : true;
 
-  const move = useCallback((delta: number) => {
-    setStep((i) => Math.max(0, Math.min(LAST, i + delta)));
+  const go = useCallback(
+    (next: number) => {
+      const target = Math.max(0, Math.min(LAST, next));
+      // Ignore a second press mid-move; two overlapping swaps would skip a screen.
+      if (target === step || phase === 'out') return;
+      setDir(target > step ? 'fwd' : 'back');
+      pending.current = target;
+      setPhase('out');
+    },
+    [step, phase],
+  );
+
+  // Swap at the halfway point of the move, then play the entrance.
+  useEffect(() => {
+    if (phase !== 'out') return;
+    const timer = window.setTimeout(() => {
+      if (pending.current !== null) setStep(pending.current);
+      pending.current = null;
+      setPhase('in');
+    }, EXIT_MS);
+    return () => window.clearTimeout(timer);
+  }, [phase]);
+
+  // Take the page over completely: no site scroll behind the stage.
+  useEffect(() => {
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previous;
+    };
   }, []);
 
   /**
-   * The gate. Every demo posts `result` on submit whether or not a host is
-   * driving it, so one listener covers all three screens. Marked by item code
-   * rather than by step so going back to a battery you already answered does not
-   * shut the gate again.
+   * The gate. Marked by item code rather than by step, so walking back to a
+   * battery you already answered does not shut it again.
    */
   useEffect(() => {
     if (!battery) return;
     const code = battery.code;
+    const open = () => setAnswered((prev) => (prev[code] ? prev : { ...prev, [code]: true }));
 
     function onMessage(event: MessageEvent) {
       const data = event.data as { source?: string; type?: string } | null;
-      if (data?.source === 'gt-exam-demo' && data.type === 'result') {
-        setAnswered((prev) => (prev[code] ? prev : { ...prev, [code]: true }));
-      }
+      if (data?.source === 'gt-exam-demo' && data.type === 'result') open();
     }
 
-    const unlock = window.setTimeout(() => {
-      setAnswered((prev) => (prev[code] ? prev : { ...prev, [code]: true }));
-    }, UNLOCK_AFTER_MS);
-
+    const unlock = window.setTimeout(open, UNLOCK_AFTER_MS);
     window.addEventListener('message', onMessage);
     return () => {
       window.removeEventListener('message', onMessage);
@@ -128,30 +154,30 @@ export function AboutTheTest({ baselineHref }: { baselineHref: string }) {
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
-      if (event.key === 'ArrowLeft') move(-1);
-      if (event.key === 'ArrowRight' && isOpen) move(1);
+      if (event.key === 'ArrowLeft') go(step - 1);
+      if (event.key === 'ArrowRight' && isOpen) go(step + 1);
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [move, isOpen]);
+  }, [go, step, isOpen]);
 
-  // Screens are viewport sized, so a part-scrolled short window would otherwise
-  // start the next screen halfway down.
-  useEffect(() => {
-    topRef.current?.scrollIntoView({ block: 'start' });
-  }, [step]);
+  const screenClass = [
+    styles.screen,
+    phase === 'out' ? styles.leaving : styles.entering,
+    dir === 'back' ? styles.back : styles.fwd,
+  ].join(' ');
 
   return (
-    <div className={styles.stage} ref={topRef}>
-      {/* The navy field, faded out rather than swapped, so the handoff to paper
-          reads as one movement. Sits under the content and takes no clicks. */}
+    <div className={styles.stage}>
+      {/* The navy opening, faded rather than swapped so the handoff to paper is
+          one movement. Sits under the content and takes no clicks. */}
       <div
         className={step === 0 ? styles.field : `${styles.field} ${styles.fieldOut}`}
         aria-hidden="true"
       />
 
       {step === 0 ? (
-        <section className={`${styles.screen} ${styles.intro}`}>
+        <section className={`${screenClass} ${styles.intro}`} key="intro">
           <div className={styles.introTop}>
             <p className={styles.kicker}>The test behind the decision</p>
             <h1 className={styles.hero}>What is the CogAT?</h1>
@@ -164,7 +190,7 @@ export function AboutTheTest({ baselineHref }: { baselineHref: string }) {
               in three parts, and they are not interchangeable.
             </p>
             <div className={styles.introActions}>
-              <button type="button" className={styles.next} onClick={() => move(1)}>
+              <button type="button" className={styles.next} onClick={() => go(1)}>
                 Next
               </button>
               <p className={styles.introHint}>Three parts, one question each. Around 4 minutes.</p>
@@ -178,7 +204,7 @@ export function AboutTheTest({ baselineHref }: { baselineHref: string }) {
       ) : null}
 
       {battery ? (
-        <section className={styles.screen}>
+        <section className={screenClass} key={battery.key}>
           <header className={styles.bar}>
             <div className={styles.barLeft}>
               <span className={styles.tag} data-battery={battery.key}>
@@ -229,15 +255,22 @@ export function AboutTheTest({ baselineHref }: { baselineHref: string }) {
             </dl>
 
             <div className={styles.dockActions}>
-              <button type="button" className={styles.back} onClick={() => move(-1)}>
+              <button type="button" className={styles.backBtn} onClick={() => go(step - 1)}>
                 Back
               </button>
               {isOpen ? (
-                <button type="button" className={styles.next} onClick={() => move(1)}>
+                <button
+                  type="button"
+                  className={`${styles.next} ${styles.pop}`}
+                  onClick={() => go(step + 1)}
+                >
                   {step === BATTERIES.length ? 'Finish' : 'Next'}
                 </button>
               ) : (
-                <p className={styles.gate}>Answer the question to continue</p>
+                <p className={styles.gate}>
+                  <span className={styles.pulse} aria-hidden="true" />
+                  Answer the question to continue
+                </p>
               )}
             </div>
           </footer>
@@ -245,7 +278,7 @@ export function AboutTheTest({ baselineHref }: { baselineHref: string }) {
       ) : null}
 
       {step === LAST ? (
-        <section className={`${styles.screen} ${styles.done}`}>
+        <section className={`${screenClass} ${styles.done}`} key="done">
           <div className={styles.doneInner}>
             <p className={styles.kickerInk}>That is the whole test</p>
             <h2 className={styles.hero}>You have seen all three parts</h2>
@@ -258,7 +291,7 @@ export function AboutTheTest({ baselineHref }: { baselineHref: string }) {
               <Link className={styles.next} href={baselineHref}>
                 See where your child places
               </Link>
-              <button type="button" className={styles.back} onClick={() => setStep(0)}>
+              <button type="button" className={styles.backBtn} onClick={() => go(0)}>
                 Start over
               </button>
             </div>
