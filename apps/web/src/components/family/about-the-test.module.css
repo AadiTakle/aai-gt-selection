@@ -241,63 +241,132 @@
   outline-offset: 3px;
 }
 
-.samplerNote {
-  font-family: var(--font-utility);
+/* ---- one battery per slide ---- */
+
+.blurb {
   margin: 0;
-  font-size: 0.72rem;
-  line-height: 1.5;
-  letter-spacing: 0.02em;
-  color: var(--color-muted);
-  text-align: center;
-  max-width: 70ch;
-  margin-inline: auto;
-}
-
-/* ---- the three reference cards ---- */
-
-.facts {
-  display: grid;
-  gap: var(--gt-space-4);
-  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-}
-
-.fact {
-  background: var(--color-panel);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--gt-space-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--gt-space-1);
-}
-
-.factNum {
-  font-family: var(--font-utility);
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--gt-blue);
-}
-
-.factLabel {
-  font-family: var(--font-utility);
-  margin: 0;
-  font-size: 0.72rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-muted);
-  font-weight: 600;
-}
-
-.factLead {
   font-family: var(--font-display);
-  margin: var(--gt-space-1) 0 0;
   font-size: 1.05rem;
   font-weight: 500;
   line-height: 1.25;
   color: var(--color-ink);
 }
 
-.factBody {
+.slide {
+  display: grid;
+  gap: var(--gt-space-5);
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  align-items: start;
+}
+
+@media (max-width: 52rem) {
+  .slide {
+    grid-template-columns: 1fr;
+  }
+}
+
+.demoCol {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-2);
+  min-width: 0;
+}
+
+.chips {
+  display: flex;
+  gap: var(--gt-space-2);
+  flex-wrap: wrap;
+}
+
+.chip {
+  all: unset;
+  cursor: pointer;
+  font-family: var(--font-utility);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  padding: 0.3rem 0.65rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-xs);
+  color: var(--color-ink-soft);
+  background: var(--color-panel);
+  transition: background 150ms var(--gt-ease);
+}
+
+.chip:hover {
+  background: var(--color-surface);
+}
+
+.chipOn {
+  background: var(--color-surface-selected);
+  border-color: var(--gt-gold);
+  color: var(--color-accent-ink);
+}
+
+.chip:focus-visible {
+  outline: 0.1875rem solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* ---- the three short notes beside the question ---- */
+
+.notes {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-4);
+}
+
+.note {
+  border-left: 2px solid var(--gt-gold-light);
+  padding-left: var(--gt-space-3);
+}
+
+.noteLabel {
+  font-family: var(--font-utility);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  font-weight: 600;
+  margin: 0 0 var(--gt-space-1);
+}
+
+.noteBody {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--color-ink-soft);
+}
+
+/* ---- test-wide facts, kept out of the per-battery slides ---- */
+
+.strip {
+  display: grid;
+  gap: var(--gt-space-4);
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--gt-space-5);
+}
+
+.stripItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-1);
+}
+
+.stripLabel {
+  font-family: var(--font-utility);
+  margin: 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  font-weight: 600;
+}
+
+.stripBody {
   margin: 0;
   font-size: 0.9rem;
   line-height: 1.55;
