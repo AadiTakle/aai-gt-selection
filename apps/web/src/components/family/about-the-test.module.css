@@ -1,44 +1,156 @@
 /* =========================================================================
-   About the test.
+   About the test, as a deck of full-height screens.
 
-   Rebuilt onto the GT brand token layer. The first version of this file was
-   written against invented values (a blue navy, a yellow gold, sans-serif
-   headings, drop shadows, 16px radii) and looked like a different product.
-   The rules it broke, taken from `globals.css`:
+   Built on the GT brand token layer. The rules this file follows, taken from
+   `globals.css`:
 
      - Gold is a SURFACE, never ink. Warm text uses --color-accent-warm-ink.
      - Surfaces sit flat on the paper. --gt-shadow-card is none, on purpose.
-     - Headings are Literata (--font-display); marks and labels are Inconsolata
-       (--font-utility); body is Inter Tight.
+     - Headings are Literata (--font-display); marks, labels and controls are
+       Inconsolata (--font-utility); body is Inter Tight.
      - Containers are --radius-lg, and the primary action carries the signature
        bottom-right chamfer via --cut-br.
      - No raw hexes. Components reference semantic tokens.
+
+   LAYOUT CONTRACT. The deck owns the viewport: a fixed rail on top, a fixed
+   control bar on the bottom, and one screen between them. The stage is the only
+   scrollable region, and it scrolls only when a screen genuinely cannot fit
+   (short laptops, large text). Screens are sized in svh rather than vh so mobile
+   browser chrome does not clip the controls.
    ========================================================================= */
 
-.wrap {
-  max-width: 60rem;
-  margin: 0 auto;
-  padding: var(--gt-space-6) var(--gt-space-4) var(--gt-space-8);
-  display: flex;
-  flex-direction: column;
-  gap: var(--gt-space-5);
+.deck {
+  min-height: 100svh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  background: var(--color-bg);
   color: var(--color-ink);
 }
 
-/* ---- hero: navy does the structural work ---- */
+/* ---- rail: where you are in the deck ---- */
 
-.hero {
-  position: relative;
-  overflow: hidden;
+.rail {
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-panel);
+  padding: var(--gt-space-3) var(--gt-space-4);
+  overflow-x: auto;
+}
+
+.steps {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  max-width: 68rem;
+  display: flex;
+  align-items: stretch;
+  gap: var(--gt-space-2);
+}
+
+.stepItem {
+  display: flex;
+  flex: 1 1 0;
+  min-width: max-content;
+}
+
+.step {
+  all: unset;
+  cursor: pointer;
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: var(--radius-xs);
+  border-bottom: 2px solid transparent;
+  color: var(--color-muted);
+  transition:
+    color 150ms var(--gt-ease),
+    background 150ms var(--gt-ease),
+    border-color 150ms var(--gt-ease);
+}
+
+.step:hover {
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+.stepOn {
+  color: var(--color-ink);
+  border-bottom-color: var(--gt-gold);
+}
+
+.step:focus-visible {
+  outline: 0.1875rem solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.stepNum {
+  font-family: var(--font-utility);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--color-muted);
+}
+
+.stepOn .stepNum {
+  color: var(--color-accent-warm-ink);
+}
+
+.stepLabel {
+  font-family: var(--font-utility);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+/* ---- stage: exactly one screen at a time ---- */
+
+.stage {
+  display: grid;
+  align-items: center;
+  justify-items: center;
+  overflow-y: auto;
+  padding: var(--gt-space-5) var(--gt-space-4);
+  animation: rise 260ms var(--gt-ease) both;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage {
+    animation: none;
+  }
+}
+
+.panel {
+  width: 100%;
+  max-width: 68rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-4);
+}
+
+/* ---- screen 1: what the test is ---- */
+
+.intro {
   background: linear-gradient(
     135deg,
     var(--gt-dark-navy) 0%,
     var(--gt-navy) 45%,
     var(--gt-blue-dark) 100%
   );
-  color: var(--gt-near-white);
+  color: var(--color-on-navy);
   border-radius: var(--radius-lg);
-  padding: var(--gt-space-6);
+  padding: var(--gt-space-7) var(--gt-space-6);
 }
 
 .kicker {
@@ -53,50 +165,69 @@
 
 .title {
   font-family: var(--font-display);
-  font-size: 2.4rem;
+  font-size: clamp(2rem, 4.5vw, 2.9rem);
   font-weight: 300;
   letter-spacing: -0.02em;
   margin: var(--gt-space-2) 0 var(--gt-space-3);
-  color: var(--gt-near-white);
+  color: var(--color-on-navy);
 }
 
 .lede {
   font-size: 1.05rem;
-  color: rgb(251 251 251 / 0.82);
+  color: var(--color-on-navy-soft);
   line-height: 1.55;
   margin: 0;
-  max-width: 60ch;
+  max-width: 62ch;
 }
 
-/* ---- sampler: a white panel on the paper, flat ---- */
-
-.sampler {
-  background: var(--color-panel);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--gt-space-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--gt-space-3);
+.facts {
+  margin: var(--gt-space-5) 0 0;
+  display: grid;
+  gap: var(--gt-space-4);
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
 }
 
-.samplerBar {
+.fact {
+  border-top: 2px solid var(--gt-gold-light);
+  padding-top: var(--gt-space-3);
+}
+
+.factLabel {
+  font-family: var(--font-utility);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--gt-gold-light);
+  margin: 0 0 var(--gt-space-2);
+}
+
+.factBody {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--color-on-navy-soft);
+}
+
+.handoff {
+  margin: var(--gt-space-5) 0 0;
+  font-family: var(--font-utility);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: var(--gt-gold-light);
+}
+
+/* ---- screens 2 to 4: one battery each ---- */
+
+.panelHead {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--gt-space-4);
+  gap: var(--gt-space-3);
   flex-wrap: wrap;
 }
 
-.samplerMeta {
-  display: flex;
-  align-items: center;
-  gap: var(--gt-space-3);
-  min-width: 0;
-}
-
-/* Gold as a surface with dark-navy ink, per the brand rule. Battery identity
-   uses the verified warm and cool accent inks on a tinted surface. */
+/* Gold as a surface with warm ink, per the brand rule. Verbal takes the cool
+   accent ink so the three screens are distinguishable at a glance. */
 .battery {
   flex: none;
   font-family: var(--font-utility);
@@ -119,148 +250,28 @@
   background: var(--color-surface-strong);
 }
 
-.sampleName {
+.panelTitle {
   font-family: var(--font-display);
   margin: 0;
-  font-size: 1.15rem;
-  font-weight: 500;
-  color: var(--color-ink);
+  font-size: clamp(1.25rem, 2.6vw, 1.7rem);
+  font-weight: 400;
   line-height: 1.2;
-}
-
-.sampleCogat {
-  font-family: var(--font-utility);
-  margin: 0.15rem 0 0;
-  font-size: 0.72rem;
-  letter-spacing: 0.04em;
-  color: var(--color-muted);
-}
-
-.controls {
-  display: flex;
-  align-items: center;
-  gap: var(--gt-space-2);
-}
-
-.arrow {
-  all: unset;
-  cursor: pointer;
-  width: 2.5rem;
-  height: 2.5rem;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
-  background: var(--color-panel);
-  color: var(--color-primary);
-  font-size: 1.4rem;
-  line-height: 1;
-  transition: background 150ms var(--gt-ease);
-}
-
-.arrow:hover {
-  background: var(--color-surface);
-}
-
-.arrow:focus-visible {
-  outline: 0.1875rem solid var(--color-focus);
-  outline-offset: 2px;
-}
-
-.counter {
-  font-family: var(--font-utility);
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--color-ink);
-  min-width: 3.2rem;
-  text-align: center;
-}
-
-.counterDim {
-  color: var(--color-muted);
-}
-
-.ask {
-  margin: 0;
-  font-size: 0.95rem;
-  line-height: 1.55;
-  color: var(--color-ink-soft);
-  max-width: 70ch;
-}
-
-.screen {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  background: var(--gt-dark-navy);
-}
-
-.frame {
-  display: block;
-  width: 100%;
-  height: 30rem;
-  border: 0;
-}
-
-@media (max-width: 40rem) {
-  .frame {
-    height: 24rem;
-  }
-}
-
-.dots {
-  display: flex;
-  justify-content: center;
-  gap: var(--gt-space-2);
-}
-
-.dot {
-  all: unset;
-  cursor: pointer;
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 50%;
-  background: var(--gt-grey);
-  transition:
-    width 150ms var(--gt-ease),
-    background 150ms var(--gt-ease);
-}
-
-.dot:hover {
-  background: var(--gt-gold);
-}
-
-.dotOn {
-  width: 1.5rem;
-  border-radius: var(--radius-xs);
-  background: var(--color-primary);
-}
-
-.dot:focus-visible {
-  outline: 0.1875rem solid var(--color-focus);
-  outline-offset: 3px;
-}
-
-/* ---- one battery per slide ---- */
-
-.blurb {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.05rem;
-  font-weight: 500;
-  line-height: 1.25;
   color: var(--color-ink);
 }
 
-.slide {
+.split {
   display: grid;
   gap: var(--gt-space-5);
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
   align-items: start;
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--gt-space-5);
 }
 
-@media (max-width: 52rem) {
-  .slide {
+@media (max-width: 56rem) {
+  .split {
     grid-template-columns: 1fr;
   }
 }
@@ -307,7 +318,46 @@
   outline-offset: 2px;
 }
 
-/* ---- the three short notes beside the question ---- */
+.sampleName {
+  font-family: var(--font-display);
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--color-ink);
+  line-height: 1.2;
+}
+
+.ask {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--color-ink-soft);
+  max-width: 68ch;
+}
+
+.screen {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--gt-dark-navy);
+}
+
+/* Sized against the viewport so the question and the controls coexist on one
+   screen. The floor keeps it usable on short windows, where the stage scrolls. */
+.frame {
+  display: block;
+  width: 100%;
+  height: clamp(17rem, 46svh, 29rem);
+  border: 0;
+}
+
+.sampleCogat {
+  font-family: var(--font-utility);
+  margin: 0.15rem 0 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+}
 
 .notes {
   margin: 0;
@@ -338,69 +388,27 @@
   color: var(--color-ink-soft);
 }
 
-/* ---- test-wide facts, kept out of the per-battery slides ---- */
+/* ---- screen 5: where to start ---- */
 
-.strip {
-  display: grid;
-  gap: var(--gt-space-4);
-  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
-  background: var(--color-panel);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--gt-space-5);
-}
-
-.stripItem {
-  display: flex;
-  flex-direction: column;
-  gap: var(--gt-space-1);
-}
-
-.stripLabel {
-  font-family: var(--font-utility);
-  margin: 0;
-  font-size: 0.68rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-muted);
-  font-weight: 600;
-}
-
-.stripBody {
-  margin: 0;
-  font-size: 0.9rem;
-  line-height: 1.55;
-  color: var(--color-ink-soft);
-}
-
-/* ---- call to action: the warm grouped region ---- */
-
-.cta {
+.close {
   background: var(--color-surface);
   border: 1px solid var(--gt-gold-light);
   border-radius: var(--radius-lg);
-  padding: var(--gt-space-5) var(--gt-space-6);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--gt-space-5);
-  flex-wrap: wrap;
+  padding: var(--gt-space-7) var(--gt-space-6);
+  align-items: flex-start;
+  gap: var(--gt-space-3);
 }
 
-.ctaTitle {
-  font-family: var(--font-display);
-  margin: 0 0 var(--gt-space-1);
-  font-size: 1.3rem;
-  font-weight: 500;
+.close .title {
   color: var(--color-ink);
 }
 
-.ctaBody {
-  margin: 0;
-  font-size: 0.95rem;
-  line-height: 1.5;
+.close .kicker {
+  color: var(--color-accent-warm-ink);
+}
+
+.close .lede {
   color: var(--color-ink-soft);
-  max-width: 46ch;
 }
 
 /* The signature chamfered primary, matching the rest of the portal. */
@@ -409,7 +417,7 @@
   position: relative;
   isolation: isolate;
   cursor: pointer;
-  flex: none;
+  margin-top: var(--gt-space-3);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -450,11 +458,74 @@
   outline-offset: 3px;
 }
 
+/* ---- foot: the only way forward, plus the claim boundary ---- */
+
+.foot {
+  border-top: 1px solid var(--color-border);
+  background: var(--color-panel);
+  padding: var(--gt-space-3) var(--gt-space-4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gt-space-4);
+  flex-wrap: wrap;
+}
+
 .boundary {
   margin: 0;
-  padding-top: var(--gt-space-4);
-  border-top: 1px solid var(--color-border);
-  font-size: 0.8rem;
-  line-height: 1.55;
+  flex: 1 1 22rem;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--color-muted);
+  max-width: 58ch;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--gt-space-3);
+}
+
+.nav {
+  all: unset;
+  cursor: pointer;
+  padding: 0.55rem 1.1rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-panel);
+  color: var(--color-primary);
+  font-family: var(--font-utility);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: background 150ms var(--gt-ease);
+}
+
+.nav:hover:not(:disabled) {
+  background: var(--color-surface);
+}
+
+.nav:disabled {
+  cursor: default;
+  color: var(--color-muted);
+  border-color: var(--color-border);
+}
+
+.nav:focus-visible {
+  outline: 0.1875rem solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.counter {
+  font-family: var(--font-utility);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-ink);
+  min-width: 3.2rem;
+  text-align: center;
+}
+
+.counterDim {
   color: var(--color-muted);
 }
