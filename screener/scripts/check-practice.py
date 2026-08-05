@@ -200,4 +200,61 @@ _, short_len, _ = run_bank_session(0)
 _, long_len, _ = run_bank_session(4)
 check(long_len > short_len, f"Thorough uses more questions than Taster ({long_len} vs {short_len})")
 
+
+# --- practice over the banks, and the library studio listing them ----------------------------
+print("")
+print("Practice on the banks, and the studio listing them")
+
+bp = call("/bank/practice", {"precisionIndex": 3, "seed": 5})
+bpid = bp["sessionId"]
+check(bp["poolSize"] > 3000, f"bank practice drew a pool of {bp['poolSize']}")
+
+revealed, marked, served_bp = 0, 0, 0
+for _ in range(30):
+    nxt = call(f"/bank/practice/{bpid}/next")
+    if nxt.get("done"):
+        break
+    served_bp += 1
+    item = nxt["served"]
+    blob = json.dumps(item)
+    if '"answer"' in blob or '"correctKey"' in blob:
+        marked = -999  # key leaked before the attempt, which must never happen
+    opts = (item.get("content") or {}).get("options") or []
+    key = (opts[0] or {}).get("key") if opts else "A"
+    out = call(
+        f"/bank/practice/{bpid}/answer",
+        {"response": {"key": key}, "itemId": item["itemId"], "latencyMs": 2500},
+    )
+    if out.get("correctKey"):
+        revealed += 1
+    if out.get("correct") is not None:
+        marked += 1
+
+check(marked > 0, f"{marked} of {served_bp} practice answers were marked")
+check(revealed == served_bp, f"the key was revealed after every attempt ({revealed}/{served_bp})")
+
+# The screener must not reveal a key on the same banks. This is the contrast that matters.
+scr = call("/bank/sessions", {"precisionIndex": 1, "seed": 5})
+sn = call(f"/bank/sessions/{scr['sessionId']}/next")
+opts = (sn["served"].get("content") or {}).get("options") or []
+sa = call(
+    f"/bank/sessions/{scr['sessionId']}/answer",
+    {"response": {"key": (opts[0] or {}).get("key") if opts else "A"}, "latencyMs": 2000},
+)
+check("correctKey" not in sa, "the screener never reveals a key, on the same banks")
+
+lib = call("/library")
+check(
+    lib.get("bankTotals", {}).get("types", 0) >= 50,
+    f"the studio lists {lib.get('bankTotals', {}).get('types', 0)} bank types beside the generators",
+)
+check(
+    all(t["rendererUrl"].startswith("/qbank/items/") for t in lib.get("bankTypes", [])),
+    "every bank type in the studio links to its renderer",
+)
+check(
+    any(t["scorable"] == 0 for t in lib.get("bankTypes", [])),
+    "types this host cannot mark are listed rather than hidden",
+)
+
 sys.exit(1 if failed else 0)

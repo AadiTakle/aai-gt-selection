@@ -73,7 +73,25 @@ app.get('/api/qbank', (_req, res) => {
 // --- library -----------------------------------------------------------------
 
 app.get('/api/library', (_req, res) => {
+  // The banks are part of the library, so the studio lists them beside the generators rather than
+  // pretending the 13 generator families are all there is.
+  const bankTypes = [...banks.values()].map((b) => ({
+    typeCode: b.typeCode,
+    domain: b.domain,
+    scorable: b.scorable.length,
+    total: b.total,
+    excluded: b.excluded,
+    difficultyRange: b.difficultyRange,
+    ageBands: b.ageBands,
+    rendererUrl: `/qbank/items/${b.typeCode}.html`,
+  })).sort((a, b) => a.typeCode.localeCompare(b.typeCode));
   res.json({
+    bankTypes,
+    bankTotals: {
+      types: bankTypes.length,
+      scorable: bankTypes.reduce((n, t) => n + t.scorable, 0),
+      total: bankTypes.reduce((n, t) => n + t.total, 0),
+    },
     generators: library.all().map((g) => ({
       id: g.id,
       version: g.version,
@@ -136,6 +154,12 @@ app.post('/api/snapshots', (req, res) => {
 
 const banks = loadBanks();
 const bankSessions = new Map<string, QbankSession>();
+// Item id to correct key. Held so the practice tool can show an answer once it has been attempted.
+// The screener never reads this, which is the difference between the two products.
+const keyIndex = new Map<string, string>();
+for (const bank of banks.values()) {
+  for (const record of bank.scorable) keyIndex.set(record.itemId, record.answer.correctKey);
+}
 {
   const scorable = [...banks.values()].reduce((n, b) => n + b.scorable.length, 0);
   const total = [...banks.values()].reduce((n, b) => n + b.total, 0);
@@ -200,6 +224,64 @@ app.post('/api/bank/sessions/:id/answer', (req, res) => {
     const state = session.submit(req.body?.response, Number(req.body?.latencyMs ?? 0));
     const last = session.getAttempts().at(-1);
     return res.json({ state, correct: last?.correct ?? null, difficulty: last?.difficulty ?? null });
+  } catch (err) {
+    return res.status(400).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+/**
+ * Practice over the banks.
+ *
+ * Deliberately a different object from the screener's session even though both read the same banks,
+ * because the two want opposite selection rules. This one aims a little above the learner's running
+ * estimate; the screener aims at a fixed threshold. Sharing an implementation would mean a flag
+ * inside it deciding which of two products it was, which is how that kind of code rots.
+ */
+const bankPractice = new Map<string, { session: QbankSession; keyById: Map<string, string> }>();
+
+app.post('/api/bank/practice', (req, res) => {
+  const ageBand = req.body?.ageBand || undefined;
+  // A high threshold would make practice serve only its hardest items, so it sits at the middle of
+  // the bank scale and the session's own stretch does the targeting.
+  const config = {
+    abilityThreshold: 0,
+    precision: precisionAt(Number(req.body?.precisionIndex ?? 3)),
+    ageBand,
+    perDomainMinimum: 1,
+    recommendProbability: 0.5,
+  };
+  const seed = Number(req.body?.seed ?? Math.floor(Math.random() * 1_000_000));
+  const session = new QbankSession(config, banks, seed);
+  if (session.poolSize === 0) return res.status(400).json({ error: 'no markable bank items for this age band' });
+  const id = `bp-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;
+  bankPractice.set(id, { session, keyById: keyIndex });
+  return res.json({ sessionId: id, poolSize: session.poolSize, state: session.state() });
+});
+
+app.get('/api/bank/practice/:id/next', (req, res) => {
+  const entry = bankPractice.get(req.params.id);
+  if (!entry) return res.status(404).json({ error: 'unknown practice session' });
+  if (entry.session.state().stopped) return res.json({ done: true, state: entry.session.state() });
+  const serve = entry.session.nextItem();
+  if (!serve) return res.json({ done: true, state: entry.session.state() });
+  return res.json({ done: false, ...serve, state: entry.session.state() });
+});
+
+app.post('/api/bank/practice/:id/answer', (req, res) => {
+  const entry = bankPractice.get(req.params.id);
+  if (!entry) return res.status(404).json({ error: 'unknown practice session' });
+  const itemId = String(req.body?.itemId ?? '');
+  try {
+    const state = entry.session.submit(req.body?.response, Number(req.body?.latencyMs ?? 0));
+    const last = entry.session.getAttempts().at(-1);
+    // A practice tool is allowed to reveal the key after the attempt. A screener never is, which is
+    // why this endpoint exists and the screener's equivalent does not return it.
+    return res.json({
+      state,
+      correct: last?.correct ?? null,
+      correctKey: entry.keyById.get(itemId) ?? null,
+      difficulty: last?.difficulty ?? null,
+    });
   } catch (err) {
     return res.status(400).json({ error: err instanceof Error ? err.message : String(err) });
   }

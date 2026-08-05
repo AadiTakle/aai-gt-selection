@@ -275,8 +275,24 @@ interface GeneratorSummary {
   deprecationNote: string | null;
 }
 
+interface BankTypeSummary {
+  typeCode: string;
+  domain: string;
+  scorable: number;
+  total: number;
+  excluded: Record<string, number>;
+  difficultyRange: [number, number];
+  ageBands: string[];
+  rendererUrl: string;
+}
+
 function LibraryStudio() {
-  const [data, setData] = useState<{ generators: GeneratorSummary[]; snapshots: { id: string; label: string; entries: unknown[]; createdAt: string }[] } | null>(null);
+  const [data, setData] = useState<{
+    generators: GeneratorSummary[];
+    bankTypes?: BankTypeSummary[];
+    bankTotals?: { types: number; scorable: number; total: number };
+    snapshots: { id: string; label: string; entries: unknown[]; createdAt: string }[];
+  } | null>(null);
   const [selected, setSelected] = useState<GeneratorSummary | null>(null);
   const [preview, setPreview] = useState<{ items: RenderedItem[]; validation: { issues: { check: string; severity: string; message: string }[]; publishable: boolean } } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -338,8 +354,56 @@ function LibraryStudio() {
 
   return (
     <main>
+      {data.bankTotals && data.bankTypes && (
+        <section className="panel">
+          <h2>Item banks</h2>
+          <p className="note">
+            {data.bankTotals.types} hand-built question types holding {data.bankTotals.total.toLocaleString()} items,
+            of which {data.bankTotals.scorable.toLocaleString()} can be marked here. Each type has its own renderer,
+            and the screener drives it by handing over an item with the answer removed. Difficulty is on the bank's
+            own 1 to 20 scale, mapped to logits as (d − 10.5) / 3, which is a rescaling and not a calibration.
+          </p>
+          <table className="grid-table">
+            <thead>
+              <tr>
+                <th>Type</th><th>Domain</th><th>Markable</th><th>Total</th>
+                <th>Difficulty span</th><th>Age bands</th><th>Set aside</th><th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.bankTypes.map((t) => {
+                const setAside = Object.entries(t.excluded).filter(([, n]) => n > 0);
+                return (
+                  <tr key={t.typeCode} className={t.scorable === 0 ? 'deprecated' : ''}>
+                    <td className="mono small">{t.typeCode}</td>
+                    <td className="small">{t.domain}</td>
+                    <td className={t.scorable === 0 ? 'warn' : ''}>{t.scorable}</td>
+                    <td>{t.total}</td>
+                    <td>
+                      {Number.isFinite(t.difficultyRange[0])
+                        ? `${t.difficultyRange[0].toFixed(1)} – ${t.difficultyRange[1].toFixed(1)}`
+                        : 'none markable'}
+                    </td>
+                    <td className="small">{t.ageBands.join(', ') || '—'}</td>
+                    <td className="small">
+                      {setAside.length === 0 ? '—' : setAside.map(([k, n]) => `${n} ${k.replace(/_/g, ' ')}`).join(', ')}
+                    </td>
+                    <td><a className="tab" href={t.rendererUrl} target="_blank" rel="noreferrer">Renderer</a></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <p className="note">
+            A type showing zero markable items is not broken. Its answers need a solver or a human
+            judge, so this host cannot mark them, and the screener leaves them out rather than
+            guessing. They still play in the catalogue.
+          </p>
+        </section>
+      )}
+
       <section className="panel">
-        <h2>The library</h2>
+        <h2>Generator families</h2>
         <p className="note">
           Published versions are immutable. Editing an item type means publishing a new version,
           and removing one means deprecating it, so nothing here can disturb a screener that is

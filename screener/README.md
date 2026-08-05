@@ -22,7 +22,7 @@ npm run dev          # api on :5181, web on http://localhost:5180
 Other commands:
 
 ```bash
-npm run verify       # typecheck, 111 unit tests, simulation, 28 end-to-end checks
+npm run verify       # typecheck, 111 unit tests, simulation, 50 end-to-end checks
 npm test             # 111 unit tests
 npm run sim          # run synthetic cohorts through the engine and print what it did
 npm run smoke        # start the api, drive a real session over HTTP, assert the guarantees
@@ -142,6 +142,47 @@ to a session, because those are different statements.
 
 ---
 
+## The banks drive the engine
+
+`qbank-library/banks/` holds 53 files and 7,319 records copied out of the archive. Each carries the
+item's content, a difficulty on a 1 to 20 scale, and an answer. **4,534 of them declare a
+deterministic key and a numeric difficulty and can therefore be marked here.** The remaining 2,785
+need a solver or a human judge; they are counted and set aside rather than dropped, and the studio
+lists the types involved with a zero in the markable column.
+
+The loop, which is the one the catalogue pages were built for:
+
+1. the host picks an item by information at the decision threshold
+2. `toServed` strips `answer`, `scoring` and `provenance`
+3. the host posts `{source:'gt-exam-host', type:'init', item}` to the frame, then `start`
+4. the frame renders it, the child answers, and it posts a `result` carrying the response
+5. the host marks that response against the key it kept
+
+**The key never reaches the browser**, which is why marking is a round trip rather than a check in
+the page. There is a smoke check asserting no served payload contains `answer`, `correctKey` or
+`scoring`, and another asserting the screener's answer endpoint returns no key while practice's does.
+
+Difficulty is mapped to logits as `(d − 10.5) / 3`. That is a rescaling of the bank's own scale and
+not a calibration: most records are marked `syntheticOnly`, so an item's position is an assumption
+inherited from whatever generated it and then linearly transformed by us. The engine, the API and the
+debug tray all say so in those words.
+
+### Test length is one slider
+
+Five stops, from Taster to Thorough. Length is an outcome of the confidence you demand rather than an
+independent input, so one control moves both, and the mapping is printed next to it. The two shortest
+stops are labelled as demonstrations, because classification research brackets a two-category
+decision at roughly 13 to 16 items and the paper asking the question directly advises at least 20.
+The asymmetry holds at every stop: the engine stays reluctant to rule anybody out however short the
+session, since a missed candidate costs more than a wasted application.
+
+### The debug tray
+
+Docked to the bottom of the page and in flow, so opening it pushes content up instead of covering the
+question. Three panels: the run's parameters including the threshold in both scales, the per-item
+history with the reason the engine chose each item and the posterior before and after, and the raw
+payload. Nothing is summarised away.
+
 ## The playable catalogue, embedded and themed
 
 The 52 existing question types live in `../qbank-library/` and are served from the API at
@@ -192,18 +233,22 @@ correctness flag, so this stays true.
    need separate calibration.
 6. **The prototype covers four domains thinly.** Thirteen item types is enough to demonstrate the
    library and to run a genuine adaptive session. It is not an item bank.
-7. **The 8-to-16-item budget is at the low end of what the evidence supports, and one source says it is
+7. **The bank's difficulties are not calibrated and most of its records are synthetic.** Every number
+   the engine reasons with is inherited from whatever generated the bank, so the ability estimate is
+   a demonstration of a mechanism rather than a measurement of a child. This is the single most
+   important thing to fix and everything else is downstream of it.
+8. **The 8-to-16-item budget is at the low end of what the evidence supports, and one source says it is
    below it.** Classification-oriented adaptive testing reaches roughly 95% correct two-category
    decisions in 12.7 to 16.3 items, which brackets this. However, the one paper that asks the question
    directly advises "at least 20 items to have acceptable decision quality at the group level, and at
    least 40 items if correct decisions on the individual level" are needed. That figure comes from
    fixed-form simulations rather than adaptive classification, which is the reconciliation, but it
    should not be waved away. Raising `maxItems` is a config change and worth trying.
-8. **The catalogue items cannot be scored yet.** They are embedded, observed and themed, and the
+9. **Some catalogue items still cannot be scored.** They are embedded, observed and themed, and the
    screener's own adaptive sessions still run on the generator library rather than on them, because
-   scoring 52 hand-built items needs 52 answer keys held host-side. That is the next piece of work
-   if these are to become live assessment items rather than a demonstration of the hookup.
-9. **Shortening the test costs sensitivity almost exclusively, which is the error this tool least
+   2,785 of the 7,319 bank records need a solver or a human judge, so 15 of the 53 types contribute
+   nothing markable. They play in the catalogue and sit out of a scored session.
+10. **Shortening the test costs sensitivity almost exclusively, which is the error this tool least
    wants.** At a demanding cut, clearing a candidate is cheap and confirming one is expensive, because
    there is little item information above the threshold and the prior already sits against them. In one
    simulation at a 10% selection ratio, going from 40 items to 15 moved specificity from .97 to .96

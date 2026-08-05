@@ -18,9 +18,31 @@ either could be replaced without touching the library.
 
 ---
 
-## 1. Take the screener (2 min)
+## 1. Take the screener, on the real banks (3 min)
 
-**Screener** tab. Leave the age band at 3-5, tick **show the engine's internals**, press Start.
+**Screener** tab. Leave the item source on **Question bank**.
+
+Before starting, drag the **test length and confidence** slider from Taster to Thorough and back.
+The line under it changes: each stop states the item budget and the two confidences, and the note
+says what you are trading. Say the thing that makes it defensible rather than arbitrary: length is an
+outcome of the confidence you ask for, not a number you set beside it, so one control moves both.
+Leave it on **Standard**, which brackets the 13 to 16 items classification research associates with
+about 95% correct decisions.
+
+Press Start. The question that appears is one of 4,534 markable items from the hand-built banks, and
+the thing rendering it is the catalogue's own page. Answer a few.
+
+Now open the **Debug** tray at the bottom of the page. It pushes the page up rather than covering the
+question, which is deliberate. The **Items** panel shows every question asked, its bank difficulty,
+whether it was marked right, the probability before and after, and the reason the engine chose it.
+The **Run** panel shows the threshold in both scales and the posterior.
+
+The sentence worth saying while that is open: the answer key is not in the browser. The host hands the
+frame an item with the answer stripped, the frame reports a response, and the marking happens on the
+server. There is a test asserting no served payload contains a key.
+
+Switch the item source to **Generators** if you want to show the alternative: unlimited non-repeating
+items, thirteen families, and written explanations. Fewer items, more control.
 
 Answer honestly and watch the line under each question. `P(above threshold)` moves after every
 answer, and the session ends when it is confident rather than after a fixed number of questions.
@@ -35,7 +57,12 @@ Two things to say while clicking:
 
 ## 2. The partition, which is the new part (2 min)
 
-**Practice** tab. Before starting, read the table.
+**Practice** tab. Leave the source on Question bank first and answer one question: the same
+renderers, the same server-side marking, but the item is aimed a little above where the learner
+currently sits and **the correct answer is revealed afterwards**. A screener may never do that, which
+is why the two use different endpoints rather than one with a flag.
+
+Then switch the source to **Generators**, which is where the partition lives. Read the table.
 
 Of 13 families in the library, **7 reach the practice tool and 11 reach the screener**. Each
 family declares whether it is teachable, assessment-only, or both, and the two tools see
