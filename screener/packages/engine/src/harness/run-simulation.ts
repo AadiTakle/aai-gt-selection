@@ -15,10 +15,10 @@ const { library, snapshotId } = createSeededLibrary();
 const config = defaultScreenerConfig(snapshotId, '3-5');
 const surface = prototypeSurfaces[0]!;
 
-const available = library.resolveForScreener(snapshotId, {
+const available = library.resolveForConsumer(snapshotId, {
   ageBand: config.ageBand,
   maxReadingLoad: config.maxReadingLoad,
-  requireCalibrated: config.requireCalibratedItems,
+  requireCalibrated: config.requireCalibratedItems, usage: 'assessment',
 });
 
 const pct = (x: number) => (Number.isNaN(x) ? '  n/a' : `${(x * 100).toFixed(1)}%`);

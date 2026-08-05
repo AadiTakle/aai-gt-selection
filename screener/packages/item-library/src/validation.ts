@@ -126,6 +126,28 @@ export function validateGenerator(gen: ItemGenerator): ValidationResult {
     }
   }
 
+  // --- explanations, required only where a family claims to be teachable ------
+  // A screener never shows an explanation, so demanding one everywhere would be noise. A
+  // family offered to a practice tool is mostly made of its explanation, so there it is an error.
+  if (probeCompleted && (gen.usage === 'prep' || gen.usage === 'both')) {
+    const sample = gen.render(1);
+    if (!sample.explanation) {
+      push('explanation-required', 'error', `usage is "${gen.usage}" but render() returns no explanation`);
+    } else {
+      if (sample.explanation.rule.trim().length < 10) {
+        push('explanation-rule', 'warning', 'the rule should be a sentence a learner can read');
+      }
+      if (sample.explanation.working.trim().length < 10) {
+        push('explanation-working', 'warning', 'the working should show how the rule gives this answer');
+      }
+      // An explanation that never changes across seeds is a template, not an explanation.
+      const varied = new Set([1, 2, 3, 4, 5].map((s) => gen.render(s).explanation?.working ?? ''));
+      if (varied.size === 1) {
+        push('explanation-static', 'warning', 'the working is identical across seeds, so it is not item-specific');
+      }
+    }
+  }
+
   // --- honesty ---------------------------------------------------------------
   if (gen.difficulty.source === 'calibrated' && gen.difficulty.n < 100) {
     push(

@@ -17,6 +17,7 @@ const seriesArithmetic = defineGenerator({
   ageBands: ['k-2', '3-5', '6-8'],
   readingLoad: 'none',
   assumedDifficulty: -0.8,
+  usage: 'both',
   authoredBy: AUTHOR,
   authoredAt: AT,
   build(rng) {
@@ -29,6 +30,11 @@ const seriesArithmetic = defineGenerator({
       stem: glyphs([...terms.map(String), '?']),
       correct: text(String(answer)),
       distractors: numericDistractors(answer, [answer + step, answer - 1, answer + 1]),
+      explanation: {
+        rule: 'Each number is the one before it plus the same fixed amount.',
+        working: `The gap between each pair is ${step}, so after ${terms[3]} comes ${terms[3]} + ${step} = ${answer}.`,
+        commonError: `Adding the gap twice gives ${answer + step}, which is the number after the answer rather than the answer.`,
+      },
     };
   },
 });
@@ -43,6 +49,7 @@ const seriesMultiplicative = defineGenerator({
   ageBands: ['3-5', '6-8'],
   readingLoad: 'none',
   assumedDifficulty: 0.4,
+  usage: 'both',
   authoredBy: AUTHOR,
   authoredAt: AT,
   build(rng) {
@@ -62,6 +69,11 @@ const seriesMultiplicative = defineGenerator({
       correct: text(String(answer)),
       // The first candidate assumes an additive rule, which is the common error here.
       distractors: numericDistractors(answer, [last + (last - prev), answer * ratio, answer - start]),
+      explanation: {
+        rule: 'Each number is the one before it multiplied by the same fixed amount.',
+        working: `Each step multiplies by ${ratio}: ${prev} to ${last} is a x${ratio} step, so the next is ${last} x ${ratio} = ${answer}.`,
+        commonError: `Looking for a fixed gap instead of a fixed multiplier gives ${last + (last - prev)}. The gaps here grow, which is the sign the rule is multiplication.`,
+      },
     };
   },
 });
@@ -79,6 +91,7 @@ const balance = defineGenerator({
   ageBands: ['k-2', '3-5', '6-8'],
   readingLoad: 'none',
   assumedDifficulty: 0.1,
+  usage: 'both',
   authoredBy: AUTHOR,
   authoredAt: AT,
   build(rng) {
@@ -99,6 +112,11 @@ const balance = defineGenerator({
       stem: glyphs([...left, '=', '?']),
       correct: text(String(answer)),
       distractors: numericDistractors(answer, [answer + rate, heavyCount + rate, answer - rate]),
+      explanation: {
+        rule: 'Each heavy token is worth a fixed number of light ones, so the total scales with how many heavy tokens there are.',
+        working: `One ${heavy} is worth ${rate}, and there are ${heavyCount} of them, so ${heavyCount} x ${rate} = ${answer}.`,
+        commonError: `Adding instead of multiplying gives ${heavyCount + rate}. The exchange rate applies to every token, so the counts multiply.`,
+      },
     };
   },
 });
@@ -113,6 +131,7 @@ const matrixNumeric = defineGenerator({
   ageBands: ['3-5', '6-8'],
   readingLoad: 'none',
   assumedDifficulty: 0.9,
+  usage: 'both',
   authoredBy: AUTHOR,
   authoredAt: AT,
   build(rng) {
@@ -131,6 +150,11 @@ const matrixNumeric = defineGenerator({
       stem: { kind: 'grid', rows: 3, cols: 3, cells },
       correct: text(String(answer)),
       distractors: numericDistractors(answer, [answer + rowStep, answer - colStep, answer + colStep - rowStep]),
+      explanation: {
+        rule: 'Two rules run at once: one down the rows and one across the columns.',
+        working: `Going down adds ${rowStep} and going across adds ${colStep}. From ${cell(2, 1)} in the same row, add ${colStep} across to get ${answer}.`,
+        commonError: `Using only one of the two rules gives ${answer - colStep} or ${answer + rowStep}. The missing cell has to satisfy both directions.`,
+      },
     };
   },
 });

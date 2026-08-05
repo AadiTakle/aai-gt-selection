@@ -3,6 +3,7 @@ import type { AgeBand, SessionRecord } from '@gt/contracts';
 import { createSeededLibrary, validateGenerator } from '@gt/item-library';
 import { ScreenerSession, defaultScreenerConfig, prototypeSurfaces } from '@gt/engine';
 import { bySurface, effectivenessStats, generatorStats, screenerStats } from '@gt/stats';
+import { PracticeSession, defaultPracticeConfig } from '@gt/practice';
 import { Store } from './store.js';
 
 const PORT = Number(process.env.PORT ?? 5181);
@@ -80,6 +81,95 @@ app.post('/api/snapshots', (req, res) => {
   }
 });
 
+// --- practice: a second consumer of the same library -------------------------
+//
+// These routes exist to demonstrate the boundary rather than to be complete. They read the same
+// snapshot the screener reads, filtered to families that declare themselves teachable, and they
+// touch none of the screener's session machinery.
+
+const practiceSessions = new Map<string, PracticeSession>();
+
+app.get('/api/practice/available', (req, res) => {
+  const ageBand = (req.query.ageBand ?? '3-5') as AgeBand;
+  const config = defaultPracticeConfig(snapshotId, ageBand);
+  try {
+    const forPractice = library.resolveForConsumer(snapshotId, {
+      ageBand,
+      maxReadingLoad: config.maxReadingLoad,
+      requireCalibrated: false,
+      usage: 'prep',
+      requireExplanation: true,
+    });
+    const forScreening = library.resolveForConsumer(snapshotId, {
+      ageBand,
+      maxReadingLoad: config.maxReadingLoad,
+      requireCalibrated: false,
+      usage: 'assessment',
+    });
+    // Both counts are returned together on purpose: the gap between them is the partition,
+    // and it is the thing worth seeing rather than describing.
+    return res.json({
+      config,
+      practice: forPractice.map((g) => ({ id: g.id, version: g.version, title: g.title, domain: g.domain, usage: g.usage })),
+      screening: forScreening.map((g) => ({ id: g.id, version: g.version, title: g.title, domain: g.domain, usage: g.usage })),
+      inLibrary: library.all().length,
+    });
+  } catch (err) {
+    return res.status(400).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.post('/api/practice/sessions', (req, res) => {
+  const ageBand = (req.body?.ageBand ?? '3-5') as AgeBand;
+  const domain = req.body?.domain || undefined;
+  const config = { ...defaultPracticeConfig(snapshotId, ageBand), ...(domain ? { domain } : {}) };
+  const available = library.resolveForConsumer(snapshotId, {
+    ageBand,
+    maxReadingLoad: config.maxReadingLoad,
+    requireCalibrated: false,
+    usage: 'prep',
+    requireExplanation: true,
+  });
+  if (available.length === 0) {
+    return res.status(400).json({ error: 'no families in this snapshot are marked teachable for this age band' });
+  }
+  const id = `prac-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;
+  const seed = Number(req.body?.seed ?? Math.floor(Math.random() * 1_000_000));
+  const session = new PracticeSession(config, available, seed);
+  practiceSessions.set(id, session);
+  return res.json({ sessionId: id, state: session.state(), availableFamilies: available.length, config });
+});
+
+app.get('/api/practice/sessions/:id/next', (req, res) => {
+  const session = practiceSessions.get(req.params.id);
+  if (!session) return res.status(404).json({ error: 'unknown practice session' });
+  const next = session.nextItem();
+  if (!next) return res.json({ done: true, state: session.state() });
+  // The key is withheld here exactly as it is in the screener, and returned on submit so the
+  // learner can be shown what they should have picked.
+  const { correctOptionId, explanation, ...item } = next.item;
+  void correctOptionId;
+  void explanation;
+  return res.json({ done: false, item, targetedAt: next.targetedAt, selectionReason: next.selectionReason, state: session.state() });
+});
+
+app.post('/api/practice/sessions/:id/answer', (req, res) => {
+  const session = practiceSessions.get(req.params.id);
+  if (!session) return res.status(404).json({ error: 'unknown practice session' });
+  try {
+    const out = session.submit(String(req.body?.optionId ?? ''), Number(req.body?.latencyMs ?? 0));
+    return res.json(out);
+  } catch (err) {
+    return res.status(400).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.get('/api/practice/sessions/:id', (req, res) => {
+  const session = practiceSessions.get(req.params.id);
+  if (!session) return res.status(404).json({ error: 'unknown practice session' });
+  return res.json({ state: session.state(), attempts: session.getAttempts() });
+});
+
 // --- sessions ----------------------------------------------------------------
 
 app.post('/api/sessions', (req, res) => {
@@ -92,10 +182,10 @@ app.post('/api/sessions', (req, res) => {
   const config = defaultScreenerConfig(requestedSnapshot, ageBand);
   let available;
   try {
-    available = library.resolveForScreener(requestedSnapshot, {
+    available = library.resolveForConsumer(requestedSnapshot, {
       ageBand,
       maxReadingLoad: config.maxReadingLoad,
-      requireCalibrated: config.requireCalibratedItems,
+      requireCalibrated: config.requireCalibratedItems, usage: 'assessment',
     });
   } catch (err) {
     return res.status(400).json({ error: err instanceof Error ? err.message : String(err) });

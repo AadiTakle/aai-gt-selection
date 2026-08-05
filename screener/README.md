@@ -1,8 +1,8 @@
 # The screener library
 
-A shared assessment item library and adaptive engine. The public screener in here is one
-consumer of that library and deliberately not the product, because the point is that GT can
-build a second or third tool on the same foundation without touching it.
+A shared assessment item library and adaptive engine, plus **two** tools built on it: a public
+screener and a reasoning-practice tool. The library is the product. Either consumer could be
+replaced without touching it, which is the point.
 
 Design rationale is in `../docs/design/screener-library-design.md`. The product argument is in
 `../docs/proposals/public-screener.md`.
@@ -17,11 +17,13 @@ npm install
 npm run dev          # api on :5181, web on http://localhost:5180
 ```
 
+`DEMO.md` has an eight-minute click path if you are showing this to somebody.
+
 Other commands:
 
 ```bash
-npm run verify       # typecheck, unit tests, simulation, end-to-end smoke test
-npm test             # 77 unit tests
+npm run verify       # typecheck, 93 unit tests, simulation, 20 end-to-end checks
+npm test             # 93 unit tests
 npm run sim          # run synthetic cohorts through the engine and print what it did
 npm run smoke        # start the api, drive a real session over HTTP, assert the guarantees
 npm run typecheck
@@ -46,6 +48,20 @@ snapshot rather than the library, so nothing an author does can reach a session 
 
 Removal follows from the same rule. Deprecating a type stops it entering **new** snapshots and
 leaves every existing one untouched, which is why there is no delete.
+
+## The second idea: usage is declared per family
+
+A shared bank has a problem a shared bank does not obviously have. Practising on an item family
+inflates later performance on that family, by roughly a third of a standard deviation on a second
+sitting and more in younger children, and the inflated score shifts toward memory and away from
+reasoning. So a practice tool drawing from the screener's own families would be coaching
+candidates on that screener.
+
+Every family therefore declares `usage: 'assessment' | 'prep' | 'both'`, and the library filters
+on it. The default is `assessment`, so nothing becomes teachable by accident. Of the 13 seed
+families, 7 reach the practice tool and 11 reach the screener, and the gap is the partition doing
+its job. Publish-validation also refuses a family marked teachable that carries no written
+explanation, because that is what a practice tool is mostly made of.
 
 There is a test for exactly this guarantee, and it is the one to read first:
 `packages/item-library/src/library.test.ts`, "keeps serving a deprecated generator to snapshots
@@ -72,7 +88,8 @@ screener/
 │   └── stats/          metrics over stored sessions
 ├── apps/
 │   ├── api/            express, append-only persistence
-│   └── web/            the screener, the library studio, and the statistics
+│   └── web/            the screener, the practice tool, the studio, and the statistics
+├── DEMO.md             an eight-minute click path
 └── scripts/smoke.sh    end-to-end check
 ```
 

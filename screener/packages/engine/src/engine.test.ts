@@ -12,10 +12,10 @@ function setup(overrides: Partial<ReturnType<typeof defaultScreenerConfig>> = {}
   const { library, snapshotId } = createSeededLibrary();
   const base = defaultScreenerConfig(snapshotId, '3-5');
   const config = { ...base, ...overrides };
-  const available = library.resolveForScreener(snapshotId, {
+  const available = library.resolveForConsumer(snapshotId, {
     ageBand: config.ageBand,
     maxReadingLoad: config.maxReadingLoad,
-    requireCalibrated: config.requireCalibratedItems,
+    requireCalibrated: config.requireCalibratedItems, usage: 'assessment',
   });
   return { library, snapshotId, config, available, surface: prototypeSurfaces[0]! };
 }

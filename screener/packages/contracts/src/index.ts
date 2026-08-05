@@ -73,6 +73,22 @@ export type ItemContent =
  * and never stored as the canonical artifact. The canonical artifact is the generator
  * plus the seed, which is what makes a session replayable.
  */
+/**
+ * Why an item's answer is correct, written by the generator at render time.
+ *
+ * The generator built the item from a rule, so it already knows the rule. Discarding it and
+ * asking a human to reconstruct it later is the expensive way round. A screener never shows
+ * this; a practice tool is mostly made of it.
+ */
+export interface ItemExplanation {
+  /** One sentence naming the rule the item is built on. */
+  readonly rule: string;
+  /** How the rule produces this particular answer. */
+  readonly working: string;
+  /** What a candidate who picked a wrong option probably did instead. Optional. */
+  readonly commonError?: string;
+}
+
 export interface RenderedItem {
   readonly generatorId: string;
   readonly generatorVersion: string;
@@ -83,6 +99,8 @@ export interface RenderedItem {
   readonly options: readonly ItemOption[];
   readonly correctOptionId: string;
   readonly readingLoad: ReadingLoad;
+  /** Absent until an author writes one. A practice tool should refuse to serve items without it. */
+  readonly explanation?: ItemExplanation;
 }
 
 // ---------------------------------------------------------------------------
@@ -90,6 +108,21 @@ export interface RenderedItem {
 // ---------------------------------------------------------------------------
 
 export type GeneratorStatus = 'draft' | 'published' | 'deprecated';
+
+/**
+ * Which kinds of tool may serve a family.
+ *
+ * This exists because a shared bank creates a problem a shared bank does not obviously have.
+ * Practising on a family inflates later performance on that family, by roughly a third of a
+ * standard deviation on a second sitting and more in younger children, and the inflated score
+ * also shifts toward memory and away from reasoning. So a practice tool drawing from the same
+ * families a screener uses would be coaching candidates on that screener. Declaring usage per
+ * family is what keeps the two apart.
+ *
+ * The default is 'assessment', deliberately, so nothing reaches a practice tool by accident.
+ */
+export const ITEM_USAGES = ['assessment', 'prep', 'both'] as const;
+export type ItemUsage = (typeof ITEM_USAGES)[number];
 
 /**
  * Metadata an author supplies. Kept separate from the render function so the studio can
@@ -105,6 +138,7 @@ export interface GeneratorMeta {
   readonly ageBands: readonly AgeBand[];
   readonly readingLoad: ReadingLoad;
   readonly difficulty: DifficultyEstimate;
+  readonly usage: ItemUsage;
   /**
    * True when the options are drawn from the stem by design, as in an odd-one-out item where
    * the candidate reads a list and picks from it. Declared rather than inferred, so the

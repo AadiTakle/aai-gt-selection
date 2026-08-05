@@ -21,7 +21,8 @@
       "@gt/contracts": ["packages/contracts/src/index.ts"],
       "@gt/item-library": ["packages/item-library/src/index.ts"],
       "@gt/engine": ["packages/engine/src/index.ts"],
-      "@gt/stats": ["packages/stats/src/index.ts"]
+      "@gt/stats": ["packages/stats/src/index.ts"],
+      "@gt/practice": ["packages/practice/src/index.ts"]
     }
   },
   "include": ["packages/**/*.ts", "packages/**/*.tsx", "apps/**/*.ts", "apps/**/*.tsx"],

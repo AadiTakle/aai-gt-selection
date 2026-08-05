@@ -13,6 +13,7 @@ export default defineConfig({
       '@gt/item-library': r('./packages/item-library/src/index.ts'),
       '@gt/engine': r('./packages/engine/src/index.ts'),
       '@gt/stats': r('./packages/stats/src/index.ts'),
+      '@gt/practice': r('./packages/practice/src/index.ts'),
     },
   },
   server: {

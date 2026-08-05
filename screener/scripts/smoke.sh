@@ -127,6 +127,15 @@ print('PASS' if had and gone else 'FAIL')")" \
   "the deprecated type stays in the old snapshot and is absent from the new one"
 
 echo ""
+
+
+
+echo ""
+echo "The second consumer, and the partition between them"
+PRACTICE_OUT=$(python3 scripts/check-practice.py "$PORT")
+echo "$PRACTICE_OUT"
+echo "$PRACTICE_OUT" | grep -q FAIL && FAILED=1
+
 echo "===================================================================="
 if [ "$FAILED" = "0" ]; then echo "All smoke checks passed."; else echo "Some smoke checks FAILED."; fi
 exit "$FAILED"

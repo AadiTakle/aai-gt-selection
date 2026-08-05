@@ -20,6 +20,7 @@ const matrix = defineGenerator({
   ageBands: ['k-2', '3-5', '6-8'],
   readingLoad: 'none',
   assumedDifficulty: 0.3,
+  usage: 'both',
   authoredBy: AUTHOR,
   authoredAt: AT,
   build(rng) {
@@ -42,6 +43,11 @@ const matrix = defineGenerator({
         [text(cellFor(1, 2)), text(cellFor(2, 1)), text((picked[2] as string).repeat(4))],
         (i) => text((picked[i % 3] as string).repeat(4 + i)),
       ),
+      explanation: {
+        rule: 'The shape is set by which column you are in, and how many of them by which row.',
+        working: `The last column uses ${picked[2]}, and the third row has three of each, so the answer is three ${picked[2]} together.`,
+        commonError: `Reading only the row gives ${cellFor(2, 1)}, and reading only the column gives ${cellFor(1, 2)}. Both attributes have to change at once.`,
+      },
     };
   },
 });
@@ -59,6 +65,7 @@ const oddPair = defineGenerator({
   ageBands: ['3-5', '6-8'],
   readingLoad: 'low',
   assumedDifficulty: 1.0,
+  usage: 'both',
   // Four pairs are shown and the candidate picks one of them, so stem overlap is the design.
   selectFromStem: true,
   authoredBy: AUTHOR,
@@ -74,6 +81,11 @@ const oddPair = defineGenerator({
       prompt: 'Three pairs follow the same rule. Which pair does not?',
       stem: text([...shared, odd].join('   ')),
       correct: text(odd),
+      explanation: {
+        rule: 'Look at the relationship inside each pair, not at the numbers themselves.',
+        working: `Three pairs differ by ${step}. The pair ${odd} differs by ${oddStep}, so it is the one that breaks the rule.`,
+        commonError: 'Picking the pair with the largest or smallest numbers. The numbers vary on purpose; only the gap matters.',
+      },
       distractors: distinctDistractors(
         text(odd),
         shared.map((s) => text(s)),
@@ -100,6 +112,7 @@ const opChain = defineGenerator({
   ageBands: ['3-5', '6-8'],
   readingLoad: 'low',
   assumedDifficulty: 1.2,
+  usage: 'both',
   authoredBy: AUTHOR,
   authoredAt: AT,
   build(rng) {
@@ -115,6 +128,11 @@ const opChain = defineGenerator({
       stem: glyphs([String(start), symbol, symbol, '=', '?']),
       correct: text(String(twice)),
       distractors: numericDistractors(twice, [once, start * mul * mul + add, (start + add) * mul * mul]),
+      explanation: {
+        rule: `The symbol is a rule defined in the question itself: multiply by ${mul}, then add ${add}. Two symbols means apply it twice.`,
+        working: `First pass: ${start} x ${mul} + ${add} = ${once}. Second pass: ${once} x ${mul} + ${add} = ${twice}.`,
+        commonError: `Applying the rule once gives ${once}. Doing both multiplications first and adding at the end gives ${start * mul * mul + add}; the order inside each pass matters.`,
+      },
     };
   },
 });

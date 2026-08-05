@@ -3,8 +3,10 @@ import type {
   DifficultyEstimate,
   Domain,
   ItemContent,
+  ItemExplanation,
   ItemGenerator,
   ItemOption,
+  ItemUsage,
   ReadingLoad,
   RenderedItem,
 } from '@gt/contracts';
@@ -29,6 +31,11 @@ export interface GeneratorSpec {
   assumedDifficulty: number;
   /** Assumed discrimination. Leave unset unless this family should be sharper or flatter. */
   assumedDiscrimination?: number;
+  /**
+   * Which tools may serve this family. Defaults to 'assessment', so a family only becomes
+   * available to a practice tool when an author says so and has written an explanation.
+   */
+  usage?: ItemUsage;
   /** Set when the options are legitimately drawn from the stem, e.g. odd-one-out. */
   selectFromStem?: boolean;
   authoredBy: string;
@@ -42,6 +49,8 @@ export interface GeneratorSpec {
     stem: ItemContent;
     correct: ItemContent;
     distractors: readonly ItemContent[];
+    /** Required for any family marked 'prep' or 'both'. Checked at publish time. */
+    explanation?: ItemExplanation;
   };
 }
 
@@ -68,6 +77,7 @@ export function defineGenerator(spec: GeneratorSpec): ItemGenerator {
     ageBands: spec.ageBands,
     readingLoad: spec.readingLoad,
     difficulty: assumed(spec.assumedDifficulty, spec.assumedDiscrimination),
+    usage: spec.usage ?? 'assessment',
     selectFromStem: spec.selectFromStem ?? false,
     status: 'published' as const,
     authoredBy: spec.authoredBy,
@@ -99,6 +109,7 @@ export function defineGenerator(spec: GeneratorSpec): ItemGenerator {
         options,
         correctOptionId: correctId,
         readingLoad: spec.readingLoad,
+        ...(built.explanation ? { explanation: built.explanation } : {}),
       };
     },
   };

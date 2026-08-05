@@ -3,6 +3,7 @@ import type {
   BankSnapshot,
   Domain,
   ItemGenerator,
+  ItemUsage,
   ReadingLoad,
   SnapshotEntry,
 } from '@gt/contracts';
@@ -122,13 +123,26 @@ export class ItemLibrary {
   }
 
   /**
-   * Resolve a snapshot to generators, filtered to what a given screener may serve.
-   * A snapshot entry that no longer resolves is a hard error rather than a silent skip,
-   * since that would mean the immutability guarantee had been violated somewhere.
+   * Resolve a snapshot to the generators a given consumer may serve.
+   *
+   * Named for consumers rather than for screeners on purpose: a practice tool, a diagnostic and
+   * a screener all call this with different filters, and the library has no opinion about which
+   * of them is asking beyond what the filters say.
+   *
+   * A snapshot entry that no longer resolves is a hard error rather than a silent skip, since
+   * that would mean the immutability guarantee had been violated somewhere.
    */
-  resolveForScreener(
+  resolveForConsumer(
     snapshotId: string,
-    filters: { ageBand: AgeBand; maxReadingLoad: ReadingLoad; requireCalibrated: boolean },
+    filters: {
+      ageBand: AgeBand;
+      maxReadingLoad: ReadingLoad;
+      requireCalibrated: boolean;
+      /** Only families declaring this usage, or 'both', are returned. */
+      usage: ItemUsage;
+      /** Refuse families without a written explanation. A practice tool should set this. */
+      requireExplanation?: boolean;
+    },
   ): readonly ItemGenerator[] {
     const snapshot = this.getSnapshot(snapshotId);
     if (!snapshot) throw new Error(`unknown snapshot ${snapshotId}`);
@@ -144,6 +158,10 @@ export class ItemLibrary {
       if (!gen.ageBands.includes(filters.ageBand)) continue;
       if (READING_ORDER[gen.readingLoad] > READING_ORDER[filters.maxReadingLoad]) continue;
       if (filters.requireCalibrated && gen.difficulty.source !== 'calibrated') continue;
+      // The partition. A family declaring one usage is invisible to the other consumer, which
+      // is what stops a practice tool coaching candidates on a screener's own item families.
+      if (filters.usage !== 'both' && gen.usage !== 'both' && gen.usage !== filters.usage) continue;
+      if (filters.requireExplanation && !gen.render(1).explanation) continue;
       out.push(gen);
     }
     return out;

@@ -142,18 +142,18 @@ describe('the boundary that keeps live screeners safe', () => {
     library.deprecate('test.family', '1.0.0', 'no longer wanted');
 
     // This is the guarantee the whole design exists for.
-    const stillThere = library.resolveForScreener(before.id, {
+    const stillThere = library.resolveForConsumer(before.id, {
       ageBand: '3-5',
       maxReadingLoad: 'none',
-      requireCalibrated: false,
+      requireCalibrated: false, usage: 'assessment',
     });
     expect(stillThere.map((g) => g.id)).toContain('test.family');
 
     const after = library.createSnapshot({ label: 'after', createdBy: 't' });
-    const nowServing = library.resolveForScreener(after.id, {
+    const nowServing = library.resolveForConsumer(after.id, {
       ageBand: '3-5',
       maxReadingLoad: 'none',
-      requireCalibrated: false,
+      requireCalibrated: false, usage: 'assessment',
     });
     expect(nowServing.map((g) => g.id)).not.toContain('test.family');
   });
@@ -164,15 +164,15 @@ describe('the boundary that keeps live screeners safe', () => {
     const snap = library.createSnapshot({ label: 'frozen', createdBy: 't' });
     library.publish(stub({ id: 'test.newcomer' }));
     expect(snap.entries).toHaveLength(1);
-    expect(library.resolveForScreener(snap.id, { ageBand: '3-5', maxReadingLoad: 'none', requireCalibrated: false })).toHaveLength(1);
+    expect(library.resolveForConsumer(snap.id, { ageBand: '3-5', maxReadingLoad: 'none', requireCalibrated: false , usage: 'assessment'})).toHaveLength(1);
   });
 
   it('filters by reading load, so a pre-reader is never served text-heavy items', () => {
     const { library, snapshotId } = createSeededLibrary();
-    const forPreReaders = library.resolveForScreener(snapshotId, {
+    const forPreReaders = library.resolveForConsumer(snapshotId, {
       ageBand: 'k-2',
       maxReadingLoad: 'none',
-      requireCalibrated: false,
+      requireCalibrated: false, usage: 'assessment',
     });
     expect(forPreReaders.length).toBeGreaterThan(0);
     expect(forPreReaders.every((g) => g.readingLoad === 'none')).toBe(true);
@@ -180,10 +180,10 @@ describe('the boundary that keeps live screeners safe', () => {
 
   it('serves nothing when calibration is required and nothing is calibrated', () => {
     const { library, snapshotId } = createSeededLibrary();
-    const strict = library.resolveForScreener(snapshotId, {
+    const strict = library.resolveForConsumer(snapshotId, {
       ageBand: '3-5',
       maxReadingLoad: 'high',
-      requireCalibrated: true,
+      requireCalibrated: true, usage: 'assessment',
     });
     expect(strict).toHaveLength(0);
   });
