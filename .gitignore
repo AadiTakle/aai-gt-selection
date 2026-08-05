@@ -7,3 +7,6 @@ dist/
 *.log
 .env
 .env.local
+
+# The screener prototype keeps its persisted sessions out of git.
+screener/data/
