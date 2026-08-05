@@ -7,6 +7,7 @@ import { createSeededLibrary, validateGenerator } from '@gt/item-library';
 import { ScreenerSession, defaultScreenerConfig, prototypeSurfaces } from '@gt/engine';
 import { bySurface, effectivenessStats, generatorStats, screenerStats } from '@gt/stats';
 import { PracticeSession, defaultPracticeConfig } from '@gt/practice';
+import { QbankSession, loadBanks, precisionAt, PRECISION_STEPS } from '@gt/qbank/server';
 import { Store } from './store.js';
 
 const PORT = Number(process.env.PORT ?? 5181);
@@ -124,6 +125,90 @@ app.post('/api/snapshots', (req, res) => {
   } catch (err) {
     return res.status(400).json({ error: err instanceof Error ? err.message : String(err) });
   }
+});
+
+// --- adaptive sessions over the real item banks -------------------------------
+//
+// The same posterior, the same information-at-threshold selection and the same asymmetric stop rule
+// as the generator screener. What differs is that items come from the banks and the answer key never
+// leaves this process: the frame is handed an item with the key removed and reports a response,
+// which is marked here.
+
+const banks = loadBanks();
+const bankSessions = new Map<string, QbankSession>();
+{
+  const scorable = [...banks.values()].reduce((n, b) => n + b.scorable.length, 0);
+  const total = [...banks.values()].reduce((n, b) => n + b.total, 0);
+  console.log(`[api] banks: ${banks.size} types, ${scorable} scorable of ${total} records`);
+}
+
+app.get('/api/bank', (_req, res) => {
+  const types = [...banks.values()].map((b) => ({
+    typeCode: b.typeCode,
+    domain: b.domain,
+    scorable: b.scorable.length,
+    total: b.total,
+    excluded: b.excluded,
+    difficultyRange: b.difficultyRange,
+    ageBands: b.ageBands,
+  }));
+  res.json({
+    types: types.sort((a, b) => a.typeCode.localeCompare(b.typeCode)),
+    typeCount: types.length,
+    scorable: types.reduce((n, t) => n + t.scorable, 0),
+    total: types.reduce((n, t) => n + t.total, 0),
+    precisionSteps: PRECISION_STEPS,
+    // Stated so nobody has to read source to find out how the bank scale became logits.
+    difficultyMapping: { midpoint: 10.5, divisor: 3, note: 'a rescaling of the bank 1-20 scale, not a calibration' },
+  });
+});
+
+app.post('/api/bank/sessions', (req, res) => {
+  const precisionIndex = Number(req.body?.precisionIndex ?? 2);
+  const ageBand = req.body?.ageBand || undefined;
+  const config = {
+    abilityThreshold: Number(req.body?.abilityThreshold ?? 1.0),
+    precision: precisionAt(precisionIndex),
+    ageBand,
+    perDomainMinimum: Number(req.body?.perDomainMinimum ?? 1),
+    recommendProbability: Number(req.body?.recommendProbability ?? 0.35),
+  };
+  const seed = Number(req.body?.seed ?? Math.floor(Math.random() * 1_000_000));
+  const session = new QbankSession(config, banks, seed);
+  if (session.poolSize === 0) {
+    return res.status(400).json({ error: `no scorable bank items match age band ${ageBand ?? 'any'}` });
+  }
+  const id = `bank-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;
+  bankSessions.set(id, session);
+  return res.json({ sessionId: id, poolSize: session.poolSize, config, state: session.state() });
+});
+
+app.get('/api/bank/sessions/:id/next', (req, res) => {
+  const session = bankSessions.get(req.params.id);
+  if (!session) return res.status(404).json({ error: 'unknown bank session' });
+  if (session.state().stopped) return res.json({ done: true, state: session.state() });
+  const serve = session.nextItem();
+  if (!serve) return res.json({ done: true, state: session.state() });
+  // `served` has had answer, scoring and provenance removed by toServed before reaching here.
+  return res.json({ done: false, ...serve, state: session.state() });
+});
+
+app.post('/api/bank/sessions/:id/answer', (req, res) => {
+  const session = bankSessions.get(req.params.id);
+  if (!session) return res.status(404).json({ error: 'unknown bank session' });
+  try {
+    const state = session.submit(req.body?.response, Number(req.body?.latencyMs ?? 0));
+    const last = session.getAttempts().at(-1);
+    return res.json({ state, correct: last?.correct ?? null, difficulty: last?.difficulty ?? null });
+  } catch (err) {
+    return res.status(400).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.get('/api/bank/sessions/:id/debug', (req, res) => {
+  const session = bankSessions.get(req.params.id);
+  if (!session) return res.status(404).json({ error: 'unknown bank session' });
+  return res.json({ ...session.debug(), state: session.state(), thresholdInBankScale: (session.debug().threshold * 3) + 10.5 });
 });
 
 // --- practice: a second consumer of the same library -------------------------

@@ -3,6 +3,8 @@ import type { AgeBand, RenderedItem, SurfaceConfig } from '@gt/contracts';
 import { ContentView } from './ItemView.js';
 import { Practice } from './Practice.js';
 import { QBank } from './QBank.js';
+import { BankScreener } from './BankScreener.js';
+import { DebugTray } from './DebugTray.js';
 
 type Tab = 'screener' | 'practice' | 'qbank' | 'library' | 'stats';
 
@@ -20,6 +22,9 @@ const pct = (x: number | null | undefined) =>
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('screener');
+  // Held here rather than inside a tab so the tray can dock to the page and stay readable while
+  // whatever is above it is in use.
+  const [debug, setDebug] = useState<unknown>(null);
   return (
     <div className="app">
       <header>
@@ -39,11 +44,12 @@ export default function App() {
           ))}
         </nav>
       </header>
-      {tab === 'screener' && <Screener />}
+      {tab === 'screener' && <ScreenerTab onDebug={setDebug} />}
       {tab === 'practice' && <Practice />}
       {tab === 'qbank' && <QBank />}
       {tab === 'library' && <LibraryStudio />}
       {tab === 'stats' && <Stats />}
+      <DebugTray data={debug as never} />
       <footer>
         Every item type here carries an assumed difficulty rather than a calibrated one, so the
         probability this tool reports is a demonstration of the mechanism and not a measurement
@@ -66,7 +72,37 @@ interface SessionState {
   interval: [number, number];
 }
 
-function Screener() {
+/**
+ * The screener tab. Chooses between the two item sources and hands the tray whatever the active
+ * one reports, so the debug view does not need to know which is running.
+ */
+function ScreenerTab({ onDebug }: { onDebug: (d: unknown) => void }) {
+  const [source, setSource] = useState<'bank' | 'generated'>('bank');
+  return (
+    <main>
+      <section className="panel">
+        <h2>Take the screener</h2>
+        <div className="controls">
+          <label>
+            Item source
+            <select value={source} onChange={(e) => setSource(e.target.value as 'bank' | 'generated')}>
+              <option value="bank">Question bank, thousands of hand-built items</option>
+              <option value="generated">Generators, 13 families</option>
+            </select>
+          </label>
+        </div>
+        <p className="note">
+          {source === 'bank'
+            ? 'The real banks behind the playable catalogue. Items are chosen adaptively by difficulty, rendered by the catalogue page itself, and marked on the server because the answer key never leaves it.'
+            : 'The seeded generator families. Unlimited non-repeating items, and far less ground covered than the banks.'}
+        </p>
+      </section>
+      {source === 'bank' ? <BankScreener onDebug={onDebug} /> : <GeneratedScreener />}
+    </main>
+  );
+}
+
+function GeneratedScreener() {
   const [surfaces, setSurfaces] = useState<SurfaceConfig[]>([]);
   const [surfaceId, setSurfaceId] = useState('web-plain');
   const [ageBand, setAgeBand] = useState<AgeBand>('3-5');
@@ -135,7 +171,7 @@ function Screener() {
   const surface = surfaces.find((s) => s.id === surfaceId);
 
   return (
-    <main>
+    <>
       <section className="panel">
         <h2>Take the screener</h2>
         <div className="controls">
@@ -218,7 +254,7 @@ function Screener() {
           </dl>
         </section>
       )}
-    </main>
+    </>
   );
 }
 

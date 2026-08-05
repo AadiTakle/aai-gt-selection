@@ -10,3 +10,6 @@ dist/
 
 # The screener prototype keeps its persisted sessions out of git.
 screener/data/
+
+# The item banks are 19MB of generated JSONL copied out of the archive. Tracked deliberately,
+# since the engine needs them, but noted here so nobody adds more without meaning to.

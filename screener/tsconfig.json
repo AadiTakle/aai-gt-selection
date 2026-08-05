@@ -23,7 +23,8 @@
       "@gt/engine": ["packages/engine/src/index.ts"],
       "@gt/stats": ["packages/stats/src/index.ts"],
       "@gt/practice": ["packages/practice/src/index.ts"],
-      "@gt/qbank": ["packages/qbank/src/index.ts"]
+      "@gt/qbank": ["packages/qbank/src/index.ts"],
+      "@gt/qbank/server": ["packages/qbank/src/server.ts"]
     }
   },
   "include": ["packages/**/*.ts", "packages/**/*.tsx", "apps/**/*.ts", "apps/**/*.tsx"],

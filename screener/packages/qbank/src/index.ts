@@ -1,4 +1,11 @@
 /**
+ * Browser-safe entry point.
+ *
+ * The bank loader reads 19 MB off disk and the adaptive session depends on it, so both live behind
+ * `@gt/qbank/server` instead. Re-exporting them here bundled `node:fs` into the web build, which is
+ * how that boundary got discovered.
+ */
+/**
  * The playable question catalogue, as a source the app can serve and theme.
  *
  * These 52 items are self-contained HTML pages rather than generators, so they sit alongside the

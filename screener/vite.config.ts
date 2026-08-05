@@ -15,6 +15,7 @@ export default defineConfig({
       '@gt/stats': r('./packages/stats/src/index.ts'),
       '@gt/practice': r('./packages/practice/src/index.ts'),
       '@gt/qbank': r('./packages/qbank/src/index.ts'),
+      '@gt/qbank/server': r('./packages/qbank/src/server.ts'),
     },
   },
   server: {

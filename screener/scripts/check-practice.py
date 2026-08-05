@@ -130,4 +130,74 @@ check(
     "the served item reports no correctness flag, so scoring needs a host-side key",
 )
 
+
+# --- adaptive sessions over the real banks --------------------------------------------------
+print("")
+print("Adaptive sessions on the real item banks")
+
+bank = call("/bank")
+check(bank["typeCount"] >= 50, f"{bank['typeCount']} bank types loaded")
+check(bank["scorable"] > 3000, f"{bank['scorable']} of {bank['total']} records can be marked host-side")
+check(len(bank["precisionSteps"]) == 5, "the test-length slider has five stops")
+labels = [s["label"] for s in bank["precisionSteps"]]
+check(labels == ["Taster", "Short", "Standard", "Careful", "Thorough"], f"stops are ordered: {labels}")
+# Longer settings must demand more confidence, or the slider is decoration.
+above = [s["confidenceAbove"] for s in bank["precisionSteps"]]
+caps = [s["maxItems"] for s in bank["precisionSteps"]]
+check(above == sorted(above) and caps == sorted(caps), "confidence and item cap both rise across the slider")
+check(
+    all(s["confidenceBelow"] > s["confidenceAbove"] for s in bank["precisionSteps"]),
+    "every stop stays reluctant to rule a candidate out",
+)
+
+
+def run_bank_session(precision_index):
+    started = call("/bank/sessions", {"precisionIndex": precision_index, "seed": 11})
+    sid = started["sessionId"]
+    served, keys_leaked = 0, 0
+    while True:
+        nxt = call(f"/bank/sessions/{sid}/next")
+        if nxt.get("done"):
+            break
+        served += 1
+        item = nxt["served"]
+        # The key must never cross to the client. This is the assertion that matters most here.
+        blob = json.dumps(item)
+        if '"answer"' in blob or '"correctKey"' in blob or '"scoring"' in blob:
+            keys_leaked += 1
+        opts = (item.get("content") or {}).get("options") or []
+        key = (opts[0] or {}).get("key") if opts else "A"
+        call(f"/bank/sessions/{sid}/answer", {"response": {"key": key}, "latencyMs": 2500})
+    return sid, served, keys_leaked
+
+
+sid, served, leaked = run_bank_session(2)
+check(leaked == 0, "the answer key never crosses to the client")
+check(4 <= served <= 16, f"a Standard session ran {served} items inside its budget")
+
+dbg = call(f"/bank/sessions/{sid}/debug")
+check(dbg["state"]["stopReason"] is not None, f"session stopped: {dbg['state']['stopReason']}")
+check(dbg["state"]["decision"] in ("recommend", "no-recommendation"), "a decision was reached")
+check(
+    all(a.get("selectionReason") for a in dbg["attempts"]),
+    "every item records why the engine chose it",
+)
+check(
+    all(isinstance(a["difficulty"], (int, float)) for a in dbg["attempts"]),
+    "every item carries its bank difficulty",
+)
+check(
+    dbg["poolSize"] > 3000 and dbg["poolUsed"] == served,
+    f"pool accounting is consistent: {dbg['poolUsed']} of {dbg['poolSize']} used",
+)
+check(
+    "not a calibration" in (dbg.get("difficultyMapping") or ""),
+    "the debug payload states that the difficulty mapping is a rescaling, not a calibration",
+)
+
+# Asking for more confidence should cost more questions.
+_, short_len, _ = run_bank_session(0)
+_, long_len, _ = run_bank_session(4)
+check(long_len > short_len, f"Thorough uses more questions than Taster ({long_len} vs {short_len})")
+
 sys.exit(1 if failed else 0)
