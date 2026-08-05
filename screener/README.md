@@ -144,6 +144,20 @@ to a session, because those are different statements.
    need separate calibration.
 6. **The prototype covers four domains thinly.** Thirteen item types is enough to demonstrate the
    library and to run a genuine adaptive session. It is not an item bank.
+7. **The 8-to-16-item budget is at the low end of what the evidence supports, and one source says it is
+   below it.** Classification-oriented adaptive testing reaches roughly 95% correct two-category
+   decisions in 12.7 to 16.3 items, which brackets this. However, the one paper that asks the question
+   directly advises "at least 20 items to have acceptable decision quality at the group level, and at
+   least 40 items if correct decisions on the individual level" are needed. That figure comes from
+   fixed-form simulations rather than adaptive classification, which is the reconciliation, but it
+   should not be waved away. Raising `maxItems` is a config change and worth trying.
+8. **Shortening the test costs sensitivity almost exclusively, which is the error this tool least
+   wants.** At a demanding cut, clearing a candidate is cheap and confirming one is expensive, because
+   there is little item information above the threshold and the prior already sits against them. In one
+   simulation at a 10% selection ratio, going from 40 items to 15 moved specificity from .97 to .96
+   while sensitivity fell from .76 to .61. In an early adaptive study, confirming mastery at the highest
+   level exhausted the entire item pool. The asymmetric stop rule is the mitigation and it is a partial
+   one, so treat the reported sensitivity as the number to watch when the budget changes.
 
 ---
 
