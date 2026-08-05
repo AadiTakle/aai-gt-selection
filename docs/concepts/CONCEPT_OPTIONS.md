@@ -3,7 +3,7 @@
 **Status:** exploratory. Nothing here is chosen or approved.
 **Audience:** Joe Liemandt, via a proposal Crystal Martel selects from.
 **Source of the constraints and pains below:** `docs/interviews/2026-08-03-crystal-martel-call.md`.
-Research support is in the archived BrainLifts at `archive/brainlifting/`.
+Research support is in the BrainLifts at `brainlifting/`.
 
 ---
 
@@ -134,7 +134,7 @@ All in `archive/`, and all still running:
 - A scoring package with learning-curve fitting, learning-rate intervals, and a metric registry
   (`archive/packages/exam-scoring`).
 - A Next.js surface and Supabase backend.
-- Eight researched BrainLifts (`archive/brainlifting/`), which are part of the deliverable's value
+- Eleven researched BrainLifts (`brainlifting/`), which are part of the deliverable's value
   rather than background: the stated bar is depth of understanding, not just a working demo.
 
 ## Delivery seam

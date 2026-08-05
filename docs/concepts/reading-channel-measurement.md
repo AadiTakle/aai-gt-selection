@@ -84,7 +84,7 @@ inside that boundary.
 ### 3. It is a difference score, and we wrote a research category warning about those
 
 This is the strongest internal objection and it comes from our own work
-(`archive/brainlifting/learning-rate-scoring-brainlift/`). Cronbach and Furby: a difference carries
+(`brainlifting/learning-rate-scoring-brainlift/`). Cronbach and Furby: a difference carries
 the error of both measurements while typically having less true between-person variance than either.
 
 The escape is Rogosa's rebuttal — a difference score is unreliable specifically when the true

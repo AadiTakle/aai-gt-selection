@@ -26,6 +26,6 @@ choose from, and the chosen one becomes the project. Presentation is to Joe Liem
 out from 2026-08-03.
 
 **The bar is depth, not just a demo.** The stated measure of success is a product that solves a real
-GT problem _plus_ demonstrated understanding of why it should work. The eight BrainLifts in
-`archive/brainlifting/` are part of that argument, which means a design choice that cannot be
+GT problem _plus_ demonstrated understanding of why it should work. The BrainLifts in
+`brainlifting/` are part of that argument, which means a design choice that cannot be
 justified from evidence is a liability rather than a neutral detail.
