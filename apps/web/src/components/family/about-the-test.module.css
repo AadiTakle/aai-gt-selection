@@ -1,156 +1,84 @@
 /* =========================================================================
-   About the test, as a deck of full-height screens.
+   About the test: a full-screen walkthrough.
 
    Built on the GT brand token layer. The rules this file follows, taken from
    `globals.css`:
 
-     - Gold is a SURFACE, never ink. Warm text uses --color-accent-warm-ink.
+     - Gold is a SURFACE, never ink. The Next button is a gold fill with dark
+       navy ink (--color-accent / --color-accent-ink), which is the same
+       treatment the landing and exam-runner CTAs use.
      - Surfaces sit flat on the paper. --gt-shadow-card is none, on purpose.
      - Headings are Literata (--font-display); marks, labels and controls are
        Inconsolata (--font-utility); body is Inter Tight.
-     - Containers are --radius-lg, and the primary action carries the signature
-       bottom-right chamfer via --cut-br.
+     - The primary action carries the signature bottom-right chamfer, --cut-br.
      - No raw hexes. Components reference semantic tokens.
 
-   LAYOUT CONTRACT. The deck owns the viewport: a fixed rail on top, a fixed
-   control bar on the bottom, and one screen between them. The stage is the only
-   scrollable region, and it scrolls only when a screen genuinely cannot fit
-   (short laptops, large text). Screens are sized in svh rather than vh so mobile
-   browser chrome does not clip the controls.
+   LAYOUT CONTRACT. One screen occupies the viewport, no more and no less. A
+   battery screen is three rows: a thin bar, the question, and a dock of notes
+   plus controls. The question row is the flexible one, so it absorbs whatever
+   height the window has and the dock never leaves the screen. Sizes are in svh
+   rather than vh so mobile browser chrome does not eat the controls.
+
+   THE FADE. The navy opening is a separate layer over the paper, faded on
+   opacity rather than swapped for a different background. Gradients cannot be
+   transitioned, and cross-fading the layer is what makes the handoff read as
+   one movement instead of a cut.
    ========================================================================= */
 
-.deck {
+.stage {
+  position: relative;
+  isolation: isolate;
   min-height: 100svh;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
   background: var(--color-bg);
   color: var(--color-ink);
+  overflow: hidden;
 }
 
-/* ---- rail: where you are in the deck ---- */
-
-.rail {
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-panel);
-  padding: var(--gt-space-3) var(--gt-space-4);
-  overflow-x: auto;
-}
-
-.steps {
-  list-style: none;
-  margin: 0 auto;
-  padding: 0;
-  max-width: 68rem;
-  display: flex;
-  align-items: stretch;
-  gap: var(--gt-space-2);
-}
-
-.stepItem {
-  display: flex;
-  flex: 1 1 0;
-  min-width: max-content;
-}
-
-.step {
-  all: unset;
-  cursor: pointer;
-  flex: 1;
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  padding: 0.45rem 0.7rem;
-  border-radius: var(--radius-xs);
-  border-bottom: 2px solid transparent;
-  color: var(--color-muted);
-  transition:
-    color 150ms var(--gt-ease),
-    background 150ms var(--gt-ease),
-    border-color 150ms var(--gt-ease);
-}
-
-.step:hover {
-  background: var(--color-surface);
-  color: var(--color-ink);
-}
-
-.stepOn {
-  color: var(--color-ink);
-  border-bottom-color: var(--gt-gold);
-}
-
-.step:focus-visible {
-  outline: 0.1875rem solid var(--color-focus);
-  outline-offset: 2px;
-}
-
-.stepNum {
-  font-family: var(--font-utility);
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  color: var(--color-muted);
-}
-
-.stepOn .stepNum {
-  color: var(--color-accent-warm-ink);
-}
-
-.stepLabel {
-  font-family: var(--font-utility);
-  font-size: 0.78rem;
-  letter-spacing: 0.04em;
-  white-space: nowrap;
-}
-
-/* ---- stage: exactly one screen at a time ---- */
-
-.stage {
-  display: grid;
-  align-items: center;
-  justify-items: center;
-  overflow-y: auto;
-  padding: var(--gt-space-5) var(--gt-space-4);
-  animation: rise 260ms var(--gt-ease) both;
-}
-
-@keyframes rise {
-  from {
-    opacity: 0;
-    transform: translateY(0.75rem);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .stage {
-    animation: none;
-  }
-}
-
-.panel {
-  width: 100%;
-  max-width: 68rem;
-  display: flex;
-  flex-direction: column;
-  gap: var(--gt-space-4);
-}
-
-/* ---- screen 1: what the test is ---- */
-
-.intro {
+.field {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
   background: linear-gradient(
     135deg,
     var(--gt-dark-navy) 0%,
     var(--gt-navy) 45%,
     var(--gt-blue-dark) 100%
   );
+  opacity: 1;
+  transition: opacity 800ms var(--gt-ease);
+}
+
+.fieldOut {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .field {
+    transition: none;
+  }
+}
+
+.screen {
+  position: relative;
+  z-index: 1;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  padding: var(--gt-space-5) var(--gt-space-5) var(--gt-space-4);
+  gap: var(--gt-space-4);
+}
+
+/* ---- screen 1: the question, on navy ---- */
+
+.intro {
+  justify-content: space-between;
+  padding: var(--gt-space-8) var(--gt-space-6) var(--gt-space-6);
   color: var(--color-on-navy);
-  border-radius: var(--radius-lg);
-  padding: var(--gt-space-7) var(--gt-space-6);
+}
+
+.introTop {
+  max-width: 60rem;
 }
 
 .kicker {
@@ -163,267 +91,75 @@
   margin: 0;
 }
 
-.title {
-  font-family: var(--font-display);
-  font-size: clamp(2rem, 4.5vw, 2.9rem);
-  font-weight: 300;
-  letter-spacing: -0.02em;
-  margin: var(--gt-space-2) 0 var(--gt-space-3);
-  color: var(--color-on-navy);
-}
-
-.lede {
-  font-size: 1.05rem;
-  color: var(--color-on-navy-soft);
-  line-height: 1.55;
-  margin: 0;
-  max-width: 62ch;
-}
-
-.facts {
-  margin: var(--gt-space-5) 0 0;
-  display: grid;
-  gap: var(--gt-space-4);
-  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-}
-
-.fact {
-  border-top: 2px solid var(--gt-gold-light);
-  padding-top: var(--gt-space-3);
-}
-
-.factLabel {
+.kickerInk {
   font-family: var(--font-utility);
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  color: var(--color-accent-warm-ink);
   font-weight: 600;
-  color: var(--gt-gold-light);
-  margin: 0 0 var(--gt-space-2);
+  margin: 0;
 }
 
-.factBody {
+.hero {
+  font-family: var(--font-display);
+  font-size: clamp(2.4rem, 7vw, 4.5rem);
+  font-weight: 300;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+  margin: var(--gt-space-3) 0 0;
+}
+
+.introBottom {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-5);
+  max-width: 46rem;
+}
+
+.introLede {
   margin: 0;
-  font-size: 0.9rem;
-  line-height: 1.55;
+  font-size: clamp(1rem, 1.6vw, 1.2rem);
+  line-height: 1.6;
   color: var(--color-on-navy-soft);
 }
 
-.handoff {
-  margin: var(--gt-space-5) 0 0;
+.introActions {
+  display: flex;
+  align-items: center;
+  gap: var(--gt-space-5);
+  flex-wrap: wrap;
+}
+
+.introHint {
+  margin: 0;
   font-family: var(--font-utility);
   font-size: 0.78rem;
   letter-spacing: 0.04em;
-  color: var(--gt-gold-light);
+  color: var(--color-on-navy-soft);
 }
 
-/* ---- screens 2 to 4: one battery each ---- */
-
-.panelHead {
-  display: flex;
-  align-items: center;
-  gap: var(--gt-space-3);
-  flex-wrap: wrap;
-}
-
-/* Gold as a surface with warm ink, per the brand rule. Verbal takes the cool
-   accent ink so the three screens are distinguishable at a glance. */
-.battery {
-  flex: none;
-  font-family: var(--font-utility);
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 0.3rem 0.6rem;
-  border-radius: var(--radius-xs);
-  background: var(--color-surface);
-  border: 1px solid var(--gt-gold-light);
-  color: var(--color-accent-warm-ink);
-}
-
-.battery[data-battery='Verbal'] {
-  color: var(--color-accent-cool-ink);
-}
-
-.battery[data-battery='Nonverbal'] {
-  background: var(--color-surface-strong);
-}
-
-.panelTitle {
-  font-family: var(--font-display);
+.markIntro {
   margin: 0;
-  font-size: clamp(1.25rem, 2.6vw, 1.7rem);
-  font-weight: 400;
-  line-height: 1.2;
-  color: var(--color-ink);
-}
-
-.split {
-  display: grid;
-  gap: var(--gt-space-5);
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-  align-items: start;
-  background: var(--color-panel);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--gt-space-5);
-}
-
-@media (max-width: 56rem) {
-  .split {
-    grid-template-columns: 1fr;
-  }
-}
-
-.demoCol {
-  display: flex;
-  flex-direction: column;
-  gap: var(--gt-space-2);
-  min-width: 0;
-}
-
-.chips {
-  display: flex;
-  gap: var(--gt-space-2);
-  flex-wrap: wrap;
-}
-
-.chip {
-  all: unset;
-  cursor: pointer;
-  font-family: var(--font-utility);
   font-size: 0.72rem;
-  letter-spacing: 0.04em;
-  padding: 0.3rem 0.65rem;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-xs);
-  color: var(--color-ink-soft);
-  background: var(--color-panel);
-  transition: background 150ms var(--gt-ease);
+  line-height: 1.5;
+  color: var(--color-on-navy-soft);
+  max-width: 52ch;
 }
 
-.chip:hover {
-  background: var(--color-surface);
-}
+/* ---- the orange action, matching the landing and exam-runner CTA ---- */
 
-.chipOn {
-  background: var(--color-surface-selected);
-  border-color: var(--gt-gold);
-  color: var(--color-accent-ink);
-}
-
-.chip:focus-visible {
-  outline: 0.1875rem solid var(--color-focus);
-  outline-offset: 2px;
-}
-
-.sampleName {
-  font-family: var(--font-display);
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 500;
-  color: var(--color-ink);
-  line-height: 1.2;
-}
-
-.ask {
-  margin: 0;
-  font-size: 0.92rem;
-  line-height: 1.55;
-  color: var(--color-ink-soft);
-  max-width: 68ch;
-}
-
-.screen {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  background: var(--gt-dark-navy);
-}
-
-/* Sized against the viewport so the question and the controls coexist on one
-   screen. The floor keeps it usable on short windows, where the stage scrolls. */
-.frame {
-  display: block;
-  width: 100%;
-  height: clamp(17rem, 46svh, 29rem);
-  border: 0;
-}
-
-.sampleCogat {
-  font-family: var(--font-utility);
-  margin: 0.15rem 0 0;
-  font-size: 0.72rem;
-  letter-spacing: 0.04em;
-  color: var(--color-muted);
-}
-
-.notes {
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--gt-space-4);
-}
-
-.note {
-  border-left: 2px solid var(--gt-gold-light);
-  padding-left: var(--gt-space-3);
-}
-
-.noteLabel {
-  font-family: var(--font-utility);
-  font-size: 0.68rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-muted);
-  font-weight: 600;
-  margin: 0 0 var(--gt-space-1);
-}
-
-.noteBody {
-  margin: 0;
-  font-size: 0.9rem;
-  line-height: 1.55;
-  color: var(--color-ink-soft);
-}
-
-/* ---- screen 5: where to start ---- */
-
-.close {
-  background: var(--color-surface);
-  border: 1px solid var(--gt-gold-light);
-  border-radius: var(--radius-lg);
-  padding: var(--gt-space-7) var(--gt-space-6);
-  align-items: flex-start;
-  gap: var(--gt-space-3);
-}
-
-.close .title {
-  color: var(--color-ink);
-}
-
-.close .kicker {
-  color: var(--color-accent-warm-ink);
-}
-
-.close .lede {
-  color: var(--color-ink-soft);
-}
-
-/* The signature chamfered primary, matching the rest of the portal. */
-.primary {
+.next {
   all: unset;
   position: relative;
   isolation: isolate;
   cursor: pointer;
-  margin-top: var(--gt-space-3);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 13px 18px;
-  color: var(--gt-near-white);
+  padding: 14px 22px;
+  color: var(--color-accent-ink);
   font-family: var(--font-utility);
   font-size: 1rem;
   font-weight: 500;
@@ -432,12 +168,12 @@
   text-align: center;
 }
 
-.primary::before {
+.next::before {
   content: '';
   position: absolute;
   z-index: -1;
   inset: 0;
-  background: var(--color-primary);
+  background: var(--color-accent);
   border-radius: var(--radius-md);
   clip-path: polygon(
     0 0,
@@ -449,21 +185,43 @@
   transition: background 150ms ease;
 }
 
-.primary:hover::before {
-  background: var(--color-primary-hover);
+.next:hover::before {
+  background: var(--gt-gold-deep);
 }
 
-.primary:focus-visible {
+.next:focus-visible {
   outline: 0.1875rem solid var(--color-focus);
   outline-offset: 3px;
 }
 
-/* ---- foot: the only way forward, plus the claim boundary ---- */
+.back {
+  all: unset;
+  cursor: pointer;
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-ink-soft);
+  font-family: var(--font-utility);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: background 150ms var(--gt-ease);
+}
 
-.foot {
-  border-top: 1px solid var(--color-border);
-  background: var(--color-panel);
-  padding: var(--gt-space-3) var(--gt-space-4);
+.back:hover {
+  background: var(--color-surface);
+}
+
+.back:focus-visible {
+  outline: 0.1875rem solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* ---- battery screens: bar, question, dock ---- */
+
+.bar {
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -471,61 +229,259 @@
   flex-wrap: wrap;
 }
 
-.boundary {
-  margin: 0;
-  flex: 1 1 22rem;
-  font-size: 0.72rem;
-  line-height: 1.5;
-  color: var(--color-muted);
-  max-width: 58ch;
-}
-
-.controls {
+.barLeft {
   display: flex;
   align-items: center;
   gap: var(--gt-space-3);
+  min-width: 0;
 }
 
-.nav {
-  all: unset;
-  cursor: pointer;
-  padding: 0.55rem 1.1rem;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
-  background: var(--color-panel);
-  color: var(--color-primary);
+/* Gold as a surface with warm ink, per the brand rule. Verbal takes the cool
+   accent ink so the three screens are distinguishable at a glance. */
+.tag {
+  flex: none;
   font-family: var(--font-utility);
-  font-size: 0.82rem;
+  font-size: 0.7rem;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  transition: background 150ms var(--gt-ease);
-}
-
-.nav:hover:not(:disabled) {
+  padding: 0.32rem 0.62rem;
+  border-radius: var(--radius-xs);
   background: var(--color-surface);
+  border: 1px solid var(--gt-gold-light);
+  color: var(--color-accent-warm-ink);
 }
 
-.nav:disabled {
-  cursor: default;
-  color: var(--color-muted);
-  border-color: var(--color-border);
+.tag[data-battery='Verbal'] {
+  color: var(--color-accent-cool-ink);
 }
 
-.nav:focus-visible {
-  outline: 0.1875rem solid var(--color-focus);
-  outline-offset: 2px;
+.tag[data-battery='Nonverbal'] {
+  background: var(--color-surface-strong);
 }
 
-.counter {
-  font-family: var(--font-utility);
-  font-size: 0.85rem;
-  font-weight: 600;
+.blurb {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1rem, 2vw, 1.35rem);
+  font-weight: 400;
+  line-height: 1.2;
   color: var(--color-ink);
-  min-width: 3.2rem;
-  text-align: center;
 }
 
-.counterDim {
+.pips {
+  list-style: none;
+  display: flex;
+  gap: var(--gt-space-2);
+  margin: 0;
+  padding: 0;
+}
+
+.pip {
+  width: 1.6rem;
+  height: 0.25rem;
+  border-radius: var(--radius-xs);
+  background: var(--gt-grey-light);
+}
+
+.pipOn {
+  background: var(--color-accent);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* The question takes every pixel the bar and dock do not. */
+.window {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-2);
+}
+
+.ask {
+  flex: none;
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--color-ink-soft);
+  max-width: 80ch;
+}
+
+/* Flex rather than block, so the iframe stretches to the wrapper's used height.
+   A percentage height on an iframe whose parent is itself a flex item resolves
+   inconsistently across browsers; stretching a flex child does not. */
+.frameWrap {
+  flex: 1 1 auto;
+  min-height: 16rem;
+  display: flex;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--gt-dark-navy);
+}
+
+.frame {
+  flex: 1 1 auto;
+  align-self: stretch;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  border: 0;
+}
+
+.caption {
+  flex: none;
+  margin: 0;
+  font-family: var(--font-utility);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
   color: var(--color-muted);
+}
+
+/* ---- dock: what the battery measures, plus the way forward ---- */
+
+.dock {
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--gt-space-5);
+  padding-top: var(--gt-space-4);
+  border-top: 1px solid var(--color-border);
+  flex-wrap: wrap;
+}
+
+.notes {
+  margin: 0;
+  flex: 1 1 32rem;
+  display: grid;
+  gap: var(--gt-space-4);
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+}
+
+.note {
+  border-left: 2px solid var(--gt-gold-light);
+  padding-left: var(--gt-space-3);
+  min-width: 0;
+}
+
+.noteLabel {
+  font-family: var(--font-utility);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  font-weight: 600;
+  margin: 0 0 var(--gt-space-1);
+}
+
+.noteBody {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--color-ink-soft);
+}
+
+.dockActions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--gt-space-3);
+  min-height: 3rem;
+}
+
+/* Sits where the Next button will appear, so the dock does not jump when the
+   gate opens. */
+.gate {
+  margin: 0;
+  padding: 0.6rem 0;
+  font-family: var(--font-utility);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+  max-width: 14rem;
+}
+
+/* ---- last screen ---- */
+
+.done {
+  justify-content: center;
+  padding: var(--gt-space-6);
+}
+
+.doneInner {
+  max-width: 46rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-4);
+}
+
+.done .hero {
+  color: var(--color-ink);
+  font-size: clamp(2rem, 5vw, 3.2rem);
+}
+
+.doneLede {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--color-ink-soft);
+}
+
+.doneActions {
+  display: flex;
+  align-items: center;
+  gap: var(--gt-space-4);
+  flex-wrap: wrap;
+  margin-top: var(--gt-space-2);
+}
+
+.mark {
+  margin: var(--gt-space-4) 0 0;
+  padding-top: var(--gt-space-4);
+  border-top: 1px solid var(--color-border);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--color-muted);
+}
+
+/* ---- narrow and short windows ---- */
+
+@media (max-width: 48rem) {
+  .screen {
+    padding: var(--gt-space-4) var(--gt-space-4) var(--gt-space-3);
+  }
+
+  .intro {
+    padding: var(--gt-space-6) var(--gt-space-4);
+  }
+
+  .dock {
+    align-items: stretch;
+  }
+
+  .dockActions {
+    justify-content: space-between;
+  }
+}
+
+/* Below this the three rows genuinely cannot coexist, so the screen gives up
+   its viewport lock and scrolls rather than crushing the question. */
+@media (max-height: 34rem) {
+  .stage,
+  .screen {
+    min-height: auto;
+  }
+
+  .frameWrap {
+    min-height: 22rem;
+  }
 }

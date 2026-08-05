@@ -1,326 +1,274 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 
 import styles from './about-the-test.module.css';
 
 /**
- * The explainer, as a deck of full-height screens rather than a page you scroll.
+ * The explainer, as a full-screen walkthrough a parent completes once.
  *
- * The previous version put everything in front of the reader at once: a hero, a
- * carousel, a strip of test-wide facts, and a call to action, all stacked. Even
- * with the carousel per battery, the page still asked someone to decide where to
- * look. This version shows exactly one screen at a time and moves only when the
- * reader says so, so the order of ideas is the order they arrive in.
+ * It opens on a navy field carrying nothing but the question and a short answer
+ * to it. Pressing Next fades that field back to the site's paper and hands over
+ * to three battery screens, each of which is a large live question in the middle
+ * with what the battery measures along the bottom. The last screen lets you go.
  *
- * FIVE SCREENS: what the test is, then one per battery, then where to start.
- * The battery order is the one the owner asked for (Verbal, Nonverbal,
- * Quantitative). Note that CogAT's own published order is Verbal, Quantitative,
- * Nonverbal; reordering the BATTERIES array is the whole change if that is ever
- * wanted.
+ * THE GATE IS THE POINT. Next does not exist on a battery screen until the demo
+ * reports that the question was answered. Reading that a figural matrix asks you
+ * to find a hidden rule teaches almost nothing; being unable to move on until you
+ * have found one teaches the thing itself. `answerBattery` listens for the demo
+ * protocol's `result` message, which every embedded demo posts on submit.
  *
- * WHY THE FACTS MOVED. Scoring and where the cut sits used to sit in a strip
- * below the carousel. They are properties of the test rather than of any one
- * battery, so they belong on the screen that answers "what is this", which keeps
- * the battery screens down to one question and three lines each.
+ * THE SAFETY UNLOCK. If a demo fails to load or a child stalls, the gate opens by
+ * itself after UNLOCK_AFTER_MS. Without it a broken iframe would be a dead end
+ * with no way forward, and this page has no login behind it to fall back on.
  *
- * THE SAMPLES ARE LIVE, NOT PICTURES. Each battery screen embeds the renderer the
- * baseline serves, from `public/exam-demos`, so a parent can answer one. Only the
- * visible screen is mounted, since each demo runs its own scripts and animations.
+ * ONE QUESTION PER BATTERY, mounted only while its screen is showing. Each demo
+ * runs its own scripts, animations and standalone bootstrap, so keeping three
+ * alive at once would have them all animating off screen.
  *
- * WHY THESE SAMPLES. Every one self starts when no host drives it. Other demos
- * wait for the exam runner to send them an item and would sit blank in a frame
- * here, so the set is constrained by that as much as by which types are most
- * typical. Verified before selection; recheck if this list changes.
+ * WHY THESE SAMPLES. Every one self starts when no host drives it: embedded with
+ * no `init` message, the demo boots its own bank sample after a second. Demos
+ * without that fallback would sit blank in a frame here.
  *
  * No real CogAT items appear here. These are our own questions of the same kind.
  */
 
-interface Sample {
-  readonly code: string;
-  readonly label: string;
-  readonly cogat: string;
-  readonly ask: string;
-}
+/** Opens the gate anyway, so a failed demo cannot trap someone on a screen. */
+const UNLOCK_AFTER_MS = 45_000;
 
 interface Battery {
-  readonly key: 'Verbal' | 'Nonverbal' | 'Quantitative';
+  readonly key: 'Verbal' | 'Quantitative' | 'Nonverbal';
+  readonly code: string;
+  readonly cogat: string;
   readonly blurb: string;
+  readonly ask: string;
   readonly measures: string;
   readonly onTest: string;
   readonly forGt: string;
-  readonly samples: readonly Sample[];
 }
 
 const BATTERIES: readonly Battery[] = [
   {
     key: 'Verbal',
+    code: 'VER-RELPAIR-01',
+    cogat: 'Verbal Analogies',
     blurb: 'Reasoning with words, not vocabulary recall.',
+    ask: 'Two words go together in a particular way. Find the pair that goes together the same way.',
     measures:
-      'Whether a child can see how two ideas relate and then find that same relationship somewhere else.',
-    onTest: 'Verbal analogies, sentence completion, and sorting words by what they have in common.',
-    forGt:
-      'Scores here move with how deeply a child knows words, which grows slowly. Expect this area to shift the least in a short run of practice.',
-    samples: [
-      {
-        code: 'VER-RELPAIR-01',
-        label: 'Relation Match',
-        cogat: 'Verbal Analogies',
-        ask: 'Two words go together in a particular way. Find the pair that goes together the same way.',
-      },
-    ],
-  },
-  {
-    key: 'Nonverbal',
-    blurb: 'Reasoning with shapes and figures, no words involved.',
-    measures:
-      'Whether a child can find a hidden rule in a pattern, or picture how a shape changes when it is folded or turned.',
-    onTest: 'Figure matrices, figure classification, and paper folding.',
-    forGt:
-      'This area responds to practice faster than the other two. It is also widely assumed to be free of language and culture, which the evidence does not support, so treat a low score here carefully rather than as a clean reading.',
-    samples: [
-      {
-        code: 'SPA-PUNCH-01',
-        label: 'Fold & Punch',
-        cogat: 'Paper Folding',
-        ask: 'Fold the paper, punch a hole, then work out where every hole lands once it opens back up.',
-      },
-      {
-        code: 'FLU-MATRIX-01',
-        label: 'Machine Matrix',
-        cogat: 'Figure Matrices',
-        ask: 'The shapes in the grid change by a hidden rule. Find the tile that finishes the pattern.',
-      },
-    ],
+      'Whether a child can see how two ideas relate, then find that same relationship somewhere else.',
+    onTest: 'Verbal analogies, sentence completion, and sorting words by what they share.',
+    forGt: 'Moves with vocabulary depth, which grows slowly. Expect the least short-run change.',
   },
   {
     key: 'Quantitative',
+    code: 'QUANT-MIX-01',
+    cogat: 'Number Puzzles',
     blurb: 'Reasoning about quantity, not arithmetic speed.',
+    ask: 'Change two amounts so the mix keeps the same balance. Quantities, without the arithmetic drill.',
     measures:
       'Whether a child can spot the rule behind a set of numbers or amounts and carry it to a new case.',
     onTest: 'Number series, number analogies, and puzzles about what keeps two sides balanced.',
-    forGt:
-      'What makes these items hard is well understood and fairly predictable, so this is the area where a practice ladder can be built most precisely.',
-    samples: [
-      {
-        code: 'QUANT-MIX-01',
-        label: 'Fair Share',
-        cogat: 'Number Puzzles',
-        ask: 'Change two amounts so the mix keeps the same balance. Quantities, without the arithmetic drill.',
-      },
-    ],
+    forGt: 'What makes these hard is well understood, so practice can be built precisely.',
+  },
+  {
+    key: 'Nonverbal',
+    code: 'SPA-PUNCH-01',
+    cogat: 'Paper Folding',
+    blurb: 'Reasoning with shapes and figures, no words involved.',
+    ask: 'Fold the paper, punch a hole, then work out where every hole lands once it opens back up.',
+    measures:
+      'Whether a child can picture how a shape changes when it is folded or turned, and find hidden rules in a pattern.',
+    onTest: 'Paper folding, figure matrices, and grouping figures by rule.',
+    forGt: 'Responds to practice fastest. Widely assumed to be culture free, which it is not.',
   },
 ];
 
-/** Screen labels for the rail, in deck order: intro, batteries, close. */
-const STEPS = ['What it is', ...BATTERIES.map((b) => b.key), 'Where to start'] as const;
-const LAST = STEPS.length - 1;
+const LAST = BATTERIES.length + 1;
 
 export function AboutTheTest({ baselineHref }: { baselineHref: string }) {
   const [step, setStep] = useState(0);
-  const [sample, setSample] = useState(0);
+  const [answered, setAnswered] = useState<Readonly<Record<string, boolean>>>({});
+  const topRef = useRef<HTMLDivElement | null>(null);
 
-  /**
-   * Clamped rather than wrapping. A deck with a beginning and an end reads as
-   * progress; one that loops silently back to the start reads as a loop, and the
-   * point of this rewrite is that the reader always knows where they are.
-   *
-   * Both movers reset the sample chips, so a battery never opens on its second
-   * question. Every route between screens goes through one of these two, which is
-   * what makes that guarantee hold without an effect watching `step`.
-   */
-  const goTo = useCallback((next: number) => {
-    setStep(Math.max(0, Math.min(LAST, next)));
-    setSample(0);
-  }, []);
+  const battery = step >= 1 && step <= BATTERIES.length ? BATTERIES[step - 1]! : null;
+  const isOpen = battery ? answered[battery.code] === true : true;
 
   const move = useCallback((delta: number) => {
     setStep((i) => Math.max(0, Math.min(LAST, i + delta)));
-    setSample(0);
   }, []);
+
+  /**
+   * The gate. Every demo posts `result` on submit whether or not a host is
+   * driving it, so one listener covers all three screens. Marked by item code
+   * rather than by step so going back to a battery you already answered does not
+   * shut the gate again.
+   */
+  useEffect(() => {
+    if (!battery) return;
+    const code = battery.code;
+
+    function onMessage(event: MessageEvent) {
+      const data = event.data as { source?: string; type?: string } | null;
+      if (data?.source === 'gt-exam-demo' && data.type === 'result') {
+        setAnswered((prev) => (prev[code] ? prev : { ...prev, [code]: true }));
+      }
+    }
+
+    const unlock = window.setTimeout(() => {
+      setAnswered((prev) => (prev[code] ? prev : { ...prev, [code]: true }));
+    }, UNLOCK_AFTER_MS);
+
+    window.addEventListener('message', onMessage);
+    return () => {
+      window.removeEventListener('message', onMessage);
+      window.clearTimeout(unlock);
+    };
+  }, [battery]);
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (event.key === 'ArrowLeft') move(-1);
-      if (event.key === 'ArrowRight') move(1);
+      if (event.key === 'ArrowRight' && isOpen) move(1);
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [move]);
+  }, [move, isOpen]);
 
-  const battery = step >= 1 && step <= BATTERIES.length ? BATTERIES[step - 1]! : null;
-  const active = battery ? (battery.samples[sample] ?? battery.samples[0]!) : null;
+  // Screens are viewport sized, so a part-scrolled short window would otherwise
+  // start the next screen halfway down.
+  useEffect(() => {
+    topRef.current?.scrollIntoView({ block: 'start' });
+  }, [step]);
 
   return (
-    <div className={styles.deck}>
-      <nav className={styles.rail} aria-label="Sections of this explainer">
-        <ol className={styles.steps} role="tablist">
-          {STEPS.map((label, i) => (
-            <li key={label} className={styles.stepItem}>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={i === step}
-                aria-controls="about-panel"
-                className={i === step ? `${styles.step} ${styles.stepOn}` : styles.step}
-                onClick={() => goTo(i)}
-              >
-                <span className={styles.stepNum}>{String(i + 1).padStart(2, '0')}</span>
-                <span className={styles.stepLabel}>{label}</span>
-              </button>
-            </li>
-          ))}
-        </ol>
-      </nav>
+    <div className={styles.stage} ref={topRef}>
+      {/* The navy field, faded out rather than swapped, so the handoff to paper
+          reads as one movement. Sits under the content and takes no clicks. */}
+      <div
+        className={step === 0 ? styles.field : `${styles.field} ${styles.fieldOut}`}
+        aria-hidden="true"
+      />
 
-      <main
-        className={styles.stage}
-        id="about-panel"
-        role="tabpanel"
-        aria-label={STEPS[step]}
-        /* Keyed so the entrance animation replays on every move. */
-        key={step}
-      >
-        {step === 0 ? (
-          <section className={`${styles.panel} ${styles.intro}`}>
+      {step === 0 ? (
+        <section className={`${styles.screen} ${styles.intro}`}>
+          <div className={styles.introTop}>
             <p className={styles.kicker}>The test behind the decision</p>
-            <h1 className={styles.title}>What is the CogAT?</h1>
-            <p className={styles.lede}>
-              It is a reasoning test, not a knowledge test. It does not ask what your child has been
-              taught. It asks how well they work out something they have never seen before.
-            </p>
-            <dl className={styles.facts}>
-              <div className={styles.fact}>
-                <dt className={styles.factLabel}>It comes in three parts</dt>
-                <dd className={styles.factBody}>
-                  Verbal, Nonverbal, and Quantitative, scored separately. They are not
-                  interchangeable, and most children are stronger in one than the others.
-                </dd>
-              </div>
-              <div className={styles.fact}>
-                <dt className={styles.factLabel}>How it is scored</dt>
-                <dd className={styles.factBody}>
-                  Answers become a percentile against children the same age. The 95th percentile
-                  means 95 of 100 same age children scored at or below your child.
-                </dd>
-              </div>
-              <div className={styles.fact}>
-                <dt className={styles.factLabel}>How the cut works</dt>
-                <dd className={styles.factBody}>
-                  Programs usually set a bar from the 90th up. Near that bar a score is genuinely
-                  uncertain, and one weak battery is rarely decisive on its own.
-                </dd>
-              </div>
-            </dl>
-            <p className={styles.handoff}>
-              Next: the three parts, one at a time, with a question of ours you can try.
-            </p>
-          </section>
-        ) : null}
+            <h1 className={styles.hero}>What is the CogAT?</h1>
+          </div>
 
-        {battery && active ? (
-          <section className={styles.panel}>
-            <header className={styles.panelHead}>
-              <span className={styles.battery} data-battery={battery.key}>
+          <div className={styles.introBottom}>
+            <p className={styles.introLede}>
+              It is a reasoning test, not a knowledge test. It does not ask what your child has been
+              taught. It asks how well they work out something they have never seen before. It comes
+              in three parts, and they are not interchangeable.
+            </p>
+            <div className={styles.introActions}>
+              <button type="button" className={styles.next} onClick={() => move(1)}>
+                Next
+              </button>
+              <p className={styles.introHint}>Three parts, one question each. Around 4 minutes.</p>
+            </div>
+            <p className={styles.markIntro}>
+              CogAT is a trademark of Riverside Insights. We are not affiliated with them or
+              endorsed by them.
+            </p>
+          </div>
+        </section>
+      ) : null}
+
+      {battery ? (
+        <section className={styles.screen}>
+          <header className={styles.bar}>
+            <div className={styles.barLeft}>
+              <span className={styles.tag} data-battery={battery.key}>
                 {battery.key}
               </span>
-              <h2 className={styles.panelTitle}>{battery.blurb}</h2>
-            </header>
-
-            <div className={styles.split}>
-              <div className={styles.demoCol}>
-                {battery.samples.length > 1 ? (
-                  <div className={styles.chips} role="group" aria-label="Try another question type">
-                    {battery.samples.map((s, i) => (
-                      <button
-                        key={s.code}
-                        type="button"
-                        aria-pressed={i === sample}
-                        className={i === sample ? `${styles.chip} ${styles.chipOn}` : styles.chip}
-                        onClick={() => setSample(i)}
-                      >
-                        {s.label}
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <p className={styles.sampleName}>{active.label}</p>
-                )}
-
-                <p className={styles.ask}>{active.ask}</p>
-
-                <div className={styles.screen}>
-                  <iframe
-                    key={active.code}
-                    className={styles.frame}
-                    src={`/exam-demos/${active.code}.html`}
-                    title={`${active.label}, an example question you can try`}
-                  />
-                </div>
-                <p className={styles.sampleCogat}>Our question, same kind as: {active.cogat}</p>
-              </div>
-
-              <dl className={styles.notes}>
-                <div className={styles.note}>
-                  <dt className={styles.noteLabel}>Measures</dt>
-                  <dd className={styles.noteBody}>{battery.measures}</dd>
-                </div>
-                <div className={styles.note}>
-                  <dt className={styles.noteLabel}>On the real test</dt>
-                  <dd className={styles.noteBody}>{battery.onTest}</dd>
-                </div>
-                <div className={styles.note}>
-                  <dt className={styles.noteLabel}>For a GT application</dt>
-                  <dd className={styles.noteBody}>{battery.forGt}</dd>
-                </div>
-              </dl>
+              <p className={styles.blurb}>{battery.blurb}</p>
             </div>
-          </section>
-        ) : null}
+            <ol className={styles.pips} aria-label={`Part ${step} of ${BATTERIES.length}`}>
+              {BATTERIES.map((b, i) => (
+                <li
+                  key={b.key}
+                  className={i === step - 1 ? `${styles.pip} ${styles.pipOn}` : styles.pip}
+                  aria-current={i === step - 1 ? 'step' : undefined}
+                >
+                  <span className={styles.srOnly}>{b.key}</span>
+                </li>
+              ))}
+            </ol>
+          </header>
 
-        {step === LAST ? (
-          <section className={`${styles.panel} ${styles.close}`}>
-            <p className={styles.kicker}>Where to start</p>
-            <h2 className={styles.title}>See where your child places</h2>
-            <p className={styles.lede}>
-              Under 40 minutes, free, and it reports these same three areas so you know which one to
-              work on first. You can take it again later to see what actually moved.
+          <div className={styles.window}>
+            <p className={styles.ask}>{battery.ask}</p>
+            <div className={styles.frameWrap}>
+              <iframe
+                key={battery.code}
+                className={styles.frame}
+                src={`/exam-demos/${battery.code}.html`}
+                title={`A ${battery.key.toLowerCase()} example question you can try`}
+              />
+            </div>
+            <p className={styles.caption}>Our question, same kind as: {battery.cogat}</p>
+          </div>
+
+          <footer className={styles.dock}>
+            <dl className={styles.notes}>
+              <div className={styles.note}>
+                <dt className={styles.noteLabel}>Measures</dt>
+                <dd className={styles.noteBody}>{battery.measures}</dd>
+              </div>
+              <div className={styles.note}>
+                <dt className={styles.noteLabel}>On the real test</dt>
+                <dd className={styles.noteBody}>{battery.onTest}</dd>
+              </div>
+              <div className={styles.note}>
+                <dt className={styles.noteLabel}>For a GT application</dt>
+                <dd className={styles.noteBody}>{battery.forGt}</dd>
+              </div>
+            </dl>
+
+            <div className={styles.dockActions}>
+              <button type="button" className={styles.back} onClick={() => move(-1)}>
+                Back
+              </button>
+              {isOpen ? (
+                <button type="button" className={styles.next} onClick={() => move(1)}>
+                  {step === BATTERIES.length ? 'Finish' : 'Next'}
+                </button>
+              ) : (
+                <p className={styles.gate}>Answer the question to continue</p>
+              )}
+            </div>
+          </footer>
+        </section>
+      ) : null}
+
+      {step === LAST ? (
+        <section className={`${styles.screen} ${styles.done}`}>
+          <div className={styles.doneInner}>
+            <p className={styles.kickerInk}>That is the whole test</p>
+            <h2 className={styles.hero}>You have seen all three parts</h2>
+            <p className={styles.doneLede}>
+              Verbal, Quantitative, and Nonverbal, scored separately. Programs usually set a bar
+              from the 90th percentile up, and near that bar a score is genuinely uncertain, so one
+              weak part is rarely decisive on its own.
             </p>
-            <Link className={styles.primary} href={baselineHref}>
-              Start the baseline
-            </Link>
-          </section>
-        ) : null}
-      </main>
-
-      <footer className={styles.foot}>
-        <p className={styles.boundary}>
-          CogAT is a trademark of Riverside Insights. We are not affiliated with them or endorsed by
-          them, and the levels our baseline reports do not predict a CogAT score.
-        </p>
-        <div className={styles.controls}>
-          <button
-            type="button"
-            className={styles.nav}
-            onClick={() => move(-1)}
-            disabled={step === 0}
-          >
-            Back
-          </button>
-          <span className={styles.counter}>
-            {step + 1} <span className={styles.counterDim}>/ {STEPS.length}</span>
-          </span>
-          <button
-            type="button"
-            className={styles.nav}
-            onClick={() => move(1)}
-            disabled={step === LAST}
-          >
-            Next
-          </button>
-        </div>
-      </footer>
+            <div className={styles.doneActions}>
+              <Link className={styles.next} href={baselineHref}>
+                See where your child places
+              </Link>
+              <button type="button" className={styles.back} onClick={() => setStep(0)}>
+                Start over
+              </button>
+            </div>
+            <p className={styles.mark}>
+              CogAT is a trademark of Riverside Insights. We are not affiliated with them or
+              endorsed by them, and the levels our baseline reports do not predict a CogAT score.
+            </p>
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }
