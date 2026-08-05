@@ -1,197 +1,198 @@
+/* =========================================================================
+   About the test.
+
+   Rebuilt onto the GT brand token layer. The first version of this file was
+   written against invented values (a blue navy, a yellow gold, sans-serif
+   headings, drop shadows, 16px radii) and looked like a different product.
+   The rules it broke, taken from `globals.css`:
+
+     - Gold is a SURFACE, never ink. Warm text uses --color-accent-warm-ink.
+     - Surfaces sit flat on the paper. --gt-shadow-card is none, on purpose.
+     - Headings are Literata (--font-display); marks and labels are Inconsolata
+       (--font-utility); body is Inter Tight.
+     - Containers are --radius-lg, and the primary action carries the signature
+       bottom-right chamfer via --cut-br.
+     - No raw hexes. Components reference semantic tokens.
+   ========================================================================= */
+
 .wrap {
   max-width: 60rem;
   margin: 0 auto;
-  padding: 2rem 1.25rem 3.5rem;
-  color: var(--gt-ink, #12202e);
+  padding: var(--gt-space-6) var(--gt-space-4) var(--gt-space-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-5);
+  color: var(--color-ink);
 }
 
-/* ---------- hero: short, high contrast, gets out of the way ---------- */
+/* ---- hero: navy does the structural work ---- */
 
 .hero {
   position: relative;
   overflow: hidden;
-  border-radius: 16px;
-  padding: 2.25rem 2rem 2rem;
-  margin-bottom: 1.25rem;
-  background: linear-gradient(135deg, #0a1c30 0%, #0f2742 48%, #16436b 100%);
-  color: #fbfbfb;
-}
-
-.hero::after {
-  content: '';
-  position: absolute;
-  inset: auto -3rem -6rem auto;
-  width: 18rem;
-  height: 18rem;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgb(242 183 5 / 0.22) 0%, transparent 68%);
-  pointer-events: none;
+  background: linear-gradient(
+    135deg,
+    var(--gt-dark-navy) 0%,
+    var(--gt-navy) 45%,
+    var(--gt-blue-dark) 100%
+  );
+  color: var(--gt-near-white);
+  border-radius: var(--radius-lg);
+  padding: var(--gt-space-6);
 }
 
 .kicker {
-  position: relative;
-  margin: 0 0 0.5rem;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-family: var(--font-utility);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #f7d15f;
+  color: var(--gt-gold-light);
+  font-weight: 600;
+  margin: 0;
 }
 
 .title {
-  position: relative;
-  margin: 0 0 0.75rem;
-  font-size: clamp(1.7rem, 4.2vw, 2.6rem);
-  line-height: 1.1;
+  font-family: var(--font-display);
+  font-size: 2.4rem;
   font-weight: 300;
   letter-spacing: -0.02em;
-}
-
-.titleAccent {
-  font-weight: 600;
-  color: #f7d15f;
+  margin: var(--gt-space-2) 0 var(--gt-space-3);
+  color: var(--gt-near-white);
 }
 
 .lede {
-  position: relative;
+  font-size: 1.05rem;
+  color: rgb(251 251 251 / 0.82);
+  line-height: 1.55;
   margin: 0;
-  max-width: 46rem;
-  font-size: 1.02rem;
-  line-height: 1.6;
-  color: rgb(251 251 251 / 0.86);
+  max-width: 60ch;
 }
 
-/* ---------- sampler: the centre of the page ---------- */
+/* ---- sampler: a white panel on the paper, flat ---- */
 
 .sampler {
-  border: 1px solid var(--gt-line, #dfe3e8);
-  border-radius: 16px;
-  background: #fff;
-  padding: 1rem 1.125rem 1.125rem;
-  box-shadow:
-    0 1px 2px rgb(15 39 66 / 0.06),
-    0 12px 28px rgb(15 39 66 / 0.07);
-  margin-bottom: 1.5rem;
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--gt-space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-3);
 }
 
 .samplerBar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: var(--gt-space-4);
   flex-wrap: wrap;
 }
 
 .samplerMeta {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--gt-space-3);
   min-width: 0;
 }
 
+/* Gold as a surface with dark-navy ink, per the brand rule. Battery identity
+   uses the verified warm and cool accent inks on a tinted surface. */
 .battery {
   flex: none;
-  font-size: 0.66rem;
-  font-weight: 700;
-  letter-spacing: 0.07em;
+  font-family: var(--font-utility);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  padding: 0.3rem 0.55rem;
-  border-radius: 999px;
-  color: #fff;
-  background: #4267d5;
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radius-xs);
+  background: var(--color-surface);
+  border: 1px solid var(--gt-gold-light);
+  color: var(--color-accent-warm-ink);
 }
 
 .battery[data-battery='Verbal'] {
-  background: #1f8a4c;
-}
-
-.battery[data-battery='Quantitative'] {
-  background: #b4601a;
+  color: var(--color-accent-cool-ink);
 }
 
 .battery[data-battery='Nonverbal'] {
-  background: #4a44b8;
+  background: var(--color-surface-strong);
 }
 
 .sampleName {
+  font-family: var(--font-display);
   margin: 0;
-  font-size: 1.05rem;
-  font-weight: 650;
-  color: var(--gt-navy, #0f2742);
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: var(--color-ink);
   line-height: 1.2;
 }
 
 .sampleCogat {
-  margin: 0.1rem 0 0;
-  font-size: 0.78rem;
-  color: var(--gt-muted, #5a6b7b);
+  font-family: var(--font-utility);
+  margin: 0.15rem 0 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
 }
 
 .controls {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--gt-space-2);
 }
 
 .arrow {
-  width: 2.4rem;
-  height: 2.4rem;
-  border-radius: 50%;
-  border: 1px solid var(--gt-line, #dfe3e8);
-  background: #fff;
-  color: var(--gt-navy, #0f2742);
-  font-size: 1.5rem;
-  line-height: 1;
+  all: unset;
   cursor: pointer;
+  width: 2.5rem;
+  height: 2.5rem;
   display: grid;
   place-items: center;
-  transition:
-    transform 0.12s ease,
-    background 0.12s ease;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-panel);
+  color: var(--color-primary);
+  font-size: 1.4rem;
+  line-height: 1;
+  transition: background 150ms var(--gt-ease);
 }
 
 .arrow:hover {
-  background: #f4f7fb;
-  transform: translateY(-1px);
-}
-
-.arrow:active {
-  transform: translateY(0);
+  background: var(--color-surface);
 }
 
 .arrow:focus-visible {
-  outline: 3px solid #f2b705;
+  outline: 0.1875rem solid var(--color-focus);
   outline-offset: 2px;
 }
 
 .counter {
-  font-family: ui-monospace, Menlo, monospace;
+  font-family: var(--font-utility);
   font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--gt-navy, #0f2742);
+  font-weight: 600;
+  color: var(--color-ink);
   min-width: 3.2rem;
   text-align: center;
 }
 
 .counterDim {
-  font-weight: 400;
-  color: var(--gt-muted, #5a6b7b);
+  color: var(--color-muted);
 }
 
 .ask {
-  margin: 0.875rem 0 0.75rem;
+  margin: 0;
   font-size: 0.95rem;
   line-height: 1.55;
-  color: var(--gt-ink, #12202e);
-  max-width: 52rem;
+  color: var(--color-ink-soft);
+  max-width: 70ch;
 }
 
 .screen {
-  position: relative;
-  border: 1px solid var(--gt-line, #dfe3e8);
-  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   overflow: hidden;
-  background: #0f1526;
+  background: var(--gt-dark-navy);
 }
 
 .frame {
@@ -201,7 +202,7 @@
   border: 0;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 40rem) {
   .frame {
     height: 24rem;
   }
@@ -210,157 +211,181 @@
 .dots {
   display: flex;
   justify-content: center;
-  gap: 0.4rem;
-  margin: 0.875rem 0 0.5rem;
+  gap: var(--gt-space-2);
 }
 
 .dot {
-  width: 0.55rem;
-  height: 0.55rem;
-  padding: 0;
-  border-radius: 50%;
-  border: 0;
-  background: #cbd5e1;
+  all: unset;
   cursor: pointer;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--gt-grey);
   transition:
-    width 0.15s ease,
-    background 0.15s ease;
+    width 150ms var(--gt-ease),
+    background 150ms var(--gt-ease);
 }
 
 .dot:hover {
-  background: #94a3b8;
+  background: var(--gt-gold);
 }
 
 .dotOn {
   width: 1.5rem;
-  border-radius: 999px;
-  background: var(--gt-navy, #0f2742);
+  border-radius: var(--radius-xs);
+  background: var(--color-primary);
 }
 
 .dot:focus-visible {
-  outline: 3px solid #f2b705;
+  outline: 0.1875rem solid var(--color-focus);
   outline-offset: 3px;
 }
 
 .samplerNote {
+  font-family: var(--font-utility);
   margin: 0;
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   line-height: 1.5;
-  color: var(--gt-muted, #5a6b7b);
+  letter-spacing: 0.02em;
+  color: var(--color-muted);
   text-align: center;
-  max-width: 44rem;
+  max-width: 70ch;
   margin-inline: auto;
 }
 
-/* ---------- three fact cards ---------- */
+/* ---- the three reference cards ---- */
 
 .facts {
   display: grid;
-  gap: 0.875rem;
+  gap: var(--gt-space-4);
   grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-  margin-bottom: 1.5rem;
 }
 
 .fact {
-  position: relative;
-  border: 1px solid var(--gt-line, #dfe3e8);
-  border-top: 3px solid #f2b705;
-  border-radius: 12px;
-  background: #fff;
-  padding: 1rem 1.05rem 1.05rem;
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--gt-space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-1);
 }
 
 .factNum {
-  font-family: ui-monospace, Menlo, monospace;
+  font-family: var(--font-utility);
   font-size: 0.72rem;
-  font-weight: 700;
-  color: #f2b705;
+  font-weight: 600;
+  color: var(--gt-blue);
 }
 
 .factLabel {
-  margin: 0.2rem 0 0.35rem;
-  font-size: 0.68rem;
-  font-weight: 700;
+  font-family: var(--font-utility);
+  margin: 0;
+  font-size: 0.72rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--gt-muted, #5a6b7b);
+  color: var(--color-muted);
+  font-weight: 600;
 }
 
 .factLead {
-  margin: 0 0 0.4rem;
-  font-size: 1rem;
-  font-weight: 650;
-  line-height: 1.3;
-  color: var(--gt-navy, #0f2742);
+  font-family: var(--font-display);
+  margin: var(--gt-space-1) 0 0;
+  font-size: 1.05rem;
+  font-weight: 500;
+  line-height: 1.25;
+  color: var(--color-ink);
 }
 
 .factBody {
   margin: 0;
-  font-size: 0.875rem;
+  font-size: 0.9rem;
   line-height: 1.55;
-  color: var(--gt-ink, #12202e);
+  color: var(--color-ink-soft);
 }
 
-/* ---------- call to action ---------- */
+/* ---- call to action: the warm grouped region ---- */
 
 .cta {
+  background: var(--color-surface);
+  border: 1px solid var(--gt-gold-light);
+  border-radius: var(--radius-lg);
+  padding: var(--gt-space-5) var(--gt-space-6);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1.25rem;
+  gap: var(--gt-space-5);
   flex-wrap: wrap;
-  border-radius: 14px;
-  padding: 1.25rem 1.375rem;
-  margin-bottom: 1.5rem;
-  background: #f4f7fb;
-  border: 1px solid var(--gt-line, #dfe3e8);
 }
 
 .ctaTitle {
-  margin: 0 0 0.25rem;
-  font-size: 1.1rem;
-  font-weight: 650;
-  color: var(--gt-navy, #0f2742);
+  font-family: var(--font-display);
+  margin: 0 0 var(--gt-space-1);
+  font-size: 1.3rem;
+  font-weight: 500;
+  color: var(--color-ink);
 }
 
 .ctaBody {
   margin: 0;
-  font-size: 0.9rem;
-  line-height: 1.5;
-  color: var(--gt-muted, #5a6b7b);
-  max-width: 34rem;
-}
-
-.primary {
-  flex: none;
-  display: inline-block;
-  background: var(--gt-navy, #0f2742);
-  color: #fff;
-  text-decoration: none;
-  font-weight: 650;
   font-size: 0.95rem;
-  padding: 0.7rem 1.25rem;
-  border-radius: 999px;
-  transition:
-    transform 0.12s ease,
-    filter 0.12s ease;
+  line-height: 1.5;
+  color: var(--color-ink-soft);
+  max-width: 46ch;
 }
 
-.primary:hover {
-  filter: brightness(1.15);
-  transform: translateY(-1px);
+/* The signature chamfered primary, matching the rest of the portal. */
+.primary {
+  all: unset;
+  position: relative;
+  isolation: isolate;
+  cursor: pointer;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 13px 18px;
+  color: var(--gt-near-white);
+  font-family: var(--font-utility);
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.primary::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: var(--color-primary);
+  border-radius: var(--radius-md);
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - var(--cut-br)),
+    calc(100% - var(--cut-br)) 100%,
+    0 100%
+  );
+  transition: background 150ms ease;
+}
+
+.primary:hover::before {
+  background: var(--color-primary-hover);
 }
 
 .primary:focus-visible {
-  outline: 3px solid #f2b705;
+  outline: 0.1875rem solid var(--color-focus);
   outline-offset: 3px;
 }
 
 .boundary {
   margin: 0;
-  padding-top: 1rem;
-  border-top: 1px dashed var(--gt-line, #dfe3e8);
-  font-size: 0.78rem;
+  padding-top: var(--gt-space-4);
+  border-top: 1px solid var(--color-border);
+  font-size: 0.8rem;
   line-height: 1.55;
-  color: var(--gt-muted, #5a6b7b);
+  color: var(--color-muted);
 }

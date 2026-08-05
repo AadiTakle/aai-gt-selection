@@ -107,10 +107,7 @@ export function AboutTheTest({ baselineHref }: { baselineHref: string }) {
     <div className={styles.wrap}>
       <section className={styles.hero}>
         <p className={styles.kicker}>The test behind the decision</p>
-        <h1 className={styles.title}>
-          What the CogAT is,
-          <span className={styles.titleAccent}> in about a minute</span>
-        </h1>
+        <h1 className={styles.title}>What is the CogAT?</h1>
         <p className={styles.lede}>
           It is a reasoning test, not a knowledge test. It does not ask what your child has been
           taught. It asks how well they work out something they have never seen before. That is why
