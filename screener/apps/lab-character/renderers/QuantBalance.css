@@ -1,0 +1,381 @@
+/* QUANT-BALANCE-01. Prefixed `qb-`. The beam is level in every rule in this file; there is no tilted
+   state to find, because a tilt would mark the item. Motion is transform/opacity only. */
+
+.qb {
+  --qb-ease: var(--ease, cubic-bezier(0.22, 1, 0.36, 1));
+  --qb-line: var(--line, rgb(22 24 29 / 0.1));
+  --qb-ink: var(--ink, #16181d);
+  --qb-soft: var(--ink-soft, #4b515c);
+  --qb-target: 80px;
+  /* Shared by the pan columns and the beam, so the beam can end exactly where the cords hang. */
+  --qb-gap: clamp(1.75rem, 7vw, 4rem);
+  --qb-piece: clamp(22px, 4.6vw, 34px);
+  --qb-piece-rule: clamp(17px, 3.4vw, 25px);
+  --qb-piece-choice: clamp(18px, 3.6vw, 27px);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(1.25rem, 4vh, 2.25rem);
+  padding: clamp(1rem, 4vw, 2.5rem) clamp(1rem, 4vw, 2rem);
+}
+
+.qb[data-band='K-1'] {
+  --qb-target: 108px;
+  --qb-piece: clamp(28px, 6vw, 44px);
+  --qb-piece-rule: clamp(22px, 4.4vw, 32px);
+  --qb-piece-choice: clamp(24px, 5vw, 36px);
+}
+
+.qb-prompt {
+  margin: 0;
+  max-width: 28ch;
+  text-align: center;
+  font-size: clamp(1.05rem, 2.6vw, 1.45rem);
+  font-weight: 400;
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+  color: var(--qb-ink);
+}
+
+/* ---- the exchange rates the child is given -------------------------------- */
+
+.qb-rules {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.3rem, 1.2vh, 0.6rem);
+}
+
+.qb-rule {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.5rem, 2vw, 1rem);
+  animation: qb-rise 460ms var(--qb-ease) both;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+
+.qb-rule-side {
+  display: flex;
+  align-items: center;
+  gap: 0.28rem;
+}
+
+.qb-rule-side .qb-piece {
+  width: var(--qb-piece-rule);
+}
+
+/* An equals sign, drawn rather than typed, so it sits on the shapes' optical baseline. */
+.qb-eq {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  opacity: 0.45;
+}
+
+.qb-eq span {
+  display: block;
+  width: clamp(13px, 2.4vw, 18px);
+  height: 2px;
+  border-radius: 1px;
+  background: var(--qb-ink);
+}
+
+/* ---- the balance --------------------------------------------------------- */
+
+.qb-scale {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: var(--qb-gap);
+  width: 100%;
+  max-width: 34rem;
+  padding-top: 6px;
+}
+
+/* Each pan hangs from the centre of its half, i.e. at 25% of the scale less a quarter of the gap, so
+   the beam stops exactly there and the cords hang from its ends rather than from the middle of it. */
+.qb-beam {
+  position: absolute;
+  top: 0;
+  left: calc(25% - var(--qb-gap) / 4);
+  right: calc(25% - var(--qb-gap) / 4);
+  height: 6px;
+  border-radius: 3px;
+  background: var(--qb-soft);
+  z-index: 2;
+  animation: qb-rise 520ms var(--qb-ease) both;
+}
+
+.qb-beam::before,
+.qb-beam::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--qb-soft);
+}
+
+.qb-beam::before {
+  left: -6px;
+}
+
+.qb-beam::after {
+  right: -6px;
+}
+
+.qb-post {
+  position: absolute;
+  top: 6px;
+  bottom: 0;
+  left: 50%;
+  width: 8px;
+  transform: translateX(-50%);
+  border-radius: 4px;
+  background: rgb(22 24 29 / 0.14);
+  z-index: 0;
+}
+
+.qb-post::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: clamp(46px, 10vw, 74px);
+  height: 6px;
+  transform: translateX(-50%);
+  border-radius: 3px;
+  background: rgb(22 24 29 / 0.14);
+}
+
+.qb-hang {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.qb-cord {
+  width: 2px;
+  height: clamp(18px, 4.5vh, 34px);
+  background: rgb(22 24 29 / 0.22);
+}
+
+.qb-tray {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: center;
+  gap: clamp(0.2rem, 1vw, 0.45rem);
+  width: 100%;
+  min-height: calc(var(--qb-piece) * 2.1);
+  padding: clamp(0.5rem, 1.8vw, 0.85rem);
+  border-radius: 10px 10px 26px 26px;
+  background: #fff;
+  box-shadow:
+    0 0 0 1px var(--qb-line),
+    0 18px 34px -30px rgb(22 24 29 / 0.8);
+  animation: qb-rise 520ms var(--qb-ease) 80ms both;
+}
+
+.qb-tray-load {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: center;
+  gap: clamp(0.2rem, 1vw, 0.45rem);
+}
+
+.qb-tray-load .qb-piece {
+  width: var(--qb-piece);
+}
+
+/* The pan waiting for a load. Dashed, with a mark that breathes: an invitation, not a verdict. The
+   pulse is on the mark and not the pan, so the pan carries only its entrance animation. */
+.qb-tray-open {
+  background: transparent;
+  box-shadow: none;
+  border: 2px dashed rgb(22 24 29 / 0.24);
+}
+
+.qb-tray-open:not([data-filled='true'])::after {
+  content: '';
+  align-self: center;
+  width: clamp(14px, 3vw, 20px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: rgb(22 24 29 / 0.12);
+  animation: qb-breathe 2600ms var(--qb-ease) 1000ms infinite;
+}
+
+.qb-tray-open[data-filled='true'] {
+  border-style: solid;
+  border-color: transparent;
+  background: #fff;
+  box-shadow:
+    0 0 0 1px var(--qb-line),
+    0 18px 34px -30px rgb(22 24 29 / 0.8);
+  animation: qb-rise 520ms var(--qb-ease) 80ms both;
+}
+
+.qb-piece {
+  display: block;
+  animation: qb-pop 360ms var(--qb-ease) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+
+.qb-piece svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* ---- choices ------------------------------------------------------------- */
+
+.qb-choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(0.6rem, 2vw, 1.1rem);
+  width: 100%;
+  max-width: 34rem;
+}
+
+.qb-choice {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: flex;
+  min-height: var(--qb-target);
+  padding: clamp(0.6rem, 2vw, 1rem);
+  border-radius: 20px;
+  background: #fff;
+  border: 1px solid var(--qb-line);
+  transition:
+    transform 240ms var(--qb-ease),
+    opacity 260ms var(--qb-ease),
+    box-shadow 240ms var(--qb-ease);
+  animation: qb-rise 460ms var(--qb-ease) both;
+  animation-delay: calc(300ms + var(--i, 0) * 60ms);
+}
+
+.qb-choice-load {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.18rem, 0.9vw, 0.4rem);
+  width: 100%;
+}
+
+.qb-choice-load .qb-piece {
+  width: var(--qb-piece-choice);
+}
+
+.qb-choice:hover {
+  transform: translate3d(0, -3px, 0);
+  box-shadow: 0 18px 34px -26px rgb(22 24 29 / 0.55);
+}
+
+.qb-choice:active {
+  transform: scale(0.98);
+  transition-duration: 90ms;
+}
+
+.qb-choice:focus-visible {
+  outline: 3px solid #3d7068;
+  outline-offset: 4px;
+}
+
+/* Chosen. Not correct, not incorrect — the server has not even been asked yet. */
+.qb-choice[data-chosen='true'] {
+  transform: scale(1.02);
+  box-shadow: inset 0 0 0 3px rgb(22 24 29 / 0.82);
+}
+
+.qb-choice[data-chosen='false'] {
+  opacity: 0.34;
+}
+
+.qb[data-settled='true'] .qb-choice {
+  cursor: default;
+}
+
+.qb[data-settled='true'] .qb-choice:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.qb[data-settled='true'] .qb-choice[data-chosen='true']:hover {
+  transform: scale(1.02);
+  box-shadow: inset 0 0 0 3px rgb(22 24 29 / 0.82);
+}
+
+@media (min-width: 46rem) {
+  .qb-choices {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* ---- keyframes ----------------------------------------------------------- */
+
+@keyframes qb-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes qb-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.86);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes qb-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.75;
+  }
+  50% {
+    transform: scale(1.25);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qb-rule,
+  .qb-beam,
+  .qb-tray,
+  .qb-tray-open:not([data-filled='true'])::after,
+  .qb-piece,
+  .qb-choice {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1;
+    transform: none;
+  }
+
+  .qb-post {
+    transform: translateX(-50%);
+  }
+
+  .qb-choice[data-chosen='false'] {
+    opacity: 0.34;
+  }
+}

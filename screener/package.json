@@ -26,7 +26,8 @@
     "lab:system": "vite --config vite.lab-system.config.ts",
     "verify:showcase": "tsx apps/lab-system/verify-showcase.ts",
     "kit": "tsx apps/lab-system/shared/uikit/cli.ts",
-    "kit:preview": "tsx apps/lab-system/shared/uikit/preview.ts"
+    "kit:preview": "tsx apps/lab-system/shared/uikit/preview.ts",
+    "lab:character": "vite --config vite.lab-character.config.ts"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
