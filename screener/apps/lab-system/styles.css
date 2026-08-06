@@ -197,3 +197,38 @@ button {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Band coverage chips on the launcher. The set has to cover all four bands, so the grid says whether
+   it does rather than leaving somebody to count the cards. */
+.lab-bands {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 20px;
+}
+
+.lab-bandchip {
+  font: 600 12px/1.6 var(--mono);
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: #f0f1f4;
+  color: var(--lab-dim);
+  border: 1px solid var(--lab-line);
+}
+
+.lab-bandchip.on {
+  background: #e7f3ec;
+  color: #146c43;
+  border-color: #bfe0cd;
+}
+
+.lab-bandchip strong {
+  margin-left: 3px;
+}
+
+.lab-bar-world {
+  margin-left: auto;
+  font: 600 10px/1 var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--lab-dim);
+}
