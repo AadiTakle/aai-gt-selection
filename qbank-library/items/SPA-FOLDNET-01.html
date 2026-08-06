@@ -201,6 +201,12 @@ function openGate(){
   document.documentElement.setAttribute('data-gt-gate','closed');
   setCue('ready');setStatus('neutral','Press play when you are ready.');
 }
+/* The play gate is armed as always, then released immediately: this type has no
+   transient stimulus, so arming it buys the child nothing and costs a click.
+   Reading time is separated from thinking time by first-action latency
+   (M-RTFIRST), not by a play press. #play is used rather than the begin
+   function directly because each demo names that function differently. */
+function releaseGate(){const p=document.querySelector('#play');if(p)p.click();}
 function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
 /* Every route through this item is keyboard-reachable, so the gate is too. Behind a closed
    gate the item's own shortcuts do nothing, so any key the child presses means "I am ready":
@@ -242,7 +248,7 @@ addEventListener('keydown',e=>{if(e.repeat)return;if(gateKey(e))return;
 let gotInit=false;
 addEventListener('message',e=>{const d=e.data;if(!d||d.source!==HOST)return;
  if(d.type==='init'&&d.item){gotInit=true;loadItem(d.item);post('ready');openGate();}
- else if(d.type==='start'){openGate();}
+ else if(d.type==='start'){openGate();releaseGate();}
 });
 
 /* ---------- standalone fallback (opens by double-click; no host present) ----------
