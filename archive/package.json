@@ -51,7 +51,8 @@
     "test": "pnpm -r --if-present run test && pnpm run test:scripts",
     "test:coverage": "pnpm -r --if-present run test:coverage && pnpm run test:scripts",
     "test:scripts": "vitest run --config vitest.scripts.config.ts",
-    "verify": "tsx scripts/verify.ts"
+    "verify": "tsx scripts/verify.ts",
+    "screener:sizing": "tsx scripts/screener-sizing.ts"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

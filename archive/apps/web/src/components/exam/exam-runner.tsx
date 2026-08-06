@@ -72,6 +72,7 @@ import {
   type LearningBlockReadout,
 } from '@/lib/exam/phase2';
 import { openReviewGate, resetReviewDwell } from '@/lib/exam/review-dwell';
+import { ASSESSMENT_SURFACE, type ExamSurface } from '@/lib/exam/surfaces';
 
 import { ExamDebugPanel } from './exam-debug-panel';
 import styles from './exam-runner.module.css';
@@ -160,11 +161,18 @@ export function ExamRunner({
   studentName,
   dashboardHref,
   gradeBand: initialGradeBand,
+  surface = ASSESSMENT_SURFACE,
 }: {
   studentName: string;
   dashboardHref: string;
   gradeBand?: GradeBand;
+  /**
+   * Which front door this is. Defaults to the admissions battery, so every existing caller keeps
+   * the behaviour it had. See `lib/exam/surfaces.ts` for what a surface is allowed to change.
+   */
+  surface?: ExamSurface;
 }) {
+  const { copy } = surface;
   const [phase, setPhase] = useState<Phase>('intro');
   const [gradeBand, setGradeBand] = useState<GradeBand>(initialGradeBand ?? '4-5');
   const [current, setCurrent] = useState<ServedItem | null>(null);
@@ -337,7 +345,7 @@ export function ExamRunner({
    * mid-session: `startState` fixes the config and `update` carries it through untouched.
    */
   const [engineConfig, setEngineConfig] = useState<EngineConfig>(
-    () => startState(gradeBand, EXAM_ENGINE_OVERRIDES).config,
+    () => startState(gradeBand, surface.engineOverrides).config,
   );
 
   /** `?debug=1` on the exam URL: shows the convergence dock, the demo's researcher panel, Emulate. */
@@ -432,7 +440,10 @@ export function ExamRunner({
         if (level !== null) standings[area] = level;
       }
       const standing = standings[LEARNING_BLOCK_AREA] ?? null;
-      if (standing !== null) {
+      // A door that does not offer Stage 2 must not leave a handoff behind either. The handoff is
+      // what makes "Part two is still waiting" appear on a LATER visit, so writing one here would
+      // put a 30-trial block in front of a screener child the next time they opened the page.
+      if (standing !== null && surface.offersStage2) {
         const handoff: LearningBlockHandoff = {
           sessionId: payload.sessionId,
           examSessionId: sessionRef.current.examSessionId,
@@ -464,7 +475,7 @@ export function ExamRunner({
       setError('We could not save your session. Your answers are safe — please try again.');
       setPhase('error');
     }
-  }, [studentName, gradeBand]);
+  }, [studentName, gradeBand, surface.offersStage2]);
 
   // Serve the next engine-selected item, or finalize when the battery is done.
   // The engine selects over the key-free, content-free index; the chosen item's
@@ -908,9 +919,12 @@ export function ExamRunner({
       const pool = await fetchServedPool();
       if (pool.length === 0) throw new Error('EMPTY_BANK');
       // Phase 1 never draws a Phase 2 activity type: they measure a different thing, and an
-      // item spent here is one the block can no longer treat as unfamiliar (phase2.ts).
-      banksRef.current = buildBanks(phase1Pool(pool));
-      const state = startState(gradeBand, examEngineOverrides());
+      // item spent here is one the block can no longer treat as unfamiliar (phase2.ts). The
+      // screener narrows it further to types that can burst — see `screenerPool`.
+      const surfacePool = surface.pool(pool);
+      if (surfacePool.length === 0) throw new Error('EMPTY_BANK');
+      banksRef.current = buildBanks(surfacePool);
+      const state = startState(gradeBand, examEngineOverrides(surface.engineOverrides));
       stateRef.current = state;
       setEngineState(state);
       setEngineConfig(state.config);
@@ -937,15 +951,11 @@ export function ExamRunner({
       <div className={styles.wrap}>
         <section className={styles.hero}>
           <div className={styles.heroText}>
-            <p className={styles.kicker}>Adaptive screening</p>
-            <h1 className={styles.title}>Ready to begin, {studentName}?</h1>
-            <p className={styles.lede}>
-              This is a short, adaptive session across four kinds of thinking. It starts at your
-              grade level, then gets harder or easier as you go — so the level always fits. There is
-              no fixed number of questions; it stops once we have enough to see your strengths.
-            </p>
+            <p className={styles.kicker}>{copy.introKicker}</p>
+            <h1 className={styles.title}>{copy.introTitle(studentName)}</h1>
+            <p className={styles.lede}>{copy.introLede}</p>
 
-            <p className={styles.cardKicker}>Choose your grade</p>
+            <p className={styles.cardKicker}>{copy.gradePrompt}</p>
             <div className={styles.gradeGrid} role="group" aria-label="Grade band">
               {GRADE_BANDS.map((band) => (
                 <button
@@ -963,16 +973,16 @@ export function ExamRunner({
             </div>
 
             <button type="button" className={styles.primary} onClick={() => void start()}>
-              Start the assessment →
+              {copy.startCta}
             </button>
             <Link className={styles.ghost} href={dashboardHref}>
-              Back to portal
+              {copy.backCta}
             </Link>
           </div>
         </section>
 
         {/* A block handed over by an earlier sitting: the family can pick it up whenever. */}
-        {pendingBlock ? (
+        {pendingBlock && surface.offersStage2 ? (
           <section className={styles.summaryCard}>
             <p className={styles.cardKicker}>Picking up where you left off</p>
             <h2 className={styles.runTitle}>Part two is still waiting</h2>
@@ -990,10 +1000,7 @@ export function ExamRunner({
           </section>
         ) : null}
 
-        <p className={styles.boundary}>
-          This is an eligibility screening only. It is not an IQ test, an enrollment offer, or an
-          admission decision. Results simply help route your family to the right next step.
-        </p>
+        <p className={styles.boundary}>{copy.introBoundary}</p>
       </div>
     );
   }
@@ -1007,28 +1014,38 @@ export function ExamRunner({
       <div className={styles.wrap}>
         <section className={styles.hero}>
           <div className={styles.heroText}>
-            <p className={styles.kicker}>Screening complete</p>
-            <h1 className={styles.title}>Nice work, {studentName}.</h1>
-            <p className={styles.lede}>
-              Every activity is done and your session has been saved. Here’s a synthetic profile of
-              what we saw across the four reasoning areas. A person reviews these signals before any
-              next step.
-            </p>
+            <p className={styles.kicker}>{copy.doneKicker}</p>
+            <h1 className={styles.title}>{copy.doneTitle(studentName)}</h1>
+            <p className={styles.lede}>{copy.doneLede}</p>
           </div>
         </section>
 
         <section className={styles.summaryCard}>
           <div className={styles.summaryTop}>
             <div>
-              <p className={styles.cardKicker}>Composite proficiency</p>
-              <p className={styles.bigStat}>
-                {outcome.composite.toFixed(1)}
-                <span className={styles.statSub}>/20</span>
-              </p>
-              <p className={styles.frameNote}>{bandForTheta(outcome.composite)}</p>
+              <p className={styles.cardKicker}>{copy.headlineStatLabel}</p>
+              {/*
+                The composite figure is withheld on a screener. A number out of twenty reads as a
+                grade to every parent who sees one, and a 17-item session has an interval around it
+                far too wide to support that reading — so the band is shown as words instead of
+                being decorated with a number it cannot justify.
+              */}
+              {surface.reportsTechnicalScore ? (
+                <>
+                  <p className={styles.bigStat}>
+                    {outcome.composite.toFixed(1)}
+                    <span className={styles.statSub}>/20</span>
+                  </p>
+                  <p className={styles.frameNote}>{bandForTheta(outcome.composite)}</p>
+                </>
+              ) : (
+                <p className={styles.bigStat} style={{ fontSize: '1.4rem' }}>
+                  {bandForTheta(outcome.composite)}
+                </p>
+              )}
             </div>
             <div>
-              <p className={styles.cardKicker}>Activities answered</p>
+              <p className={styles.cardKicker}>{copy.countStatLabel}</p>
               <p className={styles.bigStat}>{scoredCount}</p>
             </div>
             <div>
@@ -1039,18 +1056,24 @@ export function ExamRunner({
             </div>
           </div>
 
-          <p className={styles.cardKicker}>By reasoning area (proficiency θ /20)</p>
+          <p className={styles.cardKicker}>{copy.areaBreakdownLabel}</p>
           <div className={styles.domainBars}>
             {areaScores.map((area) => (
               <div key={area.area} className={styles.domainBar}>
                 <div className={styles.domainBarHead}>
                   <span>{domainLabel(area.area)}</span>
                   <span className={styles.domainBarPct}>
-                    {area.proficiency.toFixed(1)}
-                    {area.abilityStandardError != null
-                      ? ` ±${(1.96 * area.abilityStandardError).toFixed(1)}`
-                      : ''}{' '}
-                    · {bandForTheta(area.proficiency)} · acc {pct(area.accuracy)}
+                    {surface.reportsTechnicalScore ? (
+                      <>
+                        {area.proficiency.toFixed(1)}
+                        {area.abilityStandardError != null
+                          ? ` ±${(1.96 * area.abilityStandardError).toFixed(1)}`
+                          : ''}{' '}
+                        · {bandForTheta(area.proficiency)} · acc {pct(area.accuracy)}
+                      </>
+                    ) : (
+                      bandForTheta(area.proficiency)
+                    )}
                   </span>
                 </div>
                 <div className={styles.track}>
@@ -1096,7 +1119,7 @@ export function ExamRunner({
           software homing in rather than the child (D-030). It is now measured only over the
           separate block below, which the family starts themselves.
         */}
-        {pendingBlock ? (
+        {pendingBlock && surface.offersStage2 ? (
           <section className={styles.summaryCard}>
             <p className={styles.cardKicker}>Optional next part</p>
             <h2 className={styles.runTitle}>
@@ -1122,13 +1145,9 @@ export function ExamRunner({
         ) : null}
 
         <Link className={styles.primary} href={dashboardHref}>
-          Return to portal →
+          {copy.returnCta}
         </Link>
-        <p className={styles.boundary}>
-          Synthetic screening result (validated=false). Accuracy sets each area’s bracket; other
-          metrics position the score within it. A screen indicates likely fit; it is not an
-          admission decision and is not evidence of program impact.
-        </p>
+        <p className={styles.boundary}>{copy.doneBoundary}</p>
       </div>
     );
   }
@@ -1325,7 +1344,7 @@ export function ExamRunner({
                 (blockQueue.length > 1
                   ? ` · activity ${blockIndex + 1} of ${blockQueue.length}`
                   : '')
-              : burstView && burstView.length > 1
+              : burstView && burstView.length > 1 && surface.showBurstPosition
                 ? `Question ${questionNumber} · part ${burstView.index} of ${burstView.length}`
                 : `Question ${questionNumber}`}{' '}
             · {domainLabel(current.domain)}

@@ -40,6 +40,17 @@ const MIN_SAMPLES: Record<string, number> = {
   'M-REV': 3,
 };
 
+/**
+ * How many samples an enforced metric needs, per surface.
+ *
+ * These are a length lever and not a detail. An enforced metric that cannot reach `minSamples`
+ * inside the item budget makes `isDone` unsatisfiable, so the session runs to `hardItemCap` every
+ * time and a variable-length battery quietly becomes a fixed-length one. The public screener runs a
+ * much smaller budget than the admissions battery, so it has to lower these in step with it —
+ * `scripts/screener-sizing.ts` is what checks that the pair is actually satisfiable.
+ */
+export type MetricSampleFloors = Readonly<Record<string, number>>;
+
 /** Client-emitted metrics we WANT to gate the stop rule on, where every type supplies them. */
 const CANDIDATE_CLIENT_METRICS = ['M-RT', 'M-RTFIRST', 'M-REV'] as const;
 
@@ -79,11 +90,12 @@ export function registryMetrics(typeCode: string): string[] {
  */
 export function buildCoreMetrics(
   registry: readonly { typeCode: string; domain: Area; metrics: string[] }[] = EXAM_TYPE_REGISTRY,
+  floors: MetricSampleFloors = MIN_SAMPLES,
 ): CoreMetricSpec[] {
   const specs: CoreMetricSpec[] = SERVER_GUARANTEED_METRICS.map((id) => ({
     id,
     scope: 'all' as const,
-    minSamples: MIN_SAMPLES[id] ?? 3,
+    minSamples: floors[id] ?? 3,
     enforced: true,
   }));
 
@@ -94,7 +106,7 @@ export function buildCoreMetrics(
       specs.push({
         id: metric,
         scope: area,
-        minSamples: MIN_SAMPLES[metric] ?? 3,
+        minSamples: floors[metric] ?? 3,
         enforced: typesInArea.every((t) => t.metrics.includes(metric)),
       });
     }

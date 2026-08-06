@@ -41,8 +41,11 @@ export const NATIVE_PROTOCOL_TYPES: ReadonlySet<string> = new Set(
  * same types in the same order. Drawing it per session gives variety between children while
  * keeping one session perfectly replayable from the seed recorded in its own state.
  */
-export function examEngineOverrides(seed = randomSessionSeed()): Partial<EngineConfig> {
-  return { ...EXAM_ENGINE_OVERRIDES, seed };
+export function examEngineOverrides(
+  base: Partial<EngineConfig> = EXAM_ENGINE_OVERRIDES,
+  seed = randomSessionSeed(),
+): Partial<EngineConfig> {
+  return { ...base, seed };
 }
 
 /** A 32-bit seed, from the platform CSPRNG where available. */

@@ -4,6 +4,7 @@ import { useSyncExternalStore } from 'react';
 
 import { fromSyntheticName } from '@/lib/family/synthetic';
 import { PREVIEW_STATE_KEY } from '@/lib/family/storage';
+import { EXAM_SURFACES, type ExamSurfaceId } from '@/lib/exam/surfaces';
 import type { WizardState } from '@/lib/family/wizard-types';
 
 import { ExamRunner } from './exam-runner';
@@ -39,7 +40,25 @@ function getName(): string {
   return cachedName;
 }
 
-export function PreviewExam({ dashboardHref }: { dashboardHref: string }) {
+export function PreviewExam({
+  dashboardHref,
+  surfaceId = 'assessment',
+}: {
+  dashboardHref: string;
+  /**
+   * Which front door to render, BY NAME. Omitted means the admissions battery.
+   *
+   * A name rather than the surface itself because the callers are server components and a surface
+   * carries functions, which cannot cross into a client component.
+   */
+  surfaceId?: ExamSurfaceId;
+}) {
   const studentName = useSyncExternalStore(subscribe, getName, () => 'there');
-  return <ExamRunner studentName={studentName} dashboardHref={dashboardHref} />;
+  return (
+    <ExamRunner
+      studentName={studentName}
+      dashboardHref={dashboardHref}
+      surface={EXAM_SURFACES[surfaceId]}
+    />
+  );
 }

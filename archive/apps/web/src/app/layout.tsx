@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 
-import { SessionControls } from '@/components/auth/session-controls';
+import { AppHeaderRight } from '@/components/app-header-right';
 import { GtLogo } from '@/components/gt-logo';
 import { StaleActionReloadGuard } from '@/components/stale-action-reload-guard';
 import { bodyFont, displayFont, utilityFont } from '@/lib/fonts';
@@ -43,8 +43,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
               <GtLogo height={28} />
             </a>
             <span className="app-header-right">
-              <strong>GT School Admissions Portal</strong>
-              <SessionControls />
+              <AppHeaderRight />
             </span>
           </header>
           <main>{children}</main>
