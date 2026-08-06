@@ -2,7 +2,7 @@
 
 **Worktree:** `~/gt-loop-a` · **Branch:** `feat/apps-character-led` (off `origin/dev` at `d7cbeff`)
 **Reserved:** API 5201, web 5210, `screener/apps/lab-character/`, `screener/data/lab-character/`
-**Status at time of writing:** foundation complete and proven. No experiences built yet.
+**Status:** four worlds built, one per band, all four playable end to end. Section 5 final pass not run.
 
 This document was started early and is appended as work proceeds, so it is useful even if the night
 ends before the set does. Right now it is mostly findings, because that is what exists.
@@ -11,30 +11,30 @@ ends before the set does. Right now it is mostly findings, because that is what 
 
 ## 1. Honest state
 
-The session loop runs end to end on the real banks, verified twice by driving the HTTP API directly.
-The rendering foundation and the art-direction vocabulary are written. **No experience has been
-built, the launcher does not exist, and the app does not boot** because `main.tsx` is not written
-yet. Nothing in a launcher is broken, because there is no launcher.
+Four worlds, one per grade band, all reachable from one launcher at
+`http://127.0.0.1:5210/` and all four playable from first item to an ending. Typecheck clean, 148
+tests green, committed. Every question is drawn in React from the bank's headless item content; no
+item is an embedded HTML frame anywhere in this lab.
 
-What exists, all under `~/gt-loop-a`:
+What is NOT done, stated plainly so nobody assumes otherwise:
 
-| Path | What it is | State |
-|---|---|---|
-| `screener/data/lab-character/banks/` | 8 symlinked bank files, the curated pool | done, verified |
-| `screener/vite.lab-character.config.ts` | own config, port 5210, proxies `/api` + `/qbank` to 5201 | done, boots |
-| `screener/package.json` | one added line, `lab:character` | done |
-| `screener/apps/lab-character/index.html` | entry | done |
-| `screener/apps/lab-character/shared/types.ts` | HTTP shapes + the `RendererProps` contract | done |
-| `screener/apps/lab-character/shared/useScreenerSession.ts` | the session loop, iframe-free | done, not yet exercised from the browser |
-| `screener/apps/lab-character/shared/glyphs.tsx` | `Skin`, `Glyph`, `Cluster`: the drawing vocabulary | done |
-| `screener/apps/lab-character/shared/ItemStage.tsx` | typeCode to renderer registry | done, references 8 renderer modules that do not exist yet |
-| `screener/apps/lab-character/renderers/` | per-type React renderers | **empty** |
-| `screener/apps/lab-character/experiences/` | the worlds | **empty** |
-| `Launcher.tsx`, `main.tsx`, `DEMO.md` | integration and demo path | **not written** |
+- **The section 5 final pass has not been run.** Each world was driven end to end by the worker that
+  built it, which is not the same as an independent cold-start pass, and the two-runs-through and
+  per-world console audit were not done.
+- **No verbal items anywhere.** Structural, see section 5.
+- **The renderer prompt is unstyled per world** and is the one piece of text a K-1 child would have
+  to read. See section 5.
 
-Consequence worth stating plainly: `ItemStage.tsx` lazy-imports eight modules under `renderers/`
-that are not there, so a typecheck will fail until they are. The tree is not currently in a
-committable state and nothing has been committed yet.
+| Path | What it is |
+|---|---|
+| `screener/data/lab-character/banks/` | 8 symlinked bank files, the curated pool, 1422 of 1422 scorable |
+| `screener/vite.lab-character.config.ts` | own config, port 5210, proxies `/api` and `/qbank` to 5201 |
+| `screener/package.json` | one added line, `lab:character` |
+| `screener/apps/lab-character/shared/` | `types.ts`, `useScreenerSession.ts`, `glyphs.tsx`, `ItemStage.tsx`, `experience.ts` |
+| `screener/apps/lab-character/renderers/` | 8 renderers, one per curated type, each with its own stylesheet |
+| `screener/apps/lab-character/experiences/` | `hatchling`, `pet-clinic`, `navigator`, `monster-tamer`, plus `registry.ts` |
+| `screener/apps/lab-character/DEMO.md` | the click path, leading on Hatchling then The Rival |
+| `shots/` | 210 screenshots, including 162 same-item-two-worlds comparisons |
 
 ---
 
