@@ -90,3 +90,10 @@ export {
   type ThemeIssue,
   type ThemePack,
 } from './context';
+
+export {
+  planAssets,
+  themeWords,
+  type AssetBrief,
+  type AssetPlan,
+} from './assets';
