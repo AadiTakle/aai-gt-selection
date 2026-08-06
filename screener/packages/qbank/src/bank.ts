@@ -29,7 +29,11 @@ export interface BankRecord {
   readonly difficulty: number;
   readonly ageBands: readonly string[];
   readonly content: Record<string, unknown>;
-  readonly answer: { readonly correctKey: string } & Record<string, unknown>;
+  /**
+   * `correctKey` is a letter for types whose options carry keys, and a 0-based INDEX for the several
+   * types whose options are positional. Both are deterministic; they are marked down different paths.
+   */
+  readonly answer: { readonly correctKey: string | number } & Record<string, unknown>;
   readonly scoring: { readonly mode: ScoringMode } & Record<string, unknown>;
   readonly syntheticOnly?: boolean;
   readonly validated?: boolean;
@@ -119,7 +123,12 @@ export function loadBanks(dir: string = BANK_DIR): Map<string, LoadedBank> {
         excluded[mode ?? 'unknown'] = (excluded[mode ?? 'unknown'] ?? 0) + 1;
         continue;
       }
-      if (typeof record.answer?.correctKey !== 'string') {
+      // A numeric key counts. Five verbal types — relation match, sentence completion, two meanings,
+      // sorting robot and story order — put a 0-based option index here because their options are
+      // positional and carry no letter. Requiring a string excluded all five from every pool, which is
+      // why nothing verbal was ever served, and they are two of the constructs the screener is for.
+      const key = record.answer?.correctKey;
+      if (typeof key !== 'string' && typeof key !== 'number') {
         excluded['no-key'] = (excluded['no-key'] ?? 0) + 1;
         continue;
       }
@@ -157,16 +166,27 @@ export function loadBanks(dir: string = BANK_DIR): Map<string, LoadedBank> {
  */
 export function scoreResponse(record: BankRecord, response: unknown): boolean | null {
   const expected = record.answer?.correctKey;
+  const body = typeof response === 'object' && response !== null ? (response as Record<string, unknown>) : undefined;
+
+  /**
+   * An index key is marked against the index the renderer reports, and a letter key against the letter,
+   * and the two paths never meet.
+   *
+   * Keeping them separate is the whole care in this function. Letting an index be compared with a letter
+   * would turn a type whose renderer reports only a position into one that is marked wrong every single
+   * time — scored, counted, and confidently incorrect — which is far worse than the unscorable it
+   * currently returns, and invisible from the outside.
+   */
+  if (typeof expected === 'number') {
+    const picked = body?.selectedIndex ?? body?.index ?? (typeof response === 'number' ? response : undefined);
+    if (typeof picked !== 'number' || !Number.isFinite(picked)) return null;
+    return Math.trunc(picked) === Math.trunc(expected);
+  }
+
   if (typeof expected !== 'string') return null;
 
   const candidate =
-    typeof response === 'string'
-      ? response
-      : typeof response === 'object' && response !== null
-        ? ((response as Record<string, unknown>).key ??
-           (response as Record<string, unknown>).selectedKey ??
-           (response as Record<string, unknown>).value)
-        : undefined;
+    typeof response === 'string' ? response : (body?.key ?? body?.selectedKey ?? body?.value);
 
   if (typeof candidate !== 'string') return null;
   return candidate.trim().toUpperCase() === expected.trim().toUpperCase();

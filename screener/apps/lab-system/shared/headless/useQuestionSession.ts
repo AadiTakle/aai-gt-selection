@@ -41,6 +41,11 @@ export interface UseQuestionSessionOptions {
   readonly ageBand?: AgeBand;
   readonly precisionIndex?: number;
   readonly seed?: number;
+  /**
+   * Restrict the pool to these type codes. Applied where the pool is built, so the engine never selects
+   * an item the surface would have to decline. Omit to draw on the whole bank.
+   */
+  readonly types?: readonly string[];
   /** Fired after every answer. `correct` may be null when the server could not mark it. */
   readonly onAnswered?: (info: { correct: boolean | null; asked: number; correctCount: number }) => void;
   readonly onFinished?: (result: SessionResult) => void;
@@ -69,7 +74,7 @@ interface NextPayload {
 }
 
 export function useQuestionSession(options: UseQuestionSessionOptions = {}) {
-  const { ageBand, precisionIndex = 1, seed, onAnswered, onFinished } = options;
+  const { ageBand, precisionIndex = 1, seed, types, onAnswered, onFinished } = options;
 
   const [summary, setSummary] = useState<BankSummary | null>(null);
   const [phase, setPhase] = useState<Phase>('idle');
@@ -179,6 +184,7 @@ export function useQuestionSession(options: UseQuestionSessionOptions = {}) {
     try {
       const body: Record<string, unknown> = { precisionIndex };
       if (ageBand) body.ageBand = ageBand;
+      if (types && types.length > 0) body.types = [...types];
       body.seed = seed ?? Math.floor(Math.random() * 1e6);
       const res = await api<{ sessionId: string; state: SessionState }>('/bank/sessions', body);
       sessionId.current = res.sessionId;
@@ -189,7 +195,7 @@ export function useQuestionSession(options: UseQuestionSessionOptions = {}) {
       setError(e instanceof Error ? e.message : String(e));
       setPhase('error');
     }
-  }, [ageBand, precisionIndex, seed, advance]);
+  }, [ageBand, precisionIndex, seed, types, advance]);
 
   /** Answer the question on screen. Returns whether it was right, so a caller can animate on it. */
   const answer = useCallback(

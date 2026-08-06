@@ -52,6 +52,14 @@ export interface Facets {
 export interface Choice {
   /** The key the server marks against. Never shown to the child. */
   readonly key: string;
+  /**
+   * Where this choice sat in the item's own option list.
+   *
+   * Carried separately from `key` because several types mark against the position rather than a letter,
+   * their options having no letters to mark against. Deriving it back from a key that happens to look
+   * like a number would work until a type used "1" as a letter.
+   */
+  readonly index: number;
   readonly facets: Facets;
 }
 
@@ -84,6 +92,15 @@ export interface Question {
   readonly choices: readonly Choice[];
   /** True when the choices are rows of the stem rather than separate options. */
   readonly choicesAreStemRows: boolean;
+  /**
+   * The item's original content, untouched.
+   *
+   * Carried because the DEFAULT surface renders through the catalogue's own renderers, which need the
+   * content in the shape they were written for. A themed surface should ignore this and work from the
+   * normalised stem and choices; reaching into it is how a theme accidentally couples itself to the
+   * archive's vocabulary, which is the thing the abstraction exists to prevent.
+   */
+  readonly raw: Record<string, unknown>;
 }
 
 /**
@@ -130,9 +147,23 @@ function nums(value: unknown): number[] | undefined {
 }
 
 function strs(value: unknown): string[] | undefined {
-  return Array.isArray(value) && value.every((v) => typeof v === 'string')
-    ? (value as string[])
-    : undefined;
+  if (!Array.isArray(value) || value.length === 0) return undefined;
+  // The verbal banks wrap their words as `{text: 'dog'}` rather than listing bare strings, so a
+  // strings-only check silently dropped every one of them and their stems came out empty.
+  const out: string[] = [];
+  for (const v of value) {
+    if (typeof v === 'string') {
+      out.push(v);
+      continue;
+    }
+    const text = rec(v)?.text;
+    if (typeof text === 'string') {
+      out.push(text);
+      continue;
+    }
+    return undefined;
+  }
+  return out;
 }
 
 /** Pull every facet this adapter knows about out of an arbitrary object. */
@@ -255,6 +286,59 @@ function buildStem(typeCode: string, c: Record<string, unknown>): StemKind {
     return { kind: 'matrix', rows, cols, cells, blank: blankRow * cols + blankCol };
   }
 
+  /**
+   * The three shapes below are all matrices wearing different clothes, and every one of them used to
+   * fall through to a bare prompt.
+   *
+   * That is not a cosmetic loss. An app was left showing "choose the amount that belongs in the empty
+   * cell" above four numbers and no cell, which is not a hard question, it is an impossible one. A child
+   * picks at random, the engine reads the result as ability, and the item counts. Recognising the shape
+   * costs a few lines and turns three of the strongest types in the bank from unanswerable into
+   * answerable, using the matrix renderer every themed app already has.
+   */
+
+  // A grid carried at the top level rather than under `matrix`, with the hole marked on the cell.
+  const flatCells = Array.isArray(c.cells) ? (c.cells as unknown[]) : undefined;
+  if (flatCells && num(c.rows) !== undefined && num(c.cols) !== undefined) {
+    const rows = num(c.rows)!;
+    const cols = num(c.cols)!;
+    const holeIndex =
+      num(c.holeIndex) ?? flatCells.findIndex((cell) => rec(cell)?.hole === true);
+    const blank = holeIndex >= 0 ? holeIndex : rows * cols - 1;
+    const cells = flatCells
+      .slice(0, rows * cols)
+      .map((cell, i) => (i === blank || rec(cell)?.hole === true ? null : facets(cell)));
+    while (cells.length < rows * cols) cells.push(null);
+    return { kind: 'matrix', rows, cols, cells, blank };
+  }
+
+  // A series is a matrix one row tall. Rendering it that way means no app needs a second layout, and
+  // "what comes next" is the same reasoning as "what fills the hole".
+  const terms = Array.isArray(c.terms) ? (c.terms as unknown[]) : undefined;
+  if (terms && terms.length > 0) {
+    const slot = num(c.slotIndex) ?? terms.length;
+    const cells: (Facets | null)[] = terms.map((t) => facets(t));
+    // The missing step is usually past the end of the given terms, so it is appended rather than
+    // overwriting one of them.
+    if (slot >= cells.length) cells.push(null);
+    else cells[slot] = null;
+    return { kind: 'matrix', rows: 1, cols: cells.length, cells, blank: Math.min(slot, cells.length - 1) };
+  }
+
+  // An analogy is a two-by-two matrix: the example pair on the top row, the question on the bottom.
+  // This is how figure analogies are drawn on paper, so it reads correctly rather than merely fitting.
+  const example = rec(c.example);
+  const asked = rec(c.question);
+  if (example && asked) {
+    const cells: (Facets | null)[] = [
+      facets(example.source),
+      facets(example.result),
+      facets(asked.source),
+      null,
+    ];
+    return { kind: 'matrix', rows: 2, cols: 2, cells, blank: 3 };
+  }
+
   // An input put through a named chain of operations.
   const chain = strs(c.chain);
   if (chain) {
@@ -317,6 +401,52 @@ function buildStem(typeCode: string, c: Record<string, unknown>): StemKind {
     return { kind: 'target', target: t, note: strs(c.attributes)?.join(', ') ?? '' };
   }
 
+  /**
+   * The verbal shapes. Every one of these used to reach the plain fallback, which meant a themed app
+   * showed four words above nothing — no sentence, no pair, no sorted examples — and the child had to
+   * guess. Sentence completion and word association are two of the five families the screener is built
+   * on, so leaving them as bare option lists was leaving the verbal half of it out.
+   */
+
+  // Sentence completion: one sentence with a gap in it.
+  const frame = str(c.sentenceFrame);
+  if (frame) {
+    return { kind: 'passage', title: '', sentences: [frame], question: str(c.prompt) ?? '' };
+  }
+
+  // A word used in a sentence, where the sentence is what disambiguates it.
+  const sentence = str(c.sentence);
+  if (sentence) {
+    const word = str(c.word);
+    return {
+      kind: 'passage',
+      title: word ? word.toUpperCase() : '',
+      sentences: [sentence],
+      question: str(c.prompt) ?? '',
+    };
+  }
+
+  // Word association by analogy: the stem is a pair, and the relation names what holds between them.
+  const stemPair = strs(c.stemPair);
+  if (stemPair && stemPair.length >= 2) {
+    const relation = str(c.relation);
+    return {
+      kind: 'passage',
+      title: relation ? relation : '',
+      sentences: [`${stemPair[0]!}  →  ${stemPair[1]!}`],
+      question: str(c.prompt) ?? 'Which pair goes together the same way?',
+    };
+  }
+
+  // Classification: the rule is shown by what was sorted in and what was sorted out.
+  const inGroup = strs(c.examplesIn);
+  const outGroup = strs(c.examplesOut);
+  if (inGroup && inGroup.length > 0) {
+    const clues = [`IN: ${inGroup.join(', ')}`];
+    if (outGroup && outGroup.length > 0) clues.push(`OUT: ${outGroup.join(', ')}`);
+    return { kind: 'constraints', clues };
+  }
+
   return { kind: 'plain' };
 }
 
@@ -328,7 +458,7 @@ function buildChoices(typeCode: string, c: Record<string, unknown>, stem: StemKi
   // The odd-pair type's rows are its choices.
   if (stem.kind === 'pairs') {
     return {
-      choices: stem.rows.map((r) => ({ key: r.key, facets: { note: 'pair' } })),
+      choices: stem.rows.map((r, i) => ({ key: r.key, index: i, facets: { note: 'pair' } })),
       fromStem: true,
     };
   }
@@ -343,7 +473,7 @@ function buildChoices(typeCode: string, c: Record<string, unknown>, stem: StemKi
   const choices = raw.flatMap((o, i) => {
     const obj = rec(o);
     const key = str(obj?.key) ?? String(i);
-    return [{ key, facets: facets(o) }];
+    return [{ key, index: i, facets: facets(o) }];
   });
   return { choices, fromStem: false };
 }
@@ -373,12 +503,15 @@ export function adapt(serve: Serve): Question | null {
     stem,
     choices,
     choicesAreStemRows: fromStem,
+    raw: c,
   };
 }
 
 /** The response body for a chosen key. The server marks it; nothing is decided here. */
 export function responseFor(choice: Choice): Record<string, unknown> {
-  return { selectedKey: choice.key };
+  // Both, because the server decides which to mark against from the item's key rather than from what
+  // arrives, and a surface has no way of knowing which style the type it was handed uses.
+  return { selectedKey: choice.key, selectedIndex: choice.index };
 }
 
 /** The response body for an item we declined to present, which the server counts as unscorable. */

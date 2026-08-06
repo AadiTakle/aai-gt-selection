@@ -1,8 +1,10 @@
 import { lazy, Suspense, useState, type ComponentType, type LazyExoticComponent } from 'react';
 
 import { meta as backrooms } from './experiences/Backrooms';
+import { meta as defaultUi } from './experiences/DefaultUi';
 import { meta as fifthGrader } from './experiences/FifthGrader';
 import { meta as obby } from './experiences/Obby';
+import { meta as poketrainer } from './experiences/PoketrainerBootcamp';
 import { meta as pokedex } from './experiences/Pokedex';
 import { meta as blueprintBuild } from './experiences/BlueprintBuild';
 import { meta as coinMarket } from './experiences/CoinMarket';
@@ -23,8 +25,10 @@ import { AGE_BANDS, type AgeBand, type ExperienceMeta } from './shared/types';
  */
 
 const Backrooms = lazy(() => import('./experiences/Backrooms'));
+const DefaultUi = lazy(() => import('./experiences/DefaultUi'));
 const FifthGrader = lazy(() => import('./experiences/FifthGrader'));
 const Obby = lazy(() => import('./experiences/Obby'));
+const Poketrainer = lazy(() => import('./experiences/PoketrainerBootcamp'));
 const Pokedex = lazy(() => import('./experiences/Pokedex'));
 const StickerAlbum = lazy(() => import('./experiences/StickerAlbum'));
 const StreakKeeper = lazy(() => import('./experiences/StreakKeeper'));
@@ -41,6 +45,8 @@ interface Entry {
 
 /** Ordered youngest first, which is also the order they are worth demoing in. */
 const ENTRIES: readonly Entry[] = [
+  { meta: poketrainer, Component: Poketrainer },
+  { meta: defaultUi, Component: DefaultUi },
   { meta: obby, Component: Obby },
   { meta: pokedex, Component: Pokedex },
   { meta: minecraftBuild, Component: MinecraftBuild },

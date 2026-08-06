@@ -24,6 +24,7 @@
     "planner": "vite --config vite.planner.config.ts",
     "review": "vite --config vite.review.config.ts",
     "lab:system": "vite --config vite.lab-system.config.ts",
+    "verify:showcase": "tsx apps/lab-system/verify-showcase.ts",
     "kit": "tsx apps/lab-system/shared/uikit/cli.ts",
     "kit:preview": "tsx apps/lab-system/shared/uikit/preview.ts"
   },

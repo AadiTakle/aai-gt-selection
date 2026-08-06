@@ -158,7 +158,8 @@ const bankSessions = new Map<string, QbankSession>();
 // The screener never reads this, which is the difference between the two products.
 const keyIndex = new Map<string, string>();
 for (const bank of banks.values()) {
-  for (const record of bank.scorable) keyIndex.set(record.itemId, record.answer.correctKey);
+  // Stringified because this is only ever shown to a person. An index-keyed type reads as its position.
+  for (const record of bank.scorable) keyIndex.set(record.itemId, String(record.answer.correctKey));
 }
 {
   const scorable = [...banks.values()].reduce((n, b) => n + b.scorable.length, 0);
@@ -198,9 +199,29 @@ app.post('/api/bank/sessions', (req, res) => {
     recommendProbability: Number(req.body?.recommendProbability ?? 0.35),
   };
   const seed = Number(req.body?.seed ?? Math.floor(Math.random() * 1_000_000));
-  const session = new QbankSession(config, banks, seed);
+
+  // A caller may restrict the pool to certain types. Restricting here rather than at the point of
+  // drawing means the engine only ever selects items that will actually be shown, so it does not spend
+  // a session serving things the surface declines and then build an estimate out of unscorable
+  // attempts. Unknown codes are reported rather than ignored, since a typo would otherwise silently
+  // narrow the pool.
+  const requested: unknown = req.body?.types;
+  let pool = banks;
+  if (Array.isArray(requested) && requested.length > 0) {
+    const wanted = new Set(requested.map(String));
+    const unknown = [...wanted].filter((t) => !banks.has(t));
+    if (unknown.length > 0) {
+      return res.status(400).json({ error: `unknown type codes: ${unknown.sort().join(', ')}` });
+    }
+    pool = new Map([...banks].filter(([typeCode]) => wanted.has(typeCode)));
+  }
+
+  const session = new QbankSession(config, pool, seed);
   if (session.poolSize === 0) {
-    return res.status(400).json({ error: `no scorable bank items match age band ${ageBand ?? 'any'}` });
+    const scope = pool === banks ? '' : ` among the ${String(pool.size)} requested types`;
+    return res
+      .status(400)
+      .json({ error: `no scorable bank items match age band ${ageBand ?? 'any'}${scope}` });
   }
   const id = `bank-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;
   bankSessions.set(id, session);

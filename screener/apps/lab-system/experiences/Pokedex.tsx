@@ -6,6 +6,7 @@ import { useQuestionSession } from '../shared/headless/useQuestionSession';
 import { loadProgress, recordRound, type Progress } from '../shared/progression';
 import type { ExperienceMeta } from '../shared/types';
 import './Pokedex.css';
+import { SHOWCASE_TYPE_CODES } from '../shared/showcase';
 
 /**
  * Pokédex: walk a route, catch what you meet, fill the eight slots.
@@ -423,12 +424,15 @@ function isLeaning(tilt: string | undefined): boolean {
 function FacetMark({ facets, px = 46 }: { facets: Facets; px?: number }) {
   const shape = facets.shape ?? facets.glyph;
 
-  // Some stems describe their parts as bare words ('orb', 'cube'). Drawing those as anonymous discs lost
-  // the whole target, so the word is shown as the word.
-  if (shape === undefined && facets.text !== undefined) {
+  // Some stems describe their parts as bare words ('orb', 'cube') or as bare quantities. Drawing either
+  // as an anonymous disc lost the whole stem: a number matrix came out as nine identical circles above
+  // four numeric options, so there was nothing to reason from. Shown as the number, which is also how
+  // the options are drawn, so stem and choices can be compared like with like.
+  const label = facets.text ?? (facets.value !== undefined ? String(facets.value) : undefined);
+  if (shape === undefined && label !== undefined) {
     return (
-      <span className="pkd-word" style={{ background: colorFor(facets.text) }}>
-        {facets.text}
+      <span className="pkd-word" style={{ background: colorFor(label) }}>
+        {label}
       </span>
     );
   }
@@ -796,6 +800,8 @@ export default function Pokedex() {
     // Short: 6 to 10 encounters. Long enough to fill most of a page of the Pokédex, short enough that a
     // seven year old is still leaning in at the end, and comfortably inside eight minutes.
     precisionIndex: 1,
+    // Only the five families worth presenting. See shared/showcase.ts for what is held back and why.
+    types: SHOWCASE_TYPE_CODES,
     onAnswered: ({ correct }) => {
       const sp = pickedSpecies.current;
       if (correct === true && sp) {
