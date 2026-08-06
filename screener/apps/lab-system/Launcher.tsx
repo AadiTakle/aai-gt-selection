@@ -2,6 +2,7 @@ import { lazy, Suspense, useState, type ComponentType, type LazyExoticComponent 
 
 import { meta as blueprintBuild } from './experiences/BlueprintBuild';
 import { meta as coinMarket } from './experiences/CoinMarket';
+import { meta as minecraftBuild } from './experiences/MinecraftBuild';
 import { meta as speedrunLadder } from './experiences/SpeedrunLadder';
 import { meta as stickerAlbum } from './experiences/StickerAlbum';
 import { meta as streakKeeper } from './experiences/StreakKeeper';
@@ -22,6 +23,7 @@ const StreakKeeper = lazy(() => import('./experiences/StreakKeeper'));
 const BlueprintBuild = lazy(() => import('./experiences/BlueprintBuild'));
 const TowerLine = lazy(() => import('./experiences/TowerLine'));
 const CoinMarket = lazy(() => import('./experiences/CoinMarket'));
+const MinecraftBuild = lazy(() => import('./experiences/MinecraftBuild'));
 const SpeedrunLadder = lazy(() => import('./experiences/SpeedrunLadder'));
 
 interface Entry {
@@ -31,6 +33,7 @@ interface Entry {
 
 /** Ordered youngest first, which is also the order they are worth demoing in. */
 const ENTRIES: readonly Entry[] = [
+  { meta: minecraftBuild, Component: MinecraftBuild },
   { meta: stickerAlbum, Component: StickerAlbum },
   { meta: streakKeeper, Component: StreakKeeper },
   { meta: blueprintBuild, Component: BlueprintBuild },
