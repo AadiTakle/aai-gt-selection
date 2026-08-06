@@ -1,0 +1,270 @@
+/* QUANT-FUNC-01. Prefixed `qf-`. Motion is transform/opacity only, one curve, all of it collapsing
+   under prefers-reduced-motion at the bottom. */
+
+.qf {
+  --qf-ease: var(--ease, cubic-bezier(0.22, 1, 0.36, 1));
+  --qf-line: var(--line, rgb(22 24 29 / 0.1));
+  --qf-ink: var(--ink, #16181d);
+  --qf-soft: var(--ink-soft, #4b515c);
+  --qf-target: 76px;
+  --qf-cell: clamp(58px, 12vw, 96px);
+  /* Width of the machine column. The rail and every arrow share it, so they line up by construction. */
+  --qf-mid: clamp(52px, 11vw, 72px);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(1.5rem, 5vh, 2.75rem);
+  padding: clamp(1rem, 4vw, 2.5rem) clamp(1rem, 4vw, 2rem);
+}
+
+.qf[data-band='K-1'] {
+  --qf-target: 104px;
+  --qf-cell: clamp(66px, 15vw, 112px);
+  --qf-mid: clamp(58px, 13vw, 84px);
+}
+
+.qf-prompt {
+  margin: 0;
+  max-width: 26ch;
+  text-align: center;
+  font-size: clamp(1.05rem, 2.6vw, 1.45rem);
+  font-weight: 400;
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+  color: var(--qf-ink);
+}
+
+/* ---- the machine --------------------------------------------------------- */
+
+.qf-machine {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.35rem, 1.4vh, 0.9rem);
+}
+
+/* One body, every row passes through it. */
+.qf-rail {
+  position: absolute;
+  top: -0.35rem;
+  bottom: -0.35rem;
+  left: 50%;
+  width: var(--qf-mid);
+  /* Centred with a margin rather than a transform: the entrance animation ends on `transform: none`
+     and would leave a transform-centred rail sitting half a column to the right of the arrows. */
+  margin-left: calc(var(--qf-mid) / -2);
+  border-radius: clamp(12px, 2.6vw, 20px);
+  background: linear-gradient(180deg, rgb(22 24 29 / 0.07), rgb(22 24 29 / 0.035));
+  box-shadow: inset 0 0 0 1px var(--qf-line);
+  z-index: 0;
+  animation: qf-rise 520ms var(--qf-ease) both;
+}
+
+.qf-rail-seam {
+  position: absolute;
+  left: 14%;
+  right: 14%;
+  height: 1px;
+  background: rgb(22 24 29 / 0.12);
+}
+
+.qf-rail-seam:nth-child(1) {
+  top: 28%;
+}
+
+.qf-rail-seam:nth-child(2) {
+  top: 62%;
+}
+
+.qf-row {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: var(--qf-cell) var(--qf-mid) var(--qf-cell);
+  align-items: center;
+  justify-items: center;
+  animation: qf-rise 480ms var(--qf-ease) both;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+
+.qf-slotcell {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 1;
+  /* Not a percentage: with `aspect-ratio` above, percentage padding makes the content box cyclic and
+     a cluster inside it collapses to nothing. */
+  padding: clamp(5px, 1.1vw, 11px);
+}
+
+.qf-arrow {
+  width: 46%;
+  opacity: 0.62;
+}
+
+.qf-arrow svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* The row being asked about. One focal point: it is the only row whose cells are raised. The middle
+   column is left clear on purpose so the machine reads as continuous through it. */
+.qf-row-live .qf-slotcell:not(.qf-open) {
+  border-radius: 18px;
+  background: #fff;
+  box-shadow:
+    0 0 0 1px var(--qf-line),
+    0 20px 40px -34px rgb(22 24 29 / 0.7);
+}
+
+.qf-row-live .qf-arrow {
+  opacity: 1;
+}
+
+.qf-open {
+  border-radius: 16px;
+  border: 2px dashed rgb(22 24 29 / 0.24);
+}
+
+/* The mark breathes, not the frame: one animation per element and a border that holds still. */
+.qf-open::after {
+  content: '';
+  width: 30%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: rgb(22 24 29 / 0.12);
+  animation: qf-breathe 2600ms var(--qf-ease) 900ms infinite;
+}
+
+.qf-numeral {
+  font-size: clamp(1.4rem, 4.4vw, 2.3rem);
+  font-weight: 300;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--qf-ink);
+}
+
+/* ---- choices ------------------------------------------------------------- */
+
+.qf-choices {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(0.6rem, 2vw, 1.15rem);
+  width: 100%;
+  max-width: 40rem;
+}
+
+.qf-choice {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  min-height: var(--qf-target);
+  padding: clamp(0.7rem, 2vw, 1.1rem);
+  border-radius: 20px;
+  background: #fff;
+  border: 1px solid var(--qf-line);
+  transition:
+    transform 240ms var(--qf-ease),
+    opacity 260ms var(--qf-ease),
+    box-shadow 240ms var(--qf-ease);
+  animation: qf-rise 460ms var(--qf-ease) both;
+  animation-delay: calc(300ms + var(--i, 0) * 60ms);
+}
+
+.qf-choice-art {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  max-width: calc(var(--qf-target) - 1.4rem);
+  aspect-ratio: 1;
+}
+
+.qf-choice:hover {
+  transform: translate3d(0, -3px, 0);
+  box-shadow: 0 18px 34px -26px rgb(22 24 29 / 0.55);
+}
+
+.qf-choice:active {
+  transform: scale(0.97);
+  transition-duration: 90ms;
+}
+
+.qf-choice:focus-visible {
+  outline: 3px solid #3d7068;
+  outline-offset: 4px;
+}
+
+/* Chosen, not correct. No colour verdict anywhere in this file. */
+.qf-choice[data-chosen='true'] {
+  transform: scale(1.03);
+  box-shadow: inset 0 0 0 3px rgb(22 24 29 / 0.82);
+}
+
+.qf-choice[data-chosen='false'] {
+  opacity: 0.34;
+}
+
+.qf[data-settled='true'] .qf-choice {
+  cursor: default;
+}
+
+.qf[data-settled='true'] .qf-choice:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.qf[data-settled='true'] .qf-choice[data-chosen='true']:hover {
+  transform: scale(1.03);
+  box-shadow: inset 0 0 0 3px rgb(22 24 29 / 0.82);
+}
+
+@media (max-width: 34rem) {
+  .qf-choices {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ---- keyframes ----------------------------------------------------------- */
+
+@keyframes qf-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes qf-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.75;
+  }
+  50% {
+    transform: scale(1.25);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qf-rail,
+  .qf-row,
+  .qf-open::after,
+  .qf-choice {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1;
+    transform: none;
+  }
+
+  .qf-choice[data-chosen='false'] {
+    opacity: 0.34;
+  }
+}

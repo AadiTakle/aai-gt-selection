@@ -1,0 +1,1210 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
+
+import type { ExperienceProps } from '../../shared/experience';
+import type { ShapeName, Skin } from '../../shared/glyphs';
+import { ItemStage } from '../../shared/ItemStage';
+import { useScreenerSession } from '../../shared/useScreenerSession';
+import './styles.css';
+
+/**
+ * HATCHLING — the K-1 world.
+ *
+ * An egg in a nest at first light. The child taps it, something small comes out, and from then on
+ * every question is that creature trying to decide something and looking to the child first. It
+ * reacts warmly to every tap without exception, it grows a little at the end, and it is happy.
+ *
+ * THE THREE RULES THIS FILE IS BUILT AROUND, all of them from the age band rather than from taste.
+ *
+ * 1. NOTHING IS READ. A five-year-old cannot be instructed in prose, so every instruction here is
+ *    carried by behaviour: the egg rocks and breathes rings until it is tapped; the creature looks
+ *    up at the child and then turns its gaze down onto the question, which is the whole of "your
+ *    turn"; a tap is answered by the creature within a frame. `speechSynthesis` says a few short
+ *    warm things on top of that, and the world is complete without it — the voice is never the
+ *    carrier of anything. The only prose on screen is sized and coloured for the adult holding the
+ *    tablet and says nothing the child needs.
+ *
+ * 2. NOTHING IS SCORED, SHOWN OR IMPLIED. A Taster session is four items wide and comes back with
+ *    an ability interval over two logits across, which is a number with no business being anywhere
+ *    near a child. So there is no counter, no meter, no verdict and no gate. The only thing that
+ *    advances is the sprig in the nest, and it advances for turning up: one leaf per turn taken,
+ *    whatever was tapped. Every child reaches the same ending.
+ *
+ * 3. ONE THING AT A TIME. The bay holds the creature and the stage holds the question, and only one
+ *    of them is ever loud. Before hatching the bay is full size and the stage is empty. During a
+ *    question the bay shrinks to a watching face and the question owns the screen. When a tap
+ *    lands the reaction takes the focus back for a beat. Nothing overlaps, nothing competes.
+ *
+ * MOTION POLICY. Transform and opacity only, one easing curve, related things staggered rather than
+ * animated together, and the bay changes size by transform rather than by grid row so a question
+ * never reflows under a child's finger. Everything collapses under prefers-reduced-motion, and this
+ * file overrides the global reduce block for its looping animations, because an infinite animation
+ * squeezed to 1ms flickers instead of stopping.
+ */
+
+/* ============================================================================
+   PALETTE + the skin, which is where the art direction reaches into the items
+   ========================================================================== */
+
+/** Mix a hex toward black (negative) or white (positive). Cheap, and enough for outlines. */
+function shade(hex: string, amt: number): string {
+  const raw = hex.replace('#', '');
+  const full =
+    raw.length === 3
+      ? raw
+          .split('')
+          .map((c) => c + c)
+          .join('')
+      : raw;
+  const n = Number.parseInt(full, 16);
+  const parts = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  return `#${parts
+    .map((c) => Math.round(amt < 0 ? c * (1 + amt) : c + (255 - c) * amt))
+    .map((c) => Math.max(0, Math.min(255, c)).toString(16).padStart(2, '0'))
+    .join('')}`;
+}
+
+/**
+ * The bank's colour names, retold in dawn.
+ *
+ * The engine only needs the names to stay distinguishable from each other — a matrix item whose
+ * rule is "colour" is satisfied by any consistent mapping. So they are all pulled toward warm, and
+ * the two that actually turn up in this band (violet and coral) got the most attention: plum
+ * blossom and terracotta, which sit together on a peach ground without either one shouting.
+ */
+const DAWN: Record<string, string> = {
+  violet: '#9c74ad',
+  coral: '#e07a5f',
+  teal: '#3d7068',
+  crimson: '#c25d5a',
+  amber: '#e0a44e',
+  indigo: '#6f7fa0',
+  lime: '#8aab48',
+  slate: '#9d8f7f',
+  rose: '#e0908d',
+  // Names `paletteColor` has no entry for but the banks still emit. FluMatrix carries its own
+  // stand-ins for these and only uses them when the active skin has no opinion, which is a courtesy
+  // this world would rather not need: they are part of the art direction, not a fallback.
+  ink: '#5a4030',
+  blue: '#7d9bb5',
+  gold: '#d99b33',
+};
+
+const DAWN_ORDER = Object.values(DAWN);
+
+/**
+ * A name nobody planned for still has to come back DIFFERENT from the next one.
+ *
+ * This matters more than it looks. A matrix item whose rule is "colour" is only answerable while
+ * distinct names stay distinct, so the usual `?? oneDefault` would quietly turn a reasoning item
+ * into a coin flip the moment the bank grew a colour. Hashing the name into the palette keeps every
+ * name stable across renders and, near enough, distinct from its neighbours.
+ */
+function dawnColor(name: string): string {
+  const known = DAWN[name];
+  if (known) return known;
+  let h = 0;
+  for (let i = 0; i < name.length; i += 1) h = (h * 31 + name.charCodeAt(i)) % 100_003;
+  return DAWN_ORDER[h % DAWN_ORDER.length] ?? '#9c74ad';
+}
+
+const SUN = '#f4d58d';
+const HONEY = '#e8b25c';
+
+/** A filled world-object: the shape, a darker hand-drawn outline, one soft highlight. */
+function Ink({
+  d,
+  fill,
+  width = 6,
+  children,
+}: {
+  d: string;
+  fill: string;
+  width?: number;
+  children?: ReactNode;
+}) {
+  return (
+    <g>
+      <path
+        d={d}
+        fill={fill}
+        stroke={shade(fill, -0.42)}
+        strokeWidth={width}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+      {children}
+    </g>
+  );
+}
+
+function Gleam({ cx, cy, rx, ry, rot = 0 }: { cx: number; cy: number; rx: number; ry: number; rot?: number }) {
+  return (
+    <ellipse
+      cx={cx}
+      cy={cy}
+      rx={rx}
+      ry={ry}
+      fill="#fffdf7"
+      opacity={0.34}
+      transform={`rotate(${rot} ${cx} ${cy})`}
+    />
+  );
+}
+
+/**
+ * The skin.
+ *
+ * This is the part of the exercise that matters most, so it is not a retint. Every abstract shape
+ * the banks use is redrawn as a thing that lives in this world, and the five that this band
+ * actually serves — drop, star, triangle, hexagon, pentagon — got hand-fitted paths rather than
+ * rounded-off geometry. A star is a five-petal flower with a honey middle. A pentagon is a river
+ * pebble. A hexagon is a comb cell with honey in it. A cube, which the balance items use as a
+ * weight, is an egg, because in this world the thing you put on a scale is an egg.
+ *
+ * Everything is drawn chunky on purpose: these end up inside a `Cluster` at a fifth of their design
+ * size, and a thin line at that scale is a smudge.
+ */
+const HATCHLING_SKIN: Skin = {
+  id: 'hatchling',
+
+  color: dawnColor,
+
+  draw: (shape, fill) => {
+    // The banks also emit `drop`, which is not in `ShapeName`. FluMatrix aliases it onto `teardrop`
+    // before it reaches Glyph, so it arrives here as a seed; anywhere that does not alias it, Glyph
+    // funnels it into `circle` and it arrives as a berry. Both are things that grow, so either
+    // reading is in-world — but the `drop` arm below is here because relying on that is luck.
+    switch (shape as ShapeName | 'drop') {
+      case 'circle':
+      case 'drop':
+        // A berry on a snipped stem.
+        return (
+          <g>
+            <path
+              d="M50 24 C 54 14 62 9 69 9"
+              fill="none"
+              stroke="#6f8f45"
+              strokeWidth={6}
+              strokeLinecap="round"
+            />
+            <Ink d="M50 22 C 72 22 88 38 88 57 C 88 76 71 90 50 90 C 29 90 12 76 12 57 C 12 38 28 22 50 22 Z" fill={fill}>
+              <Gleam cx={36} cy={45} rx={10} ry={7} rot={-28} />
+            </Ink>
+          </g>
+        );
+
+      case 'star':
+        // A flower. Five petals, honey middle.
+        return (
+          <g>
+            {[0, 1, 2, 3, 4].map((i) => (
+              <ellipse
+                key={i}
+                cx={50}
+                cy={24}
+                rx={15}
+                ry={21}
+                fill={fill}
+                stroke={shade(fill, -0.42)}
+                strokeWidth={5}
+                transform={`rotate(${i * 72} 50 52)`}
+              />
+            ))}
+            <circle cx={50} cy={52} r={13} fill={HONEY} stroke={shade(HONEY, -0.35)} strokeWidth={5} />
+          </g>
+        );
+
+      case 'triangle':
+        // A shoot, just up out of the soil.
+        return (
+          <g>
+            <Ink d="M50 10 C 62 32 86 66 86 78 C 86 87 79 90 70 90 L 30 90 C 21 90 14 87 14 78 C 14 66 38 32 50 10 Z" fill={fill}>
+              <path
+                d="M50 24 L 50 84"
+                fill="none"
+                stroke={shade(fill, -0.3)}
+                strokeWidth={4}
+                strokeLinecap="round"
+                opacity={0.7}
+              />
+            </Ink>
+          </g>
+        );
+
+      case 'hexagon':
+        // A comb cell.
+        return (
+          <Ink d="M50 10 L 84 30 L 84 70 L 50 90 L 16 70 L 16 30 Z" fill={fill} width={8}>
+            <path
+              d="M50 26 L 71 38 L 71 62 L 50 74 L 29 62 L 29 38 Z"
+              fill={HONEY}
+              opacity={0.5}
+            />
+          </Ink>
+        );
+
+      case 'pentagon':
+        // A river pebble, worn round on one side.
+        return (
+          <Ink d="M50 10 C 67 11 87 27 89 46 C 91 67 71 90 49 90 C 28 90 8 69 10 47 C 12 28 33 9 50 10 Z" fill={fill}>
+            <Gleam cx={38} cy={36} rx={13} ry={8} rot={-24} />
+            <circle cx={64} cy={62} r={4} fill={shade(fill, -0.24)} />
+            <circle cx={52} cy={73} r={3} fill={shade(fill, -0.24)} />
+          </Ink>
+        );
+
+      case 'square':
+        // A bark tile.
+        return (
+          <Ink d="M18 16 L 82 14 C 87 14 88 19 88 24 L 86 82 C 86 87 81 88 76 88 L 20 86 C 15 86 13 81 13 76 L 14 22 C 14 17 13 16 18 16 Z" fill={fill}>
+            <path
+              d="M28 30 C 46 34 60 28 74 32 M26 52 C 44 48 60 56 76 52 M28 72 C 48 68 62 74 74 70"
+              fill="none"
+              stroke={shade(fill, -0.28)}
+              strokeWidth={4}
+              strokeLinecap="round"
+              opacity={0.65}
+            />
+          </Ink>
+        );
+
+      case 'diamond':
+        // A petal, pointed both ends.
+        return (
+          <Ink d="M50 6 C 74 28 86 44 86 50 C 86 56 74 72 50 94 C 26 72 14 56 14 50 C 14 44 26 28 50 6 Z" fill={fill}>
+            <path
+              d="M50 14 L 50 86"
+              fill="none"
+              stroke={shade(fill, -0.26)}
+              strokeWidth={4}
+              strokeLinecap="round"
+              opacity={0.6}
+            />
+          </Ink>
+        );
+
+      case 'teardrop':
+        // A seed, or a bead of dew, depending on the colour it arrives in.
+        return (
+          <Ink d="M50 8 C 68 34 82 48 82 62 A 32 32 0 0 1 18 62 C 18 48 32 34 50 8 Z" fill={fill}>
+            <Gleam cx={38} cy={56} rx={8} ry={12} rot={-16} />
+          </Ink>
+        );
+
+      case 'leaf':
+        return (
+          <Ink d="M50 8 C 80 28 86 58 50 92 C 14 58 20 28 50 8 Z" fill={fill}>
+            <path
+              d="M50 20 L 50 84 M50 42 L 68 32 M50 42 L 32 32 M50 62 L 70 52 M50 62 L 30 52"
+              fill="none"
+              stroke={shade(fill, -0.3)}
+              strokeWidth={4}
+              strokeLinecap="round"
+              opacity={0.7}
+            />
+          </Ink>
+        );
+
+      case 'cube':
+        // The balance items weigh cubes. Here you weigh eggs.
+        return (
+          <Ink d="M50 8 C 72 26 84 50 84 64 A 34 34 0 0 1 16 64 C 16 50 28 26 50 8 Z" fill={fill}>
+            <Gleam cx={36} cy={40} rx={8} ry={13} rot={-18} />
+            <circle cx={62} cy={44} r={3.5} fill={shade(fill, -0.28)} />
+            <circle cx={56} cy={68} r={3} fill={shade(fill, -0.28)} />
+            <circle cx={38} cy={72} r={3.5} fill={shade(fill, -0.28)} />
+          </Ink>
+        );
+
+      case 'crescent':
+        // A shell sliver.
+        return (
+          <Ink d="M64 10 A 40 40 0 1 0 64 90 A 32 32 0 1 1 64 10 Z" fill={fill}>
+            <path
+              d="M60 22 C 44 34 44 66 60 78 M50 18 C 32 32 32 68 50 82"
+              fill="none"
+              stroke={shade(fill, -0.3)}
+              strokeWidth={4}
+              strokeLinecap="round"
+              opacity={0.6}
+            />
+          </Ink>
+        );
+
+      case 'spiral':
+        // A snail's curl.
+        return (
+          <g>
+            <path
+              d="M50 50 a 12 12 0 1 1 12 12 24 24 0 1 1-24-24 36 36 0 1 1 36 36"
+              fill="none"
+              stroke={fill}
+              strokeWidth={11}
+              strokeLinecap="round"
+            />
+            <circle cx={50} cy={50} r={5} fill={shade(fill, -0.4)} />
+          </g>
+        );
+
+      case 'trefoil':
+        // Clover.
+        return (
+          <g>
+            <path
+              d="M50 56 C 50 74 52 84 54 92"
+              fill="none"
+              stroke="#6f8f45"
+              strokeWidth={6}
+              strokeLinecap="round"
+            />
+            {[0, 120, 240].map((a) => (
+              <path
+                key={a}
+                d="M50 52 C 32 52 24 38 30 28 C 36 18 52 22 50 52 Z"
+                fill={fill}
+                stroke={shade(fill, -0.42)}
+                strokeWidth={5}
+                strokeLinejoin="round"
+                transform={`rotate(${a} 50 52)`}
+              />
+            ))}
+          </g>
+        );
+
+      case 'zigzag':
+        // A little stream.
+        return (
+          <path
+            d="M10 62 C 24 38 34 86 50 62 C 66 38 76 86 90 62"
+            fill="none"
+            stroke={fill}
+            strokeWidth={11}
+            strokeLinecap="round"
+          />
+        );
+
+      case 'chevron':
+        // A bird, seen from below, very far away.
+        return (
+          <path
+            d="M10 62 C 28 34 42 34 50 56 C 58 34 72 34 90 62"
+            fill="none"
+            stroke={fill}
+            strokeWidth={12}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        );
+
+      case 'bolt':
+        // A twig with two buds.
+        return (
+          <g>
+            <path
+              d="M34 92 C 44 68 46 46 44 10 M44 44 C 56 36 66 34 78 34 M44 62 C 32 56 24 52 16 50"
+              fill="none"
+              stroke="#8d5f3c"
+              strokeWidth={8}
+              strokeLinecap="round"
+            />
+            <circle cx={80} cy={33} r={9} fill={fill} stroke={shade(fill, -0.42)} strokeWidth={4} />
+            <circle cx={15} cy={49} r={7} fill={fill} stroke={shade(fill, -0.42)} strokeWidth={4} />
+          </g>
+        );
+
+      case 'flag':
+        // A fern frond.
+        return (
+          <g>
+            <path
+              d="M28 94 C 26 62 26 30 28 8"
+              fill="none"
+              stroke="#6f8f45"
+              strokeWidth={7}
+              strokeLinecap="round"
+            />
+            {[14, 30, 46, 62, 78].map((y, i) => (
+              <path
+                key={y}
+                d={`M28 ${y} C ${44 - i * 2} ${y - 10} ${64 - i * 4} ${y - 6} ${78 - i * 8} ${y + 2}`}
+                fill="none"
+                stroke={fill}
+                strokeWidth={9}
+                strokeLinecap="round"
+              />
+            ))}
+          </g>
+        );
+
+      default:
+        return undefined;
+    }
+  },
+
+  // No `token`. A pictorial stand-in here would have to be an emoji, and an emoji is somebody
+  // else's art direction dropped into the middle of ours.
+};
+
+/* ============================================================================
+   The creature
+   ========================================================================== */
+
+type Mood = 'wake' | 'watch' | 'delight' | 'sleep';
+type Gaze = 'child' | 'down';
+
+const BODY = '#f0a68b';
+const BODY_DEEP = shade(BODY, -0.2);
+const LEAF = '#5f8f5a';
+const INK = '#4a3529';
+
+/**
+ * The creature, in one SVG.
+ *
+ * Everything that moves is a named group so the stylesheet owns the animation and this function
+ * only owns the drawing. The pupils are their own group because the gaze is the load-bearing part
+ * of the whole design: it looks at the child, then down at the question, and back up when a tap
+ * lands. That sequence is the instruction, so it must be legible from across a room.
+ */
+function Creature({ mood, gaze, grown }: { mood: Mood; gaze: Gaze; grown: boolean }) {
+  return (
+    <svg
+      className="hl-cr"
+      viewBox="0 0 200 214"
+      data-mood={mood}
+      data-gaze={gaze}
+      data-grown={grown ? 'yes' : 'no'}
+      role="presentation"
+      aria-hidden="true"
+    >
+      <g className="hl-cr-breathe">
+        {/* head sprouts — the second pair only exists once it has grown */}
+        <g className="hl-cr-sprout">
+          <path
+            d="M100 44 C 99 28 98 18 95 8"
+            fill="none"
+            stroke={LEAF}
+            strokeWidth={7}
+            strokeLinecap="round"
+          />
+          <path
+            d="M95 10 C 80 1 65 10 68 22 C 71 33 87 30 95 18 Z"
+            fill={LEAF}
+            stroke={shade(LEAF, -0.35)}
+            strokeWidth={4}
+            strokeLinejoin="round"
+          />
+          <path
+            d="M97 22 C 111 11 126 17 125 28 C 124 39 107 38 98 28 Z"
+            fill={shade(LEAF, 0.12)}
+            stroke={shade(LEAF, -0.35)}
+            strokeWidth={4}
+            strokeLinejoin="round"
+          />
+          <g className="hl-cr-sprout2">
+            <path
+              d="M99 38 C 86 34 76 38 76 46 C 76 54 90 54 99 46 Z"
+              fill={shade(LEAF, 0.2)}
+              stroke={shade(LEAF, -0.35)}
+              strokeWidth={4}
+              strokeLinejoin="round"
+            />
+            <circle cx={95} cy={7} r={7} fill={SUN} stroke={shade(SUN, -0.34)} strokeWidth={4} />
+          </g>
+        </g>
+
+        {/* feet */}
+        <ellipse cx={76} cy={190} rx={19} ry={11} fill={BODY_DEEP} />
+        <ellipse cx={124} cy={190} rx={19} ry={11} fill={BODY_DEEP} />
+
+        {/* stubby side flippers */}
+        <g className="hl-cr-wing hl-cr-wing-l">
+          <path
+            d="M36 116 C 12 122 8 148 27 155 C 36 158 43 149 42 140 Z"
+            fill={BODY_DEEP}
+            stroke={shade(BODY, -0.4)}
+            strokeWidth={4}
+            strokeLinejoin="round"
+          />
+        </g>
+        <g className="hl-cr-wing hl-cr-wing-r">
+          <path
+            d="M164 116 C 188 122 192 148 173 155 C 164 158 157 149 158 140 Z"
+            fill={BODY_DEEP}
+            stroke={shade(BODY, -0.4)}
+            strokeWidth={4}
+            strokeLinejoin="round"
+          />
+        </g>
+
+        {/* body */}
+        <path
+          d="M100 36 C 146 36 172 76 172 118 C 172 161 141 188 100 188 C 59 188 28 161 28 118 C 28 76 54 36 100 36 Z"
+          fill={BODY}
+          stroke={shade(BODY, -0.4)}
+          strokeWidth={6}
+          strokeLinejoin="round"
+        />
+        <ellipse cx={100} cy={146} rx={45} ry={35} fill="#fbe0cb" opacity={0.75} />
+
+        {/* speckles, so it is plainly the thing that was in that egg */}
+        <circle cx={58} cy={86} r={4} fill={shade(BODY, -0.16)} />
+        <circle cx={142} cy={92} r={3.5} fill={shade(BODY, -0.16)} />
+        <circle cx={132} cy={66} r={3} fill={shade(BODY, -0.16)} />
+        <circle cx={70} cy={62} r={3} fill={shade(BODY, -0.16)} />
+
+        {/* cheeks */}
+        <ellipse cx={54} cy={130} rx={15} ry={9} fill="#e07a5f" opacity={0.42} />
+        <ellipse cx={146} cy={130} rx={15} ry={9} fill="#e07a5f" opacity={0.42} />
+
+        {/* eyes */}
+        <g className="hl-cr-eyes">
+          <ellipse cx={76} cy={104} rx={18} ry={20} fill="#fffaf0" stroke={shade(BODY, -0.34)} strokeWidth={3} />
+          <ellipse cx={124} cy={104} rx={18} ry={20} fill="#fffaf0" stroke={shade(BODY, -0.34)} strokeWidth={3} />
+          <g className="hl-cr-pupils">
+            <circle cx={76} cy={106} r={9.5} fill={INK} />
+            <circle cx={124} cy={106} r={9.5} fill={INK} />
+            <circle cx={79.5} cy={102} r={3.2} fill="#fffdf7" opacity={0.95} />
+            <circle cx={127.5} cy={102} r={3.2} fill="#fffdf7" opacity={0.95} />
+          </g>
+          <g className="hl-cr-lids">
+            <ellipse cx={76} cy={104} rx={19} ry={21} fill={BODY} />
+            <ellipse cx={124} cy={104} rx={19} ry={21} fill={BODY} />
+          </g>
+        </g>
+
+        {/* mouth — one calm, one wide open, swapped by mood */}
+        <g className="hl-cr-mouth">
+          <path
+            className="hl-cr-mouth-calm"
+            d="M88 140 C 94 149 106 149 112 140"
+            fill="none"
+            stroke={INK}
+            strokeWidth={5}
+            strokeLinecap="round"
+          />
+          <path
+            className="hl-cr-mouth-open"
+            d="M84 136 C 88 160 112 160 116 136 Z"
+            fill="#c2685e"
+            stroke={INK}
+            strokeWidth={4}
+            strokeLinejoin="round"
+          />
+        </g>
+      </g>
+    </svg>
+  );
+}
+
+/* ============================================================================
+   The egg, the nest, the sprig
+   ========================================================================== */
+
+const SHELL = '#fdf0d9';
+
+function Egg({ beat }: { beat: number }) {
+  return (
+    <svg className="hl-egg-svg" viewBox="0 0 200 200" data-beat={beat} role="presentation" aria-hidden="true">
+      <g className="hl-egg-rock">
+        <g className="hl-egg-shell">
+          <path
+            d="M100 14 C 148 42 172 94 172 128 A 72 72 0 0 1 28 128 C 28 94 52 42 100 14 Z"
+            fill={SHELL}
+            stroke="#c9a679"
+            strokeWidth={6}
+            strokeLinejoin="round"
+          />
+          <ellipse cx={72} cy={78} rx={15} ry={26} fill="#fffdf7" opacity={0.7} transform="rotate(-18 72 78)" />
+          <circle cx={118} cy={62} r={5} fill="#e9c79b" />
+          <circle cx={136} cy={98} r={4} fill="#e9c79b" />
+          <circle cx={64} cy={124} r={4.5} fill="#e9c79b" />
+          <circle cx={104} cy={148} r={4} fill="#e9c79b" />
+          <circle cx={92} cy={98} r={3.5} fill="#e9c79b" />
+        </g>
+
+        {/* the crack, in three pieces so it can arrive in three beats */}
+        <g className="hl-crack">
+          <path className="hl-crack-a" d="M60 96 L 78 108 L 64 120 L 84 128" />
+          <path className="hl-crack-b" d="M84 128 L 104 118 L 98 136 L 122 128" />
+          <path className="hl-crack-c" d="M122 128 L 138 114 L 132 96" />
+        </g>
+      </g>
+
+      {/* two pieces that leave when it opens */}
+      <g className="hl-piece hl-piece-l">
+        <path
+          d="M40 108 C 46 84 62 56 84 38 L 96 52 L 70 82 L 78 100 Z"
+          fill={SHELL}
+          stroke="#c9a679"
+          strokeWidth={5}
+          strokeLinejoin="round"
+        />
+      </g>
+      <g className="hl-piece hl-piece-r">
+        <path
+          d="M160 112 C 156 86 140 58 118 40 L 108 56 L 132 84 L 124 104 Z"
+          fill={SHELL}
+          stroke="#c9a679"
+          strokeWidth={5}
+          strokeLinejoin="round"
+        />
+      </g>
+    </svg>
+  );
+}
+
+/**
+ * The nest, in two pieces, and the reason why is worth the extra component.
+ *
+ * One filled bowl draws over whatever is inside it, so an egg placed in a nest ends up looking like
+ * an egg balanced on a plate — which is exactly what the first pass looked like. Splitting it means
+ * the back of the weave sits behind the contents and the front wall sits in front of them, and the
+ * thing in the middle is genuinely IN something. Both halves share the 320x180 box so the two line
+ * up whatever the nest is scaled to.
+ */
+function NestBack() {
+  return (
+    <svg className="hl-nest hl-nest-back" viewBox="0 0 320 180" role="presentation" aria-hidden="true">
+      <path
+        d="M10 56 A 150 42 0 0 1 310 56 L 286 56 A 126 28 0 0 0 34 56 Z"
+        fill="#b3855b"
+        stroke="#7f5432"
+        strokeWidth={5}
+        strokeLinejoin="round"
+      />
+      <path
+        d="M28 44 C 82 20 238 20 292 44 M44 33 C 98 14 224 16 276 34"
+        fill="none"
+        stroke="#7f5432"
+        strokeWidth={4}
+        strokeLinecap="round"
+        opacity={0.4}
+      />
+      {/* loose twigs, out past the weave, so the rim is not a drawn ellipse */}
+      <path
+        d="M20 50 C 6 36 4 20 12 8 M300 52 C 314 38 316 22 308 10 M126 22 C 114 12 100 8 88 8"
+        fill="none"
+        stroke="#8d5f3c"
+        strokeWidth={4}
+        strokeLinecap="round"
+        opacity={0.5}
+      />
+    </svg>
+  );
+}
+
+function NestFront() {
+  return (
+    <svg className="hl-nest hl-nest-front" viewBox="0 0 320 180" role="presentation" aria-hidden="true">
+      {/* it is standing on something, rather than hovering over it */}
+      <ellipse cx={160} cy={172} rx={128} ry={11} fill="#a8763f" opacity={0.16} />
+      <path
+        d="M44 158 C 38 142 34 134 28 126 M58 166 C 55 150 52 142 48 134 M262 158 C 268 142 272 134 278 126 M248 166 C 251 150 254 142 258 134"
+        fill="none"
+        stroke={LEAF}
+        strokeWidth={5}
+        strokeLinecap="round"
+        opacity={0.65}
+      />
+      <path
+        d="M34 56 C 36 108 84 132 160 132 C 236 132 284 108 286 56 L 310 56 C 308 136 250 172 160 172 C 70 172 12 136 10 56 Z"
+        fill="#c69a6c"
+        stroke="#7f5432"
+        strokeWidth={5}
+        strokeLinejoin="round"
+      />
+      <path
+        d="M16 68 C 70 104 250 104 304 68 M22 86 C 76 120 244 120 298 86 M58 104 C 108 132 212 132 264 104 M42 122 C 92 148 228 148 278 122"
+        fill="none"
+        stroke="#8d5f3c"
+        strokeWidth={4.5}
+        strokeLinecap="round"
+        opacity={0.45}
+      />
+      <path
+        d="M8 62 C -3 50 -1 32 8 22 M312 64 C 323 52 321 34 312 24"
+        fill="none"
+        stroke="#8d5f3c"
+        strokeWidth={4}
+        strokeLinecap="round"
+        opacity={0.45}
+      />
+    </svg>
+  );
+}
+
+/** Where the leaves sit on the sprig, in order. Turning up adds the next one. */
+const SPRIG: { x: number; y: number; rot: number; flip: boolean }[] = [
+  { x: 78, y: 82, rot: -8, flip: false },
+  { x: 74, y: 66, rot: -14, flip: true },
+  { x: 72, y: 52, rot: -4, flip: false },
+  { x: 69, y: 38, rot: -18, flip: true },
+  { x: 67, y: 26, rot: 2, flip: false },
+  { x: 65, y: 16, rot: -12, flip: true },
+  { x: 64, y: 8, rot: 6, flip: false },
+  { x: 62, y: 2, rot: -6, flip: true },
+];
+
+/**
+ * The only thing on screen that advances, and it advances for showing up.
+ *
+ * One leaf per turn taken, regardless of what was tapped. There is no number attached to it and no
+ * total to reach, so it cannot be read as a score even by an adult who wants to.
+ */
+function Sprig({ leaves, flowered }: { leaves: number; flowered: boolean }) {
+  const shown = Math.max(0, Math.min(SPRIG.length, leaves));
+  return (
+    <svg className="hl-sprig" viewBox="0 0 160 100" role="presentation" aria-hidden="true">
+      {/* soil, so a stem with no leaves on it yet still reads as something planted */}
+      <path
+        d="M52 97 C 62 88 102 88 112 97 Z"
+        fill="#a8763f"
+        opacity={0.3}
+      />
+      <path
+        d="M82 98 C 79 76 74 48 62 2"
+        fill="none"
+        stroke={LEAF}
+        strokeWidth={6}
+        strokeLinecap="round"
+      />
+      {SPRIG.slice(0, shown).map((a, i) => (
+        // The placement lives on the outer group as an attribute and the animation lives on the
+        // inner one as CSS, because a CSS transform beats a transform attribute outright — put both
+        // on one element and every leaf animates from the same corner of the sprig.
+        <g
+          key={i}
+          transform={`translate(${a.x} ${a.y}) rotate(${a.rot}) scale(${a.flip ? -1 : 1} 1)`}
+        >
+          <g className="hl-sprig-leaf" style={{ ['--i' as string]: String(i) } as CSSProperties}>
+            <path
+              d="M0 0 C 15 -13 32 -9 34 4 C 36 17 16 20 0 7 Z"
+              fill={i % 2 === 0 ? LEAF : shade(LEAF, 0.14)}
+              stroke={shade(LEAF, -0.35)}
+              strokeWidth={3.5}
+              strokeLinejoin="round"
+            />
+          </g>
+        </g>
+      ))}
+      {flowered ? (
+        <g className="hl-sprig-bloom">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <ellipse
+              key={i}
+              cx={62}
+              cy={-8}
+              rx={7}
+              ry={11}
+              fill="#e79ab0"
+              stroke={shade('#e79ab0', -0.35)}
+              strokeWidth={3}
+              transform={`rotate(${i * 72} 62 2)`}
+            />
+          ))}
+          <circle cx={62} cy={2} r={6} fill={SUN} stroke={shade(SUN, -0.3)} strokeWidth={3} />
+        </g>
+      ) : null}
+    </svg>
+  );
+}
+
+/**
+ * The way out: one leaf, big enough to hit with a fist.
+ *
+ * Pointed at the tip and veined, because the first pass was a rounded diamond that read as a gem.
+ * The arrow inside it is for the adult; by the time this is on screen the child is finished.
+ */
+function WayOut({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button type="button" className="hl-big" onClick={onClick} aria-label={label}>
+      <svg viewBox="0 0 200 148" role="presentation" aria-hidden="true">
+        <path
+          d="M100 4 C 178 42 178 106 100 144 C 22 106 22 42 100 4 Z"
+          fill={LEAF}
+          stroke={shade(LEAF, -0.38)}
+          strokeWidth={6}
+          strokeLinejoin="round"
+        />
+        <path
+          d="M100 18 L 100 132 M100 52 L 132 38 M100 52 L 68 38 M100 86 L 136 70 M100 86 L 64 70"
+          fill="none"
+          stroke={shade(LEAF, -0.22)}
+          strokeWidth={4}
+          strokeLinecap="round"
+          opacity={0.5}
+        />
+        <path
+          d="M118 56 L 92 74 L 118 92"
+          fill="none"
+          stroke="#fffaf0"
+          strokeWidth={11}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </button>
+  );
+}
+
+/* ============================================================================
+   Voice — enhancement only, never the carrier
+   ========================================================================== */
+
+const WARM = ['Ooh, nice.', 'Thank you!', 'I like that one.', 'Good idea.', 'Mmm, yes.', 'Oh, lovely.'];
+
+/* ============================================================================
+   The world
+   ========================================================================== */
+
+type Stage = 'nest' | 'hatch' | 'play' | 'grown' | 'trouble';
+
+const REACTIONS = ['bounce', 'wiggle', 'perk', 'hop'] as const;
+
+const MOTES = [
+  { x: 8, d: 0, dur: 15 },
+  { x: 21, d: 3, dur: 18 },
+  { x: 34, d: 7, dur: 13 },
+  { x: 47, d: 1, dur: 20 },
+  { x: 61, d: 9, dur: 16 },
+  { x: 74, d: 5, dur: 19 },
+  { x: 88, d: 11, dur: 14 },
+];
+
+export default function Hatchling({ onExit }: ExperienceProps) {
+  const s = useScreenerSession({ band: 'K-1', precisionIndex: 0, settleMs: 1400 });
+
+  const [stage, setStage] = useState<Stage>('nest');
+  const [beat, setBeat] = useState(0);
+  const [turns, setTurns] = useState(0);
+  const [gaze, setGaze] = useState<Gaze>('child');
+  const [reaction, setReaction] = useState<{ n: number; kind: string } | null>(null);
+  const [voiceOn, setVoiceOn] = useState(true);
+
+  const voiceRef = useRef(true);
+  voiceRef.current = voiceOn;
+  const tapCount = useRef(0);
+
+  /** Say something, or say nothing at all, and either way the world works. */
+  const say = useCallback((text: string) => {
+    if (!voiceRef.current) return;
+    try {
+      const synth = window.speechSynthesis;
+      if (!synth || typeof SpeechSynthesisUtterance === 'undefined') return;
+      synth.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = 0.9;
+      u.pitch = 1.3;
+      u.volume = 0.85;
+      u.lang = 'en-US';
+      synth.speak(u);
+    } catch {
+      /* silence is the supported default, not a degraded one */
+    }
+  }, []);
+
+  useEffect(
+    () => () => {
+      try {
+        window.speechSynthesis?.cancel();
+      } catch {
+        /* nothing to clean up if it was never there */
+      }
+    },
+    [],
+  );
+
+  /* -- hatching ------------------------------------------------------------ */
+
+  const beginHatch = useCallback(() => {
+    if (stage !== 'nest') return;
+    setStage('hatch');
+    setBeat(0);
+    void s.start();
+  }, [stage, s.start]);
+
+  useEffect(() => {
+    if (stage !== 'hatch') return;
+    // 1 squash, 2 the first crack, 3 the rest of the crack, 4 the shell opens and something comes
+    // up out of it, 5 it is out and pleased about it, 6 the world moves on. Staggered rather than
+    // simultaneous, which is what makes it read as one event happening rather than six starting.
+    const ts = [200, 560, 900, 1320, 1920, 2500].map((ms, i) =>
+      window.setTimeout(() => setBeat(i + 1), ms),
+    );
+    return () => ts.forEach((t) => window.clearTimeout(t));
+  }, [stage]);
+
+  useEffect(() => {
+    if (stage === 'hatch' && beat === 5) say('Hello!');
+  }, [stage, beat, say]);
+
+  /* -- stage transitions --------------------------------------------------- */
+
+  useEffect(() => {
+    if (s.phase === 'error') {
+      setStage('trouble');
+      return;
+    }
+    if (stage === 'hatch' && beat >= 6) {
+      if (s.phase === 'asking' || s.phase === 'settling') setStage('play');
+      else if (s.phase === 'done') setStage('grown');
+      return;
+    }
+    if (stage === 'play' && s.phase === 'done') setStage('grown');
+  }, [s.phase, stage, beat]);
+
+  useEffect(() => {
+    if (stage !== 'grown') return;
+    say('Thank you for helping me. Look, I grew!');
+  }, [stage, say]);
+
+  /* -- the gaze, which is how a question is announced ---------------------- */
+
+  const itemId = s.serve?.served.itemId ?? null;
+  const firstItem = useRef(true);
+
+  useEffect(() => {
+    if (!itemId || stage !== 'play') return;
+    // It looks up at the child first, every single time, and only then down at the thing it is
+    // trying to decide. That pause is the entire instruction.
+    setReaction(null);
+    setGaze('child');
+    const t = window.setTimeout(() => setGaze('down'), 700);
+    if (firstItem.current) {
+      firstItem.current = false;
+      const v = window.setTimeout(() => say('Help me pick.'), 300);
+      return () => {
+        window.clearTimeout(t);
+        window.clearTimeout(v);
+      };
+    }
+    return () => window.clearTimeout(t);
+  }, [itemId, stage, say]);
+
+  /* -- answering ----------------------------------------------------------- */
+
+  const tap = useCallback(
+    (key: string) => {
+      if (s.phase !== 'asking') return;
+      const n = tapCount.current++;
+      // Set the reaction BEFORE handing the answer to the session, so the creature has already
+      // moved by the time the request leaves. Warmth that waits on a network round trip is not
+      // warmth a five-year-old will connect to their own finger.
+      setReaction({ n, kind: REACTIONS[n % REACTIONS.length] ?? 'bounce' });
+      setGaze('child');
+      setTurns((t) => t + 1);
+      say(WARM[n % WARM.length] ?? 'Thank you!');
+      void s.answer(key);
+    },
+    [s.phase, s.answer, say],
+  );
+
+  const retry = useCallback(() => {
+    s.reset();
+    setStage('nest');
+    setBeat(0);
+    setTurns(0);
+    firstItem.current = true;
+    tapCount.current = 0;
+  }, [s.reset]);
+
+  /* -- what the creature is doing right now -------------------------------- */
+
+  const mood: Mood =
+    stage === 'trouble'
+      ? 'sleep'
+      : reaction || stage === 'grown' || (stage === 'hatch' && beat >= 5)
+        ? 'delight'
+        : stage === 'play'
+          ? 'watch'
+          : 'wake';
+
+  const hatched = stage === 'play' || stage === 'grown' || (stage === 'hatch' && beat >= 4);
+  const showEgg = stage === 'nest' || (stage === 'hatch' && beat < 5);
+
+  return (
+    <div
+      className="hl-root"
+      data-stage={stage}
+      data-sun={stage === 'grown' ? 'high' : 'low'}
+      data-react={reaction?.kind ?? 'none'}
+    >
+      {/* ---- sky ---------------------------------------------------------- */}
+      <div className="hl-sky" aria-hidden="true">
+        <div className="hl-glow" />
+        {/* Four rings rather than a disc, because one hard-edged circle in a soft world reads as a
+            hole punched in it. */}
+        <svg className="hl-sundisc" viewBox="0 0 100 100" role="presentation">
+          <circle cx={50} cy={50} r={49} fill={SUN} opacity={0.1} />
+          <circle cx={50} cy={50} r={39} fill={SUN} opacity={0.16} />
+          <circle cx={50} cy={50} r={29} fill={SUN} opacity={0.26} />
+          <circle cx={50} cy={50} r={20} fill={SUN} opacity={0.4} />
+        </svg>
+        {MOTES.map((m, i) => (
+          <span
+            key={i}
+            className="hl-mote"
+            style={
+              {
+                ['--x' as string]: `${m.x}%`,
+                ['--d' as string]: `${m.d}s`,
+                ['--dur' as string]: `${m.dur}s`,
+              } as CSSProperties
+            }
+          />
+        ))}
+      </div>
+
+      {/* ---- hills -------------------------------------------------------- */}
+      <svg className="hl-hills" viewBox="0 0 1000 300" preserveAspectRatio="none" role="presentation" aria-hidden="true">
+        <path d="M0 132 C 150 78 290 128 430 106 C 580 82 700 132 830 108 C 900 96 960 108 1000 118 L1000 300 L0 300 Z" fill="#e7b78c" opacity={0.55} />
+        <path d="M0 186 C 160 140 300 186 470 168 C 640 150 800 190 1000 172 L1000 300 L0 300 Z" fill="#cf9a72" opacity={0.5} />
+        <path d="M0 244 C 220 214 420 250 640 234 C 800 222 920 240 1000 236 L1000 300 L0 300 Z" fill="#7d9a63" opacity={0.55} />
+      </svg>
+
+      {/* ---- adult corner controls, deliberately faint --------------------- */}
+      <div className="hl-top">
+        <button
+          type="button"
+          className="hl-quiet"
+          aria-label={voiceOn ? 'Turn the voice off' : 'Turn the voice on'}
+          aria-pressed={voiceOn}
+          onClick={() => {
+            setVoiceOn((v) => {
+              if (v) {
+                try {
+                  window.speechSynthesis?.cancel();
+                } catch {
+                  /* ignore */
+                }
+              }
+              return !v;
+            });
+          }}
+        >
+          <svg viewBox="0 0 40 40" role="presentation" aria-hidden="true">
+            <path d="M10 16 H16 L23 10 V30 L16 24 H10 Z" fill="none" stroke={INK} strokeWidth={3} strokeLinejoin="round" strokeLinecap="round" />
+            {voiceOn ? (
+              <path d="M28 14 C 33 18 33 22 28 26 M32 10 C 39 16 39 24 32 30" fill="none" stroke={INK} strokeWidth={3} strokeLinecap="round" />
+            ) : (
+              <path d="M28 14 L 36 26 M36 14 L 28 26" fill="none" stroke={INK} strokeWidth={3} strokeLinecap="round" />
+            )}
+          </svg>
+        </button>
+        <button type="button" className="hl-quiet" aria-label="Leave Hatchling" onClick={onExit}>
+          <svg viewBox="0 0 40 40" role="presentation" aria-hidden="true">
+            <path d="M24 11 L 14 20 L 24 29" fill="none" stroke={INK} strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      </div>
+
+      {/* ---- the bay: nest, egg, creature ---------------------------------- */}
+      <div className="hl-bay">
+        <div className="hl-bayinner">
+          {/* The cradle carries the nest's own 320x180 proportions, so everything that sits in the
+              nest can be placed as a fraction of the NEST rather than of the screen. */}
+          <div className="hl-cradle">
+            <NestBack />
+
+            {showEgg ? (
+              <button
+                type="button"
+                className="hl-egg"
+                aria-label="Tap the egg"
+                onClick={beginHatch}
+                disabled={stage !== 'nest'}
+              >
+                {/* Three rings breathing outward, and the egg rocking. Nobody has to be told. */}
+                <span className="hl-ring hl-ring-1" aria-hidden="true" />
+                <span className="hl-ring hl-ring-2" aria-hidden="true" />
+                <span className="hl-ring hl-ring-3" aria-hidden="true" />
+                <Egg beat={beat} />
+              </button>
+            ) : null}
+
+            {hatched ? (
+              <div className="hl-crwrap">
+                <Creature mood={mood} gaze={gaze} grown={stage === 'grown'} />
+                {reaction ? (
+                  <div className="hl-burst" key={reaction.n} aria-hidden="true">
+                    {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+                      <span
+                        key={i}
+                        className="hl-petal"
+                        style={
+                          { ['--i' as string]: String(i), ['--a' as string]: `${i * 45}deg` } as CSSProperties
+                        }
+                      />
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            <NestFront />
+          </div>
+        </div>
+      </div>
+
+      {/* ---- the stage: whatever the creature is deciding ------------------ */}
+      <div className="hl-stagewrap">
+        {stage === 'trouble' ? (
+          <div className="hl-panel hl-end" key="trouble">
+            <WayOut label="Go back" onClick={onExit} />
+            <p className="hl-adult">
+              For the grown-up: the nest is quiet just now and nothing reached the egg. Tap the leaf
+              to go back, or{' '}
+              <button type="button" className="hl-inline" onClick={retry}>
+                settle the nest again
+              </button>
+              .
+              {s.error ? <span className="hl-detail"> {s.error}</span> : null}
+            </p>
+          </div>
+        ) : null}
+
+        {stage === 'play' && s.serve ? (
+          <div className="hl-panel hl-stage" key={s.serve.served.itemId}>
+            <ItemStage
+              serve={s.serve}
+              band="K-1"
+              onAnswer={tap}
+              answered={s.phase !== 'asking'}
+              skin={HATCHLING_SKIN}
+            />
+          </div>
+        ) : null}
+
+        {stage === 'grown' ? (
+          <div className="hl-panel hl-end" key="end">
+            <div className="hl-bloomring" aria-hidden="true">
+              {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((i) => (
+                <span
+                  key={i}
+                  className="hl-bloompetal"
+                  style={{ ['--i' as string]: String(i), ['--a' as string]: `${i * 30}deg` } as CSSProperties}
+                />
+              ))}
+            </div>
+            <WayOut label="Back to the other worlds" onClick={onExit} />
+          </div>
+        ) : null}
+      </div>
+
+      {/* ---- the sprig, and the only prose in the world -------------------- */}
+      <div className="hl-foot">
+        <Sprig leaves={turns} flowered={stage === 'grown'} />
+        <p className="hl-adult">
+          {stage === 'nest' || stage === 'hatch'
+            ? 'For the grown-up: hand this over and let them tap the egg. Nothing here needs reading.'
+            : stage === 'grown'
+              ? 'For the grown-up: Hatchling grew, because they turned up. There is nothing to pass here and nothing to read out.'
+              : stage === 'trouble'
+                ? ''
+                : 'For the grown-up: any tap is a good tap. Hatchling is glad of all of them.'}
+        </p>
+      </div>
+    </div>
+  );
+}

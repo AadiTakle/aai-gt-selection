@@ -1,0 +1,889 @@
+/* =============================================================================
+   SHIP'S NAVIGATOR — a dim bridge at night.
+
+   Deep navy, phosphor glow, hairline linework, monospace numerals. The rule that keeps this from
+   becoming a wall of fake dials: exactly one focal reading, and every other instrument on screen is
+   a hairline or a label. No filled cards, no shadows, no blur, no gradients louder than the sea.
+
+   Motion: transform and opacity only, one easing curve, one ambient loop. Nothing animates layout.
+   Everything collapses at the bottom under prefers-reduced-motion.
+   ============================================================================= */
+
+.nv-root {
+  --nv-deep: #040a11;
+  --nv-sea: #071119;
+  --nv-hull: #0a1621;
+  --nv-line: #17313f;
+  --nv-line-lit: #2b5b66;
+  --nv-cyan: #46e0c8;
+  --nv-cyan-soft: #7ef0dd;
+  --nv-cyan-dim: #2a7d78;
+  --nv-amber: #f2c14e;
+  --nv-text: #cbe2e4;
+  --nv-mute: #6a8894;
+  --nv-faint: #3f5c68;
+  --nv-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --nv-mono: ui-monospace, 'SFMono-Regular', 'JetBrains Mono', Menlo, Consolas, monospace;
+  --nv-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* The plate: the one lit surface on a dark bridge, and where a reading lands. */
+  --nv-plate: #dde8e6;
+  --nv-plate-edge: #9db6b4;
+
+  /* The shared renderers take their ink, hairline and easing from the host's globals. Overriding
+     them here is the whole retheme: every question drawn on the plate picks up chart ink and this
+     world's curve, without this stylesheet ever naming a class it does not own. */
+  --ink: #12262c;
+  --ink-soft: #40595f;
+  --line: rgb(18 38 44 / 0.16);
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  position: relative;
+  height: 100%;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 16.5rem minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'top    top'
+    'crew   main'
+    'route  route';
+  background:
+    radial-gradient(120% 78% at 62% 8%, #0b1c26 0%, rgb(11 28 38 / 0) 62%),
+    radial-gradient(90% 60% at 50% 108%, #0a1a22 0%, rgb(10 26 34 / 0) 60%),
+    var(--nv-deep);
+  color: var(--nv-text);
+  font-family: var(--nv-sans);
+  font-size: 16px;
+  overflow: hidden;
+  animation: nv-wake 700ms var(--nv-ease) both;
+}
+
+/* Instrument glass: a barely-there scanline, so the dark reads as a lit surface not a flat fill. */
+.nv-grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgb(70 224 200 / 0.028) 0 1px,
+    rgb(0 0 0 / 0) 1px 4px
+  );
+  mix-blend-mode: screen;
+}
+
+.nv-root :focus-visible {
+  outline: 2px solid var(--nv-amber);
+  outline-offset: 3px;
+}
+
+/* ---- shared type ---------------------------------------------------------- */
+
+.nv-cap {
+  margin: 0;
+  font-family: var(--nv-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--nv-cyan-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- top strip ------------------------------------------------------------ */
+
+.nv-top {
+  grid-area: top;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 0.85rem clamp(1.25rem, 3vw, 2.25rem);
+  border-bottom: 1px solid var(--nv-line);
+}
+
+.nv-ident {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin: 0;
+  font-family: var(--nv-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  color: var(--nv-mute);
+}
+
+.nv-ident-ship {
+  color: var(--nv-cyan);
+}
+
+.nv-ident-dim {
+  color: var(--nv-faint);
+}
+
+.nv-ident-sep {
+  width: 1.4rem;
+  height: 1px;
+  background: var(--nv-line-lit);
+}
+
+/* ---- buttons -------------------------------------------------------------- */
+
+.nv-btn {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  min-width: 56px;
+  padding: 0 1.6rem;
+  border: 1px solid var(--nv-cyan-dim);
+  font-family: var(--nv-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--nv-cyan-soft);
+  background: rgb(70 224 200 / 0.04);
+  transition:
+    transform 260ms var(--nv-ease),
+    opacity 260ms var(--nv-ease),
+    border-color 260ms var(--nv-ease),
+    background-color 260ms var(--nv-ease);
+}
+
+.nv-btn:hover {
+  border-color: var(--nv-cyan);
+  background: rgb(70 224 200 / 0.11);
+  transform: translate3d(0, -1px, 0);
+}
+
+.nv-btn:active {
+  transform: translate3d(0, 0, 0);
+}
+
+.nv-btn--major {
+  min-height: 60px;
+  padding: 0 2.4rem;
+  border-color: var(--nv-cyan);
+  color: #04121a;
+  background: var(--nv-cyan);
+  font-weight: 600;
+}
+
+.nv-btn--major:hover {
+  background: var(--nv-cyan-soft);
+}
+
+.nv-btn--ghost {
+  min-height: 40px;
+  padding: 0 1rem;
+  border-color: var(--nv-line);
+  color: var(--nv-mute);
+  background: transparent;
+  font-size: 0.68rem;
+}
+
+.nv-btn--ghost:hover {
+  border-color: var(--nv-line-lit);
+  color: var(--nv-text);
+  background: transparent;
+}
+
+/* ---- crew rail ------------------------------------------------------------ */
+
+.nv-crew {
+  grid-area: crew;
+  display: flex;
+  flex-direction: column;
+  gap: 1.6rem;
+  padding: 1.8rem 1.25rem 1.8rem clamp(1.25rem, 3vw, 2.25rem);
+  border-right: 1px solid var(--nv-line);
+  min-width: 0;
+}
+
+.nv-crew-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.nv-crewman {
+  display: grid;
+  grid-template-columns: 0.6rem minmax(0, 1fr);
+  column-gap: 0.7rem;
+  align-items: baseline;
+  opacity: 0.42;
+  transition: opacity 420ms var(--nv-ease);
+}
+
+.nv-crewman.is-live {
+  opacity: 1;
+}
+
+.nv-crew-dot {
+  grid-row: 1 / span 2;
+  width: 6px;
+  height: 6px;
+  margin-top: 0.35rem;
+  border: 1px solid var(--nv-line-lit);
+  transform: rotate(45deg);
+}
+
+.nv-crewman.is-live .nv-crew-dot {
+  border-color: var(--nv-cyan);
+  background: var(--nv-cyan);
+}
+
+.nv-crew-station {
+  font-family: var(--nv-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  color: var(--nv-faint);
+}
+
+.nv-crewman.is-live .nv-crew-station {
+  color: var(--nv-cyan-dim);
+}
+
+.nv-crew-name {
+  grid-column: 2;
+  font-family: var(--nv-mono);
+  font-size: 0.86rem;
+  letter-spacing: 0.06em;
+  color: var(--nv-text);
+}
+
+/* The comms block is always here at a reserved height, so a line arriving never nudges the layout. */
+.nv-comm {
+  margin-top: auto;
+  min-height: 9.5rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--nv-line);
+}
+
+.nv-comm-line {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.65;
+  color: var(--nv-text);
+  animation: nv-arrive 520ms var(--nv-ease) both;
+}
+
+.nv-comm-who {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-family: var(--nv-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.2em;
+  color: var(--nv-cyan);
+}
+
+/* ---- main column ---------------------------------------------------------- */
+
+.nv-main {
+  grid-area: main;
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: clamp(1rem, 2.4vh, 1.75rem) clamp(1.5rem, 4vw, 3.5rem);
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* ---- briefing / arrival --------------------------------------------------- */
+
+.nv-brief,
+.nv-arrive,
+.nv-fault {
+  width: 100%;
+  max-width: 40rem;
+}
+
+.nv-brief-title {
+  margin: 0.9rem 0 1.5rem;
+  font-size: clamp(1.9rem, 3.4vw, 2.6rem);
+  font-weight: 300;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  color: #eaf7f5;
+}
+
+.nv-brief-copy {
+  margin: 0 0 1.15rem;
+  max-width: 34rem;
+  font-size: 1rem;
+  line-height: 1.72;
+  color: var(--nv-text);
+}
+
+.nv-brief .nv-btn--major {
+  margin-top: 1.4rem;
+}
+
+.nv-brief-foot {
+  margin: 1.5rem 0 0;
+  font-family: var(--nv-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.09em;
+  line-height: 1.8;
+  color: var(--nv-faint);
+}
+
+.nv-arrive-log {
+  list-style: none;
+  margin: 1.9rem 0 2.2rem;
+  padding: 1.4rem 0 0;
+  border-top: 1px solid var(--nv-line);
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.nv-arrive-log li {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--nv-text);
+}
+
+/* ---- the reading panel ---------------------------------------------------- */
+
+.nv-panel {
+  position: relative;
+  width: 100%;
+  max-width: 52rem;
+  padding: 1.15rem clamp(0.9rem, 2.2vw, 1.6rem) 1.25rem;
+  animation: nv-arrive 560ms var(--nv-ease) both;
+}
+
+.nv-corner {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--nv-line-lit);
+  opacity: 0.85;
+}
+
+.nv-corner--tl {
+  top: 0;
+  left: 0;
+  border-right: 0;
+  border-bottom: 0;
+}
+.nv-corner--tr {
+  top: 0;
+  right: 0;
+  border-left: 0;
+  border-bottom: 0;
+}
+.nv-corner--bl {
+  bottom: 0;
+  left: 0;
+  border-right: 0;
+  border-top: 0;
+}
+.nv-corner--br {
+  bottom: 0;
+  right: 0;
+  border-left: 0;
+  border-top: 0;
+}
+
+.nv-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-bottom: clamp(0.8rem, 1.8vh, 1.25rem);
+  font-family: var(--nv-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.2em;
+  font-variant-numeric: tabular-nums;
+}
+
+.nv-panel-id {
+  color: var(--nv-cyan);
+}
+
+.nv-panel-rule {
+  width: 1.6rem;
+  height: 1px;
+  background: var(--nv-line-lit);
+}
+
+.nv-panel-kind {
+  color: var(--nv-mute);
+}
+
+.nv-receipt {
+  margin-left: auto;
+  color: var(--nv-amber);
+  opacity: 0;
+  transition: opacity 320ms var(--nv-ease);
+}
+
+.nv-receipt.is-on {
+  opacity: 1;
+}
+
+/* ---- the plate -----------------------------------------------------------
+   A backlit chart plate mounted in the console, not a card: square corners, one hairline bezel, and
+   a cool backlight bleeding off its top edge. It is the only bright thing on the bridge, which is
+   what puts the reading at the centre of attention without a single decorative dial. */
+
+.nv-plate {
+  position: relative;
+  min-height: min(20rem, 34vh);
+  display: grid;
+  place-items: center;
+  padding: clamp(0.3rem, 0.9vh, 0.7rem) clamp(0.5rem, 1.5vw, 1.25rem);
+  background:
+    linear-gradient(180deg, #e7efed 0%, var(--nv-plate) 34%, #d3e0de 100%);
+  border: 1px solid var(--nv-plate-edge);
+  color: var(--ink);
+  box-shadow: 0 -1px 34px -8px rgb(70 224 200 / 0.22);
+}
+
+/* The renderer owns the question. These are only in-world defaults for anything it leaves
+   unstyled — a classed element is the renderer's decision and is left alone. */
+.nv-plate button:not([class]) {
+  box-sizing: border-box;
+  min-height: 56px;
+  min-width: 56px;
+  padding: 0.7rem 1.1rem;
+  border: 1px solid var(--nv-plate-edge);
+  background: #fff;
+  color: var(--ink);
+  font-family: var(--nv-mono);
+  font-size: 1rem;
+  cursor: pointer;
+  transition:
+    transform 220ms var(--nv-ease),
+    border-color 220ms var(--nv-ease);
+}
+
+.nv-plate button:not([class]):hover {
+  border-color: var(--ink);
+  transform: translate3d(0, -1px, 0);
+}
+
+.nv-plate :is(h1, h2, h3, p):not([class]) {
+  font-family: var(--nv-sans);
+  color: var(--ink);
+}
+
+.nv-waking {
+  margin: 0;
+  font-family: var(--nv-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.24em;
+  color: var(--nv-cyan-dim);
+  animation: nv-pulse 2s var(--nv-ease) infinite;
+}
+
+/* Survives the shared stage's own notice, should a type arrive with no renderer registered. It
+   lands on the plate, so it takes the plate's ink rather than the bridge's. */
+.nv-root .stage-missing {
+  margin: 0;
+  border-color: var(--nv-plate-edge);
+  border-radius: 0;
+  color: var(--ink);
+  font-family: var(--nv-mono);
+  font-size: 0.85rem;
+}
+
+.nv-root .stage-missing-detail {
+  color: var(--ink-soft);
+}
+
+.nv-root .btn-quiet {
+  min-height: 56px;
+  padding: 0 1.6rem;
+  border-radius: 0;
+  border-color: var(--nv-plate-edge);
+  color: var(--ink);
+  font-family: var(--nv-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.nv-root .btn-quiet:hover {
+  background: #fff;
+}
+
+/* ---- a panel that cannot be read ----------------------------------------- */
+
+.nv-smear {
+  max-width: 30rem;
+  text-align: center;
+  animation: nv-arrive 520ms var(--nv-ease) both;
+}
+
+.nv-smear-code {
+  margin: 0 0 0.9rem;
+  font-family: var(--nv-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
+  color: var(--nv-amber);
+}
+
+.nv-smear-copy {
+  margin: 0 0 1.6rem;
+  font-family: var(--nv-sans);
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--nv-text);
+}
+
+/* ---- leg report ----------------------------------------------------------- */
+
+.nv-leg {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: clamp(1.5rem, 4vh, 2.5rem) clamp(1.5rem, 4vw, 3.5rem);
+  background: rgb(4 10 17 / 0.965);
+  z-index: 2;
+  animation: nv-veil 400ms var(--nv-ease) both;
+}
+
+.nv-leg-inner {
+  width: 100%;
+  max-width: 34rem;
+}
+
+.nv-leg-line {
+  margin: 1.1rem 0 1.6rem;
+  font-size: 1.12rem;
+  line-height: 1.62;
+  font-weight: 300;
+  color: #eaf7f5;
+}
+
+.nv-leg-mark {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin: 0 0 2rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--nv-line);
+  font-family: var(--nv-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  color: var(--nv-cyan);
+}
+
+.nv-leg-mark-cap {
+  color: var(--nv-faint);
+}
+
+/* ---- fault --------------------------------------------------------------- */
+
+.nv-fault-title {
+  margin: 0.9rem 0 1.2rem;
+  font-size: clamp(1.5rem, 2.6vw, 2rem);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  color: #eaf7f5;
+}
+
+.nv-fault-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  margin-top: 1.6rem;
+}
+
+.nv-fault-detail {
+  margin: 1.8rem 0 0;
+  padding-top: 1rem;
+  border-top: 1px solid var(--nv-line);
+  font-family: var(--nv-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  color: var(--nv-faint);
+  word-break: break-word;
+}
+
+/* ---- route strip ---------------------------------------------------------- */
+
+.nv-route {
+  grid-area: route;
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr) 13rem;
+  align-items: center;
+  gap: clamp(1rem, 3vw, 2.5rem);
+  padding: 0.8rem clamp(1.25rem, 3vw, 2.25rem) 0.95rem;
+  border-top: 1px solid var(--nv-line);
+  overflow: hidden;
+}
+
+.nv-route-leg,
+.nv-route-dest {
+  margin: 0;
+  font-family: var(--nv-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  font-variant-numeric: tabular-nums;
+  color: var(--nv-cyan);
+}
+
+.nv-route-of {
+  color: var(--nv-faint);
+}
+
+.nv-route-dest {
+  text-align: right;
+}
+
+.nv-route-dest-cap {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.58rem;
+  letter-spacing: 0.22em;
+  color: var(--nv-faint);
+}
+
+.nv-track {
+  position: relative;
+  height: 2.1rem;
+  min-width: 0;
+}
+
+.nv-track-base,
+.nv-track-run {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+}
+
+.nv-track-base {
+  background: repeating-linear-gradient(
+    to right,
+    var(--nv-line) 0 6px,
+    rgb(0 0 0 / 0) 6px 12px
+  );
+}
+
+.nv-track-run {
+  background: var(--nv-cyan-dim);
+  transform: scaleX(var(--p, 0));
+  transform-origin: left center;
+  transition: transform 1400ms var(--nv-ease);
+}
+
+.nv-sweep {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 14rem;
+  height: 1px;
+  background: linear-gradient(to right, rgb(70 224 200 / 0), rgb(70 224 200 / 0.5), rgb(70 224 200 / 0));
+  animation: nv-sweep 13s linear infinite;
+  opacity: 0.5;
+}
+
+.nv-wps {
+  position: absolute;
+  inset: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nv-wp {
+  position: relative;
+  width: 11px;
+  height: 11px;
+  border: 1px solid var(--nv-line-lit);
+  transform: rotate(45deg);
+  background: var(--nv-deep);
+}
+
+.nv-wp-core {
+  position: absolute;
+  inset: 2px;
+  background: var(--nv-cyan);
+  opacity: 0;
+  transition: opacity 900ms var(--nv-ease);
+}
+
+.nv-wp.is-lit .nv-wp-core {
+  opacity: 1;
+}
+
+.nv-sled {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  transform: translate3d(calc(var(--p, 0) * 100%), 0, 0);
+  transition: transform 1400ms var(--nv-ease);
+  pointer-events: none;
+}
+
+.nv-ship {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  color: var(--nv-cyan-soft);
+}
+
+.nv-ship svg {
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+  filter: drop-shadow(0 0 5px rgb(70 224 200 / 0.55));
+}
+
+/* ---- entrances ----------------------------------------------------------- */
+
+.nv-stagger {
+  animation: nv-arrive 620ms var(--nv-ease) both;
+  animation-delay: calc(var(--i, 0) * 90ms);
+}
+
+@keyframes nv-arrive {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes nv-veil {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes nv-wake {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes nv-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes nv-sweep {
+  from {
+    transform: translate3d(-15rem, 0, 0);
+  }
+  to {
+    transform: translate3d(calc(100% + 15rem), 0, 0);
+  }
+}
+
+/* ---- tablet -------------------------------------------------------------- */
+
+@media (max-width: 1000px) {
+  .nv-root {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'top'
+      'crew'
+      'main'
+      'route';
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+  }
+
+  .nv-crew {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 1.5rem;
+    padding: 1.1rem clamp(1.25rem, 3vw, 2.25rem);
+    border-right: 0;
+    border-bottom: 1px solid var(--nv-line);
+  }
+
+  .nv-crew > .nv-cap {
+    display: none;
+  }
+
+  .nv-crew-list {
+    flex-direction: row;
+    gap: 1.4rem;
+    flex-wrap: wrap;
+  }
+
+  .nv-crew-name {
+    font-size: 0.76rem;
+  }
+
+  .nv-comm {
+    margin: 0 0 0 auto;
+    min-height: 4.5rem;
+    max-width: 26rem;
+    padding: 0 0 0 1.5rem;
+    border-top: 0;
+    border-left: 1px solid var(--nv-line);
+  }
+
+  .nv-comm-line {
+    font-size: 0.8rem;
+  }
+
+  .nv-route {
+    grid-template-columns: 6rem minmax(0, 1fr);
+    row-gap: 0.8rem;
+  }
+
+  .nv-route-dest {
+    grid-column: 1 / -1;
+    text-align: left;
+  }
+
+  .nv-route-dest-cap {
+    display: inline;
+    margin: 0 0.6rem 0 0;
+  }
+}
+
+/* ---- reduced motion ------------------------------------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+  .nv-root *,
+  .nv-root *::before,
+  .nv-root *::after,
+  .nv-root {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+
+  .nv-sweep {
+    display: none;
+  }
+}

@@ -22,7 +22,8 @@
     "practice": "python3 scripts/check-practice.py 5181",
     "ui": "tsx packages/ui-contract/src/cli.ts",
     "planner": "vite --config vite.planner.config.ts",
-    "review": "vite --config vite.review.config.ts"
+    "review": "vite --config vite.review.config.ts",
+    "lab:character": "vite --config vite.lab-character.config.ts"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",

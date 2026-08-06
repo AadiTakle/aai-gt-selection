@@ -1,0 +1,1160 @@
+/* =============================================================================
+   HATCHLING — first light, a nest, and something small that wants your opinion.
+
+   ART DIRECTION. Dawn on paper. The whole surface is one warm wash from cream through peach into
+   apricot, with a low honey sun and three soft hills sitting behind everything. Every object is
+   drawn with a chunky darker outline and one soft highlight, the way a child's picture book is
+   drawn, and every corner radius is deliberately uneven so nothing reads as a rectangle a computer
+   made. There is a faint paper tooth over the entire world. There is no black anywhere: the darkest
+   ink is a warm brown. There are no drop shadows, no glass, no gradient buttons and no purple.
+
+   MOTION. One easing curve, `--hl-ease`, on everything. Transform and opacity only. Related things
+   stagger off `--i` rather than all starting together. The bay changes SIZE BY TRANSFORM and never
+   by grid track, because a question that reflows under a child's finger is a question they answer
+   by accident.
+
+   REDUCED MOTION. The global stylesheet clamps every animation to 1ms, which stops a one-shot but
+   makes an infinite one flicker. So the block at the bottom of this file switches the looping
+   animations off outright and restores the two affordances that were being carried by motion.
+
+   Everything here is prefixed `hl-`. The only unprefixed selectors are the shared drawing
+   primitives (`.cluster`, `.stage*`, `.btn-quiet`) reached INSIDE `.hl-stage`, so that the
+   questions and the missing-renderer notice arrive dressed for this world.
+   ============================================================================= */
+
+.hl-root {
+  --hl-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --hl-cream: #fdf3e3;
+  --hl-peach: #fbe1c2;
+  --hl-apricot: #f4c39c;
+  --hl-blush: #eaa382;
+  --hl-sun: #f4d58d;
+  --hl-honey: #e8b25c;
+  --hl-moss: #5f8f5a;
+  --hl-bark: #8d5f3c;
+  --hl-ink: #4a3529;
+
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  display: grid;
+  /* The bay track is DELIBERATELY small and constant. The nest looks big at the start because the
+     group is pushed down and scaled up into the empty stage, not because the track grows — a track
+     that changes size mid-world would reflow a question under a finger. */
+  grid-template-rows: auto clamp(190px, 26vh, 320px) minmax(0, 1fr) auto;
+  color: var(--hl-ink);
+  background:
+    linear-gradient(
+      180deg,
+      var(--hl-cream) 0%,
+      #fdead1 34%,
+      var(--hl-peach) 58%,
+      var(--hl-apricot) 84%,
+      #efb590 100%
+    );
+  font-family: ui-rounded, 'Nunito', 'Avenir Next', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* the paper tooth, over the scenery and under everything you can touch */
+.hl-root::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image: radial-gradient(rgb(122 84 52 / 0.055) 1px, transparent 1.3px);
+  background-size: 8px 8px;
+  opacity: 0.45;
+}
+
+/* ---- scenery ------------------------------------------------------------- */
+
+.hl-sky,
+.hl-hills {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.hl-sky {
+  inset: 0;
+  overflow: hidden;
+}
+
+.hl-glow {
+  position: absolute;
+  left: 50%;
+  bottom: 14%;
+  width: 170vmax;
+  height: 100vmax;
+  transform: translate(-50%, 34%);
+  background: radial-gradient(closest-side, rgb(246 216 150 / 0.62), rgb(246 216 150 / 0));
+}
+
+/* It starts just above the hill line, so it reads as a sun that has only just come up. */
+.hl-sundisc {
+  position: absolute;
+  right: 4%;
+  top: 0;
+  width: min(300px, 46vw);
+  opacity: 0.75;
+  transform: translateY(62vh);
+  transition:
+    transform 2800ms var(--hl-ease),
+    opacity 2800ms var(--hl-ease);
+}
+
+.hl-root[data-sun='high'] .hl-sundisc {
+  opacity: 1;
+  transform: translateY(6vh) scale(1.16);
+}
+
+.hl-mote {
+  position: absolute;
+  left: var(--x);
+  bottom: -3vh;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #fff6e2;
+  opacity: 0;
+  animation: hl-mote var(--dur) linear var(--d) infinite;
+}
+
+.hl-hills {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: clamp(170px, 27vh, 340px);
+  width: 100%;
+}
+
+/* ---- the two faint controls that belong to the adult, not the child ------ */
+
+.hl-top {
+  z-index: 4;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 clamp(0.25rem, 1.5vw, 1rem);
+}
+
+.hl-quiet {
+  all: unset;
+  cursor: pointer;
+  width: 88px;
+  height: 88px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  opacity: 0.26;
+  transition:
+    opacity 260ms var(--hl-ease),
+    transform 260ms var(--hl-ease);
+}
+
+.hl-quiet:hover,
+.hl-quiet:focus-visible {
+  opacity: 0.85;
+  transform: scale(1.06);
+}
+
+.hl-quiet svg {
+  width: 34px;
+  height: 34px;
+}
+
+/* ---- the bay: nest, egg, creature ---------------------------------------- */
+
+.hl-bay {
+  position: relative;
+  z-index: 3;
+}
+
+.hl-bayinner {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: min(410px, 78vw);
+  height: 100%;
+  transform: translateX(-50%);
+  transform-origin: 50% 100%;
+  transition: transform 940ms var(--hl-ease);
+}
+
+/* Before it opens, the egg drops down into the middle of the screen and owns it entirely. */
+.hl-root[data-stage='nest'] .hl-bayinner,
+.hl-root[data-stage='hatch'] .hl-bayinner {
+  transform: translateX(-50%) translateY(112%) scale(1.18);
+}
+
+/* Once there is a question, it steps back and becomes a face that is watching. */
+.hl-root[data-stage='play'] .hl-bayinner {
+  transform: translateX(-50%) scale(0.66);
+}
+
+.hl-root[data-stage='grown'] .hl-bayinner {
+  transform: translateX(-50%) translateY(16%) scale(0.86);
+}
+
+.hl-root[data-stage='trouble'] .hl-bayinner {
+  transform: translateX(-50%) translateY(20%) scale(0.8);
+}
+
+/* The nest's own proportions, so anything sitting in the nest is placed against the NEST and not
+   against a screen whose shape it cannot know. */
+.hl-cradle {
+  position: absolute;
+  left: 1%;
+  right: 1%;
+  bottom: 0;
+  aspect-ratio: 320 / 180;
+}
+
+/* nothing lives over the egg while the egg is the only thing to do */
+.hl-root[data-stage='nest'] .hl-stagewrap,
+.hl-root[data-stage='hatch'] .hl-stagewrap {
+  pointer-events: none;
+}
+
+.hl-nest {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.hl-nest-back {
+  z-index: 0;
+}
+
+.hl-nest-front {
+  z-index: 2;
+}
+
+/* ---- the egg ------------------------------------------------------------- */
+
+/* Sized and placed as a fraction of the cradle, so the egg sits in the weave at every scale. */
+.hl-egg {
+  all: unset;
+  cursor: pointer;
+  position: absolute;
+  left: 50%;
+  bottom: 19%;
+  z-index: 1;
+  width: 58%;
+  aspect-ratio: 1;
+  transform: translateX(-50%);
+  border-radius: 50% 50% 46% 46%;
+}
+
+.hl-egg:disabled {
+  cursor: default;
+}
+
+.hl-egg-svg {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* three rings breathing outward: the whole of "this is the thing to touch" */
+.hl-ring {
+  position: absolute;
+  left: 50%;
+  top: 56%;
+  width: 62%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 3px solid rgb(141 95 60 / 0.42);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.9);
+  animation: hl-ring 3400ms var(--hl-ease) infinite;
+}
+
+.hl-ring-2 {
+  animation-delay: 900ms;
+}
+
+.hl-ring-3 {
+  animation-delay: 1800ms;
+}
+
+.hl-root:not([data-stage='nest']) .hl-ring {
+  animation: none;
+  opacity: 0;
+}
+
+.hl-egg-rock {
+  transform-box: fill-box;
+  transform-origin: 50% 92%;
+}
+
+.hl-egg-svg[data-beat='0'] .hl-egg-rock {
+  animation: hl-rock 3600ms var(--hl-ease) infinite;
+}
+
+.hl-egg-svg[data-beat='1'] .hl-egg-rock {
+  animation: hl-jolt 520ms var(--hl-ease) both;
+}
+
+.hl-egg-shell {
+  opacity: 1;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition:
+    opacity 620ms var(--hl-ease),
+    transform 620ms var(--hl-ease);
+}
+
+.hl-crack path {
+  fill: none;
+  stroke: #a6784c;
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scale(0.7);
+  transition:
+    opacity 320ms var(--hl-ease),
+    transform 320ms var(--hl-ease);
+}
+
+.hl-egg-svg[data-beat='2'] .hl-crack-a,
+.hl-egg-svg[data-beat='3'] .hl-crack-a,
+.hl-egg-svg[data-beat='3'] .hl-crack-b,
+.hl-egg-svg[data-beat='3'] .hl-crack-c,
+.hl-egg-svg[data-beat='4'] .hl-crack-a,
+.hl-egg-svg[data-beat='4'] .hl-crack-b,
+.hl-egg-svg[data-beat='4'] .hl-crack-c {
+  opacity: 1;
+  transform: none;
+}
+
+.hl-egg-svg[data-beat='3'] .hl-crack-b {
+  transition-delay: 90ms;
+}
+
+.hl-egg-svg[data-beat='3'] .hl-crack-c {
+  transition-delay: 190ms;
+}
+
+.hl-egg-svg[data-beat='4'] .hl-egg-shell {
+  opacity: 0;
+  transform: scale(1.08);
+}
+
+.hl-piece {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.hl-egg-svg[data-beat='4'] .hl-piece-l {
+  animation: hl-fly-l 900ms var(--hl-ease) both;
+}
+
+.hl-egg-svg[data-beat='4'] .hl-piece-r {
+  animation: hl-fly-r 900ms 70ms var(--hl-ease) both;
+}
+
+/* ---- the creature -------------------------------------------------------- */
+
+.hl-crwrap {
+  position: absolute;
+  left: 50%;
+  bottom: 15%;
+  z-index: 1;
+  width: 56%;
+  transform: translateX(-50%);
+  animation: hl-emerge 1000ms var(--hl-ease) both;
+}
+
+.hl-cr {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  transform-origin: 50% 100%;
+  transition: transform 1400ms var(--hl-ease);
+}
+
+/* It grew. The only place in this world where anything gets bigger.
+   Deliberately on the svg rather than on .hl-crwrap: the wrapper's transform belongs to the
+   emerge animation, and an animation with a fill mode would win over this every time. */
+.hl-root[data-stage='grown'] .hl-cr {
+  transform: scale(1.16);
+}
+
+.hl-cr-breathe {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: hl-breathe 4400ms var(--hl-ease) infinite;
+}
+
+.hl-cr[data-mood='sleep'] .hl-cr-breathe {
+  animation: hl-breathe 7200ms var(--hl-ease) infinite;
+}
+
+.hl-cr-sprout {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: hl-sway 5200ms var(--hl-ease) infinite;
+}
+
+.hl-cr-sprout2 {
+  opacity: 0;
+  transition: opacity 900ms 500ms var(--hl-ease);
+}
+
+.hl-cr[data-grown='yes'] .hl-cr-sprout2 {
+  opacity: 1;
+}
+
+/* THE GAZE. This is the instruction, so it moves slowly enough to be watched. */
+.hl-cr-pupils {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 560ms var(--hl-ease);
+}
+
+.hl-cr[data-gaze='child'] .hl-cr-pupils {
+  transform: translate(0, -2px);
+}
+
+.hl-cr[data-gaze='down'] .hl-cr-pupils {
+  transform: translate(0, 7px);
+}
+
+.hl-cr-lids {
+  transform-box: fill-box;
+  transform-origin: 50% 0%;
+  transform: scaleY(0);
+  animation: hl-blink 6400ms var(--hl-ease) infinite;
+}
+
+.hl-cr[data-mood='sleep'] .hl-cr-lids {
+  animation: none;
+  transform: scaleY(0.86);
+}
+
+.hl-cr-mouth-calm,
+.hl-cr-mouth-open {
+  transition: opacity 240ms var(--hl-ease);
+}
+
+.hl-cr-mouth-open {
+  opacity: 0;
+}
+
+.hl-cr[data-mood='delight'] .hl-cr-mouth-open {
+  opacity: 1;
+}
+
+.hl-cr[data-mood='delight'] .hl-cr-mouth-calm {
+  opacity: 0;
+}
+
+.hl-cr-wing {
+  transform-box: fill-box;
+}
+
+.hl-cr-wing-l {
+  transform-origin: 100% 10%;
+}
+
+.hl-cr-wing-r {
+  transform-origin: 0% 10%;
+}
+
+.hl-cr[data-mood='delight'] .hl-cr-wing-l {
+  animation: hl-flap 460ms var(--hl-ease) 3;
+}
+
+.hl-cr[data-mood='delight'] .hl-cr-wing-r {
+  animation: hl-flap-r 460ms var(--hl-ease) 3;
+}
+
+/* the four reactions, one per tap in rotation, so it never repeats itself twice running */
+.hl-root[data-react='bounce'] .hl-cr-breathe {
+  animation: hl-bounce 640ms var(--hl-ease) 2;
+}
+
+.hl-root[data-react='wiggle'] .hl-cr-breathe {
+  animation: hl-wiggle 720ms var(--hl-ease) 2;
+}
+
+.hl-root[data-react='perk'] .hl-cr-breathe {
+  animation: hl-perk 840ms var(--hl-ease) 1;
+}
+
+.hl-root[data-react='hop'] .hl-cr-breathe {
+  animation: hl-hop 600ms var(--hl-ease) 2;
+}
+
+/* petals thrown up by the reaction */
+.hl-burst {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hl-petal {
+  position: absolute;
+  left: 50%;
+  top: 34%;
+  width: 15px;
+  height: 22px;
+  margin: -11px 0 0 -7px;
+  border-radius: 62% 62% 38% 38%;
+  background: var(--hl-sun);
+  opacity: 0;
+  animation: hl-petal 1100ms var(--hl-ease) both;
+  animation-delay: calc(var(--i) * 44ms);
+}
+
+.hl-petal:nth-child(3n) {
+  background: #e79ab0;
+}
+
+.hl-petal:nth-child(3n + 2) {
+  background: #a8cf8a;
+}
+
+/* ---- the stage ----------------------------------------------------------- */
+
+/* Flex plus `margin-block: auto` rather than `place-items: center`, because a centred grid item
+   taller than its container is clipped at the TOP and cannot be scrolled back to. This centres when
+   there is room and scrolls honestly when there is not. */
+.hl-stagewrap {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0 clamp(0.75rem, 3.5vw, 2rem) clamp(0.25rem, 1vh, 0.75rem);
+  overflow-y: auto;
+}
+
+.hl-panel {
+  width: 100%;
+  max-width: 44rem;
+  margin: auto;
+  animation: hl-in 680ms var(--hl-ease) both;
+}
+
+/* The question, wearing this world's clothes: warm paper, an uneven hand-cut edge, no shadow. */
+.hl-stage {
+  padding: clamp(0.75rem, 2.4vw, 1.6rem);
+  border-radius: 30px 26px 32px 24px;
+  border: 2px solid rgb(141 95 60 / 0.22);
+  background: rgb(255 250 240 / 0.74);
+}
+
+/* Every option in every question, reupholstered. Warm paper, a hand-cut edge, an outline instead of
+   a shadow. Two classes deep so it survives the renderers' own `all: unset`. */
+.hl-root .hl-stage button {
+  background: #fffaf0;
+  border: 2px solid rgb(141 95 60 / 0.28);
+  box-shadow: none;
+  color: var(--hl-ink);
+}
+
+.hl-root .hl-stage button:hover {
+  background: #fff6e6;
+  border-color: rgb(141 95 60 / 0.5);
+}
+
+/* PROSE INSIDE A QUESTION IS FOR THE ADULT. A renderer's prompt is a headline in its own house and
+   would be the one thing on this screen a five-year-old was expected to read, so it is demoted to
+   the same weight and colour as the note in the footer. Nothing is removed: an adult can still read
+   it, and the item stays answerable from the pictures either way. */
+.hl-root .hl-stage p,
+.hl-root .hl-stage h1,
+.hl-root .hl-stage h2,
+.hl-root .hl-stage h3,
+.hl-root .hl-stage figcaption {
+  font-size: clamp(0.68rem, 1.4vw, 0.8rem);
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0;
+  color: rgb(74 53 41 / 0.5);
+}
+
+/* Anything tappable inside a question is sized for a five-year-old's hand, whatever the renderer
+   thinks. Two classes deep so it survives an `all: unset` in the renderer's own stylesheet. */
+.hl-root .hl-stage button {
+  min-inline-size: 88px;
+  min-block-size: 88px;
+  border-radius: 20px 18px 22px 16px;
+  transition:
+    transform 260ms var(--hl-ease),
+    background 260ms var(--hl-ease);
+}
+
+.hl-root .hl-stage button:hover {
+  transform: translateY(-3px);
+}
+
+.hl-root .hl-stage button:focus-visible {
+  outline: 4px solid var(--hl-ink);
+  outline-offset: 5px;
+}
+
+.hl-root .hl-stage svg {
+  max-width: 100%;
+}
+
+/* the shared missing-renderer notice, so a type nobody has drawn yet still lands warmly */
+.hl-root .hl-stage .stage-missing {
+  border: 2px dashed rgb(141 95 60 / 0.3);
+  border-radius: 26px 22px 28px 20px;
+  color: var(--hl-ink);
+}
+
+.hl-root .hl-stage .stage-missing-detail {
+  font-size: 0.66rem;
+  opacity: 0.5;
+}
+
+.hl-root .hl-stage .btn-quiet {
+  background: var(--hl-sun);
+  border: 2px solid rgb(141 95 60 / 0.35);
+  font-weight: 700;
+}
+
+/* ---- the ending, and the way out ---------------------------------------- */
+
+.hl-end {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: clamp(0.5rem, 2vh, 1.5rem) 0;
+}
+
+.hl-bloomring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+.hl-bloompetal {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 22px;
+  height: 34px;
+  margin: -17px 0 0 -11px;
+  border-radius: 62% 62% 38% 38%;
+  background: var(--hl-sun);
+  opacity: 0;
+  animation: hl-bloom 1600ms var(--hl-ease) both;
+  animation-delay: calc(var(--i) * 70ms);
+}
+
+.hl-bloompetal:nth-child(4n) {
+  background: #e79ab0;
+}
+
+.hl-bloompetal:nth-child(4n + 2) {
+  background: #a8cf8a;
+}
+
+.hl-bloompetal:nth-child(4n + 3) {
+  background: var(--hl-honey);
+}
+
+.hl-big {
+  all: unset;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: min(230px, 58vw);
+  min-height: 108px;
+  border-radius: 50% 50% 44% 44%;
+  animation: hl-invite 3600ms var(--hl-ease) 1200ms infinite;
+}
+
+.hl-big svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* ---- the sprig, and the only prose here --------------------------------- */
+
+.hl-foot {
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: clamp(0.75rem, 3vw, 2rem);
+  padding: 0 clamp(1rem, 4vw, 2rem) clamp(0.75rem, 2vh, 1.5rem);
+}
+
+.hl-sprig {
+  flex: 0 0 auto;
+  width: clamp(78px, 10vw, 112px);
+  height: auto;
+  overflow: visible;
+}
+
+.hl-sprig-leaf {
+  /* 0 0 is this group's own attach point on the stem, because the placement lives on its parent. */
+  transform-origin: 0 0;
+  animation: hl-leafin 760ms var(--hl-ease) both;
+  animation-delay: calc(var(--i) * 60ms);
+}
+
+.hl-sprig-bloom {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: hl-bloomin 900ms var(--hl-ease) 400ms both;
+}
+
+.hl-adult {
+  margin: 0;
+  flex: 1 1 auto;
+  max-width: 52ch;
+  font-size: clamp(0.66rem, 1.35vw, 0.78rem);
+  line-height: 1.55;
+  color: rgb(74 53 41 / 0.52);
+}
+
+.hl-detail {
+  opacity: 0.7;
+}
+
+.hl-inline {
+  all: unset;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font: inherit;
+  color: inherit;
+}
+
+.hl-panel .hl-adult {
+  margin-top: 1.5rem;
+  text-align: center;
+  max-width: 40ch;
+  margin-inline: auto;
+}
+
+/* ---- focus, everywhere, and visibly ------------------------------------- */
+
+.hl-egg:focus-visible,
+.hl-big:focus-visible {
+  outline: 4px solid var(--hl-ink);
+  outline-offset: 10px;
+}
+
+.hl-quiet:focus-visible,
+.hl-inline:focus-visible {
+  outline: 3px solid var(--hl-ink);
+  outline-offset: 4px;
+}
+
+/* ---- landscape, which is also what a laptop is -------------------------- */
+
+@media (orientation: landscape) {
+  .hl-root {
+    grid-template-columns: minmax(0, 40%) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+
+  .hl-top {
+    grid-area: 1 / 1 / 2 / 3;
+  }
+
+  .hl-bay {
+    grid-area: 2 / 1 / 3 / 2;
+  }
+
+  .hl-stagewrap {
+    grid-area: 2 / 2 / 3 / 3;
+  }
+
+  .hl-foot {
+    grid-area: 3 / 1 / 4 / 3;
+  }
+
+  /* while the egg is the only thing happening it gets the whole width */
+  .hl-root[data-stage='nest'] .hl-bay,
+  .hl-root[data-stage='hatch'] .hl-bay {
+    grid-area: 2 / 1 / 3 / 3;
+  }
+
+  /* Landscape gives the bay a tall column of its own, so the group CENTRES in it rather than
+     hanging off the bottom edge. The aspect ratio is the cradle's plus the room the egg needs
+     above it, because the cradle is absolutely positioned and cannot give the bay a height. */
+  .hl-bayinner {
+    top: 50%;
+    bottom: auto;
+    height: auto;
+    aspect-ratio: 320 / 296;
+    width: min(340px, 32vw);
+    transform: translate(-50%, -50%);
+    transform-origin: 50% 50%;
+  }
+
+  .hl-root[data-stage='nest'] .hl-bayinner,
+  .hl-root[data-stage='hatch'] .hl-bayinner {
+    width: min(420px, 46vh);
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  .hl-root[data-stage='play'] .hl-bayinner,
+  .hl-root[data-stage='grown'] .hl-bayinner,
+  .hl-root[data-stage='trouble'] .hl-bayinner {
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* a laptop is short as well as wide, so the bay gives up more of it */
+@media (orientation: landscape) and (max-height: 720px) {
+  .hl-bayinner {
+    width: min(270px, 26vw);
+  }
+
+  .hl-root[data-stage='nest'] .hl-bayinner,
+  .hl-root[data-stage='hatch'] .hl-bayinner {
+    width: min(340px, 42vh);
+  }
+}
+
+/* ---- keyframes ---------------------------------------------------------- */
+
+@keyframes hl-rock {
+  0%,
+  100% {
+    transform: rotate(-3deg);
+  }
+  50% {
+    transform: rotate(3deg);
+  }
+}
+
+@keyframes hl-jolt {
+  0% {
+    transform: scale(1, 1);
+  }
+  30% {
+    transform: scale(1.09, 0.9) rotate(-2deg);
+  }
+  60% {
+    transform: scale(0.94, 1.07) rotate(3deg);
+  }
+  100% {
+    transform: scale(1, 1);
+  }
+}
+
+@keyframes hl-fly-l {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-48px, -34px) rotate(-46deg);
+  }
+}
+
+@keyframes hl-fly-r {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(52px, -28px) rotate(52deg);
+  }
+}
+
+@keyframes hl-emerge {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(16%) scale(0.34);
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+@keyframes hl-breathe {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  50% {
+    transform: scale(1.022, 0.984);
+  }
+}
+
+@keyframes hl-blink {
+  0%,
+  93% {
+    transform: scaleY(0);
+  }
+  95.5% {
+    transform: scaleY(1);
+  }
+  98%,
+  100% {
+    transform: scaleY(0);
+  }
+}
+
+@keyframes hl-sway {
+  0%,
+  100% {
+    transform: rotate(-4deg);
+  }
+  50% {
+    transform: rotate(4deg);
+  }
+}
+
+@keyframes hl-flap {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(26deg);
+  }
+}
+
+@keyframes hl-flap-r {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-26deg);
+  }
+}
+
+@keyframes hl-bounce {
+  0%,
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+  35% {
+    transform: translateY(-9%) scale(0.97, 1.05);
+  }
+  70% {
+    transform: translateY(0) scale(1.05, 0.95);
+  }
+}
+
+@keyframes hl-wiggle {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-5deg);
+  }
+  60% {
+    transform: rotate(5deg);
+  }
+}
+
+@keyframes hl-perk {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  40% {
+    transform: translateY(-5%) scale(1.06);
+  }
+}
+
+@keyframes hl-hop {
+  0%,
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+  20% {
+    transform: translateY(2%) scale(1.06, 0.93);
+  }
+  55% {
+    transform: translateY(-13%) scale(0.95, 1.07);
+  }
+  85% {
+    transform: translateY(0) scale(1.03, 0.97);
+  }
+}
+
+@keyframes hl-petal {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--a)) translateY(0) scale(0.4);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--a)) translateY(-118px) scale(0.9);
+  }
+}
+
+@keyframes hl-bloom {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--a)) translateY(0) scale(0.3);
+  }
+  40% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0.55;
+    transform: rotate(var(--a)) translateY(-138px) scale(1);
+  }
+}
+
+@keyframes hl-in {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes hl-leafin {
+  0% {
+    opacity: 0;
+    transform: scale(0.2) rotate(-14deg);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes hl-bloomin {
+  0% {
+    opacity: 0;
+    transform: scale(0.2) rotate(-40deg);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes hl-ring {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.86);
+  }
+  22% {
+    opacity: 0.75;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.5);
+  }
+}
+
+@keyframes hl-invite {
+  0%,
+  72%,
+  100% {
+    transform: scale(1);
+  }
+  82% {
+    transform: scale(1.055);
+  }
+}
+
+@keyframes hl-mote {
+  0% {
+    opacity: 0;
+    transform: translateY(0) translateX(0);
+  }
+  14% {
+    opacity: 0.75;
+  }
+  86% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-70vh) translateX(26px);
+  }
+}
+
+/* =============================================================================
+   REDUCED MOTION.
+
+   The global sheet clamps durations to 1ms, which is correct for a one-shot and wrong for a loop —
+   a 1ms infinite animation strobes. So every loop is switched off outright here, and the two
+   affordances that were being carried by motion are restored as static state: the egg keeps one
+   visible ring, and the exit leaf stops pulsing but stays the only large thing on the screen.
+   ============================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .hl-root .hl-mote,
+  .hl-root .hl-ring,
+  .hl-root .hl-egg-rock,
+  .hl-root .hl-cr-breathe,
+  .hl-root .hl-cr-sprout,
+  .hl-root .hl-cr-lids,
+  .hl-root .hl-cr-wing,
+  .hl-root .hl-big,
+  .hl-root .hl-petal,
+  .hl-root .hl-bloompetal,
+  .hl-root .hl-piece,
+  .hl-root .hl-crwrap,
+  .hl-root .hl-panel,
+  .hl-root .hl-sprig-leaf,
+  .hl-root .hl-sprig-bloom {
+    animation: none !important;
+  }
+
+  .hl-root .hl-cr-lids {
+    transform: scaleY(0);
+  }
+
+  .hl-root .hl-crwrap,
+  .hl-root .hl-panel,
+  .hl-root .hl-sprig-leaf,
+  .hl-root .hl-sprig-bloom {
+    opacity: 1;
+  }
+
+  .hl-root .hl-crwrap {
+    transform: translateX(-50%);
+  }
+
+  .hl-root[data-stage='nest'] .hl-ring-2 {
+    opacity: 0.55;
+    transform: translate(-50%, -50%) scale(1.14);
+  }
+
+  .hl-root .hl-bayinner,
+  .hl-root .hl-sundisc,
+  .hl-root .hl-cr-pupils {
+    transition-duration: 1ms;
+  }
+}
