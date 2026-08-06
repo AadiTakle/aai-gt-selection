@@ -24,6 +24,7 @@
       "@gt/stats": ["packages/stats/src/index.ts"],
       "@gt/practice": ["packages/practice/src/index.ts"],
       "@gt/qbank": ["packages/qbank/src/index.ts"],
+      "@gt/ui-contract": ["packages/ui-contract/src/index.ts"],
       "@gt/qbank/server": ["packages/qbank/src/server.ts"]
     }
   },

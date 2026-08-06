@@ -13,6 +13,18 @@ lives in `archive/`; nothing here supersedes it, because it is no longer running
 3. **`concepts/reading-channel-measurement.md`** — a design note for one contested idea, kept because
    its failure analysis is the useful part.
 
+## Design
+
+4. **`design/screener-library-design.md`** — the item library and engine the screener runs on, organised
+   around one boundary: authoring is mutable, serving is immutable.
+5. **`design/ui-agnostic-assessment-system.md`** — the plan for making the engines, question types and
+   banks carrier-independent and CogAT-aligned. An item states what it asks, what the choices are and
+   how it is answered; a UI decides everything else. Section 5 has the audited CogAT mapping, including
+   which subtests we cannot currently serve at all.
+6. **`design/embedded-screening-contexts.md`** — thirty example apps across the interest areas K-8
+   children actually spend time on, organised around the eight mechanics that already *are* CogAT item
+   forms rather than themes bolted onto a quiz.
+
 ## Status of everything here
 
 Exploratory. No concept has been chosen, no design approved, and no requirement or decision register

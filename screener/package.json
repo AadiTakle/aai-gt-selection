@@ -19,7 +19,8 @@
     "sim": "tsx packages/engine/src/harness/run-simulation.ts",
     "verify": "npm run typecheck && npm run test && npm run sim && npm run smoke",
     "smoke": "bash scripts/smoke.sh",
-    "practice": "python3 scripts/check-practice.py 5181"
+    "practice": "python3 scripts/check-practice.py 5181",
+    "ui": "tsx packages/ui-contract/src/cli.ts"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
