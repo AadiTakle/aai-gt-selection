@@ -80,7 +80,6 @@ const SENTENCE_COMPLETION: readonly ShowcaseType[] = [
 const QUANT_PATTERN: readonly ShowcaseType[] = [
   { typeCode: 'QUANT-SERIES-01', title: 'Pattern Steps', family: 'quantPattern' },
   { typeCode: 'QUANT-FUNC-01', title: 'Machine Rule', family: 'quantPattern' },
-  { typeCode: 'QUANT-GLYPHNUM-01', title: 'Alien Numbers', family: 'quantPattern' },
 ];
 
 export const SHOWCASE_TYPES: readonly ShowcaseType[] = [
@@ -108,6 +107,10 @@ export const HELD_BACK: readonly { readonly typeCode: string; readonly title: st
   { typeCode: 'QUANT-MIX-01', title: 'Fair Share', why: 'arithmetic word problem, not a pattern' },
   { typeCode: 'QUANT-WORD-01', title: 'Story Model', why: 'arithmetic word problem, not a pattern' },
   { typeCode: 'QUANT-GRAPH-01', title: 'Story Graph', why: 'graph reading, not a pattern' },
+  // A genuine numeric-pattern construct, but it is answered by placing a mark on a line and marked
+  // against a tolerance around a target ratio, and that rule is not implemented. Until it is, the
+  // item cannot be marked, so it must not be served.
+  { typeCode: 'QUANT-GLYPHNUM-01', title: 'Alien Numbers', why: 'needs tolerance scoring, which is unimplemented' },
 
   // Clue-hunting. The difficulty is holding a list of constraints in mind while reading, so it measures
   // reading and working memory and calls the result reasoning.

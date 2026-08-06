@@ -50,6 +50,27 @@ describe('an index key marks correctly', () => {
   });
 });
 
+describe('a numeric key that is not an option index is refused', () => {
+  it('does not treat a placement ratio as an index', () => {
+    // QUANT-GLYPHNUM-01 declares deterministic_key and stores a target ratio like 0.235294, to be
+    // marked against a tolerance. Truncating that to an index marks option 0 correct on every item in
+    // the bank and everything else wrong, scored and counted, with nothing on the surface to show it.
+    const item = firstItem('QUANT-GLYPHNUM-01');
+    expect(Number.isInteger(item.answer.correctKey)).toBe(false);
+    expect(scoreResponse(item, { selectedIndex: 0 })).toBeNull();
+    expect(scoreResponse(item, { selectedIndex: 1 })).toBeNull();
+  });
+
+  it('keeps such a type out of the servable pool entirely', () => {
+    expect(loadBanks().get('QUANT-GLYPHNUM-01')?.scorable.length ?? 0).toBe(0);
+  });
+
+  it('refuses a fractional response against a whole key', () => {
+    const item = firstItem('VER-RELPAIR-01');
+    expect(scoreResponse(item, { selectedIndex: 1.5 })).toBeNull();
+  });
+});
+
 describe('the two key styles never cross', () => {
   it('does not mark a letter response against an index key', () => {
     const indexKeyed = firstItem('VER-RELPAIR-01');

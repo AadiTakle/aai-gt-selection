@@ -132,6 +132,14 @@ export function loadBanks(dir: string = BANK_DIR): Map<string, LoadedBank> {
         excluded['no-key'] = (excluded['no-key'] ?? 0) + 1;
         continue;
       }
+      // A numeric key has to be a whole option index. QUANT-GLYPHNUM-01 declares deterministic_key
+      // but stores a placement RATIO (0.235294) to be marked against a tolerance, and that rule is
+      // not implemented here. Truncating it to an index would mark the first option correct on every
+      // item and everything else wrong, which is the failure that looks healthiest from outside.
+      if (typeof key === 'number' && (!Number.isInteger(key) || key < 0)) {
+        excluded['non-index-numeric-key'] = (excluded['non-index-numeric-key'] ?? 0) + 1;
+        continue;
+      }
       if (typeof record.difficulty !== 'number') {
         excluded['no-difficulty'] = (excluded['no-difficulty'] ?? 0) + 1;
         continue;
@@ -178,9 +186,12 @@ export function scoreResponse(record: BankRecord, response: unknown): boolean | 
    * currently returns, and invisible from the outside.
    */
   if (typeof expected === 'number') {
+    // Only a whole, non-negative key is an option index. A fractional one belongs to a scoring rule
+    // this function does not implement, and guessing at it would mark confidently and wrongly.
+    if (!Number.isInteger(expected) || expected < 0) return null;
     const picked = body?.selectedIndex ?? body?.index ?? (typeof response === 'number' ? response : undefined);
-    if (typeof picked !== 'number' || !Number.isFinite(picked)) return null;
-    return Math.trunc(picked) === Math.trunc(expected);
+    if (typeof picked !== 'number' || !Number.isInteger(picked) || picked < 0) return null;
+    return picked === expected;
   }
 
   if (typeof expected !== 'string') return null;
