@@ -9,6 +9,7 @@
     "typecheck": "npm --prefix screener run typecheck",
     "dev": "npm --prefix screener run dev",
     "sim": "npm --prefix screener run sim",
-    "verify": "npm --prefix screener run verify"
+    "verify": "npm --prefix screener run verify",
+    "review": "npm --prefix screener run review"
   }
 }
