@@ -3,9 +3,19 @@
  *
  * WHAT THE ITEM SAYS. `target` is the load already sitting on the left pan. `examples` are the
  * exchange rates the child is given, each one `{left:[one shape], right:[two or three shapes]}`, i.e.
- * "one triangle weighs the same as three cubes". `shapes` lists the vocabulary in play (`cube`, `orb`,
- * `diamond`, `triangle` in this bank; `orb` has no primitive of its own and falls back to the circle,
- * which is exactly what an orb should look like). Each option carries a `load` to put on the right pan.
+ * "one triangle weighs the same as three cubes". `shapes` lists the vocabulary in play — `cube`, `orb`,
+ * `diamond`, `triangle` in this bank. Each option carries a `load` to put on the right pan. Nothing in
+ * the item says which shape is heavier: that only comes from the examples, so all four shapes are drawn
+ * the same size and are told apart by silhouette and ink.
+ *
+ * EVERY PIECE IS THE WORLD'S OWN. The weights go through `Glyph` with the skin threaded through, so what
+ * sits on the pan is whatever that world weighs: an egg, a core stone, a plain geometric cube where a
+ * world has nothing to say. `orb` is the one name that needs help getting there — see `SHAPE_ALIAS`.
+ *
+ * SIZE IS PINNED IN CSS, NOT BY COUNT. `--qb-piece` and its two siblings fix the drawn size of a piece
+ * per context, so a load of two and a load of five are the same shapes at the same size in different
+ * numbers. That is the same protection `cols` gives a `Cluster`, and it matters for the same reason: a
+ * pan whose pieces grew as the load shrank would let a child weigh by size instead of by the rules.
  *
  * THE BEAM NEVER TILTS. A beam that dips towards the heavier side is a marking scheme drawn as
  * furniture: it would tell the child, before the server ever answers, whether the load they are
@@ -30,20 +40,45 @@ interface Example {
   right: string[];
 }
 
-/** A stable ink per shape name, so a shape means the same thing in the rules, the pan and the options. */
+/**
+ * A stable ink per shape name, so a shape means the same thing in the rules, on the pan and in the
+ * options.
+ *
+ * The names are the shared palette's own (`teal, ink, violet, blue, gold, coral`); anything else
+ * resolves to teal, and two shape names sharing a fill is what makes a weight rule unreadable. This
+ * bank uses four shapes at once (`cube`, `orb`, `diamond`, `triangle`), so four of the six are spoken
+ * for and the rest are here for a bank that adds one.
+ */
+const FALLBACK_INK = 'teal';
+
+/**
+ * `orb` is not in the shared vocabulary, and that costs it the skin unless it is asked for by a name
+ * that is.
+ *
+ * `Glyph` asks the skin about the RAW name first and only folds an unknown one down to a primitive
+ * afterwards, so `orb` reached `skin.draw('orb')`, which no world dresses, and came back as a bare
+ * geometric disc sitting among that world's own marks — on the same pan, in the same item. Asking for
+ * `dot` instead gets the world's own small round thing, which is what an orb wants to be. Everything
+ * else this bank weighs (`cube`, `diamond`, `triangle`) is in the vocabulary and goes through untouched.
+ *
+ * The ink stays keyed on the bank's own name, so an alias can never quietly merge two weights into one
+ * colour.
+ */
+const SHAPE_ALIAS: Record<string, string> = { orb: 'dot' };
+
 const SHAPE_INK: Record<string, string> = {
-  cube: 'indigo',
+  cube: 'blue',
   orb: 'teal',
   diamond: 'violet',
-  triangle: 'amber',
-  square: 'slate',
+  triangle: 'gold',
+  square: 'coral',
   circle: 'teal',
-  star: 'crimson',
-  pentagon: 'rose',
-  hexagon: 'lime',
+  star: 'gold',
+  pentagon: 'coral',
+  hexagon: 'ink',
 };
 
-const SPARE_INKS = ['teal', 'crimson', 'amber', 'indigo', 'violet', 'lime', 'slate', 'rose'];
+const SPARE_INKS = ['teal', 'blue', 'violet', 'gold', 'coral', 'ink'];
 
 function asRecord(v: unknown): Record<string, unknown> {
   return v && typeof v === 'object' ? (v as Record<string, unknown>) : {};
@@ -88,7 +123,7 @@ function inkFor(shape: string, vocabulary: string[]): string {
   const named = SHAPE_INK[shape];
   if (named) return named;
   const i = vocabulary.indexOf(shape);
-  return SPARE_INKS[(i < 0 ? 0 : i) % SPARE_INKS.length] ?? 'teal';
+  return SPARE_INKS[(i < 0 ? 0 : i) % SPARE_INKS.length] ?? FALLBACK_INK;
 }
 
 /** "two triangles and one cube", for the option's aria-label. */
@@ -116,7 +151,11 @@ function Load({
     <span className={className} aria-hidden="true">
       {load.map((shape, i) => (
         <span className="qb-piece" key={`${shape}-${i}`} style={{ '--i': i } as CSSProperties}>
-          <Glyph shape={shape} color={inkFor(shape, vocabulary)} skin={skin} />
+          <Glyph
+            shape={SHAPE_ALIAS[shape] ?? shape}
+            color={inkFor(shape, vocabulary)}
+            skin={skin}
+          />
         </span>
       ))}
     </span>

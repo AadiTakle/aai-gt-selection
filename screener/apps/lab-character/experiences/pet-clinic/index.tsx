@@ -363,7 +363,7 @@ interface Patient {
   kind: AnimalKind;
   name: string;
   fur: string;
-  /** What is wrong. Short, mild, and always fixable. */
+  /** What this one came in with. Short, mild, and always fixable. */
   need: string;
   /** The in-world reaction once this one has been seen. Never a judgement, always a change of state. */
   settled: string;
@@ -575,11 +575,13 @@ function Animal({
     <svg viewBox="0 0 124 110" className={className} role="img" aria-label={patient.name}>
       <g className="pc-breathe">
         {ANIMALS[patient.kind](patient.fur)}
+        {/* One blanket for every patient, laid at the same height on all ten, tucked low enough
+            that each animal's face still shows above it in the recovery row. */}
         {asleep ? (
           <g className="pc-quilt">
-            <path d="M8 70H116V92Q62 102 8 92Z" fill="#3d7a70" />
-            <path d="M8 70H116V78Q62 88 8 78Z" fill="#dfe9e4" opacity="0.7" />
-            <path d="M30 84 38 92M52 86 60 94M74 86 82 94M96 84 104 92" stroke="#2b5c55" strokeWidth="3" fill="none" strokeLinecap="round" />
+            <path d="M8 78H116V96Q62 104 8 96Z" fill="#3d7a70" />
+            <path d="M8 78H116V85Q62 92 8 85Z" fill="#dfe9e4" opacity="0.7" />
+            <path d="M30 89 37 96M52 90 59 97M74 90 81 97M96 89 103 96" stroke="#2b5c55" strokeWidth="3" fill="none" strokeLinecap="round" />
           </g>
         ) : null}
       </g>
@@ -805,7 +807,7 @@ export default function PetClinic({ onExit }: ExperienceProps) {
               <p className="pc-eyebrow">All quiet</p>
               <h1 className="pc-title">The doors will not open.</h1>
               <p className="pc-lede">
-                Nothing is wrong with the animals. We can wait a moment and try, or head home.
+                The animals are all fine. We can wait a moment and try, or head home.
               </p>
               <div className="pc-pair">
                 <button type="button" className="pc-big" onClick={tryAgain}>

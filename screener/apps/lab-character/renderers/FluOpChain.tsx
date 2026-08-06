@@ -17,12 +17,23 @@
  *     badges apart is being measured on symbol decoding instead of rule learning.
  *  2. Every glyph here is chiral and has no rotational symmetry, so orientation stays visible.
  *     `orient.a` is quarter turns and `orient.b` is a mirror, i.e. the D4 element r^a m^b, which is
- *     why the transform mirrors FIRST and rotates second.
+ *     why the mirror is applied FIRST and the rotation second.
  *
- * The shared `Glyph` cannot draw the figure: it has no mirror, and `hook`/`boot`/`comma` have no
- * path in it (its own `flag` is a different picture). The figure is therefore local SVG, tinted
- * through `skin.color` so a world still owns the palette; the badges DO go through `Glyph`, so a
- * world can restyle the machine's labels.
+ * THE FIGURE IS NO LONGER DRAWN HERE. It used to be: this file kept a four-entry path table because
+ * the shared `Glyph` had no mirror and no paths for `hook`, `boot` or `comma`. It has all four chiral
+ * names as distinct handed paths now, plus `flip`, so the table is gone and every figure goes through
+ * `Glyph` — which means a world finally gets asked what a `boot` looks like. It was the private table
+ * that made this the worst offender in the lab: near-black world or warm one, every figure came out
+ * as the same L in the same borrowed teal.
+ *
+ * WHAT `Glyph` CANNOT CARRY, and so is drawn around it rather than inside it:
+ *
+ *   pair    two copies side by side. Two `Glyph`s in a flex row, half size each.
+ *   border  a frame around the figure that does NOT turn with it. A CSS border on the wrapper, which
+ *           is also what keeps it square while the figure inside rotates.
+ *   shade   solid or hollow. `hollow` is handed to `Glyph` for the fallback AND enforced in CSS,
+ *           because `Glyph` does not pass the modifier to a world's `draw` — see the foot of this
+ *           file. Options in this bank differ by `shade` alone, so it cannot be allowed to go missing.
  *
  * The output window stays a question mark after answering. The renderer does not know what the
  * machine made, and putting the child's own choice in the window would assert that it did.
@@ -35,13 +46,23 @@ import type { RendererProps } from '../shared/types';
 
 import './FluOpChain.css';
 
-/** The four chiral figures the bank uses. Deliberately the same outlines the type was piloted with. */
-const GLYPH_PATH: Record<string, string> = {
-  flag: 'M30,14 L30,86 L42,86 L42,56 L80,40 L42,24 Z',
-  boot: 'M30,14 L50,14 L50,64 L82,64 L82,86 L30,86 Z',
-  hook: 'M22,14 L82,14 L82,34 L58,86 L36,86 L58,34 L22,34 Z',
-  comma: 'M26,14 L74,14 L50,48 L70,48 L30,88 L42,56 L22,56 Z',
-};
+/**
+ * The two colour names in this file, and the only ones, because nothing in this item carries a colour.
+ *
+ * A figure is `{glyph, orient, shade, border, pair}` and a badge is a bare symbol name: there is no
+ * `color` anywhere in the payload to read. So the ink is named once here as an explicit FALLBACK and
+ * resolved through `skin.color`, which is what lets a world answer with its own value. What was here
+ * before was `skin.color('teal')` — a literal, asked for on every item regardless of what the item
+ * said, which is how a near-black world ended up with teal figures in it.
+ *
+ * Both are `ink`, one of the six names every world maps. The badges used to ask for `slate`, which is
+ * not in the vocabulary at all: `paletteColor` hands back its teal for an unknown name, so under the
+ * neutral skin the machine's labels came out the one colour that is supposed to mean something else.
+ * The figure/label hierarchy is carried by size and by the chip behind each badge instead, which is
+ * where it belongs — it is not a distinction the item rules on.
+ */
+const FIGURE_INK = 'ink';
+const BADGE_INK = 'ink';
 
 interface Figure {
   glyph: string;
@@ -82,43 +103,55 @@ function vars(v: Record<string, string | number>): CSSProperties {
   return v as CSSProperties;
 }
 
-function FigureArt({ fig, ink }: { fig: Figure; ink: string }) {
-  const path = GLYPH_PATH[fig.glyph] ?? GLYPH_PATH.flag!;
-  const spin = `rotate(${(((fig.a % 4) + 4) % 4) * 90} 50 50)${fig.b ? ' translate(100,0) scale(-1,1)' : ''}`;
-  const body = (
-    <g transform={spin}>
-      <path
-        d={path}
-        fill={fig.solid ? ink : 'none'}
-        stroke={ink}
-        strokeWidth={fig.solid ? 3 : 7}
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
-    </g>
-  );
+/**
+ * One figure, as the item states it: a chiral glyph, mirrored then turned, solid or hollow, framed or
+ * not, alone or paired.
+ *
+ * MIRROR BEFORE ROTATE. `orient` is the D4 element r^a m^b and the two do not commute, so the order
+ * is part of what the item says. `Glyph` composes `rotate(...) scaleX(-1)` as a CSS transform list,
+ * which is applied right to left — the mirror lands first, which is the order wanted here.
+ *
+ * The wrapper carries the frame and the resolved ink; the ink goes down as a custom property because
+ * the frame and the hollow outline are drawn in CSS and both have to match the figure's own colour.
+ */
+function FigureArt({ fig, skin }: { fig: Figure; skin: Skin }) {
+  const className = [
+    'foc-fig',
+    fig.pair ? 'foc-fig-pair' : '',
+    fig.border ? 'foc-fig-framed' : '',
+    fig.solid ? '' : 'foc-fig-hollow',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
-    <svg className="foc-fig" viewBox="0 0 100 100" role="presentation" aria-hidden="true">
-      {fig.border ? (
-        <rect x="4" y="4" width="92" height="92" rx="14" fill="none" stroke={ink} strokeWidth="4" />
-      ) : null}
-      {fig.pair ? (
-        <>
-          <g transform="translate(6,25) scale(0.44)">{body}</g>
-          <g transform="translate(50,25) scale(0.44)">{body}</g>
-        </>
-      ) : (
-        body
-      )}
-    </svg>
+    <span className={className} style={vars({ '--foc-fig-ink': skin.color(FIGURE_INK) })}>
+      {Array.from({ length: fig.pair ? 2 : 1 }, (_, i) => (
+        <Glyph
+          key={i}
+          className="foc-fig-art"
+          shape={fig.glyph}
+          color={FIGURE_INK}
+          skin={skin}
+          rotDeg={(((fig.a % 4) + 4) % 4) * 90}
+          flip={fig.b === 1}
+          hollow={!fig.solid}
+        />
+      ))}
+    </span>
   );
 }
 
 function Badge({ symbol, hollow, skin }: { symbol: string; hollow: boolean; skin: Skin }) {
   return (
-    <span className="foc-badge">
-      <Glyph className="foc-badge-art" shape={symbol} color="slate" skin={skin} hollow={hollow} />
+    <span className="foc-badge" style={vars({ '--foc-fig-ink': skin.color(BADGE_INK) })}>
+      <Glyph
+        className={`foc-badge-art${hollow ? ' foc-fig-hollow' : ''}`}
+        shape={symbol}
+        color={BADGE_INK}
+        skin={skin}
+        hollow={hollow}
+      />
     </span>
   );
 }
@@ -156,7 +189,6 @@ export default function FluOpChain({
 }: RendererProps & { skin?: Skin }) {
   const [chosen, setChosen] = useState<string | null>(null);
   const locked = useRef(false);
-  const ink = skin.color('teal');
 
   const { input, chain, tray, options } = useMemo(() => {
     const list = Array.isArray(content.badgeTray) ? (content.badgeTray as unknown[]) : [];
@@ -205,7 +237,7 @@ export default function FluOpChain({
 
       <div className="foc-machine">
         <span className="foc-slot" role="img" aria-label="The figure going in">
-          <FigureArt fig={input} ink={ink} />
+          <FigureArt fig={input} skin={skin} />
         </span>
 
         <Feed />
@@ -250,7 +282,7 @@ export default function FluOpChain({
             onClick={() => pick(option.key)}
           >
             <span className="foc-opt-face">
-              <FigureArt fig={option.figure} ink={ink} />
+              <FigureArt fig={option.figure} skin={skin} />
             </span>
             <span className="foc-opt-key" aria-hidden="true">
               {option.key}
@@ -266,3 +298,17 @@ export default function FluOpChain({
     </div>
   );
 }
+
+/* ===========================================================================
+   WANTED FROM shared/, REPORTED RATHER THAN CHANGED
+
+   `Glyph` calls `skin.draw?.(shape, fill)` and never passes the third argument, although `Skin.draw`
+   is typed and documented as receiving `{ hollow, rotDeg }`. Rotation survives anyway because `Glyph`
+   turns the whole `<svg>` in CSS, but `hollow` only reaches the geometric fallback, so a world that
+   draws its own figures gets solid ones whatever the item said.
+
+   `shade` is a varying attribute of this type — 248 of the 468 items in the shipped bank are hollow,
+   and options inside one item differ by shade alone — so the modifier is the difference between an
+   answerable item and a coin flip. It is enforced from `FluOpChain.css` here and from `FluCarpet.css`
+   there, in duplicate, for want of one argument being forwarded.
+   =========================================================================== */

@@ -301,11 +301,18 @@ button {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* Iteration count is the load-bearing line. Crushing the duration alone leaves an infinite
+     animation running at 1ms per cycle, which STROBES rather than stops: worse for exactly the
+     people the query exists to protect. Pinning iterations to 1 ends looping animation outright,
+     and `animation-name: none` on the catch-all would also kill the keyframes that merely set a
+     resting state, so it is not used here. */
   *,
   *::before,
   *::after {
     animation-duration: 1ms !important;
     animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
   }
 }

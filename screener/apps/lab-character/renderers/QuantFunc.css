@@ -61,22 +61,6 @@
   animation: qf-rise 520ms var(--qf-ease) both;
 }
 
-.qf-rail-seam {
-  position: absolute;
-  left: 14%;
-  right: 14%;
-  height: 1px;
-  background: rgb(22 24 29 / 0.12);
-}
-
-.qf-rail-seam:nth-child(1) {
-  top: 28%;
-}
-
-.qf-rail-seam:nth-child(2) {
-  top: 62%;
-}
-
 .qf-row {
   position: relative;
   z-index: 1;

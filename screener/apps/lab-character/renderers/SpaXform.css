@@ -71,14 +71,53 @@
   animation-delay: 140ms;
 }
 
+/* THE LATTICE. A grid of wells; the occupied ones hold a glyph.
+
+   The box is positioned with an inset so its size comes from the card. That matters more here than
+   anywhere else in this file: the tracks are `1fr` and the glyphs inside them are sized in percent, so
+   if the box had to be measured from its contents the whole lattice would collapse — a viewBox-only
+   SVG has no intrinsic size to measure. Insets take it out of track sizing entirely. */
 .sx-lattice {
   position: absolute;
   inset: 0;
-  display: block;
+  display: grid;
+  grid-template-columns: repeat(var(--sx-cols, 4), 1fr);
+  grid-template-rows: repeat(var(--sx-rows, 4), 1fr);
+  gap: 6%;
 }
 
 .sx-slot > .sx-lattice {
   inset: 8%;
+}
+
+/* An empty well: a faint frame, and deliberately not a glyph. Filled against empty is the entire
+   question this type asks, and a world's `draw` is never told about `hollow`, so an empty cell drawn
+   as a hollow glyph would come back solid and every option would look the same. A frame cannot be
+   mistaken for a block under any skin. */
+.sx-well {
+  position: relative;
+  border-radius: 18%;
+  box-shadow: inset 0 0 0 1.5px var(--sx-block-ink, var(--sx-ink));
+  opacity: 0.18;
+}
+
+/* An occupied well. The world's block is drawn in it AND the well itself is tinted, which is belt and
+   braces on purpose: a world whose `square` is a small mark floating in its own box (the Navigator's is)
+   would otherwise leave a filled cell looking like an empty one with a speck in it, and filled against
+   empty is the entire question. The tint is the same ink as the block, so it reads as one object rather
+   than as a mark on a plate. */
+.sx-well-on {
+  box-shadow: none;
+  opacity: 1;
+  background: color-mix(in srgb, var(--sx-block-ink, var(--sx-ink)) 26%, transparent);
+}
+
+.sx-block {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .sx-unknown {
@@ -138,6 +177,17 @@
   position: absolute;
   inset: 18%;
   display: block;
+}
+
+/* Every other badge is drawn hollow so no two parts are told apart by silhouette alone at this size.
+   `Glyph` honours `hollow` in its own fallback but does not pass it to a world's `draw`, so the fill is
+   taken off here as well and the alternation survives a skin that draws its own labels. */
+.sx-badge-hollow :is(path, circle, ellipse, rect, polygon, polyline) {
+  fill-opacity: 0.12;
+  stroke: var(--sx-block-ink, var(--sx-ink));
+  stroke-width: 6;
+  stroke-linejoin: round;
+  stroke-linecap: round;
 }
 
 /* ---- the parts tray ------------------------------------------------------- */

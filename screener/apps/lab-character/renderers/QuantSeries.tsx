@@ -11,6 +11,15 @@
  * cluster is the default. The numeral is opt-in and only when the item asks for it and the quantity
  * has left counting range (or the child is in the oldest band) — see `asNumeral` below.
  *
+ * WHAT THE MARKS ARE. Every cluster is drawn with the skin threaded through, so the run is counted in
+ * whatever the world counts in: eggs, pips, pebbles. `shape` is the item's own when it carries one and
+ * the vocabulary's `dot` when it does not, so a world always has something to answer.
+ *
+ * ONE MARK SIZE FOR THE WHOLE RUN. `cols` is pinned from the largest quantity in the item and passed to
+ * every cluster in it — see `columnsFor`. Left to itself `Cluster` picks its columns from its own count,
+ * which draws four marks larger than five: a run whose marks grow as the count falls is a run a child
+ * can answer on size, and size is not what this item is asking about.
+ *
  * WHAT IT CANNOT DO. It cannot mark. `onAnswer` sends the chosen option's own `key` and the server
  * keeps the answer, so there is nothing here to leak, dim, tick or cross.
  */
@@ -34,6 +43,14 @@ interface Choice {
 
 /** The largest count a child can be asked to take in as a cluster rather than read as a numeral. */
 const COUNTABLE = 12;
+
+/**
+ * What a quantity is counted in when the item names no shape, which is 96 of the 120 items here.
+ *
+ * It is a request rather than a picture: `dot` is in the shared vocabulary, so a world answers it with
+ * whatever it counts in and only falls through to a geometric disc if it has nothing to say.
+ */
+const MARK_SHAPE = 'dot';
 
 function asRecord(v: unknown): Record<string, unknown> {
   return v && typeof v === 'object' ? (v as Record<string, unknown>) : {};
@@ -70,16 +87,45 @@ function readChoices(v: unknown): Choice[] {
 }
 
 /**
- * Shapes read better in different inks, so the alternation is visible rather than decorative.
+ * The ink, taken from the item's own `shape` where it has one.
  *
- * Names come from the shared palette (`teal, ink, violet, blue, gold, coral`). A name outside it
- * resolves to teal, which would make two shapes identical and the shape rule invisible.
+ * `attributes` can include `shape`, and when it does the run alternates two shapes and the options
+ * differ by which one they draw. Giving each shape its own ink puts that alternation on a second
+ * channel, so it survives a world whose two marks are closer in silhouette than the geometric
+ * primitives are. The mapping is keyed on the item's value rather than on position, so the same shape
+ * is the same colour in the run and in the options.
+ *
+ * Every name below is one of the vocabulary's six, because a name from outside it resolves to one
+ * default and two shapes sharing an ink is the failure this mapping exists to avoid. `FALLBACK_INK` is
+ * the single ink for the 96 items in 4 that carry no shape at all.
  */
+const FALLBACK_INK = 'teal';
+
+const SHAPE_INK: Record<string, string> = {
+  star: 'gold',
+  dot: 'blue',
+  circle: 'blue',
+};
+
 function inkFor(shape: string | undefined): string {
-  if (!shape) return 'teal';
-  if (shape === 'star') return 'gold';
-  if (shape === 'dot' || shape === 'circle') return 'blue';
-  return 'teal';
+  if (!shape) return FALLBACK_INK;
+  return SHAPE_INK[shape] ?? FALLBACK_INK;
+}
+
+/**
+ * The pinned column count for every cluster in one item, from the largest quantity in it.
+ *
+ * This is `Cluster`'s own ladder, applied ONCE for the whole item instead of per cluster. Its default
+ * is fine for a single cluster shown alone and wrong for a row of them: 4 marks would be packed into 2
+ * columns and drawn large while 5 went into 3 columns and drew small, so the run would read as
+ * decreasing while the numbers increased.
+ */
+function columnsFor(largest: number): number {
+  if (largest <= 1) return 1;
+  if (largest <= 4) return 2;
+  if (largest <= 9) return 3;
+  if (largest <= 16) return 4;
+  return 5;
 }
 
 function plural(n: number, noun: string): string {
@@ -90,11 +136,13 @@ function Quantity({
   value,
   shape,
   numeral,
+  cols,
   skin,
 }: {
   value: number;
   shape: string | undefined;
   numeral: boolean;
+  cols: number;
   skin: Skin;
 }) {
   const color = inkFor(shape);
@@ -111,7 +159,17 @@ function Quantity({
     );
   }
   // `max` is generous rather than 12 so a large count is drawn honestly instead of quietly clipped.
-  return <Cluster n={value} shape={shape ?? 'dot'} color={color} skin={skin} max={30} />;
+  // `cols` is the item's, not this cluster's: see `columnsFor`.
+  return (
+    <Cluster
+      n={value}
+      shape={shape ?? MARK_SHAPE}
+      color={color}
+      skin={skin}
+      cols={cols}
+      max={30}
+    />
+  );
 }
 
 export default function QuantSeries({
@@ -133,6 +191,9 @@ export default function QuantSeries({
 
   const biggest = Math.max(0, ...terms.map((t) => t.value), ...choices.map((c) => c.value));
   const asNumeral = display === 'numeral' && (band === '6-8' || biggest > COUNTABLE);
+  // One column count for the run and the options together, so a mark is the same size everywhere in
+  // the item and number is the only thing that changes between two of them.
+  const cols = columnsFor(Math.min(biggest, 30));
 
   // The blank sits at `slotIndex`. Past the end of the run it is appended ("what comes next");
   // inside the run the term there is masked, so a mid-sequence blank never shows its own value.
@@ -180,6 +241,7 @@ export default function QuantSeries({
                 value={cell.term.value}
                 shape={shapeMatters ? cell.term.shape : undefined}
                 numeral={asNumeral}
+                cols={cols}
                 skin={skin}
               />
             </div>
@@ -209,6 +271,7 @@ export default function QuantSeries({
                 value={choice.value}
                 shape={shapeMatters ? choice.shape : undefined}
                 numeral={asNumeral}
+                cols={cols}
                 skin={skin}
               />
             </span>

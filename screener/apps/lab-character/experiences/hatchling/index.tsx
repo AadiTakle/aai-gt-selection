@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
 import type { ExperienceProps } from '../../shared/experience';
-import type { ShapeName, Skin } from '../../shared/glyphs';
+import type { Skin } from '../../shared/glyphs';
+import { BANK_COLORS } from '../../shared/glyphs';
 import { ItemStage } from '../../shared/ItemStage';
 import { useScreenerSession } from '../../shared/useScreenerSession';
 import './styles.css';
@@ -73,21 +74,16 @@ function shade(hex: string, amt: number): string {
  * blossom and terracotta, which sit together on a peach ground without either one shouting.
  */
 const DAWN: Record<string, string> = {
+  // The six the banks use, and all six are mapped, because a colour rule the child cannot see is a
+  // question they cannot answer. They are pulled toward warm but kept apart in LIGHTNESS as well as
+  // hue, so the rule survives a colour-vision deficiency: ink, teal, blue, violet, coral, gold runs
+  // dark to light in that order.
+  ink: '#4a3529',
+  teal: '#3d7068',
+  blue: '#5b83a8',
   violet: '#9c74ad',
   coral: '#e07a5f',
-  teal: '#3d7068',
-  crimson: '#c25d5a',
-  amber: '#e0a44e',
-  indigo: '#6f7fa0',
-  lime: '#8aab48',
-  slate: '#9d8f7f',
-  rose: '#e0908d',
-  // Names `paletteColor` has no entry for but the banks still emit. FluMatrix carries its own
-  // stand-ins for these and only uses them when the active skin has no opinion, which is a courtesy
-  // this world would rather not need: they are part of the art direction, not a fallback.
-  ink: '#5a4030',
-  blue: '#7d9bb5',
-  gold: '#d99b33',
+  gold: '#e0a44e',
 };
 
 const DAWN_ORDER = Object.values(DAWN);
@@ -106,6 +102,14 @@ function dawnColor(name: string): string {
   let h = 0;
   for (let i = 0; i < name.length; i += 1) h = (h * 31 + name.charCodeAt(i)) % 100_003;
   return DAWN_ORDER[h % DAWN_ORDER.length] ?? '#9c74ad';
+}
+
+// Says so out loud if the shared vocabulary grows a colour this world has not dressed. The hash
+// above keeps such a name answerable either way; this exists so that nobody first finds out about it
+// from a child looking at two identical shapes.
+{
+  const missing = BANK_COLORS.filter((name) => !DAWN[name]);
+  if (missing.length) console.warn(`[hatchling] no dawn colour for: ${missing.join(', ')}`);
 }
 
 const SUN = '#f4d58d';
@@ -153,17 +157,29 @@ function Gleam({ cx, cy, rx, ry, rot = 0 }: { cx: number; cy: number; rx: number
 }
 
 /**
- * The skin.
+ * THE SKIN. This is the part of the exercise that matters most, so it is not a retint.
  *
- * This is the part of the exercise that matters most, so it is not a retint. Every abstract shape
- * the banks use is redrawn as a thing that lives in this world, and the five that this band
- * actually serves — drop, star, triangle, hexagon, pentagon — got hand-fitted paths rather than
- * rounded-off geometry. A star is a five-petal flower with a honey middle. A pentagon is a river
- * pebble. A hexagon is a comb cell with honey in it. A cube, which the balance items use as a
- * weight, is an egg, because in this world the thing you put on a scale is an egg.
+ * Every one of the twenty names in the shared vocabulary is redrawn as a thing that lives in this
+ * world, and the five this band actually serves — drop, star, triangle, hexagon, pentagon — were
+ * hand-fitted rather than rounded off. A star is a flower with a honey middle. A pentagon is a river
+ * pebble. A hexagon is a comb cell with honey in it. A cube, which is what the balance items put on
+ * a scale, is an egg, because in this world the thing you weigh is an egg.
  *
- * Everything is drawn chunky on purpose: these end up inside a `Cluster` at a fifth of their design
- * size, and a thin line at that scale is a smudge.
+ * TWO RULES CONSTRAIN THE DRAWING, and both of them are correctness rather than taste.
+ *
+ * DISTINCTNESS. Two different names must never look the same, or the rule the item is built on
+ * becomes invisible and the question stops being answerable. So the pointed-oval family is pulled
+ * deliberately apart: `drop` is a seed, `petal` is a soft blossom petal with no stalk, `kite` is an
+ * actual kite with a tail, and `diamond` is a hard-edged dew crystal. They share a silhouette in the
+ * geometric fallback and share nothing here.
+ *
+ * HANDEDNESS. `flag`, `hook`, `boot` and `comma` are the four chiral figures the op-chain items
+ * transform, and the whole construct of those items is telling a rotation from a mirror. A symmetric
+ * stand-in would destroy them, so each of those four is asymmetric on BOTH axes: a frond with its
+ * stem down one side, a crook, a snail, a fiddlehead.
+ *
+ * Everything is chunky on purpose. These end up inside a `Cluster` at a fifth of their design size,
+ * and a hairline at that scale is a smudge.
  */
 const HATCHLING_SKIN: Skin = {
   id: 'hatchling',
@@ -171,27 +187,15 @@ const HATCHLING_SKIN: Skin = {
   color: dawnColor,
 
   draw: (shape, fill) => {
-    // The banks also emit `drop`, which is not in `ShapeName`. FluMatrix aliases it onto `teardrop`
-    // before it reaches Glyph, so it arrives here as a seed; anywhere that does not alias it, Glyph
-    // funnels it into `circle` and it arrives as a berry. Both are things that grow, so either
-    // reading is in-world — but the `drop` arm below is here because relying on that is luck.
-    switch (shape as ShapeName | 'drop') {
-      case 'circle':
+    switch (shape) {
+      /* --- the five this band actually serves ----------------------------- */
+
       case 'drop':
-        // A berry on a snipped stem.
+        // A seed, with the light caught on its shoulder.
         return (
-          <g>
-            <path
-              d="M50 24 C 54 14 62 9 69 9"
-              fill="none"
-              stroke="#6f8f45"
-              strokeWidth={6}
-              strokeLinecap="round"
-            />
-            <Ink d="M50 22 C 72 22 88 38 88 57 C 88 76 71 90 50 90 C 29 90 12 76 12 57 C 12 38 28 22 50 22 Z" fill={fill}>
-              <Gleam cx={36} cy={45} rx={10} ry={7} rot={-28} />
-            </Ink>
-          </g>
+          <Ink d="M50 8 C 68 34 82 48 82 62 A 32 32 0 0 1 18 62 C 18 48 32 34 50 8 Z" fill={fill}>
+            <Gleam cx={37} cy={56} rx={8} ry={13} rot={-16} />
+          </Ink>
         );
 
       case 'star':
@@ -218,29 +222,23 @@ const HATCHLING_SKIN: Skin = {
       case 'triangle':
         // A shoot, just up out of the soil.
         return (
-          <g>
-            <Ink d="M50 10 C 62 32 86 66 86 78 C 86 87 79 90 70 90 L 30 90 C 21 90 14 87 14 78 C 14 66 38 32 50 10 Z" fill={fill}>
-              <path
-                d="M50 24 L 50 84"
-                fill="none"
-                stroke={shade(fill, -0.3)}
-                strokeWidth={4}
-                strokeLinecap="round"
-                opacity={0.7}
-              />
-            </Ink>
-          </g>
+          <Ink d="M50 10 C 62 32 86 66 86 78 C 86 87 79 90 70 90 L 30 90 C 21 90 14 87 14 78 C 14 66 38 32 50 10 Z" fill={fill}>
+            <path
+              d="M50 24 L 50 84"
+              fill="none"
+              stroke={shade(fill, -0.3)}
+              strokeWidth={4}
+              strokeLinecap="round"
+              opacity={0.7}
+            />
+          </Ink>
         );
 
       case 'hexagon':
-        // A comb cell.
+        // A comb cell, with honey still in it.
         return (
           <Ink d="M50 10 L 84 30 L 84 70 L 50 90 L 16 70 L 16 30 Z" fill={fill} width={8}>
-            <path
-              d="M50 26 L 71 38 L 71 62 L 50 74 L 29 62 L 29 38 Z"
-              fill={HONEY}
-              opacity={0.5}
-            />
+            <path d="M50 26 L 71 38 L 71 62 L 50 74 L 29 62 L 29 38 Z" fill={HONEY} opacity={0.5} />
           </Ink>
         );
 
@@ -254,41 +252,85 @@ const HATCHLING_SKIN: Skin = {
           </Ink>
         );
 
-      case 'square':
-        // A bark tile.
+      /* --- the rest of the measured sixteen ------------------------------- */
+
+      case 'dot':
+        // A berry, on a snipped stem.
         return (
-          <Ink d="M18 16 L 82 14 C 87 14 88 19 88 24 L 86 82 C 86 87 81 88 76 88 L 20 86 C 15 86 13 81 13 76 L 14 22 C 14 17 13 16 18 16 Z" fill={fill}>
+          <g>
             <path
-              d="M28 30 C 46 34 60 28 74 32 M26 52 C 44 48 60 56 76 52 M28 72 C 48 68 62 74 74 70"
+              d="M50 26 C 54 16 62 11 69 11"
               fill="none"
-              stroke={shade(fill, -0.28)}
-              strokeWidth={4}
+              stroke="#6f8f45"
+              strokeWidth={6}
               strokeLinecap="round"
-              opacity={0.65}
             />
-          </Ink>
+            <Ink d="M50 24 C 71 24 87 39 87 57 C 87 76 70 90 50 90 C 30 90 13 76 13 57 C 13 39 29 24 50 24 Z" fill={fill}>
+              <Gleam cx={37} cy={46} rx={10} ry={7} rot={-28} />
+            </Ink>
+          </g>
         );
 
-      case 'diamond':
-        // A petal, pointed both ends.
+      case 'petal':
+        // A blossom petal. Soft top, pointed base, one crease, and no stalk — which is what keeps it
+        // apart from `kite` and `drop`.
         return (
-          <Ink d="M50 6 C 74 28 86 44 86 50 C 86 56 74 72 50 94 C 26 72 14 56 14 50 C 14 44 26 28 50 6 Z" fill={fill}>
+          <Ink d="M50 94 C 20 68 18 38 50 6 C 82 38 80 68 50 94 Z" fill={fill}>
             <path
-              d="M50 14 L 50 86"
+              d="M50 84 C 44 60 46 34 50 18"
               fill="none"
-              stroke={shade(fill, -0.26)}
+              stroke={shade(fill, -0.24)}
               strokeWidth={4}
               strokeLinecap="round"
               opacity={0.6}
             />
+            <ellipse cx={50} cy={26} rx={13} ry={9} fill="#fffdf7" opacity={0.3} />
           </Ink>
         );
 
-      case 'teardrop':
-        // A seed, or a bead of dew, depending on the colour it arrives in.
+      case 'kite':
+        // A kite, tail and all. The most literal thing in the set, and deliberately so: it has to be
+        // impossible to mistake for the petal or the crystal.
         return (
-          <Ink d="M50 8 C 68 34 82 48 82 62 A 32 32 0 0 1 18 62 C 18 48 32 34 50 8 Z" fill={fill}>
-            <Gleam cx={38} cy={56} rx={8} ry={12} rot={-16} />
+          <g>
+            <path
+              d="M50 62 C 56 74 44 82 50 96"
+              fill="none"
+              stroke={shade(fill, -0.3)}
+              strokeWidth={4}
+              strokeLinecap="round"
+            />
+            <path
+              d="M40 76 L 60 82 M42 90 L 58 94"
+              fill="none"
+              stroke={HONEY}
+              strokeWidth={5}
+              strokeLinecap="round"
+            />
+            <Ink d="M50 6 L 84 40 L 50 66 L 16 40 Z" fill={fill} width={5}>
+              <path
+                d="M50 8 L 50 64 M18 40 L 82 40"
+                fill="none"
+                stroke={shade(fill, -0.32)}
+                strokeWidth={3.5}
+                opacity={0.7}
+              />
+            </Ink>
+          </g>
+        );
+
+      case 'diamond':
+        // A crystal of dew. Straight edges and a flat facet, against everything else here being soft.
+        return (
+          <Ink d="M50 6 L 84 50 L 50 94 L 16 50 Z" fill={fill} width={5}>
+            <path d="M50 6 L 66 50 L 50 94 L 34 50 Z" fill="#fffdf7" opacity={0.24} />
+            <path
+              d="M50 6 L 50 94"
+              fill="none"
+              stroke={shade(fill, -0.3)}
+              strokeWidth={3}
+              opacity={0.5}
+            />
           </Ink>
         );
 
@@ -306,6 +348,53 @@ const HATCHLING_SKIN: Skin = {
           </Ink>
         );
 
+      case 'capsule':
+        // A pea pod, three peas showing.
+        return (
+          <Ink d="M32 22 H68 a18 18 0 0 1 0 56 H32 a18 18 0 0 1 0-56 Z" fill={fill}>
+            <circle cx={32} cy={50} r={9} fill={shade(fill, -0.2)} opacity={0.75} />
+            <circle cx={50} cy={50} r={9} fill={shade(fill, -0.2)} opacity={0.75} />
+            <circle cx={68} cy={50} r={9} fill={shade(fill, -0.2)} opacity={0.75} />
+          </Ink>
+        );
+
+      case 'square':
+        // A tile of bark.
+        return (
+          <Ink d="M18 16 L 82 14 C 87 14 88 19 88 24 L 86 82 C 86 87 81 88 76 88 L 20 86 C 15 86 13 81 13 76 L 14 22 C 14 17 13 16 18 16 Z" fill={fill}>
+            <path
+              d="M28 30 C 46 34 60 28 74 32 M26 52 C 44 48 60 56 76 52 M28 72 C 48 68 62 74 74 70"
+              fill="none"
+              stroke={shade(fill, -0.28)}
+              strokeWidth={4}
+              strokeLinecap="round"
+              opacity={0.65}
+            />
+          </Ink>
+        );
+
+      case 'circle':
+        // A marigold seen face on. Notched rim, so it is not just a filled disc.
+        return (
+          <g>
+            {Array.from({ length: 12 }, (_, i) => (
+              <ellipse
+                key={i}
+                cx={50}
+                cy={16}
+                rx={7}
+                ry={11}
+                fill={shade(fill, 0.16)}
+                stroke={shade(fill, -0.4)}
+                strokeWidth={3}
+                transform={`rotate(${i * 30} 50 50)`}
+              />
+            ))}
+            <circle cx={50} cy={50} r={22} fill={fill} stroke={shade(fill, -0.42)} strokeWidth={5} />
+            <circle cx={50} cy={50} r={9} fill={HONEY} opacity={0.85} />
+          </g>
+        );
+
       case 'cube':
         // The balance items weigh cubes. Here you weigh eggs.
         return (
@@ -317,71 +406,20 @@ const HATCHLING_SKIN: Skin = {
           </Ink>
         );
 
-      case 'crescent':
-        // A shell sliver.
-        return (
-          <Ink d="M64 10 A 40 40 0 1 0 64 90 A 32 32 0 1 1 64 10 Z" fill={fill}>
-            <path
-              d="M60 22 C 44 34 44 66 60 78 M50 18 C 32 32 32 68 50 82"
-              fill="none"
-              stroke={shade(fill, -0.3)}
-              strokeWidth={4}
-              strokeLinecap="round"
-              opacity={0.6}
-            />
-          </Ink>
-        );
-
-      case 'spiral':
-        // A snail's curl.
+      case 'bolt':
+        // A twig with two buds on it.
         return (
           <g>
             <path
-              d="M50 50 a 12 12 0 1 1 12 12 24 24 0 1 1-24-24 36 36 0 1 1 36 36"
+              d="M34 92 C 44 68 46 46 44 10 M44 44 C 56 36 66 34 78 34 M44 62 C 32 56 24 52 16 50"
               fill="none"
-              stroke={fill}
-              strokeWidth={11}
+              stroke="#8d5f3c"
+              strokeWidth={8}
               strokeLinecap="round"
             />
-            <circle cx={50} cy={50} r={5} fill={shade(fill, -0.4)} />
+            <circle cx={80} cy={33} r={9} fill={fill} stroke={shade(fill, -0.42)} strokeWidth={4} />
+            <circle cx={15} cy={49} r={7} fill={fill} stroke={shade(fill, -0.42)} strokeWidth={4} />
           </g>
-        );
-
-      case 'trefoil':
-        // Clover.
-        return (
-          <g>
-            <path
-              d="M50 56 C 50 74 52 84 54 92"
-              fill="none"
-              stroke="#6f8f45"
-              strokeWidth={6}
-              strokeLinecap="round"
-            />
-            {[0, 120, 240].map((a) => (
-              <path
-                key={a}
-                d="M50 52 C 32 52 24 38 30 28 C 36 18 52 22 50 52 Z"
-                fill={fill}
-                stroke={shade(fill, -0.42)}
-                strokeWidth={5}
-                strokeLinejoin="round"
-                transform={`rotate(${a} 50 52)`}
-              />
-            ))}
-          </g>
-        );
-
-      case 'zigzag':
-        // A little stream.
-        return (
-          <path
-            d="M10 62 C 24 38 34 86 50 62 C 66 38 76 86 90 62"
-            fill="none"
-            stroke={fill}
-            strokeWidth={11}
-            strokeLinecap="round"
-          />
         );
 
       case 'chevron':
@@ -397,37 +435,24 @@ const HATCHLING_SKIN: Skin = {
           />
         );
 
-      case 'bolt':
-        // A twig with two buds.
-        return (
-          <g>
-            <path
-              d="M34 92 C 44 68 46 46 44 10 M44 44 C 56 36 66 34 78 34 M44 62 C 32 56 24 52 16 50"
-              fill="none"
-              stroke="#8d5f3c"
-              strokeWidth={8}
-              strokeLinecap="round"
-            />
-            <circle cx={80} cy={33} r={9} fill={fill} stroke={shade(fill, -0.42)} strokeWidth={4} />
-            <circle cx={15} cy={49} r={7} fill={fill} stroke={shade(fill, -0.42)} strokeWidth={4} />
-          </g>
-        );
+      /* --- the four chiral figures. asymmetric on both axes, on purpose. --- */
 
       case 'flag':
-        // A fern frond.
+        // A fern frond: stem down one side, fronds only on the other, and shortening upward. Mirror
+        // it and you can see it; rotate it and you can see that too.
         return (
           <g>
             <path
-              d="M28 94 C 26 62 26 30 28 8"
+              d="M26 96 C 24 62 25 30 28 6"
               fill="none"
               stroke="#6f8f45"
               strokeWidth={7}
               strokeLinecap="round"
             />
-            {[14, 30, 46, 62, 78].map((y, i) => (
+            {[16, 32, 48, 64, 80].map((y, i) => (
               <path
                 key={y}
-                d={`M28 ${y} C ${44 - i * 2} ${y - 10} ${64 - i * 4} ${y - 6} ${78 - i * 8} ${y + 2}`}
+                d={`M27 ${y} C ${46 - i * 3} ${y - 12} ${66 - i * 6} ${y - 8} ${84 - i * 11} ${y + 2}`}
                 fill="none"
                 stroke={fill}
                 strokeWidth={9}
@@ -437,7 +462,81 @@ const HATCHLING_SKIN: Skin = {
           </g>
         );
 
+      case 'hook':
+        // A vine tendril that has caught on something, with one arm longer than the other.
+        return (
+          <g>
+            <path
+              d="M32 10 V 56 a 20 20 0 0 0 40 0 V 42"
+              fill="none"
+              stroke={fill}
+              strokeWidth={12}
+              strokeLinecap="round"
+            />
+            <path
+              d="M32 14 C 16 8 6 16 8 26 C 10 36 26 32 33 22 Z"
+              fill="#6f8f45"
+              stroke={shade('#6f8f45', -0.35)}
+              strokeWidth={3.5}
+              strokeLinejoin="round"
+            />
+          </g>
+        );
+
+      case 'boot':
+        // A snail: shell up on the left, head and antennae out to the right.
+        return (
+          <g>
+            <path
+              d="M22 86 C 12 86 8 76 14 68 C 26 54 54 50 72 58 C 84 64 90 76 92 88 Z"
+              fill={shade(fill, 0.2)}
+              stroke={shade(fill, -0.42)}
+              strokeWidth={5}
+              strokeLinejoin="round"
+            />
+            <path
+              d="M78 58 C 84 46 88 38 94 32 M64 52 C 66 40 68 32 70 24"
+              fill="none"
+              stroke={shade(fill, -0.42)}
+              strokeWidth={5}
+              strokeLinecap="round"
+            />
+            <circle cx={40} cy={40} r={26} fill={fill} stroke={shade(fill, -0.42)} strokeWidth={5} />
+            <path
+              d="M40 40 a 8 8 0 1 1 8 8 16 16 0 1 1 -16 -16 24 24 0 1 1 24 24"
+              fill="none"
+              stroke={shade(fill, -0.42)}
+              strokeWidth={4}
+              strokeLinecap="round"
+            />
+          </g>
+        );
+
+      case 'comma':
+        // A fiddlehead, still curled. Chiral for free: the tail only leaves on one side.
+        return (
+          <g>
+            <path
+              d="M62 20 a 24 24 0 1 0 -6 44 c 10 0 6 16 -14 24 40 -4 52 -32 44 -52 a 24 24 0 0 0 -24 -16 Z"
+              fill={fill}
+              stroke={shade(fill, -0.42)}
+              strokeWidth={5}
+              strokeLinejoin="round"
+            />
+            <path
+              d="M58 32 a 12 12 0 1 0 -2 22"
+              fill="none"
+              stroke={shade(fill, -0.34)}
+              strokeWidth={4}
+              strokeLinecap="round"
+              opacity={0.75}
+            />
+          </g>
+        );
+
       default:
+        // Unreachable while `ShapeName` is what it is. If it grows, the geometric primitive is drawn
+        // and the item stays answerable, which is the right way round for a name nobody has dressed.
         return undefined;
     }
   },
@@ -608,33 +707,36 @@ function Egg({ beat }: { beat: number }) {
     <svg className="hl-egg-svg" viewBox="0 0 200 200" data-beat={beat} role="presentation" aria-hidden="true">
       <g className="hl-egg-rock">
         <g className="hl-egg-shell">
+          {/* An ovoid: rounded over the top, widest below the middle. The first pass pushed the top
+              control points too far apart and the result was an onion. */}
           <path
-            d="M100 14 C 148 42 172 94 172 128 A 72 72 0 0 1 28 128 C 28 94 52 42 100 14 Z"
+            d="M100 8 C 146 8 174 64 174 118 C 174 166 140 192 100 192 C 60 192 26 166 26 118 C 26 64 54 8 100 8 Z"
             fill={SHELL}
             stroke="#c9a679"
             strokeWidth={6}
             strokeLinejoin="round"
           />
-          <ellipse cx={72} cy={78} rx={15} ry={26} fill="#fffdf7" opacity={0.7} transform="rotate(-18 72 78)" />
-          <circle cx={118} cy={62} r={5} fill="#e9c79b" />
-          <circle cx={136} cy={98} r={4} fill="#e9c79b" />
-          <circle cx={64} cy={124} r={4.5} fill="#e9c79b" />
-          <circle cx={104} cy={148} r={4} fill="#e9c79b" />
-          <circle cx={92} cy={98} r={3.5} fill="#e9c79b" />
+          <ellipse cx={68} cy={82} rx={15} ry={28} fill="#fffdf7" opacity={0.7} transform="rotate(-16 68 82)" />
+          <circle cx={122} cy={62} r={5} fill="#e9c79b" />
+          <circle cx={142} cy={106} r={4} fill="#e9c79b" />
+          <circle cx={58} cy={136} r={4.5} fill="#e9c79b" />
+          <circle cx={104} cy={162} r={4} fill="#e9c79b" />
+          <circle cx={94} cy={104} r={3.5} fill="#e9c79b" />
+          <circle cx={132} cy={148} r={3.5} fill="#e9c79b" />
         </g>
 
         {/* the crack, in three pieces so it can arrive in three beats */}
         <g className="hl-crack">
-          <path className="hl-crack-a" d="M60 96 L 78 108 L 64 120 L 84 128" />
-          <path className="hl-crack-b" d="M84 128 L 104 118 L 98 136 L 122 128" />
-          <path className="hl-crack-c" d="M122 128 L 138 114 L 132 96" />
+          <path className="hl-crack-a" d="M52 104 L 74 116 L 58 130 L 80 140" />
+          <path className="hl-crack-b" d="M80 140 L 104 128 L 96 148 L 124 138" />
+          <path className="hl-crack-c" d="M124 138 L 144 122 L 138 102" />
         </g>
       </g>
 
       {/* two pieces that leave when it opens */}
       <g className="hl-piece hl-piece-l">
         <path
-          d="M40 108 C 46 84 62 56 84 38 L 96 52 L 70 82 L 78 100 Z"
+          d="M32 116 C 34 84 46 48 74 22 L 90 40 L 60 82 L 70 106 Z"
           fill={SHELL}
           stroke="#c9a679"
           strokeWidth={5}
@@ -643,7 +745,7 @@ function Egg({ beat }: { beat: number }) {
       </g>
       <g className="hl-piece hl-piece-r">
         <path
-          d="M160 112 C 156 86 140 58 118 40 L 108 56 L 132 84 L 124 104 Z"
+          d="M168 120 C 166 86 154 50 126 24 L 110 44 L 140 84 L 130 110 Z"
           fill={SHELL}
           stroke="#c9a679"
           strokeWidth={5}
@@ -655,41 +757,53 @@ function Egg({ beat }: { beat: number }) {
 }
 
 /**
- * The nest, in two pieces, and the reason why is worth the extra component.
+ * The two halves, on one 320x180 box so they always line up.
  *
- * One filled bowl draws over whatever is inside it, so an egg placed in a nest ends up looking like
- * an egg balanced on a plate — which is exactly what the first pass looked like. Splitting it means
- * the back of the weave sits behind the contents and the front wall sits in front of them, and the
- * thing in the middle is genuinely IN something. Both halves share the 320x180 box so the two line
- * up whatever the nest is scaled to.
+ * BACK_RIM is the far side of the weave, drawn behind whatever is in the nest. FRONT_WALL is the
+ * near side, drawn in front of it. Both are also used as CLIP PATHS for their own weave, and that is
+ * the part worth knowing: the first version drew the twigs freehand across the whole box, and
+ * because the wall's opening dips low in the middle while its rim sits high at the sides, every
+ * stroke sailed straight across the middle of the nest and slung the creature in a hammock. Clipping
+ * each weave to its own wall means a twig can only ever appear where there is nest to appear on.
  */
+const BACK_RIM = 'M10 56 A 150 42 0 0 1 310 56 L 286 56 A 126 28 0 0 0 34 56 Z';
+const FRONT_WALL =
+  'M34 56 C 36 108 84 132 160 132 C 236 132 284 108 286 56 L 310 56 C 308 136 250 172 160 172 C 70 172 12 136 10 56 Z';
+
 function NestBack() {
   return (
     <svg className="hl-nest hl-nest-back" viewBox="0 0 320 180" role="presentation" aria-hidden="true">
+      <defs>
+        <clipPath id="hl-nest-back-clip">
+          <path d={BACK_RIM} />
+        </clipPath>
+      </defs>
+      {/* The cavity. Without it you can see the sky through the nest on either side of whatever is
+          sitting in it, and the nest reads as a hoop rather than a bowl. */}
       <path
-        d="M10 56 A 150 42 0 0 1 310 56 L 286 56 A 126 28 0 0 0 34 56 Z"
+        d="M34 56 A 126 28 0 0 1 286 56 C 284 108 236 132 160 132 C 84 132 36 108 34 56 Z"
+        fill="#8a6141"
+      />
+
+      {/* twig ends standing up out of the far rim */}
+      <g fill="none" stroke="#8d5f3c" strokeWidth={4} strokeLinecap="round" opacity={0.45}>
+        <path d="M64 26 C 52 17 42 12 28 9" />
+        <path d="M258 26 C 270 17 280 12 294 9" />
+        <path d="M150 15 C 140 8 130 5 118 4" />
+        <path d="M196 17 C 206 11 214 8 224 7" />
+      </g>
+      <path
+        d={BACK_RIM}
         fill="#b3855b"
         stroke="#7f5432"
         strokeWidth={5}
         strokeLinejoin="round"
       />
-      <path
-        d="M28 44 C 82 20 238 20 292 44 M44 33 C 98 14 224 16 276 34"
-        fill="none"
-        stroke="#7f5432"
-        strokeWidth={4}
-        strokeLinecap="round"
-        opacity={0.4}
-      />
-      {/* loose twigs, out past the weave, so the rim is not a drawn ellipse */}
-      <path
-        d="M20 50 C 6 36 4 20 12 8 M300 52 C 314 38 316 22 308 10 M126 22 C 114 12 100 8 88 8"
-        fill="none"
-        stroke="#8d5f3c"
-        strokeWidth={4}
-        strokeLinecap="round"
-        opacity={0.5}
-      />
+      <g clipPath="url(#hl-nest-back-clip)" fill="none" stroke="#7f5432" strokeLinecap="round">
+        <path d="M4 58 A 148 48 0 0 1 316 58" strokeWidth={5} opacity={0.38} />
+        <path d="M16 56 A 138 33 0 0 1 304 56" strokeWidth={5} opacity={0.3} />
+        <path d="M40 30 C 96 14 224 14 280 30" strokeWidth={4} opacity={0.3} />
+      </g>
     </svg>
   );
 }
@@ -697,39 +811,47 @@ function NestBack() {
 function NestFront() {
   return (
     <svg className="hl-nest hl-nest-front" viewBox="0 0 320 180" role="presentation" aria-hidden="true">
+      <defs>
+        <clipPath id="hl-nest-front-clip">
+          <path d={FRONT_WALL} />
+        </clipPath>
+      </defs>
+
       {/* it is standing on something, rather than hovering over it */}
-      <ellipse cx={160} cy={172} rx={128} ry={11} fill="#a8763f" opacity={0.16} />
+      <ellipse cx={160} cy={174} rx={124} ry={11} fill="#a8763f" opacity={0.16} />
+      <g fill="none" stroke={LEAF} strokeWidth={5} strokeLinecap="round" opacity={0.66}>
+        <path d="M48 164 C 42 150 38 142 32 134" />
+        <path d="M58 170 C 55 156 52 148 48 140" />
+        <path d="M68 173 C 67 161 66 153 65 146" />
+        <path d="M272 164 C 278 150 282 142 288 134" />
+        <path d="M262 170 C 265 156 268 148 272 140" />
+        <path d="M252 173 C 253 161 254 153 255 146" />
+      </g>
+
       <path
-        d="M44 158 C 38 142 34 134 28 126 M58 166 C 55 150 52 142 48 134 M262 158 C 268 142 272 134 278 126 M248 166 C 251 150 254 142 258 134"
-        fill="none"
-        stroke={LEAF}
-        strokeWidth={5}
-        strokeLinecap="round"
-        opacity={0.65}
-      />
-      <path
-        d="M34 56 C 36 108 84 132 160 132 C 236 132 284 108 286 56 L 310 56 C 308 136 250 172 160 172 C 70 172 12 136 10 56 Z"
+        d={FRONT_WALL}
         fill="#c69a6c"
         stroke="#7f5432"
         strokeWidth={5}
         strokeLinejoin="round"
       />
-      <path
-        d="M16 68 C 70 104 250 104 304 68 M22 86 C 76 120 244 120 298 86 M58 104 C 108 132 212 132 264 104 M42 122 C 92 148 228 148 278 122"
-        fill="none"
-        stroke="#8d5f3c"
-        strokeWidth={4.5}
-        strokeLinecap="round"
-        opacity={0.45}
-      />
-      <path
-        d="M8 62 C -3 50 -1 32 8 22 M312 64 C 323 52 321 34 312 24"
-        fill="none"
-        stroke="#8d5f3c"
-        strokeWidth={4}
-        strokeLinecap="round"
-        opacity={0.45}
-      />
+
+      <g clipPath="url(#hl-nest-front-clip)" fill="none" stroke="#8d5f3c" strokeLinecap="round">
+        <path d="M6 50 C 14 106 76 138 160 138 C 244 138 306 106 314 50" strokeWidth={6} opacity={0.4} />
+        <path d="M0 40 C 8 120 74 154 160 154 C 246 154 312 120 320 40" strokeWidth={6} opacity={0.32} />
+        <path d="M12 66 C 20 98 78 124 160 124 C 242 124 300 98 308 66" strokeWidth={5} opacity={0.28} />
+        <path d="M24 118 C 58 150 118 164 164 163" strokeWidth={5} opacity={0.3} />
+        <path d="M296 118 C 262 150 202 164 156 163" strokeWidth={5} opacity={0.3} />
+        <path d="M96 140 C 130 156 190 156 226 140" strokeWidth={4} opacity={0.28} />
+      </g>
+
+      {/* twig ends poking out sideways past the weave, so the silhouette is not a turned bowl */}
+      <g fill="none" stroke="#8d5f3c" strokeWidth={4} strokeLinecap="round" opacity={0.48}>
+        <path d="M13 62 C 2 68 -5 74 -10 83" />
+        <path d="M307 64 C 318 70 325 76 330 85" />
+        <path d="M22 100 C 10 105 3 110 -3 117" />
+        <path d="M298 104 C 310 109 317 114 323 121" />
+      </g>
     </svg>
   );
 }
@@ -943,6 +1065,10 @@ export default function Hatchling({ onExit }: ExperienceProps) {
 
   useEffect(() => {
     if (s.phase === 'error') {
+      // Let it finish coming out of the egg before anything else happens. Cutting the hatch off
+      // halfway is the one transition in this world that would actually look broken, and the child
+      // still gets a creature either way.
+      if (stage === 'hatch' && beat < 6) return;
       setStage('trouble');
       return;
     }
@@ -1020,8 +1146,13 @@ export default function Hatchling({ onExit }: ExperienceProps) {
           ? 'watch'
           : 'wake';
 
-  const hatched = stage === 'play' || stage === 'grown' || (stage === 'hatch' && beat >= 4);
-  const showEgg = stage === 'nest' || (stage === 'hatch' && beat < 5);
+  // If something goes wrong, the nest must not end up EMPTY. An empty nest is the one image in this
+  // world that would frighten a five-year-old, so trouble keeps whoever was there: the egg if it
+  // never opened, and the creature having a doze if it did.
+  const openedOnce = stage === 'play' || stage === 'grown' || (stage === 'hatch' && beat >= 4);
+  const hatched = openedOnce || (stage === 'trouble' && beat >= 4);
+  const showEgg =
+    stage === 'nest' || (stage === 'hatch' && beat < 5) || (stage === 'trouble' && beat < 4);
 
   return (
     <div
@@ -1033,14 +1164,9 @@ export default function Hatchling({ onExit }: ExperienceProps) {
       {/* ---- sky ---------------------------------------------------------- */}
       <div className="hl-sky" aria-hidden="true">
         <div className="hl-glow" />
-        {/* Four rings rather than a disc, because one hard-edged circle in a soft world reads as a
-            hole punched in it. */}
-        <svg className="hl-sundisc" viewBox="0 0 100 100" role="presentation">
-          <circle cx={50} cy={50} r={49} fill={SUN} opacity={0.1} />
-          <circle cx={50} cy={50} r={39} fill={SUN} opacity={0.16} />
-          <circle cx={50} cy={50} r={29} fill={SUN} opacity={0.26} />
-          <circle cx={50} cy={50} r={20} fill={SUN} opacity={0.4} />
-        </svg>
+        {/* A gradient rather than stacked discs. Concentric circles banded visibly at these
+            opacities, and a hard-edged circle in a soft world reads as a hole punched in it. */}
+        <div className="hl-sundisc" />
         {MOTES.map((m, i) => (
           <span
             key={i}

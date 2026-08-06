@@ -26,16 +26,17 @@
   --nv-mono: ui-monospace, 'SFMono-Regular', 'JetBrains Mono', Menlo, Consolas, monospace;
   --nv-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 
-  /* The plate: the one lit surface on a dark bridge, and where a reading lands. */
-  --nv-plate: #dde8e6;
-  --nv-plate-edge: #9db6b4;
+  /* The glass: the panel a reading lands on. A shade off the bridge, not a card. */
+  --nv-glass-a: #0b1a23;
+  --nv-glass-b: #071219;
+  --nv-tile: rgb(70 224 200 / 0.055);
+  --nv-etch: rgb(126 240 221 / 0.3);
 
-  /* The shared renderers take their ink, hairline and easing from the host's globals. Overriding
-     them here is the whole retheme: every question drawn on the plate picks up chart ink and this
-     world's curve, without this stylesheet ever naming a class it does not own. */
-  --ink: #12262c;
-  --ink-soft: #40595f;
-  --line: rgb(18 38 44 / 0.16);
+  /* Four of the shared renderers take their ink, hairline and easing from the host's globals, so
+     setting them here is most of the retheme. See the reading block further down for the rest. */
+  --ink: #cfe6e3;
+  --ink-soft: #87a6ab;
+  --line: rgb(126 240 221 / 0.22);
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
 
   position: relative;
@@ -221,7 +222,8 @@
   transition: opacity 420ms var(--nv-ease);
 }
 
-.nv-crewman.is-live {
+.nv-crewman.is-live,
+.nv-root[data-act='arrival'] .nv-crewman {
   opacity: 1;
 }
 
@@ -289,6 +291,7 @@
   grid-area: main;
   position: relative;
   display: grid;
+  grid-template-rows: minmax(0, 1fr);
   place-items: center;
   padding: clamp(1rem, 2.4vh, 1.75rem) clamp(1.5rem, 4vw, 3.5rem);
   min-width: 0;
@@ -355,6 +358,9 @@
 
 .nv-panel {
   position: relative;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   max-width: 52rem;
   padding: 1.15rem clamp(0.9rem, 2.2vw, 1.6rem) 1.25rem;
@@ -430,22 +436,40 @@
   opacity: 1;
 }
 
-/* ---- the plate -----------------------------------------------------------
-   A backlit chart plate mounted in the console, not a card: square corners, one hairline bezel, and
-   a cool backlight bleeding off its top edge. It is the only bright thing on the bridge, which is
-   what puts the reading at the centre of attention without a single decorative dial. */
+/* ---- the glass -----------------------------------------------------------
+   Instrument glass mounted in the console: square corners, one hairline bezel, one pool of
+   instrument light behind the reading and nothing else. Not a card — the only thing separating it
+   from the bridge is a shade of navy and a lit edge. */
 
 .nv-plate {
   position: relative;
-  min-height: min(20rem, 34vh);
-  display: grid;
-  place-items: center;
-  padding: clamp(0.3rem, 0.9vh, 0.7rem) clamp(0.5rem, 1.5vw, 1.25rem);
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
   background:
-    linear-gradient(180deg, #e7efed 0%, var(--nv-plate) 34%, #d3e0de 100%);
-  border: 1px solid var(--nv-plate-edge);
+    radial-gradient(74% 60% at 50% 46%, rgb(70 224 200 / 0.055) 0%, rgb(70 224 200 / 0) 72%),
+    linear-gradient(180deg, var(--nv-glass-a), var(--nv-glass-b));
+  border: 1px solid var(--nv-line);
   color: var(--ink);
-  box-shadow: 0 -1px 34px -8px rgb(70 224 200 / 0.22);
+  box-shadow: inset 0 1px 0 rgb(126 240 221 / 0.07);
+}
+
+/* The reading is centred on the glass and, when a type is drawn taller than the glass, scaled to
+   fit it. No child ever has to scroll to reach the choices. */
+.nv-fit {
+  position: absolute;
+  inset: clamp(0.3rem, 0.9vh, 0.7rem) clamp(0.5rem, 1.5vw, 1.25rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* flex: none so the reading keeps its natural height and the scale below is what makes it fit. */
+.nv-fit-in {
+  flex: none;
+  transform: scale(var(--nv-fit, 1));
+  transform-origin: center center;
+  transition: none;
 }
 
 /* The renderer owns the question. These are only in-world defaults for anything it leaves
@@ -455,8 +479,8 @@
   min-height: 56px;
   min-width: 56px;
   padding: 0.7rem 1.1rem;
-  border: 1px solid var(--nv-plate-edge);
-  background: #fff;
+  border: 1px solid var(--nv-line-lit);
+  background: var(--nv-tile);
   color: var(--ink);
   font-family: var(--nv-mono);
   font-size: 1rem;
@@ -467,13 +491,92 @@
 }
 
 .nv-plate button:not([class]):hover {
-  border-color: var(--ink);
+  border-color: var(--nv-cyan);
   transform: translate3d(0, -1px, 0);
 }
 
 .nv-plate :is(h1, h2, h3, p):not([class]) {
   font-family: var(--nv-sans);
   color: var(--ink);
+}
+
+/* ---- the reading, rethemed onto the glass --------------------------------
+   The shared renderers are drawn for the lab's paper shell: dark ink, hairlines in ink alpha, white
+   surfaces. On a night bridge every one of those reads backwards, and a `Skin` only reaches the
+   glyphs inside a question, never the question's own chrome.
+
+   So: four of them read the host's `--ink` / `--ink-soft` / `--line` / `--ease`, which are set at the
+   top of this file. The other four hardcode the same values under their own prefixed properties, so
+   those are restated below — documented dials, not internals. The surfaces underneath are a literal
+   `#fff`, which no variable covers, so those are named.
+
+   `!important` rather than a specificity stack, because a renderer's stylesheet arrives with its lazy
+   chunk and is therefore injected AFTER this file: on a tie it would win. Nothing here changes a
+   single renderer file, and if a name drifts the failure is one bright surface with a mid-tone mark
+   still legible on it, which is exactly why the skin's palette is mid-tone. */
+
+.nv-root :is(.fc-root, .fm-root, .foc-root, .sx-root) {
+  --fc-ink: var(--ink);
+  --fc-line: var(--line);
+  --fc-quiet: var(--nv-etch);
+  --fc-ease: var(--nv-ease);
+  --fm-ink: var(--ink);
+  --fm-line: var(--line);
+  --fm-quiet: var(--nv-etch);
+  --fm-ease: var(--nv-ease);
+  --foc-ink: var(--ink);
+  --foc-line: var(--line);
+  --foc-quiet: var(--nv-etch);
+  --foc-ease: var(--nv-ease);
+  --sx-ink: var(--ink);
+  --sx-line: var(--line);
+  --sx-quiet: var(--nv-etch);
+  --sx-ease: var(--nv-ease);
+}
+
+/* Paper surfaces become etched cells on glass. */
+.nv-root
+  :is(
+    .fc-carpet,
+    .fc-cell,
+    .fc-cell-blank,
+    .fc-opt,
+    .fm-cell,
+    .fm-cell-blank,
+    .fm-opt,
+    .foc-slot,
+    .foc-slot-out,
+    .foc-chain,
+    .foc-badge,
+    .foc-opt,
+    .qb-tray,
+    .qb-choice,
+    .qf-slotcell,
+    .qf-choice,
+    .qf-rail,
+    .qs-cell,
+    .qs-choice,
+    .sx-slot,
+    .sx-slot-out,
+    .sx-chain,
+    .sx-badge,
+    .sx-opt
+  ) {
+  background: var(--nv-tile) !important;
+}
+
+/* Structure drawn as a filled bar — a scale's post and cords, a machine's seam — has to invert too
+   or it disappears into the glass. */
+.nv-root :is(.qb-post, .qb-cord, .qf-rail-seam),
+.nv-root .qb-post::after,
+.nv-root .qs-slot::after,
+.nv-root .qf-open::after {
+  background: var(--nv-etch) !important;
+}
+
+/* The chosen-mark discs carry a white tick, so the disc stays dark enough to hold it. */
+.nv-root :is(.fc-mark, .fm-mark, .foc-mark, .sx-mark) {
+  fill: #0e5f57 !important;
 }
 
 .nv-waking {
@@ -485,11 +588,10 @@
   animation: nv-pulse 2s var(--nv-ease) infinite;
 }
 
-/* Survives the shared stage's own notice, should a type arrive with no renderer registered. It
-   lands on the plate, so it takes the plate's ink rather than the bridge's. */
+/* Survives the shared stage's own notice, should a type arrive with no renderer registered. */
 .nv-root .stage-missing {
   margin: 0;
-  border-color: var(--nv-plate-edge);
+  border-color: var(--nv-line-lit);
   border-radius: 0;
   color: var(--ink);
   font-family: var(--nv-mono);
@@ -504,15 +606,15 @@
   min-height: 56px;
   padding: 0 1.6rem;
   border-radius: 0;
-  border-color: var(--nv-plate-edge);
-  color: var(--ink);
+  border-color: var(--nv-cyan-dim);
+  color: var(--nv-cyan-soft);
   font-family: var(--nv-mono);
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
 .nv-root .btn-quiet:hover {
-  background: #fff;
+  background: rgb(70 224 200 / 0.12);
 }
 
 /* ---- a panel that cannot be read ----------------------------------------- */
@@ -547,7 +649,9 @@
   display: grid;
   place-items: center;
   padding: clamp(1.5rem, 4vh, 2.5rem) clamp(1.5rem, 4vw, 3.5rem);
-  background: rgb(4 10 17 / 0.965);
+  background:
+    radial-gradient(70% 55% at 42% 46%, rgb(70 224 200 / 0.05) 0%, rgb(70 224 200 / 0) 70%),
+    var(--nv-deep);
   z-index: 2;
   animation: nv-veil 400ms var(--nv-ease) both;
 }
@@ -626,6 +730,7 @@
 .nv-route-leg,
 .nv-route-dest {
   margin: 0;
+  white-space: nowrap;
   font-family: var(--nv-mono);
   font-size: 0.7rem;
   letter-spacing: 0.18em;

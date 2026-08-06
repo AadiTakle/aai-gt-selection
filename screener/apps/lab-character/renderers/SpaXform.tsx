@@ -11,11 +11,17 @@
  * renderer draws the lattice going in and the lattice of each option, and never applies, guesses at,
  * or hints at a transformation.
  *
- * The lattice is local SVG because there is no shared primitive for a set of occupied cells — every
- * option differs from every other ONLY in which cells are filled, so the empty cells have to stay
- * visible as a frame of reference or the options become five unrelated blobs. It is tinted through
- * `skin.color` so a world still owns the palette; the badges go through `Glyph`, so a world can
- * restyle the machine's labels.
+ * THE LATTICE IS A GRID OF GLYPHS. There is no shared primitive for "a set of occupied cells", so the
+ * lattice itself is laid out here — but each occupied cell is now a `Glyph`, so the block a world
+ * stacks is that world's block: a plated tile in one, a slab of bark in another, a geometric square
+ * where a world has nothing to say. Previously the whole lattice was one local SVG of `<rect>`s and no
+ * world could reach it.
+ *
+ * THE EMPTY WELLS ARE NOT GLYPHS, and that is deliberate rather than unfinished. Every option differs
+ * from every other ONLY in which cells are filled, so filled-versus-empty is the entire question. A
+ * world's `draw` never sees `hollow` (see the foot of this file), so an empty cell drawn as a hollow
+ * glyph would come back solid and the item would have five identical answers. The wells are therefore
+ * plain CSS frames — thin, faint and unmistakably not a block — and the contrast survives any skin.
  *
  * The output window stays a question mark after answering, for the same reason as the op-chain: this
  * renderer does not know what came out and must not appear to.
@@ -32,6 +38,18 @@ interface Option {
   key: string;
   blocks: number[];
 }
+
+/**
+ * The one shape name and the one colour name in this file, both explicit FALLBACKS.
+ *
+ * Nothing in this payload carries either: an option is `{key, blocks}` and a block is an index into a
+ * lattice, so there is no shape and no colour to read off the item. Naming them once here and sending
+ * both through `Glyph`/`skin.color` is what hands the decision to the world — `square` is the request,
+ * and whatever the world draws for a square is the answer. What was here before was
+ * `skin.color('teal')` and a local `<rect>`, i.e. a fixed picture in a borrowed colour.
+ */
+const BLOCK_SHAPE = 'square';
+const BLOCK_INK = 'ink';
 
 function asObject(v: unknown): Record<string, unknown> {
   return v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
@@ -55,53 +73,44 @@ function Lattice({
   blocks,
   rows,
   cols,
-  ink,
+  skin,
 }: {
   blocks: number[];
   rows: number;
   cols: number;
-  ink: string;
+  skin: Skin;
 }) {
-  const pad = 4;
-  const span = 100 - 2 * pad;
-  const stepX = span / cols;
-  const stepY = span / rows;
-  const gap = Math.min(stepX, stepY) * 0.08;
-  const radius = Math.min(stepX, stepY) * 0.18;
   const filled = new Set(blocks.filter((cell) => cell < rows * cols));
 
-  const wells = [];
-  for (let r = 0; r < rows; r += 1) {
-    for (let c = 0; c < cols; c += 1) {
-      const index = r * cols + c;
-      wells.push(
-        <rect
-          key={index}
-          x={pad + c * stepX + gap}
-          y={pad + r * stepY + gap}
-          width={stepX - 2 * gap}
-          height={stepY - 2 * gap}
-          rx={radius}
-          fill={filled.has(index) ? ink : 'none'}
-          stroke={filled.has(index) ? 'none' : ink}
-          strokeWidth={filled.has(index) ? 0 : 0.9}
-          opacity={filled.has(index) ? 1 : 0.22}
-        />,
-      );
-    }
-  }
-
   return (
-    <svg className="sx-lattice" viewBox="0 0 100 100" role="presentation" aria-hidden="true">
-      {wells}
-    </svg>
+    <span
+      className="sx-lattice"
+      style={vars({ '--sx-rows': rows, '--sx-cols': cols, '--sx-block-ink': skin.color(BLOCK_INK) })}
+      aria-hidden="true"
+    >
+      {Array.from({ length: rows * cols }, (_, index) =>
+        filled.has(index) ? (
+          <span key={index} className="sx-well sx-well-on">
+            <Glyph className="sx-block" shape={BLOCK_SHAPE} color={BLOCK_INK} skin={skin} />
+          </span>
+        ) : (
+          <span key={index} className="sx-well" />
+        ),
+      )}
+    </span>
   );
 }
 
 function Badge({ symbol, hollow, skin }: { symbol: string; hollow: boolean; skin: Skin }) {
   return (
-    <span className="sx-badge">
-      <Glyph className="sx-badge-art" shape={symbol} color="slate" skin={skin} hollow={hollow} />
+    <span className="sx-badge" style={vars({ '--sx-block-ink': skin.color(BLOCK_INK) })}>
+      <Glyph
+        className={`sx-badge-art${hollow ? ' sx-badge-hollow' : ''}`}
+        shape={symbol}
+        color={BLOCK_INK}
+        skin={skin}
+        hollow={hollow}
+      />
     </span>
   );
 }
@@ -139,7 +148,6 @@ export default function SpaXform({
 }: RendererProps & { skin?: Skin }) {
   const [chosen, setChosen] = useState<string | null>(null);
   const locked = useRef(false);
-  const ink = skin.color('teal');
 
   const { rows, cols, input, chain, tray, options } = useMemo(() => {
     const grid = asObject(content.grid);
@@ -195,7 +203,7 @@ export default function SpaXform({
           role="img"
           aria-label={`The pattern going in: ${input.length} blocks on a ${rows} by ${cols} grid`}
         >
-          <Lattice blocks={input} rows={rows} cols={cols} ink={ink} />
+          <Lattice blocks={input} rows={rows} cols={cols} skin={skin} />
         </span>
 
         <Feed />
@@ -239,7 +247,7 @@ export default function SpaXform({
             onClick={() => pick(option.key)}
           >
             <span className="sx-opt-face">
-              <Lattice blocks={option.blocks} rows={rows} cols={cols} ink={ink} />
+              <Lattice blocks={option.blocks} rows={rows} cols={cols} skin={skin} />
             </span>
             <span className="sx-opt-key" aria-hidden="true">
               {option.key}
@@ -255,3 +263,18 @@ export default function SpaXform({
     </div>
   );
 }
+
+/* ===========================================================================
+   WANTED FROM shared/, REPORTED RATHER THAN CHANGED
+
+   1. `Glyph` never passes its third argument to `skin.draw` — the call is `skin.draw?.(shape, fill)`
+      even though `Skin.draw` is typed as taking `{ hollow, rotDeg }`. `hollow` therefore only reaches
+      the geometric fallback. That is why the empty wells of this lattice are CSS frames rather than
+      hollow glyphs: filled-versus-empty is the whole of this item, and a hollow glyph that came back
+      solid would leave five identical options.
+
+   2. There is no shared primitive for a set of occupied cells on a lattice, which two types would use
+      (this one and anything else block-shaped). A `Lattice` beside `Cluster` in `shared/glyphs`, taking
+      `{blocks, rows, cols, shape, skin}`, would put the filled/empty contrast in one place instead of
+      leaving each renderer to invent it.
+   =========================================================================== */

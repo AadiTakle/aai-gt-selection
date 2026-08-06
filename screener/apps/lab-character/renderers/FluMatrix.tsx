@@ -6,13 +6,18 @@
  * generator switched on is expressed in those four attributes, so all four have to be VISIBLE or
  * the item stops being answerable:
  *
- *   shape     6 names, two of which (`kite`, `drop`) are not in the shared glyph vocabulary
- *   color     6 names, four of which (`ink`, `blue`, `gold`, `coral`) are not in the neutral palette
+ *   shape     6 names: star, pentagon, kite, drop, hexagon, triangle
+ *   color     6 names: teal, ink, violet, blue, gold, coral
  *   count     1..3, drawn as a cluster and never as a numeral
- *   rot       0 / 120 / 240, in DEGREES (the shared Glyph counts quarter turns)
+ *   rot       0 / 120 / 240, in DEGREES
  *
- * The three mismatches above are handled here, deliberately locally, and reported upward rather
- * than patched into `shared/` — see the notes at each map.
+ * ALL SIX SHAPES AND ALL SIX COLOURS NOW GO STRAIGHT THROUGH. This file used to carry two local
+ * tables: `kite`/`drop` were aliased onto `diamond`/`teardrop` because the shared vocabulary had no
+ * path for them, and four colours were patched from a local hex table because the neutral palette
+ * was missing them. Both holes are closed in `shared/glyphs`, and both tables were actively harmful
+ * once they were not needed: aliasing renamed the shape BEFORE `skin.draw` saw it, so a world that
+ * draws a kite as a kite got asked for a diamond instead and the item was depicted in someone
+ * else's vocabulary. The bank's own name is now handed to the skin unchanged.
  *
  * WHAT IS NOT DRAWN. `content.activeRules` and `content.ruleCount` name the rules in force
  * ("shape", "color", "count", "rotation"). They are generator metadata and drawing them would hand
@@ -32,40 +37,13 @@ import type { RendererProps } from '../shared/types';
 import './FluMatrix.css';
 
 /**
- * Bank shape names with no path in `shared/glyphs`. `Glyph` silently falls back to a circle for an
- * unknown name, so `kite` and `drop` would BOTH draw as circles and every shape rule in the bank
- * would become invisible. Mapping them onto unused primitives keeps the six names six shapes, and
- * keeps them going through `Glyph` so a world's `skin.draw` still gets a say.
+ * The fallback ink, and the only colour name written down in this file.
+ *
+ * It is used for a tile that arrives with no `color` at all. Every tile that HAS one is drawn in its
+ * own — `skin.color(tile.color)` — because the colour is one of the four attributes the item may be
+ * ruling on, and a literal colour name here would overwrite the rule with a house style.
  */
-const SHAPE_ALIAS: Record<string, string> = { kite: 'diamond', drop: 'teardrop' };
-
-/**
- * Bank colour names the neutral palette does not know. `paletteColor` returns its teal for anything
- * unknown, which collapses `ink`/`blue`/`gold`/`coral` into one colour and makes the colour rule
- * unanswerable under `NEUTRAL_SKIN`. This fills the gaps ONLY where the active skin has no opinion
- * of its own, so a world that maps these names keeps its own art direction.
- */
-const PALETTE_GAP: Record<string, string> = {
-  ink: '#2b3440',
-  blue: '#3f6fb0',
-  gold: '#cf9a2b',
-  coral: '#e0714f',
-};
-
-function useTintedSkin(skin: Skin): Skin {
-  return useMemo(() => {
-    const fallback = skin.color('teal');
-    return {
-      ...skin,
-      color: (name: string) => {
-        const own = skin.color(name);
-        const gap = PALETTE_GAP[name];
-        // A skin that does not know `name` hands back the same colour it hands back for everything.
-        return gap && name !== 'teal' && own === fallback ? gap : own;
-      },
-    };
-  }, [skin]);
-}
+const FALLBACK_INK = 'teal';
 
 interface Tile {
   shape: string;
@@ -91,10 +69,10 @@ function asString(v: unknown, fallback: string): string {
 }
 function readTile(v: unknown): Tile {
   const raw = asObject(v);
-  const name = asString(raw.shape, 'circle');
   return {
-    shape: SHAPE_ALIAS[name] ?? name,
-    color: asString(raw.color, 'teal'),
+    // The bank's own name, unaliased, so `skin.draw` is asked about a kite rather than a diamond.
+    shape: asString(raw.shape, 'circle'),
+    color: asString(raw.color, FALLBACK_INK),
     count: Math.max(1, Math.min(6, Math.round(asNumber(raw.count, 1)))),
     rot: asNumber(raw.rot, 0),
   };
@@ -103,10 +81,14 @@ function vars(v: Record<string, string | number>): CSSProperties {
   return v as CSSProperties;
 }
 
-/** A tile's face: `count` copies of one glyph, all carrying the tile's rotation. */
-function TileFace({ tile, skin }: { tile: Tile; skin: Skin }) {
+/**
+ * A tile's face: `count` copies of one glyph, all carrying the tile's rotation.
+ *
+ * `width` is the drawn size of one copy and is pinned PER ITEM rather than per tile — see `faceWidth`.
+ */
+function TileFace({ tile, skin, width }: { tile: Tile; skin: Skin; width: string }) {
   return (
-    <span className="fm-face" data-n={tile.count}>
+    <span className="fm-face" data-n={tile.count} style={vars({ '--fm-w': width })}>
       {Array.from({ length: tile.count }, (_, i) => (
         <Glyph
           key={i}
@@ -114,12 +96,27 @@ function TileFace({ tile, skin }: { tile: Tile; skin: Skin }) {
           shape={tile.shape}
           color={tile.color}
           skin={skin}
-          // The bank speaks degrees; Glyph counts quarter turns.
-          rot={tile.rot / 90}
+          // Degrees, which is what the bank carries: 0, 120 and 240 are not quarter turns.
+          rotDeg={tile.rot}
         />
       ))}
     </span>
   );
+}
+
+/**
+ * One drawn size for every copy in the item, chosen from the LARGEST count anywhere in it.
+ *
+ * Sizing each face by its own count is the trap: a tile of one would be drawn at full width next to
+ * a tile of three at 45%, so "one big shape" and "three small shapes" differ in mark size as well as
+ * in number. Count is one of the rules these items run on, and a child reading size for number is
+ * answering a different question than the one that was served. Pinning the width across the whole
+ * item — pattern and options alike — leaves number as the only thing that changes.
+ */
+function faceWidth(maxCount: number): string {
+  if (maxCount <= 1) return '100%';
+  if (maxCount <= 4) return '45%';
+  return '30%';
 }
 
 function ChosenMark() {
@@ -145,11 +142,10 @@ export default function FluMatrix({
   band,
   skin = NEUTRAL_SKIN,
 }: RendererProps & { skin?: Skin }) {
-  const tinted = useTintedSkin(skin);
   const [chosen, setChosen] = useState<string | null>(null);
   const locked = useRef(false);
 
-  const { rows, cols, cells, blank, options } = useMemo(() => {
+  const { rows, cols, cells, blank, options, width } = useMemo(() => {
     const matrix = asObject(content.matrix);
     const rawRows = Array.isArray(matrix.cells) ? (matrix.cells as unknown[]) : [];
     const grid: (Tile | null)[][] = rawRows.map((row) =>
@@ -162,12 +158,17 @@ export default function FluMatrix({
         return { key: asString(o.key, String.fromCharCode(65 + i)), tile: readTile(o.tile) };
       },
     );
+    const counts = [
+      ...grid.flatMap((row) => row.map((cell) => cell?.count ?? 1)),
+      ...opts.map((o) => o.tile.count),
+    ];
     return {
       rows: Math.max(1, Math.round(asNumber(matrix.rows, grid.length || 1))),
       cols: Math.max(1, Math.round(asNumber(matrix.cols, grid[0]?.length ?? 1))),
       cells: grid,
       blank: { row: Math.round(asNumber(hole.row, -1)), col: Math.round(asNumber(hole.col, -1)) },
       options: opts,
+      width: faceWidth(Math.max(1, ...counts)),
     };
   }, [content]);
 
@@ -217,7 +218,7 @@ export default function FluMatrix({
                     <circle cx="56" cy="72" r="5" />
                   </svg>
                 ) : (
-                  <TileFace tile={tile} skin={tinted} />
+                  <TileFace tile={tile} skin={skin} width={width} />
                 )}
               </span>
             );
@@ -237,7 +238,7 @@ export default function FluMatrix({
             onClick={() => pick(option.key)}
           >
             <span className="fm-opt-face">
-              <TileFace tile={option.tile} skin={tinted} />
+              <TileFace tile={option.tile} skin={skin} width={width} />
             </span>
             <span className="fm-opt-key" aria-hidden="true">
               {option.key}

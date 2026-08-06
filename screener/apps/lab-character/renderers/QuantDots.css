@@ -11,7 +11,6 @@
   --qd-soft: var(--ink-soft, #4b515c);
   --qd-target: 84px;
   --qd-gap: clamp(0.75rem, 3vw, 1.5rem);
-  --qd-dot: #5566b5;
   --qd-shutter: #5b6b7a;
   --qd-shutter-ms: 380ms;
 
@@ -59,11 +58,27 @@
   box-shadow: inset 0 0 0 1px var(--qd-line);
 }
 
+/* The field. Each mark is placed at the item's own coordinates as a percentage of this box, so the
+   scatter the generator built is reproduced exactly and nothing here can nudge a dot. */
 .qd-art {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
+}
+
+/* One mark. `left`/`top`/`width` come from the item; the box is the diameter it asked for and the
+   translate puts the mark's centre on the stated point rather than its corner. */
+.qd-dot {
+  position: absolute;
+  display: block;
+  transform: translate(-50%, -50%);
+}
+
+.qd-dot svg {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 
 /* Closed by default: down over the window. Opening slides it up and out of the way. */

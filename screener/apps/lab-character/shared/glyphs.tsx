@@ -62,8 +62,20 @@ export interface Skin {
   id: string;
   /** Maps a bank colour name onto this world's palette. */
   color: (name: string) => string;
-  /** Optional override per abstract shape. Return undefined to use the geometric default. */
-  draw?: (shape: ShapeName, fill: string) => ReactNode | undefined;
+  /**
+   * Optional override per abstract shape. Return undefined to use the geometric default.
+   *
+   * `opts` carries the modifiers that are part of what the item is ASKING, not decoration. Some
+   * carpet items rule on `fill`, so a world that draws its own picture and ignores `hollow` erases
+   * the distinction the child is being asked to notice and the item becomes unanswerable. Same for
+   * rotation, which several banks use as the varying attribute. A skin may ignore them only when it
+   * is sure the item never rules on them, which it cannot be.
+   */
+  draw?: (
+    shape: ShapeName,
+    fill: string,
+    opts?: { hollow?: boolean; rotDeg?: number },
+  ) => ReactNode | undefined;
   /** Emoji or short label used where a pictorial stand-in reads better than geometry. */
   token?: (shape: ShapeName) => string | undefined;
 }
@@ -84,8 +96,22 @@ const DEFAULT_COLORS: Record<string, string> = {
   coral: '#e0685c',
 };
 
+/**
+ * A stable fill for a colour name.
+ *
+ * An unknown name is hashed into the palette rather than folded onto one default. Folding was the
+ * earlier behaviour and it is quietly destructive: two unknown names became the same fill, so an
+ * item ruling on colour had two identical-looking options and could not be answered. Hashing keeps
+ * unknowns distinguishable, which is the property the item actually depends on, and it is
+ * deterministic so the same name is always the same colour within a session and across reloads.
+ */
 export function paletteColor(name: string): string {
-  return DEFAULT_COLORS[name] ?? DEFAULT_COLORS.teal!;
+  const known = DEFAULT_COLORS[name];
+  if (known) return known;
+  let h = 0;
+  for (let i = 0; i < name.length; i += 1) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  const names = Object.keys(DEFAULT_COLORS);
+  return DEFAULT_COLORS[names[h % names.length]!]!;
 }
 
 /** Every colour name the banks use, for a world building its own mapping. */
@@ -128,6 +154,22 @@ const PATHS: Record<ShapeName, string> = {
   zigzag: 'M10 70 30 30 50 70 70 30 90 70',
 };
 
+/**
+ * Resolve a name to a drawable primitive.
+ *
+ * An unrecognised name hashes into the table instead of collapsing to one shape, for the same
+ * reason `paletteColor` hashes: two unknown names that draw identically make a shape rule invisible
+ * and the item unanswerable. A wrong-but-distinct picture costs nothing here, because the item never
+ * claimed the picture meant anything; only that the shapes differ.
+ */
+function resolveShape(shape: string): ShapeName {
+  if ((shape as ShapeName) in PATHS) return shape as ShapeName;
+  let h = 0;
+  for (let i = 0; i < shape.length; i += 1) h = (h * 31 + shape.charCodeAt(i)) >>> 0;
+  const names = Object.keys(PATHS) as ShapeName[];
+  return names[h % names.length]!;
+}
+
 /** Shapes whose fallback reads as a stroke rather than a fill. */
 const STROKED = new Set<ShapeName>(['flag', 'hook', 'spiral', 'zigzag']);
 
@@ -160,8 +202,12 @@ export function Glyph({
   // never see the bank's own vocabulary, so every renderer would keep a private alias table onto
   // these primitives, and a bank using both `petal` and `leaf` would be one alias collision away
   // from two distinct shapes drawing identically, which makes the item unanswerable.
-  const custom = skin.draw?.(shape as ShapeName, fill);
-  const name = (shape as ShapeName) in PATHS ? (shape as ShapeName) : 'dot';
+  // `opts` must be forwarded, not just declared. An earlier version typed `Skin.draw` as accepting
+  // { hollow, rotDeg } but called it with two arguments, so a world's artwork always came back solid:
+  // `shade` varies in 434 of 468 op-chain items and `fill` is an active carpet attribute, so the
+  // distinction the child is asked to notice was invisible wherever a skin drew its own picture.
+  const custom = skin.draw?.(shape as ShapeName, fill, { hollow, rotDeg: rotDeg ?? (rot ?? 0) * 90 });
+  const name = resolveShape(shape);
   const deg = rotDeg ?? (rot ?? 0) * 90;
   const outline = STROKED.has(name) || hollow;
 
@@ -211,6 +257,7 @@ export function Cluster({
   rotDeg,
   hollow = false,
   scale = 1,
+  cols: fixedCols,
 }: {
   n: number;
   color?: string;
@@ -221,13 +268,26 @@ export function Cluster({
   hollow?: boolean;
   /** Bank cells carry a discrete `size` step; pass it through as a multiplier. */
   scale?: number;
+  /**
+   * Pin the column count, which pins the drawn size of each member.
+   *
+   * PASS THIS WHENEVER QUANTITIES ARE COMPARED SIDE BY SIDE. The adaptive default below packs small
+   * counts into fewer columns, which makes each member larger, so an unpinned row can draw 4 as
+   * visibly bigger marks than 5 and a child comparing amounts may read "bigger" as "more". That
+   * turns a quantity item into a size item and the answer stops being the one the engine scored.
+   * The default is retained only for single clusters shown alone, where nothing is being compared.
+   */
+  cols?: number;
 }) {
   const count = Math.max(0, Math.min(max, Math.round(n)));
-  const cols = count <= 1 ? 1 : count <= 4 ? 2 : count <= 9 ? 3 : 4;
+  const cols = fixedCols ?? (count <= 1 ? 1 : count <= 4 ? 2 : count <= 9 ? 3 : 4);
   return (
     <div
       className="cluster"
       style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
+      // role is required for the label to be exposed at all; a bare div with aria-label is not
+      // reliably announced, and the count is the entire content of this element.
+      role="img"
       aria-label={`${count}`}
     >
       {Array.from({ length: count }, (_, i) => (

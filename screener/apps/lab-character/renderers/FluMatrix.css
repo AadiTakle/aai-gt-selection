@@ -93,21 +93,16 @@
   inset: 13%;
 }
 
+/* ONE DRAWN SIZE FOR THE WHOLE ITEM. `--fm-w` is set by the component from the largest count
+   anywhere in it, pattern and options together, and every copy in every face uses it. It used to be
+   selected here from each face's own `data-n`, which made a tile of one draw its shape at full width
+   beside a tile of three at 45%: count is one of the rules these items run on, and a mark that grows
+   as the number shrinks invites the child to answer on size. `data-n` is kept as the honest record of
+   what a face holds. */
 .fm-glyph {
   display: block;
-  width: 100%;
+  width: var(--fm-w, 100%);
   height: auto;
-}
-
-.fm-face[data-n='2'] .fm-glyph,
-.fm-face[data-n='3'] .fm-glyph,
-.fm-face[data-n='4'] .fm-glyph {
-  width: 45%;
-}
-
-.fm-face[data-n='5'] .fm-glyph,
-.fm-face[data-n='6'] .fm-glyph {
-  width: 30%;
 }
 
 /* ---- the choices ---------------------------------------------------------- */

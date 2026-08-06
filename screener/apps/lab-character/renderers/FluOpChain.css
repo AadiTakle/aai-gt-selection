@@ -71,14 +71,77 @@
   animation-delay: 140ms;
 }
 
+/* THE FIGURE. A positioned box that holds one or two `Glyph`s.
+
+   It was one SVG with a local path in it. Now the drawing belongs to the world and this box owns only
+   the three things a single glyph cannot say: how many copies, whether there is a frame, and whether
+   the fill is on. Sizes are percentages of a box whose size comes from the card, never from the
+   picture — a viewBox-only SVG has no intrinsic size and collapses if asked for one. */
 .foc-fig {
   position: absolute;
   inset: 0;
-  display: block;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4%;
 }
 
 .foc-slot > .foc-fig {
   inset: 10%;
+}
+
+.foc-fig-art {
+  display: block;
+  flex: none;
+  width: 100%;
+  height: 100%;
+}
+
+/* `pair: 1` — two copies of the same figure, at the same orientation. Half width each, so a pair
+   never reads as a bigger single. */
+.foc-fig-pair .foc-fig-art {
+  width: 48%;
+  height: 48%;
+}
+
+/* `border: 1` — a frame that does NOT turn with the figure, which is why it is on this box and not
+   inside the drawing. */
+.foc-fig-framed {
+  border: 3px solid var(--foc-fig-ink, var(--foc-ink));
+  border-radius: 14%;
+  padding: 4%;
+}
+
+/* `shade: 'hollow'`. `Glyph` outlines its own fallback but does not tell a world's `draw` about the
+   modifier, so this reaches into whatever came back and takes the fill off it: ghosted interior,
+   silhouette outlined in the figure's own ink. Options in this bank differ by shade alone, so it has
+   to hold for every skin and not only for the fallback. Also used by a hollow badge.
+
+   THE DASH IS NOT DECORATION. Taking the fill off is enough for a world that draws filled artwork, and
+   does almost nothing for a world whose figure is a stroke — Hatchling's `flag` is a frond drawn in
+   strokes, so removing a fill it never had left solid and hollow nearly identical, and shade is one of
+   the five attributes the options here differ by. A broken contour is the one channel that reads as
+   "not filled" whichever way the mark was drawn. */
+.foc-fig-hollow :is(path, circle, ellipse, rect, polygon, polyline) {
+  fill-opacity: 0.12;
+  stroke: var(--foc-fig-ink, var(--foc-ink));
+  stroke-width: 6;
+  /* Long dashes with a short gap: enough break to read as unfilled, not so much that the silhouette
+     comes apart. It can be this coarse because `glyph` is FIXED within an item — all five options draw
+     the same figure — so nothing here is being told apart by outline detail, while `shade` varies in
+     434 of the 468 items and is being told apart by exactly this. */
+  stroke-dasharray: 22 6;
+  stroke-linejoin: round;
+  stroke-linecap: butt;
+}
+
+/* A badge is a label rather than a figure, and every world's badge set is filled artwork, so the fill
+   coming off is enough. No dash: at 1.6rem it would read as a different symbol instead of the same one
+   unfilled, and telling two badges apart is the whole reason the alternation exists. */
+.foc-badge-art.foc-fig-hollow :is(path, circle, ellipse, rect, polygon, polyline) {
+  stroke-dasharray: none;
+  stroke-linecap: round;
 }
 
 .foc-unknown {

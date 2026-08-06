@@ -98,7 +98,16 @@
   right: 4%;
   top: 0;
   width: min(300px, 46vw);
-  opacity: 0.75;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgb(246 216 150 / 0.92),
+    rgb(246 216 150 / 0.5) 40%,
+    rgb(246 216 150 / 0.16) 68%,
+    rgb(246 216 150 / 0)
+  );
+  opacity: 0.8;
   transform: translateY(62vh);
   transition:
     transform 2800ms var(--hl-ease),
@@ -185,7 +194,7 @@
 /* Before it opens, the egg drops down into the middle of the screen and owns it entirely. */
 .hl-root[data-stage='nest'] .hl-bayinner,
 .hl-root[data-stage='hatch'] .hl-bayinner {
-  transform: translateX(-50%) translateY(112%) scale(1.18);
+  transform: translateX(-50%) translateY(128%) scale(1.18);
 }
 
 /* Once there is a question, it steps back and becomes a face that is watching. */
@@ -242,7 +251,7 @@
   cursor: pointer;
   position: absolute;
   left: 50%;
-  bottom: 19%;
+  bottom: 8%;
   z-index: 1;
   width: 58%;
   aspect-ratio: 1;
@@ -262,15 +271,17 @@
   overflow: visible;
 }
 
-/* three rings breathing outward: the whole of "this is the thing to touch" */
+/* Three soft breaths of light going out from the egg: the whole of "this is the thing to touch".
+   Deliberately NOT outlined rings — an outline that crosses the nest rim reads as a scratch on the
+   drawing rather than as light coming off the egg. */
 .hl-ring {
   position: absolute;
   left: 50%;
-  top: 56%;
-  width: 62%;
+  top: 52%;
+  width: 74%;
   aspect-ratio: 1;
   border-radius: 50%;
-  border: 3px solid rgb(141 95 60 / 0.42);
+  background: radial-gradient(closest-side, rgb(255 249 233 / 0), rgb(255 249 233 / 0.72) 72%, rgb(255 249 233 / 0));
   opacity: 0;
   transform: translate(-50%, -50%) scale(0.9);
   animation: hl-ring 3400ms var(--hl-ease) infinite;
@@ -369,7 +380,7 @@
 .hl-crwrap {
   position: absolute;
   left: 50%;
-  bottom: 15%;
+  bottom: 9%;
   z-index: 1;
   width: 56%;
   transform: translateX(-50%);
@@ -603,8 +614,8 @@
 }
 
 .hl-root .hl-stage button:focus-visible {
-  outline: 4px solid var(--hl-ink);
-  outline-offset: 5px;
+  outline: 4px solid #7f5432;
+  outline-offset: 6px;
 }
 
 .hl-root .hl-stage svg {
@@ -730,8 +741,13 @@
   color: rgb(74 53 41 / 0.52);
 }
 
+/* The raw message from the session, on its own line: it is a note for whoever is debugging and it
+   should not run on from the sentence written for the adult in the room. */
 .hl-detail {
-  opacity: 0.7;
+  display: block;
+  margin-top: 0.6rem;
+  font-size: 0.66rem;
+  opacity: 0.62;
 }
 
 .hl-inline {
@@ -1067,12 +1083,12 @@
     opacity: 0;
     transform: translate(-50%, -50%) scale(0.86);
   }
-  22% {
-    opacity: 0.75;
+  26% {
+    opacity: 0.9;
   }
   100% {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(1.5);
+    transform: translate(-50%, -50%) scale(1.42);
   }
 }
 

@@ -1,4 +1,4 @@
-import { Component, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Component, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ErrorInfo, ReactNode, RefObject } from 'react';
 
 import type { ExperienceProps } from '../../shared/experience';
@@ -28,25 +28,28 @@ import './styles.css';
  * The bank names colours `teal | violet | blue | coral | gold | ink`. None of those are in the
  * shared default palette, so every one of them is remapped here.
  *
- * They are CHART INKS rather than glow, because a reading arrives on the one backlit plate on the
- * bridge (see styles.css) and thin technical linework only holds its edges dark-on-pale. Six hues
- * kept far apart in both hue and value, which matters because several item types make colour the
- * rule and a child cannot read a rule they cannot separate.
+ * Six hues far apart in both hue and value, because several item types make colour the rule and a
+ * child cannot read a rule they cannot separate.
+ *
+ * Deliberately MID-TONE rather than full phosphor. The reading sits on dark glass (see styles.css),
+ * which the world reaches by restating the renderers' own documented ink and surface properties — and
+ * if one of those names ever drifts, a mark at this value is still legible on a bright surface. The
+ * palette is the fallback plan as well as the palette.
  */
 const CONSOLE_COLORS: Record<string, string> = {
-  teal: '#0d7a70',
-  blue: '#20509c',
-  violet: '#6a48a8',
-  coral: '#bd3d2a',
-  gold: '#8a6410',
-  ink: '#3a4d58',
+  teal: '#24b8a6',
+  blue: '#4f8ce8',
+  violet: '#9575e0',
+  coral: '#ef6a52',
+  gold: '#d9a232',
+  ink: '#8fa8b4',
   // the shared palette's own names, in case a renderer passes them through
-  crimson: '#bd3d2a',
-  amber: '#8a6410',
-  indigo: '#20509c',
-  lime: '#4a7a1c',
-  slate: '#3a4d58',
-  rose: '#a8386a',
+  crimson: '#ef6a52',
+  amber: '#d9a232',
+  indigo: '#4f8ce8',
+  lime: '#8cc63f',
+  slate: '#8fa8b4',
+  rose: '#e8779b',
 };
 
 const STROKE = 7;
@@ -300,13 +303,65 @@ function pad(n: number): string {
 }
 
 /* -------------------------------------------------------------------------- */
+/* fitting a reading to the glass                                              */
+/* -------------------------------------------------------------------------- */
+
+/** Below this the tap targets inside a reading would stop being comfortable, so it never goes lower. */
+const MIN_FIT = 0.82;
+
+/**
+ * The plate is a fixed screen, not a box that resizes per question — a console does not change shape
+ * between readings, and a stable frame is what lets one reading dissolve into the next.
+ *
+ * Some item types are drawn taller than the glass on a laptop. Rather than let a child scroll to
+ * find the choices, the reading is scaled to fit. Layout height is measured, never the transformed
+ * height, so there is no feedback loop, and this animates nothing: it is one transform applied
+ * before the frame is painted.
+ */
+function useFitToGlass(itemId: string | undefined) {
+  const glass = useRef<HTMLDivElement | null>(null);
+  const reading = useRef<HTMLDivElement | null>(null);
+  const [fit, setFit] = useState(1);
+
+  useLayoutEffect(() => {
+    const outer = glass.current;
+    const inner = reading.current;
+    if (!outer || !inner) return;
+
+    let raf = 0;
+    const measure = () => {
+      const avail = outer.clientHeight;
+      const natural = inner.offsetHeight;
+      if (!avail || !natural) return;
+      const next = Math.min(1, Math.max(MIN_FIT, avail / natural));
+      setFit((prev) => (Math.abs(prev - next) < 0.004 ? prev : next));
+    };
+
+    const ro = new ResizeObserver(() => {
+      window.cancelAnimationFrame(raf);
+      raf = window.requestAnimationFrame(measure);
+    });
+    ro.observe(outer);
+    ro.observe(inner);
+    measure();
+
+    return () => {
+      ro.disconnect();
+      window.cancelAnimationFrame(raf);
+    };
+  }, [itemId]);
+
+  return { glass, reading, fit };
+}
+
+/* -------------------------------------------------------------------------- */
 /* a reading that cannot be drawn                                              */
 /* -------------------------------------------------------------------------- */
 
 /**
  * A renderer chunk that fails to load throws inside Suspense, which would otherwise blank the
  * bridge. In this world that is a smeared panel the child logs by hand and moves past: no dead end,
- * and the shared notice's own wording ("nothing is wrong with your answers") never has to appear.
+ * and the shared notice's own wording — which judges the child's answers — never has to appear.
  */
 class PanelFault extends Component<{ onPast: () => void; children: ReactNode }, { faulted: boolean }> {
   constructor(props: { onPast: () => void; children: ReactNode }) {
@@ -405,7 +460,8 @@ export default function Navigator({ onExit }: ExperienceProps) {
 
   const hail = HAILS[answered % HAILS.length]!;
   const speaker: CrewId = leg !== null ? (LEG_REPORTS[Math.min(leg, LEG_REPORTS.length) - 1]?.crew ?? 'signals') : hail.crew;
-  const liveCrew: CrewId | null = act === 'voyage' ? speaker : null;
+  const liveCrew: CrewId | null =
+    act !== 'voyage' ? null : s.phase === 'error' ? 'signals' : speaker;
 
   const serve = s.serve;
   const kind = serve ? (TYPE_LABELS[serve.typeCode] ?? 'CONSOLE READING') : null;
@@ -414,6 +470,8 @@ export default function Navigator({ onExit }: ExperienceProps) {
   const skipReading = useCallback(() => {
     void s.answer('A');
   }, [s]);
+
+  const { glass, reading, fit } = useFitToGlass(serve?.served.itemId);
 
   return (
     <div className="nv-root" data-act={act}>
@@ -451,6 +509,12 @@ export default function Navigator({ onExit }: ExperienceProps) {
               Standing by for a navigator.
             </p>
           )}
+          {act === 'voyage' && s.phase === 'error' && (
+            <p className="nv-comm-line" key="lost">
+              <span className="nv-comm-who">OKONJO</span>
+              I have lost the feed at my end as well. Nothing to do with you.
+            </p>
+          )}
           {act === 'voyage' && leg === null && s.phase !== 'error' && (
             <p className="nv-comm-line" key={`h${answered}`}>
               <span className="nv-comm-who">{CREW_BY_ID[hail.crew].name}</span>
@@ -459,8 +523,8 @@ export default function Navigator({ onExit }: ExperienceProps) {
           )}
           {act === 'arrival' && (
             <p className="nv-comm-line" key="alongside">
-              <span className="nv-comm-who">RUIZ</span>
-              Alongside. That was your route, Navigator.
+              <span className="nv-comm-who">ALL STATIONS</span>
+              Alongside. Lines ashore.
             </p>
           )}
         </div>
@@ -496,13 +560,17 @@ export default function Navigator({ onExit }: ExperienceProps) {
             {drawable ? (
               <PanelFault key={serve.served.itemId} onPast={skipReading}>
                 <div className="nv-plate">
-                  <ItemStage
-                    serve={serve}
-                    band="4-5"
-                    onAnswer={s.answer}
-                    answered={s.phase !== 'asking'}
-                    skin={CONSOLE_SKIN}
-                  />
+                  <div className="nv-fit" ref={glass} style={{ ['--nv-fit' as string]: String(fit) }}>
+                    <div className="nv-fit-in" ref={reading}>
+                      <ItemStage
+                        serve={serve}
+                        band="4-5"
+                        onAnswer={s.answer}
+                        answered={s.phase !== 'asking'}
+                        skin={CONSOLE_SKIN}
+                      />
+                    </div>
+                  </div>
                 </div>
               </PanelFault>
             ) : (
@@ -526,8 +594,14 @@ export default function Navigator({ onExit }: ExperienceProps) {
 
       <footer className="nv-route">
         <p className="nv-route-leg">
-          LEG {pad(Math.min(LEGS, Math.floor(answered / READINGS_PER_LEG) + (act === 'arrival' ? 0 : 1)))}
-          <span className="nv-route-of"> / {pad(LEGS)}</span>
+          {act === 'arrival' ? (
+            'PASSAGE MADE'
+          ) : (
+            <>
+              LEG {pad(Math.min(LEGS, Math.floor(answered / READINGS_PER_LEG) + 1))}
+              <span className="nv-route-of"> / {pad(LEGS)}</span>
+            </>
+          )}
         </p>
 
         <div className="nv-track" style={{ ['--p' as string]: String(progress) }}>
@@ -655,7 +729,7 @@ function Arrival({ count, onExit }: { count: number; onExit: () => void }) {
       <ul className="nv-arrive-log">
         <li className="nv-stagger" style={{ ['--i' as string]: '3' }}>
           <span className="nv-comm-who">OKONJO</span>
-          {pad(count)} readings called and logged. Every one of them went into the book.
+          {count} readings called and logged. Every one of them went into the book.
         </li>
         <li className="nv-stagger" style={{ ['--i' as string]: '4' }}>
           <span className="nv-comm-who">VANCE</span>

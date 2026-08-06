@@ -18,10 +18,18 @@
  *      shutter travel; `exposureMs` is untouched, because it is data rather than decoration.
  *
  * GEOMETRY. `dots` carry explicit `{x, y}` as percentages of a square field and `r` is a dot radius in
- * px against the generator's nominal 240px window (`WINDOW_PX` in its grammar). In a 100-unit viewBox
- * that is `r / 2.4`. Both are drawn as given: `cueCondition` is `equal-size`, `area-controlled` or
+ * px against the generator's nominal 240px window (`WINDOW_PX` in its grammar). In a 100-unit box that
+ * is `r / 2.4`. Both are drawn as given: `cueCondition` is `equal-size`, `area-controlled` or
  * `incongruent`, meaning dot size and total area are deliberately set relative to count, and rescaling
  * or re-scattering the dots would destroy the cue the item was built around.
+ *
+ * WHAT A DOT LOOKS LIKE IS THE WORLD'S BUSINESS. Each mark is a `Glyph` on the vocabulary's `dot`, laid
+ * at the item's own coordinates, so a field of berries or a field of pips flashes instead of a field of
+ * discs. It was a bare `<circle>` before and no world could touch it. The item's geometry is untouched
+ * by this: the box a mark sits in is exactly the diameter the item asked for, and both fields are drawn
+ * the same way, so every ratio the cue conditions control is preserved. A mark that does not fill its
+ * own box therefore draws a little under the nominal size — which is the right way round, since the
+ * alternative is letting a world's artwork grow into its neighbour and merge two dots into one.
  *
  * Options are `[{key:'L'},{key:'R'}]` and carry nothing else, so the side is the answer: the button
  * sits under the field it refers to and sends that field's key.
@@ -47,6 +55,22 @@ interface Field {
 /** The generator's nominal window is 240px across and the field is drawn on a 100-unit box. */
 const FIELD_PX = 240;
 const UNITS = FIELD_PX / 100;
+
+/**
+ * The shape and the ink for every mark in this item, both explicit FALLBACKS.
+ *
+ * A field is `{count, r, dots:[{x,y}]}`: there is no shape name and no colour anywhere in the payload
+ * to read, so they are named once, here, and resolved through `Glyph` and `skin.color` — which is what
+ * lets a world answer with its own mark and its own value. The literals this replaces were
+ * `skin.color('blue')` for the dots and `color="ink"` on the chevrons, asked for identically whatever
+ * the item or the world said.
+ *
+ * The shutters take the same ink. They are furniture rather than part of the question, but they are the
+ * one large surface in this renderer and leaving them on a fixed grey put a cold plate in the middle of
+ * a warm world.
+ */
+const MARK_SHAPE = 'dot';
+const MARK_INK = 'ink';
 
 /** How long the shutters take to travel. Decoration, so reduced motion is allowed to remove it. */
 const SHUTTER_MS = 380;
@@ -92,15 +116,24 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-function DotField({ field, showing }: { field: Field; showing: boolean }) {
+function DotField({ field, showing, skin }: { field: Field; showing: boolean; skin: Skin }) {
+  // The diameter the item asked for, as a percentage of the field: `r` is px against a nominal 240px
+  // window, and the field is 100 units across.
+  const span = `${(2 * field.r) / UNITS}%`;
   return (
-    <svg viewBox="0 0 100 100" className="qd-art" role="presentation" aria-hidden="true">
+    <span className="qd-art" aria-hidden="true">
       {showing
         ? field.dots.map((dot, i) => (
-            <circle key={i} cx={dot.x} cy={dot.y} r={field.r / UNITS} fill="var(--qd-dot)" />
+            <span
+              key={i}
+              className="qd-dot"
+              style={{ left: `${dot.x}%`, top: `${dot.y}%`, width: span } as CSSProperties}
+            >
+              <Glyph shape={MARK_SHAPE} color={MARK_INK} skin={skin} />
+            </span>
           ))
         : null}
-    </svg>
+    </span>
   );
 }
 
@@ -170,8 +203,7 @@ export default function QuantDots({
       data-settled={settled ? 'true' : undefined}
       style={
         {
-          '--qd-dot': skin.color('indigo'),
-          '--qd-shutter': skin.color('slate'),
+          '--qd-shutter': skin.color(MARK_INK),
           '--qd-shutter-ms': `${shutterMs}ms`,
         } as CSSProperties
       }
@@ -182,11 +214,11 @@ export default function QuantDots({
 
       <div className="qd-fields">
         <div className="qd-window">
-          <DotField field={left} showing={showing} />
+          <DotField field={left} showing={showing} skin={skin} />
           <div className="qd-shutter" data-open={shuttersOpen ? 'true' : undefined} aria-hidden="true" />
         </div>
         <div className="qd-window">
-          <DotField field={right} showing={showing} />
+          <DotField field={right} showing={showing} skin={skin} />
           <div className="qd-shutter" data-open={shuttersOpen ? 'true' : undefined} aria-hidden="true" />
         </div>
       </div>
@@ -201,11 +233,11 @@ export default function QuantDots({
 
         {phase === 'gone' ? (
           <div className="qd-choices" role="group" aria-labelledby={promptId}>
-            {/* The chevron points at the window the button answers for: the glyph's base points down,
-                and the banks count rotation in quarter turns, so 1 is left and 3 is right. */}
+            {/* The chevron points at the window the button answers for. The glyph's base points
+                down and rotation is in degrees, so 90 is left and 270 is right. */}
             {[
-              { key: leftKey, label: 'Left', rot: 1 },
-              { key: rightKey, label: 'Right', rot: 3 },
+              { key: leftKey, label: 'Left', rotDeg: 90 },
+              { key: rightKey, label: 'Right', rotDeg: 270 },
             ].map((side, i) => (
               <button
                 key={side.key}
@@ -219,7 +251,7 @@ export default function QuantDots({
                 aria-label={`${side.label} side had more dots`}
               >
                 <span className="qd-choice-mark" aria-hidden="true">
-                  <Glyph shape="chevron" color="slate" skin={skin} rot={side.rot} />
+                  <Glyph shape="chevron" color={MARK_INK} skin={skin} rotDeg={side.rotDeg} />
                 </span>
                 <span className="qd-choice-word">{side.label}</span>
               </button>
