@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SPA-PUNCH-01 · Fold &amp; Punch</title>
+<style>
+:root{--ink:#003b5c;--cream:#f8e8de;--edge:#e48b53;--aqua:#4a6470;--blue:#e48b53;--good:#4a6470;--bad:#e48b53;--tel:#002a3a;--tel2:#002a3a}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%}
+body{display:flex;background:linear-gradient(145deg,#fcf4ef,#fcf4ef);font:16px/1.35 system-ui,-apple-system,Segoe UI,sans-serif;color:var(--ink)}
+#wrap{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:10px;padding:18px}
+#badge{font-size:12px;color:#4a6470;font-weight:850;letter-spacing:.09em;text-transform:uppercase}
+#howto{max-width:730px;width:100%;background:#ffffff;border:1px solid #f5ddcd;border-left:5px solid var(--aqua);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #33505c}
+#howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:#33505c}
+#howto p{margin:0;font-size:14px;color:#33505c;line-height:1.5}
+#phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#f8e8de;color:#33505c;border:2px solid #ebba9b;min-height:30px}
+#phasecue[data-phase="warmup"]{background:#f5ddcd;color:#6f4526;border-color:#ebba9b}
+#phasecue[data-phase="scored"]{background:var(--aqua);color:#ffffff;border-color:var(--aqua)}
+#phasecue[data-phase="done"]{background:#f8e8de;color:#33505c;border-color:#ebba9b}
+#status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+#status.ok{color:var(--good)}#status.no{color:var(--bad)}#status.neutral{color:#4a6470}
+#stagecard{width:min(730px,100%);background:#ffffff;border-radius:25px;padding:18px;box-shadow:0 22px 55px -32px #33505c;display:grid;gap:14px;justify-items:center}
+#sequence{min-height:45px;display:flex;align-items:center;justify-content:center;gap:7px;background:#fcf4ef;border:2px solid #ecd9cb;border-radius:16px;padding:6px;width:100%;flex-wrap:wrap}
+.foldchip{min-width:34px;height:34px;padding:0 8px;border-radius:10px;color:#ffffff;display:grid;place-items:center;font-size:16px;font-weight:800}
+.foldchip.L{background:#e48b53}.foldchip.R{background:#e48b53}.foldchip.T{background:#4a6470}.foldchip.B{background:#9fb6bd}
+.foldchip.D1,.foldchip.D2{background:#e48b53}
+.then{color:#4a6470}
+.punchChip{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#002a3a;color:#ffffff;font-size:18px}
+#rig{height:230px;width:100%;border-radius:20px;background:linear-gradient(165deg,#003b5c,#002a3a);perspective:820px;display:grid;place-items:center;position:relative;overflow:hidden}
+/* Reference grid on the paper: one line per answer-sheet cell, so a punch sits in a square
+   the child can name. Every line is drawn the same, so it says nothing about where the
+   creases are or where the holes will fall. --cell is set per item from grid.n. */
+.gridded{background-color:var(--cream);background-image:
+  repeating-linear-gradient(to right,#ecd9cb 0 1px,transparent 1px var(--cell)),
+  repeating-linear-gradient(to bottom,#ecd9cb 0 1px,transparent 1px var(--cell));
+  background-position:0 0}
+#paper{--cell:44px;width:176px;height:176px;border:3px solid var(--edge);border-radius:4px;position:relative;transform:rotateX(52deg) rotateZ(6deg);transform-style:preserve-3d;z-index:2;transition:width .2s,height .2s;box-shadow:0 10px 17px #001117aa}
+#flap{position:absolute;display:none;background-color:#f5ddcd;border:2px solid var(--edge);z-index:4}
+.punchMark{position:absolute;width:22px;height:22px;border-radius:50%;background:#001117;border:4px solid #fcf4ef;box-shadow:0 0 0 3px #001117;opacity:0;z-index:6}
+.punchMark.hit{animation:punch .42s ease-out forwards}
+@keyframes punch{0%{opacity:0;transform:translate(-50%,-50%) scale(1.9)}60%{opacity:1;transform:translate(-50%,-50%) scale(.7)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+#stack{position:absolute;right:14px;bottom:10px;color:#6f4526;font:800 12px ui-monospace,monospace;z-index:8}
+#noBack{position:absolute;left:13px;bottom:10px;color:#6f4526;font:700 12px ui-monospace,monospace;z-index:8}
+#sheetwrap{display:grid;gap:6px;justify-items:center}
+#sheetlabel{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#4a6470}
+#sheet{display:grid;gap:2px;background:var(--edge);border:3px solid var(--edge);border-radius:6px;padding:2px}
+.mcell{width:34px;height:34px;background:var(--cream);border:0;border-radius:3px;cursor:pointer;position:relative;padding:0}
+.mcell:hover{background:#ecd9cb}
+.mcell.on{background:#002a3a}
+.mcell.on:after{content:"";position:absolute;left:50%;top:50%;width:12px;height:12px;border-radius:50%;background:#f8e8de;transform:translate(-50%,-50%)}
+.mcell:focus-visible{outline:3px solid #ebba9b;outline-offset:2px}
+#controls{display:flex;align-items:center;justify-content:center;gap:12px}
+button{font:inherit;border:0;cursor:pointer}
+.round{border-radius:50%;font:800 24px system-ui}
+#replay{width:50px;height:50px;background:#f8e8de;color:#33505c}
+#clear{height:40px;padding:0 16px;border-radius:20px;background:#f8e8de;color:#33505c;font-weight:800;font-size:14px}
+#lock{width:66px;height:66px;border-radius:50%;background:var(--aqua);color:#ffffff;font-size:26px;box-shadow:0 10px 24px -10px var(--aqua);opacity:.3;pointer-events:none;transition:.2s}
+#lock.ready{opacity:1;pointer-events:auto}
+#hotkeys{text-align:center;color:#6f4526;font:700 12px ui-monospace,monospace}
+.kbd{display:inline-grid;place-items:center;height:22px;min-width:23px;padding:0 5px;border:1px solid #ebba9b;border-bottom-width:3px;border-radius:6px;background:#ffffff;color:#004f71;margin:0 2px}
+#ghost{position:fixed;z-index:90;left:0;top:0;opacity:0;pointer-events:none;transition:transform .48s cubic-bezier(.2,.8,.2,1),opacity .2s;filter:drop-shadow(0 3px 4px #0005)}
+#ghost.show{opacity:1}
+#ghost .ring{position:absolute;left:-6px;top:-4px;width:26px;height:26px;border-radius:50%;border:3px solid var(--aqua);opacity:0}
+#ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+#telemetry{width:330px;flex:0 0 330px;min-height:100vh;background:var(--tel);color:#f5ddcd;display:flex;flex-direction:column;font:13px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace}
+#telemetry h3{margin:0;padding:13px 15px;background:var(--tel2);color:#ffffff;font-size:12px;text-transform:uppercase;letter-spacing:.1em}
+#difficulty{margin:12px 12px 2px;padding:10px;border:1px solid #004f71;border-radius:12px;background:#002a3a}
+.dtop{display:flex;justify-content:space-between;color:#ffffff}
+.dsub{display:flex;justify-content:space-between;color:#6f4526;font-size:11px;margin-top:5px}
+.track{height:8px;background:#003b5c;margin-top:7px;border-radius:9px;overflow:hidden}
+.track i{display:block;height:100%;background:linear-gradient(90deg,#4a6470,#9fb6bd,#e48b53);transition:.3s}
+#mode{margin:6px 12px 0;font-size:11px;color:#4a6470}#mode b{color:#4a6470}
+#mlist{padding:8px 12px;display:grid;gap:7px}
+.mrow{display:grid;grid-template-columns:105px 1fr;gap:6px}
+.mid{color:#6f4526;font-weight:800}.mid.srv{color:#4a6470}
+.mval{color:#ffffff;text-align:right;overflow-wrap:anywhere}
+.mname{grid-column:1/3;color:#4a6470;font-size:11px;margin-top:-4px}
+#logwrap{margin-top:auto;border-top:1px solid #003b5c}
+#logwrap b{display:block;padding:8px 12px 4px;color:#6f4526;font-size:11px;letter-spacing:.08em}
+#log{height:200px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+#log div{padding:3px 0;border-bottom:1px dotted #003b5c}#log .t{color:#4a6470}
+@media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;min-height:0;height:330px;flex:none}}
+@media(max-width:580px){.mcell{width:26px;height:26px}#rig{height:190px}}
+@media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
+</style>
+<style>html[data-gt-telemetry="off"] #telemetry{display:none}</style>
+<script>/* D-028 — the researcher telemetry panel is presentational only. Embedded in the
+   child-facing screener it is hidden: naming the behavioural metrics to the child can
+   change the behaviour being measured. `?telemetry=1` restores it for a live
+   demonstration, and standalone (opened directly) is unchanged. Sampling, metric
+   computation and the {type:'telemetry'} postMessage stream are untouched. */
+(function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
+<style>html[data-gt-chrome="off"] #howto{display:none}</style>
+<script>/* Instant-question gate. Embedded in the screener the "How to use" panel is hidden so the
+   child sees the question itself the moment it appears; the per-item status line carries the
+   instruction in words. A test should not spend its first seconds being read. `?chrome=1`
+   restores the panel for a walkthrough, and standalone (opened directly) is unchanged. */
+(function(){var f=/(^|[?&])chrome=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-chrome','off');})();</script>
+<link rel="stylesheet" href="../exam-skin.css">
+<style data-gt-demo-presentation="1">
+/* Catalogue-only presentation pass. Not present in the live screener. */
+
+/* The play button and its broken copy. Hidden, not removed: the page's start path still
+   needs the button in the DOM for the autostart patch to click. */
+#playgate { display: none !important; }
+
+/* Authoring instrumentation: item id, difficulty meters, event log. */
+#telemetry { display: none !important; }
+
+/* body stays flex and #wrap keeps flex:1, so hiding the sidebar is enough to hand the
+   question the full width. #wrap already centres its own children. */
+
+/* #howto is now the viewer's only orientation, so lift it slightly off the page. */
+#howto {
+  max-width: 720px !important;
+  box-shadow: 0 10px 30px -20px #002a3a !important;
+}
+
+/* Press t to bring the telemetry panel back mid-demo. */
+html[data-gt-demo-presentation-tel] #telemetry { display: flex !important; }
+</style>
+<script data-gt-demo-presentation="1">
+/* Catalogue-only: `t` reveals the telemetry panel, for showing what the item measures. */
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 't' && e.key !== 'T') return;
+  var tag = (e.target && e.target.tagName) || '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || e.metaKey || e.ctrlKey || e.altKey) return;
+  var root = document.documentElement;
+  var attr = 'data-gt-demo-presentation-tel';
+  if (root.hasAttribute(attr)) root.removeAttribute(attr);
+  else root.setAttribute(attr, '1');
+});
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="badge">SPA-PUNCH-01 · Fold &amp; Punch</div>
+  <header id="howto">
+    <h1>How to use — Fold &amp; Punch</h1>
+    <p>Watch the paper fold and get punched (press <b>&#8635;</b> to watch the folds again). Then tap every square on the big open sheet that will have a hole, and press the check (<b>&#10003;</b>) to send your answer.</p>
+  </header>
+  <div id="phasecue" data-phase="warmup">Get ready</div>
+  <main id="stagecard">
+    <div id="sequence"></div>
+    <div id="rig">
+      <div id="paper" class="gridded"><div id="flap" class="gridded"></div></div>
+      <span id="noBack">forward only</span><span id="stack">1x</span>
+    </div>
+    <div id="sheetwrap">
+      <div id="sheetlabel">The open sheet — tap every hole</div>
+      <div id="sheet" aria-label="unfolded sheet"></div>
+    </div>
+    <div id="hotkeys"><span class="kbd">&#8635;</span> watch folds again · <span class="kbd">C</span> clear · <span class="kbd">&#8629;</span> send</div>
+    <div id="controls">
+      <button id="replay" class="round" title="watch the folds again" aria-label="watch the folds again">&#8635;</button>
+      <button id="clear" title="clear all marks">Clear</button>
+      <button id="lock" title="send answer" aria-label="send answer">&#10003;</button>
+    </div>
+    <div id="status" class="neutral">Waiting for the next sheet.</div>
+  </main>
+  <div id="playgate">
+    <p>The paper is ready. Press play when you are, and the folding starts then.</p>
+    <button type="button" id="play">Play</button>
+  </div>
+</div>
+<aside id="telemetry">
+  <h3>Live telemetry · per-child (display only)</h3>
+  <div id="difficulty" data-tracks="M-DIFFREACH"></div>
+  <div id="mode">Renderer computes process metrics locally; <b>overlap and score are server-side</b>.</div>
+  <div id="mlist"></div>
+  <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+</aside>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#1db7a6" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+/* =====================================================================
+ * SPA-PUNCH-01 — PURE RENDERER
+ * Renders a SERVED item (item.content) and reports the child's RAW constructed
+ * response (the set of marked cells) plus process telemetry. It NEVER self-generates
+ * items, NEVER unfolds the paper for the child, and NEVER shows correct/incorrect:
+ * the hole set, the partial-credit overlap and the score live server-side
+ * (BUILD_PLAN §2; scoring.mode = 'computed_solver').
+ *
+ * Embedding protocol (postMessage), source-tagged:
+ *   host -> demo : {source:'gt-exam-host', type:'init',  item:ServedItem}
+ *                  {source:'gt-exam-host', type:'start', tutorial?:bool}
+ *   demo -> host : {source:'gt-exam-demo', type:'ready'}
+ *                  {source:'gt-exam-demo', type:'result',    result:ItemResult}
+ *                  {source:'gt-exam-demo', type:'telemetry', event:TelemetryEvent}
+ *
+ * 3D: dependency-free CSS 3D transforms (DEMO_REBUILD_GUIDE §8a) — no WebGL, no
+ * canvas, no external assets. If the browser cannot animate, the fold chips, the
+ * folded-region outline and the punch marks still render statically, so the item
+ * remains answerable.
+ *
+ * Standalone (double-click / no host): loads sample items from the bank JSONL (or an
+ * inline fallback if fetch is blocked on file://) so the file still runs for QA.
+ * ===================================================================== */
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0;
+const HOST_SRC='gt-exam-host', DEMO_SRC='gt-exam-demo';
+const FOLD_LABEL={L:'fold &#8594;',R:'&#8592; fold',T:'fold &#8595;',B:'&#8593; fold',D1:'fold \\',D2:'fold /'};
+
+/* ---------- per-item state ---------- */
+let current=null;
+let interactive=false;    // released by beginItem for EVERY item — never latched on load
+let submitted=false;
+let marks=new Set();
+let itemStart=0, itemTelemetry=[], playToken=0;
+let gateTutorial=false;   // does the pending play press owe a gesture hint?
+const M={rt:null,rts:[],firstLat:null,rev:0,progress:0,replays:0,blur:0};
+
+/* ---------- embedding detection + emit ---------- */
+const embedded=(()=>{try{return window.parent&&window.parent!==window;}catch(_){return true;}})();
+let standalone=false, standaloneQueue=[], standaloneIdx=0, tutorialShown=false;
+function post(msg){if(!embedded)return;try{window.parent.postMessage(Object.assign({source:DEMO_SRC},msg),'*');}catch(_){}}
+
+/* ---------- telemetry panel (DISPLAY ONLY; key-free) ---------- */
+const SERVER='server-side';
+const METERS=[
+ {id:'M-ACC',srv:true,name:'Exact hole set (scored server-side)',get:()=>SERVER},
+ {id:'M-POLY',srv:true,name:'Predicted/true overlap (server-side)',get:()=>SERVER},
+ {id:'M-ERRTYPE',srv:true,name:'Lost fold / wrong axis / random (server-side)',get:()=>SERVER},
+ {id:'M-RT',name:'Commit time — this item / mean',get:()=>M.rt==null?'\u2014':`${M.rt} ms${M.rts.length>1?` (mean ${mean(M.rts)})`:''}`},
+ {id:'M-RTFIRST',name:'Time to first mark',get:()=>M.firstLat==null?'\u2014':M.firstLat+' ms'},
+ {id:'M-REV',name:'Mark changes before sending',get:()=>String(M.rev)},
+ {id:'M-PROG',name:'Folds shown / replays',get:()=>`${M.progress}/${current?current.content.folds.length:0} · ${M.replays} replay`},
+ {id:'M-DIFFREACH',srv:true,name:'Ceiling (server-side, from served difficulty)',get:()=>current?current.difficulty.toFixed(1)+'/20 attempted':'\u2014'},
+ {id:'M-ENGAGE',name:'Focus losses (tracked, not enforced)',get:()=>String(M.blur)},
+ {id:'M-RAPIDGUESS',name:'Rapid-guess flag (tracked, not enforced)',get:()=>M.rt==null?'\u2014':(M.rt<350?'1 · rapid':'0')},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>
+  `<div class="mrow"><span class="mid${m.srv?' srv':''}">${m.id}</span><span class="mval" id="v_${m.id}"></span>`
+  +`<span class="mname">${m.name}</span></div>`).join('');}
+function renderDifficulty(){
+  const d=current?current.difficulty:null,c=current?current.content:null;
+  $('#difficulty').innerHTML=`<div class="dtop"><b>SERVED DIFFICULTY</b><span>${d==null?'\u2014':d.toFixed(1)}/20</span></div>`
+   +`<div class="track"><i style="width:${d==null?0:Math.max(0,Math.min(100,d/20*100))}%"></i></div>`
+   +`<div class="dsub"><span>${c?c.folds.length+' folds · '+c.layerCount+' layers'+(c.obliqueFold?' · oblique':''):'\u2014'}</span><span>score: server-side</span></div>`;}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});renderDifficulty();}
+function log(msg){const now=new Date(),t=Math.max(0,Date.now()-(itemStart||Date.now())),d=document.createElement('div');
+  d.innerHTML=`<span class="t">${now.toISOString().slice(11,23)} · +${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+function emitEvent(kind,extra){
+  const event=Object.assign({t:itemStart?Date.now()-itemStart:0,kind,itemId:current?current.itemId:null},extra||{});
+  itemTelemetry.push(event);post({type:'telemetry',event});
+  log(`<b>${kind}</b>`+(extra&&Object.keys(extra).length?' · '+JSON.stringify(extra):''));
+}
+function firstAction(){if(M.firstLat==null){M.firstLat=Date.now()-itemStart;emitEvent('first_action',{latencyMs:M.firstLat});}}
+
+/* ---------- rendering the served item ---------- */
+function setCue(k,txt){const el=$('#phasecue');el.dataset.phase=k;el.textContent=txt;}
+function setStatus(kind,msg){const el=$('#status');el.className=kind;el.textContent=msg;}
+function renderSequence(c){
+  const chips=c.folds.map(f=>`<i class="foldchip ${f.op}">${FOLD_LABEL[f.op]||f.op}</i>`).join('<span class="then">&#8250;</span>');
+  const punches=c.punches.map(()=>'<i class="punchChip">&#9679;</i>').join('');
+  $('#sequence').innerHTML=chips+'<span class="then">&#8250;</span>'+punches;
+}
+function renderSheet(c){
+  const n=c.grid.n,host=$('#sheet');
+  host.style.gridTemplateColumns=`repeat(${n},auto)`;
+  host.innerHTML='';
+  for(let y=0;y<n;y++)for(let x=0;x<n;x++){
+    const b=document.createElement('button');
+    b.className='mcell';b.dataset.x=x;b.dataset.y=y;
+    b.setAttribute('aria-label',`row ${y+1} column ${x+1}`);
+    host.appendChild(b);
+  }
+}
+function paperSize(c){
+  const R=c.foldedRegion,n=c.grid.n,unit=176/n;
+  // One grid square per answer-sheet cell — the space verifyPunch grades markedCells in.
+  $('#paper').style.setProperty('--cell',unit+'px');
+  return {w:(R.x1-R.x0+1)*unit,h:(R.y1-R.y0+1)*unit,unit};
+}
+function clipFor(diag){
+  if(diag==='D1')return 'polygon(0% 0%, 100% 100%, 0% 100%)';
+  if(diag==='D2')return 'polygon(0% 0%, 100% 0%, 0% 100%)';
+  return 'none';
+}
+function showPunches(c){
+  const p=$('#paper'),R=c.foldedRegion,S=paperSize(c);
+  $$('.punchMark').forEach(e=>e.remove());
+  c.punches.forEach(pt=>{
+    const el=document.createElement('span');el.className='punchMark hit';
+    el.style.left=((pt.x-R.x0+0.5)*S.unit)+'px';
+    el.style.top=((pt.y-R.y0+0.5)*S.unit)+'px';
+    p.appendChild(el);
+  });
+}
+function restRig(c){
+  const p=$('#paper'),S=paperSize(c);
+  p.style.width=S.w+'px';p.style.height=S.h+'px';
+  p.style.clipPath=clipFor(c.foldedRegion.diagonal);
+  $('#flap').style.display='none';
+  $('#stack').textContent=c.layerCount+'x';
+  showPunches(c);
+}
+async function playFolds(c,track){
+  const token=++playToken,p=$('#paper'),flap=$('#flap'),n=c.grid.n,unit=176/n;
+  $$('.punchMark').forEach(e=>e.remove());
+  p.style.clipPath='none';
+  let w=176,h=176,layers=1;
+  p.style.setProperty('--cell',unit+'px');
+  p.style.width='176px';p.style.height='176px';
+  $('#stack').textContent='1x';M.progress=0;renderMeters();
+  for(const f of c.folds){
+    if(token!==playToken)return;
+    flap.style.cssText='';flap.style.display='block';flap.style.zIndex='4';
+    let frames;
+    if(f.axis==='vertical'){
+      flap.style.top='0';flap.style.width='50%';flap.style.height='100%';
+      flap.style.left=f.keep==='right'?'0':'50%';
+      flap.style.transformOrigin=f.keep==='right'?'right center':'left center';
+      frames=[{transform:'rotateY(0)'},{transform:`rotateY(${f.keep==='right'?-178:178}deg)`}];
+    }else if(f.axis==='horizontal'){
+      flap.style.left='0';flap.style.width='100%';flap.style.height='50%';
+      flap.style.top=f.keep==='bottom'?'0':'50%';
+      flap.style.transformOrigin=f.keep==='bottom'?'center bottom':'center top';
+      frames=[{transform:'rotateX(0)'},{transform:`rotateX(${f.keep==='bottom'?178:-178}deg)`}];
+    }else{
+      // Oblique crease: reflect the triangle across the square's diagonal.
+      flap.style.left='0';flap.style.top='0';flap.style.width='100%';flap.style.height='100%';
+      flap.style.transformOrigin='center center';
+      const d1=f.op==='D1';
+      flap.style.clipPath=d1?'polygon(0% 0%, 100% 0%, 100% 100%)':'polygon(100% 0%, 100% 100%, 0% 100%)';
+      frames=[{transform:'rotate3d(0,0,1,0deg)'},{transform:d1?'rotate3d(1,1,0,178deg)':'rotate3d(1,-1,0,178deg)'}];
+    }
+    let done=false;
+    try{
+      if(flap.animate){const a=flap.animate(frames,{duration:340,easing:'cubic-bezier(.2,.75,.2,1)',fill:'forwards'});await a.finished;done=true;}
+    }catch(_){/* animation unsupported or interrupted — fall through to the static state */}
+    if(!done)await sleep(120);
+    if(token!==playToken)return;
+    flap.style.display='none';
+    if(f.axis==='vertical')w=Math.max(14,w/2);
+    else if(f.axis==='horizontal')h=Math.max(14,h/2);
+    p.style.width=w+'px';p.style.height=h+'px';
+    if(f.axis==='diagonal')p.style.clipPath=clipFor(f.op);
+    layers*=2;$('#stack').textContent=layers+'x';
+    M.progress++;renderMeters();
+    await sleep(80);
+  }
+  if(token!==playToken)return;
+  showPunches(c);
+  if(track)emitEvent('folds_shown',{folds:c.folds.length,replays:M.replays});
+}
+function renderServedItem(item){
+  current=item;submitted=false;interactive=false;marks=new Set();
+  M.rev=0;M.firstLat=null;M.progress=0;M.replays=0;itemTelemetry=[];
+  const c=item.content;
+  renderSequence(c);renderSheet(c);restRig(c);
+  $('#lock').classList.remove('ready');
+  itemStart=Date.now();renderMeters();
+  emitEvent('render',{difficulty:item.difficulty,grid:c.grid.n,folds:c.folds.length,
+    layers:c.layerCount,punches:c.punches.length,oblique:!!c.obliqueFold});
+}
+
+/* ---------- interaction ---------- */
+function toggleCell(el){
+  if(!interactive||submitted)return;
+  const x=+el.dataset.x,y=+el.dataset.y,k=x+','+y;
+  firstAction();
+  if(marks.has(k)){marks.delete(k);el.classList.remove('on');M.rev++;}
+  else{marks.add(k);el.classList.add('on');if(marks.size>1)M.rev++;}
+  $('#lock').classList.toggle('ready',marks.size>0);
+  emitEvent('mark',{x,y,on:marks.has(k),marks:marks.size});
+  renderMeters();
+}
+function clearMarks(){
+  if(!interactive||submitted||!marks.size)return;
+  firstAction();M.rev++;marks=new Set();
+  $$('.mcell').forEach(e=>e.classList.remove('on'));
+  $('#lock').classList.remove('ready');
+  emitEvent('clear',{});renderMeters();
+}
+function submit(){
+  if(!interactive||submitted||!marks.size)return;
+  const rt=Date.now()-itemStart;
+  M.rt=rt;M.rts.push(rt);
+  submitted=true;interactive=false;$('#lock').classList.remove('ready');
+  // NEUTRAL acknowledgment only — never correct/incorrect, never an unfold reveal.
+  setCue('done','Answer sent');
+  setStatus('neutral',standalone?'Answer received. Loading the next sheet.':'Answer received. Next question coming up.');
+  const markedCells=[...marks].map(k=>k.split(',').map(Number)).sort((a,b)=>a[1]-b[1]||a[0]-b[0]);
+  emitEvent('submit',{markCount:markedCells.length,rtMs:rt});
+  const response={markedCells,markCount:markedCells.length,changeCount:M.rev,
+    foldsWatched:M.progress,replays:M.replays};
+  const metrics={'M-RT':rt,'M-RTFIRST':M.firstLat==null?rt:M.firstLat,'M-REV':M.rev,
+    'M-PROG':M.progress,'M-ENGAGE':M.blur,'M-RAPIDGUESS':rt<350?1:0};
+  const result={itemId:current.itemId,typeCode:current.typeCode,domain:current.domain,response,metrics,telemetry:itemTelemetry.slice()};
+  post({type:'result',result});
+  log('RESULT emitted \u2192 '+JSON.stringify({response,metrics}));
+  renderMeters();
+  if(standalone)setTimeout(advanceStandalone,1250);
+}
+
+/* ---------- ghost hand: wordless GESTURE hint (never reveals the hole set) ---------- */
+const ghost=$('#ghost');
+function ghostShow(v){ghost.classList.toggle('show',v);}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(560);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(400);}
+async function gestureHint(){
+  ghostShow(true);await sleep(200);
+  await ghostTo($('#rig'));await sleep(140);
+  await ghostTo($('#sheet'));await ghostTap();
+  await ghostTo($('#lock'));await ghostTap();await sleep(140);
+  ghostShow(false);await sleep(220);
+}
+
+/* ---------- host-driven lifecycle ---------- */
+/* R1 — the fold sequence is a timed stimulus, so it waits behind the play gate. The
+   sheet is rendered on `init` but stays covered and inert until the child presses play,
+   which is also when the folds run and when the response clock starts, so M-RT measures
+   thinking rather than however long they took to look up. */
+function openGate(withTutorial){
+  gateTutorial=!!withTutorial;
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('warmup','Ready when you are');
+  setStatus('neutral','Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
+function onInit(item){
+  if(!item||!item.content||!item.content.grid||!item.content.folds){log('init ignored: malformed ServedItem');return;}
+  renderServedItem(item);
+  openGate(false);
+}
+async function beginItem(withTutorial){
+  if(interactive||submitted||!current)return;
+  closeGate();
+  interactive=true;itemStart=Date.now();   // UNLOCK first: the fold animation must never gate input
+  setCue('scored','Your turn');
+  setStatus('neutral','Tap every square that will have a hole, then press the check.');
+  renderMeters();
+  if(withTutorial&&!tutorialShown){tutorialShown=true;gestureHint();}
+  playFolds(current.content,true);
+}
+function onHostMessage(e){
+  const d=e.data;if(!d||d.source!==HOST_SRC)return;
+  if(d.type==='init')onInit(d.item);
+  else if(d.type==='start')openGate(!!d.tutorial);
+}
+
+/* ---------- standalone fallback (QA when there is no host) ---------- */
+function toServed(b){const{answer,scoring,provenance,...s}=b;return s;}
+async function loadBankSamples(){
+  try{
+    const res=await fetch('../banks/SPA-PUNCH-01.jsonl',{cache:'no-store'});
+    if(res.ok){
+      const all=(await res.text()).trim().split('\n').filter(Boolean).map(l=>JSON.parse(l)).map(toServed);
+      all.sort((a,b)=>a.difficulty-b.difficulty);
+      const N=Math.min(12,all.length),pick=[];
+      for(let i=0;i<N;i++)pick.push(all[N===1?0:Math.round(i*(all.length-1)/(N-1))]);
+      log('standalone: fetched '+all.length+' bank items; cycling '+pick.length+' across difficulty');
+      return pick;
+    }
+  }catch(_){/* file:// blocks fetch — use inline fallback */}
+  log('standalone: bank fetch unavailable (open via a local server for the full bank) — using inline samples');
+  return INLINE_SAMPLES.slice();
+}
+function playStandalone(){const item=standaloneQueue[standaloneIdx%standaloneQueue.length];onInit(item);openGate(standaloneIdx===0);}
+function advanceStandalone(){standaloneIdx++;playStandalone();}
+async function bootstrapStandalone(){if(standalone)return;standalone=true;standaloneQueue=await loadBankSamples();standaloneIdx=0;playStandalone();}
+
+/* Inline served-item fallback (real items exported from the bank; answer stripped). */
+const INLINE_SAMPLES=[
+{"itemId":"1ec52ea0-7207-44c2-9407-150cb90f227e","typeCode":"SPA-PUNCH-01","domain":"spatial","difficulty":1,"ageBands":["2-3"],"demoPath":"demos/SPA-PUNCH-01.html","content":{"typeCode":"SPA-PUNCH-01","question":{"mode":"mark_unfolded_holes","relation":"fold_punch_unfold_reflection","prompt":"The paper was folded, then punched. Tap every square that will have a hole when the paper is opened up."},"grid":{"n":4},"folds":[{"op":"T","axis":"horizontal","creaseAt":2,"keep":"bottom"}],"foldedRegion":{"x0":0,"y0":2,"x1":3,"y1":3,"diagonal":null},"punches":[{"x":0,"y":2}],"layerCount":2,"obliqueFold":false,"response":{"mode":"mark_cells","maxMarks":16},"scaffold":{"foldReplay":true,"unfoldReveal":false,"warmup":true}},"syntheticOnly":true,"validated":false},
+{"itemId":"a459965c-1090-4f03-a77e-9b2eea784364","typeCode":"SPA-PUNCH-01","domain":"spatial","difficulty":6.64,"ageBands":["2-3","4-5"],"demoPath":"demos/SPA-PUNCH-01.html","content":{"typeCode":"SPA-PUNCH-01","question":{"mode":"mark_unfolded_holes","relation":"fold_punch_unfold_reflection","prompt":"The paper was folded, then punched. Tap every square that will have a hole when the paper is opened up."},"grid":{"n":4},"folds":[{"op":"D2","axis":"diagonal","creaseAt":null,"keep":"above_anti_diagonal"}],"foldedRegion":{"x0":0,"y0":0,"x1":3,"y1":3,"diagonal":"D2"},"punches":[{"x":3,"y":0},{"x":0,"y":2}],"layerCount":2,"obliqueFold":true,"response":{"mode":"mark_cells","maxMarks":16},"scaffold":{"foldReplay":true,"unfoldReveal":false,"warmup":false}},"syntheticOnly":true,"validated":false},
+{"itemId":"6ff1018b-759b-4688-829c-69a96d2137e4","typeCode":"SPA-PUNCH-01","domain":"spatial","difficulty":20,"ageBands":["6-8"],"demoPath":"demos/SPA-PUNCH-01.html","content":{"typeCode":"SPA-PUNCH-01","question":{"mode":"mark_unfolded_holes","relation":"fold_punch_unfold_reflection","prompt":"The paper was folded, then punched. Tap every square that will have a hole when the paper is opened up."},"grid":{"n":8},"folds":[{"op":"T","axis":"horizontal","creaseAt":4,"keep":"bottom"},{"op":"L","axis":"vertical","creaseAt":4,"keep":"right"},{"op":"D1","axis":"diagonal","creaseAt":null,"keep":"below_main_diagonal"}],"foldedRegion":{"x0":4,"y0":4,"x1":7,"y1":7,"diagonal":"D1"},"punches":[{"x":4,"y":6},{"x":4,"y":7},{"x":6,"y":7}],"layerCount":8,"obliqueFold":true,"response":{"mode":"mark_cells","maxMarks":64},"scaffold":{"foldReplay":true,"unfoldReveal":false,"warmup":false}},"syntheticOnly":true,"validated":false}
+];
+
+/* ---------- wiring ---------- */
+$('#sheet').addEventListener('click',e=>{const b=e.target.closest('.mcell');if(b)toggleCell(b);});
+$('#clear').addEventListener('click',clearMarks);
+$('#lock').addEventListener('click',()=>{if($('#lock').classList.contains('ready'))submit();});
+$('#play').addEventListener('click',()=>{if(current&&!interactive&&!submitted)beginItem(gateTutorial);});
+$('#replay').addEventListener('click',()=>{
+  if(!current||!interactive||submitted)return;
+  M.replays++;emitEvent('replay_folds',{replays:M.replays});playFolds(current.content,false);
+});
+window.addEventListener('keydown',e=>{
+  if(!interactive||submitted||e.repeat)return;
+  if(e.key==='c'||e.key==='C'){clearMarks();e.preventDefault();}
+  else if(e.key==='Enter'){if($('#lock').classList.contains('ready'))submit();e.preventDefault();}
+});
+window.addEventListener('blur',()=>{if(interactive&&!submitted){M.blur++;emitEvent('engagement',{reason:'blur'});renderMeters();}});
+
+buildMeters();renderMeters();
+window.addEventListener('message',onHostMessage);
+post({type:'ready'});
+if(!embedded){bootstrapStandalone();}
+else{setTimeout(()=>{if(!current)bootstrapStandalone();},1000);} // QA-safe if a host embeds but never inits
+</script>
+
+<script data-gt-demo-autostart="1">
+/* Catalogue-only: dismiss the press-play gate so browsing is uninterrupted.
+   Clicks the demo's own #play button rather than reimplementing its start logic.
+   Not present in the live screener. */
+(function () {
+  var root = document.documentElement;
+  var tries = 0;
+  function go() {
+    var btn = document.getElementById('play');
+    if (!btn) return;
+    if (!root.hasAttribute('data-gt-gate')) return;
+    btn.click();
+  }
+  // The gate reopens between rounds in several demos, so watch rather than fire once.
+  if (window.MutationObserver) {
+    new MutationObserver(function () { go(); })
+      .observe(root, { attributes: true, attributeFilter: ['data-gt-gate'] });
+  }
+  // And catch the case where the gate is already up by the time this runs.
+  var poll = setInterval(function () {
+    go();
+    if (++tries > 40) clearInterval(poll);
+  }, 50);
+  window.addEventListener('load', go);
+})();
+</script>
+</body>
+</html>

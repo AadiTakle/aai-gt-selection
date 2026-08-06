@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VER-SENSE-01 · Sentence Sense</title>
+<!--
+  VER-SENSE-01 (Sentence Sense) — PURE RENDERER.
+
+  This demo no longer invents its own word sets, holds no grammar model and holds no
+  answer key. It renders a ServedItem's `content` (scrambled word cards plus the little
+  words the item licenses) and reports the line the child built, plus process telemetry.
+  Whether that line reads the sensible way — and whether a wrong one was the
+  grammatical-but-absurd lure — is SERVER-authoritative and is never computed or shown here.
+
+  Mechanic (R3): ORDERED INSERTION, not slots. The child picks an insertion point in the
+  sentence line and inserts a word card there, so the line grows in whatever order they
+  choose to build it. A sidebar of little words (a / an / the) can be inserted as many
+  times as they like and taken back out again; the item declares which of those it
+  licenses in `content.articles`. Articles are surface: the server grades the ORDER OF THE
+  WORD CARDS, so every grammatical way of realising that order is accepted.
+
+  R1: the item renders behind the shared play gate and becomes live — clock included —
+  only when the child presses play.
+
+  Embedding protocol (postMessage; source-tagged gt-exam-host / gt-exam-demo):
+    host -> demo : {source:'gt-exam-host', type:'init',  item: ServedItem}
+                   {source:'gt-exam-host', type:'start', tutorial?}
+    demo -> host : {source:'gt-exam-demo', type:'ready'}
+                   {source:'gt-exam-demo', type:'telemetry', event: TelemetryEvent}
+                   {source:'gt-exam-demo', type:'result',    result: ItemResult}
+
+  ServedItem = { itemId, typeCode, domain, difficulty, ageBands?, content }
+    content = { prompt, cards:[{text}], cardCount, articles:[string],
+                vocabularyLevel, syntacticComplexity }
+    (NOTE: cards carry text ONLY — no part of speech, no features, no order hint.)
+
+  ItemResult = { itemId, typeCode, domain,
+                 response:{order:[cardIndex],
+                           sequence:[{kind:'card',index}|{kind:'article',text}],
+                           sentence, articleCount, placements, removals,
+                           complete, inputModality},
+                 metrics:{'M-RT','M-RTFIRST','M-REV','M-PATH','M-VOCABLVL'},
+                 telemetry:[TelemetryEvent] }
+
+  D-017: reading is a required baseline-literacy gate. The spec's picture-plus-audio
+  card mode for the young bands is deliberately NOT built — cards are printed words,
+  instructions are on-screen text, and there is no audio anywhere in this file.
+
+  Standalone fallback: opened by double-click (no host), it plays built-in sample
+  ServedItems locally and logs the emitted results/telemetry on-page.
+-->
+<style>
+  :root{--bg1:#fcf4ef;--bg2:#f8e8de;--ink:#001117;--card:#ffffff;--accent:#004f71;--good:#146c43;--tel-bg:#002a3a;--tel-ink:#f5ddcd;--tel-key:#ebba9b;--tel-dim:#e48b53;}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#4a6470;text-transform:uppercase;font-weight:700}
+  #howto{max-width:700px;width:100%;background:#ffffff;border:1px solid #ecd9cb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #002a3a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#33505c;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#f8e8de;color:#004f71;border:2px solid #ecd9cb;min-height:30px}
+  #phasecue[data-phase="ready"]{background:#f5ddcd;color:#6f4526;border-color:#ebba9b}
+  #phasecue[data-phase="warmup"]{background:#f5ddcd;color:#6f4526;border-color:#ebba9b}
+  #phasecue[data-phase="build"]{background:#f8e8de;color:#004f71;border-color:#ecd9cb}
+  #phasecue[data-phase="demo"]{background:#f5ddcd;color:#002a3a;border-color:#ecd9cb}
+  #phasecue[data-phase="done"]{background:#004f71;color:#ffffff;border-color:#004f71}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.neutral{color:#4a6470}
+  #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #002a3a;display:flex;flex-direction:column;align-items:center;gap:16px;max-width:700px;width:100%}
+  #prompt{font-size:15px;font-weight:700;color:#33505c;text-align:center}
+  .band{border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;align-items:center;width:100%}
+  #lineBand{background:linear-gradient(160deg,#fcf4ef,#f8e8de);border:3px solid #ecd9cb}
+  #rackBand{background:#ffffff;border:3px dashed #f8e8de;flex:1;min-width:0}
+  #articleBand{background:#fcf4ef;border:3px solid #f5ddcd;flex:0 0 168px}
+  #pools{display:flex;gap:12px;width:100%;align-items:stretch}
+  .bandLabel{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#4a6470;font-weight:800;text-align:center}
+  #line{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;min-height:56px;width:100%}
+  #rack,#articles{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;min-height:48px;width:100%;align-items:center}
+  /* The insertion point: a caret between two words, tapped to say "put it here". */
+  .gap{flex:0 0 auto;width:18px;height:46px;padding:0;margin:0;border:0;background:transparent;cursor:pointer;position:relative;font:inherit;border-radius:8px}
+  .gap::after{content:"";position:absolute;left:50%;top:7px;bottom:7px;width:3px;margin-left:-1.5px;border-radius:2px;background:#ecd9cb}
+  .gap.at::after{width:5px;margin-left:-2.5px;background:#004f71}
+  #line.locked .gap{cursor:default}
+  .wcard,.acard{padding:10px 14px;background:#ffffff;border:3px solid #f8e8de;border-radius:12px;font-size:19px;font-weight:700;cursor:grab;user-select:none;position:relative;transition:.1s;font-family:inherit;color:var(--ink)}
+  .acard{background:#f8e8de;border-color:#f5ddcd;font-size:17px;color:#6f4526}
+  .wcard:hover,.acard:hover{border-color:#ecd9cb}
+  .wcard.dragging{opacity:.45}
+  .wcard .hk,.acard .hk{position:absolute;top:2px;left:5px;font-size:9px;color:#6f4526;font-weight:700}
+  .tok{padding:10px 14px;background:#fcf4ef;border:3px solid #ecd9cb;border-radius:12px;font-size:19px;font-weight:700;cursor:pointer;user-select:none;font-family:inherit;color:var(--ink)}
+  .tok.art{background:#f8e8de;border-color:#f5ddcd;font-size:17px;color:#6f4526}
+  .tok.locked{cursor:default;opacity:.9}
+  #linehint{font-size:12px;color:#4a6470;text-align:center}
+  #preview{font-size:18px;font-weight:700;color:#4a6470;min-height:26px;text-align:center}
+  #controls{display:flex;gap:16px;align-items:center}
+  button.rd{font:inherit;border:0;cursor:pointer;border-radius:50%}
+  #go{width:64px;height:64px;background:var(--accent);color:#ffffff;font-size:26px;box-shadow:0 10px 24px -8px var(--accent);opacity:.35;pointer-events:none;transition:.2s}
+  #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.1s infinite}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+  #replay{width:50px;height:50px;background:#f8e8de;color:#004f71;font-size:22px}
+  #clear{width:50px;height:50px;background:#fcf4ef;color:#6f4526;font-size:15px;font-weight:800;border-radius:50%;border:0;cursor:pointer;font-family:inherit}
+  #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:60;opacity:0;transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#ffffff;background:#002a3a;text-transform:uppercase}
+  #chan{padding:6px 14px;font-size:11px;color:var(--tel-dim);border-bottom:1px solid #33505c}
+  #chan b{color:var(--tel-key)}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:110px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}
+  .mval{color:#ffffff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #33505c;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#4a6470;font-size:11px;letter-spacing:.08em}
+  #log{height:200px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #004f71}#log .t{color:#6f4526}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:320px}}
+  @media(max-width:600px){#pools{flex-direction:column}#articleBand{flex:none}}
+</style>
+<style>html[data-gt-telemetry="off"] #telemetry{display:none}</style>
+<script>/* D-028 — the researcher telemetry panel is presentational only. Embedded in the
+   child-facing screener it is hidden: naming the behavioural metrics to the child can
+   change the behaviour being measured. `?telemetry=1` restores it for a live
+   demonstration, and standalone (opened directly) is unchanged. Sampling, metric
+   computation and the {type:'telemetry'} postMessage stream are untouched. */
+(function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
+<style>html[data-gt-chrome="off"] #howto{display:none}</style>
+<script>/* Instant-question gate. Embedded in the screener the "How to use" panel is hidden so the
+   child sees the question itself the moment it appears; the per-item status line carries the
+   instruction in words. A test should not spend its first seconds being read. `?chrome=1`
+   restores the panel for a walkthrough, and standalone (opened directly) is unchanged. */
+(function(){var f=/(^|[?&])chrome=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-chrome','off');})();</script>
+<link rel="stylesheet" href="../exam-skin.css">
+<style data-gt-demo-presentation="1">
+/* Catalogue-only presentation pass. Not present in the live screener. */
+
+/* The play button and its broken copy. Hidden, not removed: the page's start path still
+   needs the button in the DOM for the autostart patch to click. */
+#playgate { display: none !important; }
+
+/* Authoring instrumentation: item id, difficulty meters, event log. */
+#telemetry { display: none !important; }
+
+/* body stays flex and #wrap keeps flex:1, so hiding the sidebar is enough to hand the
+   question the full width. #wrap already centres its own children. */
+
+/* #howto is now the viewer's only orientation, so lift it slightly off the page. */
+#howto {
+  max-width: 720px !important;
+  box-shadow: 0 10px 30px -20px #002a3a !important;
+}
+
+/* Press t to bring the telemetry panel back mid-demo. */
+html[data-gt-demo-presentation-tel] #telemetry { display: flex !important; }
+</style>
+<script data-gt-demo-presentation="1">
+/* Catalogue-only: `t` reveals the telemetry panel, for showing what the item measures. */
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 't' && e.key !== 'T') return;
+  var tag = (e.target && e.target.tagName) || '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || e.metaKey || e.ctrlKey || e.altKey) return;
+  var root = document.documentElement;
+  var attr = 'data-gt-demo-presentation-tel';
+  if (root.hasAttribute(attr)) root.removeAttribute(attr);
+  else root.setAttribute(attr, '1');
+});
+</script>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">VER-SENSE-01 &middot; Sentence Sense</div>
+    <header id="howto">
+      <h1>How to use &mdash; Sentence Sense</h1>
+      <p>Tap a mark in the sentence line to choose where the next word goes, then tap a word card to put it there. The little words (<b>a</b>, <b>an</b>, <b>the</b>) can go in as often as you like. Build the sentence that <b>makes sense</b> &mdash; some other orders follow the rules of grammar but describe something impossible. Tap a word in the line to take it back out, and press the check (<b>&#10003;</b>) when every card is in.</p>
+    </header>
+    <div id="phasecue" data-phase="ready">Ready</div>
+    <div id="stagecard">
+      <div id="prompt">Waiting for the first item&hellip;</div>
+      <div id="lineBand" class="band">
+        <div class="bandLabel">Your sentence</div>
+        <div id="line"></div>
+        <div id="linehint">Tap a mark to choose where the next word goes.</div>
+        <div id="preview"></div>
+      </div>
+      <div id="pools">
+        <div id="rackBand" class="band">
+          <div class="bandLabel">Word cards</div>
+          <div id="rack"></div>
+        </div>
+        <div id="articleBand" class="band">
+          <div class="bandLabel">Little words</div>
+          <div id="articles"></div>
+        </div>
+      </div>
+      <div id="controls">
+        <button class="rd" id="replay" title="replay how-to">&#8635;</button>
+        <button id="clear" title="empty the sentence line">&#8617;</button>
+        <button class="rd" id="go" title="submit">&#10003;</button>
+      </div>
+      <div id="status" class="neutral">Waiting for the first item&hellip;</div>
+    </div>
+    <div id="playgate">
+      <p>The sentence is ready. Press play when you are, and it starts then.</p>
+      <button type="button" id="play">Play</button>
+    </div>
+  </div>
+  <aside id="telemetry">
+    <h3>Live telemetry &middot; per-child</h3>
+    <div id="chan">channel: <b id="chanval">standalone</b> &middot; source-tag <b>gt-exam-demo</b></div>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#004f71" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+/* ---------------- embedding channel (postMessage) ---------------- */
+const SRC_HOST='gt-exam-host', SRC_DEMO='gt-exam-demo';
+const embedded=!!(window.parent&&window.parent!==window);
+let hostSeen=false;
+function post(type,payload){
+  const msg=Object.assign({source:SRC_DEMO,type},payload||{});
+  if(embedded){try{window.parent.postMessage(msg,'*');}catch(e){}}
+}
+
+/* ---------------- item state ---------------- */
+/* `built` is the ordered line the child is assembling: one entry per token, each
+   either {kind:'card',index} or {kind:'article',text}. `caret` is the insertion
+   point, an index into `built` from 0 (before everything) to built.length (after). */
+let item=null,content=null,cards=[],articleWords=[],built=[],caret=0,
+    itemStart=0,firstAt=null,placements=0,removals=0,pathLog=[],telemetryLog=[],
+    locked=true,gateTutorial=false,tutorialShown=false,
+    inputModality='tap',resultSent=false;
+
+const DEFAULT_ARTICLES=['a','an','the'];
+/* One letter per little word, so the line can be built without a pointer. */
+const ARTICLE_KEY={a:'a',an:'n',the:'t'};
+
+function recordEv(ev){ev.t=itemStart?Date.now()-itemStart:0;telemetryLog.push(ev);post('telemetry',{event:ev});}
+function log(msg){const t=itemStart?Date.now()-itemStart:0;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+function esc(s){return String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+
+/* ---------------- phase + status (worded, no emoji) ---------------- */
+const PHASE={ready:'Ready',warmup:'Ready',demo:'How it works',build:'Your turn',done:'Answer sent'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+
+/* ---------------- telemetry meters ---------------- */
+const METERS=[
+ {id:'M-ACC',name:'Sentence correctness — scored server-side',get:()=>'server-side'},
+ {id:'M-POLY',name:'Adjacent-pair credit — scored server-side',get:()=>'server-side'},
+ {id:'M-ERRTYPE',name:'Absurd vs ungrammatical — server-side',get:()=>'server-side'},
+ {id:'M-INFDEPTH',name:'Syntactic complexity of this item',get:()=>content&&content.syntacticComplexity?`level ${content.syntacticComplexity}`:'\u2014'},
+ {id:'M-PATH',name:'Insertions this item',get:()=>`${placements} inserted / ${removals} taken back`},
+ {id:'M-REV',name:'Revisions (words taken back out)',get:()=>`${removals}`},
+ {id:'M-RT',name:'Time on this item',get:()=>itemStart?`${Date.now()-itemStart} ms`:'\u2014'},
+ {id:'M-RTFIRST',name:'First-insertion latency',get:()=>firstAt?`${firstAt-itemStart} ms`:'\u2014'},
+ {id:'M-VOCABLVL',name:'Lexical level of this item',get:()=>content&&content.vocabularyLevel?`band ${content.vocabularyLevel} / 7`:'\u2014'},
+ {id:'M-LURETYPE',name:'Lure chosen — labelled server-side',get:()=>'server-side'},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});}
+
+/* ---------------- rendering ---------------- */
+const placedCards=()=>built.filter(t=>t.kind==='card').map(t=>t.index);
+const tokenText=t=>t.kind==='card'?cards[t.index].text:t.text;
+
+function renderRack(){
+  const placed=placedCards();
+  $('#rack').innerHTML=cards.map((c,i)=>placed.includes(i)?'':
+    `<div class="wcard" draggable="true" data-i="${i}"><span class="hk">${i+1}</span>${esc(c.text)}</div>`).join('');
+  $('#articles').innerHTML=articleWords.map(w=>{
+    const hk=ARTICLE_KEY[w.toLowerCase()];
+    return `<div class="acard" draggable="true" data-article="${esc(w)}">${hk?`<span class="hk">${esc(hk)}</span>`:''}${esc(w)}</div>`;
+  }).join('');
+}
+function renderLine(){
+  const gap=pos=>`<button type="button" class="gap${pos===caret?' at':''}" data-gap="${pos}" aria-label="insert here"></button>`;
+  let html=gap(0);
+  built.forEach((t,pos)=>{
+    html+=`<span class="tok${t.kind==='article'?' art':''}${locked?' locked':''}" data-pos="${pos}">${esc(tokenText(t))}</span>`+gap(pos+1);
+  });
+  const el=$('#line');
+  el.innerHTML=html;
+  el.classList.toggle('locked',locked);
+  $('#preview').textContent=built.map(tokenText).join(' ');
+  const complete=placedCards().length===cards.length;
+  $('#go').classList.toggle('ready',complete&&!locked&&!resultSent);
+}
+function render(){renderRack();renderLine();}
+function difficultyOf(it){const d=(it&&it.difficulty!=null)?it.difficulty:0;return +d||0;}
+
+function setItem(served){
+  item=served;content=(served&&served.content)||{};
+  cards=(content.cards||[]).slice();
+  articleWords=(Array.isArray(content.articles)&&content.articles.length?content.articles:DEFAULT_ARTICLES).slice();
+  built=[];caret=0;itemStart=Date.now();firstAt=null;placements=0;removals=0;
+  pathLog=[];telemetryLog=[];resultSent=false;locked=true;tutorialShown=false;
+  $('#prompt').textContent=content.prompt||'Put the word cards in order to build the sentence that makes sense.';
+  render();
+  const d=difficultyOf(served);
+  log(`INIT item ${served&&served.itemId?served.itemId:'(no id)'} \u00b7 ${cards.length} cards \u00b7 lexical band ${content.vocabularyLevel} \u00b7 level ${Math.round(d*10)/10}`);
+  recordEv({kind:'shown',itemId:served&&served.itemId,cardCount:cards.length,articleCount:articleWords.length});
+  renderMeters();
+}
+
+/* ---------------- ordered insertion ---------------- */
+function markFirst(){if(firstAt===null){firstAt=Date.now();recordEv({kind:'first_action',rt:firstAt-itemStart});}}
+/* Repaint the caret in place rather than rebuilding the line: a dragover fires
+   repeatedly, and replacing the markup under the pointer loses the drop. */
+function paintCaret(){$$('#line .gap').forEach(g=>g.classList.toggle('at',+g.dataset.gap===caret));}
+function moveCaret(to,via){
+  const next=Math.max(0,Math.min(built.length,to));
+  if(next===caret)return;
+  caret=next;
+  recordEv({kind:'caret',at:caret,via});
+  paintCaret();
+}
+function insertToken(token,via){
+  if(locked)return;
+  if(token.kind==='card'&&placedCards().includes(token.index))return;
+  markFirst();
+  inputModality=via;
+  built.splice(caret,0,token);
+  caret++;
+  placements++;
+  pathLog.push({action:'insert',at:caret-1,token:tokenText(token),kind:token.kind,t:Date.now()-itemStart});
+  recordEv({kind:'insert',at:caret-1,kindOf:token.kind,via});
+  log(`inserted "${tokenText(token)}" at position ${caret}`);
+  render();renderMeters();
+}
+function insertCard(cardIdx,via){
+  if(!(cardIdx>=0&&cardIdx<cards.length))return;
+  insertToken({kind:'card',index:cardIdx},via);
+}
+function insertArticle(word,via){
+  const match=articleWords.find(w=>w.toLowerCase()===String(word).toLowerCase());
+  if(!match)return;
+  insertToken({kind:'article',text:match},via);
+}
+function removeAt(pos,via){
+  if(locked||pos<0||pos>=built.length)return;
+  const token=built[pos];
+  built.splice(pos,1);
+  if(caret>pos)caret--;
+  removals++;
+  pathLog.push({action:'remove',at:pos,token:tokenText(token),kind:token.kind,t:Date.now()-itemStart});
+  recordEv({kind:'remove',at:pos,kindOf:token.kind,via});
+  log(`took "${tokenText(token)}" back out`);
+  render();renderMeters();
+}
+function clearLine(){
+  if(locked)return;
+  while(built.length)removeAt(built.length-1,'clear');
+  caret=0;
+  paintCaret();
+}
+
+function submit(){
+  if(locked||resultSent||!$('#go').classList.contains('ready'))return;
+  locked=true;resultSent=true;
+  const rt=Date.now()-itemStart;
+  const order=placedCards();
+  const sequence=built.map(t=>t.kind==='card'?{kind:'card',index:t.index}:{kind:'article',text:t.text});
+  const sentence=built.map(tokenText).join(' ');
+  recordEv({kind:'submit',order,rt});
+  const result={
+    itemId:item&&item.itemId,
+    typeCode:(item&&item.typeCode)||'VER-SENSE-01',
+    domain:(item&&item.domain)||'verbal',
+    response:{
+      order,                       // card indices, in the order they sit in the line
+      sequence,                    // the whole line, little words included
+      sentence,                    // the assembled surface string (no correctness attached)
+      articleCount:sequence.length-order.length,
+      placements:pathLog.slice(),
+      removals,
+      complete:order.length===cards.length,
+      inputModality
+    },
+    metrics:{
+      'M-RT':rt,
+      'M-RTFIRST':firstAt!==null?firstAt-itemStart:rt,
+      'M-REV':removals,
+      'M-PATH':pathLog.length,
+      'M-VOCABLVL':content.vocabularyLevel||0,
+      'M-INFDEPTH':content.syntacticComplexity||0
+    },
+    telemetry:telemetryLog.slice()
+  };
+  post('result',{result});
+  // NO correct/incorrect shown — the key and the lure taxonomy are server-side.
+  setCue('done');
+  setStatus('ok','Answer sent. '+(embedded?'Waiting for the next item\u2026':'Loading the next example\u2026'));
+  $('#go').classList.remove('ready');
+  renderLine();
+  log(`RESULT "${sentence}" \u00b7 ${rt}ms \u00b7 ${placements} insertions \u00b7 ${removals} taken back`);
+  renderMeters();
+  if(!embedded)setTimeout(nextStandalone,1700);
+}
+
+/* ---------------- wordless how-to pointer (reveals no key) ---------------- */
+const ghost=$('#ghost');
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(480);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(340);}
+async function runHowto(){
+  if(!content)return;
+  const wasLocked=locked;locked=true;renderLine();
+  setCue('demo');
+  setStatus('neutral','The pointer shows the motion: choose a place in the line, tap a word to put it there, repeat, then press the check.');
+  ghost.classList.add('show');
+  await ghostTo(document.querySelector('#line .gap'));await ghostTap();
+  await ghostTo(document.querySelector('#rack .wcard'));await ghostTap();
+  await ghostTo(document.querySelector('#articles .acard'));await ghostTap();
+  await ghostTo($('#go'));await ghostTap();
+  ghost.classList.remove('show');await sleep(200);
+  locked=wasLocked;
+  setCue('build');
+  setStatus('neutral','Your turn. Build the sentence that makes sense, then press the check.');
+  renderLine();
+}
+
+/* ---------------- the play gate (R1) ---------------- */
+/* The item is rendered on `init` but stays covered and inert until the child presses
+   play, which is also when the response clock starts — so M-RT and M-RTFIRST measure
+   thinking rather than however long the child took to look up. */
+function openGate(withTutorial){
+  gateTutorial=!!withTutorial;
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('warmup','Ready when you are');
+  setStatus('neutral','Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
+async function beginItem(withTutorial){
+  if(!content||resultSent||!locked)return;
+  closeGate();
+  locked=false;
+  itemStart=Date.now();firstAt=null;
+  setCue('build');
+  setStatus('neutral','Build the sentence that makes sense, then press the check.');
+  render();renderMeters();
+  if(withTutorial&&!tutorialShown){tutorialShown=true;await runHowto();}
+}
+
+/* ---------------- drag + tap + keyboard input ---------------- */
+function dragPayload(e){
+  const card=e.target.closest('.wcard');
+  if(card)return{kind:'card',index:+card.dataset.i};
+  const art=e.target.closest('.acard');
+  if(art)return{kind:'article',text:art.dataset.article};
+  return null;
+}
+function onDragStart(e){
+  const payload=dragPayload(e);if(!payload||locked)return;
+  const el=e.target.closest('.wcard,.acard');
+  if(el)el.classList.add('dragging');
+  try{e.dataTransfer.setData('text/plain',JSON.stringify(payload));e.dataTransfer.effectAllowed='move';}catch(err){}
+}
+$('#rack').addEventListener('dragstart',onDragStart);
+$('#articles').addEventListener('dragstart',onDragStart);
+$('#rack').addEventListener('dragend',e=>{const c=e.target.closest('.wcard');if(c)c.classList.remove('dragging');});
+$('#articles').addEventListener('dragend',e=>{const c=e.target.closest('.acard');if(c)c.classList.remove('dragging');});
+$('#line').addEventListener('dragover',e=>{e.preventDefault();const g=e.target.closest('.gap');if(g)moveCaret(+g.dataset.gap,'drag');});
+$('#line').addEventListener('drop',e=>{
+  e.preventDefault();
+  const g=e.target.closest('.gap');
+  if(g)moveCaret(+g.dataset.gap,'drag');
+  let payload=null;
+  try{const d=e.dataTransfer.getData('text/plain');if(d)payload=JSON.parse(d);}catch(err){}
+  if(!payload)return;
+  if(payload.kind==='card')insertCard(+payload.index,'drag');
+  else if(payload.kind==='article')insertArticle(payload.text,'drag');
+});
+// Tap: a gap chooses where the next word goes, a rack/sidebar word goes in there,
+// and a word already in the line comes back out.
+$('#line').addEventListener('click',e=>{
+  if(locked)return;
+  const g=e.target.closest('.gap');
+  if(g){moveCaret(+g.dataset.gap,'tap');return;}
+  const t=e.target.closest('.tok');
+  if(t)removeAt(+t.dataset.pos,'tap');
+});
+$('#rack').addEventListener('click',e=>{const c=e.target.closest('.wcard');if(c)insertCard(+c.dataset.i,'tap');});
+$('#articles').addEventListener('click',e=>{const c=e.target.closest('.acard');if(c)insertArticle(c.dataset.article,'tap');});
+document.addEventListener('keydown',e=>{
+  if(locked)return;
+  const n=+e.key;
+  if(n>=1&&n<=cards.length){insertCard(n-1,'key');return;}
+  const article=articleWords.find(w=>ARTICLE_KEY[w.toLowerCase()]===e.key.toLowerCase());
+  if(article){insertArticle(article,'key');return;}
+  if(e.key==='ArrowLeft'){e.preventDefault();moveCaret(caret-1,'key');}
+  else if(e.key==='ArrowRight'){e.preventDefault();moveCaret(caret+1,'key');}
+  else if(e.key==='Backspace'){e.preventDefault();if(caret>0)removeAt(caret-1,'key');}
+  else if(e.key==='Enter')submit();
+});
+$('#play').addEventListener('click',()=>{if(content&&locked&&!resultSent)beginItem(gateTutorial);});
+$('#go').addEventListener('click',submit);
+$('#clear').addEventListener('click',clearLine);
+$('#replay').addEventListener('click',()=>{if(content)runHowto();});
+
+/* ---------------- standalone fallback (double-click, no host) ---------------- */
+const SAMPLES=[
+ {itemId:'sample-sense-easy',typeCode:'VER-SENSE-01',domain:'verbal',difficulty:1,ageBands:['2-3'],
+  content:{prompt:'Put the word cards in order to build the sentence that makes sense.',
+   cards:[{text:'bone'},{text:'dog'},{text:'ate'}],cardCount:3,articles:['a','the'],vocabularyLevel:6,syntacticComplexity:1}},
+ {itemId:'sample-sense-mid',typeCode:'VER-SENSE-01',domain:'verbal',difficulty:9.6,ageBands:['4-5'],
+  content:{prompt:'Put the word cards in order to build the sentence that makes sense.',
+   cards:[{text:'into'},{text:'bread'},{text:'kitchen'},{text:'baker'},{text:'carried'}],cardCount:5,articles:['a','the'],vocabularyLevel:5,syntacticComplexity:2}},
+ {itemId:'sample-sense-hard',typeCode:'VER-SENSE-01',domain:'verbal',difficulty:17.6,ageBands:['6-8'],
+  content:{prompt:'Put the word cards in order to build the sentence that makes sense.',
+   cards:[{text:'harbor'},{text:'carefully'},{text:'weary'},{text:'dusk'},{text:'sketched'},{text:'cartographer'},{text:'before'}],cardCount:7,articles:['a','an','the'],vocabularyLevel:1,syntacticComplexity:3}}
+];
+let sIdx=0;
+function startStandalone(){$('#chanval').textContent='standalone (no host)';sIdx=0;nextStandalone(true);}
+function nextStandalone(first){
+  if(sIdx>=SAMPLES.length){setCue('done');setStatus('ok','Demo complete. Press \u21bb or reload to run the examples again.');locked=true;renderLine();return;}
+  const s=SAMPLES[sIdx++];
+  setItem(s);
+  openGate(first===true);
+  setCue('warmup','\u00b7 example '+sIdx+'/'+SAMPLES.length);
+}
+
+/* ---------------- host message handling ---------------- */
+window.addEventListener('message',e=>{
+  const d=e.data;if(!d||d.source!==SRC_HOST)return;
+  if(d.type==='init'&&d.item){hostSeen=true;$('#chanval').textContent='host-embedded';setItem(d.item);openGate(false);}
+  else if(d.type==='start'){if(content&&!resultSent)openGate(!!d.tutorial);}
+});
+
+/* ---------------- boot ---------------- */
+buildMeters();renderMeters();
+setInterval(()=>{if(!locked)renderMeters();},1000);
+post('ready',{});
+if(!embedded){
+  startStandalone();
+}else{
+  setCue('ready');setStatus('neutral','Ready. Waiting for the first item from the host\u2026');
+  setTimeout(()=>{if(!hostSeen&&!content)startStandalone();},1200);
+}
+</script>
+
+<script data-gt-demo-autostart="1">
+/* Catalogue-only: dismiss the press-play gate so browsing is uninterrupted.
+   Clicks the demo's own #play button rather than reimplementing its start logic.
+   Not present in the live screener. */
+(function () {
+  var root = document.documentElement;
+  var tries = 0;
+  function go() {
+    var btn = document.getElementById('play');
+    if (!btn) return;
+    if (!root.hasAttribute('data-gt-gate')) return;
+    btn.click();
+  }
+  // The gate reopens between rounds in several demos, so watch rather than fire once.
+  if (window.MutationObserver) {
+    new MutationObserver(function () { go(); })
+      .observe(root, { attributes: true, attributeFilter: ['data-gt-gate'] });
+  }
+  // And catch the case where the gate is already up by the time this runs.
+  var poll = setInterval(function () {
+    go();
+    if (++tries > 40) clearInterval(poll);
+  }, 50);
+  window.addEventListener('load', go);
+})();
+</script>
+</body>
+</html>

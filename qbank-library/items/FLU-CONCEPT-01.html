@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FLU-CONCEPT-01 · Mystery Gate</title>
+<style>
+:root{
+  --paper:#ffffff;--ink:#004f71;--violet:#e48b53;--mint:#4a6470;
+  --coral:#9fb6bd;--gold:#e48b53;--line:#f8e8de;--tel:#002a3a;
+  --tel2:#003b5c;--key:#ebba9b;--dim:#e48b53;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{min-height:100vh;display:flex;color:var(--ink);
+  font:16px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;
+  background:radial-gradient(circle at 18% 12%,#f8e8de 0 9%,transparent 28%),
+    linear-gradient(145deg,#fcf4ef,#fcf4ef 60%,#fcf4ef);}
+#wrap{flex:1;min-width:0;padding:18px;display:flex;flex-direction:column;align-items:center;gap:10px}
+#badge{color:#6f4526;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+#howto{max-width:660px;width:100%;background:#ffffff;border:1px solid #f8e8de;border-left:5px solid var(--violet);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a6470}
+#howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--violet)}
+#howto p{margin:0;font-size:14px;color:#4a6470;line-height:1.5}
+#phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#fcf4ef;color:var(--violet);border:2px solid #f8e8de;min-height:30px}
+#phasecue[data-phase="warmup"]{background:#f5ddcd;color:#6f4526;border-color:#ebba9b}
+#phasecue[data-phase="scored"]{background:var(--violet);color:#ffffff;border-color:var(--violet)}
+#phasecue[data-phase="done"]{background:#fcf4ef;color:#4a6470;border-color:#f8e8de}
+#status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+#status.ok{color:var(--mint)} #status.no{color:var(--coral)} #status.neutral{color:#4a6470}
+#stagecard{width:min(660px,100%);background:var(--paper);border:1px solid #ffffff;border-radius:28px;padding:18px;
+  box-shadow:0 24px 60px -35px #4a6470;display:flex;flex-direction:column;align-items:center;gap:12px}
+#gateRow{display:flex;align-items:center;justify-content:center;gap:18px}
+#preview,#probeFig{width:112px;height:112px;border-radius:20px;background:#fcf4ef;border:2px solid var(--line);display:grid;place-items:center}
+#gate{width:96px;height:116px;border-radius:48px 48px 14px 14px;border:5px solid #ebba9b;
+  background:repeating-linear-gradient(90deg,#f8e8de 0 11px,#ecd9cb 11px 22px);
+  display:grid;place-items:center;font:800 30px system-ui;transition:.22s;box-shadow:inset 0 0 0 6px #ffffff}
+#gate.open{border-color:var(--mint);background:#f8e8de;transform:translateY(-3px);color:#33505c}
+#gate.shut{border-color:var(--coral);background:#fcf4ef;animation:bump .35s;color:#4a6470}
+@keyframes bump{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+#budget{font:800 12px ui-monospace,monospace;color:#6f4526;letter-spacing:.06em}
+.trays{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}
+.tray{min-height:60px;padding:6px;border:2px dashed var(--line);border-radius:15px;display:flex;gap:4px;align-items:center;flex-wrap:wrap;overflow:hidden}
+.tray:first-child{background:#fcf4ef;border-color:#ecd9cb}
+.tray:last-child{background:#fcf4ef;border-color:#ecd9cb}
+.trayHead{font:800 11px system-ui;letter-spacing:.06em;color:#4a6470;margin:0 4px}
+#pending{min-height:26px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;font:700 12px system-ui;color:#4a6470}
+.pend{width:26px;height:26px;border-radius:8px;background:#ecd9cb;border:2px dashed #9fb6bd}
+#palette{display:grid;gap:8px;width:100%}
+.pickRow{display:flex;justify-content:center;gap:8px;align-items:center;flex-wrap:wrap}
+.pickLabel{font:800 10px system-ui;letter-spacing:.08em;text-transform:uppercase;color:#4a6470;width:52px;text-align:right}
+.pick{min-width:60px;height:46px;border:2px solid var(--line);border-radius:14px;background:#ffffff;color:var(--ink);
+  font:700 18px/1 system-ui;cursor:pointer;display:grid;place-items:center;transition:.14s}
+.pick:hover{transform:translateY(-2px);border-color:#ebba9b}
+.pick.sel{border-color:var(--violet);box-shadow:0 0 0 3px #f8e8de}
+#probe{display:none;flex-direction:column;align-items:center;gap:10px}
+#probe.on{display:flex}
+#probeButtons{display:flex;gap:14px}
+.gateChoice{width:132px;height:64px;border-radius:18px;border:3px solid var(--line);background:#ffffff;font:800 15px system-ui;cursor:pointer}
+.gateChoice:hover{border-color:var(--violet);transform:translateY(-2px)}
+#tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+#tools button{border:0;cursor:pointer;font:800 14px system-ui;border-radius:16px;height:50px;padding:0 16px;background:#fcf4ef;color:var(--violet)}
+#send{background:var(--violet)!important;color:#ffffff!important;font-size:20px!important}
+#know{background:var(--gold)!important;color:#003b5c!important}
+#hint{background:#f8e8de!important;color:#33505c!important}
+#replay{width:52px;font-size:20px!important}
+button[disabled]{opacity:.35;pointer-events:none}
+button:focus-visible{outline:4px solid #e48b53;outline-offset:2px}
+#ghost{position:fixed;left:0;top:0;opacity:0;z-index:50;pointer-events:none;
+  transition:transform .5s cubic-bezier(.2,.7,.2,1),opacity .2s;filter:drop-shadow(0 4px 4px #0004)}
+#ghost.show{opacity:1}
+#ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--violet);opacity:0}
+#ghost.tap .ring{animation:tapring .5s ease-out}
+@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+#telemetry{width:330px;flex:0 0 330px;min-height:100vh;background:var(--tel);color:#f5ddcd;display:flex;flex-direction:column;
+  font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+#telemetry h3{margin:0;padding:13px 14px;background:var(--tel2);color:#ffffff;font:800 12px system-ui;letter-spacing:.1em;text-transform:uppercase}
+#difficulty{padding:10px 13px;border-bottom:1px solid #004f71}
+.diffTop{display:flex;justify-content:space-between;color:#ffffff}
+.diffSub{display:flex;justify-content:space-between;color:var(--dim);font-size:10px;margin-top:5px}
+.diffTrack{height:8px;background:#004f71;border-radius:9px;margin-top:6px;overflow:hidden}
+#diffFill{height:100%;background:linear-gradient(90deg,#9fb6bd,#9fb6bd);transition:.3s}
+#mode{padding:6px 13px 0;font-size:10.5px;color:var(--dim)}#mode b{color:#6f4526}
+#mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+.mrow{display:grid;grid-template-columns:98px 1fr;gap:7px}
+.mid{color:var(--key);font-weight:800}.mid.srv{color:#6f4526}.mval{color:#ffffff}
+.mname{grid-column:1/3;color:var(--dim);font-size:10px;margin-top:-3px}
+#logwrap{border-top:1px solid #004f71;margin-top:auto}
+#logwrap b{display:block;color:#6f4526;padding:8px 12px 3px;font-size:10px}
+#log{height:186px;overflow:auto;padding:0 12px 12px}
+#log div{padding:3px 0;border-bottom:1px dotted #004f71}
+#log .t{color:#6f4526}
+@media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;min-height:0;height:310px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition-duration:.01ms!important}}
+</style>
+<style>html[data-gt-telemetry="off"] #telemetry{display:none}</style>
+<script>/* D-028 — the researcher telemetry panel is presentational only. Embedded in the
+   child-facing screener it is hidden: naming the behavioural metrics to the child can
+   change the behaviour being measured. `?telemetry=1` restores it for a live
+   demonstration, and standalone (opened directly) is unchanged. Sampling, metric
+   computation and the {type:'telemetry'} postMessage stream are untouched. */
+(function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
+<style>html[data-gt-chrome="off"] #howto{display:none}</style>
+<script>/* Instant-question gate. Embedded in the screener the "How to use" panel is hidden so the
+   child sees the question itself the moment it appears; the per-item status line carries the
+   instruction in words. A test should not spend its first seconds being read. `?chrome=1`
+   restores the panel for a walkthrough, and standalone (opened directly) is unchanged. */
+(function(){var f=/(^|[?&])chrome=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-chrome','off');})();</script>
+<link rel="stylesheet" href="../exam-skin.css">
+<style data-gt-demo-presentation="1">
+/* Catalogue-only presentation pass. Not present in the live screener. */
+
+/* The play button and its broken copy. Hidden, not removed: the page's start path still
+   needs the button in the DOM for the autostart patch to click. */
+#playgate { display: none !important; }
+
+/* Authoring instrumentation: item id, difficulty meters, event log. */
+#telemetry { display: none !important; }
+
+/* body stays flex and #wrap keeps flex:1, so hiding the sidebar is enough to hand the
+   question the full width. #wrap already centres its own children. */
+
+/* #howto is now the viewer's only orientation, so lift it slightly off the page. */
+#howto {
+  max-width: 720px !important;
+  box-shadow: 0 10px 30px -20px #002a3a !important;
+}
+
+/* Press t to bring the telemetry panel back mid-demo. */
+html[data-gt-demo-presentation-tel] #telemetry { display: flex !important; }
+</style>
+<script data-gt-demo-presentation="1">
+/* Catalogue-only: `t` reveals the telemetry panel, for showing what the item measures. */
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 't' && e.key !== 'T') return;
+  var tag = (e.target && e.target.tagName) || '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || e.metaKey || e.ctrlKey || e.altKey) return;
+  var root = document.documentElement;
+  var attr = 'data-gt-demo-presentation-tel';
+  if (root.hasAttribute(attr)) root.removeAttribute(attr);
+  else root.setAttribute(attr, '1');
+});
+</script>
+</head>
+<body>
+<main id="wrap">
+  <div id="badge">FLU-CONCEPT-01 · Mystery Gate</div>
+  <header id="howto">
+    <h1>How to use — Mystery Gate</h1>
+    <p>The gate opens only for figures that follow a secret rule. Build a figure with the buttons and press send (<b>&#8594;</b>) to test it: openers go to the <b>Opens</b> tray, the rest to the <b>Stays shut</b> tray. You get a limited number of tests. When you think you know the rule, press <b>I know it</b> and say whether each new figure opens the gate.</p>
+  </header>
+  <div id="phasecue" data-phase="warmup">Get ready</div>
+  <section id="stagecard">
+    <div id="gateRow">
+      <div id="preview"></div>
+      <div id="gate">?</div>
+    </div>
+    <div id="budget">tests left: &mdash;</div>
+    <div id="pending"></div>
+    <div class="trays">
+      <div class="tray" id="yesTray"><span class="trayHead">OPENS</span></div>
+      <div class="tray" id="noTray"><span class="trayHead">STAYS SHUT</span></div>
+    </div>
+    <div id="palette"></div>
+    <div id="probe">
+      <div id="probeFig"></div>
+      <div id="probeButtons">
+        <button class="gateChoice" id="openChoice">&#10003; Opens</button>
+        <button class="gateChoice" id="shutChoice">&#10007; Stays shut</button>
+      </div>
+    </div>
+    <div id="tools">
+      <button id="replay" title="show how again">&#8635;</button>
+      <button id="hint">Hint</button>
+      <button id="send" title="test this figure">&#8594;</button>
+      <button id="know">I know it</button>
+    </div>
+    <div id="status" class="neutral">Waiting for the next gate.</div>
+  </section>
+  <div id="playgate">
+    <p>The mystery gate is ready. Press play when you are, and it starts then.</p>
+    <button type="button" id="play">Play</button>
+  </div>
+</main>
+<aside id="telemetry">
+  <h3>Live telemetry · per-child (display only)</h3>
+  <div id="difficulty"></div>
+  <div id="mode">Renderer reports the raw experiment log; <b>the rule and the score are server-side</b>.</div>
+  <div id="mlist"></div>
+  <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+</aside>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#6558df" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+/* =====================================================================
+ * FLU-CONCEPT-01 — PURE RENDERER
+ * Renders a SERVED item (item.content) and reports the child's RAW experiment
+ * log + probe classifications. It NEVER self-generates items and NEVER shows
+ * whether an ANSWER is right: the hidden rule, the probe key and the score all
+ * live server-side (BUILD_PLAN §2).
+ *
+ * The gate's open/shut reaction to a figure the child BUILDS is not answer
+ * feedback — it is the item's evidence, served in `content.gateOracle`, which
+ * covers only buildable figures. The three probe figures sit outside that
+ * buildable space, so their verdicts are not in the served data at all.
+ *
+ * Embedding protocol (postMessage), source-tagged:
+ *   host -> demo : {source:'gt-exam-host', type:'init',  item:ServedItem}
+ *                  {source:'gt-exam-host', type:'start', tutorial?:bool}
+ *   demo -> host : {source:'gt-exam-demo', type:'ready'}
+ *                  {source:'gt-exam-demo', type:'result',    result:ItemResult}
+ *                  {source:'gt-exam-demo', type:'telemetry', event:TelemetryEvent}
+ *
+ * Standalone (double-click / no host): loads sample items from the bank JSONL
+ * (or an inline fallback if fetch is blocked on file://) so the file still runs
+ * for QA. Emitted ItemResults are logged; correctness is never computed here.
+ * ===================================================================== */
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const HOST_SRC='gt-exam-host',DEMO_SRC='gt-exam-demo';
+
+/* ---------- figure rendering (renderer-agnostic tokens -> art) ---------- */
+const INK={coral:'#ed5157',blue:'#3973d6',gold:'#e5a91d',mint:'#25a97a'};
+const TAG={coral:'//',blue:'::',gold:'=',mint:'+'}; // colour-redundant pattern tag
+const RADIUS={small:11,big:18,huge:25};
+const DIM_WORDS={shape:'shape',color:'colour',count:'how many',size:'size'};
+const WORD={small:'small',big:'big',huge:'huge'};
+function starPts(cx,cy,r){const p=[];for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?r*.44:r;p.push(`${(cx+Math.cos(a)*rr).toFixed(1)},${(cy+Math.sin(a)*rr).toFixed(1)}`);}return p.join(' ');}
+function mark(shape,cx,cy,r,fill){
+  if(shape==='circle')return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}"/>`;
+  if(shape==='square')return `<rect x="${cx-r}" y="${cy-r}" width="${2*r}" height="${2*r}" rx="4" fill="${fill}"/>`;
+  if(shape==='triangle')return `<polygon points="${cx},${cy-r} ${cx-r},${cy+r} ${cx+r},${cy+r}" fill="${fill}"/>`;
+  return `<polygon points="${starPts(cx,cy,r)}" fill="${fill}"/>`;
+}
+function figureSVG(f,size=96){
+  const col=INK[f.color]||f.color,n=f.count||1,r=Math.min(RADIUS[f.size]||14,n>=3?14:22);
+  const xs=n===1?[.5]:n===2?[.31,.69]:n===3?[.22,.5,.78]:[.2,.4,.6,.8];
+  let body='';xs.slice(0,n).forEach(x=>{body+=mark(f.shape,x*96,48,r,col);});
+  return `<svg width="${size}" height="${size}" viewBox="0 0 96 96" aria-hidden="true">${body}`
+    +`<text x="4" y="16" font-size="12" font-weight="900" fill="${col}">${TAG[f.color]||''}</text></svg>`;
+}
+const figKey=f=>[f.shape,f.color,f.count,f.size].join('|');
+
+/* ---------- per-item state ---------- */
+let current=null;        // current ServedItem
+let interactive=false;   // interaction enabled?
+let submitted=false;     // already answered this item?
+let stage='build';       // build -> probe -> done
+let sel={};              // the figure being built
+let oracle=null;         // Map figKey -> accepts (served evidence)
+let tests=[];            // {figure, accepts, tMs}
+let pending=[];          // tests awaiting a batched reveal
+let probeIdx=0,probeAnswers=[],hintCount=0;
+let itemStart=0,itemTelemetry=[];
+let gateTutorial=false;  // does the pending play press owe a gesture hint?
+const M={rt:null,firstLat:null,blur:0,changes:0};
+
+/* ---------- embedding detection + emit ---------- */
+const embedded=(()=>{try{return window.parent&&window.parent!==window;}catch(_){return true;}})();
+let standalone=false,standaloneQueue=[],standaloneIdx=0,tutorialShown=false;
+function post(msg){if(!embedded)return;try{window.parent.postMessage(Object.assign({source:DEMO_SRC},msg),'*');}catch(_){}}
+
+/* ---------- telemetry panel (DISPLAY ONLY; key-free) ---------- */
+const distinctTests=()=>new Set(tests.map(t=>figKey(t.figure))).size;
+const METERS=[
+ {id:'M-ACC',srv:true,name:'Probe classification accuracy (server-verified)',get:()=>'server-side'},
+ {id:'M-HYP',srv:true,name:'Informativeness of chosen tests (server-verified)',get:()=>'server-side'},
+ {id:'M-PROG',srv:true,name:'Uncertainty-reduction curve (server-verified)',get:()=>'server-side'},
+ {id:'M-EXPLORE',name:'Distinct self-designed tests',get:()=>String(distinctTests())},
+ {id:'M-PATH',name:'Experiments run (in order)',get:()=>String(tests.length)},
+ {id:'M-EFF',name:'Tests used (vs target: server)',get:()=>current?`${tests.length} of ${current.content.maxTests}`:'\u2014'},
+ {id:'M-HINT',name:'Extra openers revealed',get:()=>String(hintCount)},
+ {id:'M-RT',name:'Response time',get:()=>M.rt==null?'\u2014':M.rt+' ms'},
+ {id:'M-RTFIRST',name:'Latency to first experiment',get:()=>M.firstLat==null?'\u2014':M.firstLat+' ms'},
+ {id:'M-ENGAGE',name:'Focus losses (tracked, not enforced)',get:()=>String(M.blur)},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>
+  `<div class="mrow"><span class="mid${m.srv?' srv':''}">${m.id}</span><span class="mval" id="v_${m.id}"></span>`
+  +`<span class="mname">${m.name}</span></div>`).join('');}
+function renderDifficulty(){
+  const d=current?current.difficulty:null,c=current?current.content:null;
+  $('#difficulty').innerHTML=`<div class="diffTop"><b>SERVED DIFFICULTY</b><span>${d==null?'\u2014':d.toFixed(1)}/20</span></div>`
+   +`<div class="diffTrack"><div id="diffFill" style="width:${d==null?0:Math.max(0,Math.min(100,d/20*100))}%"></div></div>`
+   +`<div class="diffSub"><span>${c?c.varyDims.length+' features vary · '+c.feedback.mode+' feedback':'\u2014'}</span><span>score: server-side</span></div>`;
+}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});renderDifficulty();
+  if(current)$('#budget').textContent=`tests left: ${Math.max(0,current.content.maxTests-tests.length)} of ${current.content.maxTests}`;}
+function log(msg){const now=new Date(),t=Math.max(0,Date.now()-(itemStart||Date.now())),d=document.createElement('div');
+  d.innerHTML=`<span class="t">${now.toISOString().slice(11,23)} · +${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+function emitEvent(kind,extra){
+  const event=Object.assign({t:itemStart?Date.now()-itemStart:0,kind,itemId:current?current.itemId:null},extra||{});
+  itemTelemetry.push(event);post({type:'telemetry',event});
+  log(`<b>${kind}</b>`+(extra&&Object.keys(extra).length?' · '+JSON.stringify(extra):''));
+}
+
+/* ---------- ghost hand: wordless GESTURE hint (never reveals the rule) ---------- */
+const ghost=$('#ghost');
+function ghostShow(v){ghost.classList.toggle('show',v);}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(600);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(450);}
+async function gestureHint(){
+  // Teaches the GESTURE only: pick features, send, then say what you think.
+  // It sends nothing, so no gate verdict is given away.
+  ghostShow(true);await sleep(250);
+  await ghostTo($('#palette'));await ghostTap();
+  await ghostTo($('#send'));await ghostTap();
+  await ghostTo($('#know'));await ghostTap();
+  ghostShow(false);await sleep(250);
+}
+
+/* ---------- rendering the served item ---------- */
+function setCue(k,txt){const el=$('#phasecue');el.dataset.phase=k;el.textContent=txt;}
+function setStatus(kind,msg){const el=$('#status');el.className=kind;el.textContent=msg;}
+function pickLabel(dim,v){
+  if(dim==='count')return String(v);
+  if(dim==='size')return WORD[v]||v;
+  if(dim==='color')return `<span style="display:inline-flex;align-items:center;gap:3px"><span style="width:24px;height:20px;border-radius:6px;background:${INK[v]};display:block"></span><b style="color:${INK[v]};font:900 10px ui-monospace,monospace">${TAG[v]}</b></span>`;
+  return `<svg width="30" height="30" viewBox="0 0 96 96">${mark(v,48,48,30,'#59627b')}</svg>`;
+}
+function paintPalette(){
+  const c=current.content;
+  $('#palette').innerHTML=c.varyDims.map(dim=>
+    `<div class="pickRow" data-dim="${dim}"><span class="pickLabel">${DIM_WORDS[dim]}</span>`
+    +c.palette[dim].map(v=>`<button class="pick" data-value="${v}" aria-label="${dim} ${v}">${pickLabel(dim,v)}</button>`).join('')
+    +'</div>').join('');
+}
+function refreshBuilder(){
+  $$('.pickRow').forEach(row=>row.querySelectorAll('.pick').forEach(b=>{
+    b.classList.toggle('sel',String(sel[row.dataset.dim])===b.dataset.value);}));
+  $('#preview').innerHTML=figureSVG(sel);
+}
+function addTray(f,acc){
+  const host=acc?$('#yesTray'):$('#noTray');
+  const d=document.createElement('span');d.innerHTML=figureSVG(f,38);host.appendChild(d.firstChild);
+}
+function renderPending(){
+  $('#pending').innerHTML=pending.length
+    ?`<span>waiting for the gate: </span>`+pending.map(()=>'<span class="pend"></span>').join('')
+    :'';
+}
+function flashGate(acc){
+  const g=$('#gate');g.className=acc?'open':'shut';g.textContent=acc?'\u2713':'\u2717';
+  setTimeout(()=>{g.className='';g.textContent='?';},700);
+}
+function renderServedItem(item){
+  current=item;submitted=false;interactive=false;stage='build';
+  tests=[];pending=[];probeIdx=0;probeAnswers=[];hintCount=0;
+  M.rt=null;M.firstLat=null;M.blur=0;M.changes=0;itemTelemetry=[];
+  oracle=new Map(item.content.gateOracle.map(o=>[figKey(o.figure),o.accepts]));
+  sel={...item.content.fixedAttributes};
+  item.content.varyDims.forEach(d=>{sel[d]=item.content.palette[d][0];});
+  paintPalette();refreshBuilder();
+  $('#yesTray').innerHTML='<span class="trayHead">OPENS</span>';
+  $('#noTray').innerHTML='<span class="trayHead">STAYS SHUT</span>';
+  $('#probe').classList.remove('on');$('#palette').style.display='grid';
+  ['send','know','hint'].forEach(b=>{$('#'+b).style.display='';$('#'+b).disabled=false;});
+  renderPending();
+  itemStart=Date.now();renderMeters();
+  emitEvent('render',{varyDims:item.content.varyDims,maxTests:item.content.maxTests,
+    feedback:item.content.feedback.mode,difficulty:item.difficulty});
+}
+
+/* ---------- interaction: the experiment loop ---------- */
+function pick(dim,value){
+  if(!interactive||submitted||stage!=='build')return;
+  sel[dim]=dim==='count'?+value:value;
+  M.changes++;refreshBuilder();
+  emitEvent('build',{dim,value:sel[dim]});
+}
+function revealPending(){
+  if(!pending.length)return;
+  const batch=pending.slice();pending=[];renderPending();
+  batch.forEach(t=>addTray(t.figure,t.accepts));
+  flashGate(batch[batch.length-1].accepts);
+  emitEvent('batch_reveal',{count:batch.length,opened:batch.filter(t=>t.accepts).length});
+  setStatus('neutral',`The gate result for ${batch.length} test${batch.length>1?'s':''} is in the trays.`);
+}
+function sendFigure(){
+  if(!interactive||submitted||stage!=='build')return;
+  const c=current.content;
+  if(tests.length>=c.maxTests){setStatus('neutral','No tests left. Press I know it.');return;}
+  if(M.firstLat==null){M.firstLat=Date.now()-itemStart;emitEvent('first_action',{latencyMs:M.firstLat});}
+  const figure={...sel};
+  const accepts=!!oracle.get(figKey(figure));            // served evidence, not scoring
+  const t={figure,accepts,tMs:Date.now()-itemStart};
+  tests.push(t);
+  emitEvent('test',{figure,opened:accepts,index:tests.length});
+  if(c.feedback.mode==='batched'){
+    pending.push(t);renderPending();
+    setStatus('neutral','Test queued. The gate answers a batch at a time.');
+    if(pending.length>=c.feedback.batchSize)revealPending();
+  }else{
+    addTray(figure,accepts);flashGate(accepts);
+    setStatus('neutral',accepts?'That figure OPENED the gate.':'That figure did NOT open the gate.');
+  }
+  if(tests.length>=c.maxTests){$('#send').disabled=true;revealPending();
+    setStatus('neutral','That was your last test. Press I know it.');}
+  renderMeters();
+}
+function useHint(){
+  if(!interactive||submitted||stage!=='build')return;
+  hintCount++;addTray(current.content.hintFigure,true);
+  emitEvent('hint',{count:hintCount});
+  setStatus('neutral','Here is one more figure that opens the gate.');
+  renderMeters();
+}
+function enterProbes(){
+  if(!interactive||submitted||stage!=='build')return;
+  revealPending();
+  stage='probe';
+  $('#palette').style.display='none';
+  ['send','know','hint'].forEach(b=>{$('#'+b).style.display='none';});
+  $('#probe').classList.add('on');
+  emitEvent('probe_stage',{testsUsed:tests.length});
+  showProbe();
+}
+function showProbe(){
+  const p=current.content.probes[probeIdx];
+  $('#probeFig').innerHTML=figureSVG(p.figure,100);
+  setCue('scored',`Figure ${probeIdx+1} of ${current.content.probes.length}`);
+  setStatus('neutral','Does this figure open the gate?');
+}
+function classify(opens){
+  if(!interactive||submitted||stage!=='probe')return;
+  const p=current.content.probes[probeIdx];
+  probeAnswers.push({key:p.key,opens});
+  // NEUTRAL acknowledgment only — never correct/incorrect.
+  emitEvent('classify',{probe:p.key,opens});
+  probeIdx++;
+  if(probeIdx<current.content.probes.length){setStatus('neutral','Answer saved. Next figure.');showProbe();}
+  else finish();
+}
+function finish(){
+  const rt=Date.now()-itemStart;
+  M.rt=rt;submitted=true;interactive=false;stage='done';
+  $('#probe').classList.remove('on');
+  setCue('done','Answers sent');
+  setStatus('neutral',standalone?'Answers received. Loading the next gate.':'Answers received. Next gate coming up.');
+  emitEvent('submit',{rtMs:rt,tests:tests.length,hints:hintCount});
+  const response={
+    probeAnswers:probeAnswers.slice(),
+    answerKeyString:probeAnswers.map(a=>a.opens?'Y':'N').join(''), // raw child pattern, not a verdict
+    tests:tests.map(t=>({figure:t.figure,opened:t.accepts,tMs:t.tMs})),
+    testCount:tests.length,
+    distinctTests:distinctTests(),
+    hintCount,
+    builderChanges:M.changes,
+  };
+  const metrics={'M-RT':rt,'M-RTFIRST':M.firstLat==null?rt:M.firstLat,'M-EXPLORE':distinctTests(),
+    'M-PATH':tests.length,'M-EFF':tests.length,'M-HINT':hintCount,'M-ENGAGE':M.blur,
+    'M-RAPIDGUESS':tests.length===0&&rt<4000?1:0};
+  const result={itemId:current.itemId,typeCode:current.typeCode,domain:current.domain,response,metrics,telemetry:itemTelemetry.slice()};
+  post({type:'result',result});
+  log('RESULT emitted \u2192 '+JSON.stringify({pattern:response.answerKeyString,tests:response.testCount,metrics}));
+  renderMeters();
+  if(standalone)setTimeout(advanceStandalone,1300);
+}
+
+/* ---------- host-driven lifecycle ---------- */
+/* R1 — the gate puzzle waits behind the play gate. `init` renders it, but the builder stays
+   covered and inert until the child presses play. That press is also when the response clock
+   starts, so M-RT and M-RTFIRST measure the child's experimenting rather than however long
+   they took to look up at the screen. */
+function openGate(withTutorial){
+  gateTutorial=!!withTutorial;
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('warmup','Ready when you are');
+  setStatus('neutral','Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
+function onInit(item){
+  if(!item||!item.content||!Array.isArray(item.content.gateOracle)){log('init ignored: malformed ServedItem');return;}
+  renderServedItem(item);
+  openGate(false);
+}
+async function beginItem(withTutorial){
+  if(interactive||submitted||!current)return;
+  closeGate();
+  if(withTutorial&&!tutorialShown){tutorialShown=true;await gestureHint();if(submitted)return;}
+  interactive=true;itemStart=Date.now();               // interaction unlocked HERE
+  setCue('scored','Your turn');
+  setStatus('neutral','Build a figure and press send to test it.');
+  renderMeters();
+}
+function onHostMessage(e){
+  const d=e.data;if(!d||d.source!==HOST_SRC)return;
+  if(d.type==='init')onInit(d.item);
+  else if(d.type==='start')openGate(!!d.tutorial);
+}
+
+/* ---------- standalone fallback (QA when there is no host) ---------- */
+function toServed(b){const{answer,scoring,provenance,...s}=b;return s;}
+async function loadBankSamples(){
+  try{
+    const res=await fetch('../banks/FLU-CONCEPT-01.jsonl',{cache:'no-store'});
+    if(res.ok){
+      const all=(await res.text()).trim().split('\n').filter(Boolean).map(l=>JSON.parse(l)).map(toServed);
+      all.sort((a,b)=>a.difficulty-b.difficulty);
+      const N=Math.min(10,all.length),pick=[];
+      for(let i=0;i<N;i++)pick.push(all[N===1?0:Math.round(i*(all.length-1)/(N-1))]);
+      log('standalone: fetched '+all.length+' bank items; cycling '+pick.length+' across difficulty');
+      return pick;
+    }
+  }catch(_){/* file:// blocks fetch — use inline fallback */}
+  log('standalone: bank fetch unavailable (open via a local server for the full bank) — using inline samples');
+  return INLINE_SAMPLES.slice();
+}
+function playStandalone(){const item=standaloneQueue[standaloneIdx%standaloneQueue.length];onInit(item);openGate(standaloneIdx===0);}
+function advanceStandalone(){standaloneIdx++;playStandalone();}
+async function bootstrapStandalone(){if(standalone)return;standalone=true;standaloneQueue=await loadBankSamples();standaloneIdx=0;playStandalone();}
+
+/* Inline served-item fallback (real items exported from the bank; answer stripped). */
+const INLINE_SAMPLES=[
+{"itemId":"1108dec8-1902-4f07-9bd9-eb089c95f44c","typeCode":"FLU-CONCEPT-01","domain":"fluid_reasoning","difficulty":1.11,"ageBands":["2-3"],"demoPath":"demos/FLU-CONCEPT-01.html","content":{"typeCode":"FLU-CONCEPT-01","varyDims":["shape","color"],"fixedAttributes":{"count":1,"size":"small"},"palette":{"shape":["triangle","circle","star"],"color":["coral","blue","gold"]},"gateOracle":[{"figure":{"count":1,"size":"small","shape":"triangle","color":"coral"},"accepts":true},{"figure":{"count":1,"size":"small","shape":"triangle","color":"blue"},"accepts":false},{"figure":{"count":1,"size":"small","shape":"triangle","color":"gold"},"accepts":false},{"figure":{"count":1,"size":"small","shape":"circle","color":"coral"},"accepts":true},{"figure":{"count":1,"size":"small","shape":"circle","color":"blue"},"accepts":false},{"figure":{"count":1,"size":"small","shape":"circle","color":"gold"},"accepts":false},{"figure":{"count":1,"size":"small","shape":"star","color":"coral"},"accepts":true},{"figure":{"count":1,"size":"small","shape":"star","color":"blue"},"accepts":false},{"figure":{"count":1,"size":"small","shape":"star","color":"gold"},"accepts":false}],"hintFigure":{"count":1,"size":"small","shape":"triangle","color":"coral"},"maxTests":8,"feedback":{"mode":"immediate","batchSize":1},"probes":[{"key":"P1","figure":{"count":1,"size":"small","shape":"square","color":"coral"}},{"key":"P2","figure":{"count":1,"size":"small","shape":"star","color":"mint"}},{"key":"P3","figure":{"count":1,"size":"small","shape":"circle","color":"mint"}}]},"syntheticOnly":true,"validated":false},
+{"itemId":"0d94367a-9389-4f73-9582-df0cd5ac334c","typeCode":"FLU-CONCEPT-01","domain":"fluid_reasoning","difficulty":10.85,"ageBands":["4-5"],"demoPath":"demos/FLU-CONCEPT-01.html","content":{"typeCode":"FLU-CONCEPT-01","varyDims":["shape","count"],"fixedAttributes":{"color":"coral","size":"small"},"palette":{"shape":["triangle","circle","star"],"count":[1,2,3]},"gateOracle":[{"figure":{"color":"coral","size":"small","shape":"triangle","count":1},"accepts":true},{"figure":{"color":"coral","size":"small","shape":"triangle","count":2},"accepts":false},{"figure":{"color":"coral","size":"small","shape":"triangle","count":3},"accepts":false},{"figure":{"color":"coral","size":"small","shape":"circle","count":1},"accepts":true},{"figure":{"color":"coral","size":"small","shape":"circle","count":2},"accepts":false},{"figure":{"color":"coral","size":"small","shape":"circle","count":3},"accepts":false},{"figure":{"color":"coral","size":"small","shape":"star","count":1},"accepts":true},{"figure":{"color":"coral","size":"small","shape":"star","count":2},"accepts":false},{"figure":{"color":"coral","size":"small","shape":"star","count":3},"accepts":false}],"hintFigure":{"color":"coral","size":"small","shape":"triangle","count":1},"maxTests":3,"feedback":{"mode":"batched","batchSize":3},"probes":[{"key":"P1","figure":{"color":"coral","size":"small","shape":"square","count":3}},{"key":"P2","figure":{"color":"coral","size":"small","shape":"star","count":4}},{"key":"P3","figure":{"color":"coral","size":"small","shape":"square","count":1}}]},"syntheticOnly":true,"validated":false},
+{"itemId":"df37cd9d-bdae-423f-8864-52cd9dc7d766","typeCode":"FLU-CONCEPT-01","domain":"fluid_reasoning","difficulty":19.93,"ageBands":["6-8"],"demoPath":"demos/FLU-CONCEPT-01.html","content":{"typeCode":"FLU-CONCEPT-01","varyDims":["shape","color","count","size"],"fixedAttributes":{},"palette":{"shape":["triangle","circle","star"],"color":["coral","blue","gold"],"count":[1,2,3],"size":["small","big"]},"gateOracle":[{"figure":{"shape":"triangle","color":"coral","count":1,"size":"small"},"accepts":false},{"figure":{"shape":"triangle","color":"coral","count":1,"size":"big"},"accepts":false},{"figure":{"shape":"triangle","color":"coral","count":2,"size":"small"},"accepts":false},{"figure":{"shape":"triangle","color":"coral","count":2,"size":"big"},"accepts":false},{"figure":{"shape":"triangle","color":"coral","count":3,"size":"small"},"accepts":false},{"figure":{"shape":"triangle","color":"coral","count":3,"size":"big"},"accepts":false},{"figure":{"shape":"triangle","color":"blue","count":1,"size":"small"},"accepts":false},{"figure":{"shape":"triangle","color":"blue","count":1,"size":"big"},"accepts":false},{"figure":{"shape":"triangle","color":"blue","count":2,"size":"small"},"accepts":false},{"figure":{"shape":"triangle","color":"blue","count":2,"size":"big"},"accepts":false},{"figure":{"shape":"triangle","color":"blue","count":3,"size":"small"},"accepts":false},{"figure":{"shape":"triangle","color":"blue","count":3,"size":"big"},"accepts":false},{"figure":{"shape":"triangle","color":"gold","count":1,"size":"small"},"accepts":false},{"figure":{"shape":"triangle","color":"gold","count":1,"size":"big"},"accepts":false},{"figure":{"shape":"triangle","color":"gold","count":2,"size":"small"},"accepts":false},{"figure":{"shape":"triangle","color":"gold","count":2,"size":"big"},"accepts":false},{"figure":{"shape":"triangle","color":"gold","count":3,"size":"small"},"accepts":false},{"figure":{"shape":"triangle","color":"gold","count":3,"size":"big"},"accepts":false},{"figure":{"shape":"circle","color":"coral","count":1,"size":"small"},"accepts":false},{"figure":{"shape":"circle","color":"coral","count":1,"size":"big"},"accepts":false},{"figure":{"shape":"circle","color":"coral","count":2,"size":"small"},"accepts":true},{"figure":{"shape":"circle","color":"coral","count":2,"size":"big"},"accepts":false},{"figure":{"shape":"circle","color":"coral","count":3,"size":"small"},"accepts":false},{"figure":{"shape":"circle","color":"coral","count":3,"size":"big"},"accepts":false},{"figure":{"shape":"circle","color":"blue","count":1,"size":"small"},"accepts":false},{"figure":{"shape":"circle","color":"blue","count":1,"size":"big"},"accepts":false},{"figure":{"shape":"circle","color":"blue","count":2,"size":"small"},"accepts":true},{"figure":{"shape":"circle","color":"blue","count":2,"size":"big"},"accepts":false},{"figure":{"shape":"circle","color":"blue","count":3,"size":"small"},"accepts":false},{"figure":{"shape":"circle","color":"blue","count":3,"size":"big"},"accepts":false},{"figure":{"shape":"circle","color":"gold","count":1,"size":"small"},"accepts":false},{"figure":{"shape":"circle","color":"gold","count":1,"size":"big"},"accepts":false},{"figure":{"shape":"circle","color":"gold","count":2,"size":"small"},"accepts":true},{"figure":{"shape":"circle","color":"gold","count":2,"size":"big"},"accepts":false},{"figure":{"shape":"circle","color":"gold","count":3,"size":"small"},"accepts":false},{"figure":{"shape":"circle","color":"gold","count":3,"size":"big"},"accepts":false},{"figure":{"shape":"star","color":"coral","count":1,"size":"small"},"accepts":false},{"figure":{"shape":"star","color":"coral","count":1,"size":"big"},"accepts":false},{"figure":{"shape":"star","color":"coral","count":2,"size":"small"},"accepts":false},{"figure":{"shape":"star","color":"coral","count":2,"size":"big"},"accepts":false},{"figure":{"shape":"star","color":"coral","count":3,"size":"small"},"accepts":false},{"figure":{"shape":"star","color":"coral","count":3,"size":"big"},"accepts":false},{"figure":{"shape":"star","color":"blue","count":1,"size":"small"},"accepts":false},{"figure":{"shape":"star","color":"blue","count":1,"size":"big"},"accepts":false},{"figure":{"shape":"star","color":"blue","count":2,"size":"small"},"accepts":false},{"figure":{"shape":"star","color":"blue","count":2,"size":"big"},"accepts":false},{"figure":{"shape":"star","color":"blue","count":3,"size":"small"},"accepts":false},{"figure":{"shape":"star","color":"blue","count":3,"size":"big"},"accepts":false},{"figure":{"shape":"star","color":"gold","count":1,"size":"small"},"accepts":false},{"figure":{"shape":"star","color":"gold","count":1,"size":"big"},"accepts":false},{"figure":{"shape":"star","color":"gold","count":2,"size":"small"},"accepts":false},{"figure":{"shape":"star","color":"gold","count":2,"size":"big"},"accepts":false},{"figure":{"shape":"star","color":"gold","count":3,"size":"small"},"accepts":false},{"figure":{"shape":"star","color":"gold","count":3,"size":"big"},"accepts":false}],"hintFigure":{"shape":"circle","color":"coral","count":2,"size":"small"},"maxTests":9,"feedback":{"mode":"batched","batchSize":3},"probes":[{"key":"P1","figure":{"shape":"square","color":"blue","count":4,"size":"big"}},{"key":"P2","figure":{"shape":"circle","color":"mint","count":2,"size":"small"}},{"key":"P3","figure":{"shape":"triangle","color":"coral","count":4,"size":"big"}}]},"syntheticOnly":true,"validated":false}
+];
+
+/* ---------- wiring ---------- */
+$('#play').addEventListener('click',()=>{if(current&&!interactive&&!submitted)beginItem(gateTutorial);});
+$('#palette').addEventListener('click',e=>{const b=e.target.closest('.pick');if(b)pick(b.parentElement.dataset.dim,b.dataset.value);});
+$('#send').addEventListener('click',sendFigure);
+$('#hint').addEventListener('click',useHint);
+$('#know').addEventListener('click',enterProbes);
+$('#openChoice').addEventListener('click',()=>classify(true));
+$('#shutChoice').addEventListener('click',()=>classify(false));
+$('#replay').addEventListener('click',()=>{if(current&&!submitted)gestureHint();});
+document.addEventListener('keydown',e=>{
+  if(!interactive||submitted)return;
+  const k=e.key.toLowerCase();
+  if(stage==='build'){
+    if(e.key==='Enter'||k==='s'){e.preventDefault();sendFigure();}
+    else if(k==='h')useHint();
+    else if(k==='k')enterProbes();
+  }else if(stage==='probe'){
+    if(k==='o')classify(true);
+    else if(k==='x')classify(false);
+  }
+});
+window.addEventListener('blur',()=>{if(interactive&&!submitted){M.blur++;emitEvent('engagement',{reason:'blur'});renderMeters();}});
+
+buildMeters();renderMeters();
+window.addEventListener('message',onHostMessage);
+post({type:'ready'});
+if(!embedded){bootstrapStandalone();}
+else{setTimeout(()=>{if(!current)bootstrapStandalone();},1000);} // QA-safe if a host embeds but never inits
+</script>
+
+<script data-gt-demo-autostart="1">
+/* Catalogue-only: dismiss the press-play gate so browsing is uninterrupted.
+   Clicks the demo's own #play button rather than reimplementing its start logic.
+   Not present in the live screener. */
+(function () {
+  var root = document.documentElement;
+  var tries = 0;
+  function go() {
+    var btn = document.getElementById('play');
+    if (!btn) return;
+    if (!root.hasAttribute('data-gt-gate')) return;
+    btn.click();
+  }
+  // The gate reopens between rounds in several demos, so watch rather than fire once.
+  if (window.MutationObserver) {
+    new MutationObserver(function () { go(); })
+      .observe(root, { attributes: true, attributeFilter: ['data-gt-gate'] });
+  }
+  // And catch the case where the gate is already up by the time this runs.
+  var poll = setInterval(function () {
+    go();
+    if (++tries > 40) clearInterval(poll);
+  }, 50);
+  window.addEventListener('load', go);
+})();
+</script>
+</body>
+</html>

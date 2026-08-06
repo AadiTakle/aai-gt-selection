@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GB-FLAWFINDER-01 · Fib Finder</title>
+<!--
+  GB-FLAWFINDER-01 (Fib Finder) — PURE RENDERER.
+
+  This demo no longer invents items and holds no answer key. It renders a
+  ServedItem's `content` and reports the child's raw response plus process
+  telemetry. Correctness is SERVER-authoritative and is never shown mid-test.
+
+  D-017 (reading is a required baseline-literacy gate): the original build of
+  this type was designed around spoken arguments with picture cards. There is no
+  speech synthesis, audio element or replay-the-audio control anywhere in this
+  file; the old audio-era `#speaker` caption element has been removed and its
+  caption folded into the item prompt. Stimuli are on-screen text only.
+
+  REFRAMED (review, 2026-07-29): the child no longer hunts the false sentence in
+  a flat list. They read a short set of FACTS and tap the ONE claim those facts
+  best support, which makes the construct inference from an evidence base rather
+  than fact-checking. Facts and claims are now separate, differently-styled
+  panels: the facts are stated, not answerable, and only the claims are
+  tappable. That split is safe to draw because the reframed bank puts it in
+  `content` — see below — instead of deriving it from the key.
+
+  Embedding protocol (postMessage; source-tagged gt-exam-host / gt-exam-demo):
+    host -> demo : {source:'gt-exam-host', type:'init',  item: ServedItem}
+                   {source:'gt-exam-host', type:'start'}
+    demo -> host : {source:'gt-exam-demo', type:'ready'}
+                   {source:'gt-exam-demo', type:'telemetry', event: TelemetryEvent}
+                   {source:'gt-exam-demo', type:'result',    result: ItemResult}
+
+  ServedItem = { itemId, typeCode, domain, difficulty, ageBands?, content }
+    content  = { promptKind, prompt, facts:[{id,text}], factCount,
+                 claims:[{id,text}], claimCount, lexicalBand }
+               (neither facts nor claims carry a mark, lure or key: WHICH claim
+                the facts support lives in `answer` and is never sent here)
+
+  ItemResult = { itemId, typeCode, domain,
+                 response:{ selectedKey, selectedId, selectedIndex, selectedText,
+                            readFactIds, inspectedIds, candidateIds,
+                            actionLog:[...], hintCount, claimCount, factCount,
+                            inputModality },
+                 metrics:{ 'M-RT','M-RTFIRST','M-REV','M-EXPLORE','M-PATH',
+                           'M-PLANFUL','M-IDEAFLU','M-HINT' },
+                 telemetry:[TelemetryEvent] }
+
+  `response.selectedKey` is the claim id and is what the server's keyed verifier
+  compares against `answer.correctKey`; `selectedId` is kept as its alias for
+  anything still reading the pre-reframe field name. `response.actionLog` is the
+  full ordered action substrate the deferred judge reads (including which facts
+  the child read, and in what order); the demo computes NO correctness.
+
+  The per-band difficulty curve for this type is [proposed] in the improvement
+  plan, so the reframe changed item FRAMING only: every item keeps the
+  difficulty, lexical band and reading load it had before.
+
+  Standalone fallback: opened by double-click it plays built-in sample
+  ServedItems and prints the emitted results in the telemetry log.
+-->
+<style>
+  :root{--bg1:#fcf4ef;--bg2:#fcf4ef;--ink:#003b5c;--card:#ffffff;--accent:#4a6470;--good:#146c43;--tel-bg:#002a3a;--tel-ink:#f5ddcd;--tel-key:#ebba9b;--tel-dim:#e48b53;}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#6f4526;text-transform:uppercase;font-weight:700}
+  #howto{max-width:680px;width:100%;background:#ffffff;border:1px solid #ecd9cb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a6470}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#33505c;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#f8e8de;color:var(--accent);border:2px solid #ecd9cb;min-height:30px}
+  #phasecue[data-phase="ready"]{background:#f5ddcd;color:#6f4526;border-color:#ebba9b}
+  #phasecue[data-phase="done"]{background:var(--accent);color:#ffffff;border-color:var(--accent)}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.neutral{color:#6f4526}
+  #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #4a6470;display:flex;flex-direction:column;align-items:center;gap:16px;max-width:700px;width:100%}
+  #prompt{font-size:16px;font-weight:800;text-align:center;color:#33505c;background:#fcf4ef;border:2px solid #ecd9cb;border-radius:12px;padding:10px 14px;width:100%}
+  /* Facts are STATED, not answerable: flat, un-tappable, and visually a block of
+     evidence rather than a row of choices. Claims are the only cards. */
+  .panel{width:100%;display:flex;flex-direction:column;gap:8px}
+  .panel > h2{margin:0;font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--accent);display:flex;align-items:baseline;gap:8px}
+  .panel > h2 small{font-size:11px;letter-spacing:.02em;text-transform:none;font-weight:600;color:#6f4526}
+  #facts{background:#fcf4ef;border:2px dashed #ecd9cb;border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+  .fact{display:flex;align-items:flex-start;gap:10px;font-size:16px;line-height:1.45}
+  .fact .fk{flex:0 0 auto;font-size:11px;font-weight:800;color:#6f4526;background:#ffffff;border:2px solid #ecd9cb;border-radius:8px;padding:2px 7px;letter-spacing:.04em}
+  #cards{display:flex;flex-direction:column;gap:10px;width:100%}
+  .fcard{background:#ffffff;border:3px solid #ecd9cb;border-radius:14px;padding:12px 14px;display:flex;align-items:flex-start;gap:12px;cursor:pointer;transition:.15s;text-align:left;font:inherit;color:inherit;width:100%}
+  .fcard:hover{border-color:var(--accent)}
+  .fcard:focus-visible{outline:3px solid #33505c;outline-offset:2px}
+  .fcard .hk{flex:0 0 auto;font-size:12px;font-weight:800;color:#6f4526;background:#fcf4ef;border:2px solid #ecd9cb;border-radius:8px;padding:2px 7px}
+  .fcard .lb{font-size:16px;line-height:1.45}
+  .fcard.sel{border-color:var(--accent);background:#f8e8de;box-shadow:0 0 0 3px #c06a2a33}
+  .fcard.locked{cursor:default;opacity:.85}
+  #controls{display:flex;gap:14px;align-items:center}
+  button.rd{font:inherit;border:0;cursor:pointer;border-radius:50%}
+  #go{width:64px;height:64px;background:var(--accent);color:#ffffff;font-size:26px;box-shadow:0 10px 24px -8px var(--accent);opacity:.35;pointer-events:none;transition:.2s}
+  #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.1s infinite}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+  #replay{width:50px;height:50px;background:#f8e8de;color:var(--accent);font-size:22px}
+  #hintbtn{font:inherit;height:44px;padding:0 18px;font-size:14px;font-weight:800;border-radius:22px;background:#f8e8de;color:var(--accent);border:0;cursor:pointer}
+  #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:60;opacity:0;transition:transform .55s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #telemetry{width:330px;flex:0 0 330px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#ffffff;background:#002a3a;text-transform:uppercase}
+  #chan{padding:6px 14px;font-size:11px;color:var(--tel-dim);border-bottom:1px solid #33505c}
+  #chan b{color:var(--tel-key)}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:110px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}
+  .mval{color:#ffffff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #33505c;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#4a6470;font-size:11px;letter-spacing:.08em}
+  #log{height:200px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #004f71}#log .t{color:#6f4526}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:320px}}
+</style>
+<style>html[data-gt-telemetry="off"] #telemetry{display:none}</style>
+<script>/* D-028 — the researcher telemetry panel is presentational only. Embedded in the
+   child-facing screener it is hidden: naming the behavioural metrics to the child can
+   change the behaviour being measured. `?telemetry=1` restores it for a live
+   demonstration, and standalone (opened directly) is unchanged. Sampling, metric
+   computation and the {type:'telemetry'} postMessage stream are untouched. */
+(function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
+<style>html[data-gt-chrome="off"] #howto{display:none}</style>
+<script>/* Instant-question gate. Embedded in the screener the "How to use" panel is hidden so the
+   child sees the question itself the moment it appears; the per-item status line carries the
+   instruction in words. A test should not spend its first seconds being read. `?chrome=1`
+   restores the panel for a walkthrough, and standalone (opened directly) is unchanged. */
+(function(){var f=/(^|[?&])chrome=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-chrome','off');})();</script>
+<link rel="stylesheet" href="../exam-skin.css">
+<style data-gt-demo-presentation="1">
+/* Catalogue-only presentation pass. Not present in the live screener. */
+
+/* The play button and its broken copy. Hidden, not removed: the page's start path still
+   needs the button in the DOM for the autostart patch to click. */
+#playgate { display: none !important; }
+
+/* Authoring instrumentation: item id, difficulty meters, event log. */
+#telemetry { display: none !important; }
+
+/* body stays flex and #wrap keeps flex:1, so hiding the sidebar is enough to hand the
+   question the full width. #wrap already centres its own children. */
+
+/* #howto is now the viewer's only orientation, so lift it slightly off the page. */
+#howto {
+  max-width: 720px !important;
+  box-shadow: 0 10px 30px -20px #002a3a !important;
+}
+
+/* Press t to bring the telemetry panel back mid-demo. */
+html[data-gt-demo-presentation-tel] #telemetry { display: flex !important; }
+</style>
+<script data-gt-demo-presentation="1">
+/* Catalogue-only: `t` reveals the telemetry panel, for showing what the item measures. */
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 't' && e.key !== 'T') return;
+  var tag = (e.target && e.target.tagName) || '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || e.metaKey || e.ctrlKey || e.altKey) return;
+  var root = document.documentElement;
+  var attr = 'data-gt-demo-presentation-tel';
+  if (root.hasAttribute(attr)) root.removeAttribute(attr);
+  else root.setAttribute(attr, '1');
+});
+</script>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">GB-FLAWFINDER-01 · Fib Finder</div>
+    <header id="howto">
+      <h1>How to use — Fib Finder</h1>
+      <p>Read the facts in the dashed box &mdash; every one of them is true. Then tap the <b>one claim</b> those facts best support and press the check (<b>&#10003;</b>) to send it. You can also press number keys 1&ndash;5. Press <b>Hint</b> to read the question again; asking for a hint is allowed and is recorded.</p>
+    </header>
+    <div id="phasecue" data-phase="ready">Ready</div>
+    <div id="stagecard">
+      <div id="prompt"></div>
+      <section class="panel" id="factpanel">
+        <h2>The facts <small>all true</small></h2>
+        <div id="facts"></div>
+      </section>
+      <section class="panel" id="claimpanel">
+        <h2>The claims <small>tap the one the facts best support</small></h2>
+        <div id="cards"></div>
+      </section>
+      <div id="controls">
+        <button class="rd" id="replay" title="replay how-to">&#8635;</button>
+        <button id="hintbtn" title="read the question again">Hint</button>
+        <button class="rd" id="go" title="submit">&#10003;</button>
+      </div>
+      <div id="status" class="neutral">Waiting for the first item&hellip;</div>
+    </div>
+    <div id="playgate">
+      <p>The facts are ready. Press play when you are, and the round starts then.</p>
+      <button type="button" id="play">Play</button>
+    </div>
+  </div>
+  <aside id="telemetry">
+    <h3>Live telemetry · per-child</h3>
+    <div id="chan">channel: <b id="chanval">standalone</b> &middot; source-tag <b>gt-exam-demo</b></div>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#c06a2a" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg></div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0,last=a=>a[a.length-1];
+
+/* ---------------- embedding channel (postMessage) ---------------- */
+const SRC_HOST='gt-exam-host', SRC_DEMO='gt-exam-demo';
+const embedded=!!(window.parent&&window.parent!==window);
+let hostSeen=false;
+function post(type,payload){
+  const msg=Object.assign({source:SRC_DEMO,type},payload||{});
+  if(embedded){try{window.parent.postMessage(msg,'*');}catch(e){}}
+}
+
+/* ---------------- session accumulators (telemetry panel) ---------------- */
+const T={rts:[],firstRt:[],revs:[],explore:[],path:[],planful:[],ideaflu:[],hints:[]};
+const METERS=[
+ {id:'M-RT',name:'Response time — total',get:()=>T.rts.length?`${last(T.rts)} ms  (mean ${mean(T.rts)})`:'\u2014'},
+ {id:'M-RTFIRST',name:'First-action latency (reading/planning)',get:()=>T.firstRt.length?`${last(T.firstRt)} ms`:'\u2014'},
+ {id:'M-REV',name:'Revisions before submit',get:()=>T.revs.length?`${last(T.revs)}`:'\u2014'},
+ {id:'M-EXPLORE',name:'Claims inspected before committing',get:()=>T.explore.length?`${last(T.explore)} of ${claims.length||'\u2014'}`:'\u2014'},
+ {id:'M-PATH',name:'Ordered action-log length (facts read + claims weighed)',get:()=>T.path.length?`${last(T.path)} actions`:'\u2014'},
+ {id:'M-PLANFUL',name:'Planfulness (non-redundant action share)',get:()=>T.planful.length?last(T.planful).toFixed(3):'\u2014'},
+ {id:'M-IDEAFLU',name:'Distinct claims considered (count)',get:()=>T.ideaflu.length?`${last(T.ideaflu)}`:'\u2014'},
+ {id:'M-HINT',name:'Hints requested',get:()=>T.hints.length?`${last(T.hints)}`:'\u2014'},
+ {id:'M-ACC',name:'Accuracy — scored server-side',get:()=>'server-side'},
+ {id:'M-INFDEPTH',name:'Inference depth of the claim taken — server-side',get:()=>'server-side'},
+ {id:'M-LURETYPE',name:'Lure chosen — scored server-side',get:()=>'server-side'},
+ {id:'M-ERRTYPE',name:'Error type — scored server-side',get:()=>'server-side'},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});}
+function log(msg){const t=itemStart?Date.now()-itemStart:0;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+
+/* ---------------- phase + status (worded, no emoji) ---------------- */
+const PHASE={ready:'Ready',demo:'How it works',answer:'Your turn',done:'Answer sent'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.textContent=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+
+/* ---------------- item state ---------------- */
+let item=null,facts=[],claims=[],selected=null,inspected=null,readFacts=null,candidates=null,
+    changes=0,hintCount=0,itemStart=0,firstAt=null,locked=true,inputModality='tap',
+    actionLog=[],telemetryLog=[];
+let started=false,sent=false,gateTutorial=false,howtoShown=false;
+
+const ANSWER_LINE='Read the facts, tap the claim they best support, then press the check.';
+
+function escapeHtml(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function difficultyOf(it){const d=(it&&it.difficulty!=null)?it.difficulty:0;return +d||0;}
+function recordEv(ev){ev.t=itemStart?Date.now()-itemStart:0;telemetryLog.push(ev);post('telemetry',{event:ev});}
+function recordAction(kind,extra){
+  const a=Object.assign({t:itemStart?Date.now()-itemStart:0,kind},extra||{});
+  actionLog.push(a);return a;
+}
+/* Planfulness = share of pre-commit actions that added new information
+   (a first read of a fact, a first look at a claim, or a first candidate),
+   i.e. non-redundant re-reading and re-tapping. */
+function planfulness(){
+  const pre=actionLog.filter(a=>a.kind==='read'||a.kind==='inspect'||a.kind==='select');
+  if(!pre.length)return 0;
+  const seen=new Set();let informative=0;
+  for(const a of pre){const k=a.kind+':'+a.id;if(!seen.has(k)){seen.add(k);informative++;}}
+  return Math.round(1000*informative/pre.length)/1000;
+}
+
+/* ---------------- render a served item ---------------- */
+function setItem(served){
+  item=served;
+  const c=(served&&served.content)||{};
+  facts=(c.facts||[]).map(f=>({id:f.id,text:f.text}));
+  claims=(c.claims||[]).map(s=>({id:s.id,text:s.text}));
+  selected=null;inspected=new Set();readFacts=new Set();candidates=new Set();changes=0;hintCount=0;
+  firstAt=null;actionLog=[];telemetryLog=[];itemStart=0;locked=true;started=false;sent=false;
+  $('#prompt').textContent=c.prompt||'All of these facts are true. Which claim do the facts best support?';
+  $('#facts').innerHTML=facts.map((f,i)=>
+    `<div class="fact" data-f="${i}"><span class="fk">FACT ${i+1}</span><span class="ft">${escapeHtml(f.text)}</span></div>`).join('');
+  $('#cards').innerHTML=claims.map((s,i)=>
+    `<button type="button" class="fcard" data-i="${i}"><span class="hk">${i+1}</span><span class="lb">${escapeHtml(s.text)}</span></button>`).join('');
+  const d=difficultyOf(served);
+  $('#go').classList.remove('ready');
+  openGate(false);
+  log(`INIT item ${served&&served.itemId?served.itemId:'(no id)'} \u00b7 ${c.promptKind||'?'} \u00b7 ${facts.length} facts \u00b7 ${claims.length} claims \u00b7 level ${Math.round(d*10)/10}`);
+  recordEv({kind:'shown',itemId:served&&served.itemId,difficulty:d,factCount:facts.length,claimCount:claims.length});
+  renderMeters();
+}
+
+/* ---------------- play gate (R1) ----------------
+   The facts are a reading stimulus and M-RT is a scored metric, so neither may start before the
+   child has looked up. This renderer used to go live the instant the item arrived — `setItem`
+   released the lock and stamped `itemStart` itself, and `start` re-stamped it — which timed every
+   child from the host's delivery rather than from their own first look. Now `init` renders behind
+   the closed gate, `start` only ARMS it, and pressing play is what unlocks the claims and starts
+   the clock. */
+function openGate(withTutorial){
+  gateTutorial=!!withTutorial;
+  locked=true;started=false;
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('ready');
+  setStatus('neutral','Press play when you are ready.');
+  $('#go').classList.remove('ready');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
+async function beginItem(withTutorial){
+  if(!item||started||sent)return;                 // a second press of play is a no-op
+  started=true;
+  closeGate();
+  if(withTutorial&&!howtoShown){howtoShown=true;await runHowto();}
+  itemStart=Date.now();firstAt=null;locked=false;
+  setCue('answer');
+  setStatus('neutral',ANSWER_LINE);
+  recordEv({kind:'start'});
+  renderMeters();
+}
+
+function markFirst(){
+  if(firstAt===null){firstAt=Date.now();const fr=firstAt-itemStart;T.firstRt.push(fr);recordEv({kind:'first_action',rt:fr});}
+}
+/* A fact the child's pointer or focus has settled on. Recorded as evidence
+   reading, kept OUT of M-EXPLORE (which counts claims weighed) so the two
+   process signals stay distinguishable. */
+function readFact(i){
+  if(locked||!item||i<0||i>=facts.length)return;
+  const id=facts[i].id;
+  if(readFacts.has(id))return;
+  readFacts.add(id);recordAction('read',{id,index:i});
+  recordEv({kind:'read_fact',index:i,id});
+}
+function inspect(i){
+  if(locked||!item||i<0||i>=claims.length)return;
+  const id=claims[i].id;
+  if(inspected.has(id))return;
+  inspected.add(id);recordAction('inspect',{id,index:i});
+  recordEv({kind:'inspect',index:i,id});renderMeters();
+}
+function select(i,modality){
+  if(locked||!item||i<0||i>=claims.length)return;
+  inputModality=modality||'tap';
+  markFirst();
+  const id=claims[i].id;
+  inspected.add(id);
+  if(selected!==null&&selected!==i){changes++;recordAction('change',{from:claims[selected].id,to:id});recordEv({kind:'change',from:selected,to:i});}
+  selected=i;candidates.add(id);
+  recordAction('select',{id,index:i,via:inputModality});
+  $$('#cards .fcard').forEach(el=>el.classList.toggle('sel',+el.dataset.i===i));
+  $('#go').classList.add('ready');
+  recordEv({kind:'select',index:i,id,via:inputModality});
+  renderMeters();
+}
+function useHint(){
+  if(locked||!item)return;
+  hintCount++;markFirst();recordAction('hint',{});
+  setStatus('neutral',$('#prompt').textContent+' Read the facts once more before you choose.');
+  log('hint requested (question restated; no answer revealed)');
+  recordEv({kind:'hint',n:hintCount});renderMeters();
+}
+function submit(){
+  if(locked||selected===null)return;
+  locked=true;sent=true;
+  const rt=Date.now()-itemStart;
+  const firstRt=firstAt!==null?(firstAt-itemStart):rt;
+  recordAction('submit',{id:claims[selected].id,index:selected,rt});
+  const planful=planfulness();
+  T.rts.push(rt);T.revs.push(changes);T.explore.push(inspected.size);
+  T.path.push(actionLog.length);T.planful.push(planful);T.ideaflu.push(candidates.size);T.hints.push(hintCount);
+  recordEv({kind:'submit',index:selected,rt});
+  const result={
+    itemId:item.itemId,
+    typeCode:item.typeCode||'GB-FLAWFINDER-01',
+    domain:item.domain||'verbal',
+    response:{
+      // The claim id IS the option key the server verifier compares against
+      // `answer.correctKey`; `selectedId` is the same value under the field
+      // name the pre-reframe renderer used.
+      selectedKey:claims[selected].id,
+      selectedId:claims[selected].id,
+      selectedIndex:selected,
+      selectedText:claims[selected].text,
+      readFactIds:[...readFacts],
+      inspectedIds:[...inspected],
+      candidateIds:[...candidates],
+      actionLog:actionLog.slice(),
+      hintCount,
+      claimCount:claims.length,
+      factCount:facts.length,
+      inputModality
+    },
+    metrics:{
+      'M-RT':rt,'M-RTFIRST':firstRt,'M-REV':changes,'M-EXPLORE':inspected.size,
+      'M-PATH':actionLog.length,'M-PLANFUL':planful,'M-IDEAFLU':candidates.size,'M-HINT':hintCount
+    },
+    telemetry:telemetryLog.slice()
+  };
+  post('result',{result});
+  // NO correct/incorrect shown — the key is server-side.
+  setCue('done');
+  setStatus('ok','Answer sent. '+(embedded?'Waiting for the next item\u2026':'Loading the next example\u2026'));
+  $('#go').classList.remove('ready');
+  $$('#cards .fcard').forEach(el=>el.classList.add('locked'));
+  log(`RESULT ${claims[selected].id} \u00b7 ${rt}ms \u00b7 revisions ${changes} \u00b7 claims weighed ${inspected.size} \u00b7 facts read ${readFacts.size} \u00b7 actions ${actionLog.length} \u00b7 planful ${planful}`);
+  if(!embedded)setTimeout(nextStandalone,1600);
+  renderMeters();
+}
+
+/* ---------------- wordless how-to pointer (reveals no answer) ---------------- */
+const ghost=$('#ghost');
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(480);}
+let howtoRunning=false,howtoAbort=false;
+async function runHowto(){
+  if(!item||howtoRunning)return;
+  howtoRunning=true;howtoAbort=false;
+  locked=true;setCue('demo');
+  setStatus('neutral','Read the facts first, then weigh each claim.');
+  ghost.classList.add('show');await sleep(250);
+  const steps=[$('#prompt'),...$$('#facts .fact'),...$$('#cards .fcard'),$('#go')];
+  for(const el of steps){
+    if(howtoAbort)break;
+    await ghostTo(el);
+  }
+  if(!howtoAbort)await sleep(200);
+  endHowto();
+}
+/* A tap during the walkthrough is a child who already knows what to do, so the mime
+   stops and their tap counts rather than being swallowed by an animation. This is also
+   the KNOWN BUG GUARD: every exit from the walkthrough runs through here, so the lock
+   can never be left on once interaction resumes. */
+function endHowto(){
+  if(!howtoRunning)return;
+  howtoRunning=false;howtoAbort=false;
+  ghost.classList.remove('show');
+  if(sent||!itemStart)return;   // still behind the gate: beginItem starts the clock and unlocks
+  locked=false;
+  setCue('answer');setStatus('neutral','Your turn. '+ANSWER_LINE);
+}
+function interruptHowto(){if(howtoRunning){howtoAbort=true;endHowto();}}
+
+/* ---------------- standalone fallback (double-click, no host) ---------------- */
+const SAMPLE_PROMPT='All of these facts are true. Which claim do the facts best support?';
+const SAMPLES=[
+ {itemId:'sample-claim-easy',typeCode:'GB-FLAWFINDER-01',domain:'verbal',difficulty:2,ageBands:['2-3'],
+  content:{promptKind:'best_supported_claim',prompt:SAMPLE_PROMPT,
+   facts:[{id:'f1',text:'Fish live in water.'},{id:'f2',text:'Fish have fins.'}],factCount:2,
+   claims:[{id:'c1',text:'Fish live on dry land.'},{id:'c2',text:'An animal with fins lives in the water.'},{id:'c3',text:'Fish are the only animals in the water.'}],
+   claimCount:3,lexicalBand:7}},
+ {itemId:'sample-claim-mid',typeCode:'GB-FLAWFINDER-01',domain:'verbal',difficulty:10,ageBands:['4-5'],
+  content:{promptKind:'best_supported_claim',prompt:SAMPLE_PROMPT,
+   facts:[{id:'f1',text:'If it rains, the path gets wet.'},{id:'f2',text:'The path is wet.'}],factCount:2,
+   claims:[{id:'c1',text:'It rained.'},{id:'c2',text:'The path is made of stone.'},{id:'c3',text:'Rain is one thing that could have wet the path.'}],
+   claimCount:3,lexicalBand:5}},
+ {itemId:'sample-claim-hard',typeCode:'GB-FLAWFINDER-01',domain:'verbal',difficulty:19,ageBands:['6-8'],
+  content:{promptKind:'best_supported_claim',prompt:SAMPLE_PROMPT,
+   facts:[{id:'f1',text:'Each of the three witnesses gave the same account.'},{id:'f2',text:'All three heard that account from the same neighbour.'}],factCount:2,
+   claims:[{id:'c1',text:'The account is confirmed by three independent sources.'},{id:'c2',text:'The same account was given three times.'},{id:'c3',text:'The three witnesses disagreed with each other.'},{id:'c4',text:'The neighbour was away that evening.'}],
+   claimCount:4,lexicalBand:1}},
+];
+let sIdx=0;
+function startStandalone(){$('#chanval').textContent='standalone (no host)';sIdx=0;nextStandalone(true);}
+function nextStandalone(first){
+  if(sIdx>=SAMPLES.length){setCue('done');setStatus('ok','Demo complete. Press \u21bb or reload to run the examples again.');locked=true;return;}
+  const s=SAMPLES[sIdx++];
+  setItem(s);
+  openGate(!!first);
+  setCue('ready','\u00b7 example '+sIdx+'/'+SAMPLES.length);
+}
+
+/* ---------------- host message handling ---------------- */
+window.addEventListener('message',e=>{
+  const d=e.data;if(!d||d.source!==SRC_HOST)return;
+  if(d.type==='init'&&d.item){hostSeen=true;$('#chanval').textContent='host-embedded';setItem(d.item);}
+  else if(d.type==='start'){if(item&&!sent)openGate(!!d.tutorial);}
+});
+
+/* ---------------- input ---------------- */
+// Capture phase on the answer surfaces only: the tap that stops the walkthrough is the
+// same tap that then reads or selects, and the how-to control itself stays inert while
+// it is playing.
+for(const sel of ['#facts','#cards']){
+  $(sel).addEventListener('pointerdown',interruptHowto,true);
+  $(sel).addEventListener('click',interruptHowto,true);
+}
+$('#play').addEventListener('click',()=>{beginItem(gateTutorial);});
+$('#facts').addEventListener('pointerover',e=>{const f=e.target.closest('.fact');if(f&&!locked)readFact(+f.dataset.f);});
+$('#cards').addEventListener('click',e=>{const c=e.target.closest('.fcard');if(c&&!locked)select(+c.dataset.i,'tap');});
+$('#cards').addEventListener('pointerover',e=>{const c=e.target.closest('.fcard');if(c&&!locked)inspect(+c.dataset.i);});
+$('#cards').addEventListener('focusin',e=>{const c=e.target.closest('.fcard');if(c&&!locked)inspect(+c.dataset.i);});
+$('#go').addEventListener('click',submit);
+$('#hintbtn').addEventListener('click',useHint);
+document.addEventListener('keydown',e=>{
+  if(locked)return;
+  const n=+e.key;if(n>=1&&n<=claims.length)select(n-1,'key');
+  if(e.key==='Enter')submit();
+});
+$('#replay').addEventListener('click',()=>{if(item&&started&&!locked)runHowto();});
+
+/* ---------------- boot ---------------- */
+buildMeters();renderMeters();
+post('ready',{});
+if(!embedded){
+  startStandalone();
+}else{
+  setCue('ready');setStatus('neutral','Ready. Waiting for the first item from the host\u2026');
+  setTimeout(()=>{if(!hostSeen&&!item)startStandalone();},1200);
+}
+</script>
+
+<script data-gt-demo-autostart="1">
+/* Catalogue-only: dismiss the press-play gate so browsing is uninterrupted.
+   Clicks the demo's own #play button rather than reimplementing its start logic.
+   Not present in the live screener. */
+(function () {
+  var root = document.documentElement;
+  var tries = 0;
+  function go() {
+    var btn = document.getElementById('play');
+    if (!btn) return;
+    if (!root.hasAttribute('data-gt-gate')) return;
+    btn.click();
+  }
+  // The gate reopens between rounds in several demos, so watch rather than fire once.
+  if (window.MutationObserver) {
+    new MutationObserver(function () { go(); })
+      .observe(root, { attributes: true, attributeFilter: ['data-gt-gate'] });
+  }
+  // And catch the case where the gate is already up by the time this runs.
+  var poll = setInterval(function () {
+    go();
+    if (++tries > 40) clearInterval(poll);
+  }, 50);
+  window.addEventListener('load', go);
+})();
+</script>
+</body>
+</html>

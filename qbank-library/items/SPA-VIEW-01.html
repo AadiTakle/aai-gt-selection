@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SPA-VIEW-01 · What Do They See</title>
+<style>
+:root{--bg1:#fcf4ef;--bg2:#f8e8de;--ink:#001117;--accent:#004f71;--good:#146c43;--bad:#a4442f;--tel-bg:#002a3a;--tel-ink:#f5ddcd;--tel-key:#ebba9b;--tel-dim:#e48b53}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%}
+body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+#wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:10px;min-width:0}
+#badge{font-size:12px;letter-spacing:.08em;color:#4a6470;text-transform:uppercase;font-weight:700}
+#howto{width:min(700px,100%);background:#ffffff;border:1px solid #ecd9cb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #002a3a}
+#howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}#howto p{margin:0;font-size:14px;color:#33505c;line-height:1.5}
+#phasecue{display:inline-flex;align-items:center;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#f8e8de;color:var(--accent);border:2px solid #ecd9cb;min-height:30px}
+#phasecue[data-phase="warmup"]{background:#f5ddcd;color:#6f4526;border-color:#ebba9b}#phasecue[data-phase="scored"]{background:var(--accent);color:#ffffff;border-color:var(--accent)}#phasecue[data-phase="done"]{background:#f5ddcd;color:#002a3a;border-color:#ecd9cb}
+#status{min-height:22px;font-size:14px;font-weight:700;text-align:center}#status.ok{color:var(--good)}#status.no{color:var(--bad)}#status.neutral{color:#4a6470}
+#stagecard{width:min(700px,100%);background:#ffffff;border-radius:26px;padding:16px;box-shadow:0 18px 50px -22px #002a3a;display:grid;gap:12px}
+#stripband{background:linear-gradient(160deg,#f5ddcd,#f8e8de);border:3px solid #ecd9cb;border-radius:16px;padding:8px 12px;display:grid;gap:6px;justify-items:center}
+#stripband .lbl{font-size:12px;font-weight:800;color:#4a6470;letter-spacing:.04em;text-transform:uppercase}
+#strip{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center}
+.chip{display:grid;justify-items:center;gap:2px;background:#ffffff;border:2px solid #ebba9b;border-radius:11px;padding:4px 8px;min-width:58px}
+.chip span{font-size:12px;font-weight:700;color:#33505c}.arrowr{color:#6f4526;font-weight:800}
+#ask{font-weight:800;color:#002a3a;font-size:15px;text-align:center}
+#mapwrap{border-radius:20px;overflow:hidden;background:#fcf4ef;border:2px solid #f8e8de}
+#map{display:block;width:100%;height:auto;aspect-ratio:7/4.8;cursor:pointer}
+#dialrow{display:none;grid-template-columns:34px 1fr 78px;gap:10px;align-items:center;padding:8px 12px;background:#fcf4ef;border:2px solid #f8e8de;border-radius:15px}
+#dialrow.on{display:grid}#dialrow .glyph{font:800 17px ui-monospace,monospace;text-align:center;color:var(--accent)}
+#dial{width:100%;accent-color:var(--accent)}#dialval{text-align:right;font:800 14px ui-monospace,monospace;color:#002a3a}
+#hotkeys{text-align:center;color:#4a6470;font:700 11px ui-monospace,monospace}
+.kbd{display:inline-grid;place-items:center;height:22px;min-width:23px;padding:0 5px;border:1px solid #ecd9cb;border-bottom-width:3px;border-radius:6px;background:#ffffff;color:#33505c;margin:0 2px}
+#controls{display:flex;justify-content:center;gap:14px;align-items:center}
+button.round{font:800 24px system-ui;border:0;cursor:pointer;border-radius:50%}
+#replay{width:48px;height:48px;background:#f8e8de;color:var(--accent)}
+#go{width:64px;height:64px;background:var(--accent);color:#ffffff;box-shadow:0 10px 24px -8px var(--accent);opacity:.32;pointer-events:none;transition:.2s}#go.ready{opacity:1;pointer-events:auto}
+button:focus-visible{outline:4px solid #e48b53;outline-offset:3px}
+#ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:60;opacity:0;transition:transform .55s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+#ghost.show{opacity:.95}#ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+#ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+#telemetry{width:326px;flex:0 0 326px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+#telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#ffffff;background:#002a3a;text-transform:uppercase}
+#difficulty{margin:10px 12px 2px;padding:10px;border:1px solid #33505c;border-radius:10px;background:#003b5c}
+.dtop{display:flex;justify-content:space-between;color:#ffffff;font-size:11px}.dsub{display:flex;justify-content:space-between;color:var(--tel-dim);font-size:11px;margin-top:5px}
+.dtrack{height:7px;background:#33505c;border-radius:8px;margin-top:8px;overflow:hidden}.dfill{height:100%;background:linear-gradient(90deg,#ebba9b,#ebba9b);transition:.25s}
+#mode{margin:6px 12px 0;font-size:11px;color:var(--tel-dim)}#mode b{color:#6f4526}
+#mlist{padding:10px 12px;display:grid;gap:7px}.mrow{display:grid;grid-template-columns:110px 1fr;gap:8px;align-items:baseline}
+.mid{color:var(--tel-key);font-weight:700}.mid.srv{color:#6f4526}.mval{color:#ffffff;text-align:right;overflow-wrap:anywhere}
+.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+#logwrap{border-top:1px solid #33505c;margin-top:auto}#logwrap b{display:block;padding:8px 12px 4px;color:#4a6470;font-size:11px;letter-spacing:.08em}
+#log{height:190px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}#log div{padding:2px 0;border-bottom:1px dotted #004f71}#log .t{color:#6f4526}
+@media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:320px}}
+@media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
+</style>
+<style>html[data-gt-telemetry="off"] #telemetry{display:none}</style>
+<script>/* D-028 — the researcher telemetry panel is presentational only. Embedded in the
+   child-facing screener it is hidden: naming the behavioural metrics to the child can
+   change the behaviour being measured. `?telemetry=1` restores it for a live
+   demonstration, and standalone (opened directly) is unchanged. Sampling, metric
+   computation and the {type:'telemetry'} postMessage stream are untouched. */
+(function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
+<style>html[data-gt-chrome="off"] #howto{display:none}</style>
+<script>/* Instant-question gate. Embedded in the screener the "How to use" panel is hidden so the
+   child sees the question itself the moment it appears; the per-item status line carries the
+   instruction in words. A test should not spend its first seconds being read. `?chrome=1`
+   restores the panel for a walkthrough, and standalone (opened directly) is unchanged. */
+(function(){var f=/(^|[?&])chrome=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-chrome','off');})();</script>
+<link rel="stylesheet" href="../exam-skin.css">
+<style data-gt-demo-presentation="1">
+/* Catalogue-only presentation pass. Not present in the live screener. */
+
+/* The play button and its broken copy. Hidden, not removed: the page's start path still
+   needs the button in the DOM for the autostart patch to click. */
+#playgate { display: none !important; }
+
+/* Authoring instrumentation: item id, difficulty meters, event log. */
+#telemetry { display: none !important; }
+
+/* body stays flex and #wrap keeps flex:1, so hiding the sidebar is enough to hand the
+   question the full width. #wrap already centres its own children. */
+
+/* #howto is now the viewer's only orientation, so lift it slightly off the page. */
+#howto {
+  max-width: 720px !important;
+  box-shadow: 0 10px 30px -20px #002a3a !important;
+}
+
+/* Press t to bring the telemetry panel back mid-demo. */
+html[data-gt-demo-presentation-tel] #telemetry { display: flex !important; }
+</style>
+<script data-gt-demo-presentation="1">
+/* Catalogue-only: `t` reveals the telemetry panel, for showing what the item measures. */
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 't' && e.key !== 'T') return;
+  var tag = (e.target && e.target.tagName) || '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || e.metaKey || e.ctrlKey || e.altKey) return;
+  var root = document.documentElement;
+  var attr = 'data-gt-demo-presentation-tel';
+  if (root.hasAttribute(attr)) root.removeAttribute(attr);
+  else root.setAttribute(attr, '1');
+});
+</script>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">SPA-VIEW-01 · What Do They See</div>
+    <header id="howto">
+      <h1>How to use — What Do They See</h1>
+      <p>The map shows a place from above. People stand around it, and each one has an arrow showing the way they are looking. Either tap the person who sees the strip of things shown at the top, or turn the dial to point at the place named on screen from where the marked person stands. Press the check (<b>&#10003;</b>) to send your answer.</p>
+    </header>
+    <div id="phasecue" data-phase="warmup">Get ready</div>
+    <main id="stagecard">
+      <div id="stripband"><div class="lbl">This is the view, from their left to their right</div><div id="strip"></div></div>
+      <div id="ask">Tap the person who sees this.</div>
+      <div id="mapwrap"><canvas id="map" width="700" height="480" aria-label="map of the scene seen from above"></canvas></div>
+      <div id="dialrow"><span class="glyph">&#8630;</span><input id="dial" type="range" min="-180" max="180" step="5" value="0" aria-label="pointing direction from the marked person"><span id="dialval">0&#176;</span></div>
+      <div id="hotkeys"><span class="kbd">1</span>&#8230;<span class="kbd">8</span> pick person &#183; <span class="kbd">&#8592;</span><span class="kbd">&#8594;</span> turn the dial &#183; <span class="kbd">&#8629;</span> send</div>
+      <div id="controls"><button id="replay" class="round" title="show how again" aria-label="show how again">&#8635;</button><button id="go" class="round" title="send answer" aria-label="send answer">&#10003;</button></div>
+      <div id="status" class="neutral">Waiting for the next scene.</div>
+    </main>
+    <div id="playgate">
+      <p>The scene is ready. Press play when you are, and it starts then.</p>
+      <button type="button" id="play">Play</button>
+    </div>
+  </div>
+  <aside id="telemetry">
+    <h3>Live telemetry · per-child (display only)</h3>
+    <div id="difficulty"></div>
+    <div id="mode">Renderer reports raw actions only; <b>correctness and the score are server-side</b>.</div>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#004f71" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+/* =====================================================================
+ * SPA-VIEW-01 — PURE RENDERER
+ * Renders a SERVED item (item.content) and reports the child's RAW response
+ * plus process telemetry. It NEVER self-generates items and NEVER shows
+ * correct/incorrect: the answer key, the accepted heading tolerance and the
+ * score all live server-side (EXAM_ADAPTIVE_BUILD_PLAN.md §2).
+ *
+ * Two shells, driven entirely by content.question.mode:
+ *   match_viewpoint — tap the station whose left-to-right view is the strip.
+ *   point_heading   — turn the dial to point at a named place from the marked
+ *                     station's own facing; the raw dial angle is reported and
+ *                     the server applies the item's tolerance rule.
+ *
+ * Embedding protocol (postMessage), source-tagged:
+ *   host -> demo : {source:'gt-exam-host', type:'init',  item:ServedItem}
+ *                  {source:'gt-exam-host', type:'start', tutorial?:bool}
+ *   demo -> host : {source:'gt-exam-demo', type:'ready'}
+ *                  {source:'gt-exam-demo', type:'result',    result:ItemResult}
+ *                  {source:'gt-exam-demo', type:'telemetry', event:TelemetryEvent}
+ *
+ * Standalone (double-click / no host): loads sample items from the bank JSONL,
+ * or an inline fallback when fetch is blocked on file://.
+ *
+ * Reading is a required baseline-literacy gate (D-017): place names and all
+ * instructions are on-screen TEXT. There is no audio narration.
+ * ===================================================================== */
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0;
+const HOST_SRC='gt-exam-host',DEMO_SRC='gt-exam-demo';
+const DEG=180/Math.PI,RAD=Math.PI/180;
+function wrap180(d){let x=((d+180)%360+360)%360-180;return x===-180?180:x;}
+
+/* ---------- map projection (x right, y up -> canvas) ---------- */
+const MAP={w:700,h:480,cx:350,cy:235,s:68};
+const SX=x=>MAP.cx+x*MAP.s, SY=y=>MAP.cy-y*MAP.s;
+
+/* ---------- outline glyph art (no emoji; simple stroked shapes) ---------- */
+const GLYPH_COLOR={tree:'#2f9e56',house:'#e5484d',car:'#2f6bd0',flag:'#d6409f',pond:'#0e9bb5',rock:'#6b7280',bench:'#b8860b',tower:'#8e4ec6'};
+function glyphPath(c,kind,x,y,r){
+  c.lineWidth=Math.max(2,r*0.22);c.lineJoin='round';c.lineCap='round';
+  c.strokeStyle=GLYPH_COLOR[kind]||'#4a5578';c.fillStyle='#ffffff';
+  const P=(pts,close)=>{c.beginPath();pts.forEach((p,i)=>i?c.lineTo(x+p[0]*r,y+p[1]*r):c.moveTo(x+p[0]*r,y+p[1]*r));if(close)c.closePath();c.fill();c.stroke();};
+  switch(kind){
+    case 'tree':P([[0,-1],[.8,.35],[-.8,.35]],true);c.beginPath();c.moveTo(x,y+.35*r);c.lineTo(x,y+r);c.stroke();break;
+    case 'house':P([[-.8,.9],[-.8,-.1],[0,-.95],[.8,-.1],[.8,.9]],true);break;
+    case 'car':P([[-.95,.5],[-.95,-.1],[-.4,-.1],[-.15,-.6],[.5,-.6],[.75,-.1],[.95,-.1],[.95,.5]],true);
+      [[-.5,.5],[.5,.5]].forEach(p=>{c.beginPath();c.arc(x+p[0]*r,y+p[1]*r,r*.26,0,7);c.fill();c.stroke();});break;
+    case 'flag':c.beginPath();c.moveTo(x-.5*r,y+r);c.lineTo(x-.5*r,y-r);c.stroke();P([[-.5,-1],[.85,-.6],[-.5,-.2]],true);break;
+    case 'pond':c.beginPath();c.ellipse(x,y+.1*r,r*.95,r*.62,0,0,7);c.fill();c.stroke();break;
+    case 'rock':P([[-.9,.6],[-.6,-.5],[.1,-.9],[.8,-.35],[.9,.6]],true);break;
+    case 'bench':P([[-.95,-.35],[.95,-.35],[.95,-.05],[-.95,-.05]],true);
+      [[-.7,.75],[.7,.75]].forEach(p=>{c.beginPath();c.moveTo(x+p[0]*r,y-.05*r);c.lineTo(x+p[0]*r,y+p[1]*r);c.stroke();});break;
+    case 'tower':P([[-.42,1],[-.42,-.6],[0,-1],[.42,-.6],[.42,1]],true);break;
+    default:c.beginPath();c.arc(x,y,r*.8,0,7);c.fill();c.stroke();
+  }
+}
+function glyphSvg(kind){ // tiny inline swatch for the view strip
+  const cv=document.createElement('canvas');cv.width=44;cv.height=44;
+  glyphPath(cv.getContext('2d'),kind,22,22,15);return cv;
+}
+
+/* ---------- per-item state ---------- */
+let current=null,shell=null,interactive=false,submitted=false;
+let staged=null,firstKey=null,selectionOrder=[],sampled=new Set();
+let dialDeg=0,dialMoves=0,firstDial=null,dialZones=new Set();
+let itemStart=0,itemTelemetry=[];
+const M={rt:null,rts:[],firstLat:null,rev:0,blur:0};
+
+const embedded=(()=>{try{return window.parent&&window.parent!==window;}catch(_){return true;}})();
+let standalone=false,standaloneQueue=[],standaloneIdx=0,tutorialShown=false,gateTutorial=false;
+function post(msg){if(!embedded)return;try{window.parent.postMessage(Object.assign({source:DEMO_SRC},msg),'*');}catch(_){}}
+
+/* ---------- telemetry panel (DISPLAY ONLY; key-free) ---------- */
+const SERVER='server-side';
+const METERS=[
+ {id:'M-ACC',srv:1,name:'Perspective accuracy (server-side)',get:()=>SERVER},
+ {id:'M-RT',name:'Response time — this item / mean',get:()=>M.rt==null?'\u2014':`${M.rt} ms${M.rts.length>1?` (mean ${mean(M.rts)})`:''}`},
+ {id:'M-RTFIRST',name:'First-action latency (encode / plan)',get:()=>M.firstLat==null?'\u2014':M.firstLat+' ms'},
+ {id:'M-REV',name:'Answer changes before sending',get:()=>String(M.rev)},
+ {id:'M-EXPLORE',name:'Viewpoints sampled / dial moves',get:()=>shell==='point_heading'?`${dialMoves} moves · ${dialZones.size} zones`:`${sampled.size} of ${current?current.content.options.length:0}`},
+ {id:'M-VIEWANG',srv:1,name:'Signed pointing error (server-side)',get:()=>shell==='point_heading'?`raw ${dialDeg}\u00b0 sent`:'n/a this shell'},
+ {id:'M-DIFFREACH',srv:1,name:'Ceiling reached (server-side)',get:()=>SERVER},
+ {id:'M-ENGAGE',name:'Focus losses (tracked, not enforced)',get:()=>String(M.blur)},
+ {id:'M-RAPIDGUESS',name:'Rapid-guess flag (tracked, not enforced)',get:()=>M.rt==null?'\u2014':(M.rt<400?'1 · rapid':'0')},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>
+ `<div class="mrow"><span class="mid${m.srv?' srv':''}">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderDifficulty(){const d=current?current.difficulty:null,c=current?current.content:null;
+ $('#difficulty').innerHTML=`<div class="dtop"><b>SERVED DIFFICULTY</b><span>${d==null?'\u2014':d.toFixed(1)}/20</span></div>`
+  +`<div class="dtrack"><div class="dfill" style="width:${d==null?0:clamp(d/20*100,0,100)}%"></div></div>`
+  +`<div class="dsub"><span>${c?c.scene.objects.length+' places · '+c.scene.stations.length+' people':'\u2014'}</span><span>${current?current.ageBands.join(' / '):''}</span></div>`;}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});renderDifficulty();}
+function log(msg){const t=Math.max(0,Date.now()-(itemStart||Date.now())),d=document.createElement('div');
+ d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+function emitEvent(kind,extra){const event=Object.assign({t:itemStart?Date.now()-itemStart:0,kind,itemId:current?current.itemId:null},extra||{});
+ itemTelemetry.push(event);post({type:'telemetry',event});log(`<b>${kind}</b>`+(extra&&Object.keys(extra).length?' · '+JSON.stringify(extra):''));}
+
+/* ---------- map drawing ---------- */
+function stationHit(px,py){ // canvas coords -> station key
+  if(!current)return null;let best=null,bd=34;
+  for(const s of current.content.scene.stations){const d=Math.hypot(SX(s.x)-px,SY(s.y)-py);if(d<bd){bd=d;best=s.key;}}
+  return best;
+}
+function drawArrow(c,x,y,angDeg,len,color){
+  const a=-angDeg*RAD; // canvas y is flipped
+  const ex=x+Math.cos(a)*len,ey=y+Math.sin(a)*len;
+  c.strokeStyle=color;c.lineWidth=4;c.lineCap='round';
+  c.beginPath();c.moveTo(x,y);c.lineTo(ex,ey);c.stroke();
+  c.beginPath();c.moveTo(ex,ey);
+  c.lineTo(ex-Math.cos(a-.42)*11,ey-Math.sin(a-.42)*11);
+  c.lineTo(ex-Math.cos(a+.42)*11,ey-Math.sin(a+.42)*11);
+  c.closePath();c.fillStyle=color;c.fill();
+}
+function drawMap(){
+  const c=$('#map').getContext('2d');c.clearRect(0,0,MAP.w,MAP.h);
+  const g=c.createLinearGradient(0,0,0,MAP.h);g.addColorStop(0,'#eef3ff');g.addColorStop(1,'#dde5fb');c.fillStyle=g;c.fillRect(0,0,MAP.w,MAP.h);
+  c.strokeStyle='#cdd9f7';c.lineWidth=1;
+  for(let x=MAP.cx%40;x<MAP.w;x+=40){c.beginPath();c.moveTo(x,0);c.lineTo(x,MAP.h);c.stroke();}
+  for(let y=MAP.cy%40;y<MAP.h;y+=40){c.beginPath();c.moveTo(0,y);c.lineTo(MAP.w,y);c.stroke();}
+  if(!current)return;
+  const sc=current.content.scene;
+  c.strokeStyle='#b9c7ee';c.lineWidth=2;c.setLineDash([7,7]);
+  c.beginPath();c.arc(MAP.cx,MAP.cy,2.1*MAP.s,0,7);c.stroke();c.setLineDash([]);
+  // objects
+  for(const o of sc.objects){
+    const x=SX(o.x),y=SY(o.y);
+    c.fillStyle='rgba(40,50,90,.16)';c.beginPath();c.ellipse(x,y+18,20,7,0,0,7);c.fill();
+    glyphPath(c,o.glyph,x,y,19);
+    c.font='800 14px system-ui';c.textAlign='center';c.lineWidth=4;c.strokeStyle='#ffffff';
+    c.strokeText(o.label,x,y+40);c.fillStyle='#33405f';c.fillText(o.label,x,y+40);
+  }
+  // the child's own station, for reference
+  const self=sc.frame.selfStation;
+  if(self){const x=SX(self.x),y=SY(self.y);
+    c.fillStyle='#94a3c8';c.beginPath();c.arc(x,y,13,0,7);c.fill();
+    drawArrow(c,x,y,self.headingDeg,34,'#94a3c8');
+    c.font='800 13px system-ui';c.textAlign='center';c.fillStyle='#6b7899';c.fillText(self.label||'you',x,y+30);}
+  // stations
+  const actingKey=shell==='point_heading'?current.content.pointing.fromStationKey:null;
+  sc.stations.forEach((s,i)=>{
+    const x=SX(s.x),y=SY(s.y),acting=s.key===actingKey,sel=staged===s.key;
+    drawArrow(c,x,y,s.headingDeg,42,acting?'#e8590c':(sel?'#004f71':'#7c8ab5'));
+    c.beginPath();c.arc(x,y,17,0,7);
+    c.fillStyle=acting?'#ff922b':(sel?'#004f71':'#ffffff');c.fill();
+    c.lineWidth=sel||acting?5:3;c.strokeStyle=acting?'#e8590c':(sel?'#002a3a':'#7c8ab5');c.stroke();
+    c.font='900 15px system-ui';c.textAlign='center';c.textBaseline='middle';
+    c.fillStyle=sel||acting?'#fff':'#3a4560';c.fillText(String(i+1),x,y+1);c.textBaseline='alphabetic';
+  });
+  // pointing dial, drawn at the acting station
+  if(shell==='point_heading'){
+    const s=sc.stations.find(v=>v.key===actingKey);
+    if(s){const x=SX(s.x),y=SY(s.y);
+      c.strokeStyle='#004f7155';c.lineWidth=3;c.setLineDash([4,6]);
+      c.beginPath();c.arc(x,y,58,0,7);c.stroke();c.setLineDash([]);
+      drawArrow(c,x,y,s.headingDeg-dialDeg,84,'#004f71');}
+  }
+}
+
+/* ---------- rendering the served item ---------- */
+function setCue(k,txt){const el=$('#phasecue');el.dataset.phase=k;el.textContent=txt;}
+function setStatus(kind,msg){const el=$('#status');el.className=kind;el.textContent=msg;}
+function renderStrip(){
+  const box=$('#strip');box.innerHTML='';
+  const sc=current.content.scene,ids=current.content.targetView.orderedObjectIds;
+  ids.forEach((oid,i)=>{
+    const o=sc.objects.find(v=>v.id===oid);
+    if(i){const a=document.createElement('span');a.className='arrowr';a.textContent='\u203a';box.appendChild(a);}
+    const chip=document.createElement('div');chip.className='chip';
+    chip.appendChild(glyphSvg(o.glyph));
+    const w=document.createElement('span');w.textContent=o.label;chip.appendChild(w);box.appendChild(chip);
+  });
+}
+function renderServedItem(item){
+  current=item;shell=item.content.question.mode;
+  submitted=false;interactive=false;staged=null;firstKey=null;selectionOrder=[];sampled=new Set();
+  dialMoves=0;firstDial=null;dialZones=new Set();dialDeg=0;
+  M.rev=0;M.firstLat=null;M.blur=0;itemTelemetry=[];
+  const heading=shell==='point_heading';
+  $('#stripband').style.display=heading?'none':'grid';
+  $('#dialrow').classList.toggle('on',heading);
+  if(heading){
+    const step=item.content.pointing.dialStepDeg||5;
+    const dial=$('#dial');dial.step=String(step);dial.value='0';$('#dialval').textContent='0\u00b0';
+    $('#ask').textContent='Stand where person '+stationNumber(item.content.pointing.fromStationKey)
+      +' stands, face the way they face, and point at the '+item.content.pointing.targetLabel+'.';
+  }else{
+    renderStrip();
+    $('#ask').textContent='Tap the person who sees this.';
+  }
+  $('#go').classList.remove('ready');
+  itemStart=Date.now();drawMap();renderMeters();
+  emitEvent('render',{shell,objects:item.content.scene.objects.length,stations:item.content.scene.stations.length,difficulty:item.difficulty});
+}
+function stationNumber(key){const sc=current.content.scene;return sc.stations.findIndex(s=>s.key===key)+1;}
+
+/* ---------- interaction ---------- */
+function markFirst(what){if(M.firstLat===null){M.firstLat=Date.now()-itemStart;emitEvent('first_action',{what,latencyMs:M.firstLat});}}
+function stageStation(key){
+  if(!interactive||submitted||shell!=='match_viewpoint'||!key)return;
+  markFirst('pick');sampled.add(key);
+  if(firstKey===null)firstKey=key;
+  if(staged!==null&&staged!==key){M.rev++;emitEvent('change',{from:staged,to:key});}
+  staged=key;selectionOrder.push(key);
+  $('#go').classList.add('ready');drawMap();renderMeters();
+}
+function setDial(v,track){
+  if(!interactive||submitted||shell!=='point_heading')return;
+  const step=current.content.pointing.dialStepDeg||5;
+  const q=clamp(Math.round(v/step)*step,-180,180);
+  if(track&&q!==dialDeg){markFirst('dial');dialMoves++;dialZones.add(Math.round(q/30));
+    if(firstDial===null)firstDial=q;else M.rev++;
+    emitEvent('dial',{headingDeg:q});}
+  dialDeg=q;$('#dial').value=String(q);$('#dialval').textContent=q+'\u00b0';
+  $('#go').classList.add('ready');drawMap();renderMeters();
+}
+function submit(){
+  if(!interactive||submitted)return;
+  if(shell==='match_viewpoint'&&staged===null)return;
+  if(shell==='point_heading'&&firstDial===null)return;
+  const rt=Date.now()-itemStart;M.rt=rt;M.rts.push(rt);
+  submitted=true;interactive=false;$('#go').classList.remove('ready');
+  setCue('done','Answer sent');
+  setStatus('neutral','Answer received. Next scene coming up.');
+  const response=shell==='point_heading'
+   ?{mode:shell,headingDeg:dialDeg,firstHeadingDeg:firstDial,dialMoves,zonesVisited:[...dialZones].sort((a,b)=>a-b),changeCount:M.rev}
+   :{mode:shell,selectedKey:staged,firstSelectedKey:firstKey,selectionOrder:selectionOrder.slice(),
+     stationsSampled:[...sampled],changeCount:M.rev};
+  const metrics={'M-RT':rt,'M-RTFIRST':M.firstLat==null?rt:M.firstLat,'M-REV':M.rev,
+   'M-EXPLORE':shell==='point_heading'?dialZones.size:sampled.size,'M-ENGAGE':M.blur,'M-RAPIDGUESS':rt<400?1:0};
+  // The raw dial angle is not a metric and is not registered as one; it already
+  // travels as response.headingDeg, from which the server derives M-VIEWANG
+  // using the target heading it never sends to the client.
+  emitEvent('submit',Object.assign({rtMs:rt},shell==='point_heading'?{headingDeg:dialDeg}:{selectedKey:staged}));
+  post({type:'result',result:{itemId:current.itemId,typeCode:current.typeCode,domain:current.domain,
+   response,metrics,telemetry:itemTelemetry.slice()}});
+  log('RESULT emitted \u2192 '+JSON.stringify({response,metrics}));
+  renderMeters();
+  if(standalone)setTimeout(advanceStandalone,1200);
+}
+
+/* ---------- ghost hand: teaches the GESTURE only, never the answer ---------- */
+const ghost=$('#ghost');
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(560);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(420);}
+async function gestureHint(){
+  ghost.classList.add('show');await sleep(200);
+  await ghostTo(shell==='point_heading'?$('#dialrow'):$('#stripband'));await sleep(160);
+  await ghostTo($('#mapwrap'));await ghostTap();await sleep(140);
+  await ghostTo($('#go'));await ghostTap();await sleep(180);
+  ghost.classList.remove('show');await sleep(200);
+}
+
+/* ---------- host-driven lifecycle ---------- */
+/* R1 — the scene waits behind the play gate. The item used to go live 500ms after the host
+   delivered it, so M-RT and M-RTFIRST started while the child was still looking up and mixed
+   orienting time into a scored quantity. `init` renders behind the gate, `start` only arms it,
+   and the press of play is what begins the item and starts the clock. */
+function openGate(withTutorial){
+  gateTutorial=!!withTutorial;
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('warmup','Get ready');setStatus('neutral','Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
+/* Every route through this item is keyboard-reachable, so the gate is too. Behind a closed
+   gate the item's own shortcuts do nothing, so any key the child presses means "I am ready":
+   it presses play and is consumed rather than silently going nowhere. */
+function gateKey(e){
+  if(document.documentElement.getAttribute('data-gt-gate')!=='closed')return false;
+  if(!e.metaKey&&!e.ctrlKey&&!e.altKey&&!/^(Tab|Escape|Shift|Control|Alt|Meta|CapsLock)$/.test(e.key)){
+    $('#play').click();e.preventDefault();
+  }
+  return true;
+}
+function onInit(item){
+  if(!item||!item.content||!item.content.scene||!item.content.question){log('init ignored: malformed ServedItem');return;}
+  renderServedItem(item);
+  openGate(false);
+}
+async function beginItem(withTutorial){
+  if(interactive||submitted||!current)return;
+  if(withTutorial&&!tutorialShown){tutorialShown=true;await gestureHint();if(submitted)return;}
+  interactive=true;itemStart=Date.now();
+  setCue('scored','Your turn');
+  setStatus('neutral',shell==='point_heading'
+   ?'Turn the dial until it points at the named place, then press the check.'
+   :'Tap the person who sees the strip up top, then press the check.');
+  renderMeters();
+}
+function onHostMessage(e){const d=e.data;if(!d||d.source!==HOST_SRC)return;
+  if(d.type==='init')onInit(d.item);
+  else if(d.type==='start')openGate(!!d.tutorial);}
+
+/* ---------- standalone fallback (QA when there is no host) ---------- */
+function toServed(b){const{answer,scoring,provenance,...s}=b;return s;}
+async function loadBankSamples(){
+  try{
+    const res=await fetch('../banks/SPA-VIEW-01.jsonl',{cache:'no-store'});
+    if(res.ok){
+      const all=(await res.text()).trim().split('\n').filter(Boolean).map(l=>JSON.parse(l)).map(toServed);
+      all.sort((a,b)=>a.difficulty-b.difficulty);
+      const N=Math.min(10,all.length),pick=[];
+      for(let i=0;i<N;i++)pick.push(all[N===1?0:Math.round(i*(all.length-1)/(N-1))]);
+      log('standalone: fetched '+all.length+' bank items; cycling '+pick.length+' across difficulty');
+      return pick;
+    }
+  }catch(_){/* file:// blocks fetch — fall back to the inline samples */}
+  log('standalone: bank fetch unavailable (serve the folder for the full bank) — using inline samples');
+  return INLINE_SAMPLES.slice();
+}
+function playStandalone(){onInit(standaloneQueue[standaloneIdx%standaloneQueue.length]);openGate(standaloneIdx===0);}
+function advanceStandalone(){standaloneIdx++;playStandalone();}
+async function bootstrapStandalone(){if(standalone)return;standalone=true;standaloneQueue=await loadBankSamples();standaloneIdx=0;playStandalone();}
+
+/* Inline served-item fallback (real bank rows with the answer stripped). */
+const INLINE_SAMPLES=[
+{"itemId":"7d458249-144c-4ffd-bb4d-047f9430656e","typeCode":"SPA-VIEW-01","domain":"spatial","difficulty":1.09,"ageBands":["2-3"],"demoPath":"demos/SPA-VIEW-01.html","content":{"typeCode":"SPA-VIEW-01","question":{"mode":"match_viewpoint","prompt":"The strip shows what one person sees, from their left to their right. Tap the person who sees it."},"scene":{"frame":{"coords":"map_top_down","extent":3.2,"selfStation":{"x":0,"y":-2.9,"headingDeg":90,"label":"you"}},"objects":[{"id":"o0","label":"house","glyph":"house","x":-0.4809,"y":-0.6269},{"id":"o1","label":"tower","glyph":"tower","x":1.0591,"y":1.0266}],"stations":[{"key":"B","x":0,"y":-2.1,"headingDeg":90},{"key":"A","x":0.1548,"y":2.0943,"headingDeg":-94.23}]},"targetView":{"orderedObjectIds":["o0","o1"]},"optionKind":"viewpoint","options":[{"key":"A"},{"key":"B"}],"scaffold":{"livePreviewStrip":true,"warmup":true}},"syntheticOnly":true,"validated":false},
+{"itemId":"9df3f937-4a25-41af-9c13-45936c3347b7","typeCode":"SPA-VIEW-01","domain":"spatial","difficulty":8,"ageBands":["2-3","4-5"],"demoPath":"demos/SPA-VIEW-01.html","content":{"typeCode":"SPA-VIEW-01","question":{"mode":"match_viewpoint","prompt":"The strip shows what one person sees, from their left to their right. Tap the person who sees it."},"scene":{"frame":{"coords":"map_top_down","extent":3.2,"selfStation":{"x":0,"y":-2.9,"headingDeg":90,"label":"you"}},"objects":[{"id":"o0","label":"tree","glyph":"tree","x":0.2607,"y":1.0934},{"id":"o1","label":"house","glyph":"house","x":0.1221,"y":-1.0896},{"id":"o2","label":"flag","glyph":"flag","x":-0.9372,"y":-1.0004}],"stations":[{"key":"B","x":0,"y":2.1,"headingDeg":-90},{"key":"A","x":0.8069,"y":-1.9388,"headingDeg":112.6}]},"targetView":{"orderedObjectIds":["o0","o1","o2"]},"optionKind":"viewpoint","options":[{"key":"A"},{"key":"B"}],"scaffold":{"livePreviewStrip":true,"warmup":true}},"syntheticOnly":true,"validated":false},
+{"itemId":"0118610f-9c2e-4aaf-9de8-05cbe914a885","typeCode":"SPA-VIEW-01","domain":"spatial","difficulty":19.02,"ageBands":["6-8"],"demoPath":"demos/SPA-VIEW-01.html","content":{"typeCode":"SPA-VIEW-01","question":{"mode":"point_heading","prompt":"Stand where the marked person stands and face the way they face. Turn the dial to point at the named place, then send it."},"scene":{"frame":{"coords":"map_top_down","extent":3.2,"selfStation":{"x":0,"y":-2.9,"headingDeg":90,"label":"you"}},"objects":[{"id":"o0","label":"rock","glyph":"rock","x":0.2187,"y":-1.3789},{"id":"o1","label":"flag","glyph":"flag","x":-0.0033,"y":-0.7935},{"id":"o2","label":"tree","glyph":"tree","x":0.6548,"y":0.2218},{"id":"o3","label":"pond","glyph":"pond","x":-0.714,"y":-0.1825},{"id":"o4","label":"bench","glyph":"bench","x":-1.0287,"y":0.2696},{"id":"o5","label":"house","glyph":"house","x":-0.4315,"y":0.8961}],"stations":[{"key":"A","x":1.8187,"y":1.05,"headingDeg":-150},{"key":"B","x":0.4251,"y":2.0565,"headingDeg":-101.68},{"key":"C","x":-1.0222,"y":1.8344,"headingDeg":-60.87},{"key":"D","x":-2.0309,"y":0.5342,"headingDeg":-14.74},{"key":"E","x":-1.6595,"y":-1.2869,"headingDeg":37.79},{"key":"F","x":-0.6199,"y":-2.0064,"headingDeg":72.83},{"key":"G","x":0.9529,"y":-1.8714,"headingDeg":116.98},{"key":"H","x":2.0476,"y":-0.4662,"headingDeg":167.17}]},"pointing":{"fromStationKey":"A","targetObjectId":"o0","targetLabel":"rock","dialStepDeg":1,"dialZeroIsStationFacing":true},"optionKind":"heading_dial","options":[],"scaffold":{"livePreviewStrip":false,"warmup":false}},"syntheticOnly":true,"validated":false},
+{"itemId":"8cff093c-2119-4b24-ba29-29bfaceb01e0","typeCode":"SPA-VIEW-01","domain":"spatial","difficulty":16.6,"ageBands":["6-8"],"demoPath":"demos/SPA-VIEW-01.html","content":{"typeCode":"SPA-VIEW-01","question":{"mode":"match_viewpoint","prompt":"The strip shows what one person sees, from their left to their right. Tap the person who sees it."},"scene":{"frame":{"coords":"map_top_down","extent":3.2,"selfStation":{"x":0,"y":-2.9,"headingDeg":90,"label":"you"}},"objects":[{"id":"o0","label":"rock","glyph":"rock","x":1.058,"y":-0.3414},{"id":"o1","label":"house","glyph":"house","x":0.4411,"y":0.6459},{"id":"o2","label":"tower","glyph":"tower","x":0.3651,"y":-0.6607},{"id":"o3","label":"pond","glyph":"pond","x":-0.3441,"y":-1.3607},{"id":"o4","label":"car","glyph":"car","x":-0.2933,"y":1.1628},{"id":"o5","label":"tree","glyph":"tree","x":-1.1149,"y":-0.2683}],"stations":[{"key":"C","x":0,"y":2.1,"headingDeg":-90},{"key":"G","x":-1.6762,"y":1.265,"headingDeg":-37.04},{"key":"D","x":-2.0998,"y":0.0322,"headingDeg":-0.88},{"key":"F","x":-1.6932,"y":-1.2422,"headingDeg":36.27},{"key":"E","x":0.1574,"y":-2.0941,"headingDeg":94.3},{"key":"B","x":1.5104,"y":-1.459,"headingDeg":135.99},{"key":"H","x":2.0975,"y":-0.1019,"headingDeg":177.22},{"key":"A","x":1.6082,"y":1.3505,"headingDeg":-139.98}]},"targetView":{"orderedObjectIds":["o0","o1","o2","o3","o4","o5"]},"optionKind":"viewpoint","options":[{"key":"A"},{"key":"B"},{"key":"C"},{"key":"D"},{"key":"E"},{"key":"F"},{"key":"G"},{"key":"H"}],"scaffold":{"livePreviewStrip":true,"warmup":false}},"syntheticOnly":true,"validated":false}
+];
+
+/* ---------- wiring ---------- */
+// A second press of play is a no-op: the gate is already open by then.
+$('#play').addEventListener('click',()=>{
+  if(document.documentElement.getAttribute('data-gt-gate')!=='closed')return;
+  closeGate();beginItem(gateTutorial);
+});
+$('#map').addEventListener('click',e=>{
+  if(shell!=='match_viewpoint')return;
+  const r=e.currentTarget.getBoundingClientRect();
+  stageStation(stationHit((e.clientX-r.left)*MAP.w/r.width,(e.clientY-r.top)*MAP.h/r.height));
+});
+$('#dial').addEventListener('input',()=>setDial(+$('#dial').value,true));
+$('#go').addEventListener('click',()=>{if($('#go').classList.contains('ready'))submit();});
+$('#replay').addEventListener('click',()=>{if(current&&interactive&&!submitted)gestureHint();});
+document.addEventListener('keydown',e=>{
+  if(gateKey(e))return;
+  if(!interactive||submitted)return;
+  const step=current&&current.content.pointing?(current.content.pointing.dialStepDeg||5):5;
+  if(shell==='match_viewpoint'&&/^[1-8]$/.test(e.key)){
+    const s=current.content.scene.stations[+e.key-1];if(s)stageStation(s.key);
+  }else if(shell==='point_heading'&&(e.key==='ArrowLeft'||e.key==='ArrowRight')){
+    setDial(dialDeg+(e.key==='ArrowRight'?step:-step),true);e.preventDefault();
+  }else if(e.key==='Enter'&&$('#go').classList.contains('ready')){submit();e.preventDefault();}
+});
+window.addEventListener('blur',()=>{if(interactive&&!submitted){M.blur++;emitEvent('engagement',{reason:'blur'});renderMeters();}});
+
+buildMeters();renderMeters();drawMap();
+window.addEventListener('message',onHostMessage);
+post({type:'ready'});
+if(!embedded)bootstrapStandalone();
+else setTimeout(()=>{if(!current)bootstrapStandalone();},1000); // QA-safe if a host embeds but never inits
+</script>
+
+<script data-gt-demo-autostart="1">
+/* Catalogue-only: dismiss the press-play gate so browsing is uninterrupted.
+   Clicks the demo's own #play button rather than reimplementing its start logic.
+   Not present in the live screener. */
+(function () {
+  var root = document.documentElement;
+  var tries = 0;
+  function go() {
+    var btn = document.getElementById('play');
+    if (!btn) return;
+    if (!root.hasAttribute('data-gt-gate')) return;
+    btn.click();
+  }
+  // The gate reopens between rounds in several demos, so watch rather than fire once.
+  if (window.MutationObserver) {
+    new MutationObserver(function () { go(); })
+      .observe(root, { attributes: true, attributeFilter: ['data-gt-gate'] });
+  }
+  // And catch the case where the gate is already up by the time this runs.
+  var poll = setInterval(function () {
+    go();
+    if (++tries > 40) clearInterval(poll);
+  }, 50);
+  window.addEventListener('load', go);
+})();
+</script>
+</body>
+</html>

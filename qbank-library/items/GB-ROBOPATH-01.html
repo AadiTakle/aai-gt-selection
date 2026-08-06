@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GB-ROBOPATH-01 · Path Coder</title>
+<style>
+  :root{--bg1:#fcf4ef;--bg2:#fcf4ef;--ink:#001117;--card:#ffffff;--accent:#004f71;--good:#146c43;--wall:#33505c;
+    --tel-bg:#002a3a;--tel-ink:#f5ddcd;--tel-key:#ebba9b;--tel-dim:#e48b53;}
+  *{box-sizing:border-box}html,body{margin:0;min-height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:10px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#4a6470;text-transform:uppercase;font-weight:700}
+  #howto{max-width:620px;width:100%;background:#ffffff;border:1px solid #ecd9cb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #002a3a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#33505c;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#f8e8de;color:var(--accent);border:2px solid #ecd9cb;min-height:30px}
+  #phasecue[data-phase="waiting"]{background:#f5ddcd;color:#6f4526;border-color:#ebba9b}
+  #phasecue[data-phase="running"]{background:#f5ddcd;color:#002a3a;border-color:#ecd9cb}
+  #phasecue[data-phase="locked"]{background:var(--accent);color:#ffffff;border-color:var(--accent)}
+  #prompt{max-width:620px;width:100%;font-size:15px;font-weight:800;color:#33505c;text-align:center;min-height:20px}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.neutral{color:#4a6470}
+  #stagecard{background:var(--card);border-radius:24px;padding:20px;box-shadow:0 18px 50px -22px #002a3a;display:flex;flex-direction:column;align-items:center;gap:12px;max-width:660px;width:100%}
+  #gridwrap{position:relative}
+  #grid{display:grid;gap:3px;background:#f8e8de;padding:6px;border-radius:12px}
+  .c{border-radius:6px;background:#fcf4ef;display:flex;align-items:center;justify-content:center;position:relative}
+  .c.wall{background:var(--wall)}
+  .c.visited{background:#f5ddcd}
+  .c svg{display:block}
+  #botlayer{position:absolute;left:0;top:0;pointer-events:none}
+  #bot{position:absolute;transition:left .18s linear,top .18s linear,transform .18s linear;transform-origin:50% 50%}
+  #bot.bump{filter:drop-shadow(0 0 6px #e48b53)}
+  #strip{display:flex;gap:5px;min-height:46px;background:#fcf4ef;border-radius:10px;padding:6px 8px;flex-wrap:wrap;justify-content:center;align-items:center;max-width:520px;width:100%}
+  #strip .empty{font-size:12px;color:#4a6470;letter-spacing:.04em}
+  .step{width:36px;height:36px;border-radius:9px;background:#f8e8de;color:#002a3a;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;cursor:pointer;position:relative}
+  .step.now{background:var(--accent);color:#ffffff}
+  .step .reps{position:absolute;right:-4px;bottom:-4px;background:var(--accent);color:#ffffff;font-size:9px;border-radius:7px;padding:1px 4px;font-weight:800}
+  #pal{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+  .pb{width:52px;height:46px;border-radius:12px;background:#f8e8de;border:3px solid #f8e8de;color:#002a3a;font-size:19px;font-weight:800;cursor:pointer}
+  #repbtn{background:#f8e8de;border:3px solid #ebba9b;color:#4a6470;font-weight:800;font-size:13px;width:auto;padding:0 14px;height:46px;border-radius:12px;cursor:pointer}
+  #repbtn.on{background:#ebba9b}
+  #row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+  button{font:inherit;border:0;cursor:pointer;border-radius:12px}
+  #run{background:#fcf4ef;color:#4a6470;padding:10px 20px;font-weight:800;font-size:15px}
+  #clr{background:#fcf4ef;color:#6f4526;padding:10px 14px;font-weight:700}
+  #submit{background:var(--accent);color:#ffffff;padding:10px 22px;font-weight:800;font-size:15px;opacity:.45;pointer-events:none;transition:.2s}
+  #submit.ready{opacity:1;pointer-events:auto}
+  #replay{width:44px;height:44px;background:#f8e8de;color:var(--accent);font-size:18px;border-radius:50%}
+  .hotkeys{font-size:11px;color:#4a6470;text-align:center}
+  #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:60;opacity:0;transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}#ghost .ring{position:absolute;left:-6px;top:-6px;width:26px;height:26px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #telemetry{width:320px;flex:0 0 320px;min-height:100vh;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#ffffff;background:#002a3a;text-transform:uppercase}
+  #itemcard{margin:12px 12px 4px;padding:10px;border:1px solid #33505c;border-radius:12px}
+  .itemRow{display:flex;justify-content:space-between;color:#4a6470;font-size:11px;padding:2px 0}.itemRow b{color:#f8e8de}
+  #mlist{padding:8px 12px;display:grid;gap:7px}
+  .mrow{display:grid;grid-template-columns:104px 1fr;gap:6px}
+  .mid{color:var(--tel-key);font-weight:800}.mval{color:#ffffff;text-align:right;overflow-wrap:anywhere}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-4px}
+  #logwrap{border-top:1px solid #33505c;margin-top:auto}#logwrap b{display:block;padding:8px 12px 4px;color:#4a6470;font-size:11px;letter-spacing:.08em}
+  #log{height:190px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}#log div{padding:2px 0;border-bottom:1px dotted #004f71}#log .t{color:#6f4526}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;min-height:0;height:300px}}
+  @media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
+</style>
+<style>html[data-gt-telemetry="off"] #telemetry{display:none}</style>
+<script>/* D-028 — the researcher telemetry panel is presentational only. Embedded in the
+   child-facing screener it is hidden: naming the behavioural metrics to the child can
+   change the behaviour being measured. `?telemetry=1` restores it for a live
+   demonstration, and standalone (opened directly) is unchanged. Sampling, metric
+   computation and the {type:'telemetry'} postMessage stream are untouched. */
+(function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
+<style>html[data-gt-chrome="off"] #howto{display:none}</style>
+<script>/* Instant-question gate. Embedded in the screener the "How to use" panel is hidden so the
+   child sees the question itself the moment it appears; the per-item status line carries the
+   instruction in words. A test should not spend its first seconds being read. `?chrome=1`
+   restores the panel for a walkthrough, and standalone (opened directly) is unchanged. */
+(function(){var f=/(^|[?&])chrome=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-chrome','off');})();</script>
+<link rel="stylesheet" href="../exam-skin.css">
+<style data-gt-demo-presentation="1">
+/* Catalogue-only presentation pass. Not present in the live screener. */
+
+/* The play button and its broken copy. Hidden, not removed: the page's start path still
+   needs the button in the DOM for the autostart patch to click. */
+#playgate { display: none !important; }
+
+/* Authoring instrumentation: item id, difficulty meters, event log. */
+#telemetry { display: none !important; }
+
+/* body stays flex and #wrap keeps flex:1, so hiding the sidebar is enough to hand the
+   question the full width. #wrap already centres its own children. */
+
+/* #howto is now the viewer's only orientation, so lift it slightly off the page. */
+#howto {
+  max-width: 720px !important;
+  box-shadow: 0 10px 30px -20px #002a3a !important;
+}
+
+/* Press t to bring the telemetry panel back mid-demo. */
+html[data-gt-demo-presentation-tel] #telemetry { display: flex !important; }
+</style>
+<script data-gt-demo-presentation="1">
+/* Catalogue-only: `t` reveals the telemetry panel, for showing what the item measures. */
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 't' && e.key !== 'T') return;
+  var tag = (e.target && e.target.tagName) || '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || e.metaKey || e.ctrlKey || e.altKey) return;
+  var root = document.documentElement;
+  var attr = 'data-gt-demo-presentation-tel';
+  if (root.hasAttribute(attr)) root.removeAttribute(attr);
+  else root.setAttribute(attr, '1');
+});
+</script>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">GB-ROBOPATH-01 · Path Coder</div>
+    <header id="howto">
+      <h1>How to use — Path Coder</h1>
+      <p>Build one program that drives the robot to the door and over every key. Tap the arrow buttons to add steps: forward, turn left, turn right. Turns are from the robot's own point of view. Tap a step in the strip to delete it. Press RUN to watch the whole program play, then press SUBMIT to send your program.</p>
+    </header>
+    <div id="phasecue" data-phase="waiting">Waiting for item</div>
+    <div id="prompt"></div>
+    <div id="stagecard">
+      <div id="gridwrap"><div id="grid"></div><div id="botlayer"><div id="bot"></div></div></div>
+      <div id="strip"></div>
+      <div id="pal">
+        <button class="pb" data-cmd="F" title="forward">&#8593;</button>
+        <button class="pb" data-cmd="L" title="turn left">&#8630;</button>
+        <button class="pb" data-cmd="R" title="turn right">&#8631;</button>
+        <button id="repbtn" title="repeat the next step">repeat &times;1</button>
+      </div>
+      <div id="row">
+        <button id="replay" title="show the controls again">&#8635;</button>
+        <button id="clr">clear</button>
+        <button id="run">RUN</button>
+        <button id="submit">SUBMIT</button>
+      </div>
+      <div class="hotkeys">F forward &middot; A turn left &middot; D turn right &middot; Backspace deletes the last step &middot; Enter runs the program</div>
+      <div id="status" class="neutral">Waiting for an item from the host…</div>
+    </div>
+    <div id="playgate">
+      <p>The robot is ready. Press play when you are, and it starts then.</p>
+      <button type="button" id="play">Play</button>
+    </div>
+  </div>
+  <aside id="telemetry">
+    <h3>Live telemetry · per-child</h3>
+    <div id="itemcard">
+      <div class="itemRow"><span>ITEM</span><b id="i_id">—</b></div>
+      <div class="itemRow"><span>WORLD</span><b id="i_world">—</b></div>
+      <div class="itemRow"><span>PROGRAM</span><b id="i_prog">—</b></div>
+      <div class="itemRow"><span>DIFFICULTY</span><b id="i_diff">—</b></div>
+    </div>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="30" height="30" fill="#ffffff" stroke="#004f71" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+/* ---- postMessage embedding contract (EXAM_ADAPTIVE_BUILD_PLAN.md §2) ----
+   host->demo : {source:'gt-exam-host', type:'init', item:ServedItem} , {type:'start'}
+   demo->host : {source:'gt-exam-demo', type:'ready'} , {type:'result', result:ItemResult} , {type:'telemetry', event}
+   PURE RENDERER. It draws ServedItem.content only; it never receives the optimal program and
+   computes NO correctness. It emits the FULL ordered action log (every token added/deleted,
+   every run, every primitive move and its resulting pose) plus a numeric metrics map. The
+   server re-derives the optimum and scores M-EFF = optimalActions / executed actions. */
+const HOST='gt-exam-host',SELF='gt-exam-demo';
+const embedded=window.parent&&window.parent!==window;
+function post(type,extra){const msg=Object.assign({source:SELF,type},extra||{});if(embedded){try{window.parent.postMessage(msg,'*')}catch(e){}}}
+
+/* ---------- turtle world ---------- */
+const HEADINGS=['N','E','S','W'],STEP={N:[-1,0],E:[0,1],S:[1,0],W:[0,-1]};
+const HEADROT={N:0,E:90,S:180,W:270};
+const SYM={F:'\u2191',L:'\u21BA',R:'\u21BB'};
+const WORD={F:'forward',L:'turn left',R:'turn right'};
+function turn(h,cmd){const i=HEADINGS.indexOf(h);return cmd==='R'?HEADINGS[(i+1)%4]:HEADINGS[(i+3)%4];}
+
+/* ---------- state ---------- */
+let item=null,content=null,R=0,C=0,cell=40,wallSet=new Set(),start=null,door=[0,0],keys=[],maxReps=1,repeatOn=false;
+let program=[],armedReps=1,pose=null,keysLeft=new Set(),visited=new Set();
+let locked=true,started=false,running=false,runs=0;
+let gateTutorial=false;    // does the pending play press owe a controls walkthrough?
+const T={itemStart:0,first:0,adds:0,edits:0,reruns:0,rt:0,rapid:false,committed:false,lastActivity:performance.now(),events:[],runLog:[]};
+
+const PHASE={waiting:'Waiting for item',ready:'Ready',running:'Program running',locked:'Program submitted'};
+function setCue(k){const el=$('#phasecue');el.dataset.phase=k;el.textContent=PHASE[k];}
+function setStatus(cls,msg){const el=$('#status');el.className=cls;el.textContent=msg;}
+function nowRel(){return Math.max(0,performance.now()-(T.itemStart||performance.now()));}
+
+/* ---------- telemetry ---------- */
+function actionCount(){return program.reduce((a,t)=>a+t.reps,0);}
+function planful(){const den=T.adds+T.edits+T.reruns;return den?Math.round(100*T.adds/den):100;}
+const METERS=[
+ {id:'M-RTFIRST',name:'Planning latency before the first step',get:()=>T.first?`${Math.round(T.first)} ms`:'—'},
+ {id:'M-RT',name:'Time to submit (engagement-gated)',get:()=>T.committed?`${T.rt} ms${T.rapid?' · gated':''}`:'—'},
+ {id:'M-PATH',name:'Plan length (primitive actions)',get:()=>`${actionCount()} actions · ${program.length} tokens`},
+ {id:'M-EFF',name:'Efficiency (optimal compared server-side)',get:()=>`${actionCount()} actions submitted`},
+ {id:'M-PLANFUL',name:'Build actions that were constructive',get:()=>`${planful()}%`},
+ {id:'M-REV',name:'Revisions (deletes, clears, re-runs)',get:()=>String(T.edits+T.reruns)},
+ {id:'M-EXPLORE',name:'Cells the robot visited · runs',get:()=>`${visited.size} · ${runs}`},
+ {id:'M-PERSIST',name:'Time invested on this item',get:()=>`${Math.round(nowRel())} ms`},
+ {id:'M-RAPIDGUESS',name:'Rapid/idle flag (tracked)',get:()=>T.committed?(T.rapid?'1':'0'):'—'},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});$('#i_prog').textContent=`${program.length} tokens · ${actionCount()} actions`;}
+function log(msg){const d=document.createElement('div');d.innerHTML=`<span class="t">+${Math.round(nowRel())}ms</span> ${msg}`;$('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;}
+function emit(kind,data){const ev=Object.assign({t:Math.round(nowRel()),kind},data||{});T.events.push(ev);post('telemetry',{event:ev});return ev;}
+function firstAction(){if(!T.first&&started){T.first=performance.now()-T.itemStart;emit('first_action',{ms:Math.round(T.first)});log(`first step @ ${Math.round(T.first)}ms`);}}
+function activity(){T.lastActivity=performance.now();}
+addEventListener('pointerdown',activity);addEventListener('keydown',activity);
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&started&&!locked){emit('blur');}});
+
+/* ---------- render ---------- */
+const SVG_NS='http://www.w3.org/2000/svg';
+function doorSvg(s){return `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="#a9741a" stroke-width="2" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="15.5" cy="12" r="1.4" fill="#a9741a"/></svg>`;}
+function keySvg(s){return `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="#2f6bd0" stroke-width="2" stroke-linecap="round"><circle cx="8" cy="12" r="4"/><path d="M12 12 H20"/><path d="M17 12 V16"/></svg>`;}
+function botSvg(s){return `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="#004f71" stroke="#2b3690" stroke-width="1.6" stroke-linejoin="round"><path d="M12 3 L19 20 L12 16 L5 20 Z"/></svg>`;}
+function isWall(r,c){return wallSet.has(r+','+c);}
+function cellPx(){return cell+3;}
+function renderGrid(){
+  const g=$('#grid');g.innerHTML='';
+  g.style.gridTemplateColumns=`repeat(${C},${cell}px)`;
+  g.style.gridTemplateRows=`repeat(${R},${cell}px)`;
+  const glyph=Math.round(cell*0.62);
+  for(let r=0;r<R;r++)for(let c=0;c<C;c++){
+    const d=document.createElement('div');d.className='c'+(isWall(r,c)?' wall':'')+(visited.has(r+','+c)?' visited':'');
+    d.dataset.r=r;d.dataset.c=c;
+    if(r===door[0]&&c===door[1])d.innerHTML=doorSvg(glyph);
+    else if(keysLeft.has(r+','+c))d.innerHTML=keySvg(glyph);
+    g.appendChild(d);
+  }
+  positionBot();
+}
+function positionBot(){
+  const b=$('#bot');b.innerHTML=botSvg(Math.round(cell*0.72));
+  const off=(cell-Math.round(cell*0.72))/2;
+  b.style.left=(6+pose.c*cellPx()+off)+'px';
+  b.style.top=(6+pose.r*cellPx()+off)+'px';
+  b.style.transform=`rotate(${HEADROT[pose.h]}deg)`;
+}
+function renderStrip(activeIdx){
+  const s=$('#strip');s.innerHTML='';
+  if(!program.length){const e=document.createElement('span');e.className='empty';e.textContent='your program is empty — add steps below';s.appendChild(e);return;}
+  program.forEach((t,i)=>{
+    const el=document.createElement('div');el.className='step'+(i===activeIdx?' now':'');el.dataset.i=i;el.textContent=SYM[t.cmd];
+    if(t.reps>1){const b=document.createElement('span');b.className='reps';b.textContent='\u00d7'+t.reps;el.appendChild(b);}
+    s.appendChild(el);
+  });
+}
+function renderAll(activeIdx){renderGrid();renderStrip(activeIdx);renderMeters();$('#repbtn').classList.toggle('on',armedReps>1);$('#repbtn').innerHTML='repeat &times;'+armedReps;$('#submit').classList.toggle('ready',started&&!locked&&!running);}
+
+/* ---------- program editing ---------- */
+function addToken(cmd){
+  if(locked||running||!started)return;
+  if(program.length>=(content.limits&&content.limits.maxProgramTokens||999))return;
+  firstAction();
+  const reps=Math.min(armedReps,maxReps);
+  program.push({cmd,reps});armedReps=1;T.adds++;
+  emit('add_token',{cmd,reps,index:program.length-1});
+  log(`+ ${WORD[cmd]}${reps>1?' \u00d7'+reps:''}`);
+  renderAll();
+}
+function deleteToken(i){
+  if(locked||running||!started)return;
+  const t=program.splice(i,1)[0];T.edits++;
+  emit('delete_token',{cmd:t.cmd,reps:t.reps,index:i});
+  log(`- removed ${WORD[t.cmd]} (revision)`);
+  renderAll();
+}
+function clearProgram(){
+  if(locked||running||!started||!program.length)return;
+  const n=program.length;program=[];T.edits++;
+  emit('clear_program',{removed:n});log(`cleared ${n} steps (revision)`);renderAll();
+}
+function cycleReps(){
+  if(locked||running||!started||maxReps<2)return;
+  armedReps=armedReps>=maxReps?1:armedReps+1;
+  emit('set_repeat',{reps:armedReps});renderAll();
+}
+
+/* ---------- running the program (simulation feedback only — never a verdict) ---------- */
+function expand(){const out=[];program.forEach((t,i)=>{for(let k=0;k<t.reps;k++)out.push({cmd:t.cmd,token:i});});return out;}
+async function runProgram(){
+  if(locked||running||!started||!program.length)return;
+  firstAction();
+  running=true;runs++;if(runs>1)T.reruns++;
+  setCue('running');setStatus('neutral','The robot is running your program.');
+  pose={r:start.r,c:start.c,h:start.h};keysLeft=new Set(keys.map(k=>k[0]+','+k[1]));keysLeft.delete(pose.r+','+pose.c);
+  visited.add(pose.r+','+pose.c);
+  const seq=expand();
+  emit('run_start',{run:runs,tokens:program.length,actions:seq.length});
+  log(`RUN ${runs}: ${seq.length} actions`);
+  renderAll();await sleep(220);
+  let bumpAt=-1;const trace=[];
+  for(let i=0;i<seq.length;i++){
+    const {cmd,token}=seq[i];
+    if(cmd==='F'){
+      const [dr,dc]=STEP[pose.h];const nr=pose.r+dr,nc=pose.c+dc;
+      if(nr<0||nr>=R||nc<0||nc>=C||isWall(nr,nc)){
+        bumpAt=i;$('#bot').classList.add('bump');
+        trace.push({i,cmd,blocked:true,r:pose.r,c:pose.c,h:pose.h});
+        emit('bump',{action:i,at:[pose.r,pose.c],facing:pose.h});
+        log(`the robot stopped at action ${i+1}`);
+        await sleep(360);$('#bot').classList.remove('bump');break;
+      }
+      pose={r:nr,c:nc,h:pose.h};visited.add(nr+','+nc);
+      if(keysLeft.has(nr+','+nc)){keysLeft.delete(nr+','+nc);emit('key_step',{at:[nr,nc]});}
+    } else pose={r:pose.r,c:pose.c,h:turn(pose.h,cmd)};
+    trace.push({i,cmd,r:pose.r,c:pose.c,h:pose.h});
+    emit('action',{i,cmd,token,r:pose.r,c:pose.c,h:pose.h});
+    renderAll(token);
+    await sleep(180);
+  }
+  const rec={run:runs,program:program.map(t=>({cmd:t.cmd,reps:t.reps})),actions:seq.length,executed:trace.length,bumpedAtAction:bumpAt,endPose:{r:pose.r,c:pose.c,h:pose.h},keysNotSteppedOn:[...keysLeft],trace};
+  T.runLog.push(rec);
+  emit('run_end',{run:runs,executed:trace.length,bumpedAtAction:bumpAt,endPose:rec.endPose});
+  running=false;setCue('ready');
+  setStatus('neutral','Run finished. Edit your program and run it again, or press SUBMIT.');   // no verdict, no win/lose state
+  renderAll();
+}
+
+/* ---------- submit ---------- */
+function submit(){
+  if(locked||!started||running)return;
+  locked=true;$('#submit').classList.remove('ready');
+  T.rt=Math.round(performance.now()-T.itemStart);T.committed=true;
+  const idle=performance.now()-T.lastActivity;T.rapid=T.rt<400||idle>25000;
+  const seq=expand().map(s=>s.cmd);
+  const response={
+    mode:'program_robot',
+    program:program.map(t=>({cmd:t.cmd,reps:t.reps})),
+    actionSeq:seq,
+    cost:{actions:seq.length,tokens:program.length},
+    runs:T.runLog,
+    actionLog:T.events.slice(),            // FULL ordered log: every edit, run and primitive move
+    tokensAdded:T.adds,edits:T.edits,reruns:T.reruns,
+    distinctCellsVisited:visited.size,
+    preFirstActionMs:Math.round(T.first),
+    msToCommit:T.rt,
+  };
+  const metrics={
+    'M-RT':T.rt,
+    'M-RTFIRST':Math.round(T.first),
+    'M-PATH':seq.length,                   // plan length; server divides the optimum by it for M-EFF
+    'M-PLANFUL':planful(),
+    'M-REV':T.edits+T.reruns,
+    'M-EXPLORE':visited.size,
+    'M-PERSIST':T.rt,
+    'M-RAPIDGUESS':T.rapid?1:0,
+  };
+  const result={itemId:item.itemId,typeCode:item.typeCode,domain:item.domain,response,metrics,telemetry:T.events.slice()};
+  emit('commit',{actions:seq.length,tokens:program.length,runs:runs});
+  setCue('locked');setStatus('ok','Program submitted.');    // accept and advance — never correct/incorrect
+  log(`SUBMIT · ${seq.length} actions · ${program.length} tokens · ${runs} run(s) · ${T.rt}ms`);
+  renderMeters();
+  post('result',{result});
+  if(!embedded)after();
+}
+async function after(){await sleep(1400);nextSample();}
+
+/* ---------- ghost self-teach (shows the controls; never solves the world) ---------- */
+const ghost=$('#ghost');
+async function ghostTo(el){if(!el)return;const r=el.getBoundingClientRect();ghost.style.transform=`translate(${r.left+r.width/2-9}px,${r.top+r.height/2-8}px)`;await sleep(460);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(340);}
+async function ghostScaffold(){
+  ghost.classList.add('show');await sleep(200);
+  await ghostTo($('.pb[data-cmd="F"]'));await ghostTap();
+  await ghostTo($('.pb[data-cmd="R"]'));await ghostTap();
+  await ghostTo($('#run'));await ghostTap();
+  await ghostTo($('#submit'));await ghostTap();
+  ghost.classList.remove('show');await sleep(150);
+}
+
+/* ---------- item lifecycle ---------- */
+function loadItem(served){
+  item=served;content=served.content;
+  R=content.grid.R;C=content.grid.C;
+  wallSet=new Set((content.walls||[]).map(w=>w[0]+','+w[1]));
+  start=content.start;door=content.door;keys=content.keys||[];
+  const rep=(content.instructionSet&&content.instructionSet.repeat)||{enabled:false,maxReps:1};
+  repeatOn=!!rep.enabled;maxReps=repeatOn?rep.maxReps:1;
+  cell=Math.max(24,Math.min(44,Math.floor(430/Math.max(R,C))));
+  program=[];armedReps=1;runs=0;
+  pose={r:start.r,c:start.c,h:start.h};
+  keysLeft=new Set(keys.map(k=>k[0]+','+k[1]));keysLeft.delete(pose.r+','+pose.c);
+  visited=new Set([pose.r+','+pose.c]);
+  locked=true;started=false;running=false;
+  Object.assign(T,{itemStart:0,first:0,adds:0,edits:0,reruns:0,rt:0,rapid:false,committed:false,lastActivity:performance.now(),events:[],runLog:[]});
+  $('#repbtn').style.display=repeatOn?'':'none';
+  $('#prompt').textContent=content.question.prompt;
+  $('#i_id').textContent=(served.itemId||'—').slice(0,8);
+  $('#i_world').textContent=`${R}\u00d7${C} · ${(content.walls||[]).length} walls · ${keys.length} key${keys.length===1?'':'s'}${repeatOn?' · repeat \u00d7'+maxReps:''}`;
+  $('#i_diff').textContent=(served.difficulty!=null?Number(served.difficulty).toFixed(2):'—');
+  renderAll();
+  setCue('ready');setStatus('neutral','Add steps to build your program.');
+  $('#log').innerHTML='';log(`item ${(served.itemId||'').slice(0,8)} · ${R}\u00d7${C} · ${keys.length} keys`);
+}
+/* ---------- play gate (R1) ----------
+   The world is drawn behind the gate on `init` and `start` only arms it; the child's press
+   of play is what starts the item. M-RT and M-RTFIRST are scored, so the clock has to start
+   on a deliberate action rather than on the host's delivery. */
+function openGate(withTutorial){
+  gateTutorial=!!withTutorial;
+  locked=true;
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('ready');setStatus('neutral','Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
+async function startItem(){
+  if(!content||started)return;               // a second press of play is a no-op
+  closeGate();
+  started=true;T.itemStart=performance.now();emit('start');
+  locked=false;                                   // RELEASE the lock so edits and results register
+  renderAll();
+  setStatus('neutral','Add steps, press RUN to watch, then press SUBMIT.');
+  if(content.scaffold&&content.scaffold.warmup)await ghostScaffold();
+}
+
+/* ---------- input ---------- */
+$('#pal').addEventListener('click',e=>{
+  if(e.target.closest('#repbtn')){cycleReps();return;}
+  const b=e.target.closest('.pb');if(b)addToken(b.dataset.cmd);
+});
+$('#strip').addEventListener('click',e=>{const d=e.target.closest('.step');if(d)deleteToken(+d.dataset.i);});
+$('#clr').addEventListener('click',clearProgram);
+$('#run').addEventListener('click',runProgram);
+$('#submit').addEventListener('click',()=>{if($('#submit').classList.contains('ready'))submit();});
+$('#replay').addEventListener('click',()=>{if(started&&!locked&&!running)ghostScaffold();});
+$('#play').addEventListener('click',()=>{startItem();});
+addEventListener('keydown',e=>{
+  if(e.repeat||!started)return;const k=e.key.toLowerCase();
+  if(k==='f'){addToken('F');}
+  else if(k==='a'){addToken('L');}
+  else if(k==='d'){addToken('R');}
+  else if(k==='x'){cycleReps();}
+  else if(e.key==='Backspace'){if(program.length)deleteToken(program.length-1);}
+  else if(e.key==='Enter'){runProgram();}
+  else return;
+  e.preventDefault();
+});
+
+/* ---------- host message handling ---------- */
+let gotInit=false;
+addEventListener('message',e=>{const d=e.data;if(!d||d.source!==HOST)return;
+ if(d.type==='init'&&d.item){gotInit=true;loadItem(d.item);openGate(false);post('ready');}
+ else if(d.type==='start'){if(content&&!started)openGate(!!d.tutorial);}
+});
+
+/* ---------- standalone fallback (opens by double-click; no host present) ----------
+   Embeds real ServedItems produced by generators/GB-ROBOPATH-01.mjs so the renderer and the
+   bank stay in sync. A ServedItem carries no answer, scoring or provenance. */
+const SAMPLES=[{"itemId":"1139ac68-89d2-4417-a602-a2ccd9dbff39","typeCode":"GB-ROBOPATH-01","domain":"spatial","difficulty":1,"ageBands":["2-3"],"demoPath":"demos/GB-ROBOPATH-01.html","content":{"typeCode":"GB-ROBOPATH-01","question":{"mode":"program_robot","keyCount":0,"prompt":"Build one program that takes the robot to the door. Use as few steps as you can, then press RUN."},"grid":{"R":3,"C":3},"walls":[],"start":{"r":0,"c":0,"h":"S"},"door":[1,2],"keys":[],"instructionSet":{"commands":["F","L","R"],"turnsAreRelative":true,"repeat":{"enabled":false,"maxReps":1}},"limits":{"maxProgramTokens":36},"optionKind":"program","scaffold":{"warmup":true}},"syntheticOnly":true,"validated":false},{"itemId":"48638063-e44c-413e-b29d-fda6268ff947","typeCode":"GB-ROBOPATH-01","domain":"spatial","difficulty":6.31,"ageBands":["2-3"],"demoPath":"demos/GB-ROBOPATH-01.html","content":{"typeCode":"GB-ROBOPATH-01","question":{"mode":"program_robot","keyCount":1,"prompt":"Build one program that takes the robot to the door and picks up all 1 key on the way. Use as few steps as you can, then press RUN."},"grid":{"R":5,"C":5},"walls":[[1,0],[1,3],[2,2],[4,4]],"start":{"r":3,"c":0,"h":"W"},"door":[0,4],"keys":[[1,2]],"instructionSet":{"commands":["F","L","R"],"turnsAreRelative":true,"repeat":{"enabled":false,"maxReps":1}},"limits":{"maxProgramTokens":100},"optionKind":"program","scaffold":{"warmup":false}},"syntheticOnly":true,"validated":false},{"itemId":"aa1427c0-d017-4390-b91b-edfdb2a1083f","typeCode":"GB-ROBOPATH-01","domain":"spatial","difficulty":11.92,"ageBands":["4-5","6-8"],"demoPath":"demos/GB-ROBOPATH-01.html","content":{"typeCode":"GB-ROBOPATH-01","question":{"mode":"program_robot","keyCount":2,"prompt":"Build one program that takes the robot to the door and picks up all 2 keys on the way. Use as few steps as you can, then press RUN."},"grid":{"R":7,"C":7},"walls":[[1,0],[2,1],[2,2],[2,3],[2,5],[3,2],[3,5],[4,5],[6,2]],"start":{"r":5,"c":0,"h":"N"},"door":[3,6],"keys":[[6,4],[0,1]],"instructionSet":{"commands":["F","L","R"],"turnsAreRelative":true,"repeat":{"enabled":true,"maxReps":3}},"limits":{"maxProgramTokens":196},"optionKind":"program","scaffold":{"warmup":false}},"syntheticOnly":true,"validated":false},{"itemId":"4df71bf3-feb3-4970-a365-925f1ea80c8b","typeCode":"GB-ROBOPATH-01","domain":"spatial","difficulty":18.75,"ageBands":["6-8"],"demoPath":"demos/GB-ROBOPATH-01.html","content":{"typeCode":"GB-ROBOPATH-01","question":{"mode":"program_robot","keyCount":3,"prompt":"Build one program that takes the robot to the door and picks up all 3 keys on the way. Use as few steps as you can, then press RUN."},"grid":{"R":9,"C":10},"walls":[[0,3],[1,0],[1,1],[1,3],[2,2],[2,5],[2,7],[2,8],[3,1],[3,4],[3,6],[3,9],[4,5],[5,1],[5,5],[5,9],[6,0],[7,0],[7,9]],"start":{"r":5,"c":0,"h":"N"},"door":[8,8],"keys":[[0,6],[5,6],[2,9]],"instructionSet":{"commands":["F","L","R"],"turnsAreRelative":true,"repeat":{"enabled":true,"maxReps":4}},"limits":{"maxProgramTokens":360},"optionKind":"program","scaffold":{"warmup":false}},"syntheticOnly":true,"validated":false}];
+let sampleIdx=0;
+function nextSample(){loadItem(SAMPLES[sampleIdx%SAMPLES.length]);sampleIdx++;openGate(false);}
+
+/* ---------- boot ---------- */
+buildMeters();
+if(embedded)post('ready');
+setTimeout(()=>{if(!gotInit&&!embedded){
+  $('#howto').querySelector('p').insertAdjacentHTML('beforeend',' <b>(Standalone preview: cycling built-in sample items.)</b>');
+  nextSample();
+}},500);
+</script>
+
+<script data-gt-demo-autostart="1">
+/* Catalogue-only: dismiss the press-play gate so browsing is uninterrupted.
+   Clicks the demo's own #play button rather than reimplementing its start logic.
+   Not present in the live screener. */
+(function () {
+  var root = document.documentElement;
+  var tries = 0;
+  function go() {
+    var btn = document.getElementById('play');
+    if (!btn) return;
+    if (!root.hasAttribute('data-gt-gate')) return;
+    btn.click();
+  }
+  // The gate reopens between rounds in several demos, so watch rather than fire once.
+  if (window.MutationObserver) {
+    new MutationObserver(function () { go(); })
+      .observe(root, { attributes: true, attributeFilter: ['data-gt-gate'] });
+  }
+  // And catch the case where the gate is already up by the time this runs.
+  var poll = setInterval(function () {
+    go();
+    if (++tries > 40) clearInterval(poll);
+  }, 50);
+  window.addEventListener('load', go);
+})();
+</script>
+</body>
+</html>

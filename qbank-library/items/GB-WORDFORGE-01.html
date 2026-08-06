@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GB-WORDFORGE-01 · Word Forge</title>
+<style>
+  :root{--bg1:#fcf4ef;--bg2:#fcf4ef;--ink:#003b5c;--card:#ffffff;--accent:#e48b53;--good:#146c43;--bad:#a4442f;
+    --tel-bg:#002a3a;--tel-ink:#f5ddcd;--tel-key:#ebba9b;--tel-dim:#e48b53;}
+  *{box-sizing:border-box} html,body{margin:0;min-height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:12px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#6f4526;text-transform:uppercase;font-weight:700}
+  #howto{max-width:640px;width:100%;background:#ffffff;border:1px solid #ecd9cb;border-left:5px solid var(--accent);
+    border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a6470}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#33505c;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;
+    text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#f8e8de;color:#4a6470;
+    border:2px solid #ecd9cb;min-height:30px}
+  #phasecue[data-phase="waiting"]{background:#f5ddcd;color:#6f4526;border-color:#ebba9b}
+  #phasecue[data-phase="forging"]{background:var(--accent);color:#ffffff;border-color:var(--accent)}
+  #phasecue[data-phase="sent"]{background:#f8e8de;color:#4a6470;border-color:#ecd9cb}
+  #prompt{max-width:640px;width:100%;text-align:center;font-size:15px;font-weight:700;color:#33505c;min-height:22px}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#6f4526}
+  #stagecard{background:var(--card);border-radius:26px;padding:20px;box-shadow:0 18px 50px -22px #4a6470;
+    display:flex;flex-direction:column;align-items:center;gap:14px;max-width:640px;width:100%}
+  #timerwrap{width:100%;display:flex;align-items:center;gap:10px}
+  #timerbar{flex:1;height:10px;background:#f5ddcd;border-radius:6px;overflow:hidden}
+  #timerfill{height:100%;background:linear-gradient(90deg,#9fb6bd,#e48b53);width:100%;transition:width .2s linear}
+  #timertext{font:700 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:#4a6470;min-width:44px;text-align:right}
+  #rack{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  .tile{width:48px;height:48px;background:#ecd9cb;border-radius:11px;display:flex;align-items:center;
+    justify-content:center;font-size:23px;font-weight:800;cursor:pointer;box-shadow:0 4px 0 #e48b53;
+    user-select:none;-webkit-tap-highlight-color:transparent;transition:.12s}
+  .tile.used{opacity:.32;cursor:default;box-shadow:none;transform:translateY(3px)}
+  #rack.off .tile{opacity:.4;cursor:default}
+  #slot{display:flex;gap:6px;min-height:54px;align-items:center;justify-content:center;background:#fcf4ef;
+    border:3px dashed #ebba9b;border-radius:14px;padding:6px 14px;min-width:240px}
+  #slot .hint{font-size:13px;color:#6f4526;font-weight:600}
+  .slotletter{width:40px;height:40px;background:#ffffff;border:2px solid #9fb6bd;border-radius:9px;display:flex;
+    align-items:center;justify-content:center;font-size:20px;font-weight:800}
+  #shelf{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;min-height:34px;max-width:560px}
+  .forged{padding:5px 11px;border-radius:12px;font-size:14px;font-weight:700;color:#33505c;
+    background:#f8e8de;border:1px solid #ecd9cb}
+  #controls{display:flex;gap:14px;align-items:center}
+  button{font:inherit;border:0;cursor:pointer;border-radius:50%;background:#f8e8de;color:#4a6470}
+  #enter{width:72px;height:72px;background:var(--accent);color:#ffffff;font-size:26px;
+    box-shadow:0 10px 24px -8px var(--accent);opacity:.35;pointer-events:none;transition:.2s}
+  #enter.ready{opacity:1;pointer-events:auto}
+  #clear,#replay{width:50px;height:50px;font-size:21px}
+  #done{border-radius:12px;padding:10px 18px;font-size:14px;font-weight:800;background:#f8e8de;color:#4a6470}
+  .hotkeys{font-size:11px;color:#6f4526}
+  #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:60;opacity:0;
+    transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;
+    border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}
+  @keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;
+    flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#ffffff;background:#002a3a;text-transform:uppercase}
+  #itemcard{margin:12px 12px 4px;padding:10px;border:1px solid #004f71;border-radius:12px}
+  .itemRow{display:flex;justify-content:space-between;color:#4a6470;font-size:11px;padding:2px 0}
+  .itemRow b{color:#f8e8de}
+  #mode{margin:6px 12px 0;font-size:11px;color:var(--tel-dim)}#mode b{color:#6f4526}
+  #mlist{padding:8px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:104px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}
+  .mval{color:#ffffff;text-align:right;overflow-wrap:anywhere}
+  .mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #33505c;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#4a6470;font-size:11px;letter-spacing:.08em}
+  #log{height:160px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #004f71}#log .t{color:#6f4526}
+  button:focus-visible,.tile:focus-visible{outline:4px solid #e48b53;outline-offset:3px}
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:320px}}
+</style>
+<style>html[data-gt-telemetry="off"] #telemetry{display:none}</style>
+<script>/* D-028 — the researcher telemetry panel is presentational only. Embedded in the
+   child-facing screener it is hidden: naming the behavioural metrics to the child can
+   change the behaviour being measured. `?telemetry=1` restores it for a live
+   demonstration, and standalone (opened directly) is unchanged. Sampling, metric
+   computation and the {type:'telemetry'} postMessage stream are untouched. */
+(function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
+<style>html[data-gt-chrome="off"] #howto{display:none}</style>
+<script>/* Instant-question gate. Embedded in the screener the "How to use" panel is hidden so the
+   child sees the question itself the moment it appears; the per-item status line carries the
+   instruction in words. A test should not spend its first seconds being read. `?chrome=1`
+   restores the panel for a walkthrough, and standalone (opened directly) is unchanged. */
+(function(){var f=/(^|[?&])chrome=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-chrome','off');})();</script>
+<link rel="stylesheet" href="../exam-skin.css">
+<style data-gt-demo-presentation="1">
+/* Catalogue-only presentation pass. Not present in the live screener. */
+
+/* The play button and its broken copy. Hidden, not removed: the page's start path still
+   needs the button in the DOM for the autostart patch to click. */
+#playgate { display: none !important; }
+
+/* Authoring instrumentation: item id, difficulty meters, event log. */
+#telemetry { display: none !important; }
+
+/* body stays flex and #wrap keeps flex:1, so hiding the sidebar is enough to hand the
+   question the full width. #wrap already centres its own children. */
+
+/* #howto is now the viewer's only orientation, so lift it slightly off the page. */
+#howto {
+  max-width: 720px !important;
+  box-shadow: 0 10px 30px -20px #002a3a !important;
+}
+
+/* Press t to bring the telemetry panel back mid-demo. */
+html[data-gt-demo-presentation-tel] #telemetry { display: flex !important; }
+</style>
+<script data-gt-demo-presentation="1">
+/* Catalogue-only: `t` reveals the telemetry panel, for showing what the item measures. */
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 't' && e.key !== 'T') return;
+  var tag = (e.target && e.target.tagName) || '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || e.metaKey || e.ctrlKey || e.altKey) return;
+  var root = document.documentElement;
+  var attr = 'data-gt-demo-presentation-tel';
+  if (root.hasAttribute(attr)) root.removeAttribute(attr);
+  else root.setAttribute(attr, '1');
+});
+</script>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">GB-WORDFORGE-01 · Word Forge</div>
+    <header id="howto">
+      <h1>How to use — Word Forge</h1>
+      <p>Tap letter tiles to spell a word into the slot, then press the check (<b>&#10003;</b>) to forge it
+      and start the next one. Build as many real words as you can before the timer runs out. A tile can be
+      used again in a different word. Use clear (<b>&#9003;</b>) to empty the slot, or DONE to finish early.
+      Only try words you think are real: every two made-up words take away one of your real ones.</p>
+    </header>
+    <div id="phasecue" data-phase="waiting">Waiting for item</div>
+    <div id="prompt"></div>
+    <div id="stagecard">
+      <div id="timerwrap"><div id="timerbar"><div id="timerfill"></div></div><div id="timertext">&mdash;</div></div>
+      <div id="rack" class="off"></div>
+      <div id="slot"><span class="hint">Tap tiles to spell a word</span></div>
+      <div id="shelf"></div>
+      <div id="controls">
+        <button id="replay" title="show how again">&#8635;</button>
+        <button id="clear" title="clear the slot">&#9003;</button>
+        <button id="enter" title="forge this word">&#10003;</button>
+        <button id="done" title="finish this round">DONE</button>
+      </div>
+      <div class="hotkeys">type letters on the keyboard &middot; backspace clears &middot; enter forges the word</div>
+      <div id="status" class="neutral">Waiting for an item from the host.</div>
+    </div>
+    <div id="playgate">
+      <p>The word game is ready. Press play when you are, and the timer starts then.</p>
+      <p>Only try words you think are real. Every two made-up words take away one of your real words.</p>
+      <button type="button" id="play">Play</button>
+    </div>
+  </div>
+  <aside id="telemetry">
+    <h3>Live telemetry · per-child (display only)</h3>
+    <div id="itemcard">
+      <div class="itemRow"><span>ITEM</span><b id="i_id">&mdash;</b></div>
+      <div class="itemRow"><span>RACK · MIN LENGTH</span><b id="i_rack">&mdash;</b></div>
+      <div class="itemRow"><span>WORDS FORGED</span><b id="i_words">&mdash;</b></div>
+      <div class="itemRow"><span>SERVED DIFFICULTY</span><b id="i_diff">&mdash;</b></div>
+    </div>
+    <div id="mode">No lexicon ships to the browser. Which words count, and how many were
+      available, are <b>judged server-side</b>; this panel shows production and process signals only.</div>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#ff8a3d" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+/* =====================================================================
+ * GB-WORDFORGE-01 — PURE RENDERER
+ *
+ * Renders a SERVED item (item.content: rack, minWordLength, timeBudgetSec) and reports the
+ * child's RAW production log plus process telemetry. It NEVER generates its own rack and it
+ * NEVER shows correct/incorrect.
+ *
+ * The subtle part for this type: the renderer has NO LEXICON. For a word game, "that is a real
+ * word" IS the answer key, so a shake-on-invalid animation would leak the key on every entry.
+ * Every submission is therefore accepted onto the shelf and written to the attempt log exactly
+ * as typed; the server intersects the log with the rack-derivable word set to compute M-ACC,
+ * M-IDEAFLU, M-VOCABLVL and M-EFF (BUILD_PLAN §2, scoring.mode = 'computed_solver').
+ * M-IDEAFLU reported here is the plain count of DISTINCT SUBMISSIONS — an upper bound the
+ * server replaces with the validated count.
+ *
+ * That is also why the shelf cannot show a made-up-word tally: made-up words now cost the child
+ * credit (verifyWordforge), but only the server can tell which entries they were, so this file
+ * states the penalty in the play gate before the round and then judges nothing.
+ *
+ * Embedding protocol (postMessage), source-tagged:
+ *   host -> demo : {source:'gt-exam-host', type:'init',  item:ServedItem}
+ *                  {source:'gt-exam-host', type:'start', tutorial?:bool}
+ *   demo -> host : {source:'gt-exam-demo', type:'ready'}
+ *                  {source:'gt-exam-demo', type:'result',    result:ItemResult}
+ *                  {source:'gt-exam-demo', type:'telemetry', event:TelemetryEvent}
+ *
+ * Standalone (double-click / no host): fetches the bank JSONL if the page is served, else
+ * falls back to inline ServedItems, so the file still runs with no build step and no network.
+ * ===================================================================== */
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+const HOST='gt-exam-host', SELF='gt-exam-demo';
+const embedded=(()=>{try{return window.parent&&window.parent!==window;}catch(_){return true;}})();
+function post(type,extra){if(!embedded)return;try{window.parent.postMessage(Object.assign({source:SELF,type},extra||{}),'*');}catch(_){}}
+
+/* ---------- per-item state ---------- */
+let item=null,content=null,rack=[],minLen=3,budgetMs=60000;
+let slot=[];              // [{tileIndex, letter}] currently being spelled
+let usedTiles=new Set();  // tile indices consumed by the word in the slot
+let forged=[];            // ordered submissions, exactly as entered
+let locked=true;          // released the moment interaction starts (see startItem)
+let started=false, submitted=false, dirtyBuild=false;
+let timerId=null, endsAt=0;
+const T={t0:0,first:null,clears:0,rt:0,blur:0,cleanBuilds:0,events:[],log:[],lastActivity:0};
+
+/* ---------- worded phase + status (never correct/incorrect) ---------- */
+const PHASE={waiting:'Waiting for item',warmup:'Ready when you are',hint:'Watch the pointer',ready:'Your turn',forging:'Forging',sent:'Words sent'};
+function setCue(k){const el=$('#phasecue');el.dataset.phase=k;el.textContent=PHASE[k];}
+function setStatus(cls,msg){const el=$('#status');el.className=cls;el.textContent=msg;}
+
+/* ---------- telemetry (process + production only; nothing needs a key) ---------- */
+function nowRel(){return Math.max(0,performance.now()-(T.t0||performance.now()));}
+function distinctCount(){return new Set(forged.map(f=>f.word)).size;}
+function distinctLengths(){return new Set(forged.map(f=>f.word.length)).size;}
+function planful(){return forged.length?Math.round(100*T.cleanBuilds/forged.length):0;}
+function latePush(){const cut=budgetMs*(2/3);return forged.filter(f=>f.t>=cut).length;}
+const METERS=[
+ {id:'M-IDEAFLU',name:'Distinct words produced (server validates)',get:()=>String(distinctCount())},
+ {id:'M-PATH',name:'Total entries submitted',get:()=>String(forged.length)},
+ {id:'M-RTFIRST',name:'Time to first word (lexical access)',get:()=>T.first==null?'\u2014':Math.round(T.first)+' ms'},
+ {id:'M-RT',name:'Time used this round',get:()=>T.rt?T.rt+' ms':Math.round(nowRel())+' ms'},
+ {id:'M-PLANFUL',name:'Words built without a clear (%)',get:()=>forged.length?planful()+'%':'\u2014'},
+ {id:'M-REV',name:'Slot clears (revisions)',get:()=>String(T.clears)},
+ {id:'M-PERSIST',name:'Entries in the final third of the round',get:()=>String(latePush())},
+ {id:'M-ENGAGE',name:'Focus losses (tracked, not enforced)',get:()=>String(T.blur)},
+ {id:'M-RAPIDGUESS',name:'Rapid-response flag (tracked)',get:()=>T.rt?(T.first!=null&&T.first<400?'1 \u00b7 rapid':'0'):'\u2014'},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>
+  `<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span>`
+  +`<span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});
+  $('#i_words').textContent=`${distinctCount()} distinct / ${forged.length} sent`;}
+function log(msg){const d=document.createElement('div');
+  d.innerHTML=`<span class="t">+${Math.round(nowRel())}ms</span> ${msg}`;
+  const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+function emit(kind,data){const ev=Object.assign({t:Math.round(nowRel()),kind,itemId:item?item.itemId:null},data||{});
+  T.events.push(ev);post('telemetry',{event:ev});}
+
+/* ---------- rendering ---------- */
+function paintRack(){
+  $('#rack').innerHTML=rack.map((c,i)=>
+    `<span class="tile${usedTiles.has(i)?' used':''}" data-i="${i}" tabindex="0">${c}</span>`).join('');
+}
+function paintSlot(){
+  $('#slot').innerHTML=slot.length
+    ? slot.map(s=>`<span class="slotletter">${s.letter}</span>`).join('')
+    : '<span class="hint">Tap tiles to spell a word</span>';
+  $('#enter').classList.toggle('ready',!locked&&!submitted&&slot.length>0);
+}
+function paintShelf(){
+  // Neutral chips only. No rarity colouring, no length bonus, no validity styling — any of
+  // those would tell the child whether the word counted.
+  $('#shelf').innerHTML=forged.map(f=>`<span class="forged">${f.word}</span>`).join('');
+}
+function paintTimer(){
+  if(!started||submitted){return;}
+  const leftMs=Math.max(0,endsAt-performance.now());
+  $('#timerfill').style.width=(100*leftMs/budgetMs)+'%';
+  $('#timertext').textContent=Math.ceil(leftMs/1000)+'s';
+  if(leftMs<=0){clearInterval(timerId);timerId=null;finishRound('timer');}
+}
+
+/* ---------- interaction: every entry is accepted and logged, judged later ---------- */
+function noteFirst(){if(T.first==null&&started){T.first=performance.now()-T.t0;emit('first_action',{ms:Math.round(T.first)});}}
+function tapTile(i){
+  if(locked||submitted||usedTiles.has(i))return;
+  noteFirst();
+  usedTiles.add(i);slot.push({tileIndex:i,letter:rack[i]});
+  emit('tile',{index:i,letter:rack[i]});
+  setCue('forging');
+  paintRack();paintSlot();
+}
+function clearSlot(manual){
+  if(locked||submitted)return;
+  if(manual&&slot.length){T.clears++;dirtyBuild=true;emit('clear',{letters:slot.length});log('slot cleared');}
+  usedTiles.clear();slot=[];
+  paintRack();paintSlot();renderMeters();
+}
+function forgeWord(){
+  if(locked||submitted||!slot.length)return;
+  const word=slot.map(s=>s.letter).join('');
+  const t=Math.round(nowRel());
+  forged.push({word,t,tiles:slot.map(s=>s.tileIndex)});
+  if(!dirtyBuild)T.cleanBuilds++;
+  dirtyBuild=false;
+  T.log.push({t,kind:'submit',word,tiles:slot.map(s=>s.tileIndex)});
+  usedTiles.clear();slot=[];
+  // NEUTRAL acknowledgement only. The renderer has no lexicon and makes no judgement.
+  setStatus('neutral',`Added "${word}". Keep going.`);
+  emit('word',{word,index:forged.length-1});
+  log(`entry ${forged.length}: ${word}`);
+  paintRack();paintSlot();paintShelf();renderMeters();
+}
+function finishRound(endedBy){
+  if(submitted||!started)return;
+  submitted=true;locked=true;
+  clearInterval(timerId);timerId=null;
+  T.rt=Math.round(performance.now()-T.t0);
+  $('#rack').classList.add('off');$('#enter').classList.remove('ready');
+  $('#timerfill').style.width='0%';$('#timertext').textContent='0s';
+  setCue('sent');
+  setStatus('neutral','Words sent. Next puzzle coming up.');   // never correct/incorrect
+  const response={
+    submissions:forged.slice(),          // the FULL ordered production log, exactly as entered
+    attemptLog:T.log.slice(),            // same log with clears interleaved, in order
+    entryCount:forged.length,
+    distinctSubmissions:distinctCount(),
+    clearCount:T.clears,
+    msToFirstWord:T.first==null?null:Math.round(T.first),
+    msUsed:T.rt,
+    endedBy,                             // 'timer' | 'child'
+    focusLosses:T.blur,
+  };
+  const metrics={
+    'M-IDEAFLU':distinctCount(),         // unvalidated production count; server replaces it
+    'M-PATH':forged.length,
+    'M-RT':T.rt,
+    'M-RTFIRST':T.first==null?T.rt:Math.round(T.first),
+    'M-PLANFUL':planful(),
+    'M-REV':T.clears,
+    'M-PERSIST':latePush(),
+    'M-FLEX':distinctLengths(),
+    'M-ENGAGE':T.blur,
+    'M-RAPIDGUESS':(T.first!=null&&T.first<400)?1:0,
+  };
+  const result={itemId:item.itemId,typeCode:item.typeCode,domain:item.domain,response,metrics,telemetry:T.events.slice()};
+  emit('submit',{entries:forged.length,endedBy,msUsed:T.rt});
+  post('result',{result});
+  log(`RESULT emitted \u2192 ${JSON.stringify({entries:forged.length,endedBy,metrics})}`);
+  renderMeters();
+  if(standalone)setTimeout(advanceStandalone,1600);
+}
+
+/* ---------- ghost pointer: teaches the GESTURE, never a word ---------- */
+const ghost=$('#ghost');
+function ghostShow(v){ghost.classList.toggle('show',v);}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(460);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(360);}
+async function gestureHint(){
+  // Points at the rack, the slot and the check. It spells nothing and taps no tile, so it
+  // cannot hand the child a word.
+  ghostShow(true);await sleep(250);
+  await ghostTo($('#rack .tile'));await ghostTap();
+  await ghostTo($('#slot'));await sleep(150);
+  await ghostTo($('#enter'));await ghostTap();
+  ghostShow(false);await sleep(250);
+}
+
+/* ---------- item lifecycle ---------- */
+/* R1 — the round waits behind the play gate. The rack is rendered on `init` but stays covered
+   and inert until the child presses play, which is when the 75-second clock and the response
+   timers start. It is also the last thing they read before the clock runs, which is why the
+   made-up-word penalty is stated there: a penalty nobody announced measures whether a child
+   guessed the rules rather than what words they know. */
+let gateTutorial=false,hintShown=false;
+function openGate(withTutorial){
+  gateTutorial=!!withTutorial;
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('warmup');
+  setStatus('neutral','Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
+function loadItem(served){
+  item=served;content=served.content;
+  rack=content.rack.slice();minLen=content.minWordLength;
+  budgetMs=Math.max(5,Number(content.timeBudgetSec)||60)*1000;
+  slot=[];usedTiles=new Set();forged=[];
+  locked=true;started=false;submitted=false;dirtyBuild=false;
+  clearInterval(timerId);timerId=null;
+  Object.assign(T,{t0:0,first:null,clears:0,rt:0,blur:0,cleanBuilds:0,events:[],log:[],lastActivity:performance.now()});
+  $('#rack').classList.add('off');
+  paintRack();paintSlot();paintShelf();
+  $('#prompt').textContent=content.prompt||'';
+  $('#timerfill').style.width='100%';
+  $('#timertext').textContent=Math.round(budgetMs/1000)+'s';
+  $('#i_id').textContent=(served.itemId||'\u2014').slice(0,8);
+  $('#i_rack').textContent=`${rack.join('')} \u00b7 ${minLen}+`;
+  $('#i_diff').textContent=served.difficulty==null?'\u2014':Number(served.difficulty).toFixed(2)+'/20';
+  $('#log').innerHTML='';
+  log(`item ${(served.itemId||'').slice(0,8)} \u00b7 rack ${rack.join('')} \u00b7 min ${minLen} \u00b7 ${Math.round(budgetMs/1000)}s`);
+  renderMeters();
+  openGate(false);
+}
+async function startItem(withHint){
+  if(started||submitted||!content)return;
+  closeGate();
+  started=true;T.t0=performance.now();T.lastActivity=performance.now();
+  emit('start',{});
+  if(withHint&&!hintShown){
+    hintShown=true;
+    setCue('hint');setStatus('neutral','Watch the pointer, then take your turn. The timer starts after this.');
+    await gestureHint();
+    if(submitted)return;
+  }
+  // Release the interaction lock HERE. Setting `locked` on load and forgetting to clear it is
+  // exactly the bug that silently blocked result emission in the old SPA-FOLDNET-01 renderer.
+  locked=false;
+  $('#rack').classList.remove('off');
+  endsAt=performance.now()+budgetMs;
+  T.t0=performance.now();
+  clearInterval(timerId);timerId=setInterval(paintTimer,200);
+  setCue('ready');
+  setStatus('neutral',`Spell a word with the tiles, then press the check. Words need ${minLen} letters or more.`);
+  paintSlot();renderMeters();
+}
+
+/* ---------- input ---------- */
+// A second press is a no-op: startItem() returns early once `started` is set.
+$('#play').addEventListener('click',()=>{if(content&&!started&&!submitted)startItem(gateTutorial);});
+$('#rack').addEventListener('click',e=>{const t=e.target.closest('.tile');if(t)tapTile(+t.dataset.i);});
+$('#clear').addEventListener('click',()=>clearSlot(true));
+$('#enter').addEventListener('click',()=>{if($('#enter').classList.contains('ready'))forgeWord();});
+$('#done').addEventListener('click',()=>finishRound('child'));
+$('#replay').addEventListener('click',()=>{if(started&&!submitted)gestureHint();});
+addEventListener('keydown',e=>{
+  T.lastActivity=performance.now();
+  if(locked||submitted)return;
+  if(e.key==='Backspace'){e.preventDefault();clearSlot(true);return;}
+  if(e.key==='Enter'){e.preventDefault();forgeWord();return;}
+  if(/^[a-zA-Z]$/.test(e.key)){
+    e.preventDefault();
+    const ch=e.key.toUpperCase();
+    const i=rack.findIndex((c,idx)=>c===ch&&!usedTiles.has(idx));
+    if(i>=0)tapTile(i);
+    else setStatus('neutral',`No "${ch}" tile is free. Pick another letter.`);
+  }
+});
+addEventListener('pointerdown',()=>{T.lastActivity=performance.now();});
+addEventListener('blur',()=>{if(started&&!submitted){T.blur++;emit('engagement',{reason:'blur'});renderMeters();}});
+
+/* ---------- host messages ---------- */
+let gotInit=false;
+addEventListener('message',e=>{
+  const d=e.data;if(!d||d.source!==HOST)return;
+  if(d.type==='init'&&d.item){gotInit=true;loadItem(d.item);post('ready');}
+  // `start` ARMS the gate. Only the play press begins the round.
+  else if(d.type==='start')openGate(!!d.tutorial);
+});
+
+/* ---------- standalone fallback (no host present) ----------
+   Real ServedItems exported from banks/GB-WORDFORGE-01.jsonl. A ServedItem carries no answer,
+   no scoring and no provenance, so nothing here reveals which words the rack affords. */
+const INLINE_SAMPLES=[{"itemId":"163aefe4-f173-4d85-825d-310d584c20f5","typeCode":"GB-WORDFORGE-01","domain":"verbal","difficulty":1,"ageBands":["K-1"],"demoPath":"demos/GB-WORDFORGE-01.html","content":{"typeCode":"GB-WORDFORGE-01","presentation":"word","prompt":"Build as many real words as you can before time runs out. Each word must use 3 letters or more. You may use a tile again in a different word.","rack":["T","G","E","A","R"],"rackSize":5,"minWordLength":3,"timeBudgetSec":75,"tileReuseAcrossWords":true,"tileReuseWithinWord":false,"scaffold":{"warmup":true}},"syntheticOnly":true,"validated":false},{"itemId":"6243aba6-f43e-4436-8044-e337ee2f551e","typeCode":"GB-WORDFORGE-01","domain":"verbal","difficulty":6.69,"ageBands":["2-3"],"demoPath":"demos/GB-WORDFORGE-01.html","content":{"typeCode":"GB-WORDFORGE-01","presentation":"word","prompt":"Build as many real words as you can before time runs out. Each word must use 4 letters or more. You may use a tile again in a different word.","rack":["E","M","R","H","O","T"],"rackSize":6,"minWordLength":4,"timeBudgetSec":62,"tileReuseAcrossWords":true,"tileReuseWithinWord":false,"scaffold":{"warmup":false}},"syntheticOnly":true,"validated":false},{"itemId":"04f2a42e-3241-4bc0-8b6e-9ec3dcc2d01b","typeCode":"GB-WORDFORGE-01","domain":"verbal","difficulty":12.83,"ageBands":["6-8"],"demoPath":"demos/GB-WORDFORGE-01.html","content":{"typeCode":"GB-WORDFORGE-01","presentation":"word","prompt":"Build as many real words as you can before time runs out. Each word must use 5 letters or more. You may use a tile again in a different word.","rack":["E","R","C","P","A","T","E","I"],"rackSize":8,"minWordLength":5,"timeBudgetSec":54,"tileReuseAcrossWords":true,"tileReuseWithinWord":false,"scaffold":{"warmup":false}},"syntheticOnly":true,"validated":false},{"itemId":"c968d337-ca9d-4cbb-94da-5975c984cb86","typeCode":"GB-WORDFORGE-01","domain":"verbal","difficulty":20,"ageBands":["6-8"],"demoPath":"demos/GB-WORDFORGE-01.html","content":{"typeCode":"GB-WORDFORGE-01","presentation":"word","prompt":"Build as many real words as you can before time runs out. Each word must use 5 letters or more. You may use a tile again in a different word.","rack":["G","U","E","D","R","E","L","P"],"rackSize":8,"minWordLength":5,"timeBudgetSec":40,"tileReuseAcrossWords":true,"tileReuseWithinWord":false,"scaffold":{"warmup":false}},"syntheticOnly":true,"validated":false}];
+let standalone=false,queue=[],qi=0;
+function toServed(b){const{answer,scoring,provenance,...s}=b;return s;}
+async function loadSamples(){
+  try{
+    const res=await fetch('../banks/GB-WORDFORGE-01.jsonl',{cache:'no-store'});
+    if(res.ok){
+      const all=(await res.text()).trim().split('\n').filter(Boolean).map(l=>JSON.parse(l)).map(toServed);
+      all.sort((a,b)=>a.difficulty-b.difficulty);
+      const N=Math.min(8,all.length),pick=[];
+      for(let i=0;i<N;i++)pick.push(all[N===1?0:Math.round(i*(all.length-1)/(N-1))]);
+      log('standalone: fetched '+all.length+' bank items; cycling '+pick.length+' across the ramp');
+      return pick;
+    }
+  }catch(_){/* file:// blocks fetch — inline samples below */}
+  log('standalone: bank fetch unavailable (serve the folder for the full bank) — using inline samples');
+  return INLINE_SAMPLES.slice();
+}
+// Standalone shows the same gate the child sees, so the double-click QA flow matches production.
+function playStandalone(){loadItem(queue[qi%queue.length]);openGate(!!(content.scaffold&&content.scaffold.warmup));}
+function advanceStandalone(){qi++;playStandalone();}
+async function bootstrapStandalone(){
+  if(standalone)return;standalone=true;
+  $('#howto').querySelector('p').insertAdjacentHTML('beforeend',' <b>(Standalone preview: cycling built-in sample items.)</b>');
+  queue=await loadSamples();qi=0;playStandalone();
+}
+
+/* ---------- boot ---------- */
+buildMeters();renderMeters();
+post('ready');
+if(!embedded)bootstrapStandalone();   // embedded: wait indefinitely for host init; self-bootstrapping would race it
+</script>
+
+<script data-gt-demo-autostart="1">
+/* Catalogue-only: dismiss the press-play gate so browsing is uninterrupted.
+   Clicks the demo's own #play button rather than reimplementing its start logic.
+   Not present in the live screener. */
+(function () {
+  var root = document.documentElement;
+  var tries = 0;
+  function go() {
+    var btn = document.getElementById('play');
+    if (!btn) return;
+    if (!root.hasAttribute('data-gt-gate')) return;
+    btn.click();
+  }
+  // The gate reopens between rounds in several demos, so watch rather than fire once.
+  if (window.MutationObserver) {
+    new MutationObserver(function () { go(); })
+      .observe(root, { attributes: true, attributeFilter: ['data-gt-gate'] });
+  }
+  // And catch the case where the gate is already up by the time this runs.
+  var poll = setInterval(function () {
+    go();
+    if (++tries > 40) clearInterval(poll);
+  }, 50);
+  window.addEventListener('load', go);
+})();
+</script>
+</body>
+</html>
