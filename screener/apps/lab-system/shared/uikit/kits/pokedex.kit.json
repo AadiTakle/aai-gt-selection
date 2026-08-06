@@ -1,0 +1,131 @@
+{
+  "kit": "gt.uikit/v1",
+  "id": "pokedex",
+  "name": "Pokédex",
+  "describes": "Kanto and a few later evolutions. Entries are grouped into evolution lines, so a line and a stage together name exactly one Pokémon.",
+
+  "art": {
+    "template": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/{dex}.png",
+    "missing": "silhouette"
+  },
+
+  "dimensions": {
+    "identity": { "from": "bank", "field": ["type", "line"], "label": "which type, or which evolution line" },
+    "category": { "from": "bank", "field": ["stage", "line"], "label": "how far evolved, or which line" },
+
+    "count": { "from": "repeat", "of": "the same Pokémon", "max": 9, "label": "how many" },
+    "rotation": { "from": "rotate", "steps": 4, "label": "which way it faces" },
+    "scale": { "from": "scale", "min": 0.6, "max": 1.5, "label": "how big it is drawn" },
+    "fill": { "from": "tint", "values": ["card", "shadow", "outline"], "label": "how the card behind it is treated" },
+    "border": { "from": "tint", "values": ["#e3350d", "#0075be", "#ffcb05", "#4dad5b", "#7c538c", "#5a5a5a"], "label": "ball trim" },
+
+    "tilt": { "from": "none", "why": "sprites are drawn upright and read as broken when leaned" },
+    "position": { "from": "none", "why": "the app owns layout, and an item that reasons about position needs a kit that draws tiles" },
+    "text": { "from": "none", "why": "verbal items are made of words, and no sprite can stand in for what a word means" }
+  },
+
+  "bank": [
+    { "id": "bulbasaur", "label": "Bulbasaur", "dex": 1, "line": "bulbasaur", "type": "grass", "stage": 1 },
+    { "id": "ivysaur", "label": "Ivysaur", "dex": 2, "line": "bulbasaur", "type": "grass", "stage": 2 },
+    { "id": "venusaur", "label": "Venusaur", "dex": 3, "line": "bulbasaur", "type": "grass", "stage": 3 },
+
+    { "id": "charmander", "label": "Charmander", "dex": 4, "line": "charmander", "type": "fire", "stage": 1 },
+    { "id": "charmeleon", "label": "Charmeleon", "dex": 5, "line": "charmander", "type": "fire", "stage": 2 },
+    { "id": "charizard", "label": "Charizard", "dex": 6, "line": "charmander", "type": "fire", "stage": 3 },
+
+    { "id": "squirtle", "label": "Squirtle", "dex": 7, "line": "squirtle", "type": "water", "stage": 1 },
+    { "id": "wartortle", "label": "Wartortle", "dex": 8, "line": "squirtle", "type": "water", "stage": 2 },
+    { "id": "blastoise", "label": "Blastoise", "dex": 9, "line": "squirtle", "type": "water", "stage": 3 },
+
+    { "id": "caterpie", "label": "Caterpie", "dex": 10, "line": "caterpie", "type": "bug", "stage": 1 },
+    { "id": "metapod", "label": "Metapod", "dex": 11, "line": "caterpie", "type": "bug", "stage": 2 },
+    { "id": "butterfree", "label": "Butterfree", "dex": 12, "line": "caterpie", "type": "bug", "stage": 3 },
+
+    { "id": "weedle", "label": "Weedle", "dex": 13, "line": "weedle", "type": "bug", "stage": 1 },
+    { "id": "kakuna", "label": "Kakuna", "dex": 14, "line": "weedle", "type": "bug", "stage": 2 },
+    { "id": "beedrill", "label": "Beedrill", "dex": 15, "line": "weedle", "type": "bug", "stage": 3 },
+
+    { "id": "pidgey", "label": "Pidgey", "dex": 16, "line": "pidgey", "type": "normal", "stage": 1 },
+    { "id": "pidgeotto", "label": "Pidgeotto", "dex": 17, "line": "pidgey", "type": "normal", "stage": 2 },
+    { "id": "pidgeot", "label": "Pidgeot", "dex": 18, "line": "pidgey", "type": "normal", "stage": 3 },
+
+    { "id": "rattata", "label": "Rattata", "dex": 19, "line": "rattata", "type": "normal", "stage": 1 },
+    { "id": "raticate", "label": "Raticate", "dex": 20, "line": "rattata", "type": "normal", "stage": 2 },
+
+    { "id": "ekans", "label": "Ekans", "dex": 23, "line": "ekans", "type": "poison", "stage": 1 },
+    { "id": "arbok", "label": "Arbok", "dex": 24, "line": "ekans", "type": "poison", "stage": 2 },
+
+    { "id": "pichu", "label": "Pichu", "dex": 172, "line": "pikachu", "type": "electric", "stage": 1 },
+    { "id": "pikachu", "label": "Pikachu", "dex": 25, "line": "pikachu", "type": "electric", "stage": 2 },
+    { "id": "raichu", "label": "Raichu", "dex": 26, "line": "pikachu", "type": "electric", "stage": 3 },
+
+    { "id": "sandshrew", "label": "Sandshrew", "dex": 27, "line": "sandshrew", "type": "ground", "stage": 1 },
+    { "id": "sandslash", "label": "Sandslash", "dex": 28, "line": "sandshrew", "type": "ground", "stage": 2 },
+
+    { "id": "nidoran", "label": "Nidoran", "dex": 29, "line": "nidoran", "type": "poison", "stage": 1 },
+    { "id": "nidorina", "label": "Nidorina", "dex": 30, "line": "nidoran", "type": "poison", "stage": 2 },
+    { "id": "nidoqueen", "label": "Nidoqueen", "dex": 31, "line": "nidoran", "type": "poison", "stage": 3 },
+
+    { "id": "cleffa", "label": "Cleffa", "dex": 173, "line": "clefairy", "type": "fairy", "stage": 1 },
+    { "id": "clefairy", "label": "Clefairy", "dex": 35, "line": "clefairy", "type": "fairy", "stage": 2 },
+    { "id": "clefable", "label": "Clefable", "dex": 36, "line": "clefairy", "type": "fairy", "stage": 3 },
+
+    { "id": "vulpix", "label": "Vulpix", "dex": 37, "line": "vulpix", "type": "fire", "stage": 1 },
+    { "id": "ninetales", "label": "Ninetales", "dex": 38, "line": "vulpix", "type": "fire", "stage": 2 },
+
+    { "id": "zubat", "label": "Zubat", "dex": 41, "line": "zubat", "type": "poison", "stage": 1 },
+    { "id": "golbat", "label": "Golbat", "dex": 42, "line": "zubat", "type": "poison", "stage": 2 },
+    { "id": "crobat", "label": "Crobat", "dex": 169, "line": "zubat", "type": "poison", "stage": 3 },
+
+    { "id": "oddish", "label": "Oddish", "dex": 43, "line": "oddish", "type": "grass", "stage": 1 },
+    { "id": "gloom", "label": "Gloom", "dex": 44, "line": "oddish", "type": "grass", "stage": 2 },
+    { "id": "vileplume", "label": "Vileplume", "dex": 45, "line": "oddish", "type": "grass", "stage": 3 },
+
+    { "id": "diglett", "label": "Diglett", "dex": 50, "line": "diglett", "type": "ground", "stage": 1 },
+    { "id": "dugtrio", "label": "Dugtrio", "dex": 51, "line": "diglett", "type": "ground", "stage": 2 },
+
+    { "id": "growlithe", "label": "Growlithe", "dex": 58, "line": "growlithe", "type": "fire", "stage": 1 },
+    { "id": "arcanine", "label": "Arcanine", "dex": 59, "line": "growlithe", "type": "fire", "stage": 2 },
+
+    { "id": "poliwag", "label": "Poliwag", "dex": 60, "line": "poliwag", "type": "water", "stage": 1 },
+    { "id": "poliwhirl", "label": "Poliwhirl", "dex": 61, "line": "poliwag", "type": "water", "stage": 2 },
+    { "id": "poliwrath", "label": "Poliwrath", "dex": 62, "line": "poliwag", "type": "water", "stage": 3 },
+
+    { "id": "abra", "label": "Abra", "dex": 63, "line": "abra", "type": "psychic", "stage": 1 },
+    { "id": "kadabra", "label": "Kadabra", "dex": 64, "line": "abra", "type": "psychic", "stage": 2 },
+    { "id": "alakazam", "label": "Alakazam", "dex": 65, "line": "abra", "type": "psychic", "stage": 3 },
+
+    { "id": "machop", "label": "Machop", "dex": 66, "line": "machop", "type": "fighting", "stage": 1 },
+    { "id": "machoke", "label": "Machoke", "dex": 67, "line": "machop", "type": "fighting", "stage": 2 },
+    { "id": "machamp", "label": "Machamp", "dex": 68, "line": "machop", "type": "fighting", "stage": 3 },
+
+    { "id": "bellsprout", "label": "Bellsprout", "dex": 69, "line": "bellsprout", "type": "grass", "stage": 1 },
+    { "id": "weepinbell", "label": "Weepinbell", "dex": 70, "line": "bellsprout", "type": "grass", "stage": 2 },
+    { "id": "victreebel", "label": "Victreebel", "dex": 71, "line": "bellsprout", "type": "grass", "stage": 3 },
+
+    { "id": "tentacool", "label": "Tentacool", "dex": 72, "line": "tentacool", "type": "water", "stage": 1 },
+    { "id": "tentacruel", "label": "Tentacruel", "dex": 73, "line": "tentacool", "type": "water", "stage": 2 },
+
+    { "id": "geodude", "label": "Geodude", "dex": 74, "line": "geodude", "type": "rock", "stage": 1 },
+    { "id": "graveler", "label": "Graveler", "dex": 75, "line": "geodude", "type": "rock", "stage": 2 },
+    { "id": "golem", "label": "Golem", "dex": 76, "line": "geodude", "type": "rock", "stage": 3 },
+
+    { "id": "magnemite", "label": "Magnemite", "dex": 81, "line": "magnemite", "type": "electric", "stage": 1 },
+    { "id": "magneton", "label": "Magneton", "dex": 82, "line": "magnemite", "type": "electric", "stage": 2 },
+    { "id": "magnezone", "label": "Magnezone", "dex": 462, "line": "magnemite", "type": "electric", "stage": 3 },
+
+    { "id": "seel", "label": "Seel", "dex": 86, "line": "seel", "type": "ice", "stage": 1 },
+    { "id": "dewgong", "label": "Dewgong", "dex": 87, "line": "seel", "type": "ice", "stage": 2 },
+
+    { "id": "gastly", "label": "Gastly", "dex": 92, "line": "gastly", "type": "ghost", "stage": 1 },
+    { "id": "haunter", "label": "Haunter", "dex": 93, "line": "gastly", "type": "ghost", "stage": 2 },
+    { "id": "gengar", "label": "Gengar", "dex": 94, "line": "gastly", "type": "ghost", "stage": 3 },
+
+    { "id": "cubone", "label": "Cubone", "dex": 104, "line": "cubone", "type": "ground", "stage": 1 },
+    { "id": "marowak", "label": "Marowak", "dex": 105, "line": "cubone", "type": "ground", "stage": 2 },
+
+    { "id": "dratini", "label": "Dratini", "dex": 147, "line": "dratini", "type": "dragon", "stage": 1 },
+    { "id": "dragonair", "label": "Dragonair", "dex": 148, "line": "dratini", "type": "dragon", "stage": 2 },
+    { "id": "dragonite", "label": "Dragonite", "dex": 149, "line": "dratini", "type": "dragon", "stage": 3 }
+  ]
+}
