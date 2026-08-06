@@ -95,7 +95,19 @@ export interface Question {
  * faked. Declining is a supported path: the API counts a response it cannot interpret as `unscorable`
  * and excludes it from the estimate instead of guessing.
  */
-export const UNPRESENTABLE: readonly string[] = ['CX-check-01', 'SPA-MAZE-01', 'SPA-VIEW-01'];
+export const UNPRESENTABLE: readonly string[] = [
+  'CX-check-01',
+  'SPA-MAZE-01',
+  'SPA-VIEW-01',
+  // VER-EVIDENCE-01 keys on a COMPOUND answer: `"A+s5"` means option A plus the sentence that supports
+  // it, so the item wants two taps. Submitting the option alone is marked WRONG, which meant every one
+  // of these was failed no matter what a child picked, silently, for roughly 8% of serves. Found by
+  // `verify-provenance.ts` comparing the on-disk key against what the server accepted, not by any test.
+  //
+  // Declined rather than faked. Supporting it properly means a second selection phase (pick the answer,
+  // then pick the line that proves it), which is a good mechanic and a real piece of work.
+  'VER-EVIDENCE-01',
+];
 
 function rec(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === 'object' && !Array.isArray(value)

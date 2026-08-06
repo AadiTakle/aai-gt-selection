@@ -310,3 +310,42 @@ answerable on their merits.
 
 **The iframe-based apps from the first pass are still in the launcher** below the headless ones. They
 work, but they are the wrong architecture and should either be rebuilt headlessly or removed.
+
+---
+
+# Provenance: proof the questions are the library's
+
+`npx tsx apps/lab-system/verify-provenance.ts` from `screener/`, with the API up on 5202.
+
+The claim "nothing here is made up" is checkable rather than assertable, so it is checked. Latest run,
+42 items traced across all four bands:
+
+| Check | Result |
+| --- | --- |
+| Every served item found by id in a bank file on disk | yes, 42 of 42 |
+| Answer key present anywhere in the served payload | no |
+| Submitting the on-disk `correctKey` marked correct by the server | 26 times |
+| Submitting a different key marked wrong by the server | 16 times |
+| Difficulty range served | 3.6 to 13.0, spread 9.3 |
+| Distinct engine selection reasons | 38 |
+
+The last two are what distinguish an adaptive engine from a fixed list. Real reasons the engine gave:
+`blueprint minimum for quantitative; information 0.231 at threshold 1.00` and `highest information at
+threshold 1.00 (0.220) from 309 remaining`.
+
+A static audit of the five headless apps: **zero** hardcoded questions or answer keys, **zero** direct
+`fetch` calls (every one goes through `useQuestionSession`), and correctness only ever arrives from the
+server through `onAnswered`. No app grades anything itself.
+
+## What the provenance check caught that nothing else did
+
+**`VER-EVIDENCE-01` keys on a compound answer.** Its `correctKey` is `"A+s5"`, meaning option A **plus
+the sentence that supports it**, so the item wants two selections. The apps were submitting the option
+alone, which the server marks WRONG every single time. Roughly 8% of serves were therefore being failed
+regardless of what a child picked, silently, and no test would have found it because the app behaved
+exactly as written.
+
+It is now declined, and the verifier asserts that any type whose key is not one of its own option keys is
+declined, so this class of bug cannot come back unnoticed. Supporting it properly means a second
+selection phase, pick the answer then pick the line that proves it, which is a good mechanic and real
+work rather than a patch.
