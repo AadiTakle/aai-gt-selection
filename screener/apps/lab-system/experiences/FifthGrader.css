@@ -1,0 +1,1299 @@
+/* A television studio: deep blue-black, hot gold, hard light from above, and everything on the floor
+   sitting in its own pool of it. Nothing here is rounded much and nothing is pastel — a game show set
+   is built from heavy shapes, strong contrast and bulbs. */
+
+.fg {
+  --night: #04070f;
+  --deep: #080e1e;
+  --stage: #101a35;
+  --panel: #16223f;
+  --edge: rgba(242, 199, 68, 0.2);
+  --gold: #f2c744;
+  --gold-hot: #ffe488;
+  --gold-deep: #7d5a10;
+  --cream: #f6f1e4;
+  --dim: #8b98b8;
+
+  position: relative;
+  display: grid;
+  grid-template-columns: 268px 1fr;
+  gap: 20px;
+  min-height: calc(100vh - 48px);
+  padding: 20px 22px 34px;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(120% 78% at 50% -8%, rgba(242, 199, 68, 0.14), transparent 58%),
+    radial-gradient(90% 60% at 50% 108%, rgba(79, 214, 224, 0.08), transparent 60%),
+    linear-gradient(180deg, var(--night) 0%, var(--deep) 45%, #060b18 100%);
+  color: var(--cream);
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+@media (max-width: 940px) {
+  .fg {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---- house lights ---- */
+
+.fg-lights {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.fg-beam {
+  position: absolute;
+  top: -18%;
+  width: 46%;
+  height: 132%;
+  filter: blur(26px);
+  opacity: 0.5;
+  transform-origin: 50% 0;
+}
+
+.fg-beam.a {
+  left: 4%;
+  clip-path: polygon(46% 0, 54% 0, 100% 100%, 0 100%);
+  background: linear-gradient(180deg, rgba(242, 199, 68, 0.34), transparent 72%);
+  animation: fg-sway 13s ease-in-out infinite alternate;
+}
+
+.fg-beam.b {
+  left: 30%;
+  clip-path: polygon(47% 0, 53% 0, 92% 100%, 8% 100%);
+  background: linear-gradient(180deg, rgba(255, 228, 136, 0.3), transparent 70%);
+  animation: fg-sway 17s ease-in-out infinite alternate-reverse;
+}
+
+.fg-beam.c {
+  right: 2%;
+  left: auto;
+  clip-path: polygon(46% 0, 54% 0, 100% 100%, 0 100%);
+  background: linear-gradient(180deg, rgba(79, 214, 224, 0.2), transparent 70%);
+  animation: fg-sway 19s ease-in-out infinite alternate;
+}
+
+@keyframes fg-sway {
+  from {
+    transform: rotate(-3.5deg);
+  }
+  to {
+    transform: rotate(3.5deg);
+  }
+}
+
+/* ---- the ladder rail ---- */
+
+.fg-rail {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 14px 18px;
+  border: 1px solid var(--edge);
+  border-radius: 4px;
+  background: linear-gradient(180deg, rgba(16, 26, 53, 0.92), rgba(6, 11, 24, 0.94));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 20px 44px rgba(0, 0, 0, 0.5);
+  align-self: start;
+}
+
+.fg-railhead {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(242, 199, 68, 0.16);
+}
+
+.fg-railkicker {
+  font: 700 9.5px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.fg-railhead strong {
+  font-size: 1.24rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--cream);
+}
+
+.fg-rungs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fg-rung {
+  position: relative;
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  align-items: center;
+  gap: 0 10px;
+  padding: 7px 10px 7px 7px;
+  border: 1px solid rgba(242, 199, 68, 0.14);
+  border-radius: 3px;
+  background: linear-gradient(90deg, rgba(242, 199, 68, 0.05), rgba(242, 199, 68, 0.01));
+  color: #7d89a8;
+  transition: background 260ms ease, color 260ms ease, border-color 260ms ease;
+}
+
+.fg-rungno {
+  grid-row: 1 / 3;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 2px;
+  background: rgba(242, 199, 68, 0.1);
+  font: 700 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: rgba(242, 199, 68, 0.6);
+}
+
+.fg-runggrade {
+  font-size: 0.86rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.fg-rungtag {
+  grid-column: 2;
+  font: 600 9px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+/* The part of the ladder the whole night is about gets its own edge. */
+.fg-rung.above {
+  border-left: 3px solid rgba(242, 199, 68, 0.4);
+  padding-left: 5px;
+}
+
+.fg-rung.lit {
+  background: linear-gradient(90deg, var(--gold) 0%, #e0af26 100%);
+  border-color: var(--gold-hot);
+  color: #22190a;
+  box-shadow: 0 0 18px rgba(242, 199, 68, 0.28);
+}
+
+.fg-rung.lit .fg-rungno {
+  background: rgba(34, 25, 10, 0.22);
+  color: #22190a;
+}
+
+.fg-rung.lit .fg-rungtag {
+  opacity: 0.7;
+}
+
+.fg-rung.current {
+  border-color: var(--gold);
+  color: var(--gold-hot);
+  background: linear-gradient(90deg, rgba(242, 199, 68, 0.2), rgba(242, 199, 68, 0.04));
+  animation: fg-pulse 2.4s ease-in-out infinite;
+}
+
+.fg-rung.current .fg-rungno {
+  background: rgba(242, 199, 68, 0.28);
+  color: var(--gold-hot);
+}
+
+@keyframes fg-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(242, 199, 68, 0);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(242, 199, 68, 0.34);
+  }
+}
+
+/* ---- classmates ---- */
+
+.fg-class {
+  padding-top: 13px;
+  border-top: 1px solid rgba(242, 199, 68, 0.16);
+}
+
+.fg-classhead {
+  display: block;
+  margin-bottom: 9px;
+  font: 700 9.5px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.fg-desks {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+}
+
+.fg-desk {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 9px 4px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.045);
+  transition: opacity 300ms ease, filter 300ms ease;
+}
+
+.fg-face {
+  width: 30px;
+  height: 30px;
+}
+
+.fg-deskname {
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.fg-deskstate {
+  font: 600 8.5px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.fg-desk.spent {
+  opacity: 0.45;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.fg-desk.spent .fg-deskstate {
+  color: var(--gold);
+}
+
+/* ---- the stage ---- */
+
+.fg-stage {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+.fg-marquee {
+  position: relative;
+  padding: 20px 26px 18px;
+  text-align: center;
+  border: 1px solid var(--edge);
+  border-radius: 4px;
+  background:
+    radial-gradient(120% 160% at 50% 0%, rgba(242, 199, 68, 0.14), transparent 62%),
+    linear-gradient(180deg, rgba(22, 34, 63, 0.95), rgba(8, 14, 30, 0.95));
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+
+/* Bulbs along the top and bottom edge, which is the one shorthand every game show set uses. */
+.fg-bulbs {
+  position: absolute;
+  inset: 5px 8px;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle, rgba(255, 228, 136, 0.95) 0 2px, transparent 2.6px),
+    radial-gradient(circle, rgba(255, 228, 136, 0.95) 0 2px, transparent 2.6px);
+  background-position: 0 0, 0 100%;
+  background-size: 20px 5px;
+  background-repeat: repeat-x;
+  filter: drop-shadow(0 0 4px rgba(242, 199, 68, 0.7));
+  animation: fg-chase 2.6s steps(2) infinite;
+}
+
+@keyframes fg-chase {
+  from {
+    background-position-x: 0, 10px;
+  }
+  to {
+    background-position-x: 10px, 0;
+  }
+}
+
+.fg-marquee h1 {
+  margin: 0;
+  font-size: clamp(1.32rem, 3vw, 2.05rem);
+  font-weight: 900;
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+  color: var(--cream);
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.4);
+}
+
+.fg-marquee h1 em {
+  display: inline-block;
+  font-style: normal;
+  color: var(--gold);
+  text-shadow: 0 0 26px rgba(242, 199, 68, 0.5);
+}
+
+.fg-strap {
+  margin: 8px 0 0;
+  font: 600 10.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+/* ---- cold open, curtain call, and the off-air card ---- */
+
+.fg-open,
+.fg-curtain {
+  display: grid;
+  place-items: center;
+  flex: 1;
+  padding: 34px 20px 46px;
+  border: 1px solid var(--edge);
+  border-radius: 4px;
+  background:
+    radial-gradient(85% 70% at 50% 0%, rgba(242, 199, 68, 0.12), transparent 62%),
+    linear-gradient(180deg, rgba(16, 26, 53, 0.86), rgba(5, 9, 19, 0.94));
+}
+
+.fg-openinner {
+  max-width: 54ch;
+  text-align: center;
+}
+
+.fg-opencue {
+  margin: 0 0 10px;
+  font: 700 9.5px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.fg-openinner h2 {
+  margin: 0 0 12px;
+  font-size: clamp(1.5rem, 3.4vw, 2.3rem);
+  font-weight: 900;
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+  color: var(--cream);
+}
+
+.fg-openbody {
+  margin: 0 auto 22px;
+  max-width: 46ch;
+  font-size: 0.98rem;
+  line-height: 1.6;
+  color: #c3cce0;
+}
+
+.fg-go {
+  position: relative;
+  padding: 15px 40px;
+  border: 0;
+  border-radius: 3px;
+  background: linear-gradient(180deg, var(--gold-hot), var(--gold) 46%, #d9a91f);
+  color: #201806;
+  font-size: 1.02rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  box-shadow:
+    0 0 34px rgba(242, 199, 68, 0.36),
+    0 6px 0 var(--gold-deep),
+    0 14px 26px rgba(0, 0, 0, 0.45);
+  transition: transform 130ms ease, box-shadow 130ms ease;
+}
+
+.fg-go:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 0 46px rgba(242, 199, 68, 0.5),
+    0 8px 0 var(--gold-deep),
+    0 18px 30px rgba(0, 0, 0, 0.5);
+}
+
+.fg-go:active {
+  transform: translateY(3px);
+  box-shadow:
+    0 0 26px rgba(242, 199, 68, 0.34),
+    0 3px 0 var(--gold-deep);
+}
+
+.fg-sofar {
+  margin: 18px 0 0;
+  font: 600 10px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.fg-tally {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 24px;
+}
+
+.fg-tally span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 118px;
+  padding: 12px 14px;
+  border: 1px solid var(--edge);
+  border-radius: 3px;
+  background: rgba(242, 199, 68, 0.06);
+  font: 600 9.5px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.fg-tally em {
+  font: 900 1.6rem/1 system-ui, sans-serif;
+  font-style: normal;
+  letter-spacing: -0.03em;
+  color: var(--gold);
+}
+
+/* ---- the studio floor ---- */
+
+.fg-floor {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+}
+
+.fg-boardhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+/* The category card, which flips on its way in. */
+.fg-cat {
+  position: relative;
+  min-width: 210px;
+  height: 62px;
+  transform-style: preserve-3d;
+  animation: fg-flip 720ms cubic-bezier(0.2, 0.8, 0.25, 1) both;
+}
+
+@keyframes fg-flip {
+  0% {
+    transform: rotateX(-96deg);
+  }
+  100% {
+    transform: rotateX(0deg);
+  }
+}
+
+.fg-catface {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 1px;
+  padding: 0 16px;
+  border-radius: 3px;
+  backface-visibility: hidden;
+}
+
+.fg-catface.back {
+  transform: rotateX(180deg);
+  background: #0d1730;
+  border: 1px solid var(--edge);
+  font: 700 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--gold);
+  justify-content: center;
+}
+
+.fg-catface.front {
+  background: linear-gradient(135deg, var(--gold) 0%, #e6b52c 60%, #c9971a 100%);
+  box-shadow: 0 0 30px rgba(242, 199, 68, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  color: #241a05;
+}
+
+.fg-catface.front strong {
+  font-size: 1.12rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  line-height: 1.05;
+}
+
+.fg-catface.front em {
+  font: 600 9px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-style: normal;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+
+.fg-counter {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  text-align: right;
+}
+
+.fg-counterno {
+  font: 900 1.02rem/1 system-ui, sans-serif;
+  letter-spacing: -0.02em;
+  color: var(--cream);
+}
+
+.fg-counterof {
+  font: 600 9px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.fg-host {
+  margin: 0;
+  font-size: clamp(1.06rem, 2.2vw, 1.42rem);
+  font-weight: 800;
+  line-height: 1.28;
+  letter-spacing: -0.02em;
+  color: var(--cream);
+  text-wrap: balance;
+}
+
+/* ---- the clue board behind the host ---- */
+
+.fg-board {
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 3px solid var(--gold);
+  border-radius: 3px;
+  background:
+    radial-gradient(120% 100% at 50% 0%, rgba(242, 199, 68, 0.09), transparent 66%),
+    linear-gradient(180deg, #0e1a36, #0a1226);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 16px 36px rgba(0, 0, 0, 0.4);
+}
+
+.fg-boardtag,
+.fg-halftag,
+.fg-sidetag {
+  display: block;
+  font: 700 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.fg-plainboard {
+  text-align: center;
+  padding: 4px 0;
+}
+
+/* compare */
+
+.fg-compare {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 16px;
+}
+
+.fg-half {
+  flex: 1;
+  max-width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.fg-halfbody {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  min-height: 128px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.5);
+}
+
+.fg-dotfield {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.fg-dot {
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, var(--gold-hot), var(--gold) 58%, #c9971a);
+  box-shadow: 0 0 8px rgba(242, 199, 68, 0.34);
+}
+
+.fg-versus {
+  align-self: center;
+  font: 900 0.9rem/1 system-ui, sans-serif;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+/* matrix */
+
+.fg-grid {
+  display: grid;
+  gap: 6px;
+  width: fit-content;
+  margin: 0 auto;
+  padding: 10px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.fg-gridcell {
+  display: grid;
+  place-items: center;
+  width: 74px;
+  height: 74px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.fg-gridcell.blank {
+  border: 2px dashed rgba(242, 199, 68, 0.55);
+  background: rgba(242, 199, 68, 0.06);
+}
+
+.fg-blankmark {
+  font: 900 1.7rem/1 system-ui, sans-serif;
+  color: var(--gold);
+  text-shadow: 0 0 18px rgba(242, 199, 68, 0.55);
+}
+
+/* transform */
+
+.fg-machine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.fg-machineside {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.fg-machinebox {
+  display: grid;
+  place-items: center;
+  min-width: 92px;
+  min-height: 92px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.fg-machinebox.mystery {
+  border: 2px dashed rgba(242, 199, 68, 0.55);
+  background: rgba(242, 199, 68, 0.06);
+}
+
+.fg-chain {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 4px 12px;
+}
+
+.fg-op {
+  padding: 6px 12px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #2a3c6e, #1a2646);
+  border: 1px solid rgba(242, 199, 68, 0.3);
+  font: 700 0.76rem/1 system-ui, sans-serif;
+  letter-spacing: 0.02em;
+  text-transform: capitalize;
+  color: var(--cream);
+}
+
+.fg-flow {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 2px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  animation: fg-run 1.9s linear infinite;
+}
+
+@keyframes fg-run {
+  0% {
+    opacity: 0.15;
+    transform: scaleX(0.3);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+  100% {
+    opacity: 0.15;
+    transform: scaleX(0.3);
+  }
+}
+
+.fg-vocab {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 4px 0 0;
+}
+
+.fg-vocab span {
+  font: 700 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.fg-vocab em {
+  padding: 3px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 20px;
+  font: 600 0.74rem/1.4 system-ui, sans-serif;
+  font-style: normal;
+  color: #b9c4dc;
+}
+
+/* constraints */
+
+.fg-clueboard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fg-clues {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 7px;
+}
+
+.fg-clues li {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 14px;
+  border-left: 3px solid var(--gold);
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(90deg, rgba(242, 199, 68, 0.13), rgba(242, 199, 68, 0.02));
+}
+
+.fg-cluenum {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: #221904;
+  font: 900 0.72rem/1 system-ui, sans-serif;
+}
+
+.fg-cluetext {
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: var(--cream);
+}
+
+/* passage */
+
+.fg-card {
+  max-width: 66ch;
+  margin: 0 auto;
+  padding: 18px 22px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #f8f4e8, #ece5d2);
+  color: #241f16;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.45);
+}
+
+.fg-cardtitle {
+  margin: 0 0 8px;
+  font-size: 1.02rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #6a4f0c;
+}
+
+.fg-card p {
+  margin: 0 0 7px;
+  font-size: 0.96rem;
+  line-height: 1.58;
+}
+
+.fg-cardask {
+  margin: 12px 0 0 !important;
+  padding-top: 11px;
+  border-top: 2px solid rgba(106, 79, 12, 0.28);
+  font-weight: 800 !important;
+}
+
+/* pairs */
+
+.fg-pairboard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fg-pairlist {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+}
+
+.fg-pairrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.26);
+}
+
+.fg-pairletter {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 2px;
+  background: rgba(242, 199, 68, 0.16);
+  font: 900 0.74rem/1 system-ui, sans-serif;
+  color: var(--gold);
+}
+
+.fg-pairarrow {
+  font-size: 1rem;
+  color: var(--dim);
+}
+
+.fg-pairpick {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* target */
+
+.fg-target {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.fg-targetrow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border: 1px solid rgba(242, 199, 68, 0.3);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.fg-targetnote {
+  margin: 0;
+  max-width: 46ch;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #b7c1d8;
+}
+
+/* ---- the podia ---- */
+
+.fg-podia {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(136px, 1fr));
+  gap: 12px;
+  align-items: end;
+  margin-top: auto;
+  padding-top: 6px;
+}
+
+.fg-podia.wide {
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+}
+
+.fg-podium {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  transition: transform 150ms ease;
+}
+
+/* The pool of light each podium stands in. */
+.fg-podium::after {
+  content: '';
+  position: absolute;
+  left: -6%;
+  right: -6%;
+  bottom: -14px;
+  height: 26px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, var(--tone), transparent 70%);
+  opacity: 0.16;
+  transition: opacity 180ms ease;
+  pointer-events: none;
+}
+
+.fg-screen {
+  display: grid;
+  place-items: center;
+  min-height: 112px;
+  padding: 14px 12px;
+  border: 2px solid color-mix(in srgb, var(--tone) 48%, transparent);
+  border-radius: 8px 8px 2px 2px;
+  background:
+    radial-gradient(90% 100% at 50% 0%, color-mix(in srgb, var(--tone) 14%, transparent), transparent 70%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.42));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 12px 26px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+.fg-plinth {
+  display: grid;
+  place-items: center;
+  height: 42px;
+  margin-top: -2px;
+  clip-path: polygon(6% 0, 94% 0, 100% 100%, 0 100%);
+  background: linear-gradient(180deg, #1b2a4e, #101a33);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09);
+}
+
+.fg-chip {
+  display: grid;
+  place-items: center;
+  min-width: 30px;
+  height: 24px;
+  padding: 0 9px;
+  border-radius: 2px;
+  background: var(--tone);
+  color: #12182a;
+  font: 900 0.86rem/1 system-ui, sans-serif;
+  letter-spacing: 0.04em;
+  box-shadow: 0 0 16px color-mix(in srgb, var(--tone) 55%, transparent);
+}
+
+.fg-podium:hover:not(:disabled) {
+  transform: translateY(-4px);
+}
+
+.fg-podium:hover:not(:disabled)::after {
+  opacity: 0.34;
+}
+
+.fg-podium:hover:not(:disabled) .fg-screen {
+  border-color: var(--tone);
+}
+
+/* The shell's default focus ring is a blue that disappears against a dark studio, so everything
+   focusable in here gets a hot one instead. */
+.fg :focus-visible {
+  outline: 3px solid var(--gold-hot);
+  outline-offset: 3px;
+}
+
+.fg-podium:focus-visible {
+  outline: 3px solid var(--gold-hot);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+.fg-podium.picked .fg-screen {
+  border-color: var(--tone);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0 0 3px color-mix(in srgb, var(--tone) 40%, transparent),
+    0 12px 26px rgba(0, 0, 0, 0.45);
+}
+
+.fg-podium.picked::after {
+  opacity: 0.44;
+}
+
+.fg-podium:disabled {
+  cursor: default;
+}
+
+.fg-podium:disabled:not(.picked) {
+  opacity: 0.5;
+}
+
+/* ---- what sits on a podium screen ---- */
+
+.fg-emblem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.fg-emblem svg {
+  width: 58px;
+  height: 58px;
+  filter: drop-shadow(0 0 12px rgba(0, 0, 0, 0.55));
+}
+
+.fg-gridcell .fg-emblem svg,
+.fg-pairrow .fg-emblem svg {
+  width: 40px;
+  height: 40px;
+}
+
+.fg-pips {
+  display: flex;
+  gap: 3px;
+}
+
+.fg-pip {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  opacity: 0.9;
+}
+
+.fg-words {
+  font-size: 0.94rem;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: center;
+  color: var(--cream);
+}
+
+.fg-words.long {
+  font-size: 0.83rem;
+  font-weight: 600;
+}
+
+.fg-number {
+  font: 900 2.5rem/1 system-ui, sans-serif;
+  letter-spacing: -0.04em;
+  color: var(--cream);
+  text-shadow: 0 0 22px rgba(255, 255, 255, 0.16);
+}
+
+/* The podium's own letter, up on its screen, for options the adapter left empty. */
+.fg-bigletter {
+  font: 900 3rem/1 system-ui, sans-serif;
+  letter-spacing: -0.05em;
+  color: var(--tone);
+  text-shadow: 0 0 30px color-mix(in srgb, var(--tone) 55%, transparent);
+}
+
+.fg-bigletter.word {
+  font-size: 1.5rem;
+  letter-spacing: 0.02em;
+}
+
+.fg-trace svg {
+  width: 108px;
+  height: 62px;
+}
+
+.fg-panel {
+  display: grid;
+  gap: 3px;
+  width: 74px;
+}
+
+.fg-cellon,
+.fg-celloff {
+  aspect-ratio: 1;
+  border-radius: 1px;
+}
+
+.fg-celloff {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.fg-cellon {
+  box-shadow: 0 0 8px currentcolor;
+}
+
+.fg-moves {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+}
+
+.fg-move {
+  display: grid;
+  place-items: center;
+  min-width: 24px;
+  padding: 4px 6px;
+  border: 1.5px solid;
+  border-radius: 2px;
+  font: 800 0.76rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-transform: uppercase;
+}
+
+/* ---- the host's beat between questions ---- */
+
+.fg-beat {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 20px;
+  text-align: center;
+  border-radius: 4px;
+  background: rgba(4, 7, 15, 0.9);
+  backdrop-filter: blur(3px);
+  animation: fg-inbeat 220ms ease-out both;
+}
+
+@keyframes fg-inbeat {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.fg-beat strong {
+  font-size: clamp(1.4rem, 3.4vw, 2.2rem);
+  font-weight: 900;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+  line-height: 1.06;
+}
+
+.fg-beat span {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #c6cfe4;
+}
+
+.fg-beat.climb strong {
+  color: var(--gold);
+  text-shadow: 0 0 34px rgba(242, 199, 68, 0.55);
+}
+
+.fg-beat.help strong {
+  color: #7ee0ea;
+  text-shadow: 0 0 34px rgba(79, 214, 224, 0.42);
+}
+
+.fg-beat.hold strong {
+  color: var(--cream);
+}
+
+/* ---- reduced motion: keep the staging, drop the movement ---- */
+
+@media (prefers-reduced-motion: reduce) {
+  .fg *,
+  .fg *::before,
+  .fg *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .fg-beam {
+    animation: none;
+  }
+
+  .fg-podium:hover:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* ---- narrow screens ---- */
+
+@media (max-width: 940px) {
+  .fg-rail {
+    order: 2;
+  }
+
+  .fg-rungs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  }
+
+  .fg-stage {
+    order: 1;
+  }
+}
+
+@media (max-width: 560px) {
+  .fg {
+    padding: 14px 12px 26px;
+  }
+
+  .fg-boardhead {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .fg-cat {
+    width: 100%;
+  }
+
+  .fg-compare {
+    flex-direction: column;
+  }
+}

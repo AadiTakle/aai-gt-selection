@@ -33,6 +33,9 @@ export interface Facets {
   /** CYCLIC. A rotation in degrees, or a quarter-turn index. */
   readonly rot?: number;
   readonly tilt?: string;
+  /** Inside or outside, which some clue sets refer to directly. */
+  readonly pos?: string;
+  readonly border?: number;
   /** Literal content, when the item's material is language or number. */
   readonly text?: string;
   readonly value?: number;
@@ -54,7 +57,7 @@ export interface Choice {
 
 export type StemKind =
   /** Two quantities to compare. `left`/`right` carry counts. */
-  | { readonly kind: 'compare'; readonly left: Facets; readonly right: Facets }
+  | { readonly kind: 'compare'; readonly left: Facets; readonly right: Facets; readonly wants: 'more' | 'fewer' }
   /** A grid with one cell missing. */
   | { readonly kind: 'matrix'; readonly rows: number; readonly cols: number; readonly cells: readonly (Facets | null)[]; readonly blank: number }
   /** An input transformed by a chain of named operations. */
@@ -92,7 +95,7 @@ export interface Question {
  * faked. Declining is a supported path: the API counts a response it cannot interpret as `unscorable`
  * and excludes it from the estimate instead of guessing.
  */
-export const UNPRESENTABLE: readonly string[] = ['CX-check-01', 'SPA-MAZE-01'];
+export const UNPRESENTABLE: readonly string[] = ['CX-check-01', 'SPA-MAZE-01', 'SPA-VIEW-01'];
 
 function rec(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -130,18 +133,32 @@ function facets(value: unknown): Facets {
     return {};
   }
   // Some types nest the interesting part one level down.
-  const inner = rec(o.tile) ?? rec(o.figure) ?? rec(o.picture) ?? rec(o.solid) ?? rec(o.section);
+  const inner =
+    rec(o.tile) ?? rec(o.figure) ?? rec(o.picture) ?? rec(o.solid) ?? rec(o.section) ?? rec(o.token);
   const src = inner ?? o;
 
+  // Several types keep a choice's whole substance in a list rather than an object. Reduced to a
+  // readable label here, because a choice with no facets at all cannot be reasoned about even though
+  // it can be tapped.
+  const listish =
+    strs(o.load) ?? strs(o.order) ?? strs(o.terms) ?? strs(o.pair) ?? strs(o.seq) ?? null;
+  const numlist = nums(o.load) ?? nums(o.order) ?? nums(o.terms) ?? null;
+
   const out: Record<string, unknown> = {};
-  const shape = str(src.shape) ?? str(src.kind) ?? str(src.icon);
+  const shape = str(src.shape) ?? str(src.motif) ?? str(src.kind) ?? str(src.icon);
   if (shape !== undefined) out.shape = shape;
   const glyph = str(src.glyph) ?? str(src.sym);
   if (glyph !== undefined) out.glyph = glyph;
-  const color = str(src.color) ?? str(src.colour) ?? str(src.shade);
+  const color = str(src.color) ?? str(src.colour);
   if (color !== undefined) out.color = color;
-  const fill = str(src.fill);
+  // `shade` and `pos` are distinguishing facets that were being dropped. FLU-DEDUCE clues refer to
+  // position explicitly ("dot inside"), so losing it made candidates identical on screen.
+  const fill = str(src.fill) ?? str(src.shade);
   if (fill !== undefined) out.fill = fill;
+  const pos = str(src.pos);
+  if (pos !== undefined) out.pos = pos;
+  const border = num(src.border);
+  if (border !== undefined) out.border = border;
   const count = num(src.count) ?? num(src.dots) ?? num(src.sides) ?? num(src.n);
   if (count !== undefined) out.count = count;
   const size = num(src.size) ?? str(src.size) ?? num(src.r);
@@ -158,6 +175,13 @@ function facets(value: unknown): Facets {
   if (blocks !== undefined) out.blocks = blocks;
   const seq = strs(o.seq) ?? strs(src.seq);
   if (seq !== undefined) out.seq = seq;
+  if (listish && out.text === undefined && out.shape === undefined) out.text = listish.join(' + ');
+  if (numlist && out.text === undefined) out.text = numlist.join(', ');
+  // SPA-XSCAN keeps its solid's shape in `segments`, which is what made all five options empty.
+  const segments = rec(o.solid)?.segments ?? src.segments;
+  if (Array.isArray(segments) && segments.length > 0 && out.count === undefined) {
+    out.count = segments.length;
+  }
 
   // `series` arrives as {A: number[]} on graph options.
   const seriesRec = rec(o.series);
@@ -191,11 +215,17 @@ function buildStem(typeCode: string, c: Record<string, unknown>): StemKind {
   const left = rec(c.left);
   const right = rec(c.right);
   if (left && right) {
-    return { kind: 'compare', left: facets(left), right: facets(right) };
+    const mode = str(c.mode) ?? '';
+    return {
+      kind: 'compare',
+      left: facets(left),
+      right: facets(right),
+      wants: mode.includes('fewer') || mode.includes('less') ? 'fewer' : 'more',
+    };
   }
 
   // A matrix with a hole in it.
-  const matrix = rec(c.matrix);
+  const matrix = rec(c.matrix) ?? rec(c.carpet);
   if (matrix) {
     const rows = num(matrix.rows) ?? 2;
     const cols = num(matrix.cols) ?? 2;
@@ -230,6 +260,18 @@ function buildStem(typeCode: string, c: Record<string, unknown>): StemKind {
       .map((cl) => str(rec(cl)?.label) ?? str(rec(cl)?.value) ?? '')
       .filter(Boolean);
     return { kind: 'constraints', clues };
+  }
+
+  // A story held at the top level rather than nested under `passage`. QUANT-WORD-01 does this, and
+  // without this branch its story never reaches the screen while its options are bare numbers.
+  const loose = strs(c.storySentences);
+  if (loose && loose.length > 0) {
+    return {
+      kind: 'passage',
+      title: '',
+      sentences: loose,
+      question: str(rec(c.question)?.text) ?? str(c.question) ?? '',
+    };
   }
 
   // A passage with a question about it.

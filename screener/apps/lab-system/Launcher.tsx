@@ -1,5 +1,9 @@
 import { lazy, Suspense, useState, type ComponentType, type LazyExoticComponent } from 'react';
 
+import { meta as backrooms } from './experiences/Backrooms';
+import { meta as fifthGrader } from './experiences/FifthGrader';
+import { meta as obby } from './experiences/Obby';
+import { meta as pokedex } from './experiences/Pokedex';
 import { meta as blueprintBuild } from './experiences/BlueprintBuild';
 import { meta as coinMarket } from './experiences/CoinMarket';
 import { meta as minecraftBuild } from './experiences/MinecraftBuild';
@@ -18,6 +22,10 @@ import { AGE_BANDS, type AgeBand, type ExperienceMeta } from './shared/types';
  * unfinished experience is removed from the grid rather than left as a dead card.
  */
 
+const Backrooms = lazy(() => import('./experiences/Backrooms'));
+const FifthGrader = lazy(() => import('./experiences/FifthGrader'));
+const Obby = lazy(() => import('./experiences/Obby'));
+const Pokedex = lazy(() => import('./experiences/Pokedex'));
 const StickerAlbum = lazy(() => import('./experiences/StickerAlbum'));
 const StreakKeeper = lazy(() => import('./experiences/StreakKeeper'));
 const BlueprintBuild = lazy(() => import('./experiences/BlueprintBuild'));
@@ -33,7 +41,11 @@ interface Entry {
 
 /** Ordered youngest first, which is also the order they are worth demoing in. */
 const ENTRIES: readonly Entry[] = [
+  { meta: obby, Component: Obby },
+  { meta: pokedex, Component: Pokedex },
   { meta: minecraftBuild, Component: MinecraftBuild },
+  { meta: fifthGrader, Component: FifthGrader },
+  { meta: backrooms, Component: Backrooms },
   { meta: stickerAlbum, Component: StickerAlbum },
   { meta: streakKeeper, Component: StreakKeeper },
   { meta: blueprintBuild, Component: BlueprintBuild },

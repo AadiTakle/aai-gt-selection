@@ -242,3 +242,71 @@ Loop A is on `feat/apps-character-led`. The only file we both had licence to tou
 conflict there and keep both scripts; it is the same trivial conflict the planner and review apps had.
 Nothing else of mine is outside `screener/apps/lab-system/`, `screener/vite.lab-system.config.ts` and
 this document.
+
+---
+
+# Second pass: headless consumption, and five apps rebuilt on it
+
+The first pass embedded the catalogue's own HTML renderers in iframes. That was wrong: it makes every
+app the same generic exam in a themed border, and it is not what "use the library as a framework" means.
+`shared/headless/` now takes the item DATA and normalises it, and the app draws all of it.
+
+## What the second pass established, by measurement
+
+**The engine serves 16 distinct types, not 53**, and only 3 to 7 per age band, measured over 48 sessions
+and 312 items. That is what makes headless rendering tractable at all.
+
+**Declining everything undrawable does not work.** Tried first: 33% to 90% of items came back
+unscorable and two bands hit `item-cap` without ever satisfying the stop rule. So a headless app has to
+draw nearly everything the engine hands it. Three types are declined (`CX-check-01`, `SPA-MAZE-01`,
+`SPA-VIEW-01`); at band 6-8 that measured 56 declined against 112 drawn, which costs session length
+rather than correctness.
+
+**Correctness is now returned to the app**, reversing the first pass. A right answer lays the next layer
+of the house; a wrong one does nothing. Nothing is taken away and no door closes, so progress stalls
+rather than reverses.
+
+## The five headless apps
+
+| App | Band | World | The loop | Items served, real play |
+| --- | --- | --- | --- | --- |
+| Obby Run | K-1 | Roblox | Right answer lands the jump, wrong one springs you back | 4 |
+| Pokédex | 2-3 | Pokémon | Right answer catches it, wrong one lets it flee | 7 |
+| Build It | 4-5 | Minecraft | Right answer lays the next layer of a build you chose | 8 |
+| Smarter Than a 5th Grader | 4-5 | Game show | Right answer climbs a rung, wrong one spends a classmate | 7 |
+| Backrooms | 6-8 | Backrooms | Choices are doorways; escape depends on the engine's own decision | 12 |
+
+All four bands covered. Every one played end to end by **clicking its own buttons**, not by posting
+synthetic messages, which is what the first pass did and should not have.
+
+## Bugs this pass found that no test would have
+
+**Choices rendering identically.** Hashing facet tokens to visuals collides, and four of seven Minecraft
+choices drew as the same green stack, making a good item unanswerable. Found by looking at a screenshot.
+`shared/headless/distinct.ts` now allocates a slot unique within a question, so a skin cannot collide by
+construction. Four workers independently confirmed the same class of failure in their own skins.
+
+**Eight adapter bugs, all of which silently made items unanswerable.** Reported independently by four
+apps and now fixed in `adapt.ts`: `FLU-CARPET-01` keeps its grid under `carpet` rather than `matrix`, so
+all 24 K-1 pattern items were losing their stem entirely; `motif` was not read as an identity facet,
+which is why 18 of 24 carpet items had duplicate signatures; `QUANT-WORD-01` keeps its story at the top
+level rather than under `passage`, so 25% of band 6-8 serves arrived with the story invisible and bare
+numbers as options; `shade` was filed under `color`, rendering choices "painted the colour hollow";
+`pos` was dropped although `FLU-DEDUCE-01` clues refer to it directly; `load`, `order`, `terms` and
+`token` containers were not unwrapped, so around 125 items had empty facet bags; `segments` was not
+read, emptying `SPA-XSCAN-01`; and the compare direction was assumed rather than read, which is safe
+today because every K-1 dots item is `compare_more` and silently wrong the day `compare_fewer` appears.
+
+## Still open, and worth knowing before the demo
+
+**A library bug outside this loop's remit.** `packages/qbank/src/bank.ts` `scoreResponse` returns null
+unless `answer.correctKey` is a string, and all three K-1 verbal banks store it as a number. Every one
+is therefore counted unscorable, so the verbal domain contributes nothing to the estimate at that band:
+51 of 339 K-1 items. `packages/` is off limits to this loop, so it is reported rather than fixed.
+
+**`FLU-OPCHAIN-01` still drops `orient`, `border` and `pair`**, so several of its candidates remain
+facet-identical and are separated only by their slot. They are tappable and distinct, but not
+answerable on their merits.
+
+**The iframe-based apps from the first pass are still in the launcher** below the headless ones. They
+work, but they are the wrong architecture and should either be rebuilt headlessly or removed.

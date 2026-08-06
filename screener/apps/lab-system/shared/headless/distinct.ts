@@ -22,6 +22,8 @@ import type { Choice, Facets } from './adapt';
 /** Facets that carry identity. Ordered by how reliably a skin can show them. */
 const IDENTITY_FACETS = [
   'shape',
+  'pos',
+  'border',
   'glyph',
   'color',
   'fill',
@@ -58,6 +60,8 @@ export interface VisualChoice {
    * nothing else produces a question that reads the way the author intended.
    */
   readonly varyingFacet: keyof Facets | null;
+  /** Every facet that differs across this question's choices. Skins use this to pick what to show. */
+  readonly varyingFacets: readonly (keyof Facets)[];
 }
 
 /**
@@ -91,7 +95,7 @@ export function visualChoices(choices: readonly Choice[]): VisualChoice[] {
       // A repeat signature still needs its own slot, or two taps would look like one option.
       slot = next++;
     }
-    return { choice, facets: choice.facets, slot, varyingFacet };
+    return { choice, facets: choice.facets, slot, varyingFacet, varyingFacets: varying };
   });
 }
 
