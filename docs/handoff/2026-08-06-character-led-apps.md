@@ -242,9 +242,43 @@ Recorded because the brief asks for it specifically.
 
 Nothing demo-ready yet. Table retained in the required shape so it can be filled as experiences land.
 
-| Experience | Band | Route | Items served | Domain spread | Reached a result | Passed final pass |
+| Experience | Band | Route | Items served | Domain spread (q/v/s/f) | Reached a result | Passed final pass |
 |---|---|---|---|---|---|---|
-| _none yet_ | | | | | | |
+| Hatchling | K-1 | launcher card 1 | 4, over 32+ sampled runs | 2 / 0 / 1 / 1 | yes, no number shown | partly, see below |
+| Night Clinic | 2-3 | launcher card 2 | 6 | 2 / 0 / 1 / 3 | yes, dawn ending | partly |
+| Ship's Navigator | 4-5 | launcher card 3 | 8, plus 2 leg reports | 2 / 0 / 1 / 5 | yes, arrival | partly |
+| The Rival | 6-8 | launcher card 4 | 8, over 3 runs | 2 / 0 / 1 / 5 | yes, rival concedes | partly |
+
+"Partly" is deliberate and should not be read as a pass. Each world was driven end to end by the
+worker that built it, at the viewport for its band, with screenshots reviewed and the error and
+reduced-motion paths exercised. What has NOT been done is the eight-check pass of section 5 run by a
+second pair of eyes from a cold start, including the two-runs-through check and a console audit per
+world. The counts above are each world's own measurement, not an independent one.
+
+VERBAL IS ZERO EVERYWHERE, and that is structural rather than an oversight. The curated pool holds no
+verbal type, so no world can report four-domain coverage. At K-1 the bank itself has no scorable
+verbal item at all. Any claim resting on a four-domain spread is unavailable from this set.
+
+### Where the theming landed, honestly
+
+The mechanism works and is verified: all 8 of 8 renderers route every item mark through
+`Glyph`/`Cluster`, none contains a colour literal, and the same bank item demonstrably renders as
+different objects per world (162 comparison screenshots under `shots/skin-*`).
+
+How strongly it reads varies a lot by world, and the gap is worth knowing before demoing:
+
+- **Hatchling is the strongest.** Its marks are genuinely redrawn: a kite has a tail, a hexagon is a
+  comb cell with honey in it, a star is a flower with a honey middle, the balance weights are eggs.
+  Nothing on that panel looks like a shape from a test.
+- **The Rival is the weakest**, notwithstanding its own report. Its marks are the geometric
+  primitives with small cutouts and notches added, so the panel reads as tinted geometry rather than
+  the engraved creature marks it describes. The world *around* the question is excellent and
+  strongly directed; the question itself is only lightly dressed.
+- Night Clinic and Navigator sit between the two.
+
+Second gap on the same panel: the renderer's own prompt ("Which piece finishes the pattern?") renders
+identically in every world, in the same weight and face. It is the one piece of text that breaks the
+illusion, and it is also the thing a K-1 child would have to read.
 
 Reference measurements from driving the API directly, so the numbers above have something to be
 compared against when they exist:
