@@ -10,6 +10,7 @@
     "dev": "npm --prefix screener run dev",
     "sim": "npm --prefix screener run sim",
     "verify": "npm --prefix screener run verify",
-    "planner": "npm --prefix screener run planner"
+    "planner": "npm --prefix screener run planner",
+    "review": "npm --prefix screener run review"
   }
 }

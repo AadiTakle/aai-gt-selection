@@ -21,7 +21,8 @@
     "smoke": "bash scripts/smoke.sh",
     "practice": "python3 scripts/check-practice.py 5181",
     "ui": "tsx packages/ui-contract/src/cli.ts",
-    "planner": "vite --config vite.planner.config.ts"
+    "planner": "vite --config vite.planner.config.ts",
+    "review": "vite --config vite.review.config.ts"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
