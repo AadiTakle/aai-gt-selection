@@ -1,9 +1,8 @@
-/// <reference types="vite/client" />
-import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ComponentType } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { DESIGNS, designById, type Design } from './designs';
+import { DESIGNS, ThemedQuestion, designById, useKit, type Design } from '@gt/question-ui';
 import type { BankItem, ReviewType } from './types';
-import { useKit, type SpriteFn } from './useKit';
+
 
 /**
  * The demo panel, and the one thing this app adds to the original harness.
@@ -20,23 +19,6 @@ import { useKit, type SpriteFn } from './useKit';
  * The answer key, scoring and provenance are stripped before injection, exactly as the demos' own
  * `toServed()` does, so a renderer never receives the key it would be marked against.
  */
-
-interface ThemedProps {
-  readonly item: BankItem;
-  readonly kit: unknown;
-  readonly sprite?: SpriteFn | undefined;
-  readonly seed?: number;
-  readonly onAnswer?: (choiceIndex: number, choiceKey: string) => void;
-}
-
-/**
- * Loaded through `import.meta.glob` rather than a direct dynamic import so that a missing renderer is a
- * message on screen instead of a build failure. The themed designs are optional by construction: the
- * default design is the archive's own renderer and has to keep working on its own.
- */
-const themedModules = import.meta.glob<{ ThemedQuestion: ComponentType<ThemedProps> }>('./render/ThemedQuestion.tsx');
-const themedEntry = Object.values(themedModules)[0];
-const ThemedQuestion = themedEntry ? lazy(() => themedEntry().then((m) => ({ default: m.ThemedQuestion }))) : null;
 
 const HOST_SRC = 'gt-exam-host';
 const DEMO_SRC = 'gt-exam-demo';
@@ -185,22 +167,9 @@ function KitFrame({
   }
   if (!kit) return <div className="themehost">Loading {kitId} kit…</div>;
   if (!item) return <div className="themehost">No item served yet — pick a difficulty below.</div>;
-  if (!ThemedQuestion) {
-    return (
-      <div className="themefail">
-        <b>The themed renderer is not present in this build.</b>
-        <br />
-        The <code>{kitId}</code> kit loaded fine, but <code>render/ThemedQuestion.tsx</code> is missing, so there is
-        nothing to draw it with. The default design still works.
-      </div>
-    );
-  }
-
   return (
     <div className="themehost">
-      <Suspense fallback={<div>Loading renderer…</div>}>
-        <ThemedQuestion item={item} kit={kit} sprite={sprite} seed={seed} onAnswer={() => onAnswered()} />
-      </Suspense>
+      <ThemedQuestion item={item} kit={kit} sprite={sprite} seed={seed} onAnswer={() => onAnswered()} />
     </div>
   );
 }

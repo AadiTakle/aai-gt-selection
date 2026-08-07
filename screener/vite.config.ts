@@ -16,9 +16,13 @@ export default defineConfig({
       '@gt/practice': r('./packages/practice/src/index.ts'),
       '@gt/qbank': r('./packages/qbank/src/index.ts'),
       '@gt/qbank/server': r('./packages/qbank/src/server.ts'),
+      '@gt/question-ui': r('./packages/question-ui/src/index.ts'),
     },
   },
   server: {
+    // Pinned because Vite otherwise binds IPv6 localhost only, and anything probing 127.0.0.1 gets
+    // refused while the browser works. The other app configs already pin it for the same reason.
+    host: '127.0.0.1',
     port: 5180,
     proxy: {
       '/api': 'http://localhost:5181',

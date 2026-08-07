@@ -25,7 +25,8 @@
       "@gt/practice": ["packages/practice/src/index.ts"],
       "@gt/qbank": ["packages/qbank/src/index.ts"],
       "@gt/ui-contract": ["packages/ui-contract/src/index.ts"],
-      "@gt/qbank/server": ["packages/qbank/src/server.ts"]
+      "@gt/qbank/server": ["packages/qbank/src/server.ts"],
+      "@gt/question-ui": ["packages/question-ui/src/index.ts"]
     }
   },
   "include": ["packages/**/*.ts", "packages/**/*.tsx", "apps/**/*.ts", "apps/**/*.tsx"],

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { DemoPanel } from './DemoPanel';
 import { DifficultyPanel } from './DifficultyPanel';
-import { loadDesign, saveDesign } from './designs';
+import { loadDesign, saveDesign } from '@gt/question-ui';
 import { exportReview, hasComments, importReview, loadStore, saveStore } from './store';
 import { CATS, type BankItem, type ReviewType, type Store } from './types';
 

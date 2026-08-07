@@ -305,8 +305,12 @@ function Head({ species }: { species: string }) {
   }
 }
 
-/** The pixel size a `size` of 1 draws at. Cells in a matrix are built around roughly this. */
-const BASE_PX = 52;
+/**
+ * The pixel size a `size` of 1 draws at. Kept in step with `--tq-unit` for a single picture in
+ * ThemedQuestion.css: a sprite that is half its cell reads as an icon rather than as the thing being
+ * reasoned about, which is the complaint that set both numbers.
+ */
+const BASE_PX = 90;
 
 export function HatchlingSprite({
   sprite,

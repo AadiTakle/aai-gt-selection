@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { useEffect, useMemo, useState, type JSX } from 'react';
 
-import { checkKit, type Kit } from '../lab-system/shared/uikit/kit';
+import { checkKit, type Kit } from '../../../apps/lab-system/shared/uikit/kit';
 
 /**
  * Load and validate a kit, plus whichever sprite renderer it needs.

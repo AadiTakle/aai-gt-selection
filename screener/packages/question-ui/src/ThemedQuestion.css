@@ -85,7 +85,7 @@
  */
 .tq-grid {
   display: grid;
-  grid-template-columns: repeat(var(--tq-cols, 2), minmax(0, 110px));
+  grid-template-columns: repeat(var(--tq-cols, 2), minmax(0, 152px));
   justify-content: center;
   gap: 10px;
   width: fit-content;
@@ -210,10 +210,10 @@
  * copies stack into a vertical line the moment the panel narrows, and a counting item gets harder to
  * read for a reason that has nothing to do with the item.
  */
-.tq-pic-one { --tq-unit: 54px; --tq-cap: 100%; }
-.tq-pic-pair { --tq-unit: 38px; --tq-cap: 44%; }
-.tq-pic-few { --tq-unit: 29px; --tq-cap: 31%; }
-.tq-pic-many { --tq-unit: 21px; --tq-cap: 25%; }
+.tq-pic-one { --tq-unit: 92px; --tq-cap: 100%; }
+.tq-pic-pair { --tq-unit: 62px; --tq-cap: 46%; }
+.tq-pic-few { --tq-unit: 46px; --tq-cap: 32%; }
+.tq-pic-many { --tq-unit: 34px; --tq-cap: 25%; }
 
 .tq-img,
 .tq-fallback {
@@ -469,7 +469,7 @@
 .tq-choice .tq-slot,
 .tq-row .tq-slot {
   min-width: 0;
-  min-height: 76px;
+  min-height: 108px;
   border: 0;
   padding: 0;
   background: none;

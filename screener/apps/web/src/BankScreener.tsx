@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { QBANK_HOST, QBANK_THEMES, applyThemeToFrame, isQbankMessage, themeById } from '@gt/qbank';
+import { DESIGNS, ThemedQuestion, designById, loadDesign, planFor, saveDesign, useKit } from '@gt/question-ui';
 
 /**
  * The screener, running on the real item banks.
@@ -13,6 +14,12 @@ import { QBANK_HOST, QBANK_THEMES, applyThemeToFrame, isQbankMessage, themeById 
  *   5. the host marks the response against the key it kept, and updates the posterior
  *
  * The key never reaches the browser, which is why scoring is a round trip rather than local.
+ *
+ * THE UI DESIGN PICKER changes step 3 and nothing else. The default design hands the item to the
+ * catalogue's own prebuilt renderer in an iframe; the themed designs draw it in-page from a kit. Both
+ * report a response the same way and both are marked by the same server round trip, so switching design
+ * cannot change what a child's answer is worth — which is the property that makes it safe to offer as a
+ * choice rather than a rebuild.
  */
 
 interface PrecisionStep {
@@ -68,6 +75,7 @@ export function BankScreener({ onDebug }: { onDebug: (d: unknown) => void }) {
   const [summary, setSummary] = useState<BankSummary | null>(null);
   const [precisionIndex, setPrecisionIndex] = useState(2);
   const [themeId, setThemeId] = useState('institutional');
+  const [design, setDesign] = useState<string>(() => loadDesign());
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [serve, setServe] = useState<Serve | null>(null);
   const [state, setState] = useState<State | null>(null);
@@ -119,6 +127,24 @@ export function BankScreener({ onDebug }: { onDebug: (d: unknown) => void }) {
     applyThemeToFrame(frameRef.current, themeById(themeId).vars);
   }, [frameReady, serve, themeId]);
 
+  /**
+   * Send a response and advance. Shared by both render paths on purpose: the marking, the latency and
+   * the posterior update must not depend on which design drew the question.
+   */
+  const submit = useCallback(async (response: unknown) => {
+    const { sessionId: id } = live.current;
+    if (!id) return;
+    try {
+      const out = await api<{ state: State; correct: boolean | null }>(
+        `/bank/sessions/${id}/answer`,
+        { response, latencyMs: Date.now() - shownAt.current },
+      );
+      setState(out.state); setLastCorrect(out.correct);
+      if (!out.state.stopped) await loadNext(id);
+      else { setServe(null); await pushDebug(id); }
+    } catch (e) { setErr(String((e as Error).message ?? e)); }
+  }, [loadNext, pushDebug]);
+
   useEffect(() => {
     const onMessage = async (ev: MessageEvent) => {
       if (!isQbankMessage(ev.data)) return;
@@ -126,22 +152,34 @@ export function BankScreener({ onDebug }: { onDebug: (d: unknown) => void }) {
       if (ev.data.type !== 'result') return;
       const { sessionId: id } = live.current;
       if (!id) return;
-      const response = (ev.data.result ?? {}).response;
-      try {
-        const out = await api<{ state: State; correct: boolean | null }>(
-          `/bank/sessions/${id}/answer`,
-          { response, latencyMs: Date.now() - shownAt.current },
-        );
-        setState(out.state); setLastCorrect(out.correct);
-        if (!out.state.stopped) await loadNext(id);
-        else { setServe(null); await pushDebug(id); }
-      } catch (e) { setErr(String((e as Error).message ?? e)); }
+      await submit((ev.data.result ?? {}).response);
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, [loadNext, pushDebug]);
+  }, [submit]);
 
   const frameSrc = serve ? `/qbank/items/${serve.typeCode}.html` : null;
+
+  /**
+   * Can the chosen kit actually draw this item?
+   *
+   * Asked here rather than inside the renderer because the answer decides which path renders at all. A
+   * themed design that cannot dress a type must not strand the child on an unanswerable screen, and it
+   * must not cause the item to be skipped either — skipping would narrow the pool and quietly change
+   * what the session measures. So the catalogue's own renderer is the fallback, every time.
+   */
+  const kitId = designById(design).kit ?? '';
+  const activeKit = useKit(kitId);
+  const kitPlan = useMemo(() => {
+    if (!serve || designById(design).kind === 'archive' || !activeKit.kit) return null;
+    return planFor({
+      item: serve.served,
+      kit: activeKit.kit,
+      seed: serve.served.itemId.length + Math.round(serve.difficulty * 10),
+    });
+  }, [serve, design, activeKit.kit]);
+  const drawnByKit = kitPlan?.ok === true;
+  const kitRefusal = kitPlan && !kitPlan.ok ? kitPlan.why : null;
 
   const lengthHint = useMemo(() => {
     if (!precision) return '';
@@ -175,8 +213,22 @@ export function BankScreener({ onDebug }: { onDebug: (d: unknown) => void }) {
             <span className="slider-value">{precision?.label ?? '—'}</span>
           </label>
           <label>
+            UI design
+            <select
+              value={design}
+              onChange={(e) => { setDesign(e.target.value); saveDesign(e.target.value); }}
+            >
+              {DESIGNS.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
+            </select>
+          </label>
+          <label>
             Theme
-            <select value={themeId} onChange={(e) => setThemeId(e.target.value)}>
+            <select
+              value={themeId}
+              onChange={(e) => setThemeId(e.target.value)}
+              disabled={designById(design).kind !== 'archive'}
+              title={designById(design).kind === 'archive' ? undefined : 'Theme recolours the catalogue renderer, which the themed designs do not use.'}
+            >
               {QBANK_THEMES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
             </select>
           </label>
@@ -216,14 +268,31 @@ export function BankScreener({ onDebug }: { onDebug: (d: unknown) => void }) {
               )}
             </div>
           </div>
-          <iframe
-            ref={frameRef}
-            key={serve.typeCode}
-            src={frameSrc}
-            title={serve.typeCode}
-            onLoad={() => applyThemeToFrame(frameRef.current, themeById(themeId).vars)}
-            className="qbank-frame"
-          />
+          {drawnByKit ? (
+            <KitQuestion
+              design={design}
+              serve={serve}
+              onAnswer={(index, key) => void submit({ selectedKey: key, selectedIndex: index })}
+            />
+          ) : (
+            <>
+              {designById(design).kind !== 'archive' && (
+                <p className="note">
+                  This question is drawn by the catalogue instead. {kitRefusal ?? 'The kit cannot dress this type.'}{' '}
+                  A session never stops on a design choice, so the item is shown the way it was built rather than
+                  skipped — skipping it would quietly narrow what the session measures.
+                </p>
+              )}
+              <iframe
+                ref={frameRef}
+                key={serve.typeCode}
+                src={frameSrc}
+                title={serve.typeCode}
+                onLoad={() => applyThemeToFrame(frameRef.current, themeById(themeId).vars)}
+                className="qbank-frame"
+              />
+            </>
+          )}
         </section>
       )}
 
@@ -252,5 +321,38 @@ export function BankScreener({ onDebug }: { onDebug: (d: unknown) => void }) {
         </section>
       )}
     </>
+  );
+}
+
+/**
+ * A served item drawn in-page from a kit instead of handed to the catalogue's iframe.
+ *
+ * The seed is derived from the item id so the same question comes back looking the same on a re-render,
+ * and differently for the next question. A kit that fails to load says so rather than falling back to
+ * the iframe silently, because a design picker that quietly ignores you is worse than one that errors.
+ */
+function KitQuestion({
+  design,
+  serve,
+  onAnswer,
+}: {
+  design: string;
+  serve: Serve;
+  onAnswer: (index: number, key: string) => void;
+}) {
+  const kitId = designById(design).kit ?? '';
+  const { kit, sprite, error } = useKit(kitId);
+  const seed = useMemo(
+    () => serve.served.itemId.length + Math.round(serve.difficulty * 10),
+    [serve.served.itemId, serve.difficulty],
+  );
+
+  if (error) return <p className="error">Could not load the {kitId} kit: {error}</p>;
+  if (!kit) return <p className="note">Loading the {kitId} kit…</p>;
+
+  return (
+    <div className="kit-question">
+      <ThemedQuestion item={serve.served} kit={kit} sprite={sprite} seed={seed} onAnswer={onAnswer} />
+    </div>
   );
 }

@@ -232,3 +232,14 @@ a.tab { text-decoration: none; display: inline-flex; align-items: center; }
   background: #fafbfc; border: 1px solid var(--line); border-radius: 6px;
   padding: 11px; overflow: auto; max-height: 34vh;
 }
+
+/*
+ * Holds a kit-drawn question. The renderer brings its own styles, prefixed `tq-`, so this only has to
+ * give it room and a background that matches the surrounding panel.
+ */
+.kit-question {
+  background: #fff;
+  border-radius: 10px;
+  padding: 14px;
+  min-height: 380px;
+}

@@ -26,6 +26,7 @@ export default defineConfig({
       '@gt/qbank': r('./packages/qbank/src/index.ts'),
       '@gt/contracts': r('./packages/contracts/src/index.ts'),
       '@gt/ui-contract': r('./packages/ui-contract/src/index.ts'),
+      '@gt/question-ui': r('./packages/question-ui/src/index.ts'),
     },
   },
   server: {

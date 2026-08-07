@@ -33,17 +33,17 @@ import {
   type Choice,
   type Facets,
   type StemKind,
-} from '../../lab-system/shared/headless/adapt';
-import type { Serve } from '../../lab-system/shared/types';
-import type { Kit } from '../../lab-system/shared/uikit/kit';
-import { resolve, type Visual } from '../../lab-system/shared/uikit/resolve';
+} from '../../../apps/lab-system/shared/headless/adapt';
+import type { Serve } from '../../../apps/lab-system/shared/types';
+import type { Kit } from '../../../apps/lab-system/shared/uikit/kit';
+import { resolve, type Visual } from '../../../apps/lab-system/shared/uikit/resolve';
 import {
   abstractElement,
   buildManifest,
   type AbstractElement,
   type Dimension,
   type Manifest,
-} from '../../lab-system/shared/uispec/abstract';
+} from '../../../apps/lab-system/shared/uispec/abstract';
 
 /**
  * The part of a bank line this renderer is allowed to know about.

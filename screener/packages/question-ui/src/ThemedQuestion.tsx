@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState, type CSSProperties, type JSX, type ReactNode } from 'react';
 
-import type { Kit } from '../../lab-system/shared/uikit/kit';
-import type { Visual } from '../../lab-system/shared/uikit/resolve';
-import type { Manifest } from '../../lab-system/shared/uispec/abstract';
+import type { Kit } from '../../../apps/lab-system/shared/uikit/kit';
+import type { Visual } from '../../../apps/lab-system/shared/uikit/resolve';
+import type { Manifest } from '../../../apps/lab-system/shared/uispec/abstract';
 import {
   cellId,
   choiceId,
