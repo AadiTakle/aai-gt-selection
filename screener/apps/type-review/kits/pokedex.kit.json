@@ -1,0 +1,294 @@
+{
+  "kit": "gt.uikit/v1",
+  "id": "pokedex",
+  "name": "Pokédex",
+  "describes": "All 151 Kanto Pokémon, plus the later-generation members of Kanto families — the babies that evolve into them and the evolutions that came after. Entries are grouped into evolution lines, and each carries its primary type, how far along its line it stands, and its Pokédex colour.",
+
+  "art": {
+    "template": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/{dex}.png",
+    "missing": "silhouette"
+  },
+
+  "dimensions": {
+    "identity": { "from": "bank", "field": ["type", "line"], "label": "which type, or which evolution line" },
+    "category": { "from": "bank", "field": ["stage", "color", "line"], "label": "how far evolved, or what colour, or which line" },
+
+    "count": { "from": "repeat", "of": "the same Pokémon", "max": 9, "label": "how many" },
+    "rotation": { "from": "rotate", "steps": 4, "label": "which way it faces" },
+    "scale": { "from": "scale", "min": 0.6, "max": 1.5, "label": "how big it is drawn" },
+    "fill": { "from": "tint", "values": ["card", "shadow", "outline"], "label": "how the card behind it is treated" },
+    "border": { "from": "tint", "values": ["#e3350d", "#0075be", "#ffcb05", "#4dad5b", "#7c538c", "#5a5a5a"], "label": "ball trim" },
+
+    "tilt": { "from": "none", "why": "sprites are drawn upright and read as broken when leaned" },
+    "position": { "from": "none", "why": "the app owns layout, and an item that reasons about position needs a kit that draws tiles" },
+    "text": { "from": "none", "why": "verbal items are made of words, and no sprite can stand in for what a word means" }
+  },
+
+  "bank": [
+    { "id": "bulbasaur", "label": "Bulbasaur", "dex": 1, "line": "bulbasaur", "type": "grass", "stage": 1, "color": "green" },
+    { "id": "ivysaur", "label": "Ivysaur", "dex": 2, "line": "bulbasaur", "type": "grass", "stage": 2, "color": "green" },
+    { "id": "venusaur", "label": "Venusaur", "dex": 3, "line": "bulbasaur", "type": "grass", "stage": 3, "color": "green" },
+
+    { "id": "charmander", "label": "Charmander", "dex": 4, "line": "charmander", "type": "fire", "stage": 1, "color": "red" },
+    { "id": "charmeleon", "label": "Charmeleon", "dex": 5, "line": "charmander", "type": "fire", "stage": 2, "color": "red" },
+    { "id": "charizard", "label": "Charizard", "dex": 6, "line": "charmander", "type": "fire", "stage": 3, "color": "red" },
+
+    { "id": "squirtle", "label": "Squirtle", "dex": 7, "line": "squirtle", "type": "water", "stage": 1, "color": "blue" },
+    { "id": "wartortle", "label": "Wartortle", "dex": 8, "line": "squirtle", "type": "water", "stage": 2, "color": "blue" },
+    { "id": "blastoise", "label": "Blastoise", "dex": 9, "line": "squirtle", "type": "water", "stage": 3, "color": "blue" },
+
+    { "id": "caterpie", "label": "Caterpie", "dex": 10, "line": "caterpie", "type": "bug", "stage": 1, "color": "green" },
+    { "id": "metapod", "label": "Metapod", "dex": 11, "line": "caterpie", "type": "bug", "stage": 2, "color": "green" },
+    { "id": "butterfree", "label": "Butterfree", "dex": 12, "line": "caterpie", "type": "bug", "stage": 3, "color": "white" },
+
+    { "id": "weedle", "label": "Weedle", "dex": 13, "line": "weedle", "type": "bug", "stage": 1, "color": "brown" },
+    { "id": "kakuna", "label": "Kakuna", "dex": 14, "line": "weedle", "type": "bug", "stage": 2, "color": "yellow" },
+    { "id": "beedrill", "label": "Beedrill", "dex": 15, "line": "weedle", "type": "bug", "stage": 3, "color": "yellow" },
+
+    { "id": "pidgey", "label": "Pidgey", "dex": 16, "line": "pidgey", "type": "normal", "stage": 1, "color": "brown" },
+    { "id": "pidgeotto", "label": "Pidgeotto", "dex": 17, "line": "pidgey", "type": "normal", "stage": 2, "color": "brown" },
+    { "id": "pidgeot", "label": "Pidgeot", "dex": 18, "line": "pidgey", "type": "normal", "stage": 3, "color": "brown" },
+
+    { "id": "rattata", "label": "Rattata", "dex": 19, "line": "rattata", "type": "normal", "stage": 1, "color": "purple" },
+    { "id": "raticate", "label": "Raticate", "dex": 20, "line": "rattata", "type": "normal", "stage": 2, "color": "brown" },
+
+    { "id": "spearow", "label": "Spearow", "dex": 21, "line": "spearow", "type": "normal", "stage": 1, "color": "brown" },
+    { "id": "fearow", "label": "Fearow", "dex": 22, "line": "spearow", "type": "normal", "stage": 2, "color": "brown" },
+
+    { "id": "ekans", "label": "Ekans", "dex": 23, "line": "ekans", "type": "poison", "stage": 1, "color": "purple" },
+    { "id": "arbok", "label": "Arbok", "dex": 24, "line": "ekans", "type": "poison", "stage": 2, "color": "purple" },
+
+    { "id": "pichu", "label": "Pichu", "dex": 172, "line": "pichu", "type": "electric", "stage": 1, "color": "yellow" },
+    { "id": "pikachu", "label": "Pikachu", "dex": 25, "line": "pichu", "type": "electric", "stage": 2, "color": "yellow" },
+    { "id": "raichu", "label": "Raichu", "dex": 26, "line": "pichu", "type": "electric", "stage": 3, "color": "yellow" },
+
+    { "id": "sandshrew", "label": "Sandshrew", "dex": 27, "line": "sandshrew", "type": "ground", "stage": 1, "color": "yellow" },
+    { "id": "sandslash", "label": "Sandslash", "dex": 28, "line": "sandshrew", "type": "ground", "stage": 2, "color": "yellow" },
+
+    { "id": "nidoran-f", "label": "Nidoran♀", "dex": 29, "line": "nidoran-f", "type": "poison", "stage": 1, "color": "blue" },
+    { "id": "nidorina", "label": "Nidorina", "dex": 30, "line": "nidoran-f", "type": "poison", "stage": 2, "color": "blue" },
+    { "id": "nidoqueen", "label": "Nidoqueen", "dex": 31, "line": "nidoran-f", "type": "poison", "stage": 3, "color": "blue" },
+
+    { "id": "nidoran-m", "label": "Nidoran♂", "dex": 32, "line": "nidoran-m", "type": "poison", "stage": 1, "color": "purple" },
+    { "id": "nidorino", "label": "Nidorino", "dex": 33, "line": "nidoran-m", "type": "poison", "stage": 2, "color": "purple" },
+    { "id": "nidoking", "label": "Nidoking", "dex": 34, "line": "nidoran-m", "type": "poison", "stage": 3, "color": "purple" },
+
+    { "id": "cleffa", "label": "Cleffa", "dex": 173, "line": "cleffa", "type": "fairy", "stage": 1, "color": "pink" },
+    { "id": "clefairy", "label": "Clefairy", "dex": 35, "line": "cleffa", "type": "fairy", "stage": 2, "color": "pink" },
+    { "id": "clefable", "label": "Clefable", "dex": 36, "line": "cleffa", "type": "fairy", "stage": 3, "color": "pink" },
+
+    { "id": "vulpix", "label": "Vulpix", "dex": 37, "line": "vulpix", "type": "fire", "stage": 1, "color": "brown" },
+    { "id": "ninetales", "label": "Ninetales", "dex": 38, "line": "vulpix", "type": "fire", "stage": 2, "color": "yellow" },
+
+    { "id": "igglybuff", "label": "Igglybuff", "dex": 174, "line": "igglybuff", "type": "normal", "stage": 1, "color": "pink" },
+    { "id": "jigglypuff", "label": "Jigglypuff", "dex": 39, "line": "igglybuff", "type": "normal", "stage": 2, "color": "pink" },
+    { "id": "wigglytuff", "label": "Wigglytuff", "dex": 40, "line": "igglybuff", "type": "normal", "stage": 3, "color": "pink" },
+
+    { "id": "zubat", "label": "Zubat", "dex": 41, "line": "zubat", "type": "poison", "stage": 1, "color": "purple" },
+    { "id": "golbat", "label": "Golbat", "dex": 42, "line": "zubat", "type": "poison", "stage": 2, "color": "purple" },
+    { "id": "crobat", "label": "Crobat", "dex": 169, "line": "zubat", "type": "poison", "stage": 3, "color": "purple" },
+
+    { "id": "oddish", "label": "Oddish", "dex": 43, "line": "oddish", "type": "grass", "stage": 1, "color": "blue" },
+    { "id": "gloom", "label": "Gloom", "dex": 44, "line": "oddish", "type": "grass", "stage": 2, "color": "blue" },
+    { "id": "vileplume", "label": "Vileplume", "dex": 45, "line": "oddish", "type": "grass", "stage": 3, "color": "red" },
+    { "id": "bellossom", "label": "Bellossom", "dex": 182, "line": "oddish", "type": "grass", "stage": 3, "color": "green" },
+
+    { "id": "paras", "label": "Paras", "dex": 46, "line": "paras", "type": "bug", "stage": 1, "color": "red" },
+    { "id": "parasect", "label": "Parasect", "dex": 47, "line": "paras", "type": "bug", "stage": 2, "color": "red" },
+
+    { "id": "venonat", "label": "Venonat", "dex": 48, "line": "venonat", "type": "bug", "stage": 1, "color": "purple" },
+    { "id": "venomoth", "label": "Venomoth", "dex": 49, "line": "venonat", "type": "bug", "stage": 2, "color": "purple" },
+
+    { "id": "diglett", "label": "Diglett", "dex": 50, "line": "diglett", "type": "ground", "stage": 1, "color": "brown" },
+    { "id": "dugtrio", "label": "Dugtrio", "dex": 51, "line": "diglett", "type": "ground", "stage": 2, "color": "brown" },
+
+    { "id": "meowth", "label": "Meowth", "dex": 52, "line": "meowth", "type": "normal", "stage": 1, "color": "yellow" },
+    { "id": "persian", "label": "Persian", "dex": 53, "line": "meowth", "type": "normal", "stage": 2, "color": "yellow" },
+    { "id": "perrserker", "label": "Perrserker", "dex": 863, "line": "meowth", "type": "steel", "stage": 2, "color": "brown" },
+
+    { "id": "psyduck", "label": "Psyduck", "dex": 54, "line": "psyduck", "type": "water", "stage": 1, "color": "yellow" },
+    { "id": "golduck", "label": "Golduck", "dex": 55, "line": "psyduck", "type": "water", "stage": 2, "color": "blue" },
+
+    { "id": "mankey", "label": "Mankey", "dex": 56, "line": "mankey", "type": "fighting", "stage": 1, "color": "brown" },
+    { "id": "primeape", "label": "Primeape", "dex": 57, "line": "mankey", "type": "fighting", "stage": 2, "color": "brown" },
+    { "id": "annihilape", "label": "Annihilape", "dex": 979, "line": "mankey", "type": "fighting", "stage": 3, "color": "gray" },
+
+    { "id": "growlithe", "label": "Growlithe", "dex": 58, "line": "growlithe", "type": "fire", "stage": 1, "color": "brown" },
+    { "id": "arcanine", "label": "Arcanine", "dex": 59, "line": "growlithe", "type": "fire", "stage": 2, "color": "brown" },
+
+    { "id": "poliwag", "label": "Poliwag", "dex": 60, "line": "poliwag", "type": "water", "stage": 1, "color": "blue" },
+    { "id": "poliwhirl", "label": "Poliwhirl", "dex": 61, "line": "poliwag", "type": "water", "stage": 2, "color": "blue" },
+    { "id": "poliwrath", "label": "Poliwrath", "dex": 62, "line": "poliwag", "type": "water", "stage": 3, "color": "blue" },
+    { "id": "politoed", "label": "Politoed", "dex": 186, "line": "poliwag", "type": "water", "stage": 3, "color": "green" },
+
+    { "id": "abra", "label": "Abra", "dex": 63, "line": "abra", "type": "psychic", "stage": 1, "color": "brown" },
+    { "id": "kadabra", "label": "Kadabra", "dex": 64, "line": "abra", "type": "psychic", "stage": 2, "color": "brown" },
+    { "id": "alakazam", "label": "Alakazam", "dex": 65, "line": "abra", "type": "psychic", "stage": 3, "color": "brown" },
+
+    { "id": "machop", "label": "Machop", "dex": 66, "line": "machop", "type": "fighting", "stage": 1, "color": "gray" },
+    { "id": "machoke", "label": "Machoke", "dex": 67, "line": "machop", "type": "fighting", "stage": 2, "color": "gray" },
+    { "id": "machamp", "label": "Machamp", "dex": 68, "line": "machop", "type": "fighting", "stage": 3, "color": "gray" },
+
+    { "id": "bellsprout", "label": "Bellsprout", "dex": 69, "line": "bellsprout", "type": "grass", "stage": 1, "color": "green" },
+    { "id": "weepinbell", "label": "Weepinbell", "dex": 70, "line": "bellsprout", "type": "grass", "stage": 2, "color": "green" },
+    { "id": "victreebel", "label": "Victreebel", "dex": 71, "line": "bellsprout", "type": "grass", "stage": 3, "color": "green" },
+
+    { "id": "tentacool", "label": "Tentacool", "dex": 72, "line": "tentacool", "type": "water", "stage": 1, "color": "blue" },
+    { "id": "tentacruel", "label": "Tentacruel", "dex": 73, "line": "tentacool", "type": "water", "stage": 2, "color": "blue" },
+
+    { "id": "geodude", "label": "Geodude", "dex": 74, "line": "geodude", "type": "rock", "stage": 1, "color": "brown" },
+    { "id": "graveler", "label": "Graveler", "dex": 75, "line": "geodude", "type": "rock", "stage": 2, "color": "brown" },
+    { "id": "golem", "label": "Golem", "dex": 76, "line": "geodude", "type": "rock", "stage": 3, "color": "brown" },
+
+    { "id": "ponyta", "label": "Ponyta", "dex": 77, "line": "ponyta", "type": "fire", "stage": 1, "color": "yellow" },
+    { "id": "rapidash", "label": "Rapidash", "dex": 78, "line": "ponyta", "type": "fire", "stage": 2, "color": "yellow" },
+
+    { "id": "slowpoke", "label": "Slowpoke", "dex": 79, "line": "slowpoke", "type": "water", "stage": 1, "color": "pink" },
+    { "id": "slowbro", "label": "Slowbro", "dex": 80, "line": "slowpoke", "type": "water", "stage": 2, "color": "pink" },
+    { "id": "slowking", "label": "Slowking", "dex": 199, "line": "slowpoke", "type": "water", "stage": 2, "color": "pink" },
+
+    { "id": "magnemite", "label": "Magnemite", "dex": 81, "line": "magnemite", "type": "electric", "stage": 1, "color": "gray" },
+    { "id": "magneton", "label": "Magneton", "dex": 82, "line": "magnemite", "type": "electric", "stage": 2, "color": "gray" },
+    { "id": "magnezone", "label": "Magnezone", "dex": 462, "line": "magnemite", "type": "electric", "stage": 3, "color": "gray" },
+
+    { "id": "farfetchd", "label": "Farfetch'd", "dex": 83, "line": "farfetchd", "type": "normal", "stage": 1, "color": "brown" },
+    { "id": "sirfetchd", "label": "Sirfetch'd", "dex": 865, "line": "farfetchd", "type": "fighting", "stage": 2, "color": "white" },
+
+    { "id": "doduo", "label": "Doduo", "dex": 84, "line": "doduo", "type": "normal", "stage": 1, "color": "brown" },
+    { "id": "dodrio", "label": "Dodrio", "dex": 85, "line": "doduo", "type": "normal", "stage": 2, "color": "brown" },
+
+    { "id": "seel", "label": "Seel", "dex": 86, "line": "seel", "type": "water", "stage": 1, "color": "white" },
+    { "id": "dewgong", "label": "Dewgong", "dex": 87, "line": "seel", "type": "water", "stage": 2, "color": "white" },
+
+    { "id": "grimer", "label": "Grimer", "dex": 88, "line": "grimer", "type": "poison", "stage": 1, "color": "purple" },
+    { "id": "muk", "label": "Muk", "dex": 89, "line": "grimer", "type": "poison", "stage": 2, "color": "purple" },
+
+    { "id": "shellder", "label": "Shellder", "dex": 90, "line": "shellder", "type": "water", "stage": 1, "color": "purple" },
+    { "id": "cloyster", "label": "Cloyster", "dex": 91, "line": "shellder", "type": "water", "stage": 2, "color": "purple" },
+
+    { "id": "gastly", "label": "Gastly", "dex": 92, "line": "gastly", "type": "ghost", "stage": 1, "color": "purple" },
+    { "id": "haunter", "label": "Haunter", "dex": 93, "line": "gastly", "type": "ghost", "stage": 2, "color": "purple" },
+    { "id": "gengar", "label": "Gengar", "dex": 94, "line": "gastly", "type": "ghost", "stage": 3, "color": "purple" },
+
+    { "id": "onix", "label": "Onix", "dex": 95, "line": "onix", "type": "rock", "stage": 1, "color": "gray" },
+    { "id": "steelix", "label": "Steelix", "dex": 208, "line": "onix", "type": "steel", "stage": 2, "color": "gray" },
+
+    { "id": "drowzee", "label": "Drowzee", "dex": 96, "line": "drowzee", "type": "psychic", "stage": 1, "color": "yellow" },
+    { "id": "hypno", "label": "Hypno", "dex": 97, "line": "drowzee", "type": "psychic", "stage": 2, "color": "yellow" },
+
+    { "id": "krabby", "label": "Krabby", "dex": 98, "line": "krabby", "type": "water", "stage": 1, "color": "red" },
+    { "id": "kingler", "label": "Kingler", "dex": 99, "line": "krabby", "type": "water", "stage": 2, "color": "red" },
+
+    { "id": "voltorb", "label": "Voltorb", "dex": 100, "line": "voltorb", "type": "electric", "stage": 1, "color": "red" },
+    { "id": "electrode", "label": "Electrode", "dex": 101, "line": "voltorb", "type": "electric", "stage": 2, "color": "red" },
+
+    { "id": "exeggcute", "label": "Exeggcute", "dex": 102, "line": "exeggcute", "type": "grass", "stage": 1, "color": "pink" },
+    { "id": "exeggutor", "label": "Exeggutor", "dex": 103, "line": "exeggcute", "type": "grass", "stage": 2, "color": "yellow" },
+
+    { "id": "cubone", "label": "Cubone", "dex": 104, "line": "cubone", "type": "ground", "stage": 1, "color": "brown" },
+    { "id": "marowak", "label": "Marowak", "dex": 105, "line": "cubone", "type": "ground", "stage": 2, "color": "brown" },
+
+    { "id": "tyrogue", "label": "Tyrogue", "dex": 236, "line": "tyrogue", "type": "fighting", "stage": 1, "color": "purple" },
+    { "id": "hitmonlee", "label": "Hitmonlee", "dex": 106, "line": "tyrogue", "type": "fighting", "stage": 2, "color": "brown" },
+    { "id": "hitmonchan", "label": "Hitmonchan", "dex": 107, "line": "tyrogue", "type": "fighting", "stage": 2, "color": "brown" },
+    { "id": "hitmontop", "label": "Hitmontop", "dex": 237, "line": "tyrogue", "type": "fighting", "stage": 2, "color": "brown" },
+
+    { "id": "lickitung", "label": "Lickitung", "dex": 108, "line": "lickitung", "type": "normal", "stage": 1, "color": "pink" },
+    { "id": "lickilicky", "label": "Lickilicky", "dex": 463, "line": "lickitung", "type": "normal", "stage": 2, "color": "pink" },
+
+    { "id": "koffing", "label": "Koffing", "dex": 109, "line": "koffing", "type": "poison", "stage": 1, "color": "purple" },
+    { "id": "weezing", "label": "Weezing", "dex": 110, "line": "koffing", "type": "poison", "stage": 2, "color": "purple" },
+
+    { "id": "rhyhorn", "label": "Rhyhorn", "dex": 111, "line": "rhyhorn", "type": "ground", "stage": 1, "color": "gray" },
+    { "id": "rhydon", "label": "Rhydon", "dex": 112, "line": "rhyhorn", "type": "ground", "stage": 2, "color": "gray" },
+    { "id": "rhyperior", "label": "Rhyperior", "dex": 464, "line": "rhyhorn", "type": "ground", "stage": 3, "color": "gray" },
+
+    { "id": "happiny", "label": "Happiny", "dex": 440, "line": "happiny", "type": "normal", "stage": 1, "color": "pink" },
+    { "id": "chansey", "label": "Chansey", "dex": 113, "line": "happiny", "type": "normal", "stage": 2, "color": "pink" },
+    { "id": "blissey", "label": "Blissey", "dex": 242, "line": "happiny", "type": "normal", "stage": 3, "color": "pink" },
+
+    { "id": "tangela", "label": "Tangela", "dex": 114, "line": "tangela", "type": "grass", "stage": 1, "color": "blue" },
+    { "id": "tangrowth", "label": "Tangrowth", "dex": 465, "line": "tangela", "type": "grass", "stage": 2, "color": "blue" },
+
+    { "id": "kangaskhan", "label": "Kangaskhan", "dex": 115, "line": "kangaskhan", "type": "normal", "stage": 1, "color": "brown" },
+
+    { "id": "horsea", "label": "Horsea", "dex": 116, "line": "horsea", "type": "water", "stage": 1, "color": "blue" },
+    { "id": "seadra", "label": "Seadra", "dex": 117, "line": "horsea", "type": "water", "stage": 2, "color": "blue" },
+    { "id": "kingdra", "label": "Kingdra", "dex": 230, "line": "horsea", "type": "water", "stage": 3, "color": "blue" },
+
+    { "id": "goldeen", "label": "Goldeen", "dex": 118, "line": "goldeen", "type": "water", "stage": 1, "color": "red" },
+    { "id": "seaking", "label": "Seaking", "dex": 119, "line": "goldeen", "type": "water", "stage": 2, "color": "red" },
+
+    { "id": "staryu", "label": "Staryu", "dex": 120, "line": "staryu", "type": "water", "stage": 1, "color": "brown" },
+    { "id": "starmie", "label": "Starmie", "dex": 121, "line": "staryu", "type": "water", "stage": 2, "color": "purple" },
+
+    { "id": "mime-jr", "label": "Mime Jr.", "dex": 439, "line": "mime-jr", "type": "psychic", "stage": 1, "color": "pink" },
+    { "id": "mr-mime", "label": "Mr. Mime", "dex": 122, "line": "mime-jr", "type": "psychic", "stage": 2, "color": "pink" },
+    { "id": "mr-rime", "label": "Mr. Rime", "dex": 866, "line": "mime-jr", "type": "ice", "stage": 3, "color": "purple" },
+
+    { "id": "scyther", "label": "Scyther", "dex": 123, "line": "scyther", "type": "bug", "stage": 1, "color": "green" },
+    { "id": "scizor", "label": "Scizor", "dex": 212, "line": "scyther", "type": "bug", "stage": 2, "color": "red" },
+    { "id": "kleavor", "label": "Kleavor", "dex": 900, "line": "scyther", "type": "bug", "stage": 2, "color": "brown" },
+
+    { "id": "smoochum", "label": "Smoochum", "dex": 238, "line": "smoochum", "type": "ice", "stage": 1, "color": "pink" },
+    { "id": "jynx", "label": "Jynx", "dex": 124, "line": "smoochum", "type": "ice", "stage": 2, "color": "red" },
+
+    { "id": "elekid", "label": "Elekid", "dex": 239, "line": "elekid", "type": "electric", "stage": 1, "color": "yellow" },
+    { "id": "electabuzz", "label": "Electabuzz", "dex": 125, "line": "elekid", "type": "electric", "stage": 2, "color": "yellow" },
+    { "id": "electivire", "label": "Electivire", "dex": 466, "line": "elekid", "type": "electric", "stage": 3, "color": "yellow" },
+
+    { "id": "magby", "label": "Magby", "dex": 240, "line": "magby", "type": "fire", "stage": 1, "color": "red" },
+    { "id": "magmar", "label": "Magmar", "dex": 126, "line": "magby", "type": "fire", "stage": 2, "color": "red" },
+    { "id": "magmortar", "label": "Magmortar", "dex": 467, "line": "magby", "type": "fire", "stage": 3, "color": "red" },
+
+    { "id": "pinsir", "label": "Pinsir", "dex": 127, "line": "pinsir", "type": "bug", "stage": 1, "color": "brown" },
+
+    { "id": "tauros", "label": "Tauros", "dex": 128, "line": "tauros", "type": "normal", "stage": 1, "color": "brown" },
+
+    { "id": "magikarp", "label": "Magikarp", "dex": 129, "line": "magikarp", "type": "water", "stage": 1, "color": "red" },
+    { "id": "gyarados", "label": "Gyarados", "dex": 130, "line": "magikarp", "type": "water", "stage": 2, "color": "blue" },
+
+    { "id": "lapras", "label": "Lapras", "dex": 131, "line": "lapras", "type": "water", "stage": 1, "color": "blue" },
+
+    { "id": "ditto", "label": "Ditto", "dex": 132, "line": "ditto", "type": "normal", "stage": 1, "color": "purple" },
+
+    { "id": "eevee", "label": "Eevee", "dex": 133, "line": "eevee", "type": "normal", "stage": 1, "color": "brown" },
+    { "id": "vaporeon", "label": "Vaporeon", "dex": 134, "line": "eevee", "type": "water", "stage": 2, "color": "blue" },
+    { "id": "jolteon", "label": "Jolteon", "dex": 135, "line": "eevee", "type": "electric", "stage": 2, "color": "yellow" },
+    { "id": "flareon", "label": "Flareon", "dex": 136, "line": "eevee", "type": "fire", "stage": 2, "color": "red" },
+    { "id": "espeon", "label": "Espeon", "dex": 196, "line": "eevee", "type": "psychic", "stage": 2, "color": "purple" },
+    { "id": "umbreon", "label": "Umbreon", "dex": 197, "line": "eevee", "type": "dark", "stage": 2, "color": "black" },
+    { "id": "leafeon", "label": "Leafeon", "dex": 470, "line": "eevee", "type": "grass", "stage": 2, "color": "green" },
+    { "id": "glaceon", "label": "Glaceon", "dex": 471, "line": "eevee", "type": "ice", "stage": 2, "color": "blue" },
+    { "id": "sylveon", "label": "Sylveon", "dex": 700, "line": "eevee", "type": "fairy", "stage": 2, "color": "pink" },
+
+    { "id": "porygon", "label": "Porygon", "dex": 137, "line": "porygon", "type": "normal", "stage": 1, "color": "pink" },
+    { "id": "porygon2", "label": "Porygon2", "dex": 233, "line": "porygon", "type": "normal", "stage": 2, "color": "red" },
+    { "id": "porygon-z", "label": "Porygon-Z", "dex": 474, "line": "porygon", "type": "normal", "stage": 3, "color": "red" },
+
+    { "id": "omanyte", "label": "Omanyte", "dex": 138, "line": "omanyte", "type": "rock", "stage": 1, "color": "blue" },
+    { "id": "omastar", "label": "Omastar", "dex": 139, "line": "omanyte", "type": "rock", "stage": 2, "color": "blue" },
+
+    { "id": "kabuto", "label": "Kabuto", "dex": 140, "line": "kabuto", "type": "rock", "stage": 1, "color": "brown" },
+    { "id": "kabutops", "label": "Kabutops", "dex": 141, "line": "kabuto", "type": "rock", "stage": 2, "color": "brown" },
+
+    { "id": "aerodactyl", "label": "Aerodactyl", "dex": 142, "line": "aerodactyl", "type": "rock", "stage": 1, "color": "purple" },
+
+    { "id": "munchlax", "label": "Munchlax", "dex": 446, "line": "munchlax", "type": "normal", "stage": 1, "color": "black" },
+    { "id": "snorlax", "label": "Snorlax", "dex": 143, "line": "munchlax", "type": "normal", "stage": 2, "color": "black" },
+
+    { "id": "articuno", "label": "Articuno", "dex": 144, "line": "articuno", "type": "ice", "stage": 1, "color": "blue" },
+
+    { "id": "zapdos", "label": "Zapdos", "dex": 145, "line": "zapdos", "type": "electric", "stage": 1, "color": "yellow" },
+
+    { "id": "moltres", "label": "Moltres", "dex": 146, "line": "moltres", "type": "fire", "stage": 1, "color": "yellow" },
+
+    { "id": "dratini", "label": "Dratini", "dex": 147, "line": "dratini", "type": "dragon", "stage": 1, "color": "blue" },
+    { "id": "dragonair", "label": "Dragonair", "dex": 148, "line": "dratini", "type": "dragon", "stage": 2, "color": "blue" },
+    { "id": "dragonite", "label": "Dragonite", "dex": 149, "line": "dratini", "type": "dragon", "stage": 3, "color": "brown" },
+
+    { "id": "mewtwo", "label": "Mewtwo", "dex": 150, "line": "mewtwo", "type": "psychic", "stage": 1, "color": "purple" },
+
+    { "id": "mew", "label": "Mew", "dex": 151, "line": "mew", "type": "psychic", "stage": 1, "color": "pink" }
+  ]
+}

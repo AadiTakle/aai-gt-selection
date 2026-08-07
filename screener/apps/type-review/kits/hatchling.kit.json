@@ -1,0 +1,100 @@
+{
+  "kit": "gt.uikit/v1",
+  "id": "hatchling",
+  "name": "Hatchling Garden",
+  "describes": "A dooryard garden in Hatchling's dawn palette. Every plant is drawn at all four stages it passes through — 1 seed, 2 sprout, 3 bud, 4 bloom — so species and stage cross COMPLETELY: all 48 cells of the 12x4 rectangle are real entries, and the crossing failure a Pokédex hits on a four-category item is not possible here. stage is numeric because an ordered variable mapped onto words renders beautifully and cannot be solved. hue is the wider fallback for category, one-per-species and so unable to cross it, exactly as an evolution line cannot cross a type; the resolver checks that and comes back to stage on its own. Art is local vector, so entries name a sprite key their theme draws rather than a URL to fetch.",
+
+  "dimensions": {
+    "identity": { "from": "bank", "field": "species", "label": "which plant it is" },
+    "category": {
+      "from": "bank",
+      "field": ["stage", "hue"],
+      "label": "how far along it is, or failing that what colour it comes up"
+    },
+
+    "count": { "from": "repeat", "of": "the same plant", "max": 9, "label": "how many are growing" },
+    "rotation": { "from": "rotate", "steps": 4, "label": "which way the sprig is lying" },
+    "scale": { "from": "scale", "min": 0.6, "max": 1.5, "label": "how big it has come up" },
+    "fill": { "from": "tint", "values": ["full", "pale", "outline"], "label": "how the petals are filled in" },
+    "border": {
+      "from": "tint",
+      "values": ["#8d5f3c", "#5f8f5a", "#e8b25c", "#eaa382", "#9c74ad", "#5b83a8"],
+      "label": "the bed it is planted in"
+    },
+
+    "tilt": {
+      "from": "none",
+      "why": "a stem genuinely does lean, so this is the platform refusing rather than the drawing. A resolved Visual carries repeat, turns, size and tint and nothing else, so a kit that claimed tilt would render items whose lean vanished between the resolver and the art. Silently losing a variable is worse than not offering it."
+    },
+    "position": {
+      "from": "none",
+      "why": "the app owns layout. One plant knows nothing about where it sits, and an item that reasons about position needs a kit that draws the whole bed as tiles."
+    },
+    "text": {
+      "from": "none",
+      "why": "a bloom is not a word. Verbal items are made of the words themselves, and no flower can stand in for what a word means."
+    }
+  },
+
+  "bank": [
+    { "id": "rose-seed", "label": "Rose hip", "art": "sprite:rose-seed", "species": "rose", "stage": 1, "hue": "pink" },
+    { "id": "rose-sprout", "label": "Rose sprout", "art": "sprite:rose-sprout", "species": "rose", "stage": 2, "hue": "pink" },
+    { "id": "rose-bud", "label": "Rose bud", "art": "sprite:rose-bud", "species": "rose", "stage": 3, "hue": "pink" },
+    { "id": "rose-bloom", "label": "Rose in bloom", "art": "sprite:rose-bloom", "species": "rose", "stage": 4, "hue": "pink" },
+
+    { "id": "tulip-seed", "label": "Tulip bulb", "art": "sprite:tulip-seed", "species": "tulip", "stage": 1, "hue": "coral" },
+    { "id": "tulip-sprout", "label": "Tulip shoot", "art": "sprite:tulip-sprout", "species": "tulip", "stage": 2, "hue": "coral" },
+    { "id": "tulip-bud", "label": "Tulip bud", "art": "sprite:tulip-bud", "species": "tulip", "stage": 3, "hue": "coral" },
+    { "id": "tulip-bloom", "label": "Tulip in bloom", "art": "sprite:tulip-bloom", "species": "tulip", "stage": 4, "hue": "coral" },
+
+    { "id": "daisy-seed", "label": "Daisy seeds", "art": "sprite:daisy-seed", "species": "daisy", "stage": 1, "hue": "cream" },
+    { "id": "daisy-sprout", "label": "Daisy sprout", "art": "sprite:daisy-sprout", "species": "daisy", "stage": 2, "hue": "cream" },
+    { "id": "daisy-bud", "label": "Daisy bud", "art": "sprite:daisy-bud", "species": "daisy", "stage": 3, "hue": "cream" },
+    { "id": "daisy-bloom", "label": "Daisy in bloom", "art": "sprite:daisy-bloom", "species": "daisy", "stage": 4, "hue": "cream" },
+
+    { "id": "fern-seed", "label": "Fern spores", "art": "sprite:fern-seed", "species": "fern", "stage": 1, "hue": "moss" },
+    { "id": "fern-sprout", "label": "Fern sprout", "art": "sprite:fern-sprout", "species": "fern", "stage": 2, "hue": "moss" },
+    { "id": "fern-bud", "label": "Fern fiddlehead", "art": "sprite:fern-bud", "species": "fern", "stage": 3, "hue": "moss" },
+    { "id": "fern-bloom", "label": "Fern frond, open", "art": "sprite:fern-bloom", "species": "fern", "stage": 4, "hue": "moss" },
+
+    { "id": "clover-seed", "label": "Clover seeds", "art": "sprite:clover-seed", "species": "clover", "stage": 1, "hue": "blush" },
+    { "id": "clover-sprout", "label": "Clover sprout", "art": "sprite:clover-sprout", "species": "clover", "stage": 2, "hue": "blush" },
+    { "id": "clover-bud", "label": "Clover bud", "art": "sprite:clover-bud", "species": "clover", "stage": 3, "hue": "blush" },
+    { "id": "clover-bloom", "label": "Clover in bloom", "art": "sprite:clover-bloom", "species": "clover", "stage": 4, "hue": "blush" },
+
+    { "id": "sunflower-seed", "label": "Sunflower seed", "art": "sprite:sunflower-seed", "species": "sunflower", "stage": 1, "hue": "gold" },
+    { "id": "sunflower-sprout", "label": "Sunflower sprout", "art": "sprite:sunflower-sprout", "species": "sunflower", "stage": 2, "hue": "gold" },
+    { "id": "sunflower-bud", "label": "Sunflower bud", "art": "sprite:sunflower-bud", "species": "sunflower", "stage": 3, "hue": "gold" },
+    { "id": "sunflower-bloom", "label": "Sunflower in bloom", "art": "sprite:sunflower-bloom", "species": "sunflower", "stage": 4, "hue": "gold" },
+
+    { "id": "poppy-seed", "label": "Poppy seed pod", "art": "sprite:poppy-seed", "species": "poppy", "stage": 1, "hue": "coral" },
+    { "id": "poppy-sprout", "label": "Poppy sprout", "art": "sprite:poppy-sprout", "species": "poppy", "stage": 2, "hue": "coral" },
+    { "id": "poppy-bud", "label": "Poppy bud, nodding", "art": "sprite:poppy-bud", "species": "poppy", "stage": 3, "hue": "coral" },
+    { "id": "poppy-bloom", "label": "Poppy in bloom", "art": "sprite:poppy-bloom", "species": "poppy", "stage": 4, "hue": "coral" },
+
+    { "id": "orchid-seed", "label": "Orchid seed dust", "art": "sprite:orchid-seed", "species": "orchid", "stage": 1, "hue": "violet" },
+    { "id": "orchid-sprout", "label": "Orchid sprout", "art": "sprite:orchid-sprout", "species": "orchid", "stage": 2, "hue": "violet" },
+    { "id": "orchid-bud", "label": "Orchid bud", "art": "sprite:orchid-bud", "species": "orchid", "stage": 3, "hue": "violet" },
+    { "id": "orchid-bloom", "label": "Orchid in bloom", "art": "sprite:orchid-bloom", "species": "orchid", "stage": 4, "hue": "violet" },
+
+    { "id": "lily-seed", "label": "Lily seeds", "art": "sprite:lily-seed", "species": "lily", "stage": 1, "hue": "apricot" },
+    { "id": "lily-sprout", "label": "Lily shoot", "art": "sprite:lily-sprout", "species": "lily", "stage": 2, "hue": "apricot" },
+    { "id": "lily-bud", "label": "Lily bud", "art": "sprite:lily-bud", "species": "lily", "stage": 3, "hue": "apricot" },
+    { "id": "lily-bloom", "label": "Lily in bloom", "art": "sprite:lily-bloom", "species": "lily", "stage": 4, "hue": "apricot" },
+
+    { "id": "thistle-seed", "label": "Thistle seed", "art": "sprite:thistle-seed", "species": "thistle", "stage": 1, "hue": "violet" },
+    { "id": "thistle-sprout", "label": "Thistle sprout", "art": "sprite:thistle-sprout", "species": "thistle", "stage": 2, "hue": "violet" },
+    { "id": "thistle-bud", "label": "Thistle bud", "art": "sprite:thistle-bud", "species": "thistle", "stage": 3, "hue": "violet" },
+    { "id": "thistle-bloom", "label": "Thistle in bloom", "art": "sprite:thistle-bloom", "species": "thistle", "stage": 4, "hue": "violet" },
+
+    { "id": "bluebell-seed", "label": "Bluebell seeds", "art": "sprite:bluebell-seed", "species": "bluebell", "stage": 1, "hue": "blue" },
+    { "id": "bluebell-sprout", "label": "Bluebell shoots", "art": "sprite:bluebell-sprout", "species": "bluebell", "stage": 2, "hue": "blue" },
+    { "id": "bluebell-bud", "label": "Bluebell buds", "art": "sprite:bluebell-bud", "species": "bluebell", "stage": 3, "hue": "blue" },
+    { "id": "bluebell-bloom", "label": "Bluebells in bloom", "art": "sprite:bluebell-bloom", "species": "bluebell", "stage": 4, "hue": "blue" },
+
+    { "id": "foxglove-seed", "label": "Foxglove seeds", "art": "sprite:foxglove-seed", "species": "foxglove", "stage": 1, "hue": "plum" },
+    { "id": "foxglove-sprout", "label": "Foxglove sprout", "art": "sprite:foxglove-sprout", "species": "foxglove", "stage": 2, "hue": "plum" },
+    { "id": "foxglove-bud", "label": "Foxglove buds", "art": "sprite:foxglove-bud", "species": "foxglove", "stage": 3, "hue": "plum" },
+    { "id": "foxglove-bloom", "label": "Foxglove in bloom", "art": "sprite:foxglove-bloom", "species": "foxglove", "stage": 4, "hue": "plum" }
+  ]
+}

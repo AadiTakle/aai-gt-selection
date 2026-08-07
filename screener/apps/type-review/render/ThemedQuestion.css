@@ -1,0 +1,599 @@
+/*
+ * Everything here is prefixed `tq-` and every rule is scoped under `.tq`, because this component is
+ * dropped into a review harness that has its own stylesheet and neither should be able to reach into the
+ * other. The container restates font, colour and box-sizing rather than inheriting them, so the question
+ * looks the same wherever it is embedded.
+ *
+ * THE ONE THING THE LOOK HAS TO EARN. This is shown side by side with the archive's hand-built renderers,
+ * which were each tuned to one question. A generic renderer cannot beat them at being specific, so it
+ * competes on being unambiguous: a clean grid, a hole you cannot mistake for a cell, options that are
+ * obviously separate from the stem, and pictures that stay readable from nine-in-a-cell up to one.
+ */
+
+.tq {
+  --tq-ink: #101828;
+  --tq-muted: #667085;
+  --tq-faint: #98a2b3;
+  --tq-line: #e4e7ec;
+  --tq-well: #f4f6f8;
+  --tq-card: #ffffff;
+  --tq-accent: #2f6fed;
+  --tq-accent-soft: #e8f0fe;
+  --tq-warn: #9a3412;
+  --tq-warn-soft: #fff7ed;
+  --tq-warn-line: #fed7aa;
+
+  --tq-unit: 54px;
+  --tq-scale: 1;
+  --tq-spin: 0deg;
+
+  box-sizing: border-box;
+  display: block;
+  padding: 18px 18px 14px;
+  border: 1px solid var(--tq-line);
+  border-radius: 16px;
+  background: var(--tq-card);
+  color: var(--tq-ink);
+  font: 400 15px/1.5 ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  text-align: left;
+}
+
+.tq *,
+.tq *::before,
+.tq *::after {
+  box-sizing: border-box;
+}
+
+/* ------------------------------------------------------------------ head */
+
+.tq-banner {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--tq-line);
+}
+
+.tq-code {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--tq-faint);
+}
+
+.tq-drawn {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--tq-faint);
+}
+
+.tq-ask {
+  margin: 0 0 14px;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--tq-ink);
+}
+
+/* ------------------------------------------------------------------ grid */
+
+/*
+ * Tracks cap at a cell's width and shrink from there, rather than sizing to their contents. A six-step
+ * series otherwise pushes its own cells out of the well it is sitting in, which looks like a bug and, on
+ * a narrow panel, puts the last step off the edge.
+ */
+.tq-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--tq-cols, 2), minmax(0, 110px));
+  justify-content: center;
+  gap: 10px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto 18px;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--tq-well);
+}
+
+/* A series is one row, and reads better with a little more air between its steps. */
+.tq-strip {
+  gap: 12px;
+}
+
+.tq-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 110px;
+  padding: 6px;
+  border: 2px solid var(--tq-line);
+  border-radius: 12px;
+  background: var(--tq-card);
+}
+
+/*
+ * The hole. Dashed and empty, so it cannot be read as a cell that happens to be blank, which is a real
+ * mistake to make when a kit's own art has whitespace in it.
+ */
+.tq-hole {
+  border-style: dashed;
+  border-color: #cbd5e1;
+  background: repeating-linear-gradient(135deg, #fbfcfd 0 6px, #f2f5f8 6px 12px);
+  color: var(--tq-faint);
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* --------------------------------------------------------------- picture */
+
+.tq-pic {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+  padding-top: 7px;
+}
+
+/*
+ * The tint band.
+ *
+ * A tint is a token the kit hands over and the app decides what it means, and the one thing it must not
+ * do is render two different tokens the same way — that is a variable the item varies going invisible.
+ * So slots differ by hue AND by pattern, which keeps them apart for a reader who cannot separate the
+ * hues.
+ */
+.tq-pic::before {
+  content: '';
+  position: absolute;
+  inset: 0 6px auto 6px;
+  height: 5px;
+  border-radius: 0 0 4px 4px;
+  background: var(--tq-tint, transparent);
+}
+
+.tq-pic[data-tint='none']::before {
+  display: none;
+}
+
+.tq-pic[data-tint='0'] { --tq-tint: #64748b; }
+.tq-pic[data-tint='1'] { --tq-tint: #d97706; }
+.tq-pic[data-tint='2'] { --tq-tint: #0d9488; }
+.tq-pic[data-tint='3'] { --tq-tint: #7c3aed; }
+.tq-pic[data-tint='4'] { --tq-tint: #db2777; }
+.tq-pic[data-tint='5'] { --tq-tint: #16a34a; }
+.tq-pic[data-tint='6'] { --tq-tint: #2563eb; }
+.tq-pic[data-tint='7'] { --tq-tint: #92400e; }
+
+.tq-pic[data-tint='2']::before,
+.tq-pic[data-tint='3']::before {
+  background: repeating-linear-gradient(90deg, var(--tq-tint) 0 9px, transparent 9px 15px);
+}
+
+.tq-pic[data-tint='4']::before,
+.tq-pic[data-tint='5']::before {
+  background: repeating-linear-gradient(90deg, var(--tq-tint) 0 3px, transparent 3px 7px);
+}
+
+.tq-pic[data-tint='6']::before,
+.tq-pic[data-tint='7']::before {
+  background: linear-gradient(var(--tq-tint) 0 35%, transparent 35% 65%, var(--tq-tint) 65% 100%);
+}
+
+.tq-copies {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  align-content: center;
+  justify-content: center;
+  /*
+   * Copies are held apart rather than packed. When `count` is the variable the item is testing, telling
+   * five from six IS the question, and sprites that touch have to be counted twice.
+   */
+  gap: 3px;
+  width: 100%;
+  min-height: 0;
+}
+
+/*
+ * `count` is drawn as repetition, so the copies have to shrink as they multiply or nine of them burst
+ * the cell. Each step carries a size AND a share of the cell's width, and the smaller of the two wins:
+ * the size keeps a sprite near reading scale in a roomy cell, and the share keeps the same number of
+ * copies per row when a six-step series squeezes its cells down to half that. Without the share, four
+ * copies stack into a vertical line the moment the panel narrows, and a counting item gets harder to
+ * read for a reason that has nothing to do with the item.
+ */
+.tq-pic-one { --tq-unit: 54px; --tq-cap: 100%; }
+.tq-pic-pair { --tq-unit: 38px; --tq-cap: 44%; }
+.tq-pic-few { --tq-unit: 29px; --tq-cap: 31%; }
+.tq-pic-many { --tq-unit: 21px; --tq-cap: 25%; }
+
+.tq-img,
+.tq-fallback {
+  flex: 0 0 auto;
+  width: min(calc(var(--tq-unit) * var(--tq-scale)), var(--tq-cap, 100%));
+  height: auto;
+  aspect-ratio: 1;
+  transform: rotate(var(--tq-spin));
+}
+
+.tq-img {
+  display: block;
+  object-fit: contain;
+  image-rendering: auto;
+  user-select: none;
+}
+
+/*
+ * No art at all, or a sprite kit with no renderer: the label still says which thing it is.
+ *
+ * Wider than a sprite would be, because a name needs more room than a picture and this is the only place
+ * it is written when there is no picture.
+ */
+.tq-fallback {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  width: min(calc(var(--tq-unit) * 1.35 * var(--tq-scale)), var(--tq-cap, 100%));
+  padding: 2px;
+  border: 1.5px solid var(--tq-line);
+  border-radius: 8px;
+  background: #fbfcfd;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.05;
+  text-align: center;
+  overflow-wrap: anywhere;
+  color: var(--tq-muted);
+}
+
+/*
+ * A vector sprite is handed the rotation and the scale itself, so nothing is wrapped around it here. A
+ * drawn sprite should turn about its own centre and keep its stroke weight, which scaling the box does
+ * not do.
+ */
+.tq-sprite {
+  display: grid;
+  place-items: center;
+  line-height: 0;
+}
+
+.tq-name {
+  flex: 0 0 auto;
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--tq-faint);
+}
+
+/* The item's own word, which no theme owns. */
+.tq-word {
+  padding: 2px 6px;
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  overflow-wrap: anywhere;
+  color: var(--tq-ink);
+}
+
+.tq-empty {
+  display: block;
+  width: 40px;
+  height: 40px;
+  border: 2px dashed var(--tq-line);
+  border-radius: 8px;
+}
+
+/* --------------------------------------------------------------- passage */
+
+.tq-passage {
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--tq-well);
+}
+
+.tq-passage-title {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--tq-muted);
+}
+
+.tq-sentence {
+  margin: 0 0 6px;
+  font-size: 20px;
+  line-height: 1.5;
+}
+
+.tq-sentence:last-child {
+  margin-bottom: 0;
+}
+
+.tq-question {
+  margin: 10px 0 0;
+  font-size: 15px;
+  color: var(--tq-muted);
+}
+
+/* The gap, which is the question in a cloze and so is drawn as a place rather than as punctuation. */
+.tq-gap {
+  display: inline-block;
+  min-width: 96px;
+  margin: 0 4px;
+  padding: 0 8px;
+  border-bottom: 3px solid var(--tq-faint);
+  /* Tight, so the rule sits under the sentence's baseline rather than under the whole line box. */
+  line-height: 1.12;
+  text-align: center;
+  vertical-align: baseline;
+}
+
+.tq-gap-filled {
+  border-bottom-color: var(--tq-accent);
+  font-weight: 700;
+  color: var(--tq-accent);
+}
+
+/* --------------------------------------------------------------- clues */
+
+.tq-clues {
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  list-style: none;
+  border-radius: 14px;
+  background: var(--tq-well);
+}
+
+.tq-clue {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+  font-size: 15px;
+}
+
+.tq-clue + .tq-clue {
+  border-top: 1px solid var(--tq-line);
+}
+
+.tq-tag {
+  flex: 0 0 auto;
+  min-width: 74px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+
+.tq-clue-in .tq-tag {
+  background: #dcfce7;
+  color: #14532d;
+}
+
+.tq-clue-out .tq-tag {
+  background: #fee2e2;
+  color: #7f1d1d;
+}
+
+.tq-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tq-chip {
+  padding: 3px 10px;
+  border: 1px solid var(--tq-line);
+  border-radius: 8px;
+  background: var(--tq-card);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* -------------------------------------------------------------- compare */
+
+.tq-compare {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin: 0 auto 18px;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--tq-well);
+}
+
+.tq-versus {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tq-faint);
+}
+
+.tq-hint {
+  flex: 1 0 100%;
+  margin: 0;
+  font-size: 13px;
+  text-align: center;
+  color: var(--tq-muted);
+}
+
+/* -------------------------------------------------------------- choices */
+
+.tq-choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 152px));
+  gap: 10px;
+  justify-content: center;
+}
+
+.tq-choice,
+.tq-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 8px;
+  border: 2px solid var(--tq-line);
+  border-radius: 14px;
+  background: var(--tq-card);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  appearance: none;
+}
+
+.tq-choice {
+  flex-direction: column;
+}
+
+.tq-choice .tq-slot,
+.tq-row .tq-slot {
+  min-width: 0;
+  min-height: 76px;
+  border: 0;
+  padding: 0;
+  background: none;
+}
+
+.tq-choice .tq-slot {
+  width: 100%;
+}
+
+.tq-row {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.tq-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tq-arrow {
+  font-size: 18px;
+  color: var(--tq-faint);
+}
+
+.tq-letter {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--tq-well);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--tq-muted);
+}
+
+.tq-choice:hover,
+.tq-row:hover {
+  border-color: #bfd0f5;
+}
+
+.tq-choice:focus-visible,
+.tq-row:focus-visible {
+  outline: 3px solid var(--tq-accent);
+  outline-offset: 2px;
+}
+
+.tq-choice[aria-pressed='true'],
+.tq-row[aria-pressed='true'] {
+  border-color: var(--tq-accent);
+  background: var(--tq-accent-soft);
+}
+
+.tq-choice[aria-pressed='true'] .tq-letter,
+.tq-row[aria-pressed='true'] .tq-letter {
+  background: var(--tq-accent);
+  color: #ffffff;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tq-choice,
+  .tq-row {
+    transition:
+      border-color 120ms ease,
+      background-color 120ms ease,
+      transform 120ms ease;
+  }
+
+  .tq-choice:hover,
+  .tq-row:hover {
+    transform: translateY(-2px);
+  }
+}
+
+/* ---------------------------------------------------------------- notes */
+
+.tq-foot {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--tq-line);
+}
+
+.tq-note {
+  margin: 0 0 4px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--tq-muted);
+}
+
+.tq-using {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: var(--tq-faint);
+}
+
+/*
+ * A refusal, which is a result and not an error.
+ *
+ * Warm rather than red: nothing has gone wrong with the software when a kit cannot dress an item, and
+ * the message is the useful part — it names the variable or the crossing that is missing, which is what
+ * a kit author needs in order to fix it.
+ */
+.tq-declined {
+  border-color: var(--tq-warn-line);
+  background: var(--tq-warn-soft);
+}
+
+.tq-refusal {
+  margin: 0 0 8px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--tq-warn);
+}
+
+.tq-refusal b {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.tq-refusal-why {
+  margin: 0;
+  font-size: 12px;
+  color: #b45309;
+}
