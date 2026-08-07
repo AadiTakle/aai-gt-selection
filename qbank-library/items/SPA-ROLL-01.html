@@ -232,7 +232,15 @@ function showLegend(){
 }
 
 /* ---------- roll stepping ---------- */
-/** Faces are readable only when the cube is at rest, never while it moves. */
+/**
+ * Faces are readable at the START of the sequence and nowhere else.
+ *
+ * The cube is un-blinded in exactly one place, `resetRoll`, which puts it back on the start cell for
+ * the child to study. It is never un-blinded on coming to rest, and that is the whole point: the face
+ * the question asks about is the ANSWER, so showing it when the cube stops hands the answer over to
+ * anyone who waits. That applies to the end of a full roll and to every intermediate stop when
+ * stepping, because a child who steps to the end and reads the top face has not tracked anything.
+ */
 function setBlind(on){$('#cube').classList.toggle('blind',on);}
 async function doStep(){
   if(stepIdx>=dirs.length||animating)return;
@@ -240,7 +248,6 @@ async function doStep(){
   placeCube(stepIdx);$('#cube').style.transform=css3d(M);
   renderMeters();
   await sleep(520);animating=false;
-  if(!rolling)setBlind(false);
   if(stepIdx>=dirs.length)maybeReady();
 }
 function maybeReady(){if(!locked&&stepIdx>=dirs.length&&selected>=0)$('#go').classList.add('ready');}
@@ -248,7 +255,7 @@ async function playAll(){
   if(rolling||animating)return;
   rolling=true;
   while(stepIdx<dirs.length){await doStep();await sleep(120);}
-  rolling=false;setBlind(false);maybeReady();
+  rolling=false;maybeReady();
 }
 /**
  * One viewing of the whole sequence. A press that starts a sequence which has
