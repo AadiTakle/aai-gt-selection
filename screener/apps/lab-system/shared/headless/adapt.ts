@@ -447,6 +447,72 @@ function buildStem(typeCode: string, c: Record<string, unknown>): StemKind {
     return { kind: 'constraints', clues };
   }
 
+  /**
+   * Three more shapes that were reaching the plain fallback and losing their stimulus on the way.
+   *
+   * `plain` is documented as "nothing to show but the question itself", but it is also where this
+   * function lands when it does not recognise the content, and the second case is far commoner than the
+   * first. The result is a prompt that refers to something not on screen — which reads as a hard
+   * question and is an impossible one. Each branch below is a few lines and recovers a whole type.
+   */
+
+  // A machine shown by worked examples: pairs of in and out, then a new input. That is a matrix of
+  // (input, output) rows with the last output missing, so it is drawn as one.
+  const machinePairs = Array.isArray(c.pairs) ? (c.pairs as unknown[]) : undefined;
+  if (machinePairs && machinePairs.length > 0 && (num(c.input) !== undefined || c.input !== undefined)) {
+    const rows: (Facets | null)[] = [];
+    for (const pair of machinePairs) {
+      if (!Array.isArray(pair) || pair.length < 2) continue;
+      rows.push(facets(pair[0]), facets(pair[1]));
+    }
+    if (rows.length > 0) {
+      rows.push(facets(c.input), null); // the row the child completes
+      return { kind: 'matrix', rows: rows.length / 2, cols: 2, cells: rows, blank: rows.length - 1 };
+    }
+  }
+
+  // Two exemplar groups defining a rule by contrast. Same idea as sorted in/out, but the members are
+  // figures rather than words, so they are described rather than listed verbatim.
+  const leftEx = Array.isArray(c.leftExemplars) ? (c.leftExemplars as unknown[]) : undefined;
+  const rightEx = Array.isArray(c.rightExemplars) ? (c.rightExemplars as unknown[]) : undefined;
+  if (leftEx && leftEx.length > 0) {
+    const describe = (list: readonly unknown[]): string =>
+      list
+        .map((e) => {
+          const f = facets(e);
+          return [f.count, f.fill, f.color, f.shape].filter((x) => x !== undefined).join(' ');
+        })
+        .filter(Boolean)
+        .join(' · ');
+    const clues = [`THIS GROUP: ${describe(leftEx)}`];
+    if (rightEx && rightEx.length > 0) clues.push(`NOT THIS GROUP: ${describe(rightEx)}`);
+    return { kind: 'constraints', clues };
+  }
+
+  // Ordering clues stored as above/below pairs over named characters. The adapter used to read `label`
+  // and `value` off a clue, which these do not have, so every rule silently vanished and the child was
+  // shown an ordering task with nothing to order by.
+  const rawClues = Array.isArray(c.clues) ? (c.clues as unknown[]) : undefined;
+  if (rawClues && rawClues.length > 0) {
+    const cast = Array.isArray(c.characters) ? (c.characters as unknown[]) : [];
+    const nameOf = (id: unknown): string => {
+      const who = cast.map(rec).find((x) => x?.id === id);
+      const f = who ? facets(who) : {};
+      return [f.color, f.shape].filter((x) => x !== undefined).join(' ') || String(id ?? '?');
+    };
+    const lines = rawClues
+      .map(rec)
+      .map((cl) => {
+        if (!cl) return '';
+        if (cl.above !== undefined && cl.below !== undefined) {
+          return `${nameOf(cl.above)} is above ${nameOf(cl.below)}`;
+        }
+        return str(cl.label) ?? str(cl.value) ?? '';
+      })
+      .filter(Boolean);
+    if (lines.length > 0) return { kind: 'constraints', clues: lines };
+  }
+
   return { kind: 'plain' };
 }
 
