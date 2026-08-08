@@ -15,7 +15,16 @@ import { describe, expect, it } from 'vitest';
 
 import { Posterior, information, paramsFor } from '@gt/engine';
 
-import { BANK_DIR, loadBanks, optionCountOf, toLogits, type BankRecord, type LoadedBank } from './bank';
+import {
+  BANK_DIR,
+  loadBanks,
+  optionCountOf,
+  responseFormatOf,
+  toLogits,
+  type BankRecord,
+  type LoadedBank,
+  type ResponseFormat,
+} from './bank';
 import { precisionAt, QbankSession, type QbankSessionConfig } from './session';
 
 function itemsOf(typeCode: string): BankRecord[] {
@@ -97,14 +106,61 @@ describe('the option count comes off the item', () => {
     }
   });
 
-  it('says null rather than guessing when the content enumerates no options', () => {
-    // SPA-MAZE-01 answers are paths and SPA-TANGRAM-01 answers are placements. Neither has an option
-    // set, so there is no 1/n to report and inventing one is the bug this test exists to prevent.
-    for (const typeCode of ['SPA-MAZE-01', 'SPA-TANGRAM-01']) {
-      for (const item of itemsOf(typeCode)) {
-        expect(optionCountOf(item), `${typeCode} ${item.itemId}`).toBeNull();
-      }
+  it('reads a declared stepper range as its response space', () => {
+    // SPA-HIDDENCUBE-01 answers with a number on a 0-60 stepper, so a blind answer is right one time
+    // in 61 rather than never.
+    for (const item of itemsOf('SPA-HIDDENCUBE-01')) {
+      const r = item.content.response as { min: number; max: number; step: number };
+      expect(optionCountOf(item), item.itemId).toBe((r.max - r.min) / r.step + 1);
+      expect(optionCountOf(item)).toBe(61);
     }
+  });
+
+  it('bounds a grid count answer by the grid', () => {
+    /**
+     * MAZE and PIPES answer with an integer count — a path length, a number of pipes — and TANGRAM with
+     * a filled-cell count. Every key in all three banks is <= R*C*(L||1), so the grid bounds the answer
+     * and the space is that many values plus zero. A 4x4 maze is genuinely guessable (1 in 17); a 12x12
+     * one is not (1 in 145). A single constant for the type would lose exactly that.
+     */
+    for (const typeCode of ['SPA-MAZE-01', 'SPA-PIPES-01', 'SPA-TANGRAM-01']) {
+      const seen = new Set<number | null>();
+      for (const item of itemsOf(typeCode)) {
+        const g = item.content.grid as { R: number; C: number; L?: number };
+        const space = g.R * g.C * (g.L ?? 1) + 1;
+        expect(optionCountOf(item), `${typeCode} ${item.itemId}`).toBe(space);
+        // The bound has to actually hold, or the floor is modelling a space the answer escapes.
+        expect(Number(item.answer.correctKey), `${typeCode} ${item.itemId}`).toBeLessThan(space);
+        seen.add(space);
+      }
+      expect(seen.size, `${typeCode} grids should vary`).toBeGreaterThan(1);
+    }
+  });
+
+  it('reads a token-to-bin assignment as the whole assignment space', () => {
+    // CX-check-01 sorts every token into one of the bins, so the space is bins^tokens: 64 at the small
+    // end and millions at the large one. Effectively unguessable, but derived rather than asserted.
+    for (const item of itemsOf('CX-check-01')) {
+      const { binCount, tokenCount } = item.content as { binCount: number; tokenCount: number };
+      expect(optionCountOf(item), item.itemId).toBe(binCount ** tokenCount);
+    }
+  });
+
+  it('still says null when nothing in the content bounds the answer', () => {
+    // The fallback has to survive. A type that declares no options, no grid, no stepper and no
+    // assignment gets null, and the caller decides — that is what keeps a new bank import from
+    // silently acquiring an invented guessing floor.
+    const bare = {
+      itemId: 'x',
+      typeCode: 'MADE-UP-01',
+      domain: 'fluid',
+      difficulty: 10,
+      ageBands: [],
+      content: { prompt: 'draw something' },
+      answer: { correctKey: 'anything' },
+      scoring: { mode: 'deterministic_key' },
+    } as unknown as BankRecord;
+    expect(optionCountOf(bare)).toBeNull();
   });
 
   it('never reports a count below two for an item that has options', () => {
@@ -159,22 +215,71 @@ describe('both call sites use that count', () => {
     expect(session.state().estimate).toBeCloseTo(asTwo.mean(), 10);
   });
 
-  it('treats an item that enumerates no options as unguessable', () => {
+  it('selects a constructed-response item on its derived response space', () => {
     /**
-     * Decided by Felipe, 8 Aug 2026: an answer that is an assignment, a path, a set of rotations or a
-     * placement is assumed unguessable, so c is 0 rather than the 1/4 that a four-option default
-     * implied. `paramsFor` already yields c = 0 when handed no options.
+     * Decided by Felipe, 8 Aug 2026: a constructed answer gets a small guessing chance taken from the
+     * space the item declares, not a flat zero and not a four-option default. So selection has to use
+     * that derived space, which for a maze is the grid and for a token sort is bins^tokens.
      */
-    for (const typeCode of ['SPA-MAZE-01', 'CX-check-01']) {
-      const serve = sessionOver(typeCode).nextItem();
+    for (const typeCode of ['SPA-MAZE-01', 'CX-check-01', 'SPA-TANGRAM-01']) {
+      const session = sessionOver(typeCode);
+      const serve = session.nextItem();
       expect(serve, `expected ${typeCode} to be servable`).not.toBeNull();
 
+      const item = itemsOf(typeCode).find((i) => i.itemId === serve!.served.itemId)!;
       const b = toLogits(serve!.difficulty);
-      const unguessable = information(CONFIG.abilityThreshold, paramsFor(b, 0, 1.5));
+      const derived = information(CONFIG.abilityThreshold, paramsFor(b, optionCountOf(item)!, 1.5));
       const asFour = information(CONFIG.abilityThreshold, paramsFor(b, 4, 1.5));
 
-      expect(unguessable).not.toBeCloseTo(asFour, 6);
-      expect(serve!.informationAtThreshold, typeCode).toBeCloseTo(unguessable, 10);
+      expect(derived).not.toBeCloseTo(asFour, 6);
+      expect(serve!.informationAtThreshold, typeCode).toBeCloseTo(derived, 10);
+    }
+  });
+
+  it('holds a share of the session for multiple choice', () => {
+    /**
+     * Constructed items are more informative per item — 1.62x a four-option item at c=0 and still 1.41x
+     * at c=0.07 — so pure information greed fills a session with them. They are also far slower to
+     * answer, which is why a share of each session is reserved for multiple choice. This is a serving
+     * rule and not a change to the model: the information values stay honest, the pool is constrained.
+     */
+    const wanted = ['SPA-MAZE-01', 'CX-check-01', 'SPA-TANGRAM-01', 'FLU-MATRIX-01', 'VER-CLOZE-01'];
+    const mixed = new Map([...loadBanks()].filter(([t]) => wanted.includes(t)));
+
+    const run = (share: number): ResponseFormat[] => {
+      const session = new QbankSession({ ...CONFIG, minMultipleChoiceShare: share }, mixed, 1);
+      const formats: ResponseFormat[] = [];
+      for (let i = 0; i < 12; i += 1) {
+        const serve = session.nextItem();
+        if (!serve) break;
+        formats.push(responseFormatOf(serve.served));
+        // Deliberately unmarkable: it advances the session without moving the posterior, so the run is
+        // driven purely by selection rather than by the stop rule firing early.
+        session.submit({ nothing: true }, 5000);
+      }
+      return formats;
+    };
+
+    // With no floor, greed takes constructed items almost exclusively.
+    const greedy = run(0);
+    expect(greedy.length).toBe(12);
+    expect(greedy.filter((f) => f === 'multiple-choice').length).toBeLessThan(3);
+
+    // With the floor, at least half the session is multiple choice.
+    const balanced = run(0.5);
+    expect(balanced.length).toBe(12);
+    expect(balanced.filter((f) => f === 'multiple-choice').length).toBeGreaterThanOrEqual(6);
+  });
+
+  it('does not let the format floor starve a pool that has only one format', () => {
+    // A caller may restrict to a single type. The floor must not be able to empty the pool and stop the
+    // session early — coverage rules that can deadlock selection are worse than no coverage rule.
+    const only = new Map([...loadBanks()].filter(([t]) => t === 'SPA-MAZE-01'));
+    const session = new QbankSession({ ...CONFIG, minMultipleChoiceShare: 0.5 }, only, 1);
+    for (let i = 0; i < 5; i += 1) {
+      const serve = session.nextItem();
+      expect(serve, `constructed-only pool stalled at item ${i + 1}`).not.toBeNull();
+      session.submit({ nothing: true }, 5000);
     }
   });
 

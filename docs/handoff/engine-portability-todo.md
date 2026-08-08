@@ -239,25 +239,72 @@ the old default was accidentally exact for a third of them. Now read directly:
 all three as one string (`'YNN'`). Marking is all-or-nothing, so the space is 2^3 and reporting 3 would
 claim a child guesses right a third of the time when it is an eighth.
 
-**The consequence of c = 0, and it needs a decision of its own.** Across the whole pool, 2,542 of 5,034
-items now compute a different information than the old literal 4 did. The five unguessable types are
-**100% of the 20 and 50 most-informative items and 69% of the top 200**. Max information at c = 0 is
-`0.25a²` against `0.15a²` at c = 0.25, so an unguessable item beats every multiple-choice item at the
-same difficulty, by a lot. Left alone, greedy selection serves these five types almost exclusively in
-the spatial and fluid slots.
+### The guessing floor is now derived per item, and a share of each session is held for multiple choice
 
-**And all five are unmapped to CogAT.** `SPA-MAZE-01`, `SPA-PIPES-01`, `SPA-TANGRAM-01` and
-`SPA-HIDDENCUBE-01` are in the unmapped spatial list in section 2, and `CX-check-01` is in the unmapped
-context pair. So the honest guessing model points selection directly at the types with no CogAT
-alignment, which runs against requirement 2 and against the pool filter 2.3 is meant to add. The
-per-domain floor in `session.ts:222-226` limits the damage to the spatial and fluid slots and does
-nothing within them.
+Decided by Felipe, 8 Aug 2026, after the c = 0 version showed the five constructed types taking 100% of
+the 50 most-informative items.
 
-Three ways out, none of them chosen here: give the stepper and the sort their real spaces (1/61, 1/2^n)
-so they stop being strictly dominant; land 2.3 and filter the pool to mapped types for any
-CogAT-aligned instrument; or cap per type as well as per domain. Worth settling before 1a.4, because
-per-domain intervals computed off a spatial slot made entirely of maze and tangram items will read as a
-spatial finding and will not be one.
+**First: c = 0 was replaced by the space the item declares.** `optionCountOf` no longer returns null for
+anything in the bank — every one of the 5,034 servable items now has a response space read off its own
+content:
+
+| Type | Space, from content | c |
+|---|---|---|
+| `SPA-HIDDENCUBE-01` | declared stepper, `(max-min)/step + 1` | 1/61 |
+| `SPA-MAZE-01`, `SPA-PIPES-01` | `R*C + 1`; the answer is a count the grid bounds | 1/17 to 1/145 |
+| `SPA-TANGRAM-01` | `R*C*L + 1` | 1/10 to 1/37 |
+| `CX-check-01` | `binCount^tokenCount` | 1/64 to ~0 |
+| `FLU-CONCEPT-01` | `2^probes`, keyed all-or-nothing | 1/8 |
+
+Per item, not per type, and from the item's own content rather than from the spread of keys in the bank
+— setting a guessing floor from the answers would be circular and would move whenever a bank grew. The
+useful property is that it falls as the item gets harder: a 4x4 maze is one guess in 17 and a 12x12 one
+is one in 145. Across the pool the floor now runs min 0.0000, p25 0.20, median 0.25, p75 0.25, max 0.50.
+It is still an approximation — a child does not guess uniformly over a stepper — and the code says so.
+
+**Second, and this is the part the floor could not do: a small guessing chance does not rebalance
+selection.** Max information at the decision point, a = 1.5:
+
+| c | | max I | vs 4-option |
+|---|---|---|---|
+| 0 | unguessable | 0.5625 | 1.62x |
+| 0.05 | flat small | 0.5100 | 1.47x |
+| 0.07 | a 14-answer placement | 0.4908 | 1.41x |
+| 0.25 | four options | 0.3481 | 1.00x |
+
+A constructed item would need a genuine one-in-four guess merely to draw level. **Constructed items
+really are more informative per item; that is not a modelling artefact to fix.** What they are not is
+quick, and a child answers several multiple-choice questions in the time one tangram placement takes. So
+the engine maximises information per *item* while the product wants information per *minute*.
+
+`minMultipleChoiceShare` (default 0.5) holds at least half of each session for multiple choice, as a
+running share so it scales from a 4-item Taster to a 20-item Thorough without knowing the cap. It is the
+same shape as the per-domain floor directly above it in `nextItem`, and it stands down when the pool has
+no multiple-choice item left, because a coverage rule that can empty the pool would report
+`bank-exhausted` on a bank that is not exhausted.
+
+**It is a serving rule and deliberately not a change to the model.** Penalising a constructed item's
+information to get this outcome would corrupt the number the stop rule and the pass decision both read.
+The information stays honest; only what may be drawn is constrained. Measured over a 16-item session on
+the full pool: 13% multiple choice before, 50% after.
+
+**The successor is information per expected second**, once `latencyMs` is forwarded (1b.5) and per-type
+floors exist (1b.3). That states the real tradeoff instead of approximating it with a quota, and
+`DEFAULT_MIN_MULTIPLE_CHOICE_SHARE` should be deleted then rather than kept alongside it.
+
+**Still true, and still unaddressed: the five constructed types are all unmapped to CogAT.**
+`SPA-MAZE-01`, `SPA-PIPES-01`, `SPA-TANGRAM-01` and `SPA-HIDDENCUBE-01` are in the unmapped spatial list
+in section 2 and `CX-check-01` is in the unmapped context pair. The format floor caps them at half a
+session rather than resolving the alignment question; 2.3's pool filter is what actually resolves it.
+
+**And one thing this exposed that nobody has looked at: there is no per-type diversity rule at all.** A
+16-item session over the full pool serves `CX-check-01` eight times and `SPA-VIEW-01` five, about four
+distinct types in sixteen questions. It is not caused by any of today's changes and it was worse before
+them — at share 0 the same session is eleven `CX-check-01` items out of sixteen — because items of one
+type share a difficulty band and a parameter set, so whatever wins once wins repeatedly. Coverage is
+enforced per domain and per format and nowhere per type. Worth a decision before 1a.4: a per-domain
+interval whose spatial evidence is five `SPA-VIEW-01` items is a statement about one type, not about
+spatial ability, and 1a.7 already forbids reporting a domain-triggered pass as a domain strength.
 
 **Task 1a.6 — Calibrate discrimination from response data.** Needs real attempts. Until then keep it
 fixed and say so; `@gt/stats` already computes point-biserial per item

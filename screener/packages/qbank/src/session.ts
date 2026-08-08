@@ -6,6 +6,7 @@ import {
   type ServedItem,
   domainOf,
   optionCountOf,
+  responseFormatOf,
   scoreResponse,
   toLogits,
   toServed,
@@ -113,6 +114,11 @@ export interface QbankSessionConfig {
   readonly perDomainMinimum: number;
   /** Recommend once P(above threshold) reaches this. */
   readonly recommendProbability: number;
+  /**
+   * Least share of the session to fill with multiple-choice items. Defaults to
+   * `DEFAULT_MIN_MULTIPLE_CHOICE_SHARE`; set 0 to select on information alone.
+   */
+  readonly minMultipleChoiceShare?: number;
 }
 
 export interface QbankServe {
@@ -186,6 +192,32 @@ const FIXED_DISCRIMINATION = 1.5;
  */
 const UNGUESSABLE = 0;
 
+/**
+ * Least share of a session to fill with multiple-choice items.
+ *
+ * **Decided by Felipe, 8 Aug 2026, and unvalidated like every other threshold here.** A constructed
+ * response is genuinely more informative per item — max information at the decision point is `0.25a²`
+ * at c = 0 against `0.15a²` for a four-option item, and even a fairly guessable 1-in-14 placement is
+ * still 1.41x — so selection on information alone fills a session with mazes and token sorts and never
+ * asks a multiple-choice question. That is not a modelling error to correct; those items really do
+ * separate candidates better per item.
+ *
+ * What they are not is quick. Multiple choice is one pick, and a child answers several in the time one
+ * tangram placement takes, so a session made entirely of constructed items either runs long or asks
+ * very little. Holding half the session for multiple choice trades information per item for information
+ * per minute.
+ *
+ * **This is a serving rule and deliberately not a change to the model.** Penalising a constructed item's
+ * information to get this outcome would corrupt the number the stop rule and the pass decision read.
+ * The information stays honest; only what may be drawn is constrained — the same shape as the
+ * per-domain floor above it.
+ *
+ * **The successor to this is information per expected second**, once `latencyMs` is forwarded (1b.5) and
+ * per-type floors exist (1b.3). That expresses the real tradeoff instead of approximating it with a
+ * quota, and this constant should be deleted rather than kept alongside it.
+ */
+export const DEFAULT_MIN_MULTIPLE_CHOICE_SHARE = 0.5;
+
 export class QbankSession {
   private readonly posterior = new Posterior();
   private readonly attempts: QbankAttempt[] = [];
@@ -194,6 +226,8 @@ export class QbankSession {
   private pending: { record: BankRecord; serve: QbankServe } | null = null;
   private stopReason: StopReason | null = null;
   private unscorable = 0;
+  /** Counted against `minMultipleChoiceShare`, and counted whether or not the response could be marked. */
+  private multipleChoiceServed = 0;
 
   /** Every scorable record across the banks this session may draw on, with its domain resolved. */
   private readonly pool: readonly { record: BankRecord; domain: Domain; b: number }[];
@@ -269,10 +303,34 @@ export class QbankSession {
         this.pool.some((p) => p.domain === d && !this.usedItemIds.has(p.record.itemId)),
     );
 
+    /**
+     * Whether this draw is owed to multiple choice.
+     *
+     * A running share rather than a fixed count, so it scales across the precision steps without knowing
+     * the item cap: a Taster of 4 and a Thorough of 20 both come out at the configured share. At 0.5 it
+     * alternates — owed, free, owed, free — which is the intent.
+     */
+    const share = this.config.minMultipleChoiceShare ?? DEFAULT_MIN_MULTIPLE_CHOICE_SHARE;
+    const owedMultipleChoice =
+      share > 0 && this.multipleChoiceServed < share * (this.usedItemIds.size + 1);
+
+    const eligible = (entry: { record: BankRecord; domain: Domain }): boolean =>
+      !this.usedItemIds.has(entry.record.itemId) && (short.length === 0 || short.includes(entry.domain));
+
+    /**
+     * The format restriction applies only if something is left to satisfy it with. A caller may restrict
+     * the pool to one type, and a coverage rule that can empty the pool would stop the session early and
+     * report `bank-exhausted` on a bank that is not exhausted — a worse failure than serving a second
+     * constructed item in a row.
+     */
+    const restrictToMultipleChoice =
+      owedMultipleChoice &&
+      this.pool.some((e) => eligible(e) && responseFormatOf(e.record) === 'multiple-choice');
+
     let best: { record: BankRecord; domain: Domain; info: number } | null = null;
     for (const entry of this.pool) {
-      if (this.usedItemIds.has(entry.record.itemId)) continue;
-      if (short.length > 0 && !short.includes(entry.domain)) continue;
+      if (!eligible(entry)) continue;
+      if (restrictToMultipleChoice && responseFormatOf(entry.record) !== 'multiple-choice') continue;
       const info = information(threshold, this.paramsOf(entry.b, entry.record));
       if (!best || info > best.info) best = { record: entry.record, domain: entry.domain, info };
     }
@@ -291,7 +349,9 @@ export class QbankSession {
       selectionReason:
         short.length > 0
           ? `blueprint minimum for ${best.domain}; information ${best.info.toFixed(3)} at threshold ${threshold.toFixed(2)}`
-          : `highest information at threshold ${threshold.toFixed(2)} (${best.info.toFixed(3)}) from ${this.pool.length - this.usedItemIds.size} remaining`,
+          : restrictToMultipleChoice
+            ? `multiple-choice share (${this.multipleChoiceServed} of ${this.usedItemIds.size} so far, floor ${share}); information ${best.info.toFixed(3)} at threshold ${threshold.toFixed(2)}`
+            : `highest information at threshold ${threshold.toFixed(2)} (${best.info.toFixed(3)}) from ${this.pool.length - this.usedItemIds.size} remaining`,
     };
     this.pending = { record: best.record, serve };
     return serve;
@@ -320,6 +380,7 @@ export class QbankSession {
     const pAfter = this.posterior.probabilityAbove(threshold);
     this.usedItemIds.add(record.itemId);
     this.perDomain.set(serve.domain, (this.perDomain.get(serve.domain) ?? 0) + 1);
+    if (responseFormatOf(record) === 'multiple-choice') this.multipleChoiceServed += 1;
     this.attempts.push({
       ordinal: this.attempts.length + 1,
       itemId: record.itemId,

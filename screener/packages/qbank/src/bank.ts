@@ -238,7 +238,70 @@ export function optionCountOf(record: BankRecord): number | null {
   const probes = content.probes;
   if (Array.isArray(probes) && probes.length > 0) return 2 ** probes.length;
 
+  /**
+   * A declared stepper. `SPA-HIDDENCUBE-01` asks for a number between 0 and 60, so a blind answer is
+   * right one time in 61 rather than never.
+   */
+  const response = content.response as { mode?: string; min?: number; max?: number; step?: number } | undefined;
+  if (
+    response?.mode === 'stepper' &&
+    typeof response.min === 'number' &&
+    typeof response.max === 'number' &&
+    typeof response.step === 'number' &&
+    response.step > 0
+  ) {
+    return Math.floor((response.max - response.min) / response.step) + 1;
+  }
+
+  /**
+   * A count over a grid. `SPA-MAZE-01` answers with a path length, `SPA-PIPES-01` with a number of
+   * pipes, `SPA-TANGRAM-01` with a filled-cell count. Every key in all three banks is within
+   * `R * C * (L || 1)`, so the grid bounds the answer and the space is that many values plus zero.
+   *
+   * Deriving it per item rather than per type is the point: a 4x4 maze is one guess in 17 and a 12x12
+   * one is one in 145, so the floor falls as the item gets harder, which is the behaviour wanted. A
+   * per-type constant taken from the spread of keys in the bank would also be circular — it would set
+   * the guessing floor from the answers, and move whenever a bank grew.
+   */
+  const grid = content.grid as { R?: number; C?: number; L?: number } | undefined;
+  if (typeof grid?.R === 'number' && typeof grid.C === 'number') {
+    const cells = grid.R * grid.C * (typeof grid.L === 'number' ? grid.L : 1);
+    if (cells > 0) return cells + 1;
+  }
+
+  /**
+   * An assignment of every token to a bin. `CX-check-01` has 6 to 14 tokens over 2 to 4 bins, so the
+   * space runs from 64 to several million — effectively unguessable, but derived rather than asserted.
+   */
+  const { binCount, tokenCount } = content as { binCount?: number; tokenCount?: number };
+  if (typeof binCount === 'number' && typeof tokenCount === 'number' && binCount > 1 && tokenCount > 0) {
+    return binCount ** tokenCount;
+  }
+
   return null;
+}
+
+/**
+ * How the candidate produces an answer, which is a different question from how large the space is.
+ *
+ * Multiple choice means one pick from a list the item puts in front of them. Everything else — a number
+ * on a stepper, a count over a grid, an assignment of tokens to bins, a run of yes/no probes — is
+ * constructed: the candidate builds the answer rather than choosing it.
+ *
+ * The distinction exists because constructed items are genuinely more informative per item and much
+ * slower to answer. Selection maximises information per item, so left alone it fills a session with
+ * them. `session.ts` uses this to hold a share of each session for multiple choice.
+ */
+export type ResponseFormat = 'multiple-choice' | 'constructed';
+
+/** Takes anything carrying content, so a host can classify a `ServedItem` without the answer. */
+export function responseFormatOf(record: { readonly content: Record<string, unknown> }): ResponseFormat {
+  const content = record.content ?? {};
+  for (const field of ['options', 'candidates', 'rows', 'claims']) {
+    const list = content[field];
+    if (Array.isArray(list) && list.length > 0) return 'multiple-choice';
+  }
+  return 'constructed';
 }
 
 /** Domain labels the banks use, mapped to the four the engine blueprints against. */

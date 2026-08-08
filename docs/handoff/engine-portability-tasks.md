@@ -40,20 +40,27 @@ Only 2,373 of 5,034 servable items had four options. **1,695 items changed infor
 the 50 most-informative items survived** — selection now prefers many-option items, correctly, but it is
 a real change in what gets served. Full write-up in the 1a.5 entry of `engine-portability-todo.md`.
 
-**Resolved 8 Aug (Felipe): an item that enumerates nothing is unguessable, c = 0.** Applies to 528 items
-across `CX-check-01`, `SPA-MAZE-01`, `SPA-PIPES-01`, `SPA-TANGRAM-01` and `SPA-HIDDENCUBE-01`, via a
-named `UNGUESSABLE` in `session.ts`. Four other types name their option list `candidates`, `rows` or
-`claims` and are now read directly; `FLU-CONCEPT-01` counts 2^probes because its three yes/no probes are
-keyed as one all-or-nothing string.
+**Resolved 8 Aug (Felipe), in two parts.** Every servable item now derives a guessing floor from its own
+content — a declared stepper range, a count bounded by the grid, `binCount^tokenCount`, or `2^probes` —
+so `optionCountOf` returns null for nothing in the bank and the floor falls as an item gets harder.
+Four types that named their option list `candidates`, `rows` or `claims` are read directly.
 
-**New decision this created, and it should be settled before task 3 (`1a.4`).** Those five unguessable
-types are **100% of the 50 most-informative items and 69% of the top 200**, because max information at
-c = 0 is `0.25a²` against `0.15a²` at c = 0.25. Greedy selection will serve them almost exclusively in
-the spatial and fluid slots. **All five are unmapped to CogAT** (see `2.2`), so the honest guessing model
-points selection at exactly the types with no alignment, against requirement 2. Options: give the
-stepper and the sort their real spaces (1/61, 1/2^n); land `2.3` and filter to mapped types; or cap per
-type as well as per domain. `1a.4`'s per-domain intervals will otherwise report a spatial band computed
-from maze and tangram items only.
+A small floor cannot rebalance selection: a constructed item needs a genuine 1-in-4 guess just to draw
+level with a four-option item, so they really are more informative per item. They are also much slower to
+answer, so `minMultipleChoiceShare` (default 0.5) holds at least half of each session for multiple
+choice, as a running share that scales from a 4-item Taster to a 20-item Thorough. Measured on a 16-item
+session over the full pool: 13% multiple choice before, 50% after. It is a serving rule, not a change to
+the model — penalising a constructed item's information would corrupt the number the stop rule reads.
+Superseded by information-per-expected-second once `1b.5` forwards `latencyMs`.
+
+**Two things still open, both worth settling before task 3 (`1a.4`):**
+- The five constructed types are all unmapped to CogAT (see `2.2`). The share caps them at half a session
+  rather than resolving alignment; `2.3`'s pool filter is what resolves it.
+- **There is no per-type diversity rule anywhere.** A 16-item session serves `CX-check-01` eight times and
+  `SPA-VIEW-01` five — about four distinct types in sixteen questions. Pre-existing and worse before
+  today (eleven of sixteen), because one type's items share a difficulty band, so whatever wins once wins
+  repeatedly. Coverage is enforced per domain and per format and never per type. `1a.4` would otherwise
+  report a spatial band whose evidence is five items of one type.
 
 **Also found, and it blocks task 13:** `npm run sim` never touches qbank, so `1b.8` cannot baseline off
 it as written. See the 1a.5 entry.
